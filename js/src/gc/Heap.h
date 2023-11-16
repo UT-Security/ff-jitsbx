@@ -652,6 +652,9 @@ class TenuredChunk : public TenuredChunkBase {
   friend class MarkingValidator;
 
  public:
+  uint32_t getZone() { return info.zoneID; }
+  void setZone(uint32_t zoneID) { info.zoneID = zoneID; }
+
   static TenuredChunk* fromAddress(uintptr_t addr) {
     addr &= ~ChunkMask;
     return reinterpret_cast<TenuredChunk*>(addr);
@@ -703,6 +706,7 @@ class TenuredChunk : public TenuredChunkBase {
   void decommitFreeArenasWithoutUnlocking(const AutoLockGC& lock);
 
   static void* allocate(GCRuntime* gc);
+  static void* allocateForZone(GCRuntime* gc, JS::Zone* zone);
   static TenuredChunk* emplace(void* ptr, GCRuntime* gc,
                                bool allMemoryCommitted);
 

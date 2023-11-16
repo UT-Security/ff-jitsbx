@@ -156,6 +156,8 @@ template class TrackedAllocPolicy<TrackingKind::Cell>;
 
 JS::Zone::Zone(JSRuntime* rt, Kind kind)
     : ZoneAllocator(rt, kind),
+      zoneID(++rt->zoneID),
+      lastChunk(0),
       arenas(this),
       data(nullptr),
       tenuredBigInts(0),
@@ -184,6 +186,9 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
              static_cast<JS::shadow::Zone*>(this));
   MOZ_ASSERT_IF(isAtomsZone(), rt->gc.zones().empty());
 
+  // Reserve memory for zone
+  MMapInternal((void*)((uint64_t)this->zoneID << 32), (size_t)1 << 32, false);
+
   updateGCStartThresholds(rt->gc);
   rt->gc.nursery().setAllocFlagsForZone(this);
 }
@@ -209,6 +214,16 @@ bool Zone::init() {
   regExps_.ref() = make_unique<RegExpZone>(this);
   return regExps_.ref() && gcEphemeronEdges().init() &&
          gcNurseryEphemeronEdges().init();
+}
+
+void* Zone::allocateNewChunk() {
+  size_t chunkShift = 20;
+  size_t chunkSize = size_t(1) << chunkShift;
+  void* address =
+      (void*)(((size_t)this->zoneID << 32) + (this->lastChunk++ << chunkShift));
+
+  UnprotectPages(address, chunkSize);
+  return address;
 }
 
 void Zone::setNeedsIncrementalBarrier(bool needs) {

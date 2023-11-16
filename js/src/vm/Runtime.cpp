@@ -85,7 +85,8 @@ extern bool DefaultHostEnsureCanAddPrivateElementCallback(JSContext* cx,
 static size_t ReturnZeroSize(const void* p) { return 0; }
 
 JSRuntime::JSRuntime(JSRuntime* parentRuntime)
-    : parentRuntime(parentRuntime),
+    : zoneID(0),
+      parentRuntime(parentRuntime),
 #ifdef DEBUG
       updateChildRuntimeCount(parentRuntime),
       initialized_(false),

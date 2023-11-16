@@ -352,7 +352,8 @@ void* ArenaLists::refillFreeListAndAllocate(
     maybeLock.emplace(rt);
   }
 
-  TenuredChunk* chunk = rt->gc.pickChunk(maybeLock.ref());
+  // TenuredChunk* chunk = rt->gc.pickChunk(maybeLock.ref());
+  TenuredChunk* chunk = rt->gc.pickChunkForZone(maybeLock.ref(), zone_);
   if (!chunk) {
     return nullptr;
   }
@@ -547,6 +548,38 @@ TenuredChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
   return chunk;
 }
 
+TenuredChunk* GCRuntime::getOrAllocChunkForZone(AutoLockGCBgAlloc& lock,
+                                                Zone* zone) {
+  TenuredChunk* chunk = nullptr;
+  for (ChunkPool::Iter iter(emptyChunks(lock)); !iter.done();) {
+    chunk = iter.get();
+    iter.next();
+    if (chunk->getZone() == zone->zoneID) {
+      emptyChunks(lock).remove(chunk);
+      SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
+      chunk->initBase(rt, nullptr);
+      MOZ_ASSERT(chunk->unused());
+      break;
+    }
+  }
+  if (!chunk) {
+    void* ptr = TenuredChunk::allocateForZone(this, zone);
+    if (!ptr) {
+      return nullptr;
+    }
+
+    chunk = TenuredChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
+    chunk->setZone(zone->zoneID);
+    MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
+  }
+
+  if (wantBackgroundAllocation(lock)) {
+    lock.tryToStartBackgroundAllocation();
+  }
+
+  return chunk;
+}
+
 void GCRuntime::recycleChunk(TenuredChunk* chunk, const AutoLockGC& lock) {
 #ifdef DEBUG
   MOZ_ASSERT(chunk->unused());
@@ -566,6 +599,32 @@ TenuredChunk* GCRuntime::pickChunk(AutoLockGCBgAlloc& lock) {
   }
 
   TenuredChunk* chunk = getOrAllocChunk(lock);
+  if (!chunk) {
+    return nullptr;
+  }
+
+#ifdef DEBUG
+  chunk->verify();
+  MOZ_ASSERT(chunk->unused());
+  MOZ_ASSERT(!fullChunks(lock).contains(chunk));
+  MOZ_ASSERT(!availableChunks(lock).contains(chunk));
+#endif
+
+  availableChunks(lock).push(chunk);
+
+  return chunk;
+}
+
+TenuredChunk* GCRuntime::pickChunkForZone(AutoLockGCBgAlloc& lock, Zone* zone) {
+  for (ChunkPool::Iter iter(availableChunks(lock)); !iter.done();) {
+    TenuredChunk* current = iter.get();
+    iter.next();
+    if (current->getZone() == zone->zoneID) {
+      return current;
+    }
+  }
+
+  TenuredChunk* chunk = getOrAllocChunkForZone(lock, zone);
   if (!chunk) {
     return nullptr;
   }
@@ -610,6 +669,16 @@ void BackgroundAllocTask::run(AutoLockHelperThreadState& lock) {
 /* static */
 void* TenuredChunk::allocate(GCRuntime* gc) {
   void* chunk = MapAlignedPages(ChunkSize, ChunkSize);
+  if (!chunk) {
+    return nullptr;
+  }
+
+  gc->stats().count(gcstats::COUNT_NEW_CHUNK);
+  return chunk;
+}
+
+void* TenuredChunk::allocateForZone(GCRuntime* gc, Zone* zone) {
+  void* chunk = zone->allocateNewChunk();
   if (!chunk) {
     return nullptr;
   }

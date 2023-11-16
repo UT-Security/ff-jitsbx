@@ -164,6 +164,11 @@ namespace JS {
 // to delete the last compartment in a live zone.
 class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
  public:
+  // ID for current zone
+  uint32_t zoneID;
+  // Last allocated chunk in zone
+  uint32_t lastChunk;
+
   js::gc::ArenaLists arenas;
 
   // Per-zone data for use by an embedder.
@@ -328,6 +333,8 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     bool resetNurseryAllocSites = false;
     bool resetPretenuredAllocSites = false;
   };
+
+  void* allocateNewChunk();
 
   void discardJitCode(JS::GCContext* gcx,
                       const DiscardOptions& options = DiscardOptions());

@@ -112,6 +112,9 @@ struct TenuredChunkInfo {
 
   /* Number of free, committed arenas. */
   uint32_t numArenasFreeCommitted;
+
+  /* Zone ID assigned to chunk */
+  uint32_t zoneID;
 };
 
 /*

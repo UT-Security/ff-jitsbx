@@ -422,6 +422,15 @@ static inline bool IsInvalidRegion(void* region, size_t length) {
 }
 #endif
 
+void* MMapInternal(void* region, size_t length, bool rw) {
+  MOZ_ASSERT(length > 0);
+
+  if (rw)
+    return MapInternal<Commit::Yes, PageAccess::ReadWrite>(region, length);
+
+  return MapInternal<Commit::No, PageAccess::None>(region, length);
+}
+
 void* MapAlignedPages(size_t length, size_t alignment) {
   MOZ_RELEASE_ASSERT(length > 0 && alignment > 0);
   MOZ_RELEASE_ASSERT(length % pageSize == 0);

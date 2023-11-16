@@ -567,6 +567,7 @@ class GCRuntime {
 #endif
 
   TenuredChunk* getOrAllocChunk(AutoLockGCBgAlloc& lock);
+  TenuredChunk* getOrAllocChunkForZone(AutoLockGCBgAlloc& lock, Zone* zone);
   void recycleChunk(TenuredChunk* chunk, const AutoLockGC& lock);
 
 #ifdef JS_GC_ZEAL
@@ -663,6 +664,7 @@ class GCRuntime {
   // For ArenaLists::allocateFromArena()
   friend class ArenaLists;
   TenuredChunk* pickChunk(AutoLockGCBgAlloc& lock);
+  TenuredChunk* pickChunkForZone(AutoLockGCBgAlloc& lock, Zone* zone);
   Arena* allocateArena(TenuredChunk* chunk, Zone* zone, AllocKind kind,
                        ShouldCheckThresholds checkThresholds,
                        const AutoLockGC& lock);

@@ -32,6 +32,9 @@ size_t VirtualMemoryLimit();
 // range. On these platforms we allocate at random addresses.
 bool UsingScattershotAllocator();
 
+// System mmap
+void* MMapInternal(void* region, size_t length, bool rw = true);
+
 // Allocate or deallocate pages from the system with the given alignment.
 // Pages will be read/write-able.
 void* MapAlignedPages(size_t length, size_t alignment);
