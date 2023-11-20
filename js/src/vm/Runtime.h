@@ -307,6 +307,8 @@ struct JSRuntime {
   js::MainThreadData<js::InterpreterStack> interpreterStack_;
 
  public:
+  uint32_t zoneID;
+
   js::InterpreterStack& interpreterStack() { return interpreterStack_.ref(); }
 
   /*
