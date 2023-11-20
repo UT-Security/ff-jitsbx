@@ -73,6 +73,8 @@ void* gc::CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
     return nullptr;
   }
 
+  // ask2374
+  /*
   if (heap < cx->zone()->minHeapToTenure(traceKind)) {
     if (!site) {
       site = cx->zone()->unknownAllocSite(traceKind);
@@ -93,6 +95,8 @@ void* gc::CellAllocator::AllocNurseryOrTenuredCell(JSContext* cx,
       return nullptr;
     }
   }
+  */
+  // ask2374
 
   return GCRuntime::tryNewTenuredThing<allowGC>(cx, allocKind, thingSize);
 }

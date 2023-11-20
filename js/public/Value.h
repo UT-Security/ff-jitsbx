@@ -21,6 +21,9 @@
 #include "jstypes.h"
 
 #include "js/HeapAPI.h"
+// ask2374
+#include "js/JitSandbox.h"
+// ask2374
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 
@@ -958,6 +961,10 @@ class alignas(8) Value {
     uint64_t ptrBits =
         (asBits_ ^ JSVAL_SHIFTED_TAG_OBJECT) & ~detail::ValueObjectOrNullBit;
     MOZ_ASSERT((ptrBits & 0x7) == 0);
+
+    // ask2374
+    SANDBOX_LOG("toObjectOrNull,%p\n", (void*)ptrBits);
+    // ask2374
     return reinterpret_cast<JSObject*>(ptrBits);
 #endif
   }

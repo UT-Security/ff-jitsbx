@@ -24,6 +24,9 @@
 #include "jit/JitOptions.h"
 #include "jit/Simulator.h"
 #include "js/Utility.h"
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
 #include "threading/ProtectedData.h"  // js::AutoNoteSingleThreadedRegion
 #include "util/Poison.h"
 #include "vm/ArrayBufferObject.h"
@@ -39,6 +42,18 @@
 using js::FutexThread;
 using JS::detail::InitState;
 using JS::detail::libraryInitState;
+
+// ask2374
+// initialize globals
+bool LOG_OPT;
+bool SANDBOX_OPT;
+FILE* sandbox_log;
+std::atomic<uint32_t> max_zone_id(0);
+std::unordered_map<uint32_t, void*> zone_map;
+std::mutex log_mutex;
+std::mutex map_mutex;
+thread_local uint32_t zone_id;
+// ask2374
 
 InitState JS::detail::libraryInitState;
 
@@ -115,6 +130,25 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 #else
   MOZ_RELEASE_ASSERT(!isDebugBuild);
 #endif
+
+  // ask2374
+  char* LOG_ENV = getenv("LOG");
+  LOG_OPT = LOG_ENV != NULL && strncmp(LOG_ENV, "1", 1) == 0;
+  if (LOG_OPT) {
+    char log_file_path[100];
+    snprintf(log_file_path, 100, "/tmp/mozilla/%d.log", getpid());
+    log_mutex.lock();
+    char* tmp_directory = "/tmp/mozilla/";
+    struct stat st = {0};
+    if (stat(tmp_directory, &st) == -1) {
+      mkdir(tmp_directory, 0700);
+    }
+    sandbox_log = fopen(log_file_path, "w");
+    log_mutex.unlock();
+  }
+  char* SANDBOX_ENV = getenv("SANDBOX");
+  SANDBOX_OPT = SANDBOX_ENV != NULL && strncmp(SANDBOX_ENV, "1", 1) == 0;
+  // ask2374
 
   MOZ_ASSERT(libraryInitState == InitState::Uninitialized,
              "must call JS_Init once before any JSAPI operation except "
