@@ -225,6 +225,9 @@
 #include "js/HeapAPI.h"  // JS::GCCellPtr
 #include "js/Printer.h"
 #include "js/SliceBudget.h"
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
 #include "util/DifferentialTesting.h"
 #include "vm/BigIntType.h"
 #include "vm/EnvironmentObject.h"
@@ -840,6 +843,10 @@ bool GCRuntime::init(uint32_t maxbytes) {
 
     MOZ_ALWAYS_TRUE(tunables.setParameter(JSGC_MAX_BYTES, maxbytes));
 
+    // ask2374
+    zone_id = ++max_zone_id;
+    // ask2374
+
     if (!nursery().init(lock)) {
       return false;
     }
@@ -873,7 +880,12 @@ bool GCRuntime::init(uint32_t maxbytes) {
     return false;
   }
 
-  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone);
+  // ask2374
+  zone_id = ++max_zone_id;
+  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, zone_id);
+  zone_id = 0;
+  // ask2374
+
   if (!zone || !zone->init()) {
     return false;
   }
@@ -980,7 +992,12 @@ bool GCRuntime::freezeSharedAtomsZone() {
   sharedAtomsZone_ = atomsZone();
   zones().clear();
 
-  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone);
+  // ask2374
+  zone_id = ++max_zone_id;
+  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, zone_id);
+  zone_id = 0;
+  // ask2374
+
   if (!zone || !zone->init()) {
     return false;
   }
@@ -4713,7 +4730,11 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
       kind = Zone::SystemZone;
     }
 
-    zoneHolder = MakeUnique<Zone>(cx->runtime(), kind);
+    // ask2374
+    zone_id = ++max_zone_id;
+    zoneHolder = MakeUnique<Zone>(cx->runtime(), kind, zone_id);
+    // ask2374
+
     if (!zoneHolder || !zoneHolder->init()) {
       ReportOutOfMemory(cx);
       return nullptr;

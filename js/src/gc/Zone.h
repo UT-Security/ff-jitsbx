@@ -165,7 +165,7 @@ namespace JS {
 class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
  public:
   // ID for current zone
-  uint32_t zoneID;
+  uint32_t zoneId;
   // Last allocated chunk in zone
   uint32_t lastChunk;
 
@@ -317,7 +317,9 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
     return static_cast<Zone*>(zoneAlloc);
   }
 
-  explicit Zone(JSRuntime* rt, Kind kind = NormalZone);
+  // ask2374
+  explicit Zone(JSRuntime* rt, Kind kind = NormalZone, uint32_t zoneId = 0);
+  // ask2374
   ~Zone();
 
   [[nodiscard]] bool init();

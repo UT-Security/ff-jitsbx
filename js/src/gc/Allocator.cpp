@@ -555,10 +555,12 @@ TenuredChunk* GCRuntime::getOrAllocChunk(AutoLockGCBgAlloc& lock) {
 TenuredChunk* GCRuntime::getOrAllocChunkForZone(AutoLockGCBgAlloc& lock,
                                                 Zone* zone) {
   TenuredChunk* chunk = nullptr;
+  bool found = false;
   for (ChunkPool::Iter iter(emptyChunks(lock)); !iter.done();) {
     chunk = iter.get();
     iter.next();
-    if (chunk->getZone() == zone->zoneID) {
+    if (chunk->getZone() == zone->zoneId) {
+      found = true;
       emptyChunks(lock).remove(chunk);
       SetMemCheckKind(chunk, sizeof(ChunkBase), MemCheckKind::MakeUndefined);
       chunk->initBase(rt, nullptr);
@@ -566,14 +568,14 @@ TenuredChunk* GCRuntime::getOrAllocChunkForZone(AutoLockGCBgAlloc& lock,
       break;
     }
   }
-  if (!chunk) {
+  if (!found) {
     void* ptr = TenuredChunk::allocateForZone(this, zone);
     if (!ptr) {
       return nullptr;
     }
 
     chunk = TenuredChunk::emplace(ptr, this, /* allMemoryCommitted = */ true);
-    chunk->setZone(zone->zoneID);
+    chunk->setZone(zone->zoneId);
     MOZ_ASSERT(chunk->info.numArenasFreeCommitted == 0);
   }
 
@@ -623,7 +625,7 @@ TenuredChunk* GCRuntime::pickChunkForZone(AutoLockGCBgAlloc& lock, Zone* zone) {
   for (ChunkPool::Iter iter(availableChunks(lock)); !iter.done();) {
     TenuredChunk* current = iter.get();
     iter.next();
-    if (current->getZone() == zone->zoneID) {
+    if (current->getZone() == zone->zoneId) {
       return current;
     }
   }

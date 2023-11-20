@@ -138,7 +138,7 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     char log_file_path[100];
     snprintf(log_file_path, 100, "/tmp/mozilla/%d.log", getpid());
     log_mutex.lock();
-    char* tmp_directory = "/tmp/mozilla/";
+    char tmp_directory[] = "/tmp/mozilla/";
     struct stat st = {0};
     if (stat(tmp_directory, &st) == -1) {
       mkdir(tmp_directory, 0700);

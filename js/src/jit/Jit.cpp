@@ -12,6 +12,9 @@
 #include "jit/JitCommon.h"
 #include "jit/JitRuntime.h"
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
 #include "vm/Interpreter.h"
 #include "vm/JitActivation.h"
 #include "vm/JSContext.h"

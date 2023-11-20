@@ -154,10 +154,12 @@ template class TrackedAllocPolicy<TrackingKind::Zone>;
 template class TrackedAllocPolicy<TrackingKind::Cell>;
 }  // namespace js
 
-JS::Zone::Zone(JSRuntime* rt, Kind kind)
+// ask2374
+JS::Zone::Zone(JSRuntime* rt, Kind kind, uint32_t zoneId)
     : ZoneAllocator(rt, kind),
-      zoneID(++rt->zoneID),
+      zoneId(zoneId),
       lastChunk(0),
+// ask2374
       arenas(this),
       data(nullptr),
       tenuredBigInts(0),
@@ -187,7 +189,7 @@ JS::Zone::Zone(JSRuntime* rt, Kind kind)
   MOZ_ASSERT_IF(isAtomsZone(), rt->gc.zones().empty());
 
   // Reserve memory for zone
-  MMapInternal((void*)((uint64_t)this->zoneID << 32), (size_t)1 << 32, false);
+  MMapInternal((void*)((uint64_t)this->zoneId << 32), (size_t)1 << 32, false);
 
   updateGCStartThresholds(rt->gc);
   rt->gc.nursery().setAllocFlagsForZone(this);
@@ -220,7 +222,7 @@ void* Zone::allocateNewChunk() {
   size_t chunkShift = 20;
   size_t chunkSize = size_t(1) << chunkShift;
   void* address =
-      (void*)(((size_t)this->zoneID << 32) + (this->lastChunk++ << chunkShift));
+      (void*)(((size_t)this->zoneId << 32) + (this->lastChunk++ << chunkShift));
 
   UnprotectPages(address, chunkSize);
   return address;
