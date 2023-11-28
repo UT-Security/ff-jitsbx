@@ -104,6 +104,10 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 #ifdef DEBUG
     nogc.reset();
 #endif
+    // ask2374
+    // js::sandbox::checkJitMask((void*)0x1337133713371337, (void*)0xdeadbeefdeadbeef);
+    __asm__ __volatile__("wrgsbase %0": : "r" ((uint64_t)zone_id << 32));
+    // ask2374
     CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */ nullptr,
                         calleeToken, envChain, /* osrNumStackValues = */ 0,
                         result.address());

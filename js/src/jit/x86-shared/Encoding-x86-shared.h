@@ -153,6 +153,9 @@ enum OneByteOpcodeID {
   OP_FPU6_ADDP = 0xDE,
   OP_FILD = 0xDF,
   OP_CALL_rel32 = 0xE8,
+  // ask2374
+  OP_CALL = 0xFF,
+  // ask2374
   OP_JMP_rel32 = 0xE9,
   OP_JMP_rel8 = 0xEB,
   PRE_LOCK = 0xF0,

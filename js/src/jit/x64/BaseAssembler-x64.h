@@ -9,6 +9,10 @@
 
 #include "jit/x86-shared/BaseAssembler-x86-shared.h"
 
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
+
 namespace js {
 namespace jit {
 
@@ -629,6 +633,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    jitSandboxCheck(offset, base, rax, 0);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
@@ -844,6 +849,45 @@ class BaseAssemblerX64 : public BaseAssembler {
     spew("jmp        *%d(%%rip)", ripOffset);
     m_formatter.oneByteRipOp(OP_GROUP5_Ev, ripOffset, GROUP5_OP_JMPN);
   }
+
+  // ask2374
+  void push_r(RegisterID reg) {
+    spew("push       %s", GPRegName(reg));
+    m_formatter.oneByteOp(OP_PUSH_EAX, reg);
+  }
+
+  void pop_r(RegisterID reg) {
+    spew("pop        %s", GPRegName(reg));
+    m_formatter.oneByteOp(OP_POP_EAX, reg);
+  }
+
+  /*void call(RegisterID reg) {
+    spew("call        %s", GPRegName(reg));
+    m_formatter.oneByteOp(OP_CALL, reg);
+  }*/
+  void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index, int scale) {
+    spew("jitSandboxCheck");
+    /*push_r(rax);
+    push_r(rdi);
+    movq_rr(index, rdi);
+    imulq_ir((int32_t)scale, rdi, rdi);
+    addq_rr(base, rdi);
+    addq_i32r(offset, rdi);
+    movq_i64r((int64_t)&(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(rdi);
+    pop_r(rax);*/
+    push_r(rax);
+    push_r(rbx);
+    movq_rr(index, rbx);
+    imulq_ir((int32_t)scale, rbx, rbx);
+    addq_rr(base, rbx);
+    addq_i32r(offset, rbx);
+    m_formatter.append((uint8_t*)"\xF3\x48\x0F\xAE\xC8\x48\xC1\xEB\x20\x48\xC1\xE3\x20\x48\x39\xD8\x74\x02\x0F\x0B", 20); // rdgsbase rax
+    pop_r(rbx);
+    pop_r(rax);
+  }
+  // ask2374
 
   void immediate64(int64_t imm) {
     spew(".quad      %lld", (long long)imm);

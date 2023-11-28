@@ -30,6 +30,13 @@
 
 #define SANDBOX_SIZE (((uint64_t)1) << 32)
 
+namespace js {
+namespace sandbox {
+
+void checkJitMask(void* ptr);
+
+}
+}
 #endif
 
 extern bool LOG_OPT;
@@ -40,4 +47,5 @@ extern thread_local uint32_t zone_id;
 extern std::mutex log_mutex;
 extern std::mutex map_mutex;
 extern std::unordered_map<uint32_t, void*> zone_map;
+extern void js::sandbox::checkJitMask(void* ptr);
 // ask2374
