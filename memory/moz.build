@@ -29,3 +29,9 @@ if CONFIG["MOZ_WIDGET_TOOLKIT"]:
 
 if CONFIG["MOZ_REPLACE_MALLOC"]:
     DIRS += ["replace"]
+
+# ask2374
+EXPORTS += [
+    "../js/src/sandbox/JitSandbox.h"
+]
+# ask2374

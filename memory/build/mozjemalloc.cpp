@@ -2239,6 +2239,11 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   }
   if (!ret) {
     ret = chunk_alloc_mmap(aSize, aAlignment);
+    // ask2374
+    // ret = chunk_alloc_mmap(aSize, aAlignment);
+    // JS::Zone* zone = js::GetContextZone(js::TlsContext.get());
+    // ret = (zone == nullptr) ? chunk_alloc_mmap(aSize, aAlignment) : zone->allocateNewChunk();
+    // ask2374
     if (aZeroed) {
       *aZeroed = true;
     }

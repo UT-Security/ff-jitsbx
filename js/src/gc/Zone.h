@@ -28,6 +28,9 @@
 #include "gc/ZoneAllocator.h"
 #include "js/GCHashTable.h"
 #include "js/Vector.h"
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
 #include "vm/AtomsTable.h"
 #include "vm/JSObject.h"
 #include "vm/JSScript.h"
@@ -167,7 +170,9 @@ class Zone : public js::ZoneAllocator, public js::gc::GraphNodeBase<JS::Zone> {
   // ID for current zone
   uint32_t zoneId;
   // Last allocated chunk in zone
-  uint32_t lastChunk;
+  // ask2374
+  std::atomic<uint32_t> lastChunk;
+  // ask2374
 
   js::gc::ArenaLists arenas;
 

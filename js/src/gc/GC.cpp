@@ -845,11 +845,11 @@ bool GCRuntime::init(uint32_t maxbytes) {
 
     // ask2374
     zone_id = ++max_zone_id;
-    // ask2374
 
-    if (!nursery().init(lock)) {
+    /*if (!nursery().init(lock)) {
       return false;
-    }
+    }*/
+    // ask2374
 
     const char* pretenureThresholdStr = getenv("JSGC_PRETENURE_THRESHOLD");
     if (pretenureThresholdStr && pretenureThresholdStr[0]) {

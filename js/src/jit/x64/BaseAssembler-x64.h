@@ -633,7 +633,8 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
-    jitSandboxCheck(offset, base, rax, 0);
+    if (base != rbp)
+      jitSandboxCheck(offset, base, rax, 0);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
@@ -861,31 +862,30 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp(OP_POP_EAX, reg);
   }
 
-  /*void call(RegisterID reg) {
-    spew("call        %s", GPRegName(reg));
-    m_formatter.oneByteOp(OP_CALL, reg);
-  }*/
   void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index, int scale) {
     spew("jitSandboxCheck");
-    /*push_r(rax);
-    push_r(rdi);
-    movq_rr(index, rdi);
-    imulq_ir((int32_t)scale, rdi, rdi);
-    addq_rr(base, rdi);
-    addq_i32r(offset, rdi);
-    movq_i64r((int64_t)&(js::sandbox::checkJitMask), rax);
-    call_r(rax);
-    pop_r(rdi);
-    pop_r(rax);*/
+    /*js::sandbox::checkJitMask(0);
     push_r(rax);
     push_r(rbx);
     movq_rr(index, rbx);
     imulq_ir((int32_t)scale, rbx, rbx);
     addq_rr(base, rbx);
     addq_i32r(offset, rbx);
-    m_formatter.append((uint8_t*)"\xF3\x48\x0F\xAE\xC8\x48\xC1\xEB\x20\x48\xC1\xE3\x20\x48\x39\xD8\x74\x02\x0F\x0B", 20); // rdgsbase rax
+    m_formatter.append((uint8_t*)"\x48\x89\xE8\x48\xC1\xE8\x20\x48\xC1\xE0\x20\x48\xC1\xEB\x20\x48\xC1\xE3\x20\x48\x39\xD8\x74\x0C\xF3\x48\x0F\xAE\xC8\x48\x39\xD8\x74\x02\x0F\x0B", 36);
     pop_r(rbx);
-    pop_r(rax);
+    pop_r(rax);*/
+    if (SANDBOX_OPT) {
+      push_r(rax);
+      push_r(rdi);
+      movq_rr(index, rdi);
+      imulq_ir((int32_t)scale, rdi, rdi);
+      addq_rr(base, rdi);
+      addq_i32r(offset, rdi);
+      movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+      call_r(rax);
+      pop_r(rdi);
+      pop_r(rax);
+    }
   }
   // ask2374
 
