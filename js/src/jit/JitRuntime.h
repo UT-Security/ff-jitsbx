@@ -123,6 +123,17 @@ class JitRuntime {
 
   MainThreadData<uint64_t> nextCompilationId_{0};
 
+	// Separate "unsafe" sandbox stack used by JIT'd code executing within the
+	// jit-sandbox.
+	WriteOnceData<uint8_t *> sbxStack_{nullptr};
+
+	// Pointer to memory where the current sandbox stack pointer is stored.
+	WriteOnceData<uintptr_t *> addrOfSbxStackPtr_{nullptr};
+
+	// Pointer to memory where the real "safe" stack pointer is stored when JIT
+	// code switches to use the sandbox stack. 
+	WriteOnceData<uintptr_t *> addrOfSavedStackPtr_{nullptr};
+
   // Buffer for OSR from baseline to Ion. To avoid holding on to this for too
   // long it's also freed in EnterBaseline and EnterJit (after returning from
   // JIT code).
@@ -233,6 +244,8 @@ class JitRuntime {
   // arbitrary JS code in a particular region. This is checked in RunScript.
   MainThreadData<uint32_t> disallowArbitraryCode_{false};
 #endif
+
+	bool initializeSbxStack(JSContext* cx);
 
   bool generateTrampolines(JSContext* cx);
   bool generateBaselineICFallbackCode(JSContext* cx);

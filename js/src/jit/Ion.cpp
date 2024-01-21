@@ -76,6 +76,8 @@
 #  include <sys/system_properties.h>
 #endif
 
+#include <sys/mman.h>
+
 using mozilla::CheckedInt;
 using mozilla::DebugOnly;
 
@@ -96,6 +98,9 @@ JitRuntime::~JitRuntime() {
   js_delete(interpreterEntryMap_.ref());
 
   js_delete(jitHintsMap_.ref());
+
+  js_free(sbxStack_);
+  munmap(addrOfSbxStackPtr_.ref(), 2 * sizeof(uintptr_t));
 }
 
 uint32_t JitRuntime::startTrampolineCode(MacroAssembler& masm) {
@@ -113,6 +118,10 @@ bool JitRuntime::initialize(JSContext* cx) {
 
   AutoAllocInAtomsZone az(cx);
   JitContext jctx(cx);
+
+  if(!initializeSbxStack(cx)) {
+    return false;
+  }
 
   if (!generateTrampolines(cx)) {
     return false;
@@ -149,6 +158,23 @@ bool JitRuntime::initialize(JSContext* cx) {
   // to point to the interpreter trampoline.
   cx->runtime()->selfHostedLazyScript.ref().jitCodeRaw_ =
       interpreterStub().value;
+
+  return true;
+}
+
+bool JitRuntime::initializeSbxStack(JSContext* cx) {
+  sbxStack_ = cx->pod_malloc<uint8_t>(64 * 4096); 
+  if (!sbxStack_) {
+    return false;
+  }
+
+  addrOfSbxStackPtr_ = (uintptr_t *)mmap(nullptr, 2 * sizeof(uintptr_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  if (!addrOfSbxStackPtr_) {
+    return false;
+  }
+  *addrOfSbxStackPtr_ = (uintptr_t)(sbxStack_ + 64 * 4096);
+  
+  addrOfSavedStackPtr_ = addrOfSbxStackPtr_ + 1;
 
   return true;
 }
