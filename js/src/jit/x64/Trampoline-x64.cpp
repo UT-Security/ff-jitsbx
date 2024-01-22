@@ -141,6 +141,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
+  
+  // NOTE(jit-sbx): switch to sandbox-stack to push arguments and
+  // setup JitFrameLayout.
+  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), r13);
+  masm.push(r13);
+  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  masm.mov(r13, rsp);
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -159,6 +166,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.shll(Imm32(3), r13);  // r13 = argc * sizeof(Value)
   static_assert(sizeof(Value) == 1 << 3, "Constant is baked in assembly code");
 
+  // TODO(jit-sbx): probably needs to account for switching to sandbox stack.
+  //
   // Guarantee stack alignment of Jit frames.
   //
   // This code compensates for the offset created by the copy of the vector of
@@ -168,13 +177,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // In the computation of the offset, we omit the size of the JitFrameLayout
   // which is pushed on the stack, as the JitFrameLayout size is a multiple of
   // the JitStackAlignment.
-  masm.mov(rsp, r12);
-  masm.subq(r13, r12);
+  // masm.mov(rsp, r12);
+  // masm.subq(r13, r12);
   static_assert(
       sizeof(JitFrameLayout) % JitStackAlignment == 0,
       "No need to consider the JitFrameLayout for aligning the stack");
-  masm.andl(Imm32(JitStackAlignment - 1), r12);
-  masm.subq(r12, rsp);
+  // masm.andl(Imm32(JitStackAlignment - 1), r12);
+  // masm.subq(r12, rsp);
 
   /***************************************************************
   Loop over argv vector, push arguments onto stack in reverse order
@@ -210,6 +219,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Push the descriptor.
   masm.pushFrameDescriptorForJitCall(FrameType::CppToJSJit, reg_argc, reg_argc);
 
+  // TODO(jit-sbx): completely ignoring OSR code for now.
   CodeLabel returnLabel;
   Label oomReturnLabel;
   {
@@ -303,6 +313,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.movq(scopeChain, R1.scratchReg());
   }
 
+  // NOTE(jit-sbx): switch to safe-stack before call.
+  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
+  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.
   masm.assertStackAlignment(JitStackAlignment, 2 * sizeof(uintptr_t));
@@ -317,9 +331,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&oomReturnLabel);
   }
 
+  // NOTE(jit-sbx): discard arguments and padding on sandbox-stack.
+  masm.pop(r13);
+  masm.storePtr(r13, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
+
   // Discard arguments and padding. Set rsp to the address of the
   // EnterJITStackEntry on the stack.
-  masm.lea(Operand(rbp, EnterJITStackEntry::offsetFromFP()), rsp);
+  // masm.lea(Operand(rbp, EnterJITStackEntry::offsetFromFP()), rsp);
 
   /*****************************************************************
   Place return value where it belongs, pop all saved registers

@@ -6339,9 +6339,14 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 #endif
 
   masm.push(FramePointer);
-  masm.moveStackPtrTo(FramePointer);
 
   masm.checkStackAlignment();
+
+  // NOTE(jit-sbx): switch to sandbox-stack
+  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+
+  masm.moveStackPtrTo(FramePointer);
 
   emitProfilerEnterFrame();
 
@@ -6412,6 +6417,11 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
   emitProfilerExitFrame();
 
   masm.moveToStackPtr(FramePointer);
+
+  // NOTE(jit-sbx): switch to safe-stack for return.
+  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
+  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+
   masm.pop(FramePointer);
 
   masm.ret();

@@ -299,6 +299,14 @@ class JitRuntime {
   [[nodiscard]] static bool MarkJitcodeGlobalTableIteratively(GCMarker* marker);
   static void TraceWeakJitcodeGlobalTable(JSRuntime* rt, JSTracer* trc);
 
+	const uintptr_t* addrOfSavedStackPtr() const {
+		return addrOfSavedStackPtr_;
+	}
+
+	const uintptr_t* addrOfSbxStackPtr() const {
+		return addrOfSbxStackPtr_;
+	}
+
   const BaselineICFallbackCode& baselineICFallbackCode() const {
     return baselineICFallbackCode_.ref();
   }
