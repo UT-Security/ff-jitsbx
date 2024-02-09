@@ -736,15 +736,29 @@ void MacroAssemblerX64::convertDoubleToPtr(FloatRegister src, Register dest,
 
 void MacroAssembler::setupUnalignedABICall(Register scratch) {
   setupNativeABICall();
+
+  // [jit-sbx] switch to safe-stack for to align stack for ABI call.
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+
   dynamicAlignment_ = true;
 
   movq(rsp, scratch);
   andq(Imm32(~(ABIStackAlignment - 1)), rsp);
   push(scratch);
+
+  // [jit-sbx] switch back to sandbox-stack to setup for the ABI call.
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
 }
 
 void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   MOZ_ASSERT(inCall_);
+
+  // [jit-sbx] switch to safe-stack for ABI call.
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+
   uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
 
   if (dynamicAlignment_) {
@@ -782,6 +796,10 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
   if (dynamicAlignment_) {
     pop(rsp);
   }
+
+  // [jit-sbx] switch to sandbox-stack after ABI call.
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
 
 #ifdef DEBUG
   MOZ_ASSERT(inCall_);

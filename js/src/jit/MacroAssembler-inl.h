@@ -88,7 +88,7 @@ inline DynFn JitPreWriteBarrier(MIRType type) {
 // Stack manipulation functions.
 
 CodeOffset MacroAssembler::PushWithPatch(ImmWord word) {
-  framePushed_ += sizeof(word.value);
+  framePushed_[currentStack] += sizeof(word.value);
   return pushWithPatch(word);
 }
 
@@ -224,6 +224,35 @@ ABIFunctionType MacroAssembler::signature() const {
 #endif
 }
 
+
+// ===============================================================
+// Jit Stack Sandbox.
+
+inline void MacroAssembler::pushSbxReturnAddress() {
+  push(ImmPtr((void *)0xdeadbeef));
+}
+
+inline void MacroAssembler::pushSbxFramePointer() {
+  push(ImmPtr((void *)0xfeedface));
+}
+
+inline void MacroAssembler::pushSbxFrame() {
+	pushSbxReturnAddress();
+	pushSbxFramePointer();
+}
+
+inline void MacroAssembler::popSbxReturnAddress() {
+	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+}
+
+inline void MacroAssembler::popSbxFramePointer() {
+	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+}
+
+inline void MacroAssembler::popSbxFrame() {
+	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
+}
+
 // ===============================================================
 // Jit Frames.
 
@@ -298,7 +327,7 @@ void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
                                                    Register scratch) {
   pushFrameDescriptorForJitCall(type, argc, scratch);
-  framePushed_ += sizeof(uintptr_t);
+  framePushed_[currentStack] += sizeof(uintptr_t);
 }
 
 void MacroAssembler::loadNumActualArgs(Register framePtr, Register dest) {

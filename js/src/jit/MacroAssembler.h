@@ -417,7 +417,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // ===============================================================
   // Frame manipulation functions.
 
+	enum StackType : uint8_t { NATIVE, SANDBOX, NUM_STACK_TYPES };
+
   inline uint32_t framePushed() const OOL_IN_HEADER;
+  inline uint32_t framePushed(StackType st) const OOL_IN_HEADER;
   inline void setFramePushed(uint32_t framePushed) OOL_IN_HEADER;
   inline void adjustFrame(int32_t value) OOL_IN_HEADER;
 
@@ -431,7 +434,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // pointer by keeping track of stack manipulations.
   //
   // It is maintained by all stack manipulation functions below.
-  uint32_t framePushed_;
+  uint32_t framePushed_[NUM_STACK_TYPES];
+
+	StackType currentStack;
 
  public:
   // ===============================================================
@@ -850,6 +855,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // properly, and cast the function pointer to the right type.
   uint32_t signature_;
 #endif
+
+  public:
+  // ===============================================================
+  // Jit Stack Sandbox.
+  //
+  // These functions are used to manipulate the safe and sandbox stack
+	// pointers and layout.
+
+	inline void pushSbxReturnAddress();
+	inline void pushSbxFramePointer();
+	inline void pushSbxFrame();
+	inline void popSbxReturnAddress();
+	inline void popSbxFramePointer();
+	inline void popSbxFrame();
 
  public:
   // ===============================================================
@@ -5511,15 +5530,17 @@ class IonHeapMacroAssembler : public MacroAssembler {
 };
 
 //{{{ check_macroassembler_style
-inline uint32_t MacroAssembler::framePushed() const { return framePushed_; }
+inline uint32_t MacroAssembler::framePushed() const { return framePushed_[currentStack]; }
+
+inline uint32_t MacroAssembler::framePushed(StackType st) const { return framePushed_[st]; }
 
 inline void MacroAssembler::setFramePushed(uint32_t framePushed) {
-  framePushed_ = framePushed;
+  framePushed_[currentStack] = framePushed;
 }
 
 inline void MacroAssembler::adjustFrame(int32_t value) {
-  MOZ_ASSERT_IF(value < 0, framePushed_ >= uint32_t(-value));
-  setFramePushed(framePushed_ + value);
+  MOZ_ASSERT_IF(value < 0, framePushed_[currentStack] >= uint32_t(-value));
+  setFramePushed(framePushed_[currentStack] + value);
 }
 
 inline void MacroAssembler::implicitPop(uint32_t bytes) {

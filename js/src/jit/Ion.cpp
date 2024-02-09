@@ -163,7 +163,7 @@ bool JitRuntime::initialize(JSContext* cx) {
 }
 
 bool JitRuntime::initializeSbxStack(JSContext* cx) {
-  sbxStack_ = cx->pod_malloc<uint8_t>(64 * 4096); 
+  sbxStack_ = cx->pod_calloc<uint8_t>(64 * 4096); 
   if (!sbxStack_) {
     return false;
   }

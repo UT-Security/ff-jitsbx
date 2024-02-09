@@ -3510,7 +3510,8 @@ MacroAssembler::MacroAssembler(TempAllocator& alloc,
     : maybeRuntime_(maybeRuntime),
       maybeRealm_(maybeRealm),
       wasmMaxOffsetGuardLimit_(0),
-      framePushed_(0),
+      framePushed_(),
+      currentStack(NATIVE),
 #ifdef DEBUG
       inCall_(false),
 #endif
@@ -3657,22 +3658,22 @@ void MacroAssembler::Push(const ConstantOrRegister& v) {
 
 void MacroAssembler::Push(const Address& addr) {
   push(addr);
-  framePushed_ += sizeof(uintptr_t);
+  framePushed_[currentStack] += sizeof(uintptr_t);
 }
 
 void MacroAssembler::Push(const ValueOperand& val) {
   pushValue(val);
-  framePushed_ += sizeof(Value);
+  framePushed_[currentStack] += sizeof(Value);
 }
 
 void MacroAssembler::Push(const Value& val) {
   pushValue(val);
-  framePushed_ += sizeof(Value);
+  framePushed_[currentStack] += sizeof(Value);
 }
 
 void MacroAssembler::Push(JSValueType type, Register reg) {
   pushValue(type, reg);
-  framePushed_ += sizeof(Value);
+  framePushed_[currentStack] += sizeof(Value);
 }
 
 void MacroAssembler::Push(const Register64 reg) {
@@ -3731,11 +3732,11 @@ void MacroAssembler::adjustStack(int amount) {
 }
 
 void MacroAssembler::freeStack(uint32_t amount) {
-  MOZ_ASSERT(amount <= framePushed_);
+  MOZ_ASSERT(amount <= framePushed_[currentStack]);
   if (amount) {
     addToStackPtr(Imm32(amount));
   }
-  framePushed_ -= amount;
+  framePushed_[currentStack] -= amount;
 }
 
 void MacroAssembler::freeStack(Register amount) { addToStackPtr(amount); }
