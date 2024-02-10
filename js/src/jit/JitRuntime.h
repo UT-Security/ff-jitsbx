@@ -123,6 +123,7 @@ class JitRuntime {
 
   MainThreadData<uint64_t> nextCompilationId_{0};
 
+#ifdef JS_JIT_SBX
 	// Separate "unsafe" sandbox stack used by JIT'd code executing within the
 	// jit-sandbox.
 	WriteOnceData<uint8_t *> sbxStack_{nullptr};
@@ -133,6 +134,7 @@ class JitRuntime {
 	// Pointer to memory where the real "safe" stack pointer is stored when JIT
 	// code switches to use the sandbox stack. 
 	WriteOnceData<uintptr_t *> addrOfSavedStackPtr_{nullptr};
+#endif
 
   // Buffer for OSR from baseline to Ion. To avoid holding on to this for too
   // long it's also freed in EnterBaseline and EnterJit (after returning from
@@ -245,7 +247,9 @@ class JitRuntime {
   MainThreadData<uint32_t> disallowArbitraryCode_{false};
 #endif
 
+#ifdef JS_JIT_SBX
 	bool initializeSbxStack(JSContext* cx);
+#endif
 
   bool generateTrampolines(JSContext* cx);
   bool generateBaselineICFallbackCode(JSContext* cx);
@@ -299,6 +303,7 @@ class JitRuntime {
   [[nodiscard]] static bool MarkJitcodeGlobalTableIteratively(GCMarker* marker);
   static void TraceWeakJitcodeGlobalTable(JSRuntime* rt, JSTracer* trc);
 
+#ifdef JS_JIT_SBX
 	const uintptr_t* addrOfSavedStackPtr() const {
 		return addrOfSavedStackPtr_;
 	}
@@ -306,6 +311,7 @@ class JitRuntime {
 	const uintptr_t* addrOfSbxStackPtr() const {
 		return addrOfSbxStackPtr_;
 	}
+#endif
 
   const BaselineICFallbackCode& baselineICFallbackCode() const {
     return baselineICFallbackCode_.ref();

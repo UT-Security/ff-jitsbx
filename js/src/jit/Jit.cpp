@@ -137,6 +137,7 @@ bool js::jit::EnterInterpreterEntryTrampoline(uint8_t* code, JSContext* cx,
 }
 
 EnterJitStatus js::jit::MaybeEnterJit(JSContext* cx, RunState& state) {
+
   if (!IsBaselineInterpreterEnabled()) {
     // All JITs are disabled.
     return EnterJitStatus::NotEntered;

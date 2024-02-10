@@ -34,10 +34,13 @@ inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
   *callOffset = CodeOffset(masm.currentOffset());
 }
 
-inline void EmitReturnFromIC(MacroAssembler& masm) { 
+inline void EmitReturnFromIC(MacroAssembler& masm) {
+
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack to return from IC.
   masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+#endif
 
 	masm.ret();
 }
@@ -48,17 +51,22 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
 
   masm.mov(FramePointer, StackPointer);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack to restore frame pointer.
   masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+#endif
 
   masm.Pop(FramePointer);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack to finish setting cleaning up Baseline frame.
   masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
 
 	masm.popSbxFramePointer();
+#endif
+
   // The return address is on top of the stack, followed by the frame
   // descriptor. Use a pop instruction to overwrite the frame descriptor
   // with the return address. Note that pop increments the stack pointer

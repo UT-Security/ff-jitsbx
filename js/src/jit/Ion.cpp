@@ -76,7 +76,9 @@
 #  include <sys/system_properties.h>
 #endif
 
+#ifdef JS_JIT_SBX
 #include <sys/mman.h>
+#endif
 
 using mozilla::CheckedInt;
 using mozilla::DebugOnly;
@@ -99,8 +101,10 @@ JitRuntime::~JitRuntime() {
 
   js_delete(jitHintsMap_.ref());
 
+#ifdef JS_JIT_SBX
   js_free(sbxStack_);
   munmap(addrOfSbxStackPtr_.ref(), 2 * sizeof(uintptr_t));
+#endif
 }
 
 uint32_t JitRuntime::startTrampolineCode(MacroAssembler& masm) {
@@ -119,9 +123,11 @@ bool JitRuntime::initialize(JSContext* cx) {
   AutoAllocInAtomsZone az(cx);
   JitContext jctx(cx);
 
+#ifdef JS_JIT_SBX
   if(!initializeSbxStack(cx)) {
     return false;
   }
+#endif
 
   if (!generateTrampolines(cx)) {
     return false;
@@ -162,6 +168,7 @@ bool JitRuntime::initialize(JSContext* cx) {
   return true;
 }
 
+#ifdef JS_JIT_SBX
 bool JitRuntime::initializeSbxStack(JSContext* cx) {
   sbxStack_ = cx->pod_calloc<uint8_t>(64 * 4096); 
   if (!sbxStack_) {
@@ -178,6 +185,7 @@ bool JitRuntime::initializeSbxStack(JSContext* cx) {
 
   return true;
 }
+#endif
 
 bool JitRuntime::generateTrampolines(JSContext* cx) {
   TempAllocator temp(&cx->tempLifoAlloc());

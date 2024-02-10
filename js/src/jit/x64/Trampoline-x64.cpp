@@ -142,6 +142,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack to push arguments to JIT'd code.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
@@ -149,6 +150,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // [jit-sbx] save initial sandbox-stack pointer for easy restoration after
   // the JIT runs.
   masm.mov(rsp, r15);
+#endif
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -167,8 +169,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.shll(Imm32(3), r13);  // r13 = argc * sizeof(Value)
   static_assert(sizeof(Value) == 1 << 3, "Constant is baked in assembly code");
 
-  // TODO(jit-sbx): probably needs to account for switching to sandbox stack.
-  //
+  static_assert(
+      sizeof(JitFrameLayout) % JitStackAlignment == 0,
+      "No need to consider the JitFrameLayout for aligning the stack");
+
+#ifndef JS_JIT_SBX
   // Guarantee stack alignment of Jit frames.
   //
   // This code compensates for the offset created by the copy of the vector of
@@ -178,13 +183,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // In the computation of the offset, we omit the size of the JitFrameLayout
   // which is pushed on the stack, as the JitFrameLayout size is a multiple of
   // the JitStackAlignment.
-  // masm.mov(rsp, r12);
-  // masm.subq(r13, r12);
-  static_assert(
-      sizeof(JitFrameLayout) % JitStackAlignment == 0,
-      "No need to consider the JitFrameLayout for aligning the stack");
-  // masm.andl(Imm32(JitStackAlignment - 1), r12);
-  // masm.subq(r12, rsp);
+  masm.mov(rsp, r12);
+  masm.subq(r13, r12);
+  masm.andl(Imm32(JitStackAlignment - 1), r12);
+  masm.subq(r12, rsp);
+#endif
 
   /***************************************************************
   Loop over argv vector, push arguments onto stack in reverse order
@@ -214,6 +217,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.movq(result, reg_argc);
   masm.unboxInt32(Operand(reg_argc, 0), reg_argc);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack to save rbp before setting up
   // JitFrameLayout on the sandbox-stack.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
@@ -233,6 +237,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // up JitFrameLayout.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+#endif
 
   // Push the callee token.
   masm.push(token);
@@ -334,9 +339,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.movq(scopeChain, R1.scratchReg());
   }
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack for the call.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+#endif
 
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.
@@ -352,13 +359,17 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&oomReturnLabel);
   }
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack after call.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+#endif
 
   // Discard arguments and padding. Set rsp to the address of the
   // EnterJITStackEntry on the stack.
-  // masm.lea(Operand(rbp, EnterJITStackEntry::offsetFromFP()), rsp);
+#ifndef JS_JIT_SBX
+  masm.lea(Operand(rbp, EnterJITStackEntry::offsetFromFP()), rsp);
+#else
   // [jit-sbx] discard JitFrameLayout and arguments with rbp
   // we setup earlier.
   masm.mov(rbp, rsp);
@@ -370,6 +381,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // [jit-sbx] discard padding and restore rbp from the safe-stack.
   masm.addPtr(Imm32(8), rsp);
   masm.pop(rbp);
+#endif
 
   /*****************************************************************
   Place return value where it belongs, pop all saved registers
@@ -732,10 +744,12 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   // Push the frame pointer to finish the exit frame, then link it up.
   masm.Push(FramePointer);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
   masm.pushSbxFrame();
+#endif
 
   masm.moveStackPtrTo(FramePointer);
   masm.loadJSContext(cxreg);
@@ -876,9 +890,10 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
     masm.speculationBarrier();
   }
 
-  // Pop ExitFooterFrame and the frame pointer.
+  // Pop ExitFooterFrame.
   masm.leaveExitFrame(0);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] Clear rest of the frame and arguments on sandbox-stack.
   masm.addq(Imm32(sizeof(ExitFrameLayout) +
                   f.explicitStackSlots() * sizeof(void*) +
@@ -892,6 +907,15 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
 
   // Return.
   masm.ret();
+#else
+  // Pop the frame pointer.
+  masm.pop(FramePointer);
+
+  // Return. Subtract sizeof(void*) for the frame pointer.
+  masm.retn(Imm32(sizeof(ExitFrameLayout) - sizeof(void*) +
+                  f.explicitStackSlots() * sizeof(void*) +
+                  f.extraValuesToPop * sizeof(Value)));
+#endif
 
   return true;
 }

@@ -517,6 +517,25 @@ option(
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 
+
+# JavaScript JIT Sandbox
+# =======================================================
+
+option(
+    "--enable-js-jit-sbx",
+    default=False,
+    help="{Enable|Disable} JavaScript JIT sandboxing.",
+)
+
+@depends("--enable-js-jit-sbx", target)
+def js_jit_sbx(jitsbx, target):
+    if target.cpu == "x86_64" and jitsbx:
+        return True
+
+set_define("JS_JIT_SBX", js_jit_sbx)
+set_config("JS_JIT_SBX", js_jit_sbx)
+
+
 # Architecture feature flags
 # =======================================================
 

@@ -654,16 +654,20 @@ bool BaselineInterpreterCodeGen::emitNextIC() {
   masm.loadPtr(frame.addressOfInterpreterICEntry(), ICStubReg);
   masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack for call to IC.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+#endif
 
   masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
   uint32_t returnOffset = masm.currentOffset();
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack after returning from IC.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+#endif
 
   restoreInterpreterPCReg();
 
@@ -768,18 +772,21 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
   }
   MOZ_ASSERT(fun.expectTailCall == NonTailCall);
 
-  
-  // NOTE(jit-sbx): switch to safe-stack before callVM.
+#ifdef JS_JIT_SBX 
+  // [jit-sbx] switch to safe-stack before callVM.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+#endif
 
   // Perform the call.
   masm.call(code);
   uint32_t callOffset = masm.currentOffset();
 
-  // NOTE(jit-sbx): switch to sandbox-stack after callVM.
+#ifdef JS_JIT_SBX
+  // [jit-sbx] switch to sandbox-stack after callVM.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+#endif
 
   // Pop arguments from framePushed.
   masm.implicitPop(argSize);
@@ -6362,11 +6369,12 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   masm.checkStackAlignment();
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack to run Baseline JIT code.
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
   masm.pushSbxFrame();
-
+#endif
 
   masm.checkStackAlignment();
 
@@ -6393,10 +6401,12 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
     return false;
   }
 
+#ifndef JS_JIT_SBX
   // Check for overrecursion before initializing locals.
-  //if (!emitStackCheck()) {
-  //  return false;
-  //}
+  if (!emitStackCheck()) {
+    return false;
+  }
+#endif
 
   emitInitializeLocals();
 
@@ -6442,10 +6452,12 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
 
   masm.moveToStackPtr(FramePointer);
 
+#ifdef JS_JIT_SBX
   // [jit-sbx] switch to safe-stack for return.
   masm.popSbxFrame();
   masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
   masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+#endif
 
   masm.pop(FramePointer);
 

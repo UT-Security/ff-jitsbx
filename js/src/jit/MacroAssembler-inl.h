@@ -228,6 +228,7 @@ ABIFunctionType MacroAssembler::signature() const {
 // ===============================================================
 // Jit Stack Sandbox.
 
+#ifdef JS_JIT_SBX
 inline void MacroAssembler::pushSbxReturnAddress() {
   push(ImmPtr((void *)0xdeadbeef));
 }
@@ -252,6 +253,8 @@ inline void MacroAssembler::popSbxFramePointer() {
 inline void MacroAssembler::popSbxFrame() {
 	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
 }
+
+#endif
 
 // ===============================================================
 // Jit Frames.
