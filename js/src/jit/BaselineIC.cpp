@@ -584,22 +584,7 @@ void FallbackICCodeCompiler::leaveStubFrame(MacroAssembler& masm) {
 void FallbackICCodeCompiler::pushStubPayload(MacroAssembler& masm,
                                              Register scratch) {
   if (inStubFrame_) {
-#ifdef JS_JIT_SBX
-    // [jit-sbx] switch to safe-stack to load saved baseline frame pointer.
-    masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-    masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
-
-    // [jit-sbx] Baseline Interpreter frame pointer should be the last thing we
-    // pushed on the safe-stack when entering Baseline IC stub frame.
-    masm.loadPtr(Address(StackPointer, 0), scratch);
-
-    // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-    masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-#else
     masm.loadPtr(Address(FramePointer, 0), scratch);
-#endif
-
     masm.pushBaselineFramePtr(scratch, scratch);
   } else {
     masm.pushBaselineFramePtr(FramePointer, scratch);

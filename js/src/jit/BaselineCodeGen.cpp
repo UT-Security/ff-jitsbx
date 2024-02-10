@@ -6371,9 +6371,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
 #ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack to run Baseline JIT code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-  masm.pushSbxFrame();
+  masm.sbxCallTargetPrologue();
 #endif
 
   masm.checkStackAlignment();
@@ -6402,6 +6400,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   }
 
 #ifndef JS_JIT_SBX
+  // TODO(jit-sbx) get this to work with JIT sandbox.
   // Check for overrecursion before initializing locals.
   if (!emitStackCheck()) {
     return false;

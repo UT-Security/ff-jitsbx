@@ -16,6 +16,7 @@
 #include "jit/CalleeToken.h"
 #include "jit/CompileWrappers.h"
 #include "jit/JitFrames.h"
+#include "jit/JitRuntime.h"
 #include "jit/JSJitFrameIter.h"
 #include "util/DifferentialTesting.h"
 #include "vm/BigIntType.h"
@@ -234,7 +235,7 @@ inline void MacroAssembler::pushSbxReturnAddress() {
 }
 
 inline void MacroAssembler::pushSbxFramePointer() {
-  push(ImmPtr((void *)0xfeedface));
+  push(rbp);
 }
 
 inline void MacroAssembler::pushSbxFrame() {
@@ -252,6 +253,13 @@ inline void MacroAssembler::popSbxFramePointer() {
 
 inline void MacroAssembler::popSbxFrame() {
 	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
+}
+
+inline void MacroAssembler::sbxCallTargetPrologue() {
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	pushSbxReturnAddress();
+	push(rbp);
 }
 
 #endif

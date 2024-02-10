@@ -870,6 +870,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void popSbxFramePointer();
 	inline void popSbxFrame();
 
+	inline void sbxCallTargetPrologue();
+
  public:
   // ===============================================================
   // Jit Frames.
