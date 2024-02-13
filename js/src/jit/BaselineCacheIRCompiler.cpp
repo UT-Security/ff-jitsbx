@@ -614,7 +614,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   masm.movePtr(argumentsRectifier, code);
 
   masm.bind(&noUnderflow);
-  masm.callJit(code);
+  masm.sbxCallJit(code);
 
   stubFrame.leave(masm);
 
@@ -1698,7 +1698,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   masm.movePtr(argumentsRectifier, code);
 
   masm.bind(&noUnderflow);
-  masm.callJit(code);
+  masm.sbxCallJit(code);
 
   stubFrame.leave(masm);
 
@@ -3447,7 +3447,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   }
 
   masm.bind(&noUnderflow);
-  masm.callJit(code);
+  masm.sbxCallJit(code);
 
   // If this is a constructing call, and the callee returns a non-object,
   // replace it with the |this| object passed in.
@@ -3553,7 +3553,7 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
   masm.movePtr(argumentsRectifier, codeReg);
 
   masm.bind(&noUnderflow);
-  masm.callJit(codeReg);
+  masm.sbxCallJit(codeReg);
 
   // If this is a constructing call, and the callee returns a non-object,
   // replace it with the |this| object passed in.
@@ -3640,7 +3640,7 @@ bool BaselineCacheIRCompiler::emitCallBoundScriptedFunction(
   }
 
   masm.bind(&noUnderflow);
-  masm.callJit(code);
+  masm.sbxCallJit(code);
 
   if (isConstructing) {
     updateReturnValue();
@@ -3880,7 +3880,7 @@ bool BaselineCacheIRCompiler::emitCloseIterScriptedResult(
   masm.Push(callee);
   masm.PushFrameDescriptorForJitCall(FrameType::BaselineStub, /* argc = */ 0);
 
-  masm.callJit(code);
+  masm.sbxCallJit(code);
 
   if (kind != CompletionKind::Throw) {
     // Verify that the return value is an object.
@@ -3911,7 +3911,7 @@ static void CallRegExpStub(MacroAssembler& masm, size_t jitRealmStubOffset,
   masm.loadPtr(Address(temp, Realm::offsetOfJitRealm()), temp);
   masm.loadPtr(Address(temp, jitRealmStubOffset), temp);
   masm.branchTestPtr(Assembler::Zero, temp, temp, vmCall);
-  masm.call(Address(temp, JitCode::offsetOfCode()));
+  masm.sbxCall(Address(temp, JitCode::offsetOfCode()));
 }
 
 // Used to move inputs to the registers expected by the RegExp stub.

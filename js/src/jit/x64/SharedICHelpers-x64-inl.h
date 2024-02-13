@@ -45,20 +45,7 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 
 inline void EmitBaselineCallVM(TrampolinePtr target, MacroAssembler& masm) {
   masm.pushFrameDescriptor(FrameType::BaselineStub);
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for call.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
-#endif
-
-  masm.call(target);
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack after call.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
-#endif
+  masm.sbxCall(target);
 }
 
 inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {

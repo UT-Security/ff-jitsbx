@@ -226,36 +226,24 @@ ABIFunctionType MacroAssembler::signature() const {
 }
 
 
+
+
 // ===============================================================
-// Jit Stack Sandbox.
+// JIT Stack Sandbox.
 
 #ifdef JS_JIT_SBX
-inline void MacroAssembler::pushSbxReturnAddress() {
-  push(ImmPtr((void *)0xdeadbeef));
+
+void MacroAssembler::sbxToNativeStack() {
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
 }
 
-inline void MacroAssembler::pushSbxFramePointer() {
-  push(rbp);
+void MacroAssembler::sbxToSandboxStack() {
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
 }
 
-inline void MacroAssembler::pushSbxFrame() {
-	pushSbxReturnAddress();
-	pushSbxFramePointer();
-}
-
-inline void MacroAssembler::popSbxReturnAddress() {
-	addPtr(Imm32(sizeof(uintptr_t)), rsp);
-}
-
-inline void MacroAssembler::popSbxFramePointer() {
-	addPtr(Imm32(sizeof(uintptr_t)), rsp);
-}
-
-inline void MacroAssembler::popSbxFrame() {
-	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
-}
-
-inline void MacroAssembler::sbxCallTargetPrologue() {
+void MacroAssembler::sbxCallTargetPrologue() {
   storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
   loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
 	pushSbxReturnAddress();
@@ -263,6 +251,93 @@ inline void MacroAssembler::sbxCallTargetPrologue() {
 }
 
 #endif
+
+void MacroAssembler::pushSbxReturnAddress() {
+  push(ImmPtr((void *)0xdeadbeef));
+}
+
+void MacroAssembler::pushSbxFramePointer() {
+  push(rbp);
+}
+
+void MacroAssembler::pushSbxFrame() {
+	pushSbxReturnAddress();
+	pushSbxFramePointer();
+}
+
+void MacroAssembler::popSbxReturnAddress() {
+	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+}
+
+void MacroAssembler::popSbxFramePointer() {
+	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+}
+
+void MacroAssembler::popSbxFrame() {
+	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
+}
+
+CodeOffset MacroAssembler::sbxCall(Register reg) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+  CodeOffset ret = call(reg);
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+CodeOffset MacroAssembler::sbxCall(Label* label) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	CodeOffset ret = call(label);
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+uint32_t MacroAssembler::sbxCall(const Address& addr) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	call(addr);
+	uint32_t ret = currentOffset();
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+uint32_t MacroAssembler::sbxCall(TrampolinePtr code) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	call(code);
+	uint32_t ret = currentOffset();
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+inline uint32_t MacroAssembler::sbxCallJitNoProfiler(Register callee) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	uint32_t ret = callJitNoProfiler(callee);
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+inline uint32_t MacroAssembler::sbxCallJit(Register callee) {
+	AutoProfilerCallInstrumentation profiler(*this);
+	return sbxCallJitNoProfiler(callee);
+}
 
 // ===============================================================
 // Jit Frames.

@@ -352,6 +352,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Call function.
   masm.callJitNoProfiler(reg_code);
 
+	// TODO: these labels may need to change to the return point after
+	// stack switch ?
   {
     // Interpreter -> Baseline OSR will return here.
     masm.bind(&returnLabel);

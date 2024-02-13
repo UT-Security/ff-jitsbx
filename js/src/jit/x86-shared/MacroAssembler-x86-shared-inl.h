@@ -3387,6 +3387,13 @@ void MacroAssembler::clampIntToUint8(Register reg) {
   bind(&inRange);
 }
 
+// ===============================================================
+// JIT Stack Sandbox functions.
+
+uint32_t MacroAssembler::sbxCallAndPushReturnAddress(Register reg) { return sbxCall(reg).offset(); }
+
+uint32_t MacroAssembler::sbxCallAndPushReturnAddress(Label* label) { return sbxCall(label).offset(); }
+
 //}}} check_macroassembler_style
 // ===============================================================
 

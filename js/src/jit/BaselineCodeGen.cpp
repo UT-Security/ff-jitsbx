@@ -654,20 +654,7 @@ bool BaselineInterpreterCodeGen::emitNextIC() {
   masm.loadPtr(frame.addressOfInterpreterICEntry(), ICStubReg);
   masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
 
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for call to IC.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
-#endif
-
-  masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
-  uint32_t returnOffset = masm.currentOffset();
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack after returning from IC.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-#endif
+  uint32_t returnOffset = masm.sbxCall(Address(ICStubReg, ICStub::offsetOfStubCode()));
 
   restoreInterpreterPCReg();
 
@@ -772,21 +759,8 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
   }
   MOZ_ASSERT(fun.expectTailCall == NonTailCall);
 
-#ifdef JS_JIT_SBX 
-  // [jit-sbx] switch to safe-stack before callVM.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
-#endif
-
   // Perform the call.
-  masm.call(code);
-  uint32_t callOffset = masm.currentOffset();
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack after callVM.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-#endif
+  uint32_t callOffset = masm.sbxCall(code);
 
   // Pop arguments from framePushed.
   masm.implicitPop(argSize);
@@ -5251,7 +5225,7 @@ bool BaselineCodeGen<Handler>::emit_TableSwitch() {
 
   // Call a stub to convert R0 from double to int32 if needed.
   // Note: this stub may clobber scratch1.
-  masm.call(cx->runtime()->jitRuntime()->getDoubleToInt32ValueStub());
+  masm.sbxCall(cx->runtime()->jitRuntime()->getDoubleToInt32ValueStub());
 
   // Load the index in the jump table in |key|, or branch to default pc if not
   // int32 or out-of-range.
@@ -5915,14 +5889,14 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
   // generator returns.
   Label genStart, returnTarget;
 #ifdef JS_USE_LINK_REGISTER
-  masm.call(&genStart);
+  uint32_t offset = masm.sbxCall(&genStart);
 #else
-  masm.callAndPushReturnAddress(&genStart);
+  uint32_t offset = masm.sbxCallAndPushReturnAddress(&genStart);
 #endif
 
   // Record the return address so the return offset -> pc mapping works.
   if (!handler.recordCallRetAddr(cx, RetAddrEntry::Kind::IC,
-                                 masm.currentOffset())) {
+                                 offset)) {
     return false;
   }
 

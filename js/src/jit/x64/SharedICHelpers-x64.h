@@ -28,22 +28,10 @@ inline void EmitRepushTailCallReg(MacroAssembler& masm) {
 }
 
 inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack to call IC.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
-#endif
-
   // The stub pointer must already be in ICStubReg.
   // Call the stubcode.
-  masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
-  *callOffset = CodeOffset(masm.currentOffset());
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack after returning from IC.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
-#endif
+  uint32_t offset = masm.sbxCall(Address(ICStubReg, ICStub::offsetOfStubCode()));
+  *callOffset = CodeOffset(offset);
 }
 
 inline void EmitReturnFromIC(MacroAssembler& masm) {

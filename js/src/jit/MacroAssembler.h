@@ -857,11 +857,23 @@ class MacroAssembler : public MacroAssemblerSpecific {
 #endif
 
   public:
-  // ===============================================================
-  // Jit Stack Sandbox.
+  
+
+	// ===============================================================
+  // JIT Stack Sandbox.
   //
-  // These functions are used to manipulate the safe and sandbox stack
-	// pointers and layout.
+  // These functions are used to abstract over interactions with the
+	// native and sandbox stacks. 
+
+#ifdef JS_JIT_SBX
+
+	// Stack Switching
+	inline void sbxToNativeStack();
+	inline void sbxToSandboxStack();
+
+	inline void sbxCallTargetPrologue();
+
+#endif
 
 	inline void pushSbxReturnAddress();
 	inline void pushSbxFramePointer();
@@ -870,7 +882,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void popSbxFramePointer();
 	inline void popSbxFrame();
 
-	inline void sbxCallTargetPrologue();
+
+	// JIT Stack Sandbox aware call functions.
+	inline CodeOffset sbxCall(Register reg);
+	inline CodeOffset sbxCall(Label* label);
+	inline uint32_t sbxCall(const Address& addr);
+	inline uint32_t sbxCall(TrampolinePtr code);
+
+	inline uint32_t sbxCallAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
+	inline uint32_t sbxCallAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
+
+	inline uint32_t sbxCallJitNoProfiler(Register callee);
+
+	inline uint32_t sbxCallJit(Register callee);
 
  public:
   // ===============================================================
