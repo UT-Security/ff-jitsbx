@@ -243,13 +243,6 @@ void MacroAssembler::sbxToSandboxStack() {
   loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
 }
 
-void MacroAssembler::sbxCallTargetPrologue() {
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-	pushSbxReturnAddress();
-	push(rbp);
-}
-
 #endif
 
 void MacroAssembler::pushSbxReturnAddress() {
@@ -316,6 +309,18 @@ uint32_t MacroAssembler::sbxCall(TrampolinePtr code) {
 	sbxToNativeStack();
 #endif
 	call(code);
+	uint32_t ret = currentOffset();
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
+inline uint32_t MacroAssembler::sbxCall(ImmPtr imm) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	call(imm);
 	uint32_t ret = currentOffset();
 #ifdef JS_JIT_SBX
 	sbxToSandboxStack();

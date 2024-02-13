@@ -5908,6 +5908,10 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 
   // Construct BaselineFrame.
   masm.push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   // If profiler instrumentation is on, update lastProfilingFrame on
@@ -6341,11 +6345,11 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   masm.push(FramePointer);
 
-  masm.checkStackAlignment();
-
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run Baseline JIT code.
-  masm.sbxCallTargetPrologue();
+  masm.checkStackAlignment();
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+	masm.push(FramePointer);
 #endif
 
   masm.checkStackAlignment();

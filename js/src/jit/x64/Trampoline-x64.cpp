@@ -144,8 +144,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
 #ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack to push arguments to JIT'd code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 
   // [jit-sbx] save initial sandbox-stack pointer for easy restoration after
   // the JIT runs.
@@ -218,12 +217,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.unboxInt32(Operand(reg_argc, 0), reg_argc);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack to save rbp before setting up
+  // [jit-sbx] switch to native-stack to save rbp before setting up
   // JitFrameLayout on the sandbox-stack.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+	masm.sbxToNativeStack();
 
-  // [jit-sbx] save original safe-stack rbp.
+  // [jit-sbx] save original native-stack rbp.
   masm.push(rbp);
   
   // [jit-sbx] padding for 16-byte alignment after rbp push.
@@ -235,8 +233,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // [jit-sbx] switch to sandbox-stack to finish setting
   // up JitFrameLayout.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Push the callee token.
@@ -340,9 +337,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   }
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for the call.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+  // [jit-sbx] switch to native-stack for the call.
+	masm.sbxToNativeStack();
 #endif
 
   // The call will push the return address and frame pointer on the stack, thus
@@ -363,8 +359,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
 #ifdef JS_JIT_SBX
   // [jit-sbx] switch to sandbox-stack after call.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Discard arguments and padding. Set rsp to the address of the
@@ -376,9 +371,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // we setup earlier.
   masm.mov(rbp, rsp);
 
-  // [jit-sbx] switch to safe-stack to tidy up.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+  // [jit-sbx] switch to native-stack to tidy up.
+	masm.sbxToNativeStack();
 
   // [jit-sbx] discard padding and restore rbp from the safe-stack.
   masm.addPtr(Imm32(8), rsp);
@@ -528,6 +522,13 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   // See BaselineStackBuilder::calculatePrevFramePtr and
   // BaselineStackBuilder::buildRectifierFrame (in BaselineBailouts.cpp).
   masm.push(FramePointer);
+
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+	masm.push(FramePointer);
+#endif
+
   masm.movq(rsp, FramePointer);
 
   // Load argc.
@@ -656,23 +657,27 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   switch (kind) {
     case ArgumentsRectifierKind::Normal:
       masm.loadJitCodeRaw(rax, rax);
-      argumentsRectifierReturnOffset_ = masm.callJitNoProfiler(rax);
+      argumentsRectifierReturnOffset_ = masm.sbxCallJitNoProfiler(rax);
       break;
     case ArgumentsRectifierKind::TrialInlining:
       Label noBaselineScript, done;
       masm.loadBaselineJitCodeRaw(rax, rbx, &noBaselineScript);
-      masm.callJitNoProfiler(rbx);
+      masm.sbxCallJitNoProfiler(rbx);
       masm.jump(&done);
 
       // See BaselineCacheIRCompiler::emitCallInlinedFunction.
       masm.bind(&noBaselineScript);
       masm.loadJitCodeRaw(rax, rax);
-      masm.callJitNoProfiler(rax);
+      masm.sbxCallJitNoProfiler(rax);
       masm.bind(&done);
       break;
   }
 
   masm.mov(FramePointer, StackPointer);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 }
@@ -747,9 +752,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   masm.Push(FramePointer);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
   masm.pushSbxFrame();
 #endif
 
@@ -900,11 +903,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   masm.addq(Imm32(sizeof(ExitFrameLayout) +
                   f.explicitStackSlots() * sizeof(void*) +
                   f.extraValuesToPop * sizeof(Value)), rsp);
-
-  // [jit-sbx] switch to safe-stack for return.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
-  
+	masm.sbxToNativeStack();
   masm.pop(FramePointer);
 
   // Return.
@@ -927,6 +926,11 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generatePreBarrier");
 
   uint32_t offset = startTrampolineCode(masm);
+
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+#endif
 
   static_assert(PreBarrierReg == rdx);
   Register temp1 = rax;
@@ -958,12 +962,20 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   masm.callWithABI(JitPreWriteBarrier(type));
 
   masm.PopRegsInMask(regs);
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
 
   masm.bind(&noBarrier);
   masm.pop(temp3);
   masm.pop(temp2);
   masm.pop(temp1);
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
 
   return offset;

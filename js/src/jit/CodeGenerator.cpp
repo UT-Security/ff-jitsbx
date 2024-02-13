@@ -2499,6 +2499,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   Label notFoundZeroLastIndex;
@@ -2750,6 +2754,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 
   // All done!
   masm.tagValue(JSVAL_TYPE_OBJECT, object, result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2764,6 +2772,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
     masm.bind(&notGlobalOrSticky);
   }
   masm.moveValue(NullValue(), result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2785,6 +2797,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   // be called.
   masm.bind(&oolEntry);
   masm.moveValue(UndefinedValue(), result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2986,6 +3002,10 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   // The InputOutputData is placed above the frame pointer and return address on
@@ -3044,16 +3064,28 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.load32(matchPairLimit, input);
   masm.lshiftPtr(Imm32(15), input);
   masm.or32(input, result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&notFound);
   masm.move32(Imm32(RegExpSearcherResultNotFound), result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&oolEntry);
   masm.move32(Imm32(RegExpSearcherResultFailed), result);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -3155,6 +3187,10 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   // We are free to clobber all registers, as LRegExpExecTest is a call
@@ -3235,6 +3271,10 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
 
   masm.bind(&done);
   masm.freeStack(RegExpReservedStack);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -11322,6 +11362,10 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   // If lhs is empty, return rhs.
@@ -11378,28 +11422,48 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   // Store left and right nodes.
   masm.storeRopeChildren(lhs, rhs, output);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&leftEmpty);
   masm.mov(rhs, output);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&rightEmpty);
   masm.mov(lhs, output);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&isInlineTwoByte);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::TwoByte);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&isInlineLatin1);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::Latin1);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -11408,6 +11472,10 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   masm.bind(&failure);
   masm.movePtr(ImmPtr(nullptr), output);
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
   masm.pop(FramePointer);
   masm.ret();
 
@@ -11432,6 +11500,10 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+#endif
   AllocatableRegisterSet regs(RegisterSet::Volatile());
   regs.takeUnchecked(regSlots);
   LiveRegisterSet save(regs.asLiveSet());
@@ -11447,7 +11519,10 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
                                 CheckUnsafeCallWithABI::DontCheckOther);
 
   masm.PopRegsInMask(save);
-
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
 }
 
@@ -11499,6 +11574,10 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxFrame();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::Volatile());
@@ -11521,6 +11600,19 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 
   // Discard exit frame and restore frame pointer.
   masm.leaveExitFrame(0);
+
+#ifdef JS_JIT_SBX
+	masm.popSbxFramePointer();
+	// InvokeFromInterpreterStub stores the return value in argv[0], where the
+  // caller stored |this|. Subtract |sizeof(void*)| for the frame pointer we
+  // just popped.
+  masm.loadValue(Address(masm.getStackPointer(),
+                         JitFrameLayout::offsetOfThis() - sizeof(void*)),
+                 JSReturnOperand);
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+	masm.pop(FramePointer);
+#else
   masm.pop(FramePointer);
 
   // InvokeFromInterpreterStub stores the return value in argv[0], where the
@@ -11529,12 +11621,17 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   masm.loadValue(Address(masm.getStackPointer(),
                          JitFrameLayout::offsetOfThis() - sizeof(void*)),
                  JSReturnOperand);
-  masm.ret();
+#endif
+	masm.ret();
 }
 
 void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateDoubleToInt32ValueStub");
   doubleToInt32ValueStubOffset_ = startTrampolineCode(masm);
+
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+#endif
 
   Label done;
   masm.branchTestDouble(Assembler::NotEqual, R0, &done);
@@ -11545,6 +11642,9 @@ void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   masm.tagValue(JSVAL_TYPE_INT32, R1.scratchReg(), R0);
 
   masm.bind(&done);
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   masm.abiret();
 }
 

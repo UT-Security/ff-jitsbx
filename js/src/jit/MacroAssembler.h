@@ -871,8 +871,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void sbxToNativeStack();
 	inline void sbxToSandboxStack();
 
-	inline void sbxCallTargetPrologue();
-
 #endif
 
 	inline void pushSbxReturnAddress();
@@ -888,6 +886,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline CodeOffset sbxCall(Label* label);
 	inline uint32_t sbxCall(const Address& addr);
 	inline uint32_t sbxCall(TrampolinePtr code);
+	inline uint32_t sbxCall(ImmPtr imm);
 
 	inline uint32_t sbxCallAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
 	inline uint32_t sbxCallAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
@@ -4832,7 +4831,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
     TrampolinePtr preBarrier = preBarrierTrampoline(type);
 
-    call(preBarrier);
+    sbxCall(preBarrier);
     Pop(PreBarrierReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/auto-regress/bug702915.js
