@@ -105,7 +105,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
     nogc.reset();
 #endif
     // ask2374
-    __asm__ __volatile__("wrgsbase %0": : "r" ((uint64_t)zone_id << 32));
+    __asm__ __volatile__("wrgsbase %0": : "r" ((uint64_t)cx->zone()->zoneId << 32));
     // ask2374
     CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */ nullptr,
                         calleeToken, envChain, /* osrNumStackValues = */ 0,
