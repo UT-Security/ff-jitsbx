@@ -875,15 +875,16 @@ class BaseAssemblerX64 : public BaseAssembler {
     pop_r(rbx);
     pop_r(rax);*/
     if (SANDBOX_OPT) {
+      RegisterID scratch = (base != rdi) ? rdi : rsi;
       push_r(rax);
-      push_r(rdi);
-      movq_rr(index, rdi);
-      imulq_ir((int32_t)scale, rdi, rdi);
-      addq_rr(base, rdi);
-      addq_i32r(offset, rdi);
+      push_r(scratch);
+      movq_rr(index, scratch);
+      imulq_ir((int32_t)scale, scratch, scratch);
+      addq_rr(base, scratch);
+      addq_i32r(offset, scratch);
       movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
       call_r(rax);
-      pop_r(rdi);
+      pop_r(scratch);
       pop_r(rax);
     }
   }

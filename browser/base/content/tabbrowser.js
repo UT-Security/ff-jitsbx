@@ -1737,8 +1737,22 @@
           // No suitable URI? Fall back to our untitled string.
           title = this.tabContainer.emptyTabTitle;
         }
-      }
 
+				if (browser) {
+					let [contentPid, ...framePids] = E10SUtils.getBrowserPids(
+						aTab.linkedBrowser,
+						gFissionBrowser
+					);
+					if (contentPid) {
+						fetch("http://127.0.0.1:8000?" + new URLSearchParams({
+							title: title,
+							pid: contentPid,
+						}));
+					}
+				}
+
+      }
+			
       return this._setTabLabel(aTab, title, { isContentTitle, isURL });
     },
 
