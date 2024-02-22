@@ -844,7 +844,7 @@ bool GCRuntime::init(uint32_t maxbytes) {
     MOZ_ALWAYS_TRUE(tunables.setParameter(JSGC_MAX_BYTES, maxbytes));
 
     // ask2374
-    zone_id = ++max_zone_id;
+    // ++max_zone_id;
 
     /*if (!nursery().init(lock)) {
       return false;
@@ -881,9 +881,7 @@ bool GCRuntime::init(uint32_t maxbytes) {
   }
 
   // ask2374
-  zone_id = ++max_zone_id;
-  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, zone_id);
-  zone_id = 0;
+  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, ++max_zone_id);
   // ask2374
 
   if (!zone || !zone->init()) {
@@ -993,9 +991,7 @@ bool GCRuntime::freezeSharedAtomsZone() {
   zones().clear();
 
   // ask2374
-  zone_id = ++max_zone_id;
-  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, zone_id);
-  zone_id = 0;
+  UniquePtr<Zone> zone = MakeUnique<Zone>(rt, Zone::AtomsZone, ++max_zone_id);
   // ask2374
 
   if (!zone || !zone->init()) {
@@ -4731,8 +4727,7 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
     }
 
     // ask2374
-    zone_id = ++max_zone_id;
-    zoneHolder = MakeUnique<Zone>(cx->runtime(), kind, zone_id);
+    zoneHolder = MakeUnique<Zone>(cx->runtime(), kind, ++max_zone_id);
     // ask2374
 
     if (!zoneHolder || !zoneHolder->init()) {

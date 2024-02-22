@@ -633,13 +633,13 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
-    if (base != rbp)
-      jitSandboxCheck(offset, base, rax, 0);
+    if (base != rbp && base != rsp) jitSandboxCheck(offset, base);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
   void movq_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_o32b, GPReg64Name(src), ADDR_o32b(offset, base));
+    if (base != rbp && base != rsp) jitSandboxCheck(offset, base);
     m_formatter.oneByteOp64_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
@@ -647,6 +647,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("movq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    if (base != rbp && base != rsp) jitSandboxCheck(offset, base, index, scale);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
@@ -656,6 +657,7 @@ class BaseAssemblerX64 : public BaseAssembler {
       return;
     }
 
+    jitSandboxCheck((int64_t)addr);
     spew("movq       %s, %p", GPReg64Name(src), addr);
     m_formatter.oneByteOp64(OP_MOV_EvGv, addr, src);
   }
@@ -678,6 +680,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("movq       %%rax, %p", addr);
+    jitSandboxCheck((int64_t)addr);
     m_formatter.oneByteOp64(OP_MOV_OvEAX);
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
   }
@@ -719,18 +722,21 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base) {
     spew("movq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+    if (base != rbp && base != rsp) jitSandboxCheck(offset, base);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
     spew("movq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+    if (base != rbp && base != rsp) jitSandboxCheck(offset, base, index, scale);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
                             GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
   void movq_i32m(int32_t imm, const void* addr) {
     spew("movq       $%d, %p", imm, addr);
+    jitSandboxCheck((int64_t)addr);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
@@ -862,29 +868,50 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp(OP_POP_EAX, reg);
   }
 
-  void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index, int scale) {
+  void jitSandboxCheck(int32_t offset, RegisterID base) {
     spew("jitSandboxCheck");
-    /*js::sandbox::checkJitMask(0);
-    push_r(rax);
-    push_r(rbx);
-    movq_rr(index, rbx);
-    imulq_ir((int32_t)scale, rbx, rbx);
-    addq_rr(base, rbx);
-    addq_i32r(offset, rbx);
-    m_formatter.append((uint8_t*)"\x48\x89\xE8\x48\xC1\xE8\x20\x48\xC1\xE0\x20\x48\xC1\xEB\x20\x48\xC1\xE3\x20\x48\x39\xD8\x74\x0C\xF3\x48\x0F\xAE\xC8\x48\x39\xD8\x74\x02\x0F\x0B", 36);
-    pop_r(rbx);
-    pop_r(rax);*/
     if (SANDBOX_OPT) {
-      RegisterID scratch = (base != rdi) ? rdi : rsi;
       push_r(rax);
+      push_r(rdi);
+      movq_rr(base, rdi);
+      addq_i32r(offset, rdi);
+      movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+      call_r(rax);
+      pop_r(rdi);
+      pop_r(rax);
+    }
+  }
+
+  void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index,
+                       int32_t scale) {
+    spew("jitSandboxCheck");
+    if (SANDBOX_OPT) {
+      RegisterID scratch = (base == r15) ? r14 : r15;
+      push_r(rax);
+      push_r(rdi);
       push_r(scratch);
-      movq_rr(index, scratch);
-      imulq_ir((int32_t)scale, scratch, scratch);
-      addq_rr(base, scratch);
-      addq_i32r(offset, scratch);
+      movq_rr(base, scratch);
+      movq_rr(index, rdi);
+      imulq_ir(scale, rdi, rdi);
+      addq_rr(scratch, rdi);
+      addq_i32r(offset, rdi);
       movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
       call_r(rax);
       pop_r(scratch);
+      pop_r(rdi);
+      pop_r(rax);
+    }
+  }
+
+  void jitSandboxCheck(int64_t addr) {
+    spew("jitSandboxCheck");
+    if (SANDBOX_OPT) {
+      push_r(rax);
+      push_r(rdi);
+      movq_i64r(addr, rdi);
+      movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+      call_r(rax);
+      pop_r(rdi);
       pop_r(rax);
     }
   }
