@@ -36,6 +36,11 @@ struct EnterJITStackEntry {
 
   void* result;
 
+#ifdef JS_JIT_SBX
+	void* savedSbxPtr;
+	void* savedStackPtr;
+#endif
+
 #if defined(_WIN64)
   struct XMM {
     using XMM128 = char[16];
@@ -82,6 +87,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateEnterJIT");
 
   enterJITOffset_ = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
   masm.assertStackAlignment(ABIStackAlignment,
                             -int32_t(sizeof(uintptr_t)) /* return address */);
@@ -134,6 +140,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.vmovdqa(xmm13, Operand(rsp, offsetof(EnterJITStackEntry::XMM, xmm13)));
   masm.vmovdqa(xmm14, Operand(rsp, offsetof(EnterJITStackEntry::XMM, xmm14)));
   masm.vmovdqa(xmm15, Operand(rsp, offsetof(EnterJITStackEntry::XMM, xmm15)));
+#endif
+
+#ifdef JS_JIT_SBX
+	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), r15);
+	masm.push(r15);
+	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), r15);
+	masm.push(r15);
 #endif
 
   // Save arguments passed in registers needed after function call.
@@ -382,8 +395,16 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   /*****************************************************************
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
+
   masm.pop(r12);  // vp
   masm.storeValue(JSReturnOperand, Operand(r12, 0));
+
+#ifdef JS_JIT_SBX
+	masm.pop(r12);
+	masm.storePtr(r12, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
+	masm.pop(r12);
+	masm.storePtr(r12, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
+#endif
 
   // Restore non-volatile registers.
 #if defined(_WIN64)
@@ -503,7 +524,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   // Do not erase the frame pointer in this function.
 
   AutoCreatedBy acb(masm, "JitRuntime::generateArgumentsRectifier");
-
+	masm.sbxAssumeSandboxStack();	
   switch (kind) {
     case ArgumentsRectifierKind::Normal:
       argumentsRectifierOffset_ = startTrampolineCode(masm);
@@ -512,6 +533,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       trialInliningArgumentsRectifierOffset_ = startTrampolineCode(masm);
       break;
   }
+
+	masm.sbxAssumeNativeStack();
 
   // Caller:
   // [arg2] [arg1] [this] [[argc] [callee] [descr] [raddr]] <- rsp
@@ -729,6 +752,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateVMWrapper");
 
   *wrapperOffset = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
   // Avoid conflicts with argument registers while discarding the result after
   // the function call.
@@ -926,6 +950,7 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generatePreBarrier");
 
   uint32_t offset = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -969,6 +994,7 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   masm.ret();
 
   masm.bind(&noBarrier);
+	masm.sbxAssumeSandboxStack();
   masm.pop(temp3);
   masm.pop(temp2);
   masm.pop(temp1);
@@ -984,7 +1010,8 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
 void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
                                          Label* bailoutTail) {
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
-
+	
   masm.bind(bailoutTail);
+	masm.sbxAssumeSandboxStack();
   masm.generateBailoutTail(rdx, r9);
 }

@@ -11496,6 +11496,7 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
   const Register regSlots = CallTempReg0;
 
   freeStubOffset_ = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
@@ -11569,6 +11570,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateInterpreterStub");
 
   interpreterStubOffset_ = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
@@ -11628,6 +11630,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateDoubleToInt32ValueStub");
   doubleToInt32ValueStubOffset_ = startTrampolineCode(masm);
+	masm.sbxAssumeNativeStack();
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();

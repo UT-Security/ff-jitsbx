@@ -738,9 +738,7 @@ void MacroAssembler::setupUnalignedABICall(Register scratch) {
   setupNativeABICall();
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for to align stack for ABI call.
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+	sbxToNativeStack();
 #endif
 
   dynamicAlignment_ = true;
@@ -750,9 +748,7 @@ void MacroAssembler::setupUnalignedABICall(Register scratch) {
   push(scratch);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch back to sandbox-stack to setup for the ABI call.
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	sbxToSandboxStack();
 #endif
 }
 
@@ -760,9 +756,7 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   MOZ_ASSERT(inCall_);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for ABI call.
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+	sbxToNativeStack();
 #endif
 
   uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
@@ -804,9 +798,7 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
   }
 
 #ifdef JS_JIT_SBX 
-  // [jit-sbx] switch to sandbox-stack after ABI call.
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	sbxToSandboxStack();
 #endif
 
 #ifdef DEBUG

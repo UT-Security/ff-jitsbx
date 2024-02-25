@@ -509,6 +509,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   AutoCreatedBy acb(masm,
                     "BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot");
+	masm.sbxAssumeNativeStack();
 
   if (!postBarrierSlot_.used()) {
     return true;
@@ -535,6 +536,10 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 #elif defined(JS_CODEGEN_RISCV64)
   masm.push(ra);
 #endif
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+#endif
   masm.pushValue(R0);
 
   using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
@@ -547,6 +552,10 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   restoreInterpreterPCReg();
 
   masm.popValue(R0);
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
   return true;
 }
@@ -873,7 +882,7 @@ template <>
 bool BaselineInterpreterCodeGen::emitHandleCodeCoverageAtPrologue() {
   Label skipCoverage;
   CodeOffset toggleOffset = masm.toggledJump(&skipCoverage);
-  masm.call(handler.codeCoverageAtPrologueLabel());
+  masm.sbxCall(handler.codeCoverageAtPrologueLabel());
   masm.bind(&skipCoverage);
   return handler.codeCoverageOffsets().append(toggleOffset.offset());
 }
@@ -2859,7 +2868,7 @@ bool BaselineInterpreterCodeGen::emit_InitElemArray() {
     masm.unboxObject(frame.addressOfStackValue(-1), obj);
     masm.branchPtrInNurseryChunk(Assembler::Equal, obj, scratch, &skipBarrier);
     MOZ_ASSERT(obj == R2.scratchReg(), "post barrier expects object in R2");
-    masm.call(&postBarrierSlot_);
+    masm.sbxCall(&postBarrierSlot_);
   }
   masm.bind(&skipBarrier);
   return true;
@@ -2918,7 +2927,7 @@ bool BaselineCompilerCodeGen::emit_InitElemArray() {
       masm.branchPtrInNurseryChunk(Assembler::Equal, obj, scratch,
                                    &skipBarrier);
       MOZ_ASSERT(obj == R2.scratchReg(), "post barrier expects object in R2");
-      masm.call(&postBarrierSlot_);
+      masm.sbxCall(&postBarrierSlot_);
     }
     masm.bind(&skipBarrier);
   }
@@ -3614,7 +3623,7 @@ bool BaselineCompilerCodeGen::emit_SetAliasedVar() {
   masm.branchPtrInNurseryChunk(Assembler::Equal, objReg, temp, &skipBarrier);
   masm.branchValueIsNurseryCell(Assembler::NotEqual, R0, temp, &skipBarrier);
 
-  masm.call(&postBarrierSlot_);  // Won't clobber R0
+  masm.sbxCall(&postBarrierSlot_);  // Won't clobber R0
 
   masm.bind(&skipBarrier);
   return true;
@@ -3683,7 +3692,7 @@ bool BaselineInterpreterCodeGen::emit_SetAliasedVar() {
   {
     // Post barrier code expects the object in R2.
     masm.movePtr(env, R2.scratchReg());
-    masm.call(&postBarrierSlot_);
+    masm.sbxCall(&postBarrierSlot_);
   }
   masm.bind(&skipBarrier);
   return true;
@@ -4059,7 +4068,7 @@ bool BaselineCompilerCodeGen::emitFormalArgAccess(JSOp op) {
     masm.branchPtrInNurseryChunk(Assembler::Equal, reg, temp, &skipBarrier);
     masm.branchValueIsNurseryCell(Assembler::NotEqual, R0, temp, &skipBarrier);
 
-    masm.call(&postBarrierSlot_);
+    masm.sbxCall(&postBarrierSlot_);
 
     masm.bind(&skipBarrier);
   }
@@ -4111,7 +4120,7 @@ bool BaselineInterpreterCodeGen::emitFormalArgAccess(JSOp op) {
       masm.branchPtrInNurseryChunk(Assembler::Equal, reg, temp, &done);
       masm.branchValueIsNurseryCell(Assembler::NotEqual, R0, temp, &done);
 
-      masm.call(&postBarrierSlot_);
+      masm.sbxCall(&postBarrierSlot_);
     }
     masm.jump(&done);
   }
@@ -5609,7 +5618,7 @@ bool BaselineCodeGen<Handler>::emitSuspend(JSOp op) {
     masm.branchPtrInNurseryChunk(Assembler::NotEqual, envObj, temp,
                                  &skipBarrier);
     MOZ_ASSERT(genObj == R2.scratchReg());
-    masm.call(&postBarrierSlot_);
+    masm.sbxCall(&postBarrierSlot_);
     masm.bind(&skipBarrier);
   } else {
     masm.loadBaselineFramePtr(FramePointer, R1.scratchReg());
@@ -5902,6 +5911,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 
   masm.jump(&returnTarget);
   masm.bind(&genStart);
+	masm.sbxAssumeNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -6131,7 +6141,7 @@ bool BaselineInterpreterCodeGen::emit_JumpTarget() {
 
   Label skipCoverage;
   CodeOffset toggleOffset = masm.toggledJump(&skipCoverage);
-  masm.call(handler.codeCoverageAtPCLabel());
+  masm.sbxCall(handler.codeCoverageAtPCLabel());
   masm.bind(&skipCoverage);
   if (!handler.codeCoverageOffsets().append(toggleOffset.offset())) {
     return false;
@@ -6184,7 +6194,7 @@ bool BaselineCodeGen<Handler>::emit_InitHomeObject() {
   Label skipBarrier;
   masm.branchPtrInNurseryChunk(Assembler::Equal, func, temp, &skipBarrier);
   masm.branchValueIsNurseryCell(Assembler::NotEqual, R0, temp, &skipBarrier);
-  masm.call(&postBarrierSlot_);
+  masm.sbxCall(&postBarrierSlot_);
   masm.bind(&skipBarrier);
 
   return true;
@@ -6338,6 +6348,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+	masm.sbxAssumeNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
@@ -6348,8 +6359,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 #ifdef JS_JIT_SBX
   masm.checkStackAlignment();
 	masm.sbxToSandboxStack();
-	masm.pushSbxReturnAddress();
-	masm.push(FramePointer);
+	masm.pushSbxFrame();
 #endif
 
   masm.checkStackAlignment();
@@ -6708,6 +6718,10 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
+#endif
 
   saveInterpreterPCReg();
 
@@ -6718,11 +6732,19 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn1, HandleCodeCoverageAtPrologue>();
 
   restoreInterpreterPCReg();
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
 
   masm.bind(handler.codeCoverageAtPCLabel());
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
+#endif
+#ifdef JS_JIT_SBX
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
 #endif
 
   saveInterpreterPCReg();
@@ -6736,6 +6758,10 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn2, HandleCodeCoverageAtPC>();
 
   restoreInterpreterPCReg();
+#ifdef JS_JIT_SBX
+	masm.popSbxReturnAddress();
+	masm.sbxToNativeStack();
+#endif
   masm.ret();
 }
 
@@ -6835,6 +6861,8 @@ JitCode* JitRuntime::generateDebugTrapHandler(JSContext* cx,
   TempAllocator temp(&cx->tempLifoAlloc());
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRuntime::generateDebugTrapHandler");
+
+	masm.sbxAssumeSandboxStack();
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
   MOZ_ASSERT(!regs.has(FramePointer));

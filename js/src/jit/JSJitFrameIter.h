@@ -85,6 +85,9 @@ enum class ReadFrameArgsBehavior {
 };
 
 class CommonFrameLayout;
+#ifdef JS_JIT_SBX
+class NativeJitFrameLayout;
+#endif
 class JitFrameLayout;
 class ExitFrameLayout;
 
@@ -110,6 +113,9 @@ void AssertJitStackInvariants(JSContext* cx);
 class JSJitFrameIter {
  protected:
   uint8_t* current_;
+#ifdef JS_JIT_SBX
+	uint8_t* currentNative_;
+#endif
   FrameType type_;
   uint8_t* resumePCinCurrentFrame_;
 
@@ -142,6 +148,10 @@ class JSJitFrameIter {
   const JitActivation* activation() const { return activation_; }
 
   CommonFrameLayout* current() const { return (CommonFrameLayout*)current_; }
+
+#ifdef JS_JIT_SBX
+	NativeJitFrameLayout* currentNative() const { return (NativeJitFrameLayout*)currentNative_; }
+#endif
 
   inline uint8_t* returnAddress() const;
 
@@ -203,6 +213,8 @@ class JSJitFrameIter {
   // Previous frame information extracted from the current frame.
   inline FrameType prevType() const;
   uint8_t* prevFp() const;
+
+  uint8_t* prevNative() const;
 
   // Functions used to iterate on frames. When prevType is an entry,
   // the current frame is the last JS Jit frame.

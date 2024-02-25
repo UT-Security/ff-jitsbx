@@ -89,7 +89,7 @@ inline DynFn JitPreWriteBarrier(MIRType type) {
 // Stack manipulation functions.
 
 CodeOffset MacroAssembler::PushWithPatch(ImmWord word) {
-  framePushed_[currentStack] += sizeof(word.value);
+  framePushed_ += sizeof(word.value);
   return pushWithPatch(word);
 }
 
@@ -233,15 +233,42 @@ ABIFunctionType MacroAssembler::signature() const {
 
 #ifdef JS_JIT_SBX
 
+void MacroAssembler::sbxAssumeNativeStack() {
+	currentStack_ = NATIVE;
+}
+
+void MacroAssembler::sbxAssumeSandboxStack() {
+	currentStack_ = SANDBOX;
+}
+
+void MacroAssembler::sbxAssertNativeStack() {
+  MOZ_ASSERT(currentStack_ == NATIVE);
+}
+
+void MacroAssembler::sbxAssertSandboxStack() {
+	MOZ_ASSERT(currentStack_ == SANDBOX);
+}
+
 void MacroAssembler::sbxToNativeStack() {
+	sbxAssertSandboxStack();
   storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
   loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+	currentStack_ = NATIVE;
 }
 
 void MacroAssembler::sbxToSandboxStack() {
+	sbxAssertNativeStack();
   storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
   loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	currentStack_ = SANDBOX;
 }
+
+#else
+
+void MacroAssembler::sbxAssumeNativeStack() {}
+void MacroAssembler::sbxAssumeSandboxStack() {}
+void MacroAssembler::sbxAssertNativeStack() {}
+void MacroAssembler::sbxAssertSandboxStack() {}
 
 #endif
 
@@ -418,7 +445,7 @@ void MacroAssembler::PushFrameDescriptorForJitCall(FrameType type,
                                                    Register argc,
                                                    Register scratch) {
   pushFrameDescriptorForJitCall(type, argc, scratch);
-  framePushed_[currentStack] += sizeof(uintptr_t);
+  framePushed_ += sizeof(uintptr_t);
 }
 
 void MacroAssembler::loadNumActualArgs(Register framePtr, Register dest) {

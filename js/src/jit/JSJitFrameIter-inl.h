@@ -17,10 +17,17 @@
 namespace js {
 namespace jit {
 
+#ifdef JS_JIT_SBX
+inline uint8_t* JSJitFrameIter::returnAddress() const {
+  NativeJitFrameLayout* currentNative = (NativeJitFrameLayout*)currentNative_;
+  return currentNative->returnAddress();
+}
+#else
 inline uint8_t* JSJitFrameIter::returnAddress() const {
   CommonFrameLayout* current = (CommonFrameLayout*)current_;
   return current->returnAddress();
 }
+#endif
 
 inline FrameType JSJitFrameIter::prevType() const {
   CommonFrameLayout* current = (CommonFrameLayout*)current_;

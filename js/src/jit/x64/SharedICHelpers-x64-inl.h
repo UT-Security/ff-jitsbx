@@ -34,9 +34,7 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
   masm.pushFrameDescriptor(FrameType::BaselineJS);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for tail call.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+	masm.sbxToNativeStack();
 #endif
 
   masm.push(ICTailCallReg);
@@ -78,19 +76,14 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
 #ifdef JS_JIT_SBX
 	// [jit-sbx] push dummy frame pointer in sandbox-stack to maintain layout.
 	masm.pushSbxFramePointer();
-
-  // [jit-sbx] switch to safe-stack to save frame-pointer.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+	masm.sbxToNativeStack();
 #endif
 
   // Save old frame pointer, stack pointer and stub reg.
   masm.Push(FramePointer);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to finish setting up BaselineJS frame.
-  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.mov(StackPointer, FramePointer);

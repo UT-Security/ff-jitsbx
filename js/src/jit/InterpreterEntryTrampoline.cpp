@@ -159,6 +159,7 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
 void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateInterpreterEntryTrampoline");
 
+
   // If BLI is disabled, we don't need an offset.
   if (IsBaselineInterpreterEnabled()) {
     uint32_t offset = startTrampolineCode(masm);
@@ -166,6 +167,8 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
       vmInterpreterEntryOffset_ = offset;
     }
   }
+
+	masm.sbxAssumeNativeStack();
 
 #ifdef JS_CODEGEN_ARM64
   // Use the normal stack pointer for the initial pushes.

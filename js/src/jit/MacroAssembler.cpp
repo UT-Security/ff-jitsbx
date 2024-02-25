@@ -3044,6 +3044,11 @@ void MacroAssembler::handleFailure() {
 void MacroAssembler::assumeUnreachable(const char* output) {
 #ifdef JS_MASM_VERBOSE
   if (!IsCompilingWasm()) {
+#ifdef JS_JIT_SBX
+		if(currentStack_ == NATIVE) {
+			sbxToSandboxStack();
+		}
+#endif
     AllocatableRegisterSet regs(RegisterSet::Volatile());
     LiveRegisterSet save(regs.asLiveSet());
     PushRegsInMask(save);
@@ -3510,8 +3515,10 @@ MacroAssembler::MacroAssembler(TempAllocator& alloc,
     : maybeRuntime_(maybeRuntime),
       maybeRealm_(maybeRealm),
       wasmMaxOffsetGuardLimit_(0),
-      framePushed_(),
-      currentStack(NATIVE),
+      framePushed_(0),
+#ifdef JS_JIT_SBX
+      currentStack_(NATIVE),
+#endif
 #ifdef DEBUG
       inCall_(false),
 #endif
@@ -3658,22 +3665,22 @@ void MacroAssembler::Push(const ConstantOrRegister& v) {
 
 void MacroAssembler::Push(const Address& addr) {
   push(addr);
-  framePushed_[currentStack] += sizeof(uintptr_t);
+  framePushed_ += sizeof(uintptr_t);
 }
 
 void MacroAssembler::Push(const ValueOperand& val) {
   pushValue(val);
-  framePushed_[currentStack] += sizeof(Value);
+  framePushed_ += sizeof(Value);
 }
 
 void MacroAssembler::Push(const Value& val) {
   pushValue(val);
-  framePushed_[currentStack] += sizeof(Value);
+  framePushed_ += sizeof(Value);
 }
 
 void MacroAssembler::Push(JSValueType type, Register reg) {
   pushValue(type, reg);
-  framePushed_[currentStack] += sizeof(Value);
+  framePushed_ += sizeof(Value);
 }
 
 void MacroAssembler::Push(const Register64 reg) {
@@ -3732,11 +3739,11 @@ void MacroAssembler::adjustStack(int amount) {
 }
 
 void MacroAssembler::freeStack(uint32_t amount) {
-  MOZ_ASSERT(amount <= framePushed_[currentStack]);
+  MOZ_ASSERT(amount <= framePushed_);
   if (amount) {
     addToStackPtr(Imm32(amount));
   }
-  framePushed_[currentStack] -= amount;
+  framePushed_ -= amount;
 }
 
 void MacroAssembler::freeStack(Register amount) { addToStackPtr(amount); }

@@ -31,6 +31,9 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
                                FrameType frameType, uint8_t* fp)
     : current_(fp),
+#ifdef JS_JIT_SBX
+			currentNative_(nullptr),
+#endif
       type_(frameType),
       resumePCinCurrentFrame_(nullptr),
       cachedSafepointIndex_(nullptr),
@@ -40,7 +43,15 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
     current_ = activation_->bailoutData()->fp();
     type_ = FrameType::Bailout;
   } else {
-    MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
+		JSContext* cx = TlsContext.get();
+    MOZ_ASSERT(!cx->inUnsafeCallWithABI);
+
+#ifdef JS_JIT_SBX
+		currentNative_ = **(uint8_t ***)cx->runtime()->jitRuntime()->addrOfSavedStackPtr();	
+
+		MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
+#endif
+
   }
 }
 
@@ -152,7 +163,18 @@ void JSJitFrameIter::baselineScriptAndPc(JSScript** scriptRes,
 
 Value* JSJitFrameIter::actualArgs() const { return jsFrame()->actualArgs(); }
 
-uint8_t* JSJitFrameIter::prevFp() const { return current()->callerFramePtr(); }
+uint8_t* JSJitFrameIter::prevFp() const { 
+#ifdef JS_JIT_SBX
+		MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr());
+#endif
+	return current()->callerFramePtr();
+}
+
+#ifdef JS_JIT_SBX
+uint8_t* JSJitFrameIter::prevNative() const {
+	return (uint8_t *)(currentNative() + 1);
+}
+#endif
 
 // Compute the size of a Baseline frame excluding pushed VMFunction arguments or
 // callee frame headers. This is used to calculate the number of Value slots in
@@ -207,8 +229,15 @@ void JSJitFrameIter::operator++() {
   }
 
   type_ = current()->prevType();
+#ifdef JS_JIT_SBX
+	resumePCinCurrentFrame_ = currentNative()->returnAddress();
+#else
   resumePCinCurrentFrame_ = current()->returnAddress();
+#endif
   current_ = prevFp();
+#ifdef JS_JIT_SBX
+	currentNative_ = prevNative();
+#endif
 
   MOZ_ASSERT_IF(isBaselineJS(),
                 baselineFrame()->debugFrameSize() == *baselineFrameSize_);

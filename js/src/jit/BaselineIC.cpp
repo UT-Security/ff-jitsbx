@@ -562,11 +562,10 @@ void FallbackICCodeCompiler::assumeStubFrame() {
 
 #ifdef DEBUG
   entersStubFrame_ = true;
-
-  // |framePushed| isn't tracked precisely in ICStubs, so simply assume it to
+	// |framePushed| isn't tracked precisely in ICStubs, so simply assume it to
   // be the stub frame layout and the pushed ICStub* so that assertions don't
   // fail in leaveStubFrame
-  framePushedAtEnterStubFrame_ =
+	framePushedAtEnterStubFrame_ =
       BaselineStubFrameLayout::Size() + sizeof(ICStub*);
 #endif
 }
@@ -622,9 +621,7 @@ bool FallbackICCodeCompiler::emit_ToBool() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Push arguments.
@@ -700,9 +697,7 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Super property getters use a |this| that differs from base object
@@ -758,8 +753,14 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
                                  masm.currentOffset());
   }
 
-  leaveStubFrame(masm);
+	// jit-sbx: TODO
+	masm.sbxAssumeNativeStack();
+	masm.sbxToSandboxStack();
 
+  leaveStubFrame(masm);
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -900,9 +901,7 @@ bool FallbackICCodeCompiler::emit_SetElem() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // State: R0: object, R1: index, stack: rhs.
@@ -970,9 +969,7 @@ bool FallbackICCodeCompiler::emit_In() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Sync for the decompiler.
@@ -1017,9 +1014,7 @@ bool FallbackICCodeCompiler::emit_HasOwn() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Sync for the decompiler.
@@ -1070,9 +1065,7 @@ bool FallbackICCodeCompiler::emit_CheckPrivateField() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Sync for the decompiler.
@@ -1132,9 +1125,7 @@ bool FallbackICCodeCompiler::emit_GetName() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(R0.scratchReg());
@@ -1182,9 +1173,7 @@ bool FallbackICCodeCompiler::emit_BindName() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(R0.scratchReg());
@@ -1225,9 +1214,7 @@ bool FallbackICCodeCompiler::emit_GetIntrinsic() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(ICStubReg);
@@ -1316,9 +1303,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Super property getters use a |this| that differs from base object
@@ -1362,8 +1347,15 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
                                  masm.currentOffset());
   }
 
+	// jit-sbx: TODO
+	masm.sbxAssumeNativeStack();
+	masm.sbxToSandboxStack();
+
   leaveStubFrame(masm);
 
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1525,9 +1517,7 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Ensure stack is fully synced for the expression decompiler.
@@ -1562,7 +1552,14 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   code.initBailoutReturnOffset(BailoutReturnKind::SetProp,
                                masm.currentOffset());
 
+	// jit-sbx: TODO
+	masm.sbxAssumeNativeStack();
+	masm.sbxToSandboxStack();
+
   leaveStubFrame(masm);
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   EmitReturnFromIC(masm);
 
   return true;
@@ -1774,9 +1771,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
   masm.pushSbxReturnAddress();
 #endif
 
@@ -1827,6 +1822,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 #ifdef JS_JIT_SBX
     masm.popSbxReturnAddress();
 #endif
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
     EmitReturnFromIC(masm);
 
     // SpreadCall is not yet supported in Ion, so do not generate asmcode for
@@ -1834,6 +1832,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     return true;
   }
 
+	masm.sbxAssumeSandboxStack();
   // Push a stub frame so that we can perform a non-tail call.
   enterStubFrame(masm, R1.scratchReg());
 
@@ -1857,6 +1856,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 #ifdef JS_JIT_SBX
   masm.popSbxReturnAddress();
 #endif
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   EmitReturnFromIC(masm);
 
   // This is the resume point used when bailout rewrites call stack to undo
@@ -1871,6 +1873,10 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   } else {
     code.initBailoutReturnOffset(BailoutReturnKind::Call, masm.currentOffset());
   }
+
+	// jit-sbx: TODO
+	masm.sbxAssumeNativeStack();
+	masm.sbxToSandboxStack();
 
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
   // before we leave the stub frame since that info will be lost.
@@ -1896,6 +1902,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     masm.bind(&skipThisReplace);
   }
 
+#ifdef JS_JIT_SBX
+	masm.sbxToNativeStack();
+#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1942,9 +1951,7 @@ bool FallbackICCodeCompiler::emit_GetIterator() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Sync stack for the decompiler.
@@ -1980,9 +1987,7 @@ bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.pushValue(R0);
@@ -2035,9 +2040,7 @@ bool FallbackICCodeCompiler::emit_InstanceOf() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Sync stack for the decompiler.
@@ -2076,9 +2079,7 @@ bool FallbackICCodeCompiler::emit_TypeOf() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.pushValue(R0);
@@ -2111,9 +2112,7 @@ bool FallbackICCodeCompiler::emit_ToPropertyKey() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.pushValue(R0);
@@ -2148,9 +2147,7 @@ bool FallbackICCodeCompiler::emit_Rest() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(ICStubReg);
@@ -2233,9 +2230,7 @@ bool FallbackICCodeCompiler::emit_UnaryArith() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Ensure stack is fully synced for the expression decompiler.
@@ -2358,9 +2353,7 @@ bool FallbackICCodeCompiler::emit_BinaryArith() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Ensure stack is fully synced for the expression decompiler.
@@ -2460,9 +2453,7 @@ bool FallbackICCodeCompiler::emit_Compare() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   // Ensure stack is fully synced for the expression decompiler.
@@ -2513,9 +2504,7 @@ bool FallbackICCodeCompiler::emit_NewArray() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(ICStubReg);  // stub.
@@ -2554,9 +2543,7 @@ bool FallbackICCodeCompiler::emit_NewObject() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(ICStubReg);  // stub.
@@ -2589,9 +2576,7 @@ bool FallbackICCodeCompiler::emit_CloseIter() {
   EmitRestoreTailCallReg(masm);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] switch to sandbox-stack to run fallback IC code.
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+	masm.sbxToSandboxStack();
 #endif
 
   masm.push(R0.scratchReg());
@@ -2619,6 +2604,7 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
     AutoCreatedBy acb(masm, "kind=" #kind);                        \
     uint32_t offset = startTrampolineCode(masm);                   \
     InitMacroAssemblerForICStub(masm);                             \
+		masm.sbxAssumeNativeStack();																	 \
     if (!compiler.emit_##kind()) {                                 \
       return false;                                                \
     }                                                              \

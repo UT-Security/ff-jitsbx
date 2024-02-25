@@ -89,9 +89,7 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
 
   if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
-    // [jit-sbx] switch to safe-stack to pop baseline frame pointer.
-    masm.storePtr(StackPointer, AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-    masm.loadPtr(AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+		masm.sbxToNativeStack();
 #endif
 
     // If we have already pushed the frame pointer, pop it
@@ -99,10 +97,7 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
     masm.pop(FramePointer);
 
 #ifdef JS_JIT_SBX
-    // [jit-sbx] switch to sandbox-stack to continue.
-    masm.storePtr(rsp, AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-    masm.loadPtr(AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
-
+		masm.sbxToSandboxStack();
     masm.popSbxFramePointer();
 #endif
   }
@@ -130,10 +125,7 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
     masm.pushSbxFramePointer();
-
-    // [jit-sbx] switch to safe-stack to push baseline frame pointer.
-    masm.storePtr(StackPointer, AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-    masm.loadPtr(AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+		masm.sbxToNativeStack();
 #endif
 
     // We will pop the frame pointer when we return,
@@ -141,9 +133,7 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
     masm.push(FramePointer);
 
 #ifdef JS_JIT_SBX
-    // [jit-sbx] switch to sandbox-stack to continue.
-    masm.storePtr(StackPointer, AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-    masm.loadPtr(AbsoluteAddress(compiler.cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
+		masm.sbxToSandboxStack();
 #endif
   }
 }
@@ -169,6 +159,7 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
+	masm.sbxAssumeNativeStack();
 
 #ifndef JS_USE_LINK_REGISTER
   masm.adjustFrame(sizeof(intptr_t));
@@ -203,18 +194,12 @@ JitCode* BaselineCacheIRCompiler::compile() {
 
     masm.push(FramePointer);
 
-    // [jit-sbx] switch to sandbox-stack to run Baseline IC code.
-    masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-    masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
-
+		masm.sbxToSandboxStack();
     masm.pushSbxFrame();
 
     masm.moveStackPtrTo(FramePointer);
   } else {
-    // [jit-sbx] switch to sandbox-stack to run Baseline IC code.
-    masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-    masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()), StackPointer);
-
+		masm.sbxToSandboxStack();
     masm.pushSbxReturnAddress();
   }
 #else

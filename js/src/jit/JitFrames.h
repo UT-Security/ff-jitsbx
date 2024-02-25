@@ -200,6 +200,28 @@ inline uint8_t* alignDoubleSpill(uint8_t* pointer) {
 }
 #endif
 
+#ifdef JS_JIT_SBX
+
+class NativeJitFrameLayout {
+	uint8_t* callerFramePtr_;
+	uint8_t* returnAddress_;
+
+public:
+	static constexpr size_t offsetOfReturnAddress() {
+    return offsetof(NativeJitFrameLayout, returnAddress_);
+  }
+
+	uint8_t* returnAddress() const { return returnAddress_; }
+  void setReturnAddress(uint8_t* addr) { returnAddress_ = addr; }
+
+  uint8_t* callerFramePtr() const { return callerFramePtr_; }
+  static constexpr size_t offsetOfCallerFramePtr() {
+    return offsetof(NativeJitFrameLayout, callerFramePtr_);
+  }
+};
+
+#endif
+
 // Layout of the frame prefix. This assumes the stack architecture grows down.
 // If this is ever not the case, we'll have to refactor.
 class CommonFrameLayout {
