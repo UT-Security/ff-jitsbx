@@ -25,15 +25,19 @@
 using namespace js;
 using namespace js::jit;
 
+#ifdef JS_JIT_SBX
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
+    : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP(), activation->jsNativeExitFP()) {}
+#else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
     : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP()) {}
-
-JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
-                               FrameType frameType, uint8_t* fp)
-    : current_(fp),
-#ifdef JS_JIT_SBX
-			currentNative_(nullptr),
 #endif
+
+#ifdef JS_JIT_SBX
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
+                               FrameType frameType, uint8_t* fp, uint8_t* nfp)
+    : current_(fp),
+			currentNative_(nfp),
       type_(frameType),
       resumePCinCurrentFrame_(nullptr),
       cachedSafepointIndex_(nullptr),
@@ -45,15 +49,29 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
   } else {
 		JSContext* cx = TlsContext.get();
     MOZ_ASSERT(!cx->inUnsafeCallWithABI);
-
-#ifdef JS_JIT_SBX
-		currentNative_ = **(uint8_t ***)cx->runtime()->jitRuntime()->addrOfSavedStackPtr();	
-
 		MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
-#endif
-
   }
 }
+#else
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
+                               FrameType frameType, uint8_t* fp)
+    : current_(fp),
+			currentNative_(nullptr),
+      type_(frameType),
+      resumePCinCurrentFrame_(nullptr),
+      cachedSafepointIndex_(nullptr),
+      activation_(activation) {
+  MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
+  if (activation_->bailoutData()) {
+		//TODO(jit-sbx): may need to adjust currentNative_ in the case of bailout.
+    current_ = activation_->bailoutData()->fp();
+    type_ = FrameType::Bailout;
+  } else {
+		JSContext* cx = TlsContext.get();
+    MOZ_ASSERT(!cx->inUnsafeCallWithABI);
+  }
+}
+#endif
 
 bool JSJitFrameIter::checkInvalidation() const {
   IonScript* dummy;
@@ -171,7 +189,7 @@ uint8_t* JSJitFrameIter::prevFp() const {
 }
 
 #ifdef JS_JIT_SBX
-uint8_t* JSJitFrameIter::prevNative() const {
+uint8_t* JSJitFrameIter::prevNativeFp() const {
 	return (uint8_t *)(currentNative() + 1);
 }
 #endif
@@ -236,7 +254,7 @@ void JSJitFrameIter::operator++() {
 #endif
   current_ = prevFp();
 #ifdef JS_JIT_SBX
-	currentNative_ = prevNative();
+	currentNative_ = prevNativeFp();
 #endif
 
   MOZ_ASSERT_IF(isBaselineJS(),

@@ -3916,8 +3916,14 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 // Exit frame footer.
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
+	sbxAssertSandboxStack();
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
   storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+#ifdef JS_JIT_SBX
+  ScratchRegisterScope scratch2(*this);
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), scratch2);
+  storePtr(scratch2, Address(scratch, JitActivation::offsetOfNativeExitFP()));
+#endif
 }
 
 // ===============================================================

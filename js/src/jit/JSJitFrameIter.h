@@ -135,9 +135,13 @@ class JSJitFrameIter {
 
   // A constructor specialized for jit->wasm frames, which starts at a
   // specific FP.
-  JSJitFrameIter(const JitActivation* activation, FrameType frameType,
+#ifdef JS_JIT_SBX
+	JSJitFrameIter(const JitActivation* activation, FrameType frameType,
+                 uint8_t* fp, uint8_t* nfp);
+#else
+	JSJitFrameIter(const JitActivation* activation, FrameType frameType,
                  uint8_t* fp);
-
+#endif
   void setResumePCInCurrentFrame(uint8_t* newAddr) {
     resumePCinCurrentFrame_ = newAddr;
   }
@@ -151,6 +155,7 @@ class JSJitFrameIter {
 
 #ifdef JS_JIT_SBX
 	NativeJitFrameLayout* currentNative() const { return (NativeJitFrameLayout*)currentNative_; }
+	uint8_t* fpNative() const { return currentNative_; }
 #endif
 
   inline uint8_t* returnAddress() const;
@@ -214,7 +219,9 @@ class JSJitFrameIter {
   inline FrameType prevType() const;
   uint8_t* prevFp() const;
 
-  uint8_t* prevNative() const;
+#ifdef JS_JIT_SBX
+  uint8_t* prevNativeFp() const;
+#endif
 
   // Functions used to iterate on frames. When prevType is an entry,
   // the current frame is the last JS Jit frame.

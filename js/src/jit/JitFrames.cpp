@@ -802,8 +802,15 @@ void HandleException(ResumeFromException* rfe) {
   if (iter.isJSJit()) {
     MOZ_ASSERT(rfe->kind == ExceptionResumeKind::EntryFrame);
     rfe->framePointer = iter.asJSJit().current()->callerFramePtr();
+#ifdef JS_JIT_SBX
+    rfe->stackPointer =
+        iter.asJSJit().fp() + CommonFrameLayout::offsetOfDescriptor();
+    rfe->nativeStackPointer =
+        iter.asJSJit().fpNative() + NativeJitFrameLayout::offsetOfReturnAddress();
+#else
     rfe->stackPointer =
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
+#endif
   }
 }
 

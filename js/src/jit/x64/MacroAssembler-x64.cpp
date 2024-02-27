@@ -507,6 +507,7 @@ void MacroAssemblerX64::boxValue(JSValueType type, Register src,
 
 void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
                                                      Label* bailoutTail) {
+	asMasm().sbxAssumeSandboxStack();
   // Reserve space for exception information.
   subq(Imm32(sizeof(ResumeFromException)), rsp);
   movq(rsp, rax);
@@ -551,14 +552,23 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // No exception handler. Load the error value, restore state and return from
   // the entry frame.
   bind(&entryFrame);
+	asMasm().sbxAssumeSandboxStack();
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+#ifdef JS_JIT_SBX
+	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addrOfSavedStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
+#ifdef JS_JIT_SBX
+	asMasm().sbxToNativeStack();
+#endif
   ret();
 
   // If we found a catch handler, this must be a baseline frame. Restore state
   // and jump to the catch block.
   bind(&catch_);
+	asMasm().sbxAssumeSandboxStack();
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -567,6 +577,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // If we found a finally block, this must be a baseline frame. Push two
   // values expected by the finally block: the exception and BooleanValue(true).
   bind(&finally);
+	asMasm().sbxAssumeSandboxStack();
   ValueOperand exception = ValueOperand(rcx);
   loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
@@ -582,6 +593,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // Used in debug mode and for GeneratorReturn.
   Label profilingInstrumentation;
   bind(&returnBaseline);
+	asMasm().sbxAssumeSandboxStack();
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()),
@@ -590,6 +602,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 
   // Return the given value to the caller.
   bind(&returnIon);
+	asMasm().sbxAssumeSandboxStack();
   loadValue(Address(rsp, ResumeFromException::offsetOfException()),
             JSReturnOperand);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
@@ -599,6 +612,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // caller frame before returning. This code is shared by ForcedReturnIon
   // and ForcedReturnBaseline.
   bind(&profilingInstrumentation);
+	asMasm().sbxAssumeSandboxStack();
   {
     Label skipProfilingInstrumentation;
     AbsoluteAddress addressOfEnabled(
@@ -616,6 +630,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // If we are bailing out to baseline to handle an exception, jump to the
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
+	asMasm().sbxAssumeSandboxStack();
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   move32(Imm32(1), ReturnReg);

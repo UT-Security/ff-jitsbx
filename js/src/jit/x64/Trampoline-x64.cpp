@@ -273,12 +273,23 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     Register numStackValues = regs.takeAny();
     masm.movq(numStackValuesAddr, numStackValues);
 
+	#ifdef JS_JIT_SBX
+		masm.sbxToNativeStack();
+	#endif
+
     // Push return address
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
 
     // Frame prologue.
     masm.push(rbp);
+
+	#ifdef JS_JIT_SBX
+		masm.sbxToSandboxStack();
+		masm.pushSbxReturnAddress();
+		masm.push(rbp);
+	#endif
+
     masm.mov(rsp, rbp);
 
     // Reserve frame.
@@ -294,16 +305,19 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.shll(Imm32(3), valuesSize);
     masm.subPtr(valuesSize, rsp);
 
+		// TODO: do we need to push fake exit frame on sandbox stack.
     // Enter exit frame.
     masm.pushFrameDescriptor(FrameType::BaselineJS);
     masm.push(Imm32(0));  // Fake return address.
     masm.push(FramePointer);
+
     // No GC things to mark, push a bare token.
     masm.loadJSContext(scratch);
     masm.enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
     regs.add(valuesSize);
 
+		// TODO: is this safe since we consider trampoline code trusted ?
     masm.push(reg_code);
 
     using Fn = bool (*)(BaselineFrame * frame, InterpreterFrame * interpFrame,
@@ -340,6 +354,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     // OOM: frame epilogue, load error value, discard return address and return.
     masm.bind(&error);
     masm.mov(rbp, rsp);
+	#ifdef JS_JIT_SBX
+		masm.popSbxFrame();
+		masm.sbxToNativeStack();
+	#endif
     masm.pop(rbp);
     masm.addPtr(Imm32(sizeof(uintptr_t)), rsp);  // Return address.
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
@@ -348,6 +366,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&notOsr);
     masm.movq(scopeChain, R1.scratchReg());
   }
+	
+	masm.sbxAssumeSandboxStack();
 
 #ifdef JS_JIT_SBX
   // [jit-sbx] switch to native-stack for the call.

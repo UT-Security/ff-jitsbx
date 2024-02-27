@@ -203,7 +203,12 @@ void JitFrameIter::settle() {
     }
 
     iter_.destroy();
+		//TODO(jit-sbx): fix to pass proper native frame pointer
+#ifdef JS_JIT_SBX
+    iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP, nullptr);
+#else
     iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP);
+#endif
     MOZ_ASSERT(!asJSJit().done());
     return;
   }

@@ -125,6 +125,9 @@ enum class ExceptionResumeKind : int32_t {
 struct ResumeFromException {
   uint8_t* framePointer;
   uint8_t* stackPointer;
+#ifdef JS_JIT_SBX
+	uint8_t* nativeStackPointer;
+#endif
   uint8_t* target;
   ExceptionResumeKind kind;
   wasm::Instance* instance;
@@ -145,6 +148,11 @@ struct ResumeFromException {
   static size_t offsetOfStackPointer() {
     return offsetof(ResumeFromException, stackPointer);
   }
+#ifdef JS_JIT_SBX
+	static size_t offsetOfNativeStackPointer() {
+    return offsetof(ResumeFromException, nativeStackPointer);
+  }
+#endif
   static size_t offsetOfTarget() {
     return offsetof(ResumeFromException, target);
   }

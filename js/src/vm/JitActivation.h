@@ -47,6 +47,9 @@ class JitActivation : public Activation {
   // wasm frame (bit set to wasm::ExitOrJitEntryFPTag) or not
   // (bit set to ~wasm::ExitOrJitEntryFPTag).
   uint8_t* packedExitFP_;
+#ifdef JS_JIT_SBX
+	uint8_t* nativeExitFP_;
+#endif
 
   // When hasWasmExitFP(), encodedWasmExitReason_ holds ExitReason.
   uint32_t encodedWasmExitReason_;
@@ -129,12 +132,24 @@ class JitActivation : public Activation {
     return offsetof(JitActivation, packedExitFP_);
   }
 
+#ifdef JS_JIT_SBX
+	static size_t offsetOfNativeExitFP() {
+		return offsetof(JitActivation, nativeExitFP_);
+	}
+#endif
+
   bool hasJSExitFP() const { return !hasWasmExitFP(); }
 
   uint8_t* jsExitFP() const {
     MOZ_ASSERT(hasJSExitFP());
     return packedExitFP_;
   }
+
+	uint8_t* jsNativeExitFP() const {
+    MOZ_ASSERT(hasJSExitFP());
+    return nativeExitFP_;
+  }
+
   void setJSExitFP(uint8_t* fp) { packedExitFP_ = fp; }
 
 #ifdef CHECK_OSIPOINT_REGISTERS
