@@ -905,6 +905,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline uint32_t sbxCall(const Address& addr);
 	inline uint32_t sbxCall(TrampolinePtr code);
 	inline uint32_t sbxCall(ImmPtr imm);
+	inline uint32_t sbxCall(JitCode* target);
 
 	inline uint32_t sbxCallAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
 	inline uint32_t sbxCallAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);

@@ -407,7 +407,7 @@ void MacroAssembler::callFreeStub(Register slots) {
 
   push(regSlots);
   movePtr(slots, regSlots);
-  call(runtime()->jitRuntime()->freeStub());
+  sbxCall(runtime()->jitRuntime()->freeStub());
   pop(regSlots);
 }
 

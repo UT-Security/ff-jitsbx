@@ -2897,7 +2897,7 @@ void CodeGenerator::visitRegExpMatcher(LRegExpMatcher* lir) {
   const JitRealm* jitRealm = gen->realm->jitRealm();
   JitCode* regExpMatcherStub =
       jitRealm->regExpMatcherStubNoBarrier(&realmStubsToReadBarrier_);
-  masm.call(regExpMatcherStub);
+  masm.sbxCall(regExpMatcherStub);
   masm.branchTestUndefined(Assembler::Equal, JSReturnOperand, ool->entry());
   masm.bind(ool->rejoin());
 
@@ -2967,7 +2967,7 @@ void CodeGenerator::visitRegExpExecMatch(LRegExpExecMatch* lir) {
   const JitRealm* jitRealm = gen->realm->jitRealm();
   JitCode* regExpExecMatchStub =
       jitRealm->regExpExecMatchStubNoBarrier(&realmStubsToReadBarrier_);
-  masm.call(regExpExecMatchStub);
+  masm.sbxCall(regExpExecMatchStub);
   masm.branchTestUndefined(Assembler::Equal, JSReturnOperand, ool->entry());
 
   masm.bind(ool->rejoin());
@@ -3163,7 +3163,7 @@ void CodeGenerator::visitRegExpSearcher(LRegExpSearcher* lir) {
   const JitRealm* jitRealm = gen->realm->jitRealm();
   JitCode* regExpSearcherStub =
       jitRealm->regExpSearcherStubNoBarrier(&realmStubsToReadBarrier_);
-  masm.call(regExpSearcherStub);
+  masm.sbxCall(regExpSearcherStub);
   masm.branch32(Assembler::Equal, ReturnReg, Imm32(RegExpSearcherResultFailed),
                 ool->entry());
   masm.bind(ool->rejoin());
@@ -3336,7 +3336,7 @@ void CodeGenerator::visitRegExpExecTest(LRegExpExecTest* lir) {
   const JitRealm* jitRealm = gen->realm->jitRealm();
   JitCode* regExpExecTestStub =
       jitRealm->regExpExecTestStubNoBarrier(&realmStubsToReadBarrier_);
-  masm.call(regExpExecTestStub);
+  masm.sbxCall(regExpExecTestStub);
 
   masm.branch32(Assembler::Equal, ReturnReg, Imm32(RegExpExecTestResultFailed),
                 ool->entry());
@@ -11013,7 +11013,7 @@ void CodeGenerator::emitConcat(LInstruction* lir, Register lhs, Register rhs,
   const JitRealm* jitRealm = gen->realm->jitRealm();
   JitCode* stringConcatStub =
       jitRealm->stringConcatStubNoBarrier(&realmStubsToReadBarrier_);
-  masm.call(stringConcatStub);
+  masm.sbxCall(stringConcatStub);
   masm.branchTestPtr(Assembler::Zero, output, output, ool->entry());
 
   masm.bind(ool->rejoin());

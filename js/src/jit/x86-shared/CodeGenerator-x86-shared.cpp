@@ -534,6 +534,7 @@ bool CodeGeneratorX86Shared::generateOutOfLineCode() {
   if (deoptLabel_.used()) {
     // All non-table-based bailouts will go here.
     masm.bind(&deoptLabel_);
+		masm.sbxAssumeSandboxStack();
 
     // Push the frame size, so the handler can recover the IonScript.
     masm.push(Imm32(frameSize()));
@@ -1919,6 +1920,7 @@ void CodeGeneratorX86Shared::generateInvalidateEpilogue() {
   }
 
   masm.bind(&invalidate_);
+	masm.sbxAssumeSandboxStack();
 
   // Push the Ion script onto the stack (when we determine what that pointer
   // is).

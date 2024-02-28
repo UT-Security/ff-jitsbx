@@ -355,6 +355,18 @@ inline uint32_t MacroAssembler::sbxCall(ImmPtr imm) {
 	return ret;
 }
 
+inline uint32_t MacroAssembler::sbxCall(JitCode* target) {
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+#endif
+	call(target);
+	uint32_t ret = currentOffset();
+#ifdef JS_JIT_SBX
+	sbxToSandboxStack();
+#endif
+	return ret;
+}
+
 inline uint32_t MacroAssembler::sbxCallJitNoProfiler(Register callee) {
 #ifdef JS_JIT_SBX
 	sbxToNativeStack();

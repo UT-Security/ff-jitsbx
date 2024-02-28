@@ -133,8 +133,16 @@ bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(masm.framePushed() == 0);
   MOZ_ASSERT(!gen->compilingWasm());
 
+	masm.sbxAssumeNativeStack();
+
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
+#endif
+
+#ifdef JS_JIT_SBX
+	masm.push(FramePointer);
+	masm.sbxToSandboxStack();
+	masm.pushSbxReturnAddress();
 #endif
 
   // Frame prologue.
@@ -169,8 +177,14 @@ bool CodeGeneratorShared::generateEpilogue() {
 
   MOZ_ASSERT(masm.framePushed() == frameSize());
   masm.moveToStackPtr(FramePointer);
-  masm.pop(FramePointer);
   masm.setFramePushed(0);
+
+#ifdef JS_JIT_SBX
+	masm.popSbxFrame();
+	masm.sbxToNativeStack();
+#endif
+
+  masm.pop(FramePointer);
 
   masm.ret();
 
