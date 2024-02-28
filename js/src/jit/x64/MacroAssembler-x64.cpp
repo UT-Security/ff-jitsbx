@@ -752,35 +752,30 @@ void MacroAssemblerX64::convertDoubleToPtr(FloatRegister src, Register dest,
 void MacroAssembler::setupUnalignedABICall(Register scratch) {
   setupNativeABICall();
 
-#ifdef JS_JIT_SBX
-	sbxToNativeStack();
-#endif
-
   dynamicAlignment_ = true;
 
   movq(rsp, scratch);
   andq(Imm32(~(ABIStackAlignment - 1)), rsp);
   push(scratch);
-
-#ifdef JS_JIT_SBX
-	sbxToSandboxStack();
-#endif
 }
 
 void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   MOZ_ASSERT(inCall_);
-
-#ifdef JS_JIT_SBX
-	sbxToNativeStack();
-#endif
 
   uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
 
   if (dynamicAlignment_) {
     // sizeof(intptr_t) accounts for the saved stack pointer pushed by
     // setupUnalignedABICall.
+#ifdef JS_JIT_SBX
+		// Since ABI arguments are pushed onto the native stack we don't
+		// consider it for alignment here.
+    stackForCall = ComputeByteAlignment(sizeof(intptr_t),
+                                         ABIStackAlignment);
+#else
     stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
                                          ABIStackAlignment);
+#endif
   } else {
     uint32_t alignmentAtPrologue = callFromWasm ? sizeof(wasm::Frame) : 0;
     stackForCall += ComputeByteAlignment(
@@ -789,6 +784,15 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
 
   *stackAdjust = stackForCall;
   reserveStack(stackForCall);
+  assertStackAlignment(ABIStackAlignment);
+
+#ifdef JS_JIT_SBX
+	sbxToNativeStack();
+	stackForCall = abiArgs_.stackBytesConsumedSoFar();
+  stackForCall += ComputeByteAlignment(stackForCall,
+                                         ABIStackAlignment);
+  subFromStackPtr(Imm32(stackForCall));
+#endif
 
   // Position all arguments.
   {
@@ -807,14 +811,17 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
 
 void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                                      bool cleanupArg) {
+#ifdef JS_JIT_SBX
+  uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+  stackForCall += ComputeByteAlignment(stackForCall,
+                                         ABIStackAlignment);
+	addToStackPtr(Imm32(stackForCall));
+	sbxToSandboxStack();
+#endif
   freeStack(stackAdjust);
   if (dynamicAlignment_) {
     pop(rsp);
   }
-
-#ifdef JS_JIT_SBX 
-	sbxToSandboxStack();
-#endif
 
 #ifdef DEBUG
   MOZ_ASSERT(inCall_);

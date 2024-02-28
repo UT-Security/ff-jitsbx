@@ -92,6 +92,11 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
                                   maxArgv[0].isMagic(JS_UNINITIALIZED_LEXICAL));
 
   RootedValue result(cx, Int32Value(numActualArgs));
+#ifdef JS_JIT_SBX
+	if(cx->activation_ && cx->activation_->isJit()) {
+		cx->jitActivation->setNativeExitFP((uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
+	}
+#endif
   {
     AssertRealmUnchanged aru(cx);
     ActivationEntryMonitor entryMonitor(cx, calleeToken);
@@ -105,6 +110,11 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
                         calleeToken, envChain, /* osrNumStackValues = */ 0,
                         result.address());
   }
+#ifdef JS_JIT_SBX
+	if(cx->activation_ && cx->activation_->isJit()) {
+		cx->jitActivation->setNativeExitFP(nullptr);
+	}
+#endif
 
   // Ensure the counter was reset to zero after exiting from JIT code.
   MOZ_ASSERT(!cx->isInUnsafeRegion());

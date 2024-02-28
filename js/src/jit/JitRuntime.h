@@ -308,6 +308,10 @@ class JitRuntime {
 		return addrOfSavedStackPtr_;
 	}
 
+	uintptr_t savedStackPtr() {
+		return *addrOfSavedStackPtr_;
+	}
+
 	const uintptr_t* addrOfSbxStackPtr() const {
 		return addrOfSbxStackPtr_;
 	}

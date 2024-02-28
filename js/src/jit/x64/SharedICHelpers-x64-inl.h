@@ -37,7 +37,9 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 	masm.sbxToNativeStack();
 #endif
 
+#ifndef JS_JIT_SBX
   masm.push(ICTailCallReg);
+#endif
   masm.jump(target);
 }
 

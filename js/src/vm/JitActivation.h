@@ -132,12 +132,6 @@ class JitActivation : public Activation {
     return offsetof(JitActivation, packedExitFP_);
   }
 
-#ifdef JS_JIT_SBX
-	static size_t offsetOfNativeExitFP() {
-		return offsetof(JitActivation, nativeExitFP_);
-	}
-#endif
-
   bool hasJSExitFP() const { return !hasWasmExitFP(); }
 
   uint8_t* jsExitFP() const {
@@ -145,10 +139,14 @@ class JitActivation : public Activation {
     return packedExitFP_;
   }
 
+#ifdef JS_JIT_SBX
 	uint8_t* jsNativeExitFP() const {
     MOZ_ASSERT(hasJSExitFP());
     return nativeExitFP_;
   }
+
+	void setNativeExitFP(uint8_t* nfp) { nativeExitFP_ = nfp; }
+#endif
 
   void setJSExitFP(uint8_t* fp) { packedExitFP_ = fp; }
 

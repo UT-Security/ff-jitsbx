@@ -617,8 +617,10 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 bool FallbackICCodeCompiler::emit_ToBool() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -693,8 +695,10 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -898,7 +902,10 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetElem() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -966,7 +973,10 @@ bool DoInFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_In() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1011,7 +1021,10 @@ bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_HasOwn() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1062,7 +1075,10 @@ bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CheckPrivateField() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1122,7 +1138,10 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_GetName() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1169,8 +1188,10 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_BindName() {
   static_assert(R0 == JSReturnOperand);
-
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1211,7 +1232,10 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIntrinsic() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1300,7 +1324,10 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1514,7 +1541,10 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1948,7 +1978,10 @@ bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIterator() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -1984,7 +2017,10 @@ bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2037,7 +2073,10 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_InstanceOf() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2076,7 +2115,10 @@ bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_TypeOf() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2109,7 +2151,10 @@ bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_ToPropertyKey() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2144,7 +2189,10 @@ bool DoRestFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_Rest() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2226,8 +2274,10 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_UnaryArith() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2349,8 +2399,10 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_BinaryArith() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2449,8 +2501,10 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_Compare() {
   static_assert(R0 == JSReturnOperand);
 
+#ifndef JS_JIT_SBX
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2501,7 +2555,10 @@ bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewArray() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2540,7 +2597,10 @@ bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewObject() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
@@ -2573,7 +2633,10 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
+#ifndef JS_JIT_SBX
+  // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
 
 #ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();

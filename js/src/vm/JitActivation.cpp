@@ -32,6 +32,9 @@ class JS_PUBLIC_API JSTracer;
 js::jit::JitActivation::JitActivation(JSContext* cx)
     : Activation(cx, Jit),
       packedExitFP_(nullptr),
+#ifdef JS_JIT_SBX
+			nativeExitFP_(nullptr),
+#endif
       encodedWasmExitReason_(0),
       prevJitActivation_(cx->jitActivation),
       rematerializedFrames_(),

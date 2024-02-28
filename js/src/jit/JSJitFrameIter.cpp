@@ -49,6 +49,10 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
   } else {
 		JSContext* cx = TlsContext.get();
     MOZ_ASSERT(!cx->inUnsafeCallWithABI);
+		if(currentNative() == nullptr) {
+			MOZ_ASSERT(activation == cx->jitActivation);
+			currentNative_ = (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr();
+		}
 		MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
   }
 }
