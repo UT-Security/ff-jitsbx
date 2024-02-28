@@ -44,6 +44,7 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
       activation_(activation) {
   MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
   if (activation_->bailoutData()) {
+		//TODO(jit-sbx): may need to adjust currentNative_ in the case of bailout.
     current_ = activation_->bailoutData()->fp();
     type_ = FrameType::Bailout;
   } else {
@@ -60,14 +61,12 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
                                FrameType frameType, uint8_t* fp)
     : current_(fp),
-			currentNative_(nullptr),
       type_(frameType),
       resumePCinCurrentFrame_(nullptr),
       cachedSafepointIndex_(nullptr),
       activation_(activation) {
   MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
   if (activation_->bailoutData()) {
-		//TODO(jit-sbx): may need to adjust currentNative_ in the case of bailout.
     current_ = activation_->bailoutData()->fp();
     type_ = FrameType::Bailout;
   } else {

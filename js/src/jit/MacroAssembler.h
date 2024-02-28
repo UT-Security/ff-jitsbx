@@ -441,7 +441,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // It is maintained by all stack manipulation functions below.
   uint32_t framePushed_;
 
+#ifdef JS_JIT_SBX
 	StackType currentStack_;
+#endif
 
  public:
   // ===============================================================

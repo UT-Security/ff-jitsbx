@@ -759,7 +759,9 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
+#endif
 
   leaveStubFrame(masm);
 #ifdef JS_JIT_SBX
@@ -1376,7 +1378,9 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
+#endif
 
   leaveStubFrame(masm);
 
@@ -1584,7 +1588,9 @@ bool FallbackICCodeCompiler::emit_SetProp() {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
+#endif
 
   leaveStubFrame(masm);
 #ifdef JS_JIT_SBX
@@ -1906,7 +1912,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
+#endif
 
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
   // before we leave the stub frame since that info will be lost.
