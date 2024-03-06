@@ -230,6 +230,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.unboxInt32(Operand(reg_argc, 0), reg_argc);
 
 #ifdef JS_JIT_SBX
+    masm.movq(numStackValuesAddr, r13);
+
   // [jit-sbx] switch to native-stack to save rbp before setting up
   // JitFrameLayout on the sandbox-stack.
 	masm.sbxToNativeStack();
@@ -271,7 +273,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.branchTestPtr(Assembler::Zero, OsrFrameReg, OsrFrameReg, &notOsr);
 
     Register numStackValues = regs.takeAny();
+#ifdef JS_JIT_SBX
+    masm.movq(r13, numStackValues);
+#else
     masm.movq(numStackValuesAddr, numStackValues);
+#endif
 
 	#ifdef JS_JIT_SBX
 		masm.sbxToNativeStack();

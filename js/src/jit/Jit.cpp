@@ -93,7 +93,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 
   RootedValue result(cx, Int32Value(numActualArgs));
 #ifdef JS_JIT_SBX
-	if(cx->activation_ && cx->activation_->isJit()) {
+	if(cx->jitActivation) {
 		cx->jitActivation->setNativeExitFP((uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
 	}
 #endif
@@ -111,7 +111,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
                         result.address());
   }
 #ifdef JS_JIT_SBX
-	if(cx->activation_ && cx->activation_->isJit()) {
+	if(cx->jitActivation) {
 		cx->jitActivation->setNativeExitFP(nullptr);
 	}
 #endif

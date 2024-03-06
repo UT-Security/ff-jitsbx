@@ -325,7 +325,7 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(enableWatchtowerMegamorphic, true);
 
   SET_DEFAULT(onlyInlineSelfHosted, false);
-  SET_DEFAULT(enableICFramePointers, false);
+  SET_DEFAULT(enableICFramePointers, true);
 
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);

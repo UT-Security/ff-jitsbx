@@ -11430,6 +11430,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&leftEmpty);
+	masm.sbxAssumeSandboxStack();
   masm.mov(rhs, output);
 #ifdef JS_JIT_SBX
 	masm.popSbxFrame();
@@ -11439,6 +11440,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&rightEmpty);
+	masm.sbxAssumeSandboxStack();
   masm.mov(lhs, output);
 #ifdef JS_JIT_SBX
 	masm.popSbxFrame();
@@ -11448,6 +11450,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&isInlineTwoByte);
+	masm.sbxAssumeSandboxStack();
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::TwoByte);
 #ifdef JS_JIT_SBX
@@ -11458,6 +11461,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&isInlineLatin1);
+	masm.sbxAssumeSandboxStack();
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::Latin1);
 #ifdef JS_JIT_SBX
@@ -11471,6 +11475,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.pop(temp1);
 
   masm.bind(&failure);
+	masm.sbxAssumeSandboxStack();
   masm.movePtr(ImmPtr(nullptr), output);
 #ifdef JS_JIT_SBX
 	masm.popSbxFrame();
