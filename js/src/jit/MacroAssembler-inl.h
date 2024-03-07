@@ -9,6 +9,7 @@
 
 #include "jit/MacroAssembler.h"
 
+#include "jit/shared/Assembler-shared.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 
@@ -369,6 +370,13 @@ inline uint32_t MacroAssembler::sbxCallJitNoProfiler(Register callee) {
 inline uint32_t MacroAssembler::sbxCallJit(Register callee) {
 	AutoProfilerCallInstrumentation profiler(*this);
 	return sbxCallJitNoProfiler(callee);
+}
+
+inline uint32_t MacroAssembler::sbxCallJit(TrampolinePtr code) {
+  sbxToNativeStack();
+  uint32_t ret = callJit(code);
+  sbxToSandboxStack();
+  return ret;      
 }
 
 // ===============================================================

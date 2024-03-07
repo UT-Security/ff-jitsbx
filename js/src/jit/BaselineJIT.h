@@ -413,6 +413,16 @@ struct alignas(uintptr_t) BaselineBailoutInfo {
   uint8_t* copyStackTop = nullptr;
   uint8_t* copyStackBottom = nullptr;
 
+#ifdef JS_JIT_SBX
+  // Pointer into the current native C stack, where overwriting will start.
+  uint8_t* incomingNativeStack = nullptr;
+
+  // The top and bottom heapspace addresses of the reconstructed stack
+  // which will be copied to the bottom.
+  uint8_t* copyNativeStackTop = nullptr;
+  uint8_t* copyNativeStackBottom = nullptr;
+#endif
+
   // The value of the frame pointer register on resume.
   void* resumeFramePtr = nullptr;
 

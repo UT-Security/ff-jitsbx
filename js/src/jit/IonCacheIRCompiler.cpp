@@ -264,9 +264,12 @@ void IonCacheIRCompiler::enterStubFrame(MacroAssembler& masm,
   MOZ_ASSERT(!enteredStubFrame_);
   pushStubCodePointer();
   masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.sbxToNativeStack();
   masm.Push(ImmPtr(GetReturnAddressToIonCode(cx_)));
 
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
   masm.moveStackPtrTo(FramePointer);
 
   enteredStubFrame_ = true;
@@ -547,6 +550,7 @@ bool IonCacheIRCompiler::init() {
 JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   AutoCreatedBy acb(masm, "IonCacheIRCompiler::compile");
 
+  masm.sbxAssumeSandboxStack();
   masm.setFramePushed(ionScript_->frameSize());
   if (cx_->runtime()->geckoProfiler().enabled()) {
     masm.enableProfilingInstrumentation();

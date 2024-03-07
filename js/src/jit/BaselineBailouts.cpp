@@ -106,6 +106,15 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   size_t bufferUsed_ = 0;
   size_t framePushed_ = 0;
 
+#ifdef JS_JIT_SBX
+  NativeJitFrameLayout* nativeFrame_ = nullptr;
+  
+  size_t bufferNativeTotal_ = 1024;
+  size_t bufferNativeAvail_ = 0;
+  size_t bufferNativeUsed_ = 0;
+  size_t frameNativePushed_ = 0;
+#endif
+
   UniquePtr<BaselineBailoutInfo> header_;
 
   JSScript* script_;
@@ -138,6 +147,9 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!header_);
     MOZ_ASSERT(bufferUsed_ == 0);
+#ifdef JS_JIT_SBX
+    MOZ_ASSERT(bufferNativeUsed_ == 0);
+#endif
 
     uint8_t* bufferRaw = cx_->pod_calloc<uint8_t>(bufferTotal_);
     if (!bufferRaw) {
@@ -149,6 +161,18 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
     header_->incomingStack = reinterpret_cast<uint8_t*>(frame_);
     header_->copyStackTop = bufferRaw + bufferTotal_;
     header_->copyStackBottom = header_->copyStackTop;
+
+#ifdef JS_JIT_SBX
+    uint8_t* bufferNativeRaw = cx_->pod_calloc<uint8_t>(bufferNativeTotal_);
+    if (!bufferNativeRaw) {
+      return false;
+    }
+    bufferNativeAvail_ = bufferNativeTotal_;
+
+    //header_->incomingStack = reinterpret_cast<uint8_t*>(frame_);
+    header_->copyNativeStackTop = bufferNativeRaw + bufferNativeTotal_;
+    header_->copyNativeStackBottom = header_->copyNativeStackTop;
+#endif
     return true;
   }
 
@@ -421,6 +445,9 @@ BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
       frame_(static_cast<JitFrameLayout*>(frameIter.current())),
       iter_(iter),
       outermostFrameFormals_(cx),
+#ifdef JS_JIT_SBX
+      nativeFrame_(static_cast<NativeJitFrameLayout*>(frameIter.currentNative())),
+#endif
       script_(frameIter.script()),
       fun_(frameIter.maybeCallee()),
       excInfo_(excInfo),

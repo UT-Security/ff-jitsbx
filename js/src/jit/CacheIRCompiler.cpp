@@ -9416,7 +9416,7 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
     const VMFunctionData& fun = GetVMFunction(id);
     uint32_t frameSize = fun.explicitStackSlots() * sizeof(void*);
     masm.PushFrameDescriptor(FrameType::IonICCall);
-    masm.callJit(code);
+    masm.sbxCallJit(code);
 
     // Pop rest of the exit frame and the arguments left on the stack.
     int framePop =
@@ -9424,7 +9424,11 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
     masm.implicitPop(frameSize + framePop);
 
     // Pop IonICCallFrameLayout.
+    masm.sbxToNativeStack();
     masm.Pop(FramePointer);
+    masm.freeStack(sizeof(void*));
+    masm.sbxToSandboxStack();
+    masm.sbxPopFramePointer();
     masm.freeStack(IonICCallFrameLayout::Size() - sizeof(void*));
     return;
   }

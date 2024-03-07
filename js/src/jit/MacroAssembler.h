@@ -910,6 +910,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline uint32_t sbxCallJitNoProfiler(Register callee);
 
 	inline uint32_t sbxCallJit(Register callee);
+  inline uint32_t sbxCallJit(TrampolinePtr code);
 
  public:
   // ===============================================================
