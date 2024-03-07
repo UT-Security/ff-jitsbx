@@ -622,9 +622,7 @@ bool FallbackICCodeCompiler::emit_ToBool() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Push arguments.
   masm.pushValue(R0);
@@ -700,9 +698,7 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Super property getters use a |this| that differs from base object
   if (hasReceiver) {
@@ -759,14 +755,11 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   leaveStubFrame(masm);
-#ifdef JS_JIT_SBX
+
 	masm.sbxToNativeStack();
-#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -909,9 +902,7 @@ bool FallbackICCodeCompiler::emit_SetElem() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // State: R0: object, R1: index, stack: rhs.
   // For the decompiler, the stack has to be: object, index, rhs,
@@ -980,9 +971,7 @@ bool FallbackICCodeCompiler::emit_In() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -1028,9 +1017,7 @@ bool FallbackICCodeCompiler::emit_HasOwn() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -1082,9 +1069,7 @@ bool FallbackICCodeCompiler::emit_CheckPrivateField() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -1145,9 +1130,7 @@ bool FallbackICCodeCompiler::emit_GetName() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);
@@ -1195,9 +1178,7 @@ bool FallbackICCodeCompiler::emit_BindName() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);
@@ -1239,9 +1220,7 @@ bool FallbackICCodeCompiler::emit_GetIntrinsic() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(ICStubReg);
   pushStubPayload(masm, R0.scratchReg());
@@ -1331,9 +1310,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Super property getters use a |this| that differs from base object
   if (hasReceiver) {
@@ -1378,15 +1355,11 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   leaveStubFrame(masm);
 
-#ifdef JS_JIT_SBX
 	masm.sbxToNativeStack();
-#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1550,9 +1523,7 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Ensure stack is fully synced for the expression decompiler.
   // Overwrite the RHS value on top of the stack with the object, then push
@@ -1588,14 +1559,11 @@ bool FallbackICCodeCompiler::emit_SetProp() {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   leaveStubFrame(masm);
-#ifdef JS_JIT_SBX
+
 	masm.sbxToNativeStack();
-#endif
   EmitReturnFromIC(masm);
 
   return true;
@@ -1806,10 +1774,8 @@ void FallbackICCodeCompiler::pushCallArguments(
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-  masm.pushSbxReturnAddress();
-#endif
+  masm.sbxPushReturnAddress();
 
   // Values are on the stack left-to-right. Calling convention wants them
   // right-to-left so duplicate them on the stack in reverse order.
@@ -1855,12 +1821,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     }
 
     leaveStubFrame(masm);
-#ifdef JS_JIT_SBX
-    masm.popSbxReturnAddress();
-#endif
-#ifdef JS_JIT_SBX
-	masm.sbxToNativeStack();
-#endif
+        
+    masm.sbxPopReturnAddress();
+	  masm.sbxToNativeStack();
     EmitReturnFromIC(masm);
 
     // SpreadCall is not yet supported in Ion, so do not generate asmcode for
@@ -1889,12 +1852,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   }
 
   leaveStubFrame(masm);
-#ifdef JS_JIT_SBX
-  masm.popSbxReturnAddress();
-#endif
-#ifdef JS_JIT_SBX
+
+  masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
-#endif
   EmitReturnFromIC(masm);
 
   // This is the resume point used when bailout rewrites call stack to undo
@@ -1912,9 +1872,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
   // before we leave the stub frame since that info will be lost.
@@ -1940,9 +1898,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     masm.bind(&skipThisReplace);
   }
 
-#ifdef JS_JIT_SBX
 	masm.sbxToNativeStack();
-#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1991,9 +1947,7 @@ bool FallbackICCodeCompiler::emit_GetIterator() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Sync stack for the decompiler.
   masm.pushValue(R0);
@@ -2030,9 +1984,7 @@ bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -2086,9 +2038,7 @@ bool FallbackICCodeCompiler::emit_InstanceOf() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Sync stack for the decompiler.
   masm.pushValue(R0);
@@ -2128,9 +2078,7 @@ bool FallbackICCodeCompiler::emit_TypeOf() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -2164,9 +2112,7 @@ bool FallbackICCodeCompiler::emit_ToPropertyKey() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -2202,9 +2148,7 @@ bool FallbackICCodeCompiler::emit_Rest() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(ICStubReg);
   pushStubPayload(masm, R0.scratchReg());
@@ -2287,9 +2231,7 @@ bool FallbackICCodeCompiler::emit_UnaryArith() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2412,9 +2354,7 @@ bool FallbackICCodeCompiler::emit_BinaryArith() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2514,9 +2454,7 @@ bool FallbackICCodeCompiler::emit_Compare() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2568,9 +2506,7 @@ bool FallbackICCodeCompiler::emit_NewArray() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(ICStubReg);  // stub.
   masm.pushBaselineFramePtr(FramePointer, R0.scratchReg());
@@ -2610,9 +2546,7 @@ bool FallbackICCodeCompiler::emit_NewObject() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(ICStubReg);  // stub.
   pushStubPayload(masm, R0.scratchReg());
@@ -2646,9 +2580,7 @@ bool FallbackICCodeCompiler::emit_CloseIter() {
   EmitRestoreTailCallReg(masm);
 #endif
 
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);

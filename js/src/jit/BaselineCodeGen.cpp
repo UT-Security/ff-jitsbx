@@ -536,10 +536,9 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 #elif defined(JS_CODEGEN_RISCV64)
   masm.push(ra);
 #endif
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-	masm.pushSbxReturnAddress();
-#endif
+	masm.sbxPushReturnAddress();
+
   masm.pushValue(R0);
 
   using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
@@ -552,10 +551,9 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   restoreInterpreterPCReg();
 
   masm.popValue(R0);
-#ifdef JS_JIT_SBX
-	masm.popSbxReturnAddress();
+
+	masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
-#endif
   masm.ret();
   return true;
 }
@@ -5918,10 +5916,8 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
 
   // Construct BaselineFrame.
   masm.push(FramePointer);
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-	masm.pushSbxFrame();
-#endif
+	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // If profiler instrumentation is on, update lastProfilingFrame on
@@ -6356,11 +6352,9 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   masm.push(FramePointer);
 
-#ifdef JS_JIT_SBX
   masm.checkStackAlignment();
 	masm.sbxToSandboxStack();
-	masm.pushSbxFrame();
-#endif
+	masm.sbxPushFrame();
 
   masm.checkStackAlignment();
 
@@ -6438,16 +6432,9 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
   emitProfilerExitFrame();
 
   masm.moveToStackPtr(FramePointer);
-
-#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack for return.
-  masm.popSbxFrame();
-  masm.storePtr(rsp, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
-#endif
-
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
-
   masm.ret();
   return true;
 }
@@ -6718,10 +6705,8 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-	masm.pushSbxReturnAddress();
-#endif
+	masm.sbxPushReturnAddress();
 
   saveInterpreterPCReg();
 
@@ -6732,20 +6717,17 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn1, HandleCodeCoverageAtPrologue>();
 
   restoreInterpreterPCReg();
-#ifdef JS_JIT_SBX
-	masm.popSbxReturnAddress();
+
+	masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
-#endif
   masm.ret();
 
   masm.bind(handler.codeCoverageAtPCLabel());
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-	masm.pushSbxReturnAddress();
-#endif
+	masm.sbxPushReturnAddress();
 
   saveInterpreterPCReg();
 
@@ -6758,10 +6740,9 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn2, HandleCodeCoverageAtPC>();
 
   restoreInterpreterPCReg();
-#ifdef JS_JIT_SBX
-	masm.popSbxReturnAddress();
+
+	masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
-#endif
   masm.ret();
 }
 

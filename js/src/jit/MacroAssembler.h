@@ -879,27 +879,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void sbxAssumeNativeStack();
 	inline void sbxAssumeSandboxStack();
 
-	// Stack state assertions
+	// Stack state assertions.
 	// Safety assertions to make sure the stack is in the
 	// expected state.
 	inline void sbxAssertNativeStack();
 	inline void sbxAssertSandboxStack();
 
-#ifdef JS_JIT_SBX
-
 	// Stack Switching
 	inline void sbxToNativeStack();
 	inline void sbxToSandboxStack();
 
-#endif
-
-	inline void pushSbxReturnAddress();
-	inline void pushSbxFramePointer();
-	inline void pushSbxFrame();
-	inline void popSbxReturnAddress();
-	inline void popSbxFramePointer();
-	inline void popSbxFrame();
-
+	inline void sbxPushReturnAddress();
+	inline void sbxPushFramePointer();
+	inline void sbxPushFrame();
+	inline void sbxPopReturnAddress();
+	inline void sbxPopFramePointer();
+	inline void sbxPopFrame();
 
 	// JIT Stack Sandbox aware call functions.
 	inline CodeOffset sbxCall(Register reg);

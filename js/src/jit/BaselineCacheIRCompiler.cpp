@@ -88,18 +88,14 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
   MOZ_ASSERT(compiler.allocator.stackPushed() == 0);
 
   if (JitOptions.enableICFramePointers) {
-#ifdef JS_JIT_SBX
-		masm.sbxToNativeStack();
-#endif
+    masm.sbxToNativeStack();
 
     // If we have already pushed the frame pointer, pop it
     // before creating the stub frame.
     masm.pop(FramePointer);
-
-#ifdef JS_JIT_SBX
-		masm.sbxToSandboxStack();
-    masm.popSbxFramePointer();
-#endif
+    
+    masm.sbxToSandboxStack();
+    masm.sbxPopFramePointer();
   }
   EmitBaselineEnterStubFrame(masm, scratch);
 
@@ -123,18 +119,14 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
 
   EmitBaselineLeaveStubFrame(masm);
   if (JitOptions.enableICFramePointers) {
-#ifdef JS_JIT_SBX
-    masm.pushSbxFramePointer();
+    masm.sbxPushFramePointer();
 		masm.sbxToNativeStack();
-#endif
 
     // We will pop the frame pointer when we return,
     // so we have to push it again now.
     masm.push(FramePointer);
 
-#ifdef JS_JIT_SBX
 		masm.sbxToSandboxStack();
-#endif
   }
 }
 
@@ -195,12 +187,12 @@ JitCode* BaselineCacheIRCompiler::compile() {
     masm.push(FramePointer);
 
 		masm.sbxToSandboxStack();
-    masm.pushSbxFrame();
+    masm.sbxPushFrame();
 
     masm.moveStackPtrTo(FramePointer);
   } else {
 		masm.sbxToSandboxStack();
-    masm.pushSbxReturnAddress();
+    masm.sbxPushReturnAddress();
   }
 #else
     masm.push(FramePointer);
@@ -243,18 +235,11 @@ JitCode* BaselineCacheIRCompiler::compile() {
     }
     if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
-      masm.popSbxFramePointer();
-
-      // [jit-sbx] switch to safe-stack to restore Baseline Frame pointer and
-      // jump to next IC stub.
-      masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-      masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
-      
+      masm.sbxPopFramePointer();
+      masm.sbxToNativeStack();      
       masm.pop(FramePointer);
     } else {
-      // [jit-sbx] switch to safe-stack to jump to next IC stub.
-      masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-      masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+      masm.sbxToNativeStack();
     }
 #else
       masm.pop(FramePointer);
@@ -1907,18 +1892,13 @@ bool BaselineCacheIRCompiler::emitReturnFromIC() {
   allocator.discardStack(masm);
   if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
-    masm.popSbxFrame();
-
-    // [jit-sbx] switch to safe-stack for return.
-    masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-    masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
 
     masm.pop(FramePointer);
   } else {
-    masm.popSbxReturnAddress();
-    // [jit-sbx] switch to safe-stack for return.
-    masm.storePtr(StackPointer, AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-    masm.loadPtr(AbsoluteAddress(cx_->runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
+    masm.sbxPopReturnAddress();
+    masm.sbxToNativeStack();
   }
 #else
     masm.pop(FramePointer);

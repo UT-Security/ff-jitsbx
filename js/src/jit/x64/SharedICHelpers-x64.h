@@ -51,16 +51,10 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
 
   masm.mov(FramePointer, StackPointer);
 
-#ifdef JS_JIT_SBX
 	masm.sbxToNativeStack();
-#endif
-
   masm.Pop(FramePointer);
-
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-	masm.popSbxFramePointer();
-#endif
+	masm.sbxPopFramePointer();
 
   // The return address is on top of the stack, followed by the frame
   // descriptor. Use a pop instruction to overwrite the frame descriptor

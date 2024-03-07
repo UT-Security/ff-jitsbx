@@ -33,9 +33,7 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
   // Push frame descriptor and perform the tail call.
   masm.pushFrameDescriptor(FrameType::BaselineJS);
 
-#ifdef JS_JIT_SBX
 	masm.sbxToNativeStack();
-#endif
 
 #ifndef JS_JIT_SBX
   masm.push(ICTailCallReg);
@@ -49,7 +47,6 @@ inline void EmitBaselineCallVM(TrampolinePtr target, MacroAssembler& masm) {
 }
 
 inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
-	// TODO(jit-sbx): needs some tweaking as to where framePushed in incremented.
 #ifdef DEBUG
   // Compute frame size. Because the return address is still on the stack,
   // this is:
@@ -75,18 +72,12 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
   masm.storePtr(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)),
                 Address(StackPointer, sizeof(uintptr_t)));
 
-#ifdef JS_JIT_SBX
-	// [jit-sbx] push dummy frame pointer in sandbox-stack to maintain layout.
-	masm.pushSbxFramePointer();
-	masm.sbxToNativeStack();
-#endif
+	masm.sbxPushFramePointer();
 
+	masm.sbxToNativeStack();
   // Save old frame pointer, stack pointer and stub reg.
   masm.Push(FramePointer);
-
-#ifdef JS_JIT_SBX
 	masm.sbxToSandboxStack();
-#endif
 
   masm.mov(StackPointer, FramePointer);
 

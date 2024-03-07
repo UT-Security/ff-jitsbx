@@ -270,111 +270,99 @@ void MacroAssembler::sbxAssumeSandboxStack() {}
 void MacroAssembler::sbxAssertNativeStack() {}
 void MacroAssembler::sbxAssertSandboxStack() {}
 
+void MacroAssembler::sbxToNativeStack() {}
+void MacroAssembler::sbxToSandboxStack() {}
+
 #endif
 
-void MacroAssembler::pushSbxReturnAddress() {
+void MacroAssembler::sbxPushReturnAddress() {
+#ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
   push(ImmPtr((void *)0xdeadbeef));
+#endif
 }
 
-void MacroAssembler::pushSbxFramePointer() {
+void MacroAssembler::sbxPushFramePointer() {
+#ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
   push(rbp);
+#endif
 }
 
-void MacroAssembler::pushSbxFrame() {
-	pushSbxReturnAddress();
-	pushSbxFramePointer();
+void MacroAssembler::sbxPushFrame() {
+  sbxAssertSandboxStack();
+	sbxPushReturnAddress();
+	sbxPushFramePointer();
 }
 
-void MacroAssembler::popSbxReturnAddress() {
+void MacroAssembler::sbxPopReturnAddress() {
+#ifdef JS_JIT_SBX
 	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+#endif
 }
 
-void MacroAssembler::popSbxFramePointer() {
+void MacroAssembler::sbxPopFramePointer() {
+#ifdef JS_JIT_SBX
 	addPtr(Imm32(sizeof(uintptr_t)), rsp);
+#endif
 }
 
-void MacroAssembler::popSbxFrame() {
+void MacroAssembler::sbxPopFrame() {
+#ifdef JS_JIT_SBX
 	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
+#endif
 }
 
 CodeOffset MacroAssembler::sbxCall(Register reg) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
   CodeOffset ret = call(reg);
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 CodeOffset MacroAssembler::sbxCall(Label* label) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	CodeOffset ret = call(label);
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 uint32_t MacroAssembler::sbxCall(const Address& addr) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	call(addr);
 	uint32_t ret = currentOffset();
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 uint32_t MacroAssembler::sbxCall(TrampolinePtr code) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	call(code);
 	uint32_t ret = currentOffset();
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 inline uint32_t MacroAssembler::sbxCall(ImmPtr imm) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	call(imm);
 	uint32_t ret = currentOffset();
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 inline uint32_t MacroAssembler::sbxCall(JitCode* target) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	call(target);
 	uint32_t ret = currentOffset();
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 
 inline uint32_t MacroAssembler::sbxCallJitNoProfiler(Register callee) {
-#ifdef JS_JIT_SBX
 	sbxToNativeStack();
-#endif
 	uint32_t ret = callJitNoProfiler(callee);
-#ifdef JS_JIT_SBX
 	sbxToSandboxStack();
-#endif
 	return ret;
 }
 

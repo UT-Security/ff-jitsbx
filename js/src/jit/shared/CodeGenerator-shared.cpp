@@ -138,15 +138,10 @@ bool CodeGeneratorShared::generatePrologue() {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
-
-#ifdef JS_JIT_SBX
-	masm.push(FramePointer);
-	masm.sbxToSandboxStack();
-	masm.pushSbxReturnAddress();
-#endif
-
   // Frame prologue.
   masm.push(FramePointer);
+	masm.sbxToSandboxStack();
+	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // Ensure that the Ion frame is properly aligned.
@@ -179,11 +174,8 @@ bool CodeGeneratorShared::generateEpilogue() {
   masm.moveToStackPtr(FramePointer);
   masm.setFramePushed(0);
 
-#ifdef JS_JIT_SBX
-	masm.popSbxFrame();
+	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
-#endif
-
   masm.pop(FramePointer);
 
   masm.ret();
