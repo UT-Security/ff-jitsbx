@@ -9426,7 +9426,9 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
     // Pop IonICCallFrameLayout.
     masm.sbxToNativeStack();
     masm.Pop(FramePointer);
-    masm.freeStack(sizeof(void*));
+#ifdef JS_JIT_SBX
+    masm.addToStackPtr(Imm32(sizeof(void*)));
+#endif
     masm.sbxToSandboxStack();
     masm.sbxPopFramePointer();
     masm.freeStack(IonICCallFrameLayout::Size() - sizeof(void*));

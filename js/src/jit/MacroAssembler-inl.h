@@ -9,7 +9,6 @@
 
 #include "jit/MacroAssembler.h"
 
-#include "jit/shared/Assembler-shared.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 
@@ -492,8 +491,11 @@ uint32_t MacroAssembler::buildFakeExitFrame(Register scratch) {
   mozilla::DebugOnly<uint32_t> initialDepth = framePushed();
 
   PushFrameDescriptor(FrameType::IonJS);
+  sbxPushFrame();
+  sbxToNativeStack();
   uint32_t retAddr = pushFakeReturnAddress(scratch);
   Push(FramePointer);
+  sbxToNativeStack();
 
   MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
   return retAddr;

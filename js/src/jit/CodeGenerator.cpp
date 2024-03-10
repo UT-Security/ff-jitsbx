@@ -351,7 +351,7 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
   // on the return value of the C functions.  To guard the outcome of the
   // returned value, use another LIR instruction.
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(code);
+  uint32_t callOffset = masm.sbxCallJit(code);
   markSafepointAt(callOffset, ins);
 
 #ifdef DEBUG
@@ -5517,6 +5517,11 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
 
   // Move the StackPointer back to its original location, unwinding the native
   // exit frame.
+  masm.sbxToNativeStack();
+#ifdef JS_JIT_SBX
+  masm.adjustStack(NativeJitFrameLayout::Size());
+#endif
+  masm.sbxToSandboxStack();
   masm.adjustStack(NativeExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }
@@ -5694,6 +5699,11 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
 
   // Move the StackPointer back to its original location, unwinding the native
   // exit frame.
+  masm.sbxToNativeStack();
+#ifdef JS_JIT_SBX
+  masm.adjustStack(NativeJitFrameLayout::Size());
+#endif
+  masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMMethodExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }
@@ -16218,6 +16228,11 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
     masm.speculationBarrier();
   }
 
+  masm.sbxToNativeStack();
+#ifdef JS_JIT_SBX
+  masm.adjustStack(NativeJitFrameLayout::Size());
+#endif
+  masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 
   masm.bind(&haveValue);
@@ -16322,6 +16337,11 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   }
 
   masm.adjustStack(IonDOMExitFrameLayout::Size());
+  masm.sbxToNativeStack();
+#ifdef JS_JIT_SBX
+  masm.adjustStack(NativeJitFrameLayout::Size());
+#endif
+  masm.sbxToSandboxStack();
 
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }

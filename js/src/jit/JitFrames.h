@@ -215,6 +215,8 @@ class NativeJitFrameLayout {
 	uint8_t* returnAddress_;
 
 public:
+  static inline size_t Size() { return sizeof(NativeJitFrameLayout); }
+
 	static constexpr size_t offsetOfReturnAddress() {
     return offsetof(NativeJitFrameLayout, returnAddress_);
   }

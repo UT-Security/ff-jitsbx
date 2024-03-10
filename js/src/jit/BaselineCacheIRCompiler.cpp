@@ -235,10 +235,11 @@ JitCode* BaselineCacheIRCompiler::compile() {
     }
     if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
-      masm.sbxPopFramePointer();
+      masm.sbxPopFrame();
       masm.sbxToNativeStack();      
       masm.pop(FramePointer);
     } else {
+      masm.sbxPopReturnAddress();
       masm.sbxToNativeStack();
     }
 #else
@@ -3089,8 +3090,11 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   masm.push(argcReg);
 
   masm.pushFrameDescriptor(FrameType::BaselineStub);
+  masm.sbxToNativeStack();
   masm.push(ICTailCallReg);
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.loadJSContext(scratch);
   masm.enterFakeExitFrameForNative(scratch, scratch, isConstructing);
 
@@ -3138,6 +3142,11 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
       Address(masm.getStackPointer(), NativeExitFrameLayout::offsetOfResult()),
       output.valueReg());
 
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxToSandboxStack();
+#endif
   stubFrame.leave(masm);
 
   if (!isSameRealm) {

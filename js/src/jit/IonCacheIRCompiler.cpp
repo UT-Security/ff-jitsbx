@@ -910,7 +910,7 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
 
   MOZ_ASSERT(target->hasJitEntry());
   masm.loadJitCodeRaw(scratch, scratch);
-  masm.callJit(scratch);
+  masm.sbxCallJit(scratch);
 
   if (!sameRealm) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -921,7 +921,14 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   masm.storeCallResultValue(output);
 
   // Restore the frame pointer and stack pointer.
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxToSandboxStack();
+#else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
+#endif
   masm.freeStack(masm.framePushed() - framePushedBefore);
   return true;
 }
@@ -1534,14 +1541,21 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
 
   MOZ_ASSERT(target->hasJitEntry());
   masm.loadJitCodeRaw(scratch, scratch);
-  masm.callJit(scratch);
+  masm.sbxCallJit(scratch);
 
   if (!sameRealm) {
     masm.switchToRealm(cx_->realm(), ReturnReg);
   }
 
   // Restore the frame pointer and stack pointer.
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxToSandboxStack();
+#else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
+#endif
   masm.freeStack(masm.framePushed() - framePushedBefore);
   return true;
 }
@@ -1901,7 +1915,7 @@ bool IonCacheIRCompiler::emitCloseIterScriptedResult(ObjOperandId iterId,
   masm.PushFrameDescriptorForJitCall(FrameType::IonICCall, /* argc = */ 0);
 
   masm.loadJitCodeRaw(callee, callee);
-  masm.callJit(callee);
+  masm.sbxCallJit(callee);
 
   if (kind != CompletionKind::Throw) {
     // Verify that the return value is an object.
