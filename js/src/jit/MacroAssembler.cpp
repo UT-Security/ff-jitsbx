@@ -3518,6 +3518,7 @@ MacroAssembler::MacroAssembler(TempAllocator& alloc,
       framePushed_(0),
 #ifdef JS_JIT_SBX
       currentStack_(NATIVE),
+      sbxFramePushed_(0),
 #endif
 #ifdef DEBUG
       inCall_(false),

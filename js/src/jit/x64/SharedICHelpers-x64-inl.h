@@ -77,6 +77,7 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
 	masm.sbxToNativeStack();
   // Save old frame pointer, stack pointer and stub reg.
   masm.Push(FramePointer);
+  masm.sbxImplicitPush(sizeof(void*));
 	masm.sbxToSandboxStack();
 
   masm.mov(StackPointer, FramePointer);

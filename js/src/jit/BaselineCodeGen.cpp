@@ -536,6 +536,7 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 #elif defined(JS_CODEGEN_RISCV64)
   masm.push(ra);
 #endif
+  masm.sbxSetFramePushed(sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushReturnAddress();
 
@@ -751,6 +752,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
 
   // Assert all arguments were pushed.
   MOZ_ASSERT(masm.framePushed() - pushedBeforeCall_ == argSize);
+  MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
 
   saveInterpreterPCReg();
 
@@ -6351,6 +6353,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 #endif
 
   masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
 
   masm.checkStackAlignment();
 	masm.sbxToSandboxStack();
@@ -6435,6 +6438,7 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
   masm.sbxPopFrame();
   masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(1 * sizeof(void*));
   masm.ret();
   return true;
 }
@@ -6705,6 +6709,7 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxSetFramePushed(1 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushReturnAddress();
 
@@ -6726,6 +6731,7 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxSetFramePushed(sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushReturnAddress();
 

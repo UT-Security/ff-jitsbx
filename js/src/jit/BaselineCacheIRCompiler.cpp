@@ -94,6 +94,7 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
     // before creating the stub frame.
     masm.pop(FramePointer);
     
+    masm.sbxImplicitPop(sizeof(void*));
     masm.sbxToSandboxStack();
     masm.sbxPopFramePointer();
   }
@@ -126,6 +127,7 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
     // so we have to push it again now.
     masm.push(FramePointer);
 
+    masm.sbxImplicitPush(sizeof(void*));
 		masm.sbxToSandboxStack();
   }
 }
@@ -152,6 +154,7 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(0);
 
 #ifndef JS_USE_LINK_REGISTER
   masm.adjustFrame(sizeof(intptr_t));
@@ -185,12 +188,13 @@ JitCode* BaselineCacheIRCompiler::compile() {
     masm.mov(FramePointer, baselineFrameReg());
 
     masm.push(FramePointer);
-
+    masm.sbxImplicitPush(2 * sizeof(void*));
 		masm.sbxToSandboxStack();
     masm.sbxPushFrame();
 
     masm.moveStackPtrTo(FramePointer);
   } else {
+    masm.sbxImplicitPush(sizeof(void*));
 		masm.sbxToSandboxStack();
     masm.sbxPushReturnAddress();
   }
@@ -238,6 +242,7 @@ JitCode* BaselineCacheIRCompiler::compile() {
       masm.sbxPopFrame();
       masm.sbxToNativeStack();      
       masm.pop(FramePointer);
+      masm.sbxImplicitPop(sizeof(void*));
     } else {
       masm.sbxPopReturnAddress();
       masm.sbxToNativeStack();
@@ -1897,6 +1902,7 @@ bool BaselineCacheIRCompiler::emitReturnFromIC() {
     masm.sbxToNativeStack();
 
     masm.pop(FramePointer);
+    masm.sbxImplicitPop(sizeof(void*));
   } else {
     masm.sbxPopReturnAddress();
     masm.sbxToNativeStack();
@@ -3093,6 +3099,7 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   masm.sbxToNativeStack();
   masm.push(ICTailCallReg);
   masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
   masm.sbxToSandboxStack();
   masm.sbxPushFrame();
   masm.loadJSContext(scratch);
@@ -3145,6 +3152,7 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
 #ifdef JS_JIT_SBX
   masm.sbxToNativeStack();
   masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
   masm.sbxToSandboxStack();
 #endif
   stubFrame.leave(masm);

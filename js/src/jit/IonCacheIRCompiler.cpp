@@ -269,6 +269,7 @@ void IonCacheIRCompiler::enterStubFrame(MacroAssembler& masm,
   masm.Push(ImmPtr(GetReturnAddressToIonCode(cx_)));
 
   masm.Push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
   masm.sbxToSandboxStack();
   masm.moveStackPtrTo(FramePointer);
 
@@ -925,6 +926,7 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
   masm.sbxToSandboxStack();
 #else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
@@ -1552,6 +1554,7 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
   masm.sbxToSandboxStack();
 #else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);

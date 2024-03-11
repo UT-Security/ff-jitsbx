@@ -9,6 +9,7 @@
 
 #include "jit/MacroAssembler.h"
 
+#include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 
@@ -249,6 +250,19 @@ void MacroAssembler::sbxAssertSandboxStack() {
 	MOZ_ASSERT(currentStack_ == SANDBOX);
 }
 
+uint32_t MacroAssembler::sbxFramePushed() { return sbxFramePushed_; }
+
+void MacroAssembler::sbxSetFramePushed(uint32_t framePushed) { sbxFramePushed_ = framePushed; }
+    
+void MacroAssembler::sbxImplicitPush(uint32_t bytes) {
+  sbxFramePushed_ += bytes;
+}
+    
+void MacroAssembler::sbxImplicitPop(uint32_t bytes) {
+  MOZ_ASSERT(sbxFramePushed_ >= bytes);
+  sbxFramePushed_ -= bytes;      
+}
+
 void MacroAssembler::sbxToNativeStack() {
 	sbxAssertSandboxStack();
   storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
@@ -269,6 +283,11 @@ void MacroAssembler::sbxAssumeNativeStack() {}
 void MacroAssembler::sbxAssumeSandboxStack() {}
 void MacroAssembler::sbxAssertNativeStack() {}
 void MacroAssembler::sbxAssertSandboxStack() {}
+
+uint32_t MacroAssembler::sbxFramePushed() { return 0; }
+void MacroAssembler::sbxSetFramePushed(uint32_t framePushed) {}
+void MacroAssembler::sbxImplicitPush(uint32_t bytes) {}
+void MacroAssembler::sbxImplicitPop(uint32_t bytes) {}
 
 void MacroAssembler::sbxToNativeStack() {}
 void MacroAssembler::sbxToSandboxStack() {}
@@ -495,6 +514,7 @@ uint32_t MacroAssembler::buildFakeExitFrame(Register scratch) {
   sbxToNativeStack();
   uint32_t retAddr = pushFakeReturnAddress(scratch);
   Push(FramePointer);
+  sbxImplicitPush(2 * sizeof(void*));
   sbxToSandboxStack();
 
   MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());

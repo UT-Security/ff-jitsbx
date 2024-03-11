@@ -25,6 +25,7 @@ void JitRuntime::generateExceptionTailStub(MacroAssembler& masm,
   exceptionTailOffset_ = startTrampolineCode(masm);
 
   masm.bind(masm.failureLabel());
+  masm.sbxSetFramePushed(0);
   masm.handleFailureWithHandlerTail(profilerExitTail, bailoutTail);
 }
 

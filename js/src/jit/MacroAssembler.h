@@ -443,6 +443,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 #ifdef JS_JIT_SBX
 	StackType currentStack_;
+
+  uint32_t sbxFramePushed_;
 #endif
 
  public:
@@ -884,6 +886,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	// expected state.
 	inline void sbxAssertNativeStack();
 	inline void sbxAssertSandboxStack();
+
+  // Native stack frame tracking
+  inline uint32_t sbxFramePushed();
+  inline void sbxSetFramePushed(uint32_t framePushed);
+  inline void sbxImplicitPush(uint32_t bytes);
+  inline void sbxImplicitPop(uint32_t bytes);
 
 	// Stack Switching
 	inline void sbxToNativeStack();

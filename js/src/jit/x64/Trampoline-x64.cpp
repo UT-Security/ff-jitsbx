@@ -244,6 +244,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.subq(r12, r15);
   masm.mov(r15, rbp);
 
+  masm.sbxSetFramePushed(0);
   // [jit-sbx] switch to sandbox-stack to finish setting
   // up JitFrameLayout.
 	masm.sbxToSandboxStack();
@@ -255,7 +256,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // Push the descriptor.
   masm.pushFrameDescriptorForJitCall(FrameType::CppToJSJit, reg_argc, reg_argc);
 
-  // TODO(jit-sbx): completely ignoring OSR code for now.
   CodeLabel returnLabel;
   Label oomReturnLabel;
   {
@@ -286,6 +286,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     // Frame prologue.
     masm.push(rbp);
 
+    masm.sbxImplicitPush(2 * sizeof(void*));
 		masm.sbxToSandboxStack();
 		masm.sbxPushFrame();
 
@@ -359,6 +360,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     masm.pop(rbp);
     masm.addPtr(Imm32(sizeof(uintptr_t)), rsp);  // Return address.
+    masm.sbxImplicitPop(2 * sizeof(void*));
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
     masm.jump(&oomReturnLabel);
 
@@ -368,6 +370,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 	
 	masm.sbxAssumeSandboxStack();
 	masm.sbxToNativeStack();
+  masm.sbxSetFramePushed(0);
 
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.
@@ -560,7 +563,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   // See BaselineStackBuilder::calculatePrevFramePtr and
   // BaselineStackBuilder::buildRectifierFrame (in BaselineBailouts.cpp).
   masm.push(FramePointer);
-
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
 
@@ -712,6 +715,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 }
 
@@ -784,7 +788,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   //
   // Push the frame pointer to finish the exit frame, then link it up.
   masm.Push(FramePointer);
-
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
   masm.sbxPushFrame();
 
@@ -937,6 +941,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
                   f.extraValuesToPop * sizeof(Value)), rsp);
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
 
   // Return.
   masm.ret();
@@ -959,6 +964,7 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
 
   uint32_t offset = startTrampolineCode(masm);
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushReturnAddress();
 

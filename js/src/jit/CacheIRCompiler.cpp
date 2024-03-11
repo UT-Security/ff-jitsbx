@@ -9429,6 +9429,7 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
 #ifdef JS_JIT_SBX
     masm.addToStackPtr(Imm32(sizeof(void*)));
 #endif
+    masm.sbxImplicitPop(2 * sizeof(void*));
     masm.sbxToSandboxStack();
     masm.sbxPopFramePointer();
     masm.freeStack(IonICCallFrameLayout::Size() - sizeof(void*));
@@ -9436,6 +9437,7 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
   }
 
   MOZ_ASSERT(mode_ == Mode::Baseline);
+  MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
 
   TrampolinePtr code = cx_->runtime()->jitRuntime()->getVMWrapper(id);
   MOZ_ASSERT(GetVMFunction(id).expectTailCall == NonTailCall);

@@ -131,6 +131,7 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator* gen, LIRGraph* graph,
 
 bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(masm.framePushed() == 0);
+  MOZ_ASSERT(masm.sbxFramePushed() == 0);
   MOZ_ASSERT(!gen->compilingWasm());
 
 	masm.sbxAssumeNativeStack();
@@ -140,6 +141,7 @@ bool CodeGeneratorShared::generatePrologue() {
 #endif
   // Frame prologue.
   masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);

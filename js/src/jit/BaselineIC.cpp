@@ -521,6 +521,7 @@ bool FallbackICCodeCompiler::tailCallVMInternal(MacroAssembler& masm,
 bool FallbackICCodeCompiler::callVMInternal(MacroAssembler& masm,
                                             VMFunctionId id) {
   MOZ_ASSERT(inStubFrame_);
+  MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
 
   TrampolinePtr code = cx->runtime()->jitRuntime()->getVMWrapper(id);
   MOZ_ASSERT(GetVMFunction(id).expectTailCall == NonTailCall);
@@ -621,7 +622,6 @@ bool FallbackICCodeCompiler::emit_ToBool() {
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
 #endif
-
 	masm.sbxToSandboxStack();
 
   // Push arguments.
@@ -755,6 +755,7 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
@@ -1355,6 +1356,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
@@ -1559,6 +1561,7 @@ bool FallbackICCodeCompiler::emit_SetProp() {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
@@ -1872,6 +1875,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
 
 	// jit-sbx: TODO
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
@@ -2608,6 +2612,7 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
     uint32_t offset = startTrampolineCode(masm);                   \
     InitMacroAssemblerForICStub(masm);                             \
 		masm.sbxAssumeNativeStack();																	 \
+		masm.sbxSetFramePushed(sizeof(void*));												 \
     if (!compiler.emit_##kind()) {                                 \
       return false;                                                \
     }                                                              \

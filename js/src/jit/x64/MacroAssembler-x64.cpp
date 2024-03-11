@@ -797,7 +797,7 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
 #ifdef JS_JIT_SBX
 	sbxToNativeStack();
 	stackForCall = abiArgs_.stackBytesConsumedSoFar();
-  stackForCall += ComputeByteAlignment(stackForCall,
+  stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
                                          ABIStackAlignment);
   subFromStackPtr(Imm32(stackForCall));
 #endif
@@ -821,7 +821,7 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                                      bool cleanupArg) {
 #ifdef JS_JIT_SBX
   uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
-  stackForCall += ComputeByteAlignment(stackForCall,
+  stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
                                          ABIStackAlignment);
 	addToStackPtr(Imm32(stackForCall));
 	sbxToSandboxStack();

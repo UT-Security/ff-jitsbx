@@ -324,6 +324,8 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
   }
 #endif
 
+  MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
+
 #ifdef DEBUG
   if (ins->mirRaw()) {
     MOZ_ASSERT(ins->mirRaw()->isInstruction());
@@ -2500,6 +2502,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -2756,6 +2759,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&notFound);
@@ -2773,6 +2777,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   // Fallback paths for CreateDependentString.
@@ -2797,6 +2802,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   Linker linker(masm);
@@ -2997,6 +3003,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -3060,6 +3067,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&notFound);
@@ -3067,6 +3075,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&oolEntry);
@@ -3074,6 +3083,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   Linker linker(masm);
@@ -3174,6 +3184,7 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -3259,6 +3270,7 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   Linker linker(masm);
@@ -5523,6 +5535,7 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
   masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
+  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
 #endif
   masm.sbxToSandboxStack();
   masm.adjustStack(NativeExitFrameLayout::Size() - unusedStack);
@@ -5706,6 +5719,7 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
 #endif
+  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
   masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMMethodExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
@@ -11355,6 +11369,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -11413,31 +11428,39 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   // Store left and right nodes.
   masm.storeRopeChildren(lhs, rhs, output);
+
+  uint32_t sbxFramePushed = masm.sbxFramePushed();
       
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&leftEmpty);
+  masm.sbxSetFramePushed(sbxFramePushed);
 	masm.sbxAssumeSandboxStack();
   masm.mov(rhs, output);
 
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&rightEmpty);
+  masm.sbxSetFramePushed(sbxFramePushed);
 	masm.sbxAssumeSandboxStack();
   masm.mov(lhs, output);
 
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&isInlineTwoByte);
+  masm.sbxSetFramePushed(sbxFramePushed);
 	masm.sbxAssumeSandboxStack();
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::TwoByte);
@@ -11445,9 +11468,11 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.bind(&isInlineLatin1);
+  masm.sbxSetFramePushed(sbxFramePushed);
 	masm.sbxAssumeSandboxStack();
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::Latin1);
@@ -11455,18 +11480,21 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   masm.pop(temp2);
   masm.pop(temp1);
 
   masm.bind(&failure);
+  masm.sbxSetFramePushed(sbxFramePushed);
 	masm.sbxAssumeSandboxStack();
   masm.movePtr(ImmPtr(nullptr), output);
 
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
   masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
   masm.ret();
 
   Linker linker(masm);
@@ -11492,6 +11520,7 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
   masm.pushReturnAddress();
 #endif
 
+  masm.sbxSetFramePushed(sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushReturnAddress();
 
@@ -11526,6 +11555,7 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.sbxToSandboxStack();
   masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -11571,6 +11601,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
@@ -11607,6 +11638,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 	masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
 	masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
 #else
   masm.pop(FramePointer);
 
@@ -11625,6 +11657,7 @@ void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   doubleToInt32ValueStubOffset_ = startTrampolineCode(masm);
 
 	masm.sbxAssumeNativeStack();
+  masm.sbxSetFramePushed(sizeof(void*));
 	masm.sbxToSandboxStack();
 
   Label done;
@@ -16241,6 +16274,7 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
 #endif
+  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
   masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 
@@ -16350,6 +16384,7 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
 #endif
+  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
   masm.sbxToSandboxStack();
 
   MOZ_ASSERT(masm.framePushed() == initialStack);

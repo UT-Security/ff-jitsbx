@@ -53,6 +53,7 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
 
 	masm.sbxToNativeStack();
   masm.Pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPopFramePointer();
 
