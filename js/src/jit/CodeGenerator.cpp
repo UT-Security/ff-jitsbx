@@ -2495,6 +2495,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "GenerateRegExpMatchStubShared");
 
+  masm.sbxAssumeNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -2758,6 +2759,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   masm.ret();
 
   masm.bind(&notFound);
+  masm.sbxAssumeSandboxStack();
   if (isExecMatch) {
     Label notGlobalOrSticky;
     masm.branchTest32(Assembler::Zero, flagsSlot,
@@ -2790,6 +2792,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   // Use an undefined value to signal to the caller that the OOL stub needs to
   // be called.
   masm.bind(&oolEntry);
+  masm.sbxAssumeSandboxStack();
   masm.moveValue(UndefinedValue(), result);
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
@@ -5519,7 +5522,7 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   // exit frame.
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
-  masm.adjustStack(NativeJitFrameLayout::Size());
+  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
 #endif
   masm.sbxToSandboxStack();
   masm.adjustStack(NativeExitFrameLayout::Size() - unusedStack);
@@ -5821,7 +5824,7 @@ void CodeGenerator::visitCallGeneric(LCallGeneric* call) {
   // Finally call the function in objreg.
   masm.bind(&makeCall);
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(objreg);
+  uint32_t callOffset = masm.sbxCallJit(objreg);
   markSafepointAt(callOffset, call);
 
   if (call->mir()->maybeCrossRealm()) {
@@ -5907,7 +5910,7 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
 
   // Finally call the function in objreg.
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(objreg);
+  uint32_t callOffset = masm.sbxCallJit(objreg);
   markSafepointAt(callOffset, call);
 
   if (call->mir()->maybeCrossRealm()) {
@@ -11518,10 +11521,13 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 
   lazyLinkStubOffset_ = startTrampolineCode(masm);
 
+  masm.sbxAssumeNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::Volatile());
@@ -11542,6 +11548,9 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 
   // Discard exit frame and restore frame pointer.
   masm.leaveExitFrame(0);
+
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
 
 #ifdef JS_USE_LINK_REGISTER

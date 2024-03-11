@@ -495,7 +495,7 @@ uint32_t MacroAssembler::buildFakeExitFrame(Register scratch) {
   sbxToNativeStack();
   uint32_t retAddr = pushFakeReturnAddress(scratch);
   Push(FramePointer);
-  sbxToNativeStack();
+  sbxToSandboxStack();
 
   MOZ_ASSERT(framePushed() == initialDepth + ExitFrameLayout::Size());
   return retAddr;

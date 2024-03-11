@@ -875,7 +875,9 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
   act->setJSExitFP((uint8_t*)frame);
 #ifdef JS_JIT_SBX
 	JSContext* cx = TlsContext.get();
-	*(uint8_t**)cx->runtime()->jitRuntime()->addrOfSavedStackPtr() = (uint8_t*)iter.currentNative();
+  //if(act == cx->jitActivation) {
+	  *(uint8_t**)cx->runtime()->jitRuntime()->addrOfSavedStackPtr() = (uint8_t*)iter.currentNative();
+  //}
 	act->setNativeExitFP((uint8_t*)iter.currentNative());
 #endif
   exitFrame->footer()->setUnwoundJitExitFrame();
