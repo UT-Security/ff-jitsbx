@@ -510,6 +510,8 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
   // See explanatory comment in x86's JitRuntime::generateInvalidator.
 
   invalidatorOffset_ = startTrampolineCode(masm);
+  masm.sbxSetFramePushed(0);
+  masm.sbxAssertSandboxStack();
 
   // Push registers such that we can access them from [base + code].
   DumpAllRegs(masm);
@@ -728,6 +730,9 @@ static void PushBailoutFrame(MacroAssembler& masm, Register spArg) {
 }
 
 static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
+  masm.sbxSetFramePushed(0);
+  masm.sbxAssumeSandboxStack();
+  
   PushBailoutFrame(masm, r8);
 
   // Make space for Bailout's bailoutInfo outparam.
@@ -1020,6 +1025,7 @@ void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
 	
   masm.bind(bailoutTail);
+  masm.sbxSetFramePushed(0);
 	masm.sbxAssumeSandboxStack();
   masm.generateBailoutTail(rdx, r9);
 }

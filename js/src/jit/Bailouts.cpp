@@ -58,12 +58,21 @@ class js::jit::BailoutStack {
 static_assert((sizeof(BailoutStack) % 8) == 0,
               "BailoutStack should be 8-byte aligned.");
 
+#ifdef JS_JIT_SBX
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   BailoutStack* bailout, uint8_t* nativeFp)
+    : machine_(bailout->machineState()), activation_(nullptr) {
+#else
 BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    BailoutStack* bailout)
     : machine_(bailout->machineState()), activation_(nullptr) {
+#endif
   uint8_t* sp = bailout->parentStackPointer();
   framePointer_ = sp + bailout->frameSize();
   MOZ_RELEASE_ASSERT(uintptr_t(framePointer_) == machine_.read(FramePointer));
+#ifdef JS_JIT_SBX
+  nativeFramePointer_ = nativeFp;
+#endif
 
   JSScript* script =
       ScriptFromCalleeToken(((JitFrameLayout*)framePointer_)->calleeToken());
@@ -73,11 +82,20 @@ BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
   snapshotOffset_ = bailout->snapshotOffset();
 }
 
+#ifdef JS_JIT_SBX
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   InvalidationBailoutStack* bailout, uint8_t* nativeFp)
+    : machine_(bailout->machine()), activation_(nullptr) {
+#else
 BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    InvalidationBailoutStack* bailout)
     : machine_(bailout->machine()), activation_(nullptr) {
+#endif
   framePointer_ = (uint8_t*)bailout->fp();
   MOZ_RELEASE_ASSERT(uintptr_t(framePointer_) == machine_.read(FramePointer));
+#ifdef JS_JIT_SBX
+  nativeFramePointer_ = nativeFp;
+#endif
 
   topIonScript_ = bailout->ionScript();
   attachOnJitActivation(activations);
@@ -91,6 +109,9 @@ BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    const JSJitFrameIter& frame)
     : machine_(frame.machineState()) {
   framePointer_ = (uint8_t*)frame.fp();
+#ifdef JS_JIT_SBX
+  nativeFramePointer_ = (uint8_t*)frame.fpNative();
+#endif
   topIonScript_ = frame.ionScript();
   attachOnJitActivation(activations);
 
@@ -127,9 +148,16 @@ bool jit::Bailout(BailoutStack* sp, BaselineBailoutInfo** bailoutInfo) {
 #endif
 
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#ifdef JS_JIT_SBX
+  cx->activation()->asJit()->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#endif
 
   JitActivationIterator jitActivations(cx);
+#ifdef JS_JIT_SBX
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
+#else
   BailoutFrameInfo bailoutData(jitActivations, sp);
+#endif
   JSJitFrameIter frame(jitActivations->asJit());
   MOZ_ASSERT(!frame.ionScript()->invalidated());
   JitFrameLayout* currentFramePtr = frame.jsFrame();
@@ -205,9 +233,16 @@ bool jit::InvalidationBailout(InvalidationBailoutStack* sp,
 
   // We don't have an exit frame.
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#ifdef JS_JIT_SBX
+  cx->activation()->asJit()->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#endif
 
   JitActivationIterator jitActivations(cx);
+#ifdef JS_JIT_SBX
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
+#else
   BailoutFrameInfo bailoutData(jitActivations, sp);
+#endif
   JSJitFrameIter frame(jitActivations->asJit());
   JitFrameLayout* currentFramePtr = frame.jsFrame();
 
@@ -279,9 +314,21 @@ bool jit::ExceptionHandlerBailout(JSContext* cx,
 
   JitActivation* act = cx->activation()->asJit();
   uint8_t* prevExitFP = act->jsExitFP();
+#ifdef JS_JIT_SBX
+  uint8_t* prevNativeExitFP = act->jsNativeExitFP();
+#endif
   auto restoreExitFP =
-      mozilla::MakeScopeExit([&]() { act->setJSExitFP(prevExitFP); });
+    mozilla::MakeScopeExit([&]() {
+        act->setJSExitFP(prevExitFP);
+#ifdef JS_JIT_SBX
+        act->setNativeExitFP(prevNativeExitFP);
+#endif
+    });
   act->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#ifdef JS_JIT_SBX
+  act->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
+#endif
+  
 
   gc::AutoSuppressGC suppress(cx);
 
@@ -308,6 +355,9 @@ bool jit::ExceptionHandlerBailout(JSContext* cx,
 
     rfe->kind = ExceptionResumeKind::Bailout;
     rfe->stackPointer = bailoutInfo->incomingStack;
+#ifdef JS_JIT_SBX
+    rfe->nativeStackPointer = bailoutInfo->incomingNativeStack;
+#endif
     rfe->bailoutInfo = bailoutInfo;
   } else {
     // Drop the exception that triggered the bailout and instead propagate the
@@ -345,6 +395,9 @@ bool jit::EnsureHasEnvironmentObjects(JSContext* cx, AbstractFramePtr fp) {
 void BailoutFrameInfo::attachOnJitActivation(
     const JitActivationIterator& jitActivations) {
   MOZ_ASSERT(jitActivations->asJit()->jsExitFP() == FAKE_EXITFP_FOR_BAILOUT);
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(jitActivations->asJit()->jsNativeExitFP() == FAKE_EXITFP_FOR_BAILOUT);
+#endif
   activation_ = jitActivations->asJit();
   activation_->setBailoutData(this);
 }

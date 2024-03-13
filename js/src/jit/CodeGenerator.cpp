@@ -5718,8 +5718,8 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
-#endif
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
+#endif
   masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMMethodExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
@@ -16273,8 +16273,8 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
-#endif
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
+#endif
   masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 
@@ -16383,8 +16383,8 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
   masm.adjustStack(NativeJitFrameLayout::Size());
-#endif
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
+#endif
   masm.sbxToSandboxStack();
 
   MOZ_ASSERT(masm.framePushed() == initialStack);

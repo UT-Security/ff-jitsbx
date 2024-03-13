@@ -120,6 +120,9 @@ struct ResumeFromException;
 class BailoutFrameInfo {
   MachineState machine_;
   uint8_t* framePointer_;
+#ifdef JS_JIT_SBX
+  uint8_t* nativeFramePointer_;
+#endif
   IonScript* topIonScript_;
   uint32_t snapshotOffset_;
   JitActivation* activation_;
@@ -127,14 +130,23 @@ class BailoutFrameInfo {
   void attachOnJitActivation(const JitActivationIterator& activations);
 
  public:
+#ifdef JS_JIT_SBX
+  BailoutFrameInfo(const JitActivationIterator& activations, BailoutStack* sp, uint8_t* nativeFp);
+  BailoutFrameInfo(const JitActivationIterator& activations,
+                   InvalidationBailoutStack* sp, uint8_t* nativeFp);
+#else
   BailoutFrameInfo(const JitActivationIterator& activations, BailoutStack* sp);
   BailoutFrameInfo(const JitActivationIterator& activations,
                    InvalidationBailoutStack* sp);
+#endif
   BailoutFrameInfo(const JitActivationIterator& activations,
                    const JSJitFrameIter& frame);
   ~BailoutFrameInfo();
 
   uint8_t* fp() const { return framePointer_; }
+#ifdef JS_JIT_SBX
+  uint8_t* nativeFp() const { return nativeFramePointer_; }
+#endif
   SnapshotOffset snapshotOffset() const { return snapshotOffset_; }
   const MachineState* machineState() const { return &machine_; }
   IonScript* ionScript() const { return topIonScript_; }

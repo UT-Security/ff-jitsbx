@@ -2936,13 +2936,44 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       bind(&endOfCopy);
     }
 
+    sbxToNativeStack();
+
+#ifdef JS_JIT_SBX
+    // Copy data onto native stack.
+    loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyNativeStackTop)),
+                copyCur);
+    loadPtr(
+        Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyNativeStackBottom)),
+        copyEnd);
+    {
+      Label copyNativeLoop;
+      Label endOfNativeCopy;
+      bind(&copyNativeLoop);
+      branchPtr(Assembler::BelowOrEqual, copyCur, copyEnd, &endOfNativeCopy);
+      subPtr(Imm32(sizeof(uintptr_t)), copyCur);
+      subFromStackPtr(Imm32(sizeof(uintptr_t)));
+      loadPtr(Address(copyCur, 0), temp);
+      storePtr(temp, Address(getStackPointer(), 0));
+      jump(&copyNativeLoop);
+      bind(&endOfNativeCopy);
+    }
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
             FramePointer);
+    push(FramePointer);
+#endif
+    sbxToSandboxStack();
 
     // Enter exit frame for the FinishBailoutToBaseline call.
     pushFrameDescriptor(FrameType::BaselineJS);
+#ifdef JS_JIT_SBX
+    sbxPushFrame();
+#else
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
+    loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
+            FramePointer);
     push(FramePointer);
+#endif
     // No GC things to mark on the stack, push a bare token.
     loadJSContext(scratch);
     enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
@@ -2968,10 +2999,17 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     // Discard exit frame.
     addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
 
+#ifdef JS_JIT_SBX
+    sbxToNativeStack();
+    addToStackPtr(Imm32(2 * sizeof(void*)));
+    sbxToSandboxStack();
+#endif
     jump(jitcodeReg);
   }
 
   bind(&bailoutFailed);
+  sbxAssumeSandboxStack();
+  
   {
     // jit::Bailout or jit::InvalidationBailout failed and returned false. The
     // Ion frame has already been discarded and the stack pointer points to the
@@ -3805,6 +3843,9 @@ void MacroAssembler::setupWasmABICall() {
 void MacroAssembler::setupAlignedABICall() {
   MOZ_ASSERT(!IsCompilingWasm(), "wasm should use setupWasmABICall");
   setupNativeABICall();
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(sbxFramePushed_ % JitStackAlignment == 0);
+#endif
   dynamicAlignment_ = false;
 }
 

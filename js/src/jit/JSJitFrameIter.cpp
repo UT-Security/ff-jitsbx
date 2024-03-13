@@ -44,18 +44,17 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
       activation_(activation) {
   MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
   if (activation_->bailoutData()) {
-		//TODO(jit-sbx): may need to adjust currentNative_ in the case of bailout.
     current_ = activation_->bailoutData()->fp();
+    currentNative_ = activation->bailoutData()->nativeFp();
     type_ = FrameType::Bailout;
   } else {
 		JSContext* cx = TlsContext.get();
     MOZ_ASSERT(!cx->inUnsafeCallWithABI);
 		if(activation == cx->jitActivation) {
-			//MOZ_ASSERT(activation == cx->jitActivation);
 			currentNative_ = (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr();
 		}
-		MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
   }
+	MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
 }
 #else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
