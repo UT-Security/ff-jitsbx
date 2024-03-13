@@ -229,6 +229,9 @@ EXPORTS.js += [
     "../public/Wrapper.h",
     "../public/WrapperCallbacks.h",
     "../public/Zone.h",
+    # ask2374
+    "sandbox/JitSandbox.h",
+    # ask2374
 ]
 
 # This lives in mozglue/baseprofiler but we re-publish ourselves to support
