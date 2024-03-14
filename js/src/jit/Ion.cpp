@@ -170,7 +170,16 @@ bool JitRuntime::initialize(JSContext* cx) {
 
 #ifdef JS_JIT_SBX
 bool JitRuntime::initializeSbxStack(JSContext* cx) {
-  sbxStack_ = cx->pod_calloc<uint8_t>(64 * 4096); 
+#if JS_STACK_GROWTH_DIRECTION > 0
+  MOZ_ASSERT(cx->nativeStackBase() < cx->jitStackLimit);
+  JS::NativeStackSize sbxStackSize = cx->jitStackLimit - cx->nativeStackBase();
+#else // stack grows up
+  MOZ_ASSERT(cx->nativeStackBase() > cx->jitStackLimit);
+  JS::NativeStackSize sbxStackSize = cx->nativeStackBase() - cx->jitStackLimit;
+#endif // stack grows down
+  MOZ_ASSERT(sbxStackSize > 0);
+  
+  sbxStack_ = cx->pod_calloc<uint8_t>(sbxStackSize + 4096); 
   if (!sbxStack_) {
     return false;
   }
@@ -179,9 +188,17 @@ bool JitRuntime::initializeSbxStack(JSContext* cx) {
   if (!addrOfSbxStackPtr_) {
     return false;
   }
-  *addrOfSbxStackPtr_ = (uintptr_t)(sbxStack_ + 64 * 4096);
+
+#if JS_STACK_GROWTH_DIRECTION > 0
+  *addrOfSbxStackPtr_ = (uintptr_t)sbxStack_;
+  sbxStackLimit = *addrOfSbxStackPtr + sbxStackSize;
+#else
+  *addrOfSbxStackPtr_ = (uintptr_t)(sbxStack_ + sbxStackSize + 4096);
+  sbxStackLimit = *addrOfSbxStackPtr_ - sbxStackSize;
+#endif
   
   addrOfSavedStackPtr_ = addrOfSbxStackPtr_ + 1;
+  *addrOfSavedStackPtr_ = 0;
 
   return true;
 }

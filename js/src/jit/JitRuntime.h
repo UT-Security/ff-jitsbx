@@ -128,6 +128,8 @@ class JitRuntime {
 	// jit-sandbox.
 	WriteOnceData<uint8_t *> sbxStack_{nullptr};
 
+  mozilla::Atomic<JS::NativeStackLimit, mozilla::Relaxed> sbxStackLimit;
+
 	// Pointer to memory where the current sandbox stack pointer is stored.
 	WriteOnceData<uintptr_t *> addrOfSbxStackPtr_{nullptr};
 
@@ -315,6 +317,18 @@ class JitRuntime {
 	const uintptr_t* addrOfSbxStackPtr() const {
 		return addrOfSbxStackPtr_;
 	}
+
+  uintptr_t sbxStackPtr() {
+    return *addrOfSbxStackPtr_;      
+  }
+
+  const void* addrOfSbxStackLimit() const {
+    return &sbxStackLimit;      
+  }
+
+  JS::NativeStackLimit getSbxStackLimit() {
+    return sbxStackLimit;      
+  }
 #endif
 
   const BaselineICFallbackCode& baselineICFallbackCode() const {
@@ -476,6 +490,74 @@ class JitRuntime {
   void ionLazyLinkListAdd(JSRuntime* rt, js::jit::IonCompileTask* task);
 };
 
+
+class MOZ_RAII AutoCheckSbxRecursionLimit {
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkLimitImpl(
+      JS::NativeStackLimit limit, void* sp) const;
+
+ public:
+  explicit MOZ_ALWAYS_INLINE AutoCheckSbxRecursionLimit(JSContext* cx) {}
+  MOZ_ALWAYS_INLINE ~AutoCheckSbxRecursionLimit() {}
+
+  AutoCheckSbxRecursionLimit(const AutoCheckSbxRecursionLimit&) = delete;
+  void operator=(const AutoCheckSbxRecursionLimit&) = delete;
+
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool check(JSContext* cx) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkDontReport(JSContext* cx) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithExtra(JSContext* cx,
+                                                      size_t extra) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithStackPointerDontReport(
+      JSContext* cx, void* sp) const;
+};
+
+
+MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkLimitImpl(
+    JS::NativeStackLimit limit, void* sp) const {
+#if JS_STACK_GROWTH_DIRECTION > 0
+  return MOZ_LIKELY(JS::NativeStackLimit(sp) < limit);
+#else
+  return MOZ_LIKELY(JS::NativeStackLimit(sp) > limit);
+#endif
+}    
+
+MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::check(JSContext* cx) const {
+  if (MOZ_UNLIKELY(!checkDontReport(cx))) {
+    ReportOverRecursed(cx);
+    return false;
+  }
+  return true;
+}
+
+MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkDontReport(
+    JSContext* cx) const {
+  void* sp = (void*)cx->runtime()->jitRuntime()->sbxStackPtr();
+  return checkWithStackPointerDontReport(cx, sp);
+}
+    
+MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkWithExtra(
+    JSContext* cx, size_t extra) const {
+  char* sp = (char*)cx->runtime()->jitRuntime()->sbxStackPtr();
+#if JS_STACK_GROWTH_DIRECTION > 0
+  sp += extra;
+#else
+  sp -= extra;
+#endif
+  if (MOZ_UNLIKELY(!checkWithStackPointerDontReport(cx, sp))) {
+    ReportOverRecursed(cx);
+    return false;
+  }
+  return true;
+}
+
+MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkWithStackPointerDontReport(
+    JSContext* cx, void* sp) const {
+  JS::NativeStackLimit sbxStackLimit = cx->runtime()->jitRuntime()->getSbxStackLimit();
+  if (MOZ_LIKELY(checkLimitImpl(sbxStackLimit, sp))) {
+    return true;
+  }
+  return false;
+}
+  
 }  // namespace jit
 }  // namespace js
 

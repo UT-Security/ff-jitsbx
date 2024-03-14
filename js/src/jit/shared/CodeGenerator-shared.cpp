@@ -210,6 +210,9 @@ bool CodeGeneratorShared::generateOutOfLineCode() {
     JitSpew(JitSpew_Codegen, "# Emitting out of line code");
 
     masm.setFramePushed(outOfLineCode_[i]->framePushed());
+#ifdef JS_JIT_SBX
+    masm.sbxSetFramePushed(outOfLineCode_[i]->sbxFramePushed());
+#endif
     outOfLineCode_[i]->bind(&masm);
 
     outOfLineCode_[i]->generate(this);
@@ -228,6 +231,9 @@ void CodeGeneratorShared::addOutOfLineCode(OutOfLineCode* code,
                                            const BytecodeSite* site) {
   MOZ_ASSERT_IF(!gen->compilingWasm(), site->script()->containsPC(site->pc()));
   code->setFramePushed(masm.framePushed());
+#ifdef JS_JIT_SBX
+  code->setSbxFramePushed(masm.sbxFramePushed());
+#endif
   code->setBytecodeSite(site);
   masm.propagateOOM(outOfLineCode_.append(code));
 }

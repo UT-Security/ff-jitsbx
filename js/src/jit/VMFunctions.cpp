@@ -577,6 +577,12 @@ static bool CheckOverRecursedImpl(JSContext* cx, size_t extra) {
     return false;
   }
 #endif
+#ifdef JS_JIT_SBX
+  AutoCheckSbxRecursionLimit recursionSbx(cx);
+  if(!recursionSbx.checkWithExtra(cx, extra)) {
+    return false;
+  }
+#endif
 
   // This handles 2).
   gc::MaybeVerifyBarriers(cx);

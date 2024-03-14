@@ -36,6 +36,12 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
   if (!recursion.check(cx)) {
     return EnterJitStatus::Error;
   }
+#ifdef JS_JIT_SBX
+  AutoCheckSbxRecursionLimit recursionSbx(cx);
+  if(!recursion.check(cx)) {
+    return EnterJitStatus::Error;
+  }
+#endif
 
   // jit::Bailout(), jit::InvalidationBailout(), and jit::HandleException()
   // reset the counter to zero, so assert here it's also zero when we enter

@@ -1786,6 +1786,10 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   size_t numBytesToPush = info->copyNativeStackTop - info->copyNativeStackBottom;
   MOZ_ASSERT((numBytesToPush % sizeof(uintptr_t)) == 0);
   uint8_t* newsp = info->incomingNativeStack - numBytesToPush;
+
+  size_t numSbxBytesToPush = info->copyStackTop - info->copyStackBottom;
+  MOZ_ASSERT((numSbxBytesToPush % sizeof(uintptr_t)) == 0);
+  uint8_t* newspSbx = info->incomingStack - numSbxBytesToPush;
 #else
   size_t numBytesToPush = info->copyStackTop - info->copyStackBottom;
   MOZ_ASSERT((numBytesToPush % sizeof(uintptr_t)) == 0);
@@ -1800,6 +1804,12 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   if (!recursion.checkWithStackPointerDontReport(cx, newsp)) {
     overRecursed = true;
   }
+#endif
+#ifdef JS_JIT_SBX
+  AutoCheckSbxRecursionLimit recursionSbx(cx);
+  if (!recursionSbx.checkWithStackPointerDontReport(cx, newspSbx)) {
+    overRecursed = true;
+  } 
 #endif
   if (overRecursed) {
     JitSpew(JitSpew_BaselineBailouts, "  Overrecursion check failed!");

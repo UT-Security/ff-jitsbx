@@ -398,10 +398,17 @@ class OutOfLineCode : public TempObject {
   Label entry_;
   Label rejoin_;
   uint32_t framePushed_;
+#ifdef JS_JIT_SBX
+  uint32_t sbxFramePushed_;
+#endif
   const BytecodeSite* site_;
 
  public:
+#ifdef JS_JIT_SBX
+  OutOfLineCode() : framePushed_(0), sbxFramePushed_(0), site_() {}
+#else
   OutOfLineCode() : framePushed_(0), site_() {}
+#endif
 
   virtual void generate(CodeGeneratorShared* codegen) = 0;
 
@@ -410,6 +417,10 @@ class OutOfLineCode : public TempObject {
   Label* rejoin() { return &rejoin_; }
   void setFramePushed(uint32_t framePushed) { framePushed_ = framePushed; }
   uint32_t framePushed() const { return framePushed_; }
+#ifdef JS_JIT_SBX
+  void setSbxFramePushed(uint32_t sbxFramePushed) { sbxFramePushed_ = sbxFramePushed; }
+  uint32_t sbxFramePushed() const { return sbxFramePushed_; }
+#endif
   void setBytecodeSite(const BytecodeSite* site) { site_ = site; }
   const BytecodeSite* bytecodeSite() const { return site_; }
 };

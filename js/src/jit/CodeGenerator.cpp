@@ -2380,6 +2380,8 @@ void CreateDependentString::generateFallback(MacroAssembler& masm) {
   regsToSave.takeUnchecked(temp2_);
 
   for (FallbackKind kind : mozilla::MakeEnumeratedRange(FallbackKind::Count)) {
+    masm.sbxSetFramePushed(2 * sizeof(void*));
+    masm.sbxAssumeSandboxStack();
     masm.bind(&fallbacks_[kind]);
 
     masm.PushRegsInMask(regsToSave);
@@ -2763,6 +2765,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   masm.ret();
 
   masm.bind(&notFound);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.sbxAssumeSandboxStack();
   if (isExecMatch) {
     Label notGlobalOrSticky;
@@ -2787,16 +2790,21 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 
   // Fallback path for createGCObject.
   masm.bind(&matchResultFallback);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
+  masm.sbxAssumeSandboxStack();
   CreateMatchResultFallback(masm, object, temp2, temp3, templateObj, &oolEntry);
   masm.jump(&matchResultJoin);
 
   // Fall-through to the ool entry after restoring the registers.
   masm.bind(&restoreRegExpAndLastIndex);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
+  masm.sbxAssumeSandboxStack();
   maybeRestoreRegExpAndLastIndex();
 
   // Use an undefined value to signal to the caller that the OOL stub needs to
   // be called.
   masm.bind(&oolEntry);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.sbxAssumeSandboxStack();
   masm.moveValue(UndefinedValue(), result);
 	masm.sbxPopFrame();
@@ -3071,6 +3079,8 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&notFound);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
+  masm.sbxAssumeSandboxStack();
   masm.move32(Imm32(RegExpSearcherResultNotFound), result);
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
@@ -3079,6 +3089,8 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.ret();
 
   masm.bind(&oolEntry);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
+  masm.sbxAssumeSandboxStack();
   masm.move32(Imm32(RegExpSearcherResultFailed), result);
 	masm.sbxPopFrame();
 	masm.sbxToNativeStack();
@@ -6578,9 +6590,12 @@ void CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed* lir) {
   addOutOfLineCode(ool, lir->mir());
 
   // Conditional forward (unlikely) branch to failure.
-  const void* limitAddr = gen->runtime->addressOfJitStackLimit();
-  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr),
+  const void* sbxLimitAddr = gen->jitRuntime()->addrOfSbxStackLimit();
+  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(sbxLimitAddr),
                          ool->entry());
+  //const void* limitAddr = gen->runtime->addressOfJitStackLimit();
+  //masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr),
+  //                       ool->entry());
   masm.bind(ool->rejoin());
 }
 

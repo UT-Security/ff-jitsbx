@@ -790,20 +790,47 @@ bool BaselineCodeGen<Handler>::callVM(RetAddrEntry::Kind kind,
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emitStackCheck() {
   Label skipCall;
+#ifdef JS_JIT_SBX
+  Label makeCall;
+#endif
+
   if (handler.mustIncludeSlotsInStackCheck()) {
     // Subtract the size of script->nslots() first.
     Register scratch = R1.scratchReg();
     masm.moveStackPtrTo(scratch);
     subtractScriptSlotsSize(scratch, R2.scratchReg());
+    // TODO(jit-sbx): can we trust JIT to check for exceeding the stack limit?
+#ifdef JS_JIT_SBX
+    masm.branchPtr(Assembler::Above,
+                   AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackLimit()), scratch,
+                   &makeCall);
+    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), scratch);
     masm.branchPtr(Assembler::BelowOrEqual,
                    AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
                    &skipCall);
+#else
+    masm.branchPtr(Assembler::BelowOrEqual,
+                   AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
+                   &skipCall);
+#endif
   } else {
+#ifdef JS_JIT_SBX
+    Register scratch = R1.scratchReg();
+    masm.branchStackPtrRhs(Assembler::Above,
+                           AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackLimit()),
+                           &makeCall);
+    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), scratch);
+    masm.branchPtr(Assembler::BelowOrEqual,
+                   AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
+                   &skipCall);
+#else
     masm.branchStackPtrRhs(Assembler::BelowOrEqual,
                            AbsoluteAddress(cx->addressOfJitStackLimit()),
                            &skipCall);
+#endif
   }
 
+  masm.bind(&makeCall);
   prepareVMCall();
   masm.loadBaselineFramePtr(FramePointer, R1.scratchReg());
   pushArg(R1.scratchReg());
@@ -6384,13 +6411,10 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
     return false;
   }
 
-#ifndef JS_JIT_SBX
-  // TODO(jit-sbx) get this to work with JIT sandbox.
   // Check for overrecursion before initializing locals.
   if (!emitStackCheck()) {
     return false;
   }
-#endif
 
   emitInitializeLocals();
 

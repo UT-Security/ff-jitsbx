@@ -108,6 +108,12 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
   if (!recursion.checkWithExtra(cx, extra)) {
     return JitExec_Aborted;
   }
+#ifdef JS_JIT_SBX
+  AutoCheckSbxRecursionLimit recursionSbx(cx);
+  if (!recursion.checkWithExtra(cx, extra)) {
+    return JitExec_Aborted;
+  }
+#endif
 
 #ifdef DEBUG
   // Assert we don't GC before entering JIT code. A GC could discard JIT code
