@@ -36,11 +36,6 @@ struct EnterJITStackEntry {
 
   void* result;
 
-#ifdef JS_JIT_SBX
-	void* savedSbxPtr;
-	void* savedStackPtr;
-#endif
-
 #if defined(_WIN64)
   struct XMM {
     using XMM128 = char[16];
@@ -142,15 +137,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.vmovdqa(xmm15, Operand(rsp, offsetof(EnterJITStackEntry::XMM, xmm15)));
 #endif
 
-  // [jit-sbx] Preserve the saved values of native and sandbox stack pointers in the stack
-  // before entering a new JIT activation where it may be overwritten.
 #ifdef JS_JIT_SBX
-	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), r15);
-	masm.push(r15);
-  // [jit-sbx] we also use the fact that r15 contains the sandbox stack pointer on entry
+  // [jit-sbx] we use the fact that r15 contains the sandbox stack pointer on entry
   // to the trampoline later.
-	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()), r15);
-	masm.push(r15);
+	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()), r15);
 #endif
 
   // Save arguments passed in registers needed after function call.
@@ -416,13 +406,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   masm.pop(r12);  // vp
   masm.storeValue(JSReturnOperand, Operand(r12, 0));
-
-#ifdef JS_JIT_SBX
-	masm.pop(r12);
-	masm.storePtr(r12, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackPtr()));
-	masm.pop(r12);
-	masm.storePtr(r12, AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()));
-#endif
 
   // Restore non-volatile registers.
 #if defined(_WIN64)

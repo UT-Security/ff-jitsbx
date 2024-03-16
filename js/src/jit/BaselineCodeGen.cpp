@@ -802,9 +802,9 @@ bool BaselineCodeGen<Handler>::emitStackCheck() {
     // TODO(jit-sbx): can we trust JIT to check for exceeding the stack limit?
 #ifdef JS_JIT_SBX
     masm.branchPtr(Assembler::Above,
-                   AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackLimit()), scratch,
+                   AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()), scratch,
                    &makeCall);
-    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), scratch);
+    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSavedNativeStackPtr()), scratch);
     masm.branchPtr(Assembler::BelowOrEqual,
                    AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
                    &skipCall);
@@ -817,9 +817,9 @@ bool BaselineCodeGen<Handler>::emitStackCheck() {
 #ifdef JS_JIT_SBX
     Register scratch = R1.scratchReg();
     masm.branchStackPtrRhs(Assembler::Above,
-                           AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSbxStackLimit()),
+                           AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSandboxStackLimit()),
                            &makeCall);
-    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addrOfSavedStackPtr()), scratch);
+    masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSavedNativeStackPtr()), scratch);
     masm.branchPtr(Assembler::BelowOrEqual,
                    AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
                    &skipCall);
@@ -830,7 +830,9 @@ bool BaselineCodeGen<Handler>::emitStackCheck() {
 #endif
   }
 
+#ifdef JS_JIT_SBX
   masm.bind(&makeCall);
+#endif
   prepareVMCall();
   masm.loadBaselineFramePtr(FramePointer, R1.scratchReg());
   pushArg(R1.scratchReg());

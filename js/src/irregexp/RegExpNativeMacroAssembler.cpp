@@ -74,6 +74,8 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
 
   masm_.jump(&entry_label_);  // We'll generate the entry code later
   masm_.bind(&start_label_);  // and continue from here.
+  masm_.sbxSetFramePushed(2 * sizeof(void*));
+  masm_.sbxAssumeSandboxStack();
 }
 
 int SMRegExpMacroAssembler::stack_limit_slack() {
@@ -951,7 +953,7 @@ void SMRegExpMacroAssembler::CheckBacktrackStackLimit() {
       AbsoluteAddress(isolate()->regexp_stack()->limit_address_address()),
       backtrack_stack_pointer_, &no_stack_overflow);
 
-  masm_.call(&stack_overflow_label_);
+  masm_.sbxCall(&stack_overflow_label_);
 
   // Exit with an exception if the call failed
   masm_.branchTest32(Assembler::Zero, temp0_, temp0_,
@@ -973,6 +975,7 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
   }
 
   masm_.bind(&entry_label_);
+  masm_.sbxAssumeNativeStack();
 
   createStackFrame();
   initFrameAndRegs();
@@ -1036,7 +1039,11 @@ void SMRegExpMacroAssembler::createStackFrame() {
 #endif
 
   masm_.Push(js::jit::FramePointer);
+  masm_.sbxSetFramePushed(2 * sizeof(void*));
+  masm_.sbxToSandboxStack();
+  masm_.sbxPushFrame();
   masm_.moveStackPtrTo(js::jit::FramePointer);
+      
 
   // Push non-volatile registers which might be modified by jitcode.
   for (GeneralRegisterForwardIterator iter(savedRegisters_); iter.more();
@@ -1067,7 +1074,11 @@ void SMRegExpMacroAssembler::createStackFrame() {
   // avoid failing repeatedly when the regex code is called from Ion JIT code.
   // (See bug 1208819)
   js::jit::Label stack_ok;
+#ifdef JS_JIT_SBX
+  AbsoluteAddress limit_addr(cx_->runtime()->jitRuntime()->addressOfSandboxStackLimit());
+#else
   AbsoluteAddress limit_addr(cx_->addressOfJitStackLimitNoInterrupt());
+#endif
   masm_.branchStackPtrRhs(Assembler::Below, limit_addr, &stack_ok);
 
   // There is not enough space on the stack. Exit with an exception.
@@ -1175,6 +1186,8 @@ void SMRegExpMacroAssembler::successHandler() {
     return;
   }
   masm_.bind(&success_label_);
+  masm_.sbxSetFramePushed(2 * sizeof(void*));
+  masm_.sbxAssumeSandboxStack();
 
   // Copy captures to the MatchPairs pointed to by the InputOutputData.
   // Captures are stored as positions, which are negative byte offsets
@@ -1212,6 +1225,8 @@ void SMRegExpMacroAssembler::successHandler() {
 
 void SMRegExpMacroAssembler::exitHandler() {
   masm_.bind(&exit_label_);
+  masm_.sbxSetFramePushed(2 * sizeof(void*));
+  masm_.sbxAssumeSandboxStack();
 
   if (temp0_ != js::jit::ReturnReg) {
     masm_.movePtr(temp0_, js::jit::ReturnReg);
@@ -1225,6 +1240,9 @@ void SMRegExpMacroAssembler::exitHandler() {
     masm_.Pop(*iter);
   }
 
+  masm_.sbxPopFrame();
+  masm_.sbxToNativeStack();
+  masm_.sbxImplicitPop(sizeof(void*));
   masm_.Pop(js::jit::FramePointer);
 
 #ifdef JS_CODEGEN_ARM64
@@ -1259,6 +1277,8 @@ void SMRegExpMacroAssembler::backtrackHandler() {
     return;
   }
   masm_.bind(&backtrack_label_);
+  masm_.sbxSetFramePushed(2 * sizeof(void*));
+  masm_.sbxAssumeSandboxStack();
   Backtrack();
 }
 
@@ -1272,7 +1292,11 @@ void SMRegExpMacroAssembler::stackOverflowHandler() {
 
   // Called if the backtrack-stack limit has been hit.
   masm_.bind(&stack_overflow_label_);
-
+  masm_.sbxAssumeNativeStack();
+  masm_.sbxSetFramePushed(sizeof(void*));
+  masm_.sbxToSandboxStack();
+  masm_.sbxPushReturnAddress();
+      
   // Load argument
   masm_.movePtr(ImmPtr(isolate()->regexp_stack()), temp1_);
 
@@ -1317,6 +1341,8 @@ void SMRegExpMacroAssembler::stackOverflowHandler() {
 
   // Resume execution in calling code.
   masm_.bind(&overflow_return);
+  masm_.sbxPopReturnAddress();
+  masm_.sbxToNativeStack();
   masm_.ret();
 }
 

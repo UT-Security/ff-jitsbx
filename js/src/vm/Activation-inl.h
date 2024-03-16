@@ -14,6 +14,7 @@
 #include "mozilla/Maybe.h"       // mozilla::Maybe
 
 #include "jit/CalleeToken.h"   // js::jit::CalleeToken
+#include "jit/JitRuntime.h"
 #include "js/Debug.h"          // JS::dbg::AutoEntryMonitor
 #include "vm/FrameIter.h"      // js::FrameIter
 #include "vm/JitActivation.h"  // js::jit::JitActivation
@@ -61,10 +62,22 @@ inline Activation::Activation(JSContext* cx, Kind kind)
       asyncStack_(cx, cx->asyncStackForNewActivations()),
       asyncCause_(cx->asyncCauseForNewActivations),
       asyncCallIsExplicit_(cx->asyncCallIsExplicit),
+#ifdef JS_JIT_SBX
+      kind_(kind),
+      savedNativeStackPtr_(0),
+      savedSandboxStackPtr_(0) {
+#else
       kind_(kind) {
+#endif
   cx->asyncStackForNewActivations() = nullptr;
   cx->asyncCauseForNewActivations = nullptr;
   cx->asyncCallIsExplicit = false;
+#ifdef JS_JIT_SBX
+  if(cx->activation_ && cx->runtime()->hasJitRuntime()) {
+    cx->activation_->setSavedNativeStackPr(cx->runtime()->jitRuntime()->savedNativeStackPtr());
+    cx->activation_->setSavedSandboxStackPtr(cx->runtime()->jitRuntime()->savedSandboxStackPtr());
+  }
+#endif
   cx->activation_ = this;
 }
 
@@ -73,6 +86,17 @@ inline Activation::~Activation() {
   MOZ_ASSERT(cx_->activation_ == this);
   MOZ_ASSERT(hideScriptedCallerCount_ == 0);
   cx_->activation_ = prev_;
+#ifdef JS_JIT_SBX
+  if(cx_->activation_ && cx_->runtime()->hasJitRuntime()) {
+    cx_->runtime()->jitRuntime()->setSavedNativeStackPtr(cx_->activation_->savedNativeStackPtr());
+    cx_->runtime()->jitRuntime()->setSavedSandboxStackPtr(cx_->activation_->savedSandboxStackPtr());
+    cx_->activation_->setSavedNativeStackPr(0);
+    cx_->activation_->setSavedSandboxStackPtr(0);
+  } else if(cx_->runtime()->hasJitRuntime()) {
+    cx_->runtime()->jitRuntime()->setSavedNativeStackPtr(0);
+    cx_->runtime()->jitRuntime()->resetSandboxStack(cx_);
+  }
+#endif
   cx_->asyncCauseForNewActivations = asyncCause_;
   cx_->asyncStackForNewActivations() = asyncStack_;
   cx_->asyncCallIsExplicit = asyncCallIsExplicit_;

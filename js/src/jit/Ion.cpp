@@ -102,8 +102,8 @@ JitRuntime::~JitRuntime() {
   js_delete(jitHintsMap_.ref());
 
 #ifdef JS_JIT_SBX
-  js_free(sbxStack_);
-  munmap(addrOfSbxStackPtr_.ref(), 2 * sizeof(uintptr_t));
+  js_free(sandboxStack_);
+  munmap(addressOfSavedSandboxStackPtr_.ref(), 2 * sizeof(uintptr_t));
 #endif
 }
 
@@ -124,7 +124,7 @@ bool JitRuntime::initialize(JSContext* cx) {
   JitContext jctx(cx);
 
 #ifdef JS_JIT_SBX
-  if(!initializeSbxStack(cx)) {
+  if(!initializeSandbox(cx)) {
     return false;
   }
 #endif
@@ -169,38 +169,44 @@ bool JitRuntime::initialize(JSContext* cx) {
 }
 
 #ifdef JS_JIT_SBX
-bool JitRuntime::initializeSbxStack(JSContext* cx) {
+bool JitRuntime::initializeSandbox(JSContext* cx) {
 #if JS_STACK_GROWTH_DIRECTION > 0
   MOZ_ASSERT(cx->nativeStackBase() < cx->jitStackLimit);
-  JS::NativeStackSize sbxStackSize = cx->jitStackLimit - cx->nativeStackBase();
+  JS::NativeStackSize sandboxStackSize = cx->jitStackLimit - cx->nativeStackBase();
 #else // stack grows up
   MOZ_ASSERT(cx->nativeStackBase() > cx->jitStackLimit);
-  JS::NativeStackSize sbxStackSize = cx->nativeStackBase() - cx->jitStackLimit;
+  JS::NativeStackSize sandboxStackSize = cx->nativeStackBase() - cx->jitStackLimit;
 #endif // stack grows down
-  MOZ_ASSERT(sbxStackSize > 0);
+  MOZ_ASSERT(sandboxStackSize > 0);
   
-  sbxStack_ = cx->pod_calloc<uint8_t>(sbxStackSize + 4096); 
-  if (!sbxStack_) {
+  sandboxStack_ = cx->pod_calloc<uint8_t>(sandboxStackSize + 4096); 
+  if (!sandboxStack_) {
     return false;
   }
 
-  addrOfSbxStackPtr_ = (uintptr_t *)mmap(nullptr, 2 * sizeof(uintptr_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  if (!addrOfSbxStackPtr_) {
+  addressOfSavedSandboxStackPtr_ = (uintptr_t *)mmap(nullptr, 2 * sizeof(uintptr_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
+  if (!addressOfSavedSandboxStackPtr_) {
     return false;
   }
 
 #if JS_STACK_GROWTH_DIRECTION > 0
-  *addrOfSbxStackPtr_ = (uintptr_t)sbxStack_;
-  sbxStackLimit = *addrOfSbxStackPtr + sbxStackSize;
+  *addressOfSavedSandboxStackPtr_ = (uintptr_t)sandboxStack_;
+  sandboxStackLimit_ = *addressOfSavedSandboxStackPtr + sandboxStackSize;
 #else
-  *addrOfSbxStackPtr_ = (uintptr_t)(sbxStack_ + sbxStackSize + 4096);
-  sbxStackLimit = *addrOfSbxStackPtr_ - sbxStackSize;
+  *addressOfSavedSandboxStackPtr_ = (uintptr_t)(sandboxStack_ + sandboxStackSize + 4096);
+  sandboxStackLimit_ = *addressOfSavedSandboxStackPtr_ - sandboxStackSize;
 #endif
+
+  initialSandboxStackPtr_ = *addressOfSavedSandboxStackPtr_;
   
-  addrOfSavedStackPtr_ = addrOfSbxStackPtr_ + 1;
-  *addrOfSavedStackPtr_ = 0;
+  addressOfSavedNativeStackPtr_ = addressOfSavedSandboxStackPtr_ + 1;
+  *addressOfSavedNativeStackPtr_ = 0;
 
   return true;
+}
+
+void JitRuntime::resetSandboxStack(JSContext* cx) {
+  *addressOfSavedSandboxStackPtr_ = initialSandboxStackPtr_.ref();
 }
 #endif
 

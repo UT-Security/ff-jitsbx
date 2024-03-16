@@ -148,13 +148,10 @@ bool jit::Bailout(BailoutStack* sp, BaselineBailoutInfo** bailoutInfo) {
 #endif
 
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#ifdef JS_JIT_SBX
-  cx->activation()->asJit()->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#endif
 
   JitActivationIterator jitActivations(cx);
 #ifdef JS_JIT_SBX
-  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr());
 #else
   BailoutFrameInfo bailoutData(jitActivations, sp);
 #endif
@@ -233,13 +230,10 @@ bool jit::InvalidationBailout(InvalidationBailoutStack* sp,
 
   // We don't have an exit frame.
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#ifdef JS_JIT_SBX
-  cx->activation()->asJit()->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#endif
 
   JitActivationIterator jitActivations(cx);
 #ifdef JS_JIT_SBX
-  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr());
 #else
   BailoutFrameInfo bailoutData(jitActivations, sp);
 #endif
@@ -314,20 +308,11 @@ bool jit::ExceptionHandlerBailout(JSContext* cx,
 
   JitActivation* act = cx->activation()->asJit();
   uint8_t* prevExitFP = act->jsExitFP();
-#ifdef JS_JIT_SBX
-  uint8_t* prevNativeExitFP = act->jsNativeExitFP();
-#endif
   auto restoreExitFP =
     mozilla::MakeScopeExit([&]() {
         act->setJSExitFP(prevExitFP);
-#ifdef JS_JIT_SBX
-        act->setNativeExitFP(prevNativeExitFP);
-#endif
     });
   act->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#ifdef JS_JIT_SBX
-  act->setNativeExitFP(FAKE_EXITFP_FOR_BAILOUT);
-#endif
   
 
   gc::AutoSuppressGC suppress(cx);
@@ -395,9 +380,6 @@ bool jit::EnsureHasEnvironmentObjects(JSContext* cx, AbstractFramePtr fp) {
 void BailoutFrameInfo::attachOnJitActivation(
     const JitActivationIterator& jitActivations) {
   MOZ_ASSERT(jitActivations->asJit()->jsExitFP() == FAKE_EXITFP_FOR_BAILOUT);
-#ifdef JS_JIT_SBX
-  MOZ_ASSERT(jitActivations->asJit()->jsNativeExitFP() == FAKE_EXITFP_FOR_BAILOUT);
-#endif
   activation_ = jitActivations->asJit();
   activation_->setBailoutData(this);
 }

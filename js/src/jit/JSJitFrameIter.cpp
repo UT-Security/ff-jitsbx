@@ -27,7 +27,7 @@ using namespace js::jit;
 
 #ifdef JS_JIT_SBX
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
-    : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP(), activation->jsNativeExitFP()) {}
+    : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP(), (uint8_t*)activation->savedNativeStackPtr()) {}
 #else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
     : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP()) {}
@@ -50,8 +50,8 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
   } else {
 		JSContext* cx = TlsContext.get();
     MOZ_ASSERT(!cx->inUnsafeCallWithABI);
-		if(activation == cx->jitActivation) {
-			currentNative_ = (uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr();
+		if(activation == cx->activation_) {
+			currentNative_ = (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr();
 		}
   }
 	MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());

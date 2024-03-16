@@ -47,9 +47,6 @@ class JitActivation : public Activation {
   // wasm frame (bit set to wasm::ExitOrJitEntryFPTag) or not
   // (bit set to ~wasm::ExitOrJitEntryFPTag).
   uint8_t* packedExitFP_;
-#ifdef JS_JIT_SBX
-	uint8_t* nativeExitFP_;
-#endif
 
   // When hasWasmExitFP(), encodedWasmExitReason_ holds ExitReason.
   uint32_t encodedWasmExitReason_;
@@ -138,15 +135,6 @@ class JitActivation : public Activation {
     MOZ_ASSERT(hasJSExitFP());
     return packedExitFP_;
   }
-
-#ifdef JS_JIT_SBX
-	uint8_t* jsNativeExitFP() const {
-    MOZ_ASSERT(hasJSExitFP());
-    return nativeExitFP_;
-  }
-
-	void setNativeExitFP(uint8_t* nfp) { nativeExitFP_ = nfp; }
-#endif
 
   void setJSExitFP(uint8_t* fp) { packedExitFP_ = fp; }
 

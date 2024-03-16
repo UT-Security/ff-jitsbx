@@ -135,11 +135,6 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
                     data.maxArgv[0].isMagic(JS_UNINITIALIZED_LEXICAL));
 
   data.result.setInt32(data.numActualArgs);
-#ifdef JS_JIT_SBX
-	if(cx->jitActivation) {
-		cx->jitActivation->setNativeExitFP((uint8_t*)cx->runtime()->jitRuntime()->savedStackPtr());
-	}
-#endif
   {
     AssertRealmUnchanged aru(cx);
     ActivationEntryMonitor entryMonitor(cx, data.calleeToken);
@@ -157,11 +152,6 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
 
     data.osrFrame->clearRunningInJit();
   }
-#ifdef JS_JIT_SBX
-	if(cx->jitActivation) {
-		cx->jitActivation->setNativeExitFP(nullptr);
-	}
-#endif
 
   // Jit callers wrap primitive constructor return, except for derived
   // class constructors, which are forced to do it themselves.

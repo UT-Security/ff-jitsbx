@@ -6418,7 +6418,7 @@ void CodeGenerator::emitApplyGeneric(T* apply) {
     // Finally call the function in objreg, as assigned by one of the paths
     // above.
     ensureOsiSpace();
-    uint32_t callOffset = masm.callJit(objreg);
+    uint32_t callOffset = masm.sbxCallJit(objreg);
     markSafepointAt(callOffset, apply);
 
     if (apply->mir()->maybeCrossRealm()) {
@@ -6590,12 +6590,15 @@ void CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed* lir) {
   addOutOfLineCode(ool, lir->mir());
 
   // Conditional forward (unlikely) branch to failure.
-  const void* sbxLimitAddr = gen->jitRuntime()->addrOfSbxStackLimit();
-  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(sbxLimitAddr),
+#ifdef JS_JIT_SBX
+  const void* sandboxStackLimitAddr = gen->jitRuntime()->addressOfSandboxStackLimit();
+  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(sandboxStackLimitAddr),
                          ool->entry());
-  //const void* limitAddr = gen->runtime->addressOfJitStackLimit();
-  //masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr),
-  //                       ool->entry());
+#else
+  const void* limitAddr = gen->runtime->addressOfJitStackLimit();
+  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr),
+                         ool->entry());
+#endif
   masm.bind(ool->rejoin());
 }
 

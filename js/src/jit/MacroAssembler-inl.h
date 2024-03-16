@@ -265,15 +265,15 @@ void MacroAssembler::sbxImplicitPop(uint32_t bytes) {
 
 void MacroAssembler::sbxToNativeStack() {
 	sbxAssertSandboxStack();
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()), rsp);
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedNativeStackPtr()), rsp);
 	currentStack_ = NATIVE;
 }
 
 void MacroAssembler::sbxToSandboxStack() {
 	sbxAssertNativeStack();
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addrOfSavedStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addrOfSbxStackPtr()), rsp);
+  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()), rsp);
 	currentStack_ = SANDBOX;
 }
 

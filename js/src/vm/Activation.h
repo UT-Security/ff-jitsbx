@@ -440,6 +440,11 @@ class Activation {
   enum Kind { Interpreter, Jit };
   Kind kind_;
 
+#ifdef JS_JIT_SBX
+  uintptr_t savedNativeStackPtr_;
+  uintptr_t savedSandboxStackPtr_;
+#endif
+
   inline Activation(JSContext* cx, Kind kind);
   inline ~Activation();
 
@@ -482,6 +487,14 @@ class Activation {
 
   inline LiveSavedFrameCache* getLiveSavedFrameCache(JSContext* cx);
   void clearLiveSavedFrameCache() { frameCache_.get().clear(); }
+
+#ifdef JS_JIT_SBX
+  uintptr_t savedNativeStackPtr() const { return savedNativeStackPtr_; }
+  void setSavedNativeStackPr(uintptr_t ptr) { savedNativeStackPtr_ = ptr; }
+  
+  uintptr_t savedSandboxStackPtr() const { return savedSandboxStackPtr_; }
+  void setSavedSandboxStackPtr(uintptr_t ptr) { savedSandboxStackPtr_ = ptr; }
+#endif
 
  private:
   Activation(const Activation& other) = delete;
