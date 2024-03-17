@@ -368,6 +368,9 @@ static void OnLeaveBaselineFrame(JSContext* cx, const JSJitFrameIter& frame,
     rfe->kind = ExceptionResumeKind::ForcedReturnBaseline;
     rfe->framePointer = frame.fp();
     rfe->stackPointer = reinterpret_cast<uint8_t*>(baselineFrame);
+#ifdef JS_JIT_SBX
+    rfe->nativeStackPointer = frame.fpNative();
+#endif
   }
 }
 
