@@ -963,7 +963,7 @@ class alignas(8) Value {
     MOZ_ASSERT((ptrBits & 0x7) == 0);
 
     // ask2374
-    SANDBOX_LOG("toObjectOrNull,%p\n", (void*)ptrBits);
+    // SANDBOX_LOG("toObjectOrNull,%p\n", (void*)ptrBits);
     // ask2374
     return reinterpret_cast<JSObject*>(ptrBits);
 #endif

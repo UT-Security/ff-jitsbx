@@ -221,3 +221,6 @@ tools/esmify/package-lock.json
 
 # Ignore automatically generated mots documentation
 docs/mots/index.rst
+
+# Custom
+gdb.txt

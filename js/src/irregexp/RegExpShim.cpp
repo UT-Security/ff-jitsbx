@@ -19,6 +19,10 @@
 
 #include "vm/NativeObject-inl.h"
 
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
+
 namespace v8 {
 namespace internal {
 

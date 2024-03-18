@@ -338,6 +338,9 @@ UNIFIED_SOURCES += [
     "proxy/ScriptedProxyHandler.cpp",
     "proxy/SecurityWrapper.cpp",
     "proxy/Wrapper.cpp",
+    # ask2374
+    "sandbox/JitSandbox.cpp",
+    # ask2374
     "threading/Mutex.cpp",
     "threading/ProtectedData.cpp",
     "threading/Thread.cpp",
