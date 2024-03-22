@@ -41,6 +41,7 @@
 
 #include "debugger/DebugAPI-inl.h"
 #include "jit/BaselineFrame-inl.h"
+#include "jit/JSJitFrameIter-inl.h"
 #include "jit/VMFunctionList-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSScript-inl.h"
@@ -1004,15 +1005,37 @@ bool DebugPrologue(JSContext* cx, BaselineFrame* frame) {
 
 bool DebugEpilogueOnBaselineReturn(JSContext* cx, BaselineFrame* frame,
                                    const jsbytecode* pc) {
+#ifdef JS_JIT_SBX
+  JSJitFrameIter iter(cx->activation()->asJit());
+  NativeJitFrameLayout* nativeFrame = nullptr;
+  while(!iter.done()) {
+    if(iter.isBaselineJS() && iter.baselineFrame() == frame) {
+      nativeFrame = iter.currentNative();
+      break;      
+    }
+    ++iter;
+  }
+
+  if(nativeFrame == nullptr) {
+    return false;  
+  }
+  if (!DebugEpilogue(cx, frame, nativeFrame, pc, true)) {
+#else
   if (!DebugEpilogue(cx, frame, pc, true)) {
+#endif
     return false;
   }
 
   return true;
 }
 
+#ifdef JS_JIT_SBX
+bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, NativeJitFrameLayout* nativeFrame, const jsbytecode* pc,
+                   bool ok) {
+#else
 bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, const jsbytecode* pc,
                    bool ok) {
+#endif
   // If DebugAPI::onLeaveFrame returns |true| we have to return the frame's
   // return value. If it returns |false|, the debugger threw an exception.
   // In both cases we have to pop debug scopes.
@@ -1026,7 +1049,11 @@ bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, const jsbytecode* pc,
     // Pop this frame by updating packedExitFP, so that the exception
     // handling code will start at the previous frame.
     JitFrameLayout* prefix = frame->framePrefix();
+#ifdef JS_JIT_SBX
+    EnsureUnwoundJitExitFrame(cx->activation()->asJit(), prefix, nativeFrame);
+#else
     EnsureUnwoundJitExitFrame(cx->activation()->asJit(), prefix);
+#endif
     return false;
   }
 

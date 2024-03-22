@@ -760,7 +760,8 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
 
   leaveStubFrame(masm);
 
-	masm.sbxToNativeStack();
+  masm.sbxPopReturnAddress();
+ 	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1361,6 +1362,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
 
   leaveStubFrame(masm);
 
+  masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
   return true;
@@ -1566,6 +1568,7 @@ bool FallbackICCodeCompiler::emit_SetProp() {
 
   leaveStubFrame(masm);
 
+  masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
 
@@ -1902,6 +1905,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     masm.bind(&skipThisReplace);
   }
 
+  masm.sbxPopReturnAddress();
 	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
   return true;

@@ -855,6 +855,56 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
 #endif
 }
 
+#ifdef JS_JIT_SBX
+void MacroAssembler::callWithABIPreNoSbx(uint32_t* stackAdjust, bool callFromWasm) {
+  MOZ_ASSERT(inCall_);
+
+  uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+
+  if (dynamicAlignment_) {
+    // sizeof(intptr_t) accounts for the saved stack pointer pushed by
+    // setupUnalignedABICall.
+    stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
+                                         ABIStackAlignment);
+  } else {
+    uint32_t alignmentAtPrologue = callFromWasm ? sizeof(wasm::Frame) : 0;
+    stackForCall += ComputeByteAlignment(
+        stackForCall + framePushed() + alignmentAtPrologue, ABIStackAlignment);
+  }
+
+  *stackAdjust = stackForCall;
+  reserveStack(stackForCall);
+  assertStackAlignment(ABIStackAlignment);
+
+  // Position all arguments.
+  {
+    enoughMemory_ &= moveResolver_.resolve();
+    if (!enoughMemory_) {
+      return;
+    }
+
+    MoveEmitter emitter(*this);
+    emitter.emit(moveResolver_);
+    emitter.finish();
+  }
+
+  assertStackAlignment(ABIStackAlignment);
+}
+
+void MacroAssembler::callWithABIPostNoSbx(uint32_t stackAdjust, MoveOp::Type result,
+                                     bool cleanupArg) {
+  freeStack(stackAdjust);
+  if (dynamicAlignment_) {
+    pop(rsp);
+  }
+
+#ifdef DEBUG
+  MOZ_ASSERT(inCall_);
+  inCall_ = false;
+#endif
+}
+#endif
+
 static bool IsIntArgReg(Register reg) {
   for (uint32_t i = 0; i < NumIntArgRegs; i++) {
     if (IntArgRegs[i] == reg) {

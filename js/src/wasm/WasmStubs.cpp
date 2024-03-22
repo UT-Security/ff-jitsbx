@@ -3001,7 +3001,7 @@ bool wasm::GenerateProvisionalLazyJitEntryStub(MacroAssembler& masm,
 
   using Fn = void* (*)();
   masm.setupUnalignedABICall(temp);
-  masm.callWithABI<Fn, GetContextSensitiveInterpreterStub>(
+  masm.callWithABINoSbx<Fn, GetContextSensitiveInterpreterStub>(
       MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
 #ifdef JS_USE_LINK_REGISTER

@@ -49,6 +49,9 @@ struct Cell;
 
 namespace jit {
 
+#ifdef JS_JIT_SBX
+class NativeJitFrameLayout;
+#endif
 class BaselineFrame;
 class InterpreterStubExitFrameLayout;
 
@@ -429,8 +432,13 @@ int32_t GetIndexFromString(JSString* str);
 JSObject* WrapObjectPure(JSContext* cx, JSObject* obj);
 
 [[nodiscard]] bool DebugPrologue(JSContext* cx, BaselineFrame* frame);
+#ifdef JS_JIT_SBX
+[[nodiscard]] bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, NativeJitFrameLayout* nativeFrame,
+                                 const jsbytecode* pc, bool ok);
+#else
 [[nodiscard]] bool DebugEpilogue(JSContext* cx, BaselineFrame* frame,
                                  const jsbytecode* pc, bool ok);
+#endif
 [[nodiscard]] bool DebugEpilogueOnBaselineReturn(JSContext* cx,
                                                  BaselineFrame* frame,
                                                  const jsbytecode* pc);

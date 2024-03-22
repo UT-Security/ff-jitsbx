@@ -31,6 +31,9 @@ enum class FrameType;
 class IonScript;
 class JitActivation;
 class JitFrameLayout;
+#ifdef JS_JIT_SBX
+class NativeJitFrameLayout;
+#endif
 struct SafepointSlotEntry;
 struct VMFunctionData;
 
@@ -175,7 +178,11 @@ static_assert(sizeof(ResumeFromException) % 16 == 0,
 
 void HandleException(ResumeFromException* rfe);
 
+#ifdef JS_JIT_SBX
+void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame, NativeJitFrameLayout* nativeFrame);
+#else
 void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame);
+#endif
 
 void TraceJitActivations(JSContext* cx, JSTracer* trc);
 

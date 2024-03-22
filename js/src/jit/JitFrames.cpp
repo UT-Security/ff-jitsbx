@@ -363,7 +363,11 @@ static void OnLeaveBaselineFrame(JSContext* cx, const JSJitFrameIter& frame,
                                  jsbytecode* pc, ResumeFromException* rfe,
                                  bool frameOk) {
   BaselineFrame* baselineFrame = frame.baselineFrame();
+#ifdef JS_JIT_SBX
+  bool returnFromThisFrame = jit::DebugEpilogue(cx, baselineFrame, frame.currentNative(), pc, frameOk);
+#else
   bool returnFromThisFrame = jit::DebugEpilogue(cx, baselineFrame, pc, frameOk);
+#endif
   if (returnFromThisFrame) {
     rfe->kind = ExceptionResumeKind::ForcedReturnBaseline;
     rfe->framePointer = frame.fp();
@@ -853,7 +857,11 @@ void HandleException(ResumeFromException* rfe) {
 }
 
 // Turns a JitFrameLayout into an UnwoundJit ExitFrameLayout.
+#ifdef JS_JIT_SBX
+void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame, NativeJitFrameLayout* nativeFrame) {
+#else
 void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
+#endif
   ExitFrameLayout* exitFrame = reinterpret_cast<ExitFrameLayout*>(frame);
 
   if (act->jsExitFP() == (uint8_t*)frame) {
@@ -869,6 +877,9 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
     ++iter;
   }
   MOZ_ASSERT(iter.current() == frame, "|frame| must be the top JS frame");
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(iter.currentNative() == nativeFrame, "|nativeFrame| must be the top JS nativeframe");
+#endif
 
   MOZ_ASSERT(!!act->jsExitFP());
   MOZ_ASSERT((uint8_t*)exitFrame->footer() >= act->jsExitFP(),
@@ -879,7 +890,7 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
 #ifdef JS_JIT_SBX
 	JSContext* cx = TlsContext.get();
   //if(act == cx->jitActivation) {
-	  *(uint8_t**)cx->runtime()->jitRuntime()->addressOfSavedNativeStackPtr() = (uint8_t*)iter.currentNative();
+	  *(uint8_t**)cx->runtime()->jitRuntime()->addressOfSavedNativeStackPtr() = (uint8_t*)nativeFrame;
   //}
 	//act->setNativeExitFP((uint8_t*)iter.currentNative());
 #endif

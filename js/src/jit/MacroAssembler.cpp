@@ -3921,6 +3921,56 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
 #endif
 }
 
+void MacroAssembler::callWithABINoProfilerNoSbx(void* fun, MoveOp::Type result,
+                                           CheckUnsafeCallWithABI check) {
+  appendSignatureType(result);
+#ifdef JS_SIMULATOR
+  fun = Simulator::RedirectNativeFunction(fun, signature());
+#endif
+
+  uint32_t stackAdjust;
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPreNoSbx(&stackAdjust);
+#else
+  callWithABIPre(&stackAdjust);
+#endif
+
+#ifdef DEBUG
+  if (check == CheckUnsafeCallWithABI::Check) {
+    push(ReturnReg);
+    loadJSContext(ReturnReg);
+    Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
+    store32(Imm32(1), flagAddr);
+    pop(ReturnReg);
+    // On arm64, SP may be < PSP now (that's OK).
+    // eg testcase: tests/bug1375074.js
+  }
+#endif
+
+  call(ImmPtr(fun));
+
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPostNoSbx(stackAdjust, result);
+#else
+  callWithABIPost(stackAdjust, result);
+#endif
+
+#ifdef DEBUG
+  if (check == CheckUnsafeCallWithABI::Check) {
+    Label ok;
+    push(ReturnReg);
+    loadJSContext(ReturnReg);
+    Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
+    branch32(Assembler::Equal, flagAddr, Imm32(0), &ok);
+    assumeUnreachable("callWithABI: callee did not use AutoUnsafeCallWithABI");
+    bind(&ok);
+    pop(ReturnReg);
+    // On arm64, SP may be < PSP now (that's OK).
+    // eg testcase: tests/bug1375074.js
+  }
+#endif
+}
+
 CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
                                        wasm::SymbolicAddress imm,
                                        mozilla::Maybe<int32_t> instanceOffset,
@@ -3928,7 +3978,11 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
   MOZ_ASSERT(wasm::NeedsBuiltinThunk(imm));
 
   uint32_t stackAdjust;
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPreNoSbx(&stackAdjust, /* callFromWasm = */ true);
+#else
   callWithABIPre(&stackAdjust, /* callFromWasm = */ true);
+#endif
 
   // The instance register is used in builtin thunks and must be set.
   if (instanceOffset) {
@@ -3940,8 +3994,12 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
   CodeOffset raOffset = call(
       wasm::CallSiteDesc(bytecode.offset(), wasm::CallSite::Symbolic), imm);
 
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPostNoSbx(stackAdjust, result, /* callFromWasm = */ true);
+#else
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ true);
-
+#endif
+  
   return raOffset;
 }
 
@@ -3949,9 +4007,17 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
                                       MoveOp::Type result) {
   MOZ_ASSERT(!wasm::NeedsBuiltinThunk(imm));
   uint32_t stackAdjust;
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPreNoSbx(&stackAdjust, /* callFromWasm = */ false);
+#else
   callWithABIPre(&stackAdjust, /* callFromWasm = */ false);
+#endif
   call(imm);
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callWithABIPostNoSbx(stackAdjust, result, /* callFromWasm = */ false);
+#else
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ false);
+#endif
 }
 
 // ===============================================================

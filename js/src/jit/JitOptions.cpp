@@ -325,11 +325,19 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(enableWatchtowerMegamorphic, true);
 
   SET_DEFAULT(onlyInlineSelfHosted, false);
+#ifdef JS_JIT_SBX
+  SET_DEFAULT(enableICFramePointers, true);
+
+  SET_DEFAULT(enableWasmJitExit, false);
+  SET_DEFAULT(enableWasmJitEntry, false);
+  SET_DEFAULT(enableWasmIonFastCalls, false);
+#else
   SET_DEFAULT(enableICFramePointers, false);
 
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);
   SET_DEFAULT(enableWasmIonFastCalls, true);
+#endif
 #ifdef WASM_CODEGEN_DEBUG
   SET_DEFAULT(enableWasmImportCallSpew, false);
   SET_DEFAULT(enableWasmFuncCallSpew, false);

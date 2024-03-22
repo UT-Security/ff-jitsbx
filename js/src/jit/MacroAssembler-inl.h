@@ -156,6 +156,14 @@ void MacroAssembler::callWithABI(MoveOp::Type result,
   callWithABINoProfiler(abiFun.address(), result, check);
 }
 
+template <typename Sig, Sig fun>
+void MacroAssembler::callWithABINoSbx(MoveOp::Type result,
+                                 CheckUnsafeCallWithABI check) {
+  ABIFunction<Sig, fun> abiFun;
+  AutoProfilerCallInstrumentation profiler(*this);
+  callWithABINoProfilerNoSbx(abiFun.address(), result, check);
+}
+    
 void MacroAssembler::callWithABI(Register fun, MoveOp::Type result) {
   AutoProfilerCallInstrumentation profiler(*this);
   callWithABINoProfiler(fun, result);

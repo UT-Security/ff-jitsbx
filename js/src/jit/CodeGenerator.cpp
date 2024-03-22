@@ -5729,7 +5729,7 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   // exit frame.
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
-  masm.adjustStack(NativeJitFrameLayout::Size());
+  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
 #endif
   masm.sbxToSandboxStack();
@@ -16290,7 +16290,7 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
 
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
-  masm.adjustStack(NativeJitFrameLayout::Size());
+  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
 #endif
   masm.sbxToSandboxStack();
@@ -16400,7 +16400,7 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   masm.adjustStack(IonDOMExitFrameLayout::Size());
   masm.sbxToNativeStack();
 #ifdef JS_JIT_SBX
-  masm.adjustStack(NativeJitFrameLayout::Size());
+  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
   masm.sbxImplicitPop(NativeJitFrameLayout::Size());
 #endif
   masm.sbxToSandboxStack();

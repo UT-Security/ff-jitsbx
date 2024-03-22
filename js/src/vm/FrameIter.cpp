@@ -220,8 +220,14 @@ void JitFrameIter::operator++() {
     const jit::JSJitFrameIter& jitFrame = asJSJit();
 
     jit::JitFrameLayout* prevFrame = nullptr;
+#ifdef JS_JIT_SBX
+    jit::NativeJitFrameLayout* prevNativeFrame = nullptr;
+#endif
     if (mustUnwindActivation_ && jitFrame.isScripted()) {
       prevFrame = jitFrame.jsFrame();
+#ifdef JS_JIT_SBX
+      prevNativeFrame = jitFrame.currentNative();
+#endif
     }
 
     ++asJSJit();
@@ -232,7 +238,12 @@ void JitFrameIter::operator++() {
       // don't see this frame when they use ScriptFrameIter, and (2)
       // ScriptFrameIter does not crash when accessing an IonScript
       // that's destroyed by the ionScript->decref call.
+#ifdef JS_JIT_SBX
+      MOZ_ASSERT(prevNativeFrame);
+      EnsureUnwoundJitExitFrame(act_, prevFrame, prevNativeFrame);
+#else
       EnsureUnwoundJitExitFrame(act_, prevFrame);
+#endif
     }
   } else if (isWasm()) {
     ++asWasm();

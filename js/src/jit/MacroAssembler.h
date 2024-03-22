@@ -801,6 +801,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void callWithABI(
       MoveOp::Type result = MoveOp::GENERAL,
       CheckUnsafeCallWithABI check = CheckUnsafeCallWithABI::Check);
+  template <typename Sig, Sig fun>
+  inline void callWithABINoSbx(
+        MoveOp::Type result = MoveOp::GENERAL,
+        CheckUnsafeCallWithABI check = CheckUnsafeCallWithABI::Check);
   inline void callWithABI(Register fun, MoveOp::Type result = MoveOp::GENERAL);
   inline void callWithABI(const Address& fun,
                           MoveOp::Type result = MoveOp::GENERAL);
@@ -824,9 +828,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Reserve the stack and resolve the arguments move.
   void callWithABIPre(uint32_t* stackAdjust,
                       bool callFromWasm = false) PER_ARCH;
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  void callWithABIPreNoSbx(uint32_t* stackAdjust,
+                      bool callFromWasm = false) DEFINED_ON(x64);
+#endif
 
   // Emits a call to a C/C++ function, resolving all argument moves.
   void callWithABINoProfiler(void* fun, MoveOp::Type result,
+                             CheckUnsafeCallWithABI check);
+  void callWithABINoProfilerNoSbx(void* fun, MoveOp::Type result,
                              CheckUnsafeCallWithABI check);
   void callWithABINoProfiler(Register fun, MoveOp::Type result) PER_ARCH;
   void callWithABINoProfiler(const Address& fun, MoveOp::Type result) PER_ARCH;
@@ -834,6 +844,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Restore the stack to its state before the setup function call.
   void callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                        bool callFromWasm = false) PER_ARCH;
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  void callWithABIPostNoSbx(uint32_t stackAdjust, MoveOp::Type result,
+                       bool callFromWasm = false) DEFINED_ON(x64);
+#endif
 
   // Create the signature to be able to decode the arguments of a native
   // function, when calling a function within the simulator.
@@ -4855,7 +4869,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
     computeEffectiveAddress(address, PreBarrierReg);
 
     TrampolinePtr preBarrier = preBarrierTrampoline(type);
-
+#ifdef JS_JIT_SBX
+    MOZ_ASSERT(sbxFramePushed_ % JitStackAlignment == 0);
+#endif
     sbxCall(preBarrier);
     Pop(PreBarrierReg);
     // On arm64, SP may be < PSP now (that's OK).
