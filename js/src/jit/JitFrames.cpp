@@ -890,7 +890,7 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
 #ifdef JS_JIT_SBX
 	JSContext* cx = TlsContext.get();
   //if(act == cx->jitActivation) {
-	  *(uint8_t**)cx->runtime()->jitRuntime()->addressOfSavedNativeStackPtr() = (uint8_t*)nativeFrame;
+	cx->runtime()->jitSandboxRuntime()->setSavedNativeStackPtr((const uint8_t*)nativeFrame);
   //}
 	//act->setNativeExitFP((uint8_t*)iter.currentNative());
 #endif

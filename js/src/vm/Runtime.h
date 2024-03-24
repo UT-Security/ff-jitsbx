@@ -94,6 +94,9 @@ class Shape;
 class SourceHook;
 
 namespace jit {
+#ifdef JS_JIT_SBX
+class JitSandboxRuntime;
+#endif
 class JitRuntime;
 class JitActivation;
 struct PcScriptCache;
@@ -660,11 +663,19 @@ struct JSRuntime {
   js::coverage::LCovRuntime& lcovOutput() { return lcovOutput_.ref(); }
 
  private:
+#ifdef JS_JIT_SBX
+  js::UnprotectedData<js::jit::JitSandboxRuntime*> jitSandboxRuntime_;
+#endif
   js::UnprotectedData<js::jit::JitRuntime*> jitRuntime_;
 
  public:
   mozilla::Maybe<js::frontend::ScriptIndexRange> getSelfHostedScriptIndexRange(
       js::PropertyName* name);
+
+#ifdef JS_JIT_SBX
+  [[nodiscard]] bool createJitSandboxRuntime(JSContext* cx);
+  js::jit::JitSandboxRuntime* jitSandboxRuntime() const { return jitSandboxRuntime_.ref(); }
+#endif
 
   [[nodiscard]] bool createJitRuntime(JSContext* cx);
   js::jit::JitRuntime* jitRuntime() const { return jitRuntime_.ref(); }

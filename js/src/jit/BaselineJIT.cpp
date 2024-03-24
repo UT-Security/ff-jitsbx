@@ -22,6 +22,9 @@
 #include "jit/CalleeToken.h"
 #include "jit/JitCommon.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitSpewer.h"
 #include "jit/MacroAssembler.h"
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit

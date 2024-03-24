@@ -140,7 +140,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 #ifdef JS_JIT_SBX
   // [jit-sbx] we use the fact that r15 contains the sandbox stack pointer on entry
   // to the trampoline later.
-	masm.loadPtr(AbsoluteAddress(cx->runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()), r15);
+	masm.loadPtr(AbsoluteAddress((const void*)cx->runtime()->jitSandboxRuntime()->addressOfSavedSandboxStackPtr()), r15);
 #endif
 
   // Save arguments passed in registers needed after function call.

@@ -441,8 +441,8 @@ class Activation {
   Kind kind_;
 
 #ifdef JS_JIT_SBX
-  uintptr_t savedNativeStackPtr_;
-  uintptr_t savedSandboxStackPtr_;
+  const uint8_t* savedNativeStackPtr_{nullptr};
+  const uint8_t* savedSandboxStackPtr_{nullptr};
 #endif
 
   inline Activation(JSContext* cx, Kind kind);
@@ -489,11 +489,11 @@ class Activation {
   void clearLiveSavedFrameCache() { frameCache_.get().clear(); }
 
 #ifdef JS_JIT_SBX
-  uintptr_t savedNativeStackPtr() const { return savedNativeStackPtr_; }
-  void setSavedNativeStackPr(uintptr_t ptr) { savedNativeStackPtr_ = ptr; }
+  const uint8_t* savedNativeStackPtr() const { return savedNativeStackPtr_; }
+  void setSavedNativeStackPr(const uint8_t* ptr) { savedNativeStackPtr_ = ptr; }
   
-  uintptr_t savedSandboxStackPtr() const { return savedSandboxStackPtr_; }
-  void setSavedSandboxStackPtr(uintptr_t ptr) { savedSandboxStackPtr_ = ptr; }
+  const uint8_t* savedSandboxStackPtr() const { return savedSandboxStackPtr_; }
+  void setSavedSandboxStackPtr(const uint8_t* ptr) { savedSandboxStackPtr_ = ptr; }
 #endif
 
  private:

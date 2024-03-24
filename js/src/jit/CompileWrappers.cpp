@@ -9,6 +9,9 @@
 #include "gc/Heap.h"
 #include "gc/Zone.h"
 #include "jit/Ion.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "vm/Realm.h"
 
@@ -27,6 +30,12 @@ CompileRuntime* CompileRuntime::get(JSRuntime* rt) {
 #ifdef JS_GC_ZEAL
 const uint32_t* CompileRuntime::addressOfGCZealModeBits() {
   return runtime()->gc.addressOfZealModeBits();
+}
+#endif
+
+#ifdef JS_JIT_SBX
+const JitSandboxRuntime* CompileRuntime::jitSandboxRuntime() {
+  return runtime()->jitSandboxRuntime();
 }
 #endif
 

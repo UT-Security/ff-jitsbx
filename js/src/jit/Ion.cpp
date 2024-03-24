@@ -100,11 +100,6 @@ JitRuntime::~JitRuntime() {
   js_delete(interpreterEntryMap_.ref());
 
   js_delete(jitHintsMap_.ref());
-
-#ifdef JS_JIT_SBX
-  js_free(sandboxStack_);
-  munmap(addressOfSavedSandboxStackPtr_.ref(), 2 * sizeof(uintptr_t));
-#endif
 }
 
 uint32_t JitRuntime::startTrampolineCode(MacroAssembler& masm) {
@@ -122,12 +117,6 @@ bool JitRuntime::initialize(JSContext* cx) {
 
   AutoAllocInAtomsZone az(cx);
   JitContext jctx(cx);
-
-#ifdef JS_JIT_SBX
-  if(!initializeSandbox(cx)) {
-    return false;
-  }
-#endif
 
   if (!generateTrampolines(cx)) {
     return false;
@@ -167,48 +156,6 @@ bool JitRuntime::initialize(JSContext* cx) {
 
   return true;
 }
-
-#ifdef JS_JIT_SBX
-bool JitRuntime::initializeSandbox(JSContext* cx) {
-#if JS_STACK_GROWTH_DIRECTION > 0
-  MOZ_ASSERT(cx->nativeStackBase() < cx->jitStackLimit);
-  JS::NativeStackSize sandboxStackSize = cx->jitStackLimit - cx->nativeStackBase();
-#else // stack grows up
-  MOZ_ASSERT(cx->nativeStackBase() > cx->jitStackLimit);
-  JS::NativeStackSize sandboxStackSize = cx->nativeStackBase() - cx->jitStackLimit;
-#endif // stack grows down
-  MOZ_ASSERT(sandboxStackSize > 0);
-  
-  sandboxStack_ = cx->pod_calloc<uint8_t>(sandboxStackSize + 4096); 
-  if (!sandboxStack_) {
-    return false;
-  }
-
-  addressOfSavedSandboxStackPtr_ = (uintptr_t *)mmap(nullptr, 2 * sizeof(uintptr_t), PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS | MAP_32BIT, -1, 0);
-  if (!addressOfSavedSandboxStackPtr_) {
-    return false;
-  }
-
-#if JS_STACK_GROWTH_DIRECTION > 0
-  *addressOfSavedSandboxStackPtr_ = (uintptr_t)sandboxStack_;
-  sandboxStackLimit_ = *addressOfSavedSandboxStackPtr + sandboxStackSize;
-#else
-  *addressOfSavedSandboxStackPtr_ = (uintptr_t)(sandboxStack_ + sandboxStackSize + 4096);
-  sandboxStackLimit_ = *addressOfSavedSandboxStackPtr_ - sandboxStackSize;
-#endif
-
-  initialSandboxStackPtr_ = *addressOfSavedSandboxStackPtr_;
-  
-  addressOfSavedNativeStackPtr_ = addressOfSavedSandboxStackPtr_ + 1;
-  *addressOfSavedNativeStackPtr_ = 0;
-
-  return true;
-}
-
-void JitRuntime::resetSandboxStack(JSContext* cx) {
-  *addressOfSavedSandboxStackPtr_ = initialSandboxStackPtr_.ref();
-}
-#endif
 
 bool JitRuntime::generateTrampolines(JSContext* cx) {
   TempAllocator temp(&cx->tempLifoAlloc());

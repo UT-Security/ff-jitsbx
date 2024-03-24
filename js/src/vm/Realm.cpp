@@ -18,6 +18,9 @@
 #include "debugger/Debugger.h"
 #include "gc/GC.h"
 #include "jit/JitRealm.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "js/CallAndConstruct.h"      // JS::IsCallable
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -89,6 +92,27 @@ void Realm::init(JSContext* cx, JSPrincipals* principals) {
   }
 }
 
+#ifdef JS_JIT_SBX
+bool JSRuntime::createJitSandboxRuntime(JSContext* cx) {
+  using namespace js::jit;
+
+  MOZ_ASSERT(!jitSandboxRuntime_);
+
+  jit::JitSandboxRuntime* jsrt = cx->new_<jit::JitSandboxRuntime>();
+  if(!jsrt) {
+    return false;
+  }
+
+  if(!jsrt->initialize(cx)) {
+    js_delete(jsrt);
+    return false;
+  }
+
+  jitSandboxRuntime_ = jsrt;
+  return true;
+}
+#endif
+  
 bool JSRuntime::createJitRuntime(JSContext* cx) {
   using namespace js::jit;
 

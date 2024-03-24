@@ -6591,7 +6591,7 @@ void CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed* lir) {
 
   // Conditional forward (unlikely) branch to failure.
 #ifdef JS_JIT_SBX
-  const void* sandboxStackLimitAddr = gen->jitRuntime()->addressOfSandboxStackLimit();
+  const void* sandboxStackLimitAddr = gen->runtime->jitSandboxRuntime()->addressOfSandboxStackLimit();
   masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(sandboxStackLimitAddr),
                          ool->entry());
 #else

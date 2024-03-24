@@ -672,13 +672,13 @@ RegExpRunStatus RegExpShared::execute(JSContext* cx,
   do {
     DebugOnly<bool> alreadyThrowing = cx->isExceptionPending();
 #ifdef JS_JIT_SBX
-    uintptr_t savedNativeStackPtr = cx->runtime()->jitRuntime()->savedNativeStackPtr();
-    uintptr_t savedSandboxStackPtr = cx->runtime()->jitRuntime()->savedSandboxStackPtr();
+    const uint8_t* savedNativeStackPtr = cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr();
+    const uint8_t* savedSandboxStackPtr = cx->runtime()->jitSandboxRuntime()->savedSandboxStackPtr();
 #endif
     RegExpRunStatus result = irregexp::Execute(cx, re, input, start, matches);
 #ifdef JS_JIT_SBX
-    cx->runtime()->jitRuntime()->setSavedNativeStackPtr(savedNativeStackPtr);
-    cx->runtime()->jitRuntime()->setSavedSandboxStackPtr(savedSandboxStackPtr);
+    cx->runtime()->jitSandboxRuntime()->setSavedNativeStackPtr(savedNativeStackPtr);
+    cx->runtime()->jitSandboxRuntime()->setSavedSandboxStackPtr(savedSandboxStackPtr);
 #endif
     
 #ifdef DEBUG

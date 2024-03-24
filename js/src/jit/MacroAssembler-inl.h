@@ -17,6 +17,9 @@
 #include "jit/CalleeToken.h"
 #include "jit/CompileWrappers.h"
 #include "jit/JitFrames.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JSJitFrameIter.h"
 #include "util/DifferentialTesting.h"
@@ -273,15 +276,15 @@ void MacroAssembler::sbxImplicitPop(uint32_t bytes) {
 
 void MacroAssembler::sbxToNativeStack() {
 	sbxAssertSandboxStack();
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedNativeStackPtr()), rsp);
+  storePtr(rsp, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedSandboxStackPtr()));
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()), rsp);
 	currentStack_ = NATIVE;
 }
 
 void MacroAssembler::sbxToSandboxStack() {
 	sbxAssertNativeStack();
-  storePtr(rsp, AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
-  loadPtr(AbsoluteAddress(runtime()->jitRuntime()->addressOfSavedSandboxStackPtr()), rsp);
+  storePtr(rsp, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedSandboxStackPtr()), rsp);
 	currentStack_ = SANDBOX;
 }
 

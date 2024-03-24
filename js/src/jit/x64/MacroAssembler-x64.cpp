@@ -558,7 +558,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
 #ifdef JS_JIT_SBX
 	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
-  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  storePtr(rax, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -574,7 +574,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 	asMasm().sbxAssumeSandboxStack();
 #ifdef JS_JIT_SBX
 	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
-  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  storePtr(rax, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
@@ -591,7 +591,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 
 #ifdef JS_JIT_SBX
 	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
-  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  storePtr(rax, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
@@ -609,7 +609,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 	asMasm().sbxAssumeSandboxStack();
 #ifdef JS_JIT_SBX
 	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
-  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  storePtr(rax, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -655,7 +655,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 	asMasm().sbxAssumeSandboxStack();
 #ifdef JS_JIT_SBX
 	loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
-  storePtr(rax, AbsoluteAddress(asMasm().runtime()->jitRuntime()->addressOfSavedNativeStackPtr()));
+  storePtr(rax, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);

@@ -11,6 +11,9 @@
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitScript.h"
 #include "jit/MacroAssembler.h"  // js::jit::Assembler::GetPointer
 #include "jit/SafepointIndex.h"
@@ -51,7 +54,7 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
 		JSContext* cx = TlsContext.get();
     MOZ_ASSERT(!cx->inUnsafeCallWithABI);
 		if(activation == cx->activation_) {
-			currentNative_ = (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr();
+			currentNative_ = (uint8_t*)cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr();
 		}
   }
 	MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
@@ -69,8 +72,7 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
     current_ = activation_->bailoutData()->fp();
     type_ = FrameType::Bailout;
   } else {
-		JSContext* cx = TlsContext.get();
-    MOZ_ASSERT(!cx->inUnsafeCallWithABI);
+    MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
   }
 }
 #endif

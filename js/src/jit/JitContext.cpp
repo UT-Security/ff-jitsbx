@@ -63,11 +63,17 @@ JitContext* jit::MaybeGetJitContext() { return CurrentJitContext(); }
 
 JitContext::JitContext(CompileRuntime* rt) : runtime(rt) {
   MOZ_ASSERT(rt);
+#ifdef JS_JIT_SBX
+  sandboxRuntime = rt->jitSandboxRuntime();
+#endif
   SetJitContext(this);
 }
 
 JitContext::JitContext(JSContext* cx)
     : cx(cx), runtime(CompileRuntime::get(cx->runtime())) {
+#ifdef JS_JIT_SBX
+  sandboxRuntime = runtime->jitSandboxRuntime();
+#endif
   SetJitContext(this);
 }
 

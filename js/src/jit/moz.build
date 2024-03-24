@@ -259,6 +259,9 @@ elif CONFIG["JS_CODEGEN_WASM32"]:
         "wasm32/Trampoline-wasm32.cpp",
     ]
 
+if CONFIG["JS_JIT_SBX"]:
+    UNIFIED_SOURCES += ["JitSandbox.cpp"]
+
 # Generate jit/MIROpsGenerated.h from jit/MIROps.yaml
 GeneratedFile(
     "MIROpsGenerated.h",

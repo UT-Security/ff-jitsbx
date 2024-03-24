@@ -1075,7 +1075,7 @@ void SMRegExpMacroAssembler::createStackFrame() {
   // (See bug 1208819)
   js::jit::Label stack_ok;
 #ifdef JS_JIT_SBX
-  AbsoluteAddress limit_addr(cx_->runtime()->jitRuntime()->addressOfSandboxStackLimit());
+  AbsoluteAddress limit_addr(js::jit::GetJitContext()->sandboxRuntime->addressOfSandboxStackLimit());
 #else
   AbsoluteAddress limit_addr(cx_->addressOfJitStackLimitNoInterrupt());
 #endif

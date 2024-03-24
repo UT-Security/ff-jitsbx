@@ -123,24 +123,6 @@ class JitRuntime {
 
   MainThreadData<uint64_t> nextCompilationId_{0};
 
-#ifdef JS_JIT_SBX
-	// Separate "unsafe" sandbox stack used by JITted code executing within the
-	// jit-sandbox.
-	WriteOnceData<uint8_t *> sandboxStack_{nullptr};
-
-  mozilla::Atomic<JS::NativeStackLimit, mozilla::Relaxed> sandboxStackLimit_;
-      
-	WriteOnceData<uintptr_t> initialSandboxStackPtr_{0};
-
-	// Pointer to memory where the sandbox stack pointer is saved when JIT
-  // code switches to use the native stack.
-	WriteOnceData<uintptr_t *> addressOfSavedSandboxStackPtr_{nullptr};
-
-	// Pointer to memory where the native stack pointer is saved when JIT
-	// code switches to use the sandbox stack. 
-	WriteOnceData<uintptr_t *> addressOfSavedNativeStackPtr_{nullptr};
-#endif
-
   // Buffer for OSR from baseline to Ion. To avoid holding on to this for too
   // long it's also freed in EnterBaseline and EnterJit (after returning from
   // JIT code).
@@ -252,10 +234,6 @@ class JitRuntime {
   MainThreadData<uint32_t> disallowArbitraryCode_{false};
 #endif
 
-#ifdef JS_JIT_SBX
-	bool initializeSandbox(JSContext* cx);
-#endif
-
   bool generateTrampolines(JSContext* cx);
   bool generateBaselineICFallbackCode(JSContext* cx);
 
@@ -307,42 +285,6 @@ class JitRuntime {
   static void TraceAtomZoneRoots(JSTracer* trc);
   [[nodiscard]] static bool MarkJitcodeGlobalTableIteratively(GCMarker* marker);
   static void TraceWeakJitcodeGlobalTable(JSRuntime* rt, JSTracer* trc);
-
-#ifdef JS_JIT_SBX
-  void resetSandboxStack(JSContext* cx);
-
-	const uintptr_t* addressOfSavedNativeStackPtr() const {
-		return addressOfSavedNativeStackPtr_;
-	}
-
-	uintptr_t savedNativeStackPtr() {
-		return *addressOfSavedNativeStackPtr_;
-	}
-
-  void setSavedNativeStackPtr(uintptr_t ptr) {
-    *addressOfSavedNativeStackPtr_ = ptr;      
-  }
-
-	const uintptr_t* addressOfSavedSandboxStackPtr() const {
-		return addressOfSavedSandboxStackPtr_;
-	}
-
-  uintptr_t savedSandboxStackPtr() {
-    return *addressOfSavedSandboxStackPtr_;      
-  }
-
-  void setSavedSandboxStackPtr(uintptr_t ptr) {
-    *addressOfSavedSandboxStackPtr_ = ptr;      
-  }
-
-  const void* addressOfSandboxStackLimit() const {
-    return &sandboxStackLimit_;      
-  }
-
-  JS::NativeStackLimit sandboxStackLimit() {
-    return sandboxStackLimit_;      
-  }
-#endif
 
   const BaselineICFallbackCode& baselineICFallbackCode() const {
     return baselineICFallbackCode_.ref();
@@ -503,76 +445,6 @@ class JitRuntime {
   void ionLazyLinkListAdd(JSRuntime* rt, js::jit::IonCompileTask* task);
 };
 
-
-#ifdef JS_JIT_SBX
-class MOZ_RAII AutoCheckSbxRecursionLimit {
-  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkLimitImpl(
-      JS::NativeStackLimit limit, void* sp) const;
-
- public:
-  explicit MOZ_ALWAYS_INLINE AutoCheckSbxRecursionLimit(JSContext* cx) {}
-  MOZ_ALWAYS_INLINE ~AutoCheckSbxRecursionLimit() {}
-
-  AutoCheckSbxRecursionLimit(const AutoCheckSbxRecursionLimit&) = delete;
-  void operator=(const AutoCheckSbxRecursionLimit&) = delete;
-
-  [[nodiscard]] MOZ_ALWAYS_INLINE bool check(JSContext* cx) const;
-  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkDontReport(JSContext* cx) const;
-  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithExtra(JSContext* cx,
-                                                      size_t extra) const;
-  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithStackPointerDontReport(
-      JSContext* cx, void* sp) const;
-};
-
-
-MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkLimitImpl(
-    JS::NativeStackLimit limit, void* sp) const {
-#if JS_STACK_GROWTH_DIRECTION > 0
-  return MOZ_LIKELY(JS::NativeStackLimit(sp) < limit);
-#else
-  return MOZ_LIKELY(JS::NativeStackLimit(sp) > limit);
-#endif
-}    
-
-MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::check(JSContext* cx) const {
-  if (MOZ_UNLIKELY(!checkDontReport(cx))) {
-    ReportOverRecursed(cx);
-    return false;
-  }
-  return true;
-}
-
-MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkDontReport(
-    JSContext* cx) const {
-  void* sp = (void*)cx->runtime()->jitRuntime()->savedSandboxStackPtr();
-  return checkWithStackPointerDontReport(cx, sp);
-}
-    
-MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkWithExtra(
-    JSContext* cx, size_t extra) const {
-  char* sp = (char*)cx->runtime()->jitRuntime()->savedSandboxStackPtr();
-#if JS_STACK_GROWTH_DIRECTION > 0
-  sp += extra;
-#else
-  sp -= extra;
-#endif
-  if (MOZ_UNLIKELY(!checkWithStackPointerDontReport(cx, sp))) {
-    ReportOverRecursed(cx);
-    return false;
-  }
-  return true;
-}
-
-MOZ_ALWAYS_INLINE bool AutoCheckSbxRecursionLimit::checkWithStackPointerDontReport(
-    JSContext* cx, void* sp) const {
-  JS::NativeStackLimit sandboxStackLimit = cx->runtime()->jitRuntime()->sandboxStackLimit();
-  if (MOZ_LIKELY(checkLimitImpl(sandboxStackLimit, sp))) {
-    return true;
-  }
-  return false;
-}
-#endif
-  
 }  // namespace jit
 }  // namespace js
 

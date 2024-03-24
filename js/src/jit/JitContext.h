@@ -21,6 +21,9 @@ namespace jit {
 
 class CompileRealm;
 class CompileRuntime;
+#ifdef JS_JIT_SBX
+class JitSandboxRuntime;
+#endif
 class TempAllocator;
 
 enum MethodStatus {
@@ -97,6 +100,10 @@ class MOZ_RAII JitContext {
   // Wrapper with information about the current runtime. nullptr for Wasm
   // compilations.
   CompileRuntime* runtime = nullptr;
+
+#ifdef JS_JIT_SBX
+  const JitSandboxRuntime* sandboxRuntime = nullptr;
+#endif
 
   // Constructor for compilations happening on the main thread.
   explicit JitContext(JSContext* cx);

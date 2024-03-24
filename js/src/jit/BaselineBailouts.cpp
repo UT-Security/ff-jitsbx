@@ -20,6 +20,9 @@
 #include "jit/IonScript.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitSpewer.h"
 #include "jit/JitZone.h"
 #include "jit/RematerializedFrame.h"

@@ -14,6 +14,9 @@
 #include "mozilla/Maybe.h"       // mozilla::Maybe
 
 #include "jit/CalleeToken.h"   // js::jit::CalleeToken
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "js/Debug.h"          // JS::dbg::AutoEntryMonitor
 #include "vm/FrameIter.h"      // js::FrameIter
@@ -64,8 +67,8 @@ inline Activation::Activation(JSContext* cx, Kind kind)
       asyncCallIsExplicit_(cx->asyncCallIsExplicit),
 #ifdef JS_JIT_SBX
       kind_(kind),
-      savedNativeStackPtr_(0),
-      savedSandboxStackPtr_(0) {
+      savedNativeStackPtr_(nullptr),
+      savedSandboxStackPtr_(nullptr) {
 #else
       kind_(kind) {
 #endif
@@ -74,8 +77,8 @@ inline Activation::Activation(JSContext* cx, Kind kind)
   cx->asyncCallIsExplicit = false;
 #ifdef JS_JIT_SBX
   if(cx->activation_ && cx->runtime()->hasJitRuntime()) {
-    cx->activation_->setSavedNativeStackPr(cx->runtime()->jitRuntime()->savedNativeStackPtr());
-    cx->activation_->setSavedSandboxStackPtr(cx->runtime()->jitRuntime()->savedSandboxStackPtr());
+    cx->activation_->setSavedNativeStackPr(cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr());
+    cx->activation_->setSavedSandboxStackPtr(cx->runtime()->jitSandboxRuntime()->savedSandboxStackPtr());
   }
 #endif
   cx->activation_ = this;
@@ -88,13 +91,13 @@ inline Activation::~Activation() {
   cx_->activation_ = prev_;
 #ifdef JS_JIT_SBX
   if(cx_->activation_ && cx_->runtime()->hasJitRuntime()) {
-    cx_->runtime()->jitRuntime()->setSavedNativeStackPtr(cx_->activation_->savedNativeStackPtr());
-    cx_->runtime()->jitRuntime()->setSavedSandboxStackPtr(cx_->activation_->savedSandboxStackPtr());
+    cx_->runtime()->jitSandboxRuntime()->setSavedNativeStackPtr(cx_->activation_->savedNativeStackPtr());
+    cx_->runtime()->jitSandboxRuntime()->setSavedSandboxStackPtr(cx_->activation_->savedSandboxStackPtr());
     cx_->activation_->setSavedNativeStackPr(0);
     cx_->activation_->setSavedSandboxStackPtr(0);
   } else if(cx_->runtime()->hasJitRuntime()) {
-    cx_->runtime()->jitRuntime()->setSavedNativeStackPtr(0);
-    cx_->runtime()->jitRuntime()->resetSandboxStack(cx_);
+    cx_->runtime()->jitSandboxRuntime()->setSavedNativeStackPtr(nullptr);
+    cx_->runtime()->jitSandboxRuntime()->resetStack(cx_);
   }
 #endif
   cx_->asyncCauseForNewActivations = asyncCause_;

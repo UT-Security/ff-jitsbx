@@ -43,6 +43,9 @@ class FreeSpan;
 
 namespace jit {
 
+#ifdef JS_JIT_SBX
+class JitSandboxRuntime;
+#endif
 class JitRuntime;
 
 // During Ion compilation we need access to various bits of the current
@@ -59,6 +62,10 @@ class CompileRuntime {
 
 #ifdef JS_GC_ZEAL
   const uint32_t* addressOfGCZealModeBits();
+#endif
+
+#ifdef JS_JIT_SBX
+  const JitSandboxRuntime* jitSandboxRuntime();
 #endif
 
   const JitRuntime* jitRuntime();

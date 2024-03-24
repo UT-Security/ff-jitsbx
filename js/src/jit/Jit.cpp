@@ -11,6 +11,9 @@
 #include "jit/Ion.h"
 #include "jit/JitCommon.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
 #include "vm/Interpreter.h"
 #include "vm/JitActivation.h"

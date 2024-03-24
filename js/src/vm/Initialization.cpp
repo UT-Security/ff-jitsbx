@@ -240,6 +240,12 @@ JS_PUBLIC_API bool JS::InitSelfHostedCode(JSContext* cx, SelfHostedCache cache,
   }
 
   if (js::jit::HasJitBackend()) {
+#ifdef JS_JIT_SBX
+    if(!rt->createJitSandboxRuntime(cx)) {
+      return false;
+    }
+#endif
+    
     if (!rt->createJitRuntime(cx)) {
       return false;
     }

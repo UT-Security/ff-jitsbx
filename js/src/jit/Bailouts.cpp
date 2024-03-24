@@ -14,6 +14,9 @@
 #include "jit/BaselineJIT.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/JitSpewer.h"
 #include "jit/JSJitFrameIter.h"
 #include "jit/SafepointIndex.h"
@@ -151,7 +154,7 @@ bool jit::Bailout(BailoutStack* sp, BaselineBailoutInfo** bailoutInfo) {
 
   JitActivationIterator jitActivations(cx);
 #ifdef JS_JIT_SBX
-  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr());
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr());
 #else
   BailoutFrameInfo bailoutData(jitActivations, sp);
 #endif
@@ -233,7 +236,7 @@ bool jit::InvalidationBailout(InvalidationBailoutStack* sp,
 
   JitActivationIterator jitActivations(cx);
 #ifdef JS_JIT_SBX
-  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitRuntime()->savedNativeStackPtr());
+  BailoutFrameInfo bailoutData(jitActivations, sp, (uint8_t*)cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr());
 #else
   BailoutFrameInfo bailoutData(jitActivations, sp);
 #endif
