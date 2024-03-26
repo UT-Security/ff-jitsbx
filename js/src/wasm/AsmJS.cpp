@@ -1408,7 +1408,11 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
         sigSet_(fc),
         funcImportMap_(fc),
         arrayViews_(fc),
+#ifdef JS_JIT_SBX 
         compilerEnv_(CompileMode::Once, Tier::Optimized, DebugEnabled::False, nullptr),
+#else
+        compilerEnv_(CompileMode::Once, Tier::Optimized, DebugEnabled::False),
+#endif
         moduleEnv_(FeatureArgs(), ModuleKind::AsmJS) {
     compilerEnv_.computeParameters();
     memory_.minLength = RoundUpToNextValidAsmJSHeapLength(0);
