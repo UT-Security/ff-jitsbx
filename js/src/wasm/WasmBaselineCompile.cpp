@@ -63,6 +63,9 @@
 
 #include "wasm/WasmBaselineCompile.h"
 
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "wasm/WasmBCClass.h"
 #include "wasm/WasmBCDefs.h"
 #include "wasm/WasmBCFrame.h"
@@ -10947,6 +10950,10 @@ bool js::wasm::BaselineCompileFunctions(const ModuleEnvironment& moduleEnv,
   // The MacroAssembler will sometimes access the jitContext.
 
   TempAllocator alloc(&lifo);
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv.state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv.sandboxRuntime_);
+#endif
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
   WasmMacroAssembler masm(alloc, moduleEnv);

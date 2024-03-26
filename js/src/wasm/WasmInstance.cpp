@@ -31,6 +31,9 @@
 #include "jit/Disassemble.h"
 #include "jit/JitCommon.h"
 #include "jit/JitRuntime.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/Registers.h"
 #include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -2195,6 +2198,9 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
                                          uint32_t funcIndex, CallArgs args,
                                          void** interpEntry,
                                          const FuncType** funcType) {
+#ifdef JS_JIT_SBX
+  JitSandboxContext JitSandboxContext(cx->runtime()->jitSandboxRuntime());
+#endif
   const FuncExport* funcExport;
   if (!EnsureEntryStubs(instance, funcIndex, &funcExport, interpEntry)) {
     return false;

@@ -113,6 +113,7 @@ class MOZ_RAII JitContext {
 
   // Constructor for Wasm compilation.
   JitContext();
+      
 
   ~JitContext();
 

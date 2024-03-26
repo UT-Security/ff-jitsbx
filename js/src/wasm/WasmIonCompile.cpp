@@ -26,6 +26,9 @@
 #include "jit/ABIArgGenerator.h"
 #include "jit/CodeGenerator.h"
 #include "jit/CompileInfo.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/Ion.h"
 #include "jit/IonOptimizationLevels.h"
 #include "jit/MIR.h"
@@ -8555,6 +8558,10 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
   MOZ_ASSERT(compilerEnv.debug() == DebugEnabled::False);
 
   TempAllocator alloc(&lifo);
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv.state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv.sandboxRuntime_);
+#endif
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
   WasmMacroAssembler masm(alloc, moduleEnv);

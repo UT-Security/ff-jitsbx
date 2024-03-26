@@ -5,8 +5,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 
-#include "jit/JitSandbox.h"
-
 #include <cstdint>
 #include <sys/mman.h>
 
@@ -16,6 +14,8 @@
 
 using namespace js;
 using namespace js::jit;
+
+static MOZ_THREAD_LOCAL(JitSandboxContext*) TlsJitSandboxContext;
 
 JitSandboxRuntime::~JitSandboxRuntime() {
   js_free(sandboxStack_);
@@ -62,13 +62,31 @@ void JitSandboxRuntime::resetStack(JSContext* cx) {
   setSavedSandboxStackPtr(initialSandboxStackPtr_);
 }
 
-/*JitSandboxContext::JitSandboxContext(JSContext* cx) 
-  : runtime(cx->runtime()->jitSandboxRuntime()) {}
+static JitSandboxContext* CurrentJitSandboxContext() {
+  if (!TlsJitSandboxContext.init()) {
+    return nullptr;
+  }
+  return TlsJitSandboxContext.get();
+}
 
-JitSandboxContext::JitSandboxContext(CompileRuntime* rt) 
-  : runtime(rt->jitSandboxRuntime()) {}
+void jit::SetJitSandboxContext(JitSandboxContext* ctx) {
+  MOZ_ASSERT(!CurrentJitSandboxContext());
+  TlsJitSandboxContext.set(ctx);
+}
 
-JitSandboxContext::JitSandboxContext(JitSandboxRuntime* rt)
-  : runtime(rt) {}
+JitSandboxContext* jit::GetJitSandboxContext() {
+  MOZ_ASSERT(CurrentJitSandboxContext());
+  return CurrentJitSandboxContext();
+}
 
-JitSandboxContext::~JitSandboxContext() {}*/
+JitSandboxContext* jit::MaybeGetJitSandboxContext() { return CurrentJitSandboxContext(); }
+
+JitSandboxContext::JitSandboxContext(const JitSandboxRuntime* rt)
+  : runtime(rt) {
+  SetJitSandboxContext(this);
+}
+
+JitSandboxContext::~JitSandboxContext() {
+  MOZ_ASSERT(TlsJitSandboxContext.get() == this);
+  TlsJitSandboxContext.set(nullptr);
+}

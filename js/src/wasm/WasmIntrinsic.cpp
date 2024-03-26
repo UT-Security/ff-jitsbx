@@ -103,9 +103,15 @@ bool wasm::CompileIntrinsicModule(JSContext* cx,
   if (!compileArgs) {
     return false;
   }
+#ifdef JS_JIT_SBX
+  CompilerEnvironment compilerEnv(
+      CompileMode::Once, IonAvailable(cx) ? Tier::Optimized : Tier::Baseline,
+      DebugEnabled::False, compileArgs.get()->sandboxRuntime);
+#else
   CompilerEnvironment compilerEnv(
       CompileMode::Once, IonAvailable(cx) ? Tier::Optimized : Tier::Baseline,
       DebugEnabled::False);
+#endif
   compilerEnv.computeParameters();
 
   // Build a module environment

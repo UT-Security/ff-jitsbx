@@ -26,6 +26,9 @@
 
 #include "jit/Assembler.h"
 #include "jit/JitOptions.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "js/Printf.h"
 #include "threading/Thread.h"
 #include "util/Memory.h"
@@ -390,6 +393,11 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
   CompiledCode& importCode = tasks_[0].output;
   MOZ_ASSERT(importCode.empty());
 
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv_->sandboxRuntime_);
+#endif
+  
   if (!GenerateImportFunctions(*moduleEnv_, metadataTier_->funcImports,
                                &importCode)) {
     return false;
@@ -762,6 +770,11 @@ bool ModuleGenerator::locallyCompileCurrentTask() {
 bool ModuleGenerator::finishTask(CompileTask* task) {
   AutoCreatedBy acb(masm_, "ModuleGenerator::finishTask");
 
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv_->sandboxRuntime_);
+#endif
+
   masm_.haltingAlign(CodeAlignment);
 
   if (!linkCompiledCode(task->output)) {
@@ -999,6 +1012,11 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   // Now that all imports/exports are known, we can generate a special
   // CompiledCode containing stubs.
 
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv_->sandboxRuntime_);
+#endif
+
   CompiledCode& stubCode = tasks_[0].output;
   MOZ_ASSERT(stubCode.empty());
 
@@ -1155,6 +1173,11 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv_->sandboxRuntime_);
+#endif  
+
   MutableCode code =
       js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
@@ -1236,6 +1259,10 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     ThisThread::SleepMilliseconds(500);
   }
 
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  JitSandboxContext jitSandboxContext(compilerEnv_->sandboxRuntime_);
+#endif  
   return module.finishTier2(*linkData_, std::move(codeTier));
 }
 

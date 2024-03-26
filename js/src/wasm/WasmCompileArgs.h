@@ -27,6 +27,11 @@
 #include "wasm/WasmShareable.h"
 
 namespace js {
+
+namespace jit {
+  class JitSandboxRuntime;  
+};
+
 namespace wasm {
 
 enum class Shareable { False, True };
@@ -140,6 +145,10 @@ struct CompileArgs : ShareableBase<CompileArgs> {
 
   FeatureArgs features;
 
+#ifdef JS_JIT_SBX
+  const jit::JitSandboxRuntime* sandboxRuntime;
+#endif
+
   // CompileArgs has several constructors:
   //
   // - two through factory functions `build`/`buildAndReport`, which checks
@@ -167,7 +176,12 @@ struct CompileArgs : ShareableBase<CompileArgs> {
         baselineEnabled(false),
         ionEnabled(false),
         debugEnabled(false),
+#ifndef JS_JIT_SBX
         forceTiering(false) {}
+#else
+        forceTiering(false),
+        sandboxRuntime(nullptr) {}
+#endif
 };
 
 // CompilerEnvironment holds any values that will be needed to compute
@@ -195,6 +209,9 @@ struct CompilerEnvironment {
       CompileMode mode_;
       Tier tier_;
       DebugEnabled debug_;
+#ifdef JS_JIT_SBX
+      const jit::JitSandboxRuntime* sandboxRuntime_;
+#endif
     };
   };
 
@@ -206,7 +223,11 @@ struct CompilerEnvironment {
   // Save the provided values for mode, tier, and debug, and the initial value
   // for gc/refTypes. A subsequent computeParameters() will compute the
   // final value of gc/refTypes.
+#ifdef JS_JIT_SBX
+  CompilerEnvironment(CompileMode mode, Tier tier, DebugEnabled debugEnabled, const jit::JitSandboxRuntime* sandboxRuntime);
+#else
   CompilerEnvironment(CompileMode mode, Tier tier, DebugEnabled debugEnabled);
+#endif
 
   // Compute any remaining compilation parameters.
   void computeParameters(Decoder& d);

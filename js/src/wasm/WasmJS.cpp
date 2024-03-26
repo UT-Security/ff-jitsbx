@@ -36,6 +36,9 @@
 #include "jit/FlushICache.h"
 #include "jit/JitContext.h"
 #include "jit/JitOptions.h"
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/Simulator.h"
 #include "js/ForOfIterator.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -717,6 +720,10 @@ bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
 
 bool wasm::DeserializeModule(JSContext* cx, const Bytes& serialized,
                              MutableHandleObject moduleObj) {
+
+#ifdef JS_JIT_SBX
+  JitSandboxContext jitSandboxContext(cx->runtime()->jitSandboxRuntime());
+#endif  
   MutableModule module =
       Module::deserialize(serialized.begin(), serialized.length());
   if (!module) {
@@ -2377,6 +2384,9 @@ bool WasmInstanceObject::getExportedFunction(
     // until Instance::callExport() to create the fast entry stubs.
     if (funcType.canHaveJitEntry()) {
       if (!funcExport.hasEagerStubs()) {
+#ifdef JS_JIT_SBX
+        JitSandboxContext jitSandboxContext(cx->runtime()->jitSandboxRuntime());
+#endif
         if (!EnsureBuiltinThunksInitialized()) {
           return false;
         }
@@ -5076,6 +5086,9 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   }
 
   void consumeOptimizedEncoding(const uint8_t* begin, size_t length) override {
+#ifdef JS_JIT_SBX
+  JitSandboxContext jitSandboxContext(compileArgs_.get()->sandboxRuntime);
+#endif    
     module_ = Module::deserialize(begin, length);
 
     MOZ_ASSERT(streamState_.lock().get() == Env);

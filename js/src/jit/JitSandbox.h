@@ -74,29 +74,22 @@ public:
   }
 };
 
-/*class MOZ_RAII JitSandboxContext {
+class MOZ_RAII JitSandboxContext {
 
-private:
-  const JitSandboxRuntime* runtime;         
 
 public:
-  explicit JitSandboxContext(JSContext* cx);
-  explicit JitSandboxContext(CompileRuntime* rt);
-  explicit JitSandboxContext(JitSandboxRuntime* rt);
-  ~JitSandboxContext();
-      
-  uintptr_t addressOfSavedNativeStackPtr() const {
-		return runtime->addressOfSavedNativeStackPtr();
-	}
-  
-  uintptr_t addressOfSavedSandboxStackPtr() const {
-    return runtime->addressOfSavedSandboxStackPtr();      
-  }
+  const JitSandboxRuntime* runtime;         
 
-  const uintptr_t* addressOfSandboxStackLimit() const {
-    return runtime->addressOfSandboxStackLimit();      
-  }
-};*/
+  explicit JitSandboxContext(const JitSandboxRuntime* rt);
+  ~JitSandboxContext();  
+};
+
+
+// Get and set the current JIT Sandobox context.
+JitSandboxContext* GetJitSandboxContext();
+JitSandboxContext* MaybeGetJitSandboxContext();
+
+void SetJitSandboxContext(JitSandboxContext* ctx);
 
 class MOZ_RAII AutoCheckSbxRecursionLimit {
   [[nodiscard]] MOZ_ALWAYS_INLINE bool checkLimitImpl(

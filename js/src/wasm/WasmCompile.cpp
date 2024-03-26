@@ -26,6 +26,9 @@
 #  include "jit/ProcessExecutableMemory.h"
 #endif
 
+#ifdef JS_JIT_SBX
+#include "jit/JitSandbox.h"
+#endif
 #include "jit/FlushICache.h"
 #include "util/Text.h"
 #include "vm/HelperThreads.h"
@@ -138,6 +141,10 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
     return nullptr;
   }
 
+#ifdef JS_JIT_SBX
+  const JitSandboxRuntime* sandboxRuntime = cx->runtime()->jitSandboxRuntime();
+#endif
+
   CompileArgs* target = cx->new_<CompileArgs>(std::move(scriptedCaller));
   if (!target) {
     *error = CompileArgsError::OutOfMemory;
@@ -149,6 +156,9 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
   target->debugEnabled = debug;
   target->forceTiering = forceTiering;
   target->features = FeatureArgs::build(cx, options);
+#ifdef JS_JIT_SBX
+  target->sandboxRuntime = sandboxRuntime;
+#endif
 
   return target;
 }
@@ -592,12 +602,22 @@ static bool PlatformCanTier() {
 CompilerEnvironment::CompilerEnvironment(const CompileArgs& args)
     : state_(InitialWithArgs), args_(&args) {}
 
+#ifdef JS_JIT_SBX
+CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
+                                         DebugEnabled debugEnabled, const JitSandboxRuntime* sandboxRuntime)
+    : state_(InitialWithModeTierDebug),
+      mode_(mode),
+      tier_(tier),
+      debug_(debugEnabled),
+      sandboxRuntime_(sandboxRuntime) {}
+#else
 CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
                                          DebugEnabled debugEnabled)
     : state_(InitialWithModeTierDebug),
       mode_(mode),
       tier_(tier),
       debug_(debugEnabled) {}
+#endif
 
 void CompilerEnvironment::computeParameters() {
   MOZ_ASSERT(state_ == InitialWithModeTierDebug);
@@ -617,6 +637,10 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
   bool ionEnabled = args_->ionEnabled;
   bool debugEnabled = args_->debugEnabled;
   bool forceTiering = args_->forceTiering;
+#ifdef JS_JIT_SBX
+  const JitSandboxRuntime* sandboxRuntime = args_->sandboxRuntime;
+  MOZ_ASSERT(sandboxRuntime);
+#endif
 
   bool hasSecondTier = ionEnabled;
   MOZ_ASSERT_IF(debugEnabled, baselineEnabled);
@@ -643,6 +667,9 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
   }
 
   debug_ = debugEnabled ? DebugEnabled::True : DebugEnabled::False;
+#ifdef JS_JIT_SBX
+  sandboxRuntime_ = sandboxRuntime;
+#endif
 
   state_ = Computed;
 }
@@ -745,8 +772,13 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
   if (!moduleEnv.init() || !DecodeModuleEnvironment(d, &moduleEnv)) {
     return false;
   }
+#ifdef JS_JIT_SBX
+  CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
+                                  DebugEnabled::False, args.sandboxRuntime);
+#else
   CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
                                   DebugEnabled::False);
+#endif
   compilerEnv.computeParameters(d);
 
   ModuleGenerator mg(args, &moduleEnv, &compilerEnv, cancelled, error,
