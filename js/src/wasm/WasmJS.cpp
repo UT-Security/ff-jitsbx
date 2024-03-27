@@ -702,6 +702,10 @@ bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
   // features.
   compileArgs->features = FeatureArgs::build(cx, FeatureOptions());
 
+#ifdef JS_JIT_SBX
+  compileArgs->sandboxRuntime = cx->runtime()->jitSandboxRuntime();
+#endif
+
   SerializeListener listener(serialized);
 
   UniqueChars error;
