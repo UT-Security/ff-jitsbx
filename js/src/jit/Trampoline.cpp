@@ -35,6 +35,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateProfilerExitFrameTailStub");
 
   profilerExitFrameTailOffset_ = startTrampolineCode(masm);
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(profilerExitTail);
 
   static constexpr size_t CallerFPOffset =
@@ -183,6 +185,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
   masm.assumeUnreachable(
       "Invalid caller frame type when returning from a JIT frame.");
 
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(&handle_BaselineOrIonJS);
   {
     // Returning directly to a Baseline or Ion frame.
@@ -197,7 +201,10 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
+    masm.sbxImplicitPop(1 * sizeof(void*));
     masm.ret();
   }
 
@@ -217,22 +224,31 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
+    masm.sbxImplicitPop(1 * sizeof(void*));
     masm.ret();
   };
 
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(&handle_BaselineStub);
   {
     // BaselineJS => BaselineStub frame.
     emitHandleStubFrame(FrameType::BaselineJS);
   }
 
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(&handle_IonICCall);
   {
     // IonJS => IonICCall frame.
     emitHandleStubFrame(FrameType::IonJS);
   }
 
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(&handle_Rectifier);
   {
     // There can be multiple previous frame types so just "unwrap" the arguments
@@ -244,6 +260,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.jump(&again);
   }
 
+  masm.sbxAssumeSandboxStack();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
   masm.bind(&handle_Entry);
   {
     // FrameType::CppToJSJit / FrameType::WasmToJSJit
@@ -256,7 +274,10 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
+    masm.sbxImplicitPop(1 * sizeof(void*));
     masm.ret();
   }
 }
