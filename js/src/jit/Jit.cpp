@@ -41,7 +41,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
   }
 #ifdef JS_JIT_SBX
   AutoCheckSbxRecursionLimit recursionSbx(cx);
-  if(!recursion.check(cx)) {
+  if(!recursionSbx.check(cx)) {
     return EnterJitStatus::Error;
   }
 #endif

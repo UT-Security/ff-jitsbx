@@ -113,7 +113,7 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
   }
 #ifdef JS_JIT_SBX
   AutoCheckSbxRecursionLimit recursionSbx(cx);
-  if (!recursion.checkWithExtra(cx, extra)) {
+  if (!recursionSbx.checkWithExtra(cx, extra)) {
     return JitExec_Aborted;
   }
 #endif
