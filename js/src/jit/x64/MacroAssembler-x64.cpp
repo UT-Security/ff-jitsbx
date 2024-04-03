@@ -794,8 +794,8 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
     // sizeof(intptr_t) accounts for the saved stack pointer pushed by
     // setupUnalignedABICall.
 #ifdef JS_JIT_SBX
-		// Since ABI arguments are pushed onto the native stack we don't
-		// consider it for alignment here.
+		// [jitsbx] Since ABI arguments are pushed onto the native stack
+		// we don't consider it for sandbox-stack alignment here.
     stackForCall = ComputeByteAlignment(sizeof(intptr_t),
                                          ABIStackAlignment);
 #else
@@ -813,11 +813,16 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   assertStackAlignment(ABIStackAlignment);
 
 #ifdef JS_JIT_SBX
+  // [jitsbx] Align native-stack and make space for arguments.
 	sbxToNativeStack();
 	stackForCall = abiArgs_.stackBytesConsumedSoFar();
+  // [jitsbx] TODO: maybe assert sbxFramePushed_ is aligned and
+  // remove it from the computation below.
   stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
                                          ABIStackAlignment);
-  subFromStackPtr(Imm32(stackForCall));
+  if(stackForCall != 0) {
+    subFromStackPtr(Imm32(stackForCall));
+  }
 #endif
 
   // Position all arguments.
@@ -827,6 +832,8 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
       return;
     }
 
+    // [jitsbx] TODO: split up MoveEmitter's register moves
+    // and stack moves to reduce the size of the bundle here.
     MoveEmitter emitter(*this);
     emitter.emit(moveResolver_);
     emitter.finish();
@@ -841,7 +848,9 @@ void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
   uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
   stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
                                          ABIStackAlignment);
-	addToStackPtr(Imm32(stackForCall));
+  if(stackForCall != 0) {
+	  addToStackPtr(Imm32(stackForCall));
+  }
 	sbxToSandboxStack();
 #endif
   freeStack(stackAdjust);
@@ -903,6 +912,82 @@ void MacroAssembler::callWithABIPostNoSbx(uint32_t stackAdjust, MoveOp::Type res
   inCall_ = false;
 #endif
 }
+
+void MacroAssembler::callNativeWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
+  MOZ_ASSERT(inCall_);
+
+  uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+
+  if (dynamicAlignment_) {
+    // sizeof(intptr_t) accounts for the saved stack pointer pushed by
+    // setupUnalignedABICall.
+		// [jitsbx] Since ABI arguments are pushed onto the native stack
+		// we don't consider it for sandbox-stack alignment here.
+    stackForCall = ComputeByteAlignment(sizeof(intptr_t),
+                                         ABIStackAlignment);
+  } else {
+    uint32_t alignmentAtPrologue = callFromWasm ? sizeof(wasm::Frame) : 0;
+    stackForCall += ComputeByteAlignment(
+        stackForCall + framePushed() + alignmentAtPrologue, ABIStackAlignment);
+  }
+
+  *stackAdjust = stackForCall;
+  reserveStack(stackForCall);
+  assertStackAlignment(ABIStackAlignment);
+
+  // [jitsbx] Align native-stack and make space for arguments.
+	sbxToNativeStack();
+  push(ICTailCallReg);
+  push(FramePointer);
+  sbxSaveNativeStack();
+	stackForCall = abiArgs_.stackBytesConsumedSoFar();
+  // [jitsbx] TODO: maybe assert sbxFramePushed_ is aligned and
+  // remove it from the computation below.
+  stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
+                                         ABIStackAlignment);
+  if(stackForCall != 0) {
+    subFromStackPtr(Imm32(stackForCall));
+  }
+
+  // Position all arguments.
+  {
+    enoughMemory_ &= moveResolver_.resolve();
+    if (!enoughMemory_) {
+      return;
+    }
+
+    // [jitsbx] TODO: split up MoveEmitter's register moves
+    // and stack moves to reduce the size of the bundle here.
+    MoveEmitter emitter(*this);
+    emitter.emit(moveResolver_);
+    emitter.finish();
+  }
+
+  assertStackAlignment(ABIStackAlignment);
+}
+
+void MacroAssembler::callNativeWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
+                                     bool cleanupArg) {
+  Label done;
+  uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+  stackForCall += ComputeByteAlignment(stackForCall + sbxFramePushed_,
+                                         ABIStackAlignment);
+	addToStackPtr(Imm32(stackForCall));
+  branchIfFalseBool(ReturnReg, &done);
+	addToStackPtr(Imm32(2 * sizeof(void*)));
+  bind(&done);
+	sbxToSandboxStack();
+  
+  freeStack(stackAdjust);
+  if (dynamicAlignment_) {
+    pop(rsp);
+  }
+
+#ifdef DEBUG
+  MOZ_ASSERT(inCall_);
+  inCall_ = false;
+#endif
+}
 #endif
 
 static bool IsIntArgReg(Register reg) {
@@ -950,6 +1035,27 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
   call(safeFun);
   callWithABIPost(stackAdjust, result);
 }
+
+#ifdef JS_JIT_SBX
+void MacroAssembler::callNativeWithABINoProfiler(const Address& fun,
+                                           MoveOp::Type result) {
+  Address safeFun = fun;
+  if (IsIntArgReg(safeFun.base)) {
+    // Callee register may be clobbered for an argument. Move the callee to
+    // r10, a volatile, non-argument register.
+    propagateOOM(moveResolver_.addMove(MoveOperand(fun.base), MoveOperand(r10),
+                                       MoveOp::GENERAL));
+    safeFun.base = r10;
+  }
+
+  MOZ_ASSERT(!IsIntArgReg(safeFun.base));
+
+  uint32_t stackAdjust;
+  callNativeWithABIPre(&stackAdjust);
+  call(safeFun);
+  callNativeWithABIPost(stackAdjust, result);
+}
+#endif
 
 // ===============================================================
 // Move instructions

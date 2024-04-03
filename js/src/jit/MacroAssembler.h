@@ -808,7 +808,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void callWithABI(Register fun, MoveOp::Type result = MoveOp::GENERAL);
   inline void callWithABI(const Address& fun,
                           MoveOp::Type result = MoveOp::GENERAL);
-
+  inline void callNativeWithABI(const Address& fun,
+                          MoveOp::Type result = MoveOp::GENERAL);
   CodeOffset callWithABI(wasm::BytecodeOffset offset, wasm::SymbolicAddress fun,
                          mozilla::Maybe<int32_t> instanceOffset,
                          MoveOp::Type result = MoveOp::GENERAL);
@@ -829,6 +830,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void callWithABIPre(uint32_t* stackAdjust,
                       bool callFromWasm = false) PER_ARCH;
 #if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  void callNativeWithABIPre(uint32_t* stackAdjust,
+                      bool callFromWasm = false) DEFINED_ON(x64);
   void callWithABIPreNoSbx(uint32_t* stackAdjust,
                       bool callFromWasm = false) DEFINED_ON(x64);
 #endif
@@ -840,11 +843,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
                              CheckUnsafeCallWithABI check);
   void callWithABINoProfiler(Register fun, MoveOp::Type result) PER_ARCH;
   void callWithABINoProfiler(const Address& fun, MoveOp::Type result) PER_ARCH;
-
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  void callNativeWithABINoProfiler(const Address& fun, MoveOp::Type result) DEFINED_ON(x64);
+#endif
   // Restore the stack to its state before the setup function call.
   void callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                        bool callFromWasm = false) PER_ARCH;
 #if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  void callNativeWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
+                       bool callFromWasm = false) DEFINED_ON(x64);
   void callWithABIPostNoSbx(uint32_t stackAdjust, MoveOp::Type result,
                        bool callFromWasm = false) DEFINED_ON(x64);
 #endif
@@ -909,6 +916,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 	// Stack Switching
 	inline void sbxToNativeStack();
+	inline void sbxSaveNativeStack();
 	inline void sbxToSandboxStack();
 
 	inline void sbxPushReturnAddress();
@@ -917,6 +925,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void sbxPopReturnAddress();
 	inline void sbxPopFramePointer();
 	inline void sbxPopFrame();
+	inline void sbxPopStubFrame();
 
 	// JIT Stack Sandbox aware call functions.
 	inline CodeOffset sbxCall(Register reg);
@@ -4757,6 +4766,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void switchToRealm(const void* realm, Register scratch);
   void switchToObjectRealm(Register obj, Register scratch);
   void switchToBaselineFrameRealm(Register scratch);
+  void switchToBaselineFrameRealmFromStub(Register scratch);
   void switchToWasmInstanceRealm(Register scratch1, Register scratch2);
   void debugAssertContextRealm(const void* realm, Register scratch);
 

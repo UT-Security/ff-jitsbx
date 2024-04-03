@@ -923,7 +923,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   masm.leaveExitFrame(0);
 
 #ifdef JS_JIT_SBX
-  // [jit-sbx] Clear rest of the frame and arguments on sandbox-stack.
+  // [jitsbx] Clear rest of the frame and arguments on sandbox-stack.
   masm.addq(Imm32(sizeof(ExitFrameLayout) +
                   f.explicitStackSlots() * sizeof(void*) +
                   f.extraValuesToPop * sizeof(Value)), rsp);

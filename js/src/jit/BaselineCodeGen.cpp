@@ -755,6 +755,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
 
   // Assert all arguments were pushed.
   MOZ_ASSERT(masm.framePushed() - pushedBeforeCall_ == argSize);
+  // [jitsbx] Assert native-stack is aligned for VM call.
   MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
 
   saveInterpreterPCReg();
@@ -6378,25 +6379,23 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+  // [jitsbx] bundle(standard-function-prologue)
 	masm.sbxAssumeNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
 #endif
-
   masm.push(FramePointer);
-  masm.sbxImplicitPush(2 * sizeof(void*));
-
-  masm.checkStackAlignment();
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 	masm.sbxToSandboxStack();
 	masm.sbxPushFrame();
+  masm.moveStackPtrTo(FramePointer);
 
   masm.checkStackAlignment();
-
-  masm.moveStackPtrTo(FramePointer);
 
   emitProfilerEnterFrame();
 
+  // [jitsbx] TODO: ensure this subtraction is safe
   masm.subFromStackPtr(Imm32(BaselineFrame::Size()));
 
   // Initialize BaselineFrame. Also handles env chain pre-initialization (in
@@ -6463,6 +6462,7 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
 
   emitProfilerExitFrame();
 
+  // [jitsbx] bundle(standard-function-epilogue)
   masm.moveToStackPtr(FramePointer);
   masm.sbxPopFrame();
   masm.sbxToNativeStack();

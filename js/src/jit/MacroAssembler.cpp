@@ -2080,6 +2080,19 @@ void MacroAssembler::switchToBaselineFrameRealm(Register scratch) {
   switchToObjectRealm(scratch, scratch);
 }
 
+void MacroAssembler::switchToBaselineFrameRealmFromStub(Register scratch) {
+#ifdef JS_JIT_SBX
+  loadPtr(Address(FramePointer, 0), scratch);
+  Address envChain(scratch,
+                   BaselineFrame::reverseOffsetOfEnvironmentChain());
+#else
+  Address envChain(FramePointer,
+                   BaselineFrame::reverseOffsetOfEnvironmentChain());
+#endif
+  loadPtr(envChain, scratch);
+  switchToObjectRealm(scratch, scratch);
+}
+
 void MacroAssembler::switchToWasmInstanceRealm(Register scratch1,
                                                Register scratch2) {
   loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCx()), scratch1);

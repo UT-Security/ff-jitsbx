@@ -47,10 +47,16 @@ Address CacheRegisterAllocator::addressOf(MacroAssembler& masm,
                                           BaselineFrameSlot slot) const {
   uint32_t offset =
       stackPushed_ + ICStackValueOffset + slot.slot() * sizeof(JS::Value);
+#ifdef JS_JIT_SBX
+  // The frame descriptor and frame pointer are also on the stack.
+  offset += 2 * sizeof(uintptr_t);
+#else
   if (JitOptions.enableICFramePointers) {
     // The frame pointer is also on the stack.
     offset += sizeof(uintptr_t);
   }
+#endif
+
   return Address(masm.getStackPointer(), offset);
 }
 BaseValueIndex CacheRegisterAllocator::addressOf(MacroAssembler& masm,
@@ -58,10 +64,15 @@ BaseValueIndex CacheRegisterAllocator::addressOf(MacroAssembler& masm,
                                                  BaselineFrameSlot slot) const {
   uint32_t offset =
       stackPushed_ + ICStackValueOffset + slot.slot() * sizeof(JS::Value);
+#ifdef JS_JIT_SBX
+  // The frame descriptor and frame pointer are also on the stack.
+  offset += 2 * sizeof(uintptr_t);
+#else
   if (JitOptions.enableICFramePointers) {
     // The frame pointer is also on the stack.
     offset += sizeof(uintptr_t);
   }
+#endif
   return BaseValueIndex(masm.getStackPointer(), argcReg, offset);
 }
 
@@ -79,6 +90,7 @@ AutoStubFrame::AutoStubFrame(BaselineCacheIRCompiler& compiler)
     : compiler(compiler)
 #ifdef DEBUG
       ,
+      framePushedBeforeEnterStubFrame_(0),
       framePushedAtEnterStubFrame_(0)
 #endif
 {
@@ -86,19 +98,39 @@ AutoStubFrame::AutoStubFrame(BaselineCacheIRCompiler& compiler)
 void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
                           CallCanGC canGC) {
   MOZ_ASSERT(compiler.allocator.stackPushed() == 0);
+#ifdef DEBUG
+  framePushedBeforeEnterStubFrame_ = masm.framePushed();
+#endif
+#ifdef JS_JIT_SBX
 
+#ifdef DEBUG
+  // Compute frame size. Because the frame descriptor, return address and
+  // frame pointer are on the stack this is:
+  //
+  //   compiler.baselineFrameReg()
+  //   - StackPointer
+  //   - sizeof(return address) - sizeof(frame pointer) - sizeof(frame descriptor)
+
+  masm.movq(compiler.baselineFrameReg(), scratch);
+  masm.subq(StackPointer, scratch);
+  masm.subq(Imm32(3 * sizeof(void*)), scratch);
+
+  Address frameSizeAddr(compiler.baselineFrameReg(),
+                        BaselineFrame::reverseOffsetOfDebugFrameSize());
+  masm.store32(scratch, frameSizeAddr);
+#endif
+
+  // account for the frame descriptor and frame pointer.
+  masm.adjustFrame(2 * sizeof(uintptr_t));
+  masm.Push(ICStubReg);
+#else
   if (JitOptions.enableICFramePointers) {
-    masm.sbxToNativeStack();
-
     // If we have already pushed the frame pointer, pop it
     // before creating the stub frame.
     masm.pop(FramePointer);
-    
-    masm.sbxImplicitPop(sizeof(void*));
-    masm.sbxToSandboxStack();
-    masm.sbxPopFramePointer();
   }
   EmitBaselineEnterStubFrame(masm, scratch);
+#endif
 
 #ifdef DEBUG
   framePushedAtEnterStubFrame_ = masm.framePushed();
@@ -118,6 +150,12 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   masm.setFramePushed(framePushedAtEnterStubFrame_);
 #endif
 
+#ifdef JS_JIT_SBX
+  Address stubAddr(FramePointer, BaselineStubFrameLayout::ICStubOffsetFromFP);
+  masm.loadPtr(stubAddr, ICStubReg);
+  masm.mov(FramePointer, StackPointer);
+  masm.implicitPop(3 * sizeof(uintptr_t));
+#else
   EmitBaselineLeaveStubFrame(masm);
   if (JitOptions.enableICFramePointers) {
     masm.sbxPushFramePointer();
@@ -130,6 +168,11 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
     masm.sbxImplicitPush(sizeof(void*));
 		masm.sbxToSandboxStack();
   }
+#endif
+
+#ifdef DEBUG
+  MOZ_ASSERT(masm.framePushed() == framePushedBeforeEnterStubFrame_);
+#endif
 }
 
 #ifdef DEBUG
@@ -162,6 +205,11 @@ JitCode* BaselineCacheIRCompiler::compile() {
 #ifdef JS_CODEGEN_ARM
   masm.setSecondScratchReg(BaselineSecondScratchReg);
 #endif
+
+#ifdef JS_JIT_SBX
+  MOZ_ASSERT(baselineFrameReg() != FramePointer);
+  EmitBaselineICPrologue(masm, baselineFrameReg_);   
+#else
   if (JitOptions.enableICFramePointers) {
     /* [SMDOC] Baseline IC Frame Pointers
      *
@@ -182,23 +230,6 @@ JitCode* BaselineCacheIRCompiler::compile() {
      *  the caller's frame. To support this, we allocate a separate
      *  baselineFrame register when IC frame pointers are enabled.
      */
-
-#ifdef JS_JIT_SBX
-    MOZ_ASSERT(baselineFrameReg() != FramePointer);
-    masm.mov(FramePointer, baselineFrameReg());
-
-    masm.push(FramePointer);
-    masm.sbxImplicitPush(2 * sizeof(void*));
-		masm.sbxToSandboxStack();
-    masm.sbxPushFrame();
-
-    masm.moveStackPtrTo(FramePointer);
-  } else {
-    masm.sbxImplicitPush(sizeof(void*));
-		masm.sbxToSandboxStack();
-    masm.sbxPushReturnAddress();
-  }
-#else
     masm.push(FramePointer);
     masm.moveStackPtrTo(FramePointer);
     MOZ_ASSERT(baselineFrameReg() != FramePointer);
@@ -237,17 +268,13 @@ JitCode* BaselineCacheIRCompiler::compile() {
     if (!emitFailurePath(i)) {
       return nullptr;
     }
-    if (JitOptions.enableICFramePointers) {
 #ifdef JS_JIT_SBX
-      masm.sbxPopFrame();
-      masm.sbxToNativeStack();      
-      masm.pop(FramePointer);
-      masm.sbxImplicitPop(sizeof(void*));
-    } else {
-      masm.sbxPopReturnAddress();
-      masm.sbxToNativeStack();
-    }
+    masm.sbxPopStubFrame();
+    masm.sbxToNativeStack();
+    masm.pop(FramePointer);
+    masm.sbxImplicitPop(sizeof(void*));
 #else
+    if (JitOptions.enableICFramePointers) {
       masm.pop(FramePointer);
     }
 #endif
@@ -595,7 +622,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   stubFrame.leave(masm);
 
   if (!sameRealm) {
-    masm.switchToBaselineFrameRealm(R1.scratchReg());
+    masm.switchToBaselineFrameRealmFromStub(R1.scratchReg());
   }
 
   return true;
@@ -1679,7 +1706,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   stubFrame.leave(masm);
 
   if (!sameRealm) {
-    masm.switchToBaselineFrameRealm(R1.scratchReg());
+    masm.switchToBaselineFrameRealmFromStub(R1.scratchReg());
   }
 
   return true;
@@ -1896,18 +1923,15 @@ bool BaselineCacheIRCompiler::emitMegamorphicSetElement(ObjOperandId objId,
 bool BaselineCacheIRCompiler::emitReturnFromIC() {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   allocator.discardStack(masm);
-  if (JitOptions.enableICFramePointers) {
-#ifdef JS_JIT_SBX
-    masm.sbxPopFrame();
-    masm.sbxToNativeStack();
 
-    masm.pop(FramePointer);
-    masm.sbxImplicitPop(sizeof(void*));
-  } else {
-    masm.sbxPopReturnAddress();
-    masm.sbxToNativeStack();
-  }
+#ifdef JS_JIT_SBX
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopStubFrame();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
 #else
+  if (JitOptions.enableICFramePointers) {
     masm.pop(FramePointer);
   }
 #endif
@@ -3096,11 +3120,6 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   masm.push(argcReg);
 
   masm.pushFrameDescriptor(FrameType::BaselineStub);
-  masm.sbxToNativeStack();
-  masm.push(ICTailCallReg);
-  masm.push(FramePointer);
-  masm.sbxImplicitPush(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
   masm.sbxPushFrame();
   masm.loadJSContext(scratch);
   masm.enterFakeExitFrameForNative(scratch, scratch, isConstructing);
@@ -3120,24 +3139,24 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
       // pointer in the stub and use that instead of the original one.
       // (See CacheIRWriter::callNativeFunction.)
       Address redirectedAddr(stubAddress(*targetOffset));
-      masm.callWithABI(redirectedAddr);
+      masm.callNativeWithABI(redirectedAddr);
 #else
       if (*ignoresReturnValue) {
         masm.loadPrivate(
             Address(calleeReg, JSFunction::offsetOfJitInfoOrScript()),
             calleeReg);
-        masm.callWithABI(
+        masm.callNativeWithABI(
             Address(calleeReg, JSJitInfo::offsetOfIgnoresReturnValueNative()));
       } else {
         // This depends on the native function pointer being stored unchanged as
         // a PrivateValue.
-        masm.callWithABI(Address(calleeReg, JSFunction::offsetOfNativeOrEnv()));
+        masm.callNativeWithABI(Address(calleeReg, JSFunction::offsetOfNativeOrEnv()));
       }
 #endif
     } break;
     case NativeCallType::ClassHook: {
       Address nativeAddr(stubAddress(*targetOffset));
-      masm.callWithABI(nativeAddr);
+      masm.callNativeWithABI(nativeAddr);
     } break;
   }
 
@@ -3149,16 +3168,10 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
       Address(masm.getStackPointer(), NativeExitFrameLayout::offsetOfResult()),
       output.valueReg());
 
-#ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
-#endif
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;
@@ -3440,7 +3453,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;
@@ -3546,7 +3559,7 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(codeReg);
+    masm.switchToBaselineFrameRealmFromStub(codeReg);
   }
 
   return true;
@@ -3631,7 +3644,7 @@ bool BaselineCacheIRCompiler::emitCallBoundScriptedFunction(
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;

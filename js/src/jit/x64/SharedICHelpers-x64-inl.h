@@ -85,6 +85,60 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
   masm.Push(ICStubReg);
 }
 
+#ifdef JS_JIT_SBX
+inline void EmitBaselineICFallbackPrologue(MacroAssembler& masm, Register scratch2) {
+  masm.sbxAssertNativeStack();
+  masm.sbxSetFramePushed(sizeof(void*));
+  masm.Push(FramePointer);
+  masm.sbxImplicitPush(sizeof(void*));
+	masm.sbxToSandboxStack();
+
+
+  // Push frame descriptor on top of the stack.
+  masm.Push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
+
+  // Push return address and frame pointer to complete frame.
+	masm.sbxPushFrame();
+
+  // Save old frame pointer, stack pointer and stub reg.
+  masm.mov(StackPointer, FramePointer);
+
+#ifdef DEBUG
+  // Compute frame size. Because the frame descriptor, return address and
+  // frame pointer are on the stack this is:
+  //
+  //   0(FramePointer)
+  //   - StackPointer
+  //   - sizeof(return address) - sizeof(frame pointer) - sizeof(frame descriptor)
+
+
+  ScratchRegisterScope scratch(masm);
+  masm.loadPtr(Address(FramePointer, 0), scratch);
+  masm.subq(StackPointer, scratch);
+  masm.subq(Imm32(3 * sizeof(void*)), scratch);
+
+  masm.loadPtr(Address(FramePointer, 0), scratch2);
+  Address frameSizeAddr(scratch2,
+                        BaselineFrame::reverseOffsetOfDebugFrameSize());
+  masm.store32(scratch, frameSizeAddr);
+#endif
+  
+  masm.Push(ICStubReg);
+}
+
+inline void EmitBaselineICPrologue(MacroAssembler& masm, Register baselineFrameReg) {
+  masm.sbxAssertNativeStack();
+  masm.sbxSetFramePushed(sizeof(void*));
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(sizeof(void*));
+	masm.sbxToSandboxStack();
+  masm.push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
+	masm.sbxPushFrame();
+  masm.mov(FramePointer, baselineFrameReg);
+  masm.mov(StackPointer, FramePointer);
+}
+#endif
+
 }  // namespace jit
 }  // namespace js
 

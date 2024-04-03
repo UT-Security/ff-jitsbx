@@ -544,7 +544,11 @@ bool FallbackICCodeCompiler::tailCallVM(MacroAssembler& masm) {
 
 void FallbackICCodeCompiler::enterStubFrame(MacroAssembler& masm,
                                             Register scratch) {
+#ifdef JS_JIT_SBX
+  EmitBaselineICFallbackPrologue(masm, scratch);
+#else
   EmitBaselineEnterStubFrame(masm, scratch);
+#endif
 #ifdef DEBUG
   framePushedAtEnterStubFrame_ = masm.framePushed();
 #endif
@@ -578,7 +582,11 @@ void FallbackICCodeCompiler::leaveStubFrame(MacroAssembler& masm) {
 #ifdef DEBUG
   masm.setFramePushed(framePushedAtEnterStubFrame_);
 #endif
+#ifdef JS_JIT_SBX
+  EmitBaselineICFallbackEpilogue(masm);
+#else
   EmitBaselineLeaveStubFrame(masm);
+#endif
 }
 
 void FallbackICCodeCompiler::pushStubPayload(MacroAssembler& masm,
@@ -759,10 +767,8 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
-
-  masm.sbxPopReturnAddress();
- 	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
+
   return true;
 }
 
@@ -1361,10 +1367,8 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
-
-  masm.sbxPopReturnAddress();
-	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
+
   return true;
 }
 
@@ -1567,9 +1571,6 @@ bool FallbackICCodeCompiler::emit_SetProp() {
 	masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
-
-  masm.sbxPopReturnAddress();
-	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
 
   return true;
@@ -1780,9 +1781,6 @@ void FallbackICCodeCompiler::pushCallArguments(
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
 
-	masm.sbxToSandboxStack();
-  masm.sbxPushReturnAddress();
-
   // Values are on the stack left-to-right. Calling convention wants them
   // right-to-left so duplicate them on the stack in reverse order.
   // |this| and callee are pushed last.
@@ -1826,10 +1824,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
       return false;
     }
 
-    leaveStubFrame(masm);
-        
-    masm.sbxPopReturnAddress();
-	  masm.sbxToNativeStack();
+    leaveStubFrame(masm); 
     EmitReturnFromIC(masm);
 
     // SpreadCall is not yet supported in Ion, so do not generate asmcode for
@@ -1837,7 +1832,6 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     return true;
   }
 
-	masm.sbxAssumeSandboxStack();
   // Push a stub frame so that we can perform a non-tail call.
   enterStubFrame(masm, R1.scratchReg());
 
@@ -1858,9 +1852,6 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   }
 
   leaveStubFrame(masm);
-
-  masm.sbxPopReturnAddress();
-	masm.sbxToNativeStack();
   EmitReturnFromIC(masm);
 
   // This is the resume point used when bailout rewrites call stack to undo
@@ -1888,7 +1879,6 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
       JitFrameLayout::offsetOfThis() - JitFrameLayout::bytesPoppedAfterCall();
   masm.loadValue(Address(masm.getStackPointer(), thisvOffset), R1);
 
-  leaveStubFrame(masm);
 
   // If this is a |constructing| call, if the callee returns a non-object, we
   // replace it with the |this| object passed in.
@@ -1905,9 +1895,9 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     masm.bind(&skipThisReplace);
   }
 
-  masm.sbxPopReturnAddress();
-	masm.sbxToNativeStack();
+  leaveStubFrame(masm);
   EmitReturnFromIC(masm);
+
   return true;
 }
 

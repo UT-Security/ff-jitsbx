@@ -177,6 +177,15 @@ void MacroAssembler::callWithABI(const Address& fun, MoveOp::Type result) {
   callWithABINoProfiler(fun, result);
 }
 
+void MacroAssembler::callNativeWithABI(const Address& fun, MoveOp::Type result) {
+  AutoProfilerCallInstrumentation profiler(*this);
+#if defined(JS_JIT_SBX) && defined(JS_CODEGEN_X64)
+  callNativeWithABINoProfiler(fun, result);
+#else
+  callWithABINoProfiler(fun, result);
+#endif
+}
+
 void MacroAssembler::appendSignatureType(MoveOp::Type type) {
 #ifdef JS_SIMULATOR
   signature_ <<= ArgType_Shift;
@@ -281,6 +290,11 @@ void MacroAssembler::sbxToNativeStack() {
 	currentStack_ = NATIVE;
 }
 
+void MacroAssembler::sbxSaveNativeStack() {
+	sbxAssertNativeStack();
+  storePtr(rsp, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
+}
+
 void MacroAssembler::sbxToSandboxStack() {
 	sbxAssertNativeStack();
   storePtr(rsp, AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()));
@@ -301,6 +315,7 @@ void MacroAssembler::sbxImplicitPush(uint32_t bytes) {}
 void MacroAssembler::sbxImplicitPop(uint32_t bytes) {}
 
 void MacroAssembler::sbxToNativeStack() {}
+void MacroAssembler::sbxSaveNativeStack() {}
 void MacroAssembler::sbxToSandboxStack() {}
 
 #endif
@@ -327,22 +342,31 @@ void MacroAssembler::sbxPushFrame() {
 
 void MacroAssembler::sbxPopReturnAddress() {
 #ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
 	addPtr(Imm32(sizeof(uintptr_t)), rsp);
 #endif
 }
 
 void MacroAssembler::sbxPopFramePointer() {
 #ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
 	addPtr(Imm32(sizeof(uintptr_t)), rsp);
 #endif
 }
 
 void MacroAssembler::sbxPopFrame() {
 #ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
 	addPtr(Imm32(sizeof(uintptr_t) * 2), rsp);
 #endif
 }
 
+void MacroAssembler::sbxPopStubFrame() {
+#ifdef JS_JIT_SBX
+  sbxAssertSandboxStack();
+	addPtr(Imm32(sizeof(uintptr_t) * 3), rsp);
+#endif
+}
 CodeOffset MacroAssembler::sbxCall(Register reg) {
 	sbxToNativeStack();
   CodeOffset ret = call(reg);

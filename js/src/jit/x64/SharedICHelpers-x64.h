@@ -35,13 +35,6 @@ inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
 }
 
 inline void EmitReturnFromIC(MacroAssembler& masm) {
-
-//#ifdef JS_JIT_SBX
-  // [jit-sbx] switch to safe-stack to return from IC.
-//  masm.storePtr(StackPointer, AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSbxStackPtr()));
-//  masm.loadPtr(AbsoluteAddress(masm.runtime()->jitRuntime()->addrOfSavedStackPtr()), StackPointer);
-//#endif
-
 	masm.ret();
 }
 
@@ -50,6 +43,7 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
   masm.loadPtr(stubAddr, ICStubReg);
 
   masm.mov(FramePointer, StackPointer);
+  masm.implicitPop(sizeof(void*));
 
 	masm.sbxToNativeStack();
   masm.Pop(FramePointer);
@@ -63,6 +57,20 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
   // before computing the address.
   masm.Pop(Operand(StackPointer, 0));
 }
+
+#ifdef JS_JIT_SBX
+inline void EmitBaselineICFallbackEpilogue(MacroAssembler& masm) {
+  Address stubAddr(FramePointer, BaselineStubFrameLayout::ICStubOffsetFromFP);
+  masm.loadPtr(stubAddr, ICStubReg);
+
+  masm.mov(FramePointer, StackPointer);
+	masm.sbxPopStubFrame();
+
+  masm.sbxToNativeStack();
+  masm.Pop(FramePointer);
+  masm.sbxImplicitPop(sizeof(void*));
+}
+#endif
 
 template <typename AddrType>
 inline void EmitPreBarrier(MacroAssembler& masm, const AddrType& addr,

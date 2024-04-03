@@ -1481,11 +1481,7 @@ bool CacheIRCompiler::emitFailurePath(size_t index) {
 
   masm.bind(failure.label());
 #ifdef JS_JIT_SBX
-  if (JitOptions.enableICFramePointers) {
-    masm.sbxSetFramePushed(2 * sizeof(void*));
-  } else {
-    masm.sbxSetFramePushed(sizeof(void*));
-  }
+  masm.sbxSetFramePushed(2 * sizeof(void*));
 #endif
   masm.sbxAssumeSandboxStack();
   allocator.restoreInputState(masm);

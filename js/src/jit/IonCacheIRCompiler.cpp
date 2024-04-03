@@ -1013,6 +1013,12 @@ bool IonCacheIRCompiler::emitCallNativeGetterResult(
     masm.speculationBarrier();
   }
 
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+#endif
   masm.adjustStack(IonOOLNativeExitFrameLayout::Size(0));
   return true;
 }
@@ -1128,6 +1134,12 @@ bool IonCacheIRCompiler::emitProxyGetResult(ObjOperandId objId,
     masm.speculationBarrier();
   }
 
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+#endif
   // masm.leaveExitFrame & pop locals
   masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
   return true;
@@ -1483,7 +1495,12 @@ bool IonCacheIRCompiler::emitCallNativeSetter(ObjOperandId receiverId,
   if (!sameRealm) {
     masm.switchToRealm(cx_->realm(), ReturnReg);
   }
-
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxImplicitPop(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+#endif
   masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
   return true;
 }
