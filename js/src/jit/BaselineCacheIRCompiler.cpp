@@ -3120,7 +3120,12 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   masm.push(argcReg);
 
   masm.pushFrameDescriptor(FrameType::BaselineStub);
+#ifdef JS_JIT_SBX
   masm.sbxPushFrame();
+#else
+  masm.push(ICTailCallReg);
+  masm.push(FramePointer);
+#endif
   masm.loadJSContext(scratch);
   masm.enterFakeExitFrameForNative(scratch, scratch, isConstructing);
 
