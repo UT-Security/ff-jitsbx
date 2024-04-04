@@ -57,7 +57,7 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
 			currentNative_ = (uint8_t*)cx->runtime()->jitSandboxRuntime()->savedNativeStackPtr();
 		}
   }
-	MOZ_ASSERT(currentNative()->callerFramePtr() == prevFp());
+	MOZ_RELEASE_ASSERT(currentNative()->callerFramePtr() == prevFp(), "Initial Frame Pointer mismatch between Native and Sandbox stack");
 }
 #else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
@@ -187,9 +187,9 @@ Value* JSJitFrameIter::actualArgs() const { return jsFrame()->actualArgs(); }
 
 uint8_t* JSJitFrameIter::prevFp() const { 
 #ifdef JS_JIT_SBX
-		MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr());
+		MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr(), "Frame Pointer mismatch in Native and Sandbox stack");
 #endif
-	return current()->callerFramePtr();
+	return currentNative()->callerFramePtr();
 }
 
 #ifdef JS_JIT_SBX
@@ -231,6 +231,8 @@ static uint32_t ComputeBaselineFrameSize(const JSJitFrameIter& frame) {
 
 void JSJitFrameIter::operator++() {
   MOZ_ASSERT(!isEntry());
+
+  //MOZ_RELEASE_ASSERT(prevNativeFp() < activation(), "Native Stack underflow during JIT Frame Iteration");
 
   // Compute BaselineFrame size. In debug builds this is equivalent to
   // BaselineFrame::debugFrameSize_. This is asserted at the end of this method.
