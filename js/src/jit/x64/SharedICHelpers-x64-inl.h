@@ -125,18 +125,6 @@ inline void EmitBaselineICFallbackPrologue(MacroAssembler& masm, Register scratc
   
   masm.Push(ICStubReg);
 }
-
-inline void EmitBaselineICPrologue(MacroAssembler& masm, Register baselineFrameReg) {
-  masm.sbxAssertNativeStack();
-  masm.sbxSetFramePushed(sizeof(void*));
-  masm.push(FramePointer);
-  masm.sbxImplicitPush(sizeof(void*));
-	masm.sbxToSandboxStack();
-  masm.push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
-	masm.sbxPushFrame();
-  masm.mov(FramePointer, baselineFrameReg);
-  masm.mov(StackPointer, FramePointer);
-}
 #endif
 
 }  // namespace jit

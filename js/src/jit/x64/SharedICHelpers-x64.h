@@ -15,9 +15,13 @@
 namespace js {
 namespace jit {
 
+#ifdef JS_JIT_SBX
+static const size_t ICStackValueOffset = 0;
+#else
 // Distance from Stack top to the top Value inside an IC stub (this is the
 // return address).
 static const size_t ICStackValueOffset = sizeof(void*);
+#endif
 
 inline void EmitRestoreTailCallReg(MacroAssembler& masm) {
   masm.Pop(ICTailCallReg);

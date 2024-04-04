@@ -326,7 +326,7 @@ DefaultJitOptions::DefaultJitOptions() {
 
   SET_DEFAULT(onlyInlineSelfHosted, false);
 #ifdef JS_JIT_SBX
-  SET_DEFAULT(enableICFramePointers, true);
+  SET_DEFAULT(enableICFramePointers, false);
 
   SET_DEFAULT(enableWasmJitExit, false);
   SET_DEFAULT(enableWasmJitEntry, false);

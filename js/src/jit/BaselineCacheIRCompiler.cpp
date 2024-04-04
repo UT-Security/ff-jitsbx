@@ -47,15 +47,10 @@ Address CacheRegisterAllocator::addressOf(MacroAssembler& masm,
                                           BaselineFrameSlot slot) const {
   uint32_t offset =
       stackPushed_ + ICStackValueOffset + slot.slot() * sizeof(JS::Value);
-#ifdef JS_JIT_SBX
-  // The frame descriptor and frame pointer are also on the stack.
-  offset += 2 * sizeof(uintptr_t);
-#else
   if (JitOptions.enableICFramePointers) {
     // The frame pointer is also on the stack.
     offset += sizeof(uintptr_t);
   }
-#endif
 
   return Address(masm.getStackPointer(), offset);
 }
@@ -64,15 +59,10 @@ BaseValueIndex CacheRegisterAllocator::addressOf(MacroAssembler& masm,
                                                  BaselineFrameSlot slot) const {
   uint32_t offset =
       stackPushed_ + ICStackValueOffset + slot.slot() * sizeof(JS::Value);
-#ifdef JS_JIT_SBX
-  // The frame descriptor and frame pointer are also on the stack.
-  offset += 2 * sizeof(uintptr_t);
-#else
   if (JitOptions.enableICFramePointers) {
     // The frame pointer is also on the stack.
     offset += sizeof(uintptr_t);
   }
-#endif
   return BaseValueIndex(masm.getStackPointer(), argcReg, offset);
 }
 
@@ -105,23 +95,24 @@ void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
 
 #ifdef DEBUG
   // Compute frame size. Because the frame descriptor, return address and
-  // frame pointer are on the stack this is:
+  // frame pointer are not yet on the stack this is:
   //
-  //   compiler.baselineFrameReg()
+  //   FramePointer
   //   - StackPointer
-  //   - sizeof(return address) - sizeof(frame pointer) - sizeof(frame descriptor)
 
-  masm.movq(compiler.baselineFrameReg(), scratch);
+  masm.movq(FramePointer, scratch);
   masm.subq(StackPointer, scratch);
-  masm.subq(Imm32(3 * sizeof(void*)), scratch);
 
-  Address frameSizeAddr(compiler.baselineFrameReg(),
+  Address frameSizeAddr(FramePointer,
                         BaselineFrame::reverseOffsetOfDebugFrameSize());
   masm.store32(scratch, frameSizeAddr);
 #endif
 
-  // account for the frame descriptor and frame pointer.
-  masm.adjustFrame(2 * sizeof(uintptr_t));
+  masm.push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
+	masm.sbxPushFrame();
+  // account for the frame descriptor, return address and frame pointer.
+  masm.adjustFrame(3 * sizeof(uintptr_t));
+  masm.mov(StackPointer, FramePointer);
   masm.Push(ICStubReg);
 #else
   if (JitOptions.enableICFramePointers) {
@@ -154,7 +145,9 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   Address stubAddr(FramePointer, BaselineStubFrameLayout::ICStubOffsetFromFP);
   masm.loadPtr(stubAddr, ICStubReg);
   masm.mov(FramePointer, StackPointer);
-  masm.implicitPop(3 * sizeof(uintptr_t));
+  masm.sbxPopStubFrame();
+  // account for popping everything off of the sandbox stack
+  masm.implicitPop(4 * sizeof(uintptr_t));
 #else
   EmitBaselineLeaveStubFrame(masm);
   if (JitOptions.enableICFramePointers) {
@@ -200,15 +193,20 @@ JitCode* BaselineCacheIRCompiler::compile() {
   masm.sbxSetFramePushed(0);
 
 #ifndef JS_USE_LINK_REGISTER
+#ifndef JS_JIT_SBX
   masm.adjustFrame(sizeof(intptr_t));
+#endif
 #endif
 #ifdef JS_CODEGEN_ARM
   masm.setSecondScratchReg(BaselineSecondScratchReg);
 #endif
 
 #ifdef JS_JIT_SBX
-  MOZ_ASSERT(baselineFrameReg() != FramePointer);
-  EmitBaselineICPrologue(masm, baselineFrameReg_);   
+  masm.sbxAssertNativeStack();
+  masm.sbxSetFramePushed(sizeof(void*));
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(sizeof(void*));
+	masm.sbxToSandboxStack();
 #else
   if (JitOptions.enableICFramePointers) {
     /* [SMDOC] Baseline IC Frame Pointers
@@ -269,7 +267,6 @@ JitCode* BaselineCacheIRCompiler::compile() {
       return nullptr;
     }
 #ifdef JS_JIT_SBX
-    masm.sbxPopStubFrame();
     masm.sbxToNativeStack();
     masm.pop(FramePointer);
     masm.sbxImplicitPop(sizeof(void*));
@@ -1926,7 +1923,6 @@ bool BaselineCacheIRCompiler::emitReturnFromIC() {
 
 #ifdef JS_JIT_SBX
   masm.sbxAssertSandboxStack();
-  masm.sbxPopStubFrame();
   masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.sbxImplicitPop(sizeof(void*));
