@@ -164,6 +164,11 @@
 #include "Mutex.h"
 #include "Utils.h"
 
+// ask2374
+#include "sandbox/SandboxInterface.h"
+js::sandbox::Interface* sandboxInterface;
+// ask2374
+
 #if defined(XP_WIN)
 #  include "mozmemory_utils.h"
 #endif
@@ -2238,10 +2243,17 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
     ret = chunk_recycle(aSize, aAlignment, aZeroed);
   }
   if (!ret) {
-    ret = chunk_alloc_mmap(aSize, aAlignment);
+    // ask2374
+    bool sandbox = true;
+    MOZ_ASSERT(sandboxInterface == (js::sandbox::Interface*)0x200000000);
+    // MOZ_ASSERT(sandboxInterface->MapAlignedPages != nullptr);
+    ret = sandbox ? sandboxInterface->MapAlignedPages(aSize, aAlignment) : 
+      chunk_alloc_mmap(aSize, aAlignment);
+    // TODO: note that the sandbox allocator may not return zeroed memory
     if (aZeroed) {
       *aZeroed = true;
     }
+    // ask2374
   }
   if (ret && !aBase) {
     if (!gChunkRTree.Set(ret, ret)) {
@@ -4239,6 +4251,11 @@ static size_t GetKernelPageSize() {
 
 // Returns whether the allocator was successfully initialized.
 static bool malloc_init_hard() {
+
+  // ask2374
+  sandboxInterface = (js::sandbox::Interface*) 0x200000000;
+  // ask2374
+
   unsigned i;
   const char* opts;
 

@@ -25,7 +25,9 @@
 #include "jit/Simulator.h"
 #include "js/Utility.h"
 // ask2374
+#include <sys/mman.h>
 #include "sandbox/JitSandbox.h"
+#include "sandbox/SandboxInterface.h"
 // ask2374
 #include "threading/ProtectedData.h"  // js::AutoNoteSingleThreadedRegion
 #include "util/Poison.h"
@@ -49,6 +51,7 @@ bool LOG_OPT;
 bool SANDBOX_OPT;
 FILE* sandbox_log;
 std::mutex log_mutex;
+js::sandbox::Interface* sandboxInterface;
 // ask2374
 
 InitState JS::detail::libraryInitState;
@@ -128,6 +131,7 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 #endif
 
   // ask2374
+  // Initialize SANDBOX_LOG and related utilities
   char* LOG_ENV = getenv("LOG");
   LOG_OPT = LOG_ENV != NULL && strncmp(LOG_ENV, "1", 1) == 0;
   if (LOG_OPT) {
@@ -144,6 +148,14 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
   }
   char* SANDBOX_ENV = getenv("SANDBOX");
   SANDBOX_OPT = SANDBOX_ENV != NULL && strncmp(SANDBOX_ENV, "1", 1) == 0;
+
+  // Initialize shared memory interface
+  // WARN: this only works on Linux
+  sandboxInterface = (js::sandbox::Interface*) mmap((void*)0x200000000, PAGE_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS | MAP_FIXED, -1, 0);
+  if (sandboxInterface == MAP_FAILED) {
+    abort();
+  }
+  sandboxInterface->MapAlignedPages = &js::sandbox::MapAlignedPages;
   // ask2374
 
   MOZ_ASSERT(libraryInitState == InitState::Uninitialized,

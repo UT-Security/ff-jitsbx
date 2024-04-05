@@ -231,6 +231,7 @@ EXPORTS.js += [
     "../public/Zone.h",
     # ask2374
     "sandbox/JitSandbox.h",
+    "sandbox/SandboxInterface.h",
     # ask2374
 ]
 

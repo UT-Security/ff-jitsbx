@@ -14,6 +14,8 @@
 #  include <unistd.h>
 #  include <unordered_map>
 
+// #include "jstypes.h"
+
 #  define PAGE_BASE(ptr) ((void*)((uint64_t)ptr & (uint64_t)(~(PAGE_SIZE - 1))))
 
 #  define SANDBOX_BASE(ptr) \
@@ -35,6 +37,8 @@ namespace js {
 namespace sandbox {
 
 void checkJitMask(void* ptr);
+void InitMemory();
+void* MapAlignedPages(size_t length, size_t alignment);
 
 }
 }  // namespace js

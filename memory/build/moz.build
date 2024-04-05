@@ -12,6 +12,12 @@ EXPORTS += [
     "mozmemory_wrap.h",
 ]
 
+# ask2374
+EXPORTS.sandbox += [
+    "../../js/src/sandbox/SandboxInterface.h",
+]
+# ask2374
+
 LIBRARY_DEFINES["MOZ_HAS_MOZGLUE"] = True
 DEFINES["MOZ_MEMORY_IMPL"] = True
 

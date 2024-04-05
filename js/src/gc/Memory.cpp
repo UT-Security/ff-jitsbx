@@ -16,8 +16,7 @@
 #include "js/Utility.h"
 #include "util/Memory.h"
 // ask2374
-#include "sandbox/JitSandbox.h"
-std::atomic<uint64_t> heap_bump_ptr;
+#include "js/JitSandbox.h"
 // ask2374
 
 #ifdef XP_WIN
@@ -178,7 +177,6 @@ static void* MapAlignedPagesSlow(size_t length, size_t alignment);
 static void* MapAlignedPagesLastDitch(size_t length, size_t alignment);
 
 #ifdef JS_64BIT
-static void* MapAlignedPagesSandbox(size_t length, size_t alignment);
 static void* MapAlignedPagesRandom(size_t length, size_t alignment);
 #endif
 
@@ -417,8 +415,7 @@ void InitMemorySubsystem() {
     }
 
     // ask2374
-    heap_bump_ptr = (uint64_t)MapInternal((void*)((uint64_t)1 << 32),
-                                          (size_t)1 << 32, false);
+    js::sandbox::InitMemory();
     // ask2374
 #else  // !defined(JS_64BIT)
     numAddressBits = 32;
@@ -467,14 +464,15 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 #else
 
 #  ifdef JS_64BIT
+  // ask2374
   if (SANDBOX_OPT) {
     // Use sandbox allocator.
-    void* region = MapAlignedPagesSandbox(length, alignment);
+    void* region = js::sandbox::MapAlignedPages(length, alignment);
 
     MOZ_RELEASE_ASSERT(!IsInvalidRegion(region, length));
     MOZ_ASSERT(OffsetFromAligned(region, alignment) == 0);
 
-    return region;
+    // return region;
   } else if (UsingScattershotAllocator()) {
     // Use the scattershot allocator if the address range is large enough.
     void* region = MapAlignedPagesRandom(length, alignment);
@@ -484,6 +482,7 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 
     return region;
   }
+  // ask2374
 #  endif
 
   // Try to allocate the region. If the returned address is aligned,
@@ -532,25 +531,6 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 
 #ifdef JS_64BIT
 
-// ask2374
-/*
- * This allocator maps pages in a contiguous 4GB region. Contiguous allocation
- * of memory is essential for efficiently masking accesses in the JIT comppiler.
- */
-static void* MapAlignedPagesSandbox(size_t length, size_t alignment) {
-  MOZ_ASSERT(length == js::gc::ChunkSize);
-  MOZ_ASSERT(alignment == js::gc::ChunkSize);
-
-  UnprotectPages((void*)heap_bump_ptr.load(), length);
-  void* current_ptr = (void*)heap_bump_ptr.load();
-  heap_bump_ptr += length;
-  // Check for sandbox overflow
-  MOZ_ASSERT(((uint64_t)current_ptr >> 32) ==
-             (heap_bump_ptr >> 32));
-  return current_ptr;
-}
-// ask2374
-
 /*
  * This allocator takes advantage of the large address range on some 64-bit
  * platforms to allocate in a scattershot manner, choosing addresses at random
@@ -571,7 +551,7 @@ static void* MapAlignedPagesSandbox(size_t length, size_t alignment) {
  * split the address range in half, with one half reserved for huge allocations
  * and the other for regular (usually chunk sized) allocations.
  */
-static void* MapAlignedPagesRandom(size_t length, size_t alignment) {
+void* MapAlignedPagesRandom(size_t length, size_t alignment) {
   uint64_t minNum, maxNum;
   if (length < HugeAllocationSize) {
     // Use the lower half of the range.
