@@ -20,6 +20,10 @@
 #include "util/Poison.h"
 #include "vm/HelperThreads.h"
 
+// ask2374
+#include "sandbox/SandboxInterface.h"
+// ask2374
+
 using namespace js;
 
 using mozilla::Maybe;
@@ -109,8 +113,11 @@ void js::InitMallocAllocator() {
   mallocArenaParams.mMaxDirtyIncreaseOverride = 5;
   // ask2374
   mallocArenaParams.sandbox = true;
-  // ask2374
   MallocArena = moz_create_arena_with_params(&mallocArenaParams);
+  MOZ_ASSERT(sandboxInterface == (js::sandbox::Interface*)0x200000000);
+  sandboxInterface->MallocArena = MallocArena;
+  // ask2374
+
 
   arena_params_t params;
   params.mMaxDirtyIncreaseOverride = 5;

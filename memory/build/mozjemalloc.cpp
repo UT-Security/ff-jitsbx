@@ -4926,7 +4926,6 @@ inline arena_t* ArenaCollection::GetById(arena_id_t aArenaId, bool aIsPrivate) {
   return result;
 }
 
-// ask2374
 template <>
 inline arena_id_t MozJemalloc::moz_create_arena_with_params(
     arena_params_t* aParams) {
@@ -4936,7 +4935,6 @@ inline arena_id_t MozJemalloc::moz_create_arena_with_params(
   }
   return 0;
 }
-// ask2374
 
 template <>
 inline void MozJemalloc::moz_dispose_arena(arena_id_t aArenaId) {
