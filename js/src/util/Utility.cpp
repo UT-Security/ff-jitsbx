@@ -107,11 +107,17 @@ JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
 void js::InitMallocAllocator() {
   arena_params_t mallocArenaParams;
   mallocArenaParams.mMaxDirtyIncreaseOverride = 5;
+  // ask2374
+  mallocArenaParams.sandbox = true;
+  // ask2374
   MallocArena = moz_create_arena_with_params(&mallocArenaParams);
 
   arena_params_t params;
   params.mMaxDirtyIncreaseOverride = 5;
   params.mFlags |= ARENA_FLAG_RANDOMIZE_SMALL_ENABLED;
+  // ask2374
+  params.sandbox = true;
+  // ask2374
   ArrayBufferContentsArena = moz_create_arena_with_params(&params);
   StringBufferArena = moz_create_arena_with_params(&params);
 }

@@ -1133,6 +1133,10 @@ struct arena_t {
   // arc4random allocates memory).
   mozilla::non_crypto::XorShift128PlusRNG* mPRNG;
 
+  // ask2374
+  bool sandbox;
+  // ask2374
+
  public:
   // Current count of pages within unused runs that are potentially
   // dirty, and for which madvise(... MADV_FREE) has not been called.  By
@@ -1179,7 +1183,7 @@ struct arena_t {
   //  +----------+------+
   arena_bin_t mBins[1];  // Dynamically sized.
 
-  explicit arena_t(arena_params_t* aParams, bool aIsPrivate);
+  explicit arena_t(arena_params_t* aParams, bool aIsPrivate, bool sandbox);
   ~arena_t();
 
  private:
@@ -1430,8 +1434,10 @@ static bool opt_randomize_small = true;
 // ***************************************************************************
 // Begin forward declarations.
 
+// ask2374
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
-                         bool* aZeroed = nullptr);
+                         bool sandbox, bool* aZeroed = nullptr);
+// ask2374
 static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
 static void chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed);
 static void huge_dalloc(void* aPtr, arena_t* aArena);
@@ -1700,7 +1706,9 @@ static bool base_pages_alloc(size_t minsize) MOZ_REQUIRES(base_mtx) {
 
   MOZ_ASSERT(minsize != 0);
   csize = CHUNK_CEILING(minsize);
-  base_pages = chunk_alloc(csize, kChunkSize, true);
+  // ask2374
+  base_pages = chunk_alloc(csize, kChunkSize, true, false);
+  // ask2374
   if (!base_pages) {
     return true;
   }
@@ -2228,8 +2236,10 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
 // `zeroed` is an outvalue that returns whether the allocated memory is
 // guaranteed to be full of zeroes. It can be omitted when the caller doesn't
 // care about the result.
+// ask2374
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
-                         bool* aZeroed) {
+                         bool sandbox, bool* aZeroed) {
+// ask2374
   void* ret = nullptr;
 
   MOZ_ASSERT(aSize != 0);
@@ -2244,7 +2254,6 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   }
   if (!ret) {
     // ask2374
-    bool sandbox = true;
     MOZ_ASSERT(sandboxInterface == (js::sandbox::Interface*)0x200000000);
     // MOZ_ASSERT(sandboxInterface->MapAlignedPages != nullptr);
     ret = sandbox ? sandboxInterface->MapAlignedPages(aSize, aAlignment) : 
@@ -2399,8 +2408,10 @@ static inline arena_t* thread_local_arena(bool enabled) {
     // called with `false`, but it doesn't matter at the moment.
     // because in practice nothing actually calls this function
     // with `false`, except maybe at shutdown.
+    // ask2374
     arena =
         gArenas.CreateArena(/* aIsPrivate = */ false, /* aParams = */ nullptr);
+    // ask2374
   } else {
     arena = gArenas.GetDefault();
   }
@@ -2767,8 +2778,10 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
     // No usable runs.  Create a new chunk from which to allocate
     // the run.
     bool zeroed;
+    // ask2374
     arena_chunk_t* chunk =
-        (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed);
+        (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, this->sandbox, &zeroed);
+    // ask2374
     if (!chunk) {
       return nullptr;
     }
@@ -3901,7 +3914,7 @@ void arena_t::operator delete(void* aPtr) {
   TypedBaseAlloc<arena_t>::dealloc((arena_t*)aPtr);
 }
 
-arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
+arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate, bool sandbox) {
   unsigned i;
 
   MOZ_RELEASE_ASSERT(mLock.Init());
@@ -3909,6 +3922,10 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   memset(&mLink, 0, sizeof(mLink));
   memset(&mStats, 0, sizeof(arena_stats_t));
   mId = 0;
+  
+  // ask2374
+  this->sandbox = sandbox;
+  // ask2374
 
   // Initialize chunks.
   mChunksDirty.Init();
@@ -3998,7 +4015,10 @@ arena_t::~arena_t() {
 
 arena_t* ArenaCollection::CreateArena(bool aIsPrivate,
                                       arena_params_t* aParams) {
-  arena_t* ret = new (fallible) arena_t(aParams, aIsPrivate);
+  // ask2374
+  bool sandbox = (aParams != nullptr) ? aParams->sandbox : false;
+  // ask2374
+  arena_t* ret = new (fallible) arena_t(aParams, aIsPrivate, sandbox);
   if (!ret) {
     // Only reached if there is an OOM error.
 
@@ -4078,7 +4098,9 @@ void* arena_t::PallocHuge(size_t aSize, size_t aAlignment, bool aZero) {
   }
 
   // Allocate one or more contiguous chunks for this request.
-  ret = chunk_alloc(csize, aAlignment, false, &zeroed);
+  // ask2374
+  ret = chunk_alloc(csize, aAlignment, false, false, &zeroed);
+  // ask2374
   if (!ret) {
     ExtentAlloc::dealloc(node);
     return nullptr;
@@ -4459,6 +4481,31 @@ struct BaseAllocator {
   }
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC_BASE
 #include "malloc_decls.h"
+
+// ask2374
+// inline void* BaseAllocator::sandbox_malloc(size_t aSize) {
+//   void* ret;
+//   arena_t* arena;
+//
+//   if (!malloc_init()) {
+//     ret = nullptr;
+//     goto RETURN;
+//   }
+//
+//   if (aSize == 0) {
+//     aSize = 1;
+//   }
+//   arena = mArena ? mArena : choose_arena(aSize);
+//   ret = arena->Malloc(aSize, /* aZero = */ false);
+//
+// RETURN:
+//   if (!ret) {
+//     errno = ENOMEM;
+//   }
+//
+//   return ret;
+// }
+// ask2374 
 
 inline void* BaseAllocator::malloc(size_t aSize) {
   void* ret;
@@ -4879,6 +4926,7 @@ inline arena_t* ArenaCollection::GetById(arena_id_t aArenaId, bool aIsPrivate) {
   return result;
 }
 
+// ask2374
 template <>
 inline arena_id_t MozJemalloc::moz_create_arena_with_params(
     arena_params_t* aParams) {
@@ -4888,6 +4936,7 @@ inline arena_id_t MozJemalloc::moz_create_arena_with_params(
   }
   return 0;
 }
+// ask2374
 
 template <>
 inline void MozJemalloc::moz_dispose_arena(arena_id_t aArenaId) {

@@ -73,6 +73,10 @@ typedef struct arena_params_s {
   int32_t mMaxDirtyIncreaseOverride;
   int32_t mMaxDirtyDecreaseOverride;
 
+  // ask2374
+  bool sandbox;
+  // ask2374
+
   uint32_t mFlags;
 
 #ifdef __cplusplus
@@ -80,6 +84,9 @@ typedef struct arena_params_s {
       : mMaxDirty(0),
         mMaxDirtyIncreaseOverride(0),
         mMaxDirtyDecreaseOverride(0),
+        // ask2374
+        sandbox(false),
+        // ask2374
         mFlags(0) {}
 #endif
 } arena_params_t;
