@@ -587,8 +587,17 @@ void CodeGeneratorShared::addIC(LInstruction* lir, size_t cacheIndex) {
                              mir->resumePoint()->pc());
 
   Register temp = cache->scratchRegisterForEntryJump();
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  icInfo_.back().icOffsetForReturnAddressPush = masm.sbxPushWithPatch(ImmPtr((void*)-1), temp);
+#endif
   icInfo_.back().icOffsetForJump = masm.movWithPatch(ImmWord(-1), temp);
   masm.jump(Address(temp, 0));
+#ifdef JS_JIT_SBX
+  cache->setRejoinOffset(CodeOffset(masm.currentOffset()));
+  masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxToSandboxStack();  
+#endif
 
   MOZ_ASSERT(!icInfo_.empty());
 
@@ -597,7 +606,9 @@ void CodeGeneratorShared::addIC(LInstruction* lir, size_t cacheIndex) {
   addOutOfLineCode(ool, mir);
 
   masm.bind(ool->rejoin());
+#ifndef JS_JIT_SBX
   cache->setRejoinOffset(CodeOffset(ool->rejoin()->offset()));
+#endif
 }
 
 void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
@@ -609,7 +620,12 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
-
+#ifdef JS_JIT_SBX
+  masm.sbxAssumeNativeStack();
+  masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxToSandboxStack();  
+#endif
+        
   switch (ic->kind()) {
     case CacheKind::GetProp:
     case CacheKind::GetElem: {
@@ -625,6 +641,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonGetPropertyIC*,
                           HandleValue, HandleValue, MutableHandleValue);
       callVM<Fn, IonGetPropertyIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getPropIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(getPropIC->output()).clobbered());
@@ -648,6 +667,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
           bool (*)(JSContext*, HandleScript, IonGetPropSuperIC*, HandleObject,
                    HandleValue, HandleValue, MutableHandleValue);
       callVM<Fn, IonGetPropSuperIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getPropSuperIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -671,6 +693,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonSetPropertyIC*,
                           HandleObject, HandleValue, HandleValue);
       callVM<Fn, IonSetPropertyIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       restoreLive(lir);
 
@@ -689,6 +714,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonGetNameIC*, HandleObject,
                           MutableHandleValue);
       callVM<Fn, IonGetNameIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getNameIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(getNameIC->output()).clobbered());
@@ -708,6 +736,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           JSObject* (*)(JSContext*, HandleScript, IonBindNameIC*, HandleObject);
       callVM<Fn, IonBindNameIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(bindNameIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(bindNameIC->output()).clobbered());
@@ -727,6 +758,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = JSObject* (*)(JSContext*, HandleScript, IonGetIteratorIC*,
                                HandleValue);
       callVM<Fn, IonGetIteratorIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(getIteratorIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -747,6 +781,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonOptimizeSpreadCallIC*,
                           HandleValue, MutableHandleValue);
       callVM<Fn, IonOptimizeSpreadCallIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(optimizeSpreadCallIC->output()).generate(this);
       restoreLiveIgnore(
@@ -768,6 +805,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonInIC*, HandleValue,
                           HandleObject, bool*);
       callVM<Fn, IonInIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(inIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(inIC->output()).clobbered());
@@ -788,6 +828,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonHasOwnIC*, HandleValue,
                           HandleValue, int32_t*);
       callVM<Fn, IonHasOwnIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(hasOwnIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(hasOwnIC->output()).clobbered());
@@ -809,6 +852,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonCheckPrivateFieldIC*,
                           HandleValue, HandleValue, bool*);
       callVM<Fn, IonCheckPrivateFieldIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(checkPrivateFieldIC->output()).generate(this);
       restoreLiveIgnore(
@@ -830,6 +876,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext*, HandleScript, IonInstanceOfIC*,
                           HandleValue lhs, HandleObject rhs, bool* res);
       callVM<Fn, IonInstanceOfIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(hasInstanceOfIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -851,6 +900,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
                           IonUnaryArithIC* stub, HandleValue val,
                           MutableHandleValue res);
       callVM<Fn, IonUnaryArithIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(unaryArithIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(unaryArithIC->output()).clobbered());
@@ -871,6 +923,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
                           IonToPropertyKeyIC* ic, HandleValue val,
                           MutableHandleValue res);
       callVM<Fn, IonToPropertyKeyIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(toPropertyKeyIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -893,6 +948,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
                           IonBinaryArithIC* stub, HandleValue lhs,
                           HandleValue rhs, MutableHandleValue res);
       callVM<Fn, IonBinaryArithIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(binaryArithIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(binaryArithIC->output()).clobbered());
@@ -914,6 +972,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
           bool (*)(JSContext* cx, HandleScript outerScript, IonCompareIC* stub,
                    HandleValue lhs, HandleValue rhs, bool* res);
       callVM<Fn, IonCompareIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(compareIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(compareIC->output()).clobbered());
@@ -933,6 +994,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           bool (*)(JSContext*, HandleScript, IonCloseIterIC*, HandleObject);
       callVM<Fn, IonCloseIterIC::update>(lir);
+#ifdef JS_JIT_SBX
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       restoreLive(lir);
 
@@ -14080,6 +14144,11 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     Assembler::PatchDataWithValueCheck(
         CodeLocationLabel(code, icInfo_[i].icOffsetForPush), ImmPtr(&ic),
         ImmPtr((void*)-1));
+#ifdef JS_JIT_SBX
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(code, icInfo_[i].icOffsetForReturnAddressPush), ImmPtr(CodeLocationLabel(code, icInfo_[i].icReturnDisplacementForPush).raw()),
+        ImmPtr((void*)-1));
+#endif
   }
 
   JitSpew(JitSpew_Codegen, "Created IonScript %p (raw %p)", (void*)ionScript,

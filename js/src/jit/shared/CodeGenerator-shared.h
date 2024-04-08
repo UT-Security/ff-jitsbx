@@ -71,6 +71,10 @@ class CodeGeneratorShared : public LElementVisitor {
   struct CompileTimeICInfo {
     CodeOffset icOffsetForJump;
     CodeOffset icOffsetForPush;
+  #ifdef JS_JIT_SBX
+    CodeOffset icOffsetForReturnAddressPush;
+    CodeOffset icReturnDisplacementForPush;
+  #endif
   };
   js::Vector<CompileTimeICInfo, 0, SystemAllocPolicy> icInfo_;
 

@@ -926,6 +926,11 @@ class MacroAssembler : public MacroAssemblerSpecific {
 	inline void sbxPopFramePointer();
 	inline void sbxPopFrame();
 	inline void sbxPopStubFrame();
+	inline void sbxRestoreFramePointer();
+
+#ifdef JS_JIT_SBX
+  inline CodeOffset sbxPushWithPatch(ImmPtr imm, Register scratch);
+#endif
 
 	// JIT Stack Sandbox aware call functions.
 	inline CodeOffset sbxCall(Register reg);

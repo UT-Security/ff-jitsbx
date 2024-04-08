@@ -187,9 +187,11 @@ Value* JSJitFrameIter::actualArgs() const { return jsFrame()->actualArgs(); }
 
 uint8_t* JSJitFrameIter::prevFp() const { 
 #ifdef JS_JIT_SBX
-		MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr(), "Frame Pointer mismatch in Native and Sandbox stack");
-#endif
+	MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr(), "Frame Pointer mismatch in Native and Sandbox stack");
 	return currentNative()->callerFramePtr();
+#else
+  return current()->callerFramePtr();
+#endif
 }
 
 #ifdef JS_JIT_SBX

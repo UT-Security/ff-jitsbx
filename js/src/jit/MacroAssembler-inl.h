@@ -302,6 +302,17 @@ void MacroAssembler::sbxToSandboxStack() {
 	currentStack_ = SANDBOX;
 }
 
+void MacroAssembler::sbxRestoreFramePointer() {
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()->sandboxRuntime->addressOfSavedNativeStackPtr()), rbp);
+  loadPtr(Address(rbp, 0), rbp);
+}
+
+    
+CodeOffset MacroAssembler::sbxPushWithPatch(ImmPtr imm, Register scratch) {
+  CodeOffset label = movWithPatch(imm, scratch);
+  push(scratch);
+  return label;
+}
 #else
 
 void MacroAssembler::sbxAssumeNativeStack() {}
@@ -317,6 +328,7 @@ void MacroAssembler::sbxImplicitPop(uint32_t bytes) {}
 void MacroAssembler::sbxToNativeStack() {}
 void MacroAssembler::sbxSaveNativeStack() {}
 void MacroAssembler::sbxToSandboxStack() {}
+void MacroAssembler::sbxRestoreFramePointer() {}
 
 #endif
 

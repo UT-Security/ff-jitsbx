@@ -264,13 +264,13 @@ void IonCacheIRCompiler::enterStubFrame(MacroAssembler& masm,
   MOZ_ASSERT(!enteredStubFrame_);
   pushStubCodePointer();
   masm.PushFrameDescriptor(FrameType::IonJS);
+#ifdef JS_JIT_SBX
   masm.sbxPushFrame();
-  masm.sbxToNativeStack();
+  masm.adjustFrame(2 * sizeof(void*));
+#else
   masm.Push(ImmPtr(GetReturnAddressToIonCode(cx_)));
-
   masm.Push(FramePointer);
-  masm.sbxImplicitPush(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   enteredStubFrame_ = true;
@@ -551,7 +551,12 @@ bool IonCacheIRCompiler::init() {
 JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   AutoCreatedBy acb(masm, "IonCacheIRCompiler::compile");
 
-  masm.sbxAssumeSandboxStack();
+#ifdef JS_JIT_SBX
+  masm.sbxAssumeNativeStack();
+  masm.push(FramePointer);
+  masm.sbxSetFramePushed(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+#endif
   masm.setFramePushed(ionScript_->frameSize());
   if (cx_->runtime()->geckoProfiler().enabled()) {
     masm.enableProfilingInstrumentation();
@@ -586,6 +591,11 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
     }
     Register scratch = ic_->scratchRegisterForEntryJump();
     CodeOffset offset = masm.movWithPatch(ImmWord(-1), scratch);
+#ifdef JS_JIT_SBX
+    masm.sbxToNativeStack();
+    masm.pop(FramePointer);
+    masm.sbxImplicitPop(sizeof(void*));
+#endif
     masm.jump(Address(scratch, 0));
     if (!nextCodeOffsets_.append(offset)) {
       return nullptr;
@@ -923,11 +933,7 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
 
   // Restore the frame pointer and stack pointer.
 #ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.pop(FramePointer);
-  masm.addToStackPtr(Imm32(sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
+  masm.sbxRestoreFramePointer();
 #else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
 #endif
@@ -1013,12 +1019,6 @@ bool IonCacheIRCompiler::emitCallNativeGetterResult(
     masm.speculationBarrier();
   }
 
-#ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
-#endif
   masm.adjustStack(IonOOLNativeExitFrameLayout::Size(0));
   return true;
 }
@@ -1134,12 +1134,6 @@ bool IonCacheIRCompiler::emitProxyGetResult(ObjOperandId objId,
     masm.speculationBarrier();
   }
 
-#ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
-#endif
   // masm.leaveExitFrame & pop locals
   masm.adjustStack(IonOOLProxyExitFrameLayout::Size());
   return true;
@@ -1495,12 +1489,6 @@ bool IonCacheIRCompiler::emitCallNativeSetter(ObjOperandId receiverId,
   if (!sameRealm) {
     masm.switchToRealm(cx_->realm(), ReturnReg);
   }
-#ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
-#endif
   masm.adjustStack(IonOOLNativeExitFrameLayout::Size(1));
   return true;
 }
@@ -1568,11 +1556,7 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
 
   // Restore the frame pointer and stack pointer.
 #ifdef JS_JIT_SBX
-  masm.sbxToNativeStack();
-  masm.pop(FramePointer);
-  masm.addToStackPtr(Imm32(sizeof(void*)));
-  masm.sbxImplicitPop(2 * sizeof(void*));
-  masm.sbxToSandboxStack();
+  masm.sbxRestoreFramePointer();
 #else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
 #endif
@@ -1706,6 +1690,10 @@ bool IonCacheIRCompiler::emitReturnFromIC() {
     allocator.restoreInputState(masm);
   }
 
+#ifdef JS_JIT_SBX
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+#endif
   uint8_t* rejoinAddr = ic_->rejoinAddr(ionScript_);
   masm.jump(ImmPtr(rejoinAddr));
   return true;
