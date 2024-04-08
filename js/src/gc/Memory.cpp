@@ -472,7 +472,7 @@ void* MapAlignedPages(size_t length, size_t alignment) {
     MOZ_RELEASE_ASSERT(!IsInvalidRegion(region, length));
     MOZ_ASSERT(OffsetFromAligned(region, alignment) == 0);
 
-    // return region;
+    return region;
   } else if (UsingScattershotAllocator()) {
     // Use the scattershot allocator if the address range is large enough.
     void* region = MapAlignedPagesRandom(length, alignment);

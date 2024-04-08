@@ -369,6 +369,12 @@ class GCRuntime {
     return nursery_.refNoCheck().addressOfPosition();
   }
 
+  // ask2374
+  void* addressOfNurseryEnd() {
+    return nursery_.refNoCheck().addressOfEnd();
+  }
+  // ask2374
+
   const void* addressOfLastBufferedWholeCell() {
     return storeBuffer_.refNoCheck().addressOfLastBufferedWholeCell();
   }

@@ -156,6 +156,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     abort();
   }
   sandboxInterface->MapAlignedPages = &js::sandbox::MapAlignedPages;
+
+  // Initialize gsbase
+  __asm__ __volatile__("wrgsbase %0": : "r" (0x100000000));
   // ask2374
 
   MOZ_ASSERT(libraryInitState == InitState::Uninitialized,

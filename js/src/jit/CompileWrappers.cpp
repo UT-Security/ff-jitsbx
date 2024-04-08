@@ -148,6 +148,12 @@ void* CompileZone::addressOfNurseryPosition() {
   return zone()->runtimeFromAnyThread()->gc.addressOfNurseryPosition();
 }
 
+// ask2374
+void* CompileZone::addressOfNurseryEnd() {
+  return zone()->runtimeFromAnyThread()->gc.addressOfNurseryEnd();
+}
+// ask2374
+
 void* CompileZone::addressOfNurseryAllocatedSites() {
   JSRuntime* rt = zone()->runtimeFromAnyThread();
   return rt->gc.nursery().addressOfNurseryAllocatedSites();

@@ -213,8 +213,7 @@ void js::NurseryDecommitTask::run(AutoLockHelperThreadState& lock) {
 }
 
 js::Nursery::Nursery(GCRuntime* gc)
-    : position_(0),
-      currentEnd_(0),
+    : currentEnd_(0),
       gc(gc),
       currentChunk_(0),
       currentStartChunk_(0),
@@ -231,6 +230,12 @@ js::Nursery::Nursery(GCRuntime* gc)
       minorGCTriggerReason_(JS::GCReason::NO_REASON),
       hasRecentGrowthData(false),
       smoothedTargetSize(0.0) {
+
+  // ask2374
+  position_ = (uintptr_t*)js_malloc(sizeof(uintptr_t));
+  *position_ = 0;
+  // ask2374
+
   const char* env = getenv("MOZ_NURSERY_STRINGS");
   if (env && *env) {
     canAllocateStrings_ = (*env == '1');
@@ -378,7 +383,9 @@ void js::Nursery::disable() {
   // We must reset currentEnd_ so that there is no space for anything in the
   // nursery. JIT'd code uses this even if the nursery is disabled.
   currentEnd_ = 0;
-  position_ = 0;
+  // ask2374
+  *position_ = 0;
+  // ask2374
   gc->storeBuffer().disable();
 
   if (gc->wasInitialized()) {
@@ -571,7 +578,9 @@ inline void* js::Nursery::allocate(size_t size) {
   }
 
   void* thing = (void*)position();
-  position_ = position() + size;
+  // ask2374
+  *position_ = position() + size;
+  // ask2374
 
   DebugOnlyPoison(thing, JS_ALLOCATED_NURSERY_PATTERN, size,
                   MemCheckKind::MakeUndefined);
@@ -1722,7 +1731,9 @@ MOZ_ALWAYS_INLINE void js::Nursery::setCurrentChunk(unsigned chunkno) {
   MOZ_ASSERT(chunkno < allocatedChunkCount());
 
   currentChunk_ = chunkno;
-  position_ = chunk(chunkno).start();
+  // ask2374
+  *position_ = chunk(chunkno).start();
+  // ask2374
   setCurrentEnd();
 }
 
