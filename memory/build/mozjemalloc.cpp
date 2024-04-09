@@ -4099,7 +4099,7 @@ void* arena_t::PallocHuge(size_t aSize, size_t aAlignment, bool aZero) {
 
   // Allocate one or more contiguous chunks for this request.
   // ask2374
-  ret = chunk_alloc(csize, aAlignment, false, false, &zeroed);
+  ret = chunk_alloc(csize, aAlignment, false, this->sandbox, &zeroed);
   // ask2374
   if (!ret) {
     ExtentAlloc::dealloc(node);

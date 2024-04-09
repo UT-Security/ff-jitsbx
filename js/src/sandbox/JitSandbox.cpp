@@ -174,15 +174,15 @@ void js::sandbox::InitMemory() {
  * of memory is essential for efficiently masking accesses in the JIT comppiler.
  */
 void* js::sandbox::MapAlignedPages(size_t length, size_t alignment) {
-  MOZ_ASSERT(length == js::gc::ChunkSize);
-  MOZ_ASSERT(alignment == js::gc::ChunkSize);
+  MOZ_ASSERT(length % alignment == 0);
+  MOZ_ASSERT(alignment % js::gc::ChunkSize == 0);
   MOZ_ASSERT(heap_bump_ptr.load() != 0);
-
-  UnprotectPages((void*)heap_bump_ptr.load(), length);
-  void* current_ptr = (void*)heap_bump_ptr.load();
-  heap_bump_ptr += length;
-  // Check for sandbox overflow
-  MOZ_ASSERT(((uint64_t)current_ptr >> 32) == (heap_bump_ptr >> 32));
+	
+	UnprotectPages((void*)heap_bump_ptr.load(), length);
+	void* current_ptr = (void*)heap_bump_ptr.load();
+	heap_bump_ptr += length;
+	// Check for sandbox overflow
+	MOZ_ASSERT(((uint64_t)current_ptr >> 32) == (heap_bump_ptr >> 32));
   return current_ptr;
 }
 // ask2374
