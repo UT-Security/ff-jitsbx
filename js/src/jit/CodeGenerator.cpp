@@ -382,6 +382,93 @@ void CodeGenerator::callVM(LInstruction* ins) {
   callVMInternal(id, ins);
 }
 
+#ifdef JS_JIT_SBX
+// Before doing any call to Cpp, you should ensure that volatile
+// registers are evicted by the register allocator.
+void CodeGenerator::tailCallVMInternal(VMFunctionId id, LInstruction* ins) {
+  TrampolinePtr code = gen->jitRuntime()->getVMWrapper(id);
+  const VMFunctionData& fun = GetVMFunction(id);
+
+  // Stack is:
+  //    ... frame ...
+  //    [args]
+#ifdef DEBUG
+  MOZ_ASSERT(pushedArgs_ == fun.explicitArgs);
+  pushedArgs_ = 0;
+#endif
+
+#ifdef CHECK_OSIPOINT_REGISTERS
+  if (shouldVerifyOsiPointRegs(ins->safepoint())) {
+    StoreAllLiveRegs(masm, ins->safepoint()->liveRegs());
+  }
+#endif
+
+  MOZ_ASSERT(masm.sbxFramePushed() % JitStackAlignment == 0);
+
+#ifdef DEBUG
+  if (ins->mirRaw()) {
+    MOZ_ASSERT(ins->mirRaw()->isInstruction());
+    MInstruction* mir = ins->mirRaw()->toInstruction();
+    MOZ_ASSERT_IF(mir->needsResumePoint(), mir->resumePoint());
+
+    // If this MIR instruction has an overridden AliasSet, set the JitRuntime's
+    // disallowArbitraryCode_ flag so we can assert this VMFunction doesn't call
+    // RunScript. Whitelist MInterruptCheck and MCheckOverRecursed because
+    // interrupt callbacks can call JS (chrome JS or shell testing functions).
+    bool isWhitelisted = mir->isInterruptCheck() || mir->isCheckOverRecursed();
+    if (!mir->hasDefaultAliasSet() && !isWhitelisted) {
+      const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
+      masm.move32(Imm32(1), ReturnReg);
+      masm.store32(ReturnReg, AbsoluteAddress(addr));
+    }
+  }
+#endif
+
+  // Push an exit frame descriptor.
+  masm.PushFrameDescriptor(FrameType::IonJS);
+
+  // Call the wrapper function.  The wrapper is in charge to unwind the stack
+  // when returning from the call.  Failures are handled with exceptions based
+  // on the return value of the C functions.  To guard the outcome of the
+  // returned value, use another LIR instruction.
+  ensureOsiSpace();
+  masm.sbxToNativeStack();
+  masm.jump(code);
+  uint32_t callOffset = masm.currentOffset();
+  masm.sbxToSandboxStack();
+  markSafepointAt(callOffset, ins);
+
+#ifdef DEBUG
+  // Reset the disallowArbitraryCode flag after the call.
+  {
+    const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
+    masm.push(ReturnReg);
+    masm.move32(Imm32(0), ReturnReg);
+    masm.store32(ReturnReg, AbsoluteAddress(addr));
+    masm.pop(ReturnReg);
+  }
+#endif
+
+  // Pop rest of the exit frame and the arguments left on the stack.
+  int framePop =
+      sizeof(ExitFrameLayout) - ExitFrameLayout::bytesPoppedAfterCall();
+  masm.implicitPop(fun.explicitStackSlots() * sizeof(void*) + framePop);
+
+  // Stack is:
+  //    ... frame ...
+}
+#endif
+
+template <typename Fn, Fn fn>
+void CodeGenerator::tailCallVM(LInstruction* ins) {
+  VMFunctionId id = VMFunctionToId<Fn, fn>::id;
+#ifdef JS_JIT_SBX
+  tailCallVMInternal(id, ins);
+#else
+  callVMInternal(id, ins);
+#endif
+}
+
 // ArgSeq store arguments for OutOfLineCallVM.
 //
 // OutOfLineCallVM are created with "oolCallVM" function. The third argument of
@@ -622,7 +709,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
 #ifdef JS_JIT_SBX
   masm.sbxAssumeNativeStack();
-  masm.addToStackPtr(Imm32(sizeof(void*)));
+  //masm.addToStackPtr(Imm32(sizeof(void*)));
   masm.sbxToSandboxStack();  
 #endif
         
@@ -640,7 +727,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonGetPropertyIC*,
                           HandleValue, HandleValue, MutableHandleValue);
-      callVM<Fn, IonGetPropertyIC::update>(lir);
+      tailCallVM<Fn, IonGetPropertyIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -666,7 +753,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           bool (*)(JSContext*, HandleScript, IonGetPropSuperIC*, HandleObject,
                    HandleValue, HandleValue, MutableHandleValue);
-      callVM<Fn, IonGetPropSuperIC::update>(lir);
+      tailCallVM<Fn, IonGetPropSuperIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -692,7 +779,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonSetPropertyIC*,
                           HandleObject, HandleValue, HandleValue);
-      callVM<Fn, IonSetPropertyIC::update>(lir);
+      tailCallVM<Fn, IonSetPropertyIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -713,7 +800,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonGetNameIC*, HandleObject,
                           MutableHandleValue);
-      callVM<Fn, IonGetNameIC::update>(lir);
+      tailCallVM<Fn, IonGetNameIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -735,7 +822,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn =
           JSObject* (*)(JSContext*, HandleScript, IonBindNameIC*, HandleObject);
-      callVM<Fn, IonBindNameIC::update>(lir);
+      tailCallVM<Fn, IonBindNameIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -757,7 +844,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = JSObject* (*)(JSContext*, HandleScript, IonGetIteratorIC*,
                                HandleValue);
-      callVM<Fn, IonGetIteratorIC::update>(lir);
+      tailCallVM<Fn, IonGetIteratorIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -780,7 +867,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonOptimizeSpreadCallIC*,
                           HandleValue, MutableHandleValue);
-      callVM<Fn, IonOptimizeSpreadCallIC::update>(lir);
+      tailCallVM<Fn, IonOptimizeSpreadCallIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -804,7 +891,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonInIC*, HandleValue,
                           HandleObject, bool*);
-      callVM<Fn, IonInIC::update>(lir);
+      tailCallVM<Fn, IonInIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -827,7 +914,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonHasOwnIC*, HandleValue,
                           HandleValue, int32_t*);
-      callVM<Fn, IonHasOwnIC::update>(lir);
+      tailCallVM<Fn, IonHasOwnIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -851,7 +938,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonCheckPrivateFieldIC*,
                           HandleValue, HandleValue, bool*);
-      callVM<Fn, IonCheckPrivateFieldIC::update>(lir);
+      tailCallVM<Fn, IonCheckPrivateFieldIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -875,7 +962,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonInstanceOfIC*,
                           HandleValue lhs, HandleObject rhs, bool* res);
-      callVM<Fn, IonInstanceOfIC::update>(lir);
+      tailCallVM<Fn, IonInstanceOfIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -899,7 +986,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonUnaryArithIC* stub, HandleValue val,
                           MutableHandleValue res);
-      callVM<Fn, IonUnaryArithIC::update>(lir);
+      tailCallVM<Fn, IonUnaryArithIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -922,7 +1009,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonToPropertyKeyIC* ic, HandleValue val,
                           MutableHandleValue res);
-      callVM<Fn, IonToPropertyKeyIC::update>(lir);
+      tailCallVM<Fn, IonToPropertyKeyIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -947,7 +1034,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonBinaryArithIC* stub, HandleValue lhs,
                           HandleValue rhs, MutableHandleValue res);
-      callVM<Fn, IonBinaryArithIC::update>(lir);
+      tailCallVM<Fn, IonBinaryArithIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -971,7 +1058,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           bool (*)(JSContext* cx, HandleScript outerScript, IonCompareIC* stub,
                    HandleValue lhs, HandleValue rhs, bool* res);
-      callVM<Fn, IonCompareIC::update>(lir);
+      tailCallVM<Fn, IonCompareIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif
@@ -993,7 +1080,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn =
           bool (*)(JSContext*, HandleScript, IonCloseIterIC*, HandleObject);
-      callVM<Fn, IonCloseIterIC::update>(lir);
+      tailCallVM<Fn, IonCloseIterIC::update>(lir);
 #ifdef JS_JIT_SBX
       icInfo_[cacheInfoIndex].icReturnDisplacementForPush = CodeOffset(safepointIndices_.back().displacement());
 #endif

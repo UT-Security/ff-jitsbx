@@ -103,6 +103,13 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   inline OutOfLineCode* oolCallVM(LInstruction* ins, const ArgSeq& args,
                                   const StoreOutputTo& out);
 
+#ifdef JS_JIT_SBX
+  void tailCallVMInternal(VMFunctionId id, LInstruction* ins);
+#endif
+
+  template <typename Fn, Fn fn>
+  void tailCallVM(LInstruction* ins);
+      
   template <typename LCallIns>
   void emitCallNative(LCallIns* call, JSNative native);
 
