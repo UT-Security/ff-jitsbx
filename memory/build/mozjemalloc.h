@@ -76,4 +76,10 @@ struct DummyArenaAllocator {
 #include "malloc_decls.h"
 };
 
+// ask2374
+inline bool isPtrInSandbox(void* ptr) {
+  return ((uint64_t)ptr >> 32) == 1;
+}
+// ask2374
+
 #endif

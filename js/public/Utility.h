@@ -367,7 +367,11 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 }
 
 static inline void* js_malloc(size_t bytes) {
-  return js_arena_malloc(js::MallocArena, bytes);
+  void* ret = js_arena_malloc(js::MallocArena, bytes);
+  // ask2374
+  MOZ_ASSERT((((uint64_t)ret) >> 32) == (uint64_t) 0x1);
+  // ask2374
+  return ret;
 }
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {

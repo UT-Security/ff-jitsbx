@@ -1360,6 +1360,10 @@ static AddressRadixTree<(sizeof(void*) << 3) - LOG2(kChunkSize)> gChunkRTree;
 // Protects chunk-related data structures.
 static Mutex chunks_mtx;
 
+// ask2374
+static Mutex sandbox_chunks_mtx;
+// ask2374
+
 // Trees of chunks that were previously allocated (trees differ only in node
 // ordering).  These are used when allocating chunks, in an attempt to re-use
 // address space.  Depending on function, different tree orderings are needed,
@@ -1368,6 +1372,15 @@ static RedBlackTree<extent_node_t, ExtentTreeSzTrait> gChunksBySize
     MOZ_GUARDED_BY(chunks_mtx);
 static RedBlackTree<extent_node_t, ExtentTreeTrait> gChunksByAddress
     MOZ_GUARDED_BY(chunks_mtx);
+
+// ask2374
+static RedBlackTree<extent_node_t, ExtentTreeSzTrait> gSandboxChunksBySize
+    MOZ_GUARDED_BY(chunks_mtx);
+    // MOZ_GUARDED_BY(sandbox_chunks_mtx);
+static RedBlackTree<extent_node_t, ExtentTreeTrait> gSandboxChunksByAddress
+    MOZ_GUARDED_BY(chunks_mtx);
+    // MOZ_GUARDED_BY(sandbox_chunks_mtx);
+// ask2374
 
 // Protects huge allocation-related data structures.
 static Mutex huge_mtx;
@@ -2143,7 +2156,8 @@ static bool pages_purge(void* addr, size_t length, bool force_zero) {
   return true;
 }
 
-static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
+// ask2374
+static void* chunk_recycle(size_t aSize, size_t aAlignment, bool sandbox, bool* aZeroed) {
   extent_node_t key;
 
   size_t alloc_size = aSize + aAlignment - kChunkSize;
@@ -2154,7 +2168,7 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
   key.mAddr = nullptr;
   key.mSize = alloc_size;
   chunks_mtx.Lock();
-  extent_node_t* node = gChunksBySize.SearchOrNext(&key);
+  extent_node_t* node = sandbox ? gSandboxChunksBySize.SearchOrNext(&key) : gChunksBySize.SearchOrNext(&key);
   if (!node) {
     chunks_mtx.Unlock();
     return nullptr;
@@ -2169,13 +2183,23 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
     *aZeroed = (chunk_type == ZEROED_CHUNK);
   }
   // Remove node from the tree.
-  gChunksBySize.Remove(node);
-  gChunksByAddress.Remove(node);
+  if (sandbox) {
+    gSandboxChunksBySize.Remove(node);
+    gSandboxChunksByAddress.Remove(node);
+  } else {
+    gChunksBySize.Remove(node);
+    gChunksByAddress.Remove(node);
+  }
   if (leadsize != 0) {
     // Insert the leading space as a smaller chunk.
     node->mSize = leadsize;
-    gChunksBySize.Insert(node);
-    gChunksByAddress.Insert(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Insert(node);
+      gSandboxChunksByAddress.Insert(node);
+    } else {
+      gChunksBySize.Insert(node);
+      gChunksByAddress.Insert(node);
+    }
     node = nullptr;
   }
   if (trailsize != 0) {
@@ -2197,8 +2221,13 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
     node->mAddr = (void*)((uintptr_t)(ret) + aSize);
     node->mSize = trailsize;
     node->mChunkType = chunk_type;
-    gChunksBySize.Insert(node);
-    gChunksByAddress.Insert(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Insert(node);
+      gSandboxChunksByAddress.Insert(node);
+    } else {
+      gChunksBySize.Insert(node);
+      gChunksByAddress.Insert(node);
+    }
     node = nullptr;
   }
 
@@ -2219,6 +2248,7 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
 
   return ret;
 }
+// ask2374
 
 #ifdef XP_WIN
 // On Windows, calls to VirtualAlloc and VirtualFree must be matched, making it
@@ -2250,7 +2280,7 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   // Base allocations can't be fulfilled by recycling because of
   // possible deadlock or infinite recursion.
   if (CAN_RECYCLE(aSize) && !aBase) {
-    ret = chunk_recycle(aSize, aAlignment, aZeroed);
+    ret = chunk_recycle(aSize, aAlignment, sandbox, aZeroed);
   }
   if (!ret) {
     // ask2374
@@ -2291,7 +2321,10 @@ static void chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed) {
 #endif
 }
 
+// ask2374
 static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
+  bool sandbox = isPtrInSandbox(aChunk);
+
   extent_node_t key;
 
   if (aType != ZEROED_CHUNK) {
@@ -2312,19 +2345,27 @@ static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
   // in order to avoid potential dead-locks
   MutexAutoLock lock(chunks_mtx);
   key.mAddr = (void*)((uintptr_t)aChunk + aSize);
-  extent_node_t* node = gChunksByAddress.SearchOrNext(&key);
+  extent_node_t* node = sandbox ? gSandboxChunksByAddress.SearchOrNext(&key) : gChunksByAddress.SearchOrNext(&key);
   // Try to coalesce forward.
   if (node && node->mAddr == key.mAddr) {
     // Coalesce chunk with the following address range.  This does
     // not change the position within gChunksByAddress, so only
     // remove/insert from/into gChunksBySize.
-    gChunksBySize.Remove(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Remove(node);
+    } else {
+      gChunksBySize.Remove(node);
+    }
     node->mAddr = aChunk;
     node->mSize += aSize;
     if (node->mChunkType != aType) {
       node->mChunkType = RECYCLED_CHUNK;
     }
-    gChunksBySize.Insert(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Insert(node);
+    } else {
+      gChunksBySize.Insert(node);
+    }
   } else {
     // Coalescing forward failed, so insert a new node.
     if (!xnode) {
@@ -2338,32 +2379,52 @@ static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
     node->mAddr = aChunk;
     node->mSize = aSize;
     node->mChunkType = aType;
-    gChunksByAddress.Insert(node);
-    gChunksBySize.Insert(node);
+    if (sandbox) {
+      gSandboxChunksByAddress.Insert(node);
+      gSandboxChunksBySize.Insert(node);
+    } else {
+      gChunksByAddress.Insert(node);
+      gChunksBySize.Insert(node);
+    }
   }
 
   // Try to coalesce backward.
-  extent_node_t* prev = gChunksByAddress.Prev(node);
+  extent_node_t* prev = sandbox ? gSandboxChunksByAddress.Prev(node) : gChunksByAddress.Prev(node);
   if (prev && (void*)((uintptr_t)prev->mAddr + prev->mSize) == aChunk) {
     // Coalesce chunk with the previous address range.  This does
     // not change the position within gChunksByAddress, so only
     // remove/insert node from/into gChunksBySize.
-    gChunksBySize.Remove(prev);
-    gChunksByAddress.Remove(prev);
+    if (sandbox) {
+      gSandboxChunksBySize.Remove(prev);
+      gSandboxChunksByAddress.Remove(prev);
+    } else {
+      gChunksBySize.Remove(prev);
+      gChunksByAddress.Remove(prev);
+    }
 
-    gChunksBySize.Remove(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Remove(node);
+    } else {
+      gChunksBySize.Remove(node);
+    }
+
     node->mAddr = prev->mAddr;
     node->mSize += prev->mSize;
     if (node->mChunkType != prev->mChunkType) {
       node->mChunkType = RECYCLED_CHUNK;
     }
-    gChunksBySize.Insert(node);
+    if (sandbox) {
+      gSandboxChunksBySize.Insert(node);
+    } else {
+      gChunksBySize.Insert(node);
+    }
 
     xprev.reset(prev);
   }
 
   gRecycledSize += aSize;
 }
+// ask2374
 
 static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
   MOZ_ASSERT(aChunk);
@@ -4410,6 +4471,15 @@ static bool malloc_init_hard() {
   gChunksBySize.Init();
   gChunksByAddress.Init();
   MOZ_POP_THREAD_SAFETY
+
+  // ask2374
+  // Initialize sandbox chunks data.
+  sandbox_chunks_mtx.Init();
+  MOZ_PUSH_IGNORE_THREAD_SAFETY
+  gSandboxChunksBySize.Init();
+  gSandboxChunksByAddress.Init();
+  MOZ_POP_THREAD_SAFETY
+  // ask2374
 
   // Initialize huge allocation data.
   huge_mtx.Init();
