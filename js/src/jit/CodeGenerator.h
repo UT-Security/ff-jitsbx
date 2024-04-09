@@ -82,6 +82,11 @@ class OutOfLineBoxNonStrictThis;
 class OutOfLineArrayPush;
 class OutOfLineWasmCallPostWriteBarrier;
 
+#ifdef JS_JIT_SBX
+template <typename LCallIns>
+class OutOfLineCallNative;
+#endif
+
 class CodeGenerator final : public CodeGeneratorSpecific {
   [[nodiscard]] bool generateBody();
 
@@ -109,7 +114,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   template <typename Fn, Fn fn>
   void tailCallVM(LInstruction* ins);
-      
+ 
   template <typename LCallIns>
   void emitCallNative(LCallIns* call, JSNative native);
 
@@ -193,7 +198,12 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   void visitOutOfLineWasmCallPostWriteBarrier(
       OutOfLineWasmCallPostWriteBarrier* ool);
 
- private:
+#ifdef JS_JIT_SBX    
+  template <typename LCallIns>
+  void visitOutOfLineCallNative(OutOfLineCallNative<LCallIns>* ool);  
+#endif 
+
+  private:
   void emitPostWriteBarrier(const LAllocation* obj);
   void emitPostWriteBarrier(Register objreg);
   void emitPostWriteBarrierS(Address address, Register prev, Register next);

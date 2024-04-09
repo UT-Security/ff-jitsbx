@@ -379,6 +379,7 @@ void MacroAssembler::sbxPopStubFrame() {
 	addPtr(Imm32(sizeof(uintptr_t) * 3), rsp);
 #endif
 }
+
 CodeOffset MacroAssembler::sbxCall(Register reg) {
 	sbxToNativeStack();
   CodeOffset ret = call(reg);

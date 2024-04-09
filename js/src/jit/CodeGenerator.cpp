@@ -5587,6 +5587,87 @@ void CodeGenerator::visitAssertCanElidePostWriteBarrier(
   masm.bind(&ok);
 }
 
+#ifdef JS_JIT_SBX
+template <typename LCallIns>
+class OutOfLineCallNative : public OutOfLineCodeBase<CodeGenerator> {
+  LCallIns* lir_;
+  JSNative  native_;
+
+ public:
+  explicit OutOfLineCallNative(LCallIns* lir, JSNative native) : lir_(lir), native_(native) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineCallNative(this);
+  }
+
+  LCallIns* lir() const { return lir_; }
+  JSNative  native() const { return native_; }
+};
+
+template <typename LCallIns>
+void CodeGenerator::visitOutOfLineCallNative(OutOfLineCallNative<LCallIns>* ool) {
+  masm.sbxAssumeNativeStack();
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+
+  const Register argContextReg = ToRegister(ool->lir()->getArgContextReg());
+  const Register argUintNReg = ToRegister(ool->lir()->getArgUintNReg());
+  const Register argVpReg = ToRegister(ool->lir()->getArgVpReg());
+
+  // Misc. temporary registers.
+  const Register tempReg = ToRegister(ool->lir()->getTempReg());  
+  
+  
+
+  masm.setupAlignedABICall();
+  masm.passABIArg(argContextReg);
+  masm.passABIArg(argUintNReg);
+  masm.passABIArg(argVpReg);
+
+
+  ensureOsiSpace();
+  // If we're using a simulator build, `native` will already point to the
+  // simulator's call-redirection code for LCallClassHook. Load the address in
+  // a register first so that we don't try to redirect it a second time.
+  bool emittedCall = false;
+#ifdef JS_SIMULATOR
+  if constexpr (std::is_same_v<LCallIns, LCallClassHook>) {
+    masm.movePtr(ImmPtr(ool->native()), tempReg);
+    masm.callWithABI(tempReg);
+    emittedCall = true;
+  }
+#endif
+  if (!emittedCall) {
+    masm.callWithABI(DynamicFunction<JSNative>(ool->native()), MoveOp::GENERAL,
+                     CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+  }
+
+  // Test for failure.
+  masm.branchIfFalseBool(ReturnReg, masm.failureLabel());    
+    
+  if (ool->lir()->mir()->maybeCrossRealm()) {
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Load the outparam vp[0] into output register(s).
+  masm.loadValue(
+      Address(masm.getStackPointer(), NativeExitFrameLayout::offsetOfResult()),
+      JSReturnOperand);
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls && !ool->lir()->mir()->ignoresReturnValue() &&
+      ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+
 template <typename LCallIns>
 void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   MCallBase* mir = call->mir();
@@ -5641,6 +5722,19 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
 
   masm.Push(argUintNReg);
 
+#ifdef JS_JIT_SBX
+  auto ool = new (alloc()) OutOfLineCallNative<LCallIns>(call, native);
+  addOutOfLineCode(ool, call->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.enterFakeExitFrameForNative(argContextReg, tempReg,
+                                   call->mir()->isConstructing());
+  uint32_t safepointOffset = masm.sbxCall(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, call);
+#else
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(tempReg);
   masm.enterFakeExitFrameForNative(argContextReg, tempReg,
@@ -5689,18 +5783,13 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
       mir->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
-
+#endif
+      
   // The next instruction is removing the footer of the exit frame, so there
   // is no need for leaveFakeExitFrame.
 
   // Move the StackPointer back to its original location, unwinding the native
   // exit frame.
-  masm.sbxToNativeStack();
-#ifdef JS_JIT_SBX
-  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
-  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
-#endif
-  masm.sbxToSandboxStack();
   masm.adjustStack(NativeExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }

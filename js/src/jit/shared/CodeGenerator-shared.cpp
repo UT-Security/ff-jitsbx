@@ -212,10 +212,13 @@ bool CodeGeneratorShared::generateOutOfLineCode() {
     masm.setFramePushed(outOfLineCode_[i]->framePushed());
 #ifdef JS_JIT_SBX
     masm.sbxSetFramePushed(outOfLineCode_[i]->sbxFramePushed());
+    masm.sbxAssumeSandboxStack();
 #endif
     outOfLineCode_[i]->bind(&masm);
 
     outOfLineCode_[i]->generate(this);
+
+    masm.sbxAssumeSandboxStack();  
   }
 
   return !masm.oom();
