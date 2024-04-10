@@ -85,6 +85,10 @@ class OutOfLineWasmCallPostWriteBarrier;
 #ifdef JS_JIT_SBX
 template <typename LCallIns>
 class OutOfLineCallNative;
+
+class OutOfLineCallDOMNative;
+class OutOfLineGetDOMProperty;
+class OutOfLineSetDOMProperty;
 #endif
 
 class CodeGenerator final : public CodeGeneratorSpecific {
@@ -201,6 +205,12 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 #ifdef JS_JIT_SBX    
   template <typename LCallIns>
   void visitOutOfLineCallNative(OutOfLineCallNative<LCallIns>* ool);  
+      
+  void visitOutOfLineCallDOMNative(OutOfLineCallDOMNative* ool);
+      
+  void visitOutOfLineGetDOMProperty(OutOfLineGetDOMProperty* ool);
+
+  void visitOutOfLineSetDOMProperty(OutOfLineSetDOMProperty* ool);
 #endif 
 
   private:

@@ -5843,6 +5843,80 @@ static void LoadDOMPrivate(MacroAssembler& masm, Register obj, Register priv,
   }
 }
 
+#ifdef JS_JIT_SBX
+class OutOfLineCallDOMNative : public OutOfLineCodeBase<CodeGenerator> {
+  LCallDOMNative* lir_;
+
+ public:
+  explicit OutOfLineCallDOMNative(LCallDOMNative* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineCallDOMNative(this);
+  }
+
+  LCallDOMNative* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineCallDOMNative(OutOfLineCallDOMNative* ool) {
+  masm.sbxAssumeNativeStack();
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+    
+  WrappedFunction* target = ool->lir()->getSingleTarget();
+  // Registers used for callWithABI() argument-passing.
+  const Register argJSContext = ToRegister(ool->lir()->getArgJSContext());
+  const Register argObj = ToRegister(ool->lir()->getArgObj());
+  const Register argPrivate = ToRegister(ool->lir()->getArgPrivate());
+  const Register argArgs = ToRegister(ool->lir()->getArgArgs());
+
+  
+// Construct and execute call.
+  masm.setupAlignedABICall();
+  masm.loadJSContext(argJSContext);
+  masm.passABIArg(argJSContext);
+  masm.passABIArg(argObj);
+  masm.passABIArg(argPrivate);
+  masm.passABIArg(argArgs);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitMethodOp>(target->jitInfo()->method),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  if (target->jitInfo()->isInfallible) {
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMMethodExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  } else {
+    // Test for failure.
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    // Load the outparam vp[0] into output register(s).
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMMethodExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  }
+
+  // Switch back to the current realm if needed. Note: if the DOM method threw
+  // an exception, the exception handler will do this.
+  if (ool->lir()->mir()->maybeCrossRealm()) {
+    static_assert(!JSReturnOperand.aliases(ReturnReg),
+                  "Clobbering ReturnReg should not affect the return value");
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls && ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif          
+      
 void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   WrappedFunction* target = call->getSingleTarget();
   MOZ_ASSERT(target);
@@ -5914,6 +5988,20 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
     masm.switchToObjectRealm(argJSContext, argJSContext);
   }
 
+#ifdef JS_JIT_SBX
+  auto ool = new (alloc()) OutOfLineCallDOMNative(call);
+  addOutOfLineCode(ool, call->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(argJSContext);
+  masm.enterFakeExitFrame(argJSContext, argJSContext,
+                          ExitFrameType::IonDOMMethod);
+  uint32_t safepointOffset = masm.sbxCall(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, call);
+#else
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
   masm.loadJSContext(argJSContext);
@@ -5961,18 +6049,12 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   if (JitOptions.spectreJitToCxxCalls && call->mir()->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
-
+#endif
   // The next instruction is removing the footer of the exit frame, so there
   // is no need for leaveFakeExitFrame.
 
   // Move the StackPointer back to its original location, unwinding the native
   // exit frame.
-  masm.sbxToNativeStack();
-#ifdef JS_JIT_SBX
-  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
-  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
-#endif
-  masm.sbxToSandboxStack();
   masm.adjustStack(IonDOMMethodExitFrameLayout::Size() - unusedStack);
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }
@@ -16432,6 +16514,75 @@ void CodeGenerator::visitInstanceOfCache(LInstanceOfCache* ins) {
   addIC(ins, allocateIC(ic));
 }
 
+#ifdef JS_JIT_SBX
+class OutOfLineGetDOMProperty : public OutOfLineCodeBase<CodeGenerator> {
+  LGetDOMProperty* lir_;
+
+ public:
+  explicit OutOfLineGetDOMProperty(LGetDOMProperty* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineGetDOMProperty(this);
+  }
+
+  LGetDOMProperty* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineGetDOMProperty(OutOfLineGetDOMProperty* ool) {
+  masm.sbxAssumeNativeStack();
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+    
+  const Register JSContextReg = ToRegister(ool->lir()->getJSContextReg());
+  const Register ObjectReg = ToRegister(ool->lir()->getObjectReg());
+  const Register PrivateReg = ToRegister(ool->lir()->getPrivReg());
+  const Register ValueReg = ToRegister(ool->lir()->getValueReg());
+  Realm* getterRealm = ool->lir()->mir()->getterRealm();
+
+  masm.setupAlignedABICall();
+  masm.loadJSContext(JSContextReg);
+  masm.passABIArg(JSContextReg);
+  masm.passABIArg(ObjectReg);
+  masm.passABIArg(PrivateReg);
+  masm.passABIArg(ValueReg);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitGetterOp>(ool->lir()->mir()->fun()),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  if (ool->lir()->mir()->isInfallible()) {
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  } else {
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  }
+
+  // Switch back to the current realm if needed. Note: if the getter threw an
+  // exception, the exception handler will do this.
+  if (gen->realm->realmPtr() != getterRealm) {
+    static_assert(!JSReturnOperand.aliases(ReturnReg),
+                  "Clobbering ReturnReg should not affect the return value");
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls && ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+        
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+
 void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
   const Register JSContextReg = ToRegister(ins->getJSContextReg());
   const Register ObjectReg = ToRegister(ins->getObjectReg());
@@ -16489,6 +16640,20 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
     masm.switchToRealm(getterRealm, JSContextReg);
   }
 
+#ifdef JS_JIT_SBX
+  auto ool = new (alloc()) OutOfLineGetDOMProperty(ins);
+  addOutOfLineCode(ool, ins->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(JSContextReg);
+  masm.enterFakeExitFrame(JSContextReg, JSContextReg,
+                          ExitFrameType::IonDOMGetter);
+  uint32_t safepointOffset = masm.sbxCall(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, ins);
+#else
   uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
@@ -16532,13 +16697,8 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
   if (JitOptions.spectreJitToCxxCalls && ins->mir()->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
-
-  masm.sbxToNativeStack();
-#ifdef JS_JIT_SBX
-  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
-  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
 #endif
-  masm.sbxToSandboxStack();
+
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 
   masm.bind(&haveValue);
@@ -16585,6 +16745,57 @@ void CodeGenerator::visitGetDOMMemberT(LGetDOMMemberT* ins) {
                         type, result);
 }
 
+#ifdef JS_JIT_SBX
+class OutOfLineSetDOMProperty : public OutOfLineCodeBase<CodeGenerator> {
+  LSetDOMProperty* lir_;
+
+ public:
+  explicit OutOfLineSetDOMProperty(LSetDOMProperty* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineSetDOMProperty(this);
+  }
+
+  LSetDOMProperty* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineSetDOMProperty(OutOfLineSetDOMProperty* ool) {
+  masm.sbxAssumeNativeStack();
+  masm.push(FramePointer);
+  masm.sbxImplicitPush(2 * sizeof(void*));
+  masm.sbxToSandboxStack();
+        
+  const Register JSContextReg = ToRegister(ool->lir()->getJSContextReg());
+  const Register ObjectReg = ToRegister(ool->lir()->getObjectReg());
+  const Register PrivateReg = ToRegister(ool->lir()->getPrivReg());
+  const Register ValueReg = ToRegister(ool->lir()->getValueReg());
+  Realm* setterRealm = ool->lir()->mir()->setterRealm();
+
+  masm.setupAlignedABICall();
+  masm.loadJSContext(JSContextReg);
+  masm.passABIArg(JSContextReg);
+  masm.passABIArg(ObjectReg);
+  masm.passABIArg(PrivateReg);
+  masm.passABIArg(ValueReg);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitSetterOp>(ool->lir()->mir()->fun()),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+  // Switch back to the current realm if needed. Note: if the setter threw an
+  // exception, the exception handler will do this.
+  if (gen->realm->realmPtr() != setterRealm) {
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+   
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+
 void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   const Register JSContextReg = ToRegister(ins->getJSContextReg());
   const Register ObjectReg = ToRegister(ins->getObjectReg());
@@ -16616,6 +16827,20 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
     masm.switchToRealm(setterRealm, JSContextReg);
   }
 
+#ifdef JS_JIT_SBX
+  auto ool = new (alloc()) OutOfLineSetDOMProperty(ins);
+  addOutOfLineCode(ool, ins->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(JSContextReg);
+  masm.enterFakeExitFrame(JSContextReg, JSContextReg,
+                          ExitFrameType::IonDOMSetter);
+  uint32_t safepointOffset = masm.sbxCall(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, ins);
+#else
   uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
@@ -16641,14 +16866,9 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   if (gen->realm->realmPtr() != setterRealm) {
     masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
   }
+#endif
 
   masm.adjustStack(IonDOMExitFrameLayout::Size());
-  masm.sbxToNativeStack();
-#ifdef JS_JIT_SBX
-  masm.addToStackPtr(Imm32(NativeJitFrameLayout::Size()));
-  masm.sbxImplicitPop(NativeJitFrameLayout::Size());
-#endif
-  masm.sbxToSandboxStack();
 
   MOZ_ASSERT(masm.framePushed() == initialStack);
 }

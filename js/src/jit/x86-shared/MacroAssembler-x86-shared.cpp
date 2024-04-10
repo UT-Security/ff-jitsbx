@@ -68,6 +68,7 @@ bool MacroAssemblerX86Shared::buildOOLFakeExitFrame(void* fakeReturnAddr) {
   asMasm().PushFrameDescriptor(FrameType::IonJS);
 #ifdef JS_JIT_SBX
   asMasm().sbxPushFrame();
+  asMasm().adjustFrame(2 * sizeof(void*));
 #else
   asMasm().Push(ImmPtr(fakeReturnAddr));
   asMasm().Push(FramePointer);
