@@ -108,6 +108,20 @@ patterns = [
         "aSrcStart",
         "aDst",
     ),
+    (
+        "__memmove_(avx|evex)_unaligned_erms",
+        1,
+        "arena_t::RallocHuge",
+        "aPtr",
+        "ret",
+    ),
+    (
+        "__memcpy_(avx|evex)_unaligned_erms",
+        1,
+        "arena_t::RallocHuge",
+        "aPtr",
+        "ret",
+    ),
 ]
 
 

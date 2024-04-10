@@ -232,7 +232,7 @@ js::Nursery::Nursery(GCRuntime* gc)
       smoothedTargetSize(0.0) {
 
   // ask2374
-  position_ = (uintptr_t*)js_malloc(sizeof(uintptr_t));
+  position_ = (uintptr_t*)js_sandbox_malloc(sizeof(uintptr_t));
   *position_ = 0;
   // ask2374
 

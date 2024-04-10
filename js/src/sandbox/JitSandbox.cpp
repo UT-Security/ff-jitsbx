@@ -4,6 +4,9 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 #include "js/JitSandbox.h"
+#include "vm/JSContext.h"
+
+// Mask Enforcement Functions
 
 void js::sandbox::checkJitMask(void* ptr) {
   __asm__ __volatile__(
@@ -57,6 +60,8 @@ void js::sandbox::checkJitMask(void* ptr) {
       "pop %rcx\n"
       "pop %rax\n");
 }
+
+// Memory Allocation Functions
 
 static size_t pageSize = 0;
 
@@ -184,5 +189,15 @@ void* js::sandbox::MapAlignedPages(size_t length, size_t alignment) {
 	// Check for sandbox overflow
 	MOZ_ASSERT(((uint64_t)current_ptr >> 32) == (heap_bump_ptr >> 32));
   return current_ptr;
+}
+
+// Taint Validation Functions
+
+void js::sandbox::switchToRealm(JS::Realm* realm) {
+	JSContext* cx = TlsContext.get();
+	if (!(active_realms.find(realm) != active_realms.end())) {
+		abort();
+	}
+	cx->setRealm(realm);
 }
 // ask2374

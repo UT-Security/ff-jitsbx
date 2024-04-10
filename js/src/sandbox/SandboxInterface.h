@@ -10,7 +10,7 @@ namespace sandbox {
 
 struct Interface {
 	void* (*MapAlignedPages)(size_t length, size_t alignment);
-	arena_id_t MallocArena;
+	arena_id_t SandboxMallocArena;
 };
 
 };

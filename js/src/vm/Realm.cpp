@@ -34,6 +34,10 @@
 #include "gc/Marking-inl.h"
 #include "vm/JSObject-inl.h"
 
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
+
 using namespace js;
 
 Realm::DebuggerVectorEntry::DebuggerVectorEntry(js::Debugger* dbg_,
@@ -56,6 +60,10 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
                                     zone_->isGCFinished()),
       wasm(runtime_) {
   runtime_->numRealms++;
+
+  // ask2374
+  active_realms.insert(this);
+  // ask2374
 }
 
 Realm::~Realm() {
@@ -69,6 +77,10 @@ Realm::~Realm() {
 
   MOZ_ASSERT(runtime_->numRealms > 0);
   runtime_->numRealms--;
+
+  // ask2374
+  active_realms.erase(this);
+  // ask2374
 }
 
 void Realm::init(JSContext* cx, JSPrincipals* principals) {

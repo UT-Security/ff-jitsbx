@@ -105,17 +105,24 @@ bool js::gExtraPoisoningEnabled = false;
 #endif
 
 JS_PUBLIC_DATA arena_id_t js::MallocArena;
+// ask2374
+JS_PUBLIC_DATA arena_id_t js::SandboxMallocArena;
+// ask2374
 JS_PUBLIC_DATA arena_id_t js::ArrayBufferContentsArena;
 JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
 
 void js::InitMallocAllocator() {
   arena_params_t mallocArenaParams;
   mallocArenaParams.mMaxDirtyIncreaseOverride = 5;
-  // ask2374
-  mallocArenaParams.sandbox = true;
   MallocArena = moz_create_arena_with_params(&mallocArenaParams);
+
+  // ask2374
+  arena_params_t sandboxMallocArenaParams;
+  sandboxMallocArenaParams.mMaxDirtyIncreaseOverride = 5;
+  sandboxMallocArenaParams.sandbox = true;
+  SandboxMallocArena = moz_create_arena_with_params(&sandboxMallocArenaParams);
   MOZ_ASSERT(sandboxInterface == (js::sandbox::Interface*)0x200000000);
-  sandboxInterface->MallocArena = MallocArena;
+  sandboxInterface->SandboxMallocArena = SandboxMallocArena;
   // ask2374
 
 

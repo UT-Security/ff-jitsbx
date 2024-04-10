@@ -1022,9 +1022,9 @@ class RootingContext {
   // The remaining members in this class should only be accessed through
   // JSContext pointers. They are unrelated to rooting and are in place so
   // that inlined API functions can directly access the data.
+  Realm* realm_;
 
   /* The current realm. */
-  Realm* realm_;
 
   /* The current zone. */
   Zone* zone_;

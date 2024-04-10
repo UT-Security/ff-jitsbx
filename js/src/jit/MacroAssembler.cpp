@@ -6,6 +6,7 @@
 
 #include "jit/MacroAssembler-inl.h"
 
+#include "jit/shared/Assembler-shared.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/XorShift128PlusRNG.h"
@@ -51,6 +52,10 @@
 #include "vm/BytecodeUtil-inl.h"
 #include "vm/Interpreter-inl.h"
 #include "vm/JSObject-inl.h"
+
+// ask2374
+#include "sandbox/JitSandbox.h"
+// ask2374
 
 using namespace js;
 using namespace js::jit;
@@ -2059,9 +2064,24 @@ static const uint8_t* ContextRealmPtr(CompileRuntime* rt) {
           JSContext::offsetOfRealm());
 }
 
+// ask2374
 void MacroAssembler::switchToRealm(Register realm) {
-  storePtr(realm, AbsoluteAddress(ContextRealmPtr(runtime())));
+  using Fn = void (*)(JS::Realm* realm);
+  AllocatableRegisterSet regs(RegisterSet::Volatile());
+  LiveRegisterSet save(regs.asLiveSet());
+  PushRegsInMask(save);
+  if (regs.has(realm)) {
+    regs.takeUnchecked(realm);
+  }
+  Register temp = regs.takeAnyGeneral();
+  setupUnalignedABICall(temp);
+  passABIArg(realm);
+  callWithABI<Fn, js::sandbox::switchToRealm>(MoveOp::GENERAL,
+                                       CheckUnsafeCallWithABI::DontCheckOther);
+  PopRegsInMask(save);
+  // storePtr(realm, AbsoluteAddress(ContextRealmPtr(runtime())));
 }
+// ask2374
 
 void MacroAssembler::switchToRealm(const void* realm, Register scratch) {
   MOZ_ASSERT(realm);

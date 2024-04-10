@@ -349,6 +349,9 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
 namespace js {
 
 extern JS_PUBLIC_DATA arena_id_t MallocArena;
+// ask2374
+extern JS_PUBLIC_DATA arena_id_t SandboxMallocArena;
+// ask2374
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 
@@ -367,12 +370,16 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 }
 
 static inline void* js_malloc(size_t bytes) {
-  void* ret = js_arena_malloc(js::MallocArena, bytes);
-  // ask2374
+  return js_arena_malloc(js::MallocArena, bytes);
+}
+
+// ask2374
+static inline void* js_sandbox_malloc(size_t bytes) {
+  void* ret = js_arena_malloc(js::SandboxMallocArena, bytes);
   MOZ_ASSERT((((uint64_t)ret) >> 32) == (uint64_t) 0x1);
-  // ask2374
   return ret;
 }
+// ask2374
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
@@ -528,6 +535,9 @@ static inline void js_free(void* p) {
   }
 
 JS_DECLARE_NEW_METHODS(js_new, js_malloc, static MOZ_ALWAYS_INLINE)
+// ask2374
+JS_DECLARE_NEW_METHODS(js_sandbox_new, js_sandbox_malloc, static MOZ_ALWAYS_INLINE)
+// ask2374
 JS_DECLARE_NEW_ARENA_METHODS(js_arena_new, js_arena_malloc,
                              static MOZ_ALWAYS_INLINE)
 

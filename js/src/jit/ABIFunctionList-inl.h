@@ -87,6 +87,7 @@ namespace jit {
 #  define ABIFUNCTION_FUZZILLI_LIST(_)
 #endif
 
+// ask2374
 #define ABIFUNCTION_LIST(_)                                           \
   ABIFUNCTION_JS_GC_PROBES_LIST(_)                                    \
   ABIFUNCTION_JS_CODEGEN_ARM_LIST(_)                                  \
@@ -178,7 +179,9 @@ namespace jit {
   _(js::RegExpPrototypeOptimizableRaw)                                \
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \
-  _(js::TypeOfObject)
+  _(js::TypeOfObject)                                                 \
+  _(js::sandbox::switchToRealm)
+  // ask2374
 
 // List of all ABI functions to be used with callWithABI, which are
 // overloaded. Each entry stores the fully qualified name of the C++ function,

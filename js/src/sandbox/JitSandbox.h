@@ -13,6 +13,7 @@
 #  include <sys/types.h>
 #  include <unistd.h>
 #  include <unordered_map>
+#  include <unordered_set>
 
 // #include "jstypes.h"
 
@@ -39,6 +40,7 @@ namespace sandbox {
 void checkJitMask(void* ptr);
 void InitMemory();
 void* MapAlignedPages(size_t length, size_t alignment);
+void switchToRealm(JS::Realm* realm);
 
 }
 }  // namespace js
@@ -50,4 +52,5 @@ extern FILE* sandbox_log;
 extern std::mutex log_mutex;
 extern void js::sandbox::checkJitMask(void* ptr);
 extern std::atomic<uint64_t> heap_bump_ptr;
+extern std::unordered_set<JS::Realm*> active_realms;
 // ask2374
