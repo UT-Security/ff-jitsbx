@@ -182,7 +182,12 @@ class MacroAssemblerX86Shared : public Assembler {
   void jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
   void jump(ImmPtr ptr) { jmp(ptr); }
   void jump(Register reg) { jmp(Operand(reg)); }
-  void jump(const Address& addr) { jmp(Operand(addr)); }
+  void jump(const Address& addr) {
+    // #ifdef JS_CFI
+    // #else
+    jmp(Operand(addr));
+    // #endif
+  }
 
   void convertInt32ToDouble(Register src, FloatRegister dest) {
     // vcvtsi2sd and friends write only part of their output register, which

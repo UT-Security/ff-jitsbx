@@ -6333,6 +6333,10 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+#ifdef JS_CFI
+  masm.emit_label();
+#endif
+
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();

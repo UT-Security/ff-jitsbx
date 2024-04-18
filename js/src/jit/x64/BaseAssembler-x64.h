@@ -54,6 +54,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_ir(int32_t imm, RegisterID dst) {
     spew("addq       $%d, %s", imm, GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -70,6 +73,9 @@ class BaseAssemblerX64 : public BaseAssembler {
   void addq_i32r(int32_t imm, RegisterID dst) {
     // 32-bit immediate always, for patching.
     spew("addq       $0x%04x, %s", uint32_t(imm), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (dst == rax) {
       m_formatter.oneByteOp64(OP_ADD_EAXIv);
     } else {
@@ -80,6 +86,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -91,6 +100,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_im(int32_t imm, const void* addr) {
     spew("addq       $%d, %p", imm, addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -220,6 +232,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void andq_ir(int32_t imm, RegisterID dst) {
     spew("andq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_AND);
       m_formatter.immediate8s(imm);
@@ -245,6 +260,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void orq_ir(int32_t imm, RegisterID dst) {
     spew("orq        $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_OR);
       m_formatter.immediate8s(imm);
@@ -292,6 +310,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void subq_ir(int32_t imm, RegisterID dst) {
     spew("subq       $%d, %s", imm, GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_SUB);
       m_formatter.immediate8s(imm);
@@ -312,6 +333,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void xorq_ir(int32_t imm, RegisterID dst) {
     spew("xorq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_XOR);
       m_formatter.immediate8s(imm);
@@ -415,6 +439,9 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void imulq_ir(int32_t value, RegisterID src, RegisterID dst) {
     spew("imulq      $%d, %s, %s", value, GPReg64Name(src), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(value)) {
       m_formatter.oneByteOp64(OP_IMUL_GvEvIb, src, dst);
       m_formatter.immediate8s(value);
@@ -470,6 +497,9 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("cmpq       $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, lhs, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -499,6 +529,9 @@ class BaseAssemblerX64 : public BaseAssembler {
                int scale) {
     spew("cmpq       $0x%x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, index, scale,
                               GROUP1_OP_CMP);
@@ -511,6 +544,9 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void cmpq_im(int32_t rhs, const void* addr) {
     spew("cmpq       $0x%" PRIx64 ", %p", uint64_t(rhs), addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -537,6 +573,9 @@ class BaseAssemblerX64 : public BaseAssembler {
       return;
     }
     spew("testq      $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (lhs == rax) {
       m_formatter.oneByteOp64(OP_TEST_EAXIv);
     } else {
@@ -556,6 +595,9 @@ class BaseAssemblerX64 : public BaseAssembler {
                   RegisterID index, int scale) {
     spew("testq      $0x%4x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp64(OP_GROUP3_EvIz, offset, base, index, scale,
                             GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
@@ -712,12 +754,18 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("movq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("movq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
                             GROUP11_MOV);
@@ -725,6 +773,9 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void movq_i32m(int32_t imm, const void* addr) {
     spew("movq       $%d, %p", imm, addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
@@ -737,12 +788,18 @@ class BaseAssemblerX64 : public BaseAssembler {
   // size, so it's preferred for values which could use either.
   void movq_i32r(int32_t imm, RegisterID dst) {
     spew("movq       $%d, %s", imm, GPRegName(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, dst, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
 
   void movq_i64r(int64_t imm, RegisterID dst) {
     spew("movabsq    $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp64(OP_MOV_EAXIv, dst);
     m_formatter.immediate64(imm);
   }

@@ -229,6 +229,9 @@ class BaseAssembler : public GenericAssembler {
 
   void push_i(int32_t imm) {
     spew("push       $%s0x%x", PRETTYHEX(imm));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_PUSH_Ib);
       m_formatter.immediate8s(imm);
@@ -239,6 +242,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void push_i32(int32_t imm) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("push       $%s0x%04x", PRETTYHEX(imm));
     m_formatter.oneByteOp(OP_PUSH_Iz);
     m_formatter.immediate32(imm);
@@ -301,6 +307,9 @@ class BaseAssembler : public GenericAssembler {
 
   void addl_ir(int32_t imm, RegisterID dst) {
     spew("addl       $%d, %s", imm, GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -324,6 +333,9 @@ class BaseAssembler : public GenericAssembler {
   void addl_i32r(int32_t imm, RegisterID dst) {
     // 32-bit immediate always, for patching.
     spew("addl       $0x%04x, %s", uint32_t(imm), GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (dst == rax) {
       m_formatter.oneByteOp(OP_ADD_EAXIv);
     } else {
@@ -334,6 +346,9 @@ class BaseAssembler : public GenericAssembler {
 
   void addl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -346,6 +361,9 @@ class BaseAssembler : public GenericAssembler {
   void addl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
     spew("addl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_ADD);
@@ -359,6 +377,9 @@ class BaseAssembler : public GenericAssembler {
 
   void addl_im(int32_t imm, const void* addr) {
     spew("addl       $%d, %p", imm, addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -984,6 +1005,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void andl_ir(int32_t imm, RegisterID dst) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("andl       $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_AND);
@@ -1015,6 +1039,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void andl_im(int32_t imm, int32_t offset, RegisterID base) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("andl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_AND);
@@ -1040,6 +1067,9 @@ class BaseAssembler : public GenericAssembler {
   void andl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
     spew("andl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_AND);
@@ -1173,6 +1203,9 @@ class BaseAssembler : public GenericAssembler {
 
   void orl_ir(int32_t imm, RegisterID dst) {
     spew("orl        $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_OR);
       m_formatter.immediate8s(imm);
@@ -1203,6 +1236,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void orl_im(int32_t imm, int32_t offset, RegisterID base) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("orl        $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_OR);
@@ -1227,6 +1263,9 @@ class BaseAssembler : public GenericAssembler {
 
   void orl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
               int scale) {
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     spew("orl        $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
@@ -1304,6 +1343,9 @@ class BaseAssembler : public GenericAssembler {
 
   void subl_ir(int32_t imm, RegisterID dst) {
     spew("subl       $%d, %s", imm, GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_SUB);
       m_formatter.immediate8s(imm);
@@ -1335,6 +1377,9 @@ class BaseAssembler : public GenericAssembler {
 
   void subl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("subl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_SUB);
       m_formatter.immediate8s(imm);
@@ -1359,6 +1404,9 @@ class BaseAssembler : public GenericAssembler {
   void subl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
     spew("subl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_SUB);
@@ -1430,6 +1478,9 @@ class BaseAssembler : public GenericAssembler {
 
   void xorl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("xorl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_XOR);
       m_formatter.immediate8s(imm);
@@ -1454,6 +1505,9 @@ class BaseAssembler : public GenericAssembler {
   void xorl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
     spew("xorl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_XOR);
@@ -1483,6 +1537,9 @@ class BaseAssembler : public GenericAssembler {
 
   void xorl_ir(int32_t imm, RegisterID dst) {
     spew("xorl       $%d, %s", imm, GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_XOR);
       m_formatter.immediate8s(imm);
@@ -1661,6 +1718,9 @@ class BaseAssembler : public GenericAssembler {
 
   void imull_ir(int32_t value, RegisterID src, RegisterID dst) {
     spew("imull      $%d, %s, %s", value, GPReg32Name(src), GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(value)) {
       m_formatter.oneByteOp(OP_IMUL_GvEvIb, src, dst);
       m_formatter.immediate8s(value);
@@ -1796,6 +1856,9 @@ class BaseAssembler : public GenericAssembler {
     }
 
     spew("cmpl       $0x%x, %s", uint32_t(rhs), GPReg32Name(lhs));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, lhs, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -1811,6 +1874,9 @@ class BaseAssembler : public GenericAssembler {
 
   void cmpl_i32r(int32_t rhs, RegisterID lhs) {
     spew("cmpl       $0x%04x, %s", uint32_t(rhs), GPReg32Name(lhs));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (lhs == rax) {
       m_formatter.oneByteOp(OP_CMP_EAXIv);
     } else {
@@ -1821,6 +1887,9 @@ class BaseAssembler : public GenericAssembler {
 
   void cmpl_im(int32_t rhs, int32_t offset, RegisterID base) {
     spew("cmpl       $0x%x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -1892,6 +1961,9 @@ class BaseAssembler : public GenericAssembler {
                int scale) {
     spew("cmpl       $0x%x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_CMP);
@@ -1907,6 +1979,9 @@ class BaseAssembler : public GenericAssembler {
                                       RegisterID base) {
     spew("cmpl       $0x%x, " MEM_o32b, uint32_t(rhs), ADDR_o32b(offset, base));
     JmpSrc r;
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp_disp32(OP_GROUP1_EvIb, offset, base, GROUP1_OP_CMP);
       r = JmpSrc(m_formatter.size());
@@ -1922,6 +1997,9 @@ class BaseAssembler : public GenericAssembler {
   [[nodiscard]] JmpSrc cmpl_im_disp32(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%x, %p", uint32_t(rhs), addr);
     JmpSrc r;
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp_disp32(OP_GROUP1_EvIb, addr, GROUP1_OP_CMP);
       r = JmpSrc(m_formatter.size());
@@ -1936,12 +2014,18 @@ class BaseAssembler : public GenericAssembler {
 
   void cmpl_i32m(int32_t rhs, int32_t offset, RegisterID base) {
     spew("cmpl       $0x%04x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP1_EvIz, offset, base, GROUP1_OP_CMP);
     m_formatter.immediate32(rhs);
   }
 
   void cmpl_i32m(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%04x, %p", uint32_t(rhs), addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP1_EvIz, addr, GROUP1_OP_CMP);
     m_formatter.immediate32(rhs);
   }
@@ -1958,6 +2042,9 @@ class BaseAssembler : public GenericAssembler {
 
   void cmpl_im(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%x, %p", uint32_t(rhs), addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, addr, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -2065,6 +2152,9 @@ class BaseAssembler : public GenericAssembler {
       return;
     }
     spew("testl      $0x%x, %s", uint32_t(rhs), GPReg32Name(lhs));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     if (lhs == rax) {
       m_formatter.oneByteOp(OP_TEST_EAXIv);
     } else {
@@ -2075,12 +2165,18 @@ class BaseAssembler : public GenericAssembler {
 
   void testl_i32m(int32_t rhs, int32_t offset, RegisterID base) {
     spew("testl      $0x%x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, offset, base, GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
   }
 
   void testl_i32m(int32_t rhs, const void* addr) {
     spew("testl      $0x%x, %p", uint32_t(rhs), addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, addr, GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
   }
@@ -2104,6 +2200,9 @@ class BaseAssembler : public GenericAssembler {
                   RegisterID index, int scale) {
     spew("testl      $0x%4x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, offset, base, index, scale,
                           GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
@@ -2320,6 +2419,9 @@ class BaseAssembler : public GenericAssembler {
 
   void movl_i32r(int32_t imm, RegisterID dst) {
     spew("movl       $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_MOV_EAXIv, dst);
     m_formatter.immediate32(imm);
   }
@@ -2367,6 +2469,9 @@ class BaseAssembler : public GenericAssembler {
 
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base) {
     spew("movl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
@@ -2385,6 +2490,9 @@ class BaseAssembler : public GenericAssembler {
                  int scale) {
     spew("movl       $0x%x, " MEM_obs, uint32_t(imm),
          ADDR_obs(offset, base, index, scale));
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, index, scale,
                           GROUP11_MOV);
     m_formatter.immediate32(imm);
@@ -2471,6 +2579,9 @@ class BaseAssembler : public GenericAssembler {
 
   void movl_i32m(int32_t imm, const void* addr) {
     spew("movl       $%d, %p", imm, addr);
+#ifdef JS_CFI
+    nopAlign(0x10);
+#endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }

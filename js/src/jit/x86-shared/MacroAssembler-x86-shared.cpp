@@ -672,11 +672,37 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // ===============================================================
 // Simple call functions.
 
-CodeOffset MacroAssembler::call(Register reg) { return Assembler::call(reg); }
+CodeOffset MacroAssembler::call(Register reg) {
+#ifdef JS_CFI
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Label is at offset 5
+  Address target = Address(reg, 5);
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
+  return Assembler::call(reg);
+}
 
 CodeOffset MacroAssembler::call(Label* label) { return Assembler::call(label); }
 
 void MacroAssembler::call(const Address& addr) {
+#ifdef JS_CFI
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
+
+  // Label is at offset 5
+  Address target = Address(scratch, 5);
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
   Assembler::call(Operand(addr.base, addr.offset));
 }
 

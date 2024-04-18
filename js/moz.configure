@@ -290,6 +290,22 @@ set_define("JS_CODEGEN_X64", jit_codegen.x64)
 set_define("JS_CODEGEN_WASM32", jit_codegen.wasm32)
 
 
+# Enable CFI
+# ===================================================
+option(
+    "--enable-cfi",
+    default=False,
+    help="Enable JIT CFI",
+)
+
+@depends("--enable-cfi")
+def jit_cfi(value):
+    if value:
+        return True
+
+set_config("JS_CFI", jit_cfi)
+set_define("JS_CFI", jit_cfi)
+
 # Profiling
 # =======================================================
 option(
