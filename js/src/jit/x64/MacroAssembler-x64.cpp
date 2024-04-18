@@ -512,7 +512,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   movq(rsp, rax);
 
   // Call the handler.
-  using Fn = void (*)(ResumeFromException * rfe);
+  using Fn = void (*)(ResumeFromException* rfe);
   asMasm().setupUnalignedABICall(rcx);
   asMasm().passABIArg(rax);
   asMasm().callWithABI<Fn, HandleException>(
@@ -812,7 +812,11 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JS_CFI
+  callsafe(fun);
+#else
   call(fun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 
@@ -831,7 +835,11 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JS_CFI
+  callsafe(safeFun);
+#else
   call(safeFun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 

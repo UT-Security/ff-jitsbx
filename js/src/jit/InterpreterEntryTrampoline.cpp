@@ -61,6 +61,9 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   AutoCreatedBy acb(masm,
                     "JitRuntime::generateBaselineInterpreterEntryTrampoline");
 
+#ifdef JS_CFI
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -159,6 +162,9 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
     }
   }
 
+#ifdef JS_CFI
+  masm.emit_label();
+#endif
 #ifdef JS_CODEGEN_ARM64
   // Use the normal stack pointer for the initial pushes.
   masm.SetStackPointer64(sp);

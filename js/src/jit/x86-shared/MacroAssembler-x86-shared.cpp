@@ -677,8 +677,14 @@ CodeOffset MacroAssembler::call(Register reg) {
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
 
+  // Force alignment (find a better way to do this)
+  // ScratchRegisterScope scratch(*this);
+  // movq(ImmWord(0xfffffffffffffff0), scratch);
+  // andq(scratch, reg);
+
   // Label is at offset 5
   Address target = Address(reg, 5);
+
   branch32(Assembler::Equal, target, label, &passed);
   breakpoint();
 
@@ -693,6 +699,13 @@ void MacroAssembler::call(const Address& addr) {
 #ifdef JS_CFI
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
+  // ScratchRegisterScope scratch(*this);
+  // movq(ImmWord(0xfffffffffffffff0), scratch);
+  // andq(Operand(addr), scratch);
+
+  // Copy into register
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
 
@@ -705,6 +718,15 @@ void MacroAssembler::call(const Address& addr) {
 #endif
   Assembler::call(Operand(addr.base, addr.offset));
 }
+
+#ifdef JS_CFI
+CodeOffset MacroAssembler::callsafe(Register reg) {
+  return Assembler::call(reg);
+}
+void MacroAssembler::callsafe(const Address& addr) {
+  Assembler::call(Operand(addr.base, addr.offset));
+}
+#endif
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   mov(target, eax);
