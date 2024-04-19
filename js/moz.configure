@@ -517,6 +517,33 @@ option(
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 
+# JIT Sandbox
+# =======================================================
+
+option(
+    "--enable-jit-sandbox",
+    default=False,
+    help="{Enable|Disable} JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox", target, "--enable-jit")
+def jit_sandbox(jit_sandbox, target, jit_enabled):
+    if jit_sandbox and target.cpu != "x86_64":
+        die("--enable-jit-sandbox works only on x86-64")
+        
+    is_linux = target.kernel == "Linux" and target.os == "GNU"
+    if jit_sandbox and not is_linux:
+        die("--enable-jit-sandbox works only on GNU Linux")
+
+    if jit_sandbox and not jit_enabled:
+        return
+
+    if jit_sandbox:
+        return True
+
+set_config("JIT_SBX", jit_sandbox)
+set_define("JIT_SBX", jit_sandbox)
+
 # Architecture feature flags
 # =======================================================
 

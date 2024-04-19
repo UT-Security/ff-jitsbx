@@ -638,3 +638,8 @@ if CONFIG["JS_HAS_INTL_API"]:
     ]
 
     USE_LIBS += ["intlcomponents"]
+
+if CONFIG["JIT_SBX"]:
+    DIRS += [
+        "jit-sandbox"
+    ]
