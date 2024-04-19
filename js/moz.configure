@@ -544,6 +544,20 @@ def jit_sandbox(jit_sandbox, target, jit_enabled):
 set_config("JIT_SBX", jit_sandbox)
 set_define("JIT_SBX", jit_sandbox)
 
+option(
+    "--enable-jit-cfi-stack",
+    default=False,
+    help="{Enable|Disable} safe-stack inspired backward-edge CFI for the JIT.",
+)
+
+@depends("--enable-jit-cfi-stack", "--enable-jit-sandbox")
+def jit_cfi_stack(jit_cfi_stack, jit_sandbox):
+    if jit_sandbox and jit_cfi_stack:
+        return True
+
+set_config("JIT_CFI_STACK", jit_cfi_stack)
+set_define("JIT_CFI_STACK", jit_cfi_stack)
+
 # Architecture feature flags
 # =======================================================
 
