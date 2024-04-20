@@ -11,3 +11,7 @@ LOCAL_INCLUDES += ["!..", ".."]
 
 include("../js-config.mozbuild")
 include("../js-cxxflags.mozbuild")
+
+UNIFIED_SOURCES += [
+	"JitSandbox.cpp",
+];

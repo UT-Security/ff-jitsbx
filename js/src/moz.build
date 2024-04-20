@@ -639,7 +639,7 @@ if CONFIG["JS_HAS_INTL_API"]:
 
     USE_LIBS += ["intlcomponents"]
 
-if CONFIG["JIT_SBX"]:
+if CONFIG["JITSBX"]:
     DIRS += [
-        "jit-sandbox"
+        "jitsbx"
     ]
