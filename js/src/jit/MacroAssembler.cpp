@@ -2076,8 +2076,8 @@ void MacroAssembler::switchToRealm(Register realm) {
   Register temp = regs.takeAnyGeneral();
   setupUnalignedABICall(temp);
   passABIArg(realm);
-  callWithABI<Fn, js::sandbox::switchToRealm>(MoveOp::GENERAL,
-                                       CheckUnsafeCallWithABI::DontCheckOther);
+  callWithABI<Fn, js::sandbox::switchToRealm>(
+      MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
   PopRegsInMask(save);
   // storePtr(realm, AbsoluteAddress(ContextRealmPtr(runtime())));
 }
@@ -3049,14 +3049,18 @@ void MacroAssembler::loadBaselineFramePtr(Register framePtr, Register dest) {
   subPtr(Imm32(BaselineFrame::Size()), dest);
 }
 
-static const uint8_t* ContextInlinedICScriptPtr(CompileRuntime* rt) {
-  return (static_cast<const uint8_t*>(rt->mainContextPtr()) +
-          JSContext::offsetOfInlinedICScript());
-}
+// ask2374
+// static const uint8_t* ContextInlinedICScriptPtr(CompileRuntime* rt) {
+//   return (static_cast<const uint8_t*>(rt->mainContextPtr()) +
+//           JSContext::offsetOfInlinedICScript());
+// }
 
 void MacroAssembler::storeICScriptInJSContext(Register icScript) {
-  storePtr(icScript, AbsoluteAddress(ContextInlinedICScriptPtr(runtime())));
+  // storePtr(icScript, AbsoluteAddress(ContextInlinedICScriptPtr(runtime())));
+  storePtr(icScript, AbsoluteAddress(((JSContext*)(runtime()->mainContextPtr()))
+                                         ->addressOfInlinedICScript()));
 }
+// ask2374
 
 void MacroAssembler::handleFailure() {
   // Re-entry code is irrelevant because the exception will leave the

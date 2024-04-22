@@ -317,7 +317,12 @@ bool js::Nursery::init(AutoLockGCBgAlloc& lock) {
   return initFirstChunk(lock);
 }
 
-js::Nursery::~Nursery() { disable(); }
+js::Nursery::~Nursery() { 
+  // ask2374
+  js_free(position_);
+  // ask2374
+  disable(); 
+}
 
 void js::Nursery::enable() {
   MOZ_ASSERT(isEmpty());

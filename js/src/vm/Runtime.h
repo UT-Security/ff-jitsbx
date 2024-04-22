@@ -609,6 +609,10 @@ struct JSRuntime {
   // number of realms visited by RealmsIter.
   js::MainThreadData<size_t> numRealms;
 
+  // ask2374
+  std::unordered_set<JS::Realm*> active_realms;
+  // ask2374
+
   // The Gecko Profiler may want to sample the allocations happening across the
   // browser. This callback can be registered to record the allocation.
   js::MainThreadData<JS::RecordAllocationsCallback> recordAllocationCallback;

@@ -170,6 +170,8 @@ class NativeIteratorListHead : public NativeIteratorListNode {
  private:
   // Initialize a |Compartment::enumerators| sentinel.
   NativeIteratorListHead() { prev_ = next_ = this; }
+
+ public:
   friend class JS::Compartment;
 };
 

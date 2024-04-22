@@ -1041,7 +1041,9 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       interruptCallbacks_(this),
       interruptCallbackDisabled(this, false),
       interruptBits_(0),
-      inlinedICScript_(this, nullptr),
+      // ask2374
+      // inlinedICScript_(this, nullptr),
+      // ask2374
       jitStackLimit(JS::NativeStackLimitMin),
       jitStackLimitNoInterrupt(this, JS::NativeStackLimitMin),
       jobQueue(this, nullptr),
@@ -1055,9 +1057,17 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       insideDebuggerEvaluationWithOnNativeCallHook(this, nullptr) {
   MOZ_ASSERT(static_cast<JS::RootingContext*>(this) ==
              JS::RootingContext::get(this));
+    // ask2374
+    inlinedICScript_ = (js::ContextData<js::jit::ICScript*>*) js_sandbox_malloc(sizeof(js::ContextData<js::jit::ICScript*>));
+    *inlinedICScript_ = nullptr;
+    // ask2374
 }
 
 JSContext::~JSContext() {
+  // ask2374
+  js_free(inlinedICScript_);
+  // ask2374
+
   // Clear the ContextKind first, so that ProtectedData checks will allow us to
   // destroy this context even if the runtime is already gone.
   kind_ = ContextKind::Uninitialized;

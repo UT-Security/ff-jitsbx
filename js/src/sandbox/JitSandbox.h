@@ -52,5 +52,4 @@ extern FILE* sandbox_log;
 extern std::mutex log_mutex;
 extern void js::sandbox::checkJitMask(void* ptr);
 extern std::atomic<uint64_t> heap_bump_ptr;
-extern std::unordered_set<JS::Realm*> active_realms;
 // ask2374

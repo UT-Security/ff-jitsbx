@@ -198,7 +198,9 @@ std::unique_ptr<char[]> String::ToCString() {
 }
 
 bool Isolate::init() {
-  regexpStack_ = js_new<RegExpStack>();
+  // ask2374
+  regexpStack_ = js_sandbox_new<RegExpStack>();
+  // ask2374
   if (!regexpStack_) {
     return false;
   }

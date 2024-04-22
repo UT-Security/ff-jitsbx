@@ -12,9 +12,11 @@
 using namespace js;
 
 // static
+// ask2374
 UniquePtr<RegExpStatics> RegExpStatics::create(JSContext* cx) {
-  return cx->make_unique<RegExpStatics>();
+  return cx->sandbox_make_unique<RegExpStatics>();
 }
+// ask2374
 
 bool RegExpStatics::executeLazy(JSContext* cx) {
   if (!pendingLazyEvaluation) {

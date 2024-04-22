@@ -62,7 +62,7 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
   runtime_->numRealms++;
 
   // ask2374
-  active_realms.insert(this);
+  this->runtimeFromMainThread()->active_realms.insert(this);
   // ask2374
 }
 
@@ -79,7 +79,7 @@ Realm::~Realm() {
   runtime_->numRealms--;
 
   // ask2374
-  active_realms.erase(this);
+  this->runtimeFromMainThread()->active_realms.erase(this);
   // ask2374
 }
 

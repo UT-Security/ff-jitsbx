@@ -26,6 +26,7 @@
 #include "js/WrapperCallbacks.h"
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
+#include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #ifdef ENABLE_RECORD_TUPLE
 #  include "vm/RecordTupleShared.h"
@@ -46,7 +47,23 @@ Compartment::Compartment(Zone* zone, bool invisibleToDebugger)
       runtime_(zone->runtimeFromAnyThread()),
       invisibleToDebugger_(invisibleToDebugger),
       crossCompartmentObjectWrappers(zone, 0),
-      realms_(zone) {}
+      realms_(zone)
+      {
+      // ask2374
+      // there is a weird quirk where js_sandbox_new cannot call the constructor
+      // of js::NativeIteratorListHead even though JS::Compartment is a friend
+      // class. As a result, this work around is performed using new.
+      void* mem = js_sandbox_malloc(sizeof(js::NativeIteratorListHead));
+      this->enumerators_ = new (mem) js::NativeIteratorListHead();
+      // ask2374
+}
+
+// ask2374
+Compartment::~Compartment() {
+  this->enumerators_->~NativeIteratorListHead();
+  js_free(this->enumerators_);
+}
+// ask2374
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
@@ -603,7 +620,9 @@ JS_PUBLIC_API bool js::CompartmentHasLiveGlobal(JS::Compartment* comp) {
 
 void Compartment::traceWeakNativeIterators(JSTracer* trc) {
   /* Sweep list of native iterators. */
-  NativeIteratorListIter iter(&enumerators_);
+  // ask2374
+  NativeIteratorListIter iter(enumerators_);
+  // ask2374
   while (!iter.done()) {
     NativeIterator* ni = iter.next();
     JSObject* iterObj = ni->iterObj();

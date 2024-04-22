@@ -861,7 +861,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // being invoked as part of a trial inlining.  Contains nullptr at
   // all times except for the brief moment between being set in the
   // caller and read in the callee's prologue.
-  js::ContextData<js::jit::ICScript*> inlinedICScript_;
+  // ask2374
+  js::ContextData<js::jit::ICScript*>* inlinedICScript_;
+  // ask2374
 
  public:
   void* addressOfInterruptBits() { return &interruptBits_; }
@@ -877,7 +879,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   const void* addressOfRealm() const { return &realm_; }
 
-  void* addressOfInlinedICScript() { return &inlinedICScript_; }
+  // ask2374
+  void* addressOfInlinedICScript() { return inlinedICScript_; }
+  // ask2374
 
   // Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics
   // object.

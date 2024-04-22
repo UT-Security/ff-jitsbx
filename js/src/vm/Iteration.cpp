@@ -859,7 +859,7 @@ static PropertyIteratorObject* CreatePropertyIterator(
     return nullptr;
   }
 
-  void* mem = cx->pod_malloc_with_extra<NativeIterator, uint8_t>(
+  void* mem = cx->pod_sandbox_malloc_with_extra<NativeIterator, uint8_t>(
       NumTrailingBytes(props.length(), numShapes, hasIndices));
   if (!mem) {
     return nullptr;

@@ -1,6 +1,7 @@
 // ask2374
 
 #include "js/HeapAPI.h"
+#include "js/TypeDecls.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 #include "js/JitSandbox.h"
@@ -194,8 +195,11 @@ void* js::sandbox::MapAlignedPages(size_t length, size_t alignment) {
 // Taint Validation Functions
 
 void js::sandbox::switchToRealm(JS::Realm* realm) {
+	AutoUnsafeCallWithABI unsafe;
+
 	JSContext* cx = TlsContext.get();
-	if (!(active_realms.find(realm) != active_realms.end())) {
+	JSRuntime* rt = cx->runtime();
+	if (!(rt->active_realms.find(realm) != rt->active_realms.end())) {
 		abort();
 	}
 	cx->setRealm(realm);

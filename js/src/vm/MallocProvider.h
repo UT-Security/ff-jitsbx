@@ -127,6 +127,13 @@ struct MallocProvider {
     return pod_arena_malloc<T>(js::MallocArena, numElems);
   }
 
+  // ask2374
+  template <class T>
+  T* pod_sandbox_malloc(size_t numElems) {
+    return pod_arena_malloc<T>(js::SandboxMallocArena, numElems);
+  }
+  // ask2374
+
   template <class T, class U>
   T* pod_malloc_with_extra(size_t numExtra) {
     size_t bytes;
@@ -146,6 +153,28 @@ struct MallocProvider {
     }
     return p;
   }
+  
+  // ask2374
+  template <class T, class U>
+  T* pod_sandbox_malloc_with_extra(size_t numExtra) {
+    size_t bytes;
+    if (MOZ_UNLIKELY((!CalculateAllocSizeWithExtra<T, U>(numExtra, &bytes)))) {
+      client()->reportAllocationOverflow();
+      return nullptr;
+    }
+    T* p = static_cast<T*>(js_sandbox_malloc(bytes));
+    if (MOZ_LIKELY(p)) {
+      client()->updateMallocCounter(bytes);
+      return p;
+    }
+    p = (T*)client()->onOutOfMemory(AllocFunction::Malloc, js::SandboxMallocArena,
+                                    bytes);
+    if (p) {
+      client()->updateMallocCounter(bytes);
+    }
+    return p;
+  }
+  // ask2374
 
   template <class T>
   UniquePtr<T[], JS::FreePolicy> make_pod_arena_array(arena_id_t arena,
@@ -241,6 +270,11 @@ struct MallocProvider {
 
   JS_DECLARE_MAKE_METHODS(make_unique, new_, MOZ_ALWAYS_INLINE)
   JS_DECLARE_MAKE_METHODS(arena_make_unique, arena_new_, MOZ_ALWAYS_INLINE)
+
+  // ask2374
+  JS_DECLARE_NEW_METHODS(sandbox_new_, pod_sandbox_malloc<uint8_t>, MOZ_ALWAYS_INLINE)
+  JS_DECLARE_MAKE_METHODS(sandbox_make_unique, sandbox_new_, MOZ_ALWAYS_INLINE)
+  // ask2374
 
  private:
   Client* client() { return static_cast<Client*>(this); }
