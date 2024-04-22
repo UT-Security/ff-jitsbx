@@ -54,18 +54,15 @@ bool JitSandbox::initialize(JSContext* cx) {
   sandboxStackLimit_ = (uintptr_t)(savedSandboxStackPtr() - sandboxStackSize);
 #  endif
 
-  initialSandboxStackPtr_ = (uint8_t*)savedSandboxStackPtr();
+  sandboxStackBasePtr_ = (uint8_t*)savedSandboxStackPtr();
 
   addressOfSavedNativeStackPtr_ =
       addressOfSavedSandboxStackPtr_ + sizeof(uintptr_t);
   setSavedNativeStackPtr(nullptr);
+
+  nativeStackBasePtr_ = cx->nativeStackBase();
+  nativeStackLimit_ = cx->jitStackLimit;
 #endif
 
   return true;
 }
-
-#ifdef JITSBX_CFI_STACK
-void JitSandbox::resetStack(JSContext* cx) {
-  setSavedSandboxStackPtr(initialSandboxStackPtr_);
-}
-#endif

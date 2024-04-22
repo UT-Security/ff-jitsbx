@@ -1312,7 +1312,7 @@ CodeOffset MacroAssembler::call(Label* label) {
   return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::call(ImmPtr imm) {
+CodeOffset MacroAssembler::call(ImmPtr imm) {
   // This sync has been observed (and is expected) to be necessary.
   // eg testcase: asm.js/testTimeout5.js
   syncStackPtr();
@@ -1321,9 +1321,12 @@ void MacroAssembler::call(ImmPtr imm) {
   temps.Exclude(ScratchReg64);
   movePtr(imm, ScratchReg64.asUnsized());
   Blr(ScratchReg64);
+  return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::call(ImmWord imm) { call(ImmPtr((void*)imm.value)); }
+CodeOffset MacroAssembler::call(ImmWord imm) {
+  return call(ImmPtr((void*)imm.value));
+}
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
   vixl::UseScratchRegisterScope temps(this);
@@ -1336,7 +1339,7 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
   return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::call(const Address& addr) {
+CodeOffset MacroAssembler::call(const Address& addr) {
   vixl::UseScratchRegisterScope temps(this);
   const Register scratch = temps.AcquireX().asUnsized();
   // This sync has been observed (and is expected) to be necessary.
@@ -1344,9 +1347,10 @@ void MacroAssembler::call(const Address& addr) {
   syncStackPtr();
   loadPtr(addr, scratch);
   Blr(ARMRegister(scratch, 64));
+  return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::call(JitCode* c) {
+CodeOffset MacroAssembler::call(JitCode* c) {
   vixl::UseScratchRegisterScope temps(this);
   const ARMRegister scratch64 = temps.AcquireX();
   // This sync has been observed (and is expected) to be necessary.
@@ -1355,6 +1359,7 @@ void MacroAssembler::call(JitCode* c) {
   BufferOffset off = immPool64(scratch64, uint64_t(c->raw()));
   addPendingJump(off, ImmPtr(c->raw()), RelocationKind::JITCODE);
   blr(scratch64);
+  return CodeOffset(currentOffset());
 }
 
 CodeOffset MacroAssembler::callWithPatch() {

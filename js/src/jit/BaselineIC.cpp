@@ -543,7 +543,11 @@ bool FallbackICCodeCompiler::tailCallVM(MacroAssembler& masm) {
 
 void FallbackICCodeCompiler::enterStubFrame(MacroAssembler& masm,
                                             Register scratch) {
+#ifdef JITSBX_CFI_STACK
+  EmitBaselineFallbackICPrologue(masm, scratch);
+#else
   EmitBaselineEnterStubFrame(masm, scratch);
+#endif
 #ifdef DEBUG
   framePushedAtEnterStubFrame_ = masm.framePushed();
 #endif
@@ -578,7 +582,11 @@ void FallbackICCodeCompiler::leaveStubFrame(MacroAssembler& masm) {
 #ifdef DEBUG
   masm.setFramePushed(framePushedAtEnterStubFrame_);
 #endif
+#ifdef JITSBX_CFI_STACK
+  EmitBaselineFallbackICEpilogue(masm);
+#else
   EmitBaselineLeaveStubFrame(masm);
+#endif
 }
 
 void FallbackICCodeCompiler::pushStubPayload(MacroAssembler& masm,
@@ -618,8 +626,12 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 bool FallbackICCodeCompiler::emit_ToBool() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Push arguments.
   masm.pushValue(R0);
@@ -690,8 +702,12 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Super property getters use a |this| that differs from base object
   if (hasReceiver) {
@@ -746,6 +762,8 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
                                  masm.currentOffset());
   }
 
+  masm.sbxAssertNativeStack();
+  masm.sbxToSandboxStack();
   leaveStubFrame(masm);
 
   EmitReturnFromIC(masm);
@@ -885,7 +903,11 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetElem() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // State: R0: object, R1: index, stack: rhs.
   // For the decompiler, the stack has to be: object, index, rhs,
@@ -949,7 +971,11 @@ bool DoInFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_In() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -990,7 +1016,11 @@ bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_HasOwn() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -1037,7 +1067,11 @@ bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CheckPrivateField() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Sync for the decompiler.
   masm.pushValue(R0);
@@ -1093,7 +1127,11 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_GetName() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);
@@ -1137,7 +1175,11 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_BindName() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);
@@ -1174,7 +1216,11 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIntrinsic() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(ICStubReg);
   pushStubPayload(masm, R0.scratchReg());
@@ -1259,7 +1305,11 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Super property getters use a |this| that differs from base object
   if (hasReceiver) {
@@ -1301,6 +1351,9 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetProp,
                                  masm.currentOffset());
   }
+
+  masm.sbxAssertNativeStack();
+  masm.sbxToSandboxStack();
 
   leaveStubFrame(masm);
 
@@ -1462,7 +1515,11 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Ensure stack is fully synced for the expression decompiler.
   // Overwrite the RHS value on top of the stack with the object, then push
@@ -1495,7 +1552,8 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   assumeStubFrame();
   code.initBailoutReturnOffset(BailoutReturnKind::SetProp,
                                masm.currentOffset());
-
+  masm.sbxAssertNativeStack();
+  masm.sbxToSandboxStack();
   leaveStubFrame(masm);
   EmitReturnFromIC(masm);
 
@@ -1793,14 +1851,15 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     code.initBailoutReturnOffset(BailoutReturnKind::Call, masm.currentOffset());
   }
 
+  masm.sbxAssertNativeStack();
+  masm.sbxToSandboxStack();
+
   // Load passed-in ThisV into R1 just in case it's needed.  Need to do this
   // before we leave the stub frame since that info will be lost.
   // Current stack:  [...., ThisV, CalleeToken, Descriptor ]
   size_t thisvOffset =
       JitFrameLayout::offsetOfThis() - JitFrameLayout::bytesPoppedAfterCall();
   masm.loadValue(Address(masm.getStackPointer(), thisvOffset), R1);
-
-  leaveStubFrame(masm);
 
   // If this is a |constructing| call, if the callee returns a non-object, we
   // replace it with the |this| object passed in.
@@ -1817,6 +1876,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
     masm.bind(&skipThisReplace);
   }
 
+  leaveStubFrame(masm);
   EmitReturnFromIC(masm);
   return true;
 }
@@ -1860,7 +1920,11 @@ bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIterator() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Sync stack for the decompiler.
   masm.pushValue(R0);
@@ -1892,7 +1956,11 @@ bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -1941,7 +2009,11 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_InstanceOf() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Sync stack for the decompiler.
   masm.pushValue(R0);
@@ -1976,7 +2048,11 @@ bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_TypeOf() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -2005,7 +2081,11 @@ bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_ToPropertyKey() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.pushValue(R0);
   masm.push(ICStubReg);
@@ -2036,7 +2116,11 @@ bool DoRestFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_Rest() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(ICStubReg);
   pushStubPayload(masm, R0.scratchReg());
@@ -2114,8 +2198,12 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_UnaryArith() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2233,8 +2321,12 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_BinaryArith() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2329,8 +2421,12 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_Compare() {
   static_assert(R0 == JSReturnOperand);
 
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   // Restore the tail call register.
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   // Ensure stack is fully synced for the expression decompiler.
   masm.pushValue(R0);
@@ -2377,7 +2473,11 @@ bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewArray() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(ICStubReg);  // stub.
   masm.pushBaselineFramePtr(FramePointer, R0.scratchReg());
@@ -2412,7 +2512,11 @@ bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewObject() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(ICStubReg);  // stub.
   pushStubPayload(masm, R0.scratchReg());
@@ -2441,7 +2545,11 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
+  masm.sbxAssertNativeStack();
+#ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
+#endif
+  masm.sbxToSandboxStack();
 
   masm.push(R0.scratchReg());
   masm.push(ICStubReg);

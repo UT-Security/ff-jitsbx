@@ -1480,6 +1480,7 @@ bool CacheIRCompiler::emitFailurePath(size_t index) {
   }
 
   masm.bind(failure.label());
+  masm.sbxAssertSandboxStack();
   allocator.restoreInputState(masm);
   return true;
 }

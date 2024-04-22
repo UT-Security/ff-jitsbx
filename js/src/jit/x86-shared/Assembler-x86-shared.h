@@ -1117,7 +1117,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.call_r(reg.encoding());
     return CodeOffset(masm.currentOffset());
   }
-  void call(const Operand& op) {
+  CodeOffset call(const Operand& op) {
     switch (op.kind()) {
       case Operand::REG:
         masm.call_r(op.reg());
@@ -1128,6 +1128,7 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    return CodeOffset(masm.currentOffset());
   }
 
   CodeOffset callWithPatch() { return CodeOffset(masm.call().offset()); }

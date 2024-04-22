@@ -7,6 +7,10 @@
 #ifndef jit_MacroAssembler_inl_h
 #define jit_MacroAssembler_inl_h
 
+#include "jit/JitContext.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/MacroAssembler.h"
 
 #include "mozilla/FloatingPoint.h"
@@ -99,7 +103,7 @@ CodeOffset MacroAssembler::PushWithPatch(ImmPtr imm) {
 // ===============================================================
 // Simple call functions.
 
-void MacroAssembler::call(TrampolinePtr code) { call(ImmPtr(code.value)); }
+CodeOffset MacroAssembler::call(TrampolinePtr code) { return call(ImmPtr(code.value)); }
 
 CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 const Register reg) {
@@ -115,9 +119,10 @@ CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
   return l;
 }
 
-void MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::Trap trap) {
+CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc, wasm::Trap trap) {
   CodeOffset l = callWithPatch();
   append(desc, l, trap);
+  return l;
 }
 
 CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
@@ -230,12 +235,22 @@ ABIFunctionType MacroAssembler::signature() const {
 uint32_t MacroAssembler::callJitNoProfiler(Register callee) {
 #ifdef JS_USE_LINK_REGISTER
   // The return address is pushed by the callee.
-  call(callee);
+  return call(callee);
 #else
-  callAndPushReturnAddress(callee);
+  return callAndPushReturnAddress(callee).offset();
 #endif
-  return currentOffset();
 }
+
+#ifdef JITSBX_CFI_STACK
+uint32_t MacroAssembler::callJitNoProfilerCFIStackUnsafe(Register callee) {
+#ifdef JS_USE_LINK_REGISTER
+  // The return address is pushed by the callee.
+  return callCFIStackUnsafe(callee);
+#else
+  return callAndPushReturnAddressCFIStackUnsafe(callee).offset();
+#endif
+}
+#endif
 
 uint32_t MacroAssembler::callJit(Register callee) {
   AutoProfilerCallInstrumentation profiler(*this);
@@ -245,20 +260,17 @@ uint32_t MacroAssembler::callJit(Register callee) {
 
 uint32_t MacroAssembler::callJit(JitCode* callee) {
   AutoProfilerCallInstrumentation profiler(*this);
-  call(callee);
-  return currentOffset();
+  return call(callee).offset();
 }
 
 uint32_t MacroAssembler::callJit(TrampolinePtr code) {
   AutoProfilerCallInstrumentation profiler(*this);
-  call(code);
-  return currentOffset();
+  return call(code).offset();
 }
 
 uint32_t MacroAssembler::callJit(ImmPtr callee) {
   AutoProfilerCallInstrumentation profiler(*this);
-  call(callee);
-  return currentOffset();
+  return call(callee).offset();
 }
 
 void MacroAssembler::pushFrameDescriptor(FrameType type) {
@@ -371,6 +383,125 @@ void MacroAssembler::enterFakeExitFrameForNative(Register cxreg,
 
 void MacroAssembler::leaveExitFrame(size_t extraFrame) {
   freeStack(ExitFooterFrame::Size() + extraFrame);
+}
+
+// ===============================================================
+// JIT Sandbox instructions
+
+// stack state assertions
+void MacroAssembler::sbxAssertNativeStack() {
+#if defined(DEBUG) && defined(JITSBX_CFI_STACK)
+  Label ok, fail;
+  branchPtr(Assembler::Below, StackPointer,
+            ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackLimit()),
+            &fail);
+  branchPtr(Assembler::Above, StackPointer,
+            ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackBase()),
+            &fail);
+  jump(&ok);
+
+  bind(&fail);
+  breakpoint();
+
+  bind(&ok);
+#endif
+}
+
+void MacroAssembler::sbxAssertSandboxStack() {
+#if defined(DEBUG) && defined(JITSBX_CFI_STACK)
+  Label ok, fail;
+  branchStackPtrRhs(
+      Assembler::Above,
+      AbsoluteAddress(
+          GetJitContext()->jitSandbox->addressOfSandboxStackLimit()),
+      &fail);
+  branchPtr(Assembler::Above, StackPointer,
+            ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()),
+            &fail);
+  jump(&ok);
+
+  bind(&fail);
+  breakpoint();
+
+  bind(&ok);
+#endif
+}
+
+void MacroAssembler::sbxToNativeStack() {
+#ifdef JITSBX_CFI_STACK
+  storePtr(StackPointer,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedSandboxStackPtr()));
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()
+                              ->jitSandbox->addressOfSavedNativeStackPtr()),
+          StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxToSandboxStack() {
+#ifdef JITSBX_CFI_STACK
+  storePtr(StackPointer,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()
+                              ->jitSandbox->addressOfSavedSandboxStackPtr()),
+          StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxPushReturnAddress() {
+#ifdef JITSBX_CFI_STACK
+  push(ImmPtr((void*)0xdeadbeef));
+#endif
+}
+
+void MacroAssembler::sbxPushFramePointer() {
+#ifdef JITSBX_CFI_STACK
+  push(FramePointer);
+#endif
+}
+
+void MacroAssembler::sbxPushFrame() {
+  sbxPushReturnAddress();
+  sbxPushFramePointer();
+}
+
+// TODO(JITSBX_CFI_STACK): the addPtr operations below need to be sandboxed
+
+void MacroAssembler::sbxPopReturnAddress() {
+#ifdef JITSBX_CFI_STACK
+  addPtr(Imm32(sizeof(void*)), StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxPopFramePointer() {
+#ifdef JITSBX_CFI_STACK
+  addPtr(Imm32(sizeof(void*)), StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxPopFrame() {
+#ifdef JITSBX_CFI_STACK
+  addPtr(Imm32(2 * sizeof(void*)), StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxPopStubFrame() {
+#ifdef JITSBX_CFI_STACK
+  addPtr(Imm32(3 * sizeof(void*)), StackPointer);
+#endif
+}
+
+void MacroAssembler::sbxLoadSavedSandboxStackPtr(Register dest) {
+#ifdef JITSBX_CFI_STACK
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()->jitSandbox->addressOfSavedSandboxStackPtr()), dest);
+#endif
+}
+
+void MacroAssembler::sbxLoadSavedNativeStackPtr(Register dest) {
+#ifdef JITSBX_CFI_STACK
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()->jitSandbox->addressOfSavedNativeStackPtr()), dest);
+#endif
 }
 
 // ===============================================================

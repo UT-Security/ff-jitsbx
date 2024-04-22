@@ -18,6 +18,9 @@
 #include "jit/IonOptimizationLevels.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/Linker.h"
@@ -515,6 +518,7 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   }
 
   masm.bind(&postBarrierSlot_);
+  masm.sbxAssertNativeStack();
 
   saveInterpreterPCReg();
 
@@ -535,6 +539,12 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
 #elif defined(JS_CODEGEN_RISCV64)
   masm.push(ra);
 #endif
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
+  masm.sbxPushReturnAddress();
+      
   masm.pushValue(R0);
 
   using Fn = void (*)(JSRuntime* rt, js::gc::Cell* cell);
@@ -547,6 +557,12 @@ bool BaselineCodeGen<Handler>::emitOutOfLinePostBarrierSlot() {
   restoreInterpreterPCReg();
 
   masm.popValue(R0);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.ret();
   return true;
 }
@@ -653,8 +669,7 @@ bool BaselineInterpreterCodeGen::emitNextIC() {
   saveInterpreterPCReg();
   masm.loadPtr(frame.addressOfInterpreterICEntry(), ICStubReg);
   masm.loadPtr(Address(ICStubReg, ICEntry::offsetOfFirstStub()), ICStubReg);
-  masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
-  uint32_t returnOffset = masm.currentOffset();
+  uint32_t returnOffset = masm.call(Address(ICStubReg, ICStub::offsetOfStubCode())).offset();
   restoreInterpreterPCReg();
 
   // If this is an IC for a bytecode op where Ion may inline scripts, we need to
@@ -758,8 +773,7 @@ bool BaselineCodeGen<Handler>::callVMInternal(VMFunctionId id,
   }
   MOZ_ASSERT(fun.expectTailCall == NonTailCall);
   // Perform the call.
-  masm.call(code);
-  uint32_t callOffset = masm.currentOffset();
+  uint32_t callOffset = masm.call(code).offset();
 
   // Pop arguments from framePushed.
   masm.implicitPop(argSize);
@@ -780,20 +794,46 @@ bool BaselineCodeGen<Handler>::callVM(RetAddrEntry::Kind kind,
 template <typename Handler>
 bool BaselineCodeGen<Handler>::emitStackCheck() {
   Label skipCall;
+#ifdef JITSBX_CFI_STACK
+  Label makeCall;
+#endif
   if (handler.mustIncludeSlotsInStackCheck()) {
     // Subtract the size of script->nslots() first.
     Register scratch = R1.scratchReg();
     masm.moveStackPtrTo(scratch);
     subtractScriptSlotsSize(scratch, R2.scratchReg());
+#ifdef JITSBX_CFI_STACK
+    masm.branchPtr(
+        Assembler::Above,
+        AbsoluteAddress(
+            GetJitContext()->jitSandbox->addressOfSandboxStackLimit()),
+        scratch, &makeCall);
+    masm.sbxLoadSavedNativeStackPtr(scratch);
+#endif
     masm.branchPtr(Assembler::BelowOrEqual,
                    AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
                    &skipCall);
   } else {
+#ifdef JITSBX_CFI_STACK
+    Register scratch = R1.scratchReg();
+    masm.branchStackPtrRhs(
+        Assembler::Above,
+        AbsoluteAddress(
+            GetJitContext()->jitSandbox->addressOfSandboxStackLimit()),
+        &makeCall);
+    masm.sbxLoadSavedNativeStackPtr(scratch);
+    masm.branchPtr(Assembler::BelowOrEqual,
+                   AbsoluteAddress(cx->addressOfJitStackLimit()), scratch,
+                   &skipCall);
+#endif
     masm.branchStackPtrRhs(Assembler::BelowOrEqual,
                            AbsoluteAddress(cx->addressOfJitStackLimit()),
                            &skipCall);
   }
 
+#ifdef JITSBX_CFI_STACK
+  masm.bind(&makeCall);  
+#endif
   prepareVMCall();
   masm.loadBaselineFramePtr(FramePointer, R1.scratchReg());
   pushArg(R1.scratchReg());
@@ -1421,6 +1461,9 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
       ReportOutOfMemory(cx);
       return false;
     }
+    // OSR from Baseline Interpreter should jump here
+    // while within the sandbox-stack.
+    masm.sbxAssertSandboxStack();
   }
 
   // Emit no warm-up counter increments if Ion is not enabled or if the script
@@ -5888,25 +5931,28 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
   // generator returns.
   Label genStart, returnTarget;
 #ifdef JS_USE_LINK_REGISTER
-  masm.call(&genStart);
+  uint32_t offset = masm.call(&genStart);
 #else
-  masm.callAndPushReturnAddress(&genStart);
+  uint32_t offset = masm.callAndPushReturnAddress(&genStart).offset();
 #endif
 
   // Record the return address so the return offset -> pc mapping works.
   if (!handler.recordCallRetAddr(cx, RetAddrEntry::Kind::IC,
-                                 masm.currentOffset())) {
+                                 offset)) {
     return false;
   }
 
   masm.jump(&returnTarget);
   masm.bind(&genStart);
+  masm.sbxAssertNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
 
   // Construct BaselineFrame.
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // If profiler instrumentation is on, update lastProfilingFrame on
@@ -6333,18 +6379,22 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+  masm.sbxAssertNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
 #endif
 
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   masm.checkStackAlignment();
 
   emitProfilerEnterFrame();
 
+  // TODO(JITSBX_CFI_STACK): sandbox this rsp subtraction.
   masm.subFromStackPtr(Imm32(BaselineFrame::Size()));
 
   // Initialize BaselineFrame. Also handles env chain pre-initialization (in
@@ -6411,7 +6461,10 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
 
   emitProfilerExitFrame();
 
+  masm.sbxAssertSandboxStack();
   masm.moveToStackPtr(FramePointer);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
 
   masm.ret();
@@ -6426,6 +6479,8 @@ MethodStatus BaselineCompiler::emitBody() {
 
   mozilla::DebugOnly<jsbytecode*> prevpc = handler.pc();
 
+  masm.sbxAssertSandboxStack();
+      
   while (true) {
     JSOp op = JSOp(*handler.pc());
     JitSpew(JitSpew_BaselineOp, "Compiling op @ %d: %s",
@@ -6486,6 +6541,7 @@ MethodStatus BaselineCompiler::emitBody() {
   case JSOp::OP: {                                             \
     AutoCreatedBy acb(masm, "op=" #OP);                        \
     if (MOZ_UNLIKELY(!this->emit_##OP())) return Method_Error; \
+    masm.sbxAssertSandboxStack();                              \
   } break;
 
     switch (op) {
@@ -6564,6 +6620,9 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   auto opEpilogue = [&](JSOp op, size_t opLength) -> bool {
     MOZ_ASSERT(masm.framePushed() == 0);
 
+    // we should still be using the sandbox-stack.
+    masm.sbxAssertSandboxStack();
+    
     if (!BytecodeFallsThrough(op)) {
       // Nothing to do.
       masm.assumeUnreachable("unexpected fall through");
@@ -6625,17 +6684,20 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // return here from the DebugTrapHandler.
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
+  masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(handler.interpretOpWithPCRegLabel());
 
   // Second external entry point: this skips the debug trap for the first op
   // and is used by OSR.
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
+  masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
 
   // External entry point for Ion prologue bailouts.
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
+  masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);
 
@@ -6681,9 +6743,15 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
                     "emitOutOfLineCodeCoverageInstrumentation");
 
   masm.bind(handler.codeCoverageAtPrologueLabel());
+  masm.sbxAssertNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
+  masm.sbxPushReturnAddress();
 
   saveInterpreterPCReg();
 
@@ -6694,13 +6762,26 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn1, HandleCodeCoverageAtPrologue>();
 
   restoreInterpreterPCReg();
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.ret();
 
   masm.bind(handler.codeCoverageAtPCLabel());
+  masm.sbxAssertNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
-
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
+  masm.sbxPushReturnAddress();
+          
   saveInterpreterPCReg();
 
   using Fn2 = void (*)(BaselineFrame* frame, jsbytecode* pc);
@@ -6712,6 +6793,13 @@ void BaselineInterpreterGenerator::emitOutOfLineCodeCoverageInstrumentation() {
   masm.callWithABI<Fn2, HandleCodeCoverageAtPC>();
 
   restoreInterpreterPCReg();
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
   masm.ret();
 }
 
@@ -6825,6 +6913,8 @@ JitCode* JitRuntime::generateDebugTrapHandler(JSContext* cx,
   Register scratch1 = regs.takeAny();
   Register scratch2 = regs.takeAny();
   Register scratch3 = regs.takeAny();
+
+  masm.sbxAssertSandboxStack();
 
   if (kind == DebugTrapHandlerKind::Interpreter) {
     // The interpreter calls this for every script when debugging, so check if

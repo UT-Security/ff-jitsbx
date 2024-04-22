@@ -61,10 +61,13 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   AutoCreatedBy acb(masm,
                     "JitRuntime::generateBaselineInterpreterEntryTrampoline");
 
+  masm.sbxAssertNativeStack();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
@@ -143,7 +146,10 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   masm.assertStackAlignment(JitStackAlignment, 2 * sizeof(uintptr_t));
   masm.call(ImmPtr(blinterpAddr));
 
+  masm.sbxAssertSandboxStack();
   masm.moveToStackPtr(FramePointer);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 }
@@ -192,7 +198,10 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
   masm.loadPtr(cxAddr, arg0);
   masm.loadPtr(stateAddr, arg1);
 #else
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableRegisterSet regs(RegisterSet::Volatile());
@@ -224,7 +233,10 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
   // Reset stack pointer.
   masm.SetStackPointer64(PseudoStackPointer64);
 #else
+  masm.sbxAssertSandboxStack();
   masm.moveToStackPtr(FramePointer);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 #endif

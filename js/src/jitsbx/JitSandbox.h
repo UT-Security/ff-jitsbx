@@ -25,7 +25,7 @@ class JitSandbox {
   // Initial value for the stack pointer into the sandbox-stack.
   // We use this to reset the sandbox-stack pointer when the last
   // JIT Activation returns.
-  WriteOnceData<uint8_t*> initialSandboxStackPtr_{nullptr};
+  WriteOnceData<uint8_t*> sandboxStackBasePtr_{nullptr};
 
   // Memory location outside the sandbox heap region where the JIT saves
   // the sandbox-stack pointer before switching to the native-stack.
@@ -34,6 +34,14 @@ class JitSandbox {
   // Memory location outside the sandbox heap region where the JIT saves
   // the native-stack pointer before switching to the sandbox-stack.
   WriteOnceData<uintptr_t> addressOfSavedNativeStackPtr_{0};
+
+  // native-stack limit from the JSContext.
+  WriteOnceData<uintptr_t> nativeStackLimit_{0};
+
+  // Base of the native-stack from the JSContext.
+  // We expect that JIT code will never point to the native-stack below
+  // this limit.
+  WriteOnceData<uintptr_t> nativeStackBasePtr_{0};
 #endif
 
  public:
@@ -43,8 +51,6 @@ class JitSandbox {
   [[nodiscard]] bool initialize(JSContext* cx);
 
 #ifdef JITSBX_CFI_STACK
-  void resetStack(JSContext* cx);
-
   uintptr_t addressOfSavedNativeStackPtr() const {
     return addressOfSavedNativeStackPtr_;
   }
@@ -74,6 +80,14 @@ class JitSandbox {
   }
 
   uintptr_t sandboxStackLimit() const { return sandboxStackLimit_; }
+
+  uintptr_t sandboxStackBase() const { return (uintptr_t)sandboxStackBasePtr_.ref(); }
+
+  uintptr_t nativeStackLimit() const {
+    return nativeStackLimit_.ref();
+  }
+
+  uintptr_t nativeStackBase() const { return (uintptr_t)nativeStackBasePtr_.ref(); }
 #endif
 };
 

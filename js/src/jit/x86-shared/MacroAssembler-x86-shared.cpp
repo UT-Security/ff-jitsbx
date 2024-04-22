@@ -672,24 +672,70 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // ===============================================================
 // Simple call functions.
 
-CodeOffset MacroAssembler::call(Register reg) { return Assembler::call(reg); }
-
-CodeOffset MacroAssembler::call(Label* label) { return Assembler::call(label); }
-
-void MacroAssembler::call(const Address& addr) {
-  Assembler::call(Operand(addr.base, addr.offset));
+CodeOffset MacroAssembler::call(Register reg) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(reg);
+  sbxToSandboxStack();
+  return offset;
 }
+
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
+  return Assembler::call(reg);
+}
+#endif
+
+CodeOffset MacroAssembler::call(Label* label) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(label);
+  sbxToSandboxStack();
+  return offset;
+}
+
+CodeOffset MacroAssembler::call(const Address& addr) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+  sbxToSandboxStack();
+  return offset;
+}
+
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callCFIStackUnsafe(const Address& addr) {
+  return Assembler::call(Operand(addr.base, addr.offset));
+}
+#endif
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   mov(target, eax);
   return Assembler::call(eax);
 }
 
-void MacroAssembler::call(ImmWord target) { Assembler::call(target); }
+CodeOffset MacroAssembler::call(ImmWord target) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(target);
+  sbxToSandboxStack();
+  return offset;
+}
 
-void MacroAssembler::call(ImmPtr target) { Assembler::call(target); }
+CodeOffset MacroAssembler::call(ImmPtr target) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(target);
+  sbxToSandboxStack();
+  return offset;
+}
 
-void MacroAssembler::call(JitCode* target) { Assembler::call(target); }
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callCFIStackUnsafe(ImmPtr target) {
+  return Assembler::call(target);
+}
+#endif
+
+CodeOffset MacroAssembler::call(JitCode* target) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(target);
+  sbxToSandboxStack();
+  return offset;
+}
 
 CodeOffset MacroAssembler::callWithPatch() {
   return Assembler::callWithPatch();
@@ -698,9 +744,18 @@ void MacroAssembler::patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
   Assembler::patchCall(callerOffset, calleeOffset);
 }
 
-void MacroAssembler::callAndPushReturnAddress(Register reg) { call(reg); }
+CodeOffset MacroAssembler::callAndPushReturnAddress(Register reg) { return call(reg); }
 
-void MacroAssembler::callAndPushReturnAddress(Label* label) { call(label); }
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callAndPushReturnAddressCFIStackUnsafe(
+    Register reg) {
+  return callCFIStackUnsafe(reg);
+}
+#endif
+
+CodeOffset MacroAssembler::callAndPushReturnAddress(Label* label) {
+  return call(label);
+}
 
 // ===============================================================
 // Patchable near/far jumps.

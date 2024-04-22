@@ -601,22 +601,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset call(Register reg) PER_SHARED_ARCH;
   CodeOffset call(Label* label) PER_SHARED_ARCH;
 
-  void call(const Address& addr) PER_SHARED_ARCH;
-  void call(ImmWord imm) PER_SHARED_ARCH;
+  CodeOffset call(const Address& addr) PER_SHARED_ARCH;
+  CodeOffset call(ImmWord imm) PER_SHARED_ARCH;
   // Call a target native function, which is neither traceable nor movable.
-  void call(ImmPtr imm) PER_SHARED_ARCH;
+  CodeOffset call(ImmPtr imm) PER_SHARED_ARCH;
   CodeOffset call(wasm::SymbolicAddress imm) PER_SHARED_ARCH;
   inline CodeOffset call(const wasm::CallSiteDesc& desc,
                          wasm::SymbolicAddress imm);
 
   // Call a target JitCode, which must be traceable, and may be movable.
-  void call(JitCode* c) PER_SHARED_ARCH;
+  CodeOffset call(JitCode* c) PER_SHARED_ARCH;
 
-  inline void call(TrampolinePtr code);
+  inline CodeOffset call(TrampolinePtr code);
 
   inline CodeOffset call(const wasm::CallSiteDesc& desc, const Register reg);
   inline CodeOffset call(const wasm::CallSiteDesc& desc, uint32_t funcDefIndex);
-  inline void call(const wasm::CallSiteDesc& desc, wasm::Trap trap);
+  inline CodeOffset call(const wasm::CallSiteDesc& desc, wasm::Trap trap);
 
   CodeOffset callWithPatch() PER_SHARED_ARCH;
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) PER_SHARED_ARCH;
@@ -624,8 +624,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Push the return address and make a call. On platforms where this function
   // is not defined, push the link register (pushReturnAddress) at the entry
   // point of the callee.
-  void callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
-  void callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
+  CodeOffset callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
 
   // These do not adjust framePushed().
   void pushReturnAddress()
@@ -949,6 +949,41 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Save the top of the stack into JitActivation::packedExitFP of the
   // current thread, which should be the location of the latest exit frame.
   void linkExitFrame(Register cxreg, Register scratch);
+
+ public:
+  // ===============================================================
+  // JIT Sandbox instructions
+
+  // stack state assertions
+  inline void sbxAssertNativeStack();
+  inline void sbxAssertSandboxStack();
+
+  // stack switching instructions
+  inline void sbxToNativeStack();
+  inline void sbxToSandboxStack();
+
+  // sandbox stack frame manipulation
+  inline void sbxPushReturnAddress();
+  inline void sbxPushFramePointer();
+  inline void sbxPushFrame();
+  inline void sbxPopReturnAddress();
+  inline void sbxPopFramePointer();
+  inline void sbxPopFrame();
+  inline void sbxPopStubFrame();
+
+  inline void sbxLoadSavedSandboxStackPtr(Register dest);
+  inline void sbxLoadSavedNativeStackPtr(Register dest);
+
+#ifdef JITSBX_CFI_STACK
+  // unsafe call instructions that skip stack switching
+  CodeOffset callCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+  CodeOffset callCFIStackUnsafe(ImmPtr target) DEFINED_ON(x86_shared);
+
+  CodeOffset callAndPushReturnAddressCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+      
+  inline uint32_t callJitNoProfilerCFIStackUnsafe(Register callee);
+#endif
 
  public:
   // ===============================================================
@@ -4674,6 +4709,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void switchToRealm(const void* realm, Register scratch);
   void switchToObjectRealm(Register obj, Register scratch);
   void switchToBaselineFrameRealm(Register scratch);
+  void switchToBaselineFrameRealmFromStub(Register scratch);
   void switchToWasmInstanceRealm(Register scratch1, Register scratch2);
   void debugAssertContextRealm(const void* realm, Register scratch);
 

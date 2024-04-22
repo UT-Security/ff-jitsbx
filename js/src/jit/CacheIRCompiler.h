@@ -999,6 +999,7 @@ enum class CallCanGC { CanGC, CanNotGC };
 class MOZ_RAII AutoStubFrame {
   BaselineCacheIRCompiler& compiler;
 #ifdef DEBUG
+  uint32_t framePushedBeforeEnterStubFrame_;
   uint32_t framePushedAtEnterStubFrame_;
 #endif
 

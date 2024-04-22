@@ -15,9 +15,15 @@
 namespace js {
 namespace jit {
 
+#ifdef JITSBX_CFI_STACK
+// Distance from Stack top to the top Value inside an IC stub.
+// There is no frame pushed on the sandbox-stack during normal operation.
+static const size_t ICStackValueOffset = 0;
+#else
 // Distance from Stack top to the top Value inside an IC stub (this is the
 // return address).
 static const size_t ICStackValueOffset = sizeof(void*);
+#endif
 
 inline void EmitRestoreTailCallReg(MacroAssembler& masm) {
   masm.Pop(ICTailCallReg);
@@ -30,8 +36,7 @@ inline void EmitRepushTailCallReg(MacroAssembler& masm) {
 inline void EmitCallIC(MacroAssembler& masm, CodeOffset* callOffset) {
   // The stub pointer must already be in ICStubReg.
   // Call the stubcode.
-  masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
-  *callOffset = CodeOffset(masm.currentOffset());
+  *callOffset = masm.call(Address(ICStubReg, ICStub::offsetOfStubCode()));
 }
 
 inline void EmitReturnFromIC(MacroAssembler& masm) { masm.ret(); }
@@ -41,6 +46,7 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
   masm.loadPtr(stubAddr, ICStubReg);
 
   masm.mov(FramePointer, StackPointer);
+  masm.implicitPop(sizeof(void*));
   masm.Pop(FramePointer);
 
   // The return address is on top of the stack, followed by the frame
@@ -49,6 +55,19 @@ inline void EmitBaselineLeaveStubFrame(MacroAssembler& masm) {
   // before computing the address.
   masm.Pop(Operand(StackPointer, 0));
 }
+
+#ifdef JITSBX_CFI_STACK
+inline void EmitBaselineFallbackICEpilogue(MacroAssembler& masm) {
+  Address stubAddr(FramePointer, BaselineStubFrameLayout::ICStubOffsetFromFP);
+  masm.loadPtr(stubAddr, ICStubReg);
+
+  masm.mov(FramePointer, StackPointer);
+  masm.sbxPopStubFrame();
+
+  masm.sbxToNativeStack();
+  masm.Pop(FramePointer);
+}
+#endif
 
 template <typename AddrType>
 inline void EmitPreBarrier(MacroAssembler& masm, const AddrType& addr,

@@ -2843,20 +2843,23 @@ void MacroAssembler::branchValueIsNurseryCell(Condition cond,
                                               Label* label) {
   branchValueIsNurseryCellImpl(cond, value, temp, label);
 }
-void MacroAssembler::call(const Address& addr) {
+CodeOffset MacroAssembler::call(const Address& addr) {
   UseScratchRegisterScope temps(this);
   temps.Exclude(GeneralRegisterSet(1 << CallReg.code()));
   loadPtr(addr, CallReg);
-  call(CallReg);
+  return call(CallReg);
 }
-void MacroAssembler::call(ImmPtr target) {
+CodeOffset MacroAssembler::call(ImmPtr target) {
   BufferOffset bo = m_buffer.nextOffset();
   addPendingJump(bo, target, RelocationKind::HARDCODED);
   ma_call(target);
+  return CodeOffset(currentOffset());
 }
-void MacroAssembler::call(ImmWord target) { call(ImmPtr((void*)target.value)); }
+CodeOffset MacroAssembler::call(ImmWord target) {
+  return call(ImmPtr((void*)target.value));
+}
 
-void MacroAssembler::call(JitCode* c) {
+CodeOffset MacroAssembler::call(JitCode* c) {
   DEBUG_PRINTF("[ %s\n", __FUNCTION__);
   BlockTrampolinePoolScope block_trampoline_pool(this, 8);
   UseScratchRegisterScope temps(this);
@@ -2864,8 +2867,9 @@ void MacroAssembler::call(JitCode* c) {
   BufferOffset bo = m_buffer.nextOffset();
   addPendingJump(bo, ImmPtr(c->raw()), RelocationKind::JITCODE);
   ma_liPatchable(scratch, ImmPtr(c->raw()));
-  callJitNoProfiler(scratch);
+  uint32_t offset = callJitNoProfiler(scratch);
   DEBUG_PRINTF("]\n");
+  return CodeOffset(offset);
 }
 
 void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {

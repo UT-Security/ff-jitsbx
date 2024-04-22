@@ -14,4 +14,6 @@ include("../js-cxxflags.mozbuild")
 
 UNIFIED_SOURCES += [
 	"JitSandbox.cpp",
+	"JitSandboxActivation.cpp",
+	"JitSandboxContext.cpp",
 ];

@@ -5,6 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "vm/JitActivation.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandboxActivation.h"
+#endif
 
 #include "mozilla/Assertions.h"  // MOZ_ASSERT, MOZ_RELEASE_ASSERT
 
@@ -34,6 +37,9 @@ js::jit::JitActivation::JitActivation(JSContext* cx)
       packedExitFP_(nullptr),
       encodedWasmExitReason_(0),
       prevJitActivation_(cx->jitActivation),
+#ifdef JITSBX
+      jitSandboxActivation_(cx, prevJitActivation_),
+#endif
       rematerializedFrames_(),
       ionRecovery_(cx),
       bailoutData_(nullptr),

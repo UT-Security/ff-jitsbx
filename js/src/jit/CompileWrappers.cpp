@@ -30,6 +30,12 @@ const uint32_t* CompileRuntime::addressOfGCZealModeBits() {
 }
 #endif
 
+#ifdef JITSBX
+const jitsbx::JitSandbox* CompileRuntime::jitSandbox() {
+  return runtime()->jitSandbox();
+}
+#endif
+
 const JitRuntime* CompileRuntime::jitRuntime() {
   return runtime()->jitRuntime();
 }

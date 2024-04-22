@@ -2080,6 +2080,18 @@ void MacroAssembler::switchToBaselineFrameRealm(Register scratch) {
   switchToObjectRealm(scratch, scratch);
 }
 
+void MacroAssembler::switchToBaselineFrameRealmFromStub(Register scratch) {
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(FramePointer, 0), scratch);
+  Address envChain(scratch, BaselineFrame::reverseOffsetOfEnvironmentChain());
+#else
+  Address envChain(FramePointer,
+                   BaselineFrame::reverseOffsetOfEnvironmentChain());
+#endif
+  loadPtr(envChain, scratch);
+  switchToObjectRealm(scratch, scratch);
+}
+
 void MacroAssembler::switchToWasmInstanceRealm(Register scratch1,
                                                Register scratch2) {
   loadPtr(Address(InstanceReg, wasm::Instance::offsetOfCx()), scratch1);
@@ -3851,7 +3863,13 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
   }
 #endif
 
+#ifdef JITSBX_CFI_STACK
+  // cfi-stack(SAFETY): we already switched to the native-stack in
+  // callWithABIPre.
+  callCFIStackUnsafe(ImmPtr(fun));
+#else
   call(ImmPtr(fun));
+#endif
 
   callWithABIPost(stackAdjust, result);
 

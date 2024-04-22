@@ -1147,14 +1147,16 @@ class Assembler : public AssemblerX86Shared {
   void j(Condition cond, JitCode* target) {
     j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
-  void call(JitCode* target) {
+  CodeOffset call(JitCode* target) {
     JmpSrc src = masm.call();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    return CodeOffset(masm.currentOffset());
   }
-  void call(ImmWord target) { call(ImmPtr((void*)target.value)); }
-  void call(ImmPtr target) {
+  CodeOffset call(ImmWord target) { return call(ImmPtr((void*)target.value)); }
+  CodeOffset call(ImmPtr target) {
     JmpSrc src = masm.call();
     addPendingJump(src, target, RelocationKind::HARDCODED);
+    return CodeOffset(masm.currentOffset());
   }
 
   // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
