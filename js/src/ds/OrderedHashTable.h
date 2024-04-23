@@ -356,18 +356,23 @@ class OrderedHashTable {
      *
      * Invariant: *prevp == this.
      */
-    Range** prevp;
+    // ask2374
+    Range*** prevp;
+    // ask2374
     Range* next;
 
     /*
      * Create a Range over all the entries in ht.
      * (This is private on purpose. End users must use ht->all().)
      */
+    // ask2374
     Range(OrderedHashTable* ht, Range** listp)
-        : ht(ht), i(0), count(0), prevp(listp), next(*listp) {
-      *prevp = this;
+        : ht(ht), i(0), count(0), next(*listp) {
+      prevp = (Range***)js_sandbox_malloc(sizeof(Range**));
+      *prevp = listp;
+      **prevp = this;
       if (next) {
-        next->prevp = &next;
+        *(next->prevp) = &next;
       }
       seek();
     }
@@ -377,20 +382,23 @@ class OrderedHashTable {
         : ht(other.ht),
           i(other.i),
           count(other.count),
-          prevp(&ht->ranges),
           next(ht->ranges) {
-      *prevp = this;
+      prevp = (Range***)js_sandbox_malloc(sizeof(Range**));
+      *prevp = &ht->ranges;
+      **prevp = this;
       if (next) {
-        next->prevp = &next;
+        *(next->prevp) = &next;
       }
     }
 
     ~Range() {
-      *prevp = next;
+      **prevp = next;
       if (next) {
-        next->prevp = prevp;
+        *(next->prevp) = *prevp;
       }
+      js_free(prevp);
     }
+    // ask2374
 
    protected:
     // Prohibit copy assignment.
@@ -438,7 +446,9 @@ class OrderedHashTable {
 
     void onTableDestroyed() {
       MOZ_ASSERT(valid());
-      prevp = &next;
+      // ask2374
+      *prevp = &next;
+      // ask2374
       next = this;
     }
 

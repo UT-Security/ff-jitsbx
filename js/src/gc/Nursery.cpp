@@ -234,6 +234,9 @@ js::Nursery::Nursery(GCRuntime* gc)
   // ask2374
   position_ = (uintptr_t*)js_sandbox_malloc(sizeof(uintptr_t));
   *position_ = 0;
+
+  pretenuringNursery = js_sandbox_new<gc::PretenuringNursery>();
+  // gc::PretenuringNursery* pretenuringNursery;
   // ask2374
 
   const char* env = getenv("MOZ_NURSERY_STRINGS");
@@ -560,7 +563,9 @@ void* js::Nursery::allocateCell(gc::AllocSite* site, size_t size,
   // MacroAssembler::updateAllocSite.
   uint32_t allocCount = site->incAllocCount();
   if (allocCount == 1) {
-    pretenuringNursery.insertIntoAllocatedList(site);
+    // ask2374
+    pretenuringNursery->insertIntoAllocatedList(site);
+    // ask2374
   } else {
     MOZ_ASSERT_IF(site->isNormal(), site->isInAllocatedList());
   }
@@ -887,7 +892,9 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
   // and then there's no guarentee.
   if (runtime()->geckoProfiler().enabled()) {
     json.property("cells_allocated_nursery",
-                  pretenuringNursery.totalAllocCount());
+                  // ask2374
+                  pretenuringNursery->totalAllocCount());
+                  // ask2374
     json.property("cells_allocated_tenured",
                   stats().allocsSinceMinorGCTenured());
   }
@@ -1169,7 +1176,9 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
     // freed after this point.
     gc->storeBuffer().clear();
 
-    MOZ_ASSERT(!pretenuringNursery.hasAllocatedSites());
+    // ask2374
+    MOZ_ASSERT(!pretenuringNursery->hasAllocatedSites());
+    // ask2374
   }
 
   if (!isEnabled()) {
@@ -1544,9 +1553,11 @@ void js::Nursery::traceRoots(AutoGCSession& session, TenuringTracer& mover) {
 size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
                                   bool validPromotionRate,
                                   double promotionRate) {
-  size_t sitesPretenured = pretenuringNursery.doPretenuring(
+  // ask2374
+  size_t sitesPretenured = pretenuringNursery->doPretenuring(
       gc, reason, validPromotionRate, promotionRate, reportPretenuring_,
       reportPretenuringThreshold_);
+  // ask2374
 
   bool highPromotionRate =
       validPromotionRate && promotionRate > tunables().pretenureThreshold();

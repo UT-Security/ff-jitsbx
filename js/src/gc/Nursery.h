@@ -317,7 +317,9 @@ class Nursery {
   // ask2374
 
   void* addressOfNurseryAllocatedSites() {
-    return pretenuringNursery.addressOfAllocatedSites();
+    // ask2374
+    return pretenuringNursery->addressOfAllocatedSites();
+    // ask2374
   }
 
   void requestMinorGC(JS::GCReason reason) const;
@@ -357,12 +359,14 @@ class Nursery {
     return startTimes_[ProfileKey::Total];
   }
 
-  bool canCreateAllocSite() { return pretenuringNursery.canCreateAllocSite(); }
-  void noteAllocSiteCreated() { pretenuringNursery.noteAllocSiteCreated(); }
+  // ask2374
+  bool canCreateAllocSite() { return pretenuringNursery->canCreateAllocSite(); }
+  void noteAllocSiteCreated() { pretenuringNursery->noteAllocSiteCreated(); }
   bool reportPretenuring() const { return reportPretenuring_; }
   void maybeStopPretenuring(gc::GCRuntime* gc) {
-    pretenuringNursery.maybeStopPretenuring(gc);
+    pretenuringNursery->maybeStopPretenuring(gc);
   }
+  // ask2374
 
   void setAllocFlagsForZone(JS::Zone* zone);
 
@@ -407,7 +411,9 @@ class Nursery {
   // changed by maybeResizeNursery() each collection. It includes chunk headers.
   size_t capacity_;
 
-  gc::PretenuringNursery pretenuringNursery;
+  // ask2374
+  gc::PretenuringNursery* pretenuringNursery;
+  // ask2374
 
   mozilla::TimeDuration timeInChunkAlloc_;
 
