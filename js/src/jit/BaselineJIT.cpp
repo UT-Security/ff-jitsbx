@@ -21,6 +21,9 @@
 #include "jit/BaselineIC.h"
 #include "jit/CalleeToken.h"
 #include "jit/JitCommon.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/MacroAssembler.h"
@@ -108,6 +111,12 @@ static JitExecStatus EnterBaseline(JSContext* cx, EnterJitData& data) {
   if (!recursion.checkWithExtra(cx, extra)) {
     return JitExec_Aborted;
   }
+#ifdef JITSBX_CFI_STACK
+  jitsbx::AutoCheckSandboxStackRecursionLimit recursionSbx(cx);
+  if (!recursionSbx.checkWithExtra(cx, extra)) {
+    return JitExec_Aborted;
+  }
+#endif
 
 #ifdef DEBUG
   // Assert we don't GC before entering JIT code. A GC could discard JIT code

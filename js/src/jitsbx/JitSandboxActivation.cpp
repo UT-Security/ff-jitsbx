@@ -30,14 +30,16 @@ JitSandboxActivation::~JitSandboxActivation() {
   if (prev_ != nullptr) {
     cx_->runtime()->jitSandbox()->setSavedNativeStackPtr(
         prev_->jitSandboxActivation()->savedNativeStackPtr());
-    cx_->runtime()->jitSandbox()->setSavedSandboxStackPtr(
-        prev_->jitSandboxActivation()->savedSandboxStackPtr());
+    //cx_->runtime()->jitSandbox()->setSavedSandboxStackPtr(
+    //    prev_->jitSandboxActivation()->savedSandboxStackPtr());
+    MOZ_ASSERT(cx_->runtime()->jitSandbox()->savedSandboxStackPtr() == prev_->jitSandboxActivation()->savedSandboxStackPtr());
     prev_->jitSandboxActivation()->setSavedNativeStackPtr(nullptr);
     prev_->jitSandboxActivation()->setSavedSandboxStackPtr(nullptr);
   } else {
     cx_->runtime()->jitSandbox()->setSavedNativeStackPtr(nullptr);
-    cx_->runtime()->jitSandbox()->setSavedSandboxStackPtr(
-        (uint8_t*)cx_->runtime()->jitSandbox()->sandboxStackBase());
+    //cx_->runtime()->jitSandbox()->setSavedSandboxStackPtr(
+    //    (uint8_t*)cx_->runtime()->jitSandbox()->sandboxStackBase());
+    MOZ_ASSERT(cx_->runtime()->jitSandbox()->savedSandboxStackPtr() == (uint8_t*)cx_->runtime()->jitSandbox()->sandboxStackBase());
   }
 #endif
 }

@@ -13,6 +13,9 @@
 #include "jit/Assembler.h"  // jit::FramePointer
 #include "jit/BaselineJIT.h"
 #include "jit/JitFrames.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/JSJitFrameIter.h"
@@ -58,9 +61,17 @@ class js::jit::BailoutStack {
 static_assert((sizeof(BailoutStack) % 8) == 0,
               "BailoutStack should be 8-byte aligned.");
 
+#ifdef JITSBX_CFI_STACK
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   BailoutStack* bailout, uint8_t* nativeFp)
+    : machine_(bailout->machineState()),
+      nativeFramePointer_(nativeFp),
+      activation_(nullptr) {
+#else
 BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    BailoutStack* bailout)
     : machine_(bailout->machineState()), activation_(nullptr) {
+#endif
   uint8_t* sp = bailout->parentStackPointer();
   framePointer_ = sp + bailout->frameSize();
   MOZ_RELEASE_ASSERT(uintptr_t(framePointer_) == machine_.read(FramePointer));
@@ -73,9 +84,15 @@ BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
   snapshotOffset_ = bailout->snapshotOffset();
 }
 
+#ifdef JITSBX_CFI_STACK
+BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
+                                   InvalidationBailoutStack* bailout, uint8_t* nativeFp)
+    : machine_(bailout->machine()), nativeFramePointer_(nativeFp), activation_(nullptr) {
+#else
 BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    InvalidationBailoutStack* bailout)
     : machine_(bailout->machine()), activation_(nullptr) {
+#endif
   framePointer_ = (uint8_t*)bailout->fp();
   MOZ_RELEASE_ASSERT(uintptr_t(framePointer_) == machine_.read(FramePointer));
 
@@ -90,6 +107,9 @@ BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
 BailoutFrameInfo::BailoutFrameInfo(const JitActivationIterator& activations,
                                    const JSJitFrameIter& frame)
     : machine_(frame.machineState()) {
+#ifdef JITSBX_CFI_STACK
+  nativeFramePointer_ = (uint8_t*)frame.fpNative();
+#endif
   framePointer_ = (uint8_t*)frame.fp();
   topIonScript_ = frame.ionScript();
   attachOnJitActivation(activations);
@@ -129,7 +149,13 @@ bool jit::Bailout(BailoutStack* sp, BaselineBailoutInfo** bailoutInfo) {
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
 
   JitActivationIterator jitActivations(cx);
+#ifdef JITSBX_CFI_STACK
+  BailoutFrameInfo bailoutData(
+      jitActivations, sp,
+      (uint8_t*)cx->runtime()->jitSandbox()->savedNativeStackPtr());
+#else
   BailoutFrameInfo bailoutData(jitActivations, sp);
+#endif
   JSJitFrameIter frame(jitActivations->asJit());
   MOZ_ASSERT(!frame.ionScript()->invalidated());
   JitFrameLayout* currentFramePtr = frame.jsFrame();
@@ -207,7 +233,13 @@ bool jit::InvalidationBailout(InvalidationBailoutStack* sp,
   cx->activation()->asJit()->setJSExitFP(FAKE_EXITFP_FOR_BAILOUT);
 
   JitActivationIterator jitActivations(cx);
+#ifdef JITSBX_CFI_STACK
+  BailoutFrameInfo bailoutData(
+      jitActivations, sp,
+      (uint8_t*)cx->runtime()->jitSandbox()->savedNativeStackPtr());
+#else
   BailoutFrameInfo bailoutData(jitActivations, sp);
+#endif
   JSJitFrameIter frame(jitActivations->asJit());
   JitFrameLayout* currentFramePtr = frame.jsFrame();
 
@@ -307,6 +339,9 @@ bool jit::ExceptionHandlerBailout(JSContext* cx,
     }
 
     rfe->kind = ExceptionResumeKind::Bailout;
+#ifdef JITSBX_CFI_STACK
+    rfe->nativeStackPointer = bailoutInfo->incomingNativeStack;
+#endif
     rfe->stackPointer = bailoutInfo->incomingStack;
     rfe->bailoutInfo = bailoutInfo;
   } else {

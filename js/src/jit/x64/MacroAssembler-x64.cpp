@@ -552,13 +552,26 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // the entry frame.
   bind(&entryFrame);
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
+  asMasm().sbxToNativeStack();
   ret();
 
   // If we found a catch handler, this must be a baseline frame. Restore state
   // and jump to the catch block.
   bind(&catch_);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -570,6 +583,12 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   ValueOperand exception = ValueOperand(rcx);
   loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax, AbsoluteAddress(
+                    (const void*)GetJitContext()
+                        ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -582,6 +601,12 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // Used in debug mode and for GeneratorReturn.
   Label profilingInstrumentation;
   bind(&returnBaseline);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()),
@@ -610,12 +635,20 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   }
 
   movq(rbp, rsp);
+  asMasm().sbxPopFrame();
+  asMasm().sbxToNativeStack();
   pop(rbp);
   ret();
 
   // If we are bailing out to baseline to handle an exception, jump to the
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   move32(Imm32(1), ReturnReg);
@@ -738,7 +771,7 @@ void MacroAssembler::setupUnalignedABICall(Register scratch) {
   setupNativeABICall();
   dynamicAlignment_ = true;
 
-  sbxAssertSandboxStack();
+  sbxAssertSandboxStackWithScratch(scratch);
   movq(rsp, scratch);
   andq(Imm32(~(ABIStackAlignment - 1)), rsp);
   push(scratch);
@@ -769,8 +802,6 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   reserveStack(stackForCall);
 
 #ifdef JITSBX_CFI_STACK
-  // make sure we are currently on the sandbox-stack.
-  sbxAssertSandboxStack();
   // assert that sandbox-stack is properly aligned.
   assertStackAlignment(ABIStackAlignment);
 

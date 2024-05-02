@@ -8,6 +8,7 @@
 #define jitsbx_JitSandbox_h
 
 #include "threading/ProtectedData.h"
+#include "vm/JSContext.h"
 
 namespace js {
 
@@ -90,6 +91,96 @@ class JitSandbox {
   uintptr_t nativeStackBase() const { return (uintptr_t)nativeStackBasePtr_.ref(); }
 #endif
 };
+
+#ifdef JITSBX_CFI_STACK
+class NativeStackJitFrameLayout {
+ private:
+  uint8_t* callerFramePtr_;
+  uint8_t* returnAddress_;
+
+ public:
+  static inline size_t Size() { return sizeof(NativeStackJitFrameLayout); }
+
+  static constexpr size_t offsetOfReturnAddress() {
+    return offsetof(NativeStackJitFrameLayout, returnAddress_);
+  }
+  uint8_t* returnAddress() const { return returnAddress_; }
+  void setReturnAddress(uint8_t* addr) { returnAddress_ = addr; }
+
+  static constexpr size_t offsetOfCallerFramePtr() {
+    return offsetof(NativeStackJitFrameLayout, callerFramePtr_);
+  }
+  uint8_t* callerFramePtr() const { return callerFramePtr_; }
+};
+
+class MOZ_RAII AutoCheckSandboxStackRecursionLimit {
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkLimitImpl(uintptr_t limit,
+                                                      void* sp) const;
+
+ public:
+  explicit MOZ_ALWAYS_INLINE AutoCheckSandboxStackRecursionLimit(JSContext* cx) {}
+  MOZ_ALWAYS_INLINE ~AutoCheckSandboxStackRecursionLimit() {}
+
+  AutoCheckSandboxStackRecursionLimit(const AutoCheckSandboxStackRecursionLimit&) = delete;
+  void operator=(const AutoCheckSandboxStackRecursionLimit&) = delete;
+
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool check(JSContext* cx) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkDontReport(JSContext* cx) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithExtra(JSContext* cx,
+                                                      size_t extra) const;
+  [[nodiscard]] MOZ_ALWAYS_INLINE bool checkWithStackPointerDontReport(
+      JSContext* cx, void* sp) const;
+};
+
+MOZ_ALWAYS_INLINE bool AutoCheckSandboxStackRecursionLimit::checkLimitImpl(
+    uintptr_t limit, void* sp) const {
+#  if JS_STACK_GROWTH_DIRECTION > 0
+  return MOZ_LIKELY((uintptr_t)sp < limit);
+#  else
+  return MOZ_LIKELY((uintptr_t)sp > limit);
+#  endif
+}
+
+MOZ_ALWAYS_INLINE bool AutoCheckSandboxStackRecursionLimit::check(JSContext* cx) const {
+  if (MOZ_UNLIKELY(!checkDontReport(cx))) {
+    ReportOverRecursed(cx);
+    return false;
+  }
+  return true;
+}
+
+MOZ_ALWAYS_INLINE bool AutoCheckSandboxStackRecursionLimit::checkDontReport(
+    JSContext* cx) const {
+  void* sp = (void*)cx->runtime()->jitSandbox()->savedSandboxStackPtr();
+  return checkWithStackPointerDontReport(cx, sp);
+}
+
+MOZ_ALWAYS_INLINE bool AutoCheckSandboxStackRecursionLimit::checkWithExtra(
+    JSContext* cx, size_t extra) const {
+  char* sp = (char*)cx->runtime()->jitSandbox()->savedSandboxStackPtr();
+#  if JS_STACK_GROWTH_DIRECTION > 0
+  sp += extra;
+#  else
+  sp -= extra;
+#  endif
+  if (MOZ_UNLIKELY(!checkWithStackPointerDontReport(cx, sp))) {
+    ReportOverRecursed(cx);
+    return false;
+  }
+  return true;
+}
+
+MOZ_ALWAYS_INLINE bool
+AutoCheckSandboxStackRecursionLimit::checkWithStackPointerDontReport(JSContext* cx,
+                                                            void* sp) const {
+  uintptr_t sandboxStackLimit =
+      cx->runtime()->jitSandbox()->sandboxStackLimit();
+  if (MOZ_LIKELY(checkLimitImpl(sandboxStackLimit, sp))) {
+    return true;
+  }
+  return false;
+}
+#endif
 
 }  // namespace jitsbx
 }  // namespace js

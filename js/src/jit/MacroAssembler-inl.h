@@ -410,11 +410,9 @@ void MacroAssembler::sbxAssertNativeStack() {
 void MacroAssembler::sbxAssertSandboxStack() {
 #if defined(DEBUG) && defined(JITSBX_CFI_STACK)
   Label ok, fail;
-  branchStackPtrRhs(
-      Assembler::Above,
-      AbsoluteAddress(
-          GetJitContext()->jitSandbox->addressOfSandboxStackLimit()),
-      &fail);
+  branchPtr(Assembler::Below, StackPointer,
+            ImmPtr((void*)(GetJitContext()->jitSandbox->sandboxStackLimit() - 1024)),
+            &fail);
   branchPtr(Assembler::Above, StackPointer,
             ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()),
             &fail);
@@ -425,6 +423,23 @@ void MacroAssembler::sbxAssertSandboxStack() {
 
   bind(&ok);
 #endif
+}
+
+inline void MacroAssembler::sbxAssertSandboxStackWithScratch(Register scratch) {
+#if defined(DEBUG) && defined(JITSBX_CFI_STACK)
+  Label ok, fail;
+  movq(ImmPtr((void*)(GetJitContext()->jitSandbox->sandboxStackLimit() - 1024)),
+       scratch);
+  branchPtr(Assembler::Below, StackPointer, scratch, &fail);
+  movq(ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()), scratch);
+  branchPtr(Assembler::Above, StackPointer, scratch, &fail);
+  jump(&ok);
+
+  bind(&fail);
+  breakpoint();
+
+  bind(&ok);
+#endif     
 }
 
 void MacroAssembler::sbxToNativeStack() {
@@ -503,6 +518,15 @@ void MacroAssembler::sbxLoadSavedNativeStackPtr(Register dest) {
   loadPtr(AbsoluteAddress((const void*)GetJitContext()->jitSandbox->addressOfSavedNativeStackPtr()), dest);
 #endif
 }
+
+#ifdef JITSBX_CFI_STACK
+inline void MacroAssembler::sbxRestoreFramePointer() {
+  loadPtr(AbsoluteAddress((const void*)GetJitContext()
+                              ->jitSandbox->addressOfSavedNativeStackPtr()),
+          rbp);
+  loadPtr(Address(rbp, 0), rbp);
+}
+#endif
 
 // ===============================================================
 // Move instructions

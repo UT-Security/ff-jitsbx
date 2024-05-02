@@ -17,6 +17,9 @@
 #include "jit/BaselineJIT.h"
 #include "jit/Ion.h"
 #include "jit/IonScript.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/LIR.h"
@@ -363,14 +366,32 @@ static void OnLeaveBaselineFrame(JSContext* cx, const JSJitFrameIter& frame,
                                  jsbytecode* pc, ResumeFromException* rfe,
                                  bool frameOk) {
   BaselineFrame* baselineFrame = frame.baselineFrame();
+#ifdef JITSBX_CFI_STACK
+  bool returnFromThisFrame = jit::DebugEpilogue(cx, baselineFrame, frame.currentNative(), pc, frameOk);
+#else
   bool returnFromThisFrame = jit::DebugEpilogue(cx, baselineFrame, pc, frameOk);
+#endif
   if (returnFromThisFrame) {
     rfe->kind = ExceptionResumeKind::ForcedReturnBaseline;
     rfe->framePointer = frame.fp();
     rfe->stackPointer = reinterpret_cast<uint8_t*>(baselineFrame);
+#ifdef JITSBX_CFI_STACK
+    rfe->nativeStackPointer = frame.fpNative();
+#endif
   }
 }
 
+#ifdef JITSBX_CFI_STACK
+static inline void BaselineFrameAndStackPointersFromTryNote(
+    const TryNote* tn, const JSJitFrameIter& frame, uint8_t** framePointer,
+    uint8_t** stackPointer, uint8_t** nativeStackPointer) {
+  JSScript* script = frame.baselineFrame()->script();
+  *framePointer = frame.fp();
+  *stackPointer = *framePointer - BaselineFrame::Size() -
+                  (script->nfixed() + tn->stackDepth) * sizeof(Value);
+  *nativeStackPointer = frame.fpNative();
+}
+#else
 static inline void BaselineFrameAndStackPointersFromTryNote(
     const TryNote* tn, const JSJitFrameIter& frame, uint8_t** framePointer,
     uint8_t** stackPointer) {
@@ -379,6 +400,7 @@ static inline void BaselineFrameAndStackPointersFromTryNote(
   *stackPointer = *framePointer - BaselineFrame::Size() -
                   (script->nfixed() + tn->stackDepth) * sizeof(Value);
 }
+#endif
 
 static void SettleOnTryNote(JSContext* cx, const TryNote* tn,
                             const JSJitFrameIter& frame, EnvironmentIter& ei,
@@ -391,8 +413,13 @@ static void SettleOnTryNote(JSContext* cx, const TryNote* tn,
   }
 
   // Compute base pointer and stack pointer.
+#ifdef JITSBX_CFI_STACK
+  BaselineFrameAndStackPointersFromTryNote(tn, frame, &rfe->framePointer,
+                                           &rfe->stackPointer, &rfe->nativeStackPointer);
+#else
   BaselineFrameAndStackPointersFromTryNote(tn, frame, &rfe->framePointer,
                                            &rfe->stackPointer);
+#endif
 
   // Compute the pc.
   *pc = script->offsetToPC(tn->start + tn->length);
@@ -431,8 +458,14 @@ static void CloseLiveIteratorsBaselineForUncatchableException(
       case TryNoteKind::ForIn: {
         uint8_t* framePointer;
         uint8_t* stackPointer;
+#ifdef JITSBX_CFI_STACK
+        uint8_t* nativeStackPointer;
+        BaselineFrameAndStackPointersFromTryNote(
+            tn, frame, &framePointer, &stackPointer, &nativeStackPointer);
+#else
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
+#endif
         Value iterValue(*(Value*)stackPointer);
         RootedObject iterObject(cx, &iterValue.toObject());
         UnwindIteratorForUncatchableException(iterObject);
@@ -501,8 +534,14 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
       case TryNoteKind::ForIn: {
         uint8_t* framePointer;
         uint8_t* stackPointer;
+#ifdef JITSBX_CFI_STACK
+        uint8_t* nativeStackPointer;
+        BaselineFrameAndStackPointersFromTryNote(
+            tn, frame, &framePointer, &stackPointer, &nativeStackPointer);
+#else
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
+#endif
         Value iterValue(*reinterpret_cast<Value*>(stackPointer));
         JSObject* iterObject = &iterValue.toObject();
         CloseIterator(iterObject);
@@ -512,8 +551,14 @@ static bool ProcessTryNotesBaseline(JSContext* cx, const JSJitFrameIter& frame,
       case TryNoteKind::Destructuring: {
         uint8_t* framePointer;
         uint8_t* stackPointer;
+#ifdef JITSBX_CFI_STACK
+        uint8_t* nativeStackPointer;
+        BaselineFrameAndStackPointersFromTryNote(
+            tn, frame, &framePointer, &stackPointer, &nativeStackPointer);
+#else
         BaselineFrameAndStackPointersFromTryNote(tn, frame, &framePointer,
                                                  &stackPointer);
+#endif
         // Note: if this ever changes, also update the
         // TryNoteKind::Destructuring code in WarpBuilder.cpp!
         RootedValue doneValue(cx, *(reinterpret_cast<Value*>(stackPointer)));
@@ -802,13 +847,28 @@ void HandleException(ResumeFromException* rfe) {
   if (iter.isJSJit()) {
     MOZ_ASSERT(rfe->kind == ExceptionResumeKind::EntryFrame);
     rfe->framePointer = iter.asJSJit().current()->callerFramePtr();
+#ifdef JITSBX_CFI_STACK
+    // sandbox-stack pointer is set to beyond the dummy return-address since
+    // the return will be made from the native-stack.
+    rfe->stackPointer =
+        iter.asJSJit().fp() + CommonFrameLayout::offsetOfDescriptor();
+    // native-stack pointer points to the return address.
+    rfe->nativeStackPointer =
+        iter.asJSJit().fpNative() + jitsbx::NativeStackJitFrameLayout::offsetOfReturnAddress();
+#else
     rfe->stackPointer =
         iter.asJSJit().fp() + CommonFrameLayout::offsetOfReturnAddress();
+#endif
   }
 }
 
 // Turns a JitFrameLayout into an UnwoundJit ExitFrameLayout.
+#ifdef JITSBX_CFI_STACK
+void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame,
+                               jitsbx::NativeStackJitFrameLayout* nativeFrame) {
+#else
 void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
+#endif
   ExitFrameLayout* exitFrame = reinterpret_cast<ExitFrameLayout*>(frame);
 
   if (act->jsExitFP() == (uint8_t*)frame) {
@@ -824,6 +884,9 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
     ++iter;
   }
   MOZ_ASSERT(iter.current() == frame, "|frame| must be the top JS frame");
+#ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(iter.currentNative() == nativeFrame, "|nativeFrame| must be the top JS native-stack frame");
+#endif
 
   MOZ_ASSERT(!!act->jsExitFP());
   MOZ_ASSERT((uint8_t*)exitFrame->footer() >= act->jsExitFP(),
@@ -831,6 +894,10 @@ void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame) {
 #endif
 
   act->setJSExitFP((uint8_t*)frame);
+#ifdef JITSBX_CFI_STACK
+  JSContext* cx = TlsContext.get();
+  cx->runtime()->jitSandbox()->setSavedNativeStackPtr((const uint8_t*)nativeFrame);
+#endif
   exitFrame->footer()->setUnwoundJitExitFrame();
   MOZ_ASSERT(exitFrame->isUnwoundJitExit());
 }

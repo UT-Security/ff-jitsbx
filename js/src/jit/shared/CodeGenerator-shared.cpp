@@ -138,7 +138,10 @@ bool CodeGeneratorShared::generatePrologue() {
 #endif
 
   // Frame prologue.
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // Ensure that the Ion frame is properly aligned.
@@ -168,7 +171,10 @@ bool CodeGeneratorShared::generateEpilogue() {
   }
 
   MOZ_ASSERT(masm.framePushed() == frameSize());
+  masm.sbxAssertSandboxStack();
   masm.moveToStackPtr(FramePointer);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.setFramePushed(0);
 

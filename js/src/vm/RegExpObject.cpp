@@ -671,7 +671,15 @@ RegExpRunStatus RegExpShared::execute(JSContext* cx,
   const uint32_t maxInterruptRetries = 4;
   do {
     DebugOnly<bool> alreadyThrowing = cx->isExceptionPending();
+#ifdef JITSBX_CFI_STACK
+    const uint8_t* savedNativeStackPtr = cx->runtime()->jitSandbox()->savedNativeStackPtr();
+    const uint8_t* savedSandboxStackPtr = cx->runtime()->jitSandbox()->savedSandboxStackPtr();
+#endif
     RegExpRunStatus result = irregexp::Execute(cx, re, input, start, matches);
+#ifdef JITSBX_CFI_STACK
+    cx->runtime()->jitSandbox()->setSavedNativeStackPtr(savedNativeStackPtr);
+    cx->runtime()->jitSandbox()->setSavedSandboxStackPtr(savedSandboxStackPtr);
+#endif
 #ifdef DEBUG
     // Check if we must simulate the interruption
     if (js::irregexp::IsolateShouldSimulateInterrupt(cx->isolate)) {

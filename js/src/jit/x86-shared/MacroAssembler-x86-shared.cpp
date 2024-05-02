@@ -66,8 +66,13 @@ void MacroAssembler::clampDoubleToUint8(FloatRegister input, Register output) {
 
 bool MacroAssemblerX86Shared::buildOOLFakeExitFrame(void* fakeReturnAddr) {
   asMasm().PushFrameDescriptor(FrameType::IonJS);
+#ifdef JITSBX_CFI_STACK
+  asMasm().sbxPushFrame();
+  asMasm().adjustFrame(sizeof(void*) * 2);
+#else
   asMasm().Push(ImmPtr(fakeReturnAddr));
   asMasm().Push(FramePointer);
+#endif
   return true;
 }
 

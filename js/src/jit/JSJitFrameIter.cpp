@@ -10,6 +10,10 @@
 #include "jit/IonScript.h"
 #include "jit/JitcodeMap.h"
 #include "jit/JitFrames.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#include "jitsbx/JitSandboxActivation.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitScript.h"
 #include "jit/MacroAssembler.h"  // js::jit::Assembler::GetPointer
@@ -25,9 +29,42 @@
 using namespace js;
 using namespace js::jit;
 
+#ifdef JITSBX_CFI_STACK
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
+    : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP(), (uint8_t*)activation->jitSandboxActivation()->savedNativeStackPtr()) {}
+#else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation)
     : JSJitFrameIter(activation, FrameType::Exit, activation->jsExitFP()) {}
+#endif
 
+#ifdef JITSBX_CFI_STACK
+JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
+                               FrameType frameType, uint8_t* fp, uint8_t* nfp)
+    : currentNative_(nfp),
+      current_(fp),
+      type_(frameType),
+      resumePCinCurrentFrame_(nullptr),
+      cachedSafepointIndex_(nullptr),
+      activation_(activation) {
+  MOZ_ASSERT(type_ == FrameType::JSJitToWasm || type_ == FrameType::Exit);
+  if (activation_->bailoutData()) {
+    current_ = activation_->bailoutData()->fp();
+    currentNative_ = activation_->bailoutData()->nativeFp();
+    type_ = FrameType::Bailout;
+  } else {
+    JSContext* cx = TlsContext.get();
+    MOZ_ASSERT(!cx->inUnsafeCallWithABI);
+    if (activation == cx->jitActivation) {
+      currentNative_ =
+          (uint8_t*)cx->runtime()->jitSandbox()->savedNativeStackPtr();
+    }
+  }
+
+  MOZ_RELEASE_ASSERT(
+      currentNative()->callerFramePtr() == prevFp(),
+      "Initial Frame Pointer mismatch between Native and Sandbox stack");
+}
+#else
 JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
                                FrameType frameType, uint8_t* fp)
     : current_(fp),
@@ -43,6 +80,7 @@ JSJitFrameIter::JSJitFrameIter(const JitActivation* activation,
     MOZ_ASSERT(!TlsContext.get()->inUnsafeCallWithABI);
   }
 }
+#endif
 
 bool JSJitFrameIter::checkInvalidation() const {
   IonScript* dummy;
@@ -152,7 +190,21 @@ void JSJitFrameIter::baselineScriptAndPc(JSScript** scriptRes,
 
 Value* JSJitFrameIter::actualArgs() const { return jsFrame()->actualArgs(); }
 
-uint8_t* JSJitFrameIter::prevFp() const { return current()->callerFramePtr(); }
+uint8_t* JSJitFrameIter::prevFp() const {
+#ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(currentNative()->callerFramePtr() == current()->callerFramePtr(),
+             "Frame Pointer mismatch in Native and Sandbox stack");
+  return currentNative()->callerFramePtr();
+#else
+  return current()->callerFramePtr();
+#endif
+}
+
+#ifdef JITSBX_CFI_STACK
+uint8_t* JSJitFrameIter::prevNativeFp() const {
+	return (uint8_t *)(currentNative() + 1);
+}
+#endif
 
 // Compute the size of a Baseline frame excluding pushed VMFunction arguments or
 // callee frame headers. This is used to calculate the number of Value slots in
@@ -188,6 +240,8 @@ static uint32_t ComputeBaselineFrameSize(const JSJitFrameIter& frame) {
 void JSJitFrameIter::operator++() {
   MOZ_ASSERT(!isEntry());
 
+  // TODO(JITSBX_CFI_STACK): ensure we don't underflow the native stack during iteration.
+  
   // Compute BaselineFrame size. In debug builds this is equivalent to
   // BaselineFrame::debugFrameSize_. This is asserted at the end of this method.
   if (current()->prevType() == FrameType::BaselineJS) {
@@ -207,8 +261,15 @@ void JSJitFrameIter::operator++() {
   }
 
   type_ = current()->prevType();
+#ifdef JITSBX_CFI_STACK
+  resumePCinCurrentFrame_ = currentNative()->returnAddress();
+#else
   resumePCinCurrentFrame_ = current()->returnAddress();
+#endif
   current_ = prevFp();
+#ifdef JITSBX_CFI_STACK
+  currentNative_ = prevNativeFp();
+#endif
 
   MOZ_ASSERT_IF(isBaselineJS(),
                 baselineFrame()->debugFrameSize() == *baselineFrameSize_);

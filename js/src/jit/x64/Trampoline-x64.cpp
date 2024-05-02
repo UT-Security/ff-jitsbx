@@ -222,7 +222,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.subPtr(Imm32(sizeof(void*)), rsp);
 
   // TODO(JITSBX): do we need to substract the padding ?
-  masm.subq(r12, r15);
+  //masm.subq(r12, r15);
   masm.mov(r15, rbp);
 
   masm.sbxToSandboxStack();
@@ -724,7 +724,7 @@ void JitRuntime::generateBailoutHandler(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutHandler");
 
   bailoutHandlerOffset_ = startTrampolineCode(masm);
-
+  masm.sbxAssertSandboxStack();
   GenerateBailoutThunk(masm, bailoutTail);
 }
 
@@ -994,5 +994,6 @@ void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
 
   masm.bind(bailoutTail);
+  masm.sbxAssertSandboxStack();
   masm.generateBailoutTail(rdx, r9);
 }

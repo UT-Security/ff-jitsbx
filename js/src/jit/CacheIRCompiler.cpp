@@ -9424,8 +9424,13 @@ void CacheIRCompiler::callVMInternal(MacroAssembler& masm, VMFunctionId id) {
     masm.implicitPop(frameSize + framePop);
 
     // Pop IonICCallFrameLayout.
+#ifdef JITSBX_CFI_STACK
+    masm.sbxRestoreFramePointer();
+    masm.freeStack(IonICCallFrameLayout::Size());
+#else
     masm.Pop(FramePointer);
     masm.freeStack(IonICCallFrameLayout::Size() - sizeof(void*));
+#endif
     return;
   }
 

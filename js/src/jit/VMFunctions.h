@@ -47,6 +47,10 @@ struct Cell;
 
 }
 
+namespace jitsbx {
+class NativeStackJitFrameLayout;    
+}
+
 namespace jit {
 
 class BaselineFrame;
@@ -429,8 +433,14 @@ int32_t GetIndexFromString(JSString* str);
 JSObject* WrapObjectPure(JSContext* cx, JSObject* obj);
 
 [[nodiscard]] bool DebugPrologue(JSContext* cx, BaselineFrame* frame);
+#ifdef JITSBX_CFI_STACK
+[[nodiscard]] bool DebugEpilogue(JSContext* cx, BaselineFrame* frame,
+                                 jitsbx::NativeStackJitFrameLayout* nativeFrame,
+                                 const jsbytecode* pc, bool ok);
+#else
 [[nodiscard]] bool DebugEpilogue(JSContext* cx, BaselineFrame* frame,
                                  const jsbytecode* pc, bool ok);
+#endif
 [[nodiscard]] bool DebugEpilogueOnBaselineReturn(JSContext* cx,
                                                  BaselineFrame* frame,
                                                  const jsbytecode* pc);

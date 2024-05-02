@@ -2948,18 +2948,54 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       bind(&endOfCopy);
     }
 
+#ifdef JITSBX_CFI_STACK
+    sbxToNativeStack();
+    // Copy data onto native stack.
+    loadPtr(
+        Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyNativeStackTop)),
+        copyCur);
+    loadPtr(Address(bailoutInfo,
+                    offsetof(BaselineBailoutInfo, copyNativeStackBottom)),
+            copyEnd);
+    {
+      Label copyNativeLoop;
+      Label endOfNativeCopy;
+      bind(&copyNativeLoop);
+      branchPtr(Assembler::BelowOrEqual, copyCur, copyEnd, &endOfNativeCopy);
+      subPtr(Imm32(sizeof(uintptr_t)), copyCur);
+      subFromStackPtr(Imm32(sizeof(uintptr_t)));
+      loadPtr(Address(copyCur, 0), temp);
+      storePtr(temp, Address(getStackPointer(), 0));
+      jump(&copyNativeLoop);
+      bind(&endOfNativeCopy);
+    }
+
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
             FramePointer);
+    push(FramePointer);
+    sbxToSandboxStack();
+#else
+    loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
+            FramePointer);
+#endif
 
     // Enter exit frame for the FinishBailoutToBaseline call.
     pushFrameDescriptor(FrameType::BaselineJS);
+#ifdef JITSBX_CFI_STACK
+    sbxPushFrame();
+#else
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     push(FramePointer);
+#endif
     // No GC things to mark on the stack, push a bare token.
     loadJSContext(scratch);
     enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
     // Save needed values onto stack temporarily.
+    // cfi-stack(SAFETY): pushing a code-pointer to the sandbox-stack.
+    // Safe since we are in a trusted function calling a trusted C++ leaf
+    // function.
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
 
     // Call a stub to free allocated memory and create arguments objects.
@@ -2979,11 +3015,16 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 
     // Discard exit frame.
     addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
-
+#ifdef JITSBX_CFI_STACK
+    sbxToNativeStack();
+    addToStackPtr(Imm32(sizeof(void*) * 2));
+    sbxToSandboxStack();
+#endif
     jump(jitcodeReg);
   }
 
   bind(&bailoutFailed);
+  sbxAssertSandboxStack();
   {
     // jit::Bailout or jit::InvalidationBailout failed and returned false. The
     // Ion frame has already been discarded and the stack pointer points to the

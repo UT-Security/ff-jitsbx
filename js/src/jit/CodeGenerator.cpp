@@ -380,6 +380,91 @@ void CodeGenerator::callVM(LInstruction* ins) {
   callVMInternal(id, ins);
 }
 
+#ifdef JITSBX_CFI_STACK
+// Before doing any call to Cpp, you should ensure that volatile
+// registers are evicted by the register allocator.
+void CodeGenerator::tailCallVMInternal(VMFunctionId id, LInstruction* ins) {
+  TrampolinePtr code = gen->jitRuntime()->getVMWrapper(id);
+  const VMFunctionData& fun = GetVMFunction(id);
+
+  // Stack is:
+  //    ... frame ...
+  //    [args]
+#  ifdef DEBUG
+  MOZ_ASSERT(pushedArgs_ == fun.explicitArgs);
+  pushedArgs_ = 0;
+#  endif
+
+#  ifdef CHECK_OSIPOINT_REGISTERS
+  if (shouldVerifyOsiPointRegs(ins->safepoint())) {
+    StoreAllLiveRegs(masm, ins->safepoint()->liveRegs());
+  }
+#  endif
+
+#  ifdef DEBUG
+  if (ins->mirRaw()) {
+    MOZ_ASSERT(ins->mirRaw()->isInstruction());
+    MInstruction* mir = ins->mirRaw()->toInstruction();
+    MOZ_ASSERT_IF(mir->needsResumePoint(), mir->resumePoint());
+
+    // If this MIR instruction has an overridden AliasSet, set the JitRuntime's
+    // disallowArbitraryCode_ flag so we can assert this VMFunction doesn't call
+    // RunScript. Whitelist MInterruptCheck and MCheckOverRecursed because
+    // interrupt callbacks can call JS (chrome JS or shell testing functions).
+    bool isWhitelisted = mir->isInterruptCheck() || mir->isCheckOverRecursed();
+    if (!mir->hasDefaultAliasSet() && !isWhitelisted) {
+      const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
+      masm.move32(Imm32(1), ReturnReg);
+      masm.store32(ReturnReg, AbsoluteAddress(addr));
+    }
+  }
+#  endif
+
+  // Push an exit frame descriptor.
+  masm.PushFrameDescriptor(FrameType::IonJS);
+
+  // Call the wrapper function.  The wrapper is in charge to unwind the stack
+  // when returning from the call.  Failures are handled with exceptions based
+  // on the return value of the C functions.  To guard the outcome of the
+  // returned value, use another LIR instruction.
+  ensureOsiSpace();
+  masm.sbxToNativeStack();
+  masm.jump(code);
+  uint32_t callOffset = masm.currentOffset();
+  masm.sbxToSandboxStack();
+  markSafepointAt(callOffset, ins);
+
+#  ifdef DEBUG
+  // Reset the disallowArbitraryCode flag after the call.
+  {
+    const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
+    masm.push(ReturnReg);
+    masm.move32(Imm32(0), ReturnReg);
+    masm.store32(ReturnReg, AbsoluteAddress(addr));
+    masm.pop(ReturnReg);
+  }
+#  endif
+
+  // Pop rest of the exit frame and the arguments left on the stack.
+  int framePop =
+      sizeof(ExitFrameLayout) - ExitFrameLayout::bytesPoppedAfterCall();
+  masm.implicitPop(fun.explicitStackSlots() * sizeof(void*) + framePop);
+
+  // Stack is:
+  //    ... frame ...
+}
+#endif
+
+template <typename Fn, Fn fn>
+void CodeGenerator::maybeTailCallVM(LInstruction* ins) {
+  VMFunctionId id = VMFunctionToId<Fn, fn>::id;
+#ifdef JITSBX_CFI_STACK
+  tailCallVMInternal(id, ins);
+#else
+  callVMInternal(id, ins);
+#endif
+}
+
 // ArgSeq store arguments for OutOfLineCallVM.
 //
 // OutOfLineCallVM are created with "oolCallVM" function. The third argument of
@@ -585,8 +670,19 @@ void CodeGeneratorShared::addIC(LInstruction* lir, size_t cacheIndex) {
                              mir->resumePoint()->pc());
 
   Register temp = cache->scratchRegisterForEntryJump();
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  icInfo_.back().icOffsetForReturnAddressPush =
+      masm.pushWithPatch(ImmWord(-1));
+#endif
   icInfo_.back().icOffsetForJump = masm.movWithPatch(ImmWord(-1), temp);
   masm.jump(Address(temp, 0));
+#ifdef JITSBX_CFI_STACK
+  cache->setRejoinOffset(CodeOffset(masm.currentOffset()));
+  masm.addToStackPtr(Imm32(sizeof(void*)));
+  masm.sbxToSandboxStack();
+#endif
 
   MOZ_ASSERT(!icInfo_.empty());
 
@@ -595,7 +691,9 @@ void CodeGeneratorShared::addIC(LInstruction* lir, size_t cacheIndex) {
   addOutOfLineCode(ool, mir);
 
   masm.bind(ool->rejoin());
+#ifndef JITSBX_CFI_STACK
   cache->setRejoinOffset(CodeOffset(ool->rejoin()->offset()));
+#endif
 }
 
 void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
@@ -607,6 +705,10 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertNativeStack();
+  masm.sbxToSandboxStack();
+#endif
 
   switch (ic->kind()) {
     case CacheKind::GetProp:
@@ -622,7 +724,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonGetPropertyIC*,
                           HandleValue, HandleValue, MutableHandleValue);
-      callVM<Fn, IonGetPropertyIC::update>(lir);
+      maybeTailCallVM<Fn, IonGetPropertyIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getPropIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(getPropIC->output()).clobbered());
@@ -645,7 +751,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           bool (*)(JSContext*, HandleScript, IonGetPropSuperIC*, HandleObject,
                    HandleValue, HandleValue, MutableHandleValue);
-      callVM<Fn, IonGetPropSuperIC::update>(lir);
+      maybeTailCallVM<Fn, IonGetPropSuperIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getPropSuperIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -668,7 +778,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonSetPropertyIC*,
                           HandleObject, HandleValue, HandleValue);
-      callVM<Fn, IonSetPropertyIC::update>(lir);
+      maybeTailCallVM<Fn, IonSetPropertyIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       restoreLive(lir);
 
@@ -686,7 +800,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonGetNameIC*, HandleObject,
                           MutableHandleValue);
-      callVM<Fn, IonGetNameIC::update>(lir);
+      maybeTailCallVM<Fn, IonGetNameIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(getNameIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(getNameIC->output()).clobbered());
@@ -705,7 +823,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn =
           JSObject* (*)(JSContext*, HandleScript, IonBindNameIC*, HandleObject);
-      callVM<Fn, IonBindNameIC::update>(lir);
+      maybeTailCallVM<Fn, IonBindNameIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(bindNameIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(bindNameIC->output()).clobbered());
@@ -724,7 +846,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = JSObject* (*)(JSContext*, HandleScript, IonGetIteratorIC*,
                                HandleValue);
-      callVM<Fn, IonGetIteratorIC::update>(lir);
+      maybeTailCallVM<Fn, IonGetIteratorIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(getIteratorIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -744,7 +870,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonOptimizeSpreadCallIC*,
                           HandleValue, MutableHandleValue);
-      callVM<Fn, IonOptimizeSpreadCallIC::update>(lir);
+      maybeTailCallVM<Fn, IonOptimizeSpreadCallIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(optimizeSpreadCallIC->output()).generate(this);
       restoreLiveIgnore(
@@ -765,7 +895,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonInIC*, HandleValue,
                           HandleObject, bool*);
-      callVM<Fn, IonInIC::update>(lir);
+      maybeTailCallVM<Fn, IonInIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(inIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(inIC->output()).clobbered());
@@ -785,7 +919,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonHasOwnIC*, HandleValue,
                           HandleValue, int32_t*);
-      callVM<Fn, IonHasOwnIC::update>(lir);
+      maybeTailCallVM<Fn, IonHasOwnIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(hasOwnIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(hasOwnIC->output()).clobbered());
@@ -806,7 +944,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonCheckPrivateFieldIC*,
                           HandleValue, HandleValue, bool*);
-      callVM<Fn, IonCheckPrivateFieldIC::update>(lir);
+      maybeTailCallVM<Fn, IonCheckPrivateFieldIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(checkPrivateFieldIC->output()).generate(this);
       restoreLiveIgnore(
@@ -827,7 +969,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn = bool (*)(JSContext*, HandleScript, IonInstanceOfIC*,
                           HandleValue lhs, HandleObject rhs, bool* res);
-      callVM<Fn, IonInstanceOfIC::update>(lir);
+      maybeTailCallVM<Fn, IonInstanceOfIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(hasInstanceOfIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -848,7 +994,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonUnaryArithIC* stub, HandleValue val,
                           MutableHandleValue res);
-      callVM<Fn, IonUnaryArithIC::update>(lir);
+      maybeTailCallVM<Fn, IonUnaryArithIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(unaryArithIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(unaryArithIC->output()).clobbered());
@@ -868,7 +1018,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonToPropertyKeyIC* ic, HandleValue val,
                           MutableHandleValue res);
-      callVM<Fn, IonToPropertyKeyIC::update>(lir);
+      maybeTailCallVM<Fn, IonToPropertyKeyIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(toPropertyKeyIC->output()).generate(this);
       restoreLiveIgnore(lir,
@@ -890,7 +1044,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn = bool (*)(JSContext* cx, HandleScript outerScript,
                           IonBinaryArithIC* stub, HandleValue lhs,
                           HandleValue rhs, MutableHandleValue res);
-      callVM<Fn, IonBinaryArithIC::update>(lir);
+      maybeTailCallVM<Fn, IonBinaryArithIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreValueTo(binaryArithIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreValueTo(binaryArithIC->output()).clobbered());
@@ -911,7 +1069,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
       using Fn =
           bool (*)(JSContext* cx, HandleScript outerScript, IonCompareIC* stub,
                    HandleValue lhs, HandleValue rhs, bool* res);
-      callVM<Fn, IonCompareIC::update>(lir);
+      maybeTailCallVM<Fn, IonCompareIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       StoreRegisterTo(compareIC->output()).generate(this);
       restoreLiveIgnore(lir, StoreRegisterTo(compareIC->output()).clobbered());
@@ -930,7 +1092,11 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
 
       using Fn =
           bool (*)(JSContext*, HandleScript, IonCloseIterIC*, HandleObject);
-      callVM<Fn, IonCloseIterIC::update>(lir);
+      maybeTailCallVM<Fn, IonCloseIterIC::update>(lir);
+#ifdef JITSBX_CFI_STACK
+      icInfo_[cacheInfoIndex].icReturnDisplacementForPush =
+          CodeOffset(safepointIndices_.back().displacement());
+#endif
 
       restoreLive(lir);
 
@@ -2379,6 +2545,7 @@ void CreateDependentString::generateFallback(MacroAssembler& masm) {
 
   for (FallbackKind kind : mozilla::MakeEnumeratedRange(FallbackKind::Count)) {
     masm.bind(&fallbacks_[kind]);
+    masm.sbxAssertSandboxStack();
 
     masm.PushRegsInMask(regsToSave);
 
@@ -2498,7 +2665,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   Label notFoundZeroLastIndex;
@@ -2750,6 +2920,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 
   // All done!
   masm.tagValue(JSVAL_TYPE_OBJECT, object, result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2764,6 +2937,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
     masm.bind(&notGlobalOrSticky);
   }
   masm.moveValue(NullValue(), result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2785,6 +2961,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   // be called.
   masm.bind(&oolEntry);
   masm.moveValue(UndefinedValue(), result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -2985,7 +3164,10 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // The InputOutputData is placed above the frame pointer and return address on
@@ -3044,16 +3226,25 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   masm.load32(matchPairLimit, input);
   masm.lshiftPtr(Imm32(15), input);
   masm.or32(input, result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&notFound);
   masm.move32(Imm32(RegExpSearcherResultNotFound), result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&oolEntry);
   masm.move32(Imm32(RegExpSearcherResultFailed), result);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -3154,7 +3345,10 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // We are free to clobber all registers, as LRegExpExecTest is a call
@@ -3235,6 +3429,9 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
 
   masm.bind(&done);
   masm.freeStack(RegExpReservedStack);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -5389,6 +5586,85 @@ void CodeGenerator::visitAssertCanElidePostWriteBarrier(
   masm.bind(&ok);
 }
 
+#ifdef JITSBX_CFI_STACK
+template <typename LCallIns>
+class OutOfLineCallNative : public OutOfLineCodeBase<CodeGenerator> {
+  LCallIns* lir_;
+  JSNative  native_;
+
+ public:
+  explicit OutOfLineCallNative(LCallIns* lir, JSNative native) : lir_(lir), native_(native) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineCallNative(this);
+  }
+
+  LCallIns* lir() const { return lir_; }
+  JSNative  native() const { return native_; }
+};
+
+template <typename LCallIns>
+void CodeGenerator::visitOutOfLineCallNative(
+    OutOfLineCallNative<LCallIns>* ool) {
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+
+  const Register argContextReg = ToRegister(ool->lir()->getArgContextReg());
+  const Register argUintNReg = ToRegister(ool->lir()->getArgUintNReg());
+  const Register argVpReg = ToRegister(ool->lir()->getArgVpReg());
+
+  // Misc. temporary registers.
+  const Register tempReg = ToRegister(ool->lir()->getTempReg());
+
+  masm.setupAlignedABICall();
+  masm.passABIArg(argContextReg);
+  masm.passABIArg(argUintNReg);
+  masm.passABIArg(argVpReg);
+  ensureOsiSpace();
+  // If we're using a simulator build, `native` will already point to the
+  // simulator's call-redirection code for LCallClassHook. Load the address in
+  // a register first so that we don't try to redirect it a second time.
+  bool emittedCall = false;
+#  ifdef JS_SIMULATOR
+  if constexpr (std::is_same_v<LCallIns, LCallClassHook>) {
+    masm.movePtr(ImmPtr(ool->native()), tempReg);
+    masm.callWithABI(tempReg);
+    emittedCall = true;
+  }
+#  endif
+  if (!emittedCall) {
+    masm.callWithABI(DynamicFunction<JSNative>(ool->native()), MoveOp::GENERAL,
+                     CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+  }
+
+  // Test for failure.
+  masm.branchIfFalseBool(ReturnReg, masm.failureLabel());
+
+  if (ool->lir()->mir()->maybeCrossRealm()) {
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Load the outparam vp[0] into output register(s).
+  masm.loadValue(
+      Address(masm.getStackPointer(), NativeExitFrameLayout::offsetOfResult()),
+      JSReturnOperand);
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls &&
+      !ool->lir()->mir()->ignoresReturnValue() &&
+      ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+
 template <typename LCallIns>
 void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   MCallBase* mir = call->mir();
@@ -5443,6 +5719,19 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
 
   masm.Push(argUintNReg);
 
+#ifdef JITSBX_CFI_STACK
+  auto ool = new (alloc()) OutOfLineCallNative<LCallIns>(call, native);
+  addOutOfLineCode(ool, call->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.enterFakeExitFrameForNative(argContextReg, tempReg,
+                                   call->mir()->isConstructing());
+  uint32_t safepointOffset = masm.call(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, call);
+#else
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(tempReg);
   masm.enterFakeExitFrameForNative(argContextReg, tempReg,
@@ -5491,7 +5780,8 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
       mir->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
-
+#endif
+      
   // The next instruction is removing the footer of the exit frame, so there
   // is no need for leaveFakeExitFrame.
 
@@ -5550,6 +5840,80 @@ static void LoadDOMPrivate(MacroAssembler& masm, Register obj, Register priv,
   }
 }
 
+#ifdef JITSBX_CFI_STACK
+class OutOfLineCallDOMNative : public OutOfLineCodeBase<CodeGenerator> {
+  LCallDOMNative* lir_;
+
+ public:
+  explicit OutOfLineCallDOMNative(LCallDOMNative* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineCallDOMNative(this);
+  }
+
+  LCallDOMNative* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineCallDOMNative(OutOfLineCallDOMNative* ool) {
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+
+  WrappedFunction* target = ool->lir()->getSingleTarget();
+  // Registers used for callWithABI() argument-passing.
+  const Register argJSContext = ToRegister(ool->lir()->getArgJSContext());
+  const Register argObj = ToRegister(ool->lir()->getArgObj());
+  const Register argPrivate = ToRegister(ool->lir()->getArgPrivate());
+  const Register argArgs = ToRegister(ool->lir()->getArgArgs());
+
+
+// Construct and execute call.
+  masm.setupAlignedABICall();
+  masm.loadJSContext(argJSContext);
+  masm.passABIArg(argJSContext);
+  masm.passABIArg(argObj);
+  masm.passABIArg(argPrivate);
+  masm.passABIArg(argArgs);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitMethodOp>(target->jitInfo()->method),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  if (target->jitInfo()->isInfallible) {
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMMethodExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  } else {
+    // Test for failure.
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    // Load the outparam vp[0] into output register(s).
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMMethodExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  }
+
+  // Switch back to the current realm if needed. Note: if the DOM method threw
+  // an exception, the exception handler will do this.
+  if (ool->lir()->mir()->maybeCrossRealm()) {
+    static_assert(!JSReturnOperand.aliases(ReturnReg),
+                  "Clobbering ReturnReg should not affect the return value");
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls && ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+    
 void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   WrappedFunction* target = call->getSingleTarget();
   MOZ_ASSERT(target);
@@ -5621,6 +5985,20 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
     masm.switchToObjectRealm(argJSContext, argJSContext);
   }
 
+#ifdef JITSBX_CFI_STACK
+  auto ool = new (alloc()) OutOfLineCallDOMNative(call);
+  addOutOfLineCode(ool, call->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(argJSContext);
+  masm.enterFakeExitFrame(argJSContext, argJSContext,
+                          ExitFrameType::IonDOMMethod);
+  uint32_t safepointOffset = masm.call(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, call);
+#else
   // Construct native exit frame.
   uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
   masm.loadJSContext(argJSContext);
@@ -5668,6 +6046,7 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   if (JitOptions.spectreJitToCxxCalls && call->mir()->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
+#endif
 
   // The next instruction is removing the footer of the exit frame, so there
   // is no need for leaveFakeExitFrame.
@@ -6531,9 +6910,15 @@ void CodeGenerator::visitCheckOverRecursed(LCheckOverRecursed* lir) {
   addOutOfLineCode(ool, lir->mir());
 
   // Conditional forward (unlikely) branch to failure.
+#ifdef JITSBX_CFI_STACK
+  const void* sandboxStackLimitAddr = gen->runtime->jitSandbox()->addressOfSandboxStackLimit();
+  masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(sandboxStackLimitAddr),
+                         ool->entry());
+#else
   const void* limitAddr = gen->runtime->addressOfJitStackLimit();
   masm.branchStackPtrRhs(Assembler::AboveOrEqual, AbsoluteAddress(limitAddr),
                          ool->entry());
+#endif
   masm.bind(ool->rejoin());
 }
 
@@ -6967,9 +7352,10 @@ bool CodeGenerator::generateBody() {
 
       switch (iter->op()) {
 #ifndef JS_CODEGEN_NONE
-#  define LIROP(op)              \
-    case LNode::Opcode::op:      \
-      visit##op(iter->to##op()); \
+#  define LIROP(op)                 \
+    case LNode::Opcode::op:         \
+      visit##op(iter->to##op());    \
+      masm.sbxAssertSandboxStack(); \
       break;
         LIR_OPCODE_LIST(LIROP)
 #  undef LIROP
@@ -11321,7 +11707,10 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   // If lhs is empty, return rhs.
@@ -11378,28 +11767,43 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   // Store left and right nodes.
   masm.storeRopeChildren(lhs, rhs, output);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&leftEmpty);
   masm.mov(rhs, output);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&rightEmpty);
   masm.mov(lhs, output);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&isInlineTwoByte);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::TwoByte);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
   masm.bind(&isInlineLatin1);
   ConcatInlineString(masm, lhs, rhs, output, temp1, temp2, temp3,
                      initialStringHeap, &failure, CharEncoding::Latin1);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -11408,6 +11812,9 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
 
   masm.bind(&failure);
   masm.movePtr(ImmPtr(nullptr), output);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 
@@ -11432,6 +11839,13 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
+  masm.sbxPushReturnAddress();
+  
   AllocatableRegisterSet regs(RegisterSet::Volatile());
   regs.takeUnchecked(regSlots);
   LiveRegisterSet save(regs.asLiveSet());
@@ -11448,6 +11862,12 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 
   masm.PopRegsInMask(save);
 
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.ret();
 }
 
@@ -11459,7 +11879,10 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::Volatile());
@@ -11479,7 +11902,10 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
       MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckHasExitFrame);
 
   // Discard exit frame and restore frame pointer.
+  masm.sbxAssertSandboxStack();
   masm.leaveExitFrame(0);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
 
 #ifdef JS_USE_LINK_REGISTER
@@ -11498,7 +11924,10 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
 
   AllocatableGeneralRegisterSet regs(GeneralRegisterSet::Volatile());
@@ -11520,21 +11949,30 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
   masm.branchIfFalseBool(ReturnReg, masm.failureLabel());
 
   // Discard exit frame and restore frame pointer.
+  masm.sbxAssertSandboxStack();
   masm.leaveExitFrame(0);
-  masm.pop(FramePointer);
 
   // InvokeFromInterpreterStub stores the return value in argv[0], where the
-  // caller stored |this|. Subtract |sizeof(void*)| for the frame pointer we
-  // just popped.
-  masm.loadValue(Address(masm.getStackPointer(),
-                         JitFrameLayout::offsetOfThis() - sizeof(void*)),
-                 JSReturnOperand);
+  // caller stored |this|.
+  masm.loadValue(
+      Address(masm.getStackPointer(), JitFrameLayout::offsetOfThis()),
+      JSReturnOperand);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+
   masm.ret();
 }
 
 void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   AutoCreatedBy acb(masm, "JitRuntime::generateDoubleToInt32ValueStub");
   doubleToInt32ValueStubOffset_ = startTrampolineCode(masm);
+
+  masm.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
 
   Label done;
   masm.branchTestDouble(Assembler::NotEqual, R0, &done);
@@ -11545,6 +11983,11 @@ void JitRuntime::generateDoubleToInt32ValueStub(MacroAssembler& masm) {
   masm.tagValue(JSVAL_TYPE_INT32, R1.scratchReg(), R0);
 
   masm.bind(&done);
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.abiret();
 }
 
@@ -13937,6 +14380,13 @@ bool CodeGenerator::link(JSContext* cx, const WarpSnapshot* snapshot) {
     Assembler::PatchDataWithValueCheck(
         CodeLocationLabel(code, icInfo_[i].icOffsetForPush), ImmPtr(&ic),
         ImmPtr((void*)-1));
+#ifdef JITSBX_CFI_STACK
+    Assembler::PatchDataWithValueCheck(
+        CodeLocationLabel(code, icInfo_[i].icOffsetForReturnAddressPush),
+        ImmPtr(CodeLocationLabel(code, icInfo_[i].icReturnDisplacementForPush)
+                   .raw()),
+        ImmPtr((void*)-1));
+#endif
   }
 
   JitSpew(JitSpew_Codegen, "Created IonScript %p (raw %p)", (void*)ionScript,
@@ -16044,6 +16494,75 @@ void CodeGenerator::visitInstanceOfCache(LInstanceOfCache* ins) {
   addIC(ins, allocateIC(ic));
 }
 
+#ifdef JITSBX_CFI_STACK
+class OutOfLineGetDOMProperty : public OutOfLineCodeBase<CodeGenerator> {
+  LGetDOMProperty* lir_;
+
+ public:
+  explicit OutOfLineGetDOMProperty(LGetDOMProperty* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineGetDOMProperty(this);
+  }
+
+  LGetDOMProperty* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineGetDOMProperty(OutOfLineGetDOMProperty* ool) {
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+
+  const Register JSContextReg = ToRegister(ool->lir()->getJSContextReg());
+  const Register ObjectReg = ToRegister(ool->lir()->getObjectReg());
+  const Register PrivateReg = ToRegister(ool->lir()->getPrivReg());
+  const Register ValueReg = ToRegister(ool->lir()->getValueReg());
+  Realm* getterRealm = ool->lir()->mir()->getterRealm();
+
+  masm.setupAlignedABICall();
+  masm.loadJSContext(JSContextReg);
+  masm.passABIArg(JSContextReg);
+  masm.passABIArg(ObjectReg);
+  masm.passABIArg(PrivateReg);
+  masm.passABIArg(ValueReg);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitGetterOp>(ool->lir()->mir()->fun()),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  if (ool->lir()->mir()->isInfallible()) {
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  } else {
+    masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+    masm.loadValue(Address(masm.getStackPointer(),
+                           IonDOMExitFrameLayout::offsetOfResult()),
+                   JSReturnOperand);
+  }
+
+  // Switch back to the current realm if needed. Note: if the getter threw an
+  // exception, the exception handler will do this.
+  if (gen->realm->realmPtr() != getterRealm) {
+    static_assert(!JSReturnOperand.aliases(ReturnReg),
+                  "Clobbering ReturnReg should not affect the return value");
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  // Until C++ code is instrumented against Spectre, prevent speculative
+  // execution from returning any private data.
+  if (JitOptions.spectreJitToCxxCalls && ool->lir()->mir()->hasLiveDefUses()) {
+    masm.speculationBarrier();
+  }
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+    
 void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
   const Register JSContextReg = ToRegister(ins->getJSContextReg());
   const Register ObjectReg = ToRegister(ins->getObjectReg());
@@ -16101,6 +16620,20 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
     masm.switchToRealm(getterRealm, JSContextReg);
   }
 
+#ifdef JITSBX_CFI_STACK
+  auto ool = new (alloc()) OutOfLineGetDOMProperty(ins);
+  addOutOfLineCode(ool, ins->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(JSContextReg);
+  masm.enterFakeExitFrame(JSContextReg, JSContextReg,
+                          ExitFrameType::IonDOMGetter);
+  uint32_t safepointOffset = masm.call(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, ins);
+#else
   uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
@@ -16144,6 +16677,7 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
   if (JitOptions.spectreJitToCxxCalls && ins->mir()->hasLiveDefUses()) {
     masm.speculationBarrier();
   }
+#endif
 
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 
@@ -16191,6 +16725,57 @@ void CodeGenerator::visitGetDOMMemberT(LGetDOMMemberT* ins) {
                         type, result);
 }
 
+#ifdef JITSBX_CFI_STACK
+class OutOfLineSetDOMProperty : public OutOfLineCodeBase<CodeGenerator> {
+  LSetDOMProperty* lir_;
+
+ public:
+  explicit OutOfLineSetDOMProperty(LSetDOMProperty* lir) : lir_(lir) {}
+
+  void accept(CodeGenerator* codegen) override {
+    codegen->visitOutOfLineSetDOMProperty(this);
+  }
+
+  LSetDOMProperty* lir() const { return lir_; }
+};
+
+void CodeGenerator::visitOutOfLineSetDOMProperty(OutOfLineSetDOMProperty* ool) {
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+
+  const Register JSContextReg = ToRegister(ool->lir()->getJSContextReg());
+  const Register ObjectReg = ToRegister(ool->lir()->getObjectReg());
+  const Register PrivateReg = ToRegister(ool->lir()->getPrivReg());
+  const Register ValueReg = ToRegister(ool->lir()->getValueReg());
+  Realm* setterRealm = ool->lir()->mir()->setterRealm();
+
+  masm.setupAlignedABICall();
+  masm.loadJSContext(JSContextReg);
+  masm.passABIArg(JSContextReg);
+  masm.passABIArg(ObjectReg);
+  masm.passABIArg(PrivateReg);
+  masm.passABIArg(ValueReg);
+  ensureOsiSpace();
+  masm.callWithABI(DynamicFunction<JSJitSetterOp>(ool->lir()->mir()->fun()),
+                   MoveOp::GENERAL,
+                   CheckUnsafeCallWithABI::DontCheckHasExitFrame);
+
+  masm.branchIfFalseBool(ReturnReg, masm.exceptionLabel());
+
+  // Switch back to the current realm if needed. Note: if the setter threw an
+  // exception, the exception handler will do this.
+  if (gen->realm->realmPtr() != setterRealm) {
+    masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
+  }
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+  masm.ret();
+}
+#endif
+        
 void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   const Register JSContextReg = ToRegister(ins->getJSContextReg());
   const Register ObjectReg = ToRegister(ins->getObjectReg());
@@ -16222,6 +16807,20 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
     masm.switchToRealm(setterRealm, JSContextReg);
   }
 
+#ifdef JITSBX_CFI_STACK
+  auto ool = new (alloc()) OutOfLineSetDOMProperty(ins);
+  addOutOfLineCode(ool, ins->mir());
+
+  masm.PushFrameDescriptor(FrameType::IonJS);
+  masm.sbxPushFrame();
+  masm.adjustFrame(2 * sizeof(void*));
+  masm.loadJSContext(JSContextReg);
+  masm.enterFakeExitFrame(JSContextReg, JSContextReg,
+                          ExitFrameType::IonDOMSetter);
+  uint32_t safepointOffset = masm.call(ool->entry()).offset();
+
+  markSafepointAt(safepointOffset, ins);
+#else
   uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
@@ -16247,6 +16846,7 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
   if (gen->realm->realmPtr() != setterRealm) {
     masm.switchToRealm(gen->realm->realmPtr(), ReturnReg);
   }
+#endif
 
   masm.adjustStack(IonDOMExitFrameLayout::Size());
 

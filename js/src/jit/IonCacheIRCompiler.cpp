@@ -264,9 +264,13 @@ void IonCacheIRCompiler::enterStubFrame(MacroAssembler& masm,
   MOZ_ASSERT(!enteredStubFrame_);
   pushStubCodePointer();
   masm.PushFrameDescriptor(FrameType::IonJS);
+#ifdef JITSBX_CFI_STACK
+  masm.sbxPushFrame();
+  masm.adjustFrame(sizeof(void*) * 2);
+#else
   masm.Push(ImmPtr(GetReturnAddressToIonCode(cx_)));
-
   masm.Push(FramePointer);
+#endif
   masm.moveStackPtrTo(FramePointer);
 
   enteredStubFrame_ = true;
@@ -547,6 +551,11 @@ bool IonCacheIRCompiler::init() {
 JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   AutoCreatedBy acb(masm, "IonCacheIRCompiler::compile");
 
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+#endif
   masm.setFramePushed(ionScript_->frameSize());
   if (cx_->runtime()->geckoProfiler().enabled()) {
     masm.enableProfilingInstrumentation();
@@ -562,6 +571,7 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
 #define DEFINE_OP(op, ...)                 \
   case CacheOp::op:                        \
     if (!emit##op(reader)) return nullptr; \
+    masm.sbxAssertSandboxStack();          \
     break;
       CACHE_IR_OPS(DEFINE_OP)
 #undef DEFINE_OP
@@ -581,6 +591,11 @@ JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
     }
     Register scratch = ic_->scratchRegisterForEntryJump();
     CodeOffset offset = masm.movWithPatch(ImmWord(-1), scratch);
+#ifdef JITSBX_CFI_STACK
+    masm.sbxAssertSandboxStack();
+    masm.sbxToNativeStack();
+    masm.pop(FramePointer);
+#endif
     masm.jump(Address(scratch, 0));
     if (!nextCodeOffsets_.append(offset)) {
       return nullptr;
@@ -917,7 +932,11 @@ bool IonCacheIRCompiler::emitCallScriptedGetterResult(
   masm.storeCallResultValue(output);
 
   // Restore the frame pointer and stack pointer.
+#ifdef JITSBX_CFI_STACK
+  masm.sbxRestoreFramePointer();
+#else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
+#endif
   masm.freeStack(masm.framePushed() - framePushedBefore);
   return true;
 }
@@ -1537,7 +1556,11 @@ bool IonCacheIRCompiler::emitCallScriptedSetter(ObjOperandId receiverId,
   }
 
   // Restore the frame pointer and stack pointer.
+#ifdef JITSBX_CFI_STACK
+  masm.sbxRestoreFramePointer();
+#else
   masm.loadPtr(Address(FramePointer, 0), FramePointer);
+#endif
   masm.freeStack(masm.framePushed() - framePushedBefore);
   return true;
 }
@@ -1668,6 +1691,11 @@ bool IonCacheIRCompiler::emitReturnFromIC() {
     allocator.restoreInputState(masm);
   }
 
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+#endif
   uint8_t* rejoinAddr = ic_->rejoinAddr(ionScript_);
   masm.jump(ImmPtr(rejoinAddr));
   return true;

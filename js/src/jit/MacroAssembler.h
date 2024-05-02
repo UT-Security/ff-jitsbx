@@ -957,6 +957,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // stack state assertions
   inline void sbxAssertNativeStack();
   inline void sbxAssertSandboxStack();
+  inline void sbxAssertSandboxStackWithScratch(Register scratch);
 
   // stack switching instructions
   inline void sbxToNativeStack();
@@ -973,6 +974,9 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   inline void sbxLoadSavedSandboxStackPtr(Register dest);
   inline void sbxLoadSavedNativeStackPtr(Register dest);
+#ifdef JITSBX_CFI_STACK
+  inline void sbxRestoreFramePointer();
+#endif
 
 #ifdef JITSBX_CFI_STACK
   // unsafe call instructions that skip stack switching
