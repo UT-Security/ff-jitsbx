@@ -4814,6 +4814,22 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void flushBuffer() {}
 
+#ifdef JITSBX_CFI_LABEL
+  void emit_label() {
+    // Alignment
+    nopAlign(0x10);
+    // Jump over label
+    Label dest;
+    jmp(&dest);
+    // TODO: Label has to overlap with actual instruction so that jump target
+    // can be checked
+    // Alternative: Check jump target - 4 (this may be better)
+    uint32_t label = 0xcccccccc;
+    masm.int32Constant(label);
+    bind(&dest);
+  }
+#endif
+
   // Patching.
 
   static size_t PatchWrite_NearCallSize() { return 5; }

@@ -110,9 +110,9 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 #ifdef DEBUG
     nogc.reset();
 #endif
-    CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */ nullptr,
-                        calleeToken, envChain, /* osrNumStackValues = */ 0,
-                        result.address());
+    CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */
+                        nullptr, calleeToken, envChain,
+                        /* osrNumStackValues = */ 0, result.address());
   }
 
   // Ensure the counter was reset to zero after exiting from JIT code.
@@ -140,7 +140,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 // Call the per-script interpreter entry trampoline.
 bool js::jit::EnterInterpreterEntryTrampoline(uint8_t* code, JSContext* cx,
                                               RunState* state) {
-  using EnterTrampolineCodePtr = bool (*)(JSContext * cx, RunState*);
+  using EnterTrampolineCodePtr = bool (*)(JSContext* cx, RunState*);
   auto funcPtr = JS_DATA_TO_FUNC_PTR(EnterTrampolineCodePtr, code);
   return CALL_GENERATED_2(funcPtr, cx, state);
 }

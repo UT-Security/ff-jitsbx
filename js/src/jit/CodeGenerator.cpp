@@ -3161,6 +3161,9 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpSearcherStub");
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11921,6 +11924,9 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 
   interpreterStubOffset_ = startTrampolineCode(masm);
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif

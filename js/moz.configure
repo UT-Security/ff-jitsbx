@@ -558,6 +558,20 @@ def jit_sandbox_cfi_stack(jit_sandbox_cfi_stack, jit_sandbox):
 set_config("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
 set_define("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
 
+option(
+    "--enable-jit-sandbox-cfi-label",
+    default=False,
+    help="{Enable|Disable} classic CFI-label forward-edge protections for the JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox-cfi-label", "--enable-jit-sandbox")
+def jit_sandbox_cfi_label(jit_sandbox_cfi_label, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_label:
+        return True
+
+set_config("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
+set_define("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
+
 # Architecture feature flags
 # =======================================================
 

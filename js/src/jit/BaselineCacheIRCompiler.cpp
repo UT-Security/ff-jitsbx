@@ -180,6 +180,9 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifndef JS_USE_LINK_REGISTER
 #ifndef JITSBX_CFI_STACK
   // don't account for the return address when using

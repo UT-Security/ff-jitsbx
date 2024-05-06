@@ -678,6 +678,17 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // Simple call functions.
 
 CodeOffset MacroAssembler::call(Register reg) {
+#ifdef JITSBX_CFI_LABEL
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Label is at offset 5
+  Address target = Address(reg, 5);
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(reg);
   sbxToSandboxStack();
@@ -704,6 +715,18 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(Label* label) {
 #endif
 
 CodeOffset MacroAssembler::call(const Address& addr) {
+#ifdef JITSBX_CFI_LABEL
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Label is at offset 5
+  // TODO(JITSBX_CFI_LABEL): potential overflow in addr.offset add
+  Address target = Address(addr.base, addr.offset + 5);
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
   sbxToSandboxStack();

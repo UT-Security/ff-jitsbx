@@ -6379,12 +6379,15 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
-  masm.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
 #endif
 
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
   masm.sbxToSandboxStack();
   masm.sbxPushFrame();
