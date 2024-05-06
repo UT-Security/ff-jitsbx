@@ -62,6 +62,10 @@
 #include "vm/ArrayBufferObject-inl.h"
 #include "vm/JSObject-inl.h"
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
+
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
@@ -2195,6 +2199,9 @@ static bool GetInterpEntryAndEnsureStubs(JSContext* cx, Instance& instance,
                                          uint32_t funcIndex, CallArgs args,
                                          void** interpEntry,
                                          const FuncType** funcType) {
+#ifdef JITSBX
+  jitsbx::JitSandboxContext jitsbxContext(cx->runtime()->jitSandbox());
+#endif
   const FuncExport* funcExport;
   if (!EnsureEntryStubs(instance, funcIndex, &funcExport, interpEntry)) {
     return false;

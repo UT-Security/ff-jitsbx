@@ -101,6 +101,13 @@ patterns = [
         "aSrc",
         "(size_t) aDest",
     ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_<.*>",
+        2,
+        "mozilla::Vector<.*>::internalAppend<.*>",
+        "aInsBegin",
+        "endNoCheck()",
+    ),
 ]
 
 

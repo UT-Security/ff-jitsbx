@@ -63,6 +63,9 @@
 #include "vm/Time.h"
 #include "vm/TypedArrayObject.h"
 #include "vm/Warnings.h"  // js::WarnNumberASCII
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
 #include "wasm/WasmCompile.h"
 #include "wasm/WasmGenerator.h"
 #include "wasm/WasmInstance.h"
@@ -1408,7 +1411,15 @@ class MOZ_STACK_CLASS ModuleValidatorShared {
         sigSet_(fc),
         funcImportMap_(fc),
         arrayViews_(fc),
+#ifdef JITSBX
+        // TODO(jitsbx): figure out how to get jit-sandbox pointer here.
+        compilerEnv_(CompileMode::Once, Tier::Optimized, DebugEnabled::False,
+                     fc->maybeCurrentJSContext()
+                         ? fc->maybeCurrentJSContext()->runtime()->jitSandbox()
+                         : nullptr),
+#else
         compilerEnv_(CompileMode::Once, Tier::Optimized, DebugEnabled::False),
+#endif
         moduleEnv_(FeatureArgs(), ModuleKind::AsmJS) {
     compilerEnv_.computeParameters();
     memory_.minLength = RoundUpToNextValidAsmJSHeapLength(0);

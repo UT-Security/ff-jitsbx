@@ -38,6 +38,10 @@
 #include "wasm/WasmSignalHandlers.h"
 #include "wasm/WasmValidate.h"
 
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
+
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
@@ -144,6 +148,9 @@ SharedCompileArgs CompileArgs::build(JSContext* cx,
     return nullptr;
   }
 
+#ifdef JITSBX
+  target->jitSandbox = cx->runtime()->jitSandbox();
+#endif
   target->baselineEnabled = baseline;
   target->ionEnabled = ion;
   target->debugEnabled = debug;
@@ -592,12 +599,23 @@ static bool PlatformCanTier() {
 CompilerEnvironment::CompilerEnvironment(const CompileArgs& args)
     : state_(InitialWithArgs), args_(&args) {}
 
+#ifdef JITSBX
+CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
+                                         DebugEnabled debugEnabled,
+                                         const jitsbx::JitSandbox* jitSandbox)
+    : state_(InitialWithModeTierDebug),
+      mode_(mode),
+      tier_(tier),
+      debug_(debugEnabled),
+      jitSandbox_(jitSandbox) {}
+#else
 CompilerEnvironment::CompilerEnvironment(CompileMode mode, Tier tier,
                                          DebugEnabled debugEnabled)
     : state_(InitialWithModeTierDebug),
       mode_(mode),
       tier_(tier),
       debug_(debugEnabled) {}
+#endif
 
 void CompilerEnvironment::computeParameters() {
   MOZ_ASSERT(state_ == InitialWithModeTierDebug);
@@ -613,6 +631,9 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
     return;
   }
 
+#ifdef JITSBX
+  const jitsbx::JitSandbox* jitSandbox = args_->jitSandbox;
+#endif
   bool baselineEnabled = args_->baselineEnabled;
   bool ionEnabled = args_->ionEnabled;
   bool debugEnabled = args_->debugEnabled;
@@ -643,6 +664,9 @@ void CompilerEnvironment::computeParameters(Decoder& d) {
   }
 
   debug_ = debugEnabled ? DebugEnabled::True : DebugEnabled::False;
+#ifdef JITSBX
+  jitSandbox_ = jitSandbox;
+#endif
 
   state_ = Computed;
 }
@@ -745,8 +769,13 @@ bool wasm::CompileTier2(const CompileArgs& args, const Bytes& bytecode,
   if (!moduleEnv.init() || !DecodeModuleEnvironment(d, &moduleEnv)) {
     return false;
   }
+#ifdef JITSBX
+  CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
+                                  DebugEnabled::False, args.jitSandbox);
+#else
   CompilerEnvironment compilerEnv(CompileMode::Tier2, Tier::Optimized,
                                   DebugEnabled::False);
+#endif
   compilerEnv.computeParameters(d);
 
   ModuleGenerator mg(args, &moduleEnv, &compilerEnv, cancelled, error,

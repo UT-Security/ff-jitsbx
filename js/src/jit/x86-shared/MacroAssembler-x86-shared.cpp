@@ -697,6 +697,12 @@ CodeOffset MacroAssembler::call(Label* label) {
   return offset;
 }
 
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callCFIStackUnsafe(Label* label) {
+  return Assembler::call(label);
+}
+#endif
+
 CodeOffset MacroAssembler::call(const Address& addr) {
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));

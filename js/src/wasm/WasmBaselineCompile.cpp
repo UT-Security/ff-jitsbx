@@ -69,6 +69,9 @@
 #include "wasm/WasmBCRegDefs.h"
 #include "wasm/WasmBCStk.h"
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
 #include "jit/MacroAssembler-inl.h"
 #include "wasm/WasmBCClass-inl.h"
 #include "wasm/WasmBCCodegen-inl.h"
@@ -648,7 +651,11 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
+#ifdef JITSBX_CFI_STACK
+  masm.callCFIStackUnsafe(&debugTrapStub_);
+#else
   masm.call(&debugTrapStub_);
+#endif
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 
@@ -10947,6 +10954,10 @@ bool js::wasm::BaselineCompileFunctions(const ModuleEnvironment& moduleEnv,
   // The MacroAssembler will sometimes access the jitContext.
 
   TempAllocator alloc(&lifo);
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv.state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv.jitSandbox_);
+#endif
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
   WasmMacroAssembler masm(alloc, moduleEnv);

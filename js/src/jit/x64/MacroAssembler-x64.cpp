@@ -785,9 +785,14 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
     // sizeof(intptr_t) accounts for the saved stack pointer pushed by
     // setupUnalignedABICall.
 #ifdef JITSBX_CFI_STACK
-    // Since any ABI arguments passed on the stack need to be pushed on
-    // the native-stack, we don't consider them for sandbox-stack alignment.
-    stackForCall = ComputeByteAlignment(sizeof(uintptr_t), ABIStackAlignment);
+    if (!callFromWasm) {
+      // Since any ABI arguments passed on the stack need to be pushed on
+      // the native-stack, we don't consider them for sandbox-stack alignment.
+      stackForCall = ComputeByteAlignment(sizeof(uintptr_t), ABIStackAlignment);
+    } else {
+      stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
+                                           ABIStackAlignment);
+    }
 #else
     stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
                                          ABIStackAlignment);
@@ -802,20 +807,22 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   reserveStack(stackForCall);
 
 #ifdef JITSBX_CFI_STACK
-  // assert that sandbox-stack is properly aligned.
-  assertStackAlignment(ABIStackAlignment);
+  if (!callFromWasm) {
+    // assert that sandbox-stack is properly aligned.
+    assertStackAlignment(ABIStackAlignment);
 
-  // switch to native-stack and take care of alignment
-  // before positioning ABI args.
-  sbxToNativeStack();
-  // we expect the native-stack to always be aligned.
-  assertStackAlignment(ABIStackAlignment);
+    // switch to native-stack and take care of alignment
+    // before positioning ABI args.
+    sbxToNativeStack();
+    // we expect the native-stack to always be aligned.
+    assertStackAlignment(ABIStackAlignment);
 
-  stackForCall = abiArgs_.stackBytesConsumedSoFar();
-  stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
+    stackForCall = abiArgs_.stackBytesConsumedSoFar();
+    stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
 
-  if (stackForCall != 0) {
-    subFromStackPtr(Imm32(stackForCall));
+    if (stackForCall != 0) {
+      subFromStackPtr(Imm32(stackForCall));
+    }
   }
 #endif
 
@@ -839,15 +846,18 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
 void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                                      bool cleanupArg) {
 #ifdef JITSBX_CFI_STACK
-  // We rely on the ABIArgGenerator state to mirror and undo the native-stack
-  // alignment push done in callWithABIPre.
-  uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
-  stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
+  // cleanupArg is actually callFromWasm
+  if (!cleanupArg) {
+    // We rely on the ABIArgGenerator state to mirror and undo the native-stack
+    // alignment push done in callWithABIPre.
+    uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+    stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
 
-  if (stackForCall != 0) {
-    addToStackPtr(Imm32(stackForCall));
+    if (stackForCall != 0) {
+      addToStackPtr(Imm32(stackForCall));
+    }
+    sbxToSandboxStack();
   }
-  sbxToSandboxStack();
 #endif
   freeStack(stackAdjust);
   if (dynamicAlignment_) {

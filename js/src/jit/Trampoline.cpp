@@ -35,6 +35,7 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
 
   profilerExitFrameTailOffset_ = startTrampolineCode(masm);
   masm.bind(profilerExitTail);
+  masm.sbxAssertSandboxStack();
 
   static constexpr size_t CallerFPOffset =
       CommonFrameLayout::offsetOfCallerFramePtr();
@@ -196,6 +197,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
     masm.ret();
   }
@@ -216,6 +219,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
     masm.ret();
   };
@@ -255,6 +260,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(FramePointer);
     masm.ret();
   }

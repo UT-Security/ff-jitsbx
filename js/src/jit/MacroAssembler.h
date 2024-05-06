@@ -980,6 +980,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 #ifdef JITSBX_CFI_STACK
   // unsafe call instructions that skip stack switching
+  CodeOffset callCFIStackUnsafe(Label* label) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(ImmPtr target) DEFINED_ON(x86_shared);

@@ -7,6 +7,7 @@
 #include "jit/JitContext.h"
 #ifdef JITSBX
 #include "jitsbx/JitSandbox.h"
+#include "jitsbx/JitSandboxContext.h"
 #endif
 
 #include "mozilla/Assertions.h"
@@ -85,6 +86,10 @@ JitContext::JitContext(JSContext* cx)
 JitContext::JitContext() {
 #ifdef DEBUG
   isCompilingWasm_ = true;
+#endif
+#ifdef JITSBX
+  jitSandbox = jitsbx::GetJitSandboxContext()->jitSandbox;
+  MOZ_ASSERT(jitSandbox);
 #endif
   SetJitContext(this);
 }

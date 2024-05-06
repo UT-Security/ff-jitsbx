@@ -607,7 +607,11 @@ static void CallFuncExport(MacroAssembler& masm, const FuncExport& fe,
   MOZ_ASSERT(fe.hasEagerStubs() == !funcPtr);
   MoveSPForJitABI(masm);
   if (funcPtr) {
+#ifdef JITSBX_CFI_STACK
+    masm.callCFIStackUnsafe(*funcPtr);
+#else
     masm.call(*funcPtr);
+#endif
   } else {
     masm.call(CallSiteDesc(CallSiteDesc::Func), fe.funcIndex());
   }
@@ -2578,7 +2582,7 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
 
   AssertStackAlignment(masm, ABIStackAlignment);
   MoveSPForJitABI(masm);
-  masm.call(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
+  masm.callCFIStackUnsafe(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
 
 #if defined(JS_CODEGEN_X64)
   // No widening is required, as the caller will widen.

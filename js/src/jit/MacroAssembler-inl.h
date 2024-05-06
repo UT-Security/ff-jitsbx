@@ -107,7 +107,11 @@ CodeOffset MacroAssembler::call(TrampolinePtr code) { return call(ImmPtr(code.va
 
 CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 const Register reg) {
+#ifdef JITSBX_CFI_STACK
+  CodeOffset l = callCFIStackUnsafe(reg);
+#else
   CodeOffset l = call(reg);
+#endif
   append(desc, l);
   return l;
 }
@@ -391,87 +395,101 @@ void MacroAssembler::leaveExitFrame(size_t extraFrame) {
 // stack state assertions
 void MacroAssembler::sbxAssertNativeStack() {
 #if defined(DEBUG) && defined(JITSBX_CFI_STACK)
-  Label ok, fail;
-  branchPtr(Assembler::Below, StackPointer,
-            ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackLimit()),
-            &fail);
-  branchPtr(Assembler::Above, StackPointer,
-            ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackBase()),
-            &fail);
-  jump(&ok);
+  if (MaybeGetJitContext() && !GetJitContext()->isCompilingWasm()) {
+    Label ok, fail;
+    branchPtr(Assembler::Below, StackPointer,
+              ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackLimit()),
+              &fail);
+    branchPtr(Assembler::Above, StackPointer,
+              ImmPtr((void*)GetJitContext()->jitSandbox->nativeStackBase()),
+              &fail);
+    jump(&ok);
 
-  bind(&fail);
-  breakpoint();
+    bind(&fail);
+    breakpoint();
 
-  bind(&ok);
+    bind(&ok);
+  }
 #endif
 }
 
 void MacroAssembler::sbxAssertSandboxStack() {
 #if defined(DEBUG) && defined(JITSBX_CFI_STACK)
-  Label ok, fail;
-  branchPtr(Assembler::Below, StackPointer,
-            ImmPtr((void*)(GetJitContext()->jitSandbox->sandboxStackLimit() - 1024)),
-            &fail);
-  branchPtr(Assembler::Above, StackPointer,
-            ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()),
-            &fail);
-  jump(&ok);
+  if (MaybeGetJitContext() && !GetJitContext()->isCompilingWasm()) {
+    Label ok, fail;
+    branchPtr(Assembler::Below, StackPointer,
+              ImmPtr((void*)(GetJitContext()->jitSandbox->sandboxStackLimit() -
+                             1024)),
+              &fail);
+    branchPtr(Assembler::Above, StackPointer,
+              ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()),
+              &fail);
+    jump(&ok);
 
-  bind(&fail);
-  breakpoint();
+    bind(&fail);
+    breakpoint();
 
-  bind(&ok);
+    bind(&ok);
+  }
 #endif
 }
 
 inline void MacroAssembler::sbxAssertSandboxStackWithScratch(Register scratch) {
 #if defined(DEBUG) && defined(JITSBX_CFI_STACK)
-  Label ok, fail;
-  movq(ImmPtr((void*)(GetJitContext()->jitSandbox->sandboxStackLimit() - 1024)),
-       scratch);
-  branchPtr(Assembler::Below, StackPointer, scratch, &fail);
-  movq(ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()), scratch);
-  branchPtr(Assembler::Above, StackPointer, scratch, &fail);
-  jump(&ok);
+  if (MaybeGetJitContext() && !GetJitContext()->isCompilingWasm()) {
+    Label ok, fail;
+    movq(ImmPtr(
+             (void*)(GetJitContext()->jitSandbox->sandboxStackLimit() - 1024)),
+         scratch);
+    branchPtr(Assembler::Below, StackPointer, scratch, &fail);
+    movq(ImmPtr((void*)GetJitContext()->jitSandbox->sandboxStackBase()),
+         scratch);
+    branchPtr(Assembler::Above, StackPointer, scratch, &fail);
+    jump(&ok);
 
-  bind(&fail);
-  breakpoint();
+    bind(&fail);
+    breakpoint();
 
-  bind(&ok);
-#endif     
+    bind(&ok);
+  }
+#endif
 }
 
 void MacroAssembler::sbxToNativeStack() {
 #ifdef JITSBX_CFI_STACK
-  storePtr(StackPointer,
-           AbsoluteAddress((const void*)GetJitContext()
-                               ->jitSandbox->addressOfSavedSandboxStackPtr()));
-  loadPtr(AbsoluteAddress((const void*)GetJitContext()
-                              ->jitSandbox->addressOfSavedNativeStackPtr()),
-          StackPointer);
+    MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
+    storePtr(
+        StackPointer,
+        AbsoluteAddress((const void*)GetJitContext()
+                            ->jitSandbox->addressOfSavedSandboxStackPtr()));
+    loadPtr(AbsoluteAddress((const void*)GetJitContext()
+                                ->jitSandbox->addressOfSavedNativeStackPtr()),
+            StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxToSandboxStack() {
 #ifdef JITSBX_CFI_STACK
-  storePtr(StackPointer,
-           AbsoluteAddress((const void*)GetJitContext()
-                               ->jitSandbox->addressOfSavedNativeStackPtr()));
-  loadPtr(AbsoluteAddress((const void*)GetJitContext()
-                              ->jitSandbox->addressOfSavedSandboxStackPtr()),
-          StackPointer);
+    MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
+    storePtr(StackPointer,
+             AbsoluteAddress((const void*)GetJitContext()
+                                 ->jitSandbox->addressOfSavedNativeStackPtr()));
+    loadPtr(AbsoluteAddress((const void*)GetJitContext()
+                                ->jitSandbox->addressOfSavedSandboxStackPtr()),
+            StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxPushReturnAddress() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   push(ImmPtr((void*)0xdeadbeef));
 #endif
 }
 
 void MacroAssembler::sbxPushFramePointer() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   push(FramePointer);
 #endif
 }
@@ -485,42 +503,49 @@ void MacroAssembler::sbxPushFrame() {
 
 void MacroAssembler::sbxPopReturnAddress() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   addPtr(Imm32(sizeof(void*)), StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxPopFramePointer() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   addPtr(Imm32(sizeof(void*)), StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxPopFrame() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   addPtr(Imm32(2 * sizeof(void*)), StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxPopStubFrame() {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   addPtr(Imm32(3 * sizeof(void*)), StackPointer);
 #endif
 }
 
 void MacroAssembler::sbxLoadSavedSandboxStackPtr(Register dest) {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   loadPtr(AbsoluteAddress((const void*)GetJitContext()->jitSandbox->addressOfSavedSandboxStackPtr()), dest);
 #endif
 }
 
 void MacroAssembler::sbxLoadSavedNativeStackPtr(Register dest) {
 #ifdef JITSBX_CFI_STACK
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   loadPtr(AbsoluteAddress((const void*)GetJitContext()->jitSandbox->addressOfSavedNativeStackPtr()), dest);
 #endif
 }
 
 #ifdef JITSBX_CFI_STACK
 inline void MacroAssembler::sbxRestoreFramePointer() {
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
   loadPtr(AbsoluteAddress((const void*)GetJitContext()
                               ->jitSandbox->addressOfSavedNativeStackPtr()),
           rbp);
