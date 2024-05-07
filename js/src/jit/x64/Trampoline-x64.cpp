@@ -527,6 +527,9 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
   // Caller:
   // [arg2] [arg1] [this] [[argc] [callee] [descr] [raddr]] <- rsp
 
@@ -750,6 +753,9 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   Register cxreg = IntArgReg0;
   regs.take(cxreg);
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
   // Stack is:
   //    ... frame ...
   //  +12 [args]

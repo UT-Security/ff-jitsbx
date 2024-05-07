@@ -4818,12 +4818,12 @@ class AssemblerX86Shared : public AssemblerShared {
   void emit_label() {
     // Alignment
     nopAlign(0x10);
+
     // Jump over label
     Label dest;
     jmp(&dest);
-    // TODO: Label has to overlap with actual instruction so that jump target
-    // can be checked
-    // Alternative: Check jump target - 4 (this may be better)
+
+    // TODO(JITSBX_CFI_LABEL): Change label
     uint32_t label = 0xcccccccc;
     masm.int32Constant(label);
     bind(&dest);

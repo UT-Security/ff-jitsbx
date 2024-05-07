@@ -512,7 +512,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   movq(rsp, rax);
 
   // Call the handler.
-  using Fn = void (*)(ResumeFromException * rfe);
+  using Fn = void (*)(ResumeFromException* rfe);
   asMasm().setupUnalignedABICall(rcx);
   asMasm().passABIArg(rax);
   asMasm().callWithABI<Fn, HandleException>(
@@ -893,10 +893,12 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-#ifdef JITSBX_CFI_STACK
+#ifdef JITSBX
   // cfi-stack(SAFETY): we already switched to the native-stack in
   // callWithABIPre.
-  callCFIStackUnsafe(fun);
+  // cfi-label(SAFETY): TODO(JITSBX): since the expected target is a C++
+  // it doesn't have a label. Use a trampoline with a table check.
+  callCFIUnsafe(fun);
 #else
   call(fun);
 #endif
@@ -921,7 +923,9 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 #ifdef JITSBX_CFI_STACK
   // cfi-stack(SAFETY): we already switched to the native-stack in
   // callWithABIPre.
-  callCFIStackUnsafe(safeFun);
+  // cfi-label(SAFETY): TODO(JITSBX): since the expected target is a C++
+  // it doesn't have a label. Use a trampoline with a table check.
+  callCFIUnsafe(safeFun);
 #else
   call(safeFun);
 #endif

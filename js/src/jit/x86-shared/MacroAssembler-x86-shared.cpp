@@ -682,8 +682,14 @@ CodeOffset MacroAssembler::call(Register reg) {
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
 
+  // Force alignment (find a better way to do this)
+  // ScratchRegisterScope scratch(*this);
+  // movq(ImmWord(0xfffffffffffffff0), scratch);
+  // andq(scratch, reg);
+
   // Label is at offset 5
   Address target = Address(reg, 5);
+
   branch32(Assembler::Equal, target, label, &passed);
   breakpoint();
 
@@ -695,9 +701,41 @@ CodeOffset MacroAssembler::call(Register reg) {
   return offset;
 }
 
+#ifdef JITSBX
+CodeOffset MacroAssembler::callCFIUnsafe(Register reg) {
+  return Assembler::call(reg);
+}
+#endif
+
 #ifdef JITSBX_CFI_STACK
 CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
+#ifdef JITSBX_CFI_LABEL
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
+  // ScratchRegisterScope scratch(*this);
+  // movq(ImmWord(0xfffffffffffffff0), scratch);
+  // andq(scratch, reg);
+
+  // Label is at offset 5
+  Address target = Address(reg, 5);
+
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
   return Assembler::call(reg);
+}
+#endif
+
+#ifdef JITSBX_CFI_LABEL
+CodeOffset MacroAssembler::callCFILabelUnsafe(Register reg) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(reg);
+  sbxToSandboxStack();
+  return offset;
 }
 #endif
 
@@ -718,10 +756,11 @@ CodeOffset MacroAssembler::call(const Address& addr) {
 #ifdef JITSBX_CFI_LABEL
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
 
   // Label is at offset 5
-  // TODO(JITSBX_CFI_LABEL): potential overflow in addr.offset add
-  Address target = Address(addr.base, addr.offset + 5);
+  Address target = Address(scratch, 5);
   branch32(Assembler::Equal, target, label, &passed);
   breakpoint();
 
@@ -733,9 +772,37 @@ CodeOffset MacroAssembler::call(const Address& addr) {
   return offset;
 }
 
+#ifdef JITSBX
+CodeOffset MacroAssembler::callCFIUnsafe(const Address& addr) {
+  return Assembler::call(Operand(addr.base, addr.offset));
+}
+#endif
+
 #ifdef JITSBX_CFI_STACK
 CodeOffset MacroAssembler::callCFIStackUnsafe(const Address& addr) {
+#ifdef JITSBX_CFI_LABEL
+  Label passed;
+  Imm32 label = Imm32(0xcccccccc);
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
+
+  // Label is at offset 5
+  Address target = Address(scratch, 5);
+  branch32(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+#endif
   return Assembler::call(Operand(addr.base, addr.offset));
+}
+#endif
+
+#ifdef JITSBX_CFI_LABEL
+CodeOffset MacroAssembler::callCFILabelUnsafe(const Address& addr) {
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+  sbxToSandboxStack();
+  return offset;
 }
 #endif
 

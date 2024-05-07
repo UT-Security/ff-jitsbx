@@ -1544,7 +1544,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JTISBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
 
@@ -2614,7 +2614,7 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
-#ifdef JTISBX_CFI_STACK
+#ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
 #ifndef JITSBX_CFI_STACK

@@ -978,8 +978,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline void sbxRestoreFramePointer();
 #endif
 
+#ifdef JITSBX
+  // unsafe indirect call instructions that skip all CFI checks
+  CodeOffset callCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+      
 #ifdef JITSBX_CFI_STACK
-  // unsafe call instructions that skip stack switching
+  // unsafe call instructions that skip CFI stack switching
   CodeOffset callCFIStackUnsafe(Label* label) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
@@ -988,6 +994,12 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset callAndPushReturnAddressCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
       
   inline uint32_t callJitNoProfilerCFIStackUnsafe(Register callee);
+#endif
+
+#ifdef JITSBX_CFI_LABEL
+  // unsafe indirect call instructions that skip CFI label checks
+  CodeOffset callCFILabelUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFILabelUnsafe(const Address& addr) DEFINED_ON(x86_shared);
 #endif
 
  public:

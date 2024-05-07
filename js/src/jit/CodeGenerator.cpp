@@ -2662,6 +2662,9 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "GenerateRegExpMatchStubShared");
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -3345,6 +3348,9 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpExecTestStub");
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11707,6 +11713,9 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   Register output = CallTempReg5;
 
   Label failure;
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11839,6 +11848,9 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 
   freeStubOffset_ = startTrampolineCode(masm);
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11879,6 +11891,9 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 
   lazyLinkStubOffset_ = startTrampolineCode(masm);
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif

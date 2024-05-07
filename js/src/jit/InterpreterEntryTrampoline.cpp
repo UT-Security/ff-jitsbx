@@ -61,10 +61,13 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   AutoCreatedBy acb(masm,
                     "JitRuntime::generateBaselineInterpreterEntryTrampoline");
 
-  masm.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
   masm.sbxToSandboxStack();
   masm.sbxPushFrame();
@@ -165,6 +168,9 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
     }
   }
 
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JS_CODEGEN_ARM64
   // Use the normal stack pointer for the initial pushes.
   masm.SetStackPointer64(sp);
