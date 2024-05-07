@@ -2582,7 +2582,11 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
 
   AssertStackAlignment(masm, ABIStackAlignment);
   MoveSPForJitABI(masm);
+#ifdef JITSBX_CFI_STACK
   masm.callCFIStackUnsafe(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
+#else
+  masm.call(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
+#endif
 
 #if defined(JS_CODEGEN_X64)
   // No widening is required, as the caller will widen.
