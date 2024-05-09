@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 #include "irregexp/imported/regexp-stack.h"
+#include "util/VectorShim.h"
 
 
 namespace v8 {
@@ -72,7 +73,9 @@ Address RegExpStack::EnsureCapacity(size_t size) {
   if (size > kMaximumStackSize) return kNullAddress;
   if (thread_local_.memory_size_ < size) {
     if (size < kMinimumDynamicStackSize) size = kMinimumDynamicStackSize;
-    byte* new_memory = NewArray<byte>(size);
+		// ask2374
+    byte* new_memory = NewSandboxArray<byte>(size);
+		// ask2374
     if (thread_local_.memory_size_ > 0) {
       // Copy original memory into top of new memory.
       MemCopy(new_memory + size - thread_local_.memory_size_,

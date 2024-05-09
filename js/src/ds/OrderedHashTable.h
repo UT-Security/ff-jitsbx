@@ -76,6 +76,13 @@ class OrderedHashTable {
   class Range;
   friend class Range;
 
+  // ask2374
+  struct SandboxData {
+    Range* ranges;
+    Range* nurseryRanges;
+  };
+  // ask2374
+
  private:
   Data** hashTable;       // hash table (has hashBuckets() elements)
   Data* data;             // data vector, an array of Data objects
@@ -84,9 +91,12 @@ class OrderedHashTable {
   uint32_t dataCapacity;  // size of data, in elements
   uint32_t liveCount;     // dataLength less empty (removed) entries
   uint32_t hashShift;     // multiplicative hash shift
-  Range* ranges;  // list of all live Ranges on this table in malloc memory
-  Range*
-      nurseryRanges;  // list of all live Ranges on this table in the GC nursery
+  // ask2374
+  // Range* ranges;  // list of all live Ranges on this table in malloc memory
+  // Range*
+      // nurseryRanges;  // list of all live Ranges on this table in the GC nursery
+  SandboxData* sandbox_data;
+  // ask2374
   AllocPolicy alloc;
   mozilla::HashCodeScrambler hcs;  // don't reveal pointer hash codes
 
@@ -96,14 +106,16 @@ class OrderedHashTable {
   template <void (*f)(Range* range, uint32_t arg)>
   void forEachRange(uint32_t arg = 0) {
     Range* next;
-    for (Range* r = ranges; r; r = next) {
+    // ask2374
+    for (Range* r = sandbox_data->ranges; r; r = next) {
       next = r->next;
       f(r, arg);
     }
-    for (Range* r = nurseryRanges; r; r = next) {
+    for (Range* r = sandbox_data->nurseryRanges; r; r = next) {
       next = r->next;
       f(r, arg);
     }
+    // ask2374
   }
 
  public:
@@ -114,10 +126,17 @@ class OrderedHashTable {
         dataCapacity(0),
         liveCount(0),
         hashShift(0),
-        ranges(nullptr),
-        nurseryRanges(nullptr),
+        // ask2374
+        // ranges(nullptr),
+        // nurseryRanges(nullptr),
+        // ask2374
         alloc(std::move(ap)),
-        hcs(hcs) {}
+        hcs(hcs) {
+          // ask2374
+          sandbox_data = (SandboxData*)js_sandbox_malloc(sizeof(SandboxData));
+          memset(sandbox_data, 0, sizeof(SandboxData));
+          // ask2374
+        }
 
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!hashTable, "init must be called at most once");
@@ -157,6 +176,9 @@ class OrderedHashTable {
       alloc.free_(hashTable, hashBuckets());
     }
     freeData(data, dataLength, dataCapacity);
+    // ask2374
+    js_free(sandbox_data);
+    // ask2374
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
@@ -356,23 +378,18 @@ class OrderedHashTable {
      *
      * Invariant: *prevp == this.
      */
-    // ask2374
-    Range*** prevp;
-    // ask2374
+    Range** prevp;
     Range* next;
 
     /*
      * Create a Range over all the entries in ht.
      * (This is private on purpose. End users must use ht->all().)
      */
-    // ask2374
     Range(OrderedHashTable* ht, Range** listp)
-        : ht(ht), i(0), count(0), next(*listp) {
-      prevp = (Range***)js_sandbox_malloc(sizeof(Range**));
-      *prevp = listp;
-      **prevp = this;
+        : ht(ht), i(0), count(0), prevp(listp), next(*listp) {
+      *prevp = this;
       if (next) {
-        *(next->prevp) = &next;
+        next->prevp = &next;
       }
       seek();
     }
@@ -382,23 +399,22 @@ class OrderedHashTable {
         : ht(other.ht),
           i(other.i),
           count(other.count),
-          next(ht->ranges) {
-      prevp = (Range***)js_sandbox_malloc(sizeof(Range**));
-      *prevp = &ht->ranges;
-      **prevp = this;
+          // ask2374
+          prevp(&(ht->sandbox_data->ranges)),
+          next(ht->sandbox_data->ranges) {
+          // ask2374
+      *prevp = this;
       if (next) {
-        *(next->prevp) = &next;
+        next->prevp = &next;
       }
     }
 
     ~Range() {
-      **prevp = next;
+      *prevp = next;
       if (next) {
-        *(next->prevp) = *prevp;
+        next->prevp = prevp;
       }
-      js_free(prevp);
     }
-    // ask2374
 
    protected:
     // Prohibit copy assignment.
@@ -446,9 +462,7 @@ class OrderedHashTable {
 
     void onTableDestroyed() {
       MOZ_ASSERT(valid());
-      // ask2374
-      *prevp = &next;
-      // ask2374
+      prevp = &next;
       next = this;
     }
 
@@ -525,9 +539,13 @@ class OrderedHashTable {
     // Range operates on a mutable table but its interface does not permit
     // modification of the contents of the table.
     auto* self = const_cast<OrderedHashTable*>(this);
-    return Range(self, &self->ranges);
+    // ask2374
+    return Range(self, &(self->sandbox_data->ranges));
+    // ask2374
   }
-  MutableRange mutableAll() { return MutableRange(this, &ranges); }
+  // ask2374
+  MutableRange mutableAll() { return MutableRange(this, &(sandbox_data->ranges)); }
+  // ask2374
 
   void trace(JSTracer* trc) {
     for (uint32_t i = 0; i < dataLength; i++) {
@@ -563,12 +581,14 @@ class OrderedHashTable {
    */
   Range* createRange(void* buffer, bool inNursery) const {
     auto* self = const_cast<OrderedHashTable*>(this);
-    Range** listp = inNursery ? &self->nurseryRanges : &self->ranges;
+    // ask2374
+    Range** listp = inNursery ? &(self->sandbox_data->nurseryRanges) : &(self->sandbox_data->ranges);
+    // ask2374
     new (buffer) Range(self, listp);
     return static_cast<Range*>(buffer);
   }
 
-  void destroyNurseryRanges() { nurseryRanges = nullptr; }
+  void destroyNurseryRanges() { sandbox_data->nurseryRanges = nullptr; }
 
   /*
    * Change the value of the given key.

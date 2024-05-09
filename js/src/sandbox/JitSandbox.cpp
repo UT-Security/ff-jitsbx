@@ -26,16 +26,17 @@ void js::sandbox::checkJitMask(void* ptr) {
       "push %r14\n"
       "push %r15\n");
 
-  void* gsbase;
-  __asm__ __volatile__("rdgsbase %0" : "=r"(gsbase));
-  void* masked_ptr = (void*)(((uint64_t)ptr) & 0xFFFFFFFF00000000);
-
   u_int64_t rsp;
   __asm__ __volatile__("movq %%rsp,%0" : "=r"(rsp));
   int set = rsp & 0xf;
   if (set) {
     __asm__ __volatile__("push %rax\n");
   }
+
+  void* gsbase;
+  __asm__ __volatile__("rdgsbase %0" : "=r"(gsbase));
+  void* masked_ptr = (void*)(((uint64_t)ptr) & 0xFFFFFFFF00000000);
+
   if (masked_ptr == gsbase) {
     SANDBOX_LOG("checkJitMask,pass,%p\n", ptr);
   } else {

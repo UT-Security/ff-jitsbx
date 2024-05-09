@@ -8257,19 +8257,12 @@ static inline void RangeDestruct(MacroAssembler& masm, Register iter,
 
   masm.loadPtr(Address(range, OrderedHashTable::Range::offsetOfNext()), next);
   masm.loadPtr(Address(range, OrderedHashTable::Range::offsetOfPrevP()), prevp);
-  // ask2374
-  masm.loadPtr(Address(prevp, 0), prevp);
-  // ask2374
   masm.storePtr(next, Address(prevp, 0));
 
   Label hasNoNext;
   masm.branchTestPtr(Assembler::Zero, next, next, &hasNoNext);
 
-  // ask2374
-  masm.loadPtr(Address(next, OrderedHashTable::Range::offsetOfPrevP()), next);
-  masm.loadPtr(Address(next, 0), next);
-  masm.storePtr(prevp, Address(next, 0));
-  // ask2374
+  masm.storePtr(prevp, Address(next, OrderedHashTable::Range::offsetOfPrevP()));
 
   masm.bind(&hasNoNext);
 

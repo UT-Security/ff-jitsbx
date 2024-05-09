@@ -33,6 +33,19 @@ T* NewArray(size_t size) {
   return result;
 }
 
+// ask2374
+template <typename T>
+T* NewSandboxArray(size_t size) {
+  static_assert(std::is_pod<T>::value, "");
+  js::AutoEnterOOMUnsafeRegion oomUnsafe;
+  T* result = static_cast<T*>(js_sandbox_malloc(size * sizeof(T)));
+  if (!result) {
+    oomUnsafe.crash("Irregexp NewArray");
+  }
+  return result;
+}
+// ask2374
+
 template <typename T>
 void DeleteArray(T* array) {
   js_free(array);

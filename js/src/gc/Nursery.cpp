@@ -661,7 +661,9 @@ void* js::Nursery::allocateBufferSameLocation(JSObject* obj, size_t nbytes) {
   MOZ_ASSERT(nbytes <= MaxNurseryBufferSize);
 
   if (!IsInsideNursery(obj)) {
-    return obj->zone()->pod_malloc<uint8_t>(nbytes);
+    // ask2374
+    return obj->zone()->pod_sandbox_malloc<uint8_t>(nbytes);
+    // ask2374
   }
 
   return allocate(nbytes);

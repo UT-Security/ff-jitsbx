@@ -260,6 +260,13 @@ struct MallocProvider {
     return pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
   }
 
+  // ask2374
+  template <class T>
+  T* pod_sandbox_realloc(T* prior, size_t oldSize, size_t newSize) {
+    return pod_arena_realloc<T>(js::SandboxMallocArena, prior, oldSize, newSize);
+  }
+  // ask2374
+
   JS_DECLARE_NEW_METHODS(new_, pod_malloc<uint8_t>, MOZ_ALWAYS_INLINE)
   JS_DECLARE_NEW_ARENA_METHODS(
       arena_new_,
