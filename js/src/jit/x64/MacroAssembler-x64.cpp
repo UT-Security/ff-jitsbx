@@ -920,7 +920,7 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-#ifdef JITSBX_CFI_STACK
+#ifdef JITSBX
   // cfi-stack(SAFETY): we already switched to the native-stack in
   // callWithABIPre.
   // cfi-label(SAFETY): TODO(JITSBX): since the expected target is a C++
