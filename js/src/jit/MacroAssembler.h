@@ -980,16 +980,16 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 #ifdef JITSBX
   // unsafe indirect call instructions that skip all CFI checks
+  CodeOffset callCFIUnsafe(Label* label) DEFINED_ON(x86_shared);
+  CodeOffset callCFIUnsafe(ImmPtr target) DEFINED_ON(x86_shared);
   CodeOffset callCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
 #endif
       
 #ifdef JITSBX_CFI_STACK
   // unsafe call instructions that skip CFI stack switching
-  CodeOffset callCFIStackUnsafe(Label* label) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
-  CodeOffset callCFIStackUnsafe(ImmPtr target) DEFINED_ON(x86_shared);
 
   CodeOffset callAndPushReturnAddressCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
       
@@ -1001,7 +1001,28 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset callCFILabelUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFILabelUnsafe(const Address& addr) DEFINED_ON(x86_shared);
 #endif
+      
+  // instruction alignment to bundle size
+  inline void sbxBundleAlignNop(uint8_t extra = 0);
+  inline void sbxAssertBundleAligned();
 
+  void jump(Label* label) DEFINED_ON(x86_shared);
+  void jump(JitCode* code) DEFINED_ON(x86_shared);
+  void jump(TrampolinePtr code) DEFINED_ON(x86_shared);
+  void jump(ImmPtr ptr) DEFINED_ON(x86_shared);
+  void jump(Register reg) DEFINED_ON(x86_shared);
+  void jump(const Address& addr) DEFINED_ON(x86_shared);
+
+#ifdef JITSBX_CFI_BUNDLE
+  void jumpCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
+  void jumpCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+  void ret() DEFINED_ON(x86_shared);
+#ifdef JITSBX_CFI_BUNDLE
+  void retCFIUnsafe() DEFINED_ON(x86_shared);
+#endif
+    
  public:
   // ===============================================================
   // Move instructions

@@ -426,7 +426,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore frame pointer and return.
   masm.pop(rbp);
+#ifdef JITSBX_CFI_BUNDLE
+  masm.retCFIUnsafe();
+#else
   masm.ret();
+#endif
 }
 
 // static

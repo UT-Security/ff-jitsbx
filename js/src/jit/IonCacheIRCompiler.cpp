@@ -551,6 +551,7 @@ bool IonCacheIRCompiler::init() {
 JitCode* IonCacheIRCompiler::compile(IonICStub* stub) {
   AutoCreatedBy acb(masm, "IonCacheIRCompiler::compile");
 
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_STACK
   masm.sbxAssertNativeStack();
   masm.push(FramePointer);

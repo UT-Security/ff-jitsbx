@@ -886,6 +886,16 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_LEA, offset, base, dst);
   }
 
+#ifdef JITSBX_CFI_BUNDLE
+  void leaq_mr(int32_t offset, RegisterID base, bool seg, RegisterID dst) {
+    spew("leaq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    if (seg) {
+      m_formatter.prefix(PRE_SEG_GS);
+    }
+    m_formatter.oneByteOp64(OP_LEA, offset, base, dst);
+  }
+#endif
+
   [[nodiscard]] JmpSrc leaq_rip(RegisterID dst) {
     m_formatter.oneByteRipOp64(OP_LEA, 0, dst);
     JmpSrc label(m_formatter.size());

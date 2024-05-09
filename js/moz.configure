@@ -572,6 +572,20 @@ def jit_sandbox_cfi_label(jit_sandbox_cfi_label, jit_sandbox):
 set_config("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
 set_define("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
 
+option(
+    "--enable-jit-sandbox-cfi-bundle",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle", "--enable-jit-sandbox")
+def jit_sandbox_cfi_bundle(jit_sandbox_cfi_bundle, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_bundle:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
+set_define("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
+
 # Architecture feature flags
 # =======================================================
 

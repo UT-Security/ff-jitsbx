@@ -607,8 +607,8 @@ static void CallFuncExport(MacroAssembler& masm, const FuncExport& fe,
   MOZ_ASSERT(fe.hasEagerStubs() == !funcPtr);
   MoveSPForJitABI(masm);
   if (funcPtr) {
-#ifdef JITSBX_CFI_STACK
-    masm.callCFIStackUnsafe(*funcPtr);
+#ifdef JITSBX
+    masm.callCFIUnsafe(*funcPtr);
 #else
     masm.call(*funcPtr);
 #endif
@@ -900,7 +900,11 @@ static bool GenerateInterpEntry(MacroAssembler& masm, const FuncExport& fe,
   WasmPop(masm, lr);
   masm.abiret();
 #else
+#ifdef JITSBX_CFI_BUNDLE
+  masm.retCFIUnsafe();
+#else
   masm.ret();
+#endif
 #endif
 
   return FinishOffsets(masm, offsets);
@@ -2582,8 +2586,8 @@ bool wasm::GenerateBuiltinThunk(MacroAssembler& masm, ABIFunctionType abiType,
 
   AssertStackAlignment(masm, ABIStackAlignment);
   MoveSPForJitABI(masm);
-#ifdef JITSBX_CFI_STACK
-  masm.callCFIStackUnsafe(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
+#ifdef JITSBX
+  masm.callCFIUnsafe(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
 #else
   masm.call(ImmPtr(funcPtr, ImmPtr::NoCheckToken()));
 #endif
@@ -2753,7 +2757,11 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
   WasmPop(masm, lr);
   masm.abiret();
 #else
+#ifdef JITSBX_CFI_BUNDLE
+  masm.retCFIUnsafe();
+#else
   masm.ret();
+#endif
 #endif
 
   return FinishOffsets(masm, offsets);
@@ -2876,7 +2884,11 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
       Address(ReturnReg, ResumeFromException::offsetOfStackPointer()));
   MoveSPForJitABI(masm);
   ClobberWasmRegsForLongJmp(masm, scratch1);
+#ifdef JITSBX_CFI_BUNDLE
+  masm.jumpCFIUnsafe(scratch1);
+#else
   masm.jump(scratch1);
+#endif
 
   // No catch handler was found, so we will just return out.
   masm.bind(&leaveWasm);
@@ -2892,7 +2904,11 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
   masm.addToStackPtr(Imm32(8));
   masm.abiret();
 #else
+#ifdef JITSBX_CFI_BUNDLE
+  masm.retCFIUnsafe();
+#else
   masm.ret();
+#endif
 #endif
 
   return FinishOffsets(masm, offsets);

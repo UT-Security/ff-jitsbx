@@ -1456,6 +1456,7 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   jsbytecode* pc = handler.pc();
   if (JSOp(*pc) == JSOp::LoopHead) {
     uint32_t pcOffset = script->pcToOffset(pc);
+    masm.sbxBundleAlignNop();
     uint32_t nativeOffset = masm.currentOffset();
     if (!handler.osrEntries().emplaceBack(pcOffset, nativeOffset)) {
       ReportOutOfMemory(cx);
@@ -6379,6 +6380,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -6425,6 +6427,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   emitInitializeLocals();
 
   // Ion prologue bailouts will enter here in the Baseline Interpreter.
+  masm.sbxBundleAlignNop();
   masm.bind(&bailoutPrologue_);
 
   frame.assertSyncedStack();
@@ -6445,6 +6448,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
     return false;
   }
 
+  masm.sbxBundleAlignNop();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
 
   return true;
@@ -6525,6 +6529,7 @@ MethodStatus BaselineCompiler::emitBody() {
     // the native code offset.
     if (info->hasResumeOffset) {
       frame.assertSyncedStack();
+      masm.sbxBundleAlignNop();
       uint32_t pcOffset = script->pcToOffset(handler.pc());
       uint32_t nativeOffset = masm.currentOffset();
       if (!resumeOffsetEntries_.emplaceBack(pcOffset, nativeOffset)) {
@@ -6685,6 +6690,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point to start interpreting bytecode ops. This is used for
   // things like exception handling and OSR. DebugModeOSR patches JIT frames to
   // return here from the DebugTrapHandler.
+  masm.sbxBundleAlignNop();
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
   masm.sbxAssertSandboxStack();
@@ -6693,12 +6699,14 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Second external entry point: this skips the debug trap for the first op
   // and is used by OSR.
+  masm.sbxBundleAlignNop();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
 
   // External entry point for Ion prologue bailouts.
+  masm.sbxBundleAlignNop();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();

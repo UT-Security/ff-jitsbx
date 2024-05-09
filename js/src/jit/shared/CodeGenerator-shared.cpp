@@ -133,6 +133,7 @@ bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(masm.framePushed() == 0);
   MOZ_ASSERT(!gen->compilingWasm());
 
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif

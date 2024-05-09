@@ -651,8 +651,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
-#ifdef JITSBX_CFI_STACK
-  masm.callCFIStackUnsafe(&debugTrapStub_);
+#ifdef JITSBX
+  masm.callCFIUnsafe(&debugTrapStub_);
 #else
   masm.call(&debugTrapStub_);
 #endif
@@ -742,9 +742,13 @@ void BaseCompiler::insertBreakpointStub() {
     masm.branchTest32(Assembler::NonZero, Address(scratch, func_.index / 32),
                       Imm32(1 << (func_.index % 32)), &L);
 
-    // Fast path: return to the execution.
-    masm.ret();
   }
+  // Fast path: return to the execution.
+#ifdef JITSBX_CFI_BUNDLE
+  masm.retCFIUnsafe();
+#else
+  masm.ret();
+#endif
 #elif defined(JS_CODEGEN_ARM64)
   {
     ScratchPtr scratch(*this);
@@ -792,7 +796,11 @@ void BaseCompiler::insertBreakpointStub() {
 
   // Jump to the debug trap handler.
   masm.bind(&L);
+#ifdef JITSBX_CFI_BUNDLE
+  masm.jumpCFIUnsafe(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));
+#else
   masm.jump(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));
+#endif
 }
 
 void BaseCompiler::saveRegisterReturnValues(const ResultType& resultType) {

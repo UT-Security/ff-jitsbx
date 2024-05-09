@@ -14,6 +14,14 @@ namespace js {
 
 namespace jitsbx {
 
+#ifdef JITSBX_CFI_BUNDLE
+static constexpr uint32_t BundleAlignment = 32; 
+static constexpr int32_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
+static constexpr int32_t AllocatedCodeBytesPerProcess = MaxCodeBytesPerProcess;
+static constexpr int32_t ExecutableMemoryBase = 0x40000000;
+static constexpr int32_t IndirectCodeTargetMask = (AllocatedCodeBytesPerProcess - 1) & ~(BundleAlignment - 1);
+#endif
+
 class JitSandbox {
  private:
 #ifdef JITSBX_CFI_STACK

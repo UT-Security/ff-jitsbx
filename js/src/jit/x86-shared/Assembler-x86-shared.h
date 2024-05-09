@@ -55,6 +55,9 @@ class Operand {
   // this field is smaller than the size of Register::Encoding.
   Register::Encoding index_ : 8;
   int32_t disp_;
+#ifdef JITSBX_CFI_BUNDLE
+  bool seg_;
+#endif
 
  public:
   explicit Operand(Register reg)
@@ -117,6 +120,15 @@ class Operand {
                      scale(), disp());
   }
 
+#ifdef JITSBX_CFI_BUNDLE
+  Operand toSegment() {
+    MOZ_ASSERT(kind() == MEM_REG_DISP);
+    Operand op = Operand(Register::FromCode(base()), disp());
+    op.seg_ = true;
+    return op;     
+  }
+#endif
+
   Kind kind() const { return kind_; }
   Register::Encoding reg() const {
     MOZ_ASSERT(kind() == REG);
@@ -146,6 +158,13 @@ class Operand {
     MOZ_ASSERT(kind() == MEM_ADDRESS32);
     return reinterpret_cast<void*>(disp_);
   }
+
+#ifdef JITSBX_CFI_BUNDLE
+  bool seg() const {
+    MOZ_ASSERT(kind() == MEM_REG_DISP);
+    return seg_;      
+  }
+#endif
 
   bool containsReg(Register r) const {
     switch (kind()) {
@@ -461,9 +480,9 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     masm.haltingAlign(alignment);
   }
-  void nopAlign(int alignment) {
+  void nopAlign(int alignment, int extra = 0) {
     MOZ_ASSERT(hasCreator());
-    masm.nopAlign(alignment);
+    masm.nopAlign(alignment, extra);
   }
   void writeCodePointer(CodeLabel* label) {
     MOZ_ASSERT(hasCreator());
@@ -1113,9 +1132,24 @@ class AssemblerX86Shared : public AssemblerShared {
     }
     return CodeOffset(masm.currentOffset());
   }
+  static size_t sizeOfCall(Register reg) {
+    return X86Encoding::BaseAssembler::sizeOfCall_r(reg.encoding());
+  }
   CodeOffset call(Register reg) {
     masm.call_r(reg.encoding());
     return CodeOffset(masm.currentOffset());
+  }
+  static size_t sizeOfCall(const Operand& op) {
+    switch (op.kind()) {
+      case Operand::REG:
+        return X86Encoding::BaseAssembler::sizeOfCall_r(op.reg());
+        break;
+      case Operand::MEM_REG_DISP:
+        return X86Encoding::BaseAssembler::sizeOfCall_m(op.disp(), op.base());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
   }
   CodeOffset call(const Operand& op) {
     switch (op.kind()) {

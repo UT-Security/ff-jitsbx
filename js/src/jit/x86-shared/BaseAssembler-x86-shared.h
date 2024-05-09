@@ -210,6 +210,89 @@ class BaseAssembler : public GenericAssembler {
         nop_seven();
         nop_seven();
         break;
+#ifdef JITSBX_CFI_BUNDLE
+      case 16:
+        nop_eight();
+        nop_eight();
+        break;
+      case 17:
+        nop_nine();
+        nop_eight();
+        break;
+      case 18:
+        nop_nine();
+        nop_nine();
+        break;
+      case 19:
+        nop_one();
+        nop_nine();
+        nop_nine();
+        break;
+      case 20:
+        nop_two();
+        nop_nine();
+        nop_nine();
+        break;
+      case 21:
+        nop_three();
+        nop_nine();
+        nop_nine();
+        break;
+      case 22:
+        nop_four();
+        nop_nine();
+        nop_nine();
+        break;
+      case 23:
+        nop_five();
+        nop_nine();
+        nop_nine();
+        break;
+      case 24:
+        nop_six();
+        nop_nine();
+        nop_nine();
+        break;
+      case 25:
+        nop_seven();
+        nop_nine();
+        nop_nine();
+        break;
+      case 26:
+        nop_eight();
+        nop_nine();
+        nop_nine();
+        break;
+      case 27:
+        nop_nine();
+        nop_nine();
+        nop_nine();
+        break;
+      case 28:
+        nop_one();
+        nop_nine();
+        nop_nine();
+        nop_nine();
+        break;
+      case 29:
+        nop_two();
+        nop_nine();
+        nop_nine();
+        nop_nine();
+        break;
+      case 30:
+        nop_three();
+        nop_nine();
+        nop_nine();
+        nop_nine();
+        break;
+      case 31:
+        nop_four();
+        nop_nine();
+        nop_nine();
+        nop_nine();
+        break;
+#endif
       default:
         MOZ_CRASH("Unhandled alignment");
     }
@@ -2758,11 +2841,18 @@ class BaseAssembler : public GenericAssembler {
     spew("call       *%s", GPRegName(dst));
   }
 
+  static size_t sizeOfCall_r(RegisterID dst) {
+    return X86InstructionFormatter::sizeOfOneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
+  }
+
   void call_m(int32_t offset, RegisterID base) {
     spew("call       *" MEM_ob, ADDR_ob(offset, base));
     m_formatter.oneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
   }
 
+  static size_t sizeOfCall_m(int32_t offset, RegisterID base) {
+    return X86InstructionFormatter::sizeOfOneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
+  }
   // Comparison of EAX against a 32-bit immediate. The immediate is patched
   // in as if it were a jump target. The intention is to toggle the first
   // byte of the instruction between a CMP and a JMP to produce a pseudo-NOP.
@@ -4636,10 +4726,10 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
-  void nopAlign(int alignment) {
+  void nopAlign(int alignment, int extra = 0) {
     spew(".balign %d", alignment);
 
-    int remainder = m_formatter.size() % alignment;
+    int remainder = ((m_formatter.size() % alignment) + extra) % alignment;
     if (remainder > 0) {
       insert_nop(alignment - remainder);
     }
@@ -5595,11 +5685,20 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.putByteUnchecked(opcode + (reg & 7));
     }
 
+    static size_t sizeOfOneByteOp(OneByteOpcodeID opcode, RegisterID rm, int reg) {
+      return isRexNeeded(false, reg, 0, rm) ? 3 : 2;
+    }
+
     void oneByteOp(OneByteOpcodeID opcode, RegisterID rm, int reg) {
       m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, rm);
       m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
+    }
+
+    static size_t sizeOfOneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
+                   int reg) {
+      return isRexNeeded(false, reg, 0, base) ? 3 : 2;
     }
 
     void oneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
@@ -6383,6 +6482,11 @@ class BaseAssembler : public GenericAssembler {
 
     // Used to plant a REX byte with REX.w set (for 64-bit operations).
     void emitRexW(int r, int x, int b) { emitRex(true, r, x, b); }
+
+    static bool isRexNeeded(bool condition, int r, int x, int b) {
+      return condition || regRequiresRex(RegisterID(r)) ||
+             regRequiresRex(RegisterID(x)) || regRequiresRex(RegisterID(b));
+    }
 
     // Used for operations with byte operands - use byteRegRequiresRex() to
     // check register operands, regRequiresRex() to check other registers

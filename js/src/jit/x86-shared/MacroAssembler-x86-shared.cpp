@@ -695,9 +695,32 @@ CodeOffset MacroAssembler::call(Register reg) {
 
   bind(&passed);
 #endif
+#ifdef JITSBX_CFI_BUNDLE
+  sbxBundleAlignNop();
+#ifdef DEBUG
+  ScratchRegisterScope scratch(*this);
+  movq(reg, scratch);
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, reg, scratch, &success);
+  breakpoint();
+  bind(&success);
+  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
+  CodeOffset offset = Assembler::call(reg);
+  sbxAssertBundleAligned();
+#else
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
+  lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
+  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
+  CodeOffset offset = Assembler::call(reg);
+  sbxAssertBundleAligned();
+#endif
+#else
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(reg);
   sbxToSandboxStack();
+#endif
   return offset;
 }
 
@@ -741,13 +764,15 @@ CodeOffset MacroAssembler::callCFILabelUnsafe(Register reg) {
 
 CodeOffset MacroAssembler::call(Label* label) {
   sbxToNativeStack();
+  sbxBundleAlignNop(5);
   CodeOffset offset = Assembler::call(label);
+  sbxAssertBundleAligned();
   sbxToSandboxStack();
   return offset;
 }
 
-#ifdef JITSBX_CFI_STACK
-CodeOffset MacroAssembler::callCFIStackUnsafe(Label* label) {
+#ifdef JITSBX
+CodeOffset MacroAssembler::callCFIUnsafe(Label* label) {
   return Assembler::call(label);
 }
 #endif
@@ -766,9 +791,34 @@ CodeOffset MacroAssembler::call(const Address& addr) {
 
   bind(&passed);
 #endif
+#ifdef JITSBX_CFI_BUNDLE
+  sbxBundleAlignNop();
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
+#ifdef DEBUG
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, addr, scratch, &success);
+  breakpoint();
+  bind(&success);
+  sbxBundleAlignNop(Assembler::sizeOfCall(scratch));
+  CodeOffset offset = Assembler::call(scratch);
+  sbxAssertBundleAligned();
+#else
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  sbxBundleAlignNop(Assembler::sizeOfCall(scratch));
+  CodeOffset offset = Assembler::call(scratch);
+  sbxAssertBundleAligned();
+#endif
+#else
   sbxToNativeStack();
+  sbxBundleAlignNop(Assembler::sizeOfCall(Operand(addr.base, addr.offset)));
   CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+  sbxAssertBundleAligned();
   sbxToSandboxStack();
+#endif
   return offset;
 }
 
@@ -813,27 +863,33 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
 
 CodeOffset MacroAssembler::call(ImmWord target) {
   sbxToNativeStack();
+  sbxBundleAlignNop(5);
   CodeOffset offset = Assembler::call(target);
+  sbxAssertBundleAligned();
   sbxToSandboxStack();
   return offset;
 }
 
 CodeOffset MacroAssembler::call(ImmPtr target) {
   sbxToNativeStack();
+  sbxBundleAlignNop(5);
   CodeOffset offset = Assembler::call(target);
+  sbxAssertBundleAligned();
   sbxToSandboxStack();
   return offset;
 }
 
-#ifdef JITSBX_CFI_STACK
-CodeOffset MacroAssembler::callCFIStackUnsafe(ImmPtr target) {
+#ifdef JITSBX
+CodeOffset MacroAssembler::callCFIUnsafe(ImmPtr target) {
   return Assembler::call(target);
 }
 #endif
 
 CodeOffset MacroAssembler::call(JitCode* target) {
   sbxToNativeStack();
+  sbxBundleAlignNop(5);
   CodeOffset offset = Assembler::call(target);
+  sbxAssertBundleAligned();
   sbxToSandboxStack();
   return offset;
 }
@@ -896,6 +952,99 @@ uint32_t MacroAssembler::pushFakeReturnAddress(Register scratch) {
   addCodeLabel(cl);
   return retAddr;
 }
+
+// ===============================================================
+// Indirect Jumps
+
+void MacroAssembler::jump(Label* label) { jmp(label); }
+void MacroAssembler::jump(JitCode* code) { jmp(code); }
+void MacroAssembler::jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
+void MacroAssembler::jump(ImmPtr ptr) { jmp(ptr); }
+
+void MacroAssembler::jump(Register reg) {
+#ifdef JITSBX_CFI_BUNDLE
+  sbxBundleAlignNop();
+#ifdef DEBUG
+  ScratchRegisterScope scratch(*this);
+  movq(reg, scratch);
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, reg, scratch, &success);
+  breakpoint();
+  bind(&success);
+#else
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
+  lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
+#endif
+#endif
+  jmp(Operand(reg));
+}
+
+#ifdef JITSBX_CFI_BUNDLE
+void MacroAssembler::jumpCFIUnsafe(Register reg) {
+  jmp(Operand(reg));
+}
+#endif
+
+void MacroAssembler::jump(const Address& addr) {
+#ifdef JITSBX_CFI_BUNDLE
+  sbxBundleAlignNop();
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
+#ifdef DEBUG
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, addr, scratch, &success);
+  breakpoint();
+  bind(&success);
+#else
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+#endif
+  jmp(Operand(scratch));
+#else
+  jmp(Operand(addr));
+#endif
+}
+
+#ifdef JITSBX_CFI_BUNDLE
+void MacroAssembler::jumpCFIUnsafe(const Address& addr) {
+  jmp(Operand(addr));
+}
+#endif
+// ===============================================================
+// Return
+
+void MacroAssembler::ret() {
+#ifdef JITSBX_CFI_BUNDLE
+  ScratchRegisterScope scratch(*this);
+#ifdef DEBUG
+  loadPtr(Address(rsp, 0), scratch);
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, Address(rsp, 0), scratch, &success);
+  breakpoint();
+  bind(&success);
+  pop(scratch);
+#else
+  pop(scratch);
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+#endif
+  jmp(Operand(scratch));
+#else
+  AssemblerX86Shared::ret();  
+#endif
+}
+
+#ifdef JITSBX_CFI_BUNDLE
+void MacroAssembler::retCFIUnsafe() {
+  AssemblerX86Shared::ret();  
+}
+#endif
 
 // ===============================================================
 // WebAssembly

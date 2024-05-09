@@ -553,6 +553,19 @@ inline void MacroAssembler::sbxRestoreFramePointer() {
 }
 #endif
 
+void MacroAssembler::sbxBundleAlignNop(uint8_t extra) {
+#ifdef JITSBX_CFI_BUNDLE
+  MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
+  nopAlign(jitsbx::BundleAlignment, extra);
+#endif
+}
+
+void MacroAssembler::sbxAssertBundleAligned() {
+#ifdef JITSBX_CFI_BUNDLE
+  MOZ_ASSERT_IF(!oom(), currentOffset() % jitsbx::BundleAlignment == 0);
+#endif
+}
+
 // ===============================================================
 // Move instructions
 

@@ -12,6 +12,10 @@
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 
+#ifdef JITSBX_CFI_BUNDLE
+#include "jitsbx/JitSandbox.h"
+#endif
+
 namespace js {
 namespace jit {
 
@@ -253,7 +257,11 @@ static constexpr Register PreBarrierReg = rdx;
 static constexpr Register InterpreterPCReg = r14;
 
 static constexpr uint32_t ABIStackAlignment = 16;
+#ifdef JITSBX_CFI_BUNDLE
+static constexpr uint32_t CodeAlignment = jitsbx::BundleAlignment;
+#else
 static constexpr uint32_t CodeAlignment = 16;
+#endif
 static constexpr uint32_t JitStackAlignment = 16;
 
 static constexpr uint32_t JitStackValueAlignment =
@@ -1017,6 +1025,12 @@ class Assembler : public AssemblerX86Shared {
   void lea(const Operand& src, Register dest) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
+#ifdef JITSBX_CFI_BUNDLE
+        if (src.seg()) {
+          masm.leaq_mr(src.disp(), src.base(), src.seg(), dest.encoding());
+          break;
+        }
+#endif
         masm.leaq_mr(src.disp(), src.base(), dest.encoding());
         break;
       case Operand::MEM_SCALE:

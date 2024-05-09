@@ -246,8 +246,8 @@ void wasm::EmitWasmPreBarrierCall(MacroAssembler& masm, Register instance,
   // Load and call the pre-write barrier code. It will preserve all volatile
   // registers.
   masm.loadPtr(Address(instance, Instance::offsetOfPreBarrierCode()), scratch);
-#ifdef JITSBX_CFI_STACK
-  masm.callCFIStackUnsafe(scratch);
+#ifdef JITSBX
+  masm.callCFIUnsafe(scratch);
 #else
   masm.call(scratch);
 #endif

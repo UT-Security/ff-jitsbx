@@ -180,6 +180,7 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif

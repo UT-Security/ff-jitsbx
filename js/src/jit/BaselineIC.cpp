@@ -625,6 +625,7 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_ToBool() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -704,6 +705,7 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -760,6 +762,7 @@ bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
+  masm.sbxBundleAlignNop();
   if (hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetElemSuper,
                                  masm.currentOffset());
@@ -908,6 +911,7 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_SetElem() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -980,6 +984,7 @@ bool DoInFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_In() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1028,6 +1033,7 @@ bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_HasOwn() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1082,6 +1088,7 @@ bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CheckPrivateField() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1144,6 +1151,7 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_GetName() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1195,6 +1203,7 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_BindName() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1240,6 +1249,7 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIntrinsic() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1331,6 +1341,7 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1374,6 +1385,7 @@ bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
+  masm.sbxBundleAlignNop();
   if (hasReceiver) {
     code.initBailoutReturnOffset(BailoutReturnKind::GetPropSuper,
                                  masm.currentOffset());
@@ -1544,6 +1556,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1583,6 +1596,7 @@ bool FallbackICCodeCompiler::emit_SetProp() {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
+  masm.sbxBundleAlignNop();
   code.initBailoutReturnOffset(BailoutReturnKind::SetProp,
                                masm.currentOffset());
   masm.sbxAssertNativeStack();
@@ -1797,6 +1811,7 @@ void FallbackICCodeCompiler::pushCallArguments(
 
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1878,6 +1893,7 @@ bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   // Ion inlined frames. The return address pushed onto reconstructed stack
   // will point here.
   assumeStubFrame();
+  masm.sbxBundleAlignNop();
 
   MOZ_ASSERT(!isSpread);
 
@@ -1956,6 +1972,7 @@ bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIterator() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -1995,6 +2012,7 @@ bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2051,6 +2069,7 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_InstanceOf() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2093,6 +2112,7 @@ bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_TypeOf() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2129,6 +2149,7 @@ bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_ToPropertyKey() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2167,6 +2188,7 @@ bool DoRestFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_Rest() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2251,6 +2273,7 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_UnaryArith() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2377,6 +2400,7 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_BinaryArith() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2480,6 +2504,7 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_Compare() {
   static_assert(R0 == JSReturnOperand);
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2536,6 +2561,7 @@ bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewArray() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2578,6 +2604,7 @@ bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewObject() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2614,6 +2641,7 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
+  masm.sbxAssertBundleAligned();
 #ifdef JITSBX_CFI_LABEL
   masm.emit_label();
 #endif
@@ -2646,6 +2674,7 @@ bool JitRuntime::generateBaselineICFallbackCode(JSContext* cx) {
 #define EMIT_CODE(kind)                                            \
   {                                                                \
     AutoCreatedBy acb(masm, "kind=" #kind);                        \
+    masm.sbxBundleAlignNop();                                      \
     uint32_t offset = startTrampolineCode(masm);                   \
     InitMacroAssemblerForICStub(masm);                             \
     if (!compiler.emit_##kind()) {                                 \
