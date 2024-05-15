@@ -8,6 +8,7 @@
 #ifndef gc_Nursery_h
 #define gc_Nursery_h
 
+#include "js/Utility.h"
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/TimeStamp.h"
 
@@ -139,14 +140,16 @@ class Nursery {
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
   // used.
+  // ask2374
   void* allocateZeroedBuffer(JS::Zone* zone, size_t nbytes,
-                             arena_id_t arena = js::MallocArena);
+                             arena_id_t arena = js::SandboxMallocArena);
+  // ask2374
 
   // Allocate a zero-initialized buffer for a given object, using the nursery if
   // possible and obj is in the nursery. If the buffer isn't allocated in the
   // nursery, the given arena is used.
   void* allocateZeroedBuffer(JSObject* obj, size_t nbytes,
-                             arena_id_t arena = js::MallocArena);
+                             arena_id_t arena = js::SandboxMallocArena);
 
   // Resize an existing buffer.
   void* reallocateBuffer(JS::Zone* zone, gc::Cell* cell, void* oldBuffer,

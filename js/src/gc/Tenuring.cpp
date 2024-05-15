@@ -616,8 +616,10 @@ size_t js::gc::TenuringTracer::moveSlotsToTenured(NativeObject* dst,
 
   {
     AutoEnterOOMUnsafeRegion oomUnsafe;
+    // ask2374
     HeapSlot* allocation =
-        zone->pod_malloc<HeapSlot>(ObjectSlots::allocCount(count));
+        zone->pod_sandbox_malloc<HeapSlot>(ObjectSlots::allocCount(count));
+    // ask2374
     if (!allocation) {
       oomUnsafe.crash(allocSize, "Failed to allocate slots while tenuring.");
     }
@@ -681,8 +683,10 @@ size_t js::gc::TenuringTracer::moveElementsToTenured(NativeObject* dst,
   ObjectElements* dstHeader;
   {
     AutoEnterOOMUnsafeRegion oomUnsafe;
+    // ask2374
     dstHeader =
-        reinterpret_cast<ObjectElements*>(zone->pod_malloc<HeapSlot>(nslots));
+        reinterpret_cast<ObjectElements*>(zone->pod_sandbox_malloc<HeapSlot>(nslots));
+    // ask2374
     if (!dstHeader) {
       oomUnsafe.crash(allocSize, "Failed to allocate elements while tenuring.");
     }
@@ -973,7 +977,9 @@ size_t js::gc::TenuringTracer::moveBigIntToTenured(JS::BigInt* dst,
       Zone* zone = src->nurseryZone();
       {
         AutoEnterOOMUnsafeRegion oomUnsafe;
-        dst->heapDigits_ = zone->pod_malloc<JS::BigInt::Digit>(length);
+        // ask2374
+        dst->heapDigits_ = zone->pod_sandbox_malloc<JS::BigInt::Digit>(length);
+        // ask2374
         if (!dst->heapDigits_) {
           oomUnsafe.crash(sizeof(JS::BigInt::Digit) * length,
                           "Failed to allocate digits while tenuring.");

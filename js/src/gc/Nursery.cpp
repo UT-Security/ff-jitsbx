@@ -636,7 +636,9 @@ void* js::Nursery::allocateBuffer(Zone* zone, size_t nbytes) {
     }
   }
 
-  void* buffer = zone->pod_malloc<uint8_t>(nbytes);
+  // ask2374
+  void* buffer = zone->pod_sandbox_malloc<uint8_t>(nbytes);
+  // ask2374
   if (buffer && !registerMallocedBuffer(buffer, nbytes)) {
     js_free(buffer);
     return nullptr;
@@ -649,7 +651,9 @@ void* js::Nursery::allocateBuffer(Zone* zone, JSObject* obj, size_t nbytes) {
   MOZ_ASSERT(nbytes > 0);
 
   if (!IsInsideNursery(obj)) {
-    return zone->pod_malloc<uint8_t>(nbytes);
+    // ask2374
+    return zone->pod_sandbox_malloc<uint8_t>(nbytes);
+    // ask2374
   }
 
   return allocateBuffer(zone, nbytes);
@@ -670,7 +674,7 @@ void* js::Nursery::allocateBufferSameLocation(JSObject* obj, size_t nbytes) {
 }
 
 void* js::Nursery::allocateZeroedBuffer(
-    Zone* zone, size_t nbytes, arena_id_t arena /*= js::MallocArena*/) {
+    Zone* zone, size_t nbytes, arena_id_t arena /*= js::SandboxMallocArena*/) {
   MOZ_ASSERT(nbytes > 0);
 
   if (nbytes <= MaxNurseryBufferSize) {
@@ -690,7 +694,7 @@ void* js::Nursery::allocateZeroedBuffer(
 }
 
 void* js::Nursery::allocateZeroedBuffer(
-    JSObject* obj, size_t nbytes, arena_id_t arena /*= js::MallocArena*/) {
+    JSObject* obj, size_t nbytes, arena_id_t arena /*= js::SandboxMallocArena*/) {
   MOZ_ASSERT(obj);
   MOZ_ASSERT(nbytes > 0);
 
@@ -704,13 +708,17 @@ void* js::Nursery::reallocateBuffer(Zone* zone, Cell* cell, void* oldBuffer,
                                     size_t oldBytes, size_t newBytes) {
   if (!IsInsideNursery(cell)) {
     MOZ_ASSERT(!isInside(oldBuffer));
-    return zone->pod_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+    // ask2374
+    return zone->pod_sandbox_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+    // ask2374
   }
 
   if (!isInside(oldBuffer)) {
     MOZ_ASSERT(mallocedBufferBytes >= oldBytes);
+    // ask2374
     void* newBuffer =
-        zone->pod_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+        zone->pod_sandbox_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+    // ask2374
     if (newBuffer) {
       if (oldBuffer != newBuffer) {
         MOZ_ALWAYS_TRUE(
@@ -739,7 +747,9 @@ void* js::Nursery::allocateBuffer(JS::BigInt* bi, size_t nbytes) {
   MOZ_ASSERT(nbytes > 0);
 
   if (!IsInsideNursery(bi)) {
-    return bi->zone()->pod_malloc<uint8_t>(nbytes);
+    // ask2374
+    return bi->zone()->pod_sandbox_malloc<uint8_t>(nbytes);
+    // ask2374
   }
   return allocateBuffer(bi->zone(), nbytes);
 }
