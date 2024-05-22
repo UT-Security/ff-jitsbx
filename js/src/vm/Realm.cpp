@@ -63,6 +63,10 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
 
   // ask2374
   this->runtimeFromMainThread()->active_realms.insert(this);
+  randomNumberGenerator_ =
+      (mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>*)
+          js_sandbox_malloc(
+              sizeof(mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>));
   // ask2374
 }
 
@@ -79,6 +83,7 @@ Realm::~Realm() {
   runtime_->numRealms--;
 
   // ask2374
+  js_free(randomNumberGenerator_);
   this->runtimeFromMainThread()->active_realms.erase(this);
   // ask2374
 }

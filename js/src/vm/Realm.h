@@ -252,8 +252,10 @@ class JS::Realm : public JS::shadow::Realm {
 #endif
 
   // Random number generator for Math.random().
-  mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>
+  // ask2374
+  mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>*
       randomNumberGenerator_;
+  // ask2374
 
   // Random number generator for randomHashCodeScrambler().
   mozilla::non_crypto::XorShift128PlusRNG randomKeyGenerator_;
@@ -689,7 +691,7 @@ class JS::Realm : public JS::shadow::Realm {
 
   const mozilla::non_crypto::XorShift128PlusRNG*
   addressOfRandomNumberGenerator() const {
-    return randomNumberGenerator_.ptr();
+    return randomNumberGenerator_->ptr();
   }
 
   mozilla::HashCodeScrambler randomHashCodeScrambler();

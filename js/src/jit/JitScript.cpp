@@ -645,8 +645,11 @@ gc::AllocSite* JitScript::createAllocSite(JSScript* script) {
   }
 
   ICStubSpace* stubSpace = jitScriptStubSpace();
-  auto* site =
-      static_cast<gc::AllocSite*>(stubSpace->alloc(sizeof(gc::AllocSite)));
+  // ask2374
+  // auto* site =
+      // static_cast<gc::AllocSite*>(stubSpace->alloc(sizeof(gc::AllocSite)));
+  auto* site = static_cast<gc::AllocSite*>(js_sandbox_malloc(sizeof(gc::AllocSite)));
+  // ask2374
   if (!site) {
     return nullptr;
   }
