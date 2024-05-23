@@ -77,8 +77,9 @@ bool PretenuringNursery::canCreateAllocSite() {
 }
 
 size_t PretenuringNursery::doPretenuring(GCRuntime* gc, JS::GCReason reason,
-                                         bool validPromotionRate,
-                                         double promotionRate, bool reportInfo,
+                                         Untrusted<bool> validPromotionRate,
+                                         Untrusted<double> promotionRate,
+                                         bool reportInfo,
                                          size_t reportThreshold) {
   size_t sitesActive = 0;
   size_t sitesPretenured = 0;
@@ -95,10 +96,10 @@ size_t PretenuringNursery::doPretenuring(GCRuntime* gc, JS::GCReason reason,
 
   // Check whether previously optimized code has changed its behaviour and
   // needs to be recompiled so that it can pretenure its allocations.
-  if (validPromotionRate) {
+  if (validPromotionRate.trust()) {
     for (ZonesIter zone(gc, SkipAtoms); !zone.done(); zone.next()) {
       bool highNurserySurvivalRate =
-          promotionRate > HighNurserySurvivalPromotionThreshold &&
+          promotionRate.trust() > HighNurserySurvivalPromotionThreshold &&
           zone->optimizedAllocSite()->nurseryTenuredCount >=
               HighNurserySurvivalOptimizedAllocThreshold;
       zone->pretenuring.noteHighNurserySurvivalRate(highNurserySurvivalRate);
@@ -109,7 +110,7 @@ size_t PretenuringNursery::doPretenuring(GCRuntime* gc, JS::GCReason reason,
   }
 
   if (reportInfo) {
-    AllocSite::printInfoHeader(reason, promotionRate);
+    AllocSite::printInfoHeader(reason, promotionRate.trust());
   }
 
   AllocSite* site = allocatedSites;
@@ -385,10 +386,11 @@ bool PretenuringZone::shouldResetPretenuredAllocSites() {
 }
 
 /* static */
-void AllocSite::printInfoHeader(JS::GCReason reason, double promotionRate) {
+void AllocSite::printInfoHeader(JS::GCReason reason,
+                                Untrusted<double> promotionRate) {
   fprintf(stderr,
           "Pretenuring info after %s minor GC with %4.1f%% promotion rate:\n",
-          ExplainGCReason(reason), promotionRate * 100.0);
+          ExplainGCReason(reason), promotionRate.trust() * 100.0);
 }
 
 /* static */

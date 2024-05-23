@@ -23,6 +23,7 @@
 
 #include "gc/AllocKind.h"
 #include "js/TypeDecls.h"
+#include "sandbox/Tainting.h"
 
 class JS_PUBLIC_API JSTracer;
 
@@ -194,7 +195,8 @@ class AllocSite {
 
   void trace(JSTracer* trc);
 
-  static void printInfoHeader(JS::GCReason reason, double promotionRate);
+  static void printInfoHeader(JS::GCReason reason,
+                              Untrusted<double> promotionRate);
   static void printInfoFooter(size_t sitesCreated, size_t sitesActive,
                               size_t sitesPretenured, size_t sitesInvalidated);
   void printInfo(bool hasPromotionRate, double promotionRate,
@@ -324,8 +326,9 @@ class PretenuringNursery {
   }
 
   size_t doPretenuring(GCRuntime* gc, JS::GCReason reason,
-                       bool validPromotionRate, double promotionRate,
-                       bool reportInfo, size_t reportThreshold);
+                       Untrusted<bool> validPromotionRate,
+                       Untrusted<double> promotionRate, bool reportInfo,
+                       size_t reportThreshold);
 
   void maybeStopPretenuring(GCRuntime* gc);
 

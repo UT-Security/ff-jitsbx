@@ -29,6 +29,8 @@
 #include "jit/JitFrames.h"
 #include "jit/JitRealm.h"
 #include "js/Printer.h"
+#include "sandbox/JitSandbox.h"
+#include "sandbox/Tainting.h"
 #include "util/DifferentialTesting.h"
 #include "util/GetPidProvider.h"  // getpid()
 #include "util/Poison.h"
@@ -232,7 +234,7 @@ js::Nursery::Nursery(GCRuntime* gc)
       smoothedTargetSize(0.0) {
 
   // ask2374
-  position_ = (uintptr_t*)js_sandbox_malloc(sizeof(uintptr_t));
+  position_ = (Untrusted<uintptr_t>*)js_sandbox_malloc(sizeof(uintptr_t));
   *position_ = 0;
 
   pretenuringNursery = js_sandbox_new<gc::PretenuringNursery>();
@@ -489,7 +491,7 @@ bool js::Nursery::isEmpty() const {
     MOZ_ASSERT(currentStartChunk_ == 0);
     MOZ_ASSERT(currentStartPosition_ == chunk(0).start());
   }
-  return position() == currentStartPosition_;
+  return position().trust() == currentStartPosition_;
 }
 
 #ifdef JS_GC_ZEAL
@@ -579,17 +581,22 @@ inline void* js::Nursery::allocate(size_t size) {
   MOZ_ASSERT(!JS::RuntimeHeapIsBusy());
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(runtime()));
   MOZ_ASSERT_IF(currentChunk_ == currentStartChunk_,
-                position() >= currentStartPosition_);
-  MOZ_ASSERT(position() % CellAlignBytes == 0);
+                position().trust() >= currentStartPosition_);
+  MOZ_ASSERT(position().trust() % CellAlignBytes == 0);
   MOZ_ASSERT(size % CellAlignBytes == 0);
 
-  if (MOZ_UNLIKELY(currentEnd() < position() + size)) {
+  const Untrusted<uintptr_t> newPosition(
+    mapUntrusted(position(), [=](const uintptr_t position) {
+      return position + size;
+    })
+  );
+  if (MOZ_UNLIKELY(currentEnd() < newPosition.trust())) {
     return moveToNextChunkAndAllocate(size);
   }
 
-  void* thing = (void*)position();
+  void* const thing(reinterpret_cast<void*>(position().verify(hasJitMask)));
   // ask2374
-  *position_ = position() + size;
+  *position_ = newPosition.verify(hasJitMask);
   // ask2374
 
   DebugOnlyPoison(thing, JS_ALLOCATED_NURSERY_PATTERN, size,
@@ -599,7 +606,7 @@ inline void* js::Nursery::allocate(size_t size) {
 }
 
 void* Nursery::moveToNextChunkAndAllocate(size_t size) {
-  MOZ_ASSERT(currentEnd() < position() + size);
+  MOZ_ASSERT(currentEnd() < position().trust() + size);
 
   unsigned chunkno = currentChunk_ + 1;
   MOZ_ASSERT(chunkno <= maxChunkCount());
@@ -623,7 +630,7 @@ void* Nursery::moveToNextChunkAndAllocate(size_t size) {
 
   // We know there's enough space to allocate now so we can call allocate()
   // recursively.
-  MOZ_ASSERT(currentEnd() >= position() + size);
+  MOZ_ASSERT(currentEnd() >= position().trust() + size);
   return allocate(size);
 }
 void* js::Nursery::allocateBuffer(Zone* zone, size_t nbytes) {
@@ -835,24 +842,29 @@ void js::Nursery::forwardBufferPointer(uintptr_t* pSlotsElems) {
   *pSlotsElems = reinterpret_cast<uintptr_t>(buffer);
 }
 
-inline double js::Nursery::calcPromotionRate(bool* validForTenuring) const {
-  MOZ_ASSERT(validForTenuring);
+inline Untrusted<double>
+js::Nursery::calcPromotionRate(Untrusted<bool>* validForTenuring) const {
+  return mapUntrusted(previousGC.nurseryUsedBytes,
+    [=](const size_t nurseryUsedBytes) {
+      MOZ_ASSERT(validForTenuring);
 
-  if (previousGC.nurseryUsedBytes == 0) {
-    *validForTenuring = false;
-    return 0.0;
-  }
+      if (nurseryUsedBytes == 0) {
+        *validForTenuring = false;
+        return 0.0;
+      }
 
-  double used = double(previousGC.nurseryUsedBytes);
-  double capacity = double(previousGC.nurseryCapacity);
-  double tenured = double(previousGC.tenuredBytes);
+      double used = double(nurseryUsedBytes);
+      double capacity = double(previousGC.nurseryCapacity);
+      double tenured = double(previousGC.tenuredBytes);
 
-  // We should only use the promotion rate to make tenuring decisions if it's
-  // likely to be valid. The criterion we use is that the nursery was at least
-  // 90% full.
-  *validForTenuring = used > capacity * 0.9;
+      // We should only use the promotion rate to make tenuring decisions if it's
+      // likely to be valid. The criterion we use is that the nursery was at least
+      // 90% full.
+      *validForTenuring = used > capacity * 0.9;
 
-  return tenured / used;
+      return tenured / used;
+    }
+  );
 }
 
 void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
@@ -887,7 +899,7 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
                 stats().getStat(gcstats::STAT_STRINGS_DEDUPLICATED));
   json.property("bigints_tenured",
                 stats().getStat(gcstats::STAT_BIGINTS_TENURED));
-  json.property("bytes_used", previousGC.nurseryUsedBytes);
+  json.property("bytes_used", previousGC.nurseryUsedBytes.trust());
   json.property("cur_capacity", previousGC.nurseryCapacity);
   const size_t newCapacity = capacity();
   if (newCapacity != previousGC.nurseryCapacity) {
@@ -950,7 +962,7 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
   FOR_EACH_NURSERY_PROFILE_SLICE_METADATA(_)
 
 void js::Nursery::printCollectionProfile(JS::GCReason reason,
-                                         double promotionRate) {
+                                         Untrusted<double> promotionRate) {
   stats().maybePrintProfileHeaders();
 
   Sprinter sprinter;
@@ -962,7 +974,7 @@ void js::Nursery::printCollectionProfile(JS::GCReason reason,
   JSRuntime* runtime = gc->rt;
   TimeDuration timestamp = collectionStartTime() - stats().creationTime();
   const char* reasonStr = ExplainGCReason(reason);
-  double promotionRatePercent = promotionRate * 100;
+  double promotionRatePercent = promotionRate.trust() * 100;
   size_t oldSizeKB = previousGC.nurseryCapacity / 1024;
   size_t newSizeKB = capacity() / 1024;
   size_t dedupCount = stats().getStat(gcstats::STAT_STRINGS_DEDUPLICATED);
@@ -1111,7 +1123,7 @@ bool js::Nursery::shouldCollect() const {
   }
 
   // Eagerly collect the nursery in idle time if it's nearly full.
-  if (isNearlyFull()) {
+  if (isNearlyFull().trust()) {
     return true;
   }
 
@@ -1120,32 +1132,34 @@ bool js::Nursery::shouldCollect() const {
   return isUnderused();
 }
 
-inline bool js::Nursery::isNearlyFull() const {
-  bool belowBytesThreshold =
-      freeSpace() < tunables().nurseryFreeThresholdForIdleCollection();
-  bool belowFractionThreshold =
-      double(freeSpace()) / double(capacity()) <
-      tunables().nurseryFreeThresholdForIdleCollectionFraction();
+inline Untrusted<bool> js::Nursery::isNearlyFull() const {
+  return mapUntrusted(freeSpace(), [=](const size_t freeSpace) {
+    bool belowBytesThreshold =
+        freeSpace < tunables().nurseryFreeThresholdForIdleCollection();
+    bool belowFractionThreshold =
+        double(freeSpace) / double(capacity()) <
+        tunables().nurseryFreeThresholdForIdleCollectionFraction();
 
-  // We want to use belowBytesThreshold when the nursery is sufficiently large,
-  // and belowFractionThreshold when it's small.
-  //
-  // When the nursery is small then belowBytesThreshold is a lower threshold
-  // (triggered earlier) than belowFractionThreshold. So if the fraction
-  // threshold is true, the bytes one will be true also. The opposite is true
-  // when the nursery is large.
-  //
-  // Therefore, by the time we cross the threshold we care about, we've already
-  // crossed the other one, and we can boolean AND to use either condition
-  // without encoding any "is the nursery big/small" test/threshold. The point
-  // at which they cross is when the nursery is: BytesThreshold /
-  // FractionThreshold large.
-  //
-  // With defaults that's:
-  //
-  //   1MB = 256KB / 0.25
-  //
-  return belowBytesThreshold && belowFractionThreshold;
+    // We want to use belowBytesThreshold when the nursery is sufficiently large,
+    // and belowFractionThreshold when it's small.
+    //
+    // When the nursery is small then belowBytesThreshold is a lower threshold
+    // (triggered earlier) than belowFractionThreshold. So if the fraction
+    // threshold is true, the bytes one will be true also. The opposite is true
+    // when the nursery is large.
+    //
+    // Therefore, by the time we cross the threshold we care about, we've already
+    // crossed the other one, and we can boolean AND to use either condition
+    // without encoding any "is the nursery big/small" test/threshold. The point
+    // at which they cross is when the nursery is: BytesThreshold /
+    // FractionThreshold large.
+    //
+    // With defaults that's:
+    //
+    //   1MB = 256KB / 0.25
+    //
+    return belowBytesThreshold && belowFractionThreshold;
+  });
 }
 
 inline bool js::Nursery::isUnderused() const {
@@ -1216,13 +1230,13 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   // If it isn't empty, it will call doCollection, and possibly after that
   // isEmpty() will become true, so use another variable to keep track of the
   // old empty state.
-  bool wasEmpty = isEmpty();
-  if (!wasEmpty) {
+  Untrusted<bool> wasEmpty = isEmpty();
+  if (!wasEmpty.trust()) {
     CollectionResult result = doCollection(session, options, reason);
     // Don't include chunk headers when calculating nursery space, since this
     // space does not represent data that can be tenured
     MOZ_ASSERT(result.tenuredBytes <=
-               (previousGC.nurseryUsedBytes -
+               (previousGC.nurseryUsedBytes.trust() -
                 (sizeof(ChunkBase) * previousGC.nurseryUsedChunkCount)));
 
     previousGC.reason = reason;
@@ -1235,7 +1249,7 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
   maybeResizeNursery(options, reason);
 
   // Poison/initialise the first chunk.
-  if (previousGC.nurseryUsedBytes) {
+  if (previousGC.nurseryUsedBytes.trust()) {
     // In most cases Nursery::clear() has not poisoned this chunk or marked it
     // as NoAccess; so we only need to poison the region used during the last
     // cycle.  Also, if the heap was recently expanded we don't want to
@@ -1248,12 +1262,12 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
     poisonAndInitCurrentChunk(previousGC.nurseryUsedBytes);
   }
 
-  bool validPromotionRate;
-  const double promotionRate = calcPromotionRate(&validPromotionRate);
+  Untrusted<bool> validPromotionRate;
+  const Untrusted<double> promotionRate(calcPromotionRate(&validPromotionRate));
 
   startProfile(ProfileKey::Pretenure);
   size_t sitesPretenured = 0;
-  if (!wasEmpty) {
+  if (!wasEmpty.trust()) {
     sitesPretenured =
         doPretenuring(rt, reason, validPromotionRate, promotionRate);
   }
@@ -1300,7 +1314,8 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
 }
 
 void js::Nursery::sendTelemetry(JS::GCReason reason, TimeDuration totalTime,
-                                bool wasEmpty, double promotionRate,
+                                Untrusted<bool> wasEmpty,
+                                Untrusted<double> promotionRate,
                                 size_t sitesPretenured) {
   JSRuntime* rt = runtime();
   rt->metrics().GC_MINOR_REASON(uint32_t(reason));
@@ -1313,9 +1328,9 @@ void js::Nursery::sendTelemetry(JS::GCReason reason, TimeDuration totalTime,
   rt->metrics().GC_MINOR_US(totalTime);
   rt->metrics().GC_NURSERY_BYTES_2(committed());
 
-  if (!wasEmpty) {
+  if (!wasEmpty.trust()) {
     rt->metrics().GC_PRETENURE_COUNT_2(sitesPretenured);
-    rt->metrics().GC_NURSERY_PROMOTION_RATE(promotionRate * 100);
+    rt->metrics().GC_NURSERY_PROMOTION_RATE(promotionRate.trust() * 100);
   }
 }
 
@@ -1563,8 +1578,8 @@ void js::Nursery::traceRoots(AutoGCSession& session, TenuringTracer& mover) {
 }
 
 size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
-                                  bool validPromotionRate,
-                                  double promotionRate) {
+                                  Untrusted<bool> validPromotionRate,
+                                  Untrusted<double> promotionRate) {
   // ask2374
   size_t sitesPretenured = pretenuringNursery->doPretenuring(
       gc, reason, validPromotionRate, promotionRate, reportPretenuring_,
@@ -1572,7 +1587,8 @@ size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
   // ask2374
 
   bool highPromotionRate =
-      validPromotionRate && promotionRate > tunables().pretenureThreshold();
+      validPromotionRate.trust() &&
+      promotionRate.trust() > tunables().pretenureThreshold();
 
   bool pretenureStr = false;
   bool pretenureBigInt = false;
@@ -1580,7 +1596,8 @@ size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
     // Should we check for pretenuring regardless of GCReason?
     // Use 3MB as the threshold so the pretenuring can be applied on Android.
     bool pretenureAll =
-        highPromotionRate && previousGC.nurseryUsedBytes >= 3 * 1024 * 1024;
+        highPromotionRate &&
+          previousGC.nurseryUsedBytes.trust() >= 3 * 1024 * 1024;
 
     pretenureStr =
         pretenureAll ||
@@ -1705,8 +1722,18 @@ void js::Nursery::clear() {
   // Clear only the used part of the chunk because that's the part we touched,
   // but only if it's not going to be re-used immediately (>= firstClearChunk).
   if (currentChunk_ >= firstClearChunk) {
-    chunk(currentChunk_)
-        .poisonAfterEvict(position() - chunk(currentChunk_).start());
+    NurseryChunk& currentChunk(chunk(currentChunk_));
+    const uintptr_t currentChunkStart(currentChunk.start());
+    const Untrusted<size_t> size(
+      mapUntrusted(position(), [=](const uintptr_t position) {
+        return position - currentChunkStart;
+      })
+    );
+    currentChunk.poisonAfterEvict(
+      size.verify([=](const size_t size) {
+        return hasJitMask(currentChunkStart + size);
+      }, "size bytes past chunk start is within JIT sandbox memory")
+    );
   }
 
   // Reset the start chunk & position if we're not in this zeal mode, or we're
@@ -1765,12 +1792,12 @@ MOZ_ALWAYS_INLINE void js::Nursery::setCurrentChunk(unsigned chunkno) {
   setCurrentEnd();
 }
 
-void js::Nursery::poisonAndInitCurrentChunk(size_t extent) {
+void js::Nursery::poisonAndInitCurrentChunk(Untrusted<size_t> extent) {
   if (gc->hasZealMode(ZealMode::GenerationalGC) || !isSubChunkMode()) {
     chunk(currentChunk_).poisonAndInit(runtime());
   } else {
-    extent = std::min(capacity_, extent);
-    chunk(currentChunk_).poisonAndInit(runtime(), extent);
+    const size_t clampedExtent(std::min(capacity_, extent.trust()));
+    chunk(currentChunk_).poisonAndInit(runtime(), clampedExtent);
   }
 }
 
@@ -1808,7 +1835,13 @@ bool js::Nursery::allocateNextChunk(const unsigned chunkno,
 
 MOZ_ALWAYS_INLINE void js::Nursery::setStartPosition() {
   currentStartChunk_ = currentChunk_;
-  currentStartPosition_ = position();
+  currentStartPosition_ = position().verify(
+    [=](const uintptr_t position) {
+      return position >= chunk(currentChunk_).start() &&
+        position <= currentEnd_;
+    },
+    "position is within current chunk bounds"
+  );
 }
 
 void js::Nursery::maybeResizeNursery(JS::GCOptions options,
@@ -1876,7 +1909,7 @@ size_t js::Nursery::targetSize(JS::GCOptions options, JS::GCReason reason) {
   TimeStamp now = TimeStamp::Now();
 
   // If the nursery is completely unused then minimise it.
-  if (hasRecentGrowthData && previousGC.nurseryUsedBytes == 0 &&
+  if (hasRecentGrowthData && previousGC.nurseryUsedBytes.trust() == 0 &&
       now - lastCollectionEndTime() >
           tunables().nurseryTimeoutForIdleCollection() &&
       !js::SupportDifferentialTesting()) {

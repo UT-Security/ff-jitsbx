@@ -166,7 +166,6 @@
 
 // ask2374
 #include "sandbox/SandboxInterface.h"
-js::sandbox::Interface* sandboxInterface;
 // ask2374
 
 #if defined(XP_WIN)

@@ -51,7 +51,7 @@ bool LOG_OPT;
 bool SANDBOX_OPT;
 FILE* sandbox_log;
 std::mutex log_mutex;
-js::sandbox::Interface* sandboxInterface;
+std::unordered_set<JS::Realm*> active_realms;
 // ask2374
 
 InitState JS::detail::libraryInitState;

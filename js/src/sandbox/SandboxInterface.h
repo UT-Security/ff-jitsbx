@@ -18,6 +18,6 @@ struct Interface {
 
 #endif
 
-extern js::sandbox::Interface* sandboxInterface;
+inline js::sandbox::Interface* sandboxInterface;
 
 // ask2374

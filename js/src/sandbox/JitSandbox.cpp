@@ -184,7 +184,7 @@ void* js::sandbox::MapAlignedPages(size_t length, size_t alignment) {
   MOZ_ASSERT(length % alignment == 0);
   MOZ_ASSERT(alignment % js::gc::ChunkSize == 0);
   MOZ_ASSERT(heap_bump_ptr.load() != 0);
-	
+
 	UnprotectPages((void*)heap_bump_ptr.load(), length);
 	void* current_ptr = (void*)heap_bump_ptr.load();
 	heap_bump_ptr += length;
@@ -206,3 +206,4 @@ void js::sandbox::switchToRealm(JS::Realm* realm) {
 	cx->setRealm(realm);
 }
 // ask2374
+

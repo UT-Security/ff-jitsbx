@@ -21,6 +21,7 @@
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 #include "js/Vector.h"
+#include "sandbox/Tainting.h"
 
 #define FOR_EACH_NURSERY_PROFILE_TIME(_)      \
   /* Key                       Header text */ \
@@ -282,16 +283,21 @@ class Nursery {
   //
   // usedSpace() + freeSpace() == capacity()
   //
-  MOZ_ALWAYS_INLINE size_t usedSpace() const {
-    return capacity() - freeSpace();
+  MOZ_ALWAYS_INLINE Untrusted<size_t> usedSpace() const {
+    return mapUntrusted(freeSpace(), [=](const size_t freeSpace) {
+      return capacity() - freeSpace;
+    });
   }
-  MOZ_ALWAYS_INLINE size_t freeSpace() const {
+  MOZ_ALWAYS_INLINE Untrusted<size_t> freeSpace() const {
     MOZ_ASSERT(isEnabled());
     // ask2374
-    MOZ_ASSERT(currentEnd_ - *position_ <= NurseryChunkUsableSize);
-    MOZ_ASSERT(currentChunk_ < maxChunkCount());
-    return (currentEnd_ - *position_) +
-           (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+    return mapUntrusted(position_, [=](const uintptr_t position) {
+      MOZ_ASSERT(
+        currentEnd_ - position <= NurseryChunkUsableSize);
+      MOZ_ASSERT(currentChunk_ < maxChunkCount());
+      return (currentEnd_ - position) +
+             (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+    });
     // ask2374
   }
 
@@ -310,12 +316,14 @@ class Nursery {
   void printTotalProfileTimes();
 
   // ask2374
-  void* addressOfPosition() const { return (void**)position_; }
+  void* addressOfPosition() const { return (void*)position_; }
 
-  void* addressOfEnd() const { return (void**)&currentEnd_; }
+  void* addressOfEnd() const { return (void*)&currentEnd_; }
 
-  // static constexpr int32_t offsetOfCurrentEndFromPosition() {
-  //   return offsetof(Nursery, currentEnd_) - offsetof(Nursery, position_);
+  // static constexpr Untrusted<int32_t> offsetOfCurrentEndFromPosition() {
+  //   return mapUntrusted(position_, [](const uintptr_t position) {
+  //     return offsetof(Nursery, currentEnd_) - offsetof(Nursery, position);
+  //   });
   // }
   // ask2374
 
@@ -336,7 +344,7 @@ class Nursery {
   }
 
   bool shouldCollect() const;
-  bool isNearlyFull() const;
+  Untrusted<bool> isNearlyFull() const;
   bool isUnderused() const;
 
   bool enableProfiling() const { return enableProfiling_; }
@@ -387,7 +395,7 @@ class Nursery {
 
   // Pointer to the first unallocated byte in the nursery.
   // ask2374
-  uintptr_t *position_;
+  Untrusted<uintptr_t>* position_;
   // ask2374
 
   // Pointer to the last byte of space in the current chunk.
@@ -469,7 +477,7 @@ class Nursery {
     JS::GCReason reason = JS::GCReason::NO_REASON;
     size_t nurseryCapacity = 0;
     size_t nurseryCommitted = 0;
-    size_t nurseryUsedBytes = 0;
+    Untrusted<size_t> nurseryUsedBytes = 0;
     size_t nurseryUsedChunkCount = 0;
     size_t tenuredBytes = 0;
     size_t tenuredCells = 0;
@@ -486,7 +494,7 @@ class Nursery {
   // used for tenuring and other decisions.
   //
   // Must only be called if the previousGC data is initialised.
-  double calcPromotionRate(bool* validForTenuring) const;
+  Untrusted<double> calcPromotionRate(Untrusted<bool>* validForTenuring) const;
 
   // The set of externally malloced buffers potentially kept live by objects
   // stored in the nursery. Any external buffers that do not belong to a
@@ -555,7 +563,7 @@ class Nursery {
 
   // extent is advisory, it will be ignored in sub-chunk and generational zeal
   // modes. It will be clamped to Min(NurseryChunkUsableSize, capacity_).
-  void poisonAndInitCurrentChunk(size_t extent = gc::ChunkSize);
+  void poisonAndInitCurrentChunk(Untrusted<size_t> extent = gc::ChunkSize);
 
   void setCurrentEnd();
   void setStartPosition();
@@ -568,7 +576,7 @@ class Nursery {
   MOZ_ALWAYS_INLINE uintptr_t currentEnd() const;
 
   // ask2374
-  uintptr_t position() const { return *position_; }
+  Untrusted<uintptr_t> position() const { return *position_; }
   // ask2374
 
   MOZ_ALWAYS_INLINE bool isSubChunkMode() const;
@@ -598,7 +606,8 @@ class Nursery {
   void traceRoots(gc::AutoGCSession& session, gc::TenuringTracer& mover);
 
   size_t doPretenuring(JSRuntime* rt, JS::GCReason reason,
-                       bool validPromotionRate, double promotionRate);
+                       Untrusted<bool> validPromotionRate,
+                       Untrusted<double> promotionRate);
 
   // Handle relocation of slots/elements pointers stored in Ion frames.
   inline void setForwardingPointer(void* oldData, void* newData, bool direct);
@@ -639,10 +648,11 @@ class Nursery {
   void freeChunksFrom(unsigned firstFreeChunk);
 
   void sendTelemetry(JS::GCReason reason, mozilla::TimeDuration totalTime,
-                     bool wasEmpty, double promotionRate,
+                     Untrusted<bool> wasEmpty, Untrusted<double> promotionRate,
                      size_t sitesPretenured);
 
-  void printCollectionProfile(JS::GCReason reason, double promotionRate);
+  void printCollectionProfile(JS::GCReason reason,
+                              Untrusted<double> promotionRate);
   void printDeduplicationData(js::StringStats& prev, js::StringStats& curr);
 
   // Profile recording and printing.

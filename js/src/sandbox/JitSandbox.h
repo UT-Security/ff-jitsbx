@@ -43,6 +43,20 @@ void* MapAlignedPages(size_t length, size_t alignment);
 void switchToRealm(JS::Realm* realm);
 
 }
+
+class HasJitMaskFunctor {
+ public:
+  bool operator()(void* ptr) const {
+   sandbox::checkJitMask(ptr);
+   return true;
+  }
+  bool operator()(uintptr_t ptr) const {
+    return (*this)(reinterpret_cast<void*>(ptr));
+  }
+};
+
+inline const HasJitMaskFunctor hasJitMask;
+
 }  // namespace js
 #endif
 
