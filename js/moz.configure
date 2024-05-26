@@ -202,6 +202,16 @@ def report_deprecated(value):
     else:
         die("--disable-ion is deprecated, use --disable-jit instead")
 
+option("--enable-jit-sandbox", default=False, help="{Enable|Disable} JIT sandbox")
+@depends("--enable-jit", "--enable-jit-sandbox", target)
+def jit_sandbox(jit_enabled, sandbox_enabled, target):
+    if not jit_enabled or not sandbox_enabled:
+        return
+    if target.cpu != "aarch64":
+        die("The JIT sandbox only works on arm64.")
+    return True
+
+set_config("ENABLE_JIT_SANDBOX", jit_sandbox)
 
 # JIT code simulator for cross compiles
 # =======================================================

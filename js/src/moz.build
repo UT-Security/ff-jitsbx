@@ -499,6 +499,9 @@ if CONFIG["MOZ_INSTRUMENTS"]:
         "devtools/Instruments.cpp",
     ]
 
+if CONFIG["ENABLE_JIT_SANDBOX"]:
+    OS_LIBS += ["-llfiras"] # LFI reassembler
+
 if CONFIG["OS_ARCH"] == "WINNT":
     OS_LIBS += [
         "advapi32",

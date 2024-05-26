@@ -238,18 +238,34 @@ class MozBaseAssembler : public js::jit::AssemblerShared {
   }
 #endif
 
+#ifdef ENABLE_JIT_SANDBOX
+  extern "C" size_t lfi_reassemble(uint32_t, uint32_t*, size_t);
+#endif
+
   // Emit the instruction, returning its offset.
   BufferOffset Emit(Instr instruction, bool isBranch = false) {
     static_assert(sizeof(instruction) == kInstructionSize);
     // TODO: isBranch is obsolete and should be removed.
     (void)isBranch;
     MOZ_ASSERT(hasCreator());
+#ifdef ENABLE_JIT_SANDBOX
+    uint32_t idat = *(uint32_t*)(&instruction);
+    uint32_t buf[4];
+    size_t n = lfi_reassemble(idat, buf, sizeof(buf) / sizeof(uint32_t));
+    MOZ_ASSERT(n >= 1 && n <= sizeof(buf) / sizeof(uint32_t));
+    BufferOffset offs = armbuffer_.putInt(buf[0]);
+    for (size_t i = 1; i < n; i++) {
+      armbuffer_.putInt(buf[i]);
+    }
+    return offs;
+#else
     BufferOffset offs = armbuffer_.putInt(*(uint32_t*)(&instruction));
-#ifdef JS_DISASM_ARM64
+# ifdef JS_DISASM_ARM64
     if (!isBranch)
         spew(offs, armbuffer_.getInstOrNull(offs));
-#endif
+# endif
     return offs;
+#endif // ENABLE_JIT_SANDBOX
   }
 
   BufferOffset EmitBranch(Instr instruction, const LabelDoc& doc) {
