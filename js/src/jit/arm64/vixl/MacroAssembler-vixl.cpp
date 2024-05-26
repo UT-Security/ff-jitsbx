@@ -1626,8 +1626,7 @@ void MacroAssembler::PushCalleeSavedRegisters() {
   MemOperand tos(sp, -2 * static_cast<int>(kXRegSizeInBytes), PreIndex);
 
   stp(x29, x30, tos);
-  stp(x27, x28, tos);
-  stp(x25, x26, tos);
+  stp(xzr, x28, tos);
   stp(x23, x24, tos);
   stp(x21, x22, tos);
   stp(x19, x20, tos);
@@ -1658,8 +1657,7 @@ void MacroAssembler::PopCalleeSavedRegisters() {
   ldp(x19, x20, tos);
   ldp(x21, x22, tos);
   ldp(x23, x24, tos);
-  ldp(x25, x26, tos);
-  ldp(x27, x28, tos);
+  ldp(xzr, x28, tos);
   ldp(x29, x30, tos);
 }
 

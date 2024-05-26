@@ -114,11 +114,14 @@ class Registers {
     w24 = 24,
     x24 = 24,
     w25 = 25,
+    la  = 25, // LFI address
     x25 = 25,
     w26 = 26,
     x26 = 26,
+    lb  = 26, // LFI base
     w27 = 27,
     x27 = 27,
+    lt  = 27, // LFI temporary
     w28 = 28,
     x28 = 28,
     w29 = 29,
@@ -194,10 +197,12 @@ class Registers {
   static const SetType NonVolatileMask =
       (1 << Registers::x19) | (1 << Registers::x20) | (1 << Registers::x21) |
       (1 << Registers::x22) | (1 << Registers::x23) | (1 << Registers::x24) |
-      (1 << Registers::x25) | (1 << Registers::x26) | (1 << Registers::x27) |
       (1 << Registers::x28) | (1 << Registers::x29) | (1 << Registers::x30);
 
   static const SetType NonAllocatableMask =
+      (1 << Registers::la) |  // LFI valid address
+      (1 << Registers::lb) |  // LFI sandbox base
+      (1 << Registers::lt) |  // LFI sandbox base
       (1 << Registers::x28) |  // PseudoStackPointer.
       (1 << Registers::ip0) |  // First scratch register.
       (1 << Registers::ip1) |  // Second scratch register.
