@@ -813,7 +813,7 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
 #ifdef JS_CFI
-  callsafe(fun);
+  unsafeCall(fun);
 #else
   call(fun);
 #endif
@@ -836,7 +836,7 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
 #ifdef JS_CFI
-  callsafe(safeFun);
+  unsafeCall(safeFun);
 #else
   call(safeFun);
 #endif

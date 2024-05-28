@@ -608,6 +608,10 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
 
+#ifdef JS_CFI
+  masm.emit_label();
+#endif
+
   switch (ic->kind()) {
     case CacheKind::GetProp:
     case CacheKind::GetElem: {
@@ -3774,6 +3778,9 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
 
   // Remember the OSR entry offset into the code buffer.
   masm.flushBuffer();
+#ifdef JS_CFI
+  masm.emit_label();
+#endif
   setOsrEntryOffset(masm.size());
 
   // Allocate the full frame for this function

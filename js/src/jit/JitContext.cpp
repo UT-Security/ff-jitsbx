@@ -55,7 +55,9 @@ void jit::SetJitContext(JitContext* ctx) {
 }
 
 JitContext* jit::GetJitContext() {
+#ifndef JS_CFI
   MOZ_ASSERT(CurrentJitContext());
+#endif
   return CurrentJitContext();
 }
 

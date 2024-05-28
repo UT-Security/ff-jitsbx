@@ -604,8 +604,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void call(const Address& addr) PER_SHARED_ARCH;
   void call(ImmWord imm) PER_SHARED_ARCH;
 #ifdef JS_CFI
-  CodeOffset callsafe(Register reg) DEFINED_ON(x86_shared);
-  void callsafe(const Address& addr) DEFINED_ON(x86_shared);
+  CodeOffset unsafeCall(Register reg) DEFINED_ON(x86_shared);
+  void unsafeCall(const Address& addr) DEFINED_ON(x86_shared);
 #endif
   // Call a target native function, which is neither traceable nor movable.
   void call(ImmPtr imm) PER_SHARED_ARCH;

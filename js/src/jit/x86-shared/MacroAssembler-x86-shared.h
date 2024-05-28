@@ -183,11 +183,44 @@ class MacroAssemblerX86Shared : public Assembler {
   void jump(ImmPtr ptr) { jmp(ptr); }
   void jump(Register reg) { jmp(Operand(reg)); }
   void jump(const Address& addr) {
-    // #ifdef JS_CFI
-    // #else
+    // TODO: Emit label checks for relative jumps
+#ifdef JS_CFI
+    if (GetJitContext() && !IsCompilingWasm()) {
+      // TODO: Change label
+      Label passed, aligned;
+      Imm32 label = Imm32(0xcccccccc);
+
+      // Force alignment (find a better way to do this)
+      ScratchRegisterScope scratch(asMasm());
+      movq(ImmWord(0xf), scratch);
+      andq(Operand(addr), scratch);
+
+      cmp32(scratch, Imm32(0));
+      j(Assembler::Equal, &aligned);
+
+      // Force alignment
+      subq(scratch, Operand(addr));
+      addq(Imm32(0x10), Operand(addr));
+
+      bind(&aligned);
+      movq(Operand(addr), scratch);
+
+      // Label is at offset 5
+      Address target = Address(scratch, 5);
+
+      cmp32(Operand(target), label);
+      j(Assembler::Equal, &passed);
+      breakpoint();
+
+      bind(&passed);
+    }
+#endif
     jmp(Operand(addr));
-    // #endif
   }
+
+#ifdef JS_CFI
+  void unsafeJump(const Address& addr) { jmp(Operand(addr)); }
+#endif
 
   void convertInt32ToDouble(Register src, FloatRegister dest) {
     // vcvtsi2sd and friends write only part of their output register, which

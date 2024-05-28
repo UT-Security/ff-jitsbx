@@ -1573,7 +1573,11 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     // Jump into Ion.
     masm.loadPtr(Address(osrDataReg, IonOsrTempData::offsetOfBaselineFrame()),
                  OsrFrameReg);
+#ifdef JS_CFI
+    masm.unsafeJump(Address(osrDataReg, IonOsrTempData::offsetOfJitCode()));
+#else
     masm.jump(Address(osrDataReg, IonOsrTempData::offsetOfJitCode()));
+#endif
   } else {
     prepareVMCall();
 

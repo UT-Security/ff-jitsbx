@@ -47,10 +47,6 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   // Raw code pointer, stored in the cell header.
   uint8_t* raw() const { return headerPtr(); }
 
-#ifdef JS_CFI
-  void setRaw(uint8_t* ptr) { setHeaderPtr(ptr); }
-#endif
-
  protected:
   ExecutablePool* pool_;
   uint32_t bufferSize_;  // Total buffer size. Does not include headerSize_.

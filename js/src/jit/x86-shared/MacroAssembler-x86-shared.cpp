@@ -674,21 +674,34 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 
 CodeOffset MacroAssembler::call(Register reg) {
 #ifdef JS_CFI
-  Label passed;
-  Imm32 label = Imm32(0xcccccccc);
+  if (GetJitContext() && !IsCompilingWasm()) {
+    // TODO: Change label
+    Label passed, aligned;
+    Imm32 label = Imm32(0xcccccccc);
 
-  // Force alignment (find a better way to do this)
-  // ScratchRegisterScope scratch(*this);
-  // movq(ImmWord(0xfffffffffffffff0), scratch);
-  // andq(scratch, reg);
+    // Force alignment (find a better way to do this)
+    ScratchRegisterScope scratch(*this);
+    movq(ImmWord(0xf), scratch);
+    andq(reg, scratch);
 
-  // Label is at offset 5
-  Address target = Address(reg, 5);
+    cmp32(scratch, Imm32(0));
+    j(Assembler::Equal, &aligned);
 
-  branch32(Assembler::Equal, target, label, &passed);
-  breakpoint();
+    // Force alignment
+    subq(scratch, reg);
+    addq(Imm32(0x10), reg);
 
-  bind(&passed);
+    bind(&aligned);
+
+    // Label is at offset 5
+    Address target = Address(reg, 5);
+
+    cmp32(Operand(target), label);
+    j(Assembler::Equal, &passed);
+    breakpoint();
+
+    bind(&passed);
+  }
 #endif
   return Assembler::call(reg);
 }
@@ -697,33 +710,44 @@ CodeOffset MacroAssembler::call(Label* label) { return Assembler::call(label); }
 
 void MacroAssembler::call(const Address& addr) {
 #ifdef JS_CFI
-  Label passed;
-  Imm32 label = Imm32(0xcccccccc);
+  if (GetJitContext() && !IsCompilingWasm()) {
+    // TODO: Change label
+    Label passed, aligned;
+    Imm32 label = Imm32(0xcccccccc);
 
-  // Force alignment (find a better way to do this)
-  // ScratchRegisterScope scratch(*this);
-  // movq(ImmWord(0xfffffffffffffff0), scratch);
-  // andq(Operand(addr), scratch);
+    // Force alignment (find a better way to do this)
+    ScratchRegisterScope scratch(*this);
+    movq(ImmWord(0xf), scratch);
+    andq(Operand(addr), scratch);
 
-  // Copy into register
-  ScratchRegisterScope scratch(*this);
-  movq(Operand(addr), scratch);
+    cmp32(scratch, Imm32(0));
+    j(Assembler::Equal, &aligned);
 
-  // Label is at offset 5
-  Address target = Address(scratch, 5);
-  branch32(Assembler::Equal, target, label, &passed);
-  breakpoint();
+    // Force alignment
+    subq(scratch, Operand(addr));
+    addq(Imm32(0x10), Operand(addr));
 
-  bind(&passed);
+    bind(&aligned);
+    movq(Operand(addr), scratch);
+
+    // Label is at offset 5
+    Address target = Address(scratch, 5);
+
+    cmp32(Operand(target), label);
+    j(Assembler::Equal, &passed);
+    breakpoint();
+
+    bind(&passed);
+  }
 #endif
   Assembler::call(Operand(addr.base, addr.offset));
 }
 
 #ifdef JS_CFI
-CodeOffset MacroAssembler::callsafe(Register reg) {
+CodeOffset MacroAssembler::unsafeCall(Register reg) {
   return Assembler::call(reg);
 }
-void MacroAssembler::callsafe(const Address& addr) {
+void MacroAssembler::unsafeCall(const Address& addr) {
   Assembler::call(Operand(addr.base, addr.offset));
 }
 #endif

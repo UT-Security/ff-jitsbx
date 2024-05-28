@@ -349,13 +349,8 @@ class JitRuntime {
   }
 
   EnterJitCode enterJit() const {
-    // #ifdef JS_CFI
     return JS_DATA_TO_FUNC_PTR(EnterJitCode,
                                trampolineCode(enterJITOffset_).value);
-    // #else
-    // return JS_DATA_TO_FUNC_PTR(EnterJitCode,
-    //                            trampolineCode(enterJITOffset_).value);
-    // #endif
   }
 
   // Return the registers from the native caller frame of the given JIT frame.
