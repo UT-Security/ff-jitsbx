@@ -21,3 +21,6 @@ extern crate smoosh;
 
 #[cfg(feature = "gluesmith")]
 extern crate gluesmith;
+
+#[cfg(feature = "jitsbx-verifier")]
+extern crate jitsbx_verifier;

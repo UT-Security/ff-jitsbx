@@ -2673,6 +2673,13 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "fad582f4b9e86b6caa621cabeb0963332d92eea04729ab12892c2533951e6440"
 
 [[package]]
+name = "jitsbx-verifier"
+version = "0.1.0"
+dependencies = [
+ "libc",
+]
+
+[[package]]
 name = "jobserver"
 version = "0.1.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2796,6 +2803,7 @@ dependencies = [
  "encoding_c",
  "encoding_c_mem",
  "gluesmith",
+ "jitsbx-verifier",
  "mozglue-static",
  "mozilla-central-workspace-hack",
  "smoosh",

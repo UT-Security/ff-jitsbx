@@ -544,6 +544,21 @@ def jit_sandbox(jit_sandbox, target, jit_enabled):
 set_config("JITSBX", jit_sandbox)
 set_define("JITSBX", jit_sandbox)
 
+
+option(
+    "--enable-jit-sandbox-verifier",
+    default=False,
+    help="{Enable|Disable} JIT sandbox code verifier.",
+)
+
+@depends("--enable-jit-sandbox-verifier", "--enable-jit-sandbox")
+def jit_sandbox_verifier(jit_sandbox_verifier, jit_sandbox):
+    if jit_sandbox and jit_sandbox_verifier:
+        return True
+
+set_config("JITSBX_VERIFIER", jit_sandbox_verifier)
+set_define("JITSBX_VERIFIER", jit_sandbox_verifier)
+
 option(
     "--enable-jit-sandbox-cfi-stack",
     default=False,

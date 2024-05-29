@@ -16,9 +16,11 @@ smoosh = { path = "../../frontend/smoosh", optional = true }
 mozilla-central-workspace-hack = { path = "../../../../build/workspace-hack" }
 mozglue-static = { path = "../../../../mozglue/static/rust" }
 gluesmith = { path = "../../fuzz-tests/gluesmith", optional = true }
+jitsbx-verifier = { path = "../../jitsbx/verifier", optional = true }
 
 [features]
 simd-accel = ['encoding_c/simd-accel']
+jitsbx-verifier = ['dep:jitsbx-verifier']
 
 # Uncomment this to enable perf support in release mode.
 #[profile.release]

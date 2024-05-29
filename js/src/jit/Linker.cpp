@@ -7,6 +7,9 @@
 #include "jit/Linker.h"
 
 #include "jit/JitZone.h"
+#ifdef JITSBX_VERIFIER
+#include "jitsbx/JitSandboxVerifier.h"
+#endif
 #include "util/Memory.h"
 
 #include "gc/StoreBuffer-inl.h"
@@ -72,6 +75,11 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   if (masm.embedsNurseryPointers()) {
     cx->runtime()->gc.storeBuffer().putWholeCell(code);
   }
+
+  if(!jitsbx_verify(codeStart, masm.size())) {
+    return fail(cx);      
+  }
+      
   return code;
 }
 
