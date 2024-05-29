@@ -744,7 +744,7 @@ void BaseCompiler::insertBreakpointStub() {
 
   }
   // Fast path: return to the execution.
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
   masm.retCFIUnsafe();
 #else
   masm.ret();
@@ -796,7 +796,7 @@ void BaseCompiler::insertBreakpointStub() {
 
   // Jump to the debug trap handler.
   masm.bind(&L);
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
   masm.jumpCFIUnsafe(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));
 #else
   masm.jump(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));

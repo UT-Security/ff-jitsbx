@@ -3904,10 +3904,10 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
   }
 #endif
 
-#ifdef JITSBX_CFI_STACK
+#ifdef JITSBX
   // cfi-stack(SAFETY): we already switched to the native-stack in
   // callWithABIPre.
-  callCFIStackUnsafe(ImmPtr(fun));
+  callCFIUnsafe(ImmPtr(fun));
 #else
   call(ImmPtr(fun));
 #endif

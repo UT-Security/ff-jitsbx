@@ -695,7 +695,7 @@ CodeOffset MacroAssembler::call(Register reg) {
 
   bind(&passed);
 #endif
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_CALL
   sbxBundleAlignNop();
 #ifdef DEBUG
   ScratchRegisterScope scratch(*this);
@@ -718,6 +718,7 @@ CodeOffset MacroAssembler::call(Register reg) {
 #endif
 #else
   sbxToNativeStack();
+  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
   CodeOffset offset = Assembler::call(reg);
   sbxToSandboxStack();
 #endif
@@ -791,7 +792,7 @@ CodeOffset MacroAssembler::call(const Address& addr) {
 
   bind(&passed);
 #endif
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_CALL
   sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
@@ -962,7 +963,7 @@ void MacroAssembler::jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
 void MacroAssembler::jump(ImmPtr ptr) { jmp(ptr); }
 
 void MacroAssembler::jump(Register reg) {
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
   sbxBundleAlignNop();
 #ifdef DEBUG
   ScratchRegisterScope scratch(*this);
@@ -981,14 +982,14 @@ void MacroAssembler::jump(Register reg) {
   jmp(Operand(reg));
 }
 
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
 void MacroAssembler::jumpCFIUnsafe(Register reg) {
   jmp(Operand(reg));
 }
 #endif
 
 void MacroAssembler::jump(const Address& addr) {
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
   sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
@@ -1009,7 +1010,7 @@ void MacroAssembler::jump(const Address& addr) {
 #endif
 }
 
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
 void MacroAssembler::jumpCFIUnsafe(const Address& addr) {
   jmp(Operand(addr));
 }
@@ -1018,7 +1019,7 @@ void MacroAssembler::jumpCFIUnsafe(const Address& addr) {
 // Return
 
 void MacroAssembler::ret() {
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
   ScratchRegisterScope scratch(*this);
 #ifdef DEBUG
   loadPtr(Address(rsp, 0), scratch);
@@ -1040,7 +1041,7 @@ void MacroAssembler::ret() {
 #endif
 }
 
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
 void MacroAssembler::retCFIUnsafe() {
   AssemblerX86Shared::ret();  
 }

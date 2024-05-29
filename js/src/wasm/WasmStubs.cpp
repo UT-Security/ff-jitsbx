@@ -900,7 +900,7 @@ static bool GenerateInterpEntry(MacroAssembler& masm, const FuncExport& fe,
   WasmPop(masm, lr);
   masm.abiret();
 #else
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
   masm.retCFIUnsafe();
 #else
   masm.ret();
@@ -2757,7 +2757,7 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
   WasmPop(masm, lr);
   masm.abiret();
 #else
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
   masm.retCFIUnsafe();
 #else
   masm.ret();
@@ -2884,7 +2884,7 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
       Address(ReturnReg, ResumeFromException::offsetOfStackPointer()));
   MoveSPForJitABI(masm);
   ClobberWasmRegsForLongJmp(masm, scratch1);
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_JUMP
   masm.jumpCFIUnsafe(scratch1);
 #else
   masm.jump(scratch1);
@@ -2904,7 +2904,7 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
   masm.addToStackPtr(Imm32(8));
   masm.abiret();
 #else
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_RET
   masm.retCFIUnsafe();
 #else
   masm.ret();

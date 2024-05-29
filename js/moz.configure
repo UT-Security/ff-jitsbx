@@ -586,6 +586,50 @@ def jit_sandbox_cfi_bundle(jit_sandbox_cfi_bundle, jit_sandbox):
 set_config("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
 set_define("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
 
+option(
+    "--enable-jit-sandbox-cfi-bundle-call",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-call", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_call(jit_sandbox_cfi_bundle_call, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_call:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_CALL", jit_sandbox_cfi_bundle_call)
+set_define("JITSBX_CFI_BUNDLE_CALL", jit_sandbox_cfi_bundle_call)
+
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-jump",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-jump", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_jump(jit_sandbox_cfi_bundle_jump, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_jump:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_JUMP", jit_sandbox_cfi_bundle_jump)
+set_define("JITSBX_CFI_BUNDLE_JUMP", jit_sandbox_cfi_bundle_jump)
+
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-ret",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-ret", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_ret(jit_sandbox_cfi_bundle_ret, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_ret:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_RET", jit_sandbox_cfi_bundle_ret)
+set_define("JITSBX_CFI_BUNDLE_RET", jit_sandbox_cfi_bundle_ret)
+
 # Architecture feature flags
 # =======================================================
 
