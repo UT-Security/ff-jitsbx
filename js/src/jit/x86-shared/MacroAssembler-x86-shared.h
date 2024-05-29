@@ -242,7 +242,6 @@ class MacroAssemblerX86Shared : public Assembler {
   }
 
 #if defined(JS_CFI) || defined(JS_LABEL_CFI)
-  void checkedJump(const Address& addr);
   void unsafeJump(const Address& addr) { jmp(Operand(addr)); }
 #endif
 

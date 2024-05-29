@@ -805,7 +805,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     if ((uint64_t(imm) & 0xff00000000000000) == 0xcc) {
       movq_i64r(imm >> 8, dst);
       shlq_ir(8, dst);
-      addq_i32r(0xcc, dst);
+      addq_i32r(imm & 0xff, dst);
     }
 #endif
     m_formatter.oneByteOp64(OP_MOV_EAXIv, dst);
