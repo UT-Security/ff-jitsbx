@@ -603,7 +603,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   void call(const Address& addr) PER_SHARED_ARCH;
   void call(ImmWord imm) PER_SHARED_ARCH;
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   CodeOffset unsafeCall(Register reg) DEFINED_ON(x86_shared);
   void unsafeCall(const Address& addr) DEFINED_ON(x86_shared);
 #endif

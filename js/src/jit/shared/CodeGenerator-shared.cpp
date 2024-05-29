@@ -133,7 +133,7 @@ bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(masm.framePushed() == 0);
   MOZ_ASSERT(!gen->compilingWasm());
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 

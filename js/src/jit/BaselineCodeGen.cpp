@@ -1573,7 +1573,7 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     // Jump into Ion.
     masm.loadPtr(Address(osrDataReg, IonOsrTempData::offsetOfBaselineFrame()),
                  OsrFrameReg);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
     masm.unsafeJump(Address(osrDataReg, IonOsrTempData::offsetOfJitCode()));
 #else
     masm.jump(Address(osrDataReg, IonOsrTempData::offsetOfJitCode()));
@@ -6337,7 +6337,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 

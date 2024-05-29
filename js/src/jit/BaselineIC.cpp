@@ -617,7 +617,7 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_ToBool() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -692,7 +692,7 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -890,7 +890,7 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_SetElem() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -958,7 +958,7 @@ bool DoInFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_In() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1002,7 +1002,7 @@ bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_HasOwn() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1052,7 +1052,7 @@ bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CheckPrivateField() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1110,7 +1110,7 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_GetName() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -1157,7 +1157,7 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_BindName() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -1198,7 +1198,7 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIntrinsic() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1285,7 +1285,7 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -1491,7 +1491,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -1739,7 +1739,7 @@ void FallbackICCodeCompiler::pushCallArguments(
 
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -1896,7 +1896,7 @@ bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_GetIterator() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1931,7 +1931,7 @@ bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -1983,7 +1983,7 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_InstanceOf() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2021,7 +2021,7 @@ bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_TypeOf() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2053,7 +2053,7 @@ bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_ToPropertyKey() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2087,7 +2087,7 @@ bool DoRestFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 }
 
 bool FallbackICCodeCompiler::emit_Rest() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2167,7 +2167,7 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_UnaryArith() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -2289,7 +2289,7 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_BinaryArith() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -2388,7 +2388,7 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_Compare() {
   static_assert(R0 == JSReturnOperand);
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -2440,7 +2440,7 @@ bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewArray() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2478,7 +2478,7 @@ bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_NewObject() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);
@@ -2510,7 +2510,7 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 }
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   EmitRestoreTailCallReg(masm);

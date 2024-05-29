@@ -142,7 +142,7 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifndef JS_USE_LINK_REGISTER

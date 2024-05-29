@@ -800,6 +800,14 @@ class BaseAssemblerX64 : public BaseAssembler {
 #ifdef JS_CFI
     nopAlign(0x10);
 #endif
+#ifdef JS_LABEL_CFI
+    // Make sure label cannot be emitted as an 8-byte sequence
+    if ((uint64_t(imm) & 0xff00000000000000) == 0xcc) {
+      movq_i64r(imm >> 8, dst);
+      shlq_ir(8, dst);
+      addq_i32r(0xcc, dst);
+    }
+#endif
     m_formatter.oneByteOp64(OP_MOV_EAXIv, dst);
     m_formatter.immediate64(imm);
   }

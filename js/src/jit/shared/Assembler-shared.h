@@ -143,7 +143,7 @@ struct Imm64 {
   inline Imm32 secondHalf() const;
 };
 
-#if defined(DEBUG) || defined(JS_CFI)
+#if defined(DEBUG) || defined(JS_CFI) || defined(JS_LABEL_CFI)
 static inline bool IsCompilingWasm() {
   return GetJitContext()->isCompilingWasm();
 }

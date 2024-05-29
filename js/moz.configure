@@ -306,6 +306,22 @@ def jit_cfi(value):
 set_config("JS_CFI", jit_cfi)
 set_define("JS_CFI", jit_cfi)
 
+# Enable 8-byte label CFI
+# ===================================================
+option(
+    "--enable-label-cfi",
+    default=False,
+    help="Enable JIT 8-byte label CFI",
+)
+
+@depends("--enable-label-cfi")
+def jit_label_cfi(value):
+    if value:
+        return True
+
+set_config("JS_LABEL_CFI", jit_label_cfi)
+set_define("JS_LABEL_CFI", jit_label_cfi)
+
 # Profiling
 # =======================================================
 option(

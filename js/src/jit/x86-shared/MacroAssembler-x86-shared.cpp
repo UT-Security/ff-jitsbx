@@ -702,6 +702,19 @@ CodeOffset MacroAssembler::call(Register reg) {
 
     bind(&passed);
   }
+#elif JS_LABEL_CFI
+  if (GetJitContext() && !IsCompilingWasm()) {
+    Label passed;
+    Imm64 label = Imm64(0xcccccccccccccccc);
+
+    // Label is at offset 5
+    Address target = Address(reg, 5);
+
+    branch64(Assembler::Equal, target, label, &passed);
+    breakpoint();
+
+    bind(&passed);
+  }
 #endif
   return Assembler::call(reg);
 }
@@ -739,11 +752,59 @@ void MacroAssembler::call(const Address& addr) {
 
     bind(&passed);
   }
+#elif JS_LABEL_CFI
+  // This method spills and unspills r10
+  // if (GetJitContext() && !IsCompilingWasm()) {
+  //   Label passed;
+  //   Imm64 label = Imm64(0xcccccccccccccccc);
+
+  //   // Spill r10 to be safe
+  //   push(r10);
+
+  //   // ScratchRegisterScope scratch(*this);
+  //   Register scratch = r10;
+  //   MOZ_ASSERT(addr.base != r10);
+
+  //   movq(Operand(addr), scratch);
+
+  //   // Label is at offset 5
+  //   Address target = Address(scratch, 5);
+
+  //   branch64(Assembler::Equal, target, label, &passed);
+  //   breakpoint();
+
+  //   bind(&passed);
+
+  //   // Unspill r10
+  //   pop(r10);
+  // }
+  if (GetJitContext() && !IsCompilingWasm()) {
+    Label passed, failed;
+    Imm32 label32 = Imm32(0xcccccccc);
+
+    ScratchRegisterScope scratch(*this);
+    movq(Operand(addr), scratch);
+
+    // Label high - offset 5
+    Address target = Address(scratch, 5);
+    cmp32(Operand(target), label32);
+    j(Assembler::NotEqual, &failed);
+
+    // Label low - offset 9
+    target = Address(scratch, 9);
+    cmp32(Operand(target), label32);
+    j(Assembler::Equal, &passed);
+
+    bind(&failed);
+    breakpoint();
+
+    bind(&passed);
+  }
 #endif
   Assembler::call(Operand(addr.base, addr.offset));
 }
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
 CodeOffset MacroAssembler::unsafeCall(Register reg) {
   return Assembler::call(reg);
 }

@@ -105,7 +105,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Note: the stack pushes below must match the fields in EnterJITStackEntry.
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -458,7 +458,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   // Caller:
@@ -679,7 +679,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   Register cxreg = IntArgReg0;
   regs.take(cxreg);
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   // Stack is:

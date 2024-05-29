@@ -61,7 +61,7 @@ void JitRuntime::generateBaselineInterpreterEntryTrampoline(
   AutoCreatedBy acb(masm,
                     "JitRuntime::generateBaselineInterpreterEntryTrampoline");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -162,7 +162,7 @@ void JitRuntime::generateInterpreterEntryTrampoline(MacroAssembler& masm) {
     }
   }
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_CODEGEN_ARM64

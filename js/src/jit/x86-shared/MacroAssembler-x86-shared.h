@@ -214,11 +214,35 @@ class MacroAssemblerX86Shared : public Assembler {
 
       bind(&passed);
     }
+#elif JS_LABEL_CFI
+    if (GetJitContext() && !IsCompilingWasm()) {
+      Label passed, failed;
+      Imm32 label32 = Imm32(0xcccccccc);
+
+      ScratchRegisterScope scratch(asMasm());
+      movq(Operand(addr), scratch);
+
+      // Label high - offset 5
+      Address target = Address(scratch, 5);
+      cmp32(Operand(target), label32);
+      j(Assembler::NotEqual, &failed);
+
+      // Label low - offset 9
+      target = Address(scratch, 9);
+      cmp32(Operand(target), label32);
+      j(Assembler::Equal, &passed);
+
+      bind(&failed);
+      breakpoint();
+
+      bind(&passed);
+    }
 #endif
     jmp(Operand(addr));
   }
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
+  void checkedJump(const Address& addr);
   void unsafeJump(const Address& addr) { jmp(Operand(addr)); }
 #endif
 

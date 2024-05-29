@@ -4829,6 +4829,19 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 #endif
 
+#ifdef JS_LABEL_CFI
+  void emit_label() {
+    // Jump over label
+    Label dest;
+    jmp(&dest);
+
+    // TODO: Change label
+    uint64_t label = 0xcccccccccccccccc;
+    masm.int64Constant(label);
+    bind(&dest);
+  }
+#endif
+
   // Patching.
 
   static size_t PatchWrite_NearCallSize() { return 5; }

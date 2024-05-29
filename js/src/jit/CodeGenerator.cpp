@@ -608,7 +608,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
   // Register the location of the OOL path in the IC.
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 
@@ -2499,7 +2499,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "GenerateRegExpMatchStubShared");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -2989,7 +2989,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpSearcherStub");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -3161,7 +3161,7 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpExecTestStub");
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -3778,7 +3778,7 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
 
   // Remember the OSR entry offset into the code buffer.
   masm.flushBuffer();
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
   setOsrEntryOffset(masm.size());
@@ -11334,7 +11334,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   Register output = CallTempReg5;
 
   Label failure;
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -11448,7 +11448,7 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 
   freeStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -11478,7 +11478,7 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 
   lazyLinkStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
@@ -11520,7 +11520,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 
   interpreterStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JS_CFI
+#if defined(JS_CFI) || defined(JS_LABEL_CFI)
   masm.emit_label();
 #endif
 #ifdef JS_USE_LINK_REGISTER
