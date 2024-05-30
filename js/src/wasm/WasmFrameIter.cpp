@@ -763,7 +763,7 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
   if (tier1FuncIndex) {
     Register scratch = ABINonArgReg0;
     masm.loadPtr(Address(InstanceReg, Instance::offsetOfJumpTable()), scratch);
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
     masm.jumpCFIUnsafe(Address(scratch, *tier1FuncIndex * sizeof(uintptr_t)));
 #else
     masm.jump(Address(scratch, *tier1FuncIndex * sizeof(uintptr_t)));

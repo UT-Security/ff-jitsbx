@@ -2884,7 +2884,7 @@ static bool GenerateThrowStub(MacroAssembler& masm, Label* throwLabel,
       Address(ReturnReg, ResumeFromException::offsetOfStackPointer()));
   MoveSPForJitABI(masm);
   ClobberWasmRegsForLongJmp(masm, scratch1);
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
   masm.jumpCFIUnsafe(scratch1);
 #else
   masm.jump(scratch1);

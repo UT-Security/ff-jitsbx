@@ -1464,6 +1464,9 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     }
     // OSR from Baseline Interpreter should jump here
     // while within the sandbox-stack.
+#ifdef JITSBX_CFI_LABEL
+    masm.emit_label();
+#endif
     masm.sbxAssertSandboxStack();
   }
 
@@ -6450,6 +6453,9 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   masm.sbxBundleAlignNop();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 
   return true;
 }
@@ -6536,6 +6542,9 @@ MethodStatus BaselineCompiler::emitBody() {
         ReportOutOfMemory(cx);
         return Method_Error;
       }
+#ifdef JITSBX_CFI_LABEL
+      masm.emit_label();
+#endif
     }
 
     // Emit traps for breakpoints and step mode.
@@ -6693,6 +6702,9 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   masm.sbxBundleAlignNop();
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(handler.interpretOpWithPCRegLabel());
@@ -6701,6 +6713,9 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // and is used by OSR.
   masm.sbxBundleAlignNop();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
@@ -6708,6 +6723,9 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point for Ion prologue bailouts.
   masm.sbxBundleAlignNop();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);

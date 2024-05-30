@@ -679,18 +679,28 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 
 CodeOffset MacroAssembler::call(Register reg) {
 #ifdef JITSBX_CFI_LABEL
-  Label passed;
+  Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
   // Force alignment (find a better way to do this)
-  // ScratchRegisterScope scratch(*this);
-  // movq(ImmWord(0xfffffffffffffff0), scratch);
-  // andq(scratch, reg);
+  ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(reg, scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, reg);
+  addq(Imm32(0x10), reg);
+
+  bind(&aligned);
 
   // Label is at offset 5
   Address target = Address(reg, 5);
 
-  branch32(Assembler::Equal, target, label, &passed);
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
   breakpoint();
 
   bind(&passed);
@@ -738,14 +748,24 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
   Imm32 label = Imm32(0xcccccccc);
 
   // Force alignment (find a better way to do this)
-  // ScratchRegisterScope scratch(*this);
-  // movq(ImmWord(0xfffffffffffffff0), scratch);
-  // andq(scratch, reg);
+  ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(reg, scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, reg);
+  addq(Imm32(0x10), reg);
+
+  bind(&aligned);
 
   // Label is at offset 5
   Address target = Address(reg, 5);
 
-  branch32(Assembler::Equal, target, label, &passed);
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
   breakpoint();
 
   bind(&passed);
@@ -780,14 +800,29 @@ CodeOffset MacroAssembler::callCFIUnsafe(Label* label) {
 
 CodeOffset MacroAssembler::call(const Address& addr) {
 #ifdef JITSBX_CFI_LABEL
-  Label passed;
+  Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
   ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(Operand(addr), scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, Operand(addr));
+  addq(Imm32(0x10), Operand(addr));
+
+  bind(&aligned);
   movq(Operand(addr), scratch);
 
   // Label is at offset 5
   Address target = Address(scratch, 5);
-  branch32(Assembler::Equal, target, label, &passed);
+
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
   breakpoint();
 
   bind(&passed);
@@ -963,7 +998,35 @@ void MacroAssembler::jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
 void MacroAssembler::jump(ImmPtr ptr) { jmp(ptr); }
 
 void MacroAssembler::jump(Register reg) {
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX_CFI_LABEL
+  // TODO: Emit label checks for relative jumps
+  // TODO: Change label
+  Label passed, aligned;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
+  ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(reg, scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, reg);
+  addq(Imm32(0x10), reg);
+
+  bind(&aligned);
+
+  // Label is at offset 5
+  Address target = Address(reg, 5);
+
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
+  breakpoint();
+
+  bind(&passed);
+#elif defined(JITSBX_CFI_BUNDLE_JUMP)
   sbxBundleAlignNop();
 #ifdef DEBUG
   ScratchRegisterScope scratch(*this);
@@ -982,14 +1045,44 @@ void MacroAssembler::jump(Register reg) {
   jmp(Operand(reg));
 }
 
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
 void MacroAssembler::jumpCFIUnsafe(Register reg) {
   jmp(Operand(reg));
 }
 #endif
 
 void MacroAssembler::jump(const Address& addr) {
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX_CFI_LABEL
+  // TODO: Emit label checks for relative jumps
+  // TODO: Change label
+  Label passed, aligned;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
+  ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(Operand(addr), scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, Operand(addr));
+  addq(Imm32(0x10), Operand(addr));
+
+  bind(&aligned);
+  movq(Operand(addr), scratch);
+
+  // Label is at offset 5
+  Address target = Address(scratch, 5);
+
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
+  breakpoint();
+
+  bind(&passed);
+  jmp(Operand(addr));
+#elif defined(JITSBX_CFI_BUNDLE_JUMP)
   sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
@@ -1010,7 +1103,7 @@ void MacroAssembler::jump(const Address& addr) {
 #endif
 }
 
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
 void MacroAssembler::jumpCFIUnsafe(const Address& addr) {
   jmp(Operand(addr));
 }

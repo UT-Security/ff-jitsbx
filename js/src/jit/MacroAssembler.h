@@ -1014,7 +1014,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void jump(Register reg) DEFINED_ON(x86_shared);
   void jump(const Address& addr) DEFINED_ON(x86_shared);
 
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
   void jumpCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
   void jumpCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
 #endif

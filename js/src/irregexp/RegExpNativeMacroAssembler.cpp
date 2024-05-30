@@ -124,6 +124,9 @@ void SMRegExpMacroAssembler::Backtrack() {
 void SMRegExpMacroAssembler::Bind(Label* label) {
   masm_.sbxBundleAlignNop();
   masm_.bind(label->inner());
+#ifdef JITSBX_CFI_LABEL
+  masm_.emit_label();
+#endif
   if (label->patchOffset_.bound()) {
     AddLabelPatch(label->patchOffset_, label->pos());
   }

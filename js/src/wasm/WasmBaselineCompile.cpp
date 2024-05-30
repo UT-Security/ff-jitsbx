@@ -796,7 +796,7 @@ void BaseCompiler::insertBreakpointStub() {
 
   // Jump to the debug trap handler.
   masm.bind(&L);
-#ifdef JITSBX_CFI_BUNDLE_JUMP
+#ifdef JITSBX
   masm.jumpCFIUnsafe(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));
 #else
   masm.jump(Address(InstanceReg, Instance::offsetOfDebugTrapHandler()));

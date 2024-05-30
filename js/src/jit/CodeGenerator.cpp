@@ -707,6 +707,9 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
   // Register the location of the OOL path in the IC.
   masm.sbxBundleAlignNop();
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 #ifdef JITSBX_CFI_STACK
   masm.sbxAssertNativeStack();
   masm.sbxToSandboxStack();
@@ -3975,6 +3978,9 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
   masm.flushBuffer();
   masm.sbxBundleAlignNop();
   setOsrEntryOffset(masm.size());
+#ifdef JITSBX_CFI_LABEL
+  masm.emit_label();
+#endif
 
   // Allocate the full frame for this function
   // Note we have a new entry here. So we reset MacroAssembler::framePushed()
