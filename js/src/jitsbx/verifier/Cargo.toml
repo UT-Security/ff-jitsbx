@@ -9,3 +9,5 @@ name = "jitsbx_verifier"
 
 [dependencies]
 libc = "0.2"
+yaxpeax-arch = "0.2.8"
+yaxpeax-x86 = "1.2.2"
