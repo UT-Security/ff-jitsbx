@@ -562,11 +562,21 @@ void MacroAssembler::sbxEmitCFILabel() {
   Label dest;
   jmp(&dest);
 
-  // TODO(JITSBX_CFI_LABEL): Change label
+  // TODO(JITSBX_CFI_LABEL4): Change label
   uint32_t label = 0xcccccccc;
   masm.int32Constant(label);
   bind(&dest);
-#endif      
+#endif
+#ifdef JITSBX_CFI_LABEL8
+  // Jump over label
+  Label dest;
+  jmp(&dest);
+
+  // TODO(JITSBX_CFI_LABEL8): Change label
+  uint64_t label = 0xcccccccccccccccc;
+  masm.int64Constant(label);
+  bind(&dest);
+#endif
 }
 
 void MacroAssembler::sbxBundleAlignNop(uint8_t extra) {

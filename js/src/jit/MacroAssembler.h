@@ -996,7 +996,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   inline uint32_t callJitNoProfilerCFIStackUnsafe(Register callee);
 #endif
 
-#ifdef JITSBX_CFI_LABEL4
+#if defined(JITSBX_CFI_LABEL4) || defined(JITSBX_CFI_LABEL8)
   // unsafe indirect call instructions that skip CFI label checks
   CodeOffset callCFILabelUnsafe(Register reg) DEFINED_ON(x86_shared);
   CodeOffset callCFILabelUnsafe(const Address& addr) DEFINED_ON(x86_shared);
