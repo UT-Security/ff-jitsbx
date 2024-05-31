@@ -341,7 +341,7 @@ class BaseAssembler : public GenericAssembler {
   void push_i(int32_t imm) {
     spew("push       $%s0x%x", PRETTYHEX(imm));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -354,7 +354,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void push_i32(int32_t imm) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     spew("push       $%s0x%04x", PRETTYHEX(imm));
@@ -431,7 +431,7 @@ class BaseAssembler : public GenericAssembler {
   void addl_ir(int32_t imm, RegisterID dst) {
     spew("addl       $%d, %s", imm, GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -459,7 +459,7 @@ class BaseAssembler : public GenericAssembler {
     // 32-bit immediate always, for patching.
     spew("addl       $0x%04x, %s", uint32_t(imm), GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (dst == rax) {
@@ -473,7 +473,7 @@ class BaseAssembler : public GenericAssembler {
   void addl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -489,7 +489,7 @@ class BaseAssembler : public GenericAssembler {
                int scale) {
     spew("addl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -506,7 +506,7 @@ class BaseAssembler : public GenericAssembler {
   void addl_im(int32_t imm, const void* addr) {
     spew("addl       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1171,7 +1171,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void andl_ir(int32_t imm, RegisterID dst) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     spew("andl       $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
@@ -1207,7 +1207,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void andl_im(int32_t imm, int32_t offset, RegisterID base) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     spew("andl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
@@ -1238,7 +1238,7 @@ class BaseAssembler : public GenericAssembler {
                int scale) {
     spew("andl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1397,7 +1397,7 @@ class BaseAssembler : public GenericAssembler {
   void orl_ir(int32_t imm, RegisterID dst) {
     spew("orl        $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1431,7 +1431,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void orl_im(int32_t imm, int32_t offset, RegisterID base) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     spew("orl        $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
@@ -1460,7 +1460,7 @@ class BaseAssembler : public GenericAssembler {
 
   void orl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
               int scale) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     spew("orl        $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
@@ -1551,7 +1551,7 @@ class BaseAssembler : public GenericAssembler {
   void subl_ir(int32_t imm, RegisterID dst) {
     spew("subl       $%d, %s", imm, GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1587,7 +1587,7 @@ class BaseAssembler : public GenericAssembler {
   void subl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("subl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1616,7 +1616,7 @@ class BaseAssembler : public GenericAssembler {
                int scale) {
     spew("subl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1699,7 +1699,7 @@ class BaseAssembler : public GenericAssembler {
   void xorl_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("xorl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1728,7 +1728,7 @@ class BaseAssembler : public GenericAssembler {
                int scale) {
     spew("xorl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1762,7 +1762,7 @@ class BaseAssembler : public GenericAssembler {
   void xorl_ir(int32_t imm, RegisterID dst) {
     spew("xorl       $%d, %s", imm, GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(imm)) {
@@ -1967,7 +1967,7 @@ class BaseAssembler : public GenericAssembler {
   void imull_ir(int32_t value, RegisterID src, RegisterID dst) {
     spew("imull      $%d, %s, %s", value, GPReg32Name(src), GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(value)) {
@@ -2124,7 +2124,7 @@ class BaseAssembler : public GenericAssembler {
 
     spew("cmpl       $0x%x, %s", uint32_t(rhs), GPReg32Name(lhs));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2143,7 +2143,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpl_i32r(int32_t rhs, RegisterID lhs) {
     spew("cmpl       $0x%04x, %s", uint32_t(rhs), GPReg32Name(lhs));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (lhs == rax) {
@@ -2157,7 +2157,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpl_im(int32_t rhs, int32_t offset, RegisterID base) {
     spew("cmpl       $0x%x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2240,7 +2240,7 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpl       $0x%x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2259,7 +2259,7 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpl       $0x%x, " MEM_o32b, uint32_t(rhs), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     JmpSrc r;
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2278,7 +2278,7 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpl       $0x%x, %p", uint32_t(rhs), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     JmpSrc r;
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2296,7 +2296,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpl_i32m(int32_t rhs, int32_t offset, RegisterID base) {
     spew("cmpl       $0x%04x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP1_EvIz, offset, base, GROUP1_OP_CMP);
@@ -2306,7 +2306,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpl_i32m(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%04x, %p", uint32_t(rhs), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP1_EvIz, addr, GROUP1_OP_CMP);
@@ -2328,7 +2328,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpl_im(int32_t rhs, const void* addr) {
     spew("cmpl       $0x%x, %p", uint32_t(rhs), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
@@ -2447,7 +2447,7 @@ class BaseAssembler : public GenericAssembler {
     }
     spew("testl      $0x%x, %s", uint32_t(rhs), GPReg32Name(lhs));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     if (lhs == rax) {
@@ -2461,7 +2461,7 @@ class BaseAssembler : public GenericAssembler {
   void testl_i32m(int32_t rhs, int32_t offset, RegisterID base) {
     spew("testl      $0x%x, " MEM_ob, uint32_t(rhs), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, offset, base, GROUP3_OP_TEST);
@@ -2471,7 +2471,7 @@ class BaseAssembler : public GenericAssembler {
   void testl_i32m(int32_t rhs, const void* addr) {
     spew("testl      $0x%x, %p", uint32_t(rhs), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, addr, GROUP3_OP_TEST);
@@ -2500,7 +2500,7 @@ class BaseAssembler : public GenericAssembler {
     spew("testl      $0x%4x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP3_EvIz, offset, base, index, scale,
@@ -2749,7 +2749,7 @@ class BaseAssembler : public GenericAssembler {
   void movl_i32r(int32_t imm, RegisterID dst) {
     spew("movl       $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_MOV_EAXIv, dst);
@@ -2806,7 +2806,7 @@ class BaseAssembler : public GenericAssembler {
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base) {
     spew("movl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
@@ -2829,7 +2829,7 @@ class BaseAssembler : public GenericAssembler {
     spew("movl       $0x%x, " MEM_obs, uint32_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, index, scale,
@@ -2921,7 +2921,7 @@ class BaseAssembler : public GenericAssembler {
   void movl_i32m(int32_t imm, const void* addr) {
     spew("movl       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
     m_formatter.oneByteOp(OP_GROUP11_EvIz, addr, GROUP11_MOV);

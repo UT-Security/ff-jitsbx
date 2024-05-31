@@ -626,9 +626,7 @@ bool DoToBoolFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 bool FallbackICCodeCompiler::emit_ToBool() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -706,9 +704,7 @@ bool DoGetElemSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetElem(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -912,9 +908,7 @@ bool DoSetElemFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetElem() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -985,9 +979,7 @@ bool DoInFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_In() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -1034,9 +1026,7 @@ bool DoHasOwnFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_HasOwn() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -1089,9 +1079,7 @@ bool DoCheckPrivateFieldFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_CheckPrivateField() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -1152,9 +1140,7 @@ bool DoGetNameFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_GetName() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -1204,9 +1190,7 @@ bool DoBindNameFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_BindName() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -1250,9 +1234,7 @@ bool DoGetIntrinsicFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_GetIntrinsic() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -1342,9 +1324,7 @@ bool DoGetPropSuperFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emitGetProp(bool hasReceiver) {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -1557,9 +1537,7 @@ bool DoSetPropFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_SetProp() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -1812,9 +1790,7 @@ void FallbackICCodeCompiler::pushCallArguments(
 bool FallbackICCodeCompiler::emitCall(bool isSpread, bool isConstructing) {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   // Values are on the stack left-to-right. Calling convention wants them
   // right-to-left so duplicate them on the stack in reverse order.
@@ -1973,9 +1949,7 @@ bool DoGetIteratorFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_GetIterator() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2013,9 +1987,7 @@ bool DoOptimizeSpreadCallFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_OptimizeSpreadCall() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2070,9 +2042,7 @@ bool DoInstanceOfFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_InstanceOf() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2113,9 +2083,7 @@ bool DoTypeOfFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_TypeOf() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2150,9 +2118,7 @@ bool DoToPropertyKeyFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_ToPropertyKey() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2189,9 +2155,7 @@ bool DoRestFallback(JSContext* cx, BaselineFrame* frame, ICFallbackStub* stub,
 
 bool FallbackICCodeCompiler::emit_Rest() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2274,9 +2238,7 @@ bool DoUnaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_UnaryArith() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -2401,9 +2363,7 @@ bool DoBinaryArithFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_BinaryArith() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -2505,9 +2465,7 @@ bool DoCompareFallback(JSContext* cx, BaselineFrame* frame,
 bool FallbackICCodeCompiler::emit_Compare() {
   static_assert(R0 == JSReturnOperand);
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   masm.sbxAssertNativeStack();
 #ifndef JITSBX_CFI_STACK
@@ -2562,9 +2520,7 @@ bool DoNewArrayFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_NewArray() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2605,9 +2561,7 @@ bool DoNewObjectFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_NewObject() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif
@@ -2642,9 +2596,7 @@ bool DoCloseIterFallback(JSContext* cx, BaselineFrame* frame,
 
 bool FallbackICCodeCompiler::emit_CloseIter() {
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifndef JITSBX_CFI_STACK
   EmitRestoreTailCallReg(masm);
 #endif

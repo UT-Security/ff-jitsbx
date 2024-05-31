@@ -4858,22 +4858,6 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void flushBuffer() {}
 
-#ifdef JITSBX_CFI_LABEL
-  void emit_label() {
-    // Alignment
-    nopAlign(0x10);
-
-    // Jump over label
-    Label dest;
-    jmp(&dest);
-
-    // TODO(JITSBX_CFI_LABEL): Change label
-    uint32_t label = 0xcccccccc;
-    masm.int32Constant(label);
-    bind(&dest);
-  }
-#endif
-
   // Patching.
 
   static size_t PatchWrite_NearCallSize() { return 5; }

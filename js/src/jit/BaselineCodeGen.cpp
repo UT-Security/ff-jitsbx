@@ -1464,9 +1464,7 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
     }
     // OSR from Baseline Interpreter should jump here
     // while within the sandbox-stack.
-#ifdef JITSBX_CFI_LABEL
-    masm.emit_label();
-#endif
+    masm.sbxEmitCFILabel();
     masm.sbxAssertSandboxStack();
   }
 
@@ -6384,9 +6382,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
@@ -6453,9 +6449,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
 
   masm.sbxBundleAlignNop();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   return true;
 }
@@ -6542,9 +6536,7 @@ MethodStatus BaselineCompiler::emitBody() {
         ReportOutOfMemory(cx);
         return Method_Error;
       }
-#ifdef JITSBX_CFI_LABEL
-      masm.emit_label();
-#endif
+      masm.sbxEmitCFILabel();
     }
 
     // Emit traps for breakpoints and step mode.
@@ -6702,9 +6694,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   masm.sbxBundleAlignNop();
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(handler.interpretOpWithPCRegLabel());
@@ -6713,9 +6703,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // and is used by OSR.
   masm.sbxBundleAlignNop();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
@@ -6723,9 +6711,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point for Ion prologue bailouts.
   masm.sbxBundleAlignNop();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
   masm.sbxAssertSandboxStack();
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);

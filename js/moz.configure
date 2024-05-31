@@ -574,18 +574,18 @@ set_config("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
 set_define("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
 
 option(
-    "--enable-jit-sandbox-cfi-label",
+    "--enable-jit-sandbox-cfi-label4",
     default=False,
-    help="{Enable|Disable} classic CFI-label forward-edge protections for the JIT sandbox.",
+    help="{Enable|Disable} classic CFI 4-byte label forward-edge protections for the JIT sandbox.",
 )
 
-@depends("--enable-jit-sandbox-cfi-label", "--enable-jit-sandbox")
-def jit_sandbox_cfi_label(jit_sandbox_cfi_label, jit_sandbox):
-    if jit_sandbox and jit_sandbox_cfi_label:
+@depends("--enable-jit-sandbox-cfi-label4", "--enable-jit-sandbox")
+def jit_sandbox_cfi_label4(jit_sandbox_cfi_label4, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_label4:
         return True
 
-set_config("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
-set_define("JITSBX_CFI_LABEL", jit_sandbox_cfi_label)
+set_config("JITSBX_CFI_LABEL4", jit_sandbox_cfi_label4)
+set_define("JITSBX_CFI_LABEL4", jit_sandbox_cfi_label4)
 
 option(
     "--enable-jit-sandbox-cfi-bundle",

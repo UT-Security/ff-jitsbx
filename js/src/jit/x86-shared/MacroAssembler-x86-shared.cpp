@@ -678,7 +678,7 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // Simple call functions.
 
 CodeOffset MacroAssembler::call(Register reg) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
@@ -743,7 +743,7 @@ CodeOffset MacroAssembler::callCFIUnsafe(Register reg) {
 
 #ifdef JITSBX_CFI_STACK
 CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
 
@@ -774,7 +774,7 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
 }
 #endif
 
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
 CodeOffset MacroAssembler::callCFILabelUnsafe(Register reg) {
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(reg);
@@ -799,7 +799,7 @@ CodeOffset MacroAssembler::callCFIUnsafe(Label* label) {
 #endif
 
 CodeOffset MacroAssembler::call(const Address& addr) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
@@ -866,7 +866,7 @@ CodeOffset MacroAssembler::callCFIUnsafe(const Address& addr) {
 
 #ifdef JITSBX_CFI_STACK
 CodeOffset MacroAssembler::callCFIStackUnsafe(const Address& addr) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   Label passed;
   Imm32 label = Imm32(0xcccccccc);
   ScratchRegisterScope scratch(*this);
@@ -883,7 +883,7 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(const Address& addr) {
 }
 #endif
 
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
 CodeOffset MacroAssembler::callCFILabelUnsafe(const Address& addr) {
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
@@ -998,7 +998,7 @@ void MacroAssembler::jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
 void MacroAssembler::jump(ImmPtr ptr) { jmp(ptr); }
 
 void MacroAssembler::jump(Register reg) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   // TODO: Emit label checks for relative jumps
   // TODO: Change label
   Label passed, aligned;
@@ -1052,7 +1052,7 @@ void MacroAssembler::jumpCFIUnsafe(Register reg) {
 #endif
 
 void MacroAssembler::jump(const Address& addr) {
-#ifdef JITSBX_CFI_LABEL
+#ifdef JITSBX_CFI_LABEL4
   // TODO: Emit label checks for relative jumps
   // TODO: Change label
   Label passed, aligned;

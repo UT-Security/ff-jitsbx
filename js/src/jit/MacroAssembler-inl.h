@@ -553,6 +553,22 @@ inline void MacroAssembler::sbxRestoreFramePointer() {
 }
 #endif
 
+void MacroAssembler::sbxEmitCFILabel() {
+#ifdef JITSBX_CFI_LABEL4
+  // Alignment
+  nopAlign(0x10);
+
+  // Jump over label
+  Label dest;
+  jmp(&dest);
+
+  // TODO(JITSBX_CFI_LABEL): Change label
+  uint32_t label = 0xcccccccc;
+  masm.int32Constant(label);
+  bind(&dest);
+#endif      
+}
+
 void MacroAssembler::sbxBundleAlignNop(uint8_t extra) {
 #ifdef JITSBX_CFI_BUNDLE
   if (isSandboxed()) {

@@ -707,9 +707,7 @@ void CodeGenerator::visitOutOfLineICFallback(OutOfLineICFallback* ool) {
   // Register the location of the OOL path in the IC.
   masm.sbxBundleAlignNop();
   ic->setFallbackOffset(CodeOffset(masm.currentOffset()));
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JITSBX_CFI_STACK
   masm.sbxAssertNativeStack();
   masm.sbxToSandboxStack();
@@ -2667,9 +2665,7 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "GenerateRegExpMatchStubShared");
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -3169,9 +3165,7 @@ JitCode* JitRealm::generateRegExpSearcherStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpSearcherStub");
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -3353,9 +3347,7 @@ JitCode* JitRealm::generateRegExpExecTestStub(JSContext* cx) {
   StackMacroAssembler masm(cx, temp);
   AutoCreatedBy acb(masm, "JitRealm::generateRegExpExecTestStub");
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -3978,9 +3970,7 @@ void CodeGenerator::visitOsrEntry(LOsrEntry* lir) {
   masm.flushBuffer();
   masm.sbxBundleAlignNop();
   setOsrEntryOffset(masm.size());
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
   // Allocate the full frame for this function
   // Note we have a new entry here. So we reset MacroAssembler::framePushed()
@@ -11722,9 +11712,7 @@ JitCode* JitRealm::generateStringConcatStub(JSContext* cx) {
   Register output = CallTempReg5;
 
   Label failure;
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11857,9 +11845,7 @@ void JitRuntime::generateFreeStub(MacroAssembler& masm) {
 
   freeStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11900,9 +11886,7 @@ void JitRuntime::generateLazyLinkStub(MacroAssembler& masm) {
 
   lazyLinkStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif
@@ -11948,9 +11932,7 @@ void JitRuntime::generateInterpreterStub(MacroAssembler& masm) {
 
   interpreterStubOffset_ = startTrampolineCode(masm);
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
 #endif

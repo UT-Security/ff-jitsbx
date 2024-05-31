@@ -106,10 +106,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Note: the stack pushes below must match the fields in EnterJITStackEntry.
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
-
   // Save old stack frame pointer, set new stack frame pointer.
   masm.push(rbp);
   masm.mov(rsp, rbp);
@@ -531,9 +527,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
   // Caller:
   // [arg2] [arg1] [this] [[argc] [callee] [descr] [raddr]] <- rsp
 
@@ -757,9 +751,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   Register cxreg = IntArgReg0;
   regs.take(cxreg);
 
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
   // Stack is:
   //    ... frame ...
   //  +12 [args]

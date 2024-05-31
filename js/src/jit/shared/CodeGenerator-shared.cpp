@@ -134,9 +134,7 @@ bool CodeGeneratorShared::generatePrologue() {
   MOZ_ASSERT(!gen->compilingWasm());
 
   masm.sbxAssertBundleAligned();
-#ifdef JITSBX_CFI_LABEL
-  masm.emit_label();
-#endif
+  masm.sbxEmitCFILabel();
 
 #ifdef JS_USE_LINK_REGISTER
   masm.pushReturnAddress();
