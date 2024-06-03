@@ -49,7 +49,15 @@ class BaseAssembler;
 
 class BaseAssembler : public GenericAssembler {
  public:
+#ifndef JITSBX
   BaseAssembler() : useVEX_(true) {}
+#else
+  BaseAssembler() : useVEX_(true), isSandboxed_(true) {}
+
+  void disableSandbox() { isSandboxed_ = false; }
+
+  bool isSandboxed() { return isSandboxed_; }
+#endif
 
   void disableVEX() { useVEX_ = false; }
 
@@ -60,19 +68,21 @@ class BaseAssembler : public GenericAssembler {
   bool reserve(size_t size) { return m_formatter.reserve(size); }
   bool swapBuffer(wasm::Bytes& other) { return m_formatter.swapBuffer(other); }
 
-  void beginInstr() { m_formatter.beginInstr(); }
-  void endInstr() { m_formatter.endInstr([&](int size) { insert_nop(size); }); }
-  void ensureInstrAlignment(int instrSize) {
-#ifdef JITSBX_CFI_BUNDLE
-    size_t beginSize = size();
-    size_t endSize = size() + instrSize;
-    if (!oom() && beginSize / jitsbx::BundleAlignment != (endSize - 1) / jitsbx::BundleAlignment) {
-        int nopsRequired = jitsbx::BundleAlignment - beginSize % jitsbx::BundleAlignment;
-        insert_nop(nopsRequired);
+  void beginInstr() { 
+#ifdef JITSBX
+    if (isSandboxed_) {
+      m_formatter.beginInstr();
     }
 #endif
   }
-
+  void endInstr() {
+#ifdef JITSBX
+    if (isSandboxed_) {
+      m_formatter.endInstr([&](int size) { insert_nop(size); });
+    }
+#endif
+  }
+  
   void nop() {
     spew("nop");
     m_formatter.oneByteOp(OP_NOP);
@@ -6839,12 +6849,17 @@ class BaseAssembler : public GenericAssembler {
     size_t size() const { return m_buffer.size(); }
     size_t sizeAligned(int extra) {
 #ifdef JITSBX_CFI_BUNDLE
-      MOZ_ASSERT(beginInstrSize != size_t(-1));
-      size_t offset = m_buffer.size() - beginInstrSize;
-      size_t endInstrSize = m_buffer.size() + extra;
-      if (!oom() && beginInstrSize / jitsbx::BundleAlignment != (endInstrSize - 1) / jitsbx::BundleAlignment) {
-        int nopsRequired = jitsbx::BundleAlignment - beginInstrSize % jitsbx::BundleAlignment;
-        return beginInstrSize + nopsRequired + offset;
+      if (beginInstrSize != size_t(-1)) {
+        size_t offset = m_buffer.size() - beginInstrSize;
+        size_t endInstrSize = m_buffer.size() + extra;
+        if (!oom() && beginInstrSize / jitsbx::BundleAlignment !=
+                          (endInstrSize - 1) / jitsbx::BundleAlignment) {
+          int nopsRequired = jitsbx::BundleAlignment -
+                             beginInstrSize % jitsbx::BundleAlignment;
+          return beginInstrSize + nopsRequired + offset;
+        } else {
+          return size();
+        }
       } else {
         return size();
       }
@@ -7120,6 +7135,10 @@ class BaseAssembler : public GenericAssembler {
   };
 
   bool useVEX_;
+#ifdef JITSBX
+  // should generated code follow jit-sandboxing rules.
+  bool isSandboxed_;
+#endif
 };
 
 }  // namespace X86Encoding

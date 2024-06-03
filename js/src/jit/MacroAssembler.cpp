@@ -3592,6 +3592,9 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+#ifdef JITSBX
+  disableSandbox();
+#endif
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
@@ -3608,6 +3611,9 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+#ifdef JITSBX
+  disableSandbox();
+#endif
 }
 
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,

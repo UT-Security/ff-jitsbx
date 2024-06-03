@@ -332,6 +332,16 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
+#ifdef JITSBX
+  void disableSandbox() {
+    masm.disableSandbox();      
+  }
+
+  bool isSandboxed() {
+    return masm.isSandboxed();      
+  }
+#endif
+
   enum Condition {
     Equal = X86Encoding::ConditionE,
     NotEqual = X86Encoding::ConditionNE,
