@@ -902,9 +902,9 @@ class MacroAssemblerX86Shared : public Assembler {
 
   // Emit a JMP that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   CodeOffset toggledJump(Label* label) {
-    CodeOffset offset(size());
+    //CodeOffset offset(size());
     jump(label);
-    return offset;
+    return CodeOffset(size() - 5);
   }
 
   template <typename T>

@@ -1025,12 +1025,6 @@ class Assembler : public AssemblerX86Shared {
   void lea(const Operand& src, Register dest) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
-#ifdef JITSBX_CFI_BUNDLE
-        if (src.seg()) {
-          masm.leaq_mr(src.disp(), src.base(), src.seg(), dest.encoding());
-          break;
-        }
-#endif
         masm.leaq_mr(src.disp(), src.base(), dest.encoding());
         break;
       case Operand::MEM_SCALE:
@@ -1176,11 +1170,11 @@ class Assembler : public AssemblerX86Shared {
   // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
-    CodeOffset offset(size());
+    //CodeOffset offset(size());
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
-    MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
-    return offset;
+    //MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
+    return CodeOffset(size() - ToggledCallSize(nullptr));
   }
 
   static size_t ToggledCallSize(uint8_t* code) {

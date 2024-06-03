@@ -169,6 +169,20 @@ class AssemblerBuffer {
     return true;
   }
 
+#ifdef JITSBX_CFI_BUNDLE
+  MOZ_ALWAYS_INLINE void infallibleAppend(const unsigned char* values, size_t size) {
+    m_buffer.infallibleAppend(values, size);      
+  }
+
+  MOZ_ALWAYS_INLINE void shrinkTo(size_t length) {
+    m_buffer.shrinkTo(length);      
+  }
+
+  MOZ_ALWAYS_INLINE void clear() {
+    m_buffer.clear();      
+  }
+#endif
+
   size_t size() const { return m_buffer.length(); }
 
   bool oom() const { return m_oom; }

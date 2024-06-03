@@ -20,16 +20,19 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_rr(RegisterID src, RegisterID dst) {
     spew("addq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_GvEv, src, dst);
   }
 
   void addq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("addq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_GvEv, offset, base, dst);
   }
 
   void addq_mr(const void* addr, RegisterID dst) {
     spew("addq       %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_GvEv, addr, dst);
   }
 
@@ -37,11 +40,13 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID dst) {
     spew("addq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_GvEv, offset, base, index, scale, dst);
   }
 
   void addq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("addq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, src);
   }
 
@@ -49,11 +54,13 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("addq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, index, scale, src);
   }
 
   void addq_ir(int32_t imm, RegisterID dst) {
     spew("addq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -73,6 +80,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void addq_i32r(int32_t imm, RegisterID dst) {
     // 32-bit immediate always, for patching.
     spew("addq       $0x%04x, %s", uint32_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -86,6 +94,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -100,6 +109,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void addq_im(int32_t imm, const void* addr) {
     spew("addq       $%d, %p", imm, addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -114,11 +124,13 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void andq_rr(RegisterID src, RegisterID dst) {
     spew("andq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_GvEv, src, dst);
   }
 
   void andq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("andq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_GvEv, offset, base, dst);
   }
 
@@ -126,16 +138,19 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID dst) {
     spew("andq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_GvEv, offset, base, index, scale, dst);
   }
 
   void andq_mr(const void* addr, RegisterID dst) {
     spew("andq       %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_GvEv, addr, dst);
   }
 
   void andq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("andq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, src);
   }
 
@@ -143,21 +158,25 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("andq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, index, scale, src);
   }
 
   void orq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("orq        " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_OR_GvEv, offset, base, dst);
   }
 
   void orq_mr(const void* addr, RegisterID dst) {
     spew("orq        %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_OR_GvEv, addr, dst);
   }
 
   void orq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("orq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, src);
   }
 
@@ -165,11 +184,13 @@ class BaseAssemblerX64 : public BaseAssembler {
               int scale) {
     spew("orq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, index, scale, src);
   }
 
   void xorq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("xorq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_GvEv, offset, base, dst);
   }
 
@@ -177,16 +198,19 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID dst) {
     spew("xorq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_GvEv, offset, base, index, scale, dst);
   }
 
   void xorq_mr(const void* addr, RegisterID dst) {
     spew("xorq       %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_GvEv, addr, dst);
   }
 
   void xorq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("xorq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, src);
   }
 
@@ -194,44 +218,52 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("xorq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, index, scale, src);
   }
 
   void bswapq_r(RegisterID dst) {
     spew("bswapq     %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_BSWAP, dst);
   }
 
   void bsrq_rr(RegisterID src, RegisterID dst) {
     spew("bsrq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_BSR_GvEv, src, dst);
   }
 
   void bsfq_rr(RegisterID src, RegisterID dst) {
     spew("bsfq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_BSF_GvEv, src, dst);
   }
 
   void lzcntq_rr(RegisterID src, RegisterID dst) {
     spew("lzcntq     %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(VEX_SS);
     m_formatter.twoByteOp64(OP2_LZCNT_GvEv, src, dst);
   }
 
   void tzcntq_rr(RegisterID src, RegisterID dst) {
     spew("tzcntq     %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(VEX_SS);
     m_formatter.twoByteOp64(OP2_TZCNT_GvEv, src, dst);
   }
 
   void popcntq_rr(RegisterID src, RegisterID dst) {
     spew("popcntq    %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(VEX_SS);
     m_formatter.twoByteOp64(OP2_POPCNT_GvEv, src, dst);
   }
 
   void andq_ir(int32_t imm, RegisterID dst) {
     spew("andq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -250,16 +282,19 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void negq_r(RegisterID dst) {
     spew("negq       %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP3_Ev, dst, GROUP3_OP_NEG);
   }
 
   void orq_rr(RegisterID src, RegisterID dst) {
     spew("orq        %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_OR_GvEv, src, dst);
   }
 
   void orq_ir(int32_t imm, RegisterID dst) {
     spew("orq        $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -278,16 +313,19 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void notq_r(RegisterID dst) {
     spew("notq       %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP3_Ev, dst, GROUP3_OP_NOT);
   }
 
   void subq_rr(RegisterID src, RegisterID dst) {
     spew("subq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_SUB_GvEv, src, dst);
   }
 
   void subq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("subq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, src);
   }
 
@@ -295,21 +333,25 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("subq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, index, scale, src);
   }
 
   void subq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("subq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_SUB_GvEv, offset, base, dst);
   }
 
   void subq_mr(const void* addr, RegisterID dst) {
     spew("subq       %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_SUB_GvEv, addr, dst);
   }
 
   void subq_ir(int32_t imm, RegisterID dst) {
     spew("subq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -328,11 +370,13 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void xorq_rr(RegisterID src, RegisterID dst) {
     spew("xorq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XOR_GvEv, src, dst);
   }
 
   void xorq_ir(int32_t imm, RegisterID dst) {
     spew("xorq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -351,22 +395,26 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void sarq_CLr(RegisterID dst) {
     spew("sarq       %%cl, %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP2_EvCL, dst, GROUP2_OP_SAR);
   }
 
   void shlq_CLr(RegisterID dst) {
     spew("shlq       %%cl, %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP2_EvCL, dst, GROUP2_OP_SHL);
   }
 
   void shrq_CLr(RegisterID dst) {
     spew("shrq       %%cl, %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP2_EvCL, dst, GROUP2_OP_SHR);
   }
 
   void sarq_ir(int32_t imm, RegisterID dst) {
     MOZ_ASSERT(imm < 64);
     spew("sarq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (imm == 1) {
       m_formatter.oneByteOp64(OP_GROUP2_Ev1, dst, GROUP2_OP_SAR);
     } else {
@@ -378,6 +426,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void shlq_ir(int32_t imm, RegisterID dst) {
     MOZ_ASSERT(imm < 64);
     spew("shlq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (imm == 1) {
       m_formatter.oneByteOp64(OP_GROUP2_Ev1, dst, GROUP2_OP_SHL);
     } else {
@@ -389,6 +438,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void shrq_ir(int32_t imm, RegisterID dst) {
     MOZ_ASSERT(imm < 64);
     spew("shrq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (imm == 1) {
       m_formatter.oneByteOp64(OP_GROUP2_Ev1, dst, GROUP2_OP_SHR);
     } else {
@@ -400,6 +450,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void rolq_ir(int32_t imm, RegisterID dst) {
     MOZ_ASSERT(imm < 64);
     spew("rolq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (imm == 1) {
       m_formatter.oneByteOp64(OP_GROUP2_Ev1, dst, GROUP2_OP_ROL);
     } else {
@@ -409,12 +460,14 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void rolq_CLr(RegisterID dst) {
     spew("rolq       %%cl, %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP2_EvCL, dst, GROUP2_OP_ROL);
   }
 
   void rorq_ir(int32_t imm, RegisterID dst) {
     MOZ_ASSERT(imm < 64);
     spew("rorq       $%d, %s", imm, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (imm == 1) {
       m_formatter.oneByteOp64(OP_GROUP2_Ev1, dst, GROUP2_OP_ROR);
     } else {
@@ -424,21 +477,25 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void rorq_CLr(RegisterID dst) {
     spew("rorq       %%cl, %s", GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP2_EvCL, dst, GROUP2_OP_ROR);
   }
 
   void imulq_rr(RegisterID src, RegisterID dst) {
     spew("imulq      %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_IMUL_GvEv, src, dst);
   }
 
   void imulq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("imulq      " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_IMUL_GvEv, offset, base, dst);
   }
 
   void imulq_ir(int32_t value, RegisterID src, RegisterID dst) {
     spew("imulq      $%d, %s, %s", value, GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -453,16 +510,19 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void cqo() {
     spew("cqo        ");
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CDQ);
   }
 
   void idivq_r(RegisterID divisor) {
     spew("idivq      %s", GPReg64Name(divisor));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP3_Ev, divisor, GROUP3_OP_IDIV);
   }
 
   void divq_r(RegisterID divisor) {
     spew("divq       %s", GPReg64Name(divisor));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP3_Ev, divisor, GROUP3_OP_DIV);
   }
 
@@ -470,11 +530,13 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void cmpq_rr(RegisterID rhs, RegisterID lhs) {
     spew("cmpq       %s, %s", GPReg64Name(rhs), GPReg64Name(lhs));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CMP_GvEv, rhs, lhs);
   }
 
   void cmpq_rm(RegisterID rhs, int32_t offset, RegisterID base) {
     spew("cmpq       %s, " MEM_ob, GPReg64Name(rhs), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CMP_EvGv, offset, base, rhs);
   }
 
@@ -482,11 +544,13 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("cmpq       %s, " MEM_obs, GPReg64Name(rhs),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CMP_EvGv, offset, base, index, scale, rhs);
   }
 
   void cmpq_mr(int32_t offset, RegisterID base, RegisterID lhs) {
     spew("cmpq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(lhs));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CMP_GvEv, offset, base, lhs);
   }
 
@@ -497,6 +561,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("cmpq       $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -516,6 +581,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void cmpq_im(int32_t rhs, int32_t offset, RegisterID base) {
     spew("cmpq       $0x%" PRIx64 ", " MEM_ob, uint64_t(rhs),
          ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -529,6 +595,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                int scale) {
     spew("cmpq       $0x%x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -544,6 +611,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void cmpq_im(int32_t rhs, const void* addr) {
     spew("cmpq       $0x%" PRIx64 ", %p", uint64_t(rhs), addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -557,11 +625,13 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void cmpq_rm(RegisterID rhs, const void* addr) {
     spew("cmpq       %s, %p", GPReg64Name(rhs), addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_CMP_EvGv, addr, rhs);
   }
 
   void testq_rr(RegisterID rhs, RegisterID lhs) {
     spew("testq      %s, %s", GPReg64Name(rhs), GPReg64Name(lhs));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_TEST_EvGv, lhs, rhs);
   }
 
@@ -573,6 +643,7 @@ class BaseAssemblerX64 : public BaseAssembler {
       return;
     }
     spew("testq      $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -587,6 +658,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void testq_i32m(int32_t rhs, int32_t offset, RegisterID base) {
     spew("testq      $0x%" PRIx64 ", " MEM_ob, uint64_t(rhs),
          ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP3_EvIz, offset, base, GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
   }
@@ -595,6 +667,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                   RegisterID index, int scale) {
     spew("testq      $0x%4x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -607,24 +680,28 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void cmovCCq_rr(Condition cond, RegisterID src, RegisterID dst) {
     spew("cmov%s     %s, %s", CCName(cond), GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(cmovccOpcode(cond), src, dst);
   }
   void cmovCCq_mr(Condition cond, int32_t offset, RegisterID base,
                   RegisterID dst) {
     spew("cmov%s     " MEM_ob ", %s", CCName(cond), ADDR_ob(offset, base),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(cmovccOpcode(cond), offset, base, dst);
   }
   void cmovCCq_mr(Condition cond, int32_t offset, RegisterID base,
                   RegisterID index, int scale, RegisterID dst) {
     spew("cmov%s     " MEM_obs ", %s", CCName(cond),
          ADDR_obs(offset, base, index, scale), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(cmovccOpcode(cond), offset, base, index, scale,
                             dst);
   }
 
   void cmpxchgq(RegisterID src, int32_t offset, RegisterID base) {
     spew("cmpxchgq   %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_CMPXCHG_GvEw, offset, base, src);
   }
 
@@ -632,11 +709,13 @@ class BaseAssemblerX64 : public BaseAssembler {
                 RegisterID index, int scale) {
     spew("cmpxchgq   %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_CMPXCHG_GvEw, offset, base, index, scale, src);
   }
 
   void lock_xaddq_rm(RegisterID srcdest, int32_t offset, RegisterID base) {
     spew("lock xaddq %s, " MEM_ob, GPReg64Name(srcdest), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp64(OP2_XADD_EvGv, offset, base, srcdest);
   }
@@ -645,37 +724,44 @@ class BaseAssemblerX64 : public BaseAssembler {
                      RegisterID index, int scale) {
     spew("lock xaddq %s, " MEM_obs, GPReg64Name(srcdest),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp64(OP2_XADD_EvGv, offset, base, index, scale, srcdest);
   }
 
   void xchgq_rr(RegisterID src, RegisterID dst) {
     spew("xchgq      %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XCHG_GvEv, src, dst);
   }
   void xchgq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("xchgq      %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, src);
   }
   void xchgq_rm(RegisterID src, int32_t offset, RegisterID base,
                 RegisterID index, int scale) {
     spew("xchgq      %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, index, scale, src);
   }
 
   void movq_rr(RegisterID src, RegisterID dst) {
     spew("movq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EvGv, dst, src);
   }
 
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
   void movq_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_o32b, GPReg64Name(src), ADDR_o32b(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
@@ -683,6 +769,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID index, int scale) {
     spew("movq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
@@ -693,6 +780,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("movq       %s, %p", GPReg64Name(src), addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EvGv, addr, src);
   }
 
@@ -703,6 +791,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("movq       %p, %%rax", addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EAXOv);
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
   }
@@ -714,18 +803,21 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("movq       %%rax, %p", addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_OvEAX);
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
   }
 
   void movq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("movq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_GvEv, offset, base, dst);
   }
 
   void movq_mr_disp32(int32_t offset, RegisterID base, RegisterID dst) {
     spew("movq       " MEM_o32b ", %s", ADDR_o32b(offset, base),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64_disp32(OP_MOV_GvEv, offset, base, dst);
   }
 
@@ -733,6 +825,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID dst) {
     spew("movq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_GvEv, offset, base, index, scale, dst);
   }
 
@@ -743,6 +836,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
 
     spew("movq       %p, %s", addr, GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_GvEv, addr, dst);
   }
 
@@ -750,6 +844,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                RegisterID dst) {
     spew("leaq       " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_LEA, offset, base, index, scale, dst);
   }
 
@@ -758,6 +853,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     nopAlign(0x10);
 #endif
     spew("movq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
@@ -767,12 +863,14 @@ class BaseAssemblerX64 : public BaseAssembler {
     nopAlign(0x10);
 #endif
     spew("movq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
                             GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
   void movq_i32m(int32_t imm, const void* addr) {
     spew("movq       $%d, %p", imm, addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -788,6 +886,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   // size, so it's preferred for values which could use either.
   void movq_i32r(int32_t imm, RegisterID dst) {
     spew("movq       $%d, %s", imm, GPRegName(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -797,6 +896,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movq_i64r(int64_t imm, RegisterID dst) {
     spew("movabsq    $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL
     nopAlign(0x10);
 #endif
@@ -806,76 +906,89 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void movsbq_rr(RegisterID src, RegisterID dst) {
     spew("movsbq     %s, %s", GPReg32Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEb, src, dst);
   }
   void movsbq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("movsbq     " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEb, offset, base, dst);
   }
   void movsbq_mr(int32_t offset, RegisterID base, RegisterID index, int scale,
                  RegisterID dst) {
     spew("movsbq     " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEb, offset, base, index, scale, dst);
   }
 
   void movswq_rr(RegisterID src, RegisterID dst) {
     spew("movswq     %s, %s", GPReg32Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEw, src, dst);
   }
   void movswq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("movswq     " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEw, offset, base, dst);
   }
   void movswq_mr(int32_t offset, RegisterID base, RegisterID index, int scale,
                  RegisterID dst) {
     spew("movswq     " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOp64(OP2_MOVSX_GvEw, offset, base, index, scale, dst);
   }
 
   void movslq_rr(RegisterID src, RegisterID dst) {
     spew("movslq     %s, %s", GPReg32Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOVSXD_GvEv, src, dst);
   }
   void movslq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("movslq     " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOVSXD_GvEv, offset, base, dst);
   }
   void movslq_mr(int32_t offset, RegisterID base, RegisterID index, int scale,
                  RegisterID dst) {
     spew("movslq     " MEM_obs ", %s", ADDR_obs(offset, base, index, scale),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOVSXD_GvEv, offset, base, index, scale, dst);
   }
 
   [[nodiscard]] JmpSrc movl_ripr(RegisterID dst) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp(OP_MOV_GvEv, 0, (RegisterID)dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("movl       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPReg32Name(dst));
     return label;
   }
 
   [[nodiscard]] JmpSrc movl_rrip(RegisterID src) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp(OP_MOV_EvGv, 0, (RegisterID)src);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("movl       %s, " MEM_o32r "", GPReg32Name(src),
          ADDR_o32r(label.offset()));
     return label;
   }
 
   [[nodiscard]] JmpSrc movq_ripr(RegisterID dst) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp64(OP_MOV_GvEv, 0, dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("movq       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPRegName(dst));
     return label;
   }
 
   [[nodiscard]] JmpSrc movq_rrip(RegisterID src) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp64(OP_MOV_EvGv, 0, (RegisterID)src);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("movq       %s, " MEM_o32r "", GPRegName(src),
          ADDR_o32r(label.offset()));
     return label;
@@ -883,22 +996,14 @@ class BaseAssemblerX64 : public BaseAssembler {
 
   void leaq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("leaq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_LEA, offset, base, dst);
   }
-
-#ifdef JITSBX_CFI_BUNDLE
-  void leaq_mr(int32_t offset, RegisterID base, bool seg, RegisterID dst) {
-    spew("leaq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
-    if (seg) {
-      m_formatter.prefix(PRE_SEG_GS);
-    }
-    m_formatter.oneByteOp64(OP_LEA, offset, base, dst);
-  }
-#endif
 
   [[nodiscard]] JmpSrc leaq_rip(RegisterID dst) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp64(OP_LEA, 0, dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("leaq       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPRegName(dst));
     return label;
@@ -909,6 +1014,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void jmp_rip(int ripOffset) {
     // rip-relative addressing.
     spew("jmp        *%d(%%rip)", ripOffset);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteRipOp(OP_GROUP5_Ev, ripOffset, GROUP5_OP_JMPN);
   }
 
@@ -1215,6 +1321,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void sarxq_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
     spew("sarxq      %s, %s, %s", GPReg64Name(src), GPReg64Name(shift),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 
     RegisterID rm = src;
     XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
@@ -1226,6 +1333,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void shlxq_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
     spew("shlxq      %s, %s, %s", GPReg64Name(src), GPReg64Name(shift),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 
     RegisterID rm = src;
     XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
@@ -1237,6 +1345,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void shrxq_rrr(RegisterID src, RegisterID shift, RegisterID dst) {
     spew("shrxq      %s, %s, %s", GPReg64Name(src), GPReg64Name(shift),
          GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 
     RegisterID rm = src;
     XMMRegisterID src0 = static_cast<XMMRegisterID>(shift);
@@ -1250,9 +1359,10 @@ class BaseAssemblerX64 : public BaseAssembler {
                                         TwoByteOpcodeID opcode,
                                         XMMRegisterID reg) {
     MOZ_ASSERT(!IsXMMReversedOperands(opcode));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(ty);
     m_formatter.twoByteRipOp(opcode, 0, reg);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("%-11s " MEM_o32r ", %s", legacySSEOpName(name),
          ADDR_o32r(label.offset()), XMMRegName(reg));
     return label;
@@ -1263,16 +1373,18 @@ class BaseAssemblerX64 : public BaseAssembler {
                                         XMMRegisterID src0, XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm && !IsXMMReversedOperands(opcode));
     if (useLegacySSEEncoding(src0, dst)) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteRipOp(opcode, 0, dst);
-      JmpSrc label(m_formatter.size());
+      JmpSrc label(m_formatter.sizeAligned(0));
       spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
     }
 
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteRipOpVex(ty, opcode, 0, src0, dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("%-11s, " MEM_o32r ", %s, %s", name, ADDR_o32r(label.offset()),
          XMMRegName(src0), XMMRegName(dst));
     return label;
@@ -1284,19 +1396,21 @@ class BaseAssemblerX64 : public BaseAssembler {
                                            XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm && !IsXMMReversedOperands(opcode));
     if (useLegacySSEEncoding(src0, dst)) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteRipOp(opcode, 0, dst);
       m_formatter.immediate8u(imm);
-      JmpSrc label(m_formatter.size(),
+      JmpSrc label(m_formatter.sizeAligned(0),
                    /* bytes trailing the patch field = */ 1);
       spew("%-11s$0x%x, " MEM_o32r ", %s", legacySSEOpName(name), imm,
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
     }
 
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteRipOpVex(ty, opcode, 0, src0, dst);
     m_formatter.immediate8u(imm);
-    JmpSrc label(m_formatter.size(),
+    JmpSrc label(m_formatter.sizeAligned(0),
                  /* bytes trailing the patch field = */ 1);
     spew("%-11s$0x%x, " MEM_o32r ", %s, %s", name, imm,
          ADDR_o32r(label.offset()), XMMRegName(src0), XMMRegName(dst));
@@ -1314,6 +1428,7 @@ class BaseAssemblerX64 : public BaseAssembler {
         spew("%-11s%s, %s", legacySSEOpName(name), GPRegName(rm),
              XMMRegName(dst));
       }
+      InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteOp64(opcode, rm, dst);
       return;
@@ -1329,6 +1444,7 @@ class BaseAssemblerX64 : public BaseAssembler {
       spew("%-11s%s, %s, %s", name, GPRegName(rm), XMMRegName(src0),
            XMMRegName(dst));
     }
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOpVex64(ty, opcode, rm, src0, dst);
   }
 
@@ -1346,6 +1462,7 @@ class BaseAssemblerX64 : public BaseAssembler {
         spew("%-11s%s, %s", legacySSEOpName(name), XMMRegName(rm),
              GPRegName(dst));
       }
+      InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteOp64(opcode, (RegisterID)rm, dst);
       return;
@@ -1359,6 +1476,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     } else {
       spew("%-11s%s, %s", name, XMMRegName(rm), GPRegName(dst));
     }
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.twoByteOpVex64(ty, opcode, (RegisterID)rm, invalid_xmm,
                                (XMMRegisterID)dst);
   }
@@ -1367,9 +1485,10 @@ class BaseAssemblerX64 : public BaseAssembler {
                                           ThreeByteOpcodeID opcode,
                                           ThreeByteEscape escape,
                                           XMMRegisterID dst) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(ty);
     m_formatter.threeByteRipOp(opcode, escape, 0, dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
          ADDR_o32r(label.offset()), XMMRegName(dst));
     return label;
@@ -1382,16 +1501,18 @@ class BaseAssemblerX64 : public BaseAssembler {
                                           XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm);
     if (useLegacySSEEncoding(src0, dst)) {
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.threeByteRipOp(opcode, escape, 0, dst);
-      JmpSrc label(m_formatter.size());
+      JmpSrc label(m_formatter.sizeAligned(0));
       spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
     }
 
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.threeByteRipOpVex(ty, opcode, escape, 0, src0, dst);
-    JmpSrc label(m_formatter.size());
+    JmpSrc label(m_formatter.sizeAligned(0));
     spew("%-11s" MEM_o32r ", %s, %s", name, ADDR_o32r(label.offset()),
          XMMRegName(src0), XMMRegName(dst));
     return label;
@@ -1403,6 +1524,7 @@ class BaseAssemblerX64 : public BaseAssembler {
                                RegisterID dst) {
     spew("%-11s$0x%x, %s, %s", legacySSEOpName(name), imm, GPReg64Name(dst),
          XMMRegName(src));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.legacySSEPrefix(ty);
     m_formatter.threeByteOp64(opcode, escape, dst, (RegisterID)src);
     m_formatter.immediate8u(imm);
@@ -1415,6 +1537,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     if (useLegacySSEEncoding(src0, dst)) {
       spew("%-11s$0x%x, %s, %s", legacySSEOpName(name), imm, GPReg64Name(src1),
            XMMRegName(dst));
+      InstructionBundleAlignment align(*(BaseAssembler*)this);
       m_formatter.legacySSEPrefix(ty);
       m_formatter.threeByteOp64(opcode, escape, src1, (RegisterID)dst);
       m_formatter.immediate8u(imm);
@@ -1424,6 +1547,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     MOZ_ASSERT(src0 != invalid_xmm);
     spew("%-11s$0x%x, %s, %s, %s", name, imm, GPReg64Name(src1),
          XMMRegName(src0), XMMRegName(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.threeByteOpVex64(ty, opcode, escape, src1, src0,
                                  (RegisterID)dst);
     m_formatter.immediate8u(imm);
