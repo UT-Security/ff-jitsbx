@@ -895,21 +895,24 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   void movq_i64r(int64_t imm, RegisterID dst) {
-    spew("movabsq    $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
-    InstructionBundleAlignment align(*(BaseAssembler*)this);
 #ifdef JITSBX_CFI_LABEL4
     nopAlign(0x10);
 #endif
 #ifdef JITSBX_CFI_LABEL8
     // Make sure label cannot be emitted as an 8-byte sequence
-    if ((uint64_t(imm) & 0xff00000000000000) == 0xcc) {
-      movq_i64r(imm >> 8, dst);
+    if ((uint64_t(imm) >> 56) == 0xcc) {
+      movq_i64r(uint64_t(imm) >> 8, dst);
       shlq_ir(8, dst);
       addq_i32r(imm & 0xff, dst);
-    }
+    } else {
 #endif
+    spew("movabsq    $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_MOV_EAXIv, dst);
     m_formatter.immediate64(imm);
+#ifdef JITSBX_CFI_LABEL8
+    }
+#endif
   }
 
   void movsbq_rr(RegisterID src, RegisterID dst) {
