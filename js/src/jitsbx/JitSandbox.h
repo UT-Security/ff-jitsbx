@@ -20,6 +20,14 @@ static constexpr int32_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
 static constexpr int32_t AllocatedCodeBytesPerProcess = MaxCodeBytesPerProcess;
 static constexpr int32_t ExecutableMemoryBase = 0x40000000;
 static constexpr int32_t IndirectCodeTargetMask = (AllocatedCodeBytesPerProcess - 1) & ~(BundleAlignment - 1);
+
+inline bool isSameBundle(size_t x, size_t y) { 
+  return (x / BundleAlignment) == (y / BundleAlignment);    
+}
+
+inline int toNextBundle(size_t offset) {
+      return BundleAlignment - offset % BundleAlignment;
+}
 #endif
 
 class JitSandbox {

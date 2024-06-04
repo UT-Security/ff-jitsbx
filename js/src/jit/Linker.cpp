@@ -76,12 +76,12 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     cx->runtime()->gc.storeBuffer().putWholeCell(code);
   }
 
-#ifdef JITSBX
+#ifdef JITSBX_VERIFIER
   jitsbx::JitCodeInfo info = {codeStart,         masm.size(),
                               masm.doublePool(), masm.floatPool(),
                               masm.simdPool(),   masm.extendedJumpTable()};
 
-  if ((kind == CodeKind::Baseline || kind == CodeKind::Ion) && !jitsbx::verify(&info)) {
+  if (masm.isSandboxed() && (kind == CodeKind::Baseline || kind == CodeKind::Ion) && !jitsbx::verify(&info)) {
     return fail(cx);
   }
 #endif

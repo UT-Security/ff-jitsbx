@@ -6,6 +6,8 @@ use std::{slice, collections::HashSet};
 use yaxpeax_x86::amd64::{InstDecoder, Instruction, Opcode, Operand, RegSpec};
 use yaxpeax_arch::{LengthedInstruction, AddressDiff, AddressBase};
 
+const BUNDLE_ALIGNMENT: usize = 32;
+
 pub(crate) struct JitCodeInfo<'a> {
     code: &'a[u8],
     code_addr: u64,
@@ -71,7 +73,7 @@ impl<'a> Verifier<'a> {
             self.start_addr.push(ip);
             self.icount += 1;
 
-            if self.instr_overlaps_block_size(instr) {
+            if self.instr_overlaps_block_size(instr, ip) {
                 return false;
             }
 
@@ -108,8 +110,13 @@ impl<'a> Verifier<'a> {
         }
     }
 
-    fn instr_overlaps_block_size(&self, instr: Instruction) -> bool {
-        false
+    fn instr_overlaps_block_size(&self, instr: Instruction, ip: usize) -> bool {
+        let length = instr.len().to_const() as usize;
+        if ip / BUNDLE_ALIGNMENT != (ip + length - 1) / BUNDLE_ALIGNMENT {
+            true
+        } else {
+            false
+        }
     }
 
     fn instr_is_indirect_jump_or_call(&self, instr: Instruction) -> bool {

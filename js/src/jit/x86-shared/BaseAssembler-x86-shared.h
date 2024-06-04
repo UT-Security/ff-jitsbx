@@ -3157,16 +3157,33 @@ class BaseAssembler : public GenericAssembler {
   void jmp_i(JmpDst dst) {
     int32_t diff = dst.offset() - m_formatter.size();
     spew("jmp        .Llabel%d", dst.offset());
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 
     // The jump immediate is an offset from the end of the jump instruction.
     // A jump instruction is either 1 byte opcode and 1 byte offset, or 1
     // byte opcode and 4 bytes offset.
-    if (CAN_SIGN_EXTEND_8_32(diff - 2)) {
+    int32_t diff_adjustment =
+#ifdef JITSBX_CFI_BUNDLE
+        !isSandboxed() || jitsbx::isSameBundle(m_formatter.size(), m_formatter.size() + 1)
+            ? 0
+            : jitsbx::toNextBundle(m_formatter.size());
+#else
+        0;
+#endif
+    if (CAN_SIGN_EXTEND_8_32(diff - 2 - diff_adjustment)) {
       m_formatter.oneByteOp(OP_JMP_rel8);
-      m_formatter.immediate8s(diff - 2);
+      m_formatter.immediate8s(diff - 2 - diff_adjustment);
     } else {
+      int32_t diff_adjustment =
+#ifdef JITSBX_CFI_BUNDLE
+          !isSandboxed() || jitsbx::isSameBundle(m_formatter.size(), m_formatter.size() + 4)
+              ? 0
+              : jitsbx::toNextBundle(m_formatter.size());
+#else
+          0;
+#endif
       m_formatter.oneByteOp(OP_JMP_rel32);
-      m_formatter.immediate32(diff - 5);
+      m_formatter.immediate32(diff - 5 - diff_adjustment);
     }
   }
   [[nodiscard]] JmpSrc jmp() {
@@ -3199,16 +3216,34 @@ class BaseAssembler : public GenericAssembler {
   void jCC_i(Condition cond, JmpDst dst) {
     int32_t diff = dst.offset() - m_formatter.size();
     spew("j%s        .Llabel%d", CCName(cond), dst.offset());
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
 
     // The jump immediate is an offset from the end of the jump instruction.
     // A conditional jump instruction is either 1 byte opcode and 1 byte
     // offset, or 2 bytes opcode and 4 bytes offset.
-    if (CAN_SIGN_EXTEND_8_32(diff - 2)) {
+
+    int32_t diff_adjustment =
+#ifdef JITSBX_CFI_BUNDLE
+        !isSandboxed() || jitsbx::isSameBundle(m_formatter.size(), m_formatter.size() + 1)
+            ? 0
+            : jitsbx::toNextBundle(m_formatter.size());
+#else
+        0;
+#endif
+    if (CAN_SIGN_EXTEND_8_32(diff - 2 - diff_adjustment)) {
       m_formatter.oneByteOp(jccRel8(cond));
-      m_formatter.immediate8s(diff - 2);
+      m_formatter.immediate8s(diff - 2 - diff_adjustment);
     } else {
+    int32_t diff_adjustment =
+#ifdef JITSBX_CFI_BUNDLE
+        !isSandboxed() || jitsbx::isSameBundle(m_formatter.size(), m_formatter.size() + 5)
+            ? 0
+            : jitsbx::toNextBundle(m_formatter.size());
+#else
+        0;
+#endif
       m_formatter.twoByteOp(jccRel32(cond));
-      m_formatter.immediate32(diff - 6);
+      m_formatter.immediate32(diff - 6 - diff_adjustment);
     }
   }
 
@@ -6852,10 +6887,8 @@ class BaseAssembler : public GenericAssembler {
       if (beginInstrSize != size_t(-1)) {
         size_t offset = m_buffer.size() - beginInstrSize;
         size_t endInstrSize = m_buffer.size() + extra;
-        if (!oom() && beginInstrSize / jitsbx::BundleAlignment !=
-                          (endInstrSize - 1) / jitsbx::BundleAlignment) {
-          int nopsRequired = jitsbx::BundleAlignment -
-                             beginInstrSize % jitsbx::BundleAlignment;
+        if (!oom() && !jitsbx::isSameBundle(beginInstrSize, endInstrSize - 1)) {
+          int nopsRequired = jitsbx::toNextBundle(beginInstrSize);
           return beginInstrSize + nopsRequired + offset;
         } else {
           return size();
@@ -6888,9 +6921,9 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JITSBX_CFI_BUNDLE
       MOZ_ASSERT(beginInstrSize != size_t(-1));
       size_t endInstrSize = m_buffer.size();
-      if (!oom() && beginInstrSize / jitsbx::BundleAlignment != (endInstrSize - 1) / jitsbx::BundleAlignment) {
+      if (!oom() && !jitsbx::isSameBundle(beginInstrSize, endInstrSize - 1)) {
         int instrSize = endInstrSize - beginInstrSize;
-        int nopsRequired = jitsbx::BundleAlignment - beginInstrSize % jitsbx::BundleAlignment;
+        int nopsRequired = jitsbx::toNextBundle(beginInstrSize);
         m_temp_buffer.ensureSpace(instrSize);
         m_temp_buffer.infallibleAppend(m_buffer.buffer() + beginInstrSize, instrSize);
         m_buffer.shrinkTo(beginInstrSize);
