@@ -5,7 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/x64/MacroAssembler-x64.h"
-
+#ifdef JITSBX_CFI_BUNDLE
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/BaselineFrame.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
@@ -459,27 +461,53 @@ void MacroAssemblerX64::bindOffsets(
 }
 
 void MacroAssemblerX64::finish() {
+  AutoCreatedBy acb(asMasm(), "MacroAssemblerX64::finish");
   if (!doubles_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % sizeof(double) == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(sizeof(double));
+#endif
   }
+  doublePool_ = masm.size();
+
   for (const Double& d : doubles_) {
+    asMasm().sbxBundleAlignConstant(sizeof(double));
     bindOffsets(d.uses);
     masm.doubleConstant(d.value);
   }
 
   if (!floats_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % sizeof(float) == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(sizeof(float));
+#endif
+    floatPool_ = masm.size();
   }
   for (const Float& f : floats_) {
+    asMasm().sbxBundleAlignConstant(sizeof(float));
     bindOffsets(f.uses);
     masm.floatConstant(f.value);
   }
 
   // SIMD memory values must be suitably aligned.
   if (!simds_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % SimdMemoryAlignment == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(SimdMemoryAlignment);
+#endif
+    simdPool_ = masm.size();
   }
   for (const SimdData& v : simds_) {
+    asMasm().sbxBundleAlignConstant(SimdMemoryAlignment);
     bindOffsets(v.uses);
     masm.simd128Constant(v.value.bytes());
   }

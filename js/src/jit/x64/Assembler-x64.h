@@ -363,6 +363,8 @@ class Assembler : public AssemblerX86Shared {
   // relocations relying on the target address.
   void executableCopy(uint8_t* buffer);
 
+  uint32_t extendedJumpTable() { return extendedJumpTable_; }
+
   void assertNoGCThings() const {
 #ifdef DEBUG
     MOZ_ASSERT(dataRelocations_.length() == 0);

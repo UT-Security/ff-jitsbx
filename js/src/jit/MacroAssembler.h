@@ -1005,6 +1005,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // instruction alignment to bundle size
   inline void sbxBundleAlignNop(uint8_t extra = 0);
   inline void sbxAssertBundleAligned();
+  inline void sbxBundleAlignConstant(unsigned int size);
 
   void jump(Label* label) DEFINED_ON(x86_shared);
   void jump(JitCode* code) DEFINED_ON(x86_shared);

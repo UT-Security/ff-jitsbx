@@ -10,10 +10,24 @@
 #include <stddef.h>
 #include <stdint.h>
 
+namespace js {
+namespace jitsbx {
+
+struct JitCodeInfo {
+  uint8_t* code;
+  size_t length;
+
+  uint32_t doublePoolOffset;
+  uint32_t floatPoolOffset;
+  uint32_t simdPoolOffset;
+
+  uint32_t extendedJumpTableOffset;
+};
+
 extern "C" {
-
-bool jitsbx_verify(uint8_t* code, size_t length);
-
+bool verify(JitCodeInfo* info);
+}
+}
 }
 
 #endif

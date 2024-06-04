@@ -568,6 +568,23 @@ void MacroAssembler::sbxAssertBundleAligned() {
 #endif
 }
 
+void MacroAssembler::sbxBundleAlignConstant(unsigned int size) {
+#ifdef JITSBX_CFI_BUNDLE
+  // constant must fit within bundle after inserting halts into beginning.
+  MOZ_ASSERT(jitsbx::BundleAlignment > size &&
+             jitsbx::BundleAlignment - size >= size);
+
+  if (masm.size() / jitsbx::BundleAlignment !=
+      (masm.size() + size - 1) / jitsbx::BundleAlignment) {
+    haltingAlign(jitsbx::BundleAlignment);
+  }
+
+  if (masm.size() % jitsbx::BundleAlignment == 0) {
+    haltingAlign(size);
+  }
+#endif
+}
+
 // ===============================================================
 // Move instructions
 

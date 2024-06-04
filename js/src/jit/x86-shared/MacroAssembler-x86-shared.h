@@ -58,12 +58,14 @@ class MacroAssemblerX86Shared : public Assembler {
   typedef HashMap<double, size_t, DefaultHasher<double>, SystemAllocPolicy>
       DoubleMap;
   DoubleMap doubleMap_;
+  uint32_t doublePool_;
 
   using Float = Constant<float>;
   Vector<Float, 0, SystemAllocPolicy> floats_;
   typedef HashMap<float, size_t, DefaultHasher<float>, SystemAllocPolicy>
       FloatMap;
   FloatMap floatMap_;
+  uint32_t floatPool_;
 
   struct SimdData : public Constant<SimdConstant> {
     explicit SimdData(SimdConstant d) : Constant<SimdConstant>(d) {}
@@ -76,6 +78,7 @@ class MacroAssemblerX86Shared : public Assembler {
   typedef HashMap<SimdConstant, size_t, SimdConstant, SystemAllocPolicy>
       SimdMap;
   SimdMap simdMap_;
+  uint32_t simdPool_;
 
   template <class T, class Map>
   T* getConstant(const typename T::Pod& value, Map& map,
@@ -97,6 +100,11 @@ class MacroAssemblerX86Shared : public Assembler {
   void addToPCRel4(uint32_t offset, int32_t bias) {
     return masm.addToPCRel4(offset, bias);
   }
+
+  uint32_t doublePool() { return doublePool_; }
+  uint32_t floatPool() { return floatPool_; }
+  uint32_t simdPool() { return simdPool_; }
+  
 
   // Evaluate srcDest = minmax<isMax>{Float32,Double}(srcDest, second).
   // Checks for NaN if canBeNaN is true.
