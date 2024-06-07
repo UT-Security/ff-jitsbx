@@ -677,8 +677,8 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // ===============================================================
 // Simple call functions.
 
-CodeOffset MacroAssembler::call(Register reg) {
 #ifdef JITSBX_CFI_LABEL4
+CodeOffset MacroAssembler::callCFILabel4(Register reg) {
   Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
@@ -704,58 +704,16 @@ CodeOffset MacroAssembler::call(Register reg) {
   breakpoint();
 
   bind(&passed);
-#elif JITSBX_CFI_LABEL8
-  Label passed;
-  Imm64 label = Imm64(0xcccccccccccccccc);
-
-  // Label is at offset 5
-  Address target = Address(reg, 5);
-
-  branch64(Assembler::Equal, target, label, &passed);
-  breakpoint();
-
-  bind(&passed);
-#endif
-#ifdef JITSBX_CFI_BUNDLE_CALL
-  sbxBundleAlignNop();
-#ifdef DEBUG
-  ScratchRegisterScope scratch(*this);
-  movq(reg, scratch);
-  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
-  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
-  Label success;
-  branchPtr(Condition::Equal, reg, scratch, &success);
-  breakpoint();
-  bind(&success);
-  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
-  CodeOffset offset = Assembler::call(reg);
-  sbxAssertBundleAligned();
-#else
-  andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
-  lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
-  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
-  CodeOffset offset = Assembler::call(reg);
-  sbxAssertBundleAligned();
-#endif
-#else
+ 
   sbxToNativeStack();
-  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
   CodeOffset offset = Assembler::call(reg);
   sbxToSandboxStack();
-#endif
+
   return offset;
 }
 
-#ifdef JITSBX
-CodeOffset MacroAssembler::callCFIUnsafe(Register reg) {
-  return Assembler::call(reg);
-}
-#endif
-
-#ifdef JITSBX_CFI_STACK
-CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
-#ifdef JITSBX_CFI_LABEL4
-  Label passed;
+CodeOffset MacroAssembler::callCFILabel4CFIStackUnsafe(Register reg) {
+  Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
   // Force alignment (find a better way to do this)
@@ -780,7 +738,14 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
   breakpoint();
 
   bind(&passed);
-#elif JITSBX_CFI_LABEL8
+ 
+  CodeOffset offset = Assembler::call(reg);
+  return offset;
+}
+#endif
+
+#ifdef JITSBX_CFI_LABEL8
+CodeOffset MacroAssembler::callCFILabel8(Register reg) {
   Label passed;
   Imm64 label = Imm64(0xcccccccccccccccc);
 
@@ -791,27 +756,108 @@ CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
   breakpoint();
 
   bind(&passed);
-#endif
-  return Assembler::call(reg);
-}
-#endif
-
-#if defined(JITSBX_CFI_LABEL4) || defined(JITSBX_CFI_LABEL8)
-CodeOffset MacroAssembler::callCFILabelUnsafe(Register reg) {
   sbxToNativeStack();
   CodeOffset offset = Assembler::call(reg);
   sbxToSandboxStack();
   return offset;
 }
+
+CodeOffset MacroAssembler::callCFILabel8CFIStackUnsafe(Register reg) {
+  Label passed;
+  Imm64 label = Imm64(0xcccccccccccccccc);
+
+  // Label is at offset 5
+  Address target = Address(reg, 5);
+
+  branch64(Assembler::Equal, target, label, &passed);
+  breakpoint();
+
+  bind(&passed);
+  CodeOffset offset = Assembler::call(reg);
+  return offset;
+}
+#endif
+
+#ifdef JITSBX_CFI_BUNDLE_CALL
+CodeOffset MacroAssembler::callCFIBundle(Register reg) {
+  sbxBundleAlignNop();
+#ifdef DEBUG
+  ScratchRegisterScope scratch(*this);
+  movq(reg, scratch);
+  andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
+  lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+  Label success;
+  branchPtr(Condition::Equal, reg, scratch, &success);
+  breakpoint();
+  bind(&success);
+#else
+  andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
+  lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
+#endif
+  sbxBundleAlignNop(Assembler::sizeOfCall(reg));
+  CodeOffset offset = Assembler::call(reg);
+  sbxAssertBundleAligned();
+  return offset;
+}
+#endif
+
+CodeOffset MacroAssembler::call(Register reg) {
+#ifdef JITSBX
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return callCFILabel4(reg);
+#elif defined(JITSBX_CFI_LABEL8)
+    return callCFILabel8(reg);
+#elif defined(JITSBX_CFI_STACK)
+    sbxToNativeStack();
+    CodeOffset offset = Assembler::call(reg);
+    sbxToSandboxStack();
+    return offset;
+#elif defined(JITSBX_CFI_BUNDLE_CALL)
+    return callCFIBundle(reg);
+#elif defined(JITSBX_CFI_BUNDLE)
+    sbxBundleAlignNop(Assembler::sizeOfCall(reg));
+#endif
+  }
+#endif
+  return Assembler::call(reg);
+}
+
+#ifdef JITSBX
+CodeOffset MacroAssembler::callCFIUnsafe(Register reg) {
+  return Assembler::call(reg);
+}
+#endif
+
+#ifdef JITSBX_CFI_STACK
+CodeOffset MacroAssembler::callCFIStackUnsafe(Register reg) {
+#if defined(JITSBX_CFI_LABEL4) || defined(JITSBX_CFI_LABEL8)
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return callCFILabel4CFIStackUnsafe(reg);
+#elif defined(JITSBX_CFI_LABEL8)
+    return callCFILabel8CFIStackUnsafe(reg);
+#endif
+  }
+#endif
+
+  return Assembler::call(reg);
+}
 #endif
 
 CodeOffset MacroAssembler::call(Label* label) {
-  sbxToNativeStack();
-  sbxBundleAlignNop(5);
-  CodeOffset offset = Assembler::call(label);
-  sbxAssertBundleAligned();
-  sbxToSandboxStack();
-  return offset;
+#if defined(JITSBX_CFI_STACK) || defined(JITSBX_CFI_BUNDLE)
+  if (isSandboxed()) {
+    sbxToNativeStack();
+    sbxBundleAlignNop(5);
+    CodeOffset offset = Assembler::call(label);
+    sbxAssertBundleAligned();
+    sbxToSandboxStack();
+    return offset;
+  }
+#endif
+
+  return Assembler::call(label);
 }
 
 #ifdef JITSBX
@@ -820,8 +866,8 @@ CodeOffset MacroAssembler::callCFIUnsafe(Label* label) {
 }
 #endif
 
-CodeOffset MacroAssembler::call(const Address& addr) {
 #ifdef JITSBX_CFI_LABEL4
+CodeOffset MacroAssembler::callCFILabel4(const Address& addr) {
   Label passed, aligned;
   Imm32 label = Imm32(0xcccccccc);
 
@@ -848,7 +894,48 @@ CodeOffset MacroAssembler::call(const Address& addr) {
   breakpoint();
 
   bind(&passed);
-#elif JITSBX_CFI_LABEL8
+  
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+  sbxToSandboxStack();
+  return offset;
+}
+
+CodeOffset MacroAssembler::callCFILabel4CFIStackUnsafe(const Address& addr) {
+  Label passed, aligned;
+  Imm32 label = Imm32(0xcccccccc);
+
+  // Force alignment (find a better way to do this)
+  ScratchRegisterScope scratch(*this);
+  movq(ImmWord(0xf), scratch);
+  andq(Operand(addr), scratch);
+
+  cmp32(scratch, Imm32(0));
+  j(Assembler::Equal, &aligned);
+
+  // Force alignment
+  subq(scratch, Operand(addr));
+  addq(Imm32(0x10), Operand(addr));
+
+  bind(&aligned);
+  movq(Operand(addr), scratch);
+
+  // Label is at offset 5
+  Address target = Address(scratch, 5);
+
+  cmp32(Operand(target), label);
+  j(Assembler::Equal, &passed);
+  breakpoint();
+
+  bind(&passed);
+  
+  return Assembler::call(Operand(addr.base, addr.offset));
+}
+#endif
+
+
+#ifdef JITSBX_CFI_LABEL8
+CodeOffset MacroAssembler::callCFILabel8(const Address& addr) {
   Label passed, failed;
   Imm32 label32 = Imm32(0xcccccccc);
 
@@ -869,8 +956,41 @@ CodeOffset MacroAssembler::call(const Address& addr) {
   breakpoint();
 
   bind(&passed);
+
+  sbxToNativeStack();
+  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+  sbxToSandboxStack();
+  return offset;
+}
+
+CodeOffset MacroAssembler::callCFILabel8CFIStackUnsafe(const Address& addr) {
+  Label passed, failed;
+  Imm32 label32 = Imm32(0xcccccccc);
+
+  ScratchRegisterScope scratch(*this);
+  movq(Operand(addr), scratch);
+
+  // Label high - offset 5
+  Address target = Address(scratch, 5);
+  cmp32(Operand(target), label32);
+  j(Assembler::NotEqual, &failed);
+
+  // Label low - offset 9
+  target = Address(scratch, 9);
+  cmp32(Operand(target), label32);
+  j(Assembler::Equal, &passed);
+
+  bind(&failed);
+  breakpoint();
+
+  bind(&passed);
+
+  return Assembler::call(Operand(addr.base, addr.offset));
+}
 #endif
+
 #ifdef JITSBX_CFI_BUNDLE_CALL
+CodeOffset MacroAssembler::callCFIBundle(const Address& addr) {
   sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
@@ -881,24 +1001,37 @@ CodeOffset MacroAssembler::call(const Address& addr) {
   branchPtr(Condition::Equal, addr, scratch, &success);
   breakpoint();
   bind(&success);
-  sbxBundleAlignNop(Assembler::sizeOfCall(scratch));
-  CodeOffset offset = Assembler::call(scratch);
-  sbxAssertBundleAligned();
 #else
   andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
+#endif 
   sbxBundleAlignNop(Assembler::sizeOfCall(scratch));
   CodeOffset offset = Assembler::call(scratch);
   sbxAssertBundleAligned();
-#endif
-#else
-  sbxToNativeStack();
-  sbxBundleAlignNop(Assembler::sizeOfCall(Operand(addr.base, addr.offset)));
-  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
-  sbxAssertBundleAligned();
-  sbxToSandboxStack();
-#endif
   return offset;
+}
+#endif
+
+CodeOffset MacroAssembler::call(const Address& addr) {
+#ifdef JITSBX
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return callCFILabel4(addr);
+#elif defined(JITSBX_CFI_LABEL8)
+    return callCFILabel8(addr);
+#elif defined(JITSBX_CFI_STACK)
+    sbxToNativeStack();
+    CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
+    sbxToSandboxStack();
+    return offset;
+#elif defined(JITSBX_CFI_BUNDLE_CALL)
+    return callCFIBundle(addr);
+#elif defined(JITSBX_CFI_BUNDLE)
+    sbxBundleAlignNop(Assembler::sizeOfCall(Operand(addr.base, addr.offset)));
+#endif
+  }
+#endif
+  return Assembler::call(Operand(addr.base, addr.offset));
 }
 
 #ifdef JITSBX
@@ -909,50 +1042,17 @@ CodeOffset MacroAssembler::callCFIUnsafe(const Address& addr) {
 
 #ifdef JITSBX_CFI_STACK
 CodeOffset MacroAssembler::callCFIStackUnsafe(const Address& addr) {
-#ifdef JITSBX_CFI_LABEL4
-  Label passed;
-  Imm32 label = Imm32(0xcccccccc);
-  ScratchRegisterScope scratch(*this);
-  movq(Operand(addr), scratch);
-
-  // Label is at offset 5
-  Address target = Address(scratch, 5);
-  branch32(Assembler::Equal, target, label, &passed);
-  breakpoint();
-
-  bind(&passed);
-#elif JITSBX_CFI_LABEL8
-  Label passed, failed;
-  Imm32 label32 = Imm32(0xcccccccc);
-
-  ScratchRegisterScope scratch(*this);
-  movq(Operand(addr), scratch);
-
-  // Label high - offset 5
-  Address target = Address(scratch, 5);
-  cmp32(Operand(target), label32);
-  j(Assembler::NotEqual, &failed);
-
-  // Label low - offset 9
-  target = Address(scratch, 9);
-  cmp32(Operand(target), label32);
-  j(Assembler::Equal, &passed);
-
-  bind(&failed);
-  breakpoint();
-
-  bind(&passed);
-#endif
-  return Assembler::call(Operand(addr.base, addr.offset));
-}
-#endif
-
 #if defined(JITSBX_CFI_LABEL4) || defined(JITSBX_CFI_LABEL8)
-CodeOffset MacroAssembler::callCFILabelUnsafe(const Address& addr) {
-  sbxToNativeStack();
-  CodeOffset offset = Assembler::call(Operand(addr.base, addr.offset));
-  sbxToSandboxStack();
-  return offset;
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return callCFILabel4CFIStackUnsafe(addr);
+#elif defined(JITSBX_CFI_LABEL8)
+    return callCFILabel8CFIStackUnsafe(addr);
+#endif
+  }
+#endif
+  
+  return Assembler::call(Operand(addr.base, addr.offset));
 }
 #endif
 
@@ -962,21 +1062,33 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
 }
 
 CodeOffset MacroAssembler::call(ImmWord target) {
-  sbxToNativeStack();
-  sbxBundleAlignNop(5);
-  CodeOffset offset = Assembler::call(target);
-  sbxAssertBundleAligned();
-  sbxToSandboxStack();
-  return offset;
+#if defined(JITSBX_CFI_STACK) || defined(JITSBX_CFI_BUNDLE)
+  if (isSandboxed()) {
+    sbxToNativeStack();
+    sbxBundleAlignNop(5);
+    CodeOffset offset = Assembler::call(target);
+    sbxAssertBundleAligned();
+    sbxToSandboxStack();
+    return offset;
+  }
+#endif
+
+  return Assembler::call(target);
 }
 
 CodeOffset MacroAssembler::call(ImmPtr target) {
-  sbxToNativeStack();
-  sbxBundleAlignNop(5);
-  CodeOffset offset = Assembler::call(target);
-  sbxAssertBundleAligned();
-  sbxToSandboxStack();
-  return offset;
+#if defined(JITSBX_CFI_STACK) || defined(JITSBX_CFI_BUNDLE)
+  if (isSandboxed()) {
+    sbxToNativeStack();
+    sbxBundleAlignNop(5);
+    CodeOffset offset = Assembler::call(target);
+    sbxAssertBundleAligned();
+    sbxToSandboxStack();
+    return offset;
+  }
+#endif
+
+  return Assembler::call(target);
 }
 
 #ifdef JITSBX
@@ -986,12 +1098,18 @@ CodeOffset MacroAssembler::callCFIUnsafe(ImmPtr target) {
 #endif
 
 CodeOffset MacroAssembler::call(JitCode* target) {
-  sbxToNativeStack();
-  sbxBundleAlignNop(5);
-  CodeOffset offset = Assembler::call(target);
-  sbxAssertBundleAligned();
-  sbxToSandboxStack();
-  return offset;
+#if defined(JITSBX_CFI_STACK) || defined(JITSBX_CFI_BUNDLE)
+  if (isSandboxed()) {
+    sbxToNativeStack();
+    sbxBundleAlignNop(5);
+    CodeOffset offset = Assembler::call(target);
+    sbxAssertBundleAligned();
+    sbxToSandboxStack();
+    return offset;
+  }
+#endif
+
+  return Assembler::call(target);
 }
 
 CodeOffset MacroAssembler::callWithPatch() {
@@ -1061,8 +1179,8 @@ void MacroAssembler::jump(JitCode* code) { jmp(code); }
 void MacroAssembler::jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
 void MacroAssembler::jump(ImmPtr ptr) { jmp(ptr); }
 
-void MacroAssembler::jump(Register reg) {
 #ifdef JITSBX_CFI_LABEL4
+void MacroAssembler::jumpCFILabel4(Register reg) {
   // TODO: Emit label checks for relative jumps
   // TODO: Change label
   Label passed, aligned;
@@ -1090,7 +1208,12 @@ void MacroAssembler::jump(Register reg) {
   breakpoint();
 
   bind(&passed);
-#elif JITSBX_CFI_LABEL8
+  jmp(Operand(reg));
+}
+#endif
+
+#ifdef JITSBX_CFI_LABEL8
+void MacroAssembler::jumpCFILabel8(Register reg) {
   Label passed;
   Imm64 label = Imm64(0xcccccccccccccccc);
 
@@ -1101,7 +1224,12 @@ void MacroAssembler::jump(Register reg) {
   breakpoint();
 
   bind(&passed);
-#elif defined(JITSBX_CFI_BUNDLE_JUMP)
+  jmp(Operand(reg));
+}
+#endif
+
+#ifdef JITSBX_CFI_BUNDLE_JUMP
+void MacroAssembler::jumpCFIBundle(Register reg) {
   sbxBundleAlignNop();
 #ifdef DEBUG
   ScratchRegisterScope scratch(*this);
@@ -1116,6 +1244,21 @@ void MacroAssembler::jump(Register reg) {
   andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
   lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
 #endif
+  jmp(Operand(reg));
+}
+#endif
+
+void MacroAssembler::jump(Register reg) {
+#ifdef JITSBX
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return jumpCFILabel4(reg);
+#elif defined(JITSBX_CFI_LABEL8)
+    return jumpCFILabel8(reg);
+#elif defined(JITSBX_CFI_BUNDLE_JUMP)
+    return jumpCFIBundle(reg);
+#endif
+  }
 #endif
   jmp(Operand(reg));
 }
@@ -1126,8 +1269,8 @@ void MacroAssembler::jumpCFIUnsafe(Register reg) {
 }
 #endif
 
-void MacroAssembler::jump(const Address& addr) {
 #ifdef JITSBX_CFI_LABEL4
+void MacroAssembler::jumpCFILabel4(const Address& addr) {
   // TODO: Emit label checks for relative jumps
   // TODO: Change label
   Label passed, aligned;
@@ -1157,7 +1300,11 @@ void MacroAssembler::jump(const Address& addr) {
 
   bind(&passed);
   jmp(Operand(addr));
-#elif JITSBX_CFI_LABEL8
+}
+#endif
+
+#ifdef JITSBX_CFI_LABEL8
+void MacroAssembler::jumpCFILabel8(const Address& addr) {
   Label passed, failed;
   Imm32 label32 = Imm32(0xcccccccc);
 
@@ -1179,7 +1326,11 @@ void MacroAssembler::jump(const Address& addr) {
 
   bind(&passed);
   jmp(Operand(addr));
-#elif defined(JITSBX_CFI_BUNDLE_JUMP)
+}
+#endif
+
+#ifdef JITSBX_CFI_BUNDLE_JUMP
+void MacroAssembler::jumpCFIBundle(const Address& addr) {
   sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
@@ -1195,9 +1346,23 @@ void MacroAssembler::jump(const Address& addr) {
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
 #endif
   jmp(Operand(scratch));
-#else
-  jmp(Operand(addr));
+}
 #endif
+
+void MacroAssembler::jump(const Address& addr) {
+#ifdef JITSBX
+  if (isSandboxed()) {
+#if defined(JITSBX_CFI_LABEL4)
+    return jumpCFILabel4(addr);
+#elif defined(JITSBX_CFI_LABEL8)
+    return jumpCFILabel8(addr);
+#elif defined(JITSBX_CFI_BUNDLE_JUMP)
+    return jumpCFIBundle(addr);
+#endif
+  }
+#endif
+
+  jmp(Operand(addr));
 }
 
 #ifdef JITSBX
@@ -1210,6 +1375,17 @@ void MacroAssembler::jumpCFIUnsafe(const Address& addr) {
 
 void MacroAssembler::ret() {
 #ifdef JITSBX_CFI_BUNDLE_RET
+  if (isSandboxed()) {
+    return retCFIBundle();
+  }
+#endif
+
+  AssemblerX86Shared::ret();  
+}
+
+#ifdef JITSBX_CFI_BUNDLE_RET
+void MacroAssembler::retCFIBundle() {
+  sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
 #ifdef DEBUG
   loadPtr(Address(rsp, 0), scratch);
@@ -1226,12 +1402,8 @@ void MacroAssembler::ret() {
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
 #endif
   jmp(Operand(scratch));
-#else
-  AssemblerX86Shared::ret();  
-#endif
 }
 
-#ifdef JITSBX_CFI_BUNDLE_RET
 void MacroAssembler::retCFIUnsafe() {
   AssemblerX86Shared::ret();  
 }

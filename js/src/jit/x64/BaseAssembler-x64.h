@@ -61,9 +61,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void addq_ir(int32_t imm, RegisterID dst) {
     spew("addq       $%d, %s", imm, GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -81,9 +79,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     // 32-bit immediate always, for patching.
     spew("addq       $0x%04x, %s", uint32_t(imm), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (dst == rax) {
       m_formatter.oneByteOp64(OP_ADD_EAXIv);
     } else {
@@ -95,9 +91,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void addq_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -110,9 +104,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void addq_im(int32_t imm, const void* addr) {
     spew("addq       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -264,9 +256,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void andq_ir(int32_t imm, RegisterID dst) {
     spew("andq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_AND);
       m_formatter.immediate8s(imm);
@@ -295,9 +285,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void orq_ir(int32_t imm, RegisterID dst) {
     spew("orq        $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_OR);
       m_formatter.immediate8s(imm);
@@ -352,9 +340,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void subq_ir(int32_t imm, RegisterID dst) {
     spew("subq       $%d, %s", imm, GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_SUB);
       m_formatter.immediate8s(imm);
@@ -377,9 +363,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void xorq_ir(int32_t imm, RegisterID dst) {
     spew("xorq       $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, dst, GROUP1_OP_XOR);
       m_formatter.immediate8s(imm);
@@ -496,9 +480,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void imulq_ir(int32_t value, RegisterID src, RegisterID dst) {
     spew("imulq      $%d, %s, %s", value, GPReg64Name(src), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(value)) {
       m_formatter.oneByteOp64(OP_IMUL_GvEvIb, src, dst);
       m_formatter.immediate8s(value);
@@ -562,9 +544,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 
     spew("cmpq       $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, lhs, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -596,9 +576,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     spew("cmpq       $0x%x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, index, scale,
                               GROUP1_OP_CMP);
@@ -612,9 +590,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void cmpq_im(int32_t rhs, const void* addr) {
     spew("cmpq       $0x%" PRIx64 ", %p", uint64_t(rhs), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (CAN_SIGN_EXTEND_8_32(rhs)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_CMP);
       m_formatter.immediate8s(rhs);
@@ -644,9 +620,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
     spew("testq      $0x%" PRIx64 ", %s", uint64_t(rhs), GPReg64Name(lhs));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     if (lhs == rax) {
       m_formatter.oneByteOp64(OP_TEST_EAXIv);
     } else {
@@ -668,9 +642,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     spew("testq      $0x%4x, " MEM_obs, uint32_t(rhs),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     m_formatter.oneByteOp64(OP_GROUP3_EvIz, offset, base, index, scale,
                             GROUP3_OP_TEST);
     m_formatter.immediate32(rhs);
@@ -849,9 +821,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base) {
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     spew("movq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
@@ -859,9 +829,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     spew("movq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
@@ -871,9 +839,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   void movq_i32m(int32_t imm, const void* addr) {
     spew("movq       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
@@ -887,17 +853,13 @@ class BaseAssemblerX64 : public BaseAssembler {
   void movq_i32r(int32_t imm, RegisterID dst) {
     spew("movq       $%d, %s", imm, GPRegName(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, dst, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
 
   void movq_i64r(int64_t imm, RegisterID dst) {
-#ifdef JITSBX_CFI_LABEL4
-    nopAlign(0x10);
-#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
 #ifdef JITSBX_CFI_LABEL8
     // Make sure label cannot be emitted as an 8-byte sequence
     if ((uint64_t(imm) >> 56) == 0xcc) {

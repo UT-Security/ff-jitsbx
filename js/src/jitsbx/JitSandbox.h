@@ -14,7 +14,7 @@ namespace js {
 
 namespace jitsbx {
 
-#ifdef JITSBX_CFI_BUNDLE
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
 static constexpr uint32_t BundleAlignment = 32; 
 static constexpr int32_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
 static constexpr int32_t AllocatedCodeBytesPerProcess = MaxCodeBytesPerProcess;

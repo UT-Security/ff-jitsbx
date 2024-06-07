@@ -617,6 +617,20 @@ set_config("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
 set_define("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
 
 option(
+    "--enable-jit-sandbox-cfi-bundle-align-instr",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-align-instr", "--enable-jit-sandbox")
+def jit_sandbox_cfi_bundle_align_instr(jit_sandbox_cfi_bundle_align_instr, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_bundle_align_instr:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_ALIGN_INSTR", jit_sandbox_cfi_bundle_align_instr)
+set_define("JITSBX_CFI_BUNDLE_ALIGN_INSTR", jit_sandbox_cfi_bundle_align_instr)
+
+option(
     "--enable-jit-sandbox-cfi-bundle-call",
     default=False,
     help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",

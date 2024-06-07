@@ -169,7 +169,7 @@ class AssemblerBuffer {
     return true;
   }
 
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX_CFI_BUNDLE_ALIGN_INSTR
   MOZ_ALWAYS_INLINE void infallibleAppend(const unsigned char* values, size_t size) {
     m_buffer.infallibleAppend(values, size);      
   }
