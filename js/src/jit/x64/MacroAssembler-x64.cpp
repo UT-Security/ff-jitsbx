@@ -26,6 +26,17 @@ void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   if (maybeInlineDouble(d, dest)) {
     return;
   }
+#ifdef JS_LABEL_CFI
+  // Special case where the double could be a fake label
+  uint64_t val;
+  memcpy(&val, &d, sizeof val);
+  if ((val >> 56) == 0xcc) {
+    ScratchRegisterScope scratch(asMasm());
+    masm.movq_i64r(val, scratch.encoding());
+    masm.vmovq_rr(scratch.encoding(), dest.encoding());
+    return;
+  }
+#endif
   Double* dbl = getDouble(d);
   if (!dbl) {
     return;
