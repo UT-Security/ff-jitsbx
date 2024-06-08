@@ -637,11 +637,7 @@ static void GenerateCallableEpilogue(MacroAssembler& masm, unsigned framePushed,
   poppedFP = masm.currentOffset();
 
   *ret = masm.currentOffset();
-#ifdef JITSBX_CFI_BUNDLE_RET
-  masm.retCFIUnsafe();
-#else
   masm.ret();
-#endif
 
 #endif
 
@@ -763,11 +759,7 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
   if (tier1FuncIndex) {
     Register scratch = ABINonArgReg0;
     masm.loadPtr(Address(InstanceReg, Instance::offsetOfJumpTable()), scratch);
-#ifdef JITSBX
-    masm.jumpCFIUnsafe(Address(scratch, *tier1FuncIndex * sizeof(uintptr_t)));
-#else
     masm.jump(Address(scratch, *tier1FuncIndex * sizeof(uintptr_t)));
-#endif
   }
 
   offsets->tierEntry = masm.currentOffset();

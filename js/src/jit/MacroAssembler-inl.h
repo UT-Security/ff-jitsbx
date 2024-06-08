@@ -107,11 +107,7 @@ CodeOffset MacroAssembler::call(TrampolinePtr code) { return call(ImmPtr(code.va
 
 CodeOffset MacroAssembler::call(const wasm::CallSiteDesc& desc,
                                 const Register reg) {
-#ifdef JITSBX
-  CodeOffset l = callCFIUnsafe(reg);
-#else
   CodeOffset l = call(reg);
-#endif
   append(desc, l);
   return l;
 }
