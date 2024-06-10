@@ -1024,6 +1024,15 @@ class Assembler : public AssemblerX86Shared {
   }
   void xchg(Register src, Register dest) { xchgq(src, dest); }
 
+  static size_t sizeOfLea(const Operand& src, Register dest) {
+    switch (src.kind()) {
+      case Operand::MEM_REG_DISP:
+        return X86Encoding::BaseAssemblerSpecific::sizeOfLeaq_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexepcted operand kind");
+    }
+  }
   void lea(const Operand& src, Register dest) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:

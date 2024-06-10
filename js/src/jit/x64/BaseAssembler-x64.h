@@ -967,6 +967,10 @@ class BaseAssemblerX64 : public BaseAssembler {
     return label;
   }
 
+  static size_t sizeOfLeaq_mr(int32_t offset, RegisterID base, RegisterID dst) {
+    return X86InstructionFormatter::sizeOfOneByteOp64(OP_LEA, offset, base, dst);
+  }
+
   void leaq_mr(int32_t offset, RegisterID base, RegisterID dst) {
     spew("leaq       " MEM_ob ", %s", ADDR_ob(offset, base), GPReg64Name(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);

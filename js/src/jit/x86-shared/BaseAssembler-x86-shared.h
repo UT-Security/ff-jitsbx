@@ -1164,6 +1164,17 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_AND_EvGv, offset, base, index, scale, src);
   }
 
+  static size_t sizeOfAndl_ir(int32_t imm, RegisterID dst) {
+    if (CAN_SIGN_EXTEND_8_32(imm)) {
+      return X86InstructionFormatter::sizeOfOneByteOp(OP_GROUP1_EvIb, dst, GROUP1_OP_AND) + 1;
+    } else {
+      if (dst == rax) {
+        return X86InstructionFormatter::sizeOfOneByteOp(OP_AND_EAXIv) + 4;
+      } else {
+        return X86InstructionFormatter::sizeOfOneByteOp(OP_GROUP1_EvIz, dst, GROUP1_OP_AND) + 4;
+      }
+    }
+  }
   void andl_ir(int32_t imm, RegisterID dst) {
     cfiLabelNopAlign();
     spew("andl       $0x%x, %s", uint32_t(imm), GPReg32Name(dst));
@@ -3128,6 +3139,10 @@ class BaseAssembler : public GenericAssembler {
     return r;
   }
 
+  static size_t sizeOfJmp_r(RegisterID dst) {
+    return X86InstructionFormatter::sizeOfOneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_JMPN);  
+  }
+  
   void jmp_r(RegisterID dst) {
     spew("jmp        *%s", GPRegName(dst));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -6048,6 +6063,9 @@ class BaseAssembler : public GenericAssembler {
         //
     /* clang-format on */
 
+    static size_t sizeOfOneByteOp(OneByteOpcodeID opcode) {
+      return 1;
+    }
     void oneByteOp(OneByteOpcodeID opcode) {
       m_buffer.ensureSpace(MaxInstructionSize);
       m_buffer.putByteUnchecked(opcode);
@@ -6478,6 +6496,10 @@ class BaseAssembler : public GenericAssembler {
       registerModRM(rm, reg);
     }
 
+    static size_t sizeOfOneByteOp64(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
+                     int reg) {
+      return (isRexNeeded(true, reg, 0, base) ? 2 : 1) + sizeOfMemoryModRM(offset, base, reg);
+    }
     void oneByteOp64(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                      int reg) {
       m_buffer.ensureSpace(MaxInstructionSize);
@@ -6952,6 +6974,37 @@ class BaseAssembler : public GenericAssembler {
 
     void registerModRM(RegisterID rm, int reg) {
       putModRm(ModRmRegister, rm, reg);
+    }
+
+    static size_t sizeOfMemoryModRM(int32_t offset, RegisterID base, int reg) {
+// A base of esp or r12 would be interpreted as a sib, so force a
+// sib with no index & put the base in there.
+#ifdef JS_CODEGEN_X64
+      if ((base == hasSib) || (base == hasSib2)) {
+#else
+      if (base == hasSib) {
+#endif
+        if (!offset) {  // No need to check if the base is noBase, since we know
+                        // it is hasSib!
+          return 2;
+        } else if (CAN_SIGN_EXTEND_8_32(offset)) {
+          return 3;
+        } else {
+          return 6;
+        }
+      } else {
+#ifdef JS_CODEGEN_X64
+        if (!offset && (base != noBase) && (base != noBase2)) {
+#else
+        if (!offset && (base != noBase)) {
+#endif
+          return 1;
+        } else if (CAN_SIGN_EXTEND_8_32(offset)) {
+          return 2;
+        } else {
+          return 5;
+        }
+      }
     }
 
     void memoryModRM(int32_t offset, RegisterID base, int reg) {

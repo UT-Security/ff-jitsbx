@@ -991,6 +991,7 @@ public:
 public:
   // nop align the instruction stream to bundle boundary
   inline void sbxBundleAlignNop(uint8_t extra = 0);
+  inline void sbxMaybeBundleAlignNop(uint32_t size);
   // assert that the masm stream is bundle aligned
   inline void sbxAssertBundleAligned();
   // halt align the instruction stream for emitting constant pool

@@ -1050,6 +1050,15 @@ class AssemblerX86Shared : public AssemblerShared {
     jmpSrc(label);
   }
 
+  static size_t sizeOfJmp(const Operand& op) {
+    switch (op.kind()) {
+      case Operand::REG:
+        return X86Encoding::BaseAssembler::sizeOfJmp_r(op.reg());
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
   void jmp(const Operand& op) {
     MOZ_ASSERT(hasCreator());
     switch (op.kind()) {
@@ -1720,6 +1729,9 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+  }
+  static size_t sizeOfAndl(Imm32 imm, Register dest) {
+    return X86Encoding::BaseAssembler::sizeOfAndl_ir(imm.value, dest.encoding());
   }
   void andl(Imm32 imm, Register dest) {
     masm.andl_ir(imm.value, dest.encoding());

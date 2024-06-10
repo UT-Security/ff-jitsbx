@@ -588,6 +588,14 @@ void MacroAssembler::sbxBundleAlignNop(uint8_t extra) {
 #endif
 }
 
+void MacroAssembler::sbxMaybeBundleAlignNop(uint32_t size) {
+#ifdef JITSBX_CFI_BUNDLE
+  if (isSandboxed() && !jitsbx::isSameBundle(masm.size(), masm.size() + size - 1)) {
+    sbxBundleAlignNop();
+  }
+#endif
+}
+
 void MacroAssembler::sbxAssertBundleAligned() {
 #ifdef JITSBX_CFI_BUNDLE
   MOZ_ASSERT_IF(isSandboxed() && !oom(), currentOffset() % jitsbx::BundleAlignment == 0);

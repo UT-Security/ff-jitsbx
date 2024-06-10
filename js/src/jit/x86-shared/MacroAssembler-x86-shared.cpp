@@ -780,23 +780,29 @@ CodeOffset MacroAssembler::callCFILabel8CFIStackUnsafe(Register reg) {
 
 #ifdef JITSBX_CFI_BUNDLE_CALL
 CodeOffset MacroAssembler::callCFIBundle(Register reg) {
-  sbxBundleAlignNop();
-#ifdef DEBUG
+/*#ifdef DEBUG
   ScratchRegisterScope scratch(*this);
   movq(reg, scratch);
+  sbxBundleAlignNop();
+  int32_t instrIndex = masm.size();
   andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
   Label success;
   branchPtr(Condition::Equal, reg, scratch, &success);
   breakpoint();
   bind(&success);
-#else
+#else*/
+  sbxMaybeBundleAlignNop(
+      Assembler::sizeOfAndl(Imm32(jitsbx::IndirectCodeTargetMask), reg) +
+      Assembler::sizeOfLea(Operand(reg, jitsbx::ExecutableMemoryBase), reg) +
+      Assembler::sizeOfCall(reg));
   andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
   lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
-#endif
+//#endif
   sbxBundleAlignNop(Assembler::sizeOfCall(reg));
   CodeOffset offset = Assembler::call(reg);
   sbxAssertBundleAligned();
+  //MOZ_ASSERT_IF(!oom(), jitsbx::isSameBundle(instrIndex, masm.size() - 1));
   return offset;
 }
 #endif
@@ -991,23 +997,29 @@ CodeOffset MacroAssembler::callCFILabel8CFIStackUnsafe(const Address& addr) {
 
 #ifdef JITSBX_CFI_BUNDLE_CALL
 CodeOffset MacroAssembler::callCFIBundle(const Address& addr) {
-  sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
-#ifdef DEBUG
+/*#ifdef DEBUG
+  sbxBundleAlignNop();
+  int32_t instrIndex = masm.size();
   andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
   Label success;
   branchPtr(Condition::Equal, addr, scratch, &success);
   breakpoint();
   bind(&success);
-#else
+#else*/
+  sbxMaybeBundleAlignNop(
+      Assembler::sizeOfAndl(Imm32(jitsbx::IndirectCodeTargetMask), scratch) +
+      Assembler::sizeOfLea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch) +
+      Assembler::sizeOfCall(scratch));
   andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
-#endif 
+//#endif 
   sbxBundleAlignNop(Assembler::sizeOfCall(scratch));
   CodeOffset offset = Assembler::call(scratch);
   sbxAssertBundleAligned();
+ // MOZ_ASSERT_IF(!oom(), jitsbx::isSameBundle(instrIndex, masm.size() - 1));
   return offset;
 }
 #endif
@@ -1230,21 +1242,27 @@ void MacroAssembler::jumpCFILabel8(Register reg) {
 
 #ifdef JITSBX_CFI_BUNDLE_JUMP
 void MacroAssembler::jumpCFIBundle(Register reg) {
-  sbxBundleAlignNop();
-#ifdef DEBUG
+/*#ifdef DEBUG
   ScratchRegisterScope scratch(*this);
   movq(reg, scratch);
+  sbxBundleAlignNop();
+  int32_t instrIndex = masm.size();
   andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
   Label success;
   branchPtr(Condition::Equal, reg, scratch, &success);
   breakpoint();
   bind(&success);
-#else
+#else*/
+  sbxMaybeBundleAlignNop(
+      Assembler::sizeOfAndl(Imm32(jitsbx::IndirectCodeTargetMask), reg) +
+      Assembler::sizeOfLea(Operand(reg, jitsbx::ExecutableMemoryBase), reg) +
+      Assembler::sizeOfJmp(Operand(reg)));
   andl(Imm32(jitsbx::IndirectCodeTargetMask), reg);
   lea(Operand(reg, jitsbx::ExecutableMemoryBase), reg);
-#endif
+//#endif
   jmp(Operand(reg));
+//  MOZ_ASSERT_IF(!oom(), jitsbx::isSameBundle(instrIndex, masm.size() - 1));
 }
 #endif
 
@@ -1331,21 +1349,27 @@ void MacroAssembler::jumpCFILabel8(const Address& addr) {
 
 #ifdef JITSBX_CFI_BUNDLE_JUMP
 void MacroAssembler::jumpCFIBundle(const Address& addr) {
-  sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
   movq(Operand(addr), scratch);
-#ifdef DEBUG
+/*#ifdef DEBUG
+  sbxBundleAlignNop();
+  int32_t instrIndex = masm.size();
   andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
   Label success;
   branchPtr(Condition::Equal, addr, scratch, &success);
   breakpoint();
   bind(&success);
-#else
+#else*/
+  sbxMaybeBundleAlignNop(
+      Assembler::sizeOfAndl(Imm32(jitsbx::IndirectCodeTargetMask), scratch) +
+      Assembler::sizeOfLea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch) +
+      Assembler::sizeOfJmp(Operand(scratch)));
   andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
-#endif
+//#endif
   jmp(Operand(scratch));
+//  MOZ_ASSERT_IF(!oom(), jitsbx::isSameBundle(instrIndex, masm.size() - 1));
 }
 #endif
 
@@ -1385,10 +1409,10 @@ void MacroAssembler::ret() {
 
 #ifdef JITSBX_CFI_BUNDLE_RET
 void MacroAssembler::retCFIBundle() {
-  sbxBundleAlignNop();
   ScratchRegisterScope scratch(*this);
-#ifdef DEBUG
+/*#ifdef DEBUG
   loadPtr(Address(rsp, 0), scratch);
+  sbxBundleAlignNop();
   andq(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
   Label success;
@@ -1396,11 +1420,15 @@ void MacroAssembler::retCFIBundle() {
   breakpoint();
   bind(&success);
   pop(scratch);
-#else
+#else*/
   pop(scratch);
+  sbxMaybeBundleAlignNop(
+      Assembler::sizeOfAndl(Imm32(jitsbx::IndirectCodeTargetMask), scratch) +
+      Assembler::sizeOfLea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch) +
+      Assembler::sizeOfJmp(Operand(scratch)));
   andl(Imm32(jitsbx::IndirectCodeTargetMask), scratch);
   lea(Operand(scratch, jitsbx::ExecutableMemoryBase), scratch);
-#endif
+//#endif
   jmp(Operand(scratch));
 }
 
