@@ -544,6 +544,19 @@ def jit_sandbox(jit_sandbox, target, jit_enabled):
 set_config("JITSBX", jit_sandbox)
 set_define("JITSBX", jit_sandbox)
 
+option(
+    "--enable-jit-sandbox-heap",
+    default=False,
+    help="{Enable|Disable} JIT sandbox heap.",
+)
+
+@depends("--enable-jit-sandbox-heap", "--enable-jit-sandbox")
+def jit_sandbox_heap(jit_sandbox_heap, jit_sandbox):
+    if jit_sandbox and jit_sandbox_heap:
+        return True
+
+set_config("JITSBX_HEAP", jit_sandbox_heap)
+set_define("JITSBX_HEAP", jit_sandbox_heap)
 
 option(
     "--enable-jit-sandbox-verifier",

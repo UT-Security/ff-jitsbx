@@ -16,4 +16,5 @@ UNIFIED_SOURCES += [
 	"JitSandbox.cpp",
 	"JitSandboxActivation.cpp",
 	"JitSandboxContext.cpp",
+	"JitSandboxMemory.cpp",
 ];

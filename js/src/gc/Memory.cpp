@@ -11,6 +11,9 @@
 #include "mozilla/RandomNum.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 
+#ifdef JITSBX_HEAP
+#include "jitsbx/JitSandboxMemory.h"
+#endif
 #include "jit/JitOptions.h"
 #include "js/HeapAPI.h"
 #include "js/Utility.h"
@@ -175,6 +178,9 @@ static void* MapAlignedPagesLastDitch(size_t length, size_t alignment);
 
 #ifdef JS_64BIT
 static void* MapAlignedPagesRandom(size_t length, size_t alignment);
+#ifdef JITSBX_HEAP
+static void* MapAlignedSandboxPages(size_t length, size_t alignment);
+#endif
 #endif
 
 void* TestMapAlignedPagesLastDitch(size_t length, size_t alignment) {
@@ -402,6 +408,11 @@ void InitMemorySubsystem() {
 #else  // !defined(JS_64BIT)
     numAddressBits = 32;
 #endif
+
+#ifdef JITSBX_HEAP
+    jitsbx::heap_bump_ptr = (uint64_t)MapInternal<Commit::No, PageAccess::None>((void*)jitsbx::JITSBX_HEAP_BASE, jitsbx::JITSBX_HEAP_SIZE);
+#endif
+
 #ifdef RLIMIT_AS
     if (jit::HasJitBackend()) {
       rlimit as_limit;
@@ -446,6 +457,16 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 #else
 
 #  ifdef JS_64BIT
+
+#ifdef JITSBX_HEAP
+  void* sbxRegion = MapAlignedSandboxPages(length, alignment);
+
+  MOZ_RELEASE_ASSERT(!IsInvalidRegion(sbxRegion, length));
+  MOZ_ASSERT(OffsetFromAligned(sbxRegion, alignment) == 0);
+
+  return sbxRegion;
+#endif
+
   // Use the scattershot allocator if the address range is large enough.
   if (UsingScattershotAllocator()) {
     void* region = MapAlignedPagesRandom(length, alignment);
@@ -502,6 +523,19 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 }
 
 #ifdef JS_64BIT
+
+#ifdef JITSBX_HEAP
+static void* MapAlignedSandboxPages(size_t length, size_t alignment) {
+  MOZ_ASSERT(length == js::gc::ChunkSize);
+  MOZ_ASSERT(alignment == js::gc::ChunkSize);
+
+  void* current_ptr = (void*)jitsbx::heap_bump_ptr.fetch_add(length);
+  MOZ_ASSERT((uint64_t)current_ptr >> 32 == jitsbx::heap_bump_ptr >> 32);
+
+  UnprotectPages(current_ptr, length);
+  return current_ptr;
+}
+#endif
 
 /*
  * This allocator takes advantage of the large address range on some 64-bit
