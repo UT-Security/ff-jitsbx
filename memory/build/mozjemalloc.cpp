@@ -1128,6 +1128,10 @@ struct arena_t {
   // arc4random allocates memory).
   mozilla::non_crypto::XorShift128PlusRNG* mPRNG;
 
+#ifdef JITSBX_HEAP
+  chunk_alloc_mmap_t mChunkAllocMmapOverride;
+#endif
+
  public:
   // Current count of pages within unused runs that are potentially
   // dirty, and for which madvise(... MADV_FREE) has not been called.  By
@@ -1425,8 +1429,13 @@ static bool opt_randomize_small = true;
 // ***************************************************************************
 // Begin forward declarations.
 
+#ifdef JITSBX_HEAP
+static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
+                         bool* aZeroed = nullptr, chunk_alloc_mmap_t f = nullptr);
+#else
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
                          bool* aZeroed = nullptr);
+#endif
 static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
 static void chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed);
 static void huge_dalloc(void* aPtr, arena_t* aArena);
@@ -2223,8 +2232,13 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
 // `zeroed` is an outvalue that returns whether the allocated memory is
 // guaranteed to be full of zeroes. It can be omitted when the caller doesn't
 // care about the result.
+#ifdef JITSBX_HEAP
+static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
+                         bool* aZeroed, chunk_alloc_mmap_t f) {
+#else
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
                          bool* aZeroed) {
+#endif
   void* ret = nullptr;
 
   MOZ_ASSERT(aSize != 0);
@@ -2234,14 +2248,29 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
 
   // Base allocations can't be fulfilled by recycling because of
   // possible deadlock or infinite recursion.
+#ifdef JITSBX_HEAP
+  if (CAN_RECYCLE(aSize) && !aBase && !f) {
+#else
   if (CAN_RECYCLE(aSize) && !aBase) {
+#endif
     ret = chunk_recycle(aSize, aAlignment, aZeroed);
   }
   if (!ret) {
+#ifdef JITSBX_HEAP
+    ret = f ? f(aSize, aAlignment) : chunk_alloc_mmap(aSize, aAlignment);
+    if (aZeroed) {
+      if (f) {
+        *aZeroed = false;
+      } else {
+        *aZeroed = true;
+      }
+    }
+#else
     ret = chunk_alloc_mmap(aSize, aAlignment);
     if (aZeroed) {
       *aZeroed = true;
     }
+#endif
   }
   if (ret && !aBase) {
     if (!gChunkRTree.Set(ret, ret)) {
@@ -2756,7 +2785,11 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
     // the run.
     bool zeroed;
     arena_chunk_t* chunk =
+#ifdef JITSBX_HEAP
+        (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed, mChunkAllocMmapOverride);
+#else
         (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed);
+#endif
     if (!chunk) {
       return nullptr;
     }
@@ -3929,6 +3962,10 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
 
   mPRNG = nullptr;
 
+#ifdef JITSBX_HEAP
+  mChunkAllocMmapOverride = aParams->mChunkAllocMmapOverride;
+#endif
+
   mIsPrivate = aIsPrivate;
 
   mNumDirty = 0;
@@ -4066,7 +4103,11 @@ void* arena_t::PallocHuge(size_t aSize, size_t aAlignment, bool aZero) {
   }
 
   // Allocate one or more contiguous chunks for this request.
+#ifdef JITSBX_HEAP
+  ret = chunk_alloc(csize, aAlignment, false, &zeroed, mChunkAllocMmapOverride);
+#else
   ret = chunk_alloc(csize, aAlignment, false, &zeroed);
+#endif
   if (!ret) {
     ExtentAlloc::dealloc(node);
     return nullptr;

@@ -19,7 +19,10 @@ namespace jitsbx {
 static constexpr uintptr_t JITSBX_HEAP_BASE = (uintptr_t)1 << 32; 
 static constexpr size_t JITSBX_HEAP_SIZE = (size_t)1 << 32;
   
-extern std::atomic<uint64_t> heap_bump_ptr;
+extern std::atomic<uint64_t> heapBumpPtr;
+
+void InitHeapMemory();
+void* MapAlignedPages(size_t length, size_t alignment);
   
 };
 

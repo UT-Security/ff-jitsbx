@@ -349,6 +349,9 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
 namespace js {
 
 extern JS_PUBLIC_DATA arena_id_t MallocArena;
+#ifdef JITSBX_HEAP
+extern JS_PUBLIC_DATA arena_id_t JitsbxMallocArena;
+#endif
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 
@@ -369,6 +372,12 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 static inline void* js_malloc(size_t bytes) {
   return js_arena_malloc(js::MallocArena, bytes);
 }
+
+#ifdef JITSBX_HEAP
+static inline void* js_jitsbx_malloc(size_t bytes) {
+  return js_arena_malloc(js::JitsbxMallocArena, bytes);
+}
+#endif
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
@@ -524,6 +533,9 @@ static inline void js_free(void* p) {
   }
 
 JS_DECLARE_NEW_METHODS(js_new, js_malloc, static MOZ_ALWAYS_INLINE)
+#ifdef JITSBX_HEAP
+JS_DECLARE_NEW_METHODS(js_jitsbx_new, js_jitsbx_malloc, static MOZ_ALWAYS_INLINE)
+#endif
 JS_DECLARE_NEW_ARENA_METHODS(js_arena_new, js_arena_malloc,
                              static MOZ_ALWAYS_INLINE)
 

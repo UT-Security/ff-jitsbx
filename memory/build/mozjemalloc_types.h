@@ -58,6 +58,10 @@ typedef MALLOC_USABLE_SIZE_CONST_PTR void* usable_ptr_t;
 
 typedef size_t arena_id_t;
 
+#ifdef JITSBX_HEAP
+typedef void* (*chunk_alloc_mmap_t)(size_t size, size_t alignment);
+#endif
+
 #define ARENA_FLAG_RANDOMIZE_SMALL_MASK 0x3
 #define ARENA_FLAG_RANDOMIZE_SMALL_DEFAULT 0
 #define ARENA_FLAG_RANDOMIZE_SMALL_ENABLED 1
@@ -75,12 +79,20 @@ typedef struct arena_params_s {
 
   uint32_t mFlags;
 
+#ifdef JITSBX_HEAP
+  chunk_alloc_mmap_t mChunkAllocMmapOverride;
+#endif
+
 #ifdef __cplusplus
   arena_params_s()
       : mMaxDirty(0),
         mMaxDirtyIncreaseOverride(0),
         mMaxDirtyDecreaseOverride(0),
-        mFlags(0) {}
+        mFlags(0)
+#ifdef JITSBX_HEAP
+       ,mChunkAllocMmapOverride(nullptr)
+#endif
+        {}
 #endif
 } arena_params_t;
 
