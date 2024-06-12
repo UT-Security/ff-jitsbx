@@ -3963,7 +3963,7 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   mPRNG = nullptr;
 
 #ifdef JITSBX_HEAP
-  mChunkAllocMmapOverride = aParams->mChunkAllocMmapOverride;
+  mChunkAllocMmapOverride = aParams ? aParams->mChunkAllocMmapOverride : nullptr;
 #endif
 
   mIsPrivate = aIsPrivate;

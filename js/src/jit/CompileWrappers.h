@@ -121,6 +121,9 @@ class CompileZone {
   bool allocNurseryStrings();
   bool allocNurseryBigInts();
   void* addressOfNurseryPosition();
+#ifdef JITSBX_HEAP
+  void* addressOfNurseryEnd();
+#endif
 
   void* addressOfNurseryAllocatedSites();
 

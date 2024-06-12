@@ -82,6 +82,8 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 void InitHeapMemory() {
   pageSize = size_t(sysconf(_SC_PAGESIZE));
   heapBumpPtr = (uint64_t)MapInternal<Commit::No, PageAccess::None>((void*)JITSBX_HEAP_BASE, JITSBX_HEAP_SIZE);
+  // Initialize gsbase
+  __asm__ __volatile__("wrgsbase %0": : "r" (JITSBX_HEAP_BASE));
 }
 
 };

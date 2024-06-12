@@ -154,6 +154,12 @@ void* CompileZone::addressOfNurseryPosition() {
   return zone()->runtimeFromAnyThread()->gc.addressOfNurseryPosition();
 }
 
+#ifdef JITSBX_HEAP
+void* CompileZone::addressOfNurseryEnd() {
+  return zone()->runtimeFromAnyThread()->gc.addressOfNurseryEnd();
+}
+#endif
+
 void* CompileZone::addressOfNurseryAllocatedSites() {
   JSRuntime* rt = zone()->runtimeFromAnyThread();
   return rt->gc.nursery().addressOfNurseryAllocatedSites();

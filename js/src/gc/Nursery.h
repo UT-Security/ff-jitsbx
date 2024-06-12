@@ -284,10 +284,17 @@ class Nursery {
   }
   MOZ_ALWAYS_INLINE size_t freeSpace() const {
     MOZ_ASSERT(isEnabled());
+#ifdef JITSBX_HEAP
+    MOZ_ASSERT(currentEnd_ - *position_ <= NurseryChunkUsableSize);
+    MOZ_ASSERT(currentChunk_ < maxChunkCount());
+    return (currentEnd_ - *position_) +
+           (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+#else
     MOZ_ASSERT(currentEnd_ - position_ <= NurseryChunkUsableSize);
     MOZ_ASSERT(currentChunk_ < maxChunkCount());
     return (currentEnd_ - position_) +
            (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+#endif
   }
 
 #ifdef JS_GC_ZEAL
@@ -304,10 +311,15 @@ class Nursery {
   // Print total profile times on shutdown.
   void printTotalProfileTimes();
 
+#ifdef JITSBX_HEAP
+  void* addressOfPosition() const { return (void**)position_; }
+  void* addressOfEnd() const { return (void**)&currentEnd_; }
+#else
   void* addressOfPosition() const { return (void**)&position_; }
   static constexpr int32_t offsetOfCurrentEndFromPosition() {
     return offsetof(Nursery, currentEnd_) - offsetof(Nursery, position_);
   }
+#endif
 
   void* addressOfNurseryAllocatedSites() {
     return pretenuringNursery.addressOfAllocatedSites();
@@ -372,7 +384,11 @@ class Nursery {
   // Fields used during allocation fast path are grouped first:
 
   // Pointer to the first unallocated byte in the nursery.
+#ifdef JITSBX_HEAP
+  uintptr_t* position_;
+#else
   uintptr_t position_;
+#endif
 
   // Pointer to the last byte of space in the current chunk.
   uintptr_t currentEnd_;
@@ -549,7 +565,11 @@ class Nursery {
 
   MOZ_ALWAYS_INLINE uintptr_t currentEnd() const;
 
+#ifdef JITSBX_HEAP
+  uintptr_t position() const { return *position_; }
+#else
   uintptr_t position() const { return position_; }
+#endif
 
   MOZ_ALWAYS_INLINE bool isSubChunkMode() const;
 

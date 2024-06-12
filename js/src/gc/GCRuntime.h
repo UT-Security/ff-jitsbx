@@ -369,6 +369,12 @@ class GCRuntime {
     return nursery_.refNoCheck().addressOfPosition();
   }
 
+#ifdef JITSBX_HEAP
+  void* addressOfNurseryEnd() {
+    return nursery_.refNoCheck().addressOfEnd();
+  }
+#endif
+
   const void* addressOfLastBufferedWholeCell() {
     return storeBuffer_.refNoCheck().addressOfLastBufferedWholeCell();
   }

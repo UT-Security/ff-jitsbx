@@ -595,12 +595,22 @@ void MacroAssembler::bumpPointerAllocate(Register result, Register temp,
   // Use a relative 32 bit offset to the Nursery position_ to currentEnd_ to
   // avoid 64-bit immediate loads.
   void* posAddr = zone->addressOfNurseryPosition();
+#ifdef JITSBX_HEAP
+  void* endAddr = zone->addressOfNurseryEnd();
+#else
   int32_t endOffset = Nursery::offsetOfCurrentEndFromPosition();
+#endif
 
   movePtr(ImmPtr(posAddr), temp);
   loadPtr(Address(temp, 0), result);
   addPtr(Imm32(totalSize), result);
+#ifdef JITSBX_HEAP
+  movePtr(ImmPtr(endAddr), temp);
+  branchPtr(Assembler::Below, Address(temp, 0), result, fail);
+  movePtr(ImmPtr(posAddr), temp);
+#else
   branchPtr(Assembler::Below, Address(temp, endOffset), result, fail);
+#endif
   storePtr(result, Address(temp, 0));
   subPtr(Imm32(size), result);
 

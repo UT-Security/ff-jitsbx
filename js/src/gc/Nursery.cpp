@@ -213,7 +213,11 @@ void js::NurseryDecommitTask::run(AutoLockHelperThreadState& lock) {
 }
 
 js::Nursery::Nursery(GCRuntime* gc)
-    : position_(0),
+    : 
+#ifdef JITSBX_HEAP
+#else
+      position_(0),
+#endif
       currentEnd_(0),
       gc(gc),
       currentChunk_(0),
@@ -239,6 +243,11 @@ js::Nursery::Nursery(GCRuntime* gc)
   if (env && *env) {
     canAllocateBigInts_ = (*env == '1');
   }
+
+#ifdef JITSBX_HEAP
+  position_ = (uintptr_t*)js_jitsbx_malloc(sizeof(uintptr_t));
+  *position_ = 0;
+#endif
 }
 
 static void PrintAndExit(const char* message) {
@@ -312,7 +321,12 @@ bool js::Nursery::init(AutoLockGCBgAlloc& lock) {
   return initFirstChunk(lock);
 }
 
-js::Nursery::~Nursery() { disable(); }
+js::Nursery::~Nursery() { 
+  disable();
+#ifdef JITSBX_HEAP
+  js_free(position_);
+#endif
+}
 
 void js::Nursery::enable() {
   MOZ_ASSERT(isEmpty());
@@ -378,7 +392,11 @@ void js::Nursery::disable() {
   // We must reset currentEnd_ so that there is no space for anything in the
   // nursery. JIT'd code uses this even if the nursery is disabled.
   currentEnd_ = 0;
+#ifdef JITSBX_HEAP
+  *position_ = 0;
+#else
   position_ = 0;
+#endif
   gc->storeBuffer().disable();
 
   if (gc->wasInitialized()) {
@@ -571,7 +589,11 @@ inline void* js::Nursery::allocate(size_t size) {
   }
 
   void* thing = (void*)position();
+#ifdef JITSBX_HEAP
+  *position_ = position() + size;
+#else
   position_ = position() + size;
+#endif
 
   DebugOnlyPoison(thing, JS_ALLOCATED_NURSERY_PATTERN, size,
                   MemCheckKind::MakeUndefined);
@@ -1722,7 +1744,11 @@ MOZ_ALWAYS_INLINE void js::Nursery::setCurrentChunk(unsigned chunkno) {
   MOZ_ASSERT(chunkno < allocatedChunkCount());
 
   currentChunk_ = chunkno;
+#ifdef JITSBX_HEAP
+  *position_ = chunk(chunkno).start();
+#else
   position_ = chunk(chunkno).start();
+#endif
   setCurrentEnd();
 }
 
