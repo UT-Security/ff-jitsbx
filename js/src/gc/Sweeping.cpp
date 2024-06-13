@@ -1647,6 +1647,9 @@ IncrementalProgress GCRuntime::endSweepingSweepGroup(JS::GCContext* gcx,
     if (jit::JitZone* jitZone = zone->jitZone()) {
       // Clear out any small pools that we're hanging on to.
       jitZone->execAlloc().purge();
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+      jitZone->sbxExecAlloc().purge();
+#endif
     }
     AutoLockGC lock(this);
     zone->changeGCState(Zone::Sweep, Zone::Finished);

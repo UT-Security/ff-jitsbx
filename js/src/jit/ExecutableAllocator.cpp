@@ -261,10 +261,25 @@ void ExecutableAllocator::reprotectPool(JSRuntime* rt, ExecutablePool* pool,
                                         MustFlushICache flushICache) {
   char* start = pool->m_allocation.pages;
   AutoEnterOOMUnsafeRegion oomUnsafe;
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  if (jitsbx::AddressIsInExecutableMemory(start)) {
+    if (!jitsbx::ReprotectRegion(start, pool->m_freePtr - start, jitsbx::ProtectionSetting(protection),
+                         jitsbx::MustFlushICache(flushICache))) {
+      oomUnsafe.crash("ExecutableAllocator::reprotectPool");
+    }
+  } else {
+    MOZ_ASSERT(AddressIsInExecutableMemory(start));
+    if (!ReprotectRegion(start, pool->m_freePtr - start, protection,
+                         flushICache)) {
+      oomUnsafe.crash("ExecutableAllocator::reprotectPool");
+    }
+  }
+#else
   if (!ReprotectRegion(start, pool->m_freePtr - start, protection,
                        flushICache)) {
     oomUnsafe.crash("ExecutableAllocator::reprotectPool");
   }
+#endif
 }
 
 /* static */
@@ -317,13 +332,30 @@ void ExecutableAllocator::poisonCode(JSRuntime* rt,
 }
 
 ExecutablePool::Allocation ExecutableAllocator::systemAlloc(size_t n) {
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  void* allocation =
+      trust_ == CodeTrust::Trusted
+          ? AllocateExecutableMemory(n, ProtectionSetting::Executable,
+                                     MemCheckKind::MakeNoAccess)
+          : jitsbx::AllocateExecutableMemory(n, jitsbx::ProtectionSetting::Executable,
+                                             MemCheckKind::MakeNoAccess);
+#else
   void* allocation = AllocateExecutableMemory(n, ProtectionSetting::Executable,
                                               MemCheckKind::MakeNoAccess);
+#endif
   ExecutablePool::Allocation alloc = {reinterpret_cast<char*>(allocation), n};
   return alloc;
 }
 
 void ExecutableAllocator::systemRelease(
     const ExecutablePool::Allocation& alloc) {
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+    if (trust_ == CodeTrust::Trusted) {
+      DeallocateExecutableMemory(alloc.pages, alloc.size);
+    } else {
+      jitsbx::DeallocateExecutableMemory(alloc.pages, alloc.size);
+    }
+#else
   DeallocateExecutableMemory(alloc.pages, alloc.size);
+#endif
 }

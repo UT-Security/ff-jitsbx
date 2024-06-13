@@ -7,6 +7,7 @@
 #ifndef jitsbx_JitSandbox_h
 #define jitsbx_JitSandbox_h
 
+#include "jitsbx/JitSandboxExecutableMemory.h"
 #include "threading/ProtectedData.h"
 #include "vm/JSContext.h"
 
@@ -16,10 +17,7 @@ namespace jitsbx {
 
 #if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
 static constexpr uint32_t BundleAlignment = 32; 
-static constexpr int32_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
-static constexpr int32_t AllocatedCodeBytesPerProcess = MaxCodeBytesPerProcess;
-static constexpr int32_t ExecutableMemoryBase = 0x40000000;
-static constexpr int32_t IndirectCodeTargetMask = (AllocatedCodeBytesPerProcess - 1) & ~(BundleAlignment - 1);
+static constexpr int32_t IndirectCodeTargetMask = (MaxCodeBytesPerProcess - 1) & ~(BundleAlignment - 1);
 
 inline bool isSameBundle(size_t x, size_t y) { 
   return (x / BundleAlignment) == (y / BundleAlignment);    

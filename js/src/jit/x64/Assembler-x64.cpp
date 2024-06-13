@@ -5,7 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/x64/Assembler-x64.h"
-
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+#include "jitsbx/JitSandboxExecutableMemory.h"
+#endif
 #include "gc/Tracer.h"
 #include "util/Memory.h"
 
@@ -123,16 +125,30 @@ void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
   static_assert(MaxCodeBytesPerProcess <= uint64_t(2) * 1024 * 1024 * 1024,
                 "Code depends on using int32_t for cross-JitCode jump offsets");
 
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  MOZ_ASSERT_IF(reloc == RelocationKind::JITCODE, AddressIsInExecutableMemory(target.value) || jitsbx::AddressIsInExecutableMemory(target.value));
+#else
   MOZ_ASSERT_IF(reloc == RelocationKind::JITCODE,
                 AddressIsInExecutableMemory(target.value));
+#endif
 
   RelativePatch patch(src.offset(), target.value, reloc);
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  if (isSandboxed() && jitsbx::AddressIsInExecutableMemory(target.value)) {
+    enoughMemory_ &= codeJumps_.append(patch);
+  } else if (!isSandboxed() && AddressIsInExecutableMemory(target.value)) {
+    enoughMemory_ &= codeJumps_.append(patch);
+  } else {
+    enoughMemory_ &= extendedJumps_.append(patch);
+  }
+#else
   if (reloc == RelocationKind::JITCODE ||
       AddressIsInExecutableMemory(target.value)) {
     enoughMemory_ &= codeJumps_.append(patch);
   } else {
     enoughMemory_ &= extendedJumps_.append(patch);
   }
+#endif
 }
 
 void Assembler::finish() {

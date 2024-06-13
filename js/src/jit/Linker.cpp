@@ -45,8 +45,16 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   }
 
   ExecutablePool* pool;
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  uint8_t* result =
+      masm.isSandboxed()
+          ? (uint8_t*)jitZone->sbxExecAlloc().alloc(cx, bytesNeeded, &pool,
+                                                    kind)
+          : (uint8_t*)jitZone->execAlloc().alloc(cx, bytesNeeded, &pool, kind);
+#else
   uint8_t* result =
       (uint8_t*)jitZone->execAlloc().alloc(cx, bytesNeeded, &pool, kind);
+#endif
   if (!result) {
     return fail(cx);
   }

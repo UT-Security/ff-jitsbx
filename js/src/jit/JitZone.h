@@ -98,6 +98,11 @@ class JitZone {
 
   // Executable allocator for all code except wasm code.
   MainThreadData<ExecutableAllocator> execAlloc_;
+  
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  // Executable allocator for all sandboxed code.
+  MainThreadData<ExecutableAllocator> sbxExecAlloc_;
+#endif
 
   // HashMap that maps scripts to compilations inlining those scripts.
   using InlinedScriptMap =
@@ -117,6 +122,9 @@ class JitZone {
   bool keepJitScripts_ = false;
 
  public:
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  JitZone() : execAlloc_(CodeTrust::Trusted), sbxExecAlloc_(CodeTrust::Untrusted) {}
+#endif
   ~JitZone() { MOZ_ASSERT(!keepJitScripts_); }
 
   void traceWeak(JSTracer* trc);
@@ -160,6 +168,11 @@ class JitZone {
 
   ExecutableAllocator& execAlloc() { return execAlloc_.ref(); }
   const ExecutableAllocator& execAlloc() const { return execAlloc_.ref(); }
+  
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  ExecutableAllocator& sbxExecAlloc() { return sbxExecAlloc_.ref(); }
+  const ExecutableAllocator& sbxExecAlloc() const { return sbxExecAlloc_.ref(); }
+#endif
 
   [[nodiscard]] bool addInlinedCompilation(const RecompileInfo& info,
                                            JSScript* inlined);

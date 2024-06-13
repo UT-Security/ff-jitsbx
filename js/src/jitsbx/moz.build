@@ -17,3 +17,6 @@ UNIFIED_SOURCES += [
 	"JitSandboxActivation.cpp",
 	"JitSandboxContext.cpp",
 ];
+
+if CONFIG["JITSBX_CFI_BUNDLE"] or CONFIG["JITSBX_CFI_BUNDLE_ALIGN_INSTR"]:
+	UNIFIED_SOURCES += ["JitSandboxExecutableMemory.cpp"]

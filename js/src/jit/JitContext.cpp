@@ -9,6 +9,9 @@
 #include "jitsbx/JitSandbox.h"
 #include "jitsbx/JitSandboxContext.h"
 #endif
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+#include "jitsbx/JitSandboxExecutableMemory.h"
+#endif
 
 #include "mozilla/Assertions.h"
 #include "mozilla/ThreadLocal.h"
@@ -141,6 +144,11 @@ bool jit::InitializeJit() {
       MacroAssembler::SupportsUnalignedAccesses();
 
   if (HasJitBackend()) {
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+      if (!jitsbx::InitExecutableMemory()) {
+        return false;
+      }
+#endif
     if (!InitProcessExecutableMemory()) {
       return false;
     }
@@ -153,6 +161,9 @@ bool jit::InitializeJit() {
 void jit::ShutdownJit() {
   if (HasJitBackend() && !JSRuntime::hasLiveRuntimes()) {
     ReleaseProcessExecutableMemory();
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+    jitsbx::ReleaseExecutableMemory();
+#endif
   }
 }
 

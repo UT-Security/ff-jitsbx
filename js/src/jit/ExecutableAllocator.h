@@ -33,6 +33,9 @@
 #include <limits>
 #include <stddef.h>  // for ptrdiff_t
 
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+#include "jitsbx/JitSandboxExecutableMemory.h"
+#endif
 #include "jit/ProcessExecutableMemory.h"
 #include "js/AllocPolicy.h"
 #include "js/HashTable.h"
@@ -47,6 +50,10 @@ namespace js {
 namespace jit {
 
 enum class CodeKind : uint8_t { Ion, Baseline, RegExp, Other, Count };
+
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+enum class CodeTrust { Trusted, Untrusted };
+#endif
 
 class ExecutableAllocator;
 
@@ -136,7 +143,11 @@ typedef Vector<JitPoisonRange, 0, SystemAllocPolicy> JitPoisonRangeVector;
 
 class ExecutableAllocator {
  public:
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  ExecutableAllocator(CodeTrust trust = CodeTrust::Trusted) : trust_(trust) {}
+#else
   ExecutableAllocator() = default;
+#endif
   ~ExecutableAllocator();
 
   void purge();
@@ -155,9 +166,13 @@ class ExecutableAllocator {
 
   static size_t roundUpAllocationSize(size_t request, size_t granularity);
 
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  CodeTrust trust_;
+#endif
+
   // On OOM, this will return an Allocation where pages is nullptr.
   ExecutablePool::Allocation systemAlloc(size_t n);
-  static void systemRelease(const ExecutablePool::Allocation& alloc);
+  void systemRelease(const ExecutablePool::Allocation& alloc);
 
   ExecutablePool* createPool(size_t n);
   ExecutablePool* poolForSize(size_t n);
@@ -168,14 +183,37 @@ class ExecutableAllocator {
 
  public:
   [[nodiscard]] static bool makeWritable(void* start, size_t size) {
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  if (jitsbx::AddressIsInExecutableMemory(start)) {
+    return jitsbx::ReprotectRegion(start, size, jitsbx::ProtectionSetting::Writable,
+                           jitsbx::MustFlushICache::No);
+  } else {
+    MOZ_ASSERT(AddressIsInExecutableMemory(start));
     return ReprotectRegion(start, size, ProtectionSetting::Writable,
                            MustFlushICache::No);
+  }
+#else
+    return ReprotectRegion(start, size, ProtectionSetting::Writable,
+                           MustFlushICache::No);
+#endif
   }
 
   [[nodiscard]] static bool makeExecutableAndFlushICache(void* start,
                                                          size_t size) {
+#if defined(JITSBX_CFI_BUNDLE) || defined(JITSBX_CFI_BUNDLE_ALIGN_INSTR)
+  if (jitsbx::AddressIsInExecutableMemory(start)) {
+    return jitsbx::ReprotectRegion(start, size,
+                                   jitsbx::ProtectionSetting::Executable,
+                                   jitsbx::MustFlushICache::No);
+  } else {
+    MOZ_ASSERT(AddressIsInExecutableMemory(start));
+    return ReprotectRegion(start, size, ProtectionSetting::Executable,
+                           MustFlushICache::No);
+  }
+#else
     return ReprotectRegion(start, size, ProtectionSetting::Executable,
                            MustFlushICache::Yes);
+#endif
   }
 
   static void poisonCode(JSRuntime* rt, JitPoisonRangeVector& ranges);
