@@ -797,10 +797,15 @@ void UnmapPages(void* region, size_t length) {
                      OffsetFromAligned(region, allocGranularity) == 0);
   MOZ_RELEASE_ASSERT(length > 0 && length % pageSize == 0);
 
+
+#ifdef JITSBX_HEAP
+  jitsbx::UnmapPages(region, length);
+  return;
+#else
   // ASan does not automatically unpoison memory, so we have to do this here.
   MOZ_MAKE_MEM_UNDEFINED(region, length);
-
   UnmapInternal(region, length);
+#endif
 }
 
 static void CheckDecommit(void* region, size_t length) {

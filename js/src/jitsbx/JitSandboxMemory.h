@@ -23,6 +23,7 @@ extern std::atomic<uint64_t> heapBumpPtr;
 
 void InitHeapMemory();
 void* MapAlignedPages(size_t length, size_t alignment);
+void UnmapPages(void* region, size_t length);
   
 };
 
