@@ -13,7 +13,11 @@ using namespace js;
 
 // static
 UniquePtr<RegExpStatics> RegExpStatics::create(JSContext* cx) {
+#ifdef JITSBX_HEAP
+  return cx->jitsbx_make_unique<RegExpStatics>();
+#else
   return cx->make_unique<RegExpStatics>();
+#endif
 }
 
 bool RegExpStatics::executeLazy(JSContext* cx) {

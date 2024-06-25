@@ -194,7 +194,11 @@ std::unique_ptr<char[]> String::ToCString() {
 }
 
 bool Isolate::init() {
+#ifdef JITSBX_HEAP
+  regexpStack_ = js_jitsbx_new<RegExpStack>();
+#else
   regexpStack_ = js_new<RegExpStack>();
+#endif
   if (!regexpStack_) {
     return false;
   }
