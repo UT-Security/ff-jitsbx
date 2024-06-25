@@ -139,14 +139,24 @@ class Nursery {
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
   // used.
+#ifdef JITSBX_HEAP
+  void* allocateZeroedBuffer(JS::Zone* zone, size_t nbytes,
+                             arena_id_t arena = js::JitsbxMallocArena);
+#else
   void* allocateZeroedBuffer(JS::Zone* zone, size_t nbytes,
                              arena_id_t arena = js::MallocArena);
+#endif
 
   // Allocate a zero-initialized buffer for a given object, using the nursery if
   // possible and obj is in the nursery. If the buffer isn't allocated in the
   // nursery, the given arena is used.
+#ifdef JITSBX_HEAP
+  void* allocateZeroedBuffer(JSObject* obj, size_t nbytes,
+                             arena_id_t arena = js::JitsbxMallocArena);
+#else
   void* allocateZeroedBuffer(JSObject* obj, size_t nbytes,
                              arena_id_t arena = js::MallocArena);
+#endif
 
   // Resize an existing buffer.
   void* reallocateBuffer(JS::Zone* zone, gc::Cell* cell, void* oldBuffer,
@@ -322,7 +332,11 @@ class Nursery {
 #endif
 
   void* addressOfNurseryAllocatedSites() {
+#ifdef JITSBX_HEAP
+    return pretenuringNursery->addressOfAllocatedSites();
+#else
     return pretenuringNursery.addressOfAllocatedSites();
+#endif
   }
 
   void requestMinorGC(JS::GCReason reason) const;
@@ -362,12 +376,21 @@ class Nursery {
     return startTimes_[ProfileKey::Total];
   }
 
+#ifdef JITSBX_HEAP
+  bool canCreateAllocSite() { return pretenuringNursery->canCreateAllocSite(); }
+  void noteAllocSiteCreated() { pretenuringNursery->noteAllocSiteCreated(); }
+  bool reportPretenuring() const { return reportPretenuring_; }
+  void maybeStopPretenuring(gc::GCRuntime* gc) {
+    pretenuringNursery->maybeStopPretenuring(gc);
+  }
+#else
   bool canCreateAllocSite() { return pretenuringNursery.canCreateAllocSite(); }
   void noteAllocSiteCreated() { pretenuringNursery.noteAllocSiteCreated(); }
   bool reportPretenuring() const { return reportPretenuring_; }
   void maybeStopPretenuring(gc::GCRuntime* gc) {
     pretenuringNursery.maybeStopPretenuring(gc);
   }
+#endif
 
   void setAllocFlagsForZone(JS::Zone* zone);
 
@@ -414,7 +437,11 @@ class Nursery {
   // changed by maybeResizeNursery() each collection. It includes chunk headers.
   size_t capacity_;
 
+#ifdef JITSBX_HEAP
+  gc::PretenuringNursery* pretenuringNursery;
+#else
   gc::PretenuringNursery pretenuringNursery;
+#endif
 
   mozilla::TimeDuration timeInChunkAlloc_;
 

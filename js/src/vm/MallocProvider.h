@@ -127,6 +127,13 @@ struct MallocProvider {
     return pod_arena_malloc<T>(js::MallocArena, numElems);
   }
 
+#ifdef JITSBX_HEAP
+  template <class T>  
+  T* pod_jitsbx_malloc(size_t numElems) {
+    return pod_arena_malloc<T>(js::JitsbxMallocArena, numElems);
+  }
+#endif
+
   template <class T, class U>
   T* pod_malloc_with_extra(size_t numExtra) {
     size_t bytes;
@@ -146,6 +153,28 @@ struct MallocProvider {
     }
     return p;
   }
+
+#ifdef JITSBX_HEAP
+  template <class T, class U>
+  T* pod_jitsbx_malloc_with_extra(size_t numExtra) {
+    size_t bytes;
+    if (MOZ_UNLIKELY((!CalculateAllocSizeWithExtra<T, U>(numExtra, &bytes)))) {
+      client()->reportAllocationOverflow();
+      return nullptr;
+    }
+    T* p = static_cast<T*>(js_jitsbx_malloc(bytes));
+    if (MOZ_LIKELY(p)) {
+      client()->updateMallocCounter(bytes);
+      return p;
+    }
+    p = (T*)client()->onOutOfMemory(AllocFunction::Malloc, js::JitsbxMallocArena,
+                                    bytes);
+    if (p) {
+      client()->updateMallocCounter(bytes);
+    }
+    return p;
+  }
+#endif
 
   template <class T>
   UniquePtr<T[], JS::FreePolicy> make_pod_arena_array(arena_id_t arena,
@@ -231,6 +260,13 @@ struct MallocProvider {
     return pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
   }
 
+#ifdef JITSBX_HEAP
+  template <class T>
+  T* pod_jitsbx_realloc(T* prior, size_t oldSize, size_t newSize) {
+    return pod_arena_realloc<T>(js::JitsbxMallocArena, prior, oldSize, newSize);
+  }
+#endif
+
   JS_DECLARE_NEW_METHODS(new_, pod_malloc<uint8_t>, MOZ_ALWAYS_INLINE)
   JS_DECLARE_NEW_ARENA_METHODS(
       arena_new_,
@@ -241,6 +277,11 @@ struct MallocProvider {
 
   JS_DECLARE_MAKE_METHODS(make_unique, new_, MOZ_ALWAYS_INLINE)
   JS_DECLARE_MAKE_METHODS(arena_make_unique, arena_new_, MOZ_ALWAYS_INLINE)
+
+#ifdef JITSBX_HEAP
+  JS_DECLARE_NEW_METHODS(jitsbx_new_, pod_jitsbx_malloc<uint8_t>, MOZ_ALWAYS_INLINE)
+  JS_DECLARE_MAKE_METHODS(jitsbx_make_unique, jitsbx_new_, MOZ_ALWAYS_INLINE)
+#endif
 
  private:
   Client* client() { return static_cast<Client*>(this); }
