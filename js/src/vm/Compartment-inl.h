@@ -423,7 +423,11 @@ template <class T>
 MOZ_ALWAYS_INLINE bool JS::Compartment::objectMaybeInIteration(JSObject* obj) {
   MOZ_ASSERT(obj->compartment() == this);
 
+#ifdef JITSBX_HEAP
+  js::NativeIteratorListIter iter(enumerators_);
+#else
   js::NativeIteratorListIter iter(&enumerators_);
+#endif
 
   // If the list is empty, we're not iterating any objects.
   if (iter.done()) {

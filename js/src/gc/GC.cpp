@@ -4734,6 +4734,12 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
     }
 
     comp = compHolder.get();
+#ifdef JITSBX_HEAP
+    if(!comp->init()) {
+      ReportOutOfMemory(cx);
+      return nullptr;
+    }
+#endif
   }
 
   UniquePtr<Realm> realm(cx->new_<Realm>(comp, options));

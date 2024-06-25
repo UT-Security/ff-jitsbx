@@ -859,8 +859,13 @@ static PropertyIteratorObject* CreatePropertyIterator(
     return nullptr;
   }
 
+#ifdef JITSBX_HEAP
   void* mem = cx->pod_malloc_with_extra<NativeIterator, uint8_t>(
       NumTrailingBytes(props.length(), numShapes, hasIndices));
+#else
+  void* mem = cx->pod_malloc_with_extra<NativeIterator, uint8_t>(
+      NumTrailingBytes(props.length(), numShapes, hasIndices));
+#endif
   if (!mem) {
     return nullptr;
   }
