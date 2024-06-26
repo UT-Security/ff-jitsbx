@@ -252,8 +252,13 @@ class JS::Realm : public JS::shadow::Realm {
 #endif
 
   // Random number generator for Math.random().
+#ifdef JITSBX_HEAP
+  mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>*
+      randomNumberGenerator_;
+#else
   mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>
       randomNumberGenerator_;
+#endif
 
   // Random number generator for randomHashCodeScrambler().
   mozilla::non_crypto::XorShift128PlusRNG randomKeyGenerator_;
@@ -399,7 +404,7 @@ class JS::Realm : public JS::shadow::Realm {
   Realm(JS::Compartment* comp, const JS::RealmOptions& options);
   ~Realm();
 
-  void init(JSContext* cx, JSPrincipals* principals);
+  bool init(JSContext* cx, JSPrincipals* principals);
   void destroy(JS::GCContext* gcx);
 
   void addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
@@ -689,7 +694,11 @@ class JS::Realm : public JS::shadow::Realm {
 
   const mozilla::non_crypto::XorShift128PlusRNG*
   addressOfRandomNumberGenerator() const {
+#ifdef JITSBX_HEAP
+    return randomNumberGenerator_->ptr();
+#else
     return randomNumberGenerator_.ptr();
+#endif
   }
 
   mozilla::HashCodeScrambler randomHashCodeScrambler();

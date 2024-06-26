@@ -644,9 +644,14 @@ gc::AllocSite* JitScript::createAllocSite(JSScript* script) {
     return nullptr;
   }
 
+#ifdef JITSBX_HEAP
+  auto* site =
+      static_cast<gc::AllocSite*>(js_jitsbx_malloc(sizeof(gc::AllocSite)));
+#else
   ICStubSpace* stubSpace = jitScriptStubSpace();
   auto* site =
       static_cast<gc::AllocSite*>(stubSpace->alloc(sizeof(gc::AllocSite)));
+#endif
   if (!site) {
     return nullptr;
   }

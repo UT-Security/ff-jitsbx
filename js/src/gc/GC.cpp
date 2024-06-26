@@ -4746,7 +4746,10 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
   if (!realm) {
     return nullptr;
   }
-  realm->init(cx, principals);
+  if (!realm->init(cx, principals)) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
 
   // Make sure we don't put system and non-system realms in the same
   // compartment.

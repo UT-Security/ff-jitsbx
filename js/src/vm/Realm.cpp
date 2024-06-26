@@ -51,6 +51,9 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
       zone_(comp->zone()),
       runtime_(comp->runtimeFromMainThread()),
       creationOptions_(options.creationOptions()),
+#ifdef JITSBX_HEAP
+      randomNumberGenerator_(nullptr),
+#endif
       behaviors_(options.behaviors()),
       objects_(zone_),
       randomKeyGenerator_(runtime_->forkRandomKeyGenerator()),
@@ -72,9 +75,15 @@ Realm::~Realm() {
 
   MOZ_ASSERT(runtime_->numRealms > 0);
   runtime_->numRealms--;
+
+#ifdef JITSBX_HEAP
+  if (randomNumberGenerator_) {
+    js_delete(randomNumberGenerator_);
+  }
+#endif
 }
 
-void Realm::init(JSContext* cx, JSPrincipals* principals) {
+bool Realm::init(JSContext* cx, JSPrincipals* principals) {
   /*
    * As a hack, we clear our timezone cache every time we create a new realm.
    * This ensures that the cache is always relatively fresh, but shouldn't
@@ -90,6 +99,14 @@ void Realm::init(JSContext* cx, JSPrincipals* principals) {
     JS_HoldPrincipals(principals);
     principals_ = principals;
   }
+
+#ifdef JITSBX_HEAP
+  randomNumberGenerator_ = cx->jitsbx_new_<mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>>();
+  if (!randomNumberGenerator_) {
+    return false;
+  }
+#endif
+  return true;
 }
 
 #ifdef JITSBX

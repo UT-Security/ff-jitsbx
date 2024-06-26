@@ -3094,7 +3094,11 @@ static const uint8_t* ContextInlinedICScriptPtr(CompileRuntime* rt) {
 }
 
 void MacroAssembler::storeICScriptInJSContext(Register icScript) {
+#ifdef JITSBX_HEAP
+  storePtr(icScript, AbsoluteAddress(((JSContext*)runtime()->mainContextPtr())->addressOfInlinedICScript()));
+#else
   storePtr(icScript, AbsoluteAddress(ContextInlinedICScriptPtr(runtime())));
+#endif
 }
 
 void MacroAssembler::handleFailure() {

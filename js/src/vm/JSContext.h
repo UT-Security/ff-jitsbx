@@ -859,7 +859,11 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // being invoked as part of a trial inlining.  Contains nullptr at
   // all times except for the brief moment between being set in the
   // caller and read in the callee's prologue.
+#ifdef JITSBX_HEAP
+  js::ContextData<js::jit::ICScript*>* inlinedICScript_;
+#else
   js::ContextData<js::jit::ICScript*> inlinedICScript_;
+#endif
 
  public:
   void* addressOfInterruptBits() { return &interruptBits_; }
@@ -875,7 +879,11 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   const void* addressOfRealm() const { return &realm_; }
 
+#ifdef JITSBX_HEAP
+  void* addressOfInlinedICScript() { return inlinedICScript_; }
+#else
   void* addressOfInlinedICScript() { return &inlinedICScript_; }
+#endif
 
   // Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics
   // object.
