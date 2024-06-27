@@ -118,13 +118,16 @@ void js::InitMallocAllocator() {
   arena_params_t params;
   params.mMaxDirtyIncreaseOverride = 5;
   params.mFlags |= ARENA_FLAG_RANDOMIZE_SMALL_ENABLED;
+#ifdef JITSBX_HEAP
+  params.mChunkPageOverride = { jitsbx::MapAlignedPages, jitsbx::UnmapPages };
+#endif
   ArrayBufferContentsArena = moz_create_arena_with_params(&params);
   StringBufferArena = moz_create_arena_with_params(&params);
 
 #ifdef JITSBX_HEAP
   arena_params_t jitsbxArenaParams;
   jitsbxArenaParams.mMaxDirtyIncreaseOverride = 5;
-  jitsbxArenaParams.mChunkAllocMmapOverride = jitsbx::MapAlignedPages;
+  jitsbxArenaParams.mChunkPageOverride = { jitsbx::MapAlignedPages, jitsbx::UnmapPages };
   JitsbxMallocArena = moz_create_arena_with_params(&jitsbxArenaParams);
 #endif
 }

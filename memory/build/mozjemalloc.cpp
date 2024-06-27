@@ -1128,10 +1128,6 @@ struct arena_t {
   // arc4random allocates memory).
   mozilla::non_crypto::XorShift128PlusRNG* mPRNG;
 
-#ifdef JITSBX_HEAP
-  chunk_alloc_mmap_t mChunkAllocMmapOverride;
-#endif
-
  public:
   // Current count of pages within unused runs that are potentially
   // dirty, and for which madvise(... MADV_FREE) has not been called.  By
@@ -1144,6 +1140,10 @@ struct arena_t {
 
   int32_t mMaxDirtyIncreaseOverride;
   int32_t mMaxDirtyDecreaseOverride;
+
+#ifdef JITSBX_HEAP
+  chunk_page_override_t mChunkPageOverride;
+#endif
 
  private:
   // Size/address-ordered tree of this arena's available runs.  This tree
@@ -1431,12 +1431,13 @@ static bool opt_randomize_small = true;
 
 #ifdef JITSBX_HEAP
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
-                         bool* aZeroed = nullptr, chunk_alloc_mmap_t f = nullptr);
+                         bool* aZeroed = nullptr, chunk_page_override_t* f = nullptr);
+static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType, chunk_page_override_t* f = nullptr);
 #else
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
                          bool* aZeroed = nullptr);
-#endif
 static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType);
+#endif
 static void chunk_ensure_zero(void* aPtr, size_t aSize, bool aZeroed);
 static void huge_dalloc(void* aPtr, arena_t* aArena);
 static bool malloc_init_hard();
@@ -2234,7 +2235,7 @@ static void* chunk_recycle(size_t aSize, size_t aAlignment, bool* aZeroed) {
 // care about the result.
 #ifdef JITSBX_HEAP
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
-                         bool* aZeroed, chunk_alloc_mmap_t f) {
+                         bool* aZeroed, chunk_page_override_t* f) {
 #else
 static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
                          bool* aZeroed) {
@@ -2249,7 +2250,7 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   // Base allocations can't be fulfilled by recycling because of
   // possible deadlock or infinite recursion.
 #ifdef JITSBX_HEAP
-  if (CAN_RECYCLE(aSize) && !aBase && !f) {
+  if (CAN_RECYCLE(aSize) && !aBase && (!f || !f->mmap_pages)) {
 #else
   if (CAN_RECYCLE(aSize) && !aBase) {
 #endif
@@ -2257,9 +2258,9 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   }
   if (!ret) {
 #ifdef JITSBX_HEAP
-    ret = f ? f(aSize, aAlignment) : chunk_alloc_mmap(aSize, aAlignment);
+    ret = f && f->mmap_pages ? f->mmap_pages(aSize, aAlignment) : chunk_alloc_mmap(aSize, aAlignment);
     if (aZeroed) {
-      if (f) {
+      if (f && f->mmap_pages) {
         *aZeroed = false;
       } else {
         *aZeroed = true;
@@ -2274,7 +2275,11 @@ static void* chunk_alloc(size_t aSize, size_t aAlignment, bool aBase,
   }
   if (ret && !aBase) {
     if (!gChunkRTree.Set(ret, ret)) {
+#ifdef JITSBX_HEAP
+      chunk_dealloc(ret, aSize, UNKNOWN_CHUNK, f);
+#else
       chunk_dealloc(ret, aSize, UNKNOWN_CHUNK);
+#endif
       return nullptr;
     }
   }
@@ -2373,7 +2378,11 @@ static void chunk_record(void* aChunk, size_t aSize, ChunkType aType) {
   gRecycledSize += aSize;
 }
 
+#ifdef JITSBX_HEAP
+static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType, chunk_page_override_t* f) {
+#else
 static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
+#endif
   MOZ_ASSERT(aChunk);
   MOZ_ASSERT(GetChunkOffsetForPtr(aChunk) == 0);
   MOZ_ASSERT(aSize != 0);
@@ -2381,7 +2390,11 @@ static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
 
   gChunkRTree.Unset(aChunk);
 
+#ifdef JITSBX_HEAP
+  if (CAN_RECYCLE(aSize) && (!f || !f->mmap_pages)) {
+#else
   if (CAN_RECYCLE(aSize)) {
+#endif
     size_t recycled_so_far = gRecycledSize;
     // In case some race condition put us above the limit.
     if (recycled_so_far < gRecycleLimit) {
@@ -2398,8 +2411,11 @@ static void chunk_dealloc(void* aChunk, size_t aSize, ChunkType aType) {
       return;
     }
   }
-
+#ifdef JITSBX_HEAP
+  f && f->unmap_pages ? f->unmap_pages(aChunk, aSize) : pages_unmap(aChunk, aSize);
+#else
   pages_unmap(aChunk, aSize);
+#endif
 }
 
 #undef CAN_RECYCLE
@@ -2786,7 +2802,7 @@ arena_run_t* arena_t::AllocRun(size_t aSize, bool aLarge, bool aZero) {
     bool zeroed;
     arena_chunk_t* chunk =
 #ifdef JITSBX_HEAP
-        (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed, mChunkAllocMmapOverride);
+        (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed, &mChunkPageOverride);
 #else
         (arena_chunk_t*)chunk_alloc(kChunkSize, kChunkSize, false, &zeroed);
 #endif
@@ -3792,7 +3808,11 @@ static inline void arena_dalloc(void* aPtr, size_t aOffset, arena_t* aArena) {
   }
 
   if (chunk_dealloc_delay) {
+#ifdef JITSBX_HEAP
+    chunk_dealloc((void*)chunk_dealloc_delay, kChunkSize, ARENA_CHUNK, &arena->mChunkPageOverride);
+#else
     chunk_dealloc((void*)chunk_dealloc_delay, kChunkSize, ARENA_CHUNK);
+#endif
   }
 }
 
@@ -3963,7 +3983,8 @@ arena_t::arena_t(arena_params_t* aParams, bool aIsPrivate) {
   mPRNG = nullptr;
 
 #ifdef JITSBX_HEAP
-  mChunkAllocMmapOverride = aParams ? aParams->mChunkAllocMmapOverride : nullptr;
+  mChunkPageOverride.mmap_pages = aParams ? aParams->mChunkPageOverride.mmap_pages : nullptr;
+  mChunkPageOverride.unmap_pages = aParams ? aParams->mChunkPageOverride.unmap_pages : nullptr;
 #endif
 
   mIsPrivate = aIsPrivate;
@@ -4004,7 +4025,11 @@ arena_t::~arena_t() {
   MOZ_RELEASE_ASSERT(!mStats.allocated_small && !mStats.allocated_large,
                      "Arena is not empty");
   if (mSpare) {
+#ifdef JITSBX_HEAP
+    chunk_dealloc(mSpare, kChunkSize, ARENA_CHUNK, &mChunkPageOverride);
+#else
     chunk_dealloc(mSpare, kChunkSize, ARENA_CHUNK);
+#endif
   }
   for (i = 0; i < NUM_SMALL_CLASSES; i++) {
     MOZ_RELEASE_ASSERT(!mBins[i].mNonFullRuns.First(), "Bin is not empty");
@@ -4104,7 +4129,7 @@ void* arena_t::PallocHuge(size_t aSize, size_t aAlignment, bool aZero) {
 
   // Allocate one or more contiguous chunks for this request.
 #ifdef JITSBX_HEAP
-  ret = chunk_alloc(csize, aAlignment, false, &zeroed, mChunkAllocMmapOverride);
+  ret = chunk_alloc(csize, aAlignment, false, &zeroed, &mChunkPageOverride);
 #else
   ret = chunk_alloc(csize, aAlignment, false, &zeroed);
 #endif
@@ -4258,7 +4283,11 @@ static void huge_dalloc(void* aPtr, arena_t* aArena) {
   }
 
   // Unmap chunk.
+#ifdef JITSBX_HEAP
+  chunk_dealloc(node->mAddr, mapped, HUGE_CHUNK, &node->mArena->mChunkPageOverride);
+#else
   chunk_dealloc(node->mAddr, mapped, HUGE_CHUNK);
+#endif
 
   ExtentAlloc::dealloc(node);
 }
