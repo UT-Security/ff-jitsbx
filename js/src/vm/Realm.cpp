@@ -62,6 +62,9 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
                                     zone_->isGCFinished()),
       wasm(runtime_) {
   runtime_->numRealms++;
+#ifdef JITSBX_REALM
+  runtime_->jitSandbox()->activeRealms.insert(this);
+#endif
 }
 
 Realm::~Realm() {
@@ -75,6 +78,9 @@ Realm::~Realm() {
 
   MOZ_ASSERT(runtime_->numRealms > 0);
   runtime_->numRealms--;
+#ifdef JITSBX_REALM
+  runtime_->jitSandbox()->activeRealms.erase(this);
+#endif
 
 #ifdef JITSBX_HEAP
   if (randomNumberGenerator_) {

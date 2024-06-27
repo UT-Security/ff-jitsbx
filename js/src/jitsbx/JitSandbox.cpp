@@ -66,3 +66,16 @@ bool JitSandbox::initialize(JSContext* cx) {
 
   return true;
 }
+
+#ifdef JITSBX_REALM
+void js::jitsbx::switchToRealm(JS::Realm* realm) {
+  AutoUnsafeCallWithABI unsafe;
+
+  JSContext* cx = TlsContext.get();
+  if (cx->runtime()->jitSandbox()->activeRealms.find(realm) == cx->runtime()->jitSandbox()->activeRealms.end()) {
+    abort();
+  }
+
+  cx->setRealm(realm);
+}
+#endif

@@ -2066,7 +2066,23 @@ static const uint8_t* ContextRealmPtr(CompileRuntime* rt) {
 }
 
 void MacroAssembler::switchToRealm(Register realm) {
+#ifdef JITSBX_REALM
+  AllocatableRegisterSet regs(RegisterSet::Volatile());
+  LiveRegisterSet save(regs.asLiveSet());
+  PushRegsInMask(save);
+  if (regs.has(realm)) {
+    regs.takeUnchecked(realm);
+  }
+  Register temp = regs.takeAnyGeneral();
+  setupUnalignedABICall(temp);
+  passABIArg(realm);
+  using Fn = void (*)(JS::Realm* realm);
+  callWithABI<Fn, js::jitsbx::switchToRealm>(
+      MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
+  PopRegsInMask(save);
+#else
   storePtr(realm, AbsoluteAddress(ContextRealmPtr(runtime())));
+#endif
 }
 
 void MacroAssembler::switchToRealm(const void* realm, Register scratch) {

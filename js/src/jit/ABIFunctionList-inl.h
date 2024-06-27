@@ -27,6 +27,9 @@
 // js::irregexp::GrowBacktrackStack,
 // js::irregexp::IsCharacterInRangeArray
 
+#ifdef JITSBX_REALM
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/ABIFunctions.h"
 #include "jit/Bailouts.h"  // js::jit::FinishBailoutToBaseline, js::jit::Bailout,
                            // js::jit::InvalidationBailout
@@ -85,6 +88,13 @@ namespace jit {
 #  define ABIFUNCTION_FUZZILLI_LIST(_) _(js::FuzzilliHashBigInt)
 #else
 #  define ABIFUNCTION_FUZZILLI_LIST(_)
+#endif
+
+#ifdef JITSBX_REALM
+#  define ABIFUNCTION_JITSBX_LIST(_) \
+    _(js::jitsbx::switchToRealm)               
+#else
+#  define ABIFUNCTION_JITSBX_LIST(_)
 #endif
 
 #define ABIFUNCTION_LIST(_)                                           \
@@ -178,7 +188,8 @@ namespace jit {
   _(js::RegExpPrototypeOptimizableRaw)                                \
   _(js::SetIteratorObject::next)                                      \
   _(js::StringToNumberPure)                                           \
-  _(js::TypeOfObject)
+  _(js::TypeOfObject)                                                 \
+  ABIFUNCTION_JITSBX_LIST(_)
 
 // List of all ABI functions to be used with callWithABI, which are
 // overloaded. Each entry stores the fully qualified name of the C++ function,

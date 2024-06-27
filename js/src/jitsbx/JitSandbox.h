@@ -7,6 +7,7 @@
 #ifndef jitsbx_JitSandbox_h
 #define jitsbx_JitSandbox_h
 
+#include <unordered_set>
 #include "threading/ProtectedData.h"
 #include "vm/JSContext.h"
 
@@ -61,7 +62,10 @@ class JitSandbox {
   WriteOnceData<uintptr_t> nativeStackBasePtr_{0};
 #endif
 
- public:
+public:
+#ifdef JITSBX_REALM
+  std::unordered_set<JS::Realm*> activeRealms;
+#endif
   JitSandbox() = default;
   ~JitSandbox();
 
@@ -196,6 +200,10 @@ AutoCheckSandboxStackRecursionLimit::checkWithStackPointerDontReport(JSContext* 
   }
   return false;
 }
+#endif
+
+#ifdef JITSBX_REALM
+void switchToRealm(JS::Realm* realm);
 #endif
 
 }  // namespace jitsbx

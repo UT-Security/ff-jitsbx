@@ -301,7 +301,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
    * through these methods - it will update cx->realm_ directly.
    */
  private:
+#ifndef JITSBX_REALM
   inline void setRealm(JS::Realm* realm);
+#endif
   inline void enterRealm(JS::Realm* realm);
 
   inline void enterAtomsZone();
@@ -318,6 +320,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   inline void enterRealmOf(js::Shape* target);
   inline void enterNullRealm();
 
+#ifdef JITSBX_REALM
+  inline void setRealm(JS::Realm* realm);
+#endif
   inline void setRealmForJitExceptionHandler(JS::Realm* realm);
 
   inline void leaveRealm(JS::Realm* oldRealm);
