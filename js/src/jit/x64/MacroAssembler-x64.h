@@ -653,7 +653,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
+#ifdef JITSBX_HEAP_MASK
+      storePtr(src, Address(scratch, 0x0, address.masked));
+#else
       storePtr(src, Address(scratch, 0x0));
+#endif
     }
   }
   void store32(Register src, AbsoluteAddress address) {
@@ -662,7 +666,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
+#ifdef JITSBX_HEAP_MASK
+      store32(src, Address(scratch, 0x0, address.masked));
+#else
       store32(src, Address(scratch, 0x0));
+#endif
     }
   }
   void store16(Register src, AbsoluteAddress address) {
@@ -671,7 +679,11 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
+#ifdef JITSBX_HEAP_MASK
+      store16(src, Address(scratch, 0x0, address.masked));
+#else
       store16(src, Address(scratch, 0x0));
+#endif
     }
   }
   void store64(Register64 src, Address address) { storePtr(src.reg, address); }

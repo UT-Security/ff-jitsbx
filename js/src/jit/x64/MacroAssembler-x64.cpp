@@ -582,9 +582,15 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
 #ifdef JITSBX_CFI_STACK
   loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
   storePtr(rax,
            AbsoluteAddress((const void*)GetJitContext()
                                ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -596,9 +602,15 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   bind(&catch_);
 #ifdef JITSBX_CFI_STACK
   loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
   storePtr(rax,
            AbsoluteAddress((const void*)GetJitContext()
                                ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
@@ -613,9 +625,15 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 
 #ifdef JITSBX_CFI_STACK
   loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax, AbsoluteAddress(
+                    (const void*)GetJitContext()
+                        ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
   storePtr(rax, AbsoluteAddress(
                     (const void*)GetJitContext()
                         ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
@@ -631,9 +649,15 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   bind(&returnBaseline);
 #ifdef JITSBX_CFI_STACK
   loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
   storePtr(rax,
            AbsoluteAddress((const void*)GetJitContext()
                                ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -673,9 +697,15 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   bind(&bailout);
 #ifdef JITSBX_CFI_STACK
   loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
   storePtr(rax,
            AbsoluteAddress((const void*)GetJitContext()
                                ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
 #endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -703,10 +733,17 @@ void MacroAssemblerX64::profilerEnterFrame(Register framePtr,
                                            Register scratch) {
   asMasm().loadJSContext(scratch);
   loadPtr(Address(scratch, offsetof(JSContext, profilingActivation_)), scratch);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(framePtr,
+           Address(scratch, JitActivation::offsetOfLastProfilingFrame()).unsafeUnmasked());
+  storePtr(ImmPtr(nullptr),
+           Address(scratch, JitActivation::offsetOfLastProfilingCallSite()).unsafeUnmasked());
+#else
   storePtr(framePtr,
            Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
   storePtr(ImmPtr(nullptr),
            Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
+#endif
 }
 
 void MacroAssemblerX64::profilerExitFrame() {

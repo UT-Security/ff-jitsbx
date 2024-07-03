@@ -638,7 +638,11 @@ void MacroAssembler::bumpPointerAllocate(Register result, Register temp,
         add32(Imm32(1), Address(temp, counterOffset.value()));
       } else {
         movePtr(ImmPtr(countAddress), temp);
+#ifdef JITSBX_HEAP_MASK
+        add32(Imm32(1), Address(temp, 0).unsafeUnmasked());
+#else
         add32(Imm32(1), Address(temp, 0));
+#endif
       }
     }
   } else {
@@ -657,15 +661,24 @@ void MacroAssembler::updateAllocSite(Register temp, Register result,
                                      CompileZone* zone, Register site) {
   Label done;
 
+#ifdef JITSBX_HEAP_MASK
+  add32(Imm32(1), Address(site, gc::AllocSite::offsetOfNurseryAllocCount()).unsafeUnmasked());
+#else
   add32(Imm32(1), Address(site, gc::AllocSite::offsetOfNurseryAllocCount()));
+#endif
 
   branch32(Assembler::NotEqual,
            Address(site, gc::AllocSite::offsetOfNurseryAllocCount()), Imm32(1),
            &done);
 
   loadPtr(AbsoluteAddress(zone->addressOfNurseryAllocatedSites()), temp);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(temp, Address(site, gc::AllocSite::offsetOfNextNurseryAllocated()).unsafeUnmasked());
+  storePtr(site, AbsoluteAddress(zone->addressOfNurseryAllocatedSites(), false));
+#else
   storePtr(temp, Address(site, gc::AllocSite::offsetOfNextNurseryAllocated()));
   storePtr(site, AbsoluteAddress(zone->addressOfNurseryAllocatedSites()));
+#endif
 
   bind(&done);
 }
@@ -2991,7 +3004,11 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       subPtr(Imm32(sizeof(uintptr_t)), copyCur);
       subFromStackPtr(Imm32(sizeof(uintptr_t)));
       loadPtr(Address(copyCur, 0), temp);
+#ifdef JITSBX_HEAP_MASK
+      storePtr(temp, Address(getStackPointer(), 0).unsafeUnmasked());
+#else
       storePtr(temp, Address(getStackPointer(), 0));
+#endif
       jump(&copyNativeLoop);
       bind(&endOfNativeCopy);
     }
@@ -3487,8 +3504,13 @@ MacroAssembler::AutoProfilerCallInstrumentation::
   CodeOffset label = masm.movWithPatch(ImmWord(uintptr_t(-1)), reg);
   masm.loadJSContext(reg2);
   masm.loadPtr(Address(reg2, offsetof(JSContext, profilingActivation_)), reg2);
+#ifdef JITSBX_HEAP_MASK
+  masm.storePtr(reg,
+                Address(reg2, JitActivation::offsetOfLastProfilingCallSite()).unsafeUnmasked());
+#else
   masm.storePtr(reg,
                 Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
+#endif
 
   masm.appendProfilerCallSite(label);
 
@@ -3933,7 +3955,11 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
     push(ReturnReg);
     loadJSContext(ReturnReg);
     Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
+#ifdef JITSBX_HEAP_MASK
+    store32(Imm32(1), flagAddr.unsafeUnmasked());
+#else
     store32(Imm32(1), flagAddr);
+#endif
     pop(ReturnReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/bug1375074.js
@@ -4004,7 +4030,11 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
+#ifdef JITSBX_HEAP_MASK
+  storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()).unsafeUnmasked());
+#else
   storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+#endif
 }
 
 // ===============================================================
@@ -5974,7 +6004,11 @@ void MacroAssembler::iteratorMore(Register obj, ValueOperand output,
   loadPtr(Address(temp, 0), temp);
 
   // Increase the cursor.
+#ifdef JITSBX_HEAP_MASK
+  addPtr(Imm32(sizeof(GCPtr<JSLinearString*>)), cursorAddr.unsafeUnmasked());
+#else
   addPtr(Imm32(sizeof(GCPtr<JSLinearString*>)), cursorAddr);
+#endif
 
   tagValue(JSVAL_TYPE_STRING, temp, output);
   jump(&done);
@@ -5997,28 +6031,51 @@ void MacroAssembler::iteratorClose(Register obj, Register temp1, Register temp2,
                Imm32(NativeIterator::Flags::IsEmptyIteratorSingleton), &done);
 
   // Clear active bit.
+#ifdef JITSBX_HEAP_MASK
+  and32(Imm32(~NativeIterator::Flags::Active),
+        Address(temp1, NativeIterator::offsetOfFlagsAndCount()).unsafeUnmasked());
+#else
   and32(Imm32(~NativeIterator::Flags::Active),
         Address(temp1, NativeIterator::offsetOfFlagsAndCount()));
+#endif
 
   // Clear objectBeingIterated.
   Address iterObjAddr(temp1, NativeIterator::offsetOfObjectBeingIterated());
   guardedCallPreBarrierAnyZone(iterObjAddr, MIRType::Object, temp2);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(ImmPtr(nullptr), iterObjAddr.unsafeUnmasked());
+#else
   storePtr(ImmPtr(nullptr), iterObjAddr);
+#endif
 
   // Reset property cursor.
   loadPtr(Address(temp1, NativeIterator::offsetOfShapesEnd()), temp2);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(temp2, Address(temp1, NativeIterator::offsetOfPropertyCursor()).unsafeUnmasked());
+#else
   storePtr(temp2, Address(temp1, NativeIterator::offsetOfPropertyCursor()));
+#endif
 
   // Unlink from the iterator list.
   const Register next = temp2;
   const Register prev = temp3;
   loadPtr(Address(temp1, NativeIterator::offsetOfNext()), next);
   loadPtr(Address(temp1, NativeIterator::offsetOfPrev()), prev);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(prev, Address(next, NativeIterator::offsetOfPrev()).unsafeUnmasked());
+  storePtr(next, Address(prev, NativeIterator::offsetOfNext()).unsafeUnmasked());
+#else
   storePtr(prev, Address(next, NativeIterator::offsetOfPrev()));
   storePtr(next, Address(prev, NativeIterator::offsetOfNext()));
+#endif
 #ifdef DEBUG
+#ifdef JITSBX_HEAP_MASK
+  storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfNext()).unsafeUnmasked());
+  storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfPrev()).unsafeUnmasked());
+#else
   storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfNext()));
   storePtr(ImmPtr(nullptr), Address(temp1, NativeIterator::offsetOfPrev()));
+#endif
 #endif
 
   bind(&done);
@@ -6026,6 +6083,20 @@ void MacroAssembler::iteratorClose(Register obj, Register temp1, Register temp2,
 
 void MacroAssembler::registerIterator(Register enumeratorsList, Register iter,
                                       Register temp) {
+#ifdef JITSBX_HEAP_MASK
+  // iter->next = list
+  storePtr(enumeratorsList, Address(iter, NativeIterator::offsetOfNext()).unsafeUnmasked());
+
+  // iter->prev = list->prev
+  loadPtr(Address(enumeratorsList, NativeIterator::offsetOfPrev()), temp);
+  storePtr(temp, Address(iter, NativeIterator::offsetOfPrev()).unsafeUnmasked());
+
+  // list->prev->next = iter
+  storePtr(iter, Address(temp, NativeIterator::offsetOfNext()).unsafeUnmasked());
+
+  // list->prev = iter
+  storePtr(iter, Address(enumeratorsList, NativeIterator::offsetOfPrev()).unsafeUnmasked());
+#else
   // iter->next = list
   storePtr(enumeratorsList, Address(iter, NativeIterator::offsetOfNext()));
 
@@ -6038,6 +6109,7 @@ void MacroAssembler::registerIterator(Register enumeratorsList, Register iter,
 
   // list->prev = iter
   storePtr(iter, Address(enumeratorsList, NativeIterator::offsetOfPrev()));
+#endif
 }
 
 void MacroAssembler::toHashableNonGCThing(ValueOperand value,

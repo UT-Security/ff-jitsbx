@@ -308,7 +308,11 @@ void MacroAssembler::inc64(AbsoluteAddress dest) {
   } else {
     ScratchRegisterScope scratch(*this);
     mov(ImmPtr(dest.addr), scratch);
+#ifdef JITSBX_HEAP_MASK
+    addPtr(Imm32(1), Address(scratch, 0, dest.masked));
+#else
     addPtr(Imm32(1), Address(scratch, 0));
+#endif
   }
 }
 

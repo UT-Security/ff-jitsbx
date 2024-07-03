@@ -61,7 +61,11 @@ SharedArrayRawBuffer* SharedArrayRawBuffer::Allocate(size_t length) {
   MOZ_RELEASE_ASSERT(length <= ArrayBufferObject::MaxByteLength);
 
   size_t allocSize = NonWasmSharedArrayAllocSize(length);
+#ifdef JITSBX_HEAP
+  uint8_t* p = js_pod_jitsbx_calloc<uint8_t>(allocSize);
+#else
   uint8_t* p = js_pod_calloc<uint8_t>(allocSize);
+#endif
   if (!p) {
     return nullptr;
   }

@@ -210,6 +210,13 @@ struct MallocProvider {
     return pod_arena_calloc<T>(js::MallocArena, numElems);
   }
 
+#ifdef JITSBX_HEAP
+  template <class T>
+  T* pod_jitsbx_calloc(size_t numElems = 1) {
+    return pod_arena_calloc<T>(js::JitsbxMallocArena, numElems);
+  }
+#endif
+
   template <class T, class U>
   T* pod_calloc_with_extra(size_t numExtra) {
     size_t bytes;

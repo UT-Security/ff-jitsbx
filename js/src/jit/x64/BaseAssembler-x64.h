@@ -44,17 +44,28 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_ADD_GvEv, offset, base, index, scale, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void addq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("addq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void addq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("addq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, index, scale, src);
   }
 
@@ -88,10 +99,15 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void addq_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     ((BaseAssembler*)this)->cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -101,10 +117,15 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_im(int32_t imm, const void* addr, bool masked) {
+#else
   void addq_im(int32_t imm, const void* addr) {
+#endif
     spew("addq       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     ((BaseAssembler*)this)->cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -140,17 +161,28 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_AND_GvEv, addr, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void andq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("andq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void andq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("andq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, index, scale, src);
   }
 
@@ -166,17 +198,28 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_OR_GvEv, addr, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void orq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void orq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("orq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void orq_rm(RegisterID src, int32_t offset, RegisterID base, RegisterID index,
+              int scale, bool masked) {
+#else
   void orq_rm(RegisterID src, int32_t offset, RegisterID base, RegisterID index,
               int scale) {
+#endif
     spew("orq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, index, scale, src);
   }
 
@@ -200,17 +243,28 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_XOR_GvEv, addr, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void xorq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void xorq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("xorq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void xorq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void xorq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("xorq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, index, scale, src);
   }
 
@@ -311,17 +365,28 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_SUB_GvEv, src, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void subq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void subq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("subq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void subq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void subq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("subq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, index, scale, src);
   }
 
@@ -685,18 +750,29 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.twoByteOp64(OP2_CMPXCHG_GvEw, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void lock_xaddq_rm(RegisterID srcdest, int32_t offset, RegisterID base, bool masked) {
+#else
   void lock_xaddq_rm(RegisterID srcdest, int32_t offset, RegisterID base) {
+#endif
     spew("lock xaddq %s, " MEM_ob, GPReg64Name(srcdest), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp64(OP2_XADD_EvGv, offset, base, srcdest);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void lock_xaddq_rm(RegisterID srcdest, int32_t offset, RegisterID base,
+                     RegisterID index, int scale, bool masked) {
+#else
   void lock_xaddq_rm(RegisterID srcdest, int32_t offset, RegisterID base,
                      RegisterID index, int scale) {
+#endif
     spew("lock xaddq %s, " MEM_obs, GPReg64Name(srcdest),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp64(OP2_XADD_EvGv, offset, base, index, scale, srcdest);
   }
@@ -706,16 +782,27 @@ class BaseAssemblerX64 : public BaseAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_XCHG_GvEv, src, dst);
   }
+#ifdef JITSBX_HEAP_MASK
+  void xchgq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void xchgq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("xchgq      %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, src);
   }
+#ifdef JITSBX_HEAP_MASK
+  void xchgq_rm(RegisterID src, int32_t offset, RegisterID base,
+                RegisterID index, int scale, bool masked) {
+#else
   void xchgq_rm(RegisterID src, int32_t offset, RegisterID base,
                 RegisterID index, int scale) {
+#endif
     spew("xchgq      %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, index, scale, src);
   }
 
@@ -725,34 +812,59 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_MOV_EvGv, dst, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_rm_disp32(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movq_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movq       %s, " MEM_o32b, GPReg64Name(src), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void movq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("movq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_rm(RegisterID src, const void* addr, bool masked) {
+#else
   void movq_rm(RegisterID src, const void* addr) {
+#endif
     if (src == rax && !IsAddressImmediate(addr)) {
+#ifdef JITSBX_HEAP_MASK
+      movq_EAXm(addr, masked);
+#else
       movq_EAXm(addr);
+#endif
       return;
     }
 
     spew("movq       %s, %p", GPReg64Name(src), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_MOV_EvGv, addr, src);
   }
 
@@ -768,14 +880,23 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_EAXm(const void* addr, bool masked) {
+#else
   void movq_EAXm(const void* addr) {
+#endif
     if (IsAddressImmediate(addr)) {
+#ifdef JITSBX_HEAP_MASK
+      movq_rm(rax, addr, masked);
+#else
       movq_rm(rax, addr);
+#endif
       return;
     }
 
     spew("movq       %%rax, %p", addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_MOV_OvEAX);
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
   }
@@ -820,26 +941,42 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_LEA, offset, base, index, scale, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movq_i32m(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     ((BaseAssembler*)this)->cfiLabelNopAlign();
     spew("movq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
+#ifdef JITSBX_HEAP_MASK
+  void movq_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+                 int scale, bool masked) {
+#else
   void movq_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
+#endif
     ((BaseAssembler*)this)->cfiLabelNopAlign();
     spew("movq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
                             GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
+#ifdef JITSBX_HEAP_MASK
+  void movq_i32m(int32_t imm, const void* addr, bool masked) {
+#else
   void movq_i32m(int32_t imm, const void* addr) {
+#endif
     spew("movq       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     ((BaseAssembler*)this)->cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }

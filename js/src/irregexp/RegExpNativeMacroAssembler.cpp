@@ -1214,7 +1214,11 @@ void SMRegExpMacroAssembler::successHandler() {
     if (mode_ == UC16) {
       masm_.rshiftPtrArithmetic(Imm32(1), temp0_);
     }
+#ifdef JITSBX_HEAP_MASK
+    masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)).unsafeUnmasked());
+#else
     masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
+#endif
   }
 
   masm_.movePtr(ImmWord(js::RegExpRunStatus_Success), temp0_);

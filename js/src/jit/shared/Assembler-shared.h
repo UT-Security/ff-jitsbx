@@ -242,10 +242,19 @@ struct TrampolinePtr {
 // instruction.
 struct AbsoluteAddress {
   void* addr;
+#ifdef JITSBX_HEAP_MASK
+  bool masked;
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  explicit AbsoluteAddress(const void* addr, bool masked = true) : addr(const_cast<void*>(addr)), masked(masked) {
+    MOZ_ASSERT(!IsCompilingWasm());
+  }
+#else
   explicit AbsoluteAddress(const void* addr) : addr(const_cast<void*>(addr)) {
     MOZ_ASSERT(!IsCompilingWasm());
   }
+#endif
 
   AbsoluteAddress offset(ptrdiff_t delta) {
     return AbsoluteAddress(((uint8_t*)addr) + delta);
@@ -257,12 +266,23 @@ struct AbsoluteAddress {
 // either clobbered or used in the patching process.
 struct PatchedAbsoluteAddress {
   void* addr;
+#ifdef JITSBX_HEAP_MASK
+  bool masked;
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  explicit PatchedAbsoluteAddress(bool masked = true) : addr(nullptr), masked(masked) {}
+  explicit PatchedAbsoluteAddress(const void* addr, bool masked = true)
+      : addr(const_cast<void*>(addr)), masked(masked) {}
+  explicit PatchedAbsoluteAddress(uintptr_t addr, bool masked = true)
+      : addr(reinterpret_cast<void*>(addr)), masked(masked) {}
+#else
   explicit PatchedAbsoluteAddress() : addr(nullptr) {}
   explicit PatchedAbsoluteAddress(const void* addr)
       : addr(const_cast<void*>(addr)) {}
   explicit PatchedAbsoluteAddress(uintptr_t addr)
       : addr(reinterpret_cast<void*>(addr)) {}
+#endif
 };
 
 // Specifies an address computed in the form of a register base and a constant,
@@ -270,9 +290,21 @@ struct PatchedAbsoluteAddress {
 struct Address {
   RegisterOrSP base;
   int32_t offset;
+#ifdef JITSBX_HEAP_MASK
+  bool masked;
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  Address(Register base, int32_t offset, bool masked = true)
+      : base(RegisterOrSP(base)), offset(offset), masked(masked) {}
+
+  Address unsafeUnmasked() {
+    return Address(base, offset, false);
+  }
+#else
   Address(Register base, int32_t offset)
       : base(RegisterOrSP(base)), offset(offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   Address(RegisterOrSP base, int32_t offset) : base(base), offset(offset) {}
@@ -310,9 +342,17 @@ struct BaseIndex {
   Register index;
   Scale scale;
   int32_t offset;
+#ifdef JITSBX_HEAP_MASK
+  bool masked;
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0, bool masked = true)
+      : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset), masked(masked) {}
+#else
   BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0)
       : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   BaseIndex(RegisterOrSP base, Register index, Scale scale, int32_t offset = 0)
@@ -351,8 +391,13 @@ static inline BaseIndex HighWord(const BaseIndex& address) {
 // object's elements or slots, don't use this directly!  Use
 // BaseObject{Element,Slot}Index instead.
 struct BaseValueIndex : BaseIndex {
+#ifdef JITSBX_HEAP_MASK
+  BaseValueIndex(Register base, Register index, int32_t offset = 0, bool masked = true)
+      : BaseIndex(RegisterOrSP(base), index, ValueScale, offset, masked) {}
+#else
   BaseValueIndex(Register base, Register index, int32_t offset = 0)
       : BaseIndex(RegisterOrSP(base), index, ValueScale, offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   BaseValueIndex(RegisterOrSP base, Register index, int32_t offset = 0)
@@ -363,8 +408,13 @@ struct BaseValueIndex : BaseIndex {
 // Specifies the address of an indexed Value within object elements from a
 // base.  The index must not already be scaled by sizeof(Value)!
 struct BaseObjectElementIndex : BaseValueIndex {
+#ifdef JITSBX_HEAP_MASK
+  BaseObjectElementIndex(Register base, Register index, int32_t offset = 0, bool masked = true)
+      : BaseValueIndex(base, index, offset, masked) {}
+#else
   BaseObjectElementIndex(Register base, Register index, int32_t offset = 0)
       : BaseValueIndex(base, index, offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   BaseObjectElementIndex(RegisterOrSP base, Register index, int32_t offset = 0)
@@ -376,8 +426,13 @@ struct BaseObjectElementIndex : BaseValueIndex {
 
 // Like BaseObjectElementIndex, except for object slots.
 struct BaseObjectSlotIndex : BaseValueIndex {
+#ifdef JITSBX_HEAP_MASK
+  BaseObjectSlotIndex(Register base, Register index, bool masked = true)
+      : BaseValueIndex(base, index, 0, masked) {}
+#else
   BaseObjectSlotIndex(Register base, Register index)
       : BaseValueIndex(base, index) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   BaseObjectSlotIndex(RegisterOrSP base, Register index)

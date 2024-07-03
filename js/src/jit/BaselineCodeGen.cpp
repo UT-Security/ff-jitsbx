@@ -893,7 +893,12 @@ static void MaybeIncrementCodeCoverageCounter(MacroAssembler& masm,
   }
   PCCounts* counts = script->maybeGetPCCounts(pc);
   uint64_t* counterAddr = &counts->numExec();
+#ifdef JITSBX_HEAP_MASK
+  // UNSAFE JITSBX_HEAP_MASK removal
+  masm.inc64(AbsoluteAddress(counterAddr, false));
+#else
   masm.inc64(AbsoluteAddress(counterAddr));
+#endif
 }
 
 template <>
@@ -1484,7 +1489,11 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   Address warmUpCounterAddr(scriptReg, ICScript::offsetOfWarmUpCount());
   masm.load32(warmUpCounterAddr, countReg);
   masm.add32(Imm32(1), countReg);
+#ifdef JITSBX_HEAP_MASK
+  masm.store32(countReg, warmUpCounterAddr.unsafeUnmasked());
+#else
   masm.store32(countReg, warmUpCounterAddr);
+#endif
 
   if (!JitOptions.disableInlining) {
     // Consider trial inlining.
@@ -1647,7 +1656,11 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
   Address warmUpCounterAddr(scriptReg, JitScript::offsetOfWarmUpCount());
   masm.load32(warmUpCounterAddr, countReg);
   masm.add32(Imm32(1), countReg);
+#ifdef JITSBX_HEAP_MASK
+  masm.store32(countReg, warmUpCounterAddr.unsafeUnmasked());
+#else
   masm.store32(countReg, warmUpCounterAddr);
+#endif
 
   // If the script is warm enough for Baseline compilation, call into the VM to
   // compile it.

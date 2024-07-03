@@ -228,7 +228,11 @@ JitCode* BaselineCacheIRCompiler::compile() {
   // Count stub entries: We count entries rather than successes as it much
   // easier to ensure ICStubReg is valid at entry than at exit.
   Address enteredCount(ICStubReg, ICCacheIRStub::offsetOfEnteredCount());
+#ifdef JITSBX_HEAP_MASK
+  masm.add32(Imm32(1), enteredCount.unsafeUnmasked());
+#else
   masm.add32(Imm32(1), enteredCount);
+#endif
 
   CacheIRReader reader(writer_);
   do {

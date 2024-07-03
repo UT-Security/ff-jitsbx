@@ -454,10 +454,17 @@ inline void MacroAssembler::sbxAssertSandboxStackWithScratch(Register scratch) {
 void MacroAssembler::sbxToNativeStack() {
 #ifdef JITSBX_CFI_STACK
     MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
+#ifdef JITSBX_HEAP_MASK
+    storePtr(
+        StackPointer,
+        AbsoluteAddress((const void*)GetJitContext()
+                            ->jitSandbox->addressOfSavedSandboxStackPtr(), false));
+#else
     storePtr(
         StackPointer,
         AbsoluteAddress((const void*)GetJitContext()
                             ->jitSandbox->addressOfSavedSandboxStackPtr()));
+#endif
     loadPtr(AbsoluteAddress((const void*)GetJitContext()
                                 ->jitSandbox->addressOfSavedNativeStackPtr()),
             StackPointer);
@@ -467,9 +474,15 @@ void MacroAssembler::sbxToNativeStack() {
 void MacroAssembler::sbxToSandboxStack() {
 #ifdef JITSBX_CFI_STACK
     MOZ_ASSERT(!GetJitContext()->isCompilingWasm());
+#ifdef JITSBX_HEAP_MASK
+    storePtr(StackPointer,
+             AbsoluteAddress((const void*)GetJitContext()
+                                 ->jitSandbox->addressOfSavedNativeStackPtr(), false));
+#else
     storePtr(StackPointer,
              AbsoluteAddress((const void*)GetJitContext()
                                  ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
     loadPtr(AbsoluteAddress((const void*)GetJitContext()
                                 ->jitSandbox->addressOfSavedSandboxStackPtr()),
             StackPointer);

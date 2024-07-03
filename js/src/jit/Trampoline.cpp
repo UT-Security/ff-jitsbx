@@ -190,11 +190,19 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // lastProfilingCallSite := ReturnAddress
     masm.loadPtr(Address(fpScratch, JitFrameLayout::offsetOfReturnAddress()),
                  scratch);
+#ifdef JITSBX_HEAP_MASK
+    masm.storePtr(scratch, lastProfilingCallSite.unsafeUnmasked());
+#else
     masm.storePtr(scratch, lastProfilingCallSite);
+#endif
 
     // lastProfilingFrame := CallerFrame
     masm.loadPtr(Address(fpScratch, CallerFPOffset), scratch);
+#ifdef JITSBX_HEAP_MASK
+    masm.storePtr(scratch, lastProfilingFrame.unsafeUnmasked());
+#else
     masm.storePtr(scratch, lastProfilingFrame);
+#endif
 
     masm.moveToStackPtr(FramePointer);
     masm.sbxPopFrame();
@@ -212,11 +220,19 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // lastProfilingCallSite := StubFrame.ReturnAddress
     masm.loadPtr(Address(fpScratch, CommonFrameLayout::offsetOfReturnAddress()),
                  scratch);
+#ifdef JITSBX_HEAP_MASK
+    masm.storePtr(scratch, lastProfilingCallSite.unsafeUnmasked());
+#else
     masm.storePtr(scratch, lastProfilingCallSite);
+#endif
 
     // lastProfilingFrame := StubFrame.CallerFrame
     masm.loadPtr(Address(fpScratch, CallerFPOffset), scratch);
+#ifdef JITSBX_HEAP_MASK
+    masm.storePtr(scratch, lastProfilingFrame.unsafeUnmasked());
+#else
     masm.storePtr(scratch, lastProfilingFrame);
+#endif
 
     masm.moveToStackPtr(FramePointer);
     masm.sbxPopFrame();
@@ -256,8 +272,13 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // of view of the JIT.
     // Store null into both fields.
     masm.movePtr(ImmPtr(nullptr), scratch);
+#ifdef JITSBX_HEAP_MASK
+    masm.storePtr(scratch, lastProfilingCallSite.unsafeUnmasked());
+    masm.storePtr(scratch, lastProfilingFrame.unsafeUnmasked());
+#else
     masm.storePtr(scratch, lastProfilingCallSite);
     masm.storePtr(scratch, lastProfilingFrame);
+#endif
 
     masm.moveToStackPtr(FramePointer);
     masm.sbxPopFrame();

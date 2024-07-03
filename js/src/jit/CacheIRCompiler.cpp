@@ -4642,8 +4642,13 @@ void CacheIRCompiler::emitActivateIterator(Register objBeingIterated,
 
   // Mark iterator as active.
   Address iterFlagsAddr(nativeIter, NativeIterator::offsetOfFlagsAndCount());
+#ifdef JITSBX_HEAP_MASK
+  masm.storePtr(objBeingIterated, iterObjAddr.unsafeUnmasked());
+  masm.or32(Imm32(NativeIterator::Flags::Active), iterFlagsAddr.unsafeUnmasked());
+#else
   masm.storePtr(objBeingIterated, iterObjAddr);
   masm.or32(Imm32(NativeIterator::Flags::Active), iterFlagsAddr);
+#endif
 
   // Post-write barrier for stores to 'objectBeingIterated_'.
   emitPostBarrierSlot(

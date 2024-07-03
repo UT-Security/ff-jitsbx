@@ -104,10 +104,13 @@ enum OneByteOpcodeID {
 #ifdef JS_CODEGEN_X64
   OP_MOVSXD_GvEv = 0x63,
 #endif
-#ifdef JITSBX_CFI_BUNDLE
+#ifdef JITSBX
   PRE_SEG_GS = 0x65,
 #endif
   PRE_OPERAND_SIZE = 0x66,
+#ifdef JITSBX
+  PRE_ADDRESS_SIZE = 0x67,
+#endif
   PRE_SSE_66 = 0x66,
   OP_NOP_66 = 0x66,
   OP_PUSH_Iz = 0x68,

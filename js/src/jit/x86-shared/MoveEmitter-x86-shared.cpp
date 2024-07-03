@@ -381,7 +381,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
                                      const MoveOperand& to,
                                      const MoveResolver& moves, size_t i) {
   if (from.isGeneralReg()) {
+#ifdef JITSBX_HEAP_MASK
+    masm.mov(from.reg(), toOperand(to).unsafeUnmasked());
+#else
     masm.mov(from.reg(), toOperand(to));
+#endif
   } else if (to.isGeneralReg()) {
     MOZ_ASSERT(from.isMemoryOrEffectiveAddress());
     if (from.isMemory()) {
@@ -394,7 +398,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
     Maybe<Register> reg = findScratchRegister(moves, i);
     if (reg.isSome()) {
       masm.loadPtr(toAddress(from), reg.value());
+#ifdef JITSBX_HEAP_MASK
+      masm.mov(reg.value(), toOperand(to).unsafeUnmasked());
+#else
       masm.mov(reg.value(), toOperand(to));
+#endif
     } else {
       // No scratch register available; bounce it off the stack.
       masm.Push(toOperand(from));
@@ -406,7 +414,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
     Maybe<Register> reg = findScratchRegister(moves, i);
     if (reg.isSome()) {
       masm.lea(toOperand(from), reg.value());
+#ifdef JITSBX_HEAP_MASK
+      masm.mov(reg.value(), toOperand(to).unsafeUnmasked());
+#else
       masm.mov(reg.value(), toOperand(to));
+#endif
     } else {
       // This is tricky without a scratch reg. We can't do an lea. Bounce the
       // base register off the stack, then add the offset in place. Note that
@@ -414,7 +426,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
       masm.Push(from.base());
       masm.Pop(toPopOperand(to));
       MOZ_ASSERT(to.isMemoryOrEffectiveAddress());
+#ifdef JITSBX_HEAP_MASK
+      masm.addPtr(Imm32(from.disp()), toAddress(to).unsafeUnmasked());
+#else
       masm.addPtr(Imm32(from.disp()), toAddress(to));
+#endif
     }
   }
 }

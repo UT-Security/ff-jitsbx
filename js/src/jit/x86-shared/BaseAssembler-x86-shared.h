@@ -40,6 +40,16 @@
 #include "jitsbx/JitSandbox.h"
 #endif
 
+#ifdef JITSBX_HEAP_MASK
+#define JITSBX_MAYBE_MASK(masked)            \
+  if(isSandboxed() && masked) {              \
+      m_formatter.prefix(PRE_SEG_GS);        \
+      m_formatter.prefix(PRE_ADDRESS_SIZE);  \
+  }
+#else
+#define JITSBX_MAYBE_MASK(masked)
+#endif
+    
 namespace js {
 namespace jit {
 
@@ -87,6 +97,15 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JITSBX_CFI_LABEL4
     if(isSandboxed()) {
       nopAlign(0x10);
+    }
+#endif
+  }
+
+  void jitsbxHeapMask() {
+#ifdef JITSBX_HEAP_MASK
+    if(isSandboxed()) {
+      m_formatter.prefix(PRE_SEG_GS);
+      m_formatter.prefix(PRE_ADDRESS_SIZE);
     }
 #endif
   }
@@ -379,9 +398,14 @@ class BaseAssembler : public GenericAssembler {
                           GROUP5_OP_PUSH);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void pop_m(int32_t offset, RegisterID base, bool masked) {
+#else
   void pop_m(int32_t offset, RegisterID base) {
+#endif
     spew("pop        " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP1A_Ev, offset, base, GROUP1A_OP_POP);
   }
 
@@ -418,17 +442,28 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_ADD_GvEv, offset, base, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addl_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void addl_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("addl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_ADD_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addl_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void addl_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("addl       %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_ADD_EvGv, offset, base, index, scale, src);
   }
 
@@ -470,10 +505,15 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addl_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void addl_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("addl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -483,11 +523,17 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void addl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("addl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_ADD);
@@ -499,10 +545,15 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addl_im(int32_t imm, const void* addr, bool masked) {
+#else
   void addl_im(int32_t imm, const void* addr) {
+#endif
     spew("addl       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
       m_formatter.immediate8s(imm);
@@ -511,9 +562,14 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.immediate32(imm);
     }
   }
+#ifdef JITSBX_HEAP_MASK
+  void addw_im(int32_t imm, const void* addr, bool masked) {
+#else
   void addw_im(int32_t imm, const void* addr) {
+#endif
     spew("addw       $%d, %p", int16_t(imm), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
@@ -524,75 +580,120 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addw_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void addw_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("addw       $%d, " MEM_ob, int16_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_GROUP1_EvIz, offset, base, GROUP1_OP_ADD);
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addw_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void addw_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("addw       $%d, " MEM_obs, int16_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_GROUP1_EvIz, offset, base, index, scale,
                           GROUP1_OP_ADD);
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addw_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void addw_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("addw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_ADD_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addw_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void addw_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("addw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_ADD_EvGv, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addb_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void addb_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("addb       $%d, " MEM_ob, int8_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, GROUP1_OP_ADD);
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addb_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void addb_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("addb       $%d, " MEM_obs, int8_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, index, scale,
                           GROUP1_OP_ADD);
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addb_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void addb_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("addb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp8(OP_ADD_EbGb, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addb_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void addb_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("addb       %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp8(OP_ADD_EbGb, offset, base, index, scale, src);
   }
 
   void subb_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("subb       $%d, " MEM_ob, int8_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, GROUP1_OP_SUB);
     m_formatter.immediate8(imm);
   }
@@ -602,6 +703,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subb       $%d, " MEM_obs, int8_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, index, scale,
                           GROUP1_OP_SUB);
     m_formatter.immediate8(imm);
@@ -610,6 +712,7 @@ class BaseAssembler : public GenericAssembler {
   void subb_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("subb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_SUB_EbGb, offset, base, src);
   }
 
@@ -618,12 +721,14 @@ class BaseAssembler : public GenericAssembler {
     spew("subb       %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_SUB_EbGb, offset, base, index, scale, src);
   }
 
   void andb_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("andb       $%d, " MEM_ob, int8_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, GROUP1_OP_AND);
     m_formatter.immediate8(imm);
   }
@@ -633,6 +738,7 @@ class BaseAssembler : public GenericAssembler {
     spew("andb       $%d, " MEM_obs, int8_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, index, scale,
                           GROUP1_OP_AND);
     m_formatter.immediate8(imm);
@@ -641,6 +747,7 @@ class BaseAssembler : public GenericAssembler {
   void andb_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("andb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_AND_EbGb, offset, base, src);
   }
 
@@ -649,12 +756,14 @@ class BaseAssembler : public GenericAssembler {
     spew("andb       %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_AND_EbGb, offset, base, index, scale, src);
   }
 
   void orb_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("orb       $%d, " MEM_ob, int8_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, GROUP1_OP_OR);
     m_formatter.immediate8(imm);
   }
@@ -664,6 +773,7 @@ class BaseAssembler : public GenericAssembler {
     spew("orb        $%d, " MEM_obs, int8_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, index, scale,
                           GROUP1_OP_OR);
     m_formatter.immediate8(imm);
@@ -672,6 +782,7 @@ class BaseAssembler : public GenericAssembler {
   void orb_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("orb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_OR_EbGb, offset, base, src);
   }
 
@@ -680,12 +791,14 @@ class BaseAssembler : public GenericAssembler {
     spew("orb        %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_OR_EbGb, offset, base, index, scale, src);
   }
 
   void xorb_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("xorb       $%d, " MEM_ob, int8_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, GROUP1_OP_XOR);
     m_formatter.immediate8(imm);
   }
@@ -695,6 +808,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorb       $%d, " MEM_obs, int8_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP1_EbIb, offset, base, index, scale,
                           GROUP1_OP_XOR);
     m_formatter.immediate8(imm);
@@ -703,6 +817,7 @@ class BaseAssembler : public GenericAssembler {
   void xorb_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("xorb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_XOR_EbGb, offset, base, src);
   }
 
@@ -711,12 +826,14 @@ class BaseAssembler : public GenericAssembler {
     spew("xorb       %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_XOR_EbGb, offset, base, index, scale, src);
   }
 
   void lock_xaddb_rm(RegisterID srcdest, int32_t offset, RegisterID base) {
     spew("lock xaddb %s, " MEM_ob, GPReg8Name(srcdest), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp8(OP2_XADD_EbGb, offset, base, srcdest);
   }
@@ -726,6 +843,7 @@ class BaseAssembler : public GenericAssembler {
     spew("lock xaddb %s, " MEM_obs, GPReg8Name(srcdest),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp8(OP2_XADD_EbGb, offset, base, index, scale, srcdest);
   }
@@ -733,6 +851,7 @@ class BaseAssembler : public GenericAssembler {
   void lock_xaddl_rm(RegisterID srcdest, int32_t offset, RegisterID base) {
     spew("lock xaddl %s, " MEM_ob, GPReg32Name(srcdest), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp(OP2_XADD_EvGv, offset, base, srcdest);
   }
@@ -742,6 +861,7 @@ class BaseAssembler : public GenericAssembler {
     spew("lock xaddl %s, " MEM_obs, GPReg32Name(srcdest),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(PRE_LOCK);
     m_formatter.twoByteOp(OP2_XADD_EvGv, offset, base, index, scale, srcdest);
   }
@@ -1134,24 +1254,36 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_AND_GvEv, offset, base, index, scale, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andl_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void andl_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("andl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_AND_EvGv, offset, base, src);
   }
 
   void andw_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("andw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_AND_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andl_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void andl_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("andl       %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_AND_EvGv, offset, base, index, scale, src);
   }
 
@@ -1160,6 +1292,7 @@ class BaseAssembler : public GenericAssembler {
     spew("andw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_AND_EvGv, offset, base, index, scale, src);
   }
@@ -1209,10 +1342,15 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andl_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void andl_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     cfiLabelNopAlign();
     spew("andl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_AND);
       m_formatter.immediate8s(imm);
@@ -1225,6 +1363,7 @@ class BaseAssembler : public GenericAssembler {
   void andw_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("andw       $0x%x, " MEM_ob, uint16_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_AND);
@@ -1235,11 +1374,17 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void andl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void andl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("andl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_AND);
@@ -1256,6 +1401,7 @@ class BaseAssembler : public GenericAssembler {
     spew("andw       $%d, " MEM_obs, int16_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
@@ -1271,11 +1417,13 @@ class BaseAssembler : public GenericAssembler {
   void fld_m(int32_t offset, RegisterID base) {
     spew("fld        " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6, offset, base, FPU6_OP_FLD);
   }
   void fld32_m(int32_t offset, RegisterID base) {
     spew("fld        " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6_F32, offset, base, FPU6_OP_FLD);
   }
   void faddp() {
@@ -1287,36 +1435,43 @@ class BaseAssembler : public GenericAssembler {
   void fisttp_m(int32_t offset, RegisterID base) {
     spew("fisttp     " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6, offset, base, FPU6_OP_FISTTP);
   }
   void fistp_m(int32_t offset, RegisterID base) {
     spew("fistp      " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FILD, offset, base, FPU6_OP_FISTP);
   }
   void fstp_m(int32_t offset, RegisterID base) {
     spew("fstp       " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6, offset, base, FPU6_OP_FSTP);
   }
   void fstp32_m(int32_t offset, RegisterID base) {
     spew("fstp32     " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6_F32, offset, base, FPU6_OP_FSTP);
   }
   void fnstcw_m(int32_t offset, RegisterID base) {
     spew("fnstcw     " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6_F32, offset, base, FPU6_OP_FISTP);
   }
   void fldcw_m(int32_t offset, RegisterID base) {
     spew("fldcw      " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6_F32, offset, base, FPU6_OP_FLDCW);
   }
   void fnstsw_m(int32_t offset, RegisterID base) {
     spew("fnstsw     " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_FPU6, offset, base, FPU6_OP_FISTP);
   }
 
@@ -1329,6 +1484,7 @@ class BaseAssembler : public GenericAssembler {
   void negl_m(int32_t offset, RegisterID base) {
     spew("negl       " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP3_Ev, offset, base, GROUP3_OP_NEG);
   }
 
@@ -1341,6 +1497,7 @@ class BaseAssembler : public GenericAssembler {
   void notl_m(int32_t offset, RegisterID base) {
     spew("notl       " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP3_Ev, offset, base, GROUP3_OP_NOT);
   }
 
@@ -1366,12 +1523,14 @@ class BaseAssembler : public GenericAssembler {
   void orl_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("orl        %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_OR_EvGv, offset, base, src);
   }
 
   void orw_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("orw        %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_OR_EvGv, offset, base, src);
   }
@@ -1381,6 +1540,7 @@ class BaseAssembler : public GenericAssembler {
     spew("orl        %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_OR_EvGv, offset, base, index, scale, src);
   }
 
@@ -1389,6 +1549,7 @@ class BaseAssembler : public GenericAssembler {
     spew("orw        %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_OR_EvGv, offset, base, index, scale, src);
   }
@@ -1427,10 +1588,15 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void orl_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void orl_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     cfiLabelNopAlign();
     spew("orl        $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_OR);
       m_formatter.immediate8s(imm);
@@ -1443,6 +1609,7 @@ class BaseAssembler : public GenericAssembler {
   void orw_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("orw        $0x%x, " MEM_ob, uint16_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_OR);
@@ -1453,11 +1620,17 @@ class BaseAssembler : public GenericAssembler {
     }
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void orl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+              int scale, bool masked) {
+#else
   void orl_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
               int scale) {
+#endif
     cfiLabelNopAlign();
     spew("orl        $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_OR);
@@ -1474,6 +1647,7 @@ class BaseAssembler : public GenericAssembler {
     spew("orw        $%d, " MEM_obs, int16_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
@@ -1514,12 +1688,14 @@ class BaseAssembler : public GenericAssembler {
   void subl_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("subl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_SUB_EvGv, offset, base, src);
   }
 
   void subw_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("subw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_SUB_EvGv, offset, base, src);
   }
@@ -1529,6 +1705,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subl       %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_SUB_EvGv, offset, base, index, scale, src);
   }
 
@@ -1537,6 +1714,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_SUB_EvGv, offset, base, index, scale, src);
   }
@@ -1579,6 +1757,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subl       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(true)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_SUB);
       m_formatter.immediate8s(imm);
@@ -1591,6 +1770,7 @@ class BaseAssembler : public GenericAssembler {
   void subw_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("subw       $%d, " MEM_ob, int16_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_SUB);
@@ -1606,6 +1786,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(true)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_SUB);
@@ -1622,6 +1803,7 @@ class BaseAssembler : public GenericAssembler {
     spew("subw       $%d, " MEM_obs, int16_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
@@ -1656,12 +1838,14 @@ class BaseAssembler : public GenericAssembler {
   void xorl_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("xorl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_XOR_EvGv, offset, base, src);
   }
 
   void xorw_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("xorw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_XOR_EvGv, offset, base, src);
   }
@@ -1671,6 +1855,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorl       %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_XOR_EvGv, offset, base, index, scale, src);
   }
 
@@ -1679,6 +1864,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_XOR_EvGv, offset, base, index, scale, src);
   }
@@ -1687,6 +1873,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(true)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_XOR);
       m_formatter.immediate8s(imm);
@@ -1699,6 +1886,7 @@ class BaseAssembler : public GenericAssembler {
   void xorw_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("xorw       $0x%x, " MEM_ob, uint16_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, GROUP1_OP_XOR);
@@ -1714,6 +1902,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorl       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(true)
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
                             GROUP1_OP_XOR);
@@ -1730,6 +1919,7 @@ class BaseAssembler : public GenericAssembler {
     spew("xorw       $%d, " MEM_obs, int16_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     if (CAN_SIGN_EXTEND_8_32(imm)) {
       m_formatter.oneByteOp(OP_GROUP1_EvIb, offset, base, index, scale,
@@ -1989,12 +2179,14 @@ class BaseAssembler : public GenericAssembler {
   void incl_m32(int32_t offset, RegisterID base) {
     spew("incl       " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_INC);
   }
 
   void decl_m32(int32_t offset, RegisterID base) {
     spew("decl       " MEM_ob, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_DEC);
   }
 
@@ -2006,6 +2198,7 @@ class BaseAssembler : public GenericAssembler {
   void cmpxchgb(RegisterID src, int32_t offset, RegisterID base) {
     spew("cmpxchgb   %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp8(OP2_CMPXCHG_GvEb, offset, base, src);
   }
   void cmpxchgb(RegisterID src, int32_t offset, RegisterID base,
@@ -2013,11 +2206,13 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpxchgb   %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp8(OP2_CMPXCHG_GvEb, offset, base, index, scale, src);
   }
   void cmpxchgw(RegisterID src, int32_t offset, RegisterID base) {
     spew("cmpxchgw   %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.twoByteOp(OP2_CMPXCHG_GvEw, offset, base, src);
   }
@@ -2026,12 +2221,14 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpxchgw   %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.twoByteOp(OP2_CMPXCHG_GvEw, offset, base, index, scale, src);
   }
   void cmpxchgl(RegisterID src, int32_t offset, RegisterID base) {
     spew("cmpxchgl   %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp(OP2_CMPXCHG_GvEw, offset, base, src);
   }
   void cmpxchgl(RegisterID src, int32_t offset, RegisterID base,
@@ -2039,6 +2236,7 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpxchgl   %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp(OP2_CMPXCHG_GvEw, offset, base, index, scale, src);
   }
 
@@ -2048,6 +2246,7 @@ class BaseAssembler : public GenericAssembler {
     MOZ_ASSERT(newHi == ecx.code() && newLo == ebx.code());
     spew("cmpxchg8b  %s, " MEM_ob, "edx:eax", ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp(OP2_CMPXCHGNB, offset, base, 1);
   }
   void cmpxchg8b(RegisterID srcHi, RegisterID srcLo, RegisterID newHi,
@@ -2058,6 +2257,7 @@ class BaseAssembler : public GenericAssembler {
     spew("cmpxchg8b  %s, " MEM_obs, "edx:eax",
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.twoByteOp(OP2_CMPXCHGNB, offset, base, index, scale, 1);
   }
 
@@ -2510,30 +2710,52 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_CDQ);
   }
 
+#ifdef JITSBX_HEAP_MASK
   void xchgb_rm(RegisterID src, int32_t offset, RegisterID base) {
+#else
+  void xchgb_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("xchgb      %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_XCHG_GbEb, offset, base, src);
   }
+#ifdef JITSBX_HEAP_MASK
   void xchgb_rm(RegisterID src, int32_t offset, RegisterID base,
                 RegisterID index, int scale) {
+#else
+  void xchgb_rm(RegisterID src, int32_t offset, RegisterID base,
+                RegisterID index, int scale) {
+#endif
     spew("xchgb      %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp8(OP_XCHG_GbEb, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
   void xchgw_rm(RegisterID src, int32_t offset, RegisterID base) {
+#else
+  void xchgw_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("xchgw      %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_XCHG_GvEv, offset, base, src);
   }
+#ifdef JITSBX_HEAP_MASK
   void xchgw_rm(RegisterID src, int32_t offset, RegisterID base,
                 RegisterID index, int scale) {
+#else
+  void xchgw_rm(RegisterID src, int32_t offset, RegisterID base,
+                RegisterID index, int scale) {
+#endif
     spew("xchgw      %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_XCHG_GvEv, offset, base, index, scale, src);
   }
@@ -2543,16 +2765,27 @@ class BaseAssembler : public GenericAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(OP_XCHG_GvEv, src, dst);
   }
+#ifdef JITSBX_HEAP_MASK
   void xchgl_rm(RegisterID src, int32_t offset, RegisterID base) {
+#else
+  void xchgl_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("xchgl      %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_XCHG_GvEv, offset, base, src);
   }
+#ifdef JITSBX_HEAP_MASK
   void xchgl_rm(RegisterID src, int32_t offset, RegisterID base,
                 RegisterID index, int scale) {
+#else
+  void xchgl_rm(RegisterID src, int32_t offset, RegisterID base,
+                RegisterID index, int scale) {
+#endif
     spew("xchgl      %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(true)
     m_formatter.oneByteOp(OP_XCHG_GvEv, offset, base, index, scale, src);
   }
 
@@ -2582,53 +2815,90 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_MOV_GvEv, src, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movw_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_rm_disp32(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movw_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movw       %s, " MEM_o32b, GPReg16Name(src), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void movw_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("movw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_rm(RegisterID src, const void* addr, bool masked) {
+#else
   void movw_rm(RegisterID src, const void* addr) {
+#endif
     spew("movw       %s, %p", GPReg16Name(src), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp_disp32(OP_MOV_EvGv, addr, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movl_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm_disp32(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movl_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movl       %s, " MEM_o32b, GPReg32Name(src), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void movl_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("movl       %s, " MEM_obs, GPReg32Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
@@ -2714,86 +2984,138 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void movb_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("movb       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP11_EvIb, offset, base, GROUP11_MOV);
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void movb_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("movb       $0x%x, " MEM_obs, uint32_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP11_EvIb, offset, base, index, scale,
                           GROUP11_MOV);
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_im(int32_t imm, const void* addr, bool masked) {
+#else
   void movb_im(int32_t imm, const void* addr) {
+#endif
     spew("movb       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp_disp32(OP_GROUP11_EvIb, addr, GROUP11_MOV);
     m_formatter.immediate8(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_im(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void movw_im(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("movw       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_im(int32_t imm, const void* addr, bool masked) {
+#else
   void movw_im(int32_t imm, const void* addr) {
+#endif
     spew("movw       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp_disp32(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, int32_t offset, RegisterID base, bool masked) {
+#else
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base) {
+#endif
     spew("movl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movw_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+               int scale, bool masked) {
+#else
   void movw_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
+#endif
     spew("movw       $0x%x, " MEM_obs, uint32_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, index, scale,
                           GROUP11_MOV);
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+                 int scale, bool masked) {
+#else
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
+#endif
     spew("movl       $0x%x, " MEM_obs, uint32_t(imm),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, index, scale,
                           GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_EAXm(const void* addr, bool masked) {
+#else
   void movl_EAXm(const void* addr) {
+#endif
 #ifdef JS_CODEGEN_X64
     if (IsAddressImmediate(addr)) {
+#ifdef JITSBX_HEAP_MASK
+      movl_rm(rax, addr, masked);
+#else
       movl_rm(rax, addr);
+#endif
       return;
     }
 #endif
 
     spew("movl       %%eax, %p", addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_MOV_OvEAX);
 #ifdef JS_CODEGEN_X64
     m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
@@ -2850,52 +3172,87 @@ class BaseAssembler : public GenericAssembler {
     twoByteOpSimd("vmovq", VEX_SS, OP2_MOVQ_VdWd, addr, invalid_xmm, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, const void* addr, bool masked) {
+#else
   void movl_rm(RegisterID src, const void* addr) {
+#endif
     if (src == rax
 #ifdef JS_CODEGEN_X64
         && !IsAddressImmediate(addr)
 #endif
     ) {
+#ifdef JITSBX_HEAP_MASK
+      movl_EAXm(addr, masked);
+#else
       movl_EAXm(addr);
+#endif
       return;
     }
 
     spew("movl       %s, %p", GPReg32Name(src), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked)
     m_formatter.oneByteOp(OP_MOV_EvGv, addr, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, const void* addr, bool masked) {
+#else
   void movl_i32m(int32_t imm, const void* addr) {
+#endif
     spew("movl       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     cfiLabelNopAlign();
+    JITSBX_MAYBE_MASK(masked);
     m_formatter.oneByteOp(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_rm(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movb_rm(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked);
     m_formatter.oneByteOp8(OP_MOV_EbGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_rm_disp32(RegisterID src, int32_t offset, RegisterID base, bool masked) {
+#else
   void movb_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
+#endif
     spew("movb       %s, " MEM_o32b, GPReg8Name(src), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked);
     m_formatter.oneByteOp8_disp32(OP_MOV_EbGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool masked) {
+#else
   void movb_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
+#endif
     spew("movb       %s, " MEM_obs, GPReg8Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked);
     m_formatter.oneByteOp8(OP_MOV_EbGv, offset, base, index, scale, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movb_rm(RegisterID src, const void* addr, bool masked) {
+#else
   void movb_rm(RegisterID src, const void* addr) {
+#endif
     spew("movb       %s, %p", GPReg8Name(src), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+    JITSBX_MAYBE_MASK(masked);
     m_formatter.oneByteOp8(OP_MOV_EbGv, addr, src);
   }
 

@@ -394,7 +394,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
   masm.pop(r12);  // vp
+#ifdef JITSBX_HEAP_MASK
+  masm.storeValue(JSReturnOperand, Operand(r12, 0).unsafeUnmasked());
+#else
   masm.storeValue(JSReturnOperand, Operand(r12, 0));
+#endif
 
   // Restore non-volatile registers.
 #if defined(_WIN64)

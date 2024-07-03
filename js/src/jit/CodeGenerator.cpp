@@ -338,7 +338,12 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
     if (!mir->hasDefaultAliasSet() && !isWhitelisted) {
       const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
       masm.move32(Imm32(1), ReturnReg);
+#ifdef JITSBX_HEAP_MASK
+      // UNSAFE JITSBX_HEAP_MASK removal
+      masm.store32(ReturnReg, AbsoluteAddress(addr, false));
+#else
       masm.store32(ReturnReg, AbsoluteAddress(addr));
+#endif
     }
   }
 #endif
@@ -360,7 +365,12 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
     const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
     masm.push(ReturnReg);
     masm.move32(Imm32(0), ReturnReg);
+#ifdef JITSBX_HEAP_MASK
+      // UNSAFE JITSBX_HEAP_MASK removal
+    masm.store32(ReturnReg, AbsoluteAddress(addr, false));
+#else
     masm.store32(ReturnReg, AbsoluteAddress(addr));
+#endif
     masm.pop(ReturnReg);
   }
 #endif
@@ -415,7 +425,12 @@ void CodeGenerator::tailCallVMInternal(VMFunctionId id, LInstruction* ins) {
     if (!mir->hasDefaultAliasSet() && !isWhitelisted) {
       const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
       masm.move32(Imm32(1), ReturnReg);
+#ifdef JITSBX_HEAP_MASK
+      // UNSAFE JITSBX_HEAP_MASK removal
+    masm.store32(ReturnReg, AbsoluteAddress(addr, false));
+#else
       masm.store32(ReturnReg, AbsoluteAddress(addr));
+#endif
     }
   }
 #  endif
@@ -440,7 +455,12 @@ void CodeGenerator::tailCallVMInternal(VMFunctionId id, LInstruction* ins) {
     const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
     masm.push(ReturnReg);
     masm.move32(Imm32(0), ReturnReg);
+#ifdef JITSBX_HEAP_MASK
+      // UNSAFE JITSBX_HEAP_MASK removal
+    masm.store32(ReturnReg, AbsoluteAddress(addr, false));
+#else
     masm.store32(ReturnReg, AbsoluteAddress(addr));
+#endif
     masm.pop(ReturnReg);
   }
 #  endif
@@ -4170,7 +4190,11 @@ void CodeGenerator::visitDebugEnterGCUnsafeRegion(
   masm.loadJSContext(temp);
 
   Address inUnsafeRegion(temp, JSContext::offsetOfInUnsafeRegion());
+#ifdef JITSBX_HEAP_MASK
+  masm.add32(Imm32(1), inUnsafeRegion.unsafeUnmasked());
+#else
   masm.add32(Imm32(1), inUnsafeRegion);
+#endif
 
   Label ok;
   masm.branch32(Assembler::GreaterThan, inUnsafeRegion, Imm32(0), &ok);
@@ -4185,7 +4209,11 @@ void CodeGenerator::visitDebugLeaveGCUnsafeRegion(
   masm.loadJSContext(temp);
 
   Address inUnsafeRegion(temp, JSContext::offsetOfInUnsafeRegion());
+#ifdef JITSBX_HEAP_MASK
+  masm.add32(Imm32(-1), inUnsafeRegion.unsafeUnmasked());
+#else
   masm.add32(Imm32(-1), inUnsafeRegion);
+#endif
 
   Label ok;
   masm.branch32(Assembler::GreaterThanOrEqual, inUnsafeRegion, Imm32(0), &ok);
@@ -7249,7 +7277,12 @@ void CodeGenerator::emitDebugForceBailing(LInstruction* lir) {
     masm.push(temp);
     masm.load32(AbsoluteAddress(bailAfterCounterAddr), temp);
     masm.sub32(Imm32(1), temp);
+#ifdef JITSBX_HEAP_MASK
+    // UNSAFE JITSBX_HEAP_MASK removal
+    masm.store32(temp, AbsoluteAddress(bailAfterCounterAddr, false));
+#else
     masm.store32(temp, AbsoluteAddress(bailAfterCounterAddr));
+#endif
 
     masm.branch32(Assembler::NotEqual, temp, Imm32(0), &notBail);
     {
@@ -14997,9 +15030,15 @@ void CodeGenerator::visitObjectToIterator(LObjectToIterator* lir) {
   }
 
   Address iterFlagsAddr(nativeIter, NativeIterator::offsetOfFlagsAndCount());
+#ifdef JITSBX_HEAP_MASK
+  masm.storePtr(
+      obj, Address(nativeIter, NativeIterator::offsetOfObjectBeingIterated()).unsafeUnmasked());
+  masm.or32(Imm32(NativeIterator::Flags::Active), iterFlagsAddr.unsafeUnmasked());
+#else
   masm.storePtr(
       obj, Address(nativeIter, NativeIterator::offsetOfObjectBeingIterated()));
   masm.or32(Imm32(NativeIterator::Flags::Active), iterFlagsAddr);
+#endif
 
   Register enumeratorsAddr = temp2;
   masm.movePtr(ImmPtr(lir->mir()->enumeratorsAddr()), enumeratorsAddr);

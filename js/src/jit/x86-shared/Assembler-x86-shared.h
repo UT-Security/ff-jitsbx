@@ -55,8 +55,8 @@ class Operand {
   // this field is smaller than the size of Register::Encoding.
   Register::Encoding index_ : 8;
   int32_t disp_;
-#ifdef JITSBX_CFI_BUNDLE
-  bool seg_;
+#ifdef JITSBX_HEAP_MASK
+  bool masked_;
 #endif
 
  public:
@@ -77,37 +77,75 @@ class Operand {
         base_(address.base.encoding()),
         scale_(TimesOne),
         index_(Registers::Invalid),
+#ifdef JITSBX_HEAP_MASK
+        disp_(address.offset),
+        masked_(address.masked) {}
+#else
         disp_(address.offset) {}
+#endif
   explicit Operand(const BaseIndex& address)
       : kind_(MEM_SCALE),
         base_(address.base.encoding()),
         scale_(address.scale),
         index_(address.index.encoding()),
+#ifdef JITSBX_HEAP_MASK
+        disp_(address.offset),
+        masked_(address.masked) {}
+#else
         disp_(address.offset) {}
+#endif
+#ifdef JITSBX_HEAP_MASK
+  Operand(Register base, Register index, Scale scale, int32_t disp = 0, bool masked = true)
+#else
   Operand(Register base, Register index, Scale scale, int32_t disp = 0)
+#endif
       : kind_(MEM_SCALE),
         base_(base.encoding()),
         scale_(scale),
         index_(index.encoding()),
+#ifdef JITSBX_HEAP_MASK
+        disp_(disp),
+        masked_(masked) {}
+#else
         disp_(disp) {}
+#endif
+#ifdef JITSBX_HEAP_MASK
+  Operand(Register reg, int32_t disp, bool masked = true)
+#else
   Operand(Register reg, int32_t disp)
+#endif
       : kind_(MEM_REG_DISP),
         base_(reg.encoding()),
         scale_(TimesOne),
         index_(Registers::Invalid),
+#ifdef JITSBX_HEAP_MASK
+        disp_(disp),
+        masked_(masked) {}
+#else
         disp_(disp) {}
+#endif
   explicit Operand(AbsoluteAddress address)
       : kind_(MEM_ADDRESS32),
         base_(Registers::Invalid),
         scale_(TimesOne),
         index_(Registers::Invalid),
+#ifdef JITSBX_HEAP_MASK
+        disp_(X86Encoding::AddressImmediate(address.addr)),
+        masked_(address.masked) {}
+#else
         disp_(X86Encoding::AddressImmediate(address.addr)) {}
+#endif
   explicit Operand(PatchedAbsoluteAddress address)
       : kind_(MEM_ADDRESS32),
         base_(Registers::Invalid),
         scale_(TimesOne),
         index_(Registers::Invalid),
+#ifdef JITSBX_HEAP_MASK
+        disp_(X86Encoding::AddressImmediate(address.addr)),
+        masked_(address.masked) {}
+#else
         disp_(X86Encoding::AddressImmediate(address.addr)) {}
+#endif
 
   Address toAddress() const {
     MOZ_ASSERT(kind() == MEM_REG_DISP);
@@ -119,15 +157,6 @@ class Operand {
     return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
                      scale(), disp());
   }
-
-#ifdef JITSBX_CFI_BUNDLE
-  Operand toSegment() {
-    MOZ_ASSERT(kind() == MEM_REG_DISP);
-    Operand op = Operand(Register::FromCode(base()), disp());
-    op.seg_ = true;
-    return op;     
-  }
-#endif
 
   Kind kind() const { return kind_; }
   Register::Encoding reg() const {
@@ -159,10 +188,15 @@ class Operand {
     return reinterpret_cast<void*>(disp_);
   }
 
-#ifdef JITSBX_CFI_BUNDLE
-  bool seg() const {
-    MOZ_ASSERT(kind() == MEM_REG_DISP);
-    return seg_;      
+#ifdef JITSBX_HEAP_MASK
+  bool isMasked() const {
+    return masked_;      
+  }
+
+  Operand unsafeUnmasked() const {
+    Operand ret = *this;
+    ret.masked_ = false;
+    return ret;
   }
 #endif
 
@@ -561,6 +595,18 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.movl_rr(src.encoding(), dest.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movl_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movl_rm(src.encoding(), dest.address(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movl_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -571,6 +617,7 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::MEM_ADDRESS32:
         masm.movl_rm(src.encoding(), dest.address());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -580,6 +627,18 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movl_i32m(imm32.value, dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movl_i32m(imm32.value, dest.disp(), dest.base(), dest.index(),
+                       dest.scale(), dest.isMasked());
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movl_i32m(imm32.value, dest.address(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movl_i32m(imm32.value, dest.disp(), dest.base());
         break;
@@ -590,6 +649,7 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::MEM_ADDRESS32:
         masm.movl_i32m(imm32.value, dest.address());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -874,6 +934,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movb(Register src, const Operand& dest) {
     switch (dest.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movb_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movb_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movb_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -881,12 +950,22 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.movb_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
   }
   void movb(Imm32 src, const Operand& dest) {
     switch (dest.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movb_im(src.value, dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movb_im(src.value, dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movb_im(src.value, dest.disp(), dest.base());
         break;
@@ -894,6 +973,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.movb_im(src.value, dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -927,6 +1007,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movw(Register src, const Operand& dest) {
     switch (dest.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movw_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movw_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movw_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -934,12 +1023,22 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.movw_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
   }
   void movw(Imm32 src, const Operand& dest) {
     switch (dest.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.movw_im(src.value, dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.movw_im(src.value, dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.movw_im(src.value, dest.disp(), dest.base());
         break;
@@ -947,6 +1046,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.movw_im(src.value, dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1412,6 +1512,17 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.addl_ir(imm.value, op.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addl_im(imm.value, op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.addl_im(imm.value, op.address(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addl_im(imm.value, op.disp(), op.base(), op.index(), op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addl_im(imm.value, op.disp(), op.base());
         break;
@@ -1421,6 +1532,7 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::MEM_SCALE:
         masm.addl_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1430,6 +1542,17 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.addw_ir(imm.value, op.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addw_im(imm.value, op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.addw_im(imm.value, op.address(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addw_im(imm.value, op.disp(), op.base(), op.index(), op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addw_im(imm.value, op.disp(), op.base());
         break;
@@ -1439,6 +1562,7 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::MEM_SCALE:
         masm.addw_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1484,6 +1608,15 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.addl_rr(src.encoding(), dest.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addl_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addl_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -1491,6 +1624,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.addl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1500,6 +1634,15 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.addw_rr(src.encoding(), dest.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addw_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addw_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addw_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -1507,6 +1650,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.addw_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1602,12 +1746,21 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.orl_ir(imm.value, op.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.orl_im(imm.value, op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.orl_im(imm.value, op.disp(), op.base(), op.index(), op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.orl_im(imm.value, op.disp(), op.base());
         break;
       case Operand::MEM_SCALE:
         masm.orl_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1703,6 +1856,15 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.andl_rr(src.encoding(), dest.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.andl_rm(src.encoding(), dest.disp(), dest.base(), dest.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.andl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), dest.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.andl_rm(src.encoding(), dest.disp(), dest.base());
         break;
@@ -1710,6 +1872,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.andl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                      dest.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1741,12 +1904,21 @@ class AssemblerX86Shared : public AssemblerShared {
       case Operand::REG:
         masm.andl_ir(imm.value, op.reg());
         break;
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.andl_im(imm.value, op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.andl_im(imm.value, op.disp(), op.base(), op.index(), op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.andl_im(imm.value, op.disp(), op.base());
         break;
       case Operand::MEM_SCALE:
         masm.andl_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -1961,12 +2133,21 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void addb(Imm32 imm, const Operand& op) {
     switch (op.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addb_im(imm.value, op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addb_im(imm.value, op.disp(), op.base(), op.index(), op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addb_im(imm.value, op.disp(), op.base());
         break;
       case Operand::MEM_SCALE:
         masm.addb_im(imm.value, op.disp(), op.base(), op.index(), op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
         break;
@@ -1974,6 +2155,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void addb(Register src, const Operand& op) {
     switch (op.kind()) {
+#ifdef JITSBX_HEAP_MASK
+      case Operand::MEM_REG_DISP:
+        masm.addb_rm(src.encoding(), op.disp(), op.base(), op.isMasked());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addb_rm(src.encoding(), op.disp(), op.base(), op.index(),
+                     op.scale(), op.isMasked());
+        break;
+#else
       case Operand::MEM_REG_DISP:
         masm.addb_rm(src.encoding(), op.disp(), op.base());
         break;
@@ -1981,6 +2171,7 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.addb_rm(src.encoding(), op.disp(), op.base(), op.index(),
                      op.scale());
         break;
+#endif
       default:
         MOZ_CRASH("unexpected operand kind");
         break;
@@ -2343,7 +2534,11 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.pop_r(src.reg());
         break;
       case Operand::MEM_REG_DISP:
+#ifdef JITSBX_HEAP_MASK
+        masm.pop_m(src.disp(), src.base(), src.isMasked());
+#else
         masm.pop_m(src.disp(), src.base());
+#endif
         break;
       default:
         MOZ_CRASH("unexpected operand kind");
@@ -2353,7 +2548,13 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     masm.pop_r(src.encoding());
   }
-  void pop(const Address& src) { masm.pop_m(src.offset, src.base.encoding()); }
+  void pop(const Address& src) { 
+#ifdef JITSBX_HEAP_MASK
+    masm.pop_m(src.offset, src.base.encoding(), src.masked);
+#else
+    masm.pop_m(src.offset, src.base.encoding());
+#endif
+  }
 
   void pushFlags() { masm.push_flags(); }
   void popFlags() { masm.pop_flags(); }
