@@ -140,6 +140,9 @@ class Registers {
 
   static const SetType NonAllocatableMask =
       (1 << X86Encoding::rsp) | (1 << X86Encoding::rbp) |
+#ifdef JS_SANDBOX
+      (1 << X86Encoding::r15) | // Reserved register for sandbox.
+#endif
       (1 << X86Encoding::r11);  // This is ScratchReg.
 
   // Registers returned from a JS -> JS call.
