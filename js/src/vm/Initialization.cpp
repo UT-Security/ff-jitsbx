@@ -19,6 +19,9 @@
 #include "builtin/AtomicsObject.h"
 #include "builtin/TestingFunctions.h"
 #include "gc/Statistics.h"
+#ifdef JS_SANDBOX_HEAP
+#include "sandbox/Memory.h"
+#endif
 #include "jit/Assembler.h"
 #include "jit/Ion.h"
 #include "jit/JitOptions.h"
@@ -162,6 +165,8 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
     js::gExtraPoisoningEnabled = true;
   }
 #endif
+
+  RETURN_IF_FAIL(js::sandbox::InitMemory());
 
   js::InitMallocAllocator();
 

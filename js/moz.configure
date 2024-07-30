@@ -541,6 +541,34 @@ def js_sandbox(js_sandbox, target):
 set_config("JS_SANDBOX", js_sandbox)
 set_define("JS_SANDBOX", js_sandbox)
 
+option(
+    "--enable-js-sandbox-heap",
+    default=False,
+    help="{Enable|Disable} separate JS VM heap.",
+)
+
+@depends("--enable-js-sandbox-heap", "--enable-js-sandbox")
+def js_sandbox_heap(js_sandbox_heap, js_sandbox):
+    if js_sandbox and js_sandbox_heap:
+        return True
+
+set_config("JS_SANDBOX_HEAP", js_sandbox_heap)
+set_define("JS_SANDBOX_HEAP", js_sandbox_heap)
+
+option(
+    "--enable-js-sandbox-bundle",
+    default=False,
+    help="{Enable|Disable} JIT code bundling for JS sandbox CFI.",
+)
+
+@depends("--enable-js-sandbox-bundle", "--enable-js-sandbox")
+def js_sandbox_bundle(js_sandbox_bundle, js_sandbox):
+    if js_sandbox and js_sandbox_bundle:
+        return True
+
+set_config("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
+set_define("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
+
 # Architecture feature flags
 # =======================================================
 
