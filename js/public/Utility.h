@@ -20,7 +20,13 @@
 #include <utility>
 
 #include "jstypes.h"
+#ifdef JS_SANDBOX_HEAP
+#include "sandbox/allocator/sbxmemory.h"
+
+using js::sandbox::arena_id_t;
+#else
 #include "mozmemory.h"
+#endif
 #include "js/TypeDecls.h"
 
 /* The public JS engine namespace. */
@@ -348,9 +354,15 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
 
 namespace js {
 
+#ifdef JS_SANDBOX_HEAP
+extern JS_PUBLIC_DATA js::sandbox::arena_id_t MallocArena;
+extern JS_PUBLIC_DATA js::sandbox::arena_id_t ArrayBufferContentsArena;
+extern JS_PUBLIC_DATA js::sandbox::arena_id_t StringBufferArena;
+#else
 extern JS_PUBLIC_DATA arena_id_t MallocArena;
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
+#endif
 
 extern void InitMallocAllocator();
 extern void ShutDownMallocAllocator();
@@ -363,7 +375,11 @@ extern void AssertJSStringBufferInCorrectArena(const void* ptr);
 static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX_HEAP
+  return js::sandbox::moz_arena_malloc(arena, bytes);
+#else
   return moz_arena_malloc(arena, bytes);
+#endif
 }
 
 static inline void* js_malloc(size_t bytes) {
@@ -373,14 +389,22 @@ static inline void* js_malloc(size_t bytes) {
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX_HEAP
+  return js::sandbox::moz_arena_calloc(arena, bytes, 1);
+#else
   return moz_arena_calloc(arena, bytes, 1);
+#endif
 }
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t nmemb,
                                     size_t size) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(nmemb * size);
+#ifdef JS_SANDBOX_HEAP
+  return js::sandbox::moz_arena_calloc(arena, nmemb, size);
+#else
   return moz_arena_calloc(arena, nmemb, size);
+#endif
 }
 
 static inline void* js_calloc(size_t bytes) {
@@ -399,7 +423,11 @@ static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
 
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX_HEAP
+  return js::sandbox::moz_arena_realloc(arena, p, bytes);
+#else
   return moz_arena_realloc(arena, p, bytes);
+#endif
 }
 
 static inline void* js_realloc(void* p, size_t bytes) {
@@ -411,7 +439,11 @@ static inline void js_free(void* p) {
   // currently can't enforce that all memory freed here was allocated by
   // js_malloc(). All other memory should go through a different allocator and
   // deallocator.
+#ifdef JS_SANDBOX_HEAP
+  js::sandbox::free_impl(p);
+#else
   free(p);
+#endif
 }
 #endif /* JS_USE_CUSTOM_ALLOCATOR */
 

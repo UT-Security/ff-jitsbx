@@ -16,4 +16,7 @@ UNIFIED_SOURCES += [
 ];
 
 if CONFIG["JS_SANDBOX_HEAP"]:
-	UNIFIED_SOURCES += [ "Memory.cpp" ]
+	UNIFIED_SOURCES += [
+		"allocator/sbxjemalloc.cpp",
+		"Memory.cpp"
+	]

@@ -21,6 +21,9 @@
 #include "vm/HelperThreads.h"
 
 using namespace js;
+#ifdef JS_SANDBOX_HEAP
+using namespace js::sandbox;
+#endif
 
 using mozilla::Maybe;
 
@@ -128,8 +131,13 @@ extern void js::AssertJSStringBufferInCorrectArena(const void* ptr) {
 //  a no-op.
 #if defined(MOZ_MEMORY) && defined(MOZ_DEBUG)
   if (ptr) {
+#ifdef JS_SANDBOX_HEAP
+    js::sandbox::jemalloc_ptr_info_t ptrInfo{};
+    js::sandbox::jemalloc_ptr_info(ptr, &ptrInfo);
+#else
     jemalloc_ptr_info_t ptrInfo{};
     jemalloc_ptr_info(ptr, &ptrInfo);
+#endif
     MOZ_ASSERT(ptrInfo.tag != TagUnknown);
     MOZ_ASSERT(ptrInfo.arenaId == js::StringBufferArena);
   }

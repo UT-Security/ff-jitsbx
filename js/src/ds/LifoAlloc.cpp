@@ -141,7 +141,11 @@ void LifoAlloc::freeAll() {
 // Round at the same page granularity used by malloc.
 static size_t MallocGoodSize(size_t aSize) {
 #if defined(MOZ_MEMORY)
+#ifdef JS_SANDBOX_HEAP
+  return js::sandbox::malloc_good_size(aSize);
+#else
   return malloc_good_size(aSize);
+#endif
 #else
   return aSize;
 #endif

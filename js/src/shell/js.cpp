@@ -108,6 +108,9 @@
 #ifdef JS_SIMULATOR_RISCV64
 #  include "jit/riscv64/Simulator-riscv64.h"
 #endif
+#ifdef JS_SANDBOX_HEAP
+#include "sandbox/allocator/sbxmemory.h"
+#endif
 #include "jit/CacheIRHealth.h"
 #include "jit/InlinableNatives.h"
 #include "jit/Ion.h"
@@ -961,7 +964,11 @@ static void GCSliceCallback(JSContext* cx, JS::GCProgress progress,
   if (progress == JS::GC_CYCLE_END) {
 #if defined(MOZ_MEMORY)
     // We call this here to match the browser's DOMGCSliceCallback.
+#ifdef JS_SANDBOX_HEAP
+    js::sandbox::jemalloc_free_dirty_pages();
+#else
     jemalloc_free_dirty_pages();
+#endif
 #endif
   }
 }
@@ -11045,7 +11052,11 @@ int main(int argc, char** argv) {
 
   // Use a larger jemalloc page cache. This should match the value for browser
   // foreground processes in ContentChild::RecvNotifyProcessPriorityChanged.
+#ifdef JS_SANDBOX_HEAP
+  js::sandbox::moz_set_max_dirty_page_modifier(4);
+#else
   moz_set_max_dirty_page_modifier(4);
+#endif
 
   OptionParser op("Usage: {progname} [options] [[script] scriptArgs*]");
   if (!InitOptionParser(op)) {
@@ -11172,7 +11183,11 @@ int main(int argc, char** argv) {
   JS::SetPromiseRejectionTrackerCallback(
       cx, ForwardingPromiseRejectionTrackerCallback);
 
+#ifdef JS_SANDBOX_HEAP
+  JS::dbg::SetDebuggerMallocSizeOf(cx, js::sandbox::moz_malloc_size_of);
+#else
   JS::dbg::SetDebuggerMallocSizeOf(cx, moz_malloc_size_of);
+#endif
 
   js::UseInternalJobQueues(cx);
 
