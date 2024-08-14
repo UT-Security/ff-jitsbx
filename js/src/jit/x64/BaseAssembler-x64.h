@@ -89,6 +89,17 @@ class BaseAssemblerX64 : public BaseAssembler {
     }
   }
 
+  void addq_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index, int scale) {
+    spew("addq       $%d, " MEM_obs, imm, ADDR_obs(offset, base, index, scale));
+    if (CAN_SIGN_EXTEND_8_32(imm)) {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, index, scale, GROUP1_OP_ADD);
+      m_formatter.immediate8s(imm);
+    } else {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIz, offset, base, index, scale, GROUP1_OP_ADD);
+      m_formatter.immediate32(imm);
+    }
+  }
+
   void addq_im(int32_t imm, const void* addr) {
     spew("addq       $%d, %p", imm, addr);
     if (CAN_SIGN_EXTEND_8_32(imm)) {

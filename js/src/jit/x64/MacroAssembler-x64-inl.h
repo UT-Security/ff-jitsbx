@@ -303,6 +303,16 @@ void MacroAssembler::mulDoublePtr(ImmPtr imm, Register temp,
 }
 
 void MacroAssembler::inc64(AbsoluteAddress dest) {
+#ifdef JS_SANDBOX_HEAP
+  if (isSandboxed()) {
+    MOZ_ASSERT(!X86Encoding::IsAddressImmediate(dest.addr),
+               "Unexpected 32-bit immediate destination within sandbox");
+    ScratchRegisterScope scratch(*this);
+    Operand op = sandboxMemoryWrite(dest, scratch);
+    addq(Imm32(1), op);
+    return;
+  }
+#endif
   if (X86Encoding::IsAddressImmediate(dest.addr)) {
     addPtr(Imm32(1), dest);
   } else {

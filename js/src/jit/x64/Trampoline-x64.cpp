@@ -4,6 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifdef JS_SANDBOX_HEAP
+#include "sandbox/Memory.h"
+#endif
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/CalleeToken.h"
@@ -141,6 +144,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
+
+  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX_HEAP
+  masm.mov(ImmWord(sandbox::MemoryBase()), SandboxReg1);
+#endif
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -325,7 +333,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
   masm.pop(r12);  // vp
-  masm.storeValue(JSReturnOperand, Operand(r12, 0));
+  masm.unsafeStoreValue(JSReturnOperand, Operand(r12, 0));
 
   // Restore non-volatile registers.
 #if defined(_WIN64)

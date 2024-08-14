@@ -295,7 +295,7 @@ class RegisterAllocator {
     defined(JS_CODEGEN_ARM64) || defined(JS_CODEGEN_MIPS32) ||   \
     defined(JS_CODEGEN_MIPS64) || defined(JS_CODEGEN_LOONG64) || \
     defined(JS_CODEGEN_RISCV64)
-#ifndef JS_SANDBOX
+#ifndef JS_SANDBOX_HEAP
     regs.take(HeapReg);
 #endif
 #endif

@@ -1203,7 +1203,7 @@ void SMRegExpMacroAssembler::successHandler() {
     if (mode_ == UC16) {
       masm_.rshiftPtrArithmetic(Imm32(1), temp0_);
     }
-    masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
+    masm_.unsafeStore32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
   }
 
   masm_.movePtr(ImmWord(js::RegExpRunStatus_Success), temp0_);

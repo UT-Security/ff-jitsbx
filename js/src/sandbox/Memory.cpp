@@ -9,6 +9,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/RandomNum.h"
+#include "mozilla/TaggedAnonymousMemory.h"
 
 #include <algorithm>
 #include <stdint.h>
@@ -455,11 +456,11 @@ bool Memory::init(void* addr, size_t length, size_t pageSize) {
   return true;
 }
 
-void* Memory::allocate(size_t length, size_t alignment) {
+void* Memory::allocateProtected(size_t length, size_t alignment) {
   if (!initialized()) {
     return nullptr;
   }
-  
+
   // check memory upper limit.
   if (length > this->length) {
     return nullptr;
@@ -483,15 +484,15 @@ void* Memory::allocate(size_t length, size_t alignment) {
 
   MOZ_ASSERT(addr % systemPageSize == 0);
   MOZ_ASSERT(addr % alignment == 0);
-  
+
   MemoryRegion *region, *prev, **link, *parent;
 
-  // find the related/adjascent regions that need to be manipulated as part of the allocation.
+  // find the related/adjascent regions that need to be manipulated as part of
+  // the allocation.
   findRegionLinks(addr, addr + length, &prev, &link, &parent);
 
   region = maybeMergeRegions(prev, addr, addr + length);
   if (region) {
-    UnprotectPages((void*)addr, length);
     return (void*)addr;
   }
 
@@ -502,12 +503,31 @@ void* Memory::allocate(size_t length, size_t alignment) {
   region = new (memory) MemoryRegion(addr, addr + length);
 
   linkRegion(region, prev, link, parent);
+  return (void*)addr;
+}
+
+void* Memory::allocate(size_t length, size_t alignment) {
+  void* addr = allocateProtected(length, alignment);
+  if (addr == nullptr) {
+    return nullptr;
+  }
+  
   UnprotectPages((void*)addr, length);
   return (void*)addr;
 }
 
+void Memory::deallocateProtected(void* addr, size_t length) {
+  MOZ_ASSERT(base_addr + ((uintptr_t)addr & MemoryMask) == (uintptr_t)addr);
+  MOZ_ASSERT((uintptr_t)addr % page_size == 0);
+  MOZ_ASSERT(length % page_size == 0);
+}
+
 void Memory::deallocate(void* addr, size_t length) {
+  MOZ_ASSERT(base_addr + ((uintptr_t)addr & MemoryMask) == (uintptr_t)addr); 
+  MOZ_ASSERT((uintptr_t)addr % page_size == 0);
+  MOZ_ASSERT(length % page_size == 0);
   ProtectPages(addr, length);
+  deallocateProtected(addr, length);
 }
 
 static inline uint64_t FindAddressLimitInner(size_t highBit, size_t tries);
@@ -639,6 +659,9 @@ bool InitMemory() {
     return false;
   }
 
+  MozTagAnonymousMemory(sandboxRegion, sandboxMemorySize, "js-sandbox-memory");
+
+
   if (!sandboxMemory.init(sandboxRegion, sandboxMemorySize, systemPageSize)) {
     return false;
   }
@@ -646,8 +669,20 @@ bool InitMemory() {
   return true;
 }
 
+uintptr_t MemoryBase() {
+  return sandboxMemory.base();
+}
+
+void* AllocateProtectedMemory(size_t length, size_t alignment) {
+  return sandboxMemory.allocateProtected(length, alignment);
+}
+
 void* AllocateMemory(size_t length, size_t alignment) {
   return sandboxMemory.allocate(length, alignment);
+}
+
+void DeallocateProtectedMemory(void* addr, size_t length) {
+  sandboxMemory.deallocateProtected(addr, length);
 }
 
 void DeallocateMemory(void* addr, size_t length) {

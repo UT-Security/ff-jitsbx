@@ -100,6 +100,9 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 
 static constexpr Register ReturnReg = rax;
 static constexpr Register HeapReg = r15;
+#ifdef JS_SANDBOX_HEAP
+static constexpr Register SandboxReg1 = r15;
+#endif
 static constexpr Register64 ReturnReg64(rax);
 static constexpr FloatRegister ReturnFloat32Reg =
     FloatRegister(X86Encoding::xmm0, FloatRegisters::Single);
@@ -458,7 +461,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movq(Register src, const Operand& dest) {
+  void movq(Register src, const Operand& unsafeDest) {
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movq_rr(src.encoding(), dest.reg());
@@ -477,7 +481,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movq(Imm32 imm32, const Operand& dest) {
+  void movq(Imm32 imm32, const Operand& unsafeDest) {
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
@@ -561,7 +566,8 @@ class Assembler : public AssemblerX86Shared {
     xorq(src, op);
   }
 
-  void lock_cmpxchgq(Register src, const Operand& mem) {
+  void lock_cmpxchgq(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -580,7 +586,8 @@ class Assembler : public AssemblerX86Shared {
     masm.xchgq_rr(src.encoding(), dest.encoding());
   }
 
-  void xchgq(Register src, const Operand& mem) {
+  void xchgq(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgq_rm(src.encoding(), mem.disp(), mem.base());
@@ -594,7 +601,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
 
-  void lock_xaddq(Register srcdest, const Operand& mem) {
+  void lock_xaddq(Register srcdest, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddq_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -699,7 +707,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void andq(Register src, const Operand& dest) {
+  void andq(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andq_rr(src.encoding(), dest.reg());
@@ -723,13 +732,17 @@ class Assembler : public AssemblerX86Shared {
     masm.addq_i32r(imm.value, dest.encoding());
     return CodeOffset(masm.currentOffset());
   }
-  void addq(Imm32 imm, const Operand& dest) {
+  void addq(Imm32 imm, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_ir(imm.value, dest.reg());
         break;
       case Operand::MEM_REG_DISP:
         masm.addq_im(imm.value, dest.disp(), dest.base());
+        break;
+      case Operand::MEM_SCALE:
+        masm.addq_im(imm.value, dest.disp(), dest.base(), dest.index(), dest.scale());
         break;
       case Operand::MEM_ADDRESS32:
         masm.addq_im(imm.value, dest.address());
@@ -760,7 +773,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void addq(Register src, const Operand& dest) {
+  void addq(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_rr(src.encoding(), dest.reg());
@@ -798,7 +812,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void subq(Register src, const Operand& dest) {
+  void subq(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subq_rr(src.encoding(), dest.reg());
@@ -867,7 +882,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void orq(Register src, const Operand& dest) {
+  void orq(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orq_rr(src.encoding(), dest.reg());
@@ -908,7 +924,8 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void xorq(Register src, const Operand& dest) {
+  void xorq(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorq_rr(src.encoding(), dest.reg());

@@ -17,6 +17,9 @@ namespace js {
   
 namespace sandbox {
 
+constexpr uint64_t MemoryMask = ((UINT64_C(1) << 40) - 1);
+constexpr uint32_t MemoryShift = (64 - 40);
+
 struct MemoryRegion;
 
 class Memory {
@@ -68,13 +71,19 @@ private:
 
   bool init(void* addr, size_t length, size_t pageSize);
 
+  uintptr_t base() { return (uintptr_t)base_addr; }
+  void* allocateProtected(size_t length, size_t alignment);
   void* allocate(size_t length, size_t alignment);
+  void deallocateProtected(void* addr, size_t length);
   void deallocate(void* addr, size_t length);
 };
 
 bool InitMemory();
 
+uintptr_t MemoryBase();
+void* AllocateProtectedMemory(size_t length, size_t alignment);
 void* AllocateMemory(size_t length, size_t alignment);
+void DeallocateProtectedMemory(void* addr, size_t length);
 void  DeallocateMemory(void* addr, size_t length);
 
 } /* namespace sandbox */

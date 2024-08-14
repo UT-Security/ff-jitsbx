@@ -8,8 +8,12 @@
 #define jit_x86_shared_Assembler_x86_shared_h
 
 #include <cstddef>
+#include <cstdint>
 
 #include "jit/shared/Assembler-shared.h"
+#ifdef JS_SANDBOX_HEAP
+#include "sandbox/Memory.h"
+#endif
 
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/BaseAssembler-x86.h"
@@ -55,6 +59,9 @@ class Operand {
   // this field is smaller than the size of Register::Encoding.
   Register::Encoding index_ : 8;
   int32_t disp_;
+#ifdef JS_SANDBOX_HEAP
+  bool sandboxed_ = false;
+#endif
 
  public:
   explicit Operand(Register reg)
@@ -81,12 +88,22 @@ class Operand {
         scale_(address.scale),
         index_(address.index.encoding()),
         disp_(address.offset) {}
+#ifdef JS_SANDBOX_HEAP
+  Operand(Register base, Register index, Scale scale, int32_t disp = 0, bool sandboxed = false)
+      : kind_(MEM_SCALE),
+        base_(base.encoding()),
+        scale_(scale),
+        index_(index.encoding()),
+        disp_(disp),
+        sandboxed_(sandboxed) {}
+#else
   Operand(Register base, Register index, Scale scale, int32_t disp = 0)
       : kind_(MEM_SCALE),
         base_(base.encoding()),
         scale_(scale),
         index_(index.encoding()),
         disp_(disp) {}
+#endif
   Operand(Register reg, int32_t disp)
       : kind_(MEM_REG_DISP),
         base_(reg.encoding()),
@@ -159,7 +176,23 @@ class Operand {
         return false;
     }
   }
+
+#ifdef JS_SANDBOX_HEAP
+  bool sandboxed() const {
+    return sandboxed_;
+  }
+
+  void unsafeSetSandboxed(bool sandboxed) {
+    sandboxed_ = sandboxed;
+  }
+#endif
 };
+
+#ifdef JS_SANDBOX_HEAP
+using SOperand = Operand;
+#else
+using SOperand = Operand;
+#endif
 
 inline Imm32 Imm64::firstHalf() const { return low(); }
 
@@ -306,6 +339,62 @@ class AssemblerX86Shared : public AssemblerShared {
   using JmpSrc = X86Encoding::JmpSrc;
   using JmpDst = X86Encoding::JmpDst;
 
+#ifdef JS_SANDBOX_HEAP
+  Operand sandboxMemoryWrite(const AbsoluteAddress& address, ScratchRegisterScope&) {
+    MOZ_ASSERT(isSandboxed(), "Expected to be called in sandboxed contexts only");
+    masm.movq_i64r(uintptr_t(address.addr), ScratchReg.encoding());
+    masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+    masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+    Operand op(SandboxReg1, ScratchReg, TimesOne, 0, true);
+    return op;
+  }
+#endif
+
+  Operand sandboxMemoryWrite(const Operand& op) {
+#ifdef JS_SANDBOX_HEAP
+    if (isSandboxed() && !op.sandboxed()) {
+      switch (op.kind()) {
+        case Operand::REG:
+        case Operand::FPREG:
+          return op;
+        case Operand::MEM_SCALE:
+          if (op.base() == StackPointer.encoding() ||
+              op.base() == FramePointer.encoding()) {
+            return op;
+          }
+#ifdef DEBUG
+          MOZ_ASSERT(!op.containsReg(ScratchReg),
+                     "Operand to sandbox already uses scratch register");
+#endif
+          masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
+                       ScratchReg.encoding());
+          masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+          masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+          return Operand(SandboxReg1, ScratchReg, TimesOne, 0, true);
+        case Operand::MEM_REG_DISP:
+          if (op.base() == StackPointer.encoding() ||
+              op.base() == FramePointer.encoding()) {
+            return op;
+          }
+#ifdef DEBUG
+          MOZ_ASSERT(!op.containsReg(ScratchReg),
+                     "Operand to sandbox already uses scratch register");
+#endif
+          masm.leaq_mr(op.disp(), op.base(), ScratchReg.encoding());
+          masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+          masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
+          return Operand(SandboxReg1, ScratchReg, TimesOne, 0, true);
+        default:
+          MOZ_CRASH("unexpected operand kind");
+      }
+    } else {
+      return op;
+    }
+#else
+    return op;
+#endif
+  }
+  
  public:
   AssemblerX86Shared() {
     if (!HasAVX()) {
@@ -526,8 +615,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movl(Register src, const Operand& dest) {
+  void movl(Register src, const Operand& unsafeDest) {
     MOZ_ASSERT(hasCreator());
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_rr(src.encoding(), dest.reg());
@@ -546,7 +636,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movl(Imm32 imm32, const Operand& dest) {
+  void movl(Imm32 imm32, const Operand& unsafeDest) {
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
@@ -608,8 +699,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovaps(FloatRegister src, const Operand& dest) {
+  void vmovaps(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovaps_rm(src.encoding(), dest.disp(), dest.base());
@@ -636,8 +728,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovups(FloatRegister src, const Operand& dest) {
+  void vmovups(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovups_rm(src.encoding(), dest.disp(), dest.base());
@@ -671,12 +764,29 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovsd");
     }
   }
-  void vmovsd(FloatRegister src, const Address& dest) {
-    masm.vmovsd_rm(src.encoding(), dest.offset, dest.base.encoding());
+  void vmovsd(FloatRegister src, const Address& unsafeDest) {
+#ifdef JS_SANDBOX_HEAP
+    const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
+    switch (dest.kind()) {
+      case Operand::MEM_REG_DISP:
+        masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                       dest.scale());
+        break;
+      default:
+        MOZ_CRASH("Unknown operand for vmovsd");
+    }
+#else
+    masm.vmovsd_rm(src.encoding(), unsafeDest.offset, unsafeDest.base.encoding());
+#endif
   }
-  void vmovsd(FloatRegister src, const BaseIndex& dest) {
-    masm.vmovsd_rm(src.encoding(), dest.offset, dest.base.encoding(),
-                   dest.index.encoding(), dest.scale);
+  void vmovsd(FloatRegister src, const BaseIndex& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
+    MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
+    masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(),
+                   dest.index(), dest.scale());
   }
   // Note special semantics of this - does not clobber high bits of destination.
   void vmovsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -702,12 +812,29 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovss");
     }
   }
-  void vmovss(FloatRegister src, const Address& dest) {
-    masm.vmovss_rm(src.encoding(), dest.offset, dest.base.encoding());
+  void vmovss(FloatRegister src, const Address& unsafeDest) {
+#ifdef JS_SANDBOX_HEAP
+    const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
+    switch (dest.kind()) {
+      case Operand::MEM_REG_DISP:
+        masm.vmovss_rm(src.encoding(), dest.disp(), dest.base());
+        break;
+      case Operand::MEM_SCALE:
+        masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                       dest.scale());
+        break;
+      default:
+        MOZ_CRASH("Unknown operand for vmovss");
+    }
+#else
+    masm.vmovss_rm(src.encoding(), unsafeDest.offset, unsafeDest.base.encoding());
+#endif
   }
-  void vmovss(FloatRegister src, const BaseIndex& dest) {
-    masm.vmovss_rm(src.encoding(), dest.offset, dest.base.encoding(),
-                   dest.index.encoding(), dest.scale);
+  void vmovss(FloatRegister src, const BaseIndex& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
+    MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
+    masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(),
+                   dest.index(), dest.scale());
   }
   void vmovss(FloatRegister src, const Operand& dest) {
     switch (dest.kind()) {
@@ -740,9 +867,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovdqu(FloatRegister src, const Operand& dest) {
+  void vmovdqu(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(hasCreator());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovdqu_rm(src.encoding(), dest.disp(), dest.base());
@@ -772,8 +900,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovdqa(FloatRegister src, const Operand& dest) {
+  void vmovdqa(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovdqa_rm(src.encoding(), dest.disp(), dest.base());
@@ -843,7 +972,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void movb(Imm32 src, Register dest) {
     masm.movb_ir(src.value & 255, dest.encoding());
   }
-  void movb(Register src, const Operand& dest) {
+  void movb(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movb_rm(src.encoding(), dest.disp(), dest.base());
@@ -856,7 +986,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movb(Imm32 src, const Operand& dest) {
+  void movb(Imm32 src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movb_im(src.value, dest.disp(), dest.base());
@@ -896,7 +1027,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_16_for_32();
     movl(src, dest);
   }
-  void movw(Register src, const Operand& dest) {
+  void movw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movw_rm(src.encoding(), dest.disp(), dest.base());
@@ -909,7 +1041,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void movw(Imm32 src, const Operand& dest) {
+  void movw(Imm32 src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movw_im(src.value, dest.disp(), dest.base());
@@ -1353,7 +1486,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.addl_i32r(imm.value, dest.encoding());
     return CodeOffset(masm.currentOffset());
   }
-  void addl(Imm32 imm, const Operand& op) {
+  void addl(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.addl_ir(imm.value, op.reg());
@@ -1371,7 +1505,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void addw(Imm32 imm, const Operand& op) {
+  void addw(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.addw_ir(imm.value, op.reg());
@@ -1392,7 +1527,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void subl(Imm32 imm, Register dest) {
     masm.subl_ir(imm.value, dest.encoding());
   }
-  void subl(Imm32 imm, const Operand& op) {
+  void subl(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.subl_ir(imm.value, op.reg());
@@ -1407,7 +1543,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void subw(Imm32 imm, const Operand& op) {
+  void subw(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.subw_ir(imm.value, op.reg());
@@ -1425,7 +1562,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void addl(Register src, Register dest) {
     masm.addl_rr(src.encoding(), dest.encoding());
   }
-  void addl(Register src, const Operand& dest) {
+  void addl(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addl_rr(src.encoding(), dest.reg());
@@ -1441,7 +1579,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void addw(Register src, const Operand& dest) {
+  void addw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addw_rr(src.encoding(), dest.reg());
@@ -1475,7 +1614,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void subl(Register src, const Operand& dest) {
+  void subl(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subl_rr(src.encoding(), dest.reg());
@@ -1491,7 +1631,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void subw(Register src, const Operand& dest) {
+  void subw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subw_rr(src.encoding(), dest.reg());
@@ -1510,7 +1651,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void orl(Register reg, Register dest) {
     masm.orl_rr(reg.encoding(), dest.encoding());
   }
-  void orl(Register src, const Operand& dest) {
+  void orl(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orl_rr(src.encoding(), dest.reg());
@@ -1526,7 +1668,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void orw(Register src, const Operand& dest) {
+  void orw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orw_rr(src.encoding(), dest.reg());
@@ -1543,7 +1686,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orl(Imm32 imm, Register reg) { masm.orl_ir(imm.value, reg.encoding()); }
-  void orl(Imm32 imm, const Operand& op) {
+  void orl(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.orl_ir(imm.value, op.reg());
@@ -1558,7 +1702,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void orw(Imm32 imm, const Operand& op) {
+  void orw(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.orw_ir(imm.value, op.reg());
@@ -1576,7 +1721,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void xorl(Register src, Register dest) {
     masm.xorl_rr(src.encoding(), dest.encoding());
   }
-  void xorl(Register src, const Operand& dest) {
+  void xorl(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorl_rr(src.encoding(), dest.reg());
@@ -1592,7 +1738,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void xorw(Register src, const Operand& dest) {
+  void xorw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorw_rr(src.encoding(), dest.reg());
@@ -1611,7 +1758,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void xorl(Imm32 imm, Register reg) {
     masm.xorl_ir(imm.value, reg.encoding());
   }
-  void xorl(Imm32 imm, const Operand& op) {
+  void xorl(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.xorl_ir(imm.value, op.reg());
@@ -1626,7 +1774,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void xorw(Imm32 imm, const Operand& op) {
+  void xorw(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.xorw_ir(imm.value, op.reg());
@@ -1644,7 +1793,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void andl(Register src, Register dest) {
     masm.andl_rr(src.encoding(), dest.encoding());
   }
-  void andl(Register src, const Operand& dest) {
+  void andl(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andl_rr(src.encoding(), dest.reg());
@@ -1660,7 +1810,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void andw(Register src, const Operand& dest) {
+  void andw(Register src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andw_rr(src.encoding(), dest.reg());
@@ -1679,7 +1830,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void andl(Imm32 imm, Register dest) {
     masm.andl_ir(imm.value, dest.encoding());
   }
-  void andl(Imm32 imm, const Operand& op) {
+  void andl(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.andl_ir(imm.value, op.reg());
@@ -1694,7 +1846,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void andw(Imm32 imm, const Operand& op) {
+  void andw(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
         masm.andw_ir(imm.value, op.reg());
@@ -1804,7 +1957,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void negl(const Operand& src) {
+  void negl(const Operand& unsafeSrc) {
+    const Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::REG:
         masm.negl_r(src.reg());
@@ -1817,7 +1971,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void negl(Register reg) { masm.negl_r(reg.encoding()); }
-  void notl(const Operand& src) {
+  void notl(const Operand& unsafeSrc) {
+    const Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::REG:
         masm.notl_r(src.reg());
@@ -1874,7 +2029,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void rorl_cl(Register dest) { masm.rorl_CLr(dest.encoding()); }
 
-  void incl(const Operand& op) {
+  void incl(const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.incl_m32(op.disp(), op.base());
@@ -1888,7 +2044,8 @@ class AssemblerX86Shared : public AssemblerShared {
     incl(op);
   }
 
-  void decl(const Operand& op) {
+  void decl(const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.decl_m32(op.disp(), op.base());
@@ -1902,7 +2059,8 @@ class AssemblerX86Shared : public AssemblerShared {
     decl(op);
   }
 
-  void addb(Imm32 imm, const Operand& op) {
+  void addb(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.addb_im(imm.value, op.disp(), op.base());
@@ -1915,7 +2073,8 @@ class AssemblerX86Shared : public AssemblerShared {
         break;
     }
   }
-  void addb(Register src, const Operand& op) {
+  void addb(Register src, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.addb_rm(src.encoding(), op.disp(), op.base());
@@ -1930,7 +2089,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void subb(Imm32 imm, const Operand& op) {
+  void subb(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.subb_im(imm.value, op.disp(), op.base());
@@ -1943,7 +2103,8 @@ class AssemblerX86Shared : public AssemblerShared {
         break;
     }
   }
-  void subb(Register src, const Operand& op) {
+  void subb(Register src, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.subb_rm(src.encoding(), op.disp(), op.base());
@@ -1958,7 +2119,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void andb(Imm32 imm, const Operand& op) {
+  void andb(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.andb_im(imm.value, op.disp(), op.base());
@@ -1971,7 +2133,8 @@ class AssemblerX86Shared : public AssemblerShared {
         break;
     }
   }
-  void andb(Register src, const Operand& op) {
+  void andb(Register src, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.andb_rm(src.encoding(), op.disp(), op.base());
@@ -1986,7 +2149,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void orb(Imm32 imm, const Operand& op) {
+  void orb(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.orb_im(imm.value, op.disp(), op.base());
@@ -1999,7 +2163,8 @@ class AssemblerX86Shared : public AssemblerShared {
         break;
     }
   }
-  void orb(Register src, const Operand& op) {
+  void orb(Register src, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.orb_rm(src.encoding(), op.disp(), op.base());
@@ -2014,7 +2179,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void xorb(Imm32 imm, const Operand& op) {
+  void xorb(Imm32 imm, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xorb_im(imm.value, op.disp(), op.base());
@@ -2027,7 +2193,8 @@ class AssemblerX86Shared : public AssemblerShared {
         break;
     }
   }
-  void xorb(Register src, const Operand& op) {
+  void xorb(Register src, const Operand& unsafeOp) {
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xorb_rm(src.encoding(), op.disp(), op.base());
@@ -2122,7 +2289,8 @@ class AssemblerX86Shared : public AssemblerShared {
     xorl(src, op);
   }
 
-  void lock_cmpxchgb(Register src, const Operand& mem) {
+  void lock_cmpxchgb(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2136,7 +2304,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void lock_cmpxchgw(Register src, const Operand& mem) {
+  void lock_cmpxchgw(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2150,7 +2319,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void lock_cmpxchgl(Register src, const Operand& mem) {
+  void lock_cmpxchgl(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2165,7 +2335,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_cmpxchg8b(Register srcHi, Register srcLo, Register newHi,
-                      Register newLo, const Operand& mem) {
+                      Register newLo, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2182,7 +2353,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void xchgb(Register src, const Operand& mem) {
+  void xchgb(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgb_rm(src.encoding(), mem.disp(), mem.base());
@@ -2195,7 +2367,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void xchgw(Register src, const Operand& mem) {
+  void xchgw(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgw_rm(src.encoding(), mem.disp(), mem.base());
@@ -2208,7 +2381,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void xchgl(Register src, const Operand& mem) {
+  void xchgl(Register src, const Operand& unsafeMem) {
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgl_rm(src.encoding(), mem.disp(), mem.base());
@@ -2279,7 +2453,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.push_m(src.offset, src.base.encoding());
   }
 
-  void pop(const Operand& src) {
+  void pop(const Operand& unsafeSrc) {
+    const Operand src = sandboxMemoryWrite(unsafeSrc);
     MOZ_ASSERT(hasCreator());
     switch (src.kind()) {
       case Operand::REG:
@@ -2296,7 +2471,13 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     masm.pop_r(src.encoding());
   }
-  void pop(const Address& src) { masm.pop_m(src.offset, src.base.encoding()); }
+  void pop(const Address& src) {
+#ifdef JS_SANDBOX_HEAP
+    pop(Operand(src));
+#else
+    masm.pop_m(src.offset, src.base.encoding());
+#endif
+  }
 
   void pushFlags() { masm.push_flags(); }
   void popFlags() { masm.pop_flags(); }
@@ -2372,8 +2553,9 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vpinsrd_irr(lane, src1.encoding(), src0.encoding(), dest.encoding());
   }
 
-  void vpextrb(unsigned lane, FloatRegister src, const Operand& dest) {
+  void vpextrb(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrb_irr(lane, src.encoding(), dest.reg());
@@ -2389,8 +2571,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vpextrw(unsigned lane, FloatRegister src, const Operand& dest) {
+  void vpextrw(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrw_irr(lane, src.encoding(), dest.reg());
@@ -2858,8 +3041,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovd(FloatRegister src, const Operand& dest) {
+  void vmovd(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovd_rm(src.encoding(), dest.disp(), dest.base());
@@ -2892,8 +3076,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovq(FloatRegister src, const Operand& dest) {
+  void vmovq(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovq_rm(src.encoding(), dest.disp(), dest.base());
@@ -4440,7 +4625,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovlps(FloatRegister src, const Operand& dest) {
+  void vmovlps(FloatRegister src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovlps_rm(src.encoding(), dest.disp(), dest.base());
@@ -4467,7 +4653,8 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vmovhps(FloatRegister src, const Operand& dest) {
+  void vmovhps(FloatRegister src, const Operand& unsafeDest) {
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovhps_rm(src.encoding(), dest.disp(), dest.base());
@@ -4480,9 +4667,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void vextractps(unsigned lane, FloatRegister src, const Operand& dest) {
+  void vextractps(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
     MOZ_ASSERT(lane < 4);
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vextractps_rm(lane, src.encoding(), dest.disp(), dest.base());
@@ -4634,6 +4822,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fistp(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4643,6 +4832,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstcw(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4652,6 +4842,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fldcw(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4661,6 +4852,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstsw(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4670,6 +4862,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4679,6 +4872,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld32(const Operand& dest) {
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4688,6 +4882,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp(const Operand& src) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4697,6 +4892,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+  // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp32(const Operand& src) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:

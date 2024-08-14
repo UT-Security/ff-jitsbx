@@ -71,7 +71,7 @@ class Registers {
 
   static const uint32_t Total = 16;
   static const uint32_t TotalPhys = 16;
-  static const uint32_t Allocatable = 14;
+  static const uint32_t Allocatable = 13;
 #endif
 
   static uint32_t SetSize(SetType x) {
@@ -140,7 +140,8 @@ class Registers {
 
   static const SetType NonAllocatableMask =
       (1 << X86Encoding::rsp) | (1 << X86Encoding::rbp) |
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_HEAP
+      (1 << X86Encoding::r13) | // Reserved register for sandbox.
       (1 << X86Encoding::r15) | // Reserved register for sandbox.
 #endif
       (1 << X86Encoding::r11);  // This is ScratchReg.

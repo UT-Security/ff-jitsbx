@@ -22,6 +22,8 @@
 using namespace js;
 using namespace js::jit;
 
+
+
 void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   if (maybeInlineDouble(d, dest)) {
     return;
@@ -642,9 +644,9 @@ void MacroAssemblerX64::profilerEnterFrame(Register framePtr,
                                            Register scratch) {
   asMasm().loadJSContext(scratch);
   loadPtr(Address(scratch, offsetof(JSContext, profilingActivation_)), scratch);
-  storePtr(framePtr,
+  unsafeStorePtr(framePtr,
            Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
-  storePtr(ImmPtr(nullptr),
+  unsafeStorePtr(ImmPtr(nullptr),
            Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
 }
 
