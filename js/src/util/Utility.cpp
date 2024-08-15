@@ -22,7 +22,10 @@
 
 using namespace js;
 #ifdef JS_SANDBOX_HEAP
-using namespace js::sandbox;
+//using namespace js::sandbox;
+using js::sandbox::arena_params_t;
+using js::sandbox::TagUnknown;
+using js::sandbox::moz_create_arena_with_params;
 #endif
 
 using mozilla::Maybe;

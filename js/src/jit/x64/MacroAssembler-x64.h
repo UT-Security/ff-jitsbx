@@ -158,8 +158,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       boxValue(type, reg, scratch);
-#ifdef JS_SANDBOX_HEAP
       Operand op = Operand(dest);
+#ifdef JS_SANDBOX_HEAP
       op.unsafeSetSandboxed(true);
 #endif
       movq(scratch, op);
@@ -174,8 +174,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       mov(ImmWord(val.asRawBits()), scratch);
     }
-#ifdef JS_SANDBOX_HEAP
     Operand op = Operand(dest);
+#ifdef JS_SANDBOX_HEAP
     op.unsafeSetSandboxed(true);
 #endif
     movq(scratch, op);
@@ -635,8 +635,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       mov(imm, scratch);
-#ifdef JS_SANDBOX_HEAP
       Operand op = Operand(address);
+#ifdef JS_SANDBOX_HEAP
       op.unsafeSetSandboxed(true);
 #endif
       movq(scratch, op);
@@ -672,8 +672,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void storePtr(ImmGCPtr imm, T address) {
     ScratchRegisterScope scratch(asMasm());
     movq(imm, scratch);
-#ifdef JS_SANDBOX_HEAP
     Operand op = Operand(address);
+#ifdef JS_SANDBOX_HEAP
     op.unsafeSetSandboxed(true);
 #endif
     movq(scratch, op);
@@ -1239,8 +1239,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
           // scratch register for that. So unbox as object, then clear the
           // object-or-null bit.
           mov(ImmWord(~JS::detail::ValueObjectOrNullBit), scratch);
-#ifdef JS_SANDBOX_HEAP
           Operand op = Operand(address);
+#ifdef JS_SANDBOX_HEAP
           op.unsafeSetSandboxed(true);
 #endif
           andq(scratch, op);

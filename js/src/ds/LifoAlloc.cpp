@@ -142,7 +142,7 @@ void LifoAlloc::freeAll() {
 static size_t MallocGoodSize(size_t aSize) {
 #if defined(MOZ_MEMORY)
 #ifdef JS_SANDBOX_HEAP
-  return js::sandbox::malloc_good_size(aSize);
+  return js::sandbox::sbx_malloc_good_size(aSize);
 #else
   return malloc_good_size(aSize);
 #endif

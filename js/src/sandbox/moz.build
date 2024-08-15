@@ -20,3 +20,9 @@ if CONFIG["JS_SANDBOX_HEAP"]:
 		"allocator/sbxjemalloc.cpp",
 		"Memory.cpp"
 	]
+
+	EXPORTS.js.sandbox.allocator += [
+		"allocator/malloc_decls.h",
+		"allocator/sbxjemalloc_types.h",
+		"allocator/sbxmemory.h"
+	];
