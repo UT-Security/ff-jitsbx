@@ -123,8 +123,6 @@
 
 //#include "mozmemory_wrap.h"
 #include <sys/mman.h>
-#define MOZ_MEMORY_API 
-#define MOZ_JEMALLOC_API
 #include "sandbox/allocator/sbxjemalloc.h"
 #include "sandbox/allocator/sbxjemalloc_types.h"
 #include "sandbox/Memory.h"
@@ -1648,7 +1646,7 @@ using MozAllocRetries::MozVirtualAlloc;
 } // namespace js
 
 namespace mozilla {
-MOZ_JEMALLOC_API StallSpecs GetAllocatorStallSpecs() {
+StallSpecs GetAllocatorStallSpecs() {
   return ::MozAllocRetries::GetStallSpecs();
 }
 }  // namespace mozilla
@@ -4931,7 +4929,7 @@ namespace sandbox {
 
 #ifndef __MINGW32__
 #  define GENERIC_MALLOC_DECL(attributes, name, return_type, ...)    \
-    GENERIC_MALLOC_DECL2(attributes, name, name##_impl, return_type, \
+    GENERIC_MALLOC_DECL2(attributes, name, sbx_##name, return_type, \
                          ##__VA_ARGS__)
 #else
 #  define GENERIC_MALLOC_DECL(attributes, name, return_type, ...)    \
@@ -4941,9 +4939,9 @@ namespace sandbox {
 #endif
 
 #define NOTHROW_MALLOC_DECL(...) \
-  MOZ_MEMORY_API MACRO_CALL(GENERIC_MALLOC_DECL, (noexcept(true), __VA_ARGS__))
+  MACRO_CALL(GENERIC_MALLOC_DECL, (noexcept(true), __VA_ARGS__))
 #define MALLOC_DECL(...) \
-  MOZ_MEMORY_API MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
+  MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC
 #include "sandbox/allocator/malloc_decls.h"
 
@@ -4952,7 +4950,7 @@ namespace sandbox {
   GENERIC_MALLOC_DECL2(attributes, name, name, return_type, ##__VA_ARGS__)
 
 #define MALLOC_DECL(...) \
-  MOZ_JEMALLOC_API MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
+  MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
 #define MALLOC_FUNCS (MALLOC_FUNCS_JEMALLOC | MALLOC_FUNCS_ARENA)
 #include "sandbox/allocator/malloc_decls.h"
 
@@ -4962,7 +4960,7 @@ size_t moz_malloc_usable_size(void* ptr) {
 #if defined(XP_DARWIN)
   return malloc_size(ptr);
 #elif defined(HAVE_MALLOC_USABLE_SIZE) || defined(MOZ_MEMORY)
-  return malloc_usable_size_impl(ptr);
+  return sbx_malloc_usable_size(ptr);
 #elif defined(XP_WIN)
   return _msize(ptr);
 #else

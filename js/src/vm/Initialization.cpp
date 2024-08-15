@@ -166,7 +166,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
   }
 #endif
 
+#ifdef JS_SANDBOX_HEAP
   RETURN_IF_FAIL(js::sandbox::InitMemory());
+#endif
 
   js::InitMallocAllocator();
 

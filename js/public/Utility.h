@@ -21,8 +21,7 @@
 
 #include "jstypes.h"
 #ifdef JS_SANDBOX_HEAP
-#include "sandbox/allocator/sbxmemory.h"
-
+#include "js/sandbox/allocator/sbxmemory.h"
 using js::sandbox::arena_id_t;
 #else
 #include "mozmemory.h"
@@ -440,7 +439,7 @@ static inline void js_free(void* p) {
   // js_malloc(). All other memory should go through a different allocator and
   // deallocator.
 #ifdef JS_SANDBOX_HEAP
-  js::sandbox::free_impl(p);
+  js::sandbox::sbx_free(p);
 #else
   free(p);
 #endif

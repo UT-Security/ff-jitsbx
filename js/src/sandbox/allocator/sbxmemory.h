@@ -24,10 +24,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Types.h"
 #include <stdbool.h>
-#include "sandbox/allocator/sbxjemalloc_types.h"
-
-#define MOZ_MEMORY_API 
-#define MOZ_JEMALLOC_API
+#include "js/sandbox/allocator/sbxjemalloc_types.h"
 
 namespace js {
 namespace sandbox {
@@ -38,32 +35,31 @@ namespace sandbox {
 // something like a malloc.h wrapper and allow the use of the functions without
 // a _impl suffix. In the meanwhile, this is enough to get by for C++ code.
 #  define NOTHROW_MALLOC_DECL(name, return_type, ...) \
-    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__) noexcept(true);
+    return_type sbx_##name(__VA_ARGS__) noexcept(true);
 #  define MALLOC_DECL(name, return_type, ...) \
-    MOZ_MEMORY_API return_type name##_impl(__VA_ARGS__);
-#  include "sandbox/allocator/malloc_decls.h"
+    return_type sbx_##name(__VA_ARGS__);
+#  include "js/sandbox/allocator/malloc_decls.h"
 
 // On OSX, malloc/malloc.h contains the declaration for malloc_good_size,
 // which will call back in jemalloc, through the zone allocator so just use it.
 #  ifndef XP_DARWIN
-MOZ_MEMORY_API size_t malloc_good_size_impl(size_t size);
+//size_t malloc_good_size_impl(size_t size);
 
 // Note: the MOZ_GLUE_IN_PROGRAM ifdef below is there to avoid -Werror turning
 // the protective if into errors. MOZ_GLUE_IN_PROGRAM is what triggers MFBT_API
 // to use weak imports.
-static inline size_t _malloc_good_size(size_t size) {
-  return malloc_good_size_impl(size);
-}
+//static size_t malloc_good_size(size_t size) {
+//  return malloc_good_size_impl(size);
+//}
 
-#    define malloc_good_size _malloc_good_size
 #  endif
 
 size_t moz_malloc_size_of(const void* ptr);
 
 #  define MALLOC_DECL(name, return_type, ...) \
-    MOZ_JEMALLOC_API return_type name(__VA_ARGS__);
+    return_type name(__VA_ARGS__);
 #  define MALLOC_FUNCS MALLOC_FUNCS_JEMALLOC
-#  include "malloc_decls.h"
+#  include "js/sandbox/allocator/malloc_decls.h"
 
 #  ifdef __cplusplus
 static inline void jemalloc_stats(jemalloc_stats_t* aStats,
@@ -77,20 +73,17 @@ static inline void jemalloc_stats(jemalloc_stats_t* aStats) {
 #  endif  
 
 #define NOTHROW_MALLOC_DECL(name, return_type, ...) \
-  MOZ_JEMALLOC_API return_type name(__VA_ARGS__) noexcept(true);
+  return_type name(__VA_ARGS__) noexcept(true);
 #define MALLOC_DECL(name, return_type, ...) \
-  MOZ_JEMALLOC_API return_type name(__VA_ARGS__);
+  return_type name(__VA_ARGS__);
 #define MALLOC_FUNCS MALLOC_FUNCS_ARENA
-#include "sandbox/allocator/malloc_decls.h"
+#include "js/sandbox/allocator/malloc_decls.h"
 
 #ifdef __cplusplus
 #  define moz_create_arena() moz_create_arena_with_params(nullptr)
 #else
 #  define moz_create_arena() moz_create_arena_with_params(NULL)
 #endif
-
-#undef MOZ_MEMORY_API
-#undef MOZ_JEMALLOC_API
 
 } // namespace sandbox
 } // namespace js

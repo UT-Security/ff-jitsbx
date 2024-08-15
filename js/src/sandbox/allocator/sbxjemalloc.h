@@ -8,7 +8,7 @@
 #define sbxjemalloc_h
 
 #include "mozilla/MacroArgs.h"
-#include "sandbox/allocator/sbxjemalloc_types.h"
+#include "js/sandbox/allocator/sbxjemalloc_types.h"
 
 // Macro helpers
 
@@ -41,7 +41,7 @@ template <typename T>
 struct Allocator : public T {
 #  define MALLOC_DECL(name, return_type, ...) \
     static return_type name(__VA_ARGS__);
-#  include "sandbox/allocator/malloc_decls.h"
+#  include "js/sandbox/allocator/malloc_decls.h"
 };
 
 // The MozJemalloc allocator
@@ -68,7 +68,7 @@ struct DummyArenaAllocator {
     return T::name(ARGS_HELPER(ARGS, ##__VA_ARGS__));       \
   }
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC_BASE
-#include "sandbox/allocator/malloc_decls.h"
+#include "js/sandbox/allocator/malloc_decls.h"
 };
 
 } // namespace sandbox

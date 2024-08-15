@@ -13,7 +13,7 @@
 #ifndef sbx_malloc_decls_h
 #  define sbx_malloc_decls_h
 
-#  include "sandbox/allocator/sbxjemalloc_types.h"
+#  include "js/sandbox/allocator/sbxjemalloc_types.h"
 
 #  define MALLOC_FUNCS_MALLOC_BASE 1
 #  define MALLOC_FUNCS_MALLOC_EXTRA 2
