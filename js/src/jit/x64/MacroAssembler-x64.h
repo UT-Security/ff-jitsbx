@@ -149,6 +149,30 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void storeValue(ValueOperand val, const Address& dest) {
     storeValue(val, Operand(dest));
   }
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storeValue(JSValueType type, Register reg, const T& dest, Register scratch = ScratchReg) {
+    // Value types with 32-bit payloads can be emitted as two 32-bit moves.
+    if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
+      movl(reg, Operand(dest));
+      movl(Imm32(Upper32Of(GetShiftedTag(type))), ToUpper32(Operand(dest)));
+    } else {
+      boxValue(type, reg, scratch);
+      movq(scratch, Operand(dest));
+    }
+  }
+
+  template <typename T>
+  void storeValue(const Value& val, const T& dest, Register scratch = ScratchReg) {
+    if (val.isGCThing()) {
+      movWithPatch(ImmWord(val.asRawBits()), scratch);
+      writeDataRelocation(val);
+    } else {
+      mov(ImmWord(val.asRawBits()), scratch);
+    }
+    movq(scratch, Operand(dest));
+  }
+#else
   template <typename T>
   void storeValue(JSValueType type, Register reg, const T& dest) {
     // Value types with 32-bit payloads can be emitted as two 32-bit moves.
@@ -158,11 +182,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       boxValue(type, reg, scratch);
-      Operand op = Operand(dest);
-#ifdef JS_SANDBOX_HEAP
-      op.unsafeSetSandboxed(true);
-#endif
-      movq(scratch, op);
+      movq(scratch, Operand(dest));
     }
   }
   template <typename T>
@@ -174,12 +194,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       mov(ImmWord(val.asRawBits()), scratch);
     }
-    Operand op = Operand(dest);
-#ifdef JS_SANDBOX_HEAP
-    op.unsafeSetSandboxed(true);
-#endif
-    movq(scratch, op);
+    movq(scratch, Operand(dest));
   }
+#endif
   void storeValue(ValueOperand val, BaseIndex dest) {
     storeValue(val, Operand(dest));
   }
@@ -628,6 +645,17 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void load64Unaligned(const S& src, Register64 dest) {
     load64(src, dest);
   }
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storePtr(ImmWord imm, T address, Register scratch = ScratchReg) {
+    if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
+      movq(Imm32((int32_t)imm.value), Operand(address));
+    } else {
+      mov(imm, scratch);
+      movq(scratch, Operand(address));
+    }
+  }
+#else
   template <typename T>
   void storePtr(ImmWord imm, T address) {
     if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
@@ -635,13 +663,10 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     } else {
       ScratchRegisterScope scratch(asMasm());
       mov(imm, scratch);
-      Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-      op.unsafeSetSandboxed(true);
-#endif
-      movq(scratch, op);
+      movq(scratch, Operand(address));
     }
   }
+#endif
   template <typename T>
   void unsafeStorePtr(ImmWord imm, T address) {
     if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
@@ -660,24 +685,36 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       movq(scratch, op);
     }
   }
+
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storePtr(ImmPtr imm, T address, Register scratch = ScratchReg) {
+    storePtr(ImmWord(uintptr_t(imm.value)), address, scratch);
+  }
+#else
   template <typename T>
   void storePtr(ImmPtr imm, T address) {
     storePtr(ImmWord(uintptr_t(imm.value)), address);
   }
+#endif
   template <typename T>
   void unsafeStorePtr(ImmPtr imm, T address) {
     unsafeStorePtr(ImmWord(uintptr_t(imm.value)), address);
   }
+#ifdef JS_SANDBOX_HEAP
+template <typename T>
+  void storePtr(ImmGCPtr imm, T address, Register scratch = ScratchReg) {
+    movq(imm, scratch);
+    movq(scratch, Operand(address));
+  }
+#else
   template <typename T>
   void storePtr(ImmGCPtr imm, T address) {
     ScratchRegisterScope scratch(asMasm());
     movq(imm, scratch);
-    Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-    op.unsafeSetSandboxed(true);
-#endif
-    movq(scratch, op);
+    movq(scratch, Operand(address));
   }
+#endif
   void storePtr(Register src, const Address& address) {
     movq(src, Operand(address));
   }
@@ -759,9 +796,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void store64(Imm64 imm, Address address) {
     storePtr(ImmWord(imm.value), address);
   }
+#ifdef JS_SANDBOX_HEAP
+  void store64(Imm64 imm, const BaseIndex& address, Register scratch) {
+    storePtr(ImmWord(imm.value), address, scratch);
+  }
+#else
   void store64(Imm64 imm, const BaseIndex& address) {
     storePtr(ImmWord(imm.value), address);
   }
+#endif
   template <typename S, typename T>
   void store64Unaligned(const S& src, const T& dest) {
     store64(src, dest);
@@ -1226,12 +1269,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
   }
 
+#ifdef JS_SANDBOX_HEAP
   template <typename T>
   void storeUnboxedPayload(ValueOperand value, T address, size_t nbytes,
-                           JSValueType type) {
+                           JSValueType type, Register scratch = ScratchReg) {
     switch (nbytes) {
       case 8: {
-        ScratchRegisterScope scratch(asMasm());
         unboxNonDouble(value, scratch, type);
         unsafeStorePtr(scratch, address);
         if (type == JSVAL_TYPE_OBJECT) {
@@ -1239,11 +1282,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
           // scratch register for that. So unbox as object, then clear the
           // object-or-null bit.
           mov(ImmWord(~JS::detail::ValueObjectOrNullBit), scratch);
-          Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-          op.unsafeSetSandboxed(true);
-#endif
-          andq(scratch, op);
+          andq(scratch, Operand(address));
         }
         return;
       }
@@ -1257,6 +1296,35 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
         MOZ_CRASH("Bad payload width");
     }
   }
+#else
+  template <typename T>
+  void storeUnboxedPayload(ValueOperand value, T address, size_t nbytes,
+                           JSValueType type) {
+    switch (nbytes) {
+      case 8: {
+        ScratchRegisterScope scratch(asMasm());
+        unboxNonDouble(value, scratch, type);
+        unsafeStorePtr(scratch, address);
+        if (type == JSVAL_TYPE_OBJECT) {
+          // Ideally we would call unboxObjectOrNull, but we need an extra
+          // scratch register for that. So unbox as object, then clear the
+          // object-or-null bit.
+          mov(ImmWord(~JS::detail::ValueObjectOrNullBit), scratch);
+          andq(scratch, Operand(address));
+        }
+        return;
+      }
+      case 4:
+        store32(value.valueReg(), address);
+        return;
+      case 1:
+        store8(value.valueReg(), address);
+        return;
+      default:
+        MOZ_CRASH("Bad payload width");
+    }
+  }
+#endif
 
   // Checks whether a double is representable as a 64-bit integer. If so, the
   // integer is written to the output register. Otherwise, a bailout is taken to

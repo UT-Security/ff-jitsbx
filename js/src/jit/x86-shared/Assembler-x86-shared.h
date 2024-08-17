@@ -96,6 +96,13 @@ class Operand {
         index_(index.encoding()),
         disp_(disp),
         sandboxed_(sandboxed) {}
+  Operand(Register reg, int32_t disp, bool sandboxed = false)
+      : kind_(MEM_REG_DISP),
+        base_(reg.encoding()),
+        scale_(TimesOne),
+        index_(Registers::Invalid),
+        disp_(disp),
+        sandboxed_(sandboxed) {}
 #else
   Operand(Register base, Register index, Scale scale, int32_t disp = 0)
       : kind_(MEM_SCALE),
@@ -103,13 +110,13 @@ class Operand {
         scale_(scale),
         index_(index.encoding()),
         disp_(disp) {}
-#endif
   Operand(Register reg, int32_t disp)
       : kind_(MEM_REG_DISP),
         base_(reg.encoding()),
         scale_(TimesOne),
         index_(Registers::Invalid),
         disp_(disp) {}
+#endif
   explicit Operand(AbsoluteAddress address)
       : kind_(MEM_ADDRESS32),
         base_(Registers::Invalid),
@@ -376,14 +383,10 @@ class AssemblerX86Shared : public AssemblerShared {
               op.base() == FramePointer.encoding()) {
             return op;
           }
-#ifdef DEBUG
-          MOZ_ASSERT(!op.containsReg(ScratchReg),
-                     "Operand to sandbox already uses scratch register");
-#endif
-          masm.leaq_mr(op.disp(), op.base(), ScratchReg.encoding());
-          masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-          masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-          return Operand(SandboxReg1, ScratchReg, TimesOne, 0, true);
+          masm.shlq_ir(sandbox::MemoryShift, op.base());
+          masm.shrq_ir(sandbox::MemoryShift, op.base());
+          masm.leaq_mr(0, SandboxReg1.encoding(), op.base(), TimesOne, op.base());
+          return Operand(Register(op.base()), op.disp(), true);
         default:
           MOZ_CRASH("unexpected operand kind");
       }

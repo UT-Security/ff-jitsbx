@@ -2472,6 +2472,10 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
     // There are not enough registers on x86.
     maybeTemp5 = regs.takeAny();
   }
+#ifdef JS_SANDBOX_HEAP
+  MOZ_ASSERT(!regs.empty(), "Don't have enough registers for sandbox temporary");
+  Register temp6 = regs.takeAny();
+#endif
 
   Address flagsSlot(regexp, RegExpObject::offsetOfFlags());
   Address lastIndexSlot(regexp, RegExpObject::offsetOfLastIndex());
@@ -2691,11 +2695,19 @@ static JitCode* GenerateRegExpMatchStubShared(JSContext* cx, bool isExecMatch) {
 
         // Storing into nursery-allocated results object's elements; no post
         // barrier.
+#ifdef JS_SANDBOX_HEAP
+        masm.storeValue(JSVAL_TYPE_STRING, depStr.string(), objectMatchElement, temp6);
+#else
         masm.storeValue(JSVAL_TYPE_STRING, depStr.string(), objectMatchElement);
+#endif
         masm.jump(&storeDone);
       }
       masm.bind(&isUndefined);
+#ifdef JS_SANDBOX_HEAP
+      { masm.storeValue(UndefinedValue(), objectMatchElement, temp6); }
+#else
       { masm.storeValue(UndefinedValue(), objectMatchElement); }
+#endif
       masm.bind(&storeDone);
 
       masm.add32(Imm32(1), matchIndex);
@@ -5961,7 +5973,11 @@ void CodeGenerator::emitAllocateSpaceForApply(Register argcreg,
     // if the number of arguments is odd, then we do not need any padding.
     masm.branchTestPtr(Assembler::NonZero, argcreg, Imm32(1), &noPaddingNeeded);
     BaseValueIndex dstPtr(masm.getStackPointer(), argcreg);
+#ifdef JS_SANDBOX_HEAP
+    masm.storeValue(MagicValue(JS_ARG_POISON), dstPtr, scratch);
+#else
     masm.storeValue(MagicValue(JS_ARG_POISON), dstPtr);
+#endif
     masm.bind(&noPaddingNeeded);
   }
 #endif
@@ -12357,6 +12373,21 @@ void CodeGenerator::emitStoreHoleCheck(Register elements,
   bailoutFrom(&bail, snapshot);
 }
 
+#ifdef JS_SANDBOX_HEAP
+void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
+                                          MIRType valueType, Register elements,
+                                          const LAllocation* index, Register scratch) {
+  MOZ_ASSERT(valueType != MIRType::MagicHole);
+  ConstantOrRegister v = ToConstantOrRegister(value, valueType);
+  if (index->isConstant()) {
+    Address dest(elements, ToInt32(index) * sizeof(js::Value));
+    masm.storeUnboxedValue(v, valueType, dest, scratch);
+  } else {
+    BaseObjectElementIndex dest(elements, ToRegister(index));
+    masm.storeUnboxedValue(v, valueType, dest, scratch);
+  }
+}
+#else
 void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
                                           MIRType valueType, Register elements,
                                           const LAllocation* index) {
@@ -12370,10 +12401,14 @@ void CodeGenerator::emitStoreElementTyped(const LAllocation* value,
     masm.storeUnboxedValue(v, valueType, dest);
   }
 }
+#endif
 
 void CodeGenerator::visitStoreElementT(LStoreElementT* store) {
   Register elements = ToRegister(store->elements());
   const LAllocation* index = store->index();
+#ifdef JS_SANDBOX_HEAP
+  Register temp = ToRegister(store->temp());
+#endif
 
   if (store->mir()->needsBarrier()) {
     emitPreBarrier(elements, index);
@@ -12383,8 +12418,13 @@ void CodeGenerator::visitStoreElementT(LStoreElementT* store) {
     emitStoreHoleCheck(elements, index, store->snapshot());
   }
 
+#ifdef JS_SANDBOX_HEAP
+  emitStoreElementTyped(store->value(), store->mir()->value()->type(), elements,
+                        index, temp);
+#else
   emitStoreElementTyped(store->value(), store->mir()->value()->type(), elements,
                         index);
+#endif
 }
 
 void CodeGenerator::visitStoreElementV(LStoreElementV* lir) {
@@ -12412,12 +12452,19 @@ void CodeGenerator::visitStoreElementV(LStoreElementV* lir) {
 void CodeGenerator::visitStoreHoleValueElement(LStoreHoleValueElement* lir) {
   Register elements = ToRegister(lir->elements());
   Register index = ToRegister(lir->index());
+#ifdef JS_SANDBOX_HEAP
+  Register temp = ToRegister(lir->temp0());
+#endif
 
   Address elementsFlags(elements, ObjectElements::offsetOfFlags());
   masm.or32(Imm32(ObjectElements::NON_PACKED), elementsFlags);
 
   BaseObjectElementIndex element(elements, index);
+#ifdef JS_SANDBOX_HEAP
+  masm.storeValue(MagicValue(JS_ELEMENTS_HOLE), element, temp);
+#else
   masm.storeValue(MagicValue(JS_ELEMENTS_HOLE), element);
+#endif
 }
 
 void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
@@ -12435,8 +12482,13 @@ void CodeGenerator::visitStoreElementHoleT(LStoreElementHoleT* lir) {
   emitPreBarrier(elements, lir->index());
 
   masm.bind(ool->rejoin());
+#ifdef JS_SANDBOX_HEAP
+  emitStoreElementTyped(lir->value(), lir->mir()->value()->type(), elements,
+                        lir->index(), temp);
+#else
   emitStoreElementTyped(lir->value(), lir->mir()->value()->type(), elements,
                         lir->index());
+#endif
 
   if (ValueNeedsPostBarrier(lir->mir()->value())) {
     LiveRegisterSet regs = liveVolatileRegs(lir);
@@ -12985,7 +13037,12 @@ CodeGenerator::RegisterOrInt32 CodeGenerator::ToRegisterOrInt32(
 void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
   RegisterOrInt32 begin = ToRegisterOrInt32(lir->begin());
   RegisterOrInt32 count = ToRegisterOrInt32(lir->count());
+#ifdef JS_SANDBOX_HEAP
+  Register temp = ToRegister(lir->temp0());
+  Register temp1 = ToRegister(lir->temp1());
+#else
   Register temp = ToRegister(lir->temp());
+#endif
   Register output = ToRegister(lir->output());
 
   uint32_t numActuals = lir->mir()->numActuals();
@@ -13016,12 +13073,21 @@ void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
                                 lir->mir()->getArg(i)->type());
   };
 
+#ifdef JS_SANDBOX_HEAP
+  auto storeArg = [&](uint32_t i, auto dest, Register scratch = ScratchReg) {
+    // We don't need a pre-barrier because the element at |index| is guaranteed
+    // to be a non-GC thing (either uninitialized memory or the magic hole
+    // value).
+    masm.storeConstantOrRegister(getArg(i), dest, scratch);
+  };
+#else
   auto storeArg = [&](uint32_t i, auto dest) {
     // We don't need a pre-barrier because the element at |index| is guaranteed
     // to be a non-GC thing (either uninitialized memory or the magic hole
     // value).
     masm.storeConstantOrRegister(getArg(i), dest);
   };
+#endif
 
   // Initialize all elements.
   if (numActuals == 1) {
@@ -13057,7 +13123,11 @@ void CodeGenerator::visitInlineArgumentsSlice(LInlineArgumentsSlice* lir) {
       Label next;
       masm.branch32(Assembler::NotEqual, argIndex, Imm32(i), &next);
 
+#ifdef JS_SANDBOX_HEAP
+      storeArg(i, BaseObjectElementIndex(elements, index), temp1);
+#else
       storeArg(i, BaseObjectElementIndex(elements, index));
+#endif
 
       masm.add32(Imm32(1), index);
       masm.add32(Imm32(1), argIndex);

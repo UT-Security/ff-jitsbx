@@ -344,8 +344,13 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                                    Label* ifDoesntEmulateUndefined,
                                    Register scratch, OutOfLineTestObject* ool);
 
+#ifdef JS_SANDBOX_HEAP
+  void emitStoreElementTyped(const LAllocation* value, MIRType valueType,
+                             Register elements, const LAllocation* index, Register scratch);
+#else
   void emitStoreElementTyped(const LAllocation* value, MIRType valueType,
                              Register elements, const LAllocation* index);
+#endif
 
   // Bailout if an element about to be written to is a hole.
   void emitStoreHoleCheck(Register elements, const LAllocation* index,

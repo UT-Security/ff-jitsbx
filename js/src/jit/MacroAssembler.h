@@ -2194,9 +2194,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <class T>
   inline void storeFloat32(FloatRegister src, const T& dest);
 
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
+                         const T& dest, Register scratch = ScratchReg) PER_ARCH;
+#else
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest) PER_ARCH;
+#endif
 
   inline void memoryBarrier(MemoryBarrierBits barrier) PER_SHARED_ARCH;
 
@@ -4694,6 +4700,34 @@ class MacroAssembler : public MacroAssemblerSpecific {
     }
   }
 
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storeTypedOrValue(TypedOrValueRegister src, const T& dest, Register scratch = ScratchReg) {
+    if (src.hasValue()) {
+      storeValue(src.valueReg(), dest);
+    } else if (IsFloatingPointType(src.type())) {
+      FloatRegister reg = src.typedReg().fpu();
+      if (src.type() == MIRType::Float32) {
+        ScratchDoubleScope fpscratch(*this);
+        convertFloat32ToDouble(reg, fpscratch);
+        boxDouble(fpscratch, dest);
+      } else {
+        boxDouble(reg, dest);
+      }
+    } else {
+      storeValue(ValueTypeFromMIRType(src.type()), src.typedReg().gpr(), dest, scratch);
+    }
+  }
+
+  template <typename T>
+  void storeConstantOrRegister(const ConstantOrRegister& src, const T& dest, Register scratch = ScratchReg) {
+    if (src.constant()) {
+      storeValue(src.value(), dest, scratch);
+    } else {
+      storeTypedOrValue(src.reg(), dest, scratch);
+    }
+  }
+#else
   template <typename T>
   void storeTypedOrValue(TypedOrValueRegister src, const T& dest) {
     if (src.hasValue()) {
@@ -4720,6 +4754,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       storeTypedOrValue(src.reg(), dest);
     }
   }
+#endif
 
   void storeCallPointerResult(Register reg) {
     if (reg != ReturnReg) {

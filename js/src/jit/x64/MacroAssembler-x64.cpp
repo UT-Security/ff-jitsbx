@@ -944,6 +944,32 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 
 // ========================================================================
 // Memory access primitives.
+#ifdef JS_SANDBOX_HEAP
+template <typename T>
+void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
+                                       MIRType valueType, const T& dest, Register scratch) {
+  MOZ_ASSERT(valueType < MIRType::Value);
+
+  if (valueType == MIRType::Double) {
+    boxDouble(value.reg().typedReg().fpu(), dest);
+    return;
+  }
+
+  if (value.constant()) {
+    storeValue(value.value(), dest, scratch);
+  } else {
+    storeValue(ValueTypeFromMIRType(valueType), value.reg().typedReg().gpr(),
+               dest, scratch);
+  }
+}
+
+template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
+                                                MIRType valueType,
+                                                const Address& dest, Register scratch);
+template void MacroAssembler::storeUnboxedValue(
+    const ConstantOrRegister& value, MIRType valueType,
+    const BaseObjectElementIndex& dest, Register scratch);
+#else
 template <typename T>
 void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
                                        MIRType valueType, const T& dest) {
@@ -968,6 +994,7 @@ template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
 template void MacroAssembler::storeUnboxedValue(
     const ConstantOrRegister& value, MIRType valueType,
     const BaseObjectElementIndex& dest);
+#endif
 
 void MacroAssembler::PushBoxed(FloatRegister reg) {
   subq(Imm32(sizeof(double)), StackPointer);
