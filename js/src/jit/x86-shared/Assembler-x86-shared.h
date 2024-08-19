@@ -349,10 +349,9 @@ class AssemblerX86Shared : public AssemblerShared {
 #ifdef JS_SANDBOX_HEAP
   Operand sandboxMemoryWrite(const AbsoluteAddress& address, ScratchRegisterScope&) {
     MOZ_ASSERT(isSandboxed(), "Expected to be called in sandboxed contexts only");
-    masm.movq_i64r(uintptr_t(address.addr), ScratchReg.encoding());
-    masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-    masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-    Operand op(SandboxReg1, ScratchReg, TimesOne, 0, true);
+    masm.movq_i64r(uintptr_t(address.addr), SandboxScratchReg.encoding());
+    masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
+    Operand op(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
     return op;
   }
 #endif
@@ -370,22 +369,20 @@ class AssemblerX86Shared : public AssemblerShared {
             return op;
           }
 #ifdef DEBUG
-          MOZ_ASSERT(!op.containsReg(ScratchReg),
+          MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
                      "Operand to sandbox already uses scratch register");
 #endif
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
-                       ScratchReg.encoding());
-          masm.shlq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-          masm.shrq_ir(sandbox::MemoryShift, ScratchReg.encoding());
-          return Operand(SandboxReg1, ScratchReg, TimesOne, 0, true);
+                       SandboxScratchReg.encoding());
+          masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
+          return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
         case Operand::MEM_REG_DISP:
           if (op.base() == StackPointer.encoding() ||
               op.base() == FramePointer.encoding()) {
             return op;
           }
-          masm.shlq_ir(sandbox::MemoryShift, op.base());
-          masm.shrq_ir(sandbox::MemoryShift, op.base());
-          masm.leaq_mr(0, SandboxReg1.encoding(), op.base(), TimesOne, op.base());
+          masm.andq_rr(SandboxMaskReg.encoding(), op.base());
+          masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne, op.base());
           return Operand(Register(op.base()), op.disp(), true);
         default:
           MOZ_CRASH("unexpected operand kind");

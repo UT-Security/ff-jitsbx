@@ -100,9 +100,7 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 
 static constexpr Register ReturnReg = rax;
 static constexpr Register HeapReg = r15;
-#ifdef JS_SANDBOX_HEAP
-static constexpr Register SandboxReg1 = r15;
-#endif
+
 static constexpr Register64 ReturnReg64(rax);
 static constexpr FloatRegister ReturnFloat32Reg =
     FloatRegister(X86Encoding::xmm0, FloatRegisters::Single);
@@ -185,6 +183,12 @@ static constexpr Register RegExpExecTestStringReg = CallTempReg2;
 static constexpr Register RegExpSearcherRegExpReg = CallTempReg1;
 static constexpr Register RegExpSearcherStringReg = CallTempReg2;
 static constexpr Register RegExpSearcherLastIndexReg = CallTempReg3;
+
+#ifdef JS_SANDBOX_HEAP
+static constexpr Register SandboxBaseReg = r15;
+static constexpr Register SandboxMaskReg = r13;
+static constexpr Register SandboxScratchReg = r11;
+#endif
 
 class ABIArgGenerator {
 #if defined(XP_WIN)

@@ -979,7 +979,8 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
 
 #ifdef JS_SANDBOX_HEAP
   // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
-  masm_.mov(ImmWord(js::sandbox::MemoryBase()), js::jit::SandboxReg1);
+  masm_.mov(ImmWord(js::sandbox::MemoryMask), js::jit::SandboxMaskReg);
+  masm_.mov(ImmWord(js::sandbox::MemoryBase()), js::jit::SandboxBaseReg);
 #endif
 
   createStackFrame();

@@ -145,10 +145,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
 
-  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
-#ifdef JS_SANDBOX_HEAP
-  masm.mov(ImmWord(sandbox::MemoryBase()), SandboxReg1);
-#endif
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -297,6 +293,12 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&skipProfilingInstrumentation);
     }
 
+    // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX_HEAP
+    masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
+    masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
+#endif
+
     masm.jump(reg_code);
 
     // OOM: frame epilogue, load error value, discard return address and return.
@@ -310,6 +312,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&notOsr);
     masm.movq(scopeChain, R1.scratchReg());
   }
+  
+  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX_HEAP
+  masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
+  masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
+#endif
+
 
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.

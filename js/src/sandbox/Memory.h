@@ -17,8 +17,8 @@ namespace js {
   
 namespace sandbox {
 
-constexpr uint64_t MemoryMask = ((UINT64_C(1) << 40) - 1);
-constexpr uint32_t MemoryShift = (64 - 40);
+static constexpr uint64_t MemoryMask = ((UINT64_C(1) << 40) - 1);
+static constexpr uint32_t MemoryShift = (64 - 40);
 
 struct MemoryRegion;
 
