@@ -11,6 +11,7 @@
 #include <cstdint>
 
 #include "jit/shared/Assembler-shared.h"
+#include "jit/x64/Assembler-x64.h"
 #ifdef JS_SANDBOX_HEAP
 #include "sandbox/Memory.h"
 #endif
@@ -349,6 +350,9 @@ class AssemblerX86Shared : public AssemblerShared {
 #ifdef JS_SANDBOX_HEAP
   Operand sandboxMemoryWrite(const AbsoluteAddress& address, ScratchRegisterScope&) {
     MOZ_ASSERT(isSandboxed(), "Expected to be called in sandboxed contexts only");
+#ifdef DEBUG
+    MOZ_ASSERT(sandbox::IsValidAddress(size_t(address.addr)), "Expected AbsoluteAddress to be within sandbox");
+#endif
     masm.movq_i64r(uintptr_t(address.addr), SandboxScratchReg.encoding());
     masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
     Operand op(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
@@ -359,6 +363,9 @@ class AssemblerX86Shared : public AssemblerShared {
   Operand sandboxMemoryWrite(const Operand& op) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed() && !op.sandboxed()) {
+#ifdef DEBUG
+      Label sandboxed;
+#endif
       switch (op.kind()) {
         case Operand::REG:
         case Operand::FPREG:
@@ -371,6 +378,15 @@ class AssemblerX86Shared : public AssemblerShared {
 #ifdef DEBUG
           MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
                      "Operand to sandbox already uses scratch register");
+          masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
+                       SandboxScratchReg.encoding());
+          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), SandboxScratchReg.encoding());
+          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift), SandboxScratchReg.encoding());
+          masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
+          j(Condition::Equal, &sandboxed);
+          breakpoint();
+          bind(&sandboxed);
+          
 #endif
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
@@ -381,6 +397,16 @@ class AssemblerX86Shared : public AssemblerShared {
               op.base() == FramePointer.encoding()) {
             return op;
           }
+#ifdef DEBUG
+          masm.push_r(op.base());
+          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
+          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
+          masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
+          j(Condition::Equal, &sandboxed);
+          breakpoint();
+          bind(&sandboxed);
+          masm.pop_r(op.base());
+#endif
           masm.andq_rr(SandboxMaskReg.encoding(), op.base());
           masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne, op.base());
           return Operand(Register(op.base()), op.disp(), true);

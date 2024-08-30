@@ -485,7 +485,7 @@ void* Memory::allocateProtected(size_t length, size_t alignment) {
   MOZ_ASSERT(addr % systemPageSize == 0);
   MOZ_ASSERT(addr % alignment == 0);
 
-  MemoryRegion *region, *prev, **link, *parent;
+  MemoryRegion *region = nullptr, *prev = nullptr, **link = nullptr, *parent = nullptr;
 
   // find the related/adjascent regions that need to be manipulated as part of
   // the allocation.
@@ -651,18 +651,15 @@ bool InitMemory() {
   minValidAddress = UINT64_C(0x1) << 32;
   maxValidAddress = (UINT64_C(1) << numAddressBits) - 1 - systemPageSize;
 
-  // use a 1TB region for sandbox memory
-  size_t sandboxMemorySize = UINT64_C(1) << 40;
-
-  void* sandboxRegion = MapAlignedPagesRandom(sandboxMemorySize, sandboxMemorySize);
+  void* sandboxRegion = MapAlignedPagesRandom(MemorySize, MemorySize);
   if (sandboxRegion == nullptr) {
     return false;
   }
 
-  MozTagAnonymousMemory(sandboxRegion, sandboxMemorySize, "js-sandbox-memory");
+  MozTagAnonymousMemory(sandboxRegion, MemorySize, "js-sandbox-memory");
 
 
-  if (!sandboxMemory.init(sandboxRegion, sandboxMemorySize, systemPageSize)) {
+  if (!sandboxMemory.init(sandboxRegion, MemorySize, systemPageSize)) {
     return false;
   }
 
@@ -671,6 +668,10 @@ bool InitMemory() {
 
 uintptr_t MemoryBase() {
   return sandboxMemory.base();
+}
+
+bool IsValidAddress(size_t address) {
+  return address >= sandboxMemory.base() && address < (sandboxMemory.base() + MemorySize);
 }
 
 void* AllocateProtectedMemory(size_t length, size_t alignment) {

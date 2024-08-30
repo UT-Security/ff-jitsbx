@@ -18,7 +18,9 @@ namespace js {
 namespace sandbox {
 
 static constexpr uint64_t MemoryMask = ((UINT64_C(1) << 40) - 1);
-static constexpr uint32_t MemoryShift = (64 - 40);
+static constexpr uint32_t MemoryBaseShift = (64 - 40);
+static constexpr uint32_t MemoryOffsetShift = 40;
+static constexpr size_t MemorySize = UINT64_C(1) << 40;
 
 struct MemoryRegion;
 
@@ -81,6 +83,7 @@ private:
 bool InitMemory();
 
 uintptr_t MemoryBase();
+bool IsValidAddress(size_t address);
 void* AllocateProtectedMemory(size_t length, size_t alignment);
 void* AllocateMemory(size_t length, size_t alignment);
 void DeallocateProtectedMemory(void* addr, size_t length);
