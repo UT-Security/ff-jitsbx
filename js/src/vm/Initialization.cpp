@@ -23,6 +23,9 @@
 #include "jit/Ion.h"
 #include "jit/JitOptions.h"
 #include "jit/Simulator.h"
+// ask2374
+#include "jitsbx/JitSandboxMask.h"
+// ask2374
 #include "js/Utility.h"
 #include "threading/ProtectedData.h"  // js::AutoNoteSingleThreadedRegion
 #include "util/Poison.h"
@@ -35,6 +38,11 @@
 #  include "vtune/VTuneWrapper.h"
 #endif
 #include "wasm/WasmProcess.h"
+
+// ask2374
+std::mutex log_mutex;
+FILE* sandbox_log;
+// ask2374
 
 using js::FutexThread;
 using JS::detail::InitState;
@@ -115,6 +123,10 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 #else
   MOZ_RELEASE_ASSERT(!isDebugBuild);
 #endif
+
+  // ask2374
+  js::sandbox::init();
+  // ask2374
 
   MOZ_ASSERT(libraryInitState == InitState::Uninitialized,
              "must call JS_Init once before any JSAPI operation except "

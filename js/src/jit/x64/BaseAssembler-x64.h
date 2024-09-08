@@ -8,6 +8,9 @@
 #define jit_x64_BaseAssembler_x64_h
 
 #include "jit/x86-shared/BaseAssembler-x86-shared.h"
+// ask2374
+#include "jitsbx/JitSandboxMask.h"
+// ask2374
 
 namespace js {
 namespace jit {
@@ -728,6 +731,9 @@ class BaseAssemblerX64 : public BaseAssembler {
   void movq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base);
+#endif
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, src);
   }
 
@@ -742,6 +748,9 @@ class BaseAssemblerX64 : public BaseAssembler {
     spew("movq       %s, " MEM_obs, GPReg64Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    
+#endif
     m_formatter.oneByteOp64(OP_MOV_EvGv, offset, base, index, scale, src);
   }
 
@@ -999,6 +1008,63 @@ class BaseAssemblerX64 : public BaseAssembler {
     spew(".quad      %lld", (long long)imm);
     m_formatter.immediate64(imm);
   }
+
+  // ask2374
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+  // JIT mask check helpers
+  void push_r(RegisterID reg) {
+    spew("push       %s", GPRegName(reg));
+    m_formatter.oneByteOp(OP_PUSH_EAX, reg);
+  }
+
+  void pop_r(RegisterID reg) {
+    spew("pop        %s", GPRegName(reg));
+    m_formatter.oneByteOp(OP_POP_EAX, reg);
+  }
+
+  void jitSandboxCheck(int32_t offset, RegisterID base) {
+    spew("jitSandboxCheck");
+    push_r(rax);
+    push_r(rdi);
+    movq_rr(base, rdi);
+    addq_i32r(offset, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(rdi);
+    pop_r(rax);
+  }
+
+  void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index,
+                       int32_t scale) {
+    spew("jitSandboxCheck");
+    RegisterID scratch = (base == r15) ? r14 : r15;
+    push_r(rax);
+    push_r(rdi);
+    push_r(scratch);
+    movq_rr(base, scratch);
+    movq_rr(index, rdi);
+    imulq_ir(scale, rdi, rdi);
+    addq_rr(scratch, rdi);
+    addq_i32r(offset, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(scratch);
+    pop_r(rdi);
+    pop_r(rax);
+  }
+
+  void jitSandboxCheck(int64_t addr) {
+    spew("jitSandboxCheck");
+    push_r(rax);
+    push_r(rdi);
+    movq_i64r(addr, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(rdi);
+    pop_r(rax);
+  }
+#endif
+  // ask2374
 
   // SSE operations:
 

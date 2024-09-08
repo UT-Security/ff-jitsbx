@@ -558,6 +558,27 @@ def jit_sandbox_heap(jit_sandbox_heap, jit_sandbox):
 set_config("JITSBX_HEAP", jit_sandbox_heap)
 set_define("JITSBX_HEAP", jit_sandbox_heap)
 
+# ask2374
+option(
+    "--enable-jit-sandbox-heap-mask",
+    nargs="?",
+    choices=("active", "passive", "none"),
+    default="none",
+    help="{active|passive|none} JIT sandbo heap mask enforcement mode.",
+)
+
+@depends("--enable-jit-sandbox-heap-mask", "--enable-jit-sandbox-heap", "--enable-jit-sandbox")
+def jit_sandbox_heap_mask(jit_sandbox_heap_mask, jit_sandbox_heap, jit_sandbox):
+    if jit_sandbox_heap and jit_sandbox:
+        mode = jit_sandbox_heap_mask[0]
+        return namespace(**{mode: True})
+
+
+set_config("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
+set_define("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
+set_config("JITSBX_HEAP_MASK_PASSIVE", jit_sandbox_heap_mask.passive)
+set_define("JITSBX_HEAP_MASK_PASSIVE", jit_sandbox_heap_mask.passive)
+# ask2374
 
 option(
     "--enable-jit-sandbox-realm",
