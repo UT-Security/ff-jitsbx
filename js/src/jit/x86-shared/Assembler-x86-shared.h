@@ -11,7 +11,6 @@
 #include <cstdint>
 
 #include "jit/shared/Assembler-shared.h"
-#include "jit/x64/Assembler-x64.h"
 #ifdef JS_SANDBOX_HEAP
 #include "sandbox/Memory.h"
 #endif
@@ -47,6 +46,42 @@ struct ScratchSimd128Scope : public AutoFloatRegisterScope {
       : AutoFloatRegisterScope(masm, ScratchSimd128Reg) {}
 };
 
+
+class AssemblerX86Shared;
+
+class AutoBundleScope {
+#ifdef JS_SANDBOX_BUNDLE
+  bool isOwn_;
+  AssemblerX86Shared& masm;
+#endif
+
+public:
+  
+  AutoBundleScope(AssemblerX86Shared& masm);
+  ~AutoBundleScope(); 
+
+#ifdef JS_SANDBOX_BUNDLE
+  inline bool isOwn() { return isOwn_; } 
+#endif
+};
+
+class AutoOwnBundleScope {
+#ifdef JS_SANDBOX_BUNDLE
+  bool isUnlocked_;
+  AssemblerX86Shared& masm;
+#endif
+
+public:
+  AutoOwnBundleScope(AssemblerX86Shared& masm);
+  ~AutoOwnBundleScope();
+
+  void unlock();
+#ifdef JS_SANDBOX_BUNDLE
+  size_t size();
+#endif
+};
+
+
 class Operand {
  public:
   enum Kind { REG, MEM_REG_DISP, FPREG, MEM_SCALE, MEM_ADDRESS32 };
@@ -62,6 +97,7 @@ class Operand {
   int32_t disp_;
 #ifdef JS_SANDBOX_HEAP
   bool sandboxed_ = false;
+  //AutoAutoBundleScope bundle;
 #endif
 
  public:
@@ -196,11 +232,6 @@ class Operand {
 #endif
 };
 
-#ifdef JS_SANDBOX_HEAP
-using SOperand = Operand;
-#else
-using SOperand = Operand;
-#endif
 
 inline Imm32 Imm64::firstHalf() const { return low(); }
 
@@ -331,6 +362,7 @@ class AssemblerX86Shared : public AssemblerShared {
   CompactBufferWriter dataRelocations_;
 
   void writeDataRelocation(ImmGCPtr ptr) {
+    assertNotInBundle();
     // Raw GC pointer relocations and Value relocations both end up in
     // Assembler::TraceDataRelocations.
     if (ptr.value) {
@@ -347,22 +379,53 @@ class AssemblerX86Shared : public AssemblerShared {
   using JmpSrc = X86Encoding::JmpSrc;
   using JmpDst = X86Encoding::JmpDst;
 
-#ifdef JS_SANDBOX_HEAP
-  Operand sandboxMemoryWrite(const AbsoluteAddress& address, ScratchRegisterScope&) {
-    MOZ_ASSERT(isSandboxed(), "Expected to be called in sandboxed contexts only");
-#ifdef DEBUG
-    MOZ_ASSERT(sandbox::IsValidAddress(size_t(address.addr)), "Expected AbsoluteAddress to be within sandbox");
+  friend class AutoBundleScope;
+  friend class AutoOwnBundleScope;
+  
+  bool bundleLock() {
+#ifdef JS_SANDBOX_BUNDLE
+    if (isSandboxed()) {
+      return masm.bundleLock();
+    } else {
+      return false;
+    }
+#else
+    return false;
 #endif
-    masm.movq_i64r(uintptr_t(address.addr), SandboxScratchReg.encoding());
-    masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
-    Operand op(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
-    return op;
+  }
+
+  void bundleUnlock() {
+#ifdef JS_SANDBOX_BUNDLE
+    if (isSandboxed()) {
+      masm.bundleUnlock();
+    }
+#endif
+  }
+
+  void assertNotInBundle() {
+#ifdef JS_SANDBOX_BUNDLE
+    if (isSandboxed()) {
+      MOZ_ASSERT(!masm.inBundle(), "cannot be within bundle");
+    }
+#endif
+  }
+  
+#ifdef JS_SANDBOX_BUNDLE
+  size_t bundleSize() {
+    if (isSandboxed()) {
+      return masm.bundleSize();
+    } else {
+      return 0;
+    }
   }
 #endif
 
   Operand sandboxMemoryWrite(const Operand& op) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed() && !op.sandboxed()) {
+#ifdef JS_SANDBOX_BUNDLE
+      MOZ_ASSERT(bundleSize() == 0, "Expected empty bundle");
+#endif
 #ifdef DEBUG
       Label sandboxed;
 #endif
@@ -375,6 +438,8 @@ class AssemblerX86Shared : public AssemblerShared {
               op.base() == FramePointer.encoding()) {
             return op;
           }
+
+          bundleUnlock();
 #ifdef DEBUG
           MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
                      "Operand to sandbox already uses scratch register");
@@ -390,6 +455,7 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
+          bundleLock();
           masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
           return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
         case Operand::MEM_REG_DISP:
@@ -397,6 +463,7 @@ class AssemblerX86Shared : public AssemblerShared {
               op.base() == FramePointer.encoding()) {
             return op;
           }
+          bundleUnlock();
 #ifdef DEBUG
           masm.push_r(op.base());
           masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
@@ -407,6 +474,7 @@ class AssemblerX86Shared : public AssemblerShared {
           bind(&sandboxed);
           masm.pop_r(op.base());
 #endif
+          bundleLock();
           masm.andq_rr(SandboxMaskReg.encoding(), op.base());
           masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne, op.base());
           return Operand(Register(op.base()), op.disp(), true);
@@ -587,6 +655,7 @@ class AssemblerX86Shared : public AssemblerShared {
     label->patchAt()->bind(masm.size());
   }
   void cmovCCl(Condition cond, const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     switch (src.kind()) {
       case Operand::REG:
@@ -604,6 +673,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmovCCl(Condition cond, Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     masm.cmovCCl_rr(cc, src.encoding(), dest.encoding());
   }
@@ -615,14 +685,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movl(Imm32 imm32, Register dest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.movl_i32r(imm32.value, dest.encoding());
   }
   void movl(Register src, Register dest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.movl_rr(src.encoding(), dest.encoding());
   }
   void movl(const Operand& src, Register dest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movl_rr(src.reg(), dest.encoding());
@@ -643,6 +716,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movl(Register src, const Operand& unsafeDest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -663,6 +737,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movl(Imm32 imm32, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -684,17 +759,20 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void xchgl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.xchgl_rr(src.encoding(), dest.encoding());
   }
 
   void vmovapd(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovapd_rr(src.encoding(), dest.encoding());
   }
   // Eventually vmovapd should be overloaded to support loads and
   // stores too.
   void vmovapd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vmovapd_rr(src.fpu(), dest.encoding());
@@ -706,10 +784,12 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vmovaps(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovaps_rr(src.encoding(), dest.encoding());
   }
   void vmovaps(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovaps_mr(src.disp(), src.base(), dest.encoding());
@@ -727,6 +807,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovaps(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -742,6 +823,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovups(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovups_mr(src.disp(), src.base(), dest.encoding());
@@ -756,6 +838,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovups(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -771,14 +854,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void vmovsd(const Address& src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovsd_mr(src.offset, src.base.encoding(), dest.encoding());
   }
   void vmovsd(const BaseIndex& src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovsd_mr(src.offset, src.base.encoding(), src.index.encoding(),
                    src.scale, dest.encoding());
   }
   void vmovsd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         vmovsd(src.toAddress(), dest);
@@ -792,6 +878,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovsd(FloatRegister src, const Address& unsafeDest) {
 #ifdef JS_SANDBOX_HEAP
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -809,6 +896,7 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
   void vmovsd(FloatRegister src, const BaseIndex& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
     masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(),
@@ -816,17 +904,21 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // Note special semantics of this - does not clobber high bits of destination.
   void vmovsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmovss(const Address& src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovss_mr(src.offset, src.base.encoding(), dest.encoding());
   }
   void vmovss(const BaseIndex& src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovss_mr(src.offset, src.base.encoding(), src.index.encoding(),
                    src.scale, dest.encoding());
   }
   void vmovss(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         vmovss(src.toAddress(), dest);
@@ -840,6 +932,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovss(FloatRegister src, const Address& unsafeDest) {
 #ifdef JS_SANDBOX_HEAP
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -857,12 +950,14 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
   void vmovss(FloatRegister src, const BaseIndex& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
     masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(),
                    dest.index(), dest.scale());
   }
   void vmovss(FloatRegister src, const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         vmovss(src, dest.toAddress());
@@ -876,11 +971,13 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // Note special semantics of this - does not clobber high bits of destination.
   void vmovss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vmovss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmovdqu(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovdqu_mr(src.disp(), src.base(), dest.encoding());
@@ -896,6 +993,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vmovdqu(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -911,6 +1009,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovdqa(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vmovdqa_rr(src.fpu(), dest.encoding());
@@ -928,6 +1027,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovdqa(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -943,17 +1043,21 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovdqa(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovdqa_rr(src.encoding(), dest.encoding());
   }
   void vcvtss2sd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvtss2sd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vcvtsd2ss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvtsd2ss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void movzbl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movzbl_mr(src.disp(), src.base(), dest.encoding());
@@ -967,9 +1071,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movsbl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.movsbl_rr(src.encoding(), dest.encoding());
   }
   void movsbl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movsbl_mr(src.disp(), src.base(), dest.encoding());
@@ -983,6 +1089,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movb(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movb_mr(src.disp(), src.base(), dest.encoding());
@@ -996,9 +1103,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movb(Imm32 src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.movb_ir(src.value & 255, dest.encoding());
   }
   void movb(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -1013,6 +1122,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movb(Imm32 src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -1027,6 +1137,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movzwl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movzwl_rr(src.reg(), dest.encoding());
@@ -1043,17 +1154,21 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movzwl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.movzwl_rr(src.encoding(), dest.encoding());
   }
   void movw(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.prefix_16_for_32();
     movl(src, dest);
   }
   void movw(Imm32 src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.prefix_16_for_32();
     movl(src, dest);
   }
   void movw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -1068,6 +1183,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movw(Imm32 src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -1082,9 +1198,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movswl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.movswl_rr(src.encoding(), dest.encoding());
   }
   void movswl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movswl_mr(src.disp(), src.base(), dest.encoding());
@@ -1098,6 +1216,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void leal(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.leal_mr(src.disp(), src.base(), dest.encoding());
@@ -1114,12 +1233,16 @@ class AssemblerX86Shared : public AssemblerShared {
  protected:
   void jSrc(Condition cond, Label* label) {
     if (label->bound()) {
+      AutoOwnBundleScope bundle(*this);
       // The jump can be immediately encoded to the correct destination.
       masm.jCC_i(static_cast<X86Encoding::Condition>(cond),
                  JmpDst(label->offset()));
+      bundle.unlock();
     } else {
       // Thread the jump list through the unpatched jump targets.
+      AutoOwnBundleScope bundle(*this);
       JmpSrc j = masm.jCC(static_cast<X86Encoding::Condition>(cond));
+      bundle.unlock();
       JmpSrc prev;
       if (label->used()) {
         prev = JmpSrc(label->offset());
@@ -1130,11 +1253,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void jmpSrc(Label* label) {
     if (label->bound()) {
+      AutoOwnBundleScope bundle(*this);
       // The jump can be immediately encoded to the correct destination.
       masm.jmp_i(JmpDst(label->offset()));
+      bundle.unlock();
     } else {
+      AutoOwnBundleScope bundle(*this);
       // Thread the jump list through the unpatched jump targets.
       JmpSrc j = masm.jmp();
+      bundle.unlock();
       JmpSrc prev;
       if (label->used()) {
         prev = JmpSrc(label->offset());
@@ -1146,7 +1273,9 @@ class AssemblerX86Shared : public AssemblerShared {
 
   // Comparison of EAX against the address given by a Label.
   JmpSrc cmpSrc(Label* label) {
+    AutoOwnBundleScope bundle(*this);
     JmpSrc j = masm.cmp_eax();
+    bundle.unlock();
     if (label->bound()) {
       // The jump can be immediately patched to the correct destination.
       masm.linkJump(j, JmpDst(label->offset()));
@@ -1169,6 +1298,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void nop(size_t n) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.insert_nop(n);
   }
   void j(Condition cond, Label* label) {
@@ -1182,6 +1312,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void jmp(const Operand& op) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.jmp_m(op.disp(), op.base());
@@ -1198,6 +1329,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void cmpEAX(Label* label) { cmpSrc(label); }
   void bind(Label* label) {
+    assertNotInBundle();
     JmpDst dst(masm.label());
     if (label->used()) {
       bool more;
@@ -1211,8 +1343,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
     label->bind(dst.offset());
   }
-  void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
-  uint32_t currentOffset() { return masm.label().offset(); }
+  void bind(CodeLabel* label) { assertNotInBundle(); label->target()->bind(currentOffset()); }
+  uint32_t currentOffset() { assertNotInBundle(); return masm.label().offset(); }
 
   // Re-routes pending jumps to a new label.
   void retarget(Label* label, Label* target) {
@@ -1251,15 +1383,19 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void ret() {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.ret();
   }
   void retn(Imm32 n) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     // Remove the size of the return address which is included in the frame.
     masm.ret_i(n.value - sizeof(void*));
   }
-  CodeOffset call(Label* label) {
+  void call(Label* label) {
+    AutoOwnBundleScope bundle(*this);
     JmpSrc j = masm.call();
+    bundle.unlock();
     if (label->bound()) {
       masm.linkJump(j, JmpDst(label->offset()));
     } else {
@@ -1270,13 +1406,13 @@ class AssemblerX86Shared : public AssemblerShared {
       label->use(j.offset());
       masm.setNextJump(j, prev);
     }
-    return CodeOffset(masm.currentOffset());
   }
-  CodeOffset call(Register reg) {
+  void call(Register reg) {
+    AutoBundleScope bundle(*this);
     masm.call_r(reg.encoding());
-    return CodeOffset(masm.currentOffset());
   }
   void call(const Operand& op) {
+    AutoBundleScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.call_r(op.reg());
@@ -1289,13 +1425,13 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  CodeOffset callWithPatch() { return CodeOffset(masm.call().offset()); }
+  CodeOffset callWithPatch() { AutoOwnBundleScope bundle(*this); return CodeOffset(masm.call().offset()); }
 
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + callerOffset, code + calleeOffset);
   }
-  CodeOffset farJumpWithPatch() { return CodeOffset(masm.jmp().offset()); }
+  CodeOffset farJumpWithPatch() { AutoOwnBundleScope bundle(*this); return CodeOffset(masm.jmp().offset()); }
   void patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + farJump.offset(), code + targetOffset);
@@ -1351,9 +1487,11 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void cmpl(Register rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.cmpl_rr(rhs.encoding(), lhs.encoding());
   }
   void cmpl(const Operand& rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::REG:
         masm.cmpl_rr(rhs.reg(), lhs.encoding());
@@ -1369,6 +1507,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpl(Register rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpl_rr(rhs.encoding(), lhs.reg());
@@ -1388,9 +1527,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpl(Imm32 rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.cmpl_ir(rhs.value, lhs.encoding());
   }
   void cmpl(Imm32 rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpl_ir(rhs.value, lhs.reg());
@@ -1410,9 +1551,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpw(Register rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.cmpw_rr(rhs.encoding(), lhs.encoding());
   }
   void cmpw(Imm32 rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpw_ir(rhs.value, lhs.reg());
@@ -1432,6 +1575,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpb(Register rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpb_rr(rhs.encoding(), lhs.reg());
@@ -1451,6 +1595,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void cmpb(Imm32 rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpb_ir(rhs.value, lhs.reg());
@@ -1470,6 +1615,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void setCC(Condition cond, Register r) {
+    AutoBundleScope bundle(*this);
     masm.setCC_r(static_cast<X86Encoding::Condition>(cond), r.encoding());
   }
   void testb(Register rhs, Register lhs) {
@@ -1477,18 +1623,23 @@ class AssemblerX86Shared : public AssemblerShared {
         AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(rhs));
     MOZ_ASSERT(
         AllocatableGeneralRegisterSet(Registers::SingleByteRegs).has(lhs));
+    AutoBundleScope bundle(*this);
     masm.testb_rr(rhs.encoding(), lhs.encoding());
   }
   void testw(Register rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.testw_rr(lhs.encoding(), rhs.encoding());
   }
   void testl(Register rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.testl_rr(lhs.encoding(), rhs.encoding());
   }
   void testl(Imm32 rhs, Register lhs) {
+    AutoBundleScope bundle(*this);
     masm.testl_ir(rhs.value, lhs.encoding());
   }
   void testl(Imm32 rhs, const Operand& lhs) {
+    AutoBundleScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.testl_ir(rhs.value, lhs.reg());
@@ -1506,13 +1657,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void addl(Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.addl_ir(imm.value, dest.encoding());
   }
   CodeOffset addlWithPatch(Imm32 imm, Register dest) {
+    AutoOwnBundleScope bundle(*this);
     masm.addl_i32r(imm.value, dest.encoding());
+    bundle.unlock();
     return CodeOffset(masm.currentOffset());
   }
   void addl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1532,6 +1687,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1551,9 +1707,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subl(Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.subl_ir(imm.value, dest.encoding());
   }
   void subl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1570,6 +1728,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1586,9 +1745,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.addl_rr(src.encoding(), dest.encoding());
   }
   void addl(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1606,6 +1767,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1623,12 +1785,15 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void sbbl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.sbbl_rr(src.encoding(), dest.encoding());
   }
   void subl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.subl_rr(src.encoding(), dest.encoding());
   }
   void subl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.subl_rr(src.reg(), dest.encoding());
@@ -1641,6 +1806,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subl(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1658,6 +1824,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1675,9 +1842,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orl(Register reg, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.orl_rr(reg.encoding(), dest.encoding());
   }
   void orl(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1695,6 +1864,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1711,8 +1881,12 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void orl(Imm32 imm, Register reg) { masm.orl_ir(imm.value, reg.encoding()); }
+  void orl(Imm32 imm, Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.orl_ir(imm.value, reg.encoding());
+  }
   void orl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1729,6 +1903,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1745,9 +1920,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.xorl_rr(src.encoding(), dest.encoding());
   }
   void xorl(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1765,6 +1942,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1782,9 +1960,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorl(Imm32 imm, Register reg) {
+    AutoBundleScope bundle(*this);
     masm.xorl_ir(imm.value, reg.encoding());
   }
   void xorl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1801,6 +1981,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1817,9 +1998,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.andl_rr(src.encoding(), dest.encoding());
   }
   void andl(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1837,6 +2020,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andw(Register src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -1854,9 +2038,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andl(Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.andl_ir(imm.value, dest.encoding());
   }
   void andl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1873,6 +2059,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::REG:
@@ -1889,6 +2076,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.addl_rr(src.reg(), dest.encoding());
@@ -1901,6 +2089,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.orl_rr(src.reg(), dest.encoding());
@@ -1913,6 +2102,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.xorl_rr(src.reg(), dest.encoding());
@@ -1925,6 +2115,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andl(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.andl_rr(src.reg(), dest.encoding());
@@ -1941,37 +2132,53 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void bsrl(const Register& src, const Register& dest) {
+    AutoBundleScope bundle(*this);
     masm.bsrl_rr(src.encoding(), dest.encoding());
   }
   void bsfl(const Register& src, const Register& dest) {
+    AutoBundleScope bundle(*this);
     masm.bsfl_rr(src.encoding(), dest.encoding());
   }
-  void bswapl(Register reg) { masm.bswapl_r(reg.encoding()); }
+  void bswapl(Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.bswapl_r(reg.encoding());
+  }
   void lzcntl(const Register& src, const Register& dest) {
+    AutoBundleScope bundle(*this);
     masm.lzcntl_rr(src.encoding(), dest.encoding());
   }
   void tzcntl(const Register& src, const Register& dest) {
+    AutoBundleScope bundle(*this);
     masm.tzcntl_rr(src.encoding(), dest.encoding());
   }
   void popcntl(const Register& src, const Register& dest) {
+    AutoBundleScope bundle(*this);
     masm.popcntl_rr(src.encoding(), dest.encoding());
   }
   void imull(Register multiplier) {
+    AutoBundleScope bundle(*this);
     // Consumes eax as the other argument
     // and clobbers edx, as result is in edx:eax
     masm.imull_r(multiplier.encoding());
   }
-  void umull(Register multiplier) { masm.mull_r(multiplier.encoding()); }
+  void umull(Register multiplier) {
+    AutoBundleScope bundle(*this);
+    masm.mull_r(multiplier.encoding());
+  }
   void imull(Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.imull_ir(imm.value, dest.encoding(), dest.encoding());
   }
   void imull(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.imull_rr(src.encoding(), dest.encoding());
   }
   void imull(Imm32 imm, Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.imull_ir(imm.value, src.encoding(), dest.encoding());
   }
   void imull(const Operand& src, Register dest) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.imull_rr(src.reg(), dest.encoding());
@@ -1984,6 +2191,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void negl(const Operand& unsafeSrc) {
+    AutoBundleScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::REG:
@@ -1996,8 +2204,12 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void negl(Register reg) { masm.negl_r(reg.encoding()); }
+  void negl(Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.negl_r(reg.encoding());
+  }
   void notl(const Operand& unsafeSrc) {
+    AutoBundleScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::REG:
@@ -2010,52 +2222,82 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void notl(Register reg) { masm.notl_r(reg.encoding()); }
+  void notl(Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.notl_r(reg.encoding());
+  }
   void shrl(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.shrl_ir(imm.value, dest.encoding());
   }
   void shll(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.shll_ir(imm.value, dest.encoding());
   }
   void sarl(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.sarl_ir(imm.value, dest.encoding());
   }
-  void shrl_cl(Register dest) { masm.shrl_CLr(dest.encoding()); }
-  void shll_cl(Register dest) { masm.shll_CLr(dest.encoding()); }
-  void sarl_cl(Register dest) { masm.sarl_CLr(dest.encoding()); }
+  void shrl_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.shrl_CLr(dest.encoding());
+  }
+  void shll_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.shll_CLr(dest.encoding());
+  }
+  void sarl_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.sarl_CLr(dest.encoding());
+  }
   void shrdl_cl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.shrdl_CLr(src.encoding(), dest.encoding());
   }
   void shldl_cl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.shldl_CLr(src.encoding(), dest.encoding());
   }
 
   void sarxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
+    AutoBundleScope bundle(*this);
     masm.sarxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
   void shlxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
+    AutoBundleScope bundle(*this);
     masm.shlxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
   void shrxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
+    AutoBundleScope bundle(*this);
     masm.shrxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
 
   void roll(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.roll_ir(imm.value, dest.encoding());
   }
-  void roll_cl(Register dest) { masm.roll_CLr(dest.encoding()); }
+  void roll_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.roll_CLr(dest.encoding());
+  }
   void rolw(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.rolw_ir(imm.value, dest.encoding());
   }
   void rorl(const Imm32 imm, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.rorl_ir(imm.value, dest.encoding());
   }
-  void rorl_cl(Register dest) { masm.rorl_CLr(dest.encoding()); }
+  void rorl_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.rorl_CLr(dest.encoding());
+  }
 
   void incl(const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2065,12 +2307,15 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void lock_incl(const Operand& op) {
+  void lock_incl(const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     incl(op);
   }
 
   void decl(const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2080,12 +2325,15 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void lock_decl(const Operand& op) {
+  void lock_decl(const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     decl(op);
   }
 
   void addb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2100,6 +2348,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addb(Register src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2116,6 +2365,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void subb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2130,6 +2380,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subb(Register src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2146,6 +2397,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void andb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2160,6 +2412,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andb(Register src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2176,6 +2429,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void orb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2190,6 +2444,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orb(Register src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2206,6 +2461,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void xorb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2220,6 +2476,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorb(Register src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2236,53 +2493,73 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   template <typename T>
-  void lock_addb(T src, const Operand& op) {
+  void lock_addb(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     addb(src, op);
   }
   template <typename T>
-  void lock_subb(T src, const Operand& op) {
+  void lock_subb(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     subb(src, op);
   }
   template <typename T>
-  void lock_andb(T src, const Operand& op) {
+  void lock_andb(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     andb(src, op);
   }
   template <typename T>
-  void lock_orb(T src, const Operand& op) {
+  void lock_orb(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     orb(src, op);
   }
   template <typename T>
-  void lock_xorb(T src, const Operand& op) {
+  void lock_xorb(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     xorb(src, op);
   }
 
   template <typename T>
-  void lock_addw(T src, const Operand& op) {
+  void lock_addw(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     addw(src, op);
   }
   template <typename T>
-  void lock_subw(T src, const Operand& op) {
+  void lock_subw(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     subw(src, op);
   }
   template <typename T>
-  void lock_andw(T src, const Operand& op) {
+  void lock_andw(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     andw(src, op);
   }
   template <typename T>
-  void lock_orw(T src, const Operand& op) {
+  void lock_orw(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     orw(src, op);
   }
   template <typename T>
-  void lock_xorw(T src, const Operand& op) {
+  void lock_xorw(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     xorw(src, op);
   }
@@ -2290,32 +2567,43 @@ class AssemblerX86Shared : public AssemblerShared {
   // Note, lock_addl(imm, op) is used for a memory barrier on non-SSE2 systems,
   // among other things.  Do not optimize, replace by XADDL, or similar.
   template <typename T>
-  void lock_addl(T src, const Operand& op) {
+  void lock_addl(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     addl(src, op);
   }
   template <typename T>
-  void lock_subl(T src, const Operand& op) {
+  void lock_subl(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     subl(src, op);
   }
   template <typename T>
-  void lock_andl(T src, const Operand& op) {
+  void lock_andl(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     andl(src, op);
   }
   template <typename T>
-  void lock_orl(T src, const Operand& op) {
+  void lock_orl(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     orl(src, op);
   }
   template <typename T>
-  void lock_xorl(T src, const Operand& op) {
+  void lock_xorl(T src, const Operand& unsafeOp) {
+    AutoBundleScope bundle(*this);
+    const Operand op = sandboxMemoryWrite(unsafeOp);
     masm.prefix_lock();
     xorl(src, op);
   }
 
   void lock_cmpxchgb(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
@@ -2331,6 +2619,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_cmpxchgw(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
@@ -2346,6 +2635,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_cmpxchgl(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
@@ -2362,6 +2652,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void lock_cmpxchg8b(Register srcHi, Register srcLo, Register newHi,
                       Register newLo, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_lock();
     switch (mem.kind()) {
@@ -2380,6 +2671,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void xchgb(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2394,6 +2686,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xchgw(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2408,6 +2701,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xchgl(Register src, const Operand& unsafeMem) {
+    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2423,6 +2717,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void lock_xaddb(Register srcdest, const Operand& mem) {
+    AutoBundleScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddb_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -2436,10 +2731,12 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_xaddw(Register srcdest, const Operand& mem) {
+    AutoBundleScope bundle(*this);
     masm.prefix_16_for_32();
     lock_xaddl(srcdest, mem);
   }
   void lock_xaddl(Register srcdest, const Operand& mem) {
+    AutoBundleScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddl_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -2453,10 +2750,14 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void push(const Imm32 imm) { masm.push_i(imm.value); }
+  void push(const Imm32 imm) {
+    AutoBundleScope bundle(*this);
+    masm.push_i(imm.value);
+  }
 
   void push(const Operand& src) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.push_r(src.reg());
@@ -2473,13 +2774,16 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void push(Register src) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.push_r(src.encoding());
   }
   void push(const Address& src) {
+    AutoBundleScope bundle(*this);
     masm.push_m(src.offset, src.base.encoding());
   }
 
   void pop(const Operand& unsafeSrc) {
+    AutoBundleScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
     MOZ_ASSERT(hasCreator());
     switch (src.kind()) {
@@ -2495,6 +2799,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void pop(Register src) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleScope bundle(*this);
     masm.pop_r(src.encoding());
   }
   void pop(const Address& src) {
@@ -2505,8 +2810,8 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
 
-  void pushFlags() { masm.push_flags(); }
-  void popFlags() { masm.pop_flags(); }
+  void pushFlags() { AutoBundleScope bundle(*this); masm.push_flags(); }
+  void popFlags() { AutoBundleScope bundle(*this); masm.pop_flags(); }
 
 #ifdef JS_CODEGEN_X86
   void pushAllRegs() { masm.pusha(); }
@@ -2515,22 +2820,25 @@ class AssemblerX86Shared : public AssemblerShared {
 
   // Zero-extend byte to 32-bit integer.
   void movzbl(Register src, Register dest) {
+    AutoBundleScope bundle(*this);
     masm.movzbl_rr(src.encoding(), dest.encoding());
   }
 
-  void cdq() { masm.cdq(); }
-  void idiv(Register divisor) { masm.idivl_r(divisor.encoding()); }
-  void udiv(Register divisor) { masm.divl_r(divisor.encoding()); }
+  void cdq() { AutoBundleScope bundle(*this); masm.cdq(); }
+  void idiv(Register divisor) { AutoBundleScope bundle(*this); masm.idivl_r(divisor.encoding()); }
+  void udiv(Register divisor) { AutoBundleScope bundle(*this); masm.divl_r(divisor.encoding()); }
 
   void vpblendw(uint32_t mask, FloatRegister src1, FloatRegister src0,
                 FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vpblendw_irr(mask, src1.encoding(), src0.encoding(), dest.encoding());
   }
 
   void vpblendvb(FloatRegister mask, FloatRegister src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vpblendvb_rr(mask.encoding(), src1.encoding(), src0.encoding(),
                       dest.encoding());
   }
@@ -2538,6 +2846,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vpinsrb(unsigned lane, const Operand& src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::REG:
         masm.vpinsrb_irr(lane, src1.reg(), src0.encoding(), dest.encoding());
@@ -2556,6 +2865,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpinsrw(unsigned lane, const Operand& src1, FloatRegister src0,
                FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::REG:
         masm.vpinsrw_irr(lane, src1.reg(), src0.encoding(), dest.encoding());
@@ -2576,11 +2886,13 @@ class AssemblerX86Shared : public AssemblerShared {
   void vpinsrd(unsigned lane, Register src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vpinsrd_irr(lane, src1.encoding(), src0.encoding(), dest.encoding());
   }
 
   void vpextrb(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -2599,6 +2911,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpextrw(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
@@ -2617,84 +2930,104 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpextrd(unsigned lane, FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vpextrd_irr(lane, src.encoding(), dest.encoding());
   }
   void vpsrldq(Imm32 shift, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrldq_ir(shift.value, src0.encoding(), dest.encoding());
   }
   void vpslldq(Imm32 shift, FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpslldq_ir(shift.value, src.encoding(), dest.encoding());
   }
   void vpsllq(Imm32 shift, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsllq_ir(shift.value, src0.encoding(), dest.encoding());
   }
   void vpsllq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsllq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsrlq(Imm32 shift, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrlq_ir(shift.value, src0.encoding(), dest.encoding());
   }
   void vpsrlq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrlq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpslld(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpslld_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpslld(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpslld_ir(count.value, src0.encoding(), dest.encoding());
   }
   void vpsrad(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrad_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsrad(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrad_ir(count.value, src0.encoding(), dest.encoding());
   }
   void vpsrld(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrld_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsrld(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrld_ir(count.value, src0.encoding(), dest.encoding());
   }
 
   void vpsllw(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsllw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsllw(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsllw_ir(count.value, src0.encoding(), dest.encoding());
   }
   void vpsraw(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsraw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsraw(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsraw_ir(count.value, src0.encoding(), dest.encoding());
   }
   void vpsrlw(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrlw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpsrlw(Imm32 count, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpsrlw_ir(count.value, src0.encoding(), dest.encoding());
   }
 
   void vcvtsi2sd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::REG:
         masm.vcvtsi2sd_rr(src1.reg(), src0.encoding(), dest.encoding());
@@ -2713,14 +3046,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vcvttsd2si(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvttsd2si_rr(src.encoding(), dest.encoding());
   }
   void vcvttss2si(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvttss2si_rr(src.encoding(), dest.encoding());
   }
   void vcvtsi2ss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::REG:
         masm.vcvtsi2ss_rr(src1.reg(), src0.encoding(), dest.encoding());
@@ -2739,59 +3075,74 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vcvtsi2ss(Register src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvtsi2ss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vcvtsi2sd(Register src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvtsi2sd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vcvttps2dq(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvttps2dq_rr(src.encoding(), dest.encoding());
   }
   void vcvttpd2dq(FloatRegister src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vcvttpd2dq_rr(src.encoding(), dest.encoding());
   }
   void vcvtdq2ps(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vcvtdq2ps_rr(src.encoding(), dest.encoding());
   }
   void vcvtdq2pd(FloatRegister src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vcvtdq2pd_rr(src.encoding(), dest.encoding());
   }
   void vcvtps2pd(FloatRegister src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vcvtps2pd_rr(src.encoding(), dest.encoding());
   }
   void vcvtpd2ps(FloatRegister src, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     masm.vcvtpd2ps_rr(src.encoding(), dest.encoding());
   }
   void vmovmskpd(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovmskpd_rr(src.encoding(), dest.encoding());
   }
   void vmovmskps(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovmskps_rr(src.encoding(), dest.encoding());
   }
   void vpmovmskb(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpmovmskb_rr(src.encoding(), dest.encoding());
   }
   void vptest(FloatRegister rhs, FloatRegister lhs) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vptest_rr(rhs.encoding(), lhs.encoding());
   }
   void vucomisd(FloatRegister rhs, FloatRegister lhs) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vucomisd_rr(rhs.encoding(), lhs.encoding());
   }
   void vucomiss(FloatRegister rhs, FloatRegister lhs) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vucomiss_rr(rhs.encoding(), lhs.encoding());
   }
 
   void vpcmpeqb(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpeqb_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2809,6 +3160,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpcmpgtb(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpgtb_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2827,6 +3179,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpcmpeqw(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpeqw_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2844,6 +3197,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpcmpgtw(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpgtw_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2862,6 +3216,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpcmpeqd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpeqd_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2879,6 +3234,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpcmpgtd(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpgtd_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2896,6 +3252,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpcmpgtq(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE42());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpgtq_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2907,6 +3264,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpcmpeqq(const Operand& rhs, FloatRegister lhs, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vpcmpeqq_rr(rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2926,6 +3284,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vcmpps(uint8_t order, Operand rhs, FloatRegister lhs,
               FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vcmpps_rr(order, rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2961,6 +3320,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vcmppd(uint8_t order, Operand rhs, FloatRegister lhs,
               FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::FPREG:
         masm.vcmppd_rr(order, rhs.fpu(), lhs.encoding(), dest.encoding());
@@ -2989,6 +3349,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vrcpps(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vrcpps_rr(src.fpu(), dest.encoding());
@@ -3005,6 +3366,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsqrtps(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vsqrtps_rr(src.fpu(), dest.encoding());
@@ -3021,6 +3383,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vrsqrtps(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vrsqrtps_rr(src.fpu(), dest.encoding());
@@ -3037,6 +3400,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsqrtpd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vsqrtpd_rr(src.fpu(), dest.encoding());
@@ -3047,14 +3411,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovd(Register src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovd_rr(src.encoding(), dest.encoding());
   }
   void vmovd(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovd_rr(src.encoding(), dest.encoding());
   }
   void vmovd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovd_mr(src.disp(), src.base(), dest.encoding());
@@ -3069,6 +3436,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovd(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -3087,6 +3455,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovq(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovq_mr(src.disp(), src.base(), dest.encoding());
@@ -3104,6 +3473,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovq(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -3119,10 +3489,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaddubsw(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSSE3());
+    AutoBundleScope bundle(*this);
     masm.vpmaddubsw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpaddb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3140,6 +3512,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3157,6 +3530,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddsb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddsb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3174,6 +3548,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddusb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddusb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3191,6 +3566,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubsb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubsb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3208,6 +3584,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubusb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubusb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3225,6 +3602,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3242,6 +3620,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3259,6 +3638,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddsw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddsw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3276,6 +3656,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddusw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddusw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3293,6 +3674,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubsw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubsw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3310,6 +3692,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubusw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubusw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3327,6 +3710,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3344,6 +3728,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3361,14 +3746,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmuldq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vpmuldq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpmuludq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpmuludq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpmuludq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmuludq_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3383,6 +3771,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmullw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmullw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3397,6 +3786,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmulhw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmulhw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3411,6 +3801,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmulhuw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmulhuw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3425,6 +3816,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmulhrsw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmulhrsw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3439,6 +3831,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmulld(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmulld_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3456,6 +3849,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaddwd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaddwd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3466,6 +3860,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpaddq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpaddq_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3476,6 +3871,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpsubq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpsubq_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3486,6 +3882,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vaddps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vaddps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3503,6 +3900,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsubps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vsubps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3520,6 +3918,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmulps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmulps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3537,6 +3936,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vdivps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vdivps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3554,6 +3954,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmaxps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmaxps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3571,6 +3972,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vminps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vminps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3588,6 +3990,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vminpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vminpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3598,6 +4001,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmaxpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmaxpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3608,6 +4012,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vaddpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vaddpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3618,6 +4023,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsubpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vsubpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3628,6 +4034,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmulpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmulpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3638,6 +4045,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vdivpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vdivpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3648,6 +4056,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpavgb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpavgb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3658,6 +4067,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpavgw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpavgw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3668,6 +4078,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminsb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminsb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3678,6 +4089,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminub(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminub_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3688,6 +4100,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxsb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxsb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3698,6 +4111,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxub(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxub_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3708,6 +4122,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminsw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminsw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3718,6 +4133,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminuw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminuw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3728,6 +4144,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxsw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxsw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3738,6 +4155,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxuw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxuw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3748,6 +4166,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3758,6 +4177,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpminud(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpminud_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3768,6 +4188,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3778,6 +4199,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmaxud(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpmaxud_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3788,6 +4210,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpacksswb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpacksswb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3798,6 +4221,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpackuswb(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpackuswb_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3808,6 +4232,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpackssdw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpackssdw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3818,6 +4243,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpackusdw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpackusdw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3828,6 +4254,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpabsb(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpabsb_rr(src.fpu(), dest.encoding());
@@ -3838,6 +4265,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpabsw(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpabsw_rr(src.fpu(), dest.encoding());
@@ -3848,6 +4276,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpabsd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpabsd_rr(src.fpu(), dest.encoding());
@@ -3858,6 +4287,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovsxbw(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovsxbw_rr(src.fpu(), dest.encoding());
@@ -3875,6 +4305,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovzxbw(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovzxbw_rr(src.fpu(), dest.encoding());
@@ -3892,6 +4323,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovsxwd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovsxwd_rr(src.fpu(), dest.encoding());
@@ -3909,6 +4341,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovzxwd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovzxwd_rr(src.fpu(), dest.encoding());
@@ -3926,6 +4359,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovsxdq(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovsxdq_rr(src.fpu(), dest.encoding());
@@ -3943,6 +4377,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpmovzxdq(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vpmovzxdq_rr(src.fpu(), dest.encoding());
@@ -3960,6 +4395,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vphaddd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vphaddd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -3971,6 +4407,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vpalignr(const Operand& src1, FloatRegister src0, FloatRegister dest,
                 uint8_t shift) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpalignr_irr(shift, src1.fpu(), src0.encoding(), dest.encoding());
@@ -3984,6 +4421,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpcklbw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpckhbw(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -3991,10 +4429,12 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpckhbw_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpcklbw(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpunpcklbw_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4008,12 +4448,14 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpckldq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpckldq(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vpunpckldq_mr(src1.disp(), src1.base(), src0.encoding(),
@@ -4031,6 +4473,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpcklqdq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpcklqdq(const Operand& src1, FloatRegister src0,
@@ -4038,6 +4481,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vpunpcklqdq_mr(src1.disp(), src1.base(), src0.encoding(),
@@ -4055,6 +4499,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpckhdq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpckhqdq(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -4062,6 +4507,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpckhqdq_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpcklwd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -4069,6 +4515,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpcklwd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpunpckhwd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -4076,11 +4523,13 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(src0.size() == 16);
     MOZ_ASSERT(src1.size() == 16);
     MOZ_ASSERT(dest.size() == 16);
+    AutoBundleScope bundle(*this);
     masm.vpunpckhwd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
 
   void vandps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vandps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4099,6 +4548,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vandnps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     // Negates bits of dest and then applies AND
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vandnps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4116,6 +4566,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vorps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vorps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4133,6 +4584,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vxorps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vxorps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4150,6 +4602,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vandpd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vandpd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4161,10 +4614,12 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpand(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpand_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpand(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpand_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4182,10 +4637,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpor(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpor_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpor(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpor_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4203,10 +4660,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpxor(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpxor_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpxor(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpxor_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4224,10 +4683,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpandn(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpandn_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vpandn(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpandn_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4246,10 +4707,12 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpshufd(uint32_t mask, FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpshufd_irr(mask, src.encoding(), dest.encoding());
   }
   void vpshufd(uint32_t mask, const Operand& src1, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vpshufd_irr(mask, src1.fpu(), dest.encoding());
@@ -4267,18 +4730,22 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpshuflw(uint32_t mask, FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpshuflw_irr(mask, src.encoding(), dest.encoding());
   }
   void vpshufhw(uint32_t mask, FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vpshufhw_irr(mask, src.encoding(), dest.encoding());
   }
   void vpshufb(FloatRegister mask, FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSSE3());
+    AutoBundleScope bundle(*this);
     masm.vpshufb_rr(mask.encoding(), src.encoding(), dest.encoding());
   }
   void vmovddup(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vmovddup_rr(src.fpu(), dest.encoding());
@@ -4296,18 +4763,22 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovhlps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovhlps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmovlhps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmovlhps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vunpcklps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vunpcklps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vunpcklps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vunpcklps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4325,10 +4796,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vunpckhps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vunpckhps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vunpckhps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vunpckhps_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4347,11 +4820,13 @@ class AssemblerX86Shared : public AssemblerShared {
   void vshufps(uint32_t mask, FloatRegister src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vshufps_irr(mask, src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vshufps(uint32_t mask, const Operand& src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vshufps_irr(mask, src1.fpu(), src0.encoding(), dest.encoding());
@@ -4371,18 +4846,22 @@ class AssemblerX86Shared : public AssemblerShared {
   void vshufpd(uint32_t mask, FloatRegister src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vshufpd_irr(mask, src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vaddsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vaddsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vaddss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vaddss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vaddsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vaddsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4400,6 +4879,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vaddss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vaddss_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4417,14 +4897,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsubsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vsubsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vsubss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vsubss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vsubsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vsubsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4439,6 +4922,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vsubss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vsubss_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4453,10 +4937,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmulsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmulsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmulsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmulsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4471,6 +4957,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmulss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmulss_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4485,18 +4972,22 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmulss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmulss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vdivsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vdivsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vdivss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vdivss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vdivsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vdivsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4511,6 +5002,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vdivss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vdivss_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4525,38 +5017,47 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vxorpd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vxorpd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vxorps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vxorps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vorpd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vorpd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vorps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vorps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vandpd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vandpd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vandps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vandps_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vsqrtsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vsqrtsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vsqrtss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vsqrtss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vroundps(SSERoundingMode mode, const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vroundps_irr((X86Encoding::SSERoundingMode)mode, src.fpu(),
@@ -4568,6 +5069,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vroundpd(SSERoundingMode mode, const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vroundpd_irr((X86Encoding::SSERoundingMode)mode, src.fpu(),
@@ -4594,11 +5096,13 @@ class AssemblerX86Shared : public AssemblerShared {
   void vroundsd(X86Encoding::RoundingMode mode, FloatRegister src,
                 FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vroundsd_irr(mode, src.encoding(), dest.encoding());
   }
   void vroundss(X86Encoding::RoundingMode mode, FloatRegister src,
                 FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vroundss_irr(mode, src.encoding(), dest.encoding());
   }
 
@@ -4616,11 +5120,13 @@ class AssemblerX86Shared : public AssemblerShared {
   void vinsertps(uint32_t mask, FloatRegister src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vinsertps_irr(mask, src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vinsertps(uint32_t mask, const Operand& src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vinsertps_irr(mask, src1.fpu(), src0.encoding(), dest.encoding());
@@ -4638,6 +5144,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovlps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovlps_mr(src1.disp(), src1.base(), src0.encoding(),
@@ -4652,6 +5159,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovlps(FloatRegister src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4666,6 +5174,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovhps(const Operand& src1, FloatRegister src0, FloatRegister dest) {
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovhps_mr(src1.disp(), src1.base(), src0.encoding(),
@@ -4680,6 +5189,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovhps(FloatRegister src, const Operand& unsafeDest) {
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4696,6 +5206,7 @@ class AssemblerX86Shared : public AssemblerShared {
   void vextractps(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
     MOZ_ASSERT(lane < 4);
+    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
@@ -4715,11 +5226,13 @@ class AssemblerX86Shared : public AssemblerShared {
   void vblendps(unsigned mask, FloatRegister src1, FloatRegister src0,
                 FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vblendps_irr(mask, src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vblendps(unsigned mask, const Operand& src1, FloatRegister src0,
                 FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vblendps_irr(mask, src1.fpu(), src0.encoding(), dest.encoding());
@@ -4735,12 +5248,14 @@ class AssemblerX86Shared : public AssemblerShared {
   void vblendvps(FloatRegister mask, FloatRegister src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vblendvps_rr(mask.encoding(), src1.encoding(), src0.encoding(),
                       dest.encoding());
   }
   void vblendvps(FloatRegister mask, const Operand& src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vblendvps_rr(mask.encoding(), src1.fpu(), src0.encoding(),
@@ -4757,15 +5272,18 @@ class AssemblerX86Shared : public AssemblerShared {
   void vblendvpd(FloatRegister mask, FloatRegister src1, FloatRegister src0,
                  FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleScope bundle(*this);
     masm.vblendvpd_rr(mask.encoding(), src1.encoding(), src0.encoding(),
                       dest.encoding());
   }
   void vmovsldup(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     masm.vmovsldup_rr(src.encoding(), dest.encoding());
   }
   void vmovsldup(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vmovsldup_rr(src.fpu(), dest.encoding());
@@ -4779,10 +5297,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovshdup(FloatRegister src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     masm.vmovshdup_rr(src.encoding(), dest.encoding());
   }
   void vmovshdup(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vmovshdup_rr(src.fpu(), dest.encoding());
@@ -4796,10 +5316,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vminsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vminsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vminsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vminsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4814,14 +5336,17 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vminss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vminss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmaxsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmaxsd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vmaxsd(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     switch (src1.kind()) {
       case Operand::FPREG:
         masm.vmaxsd_rr(src1.fpu(), src0.encoding(), dest.encoding());
@@ -4836,10 +5361,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmaxss(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleScope bundle(*this);
     masm.vmaxss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void fisttp(const Operand& dest) {
     MOZ_ASSERT(HasSSE3());
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fisttp_m(dest.disp(), dest.base());
@@ -4850,6 +5377,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fistp(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fistp_m(dest.disp(), dest.base());
@@ -4860,6 +5388,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstcw(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fnstcw_m(dest.disp(), dest.base());
@@ -4870,6 +5399,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fldcw(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fldcw_m(dest.disp(), dest.base());
@@ -4880,6 +5410,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstsw(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fnstsw_m(dest.disp(), dest.base());
@@ -4890,6 +5421,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fld_m(dest.disp(), dest.base());
@@ -4900,6 +5432,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld32(const Operand& dest) {
+    AutoBundleScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fld32_m(dest.disp(), dest.base());
@@ -4910,6 +5443,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp(const Operand& src) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fstp_m(src.disp(), src.base());
@@ -4920,6 +5454,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   // UNSAFE(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp32(const Operand& src) {
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fstp32_m(src.disp(), src.base());
@@ -4931,6 +5466,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vbroadcastb(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasAVX2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vbroadcastb_rr(src.fpu(), dest.encoding());
@@ -4948,6 +5484,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vbroadcastw(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasAVX2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vbroadcastw_rr(src.fpu(), dest.encoding());
@@ -4965,6 +5502,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vbroadcastd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasAVX2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vbroadcastd_rr(src.fpu(), dest.encoding());
@@ -4982,6 +5520,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vbroadcastq(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasAVX2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vbroadcastq_rr(src.fpu(), dest.encoding());
@@ -4999,6 +5538,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vbroadcastss(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasAVX2());
+    AutoBundleScope bundle(*this);
     switch (src.kind()) {
       case Operand::FPREG:
         masm.vbroadcastss_rr(src.fpu(), dest.encoding());
@@ -5016,20 +5556,24 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vfmadd231ps(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasFMA());
+    AutoBundleScope bundle(*this);
     masm.vfmadd231ps_rrr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vfnmadd231ps(FloatRegister src1, FloatRegister src0,
                     FloatRegister dest) {
     MOZ_ASSERT(HasFMA());
+    AutoBundleScope bundle(*this);
     masm.vfnmadd231ps_rrr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vfmadd231pd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasFMA());
+    AutoBundleScope bundle(*this);
     masm.vfmadd231pd_rrr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vfnmadd231pd(FloatRegister src1, FloatRegister src0,
                     FloatRegister dest) {
     MOZ_ASSERT(HasFMA());
+    AutoBundleScope bundle(*this);
     masm.vfnmadd231pd_rrr(src1.encoding(), src0.encoding(), dest.encoding());
   }
 

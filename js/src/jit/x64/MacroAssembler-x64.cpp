@@ -32,12 +32,15 @@ void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   if (!dbl) {
     return;
   }
+
+  AutoOwnBundleScope bundle(*this);
   // The constants will be stored in a pool appended to the text (see
   // finish()), so they will always be a fixed distance from the
   // instructions which reference them. This allows the instructions to use
   // PC-relative addressing. Use "jump" label support code, because we need
   // the same PC-relative address patching that jumps use.
   JmpSrc j = masm.vmovsd_ripr(dest.encoding());
+  bundle.unlock();
   propagateOOM(dbl->uses.append(j));
 }
 
@@ -49,8 +52,10 @@ void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
   if (!flt) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   // See comment in loadConstantDouble
   JmpSrc j = masm.vmovss_ripr(dest.encoding());
+  bundle.unlock();
   propagateOOM(flt->uses.append(j));
 }
 
@@ -62,7 +67,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   JmpSrc j = (masm.*op)(reg.encoding());
+  bundle.unlock();
   propagateOOM(val->uses.append(j));
 }
 
@@ -74,7 +81,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   JmpSrc j = (masm.*op)(src.encoding(), dest.encoding());
+  bundle.unlock();
   propagateOOM(val->uses.append(j));
 }
 
@@ -630,7 +639,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   movePtr(ImmPtr((const void*)wasm::FailInstanceReg), InstanceReg);
-  masm.ret();
+  ret();
 
   // Found a wasm catch handler, restore state and jump to it.
   bind(&wasmCatch);

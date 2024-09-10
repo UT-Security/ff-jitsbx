@@ -672,9 +672,9 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // ===============================================================
 // Simple call functions.
 
-CodeOffset MacroAssembler::call(Register reg) { return Assembler::call(reg); }
+CodeOffset MacroAssembler::call(Register reg) { Assembler::call(reg); return CodeOffset(currentOffset()); }
 
-CodeOffset MacroAssembler::call(Label* label) { return Assembler::call(label); }
+CodeOffset MacroAssembler::call(Label* label) { Assembler::call(label); return CodeOffset(currentOffset()); }
 
 void MacroAssembler::call(const Address& addr) {
   Assembler::call(Operand(addr.base, addr.offset));
@@ -682,7 +682,8 @@ void MacroAssembler::call(const Address& addr) {
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   mov(target, eax);
-  return Assembler::call(eax);
+  Assembler::call(eax);
+  return CodeOffset(currentOffset());
 }
 
 void MacroAssembler::call(ImmWord target) { Assembler::call(target); }
@@ -714,7 +715,9 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {
+  AutoOwnBundleScope bundle(*this);
   masm.nop_five();
+  bundle.unlock();
   return CodeOffset(currentOffset());
 }
 
@@ -1657,6 +1660,7 @@ void MacroAssembler::speculationBarrier() {
   // Spectre mitigation recommended by Intel and AMD suggest to use lfence as
   // a way to force all speculative execution of instructions to end.
   MOZ_ASSERT(HasSSE2());
+  AutoBundleScope bundle(*this);
   masm.lfence();
 }
 

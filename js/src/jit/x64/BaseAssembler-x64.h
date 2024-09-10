@@ -804,32 +804,60 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   [[nodiscard]] JmpSrc movl_ripr(RegisterID dst) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+    m_formatter.oneByteRipOp(OP_MOV_GvEv, 0, (RegisterID)dst);
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     m_formatter.oneByteRipOp(OP_MOV_GvEv, 0, (RegisterID)dst);
     JmpSrc label(m_formatter.size());
+#endif
     spew("movl       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPReg32Name(dst));
     return label;
   }
 
   [[nodiscard]] JmpSrc movl_rrip(RegisterID src) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+    m_formatter.oneByteRipOp(OP_MOV_EvGv, 0, (RegisterID)src);
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     m_formatter.oneByteRipOp(OP_MOV_EvGv, 0, (RegisterID)src);
     JmpSrc label(m_formatter.size());
+#endif
     spew("movl       %s, " MEM_o32r "", GPReg32Name(src),
          ADDR_o32r(label.offset()));
     return label;
   }
 
   [[nodiscard]] JmpSrc movq_ripr(RegisterID dst) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+    m_formatter.oneByteRipOp64(OP_MOV_GvEv, 0, dst);
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     m_formatter.oneByteRipOp64(OP_MOV_GvEv, 0, dst);
     JmpSrc label(m_formatter.size());
+#endif
     spew("movq       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPRegName(dst));
     return label;
   }
 
   [[nodiscard]] JmpSrc movq_rrip(RegisterID src) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+    m_formatter.oneByteRipOp64(OP_MOV_EvGv, 0, (RegisterID)src);
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     m_formatter.oneByteRipOp64(OP_MOV_EvGv, 0, (RegisterID)src);
     JmpSrc label(m_formatter.size());
+#endif
     spew("movq       %s, " MEM_o32r "", GPRegName(src),
          ADDR_o32r(label.offset()));
     return label;
@@ -841,8 +869,15 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   [[nodiscard]] JmpSrc leaq_rip(RegisterID dst) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+    m_formatter.oneByteRipOp64(OP_LEA, 0, dst);
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     m_formatter.oneByteRipOp64(OP_LEA, 0, dst);
     JmpSrc label(m_formatter.size());
+#endif
     spew("leaq       " MEM_o32r ", %s", ADDR_o32r(label.offset()),
          GPRegName(dst));
     return label;
@@ -1194,9 +1229,17 @@ class BaseAssemblerX64 : public BaseAssembler {
                                         TwoByteOpcodeID opcode,
                                         XMMRegisterID reg) {
     MOZ_ASSERT(!IsXMMReversedOperands(opcode));
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+#endif
     m_formatter.legacySSEPrefix(ty);
     m_formatter.twoByteRipOp(opcode, 0, reg);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     JmpSrc label(m_formatter.size());
+#endif
     spew("%-11s " MEM_o32r ", %s", legacySSEOpName(name),
          ADDR_o32r(label.offset()), XMMRegName(reg));
     return label;
@@ -1206,17 +1249,30 @@ class BaseAssemblerX64 : public BaseAssembler {
                                         TwoByteOpcodeID opcode,
                                         XMMRegisterID src0, XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm && !IsXMMReversedOperands(opcode));
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+#endif
     if (useLegacySSEEncoding(src0, dst)) {
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteRipOp(opcode, 0, dst);
-      JmpSrc label(m_formatter.size());
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
+    JmpSrc label(m_formatter.size());
+#endif
       spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
     }
 
     m_formatter.twoByteRipOpVex(ty, opcode, 0, src0, dst);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     JmpSrc label(m_formatter.size());
+#endif
     spew("%-11s, " MEM_o32r ", %s, %s", name, ADDR_o32r(label.offset()),
          XMMRegName(src0), XMMRegName(dst));
     return label;
@@ -1227,12 +1283,19 @@ class BaseAssemblerX64 : public BaseAssembler {
                                            XMMRegisterID src0,
                                            XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm && !IsXMMReversedOperands(opcode));
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+#endif
     if (useLegacySSEEncoding(src0, dst)) {
       m_formatter.legacySSEPrefix(ty);
       m_formatter.twoByteRipOp(opcode, 0, dst);
       m_formatter.immediate8u(imm);
-      JmpSrc label(m_formatter.size(),
-                   /* bytes trailing the patch field = */ 1);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment, 1);
+#else
+    JmpSrc label(m_formatter.size(), 1);
+#endif
       spew("%-11s$0x%x, " MEM_o32r ", %s", legacySSEOpName(name), imm,
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
@@ -1240,8 +1303,12 @@ class BaseAssemblerX64 : public BaseAssembler {
 
     m_formatter.twoByteRipOpVex(ty, opcode, 0, src0, dst);
     m_formatter.immediate8u(imm);
-    JmpSrc label(m_formatter.size(),
-                 /* bytes trailing the patch field = */ 1);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment, 1);
+#else
+    JmpSrc label(m_formatter.size(), 1);
+#endif
     spew("%-11s$0x%x, " MEM_o32r ", %s, %s", name, imm,
          ADDR_o32r(label.offset()), XMMRegName(src0), XMMRegName(dst));
     return label;
@@ -1311,9 +1378,17 @@ class BaseAssemblerX64 : public BaseAssembler {
                                           ThreeByteOpcodeID opcode,
                                           ThreeByteEscape escape,
                                           XMMRegisterID dst) {
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+#endif
     m_formatter.legacySSEPrefix(ty);
     m_formatter.threeByteRipOp(opcode, escape, 0, dst);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     JmpSrc label(m_formatter.size());
+#endif
     spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
          ADDR_o32r(label.offset()), XMMRegName(dst));
     return label;
@@ -1325,17 +1400,30 @@ class BaseAssemblerX64 : public BaseAssembler {
                                           XMMRegisterID src0,
                                           XMMRegisterID dst) {
     MOZ_ASSERT(src0 != invalid_xmm);
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
+#endif
     if (useLegacySSEEncoding(src0, dst)) {
       m_formatter.legacySSEPrefix(ty);
       m_formatter.threeByteRipOp(opcode, escape, 0, dst);
-      JmpSrc label(m_formatter.size());
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
+    JmpSrc label(m_formatter.size());
+#endif
       spew("%-11s" MEM_o32r ", %s", legacySSEOpName(name),
            ADDR_o32r(label.offset()), XMMRegName(dst));
       return label;
     }
 
     m_formatter.threeByteRipOpVex(ty, opcode, escape, 0, src0, dst);
+#ifdef JS_SANDBOX_BUNDLE
+    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(0) : 0;
+    JmpSrc label(m_formatter.size() + m_formatter.bundleSize() + adjustment);
+#else
     JmpSrc label(m_formatter.size());
+#endif
     spew("%-11s" MEM_o32r ", %s, %s", name, ADDR_o32r(label.offset()),
          XMMRegName(src0), XMMRegName(dst));
     return label;

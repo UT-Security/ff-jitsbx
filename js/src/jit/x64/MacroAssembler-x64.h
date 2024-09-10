@@ -92,6 +92,9 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   // X64 helpers.
   /////////////////////////////////////////////////////////////////
   void writeDataRelocation(const Value& val) {
+#ifdef JS_SANDBOX_BUNDLE
+    assertNotInBundle();
+#endif
     // Raw GC pointer relocations and Value relocations both end up in
     // Assembler::TraceDataRelocations.
     if (val.isGCThing()) {
@@ -740,8 +743,8 @@ template <typename T>
     if (isSandboxed()) {
       MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
-      Operand op = sandboxMemoryWrite(address, scratch);
-      movq(src, op);
+      mov(ImmPtr(address.addr), scratch);
+      storePtr(src, Address(scratch, 0x0));
       return;
     }
 #endif
@@ -758,8 +761,8 @@ template <typename T>
     if (isSandboxed()) {
       MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
-      Operand op = sandboxMemoryWrite(address, scratch);
-      movl(src, op);
+      mov(ImmPtr(address.addr), scratch);
+      store32(src, Address(scratch, 0x0));
       return;
     }
 #endif
@@ -776,8 +779,8 @@ template <typename T>
     if (isSandboxed()) {
       MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
-      Operand op = sandboxMemoryWrite(address, scratch);
-      movw(src, op);
+      mov(ImmPtr(address.addr), scratch);
+      store16(src, Address(scratch, 0x0));
       return;
     }
 #endif
