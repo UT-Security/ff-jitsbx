@@ -574,6 +574,8 @@ def jit_sandbox_heap_mask(jit_sandbox_heap_mask, jit_sandbox_heap, jit_sandbox):
         return namespace(**{mode: True})
 
 
+set_config("JITSBX_HEAP_MASK", depends_if(jit_sandbox_heap_mask)(lambda x: x in ["active", "passive"]))
+set_define("JITSBX_HEAP_MASK", depends_if(jit_sandbox_heap_mask)(lambda x: x in ["active", "passive"]))
 set_config("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
 set_define("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
 set_config("JITSBX_HEAP_MASK_PASSIVE", jit_sandbox_heap_mask.passive)

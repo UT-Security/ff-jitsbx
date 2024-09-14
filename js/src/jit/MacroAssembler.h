@@ -5419,10 +5419,18 @@ public:
   void loadStackPtr(T t) {
     loadPtr(t, getStackPointer());
   }
+
+#ifdef JITSBX_HEAP_MASK
+  template <typename T>
+  void storeStackPtr(T t, bool mask = true) {
+    storePtr(getStackPointer(), t, mask);
+  }
+#else
   template <typename T>
   void storeStackPtr(T t) {
     storePtr(getStackPointer(), t);
   }
+#endif
 
   // StackPointer testing functions.
   // On ARM64, sp can function as the zero register depending on context.

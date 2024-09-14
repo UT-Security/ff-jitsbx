@@ -614,6 +614,13 @@ static MOZ_ALWAYS_INLINE T* js_pod_calloc(size_t numElems) {
   return js_pod_arena_calloc<T>(js::MallocArena, numElems);
 }
 
+#ifdef JITSBX_HEAP
+template <class T>
+static MOZ_ALWAYS_INLINE T* js_pod_jitsbx_calloc(size_t numElems) {
+  return js_pod_arena_calloc<T>(js::JitsbxMallocArena, numElems);
+}
+#endif
+
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_arena_realloc(arena_id_t arena, T* prior,
                                                  size_t oldSize,

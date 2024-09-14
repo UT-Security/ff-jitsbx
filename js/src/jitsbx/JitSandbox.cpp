@@ -12,6 +12,7 @@
 #include "threading/ProtectedData.h"
 #include "util/Memory.h"
 #include "vm/JSContext.h"
+#include "vm/JSContext-inl.h"
 
 using namespace js;
 using namespace js::jitsbx;
@@ -34,7 +35,11 @@ bool JitSandbox::initialize(JSContext* cx) {
 #  endif  // stack grows down
   MOZ_ASSERT(sandboxStackSize > 0);
 
+#ifdef JITSBX_HEAP
+  sandboxStack_ = cx->pod_jitsbx_calloc<uint8_t>(sandboxStackSize + 4096);
+#else
   sandboxStack_ = cx->pod_calloc<uint8_t>(sandboxStackSize + 4096);
+#endif
   if (!sandboxStack_) {
     return false;
   }

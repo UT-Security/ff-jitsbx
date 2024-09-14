@@ -468,6 +468,27 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#ifdef JITSBX_HEAP_MASK
+  void movq(Register src, const Operand& dest, bool mask = true) {
+    switch (dest.kind()) {
+      case Operand::REG:
+        masm.movq_rr(src.encoding(), dest.reg());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.movq_rm(src.encoding(), dest.disp(), dest.base(), mask);
+        break;
+      case Operand::MEM_SCALE:
+        masm.movq_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), mask);
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movq_rm(src.encoding(), dest.address(), mask);
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+#else
   void movq(Register src, const Operand& dest) {
     switch (dest.kind()) {
       case Operand::REG:
@@ -487,6 +508,7 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#endif
   void movq(Imm32 imm32, const Operand& dest) {
     switch (dest.kind()) {
       case Operand::REG:

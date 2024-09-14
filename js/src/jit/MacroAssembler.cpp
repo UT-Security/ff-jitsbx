@@ -2991,7 +2991,11 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       subPtr(Imm32(sizeof(uintptr_t)), copyCur);
       subFromStackPtr(Imm32(sizeof(uintptr_t)));
       loadPtr(Address(copyCur, 0), temp);
+#ifdef JITSBX_HEAP_MASK
+      storePtr(temp, Address(getStackPointer(), 0), false);
+#else
       storePtr(temp, Address(getStackPointer(), 0));
+#endif
       jump(&copyNativeLoop);
       bind(&endOfNativeCopy);
     }
@@ -4004,7 +4008,13 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
+#ifdef JITSBX_HEAP_MASK
+  // ask2374
+  storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()), false);
+  // ask2374
+#else
   storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+#endif
 }
 
 // ===============================================================
