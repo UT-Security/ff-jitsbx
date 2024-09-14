@@ -47,12 +47,35 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.oneByteOp64(OP_ADD_GvEv, offset, base, index, scale, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_rm(RegisterID src, int32_t offset, RegisterID base) {
+    spew("addq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base);
+#endif
+    m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, src);
+  }
+#else
   void addq_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("addq       %s, " MEM_ob, GPReg64Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, src);
   }
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale) {
+    spew("addq       %s, " MEM_obs, GPReg64Name(src),
+         ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base, index, scale);
+#endif
+    m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, index, scale, src);
+  }
+#else
   void addq_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
     spew("addq       %s, " MEM_obs, GPReg64Name(src),
@@ -60,6 +83,7 @@ class BaseAssemblerX64 : public BaseAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, index, scale, src);
   }
+#endif
 
   void addq_ir(int32_t imm, RegisterID dst) {
     spew("addq       $%d, %s", imm, GPReg64Name(dst));
@@ -91,6 +115,23 @@ class BaseAssemblerX64 : public BaseAssembler {
     m_formatter.immediate32(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_im(int32_t imm, int32_t offset, RegisterID base) {
+    spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base);
+#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
+    if (CAN_SIGN_EXTEND_8_32(imm)) {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIb, offset, base, GROUP1_OP_ADD);
+      m_formatter.immediate8s(imm);
+    } else {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIz, offset, base, GROUP1_OP_ADD);
+      m_formatter.immediate32(imm);
+    }
+  }
+#else
   void addq_im(int32_t imm, int32_t offset, RegisterID base) {
     spew("addq       $%d, " MEM_ob, imm, ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -103,7 +144,25 @@ class BaseAssemblerX64 : public BaseAssembler {
       m_formatter.immediate32(imm);
     }
   }
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  void addq_im(int32_t imm, const void* addr) {
+    spew("addq       $%d, %p", imm, addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(addr);
+#endif
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
+    if (CAN_SIGN_EXTEND_8_32(imm)) {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIb, addr, GROUP1_OP_ADD);
+      m_formatter.immediate8s(imm);
+    } else {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIz, addr, GROUP1_OP_ADD);
+      m_formatter.immediate32(imm);
+    }
+  }
+#else
   void addq_im(int32_t imm, const void* addr) {
     spew("addq       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -116,6 +175,8 @@ class BaseAssemblerX64 : public BaseAssembler {
       m_formatter.immediate32(imm);
     }
   }
+#endif
+
 
   void andq_rr(RegisterID src, RegisterID dst) {
     spew("andq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
