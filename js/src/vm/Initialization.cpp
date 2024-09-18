@@ -19,7 +19,7 @@
 #include "builtin/AtomicsObject.h"
 #include "builtin/TestingFunctions.h"
 #include "gc/Statistics.h"
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 #include "sandbox/Memory.h"
 #endif
 #include "jit/Assembler.h"
@@ -166,7 +166,7 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
   }
 #endif
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   RETURN_IF_FAIL(js::sandbox::InitMemory());
 #endif
 

@@ -8,7 +8,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 #include "sandbox/Memory.h"
 #endif
 #include "irregexp/imported/regexp-macro-assembler-arch.h"
@@ -124,6 +124,7 @@ void SMRegExpMacroAssembler::Backtrack() {
 }
 
 void SMRegExpMacroAssembler::Bind(Label* label) {
+  masm_.bundleAlignNop();
   masm_.bind(label->inner());
   if (label->patchOffset_.bound()) {
     AddLabelPatch(label->patchOffset_, label->pos());
@@ -977,8 +978,8 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
 
   masm_.bind(&entry_label_);
 
-#ifdef JS_SANDBOX_HEAP
-  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX
+  // TODO(JS_SANDBOX): setting up sandbox pinned registers.
   masm_.mov(ImmWord(js::sandbox::MemoryMask), js::jit::SandboxMaskReg);
   masm_.mov(ImmWord(js::sandbox::MemoryBase()), js::jit::SandboxBaseReg);
 #endif
@@ -1251,7 +1252,11 @@ void SMRegExpMacroAssembler::exitHandler() {
   // Perform a plain Ret(), as abiret() will move SP <- PSP and that is wrong.
   masm_.Ret(vixl::lr);
 #else
+#ifdef JS_SANDBOX_CFI
+  masm_.unsafeRet();
+#else
   masm_.abiret();
+#endif
 #endif
 
   if (exit_with_exception_label_.used()) {

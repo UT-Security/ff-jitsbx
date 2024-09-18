@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 #include "sandbox/Memory.h"
 #endif
 #include "jit/Bailouts.h"
@@ -293,8 +293,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&skipProfilingInstrumentation);
     }
 
-    // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
-#ifdef JS_SANDBOX_HEAP
+    // TODO(JS_SANDBOX): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX
     masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
     masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
 #endif
@@ -313,8 +313,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.movq(scopeChain, R1.scratchReg());
   }
   
-  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
-#ifdef JS_SANDBOX_HEAP
+  // TODO(JS_SANDBOX): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX
   masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
   masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
 #endif
@@ -370,7 +370,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore frame pointer and return.
   masm.pop(rbp);
+#ifdef JS_SANDBOX_CFI
+  masm.unsafeRet();
+#else
   masm.ret();
+#endif
 }
 
 // static

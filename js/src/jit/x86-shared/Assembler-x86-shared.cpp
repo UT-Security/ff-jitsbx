@@ -384,6 +384,22 @@ AutoOwnBundleScope::AutoOwnBundleScope(AssemblerX86Shared& masm) {
 }
 #endif
 
+void AutoOwnBundleScope::alignToEnd(size_t extra) {
+#ifdef JS_SANDBOX_CFI
+  if (masm.isSandboxed()) {
+    MOZ_ASSERT(size() <= sandbox::BUNDLE_SIZE - extra, "bundle too small");
+    size_t padding =
+        sandbox::isSameBundle(masm.size(), masm.size() + size() + extra - 1)
+            ? sandbox::BUNDLE_SIZE - (masm.size() % sandbox::BUNDLE_SIZE) -
+                  size() - extra
+            : sandbox::BUNDLE_SIZE - size() - extra;
+    if (padding) {
+      masm.nop(padding);
+    }
+  }
+#endif
+}
+
 void AutoOwnBundleScope::unlock() {
 #ifdef JS_SANDBOX_BUNDLE
   if (masm.isSandboxed()) {

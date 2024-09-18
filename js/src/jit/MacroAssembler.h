@@ -636,7 +636,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Useful for dealing with two-valued returns.
   void moveRegPair(Register src0, Register src1, Register dst0, Register dst1,
                    MoveOp::Type type = MoveOp::GENERAL);
+ public:
+  // ===============================================================
+  // JS Sandbox helpers.
 
+  void bundleAlignNop();
+#ifdef JS_SANDBOX_CFI
+  void unsafeCall(const Address& addr) DEFINED_ON(x86_shared);
+  CodeOffset unsafeCall(Register reg) DEFINED_ON(x86_shared);
+  void unsafeJump(const Address& addr) DEFINED_ON(x86_shared);
+  void unsafeJump(Register reg) DEFINED_ON(x86_shared);
+  void unsafeRet() DEFINED_ON(x86_shared);
+#endif
+  
  public:
   // ===============================================================
   // Patchable near/far jumps.

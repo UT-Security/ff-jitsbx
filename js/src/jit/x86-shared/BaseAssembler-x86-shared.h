@@ -75,7 +75,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void bundleUnlock() {
-    MOZ_ASSERT(m_formatter.bundleSize() < sandbox::BUNDLE_SIZE, "Bundle exceeds maximum bundle size");
+    MOZ_ASSERT(m_formatter.bundleSize() <= sandbox::BUNDLE_SIZE, "Bundle exceeds maximum bundle size");
     
     m_formatter.bundleUnlockStart();
     // check if current bundle crosses a bundle boundary
@@ -2770,7 +2770,6 @@ class BaseAssembler : public GenericAssembler {
 
 #ifdef JS_SANDBOX_BUNDLE
   [[nodiscard]] JmpSrc call() {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
     m_formatter.oneByteOp(OP_CALL_rel32);
     int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
     JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
@@ -2786,9 +2785,18 @@ class BaseAssembler : public GenericAssembler {
   }
 #endif
 
+  static size_t call_size() {
+    // 1 byte opcode + 4 byte offset
+    return 5;
+  }
+
   void call_r(RegisterID dst) {
     m_formatter.oneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
     spew("call       *%s", GPRegName(dst));
+  }
+
+  static size_t call_r_size(RegisterID dst) {
+    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
   }
 
   void call_m(int32_t offset, RegisterID base) {
@@ -2801,7 +2809,6 @@ class BaseAssembler : public GenericAssembler {
   // byte of the instruction between a CMP and a JMP to produce a pseudo-NOP.
 #ifdef JS_SANDBOX_BUNDLE
   [[nodiscard]] JmpSrc cmp_eax() {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
     m_formatter.oneByteOp(OP_CMP_EAXIv);
     int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
     JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
@@ -5705,6 +5712,10 @@ class BaseAssembler : public GenericAssembler {
       registerModRM(rm, reg);
     }
 
+    static size_t oneByteOpSize(OneByteOpcodeID opcode, RegisterID rm, int reg) {
+      return emitRexIfNeededSize(reg, 0, rm) + 1 + 1;
+    }
+    
     void oneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                    int reg) {
       mbuffer().ensureSpace(MaxInstructionSize);
@@ -6505,6 +6516,15 @@ class BaseAssembler : public GenericAssembler {
     // Used for word sized operations, will plant a REX prefix if necessary
     // (if any register is r8 or above).
     void emitRexIfNeeded(int r, int x, int b) { emitRexIf(false, r, x, b); }
+
+    static size_t emitRexIfNeededSize(int r, int x, int b) {
+      if (regRequiresRex(RegisterID(r)) ||
+          regRequiresRex(RegisterID(x)) || regRequiresRex(RegisterID(b))) {
+        return 1;
+      } else {
+        return 0;
+      }
+    }
 #else
     // No REX prefix bytes on 32-bit x86.
     void emitRexIf(bool condition, int, int, int) {

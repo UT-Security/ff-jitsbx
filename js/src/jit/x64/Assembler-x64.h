@@ -11,6 +11,9 @@
 
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
+#ifdef JS_SANDBOX_BUNDLE
+#include "sandbox/Bundle.h"
+#endif
 
 namespace js {
 namespace jit {
@@ -184,7 +187,7 @@ static constexpr Register RegExpSearcherRegExpReg = CallTempReg1;
 static constexpr Register RegExpSearcherStringReg = CallTempReg2;
 static constexpr Register RegExpSearcherLastIndexReg = CallTempReg3;
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 static constexpr Register SandboxBaseReg = r15;
 static constexpr Register SandboxMaskReg = r13;
 static constexpr Register SandboxScratchReg = r11;
@@ -260,7 +263,11 @@ static constexpr Register PreBarrierReg = rdx;
 static constexpr Register InterpreterPCReg = r14;
 
 static constexpr uint32_t ABIStackAlignment = 16;
+#ifdef JS_SANDBOX_BUNDLE
+static constexpr uint32_t CodeAlignment = sandbox::BUNDLE_SIZE;
+#else
 static constexpr uint32_t CodeAlignment = 16;
+#endif
 static constexpr uint32_t JitStackAlignment = 16;
 
 static constexpr uint32_t JitStackValueAlignment =
@@ -1271,6 +1278,7 @@ class Assembler : public AssemblerX86Shared {
   }
   void call(JitCode* target) {
     AutoOwnBundleScope bundle(*this);
+    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
     JmpSrc src = masm.call();
     bundle.unlock();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
@@ -1278,6 +1286,7 @@ class Assembler : public AssemblerX86Shared {
   void call(ImmWord target) { call(ImmPtr((void*)target.value)); }
   void call(ImmPtr target) {
     AutoOwnBundleScope bundle(*this);
+    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
     JmpSrc src = masm.call();
     bundle.unlock();
     addPendingJump(src, target, RelocationKind::HARDCODED);
@@ -1288,11 +1297,20 @@ class Assembler : public AssemblerX86Shared {
   CodeOffset toggledCall(JitCode* target, bool enabled) {
 #ifdef JS_SANDBOX_BUNDLE
     AutoOwnBundleScope bundle(*this);
+    bundle.alignToEnd(ToggledCallSize(nullptr));
+#ifdef DEBUG
+    size_t bundleSizeBefore = bundle.size();
+#endif
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
-    size_t bundleSize = bundle.size();
+#ifdef DEBUG
+    size_t bundleSizeAfter = bundle.size();
+#endif
     bundle.unlock();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
-    MOZ_ASSERT_IF(!oom(), bundleSize == ToggledCallSize(nullptr));
+    MOZ_ASSERT_IF(!oom(), bundleSizeAfter - bundleSizeBefore == ToggledCallSize(nullptr));
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
+#endif
     return CodeOffset(size() - ToggledCallSize(nullptr));
 #else
     CodeOffset offset(size());

@@ -12,6 +12,7 @@
 #include "mozilla/TaggedAnonymousMemory.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/mman.h>
@@ -40,6 +41,8 @@ static size_t numAddressBits = 0;
 /* The minimum and maximum valid addresses that can be used for memory reservations. */
 static size_t minValidAddress = 0;
 static size_t maxValidAddress = 0;
+
+static const size_t CodeBytesPerProcess = UINT64_C(2048) * 1024 * 1024;
 
 enum class Commit : bool {
   No = false,
@@ -662,6 +665,13 @@ bool InitMemory() {
   if (!sandboxMemory.init(sandboxRegion, MemorySize, systemPageSize)) {
     return false;
   }
+
+#ifdef JS_SANDBOX_CFI
+  void* executableRegion = sandboxMemory.allocateProtected(CodeBytesPerProcess, CodeBytesPerProcess);
+  if (executableRegion == nullptr || executableRegion != sandboxRegion) {
+    return false;
+  }
+#endif
 
   return true;
 }

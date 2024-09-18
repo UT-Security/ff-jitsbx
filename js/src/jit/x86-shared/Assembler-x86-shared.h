@@ -11,7 +11,7 @@
 #include <cstdint>
 
 #include "jit/shared/Assembler-shared.h"
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 #include "sandbox/Memory.h"
 #endif
 
@@ -75,7 +75,9 @@ public:
   AutoOwnBundleScope(AssemblerX86Shared& masm);
   ~AutoOwnBundleScope();
 
+  void alignToEnd(size_t extra);
   void unlock();
+  
 #ifdef JS_SANDBOX_BUNDLE
   size_t size();
 #endif
@@ -1394,6 +1396,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void call(Label* label) {
     AutoOwnBundleScope bundle(*this);
+    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
     JmpSrc j = masm.call();
     bundle.unlock();
     if (label->bound()) {
@@ -1411,6 +1414,9 @@ class AssemblerX86Shared : public AssemblerShared {
     AutoBundleScope bundle(*this);
     masm.call_r(reg.encoding());
   }
+  static size_t CallSize(Register reg) {
+    return X86Encoding::BaseAssembler::call_r_size(reg.encoding());
+  }
   void call(const Operand& op) {
     AutoBundleScope bundle(*this);
     switch (op.kind()) {
@@ -1425,7 +1431,11 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  CodeOffset callWithPatch() { AutoOwnBundleScope bundle(*this); return CodeOffset(masm.call().offset()); }
+  CodeOffset callWithPatch() {
+    AutoOwnBundleScope bundle(*this);
+    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
+    return CodeOffset(masm.call().offset());
+  }
 
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
     unsigned char* code = masm.data();

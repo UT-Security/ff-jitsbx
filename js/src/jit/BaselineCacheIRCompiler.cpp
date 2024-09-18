@@ -142,6 +142,7 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 
+  masm.bundleAlignNop();
 #ifndef JS_USE_LINK_REGISTER
   masm.adjustFrame(sizeof(intptr_t));
 #endif

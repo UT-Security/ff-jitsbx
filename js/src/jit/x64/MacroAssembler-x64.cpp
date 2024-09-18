@@ -823,7 +823,11 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JS_SANDBOX_CFI
+  unsafeCall(fun);
+#else
   call(fun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 
@@ -842,7 +846,11 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JS_SANDBOX_CFI
+  unsafeCall(safeFun);
+#else
   call(safeFun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 

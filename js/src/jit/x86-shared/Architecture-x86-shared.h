@@ -140,7 +140,7 @@ class Registers {
 
   static const SetType NonAllocatableMask =
       (1 << X86Encoding::rsp) | (1 << X86Encoding::rbp) |
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
       (1 << X86Encoding::r13) | // Reserved register for sandbox.
       (1 << X86Encoding::r15) | // Reserved register for sandbox.
 #endif

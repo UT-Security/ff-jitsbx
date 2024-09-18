@@ -15,10 +15,14 @@ include("../js-cxxflags.mozbuild")
 UNIFIED_SOURCES += [
 ];
 
+if CONFIG["JS_SANDBOX"]:
+	UNIFIED_SOURCES += [
+		"Memory.cpp",
+	]
+
 if CONFIG["JS_SANDBOX_HEAP"]:
 	UNIFIED_SOURCES += [
 		"allocator/sbxjemalloc.cpp",
-		"Memory.cpp"
 	]
 
 	EXPORTS.js.sandbox.allocator += [

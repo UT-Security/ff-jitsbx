@@ -104,6 +104,7 @@ uint32_t JitRuntime::startTrampolineCode(MacroAssembler& masm) {
   masm.assumeUnreachable("Shouldn't get here");
   masm.flushBuffer();
   masm.haltingAlign(CodeAlignment);
+  masm.bundleAlignNop();
   masm.setFramePushed(0);
   return masm.currentOffset();
 }
