@@ -163,7 +163,7 @@
 #include "mozilla/XorShift128PlusRNG.h"
 #include "mozilla/fallible.h"
 #include "sandbox/allocator/rb.h"
-#include "sandbox/allocator/Mutex.h"
+//#include "sandbox/allocator/Mutex.h"
 #include "sandbox/allocator/Utils.h"
 
 //#if defined(XP_WIN)

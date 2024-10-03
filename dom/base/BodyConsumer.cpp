@@ -702,6 +702,8 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
+      free(aResult);
+      aResult = static_cast<uint8_t*>(JS_malloc(cx, aResultLength));
       JS::Rooted<JSObject*> arrayBuffer(cx);
       BodyUtil::ConsumeArrayBuffer(cx, &arrayBuffer, aResultLength, aResult,
                                    error);

@@ -435,6 +435,10 @@ static inline bool IsInvalidRegion(void* region, size_t length) {
 }
 
 bool Memory::init(void* addr, size_t length, size_t pageSize) {
+  if (!mLock.Init()) {
+    return false;
+  }
+  
   if (pageSize % systemPageSize != 0) {
     return false;
   }
@@ -455,7 +459,7 @@ bool Memory::init(void* addr, size_t length, size_t pageSize) {
   return true;
 }
 
-void* Memory::allocate(size_t length, size_t alignment) {
+void* Memory::allocateProtected_(size_t length, size_t alignment) {
   if (!initialized()) {
     return nullptr;
   }
@@ -502,12 +506,43 @@ void* Memory::allocate(size_t length, size_t alignment) {
   region = new (memory) MemoryRegion(addr, addr + length);
 
   linkRegion(region, prev, link, parent);
+  return (void*)addr;
+}
+
+void* Memory::allocateProtected(size_t length, size_t alignment) {
+  MutexAutoLock lock(mLock);
+  return allocateProtected_(length, alignment);
+}
+
+void* Memory::allocate(size_t length, size_t alignment) {
+  MutexAutoLock lock(mLock);
+  void* addr = allocateProtected_(length, alignment);
+  if (addr == nullptr) {
+    return nullptr;
+  }
+  
   UnprotectPages((void*)addr, length);
   return (void*)addr;
 }
 
+void Memory::deallocateProtected_(void* addr, size_t length) {
+  MOZ_ASSERT(base_addr + ((uintptr_t)addr & MemoryMask) == (uintptr_t)addr);
+  MOZ_ASSERT((uintptr_t)addr % page_size == 0);
+  MOZ_ASSERT(length % page_size == 0);
+}
+
+void Memory::deallocateProtected(void* addr, size_t length) {
+  MutexAutoLock lock(mLock);
+  deallocateProtected_(addr, length);
+}
+
 void Memory::deallocate(void* addr, size_t length) {
+  MOZ_ASSERT(base_addr + ((uintptr_t)addr & MemoryMask) == (uintptr_t)addr); 
+  MOZ_ASSERT((uintptr_t)addr % page_size == 0);
+  MOZ_ASSERT(length % page_size == 0);
+  MutexAutoLock lock(mLock);
   ProtectPages(addr, length);
+  deallocateProtected_(addr, length);
 }
 
 static inline uint64_t FindAddressLimitInner(size_t highBit, size_t tries);
