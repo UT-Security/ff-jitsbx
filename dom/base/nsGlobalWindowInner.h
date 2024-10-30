@@ -812,7 +812,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
     return GetScreenY(aCallerType, aError);
   }
 
-  void GetScreenX(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetScreenX(JSContext* aCx, mozilla::dom::JSTaintedMutableHandle<JS::Value> aValue,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
   void SetScreenX(JSContext* aCx, JS::Handle<JS::Value> aValue,
@@ -1017,6 +1017,11 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   template <typename T>
   void GetReplaceableWindowCoord(JSContext* aCx, WindowCoordGetter<T> aGetter,
                                  JS::MutableHandle<JS::Value> aRetval,
+                                 mozilla::dom::CallerType aCallerType,
+                                 mozilla::ErrorResult& aError);
+  template <typename T>
+  void GetReplaceableWindowCoord(JSContext* aCx, WindowCoordGetter<T> aGetter,
+                                 mozilla::dom::JSTaintedMutableHandle<JS::Value> aRetval,
                                  mozilla::dom::CallerType aCallerType,
                                  mozilla::ErrorResult& aError);
 

@@ -3560,7 +3560,7 @@ int32_t nsGlobalWindowInner::GetScreenX(CallerType aCallerType,
 }
 
 void nsGlobalWindowInner::GetScreenX(JSContext* aCx,
-                                     JS::MutableHandle<JS::Value> aValue,
+                                     JSTaintedMutableHandle<JS::Value> aValue,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
   GetReplaceableWindowCoord(aCx, &nsGlobalWindowInner::GetScreenX, aValue,
@@ -7500,6 +7500,18 @@ template <typename T>
 void nsGlobalWindowInner::GetReplaceableWindowCoord(
     JSContext* aCx, nsGlobalWindowInner::WindowCoordGetter<T> aGetter,
     JS::MutableHandle<JS::Value> aRetval, CallerType aCallerType,
+    ErrorResult& aError) {
+  T coord = (this->*aGetter)(aCallerType, aError);
+  if (!aError.Failed() && !ToJSValue(aCx, coord, aRetval)) {
+    aError.Throw(NS_ERROR_FAILURE);
+  }
+}
+
+
+template <typename T>
+void nsGlobalWindowInner::GetReplaceableWindowCoord(
+    JSContext* aCx, nsGlobalWindowInner::WindowCoordGetter<T> aGetter,
+    JSTaintedMutableHandle<JS::Value> aRetval, CallerType aCallerType,
     ErrorResult& aError) {
   T coord = (this->*aGetter)(aCallerType, aError);
   if (!aError.Failed() && !ToJSValue(aCx, coord, aRetval)) {

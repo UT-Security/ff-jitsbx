@@ -84,6 +84,16 @@ inline bool ToJSValue(JSContext* aCx, uint32_t aArgument,
   return true;
 }
 
+
+inline bool ToJSValue(JSContext* aCx, uint32_t aArgument,
+                      mozilla::dom::JSTaintedMutableHandle<JS::Value> aValue) {
+  // Make sure we're called in a compartment
+  MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
+
+  aValue.setNumber(aArgument);
+  return true;
+}
+
 inline bool ToJSValue(JSContext* aCx, int64_t aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment

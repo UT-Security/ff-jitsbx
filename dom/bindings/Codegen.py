@@ -7721,6 +7721,7 @@ def getWrapTemplateForType(
     exceptionCode,
     spiderMonkeyInterfacesAreStructs,
     isConstructorRetval=False,
+    isTainted=False,
 ):
     """
     Reflect a C++ value stored in "result", of IDL type "type" into JS.  The
@@ -7800,7 +7801,10 @@ def getWrapTemplateForType(
                 exceptionCode=exceptionCode,
                 successCode=successCode,
             )
-        return ("${jsvalRef}.%s(%s);\n" % (setter, value)) + tail
+        if isTainted:
+            return ("${jsvalRef}.%s(%s.get().UNSAFE_unverified_ref());\n" % (setter, value)) + tail
+        else:
+            return ("${jsvalRef}.%s(%s);\n" % (setter, value)) + tail
 
     def wrapAndSetPtr(wrapCall, failureCode=None):
         """
@@ -7834,6 +7838,7 @@ def getWrapTemplateForType(
             returnsNewObject,
             exceptionCode,
             spiderMonkeyInterfacesAreStructs,
+            isTainted=isTainted,
         )
         code = fill(
             """
@@ -8011,6 +8016,7 @@ def getWrapTemplateForType(
                     returnsNewObject,
                     exceptionCode,
                     spiderMonkeyInterfacesAreStructs,
+                    isTainted=isTainted,
                 )
                 return (
                     "if (%s.IsNull()) {\n" % result
@@ -8137,8 +8143,12 @@ def getWrapTemplateForType(
         # See comments in GetOrCreateDOMReflector explaining why we need
         # to wrap here.
         # NB: _setValue(..., type-that-is-any) calls JS_WrapValue(), so is fallible
-        head = "JS::ExposeValueToActiveJS(%s);\n" % result
-        return (head + _setValue(result, wrapAsType=type), False)
+        if isTainted:
+            head = "JS::ExposeValueToActiveJS(%s.get().UNSAFE_unverified_ref());\n" % result
+            return (head + _setValue(result, wrapAsType=type), False)
+        else:
+            head = "JS::ExposeValueToActiveJS(%s);\n" % result
+            return (head + _setValue(result, wrapAsType=type), False)
 
     if type.isObject() or (
         type.isSpiderMonkeyInterface() and not spiderMonkeyInterfacesAreStructs
@@ -8185,6 +8195,7 @@ def getWrapTemplateForType(
             returnsNewObject,
             exceptionCode,
             spiderMonkeyInterfacesAreStructs,
+            isTainted=isTainted,
         )
         return (
             "if (%s.IsNull()) {\n" % result + indent(setNull()) + "}\n" + recTemplate,
@@ -8240,7 +8251,7 @@ def getWrapTemplateForType(
         raise TypeError("Need to learn to wrap primitive: %s" % type)
 
 
-def wrapForType(type, descriptorProvider, templateValues):
+def wrapForType(type, descriptorProvider, templateValues, isTainted=False):
     """
     Reflect a C++ value of IDL type "type" into JS.  TemplateValues is a dict
     that should contain:
@@ -8283,6 +8294,7 @@ def wrapForType(type, descriptorProvider, templateValues):
         templateValues.get("exceptionCode", "return false;\n"),
         templateValues.get("spiderMonkeyInterfacesAreStructs", False),
         isConstructorRetval=templateValues.get("isConstructorRetval", False),
+        isTainted=isTainted,
     )[0]
 
     defaultValues = {"obj": "obj"}
@@ -8362,7 +8374,7 @@ def dictionaryMatchesLambda(dictionary, func):
 
 # Whenever this is modified, please update CGNativeMember.getRetvalInfo as
 # needed to keep the types compatible.
-def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
+def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False, isTainted=False):
     """
     Returns a tuple containing five things:
 
@@ -8433,7 +8445,10 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
     if returnType.isAny():
         if isMember:
             return CGGeneric("JS::Value"), None, None, None, None
-        return CGGeneric("JS::Rooted<JS::Value>"), "ptr", None, "cx", None
+        if isTainted:
+            return CGGeneric("JSTaintedRooted<JS::Value>"), "ptr", None, "cx", None
+        else:
+            return CGGeneric("JS::Rooted<JS::Value>"), "ptr", None, "cx", None
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         if isMember:
             return CGGeneric("JSObject*"), None, None, None, None
@@ -8443,7 +8458,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
         if nullable:
             returnType = returnType.inner
         result, _, _, _, _ = getRetvalDeclarationForType(
-            returnType.inner, descriptorProvider, isMember="Sequence"
+            returnType.inner, descriptorProvider, isMember="Sequence", isTainted=isTainted
         )
         # While we have our inner type, set up our rooter, if needed
         if not isMember and typeNeedsRooting(returnType):
@@ -8461,7 +8476,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
         if nullable:
             returnType = returnType.inner
         result, _, _, _, _ = getRetvalDeclarationForType(
-            returnType.inner, descriptorProvider, isMember="Record"
+            returnType.inner, descriptorProvider, isMember="Record", isTainted=isTainted
         )
         # While we have our inner type, set up our rooter, if needed
         if not isMember and typeNeedsRooting(returnType):
@@ -8577,6 +8592,7 @@ class CGCallGenerator(CGThing):
         argsPost=[],
         resultVar=None,
         context="nullptr",
+        isTainted=False,
     ):
         CGThing.__init__(self)
 
@@ -8586,7 +8602,7 @@ class CGCallGenerator(CGThing):
             resultRooter,
             resultArgs,
             resultConversion,
-        ) = getRetvalDeclarationForType(returnType, descriptor)
+        ) = getRetvalDeclarationForType(returnType, descriptor, False, isTainted)
 
         args = CGList([CGGeneric(arg) for arg in argsPre], ", ")
         for a, name in arguments:
@@ -9023,6 +9039,7 @@ class CGPerSignatureCall(CGThing):
         objectName="obj",
         dontSetSlot=False,
         extendedAttributes=None,
+        isTainted=False,
     ):
         assert idlNode.isMethod() == (not getter and not setter)
         assert idlNode.isAttr() == (getter or setter)
@@ -9044,6 +9061,7 @@ class CGPerSignatureCall(CGThing):
         self.setSlot = (
             not dontSetSlot and idlNode.isAttr() and idlNode.slotIndices is not None
         )
+        self.isTainted = isTainted
         cgThings = []
 
         deprecated = idlNode.getExtendedAttribute("Deprecated") or (
@@ -9370,6 +9388,7 @@ class CGPerSignatureCall(CGThing):
                     argsPost=argsPost,
                     resultVar=resultVar,
                     context=context,
+                    isTainted=isTainted,
                 )
             )
 
@@ -9541,7 +9560,7 @@ class CGPerSignatureCall(CGThing):
             "obj": "conversionScope" if self.setSlot else "obj",
         }
 
-        wrapCode += wrapForType(self.returnType, self.descriptor, resultTemplateValues)
+        wrapCode += wrapForType(self.returnType, self.descriptor, resultTemplateValues, isTainted=self.isTainted)
 
         if self.setSlot:
             if self.idlNode.isStatic():
@@ -10237,6 +10256,7 @@ class CGGetterCall(CGPerSignatureCall):
         attr,
         dontSetSlot=False,
         extendedAttributes=None,
+        isTainted=False,
     ):
         if attr.getExtendedAttribute("UseCounter"):
             useCounterName = "%s_%s_getter" % (
@@ -10259,6 +10279,7 @@ class CGGetterCall(CGPerSignatureCall):
             useCounterName=useCounterName,
             dontSetSlot=dontSetSlot,
             extendedAttributes=extendedAttributes,
+            isTainted=isTainted,
         )
 
 
@@ -11008,12 +11029,22 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     def __init__(self, descriptor, attr):
         self.attr = attr
         name = "get_" + IDLToCIdentifier(attr.identifier.name)
-        args = [
-            Argument("JSContext*", "cx"),
-            Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("void*", "void_self"),
-            Argument("JSJitGetterCallArgs", "args"),
-        ]
+        tainted = attr.getExtendedAttribute("Tainted")
+
+        if tainted:
+            args = [
+                Argument("JSContext*", "cx"),
+                Argument("JS::Handle<JSObject*>", "obj"),
+                Argument("void*", "void_self"),
+                Argument("JSJitGetterCallArgs", "args"),
+            ]
+        else:
+            args = [
+                Argument("JSContext*", "cx"),
+                Argument("JS::Handle<JSObject*>", "obj"),
+                Argument("void*", "void_self"),
+                Argument("JSJitGetterCallArgs", "args"),
+            ]
         # StoreInSlot attributes have their getters called from Wrap().  We
         # really hope they can't run script, and don't want to annotate Wrap()
         # methods as doing that anyway, so let's not annotate them as
@@ -11028,12 +11059,22 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
         )
 
     def definition_body(self):
-        prefix = fill(
-            """
-            auto* self = static_cast<${nativeType}*>(void_self);
-            """,
-            nativeType=self.descriptor.nativeType,
-        )
+        tainted = self.attr.getExtendedAttribute("Tainted")
+        if tainted:
+            prefix = fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
+        else:
+            prefix = fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
+            
 
         if self.attr.isMaplikeOrSetlikeAttr():
             assert not self.attr.getExtendedAttribute("CrossOriginReadable")
@@ -11154,7 +11195,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
             )
 
         return (
-            prefix + CGGetterCall(type, nativeName, self.descriptor, self.attr).define()
+            prefix + CGGetterCall(type, nativeName, self.descriptor, self.attr, isTainted=tainted).define()
         )
 
     def auto_profiler_label(self):

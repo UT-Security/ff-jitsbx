@@ -41,6 +41,7 @@ EXPORTS.mozilla.dom += [
     "FakeString.h",
     "IterableIterator.h",
     "JSSlots.h",
+    "JSTainted.h",
     "NonRefcountedDOMObject.h",
     "Nullable.h",
     "ObservableArrayProxyHandler.h",

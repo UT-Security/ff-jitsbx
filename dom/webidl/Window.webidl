@@ -379,7 +379,7 @@ partial interface Window {
   //[Replaceable, Throws] readonly attribute double screenY;
   //[Replaceable, Throws] readonly attribute double outerWidth;
   //[Replaceable, Throws] readonly attribute double outerHeight;
-  [Throws, NeedsCallerType] attribute any screenX;
+  [Throws, NeedsCallerType, Tainted] attribute any screenX;
   [Throws, NeedsCallerType] attribute any screenY;
   [Throws, NeedsCallerType] attribute any outerWidth;
   [Throws, NeedsCallerType] attribute any outerHeight;

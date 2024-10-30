@@ -5725,6 +5725,7 @@ class IDLAttribute(IDLInterfaceMember):
             or identifier == "ReturnValueNeedsContainsHack"
             or identifier == "BinaryName"
             or identifier == "NonEnumerable"
+            or identifier == "Tainted"
         ):
             # Known attributes that we don't need to do anything with here
             pass
