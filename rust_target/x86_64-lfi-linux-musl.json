@@ -15,6 +15,7 @@
   "requires-lto": true,
   "obj-is-bitcode": true,
   "max-atomic-width": 64,
+  "tls-model": "initial-exec",
   "metadata": {
     "description": "64-bit Linux with LFI musl",
     "host_tools": false,

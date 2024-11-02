@@ -191,7 +191,11 @@ TimeStamp TimeStamp::Now(bool aHighResolution) {
   return TimeStamp(ClockTimeNs());
 }
 
-#if defined(XP_LINUX) || defined(ANDROID)
+#if defined(__LFI__)
+
+uint64_t TimeStamp::ComputeProcessUptime() { return 0; }
+
+#elif defined(XP_LINUX) || defined(ANDROID)
 
 // Calculates the amount of jiffies that have elapsed since boot and up to the
 // starttime value of a specific process as found in its /proc/*/stat file.

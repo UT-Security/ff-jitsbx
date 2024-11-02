@@ -126,6 +126,3 @@ directory = "third_party/rust"
 #filter substitution
 [source."@REPLACE_NAME@"]
 directory = "@top_srcdir@/@VENDORED_DIRECTORY@"
-
-[unstable]
-build-std = ["core", "std", "alloc"]
