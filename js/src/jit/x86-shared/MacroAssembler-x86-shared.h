@@ -338,9 +338,15 @@ class MacroAssemblerX86Shared : public Assembler {
     load32(src, dest);
   }
   template <typename S, typename T>
+#ifdef JITSBX_HEAP_MASK
+  void store32(const S& src, const T& dest, bool mask = true) {
+    movl(src, Operand(dest), mask);
+  }
+#else
   void store32(const S& src, const T& dest) {
     movl(src, Operand(dest));
   }
+#endif
   template <typename S, typename T>
   void store32Unaligned(const S& src, const T& dest) {
     store32(src, dest);

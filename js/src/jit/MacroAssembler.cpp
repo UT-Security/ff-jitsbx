@@ -3937,7 +3937,11 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
     push(ReturnReg);
     loadJSContext(ReturnReg);
     Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
+#ifdef JITSBX_HEAP_MASK
+    store32(Imm32(1), flagAddr, false);
+#else
     store32(Imm32(1), flagAddr);
+#endif
     pop(ReturnReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/bug1375074.js

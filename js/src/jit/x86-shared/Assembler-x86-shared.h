@@ -21,6 +21,10 @@
 #include "jit/CompactBuffer.h"
 #include "wasm/WasmTypeDecls.h"
 
+#ifdef JITSBX_HEAP_MASK
+#include "jitsbx/JitSandboxMask.h"
+#endif
+
 namespace js {
 namespace jit {
 
@@ -555,6 +559,28 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#ifdef JITSBX_HEAP_MASK
+  void movl(Register src, const Operand& dest, bool mask = true) {
+    MOZ_ASSERT(hasCreator());
+    switch (dest.kind()) {
+      case Operand::REG:
+        masm.movl_rr(src.encoding(), dest.reg());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.movl_rm(src.encoding(), dest.disp(), dest.base(), mask);
+        break;
+      case Operand::MEM_SCALE:
+        masm.movl_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), mask);
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movl_rm(src.encoding(), dest.address(), mask);
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+#else
   void movl(Register src, const Operand& dest) {
     MOZ_ASSERT(hasCreator());
     switch (dest.kind()) {
@@ -575,6 +601,28 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#endif
+#ifdef JITSBX_HEAP_MASK
+  void movl(Imm32 imm32, const Operand& dest, bool mask = true) {
+    switch (dest.kind()) {
+      case Operand::REG:
+        masm.movl_i32r(imm32.value, dest.reg());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.movl_i32m(imm32.value, dest.disp(), dest.base(), mask);
+        break;
+      case Operand::MEM_SCALE:
+        masm.movl_i32m(imm32.value, dest.disp(), dest.base(), dest.index(),
+                       dest.scale(), mask);
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movl_i32m(imm32.value, dest.address(), mask);
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+#else
   void movl(Imm32 imm32, const Operand& dest) {
     switch (dest.kind()) {
       case Operand::REG:
@@ -594,6 +642,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#endif
 
   void xchgl(Register src, Register dest) {
     masm.xchgl_rr(src.encoding(), dest.encoding());

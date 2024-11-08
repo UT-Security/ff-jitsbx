@@ -338,7 +338,7 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
     if (!mir->hasDefaultAliasSet() && !isWhitelisted) {
       const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
       masm.move32(Imm32(1), ReturnReg);
-      masm.store32(ReturnReg, AbsoluteAddress(addr));
+      masm.store32(ReturnReg, AbsoluteAddress(addr), false);
     }
   }
 #endif
@@ -360,7 +360,7 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
     const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
     masm.push(ReturnReg);
     masm.move32(Imm32(0), ReturnReg);
-    masm.store32(ReturnReg, AbsoluteAddress(addr));
+    masm.store32(ReturnReg, AbsoluteAddress(addr), false);
     masm.pop(ReturnReg);
   }
 #endif

@@ -8,9 +8,9 @@
 #define jit_x64_BaseAssembler_x64_h
 
 #include "jit/x86-shared/BaseAssembler-x86-shared.h"
-// ask2374
+#ifdef JITSBX_HEAP_MASK
 #include "jitsbx/JitSandboxMask.h"
-// ask2374
+#endif
 
 namespace js {
 namespace jit {

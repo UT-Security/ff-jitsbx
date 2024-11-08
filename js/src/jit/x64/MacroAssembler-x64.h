@@ -680,6 +680,17 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
   }
 #endif
+#ifdef JITSBX_HEAP_MASK
+  void store32(Register src, AbsoluteAddress address, bool mask = true) {
+    if (X86Encoding::IsAddressImmediate(address.addr)) {
+      movl(src, Operand(address), mask);
+    } else {
+      ScratchRegisterScope scratch(asMasm());
+      mov(ImmPtr(address.addr), scratch);
+      store32(src, Address(scratch, 0x0), mask);
+    }
+  }
+#else
   void store32(Register src, AbsoluteAddress address) {
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movl(src, Operand(address));
@@ -689,6 +700,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       store32(src, Address(scratch, 0x0));
     }
   }
+#endif
   void store16(Register src, AbsoluteAddress address) {
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movw(src, Operand(address));

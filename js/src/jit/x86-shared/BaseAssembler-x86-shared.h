@@ -40,6 +40,10 @@
 #include "jitsbx/JitSandbox.h"
 #endif
 
+#ifdef JITSBX_HEAP_MASK
+#include "jitsbx/JitSandboxMask.h"
+#endif
+
 namespace js {
 namespace jit {
 
@@ -2585,10 +2589,14 @@ class BaseAssembler : public GenericAssembler {
   void movw_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movw       %s, " MEM_ob, GPReg16Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base);
+#endif
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, src);
   }
 
+  // TODO: Figure out how to mask disp32
   void movw_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
     spew("movw       %s, " MEM_o32b, GPReg16Name(src), ADDR_o32b(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -2601,6 +2609,9 @@ class BaseAssembler : public GenericAssembler {
     spew("movw       %s, " MEM_obs, GPReg16Name(src),
          ADDR_obs(offset, base, index, scale));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base, index, scale);
+#endif
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, index, scale, src);
   }
@@ -2608,15 +2619,31 @@ class BaseAssembler : public GenericAssembler {
   void movw_rm(RegisterID src, const void* addr) {
     spew("movw       %s, %p", GPReg16Name(src), addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(addr);
+#endif
     m_formatter.prefix(PRE_OPERAND_SIZE);
     m_formatter.oneByteOp_disp32(OP_MOV_EvGv, addr, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, int32_t offset, RegisterID base, bool mask = true) {
+    spew("movl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base);
+#endif
+    }
+    m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, src);
+  }
+#else
   void movl_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movl       %s, " MEM_ob, GPReg32Name(src), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, src);
   }
+#endif
 
   void movl_rm_disp32(RegisterID src, int32_t offset, RegisterID base) {
     spew("movl       %s, " MEM_o32b, GPReg32Name(src), ADDR_o32b(offset, base));
@@ -2624,6 +2651,20 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp_disp32(OP_MOV_EvGv, offset, base, src);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, int32_t offset, RegisterID base,
+               RegisterID index, int scale, bool mask = true) {
+    spew("movl       %s, " MEM_obs, GPReg32Name(src),
+         ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(offset, base, index, scale);
+#endif
+    }
+    m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, index, scale, src);
+  }
+#else
   void movl_rm(RegisterID src, int32_t offset, RegisterID base,
                RegisterID index, int scale) {
     spew("movl       %s, " MEM_obs, GPReg32Name(src),
@@ -2631,6 +2672,7 @@ class BaseAssembler : public GenericAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(OP_MOV_EvGv, offset, base, index, scale, src);
   }
+#endif
 
   void movl_mEAX(const void* addr) {
 #ifdef JS_CODEGEN_X64
@@ -2754,6 +2796,20 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, int32_t offset, RegisterID base, bool mask = true) {
+    spew("movl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    cfiLabelNopAlign();
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+      jitSandboxCheck(offset, base);
+#endif
+    }
+    m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
+    m_formatter.immediate32(imm);
+  }
+#else
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base) {
     spew("movl       $0x%x, " MEM_ob, uint32_t(imm), ADDR_ob(offset, base));
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -2761,6 +2817,7 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
+#endif
 
   void movw_im(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                int scale) {
@@ -2773,6 +2830,23 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.immediate16(imm);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
+                 int scale, bool mask = true) {
+    spew("movl       $0x%x, " MEM_obs, uint32_t(imm),
+         ADDR_obs(offset, base, index, scale));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    cfiLabelNopAlign();
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+      jitSandboxCheck(offset, base, index, scale);
+#endif
+    }
+    m_formatter.oneByteOp(OP_GROUP11_EvIz, offset, base, index, scale,
+                          GROUP11_MOV);
+    m_formatter.immediate32(imm);
+  }
+#else
   void movl_i32m(int32_t imm, int32_t offset, RegisterID base, RegisterID index,
                  int scale) {
     spew("movl       $0x%x, " MEM_obs, uint32_t(imm),
@@ -2783,7 +2857,32 @@ class BaseAssembler : public GenericAssembler {
                           GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_EAXm(const void* addr, bool mask = true) {
+#ifdef JS_CODEGEN_X64
+    if (IsAddressImmediate(addr)) {
+      movl_rm(rax, addr);
+      return;
+    }
+#endif
+
+    spew("movl       %%eax, %p", addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(addr);
+#endif
+    }
+    m_formatter.oneByteOp(OP_MOV_OvEAX);
+#ifdef JS_CODEGEN_X64
+    m_formatter.immediate64(reinterpret_cast<int64_t>(addr));
+#else
+    m_formatter.immediate32(reinterpret_cast<int32_t>(addr));
+#endif
+  }
+#else
   void movl_EAXm(const void* addr) {
 #ifdef JS_CODEGEN_X64
     if (IsAddressImmediate(addr)) {
@@ -2801,6 +2900,8 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.immediate32(reinterpret_cast<int32_t>(addr));
 #endif
   }
+#endif
+
 
   void vmovq_rm(XMMRegisterID src, int32_t offset, RegisterID base) {
     // vmovq_rm can be encoded either as a true vmovq or as a vmovd with a
@@ -2850,6 +2951,27 @@ class BaseAssembler : public GenericAssembler {
     twoByteOpSimd("vmovq", VEX_SS, OP2_MOVQ_VdWd, addr, invalid_xmm, dst);
   }
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_rm(RegisterID src, const void* addr, bool mask = true) {
+    if (src == rax
+#ifdef JS_CODEGEN_X64
+        && !IsAddressImmediate(addr)
+#endif
+    ) {
+      movl_EAXm(addr, mask);
+      return;
+    }
+
+    spew("movl       %s, %p", GPReg32Name(src), addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(addr);
+#endif
+    }
+    m_formatter.oneByteOp(OP_MOV_EvGv, addr, src);
+  }
+#else
   void movl_rm(RegisterID src, const void* addr) {
     if (src == rax
 #ifdef JS_CODEGEN_X64
@@ -2864,7 +2986,22 @@ class BaseAssembler : public GenericAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(OP_MOV_EvGv, addr, src);
   }
+#endif
 
+#ifdef JITSBX_HEAP_MASK
+  void movl_i32m(int32_t imm, const void* addr, bool mask = true) {
+    spew("movl       $%d, %p", imm, addr);
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    cfiLabelNopAlign();
+    if (mask) {
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+    jitSandboxCheck(addr);
+#endif
+    }
+    m_formatter.oneByteOp(OP_GROUP11_EvIz, addr, GROUP11_MOV);
+    m_formatter.immediate32(imm);
+  }
+#else
   void movl_i32m(int32_t imm, const void* addr) {
     spew("movl       $%d, %p", imm, addr);
     InstructionBundleAlignment align(*(BaseAssembler*)this);
@@ -2872,6 +3009,7 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_GROUP11_EvIz, addr, GROUP11_MOV);
     m_formatter.immediate32(imm);
   }
+#endif
 
   void movb_rm(RegisterID src, int32_t offset, RegisterID base) {
     spew("movb       %s, " MEM_ob, GPReg8Name(src), ADDR_ob(offset, base));
@@ -3058,6 +3196,110 @@ class BaseAssembler : public GenericAssembler {
     InstructionBundleAlignment align(*(BaseAssembler*)this);
     m_formatter.oneByteOp(OP_LEA, offset, base, dst);
   }
+
+   // ask2374
+#ifdef JITSBX_HEAP_MASK_PASSIVE
+#ifdef JS_CODEGEN_X64
+  void movq_rr(RegisterID src, RegisterID dst) {
+    spew("movq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    m_formatter.oneByteOp64(OP_MOV_EvGv, dst, src);
+  }
+
+  void addq_i32r(int32_t imm, RegisterID dst) {
+    // 32-bit immediate always, for patching.
+    spew("addq       $0x%04x, %s", uint32_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
+    if (dst == rax) {
+      m_formatter.oneByteOp64(OP_ADD_EAXIv);
+    } else {
+      m_formatter.oneByteOp64(OP_GROUP1_EvIz, dst, GROUP1_OP_ADD);
+    }
+    m_formatter.immediate32(imm);
+  }
+
+  void movq_i64r(int64_t imm, RegisterID dst) {
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
+#ifdef JITSBX_CFI_LABEL8
+    // Make sure label cannot be emitted as an 8-byte sequence
+    if ((uint64_t(imm) >> 56) == 0xcc) {
+      movq_i64r(uint64_t(imm) >> 8, dst);
+      shlq_ir(8, dst);
+      addq_i32r(imm & 0xff, dst);
+    } else {
+#endif
+    spew("movabsq    $0x%" PRIx64 ", %s", uint64_t(imm), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    m_formatter.oneByteOp64(OP_MOV_EAXIv, dst);
+    m_formatter.immediate64(imm);
+#ifdef JITSBX_CFI_LABEL8
+    }
+#endif
+  }
+
+  void addq_rr(RegisterID src, RegisterID dst) {
+    spew("addq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    m_formatter.oneByteOp64(OP_ADD_GvEv, src, dst);
+  }
+
+  void imulq_ir(int32_t value, RegisterID src, RegisterID dst) {
+    spew("imulq      $%d, %s, %s", value, GPReg64Name(src), GPReg64Name(dst));
+    InstructionBundleAlignment align(*(BaseAssembler*)this);
+    ((BaseAssembler*)this)->cfiLabelNopAlign();
+    if (CAN_SIGN_EXTEND_8_32(value)) {
+      m_formatter.oneByteOp64(OP_IMUL_GvEvIb, src, dst);
+      m_formatter.immediate8s(value);
+    } else {
+      m_formatter.oneByteOp64(OP_IMUL_GvEvIz, src, dst);
+      m_formatter.immediate32(value);
+    }
+  }
+
+  // JIT mask check helpers                                                                                                                                                                           
+  void jitSandboxCheck(int32_t offset, RegisterID base) {
+    spew("jitSandboxCheck");
+    push_r(rax);
+    push_r(rdi);
+    movq_rr(base, rdi);
+    addq_i32r(offset, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(rdi);
+    pop_r(rax);
+  }
+
+  void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index,
+                       int32_t scale) {
+    spew("jitSandboxCheck");
+    RegisterID scratch = (base == r15) ? r14 : r15;
+    push_r(rax);
+    push_r(rdi);
+    push_r(scratch);
+    movq_rr(base, scratch);
+    movq_rr(index, rdi);
+    imulq_ir(scale, rdi, rdi);
+    addq_rr(scratch, rdi);
+    addq_i32r(offset, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+    pop_r(scratch);
+    pop_r(rdi);
+    pop_r(rax);
+  }
+
+  void jitSandboxCheck(const void* addr) {
+    spew("jitSandboxCheck");
+    push_r(rax);
+    push_r(rdi);
+    movq_i64r((int64_t)addr, rdi);
+    movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
+    call_r(rax);
+  }
+#endif
+#endif
+  // ask2374
 
   // Flow control:
 
