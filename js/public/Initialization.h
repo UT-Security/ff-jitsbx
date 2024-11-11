@@ -171,6 +171,8 @@ JS_PUBLIC_API bool InitSelfHostedCode(JSContext* cx,
  */
 JS_PUBLIC_API void DisableJitBackend();
 
+JS_PUBLIC_API void DisableExtraThreads();
+
 }  // namespace JS
 
 /**

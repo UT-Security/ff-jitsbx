@@ -10,6 +10,21 @@ def js_standalone(build_project):
     if build_project == "js":
         return True
 
+# SpiderMonkey Sandbox
+# ==============================================================
+option(
+    "--enable-js-sandbox",
+    default=False,
+    help="{Enable|Disable} the JavaScript sandbox.",
+)
+
+@depends("--enable-js-sandbox")
+def js_sandbox(enable_js_sandbox):
+    if enable_js_sandbox:
+        return True
+
+set_config("JS_SANDBOX", js_sandbox)
+set_define("JS_SANDBOX", js_sandbox)
 
 # Debug (see Bug 939505)
 # ==============================================================

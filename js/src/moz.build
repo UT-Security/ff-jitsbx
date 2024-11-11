@@ -47,21 +47,29 @@ for stlfile in ["jsdate.*", "jsnum.*"]:
 with Files("builtin/intl/*"):
     BUG_COMPONENT = component_intl
 
+DIRS += [
+    "rust",
+]
+
 if not CONFIG["JS_DISABLE_SHELL"]:
-    DIRS += [
-        "rust",
-        "shell",
-    ]
+    if not CONFIG["JS_SANDBOX"]:
+        DIRS += [
+            "shell",
+        ]
 
-    TEST_DIRS += [
-        "gdb",
-        "jsapi-tests",
-        "tests",
-    ]
-
-    if CONFIG["FUZZING_INTERFACES"]:
         TEST_DIRS += [
-            "fuzz-tests",
+            "gdb",
+            "jsapi-tests",
+            "tests",
+        ]
+
+        if CONFIG["FUZZING_INTERFACES"]:
+            TEST_DIRS += [
+                "fuzz-tests",
+            ]
+    else:
+        DIRS += [
+            "sandbox-shell"
         ]
 
 if CONFIG["FUZZING_INTERFACES"] and CONFIG["LIBFUZZER"]:
@@ -638,3 +646,6 @@ if CONFIG["JS_HAS_INTL_API"]:
     ]
 
     USE_LIBS += ["intlcomponents"]
+
+if CONFIG["JS_SANDBOX"]:
+    DIRS += ["sandbox"]

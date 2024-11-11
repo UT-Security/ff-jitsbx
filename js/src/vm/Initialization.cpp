@@ -355,3 +355,7 @@ JS_PUBLIC_API void JS::DisableJitBackend() {
              "DisableJitBackend must be called before creating a JSContext");
   js::jit::JitOptions.disableJitBackend = true;
 }
+
+JS_PUBLIC_API void JS::DisableExtraThreads() {
+  js::DisableExtraThreads();
+}

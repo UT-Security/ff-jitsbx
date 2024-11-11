@@ -328,6 +328,7 @@ profiling = dependable(False)
 # Same for js_standalone
 js_standalone = dependable(False)
 js_shared = dependable(False)
+js_sandbox = dependable(False)
 moz_linker = dependable(False)
 # Same for fold_libs
 fold_libs = dependable(False)

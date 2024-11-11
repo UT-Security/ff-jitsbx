@@ -50,6 +50,10 @@ ignored_js_src_dirs = [
     "js/src/gdb/",  # auxiliary stuff
     "js/src/vtune/",  # imported code
     "js/src/zydis/",  # imported code
+    "js/src/sandbox/liblfi/", # imported code
+    "js/src/sandbox/libmmap/", # imported code
+    "js/src/sandbox/liblfix/", # imported code
+    "js/src/sandbox/build/gen/", # imported code
 ]
 
 # We ignore #includes of these files, because they don't follow the usual rules.
