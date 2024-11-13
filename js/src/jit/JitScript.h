@@ -106,10 +106,16 @@ class alignas(uintptr_t) ICScript final : public TrailingArray {
   ICScript(uint32_t warmUpCount, Offset fallbackStubsOffset, Offset endOffset,
            uint32_t depth, InliningRoot* inliningRoot = nullptr)
       : inliningRoot_(inliningRoot),
+#ifndef JITSBX_HEAP_MASK
         warmUpCount_(warmUpCount),
+#endif
         fallbackStubsOffset_(fallbackStubsOffset),
         endOffset_(endOffset),
-        depth_(depth) {}
+        depth_(depth) {
+#ifdef JITSBX_HEAP_MASK
+          *warmUpCount_ = warmUpCount;
+#endif
+        }
 
   bool isInlined() const { return depth_ > 0; }
 
@@ -139,7 +145,13 @@ class alignas(uintptr_t) ICScript final : public TrailingArray {
   InliningRoot* inliningRoot() const { return inliningRoot_; }
   uint32_t depth() const { return depth_; }
 
-  void resetWarmUpCount(uint32_t count) { warmUpCount_ = count; }
+  void resetWarmUpCount(uint32_t count) { 
+#ifdef JITSBX_HEAP_MASK
+    *warmUpCount_ = count;
+#else
+    warmUpCount_ = count;
+#endif
+  }
 
   static constexpr size_t offsetOfFirstStub(uint32_t entryIndex) {
     return sizeof(ICScript) + entryIndex * sizeof(ICEntry) +
@@ -196,7 +208,11 @@ class alignas(uintptr_t) ICScript final : public TrailingArray {
   // Number of times this copy of the script has been called or has had
   // backedges taken.  Reset if the script's JIT code is forcibly discarded.
   // See also the ScriptWarmUpData class.
+#ifdef JITSBX_HEAP_MASK
+  mozilla::Atomic<uint32_t, mozilla::Relaxed>* warmUpCount_ = js_jitsbx_new<mozilla::Atomic<uint32_t, mozilla::Relaxed>>();
+#else
   mozilla::Atomic<uint32_t, mozilla::Relaxed> warmUpCount_ = {};
+#endif
 
   // The offset of the ICFallbackStub array.
   Offset fallbackStubsOffset_;
@@ -378,8 +394,20 @@ class alignas(uintptr_t) JitScript final : public TrailingArray {
     return offsetOfICScript() + ICScript::offsetOfWarmUpCount();
   }
 
-  uint32_t warmUpCount() const { return icScript_.warmUpCount_; }
-  void incWarmUpCount() { icScript_.warmUpCount_++; }
+  uint32_t warmUpCount() const { 
+#ifdef JITSBX_HEAP_MASK
+    return (*icScript_.warmUpCount_);
+#else
+    return icScript_.warmUpCount_;
+#endif
+  }
+  void incWarmUpCount() {
+#ifdef JITSBX_HEAP_MASK
+    (*icScript_.warmUpCount_)++;
+#else
+    icScript_.warmUpCount_++;
+#endif
+  }
   void resetWarmUpCount(uint32_t count);
 
   void prepareForDestruction(Zone* zone);

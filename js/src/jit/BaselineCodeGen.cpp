@@ -1481,10 +1481,19 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   masm.loadPtr(frame.addressOfICScript(), scriptReg);
 
   // Bump warm-up counter.
+#ifdef JITSBX_HEAP_MASK
+  Register tmp = R1.scratchReg();
+  Address warmUpCounterAddr(scriptReg, ICScript::offsetOfWarmUpCount());
+  masm.loadPtr(warmUpCounterAddr, tmp);
+  masm.load32(Address(tmp, 0), countReg);
+  masm.add32(Imm32(1), countReg);
+  masm.store32(countReg, Address(tmp, 0));
+#else
   Address warmUpCounterAddr(scriptReg, ICScript::offsetOfWarmUpCount());
   masm.load32(warmUpCounterAddr, countReg);
   masm.add32(Imm32(1), countReg);
   masm.store32(countReg, warmUpCounterAddr);
+#endif
 
   if (!JitOptions.disableInlining) {
     // Consider trial inlining.
@@ -1644,10 +1653,19 @@ bool BaselineInterpreterCodeGen::emitWarmUpCounterIncrement() {
   masm.loadJitScript(scriptReg, scriptReg);
 
   // Bump warm-up counter.
+#ifdef JITSBX_HEAP_MASK
+  Register tmp = R1.scratchReg();
+  Address warmUpCounterAddr(scriptReg, JitScript::offsetOfWarmUpCount());
+  masm.loadPtr(warmUpCounterAddr, tmp);
+  masm.load32(Address(tmp, 0), countReg);
+  masm.add32(Imm32(1), countReg);
+  masm.store32(countReg, Address(tmp, 0));
+#else
   Address warmUpCounterAddr(scriptReg, JitScript::offsetOfWarmUpCount());
   masm.load32(warmUpCounterAddr, countReg);
   masm.add32(Imm32(1), countReg);
   masm.store32(countReg, warmUpCounterAddr);
+#endif
 
   // If the script is warm enough for Baseline compilation, call into the VM to
   // compile it.

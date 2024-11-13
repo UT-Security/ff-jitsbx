@@ -440,7 +440,7 @@ void CodeGenerator::tailCallVMInternal(VMFunctionId id, LInstruction* ins) {
     const void* addr = gen->jitRuntime()->addressOfDisallowArbitraryCode();
     masm.push(ReturnReg);
     masm.move32(Imm32(0), ReturnReg);
-    masm.store32(ReturnReg, AbsoluteAddress(addr));
+    masm.store32(ReturnReg, AbsoluteAddress(addr), false);
     masm.pop(ReturnReg);
   }
 #  endif
@@ -17726,9 +17726,18 @@ void CodeGenerator::incrementWarmUpCounter(AbsoluteAddress warmUpCount,
   masm.bind(&ok);
 #endif
 
+#ifdef JITSBX_HEAP_MASK
+  AllocatableGeneralRegisterSet allRegs(GeneralRegisterSet::All());
+  Register scratch = allRegs.takeAny();
+  masm.loadPtr(warmUpCount, scratch);
+  masm.load32(Address(scratch, 0), tmp);
+  masm.add32(Imm32(1), tmp);
+  masm.store32(tmp, Address(scratch, 0));
+#else
   masm.load32(warmUpCount, tmp);
   masm.add32(Imm32(1), tmp);
   masm.store32(tmp, warmUpCount);
+#endif
 }
 
 void CodeGenerator::visitIncrementWarmUpCounter(LIncrementWarmUpCounter* ins) {
