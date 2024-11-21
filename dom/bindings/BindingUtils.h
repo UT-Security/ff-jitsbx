@@ -1018,6 +1018,75 @@ MOZ_ALWAYS_INLINE bool MaybeWrapValue(JSContext* cx,
   return true;
 }
 
+MOZ_ALWAYS_INLINE
+bool MaybeWrapStringValue(JSContext* cx, JSTaintedMutableHandle<JS::Value> rval) {
+  MOZ_ASSERT(rval.get().UNSAFE_unverified_ref().isString());
+  JSString* str = rval.get().UNSAFE_unverified_ref().toString();
+  if (JS::GetStringZone(str) != js::GetContextZone(cx)) {
+    JS::Rooted<JS::Value> temp_rooted (cx, rval.get().UNSAFE_unverified_ref());
+    JS::MutableHandle<JS::Value> temp (&temp_rooted);
+    return JS_WrapValue(cx, temp);
+  }
+  return true;
+}
+
+inline bool TryToOuterize(JSTaintedMutableHandle<JS::Value> rval) {
+#ifdef ENABLE_RECORD_TUPLE
+  if (rval.isExtendedPrimitive()) {
+    return true;
+  }
+#endif
+  MOZ_ASSERT(rval.get().UNSAFE_unverified_ref().isObject());
+  if (js::IsWindow(&rval.get().UNSAFE_unverified_ref().toObject())) {
+    JSObject* obj = js::ToWindowProxyIfWindow(&rval.get().UNSAFE_unverified_ref().toObject());
+    MOZ_ASSERT(obj);
+    rval.set(JS::ObjectValue(*obj));
+  }
+
+  return true;
+}
+
+MOZ_ALWAYS_INLINE
+bool MaybeWrapObjectValue(JSContext* cx, JSTaintedMutableHandle<JS::Value> rval) {
+  MOZ_ASSERT(rval.get().UNSAFE_unverified_ref().hasObjectPayload());
+
+  // Cross-compartment always requires wrapping.
+  JSObject* obj = &rval.get().UNSAFE_unverified_ref().getObjectPayload();
+  if (JS::GetCompartment(obj) != js::GetContextCompartment(cx)) {
+    JS::Rooted<JS::Value> temp_rooted (cx, rval.get().UNSAFE_unverified_ref());
+    JS::MutableHandle<JS::Value> temp (&temp_rooted);
+    return JS_WrapValue(cx, temp);
+  }
+
+  // We're same-compartment, but we might still need to outerize if we
+  // have a Window.
+  return TryToOuterize(rval);
+}
+
+MOZ_ALWAYS_INLINE bool MaybeWrapValue(JSContext* cx,
+                                      JSTaintedMutableHandle<JS::Value> rval) {
+  if (rval.get().UNSAFE_unverified_ref().isGCThing()) {
+    if (rval.get().UNSAFE_unverified_ref().isString()) {
+      return MaybeWrapStringValue(cx, rval);
+    }
+    if (rval.get().UNSAFE_unverified_ref().hasObjectPayload()) {
+      return MaybeWrapObjectValue(cx, rval);
+    }
+    // This could be optimized by checking the zone first, similar to
+    // the way strings are handled. At present, this is used primarily
+    // for structured cloning, so avoiding the overhead of JS_WrapValue
+    // calls is less important than for other types.
+    if (rval.get().UNSAFE_unverified_ref().isBigInt()) {
+        JS::Rooted<JS::Value> temp_rooted (cx, rval.get().UNSAFE_unverified_ref());
+        JS::MutableHandle<JS::Value> temp (&temp_rooted);
+        return JS_WrapValue(cx, temp);
+    }
+    MOZ_ASSERT(rval.get().UNSAFE_unverified_ref().isSymbol());
+    JS_MarkCrossZoneId(cx, JS::PropertyKey::Symbol(rval.get().UNSAFE_unverified_ref().toSymbol()));
+  }
+  return true;
+}
+
 namespace binding_detail {
 enum GetOrCreateReflectorWrapBehavior {
   eWrapIntoContextCompartment,

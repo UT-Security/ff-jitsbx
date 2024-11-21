@@ -197,6 +197,8 @@ public:
     
   operator const JSTainted<T>&() const { get(); }
   const JSTainted<T>& operator->() const { get(); } 
+  //TODO: this feels unsafe
+  void set(const T& v) { ptr->assign_raw_value(v); }
   
 private:
   JSTaintedMutableHandle() = default;
@@ -224,6 +226,13 @@ template<typename T>
 class JSTaintedVolatileHandle {
 private:
   JSTainted<T*> ptr;
+};
+
+class JSTaintedJitGetterCallArgs : protected JSTaintedMutableHandle<JS::Value> {
+    public : 
+    explicit JSTaintedJitGetterCallArgs(JSTaintedMutableHandle handle) 
+    : JSTaintedMutableHandle(handle) {}
+    JSTaintedMutableHandle<JS::Value> rval() { return *static_cast<JSTaintedMutableHandle<JS::Value>*> (this); }
 };
   
 }

@@ -9547,18 +9547,32 @@ class CGPerSignatureCall(CGThing):
         else:
             successCode = None
 
-        resultTemplateValues = {
-            "jsvalRef": "args.rval()",
-            "jsvalHandle": "args.rval()",
-            "returnsNewObject": returnsNewObject,
-            "isConstructorRetval": self.isConstructor,
-            "successCode": successCode,
-            # 'obj' in this dictionary is the thing whose compartment we are
-            # trying to do the to-JS conversion in.  We're going to put that
-            # thing in a variable named "conversionScope" if setSlot is true.
-            # Otherwise, just use "obj" for lack of anything better.
-            "obj": "conversionScope" if self.setSlot else "obj",
-        }
+        if self.isTainted : 
+            resultTemplateValues = {
+                "jsvalRef": "test_args.rval()",
+                "jsvalHandle": "test_args.rval()",
+                "returnsNewObject": returnsNewObject,
+                "isConstructorRetval": self.isConstructor,
+                "successCode": successCode,
+                # 'obj' in this dictionary is the thing whose compartment we are
+                # trying to do the to-JS conversion in.  We're going to put that
+                # thing in a variable named "conversionScope" if setSlot is true.
+                # Otherwise, just use "obj" for lack of anything better.
+                "obj": "conversionScope" if self.setSlot else "obj",
+            }
+        else :
+            resultTemplateValues = {
+                "jsvalRef": "args.rval()",
+                "jsvalHandle": "args.rval()",
+                "returnsNewObject": returnsNewObject,
+                "isConstructorRetval": self.isConstructor,
+                "successCode": successCode,
+                # 'obj' in this dictionary is the thing whose compartment we are
+                # trying to do the to-JS conversion in.  We're going to put that
+                # thing in a variable named "conversionScope" if setSlot is true.
+                # Otherwise, just use "obj" for lack of anything better.
+                "obj": "conversionScope" if self.setSlot else "obj",
+            }
 
         wrapCode += wrapForType(self.returnType, self.descriptor, resultTemplateValues, isTainted=self.isTainted)
 
@@ -11064,6 +11078,10 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
             prefix = fill(
                 """
                 auto* self = static_cast<${nativeType}*>(void_self);
+                JSTaintedRooted<JS::Value> arg_jsvalue (cx);
+                arg_jsvalue.get().assign_raw_value((args.rval()).get());
+                JSTaintedMutableHandle<JS::Value> temp (&arg_jsvalue);
+                JSTaintedJitGetterCallArgs test_args (temp);
                 """,
                 nativeType=self.descriptor.nativeType,
             )
