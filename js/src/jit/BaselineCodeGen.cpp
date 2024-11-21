@@ -1416,6 +1416,7 @@ bool BaselineCompilerCodeGen::emitWarmUpCounterIncrement() {
   jsbytecode* pc = handler.pc();
   if (JSOp(*pc) == JSOp::LoopHead) {
     uint32_t pcOffset = script->pcToOffset(pc);
+    masm.bundleAlignNop();
     uint32_t nativeOffset = masm.currentOffset();
     if (!handler.osrEntries().emplaceBack(pcOffset, nativeOffset)) {
       ReportOutOfMemory(cx);
@@ -5920,7 +5921,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
     masm.loadJSContext(scratchReg);
     masm.loadPtr(Address(scratchReg, JSContext::offsetOfProfilingActivation()),
                  scratchReg);
-    masm.storePtr(
+    masm.unsafeStorePtr(
         FramePointer,
         Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()));
     masm.bind(&skip);
@@ -6333,6 +6334,7 @@ template <typename Handler>
 bool BaselineCodeGen<Handler>::emitPrologue() {
   AutoCreatedBy acb(masm, "BaselineCodeGen<Handler>::emitPrologue");
 
+  masm.bundleAlignNop();
 #ifdef JS_USE_LINK_REGISTER
   // Push link register from generateEnterJIT()'s BLR.
   masm.pushReturnAddress();
@@ -6372,6 +6374,7 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
   emitInitializeLocals();
 
   // Ion prologue bailouts will enter here in the Baseline Interpreter.
+  masm.bundleAlignNop();
   masm.bind(&bailoutPrologue_);
 
   frame.assertSyncedStack();
@@ -6392,6 +6395,8 @@ bool BaselineCodeGen<Handler>::emitPrologue() {
     return false;
   }
 
+  // TODO(JS_SANDBOX_CFI): confirm what uses this as a indirect jump target.
+  masm.bundleAlignNop();
   warmUpCheckPrologueOffset_ = CodeOffset(masm.currentOffset());
 
   return true;
@@ -6467,6 +6472,7 @@ MethodStatus BaselineCompiler::emitBody() {
     // the native code offset.
     if (info->hasResumeOffset) {
       frame.assertSyncedStack();
+      masm.bundleAlignNop();
       uint32_t pcOffset = script->pcToOffset(handler.pc());
       uint32_t nativeOffset = masm.currentOffset();
       if (!resumeOffsetEntries_.emplaceBack(pcOffset, nativeOffset)) {
@@ -6623,6 +6629,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   // External entry point to start interpreting bytecode ops. This is used for
   // things like exception handling and OSR. DebugModeOSR patches JIT frames to
   // return here from the DebugTrapHandler.
+  masm.bundleAlignNop();
   masm.bind(handler.interpretOpLabel());
   interpretOpOffset_ = masm.currentOffset();
   restoreInterpreterPCReg();
@@ -6630,11 +6637,13 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Second external entry point: this skips the debug trap for the first op
   // and is used by OSR.
+  masm.bundleAlignNop();
   interpretOpNoDebugTrapOffset_ = masm.currentOffset();
   restoreInterpreterPCReg();
   masm.jump(&interpretOpAfterDebugTrap);
 
   // External entry point for Ion prologue bailouts.
+  masm.bundleAlignNop();
   bailoutPrologueOffset_ = CodeOffset(masm.currentOffset());
   restoreInterpreterPCReg();
   masm.jump(&bailoutPrologue_);
@@ -6649,6 +6658,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
       return false;
     }
 
+    masm.bundleAlignNop();
     debugTrapHandlerOffset_ = masm.currentOffset();
     masm.jump(handlerCode);
   }

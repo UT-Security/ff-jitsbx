@@ -113,6 +113,7 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
                                RelocationKind reloc) {
   MOZ_ASSERT(target.value != nullptr);
+  assertNotInBundle();
 
   // Emit reloc before modifying the jump table, since it computes a 0-based
   // index. This jump is not patchable at runtime.

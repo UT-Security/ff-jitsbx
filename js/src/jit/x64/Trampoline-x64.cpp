@@ -4,6 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#ifdef JS_SANDBOX
+#include "sandbox/Memory.h"
+#endif
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
 #include "jit/CalleeToken.h"
@@ -141,6 +144,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
+
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -289,6 +293,12 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&skipProfilingInstrumentation);
     }
 
+    // TODO(JS_SANDBOX): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX
+    masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
+    masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
+#endif
+
     masm.jump(reg_code);
 
     // OOM: frame epilogue, load error value, discard return address and return.
@@ -302,6 +312,13 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&notOsr);
     masm.movq(scopeChain, R1.scratchReg());
   }
+  
+  // TODO(JS_SANDBOX): setting up sandbox pinned registers.
+#ifdef JS_SANDBOX
+  masm.mov(ImmWord(sandbox::MemoryMask), SandboxMaskReg);
+  masm.mov(ImmWord(sandbox::MemoryBase()), SandboxBaseReg);
+#endif
+
 
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.
@@ -325,7 +342,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
   masm.pop(r12);  // vp
-  masm.storeValue(JSReturnOperand, Operand(r12, 0));
+  masm.unsafeStoreValue(JSReturnOperand, Operand(r12, 0));
 
   // Restore non-volatile registers.
 #if defined(_WIN64)
@@ -353,7 +370,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore frame pointer and return.
   masm.pop(rbp);
+#ifdef JS_SANDBOX_CFI
+  masm.unsafeRet();
+#else
   masm.ret();
+#endif
 }
 
 // static

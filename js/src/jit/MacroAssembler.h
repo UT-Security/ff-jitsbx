@@ -636,7 +636,19 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Useful for dealing with two-valued returns.
   void moveRegPair(Register src0, Register src1, Register dst0, Register dst1,
                    MoveOp::Type type = MoveOp::GENERAL);
+ public:
+  // ===============================================================
+  // JS Sandbox helpers.
 
+  void bundleAlignNop();
+#ifdef JS_SANDBOX_CFI
+  void unsafeCall(const Address& addr) DEFINED_ON(x86_shared);
+  CodeOffset unsafeCall(Register reg) DEFINED_ON(x86_shared);
+  void unsafeJump(const Address& addr) DEFINED_ON(x86_shared);
+  void unsafeJump(Register reg) DEFINED_ON(x86_shared);
+  void unsafeRet() DEFINED_ON(x86_shared);
+#endif
+  
  public:
   // ===============================================================
   // Patchable near/far jumps.
@@ -2194,9 +2206,15 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <class T>
   inline void storeFloat32(FloatRegister src, const T& dest);
 
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
+                         const T& dest, Register scratch = ScratchReg) PER_ARCH;
+#else
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest) PER_ARCH;
+#endif
 
   inline void memoryBarrier(MemoryBarrierBits barrier) PER_SHARED_ARCH;
 
@@ -4694,6 +4712,34 @@ class MacroAssembler : public MacroAssemblerSpecific {
     }
   }
 
+#ifdef JS_SANDBOX_HEAP
+  template <typename T>
+  void storeTypedOrValue(TypedOrValueRegister src, const T& dest, Register scratch = ScratchReg) {
+    if (src.hasValue()) {
+      storeValue(src.valueReg(), dest);
+    } else if (IsFloatingPointType(src.type())) {
+      FloatRegister reg = src.typedReg().fpu();
+      if (src.type() == MIRType::Float32) {
+        ScratchDoubleScope fpscratch(*this);
+        convertFloat32ToDouble(reg, fpscratch);
+        boxDouble(fpscratch, dest);
+      } else {
+        boxDouble(reg, dest);
+      }
+    } else {
+      storeValue(ValueTypeFromMIRType(src.type()), src.typedReg().gpr(), dest, scratch);
+    }
+  }
+
+  template <typename T>
+  void storeConstantOrRegister(const ConstantOrRegister& src, const T& dest, Register scratch = ScratchReg) {
+    if (src.constant()) {
+      storeValue(src.value(), dest, scratch);
+    } else {
+      storeTypedOrValue(src.reg(), dest, scratch);
+    }
+  }
+#else
   template <typename T>
   void storeTypedOrValue(TypedOrValueRegister src, const T& dest) {
     if (src.hasValue()) {
@@ -4720,6 +4766,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
       storeTypedOrValue(src.reg(), dest);
     }
   }
+#endif
 
   void storeCallPointerResult(Register reg) {
     if (reg != ReturnReg) {
@@ -5268,6 +5315,10 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <typename T>
   void storeStackPtr(T t) {
     storePtr(getStackPointer(), t);
+  }
+  template <typename T>
+  void unsafeStoreStackPtr(T t) {
+    unsafeStorePtr(getStackPointer(), t);
   }
 
   // StackPointer testing functions.

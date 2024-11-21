@@ -3404,7 +3404,7 @@ MacroAssembler::AutoProfilerCallInstrumentation::
   CodeOffset label = masm.movWithPatch(ImmWord(uintptr_t(-1)), reg);
   masm.loadJSContext(reg2);
   masm.loadPtr(Address(reg2, offsetof(JSContext, profilingActivation_)), reg2);
-  masm.storePtr(reg,
+  masm.unsafeStorePtr(reg,
                 Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
 
   masm.appendProfilerCallSite(label);
@@ -3539,6 +3539,9 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+
+  // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
+  unsafeSetIsSandboxed(false);
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
@@ -3555,6 +3558,8 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+  // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
+  unsafeSetIsSandboxed(false);
 }
 
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,
@@ -3844,7 +3849,7 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
     push(ReturnReg);
     loadJSContext(ReturnReg);
     Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
-    store32(Imm32(1), flagAddr);
+    unsafeStore32(Imm32(1), flagAddr);
     pop(ReturnReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/bug1375074.js
@@ -3909,7 +3914,7 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
-  storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+  unsafeStoreStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
 }
 
 // ===============================================================

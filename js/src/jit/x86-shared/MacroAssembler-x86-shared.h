@@ -7,6 +7,7 @@
 #ifndef jit_x86_shared_MacroAssembler_x86_shared_h
 #define jit_x86_shared_MacroAssembler_x86_shared_h
 
+#include "jit/shared/Assembler-shared.h"
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/Assembler-x86.h"
 #elif defined(JS_CODEGEN_X64)
@@ -162,6 +163,7 @@ class MacroAssemblerX86Shared : public Assembler {
   void storeLoadFence() {
     // This implementation follows Linux.
     if (HasSSE2()) {
+      AutoBundleScope bundle(*this);
       masm.mfence();
     } else {
       lock_addl(Imm32(0), Operand(Address(esp, 0)));
@@ -181,8 +183,13 @@ class MacroAssemblerX86Shared : public Assembler {
   void jump(JitCode* code) { jmp(code); }
   void jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
   void jump(ImmPtr ptr) { jmp(ptr); }
+#ifdef JS_SANDBOX_CFI
+  void jump(Register reg);
+  void jump(const Address& addr);
+#else
   void jump(Register reg) { jmp(Operand(reg)); }
   void jump(const Address& addr) { jmp(Operand(addr)); }
+#endif
 
   void convertInt32ToDouble(Register src, FloatRegister dest) {
     // vcvtsi2sd and friends write only part of their output register, which
@@ -334,6 +341,14 @@ class MacroAssemblerX86Shared : public Assembler {
   template <typename S, typename T>
   void store32(const S& src, const T& dest) {
     movl(src, Operand(dest));
+  }
+  template <typename S, typename T>
+  void unsafeStore32(const S& src, const T& dest) {
+    Operand op = Operand(dest);
+#ifdef JS_SANDBOX_HEAP
+    op.unsafeSetSandboxed(true);
+#endif
+    movl(src, op);
   }
   template <typename S, typename T>
   void store32Unaligned(const S& src, const T& dest) {
@@ -902,11 +917,18 @@ class MacroAssemblerX86Shared : public Assembler {
     }
   }
 
+  static constexpr size_t SIZE_OF_TOGGLED_JUMP = 5;
+
   // Emit a JMP that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   CodeOffset toggledJump(Label* label) {
+#ifdef JS_SANDBOX_BUNDLE
+    jump(label);
+    return CodeOffset(size() - SIZE_OF_TOGGLED_JUMP);
+#else
     CodeOffset offset(size());
     jump(label);
     return offset;
+#endif
   }
 
   template <typename T>
@@ -917,6 +939,10 @@ class MacroAssemblerX86Shared : public Assembler {
   void checkStackAlignment() {
     // Exists for ARM compatibility.
   }
+
+#ifdef JS_SANDBOX_CFI
+  void ret();
+#endif
 
   void abiret() { ret(); }
 

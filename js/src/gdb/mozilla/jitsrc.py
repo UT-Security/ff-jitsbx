@@ -44,11 +44,11 @@ patterns = [
     (
         "__memmove_(avx|evex)_unaligned_erms",
         1,
-        "arena_t::RallocSmallOrLarge",
+        "(js::sandbox::)?arena_t::RallocSmallOrLarge",
         "aPtr",
         "ret",
     ),
-    ("__memcpy_(avx|evex)_unaligned", 1, "arena_t::RallocSmallOrLarge", "aPtr", "ret"),
+    ("__memcpy_(avx|evex)_unaligned", 1, "(js::sandbox::)?arena_t::RallocSmallOrLarge", "aPtr", "ret"),
     (
         "mozilla::detail::VectorImpl<.*>::new_<.*>",
         3,
@@ -77,7 +77,7 @@ patterns = [
         "masm.m_formatter.m_buffer.m_buffer.mBegin",
         "buffer",
     ),
-    ("__memcpy_sse2_unaligned", 1, "arena_t::RallocSmallOrLarge", "aPtr", "ret"),
+    ("__memcpy_sse2_unaligned", 1, "(js::sandbox::)?arena_t::RallocSmallOrLarge", "aPtr", "ret"),
     ("js::jit::X86Encoding::SetInt32", 0, "js::jit::X86Encoding::SetInt32", "0", "0"),
     (
         "js::jit::X86Encoding::SetPointer",
@@ -100,6 +100,34 @@ patterns = [
         "mozilla::detail::EndianUtils::copyAndSwapTo<.*0,.*0",
         "aSrc",
         "(size_t) aDest",
+    ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_<.*>",
+        2,
+        "mozilla::Vector<.*>::internalAppend<.*>",
+        "aInsBegin",
+        "endNoCheck()",
+    ),
+    (
+        "mozilla::detail::VectorImpl<.*>::new_<.*>",
+        1,
+        "mozilla::detail::VectorImpl<.*>::copyConstruct<.*>",
+        "aSrcStart",
+        "aDst",
+    ),
+    (
+        "__memmove_(avx|evex)_unaligned_erms",
+        1,
+        "(js::sandbox::)?arena_t::RallocHuge",
+        "aPtr",
+        "ret",
+    ),
+    (
+        "__memcpy_(avx|evex)_unaligned_erms",
+        1,
+        "(js::sandbox::)?arena_t::RallocHuge",
+        "aPtr",
+        "ret",
     ),
 ]
 

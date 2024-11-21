@@ -2492,7 +2492,11 @@ static bool SetMallocMaxDirtyPageModifier(JSContext* cx, unsigned argc,
     return false;
   }
 
+#ifdef JS_SANDBOX_HEAP
+  js::sandbox::moz_set_max_dirty_page_modifier(value);
+#else
   moz_set_max_dirty_page_modifier(value);
+#endif
 
   args.rval().setUndefined();
   return true;
