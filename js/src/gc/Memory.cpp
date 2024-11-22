@@ -11,9 +11,6 @@
 #include "mozilla/RandomNum.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 
-#ifdef JS_SANDBOX_HEAP
-#include "sandbox/Memory.h"
-#endif
 #include "jit/JitOptions.h"
 #include "js/HeapAPI.h"
 #include "js/Utility.h"
@@ -448,10 +445,6 @@ void* MapAlignedPages(size_t length, size_t alignment) {
   return region;
 #else
 
-#ifdef JS_SANDBOX_HEAP
-  return js::sandbox::AllocateMemory(length, alignment);
-#endif
-
 #  ifdef JS_64BIT
   // Use the scattershot allocator if the address range is large enough.
   if (UsingScattershotAllocator()) {
@@ -789,11 +782,7 @@ void UnmapPages(void* region, size_t length) {
   // ASan does not automatically unpoison memory, so we have to do this here.
   MOZ_MAKE_MEM_UNDEFINED(region, length);
 
-#ifdef JS_SANDBOX_HEAP
-  js::sandbox::DeallocateMemory(region, length);
-#else
   UnmapInternal(region, length);
-#endif
 }
 
 static void CheckDecommit(void* region, size_t length) {

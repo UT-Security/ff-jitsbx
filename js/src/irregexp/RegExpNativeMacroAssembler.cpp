@@ -8,9 +8,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef JS_SANDBOX
-#include "sandbox/Memory.h"
-#endif
 #include "irregexp/imported/regexp-macro-assembler-arch.h"
 #include "irregexp/imported/regexp-stack.h"
 #include "irregexp/imported/special-case.h"
@@ -978,12 +975,6 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
 
   masm_.bind(&entry_label_);
 
-#ifdef JS_SANDBOX
-  // TODO(JS_SANDBOX): setting up sandbox pinned registers.
-  masm_.mov(ImmWord(js::sandbox::MemoryMask), js::jit::SandboxMaskReg);
-  masm_.mov(ImmWord(js::sandbox::MemoryBase()), js::jit::SandboxBaseReg);
-#endif
-
   createStackFrame();
   initFrameAndRegs();
 
@@ -1252,11 +1243,11 @@ void SMRegExpMacroAssembler::exitHandler() {
   // Perform a plain Ret(), as abiret() will move SP <- PSP and that is wrong.
   masm_.Ret(vixl::lr);
 #else
-#ifdef JS_SANDBOX_CFI
+#  ifdef JS_SANDBOX_CFI
   masm_.unsafeRet();
-#else
+#  else
   masm_.abiret();
-#endif
+#  endif
 #endif
 
   if (exit_with_exception_label_.used()) {

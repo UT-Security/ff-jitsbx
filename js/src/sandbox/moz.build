@@ -12,21 +12,3 @@ LOCAL_INCLUDES += ["!..", ".."]
 include("../js-config.mozbuild")
 include("../js-cxxflags.mozbuild")
 
-UNIFIED_SOURCES += [
-];
-
-if CONFIG["JS_SANDBOX"]:
-	UNIFIED_SOURCES += [
-		"Memory.cpp",
-	]
-
-if CONFIG["JS_SANDBOX_HEAP"]:
-	UNIFIED_SOURCES += [
-		"allocator/sbxjemalloc.cpp",
-	]
-
-	EXPORTS.js.sandbox.allocator += [
-		"allocator/malloc_decls.h",
-		"allocator/sbxjemalloc_types.h",
-		"allocator/sbxmemory.h"
-	];

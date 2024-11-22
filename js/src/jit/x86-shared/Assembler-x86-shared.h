@@ -11,9 +11,6 @@
 #include <cstdint>
 
 #include "jit/shared/Assembler-shared.h"
-#ifdef JS_SANDBOX
-#include "sandbox/Memory.h"
-#endif
 
 #if defined(JS_CODEGEN_X86)
 #  include "jit/x86/BaseAssembler-x86.h"
@@ -46,7 +43,6 @@ struct ScratchSimd128Scope : public AutoFloatRegisterScope {
       : AutoFloatRegisterScope(masm, ScratchSimd128Reg) {}
 };
 
-
 class AssemblerX86Shared;
 
 class AutoBundleScope {
@@ -55,13 +51,12 @@ class AutoBundleScope {
   AssemblerX86Shared& masm;
 #endif
 
-public:
-  
+ public:
   AutoBundleScope(AssemblerX86Shared& masm);
-  ~AutoBundleScope(); 
+  ~AutoBundleScope();
 
 #ifdef JS_SANDBOX_BUNDLE
-  inline bool isOwn() { return isOwn_; } 
+  inline bool isOwn() { return isOwn_; }
 #endif
 };
 
@@ -71,18 +66,17 @@ class AutoOwnBundleScope {
   AssemblerX86Shared& masm;
 #endif
 
-public:
+ public:
   AutoOwnBundleScope(AssemblerX86Shared& masm);
   ~AutoOwnBundleScope();
 
   void alignToEnd(size_t extra);
   void unlock();
-  
+
 #ifdef JS_SANDBOX_BUNDLE
   size_t size();
 #endif
 };
-
 
 class Operand {
  public:
@@ -99,7 +93,7 @@ class Operand {
   int32_t disp_;
 #ifdef JS_SANDBOX_HEAP
   bool sandboxed_ = false;
-  //AutoAutoBundleScope bundle;
+  // AutoAutoBundleScope bundle;
 #endif
 
  public:
@@ -128,7 +122,8 @@ class Operand {
         index_(address.index.encoding()),
         disp_(address.offset) {}
 #ifdef JS_SANDBOX_HEAP
-  Operand(Register base, Register index, Scale scale, int32_t disp = 0, bool sandboxed = false)
+  Operand(Register base, Register index, Scale scale, int32_t disp = 0,
+          bool sandboxed = false)
       : kind_(MEM_SCALE),
         base_(base.encoding()),
         scale_(scale),
@@ -224,16 +219,11 @@ class Operand {
   }
 
 #ifdef JS_SANDBOX_HEAP
-  bool sandboxed() const {
-    return sandboxed_;
-  }
+  bool sandboxed() const { return sandboxed_; }
 
-  void unsafeSetSandboxed(bool sandboxed) {
-    sandboxed_ = sandboxed;
-  }
+  void unsafeSetSandboxed(bool sandboxed) { sandboxed_ = sandboxed; }
 #endif
 };
-
 
 inline Imm32 Imm64::firstHalf() const { return low(); }
 
@@ -383,7 +373,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   friend class AutoBundleScope;
   friend class AutoOwnBundleScope;
-  
+
   bool bundleLock() {
 #ifdef JS_SANDBOX_BUNDLE
     if (isSandboxed()) {
@@ -411,7 +401,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
 #endif
   }
-  
+
 #ifdef JS_SANDBOX_BUNDLE
   size_t bundleSize() {
     if (isSandboxed()) {
@@ -425,12 +415,12 @@ class AssemblerX86Shared : public AssemblerShared {
   Operand sandboxMemoryWrite(const Operand& op) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed() && !op.sandboxed()) {
-#ifdef JS_SANDBOX_BUNDLE
+#  ifdef JS_SANDBOX_BUNDLE
       MOZ_ASSERT(bundleSize() == 0, "Expected empty bundle");
-#endif
-#ifdef DEBUG
+#  endif
+#  ifdef DEBUG
       Label sandboxed;
-#endif
+#  endif
       switch (op.kind()) {
         case Operand::REG:
         case Operand::FPREG:
@@ -442,19 +432,21 @@ class AssemblerX86Shared : public AssemblerShared {
           }
 
           bundleUnlock();
-#ifdef DEBUG
+#  ifdef DEBUG
           MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
                      "Operand to sandbox already uses scratch register");
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
-          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), SandboxScratchReg.encoding());
-          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift), SandboxScratchReg.encoding());
+          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift),
+                       SandboxScratchReg.encoding());
+          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift),
+                       SandboxScratchReg.encoding());
           masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
           j(Condition::Equal, &sandboxed);
           breakpoint();
           bind(&sandboxed);
-          
-#endif
+
+#  endif
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
           bundleLock();
@@ -466,7 +458,7 @@ class AssemblerX86Shared : public AssemblerShared {
             return op;
           }
           bundleUnlock();
-#ifdef DEBUG
+#  ifdef DEBUG
           masm.push_r(op.base());
           masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
           masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
@@ -475,10 +467,11 @@ class AssemblerX86Shared : public AssemblerShared {
           breakpoint();
           bind(&sandboxed);
           masm.pop_r(op.base());
-#endif
+#  endif
           bundleLock();
           masm.andq_rr(SandboxMaskReg.encoding(), op.base());
-          masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne, op.base());
+          masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne,
+                       op.base());
           return Operand(Register(op.base()), op.disp(), true);
         default:
           MOZ_CRASH("unexpected operand kind");
@@ -490,7 +483,7 @@ class AssemblerX86Shared : public AssemblerShared {
     return op;
 #endif
   }
-  
+
  public:
   AssemblerX86Shared() {
     if (!HasAVX()) {
@@ -894,15 +887,16 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovsd");
     }
 #else
-    masm.vmovsd_rm(src.encoding(), unsafeDest.offset, unsafeDest.base.encoding());
+    masm.vmovsd_rm(src.encoding(), unsafeDest.offset,
+                   unsafeDest.base.encoding());
 #endif
   }
   void vmovsd(FloatRegister src, const BaseIndex& unsafeDest) {
     AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
-    masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(),
-                   dest.index(), dest.scale());
+    masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                   dest.scale());
   }
   // Note special semantics of this - does not clobber high bits of destination.
   void vmovsd(FloatRegister src1, FloatRegister src0, FloatRegister dest) {
@@ -948,15 +942,16 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovss");
     }
 #else
-    masm.vmovss_rm(src.encoding(), unsafeDest.offset, unsafeDest.base.encoding());
+    masm.vmovss_rm(src.encoding(), unsafeDest.offset,
+                   unsafeDest.base.encoding());
 #endif
   }
   void vmovss(FloatRegister src, const BaseIndex& unsafeDest) {
     AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
-    masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(),
-                   dest.index(), dest.scale());
+    masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                   dest.scale());
   }
   void vmovss(FloatRegister src, const Operand& dest) {
     AutoBundleScope bundle(*this);
@@ -1345,8 +1340,14 @@ class AssemblerX86Shared : public AssemblerShared {
     }
     label->bind(dst.offset());
   }
-  void bind(CodeLabel* label) { assertNotInBundle(); label->target()->bind(currentOffset()); }
-  uint32_t currentOffset() { assertNotInBundle(); return masm.label().offset(); }
+  void bind(CodeLabel* label) {
+    assertNotInBundle();
+    label->target()->bind(currentOffset());
+  }
+  uint32_t currentOffset() {
+    assertNotInBundle();
+    return masm.label().offset();
+  }
 
   // Re-routes pending jumps to a new label.
   void retarget(Label* label, Label* target) {
@@ -1441,7 +1442,10 @@ class AssemblerX86Shared : public AssemblerShared {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + callerOffset, code + calleeOffset);
   }
-  CodeOffset farJumpWithPatch() { AutoOwnBundleScope bundle(*this); return CodeOffset(masm.jmp().offset()); }
+  CodeOffset farJumpWithPatch() {
+    AutoOwnBundleScope bundle(*this);
+    return CodeOffset(masm.jmp().offset());
+  }
   void patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + farJump.offset(), code + targetOffset);
@@ -2820,8 +2824,14 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
 
-  void pushFlags() { AutoBundleScope bundle(*this); masm.push_flags(); }
-  void popFlags() { AutoBundleScope bundle(*this); masm.pop_flags(); }
+  void pushFlags() {
+    AutoBundleScope bundle(*this);
+    masm.push_flags();
+  }
+  void popFlags() {
+    AutoBundleScope bundle(*this);
+    masm.pop_flags();
+  }
 
 #ifdef JS_CODEGEN_X86
   void pushAllRegs() { masm.pusha(); }
@@ -2834,9 +2844,18 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.movzbl_rr(src.encoding(), dest.encoding());
   }
 
-  void cdq() { AutoBundleScope bundle(*this); masm.cdq(); }
-  void idiv(Register divisor) { AutoBundleScope bundle(*this); masm.idivl_r(divisor.encoding()); }
-  void udiv(Register divisor) { AutoBundleScope bundle(*this); masm.divl_r(divisor.encoding()); }
+  void cdq() {
+    AutoBundleScope bundle(*this);
+    masm.cdq();
+  }
+  void idiv(Register divisor) {
+    AutoBundleScope bundle(*this);
+    masm.idivl_r(divisor.encoding());
+  }
+  void udiv(Register divisor) {
+    AutoBundleScope bundle(*this);
+    masm.divl_r(divisor.encoding());
+  }
 
   void vpblendw(uint32_t mask, FloatRegister src1, FloatRegister src0,
                 FloatRegister dest) {

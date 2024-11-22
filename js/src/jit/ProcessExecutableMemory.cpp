@@ -21,9 +21,6 @@
 #include "gc/Memory.h"
 #include "jit/FlushICache.h"  // js::jit::FlushICache
 #include "jit/JitOptions.h"
-#ifdef JS_SANDBOX_CFI
-#include "sandbox/Memory.h"
-#endif
 #include "threading/LockGuard.h"
 #include "threading/Mutex.h"
 #include "util/Memory.h"
@@ -661,14 +658,10 @@ class ProcessExecutableMemory {
     MOZ_RELEASE_ASSERT(HasJitBackend());
     MOZ_RELEASE_ASSERT(gc::SystemPageSize() <= ExecutableCodePageSize);
 
-#ifdef JS_SANDBOX_CFI
-    void* p = (void*)js::sandbox::MemoryBase();
-#else
     void* p = ReserveProcessExecutableMemory(MaxCodeBytesPerProcess);
     if (!p) {
       return false;
     }
-#endif
 
     base_ = static_cast<uint8_t*>(p);
 
@@ -691,9 +684,7 @@ class ProcessExecutableMemory {
     MOZ_ASSERT(initialized());
     MOZ_ASSERT(pages_.empty());
     MOZ_ASSERT(pagesAllocated_ == 0);
-#ifndef JS_SANDBOX_CFI
     DeallocateProcessExecutableMemory(base_, MaxCodeBytesPerProcess);
-#endif
     base_ = nullptr;
     rng_.reset();
     MOZ_ASSERT(!initialized());

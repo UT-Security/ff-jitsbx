@@ -30,9 +30,6 @@
 #include "jsnum.h"
 #include "jstypes.h"
 
-#ifdef JS_SANDBOX_HEAP
-#include "sandbox/Memory.h"
-#endif
 #include "gc/Barrier.h"
 #include "gc/Memory.h"
 #include "js/ArrayBuffer.h"
@@ -214,27 +211,16 @@ void* js::MapBufferMemory(wasm::IndexType t, size_t mappedSize,
   MOZ_ASSERT(data);
   memset(data, 0, mappedSize);
 #else   // !XP_WIN && !__wasi__
-#ifdef JS_SANDBOX_HEAP
-  void* data = sandbox::AllocateProtectedMemory(mappedSize, gc::SystemPageSize());
-  if (data == nullptr) {
-    return nullptr;
-  }
-#else
   void* data =
       MozTaggedAnonymousMmap(nullptr, mappedSize, PROT_NONE,
                              MAP_PRIVATE | MAP_ANON, -1, 0, "wasm-reserved");
   if (data == MAP_FAILED) {
     return nullptr;
   }
-#endif
 
   // Note we will waste a page on zero-sized memories here
   if (mprotect(data, initialCommittedSize, PROT_READ | PROT_WRITE)) {
-#ifdef JS_SANDBOX_HEAP
-    sandbox::DeallocateProtectedMemory(data, mappedSize);
-#else
     munmap(data, mappedSize);
-#endif
     return nullptr;
   }
 #endif  // !XP_WIN && !__wasi__
@@ -291,15 +277,11 @@ bool js::ExtendBufferMapping(void* dataPointer, size_t mappedSize,
 #elif defined(__wasi__)
   return false;
 #elif defined(XP_LINUX)
-#ifdef JS_SANDBOX_HEAP
-  return false;
-#else
   // Note this will not move memory (no MREMAP_MAYMOVE specified)
   if (MAP_FAILED == mremap(dataPointer, mappedSize, newMappedSize, 0)) {
     return false;
   }
   return true;
-#endif
 #else
   // No mechanism for remapping on MacOS and other Unices. Luckily
   // shouldn't need it here as most of these are 64-bit.
@@ -315,11 +297,7 @@ void js::UnmapBufferMemory(wasm::IndexType t, void* base, size_t mappedSize) {
 #elif defined(__wasi__)
   free(base);
 #else
-#ifdef JS_SANDBOX_HEAP
-  sandbox::DeallocateMemory(base, mappedSize);
-#else
   munmap(base, mappedSize);
-#endif
 #endif  // XP_WIN
 
 #if defined(MOZ_VALGRIND) && \
@@ -740,16 +718,12 @@ void WasmArrayRawBuffer::discard(size_t byteOffset, size_t byteLen) {
 #elif defined(__wasi__)
   memset(addr, 0, byteLen);
 #else  // !XP_WIN
-#ifdef JS_HEAP_SANDBOX
-  sandbox::DeallocateMemory(addr, byteLen);
-#else
   void* data = MozTaggedAnonymousMmap(addr, byteLen, PROT_READ | PROT_WRITE,
                                       MAP_PRIVATE | MAP_ANON | MAP_FIXED, -1, 0,
                                       "wasm-reserved");
   if (data == MAP_FAILED) {
     MOZ_CRASH("failed to discard wasm memory; memory mappings may be broken");
   }
-#endif
 #endif
 }
 
