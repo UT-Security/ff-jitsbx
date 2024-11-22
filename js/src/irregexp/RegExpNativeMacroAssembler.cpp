@@ -8,9 +8,6 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
-#ifdef JS_SANDBOX_HEAP
-#include "sandbox/Memory.h"
-#endif
 #include "irregexp/imported/regexp-macro-assembler-arch.h"
 #include "irregexp/imported/regexp-stack.h"
 #include "irregexp/imported/special-case.h"
@@ -976,11 +973,6 @@ Handle<HeapObject> SMRegExpMacroAssembler::GetCode(Handle<String> source) {
   }
 
   masm_.bind(&entry_label_);
-
-#ifdef JS_SANDBOX_HEAP
-  // TODO(JS_SANDBOX_HEAP): setting up sandbox pinned registers.
-  masm_.mov(ImmWord(js::sandbox::MemoryBase()), js::jit::SandboxReg1);
-#endif
 
   createStackFrame();
   initFrameAndRegs();
