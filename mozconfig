@@ -1,0 +1,20 @@
+LFI_TOOLCHAIN_PATH="<path to LFI toolchain>"
+CC=$LFI_TOOLCHAIN_PATH/bin/x86_64-lfi-linux-musl-gcc
+CXX=$LFI_TOOLCHAIN_PATH/bin/x86_64-lfi-linux-musl-g++
+RUSTC=$(rustup which rustc)
+CARGO=$(which cargo)
+HOST_CC=clang
+HOST_CXX=clang++
+
+ac_add_options --enable-project=js
+ac_add_options --disable-jemalloc
+ac_add_options --without-system-zlib
+ac_add_options --enable-optimize
+ac_add_options --enable-js-sandbox
+ac_add_options --enable-js-sandbox-heap
+ac_add_options --enable-js-sandbox-bundle
+ac_add_options --enable-js-sandbox-cfi
+ac_add_options --disable-clang-plugin
+ac_add_options --disable-shared-memory
+ac_add_options --without-sysroot
+ac_add_options --target=x86_64-lfi-linux-musl
