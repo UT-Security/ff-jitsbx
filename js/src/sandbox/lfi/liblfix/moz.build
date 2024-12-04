@@ -20,10 +20,10 @@ USE_LIBS += ["lfi", "mmap"]
 CFLAGS += ["-std=gnu11"]
 
 SOURCES += [
+	"arch/amd64/syscall.c",
 	"cwalk/cwalk.c",
 	"fd.c",
 	"file.c",
 	"lfix.c",
 	"proc.c",
-	"syscall.c",
 ]

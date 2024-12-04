@@ -13,8 +13,7 @@ include("../js-config.mozbuild")
 include("../js-cxxflags.mozbuild")
 
 DIRS += [
-	"liblfi",
-	"liblfix",
+	"lfi",
 	"libmmap",
 ]
 
