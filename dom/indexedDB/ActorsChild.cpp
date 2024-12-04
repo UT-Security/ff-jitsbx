@@ -952,7 +952,7 @@ void BackgroundFactoryRequestChild::HandleResponse(
       aResponse.previousVersion());
   MOZ_ASSERT(successEvent);
 
-  SetResultAndDispatchSuccessEvent(mRequest, nullptr, JS::UndefinedHandleValue,
+  SetResultAndDispatchSuccessEvent(mRequest, nullptr, JS::GetUndefinedHandleValue(),
                                    std::move(successEvent));
 
   MOZ_ASSERT(!mDatabaseActor);
@@ -1878,7 +1878,7 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
 
       case RequestResponse::TObjectStoreDeleteResponse:
       case RequestResponse::TObjectStoreClearResponse:
-        HandleResponse(JS::UndefinedHandleValue);
+        HandleResponse(JS::GetUndefinedHandleValue());
         break;
 
       case RequestResponse::TObjectStoreCountResponse:
@@ -2530,7 +2530,7 @@ void BackgroundCursorChild<CursorType>::HandleResponse(
       mTransaction
           ? SafeRefPtr{&mTransaction.ref(), AcquireStrongRefFromRawPtr{}}
           : nullptr,
-      JS::NullHandleValue);
+      JS::GetNullHandleValue());
 
   if (!mCursor) {
     MOZ_ALWAYS_SUCCEEDS(this->GetActorEventTarget()->Dispatch(

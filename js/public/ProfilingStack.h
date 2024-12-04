@@ -148,7 +148,7 @@ class ProfilingStackFrame {
   // Bits 0...8 hold the Flags. Bits 9...31 hold the category pair.
   mozilla::Atomic<uint32_t, mozilla::ReleaseAcquire> flagsAndCategoryPair_;
 
-  static int32_t pcToOffset(JSScript* aScript, jsbytecode* aPc);
+  JS_PUBLIC_API static int32_t pcToOffset(JSScript* aScript, jsbytecode* aPc);
 
  public:
   ProfilingStackFrame() = default;

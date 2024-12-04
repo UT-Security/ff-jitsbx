@@ -42,6 +42,10 @@ using JS::detail::libraryInitState;
 
 InitState JS::detail::libraryInitState;
 
+JS_PUBLIC_API  bool JS_IsInitialized(void) {
+  return JS::detail::libraryInitState >= JS::detail::InitState::Running;
+}
+
 #ifdef DEBUG
 static unsigned MessageParameterCount(const char* format) {
   unsigned numfmtspecs = 0;
@@ -339,7 +343,7 @@ JS_PUBLIC_API bool JS_SetICUMemoryFunctions(JS_ICUAllocFn allocFn,
 
 #if defined(ENABLE_WASM_SIMD) && \
     (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86))
-void JS::SetAVXEnabled(bool enabled) {
+JS_PUBLIC_API void JS::SetAVXEnabled(bool enabled) {
   if (enabled) {
     js::jit::CPUInfo::SetAVXEnabled();
   } else {

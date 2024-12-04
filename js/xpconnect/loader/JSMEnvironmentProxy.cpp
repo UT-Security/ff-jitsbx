@@ -114,10 +114,13 @@ struct JSMEnvironmentProxyHandler : public js::BaseProxyHandler {
 
  public:
   static const char gFamily;
-  static const JSMEnvironmentProxyHandler gHandler;
+  static const JSMEnvironmentProxyHandler* gHandler();
 };
 
-const JSMEnvironmentProxyHandler JSMEnvironmentProxyHandler::gHandler;
+const JSMEnvironmentProxyHandler* JSMEnvironmentProxyHandler::gHandler() {
+  static const JSMEnvironmentProxyHandler h;
+  return &h;
+}
 const char JSMEnvironmentProxyHandler::gFamily = 0;
 
 JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
@@ -252,7 +255,7 @@ JSObject* CreateJSMEnvironmentProxy(JSContext* aCx,
   options.setLazyProto(true);
 
   JS::Rooted<JS::Value> globalVal(aCx, JS::ObjectValue(*aGlobalObj));
-  return NewProxyObject(aCx, &JSMEnvironmentProxyHandler::gHandler, globalVal,
+  return NewProxyObject(aCx, JSMEnvironmentProxyHandler::gHandler(), globalVal,
                         nullptr, options);
 }
 

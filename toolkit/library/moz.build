@@ -154,7 +154,7 @@ if CONFIG["OS_ARCH"] == "WINNT":
 # js needs to come after xul for now, because it is an archive and its content
 # is discarded when it comes first.
 USE_LIBS += [
-    "js",
+    "js-sandboxed",
 ]
 
 USE_LIBS += [

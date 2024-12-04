@@ -134,10 +134,8 @@ class JS_PUBLIC_API Wrapper : public ForwardingProxyHandler {
   unsigned mFlags;
 
  public:
-  explicit constexpr Wrapper(unsigned aFlags, bool aHasPrototype = false,
-                             bool aHasSecurityPolicy = false)
-      : ForwardingProxyHandler(&family, aHasPrototype, aHasSecurityPolicy),
-        mFlags(aFlags) {}
+  explicit Wrapper(unsigned aFlags, bool aHasPrototype = false,
+                             bool aHasSecurityPolicy = false);
 
   virtual bool finalizeInBackground(const JS::Value& priv) const override;
 
@@ -172,6 +170,8 @@ class JS_PUBLIC_API Wrapper : public ForwardingProxyHandler {
     return !!(mFlags & CROSS_COMPARTMENT);
   }
 
+  JS_PUBLIC_API static const char* family_p();
+
   static const char family;
   static const Wrapper singleton;
   static const Wrapper singletonWithPrototype;
@@ -186,7 +186,7 @@ inline JSObject* WrapperOptions::proto() const {
 /* Base class for all cross compartment wrapper handlers. */
 class JS_PUBLIC_API CrossCompartmentWrapper : public Wrapper {
  public:
-  explicit constexpr CrossCompartmentWrapper(unsigned aFlags,
+  explicit inline CrossCompartmentWrapper(unsigned aFlags,
                                              bool aHasPrototype = false,
                                              bool aHasSecurityPolicy = false)
       : Wrapper(CROSS_COMPARTMENT | aFlags, aHasPrototype, aHasSecurityPolicy) {
@@ -258,12 +258,15 @@ class JS_PUBLIC_API CrossCompartmentWrapper : public Wrapper {
 
   static const CrossCompartmentWrapper singleton;
   static const CrossCompartmentWrapper singletonWithPrototype;
+
+  static const CrossCompartmentWrapper getSingleton();
+  static const CrossCompartmentWrapper* getSingletonP();
 };
 
 class JS_PUBLIC_API OpaqueCrossCompartmentWrapper
     : public CrossCompartmentWrapper {
  public:
-  explicit constexpr OpaqueCrossCompartmentWrapper()
+  explicit inline OpaqueCrossCompartmentWrapper()
       : CrossCompartmentWrapper(0) {}
 
   /* Standard internal methods. */
@@ -324,6 +327,7 @@ class JS_PUBLIC_API OpaqueCrossCompartmentWrapper
                                  bool isToSource) const override;
 
   static const OpaqueCrossCompartmentWrapper singleton;
+  static const OpaqueCrossCompartmentWrapper* getSingletonP();
 };
 
 /*
@@ -390,7 +394,7 @@ extern JSObject* TransparentObjectWrapper(JSContext* cx,
                                           JS::HandleObject obj);
 
 inline bool IsWrapper(const JSObject* obj) {
-  return IsProxy(obj) && GetProxyHandler(obj)->family() == &Wrapper::family;
+  return IsProxy(obj) && GetProxyHandler(obj)->family() == Wrapper::family_p();
 }
 
 inline bool IsCrossCompartmentWrapper(const JSObject* obj) {
@@ -476,7 +480,7 @@ JS_PUBLIC_API JSObject* UnwrapOneCheckedDynamic(JS::HandleObject obj,
 // the GC or off the main thread.
 JS_PUBLIC_API JSObject* UncheckedUnwrapWithoutExpose(JSObject* obj);
 
-void ReportAccessDenied(JSContext* cx);
+JS_PUBLIC_API void ReportAccessDenied(JSContext* cx);
 
 JS_PUBLIC_API void NukeCrossCompartmentWrapper(JSContext* cx,
                                                JSObject* wrapper);

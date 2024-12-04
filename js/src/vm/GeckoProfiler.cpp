@@ -460,7 +460,7 @@ JS_PUBLIC_API jsbytecode* ProfilingStackFrame::pc() const {
 }
 
 /* static */
-int32_t ProfilingStackFrame::pcToOffset(JSScript* aScript, jsbytecode* aPc) {
+JS_PUBLIC_API int32_t ProfilingStackFrame::pcToOffset(JSScript* aScript, jsbytecode* aPc) {
   return aPc ? aScript->pcToOffset(aPc) : NullPCOffset;
 }
 

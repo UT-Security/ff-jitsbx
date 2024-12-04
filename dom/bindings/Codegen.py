@@ -495,11 +495,11 @@ class CGNativePropertyHooks(CGThing):
             resolveOwnProperty = "nullptr"
             enumerateOwnProperties = "nullptr"
         if self.properties.hasNonChromeOnly():
-            regular = "sNativeProperties.Upcast()"
+            regular = "sNativeProperties()->Upcast()"
         else:
             regular = "nullptr"
         if self.properties.hasChromeOnly():
-            chrome = "sChromeOnlyNativeProperties.Upcast()"
+            chrome = "sChromeOnlyNativeProperties()->Upcast()"
         else:
             chrome = "nullptr"
         constructorID = "constructors::id::"
@@ -521,7 +521,9 @@ class CGNativePropertyHooks(CGThing):
         return fill(
             """
             bool sNativePropertiesInited = false;
-            const NativePropertyHooks sNativePropertyHooks = {
+
+            const NativePropertyHooks* sNativePropertyHooks() {
+            static const NativePropertyHooks __sNativePropertyHooks = {
               ${resolveOwnProperty},
               ${enumerateOwnProperties},
               ${deleteNamedProperty},
@@ -530,6 +532,8 @@ class CGNativePropertyHooks(CGThing):
               ${constructorID},
               ${expandoClass}
             };
+            return &__sNativePropertyHooks;
+            }
             """,
             resolveOwnProperty=resolveOwnProperty,
             enumerateOwnProperties=enumerateOwnProperties,
@@ -546,7 +550,7 @@ def NativePropertyHooks(descriptor):
     return (
         "&sEmptyNativePropertyHooks"
         if not descriptor.wantsXrays
-        else "&sNativePropertyHooks"
+        else "sNativePropertyHooks()"
     )
 
 
@@ -682,7 +686,8 @@ class CGDOMJSClass(CGThing):
               ${objectMoved} /* objectMovedOp */
             };
 
-            static const DOMJSClass sClass = {
+            const DOMJSClass* sClass() {
+            static const DOMJSClass __sClass = {
               { "${name}",
                 ${flags},
                 &sClassOps,
@@ -696,6 +701,9 @@ class CGDOMJSClass(CGThing):
                           "Must have the right minimal number of reserved slots.");
             static_assert(${reservedSlots} >= ${slotCount},
                           "Must have enough reserved slots.");
+
+            return &__sClass;
+            }
             """,
             name=self.descriptor.interface.getClassName(),
             flags=classFlags,
@@ -739,11 +747,15 @@ class CGDOMProxyJSClass(CGThing):
             flags.append("JSCLASS_EMULATES_UNDEFINED")
         return fill(
             """
-            static const DOMJSClass sClass = {
-              PROXY_CLASS_DEF("${name}",
-                              ${flags}),
-              $*{descriptor}
-            };
+            static const DOMJSClass* sClass() {
+                static const DOMJSClass klass = {
+                    PROXY_CLASS_DEF("${name}",
+                                    ${flags}),
+                    $*{descriptor}
+                };
+
+                return &klass;
+            }
             """,
             name=self.descriptor.interface.identifier.name,
             flags=" | ".join(flags),
@@ -856,7 +868,8 @@ class CGPrototypeJSClass(CGThing):
         )
         return fill(
             """
-            static const DOMIfaceAndProtoJSClass sPrototypeClass = {
+            const DOMIfaceAndProtoJSClass* sPrototypeClass() {
+            static const DOMIfaceAndProtoJSClass __sPrototypeClass = {
               {
                 "${name}Prototype",
                 JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(${slotCount}),
@@ -873,6 +886,9 @@ class CGPrototypeJSClass(CGThing):
               nullptr,
               ${protoGetter}
             };
+
+            return &__sPrototypeClass;
+            }
             """,
             name=self.descriptor.interface.getClassName(),
             slotCount=slotCount,
@@ -990,7 +1006,8 @@ class CGInterfaceObjectJSClass(CGThing):
 
         ret = ret + fill(
             """
-            static const DOMIfaceAndProtoJSClass sInterfaceObjectClass = {
+            const DOMIfaceAndProtoJSClass* sInterfaceObjectClass() {
+            static const DOMIfaceAndProtoJSClass __sInterfaceObjectClass = {
               {
                 "${classString}",
                 JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(${slotCount}),
@@ -1007,6 +1024,9 @@ class CGInterfaceObjectJSClass(CGThing):
               ${funToString},
               ${protoGetter}
             };
+
+            return &__sInterfaceObjectClass;
+            }
             """,
             classString=classString,
             slotCount=slotCount,
@@ -2610,8 +2630,8 @@ class PropertyDefiner:
             };
             """
         )
-        prefableWithDisablersTemplate = "  { &%s_disablers%d, &%s_specs[%d] }"
-        prefableWithoutDisablersTemplate = "  { nullptr, &%s_specs[%d] }"
+        prefableWithDisablersTemplate = "  { &%s_disablers%d, &%s_specs()[%d] }"
+        prefableWithoutDisablersTemplate = "  { nullptr, &%s_specs()[%d] }"
 
         def switchToCondition(condition, specs):
             # Set up pointers to the new sets of specs inside prefableSpecs
@@ -2650,14 +2670,24 @@ class PropertyDefiner:
         specType = "const " + specType
         arrays = fill(
             """
-            static ${specType} ${name}_specs[] = {
-            ${specs}
-            };
+            static ${specType}* ${name}_specs() {
+                static ${specType} __${name}_specs[] = {
+                ${specs}
+                };
+
+                return __${name}_specs;
+            }
 
             ${disablers}
-            static const Prefable<${specType}> ${name}[] = {
-            ${prefableSpecs}
-            };
+            static const Prefable<${specType}>* ${name}() {    
+                static const Prefable<${specType}> __${name}[] = {
+                ${prefableSpecs}
+                };
+
+                return __${name};
+            }
+            
+                
 
             """,
             specType=specType,
@@ -3326,7 +3356,7 @@ class CGNativeProperties(CGList):
                         idsOffset += propertyArray.length(chrome)
                     else:
                         ids = "nullptr"
-                    duo = "{ %s, %s }" % (varName, ids)
+                    duo = "{ %s(), %s }" % (varName, ids)
                     nativePropsDuos.append(CGGeneric(duo))
                 else:
                     bitfields = "false, 0"
@@ -3345,7 +3375,7 @@ class CGNativeProperties(CGList):
                 )
             ]
 
-            pre = "static const NativePropertiesN<%d> %s = {\n" % (duosOffset, name)
+            pre = "static const NativePropertiesN<%d>* %s(){\nstatic const NativePropertiesN<%d> __%s = {\n" % (duosOffset, name, duosOffset, name)
             post = "\n};\n"
             if descriptor.wantsXrays:
                 pre = fill(
@@ -3365,7 +3395,7 @@ class CGNativeProperties(CGList):
                     post = fill(
                         """
                         $*{post}
-                        static_assert(${iteratorAliasIndex} < 1ull << (CHAR_BIT * sizeof(${name}.iteratorAliasMethodIndex) - 1),
+                        static_assert(${iteratorAliasIndex} < 1ull << (CHAR_BIT * sizeof(__${name}.iteratorAliasMethodIndex) - 1),
                             "We have an iterator alias index that is oversized");
                         """,
                         post=post,
@@ -3375,7 +3405,7 @@ class CGNativeProperties(CGList):
                 post = fill(
                     """
                     $*{post}
-                    static_assert(${propertyInfoCount} < 1ull << (CHAR_BIT * sizeof(${name}.propertyInfoCount)),
+                    static_assert(${propertyInfoCount} < 1ull << (CHAR_BIT * sizeof(__${name}.propertyInfoCount)),
                         "We have a property info count that is oversized");
                     """,
                     post=post,
@@ -3388,6 +3418,15 @@ class CGNativeProperties(CGList):
                 nativePropsInts.append(CGGeneric("0"))
                 nativePropsPtrs.append(CGGeneric("nullptr"))
             nativeProps = nativePropsInts + nativePropsPtrs + nativePropsDuos
+            post = fill(
+                """
+                $*{post}
+                return &__${name};
+                }
+                """,
+                post=post,
+                name=name,
+            )
             return CGWrapper(CGIndenter(CGList(nativeProps, ",\n")), pre=pre, post=post)
 
         nativeProperties = []
@@ -3459,7 +3498,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                         // This is unfortunately a linear scan through sAttributes, but we
                         // only do it for things which _might_ be disabled, which should
                         // help keep the performance problems down.
-                        if (IsGetterEnabled(cx, unwrappedObj, (JSJitGetterOp)get_${name}, sAttributes)) {
+                        if (IsGetterEnabled(cx, unwrappedObj, (JSJitGetterOp)get_${name}, sAttributes())) {
                           $*{getAndDefine}
                         }
                         """,
@@ -3586,7 +3625,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             namedConstructors = "nullptr"
 
         if needInterfacePrototypeObject:
-            protoClass = "&sPrototypeClass.mBase"
+            protoClass = "&sPrototypeClass()->mBase"
             protoCache = (
                 "&aProtoAndIfaceCache.EntrySlotOrCreate(prototypes::id::%s)"
                 % self.descriptor.name
@@ -3600,7 +3639,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             getParentProto = None
 
         if needInterfaceObject:
-            interfaceClass = "&sInterfaceObjectClass.mBase"
+            interfaceClass = "&sInterfaceObjectClass()->mBase"
             interfaceCache = (
                 "&aProtoAndIfaceCache.EntrySlotOrCreate(constructors::id::%s)"
                 % self.descriptor.name
@@ -3617,11 +3656,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         isGlobal = self.descriptor.isGlobal() is not None
         if self.properties.hasNonChromeOnly():
-            properties = "sNativeProperties.Upcast()"
+            properties = "sNativeProperties()->Upcast()"
         else:
             properties = "nullptr"
         if self.properties.hasChromeOnly():
-            chromeProperties = "sChromeOnlyNativeProperties.Upcast()"
+            chromeProperties = "sChromeOnlyNativeProperties()->Upcast()"
         else:
             chromeProperties = "nullptr"
 
@@ -3797,7 +3836,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 holderClass = "nullptr"
                 holderProto = "nullptr"
             else:
-                holderClass = "sClass.ToJSClass()"
+                holderClass = "sClass()->ToJSClass()"
                 holderProto = "proto"
                 needProtoVar = True
             createUnforgeableHolder = CGGeneric(
@@ -4273,7 +4312,7 @@ def CreateBindingJSObject(descriptor):
                 """
                 aObject->mExpandoAndGeneration.expando.setUndefined();
                 JS::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
-                creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
+                creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           proto, /* aLazyProto = */ false, aObject,
                                           expandoValue, aReflector);
                 """
@@ -4287,9 +4326,9 @@ def CreateBindingJSObject(descriptor):
                 lazyProto = "false"
             create = fill(
                 """
-                creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
+                creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           ${proto}, /* aLazyProto = */ ${lazyProto},
-                                          aObject, JS::UndefinedHandleValue, aReflector);
+                                          aObject, JS::GetUndefinedHandleValue(), aReflector);
                 """,
                 proto=proto,
                 lazyProto=lazyProto,
@@ -4297,7 +4336,7 @@ def CreateBindingJSObject(descriptor):
     else:
         create = dedent(
             """
-            creator.CreateObject(aCx, sClass.ToJSClass(), proto, aObject, aReflector);
+            creator.CreateObject(aCx, sClass()->ToJSClass(), proto, aObject, aReflector);
             """
         )
     return (
@@ -4334,7 +4373,7 @@ def InitUnforgeablePropertiesOnHolder(
 
     defineUnforgeableAttrs = fill(
         """
-        if (!DefineLegacyUnforgeableAttributes(aCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableAttributes(aCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4343,7 +4382,7 @@ def InitUnforgeablePropertiesOnHolder(
     )
     defineUnforgeableMethods = fill(
         """
-        if (!DefineLegacyUnforgeableMethods(aCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableMethods(aCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4376,7 +4415,7 @@ def InitUnforgeablePropertiesOnHolder(
             JS::Rooted<JS::PropertyKey> toPrimitive(aCx,
               JS::GetWellKnownSymbolKey(aCx, JS::SymbolCode::toPrimitive));
             if (!JS_DefinePropertyById(aCx, ${holderName}, toPrimitive,
-                                       JS::UndefinedHandleValue,
+                                       JS::GetUndefinedHandleValue(),
                                        JSPROP_READONLY | JSPROP_PERMANENT)) {
               $*{failureCode}
             }
@@ -4780,11 +4819,11 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.properties.hasNonChromeOnly():
-            properties = "sNativeProperties.Upcast()"
+            properties = "sNativeProperties()->Upcast()"
         else:
             properties = "nullptr"
         if self.properties.hasChromeOnly():
-            chromeProperties = "nsContentUtils::ThreadsafeIsSystemCaller(aCx) ? sChromeOnlyNativeProperties.Upcast() : nullptr"
+            chromeProperties = "nsContentUtils::ThreadsafeIsSystemCaller(aCx) ? sChromeOnlyNativeProperties()->Upcast() : nullptr"
         else:
             chromeProperties = "nullptr"
 
@@ -4816,7 +4855,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             if (!CreateGlobal<${nativeType}, ${getProto}>(aCx,
                                              aObject,
                                              aCache,
-                                             sClass.ToJSClass(),
+                                             sClass()->ToJSClass(),
                                              aOptions,
                                              aPrincipal,
                                              aInitStandardClasses,
@@ -6381,7 +6420,7 @@ def getJSToNativeConversionInfo(
             initDictionaryWithNull = CGIfWrapper(
                 CGGeneric("return false;\n"),
                 (
-                    '!%s.RawSetAs%s(%s).Init(cx, JS::NullHandleValue, "Member of %s")'
+                    '!%s.RawSetAs%s(%s).Init(cx, JS::GetNullHandleValue(), "Member of %s")'
                     % (
                         declLoc,
                         getUnionMemberName(defaultValue.type),
@@ -7204,7 +7243,7 @@ def getJSToNativeConversionInfo(
             assert isinstance(defaultValue, IDLDefaultDictionaryValue)
             # Initializing from JS null does the right thing to give
             # us a default-initialized dictionary.
-            val = "(${haveValue}) ? ${val} : JS::NullHandleValue"
+            val = "(${haveValue}) ? ${val} : JS::GetNullHandleValue()"
         else:
             val = "${val}"
 
@@ -16981,7 +17020,7 @@ class CGDictionary(CGThing):
 
         if self.dictionary.parent:
             if self.dictionary.parent.needsConversionFromJS:
-                args = "nullptr, JS::NullHandleValue"
+                args = "nullptr, JS::GetNullHandleValue()"
             else:
                 args = ""
             body += fill(
@@ -17308,7 +17347,7 @@ class CGDictionary(CGThing):
             baseConstructors = None
 
         if d.needsConversionFromJS:
-            initArgs = "nullptr, JS::NullHandleValue"
+            initArgs = "nullptr, JS::GetNullHandleValue()"
         else:
             initArgs = ""
         ctors = [
@@ -17480,7 +17519,7 @@ class CGDictionary(CGThing):
         }
 
         if isKnownMissing:
-            replacements["val"] = "(JS::NullHandleValue)"
+            replacements["val"] = "(JS::GetNullHandleValue())"
         else:
             replacements["val"] = "temp.ref()"
             replacements["maybeMutableVal"] = "temp.ptr()"
@@ -20460,7 +20499,7 @@ class CGCallback(CGClass):
         argnamesWithThis = ["s.GetCallContext()", "thisValJS"] + argnames
         argnamesWithoutThis = [
             "s.GetCallContext()",
-            "JS::UndefinedHandleValue",
+            "JS::GetUndefinedHandleValue()",
         ] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for the execution reason.

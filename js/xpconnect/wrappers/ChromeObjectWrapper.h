@@ -34,7 +34,7 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase {
                    JS::HandleValue v, JS::HandleValue receiver,
                    JS::ObjectOpResult& result) const override;
 
-  static const ChromeObjectWrapper singleton;
+  static const ChromeObjectWrapper* singleton();
 };
 
 } /* namespace xpc */

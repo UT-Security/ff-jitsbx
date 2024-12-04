@@ -973,9 +973,17 @@ const JSClassOps js::ProxyClassOps = {
     ProxyObject::trace,  // trace
 };
 
+JS_PUBLIC_API const JSClassOps* js::ProxyClassOps_p() {
+  return &js::ProxyClassOps;
+}
+
 const ClassExtension js::ProxyClassExtension = {
     proxy_ObjectMoved,  // objectMovedOp
 };
+
+JS_PUBLIC_API const ClassExtension* js::ProxyClassExtension_p() {
+  return &js::ProxyClassExtension;
+}
 
 const ObjectOps js::ProxyObjectOps = {
     proxy_LookupProperty,             // lookupProperty
@@ -989,6 +997,10 @@ const ObjectOps js::ProxyObjectOps = {
     Proxy::fun_toString,              // funToString
 };
 
+JS_PUBLIC_API const ObjectOps* js::ProxyObjectOps_p() {
+  return &js::ProxyObjectOps;
+}
+
 static const JSFunctionSpec proxy_static_methods[] = {
     JS_FN("revocable", proxy_revocable, 2, 0), JS_FS_END};
 
@@ -1000,6 +1012,10 @@ const JSClass js::ProxyClass = PROXY_CLASS_DEF_WITH_CLASS_SPEC(
     "Proxy",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Proxy) | JSCLASS_HAS_RESERVED_SLOTS(2),
     &ProxyClassSpec);
+
+JS_PUBLIC_API const JSClass* js::ProxyClass_p() {
+  return &js::ProxyClass;
+}
 
 JS_PUBLIC_API JSObject* js::NewProxyObject(JSContext* cx,
                                            const BaseProxyHandler* handler,

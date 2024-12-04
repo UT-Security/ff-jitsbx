@@ -49,7 +49,7 @@ class FilteringWrapper : public Base {
   virtual bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                             JS::MutableHandleObject protop) const override;
 
-  static const FilteringWrapper singleton;
+  static const FilteringWrapper* singleton();
 };
 
 }  // namespace xpc

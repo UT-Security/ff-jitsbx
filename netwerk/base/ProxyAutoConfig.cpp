@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ProxyAutoConfig.h"
+#include "js/TypeDecls.h"
 #include "nsICancelable.h"
 #include "nsIDNSListener.h"
 #include "nsIDNSRecord.h"
@@ -426,7 +427,7 @@ class JSContextWrapper {
   JS::PersistentRooted<JSObject*> mGlobal;
   bool mOK;
 
-  static const JSClass sGlobalClass;
+  static const JSClass* sGlobalClass();
 
   explicit JSContextWrapper(JSContext* cx)
       : mContext(cx), mGlobal(cx, nullptr), mOK(false) {
@@ -456,7 +457,7 @@ class JSContextWrapper {
     JS::RealmOptions options;
     options.creationOptions().setNewCompartmentInSystemZone();
     options.behaviors().setClampAndJitterTime(false);
-    mGlobal = JS_NewGlobalObject(mContext, &sGlobalClass, nullptr,
+    mGlobal = JS_NewGlobalObject(mContext, sGlobalClass(), nullptr,
                                  JS::DontFireOnNewGlobalHook, options);
     if (!mGlobal) {
       JS_ClearPendingException(mContext);
@@ -476,9 +477,13 @@ class JSContextWrapper {
   }
 };
 
-const JSClass JSContextWrapper::sGlobalClass = {"PACResolutionThreadGlobal",
-                                                JSCLASS_GLOBAL_FLAGS,
-                                                &JS::DefaultGlobalClassOps};
+const JSClass* JSContextWrapper::sGlobalClass() {
+  static const JSClass klass = {"PACResolutionThreadGlobal",
+                                JSCLASS_GLOBAL_FLAGS,
+                                JS::GetDefaultGlobalClassOps()};
+
+  return &klass;
+}
 
 void ProxyAutoConfig::SetThreadLocalIndex(uint32_t index) {
   RunningIndex() = index;

@@ -1148,7 +1148,7 @@ int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
     return 0;
   }
 
-  request->Allow(JS::UndefinedHandleValue);
+  request->Allow(JS::GetUndefinedHandleValue());
   return watchId;
 }
 

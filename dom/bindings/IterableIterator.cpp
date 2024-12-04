@@ -93,7 +93,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
   if (aObject->mIsFinished) {
     // 1. Let result be CreateIterResultObject(undefined, true).
     JS::Rooted<JS::Value> dict(aCx);
-    iterator_utils::DictReturn(aCx, &dict, true, JS::UndefinedHandleValue, aRv);
+    iterator_utils::DictReturn(aCx, &dict, true, JS::GetUndefinedHandleValue(), aRv);
     if (aRv.Failed()) {
       return Promise::CreateRejectedWithErrorResult(aGlobalObject, aRv);
     }
@@ -132,7 +132,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
       // 1. Set object’s is finished to true.
       aObject->mIsFinished = true;
       // 2. Return CreateIterResultObject(undefined, true).
-      iterator_utils::DictReturn(aCx, &dict, true, JS::UndefinedHandleValue,
+      iterator_utils::DictReturn(aCx, &dict, true, JS::GetUndefinedHandleValue(),
                                  aRv);
       if (aRv.Failed()) {
         return nullptr;

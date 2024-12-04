@@ -229,7 +229,7 @@ void ResolveCallback(FileSystemResolveResponse&& aResponse,
   }
 
   // Spec says if there is no parent/child relationship, return null
-  aPromise->MaybeResolve(JS::NullHandleValue);
+  aPromise->MaybeResolve(JS::GetNullHandleValue());
 }
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)

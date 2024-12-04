@@ -116,7 +116,7 @@ class GetSubscriptionResultRunnable final : public WorkerRunnable {
     RefPtr<Promise> promise = mProxy->WorkerPromise();
     if (NS_SUCCEEDED(mStatus)) {
       if (mEndpoint.IsEmpty()) {
-        promise->MaybeResolve(JS::NullHandleValue);
+        promise->MaybeResolve(JS::GetNullHandleValue());
       } else {
         RefPtr<PushSubscription> sub = new PushSubscription(
             nullptr, mEndpoint, mScope, std::move(mExpirationTime),

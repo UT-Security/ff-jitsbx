@@ -313,7 +313,7 @@ static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
     return false;
   }
   RootedDictionary<dom::RequestInit> options(cx);
-  if (!options.Init(callCx, args.hasDefined(1) ? args[1] : JS::NullHandleValue,
+  if (!options.Init(callCx, args.hasDefined(1) ? args[1] : JS::GetNullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }
@@ -373,7 +373,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedDictionary<dom::StructuredSerializeOptions> options(cx);
   BindingCallContext callCx(cx, "structuredClone");
-  if (!options.Init(cx, args.hasDefined(1) ? args[1] : JS::NullHandleValue,
+  if (!options.Init(cx, args.hasDefined(1) ? args[1] : JS::GetNullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }
@@ -563,7 +563,7 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 
 class SandboxProxyHandler : public js::Wrapper {
  public:
-  constexpr SandboxProxyHandler() : js::Wrapper(0) {}
+  inline SandboxProxyHandler() : js::Wrapper(0) {}
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
@@ -597,12 +597,16 @@ class SandboxProxyHandler : public js::Wrapper {
       bool getOwn, JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const;
 };
 
-static const SandboxProxyHandler sandboxProxyHandler;
+static const SandboxProxyHandler* sandboxProxyHandler() {
+  static const SandboxProxyHandler h;
+
+  return &h;
+}
 
 namespace xpc {
 
 bool IsSandboxPrototypeProxy(JSObject* obj) {
-  return js::IsProxy(obj) && js::GetProxyHandler(obj) == &sandboxProxyHandler;
+  return js::IsProxy(obj) && js::GetProxyHandler(obj) == sandboxProxyHandler();
 }
 
 bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
@@ -617,7 +621,7 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
 // to them directly.
 class SandboxCallableProxyHandler : public js::Wrapper {
  public:
-  constexpr SandboxCallableProxyHandler() : js::Wrapper(0) {}
+  inline SandboxCallableProxyHandler() : js::Wrapper(0) {}
 
   virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
                     const JS::CallArgs& args) const override;
@@ -629,7 +633,11 @@ class SandboxCallableProxyHandler : public js::Wrapper {
   }
 };
 
-static const SandboxCallableProxyHandler sandboxCallableProxyHandler;
+static const SandboxCallableProxyHandler* sandboxCallableProxyHandler() {
+  static const SandboxCallableProxyHandler s;
+
+  return &s;
+}
 
 bool SandboxCallableProxyHandler::call(JSContext* cx,
                                        JS::Handle<JSObject*> proxy,
@@ -639,7 +647,7 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
   // Get our SandboxProxyHandler proxy.
   RootedObject sandboxProxy(cx, getSandboxProxy(proxy));
   MOZ_ASSERT(js::IsProxy(sandboxProxy) &&
-             js::GetProxyHandler(sandboxProxy) == &sandboxProxyHandler);
+             js::GetProxyHandler(sandboxProxy) == sandboxProxyHandler());
 
   // The global of the sandboxProxy is the sandbox global, and the
   // target object is the original proto.
@@ -704,14 +712,14 @@ static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
   // callable as the private.  We put the given sandboxProtoProxy in
   // an extra slot, and our call() hook depends on that.
   MOZ_ASSERT(js::IsProxy(sandboxProtoProxy) &&
-             js::GetProxyHandler(sandboxProtoProxy) == &sandboxProxyHandler);
+             js::GetProxyHandler(sandboxProtoProxy) == sandboxProxyHandler());
 
   RootedValue priv(cx, ObjectValue(*callable));
   // We want to claim to have the same proto as our wrapped callable, so set
   // ourselves up with a lazy proto.
   js::ProxyOptions options;
   options.setLazyProto(true);
-  JSObject* obj = js::NewProxyObject(cx, &sandboxCallableProxyHandler, priv,
+  JSObject* obj = js::NewProxyObject(cx, sandboxCallableProxyHandler(), priv,
                                      nullptr, options);
   if (obj) {
     js::SetProxyReservedSlot(obj, SandboxCallableProxyHandler::SandboxProxySlot,
@@ -1427,7 +1435,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
         // of this-binding for methods.
         RootedValue priv(cx, ObjectValue(*options.proto));
         options.proto =
-            js::NewProxyObject(cx, &sandboxProxyHandler, priv, nullptr);
+            js::NewProxyObject(cx, sandboxProxyHandler(), priv, nullptr);
         if (!options.proto) {
           return NS_ERROR_OUT_OF_MEMORY;
         }

@@ -58,7 +58,7 @@ class WorkerErrorReport : public WorkerErrorBase, public SerializedStackHolder {
       JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
       DOMEventTargetHelper* aTarget, UniquePtr<WorkerErrorReport> aReport,
       uint64_t aInnerWindowId,
-      JS::Handle<JS::Value> aException = JS::NullHandleValue);
+      JS::Handle<JS::Value> aException = JS::GetNullHandleValue());
 
   static void LogErrorToConsole(JSContext* aCx, WorkerErrorReport& aReport,
                                 uint64_t aInnerWindowId);

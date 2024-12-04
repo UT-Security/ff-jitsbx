@@ -202,7 +202,7 @@ bool JS::ObjectOpResult::reportError(JSContext* cx, HandleObject obj,
   return false;
 }
 
-bool JS::ObjectOpResult::reportError(JSContext* cx, HandleObject obj) {
+JS_PUBLIC_API bool JS::ObjectOpResult::reportError(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(code_ != Uninitialized);
   MOZ_ASSERT(!ok());
   MOZ_ASSERT(!ErrorTakesArguments(code_));
@@ -1779,6 +1779,10 @@ const JSClassOps JS::DefaultGlobalClassOps = {
     nullptr,                         // construct
     JS_GlobalObjectTraceHook,        // trace
 };
+
+extern JS_PUBLIC_API const JSClassOps* JS::GetDefaultGlobalClassOps() {
+  return &JS::DefaultGlobalClassOps;
+}
 
 JS_PUBLIC_API void JS_FireOnNewGlobalObject(JSContext* cx,
                                             JS::HandleObject global) {
@@ -3830,7 +3834,7 @@ JS_PUBLIC_API JSErrorReport* JS_ErrorFromException(JSContext* cx,
   return ErrorFromException(cx, obj);
 }
 
-void JSErrorReport::initBorrowedLinebuf(const char16_t* linebufArg,
+JS_PUBLIC_API void JSErrorReport::initBorrowedLinebuf(const char16_t* linebufArg,
                                         size_t linebufLengthArg,
                                         size_t tokenOffsetArg) {
   MOZ_ASSERT(linebufArg);

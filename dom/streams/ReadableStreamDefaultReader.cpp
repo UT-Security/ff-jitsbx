@@ -82,7 +82,7 @@ bool ReadableStreamReaderGenericInitialize(ReadableStreamGenericReader* aReader,
     // Step 4.
     case ReadableStream::ReaderState::Closed:
       // Step 4.1.
-      aReader->ClosedPromise()->MaybeResolve(JS::UndefinedHandleValue);
+      aReader->ClosedPromise()->MaybeResolve(JS::GetUndefinedHandleValue());
 
       return true;
     // Step 5.

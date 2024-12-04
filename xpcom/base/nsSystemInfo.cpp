@@ -1442,7 +1442,7 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(JS::GetNullHandleValue());
       });
 
   promise.forget(aResult);
@@ -1593,7 +1593,7 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when countryCode is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(JS::GetNullHandleValue());
       });
 
   promise.forget(aResult);
@@ -1651,7 +1651,7 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(JS::GetNullHandleValue());
       });
 
   promise.forget(aResult);

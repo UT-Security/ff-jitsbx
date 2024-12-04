@@ -57,27 +57,27 @@ class AllocPolicyBase {
 
   template <typename T>
   T* maybe_pod_malloc(size_t numElems) {
-    return maybe_pod_arena_malloc<T>(js::MallocArena, numElems);
+    return maybe_pod_arena_malloc<T>(js::GetMallocArena(), numElems);
   }
   template <typename T>
   T* maybe_pod_calloc(size_t numElems) {
-    return maybe_pod_arena_calloc<T>(js::MallocArena, numElems);
+    return maybe_pod_arena_calloc<T>(js::GetMallocArena(), numElems);
   }
   template <typename T>
   T* maybe_pod_realloc(T* p, size_t oldSize, size_t newSize) {
-    return maybe_pod_arena_realloc<T>(js::MallocArena, p, oldSize, newSize);
+    return maybe_pod_arena_realloc<T>(js::GetMallocArena(), p, oldSize, newSize);
   }
   template <typename T>
   T* pod_malloc(size_t numElems) {
-    return pod_arena_malloc<T>(js::MallocArena, numElems);
+    return pod_arena_malloc<T>(js::GetMallocArena(), numElems);
   }
   template <typename T>
   T* pod_calloc(size_t numElems) {
-    return pod_arena_calloc<T>(js::MallocArena, numElems);
+    return pod_arena_calloc<T>(js::GetMallocArena(), numElems);
   }
   template <typename T>
   T* pod_realloc(T* p, size_t oldSize, size_t newSize) {
-    return pod_arena_realloc<T>(js::MallocArena, p, oldSize, newSize);
+    return pod_arena_realloc<T>(js::GetMallocArena(), p, oldSize, newSize);
   }
 
   template <typename T>
@@ -194,17 +194,17 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
 
   template <typename T>
   T* pod_malloc(size_t numElems) {
-    return pod_arena_malloc<T>(js::MallocArena, numElems);
+    return pod_arena_malloc<T>(js::GetMallocArena(), numElems);
   }
 
   template <typename T>
   T* pod_calloc(size_t numElems) {
-    return pod_arena_calloc<T>(js::MallocArena, numElems);
+    return pod_arena_calloc<T>(js::GetMallocArena(), numElems);
   }
 
   template <typename T>
   T* pod_realloc(T* prior, size_t oldSize, size_t newSize) {
-    return pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
+    return pod_arena_realloc<T>(js::GetMallocArena(), prior, oldSize, newSize);
   }
 
   template <typename T>

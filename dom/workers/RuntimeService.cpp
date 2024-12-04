@@ -746,9 +746,9 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   const js::Wrapper* wrapper = nullptr;
   if (IsWorkerDebuggerGlobalOrSandbox(targetGlobal) &&
       IsWorkerDebuggerGlobalOrSandbox(originGlobal)) {
-    wrapper = &js::CrossCompartmentWrapper::singleton;
+    wrapper = js::CrossCompartmentWrapper::getSingletonP();
   } else {
-    wrapper = &js::OpaqueCrossCompartmentWrapper::singleton;
+    wrapper = js::OpaqueCrossCompartmentWrapper::getSingletonP();
   }
 
   if (existing) {

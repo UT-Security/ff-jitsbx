@@ -16,7 +16,7 @@ namespace xpc {
 
 class WaiveXrayWrapper : public js::CrossCompartmentWrapper {
  public:
-  explicit constexpr WaiveXrayWrapper(unsigned flags)
+  explicit inline WaiveXrayWrapper(unsigned flags)
       : js::CrossCompartmentWrapper(flags) {}
 
   virtual bool getOwnPropertyDescriptor(
@@ -40,7 +40,7 @@ class WaiveXrayWrapper : public js::CrossCompartmentWrapper {
                           JS::NativeImpl impl,
                           const JS::CallArgs& args) const override;
 
-  static const WaiveXrayWrapper singleton;
+  static const WaiveXrayWrapper* singleton();
 };
 
 }  // namespace xpc

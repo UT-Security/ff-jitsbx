@@ -365,10 +365,13 @@ class JS_PUBLIC_API ArrayBuffer : public ArrayBufferOrView {
   static const JSClass* const UnsharedClass;
   static const JSClass* const SharedClass;
 
+  static const JSClass* UnsharedClass_p();
+  static const JSClass* SharedClass_p();
+
   static ArrayBuffer fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
-      if (clasp == UnsharedClass || clasp == SharedClass) {
+      if (clasp == UnsharedClass_p() || clasp == SharedClass_p()) {
         return ArrayBuffer(unwrapped);
       }
     }
@@ -430,8 +433,10 @@ class JS_PUBLIC_API DataView : public ArrayBufferView {
  public:
   static const JSClass* const ClassPtr;
 
+  static const JSClass* GetClassPtr();
+
   static DataView fromObject(JSObject* unwrapped) {
-    if (unwrapped && GetClass(unwrapped) == ClassPtr) {
+    if (unwrapped && GetClass(unwrapped) == GetClassPtr()) {
       return DataView(unwrapped);
     }
     return DataView(nullptr);
@@ -455,6 +460,7 @@ class JS_PUBLIC_API TypedArray_base : public ArrayBufferView {
   explicit TypedArray_base(JSObject* unwrapped) : ArrayBufferView(unwrapped) {}
 
   static const JSClass* const classes;
+  static const JSClass* getClasses();
 
  public:
   static TypedArray_base fromObject(JSObject* unwrapped);
@@ -489,7 +495,7 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   // class due to order dependencies. This is the only way I could get it to
   // work on both Windows and POSIX.
   static const JSClass* clasp() {
-    return &TypedArray_base::classes[static_cast<int>(TypedArrayElementType)];
+    return &TypedArray_base::getClasses()[static_cast<int>(TypedArrayElementType)];
   }
 
   static TypedArray create(JSContext* cx, size_t nelements);

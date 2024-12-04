@@ -1523,6 +1523,12 @@ extern JS_PUBLIC_DATA const HandleValue TrueHandleValue;
 extern JS_PUBLIC_DATA const HandleValue FalseHandleValue;
 extern JS_PUBLIC_DATA const Handle<mozilla::Maybe<Value>> NothingHandleValue;
 
+extern JS_PUBLIC_API const HandleValue GetNullHandleValue();
+extern JS_PUBLIC_API const HandleValue GetUndefinedHandleValue();
+extern JS_PUBLIC_API const HandleValue GetTrueHandleValue();
+extern JS_PUBLIC_API const HandleValue GetFalseHandleValue();
+extern JS_PUBLIC_API const Handle<mozilla::Maybe<Value>> GetNothingHandleValue();
+
 }  // namespace JS
 
 #endif /* js_Value_h */

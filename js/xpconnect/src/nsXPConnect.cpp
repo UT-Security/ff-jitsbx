@@ -306,7 +306,7 @@ void xpc::ErrorReport::LogToStderr() {
 }
 
 void xpc::ErrorReport::LogToConsole() {
-  LogToConsoleWithStack(nullptr, JS::NothingHandleValue, nullptr, nullptr);
+  LogToConsoleWithStack(nullptr, JS::GetNothingHandleValue(), nullptr, nullptr);
 }
 
 void xpc::ErrorReport::LogToConsoleWithStack(

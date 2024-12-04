@@ -220,7 +220,7 @@ class MOZ_STACK_CLASS CallArgsBase {
    */
   HandleValue get(unsigned i) const {
     return i < length() ? HandleValue::fromMarkedLocation(&this->argv_[i])
-                        : UndefinedHandleValue;
+                        : GetUndefinedHandleValue();
   }
 
   /*

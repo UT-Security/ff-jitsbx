@@ -38,7 +38,7 @@ struct JSContextHolder {
     }
 
     static JSClass jsValidatorGlobalClass = {
-        "JSValidatorGlobal", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
+        "JSValidatorGlobal", JSCLASS_GLOBAL_FLAGS, JS::GetDefaultGlobalClassOps()};
 
     JS::Rooted<JSObject*> global(
         mCx, JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,

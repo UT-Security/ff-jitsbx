@@ -412,7 +412,7 @@ void WorkerErrorReport::LogErrorToConsole(const ErrorData& aReport,
   AssertIsOnMainThread();
 
   RefPtr<nsScriptErrorBase> scriptError =
-      CreateScriptError(nullptr, JS::NothingHandleValue, aStack, aStackGlobal);
+      CreateScriptError(nullptr, JS::GetNothingHandleValue(), aStack, aStackGlobal);
 
   NS_WARNING_ASSERTION(scriptError, "Failed to create script error!");
 

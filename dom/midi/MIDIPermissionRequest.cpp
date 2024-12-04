@@ -98,7 +98,7 @@ MIDIPermissionRequest::Run() {
     bool allow =
         Preferences::GetBool("media.navigator.permission.disabled", false);
     if (allow) {
-      Allow(JS::UndefinedHandleValue);
+      Allow(JS::GetUndefinedHandleValue());
     } else {
       Cancel();
     }
@@ -118,7 +118,7 @@ MIDIPermissionRequest::Run() {
   // which is why we use the non-"Exact" variants of these APIs. See bug
   // 1757218.
   if (nsContentUtils::IsSitePermAllow(mPrincipal, permName)) {
-    Allow(JS::UndefinedHandleValue);
+    Allow(JS::GetUndefinedHandleValue());
     return NS_OK;
   }
 

@@ -64,7 +64,7 @@ nsresult MediaKeySystemAccessPermissionRequest::Start() {
       CheckPromptPrefs();
   if (promptResult ==
       MediaKeySystemAccessPermissionRequest::PromptResult::Granted) {
-    return Allow(JS::UndefinedHandleValue);
+    return Allow(JS::GetUndefinedHandleValue());
   }
   if (promptResult ==
       MediaKeySystemAccessPermissionRequest::PromptResult::Denied) {

@@ -218,6 +218,8 @@ namespace JS {
 // Handle<PropertyKey> version of PropertyKey::Void().
 extern JS_PUBLIC_DATA const JS::HandleId VoidHandlePropertyKey;
 
+extern JS_PUBLIC_API const JS::HandleId GetVoidHandlePropertyKey();
+
 template <>
 struct GCPolicy<jsid> {
   static void trace(JSTracer* trc, jsid* idp, const char* name) {

@@ -111,7 +111,7 @@ TestInterfaceAsyncIterableSingleWithArgs::IteratorReturn(
   }
 
   mReturnLastCalledWith = aValue;
-  promise->MaybeResolve(JS::UndefinedHandleValue);
+  promise->MaybeResolve(JS::GetUndefinedHandleValue());
   return promise.forget();
 }
 

@@ -188,7 +188,7 @@ already_AddRefed<Promise> Client::Navigate(const nsAString& aURL,
       &ClientManager::Navigate, args, mGlobal,
       [self, outerPromise](const ClientOpResult& aResult) {
         if (aResult.type() != ClientOpResult::TClientInfoAndState) {
-          outerPromise->MaybeResolve(JS::NullHandleValue);
+          outerPromise->MaybeResolve(JS::GetNullHandleValue());
           return;
         }
         RefPtr<Client> newClient =

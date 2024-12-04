@@ -606,7 +606,7 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         JS::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
-        if (!JS_Stringify(cx, &rootedValue, nullptr, JS::NullHandleValue,
+        if (!JS_Stringify(cx, &rootedValue, nullptr, JS::GetNullHandleValue(),
                           AppendJsonAsUtf8, &utf8Str)) {
           JS::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
           if (JS_GetPendingException(cx, &exn)) {
@@ -2634,11 +2634,11 @@ IOUtils::JsBuffer::JsBuffer(IOUtils::BufferKind aBufferKind, size_t aCapacity)
   if (mCapacity) {
     if (aBufferKind == BufferKind::String) {
       mBuffer = JS::UniqueChars(
-          js_pod_arena_malloc<char>(js::StringBufferArena, mCapacity));
+          js_pod_arena_malloc<char>(js::GetStringBufferArena(), mCapacity));
     } else {
       MOZ_RELEASE_ASSERT(aBufferKind == BufferKind::Uint8Array);
       mBuffer = JS::UniqueChars(
-          js_pod_arena_malloc<char>(js::ArrayBufferContentsArena, mCapacity));
+          js_pod_arena_malloc<char>(js::GetArrayBufferContentsArena(), mCapacity));
     }
   }
 }

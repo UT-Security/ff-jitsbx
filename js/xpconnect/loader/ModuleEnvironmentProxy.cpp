@@ -122,10 +122,14 @@ struct ModuleEnvironmentProxyHandler : public js::BaseProxyHandler {
 
  public:
   static const char gFamily;
-  static const ModuleEnvironmentProxyHandler gHandler;
+  static const ModuleEnvironmentProxyHandler* gHandler();
 };
 
-const ModuleEnvironmentProxyHandler ModuleEnvironmentProxyHandler::gHandler;
+const ModuleEnvironmentProxyHandler* ModuleEnvironmentProxyHandler::gHandler() {
+  static const ModuleEnvironmentProxyHandler g;
+
+  return &g;
+}
 const char ModuleEnvironmentProxyHandler::gFamily = 0;
 
 bool ModuleEnvironmentProxyHandler::getOwnPropertyDescriptor(
@@ -230,7 +234,7 @@ JSObject* CreateModuleEnvironmentProxy(JSContext* aCx,
   }
 
   JS::Rooted<JS::Value> envVal(aCx, JS::ObjectValue(*envObj));
-  return NewProxyObject(aCx, &ModuleEnvironmentProxyHandler::gHandler, envVal,
+  return NewProxyObject(aCx, ModuleEnvironmentProxyHandler::gHandler(), envVal,
                         nullptr, options);
 }
 

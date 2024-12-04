@@ -44,7 +44,7 @@ typedef struct {
     // Set the initial gas. Arm64 only.
     uint64_t gas;
     // User-provided verifier.
-    void* verifier;
+    //void* verifier;
     // User-provided runtime call handler.
     SysHandler syshandler;
 } LFIOptions;
@@ -118,6 +118,8 @@ void lfi_rmproc(LFIEngine* lfi, LFIProc* proc);
 // lfi_copyproc creates a new process in 'childp' that is a duplicate of
 // 'proc'. This is used for implementing fork.
 bool lfi_copyproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* childctxp);
+
+bool lfi_cloneproc(LFIEngine* lfi, LFIProc** childp, LFIProc* proc, void* stack, void* childctxp);
 
 // lfi_delete destroys the engine and frees all processes and associated data.
 void lfi_delete(LFIEngine* lfi);

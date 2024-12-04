@@ -2899,7 +2899,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallback);
   JS_SetSetUseCounterCallback(cx, SetUseCounterCallback);
 
-  js::SetWindowProxyClass(cx, &OuterWindowProxyClass);
+  js::SetWindowProxyClass(cx, OuterWindowProxyClass());
 
   JS::SetXrayJitInfo(&gXrayJitInfo);
   JS::SetProcessLargeAllocationFailureCallback(

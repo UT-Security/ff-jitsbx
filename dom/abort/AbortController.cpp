@@ -41,7 +41,7 @@ already_AddRefed<AbortController> AbortController::Constructor(
 }
 
 AbortController::AbortController(nsIGlobalObject* aGlobal)
-    : mGlobal(aGlobal), mAborted(false), mReason(JS::UndefinedHandleValue) {
+    : mGlobal(aGlobal), mAborted(false), mReason(JS::GetUndefinedHandleValue()) {
   mozilla::HoldJSObjects(this);
 }
 

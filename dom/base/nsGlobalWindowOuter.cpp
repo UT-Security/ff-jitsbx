@@ -345,8 +345,12 @@ nsPIDOMWindowOuter* nsPIDOMWindowOuter::GetFromCurrentInner(
 // We store the nsGlobalWindowOuter* in our first slot.
 //
 // We store our holder weakmap in the second slot.
-const JSClass OuterWindowProxyClass = PROXY_CLASS_DEF(
-    "Proxy", JSCLASS_HAS_RESERVED_SLOTS(2)); /* additional class flags */
+const JSClass* OuterWindowProxyClass() {
+  static const JSClass c = PROXY_CLASS_DEF(
+      "Proxy", JSCLASS_HAS_RESERVED_SLOTS(2)); /* additional class flags */
+
+  return &c;
+}
 
 static const size_t OUTER_WINDOW_SLOT = 0;
 static const size_t HOLDER_WEAKMAP_SLOT = 1;
@@ -494,7 +498,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<js::Wrapper> {
   bool isCallable(JSObject* obj) const override { return false; }
   bool isConstructor(JSObject* obj) const override { return false; }
 
-  static const nsOuterWindowProxy singleton;
+  static const nsOuterWindowProxy* singleton();
 
   static nsGlobalWindowOuter* GetOuterWindow(JSObject* proxy) {
     nsGlobalWindowOuter* outerWindow =
@@ -1251,7 +1255,10 @@ already_AddRefed<nsIPrincipal> nsOuterWindowProxy::GetNoPDFJSPrincipal(
   return nullptr;
 }
 
-const nsOuterWindowProxy nsOuterWindowProxy::singleton;
+const nsOuterWindowProxy* nsOuterWindowProxy::singleton() {
+  static const nsOuterWindowProxy s;
+  return &s;
+}
 
 class nsChromeOuterWindowProxy : public nsOuterWindowProxy {
  public:
@@ -1260,7 +1267,7 @@ class nsChromeOuterWindowProxy : public nsOuterWindowProxy {
   const char* className(JSContext* cx,
                         JS::Handle<JSObject*> wrapper) const override;
 
-  static const nsChromeOuterWindowProxy singleton;
+  static const nsChromeOuterWindowProxy* singleton();
 };
 
 const char* nsChromeOuterWindowProxy::className(
@@ -1270,7 +1277,10 @@ const char* nsChromeOuterWindowProxy::className(
   return "ChromeWindow";
 }
 
-const nsChromeOuterWindowProxy nsChromeOuterWindowProxy::singleton;
+const nsChromeOuterWindowProxy* nsChromeOuterWindowProxy::singleton() {
+  static const nsChromeOuterWindowProxy s;
+  return &s;
+}
 
 static JSObject* NewOuterWindowProxy(JSContext* cx,
                                      JS::Handle<JSObject*> global,
@@ -1280,11 +1290,11 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   JSAutoRealm ar(cx, global);
 
   js::WrapperOptions options;
-  options.setClass(&OuterWindowProxyClass);
+  options.setClass(OuterWindowProxyClass());
   JSObject* obj =
       js::Wrapper::New(cx, global,
-                       isChrome ? &nsChromeOuterWindowProxy::singleton
-                                : &nsOuterWindowProxy::singleton,
+                       isChrome ? nsChromeOuterWindowProxy::singleton()
+                                : nsOuterWindowProxy::singleton(),
                        options);
   MOZ_ASSERT_IF(obj, js::IsWindowProxy(obj));
   return obj;

@@ -637,8 +637,11 @@ mozilla::ipc::IPCResult SocketProcessChild::RecvGetHttpConnectionData(
   return IPC_OK();
 }
 
+//extern "C" void sbx_init(void);
+
 mozilla::ipc::IPCResult SocketProcessChild::RecvInitProxyAutoConfigChild(
     Endpoint<PProxyAutoConfigChild>&& aEndpoint) {
+  //sbx_init();
   // For parsing PAC.
   if (!sInitializedJS) {
     JS::DisableJitBackend();

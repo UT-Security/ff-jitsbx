@@ -39,7 +39,7 @@ template void RuntimeScopeData<EvalScope::SlotInfo>::trace(JSTracer* trc);
 template void RuntimeScopeData<WasmFunctionScope::SlotInfo>::trace(
     JSTracer* trc);
 
-void JS::TracingContext::getEdgeName(const char* name, char* buffer,
+JS_PUBLIC_API void JS::TracingContext::getEdgeName(const char* name, char* buffer,
                                      size_t bufferSize) {
   MOZ_ASSERT(bufferSize > 0);
   if (functor_) {

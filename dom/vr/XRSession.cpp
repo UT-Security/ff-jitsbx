@@ -164,7 +164,7 @@ already_AddRefed<Promise> XRSession::End(ErrorResult& aRv) {
   RefPtr<Promise> promise = Promise::Create(global, aRv);
   NS_ENSURE_TRUE(!aRv.Failed(), nullptr);
 
-  promise->MaybeResolve(JS::UndefinedHandleValue);
+  promise->MaybeResolve(JS::GetUndefinedHandleValue());
 
   return promise.forget();
 }
@@ -421,7 +421,7 @@ already_AddRefed<Promise> XRSession::UpdateTargetFrameRate(float aRate,
   // The spec states that user agent MAY use rate to calculate a new display
   // frame rate, so it's fine to let the default frame rate for now.
 
-  promise->MaybeResolve(JS::UndefinedHandleValue);
+  promise->MaybeResolve(JS::GetUndefinedHandleValue());
   return promise.forget();
 }
 

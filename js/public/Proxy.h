@@ -380,6 +380,8 @@ class JS_PUBLIC_API BaseProxyHandler {
 
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
 
+extern JS_PUBLIC_API const JSClass* ProxyClass_p();
+
 inline bool IsProxy(const JSObject* obj) {
   return reinterpret_cast<const JS::shadow::Object*>(obj)->shape->isProxy();
 }
@@ -577,7 +579,7 @@ class MOZ_STACK_CLASS ProxyOptions {
  protected:
   /* protected constructor for subclass */
   explicit ProxyOptions(bool lazyProtoArg)
-      : lazyProto_(lazyProtoArg), clasp_(&ProxyClass) {}
+      : lazyProto_(lazyProtoArg), clasp_(ProxyClass_p()) {}
 
  public:
   ProxyOptions() : ProxyOptions(false) {}
@@ -713,6 +715,10 @@ extern JS_PUBLIC_DATA const JSClassOps ProxyClassOps;
 extern JS_PUBLIC_DATA const js::ClassExtension ProxyClassExtension;
 extern JS_PUBLIC_DATA const js::ObjectOps ProxyObjectOps;
 
+extern JS_PUBLIC_API const JSClassOps* ProxyClassOps_p();
+extern JS_PUBLIC_API const js::ClassExtension* ProxyClassExtension_p();
+extern JS_PUBLIC_API const js::ObjectOps* ProxyObjectOps_p();
+
 template <unsigned Flags>
 constexpr unsigned CheckProxyFlags() {
   constexpr size_t reservedSlots =
@@ -746,8 +752,8 @@ constexpr unsigned CheckProxyFlags() {
     name,                                                                  \
         JSClass::NON_NATIVE | JSCLASS_IS_PROXY |                           \
             JSCLASS_DELAY_METADATA_BUILDER | js::CheckProxyFlags<flags>(), \
-        &js::ProxyClassOps, classSpec, &js::ProxyClassExtension,           \
-        &js::ProxyObjectOps                                                \
+        js::ProxyClassOps_p(), classSpec, js::ProxyClassExtension_p(),     \
+        js::ProxyObjectOps_p()                                             \
   }
 
 #define PROXY_CLASS_DEF(name, flags) \

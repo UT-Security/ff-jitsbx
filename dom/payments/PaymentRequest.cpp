@@ -887,7 +887,7 @@ void PaymentRequest::RespondAbortPayment(bool aSuccess) {
 
   if (mAbortPromise) {
     if (aSuccess) {
-      mAbortPromise->MaybeResolve(JS::UndefinedHandleValue);
+      mAbortPromise->MaybeResolve(JS::GetUndefinedHandleValue());
       mAbortPromise = nullptr;
       ErrorResult abortResult;
       abortResult.ThrowAbortError("The PaymentRequest is aborted");

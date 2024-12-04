@@ -648,7 +648,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
 
   explicit XPCCallContext(JSContext* cx, JS::HandleObject obj = nullptr,
                           JS::HandleObject funobj = nullptr,
-                          JS::HandleId id = JS::VoidHandlePropertyKey,
+                          JS::HandleId id = JS::GetVoidHandlePropertyKey(),
                           unsigned argc = NO_ARGS, JS::Value* argv = nullptr,
                           JS::Value* rval = nullptr);
 

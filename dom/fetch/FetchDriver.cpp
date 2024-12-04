@@ -946,7 +946,7 @@ void FetchDriver::FailWithNetworkError(nsresult rv) {
   // mObserver could be null after OnResponseAvailable().
   if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking,
-                             JS::UndefinedHandleValue);
+                             JS::GetUndefinedHandleValue());
     mObserver = nullptr;
   }
 
@@ -1476,7 +1476,7 @@ void FetchDriver::FinishOnStopRequest(
 
   if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking,
-                             JS::UndefinedHandleValue);
+                             JS::GetUndefinedHandleValue());
     mObserver = nullptr;
   }
 

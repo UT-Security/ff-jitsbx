@@ -1669,7 +1669,7 @@ TelemetryImpl::GatherMemory(JSContext* aCx, Promise** aResult) {
   }
 
   MemoryTelemetry::Get().GatherReports(
-      [promise]() { promise->MaybeResolve(JS::UndefinedHandleValue); });
+      [promise]() { promise->MaybeResolve(JS::GetUndefinedHandleValue()); });
 
   promise.forget(aResult);
   return NS_OK;

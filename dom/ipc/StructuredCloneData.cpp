@@ -116,7 +116,7 @@ void StructuredCloneData::Read(JSContext* aCx,
 
 void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) {
-  Write(aCx, aValue, JS::UndefinedHandleValue, JS::CloneDataPolicy(), aRv);
+  Write(aCx, aValue, JS::GetUndefinedHandleValue(), JS::CloneDataPolicy(), aRv);
 }
 
 void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,

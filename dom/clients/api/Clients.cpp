@@ -240,7 +240,7 @@ already_AddRefed<Promise> Clients::OpenWindow(const nsAString& aURL,
       &ClientManager::OpenWindow, args, mGlobal,
       [outerPromise, global](const ClientOpResult& aResult) {
         if (aResult.type() != ClientOpResult::TClientInfoAndState) {
-          outerPromise->MaybeResolve(JS::NullHandleValue);
+          outerPromise->MaybeResolve(JS::GetNullHandleValue());
           return;
         }
         RefPtr<Client> client =

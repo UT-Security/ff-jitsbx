@@ -186,16 +186,18 @@ class FailureSimulator {
 };
 extern JS_PUBLIC_DATA FailureSimulator simulator;
 
+extern JS_PUBLIC_API FailureSimulator* GetSimulator();
+
 inline bool IsSimulatedOOMAllocation() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::OOM);
+  return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::OOM);
 }
 
 inline bool ShouldFailWithOOM() {
-  return simulator.shouldFail(FailureSimulator::Kind::OOM);
+  return GetSimulator()->shouldFail(FailureSimulator::Kind::OOM);
 }
 
 inline bool HadSimulatedOOM() {
-  return simulator.hadFailure(FailureSimulator::Kind::OOM);
+  return GetSimulator()->hadFailure(FailureSimulator::Kind::OOM);
 }
 
 /*
@@ -203,15 +205,15 @@ inline bool HadSimulatedOOM() {
  */
 
 inline bool IsSimulatedStackOOMCheck() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::StackOOM);
+  return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::StackOOM);
 }
 
 inline bool ShouldFailWithStackOOM() {
-  return simulator.shouldFail(FailureSimulator::Kind::StackOOM);
+  return GetSimulator()->shouldFail(FailureSimulator::Kind::StackOOM);
 }
 
 inline bool HadSimulatedStackOOM() {
-  return simulator.hadFailure(FailureSimulator::Kind::StackOOM);
+  return GetSimulator()->hadFailure(FailureSimulator::Kind::StackOOM);
 }
 
 /*
@@ -219,15 +221,15 @@ inline bool HadSimulatedStackOOM() {
  */
 
 inline bool IsSimulatedInterruptCheck() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::Interrupt);
+  return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::Interrupt);
 }
 
 inline bool ShouldFailWithInterrupt() {
-  return simulator.shouldFail(FailureSimulator::Kind::Interrupt);
+  return GetSimulator()->shouldFail(FailureSimulator::Kind::Interrupt);
 }
 
 inline bool HadSimulatedInterrupt() {
-  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+  return GetSimulator()->hadFailure(FailureSimulator::Kind::Interrupt);
 }
 
 } /* namespace oom */
@@ -313,10 +315,9 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
   using AnnotateOOMAllocationSizeCallback = void (*)(size_t);
   static mozilla::Atomic<AnnotateOOMAllocationSizeCallback, mozilla::Relaxed>
       annotateOOMSizeCallback;
-  static void setAnnotateOOMAllocationSizeCallback(
-      AnnotateOOMAllocationSizeCallback callback) {
-    annotateOOMSizeCallback = callback;
-  }
+  
+  JS_PUBLIC_API static void setAnnotateOOMAllocationSizeCallback(
+      AnnotateOOMAllocationSizeCallback callback);
 
 #  if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
   AutoEnterOOMUnsafeRegion()
@@ -352,6 +353,10 @@ extern JS_PUBLIC_DATA arena_id_t MallocArena;
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 
+extern JS_PUBLIC_API arena_id_t GetMallocArena();
+extern JS_PUBLIC_API arena_id_t GetArrayBufferContentsArena();
+extern JS_PUBLIC_API arena_id_t GetStringBufferArena();
+
 extern void InitMallocAllocator();
 extern void ShutDownMallocAllocator();
 
@@ -367,7 +372,7 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 }
 
 static inline void* js_malloc(size_t bytes) {
-  return js_arena_malloc(js::MallocArena, bytes);
+  return js_arena_malloc(js::GetMallocArena(), bytes);
 }
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
@@ -384,11 +389,11 @@ static inline void* js_arena_calloc(arena_id_t arena, size_t nmemb,
 }
 
 static inline void* js_calloc(size_t bytes) {
-  return js_arena_calloc(js::MallocArena, bytes);
+  return js_arena_calloc(js::GetMallocArena(), bytes);
 }
 
 static inline void* js_calloc(size_t nmemb, size_t size) {
-  return js_arena_calloc(js::MallocArena, nmemb, size);
+  return js_arena_calloc(js::GetMallocArena(), nmemb, size);
 }
 
 static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
@@ -403,7 +408,7 @@ static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
 }
 
 static inline void* js_realloc(void* p, size_t bytes) {
-  return js_arena_realloc(js::MallocArena, p, bytes);
+  return js_arena_realloc(js::GetMallocArena(), p, bytes);
 }
 
 static inline void js_free(void* p) {
@@ -584,7 +589,7 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_malloc(arena_id_t arena,
 
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_malloc(size_t numElems) {
-  return js_pod_arena_malloc<T>(js::MallocArena, numElems);
+  return js_pod_arena_malloc<T>(js::GetMallocArena(), numElems);
 }
 
 template <class T>
@@ -599,7 +604,7 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_calloc(arena_id_t arena,
 
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_calloc(size_t numElems) {
-  return js_pod_arena_calloc<T>(js::MallocArena, numElems);
+  return js_pod_arena_calloc<T>(js::GetMallocArena(), numElems);
 }
 
 template <class T>
@@ -617,7 +622,7 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_realloc(arena_id_t arena, T* prior,
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_realloc(T* prior, size_t oldSize,
                                            size_t newSize) {
-  return js_pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
+  return js_pod_arena_realloc<T>(js::GetMallocArena(), prior, oldSize, newSize);
 }
 
 namespace JS {

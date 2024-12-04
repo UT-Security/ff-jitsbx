@@ -441,7 +441,7 @@ class XrayWrapper : public Base {
   virtual const char* className(JSContext* cx,
                                 JS::HandleObject proxy) const override;
 
-  static const XrayWrapper singleton;
+  static const XrayWrapper* singleton();
 
  protected:
   bool getPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,

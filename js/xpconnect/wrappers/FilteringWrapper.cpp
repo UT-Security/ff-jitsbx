@@ -162,9 +162,18 @@ bool FilteringWrapper<Base, Policy>::enter(JSContext* cx, HandleObject wrapper,
 #define NNXOWC FilteringWrapper<CrossCompartmentSecurityWrapper, OpaqueWithCall>
 
 template <>
-const NNXOW NNXOW::singleton(0);
+const NNXOW* NNXOW::singleton() {
+  static const NNXOW s(0);
+
+  return &s;
+}
+
 template <>
-const NNXOWC NNXOWC::singleton(0);
+const NNXOWC* NNXOWC::singleton() {
+  static const NNXOWC s(0);
+
+  return &s;
+}
 
 template class NNXOW;
 template class NNXOWC;

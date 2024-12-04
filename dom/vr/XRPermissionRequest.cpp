@@ -63,7 +63,7 @@ nsresult XRPermissionRequest::Start() {
   }
   PromptResult pr = CheckPromptPrefs();
   if (pr == PromptResult::Granted) {
-    return Allow(JS::UndefinedHandleValue);
+    return Allow(JS::GetUndefinedHandleValue());
   }
   if (pr == PromptResult::Denied) {
     return Cancel();

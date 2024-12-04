@@ -100,7 +100,7 @@ void GVAutoplayPermissionRequest::CreateRequest(nsGlobalWindowInner* aWindow,
          aType == RType::eAUDIBLE) ||
         (testingPref == TestRequest::eAllowInAudible &&
          aType == RType::eINAUDIBLE)) {
-      request->Allow(JS::UndefinedHandleValue);
+      request->Allow(JS::GetUndefinedHandleValue());
     } else if (testingPref == TestRequest::eDenyAll ||
                (testingPref == TestRequest::eDenyAudible &&
                 aType == RType::eAUDIBLE) ||

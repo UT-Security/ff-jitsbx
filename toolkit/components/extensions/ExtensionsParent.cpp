@@ -31,7 +31,7 @@ extIWebNavigation* ExtensionsParent::WebNavigation() {
 void ExtensionsParent::ActorDestroy(ActorDestroyReason aWhy) {}
 
 static inline JS::Handle<JS::Value> ToJSBoolean(bool aValue) {
-  return aValue ? JS::TrueHandleValue : JS::FalseHandleValue;
+  return aValue ? JS::GetTrueHandleValue() : JS::GetFalseHandleValue();
 }
 
 JS::Value FrameTransitionDataToJSValue(const FrameTransitionData& aData) {

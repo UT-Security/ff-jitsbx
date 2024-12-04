@@ -16,7 +16,11 @@ using namespace JS;
 
 namespace xpc {
 
-const ChromeObjectWrapper ChromeObjectWrapper::singleton;
+const ChromeObjectWrapper* ChromeObjectWrapper::singleton() {
+  static const ChromeObjectWrapper s;
+  
+  return &s;
+}
 
 bool ChromeObjectWrapper::defineProperty(JSContext* cx, HandleObject wrapper,
                                          HandleId id,

@@ -776,7 +776,7 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
           StructuredCloneHolder::CloningSupported,
           StructuredCloneHolder::TransferringNotSupported,
           JS::StructuredCloneScope::SameProcess);
-  serializedOptions->Write(cx, optionsVal, JS::UndefinedHandleValue,
+  serializedOptions->Write(cx, optionsVal, JS::GetUndefinedHandleValue(),
                            cloneDataPolicy, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;

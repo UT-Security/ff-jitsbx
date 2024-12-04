@@ -17,7 +17,7 @@ namespace mozilla::dom {
 class TaskSignal : public AbortSignal {
  public:
   TaskSignal(nsIGlobalObject* aGlobal, TaskPriority aPriority)
-      : AbortSignal(aGlobal, false, JS::UndefinedHandleValue),
+      : AbortSignal(aGlobal, false, JS::GetUndefinedHandleValue()),
         mPriority(aPriority),
         mPriorityChanging(false) {}
 

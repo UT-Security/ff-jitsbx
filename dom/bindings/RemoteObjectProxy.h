@@ -150,7 +150,7 @@ class RemoteObjectProxy : public RemoteObjectProxyBase {
                       JS::Handle<JSObject*> aTransplantTo,
                       JS::MutableHandle<JSObject*> aProxy) const {
     bool objectCreated = false;
-    GetOrCreateProxyObject(aCx, aNative, &sClass, aTransplantTo, aProxy,
+    GetOrCreateProxyObject(aCx, aNative, sClass(), aTransplantTo, aProxy,
                            objectCreated);
     if (objectCreated) {
       NS_ADDREF(aNative);
@@ -167,7 +167,7 @@ class RemoteObjectProxy : public RemoteObjectProxyBase {
         aCx, aProxy, /* slot = */ 0, P, aHolder);
   }
 
-  static const JSClass sClass;
+  static const JSClass* sClass();
 };
 
 /**

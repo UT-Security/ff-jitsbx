@@ -102,7 +102,7 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
         if (aResponseReason.isSome()) {
           promise->MaybeRejectWithAbortError("Internal communication error!");
         } else {
-          promise->MaybeResolve(JS::NullHandleValue);
+          promise->MaybeResolve(JS::GetNullHandleValue());
         }
       });
 

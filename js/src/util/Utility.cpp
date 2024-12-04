@@ -33,6 +33,11 @@ mozilla::Atomic<AutoEnterOOMUnsafeRegion*> AutoEnterOOMUnsafeRegion::owner_;
 namespace oom {
 
 JS_PUBLIC_DATA FailureSimulator simulator;
+
+JS_PUBLIC_API FailureSimulator* GetSimulator() {
+  return &simulator;
+}
+
 static MOZ_THREAD_LOCAL(uint32_t) threadType;
 
 bool InitThreadType() { return threadType.init(); }
@@ -103,6 +108,18 @@ bool js::gExtraPoisoningEnabled = false;
 JS_PUBLIC_DATA arena_id_t js::MallocArena;
 JS_PUBLIC_DATA arena_id_t js::ArrayBufferContentsArena;
 JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
+
+JS_PUBLIC_API arena_id_t js::GetMallocArena() {
+  return js::MallocArena;
+}
+
+JS_PUBLIC_API arena_id_t js::GetArrayBufferContentsArena() {
+  return js::ArrayBufferContentsArena;
+}
+
+JS_PUBLIC_API arena_id_t js::GetStringBufferArena() {
+  return js::StringBufferArena;
+}
 
 void js::InitMallocAllocator() {
   arena_params_t mallocArenaParams;

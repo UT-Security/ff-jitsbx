@@ -179,7 +179,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   void CanvasAttrChanged() {
     ErrorResult dummy;
-    UpdateContext(nullptr, JS::NullHandleValue, dummy);
+    UpdateContext(nullptr, JS::GetNullHandleValue(), dummy);
   }
 
   bool mNeutered = false;

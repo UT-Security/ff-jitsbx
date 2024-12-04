@@ -516,7 +516,7 @@ void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
 
   StructuredCloneData data;
   if (!aObj.isUndefined() &&
-      !GetParamsForMessage(aCx, aObj, JS::UndefinedHandleValue, data)) {
+      !GetParamsForMessage(aCx, aObj, JS::GetUndefinedHandleValue(), data)) {
     aError.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     return;
   }
@@ -524,7 +524,7 @@ void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
 #ifdef FUZZING
   if (data.DataLength() > 0) {
     MessageManagerFuzzer::TryMutate(aCx, aMessageName, &data,
-                                    JS::UndefinedHandleValue);
+                                    JS::GetUndefinedHandleValue());
   }
 #endif
 

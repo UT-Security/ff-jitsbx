@@ -91,6 +91,8 @@ namespace JS {
  */
 extern JS_PUBLIC_DATA const JSClassOps DefaultGlobalClassOps;
 
+extern JS_PUBLIC_API const JSClassOps* GetDefaultGlobalClassOps();
+
 }  // namespace JS
 
 extern JS_PUBLIC_API void JS_FireOnNewGlobalObject(JSContext* cx,

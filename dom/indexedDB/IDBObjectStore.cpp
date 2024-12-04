@@ -1012,7 +1012,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
   AssertIsOnOwningThread();
 
   return OpenCursorInternal(/* aKeysOnly */ false, aCx,
-                            JS::UndefinedHandleValue, aDirection, aRv);
+                            JS::GetUndefinedHandleValue(), aDirection, aRv);
 }
 
 RefPtr<IDBRequest> IDBObjectStore::OpenKeyCursor(JSContext* aCx,

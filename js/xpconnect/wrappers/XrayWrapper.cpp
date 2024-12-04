@@ -2140,7 +2140,7 @@ bool XrayWrapper<Base, Traits>::call(JSContext* cx, HandleObject wrapper,
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
                       BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::call(cx, wrapper, args, Base::singleton);
+  return Traits::call(cx, wrapper, args, *Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
@@ -2149,20 +2149,20 @@ bool XrayWrapper<Base, Traits>::construct(JSContext* cx, HandleObject wrapper,
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
                       BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::construct(cx, wrapper, args, Base::singleton);
+  return Traits::construct(cx, wrapper, args, *Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getBuiltinClass(JSContext* cx,
                                                 JS::HandleObject wrapper,
                                                 js::ESClass* cls) const {
-  return Traits::getBuiltinClass(cx, wrapper, Base::singleton, cls);
+  return Traits::getBuiltinClass(cx, wrapper, *Base::getSingletonP(), cls);
 }
 
 template <typename Base, typename Traits>
 const char* XrayWrapper<Base, Traits>::className(JSContext* cx,
                                                  HandleObject wrapper) const {
-  return Traits::className(cx, wrapper, Base::singleton);
+  return Traits::className(cx, wrapper, *Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
@@ -2311,8 +2311,10 @@ bool XrayWrapper<Base, Traits>::getPropertyKeys(
  */
 
 template <typename Base, typename Traits>
-const xpc::XrayWrapper<Base, Traits> xpc::XrayWrapper<Base, Traits>::singleton(
-    0);
+const xpc::XrayWrapper<Base, Traits>* xpc::XrayWrapper<Base, Traits>::singleton() {
+  static const xpc::XrayWrapper<Base, Traits> s(0);
+  return &s;
+}
 
 template class PermissiveXrayDOM;
 template class PermissiveXrayJS;
@@ -2324,7 +2326,7 @@ template class PermissiveXrayOpaque;
  */
 static bool IsCrossCompartmentXrayCallback(
     const js::BaseProxyHandler* handler) {
-  return handler == &PermissiveXrayDOM::singleton;
+  return handler == PermissiveXrayDOM::singleton();
 }
 
 JS::XrayJitInfo gXrayJitInfo = {

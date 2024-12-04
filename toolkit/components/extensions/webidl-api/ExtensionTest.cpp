@@ -164,7 +164,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
       //   assertion
       JS::Rooted<JS::Value> retval(aCx);
       aRv.MightThrowJSException();
-      if (!JS::Call(aCx, JS::UndefinedHandleValue, expectedMatchObj,
+      if (!JS::Call(aCx, JS::GetUndefinedHandleValue(), expectedMatchObj,
                     JS::HandleValueArray(aActualValue), &retval)) {
         aRv.StealExceptionFromJSContext(aCx);
         matched = false;

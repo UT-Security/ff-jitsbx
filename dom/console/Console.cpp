@@ -440,7 +440,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     cloneDataPolicy.allowSharedMemoryObjects();
 
     if (NS_WARN_IF(
-            !Write(aCx, aValue, JS::UndefinedHandleValue, cloneDataPolicy))) {
+            !Write(aCx, aValue, JS::GetUndefinedHandleValue(), cloneDataPolicy))) {
       // Ignore the message.
       return false;
     }

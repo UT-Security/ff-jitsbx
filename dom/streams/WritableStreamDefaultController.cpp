@@ -150,7 +150,7 @@ void SetUpWritableStreamDefaultController(
 
   // Step 6. Set controller.[[signal]] to a new AbortSignal.
   RefPtr<AbortSignal> signal = new AbortSignal(aController->GetParentObject(),
-                                               false, JS::UndefinedHandleValue);
+                                               false, JS::GetUndefinedHandleValue());
   aController->SetSignal(signal);
 
   // Step 7. Set controller.[[started]] to false.

@@ -686,7 +686,7 @@ static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   //   * the getter function is retrieved from property descriptor and called
   //   * the lambda gets the property again
   //   * the getter function throws and accessed again
-  js::SetFunctionNativeReserved(callee, SLOT_PARAMS, JS::UndefinedHandleValue);
+  js::SetFunctionNativeReserved(callee, SLOT_PARAMS, JS::GetUndefinedHandleValue());
 
   JS::Rooted<JSObject*> paramsObj(aCx, &paramsVal.toObject());
 
@@ -1610,7 +1610,7 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
 
     JS::Rooted<JS::Value> err(cx);
     if (!JS::CreateError(cx, JSEXN_ERR, stack, fileName, line, column, nullptr,
-                         message, JS::NothingHandleValue, &err)) {
+                         message, JS::GetNothingHandleValue(), &err)) {
       return;
     }
 

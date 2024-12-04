@@ -87,7 +87,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
       }
 
       FunctionForwarderOptions forwarderOptions;
-      if (!xpc::NewFunctionForwarder(aCx, JS::VoidHandlePropertyKey, obj,
+      if (!xpc::NewFunctionForwarder(aCx, JS::GetVoidHandlePropertyKey(), obj,
                                      forwarderOptions, &functionValue)) {
         return nullptr;
       }

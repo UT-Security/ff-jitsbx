@@ -88,7 +88,7 @@ class AbortSignalMainThread final : public AbortSignalImpl {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AbortSignalMainThread)
 
   explicit AbortSignalMainThread(bool aAborted)
-      : AbortSignalImpl(aAborted, JS::UndefinedHandleValue) {
+      : AbortSignalImpl(aAborted, JS::GetUndefinedHandleValue()) {
     mozilla::HoldJSObjects(this);
   }
 
@@ -193,7 +193,7 @@ NS_IMPL_ISUPPORTS0(AbortSignalProxy)
 NS_IMETHODIMP AbortSignalProxyRunnable::Run() {
   MOZ_ASSERT(NS_IsMainThread());
   AbortSignalImpl* signalImpl = mProxy->GetOrCreateSignalImplForMainThread();
-  signalImpl->SignalAbort(JS::UndefinedHandleValue);
+  signalImpl->SignalAbort(JS::GetUndefinedHandleValue());
   return NS_OK;
 }
 

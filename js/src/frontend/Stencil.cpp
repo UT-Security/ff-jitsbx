@@ -1637,7 +1637,7 @@ void CompilationGCOutput::trace(JSTracer* trc) {
   scopes.trace(trc);
 }
 
-void JS::InstantiationStorage::trace(JSTracer* trc) {
+JS_PUBLIC_API void JS::InstantiationStorage::trace(JSTracer* trc) {
   if (gcOutput_) {
     gcOutput_->trace(trc);
   }
@@ -5355,7 +5355,7 @@ JS_PUBLIC_API size_t JS::SizeOfStencil(Stencil* stencil,
   return stencil->sizeOfIncludingThis(mallocSizeOf);
 }
 
-JS::InstantiationStorage::~InstantiationStorage() {
+JS_PUBLIC_API JS::InstantiationStorage::~InstantiationStorage() {
   if (gcOutput_) {
     js_delete(gcOutput_);
     gcOutput_ = nullptr;

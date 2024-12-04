@@ -1,0 +1,23 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "General"
+
+origin:
+  name: libmmap
+  description: mmap functionality used by liblfi
+  url: https://github.com/zyedidia/libmmap/tree/master
+
+  release: 54be09b47cbf1a8ee28359ce44c0abb9f38c234a
+  revision: 54be09b47cbf1a8ee28359ce44c0abb9f38c234a
+
+  license: MIT
+
+vendoring:
+  url: https://github.com/zyedidia/libmmap
+  source-hosting: github
+
+  exclude:
+    - test
+    - meson.build

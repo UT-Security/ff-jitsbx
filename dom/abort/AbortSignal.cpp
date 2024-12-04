@@ -228,7 +228,7 @@ already_AddRefed<AbortSignal> AbortSignal::Timeout(GlobalObject& aGlobal,
 
   // Step 1. Let signal be a new AbortSignal object.
   RefPtr<AbortSignal> signal =
-      new AbortSignal(global, false, JS::UndefinedHandleValue);
+      new AbortSignal(global, false, JS::GetUndefinedHandleValue());
 
   // Step 3. Run steps after a timeout given global, "AbortSignal-timeout",
   // milliseconds, and the following step: ...

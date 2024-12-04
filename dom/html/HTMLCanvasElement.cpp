@@ -584,7 +584,7 @@ void HTMLCanvasElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
       (aName == nsGkAtoms::width || aName == nsGkAtoms::height ||
        aName == nsGkAtoms::moz_opaque)) {
     ErrorResult dummy;
-    UpdateContext(nullptr, JS::NullHandleValue, dummy);
+    UpdateContext(nullptr, JS::GetNullHandleValue(), dummy);
   }
 }
 
@@ -996,7 +996,7 @@ nsresult HTMLCanvasElement::GetContext(const nsAString& aContextId,
                                        nsISupports** aContext) {
   ErrorResult rv;
   mMaybeModified = true;  // For FirstContentfulPaint
-  *aContext = GetContext(nullptr, aContextId, JS::NullHandleValue, rv).take();
+  *aContext = GetContext(nullptr, aContextId, JS::GetNullHandleValue(), rv).take();
   return rv.StealNSResult();
 }
 
@@ -1011,7 +1011,7 @@ already_AddRefed<nsISupports> HTMLCanvasElement::GetContext(
   mMaybeModified = true;  // For FirstContentfulPaint
   return CanvasRenderingContextHelper::GetOrCreateContext(
       aCx, aContextId,
-      aContextOptions.isObject() ? aContextOptions : JS::NullHandleValue, aRv);
+      aContextOptions.isObject() ? aContextOptions : JS::GetNullHandleValue(), aRv);
 }
 
 nsIntSize HTMLCanvasElement::GetSize() { return GetWidthHeight(); }

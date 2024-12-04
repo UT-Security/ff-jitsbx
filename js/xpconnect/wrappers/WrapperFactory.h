@@ -34,7 +34,7 @@ class CrossOriginObjectWrapper : public js::Wrapper {
   // want the compartment-entering behavior it has.  But we do want to set the
   // CROSS_COMPARTMENT flag on js::Wrapper so that we test true for
   // is<js::CrossCompartmentWrapperObject> and so forth.
-  constexpr explicit CrossOriginObjectWrapper()
+  inline explicit CrossOriginObjectWrapper()
       : js::Wrapper(CROSS_COMPARTMENT, /* aHasPrototype = */ false,
                     /* aHasSecurityPolicy = */ true) {}
 
@@ -44,7 +44,7 @@ class CrossOriginObjectWrapper : public js::Wrapper {
   // Cross origin objects should not participate in private fields.
   virtual bool throwOnPrivateField() const override { return true; }
 
-  static const CrossOriginObjectWrapper singleton;
+  static const CrossOriginObjectWrapper* singleton();
 };
 
 class WrapperFactory {
@@ -67,7 +67,7 @@ class WrapperFactory {
 
   static bool IsCrossOriginWrapper(JSObject* obj) {
     return (js::IsProxy(obj) &&
-            js::GetProxyHandler(obj) == &CrossOriginObjectWrapper::singleton);
+            js::GetProxyHandler(obj) == CrossOriginObjectWrapper::singleton());
   }
 
   static bool IsOpaqueWrapper(JSObject* obj);

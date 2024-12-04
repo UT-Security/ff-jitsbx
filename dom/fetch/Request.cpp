@@ -642,7 +642,7 @@ Headers* Request::Headers_() {
 
 AbortSignal* Request::GetOrCreateSignal() {
   if (!mSignal) {
-    mSignal = new AbortSignal(mOwner, false, JS::UndefinedHandleValue);
+    mSignal = new AbortSignal(mOwner, false, JS::GetUndefinedHandleValue());
   }
 
   return mSignal;

@@ -301,7 +301,7 @@ mozilla::ipc::IPCResult VRManagerChild::RecvNotifyPuppetCommandBufferCompleted(
   RefPtr<dom::Promise> promise = mRunPuppetPromise;
   mRunPuppetPromise = nullptr;
   if (aSuccess) {
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(JS::GetUndefinedHandleValue());
   } else {
     promise->MaybeRejectWithUndefined();
   }
@@ -313,7 +313,7 @@ mozilla::ipc::IPCResult VRManagerChild::RecvNotifyPuppetResetComplete() {
   promises.AppendElements(mResetPuppetPromises);
   mResetPuppetPromises.Clear();
   for (const auto& promise : promises) {
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(JS::GetUndefinedHandleValue());
   }
   return IPC_OK();
 }

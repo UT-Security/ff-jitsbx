@@ -984,7 +984,7 @@ static JSObject* CreateInterfacePrototypeObject(
 
     for (; *unscopableNames; ++unscopableNames) {
       if (!JS_DefineProperty(cx, unscopableObj, *unscopableNames,
-                             JS::TrueHandleValue, JSPROP_ENUMERATE)) {
+                             JS::GetTrueHandleValue(), JSPROP_ENUMERATE)) {
         return nullptr;
       }
     }

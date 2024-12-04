@@ -216,7 +216,7 @@ already_AddRefed<Promise> PaymentResponse::Complete(PaymentComplete result,
 void PaymentResponse::RespondComplete() {
   // mPromise may be null when timing out
   if (mPromise) {
-    mPromise->MaybeResolve(JS::UndefinedHandleValue);
+    mPromise->MaybeResolve(JS::GetUndefinedHandleValue());
     mPromise = nullptr;
   }
 }
@@ -301,7 +301,7 @@ void PaymentResponse::RespondRetry(const nsAString& aMethodName,
                           nsITimer::TYPE_ONE_SHOT,
                           GetOwner()->EventTargetFor(TaskCategory::Other));
   MOZ_ASSERT(mRetryPromise);
-  mRetryPromise->MaybeResolve(JS::UndefinedHandleValue);
+  mRetryPromise->MaybeResolve(JS::GetUndefinedHandleValue());
   mRetryPromise = nullptr;
 }
 

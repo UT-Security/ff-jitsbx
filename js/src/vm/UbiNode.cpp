@@ -115,6 +115,8 @@ size_t JS::ubi::AtomOrTwoByteChars::length() {
   return match(m);
 }
 
+JS_PUBLIC_API JS::ubi::BaseStackFrame::BaseStackFrame(void* ptr): ptr(ptr) {}
+
 size_t StackFrame::source(RangedPtr<char16_t> destination,
                           size_t length) const {
   auto s = source();
@@ -132,6 +134,8 @@ size_t StackFrame::sourceLength() { return source().length(); }
 size_t StackFrame::functionDisplayNameLength() {
   return functionDisplayName().length();
 }
+
+Concrete<void>::Concrete(void* ptr) : Base(ptr) {}
 
 // All operations on null ubi::Nodes crash.
 CoarseType Concrete<void>::coarseType() const { MOZ_CRASH("null ubi::Node"); }
@@ -469,6 +473,8 @@ bool RootList::addRoot(Node node, const char16_t* edgeName) {
   return edges.append(Edge(name.release(), node));
 }
 
+Concrete<RootList>::Concrete(RootList* ptr) : Base(ptr) {}
+
 const char16_t Concrete<RootList>::concreteTypeName[] = u"JS::ubi::RootList";
 
 UniquePtr<EdgeRange> Concrete<RootList>::edges(JSContext* cx,
@@ -500,7 +506,7 @@ void Concrete<JSObject>::construct(void* storage, JSObject* ptr) {
   new (storage) Concrete(ptr);
 }
 
-void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
+JS_PUBLIC_API void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
                                              void (*callback)(void*,
                                                               JSObject*)) {
   cx->runtime()->constructUbiNodeForDOMObjectCallback = callback;

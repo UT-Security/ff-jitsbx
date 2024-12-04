@@ -558,7 +558,7 @@ class RequestAllowEvent : public Runnable {
   NS_IMETHOD Run() override {
     // MOZ_KnownLive is OK, because we never drop the ref to mRequest.
     if (mAllow) {
-      MOZ_KnownLive(mRequest)->Allow(JS::UndefinedHandleValue);
+      MOZ_KnownLive(mRequest)->Allow(JS::GetUndefinedHandleValue());
     } else {
       MOZ_KnownLive(mRequest)->Cancel();
     }
@@ -830,7 +830,7 @@ mozilla::ipc::IPCResult RemotePermissionRequest::RecvNotifyResult(
   if (aAllow && mWindow->IsCurrentInnerWindow()) {
     // Use 'undefined' if no choice is provided.
     if (aChoices.IsEmpty()) {
-      DoAllow(JS::UndefinedHandleValue);
+      DoAllow(JS::GetUndefinedHandleValue());
       return IPC_OK();
     }
 

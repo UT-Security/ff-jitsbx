@@ -546,7 +546,7 @@ void AutoJSAPI::ReportException() {
                                                 &stackGlobal);
         // This error is not associated with a specific window,
         // so omit the exception value to mitigate potential leaks.
-        xpcReport->LogToConsoleWithStack(inner, JS::NothingHandleValue, stack,
+        xpcReport->LogToConsoleWithStack(inner, JS::GetNothingHandleValue(), stack,
                                          stackGlobal);
       }
     } else {

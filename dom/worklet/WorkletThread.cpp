@@ -49,11 +49,11 @@ JSObject* Wrap(JSContext* aCx, JS::Handle<JSObject*> aExisting,
                JS::Handle<JSObject*> aObj) {
   if (aExisting) {
     js::Wrapper::Renew(aExisting, aObj,
-                       &js::OpaqueCrossCompartmentWrapper::singleton);
+                       js::OpaqueCrossCompartmentWrapper::getSingletonP());
   }
 
   return js::Wrapper::New(aCx, aObj,
-                          &js::OpaqueCrossCompartmentWrapper::singleton);
+                          js::OpaqueCrossCompartmentWrapper::getSingletonP());
 }
 
 const JSWrapObjectCallbacks WrapObjectCallbacks = {

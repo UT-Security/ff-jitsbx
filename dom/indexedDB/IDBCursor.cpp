@@ -636,7 +636,7 @@ RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Update(
       }
 
       request = objectStore.AddOrPut(aCx, valueWrapper,
-                                     /* aKey */ JS::UndefinedHandleValue,
+                                     /* aKey */ JS::GetUndefinedHandleValue(),
                                      /* aOverwrite */ true,
                                      /* aFromCursor */ true, aRv);
       if (aRv.Failed()) {

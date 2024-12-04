@@ -913,7 +913,7 @@ AboutThirdParty::CollectSystemInfo(JSContext* aCx, dom::Promise** aResult) {
 
   CollectSystemInfoAsync()->Then(
       GetMainThreadSerialEventTarget(), __func__,
-      [promise](bool) { promise->MaybeResolve(JS::NullHandleValue); },
+      [promise](bool) { promise->MaybeResolve(JS::GetNullHandleValue()); },
       [promise](nsresult aRv) { promise->MaybeReject(aRv); });
 
   promise.forget(aResult);

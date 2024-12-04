@@ -298,14 +298,19 @@ typedef struct {
     size_t size;
 } FileBuf;
 
+static size_t
+min(size_t a, size_t b)
+{
+    return a < b ? a : b;
+}
+
 // read 'count' bytes from 'buf' into 'to', starting at 'offset'.
 static size_t
 bufread(FileBuf buf, void* to, size_t count, off_t offset)
 {
-    if (offset + count > buf.size)
-        count = buf.size - offset;
-    memcpy(to, &buf.data[offset], count);
-    return count;
+    size_t n = min(count, buf.size - offset);
+    memcpy(to, &buf.data[offset], n);
+    return n;
 }
 
 static bool
@@ -344,7 +349,7 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
             return false;
         }
 
-        void* verifier = proc->lfi->opts.verifier;
+        void* verifier = NULL;//proc->lfi->opts.verifier;
         //if (verifier) {
         //    if (!lfiv_verify(verifier, &buf.data[p_offset], filesz, start + offset)) {
         //        lfi_errno = LFI_ERR_VERIFY;
@@ -659,7 +664,8 @@ procmap(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd
     assert(start % proc->lfi->opts.pagesize == 0);
     assert(size % proc->lfi->opts.pagesize == 0);
 
-    void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+    //void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+    void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, NULL);
     if (mem == (void*) -1)
         return -errno;
     return 0;
@@ -712,7 +718,9 @@ lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
         return -1;
 
     assert(addr >= proc->base && addr < proc->base + proc->size);
-    return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
+    
+    //return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
+    return mprotectverify((void*) addr, size, prot, NULL);
 }
 
 int

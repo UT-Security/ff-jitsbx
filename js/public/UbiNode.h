@@ -232,7 +232,7 @@ class BaseStackFrame {
 
  protected:
   void* ptr;
-  explicit BaseStackFrame(void* ptr) : ptr(ptr) {}
+  JS_PUBLIC_API explicit BaseStackFrame(void* ptr);
 
  public:
   // This is a value type that should not have a virtual destructor. Don't add
@@ -1024,7 +1024,7 @@ class MOZ_STACK_CLASS JS_PUBLIC_API RootList {
 template <>
 class JS_PUBLIC_API Concrete<RootList> : public Base {
  protected:
-  explicit Concrete(RootList* ptr) : Base(ptr) {}
+  explicit Concrete(RootList* ptr);
   RootList& get() const { return *static_cast<RootList*>(ptr); }
 
  public:
@@ -1173,7 +1173,7 @@ class JS_PUBLIC_API Concrete<void> : public Base {
   JS::Realm* realm() const override;
   CoarseType coarseType() const final;
 
-  explicit Concrete(void* ptr) : Base(ptr) {}
+  explicit Concrete(void* ptr);
 
  public:
   static void construct(void* storage, void* ptr) {
@@ -1190,7 +1190,7 @@ class JS_PUBLIC_API Concrete<void> : public Base {
 
 // Set |cx|'s runtime hook for constructing ubi::Nodes for DOM classes to
 // |callback|.
-void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
+JS_PUBLIC_API void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
                                              void (*callback)(void*,
                                                               JSObject*));
 

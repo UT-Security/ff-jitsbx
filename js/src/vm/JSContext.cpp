@@ -1307,6 +1307,11 @@ mozilla::Atomic<AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback,
                 mozilla::Relaxed>
     AutoEnterOOMUnsafeRegion::annotateOOMSizeCallback(nullptr);
 
+JS_PUBLIC_API void AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
+      AnnotateOOMAllocationSizeCallback callback) {
+    annotateOOMSizeCallback = callback;
+}
+
 void AutoEnterOOMUnsafeRegion::crash(size_t size, const char* reason) {
   {
     JS::AutoSuppressGCAnalysis suppress;

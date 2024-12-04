@@ -632,7 +632,7 @@ already_AddRefed<Promise> Promise::CreateFromExisting(
 void Promise::MaybeResolveWithUndefined() {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
-  MaybeResolve(JS::UndefinedHandleValue);
+  MaybeResolve(JS::GetUndefinedHandleValue());
 }
 
 void Promise::MaybeReject(const RefPtr<MediaStreamError>& aArg) {
@@ -644,7 +644,7 @@ void Promise::MaybeReject(const RefPtr<MediaStreamError>& aArg) {
 void Promise::MaybeRejectWithUndefined() {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
-  MaybeSomething(JS::UndefinedHandleValue, &Promise::MaybeReject);
+  MaybeSomething(JS::GetUndefinedHandleValue(), &Promise::MaybeReject);
 }
 
 void Promise::ReportRejectedPromise(JSContext* aCx,

@@ -269,6 +269,10 @@ bool ForwardingProxyHandler::isConstructor(JSObject* obj) const {
   return target->isConstructor();
 }
 
+Wrapper::Wrapper(unsigned aFlags, bool aHasPrototype, bool aHasSecurityPolicy)
+      : ForwardingProxyHandler(Wrapper::family_p(), aHasPrototype, aHasSecurityPolicy),
+        mFlags(aFlags) {}
+
 JSObject* Wrapper::New(JSContext* cx, JSObject* obj, const Wrapper* handler,
                        const WrapperOptions& options) {
   // If this is a cross-compartment wrapper allocate it in the compartment's
@@ -313,6 +317,10 @@ JSObject* Wrapper::wrappedObject(JSObject* wrapper) {
   }
 
   return target;
+}
+
+JS_PUBLIC_API const char* Wrapper::family_p() {
+  return &family;
 }
 
 JS_PUBLIC_API JSObject* js::UncheckedUnwrapWithoutExpose(JSObject* wrapped) {
@@ -414,7 +422,7 @@ JS_PUBLIC_API JSObject* js::UnwrapOneCheckedDynamic(HandleObject obj,
   return nullptr;
 }
 
-void js::ReportAccessDenied(JSContext* cx) {
+JS_PUBLIC_API void js::ReportAccessDenied(JSContext* cx) {
   JS_ReportErrorNumberASCII(cx, GetErrorMessage, nullptr,
                             JSMSG_OBJECT_ACCESS_DENIED);
 }

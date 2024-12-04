@@ -208,7 +208,7 @@ void JSActor::SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
                       JSActorMessageMarker{}, mName, aMessageName);
   Maybe<ipc::StructuredCloneData> data{std::in_place};
   if (!nsFrameMessageManager::GetParamsForMessage(
-          aCx, aObj, JS::UndefinedHandleValue, *data)) {
+          aCx, aObj, JS::GetUndefinedHandleValue(), *data)) {
     aRv.ThrowDataCloneError(nsPrintfCString(
         "Failed to serialize message '%s::%s'",
         NS_LossyConvertUTF16toASCII(aMessageName).get(), mName.get()));
@@ -231,7 +231,7 @@ already_AddRefed<Promise> JSActor::SendQuery(JSContext* aCx,
                       JSActorMessageMarker{}, mName, aMessageName);
   Maybe<ipc::StructuredCloneData> data{std::in_place};
   if (!nsFrameMessageManager::GetParamsForMessage(
-          aCx, aObj, JS::UndefinedHandleValue, *data)) {
+          aCx, aObj, JS::GetUndefinedHandleValue(), *data)) {
     aRv.ThrowDataCloneError(nsPrintfCString(
         "Failed to serialize message '%s::%s'",
         NS_LossyConvertUTF16toASCII(aMessageName).get(), mName.get()));

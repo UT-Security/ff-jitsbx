@@ -153,7 +153,7 @@ already_AddRefed<Promise> L10nFileSource::FetchFile(const nsACString& aLocale,
           RefPtr<FluentResource> res = new FluentResource(global, aRes);
           promise->MaybeResolve(res);
         } else {
-          promise->MaybeResolve(JS::NullHandleValue);
+          promise->MaybeResolve(JS::GetNullHandleValue());
         }
       },
       &status);

@@ -96,7 +96,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSExecutionContext(
       JSContext* aCx, JS::Handle<JSObject*> aGlobal,
       JS::CompileOptions& aCompileOptions,
-      JS::Handle<JS::Value> aDebuggerPrivateValue = JS::UndefinedHandleValue,
+      JS::Handle<JS::Value> aDebuggerPrivateValue = JS::GetUndefinedHandleValue(),
       JS::Handle<JSScript*> aDebuggerIntroductionScript = nullptr);
 
   JSExecutionContext(const JSExecutionContext&) = delete;

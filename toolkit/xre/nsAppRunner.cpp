@@ -5681,6 +5681,8 @@ static already_AddRefed<nsIFile> GreOmniPath(int argc, char** argv) {
 }
 #endif
 
+extern "C" void sbx_init(void);
+
 /*
  * XRE_main - A class based main entry point used by most platforms.
  *            Note that on OSX, aAppData->xreDirectory will point to
@@ -5697,6 +5699,7 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 #ifndef XP_LINUX
   NS_SetCurrentThreadName("MainThread");
 #endif
+  sbx_init();
 
   AUTO_BASE_PROFILER_LABEL("XREMain::XRE_main (around Gecko Profiler)", OTHER);
   AUTO_PROFILER_INIT;

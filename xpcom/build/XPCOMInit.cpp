@@ -213,7 +213,11 @@ NS_IMPL_ISUPPORTS(OggReporter, nsIMemoryReporter)
 
 static bool sInitializedJS = false;
 
+//extern "C" void sbx_init(void);
+
 static void InitializeJS() {
+  //sbx_init();
+
 #if defined(ENABLE_WASM_SIMD) && \
     (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86))
   // Update static engine preferences, such as AVX, before
