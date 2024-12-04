@@ -1,0 +1,46 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "General"
+
+origin:
+  name: lfi
+  description: lfi sandboxing runtime
+  url: https://github.com/zyedidia/lfi/tree/master
+
+  release: 9c676045c0159699473eb351c35471c9a5380860 (2024-12-03T10:04:37Z).
+  revision: 9c676045c0159699473eb351c35471c9a5380860
+
+  license: MIT
+
+vendoring:
+  url: https://github.com/zyedidia/lfi
+  source-hosting: github
+
+  keep:
+    - lfi-verify
+    - liblfi
+    - liblfix
+    - LICENSE
+    - README.md  
+  
+  exclude:
+    - assets
+    - docs
+    - extra
+    - lfi-compile
+    - lfi-fuzz
+    - lfi-leg
+    - lfi-postlink
+    - lfi-run
+    - lfi-veribdd
+    - libsobox
+    - specinvoke
+    - subprojects
+    - toolchain
+    - go.mod
+    - go.sum
+    - install-toolchain.sh
+    - meson.build
+    - meson_options.txt

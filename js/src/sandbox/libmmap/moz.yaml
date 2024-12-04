@@ -9,7 +9,7 @@ origin:
   description: mmap functionality used by liblfi
   url: https://github.com/zyedidia/libmmap/tree/master
 
-  release: 54be09b47cbf1a8ee28359ce44c0abb9f38c234a
+  release: 54be09b47cbf1a8ee28359ce44c0abb9f38c234a (2024-11-23T10:03:45Z).
   revision: 54be09b47cbf1a8ee28359ce44c0abb9f38c234a
 
   license: MIT
