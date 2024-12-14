@@ -20,9 +20,14 @@ STATIC_LIBRARY_NAME = "js_sandboxed"
 NO_EXPAND_LIBS = True
 
 SOURCES += [
+    "./gen/cbtrampolines.s",
     "./gen/includes.c",
     "./gen/libinit.c",
-    "./gen/trampolines.s"
+    "./gen/trampolines.s",
+]
+
+EXPORTS.js.sandbox += [
+    "./gen/sobox.h"
 ]
 
 DIST_INSTALL = True

@@ -471,7 +471,7 @@ enum ExpandoSlots {
   JSSLOT_EXPANDO_COUNT
 };
 
-extern const JSClassOps XrayExpandoObjectClassOps;
+extern const JSClassOps* XrayExpandoObjectClassOps();
 
 /*
  * Clear the given slot on all Xray expandos for the given object.

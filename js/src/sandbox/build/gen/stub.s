@@ -3750,6 +3750,8 @@ trampotable:
 	.quad _ZN2JS10IsCallableEP8JSObject
 	.quad _ZN2JS40SetProcessLargeAllocationFailureCallbackEPFvvE
 	.quad retfn
-	.quad malloc
+	.quad moz_arena_malloc
+	.quad moz_arena_calloc
+	.quad moz_arena_realloc
 	.quad free
 .section .note.GNU-stack,"",@progbits

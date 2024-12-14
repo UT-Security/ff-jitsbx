@@ -12,6 +12,8 @@
 
 #include "xpcpublic.h"
 #include "mozilla/dom/DOMJSClass.h"
+#include "js/Class.h"
+#include "js/sandbox/sobox.h"
 
 bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, JS::HandleObject obj,
                                        JS::HandleId id, JS::HandleValue v);
@@ -51,44 +53,44 @@ extern const js::ClassExtension XPC_WN_JSClassExtension;
     /* addProperty */                                                         \
     ((_flags)&XPC_SCRIPTABLE_USE_JSSTUB_FOR_ADDPROPERTY) ? nullptr            \
     : ((_flags)&XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)                \
-        ? XPC_WN_MaybeResolvingPropertyStub                                   \
-        : XPC_WN_CannotModifyPropertyStub,                                    \
+        ? (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_MaybeResolvingPropertyStub, 0)                                   \
+        : (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_CannotModifyPropertyStub, 0),                                    \
                                                                               \
         /* delProperty */                                                     \
         ((_flags)&XPC_SCRIPTABLE_USE_JSSTUB_FOR_DELPROPERTY) ? nullptr        \
         : ((_flags)&XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)            \
-            ? XPC_WN_MaybeResolvingDeletePropertyStub                         \
-            : XPC_WN_CannotDeletePropertyStub,                                \
+            ? (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_MaybeResolvingDeletePropertyStub, 0)                         \
+            : (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_CannotDeletePropertyStub, 0),                                \
                                                                               \
         /* enumerate */                                                       \
         ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE)                           \
             ? nullptr /* We will use newEnumerate set below in this case */   \
-            : XPC_WN_Shared_Enumerate,                                        \
+            : (JSEnumerateOp)sbx_register_cb((void*)XPC_WN_Shared_Enumerate, 0),                                        \
                                                                               \
         /* newEnumerate */                                                    \
-        ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE) ? XPC_WN_NewEnumerate     \
+        ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE) ? (JSNewEnumerateOp)sbx_register_cb((void*)XPC_WN_NewEnumerate, 0)     \
                                                     : nullptr,                \
                                                                               \
         /* resolve */ /* We have to figure out resolve strategy at call time  \
                        */                                                     \
-        XPC_WN_Helper_Resolve,                                                \
+        (JSResolveOp)sbx_register_cb((void*)XPC_WN_Helper_Resolve, 0),                                                \
                                                                               \
         /* mayResolve */                                                      \
         nullptr,                                                              \
                                                                               \
         /* finalize */                                                        \
-        ((_flags)&XPC_SCRIPTABLE_WANT_FINALIZE) ? XPC_WN_Helper_Finalize      \
-                                                : XPC_WN_NoHelper_Finalize,   \
+        ((_flags)&XPC_SCRIPTABLE_WANT_FINALIZE) ? (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_Helper_Finalize, 0)      \
+                                                : (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_NoHelper_Finalize, 0),   \
                                                                               \
         /* call */                                                            \
-        ((_flags)&XPC_SCRIPTABLE_WANT_CALL) ? XPC_WN_Helper_Call : nullptr,   \
+        ((_flags)&XPC_SCRIPTABLE_WANT_CALL) ? (JSNative)sbx_register_cb((void*)XPC_WN_Helper_Call, 0) : nullptr,   \
                                                                               \
         /* construct */                                                       \
-        ((_flags)&XPC_SCRIPTABLE_WANT_CONSTRUCT) ? XPC_WN_Helper_Construct    \
+        ((_flags)&XPC_SCRIPTABLE_WANT_CONSTRUCT) ? (JSNative)sbx_register_cb((void*)XPC_WN_Helper_Construct, 0)    \
                                                  : nullptr,                   \
                                                                               \
         /* trace */                                                           \
-        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? JS_GlobalObjectTraceHook \
+        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook) \
                                                    : XPCWrappedNative_Trace,  \
   }
 

@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <stdarg.h>
 
+#include "js/Class.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/Encoding.h"
@@ -760,7 +761,7 @@ bool DefineLegacyUnforgeableAttributes(
 // reserved slots (e.g. for named constructors).  So we define a custom
 // funToString ObjectOps member for interface objects.
 JSString* InterfaceObjectToString(JSContext* aCx, JS::Handle<JSObject*> aObject,
-                                  bool /* isToSource */) {
+                                  unsigned /* isToSource */) {
   const JSClass* clasp = JS::GetClass(aObject);
   MOZ_ASSERT(IsDOMIfaceAndProtoClass(clasp));
 
@@ -2087,7 +2088,7 @@ const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj) {
       GetNativePropertyHooks(cx, obj, type);
   if (!IsInstance(type)) {
     // Non-instances don't need any special expando classes.
-    return &DefaultXrayExpandoObjectClass;
+    return DefaultXrayExpandoObjectClass();
   }
 
   return nativePropertyHooks->mXrayExpandoClass;
@@ -2138,7 +2139,7 @@ JSObject* GetCachedSlotStorageObjectSlow(JSContext* cx,
   return xpc::EnsureXrayExpandoObject(cx, obj);
 }
 
-DEFINE_XRAY_EXPANDO_CLASS(, DefaultXrayExpandoObjectClass, 0);
+DEFINE_XRAY_EXPANDO_CLASS(, DefaultXrayExpandoObjectClass, 0)
 
 bool sEmptyNativePropertiesInited = true;
 NativePropertyHooks sEmptyNativePropertyHooks = {
@@ -2150,30 +2151,38 @@ NativePropertyHooks sEmptyNativePropertyHooks = {
     constructors::id::_ID_Count,
     nullptr};
 
-const JSClassOps sBoringInterfaceObjectClassClassOps = {
-    nullptr,             /* addProperty */
-    nullptr,             /* delProperty */
-    nullptr,             /* enumerate */
-    nullptr,             /* newEnumerate */
-    nullptr,             /* resolve */
-    nullptr,             /* mayResolve */
-    nullptr,             /* finalize */
-    ThrowingConstructor, /* call */
-    ThrowingConstructor, /* construct */
-    nullptr,             /* trace */
-};
+const JSClassOps* sBoringInterfaceObjectClassClassOps() {
+  static const JSClassOps sBoringInterfaceObjectClassClassOps__ = {
+      nullptr,             /* addProperty */
+      nullptr,             /* delProperty */
+      nullptr,             /* enumerate */
+      nullptr,             /* newEnumerate */
+      nullptr,             /* resolve */
+      nullptr,             /* mayResolve */
+      nullptr,             /* finalize */
+      (JSNative)sbx_register_cb((void*)ThrowingConstructor, 0), /* call */
+      (JSNative)sbx_register_cb((void*)ThrowingConstructor, 0), /* construct */
+      nullptr,             /* trace */
+  };
 
-const js::ObjectOps sInterfaceObjectClassObjectOps = {
-    nullptr,                 /* lookupProperty */
-    nullptr,                 /* defineProperty */
-    nullptr,                 /* hasProperty */
-    nullptr,                 /* getProperty */
-    nullptr,                 /* setProperty */
-    nullptr,                 /* getOwnPropertyDescriptor */
-    nullptr,                 /* deleteProperty */
-    nullptr,                 /* getElements */
-    InterfaceObjectToString, /* funToString */
-};
+  return &sBoringInterfaceObjectClassClassOps__;
+}
+
+const js::ObjectOps* sInterfaceObjectClassObjectOps() {
+  static const js::ObjectOps sInterfaceObjectClassObjectOps__ = {
+      nullptr,                 /* lookupProperty */
+      nullptr,                 /* defineProperty */
+      nullptr,                 /* hasProperty */
+      nullptr,                 /* getProperty */
+      nullptr,                 /* setProperty */
+      nullptr,                 /* getOwnPropertyDescriptor */
+      nullptr,                 /* deleteProperty */
+      nullptr,                 /* getElements */
+      (JSFunToStringOp)sbx_register_cb((void*)InterfaceObjectToString, 0), /* funToString */
+  };
+
+  return &sInterfaceObjectClassObjectOps__;
+}
 
 bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                             JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,

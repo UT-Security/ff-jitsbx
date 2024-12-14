@@ -530,6 +530,7 @@ JSObject* GlobalObject::getOrCreateThrowTypeError(
 GlobalObject* GlobalObject::createInternal(JSContext* cx,
                                            const JSClass* clasp) {
   MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
+  MOZ_ASSERT(clasp->hasTrace());
   MOZ_ASSERT(clasp->isTrace(JS_GlobalObjectTraceHook));
 
   JSObject* obj = NewTenuredObjectWithGivenProto(cx, clasp, nullptr);

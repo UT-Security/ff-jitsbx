@@ -23,6 +23,7 @@
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
+#include "js/sandbox/sobox.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 
@@ -1207,18 +1208,22 @@ static void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
   NS_RELEASE(principal);
 }
 
-const JSClassOps XrayExpandoObjectClassOps = {
-    nullptr,                // addProperty
-    nullptr,                // delProperty
-    nullptr,                // enumerate
-    nullptr,                // newEnumerate
-    nullptr,                // resolve
-    nullptr,                // mayResolve
-    ExpandoObjectFinalize,  // finalize
-    nullptr,                // call
-    nullptr,                // construct
-    nullptr,                // trace
-};
+const JSClassOps* XrayExpandoObjectClassOps() {
+  static const JSClassOps ops = {
+      nullptr,                // addProperty
+      nullptr,                // delProperty
+      nullptr,                // enumerate
+      nullptr,                // newEnumerate
+      nullptr,                // resolve
+      nullptr,                // mayResolve
+      (JSFinalizeOp)sbx_register_cb((void*)ExpandoObjectFinalize, 0),  // finalize
+      nullptr,                // call
+      nullptr,                // construct
+      nullptr,                // trace
+  };
+
+  return &ops;
+}
 
 bool XrayTraits::expandoObjectMatchesConsumer(JSContext* cx,
                                               HandleObject expandoObject,
@@ -1528,7 +1533,7 @@ JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper) {
 
 const JSClass* XrayTraits::getExpandoClass(JSContext* cx,
                                            HandleObject target) const {
-  return &DefaultXrayExpandoObjectClass;
+  return DefaultXrayExpandoObjectClass();
 }
 
 static const size_t JSSLOT_XRAY_HOLDER = 0;

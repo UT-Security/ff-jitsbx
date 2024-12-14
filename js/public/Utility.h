@@ -365,10 +365,21 @@ extern void AssertJSStringBufferInCorrectArena(const void* ptr);
 
 } /* namespace js */
 
+#ifdef JS_SANDBOX
+extern "C" void* sbx_moz_arena_malloc(arena_id_t, size_t);
+extern "C" void* sbx_moz_arena_calloc(arena_id_t, size_t, size_t);
+extern "C" void* sbx_moz_arena_realloc(arena_id_t, void*, size_t);
+extern "C" void sbx_free(void*);
+#endif
+
 static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX
+  return sbx_moz_arena_malloc(arena, bytes);
+#else
   return moz_arena_malloc(arena, bytes);
+#endif
 }
 
 static inline void* js_malloc(size_t bytes) {
@@ -378,14 +389,22 @@ static inline void* js_malloc(size_t bytes) {
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX
+  return sbx_moz_arena_calloc(arena, bytes, 1);
+#else
   return moz_arena_calloc(arena, bytes, 1);
+#endif
 }
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t nmemb,
                                     size_t size) {
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(nmemb * size);
+#ifdef JS_SANDBOX
+  return sbx_moz_arena_calloc(arena, nmemb, size);
+#else
   return moz_arena_calloc(arena, nmemb, size);
+#endif
 }
 
 static inline void* js_calloc(size_t bytes) {
@@ -404,7 +423,11 @@ static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
 
   JS_OOM_POSSIBLY_FAIL();
   JS_CHECK_LARGE_ALLOC(bytes);
+#ifdef JS_SANDBOX
+  return sbx_moz_arena_realloc(arena, p, bytes);
+#else
   return moz_arena_realloc(arena, p, bytes);
+#endif
 }
 
 static inline void* js_realloc(void* p, size_t bytes) {
@@ -416,7 +439,11 @@ static inline void js_free(void* p) {
   // currently can't enforce that all memory freed here was allocated by
   // js_malloc(). All other memory should go through a different allocator and
   // deallocator.
+#ifdef JS_SANDBOX
+  sbx_free(p);
+#else
   free(p);
+#endif
 }
 #endif /* JS_USE_CUSTOM_ALLOCATOR */
 

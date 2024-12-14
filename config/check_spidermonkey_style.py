@@ -50,9 +50,8 @@ ignored_js_src_dirs = [
     "js/src/gdb/",  # auxiliary stuff
     "js/src/vtune/",  # imported code
     "js/src/zydis/",  # imported code
-    "js/src/sandbox/liblfi/", # imported code
+    "js/src/sandbox/lfi/", # imported code
     "js/src/sandbox/libmmap/", # imported code
-    "js/src/sandbox/liblfix/", # imported code
     "js/src/sandbox/build/gen/", # imported code
 ]
 

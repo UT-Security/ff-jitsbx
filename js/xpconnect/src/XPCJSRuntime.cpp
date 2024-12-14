@@ -59,6 +59,7 @@
 #include "js/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
 #include "js/friend/WindowProxy.h"  // js::SetWindowProxyClass
 #include "js/friend/XrayJitInfo.h"  // JS::SetXrayJitInfo
+#include "js/sandbox/sobox.h"
 #include "mozilla/dom/AbortSignalBinding.h"
 #include "mozilla/dom/GeneratedAtomList.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -2906,7 +2907,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
       OnLargeAllocationFailureCallback);
 
   // The WasmAltDataType is build by the JS engine from the build id.
-  JS::SetProcessBuildIdOp(GetBuildId);
+  JS::SetProcessBuildIdOp((BuildIdOp)sbx_register_cb((void*)GetBuildId, 0));
   FetchUtil::InitWasmAltDataType();
 
   // The JS engine needs to keep the source code around in order to implement

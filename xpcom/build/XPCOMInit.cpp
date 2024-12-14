@@ -231,6 +231,8 @@ static void InitializeJS() {
   }
 }
 
+extern "C" void sbx_init(void);
+
 // Note that on OSX, aBinDirectory will point to .app/Contents/Resources/browser
 EXPORT_XPCOM_API(nsresult)
 NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
@@ -404,6 +406,8 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
 
   // And start it up for this thread too.
   nsCycleCollector_startup();
+
+  sbx_init();
 
   // Register ICU memory functions.  This really shouldn't be necessary: the
   // JS engine should do this on its own inside JS_Init, and memory-reporting

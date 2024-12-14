@@ -514,9 +514,9 @@ class CGNativePropertyHooks(CGThing):
             prototypeID += "_ID_Count"
 
         if self.descriptor.wantsXrayExpandoClass:
-            expandoClass = "&sXrayExpandoObjectClass"
+            expandoClass = "sXrayExpandoObjectClass()"
         else:
-            expandoClass = "&DefaultXrayExpandoObjectClass"
+            expandoClass = "DefaultXrayExpandoObjectClass()"
 
         return fill(
             """
@@ -627,12 +627,12 @@ class CGDOMJSClass(CGThing):
 
     def define(self):
         callHook = (
-            LEGACYCALLER_HOOK_NAME
+            "(JSNative)sbx_register_cb((void*)%s, 0)" % LEGACYCALLER_HOOK_NAME
             if self.descriptor.operations["LegacyCaller"]
             else "nullptr"
         )
         objectMovedHook = (
-            OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
+            "(JSObjectMovedOp)sbx_register_cb((void*)%s, 0)" % OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
         )
         slotCount = InstanceReservedSlots(self.descriptor)
         classFlags = "JSCLASS_IS_DOMJSCLASS | JSCLASS_FOREGROUND_FINALIZE | "
@@ -640,7 +640,7 @@ class CGDOMJSClass(CGThing):
             classFlags += (
                 "JSCLASS_DOM_GLOBAL | JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(DOM_GLOBAL_SLOTS)"
             )
-            traceHook = "JS_GlobalObjectTraceHook"
+            traceHook = "(JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook)"
             reservedSlots = "JSCLASS_GLOBAL_APPLICATION_SLOTS"
         else:
             classFlags += "JSCLASS_HAS_RESERVED_SLOTS(%d)" % slotCount
@@ -655,13 +655,13 @@ class CGDOMJSClass(CGThing):
             classFlags += " | JSCLASS_SKIP_NURSERY_FINALIZE"
 
         if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
-            resolveHook = RESOLVE_HOOK_NAME
-            mayResolveHook = MAY_RESOLVE_HOOK_NAME
-            newEnumerateHook = NEW_ENUMERATE_HOOK_NAME
+            resolveHook = "(JSResolveOp)sbx_register_cb((void*)%s, 0)" % RESOLVE_HOOK_NAME
+            mayResolveHook = "(JSMayResolveOp)sbx_register_cb((void*)%s, 0)" % MAY_RESOLVE_HOOK_NAME
+            newEnumerateHook = "(JSNewEnumerateOp)sbx_register_cb((void*)%s, 0)" % NEW_ENUMERATE_HOOK_NAME
         elif self.descriptor.isGlobal():
-            resolveHook = "mozilla::dom::ResolveGlobal"
-            mayResolveHook = "mozilla::dom::MayResolveGlobal"
-            newEnumerateHook = "mozilla::dom::EnumerateGlobal"
+            resolveHook = "(JSResolveOp)sbx_addr((void*)mozilla::dom::ResolveGlobal)"
+            mayResolveHook = "(JSMayResolveOp)sbx_addr((void*)mozilla::dom::MayResolveGlobal)"
+            newEnumerateHook = "(JSNewEnumerateOp)sbx_addr((void*)mozilla::dom::EnumerateGlobal)"
         else:
             resolveHook = "nullptr"
             mayResolveHook = "nullptr"
@@ -669,6 +669,7 @@ class CGDOMJSClass(CGThing):
 
         return fill(
             """
+            const DOMJSClass* sClass() {
             static const JSClassOps sClassOps = {
               ${addProperty}, /* addProperty */
               nullptr,               /* delProperty */
@@ -685,8 +686,7 @@ class CGDOMJSClass(CGThing):
             static const js::ClassExtension sClassExtension = {
               ${objectMoved} /* objectMovedOp */
             };
-
-            const DOMJSClass* sClass() {
+                        
             static const DOMJSClass __sClass = {
               { "${name}",
                 ${flags},
@@ -707,13 +707,13 @@ class CGDOMJSClass(CGThing):
             """,
             name=self.descriptor.interface.getClassName(),
             flags=classFlags,
-            addProperty=ADDPROPERTY_HOOK_NAME
+            addProperty="(JSAddPropertyOp)sbx_register_cb((void*)%s, 0)" % ADDPROPERTY_HOOK_NAME
             if wantsAddProperty(self.descriptor)
             else "nullptr",
             newEnumerate=newEnumerateHook,
             resolve=resolveHook,
             mayResolve=mayResolveHook,
-            finalize=FINALIZE_HOOK_NAME,
+            finalize="(JSFinalizeOp)sbx_register_cb((void*)%s, 0)" % FINALIZE_HOOK_NAME,
             call=callHook,
             trace=traceHook,
             objectMoved=objectMovedHook,
@@ -788,7 +788,7 @@ class CGXrayExpandoJSClass(CGThing):
             // allocating slots only for those would make the slot index
             // computations much more complicated, so let's do this the simple
             // way for now.
-            DEFINE_XRAY_EXPANDO_CLASS(static, sXrayExpandoObjectClass, ${memberSlots});
+            DEFINE_XRAY_EXPANDO_CLASS(static, sXrayExpandoObjectClass, ${memberSlots})
             """,
             memberSlots=self.descriptor.interface.totalMembersInSlots,
         )
@@ -961,14 +961,15 @@ class CGInterfaceObjectJSClass(CGThing):
 
         if ctorname == "ThrowingConstructor":
             ret = ""
-            classOpsPtr = "&sBoringInterfaceObjectClassClassOps"
+            classOpsPtr = "sBoringInterfaceObjectClassClassOps()"
         elif ctorname == "nullptr":
             ret = ""
             classOpsPtr = "JS_NULL_CLASS_OPS"
         else:
             ret = fill(
                 """
-                static const JSClassOps sInterfaceObjectClassOps = {
+                static const JSClassOps* sInterfaceObjectClassOps() {
+                static const JSClassOps sInterfaceObjectClassOps__ = {
                     nullptr,               /* addProperty */
                     nullptr,               /* delProperty */
                     nullptr,               /* enumerate */
@@ -981,10 +982,13 @@ class CGInterfaceObjectJSClass(CGThing):
                     nullptr,               /* trace */
                 };
 
+                return &sInterfaceObjectClassOps__;
+                }
+
                 """,
-                ctorname=ctorname,
+                ctorname="(JSNative)sbx_register_cb((void*)%s, 0)" % ctorname,
             )
-            classOpsPtr = "&sInterfaceObjectClassOps"
+            classOpsPtr = "sInterfaceObjectClassOps()"
 
         if self.descriptor.interface.isNamespace():
             classString = self.descriptor.interface.getExtendedAttribute("ClassString")
@@ -1002,7 +1006,7 @@ class CGInterfaceObjectJSClass(CGThing):
             )
             # We need non-default ObjectOps so we can actually make
             # use of our funToString.
-            objectOps = "&sInterfaceObjectClassObjectOps"
+            objectOps = "sInterfaceObjectClassObjectOps()"
 
         ret = ret + fill(
             """

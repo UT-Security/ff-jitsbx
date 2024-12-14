@@ -1,8 +1,8 @@
 // For mremap
 #define _GNU_SOURCE
 
-#include "syscall.h"
-#include "sys.h"
+#include "../../syscall.h"
+#include "../../sys.h"
 
 enum {
     LSYS_getcwd            = 79,

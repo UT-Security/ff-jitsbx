@@ -20,6 +20,7 @@
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "js/Wrapper.h"
 #include "js/Zone.h"
+#include "js/sandbox/sobox.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
@@ -2398,9 +2399,9 @@ inline JSObject* GetCachedSlotStorageObject(JSContext* cx,
 
 extern NativePropertyHooks sEmptyNativePropertyHooks;
 
-extern const JSClassOps sBoringInterfaceObjectClassClassOps;
+extern const JSClassOps* sBoringInterfaceObjectClassClassOps();
 
-extern const js::ObjectOps sInterfaceObjectClassObjectOps;
+extern const js::ObjectOps* sInterfaceObjectClassObjectOps();
 
 inline bool UseDOMXray(JSObject* obj) {
   const JSClass* clasp = JS::GetClass(obj);

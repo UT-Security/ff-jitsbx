@@ -8,10 +8,11 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+#include <syscall.h>
 
 #include "align.h"
 #include "lfi.h"
-#include "lfiv.h"
+//#include "lfiv.h"
 #include "engine.h"
 #include "proc.h"
 #include "err.h"
@@ -21,7 +22,7 @@
 #if defined(__aarch64__) || defined(_M_ARM64)
 #include "arch/arm64/arm64.h"
 #elif defined(__x86_64__) || defined(_M_X64)
-#include "arch/amd64/amd64.h"
+#include "./arch/amd64/amd64.h"
 #endif
 
 extern uint64_t lfi_proc_entry(LFIProc* proc, void** kstackp) asm ("lfi_proc_entry");
@@ -71,6 +72,10 @@ proc_validate(LFIProc* proc)
 
     if (proc->lfi->opts.p2size != 32 && proc->lfi->opts.p2size != 0)
         *lfi_regs_mask(&proc->regs) = mask(proc->lfi->opts.p2size);
+}
+
+static inline int memfd_create(const char* name, unsigned int flags) {
+    return syscall(__NR_memfd_create, name, flags);
 }
 
 bool
@@ -253,10 +258,10 @@ mprotectverify(void* base, size_t size, int prot, LFIVerifier* verifier)
 {
     if ((prot & PROT_EXEC) == 0 || !verifier)
         return mprotect(base, size, prot);
-    if (!lfiv_verify(verifier, base, size, (uintptr_t) base)) {
-        lfi_errno = LFI_ERR_VERIFY;
-        return -1;
-    }
+    //if (!lfiv_verify(verifier, base, size, (uintptr_t) base)) {
+    //    lfi_errno = LFI_ERR_VERIFY;
+    //    return -1;
+    //}
     return mprotect(base, size, prot);
 }
 
@@ -339,13 +344,13 @@ ureadelfseg(LFIProc* proc, uintptr_t start, uintptr_t offset, uintptr_t end,
             return false;
         }
 
-        LFIVerifier* verifier = proc->lfi->opts.verifier;
-        if (verifier) {
-            if (!lfiv_verify(verifier, &buf.data[p_offset], filesz, start + offset)) {
-                lfi_errno = LFI_ERR_VERIFY;
-                return false;
-            }
-        }
+        //LFIVerifier* verifier = proc->lfi->opts.verifier;
+        //if (verifier) {
+        //    if (!lfiv_verify(verifier, &buf.data[p_offset], filesz, start + offset)) {
+        //        lfi_errno = LFI_ERR_VERIFY;
+        //        return false;
+        //    }
+        //}
         target = proc->ucodealias + (start - proc->ucodebase) + offset;
     } else if (prot == (PROT_READ | PROT_WRITE) || prot == PROT_READ) {
         // Note: for micro processes, read-only segments are mapped read-write.
@@ -662,7 +667,8 @@ procmap(LFIProc* proc, uintptr_t start, size_t size, int prot, int flags, int fd
     assert(start % proc->lfi->opts.pagesize == 0);
     assert(size % proc->lfi->opts.pagesize == 0);
 
-    void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+    //void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, proc->lfi->opts.verifier);
+    void* mem = mmapverify((void*) start, size, prot, flags | MAP_FIXED, fd, offset, NULL);
     if (mem == (void*) -1)
         return -errno;
     return 0;
@@ -715,7 +721,8 @@ lfi_proc_mprotect(LFIProc* proc, uintptr_t addr, size_t size, int prot)
         return -1;
 
     assert(addr >= proc->base && addr < proc->base + proc->size);
-    return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
+    //return mprotectverify((void*) addr, size, prot, proc->lfi->opts.verifier);
+    return mprotectverify((void*) addr, size, prot, NULL);
 }
 
 int
