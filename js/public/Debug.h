@@ -348,6 +348,32 @@ class MOZ_STACK_CLASS JS_PUBLIC_API AutoEntryMonitor {
   virtual void Exit(JSContext* cx) {}
 };
 
+typedef void (*AutoEntryMonitorFunctionEntryHook)(void* p, JSContext* cx, JSFunction* function,
+                     HandleValue asyncStack, const char* asyncCause);
+typedef void (*AutoEntryMonitorScriptEntryHook)(void* p, JSContext* cx, JSScript* script, HandleValue asyncStack,
+                     const char* asyncCause);
+typedef void (*AutoEntryMonitorExitHook)(void* p, JSContext* cx);
+
+struct MOZ_STACK_CLASS JS_PUBLIC_API AutoEntryMonitorHooks {
+  AutoEntryMonitorFunctionEntryHook FunctionEntry;
+  AutoEntryMonitorScriptEntryHook ScriptEntry;
+  AutoEntryMonitorExitHook Exit;
+};
+
+class JS_PUBLIC_API AutoEntryMonitorWithHooks : public AutoEntryMonitor {
+  const AutoEntryMonitorHooks* hooks_;
+  void* priv_;
+
+public:
+  explicit AutoEntryMonitorWithHooks(const AutoEntryMonitorHooks* hooks, void* priv, JSContext* cx);
+
+  virtual void Entry(JSContext* cx, JSFunction* function,
+                     HandleValue asyncStack, const char* asyncCause) override;
+  virtual void Entry(JSContext* cx, JSScript* script, HandleValue asyncStack,
+                     const char* asyncCause) override;
+  virtual void Exit(JSContext* cx) override;
+};
+
 }  // namespace dbg
 }  // namespace JS
 

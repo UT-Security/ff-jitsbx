@@ -302,6 +302,12 @@ EXPORTS.js.shadow += [
     "../public/shadow/Zone.h",
 ]
 
+# "Sandbox" API re-defines the existing JSAPI in a sandbox-aware manner.
+EXPORTS.js.sandbox += [
+    "../public/sandbox/Debug.h",
+    "../public/sandbox/Proxy.h",
+]
+
 UNIFIED_SOURCES += [
     "builtin/Array.cpp",
     "builtin/AtomicsObject.cpp",

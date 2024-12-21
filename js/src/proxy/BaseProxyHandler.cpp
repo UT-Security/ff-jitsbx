@@ -424,3 +424,217 @@ JS_PUBLIC_API void js::NukeRemovedCrossCompartmentWrapper(JSContext* cx,
 
   MOZ_ASSERT(IsDeadProxyObject(wrapper));
 }
+
+BaseProxyHandlerWithOps::BaseProxyHandlerWithOps(const ProxyHandlerOps* pOps,
+                                     const void* priv,
+                                     const void* aFamily,
+                                     bool aHasPrototype,
+                                     bool aHasSecurityPolicy)
+     : BaseProxyHandler(aFamily, aHasPrototype, aHasSecurityPolicy),
+       pOps_(pOps), private_(priv) {}
+       
+bool BaseProxyHandlerWithOps::finalizeInBackground(
+    const JS::Value& priv) const {
+  return pOps_->finalizeInBackground(private_, priv);
+}
+
+bool BaseProxyHandlerWithOps::canNurseryAllocate() const {
+  return pOps_->canNurseryAllocate(private_);
+}
+
+bool BaseProxyHandlerWithOps::enter(JSContext* cx,
+                                          JS::HandleObject wrapper,
+                                          JS::HandleId id, Action act,
+                                          bool mayThrow, bool* bp) const {
+  return pOps_->enter(private_, cx, wrapper, id, act, mayThrow, bp);
+}
+
+bool BaseProxyHandlerWithOps::getOwnPropertyDescriptor(
+    JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const {
+  return pOps_->getOwnPropertyDescriptor(private_, cx, proxy, id, desc);
+}
+
+bool BaseProxyHandlerWithOps::defineProperty(
+    JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
+    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult& result) const {
+  return pOps_->defineProperty(private_, cx, proxy, id, desc, result);
+}
+
+bool BaseProxyHandlerWithOps::ownPropertyKeys(
+    JSContext* cx, JS::HandleObject proxy,
+    JS::MutableHandleIdVector props) const {
+  return pOps_->ownPropertyKeys(private_, cx, proxy, props);
+}
+
+bool BaseProxyHandlerWithOps::delete_(JSContext* cx,
+                                            JS::HandleObject proxy,
+                                            JS::HandleId id,
+                                            JS::ObjectOpResult& result) const {
+  return pOps_->delete_(private_, cx, proxy, id, result);
+}
+
+bool BaseProxyHandlerWithOps::getPrototype(
+    JSContext* cx, JS::HandleObject proxy,
+    JS::MutableHandleObject protop) const {
+  return pOps_->getPrototype(private_, cx, proxy, protop);
+}
+
+bool BaseProxyHandlerWithOps::setPrototype(
+    JSContext* cx, JS::HandleObject proxy, JS::HandleObject proto,
+    JS::ObjectOpResult& result) const {
+  return pOps_->setPrototype(private_, cx, proxy, proto, result);
+}
+
+bool BaseProxyHandlerWithOps::getPrototypeIfOrdinary(
+    JSContext* cx, JS::HandleObject proxy, bool* isOrdinary,
+    JS::MutableHandleObject protop) const {
+  return pOps_->getPrototypeIfOrdinary(private_, cx, proxy, isOrdinary, protop);
+}
+
+bool BaseProxyHandlerWithOps::setImmutablePrototype(
+    JSContext* cx, JS::HandleObject proxy, bool* succeeded) const {
+  return pOps_->setImmutablePrototype(private_, cx, proxy, succeeded);
+}
+
+bool BaseProxyHandlerWithOps::preventExtensions(
+    JSContext* cx, JS::HandleObject proxy, JS::ObjectOpResult& result) const {
+  return pOps_->preventExtensions(private_, cx, proxy, result);
+}
+
+bool BaseProxyHandlerWithOps::isExtensible(JSContext* cx,
+                                                 JS::HandleObject proxy,
+                                                 bool* extensible) const {
+  return pOps_->isExtensible(private_, cx, proxy, extensible);
+}
+
+bool BaseProxyHandlerWithOps::has(JSContext* cx, JS::HandleObject proxy,
+                                        JS::HandleId id, bool* bp) const {
+  return pOps_->has(private_, cx, proxy, id, bp);
+}
+
+bool BaseProxyHandlerWithOps::get(JSContext* cx, JS::HandleObject proxy,
+                                        JS::HandleValue receiver,
+                                        JS::HandleId id,
+                                        JS::MutableHandleValue vp) const {
+  return pOps_->get(private_, cx, proxy, receiver, id, vp);
+}
+
+bool BaseProxyHandlerWithOps::set(JSContext* cx, JS::HandleObject proxy,
+                                        JS::HandleId id, JS::HandleValue v,
+                                        JS::HandleValue receiver,
+                                        JS::ObjectOpResult& result) const {
+  return pOps_->set(private_, cx, proxy, id, v, receiver, result);
+}
+
+bool BaseProxyHandlerWithOps::useProxyExpandoObjectForPrivateFields()
+    const {
+  return pOps_->useProxyExpandoObjectForPrivateFields(private_);
+}
+
+bool BaseProxyHandlerWithOps::throwOnPrivateField() const {
+  return pOps_->throwOnPrivateField(private_);
+}
+
+bool BaseProxyHandlerWithOps::call(JSContext* cx, JS::HandleObject proxy,
+                                         const JS::CallArgs& args) const {
+  return pOps_->call(private_, cx, proxy, args);
+}
+
+bool BaseProxyHandlerWithOps::construct(JSContext* cx,
+                                              JS::HandleObject proxy,
+                                              const JS::CallArgs& args) const {
+  return pOps_->construct(private_, cx, proxy, args);
+}
+
+bool BaseProxyHandlerWithOps::enumerate(
+    JSContext* cx, JS::HandleObject proxy,
+    JS::MutableHandleIdVector props) const {
+  return pOps_->enumerate(private_, cx, proxy, props);
+}
+
+bool BaseProxyHandlerWithOps::hasOwn(JSContext* cx,
+                                           JS::HandleObject proxy,
+                                           JS::HandleId id, bool* bp) const {
+  return pOps_->hasOwn(private_, cx, proxy, id, bp);
+}
+
+bool BaseProxyHandlerWithOps::getOwnEnumerablePropertyKeys(
+    JSContext* cx, JS::HandleObject proxy,
+    JS::MutableHandleIdVector props) const {
+  return pOps_->getOwnEnumerablePropertyKeys(private_, cx, proxy, props);
+}
+
+bool BaseProxyHandlerWithOps::nativeCall(JSContext* cx,
+                                               JS::IsAcceptableThis test,
+                                               JS::NativeImpl impl,
+                                               const JS::CallArgs& args) const {
+  return pOps_->nativeCall(private_, cx, test, impl, args);
+}
+
+bool BaseProxyHandlerWithOps::getBuiltinClass(JSContext* cx,
+                                                    JS::HandleObject proxy,
+                                                    ESClass* cls) const {
+  return pOps_->getBuiltinClass(private_, cx, proxy, cls);
+}
+
+bool BaseProxyHandlerWithOps::isArray(JSContext* cx,
+                                            JS::HandleObject proxy,
+                                            JS::IsArrayAnswer* answer) const {
+  return pOps_->isArray(private_, cx, proxy, answer);
+}
+
+const char* BaseProxyHandlerWithOps::className(
+    JSContext* cx, JS::HandleObject proxy) const {
+  return pOps_->className(private_, cx, proxy);
+}
+
+JSString* BaseProxyHandlerWithOps::fun_toString(JSContext* cx,
+                                                      JS::HandleObject proxy,
+                                                      bool isToSource) const {
+  return pOps_->fun_toString(private_, cx, proxy, isToSource);
+}
+
+RegExpShared* BaseProxyHandlerWithOps::regexp_toShared(
+    JSContext* cx, JS::HandleObject proxy) const {
+  return pOps_->regexp_toShared(private_, cx, proxy);
+}
+
+bool BaseProxyHandlerWithOps::boxedValue_unbox(
+    JSContext* cx, JS::HandleObject proxy, JS::MutableHandleValue vp) const {
+  return pOps_->boxedValue_unbox(private_, cx, proxy, vp);
+}
+
+void BaseProxyHandlerWithOps::trace(JSTracer* trc,
+                                          JSObject* proxy) const {
+  return pOps_->trace(private_, trc, proxy);
+}
+
+void BaseProxyHandlerWithOps::finalize(JS::GCContext* gcx,
+                                             JSObject* proxy) const {
+  return pOps_->finalize(private_, gcx, proxy);
+}
+
+size_t BaseProxyHandlerWithOps::objectMoved(JSObject* proxy,
+                                                  JSObject* old) const {
+  return pOps_->objectMoved(private_, proxy, old);
+}
+
+bool BaseProxyHandlerWithOps::isCallable(JSObject* obj) const {
+  return pOps_->isCallable(private_, obj);
+}
+
+bool BaseProxyHandlerWithOps::isConstructor(JSObject* obj) const {
+  return pOps_->isConstructor(private_, obj);
+}
+
+bool BaseProxyHandlerWithOps::getElements(JSContext* cx,
+                                                JS::HandleObject proxy,
+                                                uint32_t begin, uint32_t end,
+                                                ElementAdder* adder) const {
+  return pOps_->getElements(private_, cx, proxy, begin, end, adder);
+}
+
+bool BaseProxyHandlerWithOps::isScripted() const {
+  return pOps_->isScripted(private_);
+}

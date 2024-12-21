@@ -154,6 +154,7 @@ using JS::CompileOptions;
 using JS::SourceOwnership;
 using JS::SourceText;
 using JS::dbg::AutoEntryMonitor;
+using JS::dbg::AutoEntryMonitorWithHooks;
 using JS::dbg::Builder;
 using js::frontend::IsIdentifier;
 using mozilla::AsVariant;
@@ -6818,6 +6819,27 @@ AutoEntryMonitor::AutoEntryMonitor(JSContext* cx)
 }
 
 AutoEntryMonitor::~AutoEntryMonitor() { cx_->entryMonitor = savedMonitor_; }
+
+/*** JS::dbg::AutoEntryMonitorWithHooks **********************************************/
+
+AutoEntryMonitorWithHooks::AutoEntryMonitorWithHooks(
+    const AutoEntryMonitorHooks* hooks, void* priv, JSContext* cx) :
+    AutoEntryMonitor(cx),
+    hooks_(hooks), priv_(priv) {}
+
+void AutoEntryMonitorWithHooks::Entry(JSContext* cx, JSFunction* function,
+                                      HandleValue asyncStack,
+                                      const char* asyncCause) {
+  hooks_->FunctionEntry(priv_, cx, function, asyncStack, asyncCause);
+}
+
+void AutoEntryMonitorWithHooks::Entry(JSContext* cx, JSScript* script,
+                                      HandleValue asyncStack,
+                                      const char* asyncCause) {
+  hooks_->ScriptEntry(priv_, cx, script, asyncStack, asyncCause);
+}
+
+void AutoEntryMonitorWithHooks::Exit(JSContext* cx) { hooks_->Exit(priv_, cx); }
 
 /*** Glue *******************************************************************/
 
