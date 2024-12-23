@@ -17,6 +17,9 @@
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
 #include "js/Symbol.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 
 #include <string_view>
 
@@ -305,13 +308,13 @@ static bool DefinePropertyIfFound(
     if (reflectToStringAndToSource) {
       JSNative call;
       if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_STRING)) {
-        call = XPC_WN_Shared_ToString;
+        call = (JSNative)sbx_register_cb((void*)XPC_WN_Shared_ToString, 0);
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_STRING);
       } else if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_SOURCE)) {
-        call = XPC_WN_Shared_ToSource;
+        call = (JSNative)sbx_register_cb((void*)XPC_WN_Shared_ToSource, 0);
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_SOURCE);
       } else if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
-        call = XPC_WN_Shared_toPrimitive;
+        call = (JSNative)sbx_register_cb((void*)XPC_WN_Shared_toPrimitive, 0);
         name = "[Symbol.toPrimitive]";
       } else {
         call = nullptr;
@@ -399,7 +402,7 @@ static bool DefinePropertyIfFound(
       id = xpccx->GetStringID(XPCJSContext::IDX_WRAPPED_JSOBJECT);
       name = xpccx->GetStringName(XPCJSContext::IDX_WRAPPED_JSOBJECT);
 
-      fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetter, 0, 0, name);
+      fun = JS_NewFunction(ccx, (JSNative)sbx_register_cb((void*)XPC_WN_DoubleWrappedGetter, 0), 0, 0, name);
 
       if (!fun) {
         return false;
@@ -648,31 +651,39 @@ static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
       resolvedp);
 }
 
-static const JSClassOps XPC_WN_NoHelper_JSClassOps = {
-    XPC_WN_OnlyIWrite_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,    // delProperty
-    XPC_WN_Shared_Enumerate,            // enumerate
-    nullptr,                            // newEnumerate
-    XPC_WN_NoHelper_Resolve,            // resolve
-    nullptr,                            // mayResolve
-    XPC_WN_NoHelper_Finalize,           // finalize
-    nullptr,                            // call
-    nullptr,                            // construct
-    XPCWrappedNative::Trace,            // trace
-};
+const js::ClassExtension* XPC_WN_JSClassExtension() {
+  static const js::ClassExtension __XPC_WN_JSClassExtension = {
+      WrappedNativeObjectMoved,  // objectMovedOp
+  };
 
-const js::ClassExtension XPC_WN_JSClassExtension = {
-    WrappedNativeObjectMoved,  // objectMovedOp
-};
+  return &__XPC_WN_JSClassExtension;
+}
 
-const JSClass XPC_WN_NoHelper_JSClass = {
-    "XPCWrappedNative_NoHelper",
-    JSCLASS_IS_WRAPPED_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(1) |
-        JSCLASS_SLOT0_IS_NSISUPPORTS | JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_NoHelper_JSClassOps,
-    JS_NULL_CLASS_SPEC,
-    &XPC_WN_JSClassExtension,
-    JS_NULL_OBJECT_OPS};
+const JSClass* XPC_WN_NoHelper_JSClass() {
+  static const JSClassOps XPC_WN_NoHelper_JSClassOps = {
+      (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_OnlyIWrite_AddPropertyStub, 0),  // addProperty
+      (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_CannotDeletePropertyStub, 0),    // delProperty
+      (JSEnumerateOp)sbx_register_cb((void*)XPC_WN_Shared_Enumerate, 0),            // enumerate
+      nullptr,                            // newEnumerate
+      (JSResolveOp)sbx_register_cb((void*)XPC_WN_NoHelper_Resolve, 0),            // resolve
+      nullptr,                            // mayResolve
+      (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_NoHelper_Finalize, 0),           // finalize
+      nullptr,                            // call
+      nullptr,                            // construct
+      (JSTraceOp)sbx_register_cb((void*)XPCWrappedNative::Trace, 0),            // trace
+  };
+ 
+  static const JSClass __XPC_WN_NoHelper_JSClass = {
+      "XPCWrappedNative_NoHelper",
+      JSCLASS_IS_WRAPPED_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(1) |
+          JSCLASS_SLOT0_IS_NSISUPPORTS | JSCLASS_FOREGROUND_FINALIZE,
+      &XPC_WN_NoHelper_JSClassOps,
+      JS_NULL_CLASS_SPEC,
+      XPC_WN_JSClassExtension(),
+      JS_NULL_OBJECT_OPS};
+
+  return &__XPC_WN_NoHelper_JSClass;
+}
 
 /***************************************************************************/
 
@@ -820,7 +831,7 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       asrw.emplace(ccx, wrapper);
     }
     if (!JS_DefineFunctionById(
-            cx, obj, id, XPC_WN_Helper_HasInstance, 1,
+            cx, obj, id, (JSNative)sbx_register_cb((void*)XPC_WN_Helper_HasInstance, 0), 1,
             JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING)) {
       rv = NS_ERROR_FAILURE;
     } else {
@@ -920,7 +931,7 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
 // Components.utils because it implements nsIXPCScriptable (giving it a custom
 // JSClass) but not nsIClassInfo (which would put the methods on a prototype).
 
-#define IS_NOHELPER_CLASS(clasp) (clasp == &XPC_WN_NoHelper_JSClass)
+#define IS_NOHELPER_CLASS(clasp) (clasp == XPC_WN_NoHelper_JSClass())
 #define IS_CU_CLASS(clasp) \
   (clasp->name[0] == 'n' && !strcmp(clasp->name, "nsXPCComponents_Utils"))
 
@@ -1010,19 +1021,19 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
 
 /* static */
 XPCWrappedNativeProto* XPCWrappedNativeProto::Get(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass);
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass());
   return JS::GetMaybePtrFromReservedSlot<XPCWrappedNativeProto>(obj, ProtoSlot);
 }
 
 /* static */
 XPCWrappedNativeTearOff* XPCWrappedNativeTearOff::Get(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Tearoff_JSClass);
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Tearoff_JSClass());
   return JS::GetMaybePtrFromReservedSlot<XPCWrappedNativeTearOff>(obj,
                                                                   TearOffSlot);
 }
 
 static bool XPC_WN_Proto_Enumerate(JSContext* cx, HandleObject obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
     return false;
@@ -1081,7 +1092,7 @@ static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
                                                     HandleObject obj,
                                                     HandleId id,
                                                     HandleValue v) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
@@ -1103,7 +1114,7 @@ static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
 
 static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
                                  bool* resolvedp) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
@@ -1123,31 +1134,35 @@ static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE, resolvedp);
 }
 
-static const JSClassOps XPC_WN_Proto_JSClassOps = {
-    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,          // delProperty
-    XPC_WN_Proto_Enumerate,                   // enumerate
-    nullptr,                                  // newEnumerate
-    XPC_WN_Proto_Resolve,                     // resolve
-    nullptr,                                  // mayResolve
-    XPC_WN_Proto_Finalize,                    // finalize
-    nullptr,                                  // call
-    nullptr,                                  // construct
-    nullptr,                                  // trace
-};
+const JSClass* XPC_WN_Proto_JSClass() {
+  static const JSClassOps XPC_WN_Proto_JSClassOps = {
+      (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_OnlyIWrite_Proto_AddPropertyStub, 0),  // addProperty
+      (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_CannotDeletePropertyStub, 0),          // delProperty
+      (JSEnumerateOp)sbx_register_cb((void*)XPC_WN_Proto_Enumerate, 0),                   // enumerate
+      nullptr,                                  // newEnumerate
+      (JSResolveOp)sbx_register_cb((void*)XPC_WN_Proto_Resolve, 0),                     // resolve
+      nullptr,                                  // mayResolve
+      (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_Proto_Finalize, 0),                    // finalize
+      nullptr,                                  // call
+      nullptr,                                  // construct
+      nullptr,                                  // trace
+  };
 
-static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
-    XPC_WN_Proto_ObjectMoved,  // objectMovedOp
-};
+  static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
+      (JSObjectMovedOp)sbx_register_cb((void*)XPC_WN_Proto_ObjectMoved, 0),  // objectMovedOp
+  };
 
-const JSClass XPC_WN_Proto_JSClass = {
-    "XPC_WN_Proto_JSClass",
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeProto::SlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_Proto_JSClassOps,
-    JS_NULL_CLASS_SPEC,
-    &XPC_WN_Proto_ClassExtension,
-    JS_NULL_OBJECT_OPS};
+  static const JSClass __XPC_WN_Proto_JSClass = {
+      "XPC_WN_Proto_JSClass",
+      JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeProto::SlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &XPC_WN_Proto_JSClassOps,
+      JS_NULL_CLASS_SPEC,
+      &XPC_WN_Proto_ClassExtension,
+      JS_NULL_OBJECT_OPS};
+
+  return &__XPC_WN_Proto_JSClass;
+}
 
 /***************************************************************************/
 
@@ -1211,26 +1226,30 @@ static size_t XPC_WN_TearOff_ObjectMoved(JSObject* obj, JSObject* old) {
   return 0;
 }
 
-static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
-    XPC_WN_OnlyIWrite_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,    // delProperty
-    XPC_WN_TearOff_Enumerate,           // enumerate
-    nullptr,                            // newEnumerate
-    XPC_WN_TearOff_Resolve,             // resolve
-    nullptr,                            // mayResolve
-    XPC_WN_TearOff_Finalize,            // finalize
-    nullptr,                            // call
-    nullptr,                            // construct
-    nullptr,                            // trace
-};
+const JSClass* XPC_WN_Tearoff_JSClass() {
+  static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
+      (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_OnlyIWrite_AddPropertyStub, 0),  // addProperty
+      (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_CannotDeletePropertyStub, 0),    // delProperty
+      (JSEnumerateOp)sbx_register_cb((void*)XPC_WN_TearOff_Enumerate, 0),           // enumerate
+      nullptr,                            // newEnumerate
+      (JSResolveOp)sbx_register_cb((void*)XPC_WN_TearOff_Resolve, 0),             // resolve
+      nullptr,                            // mayResolve
+      (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_TearOff_Finalize, 0),            // finalize
+      nullptr,                            // call
+      nullptr,                            // construct
+      nullptr,                            // trace
+  };
 
-static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
-    XPC_WN_TearOff_ObjectMoved,  // objectMovedOp
-};
+  static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
+      (JSObjectMovedOp)sbx_register_cb((void*)XPC_WN_TearOff_ObjectMoved, 0),  // objectMovedOp
+  };
 
-const JSClass XPC_WN_Tearoff_JSClass = {
-    "WrappedNative_TearOff",
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeTearOff::SlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_Tearoff_JSClassOps, JS_NULL_CLASS_SPEC,
-    &XPC_WN_Tearoff_JSClassExtension};
+  static const JSClass __XPC_WN_Tearoff_JSClass = {
+      "WrappedNative_TearOff",
+      JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeTearOff::SlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &XPC_WN_Tearoff_JSClassOps, JS_NULL_CLASS_SPEC,
+      &XPC_WN_Tearoff_JSClassExtension};
+
+  return &__XPC_WN_Tearoff_JSClass;
+}

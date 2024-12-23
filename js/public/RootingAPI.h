@@ -584,6 +584,11 @@ class Rooted;
 template <typename T>
 class PersistentRooted;
 
+template <typename T>
+class ExternalRooted;
+template <typename T>
+class ExternalPersistentRooted;
+
 /**
  * Reference to a T that has been rooted elsewhere. This is most useful
  * as a parameter type, which guarantees that the T lvalue is properly
@@ -963,6 +968,70 @@ template <typename T>
 struct RootedGCThingTraits {
   using StackBase = TypedRootedGCThingBase<StackRootedBase, T>;
   using PersistentBase = TypedRootedGCThingBase<PersistentRootedBase, T>;
+};
+
+typedef void (*TraceFn)(JSTracer* trc, const char* name);
+
+struct VirtualExternalTraceable : VirtualTraceable {
+private:
+  TraceFn externalTrace_;
+public:
+  VirtualExternalTraceable(TraceFn externalTrace);
+  void trace(JSTracer* trc, const char* name) override final;
+
+  
+};
+
+class StackExternalRootedBase {
+ public:
+  StackExternalRootedBase* previous() { return prev; }
+
+ protected:
+  StackExternalRootedBase** stack;
+  StackExternalRootedBase* prev;
+
+  template <typename T>
+  auto* derived() {
+    return static_cast<JS::ExternalRooted<T>*>(this);
+  }
+};
+
+class PersistentExternalRootedBase
+    : protected mozilla::LinkedListElement<PersistentExternalRootedBase> {
+ protected:
+  friend class mozilla::LinkedList<PersistentExternalRootedBase>;
+  friend class mozilla::LinkedListElement<PersistentExternalRootedBase>;
+
+  template <typename T>
+  auto* derived() {
+    return static_cast<JS::ExternalPersistentRooted<T>*>(this);
+  }
+};
+
+struct StackExternalRootedTraceableBase : public StackExternalRootedBase,
+                                  public VirtualExternalTraceable {
+  StackExternalRootedTraceableBase(TraceFn externalTrace): VirtualExternalTraceable(externalTrace) {}                                  
+};
+
+class PersistentExternalRootedTraceableBase : public PersistentExternalRootedBase,
+                                      public VirtualExternalTraceable {
+  PersistentExternalRootedTraceableBase(TraceFn externalTrace): VirtualExternalTraceable(externalTrace) {}
+};
+
+
+template <typename Base, typename T>
+class TypedExternalRootedGCThingBase : public Base {
+ public:
+  void trace(JSTracer* trc, const char* name);
+};
+
+template <typename Base, typename T>
+class TypedExternalRootedTraceableBase : public Base {
+ public:
+  void trace(JSTracer* trc, const char* name) override {
+    auto* self = this->template derived<T>();
+    JS::GCPolicy<T>::trace(trc, self->address(), name);
+  }
 };
 
 } /* namespace js */

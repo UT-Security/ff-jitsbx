@@ -488,7 +488,7 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
 JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper);
 
 // Information about xrays for use by the JITs.
-extern JS::XrayJitInfo gXrayJitInfo;
+extern JS::XrayJitInfo* gXrayJitInfo();
 
 }  // namespace xpc
 

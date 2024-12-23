@@ -151,7 +151,7 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
   options.setClass(aClasp);
   JS::Rooted<JS::Value> native(aCx, JS::PrivateValue(aNative));
   JS::Rooted<JSObject*> obj(
-      aCx, js::NewProxyObject(aCx, this, native, nullptr, options));
+      aCx, js::NewProxyObject(aCx, js::sandbox::GetProxyHandler(this), native, nullptr, options));
   if (!obj) {
     return;
   }

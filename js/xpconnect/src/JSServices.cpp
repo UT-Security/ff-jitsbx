@@ -10,6 +10,9 @@
 #include "mozilla/ProfilerLabels.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/String.h"              // JS::LinearStringHasLatin1Chars
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "nsJSUtils.h"
 
 using namespace mozilla;
@@ -25,23 +28,26 @@ static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
 static bool Services_MayResolve(const JSAtomState& names, jsid id,
                                 JSObject* maybeObj);
 
-static const JSClassOps sServices_ClassOps = {
-    nullptr,                // addProperty
-    nullptr,                // delProperty
-    nullptr,                // enumerate
-    Services_NewEnumerate,  // newEnumerate
-    Services_Resolve,       // resolve
-    Services_MayResolve,    // mayResolve
-    nullptr,                // finalize
-    nullptr,                // call
-    nullptr,                // construct
-    nullptr,                // trace
-};
+static const JSClass* sServices_Class() {
+  static const JSClassOps sServices_ClassOps = {
+      nullptr,                // addProperty
+      nullptr,                // delProperty
+      nullptr,                // enumerate
+      (JSNewEnumerateOp)sbx_register_cb((void*)Services_NewEnumerate, 0),  // newEnumerate
+      (JSResolveOp)sbx_register_cb((void*)Services_Resolve, 0),       // resolve
+      (JSMayResolveOp)sbx_register_cb((void*)Services_MayResolve, 0),    // mayResolve
+      nullptr,                // finalize
+      nullptr,                // call
+      nullptr,                // construct
+      nullptr,                // trace
+  };
 
-static const JSClass sServices_Class = {"JSServices", 0, &sServices_ClassOps};
+  static const JSClass __sServices_Class = {"JSServices", 0, &sServices_ClassOps};
+  return &__sServices_Class;
+}
 
 JSObject* NewJSServices(JSContext* cx) {
-  return JS_NewObject(cx, &sServices_Class);
+  return JS_NewObject(cx, sServices_Class());
 }
 
 static bool Services_NewEnumerate(JSContext* cx, HandleObject obj,

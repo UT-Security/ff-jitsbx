@@ -10,12 +10,23 @@ __lfi_trampoline:
 	pushq %rbp
 	movq lfi_myproc@gottpoff(%rip), %r11
 	movq %fs:(%r11), %r11
+
+	pushq 16(%r11) # save sandbox stack pointer
+	sub $8, %rsp # fix alignment
+	
 	movq %rsp, 0(%r11) # kstackp
 	movq 16(%r11), %rsp # stack pointer
 	movq 16+14*8(%r11), %r14 # base pointer
+
+	andq $0xfffffffffffffff0, %rsp # align sandbox stack
+	movq 0(%r11), %r11 # load application stack pointer
+	pushq 96(%r11)
+	pushq 88(%r11)
+	pushq 80(%r11)
+	pushq 72(%r11)
+	
 	mov __lfisym_retfn@GOTPCREL(%rip), %r11
 	mov (%r11), %r11
-	andq $0xfffffffffffffff0, %rsp
 	pushq %r11
 	xor %r11d, %r11d
 	# TODO: make sure r10 is bundle-aligned and within the sandbox
@@ -162,6 +173,12 @@ _ZN2JS9GCContext7delete_IN2js16GlobalObjectDataEEEvPNS2_2gc4CellEPT_NS2_9MemoryU
 .global _ZN2JS25AutoDisableGenerationalGCD1Ev
 _ZN2JS25AutoDisableGenerationalGCD1Ev:
 	movq __lfisym__ZN2JS25AutoDisableGenerationalGCD1Ev@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps20finalizeInBackgroundERKN2JS5ValueE
+_ZNK2js23BaseProxyHandlerWithOps20finalizeInBackgroundERKN2JS5ValueE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps20finalizeInBackgroundERKN2JS5ValueE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -861,6 +878,12 @@ _ZN2JS11PropertyKey16fromPinnedStringEP8JSString:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js23BaseProxyHandlerWithOpsC2EPKNS_15ProxyHandlerOpsEPKvS5_bb
+_ZN2js23BaseProxyHandlerWithOpsC2EPKNS_15ProxyHandlerOpsEPKvS5_bb:
+	movq __lfisym__ZN2js23BaseProxyHandlerWithOpsC2EPKNS_15ProxyHandlerOpsEPKvS5_bb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS28CompileModuleScriptToStencilEP9JSContextRKNS_22ReadOnlyCompileOptionsERNS_10SourceTextIN7mozilla8Utf8UnitEEE
 _ZN2JS28CompileModuleScriptToStencilEP9JSContextRKNS_22ReadOnlyCompileOptionsERNS_10SourceTextIN7mozilla8Utf8UnitEEE:
 	movq __lfisym__ZN2JS28CompileModuleScriptToStencilEP9JSContextRKNS_22ReadOnlyCompileOptionsERNS_10SourceTextIN7mozilla8Utf8UnitEEE@GOTPCREL(%rip), %r10
@@ -1287,6 +1310,12 @@ _Z31JS_GetObjectAsUint8ClampedArrayP8JSObjectPmPbPPh:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps11getElementsEP9JSContextN2JS6HandleIP8JSObjectEEjjPNS_12ElementAdderE
+_ZNK2js23BaseProxyHandlerWithOps11getElementsEP9JSContextN2JS6HandleIP8JSObjectEEjjPNS_12ElementAdderE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps11getElementsEP9JSContextN2JS6HandleIP8JSObjectEEjjPNS_12ElementAdderE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _Z25JS_ResetInterruptCallbackP9JSContextb
 _Z25JS_ResetInterruptCallbackP9JSContextb:
 	movq __lfisym__Z25JS_ResetInterruptCallbackP9JSContextb@GOTPCREL(%rip), %r10
@@ -1671,6 +1700,12 @@ _ZN8JSObject2asIN2js12WasmGcObjectEEERT_v:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps21setImmutablePrototypeEP9JSContextN2JS6HandleIP8JSObjectEEPb
+_ZNK2js23BaseProxyHandlerWithOps21setImmutablePrototypeEP9JSContextN2JS6HandleIP8JSObjectEEPb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps21setImmutablePrototypeEP9JSContextN2JS6HandleIP8JSObjectEEPb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZSt7forwardIRN2js9ScopeKindEEOT_RNSt16remove_referenceIS3_E4typeE
 _ZSt7forwardIRN2js9ScopeKindEEOT_RNSt16remove_referenceIS3_E4typeE:
 	movq __lfisym__ZSt7forwardIRN2js9ScopeKindEEOT_RNSt16remove_referenceIS3_E4typeE@GOTPCREL(%rip), %r10
@@ -1917,6 +1952,12 @@ _ZNK2JS5Value7isInt32Ei:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps7delete_EP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEERNS3_14ObjectOpResultE
+_ZNK2js23BaseProxyHandlerWithOps7delete_EP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEERNS3_14ObjectOpResultE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps7delete_EP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEERNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE5claspEv
 _ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE5claspEv:
 	movq __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE5claspEv@GOTPCREL(%rip), %r10
@@ -2067,6 +2108,12 @@ _ZNK2JS5ValueeqERKS0_:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js23BaseProxyHandlerWithOpsC1EPKNS_15ProxyHandlerOpsEPKvS5_bb
+_ZN2js23BaseProxyHandlerWithOpsC1EPKNS_15ProxyHandlerOpsEPKvS5_bb:
+	movq __lfisym__ZN2js23BaseProxyHandlerWithOpsC1EPKNS_15ProxyHandlerOpsEPKvS5_bb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js15SetDOMCallbacksEP9JSContextPKNS_14JSDOMCallbacksE
 _ZN2js15SetDOMCallbacksEP9JSContextPKNS_14JSDOMCallbacksE:
 	movq __lfisym__ZN2js15SetDOMCallbacksEP9JSContextPKNS_14JSDOMCallbacksE@GOTPCREL(%rip), %r10
@@ -2202,6 +2249,12 @@ _Z16JS_SetUCPropertyP9JSContextN2JS6HandleIP8JSObjectEEPKDsmNS2_INS1_5ValueEEE:
 .global _ZNK2JS9GCContext20isTouchingGrayThingsEv
 _ZNK2JS9GCContext20isTouchingGrayThingsEv:
 	movq __lfisym__ZNK2JS9GCContext20isTouchingGrayThingsEv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps13isConstructorEP8JSObject
+_ZNK2js23BaseProxyHandlerWithOps13isConstructorEP8JSObject:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps13isConstructorEP8JSObject@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -2478,6 +2531,12 @@ _ZN2JS17ArrayBufferOrView10fromObjectEP8JSObject:
 .global _ZSt7forwardIN2js12ThrowMsgKindEEOT_RNSt16remove_referenceIS2_E4typeE
 _ZSt7forwardIN2js12ThrowMsgKindEEOT_RNSt16remove_referenceIS2_E4typeE:
 	movq __lfisym__ZSt7forwardIN2js12ThrowMsgKindEEOT_RNSt16remove_referenceIS2_E4typeE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS3dbg25AutoEntryMonitorWithHooksC1EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext
+_ZN2JS3dbg25AutoEntryMonitorWithHooksC1EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext:
+	movq __lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooksC1EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -3021,6 +3080,12 @@ _ZN8JSObject2asIN2js12BigIntObjectEEERT_v:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps8finalizeEPN2JS9GCContextEP8JSObject
+_ZNK2js23BaseProxyHandlerWithOps8finalizeEPN2JS9GCContextEP8JSObject:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps8finalizeEPN2JS9GCContextEP8JSObject@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2JS18PropertyDescriptor6setterEv
 _ZNK2JS18PropertyDescriptor6setterEv:
 	movq __lfisym__ZNK2JS18PropertyDescriptor6setterEv@GOTPCREL(%rip), %r10
@@ -3042,6 +3107,12 @@ _ZN2JS20SetRealmNameCallbackEP9JSContextPFvS1_PNS_5RealmEPcmRKNS_15AutoRequireNo
 .global _ZN2JS9GCContext7delete_IN2js10BreakpointEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE
 _ZN2JS9GCContext7delete_IN2js10BreakpointEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE:
 	movq __lfisym__ZN2JS9GCContext7delete_IN2js10BreakpointEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps3getEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_5ValueEEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIS8_EE
+_ZNK2js23BaseProxyHandlerWithOps3getEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_5ValueEEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIS8_EE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps3getEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_5ValueEEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIS8_EE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -3927,6 +3998,12 @@ _ZN2JS6BigInt15absoluteCompareEPS0_S1_:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS15JobQueueWithOps12saveJobQueueEP9JSContext
+_ZN2JS15JobQueueWithOps12saveJobQueueEP9JSContext:
+	movq __lfisym__ZN2JS15JobQueueWithOps12saveJobQueueEP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS4Zone17registerWeakCacheEPNS_6detail13WeakCacheBaseE
 _ZN2JS4Zone17registerWeakCacheEPNS_6detail13WeakCacheBaseE:
 	movq __lfisym__ZN2JS4Zone17registerWeakCacheEPNS_6detail13WeakCacheBaseE@GOTPCREL(%rip), %r10
@@ -4185,6 +4262,12 @@ _ZNK2JS14ContextOptions5asmJSEv:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps5enterEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEjbPb
+_ZNK2js23BaseProxyHandlerWithOps5enterEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEjbPb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps5enterEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEjbPb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js15TempAllocPolicy5free_INS_8frontend14BytecodeOffsetEEEvPT_m
 _ZN2js15TempAllocPolicy5free_INS_8frontend14BytecodeOffsetEEEvPT_m:
 	movq __lfisym__ZN2js15TempAllocPolicy5free_INS_8frontend14BytecodeOffsetEEEvPT_m@GOTPCREL(%rip), %r10
@@ -4263,6 +4346,12 @@ _ZN2JS15ArrayBufferViewC1EP8JSObject:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps10isCallableEP8JSObject
+_ZNK2js23BaseProxyHandlerWithOps10isCallableEP8JSObject:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps10isCallableEP8JSObject@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _Z33JS_NewUint8ClampedArrayWithBufferP9JSContextN2JS6HandleIP8JSObjectEEml
 _Z33JS_NewUint8ClampedArrayWithBufferP9JSContextN2JS6HandleIP8JSObjectEEml:
 	movq __lfisym__Z33JS_NewUint8ClampedArrayWithBufferP9JSContextN2JS6HandleIP8JSObjectEEml@GOTPCREL(%rip), %r10
@@ -4302,6 +4391,12 @@ _ZN2js15TempAllocPolicy5free_IN7mozilla6detail9HashTableINS2_12HashMapEntryINS_8
 .global _ZN2js18ReportOverRecursedEPNS_15FrontendContextE
 _ZN2js18ReportOverRecursedEPNS_15FrontendContextE:
 	movq __lfisym__ZN2js18ReportOverRecursedEPNS_15FrontendContextE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb
+_ZNK2js23BaseProxyHandlerWithOps12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -4980,6 +5075,12 @@ _ZNK2JS6Symbol11descriptionEv:
 .global _ZN2JS11PropertyKey10NonIntAtomEP6JSAtom
 _ZN2JS11PropertyKey10NonIntAtomEP6JSAtom:
 	movq __lfisym__ZN2JS11PropertyKey10NonIntAtomEP6JSAtom@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps7isArrayEP9JSContextN2JS6HandleIP8JSObjectEEPNS3_13IsArrayAnswerE
+_ZNK2js23BaseProxyHandlerWithOps7isArrayEP9JSContextN2JS6HandleIP8JSObjectEEPNS3_13IsArrayAnswerE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps7isArrayEP9JSContextN2JS6HandleIP8JSObjectEEPNS3_13IsArrayAnswerE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -7761,6 +7862,12 @@ _ZN2JS3ubi13ShortestPaths6CreateEP9JSContextRNS_17AutoCheckCannotGCEjRKNS0_4Node
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS15JobQueueWithOpsC2EPKNS0_3OpsEPv
+_ZN2JS15JobQueueWithOpsC2EPKNS0_3OpsEPv:
+	movq __lfisym__ZN2JS15JobQueueWithOpsC2EPKNS0_3OpsEPv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK8JSObject2asIN2js16TypedArrayObjectEEERKT_v
 _ZNK8JSObject2asIN2js16TypedArrayObjectEEERKT_v:
 	movq __lfisym__ZNK8JSObject2asIN2js16TypedArrayObjectEEERKT_v@GOTPCREL(%rip), %r10
@@ -8214,6 +8321,12 @@ _Z19JS_InitReservedSlotP8JSObjectjPvmN2JS9MemoryUseE:
 .global _ZNK2JS9GCContext11gcSweepZoneEv
 _ZNK2JS9GCContext11gcSweepZoneEv:
 	movq __lfisym__ZNK2JS9GCContext11gcSweepZoneEv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps4callEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE
+_ZNK2js23BaseProxyHandlerWithOps4callEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps4callEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -8715,6 +8828,12 @@ _ZN8JSObject2asIN2js31FinalizationRegistrationsObjectEEERT_v:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps9classNameEP9JSContextN2JS6HandleIP8JSObjectEE
+_ZNK2js23BaseProxyHandlerWithOps9classNameEP9JSContextN2JS6HandleIP8JSObjectEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps9classNameEP9JSContextN2JS6HandleIP8JSObjectEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2js15TempAllocPolicy12hasJSContextEv
 _ZNK2js15TempAllocPolicy12hasJSContextEv:
 	movq __lfisym__ZNK2js15TempAllocPolicy12hasJSContextEv@GOTPCREL(%rip), %r10
@@ -8805,6 +8924,12 @@ _ZN2JS3dbg16AutoEntryMonitorD2Ev:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps17preventExtensionsEP9JSContextN2JS6HandleIP8JSObjectEERNS3_14ObjectOpResultE
+_ZNK2js23BaseProxyHandlerWithOps17preventExtensionsEP9JSContextN2JS6HandleIP8JSObjectEERNS3_14ObjectOpResultE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps17preventExtensionsEP9JSContextN2JS6HandleIP8JSObjectEERNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2JS20RealmCreationOptions27getChangeArrayByCopyEnabledEv
 _ZNK2JS20RealmCreationOptions27getChangeArrayByCopyEnabledEv:
 	movq __lfisym__ZNK2JS20RealmCreationOptions27getChangeArrayByCopyEnabledEv@GOTPCREL(%rip), %r10
@@ -8832,6 +8957,12 @@ _ZN8JSObject2asIN2js17EnvironmentObjectEEERT_v:
 .global _ZN2JS19GetPromiseIsHandledENS_6HandleIP8JSObjectEE
 _ZN2JS19GetPromiseIsHandledENS_6HandleIP8JSObjectEE:
 	movq __lfisym__ZN2JS19GetPromiseIsHandledENS_6HandleIP8JSObjectEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP8JSScriptNS_6HandleINS_5ValueEEEPKc
+_ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP8JSScriptNS_6HandleINS_5ValueEEEPKc:
+	movq __lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP8JSScriptNS_6HandleINS_5ValueEEEPKc@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -8952,6 +9083,12 @@ _Z34JS_EncodeStringToUTF8BufferPartialP9JSContextP8JSStringN7mozilla4SpanIcLm184
 .global _ZN2JS26AssertGCThingMustBeTenuredEP8JSObject
 _ZN2JS26AssertGCThingMustBeTenuredEP8JSObject:
 	movq __lfisym__ZN2JS26AssertGCThingMustBeTenuredEP8JSObject@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps15getBuiltinClassEP9JSContextN2JS6HandleIP8JSObjectEEPNS_7ESClassE
+_ZNK2js23BaseProxyHandlerWithOps15getBuiltinClassEP9JSContextN2JS6HandleIP8JSObjectEEPNS_7ESClassE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps15getBuiltinClassEP9JSContextN2JS6HandleIP8JSObjectEEPNS_7ESClassE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -9957,6 +10094,12 @@ _ZN2js23TraceGrayWrapperTargetsEP8JSTracerPN2JS4ZoneE:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS15JobQueueWithOpsC1EPKNS0_3OpsEPv
+_ZN2JS15JobQueueWithOpsC1EPKNS0_3OpsEPv:
+	movq __lfisym__ZN2JS15JobQueueWithOpsC1EPKNS0_3OpsEPv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2JS3ubi8ConcreteI8JSObjectE5realmEv
 _ZNK2JS3ubi8ConcreteI8JSObjectE5realmEv:
 	movq __lfisym__ZNK2JS3ubi8ConcreteI8JSObjectE5realmEv@GOTPCREL(%rip), %r10
@@ -10032,6 +10175,12 @@ _ZN2JS18PropertyDescriptor9setGetterEP8JSObject:
 .global _ZSt7forwardIRN2js3jit24MGetNextEntryForIterator4ModeEEOT_RNSt16remove_referenceIS5_E4typeE
 _ZSt7forwardIRN2js3jit24MGetNextEntryForIterator4ModeEEOT_RNSt16remove_referenceIS5_E4typeE:
 	movq __lfisym__ZSt7forwardIRN2js3jit24MGetNextEntryForIterator4ModeEEOT_RNSt16remove_referenceIS5_E4typeE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps24getOwnPropertyDescriptorEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIN7mozilla5MaybeINS3_18PropertyDescriptorEEEEE
+_ZNK2js23BaseProxyHandlerWithOps24getOwnPropertyDescriptorEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIN7mozilla5MaybeINS3_18PropertyDescriptorEEEEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps24getOwnPropertyDescriptorEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIN7mozilla5MaybeINS3_18PropertyDescriptorEEEEE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -11349,6 +11498,12 @@ _Z27JS_GetUint8ClampedArrayDataP8JSObjectPbRKN2JS15AutoRequireNoGCE:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS15JobQueueWithOpsD1Ev
+_ZN2JS15JobQueueWithOpsD1Ev:
+	movq __lfisym__ZN2JS15JobQueueWithOpsD1Ev@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2JS20OwningCompileOptions19sizeOfExcludingThisEPFmPKvE
 _ZNK2JS20OwningCompileOptions19sizeOfExcludingThisEPFmPKvE:
 	movq __lfisym__ZNK2JS20OwningCompileOptions19sizeOfExcludingThisEPFmPKvE@GOTPCREL(%rip), %r10
@@ -11811,6 +11966,12 @@ _ZNSt11__copy_moveILb0ELb1ESt26random_access_iterator_tagE8__copy_mIKN2js3jit14B
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps16boxedValue_unboxEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_5ValueEEE
+_ZNK2js23BaseProxyHandlerWithOps16boxedValue_unboxEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_5ValueEEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps16boxedValue_unboxEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_5ValueEEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS3ubi8BackEdgeC2EOS1_
 _ZN2JS3ubi8BackEdgeC2EOS1_:
 	movq __lfisym__ZN2JS3ubi8BackEdgeC2EOS1_@GOTPCREL(%rip), %r10
@@ -12099,6 +12260,12 @@ _ZN8JSObject2asIN2js16WasmModuleObjectEEERT_v:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps37useProxyExpandoObjectForPrivateFieldsEv
+_ZNK2js23BaseProxyHandlerWithOps37useProxyExpandoObjectForPrivateFieldsEv:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps37useProxyExpandoObjectForPrivateFieldsEv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS5Value10fromDoubleEd
 _ZN2JS5Value10fromDoubleEd:
 	movq __lfisym__ZN2JS5Value10fromDoubleEd@GOTPCREL(%rip), %r10
@@ -12384,6 +12551,12 @@ _ZN2js15TempAllocPolicy5free_IN7mozilla9UniquePtrINS_3jit8ICScriptEN2JS12DeleteP
 .global _ZN2JS20OwningCompileOptionsC1EP9JSContext
 _ZN2JS20OwningCompileOptionsC1EP9JSContext:
 	movq __lfisym__ZN2JS20OwningCompileOptionsC1EP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2JS15JobQueueWithOps5emptyEv
+_ZNK2JS15JobQueueWithOps5emptyEv:
+	movq __lfisym__ZNK2JS15JobQueueWithOps5emptyEv@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -13587,9 +13760,27 @@ _ZN2JS6SetHasEP9JSContextNS_6HandleIP8JSObjectEENS2_INS_5ValueEEEPb:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps9constructEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE
+_ZNK2js23BaseProxyHandlerWithOps9constructEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps9constructEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js11QuoteStringEP9JSContextP8JSStringc
 _ZN2js11QuoteStringEP9JSContextP8JSStringc:
 	movq __lfisym__ZN2js11QuoteStringEP9JSContextP8JSStringc@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS3dbg25AutoEntryMonitorWithHooksC2EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext
+_ZN2JS3dbg25AutoEntryMonitorWithHooksC2EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext:
+	movq __lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooksC2EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps14definePropertyEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_18PropertyDescriptorEEERNS3_14ObjectOpResultE
+_ZNK2js23BaseProxyHandlerWithOps14definePropertyEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_18PropertyDescriptorEEERNS3_14ObjectOpResultE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps14definePropertyEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_18PropertyDescriptorEEERNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -13698,6 +13889,12 @@ _ZN2JS10TypedArrayILNS_6Scalar4TypeE3EEC1EP8JSObject:
 .global _ZN2JS19CollectRuntimeStatsEP9JSContextPNS_12RuntimeStatsEPNS_20ObjectPrivateVisitorEb
 _ZN2JS19CollectRuntimeStatsEP9JSContextPNS_12RuntimeStatsEPNS_20ObjectPrivateVisitorEb:
 	movq __lfisym__ZN2JS19CollectRuntimeStatsEP9JSContextPNS_12RuntimeStatsEPNS_20ObjectPrivateVisitorEb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS15JobQueueWithOpsD0Ev
+_ZN2JS15JobQueueWithOpsD0Ev:
+	movq __lfisym__ZN2JS15JobQueueWithOpsD0Ev@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -13968,6 +14165,12 @@ _ZN2JS28SetDoCycleCollectionCallbackEP9JSContextPFvS1_E:
 .global _ZN2js2gc29EdgeNeedsSweepUnbarrieredSlowIP8JSStringEEbPT_
 _ZN2js2gc29EdgeNeedsSweepUnbarrieredSlowIP8JSStringEEbPT_:
 	movq __lfisym__ZN2js2gc29EdgeNeedsSweepUnbarrieredSlowIP8JSStringEEbPT_@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE
+_ZNK2js23BaseProxyHandlerWithOps3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -14262,6 +14465,12 @@ _Z20JS_GetContextPrivateP9JSContext:
 .global _ZN2JS16NewWeakMapObjectEP9JSContext
 _ZN2JS16NewWeakMapObjectEP9JSContext:
 	movq __lfisym__ZN2JS16NewWeakMapObjectEP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS15JobQueueWithOps17enqueuePromiseJobEP9JSContextNS_6HandleIP8JSObjectEES6_S6_S6_
+_ZN2JS15JobQueueWithOps17enqueuePromiseJobEP9JSContextNS_6HandleIP8JSObjectEES6_S6_S6_:
+	movq __lfisym__ZN2JS15JobQueueWithOps17enqueuePromiseJobEP9JSContextNS_6HandleIP8JSObjectEES6_S6_S6_@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -16251,6 +16460,12 @@ _ZN2JS17AutoCheckCannotGCC2ERKS0_:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS15JobQueueWithOps18getIncumbentGlobalEP9JSContext
+_ZN2JS15JobQueueWithOps18getIncumbentGlobalEP9JSContext:
+	movq __lfisym__ZN2JS15JobQueueWithOps18getIncumbentGlobalEP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS24GetSavedFrameAsyncParentEP9JSContextP12JSPrincipalsNS_6HandleIP8JSObjectEENS_13MutableHandleIS6_EENS_20SavedFrameSelfHostedE
 _ZN2JS24GetSavedFrameAsyncParentEP9JSContextP12JSPrincipalsNS_6HandleIP8JSObjectEENS_13MutableHandleIS6_EENS_20SavedFrameSelfHostedE:
 	movq __lfisym__ZN2JS24GetSavedFrameAsyncParentEP9JSContextP12JSPrincipalsNS_6HandleIP8JSObjectEENS_13MutableHandleIS6_EENS_20SavedFrameSelfHostedE@GOTPCREL(%rip), %r10
@@ -17004,6 +17219,12 @@ _ZSt7forwardIN2js2gc19IncrementalProgressEEOT_RNSt16remove_referenceIS3_E4typeE:
 .global _ZN8JSObject2asIN2js18DisplayNamesObjectEEERT_v
 _ZN8JSObject2asIN2js18DisplayNamesObjectEEERT_v:
 	movq __lfisym__ZN8JSObject2asIN2js18DisplayNamesObjectEEERT_v@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps12setPrototypeEP9JSContextN2JS6HandleIP8JSObjectEES7_RNS3_14ObjectOpResultE
+_ZNK2js23BaseProxyHandlerWithOps12setPrototypeEP9JSContextN2JS6HandleIP8JSObjectEES7_RNS3_14ObjectOpResultE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps12setPrototypeEP9JSContextN2JS6HandleIP8JSObjectEES7_RNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -18015,6 +18236,12 @@ _ZSt7forwardIRN2js3jit16MSignExtendInt324ModeEEOT_RNSt16remove_referenceIS5_E4ty
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps5traceEP8JSTracerP8JSObject
+_ZNK2js23BaseProxyHandlerWithOps5traceEP8JSTracerP8JSObject:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps5traceEP8JSTracerP8JSObject@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js15TempAllocPolicy5free_IP10JSFunctionEEvPT_m
 _ZN2js15TempAllocPolicy5free_IP10JSFunctionEEvPT_m:
 	movq __lfisym__ZN2js15TempAllocPolicy5free_IP10JSFunctionEEvPT_m@GOTPCREL(%rip), %r10
@@ -18216,6 +18443,12 @@ _ZN2JS3dbg16AutoEntryMonitor4ExitEP9JSContext:
 .global _ZN2JS4Zone45checkAllCrossCompartmentWrappersAfterMovingGCEv
 _ZN2JS4Zone45checkAllCrossCompartmentWrappersAfterMovingGCEv:
 	movq __lfisym__ZN2JS4Zone45checkAllCrossCompartmentWrappersAfterMovingGCEv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps11objectMovedEP8JSObjectS2_
+_ZNK2js23BaseProxyHandlerWithOps11objectMovedEP8JSObjectS2_:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps11objectMovedEP8JSObjectS2_@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -18741,6 +18974,12 @@ _ZN2JS18PropertyDescriptor15setConfigurableEb:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps3hasEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb
+_ZNK2js23BaseProxyHandlerWithOps3hasEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps3hasEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js15TempAllocPolicy11pod_reallocINS_8frontend18SyntaxParseHandler4NodeEEEPT_S6_mm
 _ZN2js15TempAllocPolicy11pod_reallocINS_8frontend18SyntaxParseHandler4NodeEEEPT_S6_mm:
 	movq __lfisym__ZN2js15TempAllocPolicy11pod_reallocINS_8frontend18SyntaxParseHandler4NodeEEEPT_S6_mm@GOTPCREL(%rip), %r10
@@ -18780,6 +19019,18 @@ _ZN2JS10TypedArrayILNS_6Scalar4TypeE6EE16getLengthAndDataEPmPbRKNS_15AutoRequire
 .global _ZN2JS32AutoDebuggerJobQueueInterruptionC1Ev
 _ZN2JS32AutoDebuggerJobQueueInterruptionC1Ev:
 	movq __lfisym__ZN2JS32AutoDebuggerJobQueueInterruptionC1Ev@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS3dbg25AutoEntryMonitorWithHooks4ExitEP9JSContext
+_ZN2JS3dbg25AutoEntryMonitorWithHooks4ExitEP9JSContext:
+	movq __lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks4ExitEP9JSContext@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS15JobQueueWithOpsD2Ev
+_ZN2JS15JobQueueWithOpsD2Ev:
+	movq __lfisym__ZN2JS15JobQueueWithOpsD2Ev@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -19323,6 +19574,12 @@ _ZN2JS30SetScriptPrivateReferenceHooksEP9JSRuntimePFvRKNS_5ValueEES6_:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps15ownPropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE
+_ZNK2js23BaseProxyHandlerWithOps15ownPropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps15ownPropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZSt7forwardIRN2js7gcstats5PhaseEEOT_RNSt16remove_referenceIS4_E4typeE
 _ZSt7forwardIRN2js7gcstats5PhaseEEOT_RNSt16remove_referenceIS4_E4typeE:
 	movq __lfisym__ZSt7forwardIRN2js7gcstats5PhaseEEOT_RNSt16remove_referenceIS4_E4typeE@GOTPCREL(%rip), %r10
@@ -19362,6 +19619,12 @@ _ZSt7forwardIN2js3jit12MNarrowingOpEEOT_RNSt16remove_referenceIS3_E4typeE:
 .global _ZNK2js22ForwardingProxyHandler3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE
 _ZNK2js22ForwardingProxyHandler3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE:
 	movq __lfisym__ZNK2js22ForwardingProxyHandler3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS15JobQueueWithOps7runJobsEP9JSContext
+_ZN2JS15JobQueueWithOps7runJobsEP9JSContext:
+	movq __lfisym__ZN2JS15JobQueueWithOps7runJobsEP9JSContext@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -19725,6 +19988,12 @@ _ZNK2js29OpaqueCrossCompartmentWrapper22getPrototypeIfOrdinaryEP9JSContextN2JS6H
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE
+_ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer
 _ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer:
 	movq __lfisym__ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer@GOTPCREL(%rip), %r10
@@ -19926,6 +20195,12 @@ _ZNK2JS4Zone19allocNurseryObjectsEv:
 .global _ZSt7forwardIN2js3jit11BailoutKindEEOT_RNSt16remove_referenceIS3_E4typeE
 _ZSt7forwardIN2js3jit11BailoutKindEEOT_RNSt16remove_referenceIS3_E4typeE:
 	movq __lfisym__ZSt7forwardIN2js3jit11BailoutKindEEOT_RNSt16remove_referenceIS3_E4typeE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps22getPrototypeIfOrdinaryEP9JSContextN2JS6HandleIP8JSObjectEEPbNS3_13MutableHandleIS6_EE
+_ZNK2js23BaseProxyHandlerWithOps22getPrototypeIfOrdinaryEP9JSContextN2JS6HandleIP8JSObjectEEPbNS3_13MutableHandleIS6_EE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps22getPrototypeIfOrdinaryEP9JSContextN2JS6HandleIP8JSObjectEEPbNS3_13MutableHandleIS6_EE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -20136,6 +20411,12 @@ _ZN2JS14ObjectOpResult25failCantPreventExtensionsEv:
 .global _ZN2JS30SetCreateGCSliceBudgetCallbackEP9JSContextPFN2js11SliceBudgetENS_8GCReasonElE
 _ZN2JS30SetCreateGCSliceBudgetCallbackEP9JSContextPFN2js11SliceBudgetENS_8GCReasonElE:
 	movq __lfisym__ZN2JS30SetCreateGCSliceBudgetCallbackEP9JSContextPFN2js11SliceBudgetENS_8GCReasonElE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP10JSFunctionNS_6HandleINS_5ValueEEEPKc
+_ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP10JSFunctionNS_6HandleINS_5ValueEEEPKc:
+	movq __lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP10JSFunctionNS_6HandleINS_5ValueEEEPKc@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -20520,6 +20801,12 @@ _ZN2JS10WeakMapPtrIP8JSObjectS2_ED2Ev:
 .global _Z17JS_PCToLineNumberP8JSScriptPhPj
 _Z17JS_PCToLineNumberP8JSScriptPhPj:
 	movq __lfisym__Z17JS_PCToLineNumberP8JSScriptPhPj@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps19throwOnPrivateFieldEv
+_ZNK2js23BaseProxyHandlerWithOps19throwOnPrivateFieldEv:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps19throwOnPrivateFieldEv@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -21225,6 +21512,12 @@ _Z32JS_SetDestroyCompartmentCallbackP9JSContextPFvPN2JS9GCContextEPNS1_11Compart
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps12getPrototypeEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleIS6_EE
+_ZNK2js23BaseProxyHandlerWithOps12getPrototypeEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleIS6_EE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps12getPrototypeEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleIS6_EE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2js8Sprinter15checkInvariantsEv
 _ZNK2js8Sprinter15checkInvariantsEv:
 	movq __lfisym__ZNK2js8Sprinter15checkInvariantsEv@GOTPCREL(%rip), %r10
@@ -21483,6 +21776,12 @@ _ZN2JS18ErrorReportBuilderC1EP9JSContext:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps15regexp_toSharedEP9JSContextN2JS6HandleIP8JSObjectEE
+_ZNK2js23BaseProxyHandlerWithOps15regexp_toSharedEP9JSContextN2JS6HandleIP8JSObjectEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps15regexp_toSharedEP9JSContextN2JS6HandleIP8JSObjectEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZSt7forwardIRKPN2JS6SymbolEEOT_RNSt16remove_referenceIS5_E4typeE
 _ZSt7forwardIRKPN2JS6SymbolEEOT_RNSt16remove_referenceIS5_E4typeE:
 	movq __lfisym__ZSt7forwardIRKPN2JS6SymbolEEOT_RNSt16remove_referenceIS5_E4typeE@GOTPCREL(%rip), %r10
@@ -21567,6 +21866,12 @@ _ZSt11__addressofIKN2js2gc10ArenaLists13ConcurrentUseEEPT_RS5_:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps9enumerateEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE
+_ZNK2js23BaseProxyHandlerWithOps9enumerateEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps9enumerateEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN8JSObject2asIN2js20WeakCollectionObjectEEERT_v
 _ZN8JSObject2asIN2js20WeakCollectionObjectEEERT_v:
 	movq __lfisym__ZN8JSObject2asIN2js20WeakCollectionObjectEEERT_v@GOTPCREL(%rip), %r10
@@ -21618,6 +21923,12 @@ _ZN2JS4Zone23gcNurseryEphemeronEdgesEv:
 .global _ZN2JS24IdentifyStandardInstanceEP8JSObject
 _ZN2JS24IdentifyStandardInstanceEP8JSObject:
 	movq __lfisym__ZN2JS24IdentifyStandardInstanceEP8JSObject@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps10isScriptedEv
+_ZNK2js23BaseProxyHandlerWithOps10isScriptedEv:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps10isScriptedEv@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -21696,6 +22007,18 @@ _ZN8JSObject2asIN2js17DebuggerArgumentsEEERT_v:
 .global _ZN2JS12AutoGCRooterC1EPNS_14RootingContextENS_16AutoGCRooterKindE
 _ZN2JS12AutoGCRooterC1EPNS_14RootingContextENS_16AutoGCRooterKindE:
 	movq __lfisym__ZN2JS12AutoGCRooterC1EPNS_14RootingContextENS_16AutoGCRooterKindE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps6hasOwnEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb
+_ZNK2js23BaseProxyHandlerWithOps6hasOwnEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps6hasOwnEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps12fun_toStringEP9JSContextN2JS6HandleIP8JSObjectEEb
+_ZNK2js23BaseProxyHandlerWithOps12fun_toStringEP9JSContextN2JS6HandleIP8JSObjectEEb:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps12fun_toStringEP9JSContextN2JS6HandleIP8JSObjectEEb@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -22179,6 +22502,12 @@ _ZNK2JS9GCCellPtr2isINS_6BigIntEvEEbv:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5ValueEEEEPFbS2_RKNS3_8CallArgsEESB_
+_ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5ValueEEEEPFbS2_RKNS3_8CallArgsEESB_:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5ValueEEEEPFbS2_RKNS3_8CallArgsEESB_@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_
 _ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_:
 	movq __lfisym__ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_@GOTPCREL(%rip), %r10
@@ -22320,6 +22649,12 @@ _ZN8JSScript4dumpEP9JSContextN2JS6HandleIPS_EERNS_11DumpOptionsEPN2js8SprinterE:
 .global _ZN2JS25InitConsumeStreamCallbackEP9JSContextPFbS1_NS_6HandleIP8JSObjectEENS_8MimeTypeEPNS_14StreamConsumerEEPFvS1_mE
 _ZN2JS25InitConsumeStreamCallbackEP9JSContextPFbS1_NS_6HandleIP8JSObjectEENS_8MimeTypeEPNS_14StreamConsumerEEPFvS1_mE:
 	movq __lfisym__ZN2JS25InitConsumeStreamCallbackEP9JSContextPFbS1_NS_6HandleIP8JSObjectEENS_8MimeTypeEPNS_14StreamConsumerEEPFvS1_mE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZNK2js23BaseProxyHandlerWithOps18canNurseryAllocateEv
+_ZNK2js23BaseProxyHandlerWithOps18canNurseryAllocateEv:
+	movq __lfisym__ZNK2js23BaseProxyHandlerWithOps18canNurseryAllocateEv@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -22504,6 +22839,8 @@ __lfisym__ZN2js15TempAllocPolicy16pod_arena_mallocIN7mozilla6detail9HashTableINS
 __lfisym__ZN2JS9GCContext7delete_IN2js16GlobalObjectDataEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE:
 	.quad 0
 __lfisym__ZN2JS25AutoDisableGenerationalGCD1Ev:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps20finalizeInBackgroundERKN2JS5ValueE:
 	.quad 0
 __lfisym__ZN2JS9GCContext15deleteUntrackedINS_5RealmEEEvPT_:
 	.quad 0
@@ -22737,6 +23074,8 @@ __lfisym__Z34JS_HasExtensibleLexicalEnvironmentP8JSObject:
 	.quad 0
 __lfisym__ZN2JS11PropertyKey16fromPinnedStringEP8JSString:
 	.quad 0
+__lfisym__ZN2js23BaseProxyHandlerWithOpsC2EPKNS_15ProxyHandlerOpsEPKvS5_bb:
+	.quad 0
 __lfisym__ZN2JS28CompileModuleScriptToStencilEP9JSContextRKNS_22ReadOnlyCompileOptionsERNS_10SourceTextIN7mozilla8Utf8UnitEEE:
 	.quad 0
 __lfisym__ZN2JS3ubi8ConcreteI8JSStringEC1EPS2_:
@@ -22879,6 +23218,8 @@ __lfisym__ZN2JS4Zone20clearSweepGroupEdgesEv:
 	.quad 0
 __lfisym__Z31JS_GetObjectAsUint8ClampedArrayP8JSObjectPmPbPPh:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps11getElementsEP9JSContextN2JS6HandleIP8JSObjectEEjjPNS_12ElementAdderE:
+	.quad 0
 __lfisym__Z25JS_ResetInterruptCallbackP9JSContextb:
 	.quad 0
 __lfisym__ZN2JS27IterateRealmsWithPrincipalsEP9JSContextP12JSPrincipalsPvPFvS1_S4_PNS_5RealmERKNS_15AutoRequireNoGCEE:
@@ -23007,6 +23348,8 @@ __lfisym__ZSt7forwardIRKN2JS15ImportAssertionEEOT_RNSt16remove_referenceIS4_E4ty
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js12WasmGcObjectEEERT_v:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps21setImmutablePrototypeEP9JSContextN2JS6HandleIP8JSObjectEEPb:
+	.quad 0
 __lfisym__ZSt7forwardIRN2js9ScopeKindEEOT_RNSt16remove_referenceIS3_E4typeE:
 	.quad 0
 __lfisym__ZN8JSScript23createPrivateScriptDataEP9JSContextN2JS6HandleIPS_EEj:
@@ -23089,6 +23432,8 @@ __lfisym__ZN8JSObject2asIN2js12LocaleObjectEEERT_v:
 	.quad 0
 __lfisym__ZNK2JS5Value7isInt32Ei:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps7delete_EP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEERNS3_14ObjectOpResultE:
+	.quad 0
 __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE5claspEv:
 	.quad 0
 __lfisym__ZN2js10ToInt8SlowEP9JSContextN2JS6HandleINS2_5ValueEEEPa:
@@ -23139,6 +23484,8 @@ __lfisym__Z26JS_GetStringEncodingLengthP9JSContextP8JSString:
 	.quad 0
 __lfisym__ZNK2JS5ValueeqERKS0_:
 	.quad 0
+__lfisym__ZN2js23BaseProxyHandlerWithOpsC1EPKNS_15ProxyHandlerOpsEPKvS5_bb:
+	.quad 0
 __lfisym__ZN2js15SetDOMCallbacksEP9JSContextPKNS_14JSDOMCallbacksE:
 	.quad 0
 __lfisym__Z21JS_IsTypedArrayObjectP8JSObject:
@@ -23184,6 +23531,8 @@ __lfisym__ZN2JS6BigInt3oneEP9JSContext:
 __lfisym__Z16JS_SetUCPropertyP9JSContextN2JS6HandleIP8JSObjectEEPKDsmNS2_INS1_5ValueEEE:
 	.quad 0
 __lfisym__ZNK2JS9GCContext20isTouchingGrayThingsEv:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps13isConstructorEP8JSObject:
 	.quad 0
 __lfisym__ZN2JS3dbg10IsDebuggerER8JSObject:
 	.quad 0
@@ -23276,6 +23625,8 @@ __lfisym__ZN2JS28GetProfilingCategoryPairInfoENS_21ProfilingCategoryPairE:
 __lfisym__ZN2JS17ArrayBufferOrView10fromObjectEP8JSObject:
 	.quad 0
 __lfisym__ZSt7forwardIN2js12ThrowMsgKindEEOT_RNSt16remove_referenceIS2_E4typeE:
+	.quad 0
+__lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooksC1EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext:
 	.quad 0
 __lfisym__ZN9JSContext7newCellIN2js12RegExpSharedELNS1_7AllowGCE1EJRN2JS6HandleIP6JSAtomEERNS4_11RegExpFlagsEEEEPT_DpOT1_:
 	.quad 0
@@ -23457,6 +23808,8 @@ __lfisym__ZN2js15TempAllocPolicy5free_INS_8Debugger19AllocationsLogEntryEEEvPT_m
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js12BigIntObjectEEERT_v:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps8finalizeEPN2JS9GCContextEP8JSObject:
+	.quad 0
 __lfisym__ZNK2JS18PropertyDescriptor6setterEv:
 	.quad 0
 __lfisym__ZN2JS18PropertyDescriptor5traceEP8JSTracer:
@@ -23464,6 +23817,8 @@ __lfisym__ZN2JS18PropertyDescriptor5traceEP8JSTracer:
 __lfisym__ZN2JS20SetRealmNameCallbackEP9JSContextPFvS1_PNS_5RealmEPcmRKNS_15AutoRequireNoGCEE:
 	.quad 0
 __lfisym__ZN2JS9GCContext7delete_IN2js10BreakpointEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps3getEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_5ValueEEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIS8_EE:
 	.quad 0
 __lfisym__ZNK2JS3ubi8ConcreteIvE4sizeEPFmPKvE:
 	.quad 0
@@ -23759,6 +24114,8 @@ __lfisym__ZNK2JS13GCDescription18formatSliceMessageEP9JSContext:
 	.quad 0
 __lfisym__ZN2JS6BigInt15absoluteCompareEPS0_S1_:
 	.quad 0
+__lfisym__ZN2JS15JobQueueWithOps12saveJobQueueEP9JSContext:
+	.quad 0
 __lfisym__ZN2JS4Zone17registerWeakCacheEPNS_6detail13WeakCacheBaseE:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy18onOutOfMemoryTypedIP8JSObjectEEPT_mNS_13AllocFunctionEmPv:
@@ -23845,6 +24202,8 @@ __lfisym__ZN2JS6BigInt17setLengthAndFlagsEjj:
 	.quad 0
 __lfisym__ZNK2JS14ContextOptions5asmJSEv:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps5enterEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEjbPb:
+	.quad 0
 __lfisym__ZN2js15TempAllocPolicy5free_INS_8frontend14BytecodeOffsetEEEvPT_m:
 	.quad 0
 __lfisym__ZN2js21AutoAssertNoContentJSD1Ev:
@@ -23871,6 +24230,8 @@ __lfisym__ZNK2js22ForwardingProxyHandler28getOwnEnumerablePropertyKeysEP9JSConte
 	.quad 0
 __lfisym__ZN2JS15ArrayBufferViewC1EP8JSObject:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps10isCallableEP8JSObject:
+	.quad 0
 __lfisym__Z33JS_NewUint8ClampedArrayWithBufferP9JSContextN2JS6HandleIP8JSObjectEEml:
 	.quad 0
 __lfisym__ZN2js24SharedArrayRawBufferRefsC1Ev:
@@ -23884,6 +24245,8 @@ __lfisym__ZNSt6atomicIPN2js24AutoEnterOOMUnsafeRegionEE23compare_exchange_strong
 __lfisym__ZN2js15TempAllocPolicy5free_IN7mozilla6detail9HashTableINS2_12HashMapEntryINS_8frontend21TaggedParserAtomIndexEjEENS2_7HashMapIS7_jNS6_27TaggedParserAtomIndexHasherES0_E13MapHashPolicyES0_E8FakeSlotEEEvPT_m:
 	.quad 0
 __lfisym__ZN2js18ReportOverRecursedEPNS_15FrontendContextE:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb:
 	.quad 0
 __lfisym__ZN2JS21GetModuleForNamespaceEP9JSContextNS_6HandleIP8JSObjectEE:
 	.quad 0
@@ -24110,6 +24473,8 @@ __lfisym__ZN2JS3ubi13ShortestPathsC1EjRKNS0_4NodeEON7mozilla7HashSetIS2_NS5_13De
 __lfisym__ZNK2JS6Symbol11descriptionEv:
 	.quad 0
 __lfisym__ZN2JS11PropertyKey10NonIntAtomEP6JSAtom:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps7isArrayEP9JSContextN2JS6HandleIP8JSObjectEEPNS3_13IsArrayAnswerE:
 	.quad 0
 __lfisym__ZN2JS8JobQueue13SavedJobQueueD2Ev:
 	.quad 0
@@ -25037,6 +25402,8 @@ __lfisym__ZN2JS5Realm34updateDebuggerObservesAllExecutionEv:
 	.quad 0
 __lfisym__ZN2JS3ubi13ShortestPaths6CreateEP9JSContextRNS_17AutoCheckCannotGCEjRKNS0_4NodeEON7mozilla7HashSetIS6_NS9_13DefaultHasherIS6_vEEN2js17SystemAllocPolicyEEE:
 	.quad 0
+__lfisym__ZN2JS15JobQueueWithOpsC2EPKNS0_3OpsEPv:
+	.quad 0
 __lfisym__ZNK8JSObject2asIN2js16TypedArrayObjectEEERKT_v:
 	.quad 0
 __lfisym__ZN10JSFunction9getLengthEP9JSContextN2JS6HandleIPS_EEPt:
@@ -25188,6 +25555,8 @@ __lfisym__ZN2js15TempAllocPolicy16pod_arena_mallocIN2JS8GCVectorINS2_5ValueELm0E
 __lfisym__Z19JS_InitReservedSlotP8JSObjectjPvmN2JS9MemoryUseE:
 	.quad 0
 __lfisym__ZNK2JS9GCContext11gcSweepZoneEv:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps4callEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE:
 	.quad 0
 __lfisym__ZN2JS6BigInt20offsetOfInlineDigitsEv:
 	.quad 0
@@ -25355,6 +25724,8 @@ __lfisym__ZSt7forwardIN2js13FunctionFlags12FunctionKindEEOT_RNSt16remove_referen
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js31FinalizationRegistrationsObjectEEERT_v:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps9classNameEP9JSContextN2JS6HandleIP8JSObjectEE:
+	.quad 0
 __lfisym__ZNK2js15TempAllocPolicy12hasJSContextEv:
 	.quad 0
 __lfisym__ZN2JS24AutoEnterCycleCollectionD1Ev:
@@ -25385,6 +25756,8 @@ __lfisym__ZN2JS4Zone20prepareForCompactingEv:
 	.quad 0
 __lfisym__ZN2JS3dbg16AutoEntryMonitorD2Ev:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps17preventExtensionsEP9JSContextN2JS6HandleIP8JSObjectEERNS3_14ObjectOpResultE:
+	.quad 0
 __lfisym__ZNK2JS20RealmCreationOptions27getChangeArrayByCopyEnabledEv:
 	.quad 0
 __lfisym__Z33JS_NondeterministicGetWeakMapKeysP9JSContextN2JS6HandleIP8JSObjectEENS1_13MutableHandleIS4_EE:
@@ -25394,6 +25767,8 @@ __lfisym__ZN2JS11PropertyKey4VoidEv:
 __lfisym__ZN8JSObject2asIN2js17EnvironmentObjectEEERT_v:
 	.quad 0
 __lfisym__ZN2JS19GetPromiseIsHandledENS_6HandleIP8JSObjectEE:
+	.quad 0
+__lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP8JSScriptNS_6HandleINS_5ValueEEEPKc:
 	.quad 0
 __lfisym__ZNK2JS22ProfilingFrameIterator28getPhysicalFrameWithoutLabelEv:
 	.quad 0
@@ -25434,6 +25809,8 @@ __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE6EEC2EP8JSObject:
 __lfisym__Z34JS_EncodeStringToUTF8BufferPartialP9JSContextP8JSStringN7mozilla4SpanIcLm18446744073709551615EEE:
 	.quad 0
 __lfisym__ZN2JS26AssertGCThingMustBeTenuredEP8JSObject:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps15getBuiltinClassEP9JSContextN2JS6HandleIP8JSObjectEEPNS_7ESClassE:
 	.quad 0
 __lfisym__ZN2JS13PurgePCCountsEP9JSContext:
 	.quad 0
@@ -25769,6 +26146,8 @@ __lfisym__Z13JS_ReadDoubleP23JSStructuredCloneReaderPd:
 	.quad 0
 __lfisym__ZN2js23TraceGrayWrapperTargetsEP8JSTracerPN2JS4ZoneE:
 	.quad 0
+__lfisym__ZN2JS15JobQueueWithOpsC1EPKNS0_3OpsEPv:
+	.quad 0
 __lfisym__ZNK2JS3ubi8ConcreteI8JSObjectE5realmEv:
 	.quad 0
 __lfisym__ZNK2JS14ContextOptions11wasmVerboseEv:
@@ -25794,6 +26173,8 @@ __lfisym__Z16JS_HasUCPropertyP9JSContextN2JS6HandleIP8JSObjectEEPKDsmPb:
 __lfisym__ZN2JS18PropertyDescriptor9setGetterEP8JSObject:
 	.quad 0
 __lfisym__ZSt7forwardIRN2js3jit24MGetNextEntryForIterator4ModeEEOT_RNSt16remove_referenceIS5_E4typeE:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps24getOwnPropertyDescriptorEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS3_13MutableHandleIN7mozilla5MaybeINS3_18PropertyDescriptorEEEEE:
 	.quad 0
 __lfisym__ZN2JS13ExecuteRegExpEP9JSContextNS_6HandleIP8JSObjectEES5_PKDsmPmbNS_13MutableHandleINS_5ValueEEE:
 	.quad 0
@@ -26233,6 +26614,8 @@ __lfisym__ZN9JSContext7newCellIN2JS6BigIntELN2js7AllowGCE0EJNS3_2gc4HeapEEEEPT_D
 	.quad 0
 __lfisym__Z27JS_GetUint8ClampedArrayDataP8JSObjectPbRKN2JS15AutoRequireNoGCE:
 	.quad 0
+__lfisym__ZN2JS15JobQueueWithOpsD1Ev:
+	.quad 0
 __lfisym__ZNK2JS20OwningCompileOptions19sizeOfExcludingThisEPFmPKvE:
 	.quad 0
 __lfisym__ZN2JS15TypedArray_baseC2EP8JSObject:
@@ -26387,6 +26770,8 @@ __lfisym__ZN2JS5Realm16offsetOfJitRealmEv:
 	.quad 0
 __lfisym__ZNSt11__copy_moveILb0ELb1ESt26random_access_iterator_tagE8__copy_mIKN2js3jit14BaselineScript14DebugTrapEntryES6_EEPT0_PT_SB_S9_:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps16boxedValue_unboxEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_5ValueEEE:
+	.quad 0
 __lfisym__ZN2JS3ubi8BackEdgeC2EOS1_:
 	.quad 0
 __lfisym__ZSt7forwardIN2JS15ExceptionStatusEEOT_RNSt16remove_referenceIS2_E4typeE:
@@ -26483,6 +26868,8 @@ __lfisym__ZNK2JS3ubi8ConcreteINS0_8RootListEE5edgesEP9JSContextb:
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js16WasmModuleObjectEEERT_v:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps37useProxyExpandoObjectForPrivateFieldsEv:
+	.quad 0
 __lfisym__ZN2JS5Value10fromDoubleEd:
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js23ModuleEnvironmentObjectEEERT_v:
@@ -26578,6 +26965,8 @@ __lfisym__ZN2JS25GetRealmIteratorPrototypeEP9JSContext:
 __lfisym__ZN2js15TempAllocPolicy5free_IN7mozilla9UniquePtrINS_3jit8ICScriptEN2JS12DeletePolicyIS5_EEEEEEvPT_m:
 	.quad 0
 __lfisym__ZN2JS20OwningCompileOptionsC1EP9JSContext:
+	.quad 0
+__lfisym__ZNK2JS15JobQueueWithOps5emptyEv:
 	.quad 0
 __lfisym__ZN2JS27GetArrayBufferLengthAndDataEP8JSObjectPmPbPPh:
 	.quad 0
@@ -26979,7 +27368,13 @@ __lfisym__ZN2JS15ConstUTF8CharsZC2EPKcm:
 	.quad 0
 __lfisym__ZN2JS6SetHasEP9JSContextNS_6HandleIP8JSObjectEENS2_INS_5ValueEEEPb:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps9constructEP9JSContextN2JS6HandleIP8JSObjectEERKNS3_8CallArgsE:
+	.quad 0
 __lfisym__ZN2js11QuoteStringEP9JSContextP8JSStringc:
+	.quad 0
+__lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooksC2EPKNS0_21AutoEntryMonitorHooksEPvP9JSContext:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps14definePropertyEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_18PropertyDescriptorEEERNS3_14ObjectOpResultE:
 	.quad 0
 __lfisym__ZN2JS30ThrowOnModuleEvaluationFailureEP9JSContextNS_6HandleIP8JSObjectEENS_20ModuleErrorBehaviourE:
 	.quad 0
@@ -27016,6 +27411,8 @@ __lfisym__ZN8JSObject8unwrapAsIN2js16WasmModuleObjectEEERT_v:
 __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE3EEC1EP8JSObject:
 	.quad 0
 __lfisym__ZN2JS19CollectRuntimeStatsEP9JSContextPNS_12RuntimeStatsEPNS_20ObjectPrivateVisitorEb:
+	.quad 0
+__lfisym__ZN2JS15JobQueueWithOpsD0Ev:
 	.quad 0
 __lfisym__ZN2JS9GCContext7delete_IN2js14OrderedHashMapINS2_12PreBarrieredINS2_13HashableValueEEENS4_INS_5ValueEEENS2_19HashableValueHasherENS2_18TrackedAllocPolicyILNS2_12TrackingKindE0EEEEEEEvPNS2_2gc4CellEPT_mNS2_9MemoryUseE:
 	.quad 0
@@ -27106,6 +27503,8 @@ __lfisym__Z20JS_GetScriptFilenameP8JSScript:
 __lfisym__ZN2JS28SetDoCycleCollectionCallbackEP9JSContextPFvS1_E:
 	.quad 0
 __lfisym__ZN2js2gc29EdgeNeedsSweepUnbarrieredSlowIP8JSStringEEbPT_:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE:
 	.quad 0
 __lfisym__ZNK2JS6BigInt5digitEm:
 	.quad 0
@@ -27204,6 +27603,8 @@ __lfisym__ZN8JSObject2asIN2js22WasmFunctionCallObjectEEERT_v:
 __lfisym__Z20JS_GetContextPrivateP9JSContext:
 	.quad 0
 __lfisym__ZN2JS16NewWeakMapObjectEP9JSContext:
+	.quad 0
+__lfisym__ZN2JS15JobQueueWithOps17enqueuePromiseJobEP9JSContextNS_6HandleIP8JSObjectEES6_S6_S6_:
 	.quad 0
 __lfisym__Z20JS_ReportOutOfMemoryP9JSContext:
 	.quad 0
@@ -27867,6 +28268,8 @@ __lfisym__ZN2js25SetFunctionNativeReservedEP8JSObjectmRKN2JS5ValueE:
 	.quad 0
 __lfisym__ZN2JS17AutoCheckCannotGCC2ERKS0_:
 	.quad 0
+__lfisym__ZN2JS15JobQueueWithOps18getIncumbentGlobalEP9JSContext:
+	.quad 0
 __lfisym__ZN2JS24GetSavedFrameAsyncParentEP9JSContextP12JSPrincipalsNS_6HandleIP8JSObjectEENS_13MutableHandleIS6_EENS_20SavedFrameSelfHostedE:
 	.quad 0
 __lfisym__ZNK2JS5Realm24debuggerObservesCoverageEv:
@@ -28118,6 +28521,8 @@ __lfisym__Z24JS_GetPropertyDescriptorP9JSContextN2JS6HandleIP8JSObjectEEPKcNS1_1
 __lfisym__ZSt7forwardIN2js2gc19IncrementalProgressEEOT_RNSt16remove_referenceIS3_E4typeE:
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js18DisplayNamesObjectEEERT_v:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps12setPrototypeEP9JSContextN2JS6HandleIP8JSObjectEES7_RNS3_14ObjectOpResultE:
 	.quad 0
 __lfisym__ZN2JS5Value21isNumberRepresentableIiEEbT_:
 	.quad 0
@@ -28455,6 +28860,8 @@ __lfisym__Z22JS_GetPendingExceptionP9JSContextN2JS13MutableHandleINS1_5ValueEEE:
 	.quad 0
 __lfisym__ZSt7forwardIRN2js3jit16MSignExtendInt324ModeEEOT_RNSt16remove_referenceIS5_E4typeE:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps5traceEP8JSTracerP8JSObject:
+	.quad 0
 __lfisym__ZN2js15TempAllocPolicy5free_IP10JSFunctionEEvPT_m:
 	.quad 0
 __lfisym__ZN2JS3ubi14TracerConcreteI8JSStringEC1EPS2_:
@@ -28522,6 +28929,8 @@ __lfisym__ZN2js6DumpIdEN2JS11PropertyKeyEP8_IO_FILE:
 __lfisym__ZN2JS3dbg16AutoEntryMonitor4ExitEP9JSContext:
 	.quad 0
 __lfisym__ZN2JS4Zone45checkAllCrossCompartmentWrappersAfterMovingGCEv:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps11objectMovedEP8JSObjectS2_:
 	.quad 0
 __lfisym__ZN2JS3ubi13CensusHandlerclERNS0_12BreadthFirstIS1_EENS0_4NodeERKNS0_4EdgeEPNS1_8NodeDataEb:
 	.quad 0
@@ -28697,6 +29106,8 @@ __lfisym__Z18JS_CopyStringCharsP9JSContextN7mozilla5RangeIDsEEP8JSString:
 	.quad 0
 __lfisym__ZN2JS18PropertyDescriptor15setConfigurableEb:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps3hasEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb:
+	.quad 0
 __lfisym__ZN2js15TempAllocPolicy11pod_reallocINS_8frontend18SyntaxParseHandler4NodeEEEPT_S6_mm:
 	.quad 0
 __lfisym__ZN2JS9GCContext7delete_IN2js18IndirectBindingMapEEEvPNS2_2gc4CellEPT_mNS2_9MemoryUseE:
@@ -28710,6 +29121,10 @@ __lfisym__ZN2JS19CompileFunctionUtf8EP9JSContextNS_6HandleINS_13StackGCVectorIP8
 __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE6EE16getLengthAndDataEPmPbRKNS_15AutoRequireNoGCE:
 	.quad 0
 __lfisym__ZN2JS32AutoDebuggerJobQueueInterruptionC1Ev:
+	.quad 0
+__lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks4ExitEP9JSContext:
+	.quad 0
+__lfisym__ZN2JS15JobQueueWithOpsD2Ev:
 	.quad 0
 __lfisym__ZNSt4pairIbN2JS17AutoCheckCannotGCEEC2IbS1_Lb1EEEOT_OT0_:
 	.quad 0
@@ -28891,6 +29306,8 @@ __lfisym__ZN2JS21StartPCCountProfilingEP9JSContext:
 	.quad 0
 __lfisym__ZN2JS30SetScriptPrivateReferenceHooksEP9JSRuntimePFvRKNS_5ValueEES6_:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps15ownPropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	.quad 0
 __lfisym__ZSt7forwardIRN2js7gcstats5PhaseEEOT_RNSt16remove_referenceIS4_E4typeE:
 	.quad 0
 __lfisym__ZN2js15TraceValueArrayEP8JSTracermPN2JS5ValueE:
@@ -28904,6 +29321,8 @@ __lfisym__ZN2JS19FinishIncrementalGCEP9JSContextNS_8GCReasonE:
 __lfisym__ZSt7forwardIN2js3jit12MNarrowingOpEEOT_RNSt16remove_referenceIS3_E4typeE:
 	.quad 0
 __lfisym__ZNK2js22ForwardingProxyHandler3setEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEENS4_INS3_5ValueEEESB_RNS3_14ObjectOpResultE:
+	.quad 0
+__lfisym__ZN2JS15JobQueueWithOps7runJobsEP9JSContext:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy16pod_arena_mallocINS_8frontend18UnboundPrivateNameEEEPT_mm:
 	.quad 0
@@ -29025,6 +29444,8 @@ __lfisym__ZN2JS15ExplainGCReasonENS_8GCReasonE:
 	.quad 0
 __lfisym__ZNK2js29OpaqueCrossCompartmentWrapper22getPrototypeIfOrdinaryEP9JSContextN2JS6HandleIP8JSObjectEEPbNS3_13MutableHandleIS6_EE:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	.quad 0
 __lfisym__ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy5free_INS_12WrapperValueEEEvPT_m:
@@ -29092,6 +29513,8 @@ __lfisym__ZN2JS3ubi18AtomOrTwoByteCharsD2Ev:
 __lfisym__ZNK2JS4Zone19allocNurseryObjectsEv:
 	.quad 0
 __lfisym__ZSt7forwardIN2js3jit11BailoutKindEEOT_RNSt16remove_referenceIS3_E4typeE:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps22getPrototypeIfOrdinaryEP9JSContextN2JS6HandleIP8JSObjectEEPbNS3_13MutableHandleIS6_EE:
 	.quad 0
 __lfisym__ZN2js11SliceBudgetC1ENS_10WorkBudgetE:
 	.quad 0
@@ -29162,6 +29585,8 @@ __lfisym__ZN2js15TempAllocPolicy11pod_reallocIPNS_13SharedPropMapEEEPT_S5_mm:
 __lfisym__ZN2JS14ObjectOpResult25failCantPreventExtensionsEv:
 	.quad 0
 __lfisym__ZN2JS30SetCreateGCSliceBudgetCallbackEP9JSContextPFN2js11SliceBudgetENS_8GCReasonElE:
+	.quad 0
+__lfisym__ZN2JS3dbg25AutoEntryMonitorWithHooks5EntryEP9JSContextP10JSFunctionNS_6HandleINS_5ValueEEEPKc:
 	.quad 0
 __lfisym__ZNK2JS5Value8toStringEv:
 	.quad 0
@@ -29290,6 +29715,8 @@ __lfisym__ZNK2js16BaseProxyHandler37useProxyExpandoObjectForPrivateFieldsEv:
 __lfisym__ZN2JS10WeakMapPtrIP8JSObjectS2_ED2Ev:
 	.quad 0
 __lfisym__Z17JS_PCToLineNumberP8JSScriptPhPj:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps19throwOnPrivateFieldEv:
 	.quad 0
 __lfisym__ZN2JS9GCContextD1Ev:
 	.quad 0
@@ -29525,6 +29952,8 @@ __lfisym__ZN2JS6BigInt12parseLiteralIhEEPS0_P9JSContextN7mozilla5RangeIKT_EEPbN2
 	.quad 0
 __lfisym__Z32JS_SetDestroyCompartmentCallbackP9JSContextPFvPN2JS9GCContextEPNS1_11CompartmentEE:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps12getPrototypeEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleIS6_EE:
+	.quad 0
 __lfisym__ZNK2js8Sprinter15checkInvariantsEv:
 	.quad 0
 __lfisym__ZN2JS9GCCellPtrC2INS_6BigIntEEEPT_:
@@ -29611,6 +30040,8 @@ __lfisym__ZN2js15TempAllocPolicy5free_IcEEvPT_m:
 	.quad 0
 __lfisym__ZN2JS18ErrorReportBuilderC1EP9JSContext:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps15regexp_toSharedEP9JSContextN2JS6HandleIP8JSObjectEE:
+	.quad 0
 __lfisym__ZSt7forwardIRKPN2JS6SymbolEEOT_RNSt16remove_referenceIS5_E4typeE:
 	.quad 0
 __lfisym__ZN2JS16GetModulePrivateEP8JSObject:
@@ -29639,6 +30070,8 @@ __lfisym__ZN8JSObject13maybeUnwrapIfIN2js17ArrayBufferObjectEEEPT_v:
 	.quad 0
 __lfisym__ZSt11__addressofIKN2js2gc10ArenaLists13ConcurrentUseEEPT_RS5_:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps9enumerateEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
+	.quad 0
 __lfisym__ZN8JSObject2asIN2js20WeakCollectionObjectEEERT_v:
 	.quad 0
 __lfisym__Z19JS_DefinePropertiesP9JSContextN2JS6HandleIP8JSObjectEEPK14JSPropertySpec:
@@ -29656,6 +30089,8 @@ __lfisym__ZN8JSObject2asIN2js16WasmStructObjectEEERT_v:
 __lfisym__ZN2JS4Zone23gcNurseryEphemeronEdgesEv:
 	.quad 0
 __lfisym__ZN2JS24IdentifyStandardInstanceEP8JSObject:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps10isScriptedEv:
 	.quad 0
 __lfisym__ZN2JS21AutoStableStringChars16copyTwoByteCharsEP9JSContextNS_6HandleIP14JSLinearStringEE:
 	.quad 0
@@ -29682,6 +30117,10 @@ __lfisym__ZN2JS5Realm19DebuggerVectorEntryC2EPN2js8DebuggerEP8JSObject:
 __lfisym__ZN8JSObject2asIN2js17DebuggerArgumentsEEERT_v:
 	.quad 0
 __lfisym__ZN2JS12AutoGCRooterC1EPNS_14RootingContextENS_16AutoGCRooterKindE:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps6hasOwnEP9JSContextN2JS6HandleIP8JSObjectEENS4_INS3_11PropertyKeyEEEPb:
+	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps12fun_toStringEP9JSContextN2JS6HandleIP8JSObjectEEb:
 	.quad 0
 __lfisym__ZNK2JS4Zone17keepPropMapTablesEv:
 	.quad 0
@@ -29843,6 +30282,8 @@ __lfisym__ZN2JS5ValueC2Em:
 	.quad 0
 __lfisym__ZNK2JS9GCCellPtr2isINS_6BigIntEvEEbv:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5ValueEEEEPFbS2_RKNS3_8CallArgsEESB_:
+	.quad 0
 __lfisym__ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_:
 	.quad 0
 __lfisym__ZN2js8Sprinter16InvariantCheckerC1EPKS0_:
@@ -29891,6 +30332,8 @@ __lfisym__ZN8JSScript4dumpEP9JSContextN2JS6HandleIPS_EERNS_11DumpOptionsEPN2js8S
 	.quad 0
 __lfisym__ZN2JS25InitConsumeStreamCallbackEP9JSContextPFbS1_NS_6HandleIP8JSObjectEENS_8MimeTypeEPNS_14StreamConsumerEEPFvS1_mE:
 	.quad 0
+__lfisym__ZNK2js23BaseProxyHandlerWithOps18canNurseryAllocateEv:
+	.quad 0
 __lfisym__ZSt7forwardIN2JS21ProfilingCategoryPairEEOT_RNSt16remove_referenceIS2_E4typeE:
 	.quad 0
 __lfisym__ZN2js18StringIsArrayIndexEPKDsjPj:
@@ -29938,6 +30381,6 @@ __lfisym_free:
 
 .global __lfi_trampotable_size
 __lfi_trampotable_size:
-	.quad 3733+5
+	.quad 3787+5
 
 .section .note.GNU-stack,"",@progbits

@@ -15,6 +15,9 @@
 #include "js/SavedFrameAPI.h"
 #include "js/Value.h"  // JS::Value, JS::StringValue
 #include "jsfriendapi.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "WrapperFactory.h"
 
 #include "mozilla/Base64.h"
@@ -725,7 +728,7 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSLazyGetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSLazyGetter, 0), 0, 0, id)));
   if (!getter) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -865,11 +868,11 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleGetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSModuleGetter, 0), 0, 0, id)));
 
   JS::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleSetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSModuleSetter, 0), 0, 0, id)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -892,11 +895,11 @@ static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleGetter, 0, 0, aId)));
+               aCx, (JSNative)sbx_register_cb((void*)ESModuleGetter, 0), 0, 0, aId)));
 
   JS::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleSetter, 0, 0, aId)));
+               aCx, (JSNative)sbx_register_cb((void*)ESModuleSetter, 0), 0, 0, aId)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);

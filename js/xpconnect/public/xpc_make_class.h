@@ -46,7 +46,7 @@ bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, JS::Value* vp);
 
 void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj);
 
-extern const js::ClassExtension XPC_WN_JSClassExtension;
+extern const js::ClassExtension* XPC_WN_JSClassExtension();
 
 #define XPC_MAKE_CLASS_OPS(_flags)                                            \
   {                                                                           \
@@ -113,7 +113,7 @@ extern const js::ClassExtension XPC_WN_JSClassExtension;
         nullptr,                                                   \
                                                                    \
         /* ext */                                                  \
-        &XPC_WN_JSClassExtension,                                  \
+        XPC_WN_JSClassExtension(),                                 \
                                                                    \
         /* oOps */                                                 \
         nullptr,                                                   \

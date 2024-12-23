@@ -25,9 +25,7 @@ class MOZ_STACK_CLASS JS_PUBLIC_API AutoEntryMonitor {
 public:
  virtual void Entry(JSContext* cx, JSFunction* function,
                                        HandleValue asyncStack,
-                                       const char* asyncCause) {
-   base_.JS::dbg::AutoEntryMonitor::Entry(cx, function, asyncStack, asyncCause);
- }
+                                       const char* asyncCause) = 0;
 
  static void FunctionEntryCb(void* p, JSContext* cx, JSFunction* function,
                              HandleValue asyncStack, const char* asyncCause) {
@@ -37,9 +35,7 @@ public:
 
  virtual void Entry(JSContext* cx, JSScript* script,
                                        HandleValue asyncStack,
-                                       const char* asyncCause) {
-   base_.JS::dbg::AutoEntryMonitor::Entry(cx, script, asyncStack, asyncCause);
- }
+                                       const char* asyncCause) = 0;
 
  static void ScriptEntryCb(void* p, JSContext* cx, JSScript* script,
                            HandleValue asyncStack, const char* asyncCause) {

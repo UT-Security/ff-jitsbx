@@ -34,6 +34,9 @@
 #include "js/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "js/Symbol.h"
 #include "jsfriendapi.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
@@ -871,7 +874,7 @@ static JSObject* CreateInterfaceObject(
     }
 
     if (isChrome && !JS_DefineFunction(cx, constructor, "isInstance",
-                                       InterfaceIsInstance, 1,
+                                       (JSNative)sbx_register_cb((void*)InterfaceIsInstance, 0), 1,
                                        // Don't bother making it enumerable
                                        0)) {
       return nullptr;

@@ -2693,7 +2693,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     options.setLazyProto(aLazyProto);
 
     aReflector.set(
-        js::NewProxyObject(aCx, aHandler, aExpandoValue, aProto, options));
+        js::NewProxyObject(aCx, js::sandbox::GetProxyHandler(aHandler), aExpandoValue, aProto, options));
     if (aReflector) {
       js::SetProxyReservedSlot(aReflector, DOM_OBJECT_SLOT,
                                JS::PrivateValue(aNative));

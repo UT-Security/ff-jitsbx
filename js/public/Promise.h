@@ -83,6 +83,7 @@ class JS_PUBLIC_API JobQueue {
  protected:
   friend class AutoDebuggerJobQueueInterruption;
 
+ public:
   /**
    * A saved job queue, represented however the JobQueue implementation pleases.
    * Use AutoDebuggerJobQueueInterruption rather than trying to construct one of
@@ -95,7 +96,7 @@ class JS_PUBLIC_API JobQueue {
    public:
     virtual ~SavedJobQueue() = default;
   };
-
+ protected:
   /**
    * Capture this JobQueue's current job queue as a SavedJobQueue and return it,
    * leaving the JobQueue's job queue empty. Destroying the returned object
@@ -108,6 +109,48 @@ class JS_PUBLIC_API JobQueue {
   virtual js::UniquePtr<SavedJobQueue> saveJobQueue(JSContext*) = 0;
 };
 
+class JS_PUBLIC_API JobQueueWithOps : public JobQueue {
+public:
+
+  typedef void (*DestructorOp)(void* p);
+  typedef JSObject* (*GetIncumbentGlobalOp)(void* p, JSContext* cx);
+  typedef bool (*EnqueuePromiseJobOp)(void* p, JSContext* cx,
+                                      JS::HandleObject promise,
+                                      JS::HandleObject job,
+                                      JS::HandleObject allocationSite,
+                                      JS::HandleObject incumbentGlobal);
+  typedef void (*RunJobsOp)(void* p, JSContext* cx);
+  typedef bool (*EmptyOp)(const void* p);
+  typedef js::UniquePtr<JobQueue::SavedJobQueue> (*SaveOp)(void* p,
+                                                                   JSContext*);
+
+  struct Ops {
+    DestructorOp destructor;
+    GetIncumbentGlobalOp getIncumbantGlobal;
+    EnqueuePromiseJobOp enqueuePromiseJob;
+    RunJobsOp runJobs;
+    EmptyOp empty;
+    SaveOp save;
+  };
+
+private:
+ const Ops* ops_; 
+ void* priv_;
+
+public:
+  JobQueueWithOps(const Ops* ops_, void* priv_);
+  virtual ~JobQueueWithOps() override;
+  virtual JSObject* getIncumbentGlobal(JSContext* cx) override;
+  virtual bool enqueuePromiseJob(JSContext* cx, JS::HandleObject promise,
+                                 JS::HandleObject job,
+                                 JS::HandleObject allocationSite,
+                                 JS::HandleObject incumbentGlobal) override;
+  virtual void runJobs(JSContext* cx) override;
+  virtual bool empty() const override;
+ 
+protected:
+  virtual js::UniquePtr<SavedJobQueue> saveJobQueue(JSContext*) override;
+};
 /**
  * Tell SpiderMonkey to use `queue` to schedule promise reactions.
  *

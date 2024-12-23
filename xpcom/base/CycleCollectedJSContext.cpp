@@ -11,6 +11,7 @@
 
 #include "js/Debug.h"
 #include "js/GCAPI.h"
+#include "js/sandbox/Promise.h"
 #include "js/Utility.h"
 #include "jsapi.h"
 #include "mozilla/ArrayUtils.h"
@@ -140,9 +141,11 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
 
   NS_GetCurrentThread()->SetCanInvokeJS(true);
 
-  JS::SetJobQueue(mJSContext, this);
-  JS::SetPromiseRejectionTrackerCallback(mJSContext,
-                                         PromiseRejectionTrackerCallback, this);
+  JS::SetJobQueue(mJSContext, JS::sandbox::GetJobQueue(this));
+  JS::SetPromiseRejectionTrackerCallback(
+      mJSContext,
+      (JS::PromiseRejectionTrackerCallback)sbx_register_cb((void*)PromiseRejectionTrackerCallback, 0),
+      this);
   mUncaughtRejections.init(mJSContext,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));

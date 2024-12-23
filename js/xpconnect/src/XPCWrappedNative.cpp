@@ -633,7 +633,7 @@ bool XPCWrappedNative::Init(JSContext* cx, nsIXPCScriptable* aScriptable) {
   // create our flatJSObject
 
   const JSClass* jsclazz =
-      mScriptable ? mScriptable->GetJSClass() : &XPC_WN_NoHelper_JSClass;
+      mScriptable ? mScriptable->GetJSClass() : XPC_WN_NoHelper_JSClass();
 
   // We should have the global jsclass flag if and only if we're a global.
   MOZ_ASSERT_IF(mScriptable, !!mScriptable->IsGlobalObject() ==
@@ -1013,7 +1013,7 @@ nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
 
 bool XPCWrappedNative::InitTearOffJSObject(JSContext* cx,
                                            XPCWrappedNativeTearOff* to) {
-  JSObject* obj = JS_NewObject(cx, &XPC_WN_Tearoff_JSClass);
+  JSObject* obj = JS_NewObject(cx, XPC_WN_Tearoff_JSClass());
   if (!obj) {
     return false;
   }

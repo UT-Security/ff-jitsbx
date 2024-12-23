@@ -262,7 +262,7 @@ JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
   options.setClass(&WindowNamedPropertiesClass()->mBase);
 
   JS::Rooted<JSObject*> gsp(
-      aCx, js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
+      aCx, js::NewProxyObject(aCx, js::sandbox::GetProxyHandler(WindowNamedPropertiesHandler::getInstance()),
                               JS::GetNullHandleValue(), aProto, options));
   if (!gsp) {
     return nullptr;

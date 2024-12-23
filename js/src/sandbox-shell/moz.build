@@ -12,8 +12,6 @@ if CONFIG["JS_BUNDLED_EDITLINE"]:
    
 USE_LIBS += ["static:js-sandboxed"]
 
-LDFLAGS += ["-u sbx_init"]
-
 #include("../js-config.mozbuild")
 #include("../js-cxxflags.mozbuild")
 #TODO(abhishek): figure out if this needs to be included

@@ -23,7 +23,9 @@
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
+#ifdef JS_SANDBOX
 #include "js/sandbox/sobox.h"
+#endif
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 
@@ -2334,9 +2336,14 @@ static bool IsCrossCompartmentXrayCallback(
   return handler == PermissiveXrayDOM::singleton();
 }
 
-JS::XrayJitInfo gXrayJitInfo = {
-    IsCrossCompartmentXrayCallback, CompartmentHasExclusiveExpandos,
-    JSSLOT_XRAY_HOLDER, XrayTraits::HOLDER_SLOT_EXPANDO,
-    JSSLOT_EXPANDO_PROTOTYPE};
+JS::XrayJitInfo* gXrayJitInfo() {
+  static JS::XrayJitInfo __gXrayJitInfo = {
+      (bool (*)(const js::BaseProxyHandler*))sbx_register_cb((void*)IsCrossCompartmentXrayCallback, 0),
+      (bool (*)(JSObject*))sbx_register_cb((void*)CompartmentHasExclusiveExpandos, 0),
+      JSSLOT_XRAY_HOLDER,
+      XrayTraits::HOLDER_SLOT_EXPANDO, JSSLOT_EXPANDO_PROTOTYPE};
+
+  return &__gXrayJitInfo;
+}
 
 }  // namespace xpc

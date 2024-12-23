@@ -6,6 +6,12 @@
 
 /* Per JSRuntime object */
 
+#include "js/Context.h"
+#include "js/MemoryCallbacks.h"
+#include "js/Principals.h"
+#include "js/Realm.h"
+#include "js/WrapperCallbacks.h"
+#include "jsfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/MemoryReporting.h"
@@ -2782,8 +2788,14 @@ class XPCJSSourceHook : public js::SourceHook {
   }
 };
 
-static const JSWrapObjectCallbacks WrapObjectCallbacks = {
-    xpc::WrapperFactory::Rewrap, xpc::WrapperFactory::PrepareForWrapping};
+static const JSWrapObjectCallbacks* WrapObjectCallbacks() {
+  static const JSWrapObjectCallbacks WrapObjectCallbacks__ = {
+      (JSWrapObjectCallback)sbx_register_cb((void*)xpc::WrapperFactory::Rewrap, 0),
+      (JSPreWrapCallback)sbx_register_cb(
+          (void*)xpc::WrapperFactory::PrepareForWrapping, 0)};
+
+  return &WrapObjectCallbacks__;
+}
 
 XPCJSRuntime::XPCJSRuntime(JSContext* aCx)
     : CycleCollectedJSRuntime(aCx),
@@ -2878,33 +2890,53 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // the GC's allocator.
   JS_SetGCParameter(cx, JSGC_MAX_BYTES, 0xffffffff);
 
-  JS_SetDestroyCompartmentCallback(cx, CompartmentDestroyedCallback);
+  JS_SetDestroyCompartmentCallback(
+      cx, (JSDestroyCompartmentCallback)sbx_register_cb(
+              (void*)CompartmentDestroyedCallback, 0));
   JS_SetSizeOfIncludingThisCompartmentCallback(
-      cx, CompartmentSizeOfIncludingThisCallback);
-  JS::SetDestroyRealmCallback(cx, DestroyRealm);
-  JS::SetRealmNameCallback(cx, GetRealmNameCallback);
-  mPrevGCSliceCallback = JS::SetGCSliceCallback(cx, GCSliceCallback);
-  mPrevDoCycleCollectionCallback =
-      JS::SetDoCycleCollectionCallback(cx, DoCycleCollectionCallback);
-  JS_AddFinalizeCallback(cx, FinalizeCallback, nullptr);
-  JS_AddWeakPointerZonesCallback(cx, WeakPointerZonesCallback, this);
-  JS_AddWeakPointerCompartmentCallback(cx, WeakPointerCompartmentCallback,
-                                       this);
-  JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+      cx, (JSSizeOfIncludingThisCompartmentCallback)sbx_register_cb(
+              (void*)CompartmentSizeOfIncludingThisCallback, 0));
+  JS::SetDestroyRealmCallback(
+      cx, (DestroyRealmCallback)sbx_register_cb((void*)DestroyRealm, 0));
+  JS::SetRealmNameCallback(
+      cx, (RealmNameCallback)sbx_register_cb((void*)GetRealmNameCallback, 0));
+  mPrevGCSliceCallback = JS::SetGCSliceCallback(
+      cx, (JS::GCSliceCallback)sbx_register_cb((void*)GCSliceCallback, 0));
+  mPrevDoCycleCollectionCallback = JS::SetDoCycleCollectionCallback(
+      cx, (JS::DoCycleCollectionCallback)sbx_register_cb(
+              (void*)DoCycleCollectionCallback, 0));
+  JS_AddFinalizeCallback(
+      cx, (JSFinalizeCallback)sbx_register_cb((void*)FinalizeCallback, 0),
+      nullptr);
+  JS_AddWeakPointerZonesCallback(cx,
+                                 (JSWeakPointerZonesCallback)sbx_register_cb(
+                                     (void*)WeakPointerZonesCallback, 0),
+                                 this);
+  JS_AddWeakPointerCompartmentCallback(
+      cx,
+      (JSWeakPointerCompartmentCallback)sbx_register_cb(
+          (void*)WeakPointerCompartmentCallback, 0),
+      this);
+  JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
   if (XRE_IsE10sParentProcess()) {
     JS::SetFilenameValidationCallback(
-        nsContentSecurityUtils::ValidateScriptFilename);
+        (FilenameValidationCallback)sbx_register_cb((void*)nsContentSecurityUtils::ValidateScriptFilename, 0));
   }
-  js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
-  JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
-  JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallback);
-  JS_SetSetUseCounterCallback(cx, SetUseCounterCallback);
+  js::SetPreserveWrapperCallbacks(
+      cx, (PreserveWrapperCallback)sbx_register_cb((void*)(PreserveWrapperCallback)PreserveWrapper, 0),
+      (HasReleasedWrapperCallback)sbx_register_cb((void*)HasReleasedWrapper,
+                                                  0));
+  JS_InitReadPrincipalsCallback(cx,
+                                (JSReadPrincipalsOp)sbx_register_cb(
+                                    (void*)nsJSPrincipals::ReadPrincipals, 0));
+  JS_SetAccumulateTelemetryCallback(cx, (JSAccumulateTelemetryDataCallback)sbx_register_cb((void*)AccumulateTelemetryCallback, 0));
+  JS_SetSetUseCounterCallback(cx, (JSSetUseCounterCallback)sbx_register_cb((void*)SetUseCounterCallback, 0));
 
   js::SetWindowProxyClass(cx, OuterWindowProxyClass());
 
-  JS::SetXrayJitInfo(&gXrayJitInfo);
+  JS::SetXrayJitInfo(gXrayJitInfo());
   JS::SetProcessLargeAllocationFailureCallback(
-      OnLargeAllocationFailureCallback);
+      (LargeAllocationFailureCallback)sbx_register_cb((void*)OnLargeAllocationFailureCallback, 0));
 
   // The WasmAltDataType is build by the JS engine from the build id.
   JS::SetProcessBuildIdOp((BuildIdOp)sbx_register_cb((void*)GetBuildId, 0));
@@ -2975,7 +3007,7 @@ bool XPCJSRuntime::InitializeStrings(JSContext* cx) {
 
 bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
                                          char (&name)[72]) const {
-  if (clasp != &XPC_WN_Proto_JSClass) {
+  if (clasp != XPC_WN_Proto_JSClass()) {
     return false;
   }
 
@@ -2998,7 +3030,7 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
 bool XPCJSRuntime::NoteCustomGCThingXPCOMChildren(
     const JSClass* clasp, JSObject* obj,
     nsCycleCollectionTraversalCallback& cb) const {
-  if (clasp != &XPC_WN_Tearoff_JSClass) {
+  if (clasp != XPC_WN_Tearoff_JSClass()) {
     return false;
   }
 

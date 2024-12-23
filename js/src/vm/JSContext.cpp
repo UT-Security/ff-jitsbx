@@ -963,6 +963,43 @@ js::UniquePtr<JS::JobQueue::SavedJobQueue> InternalJobQueue::saveJobQueue(
   return saved;
 }
 
+JS::JobQueueWithOps::JobQueueWithOps(const Ops* ops, void* priv)
+    : ops_(ops), priv_(priv) {}
+
+JS::JobQueueWithOps::~JobQueueWithOps() { ops_->destructor(priv_); }
+
+JSObject* JS::JobQueueWithOps::getIncumbentGlobal(JSContext* cx) {
+  return ops_->getIncumbantGlobal(priv_, cx);
+}
+
+bool JS::JobQueueWithOps::enqueuePromiseJob(JSContext* cx,
+                                            JS::HandleObject promise,
+                                            JS::HandleObject job,
+                                            JS::HandleObject allocationSite,
+                                            JS::HandleObject incumbentGlobal) {
+  return ops_->enqueuePromiseJob(priv_, cx, promise, job, allocationSite, incumbentGlobal);
+}
+
+void JS::JobQueueWithOps::runJobs(JSContext* cx) {
+  ops_->runJobs(priv_, cx);
+}
+
+bool JS::JobQueueWithOps::empty() const {
+  return ops_->empty(priv_);
+}
+
+/*JS::JobQueueWithOps::SavedJobQueueWithOps::SavedJobQueueWithOps(
+    JS::JobQueueWithOps::DestructorOp destructor, void* priv)
+    : destructor_(destructor), priv_(priv) {}
+    
+JS::JobQueueWithOps::SavedJobQueueWithOps::~SavedJobQueueWithOps() {
+  destructor_(priv_);
+}*/
+
+js::UniquePtr<JS::JobQueue::SavedJobQueue> JS::JobQueueWithOps::saveJobQueue(JSContext* cx) {
+  return ops_->save(priv_, cx);
+}
+
 mozilla::GenericErrorResult<OOM> JSContext::alreadyReportedOOM() {
 #ifdef DEBUG
   if (isHelperThreadContext()) {

@@ -18,6 +18,9 @@
 #include "js/CompileOptions.h"     // JS::ReadOnlyCompileOptions
 #include "js/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "GeckoProfiler.h"
 #include "mozJSModuleLoader.h"
 #include "nsJSEnvironment.h"
@@ -150,7 +153,10 @@ void nsXPConnect::InitStatics() {
 #ifdef NS_BUILD_REFCNT_LOGGING
   // These functions are used for reporting leaks, so we register them as early
   // as possible to avoid missing any classes' creations.
-  JS::SetLogCtorDtorFunctions(NS_LogCtor, NS_LogDtor);
+  JS::SetLogCtorDtorFunctions(
+    (JS::LogCtorDtor)sbx_register_cb((void*)NS_LogCtor, 0),
+    (JS::LogCtorDtor)sbx_register_cb((void*)NS_LogDtor, 0)
+  );
 #endif
   ReadOnlyPage::Init();
 

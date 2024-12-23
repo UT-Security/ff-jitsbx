@@ -73,6 +73,7 @@ included_inclnames_to_ignore = set(
         "js/ProfilingCategoryList.h",  # comes from mozglue/baseprofiler
         "jscustomallocator.h",  # provided by embedders;  allowed to be missing
         "js-config.h",  # generated in $OBJDIR
+        "js/sandbox/sobox.h", # sandbox
         "fdlibm.h",  # fdlibm
         "FuzzerDefs.h",  # included without a path
         "FuzzingInterface.h",  # included without a path

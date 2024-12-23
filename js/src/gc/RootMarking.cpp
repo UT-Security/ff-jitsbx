@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "js/RootingAPI.h"
 #ifdef MOZ_VALGRIND
 #  include <valgrind/memcheck.h>
 #endif
@@ -32,6 +33,12 @@ using JS::AutoGCRooter;
 using RootRange = RootedValueMap::Range;
 using RootEntry = RootedValueMap::Entry;
 using RootEnum = RootedValueMap::Enum;
+
+VirtualExternalTraceable::VirtualExternalTraceable(TraceFn externalTrace) : externalTrace_(externalTrace) {}
+
+void VirtualExternalTraceable::trace(JSTracer* trc, const char* name) {
+  externalTrace_(trc, name); 
+}
 
 template <typename Base, typename T>
 inline void TypedRootedGCThingBase<Base, T>::trace(JSTracer* trc,

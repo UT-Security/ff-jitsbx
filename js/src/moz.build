@@ -305,6 +305,7 @@ EXPORTS.js.shadow += [
 # "Sandbox" API re-defines the existing JSAPI in a sandbox-aware manner.
 EXPORTS.js.sandbox += [
     "../public/sandbox/Debug.h",
+    "../public/sandbox/Promise.h",
     "../public/sandbox/Proxy.h",
 ]
 

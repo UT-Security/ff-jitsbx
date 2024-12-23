@@ -18,7 +18,7 @@
 #include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_GetPropertyById, JS_Enumerate
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
-#include "js/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
+#include "js/sandbox/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
 #include "js/RootingAPI.h"  // JS::Rooted, JS::Handle, JS::MutableHandle
 #include "js/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
 #include "js/Value.h"       // JS::Value
@@ -29,8 +29,8 @@
 namespace mozilla {
 namespace loader {
 
-struct ModuleEnvironmentProxyHandler : public js::BaseProxyHandler {
-  ModuleEnvironmentProxyHandler() : js::BaseProxyHandler(&gFamily, false) {}
+struct ModuleEnvironmentProxyHandler : public js::sandbox::BaseProxyHandler {
+  ModuleEnvironmentProxyHandler() : js::sandbox::BaseProxyHandler(&gFamily, false) {}
 
   bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
@@ -234,7 +234,7 @@ JSObject* CreateModuleEnvironmentProxy(JSContext* aCx,
   }
 
   JS::Rooted<JS::Value> envVal(aCx, JS::ObjectValue(*envObj));
-  return NewProxyObject(aCx, ModuleEnvironmentProxyHandler::gHandler(), envVal,
+  return NewProxyObject(aCx, js::sandbox::GetProxyHandler(ModuleEnvironmentProxyHandler::gHandler()), envVal,
                         nullptr, options);
 }
 

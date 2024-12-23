@@ -14,7 +14,7 @@
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/Promise.h"
 #include "js/GCVector.h"
-#include "js/Promise.h"
+#include "js/sandbox/Promise.h"
 
 #include "nsCOMPtr.h"
 #include "nsRefPtrHashtable.h"
@@ -131,7 +131,7 @@ class FinalizationRegistryCleanup {
   JS::PersistentRooted<CallbackVector> mCallbacks;
 };
 
-class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
+class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::sandbox::JobQueue {
   friend class CycleCollectedJSRuntime;
   friend class SuppressedMicroTasks;
 

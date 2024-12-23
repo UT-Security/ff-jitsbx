@@ -885,7 +885,7 @@ void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
 
   if (IsRemoteObjectProxy(obj)) {
     auto handler =
-        static_cast<const RemoteObjectProxyBase*>(js::GetProxyHandler(obj));
+        static_cast<const RemoteObjectProxyBase*>(js::sandbox::GetProxyHandler(obj));
     return handler->NoteChildren(obj, aCb);
   }
 

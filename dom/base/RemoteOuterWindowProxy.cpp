@@ -30,8 +30,13 @@ class RemoteOuterWindowProxy
  public:
   using Base = RemoteObjectProxy;
 
+#ifdef JS_SANDBOX
+  inline RemoteOuterWindowProxy()
+      : RemoteObjectProxy(prototypes::id::Window) {}
+#else
   constexpr RemoteOuterWindowProxy()
       : RemoteObjectProxy(prototypes::id::Window) {}
+#endif
 
   // Standard internal methods
   bool getOwnPropertyDescriptor(
@@ -53,7 +58,11 @@ class RemoteOuterWindowProxy
   }
 };
 
-static const RemoteOuterWindowProxy sSingleton;
+static const RemoteOuterWindowProxy* sSingleton() {
+  static const RemoteOuterWindowProxy __sSingleton;
+
+  return &__sSingleton; 
+}
 
 // Give RemoteOuterWindowProxy 2 reserved slots, like the other wrappers,
 // so JSObject::swap can swap it with CrossCompartmentWrappers without requiring
@@ -72,7 +81,7 @@ bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
   MOZ_ASSERT(!aContext->GetDocShell(),
              "Why are we creating a RemoteOuterWindowProxy?");
 
-  sSingleton.GetProxyObject(aCx, aContext, aTransplantTo, aRetVal);
+  sSingleton()->GetProxyObject(aCx, aContext, aTransplantTo, aRetVal);
   return !!aRetVal;
 }
 

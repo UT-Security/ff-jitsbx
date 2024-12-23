@@ -3025,7 +3025,7 @@ class MethodDefiner(PropertyDefiner):
 
         return (
             m["name"],
-            accessor,
+            "(JSNative)sbx_register_cb((void*)(JSNative)%s, 0)" % accessor,
             jitinfo,
             m["length"],
             flags(m, unforgeable),
@@ -3117,7 +3117,7 @@ class AttrDefiner(PropertyDefiner):
                         "static Promise-returning "
                         "attribute %s.%s" % (descriptor.name, attr.identifier.name)
                     )
-                accessor = "get_" + IDLToCIdentifier(attr.identifier.name)
+                accessor = "(JSNative)sbx_register_cb((void*)get_%s, 0)" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.type.isPromise():
@@ -3134,28 +3134,28 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "GenericGetter<MaybeCrossOriginObjectLenientThisPolicy, %s>"
+                            "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeCrossOriginObjectLenientThisPolicy, %s>, 0)"
                             % exceptionPolicy
                         )
                     else:
                         accessor = (
-                            "GenericGetter<LenientThisPolicy, %s>" % exceptionPolicy
+                            "(JSNative)sbx_register_cb((void*)GenericGetter<LenientThisPolicy, %s>, 0)" % exceptionPolicy
                         )
                 elif attr.getExtendedAttribute("CrossOriginReadable"):
                     accessor = (
-                        "GenericGetter<CrossOriginThisPolicy, %s>" % exceptionPolicy
+                        "(JSNative)sbx_register_cb((void*)GenericGetter<CrossOriginThisPolicy, %s>, 0)" % exceptionPolicy
                     )
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
                     accessor = (
-                        "GenericGetter<MaybeCrossOriginObjectThisPolicy, %s>"
+                        "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeCrossOriginObjectThisPolicy, %s>, 0)"
                         % exceptionPolicy
                     )
                 elif descriptor.interface.isOnGlobalProtoChain():
                     accessor = (
-                        "GenericGetter<MaybeGlobalThisPolicy, %s>" % exceptionPolicy
+                        "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeGlobalThisPolicy, %s>, 0)" % exceptionPolicy
                     )
                 else:
-                    accessor = "GenericGetter<NormalThisPolicy, %s>" % exceptionPolicy
+                    accessor = "(JSNative)sbx_register_cb((void*)GenericGetter<NormalThisPolicy, %s>, 0)" % exceptionPolicy
                 jitinfo = "&%s_getterinfo" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -3170,7 +3170,7 @@ class AttrDefiner(PropertyDefiner):
             if crossOriginOnly and not attr.getExtendedAttribute("CrossOriginWritable"):
                 return "nullptr, nullptr"
             if static:
-                accessor = "set_" + IDLToCIdentifier(attr.identifier.name)
+                accessor = "(JSNative)sbx_register_cb((void*)set_%s, 0)"  % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3182,18 +3182,18 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>"
+                            "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>, 0)"
                         )
                     else:
-                        accessor = "GenericSetter<LenientThisPolicy>"
+                        accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<LenientThisPolicy>, 0)"
                 elif attr.getExtendedAttribute("CrossOriginWritable"):
-                    accessor = "GenericSetter<CrossOriginThisPolicy>"
+                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<CrossOriginThisPolicy>, 0)"
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
-                    accessor = "GenericSetter<MaybeCrossOriginObjectThisPolicy>"
+                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeCrossOriginObjectThisPolicy>, 0)"
                 elif descriptor.interface.isOnGlobalProtoChain():
-                    accessor = "GenericSetter<MaybeGlobalThisPolicy>"
+                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeGlobalThisPolicy>, 0)"
                 else:
-                    accessor = "GenericSetter<NormalThisPolicy>"
+                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<NormalThisPolicy>, 0)"
                 jitinfo = "&%s_setterinfo" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -5124,7 +5124,7 @@ class CGCrossOriginProperties(CGThing):
     def declare(self):
         return dedent(
             """
-            extern const CrossOriginProperties sCrossOriginProperties;
+            extern const CrossOriginProperties& sCrossOriginProperties();
             """
         )
 
@@ -5153,6 +5153,7 @@ class CGCrossOriginProperties(CGThing):
         )
         return fill(
             """
+            const CrossOriginProperties& sCrossOriginProperties() {
             static const JSPropertySpec sCrossOriginAttributes[] = {
               $*{attributeSpecs}
             };
@@ -5161,12 +5162,15 @@ class CGCrossOriginProperties(CGThing):
             };
             $*{chromeOnlyAttributeSpecs}
             $*{chromeOnlyMethodSpecs}
-            const CrossOriginProperties sCrossOriginProperties = {
+            static const CrossOriginProperties __sCrossOriginProperties = {
               sCrossOriginAttributes,
               sCrossOriginMethods,
               ${chromeOnlyAttributes},
               ${chromeOnlyMethods}
             };
+
+            return __sCrossOriginProperties;
+            }
             """,
             attributeSpecs=",\n".join(self.attributeSpecs),
             methodSpecs=",\n".join(self.methodSpecs),
@@ -14450,7 +14454,7 @@ class CGProxyIsProxy(CGAbstractMethod):
         return ""
 
     def definition_body(self):
-        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == DOMProxyHandler::getInstance();\n"
+        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == js::sandbox::GetProxyHandler(DOMProxyHandler::getInstance());\n"
 
 
 class CGProxyUnwrap(CGAbstractMethod):
@@ -14472,7 +14476,7 @@ class CGProxyUnwrap(CGAbstractMethod):
         return fill(
             """
             MOZ_ASSERT(js::IsProxy(obj));
-            if (js::GetProxyHandler(obj) != DOMProxyHandler::getInstance()) {
+            if (js::GetProxyHandler(obj) != js::sandbox::GetProxyHandler(DOMProxyHandler::getInstance())) {
               MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(obj));
               obj = js::UncheckedUnwrap(obj);
             }
@@ -15369,7 +15373,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                   // Just hand this off to BaseProxyHandler to do the slow-path thing.
                   // The BaseProxyHandler code is OK with this happening without entering the
                   // compartment of "proxy", which is important to get the right answers.
-                  return js::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+                  return js::sandbox::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
                 }
 
                 // Now safe to enter the Realm of proxy and do the rest of the work there.
@@ -16203,7 +16207,7 @@ class CGDOMJSProxyHandler_EnsureHolder(ClassMethod):
             """
             return EnsureHolder(cx, proxy,
                                 JSCLASS_RESERVED_SLOTS(JS::GetClass(proxy)) - 1,
-                                sCrossOriginProperties, holder);
+                                sCrossOriginProperties(), holder);
             """
         )
 
@@ -16229,7 +16233,7 @@ class CGDOMJSProxyHandler(CGClass):
             CGDOMJSProxyHandler_delete(descriptor),
         ]
         constructors = [
-            ClassConstructor([], constexpr=True, visibility="public", explicit=True)
+            ClassConstructor([], inline=True, visibility="public", explicit=True)
         ]
 
         if descriptor.supportsIndexedProperties():

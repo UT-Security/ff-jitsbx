@@ -97,7 +97,7 @@ AutoEntryScript::~AutoEntryScript() = default;
 
 AutoEntryScript::DocshellEntryMonitor::DocshellEntryMonitor(JSContext* aCx,
                                                             const char* aReason)
-    : JS::dbg::AutoEntryMonitor(aCx), mReason(aReason) {}
+    : JS::dbg::sandbox::AutoEntryMonitor(aCx), mReason(aReason) {}
 
 void AutoEntryScript::DocshellEntryMonitor::Entry(
     JSContext* aCx, JSFunction* aFunction, JSScript* aScript,

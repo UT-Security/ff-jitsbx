@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_RemoteObjectProxy_h
 #define mozilla_dom_RemoteObjectProxy_h
 
-#include "js/Proxy.h"
+#include "js/sandbox/Proxy.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
 #include "mozilla/dom/PrototypeList.h"
@@ -22,12 +22,18 @@ class BrowsingContext;
  * don't depend on properties/methods of the specific WebIDL interface that this
  * proxy implements.
  */
-class RemoteObjectProxyBase : public js::BaseProxyHandler,
+class RemoteObjectProxyBase : public js::sandbox::BaseProxyHandler,
                               public MaybeCrossOriginObjectMixins {
  protected:
+#ifdef JS_SANDBOX
+  explicit inline RemoteObjectProxyBase(prototypes::ID aPrototypeID)
+      : js::sandbox::BaseProxyHandler(&sCrossOriginProxyFamily, false),
+        mPrototypeID(aPrototypeID) {}
+#else
   explicit constexpr RemoteObjectProxyBase(prototypes::ID aPrototypeID)
       : BaseProxyHandler(&sCrossOriginProxyFamily, false),
         mPrototypeID(aPrototypeID) {}
+#endif
 
  public:
   bool finalizeInBackground(const JS::Value& priv) const final { return false; }
@@ -89,7 +95,7 @@ class RemoteObjectProxyBase : public js::BaseProxyHandler,
    */
   static inline bool IsRemoteObjectProxy(JSObject* aProxy,
                                          prototypes::ID aProtoID) {
-    const js::BaseProxyHandler* handler = js::GetProxyHandler(aProxy);
+    const js::sandbox::BaseProxyHandler* handler = js::sandbox::GetProxyHandler(aProxy);
     return handler->family() == &sCrossOriginProxyFamily &&
            static_cast<const RemoteObjectProxyBase*>(handler)->mPrototypeID ==
                aProtoID;
@@ -138,7 +144,7 @@ class RemoteObjectProxyBase : public js::BaseProxyHandler,
  * hash map in the JS compartment's private (@see
  * xpc::CompartmentPrivate::GetRemoteProxyMap).
  */
-template <class Native, const CrossOriginProperties& P>
+template <class Native, const CrossOriginProperties& (P)()>
 class RemoteObjectProxy : public RemoteObjectProxyBase {
  public:
   void finalize(JS::GCContext* aGcx, JSObject* aProxy) const final {
@@ -164,7 +170,7 @@ class RemoteObjectProxy : public RemoteObjectProxyBase {
   bool EnsureHolder(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::MutableHandle<JSObject*> aHolder) const final {
     return MaybeCrossOriginObjectMixins::EnsureHolder(
-        aCx, aProxy, /* slot = */ 0, P, aHolder);
+        aCx, aProxy, /* slot = */ 0, P(), aHolder);
   }
 
   static const JSClass* sClass();

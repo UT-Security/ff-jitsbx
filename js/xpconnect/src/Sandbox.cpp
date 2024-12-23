@@ -21,6 +21,9 @@
 #include "js/Proxy.h"
 #include "js/SourceText.h"
 #include "js/StructuredClone.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsIException.h"  // for nsIStackFrame
