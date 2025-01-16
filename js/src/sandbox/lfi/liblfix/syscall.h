@@ -4,12 +4,12 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdalign.h>
-#include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <time.h>
 #include <sched.h>
 #include <sys/mman.h>
+#include <sys/random.h>
 #include <sys/sysinfo.h>
 #include <sys/syscall.h>
 #include <linux/futex.h>
@@ -21,16 +21,6 @@
 #include "file.h"
 
 #include "syswrap.h"
-
-#define SYS_getrandom 318
-
-static ssize_t getrandom(void* buf, size_t buflen, unsigned int flags) {
-    return syscall(SYS_getrandom, buf, buflen, flags);
-}
-
-static int renameat2(int olddirfd, const char* oldpath, int newdirfd, const char* newpath, unsigned int flags) {
-    return syscall(SYS_renameat2, olddirfd, oldpath, newdirfd, newpath, flags);
-}
 
 static uintptr_t
 truncp(uintptr_t addr, size_t align)
@@ -73,7 +63,7 @@ procbuf(LFIXProc* p, uintptr_t buf, size_t size)
 }
 
 enum {
-    LFIX_PATH_MAX = 4096,
+    PATH_MAX = 4096,
 };
 
 static const char*
@@ -81,7 +71,7 @@ procpath(LFIXProc* p, uintptr_t path)
 {
     path = procaddr(p, path);
     const char* str = (const char*) path;
-    size_t len = strnlen(str, LFIX_PATH_MAX);
+    size_t len = strnlen(str, PATH_MAX);
     if (path + len >= p->base + p->size)
         return NULL;
     if (str[len] != 0)

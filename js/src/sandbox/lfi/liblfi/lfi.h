@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-//#include "lfiv.h"
+#include "lfiv.h"
 
 enum {
     LFI_ERR_OK            = 0,
@@ -27,9 +27,6 @@ enum {
 
 typedef uint64_t (*SysHandler)(void* ctxp, uint64_t sysno, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
-typedef struct {
-    void* verify;
-} LFIVerifier;
 
 typedef struct {
     // Do not run verification.
