@@ -391,7 +391,8 @@ sysgetcwd(LFIXProc* p, uintptr_t bufp, size_t size)
     uint8_t* buf = procbuf(p, bufp, size);
     if (!buf)
         return -EINVAL;
-    memcpy(buf, p->cwd.name, size < LFI_PATH_MAX ? size : LFI_PATH_MAX);
+    size = size < LFI_PATH_MAX ? size : LFI_PATH_MAX;
+    memcpy(buf, p->cwd.name, size);
     buf[size - 1] = 0;
     return (uintptr_t) buf;
 }
@@ -434,6 +435,13 @@ sysrenameat2(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t ne
     return syserr(renameat2(p->cwd.fd, oldpath, p->cwd.fd, newpath, flags));
 }
 SYSWRAP_5(sysrenameat2, int, uintptr_t, int, uintptr_t, int);
+
+static int
+sysrenameat(LFIXProc* p, int oldfd, uintptr_t oldpathp, int newfd, uintptr_t newpathp)
+{
+    return sysrenameat2(p, oldfd, oldpathp, newfd, newpathp, 0);
+}
+SYSWRAP_4(sysrenameat, int, uintptr_t, int, uintptr_t);
 
 static int
 syssysinfo(LFIXProc* p, uintptr_t infop)

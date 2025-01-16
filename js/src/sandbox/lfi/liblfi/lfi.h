@@ -27,7 +27,6 @@ enum {
 
 typedef uint64_t (*SysHandler)(void* ctxp, uint64_t sysno, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
-
 typedef struct {
     // Do not run verification.
     bool noverify;

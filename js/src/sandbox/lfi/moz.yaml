@@ -9,8 +9,8 @@ origin:
   description: lfi sandboxing runtime
   url: https://github.com/zyedidia/lfi/tree/master
 
-  release: 9c676045c0159699473eb351c35471c9a5380860 (2024-12-03T10:04:37Z).
-  revision: 9c676045c0159699473eb351c35471c9a5380860
+  release: 9bb7b393c62d64e736f28e5511be4be573d9e744 (2025-01-10T23:17:15Z).
+  revision: 9bb7b393c62d64e736f28e5511be4be573d9e744
 
   license: MIT
 
@@ -18,27 +18,27 @@ vendoring:
   url: https://github.com/zyedidia/lfi
   source-hosting: github
 
-  keep:
-    - lfi-verify
-    - liblfi
-    - liblfix
+  include:
+    - lfi-verify/
+    - liblfi/
+    - liblfix/
     - LICENSE
     - README.md  
   
   exclude:
-    - assets
-    - docs
-    - extra
-    - lfi-compile
-    - lfi-fuzz
-    - lfi-leg
-    - lfi-postlink
-    - lfi-run
-    - lfi-veribdd
-    - libsobox
-    - specinvoke
-    - subprojects
-    - toolchain
+    - assets/
+    - docs/
+    - extra/
+    - lfi-compile/
+    - lfi-fuzz/
+    - lfi-leg/
+    - lfi-postlink/
+    - lfi-run/
+    - lfi-veribdd/
+    - libsobox/
+    - specinvoke/
+    - subprojects/
+    - toolchain/
     - go.mod
     - go.sum
     - install-toolchain.sh

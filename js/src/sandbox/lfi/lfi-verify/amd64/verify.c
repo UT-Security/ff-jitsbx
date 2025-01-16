@@ -35,6 +35,10 @@ static void verr(Verifier* v, FdInstr* inst, const char* msg) {
     verrmin(v, "%x: %s: %s", v->addr, fmtbuf, msg);
 }
 
+static bool reserved(FdReg reg) {
+    return reg == FD_REG_R14 || reg == FD_REG_SP;
+}
+
 static bool branchinfo(Verifier* v, FdInstr* instr, int64_t* target, bool* indirect, bool* cond) {
     *target = 0;
     *indirect = false;
@@ -130,6 +134,52 @@ static bool okmnem(Verifier* v, FdInstr* instr) {
     return false;
 }
 
+static void chkmem(Verifier* v, FdInstr* instr) {
+    if (FD_TYPE(instr) == FDI_LEA || FD_TYPE(instr) == FDI_NOP)
+        return;
+
+    for (size_t i = 0; i < 4; i++) {
+        if (FD_OP_TYPE(instr, i) == FD_OT_MEM) {
+            if (FD_SEGMENT(instr) == FD_REG_GS) {
+                if (FD_ADDRSIZE(instr) != 4)
+                    verr(v, instr, "segmented memory access must use 32-bit address");
+                continue;
+            }
+
+            if (FD_ADDRSIZE(instr) != 8)
+                verr(v, instr, "non-segmented memory access must use 64-bit address");
+            if (FD_OP_BASE(instr, i) != FD_REG_SP &&
+                    FD_OP_BASE(instr, i) != FD_REG_IP)
+                verr(v, instr, "invalid base register for memory access");
+            if (FD_OP_INDEX(instr, i) != FD_REG_NONE)
+                verr(v, instr, "invalid index register for memory access");
+        }
+    }
+}
+
+static int nmod(FdInstr* instr) {
+    switch (FD_TYPE(instr)) {
+    case FDI_CMP:
+        return 0;
+    case FDI_XCHG:
+        return 2;
+    default:
+        return 1;
+    }
+}
+
+static void chkmod(Verifier* v, FdInstr* instr) {
+    if (FD_TYPE(instr) == FDI_NOP)
+        return;
+
+    int n = nmod(instr);
+    assert(n <= 4);
+    for (size_t i = 0; i < n; i++) {
+        if (FD_OP_TYPE(instr, i) == FD_OT_REG && reserved(FD_OP_REG(instr, i)))
+            verr(v, instr, "modification of reserved register");
+    }
+}
+
 static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     int64_t target;
     bool indirect, cond;
@@ -137,35 +187,48 @@ static void chkbranch(Verifier* v, FdInstr* instr, size_t bundlesize) {
     if (branch && !indirect) {
         if (target % bundlesize != 0)
             verr(v, instr, "jump target is not bundle-aligned");
+    } else if (branch && indirect) {
+        verr(v, instr, "invalid indirect branch");
     }
 }
+
+#include "macroinst.c"
 
 static size_t vchkbundle(Verifier* v, uint8_t* buf, size_t size, size_t bundlesize) {
     size_t count = 0;
     size_t ninstr = 0;
 
     while (count < bundlesize && count < size) {
-        FdInstr instr;
-        int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
-        if (ret < 0) {
-            verrmin(v, "%lx: unknown instruction", v->addr);
-            return ninstr;
+        struct MacroInst mi = macroinst(v, &buf[count], size - count);
+        if (mi.size < 0) {
+            FdInstr instr;
+            int ret = fd_decode(&buf[count], size - count, 64, 0, &instr);
+            if (ret < 0) {
+                verrmin(v, "%lx: unknown instruction", v->addr);
+                return ninstr;
+            }
+            mi.size = ret;
+            mi.ninstr = 1;
+
+            if (!okmnem(v, &instr))
+                verr(v, &instr, "illegal instruction");
+
+            chkbranch(v, &instr, bundlesize);
+            chkmem(v, &instr);
+            chkmod(v, &instr);
         }
 
-        if (!okmnem(v, &instr))
-            verr(v, &instr, "illegal instruction");
-
-        chkbranch(v, &instr, bundlesize);
-
-        if (count + ret > bundlesize) {
+        if (count + mi.size > bundlesize) {
+            FdInstr instr;
+            fd_decode(&buf[count], size - count, 64, 0, &instr);
             verr(v, &instr, "instruction spans bundle boundary");
             v->abort = true; // not useful to give further errors
             return ninstr;
         }
 
-        v->addr += ret;
-        count += ret;
-        ninstr++;
+        v->addr += mi.size;
+        count += mi.size;
+        ninstr += mi.ninstr;
     }
     return ninstr;
 }

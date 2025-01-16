@@ -89,13 +89,6 @@ sysrename(LFIXProc* p, uintptr_t oldp, uintptr_t newp)
 SYSWRAP_2(sysrename, uintptr_t, uintptr_t);
 
 static int
-sysrenameat(LFIXProc* p, int oldfd, uintptr_t oldp, int newfd, uintptr_t newp)
-{
-    return sysrenameat2(p, oldfd, oldp, newfd, newp, 0);
-}
-SYSWRAP_4(sysrenameat, int, uintptr_t, int, uintptr_t);
-
-static int
 sysstat(LFIXProc* p, uintptr_t pathp, uintptr_t statbufp)
 {
     return sysfstatat(p, AT_FDCWD, pathp, statbufp, 0);
@@ -123,7 +116,7 @@ sysunlink(LFIXProc* p, uintptr_t pathp)
 }
 SYSWRAP_1(sysunlink, uintptr_t);
 
-SyscallFn syscalls[] = {
+SyscallFn syscalls[SYS_max] = {
     [LSYS_read]              = sysread_,
     [LSYS_write]             = syswrite_,
     [LSYS_readv]             = sysreadv_,
@@ -176,4 +169,4 @@ SyscallFn syscalls[] = {
     [LSYS_sigaltstack]       = sysignore_,
 };
 
-_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) < SYS_max, "syscalls exceed SYS_max");
+_Static_assert(sizeof(syscalls) / sizeof(SyscallFn) <= SYS_max, "syscalls exceed SYS_max");

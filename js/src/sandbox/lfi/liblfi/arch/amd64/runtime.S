@@ -73,8 +73,6 @@ lfi_ret:
 	movq 0(%r11), %rsp // kstackp
 	// return value should already be in %rax
 	// realign stack (is this necessary?)
-	add $8, %rsp
-	popq 16(%r11)
 	popq %rbp
 	popq %rbx
 	popq %r12
