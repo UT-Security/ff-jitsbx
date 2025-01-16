@@ -230,10 +230,10 @@ void IncomingDatagramStreamAlgorithms::ReturnDatagram(JSContext* aCx,
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
-  JS::Rooted<JSObject*> chunk(aCx, outView);
+  JS::sandbox::Rooted<JSObject*> chunk(aCx, outView);
 
   // Pull Step 7: Enqueue chunk to transport.[[Datagrams]].[[Readable]]
-  JS::Rooted<JS::Value> jsDatagram(aCx, JS::ObjectValue(*chunk));
+  JS::sandbox::Rooted<JS::Value> jsDatagram(aCx, JS::ObjectValue(*chunk));
   // EnqueueNative is CAN_RUN_SCRIPT
   RefPtr<ReadableStream> stream = mDatagrams->mReadable;
   stream->EnqueueNative(aCx, jsDatagram, aRv);

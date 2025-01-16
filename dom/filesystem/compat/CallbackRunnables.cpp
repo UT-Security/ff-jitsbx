@@ -166,7 +166,7 @@ void GetEntryHelper::ResolvedCallback(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
   // This is not the last part of the path.
   if (!mParts.IsEmpty()) {

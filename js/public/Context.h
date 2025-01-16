@@ -10,6 +10,7 @@
 #define js_Context_h
 
 #include "jspubtd.h"
+#include "jstypes.h"
 // [SMDOC] Nested Thread Data Structures (JSContext, JSRuntime)
 //
 // Spidermonkey has two nested data structures for representing threads,

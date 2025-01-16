@@ -111,7 +111,7 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
 JSObject* ModuleLoaderBase::HostResolveImportedModule(
     JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aModuleRequest) {
-  JS::Rooted<JSObject*> module(aCx);
+  JS::sandbox::Rooted<JSObject*> module(aCx);
 
   {
     // LoadedScript should only live in this block, otherwise it will be a GC
@@ -119,7 +119,7 @@ JSObject* ModuleLoaderBase::HostResolveImportedModule(
     RefPtr<LoadedScript> script(
         GetLoadedScriptOrNull(aCx, aReferencingPrivate));
 
-    JS::Rooted<JSString*> specifierString(
+    JS::sandbox::Rooted<JSString*> specifierString(
         aCx, JS::GetModuleRequestSpecifier(aCx, aModuleRequest));
     if (!specifierString) {
       return nullptr;
@@ -160,21 +160,21 @@ JSObject* ModuleLoaderBase::HostResolveImportedModule(
 bool ModuleLoaderBase::ImportMetaResolve(JSContext* cx, unsigned argc,
                                          Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  RootedValue modulePrivate(
+  JS::sandbox::RootedValue modulePrivate(
       cx, js::GetFunctionNativeReserved(&args.callee(), ModulePrivateSlot));
 
   // https://html.spec.whatwg.org/#hostgetimportmetaproperties
   // Step 4.1. Set specifier to ? ToString(specifier).
   //
   // https://tc39.es/ecma262/#sec-tostring
-  RootedValue v(cx, args.get(ImportMetaResolveSpecifierArg));
-  RootedString specifier(cx, JS::ToString(cx, v));
+  JS::sandbox::RootedValue v(cx, args.get(ImportMetaResolveSpecifierArg));
+  JS::sandbox::RootedString specifier(cx, JS::ToString(cx, v));
   if (!specifier) {
     return false;
   }
 
   // Step 4.2, 4.3 are implemented in ImportMetaResolveImpl.
-  RootedString url(cx, ImportMetaResolveImpl(cx, modulePrivate, specifier));
+  JS::sandbox::RootedString url(cx, ImportMetaResolveImpl(cx, modulePrivate, specifier));
   if (!url) {
     return false;
   }
@@ -188,7 +188,7 @@ bool ModuleLoaderBase::ImportMetaResolve(JSContext* cx, unsigned argc,
 JSString* ModuleLoaderBase::ImportMetaResolveImpl(
     JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSString*> aSpecifier) {
-  RootedString urlString(aCx);
+  JS::sandbox::RootedString urlString(aCx);
 
   {
     // ModuleScript should only live in this block, otherwise it will be a GC
@@ -211,7 +211,7 @@ JSString* ModuleLoaderBase::ImportMetaResolveImpl(
 
     auto result = loader->ResolveModuleSpecifier(script, specifier);
     if (result.isErr()) {
-      JS::Rooted<JS::Value> error(aCx);
+      JS::sandbox::Rooted<JS::Value> error(aCx);
       nsresult rv = loader->HandleResolveFailure(
           aCx, script, specifier, result.unwrapErr(), 0, 0, &error);
       if (NS_FAILED(rv)) {
@@ -248,7 +248,7 @@ bool ModuleLoaderBase::HostPopulateImportMeta(
   MOZ_DIAGNOSTIC_ASSERT(script->BaseURL());
   MOZ_ALWAYS_SUCCEEDS(script->BaseURL()->GetAsciiSpec(url));
 
-  JS::Rooted<JSString*> urlString(aCx, JS_NewStringCopyZ(aCx, url.get()));
+  JS::sandbox::Rooted<JSString*> urlString(aCx, JS_NewStringCopyZ(aCx, url.get()));
   if (!urlString) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -271,7 +271,7 @@ bool ModuleLoaderBase::HostPopulateImportMeta(
 
   // Store the 'active script' of the meta object into the function slot.
   // https://html.spec.whatwg.org/#active-script
-  RootedObject resolveFuncObj(aCx, JS_GetFunctionObject(resolveFunc));
+  JS::sandbox::RootedObject resolveFuncObj(aCx, JS_GetFunctionObject(resolveFunc));
   js::SetFunctionNativeReserved(resolveFuncObj, ModulePrivateSlot,
                                 aReferencingPrivate);
 
@@ -287,7 +287,7 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 
   RefPtr<LoadedScript> script(GetLoadedScriptOrNull(aCx, aReferencingPrivate));
 
-  JS::Rooted<JSString*> specifierString(
+  JS::sandbox::Rooted<JSString*> specifierString(
       aCx, JS::GetModuleRequestSpecifier(aCx, aModuleRequest));
   if (!specifierString) {
     return false;
@@ -306,7 +306,7 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 
   auto result = loader->ResolveModuleSpecifier(script, specifier);
   if (result.isErr()) {
-    JS::Rooted<JS::Value> error(aCx);
+    JS::sandbox::Rooted<JS::Value> error(aCx);
     nsresult rv = loader->HandleResolveFailure(
         aCx, script, specifier, result.unwrapErr(), 0, 0, &error);
     if (NS_FAILED(rv)) {
@@ -341,7 +341,7 @@ ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(JSContext* aCx) {
     JS_ReportErrorASCII(aCx, "No ScriptLoader found for the current context");
   });
 
-  JS::Rooted<JSObject*> object(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> object(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!object) {
     return nullptr;
   }
@@ -591,23 +591,23 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
   nsresult rv;
   {
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JSObject*> module(cx);
+    JS::sandbox::Rooted<JSObject*> module(cx);
 
     JS::CompileOptions options(cx);
-    JS::RootedScript introductionScript(cx);
+    JS::sandbox::RootedScript introductionScript(cx);
     rv = mLoader->FillCompileOptionsForRequest(cx, aRequest, &options,
                                                &introductionScript);
 
     if (NS_SUCCEEDED(rv)) {
-      JS::Rooted<JSObject*> global(cx, mGlobalObject->GetGlobalJSObject());
+      JS::sandbox::Rooted<JSObject*> global(cx, mGlobalObject->GetGlobalJSObject());
       rv = CompileFetchedModule(cx, global, options, aRequest, &module);
     }
 
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv) == (module != nullptr));
 
     if (module) {
-      JS::RootedValue privateValue(cx);
-      JS::RootedScript moduleScript(cx, JS::GetModuleScript(module));
+      JS::sandbox::RootedValue privateValue(cx);
+      JS::sandbox::RootedScript moduleScript(cx, JS::GetModuleScript(module));
       JS::InstantiateOptions instantiateOptions(options);
       if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
                                    privateValue, nullptr, introductionScript,
@@ -624,7 +624,7 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
       LOG(("ScriptLoadRequest (%p):   compilation failed (%d)", aRequest,
            unsigned(rv)));
 
-      JS::Rooted<JS::Value> error(cx);
+      JS::sandbox::Rooted<JS::Value> error(cx);
       if (!jsapi.HasException() || !jsapi.StealException(&error) ||
           error.isUndefined()) {
         aRequest->mModuleScript = nullptr;
@@ -674,7 +674,7 @@ nsresult ModuleLoaderBase::HandleResolveFailure(
     JSContext* aCx, LoadedScript* aScript, const nsAString& aSpecifier,
     ResolveError aError, uint32_t aLineNumber, uint32_t aColumnNumber,
     JS::MutableHandle<JS::Value> aErrorOut) {
-  JS::Rooted<JSString*> filename(aCx);
+  JS::sandbox::Rooted<JSString*> filename(aCx);
   if (aScript) {
     nsAutoCString url;
     aScript->BaseURL()->GetAsciiSpec(url);
@@ -691,7 +691,7 @@ nsresult ModuleLoaderBase::HandleResolveFailure(
   nsresult rv = GetResolveFailureMessage(aError, aSpecifier, errorText);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Rooted<JSString*> string(aCx, JS_NewUCStringCopyZ(aCx, errorText.get()));
+  JS::sandbox::Rooted<JSString*> string(aCx, JS_NewUCStringCopyZ(aCx, errorText.get()));
   if (!string) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -774,11 +774,11 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> moduleRecord(cx, ms->ModuleRecord());
+  JS::sandbox::Rooted<JSObject*> moduleRecord(cx, ms->ModuleRecord());
   uint32_t length = JS::GetRequestedModulesCount(cx, moduleRecord);
 
   for (uint32_t i = 0; i < length; i++) {
-    JS::Rooted<JSString*> str(
+    JS::sandbox::Rooted<JSString*> str(
         cx, JS::GetRequestedModuleSpecifier(cx, moduleRecord, i));
     MOZ_ASSERT(str);
 
@@ -797,7 +797,7 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
       JS::GetRequestedModuleSourcePos(cx, moduleRecord, i, &lineNumber,
                                       &columnNumber);
 
-      JS::Rooted<JS::Value> error(cx);
+      JS::sandbox::Rooted<JS::Value> error(cx);
       nsresult rv =
           loader->HandleResolveFailure(cx, ms, specifier, result.unwrapErr(),
                                        lineNumber, columnNumber, &error);
@@ -971,12 +971,12 @@ void ModuleLoaderBase::FinishDynamicImport(
                               JSMSG_DYNAMIC_IMPORT_FAILED, url.get());
   }
 
-  JS::Rooted<JS::Value> referencingScript(aCx,
+  JS::sandbox::Rooted<JS::Value> referencingScript(aCx,
                                           aRequest->mDynamicReferencingPrivate);
-  JS::Rooted<JSString*> specifier(aCx, aRequest->mDynamicSpecifier);
-  JS::Rooted<JSObject*> promise(aCx, aRequest->mDynamicPromise);
+  JS::sandbox::Rooted<JSString*> specifier(aCx, aRequest->mDynamicSpecifier);
+  JS::sandbox::Rooted<JSObject*> promise(aCx, aRequest->mDynamicPromise);
 
-  JS::Rooted<JSObject*> moduleRequest(aCx,
+  JS::sandbox::Rooted<JSObject*> moduleRequest(aCx,
                                       JS::CreateModuleRequest(aCx, specifier));
 
   JS::FinishDynamicModuleImport(aCx, aEvaluationPromise, referencingScript,
@@ -1109,7 +1109,7 @@ bool ModuleLoaderBase::InstantiateModuleGraph(ModuleLoadRequest* aRequest) {
     return false;
   }
 
-  JS::Rooted<JSObject*> module(jsapi.cx(), moduleScript->ModuleRecord());
+  JS::sandbox::Rooted<JSObject*> module(jsapi.cx(), moduleScript->ModuleRecord());
   if (!xpc::Scriptability::AllowedIfExists(module)) {
     return true;
   }
@@ -1117,7 +1117,7 @@ bool ModuleLoaderBase::InstantiateModuleGraph(ModuleLoadRequest* aRequest) {
   if (!JS::ModuleLink(jsapi.cx(), module)) {
     LOG(("ScriptLoadRequest (%p): Instantiate failed", aRequest));
     MOZ_ASSERT(jsapi.HasException());
-    JS::RootedValue exception(jsapi.cx());
+    JS::sandbox::RootedValue exception(jsapi.cx());
     if (!jsapi.StealException(&exception)) {
       return false;
     }
@@ -1147,11 +1147,11 @@ nsresult ModuleLoaderBase::InitDebuggerDataForModuleGraph(
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+  JS::sandbox::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
   MOZ_ASSERT(module);
 
   // The script is now ready to be exposed to the debugger.
-  JS::Rooted<JSScript*> script(aCx, JS::GetModuleScript(module));
+  JS::sandbox::Rooted<JSScript*> script(aCx, JS::GetModuleScript(module));
   JS::ExposeScriptToDebugger(aCx, script);
 
   moduleScript->SetDebuggerDataInitialized();
@@ -1214,7 +1214,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
   ModuleScript* moduleScript = request->mModuleScript;
   if (moduleScript->HasErrorToRethrow()) {
     LOG(("ScriptLoadRequest (%p):   module has error to rethrow", aRequest));
-    JS::Rooted<JS::Value> error(aCx, moduleScript->ErrorToRethrow());
+    JS::sandbox::Rooted<JS::Value> error(aCx, moduleScript->ErrorToRethrow());
     JS_SetPendingException(aCx, error);
     // For a dynamic import, the promise is rejected.  Otherwise an error
     // is either reported by AutoEntryScript.
@@ -1224,7 +1224,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
     return NS_OK;
   }
 
-  JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+  JS::sandbox::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
   MOZ_ASSERT(module);
   MOZ_ASSERT(CurrentGlobalOrNull(aCx) == GetNonCCWObjectGlobal(module));
 
@@ -1240,7 +1240,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
                    "scriptloader_evaluate_module");
   }
 
-  JS::Rooted<JS::Value> rval(aCx);
+  JS::sandbox::Rooted<JS::Value> rval(aCx);
 
   mLoader->MaybePrepareModuleForBytecodeEncodingBeforeExecute(aCx, request);
 
@@ -1260,7 +1260,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
   // ModuleEvaluate returns a promise unless the user cancels the execution in
   // which case rval will be undefined. We should treat it as a failed
   // evaluation, and reject appropriately.
-  JS::Rooted<JSObject*> evaluationPromise(aCx);
+  JS::sandbox::Rooted<JSObject*> evaluationPromise(aCx);
   if (rval.isObject()) {
     evaluationPromise.set(&rval.toObject());
   }

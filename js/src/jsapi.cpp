@@ -58,6 +58,7 @@
 #include "js/MemoryFunctions.h"
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/ScriptPrivate.h"
 #include "js/StableStringChars.h"
 #include "js/Stack.h"  // JS::NativeStackSize, JS::NativeStackLimitMax, JS::GetNativeStackLimit
@@ -423,6 +424,27 @@ JS_PUBLIC_API JSRuntime* JS_GetRuntime(JSContext* cx) { return cx->runtime(); }
 
 JS_PUBLIC_API JS::ContextOptions& JS::ContextOptionsRef(JSContext* cx) {
   return cx->options();
+}
+
+JS_PUBLIC_API void JS::sandbox::JS_SetExternalRootingCallbacks(JSContext* cx, JS::sandbox::ExternalRootingCallbacks cb, void* data) {
+  cx->externalRootingCallbacks = cb;
+  cx->externalRootingCallbacksData = data;  
+}
+
+//JS_PUBLIC_API void JS::sandbox::JS_SetExternalRootingContext(JSContext* cx, JS::sandbox::ExternalRootingContext* ecx) {
+//  cx->externalRootingCtx = ecx;
+//}
+
+//JS_PUBLIC_API JS::sandbox::ExternalRootingContext* JS::sandbox::JS_SetExternalRootingContext(JSContext* cx, JS::sandbox::ExternalRootingContext* ecx) {
+//  cx->externalRootingCtx = ecx;
+//}
+
+JS_PUBLIC_API void JS::sandbox::JS_SetPersistentRootingCallbacks(JSContext* cx, ExternalPersistentRootingCallbacks cb, void* data) {
+  cx->persistentRootingCallbacks = cb;
+  cx->persistentRootingData = data;
+
+  cx->runtime()->persistentRootingCallbacks = cb;
+  cx->runtime()->persistentRootingData = data;
 }
 
 JS::ContextOptions& JS::ContextOptions::setFuzzing(bool flag) {

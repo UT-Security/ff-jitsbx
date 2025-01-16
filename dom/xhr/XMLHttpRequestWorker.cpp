@@ -9,12 +9,12 @@
 #include "nsIDOMEventListener.h"
 
 #include "GeckoProfiler.h"
-#include "jsapi.h"  // JS::RootedValueArray
+#include "jsapi.h"  // JS::sandbox::RootedValueArray
 #include "jsfriendapi.h"
 #include "js/ArrayBuffer.h"  // JS::Is{,Detached}ArrayBufferObject
 #include "js/GCPolicyAPI.h"
 #include "js/JSON.h"
-#include "js/RootingAPI.h"  // JS::{Handle,Heap},PersistentRooted
+#include "js/sandbox/RootingAPI.h"  // JS::{Handle,Heap},PersistentRooted
 #include "js/TracingAPI.h"
 #include "js/Value.h"  // JS::{Undefined,}Value
 #include "mozilla/ArrayUtils.h"
@@ -460,7 +460,7 @@ class EventRunnable final : public MainThreadProxyRunnable {
   // mScopeObj is used in PreDispatch only.  We init it in our constructor, and
   // reset() in PreDispatch, to ensure that it's not still linked into the
   // runtime once we go off-thread.
-  JS::PersistentRooted<JSObject*> mScopeObj;
+  JS::sandbox::PersistentRooted<JSObject*> mScopeObj;
 
  public:
   EventRunnable(Proxy* aProxy, bool aUploadEvent, const nsString& aType,
@@ -910,12 +910,12 @@ Proxy::HandleEvent(Event* aEvent) {
     }
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JS::Value> value(cx);
+    JS::sandbox::Rooted<JS::Value> value(cx);
     if (!GetOrCreateDOMReflectorNoWrap(cx, mXHR, &value)) {
       return NS_ERROR_FAILURE;
     }
 
-    JS::Rooted<JSObject*> scope(cx, &value.toObject());
+    JS::sandbox::Rooted<JSObject*> scope(cx, &value.toObject());
 
     RefPtr<EventRunnable> runnable;
     if (progressEvent) {
@@ -1006,7 +1006,7 @@ bool EventRunnable::PreDispatch(WorkerPrivate* /* unused */) {
   MOZ_ASSERT(ok);
   JSContext* cx = jsapi.cx();
   // Now keep the mScopeObj alive for the duration
-  JS::Rooted<JSObject*> scopeObj(cx, mScopeObj);
+  JS::sandbox::Rooted<JSObject*> scopeObj(cx, mScopeObj);
   // And reset mScopeObj now, before we have a chance to run its destructor on
   // some background thread.
   mScopeObj.reset();
@@ -1277,7 +1277,7 @@ void SendRunnable::RunOnMainThread(ErrorResult& aRv) {
   if (!mBlobImpl) {
     payload.SetNull();
   } else {
-    JS::Rooted<JSObject*> globalObject(RootingCx(),
+    JS::sandbox::Rooted<JSObject*> globalObject(RootingCx(),
                                        xpc::UnprivilegedJunkScope(fallible));
     if (NS_WARN_IF(!globalObject)) {
       aRv.Throw(NS_ERROR_FAILURE);
@@ -2184,7 +2184,7 @@ void XMLHttpRequestWorker::GetResponse(JSContext* aCx,
 
       if (mResponseJSONValue.isUndefined()) {
         // The Unicode converter has already zapped the BOM if there was one
-        JS::Rooted<JS::Value> value(aCx);
+        JS::sandbox::Rooted<JS::Value> value(aCx);
         if (!JS_ParseJSON(aCx, mResponseData->mResponseJSON.BeginReading(),
                           mResponseData->mResponseJSON.Length(), &value)) {
           JS_ClearPendingException(aCx);

@@ -260,7 +260,7 @@ void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
   }
 #endif
 
-  JS::Rooted<JS::Value> jsval(cx);
+  JS::sandbox::Rooted<JS::Value> jsval(cx);
   serializer.GetObject(&jsval);
   aPromise->MaybeResolve(jsval);
 }

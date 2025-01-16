@@ -114,11 +114,11 @@ JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(JSContext* cx,
                                                        REFNSIID aIID) {
   js::AssertSameCompartment(scope, jsobjArg);
 
-  RootedObject jsobj(cx, jsobjArg);
-  RootedValue arg(cx);
-  RootedValue retval(cx);
-  RootedObject retObj(cx);
-  RootedValue fun(cx);
+  JS::sandbox::RootedObject jsobj(cx, jsobjArg);
+  JS::sandbox::RootedValue arg(cx);
+  JS::sandbox::RootedValue retval(cx);
+  JS::sandbox::RootedObject retObj(cx);
+  JS::sandbox::RootedValue fun(cx);
 
   // In bug 503926, we added a security check to make sure that we don't
   // invoke content QI functions. In the modern world, this is probably
@@ -167,13 +167,13 @@ JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(JSContext* cx,
   bool success =
       JS_CallFunctionValue(cx, jsobj, fun, HandleValueArray(arg), &retval);
   if (!success && JS_IsExceptionPending(cx)) {
-    RootedValue jsexception(cx, NullValue());
+    JS::sandbox::RootedValue jsexception(cx, NullValue());
 
     if (JS_GetPendingException(cx, &jsexception)) {
       if (jsexception.isObject()) {
         // XPConnect may have constructed an object to represent a
         // C++ QI failure. See if that is the case.
-        JS::Rooted<JSObject*> exceptionObj(cx, &jsexception.toObject());
+        JS::sandbox::Rooted<JSObject*> exceptionObj(cx, &jsexception.toObject());
         Exception* e = nullptr;
         UNWRAP_OBJECT(Exception, &exceptionObj, e);
 
@@ -268,7 +268,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // We check both nativeGlobal and nativeGlobal->GetGlobalJSObject() even
   // though we have derived nativeGlobal from the JS global, because we know
   // there are cases where this can happen. See bug 1094953.
-  RootedObject obj(RootingCx(), GetJSObject());
+  JS::sandbox::RootedObject obj(RootingCx(), GetJSObject());
   nsIGlobalObject* nativeGlobal = NativeGlobal(js::UncheckedUnwrap(obj));
   NS_ENSURE_TRUE(nativeGlobal, NS_ERROR_FAILURE);
   NS_ENSURE_TRUE(nativeGlobal->HasJSGlobal(), NS_ERROR_FAILURE);
@@ -287,7 +287,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // But that may be a cross-compartment wrapper and therefore not have a
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
-  RootedObject objScope(RootingCx(), GetJSObjectGlobal());
+  JS::sandbox::RootedObject objScope(RootingCx(), GetJSObjectGlobal());
   JSAutoRealm ar(aes.cx(), objScope);
 
   // We support nsISupportsWeakReference iff the root wrapped JSObject
@@ -295,7 +295,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   if (aIID.Equals(NS_GET_IID(nsISupportsWeakReference))) {
     // We only want to expose one implementation from our aggregate.
     nsXPCWrappedJS* root = GetRootWrapper();
-    RootedObject rootScope(ccx, root->GetJSObjectGlobal());
+    JS::sandbox::RootedObject rootScope(ccx, root->GetJSObjectGlobal());
 
     // Fail if JSObject doesn't claim support for nsISupportsWeakReference
     if (!root->IsValid() || !CallQueryInterfaceOnJSObject(
@@ -363,7 +363,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // else we do the more expensive stuff...
 
   // check if the JSObject claims to implement this interface
-  RootedObject jsobj(ccx,
+  JS::sandbox::RootedObject jsobj(ccx,
                      CallQueryInterfaceOnJSObject(ccx, obj, objScope, aIID));
   if (jsobj) {
     // We can't use XPConvert::JSObject2NativeInterface() here
@@ -406,8 +406,8 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
 
 // static
 JSObject* nsXPCWrappedJS::GetRootJSObject(JSContext* cx, JSObject* aJSObjArg) {
-  RootedObject aJSObj(cx, aJSObjArg);
-  RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::RootedObject aJSObj(cx, aJSObjArg);
+  JS::sandbox::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   JSObject* result =
       CallQueryInterfaceOnJSObject(cx, aJSObj, global, NS_GET_IID(nsISupports));
   if (!result) {
@@ -547,7 +547,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
   // to run.
   nsresult pending_result = xpccx->GetPendingResult();
 
-  RootedValue js_exception(cx);
+  JS::sandbox::RootedValue js_exception(cx);
   bool is_js_exception = JS_GetPendingException(cx, &js_exception);
 
   /* JS might throw an exception whether the reporter was called or not */
@@ -721,7 +721,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   // We're about to call into script via an XPCWrappedJS, so we need an
   // AutoEntryScript. This is probably Gecko-specific at this point, and
   // definitely will be when we turn off XPConnect for the web.
-  RootedObject obj(RootingCx(), GetJSObject());
+  JS::sandbox::RootedObject obj(RootingCx(), GetJSObject());
   nsIGlobalObject* nativeGlobal = NativeGlobal(js::UncheckedUnwrap(obj));
 
   AutoAllowLegacyScriptExecution exemption;
@@ -743,11 +743,11 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   // But that may be a cross-compartment wrapper and therefore not have a
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
-  RootedObject scope(cx, GetJSObjectGlobal());
+  JS::sandbox::RootedObject scope(cx, GetJSObjectGlobal());
   JSAutoRealm ar(cx, scope);
 
   const nsXPTInterfaceInfo* interfaceInfo = GetInfo();
-  JS::RootedId id(cx);
+  JS::sandbox::RootedId id(cx);
   const char* name = info->NameOrDescription();
   if (!info->GetId(cx, id.get())) {
     return NS_ERROR_FAILURE;
@@ -765,10 +765,10 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
     return CheckForException(ccx, aes, obj, name, interfaceInfo->Name());
   }
 
-  RootedValue fval(cx);
-  RootedObject thisObj(cx, obj);
+  JS::sandbox::RootedValue fval(cx);
+  JS::sandbox::RootedObject thisObj(cx, obj);
 
-  RootedValueVector args(cx);
+  JS::sandbox::RootedValueVector args(cx);
   AutoScriptEvaluate scriptEval(cx);
 
   XPCJSRuntime* xpcrt = XPCJSRuntime::Get();
@@ -847,7 +847,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
     const nsXPTParamInfo& param = info->GetParam(i);
     const nsXPTType& type = param.GetType();
     uint32_t array_count;
-    RootedValue val(cx, NullValue());
+    JS::sandbox::RootedValue val(cx, NullValue());
 
     // Verify that null was not passed for a non-optional 'out' param.
     if (param.IsOut() && !nativeParams[i].val.p && !param.IsOptional()) {
@@ -874,7 +874,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
 
     if (param.IsOut()) {
       // create an 'out' object
-      RootedObject out_obj(cx, NewOutObject(cx));
+      JS::sandbox::RootedObject out_obj(cx, NewOutObject(cx));
       if (!out_obj) {
         retval = NS_ERROR_OUT_OF_MEMORY;
         goto pre_call_clean_up;
@@ -907,7 +907,7 @@ pre_call_clean_up:
   MOZ_ASSERT(!aes.HasException());
 
   RefPtr<Exception> syntheticException;
-  RootedValue rval(cx);
+  JS::sandbox::RootedValue rval(cx);
   if (info->IsGetter()) {
     success = JS_GetProperty(cx, obj, name, &rval);
   } else if (info->IsSetter()) {
@@ -965,14 +965,14 @@ pre_call_clean_up:
       continue;
     }
 
-    RootedValue val(cx);
+    JS::sandbox::RootedValue val(cx);
 
     if (&param == info->GetRetval()) {
       val = rval;
     } else if (argv[i].isPrimitive()) {
       break;
     } else {
-      RootedObject obj(cx, &argv[i].toObject());
+      JS::sandbox::RootedObject obj(cx, &argv[i].toObject());
       if (!JS_GetPropertyById(
               cx, obj, xpcrt->GetStringID(XPCJSContext::IDX_VALUE), &val)) {
         break;
@@ -1008,13 +1008,13 @@ pre_call_clean_up:
         continue;
       }
 
-      RootedValue val(cx);
+      JS::sandbox::RootedValue val(cx);
       uint32_t array_count;
 
       if (&param == info->GetRetval()) {
         val = rval;
       } else {
-        RootedObject obj(cx, &argv[i].toObject());
+        JS::sandbox::RootedObject obj(cx, &argv[i].toObject());
         if (!JS_GetPropertyById(
                 cx, obj, xpcrt->GetStringID(XPCJSContext::IDX_VALUE), &val)) {
           break;

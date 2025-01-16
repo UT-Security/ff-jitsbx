@@ -525,7 +525,7 @@ TCPSocket::FireEvent(const nsAString& aType) {
   if (NS_WARN_IF(!api.Init(GetOwnerGlobal()))) {
     return NS_ERROR_FAILURE;
   }
-  JS::Rooted<JS::Value> val(api.cx());
+  JS::sandbox::Rooted<JS::Value> val(api.cx());
   return FireDataEvent(api.cx(), aType, val);
 }
 
@@ -537,7 +537,7 @@ TCPSocket::FireDataArrayEvent(const nsAString& aType,
     return NS_ERROR_FAILURE;
   }
   JSContext* cx = api.cx();
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
 
   bool ok = IPC::DeserializeArrayBuffer(cx, buffer, &val);
   if (ok) {
@@ -554,7 +554,7 @@ TCPSocket::FireDataStringEvent(const nsAString& aType,
     return NS_ERROR_FAILURE;
   }
   JSContext* cx = api.cx();
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
 
   bool ok = ToJSValue(cx, NS_ConvertASCIItoUTF16(aString), &val);
   if (ok) {
@@ -822,7 +822,7 @@ bool TCPSocket::Send(const ArrayBuffer& aData, uint32_t aByteOffset,
       return false;
     }
   } else {
-    JS::Rooted<JS::Value> value(RootingCx(), JS::ObjectValue(*aData.Obj()));
+    JS::sandbox::Rooted<JS::Value> value(RootingCx(), JS::ObjectValue(*aData.Obj()));
 
     stream = do_CreateInstance("@mozilla.org/io/arraybuffer-input-stream;1");
     nsresult rv = stream->SetData(value, aByteOffset, byteLength);
@@ -1049,7 +1049,7 @@ TCPSocket::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aStream,
     }
     JSContext* cx = api.cx();
 
-    JS::Rooted<JS::Value> value(cx);
+    JS::sandbox::Rooted<JS::Value> value(cx);
     if (!ToJSValue(cx, TypedArrayCreator<ArrayBuffer>(buffer), &value)) {
       return NS_ERROR_FAILURE;
     }
@@ -1072,7 +1072,7 @@ TCPSocket::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aStream,
   }
   JSContext* cx = api.cx();
 
-  JS::Rooted<JS::Value> value(cx);
+  JS::sandbox::Rooted<JS::Value> value(cx);
   if (!ToJSValue(cx, NS_ConvertASCIItoUTF16(data), &value)) {
     return NS_ERROR_FAILURE;
   }
@@ -1152,6 +1152,6 @@ TCPSocket::Observe(nsISupports* aSubject, const char* aTopic,
 
 /* static */
 bool TCPSocket::ShouldTCPSocketExist(JSContext* aCx, JSObject* aGlobal) {
-  JS::Rooted<JSObject*> global(aCx, aGlobal);
+  JS::sandbox::Rooted<JSObject*> global(aCx, aGlobal);
   return nsContentUtils::ObjectPrincipal(global)->IsSystemPrincipal();
 }

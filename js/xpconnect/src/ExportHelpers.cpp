@@ -64,7 +64,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
         return nullptr;
       }
 
-      RootedObject reflector(aCx, mReflectors[idx]);
+      JS::sandbox::RootedObject reflector(aCx, mReflectors[idx]);
       MOZ_ASSERT(reflector, "No object pointer?");
       MOZ_ASSERT(IsReflector(reflector, aCx),
                  "Object pointer must be a reflector!");
@@ -79,8 +79,8 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
     if (aTag == SCTAG_FUNCTION) {
       MOZ_ASSERT(aData < mFunctions.length());
 
-      RootedValue functionValue(aCx);
-      RootedObject obj(aCx, mFunctions[aData]);
+      JS::sandbox::RootedValue functionValue(aCx);
+      JS::sandbox::RootedObject obj(aCx, mFunctions[aData]);
 
       if (!JS_WrapObject(aCx, &obj)) {
         return nullptr;
@@ -109,7 +109,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
       // RefPtr<File> needs to go out of scope before toObjectOrNull() is called
       // because otherwise the static analysis thinks it can gc the JSObject via
       // the stack.
-      JS::Rooted<JS::Value> val(aCx);
+      JS::sandbox::Rooted<JS::Value> val(aCx);
       {
         RefPtr<Blob> blob = Blob::Create(global, mBlobImpls[idx]);
         if (NS_WARN_IF(!blob)) {
@@ -132,7 +132,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
                           JS::Handle<JSObject*> aObj,
                           bool* aSameProcessScopeRequired) override {
     {
-      JS::Rooted<JSObject*> obj(aCx, aObj);
+      JS::sandbox::Rooted<JSObject*> obj(aCx, aObj);
       Blob* blob = nullptr;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, &obj, blob))) {
         BlobImpl* blobImpl = blob->Impl();
@@ -184,8 +184,8 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
   }
 
   StackScopedCloneOptions* mOptions;
-  RootedObjectVector mReflectors;
-  RootedObjectVector mFunctions;
+  JS::sandbox::RootedObjectVector mReflectors;
+  JS::sandbox::RootedObjectVector mFunctions;
   nsTArray<RefPtr<BlobImpl>> mBlobImpls;
 };
 
@@ -218,7 +218,7 @@ bool StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
 
   // Deep-freeze if requested.
   if (options.deepFreeze && val.isObject()) {
-    RootedObject obj(cx, &val.toObject());
+    JS::sandbox::RootedObject obj(cx, &val.toObject());
     if (!JS_DeepFreezeObject(cx, obj)) {
       return false;
     }
@@ -242,7 +242,7 @@ static bool CheckSameOriginArg(JSContext* cx, FunctionForwarderOptions& options,
   if (!v.isObject()) {
     return true;
   }
-  RootedObject obj(cx, &v.toObject());
+  JS::sandbox::RootedObject obj(cx, &v.toObject());
   MOZ_ASSERT(JS::GetCompartment(obj) != js::GetContextCompartment(cx),
              "This should be invoked after entering the compartment but before "
              "wrapping the values");
@@ -334,7 +334,7 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Grab the options from the reserved slot.
-  RootedObject optionsObj(
+  JS::sandbox::RootedObject optionsObj(
       cx, &js::GetFunctionNativeReserved(&args.callee(), 1).toObject());
   FunctionForwarderOptions options(cx, optionsObj);
   if (!options.Parse()) {
@@ -342,12 +342,12 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   // Grab and unwrap the underlying callable.
-  RootedValue v(cx, js::GetFunctionNativeReserved(&args.callee(), 0));
-  RootedObject unwrappedFun(cx, js::UncheckedUnwrap(&v.toObject()));
+  JS::sandbox::RootedValue v(cx, js::GetFunctionNativeReserved(&args.callee(), 0));
+  JS::sandbox::RootedObject unwrappedFun(cx, js::UncheckedUnwrap(&v.toObject()));
 
-  RootedValue thisVal(cx, NullValue());
+  JS::sandbox::RootedValue thisVal(cx, NullValue());
   if (!args.isConstructing()) {
-    RootedObject thisObject(cx);
+    JS::sandbox::RootedObject thisObject(cx);
     if (!args.computeThis(cx, &thisObject)) {
       return false;
     }
@@ -376,9 +376,9 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
       }
     }
 
-    RootedValue fval(cx, ObjectValue(*unwrappedFun));
+    JS::sandbox::RootedValue fval(cx, ObjectValue(*unwrappedFun));
     if (args.isConstructing()) {
-      RootedObject obj(cx);
+      JS::sandbox::RootedObject obj(cx);
       ok = JS::Construct(cx, fval, args, &obj);
       if (ok) {
         args.rval().setObject(*obj);
@@ -402,7 +402,7 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
 bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
                           FunctionForwarderOptions& options,
                           MutableHandleValue vp) {
-  RootedId id(cx, idArg);
+  JS::sandbox::RootedId id(cx, idArg);
   if (id.isVoid()) {
     id = GetJSIDByIndex(cx, XPCJSContext::IDX_EMPTYSTRING);
   }
@@ -410,7 +410,7 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
   // If our callable is a (possibly wrapped) function, we can give
   // the exported thing the right number of args.
   unsigned nargs = 0;
-  RootedObject unwrapped(cx, js::UncheckedUnwrap(callable));
+  JS::sandbox::RootedObject unwrapped(cx, js::UncheckedUnwrap(callable));
   if (unwrapped) {
     if (JSFunction* fun = JS_GetObjectFunction(unwrapped)) {
       nargs = JS_GetFunctionArity(fun);
@@ -428,11 +428,11 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
 
   // Stash the callable in slot 0.
   AssertSameCompartment(cx, callable);
-  RootedObject funobj(cx, JS_GetFunctionObject(fun));
+  JS::sandbox::RootedObject funobj(cx, JS_GetFunctionObject(fun));
   js::SetFunctionNativeReserved(funobj, 0, ObjectValue(*callable));
 
   // Stash the options in slot 1.
-  RootedObject optionsObj(cx, options.ToJSObject(cx));
+  JS::sandbox::RootedObject optionsObj(cx, options.ToJSObject(cx));
   if (!optionsObj) {
     return false;
   }
@@ -451,8 +451,8 @@ bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
     return false;
   }
 
-  RootedObject funObj(cx, &vfunction.toObject());
-  RootedObject targetScope(cx, &vscope.toObject());
+  JS::sandbox::RootedObject funObj(cx, &vfunction.toObject());
+  JS::sandbox::RootedObject targetScope(cx, &vscope.toObject());
   ExportFunctionOptions options(cx,
                                 hasOptions ? &voptions.toObject() : nullptr);
   if (hasOptions && !options.Parse()) {
@@ -489,12 +489,12 @@ bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
       return false;
     }
 
-    RootedId id(cx, options.defineAs);
+    JS::sandbox::RootedId id(cx, options.defineAs);
     if (id.isVoid()) {
       // If there wasn't any function name specified, copy the name from the
       // function being imported.  But be careful in case the callable we have
       // is not actually a JSFunction.
-      RootedString funName(cx);
+      JS::sandbox::RootedString funName(cx);
       JSFunction* fun = JS_GetObjectFunction(funObj);
       if (fun) {
         funName = JS_GetFunctionId(fun);
@@ -556,7 +556,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
   }
 
   // cx represents the caller Realm.
-  RootedObject scope(cx, js::CheckedUnwrapDynamic(&vobj.toObject(), cx));
+  JS::sandbox::RootedObject scope(cx, js::CheckedUnwrapDynamic(&vobj.toObject(), cx));
   if (!scope) {
     JS_ReportErrorASCII(
         cx, "Permission denied to create object in the target scope");
@@ -570,7 +570,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
     return false;
   }
 
-  RootedObject obj(cx);
+  JS::sandbox::RootedObject obj(cx);
   {
     JSAutoRealm ar(cx, scope);
     JS_MarkCrossZoneId(cx, options.defineAs);

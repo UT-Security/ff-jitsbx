@@ -68,7 +68,7 @@ void AbortStream(JSContext* aCx, ReadableStream* aReadableStream,
     return;
   }
 
-  JS::Rooted<JS::Value> value(aCx, aReasonDetails);
+  JS::sandbox::Rooted<JS::Value> value(aCx, aReasonDetails);
 
   if (aReasonDetails.isUndefined()) {
     RefPtr<DOMException> e = DOMException::Create(NS_ERROR_DOM_ABORT_ERR);
@@ -494,7 +494,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> jsGlobal(cx, aGlobal->GetGlobalJSObject());
+  JS::sandbox::Rooted<JSObject*> jsGlobal(cx, aGlobal->GetGlobalJSObject());
   GlobalObject global(cx, jsGlobal);
 
   SafeRefPtr<Request> request =
@@ -529,7 +529,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
 
   if (signalImpl && signalImpl->Aborted()) {
     // Already aborted signal rejects immediately.
-    JS::Rooted<JS::Value> reason(cx, signalImpl->RawReason());
+    JS::sandbox::Rooted<JS::Value> reason(cx, signalImpl->RawReason());
     if (reason.get().isUndefined()) {
       aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
       return nullptr;
@@ -1284,7 +1284,7 @@ already_AddRefed<Promise> FetchBody<Derived>::ConsumeBody(
       DerivedClass()->GetSignalImplToConsumeBody();
 
   if (signalImpl && signalImpl->Aborted()) {
-    JS::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
+    JS::sandbox::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
 
     if (abortReason.get().isUndefined()) {
       aRv.Throw(NS_ERROR_DOM_ABORT_ERR);
@@ -1436,7 +1436,7 @@ void FetchBody<Derived>::SetReadableStreamBody(JSContext* aCx,
   bool aborted = signalImpl->Aborted();
   if (aborted) {
     IgnoredErrorResult result;
-    JS::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
+    JS::sandbox::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
     AbortStream(aCx, mReadableStreamBody, result, abortReason);
     if (NS_WARN_IF(result.Failed())) {
       return;
@@ -1493,7 +1493,7 @@ already_AddRefed<ReadableStream> FetchBody<Derived>::GetBody(JSContext* aCx,
   RefPtr<AbortSignalImpl> signalImpl = DerivedClass()->GetSignalImpl();
   if (signalImpl) {
     if (signalImpl->Aborted()) {
-      JS::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
+      JS::sandbox::Rooted<JS::Value> abortReason(aCx, signalImpl->RawReason());
       AbortStream(aCx, body, aRv, abortReason);
       if (NS_WARN_IF(aRv.Failed())) {
         return nullptr;
@@ -1596,7 +1596,7 @@ void FetchBody<Derived>::RunAbortAlgorithm() {
   RefPtr<ReadableStream> body(mReadableStreamBody);
   IgnoredErrorResult result;
 
-  JS::Rooted<JS::Value> abortReason(cx);
+  JS::sandbox::Rooted<JS::Value> abortReason(cx);
 
   AbortSignalImpl* signalImpl = Signal();
   if (signalImpl) {

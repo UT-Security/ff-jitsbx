@@ -100,9 +100,9 @@ void SessionStoreFormData::GetChildren(
 
 void SessionStoreFormData::ToJSON(JSContext* aCx,
                                   JS::MutableHandle<JSObject*> aRetval) {
-  JS::Rooted<JSObject*> self(aCx);
+  JS::sandbox::Rooted<JSObject*> self(aCx);
   {
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, this, &value)) {
       return;
     }
@@ -110,7 +110,7 @@ void SessionStoreFormData::ToJSON(JSContext* aCx,
     self.set(value.toObjectOrNull());
   }
 
-  JS::Rooted<JSObject*> result(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> result(aCx, JS_NewPlainObject(aCx));
 
   if (!IsEmpty()) {
     for (const auto& name :

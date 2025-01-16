@@ -170,7 +170,7 @@ class TestPromiseListener : public PromiseNativeHandler,
     }
 
     ASSERT_TRUE(aValue.isObject());
-    JS::Rooted<JSObject*> exceptionObject(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> exceptionObject(aCx, &aValue.toObject());
 
     RefPtr<Exception> exception;
     UNWRAP_OBJECT(Exception, exceptionObject, exception);

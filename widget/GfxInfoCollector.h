@@ -32,7 +32,7 @@ class MOZ_STACK_CLASS InfoObject {
   InfoObject(InfoObject&);
 
   JSContext* mCx;
-  JS::Rooted<JSObject*> mObj;
+  JS::sandbox::Rooted<JSObject*> mObj;
   bool mOk;
 };
 

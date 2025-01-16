@@ -119,7 +119,7 @@ mozilla::ipc::IPCResult TCPSocketParent::RecvData(const SendableData& aData) {
   switch (aData.type()) {
     case SendableData::TArrayOfuint8_t: {
       AutoSafeJSContext autoCx;
-      JS::Rooted<JS::Value> val(autoCx);
+      JS::sandbox::Rooted<JS::Value> val(autoCx);
       const nsTArray<uint8_t>& buffer = aData.get_ArrayOfuint8_t();
       bool ok = IPC::DeserializeArrayBuffer(autoCx, buffer, &val);
       NS_ENSURE_TRUE(ok, IPC_OK());

@@ -6,7 +6,7 @@
 #ifndef GPU_BUFFER_H_
 #define GPU_BUFFER_H_
 
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/webgpu/WebGPUTypes.h"
 #include "nsTArray.h"
@@ -54,7 +54,7 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
                                           ErrorResult& aRv);
   void GetMappedRange(JSContext* aCx, uint64_t aOffset,
                       const dom::Optional<uint64_t>& aSize,
-                      JS::Rooted<JSObject*>* aObject, ErrorResult& aRv);
+                      JS::sandbox::Rooted<JSObject*>* aObject, ErrorResult& aRv);
   void Unmap(JSContext* aCx, ErrorResult& aRv);
   void Destroy(JSContext* aCx, ErrorResult& aRv);
 

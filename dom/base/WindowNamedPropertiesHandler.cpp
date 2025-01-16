@@ -80,7 +80,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
 
   if (aId.isSymbol()) {
     if (aId.isWellKnownSymbol(JS::SymbolCode::toStringTag)) {
-      JS::Rooted<JSString*> toStringTagStr(
+      JS::sandbox::Rooted<JSString*> toStringTagStr(
           aCx, JS_NewStringCopyZ(aCx, "WindowProperties"));
       if (!toStringTagStr) {
         return false;
@@ -121,7 +121,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
       // We found a subframe of the right name. Shadowing via |var foo| in
       // global scope is still allowed, since |var| only looks up |own|
       // properties. But unqualified shadowing will fail, per-spec.
-      JS::Rooted<JS::Value> v(aCx);
+      JS::sandbox::Rooted<JS::Value> v(aCx);
       if (!ToJSValue(aCx, WindowProxyHolder(std::move(child)), &v)) {
         return false;
       }
@@ -139,7 +139,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   }
   nsHTMLDocument* document = doc->AsHTMLDocument();
 
-  JS::Rooted<JS::Value> v(aCx);
+  JS::sandbox::Rooted<JS::Value> v(aCx);
   Element* element = document->GetElementById(str);
   if (element) {
     if (!ToJSValue(aCx, element, &v)) {
@@ -207,7 +207,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   if (!doc || !doc->IsHTMLOrXHTML()) {
     // Define to @@toStringTag on this object to keep Object.prototype.toString
     // backwards compatible.
-    JS::Rooted<jsid> toStringTagId(
+    JS::sandbox::Rooted<jsid> toStringTagId(
         aCx, JS::GetWellKnownSymbolKey(aCx, JS::SymbolCode::toStringTag));
     return aProps.append(toStringTagId);
   }
@@ -217,12 +217,12 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   // is.
   document->GetSupportedNames(names);
 
-  JS::RootedVector<jsid> docProps(aCx);
+  JS::sandbox::RootedVector<jsid> docProps(aCx);
   if (!AppendNamedPropertyIds(aCx, aProxy, names, false, &docProps)) {
     return false;
   }
 
-  JS::Rooted<jsid> toStringTagId(
+  JS::sandbox::Rooted<jsid> toStringTagId(
       aCx, JS::GetWellKnownSymbolKey(aCx, JS::SymbolCode::toStringTag));
   if (!docProps.append(toStringTagId)) {
     return false;
@@ -261,7 +261,7 @@ JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
   js::ProxyOptions options;
   options.setClass(&WindowNamedPropertiesClass()->mBase);
 
-  JS::Rooted<JSObject*> gsp(
+  JS::sandbox::Rooted<JSObject*> gsp(
       aCx, js::NewProxyObject(aCx, js::sandbox::GetProxyHandler(WindowNamedPropertiesHandler::getInstance()),
                               JS::GetNullHandleValue(), aProto, options));
   if (!gsp) {

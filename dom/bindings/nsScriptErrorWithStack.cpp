@@ -24,7 +24,7 @@ namespace {
 
 static nsCString FormatStackString(JSContext* cx, JSPrincipals* aPrincipals,
                                    JS::Handle<JSObject*> aStack) {
-  JS::Rooted<JSString*> formattedStack(cx);
+  JS::sandbox::Rooted<JSString*> formattedStack(cx);
   if (!JS::BuildStackString(cx, aPrincipals, aStack, &formattedStack)) {
     return nsCString();
   }
@@ -140,7 +140,7 @@ nsScriptErrorWithStack::ToString(nsACString& /*UTF8*/ aResult) {
       JS::GetRealmPrincipals(js::GetNonCCWObjectRealm(mStackGlobal));
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> stack(cx, mStack);
+  JS::sandbox::Rooted<JSObject*> stack(cx, mStack);
   nsCString stackString = FormatStackString(cx, principals, stack);
   nsCString combined = message + "\n"_ns + stackString;
   aResult.Assign(combined);

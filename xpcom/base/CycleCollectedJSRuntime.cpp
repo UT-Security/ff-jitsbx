@@ -737,6 +737,12 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
 
   JS_SetDestroyZoneCallback(aCx, OnZoneDestroyed);
+
+  JS::sandbox::JS_SetPersistentRootingCallbacks(aCx, {
+    .trace = (JS::sandbox::ExternalPersistentRootingCallbackTrace)sbx_register_cb((void*)tracePersistentRoots, 0),
+    .roots = getPersistentRoots,
+    .externalRoots = (JS::sandbox::ExternalPersistentRootingCallbackRoots)sbx_register_cb((void*)getPersistentRoots, 0),
+  }, this);
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -851,7 +857,7 @@ void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
   MOZ_ASSERT(aClasp);
   MOZ_ASSERT(aClasp == JS::GetClass(aObj));
 
-  JS::Rooted<JSObject*> obj(RootingCx(), aObj);
+  JS::sandbox::Rooted<JSObject*> obj(RootingCx(), aObj);
 
   if (NoteCustomGCThingXPCOMChildren(aClasp, obj, aCb)) {
     // Nothing else to do!
@@ -1949,6 +1955,21 @@ CycleCollectedJSRuntime* CycleCollectedJSRuntime::Get() {
   return nullptr;
 }
 
+void CycleCollectedJSRuntime::tracePersistentRoots(JSTracer* trc, void* data) {
+  auto* rt = static_cast<CycleCollectedJSRuntime*>(data);
+
+  LinkedList<js::sandbox::PersistentRootedBase>& list = rt->persistentHeapRoots[JS::RootKind::Traceable];
+
+  for (js::sandbox::PersistentRootedBase* root : list) {
+    static_cast<js::sandbox::PersistentRootedTraceableBase*>(root)->trace(trc, "external-persistent-traceable");
+  }
+}
+
+mozilla::LinkedList<js::sandbox::PersistentRootedBase>& CycleCollectedJSRuntime::getPersistentRoots(JS::RootKind kind, void* data) {
+  auto* rt = static_cast<CycleCollectedJSRuntime*>(data);
+  return rt->persistentHeapRoots[kind];
+}
+
 #ifdef MOZ_JS_DEV_ERROR_INTERCEPTOR
 
 namespace js {
@@ -2029,14 +2050,14 @@ bool CycleCollectedJSRuntime::GetRecentDevError(
   }
 
   // Create a copy of the exception.
-  JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::RootedObject obj(cx, JS_NewPlainObject(cx));
   if (!obj) {
     return false;
   }
 
-  JS::RootedValue message(cx);
-  JS::RootedValue filename(cx);
-  JS::RootedValue stack(cx);
+  JS::sandbox::RootedValue message(cx);
+  JS::sandbox::RootedValue filename(cx);
+  JS::sandbox::RootedValue stack(cx);
   if (!ToJSValue(cx, mErrorInterceptor.mThrownError->mMessage, &message) ||
       !ToJSValue(cx, mErrorInterceptor.mThrownError->mFilename, &filename) ||
       !ToJSValue(cx, mErrorInterceptor.mThrownError->mStack, &stack)) {

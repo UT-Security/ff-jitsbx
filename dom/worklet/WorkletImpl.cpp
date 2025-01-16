@@ -84,7 +84,7 @@ dom::WorkletGlobalScope* WorkletImpl::GetGlobalScope() {
 
   mGlobalScope = ConstructGlobalScope();
 
-  JS::Rooted<JSObject*> global(cx);
+  JS::sandbox::Rooted<JSObject*> global(cx);
   NS_ENSURE_TRUE(mGlobalScope->WrapGlobalObject(cx, &global), nullptr);
 
   JSAutoRealm ar(cx, global);

@@ -98,7 +98,7 @@ JSObject* ContentProcessMessageManager::WrapObject(
 }
 
 JSObject* ContentProcessMessageManager::GetOrCreateWrapper() {
-  JS::Rooted<JS::Value> val(RootingCx());
+  JS::sandbox::Rooted<JS::Value> val(RootingCx());
   {
     // Scope to run ~AutoJSAPI before working with a raw JSObject*.
     AutoJSAPI jsapi;
@@ -114,7 +114,7 @@ JSObject* ContentProcessMessageManager::GetOrCreateWrapper() {
 
 void ContentProcessMessageManager::LoadScript(const nsAString& aURL) {
   Init();
-  JS::Rooted<JSObject*> messageManager(mozilla::dom::RootingCx(),
+  JS::sandbox::Rooted<JSObject*> messageManager(mozilla::dom::RootingCx(),
                                        GetOrCreateWrapper());
   LoadScriptInternal(messageManager, aURL, true);
 }

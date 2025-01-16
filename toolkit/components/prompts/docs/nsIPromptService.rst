@@ -169,7 +169,7 @@ Then, in your promise handler callback function:
 
       void PromptHandler::ResolvedCallback(JSContext* aCx,
                                        JS::Handle<JS::Value> aValue) {
-        JS::Rooted<JSObject*> detailObj(aCx, &aValue.toObject());
+        JS::sandbox::Rooted<JSObject*> detailObj(aCx, &aValue.toObject());
 
         // Convert the JSObject back to a property bag
         nsresult rv;

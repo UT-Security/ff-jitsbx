@@ -116,7 +116,7 @@ GleanDatetime::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
   } else {
     double millis =
         static_cast<double>(PR_ImplodeTime(optresult.ptr())) / PR_USEC_PER_MSEC;
-    JS::Rooted<JSObject*> root(aCx,
+    JS::sandbox::Rooted<JSObject*> root(aCx,
                                JS::NewDateObject(aCx, JS::TimeClip(millis)));
     aResult.setObject(*root);
   }

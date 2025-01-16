@@ -7,14 +7,51 @@
 #ifndef jsshell_js_h
 #define jsshell_js_h
 
+#include "mozilla/Atomics.h"
+#include "mozilla/Maybe.h"
+#include "mozilla/TimeStamp.h"
+
 #include <stdint.h>
+
+#include "js/CompileOptions.h"
+#include "js/GCVector.h"
+
 
 namespace js {
 namespace shell {
 
+// Reference counted file.
+struct RCFile {
+  FILE* fp;
+  uint32_t numRefs;
+
+  RCFile() : fp(nullptr), numRefs(0) {}
+  explicit RCFile(FILE* fp) : fp(fp), numRefs(0) {}
+
+  void acquire() { numRefs++; }
+
+  // Starts out with a ref count of zero.
+  static RCFile* create(JSContext* cx, const char* filename, const char* mode);
+
+  void close();
+  bool isOpen() const { return fp; }
+  bool release();
+};
+
 // Shell command-line arguments and count.
 extern int sArgc;
 extern char** sArgv;
+
+extern RCFile* gErrFile;
+extern RCFile* gOutFile;
+
+// Per-context shell state.
+struct ShellContext {
+  explicit ShellContext(JSContext* cx);
+  ~ShellContext();
+};
+
+extern ShellContext* GetShellContext(JSContext* cx);
 
 } /* namespace shell */
 } /* namespace js */

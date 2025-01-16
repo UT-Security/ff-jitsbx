@@ -68,7 +68,7 @@ TEST(ThenWithCycleCollectedArgsJS, Mixed)
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(cx);
-  JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
@@ -143,7 +143,7 @@ TEST(ThenCatchWithCycleCollectedArgsJS, Mixed)
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(cx);
-  JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(

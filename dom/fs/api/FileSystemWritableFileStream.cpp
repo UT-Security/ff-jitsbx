@@ -638,9 +638,9 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Write(
 
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!aData.ToJSVal(cx, global, &val)) {
     aError.ThrowUnknownError("Internal error");
     return nullptr;
@@ -678,7 +678,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Seek(
   writeParams.mType = WriteCommandType::Seek;
   writeParams.mPosition.Construct(aPosition);
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, writeParams, &val)) {
     aError.ThrowUnknownError("Internal error");
     return nullptr;
@@ -716,7 +716,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Truncate(
   writeParams.mType = WriteCommandType::Truncate;
   writeParams.mSize.Construct(aSize);
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, writeParams, &val)) {
     aError.ThrowUnknownError("Internal error");
     return nullptr;

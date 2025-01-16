@@ -1288,7 +1288,7 @@ void KeyframeEffect::GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
     // the dictionary-to-JS conversion will skip this member entirely.
     keyframeDict.mComposite = keyframe.mComposite;
 
-    JS::Rooted<JS::Value> keyframeJSValue(aCx);
+    JS::sandbox::Rooted<JS::Value> keyframeJSValue(aCx);
     if (!ToJSValue(aCx, keyframeDict, &keyframeJSValue)) {
       aRv.Throw(NS_ERROR_FAILURE);
       return;
@@ -1309,7 +1309,7 @@ void KeyframeEffect::GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
       }
     }
 
-    JS::Rooted<JSObject*> keyframeObject(aCx, &keyframeJSValue.toObject());
+    JS::sandbox::Rooted<JSObject*> keyframeObject(aCx, &keyframeJSValue.toObject());
     for (const PropertyValuePair& propertyValue : keyframe.mPropertyValues) {
       nsAutoCString stringValue;
       // Don't serialize the custom properties for this keyframe.
@@ -1347,7 +1347,7 @@ void KeyframeEffect::GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
           name = nsCSSProps::PropertyIDLName(propertyValue.mProperty);
       }
 
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
       if (!NonVoidUTF8StringToJsval(aCx, stringValue, &value) ||
           !JS_DefineProperty(aCx, keyframeObject, name, value,
                              JSPROP_ENUMERATE)) {

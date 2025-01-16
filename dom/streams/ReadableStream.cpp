@@ -159,14 +159,14 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
     const Optional<JS::Handle<JSObject*>>& aUnderlyingSource,
     const QueuingStrategy& aStrategy, ErrorResult& aRv) {
   // Step 1.
-  JS::Rooted<JSObject*> underlyingSourceObj(
+  JS::sandbox::Rooted<JSObject*> underlyingSourceObj(
       aGlobal.Context(),
       aUnderlyingSource.WasPassed() ? aUnderlyingSource.Value() : nullptr);
 
   // Step 2.
   RootedDictionary<UnderlyingSource> underlyingSourceDict(aGlobal.Context());
   if (underlyingSourceObj) {
-    JS::Rooted<JS::Value> objValue(aGlobal.Context(),
+    JS::sandbox::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSourceObj));
     dom::BindingCallContext callCx(aGlobal.Context(),
                                    "ReadableStream.constructor");
@@ -360,7 +360,7 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
 
   // Step 3.
   if (aStream->State() == ReadableStream::ReaderState::Errored) {
-    JS::Rooted<JS::Value> storedError(aCx, aStream->StoredError());
+    JS::sandbox::Rooted<JS::Value> storedError(aCx, aStream->StoredError());
     return Promise::CreateRejected(aStream->GetParentObject(), storedError,
                                    aRv);
   }
@@ -660,26 +660,26 @@ ReadableStreamDefaultTeeSourceAlgorithms::CancelCallback(
   if (mTeeState->Canceled(OtherTeeBranch(mBranch))) {
     // Step 3.1
 
-    JS::Rooted<JSObject*> compositeReason(aCx, JS::NewArrayObject(aCx, 2));
+    JS::sandbox::Rooted<JSObject*> compositeReason(aCx, JS::NewArrayObject(aCx, 2));
     if (!compositeReason) {
       aRv.StealExceptionFromJSContext(aCx);
       return nullptr;
     }
 
-    JS::Rooted<JS::Value> reason1(aCx, mTeeState->Reason1());
+    JS::sandbox::Rooted<JS::Value> reason1(aCx, mTeeState->Reason1());
     if (!JS_SetElement(aCx, compositeReason, 0, reason1)) {
       aRv.StealExceptionFromJSContext(aCx);
       return nullptr;
     }
 
-    JS::Rooted<JS::Value> reason2(aCx, mTeeState->Reason2());
+    JS::sandbox::Rooted<JS::Value> reason2(aCx, mTeeState->Reason2());
     if (!JS_SetElement(aCx, compositeReason, 1, reason2)) {
       aRv.StealExceptionFromJSContext(aCx);
       return nullptr;
     }
 
     // Step 3.2
-    JS::Rooted<JS::Value> compositeReasonValue(
+    JS::sandbox::Rooted<JS::Value> compositeReasonValue(
         aCx, JS::ObjectValue(*compositeReason));
     RefPtr<ReadableStream> stream(mTeeState->GetStream());
     RefPtr<Promise> cancelResult =
@@ -1191,14 +1191,14 @@ static void CurrentBYOBRequestView(JSContext* aCx,
 static bool HasSameBufferView(JSContext* aCx, JS::Handle<JSObject*> aX,
                               JS::Handle<JSObject*> aY, ErrorResult& aRv) {
   bool isShared;
-  JS::Rooted<JSObject*> viewedBufferX(
+  JS::sandbox::Rooted<JSObject*> viewedBufferX(
       aCx, JS_GetArrayBufferViewBuffer(aCx, aX, &isShared));
   if (!viewedBufferX) {
     aRv.StealExceptionFromJSContext(aCx);
     return false;
   }
 
-  JS::Rooted<JSObject*> viewedBufferY(
+  JS::sandbox::Rooted<JSObject*> viewedBufferY(
       aCx, JS_GetArrayBufferViewBuffer(aCx, aY, &isShared));
   if (!viewedBufferY) {
     aRv.StealExceptionFromJSContext(aCx);
@@ -1232,10 +1232,10 @@ void ReadableStream::EnqueueNative(JSContext* aCx, JS::Handle<JS::Value> aChunk,
   // Step 2.2: Assert: chunk is an ArrayBufferView.
   MOZ_ASSERT(aChunk.isObject() &&
              JS_IsArrayBufferViewObject(&aChunk.toObject()));
-  JS::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
+  JS::sandbox::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
 
   // Step 3: Let byobView be the current BYOB request view for stream.
-  JS::Rooted<JSObject*> byobView(aCx);
+  JS::sandbox::Rooted<JSObject*> byobView(aCx);
   CurrentBYOBRequestView(aCx, *controller, &byobView, aRv);
   if (aRv.Failed()) {
     return;

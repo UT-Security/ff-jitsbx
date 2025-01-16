@@ -702,12 +702,12 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
-      JS::Rooted<JSObject*> arrayBuffer(cx);
+      JS::sandbox::Rooted<JSObject*> arrayBuffer(cx);
       BodyUtil::ConsumeArrayBuffer(cx, &arrayBuffer, aResultLength, aResult,
                                    error);
 
       if (!error.Failed()) {
-        JS::Rooted<JS::Value> val(cx);
+        JS::sandbox::Rooted<JS::Value> val(cx);
         val.setObjectOrNull(arrayBuffer);
 
         localPromise->MaybeResolve(val);
@@ -741,7 +741,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
         if (mConsumeType == CONSUME_TEXT) {
           localPromise->MaybeResolve(decoded);
         } else {
-          JS::Rooted<JS::Value> json(cx);
+          JS::sandbox::Rooted<JS::Value> json(cx);
           BodyUtil::ConsumeJson(cx, &json, decoded, error);
           if (!error.Failed()) {
             localPromise->MaybeResolve(json);

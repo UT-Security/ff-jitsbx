@@ -1520,7 +1520,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
 
   // Introduction script will actually be computed and set when the script is
   // collected from offthread
-  JS::Rooted<JSScript*> dummyIntroductionScript(cx);
+  JS::sandbox::Rooted<JSScript*> dummyIntroductionScript(cx);
   nsresult rv = FillCompileOptionsForRequest(cx, aRequest, &options,
                                              &dummyIntroductionScript);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -2139,7 +2139,7 @@ class MOZ_RAII AutoSetProcessingScriptTag {
 
 static nsresult ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
                                       ClassicScript* aLoaderScript) {
-  JS::Rooted<JSScript*> script(aCx, aExec.GetScript());
+  JS::sandbox::Rooted<JSScript*> script(aCx, aExec.GetScript());
   if (!script) {
     // Compilation succeeds without producing a script if scripting is
     // disabled for the global.
@@ -2334,7 +2334,7 @@ void ScriptLoader::MaybePrepareModuleForBytecodeEncodingBeforeExecute(
     JSContext* aCx, ModuleLoadRequest* aRequest) {
   {
     ModuleScript* moduleScript = aRequest->mModuleScript;
-    JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+    JS::sandbox::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
 
     if (aRequest->IsMarkedForBytecodeEncoding()) {
       // This module is imported multiple times, and already marked.
@@ -2379,10 +2379,10 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   // Create a ClassicScript object and associate it with the JSScript.
   RefPtr<ClassicScript> classicScript =
       new ClassicScript(aRequest->mFetchOptions, aRequest->mBaseURL);
-  JS::Rooted<JS::Value> classicScriptValue(cx, JS::PrivateValue(classicScript));
+  JS::sandbox::Rooted<JS::Value> classicScriptValue(cx, JS::PrivateValue(classicScript));
 
   JS::CompileOptions options(cx);
-  JS::Rooted<JSScript*> introductionScript(cx);
+  JS::sandbox::Rooted<JSScript*> introductionScript(cx);
   nsresult rv =
       FillCompileOptionsForRequest(cx, aRequest, &options, &introductionScript);
 
@@ -2392,7 +2392,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
 
   TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                  "scriptloader_execute");
-  JS::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
+  JS::sandbox::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
   JSExecutionContext exec(cx, global, options, classicScriptValue,
                           introductionScript);
 
@@ -2406,7 +2406,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   // NS_OK which will pass the NS_FAILED check above. If we call exec.GetScript
   // in that case, it will crash.
   if (rv == NS_OK) {
-    JS::Rooted<JSScript*> script(cx, exec.GetScript());
+    JS::sandbox::Rooted<JSScript*> script(cx, exec.GetScript());
     MaybePrepareForBytecodeEncodingBeforeExecute(aRequest, script);
 
     {
@@ -2563,11 +2563,11 @@ void ScriptLoader::EncodeRequestBytecode(JSContext* aCx,
   bool result;
   if (aRequest->IsModuleRequest()) {
     ModuleScript* moduleScript = aRequest->AsModuleRequest()->mModuleScript;
-    JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+    JS::sandbox::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
     result =
         JS::FinishIncrementalEncoding(aCx, module, aRequest->mScriptBytecode);
   } else {
-    JS::Rooted<JSScript*> script(aCx, aRequest->mScriptForBytecodeEncoding);
+    JS::sandbox::Rooted<JSScript*> script(aCx, aRequest->mScriptForBytecodeEncoding);
     result =
         JS::FinishIncrementalEncoding(aCx, script, aRequest->mScriptBytecode);
   }
@@ -2666,10 +2666,10 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
     if (aes.isSome()) {
       if (request->IsModuleRequest()) {
         ModuleScript* moduleScript = request->AsModuleRequest()->mModuleScript;
-        JS::Rooted<JSObject*> module(aes->cx(), moduleScript->ModuleRecord());
+        JS::sandbox::Rooted<JSObject*> module(aes->cx(), moduleScript->ModuleRecord());
         JS::AbortIncrementalEncoding(module);
       } else {
-        JS::Rooted<JSScript*> script(aes->cx(),
+        JS::sandbox::Rooted<JSScript*> script(aes->cx(),
                                      request->mScriptForBytecodeEncoding);
         JS::AbortIncrementalEncoding(script);
       }

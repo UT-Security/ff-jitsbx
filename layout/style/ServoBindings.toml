@@ -406,7 +406,7 @@ opaque-types = [
     "mozilla::dom::Document_SelectorCache",  # <- Inherits from nsExpirationTracker<.., 4>
     "nsPIDOMWindow",  # <- Takes the vtable from a template parameter, and we can't
                       #    generate it conditionally.
-    "JS::Rooted",
+    "JS::sandbox::Rooted",
     "mozilla::Maybe",
     "mozilla::Variant",
     "mozilla::dom::TreeOrderedArray", # AutoTArray<>

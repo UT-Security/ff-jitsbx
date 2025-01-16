@@ -563,7 +563,7 @@ void DataTransfer::MozGetDataAt(JSContext* aCx, const nsAString& aFormat,
     return;
   }
 
-  JS::Rooted<JS::Value> result(aCx);
+  JS::sandbox::Rooted<JS::Value> result(aCx);
   if (!VariantToJsval(aCx, data, aRetval)) {
     aRv = NS_ERROR_FAILURE;
     return;

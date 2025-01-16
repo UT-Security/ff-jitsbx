@@ -3408,7 +3408,7 @@ nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* aCx,
     return NS_OK;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
 
   Blob* blob = nullptr;
   if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, &obj, blob))) {
@@ -3428,7 +3428,7 @@ nsDOMWindowUtils::GetFilePath(JS::Handle<JS::Value> aFile, JSContext* aCx,
     return NS_OK;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
 
   File* file = nullptr;
   if (NS_SUCCEEDED(UNWRAP_OBJECT(File, &obj, file))) {

@@ -71,13 +71,13 @@ void MediaMetadata::GetArtwork(JSContext* aCx, nsTArray<JSObject*>& aRetVal,
   }
 
   for (size_t i = 0; i < mArtwork.Length(); ++i) {
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     if (!ToJSValue(aCx, mArtwork[i], &value)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
 
-    JS::Rooted<JSObject*> object(aCx, &value.toObject());
+    JS::sandbox::Rooted<JSObject*> object(aCx, &value.toObject());
     if (!JS_FreezeObject(aCx, object)) {
       aRv.NoteJSContextException(aCx);
       return;
@@ -98,7 +98,7 @@ void MediaMetadata::SetArtwork(JSContext* aCx,
   }
 
   for (JSObject* object : aArtwork) {
-    JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*object));
+    JS::sandbox::Rooted<JS::Value> value(aCx, JS::ObjectValue(*object));
 
     MediaImage* image = artwork.AppendElement(fallible);
     MOZ_ASSERT(image, "The capacity is preallocated");

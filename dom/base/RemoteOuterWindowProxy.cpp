@@ -94,7 +94,7 @@ BrowsingContext* GetBrowsingContext(JSObject* aProxy) {
 static bool WrapResult(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                        BrowsingContext* aResult, JS::PropertyAttributes attrs,
                        JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) {
-  JS::Rooted<JS::Value> v(aCx);
+  JS::sandbox::Rooted<JS::Value> v(aCx);
   if (!ToJSValue(aCx, WindowProxyHolder(aResult), &v)) {
     return false;
   }

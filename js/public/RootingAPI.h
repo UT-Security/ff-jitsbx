@@ -30,6 +30,10 @@
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
+
 /*
  * [SMDOC] Stack Rooting
  *
@@ -584,10 +588,12 @@ class Rooted;
 template <typename T>
 class PersistentRooted;
 
+namespace sandbox {
 template <typename T>
-class ExternalRooted;
+class Rooted;
 template <typename T>
-class ExternalPersistentRooted;
+class PersistentRooted;
+}
 
 /**
  * Reference to a T that has been rooted elsewhere. This is most useful
@@ -653,10 +659,20 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleOperations<T, Handle<T>> {
   inline MOZ_IMPLICIT Handle(
       const Rooted<S>& root,
       std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
+  
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const sandbox::Rooted<S>& root,
+      std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
 
   template <typename S>
   inline MOZ_IMPLICIT Handle(
       const PersistentRooted<S>& root,
+      std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
+  
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const sandbox::PersistentRooted<S>& root,
       std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
 
   /* Construct a read only handle from a mutable handle. */
@@ -703,7 +719,9 @@ class MOZ_STACK_CLASS MutableHandle
   using ElementType = T;
 
   inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
+  inline MOZ_IMPLICIT MutableHandle(sandbox::Rooted<T>* root);
   inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
+  inline MOZ_IMPLICIT MutableHandle(sandbox::PersistentRooted<T>* root);
 
  private:
   // Disallow nullptr for overloading purposes.
@@ -968,70 +986,6 @@ template <typename T>
 struct RootedGCThingTraits {
   using StackBase = TypedRootedGCThingBase<StackRootedBase, T>;
   using PersistentBase = TypedRootedGCThingBase<PersistentRootedBase, T>;
-};
-
-typedef void (*TraceFn)(JSTracer* trc, const char* name);
-
-struct VirtualExternalTraceable : VirtualTraceable {
-private:
-  TraceFn externalTrace_;
-public:
-  VirtualExternalTraceable(TraceFn externalTrace);
-  void trace(JSTracer* trc, const char* name) override final;
-
-  
-};
-
-class StackExternalRootedBase {
- public:
-  StackExternalRootedBase* previous() { return prev; }
-
- protected:
-  StackExternalRootedBase** stack;
-  StackExternalRootedBase* prev;
-
-  template <typename T>
-  auto* derived() {
-    return static_cast<JS::ExternalRooted<T>*>(this);
-  }
-};
-
-class PersistentExternalRootedBase
-    : protected mozilla::LinkedListElement<PersistentExternalRootedBase> {
- protected:
-  friend class mozilla::LinkedList<PersistentExternalRootedBase>;
-  friend class mozilla::LinkedListElement<PersistentExternalRootedBase>;
-
-  template <typename T>
-  auto* derived() {
-    return static_cast<JS::ExternalPersistentRooted<T>*>(this);
-  }
-};
-
-struct StackExternalRootedTraceableBase : public StackExternalRootedBase,
-                                  public VirtualExternalTraceable {
-  StackExternalRootedTraceableBase(TraceFn externalTrace): VirtualExternalTraceable(externalTrace) {}                                  
-};
-
-class PersistentExternalRootedTraceableBase : public PersistentExternalRootedBase,
-                                      public VirtualExternalTraceable {
-  PersistentExternalRootedTraceableBase(TraceFn externalTrace): VirtualExternalTraceable(externalTrace) {}
-};
-
-
-template <typename Base, typename T>
-class TypedExternalRootedGCThingBase : public Base {
- public:
-  void trace(JSTracer* trc, const char* name);
-};
-
-template <typename Base, typename T>
-class TypedExternalRootedTraceableBase : public Base {
- public:
-  void trace(JSTracer* trc, const char* name) override {
-    auto* self = this->template derived<T>();
-    JS::GCPolicy<T>::trace(trc, self->address(), name);
-  }
 };
 
 } /* namespace js */

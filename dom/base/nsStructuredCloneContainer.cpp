@@ -87,7 +87,7 @@ nsStructuredCloneContainer::InitFromBase64(const nsAString& aData,
 nsresult nsStructuredCloneContainer::DeserializeToJsval(
     JSContext* aCx, JS::MutableHandle<JS::Value> aValue) {
   aValue.setNull();
-  JS::Rooted<JS::Value> jsStateObj(aCx);
+  JS::sandbox::Rooted<JS::Value> jsStateObj(aCx);
 
   ErrorResult rv;
   Read(aCx, &jsStateObj, rv);

@@ -68,7 +68,7 @@ void WebTask::RunAbortAlgorithm() {
       mPromise->MaybeReject(NS_ERROR_UNEXPECTED);
     } else {
       JSContext* cx = jsapi.cx();
-      JS::Rooted<JS::Value> reason(cx);
+      JS::sandbox::Rooted<JS::Value> reason(cx);
       Signal()->GetReason(cx, &reason);
       mPromise->MaybeReject(reason);
     }
@@ -93,7 +93,7 @@ bool WebTask::Run() {
     return false;
   }
 
-  JS::Rooted<JS::Value> returnVal(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> returnVal(jsapi.cx());
 
   MOZ_ASSERT(mPromise->State() == Promise::PromiseState::Pending);
 
@@ -188,7 +188,7 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
       }
 
       JSContext* cx = jsapi.cx();
-      JS::Rooted<JS::Value> reason(cx);
+      JS::sandbox::Rooted<JS::Value> reason(cx);
       signalValue.GetReason(cx, &reason);
       promise->MaybeReject(reason);
       return promise.forget();

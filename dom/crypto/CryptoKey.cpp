@@ -190,7 +190,7 @@ void CryptoKey::GetAlgorithm(JSContext* cx,
                              JS::MutableHandle<JSObject*> aRetVal,
                              ErrorResult& aRv) const {
   bool converted = false;
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   switch (mAlgorithm.mType) {
     case KeyAlgorithmProxy::AES:
       converted = ToJSValue(cx, mAlgorithm.mAes, &val);

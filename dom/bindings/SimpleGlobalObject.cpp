@@ -97,7 +97,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
   // We can't root our return value with our AutoJSAPI because the rooting
   // analysis thinks ~AutoJSAPI can GC.  So we need to root in a scope outside
   // the lifetime of the AutoJSAPI.
-  JS::Rooted<JSObject*> global(RootingCx());
+  JS::sandbox::Rooted<JSObject*> global(RootingCx());
 
   {  // Scope to ensure the AutoJSAPI destructor runs before we end up returning
     AutoJSAPI jsapi;
@@ -142,7 +142,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     JS::SetObjectISupports(global, globalObject.forget().take());
 
     if (proto.isObjectOrNull()) {
-      JS::Rooted<JSObject*> protoObj(cx, proto.toObjectOrNull());
+      JS::sandbox::Rooted<JSObject*> protoObj(cx, proto.toObjectOrNull());
       if (!JS_WrapObject(cx, &protoObj)) {
         jsapi.ClearException();
         return nullptr;

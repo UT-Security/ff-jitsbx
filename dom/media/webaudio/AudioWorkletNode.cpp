@@ -111,19 +111,19 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   // objects may be kept alive as long as the AudioWorkletNode in the
   // main-thread global.
   struct Channels {
-    Vector<JS::PersistentRooted<JSObject*>, GUESS_AUDIO_CHANNELS>
+    Vector<JS::sandbox::PersistentRooted<JSObject*>, GUESS_AUDIO_CHANNELS>
         mFloat32Arrays;
-    JS::PersistentRooted<JSObject*> mJSArray;
+    JS::sandbox::PersistentRooted<JSObject*> mJSArray;
     // For SetArrayElements():
     operator JS::Handle<JSObject*>() const { return mJSArray; }
   };
   struct Ports {
     Vector<Channels, 1> mPorts;
-    JS::PersistentRooted<JSObject*> mJSArray;
+    JS::sandbox::PersistentRooted<JSObject*> mJSArray;
   };
   struct ParameterValues {
-    Vector<JS::PersistentRooted<JSObject*>> mFloat32Arrays;
-    JS::PersistentRooted<JSObject*> mJSObject;
+    Vector<JS::sandbox::PersistentRooted<JSObject*>> mFloat32Arrays;
+    JS::sandbox::PersistentRooted<JSObject*> mJSObject;
   };
 
  private:
@@ -171,7 +171,7 @@ class WorkletNodeEngine final : public AudioNodeEngine {
   ParameterValues mParameters;
 
   RefPtr<AudioWorkletGlobalScope> mGlobal;
-  JS::PersistentRooted<JSObject*> mProcessor;
+  JS::sandbox::PersistentRooted<JSObject*> mProcessor;
 
   // mProcessorIsActive is named [[active source]] in the spec.
   // It is initially true and so at least the first process()
@@ -424,14 +424,14 @@ bool WorkletNodeEngine::CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
                                     JS::Handle<JS::Value> aCallable) {
   TRACE_COMMENT("AudioWorkletNodeEngine::CallProcess", mProcessorName.get());
 
-  JS::RootedVector<JS::Value> argv(aCx);
+  JS::sandbox::RootedVector<JS::Value> argv(aCx);
   if (NS_WARN_IF(!argv.resize(3))) {
     return false;
   }
   argv[0].setObject(*mInputs.mJSArray);
   argv[1].setObject(*mOutputs.mJSArray);
   argv[2].setObject(*mParameters.mJSObject);
-  JS::Rooted<JS::Value> rval(aCx);
+  JS::sandbox::Rooted<JS::Value> rval(aCx);
   if (!JS::Call(aCx, mProcessor, aCallable, argv, &rval)) {
     return false;
   }
@@ -514,7 +514,7 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     ProduceSilence(aTrack, aOutput);
   });
 
-  JS::Rooted<JS::Value> process(cx);
+  JS::sandbox::Rooted<JS::Value> process(cx);
   if (!JS_GetProperty(cx, mProcessor, "process", &process) ||
       !process.isObject() || !JS::IsCallable(&process.toObject()) ||
       !PrepareBufferArrays(cx, aInput, &mInputs, ArrayElementInit::None) ||
@@ -752,7 +752,7 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
    * 8. Convert options dictionary to optionsObject.
    */
   JSContext* cx = aGlobal.Context();
-  JS::Rooted<JS::Value> optionsVal(cx);
+  JS::sandbox::Rooted<JS::Value> optionsVal(cx);
   if (NS_WARN_IF(!ToJSValue(cx, aOptions, &optionsVal))) {
     aRv.NoteJSContextException(cx);
     return nullptr;

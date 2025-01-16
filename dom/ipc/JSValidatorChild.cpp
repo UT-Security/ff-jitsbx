@@ -189,7 +189,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
     return ValidatorResult::Failure;
   }
 
-  JS::Rooted<JSObject*> global(cx, JSOracleChild::JSObject());
+  JS::sandbox::Rooted<JSObject*> global(cx, JSOracleChild::JSObject());
   if (!global) {
     return ValidatorResult::Failure;
   }
@@ -215,7 +215,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
   MOZ_ASSERT(!aSpan.IsEmpty());
 
   // Parse to JSON
-  JS::Rooted<JS::Value> json(cx);
+  JS::sandbox::Rooted<JS::Value> json(cx);
   if (IsAscii(aSpan)) {
     // Ascii is a subset of Latin1, and JS_ParseJSON can take Latin1 directly
     if (JS_ParseJSON(cx,

@@ -1973,7 +1973,7 @@ nsresult WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
   uint16_t messageType = nsIWebSocketEventListener::TYPE_STRING;
 
   // Create appropriate JS object for message
-  JS::Rooted<JS::Value> jsData(cx);
+  JS::sandbox::Rooted<JS::Value> jsData(cx);
   if (aIsBinary) {
     if (mBinaryType == dom::BinaryType::Blob) {
       messageType = nsIWebSocketEventListener::TYPE_BLOB;
@@ -1991,7 +1991,7 @@ nsresult WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
     } else if (mBinaryType == dom::BinaryType::Arraybuffer) {
       messageType = nsIWebSocketEventListener::TYPE_ARRAYBUFFER;
 
-      JS::Rooted<JSObject*> arrayBuf(cx);
+      JS::sandbox::Rooted<JSObject*> arrayBuf(cx);
       nsresult rv =
           nsContentUtils::CreateArrayBuffer(cx, aData, arrayBuf.address());
       NS_ENSURE_SUCCESS(rv, rv);

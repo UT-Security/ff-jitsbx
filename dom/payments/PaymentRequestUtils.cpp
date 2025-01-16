@@ -15,7 +15,7 @@ namespace mozilla::dom {
 nsresult SerializeFromJSObject(JSContext* aCx, JS::Handle<JSObject*> aObject,
                                nsAString& aSerializedObject) {
   MOZ_ASSERT(aCx);
-  JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*aObject));
+  JS::sandbox::Rooted<JS::Value> value(aCx, JS::ObjectValue(*aObject));
   return SerializeFromJSVal(aCx, value, aSerializedObject);
 }
 
@@ -33,7 +33,7 @@ nsresult DeserializeToJSObject(const nsAString& aSerializedObject,
                                JSContext* aCx,
                                JS::MutableHandle<JSObject*> aObject) {
   MOZ_ASSERT(aCx);
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   nsresult rv = DeserializeToJSValue(aSerializedObject, aCx, &value);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;

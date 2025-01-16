@@ -451,7 +451,7 @@ Result<Ok, nsresult> ScriptPreloader::InitCache(const nsAString& basePath) {
   // Grab the compilation scope before initializing the URLPreloader, since
   // it's not safe to run component loader code during its critical section.
   AutoSafeJSAPI jsapi;
-  JS::RootedObject scope(jsapi.cx(), xpc::CompilationScope());
+  JS::sandbox::RootedObject scope(jsapi.cx(), xpc::CompilationScope());
 
   // Note: Code on the main thread *must not access Omnijar in any way* until
   // this AutoBeginReading guard is destroyed.

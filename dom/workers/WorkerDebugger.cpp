@@ -47,12 +47,12 @@ class DebuggerMessageEventRunnable : public WorkerDebuggerRunnable {
         aWorkerPrivate->DebuggerGlobalScope();
     MOZ_ASSERT(globalScope);
 
-    JS::Rooted<JSString*> message(
+    JS::sandbox::Rooted<JSString*> message(
         aCx, JS_NewUCStringCopyN(aCx, mMessage.get(), mMessage.Length()));
     if (!message) {
       return false;
     }
-    JS::Rooted<JS::Value> data(aCx, JS::StringValue(message));
+    JS::sandbox::Rooted<JS::Value> data(aCx, JS::StringValue(message));
 
     RefPtr<MessageEvent> event =
         new MessageEvent(globalScope, nullptr, nullptr);
@@ -94,7 +94,7 @@ class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable {
       return false;
     }
 
-    JS::Rooted<JSObject*> global(aCx, globalScope->GetWrapper());
+    JS::sandbox::Rooted<JSObject*> global(aCx, globalScope->GetWrapper());
 
     ErrorResult rv;
     JSAutoRealm ar(aCx, global);

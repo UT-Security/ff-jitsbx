@@ -157,8 +157,8 @@ SessionStoreUtils::AddDynamicFrameFilteredListener(
   }
 
   JSContext* cx = aGlobal.Context();
-  JS::Rooted<JSObject*> obj(cx, &aListener.toObject());
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> obj(cx, &aListener.toObject());
+  JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   RefPtr<EventListener> listener =
       new EventListener(cx, obj, global, GetIncumbentGlobal());
 
@@ -424,7 +424,7 @@ static void AppendValueToCollectedData(
     nsINode* aNode, const nsAString& aId,
     const CollectedNonMultipleSelectValue& aValue, uint16_t& aGeneratedCount,
     JSContext* aCx, Nullable<CollectedData>& aRetVal) {
-  JS::Rooted<JS::Value> jsval(aCx);
+  JS::sandbox::Rooted<JS::Value> jsval(aCx);
   if (!ToJSValue(aCx, aValue, &jsval)) {
     JS_ClearPendingException(aCx);
     return;
@@ -450,7 +450,7 @@ static void AppendValueToCollectedData(Document& aDocument, nsINode* aNode,
       Unused << aDocument.GetDocumentURI()->GetSpecIgnoringRef(url);
       if (url.EqualsLiteral("about:sessionrestore") ||
           url.EqualsLiteral("about:welcomeback")) {
-        JS::Rooted<JS::Value> jsval(aCx);
+        JS::sandbox::Rooted<JS::Value> jsval(aCx);
         if (JS_ParseJSON(aCx, aValue.get(), aValue.Length(), &jsval) &&
             jsval.isObject()) {
           Record<nsString, OwningStringOrBooleanOrObject>::EntryType* entry =
@@ -473,7 +473,7 @@ static void AppendValueToCollectedData(nsINode* aNode, const nsAString& aId,
                                        uint16_t& aGeneratedCount,
                                        JSContext* aCx,
                                        Nullable<CollectedData>& aRetVal) {
-  JS::Rooted<JS::Value> jsval(aCx);
+  JS::sandbox::Rooted<JS::Value> jsval(aCx);
   if (aValueType.EqualsLiteral("file")) {
     CollectedFileListValue val;
     val.mType = aValueType;
@@ -1098,7 +1098,7 @@ static void SetElementAsObject(JSContext* aCx, Element* aElement,
     if (!isArray) {
       return;
     }
-    JS::Rooted<JSObject*> arrayObj(aCx, &aObject.toObject());
+    JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &aObject.toObject());
     uint32_t arrayLength = 0;
     if (!JS::GetArrayLength(aCx, arrayObj, &arrayLength)) {
       JS_ClearPendingException(aCx);
@@ -1106,7 +1106,7 @@ static void SetElementAsObject(JSContext* aCx, Element* aElement,
     }
     nsTArray<nsString> array(arrayLength);
     for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
-      JS::Rooted<JS::Value> element(aCx);
+      JS::sandbox::Rooted<JS::Value> element(aCx);
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
         JS_ClearPendingException(aCx);
         return;
@@ -1236,13 +1236,13 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
         if (entry.mKey.EqualsLiteral("sessionData")) {
           if (url.EqualsLiteral("about:sessionrestore") ||
               url.EqualsLiteral("about:welcomeback")) {
-            JS::Rooted<JS::Value> object(
+            JS::sandbox::Rooted<JS::Value> object(
                 cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
             SetSessionData(cx, node, &object);
             continue;
           }
         }
-        JS::Rooted<JS::Value> object(
+        JS::sandbox::Rooted<JS::Value> object(
             cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
         SetElementAsObject(cx, node, object);
       }
@@ -1260,7 +1260,7 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
       } else if (entry.mValue.IsBoolean()) {
         SetElementAsBool(node, entry.mValue.GetAsBoolean());
       } else {
-        JS::Rooted<JS::Value> object(
+        JS::sandbox::Rooted<JS::Value> object(
             aGlobal.Context(), JS::ObjectValue(*entry.mValue.GetAsObject()));
         SetElementAsObject(aGlobal.Context(), node, object);
       }
@@ -1376,7 +1376,7 @@ static void CollectFrameTreeData(JSContext* aCx,
       trailingNullCounter++;
       continue;
     }
-    JS::Rooted<JS::Value> jsval(aCx);
+    JS::sandbox::Rooted<JS::Value> jsval(aCx);
     if (!ToJSValue(aCx, data.SetValue(), &jsval)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -1608,7 +1608,7 @@ nsresult SessionStoreUtils::ConstructFormDataValues(
         break;
       case Type::TTextField: {
         if (aParseSessionData && value.id() == u"sessionData"_ns) {
-          JS::Rooted<JS::Value> jsval(aCx);
+          JS::sandbox::Rooted<JS::Value> jsval(aCx);
           const auto& fieldValue = value.value().get_TextField().value();
           if (!JS_ParseJSON(aCx, fieldValue.get(), fieldValue.Length(),
                             &jsval) ||
@@ -1625,7 +1625,7 @@ nsresult SessionStoreUtils::ConstructFormDataValues(
         CollectedFileListValue file;
         file.mFileList = value.value().get_FileList().valueList().Clone();
 
-        JS::Rooted<JS::Value> jsval(aCx);
+        JS::sandbox::Rooted<JS::Value> jsval(aCx);
         if (!ToJSValue(aCx, file, &jsval) || !jsval.isObject()) {
           return NS_ERROR_FAILURE;
         }
@@ -1637,7 +1637,7 @@ nsresult SessionStoreUtils::ConstructFormDataValues(
         select.mSelectedIndex = value.value().get_SingleSelect().index();
         select.mValue = value.value().get_SingleSelect().value();
 
-        JS::Rooted<JS::Value> jsval(aCx);
+        JS::sandbox::Rooted<JS::Value> jsval(aCx);
         if (!ToJSValue(aCx, select, &jsval) || !jsval.isObject()) {
           return NS_ERROR_FAILURE;
         }
@@ -1645,7 +1645,7 @@ nsresult SessionStoreUtils::ConstructFormDataValues(
         break;
       }
       case Type::TMultipleSelect: {
-        JS::Rooted<JS::Value> jsval(aCx);
+        JS::sandbox::Rooted<JS::Value> jsval(aCx);
         if (!ToJSValue(aCx, value.value().get_MultipleSelect().valueList(),
                        &jsval) ||
             !jsval.isObject()) {
@@ -1712,7 +1712,7 @@ nsresult SessionStoreUtils::ConstructSessionStorageValues(
 bool SessionStoreUtils::CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
                                      JS::Handle<JSObject*> aSrc,
                                      const nsAString& aName) {
-  JS::Rooted<JS::PropertyKey> name(aCx);
+  JS::sandbox::Rooted<JS::PropertyKey> name(aCx);
   const char16_t* data;
   size_t length = aName.GetData(&data);
 
@@ -1725,7 +1725,7 @@ bool SessionStoreUtils::CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
     return true;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!JS_GetPropertyById(aCx, aSrc, name, &value)) {
     return false;
   }

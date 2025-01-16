@@ -113,7 +113,7 @@ nsresult CacheCreator::CreateCacheStorage(nsIPrincipal* aPrincipal) {
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -199,7 +199,7 @@ void CacheCreator::ResolvedCallback(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
   Cache* cache = nullptr;
   nsresult rv = UNWRAP_OBJECT(Cache, &obj, cache);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -390,7 +390,7 @@ void CacheLoadHandler::ResolvedCallback(JSContext* aCx,
 
   MOZ_ASSERT(aValue.isObject());
 
-  JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
   mozilla::dom::Response* response = nullptr;
   rv = UNWRAP_OBJECT(Response, &obj, response);
   if (NS_WARN_IF(NS_FAILED(rv))) {

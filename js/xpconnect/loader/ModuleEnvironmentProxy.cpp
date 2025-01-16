@@ -19,7 +19,7 @@
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/sandbox/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
-#include "js/RootingAPI.h"  // JS::Rooted, JS::Handle, JS::MutableHandle
+#include "js/sandbox/RootingAPI.h"  // JS::Rooted, JS::Handle, JS::MutableHandle
 #include "js/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
 #include "js/Value.h"       // JS::Value
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
@@ -145,7 +145,7 @@ bool ModuleEnvironmentProxyHandler::getOwnPropertyDescriptor(
     return true;
   }
 
-  JS::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
+  JS::sandbox::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
   if (!JS_GetOwnPropertyDescriptorById(aCx, envObj, aId, aDesc)) {
     return false;
   }
@@ -176,7 +176,7 @@ bool ModuleEnvironmentProxyHandler::has(JSContext* aCx,
     return true;
   }
 
-  JS::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
+  JS::sandbox::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
   return JS_HasOwnPropertyById(aCx, envObj, aId, aBp);
 }
 
@@ -193,15 +193,15 @@ bool ModuleEnvironmentProxyHandler::get(
     return true;
   }
 
-  JS::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
+  JS::sandbox::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
   return JS_GetPropertyById(aCx, envObj, aId, aVp);
 }
 
 bool ModuleEnvironmentProxyHandler::ownPropertyKeys(
     JSContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<JS::PropertyKey> aProps) const {
-  JS::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
-  JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  JS::sandbox::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
+  JS::sandbox::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, envObj, &ids)) {
     return false;
   }
@@ -228,12 +228,12 @@ JSObject* CreateModuleEnvironmentProxy(JSContext* aCx,
   js::ProxyOptions options;
   options.setLazyProto(true);
 
-  JS::Rooted<JSObject*> envObj(aCx, JS::GetModuleEnvironment(aCx, aModuleObj));
+  JS::sandbox::Rooted<JSObject*> envObj(aCx, JS::GetModuleEnvironment(aCx, aModuleObj));
   if (!envObj) {
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> envVal(aCx, JS::ObjectValue(*envObj));
+  JS::sandbox::Rooted<JS::Value> envVal(aCx, JS::ObjectValue(*envObj));
   return NewProxyObject(aCx, js::sandbox::GetProxyHandler(ModuleEnvironmentProxyHandler::gHandler()), envVal,
                         nullptr, options);
 }

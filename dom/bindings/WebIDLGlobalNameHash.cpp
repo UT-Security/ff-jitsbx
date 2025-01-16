@@ -79,7 +79,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
   // Using aCx to represent the current Realm for CheckedUnwrapDynamic
   // purposes is OK here, because that's the Realm where we plan to do
   // our property-defining.
-  JS::Rooted<JSObject*> global(
+  JS::sandbox::Rooted<JSObject*> global(
       aCx,
       js::CheckedUnwrapDynamic(aObj, aCx, /* stopAtWindowProxy = */ false));
   if (!global) {
@@ -91,7 +91,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
     // for general sanity better to not have debug code even having the
     // appearance of mutating things that opt code uses.
 #ifdef DEBUG
-    JS::Rooted<JSObject*> temp(aCx, global);
+    JS::sandbox::Rooted<JSObject*> temp(aCx, global);
     DebugOnly<nsGlobalWindowInner*> win;
     MOZ_ASSERT(NS_SUCCEEDED(
         UNWRAP_MAYBE_CROSS_ORIGIN_OBJECT(Window, &temp, win, aCx)));
@@ -137,7 +137,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
   // This all could use some grand refactoring, but for now we just limp
   // along.
   if (xpc::WrapperFactory::IsXrayWrapper(aObj)) {
-    JS::Rooted<JSObject*> constructor(aCx);
+    JS::sandbox::Rooted<JSObject*> constructor(aCx);
     {
       JSAutoRealm ar(aCx, global);
       constructor = FindNamedConstructorForXray(aCx, aId, entry);
@@ -155,7 +155,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
     return true;
   }
 
-  JS::Rooted<JSObject*> interfaceObject(
+  JS::sandbox::Rooted<JSObject*> interfaceObject(
       aCx,
       GetPerInterfaceObjectHandle(aCx, entry->mConstructorId, entry->mCreate,
                                   /* aDefineOnGlobal = */ true));

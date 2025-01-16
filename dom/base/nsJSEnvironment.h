@@ -183,7 +183,7 @@ class AsyncErrorReporter final : public mozilla::Runnable {
   NS_IMETHOD Run() override;
 
   // This is only used on main thread!
-  JS::PersistentRooted<JS::Value> mException;
+  JS::sandbox::PersistentRooted<JS::Value> mException;
   bool mHasException = false;
 
   RefPtr<xpc::ErrorReport> mReport;

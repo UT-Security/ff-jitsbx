@@ -31,7 +31,7 @@ bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
   // For some workers without window, parent is null and we try to find it
   // from the JS Context.
   if (!parent) {
-    JS::Rooted<JSObject*> globalObject(aCx, JS::CurrentGlobalOrNull(aCx));
+    JS::sandbox::Rooted<JSObject*> globalObject(aCx, JS::CurrentGlobalOrNull(aCx));
     if (NS_WARN_IF(!globalObject)) {
       return false;
     }
@@ -44,7 +44,7 @@ bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
 
   MOZ_ASSERT(parent);
 
-  JS::Rooted<JS::Value> messageData(aCx);
+  JS::sandbox::Rooted<JS::Value> messageData(aCx);
   IgnoredErrorResult rv;
 
   UniquePtr<AbstractTimelineMarker> start;

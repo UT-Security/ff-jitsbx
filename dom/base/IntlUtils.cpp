@@ -55,20 +55,20 @@ void IntlUtils::GetDisplayNames(const Sequence<nsString>& aLocales,
   JSContext* cx = jsapi.cx();
 
   // Prepare parameter for getDisplayNames().
-  JS::Rooted<JS::Value> locales(cx);
+  JS::sandbox::Rooted<JS::Value> locales(cx);
   if (!ToJSValue(cx, aLocales, &locales)) {
     aError.StealExceptionFromJSContext(cx);
     return;
   }
 
-  JS::Rooted<JS::Value> options(cx);
+  JS::sandbox::Rooted<JS::Value> options(cx);
   if (!ToJSValue(cx, aOptions, &options)) {
     aError.StealExceptionFromJSContext(cx);
     return;
   }
 
   // Now call the method.
-  JS::Rooted<JS::Value> retVal(cx);
+  JS::sandbox::Rooted<JS::Value> retVal(cx);
   nsresult rv = mozIntl->GetDisplayNamesDeprecated(locales, options, &retVal);
   if (NS_FAILED(rv)) {
     aError.Throw(rv);

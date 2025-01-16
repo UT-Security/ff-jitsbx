@@ -485,7 +485,7 @@ void DOMMatrixReadOnly::ToFloat32Array(JSContext* aCx,
   AutoTArray<float, 16> arr;
   arr.SetLength(16);
   GetDataFromMatrix(this, arr.Elements());
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, TypedArrayCreator<Float32Array>(arr), &value)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -499,7 +499,7 @@ void DOMMatrixReadOnly::ToFloat64Array(JSContext* aCx,
   AutoTArray<double, 16> arr;
   arr.SetLength(16);
   GetDataFromMatrix(this, arr.Elements());
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, TypedArrayCreator<Float64Array>(arr), &value)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;

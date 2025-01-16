@@ -406,12 +406,12 @@ nsConsoleService::CallFunctionAndLogException(
     return NS_ERROR_INVALID_ARG;
   }
 
-  JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
+  JS::sandbox::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
   if (!contextRealm) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  JS::Rooted<JSObject*> global(
+  JS::sandbox::Rooted<JSObject*> global(
       cx, js::CheckedUnwrapDynamic(&targetGlobal.toObject(), cx));
   if (!global) {
     return NS_ERROR_INVALID_ARG;
@@ -432,7 +432,7 @@ nsConsoleService::CallFunctionAndLogException(
   // whereas we expect to run `function` from the callsites compartment.
   JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
 
-  JS::RootedValue funVal(ccx, function);
+  JS::sandbox::RootedValue funVal(ccx, function);
   if (!JS_WrapValue(ccx, &funVal)) {
     return NS_ERROR_FAILURE;
   }

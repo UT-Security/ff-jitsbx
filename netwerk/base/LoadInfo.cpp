@@ -1605,17 +1605,17 @@ LoadInfo::AppendRedirectHistoryEntry(nsIChannel* aChannel,
 NS_IMETHODIMP
 LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
                        const RedirectHistoryArray& aArray) {
-  JS::Rooted<JSObject*> redirects(aCx,
+  JS::sandbox::Rooted<JSObject*> redirects(aCx,
                                   JS::NewArrayObject(aCx, aArray.Length()));
   NS_ENSURE_TRUE(redirects, NS_ERROR_OUT_OF_MEMORY);
 
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   NS_ENSURE_TRUE(global, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
 
   for (size_t idx = 0; idx < aArray.Length(); idx++) {
-    JS::Rooted<JSObject*> jsobj(aCx);
+    JS::sandbox::Rooted<JSObject*> jsobj(aCx);
     nsresult rv =
         xpc->WrapNative(aCx, global, aArray[idx],
                         NS_GET_IID(nsIRedirectHistoryEntry), jsobj.address());

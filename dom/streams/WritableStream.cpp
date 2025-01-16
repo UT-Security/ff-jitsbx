@@ -116,7 +116,7 @@ void WritableStream::FinishErroring(JSContext* aCx, ErrorResult& aRv) {
   Controller()->ErrorSteps();
 
   // Step 5. Let storedError be stream.[[storedError]].
-  JS::Rooted<JS::Value> storedError(aCx, mStoredError);
+  JS::sandbox::Rooted<JS::Value> storedError(aCx, mStoredError);
 
   // Step 6. For each writeRequest of stream.[[writeRequests]]:
   for (const RefPtr<Promise>& writeRequest : mWriteRequests) {
@@ -139,7 +139,7 @@ void WritableStream::FinishErroring(JSContext* aCx, ErrorResult& aRv) {
 
   // Step 9. Let abortRequest be stream.[[pendingAbortRequest]].
   RefPtr<Promise> abortPromise = mPendingAbortRequestPromise;
-  JS::Rooted<JS::Value> abortReason(aCx, mPendingAbortRequestReason);
+  JS::sandbox::Rooted<JS::Value> abortReason(aCx, mPendingAbortRequestReason);
   bool abortWasAlreadyErroring = mPendingAbortRequestWasAlreadyErroring;
 
   // Step 10. Set stream.[[pendingAbortRequest]] to undefined.
@@ -340,7 +340,7 @@ void WritableStream::RejectCloseAndClosedPromiseIfNeeded() {
   // Step 1. Assert: stream.[[state]] is "errored".
   MOZ_ASSERT(mState == WriterState::Errored);
 
-  JS::Rooted<JS::Value> storedError(RootingCx(), mStoredError);
+  JS::sandbox::Rooted<JS::Value> storedError(RootingCx(), mStoredError);
   // Step 2. If stream.[[closeRequest]] is not undefined,
   if (mCloseRequest) {
     // Step 2.1. Assert: stream.[[inFlightCloseRequest]] is undefined.
@@ -441,7 +441,7 @@ already_AddRefed<WritableStream> WritableStream::Constructor(
     const Optional<JS::Handle<JSObject*>>& aUnderlyingSink,
     const QueuingStrategy& aStrategy, ErrorResult& aRv) {
   // Step 1. If underlyingSink is missing, set it to null.
-  JS::Rooted<JSObject*> underlyingSinkObj(
+  JS::sandbox::Rooted<JSObject*> underlyingSinkObj(
       aGlobal.Context(),
       aUnderlyingSink.WasPassed() ? aUnderlyingSink.Value() : nullptr);
 
@@ -449,7 +449,7 @@ already_AddRefed<WritableStream> WritableStream::Constructor(
   //         an IDL value of type UnderlyingSink.
   RootedDictionary<UnderlyingSink> underlyingSinkDict(aGlobal.Context());
   if (underlyingSinkObj) {
-    JS::Rooted<JS::Value> objValue(aGlobal.Context(),
+    JS::sandbox::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSinkObj));
     dom::BindingCallContext callCx(aGlobal.Context(),
                                    "WritableStream.constructor");
@@ -549,7 +549,7 @@ already_AddRefed<Promise> WritableStreamAbort(JSContext* aCx,
   bool wasAlreadyErroring = false;
 
   // Step 8. If state is "erroring",
-  JS::Rooted<JS::Value> reason(aCx, aReason);
+  JS::sandbox::Rooted<JS::Value> reason(aCx, aReason);
   if (state == WritableStream::WriterState::Erroring) {
     // Step 8.1. Set wasAlreadyErroring to true.
     wasAlreadyErroring = true;

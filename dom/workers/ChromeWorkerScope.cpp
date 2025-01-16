@@ -49,7 +49,7 @@ bool DefineChromeWorkerFunctions(JSContext* aCx,
   // Currently ctypes is the only special property given to ChromeWorkers.
 #ifdef BUILD_CTYPES
   {
-    JS::Rooted<JS::Value> ctypes(aCx);
+    JS::sandbox::Rooted<JS::Value> ctypes(aCx);
     if (!JS::InitCTypesClass(aCx, aGlobal) ||
         !JS_GetProperty(aCx, aGlobal, "ctypes", &ctypes)) {
       return false;

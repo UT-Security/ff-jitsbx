@@ -1705,7 +1705,7 @@ JSObject* ImageBitmap::ReadStructuredClone(
   // can GC (because in some cases it can!), and a return statement with a
   // JSObject* type means that JSObject* is on the stack as a raw pointer
   // while destructors are running.
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   {
 #ifdef FUZZING
     if (aIndex >= aClonedSurfaces.Length()) {

@@ -46,7 +46,7 @@ class PromiseHandler final : public PromiseNativeHandler {
       return;
     }
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
     uint32_t length;
     if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, &length))) {
@@ -59,7 +59,7 @@ class PromiseHandler final : public PromiseNativeHandler {
     }
 
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &value))) {
         return;
       }
@@ -68,7 +68,7 @@ class PromiseHandler final : public PromiseNativeHandler {
         return;
       }
 
-      JS::Rooted<JSObject*> valueObj(aCx, &value.toObject());
+      JS::sandbox::Rooted<JSObject*> valueObj(aCx, &value.toObject());
 
       RefPtr<File> file;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(File, valueObj, file))) {

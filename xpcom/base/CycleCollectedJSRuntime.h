@@ -17,6 +17,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/TypeDecls.h"
+#include "js/sandbox/RootingAPI.h"
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsTHashMap.h"
@@ -511,6 +512,13 @@ class CycleCollectedJSRuntime {
   ErrorInterceptor mErrorInterceptor;
 
 #endif  // defined(NIGHTLY_BUILD)
+
+private:
+ mozilla::EnumeratedArray<JS::RootKind, JS::RootKind::Limit,
+                               mozilla::LinkedList<js::sandbox::PersistentRootedBase>> persistentHeapRoots;
+
+static void tracePersistentRoots(JSTracer* trc, void* data);
+static mozilla::LinkedList<js::sandbox::PersistentRootedBase>& getPersistentRoots(JS::RootKind kind, void* data);
 };
 
 void TraceScriptHolder(nsISupports* aHolder, JSTracer* aTracer);

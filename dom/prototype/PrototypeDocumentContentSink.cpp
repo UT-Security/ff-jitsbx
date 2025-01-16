@@ -1019,16 +1019,16 @@ nsresult PrototypeDocumentContentSink::ExecuteScript(
   AutoEntryScript aes(scriptGlobalObject, "precompiled XUL <script> element");
   JSContext* cx = aes.cx();
 
-  JS::Rooted<JSScript*> scriptObject(cx);
+  JS::sandbox::Rooted<JSScript*> scriptObject(cx);
   rv = aScript->InstantiateScript(cx, &scriptObject);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   NS_ENSURE_TRUE(xpc::Scriptability::Get(global).Allowed(), NS_OK);
 
   // On failure, ~AutoScriptEntry will handle exceptions, so
   // there is no need to manually check the return value.
-  JS::Rooted<JS::Value> rval(cx);
+  JS::sandbox::Rooted<JS::Value> rval(cx);
   Unused << JS_ExecuteScript(cx, scriptObject, &rval);
 
   return NS_OK;

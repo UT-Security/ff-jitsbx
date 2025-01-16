@@ -129,7 +129,7 @@ nsIVariant* convertJSValToVariant(JSContext* aCtx, const JS::Value& aValue) {
   if (aValue.isNull()) return new NullVariant();
 
   if (aValue.isObject()) {
-    JS::Rooted<JSObject*> obj(aCtx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCtx, &aValue.toObject());
     // We only support Date instances, all others fail.
     bool valid;
     if (!js::DateIsValid(aCtx, obj, &valid) || !valid) return nullptr;

@@ -80,7 +80,7 @@ nsresult UnboxString(JSContext* aCx, const jni::Object::LocalRef& aData,
     env->ExceptionClear();
   });
 
-  JS::Rooted<JSString*> str(
+  JS::sandbox::Rooted<JSString*> str(
       aCx,
       JS_NewUCStringCopyN(aCx, reinterpret_cast<const char16_t*>(jchars), len));
   NS_ENSURE_TRUE(CheckJS(aCx, !!str), NS_ERROR_FAILURE);
@@ -106,7 +106,7 @@ nsresult UnboxBundle(JSContext* aCx, const jni::Object::LocalRef& aData,
   jni::ObjectArray::LocalRef keys = bundle->Keys();
   jni::ObjectArray::LocalRef values = bundle->Values();
   const size_t len = keys->Length();
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   NS_ENSURE_TRUE(CheckJS(aCx, !!obj), NS_ERROR_FAILURE);
   NS_ENSURE_TRUE(values->Length() == len, NS_ERROR_FAILURE);
@@ -125,7 +125,7 @@ nsresult UnboxBundle(JSContext* aCx, const jni::Object::LocalRef& aData,
       env->ExceptionClear();
     });
 
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     nsresult rv = UnboxValue(aCx, values->GetElement(i), &value);
     if (rv == NS_ERROR_INVALID_ARG && !JS_IsExceptionPending(aCx)) {
       JS_ReportErrorUTF8(
@@ -156,7 +156,7 @@ nsresult UnboxArrayPrimitive(JSContext* aCx, const jni::Object::LocalRef& aData,
   JNIEnv* const env = aData.Env();
   const ArrayType jarray = ArrayType(aData.Get());
   JNIType* const array = (env->*GetElements)(jarray, nullptr);
-  JS::RootedVector<JS::Value> elements(aCx);
+  JS::sandbox::RootedVector<JS::Value> elements(aCx);
 
   if (NS_WARN_IF(!array)) {
     env->ExceptionClear();
@@ -176,7 +176,7 @@ nsresult UnboxArrayPrimitive(JSContext* aCx, const jni::Object::LocalRef& aData,
                    NS_ERROR_FAILURE);
   }
 
-  JS::Rooted<JSObject*> obj(
+  JS::sandbox::Rooted<JSObject*> obj(
       aCx, JS::NewArrayObject(aCx, JS::HandleValueArray(elements)));
   NS_ENSURE_TRUE(CheckJS(aCx, !!obj), NS_ERROR_FAILURE);
 
@@ -202,12 +202,12 @@ nsresult UnboxArrayObject(JSContext* aCx, const jni::Object::LocalRef& aData,
   jni::ObjectArray::LocalRef array(aData.Env(),
                                    jni::ObjectArray::Ref::From(aData));
   const size_t len = array->Length();
-  JS::Rooted<JSObject*> obj(aCx, JS::NewArrayObject(aCx, len));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, JS::NewArrayObject(aCx, len));
   NS_ENSURE_TRUE(CheckJS(aCx, !!obj), NS_ERROR_FAILURE);
 
   for (size_t i = 0; i < len; i++) {
     jni::Object::LocalRef element = array->GetElement(i);
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     nsresult rv = (*Unbox)(aCx, element, &value);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -356,7 +356,7 @@ class NativeCallbackDelegateSupport final
     dom::AutoJSAPI jsapi;
     NS_ENSURE_TRUE_VOID(jsapi.Init(mGlobalObject));
 
-    JS::Rooted<JS::Value> data(jsapi.cx());
+    JS::sandbox::Rooted<JS::Value> data(jsapi.cx());
     nsresult rv = UnboxData(u"callback"_ns, jsapi.cx(), aData, &data,
                             /* BundleOnly */ false);
     NS_ENSURE_SUCCESS_VOID(rv);
@@ -558,7 +558,7 @@ nsresult EventDispatcher::Dispatch(const char16_t* aEvent,
   if (list) {
     dom::AutoJSAPI jsapi;
     NS_ENSURE_TRUE(jsapi.Init(GetGlobalObject()), NS_ERROR_FAILURE);
-    JS::Rooted<JS::Value> data(jsapi.cx());
+    JS::sandbox::Rooted<JS::Value> data(jsapi.cx());
     nsresult rv = UnboxData(/* Event */ nullptr, jsapi.cx(), aData, &data,
                             /* BundleOnly */ true);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -600,14 +600,14 @@ nsresult EventDispatcher::IterateEvents(JSContext* aCx,
                  NS_ERROR_INVALID_ARG);
   NS_ENSURE_TRUE(isArray, NS_ERROR_INVALID_ARG);
 
-  JS::Rooted<JSObject*> events(aCx, &aEvents.toObject());
+  JS::sandbox::Rooted<JSObject*> events(aCx, &aEvents.toObject());
   uint32_t length = 0;
   NS_ENSURE_TRUE(CheckJS(aCx, JS::GetArrayLength(aCx, events, &length)),
                  NS_ERROR_INVALID_ARG);
   NS_ENSURE_TRUE(length, NS_ERROR_INVALID_ARG);
 
   for (size_t i = 0; i < length; i++) {
-    JS::Rooted<JS::Value> event(aCx);
+    JS::sandbox::Rooted<JS::Value> event(aCx);
     NS_ENSURE_TRUE(CheckJS(aCx, JS_GetElement(aCx, events, i, &event)),
                    NS_ERROR_INVALID_ARG);
     NS_ENSURE_TRUE(event.isString(), NS_ERROR_INVALID_ARG);
@@ -748,7 +748,7 @@ void EventDispatcher::DispatchToGecko(jni::String::Param aEvent,
   dom::AutoJSAPI jsapi;
   NS_ENSURE_TRUE_VOID(jsapi.Init(GetGlobalObject()));
 
-  JS::Rooted<JS::Value> data(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> data(jsapi.cx());
   nsresult rv = UnboxData(aEvent, jsapi.cx(), aData, &data,
                           /* BundleOnly */ true);
   NS_ENSURE_SUCCESS_VOID(rv);

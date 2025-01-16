@@ -81,12 +81,12 @@ nsresult nsJSUtils::UpdateFunctionDebugMetadata(
     JS::Handle<JS::Value> aPrivateValue) {
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSFunction*> fun(cx, JS_GetObjectFunction(aFun));
+  JS::sandbox::Rooted<JSFunction*> fun(cx, JS_GetObjectFunction(aFun));
   if (!fun) {
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JSScript*> script(cx, JS_GetFunctionScript(cx, fun));
+  JS::sandbox::Rooted<JSScript*> script(cx, JS_GetFunctionScript(cx, fun));
   if (!script) {
     return NS_OK;
   }
@@ -125,7 +125,7 @@ nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JSFunction*> fun(
+  JS::sandbox::Rooted<JSFunction*> fun(
       cx, JS::CompileFunction(cx, aScopeChain, aOptions,
                               PromiseFlatCString(aName).get(), aArgCount,
                               aArgArray, source));
@@ -144,7 +144,7 @@ bool nsJSUtils::IsScriptable(JS::Handle<JSObject*> aEvaluationGlobal) {
 
 static bool AddScopeChainItem(JSContext* aCx, nsINode* aNode,
                               JS::MutableHandleVector<JSObject*> aScopeChain) {
-  JS::Rooted<JS::Value> val(aCx);
+  JS::sandbox::Rooted<JS::Value> val(aCx);
   if (!GetOrCreateDOMReflector(aCx, aNode, &val)) {
     return false;
   }
@@ -188,7 +188,7 @@ bool nsJSUtils::DumpEnabled() {
 
 JSObject* nsJSUtils::MoveBufferAsUint8Array(JSContext* aCx, size_t aSize,
                                             UniquePtr<uint8_t>& aBuffer) {
-  JS::Rooted<JSObject*> arrayBuffer(
+  JS::sandbox::Rooted<JSObject*> arrayBuffer(
       aCx, JS::NewArrayBufferWithContents(aCx, aSize, aBuffer.get()));
   if (!arrayBuffer) {
     return nullptr;

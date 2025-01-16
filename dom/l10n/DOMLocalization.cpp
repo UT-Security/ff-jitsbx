@@ -141,7 +141,7 @@ void DOMLocalization::SetAttributes(
     const Optional<JS::Handle<JSObject*>>& aArgs, ErrorResult& aRv) {
   if (aArgs.WasPassed() && aArgs.Value()) {
     nsAutoString data;
-    JS::Rooted<JS::Value> val(aCx, JS::ObjectValue(*aArgs.Value()));
+    JS::sandbox::Rooted<JS::Value> val(aCx, JS::ObjectValue(*aArgs.Value()));
     if (!nsContentUtils::StringifyJSON(aCx, val, data,
                                        UndefinedIsNullStringLiteral)) {
       aRv.NoteJSContextException(aCx);
@@ -180,7 +180,7 @@ void DOMLocalization::SetArgs(JSContext* aCx, Element& aElement,
                               ErrorResult& aRv) {
   if (aArgs.WasPassed() && aArgs.Value()) {
     nsAutoString data;
-    JS::Rooted<JS::Value> val(aCx, JS::ObjectValue(*aArgs.Value()));
+    JS::sandbox::Rooted<JS::Value> val(aCx, JS::ObjectValue(*aArgs.Value()));
     if (!nsContentUtils::StringifyJSON(aCx, val, data,
                                        UndefinedIsNullStringLiteral)) {
       aRv.NoteJSContextException(aCx);
@@ -241,7 +241,7 @@ class ElementTranslationHandler : public PromiseNativeHandler {
         return;
       }
 
-      JS::Rooted<JS::Value> temp(aCx);
+      JS::sandbox::Rooted<JS::Value> temp(aCx);
       while (true) {
         bool done;
         if (!iter.next(&temp, &done)) {

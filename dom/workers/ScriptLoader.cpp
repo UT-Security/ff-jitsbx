@@ -466,7 +466,7 @@ static bool EvaluateSourceBuffer(JSContext* aCx,
                     std::is_same<Unit, Utf8Unit>::value,
                 "inferred units must be UTF-8 or UTF-16");
 
-  JS::Rooted<JSScript*> script(aCx, JS::Compile(aCx, aOptions, aSourceBuffer));
+  JS::sandbox::Rooted<JSScript*> script(aCx, JS::Compile(aCx, aOptions, aSourceBuffer));
 
   if (!script) {
     return false;
@@ -476,7 +476,7 @@ static bool EvaluateSourceBuffer(JSContext* aCx,
     aClassicScript->AssociateWithScript(script);
   }
 
-  JS::Rooted<JS::Value> unused(aCx);
+  JS::sandbox::Rooted<JS::Value> unused(aCx);
   return JS_ExecuteScript(aCx, script, &unused);
 }
 
@@ -833,7 +833,7 @@ bool WorkerScriptLoader::ProcessPendingRequests(JSContext* aCx) {
 
   // Slightly icky action at a distance, but there's no better place to stash
   // this value, really.
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   MOZ_ASSERT(global);
 
   while (!mLoadedRequests.isEmpty()) {
@@ -1142,7 +1142,7 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
   // the JS Execution context as we are not making use of async compilation
   // (delegation to another worker to produce bytecode or compile a string to a
   // JSScript), so it is not used in this context.
-  JS::Rooted<JSScript*> unusedIntroductionScript(aCx);
+  JS::sandbox::Rooted<JSScript*> unusedIntroductionScript(aCx);
   nsresult rv = FillCompileOptionsForRequest(aCx, aRequest, &options,
                                              &unusedIntroductionScript);
 
@@ -1271,7 +1271,7 @@ void WorkerScriptLoader::LogExceptionToConsole(JSContext* aCx,
 
   MOZ_ASSERT(mRv.IsJSException());
 
-  JS::Rooted<JS::Value> exn(aCx);
+  JS::sandbox::Rooted<JS::Value> exn(aCx);
   if (!ToJSValue(aCx, std::move(mRv), &exn)) {
     return;
   }

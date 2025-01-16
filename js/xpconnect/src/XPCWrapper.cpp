@@ -29,7 +29,7 @@ static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
     return ThrowException(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx);
   }
 
-  JS::RootedValue v(cx, args[0]);
+  JS::sandbox::RootedValue v(cx, args[0]);
   if (!v.isObject() || !js::IsCrossCompartmentWrapper(&v.toObject()) ||
       !WrapperFactory::AllowWaiver(&v.toObject())) {
     args.rval().set(v);
@@ -70,7 +70,7 @@ bool AttachNewConstructorObject(JSContext* aCx,
   if (!xpcnativewrapper) {
     return false;
   }
-  JS::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
+  JS::sandbox::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
   return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNW, 1,
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }

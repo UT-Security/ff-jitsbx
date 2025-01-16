@@ -2166,7 +2166,7 @@ void PeerConnectionImpl::DumpPacket_m(size_t level, dom::mozPacketDumpType type,
     return;
   }
 
-  JS::Rooted<JSObject*> jsobj(
+  JS::sandbox::Rooted<JSObject*> jsobj(
       jsapi.cx(),
       JS::NewArrayBufferWithContents(jsapi.cx(), size, packet.release()));
 

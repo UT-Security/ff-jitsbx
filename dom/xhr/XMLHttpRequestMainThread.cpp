@@ -622,7 +622,7 @@ nsresult XMLHttpRequestMainThread::CreateResponseParsedJSON(JSContext* aCx) {
   }
 
   // The Unicode converter has already zapped the BOM if there was one
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!JS_ParseJSON(aCx, string.BeginReading(), string.Length(), &value)) {
     return NS_ERROR_FAILURE;
   }

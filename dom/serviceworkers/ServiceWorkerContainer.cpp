@@ -861,7 +861,7 @@ Result<Ok, bool> ServiceWorkerContainer::FillInMessageEventInit(
     return Err(false);
   }
 
-  JS::Rooted<JS::Value> messageData(aCx);
+  JS::sandbox::Rooted<JS::Value> messageData(aCx);
   aMessage.mClonedData.Read(aCx, &messageData, aRv);
   if (aRv.Failed()) {
     return Err(true);

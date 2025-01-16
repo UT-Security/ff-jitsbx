@@ -1277,7 +1277,7 @@ void nsSystemInfo::SetUint64Property(const nsAString& aPropertyName,
 static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
                                 const FolderDiskInfo& info,
                                 const char* propName) {
-  JS::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
   if (!jsInfo) {
     return false;
   }
@@ -1287,7 +1287,7 @@ static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
   if (!strModel) {
     return false;
   }
-  JS::Rooted<JS::Value> valModel(aCx, JS::StringValue(strModel));
+  JS::sandbox::Rooted<JS::Value> valModel(aCx, JS::StringValue(strModel));
   if (!JS_SetProperty(aCx, jsInfo, "model", valModel)) {
     return false;
   }
@@ -1297,7 +1297,7 @@ static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
   if (!strRevision) {
     return false;
   }
-  JS::Rooted<JS::Value> valRevision(aCx, JS::StringValue(strRevision));
+  JS::sandbox::Rooted<JS::Value> valRevision(aCx, JS::StringValue(strRevision));
   if (!JS_SetProperty(aCx, jsInfo, "revision", valRevision)) {
     return false;
   }
@@ -1306,26 +1306,26 @@ static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
   if (!strSSD) {
     return false;
   }
-  JS::Rooted<JS::Value> valSSD(aCx, JS::StringValue(strSSD));
+  JS::sandbox::Rooted<JS::Value> valSSD(aCx, JS::StringValue(strSSD));
   if (!JS_SetProperty(aCx, jsInfo, "type", valSSD)) {
     return false;
   }
 
-  JS::Rooted<JS::Value> val(aCx, JS::ObjectValue(*jsInfo));
+  JS::sandbox::Rooted<JS::Value> val(aCx, JS::ObjectValue(*jsInfo));
   return JS_SetProperty(aCx, aParent, propName, val);
 }
 
 JSObject* GetJSObjForOSInfo(JSContext* aCx, const OSInfo& info) {
-  JS::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
 
-  JS::Rooted<JS::Value> valInstallYear(aCx, JS::Int32Value(info.installYear));
+  JS::sandbox::Rooted<JS::Value> valInstallYear(aCx, JS::Int32Value(info.installYear));
   JS_SetProperty(aCx, jsInfo, "installYear", valInstallYear);
 
-  JS::Rooted<JS::Value> valHasSuperfetch(aCx,
+  JS::sandbox::Rooted<JS::Value> valHasSuperfetch(aCx,
                                          JS::BooleanValue(info.hasSuperfetch));
   JS_SetProperty(aCx, jsInfo, "hasSuperfetch", valHasSuperfetch);
 
-  JS::Rooted<JS::Value> valHasPrefetch(aCx, JS::BooleanValue(info.hasPrefetch));
+  JS::sandbox::Rooted<JS::Value> valHasPrefetch(aCx, JS::BooleanValue(info.hasPrefetch));
   JS_SetProperty(aCx, jsInfo, "hasPrefetch", valHasPrefetch);
 
   return jsInfo;
@@ -1334,52 +1334,52 @@ JSObject* GetJSObjForOSInfo(JSContext* aCx, const OSInfo& info) {
 #endif
 
 JSObject* GetJSObjForProcessInfo(JSContext* aCx, const ProcessInfo& info) {
-  JS::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
 
 #if defined(XP_WIN)
-  JS::Rooted<JS::Value> valisWow64(aCx, JS::BooleanValue(info.isWow64));
+  JS::sandbox::Rooted<JS::Value> valisWow64(aCx, JS::BooleanValue(info.isWow64));
   JS_SetProperty(aCx, jsInfo, "isWow64", valisWow64);
 
-  JS::Rooted<JS::Value> valisWowARM64(aCx, JS::BooleanValue(info.isWowARM64));
+  JS::sandbox::Rooted<JS::Value> valisWowARM64(aCx, JS::BooleanValue(info.isWowARM64));
   JS_SetProperty(aCx, jsInfo, "isWowARM64", valisWowARM64);
 
-  JS::Rooted<JS::Value> valisWindowsSMode(
+  JS::sandbox::Rooted<JS::Value> valisWindowsSMode(
       aCx, JS::BooleanValue(info.isWindowsSMode));
   JS_SetProperty(aCx, jsInfo, "isWindowsSMode", valisWindowsSMode);
 #endif
 
-  JS::Rooted<JS::Value> valCountInfo(aCx, JS::Int32Value(info.cpuCount));
+  JS::sandbox::Rooted<JS::Value> valCountInfo(aCx, JS::Int32Value(info.cpuCount));
   JS_SetProperty(aCx, jsInfo, "count", valCountInfo);
 
-  JS::Rooted<JS::Value> valCoreInfo(aCx, JS::Int32Value(info.cpuCores));
+  JS::sandbox::Rooted<JS::Value> valCoreInfo(aCx, JS::Int32Value(info.cpuCores));
   JS_SetProperty(aCx, jsInfo, "cores", valCoreInfo);
 
   JSString* strVendor =
       JS_NewStringCopyN(aCx, info.cpuVendor.get(), info.cpuVendor.Length());
-  JS::Rooted<JS::Value> valVendor(aCx, JS::StringValue(strVendor));
+  JS::sandbox::Rooted<JS::Value> valVendor(aCx, JS::StringValue(strVendor));
   JS_SetProperty(aCx, jsInfo, "vendor", valVendor);
 
   JSString* strName =
       JS_NewStringCopyN(aCx, info.cpuName.get(), info.cpuName.Length());
-  JS::Rooted<JS::Value> valName(aCx, JS::StringValue(strName));
+  JS::sandbox::Rooted<JS::Value> valName(aCx, JS::StringValue(strName));
   JS_SetProperty(aCx, jsInfo, "name", valName);
 
-  JS::Rooted<JS::Value> valFamilyInfo(aCx, JS::Int32Value(info.cpuFamily));
+  JS::sandbox::Rooted<JS::Value> valFamilyInfo(aCx, JS::Int32Value(info.cpuFamily));
   JS_SetProperty(aCx, jsInfo, "family", valFamilyInfo);
 
-  JS::Rooted<JS::Value> valModelInfo(aCx, JS::Int32Value(info.cpuModel));
+  JS::sandbox::Rooted<JS::Value> valModelInfo(aCx, JS::Int32Value(info.cpuModel));
   JS_SetProperty(aCx, jsInfo, "model", valModelInfo);
 
-  JS::Rooted<JS::Value> valSteppingInfo(aCx, JS::Int32Value(info.cpuStepping));
+  JS::sandbox::Rooted<JS::Value> valSteppingInfo(aCx, JS::Int32Value(info.cpuStepping));
   JS_SetProperty(aCx, jsInfo, "stepping", valSteppingInfo);
 
-  JS::Rooted<JS::Value> valL2CacheInfo(aCx, JS::Int32Value(info.l2cacheKB));
+  JS::sandbox::Rooted<JS::Value> valL2CacheInfo(aCx, JS::Int32Value(info.l2cacheKB));
   JS_SetProperty(aCx, jsInfo, "l2cacheKB", valL2CacheInfo);
 
-  JS::Rooted<JS::Value> valL3CacheInfo(aCx, JS::Int32Value(info.l3cacheKB));
+  JS::sandbox::Rooted<JS::Value> valL3CacheInfo(aCx, JS::Int32Value(info.l3cacheKB));
   JS_SetProperty(aCx, jsInfo, "l3cacheKB", valL3CacheInfo);
 
-  JS::Rooted<JS::Value> valSpeedInfo(aCx, JS::Int32Value(info.cpuSpeed));
+  JS::sandbox::Rooted<JS::Value> valSpeedInfo(aCx, JS::Int32Value(info.cpuSpeed));
   JS_SetProperty(aCx, jsInfo, "speedMHz", valSpeedInfo);
 
   return jsInfo;
@@ -1436,7 +1436,7 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
           return;
         }
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JS::Value> val(
+        JS::sandbox::Rooted<JS::Value> val(
             cx, JS::ObjectValue(*GetJSObjForOSInfo(cx, info)));
         capturedPromise->MaybeResolve(val);
       },
@@ -1509,7 +1509,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
           return;
         }
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JSObject*> jsInfo(cx, JS_NewPlainObject(cx));
+        JS::sandbox::Rooted<JSObject*> jsInfo(cx, JS_NewPlainObject(cx));
         // Store data in the rv:
         bool succeededSettingAllObjects =
             jsInfo && GetJSObjForDiskInfo(cx, jsInfo, info.binary, "binary") &&
@@ -1522,7 +1522,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
           return;
         }
 
-        JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*jsInfo));
+        JS::sandbox::Rooted<JS::Value> val(cx, JS::ObjectValue(*jsInfo));
         capturedPromise->MaybeResolve(val);
       },
       [capturedPromise](const nsresult rv) {
@@ -1585,10 +1585,10 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
           return;
         }
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JSString*> jsCountryCode(
+        JS::sandbox::Rooted<JSString*> jsCountryCode(
             cx, JS_NewUCStringCopyZ(cx, countryCode.get()));
 
-        JS::Rooted<JS::Value> val(cx, JS::StringValue(jsCountryCode));
+        JS::sandbox::Rooted<JS::Value> val(cx, JS::StringValue(jsCountryCode));
         capturedPromise->MaybeResolve(val);
       },
       [capturedPromise](const nsresult rv) {
@@ -1645,7 +1645,7 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
           return;
         }
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JS::Value> val(
+        JS::sandbox::Rooted<JS::Value> val(
             cx, JS::ObjectValue(*GetJSObjForProcessInfo(cx, info)));
         capturedPromise->MaybeResolve(val);
       },

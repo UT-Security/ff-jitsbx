@@ -200,7 +200,7 @@ NS_IMETHODIMP JSWindowActorProtocol::HandleEvent(Event* aEvent) {
   }
 
   // Build our event listener & call it.
-  JS::Rooted<JSObject*> global(RootingCx(),
+  JS::sandbox::Rooted<JSObject*> global(RootingCx(),
                                JS::GetNonCCWObjectGlobal(actor->GetWrapper()));
   RefPtr<EventListener> eventListener =
       new EventListener(actor->GetWrapper(), global, nullptr, nullptr);
@@ -249,7 +249,7 @@ NS_IMETHODIMP JSWindowActorProtocol::Observe(nsISupports* aSubject,
   }
 
   // Build a observer callback.
-  JS::Rooted<JSObject*> global(jsapi.cx(),
+  JS::sandbox::Rooted<JSObject*> global(jsapi.cx(),
                                JS::GetNonCCWObjectGlobal(actor->GetWrapper()));
   RefPtr<MozObserverCallback> observerCallback =
       new MozObserverCallback(actor->GetWrapper(), global, nullptr, nullptr);

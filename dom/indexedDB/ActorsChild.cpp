@@ -238,7 +238,7 @@ nsresult GetResult(JSContext* aCx, StructuredCloneReadInfoChild* aCloneInfo,
 nsresult GetResult(JSContext* aCx,
                    nsTArray<StructuredCloneReadInfoChild>* aCloneInfos,
                    JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+  JS::sandbox::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
   if (NS_WARN_IF(!array)) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -255,7 +255,7 @@ nsresult GetResult(JSContext* aCx,
     for (uint32_t index = 0; index < count; index++) {
       auto& cloneInfo = aCloneInfos->ElementAt(index);
 
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
 
       const nsresult rv = GetResult(aCx, std::move(cloneInfo), &value);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -285,7 +285,7 @@ nsresult GetResult(JSContext* aCx, const Key* aKey,
 
 nsresult GetResult(JSContext* aCx, const nsTArray<Key>* aKeys,
                    JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+  JS::sandbox::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
   if (NS_WARN_IF(!array)) {
     IDB_REPORT_INTERNAL_ERR();
     return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -303,7 +303,7 @@ nsresult GetResult(JSContext* aCx, const nsTArray<Key>* aKeys,
       const Key& key = aKeys->ElementAt(index);
       MOZ_ASSERT(!key.IsUnset());
 
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
 
       const nsresult rv = GetResult(aCx, &key, &value);
       if (NS_WARN_IF(NS_FAILED(rv))) {

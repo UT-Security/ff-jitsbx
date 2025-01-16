@@ -100,7 +100,7 @@ class SendResponseCallback final : public nsISupports {
 
   static bool Call(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
     JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-    JS::Rooted<JSObject*> callee(aCx, &args.callee());
+    JS::sandbox::Rooted<JSObject*> callee(aCx, &args.callee());
 
     JS::Value v = js::GetFunctionNativeReserved(
         callee, SLOT_SEND_RESPONSE_CALLBACK_INSTANCE);
@@ -193,7 +193,7 @@ UniquePtr<dom::StructuredCloneHolder>
 ExtensionEventListener::SerializeCallArguments(const nsTArray<JS::Value>& aArgs,
                                                JSContext* aCx,
                                                ErrorResult& aRv) {
-  JS::Rooted<JS::Value> jsval(aCx);
+  JS::sandbox::Rooted<JS::Value> jsval(aCx);
   if (NS_WARN_IF(!dom::ToJSValue(aCx, aArgs, &jsval))) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
@@ -221,7 +221,7 @@ NS_IMETHODIMP ExtensionEventListener::CallListener(
 
   // Process and validate call options.
   APIObjectType apiObjectType = APIObjectType::NONE;
-  JS::Rooted<JS::Value> apiObjectDescriptor(aCx);
+  JS::sandbox::Rooted<JS::Value> apiObjectDescriptor(aCx);
   if (aCallOptions) {
     aCallOptions->GetApiObjectType(&apiObjectType);
     aCallOptions->GetApiObjectDescriptor(&apiObjectDescriptor);
@@ -322,7 +322,7 @@ dom::WorkerPrivate* ExtensionEventListener::GetWorkerPrivate() const {
 
 void ExtensionListenerCallWorkerRunnable::DeserializeCallArguments(
     JSContext* aCx, dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
-  JS::Rooted<JS::Value> jsvalue(aCx);
+  JS::sandbox::Rooted<JS::Value> jsvalue(aCx);
 
   mArgsHolder->Read(xpc::CurrentNativeGlobal(aCx), aCx, &jsvalue, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -407,9 +407,9 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
     MOZ_ASSERT(!argsSequence.IsEmpty());
 
     uint32_t apiObjectIdx = mAPIObjectPrepended ? 0 : argsSequence.Length() - 1;
-    JS::Rooted<JS::Value> apiObjectDescriptor(
+    JS::sandbox::Rooted<JS::Value> apiObjectDescriptor(
         aCx, argsSequence.ElementAt(apiObjectIdx));
-    JS::Rooted<JS::Value> apiObjectValue(aCx);
+    JS::sandbox::Rooted<JS::Value> apiObjectValue(aCx);
 
     // We only expect the object type to be RUNTIME_PORT at the moment,
     // until we will need to expect it to support other object types that
@@ -431,17 +431,17 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
   }
 
   // Create callback argument and append it to the call arguments.
-  JS::Rooted<JSObject*> sendResponseObj(aCx);
+  JS::sandbox::Rooted<JSObject*> sendResponseObj(aCx);
 
   switch (mCallbackArgType) {
     case CallbackType::CALLBACK_NONE:
       break;
     case CallbackType::CALLBACK_SEND_RESPONSE: {
-      JS::Rooted<JSFunction*> sendResponseFn(
+      JS::sandbox::Rooted<JSFunction*> sendResponseFn(
           aCx, js::NewFunctionWithReserved(aCx, SendResponseCallback::Call,
                                            /* nargs */ 1, 0, "sendResponse"));
       sendResponseObj = JS_GetFunctionObject(sendResponseFn);
-      JS::Rooted<JS::Value> sendResponseValue(
+      JS::sandbox::Rooted<JS::Value> sendResponseValue(
           aCx, JS::ObjectValue(*sendResponseObj));
 
       // Create a SendResponseCallback instance that keeps a reference
@@ -482,7 +482,7 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
 
   // TODO: should `nsAutoMicroTask mt;` be used here?
   dom::AutoEntryScript aes(global, "WebExtensionAPIEvent");
-  JS::Rooted<JS::Value> retval(aCx);
+  JS::sandbox::Rooted<JS::Value> retval(aCx);
   ErrorResult erv;
   erv.MightThrowJSException();
   MOZ_KnownLive(fn)->Call(argsSequence, &retval, erv, "WebExtensionAPIEvent",
@@ -596,17 +596,17 @@ void ExtensionListenerCallPromiseResultHandler::WorkerRunCallback(
     return;
   }
 
-  JS::Rooted<JS::Value> retval(aCx, aValue);
+  JS::sandbox::Rooted<JS::Value> retval(aCx, aValue);
 
   if (retval.isObject()) {
     // Try to serialize the result as an ClonedErrorHolder,
     // in case the value is an Error object.
     IgnoredErrorResult rv;
-    JS::Rooted<JSObject*> errObj(aCx, &retval.toObject());
+    JS::sandbox::Rooted<JSObject*> errObj(aCx, &retval.toObject());
     RefPtr<dom::ClonedErrorHolder> ceh =
         dom::ClonedErrorHolder::Create(aCx, errObj, rv);
     if (!rv.Failed() && ceh) {
-      JS::Rooted<JSObject*> obj(aCx);
+      JS::sandbox::Rooted<JSObject*> obj(aCx);
       // Note: `ToJSValue` cannot be used because ClonedErrorHolder isn't
       // wrapped cached.
       Unused << NS_WARN_IF(!ceh->WrapObject(aCx, nullptr, &obj));
@@ -651,7 +651,7 @@ void ExtensionListenerCallPromiseResultHandler::WorkerRunCallback(
     dom::AutoEntryScript aes(global,
                              "ExtensionListenerCallWorkerRunnable::WorkerRun");
     JSContext* cx = aes.cx();
-    JS::Rooted<JS::Value> jsvalue(cx);
+    JS::sandbox::Rooted<JS::Value> jsvalue(cx);
     IgnoredErrorResult rv;
 
     resHolder->Read(global, cx, &jsvalue, rv);

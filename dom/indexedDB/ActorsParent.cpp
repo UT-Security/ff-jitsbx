@@ -6455,7 +6455,7 @@ class DeserializeIndexValueHelper final : public Runnable {
       AutoJSAPI jsapi;
       jsapi.Init();
 
-      JS::Rooted<JS::Value> value(jsapi.cx());
+      JS::sandbox::Rooted<JS::Value> value(jsapi.cx());
       value.setUndefined();
 
       ErrorResult rv;
@@ -6488,14 +6488,14 @@ class DeserializeIndexValueHelper final : public Runnable {
     jsapi.Init();
     JSContext* const cx = jsapi.cx();
 
-    JS::Rooted<JSObject*> global(cx, GetSandbox(cx));
+    JS::sandbox::Rooted<JSObject*> global(cx, GetSandbox(cx));
 
     QM_TRY(OkIf(global), NS_OK,
            [this](const NotOk) { OperationCompleted(NS_ERROR_FAILURE); });
 
     const JSAutoRealm ar(cx, global);
 
-    JS::Rooted<JS::Value> value(cx);
+    JS::sandbox::Rooted<JS::Value> value(cx);
     QM_TRY(MOZ_TO_RESULT(DeserializeIndexValue(cx, &value)), NS_OK,
            [this](const nsresult rv) { OperationCompleted(rv); });
 

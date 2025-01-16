@@ -15,7 +15,7 @@
 #include "js/Array.h"     // for NewArrayObject
 #include "js/GCVector.h"  // for RootedVector, MutableWrappedPtrOperations
 #include "js/PropertyAndElement.h"  // JS_DefineUCProperty
-#include "js/RootingAPI.h"          // for MutableHandle, Rooted, Handle, Heap
+#include "js/sandbox/RootingAPI.h"          // for MutableHandle, Rooted, Handle, Heap
 #include "js/Value.h"               // for Value
 #include "js/ValueArray.h"          // for HandleValueArray
 #include "jsapi.h"                  // for CurrentGlobalOrNull
@@ -163,7 +163,7 @@ ToJSValueFromPointerHelper(JSContext* aCx, T* aArgument,
     return true;
   }
 
-  JS::Rooted<JSObject*> obj(aCx);
+  JS::sandbox::Rooted<JSObject*> obj(aCx);
   if (!aArgument->WrapObject(aCx, nullptr, &obj)) {
     return false;
   }
@@ -246,7 +246,7 @@ ToJSValue(JSContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
   xpcObjectHelper helper(ToSupports(&aArgument));
-  JS::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> scope(aCx, JS::CurrentGlobalOrNull(aCx));
   const nsIID& iid =
       NS_GET_TEMPLATE_IID(binding_detail::ScriptableInterfaceType<T>);
   return XPCOMObjectToJsval(aCx, scope, helper, &iid, true, aValue);
@@ -311,8 +311,15 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 }
 
 // Accept existing rooted JS values (which may not be same-compartment with us
+//[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+//                                    const JS::Rooted<JS::Value>& aArgument,
+//                                    JS::MutableHandle<JS::Value> aValue) {
+//  aValue.set(aArgument);
+//  return MaybeWrapValue(aCx, aValue);
+//}
+
 [[nodiscard]] inline bool ToJSValue(JSContext* aCx,
-                                    const JS::Rooted<JS::Value>& aArgument,
+                                    const JS::sandbox::Rooted<JS::Value>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
   return MaybeWrapValue(aCx, aValue);
@@ -320,8 +327,15 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 
 // Accept existing rooted JS objects (which may not be same-compartment with
 // us).
+//[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+//                                    const JS::Rooted<JSObject*>& aArgument,
+//                                    JS::MutableHandle<JS::Value> aValue) {
+//  aValue.setObjectOrNull(aArgument);
+//  return MaybeWrapObjectOrNullValue(aCx, aValue);
+//}
+
 [[nodiscard]] inline bool ToJSValue(JSContext* aCx,
-                                    const JS::Rooted<JSObject*>& aArgument,
+                                    const JS::sandbox::Rooted<JSObject*>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.setObjectOrNull(aArgument);
   return MaybeWrapObjectOrNullValue(aCx, aValue);
@@ -344,7 +358,7 @@ template <typename T>
                                bool>
 ToJSValue(JSContext* aCx, const T& aArgument,
           JS::MutableHandle<JS::Value> aValue) {
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   return aArgument.ToJSVal(aCx, global, aValue);
 }
 
@@ -389,7 +403,7 @@ template <typename T>
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
-  JS::RootedVector<JS::Value> v(aCx);
+  JS::sandbox::RootedVector<JS::Value> v(aCx);
   if (!v.resize(aLength)) {
     return false;
   }
@@ -414,7 +428,7 @@ template <typename... Elements>
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
-  JS::RootedVector<JS::Value> v(aCx);
+  JS::sandbox::RootedVector<JS::Value> v(aCx);
   if (!v.resize(sizeof...(Elements))) {
     return false;
   }
@@ -441,13 +455,13 @@ template <typename... Elements>
 template <typename K, typename V>
 [[nodiscard]] bool ToJSValue(JSContext* aCx, const Record<K, V>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
-  JS::Rooted<JSObject*> recordObj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> recordObj(aCx, JS_NewPlainObject(aCx));
   if (!recordObj) {
     return false;
   }
 
   for (auto& entry : aArgument.Entries()) {
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     if (!ToJSValue(aCx, entry.mValue, &value)) {
       return false;
     }

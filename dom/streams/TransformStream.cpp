@@ -194,7 +194,7 @@ TransformStreamDefaultControllerPerformTransform(
             }
 
             // Step 2.2: Throw r.
-            JS::Rooted<JS::Value> r(aCx, aError);
+            JS::sandbox::Rooted<JS::Value> r(aCx, aError);
             aRv.MightThrowJSException();
             aRv.ThrowJSException(aCx, r);
             return nullptr;
@@ -273,7 +273,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
                 // Step 3: If state is "erroring", throw
                 // writable.[[storedError]].
                 if (state == WritableStream::WriterState::Erroring) {
-                  JS::Rooted<JS::Value> storedError(aCx,
+                  JS::sandbox::Rooted<JS::Value> storedError(aCx,
                                                     writable->StoredError());
                   aRv.MightThrowJSException();
                   aRv.ThrowJSException(aCx, storedError);
@@ -369,7 +369,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
                   // readable.[[storedError]].
                   if (aReadable->State() ==
                       ReadableStream::ReaderState::Errored) {
-                    JS::Rooted<JS::Value> storedError(aCx,
+                    JS::sandbox::Rooted<JS::Value> storedError(aCx,
                                                       aReadable->StoredError());
                     aRv.MightThrowJSException();
                     aRv.ThrowJSException(aCx, storedError);
@@ -397,7 +397,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
                   }
 
                   // Step 5.2.2: Throw readable.[[storedError]].
-                  JS::Rooted<JS::Value> storedError(aCx,
+                  JS::sandbox::Rooted<JS::Value> storedError(aCx,
                                                     aReadable->StoredError());
                   aRv.MightThrowJSException();
                   aRv.ThrowJSException(aCx, storedError);
@@ -592,7 +592,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
     const QueuingStrategy& aWritableStrategy,
     const QueuingStrategy& aReadableStrategy, ErrorResult& aRv) {
   // Step 1. If transformer is missing, set it to null.
-  JS::Rooted<JSObject*> transformerObj(
+  JS::sandbox::Rooted<JSObject*> transformerObj(
       aGlobal.Context(),
       aTransformer.WasPassed() ? aTransformer.Value() : nullptr);
 
@@ -600,7 +600,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   // type Transformer.
   RootedDictionary<Transformer> transformerDict(aGlobal.Context());
   if (transformerObj) {
-    JS::Rooted<JS::Value> objValue(aGlobal.Context(),
+    JS::sandbox::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*transformerObj));
     dom::BindingCallContext callCx(aGlobal.Context(),
                                    "TransformStream.constructor");
@@ -687,7 +687,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
     RefPtr<TransformerStartCallback> callback = transformerDict.mStart.Value();
     RefPtr<TransformStreamDefaultController> controller =
         transformStream->Controller();
-    JS::Rooted<JS::Value> retVal(aGlobal.Context());
+    JS::sandbox::Rooted<JS::Value> retVal(aGlobal.Context());
     callback->Call(transformerObj, *controller, &retVal, aRv,
                    "Transformer.start", CallbackFunction::eRethrowExceptions);
     if (aRv.Failed()) {

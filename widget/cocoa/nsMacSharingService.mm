@@ -88,12 +88,12 @@ static NSString* NSImageToBase64(const NSImage* aImage) {
   return [NSString stringWithFormat:@"data:image/png;base64,%@", base64Encoded];
 }
 
-static void SetStrAttribute(JSContext* aCx, JS::Rooted<JSObject*>& aObj, const char* aKey,
+static void SetStrAttribute(JSContext* aCx, JS::sandbox::Rooted<JSObject*>& aObj, const char* aKey,
                             NSString* aVal) {
   nsAutoString strVal;
   mozilla::CopyCocoaStringToXPCOMString(aVal, strVal);
-  JS::Rooted<JSString*> title(aCx, JS_NewUCStringCopyZ(aCx, strVal.get()));
-  JS::Rooted<JS::Value> attVal(aCx, JS::StringValue(title));
+  JS::sandbox::Rooted<JSString*> title(aCx, JS_NewUCStringCopyZ(aCx, strVal.get()));
+  JS::sandbox::Rooted<JS::Value> attVal(aCx, JS::StringValue(title));
   JS_SetProperty(aCx, aObj, aKey, attVal);
 }
 
@@ -109,19 +109,19 @@ nsresult nsMacSharingService::GetSharingProviders(const nsAString& aPageUrl, JSC
 
   NSArray* sharingService = [NSSharingService sharingServicesForItems:@[ url ]];
   int32_t serviceCount = 0;
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+  JS::sandbox::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
 
   for (NSSharingService* currentService in sharingService) {
     if (ShouldIgnoreProvider([currentService name])) {
       continue;
     }
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
     SetStrAttribute(aCx, obj, "name", [currentService name]);
     SetStrAttribute(aCx, obj, "menuItemTitle", currentService.menuItemTitle);
     SetStrAttribute(aCx, obj, "image", NSImageToBase64(currentService.image));
 
-    JS::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
+    JS::sandbox::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
     JS_SetElement(aCx, array, serviceCount++, element);
   }
 

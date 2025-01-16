@@ -126,6 +126,42 @@ template <typename T>
 using HandleVector = Handle<StackGCVector<T>>;
 template <typename T>
 using MutableHandleVector = MutableHandle<StackGCVector<T>>;
+
+namespace sandbox {
+template <typename T>
+class Rooted;
+template <typename T>
+class PersistentRooted;
+template <typename T>
+class RootedVector;
+template <typename T>
+class PersistentRootedVector;
+
+typedef Rooted<JSObject*> RootedObject;
+typedef Rooted<JSFunction*> RootedFunction;
+typedef Rooted<JSScript*> RootedScript;
+typedef Rooted<JSString*> RootedString;
+typedef Rooted<JS::Symbol*> RootedSymbol;
+typedef Rooted<JS::BigInt*> RootedBigInt;
+typedef Rooted<PropertyKey> RootedId;
+typedef Rooted<JS::Value> RootedValue;
+
+typedef RootedVector<JS::Value> RootedValueVector;
+typedef RootedVector<JSObject*> RootedObjectVector;
+typedef RootedVector<JS::PropertyKey> RootedIdVector;
+
+typedef PersistentRooted<JSFunction*> PersistentRootedFunction;
+typedef PersistentRooted<PropertyKey> PersistentRootedId;
+typedef PersistentRooted<JSObject*> PersistentRootedObject;
+typedef PersistentRooted<JSScript*> PersistentRootedScript;
+typedef PersistentRooted<JSString*> PersistentRootedString;
+typedef PersistentRooted<JS::Symbol*> PersistentRootedSymbol;
+typedef PersistentRooted<JS::BigInt*> PersistentRootedBigInt;
+typedef PersistentRooted<Value> PersistentRootedValue;
+
+typedef PersistentRootedVector<PropertyKey> PersistentRootedIdVector;
+typedef PersistentRootedVector<JSObject*> PersistentRootedObjectVector;
+}
 }  // namespace JS
 
 using jsid = JS::PropertyKey;

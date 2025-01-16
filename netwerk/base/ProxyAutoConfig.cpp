@@ -318,7 +318,7 @@ static bool PACDnsResolve(JSContext* cx, unsigned int argc, JS::Value* vp) {
     return true;
   }
 
-  JS::Rooted<JSString*> arg1(cx);
+  JS::sandbox::Rooted<JSString*> arg1(cx);
   arg1 = args[0].toString();
 
   nsAutoJSString hostName;
@@ -362,7 +362,7 @@ static bool PACProxyAlert(JSContext* cx, unsigned int argc, JS::Value* vp) {
 
   if (!args.requireAtLeast(cx, "alert", 1)) return false;
 
-  JS::Rooted<JSString*> arg1(cx, JS::ToString(cx, args[0]));
+  JS::sandbox::Rooted<JSString*> arg1(cx, JS::ToString(cx, args[0]));
   if (!arg1) return false;
 
   nsAutoJSString message;
@@ -424,7 +424,7 @@ class JSContextWrapper {
 
  private:
   JSContext* mContext;
-  JS::PersistentRooted<JSObject*> mGlobal;
+  JS::sandbox::PersistentRooted<JSObject*> mGlobal;
   bool mOK;
 
   static const JSClass* sGlobalClass();
@@ -463,7 +463,7 @@ class JSContextWrapper {
       JS_ClearPendingException(mContext);
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    JS::Rooted<JSObject*> global(mContext, mGlobal);
+    JS::sandbox::Rooted<JSObject*> global(mContext, mGlobal);
 
     JSAutoRealm ar(mContext, global);
     AutoPACErrorReporter aper(mContext);
@@ -558,7 +558,7 @@ nsresult ProxyAutoConfig::SetupJS() {
 
   SetRunning(this);
 
-  JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+  JS::sandbox::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   auto CompilePACScript = [this](JSContext* cx) -> JSScript* {
     JS::CompileOptions options(cx);
@@ -592,7 +592,7 @@ nsresult ProxyAutoConfig::SetupJS() {
     return JS::Compile(cx, options, source);
   };
 
-  JS::Rooted<JSScript*> script(cx, CompilePACScript(cx));
+  JS::sandbox::Rooted<JSScript*> script(cx, CompilePACScript(cx));
   if (!script || !JS_ExecuteScript(cx, script)) {
     nsString alertMessage(u"PAC file failed to install from "_ns);
     if (isDataURI) {
@@ -673,19 +673,19 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
     }
   }
 
-  JS::Rooted<JSString*> uriString(
+  JS::sandbox::Rooted<JSString*> uriString(
       cx,
       JS_NewStringCopyN(cx, clensedURI.BeginReading(), clensedURI.Length()));
-  JS::Rooted<JSString*> hostString(
+  JS::sandbox::Rooted<JSString*> hostString(
       cx, JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
 
   if (uriString && hostString) {
-    JS::RootedValueArray<2> args(cx);
+    JS::sandbox::RootedValueArray<2> args(cx);
     args[0].setString(uriString);
     args[1].setString(hostString);
 
-    JS::Rooted<JS::Value> rval(cx);
-    JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+    JS::sandbox::Rooted<JS::Value> rval(cx);
+    JS::sandbox::Rooted<JSObject*> global(cx, mJSContext->Global());
     bool ok = JS_CallFunctionName(cx, global, "FindProxyForURL", args, &rval);
 
     if (ok && rval.isString()) {
@@ -793,8 +793,8 @@ bool ProxyAutoConfig::MyIPAddress(const JS::CallArgs& aArgs) {
   nsAutoCString remoteDottedDecimal;
   nsAutoCString localDottedDecimal;
   JSContext* cx = mJSContext->Context();
-  JS::Rooted<JS::Value> v(cx);
-  JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+  JS::sandbox::Rooted<JS::Value> v(cx);
+  JS::sandbox::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   bool useMultihomedDNS =
       JS_GetProperty(cx, global, "pacUseMultihomedDNS", &v) &&

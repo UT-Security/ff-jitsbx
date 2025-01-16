@@ -69,9 +69,9 @@ nsresult GetJSValFromKeyPathString(
   KeyPathTokenizer tokenizer(aKeyPathString, '.');
 
   nsString targetObjectPropName;
-  JS::Rooted<JSObject*> targetObject(aCx, nullptr);
-  JS::Rooted<JS::Value> currentVal(aCx, aValue);
-  JS::Rooted<JSObject*> obj(aCx);
+  JS::sandbox::Rooted<JSObject*> targetObject(aCx, nullptr);
+  JS::sandbox::Rooted<JS::Value> currentVal(aCx, aValue);
+  JS::sandbox::Rooted<JSObject*> obj(aCx);
 
   while (tokenizer.hasMoreTokens()) {
     const auto& token = tokenizer.nextToken();
@@ -98,13 +98,13 @@ nsresult GetJSValFromKeyPathString(
 
       // We call JS_GetOwnUCPropertyDescriptor on purpose (as opposed to
       // JS_GetUCPropertyDescriptor) to avoid searching the prototype chain.
-      JS::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(aCx);
+      JS::sandbox::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(aCx);
       QM_TRY(OkIf(JS_GetOwnUCPropertyDescriptor(aCx, obj, keyPathChars,
                                                 keyPathLen, &desc)),
              NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
              IDB_REPORT_INTERNAL_ERR_LAMBDA);
 
-      JS::Rooted<JS::Value> intermediate(aCx);
+      JS::sandbox::Rooted<JS::Value> intermediate(aCx);
       bool hasProp = false;
 
       if (desc.isSome() && desc->isDataDescriptor()) {
@@ -195,7 +195,7 @@ nsresult GetJSValFromKeyPathString(
       if (tokenizer.hasMoreTokens()) {
         // If we're not at the end, we need to add a dummy object to the
         // chain.
-        JS::Rooted<JSObject*> dummy(aCx, JS_NewPlainObject(aCx));
+        JS::sandbox::Rooted<JSObject*> dummy(aCx, JS_NewPlainObject(aCx));
         if (!dummy) {
           IDB_REPORT_INTERNAL_ERR();
           rv = NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
@@ -211,7 +211,7 @@ nsresult GetJSValFromKeyPathString(
 
         obj = dummy;
       } else {
-        JS::Rooted<JSObject*> dummy(
+        JS::sandbox::Rooted<JSObject*> dummy(
             aCx, JS_NewObject(aCx, IDBObjectStore::DummyPropClass()));
         if (!dummy) {
           IDB_REPORT_INTERNAL_ERR();
@@ -332,7 +332,7 @@ bool KeyPath::AppendStringWithValidation(const nsAString& aString) {
 nsresult KeyPath::ExtractKey(JSContext* aCx, const JS::Value& aValue,
                              Key& aKey) const {
   uint32_t len = mStrings.Length();
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
 
   aKey.Unset();
 
@@ -369,12 +369,12 @@ nsresult KeyPath::ExtractKeyAsJSVal(JSContext* aCx, const JS::Value& aValue,
   }
 
   const uint32_t len = mStrings.Length();
-  JS::Rooted<JSObject*> arrayObj(aCx, JS::NewArrayObject(aCx, len));
+  JS::sandbox::Rooted<JSObject*> arrayObj(aCx, JS::NewArrayObject(aCx, len));
   if (!arrayObj) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   for (uint32_t i = 0; i < len; ++i) {
     nsresult rv =
         GetJSValFromKeyPathString(aCx, aValue, mStrings[i], value.address(),
@@ -399,7 +399,7 @@ nsresult KeyPath::ExtractOrCreateKey(JSContext* aCx, const JS::Value& aValue,
                                      void* aClosure) const {
   NS_ASSERTION(IsString(), "This doesn't make sense!");
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
 
   aKey.Unset();
 
@@ -488,14 +488,14 @@ nsresult KeyPath::ToJSVal(JSContext* aCx,
                           JS::MutableHandle<JS::Value> aValue) const {
   if (IsArray()) {
     uint32_t len = mStrings.Length();
-    JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, len));
+    JS::sandbox::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, len));
     if (!array) {
       IDB_WARNING("Failed to make array!");
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
 
     for (uint32_t i = 0; i < len; ++i) {
-      JS::Rooted<JS::Value> val(aCx);
+      JS::sandbox::Rooted<JS::Value> val(aCx);
       nsString tmp(mStrings[i]);
       if (!xpc::StringToJsval(aCx, tmp, &val)) {
         IDB_REPORT_INTERNAL_ERR();
@@ -526,7 +526,7 @@ nsresult KeyPath::ToJSVal(JSContext* aCx,
 }
 
 nsresult KeyPath::ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aValue) const {
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {
     aValue = value;

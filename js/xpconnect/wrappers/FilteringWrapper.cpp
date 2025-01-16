@@ -48,7 +48,7 @@ bool IsCrossOriginWhitelistedProp(JSContext* cx, JS::HandleId id) {
 bool AppendCrossOriginWhitelistedPropNames(JSContext* cx,
                                            JS::MutableHandleIdVector props) {
   // Add "then" if it's not already in the list.
-  RootedIdVector thenProp(cx);
+  JS::sandbox::RootedIdVector thenProp(cx);
   if (!thenProp.append(GetJSIDByIndex(cx, XPCJSContext::IDX_THEN))) {
     return false;
   }

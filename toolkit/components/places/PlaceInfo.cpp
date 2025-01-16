@@ -88,16 +88,16 @@ PlaceInfo::GetVisits(JSContext* aContext,
 
   // TODO bug 625913 when we use this in situations that have more than one
   // visit here, we will likely want to make this cache the value.
-  JS::Rooted<JSObject*> visits(aContext, JS::NewArrayObject(aContext, 0));
+  JS::sandbox::Rooted<JSObject*> visits(aContext, JS::NewArrayObject(aContext, 0));
   NS_ENSURE_TRUE(visits, NS_ERROR_OUT_OF_MEMORY);
 
-  JS::Rooted<JSObject*> global(aContext, JS::CurrentGlobalOrNull(aContext));
+  JS::sandbox::Rooted<JSObject*> global(aContext, JS::CurrentGlobalOrNull(aContext));
   NS_ENSURE_TRUE(global, NS_ERROR_UNEXPECTED);
 
   nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
 
   for (VisitsArray::size_type idx = 0; idx < mVisits.Length(); idx++) {
-    JS::Rooted<JSObject*> jsobj(aContext);
+    JS::sandbox::Rooted<JSObject*> jsobj(aContext);
     nsresult rv = xpc->WrapNative(aContext, global, mVisits[idx],
                                   NS_GET_IID(mozIVisitInfo), jsobj.address());
     NS_ENSURE_SUCCESS(rv, rv);

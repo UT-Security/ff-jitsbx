@@ -68,26 +68,26 @@ nsHangDetails::GetAnnotations(JSContext* aCx,
   // in our annotations object.
   auto& annotations = mDetails.annotations();
   size_t length = annotations.Length();
-  JS::Rooted<JSObject*> retObj(aCx, JS::NewArrayObject(aCx, length));
+  JS::sandbox::Rooted<JSObject*> retObj(aCx, JS::NewArrayObject(aCx, length));
   if (!retObj) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   for (size_t i = 0; i < length; ++i) {
     const auto& annotation = annotations[i];
-    JS::Rooted<JSObject*> annotationPair(aCx, JS::NewArrayObject(aCx, 2));
+    JS::sandbox::Rooted<JSObject*> annotationPair(aCx, JS::NewArrayObject(aCx, 2));
     if (!annotationPair) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS::Rooted<JSString*> key(aCx,
+    JS::sandbox::Rooted<JSString*> key(aCx,
                               JS_NewUCStringCopyN(aCx, annotation.name().get(),
                                                   annotation.name().Length()));
     if (!key) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS::Rooted<JSString*> value(
+    JS::sandbox::Rooted<JSString*> value(
         aCx, JS_NewUCStringCopyN(aCx, annotation.value().get(),
                                  annotation.value().Length()));
     if (!value) {
@@ -113,13 +113,13 @@ nsHangDetails::GetAnnotations(JSContext* aCx,
 
 namespace {
 
-nsresult StringFrame(JSContext* aCx, JS::RootedObject& aTarget, size_t aIndex,
+nsresult StringFrame(JSContext* aCx, JS::sandbox::RootedObject& aTarget, size_t aIndex,
                      const char* aString) {
   JSString* jsString = JS_NewStringCopyZ(aCx, aString);
   if (!jsString) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  JS::Rooted<JSString*> string(aCx, jsString);
+  JS::sandbox::Rooted<JSString*> string(aCx, jsString);
   if (!string) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -135,7 +135,7 @@ NS_IMETHODIMP
 nsHangDetails::GetStack(JSContext* aCx, JS::MutableHandle<JS::Value> aStack) {
   auto& stack = mDetails.stack();
   uint32_t length = stack.stack().Length();
-  JS::Rooted<JSObject*> ret(aCx, JS::NewArrayObject(aCx, length));
+  JS::sandbox::Rooted<JSObject*> ret(aCx, JS::NewArrayObject(aCx, length));
   if (!ret) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -178,7 +178,7 @@ nsHangDetails::GetStack(JSContext* aCx, JS::MutableHandle<JS::Value> aStack) {
       case HangEntry::THangEntryModOffset: {
         const HangEntryModOffset& mo = entry.get_HangEntryModOffset();
 
-        JS::Rooted<JSObject*> jsFrame(aCx, JS::NewArrayObject(aCx, 2));
+        JS::sandbox::Rooted<JSObject*> jsFrame(aCx, JS::NewArrayObject(aCx, 2));
         if (!jsFrame) {
           return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -188,7 +188,7 @@ nsHangDetails::GetStack(JSContext* aCx, JS::MutableHandle<JS::Value> aStack) {
         }
 
         nsPrintfCString hexString("%" PRIxPTR, (uintptr_t)mo.offset());
-        JS::Rooted<JSString*> hex(aCx, JS_NewStringCopyZ(aCx, hexString.get()));
+        JS::sandbox::Rooted<JSString*> hex(aCx, JS_NewStringCopyZ(aCx, hexString.get()));
         if (!hex || !JS_DefineElement(aCx, jsFrame, 1, hex, JSPROP_ENUMERATE)) {
           return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -242,26 +242,26 @@ NS_IMETHODIMP
 nsHangDetails::GetModules(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) {
   auto& modules = mDetails.stack().modules();
   size_t length = modules.Length();
-  JS::Rooted<JSObject*> retObj(aCx, JS::NewArrayObject(aCx, length));
+  JS::sandbox::Rooted<JSObject*> retObj(aCx, JS::NewArrayObject(aCx, length));
   if (!retObj) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   for (size_t i = 0; i < length; ++i) {
     const HangModule& module = modules[i];
-    JS::Rooted<JSObject*> jsModule(aCx, JS::NewArrayObject(aCx, 2));
+    JS::sandbox::Rooted<JSObject*> jsModule(aCx, JS::NewArrayObject(aCx, 2));
     if (!jsModule) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS::Rooted<JSString*> name(
+    JS::sandbox::Rooted<JSString*> name(
         aCx, JS_NewUCStringCopyN(aCx, module.name().BeginReading(),
                                  module.name().Length()));
     if (!JS_DefineElement(aCx, jsModule, 0, name, JSPROP_ENUMERATE)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS::Rooted<JSString*> breakpadId(
+    JS::sandbox::Rooted<JSString*> breakpadId(
         aCx, JS_NewStringCopyN(aCx, module.breakpadId().BeginReading(),
                                module.breakpadId().Length()));
     if (!JS_DefineElement(aCx, jsModule, 1, breakpadId, JSPROP_ENUMERATE)) {

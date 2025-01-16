@@ -45,7 +45,7 @@ class MessageManagerFuzzer {
   static bool Mutate(JSContext* aCx, const nsAString& aMessageName,
                      ipc::StructuredCloneData* aData,
                      const JS::Value& aTransfer);
-  static void Mutate(JSContext* aCx, JS::Rooted<JS::Value>& aMutation);
+  static void Mutate(JSContext* aCx, JS::sandbox::Rooted<JS::Value>& aMutation);
   static void MutateObject(JSContext* aCx, JS::Handle<JS::Value> aValue,
                            unsigned short int aRecursionCounter);
   static bool MutateValue(JSContext* aCx, JS::Handle<JS::Value> aValue,

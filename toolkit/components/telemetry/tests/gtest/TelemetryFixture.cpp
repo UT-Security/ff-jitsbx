@@ -21,7 +21,7 @@ void TelemetryTestFixture::SetUp() {
 AutoJSContextWithGlobal::AutoJSContextWithGlobal(JSObject* aGlobalObject)
     : mCx(nullptr) {
   // The JS API must initialize correctly.
-  JS::Rooted<JSObject*> globalObject(dom::RootingCx(), aGlobalObject);
+  JS::sandbox::Rooted<JSObject*> globalObject(dom::RootingCx(), aGlobalObject);
   MOZ_ALWAYS_TRUE(mJsAPI.Init(globalObject));
 }
 

@@ -1472,7 +1472,7 @@ JSObject* BrowsingContext::ReadStructuredClone(JSContext* aCx,
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> val(aCx, JS::NullValue());
+  JS::sandbox::Rooted<JS::Value> val(aCx, JS::NullValue());
   // We'll get rooting hazard errors from the RefPtr destructor if it isn't
   // destroyed before we try to return a raw JSObject*, so create it in its own
   // scope.
@@ -2405,7 +2405,7 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
       nsScriptErrorBase::ComputeIsFromPrivateWindow(callerInnerWindow);
   data.innerWindowId() = callerInnerWindow ? callerInnerWindow->WindowID() : 0;
   data.scriptLocation() = scriptLocation;
-  JS::Rooted<JS::Value> transferArray(aCx);
+  JS::sandbox::Rooted<JS::Value> transferArray(aCx);
   aError = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransfer,
                                                              &transferArray);
   if (NS_WARN_IF(aError.Failed())) {

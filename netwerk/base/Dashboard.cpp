@@ -306,7 +306,7 @@ nsresult LookupHelper::ConstructAnswer(LookupArgument* aArgument) {
     GetErrorString(mStatus, dict.mError);
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -470,7 +470,7 @@ nsresult LookupHelper::ConstructHTTPSRRAnswer(LookupArgument* aArgument) {
     GetErrorString(mStatus, dict.mError);
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -567,7 +567,7 @@ nsresult Dashboard::GetSockets(SocketData* aSocketData) {
 
   dict.mSent += socketData->mTotalSent;
   dict.mReceived += socketData->mTotalRecv;
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) return NS_ERROR_FAILURE;
   socketData->mCallback->OnDashboardDataAvailable(val);
 
@@ -682,7 +682,7 @@ nsresult Dashboard::GetHttpConnections(HttpData* aHttpData) {
     }
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -801,7 +801,7 @@ nsresult Dashboard::GetWebSocketConnections(WebSocketRequest* aWsRequest) {
     websocket.mEncrypted = mWs.data[i].mEncrypted;
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -916,7 +916,7 @@ nsresult Dashboard::GetDNSCacheEntries(DnsData* dnsData) {
     entry.mFlags = NS_ConvertUTF8toUTF16(dnsData->mData[i].flags);
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -1018,7 +1018,7 @@ nsresult Dashboard::GetRcwnData(RcwnData* aData) {
         CacheFileUtils::CachePerfStats::GetStdDev(perfType, true);
   }
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) {
     return NS_ERROR_FAILURE;
   }
@@ -1095,7 +1095,7 @@ nsresult Dashboard::GetConnectionStatus(ConnectionData* aConnectionData) {
   mozilla::dom::ConnStatusDict dict;
   dict.mStatus = connectionData->mStatus;
 
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!ToJSValue(cx, dict, &val)) return NS_ERROR_FAILURE;
 
   connectionData->mCallback->OnDashboardDataAvailable(val);

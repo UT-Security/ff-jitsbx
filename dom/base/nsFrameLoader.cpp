@@ -2149,7 +2149,7 @@ void nsFrameLoader::SetOwnerContent(Element* aContent) {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  JS::Rooted<JSObject*> wrapper(jsapi.cx(), GetWrapper());
+  JS::sandbox::Rooted<JSObject*> wrapper(jsapi.cx(), GetWrapper());
   if (wrapper) {
     JSAutoRealm ar(jsapi.cx(), wrapper);
     IgnoredErrorResult rv;
@@ -2983,7 +2983,7 @@ class nsAsyncMessageToChild : public nsSameProcessAsyncMessageBase,
     // destroyed. Here we make sure that those messages are not delivered.
     if (browserChild && browserChild->GetInnerManager() &&
         mFrameLoader->GetExistingDocShell()) {
-      JS::Rooted<JSObject*> kungFuDeathGrip(dom::RootingCx(),
+      JS::sandbox::Rooted<JSObject*> kungFuDeathGrip(dom::RootingCx(),
                                             browserChild->GetWrapper());
       ReceiveMessage(static_cast<EventTarget*>(browserChild), mFrameLoader,
                      browserChild->GetInnerManager());
@@ -3688,7 +3688,7 @@ ProcessMessageManager* nsFrameLoader::GetProcessMessageManager() const {
 
 JSObject* nsFrameLoader::WrapObject(JSContext* cx,
                                     JS::Handle<JSObject*> aGivenProto) {
-  JS::Rooted<JSObject*> result(cx);
+  JS::sandbox::Rooted<JSObject*> result(cx);
   FrameLoader_Binding::Wrap(cx, this, this, aGivenProto, &result);
   return result;
 }

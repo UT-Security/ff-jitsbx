@@ -132,7 +132,7 @@ void PaymentResponse::GetDetails(JSContext* aCx,
             rawData.billingAddress.recipient, rawData.billingAddress.phone);
       }
       MOZ_ASSERT(aCx);
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!basicCardResponse.ToObjectInternal(aCx, &value))) {
         return;
       }

@@ -19,7 +19,7 @@
 void mozilla::ProfileGenerationAdditionalInformation::ToJSValue(
     JSContext* aCx, JS::MutableHandle<JS::Value> aRetVal) const {
   // Get the shared libraries array.
-  JS::Rooted<JS::Value> sharedLibrariesVal(aCx);
+  JS::sandbox::Rooted<JS::Value> sharedLibrariesVal(aCx);
   {
     JSONStringWriteFunc<nsCString> buffer;
     JSONWriter w(buffer, JSONWriter::SingleLineStyle);
@@ -32,7 +32,7 @@ void mozilla::ProfileGenerationAdditionalInformation::ToJSValue(
                                  buffer16.Length(), &sharedLibrariesVal));
   }
 
-  JS::Rooted<JSObject*> additionalInfoObj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> additionalInfoObj(aCx, JS_NewPlainObject(aCx));
   JS_SetProperty(aCx, additionalInfoObj, "sharedLibraries", sharedLibrariesVal);
   aRetVal.setObject(*additionalInfoObj);
 }

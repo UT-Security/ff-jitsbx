@@ -213,8 +213,8 @@ void FindExceptionStackForConsoleReport(
     return;
   }
 
-  JS::RootingContext* rcx = RootingCx();
-  JS::Rooted<JSObject*> exceptionObject(rcx, &exceptionValue.toObject());
+  JS::sandbox::RootingContext* rcx = RootingCx();
+  JS::sandbox::Rooted<JSObject*> exceptionObject(rcx, &exceptionValue.toObject());
   if (JSObject* excStack = JS::ExceptionStackOrNull(exceptionObject)) {
     // At this point we know exceptionObject is a possibly-wrapped
     // js::ErrorObject that has excStack as stack. excStack might also be a CCW,
@@ -248,7 +248,7 @@ void FindExceptionStackForConsoleReport(
   if (!stack) {
     return;
   }
-  JS::Rooted<JS::Value> value(rcx);
+  JS::sandbox::Rooted<JS::Value> value(rcx);
   stack->GetNativeSavedFrame(&value);
   if (value.isObject()) {
     stackObj.set(&value.toObject());
@@ -372,7 +372,7 @@ bool NS_HandleScriptError(nsIScriptGlobalObject* aScriptGlobal,
 
 class ScriptErrorEvent : public Runnable {
  public:
-  ScriptErrorEvent(nsPIDOMWindowInner* aWindow, JS::RootingContext* aRootingCx,
+  ScriptErrorEvent(nsPIDOMWindowInner* aWindow, JS::sandbox::RootingContext* aRootingCx,
                    xpc::ErrorReport* aReport, JS::Handle<JS::Value> aError,
                    JS::Handle<JSObject*> aErrorStack)
       : mozilla::Runnable("ScriptErrorEvent"),
@@ -389,7 +389,7 @@ class ScriptErrorEvent : public Runnable {
     MOZ_ASSERT(NS_IsMainThread());
     // First, notify the DOM that we have a script error, but only if
     // our window is still the current inner.
-    JS::RootingContext* rootingCx = RootingCx();
+    JS::sandbox::RootingContext* rootingCx = RootingCx();
     if (win->IsCurrentInnerWindow() && win->GetDocShell() &&
         !sHandlingScriptError) {
       AutoRestore<bool> recursionGuard(sHandlingScriptError);
@@ -423,11 +423,11 @@ class ScriptErrorEvent : public Runnable {
     }
 
     if (status != nsEventStatus_eConsumeNoDefault) {
-      JS::Rooted<JSObject*> stack(rootingCx);
-      JS::Rooted<JSObject*> stackGlobal(rootingCx);
+      JS::sandbox::Rooted<JSObject*> stack(rootingCx);
+      JS::sandbox::Rooted<JSObject*> stackGlobal(rootingCx);
       xpc::FindExceptionStackForConsoleReport(win, mError, mErrorStack, &stack,
                                               &stackGlobal);
-      JS::Rooted<Maybe<JS::Value>> exception(rootingCx, Some(mError));
+      JS::sandbox::Rooted<Maybe<JS::Value>> exception(rootingCx, Some(mError));
       nsGlobalWindowInner* inner = nsGlobalWindowInner::Cast(win);
       mReport->LogToConsoleWithStack(inner, exception, stack, stackGlobal);
     }
@@ -438,8 +438,8 @@ class ScriptErrorEvent : public Runnable {
  private:
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   RefPtr<xpc::ErrorReport> mReport;
-  JS::PersistentRooted<JS::Value> mError;
-  JS::PersistentRooted<JSObject*> mErrorStack;
+  JS::sandbox::PersistentRooted<JS::Value> mError;
+  JS::sandbox::PersistentRooted<JSObject*> mErrorStack;
 
   static bool sHandlingScriptError;
 };
@@ -451,7 +451,7 @@ bool ScriptErrorEvent::sHandlingScriptError = false;
 namespace xpc {
 
 void DispatchScriptErrorEvent(nsPIDOMWindowInner* win,
-                              JS::RootingContext* rootingCx,
+                              JS::sandbox::RootingContext* rootingCx,
                               xpc::ErrorReport* xpcReport,
                               JS::Handle<JS::Value> exception,
                               JS::Handle<JSObject*> exceptionStack) {
@@ -611,9 +611,9 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
   }
   JSContext* cx = jsapi.cx();
 
-  JS::RootedVector<JS::Value> args(cx);
+  JS::sandbox::RootedVector<JS::Value> args(cx);
 
-  JS::Rooted<JSObject*> global(cx, GetWindowProxy());
+  JS::sandbox::Rooted<JSObject*> global(cx, GetWindowProxy());
   nsresult rv = ConvertSupportsTojsvals(cx, aArgs, global, &args);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -625,7 +625,7 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
     }
   }
 
-  JS::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, args));
+  JS::sandbox::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, args));
   if (!array) {
     return NS_ERROR_FAILURE;
   }
@@ -890,8 +890,8 @@ nsresult nsJSContext::AddSupportsPrimitiveTojsvals(JSContext* aCx,
 
       AutoFree iidGuard(iid);  // Free iid upon destruction.
 
-      JS::Rooted<JSObject*> scope(aCx, GetWindowProxy());
-      JS::Rooted<JS::Value> v(aCx);
+      JS::sandbox::Rooted<JSObject*> scope(aCx, GetWindowProxy());
+      JS::sandbox::Rooted<JS::Value> v(aCx);
       JSAutoRealm ar(aCx, scope);
       nsresult rv = nsContentUtils::WrapNative(aCx, data, iid, &v);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -2223,8 +2223,8 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   MOZ_ASSERT(ok, "Problem with system global?");
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> stack(cx);
-  JS::Rooted<JSObject*> stackGlobal(cx);
+  JS::sandbox::Rooted<JSObject*> stack(cx);
+  JS::sandbox::Rooted<JSObject*> stackGlobal(cx);
   if (mStackHolder) {
     stack = mStackHolder->ReadStack(cx);
     if (stack) {
@@ -2232,7 +2232,7 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
     }
   }
 
-  JS::Rooted<Maybe<JS::Value>> exception(cx, Nothing());
+  JS::sandbox::Rooted<Maybe<JS::Value>> exception(cx, Nothing());
   if (mHasException) {
     MOZ_ASSERT(NS_IsMainThread());
     exception = Some(mException);
@@ -2359,7 +2359,7 @@ NS_IMETHODIMP nsJSArgArray::QueryElementAt(uint32_t index, const nsIID& uuid,
   if (uuid.Equals(NS_GET_IID(nsIVariant)) ||
       uuid.Equals(NS_GET_IID(nsISupports))) {
     // Have to copy a Heap into a Rooted to work with it.
-    JS::Rooted<JS::Value> val(mContext, mArgv[index]);
+    JS::sandbox::Rooted<JS::Value> val(mContext, mArgv[index]);
     return nsContentUtils::XPConnect()->JSToVariant(mContext, val,
                                                     (nsIVariant**)result);
   }

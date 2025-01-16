@@ -88,7 +88,7 @@ nsIGlobalObject* ExtensionEventManager::GetParentObject() const {
 void ExtensionEventManager::AddListener(
     JSContext* aCx, dom::Function& aCallback,
     const dom::Optional<JS::Handle<JSObject*>>& aOptions, ErrorResult& aRv) {
-  JS::Rooted<JSObject*> cb(aCx, aCallback.CallbackOrNull());
+  JS::sandbox::Rooted<JSObject*> cb(aCx, aCallback.CallbackOrNull());
   if (cb == nullptr) {
     ThrowUnexpectedError(aCx, aRv);
     return;
@@ -129,7 +129,7 @@ void ExtensionEventManager::RemoveListener(dom::Function& aCallback,
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> cb(cx, aCallback.CallbackOrNull());
+  JS::sandbox::Rooted<JSObject*> cb(cx, aCallback.CallbackOrNull());
   const auto& ptr = mListeners.lookup(cb);
 
   // Return earlier if the listener wasn't found

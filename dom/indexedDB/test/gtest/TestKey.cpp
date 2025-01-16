@@ -27,7 +27,7 @@ void PrintTo(const nsString& value, std::ostream* os);
 
 using namespace mozilla;
 using namespace mozilla::dom::indexedDB;
-using JS::Rooted;
+using JS::sandbox::Rooted;
 
 // DOM_IndexedDB_Key_Ctor tests test the construction of a Key, and check the
 // properties of the constructed key with the const methods afterwards. The

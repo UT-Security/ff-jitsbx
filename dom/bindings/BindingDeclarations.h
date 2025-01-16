@@ -13,7 +13,7 @@
 #ifndef mozilla_dom_BindingDeclarations_h__
 #define mozilla_dom_BindingDeclarations_h__
 
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/TypeDecls.h"
 
 #include "mozilla/Maybe.h"
@@ -141,7 +141,7 @@ class MOZ_STACK_CLASS GlobalObject {
   dom::CallerType CallerType() const;
 
  protected:
-  JS::Rooted<JSObject*> mGlobalJSObject;
+  JS::sandbox::Rooted<JSObject*> mGlobalJSObject;
   JSContext* mCx;
   mutable nsISupports* MOZ_UNSAFE_REF(
       "Valid because GlobalObject is a stack "
@@ -218,18 +218,18 @@ class Optional : public Optional_base<T, T> {
 
 template <typename T>
 class Optional<JS::Handle<T>>
-    : public Optional_base<JS::Handle<T>, JS::Rooted<T>> {
+    : public Optional_base<JS::Handle<T>, JS::sandbox::Rooted<T>> {
  public:
   MOZ_ALLOW_TEMPORARY Optional()
-      : Optional_base<JS::Handle<T>, JS::Rooted<T>>() {}
+      : Optional_base<JS::Handle<T>, JS::sandbox::Rooted<T>>() {}
 
   explicit Optional(JSContext* cx)
-      : Optional_base<JS::Handle<T>, JS::Rooted<T>>() {
+      : Optional_base<JS::Handle<T>, JS::sandbox::Rooted<T>>() {
     this->Construct(cx);
   }
 
   Optional(JSContext* cx, const T& aValue)
-      : Optional_base<JS::Handle<T>, JS::Rooted<T>>(cx, aValue) {}
+      : Optional_base<JS::Handle<T>, JS::sandbox::Rooted<T>>(cx, aValue) {}
 
   // Override the const Value() to return the right thing so we're not
   // returning references to temporaries.
@@ -237,7 +237,7 @@ class Optional<JS::Handle<T>>
 
   // And we have to override the non-const one too, since we're
   // shadowing the one on the superclass.
-  JS::Rooted<T>& Value() { return *this->mImpl; }
+  JS::sandbox::Rooted<T>& Value() { return *this->mImpl; }
 };
 
 // A specialization of Optional for JSObject* to make sure that when someone

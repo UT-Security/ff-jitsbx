@@ -2191,7 +2191,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvLoadRemoteScript(
     // error.
     return IPC_OK();
 
-  JS::Rooted<JSObject*> mm(RootingCx(),
+  JS::sandbox::Rooted<JSObject*> mm(RootingCx(),
                            mBrowserChildMessageManager->GetOrCreateWrapper());
   if (!mm) {
     // This can happen if we're half-destroyed.  It's not a fatal error.
@@ -2223,7 +2223,7 @@ mozilla::ipc::IPCResult BrowserChild::RecvAsyncMessage(
     return IPC_OK();
   }
 
-  JS::Rooted<JSObject*> kungFuDeathGrip(
+  JS::sandbox::Rooted<JSObject*> kungFuDeathGrip(
       dom::RootingCx(), mBrowserChildMessageManager->GetWrapper());
   StructuredCloneData data;
   UnpackClonedMessageData(aData, data);

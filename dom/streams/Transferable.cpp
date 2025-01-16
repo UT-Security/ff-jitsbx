@@ -35,7 +35,7 @@ using namespace streams_abstract;
 static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
                                const nsAString& aType,
                                JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
-  JS::Rooted<JSObject*> obj(aCx,
+  JS::sandbox::Rooted<JSObject*> obj(aCx,
                             JS_NewObjectWithGivenProto(aCx, nullptr, nullptr));
   if (!obj) {
     // XXX: Should we crash here and there? See also bug 1762233.
@@ -44,7 +44,7 @@ static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
     return;
   }
 
-  JS::Rooted<JS::Value> type(aCx);
+  JS::sandbox::Rooted<JS::Value> type(aCx);
   if (!xpc::NonVoidStringToJsval(aCx, aType, &type)) {
     JS_ClearPendingException(aCx);
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -55,7 +55,7 @@ static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
-  JS::Rooted<JS::Value> value(aCx, aValue);
+  JS::sandbox::Rooted<JS::Value> value(aCx, aValue);
   if (!JS_WrapValue(aCx, &value)) {
     JS_ClearPendingException(aCx);
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -68,7 +68,7 @@ static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
   }
 
   Sequence<JSObject*> transferables;  // none in this case
-  JS::Rooted<JS::Value> objValue(aCx, JS::ObjectValue(*obj));
+  JS::sandbox::Rooted<JS::Value> objValue(aCx, JS::ObjectValue(*obj));
   aPort->PostMessage(aCx, objValue, transferables, aRv);
 }
 
@@ -104,7 +104,7 @@ class SetUpTransformWritableMessageEventListener final
     }
 
     // Step 1: Let data be the data of the message.
-    JS::Rooted<JS::Value> dataValue(cx);
+    JS::sandbox::Rooted<JS::Value> dataValue(cx);
     IgnoredErrorResult rv;
     messageEvent->GetData(cx, &dataValue, rv);
     if (rv.Failed()) {
@@ -117,10 +117,10 @@ class SetUpTransformWritableMessageEventListener final
     if (NS_WARN_IF(!dataValue.isObject())) {
       return NS_OK;
     }
-    JS::Rooted<JSObject*> data(cx, &dataValue.toObject());
+    JS::sandbox::Rooted<JSObject*> data(cx, &dataValue.toObject());
 
     // Step 3: Let type be ! Get(data, "type").
-    JS::Rooted<JS::Value> type(cx);
+    JS::sandbox::Rooted<JS::Value> type(cx);
     if (!JS_GetProperty(cx, data, "type", &type)) {
       // XXX: See bug 1762233
       JS_ClearPendingException(cx);
@@ -128,7 +128,7 @@ class SetUpTransformWritableMessageEventListener final
     }
 
     // Step 4: Let value be ! Get(data, "value").
-    JS::Rooted<JS::Value> value(cx);
+    JS::sandbox::Rooted<JS::Value> value(cx);
     if (!JS_GetProperty(cx, data, "value", &value)) {
       JS_ClearPendingException(cx);
       return NS_OK;
@@ -238,7 +238,7 @@ class SetUpTransformWritableMessageErrorEventListener final
       return NS_OK;
     }
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JS::Value> error(cx);
+    JS::sandbox::Rooted<JS::Value> error(cx);
     if (!ToJSValue(cx, *exception, &error)) {
       return NS_OK;
     }
@@ -342,7 +342,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
 
               // Step 2.2: Let result be PackAndPostMessageHandlingError(port,
               // "chunk", chunk).
-              JS::Rooted<JS::Value> error(aCx);
+              JS::sandbox::Rooted<JS::Value> error(aCx);
               bool result = PackAndPostMessageHandlingError(
                   aCx, aPort, u"chunk"_ns, aChunk, &error);
 
@@ -392,7 +392,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
       ErrorResult& aRv) override {
     // Step 1: Let result be PackAndPostMessageHandlingError(port, "error",
     // reason).
-    JS::Rooted<JS::Value> error(aCx);
+    JS::sandbox::Rooted<JS::Value> error(aCx);
     bool result = PackAndPostMessageHandlingError(
         aCx, mPort, u"error"_ns,
         aReason.WasPassed() ? aReason.Value() : JS::GetUndefinedHandleValue(),
@@ -510,7 +510,7 @@ class SetUpTransformReadableMessageEventListener final
     }
 
     // Step 1: Let data be the data of the message.
-    JS::Rooted<JS::Value> dataValue(cx);
+    JS::sandbox::Rooted<JS::Value> dataValue(cx);
     IgnoredErrorResult rv;
     messageEvent->GetData(cx, &dataValue, rv);
     if (rv.Failed()) {
@@ -523,10 +523,10 @@ class SetUpTransformReadableMessageEventListener final
     if (NS_WARN_IF(!dataValue.isObject())) {
       return NS_OK;
     }
-    JS::Rooted<JSObject*> data(cx, JS::ToObject(cx, dataValue));
+    JS::sandbox::Rooted<JSObject*> data(cx, JS::ToObject(cx, dataValue));
 
     // Step 3: Let type be ! Get(data, "type").
-    JS::Rooted<JS::Value> type(cx);
+    JS::sandbox::Rooted<JS::Value> type(cx);
     if (!JS_GetProperty(cx, data, "type", &type)) {
       // XXX: See bug 1762233
       JS_ClearPendingException(cx);
@@ -534,7 +534,7 @@ class SetUpTransformReadableMessageEventListener final
     }
 
     // Step 4: Let value be ! Get(data, "value").
-    JS::Rooted<JS::Value> value(cx);
+    JS::sandbox::Rooted<JS::Value> value(cx);
     if (!JS_GetProperty(cx, data, "value", &value)) {
       JS_ClearPendingException(cx);
       return NS_OK;
@@ -647,7 +647,7 @@ class SetUpTransformReadableMessageErrorEventListener final
       return NS_OK;
     }
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JS::Value> error(cx);
+    JS::sandbox::Rooted<JS::Value> error(cx);
     if (!ToJSValue(cx, *exception, &error)) {
       return NS_OK;
     }
@@ -727,7 +727,7 @@ class CrossRealmReadableUnderlyingSourceAlgorithms final
 
     // Step 8.1: Let result be PackAndPostMessageHandlingError(port, "error",
     // reason).
-    JS::Rooted<JS::Value> error(aCx);
+    JS::sandbox::Rooted<JS::Value> error(aCx);
     bool result = PackAndPostMessageHandlingError(
         aCx, mPort, u"error"_ns,
         aReason.WasPassed() ? aReason.Value() : JS::GetUndefinedHandleValue(),
@@ -894,7 +894,7 @@ bool ReadableStream::ReceiveTransfer(
     return false;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!GetOrCreateDOMReflector(aCx, readable, &value)) {
     JS_ClearPendingException(aCx);
     return false;
@@ -987,7 +987,7 @@ bool WritableStream::ReceiveTransfer(
     return false;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!GetOrCreateDOMReflector(aCx, writable, &value)) {
     JS_ClearPendingException(aCx);
     return false;
@@ -1055,7 +1055,7 @@ bool TransformStream::ReceiveTransfer(
   // and value.[[controller]] to undefined.
   RefPtr<TransformStream> stream =
       new TransformStream(aGlobal, readable, writable);
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!GetOrCreateDOMReflector(aCx, stream, &value)) {
     JS_ClearPendingException(aCx);
     return false;

@@ -232,7 +232,7 @@ class Promise : public SupportsWeakPtr {
     }
 
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JS::Value> val(cx);
+    JS::sandbox::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aValue), &val)) {
       return Promise::RejectWithExceptionFromContext(aGlobal, cx, aError);
     }
@@ -419,7 +419,7 @@ class Promise : public SupportsWeakPtr {
     AutoEntryScript aes(mGlobal, "Promise resolution or rejection");
     JSContext* cx = aes.cx();
 
-    JS::Rooted<JS::Value> val(cx);
+    JS::sandbox::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aArgument), &val)) {
       HandleException(cx);
       return;

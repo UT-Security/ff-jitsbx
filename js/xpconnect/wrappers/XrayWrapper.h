@@ -207,7 +207,7 @@ class JSXrayTraits : public XrayTraits {
   static bool call(JSContext* cx, JS::HandleObject wrapper,
                    const JS::CallArgs& args, const js::Wrapper& baseInstance) {
     JSXrayTraits& self = JSXrayTraits::singleton;
-    JS::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
+    JS::sandbox::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
     if (!holder) {
       return false;
     }
@@ -216,7 +216,7 @@ class JSXrayTraits : public XrayTraits {
       return baseInstance.call(cx, wrapper, args);
     }
 
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    JS::sandbox::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }
@@ -227,7 +227,7 @@ class JSXrayTraits : public XrayTraits {
 
   bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                     JS::HandleObject target, JS::MutableHandleObject protop) {
-    JS::RootedObject holder(cx, ensureHolder(cx, wrapper));
+    JS::sandbox::RootedObject holder(cx, ensureHolder(cx, wrapper));
     if (!holder) {
       return false;
     }
@@ -324,7 +324,7 @@ class OpaqueXrayTraits : public XrayTraits {
 
   static bool call(JSContext* cx, JS::HandleObject wrapper,
                    const JS::CallArgs& args, const js::Wrapper& baseInstance) {
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    JS::sandbox::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }
@@ -332,7 +332,7 @@ class OpaqueXrayTraits : public XrayTraits {
   static bool construct(JSContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args,
                         const js::Wrapper& baseInstance) {
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    JS::sandbox::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }

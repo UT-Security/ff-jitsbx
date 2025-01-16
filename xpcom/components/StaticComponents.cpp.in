@@ -125,21 +125,21 @@ static nsresult ConstructJSMOrESMComponent(const nsACString& aURI,
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> exports(cx);
+  JS::sandbox::Rooted<JSObject*> exports(cx);
   if constexpr (type == ComponentType::JSM) {
-    JS::Rooted<JSObject*> global(cx);
+    JS::sandbox::Rooted<JSObject*> global(cx);
     MOZ_TRY(mozJSModuleLoader::Get()->Import(cx, aURI, &global, &exports));
   } else {
     MOZ_TRY(mozJSModuleLoader::Get()->ImportESModule(cx, aURI, &exports));
   }
 
-  JS::Rooted<JS::Value> ctor(cx);
+  JS::sandbox::Rooted<JS::Value> ctor(cx);
   if (!JS_GetProperty(cx, exports, aConstructor, &ctor) ||
       !ctor.isObject()) {
     return NS_ERROR_XPC_JSOBJECT_HAS_NO_FUNCTION_NAMED;
   }
 
-  JS::Rooted<JSObject*> inst(cx);
+  JS::sandbox::Rooted<JSObject*> inst(cx);
   if (!JS::Construct(cx, ctor, JS::HandleValueArray::empty(), &inst)) {
     return NS_ERROR_FAILURE;
   }

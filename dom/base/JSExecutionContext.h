@@ -40,10 +40,10 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSAutoRealm mRealm;
 
   // Set to a valid handle if a return value is expected.
-  JS::Rooted<JS::Value> mRetValue;
+  JS::sandbox::Rooted<JS::Value> mRetValue;
 
   // The compiled script.
-  JS::Rooted<JSScript*> mScript;
+  JS::sandbox::Rooted<JSScript*> mScript;
 
   // The compilation options applied throughout
   JS::CompileOptions& mCompileOptions;
@@ -53,8 +53,8 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   //
   // For more details see CompilationAndEvaluation.h, and the comments on
   // UpdateDebugMetadata
-  JS::Rooted<JS::Value> mDebuggerPrivateValue;
-  JS::Rooted<JSScript*> mDebuggerIntroductionScript;
+  JS::sandbox::Rooted<JS::Value> mDebuggerPrivateValue;
+  JS::sandbox::Rooted<JSScript*> mDebuggerIntroductionScript;
 
   // returned value forwarded when we have to interupt the execution eagerly
   // with mSkip.

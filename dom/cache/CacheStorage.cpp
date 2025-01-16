@@ -248,7 +248,7 @@ bool CacheStorage::DefineCaches(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
     return false;
   }
 
-  JS::Rooted<JS::Value> caches(aCx);
+  JS::sandbox::Rooted<JS::Value> caches(aCx);
   if (NS_WARN_IF(!ToJSValue(aCx, storage, &caches))) {
     return false;
   }

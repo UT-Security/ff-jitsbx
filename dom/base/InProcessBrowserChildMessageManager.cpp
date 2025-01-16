@@ -278,7 +278,7 @@ void InProcessBrowserChildMessageManager::LoadFrameScript(
   }
   bool tmp = mLoadingScript;
   mLoadingScript = true;
-  JS::Rooted<JSObject*> mm(mozilla::dom::RootingCx(), GetOrCreateWrapper());
+  JS::sandbox::Rooted<JSObject*> mm(mozilla::dom::RootingCx(), GetOrCreateWrapper());
   LoadScriptInternal(mm, aURL, !aRunInGlobalScope);
   mLoadingScript = tmp;
 }

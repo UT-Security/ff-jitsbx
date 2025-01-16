@@ -18,7 +18,7 @@
 
 #include "js/AllocPolicy.h"
 #include "js/GCPolicyAPI.h"
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 
 class JSTracer;
 struct JSContext;
@@ -357,6 +357,30 @@ class PersistentRootedVector : public PersistentRooted<StackGCVector<T>> {
  public:
   explicit PersistentRootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
 };
+
+namespace sandbox {
+// An automatically rooted GCVector for stack use.
+template <typename T>
+class RootedVector : public Rooted<StackGCVector<T>> {
+  using Vec = StackGCVector<T>;
+  using Base = Rooted<Vec>;
+
+ public:
+  explicit RootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
+};
+
+
+// For use in rust code, an analog to RootedVector that doesn't require
+// instances to be destroyed in LIFO order.
+template <typename T>
+class PersistentRootedVector : public PersistentRooted<StackGCVector<T>> {
+  using Vec = StackGCVector<T>;
+  using Base = PersistentRooted<Vec>;
+
+ public:
+  explicit PersistentRootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
+};
+}
 
 }  // namespace JS
 

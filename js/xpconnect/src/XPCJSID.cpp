@@ -119,12 +119,12 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
   if (!scope->mIDProto) {
     MOZ_ASSERT(!scope->mIIDProto && !scope->mCIDProto);
 
-    RootedObject idProto(aCx, JS_NewPlainObject(aCx));
-    RootedObject iidProto(aCx,
+    JS::sandbox::RootedObject idProto(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::RootedObject iidProto(aCx,
                           JS_NewObjectWithGivenProto(aCx, nullptr, idProto));
-    RootedObject cidProto(aCx,
+    JS::sandbox::RootedObject cidProto(aCx,
                           JS_NewObjectWithGivenProto(aCx, nullptr, idProto));
-    RootedId hasInstance(aCx,
+    JS::sandbox::RootedId hasInstance(aCx,
                          GetWellKnownSymbolKey(aCx, SymbolCode::hasInstance));
 
     const uint32_t kFlags =
@@ -209,7 +209,7 @@ Maybe<nsID> JSValue2ID(JSContext* aCx, HandleValue aVal) {
   }
 
   // We only care about ID objects here, so CheckedUnwrapStatic is fine.
-  RootedObject obj(aCx, js::CheckedUnwrapStatic(&aVal.toObject()));
+  JS::sandbox::RootedObject obj(aCx, js::CheckedUnwrapStatic(&aVal.toObject()));
   if (!obj) {
     return Nothing();
   }
@@ -259,7 +259,7 @@ Maybe<nsID> JSValue2ID(JSContext* aCx, HandleValue aVal) {
  * Public ID Object Constructor Methods
  */
 static JSObject* NewIDObjectHelper(JSContext* aCx, const JSClass* aClass) {
-  RootedObject proto(aCx, GetIDPrototype(aCx, aClass));
+  JS::sandbox::RootedObject proto(aCx, GetIDPrototype(aCx, aClass));
   if (proto) {
     return JS_NewObjectWithGivenProto(aCx, aClass, proto);
   }
@@ -267,7 +267,7 @@ static JSObject* NewIDObjectHelper(JSContext* aCx, const JSClass* aClass) {
 }
 
 bool ID2JSValue(JSContext* aCx, const nsID& aId, MutableHandleValue aVal) {
-  RootedObject obj(aCx, NewIDObjectHelper(aCx, &sID_Class));
+  JS::sandbox::RootedObject obj(aCx, NewIDObjectHelper(aCx, &sID_Class));
   if (!obj) {
     return false;
   }
@@ -287,7 +287,7 @@ bool ID2JSValue(JSContext* aCx, const nsID& aId, MutableHandleValue aVal) {
 
 bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
                      MutableHandleValue aVal) {
-  RootedObject obj(aCx, NewIDObjectHelper(aCx, sIID_Class()));
+  JS::sandbox::RootedObject obj(aCx, NewIDObjectHelper(aCx, sIID_Class()));
   if (!obj) {
     return false;
   }
@@ -300,7 +300,7 @@ bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
 
 bool ContractID2JSValue(JSContext* aCx, JSString* aContract,
                         MutableHandleValue aVal) {
-  RootedString jsContract(aCx, aContract);
+  JS::sandbox::RootedString jsContract(aCx, aContract);
 
   {
     // It is perfectly safe to have a ContractID object with an invalid
@@ -319,7 +319,7 @@ bool ContractID2JSValue(JSContext* aCx, JSString* aContract,
     }
   }
 
-  RootedObject obj(aCx, NewIDObjectHelper(aCx, &sCID_Class));
+  JS::sandbox::RootedObject obj(aCx, NewIDObjectHelper(aCx, &sCID_Class));
   if (!obj) {
     return false;
   }
@@ -392,7 +392,7 @@ static bool ID_Equals(JSContext* aCx, unsigned aArgc, Value* aVp) {
  */
 static nsresult FindObjectForHasInstance(JSContext* cx, HandleObject objArg,
                                          MutableHandleObject target) {
-  RootedObject obj(cx, objArg), proto(cx);
+  JS::sandbox::RootedObject obj(cx, objArg), proto(cx);
   while (true) {
     // Try the object, or the wrappee if allowed.  We want CheckedUnwrapDynamic
     // here, because we might in fact be looking for a Window.  "cx" represents
@@ -421,7 +421,7 @@ nsresult HasInstance(JSContext* cx, HandleObject objArg, const nsID* iid,
                      bool* bp) {
   *bp = false;
 
-  RootedObject obj(cx);
+  JS::sandbox::RootedObject obj(cx);
   nsresult rv = FindObjectForHasInstance(cx, objArg, &obj);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -466,7 +466,7 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   bool hasInstance = false;
   if (args[0].isObject()) {
-    RootedObject target(aCx, &args[0].toObject());
+    JS::sandbox::RootedObject target(aCx, &args[0].toObject());
     nsresult rv = HasInstance(aCx, target, id.ptr(), &hasInstance);
     if (NS_FAILED(rv)) {
       return Throw(aCx, rv);
@@ -481,7 +481,7 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
 static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  RootedObject obj(aCx, GetIDObject(args.thisv(), sIID_Class()));
+  JS::sandbox::RootedObject obj(aCx, GetIDObject(args.thisv(), sIID_Class()));
   if (!obj) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
@@ -508,8 +508,8 @@ static bool IID_NewEnumerate(JSContext* cx, HandleObject obj,
     return false;
   }
 
-  RootedId id(cx);
-  RootedString name(cx);
+  JS::sandbox::RootedId id(cx);
+  JS::sandbox::RootedString name(cx);
   for (uint16_t i = 0; i < info->ConstantCount(); ++i) {
     name = JS_AtomizeString(cx, info->Constant(i).Name());
     if (!name || !JS_StringToId(cx, name, &id)) {
@@ -534,7 +534,7 @@ static bool IID_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     if (JS_LinearStringEqualsAscii(name, info->Constant(i).Name())) {
       *resolvedp = true;
 
-      RootedValue constant(cx, info->Constant(i).JSValue());
+      JS::sandbox::RootedValue constant(cx, info->Constant(i).JSValue());
       return JS_DefinePropertyById(
           cx, obj, id, constant,
           JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT);
@@ -573,7 +573,7 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   // Extract the ContractID string from our reserved slot. Don't use
   // JSValue2ID as this method should only be defined on Contract ID objects,
   // and it allows us to avoid a duplicate hashtable lookup.
-  RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
+  JS::sandbox::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
@@ -622,7 +622,7 @@ static bool CID_GetService(JSContext* aCx, unsigned aArgc, Value* aVp) {
 // 'CID.prototype.toString'.
 static bool CID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
-  RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
+  JS::sandbox::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }

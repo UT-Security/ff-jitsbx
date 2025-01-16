@@ -167,7 +167,7 @@ bool WorkerScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options.setFileAndLine(mFileName.get(), mLineNo).setNoScriptRval(true);
   options.setIntroductionType("domTimer");
 
-  JS::Rooted<JS::Value> unused(cx);
+  JS::sandbox::Rooted<JS::Value> unused(cx);
   JS::SourceText<char16_t> srcBuf;
   if (!srcBuf.init(cx, mExpr.BeginReading(), mExpr.Length(),
                    JS::SourceOwnership::Borrowed) ||
@@ -1268,9 +1268,9 @@ void WorkerDebuggerGlobalScope::CreateSandbox(
 
   aResult.set(nullptr);
 
-  JS::Rooted<JS::Value> protoVal(aCx);
+  JS::sandbox::Rooted<JS::Value> protoVal(aCx);
   protoVal.setObjectOrNull(aPrototype);
-  JS::Rooted<JSObject*> sandbox(
+  JS::sandbox::Rooted<JSObject*> sandbox(
       aCx,
       SimpleGlobalObject::Create(
           SimpleGlobalObject::GlobalType::WorkerDebuggerSandbox, protoVal));
@@ -1297,7 +1297,7 @@ void WorkerDebuggerGlobalScope::LoadSubScript(
   if (aSandbox.WasPassed()) {
     // We only care about worker debugger sandbox objects here, so
     // CheckedUnwrapStatic is fine.
-    JS::Rooted<JSObject*> sandbox(aCx,
+    JS::sandbox::Rooted<JSObject*> sandbox(aCx,
                                   js::CheckedUnwrapStatic(aSandbox.Value()));
     if (!sandbox || !IsWorkerDebuggerSandbox(sandbox)) {
       aRv.Throw(NS_ERROR_INVALID_ARG);

@@ -479,7 +479,7 @@ already_AddRefed<Promise> IOUtils::ReadJSON(GlobalObject& aGlobal,
                   }
                   JSContext* cx = jsapi.cx();
 
-                  JS::Rooted<JSString*> jsonStr(
+                  JS::sandbox::Rooted<JSString*> jsonStr(
                       cx,
                       IOUtils::JsBuffer::IntoString(cx, std::move(aBuffer)));
                   if (!jsonStr) {
@@ -487,9 +487,9 @@ already_AddRefed<Promise> IOUtils::ReadJSON(GlobalObject& aGlobal,
                     return;
                   }
 
-                  JS::Rooted<JS::Value> val(cx);
+                  JS::sandbox::Rooted<JS::Value> val(cx);
                   if (!JS_ParseJSON(cx, jsonStr, &val)) {
-                    JS::Rooted<JS::Value> exn(cx);
+                    JS::sandbox::Rooted<JS::Value> exn(cx);
                     if (JS_GetPendingException(cx, &exn)) {
                       JS_ClearPendingException(cx);
                       promise->MaybeReject(exn);
@@ -603,12 +603,12 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         }
 
         JSContext* cx = aGlobal.Context();
-        JS::Rooted<JS::Value> rootedValue(cx, aValue);
+        JS::sandbox::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
         if (!JS_Stringify(cx, &rootedValue, nullptr, JS::GetNullHandleValue(),
                           AppendJsonAsUtf8, &utf8Str)) {
-          JS::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
+          JS::sandbox::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
           if (JS_GetPendingException(cx, &exn)) {
             JS_ClearPendingException(cx);
             promise->MaybeReject(exn);
@@ -2702,7 +2702,7 @@ JSObject* IOUtils::JsBuffer::IntoUint8Array(JSContext* aCx, JsBuffer aBuffer) {
 
   char* rawBuffer = aBuffer.mBuffer.release();
   MOZ_RELEASE_ASSERT(rawBuffer);
-  JS::Rooted<JSObject*> arrayBuffer(
+  JS::sandbox::Rooted<JSObject*> arrayBuffer(
       aCx, JS::NewArrayBufferWithContents(aCx, aBuffer.mLength,
                                           reinterpret_cast<void*>(rawBuffer)));
 

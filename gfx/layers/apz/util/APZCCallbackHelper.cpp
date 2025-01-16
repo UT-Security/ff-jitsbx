@@ -887,7 +887,7 @@ void APZCCallbackHelper::NotifyScaleGestureComplete(
         }
 
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JS::Value> detail(cx, JS::Float32Value(aScale));
+        JS::sandbox::Rooted<JS::Value> detail(cx, JS::Float32Value(aScale));
         RefPtr<dom::CustomEvent> event =
             NS_NewDOMCustomEvent(doc, nullptr, nullptr);
         event->InitCustomEvent(cx, u"MozScaleGestureComplete"_ns,

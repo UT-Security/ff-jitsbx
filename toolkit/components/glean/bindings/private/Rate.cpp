@@ -82,7 +82,7 @@ GleanRate::TestGetValue(const nsACString& aPingName, JSContext* aCx,
     aResult.set(JS::UndefinedValue());
   } else {
     // Build return value of the form: { numerator: n, denominator: d }
-    JS::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
     if (!root) {
       return NS_ERROR_FAILURE;
     }

@@ -57,7 +57,7 @@ class ExtensionEventListener final : public mozIExtensionEventListener {
       return false;
     }
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     return JS::IsPromiseObject(obj);
   }
 

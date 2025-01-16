@@ -675,7 +675,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
     OwningObjectOrLong returnValue;
     if (arg.IsNull()) {
     } else if (arg.IsObject()) {
-      JS::Rooted<JSObject*> obj(cx, arg.GetAsObject());
+      JS::sandbox::Rooted<JSObject*> obj(cx, arg.GetAsObject());
       JS::GetClass(obj);
       returnValue.SetAsObject() = obj;
     } else {
@@ -1053,7 +1053,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   TestInterface* PutForwardsAttr2();
   TestInterface* PutForwardsAttr3();
   void GetToJSONShouldSkipThis(JSContext*, JS::MutableHandle<JS::Value>);
-  void SetToJSONShouldSkipThis(JSContext*, JS::Rooted<JS::Value>&);
+  void SetToJSONShouldSkipThis(JSContext*, JS::sandbox::Rooted<JS::Value>&);
   TestParentInterface* ToJSONShouldSkipThis2();
   void SetToJSONShouldSkipThis2(TestParentInterface&);
   TestCallbackInterface* ToJSONShouldSkipThis3();

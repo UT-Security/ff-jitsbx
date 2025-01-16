@@ -295,7 +295,7 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
   }
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JS::Value> jsData(cx);
+  JS::sandbox::Rooted<JS::Value> jsData(cx);
 
   if (aBinary) {
     if (mBinaryType == DC_BINARY_TYPE_BLOB) {
@@ -309,7 +309,7 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
         return NS_ERROR_FAILURE;
       }
     } else if (mBinaryType == DC_BINARY_TYPE_ARRAYBUFFER) {
-      JS::Rooted<JSObject*> arrayBuf(cx);
+      JS::sandbox::Rooted<JSObject*> arrayBuf(cx);
       rv = nsContentUtils::CreateArrayBuffer(cx, aData, arrayBuf.address());
       NS_ENSURE_SUCCESS(rv, rv);
       jsData.setObject(*arrayBuf);

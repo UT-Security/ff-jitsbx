@@ -89,8 +89,8 @@ bool ReadableStreamReaderGenericInitialize(ReadableStreamGenericReader* aReader,
     case ReadableStream::ReaderState::Errored: {
       // Step 5.1 Implicit
       // Step 5.2
-      JS::RootingContext* rcx = RootingCx();
-      JS::Rooted<JS::Value> rootedError(rcx, aStream->StoredError());
+      JS::sandbox::RootingContext* rcx = RootingCx();
+      JS::sandbox::Rooted<JS::Value> rootedError(rcx, aStream->StoredError());
       aReader->ClosedPromise()->MaybeReject(rootedError);
 
       // Step 5.3
@@ -143,7 +143,7 @@ void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
 
   // Value may need to be wrapped if stream and reader are in different
   // compartments.
-  JS::Rooted<JS::Value> chunk(aCx, aChunk);
+  JS::sandbox::Rooted<JS::Value> chunk(aCx, aChunk);
   if (!JS_WrapValue(aCx, &chunk)) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
@@ -154,7 +154,7 @@ void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
   result.mDone.Construct(false);
 
   // Ensure that the object is created with the current global.
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, std::move(result), &value)) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
@@ -171,7 +171,7 @@ void Read_ReadRequest::CloseSteps(JSContext* aCx, ErrorResult& aRv) {
   result.mValue.setUndefined();
   result.mDone.Construct(true);
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, std::move(result), &value)) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
@@ -225,7 +225,7 @@ void ReadableStreamDefaultReaderRead(JSContext* aCx,
     }
 
     case ReadableStream::ReaderState::Errored: {
-      JS::Rooted<JS::Value> storedError(aCx, stream->StoredError());
+      JS::sandbox::Rooted<JS::Value> storedError(aCx, stream->StoredError());
       aRequest->ErrorSteps(aCx, storedError, aRv);
       return;
     }
@@ -344,7 +344,7 @@ void ReadableStreamDefaultReaderRelease(JSContext* aCx,
   // Step 2. Let e be a new TypeError exception.
   ErrorResult rv;
   rv.ThrowTypeError("Releasing lock");
-  JS::Rooted<JS::Value> error(aCx);
+  JS::sandbox::Rooted<JS::Value> error(aCx);
   MOZ_ALWAYS_TRUE(ToJSValue(aCx, std::move(rv), &error));
 
   // Step 3. Perform ! ReadableStreamDefaultReaderErrorReadRequests(reader, e).

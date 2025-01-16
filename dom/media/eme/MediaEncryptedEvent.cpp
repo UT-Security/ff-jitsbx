@@ -74,7 +74,7 @@ already_AddRefed<MediaEncryptedEvent> MediaEncryptedEvent::Constructor(
   e->InitEvent(aType, aEventInitDict.mBubbles, aEventInitDict.mCancelable);
   e->mInitDataType = aEventInitDict.mInitDataType;
   if (!aEventInitDict.mInitData.IsNull()) {
-    JS::Rooted<JSObject*> buffer(aGlobal.Context(),
+    JS::sandbox::Rooted<JSObject*> buffer(aGlobal.Context(),
                                  aEventInitDict.mInitData.Value().Obj());
     e->mInitData = JS::CopyArrayBuffer(aGlobal.Context(), buffer);
     if (!e->mInitData) {

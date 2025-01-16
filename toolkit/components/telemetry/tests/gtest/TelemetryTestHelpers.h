@@ -34,12 +34,12 @@ void CheckNumberOfProperties(const char* aName, JSContext* aCx,
                              JS::Handle<JS::Value> aSnapshot,
                              uint32_t expectedNumProperties);
 
-bool EventPresent(JSContext* aCx, const JS::RootedValue& aSnapshot,
+bool EventPresent(JSContext* aCx, const JS::sandbox::RootedValue& aSnapshot,
                   const nsACString& aCategory, const nsACString& aMethod,
                   const nsACString& aObject);
 
 nsTArray<nsString> EventValuesToArray(JSContext* aCx,
-                                      const JS::RootedValue& aSnapshot,
+                                      const JS::sandbox::RootedValue& aSnapshot,
                                       const nsAString& aCategory,
                                       const nsAString& aMethod,
                                       const nsAString& aObject);

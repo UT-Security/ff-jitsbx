@@ -25,7 +25,7 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
-  JS::Rooted<JSObject*> arrayBuffer(RootingCx(), &aBuffer.toObject());
+  JS::sandbox::Rooted<JSObject*> arrayBuffer(RootingCx(), &aBuffer.toObject());
   if (!JS::IsArrayBufferObject(arrayBuffer)) {
     return NS_ERROR_FAILURE;
   }

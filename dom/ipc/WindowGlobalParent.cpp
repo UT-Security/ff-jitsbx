@@ -627,7 +627,7 @@ class ShareHandler final : public PromiseNativeHandler {
     }
 
     // nsresult is stored as Exception internally in Promise
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     RefPtr<DOMException> unwrapped;
     nsresult rv = UNWRAP_OBJECT(DOMException, &obj, unwrapped);
     if (NS_WARN_IF(NS_FAILED(rv))) {

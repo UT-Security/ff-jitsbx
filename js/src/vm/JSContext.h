@@ -26,6 +26,7 @@
 #include "js/Interrupt.h"
 #include "js/Promise.h"
 #include "js/Result.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/Stack.h"  // JS::NativeStackBase, JS::NativeStackLimit
 #include "js/Utility.h"
 #include "js/Vector.h"
@@ -155,7 +156,7 @@ enum class ShouldCaptureStack { Maybe, Always };
  * A JSContext encapsulates the thread local state used when using the JS
  * runtime.
  */
-struct JS_PUBLIC_API JSContext : public JS::RootingContext,
+struct JS_PUBLIC_API JSContext : public JS::sandbox::RootingContext,
                                  public js::MallocProvider<JSContext> {
   JSContext(JSRuntime* runtime, const JS::ContextOptions& options);
   ~JSContext();

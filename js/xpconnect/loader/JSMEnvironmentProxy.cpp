@@ -14,13 +14,13 @@
 #include "jsapi.h"  // JS_HasExtensibleLexicalEnvironment, JS_ExtensibleLexicalEnvironment
 #include "js/Class.h"               // JS::ObjectOpResult
 #include "js/ErrorReport.h"         // JS_ReportOutOfMemory
-#include "js/GCVector.h"            // JS::RootedVector
+#include "js/GCVector.h"            // JS::sandbox::RootedVector
 #include "js/Id.h"                  // JS::PropertyKey
 #include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/sandbox/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
-#include "js/RootingAPI.h"  // JS::Rooted, JS::Handle, JS::MutableHandle
+#include "js/RootingAPI.h"  // JS::sandbox::Rooted, JS::Handle, JS::MutableHandle
 #include "js/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
 #include "js/Value.h"  // JS::Value, JS::UndefinedValue, JS_UNINITIALIZED_LEXICAL
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
@@ -107,7 +107,7 @@ struct JSMEnvironmentProxyHandler : public js::sandbox::BaseProxyHandler {
 
  private:
   static JSObject* getGlobal(JSContext* aCx, JS::Handle<JSObject*> aProxy) {
-    JS::Rooted<JSObject*> globalObj(aCx,
+    JS::sandbox::Rooted<JSObject*> globalObj(aCx,
                                     &js::GetProxyPrivate(aProxy).toObject());
     return globalObj;
   }
@@ -127,7 +127,7 @@ JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
                                           JS::Handle<JSObject*> aModObj,
                                           JS::Handle<JS::PropertyKey> aId) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
-    JS::Rooted<JSObject*> lexical(aCx,
+    JS::sandbox::Rooted<JSObject*> lexical(aCx,
                                   JS_ExtensibleLexicalEnvironment(aModObj));
     bool found;
     if (!JS_HasOwnPropertyById(aCx, lexical, aId, &found)) {
@@ -144,7 +144,7 @@ JSObject* ResolveModuleObjectProperty(JSContext* aCx,
                                       JS::Handle<JSObject*> aModObj,
                                       const char* aName) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
-    JS::RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
+    JS::sandbox::RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
     bool found;
     if (!JS_HasOwnProperty(aCx, lexical, aName, &found)) {
       return nullptr;
@@ -160,8 +160,8 @@ bool JSMEnvironmentProxyHandler::getOwnPropertyDescriptor(
     JSContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) const {
-  JS::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
-  JS::Rooted<JSObject*> holder(
+  JS::sandbox::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  JS::sandbox::Rooted<JSObject*> holder(
       aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   if (!JS_GetOwnPropertyDescriptorById(aCx, holder, aId, aDesc)) {
     return false;
@@ -192,8 +192,8 @@ bool JSMEnvironmentProxyHandler::has(JSContext* aCx,
                                      JS::Handle<JSObject*> aProxy,
                                      JS::Handle<JS::PropertyKey> aId,
                                      bool* aBp) const {
-  JS::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
-  JS::Rooted<JSObject*> holder(
+  JS::sandbox::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  JS::sandbox::Rooted<JSObject*> holder(
       aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   return JS_HasPropertyById(aCx, holder, aId, aBp);
 }
@@ -203,8 +203,8 @@ bool JSMEnvironmentProxyHandler::get(JSContext* aCx,
                                      JS::Handle<JS::Value> aReceiver,
                                      JS::Handle<JS::PropertyKey> aId,
                                      JS::MutableHandle<JS::Value> aVp) const {
-  JS::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
-  JS::Rooted<JSObject*> holder(
+  JS::sandbox::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  JS::sandbox::Rooted<JSObject*> holder(
       aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   if (!JS_GetPropertyById(aCx, holder, aId, aVp)) {
     return false;
@@ -220,8 +220,8 @@ bool JSMEnvironmentProxyHandler::get(JSContext* aCx,
 bool JSMEnvironmentProxyHandler::ownPropertyKeys(
     JSContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<JS::PropertyKey> aProps) const {
-  JS::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
-  JS::Rooted<JS::IdVector> globalIds(aCx, JS::IdVector(aCx));
+  JS::sandbox::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  JS::sandbox::Rooted<JS::IdVector> globalIds(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, globalObj, &globalIds)) {
     return false;
   }
@@ -233,8 +233,8 @@ bool JSMEnvironmentProxyHandler::ownPropertyKeys(
     }
   }
 
-  JS::RootedObject lexicalEnv(aCx, JS_ExtensibleLexicalEnvironment(globalObj));
-  JS::Rooted<JS::IdVector> lexicalIds(aCx, JS::IdVector(aCx));
+  JS::sandbox::RootedObject lexicalEnv(aCx, JS_ExtensibleLexicalEnvironment(globalObj));
+  JS::sandbox::Rooted<JS::IdVector> lexicalIds(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, lexicalEnv, &lexicalIds)) {
     return false;
   }
@@ -254,7 +254,7 @@ JSObject* CreateJSMEnvironmentProxy(JSContext* aCx,
   js::ProxyOptions options;
   options.setLazyProto(true);
 
-  JS::Rooted<JS::Value> globalVal(aCx, JS::ObjectValue(*aGlobalObj));
+  JS::sandbox::Rooted<JS::Value> globalVal(aCx, JS::ObjectValue(*aGlobalObj));
   return NewProxyObject(aCx, js::sandbox::GetProxyHandler(JSMEnvironmentProxyHandler::gHandler()), globalVal,
                         nullptr, options);
 }

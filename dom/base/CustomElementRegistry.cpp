@@ -501,7 +501,7 @@ CustomElementDefinition* CustomElementRegistry::LookupCustomElementDefinition(
     JSContext* aCx, JSObject* aConstructor) const {
   // We're looking up things that tested true for JS::IsConstructor,
   // so doing a CheckedUnwrapStatic is fine here.
-  JS::Rooted<JSObject*> constructor(aCx, js::CheckedUnwrapStatic(aConstructor));
+  JS::sandbox::Rooted<JSObject*> constructor(aCx, js::CheckedUnwrapStatic(aConstructor));
 
   const auto& ptr = mConstructors.lookup(constructor);
   if (!ptr) {
@@ -701,10 +701,10 @@ DocGroup* CustomElementRegistry::GetDocGroup() const {
 
 int32_t CustomElementRegistry::InferNamespace(
     JSContext* aCx, JS::Handle<JSObject*> constructor) {
-  JS::Rooted<JSObject*> XULConstructor(
+  JS::sandbox::Rooted<JSObject*> XULConstructor(
       aCx, XULElement_Binding::GetConstructorObject(aCx));
 
-  JS::Rooted<JSObject*> proto(aCx, constructor);
+  JS::sandbox::Rooted<JSObject*> proto(aCx, constructor);
   while (proto) {
     if (proto == XULConstructor) {
       return kNameSpaceID_XUL;
@@ -719,7 +719,7 @@ int32_t CustomElementRegistry::InferNamespace(
 bool CustomElementRegistry::JSObjectToAtomArray(
     JSContext* aCx, JS::Handle<JSObject*> aConstructor, const nsString& aName,
     nsTArray<RefPtr<nsAtom>>& aArray, ErrorResult& aRv) {
-  JS::Rooted<JS::Value> iterable(aCx, JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> iterable(aCx, JS::UndefinedValue());
   if (!JS_GetUCProperty(aCx, aConstructor, aName.get(), aName.Length(),
                         &iterable)) {
     aRv.NoteJSContextException(aCx);
@@ -745,7 +745,7 @@ bool CustomElementRegistry::JSObjectToAtomArray(
       return false;
     }
 
-    JS::Rooted<JS::Value> attribute(aCx);
+    JS::sandbox::Rooted<JS::Value> attribute(aCx);
     while (true) {
       bool done;
       if (!iter.next(&attribute, &done)) {
@@ -777,7 +777,7 @@ void CustomElementRegistry::Define(
     JSContext* aCx, const nsAString& aName,
     CustomElementConstructor& aFunctionConstructor,
     const ElementDefinitionOptions& aOptions, ErrorResult& aRv) {
-  JS::Rooted<JSObject*> constructor(aCx, aFunctionConstructor.CallableOrNull());
+  JS::sandbox::Rooted<JSObject*> constructor(aCx, aFunctionConstructor.CallableOrNull());
 
   // We need to do a dynamic unwrap in order to throw the right exception.  We
   // could probably avoid that if we just threw MSG_NOT_CONSTRUCTOR if unwrap
@@ -785,7 +785,7 @@ void CustomElementRegistry::Define(
   //
   // In any case, aCx represents the global we want to be using for the unwrap
   // here.
-  JS::Rooted<JSObject*> constructorUnwrapped(
+  JS::sandbox::Rooted<JSObject*> constructorUnwrapped(
       aCx, js::CheckedUnwrapDynamic(constructor, aCx));
   if (!constructorUnwrapped) {
     // If the caller's compartment does not have permission to access the
@@ -934,7 +934,7 @@ void CustomElementRegistry::Define(
     // The .prototype on the constructor passed could be an "expando" of a
     // wrapper. So we should get it from wrapper instead of the underlying
     // object.
-    JS::Rooted<JS::Value> prototype(aCx);
+    JS::sandbox::Rooted<JS::Value> prototype(aCx);
     if (!JS_GetProperty(aCx, constructor, "prototype", &prototype)) {
       aRv.NoteJSContextException(aCx);
       return;
@@ -1010,7 +1010,7 @@ void CustomElementRegistry::Define(
 
     // 14.11. Let formAssociatedValue be Get(constructor, "formAssociated").
     //        Rethrow any exceptions.
-    JS::Rooted<JS::Value> formAssociatedValue(aCx);
+    JS::sandbox::Rooted<JS::Value> formAssociatedValue(aCx);
     if (!JS_GetProperty(aCx, constructor, "formAssociated",
                         &formAssociatedValue)) {
       aRv.NoteJSContextException(aCx);
@@ -1096,7 +1096,7 @@ void CustomElementRegistry::Define(
     JSString* nameJsStr =
         JS_NewUCStringCopyN(aCx, aName.BeginReading(), aName.Length());
 
-    JS::Rooted<JS::Value> detail(aCx, JS::StringValue(nameJsStr));
+    JS::sandbox::Rooted<JS::Value> detail(aCx, JS::StringValue(nameJsStr));
     RefPtr<CustomEvent> event = NS_NewDOMCustomEvent(doc, nullptr, nullptr);
     event->InitCustomEvent(aCx, u"customelementdefined"_ns,
                            /* CanBubble */ true,
@@ -1229,7 +1229,7 @@ static void DoUpgrade(Element* aElement, CustomElementDefinition* aDefinition,
   MOZ_ASSERT(data, "CustomElementData should exist");
   data->mState = CustomElementData::State::ePrecustomized;
 
-  JS::Rooted<JS::Value> constructResult(RootingCx());
+  JS::sandbox::Rooted<JS::Value> constructResult(RootingCx());
   // Rethrow the exception since it might actually throw the exception from the
   // upgrade steps back out to the caller of document.createElement.
   aConstructor->Construct(&constructResult, aRv, "Custom Element Upgrade",
@@ -1360,7 +1360,7 @@ already_AddRefed<nsISupports> CustomElementRegistry::CallGetCustomInterface(
 
   // Initialize a AutoJSAPI to enter the compartment of the callback.
   AutoJSAPI jsapi;
-  JS::Rooted<JSObject*> funcGlobal(RootingCx(), func->CallbackGlobalOrNull());
+  JS::sandbox::Rooted<JSObject*> funcGlobal(RootingCx(), func->CallbackGlobalOrNull());
   if (!funcGlobal || !jsapi.Init(funcGlobal)) {
     return nullptr;
   }
@@ -1369,12 +1369,12 @@ already_AddRefed<nsISupports> CustomElementRegistry::CallGetCustomInterface(
   JSContext* cx = jsapi.cx();
 
   // Convert our IID to a JSValue to call our callback.
-  JS::Rooted<JS::Value> jsiid(cx);
+  JS::sandbox::Rooted<JS::Value> jsiid(cx);
   if (!xpc::ID2JSValue(cx, aIID, &jsiid)) {
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> customInterface(cx);
+  JS::sandbox::Rooted<JSObject*> customInterface(cx);
   func->Call(aElement, jsiid, &customInterface);
   if (!customInterface) {
     return nullptr;

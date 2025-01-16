@@ -61,7 +61,7 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
   Telemetry::RecordEvent(Telemetry::EventID::TelemetryTest_Test2_Object2,
                          mozilla::Some(valueLong), mozilla::Some(longish));
 
-  JS::Rooted<JS::Value> eventsSnapshot(cx.GetJSContext());
+  JS::sandbox::Rooted<JS::Value> eventsSnapshot(cx.GetJSContext());
   GetEventSnapshot(cx.GetJSContext(), &eventsSnapshot);
 
   ASSERT_TRUE(!EventPresent(cx.GetJSContext(), eventsSnapshot, category, method,
@@ -79,18 +79,18 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
 
   // Ensure that the truncations happened appropriately.
   JSContext* aCx = cx.GetJSContext();
-  JS::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
-  JS::Rooted<JS::Value> eventRecord(aCx);
+  JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
+  JS::sandbox::Rooted<JS::Value> eventRecord(aCx);
   ASSERT_TRUE(JS_GetElement(aCx, arrayObj, 2, &eventRecord))
   << "Must be able to get record.";
-  JS::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
+  JS::sandbox::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
   uint32_t recordLength;
   ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, &recordLength))
   << "Event record array must have length.";
   ASSERT_TRUE(recordLength == 6)
   << "Event record must have 6 elements.";
 
-  JS::Rooted<JS::Value> str(aCx);
+  JS::sandbox::Rooted<JS::Value> str(aCx);
   nsAutoJSString jsStr;
   // The value string is at index 4
   ASSERT_TRUE(JS_GetElement(aCx, recordArray, 4, &str))
@@ -101,11 +101,11 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
       << "Value must have been truncated to 80 bytes.";
 
   // Extra is at index 5
-  JS::Rooted<JS::Value> obj(aCx);
+  JS::sandbox::Rooted<JS::Value> obj(aCx);
   ASSERT_TRUE(JS_GetElement(aCx, recordArray, 5, &obj))
   << "Must be able to get extra.";
-  JS::Rooted<JSObject*> extraObj(aCx, &obj.toObject());
-  JS::Rooted<JS::Value> extraVal(aCx);
+  JS::sandbox::Rooted<JSObject*> extraObj(aCx, &obj.toObject());
+  JS::sandbox::Rooted<JS::Value> extraVal(aCx);
   ASSERT_TRUE(JS_GetProperty(aCx, extraObj, extraKey.get(), &extraVal))
   << "Must be able to get the extra key's value.";
   ASSERT_TRUE(jsStr.init(aCx, extraVal))

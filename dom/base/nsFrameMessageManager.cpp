@@ -421,7 +421,7 @@ void nsFrameMessageManager::GetDelayedScripts(
 
   aList.SetCapacity(mPendingScripts.Length());
   for (uint32_t i = 0; i < mPendingScripts.Length(); ++i) {
-    JS::Rooted<JS::Value> url(aCx);
+    JS::sandbox::Rooted<JS::Value> url(aCx);
     if (!ToJSValue(aCx, mPendingScripts[i], &url)) {
       aError.NoteJSContextException(aCx);
       return;
@@ -439,8 +439,8 @@ bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
                                                 const JS::Value& aTransfer,
                                                 StructuredCloneData& aData) {
   // First try to use structured clone on the whole thing.
-  JS::Rooted<JS::Value> v(aCx, aValue);
-  JS::Rooted<JS::Value> t(aCx, aTransfer);
+  JS::sandbox::Rooted<JS::Value> v(aCx, aValue);
+  JS::sandbox::Rooted<JS::Value> t(aCx, aTransfer);
   ErrorResult rv;
   aData.Write(aCx, v, t, JS::CloneDataPolicy(), rv);
   if (!rv.Failed()) {
@@ -477,7 +477,7 @@ bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
       false);
   NS_ENSURE_TRUE(!json.IsEmpty(), false);
 
-  JS::Rooted<JS::Value> val(aCx, JS::NullValue());
+  JS::sandbox::Rooted<JS::Value> val(aCx, JS::NullValue());
   NS_ENSURE_TRUE(JS_ParseJSON(aCx, static_cast<const char16_t*>(json.get()),
                               json.Length(), &val),
                  false);
@@ -558,7 +558,7 @@ void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
   uint32_t len = retval.Length();
   aResult.SetCapacity(len);
   for (uint32_t i = 0; i < len; ++i) {
-    JS::Rooted<JS::Value> ret(aCx);
+    JS::sandbox::Rooted<JS::Value> ret(aCx);
     retval[i].Read(aCx, &ret, aError);
     if (aError.Failed()) {
       MOZ_ASSERT(false, "Unable to read structured clone in SendMessage");
@@ -661,9 +661,9 @@ void nsFrameMessageManager::ReceiveMessage(
         continue;
       }
 
-      JS::RootingContext* rcx = RootingCx();
-      JS::Rooted<JSObject*> object(rcx);
-      JS::Rooted<JSObject*> objectGlobal(rcx);
+      JS::sandbox::RootingContext* rcx = RootingCx();
+      JS::sandbox::Rooted<JSObject*> object(rcx);
+      JS::sandbox::Rooted<JSObject*> objectGlobal(rcx);
 
       RefPtr<MessageListener> webIDLListener;
       if (!weakListener) {
@@ -696,7 +696,7 @@ void nsFrameMessageManager::ReceiveMessage(
 
       RootedDictionary<ReceiveMessageArgument> argument(cx);
 
-      JS::Rooted<JS::Value> json(cx, JS::NullValue());
+      JS::sandbox::Rooted<JS::Value> json(cx, JS::NullValue());
       if (aCloneData && aCloneData->DataLength()) {
         aCloneData->Read(cx, &json, aError);
         if (NS_WARN_IF(aError.Failed())) {
@@ -725,7 +725,7 @@ void nsFrameMessageManager::ReceiveMessage(
         argument.mTargetFrameLoader.Construct(*aTargetFrameLoader);
       }
 
-      JS::Rooted<JS::Value> thisValue(cx, JS::UndefinedValue());
+      JS::sandbox::Rooted<JS::Value> thisValue(cx, JS::UndefinedValue());
 
       if (JS::IsCallable(object)) {
         // A small hack to get 'this' value right on content side where
@@ -743,7 +743,7 @@ void nsFrameMessageManager::ReceiveMessage(
         }
       }
 
-      JS::Rooted<JS::Value> rval(cx, JS::UndefinedValue());
+      JS::sandbox::Rooted<JS::Value> rval(cx, JS::UndefinedValue());
       if (webIDLListener) {
         webIDLListener->ReceiveMessage(thisValue, argument, &rval, aError);
         if (aError.Failed()) {
@@ -754,7 +754,7 @@ void nsFrameMessageManager::ReceiveMessage(
           continue;
         }
       } else {
-        JS::Rooted<JS::Value> funval(cx);
+        JS::sandbox::Rooted<JS::Value> funval(cx);
         if (JS::IsCallable(object)) {
           // If the listener is a JS function:
           funval.setObject(*object);
@@ -774,14 +774,14 @@ void nsFrameMessageManager::ReceiveMessage(
           thisValue.setObject(*object);
         }
 
-        JS::Rooted<JS::Value> argv(cx);
+        JS::sandbox::Rooted<JS::Value> argv(cx);
         if (!ToJSValue(cx, argument, &argv)) {
           aError.Throw(NS_ERROR_UNEXPECTED);
           return;
         }
 
         {
-          JS::Rooted<JSObject*> thisObject(cx, thisValue.toObjectOrNull());
+          JS::sandbox::Rooted<JSObject*> thisObject(cx, thisValue.toObjectOrNull());
           js::AssertSameCompartment(cx, thisObject);
           if (!JS_CallFunctionValue(cx, thisObject, funval,
                                     JS::HandleValueArray(argv), &rval)) {
@@ -909,14 +909,14 @@ void nsFrameMessageManager::GetInitialProcessData(
   MOZ_ASSERT(mIsProcessManager);
   MOZ_ASSERT_IF(mChrome, IsBroadcaster());
 
-  JS::Rooted<JS::Value> init(aCx, mInitialProcessData);
+  JS::sandbox::Rooted<JS::Value> init(aCx, mInitialProcessData);
   if (mChrome && init.isUndefined()) {
     // We create the initial object in the junk scope. If we created it in a
     // normal realm, that realm would leak until shutdown.
-    JS::Rooted<JSObject*> global(aCx, xpc::PrivilegedJunkScope());
+    JS::sandbox::Rooted<JSObject*> global(aCx, xpc::PrivilegedJunkScope());
     JSAutoRealm ar(aCx, global);
 
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {
       aError.NoteJSContextException(aCx);
       return;
@@ -1205,12 +1205,12 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
     JS::CompileOptions options(cx);
     FillCompileOptionsForCachedStencil(options);
     JS::InstantiateOptions instantiateOptions(options);
-    JS::Rooted<JSScript*> script(
+    JS::sandbox::Rooted<JSScript*> script(
         cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil));
 
     if (script) {
       if (aRunInUniqueScope) {
-        JS::Rooted<JSObject*> scope(cx);
+        JS::sandbox::Rooted<JSObject*> scope(cx);
         bool ok = js::ExecuteInFrameScriptEnvironment(cx, aMessageManager,
                                                       script, &scope);
         if (ok) {
@@ -1218,8 +1218,8 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
           mAnonymousGlobalScopes.AppendElement(scope);
         }
       } else {
-        JS::Rooted<JS::Value> rval(cx);
-        JS::RootedVector<JSObject*> envChain(cx);
+        JS::sandbox::Rooted<JS::Value> rval(cx);
+        JS::sandbox::RootedVector<JSObject*> envChain(cx);
         if (!envChain.append(aMessageManager)) {
           return;
         }

@@ -803,7 +803,7 @@ void FetchUtil::ReportJSStreamError(JSContext* aCx, size_t aErrorCode) {
 
   RefPtr<DOMException> e = DOMException::Create(NS_ERROR_DOM_ABORT_ERR);
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!GetOrCreateDOMReflector(aCx, e, &value)) {
     return;
   }

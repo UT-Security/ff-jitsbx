@@ -1218,7 +1218,7 @@ static void GetRealmName(JS::Realm* realm, nsCString& name, int* anonymizeID,
 }
 
 extern void xpc::GetCurrentRealmName(JSContext* cx, nsCString& name) {
-  RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   if (!global) {
     name.AssignLiteral("no global");
     return;
@@ -2178,9 +2178,9 @@ class XPCJSRuntimeStats : public JS::RuntimeStats {
     extras->pathPrefix.AssignLiteral("explicit/js-non-window/zones/");
 
     // Get some global in this zone.
-    Rooted<Realm*> realm(dom::RootingCx(), js::GetAnyRealmInZone(zone));
+    JS::sandbox::Rooted<Realm*> realm(dom::RootingCx(), js::GetAnyRealmInZone(zone));
     if (realm) {
-      RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
+      JS::sandbox::RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
       if (global) {
         RefPtr<nsGlobalWindowInner> window;
         if (NS_SUCCEEDED(UNWRAP_NON_WRAPPER_OBJECT(Window, global, window))) {
@@ -2208,7 +2208,7 @@ class XPCJSRuntimeStats : public JS::RuntimeStats {
 
     // Get the realm's global.
     bool needZone = true;
-    RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
+    JS::sandbox::RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
     if (global) {
       RefPtr<nsGlobalWindowInner> window;
       if (NS_SUCCEEDED(UNWRAP_NON_WRAPPER_OBJECT(Window, global, window))) {
@@ -2564,7 +2564,7 @@ static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
                             size_t* jsStringsSize, size_t* jsPrivateSize,
                             size_t* jsOtherSize) {
   JSContext* cx = XPCJSContext::Get()->Context();
-  JS::RootedObject obj(cx, objArg);
+  JS::sandbox::RootedObject obj(cx, objArg);
 
   TabSizes sizes;
   OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);
@@ -2987,7 +2987,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
 bool XPCJSRuntime::InitializeStrings(JSContext* cx) {
   // if it is our first context then we need to generate our string ids
   if (mStrIDs[0].isVoid()) {
-    RootedString str(cx);
+    JS::sandbox::RootedString str(cx);
     for (unsigned i = 0; i < XPCJSContext::IDX_TOTAL_COUNT; i++) {
       str = JS_AtomizeAndPinString(cx, mStrings[i]);
       if (!str) {
@@ -3105,7 +3105,7 @@ JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
                                          nsIPrincipal* principal) {
   MOZ_ASSERT(!principal->IsSystemPrincipal(), "Running UA Widget in chrome");
 
-  RootedObject scope(cx);
+  JS::sandbox::RootedObject scope(cx);
   do {
     RefPtr<BasePrincipal> key = BasePrincipal::Cast(principal);
     if (Principal2JSObjectMap::Ptr p = mUAWidgetScopeMap.lookup(key)) {
@@ -3126,7 +3126,7 @@ JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
         principalAsArray, principal->OriginAttributesRef());
 
     // Create the sandbox.
-    RootedValue v(cx);
+    JS::sandbox::RootedValue v(cx);
     nsresult rv = CreateSandboxObject(
         cx, &v, static_cast<nsIExpandedPrincipal*>(ep), options);
     NS_ENSURE_SUCCESS(rv, nullptr);
@@ -3151,7 +3151,7 @@ JSObject* XPCJSRuntime::UnprivilegedJunkScope(const mozilla::fallible_t&) {
     options.sandboxName.AssignLiteral("XPConnect Junk Compartment");
     options.invisibleToDebugger = true;
 
-    RootedValue sandbox(cx);
+    JS::sandbox::RootedValue sandbox(cx);
     nsresult rv = CreateSandboxObject(cx, &sandbox, nullptr, options);
     NS_ENSURE_SUCCESS(rv, nullptr);
 

@@ -74,7 +74,7 @@ void IDBKeyRange::FromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal,
     return;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aVal.isObject() ? &aVal.toObject() : nullptr);
+  JS::sandbox::Rooted<JSObject*> obj(aCx, aVal.isObject() ? &aVal.toObject() : nullptr);
 
   // Unwrap an IDBKeyRange object if possible.
   if (obj && NS_SUCCEEDED(UNWRAP_OBJECT(IDBKeyRange, obj, keyRange))) {

@@ -9,7 +9,7 @@
 #include "nsISupportsImpl.h"
 
 #include "js/loader/ModuleLoadRequest.h"
-#include "js/RootingAPI.h"          // JS::Rooted
+#include "js/sandbox/RootingAPI.h"          // JS::Rooted
 #include "js/PropertyAndElement.h"  // JS_SetProperty
 #include "js/Value.h"               // JS::Value, JS::NumberValue
 #include "mozJSModuleLoader.h"
@@ -99,7 +99,7 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
   }
 
   JSContext* cx = jsapi.cx();
-  JS::RootedScript script(cx);
+  JS::sandbox::RootedScript script(cx);
   nsresult rv =
       mozJSModuleLoader::LoadSingleModuleScript(this, cx, aRequest, &script);
   MOZ_ASSERT_IF(jsapi.HasException(), NS_FAILED(rv));
@@ -124,8 +124,8 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
 
     if (mLoadException.isObject()) {
       // Expose `nsresult`.
-      JS::Rooted<JS::Value> resultVal(cx, JS::NumberValue(uint32_t(rv)));
-      JS::Rooted<JSObject*> exceptionObj(cx, &mLoadException.toObject());
+      JS::sandbox::Rooted<JS::Value> resultVal(cx, JS::NumberValue(uint32_t(rv)));
+      JS::sandbox::Rooted<JSObject*> exceptionObj(cx, &mLoadException.toObject());
       if (!JS_SetProperty(cx, exceptionObj, "result", resultVal)) {
         // Ignore the error and keep reporting the exception without the result
         // property.

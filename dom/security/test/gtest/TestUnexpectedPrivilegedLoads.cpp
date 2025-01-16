@@ -201,7 +201,7 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
 
     // let's inspect the recorded events
 
-    JS::Rooted<JS::Value> eventsSnapshot(cx.GetJSContext());
+    JS::sandbox::Rooted<JS::Value> eventsSnapshot(cx.GetJSContext());
     GetEventSnapshot(cx.GetJSContext(), &eventsSnapshot);
 
     ASSERT_TRUE(EventPresent(cx.GetJSContext(), eventsSnapshot, category,
@@ -210,23 +210,23 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
 
     // Convert eventsSnapshot into array/object
     JSContext* aCx = cx.GetJSContext();
-    JS::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
+    JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
 
-    JS::Rooted<JS::Value> eventRecord(aCx);
+    JS::sandbox::Rooted<JS::Value> eventRecord(aCx);
     ASSERT_TRUE(JS_GetElement(aCx, arrayObj, i++, &eventRecord))
     << "Must be able to get record.";  // record is already undefined :-/
 
     ASSERT_TRUE(!eventRecord.isUndefined())
     << "eventRecord should not be undefined";
 
-    JS::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
+    JS::sandbox::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
     uint32_t recordLength;
     ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, &recordLength))
     << "Event record array must have length.";
     ASSERT_TRUE(recordLength == 6)
     << "Event record must have 6 elements.";
 
-    JS::Rooted<JS::Value> str(aCx);
+    JS::sandbox::Rooted<JS::Value> str(aCx);
     nsAutoJSString jsStr;
     // The fileinfo string is at index 4
     ASSERT_TRUE(JS_GetElement(aCx, recordArray, 4, &str))
@@ -240,12 +240,12 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
         << " 'equals expected value: " << currentTest.expected.fileinfo.get();
 
     // Extra is at index 5
-    JS::Rooted<JS::Value> obj(aCx);
+    JS::sandbox::Rooted<JS::Value> obj(aCx);
     ASSERT_TRUE(JS_GetElement(aCx, recordArray, 5, &obj))
     << "Must be able to get extra data";
-    JS::Rooted<JSObject*> extraObj(aCx, &obj.toObject());
+    JS::sandbox::Rooted<JSObject*> extraObj(aCx, &obj.toObject());
     // looking at remotetype extra for content type
-    JS::Rooted<JS::Value> extraValC(aCx);
+    JS::sandbox::Rooted<JS::Value> extraValC(aCx);
     ASSERT_TRUE(
         JS_GetProperty(aCx, extraObj, extraKeyContenttype.get(), &extraValC))
     << "Must be able to get the extra key's value for contenttype";
@@ -258,7 +258,7 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
         << "' should equals supplied value"
         << currentTest.expected.extraValueContenttype.get();
     // and again for remote type
-    JS::Rooted<JS::Value> extraValP(aCx);
+    JS::sandbox::Rooted<JS::Value> extraValP(aCx);
     ASSERT_TRUE(
         JS_GetProperty(aCx, extraObj, extraKeyRemotetype.get(), &extraValP))
     << "Must be able to get the extra key's value for remotetype";
@@ -271,7 +271,7 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
         << "' should equals supplied value: "
         << currentTest.expected.extraValueRemotetype.get();
     // repeating the same for filedetails extra
-    JS::Rooted<JS::Value> extraValF(aCx);
+    JS::sandbox::Rooted<JS::Value> extraValF(aCx);
     ASSERT_TRUE(
         JS_GetProperty(aCx, extraObj, extraKeyFiledetails.get(), &extraValF))
     << "Must be able to get the extra key's value for filedetails";
@@ -283,7 +283,7 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
         << NS_ConvertUTF16toUTF8(jsStr).get() << "'should equals supplied value"
         << currentTest.expected.extraValueFiledetails.get();
     // checking the extraKeyRedirects match
-    JS::Rooted<JS::Value> extraValRedirects(aCx);
+    JS::sandbox::Rooted<JS::Value> extraValRedirects(aCx);
     ASSERT_TRUE(JS_GetProperty(aCx, extraObj, extraKeyRedirects.get(),
                                &extraValRedirects))
     << "Must be able to get the extra value for redirects";

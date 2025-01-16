@@ -67,12 +67,12 @@ already_AddRefed<PerformanceMark> PerformanceMark::Constructor(
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> detail(aCx);
+  JS::sandbox::Rooted<JS::Value> detail(aCx);
   if (aMarkOptions.mDetail.isNullOrUndefined()) {
     detail.setNull();
   } else {
     StructuredSerializeOptions serializeOptions;
-    JS::Rooted<JS::Value> valueToClone(aCx, aMarkOptions.mDetail);
+    JS::sandbox::Rooted<JS::Value> valueToClone(aCx, aMarkOptions.mDetail);
     nsContentUtils::StructuredClone(aCx, aGlobal, valueToClone,
                                     serializeOptions, &detail, aRv);
     if (aRv.Failed()) {

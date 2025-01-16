@@ -71,7 +71,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
   TRACE_COMMENT("AudioWorkletGlobalScope::RegisterProcessor", "%s",
                 NS_ConvertUTF16toUTF8(aName).get());
 
-  JS::Rooted<JSObject*> processorConstructor(aCx,
+  JS::sandbox::Rooted<JSObject*> processorConstructor(aCx,
                                              aProcessorCtor.CallableOrNull());
 
   /**
@@ -99,7 +99,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
   }
 
   // We know processorConstructor is callable, so not a WindowProxy or Location.
-  JS::Rooted<JSObject*> constructorUnwrapped(
+  JS::sandbox::Rooted<JSObject*> constructorUnwrapped(
       aCx, js::CheckedUnwrapStatic(processorConstructor));
   if (!constructorUnwrapped) {
     // If the caller's compartment does not have permission to access the
@@ -123,7 +123,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
   // The .prototype on the constructor passed could be an "expando" of a
   // wrapper. So we should get it from wrapper instead of the underlying
   // object.
-  JS::Rooted<JS::Value> prototype(aCx);
+  JS::sandbox::Rooted<JS::Value> prototype(aCx);
   if (!JS_GetProperty(aCx, processorConstructor, "prototype", &prototype)) {
     aRv.NoteJSContextException(aCx);
     return;
@@ -141,7 +141,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
    * 6. Let parameterDescriptorsValue be the result of Get(O=processorCtor,
    *    P="parameterDescriptors").
    */
-  JS::Rooted<JS::Value> descriptors(aCx);
+  JS::sandbox::Rooted<JS::Value> descriptors(aCx);
   if (!JS_GetProperty(aCx, processorConstructor, "parameterDescriptors",
                       &descriptors)) {
     aRv.NoteJSContextException(aCx);
@@ -158,7 +158,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
      *    from parameterDescriptorsValue to an IDL value of type
      *    sequence<AudioParamDescriptor>.
      */
-    JS::Rooted<JS::Value> objectValue(aCx, descriptors);
+    JS::sandbox::Rooted<JS::Value> objectValue(aCx, descriptors);
     JS::ForOfIterator iter(aCx);
     if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
       aRv.NoteJSContextException(aCx);
@@ -226,7 +226,7 @@ AudioParamDescriptorMap AudioWorkletGlobalScope::DescriptorsFromJS(
   // To check for duplicates
   nsTHashSet<nsString> namesSet;
 
-  JS::Rooted<JS::Value> nextValue(aCx);
+  JS::sandbox::Rooted<JS::Value> nextValue(aCx);
   bool done = false;
   size_t i = 0;
   while (true) {
@@ -316,7 +316,7 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   cloneDataPolicy.allowIntraClusterClonableSharedObjects();
   cloneDataPolicy.allowSharedMemoryObjects();
 
-  JS::Rooted<JS::Value> deserializedOptions(aCx);
+  JS::sandbox::Rooted<JS::Value> deserializedOptions(aCx);
   aSerializedOptions->Read(this, aCx, &deserializedOptions, cloneDataPolicy,
                            rv);
   if (rv.MaybeSetPendingException(aCx)) {
@@ -345,7 +345,7 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
    */
   // The options were an object before serialization and so will be an object
   // if deserialization succeeded above.  toObject() asserts.
-  JS::Rooted<JSObject*> options(aCx, &deserializedOptions.toObject());
+  JS::sandbox::Rooted<JSObject*> options(aCx, &deserializedOptions.toObject());
   RefPtr<AudioWorkletProcessor> processor = processorCtor->Construct(
       options, rv, "AudioWorkletProcessor construction",
       CallbackFunction::eRethrowExceptions);
@@ -354,7 +354,7 @@ bool AudioWorkletGlobalScope::ConstructProcessor(
   if (rv.MaybeSetPendingException(aCx)) {
     return false;
   }
-  JS::Rooted<JS::Value> processorVal(aCx);
+  JS::sandbox::Rooted<JS::Value> processorVal(aCx);
   if (NS_WARN_IF(!ToJSValue(aCx, processor, &processorVal))) {
     return false;
   }

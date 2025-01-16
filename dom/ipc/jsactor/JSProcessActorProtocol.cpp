@@ -88,7 +88,7 @@ NS_IMETHODIMP JSProcessActorProtocol::Observe(nsISupports* aSubject,
   }
 
   // Build a observer callback.
-  JS::Rooted<JSObject*> global(jsapi.cx(),
+  JS::sandbox::Rooted<JSObject*> global(jsapi.cx(),
                                JS::GetNonCCWObjectGlobal(actor->GetWrapper()));
   RefPtr<MozObserverCallback> observerCallback =
       new MozObserverCallback(actor->GetWrapper(), global, nullptr, nullptr);

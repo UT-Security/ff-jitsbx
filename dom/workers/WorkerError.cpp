@@ -315,7 +315,7 @@ void WorkerErrorReport::ReportError(
     // better.
     if (aFireAtScope &&
         (aTarget || aReport->mErrorNumber != JSMSG_OVER_RECURSED)) {
-      JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+      JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
       NS_ASSERTION(global, "This should never be null!");
 
       nsEventStatus status = nsEventStatus_eIgnore;
@@ -391,8 +391,8 @@ void WorkerErrorReport::ReportError(
 void WorkerErrorReport::LogErrorToConsole(JSContext* aCx,
                                           WorkerErrorReport& aReport,
                                           uint64_t aInnerWindowId) {
-  JS::Rooted<JSObject*> stack(aCx, aReport.ReadStack(aCx));
-  JS::Rooted<JSObject*> stackGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> stack(aCx, aReport.ReadStack(aCx));
+  JS::sandbox::Rooted<JSObject*> stackGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
 
   ErrorData errorData(
       aReport.mIsWarning, aReport.mLineNumber, aReport.mColumnNumber,

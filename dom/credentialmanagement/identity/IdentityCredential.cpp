@@ -368,7 +368,7 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::ValidationPromise::CreateAndReject(rv, __func__);
@@ -432,7 +432,7 @@ IdentityCredential::FetchInternalManifest(
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   nsresult rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetManifestPromise::CreateAndReject(rv,
@@ -510,7 +510,7 @@ IdentityCredential::FetchAccountList(
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, expandedPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetAccountListPromise::CreateAndReject(rv,
@@ -582,7 +582,7 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetTokenPromise::CreateAndReject(rv, __func__);
@@ -684,7 +684,7 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return IdentityCredential::GetMetadataPromise::CreateAndReject(rv,
@@ -746,7 +746,7 @@ IdentityCredential::PromptUserToSelectProvider(
     return resultPromise;
   }
 
-  JS::Rooted<JS::Value> providersJS(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> providersJS(jsapi.cx());
   bool success = ToJSValue(jsapi.cx(), aProviders, &providersJS);
   if (NS_WARN_IF(!success)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
@@ -770,7 +770,7 @@ IdentityCredential::PromptUserToSelectProvider(
       }
     }
   }
-  JS::Rooted<JS::Value> manifestsJS(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> manifestsJS(jsapi.cx());
   success = ToJSValue(jsapi.cx(), manifests, &manifestsJS);
   if (NS_WARN_IF(!success)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
@@ -839,21 +839,21 @@ IdentityCredential::PromptUserToSelectAccount(
     return resultPromise;
   }
 
-  JS::Rooted<JS::Value> accountsJS(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> accountsJS(jsapi.cx());
   bool success = ToJSValue(jsapi.cx(), aAccounts, &accountsJS);
   if (NS_WARN_IF(!success)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
     return resultPromise;
   }
 
-  JS::Rooted<JS::Value> providerJS(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> providerJS(jsapi.cx());
   success = ToJSValue(jsapi.cx(), aProvider, &providerJS);
   if (NS_WARN_IF(!success)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
     return resultPromise;
   }
 
-  JS::Rooted<JS::Value> manifestJS(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> manifestJS(jsapi.cx());
   success = ToJSValue(jsapi.cx(), aManifest, &manifestJS);
   if (NS_WARN_IF(!success)) {
     resultPromise->Reject(NS_ERROR_FAILURE, __func__);
@@ -955,19 +955,19 @@ IdentityCredential::PromptUserWithPolicy(
                                                      __func__);
             }
 
-            JS::Rooted<JS::Value> providerJS(jsapi.cx());
+            JS::sandbox::Rooted<JS::Value> providerJS(jsapi.cx());
             bool success = ToJSValue(jsapi.cx(), aProvider, &providerJS);
             if (NS_WARN_IF(!success)) {
               return GenericPromise::CreateAndReject(NS_ERROR_FAILURE,
                                                      __func__);
             }
-            JS::Rooted<JS::Value> metadataJS(jsapi.cx());
+            JS::sandbox::Rooted<JS::Value> metadataJS(jsapi.cx());
             success = ToJSValue(jsapi.cx(), metadata, &metadataJS);
             if (NS_WARN_IF(!success)) {
               return GenericPromise::CreateAndReject(NS_ERROR_FAILURE,
                                                      __func__);
             }
-            JS::Rooted<JS::Value> manifestJS(jsapi.cx());
+            JS::sandbox::Rooted<JS::Value> manifestJS(jsapi.cx());
             success = ToJSValue(jsapi.cx(), aManifest, &manifestJS);
             if (NS_WARN_IF(!success)) {
               return GenericPromise::CreateAndReject(NS_ERROR_FAILURE,

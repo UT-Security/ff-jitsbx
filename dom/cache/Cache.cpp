@@ -134,19 +134,19 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
     QM_TRY(OkIf(JS::IsArrayObject(aCx, aValue, &isArray)), QM_VOID, failOnErr);
     QM_TRY(OkIf(isArray), QM_VOID, failOnErr);
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
     uint32_t length;
     QM_TRY(OkIf(JS::GetArrayLength(aCx, obj, &length)), QM_VOID, failOnErr);
 
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
 
       QM_TRY(OkIf(JS_GetElement(aCx, obj, i, &value)), QM_VOID, failOnErr);
 
       QM_TRY(OkIf(value.isObject()), QM_VOID, failOnErr);
 
-      JS::Rooted<JSObject*> responseObj(aCx, &value.toObject());
+      JS::sandbox::Rooted<JSObject*> responseObj(aCx, &value.toObject());
 
       RefPtr<Response> response;
       QM_TRY(MOZ_TO_RESULT(UNWRAP_OBJECT(Response, responseObj, response)),

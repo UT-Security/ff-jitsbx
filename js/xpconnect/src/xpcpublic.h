@@ -665,7 +665,7 @@ class ErrorReport : public ErrorBase {
 };
 
 void DispatchScriptErrorEvent(nsPIDOMWindowInner* win,
-                              JS::RootingContext* rootingCx,
+                              JS::sandbox::RootingContext* rootingCx,
                               xpc::ErrorReport* xpcReport,
                               JS::Handle<JS::Value> exception,
                               JS::Handle<JSObject*> exceptionStack);

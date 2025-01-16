@@ -102,11 +102,11 @@ AutoEntryScript::DocshellEntryMonitor::DocshellEntryMonitor(JSContext* aCx,
 void AutoEntryScript::DocshellEntryMonitor::Entry(
     JSContext* aCx, JSFunction* aFunction, JSScript* aScript,
     JS::Handle<JS::Value> aAsyncStack, const char* aAsyncCause) {
-  JS::Rooted<JSFunction*> rootedFunction(aCx);
+  JS::sandbox::Rooted<JSFunction*> rootedFunction(aCx);
   if (aFunction) {
     rootedFunction = aFunction;
   }
-  JS::Rooted<JSScript*> rootedScript(aCx);
+  JS::sandbox::Rooted<JSScript*> rootedScript(aCx);
   if (aScript) {
     rootedScript = aScript;
   }
@@ -121,7 +121,7 @@ void AutoEntryScript::DocshellEntryMonitor::Entry(
 
   nsAutoJSString functionName;
   if (rootedFunction) {
-    JS::Rooted<JSString*> displayId(aCx,
+    JS::sandbox::Rooted<JSString*> displayId(aCx,
                                     JS_GetFunctionDisplayId(rootedFunction));
     if (displayId) {
       if (!functionName.init(aCx, displayId)) {

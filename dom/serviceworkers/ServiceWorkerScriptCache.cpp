@@ -53,7 +53,7 @@ already_AddRefed<CacheStorage> CreateCacheStorage(JSContext* aCx,
 
   nsIXPConnect* xpc = nsContentUtils::XPConnect();
   MOZ_ASSERT(xpc, "This should never be null!");
-  JS::Rooted<JSObject*> sandbox(aCx);
+  JS::sandbox::Rooted<JSObject*> sandbox(aCx);
   aRv = xpc->CreateSandbox(aCx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -356,7 +356,7 @@ class CompareManager final : public PromiseNativeHandler {
     }
 
     MOZ_ASSERT(!mOldCache);
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     if (NS_WARN_IF(!obj) ||
         NS_WARN_IF(NS_FAILED(UNWRAP_OBJECT(Cache, obj, mOldCache)))) {
       return;
@@ -389,7 +389,7 @@ class CompareManager final : public PromiseNativeHandler {
       return;
     }
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     if (NS_WARN_IF(!obj)) {
       return;
     }
@@ -409,14 +409,14 @@ class CompareManager final : public PromiseNativeHandler {
 
     // Extract the list of URLs in the old cache.
     for (uint32_t i = 0; i < len; ++i) {
-      JS::Rooted<JS::Value> val(aCx);
+      JS::sandbox::Rooted<JS::Value> val(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &val)) ||
           NS_WARN_IF(!val.isObject())) {
         return;
       }
 
       Request* request;
-      JS::Rooted<JSObject*> requestObj(aCx, &val.toObject());
+      JS::sandbox::Rooted<JSObject*> requestObj(aCx, &val.toObject());
       if (NS_WARN_IF(NS_FAILED(UNWRAP_OBJECT(Request, &requestObj, request)))) {
         return;
       };
@@ -475,7 +475,7 @@ class CompareManager final : public PromiseNativeHandler {
       return;
     }
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     if (NS_WARN_IF(!obj)) {
       return;
     }
@@ -1231,7 +1231,7 @@ void CompareCache::ManageValueResult(JSContext* aCx,
 
   MOZ_ASSERT(aValue.isObject());
 
-  JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
   if (NS_WARN_IF(!obj)) {
     Finish(NS_ERROR_FAILURE, false);
     return;

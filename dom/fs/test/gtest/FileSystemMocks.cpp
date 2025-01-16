@@ -39,8 +39,8 @@ nsresult GetAsString(const RefPtr<Promise>& aPromise, nsAString& aString) {
 
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> promiseObj(cx, aPromise->PromiseObj());
-  JS::Rooted<JS::Value> vp(cx, JS::GetPromiseResult(promiseObj));
+  JS::sandbox::Rooted<JSObject*> promiseObj(cx, aPromise->PromiseObj());
+  JS::sandbox::Rooted<JS::Value> vp(cx, JS::GetPromiseResult(promiseObj));
 
   switch (aPromise->State()) {
     case Promise::PromiseState::Pending: {

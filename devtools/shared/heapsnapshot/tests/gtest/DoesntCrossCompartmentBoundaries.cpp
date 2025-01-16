@@ -10,7 +10,7 @@
 DEF_TEST(DoesntCrossCompartmentBoundaries, {
   // Create a new global to get a new compartment.
   JS::RealmOptions options;
-  JS::Rooted<JSObject*> newGlobal(
+  JS::sandbox::Rooted<JSObject*> newGlobal(
       cx, JS_NewGlobalObject(cx, getGlobalClass(), nullptr,
                              JS::FireOnNewGlobalHook, options));
   ASSERT_TRUE(newGlobal);

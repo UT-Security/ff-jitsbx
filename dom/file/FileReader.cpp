@@ -171,7 +171,7 @@ FileReader::GetInterface(const nsIID& aIID, void** aResult) {
 
 void FileReader::GetResult(JSContext* aCx,
                            Nullable<OwningStringOrArrayBuffer>& aResult) {
-  JS::Rooted<JS::Value> result(aCx);
+  JS::sandbox::Rooted<JS::Value> result(aCx);
 
   if (mDataFormat == FILE_AS_ARRAYBUFFER) {
     if (mReadyState != DONE || !mResultArrayBuffer ||
@@ -210,7 +210,7 @@ void FileReader::OnLoadEndArrayBuffer() {
 
   // Let's handle the error status.
 
-  JS::Rooted<JS::Value> exceptionValue(cx);
+  JS::sandbox::Rooted<JS::Value> exceptionValue(cx);
   if (!JS_GetPendingException(cx, &exceptionValue) ||
       // This should not really happen, exception should always be an object.
       !exceptionValue.isObject()) {
@@ -221,7 +221,7 @@ void FileReader::OnLoadEndArrayBuffer() {
 
   JS_ClearPendingException(jsapi.cx());
 
-  JS::Rooted<JSObject*> exceptionObject(cx, &exceptionValue.toObject());
+  JS::sandbox::Rooted<JSObject*> exceptionObject(cx, &exceptionValue.toObject());
   JSErrorReport* er = JS_ErrorFromException(cx, exceptionObject);
   if (!er || er->message()) {
     FreeDataAndDispatchError(NS_ERROR_OUT_OF_MEMORY);

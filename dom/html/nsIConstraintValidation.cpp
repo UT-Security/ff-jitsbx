@@ -69,7 +69,7 @@ bool nsIConstraintValidation::ReportValidity() {
   if (!jsapi.Init(element->GetOwnerGlobal())) {
     return false;
   }
-  JS::Rooted<JS::Value> detail(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> detail(jsapi.cx());
   if (!ToJSValue(jsapi.cx(), invalidElements, &detail)) {
     return false;
   }

@@ -583,7 +583,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   // First check for indexed access.  This is
   // https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-getownproperty
   // step 2, mostly.
-  JS::Rooted<JS::Value> subframe(cx);
+  JS::sandbox::Rooted<JS::Value> subframe(cx);
   bool found;
   if (!GetSubframeWindow(cx, proxy, id, &subframe, found)) {
     return false;
@@ -676,7 +676,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
     }
     nsGlobalWindowOuter* win = GetOuterWindow(proxy);
     if (RefPtr<BrowsingContext> childDOMWin = win->GetChildWindow(name)) {
-      JS::Rooted<JS::Value> childValue(cx);
+      JS::sandbox::Rooted<JS::Value> childValue(cx);
       if (!ToJSValue(cx, WindowProxyHolder(childDOMWin), &childValue)) {
         return false;
       }
@@ -720,7 +720,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
       return true;
     }
 
-    JS::Rooted<Maybe<JS::PropertyDescriptor>> existingDesc(cx);
+    JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> existingDesc(cx);
     ok = js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, &existingDesc);
     if (!ok) {
       return false;
@@ -733,7 +733,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
       return true;
     }
 
-    JS::Rooted<JS::PropertyDescriptor> updatedDesc(cx, desc);
+    JS::sandbox::Rooted<JS::PropertyDescriptor> updatedDesc(cx, desc);
     updatedDesc.setConfigurable(false);
 
     JS::ObjectOpResult ourNewResult;
@@ -777,7 +777,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
     // When forwarding to js::Wrapper, we should just enter the Realm of proxy
     // for now.  That's what js::Wrapper expects, and since we're same-origin
     // anyway this is not changing any security behavior.
-    JS::RootedVector<jsid> innerProps(cx);
+    JS::sandbox::RootedVector<jsid> innerProps(cx);
     {  // Scope for JSAutoRealm so we can mark the ids once we exit it
       JSAutoRealm ar(cx, proxy);
       if (!js::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
@@ -792,12 +792,12 @@ bool nsOuterWindowProxy::ownPropertyKeys(
 
   // In the cross-origin case we purposefully exclude subframe names from the
   // list of property names we report here.
-  JS::Rooted<JSObject*> holder(cx);
+  JS::sandbox::Rooted<JSObject*> holder(cx);
   if (!EnsureHolder(cx, proxy, &holder)) {
     return false;
   }
 
-  JS::RootedVector<jsid> crossOriginProps(cx);
+  JS::sandbox::RootedVector<jsid> crossOriginProps(cx);
   if (!js::GetPropertyKeys(cx, holder,
                            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
                            &crossOriginProps) ||
@@ -813,7 +813,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
     nsCOMPtr<nsIPrincipal> targetPrincipal = GetNoPDFJSPrincipal(inner);
     if (targetPrincipal &&
         nsContentUtils::SubjectPrincipal(cx)->Equals(targetPrincipal)) {
-      JS::RootedVector<jsid> printProp(cx);
+      JS::sandbox::RootedVector<jsid> printProp(cx);
       if (!printProp.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PRINT)) ||
           !js::AppendUnique(cx, props, printProp)) {
         return false;
@@ -944,7 +944,7 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
 
     JS_MarkCrossZoneId(cx, id);
 
-    JS::Rooted<JS::Value> wrappedReceiver(cx, receiver);
+    JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
     if (!MaybeWrapValue(cx, &wrappedReceiver)) {
       return false;
     }
@@ -975,11 +975,11 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
 
   // Do the rest in the Realm of "proxy", since we're in the same-origin case.
   JSAutoRealm ar(cx, proxy);
-  JS::Rooted<JS::Value> wrappedArg(cx, v);
+  JS::sandbox::Rooted<JS::Value> wrappedArg(cx, v);
   if (!MaybeWrapValue(cx, &wrappedArg)) {
     return false;
   }
-  JS::Rooted<JS::Value> wrappedReceiver(cx, receiver);
+  JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
   if (!MaybeWrapValue(cx, &wrappedReceiver)) {
     return false;
   }
@@ -1013,7 +1013,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   // When forwarding to js::Wrapper, we should just enter the Realm of proxy
   // for now.  That's what js::Wrapper expects, and since we're same-origin
   // anyway this is not changing any security behavior.
-  JS::RootedVector<jsid> innerProps(cx);
+  JS::sandbox::RootedVector<jsid> innerProps(cx);
   {  // Scope for JSAutoRealm so we can mark the ids once we exit it.
     JSAutoRealm ar(cx, proxy);
     if (!js::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
@@ -1118,13 +1118,13 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
   }
 
   // Get the function we plan to actually call.
-  JS::Rooted<JSObject*> innerObj(cx, inner->GetGlobalJSObject());
+  JS::sandbox::Rooted<JSObject*> innerObj(cx, inner->GetGlobalJSObject());
   if (!innerObj) {
     // Really should not happen, but ok, let's just return.
     return true;
   }
 
-  JS::Rooted<JS::Value> targetFunc(cx);
+  JS::sandbox::Rooted<JS::Value> targetFunc(cx);
   {
     JSAutoRealm ar(cx, innerObj);
     if (!JS_GetProperty(cx, innerObj, "print", &targetFunc)) {
@@ -1153,7 +1153,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
     return false;
   }
 
-  JS::Rooted<JSObject*> funObj(cx, JS_GetFunctionObject(fun));
+  JS::sandbox::Rooted<JSObject*> funObj(cx, JS_GetFunctionObject(fun));
   js::SetFunctionNativeReserved(funObj, PDFJS_SLOT_CALLEE, targetFunc);
 
   // { value: <print>, writable: true, enumerable: true, configurable: true }
@@ -1171,18 +1171,18 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
                                           JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
-  JS::Rooted<JSObject*> realCallee(
+  JS::sandbox::Rooted<JSObject*> realCallee(
       cx, &js::GetFunctionNativeReserved(&args.callee(), PDFJS_SLOT_CALLEE)
                .toObject());
   // Unchecked unwrap, because we want to extract the thing we really had
   // before.
   realCallee = js::UncheckedUnwrap(realCallee);
 
-  JS::Rooted<JS::Value> thisv(cx, args.thisv());
+  JS::sandbox::Rooted<JS::Value> thisv(cx, args.thisv());
   if (thisv.isNullOrUndefined()) {
     // Replace it with the global of our stashed callee, simulating the
     // global-assuming behavior of DOM methods.
-    JS::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(realCallee));
+    JS::sandbox::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(realCallee));
     if (!MaybeWrapObject(cx, &global)) {
       return false;
     }
@@ -1193,7 +1193,7 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
 
   // We want to do an UncheckedUnwrap here, because we're going to directly
   // examine the principal of the inner window, if we have an inner window.
-  JS::Rooted<JSObject*> unwrappedObj(cx,
+  JS::sandbox::Rooted<JSObject*> unwrappedObj(cx,
                                      js::UncheckedUnwrap(&thisv.toObject()));
   nsGlobalWindowInner* inner = nullptr;
   {
@@ -1838,7 +1838,7 @@ class WindowStateHolder final : public nsISupports {
   nsGlobalWindowInner* mInnerWindow;
   // We hold onto this to make sure the inner window doesn't go away. The outer
   // window ends up recalculating it anyway.
-  JS::PersistentRooted<JSObject*> mInnerWindowReflector;
+  JS::sandbox::PersistentRooted<JSObject*> mInnerWindowReflector;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
@@ -1921,7 +1921,7 @@ static bool InitializeLegacyNetscapeObject(JSContext* aCx,
   JSAutoRealm ar(aCx, aGlobal);
 
   // Note: MathJax depends on window.netscape being exposed. See bug 791526.
-  JS::Rooted<JSObject*> obj(aCx);
+  JS::sandbox::Rooted<JSObject*> obj(aCx);
   obj = JS_DefineObject(aCx, aGlobal, "netscape", nullptr);
   NS_ENSURE_TRUE(obj, false);
 
@@ -2196,7 +2196,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
   // Only non-gray (i.e. exposed to JS) objects should be assigned to
   // newInnerGlobal.
-  JS::Rooted<JSObject*> newInnerGlobal(cx);
+  JS::sandbox::Rooted<JSObject*> newInnerGlobal(cx);
   if (reUseInnerWindow) {
     // We're reusing the current inner window.
     NS_ASSERTION(!currentInner->IsFrozen(),
@@ -2207,7 +2207,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     // We're reusing the inner window, but this still counts as a navigation,
     // so all expandos and such defined on the outer window should go away.
     // Force all Xray wrappers to be recomputed.
-    JS::Rooted<JSObject*> rootedObject(cx, GetWrapper());
+    JS::sandbox::Rooted<JSObject*> rootedObject(cx, GetWrapper());
     if (!JS_RefreshCrossCompartmentWrappers(cx, rootedObject)) {
       return NS_ERROR_FAILURE;
     }
@@ -2290,7 +2290,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     mInnerWindow->TryToCacheTopInnerWindow();
 
     if (!GetWrapperPreserveColor()) {
-      JS::Rooted<JSObject*> outer(
+      JS::sandbox::Rooted<JSObject*> outer(
           cx, NewOuterWindowProxy(cx, newInnerGlobal, thisChrome));
       NS_ENSURE_TRUE(outer, NS_ERROR_FAILURE);
 
@@ -2305,14 +2305,14 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
       SetWrapper(mContext->GetWindowProxy());
     } else {
-      JS::Rooted<JSObject*> outerObject(
+      JS::sandbox::Rooted<JSObject*> outerObject(
           cx, NewOuterWindowProxy(cx, newInnerGlobal, thisChrome));
       if (!outerObject) {
         NS_ERROR("out of memory");
         return NS_ERROR_FAILURE;
       }
 
-      JS::Rooted<JSObject*> obj(cx, GetWrapper());
+      JS::sandbox::Rooted<JSObject*> obj(cx, GetWrapper());
 
       MOZ_ASSERT(js::IsWindowProxy(obj));
 
@@ -2345,7 +2345,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
     {
-      JS::Rooted<JSObject*> outer(cx, GetWrapperPreserveColor());
+      JS::sandbox::Rooted<JSObject*> outer(cx, GetWrapperPreserveColor());
       js::SetWindowProxy(cx, newInnerGlobal, outer);
       mBrowsingContext->SetWindowProxy(outer);
     }
@@ -2364,7 +2364,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
       // nsGlobalWindowOuter, so GetWrapperPreserveColor() on that outer
       // nsGlobalWindowOuter doesn't return null and
       // nsGlobalWindowOuter::OuterObject works correctly.
-      JS::Rooted<JS::Value> unused(cx);
+      JS::sandbox::Rooted<JS::Value> unused(cx);
       if (!JS_GetProperty(cx, newInnerGlobal, "window", &unused)) {
         NS_ERROR("can't create the 'window' property");
         return NS_ERROR_FAILURE;
@@ -2388,8 +2388,8 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     // let the script context do its magic to hook them together.
     MOZ_ASSERT(mContext->GetWindowProxy() == GetWrapperPreserveColor());
 #ifdef DEBUG
-    JS::Rooted<JSObject*> rootedJSObject(cx, GetWrapperPreserveColor());
-    JS::Rooted<JSObject*> proto1(cx), proto2(cx);
+    JS::sandbox::Rooted<JSObject*> rootedJSObject(cx, GetWrapperPreserveColor());
+    JS::sandbox::Rooted<JSObject*> proto1(cx), proto2(cx);
     JS_GetPrototype(cx, rootedJSObject, &proto1);
     JS_GetPrototype(cx, newInnerGlobal, &proto2);
     NS_ASSERTION(proto1 == proto2,
@@ -2442,7 +2442,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
       newInnerWindow->InitDocumentDependentState(cx);
 
       // Initialize DOM classes etc on the inner window.
-      JS::Rooted<JSObject*> obj(cx, newInnerGlobal);
+      JS::sandbox::Rooted<JSObject*> obj(cx, newInnerGlobal);
       rv = kungFuDeathGrip->InitClasses(obj);
       NS_ENSURE_SUCCESS(rv, rv);
     }
@@ -2531,7 +2531,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
 /* static */
 void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
-  JS::Rooted<JSObject*> localProxy(RootingCx(), aProxy);
+  JS::sandbox::Rooted<JSObject*> localProxy(RootingCx(), aProxy);
   MOZ_ASSERT(js::IsWindowProxy(localProxy));
 
   RefPtr<nsGlobalWindowOuter> outerWindow =
@@ -2562,7 +2562,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
                            JS::UndefinedValue());
 
   // Create a new remote outer window proxy, and transplant to it.
-  JS::Rooted<JSObject*> remoteProxy(cx);
+  JS::sandbox::Rooted<JSObject*> remoteProxy(cx);
 
   if (!mozilla::dom::GetRemoteOuterWindowProxy(cx, bc, localProxy,
                                                &remoteProxy)) {
@@ -3276,7 +3276,7 @@ void nsGlobalWindowOuter::GetContentOuter(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> val(aCx);
+  JS::sandbox::Rooted<JS::Value> val(aCx);
   if (!ToJSValue(aCx, WindowProxyHolder{content}, &val)) {
     aError.Throw(NS_ERROR_UNEXPECTED);
     return;
@@ -4043,7 +4043,7 @@ bool nsGlobalWindowOuter::DispatchResizeEvent(const CSSIntSize& aSize) {
   DOMWindowResizeEventDetail detail;
   detail.mWidth = aSize.width;
   detail.mHeight = aSize.height;
-  JS::Rooted<JS::Value> detailValue(cx);
+  JS::sandbox::Rooted<JS::Value> detailValue(cx);
   if (!ToJSValue(cx, detail, &detailValue)) {
     return false;
   }
@@ -4654,7 +4654,7 @@ void nsGlobalWindowOuter::MacFullscreenMenubarOverlapChanged(
   JSContext* cx = jsapi.cx();
   JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
-  JS::Rooted<JS::Value> detailValue(cx);
+  JS::sandbox::Rooted<JS::Value> detailValue(cx);
   if (!ToJSValue(cx, aOverlapAmount, &detailValue)) {
     return;
   }

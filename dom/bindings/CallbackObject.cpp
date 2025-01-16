@@ -100,7 +100,7 @@ void CallbackObject::FinishSlowJSInitIfMoreThanOneOwner(JSContext* aCx) {
   if (mRefCnt.get() > 1) {
     mozilla::HoldJSObjects(this);
     if (JS::IsAsyncStackCaptureEnabledForRealm(aCx)) {
-      JS::Rooted<JSObject*> stack(aCx);
+      JS::sandbox::Rooted<JSObject*> stack(aCx);
       if (!JS::CaptureCurrentStack(aCx, &stack)) {
         JS_ClearPendingException(aCx);
       }
@@ -136,7 +136,7 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
     return;
   }
 
-  JS::Rooted<JSObject*> unwrappedCallback(
+  JS::sandbox::Rooted<JSObject*> unwrappedCallback(
       RootingCx(), js::CheckedUnwrapStatic(wrappedCallback));
   if (!unwrappedCallback) {
     aOutString.Append("<not a function>");
@@ -147,17 +147,17 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
   jsapi.Init();
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> rootedCallback(cx, unwrappedCallback);
+  JS::sandbox::Rooted<JSObject*> rootedCallback(cx, unwrappedCallback);
   JSAutoRealm ar(cx, rootedCallback);
 
-  JS::Rooted<JSFunction*> rootedFunction(cx,
+  JS::sandbox::Rooted<JSFunction*> rootedFunction(cx,
                                          JS_GetObjectFunction(rootedCallback));
   if (!rootedFunction) {
     aOutString.Append("<not a function>");
     return;
   }
 
-  JS::Rooted<JSString*> displayId(cx, JS_GetFunctionDisplayId(rootedFunction));
+  JS::sandbox::Rooted<JSString*> displayId(cx, JS_GetFunctionDisplayId(rootedFunction));
   if (displayId) {
     nsAutoJSString funcNameStr;
     if (funcNameStr.init(cx, displayId)) {
@@ -174,7 +174,7 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
     aOutString.Append("<anonymous>");
   }
 
-  JS::Rooted<JSScript*> rootedScript(cx,
+  JS::sandbox::Rooted<JSScript*> rootedScript(cx,
                                      JS_GetFunctionScript(cx, rootedFunction));
   if (!rootedScript) {
     return;
@@ -226,7 +226,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
 
   {
     // First, find the real underlying callback.
-    JS::Rooted<JSObject*> realCallback(ccjs->RootingCx(),
+    JS::sandbox::Rooted<JSObject*> realCallback(ccjs->SandboxRootingCx(),
                                        js::UncheckedUnwrap(wrappedCallback));
 
     // Get the global for this callback. Note that for the case of
@@ -334,7 +334,7 @@ bool CallbackObject::CallSetup::ShouldRethrowException(
     return false;
   }
 
-  JS::Rooted<JSObject*> obj(mCx, &aException.toObject());
+  JS::sandbox::Rooted<JSObject*> obj(mCx, &aException.toObject());
   obj = js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false);
   return js::GetNonCCWObjectRealm(obj) == mRealm;
 }
@@ -355,7 +355,7 @@ CallbackObject::CallSetup::~CallSetup() {
         mExceptionHandling == eRethrowExceptions) {
       mErrorResult.MightThrowJSException();
       if (needToDealWithException) {
-        JS::Rooted<JS::Value> exn(mCx);
+        JS::sandbox::Rooted<JS::Value> exn(mCx);
         if (mAutoEntryScript->PeekException(&exn) &&
             ShouldRethrowException(exn)) {
           mAutoEntryScript->ClearException();
@@ -407,7 +407,7 @@ already_AddRefed<nsISupports> CallbackObjectHolderBase::ToXPCOMCallback(
   jsapi.Init();
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> callback(cx, aCallback->CallbackOrNull());
+  JS::sandbox::Rooted<JSObject*> callback(cx, aCallback->CallbackOrNull());
   if (!callback) {
     return nullptr;
   }

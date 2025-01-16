@@ -48,7 +48,7 @@ already_AddRefed<CustomEvent> CustomEvent::Constructor(
       do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<CustomEvent> e = new CustomEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
-  JS::Rooted<JS::Value> detail(aGlobal.Context(), aParam.mDetail);
+  JS::sandbox::Rooted<JS::Value> detail(aGlobal.Context(), aParam.mDetail);
   e->InitCustomEvent(aGlobal.Context(), aType, aParam.mBubbles,
                      aParam.mCancelable, detail);
   e->SetTrusted(trusted);

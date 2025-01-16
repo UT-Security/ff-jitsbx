@@ -179,7 +179,7 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 
   class ModuleEntry {
    public:
-    explicit ModuleEntry(JS::RootingContext* aRootingCx)
+    explicit ModuleEntry(JS::sandbox::RootingContext* aRootingCx)
         : obj(aRootingCx), exports(aRootingCx), thisObjectKey(aRootingCx) {
       location = nullptr;
     }
@@ -189,7 +189,7 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
     void Clear() {
       if (obj) {
         if (JS_HasExtensibleLexicalEnvironment(obj)) {
-          JS::RootedObject lexicalEnv(mozilla::dom::RootingCx(),
+          JS::sandbox::RootedObject lexicalEnv(mozilla::dom::RootingCx(),
                                       JS_ExtensibleLexicalEnvironment(obj));
           JS_SetAllNonReservedSlotsToUndefined(lexicalEnv);
         }
@@ -209,16 +209,16 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-    JS::PersistentRootedObject obj;
-    JS::PersistentRootedObject exports;
-    JS::PersistentRootedScript thisObjectKey;
+    JS::sandbox::PersistentRootedObject obj;
+    JS::sandbox::PersistentRootedObject exports;
+    JS::sandbox::PersistentRootedScript thisObjectKey;
     char* location;
     nsCString resolvedURL;
   };
 
   class FallbackModuleEntry {
    public:
-    explicit FallbackModuleEntry(JS::RootingContext* aRootingCx)
+    explicit FallbackModuleEntry(JS::sandbox::RootingContext* aRootingCx)
         : globalProxy(aRootingCx), moduleNamespace(aRootingCx) {}
 
     ~FallbackModuleEntry() { Clear(); }
@@ -232,8 +232,8 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
       return aMallocSizeOf(this);
     }
 
-    JS::PersistentRootedObject globalProxy;
-    JS::PersistentRootedObject moduleNamespace;
+    JS::sandbox::PersistentRootedObject globalProxy;
+    JS::sandbox::PersistentRootedObject moduleNamespace;
   };
 
   nsresult ExtractExports(JSContext* aCx, ModuleLoaderInfo& aInfo,
@@ -255,8 +255,8 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 #ifdef DEBUG
   bool mIsInitializingLoaderGlobal = false;
 #endif
-  JS::PersistentRooted<JSObject*> mLoaderGlobal;
-  JS::PersistentRooted<JSObject*> mServicesObj;
+  JS::sandbox::PersistentRooted<JSObject*> mLoaderGlobal;
+  JS::sandbox::PersistentRooted<JSObject*> mServicesObj;
 
   RefPtr<mozilla::loader::ComponentModuleLoader> mModuleLoader;
 };

@@ -112,7 +112,7 @@ void TransformStreamDefaultController::Enqueue(JSContext* aCx,
 
   // Step 5: If enqueueResult is an abrupt completion,
   if (rv.MaybeSetPendingException(aCx)) {
-    JS::Rooted<JS::Value> error(aCx);
+    JS::sandbox::Rooted<JS::Value> error(aCx);
     if (!JS_GetPendingException(aCx, &error)) {
       // Uncatchable exception; we should mark aRv and return.
       aRv.StealExceptionFromJSContext(aCx);
@@ -125,7 +125,7 @@ void TransformStreamDefaultController::Enqueue(JSContext* aCx,
     TransformStreamErrorWritableAndUnblockWrite(aCx, stream, error, aRv);
 
     // Step 5.2: Throw stream.[[readable]].[[storedError]].
-    JS::Rooted<JS::Value> storedError(aCx, stream->Readable()->StoredError());
+    JS::sandbox::Rooted<JS::Value> storedError(aCx, stream->Readable()->StoredError());
     aRv.MightThrowJSException();
     aRv.ThrowJSException(aCx, storedError);
     return;
@@ -186,7 +186,7 @@ void TransformStreamDefaultController::Terminate(JSContext* aCx,
   // been terminated.
   ErrorResult rv;
   rv.ThrowTypeError("Terminating the stream");
-  JS::Rooted<JS::Value> error(aCx);
+  JS::sandbox::Rooted<JS::Value> error(aCx);
   MOZ_ALWAYS_TRUE(ToJSValue(aCx, std::move(rv), &error));
 
   // Step 5: Perform ! TransformStreamErrorWritableAndUnblockWrite(stream,

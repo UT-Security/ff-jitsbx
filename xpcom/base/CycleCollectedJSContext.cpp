@@ -12,6 +12,7 @@
 #include "js/Debug.h"
 #include "js/GCAPI.h"
 #include "js/sandbox/Promise.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/Utility.h"
 #include "jsapi.h"
 #include "mozilla/ArrayUtils.h"
@@ -71,6 +72,10 @@ CycleCollectedJSContext::CycleCollectedJSContext()
   nsCOMPtr<nsIThread> thread = do_GetCurrentThread();
   mOwningThread = thread.forget().downcast<nsThread>().take();
   MOZ_RELEASE_ASSERT(mOwningThread);
+
+  for (auto& listHead : externalStackRoots_) {
+    listHead = nullptr;
+  }
 }
 
 CycleCollectedJSContext::~CycleCollectedJSContext() {
@@ -154,6 +159,14 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
                                js::SystemAllocPolicy()));
 
   mFinalizationRegistryCleanup.Init();
+
+  JS::sandbox::JS_SetExternalRootingCallbacks(
+      mJSContext,
+      {.trace = (JS::sandbox::ExternalRootingCallbackTrace)sbx_register_cb((void*)traceExternalRoots, 0),
+       .roots = getExternalRoots,
+       .externalRoots = (JS::sandbox::ExternalRootingCallbackRoots)sbx_register_cb((void*)getExternalRoots, 0)
+     },
+      this);
 
   // Cast to PerThreadAtomCache for dom::GetAtomCache(JSContext*).
   JS_SetContextPrivate(mJSContext, static_cast<PerThreadAtomCache*>(this));
@@ -253,7 +266,7 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
   if (aIncumbentGlobal) {
     global = xpc::NativeGlobal(aIncumbentGlobal);
   }
-  JS::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
   RefPtr<PromiseJobRunnable> runnable = new PromiseJobRunnable(
       aPromise, aJob, jobGlobal, aAllocationSite, global);
   DispatchToMicroTask(runnable.forget());
@@ -737,8 +750,8 @@ NS_IMETHODIMP CycleCollectedJSContext::NotifyUnhandledRejections::Run() {
       continue;
     }
 
-    JS::RootingContext* cx = cccx->RootingCx();
-    JS::RootedObject promiseObj(cx, promise->PromiseObj());
+    JS::sandbox::RootingContext* cx = cccx->SandboxRootingCx();
+    JS::sandbox::RootedObject promiseObj(cx, promise->PromiseObj());
     MOZ_ASSERT(JS::IsPromiseObject(promiseObj));
 
     // Only fire unhandledrejection if the promise is still not handled;
@@ -786,7 +799,7 @@ nsresult CycleCollectedJSContext::NotifyUnhandledRejections::Cancel() {
       continue;
     }
 
-    JS::RootedObject promiseObj(cccx->RootingCx(), promise->PromiseObj());
+    JS::sandbox::RootedObject promiseObj(cccx->SandboxRootingCx(), promise->PromiseObj());
     cccx->mPendingUnhandledRejections.Remove(JS::GetPromiseID(promiseObj));
   }
   return NS_OK;
@@ -852,9 +865,9 @@ void FinalizationRegistryCleanup::DoCleanup() {
     return;
   }
 
-  JS::RootingContext* cx = mContext->RootingCx();
+  JS::sandbox::RootingContext* cx = mContext->SandboxRootingCx();
 
-  JS::Rooted<CallbackVector> callbacks(cx);
+  JS::sandbox::Rooted<CallbackVector> callbacks(cx);
   std::swap(callbacks.get(), mCallbacks.get());
 
   for (const Callback& callback : callbacks) {
@@ -862,9 +875,9 @@ void FinalizationRegistryCleanup::DoCleanup() {
         JS_GetFunctionObject(callback.mCallbackFunction));
     JS::ExposeObjectToActiveJS(callback.mIncumbentGlobal);
 
-    JS::RootedObject functionObj(
+    JS::sandbox::RootedObject functionObj(
         cx, JS_GetFunctionObject(callback.mCallbackFunction));
-    JS::RootedObject globalObj(cx, JS::GetNonCCWObjectGlobal(functionObj));
+    JS::sandbox::RootedObject globalObj(cx, JS::GetNonCCWObjectGlobal(functionObj));
 
     nsIGlobalObject* incumbentGlobal =
         xpc::NativeGlobal(callback.mIncumbentGlobal);
@@ -887,6 +900,20 @@ void FinalizationRegistryCleanup::DoCleanup() {
 void FinalizationRegistryCleanup::Callback::trace(JSTracer* trc) {
   JS::TraceRoot(trc, &mCallbackFunction, "mCallbackFunction");
   JS::TraceRoot(trc, &mIncumbentGlobal, "mIncumbentGlobal");
+}
+
+JS::sandbox::RootedListHeads& CycleCollectedJSContext::getExternalRoots(void* data) {
+  CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(data);
+  return self->externalStackRoots_;
+}
+
+void CycleCollectedJSContext::traceExternalRoots(JSTracer *trc, void* data) {
+  CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(data);
+  js::sandbox::StackRootedBase* listHead = self->externalStackRoots_[JS::RootKind::Traceable];
+  
+  for (js::sandbox::StackRootedBase* root = listHead; root; root = root->previous()) {
+    static_cast<js::sandbox::StackRootedTraceableBase*>(root)->trace(trc, "ExternalTraceable");
+  }
 }
 
 }  // namespace mozilla

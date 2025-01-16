@@ -168,7 +168,7 @@ JSObject* StructuredCloneReadCallback(
 template <typename T>
 bool WrapAsJSObject(JSContext* const aCx, T& aBaseObject,
                     JS::MutableHandle<JSObject*> aResult) {
-  JS::Rooted<JS::Value> wrappedValue(aCx);
+  JS::sandbox::Rooted<JS::Value> wrappedValue(aCx);
   if (!ToJSValue(aCx, aBaseObject, &wrappedValue)) {
     return false;
   }

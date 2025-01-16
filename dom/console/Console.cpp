@@ -275,7 +275,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     if (aTag == CONSOLE_TAG_BLOB) {
       MOZ_ASSERT(mClonedData.mBlobs.Length() > aIndex);
 
-      JS::Rooted<JS::Value> val(aCx);
+      JS::sandbox::Rooted<JS::Value> val(aCx);
       {
         nsCOMPtr<nsIGlobalObject> global = mClonedData.mGlobal;
         RefPtr<Blob> blob =
@@ -310,8 +310,8 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       return false;
     }
 
-    JS::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aObj));
-    JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+    JS::sandbox::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aObj));
+    JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
     if (NS_WARN_IF(!jsString)) {
       return false;
     }
@@ -330,14 +330,14 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
 
     ConsoleCommon::ClearException ce(aCx);
 
-    JS::Rooted<JS::Value> argumentsValue(aCx);
+    JS::sandbox::Rooted<JS::Value> argumentsValue(aCx);
     if (!Read(aCx, &argumentsValue)) {
       return;
     }
 
     MOZ_ASSERT(argumentsValue.isObject());
 
-    JS::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
+    JS::sandbox::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
 
     uint32_t length;
     if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
@@ -348,7 +348,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     SequenceRooter<JS::Value> arguments(aCx, &values);
 
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
         return;
@@ -368,13 +368,13 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   bool WriteArguments(JSContext* aCx, const Sequence<JS::Value>& aArguments) {
     ConsoleCommon::ClearException ce(aCx);
 
-    JS::Rooted<JSObject*> arguments(
+    JS::sandbox::Rooted<JSObject*> arguments(
         aCx, JS::NewArrayObject(aCx, aArguments.Length()));
     if (NS_WARN_IF(!arguments)) {
       return false;
     }
 
-    JS::Rooted<JS::Value> arg(aCx);
+    JS::sandbox::Rooted<JS::Value> arg(aCx);
     for (uint32_t i = 0; i < aArguments.Length(); ++i) {
       arg = aArguments[i];
       if (NS_WARN_IF(
@@ -383,7 +383,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       }
     }
 
-    JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*arguments));
+    JS::sandbox::Rooted<JS::Value> value(aCx, JS::ObjectValue(*arguments));
     return WriteData(aCx, value);
   }
 
@@ -394,7 +394,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
 
     ConsoleCommon::ClearException ce(aCx);
 
-    JS::Rooted<JS::Value> argumentsValue(aCx);
+    JS::sandbox::Rooted<JS::Value> argumentsValue(aCx);
     bool ok = Read(aCx, &argumentsValue);
     mClonedData.mGlobal = nullptr;
 
@@ -403,7 +403,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     }
 
     MOZ_ASSERT(argumentsValue.isObject());
-    JS::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
+    JS::sandbox::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
     if (NS_WARN_IF(!argumentsObj)) {
       return;
     }
@@ -416,7 +416,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     Sequence<JS::Value> arguments;
 
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
         return;
@@ -511,7 +511,7 @@ class ConsoleCallDataWorkletRunnable final : public ConsoleWorkletRunnable {
 
     JSObject* sandbox =
         mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
-    JS::Rooted<JSObject*> global(cx, sandbox);
+    JS::sandbox::Rooted<JSObject*> global(cx, sandbox);
     if (NS_WARN_IF(!global)) {
       return NS_ERROR_FAILURE;
     }
@@ -616,7 +616,7 @@ class ConsoleWorkerRunnable : public WorkerProxyToMainThreadRunnable,
 
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JSObject*> global(
+    JS::sandbox::Rooted<JSObject*> global(
         cx, mConsoleData->GetOrCreateSandbox(cx, wp->GetPrincipal()));
     if (NS_WARN_IF(!global)) {
       return;
@@ -744,7 +744,7 @@ class ConsoleProfileWorkletRunnable final : public ConsoleWorkletRunnable {
 
     JSObject* sandbox =
         mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
-    JS::Rooted<JSObject*> global(cx, sandbox);
+    JS::sandbox::Rooted<JSObject*> global(cx, sandbox);
     if (NS_WARN_IF(!global)) {
       return NS_ERROR_FAILURE;
     }
@@ -1060,7 +1060,7 @@ void Console::StringMethodInternal(JSContext* aCx, const nsAString& aLabel,
   Sequence<JS::Value> data;
   SequenceRooter<JS::Value> rooter(aCx, &data);
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!dom::ToJSValue(aCx, aLabel, &value)) {
     return;
   }
@@ -1172,12 +1172,12 @@ void Console::ProfileMethodMainthread(JSContext* aCx, const nsAString& aAction,
     }
   }
 
-  JS::Rooted<JS::Value> eventValue(aCx);
+  JS::sandbox::Rooted<JS::Value> eventValue(aCx);
   if (!ToJSValue(aCx, event, &eventValue)) {
     return;
   }
 
-  JS::Rooted<JSObject*> eventObj(aCx, &eventValue.toObject());
+  JS::sandbox::Rooted<JSObject*> eventObj(aCx, &eventValue.toObject());
   MOZ_ASSERT(eventObj);
 
   if (!JS_DefineProperty(aCx, eventObj, "wrappedJSObject", eventValue,
@@ -1471,7 +1471,7 @@ enum { SLOT_STACKOBJ, SLOT_RAW_STACK };
 
 bool LazyStackGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
-  JS::Rooted<JSObject*> callee(aCx, &args.callee());
+  JS::sandbox::Rooted<JSObject*> callee(aCx, &args.callee());
 
   JS::Value v = js::GetFunctionNativeReserved(&args.callee(), SLOT_RAW_STACK);
   if (v.isUndefined()) {
@@ -1484,7 +1484,7 @@ bool LazyStackGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   nsTArray<ConsoleStackEntry> reifiedStack;
   ReifyStack(aCx, stack, reifiedStack);
 
-  JS::Rooted<JS::Value> stackVal(aCx);
+  JS::sandbox::Rooted<JS::Value> stackVal(aCx);
   if (NS_WARN_IF(!ToJSValue(aCx, reifiedStack, &stackVal))) {
     return false;
   }
@@ -1504,7 +1504,7 @@ void MainThreadConsoleData::ProcessCallData(
   AssertIsOnMainThread();
   MOZ_ASSERT(aData);
 
-  JS::Rooted<JS::Value> eventValue(aCx);
+  JS::sandbox::Rooted<JS::Value> eventValue(aCx);
 
   // We want to create a console event object and pass it to our
   // nsIConsoleAPIStorage implementation.  We want to define some accessor
@@ -1518,7 +1518,7 @@ void MainThreadConsoleData::ProcessCallData(
   // tempted to do that anywhere else, talk to said module owner first.
 
   // aCx and aArguments are in the same compartment.
-  JS::Rooted<JSObject*> targetScope(aCx, xpc::PrivilegedJunkScope());
+  JS::sandbox::Rooted<JSObject*> targetScope(aCx, xpc::PrivilegedJunkScope());
   if (NS_WARN_IF(!Console::PopulateConsoleNotificationInTheTargetScope(
           aCx, aArguments, targetScope, &eventValue, aData, &mGroupStack))) {
     return;
@@ -1684,7 +1684,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
     return false;
   }
 
-  JS::Rooted<JSObject*> eventObj(aCx, &aEventValue.toObject());
+  JS::sandbox::Rooted<JSObject*> eventObj(aCx, &aEventValue.toObject());
   if (NS_WARN_IF(!JS_DefineProperty(aCx, eventObj, "wrappedJSObject", eventObj,
                                     JSPROP_ENUMERATE))) {
     return false;
@@ -1695,7 +1695,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
     // here.  Either we came from a worker and have a reified stack, or we want
     // to define a getter that will lazily reify the stack.
     if (aData->mReifiedStack) {
-      JS::Rooted<JS::Value> stacktrace(aCx);
+      JS::sandbox::Rooted<JS::Value> stacktrace(aCx);
       if (NS_WARN_IF(!ToJSValue(aCx, *aData->mReifiedStack, &stacktrace)) ||
           NS_WARN_IF(!JS_DefineProperty(aCx, eventObj, "stacktrace", stacktrace,
                                         JSPROP_ENUMERATE))) {
@@ -1708,12 +1708,12 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
 
-      JS::Rooted<JSObject*> funObj(aCx, JS_GetFunctionObject(fun));
+      JS::sandbox::Rooted<JSObject*> funObj(aCx, JS_GetFunctionObject(fun));
 
       // We want to store our stack in the function and have it stay alive.  But
       // we also need sane access to the C++ nsIStackFrame.  So store both a JS
       // wrapper and the raw pointer: the former will keep the latter alive.
-      JS::Rooted<JS::Value> stackVal(aCx);
+      JS::sandbox::Rooted<JS::Value> stackVal(aCx);
       nsresult rv = nsContentUtils::WrapNative(aCx, aData->mStack, &stackVal);
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return false;
@@ -1740,7 +1740,7 @@ namespace {
 bool FlushOutput(JSContext* aCx, Sequence<JS::Value>& aSequence,
                  nsString& aOutput) {
   if (!aOutput.IsEmpty()) {
-    JS::Rooted<JSString*> str(
+    JS::sandbox::Rooted<JSString*> str(
         aCx, JS_NewUCStringCopyN(aCx, aOutput.get(), aOutput.Length()));
     if (NS_WARN_IF(!str)) {
       return false;
@@ -1805,8 +1805,8 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
     return aSequence.AppendElements(aData, fallible);
   }
 
-  JS::Rooted<JS::Value> format(aCx, aData[0]);
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, format));
+  JS::sandbox::Rooted<JS::Value> format(aCx, aData[0]);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, format));
   if (NS_WARN_IF(!jsString)) {
     return false;
   }
@@ -1908,7 +1908,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
           return false;
         }
 
-        JS::Rooted<JS::Value> v(aCx);
+        JS::sandbox::Rooted<JS::Value> v(aCx);
         if (index < aData.Length()) {
           v = aData[index++];
         }
@@ -1932,8 +1932,8 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
         }
 
         if (index < aData.Length()) {
-          JS::Rooted<JS::Value> v(aCx, aData[index++]);
-          JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, v));
+          JS::sandbox::Rooted<JS::Value> v(aCx, aData[index++]);
+          JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, v));
           if (NS_WARN_IF(!jsString)) {
             return false;
           }
@@ -1961,8 +1961,8 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
 
       case 's':
         if (index < aData.Length()) {
-          JS::Rooted<JS::Value> value(aCx, aData[index++]);
-          JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+          JS::sandbox::Rooted<JS::Value> value(aCx, aData[index++]);
+          JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
           if (NS_WARN_IF(!jsString)) {
             return false;
           }
@@ -1979,10 +1979,10 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
       case 'd':
       case 'i':
         if (index < aData.Length()) {
-          JS::Rooted<JS::Value> value(aCx, aData[index++]);
+          JS::sandbox::Rooted<JS::Value> value(aCx, aData[index++]);
 
           if (value.isBigInt()) {
-            JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+            JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
             if (NS_WARN_IF(!jsString)) {
               return false;
             }
@@ -2008,7 +2008,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
 
       case 'f':
         if (index < aData.Length()) {
-          JS::Rooted<JS::Value> value(aCx, aData[index++]);
+          JS::sandbox::Rooted<JS::Value> value(aCx, aData[index++]);
 
           double v;
           if (NS_WARN_IF(!JS::ToNumber(aCx, value, &v))) {
@@ -2059,8 +2059,8 @@ static void ComposeAndStoreGroupName(JSContext* aCx,
                                      nsTArray<nsString>* aGroupStack) {
   StringJoinAppend(
       aName, u" "_ns, aData, [aCx](nsAString& dest, const JS::Value& valueRef) {
-        JS::Rooted<JS::Value> value(aCx, valueRef);
-        JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+        JS::sandbox::Rooted<JS::Value> value(aCx, valueRef);
+        JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
         if (!jsString) {
           return;
         }
@@ -2101,8 +2101,8 @@ Console::TimerStatus Console::StartTimer(JSContext* aCx, const JS::Value& aName,
     return eTimerMaxReached;
   }
 
-  JS::Rooted<JS::Value> name(aCx, aName);
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, name));
+  JS::sandbox::Rooted<JS::Value> name(aCx, aName);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, name));
   if (NS_WARN_IF(!jsString)) {
     return eTimerJSException;
   }
@@ -2142,7 +2142,7 @@ JS::Value Console::CreateStartTimerValue(JSContext* aCx,
 
   timer.mName = aTimerLabel;
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, timer, &value)) {
     return JS::UndefinedValue();
   }
@@ -2160,8 +2160,8 @@ Console::TimerStatus Console::LogTimer(JSContext* aCx, const JS::Value& aName,
 
   *aTimerDuration = 0;
 
-  JS::Rooted<JS::Value> name(aCx, aName);
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, name));
+  JS::sandbox::Rooted<JS::Value> name(aCx, aName);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, name));
   if (NS_WARN_IF(!jsString)) {
     return eTimerJSException;
   }
@@ -2204,7 +2204,7 @@ JS::Value Console::CreateLogOrEndTimerValue(JSContext* aCx,
   timer.mName = aLabel;
   timer.mDuration = aDuration;
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, timer, &value)) {
     return JS::UndefinedValue();
   }
@@ -2243,7 +2243,7 @@ JS::Value Console::CreateTimerError(JSContext* aCx, const nsAString& aLabel,
       break;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, error, &value)) {
     return JS::UndefinedValue();
   }
@@ -2260,8 +2260,8 @@ uint32_t Console::IncreaseCounter(JSContext* aCx,
 
   MOZ_ASSERT(!aArguments.IsEmpty());
 
-  JS::Rooted<JS::Value> labelValue(aCx, aArguments[0]);
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, labelValue));
+  JS::sandbox::Rooted<JS::Value> labelValue(aCx, aArguments[0]);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, labelValue));
   if (!jsString) {
     return 0;  // We cannot continue.
   }
@@ -2297,8 +2297,8 @@ uint32_t Console::ResetCounter(JSContext* aCx,
 
   MOZ_ASSERT(!aArguments.IsEmpty());
 
-  JS::Rooted<JS::Value> labelValue(aCx, aArguments[0]);
-  JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, labelValue));
+  JS::sandbox::Rooted<JS::Value> labelValue(aCx, aArguments[0]);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, labelValue));
   if (!jsString) {
     return 0;  // We cannot continue.
   }
@@ -2335,7 +2335,7 @@ static JS::Value CreateCounterOrResetCounterValue(JSContext* aCx,
     error.mLabel = aCountLabel;
     error.mError.AssignLiteral("counterDoesntExist");
 
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
     if (!ToJSValue(aCx, error, &value)) {
       return JS::UndefinedValue();
     }
@@ -2347,7 +2347,7 @@ static JS::Value CreateCounterOrResetCounterValue(JSContext* aCx,
   data.mLabel = aCountLabel;
   data.mCount = aCountValue;
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, data, &value)) {
     return JS::UndefinedValue();
   }
@@ -2376,7 +2376,7 @@ JSObject* MainThreadConsoleData::GetOrCreateSandbox(JSContext* aCx,
     nsIXPConnect* xpc = nsContentUtils::XPConnect();
     MOZ_ASSERT(xpc, "This should never be null!");
 
-    JS::Rooted<JSObject*> sandbox(aCx);
+    JS::sandbox::Rooted<JSObject*> sandbox(aCx);
     nsresult rv = xpc->CreateSandbox(aCx, aPrincipal, sandbox.address());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;
@@ -2443,9 +2443,9 @@ void Console::NotifyHandler(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  JS::sandbox::Rooted<JS::Value> value(aCx);
 
-  JS::Rooted<JSObject*> callableGlobal(
+  JS::sandbox::Rooted<JSObject*> callableGlobal(
       aCx, mConsoleEventNotifier->CallbackGlobalOrNull());
   if (NS_WARN_IF(!callableGlobal)) {
     return;
@@ -2460,7 +2460,7 @@ void Console::NotifyHandler(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> ignored(aCx);
+  JS::sandbox::Rooted<JS::Value> ignored(aCx);
   RefPtr<AnyCallback> notifier(mConsoleEventNotifier);
   notifier->Call(value, &ignored);
 }
@@ -2473,12 +2473,12 @@ void Console::RetrieveConsoleEvents(JSContext* aCx,
   // We don't want to expose this functionality to main-thread yet.
   MOZ_ASSERT(!NS_IsMainThread());
 
-  JS::Rooted<JSObject*> targetScope(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> targetScope(aCx, JS::CurrentGlobalOrNull(aCx));
 
   for (uint32_t i = 0; i < mArgumentStorage.length(); ++i) {
-    JS::Rooted<JS::Value> value(aCx);
+    JS::sandbox::Rooted<JS::Value> value(aCx);
 
-    JS::Rooted<JSObject*> sequenceScope(aCx, mArgumentStorage[i].Global());
+    JS::sandbox::Rooted<JSObject*> sequenceScope(aCx, mArgumentStorage[i].Global());
     JSAutoRealm ar(aCx, sequenceScope);
 
     Sequence<JS::Value> sequence;
@@ -2620,9 +2620,9 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
     // The 'timeStamp' recordings do not need an argument; use empty string
     // if no arguments passed in.
     if (isTimelineRecording && aMethodName == MethodTimeStamp) {
-      JS::Rooted<JS::Value> value(
+      JS::sandbox::Rooted<JS::Value> value(
           aCx, aData.Length() == 0 ? JS_GetEmptyStringValue(aCx) : aData[0]);
-      JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+      JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
       if (!jsString) {
         return false;
       }
@@ -2637,8 +2637,8 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
     }
     // For `console.time(foo)` and `console.timeEnd(foo)`.
     else if (isTimelineRecording && aData.Length() == 1) {
-      JS::Rooted<JS::Value> value(aCx, aData[0]);
-      JS::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
+      JS::sandbox::Rooted<JS::Value> value(aCx, aData[0]);
+      JS::sandbox::Rooted<JSString*> jsString(aCx, JS::ToString(aCx, value));
       if (!jsString) {
         return false;
       }
@@ -2753,7 +2753,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
   }
 
   for (uint32_t i = 0; i < aData.Length(); ++i) {
-    JS::Rooted<JS::Value> v(aCx, aData[i]);
+    JS::sandbox::Rooted<JS::Value> v(aCx, aData[i]);
     if (v.isObject()) {
       Element* element = nullptr;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(Element, &v, element))) {
@@ -2765,7 +2765,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
       }
     }
 
-    JS::Rooted<JSString*> jsString(aCx, JS_ValueToSource(aCx, v));
+    JS::sandbox::Rooted<JSString*> jsString(aCx, JS_ValueToSource(aCx, v));
     if (!jsString) {
       continue;
     }
@@ -2835,8 +2835,8 @@ void Console::MaybeExecuteDumpFunctionForTime(JSContext* aCx,
     message.AppendLiteral(": ");
   }
 
-  JS::Rooted<JS::Value> v(aCx, aData);
-  JS::Rooted<JSString*> jsString(aCx, JS_ValueToSource(aCx, v));
+  JS::sandbox::Rooted<JS::Value> v(aCx, aData);
+  JS::sandbox::Rooted<JSString*> jsString(aCx, JS_ValueToSource(aCx, v));
   if (!jsString) {
     return;
   }

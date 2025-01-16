@@ -55,7 +55,7 @@ nsresult ExtensionAPIRequestForwarder::JSArrayToSequence(
     JSContext* aCx, JS::Handle<JS::Value> aJSValue,
     dom::Sequence<JS::Value>& aResult) {
   bool isArray;
-  JS::Rooted<JSObject*> obj(aCx, aJSValue.toObjectOrNull());
+  JS::sandbox::Rooted<JSObject*> obj(aCx, aJSValue.toObjectOrNull());
 
   if (NS_WARN_IF(!obj || !JS::IsArrayObject(aCx, obj, &isArray))) {
     return NS_ERROR_UNEXPECTED;
@@ -68,7 +68,7 @@ nsresult ExtensionAPIRequestForwarder::JSArrayToSequence(
     }
 
     for (uint32_t i = 0; i < len; i++) {
-      JS::Rooted<JS::Value> v(aCx);
+      JS::sandbox::Rooted<JS::Value> v(aCx);
       JS_GetElement(aCx, obj, i, &v);
       if (NS_WARN_IF(!aResult.AppendElement(v, fallible))) {
         return NS_ERROR_OUT_OF_MEMORY;
@@ -168,7 +168,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
 
   // Read and throw the extension error if needed.
   if (resultType.isSome() && *resultType == APIResultType::EXTENSION_ERROR) {
-    JS::Rooted<JS::Value> ignoredResultValue(aCx);
+    JS::sandbox::Rooted<JS::Value> ignoredResultValue(aCx);
     runnable->ReadResult(aCx, &ignoredResultValue, aRv);
     // When the result type is an error aRv is expected to be
     // failed, if it is not throw the generic
@@ -187,7 +187,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> resultValue(aCx);
+  JS::sandbox::Rooted<JS::Value> resultValue(aCx);
   runnable->ReadResult(aCx, &resultValue, rv);
   if (NS_WARN_IF(rv.Failed())) {
     ThrowUnexpectedError(aCx, aRv);
@@ -207,7 +207,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
 void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
                                        const dom::Sequence<JS::Value>& aArgs,
                                        ErrorResult& aRv) {
-  JS::Rooted<JS::Value> ignoredRetval(aCx);
+  JS::sandbox::Rooted<JS::Value> ignoredRetval(aCx);
   Run(aGlobal, aCx, aArgs, nullptr, &ignoredRetval, aRv);
 }
 
@@ -216,7 +216,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
                                        ExtensionEventListener* aListener,
                                        ErrorResult& aRv) {
   MOZ_ASSERT(aListener);
-  JS::Rooted<JS::Value> ignoredRetval(aCx);
+  JS::sandbox::Rooted<JS::Value> ignoredRetval(aCx);
   Run(aGlobal, aCx, aArgs, aListener, &ignoredRetval, aRv);
 }
 
@@ -225,7 +225,7 @@ void ExtensionAPIRequestForwarder::Run(
     const dom::Sequence<JS::Value>& aArgs,
     const RefPtr<dom::Promise>& aPromiseRetval, ErrorResult& aRv) {
   MOZ_ASSERT(aPromiseRetval);
-  JS::Rooted<JS::Value> promisedRetval(aCx);
+  JS::sandbox::Rooted<JS::Value> promisedRetval(aCx);
   Run(aGlobal, aCx, aArgs, &promisedRetval, aRv);
   if (aRv.Failed()) {
     return;
@@ -366,7 +366,7 @@ void RequestWorkerRunnable::DeserializeCallerStack(
     JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mStackHolder.isSome()) {
-    JS::Rooted<JSObject*> savedFrame(aCx, mStackHolder->get()->ReadStack(aCx));
+    JS::sandbox::Rooted<JSObject*> savedFrame(aCx, mStackHolder->get()->ReadStack(aCx));
     MOZ_ASSERT(savedFrame);
     aRetval.set(JS::ObjectValue(*savedFrame));
     mStackHolder = Nothing();
@@ -379,7 +379,7 @@ void RequestWorkerRunnable::SerializeArgs(JSContext* aCx,
   MOZ_ASSERT(dom::IsCurrentThreadRunningWorker());
   MOZ_ASSERT(!mArgsHolder);
 
-  JS::Rooted<JS::Value> jsval(aCx);
+  JS::sandbox::Rooted<JS::Value> jsval(aCx);
   if (NS_WARN_IF(!ToJSValue(aCx, aArgs, &jsval))) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
@@ -398,7 +398,7 @@ nsresult RequestWorkerRunnable::DeserializeArgs(
   if (mArgsHolder.isSome() && mArgsHolder->get()->HasData()) {
     IgnoredErrorResult rv;
 
-    JS::Rooted<JS::Value> jsvalue(aCx);
+    JS::sandbox::Rooted<JS::Value> jsvalue(aCx);
     mArgsHolder->get()->Read(xpc::CurrentNativeGlobal(aCx), aCx, &jsvalue, rv);
     if (NS_WARN_IF(rv.Failed())) {
       return NS_ERROR_UNEXPECTED;
@@ -421,14 +421,14 @@ bool RequestWorkerRunnable::MainThreadRun() {
   }
 
   auto* cx = jsapi.cx();
-  JS::Rooted<JS::Value> retval(cx);
+  JS::sandbox::Rooted<JS::Value> retval(cx);
   return HandleAPIRequest(cx, &retval);
 }
 
 already_AddRefed<ExtensionAPIRequest> RequestWorkerRunnable::CreateAPIRequest(
     JSContext* aCx) {
-  JS::Rooted<JS::Value> callArgs(aCx);
-  JS::Rooted<JS::Value> callerStackValue(aCx);
+  JS::sandbox::Rooted<JS::Value> callArgs(aCx);
+  JS::sandbox::Rooted<JS::Value> callerStackValue(aCx);
 
   DeserializeArgs(aCx, &callArgs);
   DeserializeCallerStack(aCx, &callerStackValue);
@@ -501,12 +501,12 @@ bool RequestWorkerRunnable::HandleAPIRequest(
     // (because all API requests could receive one for EXTENSION_ERROR
     // result types, and some also as a RETURN_VALUE result, e.g.
     // runtime.lastError).
-    JS::Rooted<JSObject*> errObj(aCx, &aRetval.toObject());
+    JS::sandbox::Rooted<JSObject*> errObj(aCx, &aRetval.toObject());
     IgnoredErrorResult rv;
     RefPtr<dom::ClonedErrorHolder> ceh =
         dom::ClonedErrorHolder::Create(aCx, errObj, rv);
     if (!rv.Failed() && ceh) {
-      JS::Rooted<JSObject*> obj(aCx);
+      JS::sandbox::Rooted<JSObject*> obj(aCx);
       // Note: `ToJSValue` cannot be used because ClonedErrorHolder isn't
       // wrapper cached.
       okSerializedError = ceh->WrapObject(aCx, nullptr, &obj);
@@ -557,7 +557,7 @@ bool RequestWorkerRunnable::ProcessHandlerResult(
       if (NS_WARN_IF(!aRetval.isObject())) {
         return false;
       }
-      JS::Rooted<JSObject*> obj(aCx, &aRetval.toObject());
+      JS::sandbox::Rooted<JSObject*> obj(aCx, &aRetval.toObject());
       if (NS_WARN_IF(!JS::IsPromiseObject(obj))) {
         return false;
       }
@@ -616,7 +616,7 @@ void RequestWorkerRunnable::ReadResult(JSContext* aCx,
                                  aRv);
       return;
     case mozIExtensionAPIRequestResult::ResultType::EXTENSION_ERROR:
-      JS::Rooted<JS::Value> exn(aCx);
+      JS::sandbox::Rooted<JS::Value> exn(aCx);
       IgnoredErrorResult rv;
       mResultHolder->get()->Read(xpc::CurrentNativeGlobal(aCx), aCx, &exn, rv);
       if (rv.Failed()) {

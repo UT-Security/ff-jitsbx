@@ -48,7 +48,7 @@ namespace {
 nsresult GetWriteData(JSContext* aCx, JS::Handle<JS::Value> aValue,
                       nsCString& aData) {
   if (aValue.isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
     bool isView = false;
     if (JS::IsArrayBufferObject(obj) ||
@@ -365,7 +365,7 @@ SDBConnection::Write(JS::Handle<JS::Value> aValue, JSContext* aCx,
     return NS_BASE_STREAM_CLOSED;
   }
 
-  JS::Rooted<JS::Value> value(aCx, aValue);
+  JS::sandbox::Rooted<JS::Value> value(aCx, aValue);
 
   nsCString data;
   rv = GetWriteData(aCx, value, data);

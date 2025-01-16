@@ -156,7 +156,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
     MOZ_ASSERT(cx);
 
 #ifdef DEBUG
-    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+    JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     MOZ_ASSERT(global);
 #endif
 
@@ -198,8 +198,8 @@ void WorkletJSContext::ReportError(JSErrorReport* aReport,
   if (JS_IsExceptionPending(cx)) {
     JS::ExceptionStack exnStack(cx);
     if (JS::StealPendingExceptionStack(cx, &exnStack)) {
-      JS::Rooted<JSObject*> stack(cx);
-      JS::Rooted<JSObject*> stackGlobal(cx);
+      JS::sandbox::Rooted<JSObject*> stack(cx);
+      JS::sandbox::Rooted<JSObject*> stackGlobal(cx);
       xpc::FindExceptionStackForConsoleReport(nullptr, exnStack.exception(),
                                               exnStack.stack(), &stack,
                                               &stackGlobal);

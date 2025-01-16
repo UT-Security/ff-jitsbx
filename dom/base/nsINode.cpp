@@ -1552,7 +1552,7 @@ static nsresult UpdateGlobalsInSubtree(nsIContent* aRoot) {
   JSContext* cx = jsapi.cx();
 
   ErrorResult rv;
-  JS::Rooted<JSObject*> reflector(cx);
+  JS::sandbox::Rooted<JSObject*> reflector(cx);
   for (nsIContent* cur = aRoot; cur; cur = cur->GetNextNode(aRoot)) {
     if ((reflector = cur->GetWrapper())) {
       JSAutoRealm ar(cx, reflector);
@@ -3121,7 +3121,7 @@ JSObject* nsINode::WrapObject(JSContext* aCx,
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, WrapNode(aCx, aGivenProto));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, WrapNode(aCx, aGivenProto));
   if (obj && ChromeOnlyAccess()) {
     MOZ_RELEASE_ASSERT(
         xpc::IsUnprivilegedJunkScope(JS::GetNonCCWObjectGlobal(obj)) ||
@@ -3440,7 +3440,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
 
     if (aReparentScope) {
       AutoJSContext cx;
-      JS::Rooted<JSObject*> wrapper(cx);
+      JS::sandbox::Rooted<JSObject*> wrapper(cx);
       if ((wrapper = aNode->GetWrapper())) {
         MOZ_ASSERT(IsDOMObject(wrapper));
         JSAutoRealm ar(cx, wrapper);

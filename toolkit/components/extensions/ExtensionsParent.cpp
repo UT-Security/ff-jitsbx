@@ -35,13 +35,13 @@ static inline JS::Handle<JS::Value> ToJSBoolean(bool aValue) {
 }
 
 JS::Value FrameTransitionDataToJSValue(const FrameTransitionData& aData) {
-  JS::Rooted<JS::Value> ret(dom::RootingCx(), JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> ret(dom::RootingCx(), JS::UndefinedValue());
   {
     dom::AutoJSAPI jsapi;
     MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+    JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
     if (obj &&
         JS_SetProperty(cx, obj, "forward_back",
                        ToJSBoolean(aData.forwardBack())) &&
@@ -65,7 +65,7 @@ ipc::IPCResult ExtensionsParent::RecvDocumentChange(
     return IPC_OK();
   }
 
-  JS::Rooted<JS::Value> transitionData(
+  JS::sandbox::Rooted<JS::Value> transitionData(
       dom::RootingCx(), FrameTransitionDataToJSValue(aTransitionData));
 
   WebNavigation()->OnDocumentChange(aBC.get(), transitionData, aLocation);
@@ -80,7 +80,7 @@ ipc::IPCResult ExtensionsParent::RecvHistoryChange(
     return IPC_OK();
   }
 
-  JS::Rooted<JS::Value> transitionData(
+  JS::sandbox::Rooted<JS::Value> transitionData(
       dom::RootingCx(), FrameTransitionDataToJSValue(aTransitionData));
 
   WebNavigation()->OnHistoryChange(aBC.get(), transitionData, aLocation,

@@ -4218,7 +4218,7 @@ static void InitCustomEvent(CustomEvent* aEvent, const nsAString& aType,
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> detail(cx);
+  JS::sandbox::Rooted<JS::Value> detail(cx);
   if (!ToJSValue(cx, aDetail, &detail)) {
     jsapi.ClearException();
     return;

@@ -225,7 +225,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
   json.AppendASCII("]}");
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> jsonValue(cx);
+  JS::sandbox::Rooted<JS::Value> jsonValue(cx);
   bool ok = JS_ParseJSON(cx, json.BeginReading(), json.Length(), &jsonValue);
   if (!ok) {
     LogToConsoleInvalidJSON(aChannel, aURI);
@@ -253,7 +253,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
       LogToConsoleInvalidNameItem(aChannel, aURI);
       continue;
     } else {
-      JS::Rooted<JSString*> groupStr(cx, item.mGroup.toString());
+      JS::sandbox::Rooted<JSString*> groupStr(cx, item.mGroup.toString());
       MOZ_ASSERT(groupStr);
 
       nsAutoJSString string;
@@ -269,7 +269,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
       continue;
     }
 
-    JS::Rooted<JSObject*> endpoints(cx, &item.mEndpoints.toObject());
+    JS::sandbox::Rooted<JSObject*> endpoints(cx, &item.mEndpoints.toObject());
     MOZ_ASSERT(endpoints);
 
     bool isArray = false;
@@ -300,7 +300,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
     group->mCreationTime = TimeStamp::Now();
 
     for (uint32_t i = 0; i < endpointsLength; ++i) {
-      JS::Rooted<JS::Value> element(cx);
+      JS::sandbox::Rooted<JS::Value> element(cx);
       if (!JS_GetElement(cx, endpoints, i, &element)) {
         return nullptr;
       }
@@ -321,7 +321,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
         continue;
       }
 
-      JS::Rooted<JSString*> endpointUrl(cx, endpoint.mUrl.toString());
+      JS::sandbox::Rooted<JSString*> endpointUrl(cx, endpoint.mUrl.toString());
       MOZ_ASSERT(endpointUrl);
 
       nsAutoJSString endpointString;

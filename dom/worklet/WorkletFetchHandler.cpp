@@ -380,7 +380,7 @@ void WorkletFetchHandler::AddPromise(JSContext* aCx, Promise* aPromise) {
 
     case eRejected:
       if (mHasError) {
-        JS::Rooted<JS::Value> error(aCx, mErrorToRethrow);
+        JS::sandbox::Rooted<JS::Value> error(aCx, mErrorToRethrow);
         aPromise->MaybeReject(error);
       } else {
         aPromise->MaybeReject(NS_ERROR_DOM_ABORT_ERR);

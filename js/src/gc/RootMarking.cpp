@@ -4,7 +4,6 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/RootingAPI.h"
 #ifdef MOZ_VALGRIND
 #  include <valgrind/memcheck.h>
 #endif
@@ -33,12 +32,6 @@ using JS::AutoGCRooter;
 using RootRange = RootedValueMap::Range;
 using RootEntry = RootedValueMap::Entry;
 using RootEnum = RootedValueMap::Enum;
-
-VirtualExternalTraceable::VirtualExternalTraceable(TraceFn externalTrace) : externalTrace_(externalTrace) {}
-
-void VirtualExternalTraceable::trace(JSTracer* trc, const char* name) {
-  externalTrace_(trc, name); 
-}
 
 template <typename Base, typename T>
 inline void TypedRootedGCThingBase<Base, T>::trace(JSTracer* trc,
@@ -85,12 +78,57 @@ static inline void TraceStackRoots(JSTracer* trc,
                                    "Traceable");
 }
 
+template <typename T>
+static inline void TraceExactExternalStackRootList(JSTracer* trc,
+                                           js::sandbox::StackRootedBase* listHead,
+                                           const char* name) {
+  // Check size of Rooted<T> does not increase.
+  static_assert(sizeof(JS::sandbox::Rooted<T>) == sizeof(T) + 2 * sizeof(uintptr_t));
+
+  for (js::sandbox::StackRootedBase* root = listHead; root; root = root->previous()) {
+    static_cast<JS::sandbox::Rooted<T>*>(root)->trace(trc, name);
+  }
+}
+
+static inline void TraceExactExternalStackRootTraceableList(JSTracer* trc,
+                                                    js::sandbox::StackRootedBase* listHead,
+                                                    const char* name) {
+  for (js::sandbox::StackRootedBase* root = listHead; root; root = root->previous()) {
+    static_cast<js::sandbox::StackRootedTraceableBase*>(root)->trace(trc, name);
+  }
+}
+
+static inline void TraceExternalStackRoots(JSTracer* trc,
+                                   JS::sandbox::ExternalRootingCallbacks cb, void* data) {
+  JS::sandbox::RootedListHeads& stackRoots = cb.externalRoots(data);
+#define TRACE_ROOTS(name, type, _, _1)                                \
+  TraceExactExternalStackRootList<type*>(trc, stackRoots[JS::RootKind::name], \
+                                 "exact-" #name);
+  JS_FOR_EACH_TRACEKIND(TRACE_ROOTS)
+#undef TRACE_ROOTS
+  TraceExactExternalStackRootList<jsid>(trc, stackRoots[JS::RootKind::Id], "exact-id");
+  TraceExactExternalStackRootList<Value>(trc, stackRoots[JS::RootKind::Value],
+                                 "exact-value");
+
+  // RootedTraceable uses virtual dispatch.
+  JS::AutoSuppressGCAnalysis nogc;
+
+  //TraceExactExternalStackRootTraceableList(trc, stackRoots[JS::RootKind::Traceable],
+  //                                 "Traceable");
+  cb.trace(trc, data);
+}
+
 void JS::RootingContext::traceStackRoots(JSTracer* trc) {
   TraceStackRoots(trc, stackRoots_);
 }
 
+void JS::sandbox::RootingContext::traceExternalStackRoots(JSTracer* trc) {
+  TraceExternalStackRoots(trc, externalRootingCallbacks, externalRootingCallbacksData);
+}
+
 static void TraceExactStackRoots(JSContext* cx, JSTracer* trc) {
   cx->traceStackRoots(trc);
+  cx->traceExternalStackRoots(trc);
 }
 
 template <typename T>
@@ -126,8 +164,40 @@ void JSRuntime::tracePersistentRoots(JSTracer* trc) {
       trc, heapRoots.ref()[JS::RootKind::Traceable], "persistent-traceable");
 }
 
+template <typename T>
+static inline void TraceExternalPersistentRootedList(
+    JSTracer* trc, LinkedList<js::sandbox::PersistentRootedBase>& list, const char* name) {
+  for (js::sandbox::PersistentRootedBase* root : list) {
+    static_cast<JS::sandbox::PersistentRooted<T>*>(root)->trace(trc, name);
+  }
+}
+
+void JSRuntime::traceExternalPersistentRoots(JSTracer* trc) {
+  JS::sandbox::ExternalPersistentRootingCallbacks cb = persistentRootingCallbacks;
+  void* data = persistentRootingData;
+  
+#define TRACE_ROOTS(name, type, _, _1)                                       \
+  TraceExternalPersistentRootedList<type*>(trc, cb.externalRoots(JS::RootKind::name, data), \
+                                   "persistent-" #name);
+  JS_FOR_EACH_TRACEKIND(TRACE_ROOTS)
+#undef TRACE_ROOTS
+  TraceExternalPersistentRootedList<jsid>(trc, cb.externalRoots(JS::RootKind::Id, data),
+                                  "persistent-id");
+  TraceExternalPersistentRootedList<Value>(trc, cb.externalRoots(JS::RootKind::Value, data),
+                                   "persistent-value");
+
+  // RootedTraceable uses virtual dispatch.
+  JS::AutoSuppressGCAnalysis nogc;
+
+  //TracePersistentRootedTraceableList(
+  //    trc, heapRoots.ref()[JS::RootKind::Traceable], "persistent-traceable");
+
+  cb.trace(trc, data);
+}
+
 static void TracePersistentRooted(JSRuntime* rt, JSTracer* trc) {
   rt->tracePersistentRoots(trc);
+  rt->traceExternalPersistentRoots(trc);
 }
 
 template <typename T>

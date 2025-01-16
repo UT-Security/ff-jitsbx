@@ -40,7 +40,7 @@ nsresult XPCWrappedJSIterator::HasMoreElements(bool* aRetVal) {
 
     JSContext* cx = jsapi.cx();
 
-    JS::RootedValue val(cx);
+    JS::sandbox::RootedValue val(cx);
     MOZ_TRY(mEnum->Next(cx, &val));
 
     RootedDictionary<IteratorResult> result(cx);
@@ -50,7 +50,7 @@ nsresult XPCWrappedJSIterator::HasMoreElements(bool* aRetVal) {
 
     if (!result.mDone) {
       if (result.mValue.isObject()) {
-        JS::RootedObject obj(cx, &result.mValue.toObject());
+        JS::sandbox::RootedObject obj(cx, &result.mValue.toObject());
 
         nsresult rv;
         if (!XPCConvert::JSObject2NativeInterface(cx, getter_AddRefs(mNext),

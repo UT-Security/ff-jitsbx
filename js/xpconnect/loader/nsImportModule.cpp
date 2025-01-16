@@ -22,7 +22,7 @@ namespace loader {
 
 static void AnnotateCrashReportWithJSException(JSContext* aCx,
                                                const char* aURI) {
-  JS::RootedValue exn(aCx);
+  JS::sandbox::RootedValue exn(aCx);
   if (JS_GetPendingException(aCx, &exn)) {
     JS_ClearPendingException(aCx);
 
@@ -50,8 +50,8 @@ nsresult ImportModule(const char* aURI, const char* aExportName,
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
 
-  JS::RootedObject global(cx);
-  JS::RootedObject exports(cx);
+  JS::sandbox::RootedObject global(cx);
+  JS::sandbox::RootedObject exports(cx);
   nsresult rv = mozJSModuleLoader::Get()->Import(cx, nsDependentCString(aURI),
                                                  &global, &exports);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -64,7 +64,7 @@ nsresult ImportModule(const char* aURI, const char* aExportName,
   }
 
   if (aExportName) {
-    JS::RootedValue namedExport(cx);
+    JS::sandbox::RootedValue namedExport(cx);
     if (!JS_GetProperty(cx, exports, aExportName, &namedExport)) {
       return NS_ERROR_FAILURE;
     }
@@ -83,7 +83,7 @@ nsresult ImportESModule(const char* aURI, const char* aExportName,
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
 
-  JS::RootedObject moduleNamespace(cx);
+  JS::sandbox::RootedObject moduleNamespace(cx);
   nsresult rv = mozJSModuleLoader::Get()->ImportESModule(
       cx, nsDependentCString(aURI), &moduleNamespace);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -96,7 +96,7 @@ nsresult ImportESModule(const char* aURI, const char* aExportName,
   }
 
   if (aExportName) {
-    JS::RootedValue namedExport(cx);
+    JS::sandbox::RootedValue namedExport(cx);
     if (!JS_GetProperty(cx, moduleNamespace, aExportName, &namedExport)) {
       return NS_ERROR_FAILURE;
     }

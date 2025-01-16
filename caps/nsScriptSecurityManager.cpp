@@ -74,6 +74,7 @@
 #ifdef JS_SANDBOX
 #include "js/sandbox/sobox.h"
 #endif
+#include "js/sandbox/RootingAPI.h"
 
 // This should be probably defined on some other place... but I couldn't find it
 #define WEBAPPS_PERM_NAME "webapps-manage"
@@ -1455,7 +1456,7 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext* cx, const nsIID& aIID,
   // XXX Special case for Exception ?
 
   // We give remote-XUL allowlisted domains a free pass here. See bug 932906.
-  JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
+  JS::sandbox::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
   MOZ_RELEASE_ASSERT(contextRealm);
   if (!xpc::AllowContentXBLScope(contextRealm)) {
     return NS_OK;

@@ -45,7 +45,7 @@ JSObject* TimelineMarker::GetStack() {
 void TimelineMarker::CaptureStack() {
   JSContext* ctx = nsContentUtils::GetCurrentJSContext();
   if (ctx) {
-    JS::Rooted<JSObject*> stack(ctx);
+    JS::sandbox::Rooted<JSObject*> stack(ctx);
     if (JS::CaptureCurrentStack(ctx, &stack)) {
       mStackTrace.init(ctx, stack.get());
     } else {

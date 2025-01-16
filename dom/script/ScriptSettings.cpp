@@ -256,8 +256,8 @@ namespace danger {
 JSContext* GetJSContext() { return CycleCollectedJSContext::Get()->Context(); }
 }  // namespace danger
 
-JS::RootingContext* RootingCx() {
-  return CycleCollectedJSContext::Get()->RootingCx();
+JS::sandbox::RootingContext* RootingCx() {
+  return CycleCollectedJSContext::Get()->SandboxRootingCx();
 }
 
 AutoJSAPI::AutoJSAPI()
@@ -315,12 +315,12 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
 
 #ifdef DEBUG
   if (haveException) {
-    JS::Rooted<JS::Value> exn(aCx);
+    JS::sandbox::Rooted<JS::Value> exn(aCx);
     JS_GetPendingException(aCx, &exn);
 
     JS_ClearPendingException(aCx);
     if (exn.isObject()) {
-      JS::Rooted<JSObject*> exnObj(aCx, &exn.toObject());
+      JS::sandbox::Rooted<JSObject*> exnObj(aCx, &exn.toObject());
 
       // Make sure we can actually read things from it.  This UncheckedUwrap is
       // safe because we're only getting data for a debug printf.  In
@@ -332,7 +332,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
       nsAutoJSString stack, filename, name, message;
       int32_t line;
 
-      JS::Rooted<JS::Value> tmp(aCx);
+      JS::sandbox::Rooted<JS::Value> tmp(aCx);
       if (!JS_GetProperty(aCx, exnObj, "filename", &tmp)) {
         JS_ClearPendingException(aCx);
       }
@@ -486,7 +486,7 @@ void AutoJSAPI::ReportException() {
   // when the destructor is called. However, the JS engine requires us
   // to be in a realm when we fetch the pending exception. In this case,
   // we enter the privileged junk scope and don't dispatch any error events.
-  JS::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
+  JS::sandbox::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
   if (!errorGlobal) {
     if (mIsMainThread) {
       errorGlobal = xpc::PrivilegedJunkScope();
@@ -535,12 +535,12 @@ void AutoJSAPI::ReportException() {
       xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
                       isChrome, innerWindowID);
       if (inner && jsReport.report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
-        JS::RootingContext* rcx = JS::RootingContext::get(cx());
+        JS::sandbox::RootingContext* rcx = JS::sandbox::RootingContext::get(cx());
         DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.exception(),
                                  exnStack.stack());
       } else {
-        JS::Rooted<JSObject*> stack(cx());
-        JS::Rooted<JSObject*> stackGlobal(cx());
+        JS::sandbox::Rooted<JSObject*> stack(cx());
+        JS::sandbox::Rooted<JSObject*> stackGlobal(cx());
         xpc::FindExceptionStackForConsoleReport(inner, exnStack.exception(),
                                                 exnStack.stack(), &stack,
                                                 &stackGlobal);

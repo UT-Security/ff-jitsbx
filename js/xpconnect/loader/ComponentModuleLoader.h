@@ -89,7 +89,7 @@ class ComponentModuleLoader : public JS::loader::ModuleLoaderBase {
 
   // If any of module scripts failed to load, exception is set here until it's
   // reported by MaybeReportLoadError.
-  JS::PersistentRooted<JS::Value> mLoadException;
+  JS::sandbox::PersistentRooted<JS::Value> mLoadException;
 };
 
 // Data specific to ComponentModuleLoader that is associated with each load
@@ -108,9 +108,9 @@ class ComponentLoadContext : public JS::loader::LoadContextBase {
 
   // The exception thrown during compiling a module script. These fields are
   // used temporarily before being passed to the module loader.
-  JS::PersistentRooted<JS::Value> mExceptionValue;
+  JS::sandbox::PersistentRooted<JS::Value> mExceptionValue;
 
-  JS::PersistentRooted<JSScript*> mScript;
+  JS::sandbox::PersistentRooted<JSScript*> mScript;
 };
 
 }  // namespace loader

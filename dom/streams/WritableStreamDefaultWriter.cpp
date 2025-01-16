@@ -221,7 +221,7 @@ void WritableStreamDefaultWriterRelease(JSContext* aCx,
   MOZ_ASSERT(stream->GetWriter() == aWriter);
 
   // Step 4. Let releasedError be a new TypeError.
-  JS::Rooted<JS::Value> releasedError(RootingCx(), JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> releasedError(RootingCx(), JS::UndefinedValue());
   {
     ErrorResult rv;
     rv.ThrowTypeError("Releasing lock");
@@ -302,7 +302,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriterWrite(
   // Step 7. If state is "errored", return a promise rejected with
   // stream.[[storedError]].
   if (state == WritableStream::WriterState::Errored) {
-    JS::Rooted<JS::Value> error(aCx, stream->StoredError());
+    JS::sandbox::Rooted<JS::Value> error(aCx, stream->StoredError());
     return Promise::CreateRejected(aWriter->GetParentObject(), error, aRv);
   }
 
@@ -318,7 +318,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriterWrite(
   // Step 9. If state is "erroring", return a promise rejected with
   // stream.[[storedError]].
   if (state == WritableStream::WriterState::Erroring) {
-    JS::Rooted<JS::Value> error(aCx, stream->StoredError());
+    JS::sandbox::Rooted<JS::Value> error(aCx, stream->StoredError());
     return Promise::CreateRejected(aWriter->GetParentObject(), error, aRv);
   }
 
@@ -402,7 +402,7 @@ void SetUpWritableStreamDefaultWriter(WritableStreamDefaultWriter* aWriter,
 
     // Step 6.1. Set writer.[[readyPromise]] to a promise rejected with
     // stream.[[storedError]].
-    JS::Rooted<JS::Value> storedError(RootingCx(), aStream->StoredError());
+    JS::sandbox::Rooted<JS::Value> storedError(RootingCx(), aStream->StoredError());
     RefPtr<Promise> readyPromise =
         Promise::CreateInfallible(aWriter->GetParentObject());
     readyPromise->MaybeReject(storedError);
@@ -440,7 +440,7 @@ void SetUpWritableStreamDefaultWriter(WritableStreamDefaultWriter* aWriter,
     MOZ_ASSERT(state == WritableStream::WriterState::Errored);
 
     // Step 8.2. Step Let storedError be stream.[[storedError]].
-    JS::Rooted<JS::Value> storedError(RootingCx(), aStream->StoredError());
+    JS::sandbox::Rooted<JS::Value> storedError(RootingCx(), aStream->StoredError());
 
     // Step 8.3. Set writer.[[readyPromise]] to a promise rejected with
     // storedError.
@@ -527,7 +527,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriterCloseWithErrorPropagation(
   // Step 5. If state is "errored",
   // return a promise rejected with stream.[[storedError]].
   if (state == WritableStream::WriterState::Errored) {
-    JS::Rooted<JS::Value> error(aCx, stream->StoredError());
+    JS::sandbox::Rooted<JS::Value> error(aCx, stream->StoredError());
     return Promise::CreateRejected(aWriter->GetParentObject(), error, aRv);
   }
 

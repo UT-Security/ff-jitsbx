@@ -15,8 +15,10 @@
 #include "mozilla/dom/Promise.h"
 #include "js/GCVector.h"
 #include "js/sandbox/Promise.h"
+#include "js/sandbox/RootingAPI.h"
 
 #include "nsCOMPtr.h"
+#include "nsCycleCollector.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTArray.h"
 
@@ -128,7 +130,7 @@ class FinalizationRegistryCleanup {
   CycleCollectedJSContext* mContext;
 
   using CallbackVector = JS::GCVector<Callback, 0, InfallibleAllocPolicy>;
-  JS::PersistentRooted<CallbackVector> mCallbacks;
+  JS::sandbox::PersistentRooted<CallbackVector> mCallbacks;
 };
 
 class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::sandbox::JobQueue {
@@ -187,6 +189,11 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::sandbox::Jo
   JS::RootingContext* RootingCx() const {
     MOZ_ASSERT(mJSContext);
     return JS::RootingContext::get(mJSContext);
+  }
+
+  JS::sandbox::RootingContext* SandboxRootingCx() const {
+    MOZ_ASSERT(mJSContext);
+    return JS::sandbox::RootingContext::get(mJSContext);
   }
 
   void SetTargetedMicroTaskRecursionDepth(uint32_t aDepth) {
@@ -265,13 +272,13 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::sandbox::Jo
   // event loop without the rejection being handled.
   // Note that this can contain nullptrs in place of promises removed because
   // they're consumed before it'd be reported.
-  JS::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
+  JS::sandbox::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
       mUncaughtRejections;
 
   // Promises in this list have previously been reported as rejected
   // (because they were in the above list), but the rejection was handled
   // in the last turn of the event loop.
-  JS::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
+  JS::sandbox::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
       mConsumedRejections;
   nsTArray<nsCOMPtr<nsISupports /* UncaughtRejectionObserver */>>
       mUncaughtRejectionObservers;
@@ -378,6 +385,13 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::sandbox::Jo
   };
 
   FinalizationRegistryCleanup mFinalizationRegistryCleanup;
+
+ private:
+  // Stack GC roots for Rooted GC heap pointers.
+  JS::sandbox::RootedListHeads externalStackRoots_;
+
+  static void traceExternalRoots(JSTracer* trc, void* data);
+  static JS::sandbox::RootedListHeads& getExternalRoots(void* data);
 };
 
 class MOZ_STACK_CLASS nsAutoMicroTask {

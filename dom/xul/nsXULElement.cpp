@@ -1888,7 +1888,7 @@ nsresult nsXULPrototypeScript::Compile(
   options.setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
       .setFileAndLine(urlspec.get(), mOutOfLine ? 1 : aLineNo);
 
-  JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
 
   if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
     if (!JS::CompileToStencilOffThread(

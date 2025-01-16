@@ -321,7 +321,7 @@ void PerformanceObserver::Observe(const PerformanceObserverInit& aOptions,
 void PerformanceObserver::GetSupportedEntryTypes(
     const GlobalObject& aGlobal, JS::MutableHandle<JSObject*> aObject) {
   nsTArray<nsString> validTypes;
-  JS::Rooted<JS::Value> val(aGlobal.Context());
+  JS::sandbox::Rooted<JS::Value> val(aGlobal.Context());
 
   if (StaticPrefs::dom_enable_event_timing()) {
     for (const nsLiteralString& name : kValidEventTimingNames) {

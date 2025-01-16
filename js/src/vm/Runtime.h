@@ -35,6 +35,7 @@
 #include "js/Initialization.h"
 #include "js/MemoryCallbacks.h"
 #include "js/Modules.h"  // JS::Module{DynamicImport,Metadata,Resolve}Hook
+#include "js/sandbox/RootingAPI.h"
 #include "js/ScriptPrivate.h"
 #include "js/shadow/Zone.h"
 #include "js/ShadowRealmCallbacks.h"
@@ -296,7 +297,7 @@ class Metrics {
 
 }  // namespace js
 
-struct JSRuntime {
+struct JSRuntime : public JS::sandbox::RuntimeRootingContext {
  private:
   friend class js::Activation;
   friend class js::ActivationIterator;
@@ -511,6 +512,8 @@ struct JSRuntime {
   void tracePersistentRoots(JSTracer* trc);
   void finishPersistentRoots();
 
+  void traceExternalPersistentRoots(JSTracer* trc);
+  
   void finishRoots();
 
  private:

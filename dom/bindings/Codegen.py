@@ -1691,7 +1691,7 @@ def UnionTypes(unionTypes, config):
                     headers.add("mozilla/dom/ToJSValue.h")
                 elif f.isInterface():
                     if f.isSpiderMonkeyInterface():
-                        headers.add("js/RootingAPI.h")
+                        headers.add("js/sandbox/RootingAPI.h")
                         headers.add("js/Value.h")
                         headers.add("mozilla/dom/TypedArray.h")
                     else:
@@ -2250,13 +2250,13 @@ class CGClassConstructor(CGAbstractStaticMethod):
         preamble = fill(
             """
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-            JS::Rooted<JSObject*> obj(cx, &args.callee());
+            JS::sandbox::Rooted<JSObject*> obj(cx, &args.callee());
             $*{conditionsCheck}
             if (!args.isConstructing()) {
               return ThrowConstructorWithoutNew(cx, "${ctorName}");
             }
 
-            JS::Rooted<JSObject*> desiredProto(cx);
+            JS::sandbox::Rooted<JSObject*> desiredProto(cx);
             if (!GetDesiredProto(cx, args,
                                  prototypes::id::${name},
                                  CreateInterfaceObjects,
@@ -3462,7 +3462,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
             Argument("JSContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("%s*" % descriptor.nativeType, "self"),
-            Argument("JS::Rooted<JSObject*>&", "result"),
+            Argument("JS::sandbox::Rooted<JSObject*>&", "result"),
         ]
         CGAbstractMethod.__init__(
             self, descriptor, "CollectJSONAttributes", "bool", args, canRunScript=True
@@ -3480,7 +3480,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
             if m.isAttr() and not m.isStatic() and m.type.isJSONType():
                 getAndDefine = fill(
                     """
-                    JS::Rooted<JS::Value> temp(cx);
+                    JS::sandbox::Rooted<JS::Value> temp(cx);
                     if (!get_${name}(cx, obj, self, JSJitGetterCallArgs(&temp))) {
                       return false;
                     }
@@ -3528,7 +3528,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
             assert not self.descriptor.isMaybeCrossOriginObject()
             ret = fill(
                 """
-                JS::Rooted<JSObject*> unwrappedObj(cx, js::CheckedUnwrapStatic(obj));
+                JS::sandbox::Rooted<JSObject*> unwrappedObj(cx, js::CheckedUnwrapStatic(obj));
                 if (!unwrappedObj) {
                   // How did that happen?  We managed to get called with that
                   // object as "this"!  Just give up on sanity.
@@ -3745,7 +3745,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     prop = "%sId" % name
                     getSymbolJSID = CGGeneric(
                         fill(
-                            "JS::Rooted<jsid> ${prop}(aCx, ${symbolJSID});",
+                            "JS::sandbox::Rooted<jsid> ${prop}(aCx, ${symbolJSID});",
                             prop=prop,
                             symbolJSID=symbolJSID,
                         )
@@ -3811,7 +3811,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                     """
                         )
                     ),
-                    CGGeneric("JS::Rooted<JS::Value> aliasedVal(aCx);\n\n"),
+                    CGGeneric("JS::sandbox::Rooted<JS::Value> aliasedVal(aCx);\n\n"),
                 ]
                 + [
                     defineAliasesFor(m)
@@ -3846,7 +3846,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             createUnforgeableHolder = CGGeneric(
                 fill(
                     """
-                JS::Rooted<JSObject*> unforgeableHolder(
+                JS::sandbox::Rooted<JSObject*> unforgeableHolder(
                     aCx, JS_NewObjectWithoutMetadata(aCx, ${holderClass}, ${holderProto}));
                 if (!unforgeableHolder) {
                   $*{failureCode}
@@ -4053,7 +4053,7 @@ class CGGetNamedPropertiesObjectMethod(CGAbstractStaticMethod):
         else:
             getParentProto = fill(
                 """
-                JS::Rooted<JSObject*> parentProto(aCx, ${parent}::GetProtoObjectHandle(aCx));
+                JS::sandbox::Rooted<JSObject*> parentProto(aCx, ${parent}::GetProtoObjectHandle(aCx));
                 if (!parentProto) {
                   return nullptr;
                 }
@@ -4289,7 +4289,7 @@ class CGDeserializer(CGAbstractMethod):
         return fill(
             """
             // Protect the result from a moving GC in ~RefPtr
-            JS::Rooted<JSObject*> result(aCx);
+            JS::sandbox::Rooted<JSObject*> result(aCx);
             {  // Scope for the RefPtr
               RefPtr<${type}> obj = ${type}::ReadStructuredClone(aCx, aGlobal, aReader);
               if (!obj) {
@@ -4315,7 +4315,7 @@ def CreateBindingJSObject(descriptor):
             create = dedent(
                 """
                 aObject->mExpandoAndGeneration.expando.setUndefined();
-                JS::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
+                JS::sandbox::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
                 creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           proto, /* aLazyProto = */ false, aObject,
                                           expandoValue, aReflector);
@@ -4416,7 +4416,7 @@ def InitUnforgeablePropertiesOnHolder(
             CGGeneric(
                 fill(
                     """
-            JS::Rooted<JS::PropertyKey> toPrimitive(aCx,
+            JS::sandbox::Rooted<JS::PropertyKey> toPrimitive(aCx,
               JS::GetWellKnownSymbolKey(aCx, JS::SymbolCode::toPrimitive));
             if (!JS_DefinePropertyById(aCx, ${holderName}, toPrimitive,
                                        JS::GetUndefinedHandleValue(),
@@ -4463,7 +4463,7 @@ def CopyUnforgeablePropertiesToInstance(descriptor, failureCode):
             CGGeneric(
                 fill(
                     """
-            JS::Rooted<JSObject*> expando(aCx,
+            JS::sandbox::Rooted<JSObject*> expando(aCx,
               DOMProxyHandler::EnsureExpandoObject(aCx, aReflector));
             if (!expando) {
               $*{failureCode}
@@ -4481,7 +4481,7 @@ def CopyUnforgeablePropertiesToInstance(descriptor, failureCode):
         CGGeneric(
             fill(
                 """
-        JS::Rooted<JSObject*> unforgeableHolder(aCx,
+        JS::sandbox::Rooted<JSObject*> unforgeableHolder(aCx,
           &JS::GetReservedSlot(canonicalProto, DOM_INTERFACE_PROTO_SLOTS_BASE).toObject());
         if (!JS_InitializePropertiesFromCompatibleNativeObject(aCx, ${obj}, unforgeableHolder)) {
           $*{failureCode}
@@ -4560,7 +4560,7 @@ def DeclareProto(descriptor, noGivenProto=False):
 
     preamble = getCanonical + dedent(
         """
-        JS::Rooted<JSObject*> proto(aCx);
+        JS::sandbox::Rooted<JSObject*> proto(aCx);
         """
     )
     if descriptor.isMaybeCrossOriginObject():
@@ -4647,7 +4647,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
               MOZ_ASSERT(!aCache->GetWrapperMaybeDead());
             }
 
-            JS::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(aCx, aObject->GetParentObject()));
+            JS::sandbox::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(aCx, aObject->GetParentObject()));
             if (!global) {
               return false;
             }
@@ -4722,7 +4722,7 @@ class CGWrapMethod(CGAbstractMethod):
     def definition_body(self):
         return dedent(
             """
-            JS::Rooted<JSObject*> reflector(aCx);
+            JS::sandbox::Rooted<JSObject*> reflector(aCx);
             return Wrap(aCx, aObject, aObject, aGivenProto, &reflector) ? reflector.get() : nullptr;
             """
         )
@@ -4775,7 +4775,7 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
             $*{assertions}
             $*{assertGivenProto}
 
-            JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+            JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
             $*{declareProto}
 
             $*{createObject}
@@ -4903,7 +4903,7 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
         )
 
     def definition_body(self):
-        body = "JS::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
+        body = "JS::sandbox::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
         for m in self.descriptor.interface.members:
             if m.isAttr() and m.getExtendedAttribute("StoreInSlot"):
                 # Skip doing this for the "window" and "self" attributes on the
@@ -4952,15 +4952,15 @@ class CGClearCachedValueMethod(CGAbstractMethod):
         if self.member.getExtendedAttribute("StoreInSlot"):
             # We have to root things and save the old value in case
             # regetting fails, so we can restore it.
-            declObj = "JS::Rooted<JSObject*> obj(aCx);\n"
+            declObj = "JS::sandbox::Rooted<JSObject*> obj(aCx);\n"
             noopRetval = " true"
             saveMember = (
-                "JS::Rooted<JS::Value> oldValue(aCx, JS::GetReservedSlot(obj, %s));\n"
+                "JS::sandbox::Rooted<JS::Value> oldValue(aCx, JS::GetReservedSlot(obj, %s));\n"
                 % slotIndex
             )
             regetMember = fill(
                 """
-                JS::Rooted<JS::Value> temp(aCx);
+                JS::sandbox::Rooted<JS::Value> temp(aCx);
                 JSJitGetterCallArgs args(&temp);
                 JSAutoRealm ar(aCx, obj);
                 if (!get_${name}(aCx, obj, aObject, args)) {
@@ -5328,15 +5328,15 @@ class CastableObjectUnwrapper:
                 // that already has a content reflection...
                 if (!IsDOMObject(js::UncheckedUnwrap(&${source}.toObject()))) {
                   nsCOMPtr<nsIGlobalObject> contentGlobal;
-                  JS::Rooted<JSObject*> callback(cx, CallbackOrNull());
+                  JS::sandbox::Rooted<JSObject*> callback(cx, CallbackOrNull());
                   if (!callback ||
                       !GetContentGlobalForJSImplementedObject(cx, callback, getter_AddRefs(contentGlobal))) {
                     $*{exceptionCode}
                   }
-                  JS::Rooted<JSObject*> jsImplSourceObj(cx, &${source}.toObject());
+                  JS::sandbox::Rooted<JSObject*> jsImplSourceObj(cx, &${source}.toObject());
                   MOZ_RELEASE_ASSERT(!js::IsWrapper(jsImplSourceObj),
                                      "Don't return JS implementations from other compartments");
-                  JS::Rooted<JSObject*> jsImplSourceGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplSourceObj));
+                  JS::sandbox::Rooted<JSObject*> jsImplSourceGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplSourceObj));
                   ${target} = new ${type}(jsImplSourceObj, jsImplSourceGlobal, contentGlobal);
                 } else {
                   $*{codeOnFailure}
@@ -5420,8 +5420,8 @@ def getCallbackConversionInfo(
     else:
         rootArgs = dedent(
             """
-            JS::Rooted<JSObject*> tempRoot(cx, &${val}.toObject());
-            JS::Rooted<JSObject*> tempGlobalRoot(cx, JS::CurrentGlobalOrNull(cx));
+            JS::sandbox::Rooted<JSObject*> tempRoot(cx, &${val}.toObject());
+            JS::sandbox::Rooted<JSObject*> tempGlobalRoot(cx, JS::CurrentGlobalOrNull(cx));
             """
         )
         args = "cx, tempRoot, tempGlobalRoot, GetIncumbentGlobal()"
@@ -5846,7 +5846,7 @@ def getJSToNativeConversionInfo(
                 # Rooted for the storage here.
                 declType = CGGeneric("JS::Handle<JSObject*>")
             else:
-                declType = CGGeneric("JS::Rooted<JSObject*>")
+                declType = CGGeneric("JS::sandbox::Rooted<JSObject*>")
             declArgs = "cx"
         else:
             assert isMember in (
@@ -6017,7 +6017,7 @@ def getJSToNativeConversionInfo(
               $*{notSequence}
             }
             ${sequenceType} &arr${nestingLevel} = ${arrayRef};
-            JS::Rooted<JS::Value> temp${nestingLevel}(cx);
+            JS::sandbox::Rooted<JS::Value> temp${nestingLevel}(cx);
             while (true) {
               bool done${nestingLevel};
               if (!iter${nestingLevel}.next(&temp${nestingLevel}, &done${nestingLevel})) {
@@ -6169,8 +6169,8 @@ def getJSToNativeConversionInfo(
             """
             auto& recordEntries = ${recordRef}.Entries();
 
-            JS::Rooted<JSObject*> recordObj(cx, &$${val}.toObject());
-            JS::RootedVector<jsid> ids(cx);
+            JS::sandbox::Rooted<JSObject*> recordObj(cx, &$${val}.toObject());
+            JS::sandbox::RootedVector<jsid> ids(cx);
             if (!js::GetPropertyKeys(cx, recordObj,
                                      JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, &ids)) {
               $*{exceptionCode}
@@ -6179,10 +6179,10 @@ def getJSToNativeConversionInfo(
               JS_ReportOutOfMemory(cx);
               $*{exceptionCode}
             }
-            JS::Rooted<JS::Value> propNameValue(cx);
-            JS::Rooted<JS::Value> temp(cx);
-            JS::Rooted<jsid> curId(cx);
-            JS::Rooted<JS::Value> idVal(cx);
+            JS::sandbox::Rooted<JS::Value> propNameValue(cx);
+            JS::sandbox::Rooted<JS::Value> temp(cx);
+            JS::sandbox::Rooted<jsid> curId(cx);
+            JS::sandbox::Rooted<JS::Value> idVal(cx);
             // Use a hashset to keep track of ids seen, to avoid
             // introducing nasty O(N^2) behavior scanning for them all the
             // time.  Ideally we'd use a data structure with O(1) lookup
@@ -6192,7 +6192,7 @@ def getJSToNativeConversionInfo(
             for (size_t i = 0; i < ids.length(); ++i) {
               curId = ids[i];
 
-              JS::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(cx);
+              JS::sandbox::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(cx);
               if (!JS_GetOwnPropertyDescriptorById(cx, recordObj, curId,
                                                    &desc)) {
                 $*{exceptionCode}
@@ -6555,7 +6555,7 @@ def getJSToNativeConversionInfo(
             { // Scope for our GlobalObject, FastErrorResult, JSAutoRealm,
               // etc.
 
-              JS::Rooted<JSObject*> globalObj(cx);
+              JS::sandbox::Rooted<JSObject*> globalObj(cx);
               $*{getPromiseGlobal}
               JSAutoRealm ar(cx, globalObj);
               GlobalObject promiseGlobal(cx, globalObj);
@@ -6563,7 +6563,7 @@ def getJSToNativeConversionInfo(
                 $*{exceptionCode}
               }
 
-              JS::Rooted<JS::Value> valueToResolve(cx, $${val});
+              JS::sandbox::Rooted<JS::Value> valueToResolve(cx, $${val});
               if (!JS_WrapValue(cx, &valueToResolve)) {
                 $*{exceptionCode}
               }
@@ -6626,7 +6626,7 @@ def getJSToNativeConversionInfo(
             ).define()
             templateBody = fill(
                 """
-                JS::Rooted<JSObject*> source(cx, &$${val}.toObject());
+                JS::sandbox::Rooted<JSObject*> source(cx, &$${val}.toObject());
                 if (NS_FAILED(UnwrapWindowProxyArg(cx, source, ${windowProxyHolderRef}))) {
                     $*{onFailure}
                 }
@@ -6728,7 +6728,7 @@ def getJSToNativeConversionInfo(
             else:
                 holderType = "RefPtr<" + typeName + ">"
             templateBody += (
-                "JS::Rooted<JSObject*> source(cx, &${val}.toObject());\n"
+                "JS::sandbox::Rooted<JSObject*> source(cx, &${val}.toObject());\n"
                 + "if (NS_FAILED(UnwrapArg<"
                 + typeName
                 + ">(cx, source, getter_AddRefs(${holderName})))) {\n"
@@ -6862,7 +6862,7 @@ def getJSToNativeConversionInfo(
         if isMember:
             raise TypeError("JSString not supported as member")
         else:
-            declType = "JS::Rooted<JSString*>"
+            declType = "JS::sandbox::Rooted<JSString*>"
 
         if isOptional:
             raise TypeError("JSString not supported as optional")
@@ -7156,7 +7156,7 @@ def getJSToNativeConversionInfo(
             declType = "JS::Value"
         else:
             assert not isMember
-            declType = "JS::Rooted<JS::Value>"
+            declType = "JS::sandbox::Rooted<JS::Value>"
             declArgs = "cx"
 
         assert not isOptional
@@ -7923,13 +7923,13 @@ def getWrapTemplateForType(
             """
 
             uint32_t length = ${result}.Length();
-            JS::Rooted<JSObject*> returnArray(cx, JS::NewArrayObject(cx, length));
+            JS::sandbox::Rooted<JSObject*> returnArray(cx, JS::NewArrayObject(cx, length));
             if (!returnArray) {
               $*{exceptionCode}
             }
             // Scope for 'tmp'
             {
-              JS::Rooted<JS::Value> tmp(cx);
+              JS::sandbox::Rooted<JS::Value> tmp(cx);
               for (uint32_t ${index} = 0; ${index} < length; ++${index}) {
                 // Control block to let us common up the JS_DefineElement calls when there
                 // are different ways to succeed at wrapping the object.
@@ -7996,13 +7996,13 @@ def getWrapTemplateForType(
         code = fill(
             """
 
-            JS::Rooted<JSObject*> returnObj(cx, JS_NewPlainObject(cx));
+            JS::sandbox::Rooted<JSObject*> returnObj(cx, JS_NewPlainObject(cx));
             if (!returnObj) {
               $*{exceptionCode}
             }
             // Scope for 'tmp'
             {
-              JS::Rooted<JS::Value> tmp(cx);
+              JS::sandbox::Rooted<JS::Value> tmp(cx);
               for (auto& entry : ${result}.Entries()) {
                 auto& ${valueName} = entry.mValue;
                 // Control block to let us common up the JS_DefineUCProperty calls when there
@@ -8441,7 +8441,7 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
     if returnType.isJSString():
         if isMember:
             raise TypeError("JSString not supported as return type member")
-        return CGGeneric("JS::Rooted<JSString*>"), "ptr", None, "cx", None
+        return CGGeneric("JS::sandbox::Rooted<JSString*>"), "ptr", None, "cx", None
     if returnType.isDOMString() or returnType.isUSVString():
         if isMember:
             return CGGeneric("nsString"), "ref", None, None, None
@@ -8480,11 +8480,11 @@ def getRetvalDeclarationForType(returnType, descriptorProvider, isMember=False):
     if returnType.isAny():
         if isMember:
             return CGGeneric("JS::Value"), None, None, None, None
-        return CGGeneric("JS::Rooted<JS::Value>"), "ptr", None, "cx", None
+        return CGGeneric("JS::sandbox::Rooted<JS::Value>"), "ptr", None, "cx", None
     if returnType.isObject() or returnType.isSpiderMonkeyInterface():
         if isMember:
             return CGGeneric("JSObject*"), None, None, None, None
-        return CGGeneric("JS::Rooted<JSObject*>"), "ptr", None, "cx", None
+        return CGGeneric("JS::sandbox::Rooted<JSObject*>"), "ptr", None, "cx", None
     if returnType.isSequence():
         nullable = returnType.nullable()
         if nullable:
@@ -9204,7 +9204,7 @@ class CGPerSignatureCall(CGThing):
                 CGGeneric(
                     dedent(
                         """
-                JS::Rooted<JSObject*> unwrappedObj(cx, js::CheckedUnwrapStatic(obj));
+                JS::sandbox::Rooted<JSObject*> unwrappedObj(cx, js::CheckedUnwrapStatic(obj));
                 // Caller should have ensured that "obj" can be unwrapped already.
                 MOZ_DIAGNOSTIC_ASSERT(unwrappedObj);
                 """
@@ -9216,7 +9216,7 @@ class CGPerSignatureCall(CGThing):
         if needsUnwrap and needsUnwrappedVar:
             # We cannot assign into obj because it's a Handle, not a
             # MutableHandle, so we need a separate Rooted.
-            cgThings.append(CGGeneric("Maybe<JS::Rooted<JSObject*> > unwrappedObj;\n"))
+            cgThings.append(CGGeneric("Maybe<JS::sandbox::Rooted<JSObject*> > unwrappedObj;\n"))
             unwrappedVar = "unwrappedObj.ref()"
 
         if idlNode.isMethod() and idlNode.isLegacycaller():
@@ -9626,8 +9626,8 @@ class CGPerSignatureCall(CGThing):
                 postConversionSteps += dedent(
                     """
                     if (args.rval().isObject() && nsContentUtils::ThreadsafeIsSystemCaller(cx)) {
-                      JS::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());
-                      JS::Rooted<JS::Value> includesVal(cx);
+                      JS::sandbox::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());
+                      JS::sandbox::Rooted<JS::Value> includesVal(cx);
                       if (!JS_GetProperty(cx, rvalObj, "includes", &includesVal) ||
                           !JS_DefineProperty(cx, rvalObj, "contains", includesVal, JSPROP_ENUMERATE)) {
                         return false;
@@ -9641,7 +9641,7 @@ class CGPerSignatureCall(CGThing):
                     self.idlNode.type.isSequence() or self.idlNode.type.isDictionary()
                 )
                 freezeValue = CGGeneric(
-                    "JS::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());\n"
+                    "JS::sandbox::Rooted<JSObject*> rvalObj(cx, &args.rval().toObject());\n"
                     "if (!JS_FreezeObject(cx, rvalObj)) {\n"
                     "  return false;\n"
                     "}\n"
@@ -9655,7 +9655,7 @@ class CGPerSignatureCall(CGThing):
             slotStorageSteps = fill(
                 """
                 // Make a copy so that we don't do unnecessary wrapping on args.rval().
-                JS::Rooted<JS::Value> storedVal(cx, args.rval());
+                JS::sandbox::Rooted<JS::Value> storedVal(cx, args.rval());
                 if (!${maybeWrap}(cx, &storedVal)) {
                   return false;
                 }
@@ -9707,7 +9707,7 @@ class CGPerSignatureCall(CGThing):
             wrapCode = fill(
                 """
                 {
-                  JS::Rooted<JSObject*> conversionScope(cx, ${conversionScope});
+                  JS::sandbox::Rooted<JSObject*> conversionScope(cx, ${conversionScope});
                   JSAutoRealm ar(cx, conversionScope);
                   do { // block we break out of when done wrapping
                     $*{wrapCode}
@@ -10423,7 +10423,7 @@ class CGAbstractBindingMethod(CGAbstractStaticMethod):
             self.getThisObj = None
         else:
             self.getThisObj = CGGeneric(
-                "JS::Rooted<JSObject*> obj(cx, %s);\n" % getThisObj
+                "JS::sandbox::Rooted<JSObject*> obj(cx, %s);\n" % getThisObj
             )
         self.callArgs = callArgs
 
@@ -10434,7 +10434,7 @@ class CGAbstractBindingMethod(CGAbstractStaticMethod):
         body += "%s* self;\n" % self.descriptor.nativeType
         body += dedent(
             """
-            JS::Rooted<JS::Value> rootSelf(cx, JS::ObjectValue(*obj));
+            JS::sandbox::Rooted<JS::Value> rootSelf(cx, JS::ObjectValue(*obj));
             """
         )
 
@@ -10470,7 +10470,7 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
         unwrap = dedent(
             """
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-            JS::Rooted<JSObject*> obj(cx, &args.callee());
+            JS::sandbox::Rooted<JSObject*> obj(cx, &args.callee());
 
             """
         )
@@ -10699,7 +10699,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
         ret = fill(
             """
             auto* self = static_cast<${nativeType}*>(void_self);
-            JS::Rooted<JSObject*> result(cx, JS_NewPlainObject(cx));
+            JS::sandbox::Rooted<JSObject*> result(cx, JS_NewPlainObject(cx));
             if (!result) {
               return false;
             }
@@ -10781,7 +10781,7 @@ class CGResolveHook(CGAbstractClassHook):
     def generate_code(self):
         return dedent(
             """
-            JS::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(cx);
+            JS::sandbox::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> desc(cx);
             if (!self->DoResolve(cx, obj, id, &desc)) {
               return false;
             }
@@ -10793,7 +10793,7 @@ class CGResolveHook(CGAbstractClassHook):
             // define it.
             MOZ_ASSERT(desc->isDataDescriptor());
             if (!desc->value().isUndefined()) {
-              JS::Rooted<JS::PropertyDescriptor> defineDesc(cx, *desc);
+              JS::sandbox::Rooted<JS::PropertyDescriptor> defineDesc(cx, *desc);
               defineDesc.setResolving(true);
               if (!JS_DefinePropertyById(cx, obj, id, defineDesc)) {
                 return false;
@@ -11160,7 +11160,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                     """
                     // Have to either root across the getter call or reget after.
                     bool isXray;
-                    JS::Rooted<JSObject*> slotStorage(cx, GetCachedSlotStorageObject(cx, obj, &isXray));
+                    JS::sandbox::Rooted<JSObject*> slotStorage(cx, GetCachedSlotStorageObject(cx, obj, &isXray));
                     if (!slotStorage) {
                       return false;
                     }
@@ -11175,7 +11175,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 prefix += fill(
                     """
                     // Have to either root across the getter call or reget after.
-                    JS::Rooted<JSObject*> slotStorage(cx, js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false));
+                    JS::sandbox::Rooted<JSObject*> slotStorage(cx, js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false));
                     MOZ_ASSERT(IsDOMObject(slotStorage));
                     const size_t slotIndex = ${slotIndex};
                     """,
@@ -11454,7 +11454,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
         assert all(ord(c) < 128 for c in forwardToAttrName)
         return fill(
             """
-            JS::Rooted<JS::Value> v(cx);
+            JS::sandbox::Rooted<JS::Value> v(cx);
             if (!JS_GetProperty(cx, obj, "${attr}", &v)) {
               return false;
             }
@@ -11463,7 +11463,7 @@ class CGSpecializedForwardingSetter(CGSpecializedSetter):
               return cx.ThrowErrorMessage<MSG_NOT_OBJECT>("${interface}.${attr}");
             }
 
-            JS::Rooted<JSObject*> targetObj(cx, &v.toObject());
+            JS::sandbox::Rooted<JSObject*> targetObj(cx, &v.toObject());
             return JS_SetProperty(cx, targetObj, "${forwardToAttrName}", args[0]);
             """,
             attr=attrName,
@@ -13967,7 +13967,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
               // them.
               JSAutoRealm ar(cx, obj);
               JS_MarkCrossZoneId(cx, id);
-              JS::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> objDesc(cx);
+              JS::sandbox::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> objDesc(cx);
               if (!self->DoResolve(cx, obj, id, &objDesc)) {
                 return false;
               }
@@ -13976,7 +13976,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
               // try to also define it.
               if (objDesc.isSome() &&
                   !objDesc->value().isUndefined()) {
-                JS::Rooted<JS::PropertyDescriptor> defineDesc(cx, *objDesc);
+                JS::sandbox::Rooted<JS::PropertyDescriptor> defineDesc(cx, *objDesc);
                 if (!JS_DefinePropertyById(cx, obj, id, defineDesc)) {
                   return false;
                 }
@@ -14130,7 +14130,7 @@ class CGProxySpecialOperation(CGPerSignatureCall):
                 argumentHandleValue = "desc.value()"
             rootedValue = fill(
                 """
-                JS::Rooted<JS::Value> rootedValue(cx, ${argumentHandleValue});
+                JS::sandbox::Rooted<JS::Value> rootedValue(cx, ${argumentHandleValue});
                 """,
                 argumentHandleValue=argumentHandleValue,
             )
@@ -14322,7 +14322,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
         argName = self.arguments[0].identifier.name
         if argName == "id":
             # deal with the name collision
-            decls = "JS::Rooted<jsid> id_(cx, id);\n"
+            decls = "JS::sandbox::Rooted<jsid> id_(cx, id);\n"
             idName = "id_"
         else:
             decls = ""
@@ -14366,7 +14366,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
         return fill(
             """
             $*{decls}
-            JS::Rooted<JS::Value> nameVal(cx, ${value});
+            JS::sandbox::Rooted<JS::Value> nameVal(cx, ${value});
             if (!nameVal.isSymbol()) {
               if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
                                           ${argName})) {
@@ -14741,7 +14741,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
                 """
                 uint32_t index = GetArrayIndexFromId(id);
                 if (IsArrayIndex(index)) {
-                  JS::Rooted<JS::Value> value(cx);
+                  JS::sandbox::Rooted<JS::Value> value(cx);
                   $*{callGetter}
                 }
 
@@ -14806,7 +14806,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
                   $*{computeCondition}
                 }
                 if (callNamedGetter) {
-                  JS::Rooted<JS::Value> value(cx);
+                  JS::sandbox::Rooted<JS::Value> value(cx);
                   $*{namedGetCode}
                 }
                 """,
@@ -14823,7 +14823,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             $*{xrayDecl}
             $*{getIndexed}
             $*{missingPropUseCounters}
-            JS::Rooted<JSObject*> expando(cx);
+            JS::sandbox::Rooted<JSObject*> expando(cx);
             if (${xrayCheck}(expando = GetExpandoObject(proxy))) {
               if (!JS_GetOwnPropertyDescriptorById(cx, expando, id, desc)) {
                 return false;
@@ -15155,7 +15155,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 // algorithm says the property is visible.
                 bool tryNamedDelete = true;
                 { // Scope for expando
-                  JS::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
+                  JS::sandbox::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
                   if (expando) {
                     bool hasProp;
                     if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
@@ -15236,7 +15236,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                     return true;
                   }
 
-                  JS::Rooted<JSObject*> holder(cx);
+                  JS::sandbox::Rooted<JSObject*> holder(cx);
                   if (!EnsureHolder(cx, proxy, &holder)) {
                     return false;
                   }
@@ -15309,7 +15309,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
 
         addExpandoProps = fill(
             """
-            JS::Rooted<JSObject*> expando(cx);
+            JS::sandbox::Rooted<JSObject*> expando(cx);
             if (${xrayCheck}(expando = DOMProxyHandler::GetExpandoObject(proxy)) &&
                 !js::GetPropertyKeys(cx, expando, flags, props)) {
               return false;
@@ -15450,7 +15450,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             $*{indexed}
 
             $*{missingPropUseCounters}
-            JS::Rooted<JSObject*> expando(cx, GetExpandoObject(proxy));
+            JS::sandbox::Rooted<JSObject*> expando(cx, GetExpandoObject(proxy));
             if (expando) {
               bool b = true;
               bool ok = JS_HasPropertyById(cx, expando, id, &b);
@@ -15491,7 +15491,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
             """
             bool expandoHasProp = false;
             { // Scope for expando
-              JS::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
+              JS::sandbox::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
               if (expando) {
                 if (!JS_HasPropertyById(cx, expando, id, &expandoHasProp)) {
                   return false;
@@ -15535,7 +15535,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                 $*{missingPropUseCounters}
                 { // Scope for the JSAutoRealm accessing expando and prototype.
                   JSAutoRealm ar(cx, proxy);
-                  JS::Rooted<JS::Value> wrappedReceiver(cx, receiver);
+                  JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
                   if (!MaybeWrapValue(cx, &wrappedReceiver)) {
                     return false;
                   }
@@ -15895,7 +15895,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
 
         return fill(
             """
-            JS::Rooted<JS::Value> temp(cx);
+            JS::sandbox::Rooted<JS::Value> temp(cx);
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
                        "Should not have a XrayWrapper here");
 
@@ -15909,7 +15909,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
             }
 
             if (end > ourEnd) {
-              JS::Rooted<JSObject*> proto(cx);
+              JS::sandbox::Rooted<JSObject*> proto(cx);
               if (!js::GetObjectProto(cx, proxy, &proto)) {
                 return false;
               }
@@ -16169,12 +16169,12 @@ class CGDOMJSProxyHandler_set(ClassMethod):
 
             // Safe to enter the Realm of proxy now, since it's same-origin with us.
             JSAutoRealm ar(cx, proxy);
-            JS::Rooted<JS::Value> wrappedReceiver(cx, receiver);
+            JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
             if (!MaybeWrapValue(cx, &wrappedReceiver)) {
               return false;
             }
 
-            JS::Rooted<JS::Value> wrappedValue(cx, v);
+            JS::sandbox::Rooted<JS::Value> wrappedValue(cx, v);
             if (!MaybeWrapValue(cx, &wrappedValue)) {
               return false;
             }
@@ -16941,8 +16941,8 @@ class CGDictionary(CGThing):
                 """
                 bool isNull = val.isNullOrUndefined();
                 // We only need these if !isNull, in which case we have |cx|.
-                Maybe<JS::Rooted<JSObject *> > object;
-                Maybe<JS::Rooted<JS::Value> > temp;
+                Maybe<JS::sandbox::Rooted<JSObject *> > object;
+                Maybe<JS::sandbox::Rooted<JS::Value> > temp;
                 if (!isNull) {
                   MOZ_ASSERT(cx);
                   object.emplace(cx, &val.toObject());
@@ -17083,7 +17083,7 @@ class CGDictionary(CGThing):
                   return false;
                 }
                 JSContext* cx = jsapi.cx();
-                JS::Rooted<JS::Value> json(cx);
+                JS::sandbox::Rooted<JS::Value> json(cx);
                 bool ok = ParseJSON(cx, aJSON, &json);
                 NS_ENSURE_TRUE(ok, false);
                 return Init(cx, json);
@@ -17112,11 +17112,11 @@ class CGDictionary(CGThing):
                   return false;
                 }
                 JSAutoRealm ar(cx, scope);
-                JS::Rooted<JS::Value> val(cx);
+                JS::sandbox::Rooted<JS::Value> val(cx);
                 if (!ToObjectInternal(cx, &val)) {
                   return false;
                 }
-                JS::Rooted<JSObject*> obj(cx, &val.toObject());
+                JS::sandbox::Rooted<JSObject*> obj(cx, &val.toObject());
                 return StringifyToJSON(cx, obj, aJSON);
             """
             ),
@@ -17145,7 +17145,7 @@ class CGDictionary(CGThing):
                 if (!${dictName}::ToObjectInternal(cx, rval)) {
                   return false;
                 }
-                JS::Rooted<JSObject*> obj(cx, &rval.toObject());
+                JS::sandbox::Rooted<JSObject*> obj(cx, &rval.toObject());
 
                 """,
                 dictName=self.makeClassName(self.dictionary.parent),
@@ -17153,7 +17153,7 @@ class CGDictionary(CGThing):
         else:
             body += dedent(
                 """
-                JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+                JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
                 if (!obj) {
                   return false;
                 }
@@ -17695,7 +17695,7 @@ class CGDictionary(CGThing):
         conversion = CGWrapper(
             conversion,
             pre=(
-                "JS::Rooted<JS::Value> temp(cx);\n"
+                "JS::sandbox::Rooted<JS::Value> temp(cx);\n"
                 "%s const & currentValue = %s;\n" % (declType.define(), memberData)
             ),
         )
@@ -18480,7 +18480,7 @@ class CGBindingRoot(CGThing):
             for d in descriptors
         )
         bindingDeclareHeaders["js/TypeDecls.h"] = not bindingDeclareHeaders["jsapi.h"]
-        bindingDeclareHeaders["js/RootingAPI.h"] = not bindingDeclareHeaders["jsapi.h"]
+        bindingDeclareHeaders["js/sandbox/RootingAPI.h"] = not bindingDeclareHeaders["jsapi.h"]
 
         # JS::IsCallable
         bindingDeclareHeaders["js/CallAndConstruct.h"] = True
@@ -20022,9 +20022,9 @@ class CGJSImplMethod(CGJSImplMember):
             initCall = fill(
                 """
                 // Wrap the object before calling __Init so that __DOM_IMPL__ is available.
-                JS::Rooted<JSObject*> scopeObj(cx, global.Get());
+                JS::sandbox::Rooted<JSObject*> scopeObj(cx, global.Get());
                 MOZ_ASSERT(js::IsObjectInContextCompartment(scopeObj, cx));
-                JS::Rooted<JS::Value> wrappedVal(cx);
+                JS::sandbox::Rooted<JS::Value> wrappedVal(cx);
                 if (!GetOrCreateDOMReflector(cx, impl, &wrappedVal, aGivenProto)) {
                   MOZ_ASSERT(JS_IsExceptionPending(cx));
                   aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -20282,7 +20282,7 @@ class CGJSImplClass(CGBindingImplClass):
     def getWrapObjectBody(self):
         return fill(
             """
-            JS::Rooted<JSObject*> obj(aCx, ${name}_Binding::Wrap(aCx, this, aGivenProto));
+            JS::sandbox::Rooted<JSObject*> obj(aCx, ${name}_Binding::Wrap(aCx, this, aGivenProto));
             if (!obj) {
               return nullptr;
             }
@@ -20292,7 +20292,7 @@ class CGJSImplClass(CGBindingImplClass):
             if (!JS_WrapObject(aCx, &obj)) {
               return nullptr;
             }
-            JS::Rooted<JSObject*> callback(aCx, mImpl->CallbackOrNull());
+            JS::sandbox::Rooted<JSObject*> callback(aCx, mImpl->CallbackOrNull());
             if (!JS_DefineProperty(aCx, callback, "__DOM_IMPL__", obj, 0)) {
               return nullptr;
             }
@@ -20346,8 +20346,8 @@ class CGJSImplClass(CGBindingImplClass):
             }
             nsCOMPtr<nsIGlobalObject> globalHolder = do_QueryInterface(global.GetAsSupports());
             MOZ_ASSERT(globalHolder);
-            JS::Rooted<JSObject*> arg(cx, &args[1].toObject());
-            JS::Rooted<JSObject*> argGlobal(cx, JS::CurrentGlobalOrNull(cx));
+            JS::sandbox::Rooted<JSObject*> arg(cx, &args[1].toObject());
+            JS::sandbox::Rooted<JSObject*> argGlobal(cx, JS::CurrentGlobalOrNull(cx));
             RefPtr<${implName}> impl = new ${implName}(arg, argGlobal, globalHolder);
             MOZ_ASSERT(js::IsObjectInContextCompartment(arg, cx));
             return GetOrCreateDOMReflector(cx, impl, args.rval());
@@ -20572,7 +20572,7 @@ class CGCallback(CGClass):
         bodyWithThis = fill(
             """
             $*{setupCall}
-            JS::Rooted<JS::Value> thisValJS(s.GetContext());
+            JS::sandbox::Rooted<JS::Value> thisValJS(s.GetContext());
             if (!ToJSValue(s.GetContext(), thisVal, &thisValJS)) {
               aRv.Throw(NS_ERROR_FAILURE);
               return${errorReturn};
@@ -20892,7 +20892,7 @@ class CallbackMember(CGNativeMember):
         if self.argCount > 0:
             argvDecl = fill(
                 """
-                JS::RootedVector<JS::Value> argv(cx);
+                JS::sandbox::RootedVector<JS::Value> argv(cx);
                 if (!argv.resize(${argCount})) {
                   $*{failureCode}
                   return${errorReturn};
@@ -21022,7 +21022,7 @@ class CallbackMember(CGNativeMember):
         wrapScope = self.wrapScope
         if arg.type.isUnion() and wrapScope is None:
             prepend += (
-                "JS::Rooted<JSObject*> callbackObj(cx, CallbackKnownNotGray());\n"
+                "JS::sandbox::Rooted<JSObject*> callbackObj(cx, CallbackKnownNotGray());\n"
             )
             wrapScope = "callbackObj"
 
@@ -21164,7 +21164,7 @@ class ConstructCallback(CallbackMember):
 
     def getRvalDecl(self):
         # Box constructedObj for getJSToNativeConversionInfo().
-        return "JS::Rooted<JS::Value> rval(cx);\n"
+        return "JS::sandbox::Rooted<JS::Value> rval(cx);\n"
 
     def getCall(self):
         if self.argCount > 0:
@@ -21174,8 +21174,8 @@ class ConstructCallback(CallbackMember):
 
         return fill(
             """
-            JS::Rooted<JS::Value> constructor(cx, JS::ObjectValue(*mCallback));
-            JS::Rooted<JSObject*> constructedObj(cx);
+            JS::sandbox::Rooted<JS::Value> constructor(cx, JS::ObjectValue(*mCallback));
+            JS::sandbox::Rooted<JSObject*> constructedObj(cx);
             if (!JS::Construct(cx, constructor,
                           ${args}, &constructedObj)) {
               aRv.NoteJSContextException(cx);
@@ -21217,7 +21217,7 @@ class CallbackMethod(CallbackMember):
         )
 
     def getRvalDecl(self):
-        return "JS::Rooted<JS::Value> rval(cx);\n"
+        return "JS::sandbox::Rooted<JS::Value> rval(cx);\n"
 
     def getNoteCallFailed(self):
         return fill(
@@ -21298,7 +21298,7 @@ class CallCallback(CallbackMethod):
         return "aThisVal"
 
     def getCallableDecl(self):
-        return "JS::Rooted<JS::Value> callable(cx, JS::ObjectValue(*mCallback));\n"
+        return "JS::sandbox::Rooted<JS::Value> callable(cx, JS::ObjectValue(*mCallback));\n"
 
     def getPrettyName(self):
         return self.callback.identifier.name
@@ -21338,13 +21338,13 @@ class CallbackOperationBase(CallbackMethod):
 
     def getThisDecl(self):
         if not self.singleOperation:
-            return "JS::Rooted<JS::Value> thisValue(cx, JS::ObjectValue(*mCallback));\n"
+            return "JS::sandbox::Rooted<JS::Value> thisValue(cx, JS::ObjectValue(*mCallback));\n"
         # This relies on getCallableDecl declaring a boolean
         # isCallable in the case when we're a single-operation
         # interface.
         return dedent(
             """
-            JS::Rooted<JS::Value> thisValue(cx, isCallable ? aThisVal.get()
+            JS::sandbox::Rooted<JS::Value> thisValue(cx, isCallable ? aThisVal.get()
                                                            : JS::ObjectValue(*mCallback));
             """
         )
@@ -21368,11 +21368,11 @@ class CallbackOperationBase(CallbackMethod):
             errorReturn=self.getDefaultRetval(),
         )
         if not self.singleOperation:
-            return "JS::Rooted<JS::Value> callable(cx);\n" + getCallableFromProp
+            return "JS::sandbox::Rooted<JS::Value> callable(cx);\n" + getCallableFromProp
         return fill(
             """
             bool isCallable = JS::IsCallable(mCallback);
-            JS::Rooted<JS::Value> callable(cx);
+            JS::sandbox::Rooted<JS::Value> callable(cx);
             if (isCallable) {
               callable = JS::ObjectValue(*mCallback);
             } else {
@@ -21450,12 +21450,12 @@ class CallbackGetter(CallbackAccessor):
         )
 
     def getRvalDecl(self):
-        return "JS::Rooted<JS::Value> rval(cx);\n"
+        return "JS::sandbox::Rooted<JS::Value> rval(cx);\n"
 
     def getCall(self):
         return fill(
             """
-            JS::Rooted<JSObject *> callback(cx, mCallback);
+            JS::sandbox::Rooted<JSObject *> callback(cx, mCallback);
             ${atomCacheName}* atomsCache = GetAtomCache<${atomCacheName}>(cx);
             if ((reinterpret_cast<jsid*>(atomsCache)->isVoid()
                  && !InitIds(cx, atomsCache)) ||
@@ -21494,7 +21494,7 @@ class CallbackSetter(CallbackAccessor):
         return fill(
             """
             MOZ_ASSERT(argv.length() == 1);
-            JS::Rooted<JSObject*> callback(cx, CallbackKnownNotGray());
+            JS::sandbox::Rooted<JSObject*> callback(cx, CallbackKnownNotGray());
             ${atomCacheName}* atomsCache = GetAtomCache<${atomCacheName}>(cx);
             if ((reinterpret_cast<jsid*>(atomsCache)->isVoid() &&
                  !InitIds(cx, atomsCache)) ||
@@ -21587,7 +21587,7 @@ def getMaplikeOrSetlikeBackingObject(descriptor, maplikeOrSetlike, helperImpl=No
     func_prefix = maplikeOrSetlike.maplikeOrSetlikeOrIterableType.title()
     ret = fill(
         """
-        JS::Rooted<JSObject*> backingObj(cx);
+        JS::sandbox::Rooted<JSObject*> backingObj(cx);
         bool created = false;
         if (!Get${func_prefix}BackingObject(cx, obj, ${slot}, &backingObj, &created)) {
           $*{errorReturn}
@@ -21738,7 +21738,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
         return CGGeneric(
             fill(
                 """
-            JS::Rooted<JS::Value> ${name}Val(cx);
+            JS::sandbox::Rooted<JS::Value> ${name}Val(cx);
             if (!ToJSValue(cx, ${name}, &${name}Val)) {
               $*{errorReturn}
             }
@@ -21786,8 +21786,8 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
               JS_ReportErrorASCII(cx, "Xray wrapping of iterators not supported.");
               return false;
             }
-            JS::Rooted<JSObject*> result(cx);
-            JS::Rooted<JS::Value> v(cx);
+            JS::sandbox::Rooted<JSObject*> result(cx);
+            JS::sandbox::Rooted<JS::Value> v(cx);
             """
             )
         )
@@ -21808,7 +21808,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
         code = CGGeneric(
             dedent(
                 """
-            JS::Rooted<JSObject*> result(cx);
+            JS::sandbox::Rooted<JSObject*> result(cx);
             """
             )
         )
@@ -21848,8 +21848,8 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
             if (!func) {
               return false;
             }
-            JS::Rooted<JSObject*> funcObj(cx, JS_GetFunctionObject(func));
-            JS::Rooted<JS::Value> funcVal(cx, JS::ObjectValue(*funcObj));
+            JS::sandbox::Rooted<JSObject*> funcObj(cx, JS_GetFunctionObject(func));
+            JS::sandbox::Rooted<JS::Value> funcVal(cx, JS::ObjectValue(*funcObj));
             js::SetFunctionNativeReserved(funcObj, FOREACH_CALLBACK_SLOT,
                                           JS::ObjectValue(*arg0));
             js::SetFunctionNativeReserved(funcObj, FOREACH_MAPLIKEORSETLIKEOBJ_SLOT,
@@ -21905,7 +21905,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 CGGeneric(
                     dedent(
                         """
-                        JS::Rooted<JS::Value> result(cx);
+                        JS::sandbox::Rooted<JS::Value> result(cx);
                         """
                     )
                 )
@@ -22049,14 +22049,14 @@ class CGHelperFunctionGenerator(CallbackMember):
 
         code += dedent(
             """
-            JS::Rooted<JS::Value> v(cx);
+            JS::sandbox::Rooted<JS::Value> v(cx);
             if(!ToJSValue(cx, self, &v)) {
               aRv.Throw(NS_ERROR_UNEXPECTED);
               return%s;
             }
             // This is a reflector, but due to trying to name things
             // similarly across method generators, it's called obj here.
-            JS::Rooted<JSObject*> obj(cx);
+            JS::sandbox::Rooted<JSObject*> obj(cx);
             obj = js::UncheckedUnwrap(&v.toObject(), /* stopAtWindowProxy = */ false);
             """
             % self.getDefaultRetval()
@@ -22066,7 +22066,7 @@ class CGHelperFunctionGenerator(CallbackMember):
         # same realm. So here we are creating the result variable outside of the
         # scope.
         if self.needsScopeBody():
-            code += "JS::Rooted<JS::Value> result(cx);\n"
+            code += "JS::sandbox::Rooted<JS::Value> result(cx);\n"
 
         return code
 
@@ -22283,9 +22283,9 @@ class CGIterableMethodGenerator(CGGeneric):
                   cx.ThrowErrorMessage<MSG_NOT_CALLABLE>("Argument 1");
                   return false;
                 }
-                JS::RootedValueArray<3> callArgs(cx);
+                JS::sandbox::RootedValueArray<3> callArgs(cx);
                 callArgs[2].setObject(*obj);
-                JS::Rooted<JS::Value> ignoredReturnVal(cx);
+                JS::sandbox::Rooted<JS::Value> ignoredReturnVal(cx);
                 auto GetKeyAtIndex = &${selfType}::GetKeyAtIndex;
                 auto GetValueAtIndex = &${selfType}::GetValueAtIndex;
                 for (size_t i = 0; i < self->GetIterableLength(); ++i) {
@@ -22370,7 +22370,7 @@ def getObservableArrayBackingObject(descriptor, attr, errorReturn="return false;
     # reserved slot.
     return fill(
         """
-        JS::Rooted<JSObject*> backingObj(cx);
+        JS::sandbox::Rooted<JSObject*> backingObj(cx);
         bool created = false;
         if (!GetObservableArrayBackingObject(cx, obj, ${slot},
                 &backingObj, &created, ${namespace}::ObservableArrayProxyHandler::getInstance(),
@@ -22592,7 +22592,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
         return dedent(
             """
             if (aIndex < oldLen) {
-              JS::Rooted<JS::Value> value(aCx);
+              JS::sandbox::Rooted<JS::Value> value(aCx);
               if (!JS_GetElement(aCx, aBackingList, aIndex, &value)) {
                 return false;
               }
@@ -22707,7 +22707,7 @@ class CGObservableArraySetterGenerator(CGGeneric):
                   return false;
                 }
 
-                JS::Rooted<JS::Value> val(cx);
+                JS::sandbox::Rooted<JS::Value> val(cx);
                 for (size_t i = 0; i < arg0.Length(); i++) {
                   $*{conversion}
                 }
@@ -22813,7 +22813,7 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
         def elementat(self):
             setupCode = []
             if not self.helperGenerator.needsScopeBody():
-                setupCode.append(CGGeneric("JS::Rooted<JS::Value> result(cx);\n"))
+                setupCode.append(CGGeneric("JS::sandbox::Rooted<JS::Value> result(cx);\n"))
             returnCode = [
                 CGGeneric(
                     fill(

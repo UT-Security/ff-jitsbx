@@ -1715,7 +1715,7 @@ void FetchDriver::FetchDriverAbortActions(AbortSignalImpl* aSignalImpl) {
 #ifdef DEBUG
     mResponseAvailableCalled = true;
 #endif
-    JS::Rooted<JS::Value> reason(RootingCx());
+    JS::sandbox::Rooted<JS::Value> reason(RootingCx());
     if (aSignalImpl) {
       reason.set(aSignalImpl->RawReason());
     }

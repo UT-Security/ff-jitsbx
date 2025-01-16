@@ -89,7 +89,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGetOwnPropertyHelper(
   // This corresponds to
   // https://html.spec.whatwg.org/multipage/browsers.html#crossorigingetownpropertyhelper-(-o,-p-)
   // step 2.
-  JS::Rooted<JSObject*> holder(cx);
+  JS::sandbox::Rooted<JSObject*> holder(cx);
   if (!EnsureHolder(cx, obj, &holder)) {
     return false;
   }
@@ -146,7 +146,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
   js::AssertSameCompartment(cx, receiver);
 
   // Step 1.
-  JS::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
+  JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
   if (!js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
@@ -167,7 +167,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
   MOZ_ASSERT(desc->isAccessorDescriptor());
 
   // Step 5.
-  JS::Rooted<JSObject*> getter(cx);
+  JS::sandbox::Rooted<JSObject*> getter(cx);
   if (!desc->hasGetter() || !(getter = desc->getter())) {
     // Step 6.
     return ReportCrossOriginDenial(cx, id, "get"_ns);
@@ -201,7 +201,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   js::AssertSameCompartment(cx, v);
 
   // Step 1.
-  JS::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
+  JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
   if (!js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
@@ -213,9 +213,9 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   desc->assertComplete();
 
   // Step 3.
-  JS::Rooted<JSObject*> setter(cx);
+  JS::sandbox::Rooted<JSObject*> setter(cx);
   if (desc->hasSetter() && (setter = desc->setter())) {
-    JS::Rooted<JS::Value> ignored(cx);
+    JS::sandbox::Rooted<JS::Value> ignored(cx);
     // Step 3.1.
     if (!JS::Call(cx, receiver, setter, JS::HandleValueArray(v), &ignored)) {
       return false;
@@ -238,7 +238,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
              "Why are we calling this at all in same-origin cases?");
   // We store the holders in a weakmap stored in obj's slot.  Our object is
   // always a proxy, so we can just go ahead and use GetProxyReservedSlot here.
-  JS::Rooted<JS::Value> weakMapVal(cx, js::GetProxyReservedSlot(obj, slot));
+  JS::sandbox::Rooted<JS::Value> weakMapVal(cx, js::GetProxyReservedSlot(obj, slot));
   if (weakMapVal.isUndefined()) {
     // Enter the Realm of "obj" when we allocate the WeakMap, since we are going
     // to store it in a slot on "obj" and in general we may not be
@@ -254,7 +254,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
   MOZ_ASSERT(weakMapVal.isObject(),
              "How did a non-object else end up in this slot?");
 
-  JS::Rooted<JSObject*> map(cx, &weakMapVal.toObject());
+  JS::sandbox::Rooted<JSObject*> map(cx, &weakMapVal.toObject());
   MOZ_ASSERT(JS::IsWeakMapObject(map),
              "How did something else end up in this slot?");
 
@@ -284,12 +284,12 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
   // existing wrapper in the cache, that contains the security wrapper created
   // here.  We should use unique/private object here, so that this doesn't
   // affect later wrap operation.
-  JS::Rooted<JSObject*> key(cx, JS::GetRealmKeyObject(cx));
+  JS::sandbox::Rooted<JSObject*> key(cx, JS::GetRealmKeyObject(cx));
   if (!key) {
     return false;
   }
 
-  JS::Rooted<JS::Value> holderVal(cx);
+  JS::sandbox::Rooted<JS::Value> holderVal(cx);
   {  // Scope for working with the map
     JSAutoRealm ar(cx, map);
     if (!MaybeWrapObject(cx, &key)) {
@@ -387,12 +387,12 @@ bool MaybeCrossOriginObject<Base>::setPrototype(
   // We have to be careful how we get the prototype.  In particular, we do _NOT_
   // want to enter the Realm of "proxy" to do that, in case we're not
   // same-origin with it here.
-  JS::Rooted<JSObject*> wrappedProxy(cx, proxy);
+  JS::sandbox::Rooted<JSObject*> wrappedProxy(cx, proxy);
   if (!MaybeWrapObject(cx, &wrappedProxy)) {
     return false;
   }
 
-  JS::Rooted<JSObject*> currentProto(cx);
+  JS::sandbox::Rooted<JSObject*> currentProto(cx);
   if (!js::GetObjectProto(cx, wrappedProxy, &currentProto)) {
     return false;
   }
@@ -447,7 +447,7 @@ bool MaybeCrossOriginObject<Base>::defineProperty(
 
   // Enter the Realm of proxy and do the remaining work in there.
   JSAutoRealm ar(cx, proxy);
-  JS::Rooted<JS::PropertyDescriptor> descCopy(cx, desc);
+  JS::sandbox::Rooted<JS::PropertyDescriptor> descCopy(cx, desc);
   if (!JS_WrapPropertyDescriptor(cx, &descCopy)) {
     return false;
   }
@@ -466,7 +466,7 @@ bool MaybeCrossOriginObject<Base>::enumerate(
   // would affect the list of keys we claim to have. We wrap the proxy in the
   // current compartment just to be safe; it doesn't affect behavior as far as
   // CrossOriginObjectWrapper and MaybeCrossOriginObject are concerned.
-  JS::Rooted<JSObject*> self(cx, proxy);
+  JS::sandbox::Rooted<JSObject*> self(cx, proxy);
   if (!MaybeWrapObject(cx, &self)) {
     return false;
   }

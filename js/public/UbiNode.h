@@ -23,7 +23,7 @@
 
 #include "js/AllocPolicy.h"
 #include "js/HashTable.h"
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 #include "js/Value.h"
@@ -736,6 +736,16 @@ class Node {
     return *this;
   }
 
+  template <typename T>
+  MOZ_IMPLICIT Node(const sandbox::Rooted<T*>& root) {
+    construct(root.get());
+  }
+  template <typename T>
+  Node& operator=(const sandbox::Rooted<T*>& root) {
+    construct(root.get());
+    return *this;
+  }
+  
   // Constructors accepting SpiderMonkey's other generic-pointer-ish types.
   // Note that we *do* want an implicit constructor here: JS::Value and
   // JS::ubi::Node are both essentially tagged references to other sorts of

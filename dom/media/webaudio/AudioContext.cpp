@@ -645,7 +645,7 @@ already_AddRefed<Promise> AudioContext::DecodeAudioData(
   JSContext* cx = jsapi.cx();
 
   // CheckedUnwrapStatic is OK, since we know we have an ArrayBuffer.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aBuffer.Obj()));
+  JS::sandbox::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aBuffer.Obj()));
   if (!obj) {
     aRv.ThrowSecurityError("Can't get audio data from cross-origin object");
     return nullptr;

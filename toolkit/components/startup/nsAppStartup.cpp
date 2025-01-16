@@ -822,7 +822,7 @@ nsAppStartup::Observe(nsISupports* aSubject, const char* aTopic,
 NS_IMETHODIMP
 nsAppStartup::GetStartupInfo(JSContext* aCx,
                              JS::MutableHandle<JS::Value> aRetval) {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   aRetval.setObject(*obj);
 
@@ -848,7 +848,7 @@ nsAppStartup::GetStartupInfo(JSContext* aCx,
     if (!stamp.IsNull()) {
       if (stamp >= procTime) {
         PRTime prStamp = ComputeAbsoluteTimestamp(stamp) / PR_USEC_PER_MSEC;
-        JS::Rooted<JSObject*> date(
+        JS::sandbox::Rooted<JSObject*> date(
             aCx, JS::NewDateObject(aCx, JS::TimeClip(prStamp)));
         JS_DefineProperty(aCx, obj, StartupTimeline::Describe(ev), date,
                           JSPROP_ENUMERATE);

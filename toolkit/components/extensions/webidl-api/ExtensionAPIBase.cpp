@@ -47,7 +47,7 @@ void ChromeCompatCallbackHandler::Create(
 void ChromeCompatCallbackHandler::ResolvedCallback(JSContext* aCx,
                                                    JS::Handle<JS::Value> aValue,
                                                    ErrorResult& aRv) {
-  JS::Rooted<JS::Value> retval(aCx);
+  JS::sandbox::Rooted<JS::Value> retval(aCx);
   IgnoredErrorResult rv;
   MOZ_KnownLive(mCallback)->Call({aValue}, &retval, rv);
 }
@@ -55,7 +55,7 @@ void ChromeCompatCallbackHandler::ResolvedCallback(JSContext* aCx,
 void ChromeCompatCallbackHandler::RejectedCallback(JSContext* aCx,
                                                    JS::Handle<JS::Value> aValue,
                                                    ErrorResult& aRv) {
-  JS::Rooted<JS::Value> retval(aCx);
+  JS::sandbox::Rooted<JS::Value> retval(aCx);
   IgnoredErrorResult rv;
   // Call the chrome-compatible callback without any parameter, the errors
   // isn't passed to the callback as a parameter but the extension will be
@@ -142,7 +142,7 @@ void ExtensionAPIBase::CallWebExtMethodReturnsString(
     JSContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, nsAString& aRetVal,
     ErrorResult& aRv) {
-  JS::Rooted<JS::Value> retval(aCx);
+  JS::sandbox::Rooted<JS::Value> retval(aCx);
   auto request = CallSyncFunction(aApiMethod);
   request->Run(GetGlobalObject(), aCx, aArgs, &retval, aRv);
   if (aRv.Failed()) {
@@ -167,7 +167,7 @@ void ExtensionAPIBase::CallWebExtMethodReturnsString(
 already_AddRefed<ExtensionPort> ExtensionAPIBase::CallWebExtMethodReturnsPort(
     JSContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
-  JS::Rooted<JS::Value> apiResult(aCx);
+  JS::sandbox::Rooted<JS::Value> apiResult(aCx);
   auto request = CallSyncFunction(aApiMethod);
   request->Run(GetGlobalObject(), aCx, aArgs, &apiResult, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -242,8 +242,8 @@ void ExtensionAPIBase::CallWebExtMethodAsyncAmbiguous(
       aArgs.IsEmpty() ? JS::UndefinedValue() : aArgs.LastElement();
   dom::Sequence<JS::Value> callArgs(aArgs);
   if (lastElement.isObject() && JS::IsCallable(&lastElement.toObject())) {
-    JS::Rooted<JSObject*> tempRoot(aCx, &lastElement.toObject());
-    JS::Rooted<JSObject*> tempGlobalRoot(aCx, JS::CurrentGlobalOrNull(aCx));
+    JS::sandbox::Rooted<JSObject*> tempRoot(aCx, &lastElement.toObject());
+    JS::sandbox::Rooted<JSObject*> tempGlobalRoot(aCx, JS::CurrentGlobalOrNull(aCx));
     chromeCompatCb = new dom::Function(aCx, tempRoot, tempGlobalRoot,
                                        dom::GetIncumbentGlobal());
 
@@ -268,7 +268,7 @@ void ExtensionAPIBase::GetWebExtPropertyAsString(const nsString& aPropertyName,
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> retval(cx);
+  JS::sandbox::Rooted<JS::Value> retval(cx);
 
   RefPtr<ExtensionAPIGetProperty> request = GetProperty(aPropertyName);
   request->Run(global, cx, &retval, rv);

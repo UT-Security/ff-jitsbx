@@ -405,7 +405,7 @@ class GetVisitedCallback final : public nsIAndroidEventCallback {
     if (NS_WARN_IF(!isArray)) {
       return false;
     }
-    JS::Rooted<JSObject*> visited(aCx, &aData.toObject());
+    JS::sandbox::Rooted<JSObject*> visited(aCx, &aData.toObject());
     uint32_t length = 0;
     if (NS_WARN_IF(!JS::GetArrayLength(aCx, visited, &length))) {
       return false;
@@ -417,7 +417,7 @@ class GetVisitedCallback final : public nsIAndroidEventCallback {
       return false;
     }
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, visited, i, &value))) {
         JS_ClearPendingException(aCx);
         aVisitedURIs.AppendElement(VisitedURI{mURIs[i].get(), false});

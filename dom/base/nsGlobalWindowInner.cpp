@@ -867,7 +867,7 @@ class PromiseDocumentFlushedResolver final {
   void Call() {
     nsMutationGuard guard;
     ErrorResult error;
-    JS::Rooted<JS::Value> returnVal(RootingCx());
+    JS::sandbox::Rooted<JS::Value> returnVal(RootingCx());
     mCallback->Call(&returnVal, error);
 
     if (error.Failed()) {
@@ -2246,7 +2246,7 @@ nsresult nsGlobalWindowInner::DefineArgumentsProperty(nsIArray* aArguments) {
   nsIScriptContext* ctx = GetOuterWindowInternal()->mContext;
   NS_ENSURE_TRUE(aArguments && ctx, NS_ERROR_NOT_INITIALIZED);
 
-  JS::Rooted<JSObject*> obj(RootingCx(), GetWrapperPreserveColor());
+  JS::sandbox::Rooted<JSObject*> obj(RootingCx(), GetWrapperPreserveColor());
   return ctx->SetProperty(obj, "arguments", aArguments);
 }
 
@@ -3097,13 +3097,13 @@ bool nsGlobalWindowInner::ResolveComponentsShim(
 
   // Create a fake Components object.
   AssertSameCompartment(aCx, aGlobal);
-  JS::Rooted<JSObject*> components(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> components(aCx, JS_NewPlainObject(aCx));
   if (NS_WARN_IF(!components)) {
     return false;
   }
 
   // Create a fake interfaces object.
-  JS::Rooted<JSObject*> interfaces(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> interfaces(aCx, JS_NewPlainObject(aCx));
   if (NS_WARN_IF(!interfaces)) {
     return false;
   }
@@ -3122,7 +3122,7 @@ bool nsGlobalWindowInner::ResolveComponentsShim(
     const char* domName = kInterfaceShimMap[i].domName;
 
     // Look up the appopriate interface object on the global.
-    JS::Rooted<JS::Value> v(aCx, JS::UndefinedValue());
+    JS::sandbox::Rooted<JS::Value> v(aCx, JS::UndefinedValue());
     ok = JS_GetProperty(aCx, aGlobal, domName, &v);
     if (NS_WARN_IF(!ok)) {
       return false;
@@ -3207,7 +3207,7 @@ bool nsGlobalWindowInner::DoResolve(
       clazz = &ControllersShimClass;
     }
     MOZ_ASSERT(JS_IsGlobalObject(aObj));
-    JS::Rooted<JSObject*> shim(aCx, JS_NewObject(aCx, clazz));
+    JS::sandbox::Rooted<JSObject*> shim(aCx, JS_NewObject(aCx, clazz));
     if (NS_WARN_IF(!shim)) {
       return false;
     }
@@ -3264,7 +3264,7 @@ void nsGlobalWindowInner::GetOwnPropertyNames(
   // "Components" is marked as enumerable but only resolved on demand :-/.
   // aNames.AppendElement(u"Components"_ns);
 
-  JS::Rooted<JSObject*> wrapper(aCx, GetWrapper());
+  JS::sandbox::Rooted<JSObject*> wrapper(aCx, GetWrapper());
 
   // There are actually two ways we can get called here: For normal
   // enumeration or for Xray enumeration.  In the latter case, we want to
@@ -4168,7 +4168,7 @@ void nsGlobalWindowInner::PostMessageMoz(JSContext* aCx,
                                          const Sequence<JSObject*>& aTransfer,
                                          nsIPrincipal& aSubjectPrincipal,
                                          ErrorResult& aRv) {
-  JS::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
 
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransfer,
                                                           &transferArray);
@@ -4184,7 +4184,7 @@ void nsGlobalWindowInner::PostMessageMoz(
     JSContext* aCx, JS::Handle<JS::Value> aMessage,
     const WindowPostMessageOptions& aOptions, nsIPrincipal& aSubjectPrincipal,
     ErrorResult& aRv) {
-  JS::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
 
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(
       aCx, aOptions.mTransfer, &transferArray);
@@ -4312,7 +4312,7 @@ void nsGlobalWindowInner::ReportError(JSContext* aCx,
   xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
                   isChrome, WindowID());
 
-  JS::RootingContext* rcx = JS::RootingContext::get(aCx);
+  JS::sandbox::RootingContext* rcx = JS::sandbox::RootingContext::get(aCx);
   DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack.exception(),
                            exnStack.stack());
 }
@@ -4709,7 +4709,7 @@ nsresult nsGlobalWindowInner::DispatchSyncPopState() {
   // Get the document's pending state object -- it contains the data we're
   // going to send along with the popstate event.  The object is serialized
   // using structured clone.
-  JS::Rooted<JS::Value> stateJSValue(cx);
+  JS::sandbox::Rooted<JS::Value> stateJSValue(cx);
   nsresult rv = mDoc->GetStateObject(&stateJSValue);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -6224,12 +6224,12 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options.setFileAndLine(mFileName.get(), mLineNo);
   options.setNoScriptRval(true);
   options.setIntroductionType("domTimer");
-  JS::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
+  JS::sandbox::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
     JSExecutionContext exec(aes.cx(), global, options);
     nsresult rv = exec.Compile(mExpr);
 
-    JS::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
+    JS::sandbox::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
     if (script) {
       if (mInitiatingScript) {
         mInitiatingScript->AssociateWithScript(script);
@@ -7484,7 +7484,7 @@ void nsGlobalWindowInner::RedefineProperty(JSContext* aCx,
                                            const char* aPropName,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aError) {
-  JS::Rooted<JSObject*> thisObj(aCx, GetWrapperPreserveColor());
+  JS::sandbox::Rooted<JSObject*> thisObj(aCx, GetWrapperPreserveColor());
   if (!thisObj) {
     aError.Throw(NS_ERROR_UNEXPECTED);
     return;
@@ -7540,7 +7540,7 @@ void nsGlobalWindowInner::FireOnNewGlobalObject() {
   // AutoEntryScript required to invoke debugger hook, which is a
   // Gecko-specific concept at present.
   AutoEntryScript aes(this, "nsGlobalWindowInner report new global");
-  JS::Rooted<JSObject*> global(aes.cx(), GetWrapper());
+  JS::sandbox::Rooted<JSObject*> global(aes.cx(), GetWrapper());
   JS_FireOnNewGlobalObject(aes.cx(), global);
 }
 

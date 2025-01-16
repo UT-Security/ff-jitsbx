@@ -776,12 +776,12 @@ ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
             // `privilegedName` properties if fallback handling is necessary.
 
             JSContext* cx = js.cx();
-            JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+            JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
             auto setProperty = [&](const char* name, const nsString& value) {
-              JS::Rooted<JSString*> title(cx,
+              JS::sandbox::Rooted<JSString*> title(cx,
                                           JS_NewUCStringCopyZ(cx, value.get()));
-              JS::Rooted<JS::Value> attVal(cx, JS::StringValue(title));
+              JS::sandbox::Rooted<JS::Value> attVal(cx, JS::StringValue(title));
               Unused << NS_WARN_IF(!JS_SetProperty(cx, obj, name, attVal));
             };
 

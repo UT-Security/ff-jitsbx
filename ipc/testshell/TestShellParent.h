@@ -11,7 +11,7 @@
 #include "mozilla/ipc/PTestShellParent.h"
 #include "mozilla/ipc/PTestShellCommandParent.h"
 
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/Value.h"
 #include "nsString.h"
 
@@ -60,7 +60,7 @@ class TestShellCommandParent : public PTestShellCommandParent {
   }
 
  private:
-  JS::PersistentRooted<JS::Value> mCallback;
+  JS::sandbox::PersistentRooted<JS::Value> mCallback;
 };
 
 } /* namespace ipc */

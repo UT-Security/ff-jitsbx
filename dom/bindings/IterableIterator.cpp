@@ -31,7 +31,7 @@ void DictReturn(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   RootedDictionary<IterableKeyOrValueResult> dict(aCx);
   dict.mDone = aDone;
   dict.mValue = aValue;
-  JS::Rooted<JS::Value> dictValue(aCx);
+  JS::sandbox::Rooted<JS::Value> dictValue(aCx);
   if (!ToJSValue(aCx, dict, &dictValue)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
@@ -41,7 +41,7 @@ void DictReturn(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
 
 void DictReturn(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
                 bool aDone, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
-  JS::Rooted<JS::Value> dictValue(aCx);
+  JS::sandbox::Rooted<JS::Value> dictValue(aCx);
   DictReturn(aCx, &dictValue, aDone, aValue, aRv);
   if (aRv.Failed()) {
     return;
@@ -64,7 +64,7 @@ void KeyAndValueReturn(JSContext* aCx, JS::Handle<JS::Value> aKey,
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
-  JS::Rooted<JS::Value> dictValue(aCx);
+  JS::sandbox::Rooted<JS::Value> dictValue(aCx);
   if (!ToJSValue(aCx, dict, &dictValue)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
@@ -92,7 +92,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
   // 2. If object’s is finished is true, then:
   if (aObject->mIsFinished) {
     // 1. Let result be CreateIterResultObject(undefined, true).
-    JS::Rooted<JS::Value> dict(aCx);
+    JS::sandbox::Rooted<JS::Value> dict(aCx);
     iterator_utils::DictReturn(aCx, &dict, true, JS::GetUndefinedHandleValue(), aRv);
     if (aRv.Failed()) {
       return Promise::CreateRejectedWithErrorResult(aGlobalObject, aRv);
@@ -127,7 +127,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
     aObject->mOngoingPromise = nullptr;
 
     // 2. If next is end of iteration, then:
-    JS::Rooted<JS::Value> dict(aCx);
+    JS::sandbox::Rooted<JS::Value> dict(aCx);
     if (aNext.isMagic(binding_details::END_OF_ITERATION)) {
       // 1. Set object’s is finished to true.
       aObject->mIsFinished = true;
@@ -236,7 +236,7 @@ already_AddRefed<Promise> AsyncIterableReturnImpl::ReturnSteps(
   // 2. If object’s is finished is true, then:
   if (aObject->mIsFinished) {
     // 1. Let result be CreateIterResultObject(value, true).
-    JS::Rooted<JS::Value> dict(aCx);
+    JS::sandbox::Rooted<JS::Value> dict(aCx);
     iterator_utils::DictReturn(aCx, &dict, true, aValue, aRv);
     if (aRv.Failed()) {
       return Promise::CreateRejectedWithErrorResult(aGlobalObject, aRv);
@@ -316,7 +316,7 @@ already_AddRefed<Promise> AsyncIterableReturnImpl::Return(
                          const nsCOMPtr<nsIGlobalObject>& aGlobalObject,
                          JS::Handle<JS::Value> aVal) {
     // 1. Return CreateIterResultObject(value, true).
-    JS::Rooted<JS::Value> dict(aCx);
+    JS::sandbox::Rooted<JS::Value> dict(aCx);
     iterator_utils::DictReturn(aCx, &dict, true, aVal, aRv);
     return Promise::Resolve(aGlobalObject, aCx, dict, aRv);
   };

@@ -63,7 +63,7 @@ class MOZ_STACK_CLASS BaseIterElem {
   uint32_t Length() const { return mIter.Length(); }
 
   JS::Value Value() {
-    JS::Rooted<JS::Value> value(mIter.mCx, JS::UndefinedValue());
+    JS::sandbox::Rooted<JS::Value> value(mIter.mCx, JS::UndefinedValue());
 
     auto& self = Self();
     if (!self.GetValue(&value)) {
@@ -138,7 +138,7 @@ class MOZ_STACK_CLASS PropertyIter
   int32_t Length() const { return mIds.length(); }
 
  protected:
-  JS::Rooted<JS::IdVector> mIds;
+  JS::sandbox::Rooted<JS::IdVector> mIds;
 };
 
 class MOZ_STACK_CLASS PropertyIterElem
@@ -170,7 +170,7 @@ class MOZ_STACK_CLASS PropertyIterElem
  protected:
   bool GetValue(JS::MutableHandle<JS::Value> value) {
     MOZ_ASSERT(mIndex < Length());
-    JS::Rooted<jsid> id(mIter.mCx, Id());
+    JS::sandbox::Rooted<jsid> id(mIter.mCx, Id());
 
     return JS_GetPropertyById(mIter.mCx, mIter.mObject, id, value);
   }

@@ -10520,6 +10520,12 @@ _ZN2JS10WeakMapPtrIP8JSObjectNS_5ValueEED1Ev:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS7sandbox32JS_SetPersistentRootingCallbacksEP9JSContextNS0_34ExternalPersistentRootingCallbacksEPv
+_ZN2JS7sandbox32JS_SetPersistentRootingCallbacksEP9JSContextNS0_34ExternalPersistentRootingCallbacksEPv:
+	movq __lfisym__ZN2JS7sandbox32JS_SetPersistentRootingCallbacksEP9JSContextNS0_34ExternalPersistentRootingCallbacksEPv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZSt7forwardIRN2js3jit8CodeKindEEOT_RNSt16remove_referenceIS4_E4typeE
 _ZSt7forwardIRN2js3jit8CodeKindEEOT_RNSt16remove_referenceIS4_E4typeE:
 	movq __lfisym__ZSt7forwardIRN2js3jit8CodeKindEEOT_RNSt16remove_referenceIS4_E4typeE@GOTPCREL(%rip), %r10
@@ -19370,6 +19376,12 @@ _ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE10fromObjectEP8JSObject:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS7sandbox30JS_SetExternalRootingCallbacksEP9JSContextNS0_24ExternalRootingCallbacksEPv
+_ZN2JS7sandbox30JS_SetExternalRootingCallbacksEP9JSContextNS0_24ExternalRootingCallbacksEPv:
+	movq __lfisym__ZN2JS7sandbox30JS_SetExternalRootingCallbacksEP9JSContextNS0_24ExternalRootingCallbacksEPv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js9DumpCharsEPKDsmRNS_14GenericPrinterE
 _ZN2js9DumpCharsEPKDsmRNS_14GenericPrinterE:
 	movq __lfisym__ZN2js9DumpCharsEPKDsmRNS_14GenericPrinterE@GOTPCREL(%rip), %r10
@@ -26288,6 +26300,8 @@ __lfisym__ZN2JS24InitRealmStandardClassesEP9JSContext:
 	.quad 0
 __lfisym__ZN2JS10WeakMapPtrIP8JSObjectNS_5ValueEED1Ev:
 	.quad 0
+__lfisym__ZN2JS7sandbox32JS_SetPersistentRootingCallbacksEP9JSContextNS0_34ExternalPersistentRootingCallbacksEPv:
+	.quad 0
 __lfisym__ZSt7forwardIRN2js3jit8CodeKindEEOT_RNSt16remove_referenceIS4_E4typeE:
 	.quad 0
 __lfisym__ZN2JS9GCContext7delete_IN2js9FrameIter4DataEEEvPNS2_2gc4CellEPT_NS2_9MemoryUseE:
@@ -29238,6 +29252,8 @@ __lfisym__ZN2js15TempAllocPolicy10pod_mallocINS_16AbstractFramePtrEEEPT_m:
 	.quad 0
 __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE8EE10fromObjectEP8JSObject:
 	.quad 0
+__lfisym__ZN2JS7sandbox30JS_SetExternalRootingCallbacksEP9JSContextNS0_24ExternalRootingCallbacksEPv:
+	.quad 0
 __lfisym__ZN2js9DumpCharsEPKDsmRNS_14GenericPrinterE:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy16pod_arena_mallocINS_19AbstractBindingNameINS_8frontend21TaggedParserAtomIndexEEEEEPT_mm:
@@ -30381,6 +30397,6 @@ __lfisym_free:
 
 .global __lfi_trampotable_size
 __lfi_trampotable_size:
-	.quad 3787+5
+	.quad 3789+5
 
 .section .note.GNU-stack,"",@progbits

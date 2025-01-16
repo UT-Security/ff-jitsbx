@@ -180,7 +180,7 @@ EventListenerInfo::ToSource(nsAString& aResult) {
 
   AutoSafeJSContext cx;
   Maybe<JSAutoRealm> ar;
-  JS::Rooted<JS::Value> v(cx);
+  JS::sandbox::Rooted<JS::Value> v(cx);
   if (GetJSVal(cx, ar, &v)) {
     JSString* str = JS_ValueToSource(cx, v);
     if (str) {
@@ -250,8 +250,8 @@ static already_AddRefed<EventListener> ToEventListener(
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+  JS::sandbox::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   RefPtr<EventListener> listener =
       new EventListener(aCx, obj, global, GetIncumbentGlobal());
   return listener.forget();

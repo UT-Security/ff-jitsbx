@@ -173,7 +173,7 @@ bool extendJSArrayWithErrors(JSContext* aCx, JS::Handle<JSObject*> aErrors,
   }
 
   for (auto& err : aInput) {
-    JS::Rooted<JS::Value> jsval(aCx);
+    JS::sandbox::Rooted<JS::Value> jsval(aCx);
     if (!ToJSValue(aCx, NS_ConvertUTF8toUTF16(err), &jsval)) {
       return false;
     }

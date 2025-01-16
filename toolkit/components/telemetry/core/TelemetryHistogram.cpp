@@ -803,7 +803,7 @@ nsresult internal_ReflectHistogramAndSamples(
              "The number of buckets and the number of counts must match.");
 
   // Create the "range" property and add it to the final object.
-  JS::Rooted<JSObject*> rarray(cx, JS::NewArrayObject(cx, 2));
+  JS::sandbox::Rooted<JSObject*> rarray(cx, JS::NewArrayObject(cx, 2));
   if (rarray == nullptr ||
       !JS_DefineProperty(cx, obj, "range", rarray, JSPROP_ENUMERATE)) {
     return NS_ERROR_FAILURE;
@@ -816,7 +816,7 @@ nsresult internal_ReflectHistogramAndSamples(
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JSObject*> values(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> values(cx, JS_NewPlainObject(cx));
   if (values == nullptr ||
       !JS_DefineProperty(cx, obj, "values", values, JSPROP_ENUMERATE)) {
     return NS_ERROR_FAILURE;
@@ -1095,7 +1095,7 @@ nsresult internal_ReflectKeyedHistogram(
   for (const auto& entry : aSnapshot) {
     const HistogramSnapshotData& keyData = entry.GetData();
 
-    JS::Rooted<JSObject*> histogramSnapshot(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> histogramSnapshot(aCx, JS_NewPlainObject(aCx));
     if (!histogramSnapshot) {
       return NS_ERROR_FAILURE;
     }
@@ -1748,7 +1748,7 @@ bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
   }
 
   if (args[firstArgIndex].isObject() && !args[firstArgIndex].isString()) {
-    JS::Rooted<JSObject*> arrayObj(aCx, &args[firstArgIndex].toObject());
+    JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &args[firstArgIndex].toObject());
 
     bool isArray = false;
     JS::IsArrayObject(aCx, arrayObj, &isArray);
@@ -1769,7 +1769,7 @@ bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
     }
 
     for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
-      JS::Rooted<JS::Value> element(aCx);
+      JS::sandbox::Rooted<JS::Value> element(aCx);
 
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
         nsPrintfCString msg("Failed while trying to get element at index %d",
@@ -1882,8 +1882,8 @@ nsresult internal_JS_StoreFromObjectArgument(JSContext* cx,
       return NS_ERROR_FAILURE;
     }
 
-    JS::Rooted<JS::Value> storeValue(cx);
-    JS::Rooted<JSObject*> argsObject(cx, &args[0].toObject());
+    JS::sandbox::Rooted<JS::Value> storeValue(cx);
+    JS::sandbox::Rooted<JSObject*> argsObject(cx, &args[0].toObject());
     if (!JS_GetProperty(cx, argsObject, "store", &storeValue)) {
       JS_ReportErrorASCII(cx,
                           "Expected object argument to have property 'store'.");
@@ -1956,7 +1956,7 @@ bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
     }
   }
 
-  JS::Rooted<JSObject*> snapshot(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> snapshot(cx, JS_NewPlainObject(cx));
   if (!snapshot) {
     return false;
   }
@@ -2014,7 +2014,7 @@ bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
                                          JS::MutableHandle<JS::Value> ret) {
-  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSHistogramClass));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSHistogramClass));
   if (!obj) {
     return NS_ERROR_FAILURE;
   }
@@ -2135,7 +2135,7 @@ bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
     return false;
   }
 
-  JS::Rooted<JSObject*> snapshot(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> snapshot(cx, JS_NewPlainObject(cx));
   if (!snapshot) {
     JS_ReportErrorASCII(cx, "Failed to create object");
     return false;
@@ -2286,20 +2286,20 @@ bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
   }
 
   // Convert keys from nsTArray<nsCString> to JS array.
-  JS::RootedVector<JS::Value> autoKeys(cx);
+  JS::sandbox::RootedVector<JS::Value> autoKeys(cx);
   if (!autoKeys.reserve(keys.Length())) {
     return false;
   }
 
   for (const auto& key : keys) {
-    JS::Rooted<JS::Value> jsKey(cx);
+    JS::sandbox::Rooted<JS::Value> jsKey(cx);
     jsKey.setString(ToJSString(cx, key));
     if (!autoKeys.append(jsKey)) {
       return false;
     }
   }
 
-  JS::Rooted<JSObject*> jsKeys(cx, JS::NewArrayObject(cx, autoKeys));
+  JS::sandbox::Rooted<JSObject*> jsKeys(cx, JS::NewArrayObject(cx, autoKeys));
   if (!jsKeys) {
     return false;
   }
@@ -2364,7 +2364,7 @@ bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnKeyedHistogram(
     HistogramID id, JSContext* cx, JS::MutableHandle<JS::Value> ret) {
-  JS::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSKeyedHistogramClass));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSKeyedHistogramClass));
   if (!obj) return NS_ERROR_FAILURE;
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
@@ -2788,7 +2788,7 @@ nsresult TelemetryHistogram::GetAllStores(StringHashSet& set) {
 
 nsresult TelemetryHistogram::GetCategoricalHistogramLabels(
     JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
   if (!root_obj) {
     return NS_ERROR_FAILURE;
   }
@@ -2800,7 +2800,7 @@ nsresult TelemetryHistogram::GetCategoricalHistogramLabels(
     }
 
     const char* name = info.name();
-    JS::Rooted<JSObject*> labels(aCx,
+    JS::sandbox::Rooted<JSObject*> labels(aCx,
                                  JS::NewArrayObject(aCx, info.label_count));
     if (!labels) {
       return NS_ERROR_FAILURE;
@@ -2814,7 +2814,7 @@ nsresult TelemetryHistogram::GetCategoricalHistogramLabels(
       uint32_t string_offset = gHistogramLabelTable[info.label_index + i];
       const char* const label = &gHistogramStringTable[string_offset];
       auto clabel = NS_ConvertASCIItoUTF16(label);
-      JS::Rooted<JS::Value> value(aCx);
+      JS::sandbox::Rooted<JS::Value> value(aCx);
       value.setString(ToJSString(aCx, clabel));
       if (!JS_DefineElement(aCx, labels, i, value, JSPROP_ENUMERATE)) {
         return NS_ERROR_FAILURE;
@@ -2881,7 +2881,7 @@ nsresult TelemetryHistogram::CreateHistogramSnapshots(
   }
 
   // Runs without protection from |gTelemetryHistogramMutex|
-  JS::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
   if (!root_obj) {
     return NS_ERROR_FAILURE;
   }
@@ -2904,7 +2904,7 @@ nsresult TelemetryHistogram::CreateHistogramSnapshots(
 
   // Make the JS calls on the stashed histograms for every process
   for (uint32_t process = 0; process < processHistArray.length(); ++process) {
-    JS::Rooted<JSObject*> processObject(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> processObject(aCx, JS_NewPlainObject(aCx));
     if (!processObject) {
       return NS_ERROR_FAILURE;
     }
@@ -2917,7 +2917,7 @@ nsresult TelemetryHistogram::CreateHistogramSnapshots(
     for (const HistogramSnapshotInfo& hData : processHistArray[process]) {
       HistogramID id = hData.histogramID;
 
-      JS::Rooted<JSObject*> hobj(aCx, JS_NewPlainObject(aCx));
+      JS::sandbox::Rooted<JSObject*> hobj(aCx, JS_NewPlainObject(aCx));
       if (!hobj) {
         return NS_ERROR_FAILURE;
       }
@@ -2945,7 +2945,7 @@ nsresult TelemetryHistogram::GetKeyedHistogramSnapshots(
   }
 
   // Runs without protection from |gTelemetryHistogramMutex|
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
   if (!obj) {
     return NS_ERROR_FAILURE;
   }
@@ -2969,7 +2969,7 @@ nsresult TelemetryHistogram::GetKeyedHistogramSnapshots(
 
   // Mirror the snapshot data to JS, now that we released the mutex.
   for (uint32_t process = 0; process < processHistArray.length(); ++process) {
-    JS::Rooted<JSObject*> processObject(aCx, JS_NewPlainObject(aCx));
+    JS::sandbox::Rooted<JSObject*> processObject(aCx, JS_NewPlainObject(aCx));
     if (!processObject) {
       return NS_ERROR_FAILURE;
     }
@@ -2981,7 +2981,7 @@ nsresult TelemetryHistogram::GetKeyedHistogramSnapshots(
     for (const KeyedHistogramSnapshotInfo& hData : processHistArray[process]) {
       const HistogramInfo& info = gHistogramInfos[hData.histogramId];
 
-      JS::Rooted<JSObject*> snapshot(aCx, JS_NewPlainObject(aCx));
+      JS::sandbox::Rooted<JSObject*> snapshot(aCx, JS_NewPlainObject(aCx));
       if (!snapshot) {
         return NS_ERROR_FAILURE;
       }
@@ -3126,7 +3126,7 @@ nsresult internal_ParseHistogramData(
   CopyUTF16toUTF8(histogramName, aOutName);
 
   // Get the data for this histogram.
-  JS::Rooted<JS::Value> histogramData(aCx);
+  JS::sandbox::Rooted<JS::Value> histogramData(aCx);
   if (!JS_GetPropertyById(aCx, aContainerObj, aEntryId, &histogramData)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
@@ -3139,8 +3139,8 @@ nsresult internal_ParseHistogramData(
   }
 
   // Get the "sum" property.
-  JS::Rooted<JS::Value> sumValue(aCx);
-  JS::Rooted<JSObject*> histogramObj(aCx, &histogramData.toObject());
+  JS::sandbox::Rooted<JS::Value> sumValue(aCx);
+  JS::sandbox::Rooted<JSObject*> histogramObj(aCx, &histogramData.toObject());
   if (!JS_GetProperty(aCx, histogramObj, "sum", &sumValue)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
@@ -3152,7 +3152,7 @@ nsresult internal_ParseHistogramData(
   }
 
   // Get the "counts" array.
-  JS::Rooted<JS::Value> countsArray(aCx);
+  JS::sandbox::Rooted<JS::Value> countsArray(aCx);
   bool countsIsArray = false;
   if (!JS_GetProperty(aCx, histogramObj, "counts", &countsArray) ||
       !JS::IsArrayObject(aCx, countsArray, &countsIsArray)) {
@@ -3168,7 +3168,7 @@ nsresult internal_ParseHistogramData(
 
   // Get the length of the array.
   uint32_t countsLen = 0;
-  JS::Rooted<JSObject*> countsArrayObj(aCx, &countsArray.toObject());
+  JS::sandbox::Rooted<JSObject*> countsArrayObj(aCx, &countsArray.toObject());
   if (!JS::GetArrayLength(aCx, countsArrayObj, &countsLen)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
@@ -3176,7 +3176,7 @@ nsresult internal_ParseHistogramData(
 
   // Parse the "counts" in the array.
   for (uint32_t arrayIdx = 0; arrayIdx < countsLen; arrayIdx++) {
-    JS::Rooted<JS::Value> elementValue(aCx);
+    JS::sandbox::Rooted<JS::Value> elementValue(aCx);
     int countAsInt = 0;
     if (!JS_GetElement(aCx, countsArrayObj, arrayIdx, &elementValue) ||
         !JS::ToInt32(aCx, elementValue, &countAsInt)) {
@@ -3319,8 +3319,8 @@ nsresult TelemetryHistogram::DeserializeHistograms(
   // Before updating the histograms, we need to get the data out of the JS
   // wrappers. We can't hold the histogram mutex while handling JS stuff.
   // Build a <histogram name, value> map.
-  JS::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
-  JS::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  JS::sandbox::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
+  JS::sandbox::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, histogramDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -3338,7 +3338,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
   // from the serialized JSON, even in case of light data corruptions: if, for
   // example, the data for a single process is corrupted or is in an unexpected
   // form, we press on and attempt to load the data for the other processes.
-  JS::Rooted<JS::PropertyKey> process(aCx);
+  JS::sandbox::Rooted<JS::PropertyKey> process(aCx);
   for (auto& processVal : processes) {
     // This is required as JS API calls require an Handle<jsid> and not a
     // plain jsid.
@@ -3362,7 +3362,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
     }
 
     // And its probes.
-    JS::Rooted<JS::Value> processData(aCx);
+    JS::sandbox::Rooted<JS::Value> processData(aCx);
     if (!JS_GetPropertyById(aCx, histogramDataObj, process, &processData)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3376,8 +3376,8 @@ nsresult TelemetryHistogram::DeserializeHistograms(
     }
 
     // Iterate through each histogram.
-    JS::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    JS::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
+    JS::sandbox::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
+    JS::sandbox::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
     if (!JS_Enumerate(aCx, processDataObj, &histograms)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3387,7 +3387,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
     PersistedHistogramArray& deserializedProcessData =
         histogramsToUpdate[static_cast<uint32_t>(processID)];
 
-    JS::Rooted<JS::PropertyKey> histogram(aCx);
+    JS::sandbox::Rooted<JS::PropertyKey> histogram(aCx);
     for (auto& histogramVal : histograms) {
       histogram = histogramVal;
 
@@ -3497,8 +3497,8 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
   // Before updating the histograms, we need to get the data out of the JS
   // wrappers. We can't hold the histogram mutex while handling JS stuff.
   // Build a <histogram name, value> map.
-  JS::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
-  JS::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  JS::sandbox::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
+  JS::sandbox::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, histogramDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -3516,7 +3516,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
   // from the serialized JSON, even in case of light data corruptions: if, for
   // example, the data for a single process is corrupted or is in an unexpected
   // form, we press on and attempt to load the data for the other processes.
-  JS::Rooted<JS::PropertyKey> process(aCx);
+  JS::sandbox::Rooted<JS::PropertyKey> process(aCx);
   for (auto& processVal : processes) {
     // This is required as JS API calls require an Handle<jsid> and not a
     // plain jsid.
@@ -3540,7 +3540,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
     }
 
     // And its probes.
-    JS::Rooted<JS::Value> processData(aCx);
+    JS::sandbox::Rooted<JS::Value> processData(aCx);
     if (!JS_GetPropertyById(aCx, histogramDataObj, process, &processData)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3554,8 +3554,8 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
     }
 
     // Iterate through each keyed histogram.
-    JS::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    JS::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
+    JS::sandbox::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
+    JS::sandbox::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
     if (!JS_Enumerate(aCx, processDataObj, &histograms)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3565,7 +3565,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
     PersistedKeyedHistogramArray& deserializedProcessData =
         histogramsToUpdate[static_cast<uint32_t>(processID)];
 
-    JS::Rooted<JS::PropertyKey> histogram(aCx);
+    JS::sandbox::Rooted<JS::PropertyKey> histogram(aCx);
     for (auto& histogramVal : histograms) {
       histogram = histogramVal;
       // Get the histogram name.
@@ -3576,21 +3576,21 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
       }
 
       // Get the data for this histogram.
-      JS::Rooted<JS::Value> histogramData(aCx);
+      JS::sandbox::Rooted<JS::Value> histogramData(aCx);
       if (!JS_GetPropertyById(aCx, processDataObj, histogram, &histogramData)) {
         JS_ClearPendingException(aCx);
         continue;
       }
 
       // Iterate through each key in the histogram.
-      JS::Rooted<JSObject*> keysDataObj(aCx, &histogramData.toObject());
-      JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+      JS::sandbox::Rooted<JSObject*> keysDataObj(aCx, &histogramData.toObject());
+      JS::sandbox::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
       if (!JS_Enumerate(aCx, keysDataObj, &keys)) {
         JS_ClearPendingException(aCx);
         continue;
       }
 
-      JS::Rooted<JS::PropertyKey> key(aCx);
+      JS::sandbox::Rooted<JS::PropertyKey> key(aCx);
       for (auto& keyVal : keys) {
         key = keyVal;
 

@@ -293,7 +293,7 @@ nsresult nsJSThunk::EvaluateScript(
   mozilla::nsAutoMicroTask mt;
   AutoEntryScript aes(innerGlobal, "javascript: URI", true);
   JSContext* cx = aes.cx();
-  JS::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
+  JS::sandbox::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
   NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
 
   //-- Don't execute unless the script principal subsumes the
@@ -318,7 +318,7 @@ nsresult nsJSThunk::EvaluateScript(
   // Unescape the script
   NS_UnescapeURL(script);
 
-  JS::Rooted<JS::Value> v(cx, JS::UndefinedValue());
+  JS::sandbox::Rooted<JS::Value> v(cx, JS::UndefinedValue());
   // Finally, we have everything needed to evaluate the expression.
   JS::CompileOptions options(cx);
   options.setFileAndLine(mURL.get(), 1);

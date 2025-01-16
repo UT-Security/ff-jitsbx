@@ -34,7 +34,7 @@ MozQueryInterface* ChromeUtils::GenerateQI(
 
   nsTArray<nsIID> ifaces;
 
-  JS::Rooted<JS::Value> iface(cx);
+  JS::sandbox::Rooted<JS::Value> iface(cx);
   for (uint32_t idx = 0; idx < aInterfaces.Length(); ++idx) {
     iface = aInterfaces[idx];
 

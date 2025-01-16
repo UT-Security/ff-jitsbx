@@ -60,16 +60,16 @@ bool TestShellCommandParent::RunCallback(const nsAString& aResponse) {
   // AutoEntryScript. This is just for testing and not in any spec.
   dom::AutoEntryScript aes(&mCallback.toObject(), "TestShellCommand");
   JSContext* cx = aes.cx();
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
   JSString* str =
       JS_NewUCStringCopyN(cx, aResponse.BeginReading(), aResponse.Length());
   NS_ENSURE_TRUE(str, false);
 
-  JS::Rooted<JS::Value> strVal(cx, JS::StringValue(str));
+  JS::sandbox::Rooted<JS::Value> strVal(cx, JS::StringValue(str));
 
-  JS::Rooted<JS::Value> rval(cx);
-  JS::Rooted<JS::Value> callback(cx, mCallback);
+  JS::sandbox::Rooted<JS::Value> rval(cx);
+  JS::sandbox::Rooted<JS::Value> callback(cx, mCallback);
   bool ok = JS_CallFunctionValue(cx, global, callback,
                                  JS::HandleValueArray(strVal), &rval);
   NS_ENSURE_TRUE(ok, false);

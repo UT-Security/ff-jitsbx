@@ -52,9 +52,9 @@ class JavascriptTimelineMarker : public TimelineMarker {
       stackFrame.mFunctionDisplayName.Construct(mFunctionName);
 
       if (mAsyncStack.isObject() && !mAsyncCause.IsEmpty()) {
-        JS::Rooted<JSObject*> asyncStack(aCx, &mAsyncStack.toObject());
-        JS::Rooted<JSObject*> parentFrame(aCx);
-        JS::Rooted<JSString*> asyncCause(
+        JS::sandbox::Rooted<JSObject*> asyncStack(aCx, &mAsyncStack.toObject());
+        JS::sandbox::Rooted<JSObject*> parentFrame(aCx);
+        JS::sandbox::Rooted<JSString*> asyncCause(
             aCx, JS_NewUCStringCopyN(aCx, mAsyncCause.BeginReading(),
                                      mAsyncCause.Length()));
         if (!asyncCause) {
@@ -71,7 +71,7 @@ class JavascriptTimelineMarker : public TimelineMarker {
         }
       }
 
-      JS::Rooted<JS::Value> newStack(aCx);
+      JS::sandbox::Rooted<JS::Value> newStack(aCx);
       if (ToJSValue(aCx, stackFrame, &newStack)) {
         if (newStack.isObject()) {
           aMarker.mStack = &newStack.toObject();
@@ -87,7 +87,7 @@ class JavascriptTimelineMarker : public TimelineMarker {
   nsString mFunctionName;
   nsString mFileName;
   uint32_t mLineNumber;
-  JS::PersistentRooted<JS::Value> mAsyncStack;
+  JS::sandbox::PersistentRooted<JS::Value> mAsyncStack;
   NS_ConvertUTF8toUTF16 mAsyncCause;
 };
 

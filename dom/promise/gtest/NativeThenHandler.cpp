@@ -103,7 +103,7 @@ TEST(NativeThenHandler, TraceObject)
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   // Explicit type for backward compatibility with clang<7 / gcc<8
   using HandlerType =
@@ -137,7 +137,7 @@ TEST(NativeThenHandler, TraceMixed)
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
   JSContext* cx = jsapi.cx();
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(cx);
-  JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
 

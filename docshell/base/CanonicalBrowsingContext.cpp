@@ -2148,7 +2148,7 @@ void CanonicalBrowsingContext::MaybeSetPermanentKey(Element* aEmbedder) {
 
   if (aEmbedder) {
     if (nsCOMPtr<nsIBrowser> browser = aEmbedder->AsBrowser()) {
-      JS::Rooted<JS::Value> key(RootingCx());
+      JS::sandbox::Rooted<JS::Value> key(RootingCx());
       if (NS_SUCCEEDED(browser->GetPermanentKey(&key)) && key.isObject()) {
         mPermanentKey = key;
       }
@@ -2530,10 +2530,10 @@ nsresult CanonicalBrowsingContext::WriteSessionStorageToSessionStore(
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JS::Value> key(jsapi.cx(), Top()->PermanentKey());
+  JS::sandbox::Rooted<JS::Value> key(jsapi.cx(), Top()->PermanentKey());
 
   Record<nsCString, Record<nsString, nsString>> storage;
-  JS::Rooted<JS::Value> update(jsapi.cx());
+  JS::sandbox::Rooted<JS::Value> update(jsapi.cx());
 
   if (!aSesssionStorage.IsEmpty()) {
     SessionStoreUtils::ConstructSessionStorageValues(this, aSesssionStorage,

@@ -46,7 +46,7 @@ RefPtr<TPromise> FetchJSONStructure(Request* aRequest) {
           resultPromise->Reject(NS_ERROR_FAILURE, __func__);
           return;
         }
-        JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+        JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
         MOZ_ASSERT(obj);
         Response* response = nullptr;
         if (NS_WARN_IF(NS_FAILED(UNWRAP_OBJECT(Response, &obj, response)))) {

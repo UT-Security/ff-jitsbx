@@ -291,7 +291,7 @@ imgTools::DecodeImageFromArrayBuffer(JS::Handle<JS::Value> aArrayBuffer,
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JSObject*> obj(aCx,
+  JS::sandbox::Rooted<JSObject*> obj(aCx,
                             JS::UnwrapArrayBuffer(&aArrayBuffer.toObject()));
   if (!obj) {
     return NS_ERROR_FAILURE;

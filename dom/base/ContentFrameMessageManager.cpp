@@ -13,7 +13,7 @@ using namespace mozilla;
 using namespace mozilla::dom;
 
 JSObject* ContentFrameMessageManager::GetOrCreateWrapper() {
-  JS::Rooted<JS::Value> val(RootingCx());
+  JS::sandbox::Rooted<JS::Value> val(RootingCx());
   {
     // Scope to run ~AutoJSAPI before working with a raw JSObject*.
     AutoJSAPI jsapi;

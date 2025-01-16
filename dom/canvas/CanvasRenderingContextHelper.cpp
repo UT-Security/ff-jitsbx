@@ -219,7 +219,7 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetOrCreateContext(
 
     // https://html.spec.whatwg.org/multipage/canvas.html#dom-canvas-getcontext-dev
     // Step 1. If options is not an object, then set options to null.
-    JS::Rooted<JS::Value> options(RootingCx(), aContextOptions);
+    JS::sandbox::Rooted<JS::Value> options(RootingCx(), aContextOptions);
     if (!options.isObject()) {
       options.setNull();
     }

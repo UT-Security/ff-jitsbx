@@ -370,7 +370,7 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
         return true;
       }
 
-      RootedObject jsobj(cx, promise->PromiseObj());
+      JS::sandbox::RootedObject jsobj(cx, promise->PromiseObj());
       if (!JS_WrapObject(cx, &jsobj)) {
         return false;
       }
@@ -757,7 +757,7 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
         return false;
       }
 
-      RootedObject src(cx, &s.toObject());
+      JS::sandbox::RootedObject src(cx, &s.toObject());
       return JSObject2NativeInterface(cx, (void**)d, src, iid, nullptr, pErr);
     }
 
@@ -908,9 +908,9 @@ bool XPCConvert::NativeInterface2JSObject(JSContext* cx, MutableHandleValue d,
   // object will create (and fill the cache) from its WrapObject call.
   nsWrapperCache* cache = aHelper.GetWrapperCache();
 
-  RootedObject flat(cx, cache ? cache->GetWrapper() : nullptr);
+  JS::sandbox::RootedObject flat(cx, cache ? cache->GetWrapper() : nullptr);
   if (!flat && cache) {
-    RootedObject global(cx, CurrentGlobalOrNull(cx));
+    JS::sandbox::RootedObject global(cx, CurrentGlobalOrNull(cx));
     flat = cache->WrapObject(cx, nullptr);
     if (!flat) {
       return false;
@@ -955,7 +955,7 @@ bool XPCConvert::NativeInterface2JSObject(JSContext* cx, MutableHandleValue d,
 
   // The call to wrap here handles both cross-compartment and same-compartment
   // security wrappers.
-  RootedObject original(cx, flat);
+  JS::sandbox::RootedObject original(cx, flat);
   if (!JS_WrapObject(cx, &flat)) {
     return false;
   }
@@ -1004,7 +1004,7 @@ bool XPCConvert::JSObject2NativeInterface(JSContext* cx, void** dest,
     // scope - see nsBindingManager::GetBindingImplementation.
     //
     // It's also very important that "inner" be rooted here.
-    RootedObject inner(
+    JS::sandbox::RootedObject inner(
         cx, js::CheckedUnwrapDynamic(src, cx,
                                      /* stopAtWindowProxy = */ false));
     if (!inner) {
@@ -1132,7 +1132,7 @@ class MOZ_STACK_CLASS AutoExceptionRestorer {
 
  private:
   JSContext* const mContext;
-  RootedValue tvr;
+  JS::sandbox::RootedValue tvr;
 };
 
 static nsresult JSErrorToXPCException(JSContext* cx, const char* toStringResult,
@@ -1190,7 +1190,7 @@ nsresult XPCConvert::JSValToXPCException(JSContext* cx, MutableHandleValue s,
 
   if (!s.isPrimitive()) {
     // we have a JSObject
-    RootedObject obj(cx, s.toObjectOrNull());
+    JS::sandbox::RootedObject obj(cx, s.toObjectOrNull());
 
     if (!obj) {
       NS_ERROR("when is an object not an object?");
@@ -1226,7 +1226,7 @@ nsresult XPCConvert::JSValToXPCException(JSContext* cx, MutableHandleValue s,
       const JSErrorReport* report;
       if (nullptr != (report = JS_ErrorFromException(cx, obj))) {
         JS::UniqueChars toStringResult;
-        RootedString str(cx, ToString(cx, s));
+        JS::sandbox::RootedString str(cx, ToString(cx, s));
         if (str) {
           toStringResult = JS_EncodeStringToUTF8(cx, str);
         }
@@ -1335,7 +1335,7 @@ bool XPCConvert::NativeArray2JS(JSContext* cx, MutableHandleValue d,
                                 nsresult* pErr) {
   MOZ_ASSERT(buf || count == 0, "Must have buf or 0 elements");
 
-  RootedObject array(cx, JS::NewArrayObject(cx, count));
+  JS::sandbox::RootedObject array(cx, JS::NewArrayObject(cx, count));
   if (!array) {
     return false;
   }
@@ -1344,7 +1344,7 @@ bool XPCConvert::NativeArray2JS(JSContext* cx, MutableHandleValue d,
     *pErr = NS_ERROR_XPC_BAD_CONVERT_NATIVE;
   }
 
-  RootedValue current(cx, JS::NullValue());
+  JS::sandbox::RootedValue current(cx, JS::NullValue());
   for (uint32_t i = 0; i < count; ++i) {
     if (!NativeData2JS(cx, &current, type.ElementPtr(buf, i), type, iid, 0,
                        pErr) ||
@@ -1390,7 +1390,7 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
     }
     return false;
   }
-  RootedObject jsarray(cx, &aJSVal.toObject());
+  JS::sandbox::RootedObject jsarray(cx, &aJSVal.toObject());
 
   if (pErr) {
     *pErr = NS_ERROR_XPC_BAD_CONVERT_JS;
@@ -1489,7 +1489,7 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
   }
 
   // Translate each array element separately.
-  RootedValue current(cx);
+  JS::sandbox::RootedValue current(cx);
   for (uint32_t i = 0; i < length; ++i) {
     if (!JS_GetElement(cx, jsarray, i, &current) ||
         !JSData2Native(cx, aEltType.ElementPtr(buf, i), current, aEltType, aIID,

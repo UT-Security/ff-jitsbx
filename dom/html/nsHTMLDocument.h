@@ -111,7 +111,7 @@ class nsHTMLDocument : public mozilla::dom::Document {
   void NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JSObject*> aRetval,
                    mozilla::ErrorResult& rv) {
-    JS::Rooted<JS::Value> v(cx);
+    JS::sandbox::Rooted<JS::Value> v(cx);
     if ((aFound = ResolveName(cx, aName, &v, rv))) {
       SetUseCounter(mozilla::eUseCounter_custom_HTMLDocumentNamedGetterHit);
       aRetval.set(v.toObjectOrNull());

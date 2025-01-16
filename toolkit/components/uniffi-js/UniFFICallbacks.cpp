@@ -108,7 +108,7 @@ static void QueueCallbackInner(uint64_t aInterfaceId, uint64_t aHandle,
 
   dom::AutoEntryScript aes(global, cbiInfo->mName);
   IgnoredErrorResult error;
-  JS::Rooted<JSObject*> args(aes.cx(), aArgs.IntoArrayBuffer(aes.cx()));
+  JS::sandbox::Rooted<JSObject*> args(aes.cx(), aArgs.IntoArrayBuffer(aes.cx()));
 
   ihandler->Call(aHandle, aMethod, args, error);
 

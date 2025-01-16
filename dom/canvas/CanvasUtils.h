@@ -129,7 +129,7 @@ nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
   static const uint32_t MAX_NUM_DASHES = 1 << 14;
 
   if (!patternArray.isPrimitive()) {
-    JS::Rooted<JSObject*> obj(cx, patternArray.toObjectOrNull());
+    JS::sandbox::Rooted<JSObject*> obj(cx, patternArray.toObjectOrNull());
     uint32_t length;
     if (!JS::GetArrayLength(cx, obj, &length)) {
       // Not an array-like thing
@@ -141,7 +141,7 @@ nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
 
     bool haveNonzeroElement = false;
     for (uint32_t i = 0; i < length; ++i) {
-      JS::Rooted<JS::Value> elt(cx);
+      JS::sandbox::Rooted<JS::Value> elt(cx);
       double d;
       if (!JS_GetElement(cx, obj, i, &elt)) {
         return NS_ERROR_FAILURE;
@@ -178,7 +178,7 @@ void DashArrayToJSVal(nsTArray<T>& dashes, JSContext* cx,
     retval.setNull();
     return;
   }
-  JS::Rooted<JS::Value> val(cx);
+  JS::sandbox::Rooted<JS::Value> val(cx);
   if (!mozilla::dom::ToJSValue(cx, dashes, retval)) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
   }

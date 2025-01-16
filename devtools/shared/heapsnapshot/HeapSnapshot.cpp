@@ -479,7 +479,7 @@ void HeapSnapshot::DescribeNode(JSContext* cx, JS::Handle<JSObject*> breakdown,
                                 JS::MutableHandle<JS::Value> rval,
                                 ErrorResult& rv) {
   MOZ_ASSERT(breakdown);
-  JS::Rooted<JS::Value> breakdownVal(cx, JS::ObjectValue(*breakdown));
+  JS::sandbox::Rooted<JS::Value> breakdownVal(cx, JS::ObjectValue(*breakdown));
   JS::ubi::CountTypePtr rootType = JS::ubi::ParseBreakdown(cx, breakdownVal);
   if (NS_WARN_IF(!rootType)) {
     rv.Throw(NS_ERROR_UNEXPECTED);
@@ -591,35 +591,35 @@ void HeapSnapshot::ComputeShortestPaths(JSContext* cx, uint64_t start,
   // Convert the results into a Map object mapping target node IDs to arrays of
   // paths found.
 
-  JS::Rooted<JSObject*> resultsMap(cx, JS::NewMapObject(cx));
+  JS::sandbox::Rooted<JSObject*> resultsMap(cx, JS::NewMapObject(cx));
   if (NS_WARN_IF(!resultsMap)) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   for (auto iter = shortestPaths.targetIter(); !iter.done(); iter.next()) {
-    JS::Rooted<JS::Value> key(cx, JS::NumberValue(iter.get().identifier()));
-    JS::RootedVector<JS::Value> paths(cx);
+    JS::sandbox::Rooted<JS::Value> key(cx, JS::NumberValue(iter.get().identifier()));
+    JS::sandbox::RootedVector<JS::Value> paths(cx);
 
     bool ok = shortestPaths.forEachPath(iter.get(), [&](JS::ubi::Path& path) {
-      JS::RootedVector<JS::Value> pathValues(cx);
+      JS::sandbox::RootedVector<JS::Value> pathValues(cx);
 
       for (JS::ubi::BackEdge* edge : path) {
-        JS::Rooted<JSObject*> pathPart(cx, JS_NewPlainObject(cx));
+        JS::sandbox::Rooted<JSObject*> pathPart(cx, JS_NewPlainObject(cx));
         if (!pathPart) {
           return false;
         }
 
-        JS::Rooted<JS::Value> predecessor(
+        JS::sandbox::Rooted<JS::Value> predecessor(
             cx, NumberValue(edge->predecessor().identifier()));
         if (!JS_DefineProperty(cx, pathPart, "predecessor", predecessor,
                                JSPROP_ENUMERATE)) {
           return false;
         }
 
-        JS::Rooted<JS::Value> edgeNameVal(cx, NullValue());
+        JS::sandbox::Rooted<JS::Value> edgeNameVal(cx, NullValue());
         if (edge->name()) {
-          JS::Rooted<JSString*> edgeName(
+          JS::sandbox::Rooted<JSString*> edgeName(
               cx, JS_AtomizeUCString(cx, edge->name().get()));
           if (!edgeName) {
             return false;
@@ -637,7 +637,7 @@ void HeapSnapshot::ComputeShortestPaths(JSContext* cx, uint64_t start,
         }
       }
 
-      JS::Rooted<JSObject*> pathObj(cx, JS::NewArrayObject(cx, pathValues));
+      JS::sandbox::Rooted<JSObject*> pathObj(cx, JS::NewArrayObject(cx, pathValues));
       return pathObj && paths.append(ObjectValue(*pathObj));
     });
 
@@ -646,13 +646,13 @@ void HeapSnapshot::ComputeShortestPaths(JSContext* cx, uint64_t start,
       return;
     }
 
-    JS::Rooted<JSObject*> pathsArray(cx, JS::NewArrayObject(cx, paths));
+    JS::sandbox::Rooted<JSObject*> pathsArray(cx, JS::NewArrayObject(cx, paths));
     if (NS_WARN_IF(!pathsArray)) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return;
     }
 
-    JS::Rooted<JS::Value> pathsVal(cx, ObjectValue(*pathsArray));
+    JS::sandbox::Rooted<JS::Value> pathsVal(cx, ObjectValue(*pathsArray));
     if (NS_WARN_IF(!JS::MapSet(cx, resultsMap, key, pathsVal))) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return;
@@ -740,7 +740,7 @@ static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
       return {false, AutoCheckCannotGC(cx)};
     }
 
-    JS::RootedVector<JSObject*> globals(cx);
+    JS::sandbox::RootedVector<JSObject*> globals(cx);
     if (!dbg::GetDebuggeeGlobals(cx, *dbgObj, &globals) ||
         !PopulateCompartmentsWithGlobals(compartments, globals) ||
         !roots.init(compartments).first || !AddGlobalsAsRoots(globals, roots)) {
@@ -762,7 +762,7 @@ static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
       return {false, AutoCheckCannotGC(cx)};
     }
 
-    JS::RootedVector<JSObject*> globals(cx);
+    JS::sandbox::RootedVector<JSObject*> globals(cx);
     for (uint32_t i = 0; i < length; i++) {
       JSObject* global = boundaries.mGlobals.Value().ElementAt(i);
       if (!JS_IsGlobalObject(global)) {
@@ -1519,7 +1519,7 @@ void ChromeUtils::SaveHeapSnapshotShared(
 /* static */
 uint64_t ChromeUtils::GetObjectNodeId(GlobalObject& global,
                                       JS::Handle<JSObject*> val) {
-  JS::Rooted<JSObject*> obj(global.Context(), val);
+  JS::sandbox::Rooted<JSObject*> obj(global.Context(), val);
 
   JS::ubi::Node node(obj);
   return node.identifier();

@@ -71,7 +71,7 @@ JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject) {
 
   // Step 3. Assert: !IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
   bool isShared;
-  JS::Rooted<JSObject*> viewedArrayBuffer(
+  JS::sandbox::Rooted<JSObject*> viewedArrayBuffer(
       aCx, JS_GetArrayBufferViewBuffer(aCx, aObject, &isShared));
   if (!viewedArrayBuffer) {
     return nullptr;
@@ -82,7 +82,7 @@ JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject) {
   //         O.[[ByteOffset]], O.[[ByteLength]], %ArrayBuffer%).
   size_t byteOffset = JS_GetTypedArrayByteOffset(aObject);
   size_t byteLength = JS_GetTypedArrayByteLength(aObject);
-  JS::Rooted<JSObject*> buffer(
+  JS::sandbox::Rooted<JSObject*> buffer(
       aCx,
       JS::ArrayBufferClone(aCx, viewedArrayBuffer, byteOffset, byteLength));
   if (!buffer) {
@@ -90,7 +90,7 @@ JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject) {
   }
 
   // Step 5. Let array be ! Construct(%Uint8Array%, « buffer »).
-  JS::Rooted<JSObject*> array(
+  JS::sandbox::Rooted<JSObject*> array(
       aCx, JS_NewUint8ArrayWithBuffer(aCx, buffer, 0,
                                       static_cast<int64_t>(byteLength)));
   if (!array) {

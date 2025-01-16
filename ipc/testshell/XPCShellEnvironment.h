@@ -15,7 +15,7 @@
 #include "nsString.h"
 #include "nsJSPrincipals.h"
 #include "nsContentUtils.h"
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/TypeDecls.h"
 
 struct JSPrincipals;
@@ -46,7 +46,7 @@ class XPCShellEnvironment {
   bool Init();
 
  private:
-  JS::PersistentRooted<JSObject*> mGlobalHolder;
+  JS::sandbox::PersistentRooted<JSObject*> mGlobalHolder;
 
   bool mQuitting;
 };

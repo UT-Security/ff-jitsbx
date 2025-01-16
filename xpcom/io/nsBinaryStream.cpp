@@ -808,7 +808,7 @@ nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
-  JS::Rooted<JSObject*> buffer(aCx, &aBuffer.toObject());
+  JS::sandbox::Rooted<JSObject*> buffer(aCx, &aBuffer.toObject());
   if (!JS::IsArrayBufferObject(buffer)) {
     return NS_ERROR_FAILURE;
   }

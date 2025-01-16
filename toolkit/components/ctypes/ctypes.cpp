@@ -55,7 +55,7 @@ static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
   }
 
   // Set callbacks for charset conversion and such.
-  JS::Rooted<JS::Value> ctypes(cx);
+  JS::sandbox::Rooted<JS::Value> ctypes(cx);
   if (!JS_GetProperty(cx, global, "ctypes", &ctypes)) {
     return false;
   }
@@ -69,7 +69,7 @@ NS_IMETHODIMP
 Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
              const JS::CallArgs& args, bool* _retval) {
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
-  JS::Rooted<JSObject*> targetObj(cx);
+  JS::sandbox::Rooted<JSObject*> targetObj(cx);
   loader->FindTargetObject(cx, &targetObj);
 
   *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);

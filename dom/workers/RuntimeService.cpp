@@ -738,10 +738,10 @@ static bool IsWorkerDebuggerGlobalOrSandbox(JS::Handle<JSObject*> aGlobal) {
 
 JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
                JS::Handle<JSObject*> obj) {
-  JS::Rooted<JSObject*> targetGlobal(cx, JS::CurrentGlobalOrNull(cx));
+  JS::sandbox::Rooted<JSObject*> targetGlobal(cx, JS::CurrentGlobalOrNull(cx));
 
   // Note: the JS engine unwraps CCWs before calling this callback.
-  JS::Rooted<JSObject*> originGlobal(cx, JS::GetNonCCWObjectGlobal(obj));
+  JS::sandbox::Rooted<JSObject*> originGlobal(cx, JS::GetNonCCWObjectGlobal(obj));
 
   const js::Wrapper* wrapper = nullptr;
   if (IsWorkerDebuggerGlobalOrSandbox(targetGlobal) &&
@@ -903,7 +903,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     JSContext* cx = Context();
     NS_ASSERTION(cx, "This should never be null!");
 
-    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+    JS::sandbox::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     NS_ASSERTION(global, "This should never be null!");
 
     // On worker threads, if the current global is the worker global or

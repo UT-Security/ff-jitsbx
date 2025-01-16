@@ -16,7 +16,7 @@
 
 #include "js/CallArgs.h"    // JS::CallArgs
 #include "js/GCVector.h"    // JS::RootedVector
-#include "js/RootingAPI.h"  // JS::AutoGCRooter, JS::{,Mutable}Handle
+#include "js/sandbox/RootingAPI.h"  // JS::AutoGCRooter, JS::{,Mutable}Handle
 #include "js/Value.h"       // JS::Value
 
 namespace js {
@@ -36,6 +36,11 @@ struct ValueArray {
 /** RootedValueArray roots an internal fixed-size array of Values. */
 template <size_t N>
 using RootedValueArray = Rooted<ValueArray<N>>;
+
+namespace sandbox {
+template <size_t N>
+using RootedValueArray = Rooted<ValueArray<N>>;
+}
 
 /**
  * A generic handle to an array of rooted values.
@@ -59,6 +64,14 @@ class HandleValueArray {
 
   template <size_t N>
   MOZ_IMPLICIT HandleValueArray(const RootedValueArray<N>& values)
+      : length_(N), elements_(values.begin()) {}
+
+      
+  MOZ_IMPLICIT HandleValueArray(const sandbox::RootedVector<Value>& values)
+      : length_(values.length()), elements_(values.begin()) {}
+
+  template <size_t N>
+  MOZ_IMPLICIT HandleValueArray(const sandbox::RootedValueArray<N>& values)
       : length_(N), elements_(values.begin()) {}
 
   /** CallArgs must already be rooted somewhere up the stack. */

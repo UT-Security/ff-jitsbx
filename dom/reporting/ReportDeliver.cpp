@@ -49,7 +49,7 @@ class ReportFetchHandler final : public PromiseNativeHandler {
       return;
     }
 
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
     MOZ_ASSERT(obj);
 
     {
@@ -123,7 +123,7 @@ void SendReports(nsTArray<ReportDeliver::ReportData>& aReports,
     jsapi.Init();
 
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JSObject*> sandbox(cx);
+    JS::sandbox::Rooted<JSObject*> sandbox(cx);
     nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return;

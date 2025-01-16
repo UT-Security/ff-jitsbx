@@ -610,7 +610,7 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   JS::GCSliceCallback mPrevGCSliceCallback;
   JS::DoCycleCollectionCallback mPrevDoCycleCollectionCallback;
   mozilla::WeakPtr<SandboxPrivate> mUnprivilegedJunkScope;
-  JS::PersistentRootedObject mLoaderGlobal;
+  JS::sandbox::PersistentRootedObject mLoaderGlobal;
   RefPtr<AsyncFreeSnowWhite> mAsyncSnowWhiteFreer;
 
   friend class XPCJSContext;
@@ -743,7 +743,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
   RefPtr<XPCNativeInterface> mInterface;
   XPCNativeMember* mMember;
 
-  JS::RootedId mName;
+  JS::sandbox::RootedId mName;
   bool mStaticMemberIsLocal;
 
   unsigned mArgc;
@@ -1984,9 +1984,9 @@ class MOZ_RAII AutoResolveName {
 
  private:
   XPCJSContext* mContext;
-  JS::RootedId mOld;
+  JS::sandbox::RootedId mOld;
 #ifdef DEBUG
-  JS::RootedId mCheck;
+  JS::sandbox::RootedId mCheck;
 #endif
 };
 
@@ -2269,7 +2269,7 @@ class MOZ_STACK_CLASS OptionsBase {
   bool ParseUInt32(const char* name, uint32_t* prop);
 
   JSContext* mCx;
-  JS::RootedObject mObject;
+  JS::sandbox::RootedObject mObject;
 };
 
 class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
@@ -2301,9 +2301,9 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
   bool wantComponents;
   bool wantExportHelpers;
   bool isWebExtensionContentScript;
-  JS::RootedObject proto;
+  JS::sandbox::RootedObject proto;
   nsCString sandboxName;
-  JS::RootedObject sameZoneAs;
+  JS::sandbox::RootedObject sameZoneAs;
   bool forceSecureContext;
   bool freshCompartment;
   bool freshZone;
@@ -2311,9 +2311,9 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
   bool invisibleToDebugger;
   bool discardSource;
   GlobalProperties globalProperties;
-  JS::RootedValue metadata;
+  JS::sandbox::RootedValue metadata;
   uint32_t userContextId;
-  JS::RootedObject originAttributes;
+  JS::sandbox::RootedObject originAttributes;
 
  protected:
   bool ParseGlobalProperties();
@@ -2327,7 +2327,7 @@ class MOZ_STACK_CLASS CreateObjectInOptions : public OptionsBase {
 
   virtual bool Parse() override { return ParseId("defineAs", &defineAs); }
 
-  JS::RootedId defineAs;
+  JS::sandbox::RootedId defineAs;
 };
 
 class MOZ_STACK_CLASS ExportFunctionOptions : public OptionsBase {
@@ -2344,7 +2344,7 @@ class MOZ_STACK_CLASS ExportFunctionOptions : public OptionsBase {
                         &allowCrossOriginArguments);
   }
 
-  JS::RootedId defineAs;
+  JS::sandbox::RootedId defineAs;
   bool allowCrossOriginArguments;
 };
 
@@ -2355,12 +2355,12 @@ class MOZ_STACK_CLASS FunctionForwarderOptions : public OptionsBase {
       : OptionsBase(cx, options), allowCrossOriginArguments(false) {}
 
   JSObject* ToJSObject(JSContext* cx) {
-    JS::RootedObject obj(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr));
+    JS::sandbox::RootedObject obj(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr));
     if (!obj) {
       return nullptr;
     }
 
-    JS::RootedValue val(cx);
+    JS::sandbox::RootedValue val(cx);
     unsigned attrs = JSPROP_READONLY | JSPROP_PERMANENT;
     val = JS::BooleanValue(allowCrossOriginArguments);
     if (!JS_DefineProperty(cx, obj, "allowCrossOriginArguments", val, attrs)) {

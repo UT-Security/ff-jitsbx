@@ -114,7 +114,7 @@ already_AddRefed<ImageData> ImageData::ReadStructuredClone(
     JSStructuredCloneReader* aReader) {
   // Read the information out of the stream.
   uint32_t width, height;
-  JS::Rooted<JS::Value> dataArray(aCx);
+  JS::sandbox::Rooted<JS::Value> dataArray(aCx);
   if (!JS_ReadUint32Pair(aReader, &width, &height) ||
       !JS_ReadTypedArray(aReader, &dataArray)) {
     return nullptr;
@@ -128,7 +128,7 @@ already_AddRefed<ImageData> ImageData::ReadStructuredClone(
 
 bool ImageData::WriteStructuredClone(JSContext* aCx,
                                      JSStructuredCloneWriter* aWriter) const {
-  JS::Rooted<JS::Value> arrayValue(aCx, JS::ObjectValue(*GetDataObject()));
+  JS::sandbox::Rooted<JS::Value> arrayValue(aCx, JS::ObjectValue(*GetDataObject()));
   if (!JS_WrapValue(aCx, &arrayValue)) {
     return false;
   }

@@ -30,8 +30,8 @@ using mozilla::dom::AutoJSAPI;
 
 //*****************************************************************************
 
-static JS::PersistentRooted<JSObject*> autoconfigSystemSb;
-static JS::PersistentRooted<JSObject*> autoconfigSb;
+static JS::sandbox::PersistentRooted<JSObject*> autoconfigSystemSb;
+static JS::sandbox::PersistentRooted<JSObject*> autoconfigSb;
 bool sandboxEnabled;
 
 nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
@@ -50,7 +50,7 @@ nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
 
   // Create a sandbox.
   AutoSafeJSContext cx;
-  JS::Rooted<JSObject*> sandbox(cx);
+  JS::sandbox::Rooted<JSObject*> sandbox(cx);
   nsresult rv = xpc->CreateSandbox(cx, principal, sandbox.address());
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -68,7 +68,7 @@ nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
   // Define gSandbox on system sandbox.
   JSAutoRealm ar(cx, autoconfigSystemSb);
 
-  JS::Rooted<JS::Value> value(cx, JS::ObjectValue(*sandbox));
+  JS::sandbox::Rooted<JS::Value> value(cx, JS::ObjectValue(*sandbox));
 
   if (!JS_WrapValue(cx, &value) ||
       !JS_DefineProperty(cx, autoconfigSystemSb, "gSandbox", value,
@@ -140,7 +140,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
   JSContext* cx = jsapi.cx();
 
   nsAutoCString script(js_buffer, length);
-  JS::Rooted<JS::Value> v(cx);
+  JS::sandbox::Rooted<JS::Value> v(cx);
 
   nsString convertedScript;
   bool isUTF8 = IsUtf8(script);
@@ -156,7 +156,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
   }
   {
     JSAutoRealm ar(cx, autoconfigSystemSb);
-    JS::Rooted<JS::Value> value(cx, JS::BooleanValue(isUTF8));
+    JS::sandbox::Rooted<JS::Value> value(cx, JS::BooleanValue(isUTF8));
     if (!JS_DefineProperty(cx, autoconfigSystemSb, "gIsUTF8", value,
                            JSPROP_ENUMERATE)) {
       return NS_ERROR_UNEXPECTED;

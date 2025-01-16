@@ -517,7 +517,7 @@ bool TelemetryImpl::ReflectSQL(const SlowSQLEntryType* entry, const Stat* stat,
 
   const nsACString& sql = entry->GetKey();
 
-  JS::Rooted<JSObject*> arrayObj(cx, JS::NewArrayObject(cx, 0));
+  JS::sandbox::Rooted<JSObject*> arrayObj(cx, JS::NewArrayObject(cx, 0));
   if (!arrayObj) {
     return false;
   }
@@ -541,7 +541,7 @@ bool TelemetryImpl::ReflectOtherThreadsSQL(SlowSQLEntryType* entry,
 
 bool TelemetryImpl::AddSQLInfo(JSContext* cx, JS::Handle<JSObject*> rootObj,
                                bool mainThread, bool privateSQL) {
-  JS::Rooted<JSObject*> statsObj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> statsObj(cx, JS_NewPlainObject(cx));
   if (!statsObj) return false;
 
   AutoHashtable<SlowSQLEntryType>& sqlMap =
@@ -625,7 +625,7 @@ TelemetryImpl::GetSnapshotForKeyedScalars(
 
 bool TelemetryImpl::GetSQLStats(JSContext* cx, JS::MutableHandle<JS::Value> ret,
                                 bool includePrivateSql) {
-  JS::Rooted<JSObject*> root_obj(cx, JS_NewPlainObject(cx));
+  JS::sandbox::Rooted<JSObject*> root_obj(cx, JS_NewPlainObject(cx));
   if (!root_obj) return false;
   ret.setObject(*root_obj);
 
@@ -699,7 +699,7 @@ class GetLoadedModulesResultRunnable final : public Runnable {
 
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JSObject*> moduleArray(cx, JS::NewArrayObject(cx, 0));
+    JS::sandbox::Rooted<JSObject*> moduleArray(cx, JS::NewArrayObject(cx, 0));
     if (!moduleArray) {
       mPromise->MaybeReject(NS_ERROR_FAILURE);
       return NS_OK;
@@ -708,14 +708,14 @@ class GetLoadedModulesResultRunnable final : public Runnable {
     for (unsigned int i = 0, n = mRawModules.GetSize(); i != n; i++) {
       const SharedLibrary& info = mRawModules.GetEntry(i);
 
-      JS::Rooted<JSObject*> moduleObj(cx, JS_NewPlainObject(cx));
+      JS::sandbox::Rooted<JSObject*> moduleObj(cx, JS_NewPlainObject(cx));
       if (!moduleObj) {
         mPromise->MaybeReject(NS_ERROR_FAILURE);
         return NS_OK;
       }
 
       // Module name.
-      JS::Rooted<JSString*> moduleName(
+      JS::sandbox::Rooted<JSString*> moduleName(
           cx, JS_NewUCStringCopyZ(cx, info.GetModuleName().get()));
       if (!moduleName || !JS_DefineProperty(cx, moduleObj, "name", moduleName,
                                             JSPROP_ENUMERATE)) {
@@ -724,10 +724,10 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       }
 
       // Module debug name.
-      JS::Rooted<JS::Value> moduleDebugName(cx);
+      JS::sandbox::Rooted<JS::Value> moduleDebugName(cx);
 
       if (!info.GetDebugName().IsEmpty()) {
-        JS::Rooted<JSString*> str_moduleDebugName(
+        JS::sandbox::Rooted<JSString*> str_moduleDebugName(
             cx, JS_NewUCStringCopyZ(cx, info.GetDebugName().get()));
         if (!str_moduleDebugName) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -745,10 +745,10 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       }
 
       // Module Breakpad identifier.
-      JS::Rooted<JS::Value> id(cx);
+      JS::sandbox::Rooted<JS::Value> id(cx);
 
       if (!info.GetBreakpadId().IsEmpty()) {
-        JS::Rooted<JSString*> str_id(
+        JS::sandbox::Rooted<JSString*> str_id(
             cx, JS_NewStringCopyZ(cx, info.GetBreakpadId().get()));
         if (!str_id) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -765,10 +765,10 @@ class GetLoadedModulesResultRunnable final : public Runnable {
       }
 
       // Module version.
-      JS::Rooted<JS::Value> version(cx);
+      JS::sandbox::Rooted<JS::Value> version(cx);
 
       if (!info.GetVersion().IsEmpty()) {
-        JS::Rooted<JSString*> v(
+        JS::sandbox::Rooted<JSString*> v(
             cx, JS_NewStringCopyZ(cx, info.GetVersion().BeginReading()));
         if (!v) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -788,13 +788,13 @@ class GetLoadedModulesResultRunnable final : public Runnable {
 #  if defined(XP_WIN)
       // Cert Subject.
       if (auto subject = mCertSubjects.Lookup(info.GetModulePath())) {
-        JS::Rooted<JSString*> jsOrg(cx, ToJSString(cx, *subject));
+        JS::sandbox::Rooted<JSString*> jsOrg(cx, ToJSString(cx, *subject));
         if (!jsOrg) {
           mPromise->MaybeReject(NS_ERROR_FAILURE);
           return NS_OK;
         }
 
-        JS::Rooted<JS::Value> certSubject(cx);
+        JS::sandbox::Rooted<JS::Value> certSubject(cx);
         certSubject.setString(jsOrg);
 
         if (!JS_DefineProperty(cx, moduleObj, "certSubject", certSubject,
@@ -1481,7 +1481,7 @@ NS_IMETHODIMP
 TelemetryImpl::GetFileIOReports(JSContext* cx,
                                 JS::MutableHandle<JS::Value> ret) {
   if (sTelemetryIOObserver) {
-    JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+    JS::sandbox::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
     if (!obj) {
       return NS_ERROR_FAILURE;
     }
@@ -1690,13 +1690,13 @@ TelemetryImpl::GetAllStores(JSContext* aCx,
     return rv;
   }
 
-  JS::RootedVector<JS::Value> allStores(aCx);
+  JS::sandbox::RootedVector<JS::Value> allStores(aCx);
   if (!allStores.reserve(stores.Count())) {
     return NS_ERROR_FAILURE;
   }
 
   for (const auto& value : stores) {
-    JS::Rooted<JS::Value> store(aCx);
+    JS::sandbox::Rooted<JS::Value> store(aCx);
 
     store.setString(ToJSString(aCx, value));
     if (!allStores.append(store)) {
@@ -1704,7 +1704,7 @@ TelemetryImpl::GetAllStores(JSContext* aCx,
     }
   }
 
-  JS::Rooted<JSObject*> rarray(aCx, JS::NewArrayObject(aCx, allStores));
+  JS::sandbox::Rooted<JSObject*> rarray(aCx, JS::NewArrayObject(aCx, allStores));
   if (rarray == nullptr) {
     return NS_ERROR_FAILURE;
   }
