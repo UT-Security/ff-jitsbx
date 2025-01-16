@@ -1,0 +1,13 @@
+diff --git a/liblfi/arch/amd64/runtime.S b/liblfi/arch/amd64/runtime.S
+index 71713cb9d9..eac4e7df95 100644
+--- a/liblfi/arch/amd64/runtime.S
++++ b/liblfi/arch/amd64/runtime.S
+@@ -73,6 +73,8 @@ lfi_ret:
+ 	movq 0(%r11), %rsp // kstackp
+ 	// return value should already be in %rax
+ 	// realign stack (is this necessary?)
++	add $8, %rsp
++	popq 16(%r11)
+ 	popq %rbp
+ 	popq %rbx
+ 	popq %r12

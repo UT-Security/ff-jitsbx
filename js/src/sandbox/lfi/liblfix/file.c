@@ -4,10 +4,20 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <dirent.h>
+#include <syscall.h>
+#include <sys/stat.h>
 
 #include "file.h"
 #include "sys.h"
 #include "io.h"
+
+static inline int memfd_create(const char* name, unsigned int flags) {
+    return syscall(__NR_memfd_create, name, flags);
+}
+
+static inline ssize_t getdents64(int fd, void* dirp, size_t count) {
+    return syscall(__NR_getdents64, fd, dirp, count);
+}
 
 FDFile*
 lfix_filenew(LFIXEngine* lfix, int dirfd, const char* name, int flags, int mode)

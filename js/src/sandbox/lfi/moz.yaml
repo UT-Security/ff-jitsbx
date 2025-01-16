@@ -18,6 +18,10 @@ vendoring:
   url: https://github.com/zyedidia/lfi
   source-hosting: github
 
+  patches:
+    - lfi.patch
+    - lfi_ret.patch
+
   include:
     - lfi-verify/
     - liblfi/
