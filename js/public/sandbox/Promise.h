@@ -8,13 +8,13 @@
 #define js_sandbox_Promise_h
 
 #include "js/Promise.h"
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 #include "js/sandbox/sobox.h"
 #endif
 
 namespace JS {
 namespace sandbox {
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 class JobQueue {
 private:
   JS::JobQueueWithOps base_;

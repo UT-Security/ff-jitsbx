@@ -8,14 +8,14 @@
 #define js_sandbox_Proxy_h
 
 #include "js/Proxy.h"
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 #include "js/sandbox/sobox.h"
 #endif
 
 namespace js {
 namespace sandbox {
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 
 class BaseProxyHandler {
  private:

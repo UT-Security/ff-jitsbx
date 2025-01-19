@@ -11,6 +11,10 @@ CONFIGURE_SUBST_FILES += [
 
 LIBRARY_DEFINES["EXPORT_JS_API"] = True
 
+if CONFIG["JS_SANDBOX"]:
+    if CONFIG["LFI_TOOLCHAIN"]:
+        LIBRARY_DEFINES["EXPORT_JS_SANDBOX_API"] = True
+
 # Note: The static standalone js library is currently broken due
 # to static mozglue missing, see bug 1588340 for more information.
 LIBRARY_DEFINES["MOZ_HAS_MOZGLUE"] = True
@@ -40,7 +44,7 @@ if CONFIG["JS_SHARED_LIBRARY"]:
 else:
     Library("js")
 
-if not CONFIG["JS_SANDBOX"]:
+if not CONFIG["LFI_TOOLCHAIN"]:
     FORCE_STATIC_LIB = True
     STATIC_LIBRARY_NAME = "js_static"
     NO_EXPAND_LIBS = True
@@ -94,8 +98,7 @@ OS_LIBS += CONFIG["REALTIME_LIBS"]
 
 DIST_INSTALL = True
 
-if not CONFIG["JS_SANDBOX"]:
-
+if not CONFIG["LFI_TOOLCHAIN"]:
     # Run SpiderMonkey style checker after linking the static library. This avoids
     # running the script for no-op builds.
     GeneratedFile(

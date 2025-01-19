@@ -37,10 +37,12 @@ struct ValueArray {
 template <size_t N>
 using RootedValueArray = Rooted<ValueArray<N>>;
 
+#ifdef JS_SANDBOX_API
 namespace sandbox {
 template <size_t N>
 using RootedValueArray = Rooted<ValueArray<N>>;
 }
+#endif
 
 /**
  * A generic handle to an array of rooted values.
@@ -66,13 +68,14 @@ class HandleValueArray {
   MOZ_IMPLICIT HandleValueArray(const RootedValueArray<N>& values)
       : length_(N), elements_(values.begin()) {}
 
-      
+#ifdef JS_SANDBOX_API
   MOZ_IMPLICIT HandleValueArray(const sandbox::RootedVector<Value>& values)
       : length_(values.length()), elements_(values.begin()) {}
 
   template <size_t N>
   MOZ_IMPLICIT HandleValueArray(const sandbox::RootedValueArray<N>& values)
       : length_(N), elements_(values.begin()) {}
+#endif
 
   /** CallArgs must already be rooted somewhere up the stack. */
   MOZ_IMPLICIT HandleValueArray(const JS::CallArgs& args)

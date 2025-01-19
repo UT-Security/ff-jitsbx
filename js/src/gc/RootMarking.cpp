@@ -78,6 +78,7 @@ static inline void TraceStackRoots(JSTracer* trc,
                                    "Traceable");
 }
 
+#ifdef JS_SANDBOX
 template <typename T>
 static inline void TraceExactExternalStackRootList(JSTracer* trc,
                                            js::sandbox::StackRootedBase* listHead,
@@ -117,18 +118,23 @@ static inline void TraceExternalStackRoots(JSTracer* trc,
   //                                 "Traceable");
   cb.trace(trc, data);
 }
+#endif
 
 void JS::RootingContext::traceStackRoots(JSTracer* trc) {
   TraceStackRoots(trc, stackRoots_);
 }
 
+#ifdef JS_SANDBOX
 void JS::sandbox::RootingContext::traceExternalStackRoots(JSTracer* trc) {
   TraceExternalStackRoots(trc, externalRootingCallbacks, externalRootingCallbacksData);
 }
+#endif
 
 static void TraceExactStackRoots(JSContext* cx, JSTracer* trc) {
   cx->traceStackRoots(trc);
+#ifdef JS_SANDBOX
   cx->traceExternalStackRoots(trc);
+#endif
 }
 
 template <typename T>
@@ -164,6 +170,7 @@ void JSRuntime::tracePersistentRoots(JSTracer* trc) {
       trc, heapRoots.ref()[JS::RootKind::Traceable], "persistent-traceable");
 }
 
+#ifdef JS_SANDBOX
 template <typename T>
 static inline void TraceExternalPersistentRootedList(
     JSTracer* trc, LinkedList<js::sandbox::PersistentRootedBase>& list, const char* name) {
@@ -194,10 +201,13 @@ void JSRuntime::traceExternalPersistentRoots(JSTracer* trc) {
 
   cb.trace(trc, data);
 }
+#endif
 
 static void TracePersistentRooted(JSRuntime* rt, JSTracer* trc) {
   rt->tracePersistentRoots(trc);
+#ifdef JS_SANDBOX
   rt->traceExternalPersistentRoots(trc);
+#endif
 }
 
 template <typename T>

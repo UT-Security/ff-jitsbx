@@ -30,10 +30,6 @@
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
-
 /*
  * [SMDOC] Stack Rooting
  *

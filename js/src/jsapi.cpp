@@ -426,18 +426,11 @@ JS_PUBLIC_API JS::ContextOptions& JS::ContextOptionsRef(JSContext* cx) {
   return cx->options();
 }
 
+#ifdef JS_SANDBOX
 JS_PUBLIC_API void JS::sandbox::JS_SetExternalRootingCallbacks(JSContext* cx, JS::sandbox::ExternalRootingCallbacks cb, void* data) {
   cx->externalRootingCallbacks = cb;
   cx->externalRootingCallbacksData = data;  
 }
-
-//JS_PUBLIC_API void JS::sandbox::JS_SetExternalRootingContext(JSContext* cx, JS::sandbox::ExternalRootingContext* ecx) {
-//  cx->externalRootingCtx = ecx;
-//}
-
-//JS_PUBLIC_API JS::sandbox::ExternalRootingContext* JS::sandbox::JS_SetExternalRootingContext(JSContext* cx, JS::sandbox::ExternalRootingContext* ecx) {
-//  cx->externalRootingCtx = ecx;
-//}
 
 JS_PUBLIC_API void JS::sandbox::JS_SetPersistentRootingCallbacks(JSContext* cx, ExternalPersistentRootingCallbacks cb, void* data) {
   cx->persistentRootingCallbacks = cb;
@@ -446,6 +439,7 @@ JS_PUBLIC_API void JS::sandbox::JS_SetPersistentRootingCallbacks(JSContext* cx, 
   cx->runtime()->persistentRootingCallbacks = cb;
   cx->runtime()->persistentRootingData = data;
 }
+#endif
 
 JS::ContextOptions& JS::ContextOptions::setFuzzing(bool flag) {
 #ifdef FUZZING

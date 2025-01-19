@@ -10,7 +10,7 @@
 #define js_sandbox_Debug_h
 
 #include "js/Debug.h"
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 #include "js/sandbox/sobox.h"
 #endif
 
@@ -18,7 +18,7 @@ namespace JS {
 namespace dbg {
 namespace sandbox {
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 class MOZ_STACK_CLASS JS_PUBLIC_API AutoEntryMonitor {
   JS::dbg::AutoEntryMonitorWithHooks base_;
 

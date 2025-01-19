@@ -10,6 +10,7 @@
 #include "js/RootingAPI.h"
 #include "mozilla/ThreadLocal.h"
 
+#ifdef JS_SANDBOX
 namespace JS {
 namespace sandbox {
 
@@ -413,4 +414,11 @@ inline MutableHandle<T>::MutableHandle(sandbox::PersistentRooted<T>* root) {
   ptr = root->address();
 }
 }
+#else
+namespace JS {
+namespace sandbox {
+using RootingContext = JS::RootingContext;
+}
+}
+#endif
 #endif

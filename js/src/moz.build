@@ -656,4 +656,5 @@ if CONFIG["JS_HAS_INTL_API"]:
     USE_LIBS += ["intlcomponents"]
 
 if CONFIG["JS_SANDBOX"]:
-    DIRS += ["sandbox"]
+    if not CONFIG["LFI_TOOLCHAIN"]:
+        DIRS += ["sandbox"]

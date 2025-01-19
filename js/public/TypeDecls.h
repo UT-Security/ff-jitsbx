@@ -127,6 +127,7 @@ using HandleVector = Handle<StackGCVector<T>>;
 template <typename T>
 using MutableHandleVector = MutableHandle<StackGCVector<T>>;
 
+#ifdef JS_SANDBOX_API
 namespace sandbox {
 template <typename T>
 class Rooted;
@@ -162,6 +163,7 @@ typedef PersistentRooted<Value> PersistentRootedValue;
 typedef PersistentRootedVector<PropertyKey> PersistentRootedIdVector;
 typedef PersistentRootedVector<JSObject*> PersistentRootedObjectVector;
 }
+#endif
 }  // namespace JS
 
 using jsid = JS::PropertyKey;

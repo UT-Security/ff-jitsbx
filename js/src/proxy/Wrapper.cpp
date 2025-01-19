@@ -269,9 +269,11 @@ bool ForwardingProxyHandler::isConstructor(JSObject* obj) const {
   return target->isConstructor();
 }
 
+#ifdef JS_SANDBOX
 Wrapper::Wrapper(unsigned aFlags, bool aHasPrototype, bool aHasSecurityPolicy)
-      : ForwardingProxyHandler(Wrapper::family_p(), aHasPrototype, aHasSecurityPolicy),
+      : ForwardingProxyHandler(&family, aHasPrototype, aHasSecurityPolicy),
         mFlags(aFlags) {}
+#endif
 
 JSObject* Wrapper::New(JSContext* cx, JSObject* obj, const Wrapper* handler,
                        const WrapperOptions& options) {

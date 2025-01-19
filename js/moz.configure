@@ -10,21 +10,6 @@ def js_standalone(build_project):
     if build_project == "js":
         return True
 
-# SpiderMonkey Sandbox
-# ==============================================================
-option(
-    "--enable-js-sandbox",
-    default=False,
-    help="{Enable|Disable} the JavaScript sandbox.",
-)
-
-@depends("--enable-js-sandbox")
-def js_sandbox(enable_js_sandbox):
-    if enable_js_sandbox:
-        return True
-
-set_config("JS_SANDBOX", js_sandbox)
-set_define("JS_SANDBOX", js_sandbox)
 
 # Debug (see Bug 939505)
 # ==============================================================
@@ -80,14 +65,53 @@ include("../build/moz.configure/bindgen.configure", when="--enable-compile-envir
 set_config("JS_STANDALONE", js_standalone)
 set_define("JS_STANDALONE", js_standalone)
 add_old_configure_assignment("JS_STANDALONE", js_standalone)
+
+# Javascript Engine Sandboxing support (MonkeyCage)
+# ==============================================================
+option(
+    "--enable-js-sandbox",
+    default=False,
+    help="{Enable|Disable} the JavaScript sandbox.",
+)
+
+@depends("--enable-js-sandbox")
+def js_sandbox(enable_js_sandbox):
+    if enable_js_sandbox:
+        return True
+
+set_config("JS_SANDBOX", js_sandbox)
+set_define("JS_SANDBOX", js_sandbox)
+
+option(
+    "--enable-lfi-toolchain",
+    default=False,
+    help="{Enable|Disable} sandboxed compilation with LFI toolchain.",
+)
+
+@depends("--enable-lfi-toolchain", js_sandbox, when=js_standalone)
+def lfi_toolchain(lfi_toolchain, js_sandbox):
+    if lfi_toolchain and js_sandbox:
+        return True
+
+set_config("LFI_TOOLCHAIN", lfi_toolchain)
+
+@depends(js_sandbox, lfi_toolchain)
+def js_sandbox_api(js_sandbox, lfi_toolchain):
+    if js_sandbox and not lfi_toolchain:
+        return True
+
+set_define("JS_SANDBOX_API", js_sandbox_api)
+
+# ==============================================================
+
 option(
     "--enable-js-shell", default=js_standalone, help="{Build|Do not build} the JS shell"
 )
 
 
-@depends("--enable-js-shell")
-def js_disable_shell(value):
-    if not value:
+@depends("--enable-js-shell", "--enable-lfi-toolchain")
+def js_disable_shell(value, lfi_toolchain):
+    if not value or lfi_toolchain:
         return True
 
 

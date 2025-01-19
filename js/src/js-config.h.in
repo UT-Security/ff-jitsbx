@@ -70,6 +70,9 @@
 #undef ENABLE_WASM_GC
 #undef ENABLE_WASM_SIMD
 
+/* SpiderMonkey Sandboxing features */
+#undef JS_SANDBOX_API
+
 /* MOZILLA JSAPI version number components */
 #undef MOZJS_MAJOR_VERSION
 #undef MOZJS_MINOR_VERSION

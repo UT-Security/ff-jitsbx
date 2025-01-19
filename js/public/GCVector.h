@@ -358,6 +358,7 @@ class PersistentRootedVector : public PersistentRooted<StackGCVector<T>> {
   explicit PersistentRootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
 };
 
+#ifdef JS_SANDBOX_API
 namespace sandbox {
 // An automatically rooted GCVector for stack use.
 template <typename T>
@@ -381,6 +382,7 @@ class PersistentRootedVector : public PersistentRooted<StackGCVector<T>> {
   explicit PersistentRootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
 };
 }
+#endif
 
 }  // namespace JS
 

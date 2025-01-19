@@ -297,7 +297,11 @@ class Metrics {
 
 }  // namespace js
 
+#ifdef JS_SANDBOX
 struct JSRuntime : public JS::sandbox::RuntimeRootingContext {
+#else
+struct JSRuntime {
+#endif
  private:
   friend class js::Activation;
   friend class js::ActivationIterator;
