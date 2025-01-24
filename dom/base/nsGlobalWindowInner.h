@@ -167,7 +167,8 @@ extern const JSClass OuterWindowProxyClass;
 // inner windows belonging to the same outer window, but that's an unimportant
 // side effect of inheriting PRCList).
 
-class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
+class nsGlobalWindowInner final : public mozilla::dom::TaintObj<nsGlobalWindowInner>,
+                                  public mozilla::dom::EventTarget,
                                   public nsPIDOMWindowInner,
                                   private nsIDOMWindow
     // NOTE: This interface is private, as it's only

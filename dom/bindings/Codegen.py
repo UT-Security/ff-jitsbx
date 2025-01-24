@@ -11077,13 +11077,19 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
         if tainted:
             prefix = fill(
                 """
-                auto* self = static_cast<${nativeType}*>(void_self);
-                JSTaintedRooted<JS::Value> arg_jsvalue (cx);
-                arg_jsvalue.get().assign_raw_value((args.rval()).get());
-                JSTaintedMutableHandle<JS::Value> temp (&arg_jsvalue);
-                JSTaintedJitGetterCallArgs test_args (temp);
+                JSAppPtr taint_self (void_self);
+                auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);
+                JSTaintedJitGetterCallArgs test_args (
+                    JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+                        reinterpret_cast<JSTainted<JS::Value>*>(args.rval().address())
+                    )
+                );
+                JSTaintedRooted<JSObject*> tr_obj (cx);
+                tr_obj.set(obj);
+                JSTaintedHandle<JSObject*> taint_obj (&tr_obj);
                 """,
                 nativeType=self.descriptor.nativeType,
+                ifaceName=self.descriptor.name
             )
         else:
             prefix = fill(
@@ -18754,6 +18760,14 @@ class CGBindingRoot(CGThing):
 
         cgthings.extend(traverseMethods)
         cgthings.extend(unlinkMethods)
+
+        # add code pointer table
+#        for d in descriptors:
+#            cgthings.append(
+#                CGGeneric(
+#                    "mozilla::HashSet<void*> %sBindingPtrTable (1);" % d.interface.identifier.name
+#                )
+#            )
 
         # Do codegen for all the dictionaries.  We have to be a bit careful
         # here, because we have to generate these in order from least derived

@@ -16,6 +16,19 @@ namespace mozilla {
 namespace dom {
 
 template<typename T>
+class TaintObj {
+	public:
+	static inline mozilla::HashSet<void *> PtrTable = mozilla::HashSet<void *>(1);
+	TaintObj() {
+		if(PtrTable.put((void *)this))
+		;
+	}
+	~TaintObj() {
+		PtrTable.remove((void *)this);
+	}
+};
+
+template<typename T>
 class JSTainted;
 
 template<typename T>
@@ -23,6 +36,27 @@ class JSTaintedVolatile;
 
 template <typename T, typename Enable = void>
 class JSTaintedOperations {};
+
+class JSAppPtr;
+
+class JSAppPtr {
+  public:
+  explicit JSAppPtr(void * ptr) : app_ptr(ptr) {}
+  
+  template <typename T>
+  T* verify(const mozilla::HashSet<void*> & PtrTable) {
+    for (auto iter = PtrTable.iter(); !iter.done(); iter.next()) {
+      void * cur = iter.get();
+      if (app_ptr == cur) {
+        return static_cast<T*>(cur);
+      }
+    }
+    return nullptr;
+  }
+
+  private:
+  void * app_ptr;
+};
 
 template <template <typename> typename T_Wrap, typename T>
 class JSTaintedBase {
@@ -137,9 +171,9 @@ public:
                                         RootingContext>>
   explicit JSTaintedRooted(const RootingContext& cx) : ptr(cx) {}
 
-  //void set(const T& value) {
-  //  get().assign_raw_value(value);  
-  //}
+  void set(const T& value) {
+    get().assign_raw_value(value);  
+  }
 
   operator const JSTainted<T>&() const { return get(); }
   const JSTainted<T>& operator->() const { return get(); }
@@ -159,6 +193,8 @@ class JSTaintedHandle : public JSTaintedWrapperOperations<JSTaintedHandle<T>, T>
 public:
   JSTaintedHandle(const JSTaintedHandle<T>&) = default;
 
+  inline JSTaintedHandle(const JSTaintedRooted<T>* root) { ptr = root->address(); }
+
   const JSTainted<T>* address() const { return ptr; }
   const JSTainted<T>& get() const { return *ptr; }
   
@@ -171,7 +207,7 @@ private:
   JSTaintedHandle<T>& operator=(S) = delete;
   JSTaintedHandle<T>& operator=(const JSTaintedHandle<T>&) = delete;
   
-  JSTainted<T>* ptr;
+  const JSTainted<T>* ptr;
 };
 
 template<typename T>
@@ -197,8 +233,15 @@ public:
     
   operator const JSTainted<T>&() const { get(); }
   const JSTainted<T>& operator->() const { get(); } 
-  //TODO: this feels unsafe
   void set(const T& v) { ptr->assign_raw_value(v); }
+
+    //TODO: verify p is within the sandbox
+    //also this is very unsafe.....
+  static JSTaintedMutableHandle<T> fromMarkedLocation(JSTainted<T>* p) {
+    JSTaintedMutableHandle<T> h;
+    h.ptr = p;
+    return h;
+  }
   
 private:
   JSTaintedMutableHandle() = default;
