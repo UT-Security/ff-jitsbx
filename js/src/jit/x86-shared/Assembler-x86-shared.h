@@ -437,10 +437,8 @@ class AssemblerX86Shared : public AssemblerShared {
                      "Operand to sandbox already uses scratch register");
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
-          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift),
-                       SandboxScratchReg.encoding());
-          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift),
-                       SandboxScratchReg.encoding());
+          masm.shrq_ir(32, SandboxScratchReg.encoding());
+          masm.shlq_ir(32, SandboxScratchReg.encoding());
           masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
           j(Condition::Equal, &sandboxed);
           breakpoint();
@@ -460,8 +458,8 @@ class AssemblerX86Shared : public AssemblerShared {
           bundleUnlock();
 #  ifdef DEBUG
           masm.push_r(op.base());
-          masm.shrq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
-          masm.shlq_ir(int32_t(sandbox::MemoryOffsetShift), op.base());
+          masm.shrq_ir(32, op.base());
+          masm.shlq_ir(32, op.base());
           masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
           j(Condition::Equal, &sandboxed);
           breakpoint();

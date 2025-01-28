@@ -58,8 +58,10 @@ struct EnterJITStackEntry {
   void* rdi;
 #endif
 
+#ifndef JS_SANDBOX
   void* r15;
   void* r14;
+#endif
   void* r13;
   void* r12;
   void* rbx;
@@ -115,8 +117,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.push(rbx);
   masm.push(r12);
   masm.push(r13);
+#ifndef JS_SANDBOX
   masm.push(r14);
   masm.push(r15);
+#endif
 #if defined(_WIN64)
   masm.push(rdi);
   masm.push(rsi);
@@ -345,8 +349,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.pop(rsi);
   masm.pop(rdi);
 #endif
+#ifndef JS_SANDBOX
   masm.pop(r15);
   masm.pop(r14);
+#endif
   masm.pop(r13);
   masm.pop(r12);
   masm.pop(rbx);

@@ -3404,8 +3404,8 @@ MacroAssembler::AutoProfilerCallInstrumentation::
   CodeOffset label = masm.movWithPatch(ImmWord(uintptr_t(-1)), reg);
   masm.loadJSContext(reg2);
   masm.loadPtr(Address(reg2, offsetof(JSContext, profilingActivation_)), reg2);
-  masm.unsafeStorePtr(reg,
-                Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
+  masm.unsafeStorePtr(
+      reg, Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
 
   masm.appendProfilerCallSite(label);
 
@@ -3541,7 +3541,7 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   }
 
   // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
-  unsafeSetIsSandboxed(false);
+  // unsafeSetIsSandboxed(false);
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
@@ -3559,7 +3559,7 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
     setUnlimitedBuffer();
   }
   // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
-  unsafeSetIsSandboxed(false);
+  // unsafeSetIsSandboxed(false);
 }
 
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,

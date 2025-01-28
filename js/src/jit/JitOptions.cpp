@@ -327,15 +327,9 @@ DefaultJitOptions::DefaultJitOptions() {
   SET_DEFAULT(onlyInlineSelfHosted, false);
   SET_DEFAULT(enableICFramePointers, false);
 
-#ifdef JS_SANDBOX
-  SET_DEFAULT(enableWasmJitExit, false);
-  SET_DEFAULT(enableWasmJitEntry, false);
-  SET_DEFAULT(enableWasmIonFastCalls, false);
-#else
   SET_DEFAULT(enableWasmJitExit, true);
   SET_DEFAULT(enableWasmJitEntry, true);
   SET_DEFAULT(enableWasmIonFastCalls, true);
-#endif
 #ifdef WASM_CODEGEN_DEBUG
   SET_DEFAULT(enableWasmImportCallSpew, false);
   SET_DEFAULT(enableWasmFuncCallSpew, false);

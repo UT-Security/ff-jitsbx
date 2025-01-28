@@ -12,7 +12,7 @@
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 #ifdef JS_SANDBOX_BUNDLE
-#include "sandbox/Bundle.h"
+#  include "sandbox/Bundle.h"
 #endif
 
 namespace js {
@@ -102,7 +102,11 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 };
 
 static constexpr Register ReturnReg = rax;
+#ifdef JS_SANDBOX
+static constexpr Register HeapReg = r12;
+#else
 static constexpr Register HeapReg = r15;
+#endif
 
 static constexpr Register64 ReturnReg64(rax);
 static constexpr FloatRegister ReturnFloat32Reg =
@@ -188,8 +192,8 @@ static constexpr Register RegExpSearcherStringReg = CallTempReg2;
 static constexpr Register RegExpSearcherLastIndexReg = CallTempReg3;
 
 #ifdef JS_SANDBOX
-static constexpr Register SandboxBaseReg = r15;
-static constexpr Register SandboxMaskReg = r13;
+static constexpr Register SandboxBaseReg = r14;
+static constexpr Register SandboxMaskReg = r15;
 static constexpr Register SandboxScratchReg = r11;
 #endif
 
@@ -216,7 +220,11 @@ class ABIArgGenerator {
 static constexpr Register ABINonArgReg0 = rax;
 static constexpr Register ABINonArgReg1 = rbx;
 static constexpr Register ABINonArgReg2 = r10;
+#ifdef JS_SANDBOX
+static constexpr Register ABINonArgReg3 = r9;
+#else
 static constexpr Register ABINonArgReg3 = r12;
+#endif
 
 // This register may be volatile or nonvolatile. Avoid xmm15 which is the
 // ScratchDoubleReg.
@@ -225,9 +233,15 @@ static constexpr FloatRegister ABINonArgDoubleReg =
 
 // These registers may be volatile or nonvolatile.
 // Note: these three registers are all guaranteed to be different
+#ifdef JS_SANDBOX
+static constexpr Register ABINonArgReturnReg0 = r8;
+static constexpr Register ABINonArgReturnReg1 = r9;
+static constexpr Register ABINonVolatileReg = r10;
+#else
 static constexpr Register ABINonArgReturnReg0 = r10;
 static constexpr Register ABINonArgReturnReg1 = r12;
 static constexpr Register ABINonVolatileReg = r13;
+#endif
 
 // This register is guaranteed to be clobberable during the prologue and
 // epilogue of an ABI call which must preserve both ABI argument, return
@@ -237,7 +251,11 @@ static constexpr Register ABINonArgReturnVolatileReg = r10;
 // Instance pointer argument register for WebAssembly functions. This must not
 // alias any other register used for passing function arguments or return
 // values. Preserved by WebAssembly functions.
+#ifdef JS_SANDBOX
+static constexpr Register InstanceReg = r13;
+#else
 static constexpr Register InstanceReg = r14;
+#endif
 
 // Registers used for asm.js/wasm table calls. These registers must be disjoint
 // from the ABI argument registers, InstanceReg and each other.
@@ -260,7 +278,11 @@ static constexpr Register OsrFrameReg = IntArgReg3;
 
 static constexpr Register PreBarrierReg = rdx;
 
+#ifdef JS_SANDBOX
+static constexpr Register InterpreterPCReg = r13;
+#else
 static constexpr Register InterpreterPCReg = r14;
+#endif
 
 static constexpr uint32_t ABIStackAlignment = 16;
 #ifdef JS_SANDBOX_BUNDLE
@@ -794,7 +816,8 @@ class Assembler : public AssemblerX86Shared {
         masm.addq_im(imm.value, dest.disp(), dest.base());
         break;
       case Operand::MEM_SCALE:
-        masm.addq_im(imm.value, dest.disp(), dest.base(), dest.index(), dest.scale());
+        masm.addq_im(imm.value, dest.disp(), dest.base(), dest.index(),
+                     dest.scale());
         break;
       case Operand::MEM_ADDRESS32:
         masm.addq_im(imm.value, dest.address());
@@ -900,9 +923,18 @@ class Assembler : public AssemblerX86Shared {
     AutoBundleScope bundle(*this);
     masm.sarq_ir(imm.value, dest.encoding());
   }
-  void shlq_cl(Register dest) { AutoBundleScope bundle(*this); masm.shlq_CLr(dest.encoding()); }
-  void shrq_cl(Register dest) { AutoBundleScope bundle(*this); masm.shrq_CLr(dest.encoding()); }
-  void sarq_cl(Register dest) { AutoBundleScope bundle(*this); masm.sarq_CLr(dest.encoding()); }
+  void shlq_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.shlq_CLr(dest.encoding());
+  }
+  void shrq_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.shrq_CLr(dest.encoding());
+  }
+  void sarq_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.sarq_CLr(dest.encoding());
+  }
   void sarxq(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
     AutoBundleScope bundle(*this);
@@ -922,12 +954,18 @@ class Assembler : public AssemblerX86Shared {
     AutoBundleScope bundle(*this);
     masm.rolq_ir(imm.value, dest.encoding());
   }
-  void rolq_cl(Register dest) { AutoBundleScope bundle(*this); masm.rolq_CLr(dest.encoding()); }
+  void rolq_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.rolq_CLr(dest.encoding());
+  }
   void rorq(Imm32 imm, Register dest) {
     AutoBundleScope bundle(*this);
     masm.rorq_ir(imm.value, dest.encoding());
   }
-  void rorq_cl(Register dest) { AutoBundleScope bundle(*this); masm.rorq_CLr(dest.encoding()); }
+  void rorq_cl(Register dest) {
+    AutoBundleScope bundle(*this);
+    masm.rorq_CLr(dest.encoding());
+  }
   void orq(Imm32 imm, Register dest) {
     AutoBundleScope bundle(*this);
     masm.orq_ir(imm.value, dest.encoding());
@@ -1025,7 +1063,10 @@ class Assembler : public AssemblerX86Shared {
     AutoBundleScope bundle(*this);
     masm.bsfq_rr(src.encoding(), dest.encoding());
   }
-  void bswapq(const Register& reg) { AutoBundleScope bundle(*this); masm.bswapq_r(reg.encoding()); }
+  void bswapq(const Register& reg) {
+    AutoBundleScope bundle(*this);
+    masm.bswapq_r(reg.encoding());
+  }
   void lzcntq(const Register& src, const Register& dest) {
     AutoBundleScope bundle(*this);
     masm.lzcntq_rr(src.encoding(), dest.encoding());
@@ -1064,9 +1105,18 @@ class Assembler : public AssemblerX86Shared {
     }
   }
 
-  void cqo() { AutoBundleScope bundle(*this); masm.cqo(); }
-  void idivq(Register divisor) { AutoBundleScope bundle(*this); masm.idivq_r(divisor.encoding()); }
-  void udivq(Register divisor) { AutoBundleScope bundle(*this); masm.divq_r(divisor.encoding()); }
+  void cqo() {
+    AutoBundleScope bundle(*this);
+    masm.cqo();
+  }
+  void idivq(Register divisor) {
+    AutoBundleScope bundle(*this);
+    masm.idivq_r(divisor.encoding());
+  }
+  void udivq(Register divisor) {
+    AutoBundleScope bundle(*this);
+    masm.divq_r(divisor.encoding());
+  }
 
   void vcvtsi2sdq(Register src, FloatRegister dest) {
     AutoBundleScope bundle(*this);
@@ -1086,9 +1136,15 @@ class Assembler : public AssemblerX86Shared {
     masm.vpinsrq_irr(lane, src1.encoding(), src0.encoding(), dest.encoding());
   }
 
-  void negq(Register reg) { AutoBundleScope bundle(*this); masm.negq_r(reg.encoding()); }
+  void negq(Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.negq_r(reg.encoding());
+  }
 
-  void notq(Register reg) { AutoBundleScope bundle(*this); masm.notq_r(reg.encoding()); }
+  void notq(Register reg) {
+    AutoBundleScope bundle(*this);
+    masm.notq_r(reg.encoding());
+  }
 
   void mov(ImmWord word, Register dest) {
     // Use xor for setting registers to zero, as it is specially optimized
@@ -1298,19 +1354,20 @@ class Assembler : public AssemblerX86Shared {
 #ifdef JS_SANDBOX_BUNDLE
     AutoOwnBundleScope bundle(*this);
     bundle.alignToEnd(ToggledCallSize(nullptr));
-#ifdef DEBUG
+#  ifdef DEBUG
     size_t bundleSizeBefore = bundle.size();
-#endif
+#  endif
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
-#ifdef DEBUG
+#  ifdef DEBUG
     size_t bundleSizeAfter = bundle.size();
-#endif
+#  endif
     bundle.unlock();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
-    MOZ_ASSERT_IF(!oom(), bundleSizeAfter - bundleSizeBefore == ToggledCallSize(nullptr));
-#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT_IF(
+        !oom(), bundleSizeAfter - bundleSizeBefore == ToggledCallSize(nullptr));
+#  ifdef JS_SANDBOX_CFI
     MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
+#  endif
     return CodeOffset(size() - ToggledCallSize(nullptr));
 #else
     CodeOffset offset(size());
