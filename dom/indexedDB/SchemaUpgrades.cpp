@@ -2802,7 +2802,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
   nsresult DeserializeUpgradeValue(JSContext* aCx,
                                    JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        StructuredCloneReadCallback<StructuredCloneReadInfoParent>,
+        (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoParent>, 0),
         nullptr,
         nullptr,
         nullptr,

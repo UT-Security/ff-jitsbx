@@ -277,7 +277,7 @@ bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
 
 nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
   static const JSStructuredCloneCallbacks kStructuredCloneCallbacks = {
-      nullptr /* read */,          StructuredCloneWriteCallback /* write */,
+      nullptr /* read */,          (WriteStructuredCloneOp)sbx_register_cb((void*)StructuredCloneWriteCallback, 0) /* write */,
       nullptr /* reportError */,   nullptr /* readTransfer */,
       nullptr /* writeTransfer */, nullptr /* freeTransfer */,
       nullptr /* canTransfer */,   nullptr /* sabCloned */
@@ -545,7 +545,7 @@ bool IDBObjectStore::DeserializeValue(
   MOZ_ASSERT(!(aCloneReadInfo.Data().Size() % sizeof(uint64_t)));
 
   static const JSStructuredCloneCallbacks callbacks = {
-      StructuredCloneReadCallback<StructuredCloneReadInfoChild>,
+      (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoChild>, 0),
       nullptr,
       nullptr,
       nullptr,
@@ -1713,8 +1713,8 @@ bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
   }
 
   static const JSStructuredCloneCallbacks callbacks = {
-      CopyingStructuredCloneReadCallback /* read */,
-      CopyingStructuredCloneWriteCallback /* write */,
+      (ReadStructuredCloneOp)sbx_register_cb((void*)CopyingStructuredCloneReadCallback, 0) /* read */,
+      (WriteStructuredCloneOp)sbx_register_cb((void*)CopyingStructuredCloneWriteCallback, 0) /* write */,
       nullptr /* reportError */,
       nullptr /* readTransfer */,
       nullptr /* writeTransfer */,

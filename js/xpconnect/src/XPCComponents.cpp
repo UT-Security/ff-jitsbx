@@ -1158,7 +1158,7 @@ nsresult nsXPCComponents_Constructor::CallOrConstruct(
     return ThrowAndFail(NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED, cx, _retval);
   }
 
-  JSFunction* ctorfn = JS_NewFunction(cx, InnerConstructor, 0,
+  JSFunction* ctorfn = JS_NewFunction(cx, (JSNative)sbx_register_cb((void*)InnerConstructor, 0), 0,
                                       JSFUN_CONSTRUCTOR, "XPCOM_Constructor");
   if (!ctorfn) {
     return ThrowAndFail(NS_ERROR_OUT_OF_MEMORY, cx, _retval);
@@ -1268,7 +1268,7 @@ nsXPCComponents_Constructor::HasInstance(nsIXPConnectWrappedNative* wrapper,
                                          HandleValue val, bool* isa,
                                          bool* _retval) {
   *isa =
-      val.isObject() && JS_IsNativeFunction(&val.toObject(), InnerConstructor);
+      val.isObject() && JS_IsNativeFunction(&val.toObject(), (JSNative)sbx_register_cb((void*)InnerConstructor, 0));
   return NS_OK;
 }
 

@@ -321,7 +321,7 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
   static bool WriteCString(JSStructuredCloneWriter* aWriter,
                            const nsACString& aString);
 
-  static const JSStructuredCloneCallbacks sCallbacks;
+  static const JSStructuredCloneCallbacks* sCallbacks();
 
  protected:
   // If you receive a buffer from IPC, you can use this method to retrieve a

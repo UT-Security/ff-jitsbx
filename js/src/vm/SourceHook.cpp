@@ -15,6 +15,16 @@
 #include "vm/JSContext.h"  // JSContext
 #include "vm/Runtime.h"    // JSRuntime
 
+#ifdef JS_SANDBOX
+js::SourceHookWithCallback::SourceHookWithCallback(js::SourceHookLoadCallback cb): cb_(cb) {}
+
+bool js::SourceHookWithCallback::load(JSContext* cx, const char* filename,
+                    char16_t** twoByteSource, char** utf8Source,
+                    size_t* length) {
+  return cb_(cx, filename, twoByteSource, utf8Source, length);
+}
+#endif
+
 JS_PUBLIC_API void js::SetSourceHook(JSContext* cx,
                                      mozilla::UniquePtr<SourceHook> hook) {
   cx->runtime()->sourceHook.ref() = std::move(hook);

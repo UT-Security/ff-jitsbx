@@ -9,6 +9,9 @@
 #include "jsapi.h"
 #include "js/Class.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetObjectISupports, JS::SetObjectISupports
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 
 #include "nsJSPrincipals.h"
 #include "nsThreadUtils.h"
@@ -116,7 +119,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     if (NS_IsMainThread()) {
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
-      options.creationOptions().setTrace(xpc::TraceXPCGlobal);
+      options.creationOptions().setTrace((JSTraceOp)sbx_register_cb((void*)xpc::TraceXPCGlobal, 0));
       global = xpc::CreateGlobalObject(cx, &SimpleGlobalClass,
                                        nsJSPrincipals::get(principal), options);
     } else {

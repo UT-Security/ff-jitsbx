@@ -2788,6 +2788,37 @@ class XPCJSSourceHook : public js::SourceHook {
   }
 };
 
+bool XPCJSSourceHookLoad(JSContext* cx, const char* filename,
+                         char16_t** twoByteSource, char** utf8Source,
+                         size_t* length) {
+  MOZ_ASSERT((twoByteSource != nullptr) != (utf8Source != nullptr),
+             "must be called requesting only one of UTF-8 or UTF-16 source");
+
+  *length = 0;
+  if (twoByteSource) {
+    *twoByteSource = nullptr;
+  } else {
+    *utf8Source = nullptr;
+  }
+
+  if (!nsContentUtils::IsSystemCaller(cx)) {
+    return true;
+  }
+
+  if (!filename) {
+    return true;
+  }
+
+  nsresult rv =
+      ReadSourceFromFilename(cx, filename, twoByteSource, utf8Source, length);
+  if (NS_FAILED(rv)) {
+    xpc::Throw(cx, rv);
+    return false;
+  }
+
+  return true;
+}
+
 static const JSWrapObjectCallbacks* WrapObjectCallbacks() {
   static const JSWrapObjectCallbacks WrapObjectCallbacks__ = {
       (JSWrapObjectCallback)sbx_register_cb((void*)xpc::WrapperFactory::Rewrap, 0),
@@ -2958,7 +2989,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // isRunOnce mode and compiled function bodies (from
   // JS::CompileFunction). In practice, this means content scripts and event
   // handlers.
-  mozilla::UniquePtr<XPCJSSourceHook> hook(new XPCJSSourceHook);
+  mozilla::UniquePtr<js::SourceHookWithCallback> hook(new js::SourceHookWithCallback((js::SourceHookLoadCallback)sbx_register_cb((void*)XPCJSSourceHookLoad, 0)));
   js::SetSourceHook(cx, std::move(hook));
 
   // Register memory reporters and distinguished amount functions.

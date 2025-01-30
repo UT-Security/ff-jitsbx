@@ -10,6 +10,9 @@
 #include "js/GCTypeMacros.h"
 #include "js/HeapAPI.h"
 #include "js/TraceKind.h"
+#ifdef JS_SANDBOX_API
+#include "js/sandbox/sobox.h"
+#endif
 
 class JS_PUBLIC_API JSTracer;
 
@@ -246,6 +249,60 @@ class JS_PUBLIC_API CallbackTracer
   }
   friend class js::GenericTracerImpl<CallbackTracer>;
 };
+
+#ifdef JS_SANDBOX
+typedef void (*CallbackTracerOnChildCallback)(void* self, JS::GCCellPtr thing, const char* name);
+
+class JS_PUBLIC_API CallbackTracerExternal : public CallbackTracer {
+private:
+  void* self_;
+  CallbackTracerOnChildCallback onChild_;
+public:
+  CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
+                 JS::TraceOptions options = JS::TraceOptions())
+      : CallbackTracer(rt, kind, options), self_(self), onChild_(onChild) {
+    MOZ_ASSERT(isCallbackTracer());
+  }
+  CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
+                 JS::TraceOptions options = JS::TraceOptions());
+
+  virtual void onChild(JS::GCCellPtr thing, const char* name) override; 
+
+  void* getSelf() { return self_; }
+};
+#endif
+
+namespace sandbox {
+#ifdef JS_SANDBOX_API
+class CallbackTracer {
+private:
+  JS::CallbackTracerExternal base_;
+
+public:
+  virtual void onChild(JS::GCCellPtr thing, const char* name) = 0; 
+
+  static void onChildCb(void* self, JS::GCCellPtr thing, const char* name) {
+    auto* trc = static_cast<CallbackTracer*>(self);
+    trc->onChild(thing, name);
+  }
+
+  CallbackTracer(JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
+                 JS::TraceOptions options = JS::TraceOptions())
+      : base_(this, (JS::CallbackTracerOnChildCallback)sbx_register_cb((void*)CallbackTracer::onChildCb, 0), rt, kind, options) {}
+  CallbackTracer(JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
+                 JS::TraceOptions options = JS::TraceOptions())
+      : base_(this, (JS::CallbackTracerOnChildCallback)sbx_register_cb((void*)CallbackTracer::onChildCb, 0), cx, kind, options) {}
+
+  inline JS::CallbackTracer* getCallbackTracer() { return &base_; }
+};
+
+inline JS::CallbackTracer* GetCallbackTracer(CallbackTracer* trc) { return trc->getCallbackTracer(); }
+#else
+using CallbackTracer = JS::CallbackTracer;
+
+inline JS::CallbackTracer* GetCallbackTracer(CallbackTracer* trc) { return trc; }
+#endif
+}
 
 // Set the index portion of the tracer's context for the current range.
 class MOZ_RAII AutoTracingIndex {

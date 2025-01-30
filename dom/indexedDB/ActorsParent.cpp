@@ -6516,7 +6516,7 @@ class DeserializeIndexValueHelper final : public Runnable {
   nsresult DeserializeIndexValue(JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        StructuredCloneReadCallback<StructuredCloneReadInfoParent>,
+        (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoParent>, 0),
         nullptr,
         nullptr,
         nullptr,

@@ -66,7 +66,7 @@ JS::FilenameValidationCallback js::gFilenameValidationCallback = nullptr;
 namespace js {
 
 #ifndef __wasi__
-bool gCanUseExtraThreads = true;
+bool gCanUseExtraThreads = false;
 #else
 bool gCanUseExtraThreads = false;
 #endif

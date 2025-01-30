@@ -350,7 +350,7 @@ static bool SandboxFetchPromise(JSContext* cx, unsigned argc, Value* vp) {
 bool xpc::SandboxCreateFetch(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromise, 2, 0) &&
+  return JS_DefineFunction(cx, obj, "fetch", (JSNative)sbx_register_cb((void*)SandboxFetchPromise, 0), 2, 0) &&
          dom::Request_Binding::GetConstructorObject(cx) &&
          dom::Response_Binding::GetConstructorObject(cx) &&
          dom::Headers_Binding::GetConstructorObject(cx);
@@ -403,7 +403,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  return JS_DefineFunction(cx, obj, "structuredClone", SandboxStructuredClone,
+  return JS_DefineFunction(cx, obj, "structuredClone", (JSNative)sbx_register_cb((void*)SandboxStructuredClone, 0),
                            1, 0);
 }
 
@@ -513,24 +513,25 @@ static size_t sandbox_moved(JSObject* obj, JSObject* old) {
 #define XPCONNECT_SANDBOX_CLASS_METADATA_SLOT \
   (XPCONNECT_GLOBAL_EXTRA_SLOT_OFFSET)
 
-static const JSClassOps SandboxClassOps = {
+static const JSClass* SandboxClass() {
+  static const JSClassOps SandboxClassOps = {
     nullptr,                         // addProperty
     nullptr,                         // delProperty
     nullptr,                         // enumerate
-    JS_NewEnumerateStandardClasses,  // newEnumerate
-    JS_ResolveStandardClass,         // resolve
-    JS_MayResolveStandardClass,      // mayResolve
-    sandbox_finalize,                // finalize
+    (JSNewEnumerateOp)sbx_addr((void*)JS_NewEnumerateStandardClasses),  // newEnumerate
+    (JSResolveOp)sbx_addr((void*)JS_ResolveStandardClass),         // resolve
+    (JSMayResolveOp)sbx_addr((void*)JS_MayResolveStandardClass),      // mayResolve
+    (JSFinalizeOp)sbx_register_cb((void*)sandbox_finalize, 0),                // finalize
     nullptr,                         // call
     nullptr,                         // construct
-    JS_GlobalObjectTraceHook,        // trace
-};
+    (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook),        // trace
+  };
 
-static const js::ClassExtension SandboxClassExtension = {
-    sandbox_moved,  // objectMovedOp
-};
+  static const js::ClassExtension SandboxClassExtension = {
+    (JSObjectMovedOp)sbx_register_cb((void*)sandbox_moved, 0),  // objectMovedOp
+  };
 
-static const JSClass SandboxClass = {
+  static const JSClass klass = {
     "Sandbox",
     XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(1) | JSCLASS_FOREGROUND_FINALIZE,
     &SandboxClassOps,
@@ -538,13 +539,21 @@ static const JSClass SandboxClass = {
     &SandboxClassExtension,
     JS_NULL_OBJECT_OPS};
 
-static const JSFunctionSpec SandboxFunctions[] = {
-    JS_FN("dump", SandboxDump, 1, 0), JS_FN("debug", SandboxDebug, 1, 0),
-    JS_FN("importFunction", SandboxImport, 1, 0), JS_FS_END};
+  return &klass;
+}
+
+static const JSFunctionSpec* SandboxFunctions() {
+  static const JSFunctionSpec fns[] = {
+      JS_FN("dump", (JSNative)sbx_register_cb((void*)SandboxDump, 0), 1, 0),
+      JS_FN("debug", (JSNative)sbx_register_cb((void*)SandboxDebug, 0), 1, 0),
+      JS_FN("importFunction", (JSNative)sbx_register_cb((void*)SandboxImport, 0), 1, 0), JS_FS_END};
+
+  return fns;
+}
 
 bool xpc::IsSandbox(JSObject* obj) {
   const JSClass* clasp = JS::GetClass(obj);
-  return clasp == &SandboxClass;
+  return clasp == SandboxClass();
 }
 
 /***************************************************************************/
@@ -1147,9 +1156,9 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   if (ReadableStream && !dom::ReadableStream_Binding::GetConstructorObject(cx))
     return false;
 
-  if (atob && !JS_DefineFunction(cx, obj, "atob", Atob, 1, 0)) return false;
+  if (atob && !JS_DefineFunction(cx, obj, "atob", (JSNative)sbx_register_cb((void*)Atob, 0), 1, 0)) return false;
 
-  if (btoa && !JS_DefineFunction(cx, obj, "btoa", Btoa, 1, 0)) return false;
+  if (btoa && !JS_DefineFunction(cx, obj, "btoa", (JSNative)sbx_register_cb((void*)Btoa, 0), 1, 0)) return false;
 
   if (caches && !dom::cache::CacheStorage::DefineCaches(cx, obj)) {
     return false;
@@ -1341,7 +1350,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
 
   creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
-      .setTrace(TraceXPCGlobal);
+      .setTrace((JSTraceOp)sbx_register_cb((void*)TraceXPCGlobal, 0));
 
   realmOptions.behaviors().setDiscardSource(options.discardSource);
 
@@ -1349,7 +1358,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     realmOptions.behaviors().setClampAndJitterTime(false);
   }
 
-  const JSClass* clasp = &SandboxClass;
+  const JSClass* clasp = SandboxClass();
 
   JS::sandbox::RootedObject sandbox(
       cx, xpc::CreateGlobalObject(cx, clasp, principal, realmOptions));
@@ -1465,17 +1474,17 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
       return NS_ERROR_XPC_UNEXPECTED;
     }
 
-    if (!JS_DefineFunctions(cx, sandbox, SandboxFunctions)) {
+    if (!JS_DefineFunctions(cx, sandbox, SandboxFunctions())) {
       return NS_ERROR_XPC_UNEXPECTED;
     }
 
     if (options.wantExportHelpers &&
         (!JS_DefineFunction(cx, sandbox, "exportFunction",
-                            SandboxExportFunction, 3, 0) ||
+                            (JSNative)sbx_register_cb((void*)SandboxExportFunction, 0), 3, 0) ||
          !JS_DefineFunction(cx, sandbox, "createObjectIn",
-                            SandboxCreateObjectIn, 2, 0) ||
-         !JS_DefineFunction(cx, sandbox, "cloneInto", SandboxCloneInto, 3, 0) ||
-         !JS_DefineFunction(cx, sandbox, "isProxy", SandboxIsProxy, 1, 0)))
+                            (JSNative)sbx_register_cb((void*)SandboxCreateObjectIn, 0), 2, 0) ||
+         !JS_DefineFunction(cx, sandbox, "cloneInto", (JSNative)sbx_register_cb((void*)SandboxCloneInto, 0), 3, 0) ||
+         !JS_DefineFunction(cx, sandbox, "isProxy", (JSNative)sbx_register_cb((void*)SandboxIsProxy, 0), 1, 0)))
       return NS_ERROR_XPC_UNEXPECTED;
 
     if (!options.globalProperties.DefineInSandbox(cx, sandbox)) {

@@ -81,6 +81,22 @@ class SourceHook {
                     size_t* length) = 0;
 };
 
+#ifdef JS_SANDBOX
+typedef bool (*SourceHookLoadCallback)(JSContext* cx, const char* filename,
+                                  char16_t** twoByteSource, char** utf8Source,
+                                  size_t* length);
+
+class JS_PUBLIC_API SourceHookWithCallback : public SourceHook {
+  SourceHookLoadCallback cb_;
+
+ public:
+  SourceHookWithCallback(SourceHookLoadCallback cb);
+  
+  bool load(JSContext* cx, const char* filename,
+                    char16_t** twoByteSource, char** utf8Source,
+                    size_t* length) override;
+};
+#endif
 /**
  * Have |cx| use |hook| to retrieve lazily-retrieved source code. See the
  * comments for SourceHook. The context takes ownership of the hook, and

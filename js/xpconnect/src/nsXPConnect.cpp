@@ -467,7 +467,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
       // unless that flag is set.
       if (!((const JSClass*)clasp)->isWrappedNative()) {
         VerifyTraceProtoAndIfaceCacheCalledTracer trc(cx);
-        TraceChildren(&trc, GCCellPtr(global.get()));
+        TraceChildren(JS::sandbox::GetCallbackTracer(&trc), GCCellPtr(global.get()));
         MOZ_ASSERT(trc.ok,
                    "Trace hook on global needs to call TraceXPCGlobal for "
                    "XPConnect compartments.");

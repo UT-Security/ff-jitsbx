@@ -295,3 +295,12 @@ void js::gc::GetTraceThingInfo(char* buf, size_t bufsize, void* thing,
 JS::CallbackTracer::CallbackTracer(JSContext* cx, JS::TracerKind kind,
                                    JS::TraceOptions options)
     : CallbackTracer(cx->runtime(), kind, options) {}
+
+#ifdef JS_SANDBOX
+JS::CallbackTracerExternal::CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSContext* cx, JS::TracerKind kind,
+                 JS::TraceOptions options): CallbackTracer(cx, kind, options), self_(self), onChild_(onChild) {}
+
+void JS::CallbackTracerExternal::onChild(JS::GCCellPtr thing, const char* name) {
+  onChild_(self_, thing, name);
+}
+#endif

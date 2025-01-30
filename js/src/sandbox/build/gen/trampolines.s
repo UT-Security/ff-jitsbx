@@ -2840,6 +2840,12 @@ _ZN2JS6BigInt11bitAndValueEP9JSContextNS_6HandleINS_5ValueEEES5_NS_13MutableHand
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js22SourceHookWithCallback4loadEP9JSContextPKcPPDsPPcPm
+_ZN2js22SourceHookWithCallback4loadEP9JSContextPKcPPDsPPcPm:
+	movq __lfisym__ZN2js22SourceHookWithCallback4loadEP9JSContextPKcPPDsPPcPm@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS6SymbolC2ENS_10SymbolCodeEjNS_6HandleIP6JSAtomEE
 _ZN2JS6SymbolC2ENS_10SymbolCodeEjNS_6HandleIP6JSAtomEE:
 	movq __lfisym__ZN2JS6SymbolC2ENS_10SymbolCodeEjNS_6HandleIP6JSAtomEE@GOTPCREL(%rip), %r10
@@ -4916,6 +4922,12 @@ _ZN2js8FprinterC2EP8_IO_FILE:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2JS22CallbackTracerExternalC2EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE
+_ZN2JS22CallbackTracerExternalC2EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE:
+	movq __lfisym__ZN2JS22CallbackTracerExternalC2EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS6BigInt26toStringSingleDigitBaseTenILN2js7AllowGCE0EEEP14JSLinearStringP9JSContextmb
 _ZN2JS6BigInt26toStringSingleDigitBaseTenILN2js7AllowGCE0EEEP14JSLinearStringP9JSContextmb:
 	movq __lfisym__ZN2JS6BigInt26toStringSingleDigitBaseTenILN2js7AllowGCE0EEEP14JSLinearStringP9JSContextmb@GOTPCREL(%rip), %r10
@@ -6590,6 +6602,12 @@ _ZN2JS4Zone14cellIterUnsafeIN2js13NormalPropMapEJEEENS2_2gc15ZoneAllCellIterIT_E
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js22SourceHookWithCallbackC2EPFbP9JSContextPKcPPDsPPcPmE
+_ZN2js22SourceHookWithCallbackC2EPFbP9JSContextPKcPPDsPPcPmE:
+	movq __lfisym__ZN2js22SourceHookWithCallbackC2EPFbP9JSContextPKcPPDsPPcPmE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZNK2js29OpaqueCrossCompartmentWrapper12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb
 _ZNK2js29OpaqueCrossCompartmentWrapper12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb:
 	movq __lfisym__ZNK2js29OpaqueCrossCompartmentWrapper12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb@GOTPCREL(%rip), %r10
@@ -6701,6 +6719,12 @@ _ZN2js15TempAllocPolicy11pod_reallocIPNS_8frontend9ParseNodeEEEPT_S6_mm:
 .global _ZN2js10EnqueueJobEP9JSContextN2JS6HandleIP8JSObjectEE
 _ZN2js10EnqueueJobEP9JSContextN2JS6HandleIP8JSObjectEE:
 	movq __lfisym__ZN2js10EnqueueJobEP9JSContextN2JS6HandleIP8JSObjectEE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS22CallbackTracerExternal7onChildENS_9GCCellPtrEPKc
+_ZN2JS22CallbackTracerExternal7onChildENS_9GCCellPtrEPKc:
+	movq __lfisym__ZN2JS22CallbackTracerExternal7onChildENS_9GCCellPtrEPKc@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -8726,6 +8750,12 @@ _ZN2JS13GetWasmModuleENS_6HandleIP8JSObjectEE:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js22SourceHookWithCallbackD1Ev
+_ZN2js22SourceHookWithCallbackD1Ev:
+	movq __lfisym__ZN2js22SourceHookWithCallbackD1Ev@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS21GetWellKnownSymbolKeyEP9JSContextNS_10SymbolCodeE
 _ZN2JS21GetWellKnownSymbolKeyEP9JSContextNS_10SymbolCodeE:
 	movq __lfisym__ZN2JS21GetWellKnownSymbolKeyEP9JSContextNS_10SymbolCodeE@GOTPCREL(%rip), %r10
@@ -10706,6 +10736,12 @@ _ZN2JS12AutoFilenameD2Ev:
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js22SourceHookWithCallbackC1EPFbP9JSContextPKcPPDsPPcPmE
+_ZN2js22SourceHookWithCallbackC1EPFbP9JSContextPKcPPDsPPcPmE:
+	movq __lfisym__ZN2js22SourceHookWithCallbackC1EPFbP9JSContextPKcPPDsPPcPmE@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS28SetSupportedImportAssertionsEPN2js15FrontendContextERKN7mozilla6VectorINS_15ImportAssertionELm1ENS0_17SystemAllocPolicyEEE
 _ZN2JS28SetSupportedImportAssertionsEPN2js15FrontendContextERKN7mozilla6VectorINS_15ImportAssertionELm1ENS0_17SystemAllocPolicyEEE:
 	movq __lfisym__ZN2JS28SetSupportedImportAssertionsEPN2js15FrontendContextERKN7mozilla6VectorINS_15ImportAssertionELm1ENS0_17SystemAllocPolicyEEE@GOTPCREL(%rip), %r10
@@ -11051,6 +11087,12 @@ _ZN2JS20GetModuleEnvironmentEP9JSContextNS_6HandleIP8JSObjectEE:
 .global _ZN2JS26NewArrayBufferWithContentsEP9JSContextmPv
 _ZN2JS26NewArrayBufferWithContentsEP9JSContextmPv:
 	movq __lfisym__ZN2JS26NewArrayBufferWithContentsEP9JSContextmPv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2js22SourceHookWithCallbackD0Ev
+_ZN2js22SourceHookWithCallbackD0Ev:
+	movq __lfisym__ZN2js22SourceHookWithCallbackD0Ev@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -16055,6 +16097,12 @@ _ZN2JS10TypedArrayILNS_6Scalar4TypeE3EE10fromObjectEP8JSObject:
 .global _ZN2JS24GetPCCountScriptContentsEP9JSContextm
 _ZN2JS24GetPCCountScriptContentsEP9JSContextm:
 	movq __lfisym__ZN2JS24GetPCCountScriptContentsEP9JSContextm@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
+.global _ZN2JS22CallbackTracerExternalC1EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE
+_ZN2JS22CallbackTracerExternalC1EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE:
+	movq __lfisym__ZN2JS22CallbackTracerExternalC1EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE@GOTPCREL(%rip), %r10
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
@@ -22520,6 +22568,12 @@ _ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5Valu
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js22SourceHookWithCallbackD2Ev
+_ZN2js22SourceHookWithCallbackD2Ev:
+	movq __lfisym__ZN2js22SourceHookWithCallbackD2Ev@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_
 _ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_:
 	movq __lfisym__ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_@GOTPCREL(%rip), %r10
@@ -23740,6 +23794,8 @@ __lfisym__ZNK2JS9GCCellPtr6asCellEv:
 	.quad 0
 __lfisym__ZN2JS6BigInt11bitAndValueEP9JSContextNS_6HandleINS_5ValueEEES5_NS_13MutableHandleIS4_EE:
 	.quad 0
+__lfisym__ZN2js22SourceHookWithCallback4loadEP9JSContextPKcPPDsPPcPm:
+	.quad 0
 __lfisym__ZN2JS6SymbolC2ENS_10SymbolCodeEjNS_6HandleIP6JSAtomEE:
 	.quad 0
 __lfisym__Z17JS_GetGCParameterP9JSContext12JSGCParamKey:
@@ -24432,6 +24488,8 @@ __lfisym__ZN2JS3ubi8RootList4initEv:
 	.quad 0
 __lfisym__ZN2js8FprinterC2EP8_IO_FILE:
 	.quad 0
+__lfisym__ZN2JS22CallbackTracerExternalC2EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE:
+	.quad 0
 __lfisym__ZN2JS6BigInt26toStringSingleDigitBaseTenILN2js7AllowGCE0EEEP14JSLinearStringP9JSContextmb:
 	.quad 0
 __lfisym__ZNK2JS5Value14toObjectOrNullEv:
@@ -24990,6 +25048,8 @@ __lfisym__ZN8JSScript11fromStencilEP9JSContextRN2js8frontend20CompilationAtomCac
 	.quad 0
 __lfisym__ZN2JS4Zone14cellIterUnsafeIN2js13NormalPropMapEJEEENS2_2gc15ZoneAllCellIterIT_EEDpOT0_:
 	.quad 0
+__lfisym__ZN2js22SourceHookWithCallbackC2EPFbP9JSContextPKcPPDsPPcPmE:
+	.quad 0
 __lfisym__ZNK2js29OpaqueCrossCompartmentWrapper12isExtensibleEP9JSContextN2JS6HandleIP8JSObjectEEPb:
 	.quad 0
 __lfisym__ZN2JS42SetHostCleanupFinalizationRegistryCallbackEP9JSContextPFvP10JSFunctionP8JSObjectPvES6_:
@@ -25027,6 +25087,8 @@ __lfisym__ZN8JSObject2asIN2js18NumberFormatObjectEEERT_v:
 __lfisym__ZN2js15TempAllocPolicy11pod_reallocIPNS_8frontend9ParseNodeEEEPT_S6_mm:
 	.quad 0
 __lfisym__ZN2js10EnqueueJobEP9JSContextN2JS6HandleIP8JSObjectEE:
+	.quad 0
+__lfisym__ZN2JS22CallbackTracerExternal7onChildENS_9GCCellPtrEPKc:
 	.quad 0
 __lfisym__ZN8JSObject2asIN2js33ClassBodyLexicalEnvironmentObjectEEERT_v:
 	.quad 0
@@ -25702,6 +25764,8 @@ __lfisym__ZN2JS14ModuleEvaluateEP9JSContextNS_6HandleIP8JSObjectEENS_13MutableHa
 	.quad 0
 __lfisym__ZN2JS13GetWasmModuleENS_6HandleIP8JSObjectEE:
 	.quad 0
+__lfisym__ZN2js22SourceHookWithCallbackD1Ev:
+	.quad 0
 __lfisym__ZN2JS21GetWellKnownSymbolKeyEP9JSContextNS_10SymbolCodeE:
 	.quad 0
 __lfisym__ZN14ProfilingStack14pushLabelFrameEPKcS1_PvN2JS21ProfilingCategoryPairEj:
@@ -26362,6 +26426,8 @@ __lfisym__ZN2JS4Zone19beforeClearDelegateEP8JSObjectS2_:
 	.quad 0
 __lfisym__ZN2JS12AutoFilenameD2Ev:
 	.quad 0
+__lfisym__ZN2js22SourceHookWithCallbackC1EPFbP9JSContextPKcPPDsPPcPmE:
+	.quad 0
 __lfisym__ZN2JS28SetSupportedImportAssertionsEPN2js15FrontendContextERKN7mozilla6VectorINS_15ImportAssertionELm1ENS0_17SystemAllocPolicyEEE:
 	.quad 0
 __lfisym__ZN2js24RemapRemoteWindowProxiesEP9JSContextPNS_29CompartmentTransplantCallbackEN2JS13MutableHandleIP8JSObjectEE:
@@ -26477,6 +26543,8 @@ __lfisym__ZN2JS9GCCellPtrC1EP10JSFunction:
 __lfisym__ZN2JS20GetModuleEnvironmentEP9JSContextNS_6HandleIP8JSObjectEE:
 	.quad 0
 __lfisym__ZN2JS26NewArrayBufferWithContentsEP9JSContextmPv:
+	.quad 0
+__lfisym__ZN2js22SourceHookWithCallbackD0Ev:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy11pod_reallocIP8JSStringEEPT_S5_mm:
 	.quad 0
@@ -28145,6 +28213,8 @@ __lfisym__ZN2JS11IsValidJSONEPKDsj:
 __lfisym__ZN2JS10TypedArrayILNS_6Scalar4TypeE3EE10fromObjectEP8JSObject:
 	.quad 0
 __lfisym__ZN2JS24GetPCCountScriptContentsEP9JSContextm:
+	.quad 0
+__lfisym__ZN2JS22CallbackTracerExternalC1EPvPFvS1_NS_9GCCellPtrEPKcEP9JSContextNS_10TracerKindENS_12TraceOptionsE:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy5free_ISt4pairINS_7HeapPtrIP8JSObjectEEbEEEvPT_m:
 	.quad 0
@@ -30300,6 +30370,8 @@ __lfisym__ZNK2JS9GCCellPtr2isINS_6BigIntEvEEbv:
 	.quad 0
 __lfisym__ZNK2js23BaseProxyHandlerWithOps10nativeCallEP9JSContextPFbN2JS6HandleINS3_5ValueEEEEPFbS2_RKNS3_8CallArgsEESB_:
 	.quad 0
+__lfisym__ZN2js22SourceHookWithCallbackD2Ev:
+	.quad 0
 __lfisym__ZN2js24SharedArrayRawBufferRefs10acquireAllEP9JSContextRKS0_:
 	.quad 0
 __lfisym__ZN2js8Sprinter16InvariantCheckerC1EPKS0_:
@@ -30397,6 +30469,6 @@ __lfisym_free:
 
 .global __lfi_trampotable_size
 __lfi_trampotable_size:
-	.quad 3789+5
+	.quad 3798+5
 
 .section .note.GNU-stack,"",@progbits

@@ -643,11 +643,11 @@ inline void AllocateProtoAndIfaceCache(JSObject* obj,
 }
 
 #ifdef DEBUG
-struct VerifyTraceProtoAndIfaceCacheCalledTracer : public JS::CallbackTracer {
+struct VerifyTraceProtoAndIfaceCacheCalledTracer : public JS::sandbox::CallbackTracer {
   bool ok;
 
   explicit VerifyTraceProtoAndIfaceCacheCalledTracer(JSContext* cx)
-      : JS::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
+      : JS::sandbox::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
         ok(false) {}
 
   void onChild(JS::GCCellPtr, const char* name) override {
@@ -664,7 +664,11 @@ inline void TraceProtoAndIfaceCache(JSTracer* trc, JSObject* obj) {
   if (trc->kind() == JS::TracerKind::VerifyTraceProtoAndIface) {
     // We don't do anything here, we only want to verify that
     // TraceProtoAndIfaceCache was called.
+#ifdef JS_SANDBOX
+    static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(static_cast<JS::CallbackTracerExternal*>(trc)->getSelf())->ok = true;
+#else
     static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(trc)->ok = true;
+#endif
     return;
   }
 #endif
