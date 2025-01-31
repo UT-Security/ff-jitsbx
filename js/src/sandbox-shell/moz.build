@@ -19,10 +19,11 @@ USE_LIBS += ["static:js-sandboxed"]
 
 UNIFIED_SOURCES += [
     "js.cpp",
+    "jsoptparse.cpp",
 	"jsshell.cpp",
 ]
 
-DEFINES["EXPORT_JS_API"] = True
+#DEFINES["EXPORT_JS_API"] = True
 
 LOCAL_INCLUDES += [
     "!..",

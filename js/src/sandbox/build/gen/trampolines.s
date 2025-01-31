@@ -20054,6 +20054,12 @@ _ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6H
 	movq (%r10), %r10
 	jmp __lfi_trampoline
 .p2align 4
+.global _ZN2js3jit13GetJitOptionsEv
+_ZN2js3jit13GetJitOptionsEv:
+	movq __lfisym__ZN2js3jit13GetJitOptionsEv@GOTPCREL(%rip), %r10
+	movq (%r10), %r10
+	jmp __lfi_trampoline
+.p2align 4
 .global _ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer
 _ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer:
 	movq __lfisym__ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer@GOTPCREL(%rip), %r10
@@ -29532,6 +29538,8 @@ __lfisym__ZNK2js29OpaqueCrossCompartmentWrapper22getPrototypeIfOrdinaryEP9JSCont
 	.quad 0
 __lfisym__ZNK2js23BaseProxyHandlerWithOps28getOwnEnumerablePropertyKeysEP9JSContextN2JS6HandleIP8JSObjectEENS3_13MutableHandleINS3_13StackGCVectorINS3_11PropertyKeyENS_15TempAllocPolicyEEEEE:
 	.quad 0
+__lfisym__ZN2js3jit13GetJitOptionsEv:
+	.quad 0
 __lfisym__ZN2JS5Realm19traceWeakGlobalEdgeEP8JSTracer:
 	.quad 0
 __lfisym__ZN2js15TempAllocPolicy5free_INS_12WrapperValueEEEvPT_m:
@@ -30469,6 +30477,6 @@ __lfisym_free:
 
 .global __lfi_trampotable_size
 __lfi_trampotable_size:
-	.quad 3798+5
+	.quad 3799+5
 
 .section .note.GNU-stack,"",@progbits

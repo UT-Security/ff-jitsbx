@@ -52,6 +52,8 @@ ignored_js_src_dirs = [
     "js/src/zydis/",  # imported code
     "js/src/sandbox/lfi/", # imported code
     "js/src/sandbox/libmmap/", # imported code
+    "js/src/sandbox/cwalk/", # imported code
+    "js/src/sandbox/libboxmap/", # imported code
     "js/src/sandbox/build/gen/", # imported code
 ]
 

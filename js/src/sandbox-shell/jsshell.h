@@ -42,8 +42,64 @@ struct RCFile {
 extern int sArgc;
 extern char** sArgv;
 
+// Shell state set once at startup.
+extern const char* selfHostedXDRPath;
+extern bool encodeSelfHostedCode;
+extern bool enableCodeCoverage;
+extern bool enableDisassemblyDumps;
+extern bool offthreadCompilation;
+extern JS::DelazificationOption defaultDelazificationMode;
+extern bool enableAsmJS;
+extern bool enableWasm;
+extern bool enableSharedMemory;
+extern bool enableWasmBaseline;
+extern bool enableWasmOptimizing;
+
+#define WASM_FEATURE(NAME, ...) extern bool enableWasm##NAME;
+JS_FOR_WASM_FEATURES(WASM_FEATURE, WASM_FEATURE, WASM_FEATURE);
+#undef WASM_FEATURE
+
+extern bool enableWasmVerbose;
+extern bool enableTestWasmAwaitTier2;
+extern bool enableSourcePragmas;
+extern bool enableAsyncStacks;
+extern bool enableAsyncStackCaptureDebuggeeOnly;
+extern bool enableWeakRefs;
+extern bool enableToSource;
+extern bool enablePropertyErrorMessageFix;
+extern bool enableIteratorHelpers;
+extern bool enableShadowRealms;
+extern bool enableArrayGrouping;
+extern bool enableArrayFromAsync;
+extern bool enableWellFormedUnicodeStrings;
+extern bool enablePrivateClassFields;
+extern bool enablePrivateClassMethods;
+extern bool enableChangeArrayByCopy;
+#ifdef ENABLE_NEW_SET_METHODS
+extern bool enableNewSetMethods;
+#endif
+extern bool enableClassStaticBlocks;
+extern bool enableImportAssertions;
+#ifdef JS_GC_ZEAL
+extern uint32_t gZealBits;
+extern uint32_t gZealFrequency;
+#endif
+extern bool printTiming;
 extern RCFile* gErrFile;
 extern RCFile* gOutFile;
+extern bool reportWarnings;
+extern bool compileOnly;
+extern bool disableOOMFunctions;
+extern bool defaultToSameCompartment;
+
+#ifdef DEBUG
+extern bool dumpEntrainedVariables;
+extern bool OOM_printAllocationCount;
+#endif
+
+extern bool useFdlibmForSinCosTan;
+
+extern JS::UniqueChars processWideModuleLoadPath;
 
 // Per-context shell state.
 struct ShellContext {

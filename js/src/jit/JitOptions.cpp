@@ -21,6 +21,8 @@ namespace jit {
 
 DefaultJitOptions JitOptions;
 
+DefaultJitOptions& GetJitOptions() { return JitOptions; }
+
 static void Warn(const char* env, const char* value) {
   fprintf(stderr, "Warning: I didn't understand %s=\"%s\"\n", env, value);
 }

@@ -151,6 +151,8 @@ struct DefaultJitOptions {
 
 extern DefaultJitOptions JitOptions;
 
+JS_PUBLIC_API DefaultJitOptions& GetJitOptions();
+
 inline bool HasJitBackend() {
 #if defined(JS_CODEGEN_NONE)
   return false;
