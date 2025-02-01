@@ -25,7 +25,6 @@ vendoring:
   include:
     - lfi-verify/
     - liblfi/
-    - liblfix/
     - LICENSE
     - README.md  
   
@@ -39,10 +38,9 @@ vendoring:
     - lfi-postlink/
     - lfi-run/
     - lfi-veribdd/
-    - libsobox/
+    - liblfi-small/
     - specinvoke/
     - subprojects/
-    - toolchain/
     - go.mod
     - go.sum
     - install-toolchain.sh
