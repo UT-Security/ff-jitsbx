@@ -23,6 +23,7 @@
 #include <iterator>
 #include <stdarg.h>
 #include <string.h>
+#include <thread>
 
 #include "jsexn.h"
 #include "jsfriendapi.h"
@@ -127,6 +128,14 @@ static_assert(JS_BITS_PER_WORD == 64, "values must be in sync");
 #else
 static_assert(JS_BITS_PER_WORD == 32, "values must be in sync");
 #endif
+
+JS_PUBLIC_API void* sbx_thread_create(void* fn) {
+  return fn;  
+}
+
+JS_PUBLIC_API void sbx_thread_cleanup(void* tv) {
+  
+}
 
 JS_PUBLIC_API void JS::CallArgs::reportMoreArgsNeeded(JSContext* cx,
                                                       const char* fnname,
