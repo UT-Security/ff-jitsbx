@@ -12,35 +12,43 @@
 #include <sys/mman.h>
 
 #include "lfi.h"
-#include "lfix.h"
+#include "lfi_tux.h"
 
 enum {
     PATH_MAX = 64,
 };
 
-struct File {
+struct FileData {
     uint8_t* start;
     uint8_t* end;
+};
+
+struct File {
+    struct FileData* data;
+    FILE* file;
 };
 
 static inline int memfd_create(const char* name, unsigned int flags) {
     return syscall(__NR_memfd_create, name, flags);
 }
 
-static bool cbinit(LFIProc* proc);
+static bool cbinit(struct LFIContext* ctx);
 
 extern void sbx_cbtrampoline();
 
 extern char* sbx_filenames[];
-extern struct File sbx_filedata[];
+extern struct FileData sbx_filedata[];
 extern size_t sbx_nfiles;
 
 extern void* __lfi_trampotable[];
 extern size_t __lfi_trampotable_size;
 extern char* __lfi_trampolines;
 
-static struct File*
-findfile(const char* filename)
+extern void* __lfisym__lfi_pause;
+extern void* __lfisym_sbx_thread_create;
+
+static struct FileData*
+findfiledata(const char* filename)
 {
     for (size_t i = 0; i < sbx_nfiles; i++) {
         if (strncmp(filename, sbx_filenames[i], PATH_MAX) == 0)
@@ -57,55 +65,80 @@ install_trampotable(void** table)
     }
 }
 
-static bool
-readfile(const char* filename, uint8_t** data, size_t* size)
+static struct HostFile*
+fsopen(const char* filename, int flags, int mode)
 {
-    struct File* f = findfile(filename);
-    if (!f)
-        return false;
-
-    *data = f->start;
-    *size = f->end - f->start;
-
-    return true;
+    (void) flags, (void) mode;
+    struct FileData* data = findfiledata(filename);
+    if (data) {
+        int fd = memfd_create("", 0);
+        if (fd < 0)
+            return NULL;
+        if (ftruncate(fd, data->end - data->start) < 0)
+            goto err;
+        if (write(fd, data->start, data->end - data->start) < 0)
+            goto err;
+        lseek(fd, 0, SEEK_SET);
+        return lfi_host_fdopen(fd);
+err:
+        close(fd);
+        return NULL;
+    }
+    return NULL;
 }
 
-static LFIXEngine engine;
+static struct Tux* tux;
 
 void sbx_init(void)
 {
-    bool b = lfix_init(&engine);
-    if (!b) {
+    struct LFIPlatform* plat = lfi_new_plat(getpagesize());
+    if (!plat) {
         fprintf(stderr, "sobox: error loading LFI: %s\n", lfi_strerror());
         exit(1);
     }
-    engine.pause = true;
-    engine.readfile = readfile;
 
-    struct File* stub = findfile("stub");
+    tux = lfi_tux_new(plat, (struct TuxOptions) {
+        .pagesize = getpagesize(),
+        .stacksize = 2 * 1024 * 1024,
+        .pause_on_exit = true,
+        .fs = (struct TuxFS) {
+            .open = fsopen,
+        },
+    });
+
+    if (!tux) {
+        fprintf(stderr, "sobox: error loading LFI: %s\n", lfi_strerror());
+        exit(1);
+    }
+
+    struct FileData* stub = findfiledata("stub");
     if (!stub) {
         fprintf(stderr, "sobox: error loading LFI: could not find stub file\n");
         exit(1);
     }
 
     char* args[] = {"stub", NULL};
-    LFIXProc* p = lfix_proc_newfile(&engine, stub->start, stub->end - stub->start, 1, &args[0]);
+    struct TuxThread* p = lfi_tux_proc_new(tux, stub->start, stub->end - stub->start, 1, &args[0]);
     if (!p) {
         fprintf(stderr, "sobox: error creating LFI process: %s\n", lfi_strerror());
         exit(1);
     }
 
-    bool ok = cbinit(p->l_proc);
+    bool ok = cbinit(lfi_tux_ctx(p));
     if (!ok) {
         fprintf(stderr, "sobox: failed to initialize callback entries\n");
         exit(1);
     }
 
-    uint64_t r = lfi_proc_start(p->l_proc);
+    lfi_tux_soboxinit(tux, true);
+
+    uint64_t r = lfi_tux_proc_run(p);
     if (r < 256) {
         fprintf(stderr, "sobox: failed to start LFI process\n");
         exit(1);
     }
+
+    lfi_tux_soboxinit(tux, false);
 
     // TODO: validate the trampoline table (its location) before installing it,
     // since intalling it involves reading from sandbox memory. Possibly also
@@ -113,6 +146,12 @@ void sbx_init(void)
     // uses a safe bundle-aligned jump for entry, but probably still a good
     // idea).
     install_trampotable((void**) r);
+}
+
+void
+sbx_setup(struct LFIContext* ctx)
+{
+    lfi_thread_init(__lfisym_sbx_thread_create, __lfisym__lfi_pause);
 }
 
 void*
@@ -172,7 +211,7 @@ static struct CallbackEntry* cbentries_alias;
 static struct CallbackEntry* cbentries_box;
 
 static bool
-cbinit(LFIProc* proc)
+cbinit(struct LFIContext* ctx)
 {
     int fd = memfd_create("", 0);
     if (fd < 0)
@@ -190,9 +229,11 @@ cbinit(LFIProc* proc)
     for (size_t i = 0; i < MAXCALLBACKS; i++) {
         memcpy(&cbentries_alias[i].code, &cbtrampoline[0], sizeof(cbentries_alias[i].code));
     }
+    struct HostFile* hf = lfi_host_fdopen(fd);
+    assert(hf);
     // Share the mapping inside the sandbox as read/exec.
-    void* boxmap = lfi_proc_mapany(proc, size, PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
-    if (boxmap == (void*) -1)
+    lfiptr_t boxmap = lfi_as_mapany(lfi_ctx_as(ctx), size, PROT_READ | PROT_EXEC, MAP_SHARED, hf, 0);
+    if (boxmap == (lfiptr_t) -1)
         goto err1;
     cbentries_box = (struct CallbackEntry*) boxmap;
     return true;
@@ -249,12 +290,6 @@ void*
 sbx_addr(void* sym)
 {
     const size_t trampoline_size = 16;
-    //for (size_t i = 0; i < __lfi_trampotable_size; i++) {
-    //    if (&__lfi_trampolines[i * trampoline_size] == sym)
-    //        return __lfi_trampotable[i];
-    //}
-
-    size_t diff = (uintptr_t)sym - (uintptr_t)&__lfi_trampolines;    
-    
+    size_t diff = (uintptr_t)sym - (uintptr_t)&__lfi_trampolines;
     return diff % trampoline_size == 0 && (diff / trampoline_size) < __lfi_trampotable_size ? __lfi_trampotable[diff / trampoline_size] : NULL;
 }

@@ -21,16 +21,18 @@ extern __attribute__((aligned(16))) uint8_t __lfidata_ ## name ## _start[]; \
 extern                              uint8_t __lfidata_ ## name ## _end[]
 
 char* sbx_filenames[] = {
-    "/lib/libgcc_s.so.1",
+    "/lib/libc++.so.1",
+    "/lib/libc++abi.so.1",
+    "/lib/libc.so",
     "/lib/libmozjs-115.so",
-    "/lib/libstdc++.so.6",
-    "ld-musl-x86_64.so.1",
+    "/lib/libunwind.so.1",
     "stub",
 };
-INCBIN(__lib__libgcc_s__so__1, "/home/abhishekcs/workspace/lfi-toolchains/lfi-amd64-syscalls/x86_64-lfi-linux-musl/lib64/libgcc_s.so.1");
+INCBIN(__lib__libc______so__1, "/home/abhishekcs/workspace/lfi-toolchains/lfi-llvm-toolchain/x86_64-lfi-syscalls-clang/sysroot/usr/lib/libc++.so.1");
+INCBIN(__lib__libc____abi__so__1, "/home/abhishekcs/workspace/lfi-toolchains/lfi-llvm-toolchain/x86_64-lfi-syscalls-clang/sysroot/usr/lib/libc++abi.so.1");
+INCBIN(__lib__libc__so, "/home/abhishekcs/workspace/lfi-toolchains/lfi-llvm-toolchain/x86_64-lfi-syscalls-clang/sysroot/usr/lib/libc.so");
 INCBIN(__lib__libmozjs__115__so, "/home/abhishekcs/workspace/sobox/libmozjs-115.so");
-INCBIN(__lib__libstdc______so__6, "/home/abhishekcs/workspace/lfi-toolchains/lfi-amd64-syscalls/x86_64-lfi-linux-musl/lib64/libstdc++.so.6");
-INCBIN(ld__musl__x86_64__so__1, "/home/abhishekcs/workspace/lfi-toolchains/lfi-amd64-syscalls/x86_64-lfi-linux-musl/lib/ld-musl-x86_64.so.1");
+INCBIN(__lib__libunwind__so__1, "/home/abhishekcs/workspace/lfi-toolchains/lfi-llvm-toolchain/x86_64-lfi-syscalls-clang/sysroot/usr/lib/libunwind.so.1");
 INCBIN(stub, "gen/stub.elf");
 
 struct File {
@@ -39,11 +41,12 @@ struct File {
 };
 
 struct File sbx_filedata[] = {
-    (struct File){&__lfidata___lib__libgcc_s__so__1_start[0], &__lfidata___lib__libgcc_s__so__1_end[0]},
+    (struct File){&__lfidata___lib__libc______so__1_start[0], &__lfidata___lib__libc______so__1_end[0]},
+    (struct File){&__lfidata___lib__libc____abi__so__1_start[0], &__lfidata___lib__libc____abi__so__1_end[0]},
+    (struct File){&__lfidata___lib__libc__so_start[0], &__lfidata___lib__libc__so_end[0]},
     (struct File){&__lfidata___lib__libmozjs__115__so_start[0], &__lfidata___lib__libmozjs__115__so_end[0]},
-    (struct File){&__lfidata___lib__libstdc______so__6_start[0], &__lfidata___lib__libstdc______so__6_end[0]},
-    (struct File){&__lfidata_ld__musl__x86_64__so__1_start[0], &__lfidata_ld__musl__x86_64__so__1_end[0]},
+    (struct File){&__lfidata___lib__libunwind__so__1_start[0], &__lfidata___lib__libunwind__so__1_end[0]},
     (struct File){&__lfidata_stub_start[0], &__lfidata_stub_end[0]},
 };
 
-size_t sbx_nfiles = 5;
+size_t sbx_nfiles = 6;

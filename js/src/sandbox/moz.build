@@ -31,4 +31,4 @@ if not CONFIG["JS_STANDALONE"]:
 
 DIRS += ["build"]
 
-USE_LIBS += ["lfi", "lfix"]
+USE_LIBS += ["lfi"]

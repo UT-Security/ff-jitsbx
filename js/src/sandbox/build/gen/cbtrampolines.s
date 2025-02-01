@@ -3,7 +3,7 @@
 .global sbx_cbtrampoline
 sbx_cbtrampoline:
 	// Entrypoint for callbacks. Callback target is in %r10.
-	movq lfi_myproc@gottpoff(%rip), %r11
+	movq lfi_myctx@gottpoff(%rip), %r11
 	movq %fs:(%r11), %r11
 
 	xchg 0(%r11), %rsp      // restore stack pointer
@@ -25,7 +25,7 @@ sbx_cbtrampoline:
 	popq %r11
 
 	// restore %rsp
-	movq lfi_myproc@gottpoff(%rip), %r11
+	movq lfi_myctx@gottpoff(%rip), %r11
 	movq %fs:(%r11), %r11
 
 	movq 16(%r11), %r10      // move current sandbox stack pointer to r10
