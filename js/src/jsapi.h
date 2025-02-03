@@ -73,13 +73,6 @@
 #include "js/WrapperCallbacks.h"
 #include "js/Zone.h"
 
-#ifdef JS_SANDBOX
-extern "C" {
-JS_PUBLIC_API void* sbx_thread_create(void* fn);
-JS_PUBLIC_API void sbx_thread_cleanup(void* tv);
-}
-#endif
-
 /************************************************************************/
 
 namespace JS {

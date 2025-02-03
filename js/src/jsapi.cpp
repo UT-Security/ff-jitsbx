@@ -129,16 +129,6 @@ static_assert(JS_BITS_PER_WORD == 64, "values must be in sync");
 static_assert(JS_BITS_PER_WORD == 32, "values must be in sync");
 #endif
 
-JS_PUBLIC_API void* sbx_thread_create(void* fn) {
-  pthread_t* t = (pthread_t*)js_malloc(sizeof(pthread_t));
-  pthread_create(t, NULL, (void *(*)(void *))fn, NULL);
-  return t;
-}
-
-JS_PUBLIC_API void sbx_thread_cleanup(void* tv) {
-  js_free(tv);
-}
-
 JS_PUBLIC_API void JS::CallArgs::reportMoreArgsNeeded(JSContext* cx,
                                                       const char* fnname,
                                                       unsigned required,
