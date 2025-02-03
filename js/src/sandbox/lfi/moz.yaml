@@ -19,8 +19,7 @@ vendoring:
   source-hosting: github
 
   patches:
-    - lfi.patch
-    - lfi_ret.patch
+    - liblfi.patch
 
   include:
     - lfi-verify/
