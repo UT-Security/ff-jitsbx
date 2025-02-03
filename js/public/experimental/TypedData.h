@@ -536,7 +536,7 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   // |*isSharedMemory| will be set to true if the typed array maps a
   // SharedArrayBuffer, otherwise to false.
   //
-  DataType* getLengthAndData(size_t* length, bool* isSharedMemory,
+  JS_PUBLIC_API DataType* getLengthAndData(size_t* length, bool* isSharedMemory,
                              const JS::AutoRequireNoGC& nogc);
 
   DataType* getData(bool* isSharedMemory, const JS::AutoRequireNoGC& nogc) {

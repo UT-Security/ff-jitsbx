@@ -237,30 +237,30 @@ int main(int argc, char** argv) {
   JS::SetProcessBuildIdOp(ShellBuildId);
 
   /* Use the same parameters as the browser in xpcjsruntime.cpp. */
-  JSContext* const cx = JS_NewContext(JS::DefaultHeapMaxBytes);
-  if (!cx) {
-    return 1;
-  }
+  //JSContext* const cx = JS_NewContext(JS::DefaultHeapMaxBytes);
+  //if (!cx) {
+  //  return 1;
+  //}
 
-  auto destroyCx = MakeScopeExit([cx] { JS_DestroyContext(cx); });
+  //auto destroyCx = MakeScopeExit([cx] { JS_DestroyContext(cx); });
 
-  UniquePtr<ShellContext> sc = MakeUnique<ShellContext>(cx);
-  if (!sc) {
-    return 1;
-  }
+  //UniquePtr<ShellContext> sc = MakeUnique<ShellContext>(cx);
+  //if (!sc) {
+  //  return 1;
+  //}
   
-  auto destroyShellContext = MakeScopeExit([cx, &sc] {
+  //auto destroyShellContext = MakeScopeExit([cx, &sc] {
     // Must clear out some of sc's pointer containers before JS_DestroyContext.
     //sc->markObservers.reset();
 
-    JS_SetContextPrivate(cx, nullptr);
-    sc.reset();
-  });
+    //JS_SetContextPrivate(cx, nullptr);
+    //sc.reset();
+  //});
 
-  JS_SetContextPrivate(cx, sc.get());
+  //JS_SetContextPrivate(cx, sc.get());
   
   // Waiting is allowed on the shell's main thread, for now.
-  JS_SetFutexCanWait(cx);
+  //JS_SetFutexCanWait(cx);
   //JS::SetWarningReporter(cx, WarningReporter);
 
   return 0;

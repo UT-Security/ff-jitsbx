@@ -440,10 +440,10 @@ MultiStringRange OptionParser::getMultiStringOption(
 
 OptionParser::~OptionParser() {
   for (Option* opt : options) {
-    js_delete<Option>(opt);
+    delete opt;
   }
   for (Option* arg : arguments) {
-    js_delete<Option>(arg);
+    delete arg;
   }
 }
 
