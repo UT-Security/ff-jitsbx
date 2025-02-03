@@ -22,6 +22,7 @@ if CONFIG["OS_ARCH"] == "Linux":
 		"linux/dir.c",
 		"linux/info.c",
 		"linux/path.c",
+		"linux/prctl.c",
 		"linux/random.c",
 		"posix/file.c",
 		"posix/time.c",
