@@ -34,12 +34,11 @@ void TextEncoder::EncodeInto(JSContext* aCx, JS::Handle<JSString*> aSrc,
   size_t read;
   size_t written;
   auto maybe = JS_EncodeStringToUTF8BufferPartial(
-      aCx, aSrc, AsWritableChars(Span(aDst.Data(), aDst.Length())));
+      aCx, aSrc, AsWritableChars(Span(aDst.Data(), aDst.Length())), &read, &written);
   if (!maybe) {
     aError.ReportOOM();
     return;
   }
-  std::tie(read, written) = *maybe;
   MOZ_ASSERT(written <= aDst.Length());
   aResult.mRead.Construct() = read;
   aResult.mWritten.Construct() = written;

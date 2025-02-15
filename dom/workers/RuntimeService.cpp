@@ -6,6 +6,8 @@
 
 #include "RuntimeService.h"
 
+#include "js/Promise.h"
+#include "js/StreamConsumer.h"
 #include "nsContentSecurityUtils.h"
 #include "nsIContentSecurityPolicy.h"
 #include "mozilla/dom/Document.h"
@@ -692,16 +694,16 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // Security policy:
   static const JSSecurityCallbacks securityCallbacks = {
-      ContentSecurityPolicyAllows};
+      (JSCSPEvalChecker)sbx_register_cb((void*)ContentSecurityPolicyAllows, 0)};
   JS_SetSecurityCallbacks(aWorkerCx, &securityCallbacks);
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoop,
+  JS::InitDispatchToEventLoop(aWorkerCx, (JS::DispatchToEventLoopCallback)sbx_register_cb((void*)DispatchToEventLoop, 0),
                               (void*)aWorkerPrivate);
 
-  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStream,
-                                FetchUtil::ReportJSStreamError);
+  JS::InitConsumeStreamCallback(aWorkerCx, (JS::ConsumeStreamCallback)sbx_register_cb((void*)ConsumeStream, 0),
+                                (JS::ReportStreamErrorCallback)sbx_register_cb((void*)FetchUtil::ReportJSStreamError, 0));
 
   // When available, set the self-hosted shared memory to be read, so that we
   // can decode the self-hosted content instead of parsing it.
@@ -713,9 +715,9 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
     return false;
   }
 
-  JS_AddInterruptCallback(aWorkerCx, InterruptCallback);
+  JS_AddInterruptCallback(aWorkerCx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
 
-  JS::SetCTypesActivityCallback(aWorkerCx, CTypesActivityCallback);
+  JS::SetCTypesActivityCallback(aWorkerCx, (JS::CTypesActivityCallback)sbx_register_cb((void*)CTypesActivityCallback, 0));
 
 #ifdef JS_GC_ZEAL
   JS_SetGCZeal(aWorkerCx, settings.gcZeal, settings.gcZealFrequency);

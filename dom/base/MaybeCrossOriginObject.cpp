@@ -18,7 +18,7 @@
 #include "js/Proxy.h"
 #include "js/RootingAPI.h"
 #include "js/WeakMap.h"
-#include "js/Wrapper.h"
+#include "js/sandbox/Wrapper.h"
 #include "jsfriendapi.h"
 #include "AccessCheck.h"
 #include "nsContentUtils.h"
@@ -475,7 +475,7 @@ bool MaybeCrossOriginObject<Base>::enumerate(
 }
 
 // Force instantiations of the out-of-line template methods we need.
-template class MaybeCrossOriginObject<js::Wrapper>;
+template class MaybeCrossOriginObject<js::sandbox::Wrapper>;
 template class MaybeCrossOriginObject<DOMProxyHandler>;
 
 }  // namespace mozilla::dom

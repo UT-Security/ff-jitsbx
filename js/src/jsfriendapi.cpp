@@ -495,6 +495,18 @@ JS_PUBLIC_API JSObject* JS_NewDeadWrapper(JSContext* cx, JSObject* origObj) {
   return NewDeadProxyObject(cx, origObj);
 }
 
+#ifdef JS_SANDBOX
+js::WeakMapTracerWithOps::WeakMapTracerWithOps(void* self,
+                                               WeakMapTracerTraceOp op,
+                                               JSRuntime* rt)
+    : WeakMapTracer(rt), self_(self), op_(op) {}
+    
+void js::WeakMapTracerWithOps::trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) {
+  return op_(self_, m, key, value);
+}
+#endif
+
+
 void js::TraceWeakMaps(WeakMapTracer* trc) {
   WeakMapBase::traceAllMappings(trc);
 }
@@ -690,6 +702,19 @@ JS_PUBLIC_API const DOMCallbacks* js::GetDOMCallbacks(JSContext* cx) {
   return cx->runtime()->DOMcallbacks;
 }
 
+
+
+#ifdef JS_SANDBOX
+js::ExternalCompartmentFitler::ExternalCompartmentFitler(const void* self, CompartmentFilterMatchCallback cb): self_(self), cb_(cb) {}
+bool js::ExternalCompartmentFitler::match(JS::Compartment* c) const { return cb_(self_, c); }
+
+js::AllCompartments::AllCompartments() {}
+bool js::AllCompartments::match(JS::Compartment* c) const { return true; }
+
+js::SingleCompartment::SingleCompartment(JS::Compartment* c) : ours(c) {}
+bool js::SingleCompartment::match(JS::Compartment* c) const { return c == ours; }
+#endif
+
 JS_PUBLIC_API void js::PrepareScriptEnvironmentAndInvoke(
     JSContext* cx, HandleObject global,
     ScriptEnvironmentPreparer::Closure& closure) {
@@ -845,3 +870,13 @@ bool JS::AddMozDisplayNamesConstructor(JSContext* cx, JS::HandleObject intl) {
 JS_PUBLIC_API JS::Zone* js::GetObjectZoneFromAnyThread(const JSObject* obj) {
   return MaybeForwarded(obj)->zoneFromAnyThread();
 }
+
+#ifdef JS_SANDBOX
+js::CompartmentTransplantWithCallback::CompartmentTransplantWithCallback(
+    void* self, CompartmentGetObjectToTransplantCallback cb)
+    : self_(self), cb_(cb) {}
+
+JSObject* js::CompartmentTransplantWithCallback::getObjectToTransplant(JS::Compartment* compartment) {
+  return cb_(self_, compartment);  
+}
+#endif

@@ -59,7 +59,12 @@
 #include <utility>
 
 #include "js/Debug.h"
+#include "js/MemoryCallbacks.h"
 #include "js/RealmOptions.h"
+#include "js/TracingAPI.h"
+#include "js/Utility.h"
+#include "js/WaitCallbacks.h"
+#include "js/Zone.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
 #include "js/GCAPI.h"
 #include "js/HeapAPI.h"
@@ -152,10 +157,10 @@ class IncrementalFinalizeRunnable : public DiscardableRunnable {
 
 }  // namespace mozilla
 
-struct NoteWeakMapChildrenTracer : public JS::CallbackTracer {
+struct NoteWeakMapChildrenTracer : public JS::sandbox::CallbackTracer {
   NoteWeakMapChildrenTracer(JSRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
-      : JS::CallbackTracer(aRt, JS::TracerKind::Callback),
+      : JS::sandbox::CallbackTracer(aRt, JS::TracerKind::Callback),
         mCb(aCb),
         mTracedAny(false),
         mMap(nullptr),
@@ -183,13 +188,13 @@ void NoteWeakMapChildrenTracer::onChild(JS::GCCellPtr aThing,
     mCb.NoteWeakMapping(mMap, mKey, mKeyDelegate, aThing);
     mTracedAny = true;
   } else {
-    JS::TraceChildren(this, aThing);
+    JS::TraceChildren(JS::sandbox::GetCallbackTracer(this), aThing);
   }
 }
 
-struct NoteWeakMapsTracer : public js::WeakMapTracer {
+struct NoteWeakMapsTracer : public js::sandbox::WeakMapTracer {
   NoteWeakMapsTracer(JSRuntime* aRt, nsCycleCollectionNoteRootCallback& aCccb)
-      : js::WeakMapTracer(aRt), mCb(aCccb), mChildTracer(aRt, aCccb) {}
+      : js::sandbox::WeakMapTracer(aRt), mCb(aCccb), mChildTracer(aRt, aCccb) {}
   void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override;
   nsCycleCollectionNoteRootCallback& mCb;
   NoteWeakMapChildrenTracer mChildTracer;
@@ -234,7 +239,7 @@ void NoteWeakMapsTracer::trace(JSObject* aMap, JS::GCCellPtr aKey,
     mChildTracer.mKeyDelegate = kdelegate;
 
     if (!aValue.is<JSString>()) {
-      JS::TraceChildren(&mChildTracer, aValue);
+      JS::TraceChildren(JS::sandbox::GetCallbackTracer(&mChildTracer), aValue);
     }
 
     // The delegate could hold alive the key, so report something to the CC
@@ -284,14 +289,14 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
   }
 }
 
-struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
+struct FixWeakMappingGrayBitsTracer : public js::sandbox::WeakMapTracer {
   explicit FixWeakMappingGrayBitsTracer(JSRuntime* aRt)
-      : js::WeakMapTracer(aRt) {}
+      : js::sandbox::WeakMapTracer(aRt) {}
 
   void FixAll() {
     do {
       mAnyMarked = false;
-      js::TraceWeakMaps(this);
+      js::TraceWeakMaps(&this->base_);
     } while (mAnyMarked);
   }
 
@@ -315,13 +320,13 @@ struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
 
 #ifdef DEBUG
 // Check whether weak maps are marked correctly according to the logic above.
-struct CheckWeakMappingGrayBitsTracer : public js::WeakMapTracer {
+struct CheckWeakMappingGrayBitsTracer : public js::sandbox::WeakMapTracer {
   explicit CheckWeakMappingGrayBitsTracer(JSRuntime* aRt)
-      : js::WeakMapTracer(aRt), mFailed(false) {}
+      : js::sandbox::WeakMapTracer(aRt), mFailed(false) {}
 
   static bool Check(JSRuntime* aRt) {
     CheckWeakMappingGrayBitsTracer tracer(aRt);
-    js::TraceWeakMaps(&tracer);
+    js::TraceWeakMaps(&tracer.base_);
     return !tracer.mFailed;
   }
 
@@ -394,9 +399,9 @@ JSZoneParticipant::TraverseNative(void* aPtr,
   return NS_OK;
 }
 
-struct TraversalTracer : public JS::CallbackTracer {
+struct TraversalTracer : public JS::sandbox::CallbackTracer {
   TraversalTracer(JSRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
-      : JS::CallbackTracer(aRt, JS::TracerKind::Callback,
+      : JS::sandbox::CallbackTracer(aRt, JS::TracerKind::Callback,
                            JS::TraceOptions(JS::WeakMapTraceAction::Skip,
                                             JS::WeakEdgeTraceAction::Trace)),
         mCb(aCb) {}
@@ -434,14 +439,14 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
   }
 
   // Allow re-use of this tracer inside trace callback.
-  JS::AutoClearTracingContext actc(this);
+  JS::AutoClearTracingContext actc(JS::sandbox::GetCallbackTracer(this));
 
   if (aThing.is<js::Shape>()) {
     // The maximum depth of traversal when tracing a Shape is unbounded, due to
     // the parent pointers on the shape.
-    JS_TraceShapeCycleCollectorChildren(this, aThing);
+    JS_TraceShapeCycleCollectorChildren(JS::sandbox::GetCallbackTracer(this), aThing);
   } else {
-    JS::TraceChildren(this, aThing);
+    JS::TraceChildren(JS::sandbox::GetCallbackTracer(this), aThing);
   }
 }
 
@@ -696,12 +701,17 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   }
 #endif
 
-  if (!JS_AddExtraGCRootsTracer(aCx, TraceBlackJS, this)) {
+  if (!JS_AddExtraGCRootsTracer(aCx, (JSTraceDataOp)sbx_register_cb((void*)TraceBlackJS, 0), this)) {
     MOZ_CRASH("JS_AddExtraGCRootsTracer failed");
   }
-  JS_SetGrayGCRootsTracer(aCx, TraceGrayJS, this);
-  JS_SetGCCallback(aCx, GCCallback, this);
-  mPrevGCSliceCallback = JS::SetGCSliceCallback(aCx, GCSliceCallback);
+  JS_SetGrayGCRootsTracer(aCx, (JSGrayRootsTracer)sbx_register_cb((void*)TraceGrayJS, 0), this);
+  JS_SetGCCallback(aCx, (JSGCCallback)sbx_register_cb((void*)GCCallback, 0), this);
+  mPrevGCSliceCallback = JS::SetGCSliceCallback(
+      aCx, (JS::GCSliceCallback)sbx_register_cb((void*)GCSliceCallback, 0));
+  mPrevGCSliceCallback =
+      mPrevGCSliceCallback == nullptr
+          ? nullptr
+          : (JS::GCSliceCallback)sbx_cb_addr((void*)mPrevGCSliceCallback);
 
   if (NS_IsMainThread()) {
     // We would like to support all threads here, but the way timeline consumers
@@ -711,22 +721,35 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
     // currently possible. For now, add global markers only when we are on the
     // main thread, since the UI for this tracing data only displays data
     // relevant to the main-thread.
+    mPrevGCNurseryCollectionCallback = JS::SetGCNurseryCollectionCallback(
+        aCx, (JS::GCNurseryCollectionCallback)sbx_register_cb(
+                 (void*)GCNurseryCollectionCallback, 0));
+
     mPrevGCNurseryCollectionCallback =
-        JS::SetGCNurseryCollectionCallback(aCx, GCNurseryCollectionCallback);
+        mPrevGCNurseryCollectionCallback == nullptr
+            ? nullptr
+            : (JS::GCNurseryCollectionCallback)sbx_cb_addr(
+                  (void*)mPrevGCNurseryCollectionCallback);
   }
 
-  JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCb, this);
-  JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallback, this);
-  JS::SetWaitCallback(mJSRuntime, BeforeWaitCallback, AfterWaitCallback,
-                      sizeof(dom::AutoYieldJSThreadExecution));
-  JS::SetWarningReporter(aCx, MozCrashWarningReporter);
-  JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealm);
-  JS::SetShadowRealmGlobalCreationCallback(aCx, dom::NewShadowRealmGlobal);
+  JS_SetObjectsTenuredCallback(aCx, (JSObjectsTenuredCallback)sbx_register_cb((void*)JSObjectsTenuredCb, 0), this);
+  JS::SetOutOfMemoryCallback(aCx, (JS::OutOfMemoryCallback)sbx_register_cb((void*)OutOfMemoryCallback, 0), this);
+  JS::SetWaitCallback(
+      mJSRuntime,
+      (JS::BeforeWaitCallback)sbx_register_cb((void*)BeforeWaitCallback, 0),
+      (JS::AfterWaitCallback)sbx_register_cb((void*)AfterWaitCallback, 0),
+      sizeof(dom::AutoYieldJSThreadExecution));
+  JS::SetWarningReporter(aCx, (JS::WarningReporter)sbx_register_cb((void*)MozCrashWarningReporter, 0));
+  JS::SetShadowRealmInitializeGlobalCallback(aCx, (JS::GlobalInitializeCallback)sbx_register_cb((void*)InitializeShadowRealm, 0));
+  JS::SetShadowRealmGlobalCreationCallback(aCx, (JS::GlobalCreationCallback)sbx_register_cb((void*)dom::NewShadowRealmGlobal, 0));
 
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
-      CrashReporter::AnnotateOOMAllocationSize);
+      (js::AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback)
+          sbx_register_cb((void*)CrashReporter::AnnotateOOMAllocationSize, 0));
 
-  static js::DOMCallbacks DOMcallbacks = {InstanceClassHasProtoAtDepth};
+  static js::DOMCallbacks DOMcallbacks = {
+      (js::DOMInstanceClassHasProtoAtDepth)sbx_register_cb(
+          (void*)InstanceClassHasProtoAtDepth, 0)};
   SetDOMCallbacks(aCx, &DOMcallbacks);
   js::SetScriptEnvironmentPreparer(aCx, &mEnvironmentPreparer);
 
@@ -736,7 +759,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   JS_SetErrorInterceptorCallback(mJSRuntime, &mErrorInterceptor);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
 
-  JS_SetDestroyZoneCallback(aCx, OnZoneDestroyed);
+  JS_SetDestroyZoneCallback(aCx, (JSDestroyZoneCallback)sbx_register_cb((void*)OnZoneDestroyed, 0));
 
   JS::sandbox::JS_SetPersistentRootingCallbacks(aCx, {
     .trace = (JS::sandbox::ExternalPersistentRootingCallbackTrace)sbx_register_cb((void*)tracePersistentRoots, 0),
@@ -746,10 +769,10 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-class JSLeakTracer : public JS::CallbackTracer {
+class JSLeakTracer : public JS::sandbox::CallbackTracer {
  public:
   explicit JSLeakTracer(JSRuntime* aRuntime)
-      : JS::CallbackTracer(aRuntime, JS::TracerKind::Callback,
+      : JS::sandbox::CallbackTracer(aRuntime, JS::TracerKind::Callback,
                            JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
  private:
@@ -770,8 +793,8 @@ void CycleCollectedJSRuntime::Shutdown(JSContext* cx) {
   // remain are flagged as leaks.
 #ifdef NS_BUILD_REFCNT_LOGGING
   JSLeakTracer tracer(Runtime());
-  TraceNativeBlackRoots(&tracer);
-  TraceAllNativeGrayRoots(&tracer);
+  TraceNativeBlackRoots(JS::sandbox::GetCallbackTracer(&tracer));
+  TraceAllNativeGrayRoots(JS::sandbox::GetCallbackTracer(&tracer));
 #endif
 
 #ifdef DEBUG
@@ -848,7 +871,7 @@ void CycleCollectedJSRuntime::DescribeGCThing(
 void CycleCollectedJSRuntime::NoteGCThingJSChildren(
     JS::GCCellPtr aThing, nsCycleCollectionTraversalCallback& aCb) const {
   TraversalTracer trc(mJSRuntime, aCb);
-  JS::TraceChildren(&trc, aThing);
+  JS::TraceChildren(JS::sandbox::GetCallbackTracer(&trc), aThing);
 }
 
 void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
@@ -957,7 +980,7 @@ void CycleCollectedJSRuntime::TraverseZone(
    * unnecessary loop edges to the graph (bug 842137).
    */
   TraversalTracer trc(mJSRuntime, aCb);
-  js::TraceGrayWrapperTargets(&trc, aZone);
+  js::TraceGrayWrapperTargets(JS::sandbox::GetCallbackTracer(&trc), aZone);
 
   /*
    * To find C++ children of things in the zone, we scan every JS Object in
@@ -1576,7 +1599,7 @@ nsresult CycleCollectedJSRuntime::TraverseRoots(
   TraverseNativeRoots(aCb);
 
   NoteWeakMapsTracer trc(mJSRuntime, aCb);
-  js::TraceWeakMaps(&trc);
+  js::TraceWeakMaps(&trc.base_);
 
   return NS_OK;
 }

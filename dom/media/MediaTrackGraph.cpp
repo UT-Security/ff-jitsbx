@@ -4,6 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaTrackGraphImpl.h"
+#include "js/Interrupt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Unused.h"
 
@@ -3936,7 +3937,7 @@ void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
     MOZ_ASSERT(impl->mJSContext == aCx);
     return;
   }
-  JS_AddInterruptCallback(aCx, InterruptCallback);
+  JS_AddInterruptCallback(aCx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
   impl->mJSContext = aCx;
   if (impl->mInterruptJSCalled) {
     JS_RequestInterruptCallback(aCx);

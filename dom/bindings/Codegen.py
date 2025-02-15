@@ -3025,7 +3025,7 @@ class MethodDefiner(PropertyDefiner):
 
         return (
             m["name"],
-            "(JSNative)sbx_register_cb((void*)(JSNative)%s, 0)" % accessor,
+            ("(JSNative)sbx_register_cb((void*)(JSNative)%s, 0)" % accessor) if accessor != "nullptr" else accessor,
             jitinfo,
             m["length"],
             flags(m, unforgeable),
@@ -21844,7 +21844,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 dedent(
                     """
             // Create a wrapper function.
-            JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandler, 3, 0, nullptr);
+            JSFunction* func = js::NewFunctionWithReserved(cx, (JSNative)sbx_register_cb((void*)ForEachHandler, 0), 3, 0, nullptr);
             if (!func) {
               return false;
             }

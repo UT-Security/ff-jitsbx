@@ -29,6 +29,7 @@
 #include "nsNetCID.h"
 #include "js/RealmIterators.h"
 #include "js/Wrapper.h"
+#include "js/sandbox/sobox.h"
 
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -337,6 +338,14 @@ ContentPrincipal::GetDomain(nsIURI** aDomain) {
   return NS_OK;
 }
 
+  // Set the changed-document-domain flag on compartments containing realms
+  // using this principal.
+static void SetDomainCb(JSContext*, void*, JS::Realm* aRealm,
+                        const JS::AutoRequireNoGC& nogc) {
+  JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm);
+  xpc::SetCompartmentChangedDocumentDomain(comp);
+}
+
 NS_IMETHODIMP
 ContentPrincipal::SetDomain(nsIURI* aDomain) {
   AssertIsOnMainThread();
@@ -348,19 +357,12 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
     SetHasExplicitDomain();
   }
 
-  // Set the changed-document-domain flag on compartments containing realms
-  // using this principal.
-  auto cb = [](JSContext*, void*, JS::Realm* aRealm,
-               const JS::AutoRequireNoGC& nogc) {
-    JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm);
-    xpc::SetCompartmentChangedDocumentDomain(comp);
-  };
   JSPrincipals* principals =
       nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
 
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  JS::IterateRealmsWithPrincipals(jsapi.cx(), principals, nullptr, cb);
+  JS::IterateRealmsWithPrincipals(jsapi.cx(), principals, nullptr, (JS::IterateRealmCallback)sbx_register_cb((void*)SetDomainCb, 0));
 
   return NS_OK;
 }

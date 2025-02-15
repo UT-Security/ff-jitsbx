@@ -438,7 +438,7 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
       break;
     case CallbackType::CALLBACK_SEND_RESPONSE: {
       JS::sandbox::Rooted<JSFunction*> sendResponseFn(
-          aCx, js::NewFunctionWithReserved(aCx, SendResponseCallback::Call,
+          aCx, js::NewFunctionWithReserved(aCx, (JSNative)sbx_register_cb((void*)SendResponseCallback::Call, 0),
                                            /* nargs */ 1, 0, "sendResponse"));
       sendResponseObj = JS_GetFunctionObject(sendResponseFn);
       JS::sandbox::Rooted<JS::Value> sendResponseValue(

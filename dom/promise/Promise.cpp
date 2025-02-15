@@ -413,7 +413,7 @@ static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
 static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
                                              JS::Handle<JSObject*> aHolder,
                                              NativeHandlerTask aTask) {
-  JSFunction* func = js::NewFunctionWithReserved(aCx, NativeHandlerCallback,
+  JSFunction* func = js::NewFunctionWithReserved(aCx, (JSNative)sbx_register_cb((void*)NativeHandlerCallback, 0),
                                                  /* nargs = */ 1,
                                                  /* flags = */ 0, nullptr);
   if (!func) {

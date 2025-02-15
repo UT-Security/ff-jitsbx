@@ -1123,12 +1123,77 @@ class MOZ_RAII JS_PUBLIC_API CustomAutoRooter : private AutoGCRooter {
 
   friend void AutoGCRooter::trace(JSTracer* trc);
 
- protected:
   virtual ~CustomAutoRooter() = default;
+ protected:
 
   /** Supplied by derived class to trace roots. */
   virtual void trace(JSTracer* trc) = 0;
 };
+
+#ifdef JS_SANDBOX
+typedef void (*CustomAutoRooterTraceOp)(void* self, JSTracer* trc);
+typedef void (*CustomAutoRooterDestructOp)(void* self);
+
+struct JS_PUBLIC_API CustomAutoRooterOps {
+  CustomAutoRooterTraceOp trace;
+  CustomAutoRooterDestructOp destruct;
+};
+
+class MOZ_RAII JS_PUBLIC_API CustomAutoRooterWithOps : public CustomAutoRooter {
+private:
+  void* self_;
+  const CustomAutoRooterOps* ops_;
+
+public:
+  explicit CustomAutoRooterWithOps(void* self, const CustomAutoRooterOps* ops, JSContext* cx);
+  explicit CustomAutoRooterWithOps(void* self, const CustomAutoRooterOps* ops, RootingContext* cx);
+
+  virtual ~CustomAutoRooterWithOps() override;
+protected:
+  virtual void trace(JSTracer* trc) override;
+  
+};
+#endif
+
+namespace sandbox {
+#ifdef JS_SANDBOX_API
+
+class MOZ_RAII JS_PUBLIC_API CustomAutoRooter {
+private:
+  union {
+    JS::CustomAutoRooterWithOps base_;
+  };
+
+protected:
+  static void traceCb(void* s, JSTracer* trc) {
+    auto* self = static_cast<CustomAutoRooter*>(s);
+    self->trace(trc);
+  }
+
+  virtual void trace(JSTracer* trc) = 0;
+
+  virtual ~CustomAutoRooter() {
+    base_.JS::CustomAutoRooter::~CustomAutoRooter();
+  }
+
+  static const JS::CustomAutoRooterOps* ops() {
+    static const JS::CustomAutoRooterOps __ops = {
+      (JS::CustomAutoRooterTraceOp)sbx_register_cb((void*)traceCb, 0)
+    };
+
+    return &__ops;
+  }
+
+public:
+  explicit CustomAutoRooter(JSContext* cx)
+      : base_(this, ops(), cx) {}
+      
+  explicit CustomAutoRooter(RootingContext* cx)
+      : base_(this, ops(), cx) {}
+};
+
+#endif
+}
 
 namespace detail {
 

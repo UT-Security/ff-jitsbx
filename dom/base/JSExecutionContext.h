@@ -140,8 +140,13 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   nsresult Compile(const nsAString& aScript);
 
   // Decode a script contained in a buffer.
+#ifdef JS_SANDBOX
+  nsresult Decode(mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBuf,
+                  size_t aBytecodeIndex);
+#else
   nsresult Decode(mozilla::Vector<uint8_t>& aBytecodeBuf,
                   size_t aBytecodeIndex);
+#endif
 
   // Get a successfully compiled script.
   JSScript* GetScript();

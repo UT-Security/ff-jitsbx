@@ -320,6 +320,9 @@ JS_PUBLIC_API size_t JS_GetStringEncodingLength(JSContext* cx, JSString* str);
 JS_PUBLIC_API mozilla::Maybe<std::tuple<size_t, size_t>>
 JS_EncodeStringToUTF8BufferPartial(JSContext* cx, JSString* str,
                                    mozilla::Span<char> buffer);
+JS_PUBLIC_API bool
+JS_EncodeStringToUTF8BufferPartial(JSContext* cx, JSString* str,
+                                   mozilla::Span<char> buffer, size_t* read, size_t* written);
 
 namespace JS {
 

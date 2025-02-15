@@ -11,7 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "js/CallNonGenericMethod.h"
-#include "js/Wrapper.h"
+#include "js/sandbox/Wrapper.h"
 
 namespace xpc {
 

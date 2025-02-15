@@ -4,6 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "js/GCAPI.h"
+#include "js/Promise.h"
+#include "js/StreamConsumer.h"
 #include "nsError.h"
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
@@ -2043,13 +2046,14 @@ void nsJSContext::EnsureStatics() {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.cx(), DOMGCSliceCallback);
+  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.cx(), (JS::GCSliceCallback)sbx_register_cb((void*)DOMGCSliceCallback, 0));
+  sPrevGCSliceCallback = sPrevGCSliceCallback == nullptr ? nullptr : (JS::GCSliceCallback)sbx_cb_addr((void*)sPrevGCSliceCallback);
 
-  JS::SetCreateGCSliceBudgetCallback(jsapi.cx(), CreateGCSliceBudget);
+  JS::SetCreateGCSliceBudgetCallback(jsapi.cx(), (JS::CreateSliceBudgetCallback)sbx_register_cb((void*)CreateGCSliceBudget, 0));
 
-  JS::InitDispatchToEventLoop(jsapi.cx(), DispatchToEventLoop, nullptr);
-  JS::InitConsumeStreamCallback(jsapi.cx(), ConsumeStream,
-                                FetchUtil::ReportJSStreamError);
+  JS::InitDispatchToEventLoop(jsapi.cx(), (JS::DispatchToEventLoopCallback)sbx_register_cb((void*)DispatchToEventLoop, 0), nullptr);
+  JS::InitConsumeStreamCallback(jsapi.cx(), (JS::ConsumeStreamCallback)sbx_register_cb((void*)ConsumeStream, 0),
+                                (JS::ReportStreamErrorCallback)sbx_register_cb((void*)FetchUtil::ReportJSStreamError, 0));
 
   // Set these global xpconnect options...
   Preferences::RegisterCallbackAndCall(SetMemoryPrefChangedCallbackMB,

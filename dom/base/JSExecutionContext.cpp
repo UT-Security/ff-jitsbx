@@ -156,8 +156,13 @@ nsresult JSExecutionContext::Compile(const nsAString& aScript) {
   return Compile(srcBuf);
 }
 
+#ifdef JS_SANDBOX
+nsresult JSExecutionContext::Decode(mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBuf,
+                                    size_t aBytecodeIndex) {
+#else
 nsresult JSExecutionContext::Decode(mozilla::Vector<uint8_t>& aBytecodeBuf,
                                     size_t aBytecodeIndex) {
+#endif
   if (mSkip) {
     return mRv;
   }

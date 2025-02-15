@@ -24,7 +24,7 @@
 
 namespace mozilla {
 
-struct BrowserCompartmentMatcher : public js::CompartmentFilter {
+struct BrowserCompartmentMatcher : public js::sandbox::CompartmentFilter {
   bool match(JS::Compartment* aC) const override {
     return !xpc::MightBeWebContentCompartment(aC);
   }
@@ -131,7 +131,7 @@ WindowDestroyedEvent::Run() {
           } else {
             // We only want to nuke wrappers for the chrome->content case
             js::NukeCrossCompartmentWrappers(
-                cx, BrowserCompartmentMatcher(), realm,
+                cx, js::sandbox::GetCompartmentFilter(BrowserCompartmentMatcher()), realm,
                 mIsInnerWindow ? js::DontNukeWindowReferences
                                : js::NukeWindowReferences,
                 js::NukeIncomingReferences);

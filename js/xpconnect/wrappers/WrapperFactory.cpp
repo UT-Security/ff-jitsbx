@@ -10,6 +10,7 @@
 #include "AccessCheck.h"
 #include "XPCWrapper.h"
 #include "ChromeObjectWrapper.h"
+#include "CrossOriginObjectWrapper.h"
 #include "WrapperFactory.h"
 
 #include "xpcprivate.h"
@@ -60,14 +61,19 @@ const WaiveXrayWrapper* WaiveXrayWrapper::singleton() {
   return &s;
 }
 
+bool WrapperFactory::IsCrossOriginWrapper(JSObject* obj) {
+  return (js::IsProxy(obj) &&
+          js::GetProxyHandler(obj) == js::sandbox::GetProxyHandler(CrossOriginObjectWrapper::singleton()));
+}
+
 bool WrapperFactory::IsOpaqueWrapper(JSObject* obj) {
   return IsWrapper(obj) &&
-         Wrapper::wrapperHandler(obj) == PermissiveXrayOpaque::singleton();
+         Wrapper::wrapperHandler(obj) == js::sandbox::GetProxyHandler(PermissiveXrayOpaque::singleton());
 }
 
 bool WrapperFactory::IsCOW(JSObject* obj) {
   return IsWrapper(obj) &&
-         Wrapper::wrapperHandler(obj) == ChromeObjectWrapper::singleton();
+         Wrapper::wrapperHandler(obj) == js::sandbox::GetWrapper(ChromeObjectWrapper::singleton());
 }
 
 JSObject* WrapperFactory::GetXrayWaiver(HandleObject obj) {
@@ -359,7 +365,7 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
     // allowed, but we might have a CrossOriginObjectWrapper here which allows
     // it dynamically.
     MOZ_ASSERT(!handler->hasSecurityPolicy() ||
-               handler == CrossOriginObjectWrapper::singleton());
+               handler == js::sandbox::GetWrapper(CrossOriginObjectWrapper::singleton()));
   } else {
     // Otherwise, it should depend on whether the target subsumes the origin.
     bool subsumes =
@@ -385,8 +391,8 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
                                                 targetCompartmentPrivate)) {
         // We should have a transparent CCW, unless we have a cross-origin
         // object, in which case it will be a CrossOriginObjectWrapper.
-        MOZ_ASSERT(handler == CrossCompartmentWrapper::getSingletonP() ||
-                   handler == CrossOriginObjectWrapper::singleton());
+        MOZ_ASSERT(handler == js::CrossCompartmentWrapper::getSingletonP() ||
+                   handler == js::sandbox::GetWrapper(CrossOriginObjectWrapper::singleton()));
       } else {
         MOZ_ASSERT(handler->hasSecurityPolicy());
       }
@@ -394,7 +400,7 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
       // Even if target subsumes origin, we might have a wrapper with a security
       // policy here, if it happens to be a CrossOriginObjectWrapper.
       MOZ_ASSERT(!handler->hasSecurityPolicy() ||
-                 handler == CrossOriginObjectWrapper::singleton());
+                 handler == js::sandbox::GetWrapper(CrossOriginObjectWrapper::singleton()));
     }
   }
 }
@@ -403,55 +409,40 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
     {}
 #endif
 
-const CrossOriginObjectWrapper* CrossOriginObjectWrapper::singleton() {
-  static const CrossOriginObjectWrapper s;
-
-  return &s;
-}
-
-bool CrossOriginObjectWrapper::dynamicCheckedUnwrapAllowed(
-    HandleObject obj, JSContext* cx) const {
-  MOZ_ASSERT(js::GetProxyHandler(obj) == this,
-             "Why are we getting called for some random object?");
-  JSObject* target = wrappedObject(obj);
-  return dom::MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(cx,
-                                                                       target);
-}
-
 static const Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
                                     bool waiveXrays, JSObject* obj) {
   // Waived Xray uses a modified CCW that has transparent behavior but
   // transitively waives Xrays on arguments.
   if (waiveXrays) {
     MOZ_ASSERT(!securityWrapper);
-    return WaiveXrayWrapper::singleton();
+    return js::sandbox::GetWrapper(WaiveXrayWrapper::singleton());
   }
 
   // If we don't want or can't use Xrays, select a wrapper that's either
   // entirely transparent or entirely opaque.
   if (xrayType == NotXray) {
     if (!securityWrapper) {
-      return CrossCompartmentWrapper::getSingletonP();
+      return js::CrossCompartmentWrapper::getSingletonP();
     }
-    return FilteringWrapper<CrossCompartmentSecurityWrapper,
-                             Opaque>::singleton();
+    return js::sandbox::GetWrapper(FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper,
+                             Opaque>::singleton());
   }
 
   // Ok, we're using Xray. If this isn't a security wrapper, use the permissive
   // version and skip the filter.
   if (!securityWrapper) {
     if (xrayType == XrayForDOMObject) {
-      return PermissiveXrayDOM::singleton();
+      return js::sandbox::GetWrapper(PermissiveXrayDOM::singleton());
     } else if (xrayType == XrayForJSObject) {
-      return PermissiveXrayJS::singleton();
+      return js::sandbox::GetWrapper(PermissiveXrayJS::singleton());
     }
     MOZ_ASSERT(xrayType == XrayForOpaqueObject);
-    return PermissiveXrayOpaque::singleton();
+    return js::sandbox::GetWrapper(PermissiveXrayOpaque::singleton());
   }
 
   // There's never any reason to expose other objects to non-subsuming actors.
   // Just use an opaque wrapper in these cases.
-  return FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton();
+  return js::sandbox::GetWrapper(FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper, Opaque>::singleton());
 }
 
 JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
@@ -499,21 +490,21 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
     // call (but nothing else).
     JSProtoKey key = IdentifyStandardInstance(obj);
     if (key == JSProto_Function || key == JSProto_BoundFunction) {
-      wrapper = FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                  OpaqueWithCall>::singleton();
+      wrapper = js::sandbox::GetWrapper(FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper,
+                                  OpaqueWithCall>::singleton());
     }
 
     // For vanilla JSObjects exposed from chrome to content, we use a wrapper
     // that fails silently in a few cases. We'd like to get rid of this
     // eventually, but in their current form they don't cause much trouble.
     else if (key == JSProto_Object) {
-      wrapper = ChromeObjectWrapper::singleton();
+      wrapper = js::sandbox::GetWrapper(ChromeObjectWrapper::singleton());
     }
 
     // Otherwise we get an opaque wrapper.
     else {
       wrapper =
-          FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton();
+          js::sandbox::GetWrapper(FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper, Opaque>::singleton());
     }
   }
 
@@ -526,7 +517,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
            IsCrossOriginAccessibleObject(obj) &&
            (!targetSubsumesOrigin || (!originCompartmentPrivate->wantXrays &&
                                       !targetCompartmentPrivate->wantXrays))) {
-    wrapper = CrossOriginObjectWrapper::singleton();
+    wrapper = js::sandbox::GetWrapper(CrossOriginObjectWrapper::singleton());
   }
 
   // Special handling for other web objects.  Again, we only want this in
@@ -539,7 +530,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
            CompartmentsMayHaveHadTransparentCCWs(originCompartmentPrivate,
                                                  targetCompartmentPrivate)) {
     isTransparentWrapperDueToDocumentDomain = true;
-    wrapper = CrossCompartmentWrapper::getSingletonP();
+    wrapper = js::CrossCompartmentWrapper::getSingletonP();
   }
 
   //
@@ -582,8 +573,8 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
           JS_IsBuiltinFunctionConstructor(fun)) {
         NS_WARNING(
             "Trying to expose eval or Function to non-subsuming content!");
-        wrapper = FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                    Opaque>::singleton();
+        wrapper = js::sandbox::GetWrapper(FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper,
+                                    Opaque>::singleton());
       }
     }
   }

@@ -259,10 +259,7 @@ private:
   CallbackTracerOnChildCallback onChild_;
 public:
   CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
-                 JS::TraceOptions options = JS::TraceOptions())
-      : CallbackTracer(rt, kind, options), self_(self), onChild_(onChild) {
-    MOZ_ASSERT(isCallbackTracer());
-  }
+                 JS::TraceOptions options = JS::TraceOptions());
   CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
                  JS::TraceOptions options = JS::TraceOptions());
 
@@ -294,6 +291,7 @@ public:
       : base_(this, (JS::CallbackTracerOnChildCallback)sbx_register_cb((void*)CallbackTracer::onChildCb, 0), cx, kind, options) {}
 
   inline JS::CallbackTracer* getCallbackTracer() { return &base_; }
+  JS::TracingContext& context() { return base_.context(); }
 };
 
 inline JS::CallbackTracer* GetCallbackTracer(CallbackTracer* trc) { return trc->getCallbackTracer(); }

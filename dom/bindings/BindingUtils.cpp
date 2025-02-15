@@ -786,7 +786,7 @@ static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                                    const char* name,
                                    const JSNativeHolder* nativeHolder,
                                    unsigned ctorNargs) {
-  JSFunction* fun = js::NewFunctionWithReserved(cx, Constructor, ctorNargs,
+  JSFunction* fun = js::NewFunctionWithReserved(cx, (JSNative)sbx_register_cb((void*)Constructor, 0), ctorNargs,
                                                 JSFUN_CONSTRUCTOR, name);
   if (!fun) {
     return nullptr;
@@ -2115,14 +2115,16 @@ namespace binding_detail {
 bool ResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
-  return js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
+  MOZ_ASSERT(!IsWrapper(obj), "Expected no wrapper");
+  return js::sandbox::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
                                                             desc);
 }
 
 bool EnumerateOwnProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::Handle<JSObject*> obj,
                             JS::MutableHandleVector<jsid> props) {
-  return js::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
+  MOZ_ASSERT(!IsWrapper(obj), "Expected no wrapper");
+  return js::sandbox::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
 }
 
 }  // namespace binding_detail
@@ -3609,7 +3611,7 @@ static inline JSObject* NewObservableArrayProxyObject(
 
   JS::sandbox::Rooted<JS::Value> targetValue(aCx, JS::ObjectValue(*target));
   JS::sandbox::Rooted<JSObject*> proxy(
-      aCx, js::NewProxyObject(aCx, aHandler, targetValue, nullptr));
+      aCx, js::NewProxyObject(aCx, js::sandbox::GetProxyHandler(aHandler), targetValue, nullptr));
   if (!proxy) {
     return nullptr;
   }

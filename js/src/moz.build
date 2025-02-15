@@ -308,6 +308,7 @@ EXPORTS.js.sandbox += [
     "../public/sandbox/Promise.h",
     "../public/sandbox/Proxy.h",
     "../public/sandbox/RootingAPI.h",
+    "../public/sandbox/Wrapper.h",
 ]
 
 UNIFIED_SOURCES += [

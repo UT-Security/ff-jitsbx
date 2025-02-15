@@ -8,7 +8,7 @@
 #define mozilla_dom_ObservableArrayProxyHandler_h
 
 #include "js/TypeDecls.h"
-#include "js/Wrapper.h"
+#include "js/sandbox/Wrapper.h"
 
 namespace mozilla::dom {
 
@@ -21,10 +21,15 @@ namespace mozilla::dom {
  * The additional properties are stored in the proxy target object.
  */
 
-class ObservableArrayProxyHandler : public js::ForwardingProxyHandler {
+class ObservableArrayProxyHandler : public js::sandbox::ForwardingProxyHandler {
  public:
+#ifdef JS_SANDBOX
+  explicit ObservableArrayProxyHandler()
+      : js::sandbox::ForwardingProxyHandler(&family) {}
+#else
   explicit constexpr ObservableArrayProxyHandler()
-      : js::ForwardingProxyHandler(&family) {}
+      : js::sandbox::ForwardingProxyHandler(&family) {}
+#endif
 
   // Implementations of methods that can be implemented in terms of
   // other lower-level methods.
@@ -106,7 +111,7 @@ inline const ObservableArrayProxyHandler* GetObservableArrayProxyHandler(
     JSObject* obj) {
   MOZ_ASSERT(IsObservableArrayProxy(obj));
   return static_cast<const ObservableArrayProxyHandler*>(
-      js::GetProxyHandler(obj));
+      static_cast<const js::ForwardingProxyHandlerWithOps*>(js::GetProxyHandler(obj))->getPrivate());
 }
 
 }  // namespace mozilla::dom

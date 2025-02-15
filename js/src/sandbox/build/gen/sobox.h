@@ -32,6 +32,9 @@ void sbx_stackpop(size_t n);
 // must be copied when 'fn' is invoked.
 extern "C" void* sbx_register_cb(void* fn, size_t stackframe);
 
+// sbx_cb_addr returns the callback corresponding to the callback trampoline 'cb'.
+extern  "C" void* sbx_cb_addr(void* cb);
+
 // sbx_unregister_cb unregisters 'fn' as a callback.
 extern  "C" void sbx_unregister_cb(void* fn);
 

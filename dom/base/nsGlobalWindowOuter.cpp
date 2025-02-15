@@ -84,7 +84,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineObject, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "js/RealmIterators.h"
-#include "js/Wrapper.h"
+#include "js/sandbox/Wrapper.h"
 #include "nsLayoutUtils.h"
 #include "nsReadableUtils.h"
 #include "nsJSEnvironment.h"
@@ -355,8 +355,8 @@ const JSClass* OuterWindowProxyClass() {
 static const size_t OUTER_WINDOW_SLOT = 0;
 static const size_t HOLDER_WEAKMAP_SLOT = 1;
 
-class nsOuterWindowProxy : public MaybeCrossOriginObject<js::Wrapper> {
-  using Base = MaybeCrossOriginObject<js::Wrapper>;
+class nsOuterWindowProxy : public MaybeCrossOriginObject<js::sandbox::Wrapper> {
+  using Base = MaybeCrossOriginObject<js::sandbox::Wrapper>;
 
  public:
   constexpr nsOuterWindowProxy() : Base(0) {}
@@ -627,7 +627,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
       // anyway this is not changing any security behavior.
       JSAutoRealm ar(cx, proxy);
       JS_MarkCrossZoneId(cx, id);
-      bool ok = js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
+      bool ok = js::sandbox::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
       if (!ok) {
         return false;
       }
@@ -701,7 +701,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
   }
 
   JS::ObjectOpResult ourResult;
-  bool ok = js::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
+  bool ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
   if (!ok) {
     return false;
   }
@@ -721,7 +721,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     }
 
     JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> existingDesc(cx);
-    ok = js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, &existingDesc);
+    ok = js::sandbox::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, &existingDesc);
     if (!ok) {
       return false;
     }
@@ -737,7 +737,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     updatedDesc.setConfigurable(false);
 
     JS::ObjectOpResult ourNewResult;
-    ok = js::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
+    ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
     if (!ok) {
       return false;
     }
@@ -780,7 +780,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
     JS::sandbox::RootedVector<jsid> innerProps(cx);
     {  // Scope for JSAutoRealm so we can mark the ids once we exit it
       JSAutoRealm ar(cx, proxy);
-      if (!js::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
+      if (!js::sandbox::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
         return false;
       }
     }
@@ -846,7 +846,7 @@ bool nsOuterWindowProxy::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
   // js::Wrapper caller..
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::delete_(cx, proxy, id, result);
+  return js::sandbox::Wrapper::delete_(cx, proxy, id, result);
 }
 
 JSObject* nsOuterWindowProxy::getSameOriginPrototype(JSContext* cx) const {
@@ -874,7 +874,7 @@ bool nsOuterWindowProxy::has(JSContext* cx, JS::Handle<JSObject*> proxy,
   // "proxy".  We're same-origin with it, so this should be safe.
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::has(cx, proxy, id, bp);
+  return js::sandbox::Wrapper::has(cx, proxy, id, bp);
 }
 
 bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
@@ -895,7 +895,11 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
     //
     // The BaseProxyHandler code is OK with this happening without entering the
     // compartment of "proxy".
+#ifdef JS_SANDBOX
+    return getProxyHandler()->js::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+#else
     return js::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+#endif
   }
 
   if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
@@ -907,7 +911,7 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
   // "proxy".  We're same-origin with it, so this should be safe.
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::hasOwn(cx, proxy, id, bp);
+  return js::sandbox::Wrapper::hasOwn(cx, proxy, id, bp);
 }
 
 bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
@@ -950,7 +954,7 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     }
 
     // Fall through to js::Wrapper.
-    if (!js::Wrapper::get(cx, proxy, wrappedReceiver, id, vp)) {
+    if (!js::sandbox::Wrapper::get(cx, proxy, wrappedReceiver, id, vp)) {
       return false;
     }
   }
@@ -986,7 +990,7 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
 
   JS_MarkCrossZoneId(cx, id);
 
-  return js::Wrapper::set(cx, proxy, id, wrappedArg, wrappedReceiver, result);
+  return js::sandbox::Wrapper::set(cx, proxy, id, wrappedArg, wrappedReceiver, result);
 }
 
 bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
@@ -1016,7 +1020,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   JS::sandbox::RootedVector<jsid> innerProps(cx);
   {  // Scope for JSAutoRealm so we can mark the ids once we exit it.
     JSAutoRealm ar(cx, proxy);
-    if (!js::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
+    if (!js::sandbox::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
       return false;
     }
   }
@@ -1148,7 +1152,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
   }
 
   JSFunction* fun =
-      js::NewFunctionWithReserved(cx, PDFJSPrintMethod, 0, 0, "print");
+      js::NewFunctionWithReserved(cx, (JSNative)sbx_register_cb((void*)PDFJSPrintMethod, 0), 0, 0, "print");
   if (!fun) {
     return false;
   }
@@ -1292,7 +1296,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   js::WrapperOptions options;
   options.setClass(OuterWindowProxyClass());
   JSObject* obj =
-      js::Wrapper::New(cx, global,
+      js::sandbox::Wrapper::New(cx, global,
                        isChrome ? nsChromeOuterWindowProxy::singleton()
                                 : nsOuterWindowProxy::singleton(),
                        options);
@@ -1999,7 +2003,7 @@ static JS::RealmCreationOptions& SelectZone(
     // Now try to find an existing compartment that's same-origin
     // with our principal.
     CompartmentFinderState data(aPrincipal);
-    JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartment);
+    JS_IterateCompartmentsInZone(aCx, zone, &data, (JSIterateCompartmentCallback)sbx_register_cb((void*)FindSameOriginCompartment, 0));
     if (data.compartment) {
       return aOptions.setExistingCompartment(data.compartment);
     }

@@ -6,6 +6,7 @@
 
 #include "nsString.h"
 #include "jsapi.h"
+#include "js/sandbox/sobox.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
@@ -158,8 +159,13 @@ bool Forget(JSContext* cx, unsigned argc, JS::Value* vp) {
   return JS::CallNonGenericMethod<IsWitness, ForgetImpl>(cx, args);
 }
 
-static const JSFunctionSpec sWitnessClassFunctions[] = {
-    JS_FN("forget", Forget, 0, JSPROP_READONLY | JSPROP_PERMANENT), JS_FS_END};
+static const JSFunctionSpec* sWitnessClassFunctions() {
+  static const JSFunctionSpec _spec[] = {
+    JS_FN("forget", (JSNative)sbx_register_cb((void*)Forget, 0), 0, JSPROP_READONLY | JSPROP_PERMANENT), JS_FS_END
+  };
+
+  return _spec;
+}
 
 }  // namespace
 
@@ -186,7 +192,7 @@ FinalizationWitnessService::Make(const char* aTopic, const char16_t* aValue,
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  if (!JS_DefineFunctions(aCx, objResult, sWitnessClassFunctions)) {
+  if (!JS_DefineFunctions(aCx, objResult, sWitnessClassFunctions())) {
     return NS_ERROR_FAILURE;
   }
 

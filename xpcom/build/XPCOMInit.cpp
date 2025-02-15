@@ -502,6 +502,8 @@ NS_InitMinimalXPCOM() {
     return rv;
   }
 
+  sbx_init();
+
   // Create the Component/Service Manager
   nsComponentManagerImpl::gComponentManager = new nsComponentManagerImpl();
   NS_ADDREF(nsComponentManagerImpl::gComponentManager);

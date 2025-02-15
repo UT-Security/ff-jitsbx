@@ -273,6 +273,37 @@ struct WeakMapTracer {
   virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
 };
 
+#ifdef JS_SANDBOX
+typedef void (*WeakMapTracerTraceOp)(void* self, JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value);
+
+struct JS_PUBLIC_API WeakMapTracerWithOps : WeakMapTracer {
+  void* self_;
+  WeakMapTracerTraceOp op_;
+
+  explicit WeakMapTracerWithOps(void* self, WeakMapTracerTraceOp op, JSRuntime* rt);
+  virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value);
+};
+#endif
+
+#ifdef JS_SANDBOX_API
+namespace sandbox {
+
+struct WeakMapTracer {
+  js::WeakMapTracerWithOps base_;
+
+  static void traceCb(void* s, JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) {
+    auto* self = static_cast<WeakMapTracer*>(s);
+    self->trace(m, key, value);
+  }
+  
+  virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
+
+  explicit WeakMapTracer(JSRuntime* rt): base_(this, (js::WeakMapTracerTraceOp)sbx_register_cb((void*)traceCb, 0), rt) {}
+};
+
+}
+#endif
+
 extern JS_PUBLIC_API void TraceWeakMaps(WeakMapTracer* trc);
 
 extern JS_PUBLIC_API bool AreGCGrayBitsValid(JSRuntime* rt);
@@ -515,15 +546,65 @@ struct CompartmentFilter {
   virtual bool match(JS::Compartment* c) const = 0;
 };
 
+#ifdef JS_SANDBOX
+typedef bool (*CompartmentFilterMatchCallback)(const void* self, JS::Compartment* c);
+
+struct JS_PUBLIC_API ExternalCompartmentFitler : public CompartmentFilter {
+  const void* self_;
+  CompartmentFilterMatchCallback cb_;
+
+  explicit ExternalCompartmentFitler(const void* self, CompartmentFilterMatchCallback cb);
+  virtual bool match(JS::Compartment* c) const override;
+};
+#endif
+
+namespace sandbox {
+#ifdef JS_SANDBOX_API
+struct CompartmentFilter {
+  ExternalCompartmentFitler base_;
+
+  static bool matchCb(const void* self, JS::Compartment* c) {
+    auto* filter = static_cast<const CompartmentFilter*>(self);
+    return filter->match(c);
+  }
+
+  explicit CompartmentFilter()
+      : base_(this, (CompartmentFilterMatchCallback)sbx_register_cb(
+                        (void*)matchCb, 0)) {}
+
+  virtual bool match(JS::Compartment* c) const = 0;
+};
+
+inline static const js::CompartmentFilter& GetCompartmentFilter(const CompartmentFilter& filter) { return filter.base_; }
+
+#else
+using CompartmentFilter = js::CompartmentFilter;
+inline static const js::CompartmentFilter& GetCompartmentFilter(const CompartmentFilter& filter) { return filter; }
+#endif
+}
+
+#ifdef JS_SANDBOX
+struct JS_PUBLIC_API AllCompartments : public CompartmentFilter {
+  explicit AllCompartments();
+  virtual bool match(JS::Compartment* c) const override;
+};
+
+struct JS_PUBLIC_API SingleCompartment : public CompartmentFilter {
+  JS::Compartment* ours;
+  explicit SingleCompartment(JS::Compartment* c);
+  virtual bool match(JS::Compartment* c) const override;
+};
+#else
 struct AllCompartments : public CompartmentFilter {
   virtual bool match(JS::Compartment* c) const override { return true; }
 };
-
 struct SingleCompartment : public CompartmentFilter {
   JS::Compartment* ours;
   explicit SingleCompartment(JS::Compartment* c) : ours(c) {}
   virtual bool match(JS::Compartment* c) const override { return c == ours; }
 };
+#endif
+ 
 
 extern JS_PUBLIC_API bool NukeCrossCompartmentWrappers(
     JSContext* cx, const CompartmentFilter& sourceFilter, JS::Realm* target,
@@ -789,6 +870,51 @@ class JS_PUBLIC_API CompartmentTransplantCallback {
  public:
   virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) = 0;
 };
+
+#ifdef JS_SANDBOX
+typedef JSObject* (*CompartmentGetObjectToTransplantCallback)(void* self, JS::Compartment* compartment);
+
+class JS_PUBLIC_API CompartmentTransplantWithCallback : public CompartmentTransplantCallback {
+  void* self_;
+  CompartmentGetObjectToTransplantCallback cb_;
+
+public:
+  CompartmentTransplantWithCallback(void* self, CompartmentGetObjectToTransplantCallback cb);
+  virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) override;
+};
+#endif
+
+namespace sandbox {
+#ifdef JS_SANDBOX_API
+class CompartmentTransplantCallback {
+js::CompartmentTransplantWithCallback inner_;
+
+public:
+  virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) = 0;
+
+  static JSObject* getObjectToTransplantCb(void* p, JS::Compartment* compartment) {
+    auto* self = static_cast<CompartmentTransplantCallback*>(p);
+    return self->getObjectToTransplant(compartment);
+  }
+
+  CompartmentTransplantCallback()
+      : inner_(this, (js::CompartmentGetObjectToTransplantCallback)sbx_register_cb(
+                         (void*)getObjectToTransplantCb, 0)) {}
+
+  js::CompartmentTransplantCallback* getCompartmentTransplantCallback() { return &inner_; }
+};
+
+inline static js::CompartmentTransplantCallback* GetCompartmentTransplantCallback(js::sandbox::CompartmentTransplantCallback* cb) {
+  return cb->getCompartmentTransplantCallback();
+}
+#else
+using CompartmentTransplantCallback = js::CompartmentTransplantCallback;
+
+inline static js::CompartmentTransplantCallback* GetCompartmentTransplantCallback(js::sandbox::CompartmentTransplantCallback* cb) {
+  return cb;
+}
+#endif
+}
 
 // Gather a set of remote window proxies by calling the callback on every
 // compartment, then transform them into cross-compartment wrappers to newTarget

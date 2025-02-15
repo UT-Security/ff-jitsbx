@@ -8,6 +8,9 @@
 #include "mozilla/ProcessHangMonitorIPC.h"
 
 #include "jsapi.h"
+#ifdef JS_SANDBOX
+#include "js/sandbox/sobox.h"
+#endif
 #include "xpcprivate.h"
 
 #include "mozilla/Atomics.h"
@@ -1225,7 +1228,7 @@ void mozilla::CreateHangMonitorChild(
   ReleaseAssertIsOnMainThread();
 
   JSContext* cx = danger::GetJSContext();
-  JS_AddInterruptCallback(cx, InterruptCallback);
+  JS_AddInterruptCallback(cx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
 
   ProcessHangMonitor* monitor = ProcessHangMonitor::GetOrCreate();
   HangMonitorChild::CreateAndBind(monitor, std::move(aEndpoint));

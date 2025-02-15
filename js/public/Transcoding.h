@@ -12,6 +12,9 @@
 #define js_Transcoding_h
 
 #include "mozilla/Range.h"   // mozilla::Range
+#ifdef JS_SANDBOX
+#include "js/AllocPolicy.h"
+#endif
 #include "mozilla/Vector.h"  // mozilla::Vector
 
 #include <stddef.h>  // size_t
@@ -23,7 +26,11 @@ namespace JS {
 
 class JS_PUBLIC_API ReadOnlyCompileOptions;
 
+#ifdef JS_SANDBOX
+using TranscodeBuffer = mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>;
+#else
 using TranscodeBuffer = mozilla::Vector<uint8_t>;
+#endif
 using TranscodeRange = mozilla::Range<const uint8_t>;
 
 struct TranscodeSource final {

@@ -2131,23 +2131,23 @@ void DoTraceSequence(JSTracer* trc, nsTArray<T>& seq) {
 
 // Rooter class for sequences; this is what we mostly use in the codegen
 template <typename T>
-class MOZ_RAII SequenceRooter final : private JS::CustomAutoRooter {
+class MOZ_RAII SequenceRooter final : private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
   SequenceRooter(const CX& cx, FallibleTArray<T>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : JS::sandbox::CustomAutoRooter(cx),
         mFallibleArray(aSequence),
         mSequenceType(eFallibleArray) {}
 
   template <typename CX>
   SequenceRooter(const CX& cx, nsTArray<T>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : JS::sandbox::CustomAutoRooter(cx),
         mInfallibleArray(aSequence),
         mSequenceType(eInfallibleArray) {}
 
   template <typename CX>
   SequenceRooter(const CX& cx, Nullable<nsTArray<T>>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : JS::sandbox::CustomAutoRooter(cx),
         mNullableArray(aSequence),
         mSequenceType(eNullableArray) {}
 
@@ -2178,15 +2178,15 @@ class MOZ_RAII SequenceRooter final : private JS::CustomAutoRooter {
 
 // Rooter class for Record; this is what we mostly use in the codegen.
 template <typename K, typename V>
-class MOZ_RAII RecordRooter final : private JS::CustomAutoRooter {
+class MOZ_RAII RecordRooter final : private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
   RecordRooter(const CX& cx, Record<K, V>* aRecord)
-      : JS::CustomAutoRooter(cx), mRecord(aRecord), mRecordType(eRecord) {}
+      : JS::sandbox::CustomAutoRooter(cx), mRecord(aRecord), mRecordType(eRecord) {}
 
   template <typename CX>
   RecordRooter(const CX& cx, Nullable<Record<K, V>>* aRecord)
-      : JS::CustomAutoRooter(cx),
+      : JS::sandbox::CustomAutoRooter(cx),
         mNullableRecord(aRecord),
         mRecordType(eNullableRecord) {}
 
@@ -2213,21 +2213,21 @@ class MOZ_RAII RecordRooter final : private JS::CustomAutoRooter {
 };
 
 template <typename T>
-class MOZ_RAII RootedUnion : public T, private JS::CustomAutoRooter {
+class MOZ_RAII RootedUnion : public T, private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
-  explicit RootedUnion(const CX& cx) : T(), JS::CustomAutoRooter(cx) {}
+  explicit RootedUnion(const CX& cx) : T(), JS::sandbox::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { this->TraceUnion(trc); }
 };
 
 template <typename T>
 class MOZ_STACK_CLASS NullableRootedUnion : public Nullable<T>,
-                                            private JS::CustomAutoRooter {
+                                            private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
   explicit NullableRootedUnion(const CX& cx)
-      : Nullable<T>(), JS::CustomAutoRooter(cx) {}
+      : Nullable<T>(), JS::sandbox::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override {
     if (!this->IsNull()) {
@@ -2935,7 +2935,7 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
   aOptions.creationOptions()
-      .setTrace(CreateGlobalOptions<T>::TraceGlobal)
+      .setTrace((JSTraceOp)sbx_register_cb((void*)CreateGlobalOptions<T>::TraceGlobal,0))
       .setProfilerRealmID(GetWindowID(aNative));
   xpc::SetPrefableRealmOptions(aOptions);
 

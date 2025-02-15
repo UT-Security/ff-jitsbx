@@ -14,11 +14,11 @@ namespace mozilla::dom {
 
 template <typename K, typename V>
 class MOZ_RAII RootedRecord final : public Record<K, V>,
-                                    private JS::CustomAutoRooter {
+                                    private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
   explicit RootedRecord(const CX& cx)
-      : Record<K, V>(), JS::CustomAutoRooter(cx) {}
+      : Record<K, V>(), JS::sandbox::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { TraceRecord(trc, *this); }
 };

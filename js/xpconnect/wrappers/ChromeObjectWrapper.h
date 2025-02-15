@@ -20,7 +20,7 @@ struct OpaqueWithSilentFailing;
 // reasons. For extra security, we override the traps that allow content to pass
 // an object to chrome, and perform extra security checks on them.
 #define ChromeObjectWrapperBase \
-  FilteringWrapper<js::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
+  FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
 
 class ChromeObjectWrapper : public ChromeObjectWrapperBase {
  public:

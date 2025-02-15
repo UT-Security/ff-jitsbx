@@ -15,8 +15,8 @@
 #include "jsfriendapi.h"
 #include "js/friend/XrayJitInfo.h"  // JS::XrayJitInfo
 #include "js/Object.h"              // JS::GetReservedSlot
-#include "js/Proxy.h"
-#include "js/Wrapper.h"
+#include "js/sandbox/Proxy.h"
+#include "js/sandbox/Wrapper.h"
 
 // Slot where Xray functions for Web IDL methods store a pointer to
 // the Xray wrapper they're associated with.
@@ -71,13 +71,13 @@ class XrayTraits {
   }
 
   static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper,
-                              const js::Wrapper& baseInstance,
+                              const js::sandbox::Wrapper& baseInstance,
                               js::ESClass* cls) {
     return baseInstance.getBuiltinClass(cx, wrapper, cls);
   }
 
   static const char* className(JSContext* cx, JS::HandleObject wrapper,
-                               const js::Wrapper& baseInstance) {
+                               const js::sandbox::Wrapper& baseInstance) {
     return baseInstance.className(cx, wrapper);
   }
 
@@ -162,10 +162,10 @@ class DOMXrayTraits : public XrayTraits {
   virtual bool enumerateNames(JSContext* cx, JS::HandleObject wrapper,
                               unsigned flags, JS::MutableHandleIdVector props);
   static bool call(JSContext* cx, JS::HandleObject wrapper,
-                   const JS::CallArgs& args, const js::Wrapper& baseInstance);
+                   const JS::CallArgs& args, const js::sandbox::Wrapper& baseInstance);
   static bool construct(JSContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args,
-                        const js::Wrapper& baseInstance);
+                        const js::sandbox::Wrapper& baseInstance);
 
   static bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                            JS::HandleObject target,
@@ -205,7 +205,7 @@ class JSXrayTraits : public XrayTraits {
                               unsigned flags, JS::MutableHandleIdVector props);
 
   static bool call(JSContext* cx, JS::HandleObject wrapper,
-                   const JS::CallArgs& args, const js::Wrapper& baseInstance) {
+                   const JS::CallArgs& args, const js::sandbox::Wrapper& baseInstance) {
     JSXrayTraits& self = JSXrayTraits::singleton;
     JS::sandbox::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
     if (!holder) {
@@ -223,7 +223,7 @@ class JSXrayTraits : public XrayTraits {
 
   static bool construct(JSContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args,
-                        const js::Wrapper& baseInstance);
+                        const js::sandbox::Wrapper& baseInstance);
 
   bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                     JS::HandleObject target, JS::MutableHandleObject protop) {
@@ -323,7 +323,7 @@ class OpaqueXrayTraits : public XrayTraits {
   }
 
   static bool call(JSContext* cx, JS::HandleObject wrapper,
-                   const JS::CallArgs& args, const js::Wrapper& baseInstance) {
+                   const JS::CallArgs& args, const js::sandbox::Wrapper& baseInstance) {
     JS::sandbox::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
@@ -331,7 +331,7 @@ class OpaqueXrayTraits : public XrayTraits {
 
   static bool construct(JSContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args,
-                        const js::Wrapper& baseInstance) {
+                        const js::sandbox::Wrapper& baseInstance) {
     JS::sandbox::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
@@ -352,14 +352,14 @@ class OpaqueXrayTraits : public XrayTraits {
   }
 
   static bool getBuiltinClass(JSContext* cx, JS::HandleObject wrapper,
-                              const js::Wrapper& baseInstance,
+                              const js::sandbox::Wrapper& baseInstance,
                               js::ESClass* cls) {
     *cls = js::ESClass::Other;
     return true;
   }
 
   static const char* className(JSContext* cx, JS::HandleObject wrapper,
-                               const js::Wrapper& baseInstance) {
+                               const js::sandbox::Wrapper& baseInstance) {
     return "Opaque";
   }
 
@@ -377,13 +377,24 @@ XrayTraits* GetXrayTraits(JSObject* obj);
 
 template <typename Base, typename Traits>
 class XrayWrapper : public Base {
+#ifdef JS_SANDBOX
+  static_assert(std::is_base_of_v<js::sandbox::CrossCompartmentWrapper, Base>,
+                "Base *must* derive from js::BaseProxyHandler");
+#else
   static_assert(std::is_base_of_v<js::BaseProxyHandler, Base>,
                 "Base *must* derive from js::BaseProxyHandler");
+#endif
 
  public:
+#ifdef JS_SANDBOX
+  inline explicit XrayWrapper(unsigned flags)
+      : Base(flags | WrapperFactory::IS_XRAY_WRAPPER_FLAG,
+             /* aHasPrototype = */ true){};
+#else
   constexpr explicit XrayWrapper(unsigned flags)
       : Base(flags | WrapperFactory::IS_XRAY_WRAPPER_FLAG,
              /* aHasPrototype = */ true){};
+#endif
 
   /* Standard internal methods. */
   virtual bool getOwnPropertyDescriptor(
@@ -449,11 +460,11 @@ class XrayWrapper : public Base {
 };
 
 #define PermissiveXrayDOM \
-  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::DOMXrayTraits>
+  xpc::XrayWrapper<js::sandbox::CrossCompartmentWrapper, xpc::DOMXrayTraits>
 #define PermissiveXrayJS \
-  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::JSXrayTraits>
+  xpc::XrayWrapper<js::sandbox::CrossCompartmentWrapper, xpc::JSXrayTraits>
 #define PermissiveXrayOpaque \
-  xpc::XrayWrapper<js::CrossCompartmentWrapper, xpc::OpaqueXrayTraits>
+  xpc::XrayWrapper<js::sandbox::CrossCompartmentWrapper, xpc::OpaqueXrayTraits>
 
 extern template class PermissiveXrayDOM;
 extern template class PermissiveXrayJS;

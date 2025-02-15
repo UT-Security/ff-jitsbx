@@ -11,6 +11,7 @@ EXPORTS += [
 UNIFIED_SOURCES += [
     "AccessCheck.cpp",
     "ChromeObjectWrapper.cpp",
+    "CrossOriginObjectWrapper.cpp",
     "FilteringWrapper.cpp",
     "WaiveXrayWrapper.cpp",
     "WrapperFactory.cpp",

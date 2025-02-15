@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "js/RootingAPI.h"
 #ifdef MOZ_VALGRIND
 #  include <valgrind/memcheck.h>
 #endif
@@ -32,6 +33,22 @@ using JS::AutoGCRooter;
 using RootRange = RootedValueMap::Range;
 using RootEntry = RootedValueMap::Entry;
 using RootEnum = RootedValueMap::Enum;
+
+#ifdef JS_SANDBOX
+JS::CustomAutoRooterWithOps::CustomAutoRooterWithOps(void* self, const CustomAutoRooterOps* ops, JSContext* cx)
+    : CustomAutoRooter(cx), self_(self), ops_(ops) {}
+    
+JS::CustomAutoRooterWithOps::CustomAutoRooterWithOps(void* self, const CustomAutoRooterOps* ops, RootingContext* cx)
+    : CustomAutoRooter(cx), self_(self), ops_(ops) {}
+    
+void JS::CustomAutoRooterWithOps::trace(JSTracer* trc) {
+  ops_->trace(self_, trc);
+}
+
+JS::CustomAutoRooterWithOps::~CustomAutoRooterWithOps() {
+  ops_->destruct(self_);
+}
+#endif
 
 template <typename Base, typename T>
 inline void TypedRootedGCThingBase<Base, T>::trace(JSTracer* trc,

@@ -362,6 +362,10 @@ const CrossCompartmentWrapper* CrossCompartmentWrapper::getSingletonP() {
   return &singleton;
 }
 
+#ifdef JS_SANDBOX
+DEFINE_WRAPPER_OPS_CLASS(CrossCompartmentWrapperWithOps, CrossCompartmentWrapper)
+#endif
+
 JS_PUBLIC_API void js::NukeCrossCompartmentWrapper(JSContext* cx,
                                                    JSObject* wrapper) {
   JS::Compartment* comp = wrapper->compartment();

@@ -10,14 +10,14 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 
-#include "js/Wrapper.h"
+#include "js/sandbox/Wrapper.h"
 
 namespace xpc {
 
-class WaiveXrayWrapper : public js::CrossCompartmentWrapper {
+class WaiveXrayWrapper : public js::sandbox::CrossCompartmentWrapper {
  public:
   explicit inline WaiveXrayWrapper(unsigned flags)
-      : js::CrossCompartmentWrapper(flags) {}
+      : js::sandbox::CrossCompartmentWrapper(flags) {}
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,

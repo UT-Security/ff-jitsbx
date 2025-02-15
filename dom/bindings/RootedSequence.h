@@ -14,11 +14,11 @@ namespace mozilla::dom::binding_detail {
 
 template <typename T>
 class MOZ_RAII RootedAutoSequence final : public AutoSequence<T>,
-                                          private JS::CustomAutoRooter {
+                                          private JS::sandbox::CustomAutoRooter {
  public:
   template <typename CX>
   explicit RootedAutoSequence(const CX& cx)
-      : AutoSequence<T>(), JS::CustomAutoRooter(cx) {}
+      : AutoSequence<T>(), JS::sandbox::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { DoTraceSequence(trc, *this); }
 };

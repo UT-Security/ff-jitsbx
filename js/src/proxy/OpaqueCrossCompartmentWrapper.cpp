@@ -154,3 +154,7 @@ const OpaqueCrossCompartmentWrapper OpaqueCrossCompartmentWrapper::singleton;
 JS_PUBLIC_API const OpaqueCrossCompartmentWrapper* OpaqueCrossCompartmentWrapper::getSingletonP() {
     return &singleton;
 }
+
+#ifdef JS_SANDBOX
+DEFINE_OPAQUE_WRAPPER_OPS_CLASS(OpaqueCrossCompartmentWrapperWithOps, OpaqueCrossCompartmentWrapper);
+#endif

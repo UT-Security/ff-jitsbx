@@ -624,7 +624,7 @@ void BrowsingContext::SetDocShell(nsIDocShell* aDocShell) {
 // proxy from the map, because the object will be transplanted into another kind
 // of object.
 class MOZ_STACK_CLASS CompartmentRemoteProxyTransplantCallback
-    : public js::CompartmentTransplantCallback {
+    : public js::sandbox::CompartmentTransplantCallback {
  public:
   explicit CompartmentRemoteProxyTransplantCallback(
       BrowsingContext* aBrowsingContext)
@@ -660,7 +660,7 @@ void BrowsingContext::CleanUpDanglingRemoteOuterWindowProxies(
   mDanglingRemoteOuterProxies = false;
 
   CompartmentRemoteProxyTransplantCallback cb(this);
-  js::RemapRemoteWindowProxies(aCx, &cb, aOuter);
+  js::RemapRemoteWindowProxies(aCx, js::sandbox::GetCompartmentTransplantCallback(&cb), aOuter);
 }
 
 bool BrowsingContext::IsActive() const {

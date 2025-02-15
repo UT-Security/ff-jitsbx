@@ -1350,7 +1350,7 @@ nsresult XPCJSContext::Initialize() {
 
   PROFILER_SET_JS_CONTEXT(cx);
 
-  JS_AddInterruptCallback(cx, InterruptCallback);
+  JS_AddInterruptCallback(cx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
 
   Runtime()->Initialize(cx);
 

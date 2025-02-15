@@ -1034,7 +1034,7 @@ bool JSXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
 
 bool JSXrayTraits::construct(JSContext* cx, HandleObject wrapper,
                              const JS::CallArgs& args,
-                             const js::Wrapper& baseInstance) {
+                             const js::sandbox::Wrapper& baseInstance) {
   JSXrayTraits& self = JSXrayTraits::singleton;
   JS::sandbox::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
   if (!holder) {
@@ -1789,7 +1789,7 @@ bool DOMXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
 
 bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
                          const JS::CallArgs& args,
-                         const js::Wrapper& baseInstance) {
+                         const js::sandbox::Wrapper& baseInstance) {
   JS::sandbox::RootedObject obj(cx, getTargetObject(wrapper));
   const JSClass* clasp = JS::GetClass(obj);
   // What we have is either a WebIDL interface object, a WebIDL prototype
@@ -1811,7 +1811,7 @@ bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
 
 bool DOMXrayTraits::construct(JSContext* cx, HandleObject wrapper,
                               const JS::CallArgs& args,
-                              const js::Wrapper& baseInstance) {
+                              const js::sandbox::Wrapper& baseInstance) {
   JS::sandbox::RootedObject obj(cx, getTargetObject(wrapper));
   MOZ_ASSERT(mozilla::dom::HasConstructor(obj));
   const JSClass* clasp = JS::GetClass(obj);
@@ -2124,14 +2124,14 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::hasOwn(JSContext* cx, HandleObject wrapper,
                                        HandleId id, bool* bp) const {
   // Skip our Base if it isn't already ProxyHandler.
-  return js::BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
+  return js::sandbox::GetProxyHandler(this)->js::BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getOwnEnumerablePropertyKeys(
     JSContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
   // Skip our Base if it isn't already ProxyHandler.
-  return js::BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, wrapper, props);
+  return js::sandbox::GetProxyHandler(this)->js::BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, wrapper, props);
 }
 
 template <typename Base, typename Traits>
@@ -2147,7 +2147,7 @@ bool XrayWrapper<Base, Traits>::call(JSContext* cx, HandleObject wrapper,
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
                       BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::call(cx, wrapper, args, *Base::getSingletonP());
+  return Traits::call(cx, wrapper, args, *(const js::sandbox::Wrapper*)Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
@@ -2156,20 +2156,20 @@ bool XrayWrapper<Base, Traits>::construct(JSContext* cx, HandleObject wrapper,
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
                       BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::construct(cx, wrapper, args, *Base::getSingletonP());
+  return Traits::construct(cx, wrapper, args, *(const js::sandbox::Wrapper*)Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getBuiltinClass(JSContext* cx,
                                                 JS::HandleObject wrapper,
                                                 js::ESClass* cls) const {
-  return Traits::getBuiltinClass(cx, wrapper, *Base::getSingletonP(), cls);
+  return Traits::getBuiltinClass(cx, wrapper, *(const js::sandbox::Wrapper*)Base::getSingletonP(), cls);
 }
 
 template <typename Base, typename Traits>
 const char* XrayWrapper<Base, Traits>::className(JSContext* cx,
                                                  HandleObject wrapper) const {
-  return Traits::className(cx, wrapper, *Base::getSingletonP());
+  return Traits::className(cx, wrapper, *(const js::sandbox::Wrapper*)Base::getSingletonP());
 }
 
 template <typename Base, typename Traits>
@@ -2333,7 +2333,7 @@ template class PermissiveXrayOpaque;
  */
 static bool IsCrossCompartmentXrayCallback(
     const js::BaseProxyHandler* handler) {
-  return handler == PermissiveXrayDOM::singleton();
+  return handler == js::sandbox::GetProxyHandler(PermissiveXrayDOM::singleton());
 }
 
 JS::XrayJitInfo* gXrayJitInfo() {

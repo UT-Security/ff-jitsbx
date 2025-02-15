@@ -106,3 +106,10 @@ bool SecurityWrapper<Base>::defineProperty(JSContext* cx, HandleObject wrapper,
 
 template class js::SecurityWrapper<Wrapper>;
 template class js::SecurityWrapper<CrossCompartmentWrapper>;
+
+#ifdef JS_SANDBOX
+DEFINE_SECURITY_WRAPPER_OPS_CLASS(SecurityWrapperWithOps)
+
+template class js::SecurityWrapperWithOps<Wrapper>;
+template class js::SecurityWrapperWithOps<CrossCompartmentWrapper>;
+#endif

@@ -31,9 +31,15 @@ namespace JS::loader {
  */
 class ScriptBytecodeDataLayout {
  public:
+#ifdef JS_SANDBOX
+  explicit ScriptBytecodeDataLayout(mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecode,
+                                    size_t aBytecodeOffset)
+      : mBytecode(aBytecode), mBytecodeOffset(aBytecodeOffset) {}
+#else
   explicit ScriptBytecodeDataLayout(mozilla::Vector<uint8_t>& aBytecode,
                                     size_t aBytecodeOffset)
       : mBytecode(aBytecode), mBytecodeOffset(aBytecodeOffset) {}
+#endif
 
   uint8_t* prelude() const { return mBytecode.begin(); }
   size_t preludeLength() const { return mBytecodeOffset; }
@@ -41,7 +47,11 @@ class ScriptBytecodeDataLayout {
   uint8_t* bytecode() const { return prelude() + mBytecodeOffset; }
   size_t bytecodeLength() const { return mBytecode.length() - preludeLength(); }
 
+#ifdef JS_SANDBOX
+  mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& mBytecode;
+#else
   mozilla::Vector<uint8_t>& mBytecode;
+#endif
   size_t mBytecodeOffset;
 };
 
@@ -55,9 +65,15 @@ class ScriptBytecodeCompressedDataLayout {
  public:
   using UncompressedLengthType = uint32_t;
 
+#ifdef JS_SANDBOX
+  explicit ScriptBytecodeCompressedDataLayout(
+      mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecode, size_t aBytecodeOffset)
+      : mBytecode(aBytecode), mBytecodeOffset(aBytecodeOffset) {}
+#else
   explicit ScriptBytecodeCompressedDataLayout(
       mozilla::Vector<uint8_t>& aBytecode, size_t aBytecodeOffset)
       : mBytecode(aBytecode), mBytecodeOffset(aBytecodeOffset) {}
+#endif
 
   uint8_t* prelude() const { return mBytecode.begin(); }
   size_t preludeLength() const { return mBytecodeOffset; }
@@ -74,13 +90,23 @@ class ScriptBytecodeCompressedDataLayout {
     return mBytecode.length() - uncompressedLengthLength() - preludeLength();
   }
 
+#ifdef JS_SANDBOX
+  mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& mBytecode;
+#else
   mozilla::Vector<uint8_t>& mBytecode;
+#endif
   size_t mBytecodeOffset;
 };
 
+#ifdef JS_SANDBOX
+bool ScriptBytecodeCompress(Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBuf,
+                            size_t aBytecodeOffset,
+                            Vector<uint8_t, 0, js::MallocAllocPolicy>& aCompressedBytecodeBufOut) {
+#else
 bool ScriptBytecodeCompress(Vector<uint8_t>& aBytecodeBuf,
                             size_t aBytecodeOffset,
                             Vector<uint8_t>& aCompressedBytecodeBufOut) {
+#endif
   // TODO probably need to move this to a helper thread
 
   AUTO_PROFILER_MARKER_TEXT("ScriptBytecodeCompress", JS, {}, ""_ns);
@@ -128,9 +154,15 @@ bool ScriptBytecodeCompress(Vector<uint8_t>& aBytecodeBuf,
   return true;
 }
 
+#ifdef JS_SANDBOX
+bool ScriptBytecodeDecompress(Vector<uint8_t, 0, js::MallocAllocPolicy>& aCompressedBytecodeBuf,
+                              size_t aBytecodeOffset,
+                              Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBufOut) {
+#else
 bool ScriptBytecodeDecompress(Vector<uint8_t>& aCompressedBytecodeBuf,
                               size_t aBytecodeOffset,
                               Vector<uint8_t>& aBytecodeBufOut) {
+#endif
   AUTO_PROFILER_MARKER_TEXT("ScriptBytecodeDecompress", JS, {}, ""_ns);
   PerfStats::AutoMetricRecording<PerfStats::Metric::JSBC_Decompression>
       autoRecording;

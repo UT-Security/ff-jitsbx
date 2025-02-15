@@ -9,6 +9,9 @@
 
 #include "ErrorList.h"
 #include "mozilla/Vector.h"
+#ifdef JS_SANDBOX
+#include "js/AllocPolicy.h"
+#endif
 
 namespace JS::loader {
 
@@ -22,9 +25,15 @@ class ScriptLoadRequest;
  * @param aBytecodeOffset offset of the bytecode in the buffer
  * @param aCompressedBytecodeBufOut buffer to store the compressed bytecode in
  */
+#ifdef JS_SANDBOX
+bool ScriptBytecodeCompress(
+    mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBuf, size_t aBytecodeOffset,
+    mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aCompressedBytecodeBufOut);
+#else
 bool ScriptBytecodeCompress(
     mozilla::Vector<uint8_t>& aBytecodeBuf, size_t aBytecodeOffset,
     mozilla::Vector<uint8_t>& aCompressedBytecodeBufOut);
+#endif
 
 /**
  * Uncompress the bytecode stored in a buffer. All data before the bytecode is
@@ -34,9 +43,15 @@ bool ScriptBytecodeCompress(
  * @param aBytecodeOffset offset of the bytecode in the buffer
  * @param aBytecodeBufOut buffer to store the uncompressed bytecode in
  */
+#ifdef JS_SANDBOX
+bool ScriptBytecodeDecompress(mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aCompressedBytecodeBuf,
+                              size_t aBytecodeOffset,
+                              mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>& aBytecodeBufOut);
+#else
 bool ScriptBytecodeDecompress(mozilla::Vector<uint8_t>& aCompressedBytecodeBuf,
                               size_t aBytecodeOffset,
                               mozilla::Vector<uint8_t>& aBytecodeBufOut);
+#endif
 
 }  // namespace JS::loader
 

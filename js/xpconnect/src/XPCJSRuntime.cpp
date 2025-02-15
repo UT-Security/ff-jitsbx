@@ -1112,10 +1112,10 @@ void XPCJSRuntime::Shutdown(JSContext* cx) {
   // which can call back into the context with various callbacks if we aren't
   // careful. Remove the relevant callbacks, but leave the weak pointer
   // callbacks to clear out any remaining table entries.
-  JS_RemoveFinalizeCallback(cx, FinalizeCallback);
+  JS_RemoveFinalizeCallback(cx, (JSFinalizeCallback)sbx_register_cb((void*)FinalizeCallback, 0));
   xpc_DelocalizeRuntime(JS_GetRuntime(cx));
 
-  JS::SetGCSliceCallback(cx, mPrevGCSliceCallback);
+  JS::SetGCSliceCallback(cx, (JS::GCSliceCallback)sbx_register_cb((void*)mPrevGCSliceCallback, 0));
 
   nsScriptSecurityManager::ClearJSCallbacks(cx);
 
@@ -2933,9 +2933,18 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
       cx, (RealmNameCallback)sbx_register_cb((void*)GetRealmNameCallback, 0));
   mPrevGCSliceCallback = JS::SetGCSliceCallback(
       cx, (JS::GCSliceCallback)sbx_register_cb((void*)GCSliceCallback, 0));
-  mPrevDoCycleCollectionCallback = JS::SetDoCycleCollectionCallback(
+  mPrevGCSliceCallback =
+      mPrevGCSliceCallback == nullptr
+          ? nullptr
+          : (JS::GCSliceCallback)sbx_cb_addr((void*)mPrevGCSliceCallback);
+  mPrevDoCycleCollectionCallback = (JS::DoCycleCollectionCallback)sbx_cb_addr((void*)JS::SetDoCycleCollectionCallback(
       cx, (JS::DoCycleCollectionCallback)sbx_register_cb(
-              (void*)DoCycleCollectionCallback, 0));
+              (void*)DoCycleCollectionCallback, 0)));
+  mPrevDoCycleCollectionCallback =
+      mPrevDoCycleCollectionCallback == nullptr
+          ? nullptr
+          : (JS::DoCycleCollectionCallback)sbx_cb_addr(
+                (void*)mPrevDoCycleCollectionCallback);
   JS_AddFinalizeCallback(
       cx, (JSFinalizeCallback)sbx_register_cb((void*)FinalizeCallback, 0),
       nullptr);

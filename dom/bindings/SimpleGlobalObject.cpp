@@ -60,36 +60,39 @@ static size_t SimpleGlobal_moved(JSObject* obj, JSObject* old) {
   return 0;
 }
 
-static const JSClassOps SimpleGlobalClassOps = {
-    nullptr,
-    nullptr,
-    nullptr,
-    JS_NewEnumerateStandardClasses,
-    JS_ResolveStandardClass,
-    JS_MayResolveStandardClass,
-    SimpleGlobal_finalize,
-    nullptr,
-    nullptr,
-    JS_GlobalObjectTraceHook,
+static const JSClass* SimpleGlobalClass() {
+  static const JSClassOps SimpleGlobalClassOps = {
+      nullptr,
+      nullptr,
+      nullptr,
+      (JSNewEnumerateOp)sbx_addr((void*)JS_NewEnumerateStandardClasses),
+      (JSResolveOp)sbx_addr((void*)JS_ResolveStandardClass),
+      (JSMayResolveOp)sbx_addr((void*)JS_MayResolveStandardClass),
+      (JSFinalizeOp)sbx_register_cb((void*)SimpleGlobal_finalize, 0),
+      nullptr,
+      nullptr,
+      (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook),
+  };
+
+  static const js::ClassExtension SimpleGlobalClassExtension = {
+      (JSObjectMovedOp)sbx_register_cb((void*)SimpleGlobal_moved, 0)};
+
+  static_assert(JSCLASS_GLOBAL_APPLICATION_SLOTS > 0,
+                "Need at least one slot for JSCLASS_SLOT0_IS_NSISUPPORTS");
+
+  static const JSClass _SimpleGlobalClass = {"",
+                                             JSCLASS_GLOBAL_FLAGS |
+                                                 JSCLASS_SLOT0_IS_NSISUPPORTS |
+                                                 JSCLASS_FOREGROUND_FINALIZE,
+                                             &SimpleGlobalClassOps,
+                                             JS_NULL_CLASS_SPEC,
+                                             &SimpleGlobalClassExtension,
+                                             JS_NULL_OBJECT_OPS};
+  return &_SimpleGlobalClass;
 };
 
-static const js::ClassExtension SimpleGlobalClassExtension = {
-    SimpleGlobal_moved};
-
-static_assert(JSCLASS_GLOBAL_APPLICATION_SLOTS > 0,
-              "Need at least one slot for JSCLASS_SLOT0_IS_NSISUPPORTS");
-
-const JSClass SimpleGlobalClass = {"",
-                                   JSCLASS_GLOBAL_FLAGS |
-                                       JSCLASS_SLOT0_IS_NSISUPPORTS |
-                                       JSCLASS_FOREGROUND_FINALIZE,
-                                   &SimpleGlobalClassOps,
-                                   JS_NULL_CLASS_SPEC,
-                                   &SimpleGlobalClassExtension,
-                                   JS_NULL_OBJECT_OPS};
-
 static SimpleGlobalObject* GetSimpleGlobal(JSObject* global) {
-  MOZ_ASSERT(JS::GetClass(global) == &SimpleGlobalClass);
+  MOZ_ASSERT(JS::GetClass(global) == SimpleGlobalClass());
 
   return JS::GetObjectISupports<SimpleGlobalObject>(global);
 }
@@ -120,10 +123,10 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
       options.creationOptions().setTrace((JSTraceOp)sbx_register_cb((void*)xpc::TraceXPCGlobal, 0));
-      global = xpc::CreateGlobalObject(cx, &SimpleGlobalClass,
+      global = xpc::CreateGlobalObject(cx, SimpleGlobalClass(),
                                        nsJSPrincipals::get(principal), options);
     } else {
-      global = JS_NewGlobalObject(cx, &SimpleGlobalClass, nullptr,
+      global = JS_NewGlobalObject(cx, SimpleGlobalClass(), nullptr,
                                   JS::DontFireOnNewGlobalHook, options);
     }
 
@@ -169,7 +172,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
 // static
 SimpleGlobalObject::GlobalType SimpleGlobalObject::SimpleGlobalType(
     JSObject* obj) {
-  if (JS::GetClass(obj) != &SimpleGlobalClass) {
+  if (JS::GetClass(obj) != SimpleGlobalClass()) {
     return SimpleGlobalObject::GlobalType::NotSimpleGlobal;
   }
 

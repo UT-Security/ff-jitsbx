@@ -300,6 +300,11 @@ JS::CallbackTracer::CallbackTracer(JSContext* cx, JS::TracerKind kind,
 JS::CallbackTracerExternal::CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSContext* cx, JS::TracerKind kind,
                  JS::TraceOptions options): CallbackTracer(cx, kind, options), self_(self), onChild_(onChild) {}
 
+JS::CallbackTracerExternal::CallbackTracerExternal(void* self, CallbackTracerOnChildCallback onChild, JSRuntime* rt, JS::TracerKind kind,
+                 JS::TraceOptions options) : CallbackTracer(rt, kind, options), self_(self), onChild_(onChild) {
+    MOZ_ASSERT(isCallbackTracer());
+}
+
 void JS::CallbackTracerExternal::onChild(JS::GCCellPtr thing, const char* name) {
   onChild_(self_, thing, name);
 }

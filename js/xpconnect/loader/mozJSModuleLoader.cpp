@@ -33,6 +33,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "js/PropertySpec.h"
 #include "js/SourceText.h"  // JS::SourceText
+#include "js/sandbox/sobox.h"
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsDirectoryServiceUtils.h"
@@ -221,9 +222,16 @@ static bool Debug(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 }
 
-static const JSFunctionSpec gGlobalFun[] = {
-    JS_FN("dump", Dump, 1, 0), JS_FN("debug", Debug, 1, 0),
-    JS_FN("atob", Atob, 1, 0), JS_FN("btoa", Btoa, 1, 0), JS_FS_END};
+static const JSFunctionSpec* gGlobalFun() {
+  static const JSFunctionSpec _gGlobalFun[] = {
+      JS_FN("dump", (JSNative)sbx_register_cb((void*)Dump, 0), 1, 0),
+      JS_FN("debug", (JSNative)sbx_register_cb((void*)Debug, 0), 1, 0),
+      JS_FN("atob", (JSNative)sbx_register_cb((void*)Atob, 0), 1, 0),
+      JS_FN("btoa", (JSNative)sbx_register_cb((void*)Btoa, 0), 1, 0),
+      JS_FS_END};
+
+  return _gGlobalFun;
+}
 
 class MOZ_STACK_CLASS JSCLContextHelper {
  public:
@@ -619,7 +627,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
   backstagePass->SetGlobalObject(global);
 
   JSAutoRealm ar(aCx, global);
-  if (!JS_DefineFunctions(aCx, global, gGlobalFun)) {
+  if (!JS_DefineFunctions(aCx, global, gGlobalFun())) {
     return;
   }
 

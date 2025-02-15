@@ -3383,6 +3383,24 @@ JS_EncodeStringToUTF8BufferPartial(JSContext* cx, JSString* str,
   return str->encodeUTF8Partial(nogc, buffer);
 }
 
+JS_PUBLIC_API bool
+JS_EncodeStringToUTF8BufferPartial(JSContext* cx, JSString* str,
+                                   mozilla::Span<char> buffer, size_t* read, size_t* written) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  JS::AutoCheckCannotGC nogc;
+  auto maybe = str->encodeUTF8Partial(nogc, buffer);
+  if (!maybe) {
+    return false;
+  }
+
+  size_t readv, writtenv;
+  std::tie(readv, writtenv) = *maybe;
+  *read = readv;
+  *written = writtenv;
+  return true;
+}
+
 JS_PUBLIC_API JS::Symbol* JS::NewSymbol(JSContext* cx,
                                         HandleString description) {
   AssertHeapIsIdle();

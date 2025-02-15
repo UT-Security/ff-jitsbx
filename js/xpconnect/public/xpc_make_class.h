@@ -91,7 +91,7 @@ extern const js::ClassExtension* XPC_WN_JSClassExtension();
                                                                               \
         /* trace */                                                           \
         ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook) \
-                                                   : XPCWrappedNative_Trace,  \
+                                                   : (JSTraceOp)sbx_register_cb((void*)XPCWrappedNative_Trace, 0),  \
   }
 
 #define XPC_MAKE_CLASS(_name, _flags, _classOps)                   \

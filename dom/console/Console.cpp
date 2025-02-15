@@ -1703,7 +1703,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
       }
     } else {
       JSFunction* fun =
-          js::NewFunctionWithReserved(aCx, LazyStackGetter, 0, 0, "stacktrace");
+          js::NewFunctionWithReserved(aCx, (JSNative)sbx_register_cb((void*)LazyStackGetter, 0), 0, 0, "stacktrace");
       if (NS_WARN_IF(!fun)) {
         return false;
       }
