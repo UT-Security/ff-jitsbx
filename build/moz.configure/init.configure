@@ -994,9 +994,12 @@ def include_project_configure(project, build_env, help):
         die("--enable-project is required.")
 
     base_dir = build_env.topsrcdir
-    path = os.path.join(base_dir, project[0], "moz.configure")
+    project_dir = project[0]
+    if project_dir == "js":
+        project_dir = "monkeycage"
+    path = os.path.join(base_dir, project_dir, "moz.configure")
     if not exists(path):
-        die("Cannot find project %s", project[0])
+        die("Cannot find project %s", project_dir)
     return path
 
 

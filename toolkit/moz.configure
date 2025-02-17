@@ -384,7 +384,8 @@ set_config("MOZ_SNDIO", depends_if(sndio)(lambda _: True))
 
 # Javascript engine
 # ==============================================================
-include("../js/moz.configure")
+include("../monkeycage/moz.configure")
+#include("../js/moz.configure")
 
 
 # NodeJS

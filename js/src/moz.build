@@ -52,24 +52,19 @@ DIRS += [
 ]
 
 if not CONFIG["JS_DISABLE_SHELL"]:
-    if not CONFIG["JS_SANDBOX"]:
-        DIRS += [
-            "shell",
-        ]
+    DIRS += [
+        "shell",
+    ]
 
+    TEST_DIRS += [
+        "gdb",
+        "jsapi-tests",
+        "tests",
+    ]
+
+    if CONFIG["FUZZING_INTERFACES"]:
         TEST_DIRS += [
-            "gdb",
-            "jsapi-tests",
-            "tests",
-        ]
-
-        if CONFIG["FUZZING_INTERFACES"]:
-            TEST_DIRS += [
-                "fuzz-tests",
-            ]
-    else:
-        DIRS += [
-            "sandbox-shell"
+            "fuzz-tests",
         ]
 
 if CONFIG["FUZZING_INTERFACES"] and CONFIG["LIBFUZZER"]:
@@ -655,7 +650,3 @@ if CONFIG["JS_HAS_INTL_API"]:
     ]
 
     USE_LIBS += ["intlcomponents"]
-
-if CONFIG["JS_SANDBOX"]:
-    if not CONFIG["LFI_TOOLCHAIN"]:
-        DIRS += ["sandbox"]

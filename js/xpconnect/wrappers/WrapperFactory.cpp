@@ -45,8 +45,8 @@ extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
 // transparent wrapper in the origin (non-chrome) compartment. When
 // an object with that special wrapper applied crosses into chrome,
 // we know to not apply an X-ray wrapper.
-const Wrapper* XrayWaiver() {
-  static const Wrapper xw(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+const js::sandbox::Wrapper* XrayWaiver() {
+  static const js::sandbox::Wrapper xw(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 
   return &xw;
 }
@@ -99,7 +99,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
   XPCWrappedNativeScope* scope = ObjectScope(obj);
 
   JSAutoRealm ar(cx, obj);
-  JSObject* waiver = Wrapper::New(cx, obj, XrayWaiver());
+  JSObject* waiver = Wrapper::New(cx, obj, js::sandbox::GetWrapper(XrayWaiver()));
   if (!waiver) {
     return nullptr;
   }
@@ -447,7 +447,7 @@ static const Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
 
 JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
                                  HandleObject obj) {
-  MOZ_ASSERT(!IsWrapper(obj) || GetProxyHandler(obj) == XrayWaiver() ||
+  MOZ_ASSERT(!IsWrapper(obj) || GetProxyHandler(obj) == js::sandbox::GetProxyHandler(XrayWaiver()) ||
                  js::IsWindowProxy(obj),
              "wrapped object passed to rewrap");
   MOZ_ASSERT(!js::IsWindow(obj));
@@ -646,7 +646,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
 static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
                                      HandleObject newobj,
                                      bool crossCompartmentTransplant) {
-  MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == XrayWaiver());
+  MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == js::sandbox::GetProxyHandler(XrayWaiver()));
   MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newobj));
 
   if (crossCompartmentTransplant) {

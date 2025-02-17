@@ -1,0 +1,42 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+option(
+    "--enable-js-sandbox",
+    default=False,
+    help="{Enable|Disable} the JavaScript sandbox.",
+)
+
+@depends("--enable-js-sandbox")
+def js_sandbox(enable_js_sandbox):
+    if enable_js_sandbox:
+        return True
+
+set_config("JS_SANDBOX", js_sandbox)
+set_define("JS_SANDBOX", js_sandbox)
+
+option(
+    "--enable-lfi-toolchain",
+    default=False,
+    help="{Enable|Disable} sandboxed compilation with LFI toolchain.",
+)
+
+@depends("--enable-lfi-toolchain", js_sandbox, build_project)
+def lfi_toolchain(lfi_toolchain, js_sandbox, build_project):
+    if lfi_toolchain and js_sandbox and build_project == "js":
+        return True
+
+set_config("LFI_TOOLCHAIN", lfi_toolchain)
+
+@depends(js_sandbox, lfi_toolchain)
+def js_sandbox_api(js_sandbox, lfi_toolchain):
+    if js_sandbox and not lfi_toolchain:
+        return True
+
+set_config("JS_SANDBOX_API", js_sandbox_api)
+set_define("JS_SANDBOX_API", js_sandbox_api)
+
+include("../js/moz.configure")

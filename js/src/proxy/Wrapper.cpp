@@ -273,11 +273,7 @@ bool ForwardingProxyHandler::isConstructor(JSObject* obj) const {
 DEFINE_PROXY_HANDLER_OPS_CLASS(ForwardingProxyHandlerWithOps, ForwardingProxyHandler)
 #endif
 
-#ifdef JS_SANDBOX
-Wrapper::Wrapper(unsigned aFlags, bool aHasPrototype, bool aHasSecurityPolicy)
-      : ForwardingProxyHandler(&family, aHasPrototype, aHasSecurityPolicy),
-        mFlags(aFlags) {}
-        
+#ifdef JS_SANDBOX      
 DEFINE_WRAPPER_OPS_CLASS(WrapperWithOps, Wrapper)
 #endif
 

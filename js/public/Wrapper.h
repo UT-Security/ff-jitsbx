@@ -138,16 +138,11 @@ class JS_PUBLIC_API Wrapper : public ForwardingProxyHandler {
   unsigned mFlags;
 
  public:
-#ifdef JS_SANDBOX
-  explicit Wrapper(unsigned aFlags, bool aHasPrototype = false,
-                             bool aHasSecurityPolicy = false);
-#else
   explicit constexpr Wrapper(unsigned aFlags, bool aHasPrototype = false,
                    bool aHasSecurityPolicy = false)
       : ForwardingProxyHandler(&family, aHasPrototype,
                                aHasSecurityPolicy),
         mFlags(aFlags) {}
-#endif
 
   virtual bool finalizeInBackground(const JS::Value& priv) const override;
 
