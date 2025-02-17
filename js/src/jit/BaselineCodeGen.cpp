@@ -5921,7 +5921,7 @@ bool BaselineCodeGen<Handler>::emit_Resume() {
     masm.loadJSContext(scratchReg);
     masm.loadPtr(Address(scratchReg, JSContext::offsetOfProfilingActivation()),
                  scratchReg);
-    masm.unsafeStorePtr(
+    masm.storePtr(
         FramePointer,
         Address(scratchReg, JitActivation::offsetOfLastProfilingFrame()));
     masm.bind(&skip);

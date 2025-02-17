@@ -636,19 +636,13 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Useful for dealing with two-valued returns.
   void moveRegPair(Register src0, Register src1, Register dst0, Register dst1,
                    MoveOp::Type type = MoveOp::GENERAL);
+
  public:
   // ===============================================================
   // JS Sandbox helpers.
 
   void bundleAlignNop();
-#ifdef JS_SANDBOX_CFI
-  void unsafeCall(const Address& addr) DEFINED_ON(x86_shared);
-  CodeOffset unsafeCall(Register reg) DEFINED_ON(x86_shared);
-  void unsafeJump(const Address& addr) DEFINED_ON(x86_shared);
-  void unsafeJump(Register reg) DEFINED_ON(x86_shared);
-  void unsafeRet() DEFINED_ON(x86_shared);
-#endif
-  
+
  public:
   // ===============================================================
   // Patchable near/far jumps.
@@ -4714,7 +4708,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
 #ifdef JS_SANDBOX_HEAP
   template <typename T>
-  void storeTypedOrValue(TypedOrValueRegister src, const T& dest, Register scratch = ScratchReg) {
+  void storeTypedOrValue(TypedOrValueRegister src, const T& dest,
+                         Register scratch = ScratchReg) {
     if (src.hasValue()) {
       storeValue(src.valueReg(), dest);
     } else if (IsFloatingPointType(src.type())) {
@@ -4727,12 +4722,14 @@ class MacroAssembler : public MacroAssemblerSpecific {
         boxDouble(reg, dest);
       }
     } else {
-      storeValue(ValueTypeFromMIRType(src.type()), src.typedReg().gpr(), dest, scratch);
+      storeValue(ValueTypeFromMIRType(src.type()), src.typedReg().gpr(), dest,
+                 scratch);
     }
   }
 
   template <typename T>
-  void storeConstantOrRegister(const ConstantOrRegister& src, const T& dest, Register scratch = ScratchReg) {
+  void storeConstantOrRegister(const ConstantOrRegister& src, const T& dest,
+                               Register scratch = ScratchReg) {
     if (src.constant()) {
       storeValue(src.value(), dest, scratch);
     } else {
@@ -5316,11 +5313,6 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void storeStackPtr(T t) {
     storePtr(getStackPointer(), t);
   }
-  template <typename T>
-  void unsafeStoreStackPtr(T t) {
-    unsafeStorePtr(getStackPointer(), t);
-  }
-
   // StackPointer testing functions.
   // On ARM64, sp can function as the zero register depending on context.
   // Code shared across platforms must use these functions to be valid.

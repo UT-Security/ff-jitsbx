@@ -343,14 +343,6 @@ class MacroAssemblerX86Shared : public Assembler {
     movl(src, Operand(dest));
   }
   template <typename S, typename T>
-  void unsafeStore32(const S& src, const T& dest) {
-    Operand op = Operand(dest);
-#ifdef JS_SANDBOX_HEAP
-    op.unsafeSetSandboxed(true);
-#endif
-    movl(src, op);
-  }
-  template <typename S, typename T>
   void store32Unaligned(const S& src, const T& dest) {
     store32(src, dest);
   }

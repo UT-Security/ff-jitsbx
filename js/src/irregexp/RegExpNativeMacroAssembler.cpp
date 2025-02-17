@@ -1204,7 +1204,7 @@ void SMRegExpMacroAssembler::successHandler() {
     if (mode_ == UC16) {
       masm_.rshiftPtrArithmetic(Imm32(1), temp0_);
     }
-    masm_.unsafeStore32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
+    masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
   }
 
   masm_.movePtr(ImmWord(js::RegExpRunStatus_Success), temp0_);
@@ -1243,11 +1243,7 @@ void SMRegExpMacroAssembler::exitHandler() {
   // Perform a plain Ret(), as abiret() will move SP <- PSP and that is wrong.
   masm_.Ret(vixl::lr);
 #else
-#  ifdef JS_SANDBOX_CFI
-  masm_.unsafeRet();
-#  else
   masm_.abiret();
-#  endif
 #endif
 
   if (exit_with_exception_label_.used()) {

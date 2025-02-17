@@ -188,11 +188,11 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // lastProfilingCallSite := ReturnAddress
     masm.loadPtr(Address(fpScratch, JitFrameLayout::offsetOfReturnAddress()),
                  scratch);
-    masm.unsafeStorePtr(scratch, lastProfilingCallSite);
+    masm.storePtr(scratch, lastProfilingCallSite);
 
     // lastProfilingFrame := CallerFrame
     masm.loadPtr(Address(fpScratch, CallerFPOffset), scratch);
-    masm.unsafeStorePtr(scratch, lastProfilingFrame);
+    masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
     masm.pop(FramePointer);
@@ -208,11 +208,11 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // lastProfilingCallSite := StubFrame.ReturnAddress
     masm.loadPtr(Address(fpScratch, CommonFrameLayout::offsetOfReturnAddress()),
                  scratch);
-    masm.unsafeStorePtr(scratch, lastProfilingCallSite);
+    masm.storePtr(scratch, lastProfilingCallSite);
 
     // lastProfilingFrame := StubFrame.CallerFrame
     masm.loadPtr(Address(fpScratch, CallerFPOffset), scratch);
-    masm.unsafeStorePtr(scratch, lastProfilingFrame);
+    masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
     masm.pop(FramePointer);
@@ -250,8 +250,8 @@ void JitRuntime::generateProfilerExitFrameTailStub(MacroAssembler& masm,
     // of view of the JIT.
     // Store null into both fields.
     masm.movePtr(ImmPtr(nullptr), scratch);
-    masm.unsafeStorePtr(scratch, lastProfilingCallSite);
-    masm.unsafeStorePtr(scratch, lastProfilingFrame);
+    masm.storePtr(scratch, lastProfilingCallSite);
+    masm.storePtr(scratch, lastProfilingFrame);
 
     masm.moveToStackPtr(FramePointer);
     masm.pop(FramePointer);

@@ -3404,8 +3404,8 @@ MacroAssembler::AutoProfilerCallInstrumentation::
   CodeOffset label = masm.movWithPatch(ImmWord(uintptr_t(-1)), reg);
   masm.loadJSContext(reg2);
   masm.loadPtr(Address(reg2, offsetof(JSContext, profilingActivation_)), reg2);
-  masm.unsafeStorePtr(
-      reg, Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
+  masm.storePtr(reg,
+                Address(reg2, JitActivation::offsetOfLastProfilingCallSite()));
 
   masm.appendProfilerCallSite(label);
 
@@ -3849,7 +3849,7 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
     push(ReturnReg);
     loadJSContext(ReturnReg);
     Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
-    unsafeStore32(Imm32(1), flagAddr);
+    store32(Imm32(1), flagAddr);
     pop(ReturnReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/bug1375074.js
@@ -3914,7 +3914,7 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
-  unsafeStoreStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+  storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
 }
 
 // ===============================================================

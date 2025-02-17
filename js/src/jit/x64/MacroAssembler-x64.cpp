@@ -22,8 +22,6 @@
 using namespace js;
 using namespace js::jit;
 
-
-
 void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   if (maybeInlineDouble(d, dest)) {
     return;
@@ -523,7 +521,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   movq(rsp, rax);
 
   // Call the handler.
-  using Fn = void (*)(ResumeFromException * rfe);
+  using Fn = void (*)(ResumeFromException* rfe);
   asMasm().setupUnalignedABICall(rcx);
   asMasm().passABIArg(rax);
   asMasm().callWithABI<Fn, HandleException>(
@@ -653,9 +651,9 @@ void MacroAssemblerX64::profilerEnterFrame(Register framePtr,
                                            Register scratch) {
   asMasm().loadJSContext(scratch);
   loadPtr(Address(scratch, offsetof(JSContext, profilingActivation_)), scratch);
-  unsafeStorePtr(framePtr,
+  storePtr(framePtr,
            Address(scratch, JitActivation::offsetOfLastProfilingFrame()));
-  unsafeStorePtr(ImmPtr(nullptr),
+  storePtr(ImmPtr(nullptr),
            Address(scratch, JitActivation::offsetOfLastProfilingCallSite()));
 }
 
@@ -823,11 +821,7 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-#ifdef JS_SANDBOX_CFI
-  unsafeCall(fun);
-#else
   call(fun);
-#endif
   callWithABIPost(stackAdjust, result);
 }
 
@@ -846,11 +840,7 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
-#ifdef JS_SANDBOX_CFI
-  unsafeCall(safeFun);
-#else
   call(safeFun);
-#endif
   callWithABIPost(stackAdjust, result);
 }
 
@@ -964,7 +954,8 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 #ifdef JS_SANDBOX_HEAP
 template <typename T>
 void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
-                                       MIRType valueType, const T& dest, Register scratch) {
+                                       MIRType valueType, const T& dest,
+                                       Register scratch) {
   MOZ_ASSERT(valueType < MIRType::Value);
 
   if (valueType == MIRType::Double) {
@@ -982,7 +973,8 @@ void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
 
 template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
                                                 MIRType valueType,
-                                                const Address& dest, Register scratch);
+                                                const Address& dest,
+                                                Register scratch);
 template void MacroAssembler::storeUnboxedValue(
     const ConstantOrRegister& value, MIRType valueType,
     const BaseObjectElementIndex& dest, Register scratch);

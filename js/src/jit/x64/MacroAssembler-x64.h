@@ -143,18 +143,13 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void storeValue(ValueOperand val, Operand dest) {
     movq(val.valueReg(), dest);
   }
-  void unsafeStoreValue(ValueOperand val, Operand dest) {
-#ifdef JS_SANDBOX_HEAP
-    dest.unsafeSetSandboxed(true);
-#endif
-    movq(val.valueReg(), dest);
-  }
   void storeValue(ValueOperand val, const Address& dest) {
     storeValue(val, Operand(dest));
   }
 #ifdef JS_SANDBOX_HEAP
   template <typename T>
-  void storeValue(JSValueType type, Register reg, const T& dest, Register scratch = ScratchReg) {
+  void storeValue(JSValueType type, Register reg, const T& dest,
+                  Register scratch = ScratchReg) {
     // Value types with 32-bit payloads can be emitted as two 32-bit moves.
     if (type == JSVAL_TYPE_INT32 || type == JSVAL_TYPE_BOOLEAN) {
       movl(reg, Operand(dest));
@@ -166,7 +161,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   }
 
   template <typename T>
-  void storeValue(const Value& val, const T& dest, Register scratch = ScratchReg) {
+  void storeValue(const Value& val, const T& dest,
+                  Register scratch = ScratchReg) {
     if (val.isGCThing()) {
       movWithPatch(ImmWord(val.asRawBits()), scratch);
       writeDataRelocation(val);
@@ -670,25 +666,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
   }
 #endif
-  template <typename T>
-  void unsafeStorePtr(ImmWord imm, T address) {
-    if ((intptr_t)imm.value <= INT32_MAX && (intptr_t)imm.value >= INT32_MIN) {
-      Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-      op.unsafeSetSandboxed(true);
-#endif
-      movq(Imm32((int32_t)imm.value), op);
-    } else {
-      ScratchRegisterScope scratch(asMasm());
-      mov(imm, scratch);
-      Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-      op.unsafeSetSandboxed(true);
-#endif
-      movq(scratch, op);
-    }
-  }
-
 #ifdef JS_SANDBOX_HEAP
   template <typename T>
   void storePtr(ImmPtr imm, T address, Register scratch = ScratchReg) {
@@ -700,12 +677,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     storePtr(ImmWord(uintptr_t(imm.value)), address);
   }
 #endif
-  template <typename T>
-  void unsafeStorePtr(ImmPtr imm, T address) {
-    unsafeStorePtr(ImmWord(uintptr_t(imm.value)), address);
-  }
 #ifdef JS_SANDBOX_HEAP
-template <typename T>
+  template <typename T>
   void storePtr(ImmGCPtr imm, T address, Register scratch = ScratchReg) {
     movq(imm, scratch);
     movq(scratch, Operand(address));
@@ -721,13 +694,6 @@ template <typename T>
   void storePtr(Register src, const Address& address) {
     movq(src, Operand(address));
   }
-  void unsafeStorePtr(Register src, const Address& address) {
-    Operand op = Operand(address);
-#ifdef JS_SANDBOX_HEAP
-    op.unsafeSetSandboxed(true);
-#endif
-    movq(src, op);
-  }
   void store64(Register src, const Address& address) {
     movq(src, Operand(address));
   }
@@ -741,7 +707,8 @@ template <typename T>
   void storePtr(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
+      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+                 "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
       storePtr(src, Address(scratch, 0x0));
@@ -759,7 +726,8 @@ template <typename T>
   void store32(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
+      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+                 "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
       store32(src, Address(scratch, 0x0));
@@ -777,7 +745,8 @@ template <typename T>
   void store16(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
     if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr), "Unexpected 32-bit immediate destination within sandbox");
+      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+                 "Unexpected 32-bit immediate destination within sandbox");
       ScratchRegisterScope scratch(asMasm());
       mov(ImmPtr(address.addr), scratch);
       store16(src, Address(scratch, 0x0));
@@ -1279,7 +1248,7 @@ template <typename T>
     switch (nbytes) {
       case 8: {
         unboxNonDouble(value, scratch, type);
-        unsafeStorePtr(scratch, address);
+        storePtr(scratch, address);
         if (type == JSVAL_TYPE_OBJECT) {
           // Ideally we would call unboxObjectOrNull, but we need an extra
           // scratch register for that. So unbox as object, then clear the
@@ -1307,7 +1276,7 @@ template <typename T>
       case 8: {
         ScratchRegisterScope scratch(asMasm());
         unboxNonDouble(value, scratch, type);
-        unsafeStorePtr(scratch, address);
+        storePtr(scratch, address);
         if (type == JSVAL_TYPE_OBJECT) {
           // Ideally we would call unboxObjectOrNull, but we need an extra
           // scratch register for that. So unbox as object, then clear the

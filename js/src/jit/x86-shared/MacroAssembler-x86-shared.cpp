@@ -13,7 +13,7 @@
 #include "x64/Assembler-x64.h"
 
 #ifdef JS_SANDBOX_BUNDLE
-#include "sandbox/Bundle.h"
+#  include "sandbox/Bundle.h"
 #endif
 #include "jit/JitFrames.h"
 #include "jit/MacroAssembler.h"
@@ -680,7 +680,7 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 CodeOffset MacroAssembler::call(Register reg) {
 #ifdef JS_SANDBOX_CFI
   if (isSandboxed()) {
-#ifdef DEBUG
+#  ifdef DEBUG
     MOZ_ASSERT(reg != SandboxScratchReg,
                "Call register already uses scratch register");
     Label sandboxed;
@@ -692,7 +692,7 @@ CodeOffset MacroAssembler::call(Register reg) {
     j(Condition::Equal, &sandboxed);
     breakpoint();
     bind(&sandboxed);
-#endif
+#  endif
     AutoOwnBundleScope bundle(*this);
     andq(SandboxMaskReg, reg);
     andq(Imm32(sandbox::BUNDLE_MASK), reg);
@@ -700,9 +700,11 @@ CodeOffset MacroAssembler::call(Register reg) {
     MOZ_ASSERT(bundle.size() <= sandbox::BUNDLE_SIZE - Assembler::CallSize(reg),
                "bundle too small");
     size_t padding = sandbox::isSameBundle(
-        size(), size() + bundle.size() + CallSize(reg) - 1)
-        ? sandbox::BUNDLE_SIZE - (size() % sandbox::BUNDLE_SIZE) - bundle.size() - CallSize(reg) :
-          sandbox::BUNDLE_SIZE - bundle.size() - CallSize(reg);
+                         size(), size() + bundle.size() + CallSize(reg) - 1)
+                         ? sandbox::BUNDLE_SIZE -
+                               (size() % sandbox::BUNDLE_SIZE) - bundle.size() -
+                               CallSize(reg)
+                         : sandbox::BUNDLE_SIZE - bundle.size() - CallSize(reg);
     if (padding) {
       nop(padding);
     }
@@ -716,13 +718,6 @@ CodeOffset MacroAssembler::call(Register reg) {
   return CodeOffset(currentOffset());
 }
 
-#ifdef JS_SANDBOX_CFI
-CodeOffset MacroAssembler::unsafeCall(Register reg) {
-  Assembler::call(reg);
-  return CodeOffset(currentOffset());
-}
-#endif
-
 CodeOffset MacroAssembler::call(Label* label) {
   Assembler::call(label);
   return CodeOffset(currentOffset());
@@ -730,8 +725,8 @@ CodeOffset MacroAssembler::call(Label* label) {
 
 void MacroAssembler::call(const Address& addr) {
 #ifdef JS_SANDBOX_CFI
-  if(isSandboxed()) {
-#ifdef DEBUG
+  if (isSandboxed()) {
+#  ifdef DEBUG
     MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
                "Call address already uses scratch register");
     Label sandboxed;
@@ -743,7 +738,7 @@ void MacroAssembler::call(const Address& addr) {
     j(Condition::Equal, &sandboxed);
     breakpoint();
     bind(&sandboxed);
-#endif
+#  endif
     movq(Operand(addr), SandboxScratchReg);
     AutoOwnBundleScope bundle(*this);
     andq(SandboxMaskReg, SandboxScratchReg);
@@ -761,12 +756,6 @@ void MacroAssembler::call(const Address& addr) {
 #endif
 }
 
-#ifdef JS_SANDBOX_CFI
-void MacroAssembler::unsafeCall(const Address& addr) {
-  Assembler::call(Operand(addr.base, addr.offset));
-}
-#endif
-
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   mov(target, eax);
   Assembler::call(eax);
@@ -776,21 +765,21 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
 void MacroAssembler::call(ImmWord target) {
   Assembler::call(target);
 #ifdef JS_SANDBOX_CFI
-    MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
+  MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
 }
 
 void MacroAssembler::call(ImmPtr target) {
   Assembler::call(target);
 #ifdef JS_SANDBOX_CFI
-    MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
+  MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
 }
 
 void MacroAssembler::call(JitCode* target) {
   Assembler::call(target);
 #ifdef JS_SANDBOX_CFI
-    MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
+  MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
 }
 
@@ -812,9 +801,9 @@ void MacroAssembler::callAndPushReturnAddress(Label* label) { call(label); }
 void MacroAssemblerX86Shared::jump(Register reg) {
   if (!isSandboxed()) {
     jmp(Operand(reg));
-    return; 
+    return;
   }
-#ifdef DEBUG
+#  ifdef DEBUG
   MOZ_ASSERT(reg != SandboxScratchReg,
              "Jump register already uses scratch register");
   Label sandboxed;
@@ -826,15 +815,11 @@ void MacroAssemblerX86Shared::jump(Register reg) {
   j(Condition::Equal, &sandboxed);
   breakpoint();
   bind(&sandboxed);
-#endif
+#  endif
   AutoBundleScope bundle(*this);
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
   orq(SandboxBaseReg, reg);
-  jmp(Operand(reg));
-}
-
-void MacroAssembler::unsafeJump(Register reg) {
   jmp(Operand(reg));
 }
 
@@ -843,7 +828,7 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
     jmp(Operand(addr));
     return;
   }
-#ifdef DEBUG
+#  ifdef DEBUG
   MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
              "Jump address already uses scratch register");
   Label sandboxed;
@@ -855,7 +840,7 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
   j(Condition::Equal, &sandboxed);
   breakpoint();
   bind(&sandboxed);
-#endif
+#  endif
   movq(Operand(addr), SandboxScratchReg);
   AutoBundleScope bundle(*this);
   andq(SandboxMaskReg, SandboxScratchReg);
@@ -864,9 +849,6 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
   jmp(Operand(SandboxScratchReg));
 }
 
-void MacroAssembler::unsafeJump(const Address& addr) {
-  jmp(Operand(addr));
-}
 #endif
 
 // ===============================================================
@@ -877,7 +859,7 @@ void MacroAssemblerX86Shared::ret() {
     return Assembler::ret();
   }
 
-#ifdef DEBUG
+#  ifdef DEBUG
   Label sandboxed;
   movq(Operand(StackPointer, 0), SandboxScratchReg);
   andq(SandboxMaskReg, SandboxScratchReg);
@@ -887,7 +869,7 @@ void MacroAssemblerX86Shared::ret() {
   j(Condition::Equal, &sandboxed);
   breakpoint();
   bind(&sandboxed);
-#endif
+#  endif
   pop(SandboxScratchReg);
   AutoBundleScope bundle(*this);
   andq(SandboxMaskReg, SandboxScratchReg);
@@ -896,9 +878,6 @@ void MacroAssemblerX86Shared::ret() {
   jmp(Operand(SandboxScratchReg));
 }
 
-void MacroAssembler::unsafeRet() {
-  Assembler::ret();
-}
 #endif
 
 // ===============================================================
@@ -918,7 +897,7 @@ CodeOffset MacroAssembler::nopPatchableToCall() {
   masm.nop_five();
   bundle.unlock();
 #ifdef JS_SANDBOX_CFI
-    MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
+  MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
   return CodeOffset(currentOffset());
 }

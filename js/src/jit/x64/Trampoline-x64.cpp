@@ -329,7 +329,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
   masm.pop(r12);  // vp
-  masm.unsafeStoreValue(JSReturnOperand, Operand(r12, 0));
+  masm.storeValue(JSReturnOperand, Operand(r12, 0));
 
   // Restore non-volatile registers.
 #if defined(_WIN64)
@@ -359,11 +359,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore frame pointer and return.
   masm.pop(rbp);
-#ifdef JS_SANDBOX_CFI
-  masm.unsafeRet();
-#else
   masm.ret();
-#endif
 }
 
 // static
