@@ -9,8 +9,8 @@ origin:
   description: lfi sandboxing runtime
   url: https://github.com/zyedidia/lfi/tree/master
 
-  release: f095b789e609dd7bc80992eacce44fbbe7f6be42 (2025-01-31T22:38:13Z).
-  revision: f095b789e609dd7bc80992eacce44fbbe7f6be42
+  release: ca9c937635a4d30232e587e4dc1617c834e9f71b (2025-02-24T02:19:52Z).
+  revision: ca9c937635a4d30232e587e4dc1617c834e9f71b
 
   license: MIT
 
