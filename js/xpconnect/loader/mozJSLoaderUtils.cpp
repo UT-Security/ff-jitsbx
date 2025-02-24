@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include <cstdint>
 #include "mozilla/scache/StartupCache.h"
 
 #include "jsapi.h"
@@ -66,9 +67,14 @@ nsresult WriteCachedStencil(StartupCache* cache, nsACString& cachePath,
     return NS_ERROR_FAILURE;
   }
 
+  mozilla::Vector<uint8_t> bufferCopy;
+  if(!bufferCopy.append(buffer.begin(), buffer.length())) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+  
   // Move the vector buffer into a unique pointer buffer.
   mozilla::UniqueFreePtr<char[]> buf(
-      reinterpret_cast<char*>(buffer.extractOrCopyRawBuffer()));
+      reinterpret_cast<char*>(bufferCopy.extractOrCopyRawBuffer()));
   nsresult rv = cache->PutBuffer(PromiseFlatCString(cachePath).get(),
                                  std::move(buf), size);
   return rv;

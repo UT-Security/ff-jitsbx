@@ -1668,7 +1668,7 @@ bool XrayTraits::resolveOwnProperty(
     if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
       return false;
     }
-    if (!found && !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getter,
+    if (!found && !JS_DefinePropertyById(cx, holder, id, (JSNative)sbx_register_cb((void*)wrappedJSObject_getter, 0),
                                          nullptr, JSPROP_ENUMERATE)) {
       return false;
     }
@@ -1799,7 +1799,7 @@ bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
   // are using "legacycaller".  At this time for all the legacycaller users it
   // makes more sense to invoke on the xray compartment, so we just go ahead
   // and do that for everything.
-  if (JSNative call = clasp->getCall()) {
+  if (JSNative call = (JSNative)sbx_cb_addr((void*)clasp->getCall())) {
     // call it on the Xray compartment
     return call(cx, args.length(), args.base());
   }
@@ -1817,7 +1817,7 @@ bool DOMXrayTraits::construct(JSContext* cx, HandleObject wrapper,
   const JSClass* clasp = JS::GetClass(obj);
   // See comments in DOMXrayTraits::call() explaining what's going on here.
   if (clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS) {
-    if (JSNative construct = clasp->getConstruct()) {
+    if (JSNative construct = (JSNative)sbx_cb_addr((void*)clasp->getConstruct())) {
       if (!construct(cx, args.length(), args.base())) {
         return false;
       }

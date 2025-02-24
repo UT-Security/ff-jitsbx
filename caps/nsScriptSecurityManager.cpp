@@ -1579,7 +1579,7 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
   JS_SetSecurityCallbacks(aCx, &securityCallbacks);
   JS_InitDestroyPrincipalsCallback(aCx, (JSDestroyPrincipalsOp)sbx_register_cb((void*)nsJSPrincipals::Destroy, 0));
 
-  JS_SetTrustedPrincipals(aCx, BasePrincipal::Cast(mSystemPrincipal));
+  JS_SetTrustedPrincipals(aCx, &BasePrincipal::Cast(mSystemPrincipal)->base_);
 }
 
 /* static */

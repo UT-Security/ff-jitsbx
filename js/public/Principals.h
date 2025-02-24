@@ -16,6 +16,9 @@
 #include "jstypes.h"
 
 #include "js/TypeDecls.h"
+#ifdef JS_SANDBOX_API
+#include "js/sandbox/sobox.h"
+#endif
 
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
@@ -55,6 +58,73 @@ struct JSPrincipals {
    */
   JS_PUBLIC_API void dump();
 };
+
+#ifdef JS_SANDBOX
+typedef bool (*JSPrincipalsWriteOp)(void* self, JSContext* cx, JSStructuredCloneWriter* writer);
+typedef bool (*JSPrincipalsIsSystemOrAddonPrincipalOp)(void* self);
+
+struct JS_PUBLIC_API JSPrincipalsOps {
+  JSPrincipalsWriteOp write;
+  JSPrincipalsIsSystemOrAddonPrincipalOp isSystemOrAddonPrincipal;
+};
+
+struct JS_PUBLIC_API JSPrincipalsWithOps : JSPrincipals {
+  void* self_;
+  JSPrincipalsOps* ops_;
+
+  JSPrincipalsWithOps(void* self, JSPrincipalsOps* ops);
+
+  virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) override;
+  virtual bool isSystemOrAddonPrincipal() override;
+};
+#endif
+
+namespace sandbox {
+#ifdef JS_SANDBOX_API
+
+struct JSPrincipals {
+  ::JSPrincipalsWithOps base_;
+
+  static bool writeCb(void* s, JSContext* cx, JSStructuredCloneWriter* writer) {
+    auto* self = static_cast<JSPrincipals*>(s);
+    return self->write(cx, writer);
+  }
+
+  static bool isSystemOrAddonPrincipalCb(void* s) {
+    auto* self = static_cast<JSPrincipals*>(s);
+    return self->isSystemOrAddonPrincipal();
+  }
+  
+  virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) = 0;
+  virtual bool isSystemOrAddonPrincipal() = 0;
+
+  static JSPrincipalsOps* ops() {
+    static JSPrincipalsOps _ops = {
+      .write = (JSPrincipalsWriteOp)sbx_register_cb((void*)writeCb, 0),
+      .isSystemOrAddonPrincipal = (JSPrincipalsIsSystemOrAddonPrincipalOp)sbx_register_cb((void*)isSystemOrAddonPrincipalCb, 0)
+    };
+
+    return &_ops; 
+  }
+
+  JSPrincipals() : base_(this, ops()) {}
+
+#ifdef JS_DEBUG
+  uint32_t debugToken() {
+    return base_.debugToken;
+  }
+#endif
+
+  void setDebugToken(uint32_t token) {
+    base_.setDebugToken(token);
+  }
+  
+  mozilla::Atomic<int32_t, mozilla::SequentiallyConsistent>& refcount() {
+    return base_.refcount;
+  }
+};
+#endif
+}
 
 extern JS_PUBLIC_API void JS_HoldPrincipals(JSPrincipals* principals);
 

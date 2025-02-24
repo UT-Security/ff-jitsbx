@@ -72,7 +72,11 @@ static bool Verbose = false;
 class TenuredProxyHandler final : public Wrapper {
  public:
   static const TenuredProxyHandler singleton;
+#ifdef JS_SANDBOX
+  inline TenuredProxyHandler() : Wrapper(0) {}
+#else
   constexpr TenuredProxyHandler() : Wrapper(0) {}
+#endif
   bool canNurseryAllocate() const override { return false; }
 };
 
@@ -81,7 +85,11 @@ const TenuredProxyHandler TenuredProxyHandler::singleton;
 class NurseryProxyHandler final : public Wrapper {
  public:
   static const NurseryProxyHandler singleton;
+#ifdef JS_SANDBOX
+  inline NurseryProxyHandler() : Wrapper(0) {}
+#else
   constexpr NurseryProxyHandler() : Wrapper(0) {}
+#endif
   bool canNurseryAllocate() const override { return true; }
 };
 

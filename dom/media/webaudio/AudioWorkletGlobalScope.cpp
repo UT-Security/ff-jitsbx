@@ -61,7 +61,7 @@ bool AudioWorkletGlobalScope::WrapGlobalObject(
       IsSharedMemoryAllowed());
 
   return AudioWorkletGlobalScope_Binding::Wrap(
-      aCx, this, this, options, BasePrincipal::Cast(mImpl->Principal()), true,
+      aCx, this, this, options, &BasePrincipal::Cast(mImpl->Principal())->base_, true,
       aReflector);
 }
 

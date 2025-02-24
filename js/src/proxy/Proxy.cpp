@@ -985,6 +985,12 @@ JS_PUBLIC_API const ClassExtension* js::ProxyClassExtension_p() {
   return &js::ProxyClassExtension;
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API bool js::IsScriptedProxy(const JSObject* obj) {
+  return IsProxy(obj) && GetProxyHandler(obj)->isScripted();
+}
+#endif
+
 const ObjectOps js::ProxyObjectOps = {
     proxy_LookupProperty,             // lookupProperty
     Proxy::defineProperty,            // defineProperty

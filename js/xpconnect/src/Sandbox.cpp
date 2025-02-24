@@ -24,6 +24,7 @@
 #ifdef JS_SANDBOX
 #include "js/sandbox/sobox.h"
 #endif
+#include "js/sandbox/Wrapper.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsIException.h"  // for nsIStackFrame
@@ -573,9 +574,9 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 #define XPC_MAP_FLAGS (XPC_SCRIPTABLE_WANT_CALL | XPC_SCRIPTABLE_WANT_CONSTRUCT)
 #include "xpc_map_end.h" /* This #undef's the above. */
 
-class SandboxProxyHandler : public js::Wrapper {
+class SandboxProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxProxyHandler() : js::Wrapper(0) {}
+  inline SandboxProxyHandler() : js::sandbox::Wrapper(0) {}
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
@@ -618,7 +619,7 @@ static const SandboxProxyHandler* sandboxProxyHandler() {
 namespace xpc {
 
 bool IsSandboxPrototypeProxy(JSObject* obj) {
-  return js::IsProxy(obj) && js::GetProxyHandler(obj) == sandboxProxyHandler();
+  return js::IsProxy(obj) && js::GetProxyHandler(obj) == js::sandbox::GetProxyHandler(sandboxProxyHandler());
 }
 
 bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
@@ -631,9 +632,9 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
 // A proxy handler that lets us wrap callables and invoke them with
 // the correct this object, while forwarding all other operations down
 // to them directly.
-class SandboxCallableProxyHandler : public js::Wrapper {
+class SandboxCallableProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxCallableProxyHandler() : js::Wrapper(0) {}
+  inline SandboxCallableProxyHandler() : js::sandbox::Wrapper(0) {}
 
   virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
                     const JS::CallArgs& args) const override;
@@ -731,7 +732,7 @@ static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
   // ourselves up with a lazy proto.
   js::ProxyOptions options;
   options.setLazyProto(true);
-  JSObject* obj = js::NewProxyObject(cx, sandboxCallableProxyHandler(), priv,
+  JSObject* obj = js::NewProxyObject(cx, js::sandbox::GetProxyHandler(sandboxCallableProxyHandler()), priv,
                                      nullptr, options);
   if (obj) {
     js::SetProxyReservedSlot(obj, SandboxCallableProxyHandler::SandboxProxySlot,
@@ -837,7 +838,7 @@ bool SandboxProxyHandler::has(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 bool SandboxProxyHandler::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
                                  JS::Handle<jsid> id, bool* bp) const {
-  return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+  return getProxyHandler()->BaseProxyHandler::hasOwn(cx, proxy, id, bp);
 }
 
 bool SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
@@ -878,18 +879,18 @@ bool SandboxProxyHandler::set(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, JS::Handle<Value> v,
                               JS::Handle<Value> receiver,
                               JS::ObjectOpResult& result) const {
-  return BaseProxyHandler::set(cx, proxy, id, v, receiver, result);
+  return getProxyHandler()->BaseProxyHandler::set(cx, proxy, id, v, receiver, result);
 }
 
 bool SandboxProxyHandler::getOwnEnumerablePropertyKeys(
     JSContext* cx, JS::Handle<JSObject*> proxy,
     MutableHandleIdVector props) const {
-  return BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, proxy, props);
+  return getProxyHandler()->BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, proxy, props);
 }
 
 bool SandboxProxyHandler::enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
                                     JS::MutableHandleIdVector props) const {
-  return BaseProxyHandler::enumerate(cx, proxy, props);
+  return getProxyHandler()->BaseProxyHandler::enumerate(cx, proxy, props);
 }
 
 bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
@@ -1447,7 +1448,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
         // of this-binding for methods.
         JS::sandbox::RootedValue priv(cx, ObjectValue(*options.proto));
         options.proto =
-            js::NewProxyObject(cx, sandboxProxyHandler(), priv, nullptr);
+            js::NewProxyObject(cx, js::sandbox::GetProxyHandler(sandboxProxyHandler()), priv, nullptr);
         if (!options.proto) {
           return NS_ERROR_OUT_OF_MEMORY;
         }

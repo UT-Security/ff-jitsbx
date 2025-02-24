@@ -1014,9 +1014,13 @@ inline void SetProxyPrivate(JSObject* obj, const JS::Value& value) {
   }
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API bool IsScriptedProxy(const JSObject* obj);
+#else
 inline bool IsScriptedProxy(const JSObject* obj) {
   return IsProxy(obj) && GetProxyHandler(obj)->isScripted();
 }
+#endif
 
 class MOZ_STACK_CLASS ProxyOptions {
  protected:

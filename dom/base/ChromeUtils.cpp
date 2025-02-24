@@ -1560,7 +1560,7 @@ void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
   // privileged frames that we don't care about at the top of the stack, though.
   // We need to filter those out to get the frame we actually want.
   aRetval.set(
-      js::GetFirstSubsumedSavedFrame(cx, principals, frame, kSkipSelfHosted));
+      js::GetFirstSubsumedSavedFrame(cx, &principals->base_, frame, kSkipSelfHosted));
 }
 
 /* static */

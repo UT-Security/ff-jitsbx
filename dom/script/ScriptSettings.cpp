@@ -311,7 +311,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
 
   mOldWarningReporter.emplace(JS::GetWarningReporter(aCx));
 
-  JS::SetWarningReporter(aCx, WarningOnlyErrorReporter);
+  JS::SetWarningReporter(aCx, (JS::WarningReporter)sbx_register_cb((void*)WarningOnlyErrorReporter, 0));
 
 #ifdef DEBUG
   if (haveException) {

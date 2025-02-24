@@ -95,9 +95,9 @@ class RemoteObjectProxyBase : public js::sandbox::BaseProxyHandler,
    */
   static inline bool IsRemoteObjectProxy(JSObject* aProxy,
                                          prototypes::ID aProtoID) {
-    const js::sandbox::BaseProxyHandler* handler = js::sandbox::GetProxyHandler(aProxy);
+    const js::BaseProxyHandler* handler = js::GetProxyHandler(aProxy);
     return handler->family() == &sCrossOriginProxyFamily &&
-           static_cast<const RemoteObjectProxyBase*>(handler)->mPrototypeID ==
+           static_cast<const RemoteObjectProxyBase*>(js::sandbox::GetProxyHandler(aProxy))->mPrototypeID ==
                aProtoID;
   }
 

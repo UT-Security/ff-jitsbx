@@ -35,7 +35,7 @@ bool PaintWorkletGlobalScope::WrapGlobalObject(
       IsSharedMemoryAllowed());
 
   return PaintWorkletGlobalScope_Binding::Wrap(
-      aCx, this, this, options, nsJSPrincipals::get(mImpl->Principal()), true,
+      aCx, this, this, options, &nsJSPrincipals::get(mImpl->Principal())->base_, true,
       aReflector);
 }
 

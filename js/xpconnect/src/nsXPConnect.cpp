@@ -448,7 +448,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
     nsresult rv = BasePrincipal::Cast(principal)->GetSiteIdentifier(site);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal),
+    global = JS_NewGlobalObject(cx, clasp, &nsJSPrincipals::get(principal)->base_,
                                 JS::DontFireOnNewGlobalHook, aOptions);
     if (!global) {
       return nullptr;

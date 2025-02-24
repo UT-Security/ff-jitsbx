@@ -29,7 +29,7 @@ namespace mozilla {
 namespace loader {
 
 struct JSMEnvironmentProxyHandler : public js::sandbox::BaseProxyHandler {
-  JSMEnvironmentProxyHandler() : BaseProxyHandler(&gFamily, false) {}
+  JSMEnvironmentProxyHandler() : js::sandbox::BaseProxyHandler(&gFamily, false) {}
 
   bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,

@@ -21,16 +21,16 @@ using namespace mozilla::ipc;
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsJSPrincipals::AddRef() {
-  MOZ_ASSERT(int32_t(refcount) >= 0, "illegal refcnt");
-  nsrefcnt count = ++refcount;
+  MOZ_ASSERT(int32_t(refcount()) >= 0, "illegal refcnt");
+  nsrefcnt count = ++refcount();
   NS_LOG_ADDREF(this, count, "nsJSPrincipals", sizeof(*this));
   return count;
 }
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsJSPrincipals::Release() {
-  MOZ_ASSERT(0 != refcount, "dup release");
-  nsrefcnt count = --refcount;
+  MOZ_ASSERT(0 != refcount(), "dup release");
+  nsrefcnt count = --refcount();
   NS_LOG_RELEASE(this, count, "nsJSPrincipals");
   if (count == 0) {
     delete this;
@@ -40,7 +40,7 @@ nsJSPrincipals::Release() {
 }
 
 /* static */
-bool nsJSPrincipals::Subsume(JSPrincipals* jsprin, JSPrincipals* other) {
+bool nsJSPrincipals::Subsume(::JSPrincipals* jsprin, ::JSPrincipals* other) {
   bool result;
   nsresult rv = nsJSPrincipals::get(jsprin)->Subsumes(
       nsJSPrincipals::get(other), &result);
@@ -48,7 +48,7 @@ bool nsJSPrincipals::Subsume(JSPrincipals* jsprin, JSPrincipals* other) {
 }
 
 /* static */
-void nsJSPrincipals::Destroy(JSPrincipals* jsprin) {
+void nsJSPrincipals::Destroy(::JSPrincipals* jsprin) {
   // The JS runtime can call this method during the last GC when
   // nsScriptSecurityManager is destroyed. So we must not assume here that
   // the security manager still exists.
@@ -62,11 +62,11 @@ void nsJSPrincipals::Destroy(JSPrincipals* jsprin) {
   // The refcount logging considers AddRef-to-1 to indicate creation,
   // so trick it into thinking it's otherwise, but balance the
   // Release() we do below.
-  nsjsprin->refcount++;
+  nsjsprin->refcount()++;
   nsjsprin->AddRef();
-  nsjsprin->refcount--;
+  nsjsprin->refcount()--;
 #else
-  nsjsprin->refcount++;
+  nsjsprin->refcount()++;
 #endif
   nsjsprin->Release();
 }
@@ -77,7 +77,7 @@ void nsJSPrincipals::Destroy(JSPrincipals* jsprin) {
 JS_PUBLIC_API void JSPrincipals::dump() {
   if (debugToken == nsJSPrincipals::DEBUG_TOKEN) {
     nsAutoCString str;
-    nsresult rv = static_cast<nsJSPrincipals*>(this)->GetScriptLocation(str);
+    nsresult rv = nsJSPrincipals::get(this)->GetScriptLocation(str);
     fprintf(stderr, "nsIPrincipal (%p) = %s\n", static_cast<void*>(this),
             NS_SUCCEEDED(rv) ? str.get() : "(unknown)");
   } else {
@@ -93,7 +93,7 @@ JS_PUBLIC_API void JSPrincipals::dump() {
 /* static */
 bool nsJSPrincipals::ReadPrincipals(JSContext* aCx,
                                     JSStructuredCloneReader* aReader,
-                                    JSPrincipals** aOutPrincipals) {
+                                    ::JSPrincipals** aOutPrincipals) {
   uint32_t tag;
   uint32_t unused;
   if (!JS_ReadUint32Pair(aReader, &tag, &unused)) {
@@ -270,7 +270,7 @@ bool nsJSPrincipals::ReadPrincipalInfo(JSStructuredCloneReader* aReader,
 bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
                                             JSStructuredCloneReader* aReader,
                                             uint32_t aTag,
-                                            JSPrincipals** aOutPrincipals) {
+                                            ::JSPrincipals** aOutPrincipals) {
   MOZ_ASSERT(aTag == SCTAG_DOM_NULL_PRINCIPAL ||
              aTag == SCTAG_DOM_SYSTEM_PRINCIPAL ||
              aTag == SCTAG_DOM_CONTENT_PRINCIPAL ||
@@ -289,7 +289,7 @@ bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
 
   nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
 
-  *aOutPrincipals = get(principal.forget().take());
+  *aOutPrincipals = &get(principal.forget().take())->base_;
   return true;
 }
 

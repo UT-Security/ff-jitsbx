@@ -866,7 +866,7 @@ static JSObject* CreateInterfaceObject(
       JS::sandbox::Rooted<jsid> hasInstanceId(
           cx, JS::GetWellKnownSymbolKey(cx, JS::SymbolCode::hasInstance));
       if (!JS_DefineFunctionById(
-              cx, constructor, hasInstanceId, InterfaceHasInstance, 1,
+              cx, constructor, hasInstanceId, (JSNative)sbx_register_cb((void*)(JSNative)InterfaceHasInstance, 0), 1,
               // Flags match those of Function[Symbol.hasInstance]
               JSPROP_READONLY | JSPROP_PERMANENT)) {
         return nullptr;
@@ -1810,7 +1810,7 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstance,
+        JSNativeWrapper interfaceIsInstanceWrapper = {(JSNative)sbx_register_cb((void*)InterfaceIsInstance, 0),
                                                       nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceIsInstanceWrapper, 1, id);
@@ -1832,7 +1832,7 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceHasInstanceWrapper = {InterfaceHasInstance,
+        JSNativeWrapper interfaceHasInstanceWrapper = {(JSNative)sbx_register_cb((void*)(JSNative)InterfaceHasInstance, 0),
                                                        nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceHasInstanceWrapper, 1, id);

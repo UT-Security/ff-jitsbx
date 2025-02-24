@@ -421,7 +421,7 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
   // constructor or not, so we just mark all forwarders as constructors, and
   // let the underlying function throw for construct calls if it wants.
   JSFunction* fun = js::NewFunctionByIdWithReserved(
-      cx, FunctionForwarder, nargs, JSFUN_CONSTRUCTOR, id);
+      cx, (JSNative)sbx_register_cb((void*)FunctionForwarder, 0), nargs, JSFUN_CONSTRUCTOR, id);
   if (!fun) {
     return false;
   }

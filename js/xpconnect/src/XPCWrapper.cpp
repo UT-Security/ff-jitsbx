@@ -65,13 +65,13 @@ bool AttachNewConstructorObject(JSContext* aCx,
                                 JS::HandleObject aGlobalObject) {
   JSAutoRealm ar(aCx, aGlobalObject);
   JSFunction* xpcnativewrapper = JS_DefineFunction(
-      aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructor, 1,
+      aCx, aGlobalObject, "XPCNativeWrapper", (JSNative)sbx_register_cb((void*)XrayWrapperConstructor, 0), 1,
       JSPROP_READONLY | JSPROP_PERMANENT | JSFUN_CONSTRUCTOR);
   if (!xpcnativewrapper) {
     return false;
   }
   JS::sandbox::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
-  return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNW, 1,
+  return JS_DefineFunction(aCx, obj, "unwrap", (JSNative)sbx_register_cb((void*)UnwrapNW, 0), 1,
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }
 

@@ -3759,7 +3759,7 @@ already_AddRefed<BrowsingContext> nsGlobalWindowInner::GetChildWindow(
 
 void nsGlobalWindowInner::RefreshRealmPrincipal() {
   JS::SetRealmPrincipals(js::GetNonCCWObjectRealm(GetWrapperPreserveColor()),
-                         nsJSPrincipals::get(mDoc->NodePrincipal()));
+                         &nsJSPrincipals::get(mDoc->NodePrincipal())->base_);
 }
 
 already_AddRefed<nsIWidget> nsGlobalWindowInner::GetMainWidget() {

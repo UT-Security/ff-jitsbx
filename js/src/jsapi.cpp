@@ -2115,6 +2115,18 @@ JS_PUBLIC_API bool JS::IsSetObject(JSContext* cx, JS::HandleObject obj,
   return IsGivenTypeObject(cx, obj, ESClass::Set, isSet);
 }
 
+#ifdef JS_SANDBOX
+JSPrincipalsWithOps::JSPrincipalsWithOps(void* self, JSPrincipalsOps* ops): self_(self), ops_(ops) {}
+
+bool JSPrincipalsWithOps::write(JSContext* cx, JSStructuredCloneWriter* writer) {
+  return ops_->write(self_, cx, writer);
+}
+
+bool JSPrincipalsWithOps::isSystemOrAddonPrincipal() {
+  return ops_->isSystemOrAddonPrincipal(self_);
+}
+#endif
+
 JS_PUBLIC_API void JS_HoldPrincipals(JSPrincipals* principals) {
   ++principals->refcount;
 }

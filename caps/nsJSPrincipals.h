@@ -20,20 +20,20 @@ class PrincipalInfo;
 }  // namespace ipc
 }  // namespace mozilla
 
-class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
+class nsJSPrincipals : public nsIPrincipal, public ::sandbox::JSPrincipals {
  public:
   /* SpiderMonkey security callbacks. */
-  static bool Subsume(JSPrincipals* jsprin, JSPrincipals* other);
-  static void Destroy(JSPrincipals* jsprin);
+  static bool Subsume(::JSPrincipals* jsprin, ::JSPrincipals* other);
+  static void Destroy(::JSPrincipals* jsprin);
 
   /* JSReadPrincipalsOp for nsJSPrincipals */
   static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
-                             JSPrincipals** aOutPrincipals);
+                             ::JSPrincipals** aOutPrincipals);
 
   static bool ReadKnownPrincipalType(JSContext* aCx,
                                      JSStructuredCloneReader* aReader,
                                      uint32_t aTag,
-                                     JSPrincipals** aOutPrincipals);
+                                     ::JSPrincipals** aOutPrincipals);
 
   static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader,
                                 mozilla::ipc::PrincipalInfo& aInfo);
@@ -52,12 +52,21 @@ class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
    */
   static nsJSPrincipals* get(JSPrincipals* principals) {
     nsJSPrincipals* self = static_cast<nsJSPrincipals*>(principals);
-    MOZ_ASSERT_IF(self, self->debugToken == DEBUG_TOKEN);
+    MOZ_ASSERT_IF(self, self->debugToken() == DEBUG_TOKEN);
+    return self;
+  }
+  static nsJSPrincipals* get(::JSPrincipals* principals) {
+#ifdef JS_SANDBOX
+    nsJSPrincipals* self = static_cast<nsJSPrincipals*>(static_cast<::sandbox::JSPrincipals*>(static_cast<JSPrincipalsWithOps*>(principals)->self_));
+#else
+    nsJSPrincipals* self = static_cast<nsJSPrincipals*>(principals);
+#endif
+    MOZ_ASSERT_IF(self, self->debugToken() == DEBUG_TOKEN);
     return self;
   }
   static nsJSPrincipals* get(nsIPrincipal* principal) {
     nsJSPrincipals* self = static_cast<nsJSPrincipals*>(principal);
-    MOZ_ASSERT_IF(self, self->debugToken == DEBUG_TOKEN);
+    MOZ_ASSERT_IF(self, self->debugToken() == DEBUG_TOKEN);
     return self;
   }
 
@@ -65,7 +74,7 @@ class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
   NS_IMETHOD_(MozExternalRefCountType) Release(void) override;
 
   nsJSPrincipals() {
-    refcount = 0;
+    refcount() = 0;
     setDebugToken(DEBUG_TOKEN);
   }
 

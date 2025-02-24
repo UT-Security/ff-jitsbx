@@ -362,7 +362,7 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
 
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  JS::IterateRealmsWithPrincipals(jsapi.cx(), principals, nullptr, (JS::IterateRealmCallback)sbx_register_cb((void*)SetDomainCb, 0));
+  JS::IterateRealmsWithPrincipals(jsapi.cx(), &principals->base_, nullptr, (JS::IterateRealmCallback)sbx_register_cb((void*)SetDomainCb, 0));
 
   return NS_OK;
 }
