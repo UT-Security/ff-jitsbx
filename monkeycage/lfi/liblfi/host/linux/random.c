@@ -1,8 +1,18 @@
 #include <errno.h>
-#include <sys/random.h>
+#include <unistd.h>
 
 #include "host/error.h"
 #include "host.h"
+
+#define SYS_getrandom 318
+
+/* Flags for use with getrandom.  */
+#define GRND_NONBLOCK 0x01
+#define GRND_RANDOM 0x02
+
+static ssize_t getrandom(void* buf, size_t buflen, unsigned int flags) {
+    return syscall(SYS_getrandom, buf, buflen, flags);
+}
 
 static unsigned int
 linuxflags(unsigned int flags)

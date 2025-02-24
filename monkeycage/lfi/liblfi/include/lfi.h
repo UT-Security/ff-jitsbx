@@ -92,6 +92,10 @@ struct LFILoadOpts {
     char* gdbfile;
 };
 
+typedef struct {
+    void* verify;
+} LFIVerifier;
+
 bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
 bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);
 
