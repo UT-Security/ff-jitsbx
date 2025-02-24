@@ -229,3 +229,76 @@ SOURCES += [
 DIRS += ["build"]
 
 USE_LIBS += ["lfi"]
+
+selfhosted_inputs = [
+    "/js/public/friend/ErrorNumbers.msg",
+    # ProfilingCategoryList.h is being indirectly included, and it must be passed
+    # here as an input, so it's generated before this self-hosted JS code
+    # generation. Otherwise, it will intermittently fail to build.
+    "!/mozglue/baseprofiler/public/ProfilingCategoryList.h",
+    "/js/src/builtin/TypedArrayConstants.h",
+    "/js/src/builtin/SelfHostingDefines.h",
+    "/js/src/builtin/Utilities.js",
+    "/js/src/builtin/Array.js",
+    "/js/src/builtin/AsyncFunction.js",
+    "/js/src/builtin/AsyncIteration.js",
+    "/js/src/builtin/BigInt.js",
+    "/js/src/builtin/Date.js",
+    "/js/src/builtin/Error.js",
+    "/js/src/builtin/Generator.js",
+    "/js/src/builtin/Iterator.js",
+    "/js/src/builtin/Map.js",
+    "/js/src/builtin/Number.js",
+    "/js/src/builtin/Object.js",
+    "/js/src/builtin/Promise.js",
+    "/js/src/builtin/Reflect.js",
+    "/js/src/builtin/RegExp.js",
+    "/js/src/builtin/RegExpGlobalReplaceOpt.h.js",
+    "/js/src/builtin/RegExpLocalReplaceOpt.h.js",
+    "/js/src/builtin/String.js",
+    "/js/src/builtin/Set.js",
+    "/js/src/builtin/Sorting.js",
+    "/js/src/builtin/TypedArray.js",
+    "/js/src/builtin/WeakMap.js",
+    "/js/src/builtin/WeakSet.js",
+] + (
+    [
+        "/js/src/builtin/intl/NumberingSystemsGenerated.h",
+        "/js/src/builtin/intl/Collator.js",
+        "/js/src/builtin/intl/CommonFunctions.js",
+        "/js/src/builtin/intl/CurrencyDataGenerated.js",
+        "/js/src/builtin/intl/DateTimeFormat.js",
+        "/js/src/builtin/intl/DisplayNames.js",
+        "/js/src/builtin/intl/IntlObject.js",
+        "/js/src/builtin/intl/ListFormat.js",
+        "/js/src/builtin/intl/NumberFormat.js",
+        "/js/src/builtin/intl/PluralRules.js",
+        "/js/src/builtin/intl/RelativeTimeFormat.js",
+        "/js/src/builtin/intl/SanctionedSimpleUnitIdentifiersGenerated.js",
+    ]
+    if CONFIG["JS_HAS_INTL_API"]
+    else []
+)
+
+if CONFIG["ENABLE_RECORD_TUPLE"]:
+    selfhosted_inputs += ["/js/src/builtin/Tuple.js"]
+
+# Prepare self-hosted JS code for embedding
+GeneratedFile(
+    "/js/src/selfhosted.out.h",
+    "selfhosted.js",
+    script="/js/src/builtin/embedjs.py",
+    entry_point="generate_selfhosted",
+    inputs=selfhosted_inputs,
+)
+
+if CONFIG["JS_HAS_CTYPES"]:
+    if CONFIG["MOZ_SYSTEM_FFI"]:
+        CXXFLAGS += CONFIG["MOZ_FFI_CFLAGS"]
+
+if CONFIG["JS_HAS_INTL_API"]:
+    DIRS += [
+        "../../intl/components",
+    ]
+
+    USE_LIBS += ["intlcomponents"]
