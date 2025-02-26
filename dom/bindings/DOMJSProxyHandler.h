@@ -92,7 +92,7 @@ class BaseDOMProxyHandler : public js::sandbox::BaseProxyHandler {
 class DOMProxyHandler : public BaseDOMProxyHandler {
  public:
 #ifdef JS_SANDBOX
-  inline DOMProxyHandler() : BaseDOMProxyHandler(&family) {}
+  inline DOMProxyHandler() : BaseDOMProxyHandler(getFamily()) {}
 #else
   constexpr DOMProxyHandler() : BaseDOMProxyHandler(&family) {}
 #endif
@@ -150,6 +150,8 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
                                        JS::Handle<JSObject*> obj);
 
   static const char family;
+
+  static const char* getFamily();
 };
 
 // Class used by shadowing handlers (the ones that have [OverrideBuiltins].

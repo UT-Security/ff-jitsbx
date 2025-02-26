@@ -1115,7 +1115,7 @@ void XPCJSRuntime::Shutdown(JSContext* cx) {
   JS_RemoveFinalizeCallback(cx, (JSFinalizeCallback)sbx_register_cb((void*)FinalizeCallback, 0));
   xpc_DelocalizeRuntime(JS_GetRuntime(cx));
 
-  JS::SetGCSliceCallback(cx, (JS::GCSliceCallback)sbx_register_cb((void*)mPrevGCSliceCallback, 0));
+  JS::SetGCSliceCallback(cx, mPrevGCSliceCallback == nullptr ? nullptr : (JS::GCSliceCallback)sbx_register_cb((void*)mPrevGCSliceCallback, 0));
 
   nsScriptSecurityManager::ClearJSCallbacks(cx);
 
@@ -2998,7 +2998,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // isRunOnce mode and compiled function bodies (from
   // JS::CompileFunction). In practice, this means content scripts and event
   // handlers.
-  mozilla::UniquePtr<js::SourceHookWithCallback> hook(new js::SourceHookWithCallback((js::SourceHookLoadCallback)sbx_register_cb((void*)XPCJSSourceHookLoad, 0)));
+  mozilla::UniquePtr<js::SourceHookWithCallback> hook(js_new<js::SourceHookWithCallback>((js::SourceHookLoadCallback)sbx_register_cb((void*)XPCJSSourceHookLoad, 0)));
   js::SetSourceHook(cx, std::move(hook));
 
   // Register memory reporters and distinguished amount functions.

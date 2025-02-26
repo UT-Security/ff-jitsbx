@@ -576,7 +576,7 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 
 class SandboxProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxProxyHandler() : js::sandbox::Wrapper(0) {}
+  inline SandboxProxyHandler() : js::sandbox::Wrapper(0, false) {}
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
@@ -634,7 +634,7 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
 // to them directly.
 class SandboxCallableProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxCallableProxyHandler() : js::sandbox::Wrapper(0) {}
+  inline SandboxCallableProxyHandler() : js::sandbox::Wrapper(0, false) {}
 
   virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
                     const JS::CallArgs& args) const override;

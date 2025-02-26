@@ -14454,7 +14454,7 @@ class CGProxyIsProxy(CGAbstractMethod):
         return ""
 
     def definition_body(self):
-        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == js::sandbox::GetProxyHandler(DOMProxyHandler::getInstance());\n"
+        return "return mozilla::dom::IsDOMProxy(obj) && js::sandbox::GetProxyHandler(obj) == DOMProxyHandler::getInstance();\n"
 
 
 class CGProxyUnwrap(CGAbstractMethod):

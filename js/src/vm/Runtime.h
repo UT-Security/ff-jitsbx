@@ -516,7 +516,10 @@ struct JSRuntime {
   void tracePersistentRoots(JSTracer* trc);
   void finishPersistentRoots();
 
+#ifdef JS_SANDBOX
   void traceExternalPersistentRoots(JSTracer* trc);
+  void finishExternalPersistentRoots();
+#endif
   
   void finishRoots();
 

@@ -10,6 +10,7 @@
 #include "js/Proxy.h"
 #ifdef JS_SANDBOX_API
 #include "js/sandbox/sobox.h"
+#include "js/Utility.h"
 #endif
 
 namespace js {
@@ -259,24 +260,30 @@ namespace sandbox {
        (js::ProxyIsScriptedOp)sbx_register_cb((void*)isScriptedCb, 0),                \
    };                                                                                 \
    return &__ops;                                                                     \
- }                                                                                    
+ }
 
 class BaseProxyHandler {
-private:
-  js::BaseProxyHandlerWithOps base_;
+ private:
+  const js::BaseProxyHandler* base_;
 
-public:
+ public:
   DEFINE_PROXY_HANDLER_OPS_CALLBACKS(BaseProxyHandler)
-  
- explicit inline BaseProxyHandler(const void* aProxyFamily,
-                                  bool aHasPrototype = false,
-                                  bool aHasSecurityPolicy = false)
-     : base_(ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy) {}
 
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const { return base_.family(); }
-  inline const js::BaseProxyHandlerWithOps* getProxyHandler() const { return &base_; }
+  explicit inline BaseProxyHandler(const void* aProxyFamily,
+                                   bool aHasPrototype = false,
+                                   bool aHasSecurityPolicy = false) {
+    base_ = js_new<js::BaseProxyHandlerWithOps>(
+        ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy);
+  }
+
+  explicit inline BaseProxyHandler(const js::BaseProxyHandler* base)
+      : base_(base) {}
+
+  inline const js::BaseProxyHandler* getProxyHandler() const { return base_; }
+  
+  bool hasPrototype() const { return base_->hasPrototype(); }
+  bool hasSecurityPolicy() const { return base_->hasSecurityPolicy(); }
+  inline const void* family() const { return base_->family(); }
 
   virtual bool finalizeInBackground(const JS::Value& priv) const {
     return getProxyHandler()->js::BaseProxyHandler::finalizeInBackground(priv);
