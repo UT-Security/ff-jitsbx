@@ -13,6 +13,9 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "gc/Zone.h"
+#ifdef JS_SANDBOX_BUNDLE
+#include "sandbox/Bundle.h"
+#endif
 #include "jit/CalleeToken.h"
 #include "jit/CompileWrappers.h"
 #include "jit/JitFrames.h"
@@ -223,6 +226,18 @@ ABIFunctionType MacroAssembler::signature() const {
   MOZ_CRASH("Only available for making calls within a simulator.");
 #endif
 }
+
+// ===============================================================
+// Sandbox helpers.
+
+inline void MacroAssembler::bundleAlignNop() {
+#ifdef JS_SANDBOX_CFI
+  if (isSandboxed() && !oom()) {
+    nopAlign(sandbox::BUNDLE_SIZE); 
+  }
+#endif
+}
+
 
 // ===============================================================
 // Jit Frames.

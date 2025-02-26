@@ -58,8 +58,10 @@ struct EnterJITStackEntry {
   void* rdi;
 #endif
 
+#ifndef JS_SANDBOX
   void* r15;
   void* r14;
+#endif
   void* r13;
   void* r12;
   void* rbx;
@@ -115,8 +117,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.push(rbx);
   masm.push(r12);
   masm.push(r13);
+#ifndef JS_SANDBOX
   masm.push(r14);
   masm.push(r15);
+#endif
 #if defined(_WIN64)
   masm.push(rdi);
   masm.push(rsi);
@@ -260,7 +264,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     masm.push(reg_code);
 
-    using Fn = bool (*)(BaselineFrame * frame, InterpreterFrame * interpFrame,
+    using Fn = bool (*)(BaselineFrame* frame, InterpreterFrame* interpFrame,
                         uint32_t numStackValues);
     masm.setupUnalignedABICall(scratch);
     masm.passABIArg(framePtrScratch);  // BaselineFrame
@@ -345,8 +349,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.pop(rsi);
   masm.pop(rdi);
 #endif
+#ifndef JS_SANDBOX
   masm.pop(r15);
   masm.pop(r14);
+#endif
   masm.pop(r13);
   masm.pop(r12);
   masm.pop(rbx);
@@ -423,8 +429,7 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
   masm.reserveStack(sizeof(void*));
   masm.movq(rsp, rbx);
 
-  using Fn =
-      bool (*)(InvalidationBailoutStack * sp, BaselineBailoutInfo * *info);
+  using Fn = bool (*)(InvalidationBailoutStack* sp, BaselineBailoutInfo** info);
   masm.setupUnalignedABICall(rdx);
   masm.passABIArg(rax);
   masm.passABIArg(rbx);
@@ -629,7 +634,7 @@ static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
   masm.movq(rsp, r9);
 
   // Call the bailout function.
-  using Fn = bool (*)(BailoutStack * sp, BaselineBailoutInfo * *info);
+  using Fn = bool (*)(BailoutStack* sp, BaselineBailoutInfo** info);
   masm.setupUnalignedABICall(rax);
   masm.passABIArg(r8);
   masm.passABIArg(r9);

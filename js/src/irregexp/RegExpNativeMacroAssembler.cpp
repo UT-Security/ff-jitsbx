@@ -121,6 +121,7 @@ void SMRegExpMacroAssembler::Backtrack() {
 }
 
 void SMRegExpMacroAssembler::Bind(Label* label) {
+  masm_.bundleAlignNop();
   masm_.bind(label->inner());
   if (label->patchOffset_.bound()) {
     AddLabelPatch(label->patchOffset_, label->pos());

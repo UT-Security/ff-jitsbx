@@ -494,7 +494,7 @@ def main(argv):
         options.ignore_timeouts = set()
 
     prefix = (
-        [js_shell] + shlex.split(options.shell_args) + shlex.split(options.feature_args)
+        ['lfi-run'] + [js_shell] + ['--'] + shlex.split(options.shell_args) + shlex.split(options.feature_args)
     )
     prologue = os.path.join(jittests.LIB_DIR, "prologue.js")
     if options.remote:

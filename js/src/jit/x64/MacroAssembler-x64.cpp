@@ -30,12 +30,15 @@ void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
   if (!dbl) {
     return;
   }
+
+  AutoOwnBundleScope bundle(*this);
   // The constants will be stored in a pool appended to the text (see
   // finish()), so they will always be a fixed distance from the
   // instructions which reference them. This allows the instructions to use
   // PC-relative addressing. Use "jump" label support code, because we need
   // the same PC-relative address patching that jumps use.
   JmpSrc j = masm.vmovsd_ripr(dest.encoding());
+  bundle.unlock();
   propagateOOM(dbl->uses.append(j));
 }
 
@@ -47,8 +50,10 @@ void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
   if (!flt) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   // See comment in loadConstantDouble
   JmpSrc j = masm.vmovss_ripr(dest.encoding());
+  bundle.unlock();
   propagateOOM(flt->uses.append(j));
 }
 
@@ -60,7 +65,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   JmpSrc j = (masm.*op)(reg.encoding());
+  bundle.unlock();
   propagateOOM(val->uses.append(j));
 }
 
@@ -72,7 +79,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
+  AutoOwnBundleScope bundle(*this);
   JmpSrc j = (masm.*op)(src.encoding(), dest.encoding());
+  bundle.unlock();
   propagateOOM(val->uses.append(j));
 }
 
@@ -512,7 +521,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   movq(rsp, rax);
 
   // Call the handler.
-  using Fn = void (*)(ResumeFromException * rfe);
+  using Fn = void (*)(ResumeFromException* rfe);
   asMasm().setupUnalignedABICall(rcx);
   asMasm().passABIArg(rax);
   asMasm().callWithABI<Fn, HandleException>(
@@ -628,7 +637,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   movePtr(ImmPtr((const void*)wasm::FailInstanceReg), InstanceReg);
-  masm.ret();
+  ret();
 
   // Found a wasm catch handler, restore state and jump to it.
   bind(&wasmCatch);
@@ -942,6 +951,34 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 
 // ========================================================================
 // Memory access primitives.
+#ifdef JS_SANDBOX_HEAP
+template <typename T>
+void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
+                                       MIRType valueType, const T& dest,
+                                       Register scratch) {
+  MOZ_ASSERT(valueType < MIRType::Value);
+
+  if (valueType == MIRType::Double) {
+    boxDouble(value.reg().typedReg().fpu(), dest);
+    return;
+  }
+
+  if (value.constant()) {
+    storeValue(value.value(), dest, scratch);
+  } else {
+    storeValue(ValueTypeFromMIRType(valueType), value.reg().typedReg().gpr(),
+               dest, scratch);
+  }
+}
+
+template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
+                                                MIRType valueType,
+                                                const Address& dest,
+                                                Register scratch);
+template void MacroAssembler::storeUnboxedValue(
+    const ConstantOrRegister& value, MIRType valueType,
+    const BaseObjectElementIndex& dest, Register scratch);
+#else
 template <typename T>
 void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
                                        MIRType valueType, const T& dest) {
@@ -966,6 +1003,7 @@ template void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
 template void MacroAssembler::storeUnboxedValue(
     const ConstantOrRegister& value, MIRType valueType,
     const BaseObjectElementIndex& dest);
+#endif
 
 void MacroAssembler::PushBoxed(FloatRegister reg) {
   subq(Imm32(sizeof(double)), StackPointer);

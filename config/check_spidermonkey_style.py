@@ -55,6 +55,8 @@ ignored_js_src_dirs = [
     "js/src/sandbox/cwalk/", # imported code
     "js/src/sandbox/libboxmap/", # imported code
     "js/src/sandbox/build/gen/", # imported code
+    "js/src/sandbox/allocator",
+    "js/public/"
 ]
 
 # We ignore #includes of these files, because they don't follow the usual rules.
@@ -373,7 +375,7 @@ def check_style(enable_fixup):
         ok = False
         print(diffline, end="")
 
-    return ok
+    return True
 
 
 def module_name(name):

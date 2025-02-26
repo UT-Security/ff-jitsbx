@@ -608,6 +608,10 @@ class AssemblerShared {
   mozilla::Vector<const char*> creators_;
 #endif
 
+#ifdef JS_SANDBOX
+  bool isSandboxed_;
+#endif
+
  protected:
   CodeLabelVector codeLabels_;
 
@@ -615,9 +619,27 @@ class AssemblerShared {
   bool embedsNurseryPointers_;
 
  public:
+#ifdef JS_SANDBOX
+  AssemblerShared() : isSandboxed_(true), enoughMemory_(true), embedsNurseryPointers_(false) {}
+#else
   AssemblerShared() : enoughMemory_(true), embedsNurseryPointers_(false) {}
+#endif
 
   ~AssemblerShared();
+
+  bool isSandboxed() {
+#ifdef JS_SANDBOX
+    return isSandboxed_;
+#else
+    return true;
+#endif
+  }
+
+  void unsafeSetIsSandboxed(bool isSandboxed) {
+#ifdef JS_SANDBOX
+    isSandboxed_ = isSandboxed;
+#endif
+  }
 
 #ifdef DEBUG
   // Do not use these directly; instead use `class AutoCreatedBy`.

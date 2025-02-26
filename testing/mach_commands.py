@@ -663,6 +663,7 @@ def run_jsapitests(command_context, list=False, frontend_only=False, test_name=N
     import subprocess
 
     jsapi_tests_cmd = [
+        "lfi-run",
         os.path.join(command_context.bindir, executable_name("jsapi-tests"))
     ]
     if list:

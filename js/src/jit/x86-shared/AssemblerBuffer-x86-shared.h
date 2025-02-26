@@ -39,6 +39,9 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef JS_SANDBOX_BUNDLE
+#include "sandbox/Bundle.h"
+#endif
 #include "jit/JitContext.h"
 #include "jit/JitSpewer.h"
 #include "jit/ProcessExecutableMemory.h"
@@ -133,7 +136,11 @@ class AssemblerBuffer {
   void ensureSpace(size_t space) {
     // This should only be called with small |space| values to ensure
     // we don't overflow below.
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(space < sandbox::BUNDLE_SIZE);
+#else
     MOZ_ASSERT(space <= 16);
+#endif
     if (MOZ_UNLIKELY(!m_buffer.reserve(m_buffer.length() + space))) {
       oomDetected();
     }
@@ -169,6 +176,12 @@ class AssemblerBuffer {
     return true;
   }
 
+  void appendUnchecked(const unsigned char* values, size_t size) {
+    if (MOZ_UNLIKELY(!m_buffer.append(values, size))) {
+      oomDetected();
+    }
+  }
+
   size_t size() const { return m_buffer.length(); }
 
   bool oom() const { return m_oom; }
@@ -183,6 +196,8 @@ class AssemblerBuffer {
   }
 
   unsigned char* data() { return m_buffer.begin(); }
+
+  void clear() { m_buffer.clear(); }
 
  protected:
   /*

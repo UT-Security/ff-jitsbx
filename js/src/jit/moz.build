@@ -269,12 +269,20 @@ GeneratedFile(
 
 # Generate jit/LIROpsGenerated.h from jit/LIR.h, jit/shared/LIR-shared.h, and
 # platform-specific LIR files.
-GeneratedFile(
-    "LIROpsGenerated.h",
-    script="GenerateLIRFiles.py",
-    entry_point="generate_lir_header",
-    inputs=["LIROps.yaml"],
-)
+if CONFIG["JS_SANDBOX_HEAP"]:
+    GeneratedFile(
+        "LIROpsGenerated.h",
+        script="GenerateLIRFiles.py",
+        entry_point="generate_lir_header",
+        inputs=["LIROps-sandboxed.yaml"],
+    )
+else:
+    GeneratedFile(
+        "LIROpsGenerated.h",
+        script="GenerateLIRFiles.py",
+        entry_point="generate_lir_header",
+        inputs=["LIROps.yaml"],
+    )
 
 # Generate jit/CacheIROpsGenerated.h from jit/CacheIROps.yaml
 GeneratedFile(
