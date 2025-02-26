@@ -131,17 +131,9 @@ bool FilteringWrapper<Base, Policy>::nativeCall(
     JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl,
     const JS::CallArgs& args) const {
   if (Policy::allowNativeCall(cx, test, impl)) {
-#ifdef JS_SANDBOX
-    return Base::getProxyHandler()->Base::Permissive::nativeCall(cx, test, impl, args);
-#else
     return Base::Permissive::nativeCall(cx, test, impl, args);
-#endif
   }
-#ifdef JS_SANDBOX
-  return Base::getProxyHandler()->Base::Restrictive::nativeCall(cx, test, impl, args);
-#else
   return Base::Restrictive::nativeCall(cx, test, impl, args);
-#endif
 }
 
 template <typename Base, typename Policy>

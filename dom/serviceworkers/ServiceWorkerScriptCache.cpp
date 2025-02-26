@@ -941,7 +941,11 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
       return rv;
     }
 
-    mBuffer.Adopt(buffer, len);
+    char16_t* bufferSafe = (char16_t*)malloc(aLen);
+    memcpy(bufferSafe, buffer, aLen);
+    js_free(buffer);
+
+    mBuffer.Adopt(bufferSafe, len);
 
     rv = NS_OK;
     return NS_OK;
@@ -1010,8 +1014,11 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
       if (NS_WARN_IF(NS_FAILED(rv))) {
         return rv;
       }
+      char16_t* bufferSafe = (char16_t*)malloc(aLen);
+      memcpy(bufferSafe, buffer, aLen);
+      js_free(buffer);
 
-      mBuffer.Adopt(buffer, len);
+      mBuffer.Adopt(bufferSafe, len);
 
       return NS_OK;
     }
@@ -1105,8 +1112,11 @@ CompareNetwork::OnStreamComplete(nsIStreamLoader* aLoader,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
+  char16_t* bufferSafe = (char16_t*)malloc(aLen);
+  memcpy(bufferSafe, buffer, aLen);
+  js_free(buffer);
 
-  mBuffer.Adopt(buffer, len);
+  mBuffer.Adopt(bufferSafe, len);
 
   rv = NS_OK;
   return NS_OK;
@@ -1185,8 +1195,11 @@ CompareCache::OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aContext,
     Finish(rv, false);
     return rv;
   }
+  char16_t* bufferSafe = (char16_t*)malloc(aLen);
+  memcpy(bufferSafe, buffer, aLen);
+  js_free(buffer);
 
-  mBuffer.Adopt(buffer, len);
+  mBuffer.Adopt(bufferSafe, len);
 
   Finish(NS_OK, true);
   return NS_OK;

@@ -557,8 +557,10 @@ namespace mozilla {
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
   if (!sICUReporterInitialized) {
-    if (!JS_SetICUMemoryFunctions(ICUReporter::Alloc, ICUReporter::Realloc,
-                                  ICUReporter::Free)) {
+    if (!JS_SetICUMemoryFunctions(
+            (JS_ICUAllocFn)sbx_register_cb((void*)ICUReporter::Alloc, 0),
+            (JS_ICUReallocFn)sbx_register_cb((void*)ICUReporter::Realloc, 0),
+            (JS_ICUFreeFn)sbx_register_cb((void*)ICUReporter::Free, 0))) {
       MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
     }
     sICUReporterInitialized = true;

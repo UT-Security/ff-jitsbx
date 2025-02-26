@@ -147,7 +147,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
 
   // Step 1.
   JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
-  if (!js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
+  if (!js::sandbox::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
 
@@ -202,7 +202,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
 
   // Step 1.
   JS::sandbox::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
-  if (!js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
+  if (!js::sandbox::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
 

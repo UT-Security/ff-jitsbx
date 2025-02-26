@@ -227,6 +227,32 @@ static void TracePersistentRooted(JSRuntime* rt, JSTracer* trc) {
 #endif
 }
 
+#ifdef JS_SANDBOX
+template <typename T>
+static void FinishExternalPersistentRootedChain(
+    LinkedList<js::sandbox::PersistentRootedBase>& list) {
+  while (!list.isEmpty()) {
+    static_cast<JS::sandbox::PersistentRooted<T>*>(list.getFirst())->reset();
+  }
+}
+
+void JSRuntime::finishExternalPersistentRoots() {
+  JS::sandbox::ExternalPersistentRootingCallbacks cb = persistentRootingCallbacks;
+  void* data = persistentRootingData;
+  
+#define FINISH_ROOT_LIST(name, type, _, _1) \
+  FinishExternalPersistentRootedChain<type*>(cb.externalRoots(JS::RootKind::name, data));
+  JS_FOR_EACH_TRACEKIND(FINISH_ROOT_LIST)
+#undef FINISH_ROOT_LIST
+  FinishExternalPersistentRootedChain<jsid>(cb.externalRoots(JS::RootKind::Id, data));
+  FinishExternalPersistentRootedChain<Value>(cb.externalRoots(JS::RootKind::Value, data));
+
+  // Note that we do not finalize the Traceable list as we do not know how to
+  // safely clear members. We instead assert that none escape the RootLists.
+  // See the comment on RootLists::~RootLists for details.
+}
+#endif
+
 template <typename T>
 static void FinishPersistentRootedChain(
     LinkedList<PersistentRootedBase>& list) {
@@ -530,6 +556,9 @@ void js::gc::GCRuntime::finishRoots() {
   rootsHash.ref().clear();
 
   rt->finishPersistentRoots();
+#ifdef JS_SANDBOX
+  rt->finishExternalPersistentRoots();
+#endif
 
   rt->finishSelfHosting();
 

@@ -73,6 +73,11 @@ struct SetDOMProxyInformation {
 
 //SetDOMProxyInformation gSetDOMProxyInformation;
 
+const char* DOMProxyHandler::getFamily() {
+  static SetDOMProxyInformation gSetDOMProxyInformation;
+  return &family;
+}
+
 static inline void CheckExpandoObject(JSObject* proxy,
                                       const JS::Value& expando) {
 #ifdef DEBUG

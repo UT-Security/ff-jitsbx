@@ -576,7 +576,7 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 
 class SandboxProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxProxyHandler() : js::sandbox::Wrapper(0) {}
+  inline SandboxProxyHandler() : js::sandbox::Wrapper(0, false) {}
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
@@ -634,7 +634,7 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
 // to them directly.
 class SandboxCallableProxyHandler : public js::sandbox::Wrapper {
  public:
-  inline SandboxCallableProxyHandler() : js::sandbox::Wrapper(0) {}
+  inline SandboxCallableProxyHandler() : js::sandbox::Wrapper(0, false) {}
 
   virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
                     const JS::CallArgs& args) const override;
@@ -660,7 +660,7 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
   // Get our SandboxProxyHandler proxy.
   JS::sandbox::RootedObject sandboxProxy(cx, getSandboxProxy(proxy));
   MOZ_ASSERT(js::IsProxy(sandboxProxy) &&
-             js::GetProxyHandler(sandboxProxy) == sandboxProxyHandler());
+             js::GetProxyHandler(sandboxProxy) == js::sandbox::GetProxyHandler(sandboxProxyHandler()));
 
   // The global of the sandboxProxy is the sandbox global, and the
   // target object is the original proto.
@@ -725,7 +725,7 @@ static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
   // callable as the private.  We put the given sandboxProtoProxy in
   // an extra slot, and our call() hook depends on that.
   MOZ_ASSERT(js::IsProxy(sandboxProtoProxy) &&
-             js::GetProxyHandler(sandboxProtoProxy) == sandboxProxyHandler());
+             js::GetProxyHandler(sandboxProtoProxy) == js::sandbox::GetProxyHandler(sandboxProxyHandler()));
 
   JS::sandbox::RootedValue priv(cx, ObjectValue(*callable));
   // We want to claim to have the same proto as our wrapped callable, so set

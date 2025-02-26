@@ -11,27 +11,26 @@
 #ifdef JS_SANDBOX_API
 #include "js/sandbox/Proxy.h"
 #include "js/sandbox/sobox.h"
+#include "js/Utility.h"
 #endif
 
 namespace js {
 namespace sandbox {
 #ifdef JS_SANDBOX_API
 
-class ForwardingProxyHandler {
-private:
-  js::ForwardingProxyHandlerWithOps base_;
+class ForwardingProxyHandler: public BaseProxyHandler {
 public:
   DEFINE_PROXY_HANDLER_OPS_CALLBACKS(ForwardingProxyHandler)
-  
- explicit inline ForwardingProxyHandler(const void* aProxyFamily,
-                                  bool aHasPrototype = false,
-                                  bool aHasSecurityPolicy = false)
-     : base_(ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy) {}
 
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const { return base_.family(); }
-  inline const js::ForwardingProxyHandlerWithOps* getProxyHandler() const { return &base_; }
+  explicit inline ForwardingProxyHandler(const void* aProxyFamily,
+                                         bool aHasPrototype = false,
+                                         bool aHasSecurityPolicy = false)
+      : BaseProxyHandler(js_new<js::ForwardingProxyHandlerWithOps>(
+            ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy)) {}
+
+  explicit inline ForwardingProxyHandler(const js::ForwardingProxyHandler* base): BaseProxyHandler(base) {}
+
+  inline const js::ForwardingProxyHandler* getProxyHandler() const { return static_cast<const js::ForwardingProxyHandler*>(BaseProxyHandler::getProxyHandler()); }
 
   virtual bool finalizeInBackground(const JS::Value& priv) const {
     return getProxyHandler()->js::ForwardingProxyHandler::finalizeInBackground(priv);
@@ -505,27 +504,26 @@ inline const js::BaseProxyHandler* GetProxyHandler(const ForwardingProxyHandler*
    return &__ops;                                                                     \
  }
 
-class Wrapper {
-private:
-  js::WrapperWithOps base_;
-
+class Wrapper: public ForwardingProxyHandler {
 public:
+  using Unsafe = js::Wrapper;
+  
   DEFINE_WRAPPER_OPS_CALLBACKS(Wrapper)
 
   explicit inline Wrapper(unsigned aFlags, bool aHasPrototype = false,
-                   bool aHasSecurityPolicy = false)
-      : base_(ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy) {}
+                          bool aHasSecurityPolicy = false)
+      : ForwardingProxyHandler(js_new<js::WrapperWithOps>(
+            ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy)) {}
 
-  
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const { return base_.js::BaseProxyHandler::family(); }
-  unsigned flags() const { return base_.flags(); }
+  explicit inline Wrapper(const js::Wrapper* base): ForwardingProxyHandler(base) {}
+      
+  inline const js::Wrapper* getProxyHandler() const { return static_cast<const js::Wrapper*>(ForwardingProxyHandler::getProxyHandler()); }
+
+  unsigned flags() const { return getProxyHandler()->flags(); }
   bool isCrossCompartmentWrapper() const {
-    return base_.isCrossCompartmentWrapper();
+    return getProxyHandler()->isCrossCompartmentWrapper();
   }
 
-  inline const js::WrapperWithOps* getProxyHandler() const { return &base_; }
 
   static JSObject* New(JSContext* cx, JSObject* obj, const Wrapper* handler,
                        const WrapperOptions& options = WrapperOptions()) {
@@ -763,35 +761,29 @@ public:
   }
 };
 
-class CrossCompartmentWrapper {
-private:
-  js::CrossCompartmentWrapperWithOps base_;
-
+class CrossCompartmentWrapper: public Wrapper {
 public:
+  using Unsafe = js::CrossCompartmentWrapper;
+  
   DEFINE_WRAPPER_OPS_CALLBACKS(CrossCompartmentWrapper)
 
   explicit inline CrossCompartmentWrapper(unsigned aFlags,
                                           bool aHasPrototype = false,
                                           bool aHasSecurityPolicy = false)
-      : base_(ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy) {}
+      : Wrapper(js_new<js::CrossCompartmentWrapperWithOps>(ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy)) {}
 
-  operator const Wrapper*() const {
+  explicit inline CrossCompartmentWrapper(const js::CrossCompartmentWrapper* base): Wrapper(base) {}
+
+  /*operator const Wrapper*() const {
     static_assert(sizeof(CrossCompartmentWrapper) == sizeof(Wrapper));
     static_assert(sizeof(js::CrossCompartmentWrapperWithOps) == sizeof(js::WrapperWithOps));
     return reinterpret_cast<const Wrapper*>(this);
-  }
+  }*/
 
   static const CrossCompartmentWrapper* getSingletonP();
       
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const { return base_.js::BaseProxyHandler::family(); }
-  unsigned flags() const { return base_.flags(); }
-  bool isCrossCompartmentWrapper() const {
-    return base_.isCrossCompartmentWrapper();
-  }
-  inline const js::CrossCompartmentWrapperWithOps* getProxyHandler() const {
-    return &base_;
+  inline const js::CrossCompartmentWrapper* getProxyHandler() const {
+    return static_cast<const js::CrossCompartmentWrapper*>(Wrapper::getProxyHandler());
   }
 
   virtual bool finalizeInBackground(const JS::Value& priv) const {
@@ -1009,22 +1001,20 @@ public:
   }
 };
 
-class OpaqueCrossCompartmentWrapper {
-private:
-  js::OpaqueCrossCompartmentWrapperWithOps base_;
+class OpaqueCrossCompartmentWrapper: public CrossCompartmentWrapper {
 public:
   DEFINE_WRAPPER_OPS_CALLBACKS(OpaqueCrossCompartmentWrapper)
-  
-  explicit inline OpaqueCrossCompartmentWrapper(): base_(ops(), this) {}
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const { return base_.js::BaseProxyHandler::family(); }
-  unsigned flags() const { return base_.flags(); }
-  bool isCrossCompartmentWrapper() const {
-    return base_.isCrossCompartmentWrapper();
-  }
-  inline const js::OpaqueCrossCompartmentWrapperWithOps* getProxyHandler() const {
-    return &base_;
+
+  explicit inline OpaqueCrossCompartmentWrapper()
+      : CrossCompartmentWrapper(
+            js_new<js::OpaqueCrossCompartmentWrapperWithOps>(ops(), this)) {}
+
+  explicit inline OpaqueCrossCompartmentWrapper(
+      const js::OpaqueCrossCompartmentWrapper* base)
+      : CrossCompartmentWrapper(base) {}
+
+  inline const js::OpaqueCrossCompartmentWrapper* getProxyHandler() const {
+    return static_cast<const js::OpaqueCrossCompartmentWrapper*>(CrossCompartmentWrapper::getProxyHandler());
   }
 
   virtual bool finalizeInBackground(const JS::Value& priv) const {
@@ -1242,46 +1232,35 @@ public:
   }
 };
 
-template <class Base>
-class SecurityWrapper {
-private:
-  js::SecurityWrapperWithOps<Base> base_;
+template <typename Base>
+class SecurityWrapper: public Base {
 public:
   DEFINE_WRAPPER_OPS_CALLBACKS(SecurityWrapper<Base>)
  
-  explicit inline SecurityWrapper(unsigned flags, bool hasPrototype = false): base_(ops(), this, flags, hasPrototype) {}
+  explicit inline SecurityWrapper(unsigned flags, bool hasPrototype = false): Base(js_new<js::SecurityWrapperWithOps<typename Base::Unsafe>>(ops(), this, flags, hasPrototype)) {}
 
-  bool hasPrototype() const { return base_.hasPrototype(); }
-  bool hasSecurityPolicy() const { return base_.hasSecurityPolicy(); }
-  inline const void* family() const {
-    return base_.js::BaseProxyHandler::family();
-  }
-  unsigned flags() const { return base_.flags(); }
-  bool isCrossCompartmentWrapper() const {
-    return base_.isCrossCompartmentWrapper();
-  }
-  inline const js::SecurityWrapperWithOps<Base>* getProxyHandler() const {
-    return &base_;
-  }
-
-  
   typedef Base Permissive;
-  typedef js::SecurityWrapper<Base> Restrictive;
+  typedef SecurityWrapper<Base> Restrictive;
+  typedef js::SecurityWrapper<typename Base::Unsafe> Unsafe;
+
+  inline const Unsafe* getProxyHandler() const {
+    return static_cast<const Unsafe*>(Base::getProxyHandler());
+  }
 
   virtual bool finalizeInBackground(const JS::Value& priv) const {
     return getProxyHandler()
-        ->Restrictive::finalizeInBackground(priv);
+        ->Unsafe::finalizeInBackground(priv);
   }
 
   virtual bool canNurseryAllocate() const {
     return getProxyHandler()
-        ->Restrictive::canNurseryAllocate();
+        ->Unsafe::canNurseryAllocate();
   }
 
   virtual bool enter(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                      js::BaseProxyHandler::Action act, bool mayThrow,
                      bool* bp) const {
-    return getProxyHandler()->Restrictive::enter(
+    return getProxyHandler()->Unsafe::enter(
         cx, wrapper, id, act, mayThrow, bp);
   }
 
@@ -1289,7 +1268,7 @@ public:
       JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) const {
     return getProxyHandler()
-        ->Restrictive::getOwnPropertyDescriptor(cx, proxy,
+        ->Unsafe::getOwnPropertyDescriptor(cx, proxy,
                                                                       id, desc);
   }
 
@@ -1297,32 +1276,32 @@ public:
                               JS::HandleId id,
                               JS::Handle<JS::PropertyDescriptor> desc,
                               JS::ObjectOpResult& result) const {
-    return getProxyHandler()->Restrictive::defineProperty(
+    return getProxyHandler()->Unsafe::defineProperty(
         cx, proxy, id, desc, result);
   }
 
   virtual bool ownPropertyKeys(JSContext* cx, JS::HandleObject proxy,
                                JS::MutableHandleIdVector props) const {
     return getProxyHandler()
-        ->Restrictive::ownPropertyKeys(cx, proxy, props);
+        ->Unsafe::ownPropertyKeys(cx, proxy, props);
   }
 
   virtual bool delete_(JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
                        JS::ObjectOpResult& result) const {
-    return getProxyHandler()->Restrictive::delete_(
+    return getProxyHandler()->Unsafe::delete_(
         cx, proxy, id, result);
   }
 
   virtual bool getPrototype(JSContext* cx, JS::HandleObject proxy,
                             JS::MutableHandleObject protop) const {
-    return getProxyHandler()->Restrictive::getPrototype(
+    return getProxyHandler()->Unsafe::getPrototype(
         cx, proxy, protop);
   }
 
   virtual bool setPrototype(JSContext* cx, JS::HandleObject proxy,
                             JS::HandleObject proto,
                             JS::ObjectOpResult& result) const {
-    return getProxyHandler()->Restrictive::setPrototype(
+    return getProxyHandler()->Unsafe::setPrototype(
         cx, proxy, proto, result);
   }
 
@@ -1330,80 +1309,80 @@ public:
                                       bool* isOrdinary,
                                       JS::MutableHandleObject protop) const {
     return getProxyHandler()
-        ->Restrictive::getPrototypeIfOrdinary(
+        ->Unsafe::getPrototypeIfOrdinary(
             cx, proxy, isOrdinary, protop);
   }
 
   virtual bool setImmutablePrototype(JSContext* cx, JS::HandleObject proxy,
                                      bool* succeeded) const {
     return getProxyHandler()
-        ->Restrictive::setImmutablePrototype(cx, proxy,
+        ->Unsafe::setImmutablePrototype(cx, proxy,
                                                                    succeeded);
   }
 
   virtual bool preventExtensions(JSContext* cx, JS::HandleObject proxy,
                                  JS::ObjectOpResult& result) const {
     return getProxyHandler()
-        ->Restrictive::preventExtensions(cx, proxy,
+        ->Unsafe::preventExtensions(cx, proxy,
                                                                result);
   }
 
   virtual bool isExtensible(JSContext* cx, JS::HandleObject proxy,
                             bool* extensible) const {
-    return getProxyHandler()->Restrictive::isExtensible(
+    return getProxyHandler()->Unsafe::isExtensible(
         cx, proxy, extensible);
   }
 
   virtual bool has(JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    bool* bp) const {
-    return getProxyHandler()->Restrictive::has(cx, proxy,
+    return getProxyHandler()->Unsafe::has(cx, proxy,
                                                                      id, bp);
   }
 
   virtual bool get(JSContext* cx, JS::HandleObject proxy,
                    JS::HandleValue receiver, JS::HandleId id,
                    JS::MutableHandleValue vp) const {
-    return getProxyHandler()->Restrictive::get(
+    return getProxyHandler()->Unsafe::get(
         cx, proxy, receiver, id, vp);
   }
 
   virtual bool set(JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
                    JS::ObjectOpResult& result) const {
-    return getProxyHandler()->Restrictive::set(
+    return getProxyHandler()->Unsafe::set(
         cx, proxy, id, v, receiver, result);
   }
 
   virtual bool useProxyExpandoObjectForPrivateFields() const {
-    return getProxyHandler()->Restrictive::useProxyExpandoObjectForPrivateFields();
+    return getProxyHandler()->Unsafe::useProxyExpandoObjectForPrivateFields();
   }
 
   virtual bool throwOnPrivateField() const {
     return getProxyHandler()
-        ->Restrictive::throwOnPrivateField();
+        ->Unsafe::throwOnPrivateField();
   }
 
   virtual bool call(JSContext* cx, JS::HandleObject proxy,
                     const JS::CallArgs& args) const {
-    return getProxyHandler()->Restrictive::call(cx, proxy,
+    return getProxyHandler()->Unsafe::call(cx, proxy,
                                                                       args);
   }
 
   virtual bool construct(JSContext* cx, JS::HandleObject proxy,
                          const JS::CallArgs& args) const {
-    return getProxyHandler()->Restrictive::construct(
+    return getProxyHandler()->Unsafe::construct(
         cx, proxy, args);
   }
 
   virtual bool enumerate(JSContext* cx, JS::HandleObject proxy,
                          JS::MutableHandleIdVector props) const {
-    return getProxyHandler()->Restrictive::enumerate(
+    return getProxyHandler()->Unsafe::enumerate(
         cx, proxy, props);
   }
 
   virtual bool hasOwn(JSContext* cx, JS::HandleObject proxy, JS::HandleId id,
                       bool* bp) const {
-    return getProxyHandler()->Restrictive::hasOwn(
+    return getProxyHandler()->Unsafe::hasOwn(
         cx, proxy, id, bp);
   }
 
@@ -1411,95 +1390,95 @@ public:
       JSContext* cx, JS::HandleObject proxy,
       JS::MutableHandleIdVector props) const {
     return getProxyHandler()
-        ->Restrictive::getOwnEnumerablePropertyKeys(
+        ->Unsafe::getOwnEnumerablePropertyKeys(
             cx, proxy, props);
   }
 
   virtual bool nativeCall(JSContext* cx, JS::IsAcceptableThis test,
                           JS::NativeImpl impl, const JS::CallArgs& args) const {
-    return getProxyHandler()->Restrictive::nativeCall(
+    return getProxyHandler()->Unsafe::nativeCall(
         cx, test, impl, args);
   }
 
   virtual bool getBuiltinClass(JSContext* cx, JS::HandleObject proxy,
                                js::ESClass* cls) const {
     return getProxyHandler()
-        ->Restrictive::getBuiltinClass(cx, proxy, cls);
+        ->Unsafe::getBuiltinClass(cx, proxy, cls);
   }
 
   virtual bool isArray(JSContext* cx, JS::HandleObject proxy,
                        JS::IsArrayAnswer* answer) const {
-    return getProxyHandler()->Restrictive::isArray(
+    return getProxyHandler()->Unsafe::isArray(
         cx, proxy, answer);
   }
 
   virtual const char* className(JSContext* cx, JS::HandleObject proxy) const {
-    return getProxyHandler()->Restrictive::className(
+    return getProxyHandler()->Unsafe::className(
         cx, proxy);
   }
 
   virtual JSString* fun_toString(JSContext* cx, JS::HandleObject proxy,
                                  bool isToSource) const {
-    return getProxyHandler()->Restrictive::fun_toString(
+    return getProxyHandler()->Unsafe::fun_toString(
         cx, proxy, isToSource);
   }
 
   virtual js::RegExpShared* regexp_toShared(JSContext* cx,
                                             JS::HandleObject proxy) const {
     return getProxyHandler()
-        ->Restrictive::regexp_toShared(cx, proxy);
+        ->Unsafe::regexp_toShared(cx, proxy);
   }
 
   virtual bool boxedValue_unbox(JSContext* cx, JS::HandleObject proxy,
                                 JS::MutableHandleValue vp) const {
     return getProxyHandler()
-        ->Restrictive::boxedValue_unbox(cx, proxy, vp);
+        ->Unsafe::boxedValue_unbox(cx, proxy, vp);
   }
 
   virtual void trace(JSTracer* trc, JSObject* proxy) const {
-    return getProxyHandler()->Restrictive::trace(trc,
+    return getProxyHandler()->Unsafe::trace(trc,
                                                                        proxy);
   }
 
   virtual void finalize(JS::GCContext* gcx, JSObject* proxy) const {
-    return getProxyHandler()->Restrictive::finalize(
+    return getProxyHandler()->Unsafe::finalize(
         gcx, proxy);
   }
 
   virtual size_t objectMoved(JSObject* proxy, JSObject* old) const {
-    return getProxyHandler()->Restrictive::objectMoved(
+    return getProxyHandler()->Unsafe::objectMoved(
         proxy, old);
   }
   virtual bool isCallable(JSObject* obj) const {
-    return getProxyHandler()->Restrictive::isCallable(
+    return getProxyHandler()->Unsafe::isCallable(
         obj);
   }
 
   virtual bool isConstructor(JSObject* obj) const {
-    return getProxyHandler()->Restrictive::isConstructor(
+    return getProxyHandler()->Unsafe::isConstructor(
         obj);
   }
 
   virtual bool getElements(JSContext* cx, JS::HandleObject proxy,
                            uint32_t begin, uint32_t end,
                            js::ElementAdder* adder) const {
-    return getProxyHandler()->Restrictive::getElements(
+    return getProxyHandler()->Unsafe::getElements(
         cx, proxy, begin, end, adder);
   }
 
   virtual bool isScripted() const {
-    return getProxyHandler()->Restrictive::isScripted();
+    return getProxyHandler()->Unsafe::isScripted();
   }
 
   virtual bool dynamicCheckedUnwrapAllowed(JS::HandleObject obj,
                                            JSContext* cx) const {
     return getProxyHandler()
-        ->Restrictive::dynamicCheckedUnwrapAllowed(obj,
+        ->Unsafe::dynamicCheckedUnwrapAllowed(obj,
                                                                          cx);
   }
 };
 
-typedef SecurityWrapper<js::CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
+typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper;
 
 inline const js::BaseProxyHandler* GetProxyHandler(const Wrapper* wrapper) {
   return wrapper->getProxyHandler();

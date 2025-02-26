@@ -32,9 +32,9 @@ using namespace mozilla;
 namespace xpc {
 
 #ifndef MOZ_UNIFIED_BUILD
-extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+extern template class FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper,
                                        Opaque>;
-extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+extern template class FilteringWrapper<js::sandbox::CrossCompartmentSecurityWrapper,
                                        OpaqueWithCall>;
 #endif
 
