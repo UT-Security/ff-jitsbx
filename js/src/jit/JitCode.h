@@ -54,8 +54,8 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   uint32_t dataSize_;    // Size of the read-only data area.
   uint32_t jumpRelocTableBytes_;  // Size of the jump relocation table.
   uint32_t dataRelocTableBytes_;  // Size of the data relocation table.
-  uint8_t headerSize_ : 5;        // Number of bytes allocated before codeStart.
-  uint8_t kind_ : 3;              // jit::CodeKind, for the memory reporters.
+  uint8_t headerSize_ : 6;        // Number of bytes allocated before codeStart.
+  uint8_t kind_ : 2;              // jit::CodeKind, for the memory reporters.
   bool invalidated_ : 1;     // Whether the code object has been invalidated.
                              // This is necessary to prevent GC tracing.
   bool hasBytecodeMap_ : 1;  // Whether the code object has been registered with

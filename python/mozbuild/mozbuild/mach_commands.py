@@ -1863,7 +1863,7 @@ def _run_jsshell(command_context, params, debug, debugger, debugger_args):
         command_context.log(logging.INFO, "run", {"help": e.help()}, "{help}")
         return 1
 
-    args = [binpath]
+    args = ["lfi-run", binpath]
 
     if params:
         args.extend(params)

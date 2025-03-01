@@ -2999,7 +2999,7 @@ class MethodDefiner(PropertyDefiner):
                 # Cast this in case the methodInfo is a
                 # JSTypedMethodJitInfo.
                 jitinfo = (
-                    "reinterpret_cast<const JSJitInfo*>(&%s_methodinfo)" % accessor
+                    "reinterpret_cast<const JSJitInfo*>(%s_methodinfo())" % accessor
                 )
                 if m.get("allowCrossOriginThis", False):
                     accessor = (
@@ -3018,7 +3018,7 @@ class MethodDefiner(PropertyDefiner):
                     accessor = "(GenericMethod<NormalThisPolicy, %s>)" % exceptionPolicy
             else:
                 if m.get("returnsPromise", False):
-                    jitinfo = "&%s_methodinfo" % accessor
+                    jitinfo = "%s_methodinfo()" % accessor
                     accessor = "StaticMethodPromiseWrapper"
                 else:
                     jitinfo = "nullptr"
@@ -3156,7 +3156,7 @@ class AttrDefiner(PropertyDefiner):
                     )
                 else:
                     accessor = "(JSNative)sbx_register_cb((void*)GenericGetter<NormalThisPolicy, %s>, 0)" % exceptionPolicy
-                jitinfo = "&%s_getterinfo" % IDLToCIdentifier(attr.identifier.name)
+                jitinfo = "%s_getterinfo()" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
         def setter(attr):
@@ -3194,7 +3194,7 @@ class AttrDefiner(PropertyDefiner):
                     accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeGlobalThisPolicy>, 0)"
                 else:
                     accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<NormalThisPolicy>, 0)"
-                jitinfo = "&%s_setterinfo" % IDLToCIdentifier(attr.identifier.name)
+                jitinfo = "%s_setterinfo()" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
         name, attr, flags = entry["name"], entry["attr"], entry["flags"]
@@ -11634,12 +11634,16 @@ class CGMemberJITInfo(CGThing):
             )
             return fill(
                 """
+                static const JSTypedMethodJitInfo* ${infoName}() {
                 $*{argTypesDecl}
-                static const JSTypedMethodJitInfo ${infoName} = {
+                static const JSTypedMethodJitInfo __${infoName} = {
                 ${jitInfo},
                   ${argTypes}
                 };
                 $*{slotAssert}
+
+                return &__${infoName};
+                }
                 """,
                 argTypesDecl=argTypesDecl,
                 infoName=infoName,
@@ -11657,8 +11661,11 @@ class CGMemberJITInfo(CGThing):
 
         return fill(
             """
-            ${storageClass} const JSJitInfo ${infoName} = ${jitInfo};
+            ${storageClass} const JSJitInfo* ${infoName}() { 
+            static const JSJitInfo __${infoName} = ${jitInfo};
             $*{slotAssert}
+            return &__${infoName};
+            }
             """,
             storageClass=storageClass,
             infoName=infoName,
@@ -11672,7 +11679,7 @@ class CGMemberJITInfo(CGThing):
             name = IDLToCIdentifier(self.member.identifier.name)
             if self.member.type.isPromise():
                 name = CGGetterPromiseWrapper.makeName(name)
-            getter = "get_%s" % name
+            getter = "(JSJitGetterOp)sbx_register_cb((void*)get_%s, 0)" % name
             extendedAttrs = self.descriptor.getExtendedAttributes(
                 self.member, getter=True
             )
@@ -11739,7 +11746,7 @@ class CGMemberJITInfo(CGThing):
                 )
                 # Actually a JSJitSetterOp, but JSJitGetterOp is first in the
                 # union.
-                setter = "(JSJitGetterOp)set_%s" % IDLToCIdentifier(
+                setter = "(JSJitGetterOp)sbx_register_cb((void*)set_%s, 0)" % IDLToCIdentifier(
                     self.member.identifier.name
                 )
                 # Setters are always fallible, since they have to do a typed unwrap.
@@ -11766,7 +11773,7 @@ class CGMemberJITInfo(CGThing):
             if self.member.returnsPromise():
                 name = CGMethodPromiseWrapper.makeName(name)
             # Actually a JSJitMethodOp, but JSJitGetterOp is first in the union.
-            method = "(JSJitGetterOp)%s" % name
+            method = "(JSJitGetterOp)sbx_register_cb((void*)%s, 0)" % name
 
             # Methods are infallible if they are infallible, have no arguments
             # to unwrap, and have a return type that's infallible to wrap up for
@@ -12064,15 +12071,20 @@ class CGStaticMethodJitinfo(CGGeneric):
         CGGeneric.__init__(
             self,
             "\n"
-            "static const JSJitInfo %s_methodinfo = {\n"
+            "static const JSJitInfo* %s_methodinfo() {"
+            "static const JSJitInfo __%s_methodinfo = {\n"
             "  { (JSJitGetterOp)%s },\n"
             "  { prototypes::id::_ID_Count }, { 0 }, JSJitInfo::StaticMethod,\n"
             "  JSJitInfo::AliasEverything, JSVAL_TYPE_OBJECT, false, false,\n"
             "  false, false, 0\n"
             "};\n"
+            "return &__%s_methodinfo;"
+            "}"
             % (
                 IDLToCIdentifier(method.identifier.name),
+                IDLToCIdentifier(method.identifier.name),
                 CppKeywords.checkMethodName(IDLToCIdentifier(method.identifier.name)),
+                IDLToCIdentifier(method.identifier.name),
             ),
         )
 

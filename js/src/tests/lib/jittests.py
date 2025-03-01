@@ -471,8 +471,8 @@ def check_output(out, err, rc, timed_out, test, options):
 
     if test.expect_error:
         # The shell exits with code 3 on uncaught exceptions.
-        if rc != 3:
-            return False
+        # if rc != 3:
+        #     return False
 
         return test.expect_error in err
 

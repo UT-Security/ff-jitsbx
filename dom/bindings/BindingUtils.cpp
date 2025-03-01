@@ -3221,7 +3221,8 @@ bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp) {
   }
 
   MOZ_ASSERT(info->type() == JSJitInfo::Getter);
-  JSJitGetterOp getter = info->getter;
+  JSJitGetterOp getter = (JSJitGetterOp)sbx_cb_addr((void*)info->getter);
+  MOZ_ASSERT(getter, "Invalid getter in JSJitInfo");
   bool ok = getter(cx, obj, self, JSJitGetterCallArgs(args));
 #ifdef DEBUG
   if (ok) {
@@ -3287,7 +3288,8 @@ bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp) {
     return ThrowNoSetterArg(cx, args, protoID);
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Setter);
-  JSJitSetterOp setter = info->setter;
+  JSJitSetterOp setter = (JSJitSetterOp)sbx_cb_addr((void*)info->setter);
+  MOZ_ASSERT(setter, "Invalid setter in JSJitInfo");
   if (!setter(cx, obj, self, JSJitSetterCallArgs(args))) {
     return false;
   }
@@ -3339,7 +3341,8 @@ bool GenericMethod(JSContext* cx, unsigned argc, JS::Value* vp) {
     }
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Method);
-  JSJitMethodOp method = info->method;
+  JSJitMethodOp method = (JSJitMethodOp)sbx_cb_addr((void*)info->method);
+  MOZ_ASSERT(method, "Invalid method in JSJitInfo");
   bool ok = method(cx, obj, self, JSJitMethodCallArgs(args));
 #ifdef DEBUG
   if (ok) {

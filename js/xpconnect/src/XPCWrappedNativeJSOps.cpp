@@ -653,7 +653,7 @@ static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
 
 const js::ClassExtension* XPC_WN_JSClassExtension() {
   static const js::ClassExtension __XPC_WN_JSClassExtension = {
-      WrappedNativeObjectMoved,  // objectMovedOp
+      (JSObjectMovedOp)sbx_register_cb((void*)WrappedNativeObjectMoved, 0),  // objectMovedOp
   };
 
   return &__XPC_WN_JSClassExtension;

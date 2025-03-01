@@ -93,8 +93,12 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
                                   bool isJitCall);
   void createThis(Register argcReg, Register calleeReg, Register scratch,
                   CallFlags flags, bool isBoundFunction);
-  template <typename T>
-  void storeThis(const T& newThis, Register argcReg, CallFlags flags);
+  void storeThis(const ValueOperand& newThis, Register argcReg, CallFlags flags);
+#ifdef JS_SANDBOX_HEAP
+  void storeThis(const Value& newThis, Register argcReg, CallFlags flags, Register scratch);
+#else
+  void storeThis(const Value& newThis, Register argcReg, CallFlags flags);
+#endif
   void updateReturnValue();
 
   enum class NativeCallType { Native, ClassHook };
