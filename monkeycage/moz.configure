@@ -10,8 +10,15 @@ option(
     help="{Enable|Disable} the JavaScript sandbox.",
 )
 
-@depends("--enable-js-sandbox")
-def js_sandbox(enable_js_sandbox):
+@depends("--enable-js-sandbox", target)
+def js_sandbox(enable_js_sandbox, target):
+    if enable_js_sandbox and target.cpu != "x86_64":
+        die("--enable-js-sandbox works only on x86-64")
+
+    is_linux = target.kernel == "Linux" and target.os == "GNU"
+    if enable_js_sandbox and not is_linux:
+        die("--enable-js-sandbox works only on GNU Linux")
+
     if enable_js_sandbox:
         return True
 

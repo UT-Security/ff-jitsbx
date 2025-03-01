@@ -2937,9 +2937,9 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
       mPrevGCSliceCallback == nullptr
           ? nullptr
           : (JS::GCSliceCallback)sbx_cb_addr((void*)mPrevGCSliceCallback);
-  mPrevDoCycleCollectionCallback = (JS::DoCycleCollectionCallback)sbx_cb_addr((void*)JS::SetDoCycleCollectionCallback(
+  mPrevDoCycleCollectionCallback = JS::SetDoCycleCollectionCallback(
       cx, (JS::DoCycleCollectionCallback)sbx_register_cb(
-              (void*)DoCycleCollectionCallback, 0)));
+              (void*)DoCycleCollectionCallback, 0));
   mPrevDoCycleCollectionCallback =
       mPrevDoCycleCollectionCallback == nullptr
           ? nullptr

@@ -55,7 +55,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
   }
 
   bool hasOwn;
-  if (!GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
+  if (!js::sandbox::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
     return DOMProxyShadowsResult::ShadowCheckFailed;
 
   return hasOwn ? DOMProxyShadowsResult::Shadows
@@ -66,7 +66,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
 struct SetDOMProxyInformation {
   SetDOMProxyInformation() {
     JS::SetDOMProxyInformation((const void*)&DOMProxyHandler::family,
-                               DOMProxyShadows,
+                               (JS::DOMProxyShadowsCheck)sbx_register_cb((void*)DOMProxyShadows, 0),
                                &RemoteObjectProxyBase::sCrossOriginProxyFamily);
   }
 };

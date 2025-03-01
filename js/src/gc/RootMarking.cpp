@@ -118,6 +118,10 @@ static inline void TraceExactExternalStackRootTraceableList(JSTracer* trc,
 
 static inline void TraceExternalStackRoots(JSTracer* trc,
                                    JS::sandbox::ExternalRootingCallbacks cb, void* data) {
+  if (!cb.externalRoots) {
+    return;  
+  }
+  
   JS::sandbox::RootedListHeads& stackRoots = cb.externalRoots(data);
 #define TRACE_ROOTS(name, type, _, _1)                                \
   TraceExactExternalStackRootList<type*>(trc, stackRoots[JS::RootKind::name], \
@@ -199,6 +203,10 @@ static inline void TraceExternalPersistentRootedList(
 void JSRuntime::traceExternalPersistentRoots(JSTracer* trc) {
   JS::sandbox::ExternalPersistentRootingCallbacks cb = persistentRootingCallbacks;
   void* data = persistentRootingData;
+
+  if (!cb.externalRoots) {
+    return;
+  }
   
 #define TRACE_ROOTS(name, type, _, _1)                                       \
   TraceExternalPersistentRootedList<type*>(trc, cb.externalRoots(JS::RootKind::name, data), \
@@ -239,6 +247,10 @@ static void FinishExternalPersistentRootedChain(
 void JSRuntime::finishExternalPersistentRoots() {
   JS::sandbox::ExternalPersistentRootingCallbacks cb = persistentRootingCallbacks;
   void* data = persistentRootingData;
+
+  if (!cb.externalRoots) {
+    return;
+  }
   
 #define FINISH_ROOT_LIST(name, type, _, _1) \
   FinishExternalPersistentRootedChain<type*>(cb.externalRoots(JS::RootKind::name, data));
