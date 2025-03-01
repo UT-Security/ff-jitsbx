@@ -121,3 +121,16 @@ index b5a51e65c7..fa1e0d7b78 100644
  
  typedef uint64_t  u64;
  typedef uint32_t  u32;
+
+diff --git a/liblfi/pal/arch/x64/regs.c b/liblfi/pal/arch/x64/regs.c
+index b497b6073c..e9cc970e0b 100644
+--- a/liblfi/pal/arch/x64/regs.c
++++ b/liblfi/pal/arch/x64/regs.c
+@@ -8,6 +8,7 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext*
+     regs->gs  = as->base;
+     regs->rsp = as->base;
+     regs->r13 = (uintptr_t) ctx->sys;
++    regs->r15 = as->size - 1;
+ }
+ 
+ uintptr_t*
