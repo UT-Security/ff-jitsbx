@@ -437,13 +437,16 @@ class AssemblerX86Shared : public AssemblerShared {
                      "Operand to sandbox already uses scratch register");
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
-          masm.shrq_ir(32, SandboxScratchReg.encoding());
-          masm.shlq_ir(32, SandboxScratchReg.encoding());
+          masm.push_r(rcx.encoding());
+          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+          masm.addq_ir(1, rcx.encoding());
+          masm.shrq_CLr(SandboxScratchReg.encoding());
+          masm.shlq_CLr(SandboxScratchReg.encoding());
           masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
           j(Condition::Equal, &sandboxed);
           breakpoint();
           bind(&sandboxed);
-
+          masm.pop_r(rcx.encoding());
 #  endif
           masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                        SandboxScratchReg.encoding());
@@ -458,12 +461,29 @@ class AssemblerX86Shared : public AssemblerShared {
           bundleUnlock();
 #  ifdef DEBUG
           masm.push_r(op.base());
-          masm.shrq_ir(32, op.base());
-          masm.shlq_ir(32, op.base());
-          masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
+          if (op.base() == X86Encoding::rcx) {
+            masm.push_r(rbx.encoding());
+            masm.movq_rr(rcx.encoding(), rbx.encoding());
+            masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+            masm.addq_ir(1, rcx.encoding());
+            masm.shrq_CLr(rbx.encoding());
+            masm.shlq_CLr(rbx.encoding());
+            masm.cmpq_rr(rbx.encoding(), SandboxBaseReg.encoding());
+          } else {
+            masm.push_r(rcx.encoding());
+            masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+            masm.addq_ir(1, rcx.encoding());
+            masm.shrq_CLr(op.base());
+            masm.shlq_CLr(op.base());
+            masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
+          }
           j(Condition::Equal, &sandboxed);
           breakpoint();
           bind(&sandboxed);
+          if (op.base() == X86Encoding::rcx)
+            masm.pop_r(rbx.encoding());
+          else
+            masm.pop_r(rcx.encoding());
           masm.pop_r(op.base());
 #  endif
           bundleLock();
