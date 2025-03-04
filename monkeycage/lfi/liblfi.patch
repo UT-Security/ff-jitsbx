@@ -61,19 +61,6 @@ index c08ba3b36a..d10511e978 100644
  bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
  bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);
  
-diff --git a/liblfi/pal/arch/x64/runtime.S b/liblfi/pal/arch/x64/runtime.S
-index 7248c8cc67..34b1c355cb 100644
---- a/liblfi/pal/arch/x64/runtime.S
-+++ b/liblfi/pal/arch/x64/runtime.S
-@@ -78,6 +78,8 @@ lfi_ret:
- 	movq 0(%r11), %rsp // kstackp
- 	// return value should already be in %rax
- 	// realign stack (is this necessary?)
-+	add $8, %rsp
-+	popq 16(%r11)
- 	popq %rbp
- 	popq %rbx
- 	popq %r12
 diff --git a/liblfi/pal/platform.h b/liblfi/pal/platform.h
 index 1e355e9703..85dfe79eba 100644
 --- a/liblfi/pal/platform.h
