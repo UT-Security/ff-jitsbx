@@ -108,24 +108,28 @@ void Finalize(JS::GCContext* gcx, JSObject* objSelf) {
   // during shutdown. In that case, there is not much we can do.
 }
 
-static const JSClassOps sWitnessClassOps = {
-    nullptr /* addProperty */,
-    nullptr /* delProperty */,
-    nullptr /* enumerate */,
-    nullptr /* newEnumerate */,
-    nullptr /* resolve */,
-    nullptr /* mayResolve */,
-    Finalize /* finalize */
-};
+static const JSClass* sWitnessClass() {
+  static const JSClassOps sWitnessClassOps = {
+      nullptr /* addProperty */,
+      nullptr /* delProperty */,
+      nullptr /* enumerate */,
+      nullptr /* newEnumerate */,
+      nullptr /* resolve */,
+      nullptr /* mayResolve */,
+      (JSFinalizeOp)sbx_register_cb((void*)Finalize, 0) /* finalize */
+  };
 
-static const JSClass sWitnessClass = {
-    "FinalizationWitness",
-    JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &sWitnessClassOps};
+  static const JSClass __sWitnessClass = {
+      "FinalizationWitness",
+      JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &sWitnessClassOps};
+
+  return &__sWitnessClass;
+}
 
 bool IsWitness(JS::Handle<JS::Value> v) {
-  return v.isObject() && JS::GetClass(&v.toObject()) == &sWitnessClass;
+  return v.isObject() && JS::GetClass(&v.toObject()) == sWitnessClass();
 }
 
 /**
@@ -188,7 +192,7 @@ NS_IMETHODIMP
 FinalizationWitnessService::Make(const char* aTopic, const char16_t* aValue,
                                  JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aRetval) {
-  JS::sandbox::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass));
+  JS::sandbox::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, sWitnessClass()));
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

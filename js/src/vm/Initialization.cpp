@@ -294,6 +294,8 @@ static void ShutdownImpl(JS::detail::FrontendOnly frontendOnly) {
   // to do it only when PRMJ_Now is eventually called.
   PRMJ_NowShutdown();
 
+  js::FinishDateTimeState();
+
 #if JS_HAS_INTL_API
   mozilla::intl::ICU4CLibrary::Cleanup();
 #endif  // JS_HAS_INTL_API
@@ -303,8 +305,6 @@ static void ShutdownImpl(JS::detail::FrontendOnly frontendOnly) {
     js::vtune::Shutdown();
 #endif  // MOZ_VTUNE
   }
-
-  js::FinishDateTimeState();
 
   if (frontendOnly == FrontendOnly::No) {
     js::jit::ShutdownJit();

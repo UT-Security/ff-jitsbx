@@ -222,6 +222,10 @@ EXPORTS.js.sandbox += [
     "/js/public/sandbox/Wrapper.h",
 ]
 
+EXPORTS.monkeycage += [
+    "../public/Tainted.h",
+]
+
 SOURCES += [
 	"Wrapper.cpp"
 ]
