@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "lfiv.h"
 #include "lfi.h"
 #include "boxmap.h"
 #include "pal/platform.h"
@@ -79,6 +80,10 @@ protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
         return -1;
     }
 
+    assert(verifier);
+    if (!lfiv_verify(verifier, (void*) base, size, (uintptr_t) base)) {
+        return -1;
+    }
     return host_mprotect((void*) base, size, prot);
 }
 
@@ -166,7 +171,6 @@ lfi_as_free(struct LFIAddrSpace* as)
     assert(!"unimplemented");
 }
 
-// TODO: lfi_as_toptr
 EXPORT lfiptr_t
 lfi_as_toptr(struct LFIAddrSpace* as, void* p)
 {
@@ -175,7 +179,6 @@ lfi_as_toptr(struct LFIAddrSpace* as, void* p)
     return userp;
 }
 
-// TODO: lfi_as_fmptr
 EXPORT void*
 lfi_as_fmptr(struct LFIAddrSpace* as, lfiptr_t userp)
 {
@@ -184,9 +187,8 @@ lfi_as_fmptr(struct LFIAddrSpace* as, lfiptr_t userp)
     return NULL;
 }
 
-// TODO: lfi_as_validptr
-EXPORT lfiptr_t
-lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t asp)
+EXPORT bool
+lfi_as_validptr(struct LFIAddrSpace* as, lfiptr_t ptr)
 {
-    return (lfiptr_t) asp;
+    return ptr >= as->minaddr && ptr < as->maxaddr;
 }
