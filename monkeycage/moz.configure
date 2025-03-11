@@ -37,6 +37,7 @@ def lfi_toolchain(lfi_toolchain, js_sandbox, build_project):
         return True
 
 set_config("LFI_TOOLCHAIN", lfi_toolchain)
+set_define("LFI_TOOLCHAIN", lfi_toolchain)
 
 @depends(js_sandbox, lfi_toolchain)
 def js_sandbox_api(js_sandbox, lfi_toolchain):

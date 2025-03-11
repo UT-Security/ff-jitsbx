@@ -1797,9 +1797,11 @@ const JSClassOps JS::DefaultGlobalClassOps = {
     JS_GlobalObjectTraceHook,        // trace
 };
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API const JSClassOps* JS::GetDefaultGlobalClassOps() {
   return &JS::DefaultGlobalClassOps;
 }
+#endif
 
 JS_PUBLIC_API void JS_FireOnNewGlobalObject(JSContext* cx,
                                             JS::HandleObject global) {

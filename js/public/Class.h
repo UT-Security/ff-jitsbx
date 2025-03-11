@@ -37,8 +37,10 @@ class PropertyResult;
 extern JS_PUBLIC_DATA const JSClass* const FunctionClassPtr;
 extern JS_PUBLIC_DATA const JSClass* const FunctionExtendedClassPtr;
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API const JSClass* GetFunctionClassPtr();
 extern JS_PUBLIC_API const JSClass* GetFunctionExtendedClassPtr();
+#endif
 
 
 }  // namespace js
@@ -683,7 +685,11 @@ struct alignas(js::gc::JSClassAlignBytes) JSClass {
   bool emulatesUndefined() const { return flags & JSCLASS_EMULATES_UNDEFINED; }
 
   bool isJSFunction() const {
+#ifdef JS_SANDBOX_API
     return this == js::GetFunctionClassPtr() || this == js::GetFunctionExtendedClassPtr();
+#else
+    return this == js::FunctionClassPtr || this == js::FunctionExtendedClassPtr;
+#endif
   }
 
   bool nonProxyCallable() const {

@@ -91,7 +91,9 @@ namespace JS {
  */
 extern JS_PUBLIC_DATA const JSClassOps DefaultGlobalClassOps;
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API const JSClassOps* GetDefaultGlobalClassOps();
+#endif
 
 }  // namespace JS
 

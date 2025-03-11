@@ -61,6 +61,11 @@ USE_LIBS += [
     "zlib",
 ]
 
+if CONFIG["LFI_TOOLCHAIN"]:
+    USE_LIBS += [
+        "mozglue"
+    ]
+
 if CONFIG["OS_ARCH"] not in ("WINNT", "HP-UX"):
     OS_LIBS += [
         "m",

@@ -1051,6 +1051,7 @@ const JSClass js::ExtendedFunctionClass = {
 const JSClass* const js::FunctionClassPtr = &FunctionClass;
 const JSClass* const js::FunctionExtendedClassPtr = &ExtendedFunctionClass;
 
+#ifdef JS_SANDBOX
 JS_PUBLIC_API const JSClass* js::GetFunctionClassPtr() {
   return &FunctionClass;
 }
@@ -1058,6 +1059,7 @@ JS_PUBLIC_API const JSClass* js::GetFunctionClassPtr() {
 JS_PUBLIC_API const JSClass* js::GetFunctionExtendedClassPtr() {
   return &ExtendedFunctionClass;
 }
+#endif
 
 bool JSFunction::isDerivedClassConstructor() const {
   bool derived = hasBaseScript() && baseScript()->isDerivedClassConstructor();

@@ -380,7 +380,9 @@ class JS_PUBLIC_API BaseProxyHandler {
 
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API const JSClass* ProxyClass_p();
+#endif
 
 inline bool IsProxy(const JSObject* obj) {
   return reinterpret_cast<const JS::shadow::Object*>(obj)->shape->isProxy();
@@ -1025,8 +1027,13 @@ inline bool IsScriptedProxy(const JSObject* obj) {
 class MOZ_STACK_CLASS ProxyOptions {
  protected:
   /* protected constructor for subclass */
+#ifdef JS_SANDBOX_API
   explicit ProxyOptions(bool lazyProtoArg)
       : lazyProto_(lazyProtoArg), clasp_(ProxyClass_p()) {}
+#else
+  explicit ProxyOptions(bool lazyProtoArg)
+      : lazyProto_(lazyProtoArg), clasp_(&ProxyClass) {}
+#endif
 
  public:
   ProxyOptions() : ProxyOptions(false) {}
@@ -1162,9 +1169,11 @@ extern JS_PUBLIC_DATA const JSClassOps ProxyClassOps;
 extern JS_PUBLIC_DATA const js::ClassExtension ProxyClassExtension;
 extern JS_PUBLIC_DATA const js::ObjectOps ProxyObjectOps;
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API const JSClassOps* ProxyClassOps_p();
 extern JS_PUBLIC_API const js::ClassExtension* ProxyClassExtension_p();
 extern JS_PUBLIC_API const js::ObjectOps* ProxyObjectOps_p();
+#endif
 
 template <unsigned Flags>
 constexpr unsigned CheckProxyFlags() {
@@ -1194,6 +1203,7 @@ constexpr unsigned CheckProxyFlags() {
   return Flags;
 }
 
+#ifdef JS_SANDBOX_API
 #define PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, classSpec)            \
   {                                                                        \
     name,                                                                  \
@@ -1202,6 +1212,16 @@ constexpr unsigned CheckProxyFlags() {
         js::ProxyClassOps_p(), classSpec, js::ProxyClassExtension_p(),     \
         js::ProxyObjectOps_p()                                             \
   }
+#else
+#define PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, classSpec)            \
+  {                                                                        \
+    name,                                                                  \
+        JSClass::NON_NATIVE | JSCLASS_IS_PROXY |                           \
+            JSCLASS_DELAY_METADATA_BUILDER | js::CheckProxyFlags<flags>(), \
+        &js::ProxyClassOps, classSpec, &js::ProxyClassExtension,           \
+        &js::ProxyObjectOps                                                \
+  }
+#endif
 
 #define PROXY_CLASS_DEF(name, flags) \
   PROXY_CLASS_DEF_WITH_CLASS_SPEC(name, flags, JS_NULL_CLASS_SPEC)

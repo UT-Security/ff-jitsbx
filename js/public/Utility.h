@@ -186,18 +186,32 @@ class FailureSimulator {
 };
 extern JS_PUBLIC_DATA FailureSimulator simulator;
 
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API FailureSimulator* GetSimulator();
+#endif
 
 inline bool IsSimulatedOOMAllocation() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::OOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 inline bool ShouldFailWithOOM() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->shouldFail(FailureSimulator::Kind::OOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 inline bool HadSimulatedOOM() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->hadFailure(FailureSimulator::Kind::OOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 /*
@@ -205,15 +219,27 @@ inline bool HadSimulatedOOM() {
  */
 
 inline bool IsSimulatedStackOOMCheck() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::StackOOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 inline bool ShouldFailWithStackOOM() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->shouldFail(FailureSimulator::Kind::StackOOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 inline bool HadSimulatedStackOOM() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->hadFailure(FailureSimulator::Kind::StackOOM);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 /*
@@ -221,15 +247,28 @@ inline bool HadSimulatedStackOOM() {
  */
 
 inline bool IsSimulatedInterruptCheck() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->isSimulatedFailure(FailureSimulator::Kind::Interrupt);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
+  
 }
 
 inline bool ShouldFailWithInterrupt() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->shouldFail(FailureSimulator::Kind::Interrupt);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 inline bool HadSimulatedInterrupt() {
+#ifdef JS_SANDBOX_API
   return GetSimulator()->hadFailure(FailureSimulator::Kind::Interrupt);
+#else
+  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+#endif
 }
 
 } /* namespace oom */
@@ -353,9 +392,11 @@ extern JS_PUBLIC_DATA arena_id_t MallocArena;
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 
+#ifdef JS_SANDBOX
 extern JS_PUBLIC_API arena_id_t GetMallocArena();
 extern JS_PUBLIC_API arena_id_t GetArrayBufferContentsArena();
 extern JS_PUBLIC_API arena_id_t GetStringBufferArena();
+#endif
 
 extern void InitMallocAllocator();
 extern void ShutDownMallocAllocator();
@@ -383,7 +424,11 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 }
 
 static inline void* js_malloc(size_t bytes) {
+#ifdef JS_SANDBOX_API
   return js_arena_malloc(js::GetMallocArena(), bytes);
+#else
+  return js_arena_malloc(js::MallocArena, bytes);
+#endif
 }
 
 static inline void* js_arena_calloc(arena_id_t arena, size_t bytes) {
@@ -408,11 +453,19 @@ static inline void* js_arena_calloc(arena_id_t arena, size_t nmemb,
 }
 
 static inline void* js_calloc(size_t bytes) {
+#ifdef JS_SANDBOX_API
   return js_arena_calloc(js::GetMallocArena(), bytes);
+#else
+  return js_arena_calloc(js::MallocArena, bytes);
+#endif
 }
 
 static inline void* js_calloc(size_t nmemb, size_t size) {
+#ifdef JS_SANDBOX_API
   return js_arena_calloc(js::GetMallocArena(), nmemb, size);
+#else
+  return js_arena_calloc(js::MallocArena, nmemb, size);
+#endif
 }
 
 static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
@@ -431,7 +484,11 @@ static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
 }
 
 static inline void* js_realloc(void* p, size_t bytes) {
+#ifdef JS_SANDBOX_API
   return js_arena_realloc(js::GetMallocArena(), p, bytes);
+#else
+  return js_arena_realloc(js::MallocArena, p, bytes);
+#endif
 }
 
 static inline void js_free(void* p) {
@@ -616,7 +673,11 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_malloc(arena_id_t arena,
 
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_malloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
   return js_pod_arena_malloc<T>(js::GetMallocArena(), numElems);
+#else
+  return js_pod_arena_malloc<T>(js::MallocArena, numElems);
+#endif
 }
 
 template <class T>
@@ -631,7 +692,11 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_calloc(arena_id_t arena,
 
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_calloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
   return js_pod_arena_calloc<T>(js::GetMallocArena(), numElems);
+#else
+  return js_pod_arena_calloc<T>(js::MallocArena, numElems);
+#endif
 }
 
 template <class T>
@@ -649,7 +714,11 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_realloc(arena_id_t arena, T* prior,
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_realloc(T* prior, size_t oldSize,
                                            size_t newSize) {
+#ifdef JS_SANDBOX_API
   return js_pod_arena_realloc<T>(js::GetMallocArena(), prior, oldSize, newSize);
+#else
+  return js_pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
+#endif
 }
 
 namespace JS {
