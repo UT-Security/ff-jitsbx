@@ -220,11 +220,7 @@ class ABIArgGenerator {
 static constexpr Register ABINonArgReg0 = rax;
 static constexpr Register ABINonArgReg1 = rbx;
 static constexpr Register ABINonArgReg2 = r10;
-#ifdef JS_SANDBOX
-static constexpr Register ABINonArgReg3 = r9;
-#else
 static constexpr Register ABINonArgReg3 = r12;
-#endif
 
 // This register may be volatile or nonvolatile. Avoid xmm15 which is the
 // ScratchDoubleReg.
@@ -234,9 +230,10 @@ static constexpr FloatRegister ABINonArgDoubleReg =
 // These registers may be volatile or nonvolatile.
 // Note: these three registers are all guaranteed to be different
 #ifdef JS_SANDBOX
-static constexpr Register ABINonArgReturnReg0 = r8;
-static constexpr Register ABINonArgReturnReg1 = r9;
-static constexpr Register ABINonVolatileReg = r10;
+static constexpr Register ABINonArgReturnReg0 = r10;
+// TODO(JS_SANDBOX): Make sure r11 this doesnt overlap with uses of scratchreg
+static constexpr Register ABINonArgReturnReg1 = r11;
+// static constexpr Register ABINonVolatileReg = rbx;
 #else
 static constexpr Register ABINonArgReturnReg0 = r10;
 static constexpr Register ABINonArgReturnReg1 = r12;

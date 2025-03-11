@@ -757,8 +757,43 @@ void MacroAssembler::call(const Address& addr) {
 }
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
-  mov(target, eax);
-  Assembler::call(eax);
+  Register reg = eax;
+  mov(target, reg);
+#ifdef JS_SANDBOX_CFI
+  if (isSandboxed()) {
+#  ifdef DEBUG
+    Label sandboxed;
+    movq(reg, SandboxScratchReg);
+    andq(SandboxMaskReg, SandboxScratchReg);
+    andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
+    orq(SandboxBaseReg, SandboxScratchReg);
+    cmpq(SandboxScratchReg, reg);
+    j(Condition::Equal, &sandboxed);
+    breakpoint();
+    bind(&sandboxed);
+#  endif
+    AutoOwnBundleScope bundle(*this);
+    andq(SandboxMaskReg, reg);
+    andq(Imm32(sandbox::BUNDLE_MASK), reg);
+    orq(SandboxBaseReg, reg);
+    MOZ_ASSERT(bundle.size() <= sandbox::BUNDLE_SIZE - Assembler::CallSize(reg),
+               "bundle too small");
+    size_t padding = sandbox::isSameBundle(
+                         size(), size() + bundle.size() + CallSize(reg) - 1)
+                         ? sandbox::BUNDLE_SIZE -
+                               (size() % sandbox::BUNDLE_SIZE) - bundle.size() -
+                               CallSize(reg)
+                         : sandbox::BUNDLE_SIZE - bundle.size() - CallSize(reg);
+    if (padding) {
+      nop(padding);
+    }
+    bundle.unlock();
+  }
+#endif
+  Assembler::call(reg);
+#ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT_IF(isSandboxed() && !oom(), size() % sandbox::BUNDLE_SIZE == 0);
+#endif
   return CodeOffset(currentOffset());
 }
 
