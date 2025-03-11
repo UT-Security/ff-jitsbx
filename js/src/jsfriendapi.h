@@ -7,6 +7,9 @@
 #ifndef jsfriendapi_h
 #define jsfriendapi_h
 
+#ifdef JS_SANDBOX_API
+#include "monkeycage/Sandbox.h"
+#endif
 #include "jspubtd.h"
 
 #include "js/CallArgs.h"
@@ -295,10 +298,15 @@ struct WeakMapTracer {
     auto* self = static_cast<WeakMapTracer*>(s);
     self->trace(m, key, value);
   }
-  
+
+  static js::WeakMapTracerTraceOp registerTraceCb() {
+    static js::WeakMapTracerTraceOp cb = monkeycage::Sandbox::RegisterCallback(traceCb).get();
+    return cb;
+  }
+
   virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
 
-  explicit WeakMapTracer(JSRuntime* rt): base_(this, (js::WeakMapTracerTraceOp)sbx_register_cb((void*)traceCb, 0), rt) {}
+  explicit WeakMapTracer(JSRuntime* rt): base_(this, registerTraceCb(), rt) {}
 };
 
 }
@@ -568,9 +576,13 @@ struct CompartmentFilter {
     return filter->match(c);
   }
 
+  static CompartmentFilterMatchCallback registerMatchCb() {
+    static CompartmentFilterMatchCallback cb = monkeycage::Sandbox::RegisterCallback(matchCb).get();
+    return cb;
+  }
+
   explicit CompartmentFilter()
-      : base_(this, (CompartmentFilterMatchCallback)sbx_register_cb(
-                        (void*)matchCb, 0)) {}
+      : base_(this, registerMatchCb()) {}
 
   virtual bool match(JS::Compartment* c) const = 0;
 };
@@ -897,9 +909,13 @@ public:
     return self->getObjectToTransplant(compartment);
   }
 
+  static js::CompartmentGetObjectToTransplantCallback registerCb() {
+    static js::CompartmentGetObjectToTransplantCallback cb = monkeycage::Sandbox::RegisterCallback(getObjectToTransplantCb).get();
+    return cb;
+  }
+
   CompartmentTransplantCallback()
-      : inner_(this, (js::CompartmentGetObjectToTransplantCallback)sbx_register_cb(
-                         (void*)getObjectToTransplantCb, 0)) {}
+      : inner_(this, registerCb()) {}
 
   js::CompartmentTransplantCallback* getCompartmentTransplantCallback() { return &inner_; }
 };

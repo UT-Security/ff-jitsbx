@@ -71,9 +71,7 @@
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsILoadInfo.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
+#include "monkeycage/Sandbox.h"
 #include "js/sandbox/RootingAPI.h"
 
 // This should be probably defined on some other place... but I couldn't find it
@@ -1571,23 +1569,20 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
   //   Currently this is used to control access to function.caller
 
   static const JSSecurityCallbacks securityCallbacks = {
-      (JSCSPEvalChecker)sbx_register_cb((void*)ContentSecurityPolicyPermitsJSAction, 0),
-      (JSSubsumesOp)sbx_register_cb((void*)JSPrincipalsSubsume, 0),
+      monkeycage::Sandbox::RegisterCallback(ContentSecurityPolicyPermitsJSAction).get(),
+      monkeycage::Sandbox::RegisterCallback(JSPrincipalsSubsume).get(),
   };
 
   MOZ_ASSERT(!JS_GetSecurityCallbacks(aCx));
   JS_SetSecurityCallbacks(aCx, &securityCallbacks);
-  JS_InitDestroyPrincipalsCallback(aCx, (JSDestroyPrincipalsOp)sbx_register_cb((void*)nsJSPrincipals::Destroy, 0));
+  JS_InitDestroyPrincipalsCallback(aCx, nsJSPrincipals::DestroyCallback.get());
 
   JS_SetTrustedPrincipals(aCx, &BasePrincipal::Cast(mSystemPrincipal)->base_);
 }
 
 /* static */
 void nsScriptSecurityManager::ClearJSCallbacks(JSContext* aCx) {
-  sbx_unregister_cb((void*)ContentSecurityPolicyPermitsJSAction);
-  sbx_unregister_cb((void*)JSPrincipalsSubsume);
   JS_SetSecurityCallbacks(aCx, nullptr);
-  sbx_unregister_cb((void*)nsJSPrincipals::Destroy);
   JS_SetTrustedPrincipals(aCx, nullptr);
 }
 

@@ -22,6 +22,7 @@
 #include "mozilla/UseCounter.h"
 
 #include "AccessCheck.h"
+#include "monkeycage/Sandbox.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter,Method}CallArgs, JSJit{Getter,Setter}Op, JSJitInfo
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
@@ -34,9 +35,6 @@
 #include "js/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "js/Symbol.h"
 #include "jsfriendapi.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
@@ -137,6 +135,8 @@ static const JSErrorFormatString* GetErrorMessage(void* aUserRef,
   return &ErrorFormatString[aErrorNumber];
 }
 
+static monkeycage::LazySandboxCallback<JSErrorCallback> GetErrorMessageCallback(GetErrorMessage);
+
 uint16_t GetErrorArgCount(const ErrNum aErrorNumber) {
   return GetErrorMessage(nullptr, aErrorNumber)->argCount;
 }
@@ -149,7 +149,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
   va_start(ap, aErrorNumber);
 
   if (!ErrorFormatHasContext[aErrorNumber]) {
-    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessage, nullptr, aErrorNumber, ap);
+    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessageCallback.get(), nullptr, aErrorNumber, ap);
     va_end(ap);
     return;
   }
@@ -175,7 +175,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
     }
   }
 
-  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessage, nullptr, aErrorNumber,
+  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessageCallback.get(), nullptr, aErrorNumber,
                                 args);
   va_end(ap);
 }
@@ -203,7 +203,7 @@ static bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
 
   const ErrNum errorNumber = MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
   MOZ_RELEASE_ASSERT(GetErrorArgCount(errorNumber) == 2);
-  JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
+  JS_ReportErrorNumberUC(aCx, GetErrorMessageCallback.get(), nullptr,
                          static_cast<unsigned>(errorNumber),
                          static_cast<const char16_t*>(funcNameStr.get()),
                          static_cast<const char16_t*>(ifaceName.get()));
@@ -317,7 +317,7 @@ void TErrorResult<CleanupPolicy>::SetPendingExceptionWithMessage(
   }
   args[argCount] = nullptr;
 
-  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessage, nullptr,
+  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessageCallback.get(), nullptr,
                                 static_cast<unsigned>(message->mErrorNumber),
                                 argCount > 0 ? args : nullptr);
 
@@ -782,12 +782,15 @@ bool Constructor(JSContext* cx, unsigned argc, JS::Value* vp) {
   return (nativeHolder->mNative)(cx, argc, vp);
 }
 
+
 static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                                    const char* name,
                                    const JSNativeHolder* nativeHolder,
                                    unsigned ctorNargs) {
-  JSFunction* fun = js::NewFunctionWithReserved(cx, (JSNative)sbx_register_cb((void*)Constructor, 0), ctorNargs,
-                                                JSFUN_CONSTRUCTOR, name);
+  static monkeycage::LazySandboxCallback<JSNative> ConstructorCallback(
+      Constructor);
+  JSFunction* fun = js::NewFunctionWithReserved(
+      cx, ConstructorCallback.get(), ctorNargs, JSFUN_CONSTRUCTOR, name);
   if (!fun) {
     return nullptr;
   }
@@ -866,7 +869,7 @@ static JSObject* CreateInterfaceObject(
       JS::sandbox::Rooted<jsid> hasInstanceId(
           cx, JS::GetWellKnownSymbolKey(cx, JS::SymbolCode::hasInstance));
       if (!JS_DefineFunctionById(
-              cx, constructor, hasInstanceId, (JSNative)sbx_register_cb((void*)(JSNative)InterfaceHasInstance, 0), 1,
+              cx, constructor, hasInstanceId, InterfaceHasInstanceCallback.get(), 1,
               // Flags match those of Function[Symbol.hasInstance]
               JSPROP_READONLY | JSPROP_PERMANENT)) {
         return nullptr;
@@ -874,7 +877,7 @@ static JSObject* CreateInterfaceObject(
     }
 
     if (isChrome && !JS_DefineFunction(cx, constructor, "isInstance",
-                                       (JSNative)sbx_register_cb((void*)InterfaceIsInstance, 0), 1,
+                                       InterfaceIsInstanceCallback.get(), 1,
                                        // Don't bother making it enumerable
                                        0)) {
       return nullptr;
@@ -1235,6 +1238,8 @@ bool HasReleasedWrapper(JS::Handle<JSObject*> obj) {
 
   return cache && !cache->PreservingWrapper();
 }
+
+monkeycage::LazySandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb(HasReleasedWrapper);
 
 // Can only be called with a DOM JSClass.
 bool InstanceClassHasProtoAtDepth(const JSClass* clasp, uint32_t protoID,
@@ -1810,7 +1815,7 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceIsInstanceWrapper = {(JSNative)sbx_register_cb((void*)InterfaceIsInstance, 0),
+        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstanceCallback.get(),
                                                       nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceIsInstanceWrapper, 1, id);
@@ -1832,8 +1837,8 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceHasInstanceWrapper = {(JSNative)sbx_register_cb((void*)(JSNative)InterfaceHasInstance, 0),
-                                                       nullptr};
+        JSNativeWrapper interfaceHasInstanceWrapper = {
+            InterfaceHasInstanceCallback.get(), nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceHasInstanceWrapper, 1, id);
         if (!funObj) {
@@ -2157,6 +2162,8 @@ NativePropertyHooks sEmptyNativePropertyHooks = {
     nullptr};
 
 const JSClassOps* sBoringInterfaceObjectClassClassOps() {
+  static const JSNative ThrowingConstructorCallback =
+      monkeycage::Sandbox::RegisterCallback(ThrowingConstructor).get();
   static const JSClassOps sBoringInterfaceObjectClassClassOps__ = {
       nullptr,             /* addProperty */
       nullptr,             /* delProperty */
@@ -2165,8 +2172,8 @@ const JSClassOps* sBoringInterfaceObjectClassClassOps() {
       nullptr,             /* resolve */
       nullptr,             /* mayResolve */
       nullptr,             /* finalize */
-      (JSNative)sbx_register_cb((void*)ThrowingConstructor, 0), /* call */
-      (JSNative)sbx_register_cb((void*)ThrowingConstructor, 0), /* construct */
+      ThrowingConstructorCallback, /* call */
+      ThrowingConstructorCallback, /* construct */
       nullptr,             /* trace */
   };
 
@@ -2183,7 +2190,7 @@ const js::ObjectOps* sInterfaceObjectClassObjectOps() {
       nullptr,                 /* getOwnPropertyDescriptor */
       nullptr,                 /* deleteProperty */
       nullptr,                 /* getElements */
-      (JSFunToStringOp)sbx_register_cb((void*)InterfaceObjectToString, 0), /* funToString */
+      monkeycage::Sandbox::RegisterCallback((JSFunToStringOp)InterfaceObjectToString).get(), /* funToString */
   };
 
   return &sInterfaceObjectClassObjectOps__;
@@ -2270,7 +2277,7 @@ bool DictionaryBase::ParseJSON(JSContext* aCx, const nsAString& aJSON,
 
 bool DictionaryBase::StringifyToJSON(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                      nsAString& aJSON) const {
-  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToString, &aJSON);
+  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToStringCallback.get(), &aJSON);
 }
 
 /* static */
@@ -2590,6 +2597,8 @@ bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
   return true;
 }
 
+monkeycage::LazySandboxCallback<JSNative> InterfaceHasInstanceCallback(InterfaceHasInstance);
+
 bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
   return InterfaceCheckInstance(cx, argc, vp,
                                 [](JSContext*, JS::CallArgs& args) {
@@ -2597,6 +2606,8 @@ bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
                                   return true;
                                 });
 }
+
+monkeycage::LazySandboxCallback<JSNative> InterfaceIsInstanceCallback(InterfaceIsInstance);
 
 bool ReportLenientThisUnwrappingFailure(JSContext* cx, JSObject* obj) {
   JS::sandbox::Rooted<JSObject*> rootedObj(cx, obj);
@@ -2847,9 +2858,19 @@ bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
   return JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp);
 }
 
+JSResolveOp ResolveGlobalCb() {
+  static JSResolveOp cb = monkeycage::Sandbox::RegisterCallback(ResolveGlobal).get();
+  return cb;
+}
+
 bool MayResolveGlobal(const JSAtomState& aNames, jsid aId,
                       JSObject* aMaybeObj) {
   return JS_MayResolveStandardClass(aNames, aId, aMaybeObj);
+}
+
+JSMayResolveOp MayResolveGlobalCb() {
+  static JSMayResolveOp cb = monkeycage::Sandbox::RegisterCallback(MayResolveGlobal).get();
+  return cb;
 }
 
 bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
@@ -2861,6 +2882,11 @@ bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
 
   return JS_NewEnumerateStandardClasses(aCx, aObj, aProperties,
                                         aEnumerableOnly);
+}
+
+JSNewEnumerateOp EnumerateGlobalCb() {
+  static JSNewEnumerateOp cb = monkeycage::Sandbox::RegisterCallback(EnumerateGlobal).get();
+  return cb;
 }
 
 bool IsNonExposedGlobal(JSContext* aCx, JSObject* aGlobal,
@@ -3232,32 +3258,54 @@ bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp) {
   return ExceptionPolicy::HandleException(cx, args, info, ok);
 }
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+JSNative GenericGetterCb() {
+  static JSNative cb = monkeycage::Sandbox::RegisterCallback(GenericGetter<ThisPolicy, ExceptionPolicy>).get();
+  return cb;
+}
+
 // Force instantiation of the specializations of GenericGetter we need here.
 template bool GenericGetter<NormalThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                unsigned argc,
                                                                JS::Value* vp);
+template JSNative GenericGetterCb<NormalThisPolicy, ThrowExceptions>();
+
 template bool GenericGetter<NormalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericGetterCb<NormalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericGetter<MaybeGlobalThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericGetterCb<MaybeGlobalThisPolicy, ThrowExceptions>();
+
 template bool GenericGetter<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericGetterCb<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericGetter<LenientThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                 unsigned argc,
                                                                 JS::Value* vp);
+template JSNative GenericGetterCb<LenientThisPolicy, ThrowExceptions>();
+
 // There aren't any [LenientThis] Promise-returning getters, so don't
 // bother instantiating that specialization.
 template bool GenericGetter<CrossOriginThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericGetterCb<CrossOriginThisPolicy, ThrowExceptions>();
+
 // There aren't any cross-origin Promise-returning getters, so don't
 // bother instantiating that specialization.
 template bool GenericGetter<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericGetterCb<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>();
+
 // There aren't any maybe-cross-origin-object Promise-returning getters, so
 // don't bother instantiating that specialization.
 template bool GenericGetter<MaybeCrossOriginObjectLenientThisPolicy,
                             ThrowExceptions>(JSContext* cx, unsigned argc,
                                              JS::Value* vp);
+template JSNative GenericGetterCb<MaybeCrossOriginObjectLenientThisPolicy, ThrowExceptions>();
+
 // There aren't any maybe-cross-origin-object Promise-returning lenient-this
 // getters, so don't bother instantiating that specialization.
 
@@ -3300,20 +3348,37 @@ bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp) {
   return true;
 }
 
+template <typename ThisPolicy>
+JSNative GenericSetterCb() {
+  static JSNative cb = monkeycage::Sandbox::RegisterCallback(GenericSetter<ThisPolicy>).get();
+  return cb;
+}
+
 // Force instantiation of the specializations of GenericSetter we need here.
 template bool GenericSetter<NormalThisPolicy>(JSContext* cx, unsigned argc,
                                               JS::Value* vp);
+template JSNative GenericSetterCb<NormalThisPolicy>();
+
 template bool GenericSetter<MaybeGlobalThisPolicy>(JSContext* cx, unsigned argc,
                                                    JS::Value* vp);
+template JSNative GenericSetterCb<MaybeGlobalThisPolicy>();
+
 template bool GenericSetter<LenientThisPolicy>(JSContext* cx, unsigned argc,
                                                JS::Value* vp);
+template JSNative GenericSetterCb<LenientThisPolicy>();
+
 template bool GenericSetter<CrossOriginThisPolicy>(JSContext* cx, unsigned argc,
                                                    JS::Value* vp);
+template JSNative GenericSetterCb<CrossOriginThisPolicy>();
+
 template bool GenericSetter<MaybeCrossOriginObjectThisPolicy>(JSContext* cx,
                                                               unsigned argc,
                                                               JS::Value* vp);
+template JSNative GenericSetterCb<MaybeCrossOriginObjectThisPolicy>();
+
 template bool GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericSetterCb<MaybeCrossOriginObjectLenientThisPolicy>();
 
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericMethod(JSContext* cx, unsigned argc, JS::Value* vp) {
@@ -3352,26 +3417,48 @@ bool GenericMethod(JSContext* cx, unsigned argc, JS::Value* vp) {
   return ExceptionPolicy::HandleException(cx, args, info, ok);
 }
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+JSNative GenericMethodCb() {
+  static JSNative cb = monkeycage::Sandbox::RegisterCallback(GenericMethod<ThisPolicy, ExceptionPolicy>).get();
+  return cb;
+}
+
 // Force instantiation of the specializations of GenericMethod we need here.
 template bool GenericMethod<NormalThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                unsigned argc,
                                                                JS::Value* vp);
+template JSNative GenericMethodCb<NormalThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<NormalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericMethodCb<NormalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericMethod<MaybeGlobalThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericMethodCb<MaybeGlobalThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative
+GenericMethodCb<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericMethod<CrossOriginThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative GenericMethodCb<CrossOriginThisPolicy, ThrowExceptions>();
+
 // There aren't any cross-origin Promise-returning methods, so don't
 // bother instantiating that specialization.
 template bool GenericMethod<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template JSNative
+GenericMethodCb<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<MaybeCrossOriginObjectThisPolicy,
                             ConvertExceptionsToPromises>(JSContext* cx,
                                                          unsigned argc,
                                                          JS::Value* vp);
+template JSNative GenericMethodCb<MaybeCrossOriginObjectThisPolicy,
+                                  ConvertExceptionsToPromises>();
 
 }  // namespace binding_detail
 
@@ -3389,6 +3476,8 @@ bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp) {
 
   return ConvertExceptionToPromise(cx, args.rval());
 }
+
+monkeycage::LazySandboxCallback<JSNative> StaticMethodPromiseWrapperCb(StaticMethodPromiseWrapper);
 
 bool ConvertExceptionToPromise(JSContext* cx,
                                JS::MutableHandle<JS::Value> rval) {

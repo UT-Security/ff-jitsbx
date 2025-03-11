@@ -554,24 +554,14 @@ using JSHostCleanupFinalizationRegistryCallback =
  * Each external string has a pointer to JSExternalStringCallbacks. Embedders
  * can use this to implement custom finalization or memory reporting behavior.
  */
-struct JSExternalStringCallbacks {
-  /**
-   * Finalizes external strings created by JS_NewExternalString. The finalizer
-   * can be called off the main thread.
-   */
-  virtual void finalize(char16_t* chars) const = 0;
+typedef void (*JSExternalStringFinalizeCallback)(char16_t* chars);
+typedef size_t (*JSExternalStringSizeOfBufferCallback)(const char16_t* chars, mozilla::MallocSizeOf mallocSizeOf);
 
-  /**
-   * Callback used by memory reporting to ask the embedder how much memory an
-   * external string is keeping alive.  The embedder is expected to return a
-   * value that corresponds to the size of the allocation that will be released
-   * by the finalizer callback above.
-   *
-   * Implementations of this callback MUST NOT do anything that can cause GC.
-   */
-  virtual size_t sizeOfBuffer(const char16_t* chars,
-                              mozilla::MallocSizeOf mallocSizeOf) const = 0;
+struct JSExternalStringCallbacks {
+ JSExternalStringFinalizeCallback finalize;
+ JSExternalStringSizeOfBufferCallback sizeOfBuffer;
 };
+
 
 namespace JS {
 

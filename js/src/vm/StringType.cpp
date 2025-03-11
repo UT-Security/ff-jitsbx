@@ -1952,18 +1952,21 @@ void JSLinearString::dumpRepresentation(js::GenericPrinter& out,
 }
 #endif
 
-struct RepresentativeExternalString : public JSExternalStringCallbacks {
-  void finalize(char16_t* chars) const override {
+
+static void RepresentativeExternalStringFinalize(char16_t* chars) {
     // Constant chars, nothing to do.
-  }
-  size_t sizeOfBuffer(const char16_t* chars,
-                      mozilla::MallocSizeOf mallocSizeOf) const override {
+}
+
+static size_t RepresentativeExternalStringSizeOfBuffer(const char16_t* chars,
+                      mozilla::MallocSizeOf mallocSizeOf) {
     // This string's buffer is not heap-allocated, so its malloc size is 0.
     return 0;
-  }
-};
+}
 
-static const RepresentativeExternalString RepresentativeExternalStringCallbacks;
+static const JSExternalStringCallbacks RepresentativeExternalStringCallbacks = {
+  .finalize = RepresentativeExternalStringFinalize,
+  .sizeOfBuffer = RepresentativeExternalStringSizeOfBuffer,
+};
 
 template <typename CheckString, typename CharT>
 static bool FillWithRepresentatives(JSContext* cx, Handle<ArrayObject*> array,

@@ -9,9 +9,6 @@
 #include "xpcprivate.h"
 #include "XPCMaps.h"
 #include "js/Wrapper.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 
 #include "mozilla/MemoryReporting.h"
 #include "nsIScriptError.h"
@@ -81,10 +78,10 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
       argc--;
     }
 
-    callback = (JSNative)sbx_register_cb((void*)XPC_WN_CallMethod, 0);
+    callback = XPC_WN_CallMethodCb.get();
   } else {
     argc = 0;
-    callback = (JSNative)sbx_register_cb((void*)XPC_WN_GetterSetter, 0);
+    callback = XPC_WN_GetterSetterCb.get();
   }
 
   jsid name = GetName();

@@ -13,9 +13,6 @@
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctionById, JS_DefineProperty, JS_DefinePropertyById
 #include "js/Symbol.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "nsContentUtils.h"
 
 using namespace mozilla;
@@ -36,7 +33,10 @@ namespace xpc {
  * back into the nsID value.
  */
 static bool ID_Equals(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> ID_EqualsCb(ID_Equals);
+
 static bool ID_GetNumber(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> ID_GetNumberCb(ID_GetNumber);
 
 // Generic ID objects contain 4 reserved slots, each containing a uint32_t with
 // 1/4 of the representation of the nsID value. This allows us to avoid an extra
@@ -53,7 +53,10 @@ static const JSClass sID_Class = {
  * the interface name as the 'name' and 'toString()' values.
  */
 static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> IID_HasInstanceCb(IID_HasInstance);
+
 static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> IID_GetNameCb(IID_GetName);
 
 static bool IID_NewEnumerate(JSContext* cx, HandleObject obj,
                              MutableHandleIdVector properties,
@@ -72,9 +75,9 @@ static const JSClass* sIID_Class() {
       nullptr,           // addProperty
       nullptr,           // delProperty
       nullptr,           // enumerate
-      (JSNewEnumerateOp)sbx_register_cb((void*)IID_NewEnumerate, 0),  // newEnumerate
-      (JSResolveOp)sbx_register_cb((void*)IID_Resolve, 0),       // resolve
-      (JSMayResolveOp)sbx_register_cb((void*)IID_MayResolve, 0),    // mayResolve
+      monkeycage::Sandbox::RegisterCallback(IID_NewEnumerate).get(),  // newEnumerate
+      monkeycage::Sandbox::RegisterCallback(IID_Resolve).get(),       // resolve
+      monkeycage::Sandbox::RegisterCallback(IID_MayResolve).get(),    // mayResolve
       nullptr,           // finalize
       nullptr,           // call
       nullptr,           // construct
@@ -95,8 +98,13 @@ static const JSClass* sIID_Class() {
  * string as '.name' and '.toString()'.
  */
 static bool CID_CreateInstance(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> CID_CreateInstanceCb(CID_CreateInstance);
+
 static bool CID_GetService(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> CID_GetServiceCb(CID_GetService);
+
 static bool CID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp);
+static monkeycage::LazySandboxCallback<JSNative> CID_GetNameCb(CID_GetName);
 
 // ContractID objects use a single reserved slot, containing the ContractID. The
 // nsCID value for this object is looked up when the object is being unwrapped.
@@ -134,29 +142,29 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
     bool ok =
         idProto && iidProto && cidProto &&
         // Methods and properties on all ID Objects:
-        JS_DefineFunction(aCx, idProto, "equals", (JSNative)sbx_register_cb((void*)ID_Equals, 0), 1, kFlags) &&
-        JS_DefineProperty(aCx, idProto, "number", (JSNative)sbx_register_cb((void*)ID_GetNumber, 0), nullptr,
+        JS_DefineFunction(aCx, idProto, "equals", ID_EqualsCb.get(), 1, kFlags) &&
+        JS_DefineProperty(aCx, idProto, "number", ID_GetNumberCb.get(), nullptr,
                           kFlags) &&
 
         // Methods for IfaceID objects, which also inherit ID properties:
-        JS_DefineFunctionById(aCx, iidProto, hasInstance, (JSNative)sbx_register_cb((void*)IID_HasInstance, 0), 1,
+        JS_DefineFunctionById(aCx, iidProto, hasInstance, IID_HasInstanceCb.get(), 1,
                               kNoEnum) &&
-        JS_DefineProperty(aCx, iidProto, "name", (JSNative)sbx_register_cb((void*)IID_GetName, 0), nullptr,
+        JS_DefineProperty(aCx, iidProto, "name", IID_GetNameCb.get(), nullptr,
                           kFlags) &&
 
         // Methods for ContractID objects, which also inherit ID properties:
-        JS_DefineFunction(aCx, cidProto, "createInstance", (JSNative)sbx_register_cb((void*)CID_CreateInstance, 0),
+        JS_DefineFunction(aCx, cidProto, "createInstance", CID_CreateInstanceCb.get(),
                           1, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "getService", (JSNative)sbx_register_cb((void*)CID_GetService, 0), 1,
+        JS_DefineFunction(aCx, cidProto, "getService", CID_GetServiceCb.get(), 1,
                           kFlags) &&
-        JS_DefineProperty(aCx, cidProto, "name", (JSNative)sbx_register_cb((void*)CID_GetName, 0), nullptr,
+        JS_DefineProperty(aCx, cidProto, "name", CID_GetNameCb.get(), nullptr,
                           kFlags) &&
 
         // ToString returns '.number' on generic IDs, while returning
         // '.name' on other ID types.
-        JS_DefineFunction(aCx, idProto, "toString", (JSNative)sbx_register_cb((void*)ID_GetNumber, 0), 0, kFlags) &&
-        JS_DefineFunction(aCx, iidProto, "toString", (JSNative)sbx_register_cb((void*)IID_GetName, 0), 0, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "toString", (JSNative)sbx_register_cb((void*)CID_GetName, 0), 0, kFlags);
+        JS_DefineFunction(aCx, idProto, "toString", ID_GetNumberCb.get(), 0, kFlags) &&
+        JS_DefineFunction(aCx, iidProto, "toString", IID_GetNameCb.get(), 0, kFlags) &&
+        JS_DefineFunction(aCx, cidProto, "toString", CID_GetNameCb.get(), 0, kFlags);
     if (!ok) {
       return nullptr;
     }

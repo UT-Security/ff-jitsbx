@@ -147,10 +147,10 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
   NS_GetCurrentThread()->SetCanInvokeJS(true);
 
   JS::SetJobQueue(mJSContext, JS::sandbox::GetJobQueue(this));
-  JS::SetPromiseRejectionTrackerCallback(
-      mJSContext,
-      (JS::PromiseRejectionTrackerCallback)sbx_register_cb((void*)PromiseRejectionTrackerCallback, 0),
-      this);
+
+  static monkeycage::LazySandboxCallback<JS::PromiseRejectionTrackerCallback>
+      PromiseRejectionTrackerCallbackCb(PromiseRejectionTrackerCallback);
+  JS::SetPromiseRejectionTrackerCallback(mJSContext, PromiseRejectionTrackerCallbackCb.get(), this);
   mUncaughtRejections.init(mJSContext,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
@@ -160,12 +160,15 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
 
   mFinalizationRegistryCleanup.Init();
 
+  static monkeycage::LazySandboxCallback<JS::sandbox::ExternalRootingCallbackTrace> traceExternalRootsCb(traceExternalRoots);
+  static monkeycage::LazySandboxCallback<JS::sandbox::ExternalRootingCallbackRoots> getExternalRootsCb(getExternalRoots);
   JS::sandbox::JS_SetExternalRootingCallbacks(
       mJSContext,
-      {.trace = (JS::sandbox::ExternalRootingCallbackTrace)sbx_register_cb((void*)traceExternalRoots, 0),
-       .roots = getExternalRoots,
-       .externalRoots = (JS::sandbox::ExternalRootingCallbackRoots)sbx_register_cb((void*)getExternalRoots, 0)
-     },
+      {
+          .trace = traceExternalRootsCb.get(),
+          .roots = getExternalRoots,
+          .externalRoots = getExternalRootsCb.get(),
+      },
       this);
 
   // Cast to PerThreadAtomCache for dom::GetAtomCache(JSContext*).
@@ -836,7 +839,8 @@ void FinalizationRegistryCleanup::Destroy() {
 void FinalizationRegistryCleanup::Init() {
   JSContext* cx = mContext->Context();
   mCallbacks.init(cx);
-  JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallback, this);
+  static monkeycage::LazySandboxCallback<JSHostCleanupFinalizationRegistryCallback> QueueCallbackCb(QueueCallback);
+  JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallbackCb.get(), this);
 }
 
 /* static */

@@ -9,6 +9,7 @@
 #include <new>
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
+#include "monkeycage/Sandbox.h"
 #include "js/CallArgs.h"
 #include "js/StructuredClone.h"
 #include "js/Value.h"
@@ -224,14 +225,14 @@ void AssertTagValues() {
 
 const JSStructuredCloneCallbacks* StructuredCloneHolder::sCallbacks() {
   static const JSStructuredCloneCallbacks cb = {
-    (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksRead, 0),
-    (WriteStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksWrite, 0),
-    (StructuredCloneErrorOp)sbx_register_cb((void*)StructuredCloneCallbacksError, 0),
-    (ReadTransferStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksReadTransfer, 0),
-    (TransferStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksWriteTransfer, 0),
-    (FreeTransferStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksFreeTransfer, 0),
-    (CanTransferStructuredCloneOp)sbx_register_cb((void*)StructuredCloneCallbacksCanTransfer, 0),
-    (SharedArrayBufferClonedOp)sbx_register_cb((void*)StructuredCloneCallbacksSharedArrayBuffer, 0),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksRead).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksWrite).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksError).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksReadTransfer).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksWriteTransfer).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksFreeTransfer).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksCanTransfer).get(),
+    monkeycage::Sandbox::RegisterCallback(StructuredCloneCallbacksSharedArrayBuffer).get(),
   };
 
   return &cb;

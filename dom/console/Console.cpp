@@ -9,6 +9,7 @@
 #include "mozilla/dom/ConsoleBinding.h"
 #include "ConsoleCommon.h"
 
+#include "monkeycage/Sandbox.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
 #include "mozilla/dom/BlobBinding.h"
@@ -1702,8 +1703,9 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
     } else {
+      static monkeycage::LazySandboxCallback<JSNative> LazyStackGetterCallback(LazyStackGetter);
       JSFunction* fun =
-          js::NewFunctionWithReserved(aCx, (JSNative)sbx_register_cb((void*)LazyStackGetter, 0), 0, 0, "stacktrace");
+          js::NewFunctionWithReserved(aCx, LazyStackGetterCallback.get(), 0, 0, "stacktrace");
       if (NS_WARN_IF(!fun)) {
         return false;
       }

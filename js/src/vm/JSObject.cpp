@@ -3431,6 +3431,10 @@ JS::ubi::Node::Size JS::ubi::Concrete<JSObject>::size(
 
 const char16_t JS::ubi::Concrete<JSObject>::concreteTypeName[] = u"JSObject";
 
+const char16_t* JS::ubi::Concrete<JSObject>::getConcreteTypeName() {
+  return concreteTypeName;
+}
+
 void JSObject::traceChildren(JSTracer* trc) {
   TraceCellHeaderEdge(trc, this, "shape");
 

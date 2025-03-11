@@ -79,9 +79,6 @@
 #include "xpcpublic.h"
 
 #include "js/Date.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 
 using namespace mozilla;
 
@@ -220,7 +217,7 @@ void nsRFPService::UpdateRFPPref() {
   bool resistFingerprinting = nsContentUtils::ShouldResistFingerprinting();
 
   JS::SetReduceMicrosecondTimePrecisionCallback(
-      (JS::ReduceMicrosecondTimePrecisionCallback )sbx_register_cb((void*)nsRFPService::ReduceTimePrecisionAsUSecsWrapper, 0));
+      nsRFPService::ReduceTimePrecisionAsUSecsWrapperCb.get());
 
   // The JavaScript engine can already set the timezone per realm/global,
   // but we think there are still other users of libc that rely

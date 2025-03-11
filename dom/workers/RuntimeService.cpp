@@ -6,6 +6,7 @@
 
 #include "RuntimeService.h"
 
+#include "monkeycage/Sandbox.h"
 #include "js/Promise.h"
 #include "js/StreamConsumer.h"
 #include "nsContentSecurityUtils.h"
@@ -451,7 +452,7 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
   }
 }
 
-bool InterruptCallback(JSContext* aCx) {
+bool InterruptCallback_(JSContext* aCx) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(worker);
 
@@ -460,6 +461,7 @@ bool InterruptCallback(JSContext* aCx) {
 
   return worker->InterruptCallback(aCx);
 }
+
 
 class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   uint16_t mViolationType;
@@ -545,7 +547,8 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
   return evalOK;
 }
 
-void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {
+
+void CTypesActivityCallback_(JSContext* aCx, JS::CTypesActivityType aType) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
@@ -694,16 +697,20 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // Security policy:
   static const JSSecurityCallbacks securityCallbacks = {
-      (JSCSPEvalChecker)sbx_register_cb((void*)ContentSecurityPolicyAllows, 0)};
+      monkeycage::Sandbox::RegisterCallback(ContentSecurityPolicyAllows).get()};
   JS_SetSecurityCallbacks(aWorkerCx, &securityCallbacks);
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(aWorkerCx, (JS::DispatchToEventLoopCallback)sbx_register_cb((void*)DispatchToEventLoop, 0),
+  static monkeycage::LazySandboxCallback<JS::DispatchToEventLoopCallback>
+      DispatchToEventLoopCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCallback.get(),
                               (void*)aWorkerPrivate);
 
-  JS::InitConsumeStreamCallback(aWorkerCx, (JS::ConsumeStreamCallback)sbx_register_cb((void*)ConsumeStream, 0),
-                                (JS::ReportStreamErrorCallback)sbx_register_cb((void*)FetchUtil::ReportJSStreamError, 0));
+  static monkeycage::LazySandboxCallback<JS::ConsumeStreamCallback>
+      ConsumeStreamCallback(ConsumeStream);
+  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCallback.get(),
+                                FetchUtil::ReportJSStreamErrorCallback.get());
 
   // When available, set the self-hosted shared memory to be read, so that we
   // can decode the self-hosted content instead of parsing it.
@@ -714,10 +721,14 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
     NS_WARNING("Could not init self-hosted code!");
     return false;
   }
+  
+  static monkeycage::LazySandboxCallback<JSInterruptCallback> InterruptCallback(
+      InterruptCallback_);
+  JS_AddInterruptCallback(aWorkerCx, InterruptCallback.get());
 
-  JS_AddInterruptCallback(aWorkerCx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
-
-  JS::SetCTypesActivityCallback(aWorkerCx, (JS::CTypesActivityCallback)sbx_register_cb((void*)CTypesActivityCallback, 0));
+  static monkeycage::LazySandboxCallback<JS::CTypesActivityCallback>
+      CTypesActivityCallback(CTypesActivityCallback_);
+  JS::SetCTypesActivityCallback(aWorkerCx, CTypesActivityCallback.get());
 
 #ifdef JS_GC_ZEAL
   JS_SetGCZeal(aWorkerCx, settings.gcZeal, settings.gcZealFrequency);
@@ -759,10 +770,14 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   return js::Wrapper::New(cx, obj, wrapper);
 }
 
-static const JSWrapObjectCallbacks WrapObjectCallbacks = {
-    Wrap,
+static const JSWrapObjectCallbacks* WrapObjectCallbacks() {
+  static const JSWrapObjectCallbacks cbs = {
+    monkeycage::Sandbox::RegisterCallback(Wrap).get(),
     nullptr,
-};
+  };
+
+  return &cbs;
+}
 
 class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime {
  public:
@@ -882,10 +897,11 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
     JSContext* cx = Context();
 
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
-    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::Destroy);
-    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
-    JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+    static monkeycage::LazySandboxCallback<js::PreserveWrapperCallback> PreserveWrapperCallback(PreserveWrapper);
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCallback.get(), HasReleasedWrapperCb.get());
+    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCallback.get());
+    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCallback.get());
+    JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
     if (mWorkerPrivate->IsDedicatedWorker()) {
       JS_SetFutexCanWait(cx);
     }

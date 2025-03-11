@@ -13,38 +13,54 @@
 #include "xpcpublic.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "js/Class.h"
-#include "js/sandbox/sobox.h"
+#include "monkeycage/Sandbox.h"
 
 bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, JS::HandleObject obj,
                                        JS::HandleId id, JS::HandleValue v);
+extern monkeycage::LazySandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb;
+
 bool XPC_WN_CannotModifyPropertyStub(JSContext* cx, JS::HandleObject obj,
                                      JS::HandleId id, JS::HandleValue v);
+extern monkeycage::LazySandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb;
 
 bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx,
                                              JS::HandleObject obj,
                                              JS::HandleId id,
                                              JS::ObjectOpResult& result);
+extern monkeycage::LazySandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb;
+
 bool XPC_WN_CannotDeletePropertyStub(JSContext* cx, JS::HandleObject obj,
                                      JS::HandleId id,
                                      JS::ObjectOpResult& result);
+extern monkeycage::LazySandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb;
 
 bool XPC_WN_Shared_Enumerate(JSContext* cx, JS::HandleObject obj);
+extern monkeycage::LazySandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb;
 
 bool XPC_WN_NewEnumerate(JSContext* cx, JS::HandleObject obj,
                          JS::MutableHandleIdVector properties,
                          bool enumerableOnly);
+extern monkeycage::LazySandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb;
 
 bool XPC_WN_Helper_Resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
                            bool* resolvedp);
+extern monkeycage::LazySandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb;
 
 void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj);
+extern monkeycage::LazySandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb;
+
+
 void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj);
+extern monkeycage::LazySandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb;
 
 bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> XPC_WN_Helper_CallCb;
 
 bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> XPC_WN_Helper_ConstructCb;
 
 void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj);
+extern monkeycage::LazySandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb;
 
 extern const js::ClassExtension* XPC_WN_JSClassExtension();
 
@@ -53,45 +69,45 @@ extern const js::ClassExtension* XPC_WN_JSClassExtension();
     /* addProperty */                                                         \
     ((_flags)&XPC_SCRIPTABLE_USE_JSSTUB_FOR_ADDPROPERTY) ? nullptr            \
     : ((_flags)&XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)                \
-        ? (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_MaybeResolvingPropertyStub, 0)                                   \
-        : (JSAddPropertyOp)sbx_register_cb((void*)XPC_WN_CannotModifyPropertyStub, 0),                                    \
+        ? XPC_WN_MaybeResolvingPropertyStubCb.get()                           \
+        : XPC_WN_CannotModifyPropertyStubCb.get(),                            \
                                                                               \
         /* delProperty */                                                     \
         ((_flags)&XPC_SCRIPTABLE_USE_JSSTUB_FOR_DELPROPERTY) ? nullptr        \
         : ((_flags)&XPC_SCRIPTABLE_ALLOW_PROP_MODS_DURING_RESOLVE)            \
-            ? (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_MaybeResolvingDeletePropertyStub, 0)                         \
-            : (JSDeletePropertyOp)sbx_register_cb((void*)XPC_WN_CannotDeletePropertyStub, 0),                                \
+            ? XPC_WN_MaybeResolvingDeletePropertyStubCb.get()                 \
+            : XPC_WN_CannotDeletePropertyStubCb.get(),                        \
                                                                               \
         /* enumerate */                                                       \
         ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE)                           \
             ? nullptr /* We will use newEnumerate set below in this case */   \
-            : (JSEnumerateOp)sbx_register_cb((void*)XPC_WN_Shared_Enumerate, 0),                                        \
+            : XPC_WN_Shared_EnumerateCb.get(),                                \
                                                                               \
         /* newEnumerate */                                                    \
-        ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE) ? (JSNewEnumerateOp)sbx_register_cb((void*)XPC_WN_NewEnumerate, 0)     \
+        ((_flags)&XPC_SCRIPTABLE_WANT_NEWENUMERATE) ? XPC_WN_NewEnumerateCb.get()     \
                                                     : nullptr,                \
                                                                               \
         /* resolve */ /* We have to figure out resolve strategy at call time  \
                        */                                                     \
-        (JSResolveOp)sbx_register_cb((void*)XPC_WN_Helper_Resolve, 0),                                                \
+        XPC_WN_Helper_ResolveCb.get(),                                                \
                                                                               \
         /* mayResolve */                                                      \
         nullptr,                                                              \
                                                                               \
         /* finalize */                                                        \
-        ((_flags)&XPC_SCRIPTABLE_WANT_FINALIZE) ? (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_Helper_Finalize, 0)      \
-                                                : (JSFinalizeOp)sbx_register_cb((void*)XPC_WN_NoHelper_Finalize, 0),   \
+        ((_flags)&XPC_SCRIPTABLE_WANT_FINALIZE) ? XPC_WN_Helper_FinalizeCb.get()      \
+                                                : XPC_WN_NoHelper_FinalizeCb.get(),   \
                                                                               \
         /* call */                                                            \
-        ((_flags)&XPC_SCRIPTABLE_WANT_CALL) ? (JSNative)sbx_register_cb((void*)XPC_WN_Helper_Call, 0) : nullptr,   \
+        ((_flags)&XPC_SCRIPTABLE_WANT_CALL) ? XPC_WN_Helper_CallCb.get() : nullptr,   \
                                                                               \
         /* construct */                                                       \
-        ((_flags)&XPC_SCRIPTABLE_WANT_CONSTRUCT) ? (JSNative)sbx_register_cb((void*)XPC_WN_Helper_Construct, 0)    \
+        ((_flags)&XPC_SCRIPTABLE_WANT_CONSTRUCT) ? XPC_WN_Helper_ConstructCb.get()    \
                                                  : nullptr,                   \
                                                                               \
         /* trace */                                                           \
         ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook) \
-                                                   : (JSTraceOp)sbx_register_cb((void*)XPCWrappedNative_Trace, 0),  \
+                                                   : XPCWrappedNative_TraceCb.get(),  \
   }
 
 #define XPC_MAKE_CLASS(_name, _flags, _classOps)                   \

@@ -12,6 +12,7 @@
 
 #include "mozilla/dom/File.h"
 #include "mozilla/dom/FormData.h"
+#include "monkeycage/Sandbox.h"
 
 #define WASM_CONTENT_TYPE "application/wasm"
 
@@ -76,6 +77,7 @@ class FetchUtil final {
    * untyped 'size_t' instead of Gecko 'nsresult'.
    */
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
+  static inline monkeycage::LazySandboxCallback<JS::ReportStreamErrorCallback> ReportJSStreamErrorCallback = monkeycage::LazySandboxCallback(ReportJSStreamError);
 };
 
 }  // namespace mozilla::dom

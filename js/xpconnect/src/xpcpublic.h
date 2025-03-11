@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "ErrorList.h"
+#include "monkeycage/Sandbox.h"
 #include "js/BuildId.h"
 #include "js/ErrorReport.h"
 #include "js/GCAPI.h"
@@ -162,6 +163,8 @@ JSObject* XrayAwareCalleeGlobal(JSObject* fun);
 
 void TraceXPCGlobal(JSTracer* trc, JSObject* obj);
 
+extern monkeycage::LazySandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCallback;
+
 /**
  * Creates a new global object using the given aCOMObj as the global
  * object. The object will be set up according to the flags (defined
@@ -251,7 +254,7 @@ class XPCStringConvert {
       JS::MutableHandle<JS::Value> rval, bool* sharedBuffer) {
     JSString* str = JS_NewMaybeExternalString(
         cx, static_cast<char16_t*>(buf->Data()), length,
-        &sDOMStringExternalString, sharedBuffer);
+        sDOMStringExternalString(), sharedBuffer);
     if (!str) {
       return false;
     }
@@ -265,7 +268,7 @@ class XPCStringConvert {
                                           JS::MutableHandle<JS::Value> rval) {
     bool ignored;
     JSString* str = JS_NewMaybeExternalString(
-        cx, literal, length, &sLiteralExternalString, &ignored);
+        cx, literal, length, sLiteralExternalString(), &ignored);
     if (!str) {
       return false;
     }
@@ -278,7 +281,7 @@ class XPCStringConvert {
     bool sharedAtom;
     JSString* str =
         JS_NewMaybeExternalString(cx, atom->GetUTF16String(), atom->GetLength(),
-                                  &sDynamicAtomExternalString, &sharedAtom);
+                                  sDynamicAtomExternalString(), &sharedAtom);
     if (!str) {
       return false;
     }
@@ -304,34 +307,33 @@ class XPCStringConvert {
   // Returns non-null chars if the given string is a literal external string.
   static MOZ_ALWAYS_INLINE bool MaybeGetLiteralStringChars(
       JSString* str, const char16_t** chars) {
-    return MaybeGetExternalStringChars(str, &sLiteralExternalString, chars);
+    return MaybeGetExternalStringChars(str, sLiteralExternalString(), chars);
   }
 
   // Returns non-null chars if the given string is a DOM external string.
   static MOZ_ALWAYS_INLINE bool MaybeGetDOMStringChars(JSString* str,
                                                        const char16_t** chars) {
-    return MaybeGetExternalStringChars(str, &sDOMStringExternalString, chars);
+    return MaybeGetExternalStringChars(str, sDOMStringExternalString(), chars);
   }
 
  private:
-  struct LiteralExternalString : public JSExternalStringCallbacks {
-    void finalize(char16_t* aChars) const override;
-    size_t sizeOfBuffer(const char16_t* aChars,
-                        mozilla::MallocSizeOf aMallocSizeOf) const override;
-  };
-  struct DOMStringExternalString : public JSExternalStringCallbacks {
-    void finalize(char16_t* aChars) const override;
-    size_t sizeOfBuffer(const char16_t* aChars,
-                        mozilla::MallocSizeOf aMallocSizeOf) const override;
-  };
-  struct DynamicAtomExternalString : public JSExternalStringCallbacks {
-    void finalize(char16_t* aChars) const override;
-    size_t sizeOfBuffer(const char16_t* aChars,
-                        mozilla::MallocSizeOf aMallocSizeOf) const override;
-  };
-  static const LiteralExternalString sLiteralExternalString;
-  static const DOMStringExternalString sDOMStringExternalString;
-  static const DynamicAtomExternalString sDynamicAtomExternalString;
+  static void LiteralExternalStringFinalize(char16_t* aChars);
+  static size_t LiteralExternalStringSizeOfBuffer(const char16_t* aChars,
+                                           mozilla::MallocSizeOf aMallocSizeOf);
+  
+  static void DOMExternalStringFinalize(char16_t* aChars);
+  static size_t DOMExternalStringSizeOfBuffer(
+      const char16_t* aChars,
+      mozilla::MallocSizeOf aMallocSizeOf);
+  
+  static void DynamicAtomExternalStringFinalize(char16_t* aChars);
+  static size_t DynamicAtomExternalStringSizeOfBuffer(
+      const char16_t* aChars,
+      mozilla::MallocSizeOf aMallocSizeOf);
+  
+  static const JSExternalStringCallbacks* sLiteralExternalString();
+  static const JSExternalStringCallbacks* sDOMStringExternalString();
+  static const JSExternalStringCallbacks* sDynamicAtomExternalString();
 
   XPCStringConvert() = delete;
 };

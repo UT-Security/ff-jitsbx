@@ -361,7 +361,7 @@ bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
   }
 
   if (uint32Len != numberLen) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, (JSErrorCallback)sbx_addr((void*)js::GetErrorMessage), nullptr,
                               JSMSG_BAD_INDEX);
     return false;
   }

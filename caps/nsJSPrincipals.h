@@ -7,6 +7,7 @@
 #ifndef nsJSPrincipals_h__
 #define nsJSPrincipals_h__
 
+#include "monkeycage/Sandbox.h"
 #include "js/Principals.h"
 #include "nsIPrincipal.h"
 
@@ -25,10 +26,12 @@ class nsJSPrincipals : public nsIPrincipal, public ::sandbox::JSPrincipals {
   /* SpiderMonkey security callbacks. */
   static bool Subsume(::JSPrincipals* jsprin, ::JSPrincipals* other);
   static void Destroy(::JSPrincipals* jsprin);
+  static inline monkeycage::LazySandboxCallback<JSDestroyPrincipalsOp> DestroyCallback = monkeycage::LazySandboxCallback(Destroy);
 
   /* JSReadPrincipalsOp for nsJSPrincipals */
   static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
                              ::JSPrincipals** aOutPrincipals);
+  static inline monkeycage::LazySandboxCallback<JSReadPrincipalsOp> ReadPrincipalsCallback = monkeycage::LazySandboxCallback(ReadPrincipals);
 
   static bool ReadKnownPrincipalType(JSContext* aCx,
                                      JSStructuredCloneReader* aReader,

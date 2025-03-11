@@ -181,7 +181,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
   MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
 
   // Create the global.
-  aOptions.creationOptions().setTrace((JSTraceOp)sbx_register_cb((void*)XPCWrappedNative::Trace, 0));
+  aOptions.creationOptions().setTrace(XPCWrappedNative_TraceCb.get());
   xpc::SetPrefableRealmOptions(aOptions);
 
   JS::sandbox::RootedObject global(cx,

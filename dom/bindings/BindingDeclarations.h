@@ -13,8 +13,10 @@
 #ifndef mozilla_dom_BindingDeclarations_h__
 #define mozilla_dom_BindingDeclarations_h__
 
+#include "monkeycage/Sandbox.h"
 #include "js/sandbox/RootingAPI.h"
 #include "js/TypeDecls.h"
+#include "js/JSON.h"
 
 #include "mozilla/Maybe.h"
 
@@ -66,6 +68,8 @@ struct DictionaryBase {
   // called from StringifyToJSON.
   static bool AppendJSONToString(const char16_t* aJSONData,
                                  uint32_t aDataLength, void* aString);
+
+  static inline monkeycage::LazySandboxCallback<JSONWriteCallback> AppendJSONToStringCallback = monkeycage::LazySandboxCallback(AppendJSONToString);
 
  public:
   bool IsAnyMemberPresent() const { return mIsAnyMemberPresent; }

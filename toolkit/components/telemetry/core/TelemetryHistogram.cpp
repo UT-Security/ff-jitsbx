@@ -10,15 +10,13 @@
 #include "base/histogram.h"
 #include "geckoview/streaming/GeckoViewStreamingTelemetry.h"
 #include "ipc/TelemetryIPCAccumulator.h"
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/GCAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetMaybePtrFromReservedSlot, JS::SetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunction, JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/Atomics.h"
@@ -1657,7 +1655,8 @@ static const JSClass* sJSHistogramClass() {
       nullptr, /* newEnumerate */
       nullptr, /* resolve */
       nullptr, /* mayResolve */
-      (JSFinalizeOp)sbx_register_cb((void*)internal_JSHistogram_finalize, 0)};
+      monkeycage::Sandbox::RegisterCallback(internal_JSHistogram_finalize).get(),
+  };
 
   static const JSClass _sJSHistogramClass = {
       "JSHistogram", /* name */
@@ -1852,6 +1851,8 @@ bool internal_JSHistogram_Add(JSContext* cx, unsigned argc, JS::Value* vp) {
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSHistogram_AddCb(internal_JSHistogram_Add);
+
 bool internal_JSHistogram_Name(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -1873,6 +1874,8 @@ bool internal_JSHistogram_Name(JSContext* cx, unsigned argc, JS::Value* vp) {
 
   return true;
 }
+
+static monkeycage::LazySandboxCallback<JSNative> internal_JSHistogram_NameCb(internal_JSHistogram_Name);
 
 /**
  * Extract the store name from JavaScript function arguments.
@@ -1978,6 +1981,8 @@ bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSHistogram_SnapshotCb(internal_JSHistogram_Snapshot);
+
 bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
   if (!XRE_IsParentProcess()) {
     JS_ReportErrorASCII(cx,
@@ -2018,6 +2023,8 @@ bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSHistogram_ClearCb(internal_JSHistogram_Clear);
+
 // NOTE: Runs without protection from |gTelemetryHistogramMutex|.
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
@@ -2029,11 +2036,11 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
 
   // The 3 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", (JSNative)sbx_register_cb((void*)internal_JSHistogram_Add, 0), 1, 0) &&
-        JS_DefineFunction(cx, obj, "name", (JSNative)sbx_register_cb((void*)internal_JSHistogram_Name, 0), 1, 0) &&
-        JS_DefineFunction(cx, obj, "snapshot", (JSNative)sbx_register_cb((void*)internal_JSHistogram_Snapshot, 0), 1,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_AddCb.get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "name", internal_JSHistogram_NameCb.get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "snapshot", internal_JSHistogram_SnapshotCb.get(), 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", (JSNative)sbx_register_cb((void*)internal_JSHistogram_Clear, 0), 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSHistogram_ClearCb.get(), 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }
@@ -2087,7 +2094,8 @@ static const JSClass* sJSKeyedHistogramClass() {
       nullptr, /* newEnumerate */
       nullptr, /* resolve */
       nullptr, /* mayResolve */
-      (JSFinalizeOp)sbx_register_cb((void*)internal_JSKeyedHistogram_finalize, 0)};
+      monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_finalize).get(),
+  };
 
   static const JSClass _sJSKeyedHistogramClass = {
       "JSKeyedHistogram", /* name */
@@ -2171,6 +2179,8 @@ bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSKeyedHistogram_SnapshotCb(internal_JSKeyedHistogram_Snapshot);
+ 
 bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
                                    JS::Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -2231,6 +2241,8 @@ bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSKeyedHistogram_AddCb(internal_JSKeyedHistogram_Add);
+
 bool internal_JSKeyedHistogram_Name(JSContext* cx, unsigned argc,
                                     JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
@@ -2253,6 +2265,8 @@ bool internal_JSKeyedHistogram_Name(JSContext* cx, unsigned argc,
 
   return true;
 }
+
+static monkeycage::LazySandboxCallback<JSNative> internal_JSKeyedHistogram_NameCb(internal_JSKeyedHistogram_Name);
 
 bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
                                     JS::Value* vp) {
@@ -2320,6 +2334,8 @@ bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSKeyedHistogram_KeysCb(internal_JSKeyedHistogram_Keys);
+
 bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
                                      JS::Value* vp) {
   if (!XRE_IsParentProcess()) {
@@ -2372,6 +2388,8 @@ bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> internal_JSKeyedHistogram_ClearCb(internal_JSKeyedHistogram_Clear);
+
 // NOTE: Runs without protection from |gTelemetryHistogramMutex|.
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnKeyedHistogram(
@@ -2380,15 +2398,15 @@ nsresult internal_WrapAndReturnKeyedHistogram(
   if (!obj) return NS_ERROR_FAILURE;
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", (JSNative)sbx_register_cb((void*)internal_JSKeyedHistogram_Add, 0), 2,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb.get(), 2,
                           0) &&
-        JS_DefineFunction(cx, obj, "name", (JSNative)sbx_register_cb((void*)internal_JSKeyedHistogram_Name, 0), 1,
+        JS_DefineFunction(cx, obj, "name", internal_JSKeyedHistogram_NameCb.get(), 1,
                           0) &&
         JS_DefineFunction(cx, obj, "snapshot",
-                          (JSNative)sbx_register_cb((void*)internal_JSKeyedHistogram_Snapshot, 0), 1, 0) &&
-        JS_DefineFunction(cx, obj, "keys", (JSNative)sbx_register_cb((void*)internal_JSKeyedHistogram_Keys, 0), 1,
+                          internal_JSKeyedHistogram_SnapshotCb.get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "keys", internal_JSKeyedHistogram_KeysCb.get(), 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", (JSNative)sbx_register_cb((void*)internal_JSKeyedHistogram_Clear, 0), 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSKeyedHistogram_ClearCb.get(), 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }

@@ -14,6 +14,7 @@
 
 #include "xpcprivate.h"
 
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
@@ -23,9 +24,6 @@
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 
@@ -1218,7 +1216,7 @@ const JSClassOps* XrayExpandoObjectClassOps() {
       nullptr,                // newEnumerate
       nullptr,                // resolve
       nullptr,                // mayResolve
-      (JSFinalizeOp)sbx_register_cb((void*)ExpandoObjectFinalize, 0),  // finalize
+      monkeycage::Sandbox::RegisterCallback(ExpandoObjectFinalize).get(),  // finalize
       nullptr,                // call
       nullptr,                // construct
       nullptr,                // trace
@@ -1604,6 +1602,8 @@ static bool wrappedJSObject_getter(JSContext* cx, unsigned argc, Value* vp) {
   return WrapperFactory::WaiveXrayAndWrap(cx, args.rval());
 }
 
+static monkeycage::LazySandboxCallback<JSNative> wrappedJSObject_getterCb(wrappedJSObject_getter);
+
 bool XrayTraits::resolveOwnProperty(
     JSContext* cx, HandleObject wrapper, HandleObject target,
     HandleObject holder, HandleId id,
@@ -1668,8 +1668,9 @@ bool XrayTraits::resolveOwnProperty(
     if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
       return false;
     }
-    if (!found && !JS_DefinePropertyById(cx, holder, id, (JSNative)sbx_register_cb((void*)wrappedJSObject_getter, 0),
-                                         nullptr, JSPROP_ENUMERATE)) {
+    if (!found &&
+        !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getterCb.get(),
+                               nullptr, JSPROP_ENUMERATE)) {
       return false;
     }
     return JS_GetOwnPropertyDescriptorById(cx, holder, id, desc);
@@ -2338,8 +2339,8 @@ static bool IsCrossCompartmentXrayCallback(
 
 JS::XrayJitInfo* gXrayJitInfo() {
   static JS::XrayJitInfo __gXrayJitInfo = {
-      (bool (*)(const js::BaseProxyHandler*))sbx_register_cb((void*)IsCrossCompartmentXrayCallback, 0),
-      (bool (*)(JSObject*))sbx_register_cb((void*)CompartmentHasExclusiveExpandos, 0),
+      monkeycage::Sandbox::RegisterCallback(IsCrossCompartmentXrayCallback).get(),
+      monkeycage::Sandbox::RegisterCallback(CompartmentHasExclusiveExpandos).get(),
       JSSLOT_XRAY_HOLDER,
       XrayTraits::HOLDER_SLOT_EXPANDO, JSSLOT_EXPANDO_PROTOTYPE};
 

@@ -471,7 +471,7 @@ void XPCWrappedNativeScope::AddSizeOfAllScopesIncludingThis(
   }
 }
 
-static void AddSizeOfCb(JSContext*, void* aData, JS::Realm* aRealm,
+static void AddSizeOfCb_(JSContext*, void* aData, JS::Realm* aRealm,
                         const JS::AutoRequireNoGC& nogc) {
   auto* scopeSizeInfo = static_cast<XPCWrappedNativeScope::ScopeSizeInfo*>(aData);
   JSObject* global = GetRealmGlobalOrNull(aRealm);
@@ -482,6 +482,8 @@ static void AddSizeOfCb(JSContext*, void* aData, JS::Realm* aRealm,
   }
 }
 
+static monkeycage::LazySandboxCallback<IterateRealmCallback> AddSizeOfCb(AddSizeOfCb_);
+
 void XPCWrappedNativeScope::AddSizeOfIncludingThis(
     JSContext* cx, ScopeSizeInfo* scopeSizeInfo) {
   scopeSizeInfo->mScopeAndMapSize += scopeSizeInfo->mMallocSizeOf(this);
@@ -490,7 +492,7 @@ void XPCWrappedNativeScope::AddSizeOfIncludingThis(
   scopeSizeInfo->mScopeAndMapSize +=
       mWrappedNativeProtoMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
 
-  IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo, (IterateRealmCallback)sbx_register_cb((void*)AddSizeOfCb, 0));
+  IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo, AddSizeOfCb.get());
 
   // There are other XPCWrappedNativeScope members that could be measured;
   // the above ones have been seen by DMD to be worth measuring.  More stuff

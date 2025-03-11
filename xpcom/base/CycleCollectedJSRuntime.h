@@ -14,6 +14,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SegmentedVector.h"
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/TypeDecls.h"
@@ -451,6 +452,8 @@ class CycleCollectedJSRuntime {
   bool mHasPendingIdleGCTask;
 
   JS::GCSliceCallback mPrevGCSliceCallback;
+  monkeycage::SandboxCallback<JS::GCSliceCallback> mPrevGCSliceCallbackCb{nullptr};
+  
   JS::GCNurseryCollectionCallback mPrevGCNurseryCollectionCallback;
 
   mozilla::TimeStamp mLatestNurseryCollectionStart;

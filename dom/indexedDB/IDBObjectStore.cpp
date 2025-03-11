@@ -24,6 +24,7 @@
 #include "KeyPath.h"
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
+#include "monkeycage/Sandbox.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/Class.h"
 #include "js/Date.h"
@@ -277,7 +278,7 @@ bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
 
 nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
   static const JSStructuredCloneCallbacks kStructuredCloneCallbacks = {
-      nullptr /* read */,          (WriteStructuredCloneOp)sbx_register_cb((void*)StructuredCloneWriteCallback, 0) /* write */,
+      nullptr /* read */,          monkeycage::Sandbox::RegisterCallback(StructuredCloneWriteCallback).get() /* write */,
       nullptr /* reportError */,   nullptr /* readTransfer */,
       nullptr /* writeTransfer */, nullptr /* freeTransfer */,
       nullptr /* canTransfer */,   nullptr /* sabCloned */
@@ -545,7 +546,7 @@ bool IDBObjectStore::DeserializeValue(
   MOZ_ASSERT(!(aCloneReadInfo.Data().Size() % sizeof(uint64_t)));
 
   static const JSStructuredCloneCallbacks callbacks = {
-      (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoChild>, 0),
+      monkeycage::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoChild>).get(),
       nullptr,
       nullptr,
       nullptr,
@@ -1713,8 +1714,8 @@ bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
   }
 
   static const JSStructuredCloneCallbacks callbacks = {
-      (ReadStructuredCloneOp)sbx_register_cb((void*)CopyingStructuredCloneReadCallback, 0) /* read */,
-      (WriteStructuredCloneOp)sbx_register_cb((void*)CopyingStructuredCloneWriteCallback, 0) /* write */,
+      monkeycage::Sandbox::RegisterCallback(CopyingStructuredCloneReadCallback).get() /* read */,
+      monkeycage::Sandbox::RegisterCallback(CopyingStructuredCloneWriteCallback).get() /* write */,
       nullptr /* reportError */,
       nullptr /* readTransfer */,
       nullptr /* writeTransfer */,

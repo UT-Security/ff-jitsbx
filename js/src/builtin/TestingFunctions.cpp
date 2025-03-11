@@ -3235,15 +3235,15 @@ static bool AddWatchtowerTarget(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-struct TestExternalString : public JSExternalStringCallbacks {
-  void finalize(char16_t* chars) const override { js_free(chars); }
-  size_t sizeOfBuffer(const char16_t* chars,
-                      mozilla::MallocSizeOf mallocSizeOf) const override {
-    return mallocSizeOf(chars);
-  }
-};
+void TestExternalStringFinalize(char16_t* chars) { js_free(chars); }
+size_t TestExternalStringSizeOfBuffer(const char16_t* chars, mozilla::MallocSizeOf mallocSizeOf) {
+  return mallocSizeOf(chars);
+}
 
-static constexpr TestExternalString TestExternalStringCallbacks;
+static constexpr JSExternalStringCallbacks TestExternalStringCallbacks = {
+  .finalize = TestExternalStringFinalize,
+  .sizeOfBuffer = TestExternalStringSizeOfBuffer,
+};
 
 static bool NewString(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);

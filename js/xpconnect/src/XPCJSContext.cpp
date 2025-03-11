@@ -39,6 +39,7 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
 #include "nsJSEnvironment.h"
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/ArrayBuffer.h"
 #include "js/ContextOptions.h"
@@ -1187,6 +1188,8 @@ static void DispatchOffThreadTask(JS::DispatchReason) {
   TaskController::Get()->AddTask(MakeAndAddRef<HelperThreadTaskHandler>());
 }
 
+static monkeycage::LazySandboxCallback<JS::HelperThreadTaskCallback> DispatchOffThreadTaskCb(DispatchOffThreadTask);
+
 static bool CreateSelfHostedSharedMemory(JSContext* aCx,
                                          JS::SelfHostedCache aBuf) {
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
@@ -1197,11 +1200,13 @@ static bool CreateSelfHostedSharedMemory(JSContext* aCx,
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JS::SelfHostedWriter> CreateSelfHostedSharedMemoryCb(CreateSelfHostedSharedMemory);
+
 nsresult XPCJSContext::Initialize() {
   if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
     size_t threadCount = TaskController::GetPoolThreadCount();
     size_t stackSize = TaskController::GetThreadStackSize();
-    SetHelperThreadTaskCallback((JS::HelperThreadTaskCallback)sbx_register_cb((void*)DispatchOffThreadTask, 0), threadCount, stackSize);
+    SetHelperThreadTaskCallback(DispatchOffThreadTaskCb.get(), threadCount, stackSize);
   }
 
   nsresult rv =
@@ -1350,7 +1355,7 @@ nsresult XPCJSContext::Initialize() {
 
   PROFILER_SET_JS_CONTEXT(cx);
 
-  JS_AddInterruptCallback(cx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
+  JS_AddInterruptCallback(cx, InterruptCallbackCb.get());
 
   Runtime()->Initialize(cx);
 
@@ -1379,7 +1384,7 @@ nsresult XPCJSContext::Initialize() {
   if (XRE_IsParentProcess() && sSelfHostedUseSharedMemory) {
     // Only the Parent process has permissions to write to the self-hosted
     // shared memory.
-    writer = CreateSelfHostedSharedMemory;
+    writer = CreateSelfHostedSharedMemoryCb.get();
   }
 
   if (!JS::InitSelfHostedCode(cx, selfHostedContent, writer)) {

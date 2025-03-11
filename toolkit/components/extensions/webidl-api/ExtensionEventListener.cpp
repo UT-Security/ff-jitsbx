@@ -119,6 +119,7 @@ class SendResponseCallback final : public nsISupports {
     return true;
   }
 
+
  private:
   ~SendResponseCallback() {
     mozilla::DropJSObjects(this);
@@ -432,13 +433,14 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
 
   // Create callback argument and append it to the call arguments.
   JS::sandbox::Rooted<JSObject*> sendResponseObj(aCx);
+  static monkeycage::LazySandboxCallback<JSNative> CallCallback(SendResponseCallback::Call);
 
   switch (mCallbackArgType) {
     case CallbackType::CALLBACK_NONE:
       break;
     case CallbackType::CALLBACK_SEND_RESPONSE: {
       JS::sandbox::Rooted<JSFunction*> sendResponseFn(
-          aCx, js::NewFunctionWithReserved(aCx, (JSNative)sbx_register_cb((void*)SendResponseCallback::Call, 0),
+          aCx, js::NewFunctionWithReserved(aCx, CallCallback.get(),
                                            /* nargs */ 1, 0, "sendResponse"));
       sendResponseObj = JS_GetFunctionObject(sendResponseFn);
       JS::sandbox::Rooted<JS::Value> sendResponseValue(

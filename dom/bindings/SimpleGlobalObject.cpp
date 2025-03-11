@@ -6,12 +6,10 @@
 
 #include "mozilla/dom/SimpleGlobalObject.h"
 
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/Class.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetObjectISupports, JS::SetObjectISupports
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 
 #include "nsJSPrincipals.h"
 #include "nsThreadUtils.h"
@@ -68,14 +66,14 @@ static const JSClass* SimpleGlobalClass() {
       (JSNewEnumerateOp)sbx_addr((void*)JS_NewEnumerateStandardClasses),
       (JSResolveOp)sbx_addr((void*)JS_ResolveStandardClass),
       (JSMayResolveOp)sbx_addr((void*)JS_MayResolveStandardClass),
-      (JSFinalizeOp)sbx_register_cb((void*)SimpleGlobal_finalize, 0),
+      monkeycage::Sandbox::RegisterCallback(SimpleGlobal_finalize).get(),
       nullptr,
       nullptr,
       (JSTraceOp)sbx_addr((void*)JS_GlobalObjectTraceHook),
   };
 
   static const js::ClassExtension SimpleGlobalClassExtension = {
-      (JSObjectMovedOp)sbx_register_cb((void*)SimpleGlobal_moved, 0)};
+      monkeycage::Sandbox::RegisterCallback(SimpleGlobal_moved).get()};
 
   static_assert(JSCLASS_GLOBAL_APPLICATION_SLOTS > 0,
                 "Need at least one slot for JSCLASS_SLOT0_IS_NSISUPPORTS");
@@ -122,7 +120,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     if (NS_IsMainThread()) {
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
-      options.creationOptions().setTrace((JSTraceOp)sbx_register_cb((void*)xpc::TraceXPCGlobal, 0));
+      options.creationOptions().setTrace(xpc::TraceXPCGlobalCallback.get());
       global = xpc::CreateGlobalObject(cx, SimpleGlobalClass(),
                                        nsJSPrincipals::get(principal), options);
     } else {

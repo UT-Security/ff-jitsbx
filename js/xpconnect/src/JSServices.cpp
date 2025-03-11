@@ -10,9 +10,6 @@
 #include "mozilla/ProfilerLabels.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/String.h"              // JS::LinearStringHasLatin1Chars
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "nsJSUtils.h"
 
 using namespace mozilla;
@@ -33,9 +30,9 @@ static const JSClass* sServices_Class() {
       nullptr,                // addProperty
       nullptr,                // delProperty
       nullptr,                // enumerate
-      (JSNewEnumerateOp)sbx_register_cb((void*)Services_NewEnumerate, 0),  // newEnumerate
-      (JSResolveOp)sbx_register_cb((void*)Services_Resolve, 0),       // resolve
-      (JSMayResolveOp)sbx_register_cb((void*)Services_MayResolve, 0),    // mayResolve
+      monkeycage::Sandbox::RegisterCallback(Services_NewEnumerate).get(),  // newEnumerate
+      monkeycage::Sandbox::RegisterCallback(Services_Resolve).get(),       // resolve
+      monkeycage::Sandbox::RegisterCallback(Services_MayResolve).get(),    // mayResolve
       nullptr,                // finalize
       nullptr,                // call
       nullptr,                // construct

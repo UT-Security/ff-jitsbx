@@ -223,6 +223,7 @@ EXPORTS.js.sandbox += [
 ]
 
 EXPORTS.monkeycage += [
+    "../public/Sandbox.h",
     "../public/Tainted.h",
 ]
 

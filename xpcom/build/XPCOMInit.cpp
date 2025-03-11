@@ -100,6 +100,7 @@
 #include "GeckoProfiler.h"
 #include "ProfilerControl.h"
 
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/Initialization.h"
 #include "mozilla/StaticPrefs_javascript.h"
@@ -213,10 +214,7 @@ NS_IMPL_ISUPPORTS(OggReporter, nsIMemoryReporter)
 
 static bool sInitializedJS = false;
 
-//extern "C" void sbx_init(void);
-
 static void InitializeJS() {
-  //sbx_init();
 
 #if defined(ENABLE_WASM_SIMD) && \
     (defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86))
@@ -230,8 +228,6 @@ static void InitializeJS() {
     MOZ_CRASH_UNSAFE(jsInitFailureReason);
   }
 }
-
-extern "C" void sbx_init(void);
 
 // Note that on OSX, aBinDirectory will point to .app/Contents/Resources/browser
 EXPORT_XPCOM_API(nsresult)
@@ -407,7 +403,7 @@ NS_InitXPCOM(nsIServiceManager** aResult, nsIFile* aBinDirectory,
   // And start it up for this thread too.
   nsCycleCollector_startup();
 
-  sbx_init();
+  monkeycage::Sandbox::Initialize();
 
   // Register ICU memory functions.  This really shouldn't be necessary: the
   // JS engine should do this on its own inside JS_Init, and memory-reporting
@@ -502,7 +498,7 @@ NS_InitMinimalXPCOM() {
     return rv;
   }
 
-  sbx_init();
+  monkeycage::Sandbox::Initialize();
 
   // Create the Component/Service Manager
   nsComponentManagerImpl::gComponentManager = new nsComponentManagerImpl();
@@ -556,11 +552,12 @@ namespace mozilla {
 
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
+  static monkeycage::LazySandboxCallback<JS_ICUAllocFn> ICUAlloc(ICUReporter::Alloc);
+  static monkeycage::LazySandboxCallback<JS_ICUReallocFn> ICURealloc(ICUReporter::Realloc);
+  static monkeycage::LazySandboxCallback<JS_ICUFreeFn> ICUFree(ICUReporter::Free);
+  
   if (!sICUReporterInitialized) {
-    if (!JS_SetICUMemoryFunctions(
-            (JS_ICUAllocFn)sbx_register_cb((void*)ICUReporter::Alloc, 0),
-            (JS_ICUReallocFn)sbx_register_cb((void*)ICUReporter::Realloc, 0),
-            (JS_ICUFreeFn)sbx_register_cb((void*)ICUReporter::Free, 0))) {
+    if (!JS_SetICUMemoryFunctions(ICUAlloc.get(), ICURealloc.get(), ICUFree.get())) {
       MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
     }
     sICUReporterInitialized = true;

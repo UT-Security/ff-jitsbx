@@ -8,6 +8,7 @@
 
 #include <utility>
 #include "MainThreadUtils.h"
+#include "monkeycage/Sandbox.h"
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/Conversions.h"
@@ -311,7 +312,8 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
 
   mOldWarningReporter.emplace(JS::GetWarningReporter(aCx));
 
-  JS::SetWarningReporter(aCx, (JS::WarningReporter)sbx_register_cb((void*)WarningOnlyErrorReporter, 0));
+  static monkeycage::LazySandboxCallback<JS::WarningReporter> WarningOnlyErrorReporterCallback(WarningOnlyErrorReporter);
+  JS::SetWarningReporter(aCx, WarningOnlyErrorReporterCallback.get());
 
 #ifdef DEBUG
   if (haveException) {

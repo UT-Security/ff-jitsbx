@@ -11,25 +11,30 @@ static const size_t arrlen = js_strlen(arr);
 static int finalized1 = 0;
 static int finalized2 = 0;
 
-struct ExternalStringCallbacks : public JSExternalStringCallbacks {
-  int* finalizedCount = nullptr;
+static void ESCFinalize1(char16_t* chars) {
+  MOZ_ASSERT(chars == arr);
+  finalized1++;
+}
 
-  explicit ExternalStringCallbacks(int* finalizedCount)
-      : finalizedCount(finalizedCount) {}
+static void ESCFinalize2(char16_t* chars) {
+  MOZ_ASSERT(chars == arr);
+  finalized2++;
+}
 
-  void finalize(char16_t* chars) const override {
-    MOZ_ASSERT(chars == arr);
-    (*finalizedCount)++;
-  }
+static size_t ESCSizeOfBuffer(const char16_t* chars,
+                      mozilla::MallocSizeOf mallocSizeOf) {
+  MOZ_CRASH("Unexpected call");
+}
 
-  size_t sizeOfBuffer(const char16_t* chars,
-                      mozilla::MallocSizeOf mallocSizeOf) const override {
-    MOZ_CRASH("Unexpected call");
-  }
+static const JSExternalStringCallbacks callbacks1 = {
+  .finalize = ESCFinalize1,
+  .sizeOfBuffer = ESCSizeOfBuffer,
 };
 
-static const ExternalStringCallbacks callbacks1(&finalized1);
-static const ExternalStringCallbacks callbacks2(&finalized2);
+static const JSExternalStringCallbacks callbacks2 = {
+  .finalize = ESCFinalize2,
+  .sizeOfBuffer = ESCSizeOfBuffer,
+};
 
 BEGIN_TEST(testExternalStrings) {
   const unsigned N = 1000;

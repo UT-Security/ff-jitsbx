@@ -12,6 +12,7 @@
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/BindingUtils.h"
 
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
@@ -66,7 +67,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
 struct SetDOMProxyInformation {
   SetDOMProxyInformation() {
     JS::SetDOMProxyInformation((const void*)&DOMProxyHandler::family,
-                               (JS::DOMProxyShadowsCheck)sbx_register_cb((void*)DOMProxyShadows, 0),
+                               monkeycage::Sandbox::RegisterCallback(DOMProxyShadows).get(),
                                &RemoteObjectProxyBase::sCrossOriginProxyFamily);
   }
 };

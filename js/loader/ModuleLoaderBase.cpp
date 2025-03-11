@@ -11,6 +11,7 @@
 #include "mozilla/dom/ScriptSettings.h"  // AutoJSAPI
 #include "mozilla/dom/ScriptTrace.h"
 
+#include "monkeycage/Sandbox.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/CompilationAndEvaluation.h"
 #include "js/ContextOptions.h"        // JS::ContextOptionsRef
@@ -19,9 +20,6 @@
 #include "js/OffThreadScriptCompilation.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/SourceText.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/ScriptLoadContext.h"
@@ -77,14 +75,17 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
     return;
   }
 
-  JS::SetModuleResolveHook(rt, (JS::ModuleResolveHook)sbx_register_cb((void*)HostResolveImportedModule, 0));
-  JS::SetModuleMetadataHook(rt, (JS::ModuleMetadataHook)sbx_register_cb((void*)HostPopulateImportMeta, 0));
-  JS::SetScriptPrivateReferenceHooks(
-      rt, (JS::ScriptPrivateReferenceHook)sbx_register_cb((void*)HostAddRefTopLevelScript, 0),
-      (JS::ScriptPrivateReferenceHook)sbx_register_cb((void*)HostReleaseTopLevelScript, 0));
-  JS::SetModuleDynamicImportHook(rt,
-                                 (JS::ModuleDynamicImportHook)sbx_register_cb(
-                                     (void*)HostImportModuleDynamically, 0));
+  static monkeycage::LazySandboxCallback<JS::ModuleResolveHook> HostResolveImportedModuleCb(HostResolveImportedModule);
+  static monkeycage::LazySandboxCallback<JS::ModuleMetadataHook> HostPopulateImportMetaCb(HostPopulateImportMeta);
+  static monkeycage::LazySandboxCallback<JS::ScriptPrivateReferenceHook> HostAddRefTopLevelScriptCb(HostAddRefTopLevelScript);
+  static monkeycage::LazySandboxCallback<JS::ScriptPrivateReferenceHook> HostReleaseTopLevelScriptCb(HostReleaseTopLevelScript);
+  static monkeycage::LazySandboxCallback<JS::ModuleDynamicImportHook> HostImportModuleDynamicallyCb(HostImportModuleDynamically);
+
+  JS::SetModuleResolveHook(rt, HostResolveImportedModuleCb.get());
+  JS::SetModuleMetadataHook(rt, HostPopulateImportMetaCb.get());
+  JS::SetScriptPrivateReferenceHooks(rt, HostAddRefTopLevelScriptCb.get(),
+                                     HostReleaseTopLevelScriptCb.get());
+  JS::SetModuleDynamicImportHook(rt, HostImportModuleDynamicallyCb.get());
 
   JS::ImportAssertionVector assertions;
   // ImportAssertionVector has inline storage for one element so this cannot

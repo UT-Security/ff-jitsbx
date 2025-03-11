@@ -10794,6 +10794,8 @@ static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSONWriteCallback> JSONCreatorCallback(JSONCreator);
+
 /* static */
 bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                    nsAString& aOutStr, JSONBehavior aBehavior) {
@@ -10804,14 +10806,14 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
       JS::sandbox::Rooted<JS::Value> value(aCx, aValue);
       nsAutoString serializedValue;
       NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, JS::GetNullHandleValue(),
-                                  JSONCreator, &serializedValue),
+                                  JSONCreatorCallback.get(), &serializedValue),
                      false);
       aOutStr = serializedValue;
       return true;
     }
     case UndefinedIsVoidString: {
       aOutStr.SetIsVoid(true);
-      return JS::ToJSON(aCx, aValue, nullptr, JS::GetNullHandleValue(), JSONCreator,
+      return JS::ToJSON(aCx, aValue, nullptr, JS::GetNullHandleValue(), JSONCreatorCallback.get(),
                         &aOutStr);
     }
     default:

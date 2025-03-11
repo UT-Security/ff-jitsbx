@@ -9,6 +9,7 @@
 
 #include <type_traits>
 
+#include "monkeycage/Sandbox.h"
 #include "jsfriendapi.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
@@ -1476,6 +1477,7 @@ inline void UpdateWrapper(T* p, void*, JSObject* obj, const JSObject* old) {
 bool TryPreserveWrapper(JS::Handle<JSObject*> obj);
 
 bool HasReleasedWrapper(JS::Handle<JSObject*> obj);
+extern monkeycage::LazySandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb;
 
 // Can only be called with a DOM JSClass.
 bool InstanceClassHasProtoAtDepth(const JSClass* clasp, uint32_t protoID,
@@ -2515,8 +2517,12 @@ bool InterfaceHasInstance(JSContext* cx, unsigned argc, JS::Value* vp);
 bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
                           JS::Handle<JSObject*> instance, bool* bp);
 
+extern monkeycage::LazySandboxCallback<JSNative> InterfaceHasInstanceCallback;
+
 // Used to implement the cross-context <Interface>.isInstance static method.
 bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp);
+
+extern monkeycage::LazySandboxCallback<JSNative> InterfaceIsInstanceCallback;
 
 // Helper for lenient getters/setters to report to console.  If this
 // returns false, we couldn't even get a global.
@@ -2874,11 +2880,17 @@ void FinalizeGlobal(JS::GCContext* aGcx, JSObject* aObj);
 bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
                    JS::Handle<jsid> aId, bool* aResolvedp);
 
+JSResolveOp ResolveGlobalCb();
+
 bool MayResolveGlobal(const JSAtomState& aNames, jsid aId, JSObject* aMaybeObj);
+
+JSMayResolveOp MayResolveGlobalCb();
 
 bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
                      JS::MutableHandleVector<jsid> aProperties,
                      bool aEnumerableOnly);
+
+JSNewEnumerateOp EnumerateGlobalCb();
 
 struct CreateGlobalOptionsGeneric {
   static void TraceGlobal(JSTracer* aTrc, JSObject* aObj) {
@@ -2934,8 +2946,9 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, JS::RealmOptions& aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
+  static monkeycage::LazySandboxCallback<JSTraceOp> TraceGlobalCallback(CreateGlobalOptions<T>::TraceGlobal);
   aOptions.creationOptions()
-      .setTrace((JSTraceOp)sbx_register_cb((void*)CreateGlobalOptions<T>::TraceGlobal,0))
+      .setTrace(TraceGlobalCallback.get())
       .setProfilerRealmID(GetWindowID(aNative));
   xpc::SetPrefableRealmOptions(aOptions);
 
@@ -3003,6 +3016,9 @@ namespace binding_detail {
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp);
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+JSNative GenericGetterCb();
+
 /**
  * WebIDL setters have a "generic" JSNative that is responsible for the
  * following things:
@@ -3018,6 +3034,9 @@ bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp);
  */
 template <typename ThisPolicy>
 bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp);
+
+template <typename ThisPolicy>
+JSNative GenericSetterCb();
 
 /**
  * WebIDL methods have a "generic" JSNative that is responsible for the
@@ -3036,6 +3055,9 @@ bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp);
  */
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+
+template <typename ThisPolicy, typename ExceptionPolicy>
+JSNative GenericMethodCb();
 
 // A this-extraction policy for normal getters/setters/methods.
 struct NormalThisPolicy;
@@ -3067,6 +3089,8 @@ struct ConvertExceptionsToPromises;
 }  // namespace binding_detail
 
 bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp);
+
+extern monkeycage::LazySandboxCallback<JSNative> StaticMethodPromiseWrapperCb;
 
 // ConvertExceptionToPromise should only be called when we have an error
 // condition (e.g. returned false from a JSAPI method).  Note that there may be

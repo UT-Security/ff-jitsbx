@@ -1148,8 +1148,9 @@ class JS_PUBLIC_API Concrete<JSObject> : public TracerConcrete<JSObject> {
 
   CoarseType coarseType() const final { return CoarseType::Object; }
 
-  const char16_t* typeName() const override { return concreteTypeName; }
+  const char16_t* typeName() const override { return getConcreteTypeName(); }
   static const char16_t concreteTypeName[];
+  static const char16_t* getConcreteTypeName();
 };
 
 // For JSString, we extend the generic template with a 'size' implementation.

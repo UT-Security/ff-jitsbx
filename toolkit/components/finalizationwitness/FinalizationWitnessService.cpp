@@ -5,6 +5,7 @@
 #include "FinalizationWitnessService.h"
 
 #include "nsString.h"
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/sandbox/sobox.h"
 #include "js/CallNonGenericMethod.h"
@@ -116,7 +117,7 @@ static const JSClass* sWitnessClass() {
       nullptr /* newEnumerate */,
       nullptr /* resolve */,
       nullptr /* mayResolve */,
-      (JSFinalizeOp)sbx_register_cb((void*)Finalize, 0) /* finalize */
+      monkeycage::Sandbox::RegisterCallback(Finalize).get() /* finalize */
   };
 
   static const JSClass __sWitnessClass = {
@@ -165,7 +166,7 @@ bool Forget(JSContext* cx, unsigned argc, JS::Value* vp) {
 
 static const JSFunctionSpec* sWitnessClassFunctions() {
   static const JSFunctionSpec _spec[] = {
-    JS_FN("forget", (JSNative)sbx_register_cb((void*)Forget, 0), 0, JSPROP_READONLY | JSPROP_PERMANENT), JS_FS_END
+    JS_FN("forget", monkeycage::Sandbox::RegisterCallback(Forget).get(), 0, JSPROP_READONLY | JSPROP_PERMANENT), JS_FS_END
   };
 
   return _spec;

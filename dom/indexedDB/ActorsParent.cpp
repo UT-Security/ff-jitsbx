@@ -41,6 +41,7 @@
 #include "SchemaUpgrades.h"
 #include "chrome/common/ipc_channel.h"
 #include "ipc/IPCMessageUtils.h"
+#include "monkeycage/Sandbox.h"
 #include "js/RootingAPI.h"
 #include "js/StructuredClone.h"
 #include "js/Value.h"
@@ -6516,7 +6517,7 @@ class DeserializeIndexValueHelper final : public Runnable {
   nsresult DeserializeIndexValue(JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoParent>, 0),
+        monkeycage::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoParent>).get(),
         nullptr,
         nullptr,
         nullptr,

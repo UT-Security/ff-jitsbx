@@ -16,6 +16,7 @@
 #include "nsIObserver.h"
 #include "nsISupports.h"
 #include "nsStringFwd.h"
+#include "monkeycage/Sandbox.h"
 
 // Defines regarding spoofed values of Navigator object. These spoofed values
 // are returned when 'privacy.resistFingerprinting' is true.
@@ -184,6 +185,9 @@ class nsRFPService final : public nsIObserver {
   // Used by the JS Engine, as it doesn't know about the TimerPrecisionType enum
   static double ReduceTimePrecisionAsUSecsWrapper(
       double aTime, bool aShouldResistFingerprinting, JSContext* aCx);
+
+  static inline monkeycage::LazySandboxCallback<double (*)(double, bool, JSContext*)> ReduceTimePrecisionAsUSecsWrapperCb =
+   monkeycage::LazySandboxCallback(ReduceTimePrecisionAsUSecsWrapper);
 
   // Public only for testing purposes
   static double ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,

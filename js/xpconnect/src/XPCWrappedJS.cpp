@@ -477,6 +477,8 @@ static JS::CompartmentIterResult NotHasWrapperAssertionCallback(
   MOZ_ASSERT_IF(xpcComp, !xpcComp->GetWrappedJSMap()->HasWrapper(wrapper));
   return JS::CompartmentIterResult::KeepGoing;
 }
+
+static monkeycage::LazySandboxCallback<JSIterateCompartmentCallback> NotHasWrapperAssertionCallbackCb(NotHasWrapperAssertionCallback);
 #endif
 
 void XPCJSRuntime::AssertInvalidWrappedJSNotInTable(
@@ -486,7 +488,7 @@ void XPCJSRuntime::AssertInvalidWrappedJSNotInTable(
     MOZ_ASSERT(!GetMultiCompartmentWrappedJSMap()->HasWrapper(wrapper));
     if (!mGCIsRunning) {
       JSContext* cx = XPCJSContext::Get()->Context();
-      JS_IterateCompartments(cx, wrapper, (JSIterateCompartmentCallback)sbx_register_cb((void*)NotHasWrapperAssertionCallback, 0));
+      JS_IterateCompartments(cx, wrapper, NotHasWrapperAssertionCallbackCb.get());
     }
   }
 #endif

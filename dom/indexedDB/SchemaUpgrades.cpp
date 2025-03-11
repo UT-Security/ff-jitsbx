@@ -25,6 +25,7 @@
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
 #include "SafeRefPtr.h"
+#include "monkeycage/Sandbox.h"
 #include "js/RootingAPI.h"
 #include "js/StructuredClone.h"
 #include "js/Value.h"
@@ -2802,7 +2803,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
   nsresult DeserializeUpgradeValue(JSContext* aCx,
                                    JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        (ReadStructuredCloneOp)sbx_register_cb((void*)StructuredCloneReadCallback<StructuredCloneReadInfoParent>, 0),
+        monkeycage::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoParent>).get(),
         nullptr,
         nullptr,
         nullptr,

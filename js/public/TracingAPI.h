@@ -7,12 +7,13 @@
 #ifndef js_TracingAPI_h
 #define js_TracingAPI_h
 
+#ifdef JS_SANDBOX_API
+#include "monkeycage/Sandbox.h"
+#endif
 #include "js/GCTypeMacros.h"
 #include "js/HeapAPI.h"
 #include "js/TraceKind.h"
-#ifdef JS_SANDBOX_API
-#include "js/sandbox/sobox.h"
-#endif
+
 
 class JS_PUBLIC_API JSTracer;
 
@@ -282,13 +283,18 @@ public:
     auto* trc = static_cast<CallbackTracer*>(self);
     trc->onChild(thing, name);
   }
+  
+  static JS::CallbackTracerOnChildCallback registerOnChildCb() {
+    static JS::CallbackTracerOnChildCallback cb = monkeycage::Sandbox::RegisterCallback(CallbackTracer::onChildCb).get();
+    return cb;
+  }
 
   CallbackTracer(JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
                  JS::TraceOptions options = JS::TraceOptions())
-      : base_(this, (JS::CallbackTracerOnChildCallback)sbx_register_cb((void*)CallbackTracer::onChildCb, 0), rt, kind, options) {}
+      : base_(this, CallbackTracer::registerOnChildCb(), rt, kind, options) {}
   CallbackTracer(JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
                  JS::TraceOptions options = JS::TraceOptions())
-      : base_(this, (JS::CallbackTracerOnChildCallback)sbx_register_cb((void*)CallbackTracer::onChildCb, 0), cx, kind, options) {}
+      : base_(this, CallbackTracer::registerOnChildCb(), cx, kind, options) {}
 
   inline JS::CallbackTracer* getCallbackTracer() { return &base_; }
   JS::TracingContext& context() { return base_.context(); }

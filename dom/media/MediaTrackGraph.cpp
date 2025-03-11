@@ -4,6 +4,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MediaTrackGraphImpl.h"
+#include "monkeycage/Sandbox.h"
 #include "js/Interrupt.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/Unused.h"
@@ -3920,12 +3921,14 @@ void MediaTrackGraphImpl::InterruptJS() {
   }
 }
 
-static bool InterruptCallback(JSContext* aCx) {
+static bool InterruptCallback_(JSContext* aCx) {
   // Interrupt future calls also.
   JS_RequestInterruptCallback(aCx);
   // Stop execution.
   return false;
 }
+
+static monkeycage::LazySandboxCallback<JSInterruptCallback> InterruptCallback(InterruptCallback_);
 
 void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
   MOZ_ASSERT(OnGraphThread());
@@ -3937,7 +3940,7 @@ void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
     MOZ_ASSERT(impl->mJSContext == aCx);
     return;
   }
-  JS_AddInterruptCallback(aCx, (JSInterruptCallback)sbx_register_cb((void*)InterruptCallback, 0));
+  JS_AddInterruptCallback(aCx, InterruptCallback.get());
   impl->mJSContext = aCx;
   if (impl->mInterruptJSCalled) {
     JS_RequestInterruptCallback(aCx);

@@ -12,15 +12,13 @@
 #include "mozilla/Likely.h"
 #include "mozilla/Unused.h"
 
+#include "monkeycage/Sandbox.h"
 #include "XPCWrapper.h"
 #include "jsfriendapi.h"
 #include "js/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
 #include "js/CompileOptions.h"     // JS::ReadOnlyCompileOptions
 #include "js/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "GeckoProfiler.h"
 #include "mozJSModuleLoader.h"
 #include "nsJSEnvironment.h"
@@ -154,8 +152,8 @@ void nsXPConnect::InitStatics() {
   // These functions are used for reporting leaks, so we register them as early
   // as possible to avoid missing any classes' creations.
   JS::SetLogCtorDtorFunctions(
-    (JS::LogCtorDtor)sbx_register_cb((void*)NS_LogCtor, 0),
-    (JS::LogCtorDtor)sbx_register_cb((void*)NS_LogDtor, 0)
+    monkeycage::Sandbox::RegisterCallback(NS_LogCtor).get(),
+    monkeycage::Sandbox::RegisterCallback(NS_LogDtor).get()
   );
 #endif
   ReadOnlyPage::Init();
@@ -429,6 +427,8 @@ void xpc::TraceXPCGlobal(JSTracer* trc, JSObject* obj) {
     priv->GetScope()->TraceInside(trc);
   }
 }
+
+monkeycage::LazySandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCallback(TraceXPCGlobal);
 
 namespace xpc {
 
@@ -1052,6 +1052,8 @@ bool Atob(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::Base64Decode(cx, args[0], args.rval());
 }
 
+monkeycage::LazySandboxCallback<JSNative> AtobCb(Atob);
+
 bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.length()) {
@@ -1060,6 +1062,8 @@ bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
 
   return xpc::Base64Encode(cx, args[0], args.rval());
 }
+
+monkeycage::LazySandboxCallback<JSNative> BtoaCb(Btoa);
 
 bool IsXrayWrapper(JSObject* obj) { return WrapperFactory::IsXrayWrapper(obj); }
 

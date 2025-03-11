@@ -96,6 +96,7 @@
 #include <string.h>
 
 #include "xpcpublic.h"
+#include "monkeycage/Sandbox.h"
 #include "js/HashTable.h"
 #include "js/GCHashTable.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
@@ -334,6 +335,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
   }
 
   static bool InterruptCallback(JSContext* cx);
+  static inline monkeycage::LazySandboxCallback<JSInterruptCallback> InterruptCallbackCb = monkeycage::LazySandboxCallback(XPCJSContext::InterruptCallback);
 
   // Mapping of often used strings to jsid atoms that live 'forever'.
   //
@@ -519,12 +521,18 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   void OnLargeAllocationFailure();
   static void GCSliceCallback(JSContext* cx, JS::GCProgress progress,
                               const JS::GCDescription& desc);
+  static inline monkeycage::LazySandboxCallback<JS::GCSliceCallback> GCSliceCallbackCb = monkeycage::LazySandboxCallback(GCSliceCallback);
   static void DoCycleCollectionCallback(JSContext* cx);
+  static inline monkeycage::LazySandboxCallback<JS::DoCycleCollectionCallback> DoCycleCollectionCallbackCb = monkeycage::LazySandboxCallback(DoCycleCollectionCallback);
   static void FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
                                void* data);
+  static inline monkeycage::LazySandboxCallback<JSFinalizeCallback> FinalizeCallbackCb = monkeycage::LazySandboxCallback(FinalizeCallback);
+  
   static void WeakPointerZonesCallback(JSTracer* trc, void* data);
+  static inline monkeycage::LazySandboxCallback<JSWeakPointerZonesCallback> WeakPointerZonesCallbackCb = monkeycage::LazySandboxCallback(WeakPointerZonesCallback);
   static void WeakPointerCompartmentCallback(JSTracer* trc,
                                              JS::Compartment* comp, void* data);
+  static inline monkeycage::LazySandboxCallback<JSWeakPointerCompartmentCallback> WeakPointerCompartmentCallbackCb = monkeycage::LazySandboxCallback(WeakPointerCompartmentCallback);
 
   inline void AddSubjectToFinalizationWJS(nsXPCWrappedJS* wrappedJS);
 
@@ -608,7 +616,9 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   mozilla::LinkedList<nsXPCWrappedJS> mSubjectToFinalizationWJS;
   nsTArray<xpcGCCallback> extraGCCallbacks;
   JS::GCSliceCallback mPrevGCSliceCallback;
+  monkeycage::SandboxCallback<JS::GCSliceCallback> mPrevGCSliceCallbackCb{nullptr};
   JS::DoCycleCollectionCallback mPrevDoCycleCollectionCallback;
+  monkeycage::SandboxCallback<JS::DoCycleCollectionCallback> mPrevDoCycleCollectionCallbackCb{nullptr};
   mozilla::WeakPtr<SandboxPrivate> mUnprivilegedJunkScope;
   JS::sandbox::PersistentRootedObject mLoaderGlobal;
   RefPtr<AsyncFreeSnowWhite> mAsyncSnowWhiteFreer;
@@ -770,8 +780,10 @@ extern const JSClass* XPC_WN_Tearoff_JSClass();
 extern const JSClass* XPC_WN_NoHelper_Proto_JSClass();
 
 extern bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> XPC_WN_CallMethodCb;
 
 extern bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> XPC_WN_GetterSetterCb;
 
 /***************************************************************************/
 // XPCWrappedNativeScope is one-to-one with a JS compartment.
@@ -2168,8 +2180,10 @@ namespace xpc {
 
 // JSNatives to expose atob and btoa in various non-DOM XPConnect scopes.
 bool Atob(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> AtobCb;
 
 bool Btoa(JSContext* cx, unsigned argc, JS::Value* vp);
+extern monkeycage::LazySandboxCallback<JSNative> BtoaCb;
 
 // Helper function that creates a JSFunction that wraps a native function that
 // forwards the call to the original 'callable'.

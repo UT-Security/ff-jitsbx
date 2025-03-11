@@ -29,7 +29,7 @@
 #include "nsNetCID.h"
 #include "js/RealmIterators.h"
 #include "js/Wrapper.h"
-#include "js/sandbox/sobox.h"
+#include "monkeycage/Sandbox.h"
 
 #include "mozilla/dom/BlobURLProtocolHandler.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -340,11 +340,12 @@ ContentPrincipal::GetDomain(nsIURI** aDomain) {
 
   // Set the changed-document-domain flag on compartments containing realms
   // using this principal.
-static void SetDomainCb(JSContext*, void*, JS::Realm* aRealm,
+static void SetDomainCb_(JSContext*, void*, JS::Realm* aRealm,
                         const JS::AutoRequireNoGC& nogc) {
   JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm);
   xpc::SetCompartmentChangedDocumentDomain(comp);
 }
+
 
 NS_IMETHODIMP
 ContentPrincipal::SetDomain(nsIURI* aDomain) {
@@ -360,9 +361,11 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
   JSPrincipals* principals =
       nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
 
+  static monkeycage::LazySandboxCallback<JS::IterateRealmCallback>
+      SetDomainCb(SetDomainCb_);
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  JS::IterateRealmsWithPrincipals(jsapi.cx(), &principals->base_, nullptr, (JS::IterateRealmCallback)sbx_register_cb((void*)SetDomainCb, 0));
+  JS::IterateRealmsWithPrincipals(jsapi.cx(), &principals->base_, nullptr, SetDomainCb.get());
 
   return NS_OK;
 }

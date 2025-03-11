@@ -626,14 +626,24 @@ class CGDOMJSClass(CGThing):
         return ""
 
     def define(self):
+        hookCallbacks = []
+        
         callHook = (
-            "(JSNative)sbx_register_cb((void*)%s, 0)" % LEGACYCALLER_HOOK_NAME
+            "%sCb()" % LEGACYCALLER_HOOK_NAME
             if self.descriptor.operations["LegacyCaller"]
             else "nullptr"
         )
+
+        if callHook != "nullptr":
+            hookCallbacks.append(CGMonkeycageStaticCallback(LEGACYCALLER_HOOK_NAME, "JSNative"))
+        
         objectMovedHook = (
-            "(JSObjectMovedOp)sbx_register_cb((void*)%s, 0)" % OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
+            "%sCb()" % OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
         )
+
+        if objectMovedHook != "nullptr":
+            hookCallbacks.append(CGMonkeycageStaticCallback(OBJECT_MOVED_HOOK_NAME, "JSObjectMovedOp"))
+            
         slotCount = InstanceReservedSlots(self.descriptor)
         classFlags = "JSCLASS_IS_DOMJSCLASS | JSCLASS_FOREGROUND_FINALIZE | "
         if self.descriptor.isGlobal():
@@ -655,19 +665,27 @@ class CGDOMJSClass(CGThing):
             classFlags += " | JSCLASS_SKIP_NURSERY_FINALIZE"
 
         if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
-            resolveHook = "(JSResolveOp)sbx_register_cb((void*)%s, 0)" % RESOLVE_HOOK_NAME
-            mayResolveHook = "(JSMayResolveOp)sbx_register_cb((void*)%s, 0)" % MAY_RESOLVE_HOOK_NAME
-            newEnumerateHook = "(JSNewEnumerateOp)sbx_register_cb((void*)%s, 0)" % NEW_ENUMERATE_HOOK_NAME
+            hookCallbacks.append(CGMonkeycageStaticCallback(RESOLVE_HOOK_NAME, "JSResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticCallback(MAY_RESOLVE_HOOK_NAME, "JSMayResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticCallback(NEW_ENUMERATE_HOOK_NAME, "JSNewEnumerateOp"))
+            
+            resolveHook = "%sCb()" % RESOLVE_HOOK_NAME
+            mayResolveHook = "%sCb()" % MAY_RESOLVE_HOOK_NAME
+            newEnumerateHook = "%sCb()" % NEW_ENUMERATE_HOOK_NAME
         elif self.descriptor.isGlobal():
-            resolveHook = "(JSResolveOp)sbx_addr((void*)mozilla::dom::ResolveGlobal)"
-            mayResolveHook = "(JSMayResolveOp)sbx_addr((void*)mozilla::dom::MayResolveGlobal)"
-            newEnumerateHook = "(JSNewEnumerateOp)sbx_addr((void*)mozilla::dom::EnumerateGlobal)"
+            resolveHook = "mozilla::dom::ResolveGlobalCb()"
+            mayResolveHook = "mozilla::dom::MayResolveGlobalCb()"
+            newEnumerateHook = "mozilla::dom::EnumerateGlobalCb()"
         else:
             resolveHook = "nullptr"
             mayResolveHook = "nullptr"
             newEnumerateHook = "nullptr"
 
-        return fill(
+        if wantsAddProperty(self.descriptor):
+            hookCallbacks.append(CGMonkeycageStaticCallback(ADDPROPERTY_HOOK_NAME, "JSAddPropertyOp"))
+        hookCallbacks.append(CGMonkeycageStaticCallback(FINALIZE_HOOK_NAME, "JSFinalizeOp"))
+
+        return CGList(hookCallbacks).define() + fill(
             """
             const DOMJSClass* sClass() {
             static const JSClassOps sClassOps = {
@@ -707,13 +725,13 @@ class CGDOMJSClass(CGThing):
             """,
             name=self.descriptor.interface.getClassName(),
             flags=classFlags,
-            addProperty="(JSAddPropertyOp)sbx_register_cb((void*)%s, 0)" % ADDPROPERTY_HOOK_NAME
+            addProperty="%sCb()" % ADDPROPERTY_HOOK_NAME
             if wantsAddProperty(self.descriptor)
             else "nullptr",
             newEnumerate=newEnumerateHook,
             resolve=resolveHook,
             mayResolve=mayResolveHook,
-            finalize="(JSFinalizeOp)sbx_register_cb((void*)%s, 0)" % FINALIZE_HOOK_NAME,
+            finalize="%sCb()" % FINALIZE_HOOK_NAME,
             call=callHook,
             trace=traceHook,
             objectMoved=objectMovedHook,
@@ -966,7 +984,8 @@ class CGInterfaceObjectJSClass(CGThing):
             ret = ""
             classOpsPtr = "JS_NULL_CLASS_OPS"
         else:
-            ret = fill(
+            constructorCb = CGMonkeycageStaticCallback(ctorname, "JSNative").define()
+            ret = constructorCb + "\n" + fill(
                 """
                 static const JSClassOps* sInterfaceObjectClassOps() {
                 static const JSClassOps sInterfaceObjectClassOps__ = {
@@ -986,7 +1005,7 @@ class CGInterfaceObjectJSClass(CGThing):
                 }
 
                 """,
-                ctorname="(JSNative)sbx_register_cb((void*)%s, 0)" % ctorname,
+                ctorname="%sCb()" % ctorname,
             )
             classOpsPtr = "sInterfaceObjectClassOps()"
 
@@ -1975,6 +1994,32 @@ class CGAbstractMethod(CGThing):
     def error_reporting_label(self):
         return None  # Override me!
 
+class CGMonkeycageStaticCallback(CGThing):
+    """
+    Class to implement a function that manages a local static
+    sandbox callback registered function.
+    """
+
+    def __init__(
+        self,
+        name,
+        type,
+    ):
+        CGThing.__init__(self)
+        self.name = name
+        self.type = type
+    
+    def define(self):
+        return fill(
+            """
+            static ${returnType} ${functionName}Cb() {
+                static ${returnType} cb = monkeycage::Sandbox::RegisterCallback(${functionName}).get();
+                return cb;
+            }
+            """,
+            returnType=self.type,
+            functionName=self.name,
+        )
 
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
@@ -3003,29 +3048,30 @@ class MethodDefiner(PropertyDefiner):
                 )
                 if m.get("allowCrossOriginThis", False):
                     accessor = (
-                        "(GenericMethod<CrossOriginThisPolicy, %s>)" % exceptionPolicy
+                        "(GenericMethodCb<CrossOriginThisPolicy, %s>())" % exceptionPolicy
                     )
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
                     accessor = (
-                        "(GenericMethod<MaybeCrossOriginObjectThisPolicy, %s>)"
+                        "(GenericMethodCb<MaybeCrossOriginObjectThisPolicy, %s>())"
                         % exceptionPolicy
                     )
                 elif descriptor.interface.isOnGlobalProtoChain():
                     accessor = (
-                        "(GenericMethod<MaybeGlobalThisPolicy, %s>)" % exceptionPolicy
+                        "(GenericMethodCb<MaybeGlobalThisPolicy, %s>())" % exceptionPolicy
                     )
                 else:
-                    accessor = "(GenericMethod<NormalThisPolicy, %s>)" % exceptionPolicy
+                    accessor = "(GenericMethodCb<NormalThisPolicy, %s>())" % exceptionPolicy
             else:
                 if m.get("returnsPromise", False):
                     jitinfo = "%s_methodinfo()" % accessor
-                    accessor = "StaticMethodPromiseWrapper"
+                    accessor = "StaticMethodPromiseWrapperCb.get()"
                 else:
                     jitinfo = "nullptr"
+                    accessor = ("monkeycage::Sandbox::RegisterCallback((JSNative)%s).get()" % accessor) if accessor != "nullptr" else accessor
 
         return (
             m["name"],
-            ("(JSNative)sbx_register_cb((void*)(JSNative)%s, 0)" % accessor) if accessor != "nullptr" else accessor,
+            accessor,
             jitinfo,
             m["length"],
             flags(m, unforgeable),
@@ -3117,7 +3163,7 @@ class AttrDefiner(PropertyDefiner):
                         "static Promise-returning "
                         "attribute %s.%s" % (descriptor.name, attr.identifier.name)
                     )
-                accessor = "(JSNative)sbx_register_cb((void*)get_%s, 0)" % IDLToCIdentifier(attr.identifier.name)
+                accessor = "monkeycage::Sandbox::RegisterCallback(get_%s).get()" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.type.isPromise():
@@ -3134,28 +3180,28 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeCrossOriginObjectLenientThisPolicy, %s>, 0)"
+                            "GenericGetterCb<MaybeCrossOriginObjectLenientThisPolicy, %s>()"
                             % exceptionPolicy
                         )
                     else:
                         accessor = (
-                            "(JSNative)sbx_register_cb((void*)GenericGetter<LenientThisPolicy, %s>, 0)" % exceptionPolicy
+                            "GenericGetterCb<LenientThisPolicy, %s>()" % exceptionPolicy
                         )
                 elif attr.getExtendedAttribute("CrossOriginReadable"):
                     accessor = (
-                        "(JSNative)sbx_register_cb((void*)GenericGetter<CrossOriginThisPolicy, %s>, 0)" % exceptionPolicy
+                        "GenericGetterCb<CrossOriginThisPolicy, %s>()" % exceptionPolicy
                     )
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
                     accessor = (
-                        "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeCrossOriginObjectThisPolicy, %s>, 0)"
+                        "GenericGetterCb<MaybeCrossOriginObjectThisPolicy, %s>()"
                         % exceptionPolicy
                     )
                 elif descriptor.interface.isOnGlobalProtoChain():
                     accessor = (
-                        "(JSNative)sbx_register_cb((void*)GenericGetter<MaybeGlobalThisPolicy, %s>, 0)" % exceptionPolicy
+                        "GenericGetterCb<MaybeGlobalThisPolicy, %s>()" % exceptionPolicy
                     )
                 else:
-                    accessor = "(JSNative)sbx_register_cb((void*)GenericGetter<NormalThisPolicy, %s>, 0)" % exceptionPolicy
+                    accessor = "GenericGetterCb<NormalThisPolicy, %s>()" % exceptionPolicy
                 jitinfo = "%s_getterinfo()" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -3170,7 +3216,7 @@ class AttrDefiner(PropertyDefiner):
             if crossOriginOnly and not attr.getExtendedAttribute("CrossOriginWritable"):
                 return "nullptr, nullptr"
             if static:
-                accessor = "(JSNative)sbx_register_cb((void*)set_%s, 0)"  % IDLToCIdentifier(attr.identifier.name)
+                accessor = "monkeycage::Sandbox::RegisterCallback(set_%s).get()"  % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3182,18 +3228,18 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>, 0)"
+                            "GenericSetterCb<MaybeCrossOriginObjectLenientThisPolicy>()"
                         )
                     else:
-                        accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<LenientThisPolicy>, 0)"
+                        accessor = "GenericSetterCb<LenientThisPolicy>()"
                 elif attr.getExtendedAttribute("CrossOriginWritable"):
-                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<CrossOriginThisPolicy>, 0)"
+                    accessor = "GenericSetterCb<CrossOriginThisPolicy>()"
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
-                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeCrossOriginObjectThisPolicy>, 0)"
+                    accessor = "GenericSetterCb<MaybeCrossOriginObjectThisPolicy>()"
                 elif descriptor.interface.isOnGlobalProtoChain():
-                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<MaybeGlobalThisPolicy>, 0)"
+                    accessor = "GenericSetterCb<MaybeGlobalThisPolicy>()"
                 else:
-                    accessor = "(JSNative)sbx_register_cb((void*)GenericSetter<NormalThisPolicy>, 0)"
+                    accessor = "GenericSetterCb<NormalThisPolicy>()"
                 jitinfo = "%s_setterinfo()" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -11679,7 +11725,7 @@ class CGMemberJITInfo(CGThing):
             name = IDLToCIdentifier(self.member.identifier.name)
             if self.member.type.isPromise():
                 name = CGGetterPromiseWrapper.makeName(name)
-            getter = "(JSJitGetterOp)sbx_register_cb((void*)get_%s, 0)" % name
+            getter = "monkeycage::Sandbox::RegisterCallback(get_%s).get()" % name
             extendedAttrs = self.descriptor.getExtendedAttributes(
                 self.member, getter=True
             )
@@ -11746,7 +11792,7 @@ class CGMemberJITInfo(CGThing):
                 )
                 # Actually a JSJitSetterOp, but JSJitGetterOp is first in the
                 # union.
-                setter = "(JSJitGetterOp)sbx_register_cb((void*)set_%s, 0)" % IDLToCIdentifier(
+                setter = "(JSJitGetterOp)monkeycage::Sandbox::RegisterCallback(set_%s).get()" % IDLToCIdentifier(
                     self.member.identifier.name
                 )
                 # Setters are always fallible, since they have to do a typed unwrap.
@@ -11773,7 +11819,7 @@ class CGMemberJITInfo(CGThing):
             if self.member.returnsPromise():
                 name = CGMethodPromiseWrapper.makeName(name)
             # Actually a JSJitMethodOp, but JSJitGetterOp is first in the union.
-            method = "(JSJitGetterOp)sbx_register_cb((void*)%s, 0)" % name
+            method = "(JSJitGetterOp)monkeycage::Sandbox::RegisterCallback(%s).get()" % name
 
             # Methods are infallible if they are infallible, have no arguments
             # to unwrap, and have a return type that's infallible to wrap up for
@@ -21856,7 +21902,8 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 dedent(
                     """
             // Create a wrapper function.
-            JSFunction* func = js::NewFunctionWithReserved(cx, (JSNative)sbx_register_cb((void*)ForEachHandler, 0), 3, 0, nullptr);
+            static monkeycage::LazySandboxCallback<JSNative> ForEachHandlerCb(ForEachHandler);
+            JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandlerCb.get(), 3, 0, nullptr);
             if (!func) {
               return false;
             }

@@ -21,38 +21,69 @@
 #include "nscore.h"
 #include "nsString.h"
 #include "nsStringBuffer.h"
+#include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "xpcpublic.h"
 
 using namespace JS;
 
-const XPCStringConvert::LiteralExternalString
-    XPCStringConvert::sLiteralExternalString;
+const JSExternalStringCallbacks* XPCStringConvert::sLiteralExternalString() {
+  static const JSExternalStringCallbacks cbs = {
+      .finalize = monkeycage::Sandbox::RegisterCallback(
+                      XPCStringConvert::LiteralExternalStringFinalize)
+                      .get(),
+      .sizeOfBuffer = monkeycage::Sandbox::RegisterCallback(
+                          XPCStringConvert::LiteralExternalStringSizeOfBuffer)
+                          .get()};
 
-const XPCStringConvert::DOMStringExternalString
-    XPCStringConvert::sDOMStringExternalString;
+  return &cbs;
+}
 
-const XPCStringConvert::DynamicAtomExternalString
-    XPCStringConvert::sDynamicAtomExternalString;
+const JSExternalStringCallbacks* XPCStringConvert::sDOMStringExternalString() {
+  static const JSExternalStringCallbacks cbs = {
+      .finalize = monkeycage::Sandbox::RegisterCallback(
+                      XPCStringConvert::DOMExternalStringFinalize)
+                      .get(),
+      .sizeOfBuffer = monkeycage::Sandbox::RegisterCallback(
+                          XPCStringConvert::DOMExternalStringSizeOfBuffer)
+                          .get(),
+  };
 
-void XPCStringConvert::LiteralExternalString::finalize(char16_t* aChars) const {
+  return &cbs;
+}
+
+const JSExternalStringCallbacks*
+XPCStringConvert::sDynamicAtomExternalString() {
+  static const JSExternalStringCallbacks cbs = {
+      .finalize = monkeycage::Sandbox::RegisterCallback(
+                      XPCStringConvert::DynamicAtomExternalStringFinalize)
+                      .get(),
+      .sizeOfBuffer =
+          monkeycage::Sandbox::RegisterCallback(
+              XPCStringConvert::DynamicAtomExternalStringSizeOfBuffer)
+              .get(),
+  };
+  return &cbs;
+}
+
+void XPCStringConvert::LiteralExternalStringFinalize(char16_t* aChars) {
   // Nothing to do.
 }
 
-size_t XPCStringConvert::LiteralExternalString::sizeOfBuffer(
-    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t XPCStringConvert::LiteralExternalStringSizeOfBuffer(
+    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) {
   // This string's buffer is not heap-allocated, so its malloc size is 0.
   return 0;
 }
 
-void XPCStringConvert::DOMStringExternalString::finalize(
-    char16_t* aChars) const {
+void XPCStringConvert::DOMExternalStringFinalize(
+    char16_t* aChars) {
   nsStringBuffer* buf = nsStringBuffer::FromData(aChars);
   buf->Release();
 }
 
-size_t XPCStringConvert::DOMStringExternalString::sizeOfBuffer(
-    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t XPCStringConvert::DOMExternalStringSizeOfBuffer(
+    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) {
   // We promised the JS engine we would not GC.  Enforce that:
   JS::AutoCheckCannotGC autoCannotGC;
 
@@ -64,8 +95,8 @@ size_t XPCStringConvert::DOMStringExternalString::sizeOfBuffer(
   return buf->SizeOfIncludingThisIfUnshared(aMallocSizeOf);
 }
 
-void XPCStringConvert::DynamicAtomExternalString::finalize(
-    char16_t* aChars) const {
+void XPCStringConvert::DynamicAtomExternalStringFinalize(
+    char16_t* aChars) {
   nsDynamicAtom* atom = nsDynamicAtom::FromChars(aChars);
   // nsDynamicAtom::Release is always-inline and defined in a translation unit
   // we can't get to here.  So we need to go through nsAtom::Release to call
@@ -73,8 +104,8 @@ void XPCStringConvert::DynamicAtomExternalString::finalize(
   static_cast<nsAtom*>(atom)->Release();
 }
 
-size_t XPCStringConvert::DynamicAtomExternalString::sizeOfBuffer(
-    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) const {
+size_t XPCStringConvert::DynamicAtomExternalStringSizeOfBuffer(
+    const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) {
   // We return 0 here because NS_AddSizeOfAtoms reports all memory associated
   // with atoms in the atom table.
   return 0;

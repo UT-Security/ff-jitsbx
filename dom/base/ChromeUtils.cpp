@@ -7,6 +7,7 @@
 #include "ChromeUtils.h"
 
 #include "JSOracleParent.h"
+#include "monkeycage/Sandbox.h"
 #include "js/CallAndConstruct.h"  // JS::Call
 #include "js/CharacterEncoding.h"
 #include "js/Object.h"              // JS::GetClass
@@ -15,9 +16,6 @@
 #include "js/SavedFrameAPI.h"
 #include "js/Value.h"  // JS::Value, JS::StringValue
 #include "jsfriendapi.h"
-#ifdef JS_SANDBOX
-#include "js/sandbox/sobox.h"
-#endif
 #include "WrapperFactory.h"
 
 #include "mozilla/Base64.h"
@@ -718,6 +716,8 @@ static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
+static monkeycage::LazySandboxCallback<JSNative> JSLazyGetterCallback(JSLazyGetter);
+
 static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                              JS::Handle<JS::Value> aName,
                              JS::Handle<JSObject*> aLambda) {
@@ -728,7 +728,7 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSLazyGetter, 0), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSLazyGetterCallback.get(), 0, 0, id)));
   if (!getter) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -828,9 +828,13 @@ static bool JSModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::JSM);
 }
 
+static monkeycage::LazySandboxCallback<JSNative> JSModuleGetterCallback(JSModuleGetter);
+
 static bool ESModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::ESM);
 }
+
+static monkeycage::LazySandboxCallback<JSNative> ESModuleGetterCallback(ESModuleGetter);
 
 static bool ModuleSetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
@@ -849,9 +853,13 @@ static bool JSModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
 
+static monkeycage::LazySandboxCallback<JSNative> JSModuleSetterCallback(JSModuleSetter);
+
 static bool ESModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
+
+static monkeycage::LazySandboxCallback<JSNative> ESModuleSetterCallback(ESModuleSetter);
 
 static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                  const nsAString& aId,
@@ -868,11 +876,11 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSModuleGetter, 0), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleGetterCallback.get(), 0, 0, id)));
 
   JS::sandbox::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, (JSNative)sbx_register_cb((void*)JSModuleSetter, 0), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleSetterCallback.get(), 0, 0, id)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -895,11 +903,11 @@ static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, (JSNative)sbx_register_cb((void*)ESModuleGetter, 0), 0, 0, aId)));
+               aCx, ESModuleGetterCallback.get(), 0, 0, aId)));
 
   JS::sandbox::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, (JSNative)sbx_register_cb((void*)ESModuleSetter, 0), 0, 0, aId)));
+               aCx, ESModuleSetterCallback.get(), 0, 0, aId)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
