@@ -33,28 +33,6 @@ const HandleValue FalseHandleValue =
 const Handle<mozilla::Maybe<Value>> NothingHandleValue =
     Handle<mozilla::Maybe<Value>>::fromMarkedLocation(&JSVAL_NOTHING);
 
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const HandleValue GetNullHandleValue() {
-    return NullHandleValue;
-}
-
-JS_PUBLIC_API const HandleValue GetUndefinedHandleValue() {
-    return UndefinedHandleValue;
-}
-
-JS_PUBLIC_API const HandleValue GetTrueHandleValue() {
-    return TrueHandleValue;
-}
-
-JS_PUBLIC_API const HandleValue GetFalseHandleValue() {
-    return FalseHandleValue;
-}
-
-JS_PUBLIC_API const Handle<mozilla::Maybe<Value>> GetNothingHandleValue() {
-    return NothingHandleValue;
-}
-#endif
-
 }  // namespace JS
 
 void js::ReportBadValueTypeAndCrash(const JS::Value& value) {

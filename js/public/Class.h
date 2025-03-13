@@ -37,7 +37,7 @@ class PropertyResult;
 extern JS_PUBLIC_DATA const JSClass* const FunctionClassPtr;
 extern JS_PUBLIC_DATA const JSClass* const FunctionExtendedClassPtr;
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API const JSClass* GetFunctionClassPtr();
 extern JS_PUBLIC_API const JSClass* GetFunctionExtendedClassPtr();
 #endif

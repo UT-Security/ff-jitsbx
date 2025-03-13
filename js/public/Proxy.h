@@ -380,7 +380,7 @@ class JS_PUBLIC_API BaseProxyHandler {
 
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API const JSClass* ProxyClass_p();
 #endif
 
@@ -1169,7 +1169,7 @@ extern JS_PUBLIC_DATA const JSClassOps ProxyClassOps;
 extern JS_PUBLIC_DATA const js::ClassExtension ProxyClassExtension;
 extern JS_PUBLIC_DATA const js::ObjectOps ProxyObjectOps;
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API const JSClassOps* ProxyClassOps_p();
 extern JS_PUBLIC_API const js::ClassExtension* ProxyClassExtension_p();
 extern JS_PUBLIC_API const js::ObjectOps* ProxyObjectOps_p();

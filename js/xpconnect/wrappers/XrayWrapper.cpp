@@ -1602,8 +1602,6 @@ static bool wrappedJSObject_getter(JSContext* cx, unsigned argc, Value* vp) {
   return WrapperFactory::WaiveXrayAndWrap(cx, args.rval());
 }
 
-static monkeycage::LazySandboxCallback<JSNative> wrappedJSObject_getterCb(wrappedJSObject_getter);
-
 bool XrayTraits::resolveOwnProperty(
     JSContext* cx, HandleObject wrapper, HandleObject target,
     HandleObject holder, HandleId id,
@@ -1668,6 +1666,9 @@ bool XrayTraits::resolveOwnProperty(
     if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
       return false;
     }
+
+    static monkeycage::SandboxCallback<JSNative> wrappedJSObject_getterCb =
+        monkeycage::Sandbox::RegisterCallback(wrappedJSObject_getter);
     if (!found &&
         !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getterCb.get(),
                                nullptr, JSPROP_ENUMERATE)) {

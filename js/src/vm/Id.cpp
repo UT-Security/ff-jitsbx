@@ -19,12 +19,6 @@ static const JS::PropertyKey voidKeyValue = JS::PropertyKey::Void();
 const JS::HandleId JS::VoidHandlePropertyKey =
     JS::HandleId::fromMarkedLocation(&voidKeyValue);
   
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const JS::HandleId JS::GetVoidHandlePropertyKey() {
-  return JS::VoidHandlePropertyKey;
-}
-#endif
-
 bool JS::PropertyKey::isPrivateName() const {
   return isSymbol() && toSymbol()->isPrivateName();
 }

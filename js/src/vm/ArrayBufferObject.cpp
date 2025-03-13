@@ -2113,14 +2113,6 @@ uint8_t* JS::ArrayBuffer::getLengthAndData(size_t* length, bool* isSharedMemory,
   return buffer->as<ArrayBufferObject>().dataPointer();
 };
 
-const JSClass* JS::ArrayBuffer::UnsharedClass_p() {
-  return JS::ArrayBuffer::UnsharedClass;
-}
-
-const JSClass* JS::ArrayBuffer::SharedClass_p() {
-  return JS::ArrayBuffer::SharedClass;
-}
-
 JS::ArrayBuffer JS::ArrayBuffer::unwrap(JSObject* maybeWrapped) {
   if (!maybeWrapped) {
     return JS::ArrayBuffer(nullptr);

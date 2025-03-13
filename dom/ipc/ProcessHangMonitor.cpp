@@ -1115,7 +1115,7 @@ HangMonitoredProcess::GetChildID(uint64_t* aChildID) {
   return NS_OK;
 }
 
-static bool InterruptCallback_(JSContext* cx) {
+static bool InterruptCallback(JSContext* cx) {
   AssertIsOnMainThread();
   if (HangMonitorChild* child = HangMonitorChild::Get()) {
     return child->InterruptCallback();
@@ -1226,8 +1226,10 @@ void mozilla::CreateHangMonitorChild(
   ReleaseAssertIsOnMainThread();
 
   JSContext* cx = danger::GetJSContext();
-  static monkeycage::LazySandboxCallback<JSInterruptCallback> InterruptCallback(InterruptCallback_);
-  JS_AddInterruptCallback(cx, InterruptCallback.get());
+
+  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCb =
+      monkeycage::Sandbox::RegisterCallback(InterruptCallback);
+  JS_AddInterruptCallback(cx, InterruptCb.get());
 
   ProcessHangMonitor* monitor = ProcessHangMonitor::GetOrCreate();
   HangMonitorChild::CreateAndBind(monitor, std::move(aEndpoint));

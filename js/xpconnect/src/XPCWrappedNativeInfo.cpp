@@ -78,9 +78,13 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
       argc--;
     }
 
+    static monkeycage::SandboxCallback<JSNative> XPC_WN_CallMethodCb =
+        monkeycage::Sandbox::RegisterCallback(XPC_WN_CallMethod);
     callback = XPC_WN_CallMethodCb.get();
   } else {
     argc = 0;
+    static monkeycage::SandboxCallback<JSNative> XPC_WN_GetterSetterCb =
+        monkeycage::Sandbox::RegisterCallback(XPC_WN_GetterSetter);
     callback = XPC_WN_GetterSetterCb.get();
   }
 

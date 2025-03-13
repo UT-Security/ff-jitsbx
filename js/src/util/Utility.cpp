@@ -111,20 +111,6 @@ JS_PUBLIC_DATA arena_id_t js::MallocArena;
 JS_PUBLIC_DATA arena_id_t js::ArrayBufferContentsArena;
 JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
 
-#ifdef JS_SANDBOX
-JS_PUBLIC_API arena_id_t js::GetMallocArena() {
-  return js::MallocArena;
-}
-
-JS_PUBLIC_API arena_id_t js::GetArrayBufferContentsArena() {
-  return js::ArrayBufferContentsArena;
-}
-
-JS_PUBLIC_API arena_id_t js::GetStringBufferArena() {
-  return js::StringBufferArena;
-}
-#endif
-
 void js::InitMallocAllocator() {
   arena_params_t mallocArenaParams;
   mallocArenaParams.mMaxDirtyIncreaseOverride = 5;

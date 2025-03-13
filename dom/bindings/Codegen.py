@@ -3064,7 +3064,7 @@ class MethodDefiner(PropertyDefiner):
             else:
                 if m.get("returnsPromise", False):
                     jitinfo = "%s_methodinfo()" % accessor
-                    accessor = "StaticMethodPromiseWrapperCb.get()"
+                    accessor = "StaticMethodPromiseWrapperCb().get()"
                 else:
                     jitinfo = "nullptr"
                     accessor = ("monkeycage::Sandbox::RegisterCallback((JSNative)%s).get()" % accessor) if accessor != "nullptr" else accessor
@@ -21902,7 +21902,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 dedent(
                     """
             // Create a wrapper function.
-            static monkeycage::LazySandboxCallback<JSNative> ForEachHandlerCb(ForEachHandler);
+            static monkeycage::SandboxCallback<JSNative> ForEachHandlerCb = monkeycage::Sandbox::RegisterCallback(ForEachHandler);
             JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandlerCb.get(), 3, 0, nullptr);
             if (!func) {
               return false;

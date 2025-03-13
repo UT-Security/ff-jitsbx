@@ -973,21 +973,9 @@ const JSClassOps js::ProxyClassOps = {
     ProxyObject::trace,  // trace
 };
 
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const JSClassOps* js::ProxyClassOps_p() {
-  return &js::ProxyClassOps;
-}
-#endif
-
 const ClassExtension js::ProxyClassExtension = {
     proxy_ObjectMoved,  // objectMovedOp
 };
-
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const ClassExtension* js::ProxyClassExtension_p() {
-  return &js::ProxyClassExtension;
-}
-#endif
 
 #ifdef JS_SANDBOX
 JS_PUBLIC_API bool js::IsScriptedProxy(const JSObject* obj) {
@@ -1007,12 +995,6 @@ const ObjectOps js::ProxyObjectOps = {
     Proxy::fun_toString,              // funToString
 };
 
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const ObjectOps* js::ProxyObjectOps_p() {
-  return &js::ProxyObjectOps;
-}
-#endif
-
 static const JSFunctionSpec proxy_static_methods[] = {
     JS_FN("revocable", proxy_revocable, 2, 0), JS_FS_END};
 
@@ -1024,12 +1006,6 @@ const JSClass js::ProxyClass = PROXY_CLASS_DEF_WITH_CLASS_SPEC(
     "Proxy",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Proxy) | JSCLASS_HAS_RESERVED_SLOTS(2),
     &ProxyClassSpec);
-
-#ifdef JS_SANDBOX
-JS_PUBLIC_API const JSClass* js::ProxyClass_p() {
-  return &js::ProxyClass;
-}
-#endif
 
 JS_PUBLIC_API JSObject* js::NewProxyObject(JSContext* cx,
                                            const BaseProxyHandler* handler,

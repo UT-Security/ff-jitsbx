@@ -716,8 +716,6 @@ static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JSNative> JSLazyGetterCallback(JSLazyGetter);
-
 static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                              JS::Handle<JS::Value> aName,
                              JS::Handle<JSObject*> aLambda) {
@@ -726,9 +724,11 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
     return false;
   }
 
+  static monkeycage::SandboxCallback<JSNative> JSLazyGetterCallback =
+      monkeycage::Sandbox::RegisterCallback(JSLazyGetter);
   JS::sandbox::Rooted<JSObject*> getter(
-      aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSLazyGetterCallback.get(), 0, 0, id)));
+      aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
+               aCx, JSLazyGetterCallback.get(), 0, 0, id)));
   if (!getter) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -828,13 +828,9 @@ static bool JSModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::JSM);
 }
 
-static monkeycage::LazySandboxCallback<JSNative> JSModuleGetterCallback(JSModuleGetter);
-
 static bool ESModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::ESM);
 }
-
-static monkeycage::LazySandboxCallback<JSNative> ESModuleGetterCallback(ESModuleGetter);
 
 static bool ModuleSetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
@@ -853,13 +849,9 @@ static bool JSModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
 
-static monkeycage::LazySandboxCallback<JSNative> JSModuleSetterCallback(JSModuleSetter);
-
 static bool ESModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
-
-static monkeycage::LazySandboxCallback<JSNative> ESModuleSetterCallback(ESModuleSetter);
 
 static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                  const nsAString& aId,
@@ -874,13 +866,17 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
   }
   idValue = js::IdToValue(id);
 
+  static monkeycage::SandboxCallback<JSNative> JSModuleGetterCallback =
+      monkeycage::Sandbox::RegisterCallback(JSModuleGetter);
   JS::sandbox::Rooted<JSObject*> getter(
-      aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleGetterCallback.get(), 0, 0, id)));
+      aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
+               aCx, JSModuleGetterCallback.get(), 0, 0, id)));
 
+  static monkeycage::SandboxCallback<JSNative> JSModuleSetterCallback =
+      monkeycage::Sandbox::RegisterCallback(JSModuleSetter);
   JS::sandbox::Rooted<JSObject*> setter(
-      aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleSetterCallback.get(), 0, 0, id)));
+      aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
+               aCx, JSModuleSetterCallback.get(), 0, 0, id)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -901,10 +897,14 @@ static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                  JS::Handle<JS::Value> aResourceURI) {
   JS::sandbox::Rooted<JS::Value> idVal(aCx, JS::StringValue(aId.toString()));
 
+  static monkeycage::SandboxCallback<JSNative> ESModuleGetterCallback =
+      monkeycage::Sandbox::RegisterCallback(ESModuleGetter);
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
                aCx, ESModuleGetterCallback.get(), 0, 0, aId)));
 
+  static monkeycage::SandboxCallback<JSNative> ESModuleSetterCallback =
+      monkeycage::Sandbox::RegisterCallback(ESModuleSetter);
   JS::sandbox::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
                aCx, ESModuleSetterCallback.get(), 0, 0, aId)));

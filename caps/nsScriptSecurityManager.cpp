@@ -1575,7 +1575,7 @@ void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
 
   MOZ_ASSERT(!JS_GetSecurityCallbacks(aCx));
   JS_SetSecurityCallbacks(aCx, &securityCallbacks);
-  JS_InitDestroyPrincipalsCallback(aCx, nsJSPrincipals::DestroyCallback.get());
+  JS_InitDestroyPrincipalsCallback(aCx, nsJSPrincipals::DestroyCallback().get());
 
   JS_SetTrustedPrincipals(aCx, &BasePrincipal::Cast(mSystemPrincipal)->base_);
 }

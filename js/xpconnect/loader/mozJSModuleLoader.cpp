@@ -226,8 +226,8 @@ static const JSFunctionSpec* gGlobalFun() {
   static const JSFunctionSpec _gGlobalFun[] = {
       JS_FN("dump", monkeycage::Sandbox::RegisterCallback(Dump).get(), 1, 0),
       JS_FN("debug", monkeycage::Sandbox::RegisterCallback(Debug).get(), 1, 0),
-      JS_FN("atob", monkeycage::Sandbox::RegisterCallback(Atob).get(), 1, 0),
-      JS_FN("btoa", monkeycage::Sandbox::RegisterCallback(Btoa).get(), 1, 0),
+      JS_FN("atob", AtobCb().get(), 1, 0),
+      JS_FN("btoa", BtoaCb().get(), 1, 0),
       JS_FS_END};
 
   return _gGlobalFun;

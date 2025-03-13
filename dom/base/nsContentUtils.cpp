@@ -10794,12 +10794,14 @@ static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JSONWriteCallback> JSONCreatorCallback(JSONCreator);
-
 /* static */
 bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                    nsAString& aOutStr, JSONBehavior aBehavior) {
   MOZ_ASSERT(aCx);
+  
+  static monkeycage::SandboxCallback<JSONWriteCallback> JSONCreatorCallback =
+      monkeycage::Sandbox::RegisterCallback(JSONCreator);
+  
   switch (aBehavior) {
     case UndefinedIsNullStringLiteral: {
       aOutStr.Truncate();

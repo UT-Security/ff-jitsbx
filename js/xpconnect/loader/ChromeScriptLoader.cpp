@@ -143,8 +143,10 @@ bool AsyncScriptCompiler::StartCompile(JSContext* aCx) {
   }
 
   if (JS::CanCompileOffThread(aCx, mOptions, mScriptLength)) {
+    static JS::OffThreadCompileCallback OffThreadScriptLoaderCallbackCb =
+        monkeycage::Sandbox::RegisterCallback(OffThreadScriptLoaderCallback).get();
     if (!JS::CompileToStencilOffThread(aCx, mOptions, srcBuf,
-                                       OffThreadScriptLoaderCallback,
+                                       OffThreadScriptLoaderCallbackCb,
                                        static_cast<void*>(this))) {
       return false;
     }

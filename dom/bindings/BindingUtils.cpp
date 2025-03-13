@@ -135,7 +135,10 @@ static const JSErrorFormatString* GetErrorMessage(void* aUserRef,
   return &ErrorFormatString[aErrorNumber];
 }
 
-static monkeycage::LazySandboxCallback<JSErrorCallback> GetErrorMessageCallback(GetErrorMessage);
+static inline monkeycage::SandboxCallback<JSErrorCallback> GetErrorMessageCallback() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(GetErrorMessage);
+  return cb;
+}
 
 uint16_t GetErrorArgCount(const ErrNum aErrorNumber) {
   return GetErrorMessage(nullptr, aErrorNumber)->argCount;
@@ -149,7 +152,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
   va_start(ap, aErrorNumber);
 
   if (!ErrorFormatHasContext[aErrorNumber]) {
-    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessageCallback.get(), nullptr, aErrorNumber, ap);
+    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessageCallback().get(), nullptr, aErrorNumber, ap);
     va_end(ap);
     return;
   }
@@ -175,7 +178,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
     }
   }
 
-  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessageCallback.get(), nullptr, aErrorNumber,
+  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessageCallback().get(), nullptr, aErrorNumber,
                                 args);
   va_end(ap);
 }
@@ -203,7 +206,7 @@ static bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
 
   const ErrNum errorNumber = MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
   MOZ_RELEASE_ASSERT(GetErrorArgCount(errorNumber) == 2);
-  JS_ReportErrorNumberUC(aCx, GetErrorMessageCallback.get(), nullptr,
+  JS_ReportErrorNumberUC(aCx, GetErrorMessageCallback().get(), nullptr,
                          static_cast<unsigned>(errorNumber),
                          static_cast<const char16_t*>(funcNameStr.get()),
                          static_cast<const char16_t*>(ifaceName.get()));
@@ -317,7 +320,7 @@ void TErrorResult<CleanupPolicy>::SetPendingExceptionWithMessage(
   }
   args[argCount] = nullptr;
 
-  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessageCallback.get(), nullptr,
+  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessageCallback().get(), nullptr,
                                 static_cast<unsigned>(message->mErrorNumber),
                                 argCount > 0 ? args : nullptr);
 
@@ -787,8 +790,8 @@ static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                                    const char* name,
                                    const JSNativeHolder* nativeHolder,
                                    unsigned ctorNargs) {
-  static monkeycage::LazySandboxCallback<JSNative> ConstructorCallback(
-      Constructor);
+  static monkeycage::SandboxCallback<JSNative> ConstructorCallback =
+      monkeycage::Sandbox::RegisterCallback(Constructor);
   JSFunction* fun = js::NewFunctionWithReserved(
       cx, ConstructorCallback.get(), ctorNargs, JSFUN_CONSTRUCTOR, name);
   if (!fun) {
@@ -869,7 +872,7 @@ static JSObject* CreateInterfaceObject(
       JS::sandbox::Rooted<jsid> hasInstanceId(
           cx, JS::GetWellKnownSymbolKey(cx, JS::SymbolCode::hasInstance));
       if (!JS_DefineFunctionById(
-              cx, constructor, hasInstanceId, InterfaceHasInstanceCallback.get(), 1,
+              cx, constructor, hasInstanceId, InterfaceHasInstanceCallback().get(), 1,
               // Flags match those of Function[Symbol.hasInstance]
               JSPROP_READONLY | JSPROP_PERMANENT)) {
         return nullptr;
@@ -877,7 +880,7 @@ static JSObject* CreateInterfaceObject(
     }
 
     if (isChrome && !JS_DefineFunction(cx, constructor, "isInstance",
-                                       InterfaceIsInstanceCallback.get(), 1,
+                                       InterfaceIsInstanceCallback().get(), 1,
                                        // Don't bother making it enumerable
                                        0)) {
       return nullptr;
@@ -1239,7 +1242,10 @@ bool HasReleasedWrapper(JS::Handle<JSObject*> obj) {
   return cache && !cache->PreservingWrapper();
 }
 
-monkeycage::LazySandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb(HasReleasedWrapper);
+monkeycage::SandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(HasReleasedWrapper);
+  return cb;
+}
 
 // Can only be called with a DOM JSClass.
 bool InstanceClassHasProtoAtDepth(const JSClass* clasp, uint32_t protoID,
@@ -1815,7 +1821,7 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstanceCallback.get(),
+        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstanceCallback().get(),
                                                       nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceIsInstanceWrapper, 1, id);
@@ -1838,7 +1844,7 @@ static bool ResolvePrototypeOrConstructor(
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
         JSNativeWrapper interfaceHasInstanceWrapper = {
-            InterfaceHasInstanceCallback.get(), nullptr};
+            InterfaceHasInstanceCallback().get(), nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceHasInstanceWrapper, 1, id);
         if (!funObj) {
@@ -2277,7 +2283,7 @@ bool DictionaryBase::ParseJSON(JSContext* aCx, const nsAString& aJSON,
 
 bool DictionaryBase::StringifyToJSON(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                      nsAString& aJSON) const {
-  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToStringCallback.get(), &aJSON);
+  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToStringCallback().get(), &aJSON);
 }
 
 /* static */
@@ -2597,7 +2603,10 @@ bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
   return true;
 }
 
-monkeycage::LazySandboxCallback<JSNative> InterfaceHasInstanceCallback(InterfaceHasInstance);
+monkeycage::SandboxCallback<JSNative> InterfaceHasInstanceCallback() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback<JSNative>(InterfaceHasInstance);
+  return cb;
+}
 
 bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
   return InterfaceCheckInstance(cx, argc, vp,
@@ -2607,7 +2616,10 @@ bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp) {
                                 });
 }
 
-monkeycage::LazySandboxCallback<JSNative> InterfaceIsInstanceCallback(InterfaceIsInstance);
+monkeycage::SandboxCallback<JSNative> InterfaceIsInstanceCallback() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(InterfaceIsInstance);
+  return cb;
+}
 
 bool ReportLenientThisUnwrappingFailure(JSContext* cx, JSObject* obj) {
   JS::sandbox::Rooted<JSObject*> rootedObj(cx, obj);
@@ -3477,7 +3489,10 @@ bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp) {
   return ConvertExceptionToPromise(cx, args.rval());
 }
 
-monkeycage::LazySandboxCallback<JSNative> StaticMethodPromiseWrapperCb(StaticMethodPromiseWrapper);
+monkeycage::SandboxCallback<JSNative> StaticMethodPromiseWrapperCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(StaticMethodPromiseWrapper);
+  return cb;
+}
 
 bool ConvertExceptionToPromise(JSContext* cx,
                                JS::MutableHandle<JS::Value> rval) {

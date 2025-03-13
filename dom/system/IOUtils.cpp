@@ -578,8 +578,6 @@ static bool AppendJsonAsUtf8(const char16_t* aData, uint32_t aLen, void* aStr) {
   return AppendUTF16toUTF8(Span<const char16_t>(aData, aLen), *str, fallible);
 }
 
-static monkeycage::LazySandboxCallback<JSONWriteCallback> AppendJsonAsUtf8Callback(AppendJsonAsUtf8);
-
 /* static */
 already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
                                              const nsAString& aPath,
@@ -608,6 +606,9 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         JS::sandbox::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
+        static monkeycage::SandboxCallback<JSONWriteCallback>
+            AppendJsonAsUtf8Callback =
+                monkeycage::Sandbox::RegisterCallback(AppendJsonAsUtf8);
         if (!JS_Stringify(cx, &rootedValue, nullptr, JS::GetNullHandleValue(),
                           AppendJsonAsUtf8Callback.get(), &utf8Str)) {
           JS::sandbox::Rooted<JS::Value> exn(cx, JS::UndefinedValue());

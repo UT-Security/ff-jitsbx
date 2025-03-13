@@ -7,7 +7,6 @@
 #include "nsString.h"
 #include "monkeycage/Sandbox.h"
 #include "jsapi.h"
-#include "js/sandbox/sobox.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions

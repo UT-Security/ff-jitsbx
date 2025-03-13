@@ -162,8 +162,7 @@ bool IsXrayWrapper(JSObject* obj);
 JSObject* XrayAwareCalleeGlobal(JSObject* fun);
 
 void TraceXPCGlobal(JSTracer* trc, JSObject* obj);
-
-extern monkeycage::LazySandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCallback;
+monkeycage::SandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCallback();
 
 /**
  * Creates a new global object using the given aCOMObj as the global

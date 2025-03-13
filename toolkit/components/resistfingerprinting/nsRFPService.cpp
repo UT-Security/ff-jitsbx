@@ -216,8 +216,12 @@ void nsRFPService::UpdateRFPPref() {
 
   bool resistFingerprinting = nsContentUtils::ShouldResistFingerprinting();
 
+  static monkeycage::SandboxCallback<double (*)(double, bool, JSContext*)>
+      ReduceTimePrecisionAsUSecsWrapperCb =
+          monkeycage::Sandbox::RegisterCallback(
+              ReduceTimePrecisionAsUSecsWrapper);
   JS::SetReduceMicrosecondTimePrecisionCallback(
-      nsRFPService::ReduceTimePrecisionAsUSecsWrapperCb.get());
+      ReduceTimePrecisionAsUSecsWrapperCb.get());
 
   // The JavaScript engine can already set the timezone per realm/global,
   // but we think there are still other users of libc that rely

@@ -77,7 +77,12 @@ class FetchUtil final {
    * untyped 'size_t' instead of Gecko 'nsresult'.
    */
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
-  static inline monkeycage::LazySandboxCallback<JS::ReportStreamErrorCallback> ReportJSStreamErrorCallback = monkeycage::LazySandboxCallback(ReportJSStreamError);
+
+  static inline monkeycage::SandboxCallback<JS::ReportStreamErrorCallback>
+  ReportJSStreamErrorCallback() {
+    static auto cb = monkeycage::Sandbox::RegisterCallback(ReportJSStreamError);
+    return cb;
+  }
 };
 
 }  // namespace mozilla::dom

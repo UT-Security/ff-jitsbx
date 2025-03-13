@@ -380,7 +380,7 @@ void Promise::MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue) {
 enum class NativeHandlerTask : int32_t { Resolve, Reject };
 
 MOZ_CAN_RUN_SCRIPT
-static bool NativeHandlerCallback_(JSContext* aCx, unsigned aArgc,
+static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
                                   JS::Value* aVp) {
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
@@ -410,14 +410,15 @@ static bool NativeHandlerCallback_(JSContext* aCx, unsigned aArgc,
   return !rv.MaybeSetPendingException(aCx);
 }
 
-static monkeycage::LazySandboxCallback<JSNative> NativeHandlerCallback(NativeHandlerCallback_);
-
 static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
                                              JS::Handle<JSObject*> aHolder,
                                              NativeHandlerTask aTask) {
-  JSFunction* func = js::NewFunctionWithReserved(aCx, NativeHandlerCallback.get(),
-                                                 /* nargs = */ 1,
-                                                 /* flags = */ 0, nullptr);
+  static monkeycage::SandboxCallback<JSNative> NativeHandlerCb =
+      monkeycage::Sandbox::RegisterCallback(NativeHandlerCallback);
+  JSFunction* func =
+      js::NewFunctionWithReserved(aCx, NativeHandlerCb.get(),
+                                  /* nargs = */ 1,
+                                  /* flags = */ 0, nullptr);
   if (!func) {
     return nullptr;
   }

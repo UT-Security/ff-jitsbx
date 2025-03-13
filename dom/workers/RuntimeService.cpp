@@ -666,7 +666,7 @@ static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                           JS::StreamConsumer* aConsumer) {
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   if (!worker) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, (JSErrorCallback)sbx_addr((void*)js::GetErrorMessage), nullptr,
                               JSMSG_WASM_ERROR_CONSUMING_RESPONSE);
     return false;
   }
@@ -702,15 +702,17 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  static monkeycage::LazySandboxCallback<JS::DispatchToEventLoopCallback>
-      DispatchToEventLoopCallback(DispatchToEventLoop);
+  static monkeycage::SandboxCallback<JS::DispatchToEventLoopCallback>
+      DispatchToEventLoopCallback =
+          monkeycage::Sandbox::RegisterCallback(DispatchToEventLoop);
   JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCallback.get(),
                               (void*)aWorkerPrivate);
 
-  static monkeycage::LazySandboxCallback<JS::ConsumeStreamCallback>
-      ConsumeStreamCallback(ConsumeStream);
+  static monkeycage::SandboxCallback<JS::ConsumeStreamCallback>
+      ConsumeStreamCallback =
+          monkeycage::Sandbox::RegisterCallback(ConsumeStream);
   JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCallback.get(),
-                                FetchUtil::ReportJSStreamErrorCallback.get());
+                                FetchUtil::ReportJSStreamErrorCallback().get());
 
   // When available, set the self-hosted shared memory to be read, so that we
   // can decode the self-hosted content instead of parsing it.
@@ -721,13 +723,14 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
     NS_WARNING("Could not init self-hosted code!");
     return false;
   }
-  
-  static monkeycage::LazySandboxCallback<JSInterruptCallback> InterruptCallback(
-      InterruptCallback_);
+
+  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCallback =
+      monkeycage::Sandbox::RegisterCallback(InterruptCallback_);
   JS_AddInterruptCallback(aWorkerCx, InterruptCallback.get());
 
-  static monkeycage::LazySandboxCallback<JS::CTypesActivityCallback>
-      CTypesActivityCallback(CTypesActivityCallback_);
+  static monkeycage::SandboxCallback<JS::CTypesActivityCallback>
+      CTypesActivityCallback =
+          monkeycage::Sandbox::RegisterCallback(CTypesActivityCallback_);
   JS::SetCTypesActivityCallback(aWorkerCx, CTypesActivityCallback.get());
 
 #ifdef JS_GC_ZEAL
@@ -897,10 +900,13 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
     JSContext* cx = Context();
 
-    static monkeycage::LazySandboxCallback<js::PreserveWrapperCallback> PreserveWrapperCallback(PreserveWrapper);
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCallback.get(), HasReleasedWrapperCb.get());
-    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCallback.get());
-    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCallback.get());
+    static monkeycage::SandboxCallback<js::PreserveWrapperCallback>
+        PreserveWrapperCallback =
+            monkeycage::Sandbox::RegisterCallback<js::PreserveWrapperCallback>(PreserveWrapper);
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCallback.get(),
+                                    HasReleasedWrapperCb().get());
+    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCallback().get());
+    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCallback().get());
     JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
     if (mWorkerPrivate->IsDedicatedWorker()) {
       JS_SetFutexCanWait(cx);

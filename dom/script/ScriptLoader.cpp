@@ -1591,8 +1591,9 @@ static inline nsresult CompileResultForToken(void* aToken) {
 nsresult ScriptLoader::StartOffThreadCompilation(
     JSContext* aCx, ScriptLoadRequest* aRequest, JS::CompileOptions& aOptions,
     Runnable* aRunnable, JS::OffThreadToken** aTokenOut) {
-  const JS::OffThreadCompileCallback callback =
-      OffThreadCompilationCompleteCallback;
+  static const JS::OffThreadCompileCallback callback =
+      monkeycage::Sandbox::RegisterCallback(OffThreadCompilationCompleteCallback)
+          .get();
 
   if (aRequest->IsBytecode()) {
     JS::DecodeOptions decodeOptions(aOptions);

@@ -392,7 +392,7 @@ extern JS_PUBLIC_DATA arena_id_t MallocArena;
 extern JS_PUBLIC_DATA arena_id_t ArrayBufferContentsArena;
 extern JS_PUBLIC_DATA arena_id_t StringBufferArena;
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API arena_id_t GetMallocArena();
 extern JS_PUBLIC_API arena_id_t GetArrayBufferContentsArena();
 extern JS_PUBLIC_API arena_id_t GetStringBufferArena();

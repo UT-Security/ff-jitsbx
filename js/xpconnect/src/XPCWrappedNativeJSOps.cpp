@@ -88,8 +88,6 @@ static bool XPC_WN_Shared_ToString(JSContext* cx, unsigned argc, Value* vp) {
   return ToStringGuts(ccx);
 }
 
-static monkeycage::LazySandboxCallback<JSNative> XPC_WN_Shared_ToStringCb(XPC_WN_Shared_ToString);
-
 static bool XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   static constexpr std::string_view empty = "({})";
@@ -101,8 +99,6 @@ static bool XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, Value* vp) {
 
   return true;
 }
-
-static monkeycage::LazySandboxCallback<JSNative> XPC_WN_Shared_ToSourceCb(XPC_WN_Shared_ToSource);
 
 static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -143,8 +139,6 @@ static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   // else...
   return ToStringGuts(ccx);
 }
-
-static monkeycage::LazySandboxCallback<JSNative> XPC_WN_Shared_toPrimitiveCb(XPC_WN_Shared_toPrimitive);
 
 /***************************************************************************/
 
@@ -274,8 +268,6 @@ static bool XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc,
   return JS_WrapValue(cx, args.rval());
 }
 
-static monkeycage::LazySandboxCallback<JSNative> XPC_WN_DoubleWrappedGetterCb(XPC_WN_DoubleWrappedGetter);
-
 /***************************************************************************/
 
 // This is our shared function to define properties on our JSObjects.
@@ -314,12 +306,19 @@ static bool DefinePropertyIfFound(
     if (reflectToStringAndToSource) {
       JSNative call;
       if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_STRING)) {
+        static monkeycage::SandboxCallback<JSNative> XPC_WN_Shared_ToStringCb =
+            monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_ToString);
         call = XPC_WN_Shared_ToStringCb.get();
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_STRING);
       } else if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_SOURCE)) {
+        static monkeycage::SandboxCallback<JSNative> XPC_WN_Shared_ToSourceCb =
+            monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_ToSource);
         call = XPC_WN_Shared_ToSourceCb.get();
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_SOURCE);
       } else if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
+        static monkeycage::SandboxCallback<JSNative>
+            XPC_WN_Shared_toPrimitiveCb = monkeycage::Sandbox::RegisterCallback(
+                XPC_WN_Shared_toPrimitive);
         call = XPC_WN_Shared_toPrimitiveCb.get();
         name = "[Symbol.toPrimitive]";
       } else {
@@ -408,6 +407,9 @@ static bool DefinePropertyIfFound(
       id = xpccx->GetStringID(XPCJSContext::IDX_WRAPPED_JSOBJECT);
       name = xpccx->GetStringName(XPCJSContext::IDX_WRAPPED_JSOBJECT);
 
+      static monkeycage::SandboxCallback<JSNative>
+          XPC_WN_DoubleWrappedGetterCb =
+              monkeycage::Sandbox::RegisterCallback(XPC_WN_DoubleWrappedGetter);
       fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetterCb.get(), 0, 0, name);
 
       if (!fun) {
@@ -526,21 +528,30 @@ static bool XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-static monkeycage::LazySandboxCallback<JSAddPropertyOp> XPC_WN_OnlyIWrite_AddPropertyStubCb(XPC_WN_OnlyIWrite_AddPropertyStub); 
+static monkeycage::SandboxCallback<JSAddPropertyOp> XPC_WN_OnlyIWrite_AddPropertyStubCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_AddPropertyStub); 
+  return cb;
+}
 
 bool XPC_WN_CannotModifyPropertyStub(JSContext* cx, HandleObject obj,
                                      HandleId id, HandleValue v) {
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-monkeycage::LazySandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb(XPC_WN_CannotModifyPropertyStub);
+monkeycage::SandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_CannotModifyPropertyStub);
+  return cb;
+}
 
 bool XPC_WN_CannotDeletePropertyStub(JSContext* cx, HandleObject obj,
                                      HandleId id, ObjectOpResult& result) {
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-monkeycage::LazySandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb(XPC_WN_CannotDeletePropertyStub);
+monkeycage::SandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_CannotDeletePropertyStub);
+  return cb;
+}
 
 bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
   XPCCallContext ccx(cx, obj);
@@ -580,7 +591,10 @@ bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
   return true;
 }
 
-monkeycage::LazySandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb(XPC_WN_Shared_Enumerate);
+monkeycage::SandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_Enumerate);
+  return cb;
+}
 
 /***************************************************************************/
 
@@ -617,7 +631,10 @@ void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj) {
   WrappedNativeFinalize(gcx, obj, WN_NOHELPER);
 }
 
-monkeycage::LazySandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb(XPC_WN_NoHelper_Finalize);
+monkeycage::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_NoHelper_Finalize);
+  return cb;
+}
 
 /*
  * General comment about XPConnect tracing: Given a C++ object |wrapper| and its
@@ -645,7 +662,10 @@ void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj) {
   XPCWrappedNative::Trace(trc, obj);
 }
 
-monkeycage::LazySandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb(XPCWrappedNative_Trace);
+monkeycage::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPCWrappedNative_Trace);
+  return cb;
+}
 
 static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
                                     HandleId id, bool* resolvedp) {
@@ -679,16 +699,16 @@ const js::ClassExtension* XPC_WN_JSClassExtension() {
 
 const JSClass* XPC_WN_NoHelper_JSClass() {
   static const JSClassOps XPC_WN_NoHelper_JSClassOps = {
-      XPC_WN_OnlyIWrite_AddPropertyStubCb.get(),  // addProperty
-      XPC_WN_CannotDeletePropertyStubCb.get(),    // delProperty
-      XPC_WN_Shared_EnumerateCb.get(),            // enumerate
+      XPC_WN_OnlyIWrite_AddPropertyStubCb().get(),  // addProperty
+      XPC_WN_CannotDeletePropertyStubCb().get(),    // delProperty
+      XPC_WN_Shared_EnumerateCb().get(),            // enumerate
       nullptr,                            // newEnumerate
       monkeycage::Sandbox::RegisterCallback(XPC_WN_NoHelper_Resolve).get(),            // resolve
       nullptr,                            // mayResolve
-      XPC_WN_NoHelper_FinalizeCb.get(),           // finalize
+      XPC_WN_NoHelper_FinalizeCb().get(),           // finalize
       nullptr,                            // call
       nullptr,                            // construct
-      XPCWrappedNative_TraceCb.get(),            // trace
+      XPCWrappedNative_TraceCb().get(),            // trace
   };
  
   static const JSClass __XPC_WN_NoHelper_JSClass = {
@@ -717,7 +737,10 @@ bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-monkeycage::LazySandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb(XPC_WN_MaybeResolvingPropertyStub);
+monkeycage::SandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingPropertyStub);
+  return cb;
+}
 
 bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
                                              HandleId id,
@@ -732,7 +755,10 @@ bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-monkeycage::LazySandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb(XPC_WN_MaybeResolvingDeletePropertyStub);
+monkeycage::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingDeletePropertyStub);
+  return cb;
+}
 
 // macro fun!
 #define PRE_HELPER_STUB                                                 \
@@ -770,7 +796,10 @@ bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
   POST_HELPER_STUB
 }
 
-monkeycage::LazySandboxCallback<JSNative> XPC_WN_Helper_CallCb(XPC_WN_Helper_Call);
+monkeycage::SandboxCallback<JSNative> XPC_WN_Helper_CallCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_Call);
+  return cb;
+}
 
 bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -790,7 +819,10 @@ bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   POST_HELPER_STUB
 }
 
-monkeycage::LazySandboxCallback<JSNative> XPC_WN_Helper_ConstructCb(XPC_WN_Helper_Construct);
+monkeycage::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_Construct);
+  return cb;
+}
 
 static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -814,13 +846,14 @@ static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
   POST_HELPER_STUB
 }
 
-static monkeycage::LazySandboxCallback<JSNative> XPC_WN_Helper_HasInstanceCb(XPC_WN_Helper_HasInstance);
-
 void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj) {
   WrappedNativeFinalize(gcx, obj, WN_HELPER);
 }
 
-monkeycage::LazySandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb(XPC_WN_Helper_Finalize);
+monkeycage::SandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_Finalize);
+  return cb;
+}
 
 // RAII class used to store the wrapper in the context when resolving a lazy
 // property on its JS reflector. This is used by XPC_WN_MaybeResolving to allow
@@ -860,6 +893,9 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     if (scr->AllowPropModsDuringResolve()) {
       asrw.emplace(ccx, wrapper);
     }
+
+    static monkeycage::SandboxCallback<JSNative> XPC_WN_Helper_HasInstanceCb =
+        monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_HasInstance);
     if (!JS_DefineFunctionById(
             cx, obj, id, XPC_WN_Helper_HasInstanceCb.get(), 1,
             JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING)) {
@@ -911,7 +947,10 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
   return retval;
 }
 
-monkeycage::LazySandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb(XPC_WN_Helper_Resolve);
+monkeycage::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_Resolve);
+  return cb;
+}
 
 /***************************************************************************/
 
@@ -940,7 +979,10 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
   return retval;
 }
 
-monkeycage::LazySandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb(XPC_WN_NewEnumerate);
+monkeycage::SandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_NewEnumerate);
+  return cb;
+}
 
 /***************************************************************************/
 /***************************************************************************/
@@ -1011,8 +1053,6 @@ bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, Value* vp) {
   return XPCWrappedNative::CallMethod(ccx);
 }
 
-monkeycage::LazySandboxCallback<JSNative> XPC_WN_CallMethodCb(XPC_WN_CallMethod);
-
 bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
@@ -1052,8 +1092,6 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
   ccx.SetCallInfo(iface, member, false);
   return XPCWrappedNative::GetAttribute(ccx);
 }
-
-monkeycage::LazySandboxCallback<JSNative> XPC_WN_GetterSetterCb(XPC_WN_GetterSetter);
 
 /***************************************************************************/
 
@@ -1175,7 +1213,7 @@ static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
 const JSClass* XPC_WN_Proto_JSClass() {
   static const JSClassOps XPC_WN_Proto_JSClassOps = {
       monkeycage::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_Proto_AddPropertyStub).get(),  // addProperty
-      XPC_WN_CannotDeletePropertyStubCb.get(),          // delProperty
+      XPC_WN_CannotDeletePropertyStubCb().get(),          // delProperty
       monkeycage::Sandbox::RegisterCallback(XPC_WN_Proto_Enumerate).get(),                   // enumerate
       nullptr,                                  // newEnumerate
       monkeycage::Sandbox::RegisterCallback(XPC_WN_Proto_Resolve).get(),                     // resolve
@@ -1266,8 +1304,8 @@ static size_t XPC_WN_TearOff_ObjectMoved(JSObject* obj, JSObject* old) {
 
 const JSClass* XPC_WN_Tearoff_JSClass() {
   static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
-      XPC_WN_OnlyIWrite_AddPropertyStubCb.get(),  // addProperty
-      XPC_WN_CannotDeletePropertyStubCb.get(),    // delProperty
+      XPC_WN_OnlyIWrite_AddPropertyStubCb().get(),  // addProperty
+      XPC_WN_CannotDeletePropertyStubCb().get(),    // delProperty
       monkeycage::Sandbox::RegisterCallback(XPC_WN_TearOff_Enumerate).get(),           // enumerate
       nullptr,                            // newEnumerate
       monkeycage::Sandbox::RegisterCallback(XPC_WN_TearOff_Resolve).get(),             // resolve

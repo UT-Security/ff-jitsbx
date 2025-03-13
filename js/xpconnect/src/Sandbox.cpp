@@ -346,12 +346,13 @@ static bool SandboxFetchPromise(JSContext* cx, unsigned argc, Value* vp) {
   return ConvertExceptionToPromise(cx, args.rval());
 }
 
-static monkeycage::LazySandboxCallback<JSNative> SandboxFetchPromiseCb(SandboxFetchPromise);
-
 bool xpc::SandboxCreateFetch(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb.get(), 2, 0) &&
+  static monkeycage::SandboxCallback<JSNative> SandboxFetchPromiseCb =
+      monkeycage::Sandbox::RegisterCallback(SandboxFetchPromise);
+  return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb.get(), 2,
+                           0) &&
          dom::Request_Binding::GetConstructorObject(cx) &&
          dom::Response_Binding::GetConstructorObject(cx) &&
          dom::Headers_Binding::GetConstructorObject(cx);
@@ -401,13 +402,13 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JSNative> SandboxStructuredCloneCb(SandboxStructuredClone);
-
 bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  return JS_DefineFunction(cx, obj, "structuredClone", SandboxStructuredCloneCb.get(),
-                           1, 0);
+  static monkeycage::SandboxCallback<JSNative> SandboxStructuredCloneCb =
+      monkeycage::Sandbox::RegisterCallback(SandboxStructuredClone);
+  return JS_DefineFunction(cx, obj, "structuredClone",
+                           SandboxStructuredCloneCb.get(), 1, 0);
 }
 
 static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
@@ -435,8 +436,6 @@ static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JSNative> SandboxIsProxyCb(SandboxIsProxy);
-
 /*
  * Expected type of the arguments and the return value:
  * function exportFunction(function funToExport,
@@ -453,8 +452,6 @@ static bool SandboxExportFunction(JSContext* cx, unsigned argc, Value* vp) {
   JS::sandbox::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
   return ExportFunction(cx, args[0], args[1], options, args.rval());
 }
-
-static monkeycage::LazySandboxCallback<JSNative> SandboxExportFunctionCb(SandboxExportFunction);
 
 static bool SandboxCreateObjectIn(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -482,8 +479,6 @@ static bool SandboxCreateObjectIn(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::CreateObjectIn(cx, args[0], options, args.rval());
 }
 
-static monkeycage::LazySandboxCallback<JSNative> SandboxCreateObjectInCb(SandboxCreateObjectIn);
-
 static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 2) {
@@ -494,8 +489,6 @@ static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
   JS::sandbox::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
   return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
 }
-
-static monkeycage::LazySandboxCallback<JSNative> SandboxCloneIntoCb(SandboxCloneInto);
 
 static void sandbox_finalize(JS::GCContext* gcx, JSObject* obj) {
   SandboxPrivate* priv = SandboxPrivate::GetPrivate(obj);
@@ -1167,9 +1160,9 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   if (ReadableStream && !dom::ReadableStream_Binding::GetConstructorObject(cx))
     return false;
 
-  if (atob && !JS_DefineFunction(cx, obj, "atob", AtobCb.get(), 1, 0)) return false;
+  if (atob && !JS_DefineFunction(cx, obj, "atob", AtobCb().get(), 1, 0)) return false;
 
-  if (btoa && !JS_DefineFunction(cx, obj, "btoa", BtoaCb.get(), 1, 0)) return false;
+  if (btoa && !JS_DefineFunction(cx, obj, "btoa", BtoaCb().get(), 1, 0)) return false;
 
   if (caches && !dom::cache::CacheStorage::DefineCaches(cx, obj)) {
     return false;
@@ -1361,7 +1354,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
 
   creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
-      .setTrace(TraceXPCGlobalCallback.get());
+      .setTrace(TraceXPCGlobalCallback().get());
 
   realmOptions.behaviors().setDiscardSource(options.discardSource);
 
@@ -1489,13 +1482,23 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
       return NS_ERROR_XPC_UNEXPECTED;
     }
 
+    static monkeycage::SandboxCallback<JSNative> SandboxExportFunctionCb =
+        monkeycage::Sandbox::RegisterCallback(SandboxExportFunction);
+    static monkeycage::SandboxCallback<JSNative> SandboxCreateObjectInCb =
+        monkeycage::Sandbox::RegisterCallback(SandboxCreateObjectIn);
+    static monkeycage::SandboxCallback<JSNative> SandboxCloneIntoCb =
+        monkeycage::Sandbox::RegisterCallback(SandboxCloneInto);
+    static monkeycage::SandboxCallback<JSNative> SandboxIsProxyCb =
+        monkeycage::Sandbox::RegisterCallback(SandboxIsProxy);
     if (options.wantExportHelpers &&
         (!JS_DefineFunction(cx, sandbox, "exportFunction",
                             SandboxExportFunctionCb.get(), 3, 0) ||
          !JS_DefineFunction(cx, sandbox, "createObjectIn",
                             SandboxCreateObjectInCb.get(), 2, 0) ||
-         !JS_DefineFunction(cx, sandbox, "cloneInto", SandboxCloneIntoCb.get(), 3, 0) ||
-         !JS_DefineFunction(cx, sandbox, "isProxy", SandboxIsProxyCb.get(), 1, 0)))
+         !JS_DefineFunction(cx, sandbox, "cloneInto", SandboxCloneIntoCb.get(),
+                            3, 0) ||
+         !JS_DefineFunction(cx, sandbox, "isProxy", SandboxIsProxyCb.get(), 1,
+                            0)))
       return NS_ERROR_XPC_UNEXPECTED;
 
     if (!options.globalProperties.DefineInSandbox(cx, sandbox)) {

@@ -428,7 +428,10 @@ void xpc::TraceXPCGlobal(JSTracer* trc, JSObject* obj) {
   }
 }
 
-monkeycage::LazySandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCallback(TraceXPCGlobal);
+monkeycage::SandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCallback() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(TraceXPCGlobal);
+  return cb;
+}
 
 namespace xpc {
 
@@ -1052,7 +1055,10 @@ bool Atob(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::Base64Decode(cx, args[0], args.rval());
 }
 
-monkeycage::LazySandboxCallback<JSNative> AtobCb(Atob);
+monkeycage::SandboxCallback<JSNative> AtobCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(Atob);
+  return cb;
+}
 
 bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -1063,7 +1069,10 @@ bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::Base64Encode(cx, args[0], args.rval());
 }
 
-monkeycage::LazySandboxCallback<JSNative> BtoaCb(Btoa);
+monkeycage::SandboxCallback<JSNative> BtoaCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(Btoa);
+  return cb;
+}
 
 bool IsXrayWrapper(JSObject* obj) { return WrapperFactory::IsXrayWrapper(obj); }
 

@@ -75,11 +75,21 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
     return;
   }
 
-  static monkeycage::LazySandboxCallback<JS::ModuleResolveHook> HostResolveImportedModuleCb(HostResolveImportedModule);
-  static monkeycage::LazySandboxCallback<JS::ModuleMetadataHook> HostPopulateImportMetaCb(HostPopulateImportMeta);
-  static monkeycage::LazySandboxCallback<JS::ScriptPrivateReferenceHook> HostAddRefTopLevelScriptCb(HostAddRefTopLevelScript);
-  static monkeycage::LazySandboxCallback<JS::ScriptPrivateReferenceHook> HostReleaseTopLevelScriptCb(HostReleaseTopLevelScript);
-  static monkeycage::LazySandboxCallback<JS::ModuleDynamicImportHook> HostImportModuleDynamicallyCb(HostImportModuleDynamically);
+  static monkeycage::SandboxCallback<JS::ModuleResolveHook>
+      HostResolveImportedModuleCb =
+          monkeycage::Sandbox::RegisterCallback(HostResolveImportedModule);
+  static monkeycage::SandboxCallback<JS::ModuleMetadataHook>
+      HostPopulateImportMetaCb =
+          monkeycage::Sandbox::RegisterCallback(HostPopulateImportMeta);
+  static monkeycage::SandboxCallback<JS::ScriptPrivateReferenceHook>
+      HostAddRefTopLevelScriptCb =
+          monkeycage::Sandbox::RegisterCallback(HostAddRefTopLevelScript);
+  static monkeycage::SandboxCallback<JS::ScriptPrivateReferenceHook>
+      HostReleaseTopLevelScriptCb =
+          monkeycage::Sandbox::RegisterCallback(HostReleaseTopLevelScript);
+  static monkeycage::SandboxCallback<JS::ModuleDynamicImportHook>
+      HostImportModuleDynamicallyCb =
+          monkeycage::Sandbox::RegisterCallback(HostImportModuleDynamically);
 
   JS::SetModuleResolveHook(rt, HostResolveImportedModuleCb.get());
   JS::SetModuleMetadataHook(rt, HostPopulateImportMetaCb.get());
@@ -326,7 +336,7 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 
   if (!request) {
     // Throws TypeError if CreateDynamicImport returns nullptr.
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, (JSErrorCallback)sbx_addr((void*)js::GetErrorMessage), nullptr,
                               JSMSG_DYNAMIC_IMPORT_NOT_SUPPORTED);
 
     return false;
@@ -968,7 +978,7 @@ void ModuleLoaderBase::FinishDynamicImport(
     MOZ_ASSERT(!JS_IsExceptionPending(aCx));
     nsAutoCString url;
     aRequest->mURI->GetSpec(url);
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, (JSErrorCallback)sbx_addr((void*)js::GetErrorMessage), nullptr,
                               JSMSG_DYNAMIC_IMPORT_FAILED, url.get());
   }
 

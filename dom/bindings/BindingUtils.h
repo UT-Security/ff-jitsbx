@@ -21,7 +21,6 @@
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "js/Wrapper.h"
 #include "js/Zone.h"
-#include "js/sandbox/sobox.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"
 #include "mozilla/Assertions.h"
@@ -1477,7 +1476,7 @@ inline void UpdateWrapper(T* p, void*, JSObject* obj, const JSObject* old) {
 bool TryPreserveWrapper(JS::Handle<JSObject*> obj);
 
 bool HasReleasedWrapper(JS::Handle<JSObject*> obj);
-extern monkeycage::LazySandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb;
+monkeycage::SandboxCallback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb();
 
 // Can only be called with a DOM JSClass.
 bool InstanceClassHasProtoAtDepth(const JSClass* clasp, uint32_t protoID,
@@ -2517,12 +2516,12 @@ bool InterfaceHasInstance(JSContext* cx, unsigned argc, JS::Value* vp);
 bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
                           JS::Handle<JSObject*> instance, bool* bp);
 
-extern monkeycage::LazySandboxCallback<JSNative> InterfaceHasInstanceCallback;
+monkeycage::SandboxCallback<JSNative> InterfaceHasInstanceCallback();
 
 // Used to implement the cross-context <Interface>.isInstance static method.
 bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp);
 
-extern monkeycage::LazySandboxCallback<JSNative> InterfaceIsInstanceCallback;
+monkeycage::SandboxCallback<JSNative> InterfaceIsInstanceCallback();
 
 // Helper for lenient getters/setters to report to console.  If this
 // returns false, we couldn't even get a global.
@@ -2946,7 +2945,8 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, JS::RealmOptions& aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
-  static monkeycage::LazySandboxCallback<JSTraceOp> TraceGlobalCallback(CreateGlobalOptions<T>::TraceGlobal);
+  static monkeycage::SandboxCallback<JSTraceOp> TraceGlobalCallback =
+      monkeycage::Sandbox::RegisterCallback(CreateGlobalOptions<T>::TraceGlobal);
   aOptions.creationOptions()
       .setTrace(TraceGlobalCallback.get())
       .setProfilerRealmID(GetWindowID(aNative));
@@ -3090,7 +3090,7 @@ struct ConvertExceptionsToPromises;
 
 bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp);
 
-extern monkeycage::LazySandboxCallback<JSNative> StaticMethodPromiseWrapperCb;
+monkeycage::SandboxCallback<JSNative> StaticMethodPromiseWrapperCb();
 
 // ConvertExceptionToPromise should only be called when we have an error
 // condition (e.g. returned false from a JSAPI method).  Note that there may be

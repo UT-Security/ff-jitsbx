@@ -1152,9 +1152,10 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
     return false;
   }
 
-  static monkeycage::LazySandboxCallback<JSNative> PDFJSPrintMethodCallback(PDFJSPrintMethod);
-  JSFunction* fun =
-      js::NewFunctionWithReserved(cx, PDFJSPrintMethodCallback.get(), 0, 0, "print");
+  static monkeycage::SandboxCallback<JSNative> PDFJSPrintMethodCallback =
+      monkeycage::Sandbox::RegisterCallback(PDFJSPrintMethod);
+  JSFunction* fun = js::NewFunctionWithReserved(
+      cx, PDFJSPrintMethodCallback.get(), 0, 0, "print");
   if (!fun) {
     return false;
   }
@@ -1974,8 +1975,6 @@ static JS::CompartmentIterResult FindSameOriginCompartment(
   return JS::CompartmentIterResult::Stop;
 }
 
-static monkeycage::LazySandboxCallback<JSIterateCompartmentCallback> FindSameOriginCompartmentCallback(FindSameOriginCompartment);
-
 static JS::RealmCreationOptions& SelectZone(
     JSContext* aCx, nsIPrincipal* aPrincipal, nsGlobalWindowInner* aNewInner,
     JS::RealmCreationOptions& aOptions) {
@@ -2007,7 +2006,11 @@ static JS::RealmCreationOptions& SelectZone(
     // Now try to find an existing compartment that's same-origin
     // with our principal.
     CompartmentFinderState data(aPrincipal);
-    JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartmentCallback.get());
+    
+    static monkeycage::SandboxCallback<JSIterateCompartmentCallback>
+        FindSameOriginCompartmentCallback = monkeycage::Sandbox::RegisterCallback(FindSameOriginCompartment);
+    JS_IterateCompartmentsInZone(aCx, zone, &data,
+                                 FindSameOriginCompartmentCallback.get());
     if (data.compartment) {
       return aOptions.setExistingCompartment(data.compartment);
     }

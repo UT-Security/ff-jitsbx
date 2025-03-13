@@ -552,10 +552,13 @@ namespace mozilla {
 
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
-  static monkeycage::LazySandboxCallback<JS_ICUAllocFn> ICUAlloc(ICUReporter::Alloc);
-  static monkeycage::LazySandboxCallback<JS_ICUReallocFn> ICURealloc(ICUReporter::Realloc);
-  static monkeycage::LazySandboxCallback<JS_ICUFreeFn> ICUFree(ICUReporter::Free);
-  
+  static monkeycage::SandboxCallback<JS_ICUAllocFn> ICUAlloc =
+      monkeycage::Sandbox::RegisterCallback(ICUReporter::Alloc);
+  static monkeycage::SandboxCallback<JS_ICUReallocFn> ICURealloc =
+      monkeycage::Sandbox::RegisterCallback(ICUReporter::Realloc);
+  static monkeycage::SandboxCallback<JS_ICUFreeFn> ICUFree =
+      monkeycage::Sandbox::RegisterCallback(ICUReporter::Free);
+
   if (!sICUReporterInitialized) {
     if (!JS_SetICUMemoryFunctions(ICUAlloc.get(), ICURealloc.get(), ICUFree.get())) {
       MOZ_CRASH("JS_SetICUMemoryFunctions failed.");

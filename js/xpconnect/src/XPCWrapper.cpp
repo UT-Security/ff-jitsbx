@@ -42,8 +42,6 @@ static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JSNative> UnwrapNWCb(UnwrapNW);
-
 static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() == 0) {
@@ -63,12 +61,12 @@ static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
   return JS_WrapValue(cx, args.rval());
 }
 
-static monkeycage::LazySandboxCallback<JSNative> XrayWrapperConstructorCb(XrayWrapperConstructor);
-
 // static
 bool AttachNewConstructorObject(JSContext* aCx,
                                 JS::HandleObject aGlobalObject) {
   JSAutoRealm ar(aCx, aGlobalObject);
+  static monkeycage::SandboxCallback<JSNative> XrayWrapperConstructorCb =
+      monkeycage::Sandbox::RegisterCallback(XrayWrapperConstructor);
   JSFunction* xpcnativewrapper = JS_DefineFunction(
       aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructorCb.get(), 1,
       JSPROP_READONLY | JSPROP_PERMANENT | JSFUN_CONSTRUCTOR);
@@ -76,6 +74,8 @@ bool AttachNewConstructorObject(JSContext* aCx,
     return false;
   }
   JS::sandbox::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
+  static monkeycage::SandboxCallback<JSNative> UnwrapNWCb =
+      monkeycage::Sandbox::RegisterCallback(UnwrapNW);
   return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNWCb.get(), 1,
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }

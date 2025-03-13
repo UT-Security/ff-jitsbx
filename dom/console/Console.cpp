@@ -1703,9 +1703,10 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
     } else {
-      static monkeycage::LazySandboxCallback<JSNative> LazyStackGetterCallback(LazyStackGetter);
-      JSFunction* fun =
-          js::NewFunctionWithReserved(aCx, LazyStackGetterCallback.get(), 0, 0, "stacktrace");
+      static monkeycage::SandboxCallback<JSNative> LazyStackGetterCallback =
+          monkeycage::Sandbox::RegisterCallback(LazyStackGetter);
+      JSFunction* fun = js::NewFunctionWithReserved(
+          aCx, LazyStackGetterCallback.get(), 0, 0, "stacktrace");
       if (NS_WARN_IF(!fun)) {
         return false;
       }

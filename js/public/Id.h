@@ -218,7 +218,7 @@ namespace JS {
 // Handle<PropertyKey> version of PropertyKey::Void().
 extern JS_PUBLIC_DATA const JS::HandleId VoidHandlePropertyKey;
 
-#ifdef JS_SANDBOX
+#ifdef JS_SANDBOX_API
 extern JS_PUBLIC_API const JS::HandleId GetVoidHandlePropertyKey();
 #endif
 

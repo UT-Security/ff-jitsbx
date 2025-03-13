@@ -26,12 +26,21 @@ class nsJSPrincipals : public nsIPrincipal, public ::sandbox::JSPrincipals {
   /* SpiderMonkey security callbacks. */
   static bool Subsume(::JSPrincipals* jsprin, ::JSPrincipals* other);
   static void Destroy(::JSPrincipals* jsprin);
-  static inline monkeycage::LazySandboxCallback<JSDestroyPrincipalsOp> DestroyCallback = monkeycage::LazySandboxCallback(Destroy);
+
+  static inline monkeycage::SandboxCallback<JSDestroyPrincipalsOp>
+  DestroyCallback() {
+    static auto cb = monkeycage::Sandbox::RegisterCallback(Destroy);
+    return cb;
+  }
 
   /* JSReadPrincipalsOp for nsJSPrincipals */
   static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
                              ::JSPrincipals** aOutPrincipals);
-  static inline monkeycage::LazySandboxCallback<JSReadPrincipalsOp> ReadPrincipalsCallback = monkeycage::LazySandboxCallback(ReadPrincipals);
+  static inline monkeycage::SandboxCallback<JSReadPrincipalsOp>
+  ReadPrincipalsCallback() {
+    static auto cb = monkeycage::Sandbox::RegisterCallback(ReadPrincipals);
+    return cb;
+  }
 
   static bool ReadKnownPrincipalType(JSContext* aCx,
                                      JSStructuredCloneReader* aReader,

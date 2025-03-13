@@ -984,7 +984,7 @@ class nsXPCComponents_Constructor final : public nsIXPCComponents_Constructor,
  private:
   virtual ~nsXPCComponents_Constructor();
   static bool InnerConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
-  static inline monkeycage::LazySandboxCallback<JSNative> InnerConstructorCb = monkeycage::LazySandboxCallback(InnerConstructor);
+  static monkeycage::SandboxCallback<JSNative> InnerConstructorCb();
   static nsresult CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
                                   JSContext* cx, HandleObject obj,
                                   const CallArgs& args, bool* _retval);
@@ -1110,6 +1110,11 @@ bool nsXPCComponents_Constructor::InnerConstructor(JSContext* cx, unsigned argc,
   return true;
 }
 
+monkeycage::SandboxCallback<JSNative> nsXPCComponents_Constructor::InnerConstructorCb() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback(InnerConstructor);
+  return cb;
+}
+
 NS_IMETHODIMP
 nsXPCComponents_Constructor::Call(nsIXPConnectWrappedNative* wrapper,
                                   JSContext* cx, JSObject* objArg,
@@ -1159,7 +1164,7 @@ nsresult nsXPCComponents_Constructor::CallOrConstruct(
     return ThrowAndFail(NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED, cx, _retval);
   }
 
-  JSFunction* ctorfn = JS_NewFunction(cx, InnerConstructorCb.get(), 0,
+  JSFunction* ctorfn = JS_NewFunction(cx, InnerConstructorCb().get(), 0,
                                       JSFUN_CONSTRUCTOR, "XPCOM_Constructor");
   if (!ctorfn) {
     return ThrowAndFail(NS_ERROR_OUT_OF_MEMORY, cx, _retval);
@@ -1269,7 +1274,7 @@ nsXPCComponents_Constructor::HasInstance(nsIXPConnectWrappedNative* wrapper,
                                          HandleValue val, bool* isa,
                                          bool* _retval) {
   *isa =
-      val.isObject() && JS_IsNativeFunction(&val.toObject(), InnerConstructorCb.get());
+      val.isObject() && JS_IsNativeFunction(&val.toObject(), InnerConstructorCb().get());
   return NS_OK;
 }
 

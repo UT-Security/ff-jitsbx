@@ -1757,7 +1757,7 @@ void nsJSContext::MaybePokeCC() {
   sScheduler.MaybePokeCC(TimeStamp::Now(), nsCycleCollector_suspectedCount());
 }
 
-static void DOMGCSliceCallback_(JSContext* aCx, JS::GCProgress aProgress,
+static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
                                const JS::GCDescription& aDesc) {
   NS_ASSERTION(NS_IsMainThread(), "GCs must run on the main thread");
 
@@ -1878,8 +1878,6 @@ static void DOMGCSliceCallback_(JSContext* aCx, JS::GCProgress aProgress,
     (*sPrevGCSliceCallback)(aCx, aProgress, aDesc);
   }
 }
-
-static monkeycage::LazySandboxCallback<JS::GCSliceCallback> DOMGCSliceCallback(DOMGCSliceCallback_);
 
 void nsJSContext::SetWindowProxy(JS::Handle<JSObject*> aWindowProxy) {
   mWindowProxy = aWindowProxy;
@@ -2021,8 +2019,6 @@ static bool DispatchToEventLoop(void* closure,
   return true;
 }
 
-static monkeycage::LazySandboxCallback<JS::DispatchToEventLoopCallback> DispatchToEventLoopCallback(DispatchToEventLoop);
-
 static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
                           JS::StreamConsumer* aConsumer) {
@@ -2030,15 +2026,11 @@ static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                        nullptr);
 }
 
-static monkeycage::LazySandboxCallback<JS::ConsumeStreamCallback> ConsumeStreamCallback(ConsumeStream);
-
 static js::SliceBudget CreateGCSliceBudget(JS::GCReason aReason,
                                            int64_t aMillis) {
   return sScheduler.CreateGCSliceBudget(
       mozilla::TimeDuration::FromMilliseconds(aMillis), false, false);
 }
-
-static monkeycage::LazySandboxCallback<JS::CreateSliceBudgetCallback> CreateGCSliceBudgetCallback(CreateGCSliceBudget);
 
 void nsJSContext::EnsureStatics() {
   if (sIsInitialized) {
@@ -2054,16 +2046,27 @@ void nsJSContext::EnsureStatics() {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.cx(), DOMGCSliceCallback.get());
+  static monkeycage::SandboxCallback<JS::GCSliceCallback> DOMGCSliceCb =
+      monkeycage::Sandbox::RegisterCallback(DOMGCSliceCallback);
+  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.cx(), DOMGCSliceCb.get());
   sPrevGCSliceCallback = sPrevGCSliceCallback == nullptr ? nullptr : (JS::GCSliceCallback)sbx_cb_addr((void*)sPrevGCSliceCallback);
 
-  JS::SetCreateGCSliceBudgetCallback(jsapi.cx(), CreateGCSliceBudgetCallback.get());
+  static monkeycage::SandboxCallback<JS::CreateSliceBudgetCallback>
+      CreateGCSliceBudgetCallback =
+          monkeycage::Sandbox::RegisterCallback(CreateGCSliceBudget);
+  JS::SetCreateGCSliceBudgetCallback(jsapi.cx(),
+                                     CreateGCSliceBudgetCallback.get());
 
-  JS::InitDispatchToEventLoop(jsapi.cx(), DispatchToEventLoopCallback.get(), nullptr);
-  JS::InitConsumeStreamCallback(
-      jsapi.cx(),
-      ConsumeStreamCallback.get(),
-      FetchUtil::ReportJSStreamErrorCallback.get());
+  static monkeycage::SandboxCallback<JS::DispatchToEventLoopCallback>
+      DispatchToEventLoopCallback =
+          monkeycage::Sandbox::RegisterCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(jsapi.cx(), DispatchToEventLoopCallback.get(),
+                              nullptr);
+
+  static monkeycage::SandboxCallback<JS::ConsumeStreamCallback>
+      ConsumeStreamCallback = monkeycage::Sandbox::RegisterCallback(ConsumeStream);
+  JS::InitConsumeStreamCallback(jsapi.cx(), ConsumeStreamCallback.get(),
+                                FetchUtil::ReportJSStreamErrorCallback().get());
 
   // Set these global xpconnect options...
   Preferences::RegisterCallbackAndCall(SetMemoryPrefChangedCallbackMB,

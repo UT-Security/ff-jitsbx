@@ -52,32 +52,6 @@ public:
   T get() { return callback_trampoline_; }
 };
 
-template <typename T>
-class LazySandboxCallback {
-private:
-  T callback_;
-  std::atomic<T> callback_trampoline_;
-  std::mutex mutex_;
-
-public:
-  LazySandboxCallback(T callback): callback_(callback), callback_trampoline_(nullptr) {}
-
-  T get() {
-    T cb_trampoline = callback_trampoline_.load(std::memory_order_acquire);
-    if (cb_trampoline == nullptr) {
-      std::lock_guard<std::mutex> lock(mutex_);
-      cb_trampoline = callback_trampoline_.load(std::memory_order_relaxed);
-      if (cb_trampoline == nullptr) {
-        cb_trampoline = Sandbox::RegisterCallback(callback_).get();
-        callback_trampoline_.store(cb_trampoline, std::memory_order_release);
-      }
-    }
-    return cb_trampoline;
-  }
-
-};
-
-
 }
 
 #endif

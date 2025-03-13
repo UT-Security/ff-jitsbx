@@ -186,9 +186,6 @@ class nsRFPService final : public nsIObserver {
   static double ReduceTimePrecisionAsUSecsWrapper(
       double aTime, bool aShouldResistFingerprinting, JSContext* aCx);
 
-  static inline monkeycage::LazySandboxCallback<double (*)(double, bool, JSContext*)> ReduceTimePrecisionAsUSecsWrapperCb =
-   monkeycage::LazySandboxCallback(ReduceTimePrecisionAsUSecsWrapper);
-
   // Public only for testing purposes
   static double ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,
                                         double aResolutionUSec,
