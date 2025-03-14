@@ -9,7 +9,7 @@
 
 #include <atomic>
 #include <mutex>
-#include "js/sandbox/sobox.h"
+#include "js/sandbox/lib.h"
 #include "mozilla/Assertions.h"
 
 namespace monkeycage {

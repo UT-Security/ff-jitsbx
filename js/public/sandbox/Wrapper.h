@@ -10,7 +10,7 @@
 #include "js/Wrapper.h"
 #ifdef JS_SANDBOX_API
 #include "js/sandbox/Proxy.h"
-#include "js/sandbox/sobox.h"
+#include "js/sandbox/lib.h"
 #include "js/Utility.h"
 #endif
 

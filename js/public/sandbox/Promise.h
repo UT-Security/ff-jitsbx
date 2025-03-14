@@ -9,7 +9,7 @@
 
 #include "js/Promise.h"
 #ifdef JS_SANDBOX_API
-#include "js/sandbox/sobox.h"
+#include "js/sandbox/lib.h"
 #endif
 
 namespace JS {

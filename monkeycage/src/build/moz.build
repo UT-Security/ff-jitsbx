@@ -20,14 +20,14 @@ STATIC_LIBRARY_NAME = "js_sandboxed"
 NO_EXPAND_LIBS = True
 
 SOURCES += [
-    "./gen/lib/arch/x64/callback.S",
-    "./gen/lib/arch/x64/trampolines.S",
-    "./gen/lib/includes.c",
-    "./gen/lib/lib.c",
+    "./gen/embed/lib/arch/x64/callback.S",
+    "./gen/embed/lib/arch/x64/trampolines.S",
+    "./gen/embed/lib/includes.c",
+    "./gen/embed/lib/lib.c",
 ]
 
 EXPORTS.js.sandbox += [
-    "./gen/sobox.h"
+    "./gen/embed/lib/lib.h"
 ]
 
 DIST_INSTALL = True
