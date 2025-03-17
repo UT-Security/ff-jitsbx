@@ -148,9 +148,10 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
 
   JS::SetJobQueue(mJSContext, JS::sandbox::GetJobQueue(this));
 
-  static monkeycage::SandboxCallback<JS::PromiseRejectionTrackerCallback>
-      PromiseRejectionTrackerCallbackCb = monkeycage::Sandbox::RegisterCallback(PromiseRejectionTrackerCallback);
-  JS::SetPromiseRejectionTrackerCallback(mJSContext, PromiseRejectionTrackerCallbackCb.get(), this);
+  static auto PromiseRejectionTrackerCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(PromiseRejectionTrackerCallback);
+  JS::SetPromiseRejectionTrackerCallback(
+      mJSContext, PromiseRejectionTrackerCallbackCb.get(), this);
   mUncaughtRejections.init(mJSContext,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
@@ -160,11 +161,10 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
 
   mFinalizationRegistryCleanup.Init();
 
-  static monkeycage::SandboxCallback<JS::sandbox::ExternalRootingCallbackTrace>
-      traceExternalRootsCb =
-          monkeycage::Sandbox::RegisterCallback(traceExternalRoots);
-  static monkeycage::SandboxCallback<JS::sandbox::ExternalRootingCallbackRoots>
-      getExternalRootsCb = monkeycage::Sandbox::RegisterCallback(getExternalRoots);
+  static auto traceExternalRootsCb =
+      monkeycage::Sandbox::RegisterCallback(traceExternalRoots);
+  static auto getExternalRootsCb =
+      monkeycage::Sandbox::RegisterCallback(getExternalRoots);
   JS::sandbox::JS_SetExternalRootingCallbacks(
       mJSContext,
       {
@@ -842,8 +842,8 @@ void FinalizationRegistryCleanup::Destroy() {
 void FinalizationRegistryCleanup::Init() {
   JSContext* cx = mContext->Context();
   mCallbacks.init(cx);
-  static auto QueueCallbackCb = monkeycage::Sandbox::RegisterCallback<
-      JSHostCleanupFinalizationRegistryCallback>(QueueCallback);
+  static auto QueueCallbackCb = monkeycage::Sandbox::RegisterCallback(
+      (JSHostCleanupFinalizationRegistryCallback)QueueCallback);
   JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallbackCb.get(),
                                                  this);
 }

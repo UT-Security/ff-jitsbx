@@ -702,15 +702,13 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  static monkeycage::SandboxCallback<JS::DispatchToEventLoopCallback>
-      DispatchToEventLoopCallback =
-          monkeycage::Sandbox::RegisterCallback(DispatchToEventLoop);
+  static auto DispatchToEventLoopCallback =
+      monkeycage::Sandbox::RegisterCallback(DispatchToEventLoop);
   JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCallback.get(),
                               (void*)aWorkerPrivate);
 
-  static monkeycage::SandboxCallback<JS::ConsumeStreamCallback>
-      ConsumeStreamCallback =
-          monkeycage::Sandbox::RegisterCallback(ConsumeStream);
+  static auto ConsumeStreamCallback =
+      monkeycage::Sandbox::RegisterCallback(ConsumeStream);
   JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCallback.get(),
                                 FetchUtil::ReportJSStreamErrorCallback().get());
 
@@ -724,13 +722,12 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
     return false;
   }
 
-  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCallback =
+  static auto InterruptCallback =
       monkeycage::Sandbox::RegisterCallback(InterruptCallback_);
   JS_AddInterruptCallback(aWorkerCx, InterruptCallback.get());
 
-  static monkeycage::SandboxCallback<JS::CTypesActivityCallback>
-      CTypesActivityCallback =
-          monkeycage::Sandbox::RegisterCallback(CTypesActivityCallback_);
+  static auto CTypesActivityCallback =
+      monkeycage::Sandbox::RegisterCallback(CTypesActivityCallback_);
   JS::SetCTypesActivityCallback(aWorkerCx, CTypesActivityCallback.get());
 
 #ifdef JS_GC_ZEAL
@@ -900,9 +897,8 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
     JSContext* cx = Context();
 
-    static monkeycage::SandboxCallback<js::PreserveWrapperCallback>
-        PreserveWrapperCallback =
-            monkeycage::Sandbox::RegisterCallback<js::PreserveWrapperCallback>(PreserveWrapper);
+    static auto PreserveWrapperCallback = monkeycage::Sandbox::RegisterCallback(
+        (js::PreserveWrapperCallback)PreserveWrapper);
     js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCallback.get(),
                                     HasReleasedWrapperCb().get());
     JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCallback().get());

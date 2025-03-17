@@ -78,8 +78,7 @@ class FetchUtil final {
    */
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
 
-  static inline monkeycage::SandboxCallback<JS::ReportStreamErrorCallback>
-  ReportJSStreamErrorCallback() {
+  static auto ReportJSStreamErrorCallback() {
     static auto cb = monkeycage::Sandbox::RegisterCallback(ReportJSStreamError);
     return cb;
   }

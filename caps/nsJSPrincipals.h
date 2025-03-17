@@ -27,8 +27,7 @@ class nsJSPrincipals : public nsIPrincipal, public ::sandbox::JSPrincipals {
   static bool Subsume(::JSPrincipals* jsprin, ::JSPrincipals* other);
   static void Destroy(::JSPrincipals* jsprin);
 
-  static inline monkeycage::SandboxCallback<JSDestroyPrincipalsOp>
-  DestroyCallback() {
+  static auto DestroyCallback() {
     static auto cb = monkeycage::Sandbox::RegisterCallback(Destroy);
     return cb;
   }
@@ -36,8 +35,7 @@ class nsJSPrincipals : public nsIPrincipal, public ::sandbox::JSPrincipals {
   /* JSReadPrincipalsOp for nsJSPrincipals */
   static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
                              ::JSPrincipals** aOutPrincipals);
-  static inline monkeycage::SandboxCallback<JSReadPrincipalsOp>
-  ReadPrincipalsCallback() {
+  static auto ReadPrincipalsCallback() {
     static auto cb = monkeycage::Sandbox::RegisterCallback(ReadPrincipals);
     return cb;
   }

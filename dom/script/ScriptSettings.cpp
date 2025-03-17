@@ -312,8 +312,8 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
 
   mOldWarningReporter.emplace(JS::GetWarningReporter(aCx));
 
-  static monkeycage::SandboxCallback<JS::WarningReporter>
-      WarningOnlyErrorReporterCallback = monkeycage::Sandbox::RegisterCallback(WarningOnlyErrorReporter);
+  static auto WarningOnlyErrorReporterCallback =
+      monkeycage::Sandbox::RegisterCallback(WarningOnlyErrorReporter);
   JS::SetWarningReporter(aCx, WarningOnlyErrorReporterCallback.get());
 
 #ifdef DEBUG

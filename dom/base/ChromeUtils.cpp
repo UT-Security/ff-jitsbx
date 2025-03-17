@@ -724,7 +724,7 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
     return false;
   }
 
-  static monkeycage::SandboxCallback<JSNative> JSLazyGetterCallback =
+  static auto JSLazyGetterCallback =
       monkeycage::Sandbox::RegisterCallback(JSLazyGetter);
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
@@ -866,13 +866,13 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
   }
   idValue = js::IdToValue(id);
 
-  static monkeycage::SandboxCallback<JSNative> JSModuleGetterCallback =
+  static auto JSModuleGetterCallback =
       monkeycage::Sandbox::RegisterCallback(JSModuleGetter);
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
                aCx, JSModuleGetterCallback.get(), 0, 0, id)));
 
-  static monkeycage::SandboxCallback<JSNative> JSModuleSetterCallback =
+  static auto JSModuleSetterCallback =
       monkeycage::Sandbox::RegisterCallback(JSModuleSetter);
   JS::sandbox::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
@@ -897,13 +897,13 @@ static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                  JS::Handle<JS::Value> aResourceURI) {
   JS::sandbox::Rooted<JS::Value> idVal(aCx, JS::StringValue(aId.toString()));
 
-  static monkeycage::SandboxCallback<JSNative> ESModuleGetterCallback =
+  static auto ESModuleGetterCallback =
       monkeycage::Sandbox::RegisterCallback(ESModuleGetter);
   JS::sandbox::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
                aCx, ESModuleGetterCallback.get(), 0, 0, aId)));
 
-  static monkeycage::SandboxCallback<JSNative> ESModuleSetterCallback =
+  static auto ESModuleSetterCallback =
       monkeycage::Sandbox::RegisterCallback(ESModuleSetter);
   JS::sandbox::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(

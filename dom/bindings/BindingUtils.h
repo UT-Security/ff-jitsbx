@@ -2945,8 +2945,8 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, JS::RealmOptions& aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
-  static monkeycage::SandboxCallback<JSTraceOp> TraceGlobalCallback =
-      monkeycage::Sandbox::RegisterCallback(CreateGlobalOptions<T>::TraceGlobal);
+  static auto TraceGlobalCallback = monkeycage::Sandbox::RegisterCallback(
+      CreateGlobalOptions<T>::TraceGlobal);
   aOptions.creationOptions()
       .setTrace(TraceGlobalCallback.get())
       .setProfilerRealmID(GetWindowID(aNative));

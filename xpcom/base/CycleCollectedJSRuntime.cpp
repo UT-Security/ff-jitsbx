@@ -701,21 +701,20 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   }
 #endif
 
-  static monkeycage::SandboxCallback<JSTraceDataOp> TraceBlackJSCb =
+  static auto TraceBlackJSCb =
       monkeycage::Sandbox::RegisterCallback(TraceBlackJS);
   if (!JS_AddExtraGCRootsTracer(aCx, TraceBlackJSCb.get(), this)) {
     MOZ_CRASH("JS_AddExtraGCRootsTracer failed");
   }
 
-  static monkeycage::SandboxCallback<JSGrayRootsTracer> TraceGrayJSCb =
+  static auto TraceGrayJSCb =
       monkeycage::Sandbox::RegisterCallback(TraceGrayJS);
   JS_SetGrayGCRootsTracer(aCx, TraceGrayJSCb.get(), this);
 
-  static monkeycage::SandboxCallback<JSGCCallback> GCCallbackCb =
-      monkeycage::Sandbox::RegisterCallback(GCCallback);
+  static auto GCCallbackCb = monkeycage::Sandbox::RegisterCallback(GCCallback);
   JS_SetGCCallback(aCx, GCCallbackCb.get(), this);
 
-  static monkeycage::SandboxCallback<JS::GCSliceCallback> GCSliceCallbackCb =
+  static auto GCSliceCallbackCb =
       monkeycage::Sandbox::RegisterCallback(GCSliceCallback);
   mPrevGCSliceCallbackCb.set(
       JS::SetGCSliceCallback(aCx, GCSliceCallbackCb.get()));
@@ -732,9 +731,8 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
     // currently possible. For now, add global markers only when we are on the
     // main thread, since the UI for this tracing data only displays data
     // relevant to the main-thread.
-    static monkeycage::SandboxCallback<JS::GCNurseryCollectionCallback>
-        GCNurseryCollectionCallbackCb =
-            monkeycage::Sandbox::RegisterCallback(GCNurseryCollectionCallback);
+    static auto GCNurseryCollectionCallbackCb =
+        monkeycage::Sandbox::RegisterCallback(GCNurseryCollectionCallback);
     mPrevGCNurseryCollectionCallback = JS::SetGCNurseryCollectionCallback(
         aCx, GCNurseryCollectionCallbackCb.get());
 
@@ -745,43 +743,36 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
                   (void*)mPrevGCNurseryCollectionCallback);
   }
 
-  static monkeycage::SandboxCallback<JSObjectsTenuredCallback>
-      JSObjectsTenuredCb =
-          monkeycage::Sandbox::RegisterCallback(JSObjectsTenuredCb_);
+  static auto JSObjectsTenuredCb =
+      monkeycage::Sandbox::RegisterCallback(JSObjectsTenuredCb_);
   JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCb.get(), this);
 
-  static monkeycage::SandboxCallback<JS::OutOfMemoryCallback>
-      OutOfMemoryCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(OutOfMemoryCallback);
+  static auto OutOfMemoryCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(OutOfMemoryCallback);
   JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallbackCb.get(), this);
 
-  static monkeycage::SandboxCallback<JS::BeforeWaitCallback>
-      BeforeWaitCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(BeforeWaitCallback);
-  static monkeycage::SandboxCallback<JS::AfterWaitCallback>
-      AfterWaitCallbackCb = monkeycage::Sandbox::RegisterCallback(AfterWaitCallback);
+  static auto BeforeWaitCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(BeforeWaitCallback);
+  static auto AfterWaitCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(AfterWaitCallback);
   JS::SetWaitCallback(mJSRuntime, BeforeWaitCallbackCb.get(),
                       AfterWaitCallbackCb.get(),
                       sizeof(dom::AutoYieldJSThreadExecution));
 
-  static monkeycage::SandboxCallback<JS::WarningReporter>
-      MozCrashWarningReporterCb =
-          monkeycage::Sandbox::RegisterCallback(MozCrashWarningReporter);
+  static auto MozCrashWarningReporterCb =
+      monkeycage::Sandbox::RegisterCallback(MozCrashWarningReporter);
   JS::SetWarningReporter(aCx, MozCrashWarningReporterCb.get());
 
-  static monkeycage::SandboxCallback<JS::GlobalInitializeCallback>
-      InitializeShadowRealmCb =
-          monkeycage::Sandbox::RegisterCallback(InitializeShadowRealm);
-  static monkeycage::SandboxCallback<JS::GlobalCreationCallback>
-      NewShadowRealmGlobalCb =
-          monkeycage::Sandbox::RegisterCallback(dom::NewShadowRealmGlobal);
+  static auto InitializeShadowRealmCb =
+      monkeycage::Sandbox::RegisterCallback(InitializeShadowRealm);
+  static auto NewShadowRealmGlobalCb =
+      monkeycage::Sandbox::RegisterCallback(dom::NewShadowRealmGlobal);
   JS::SetShadowRealmInitializeGlobalCallback(aCx,
                                              InitializeShadowRealmCb.get());
   JS::SetShadowRealmGlobalCreationCallback(aCx, NewShadowRealmGlobalCb.get());
 
-  static monkeycage::SandboxCallback<
-      js::AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback>
-      AnnotateOOMAllocationSizeCb = monkeycage::Sandbox::RegisterCallback(
+  static auto AnnotateOOMAllocationSizeCb =
+      monkeycage::Sandbox::RegisterCallback(
           CrashReporter::AnnotateOOMAllocationSize);
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
       AnnotateOOMAllocationSizeCb.get());
@@ -798,18 +789,14 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   JS_SetErrorInterceptorCallback(mJSRuntime, &mErrorInterceptor);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
 
-  static monkeycage::SandboxCallback<JSDestroyZoneCallback> OnZoneDestroyedCb =
+  static auto OnZoneDestroyedCb =
       monkeycage::Sandbox::RegisterCallback(OnZoneDestroyed);
   JS_SetDestroyZoneCallback(aCx, OnZoneDestroyedCb.get());
 
-  static monkeycage::SandboxCallback<
-      JS::sandbox::ExternalPersistentRootingCallbackTrace>
-      tracePersistentRootsCb =
-          monkeycage::Sandbox::RegisterCallback(tracePersistentRoots);
-  static monkeycage::SandboxCallback<
-      JS::sandbox::ExternalPersistentRootingCallbackRoots>
-      getPersistentRootsCb =
-          monkeycage::Sandbox::RegisterCallback(getPersistentRoots);
+  static auto tracePersistentRootsCb =
+      monkeycage::Sandbox::RegisterCallback(tracePersistentRoots);
+  static auto getPersistentRootsCb =
+      monkeycage::Sandbox::RegisterCallback(getPersistentRoots);
 
   JS::sandbox::JS_SetPersistentRootingCallbacks(
       aCx,

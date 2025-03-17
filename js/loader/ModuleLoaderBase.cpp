@@ -75,21 +75,16 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
     return;
   }
 
-  static monkeycage::SandboxCallback<JS::ModuleResolveHook>
-      HostResolveImportedModuleCb =
-          monkeycage::Sandbox::RegisterCallback(HostResolveImportedModule);
-  static monkeycage::SandboxCallback<JS::ModuleMetadataHook>
-      HostPopulateImportMetaCb =
-          monkeycage::Sandbox::RegisterCallback(HostPopulateImportMeta);
-  static monkeycage::SandboxCallback<JS::ScriptPrivateReferenceHook>
-      HostAddRefTopLevelScriptCb =
-          monkeycage::Sandbox::RegisterCallback(HostAddRefTopLevelScript);
-  static monkeycage::SandboxCallback<JS::ScriptPrivateReferenceHook>
-      HostReleaseTopLevelScriptCb =
-          monkeycage::Sandbox::RegisterCallback(HostReleaseTopLevelScript);
-  static monkeycage::SandboxCallback<JS::ModuleDynamicImportHook>
-      HostImportModuleDynamicallyCb =
-          monkeycage::Sandbox::RegisterCallback(HostImportModuleDynamically);
+  static auto HostResolveImportedModuleCb =
+      monkeycage::Sandbox::RegisterCallback(HostResolveImportedModule);
+  static auto HostPopulateImportMetaCb =
+      monkeycage::Sandbox::RegisterCallback(HostPopulateImportMeta);
+  static auto HostAddRefTopLevelScriptCb =
+      monkeycage::Sandbox::RegisterCallback(HostAddRefTopLevelScript);
+  static auto HostReleaseTopLevelScriptCb =
+      monkeycage::Sandbox::RegisterCallback(HostReleaseTopLevelScript);
+  static auto HostImportModuleDynamicallyCb =
+      monkeycage::Sandbox::RegisterCallback(HostImportModuleDynamically);
 
   JS::SetModuleResolveHook(rt, HostResolveImportedModuleCb.get());
   JS::SetModuleMetadataHook(rt, HostPopulateImportMetaCb.get());

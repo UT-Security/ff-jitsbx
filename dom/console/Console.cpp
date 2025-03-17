@@ -1703,7 +1703,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
     } else {
-      static monkeycage::SandboxCallback<JSNative> LazyStackGetterCallback =
+      static auto LazyStackGetterCallback =
           monkeycage::Sandbox::RegisterCallback(LazyStackGetter);
       JSFunction* fun = js::NewFunctionWithReserved(
           aCx, LazyStackGetterCallback.get(), 0, 0, "stacktrace");

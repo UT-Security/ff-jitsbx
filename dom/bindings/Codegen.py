@@ -2012,8 +2012,8 @@ class CGMonkeycageStaticCallback(CGThing):
     def define(self):
         return fill(
             """
-            static ${returnType} ${functionName}Cb() {
-                static ${returnType} cb = monkeycage::Sandbox::RegisterCallback(${functionName}).get();
+            static auto ${functionName}Cb() {
+                static auto cb = monkeycage::Sandbox::RegisterCallback(${functionName}).get();
                 return cb;
             }
             """,
@@ -21902,7 +21902,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 dedent(
                     """
             // Create a wrapper function.
-            static monkeycage::SandboxCallback<JSNative> ForEachHandlerCb = monkeycage::Sandbox::RegisterCallback(ForEachHandler);
+            static auto ForEachHandlerCb = monkeycage::Sandbox::RegisterCallback(ForEachHandler);
             JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandlerCb.get(), 3, 0, nullptr);
             if (!func) {
               return false;

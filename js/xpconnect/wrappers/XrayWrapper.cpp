@@ -1667,7 +1667,7 @@ bool XrayTraits::resolveOwnProperty(
       return false;
     }
 
-    static monkeycage::SandboxCallback<JSNative> wrappedJSObject_getterCb =
+    static auto wrappedJSObject_getterCb =
         monkeycage::Sandbox::RegisterCallback(wrappedJSObject_getter);
     if (!found &&
         !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getterCb.get(),

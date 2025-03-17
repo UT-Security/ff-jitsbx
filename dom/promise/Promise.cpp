@@ -413,7 +413,7 @@ static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
 static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
                                              JS::Handle<JSObject*> aHolder,
                                              NativeHandlerTask aTask) {
-  static monkeycage::SandboxCallback<JSNative> NativeHandlerCb =
+  static auto NativeHandlerCb =
       monkeycage::Sandbox::RegisterCallback(NativeHandlerCallback);
   JSFunction* func =
       js::NewFunctionWithReserved(aCx, NativeHandlerCb.get(),

@@ -135,8 +135,8 @@ static const JSErrorFormatString* GetErrorMessage(void* aUserRef,
   return &ErrorFormatString[aErrorNumber];
 }
 
-static inline monkeycage::SandboxCallback<JSErrorCallback> GetErrorMessageCallback() {
-  static auto cb = monkeycage::Sandbox::RegisterCallback(GetErrorMessage);
+static auto GetErrorMessageCallback() {
+  static auto cb = monkeycage::Sandbox::RegisterCallback((JSErrorCallback)GetErrorMessage);
   return cb;
 }
 
@@ -790,8 +790,8 @@ static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                                    const char* name,
                                    const JSNativeHolder* nativeHolder,
                                    unsigned ctorNargs) {
-  static monkeycage::SandboxCallback<JSNative> ConstructorCallback =
-      monkeycage::Sandbox::RegisterCallback(Constructor);
+  static auto ConstructorCallback =
+      monkeycage::Sandbox::RegisterCallback((JSNative)Constructor);
   JSFunction* fun = js::NewFunctionWithReserved(
       cx, ConstructorCallback.get(), ctorNargs, JSFUN_CONSTRUCTOR, name);
   if (!fun) {
@@ -2604,7 +2604,8 @@ bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
 }
 
 monkeycage::SandboxCallback<JSNative> InterfaceHasInstanceCallback() {
-  static auto cb = monkeycage::Sandbox::RegisterCallback<JSNative>(InterfaceHasInstance);
+  static auto cb =
+      monkeycage::Sandbox::RegisterCallback((JSNative)InterfaceHasInstance);
   return cb;
 }
 

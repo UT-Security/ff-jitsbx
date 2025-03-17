@@ -19,6 +19,9 @@ namespace detail {
 }
 
 template<typename T>
+class TaintedUnchecked;
+
+template<typename T>
 class Tainted;
 
 template<typename T>
@@ -97,6 +100,19 @@ public:
   Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
+};
+
+template <typename T>
+class TaintedUnchecked {
+public:
+  template <MONKEYCAGE_ENABLE_IF(std::is_pointer_v<T>)>
+  inline auto to_checked() {
+    // TODO: use the actual secure interface that checks the pointer
+    return Tainted<T>::internal_factory(data);
+  }
+private:
+  friend class Tainted<T>;
+  T data;
 };
 
 template<typename T>

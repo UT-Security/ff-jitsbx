@@ -102,7 +102,7 @@
 
 #include "monkeycage/Sandbox.h"
 #include "jsapi.h"
-#include "js/Initialization.h"
+#include "monkeycage/Initialization.h"
 #include "mozilla/StaticPrefs_javascript.h"
 #include "XPCSelfHostedShmem.h"
 
@@ -552,19 +552,19 @@ namespace mozilla {
 
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
-  static monkeycage::SandboxCallback<JS_ICUAllocFn> ICUAlloc =
+  static auto ICUAlloc =
       monkeycage::Sandbox::RegisterCallback(ICUReporter::Alloc);
-  static monkeycage::SandboxCallback<JS_ICUReallocFn> ICURealloc =
+  static auto ICURealloc =
       monkeycage::Sandbox::RegisterCallback(ICUReporter::Realloc);
-  static monkeycage::SandboxCallback<JS_ICUFreeFn> ICUFree =
+  static auto ICUFree =
       monkeycage::Sandbox::RegisterCallback(ICUReporter::Free);
 
-  if (!sICUReporterInitialized) {
-    if (!JS_SetICUMemoryFunctions(ICUAlloc.get(), ICURealloc.get(), ICUFree.get())) {
-      MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
-    }
-    sICUReporterInitialized = true;
-  }
+  //if (!sICUReporterInitialized) {
+  //  if (!JS_SetICUMemoryFunctions(ICUAlloc.get(), ICURealloc.get(), ICUFree.get())) {
+  //    MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
+  //  }
+  //  sICUReporterInitialized = true;
+  //}
 }
 
 nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {

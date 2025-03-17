@@ -349,7 +349,7 @@ static bool SandboxFetchPromise(JSContext* cx, unsigned argc, Value* vp) {
 bool xpc::SandboxCreateFetch(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  static monkeycage::SandboxCallback<JSNative> SandboxFetchPromiseCb =
+  static auto SandboxFetchPromiseCb =
       monkeycage::Sandbox::RegisterCallback(SandboxFetchPromise);
   return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb.get(), 2,
                            0) &&
@@ -405,7 +405,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  static monkeycage::SandboxCallback<JSNative> SandboxStructuredCloneCb =
+  static auto SandboxStructuredCloneCb =
       monkeycage::Sandbox::RegisterCallback(SandboxStructuredClone);
   return JS_DefineFunction(cx, obj, "structuredClone",
                            SandboxStructuredCloneCb.get(), 1, 0);
@@ -1482,13 +1482,13 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
       return NS_ERROR_XPC_UNEXPECTED;
     }
 
-    static monkeycage::SandboxCallback<JSNative> SandboxExportFunctionCb =
+    static auto SandboxExportFunctionCb =
         monkeycage::Sandbox::RegisterCallback(SandboxExportFunction);
-    static monkeycage::SandboxCallback<JSNative> SandboxCreateObjectInCb =
+    static auto SandboxCreateObjectInCb =
         monkeycage::Sandbox::RegisterCallback(SandboxCreateObjectIn);
-    static monkeycage::SandboxCallback<JSNative> SandboxCloneIntoCb =
+    static auto SandboxCloneIntoCb =
         monkeycage::Sandbox::RegisterCallback(SandboxCloneInto);
-    static monkeycage::SandboxCallback<JSNative> SandboxIsProxyCb =
+    static auto SandboxIsProxyCb =
         monkeycage::Sandbox::RegisterCallback(SandboxIsProxy);
     if (options.wantExportHelpers &&
         (!JS_DefineFunction(cx, sandbox, "exportFunction",

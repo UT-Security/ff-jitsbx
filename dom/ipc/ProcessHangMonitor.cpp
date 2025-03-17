@@ -1227,7 +1227,7 @@ void mozilla::CreateHangMonitorChild(
 
   JSContext* cx = danger::GetJSContext();
 
-  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCb =
+  static auto InterruptCb =
       monkeycage::Sandbox::RegisterCallback(InterruptCallback);
   JS_AddInterruptCallback(cx, InterruptCb.get());
 

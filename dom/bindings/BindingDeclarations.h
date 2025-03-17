@@ -69,8 +69,8 @@ struct DictionaryBase {
   static bool AppendJSONToString(const char16_t* aJSONData,
                                  uint32_t aDataLength, void* aString);
 
-  static inline monkeycage::SandboxCallback<JSONWriteCallback> AppendJSONToStringCallback() {
-    static monkeycage::SandboxCallback<JSONWriteCallback> cb = monkeycage::Sandbox::RegisterCallback(AppendJSONToString);
+  static auto AppendJSONToStringCallback() {
+    static auto cb = monkeycage::Sandbox::RegisterCallback(AppendJSONToString);
     return cb;
   }
 

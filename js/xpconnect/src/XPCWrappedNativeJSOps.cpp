@@ -306,19 +306,18 @@ static bool DefinePropertyIfFound(
     if (reflectToStringAndToSource) {
       JSNative call;
       if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_STRING)) {
-        static monkeycage::SandboxCallback<JSNative> XPC_WN_Shared_ToStringCb =
+        static auto XPC_WN_Shared_ToStringCb =
             monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_ToString);
         call = XPC_WN_Shared_ToStringCb.get();
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_STRING);
       } else if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_SOURCE)) {
-        static monkeycage::SandboxCallback<JSNative> XPC_WN_Shared_ToSourceCb =
+        static auto XPC_WN_Shared_ToSourceCb =
             monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_ToSource);
         call = XPC_WN_Shared_ToSourceCb.get();
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_SOURCE);
       } else if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
-        static monkeycage::SandboxCallback<JSNative>
-            XPC_WN_Shared_toPrimitiveCb = monkeycage::Sandbox::RegisterCallback(
-                XPC_WN_Shared_toPrimitive);
+        static auto XPC_WN_Shared_toPrimitiveCb =
+            monkeycage::Sandbox::RegisterCallback(XPC_WN_Shared_toPrimitive);
         call = XPC_WN_Shared_toPrimitiveCb.get();
         name = "[Symbol.toPrimitive]";
       } else {
@@ -407,9 +406,8 @@ static bool DefinePropertyIfFound(
       id = xpccx->GetStringID(XPCJSContext::IDX_WRAPPED_JSOBJECT);
       name = xpccx->GetStringName(XPCJSContext::IDX_WRAPPED_JSOBJECT);
 
-      static monkeycage::SandboxCallback<JSNative>
-          XPC_WN_DoubleWrappedGetterCb =
-              monkeycage::Sandbox::RegisterCallback(XPC_WN_DoubleWrappedGetter);
+      static auto XPC_WN_DoubleWrappedGetterCb =
+          monkeycage::Sandbox::RegisterCallback(XPC_WN_DoubleWrappedGetter);
       fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetterCb.get(), 0, 0, name);
 
       if (!fun) {
@@ -528,7 +526,7 @@ static bool XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
-static monkeycage::SandboxCallback<JSAddPropertyOp> XPC_WN_OnlyIWrite_AddPropertyStubCb() {
+static auto XPC_WN_OnlyIWrite_AddPropertyStubCb() {
   static auto cb = monkeycage::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_AddPropertyStub); 
   return cb;
 }
@@ -894,7 +892,7 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       asrw.emplace(ccx, wrapper);
     }
 
-    static monkeycage::SandboxCallback<JSNative> XPC_WN_Helper_HasInstanceCb =
+    static auto XPC_WN_Helper_HasInstanceCb =
         monkeycage::Sandbox::RegisterCallback(XPC_WN_Helper_HasInstance);
     if (!JS_DefineFunctionById(
             cx, obj, id, XPC_WN_Helper_HasInstanceCb.get(), 1,

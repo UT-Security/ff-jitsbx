@@ -1203,8 +1203,8 @@ nsresult XPCJSContext::Initialize() {
     size_t threadCount = TaskController::GetPoolThreadCount();
     size_t stackSize = TaskController::GetThreadStackSize();
 
-    static monkeycage::SandboxCallback<JS::HelperThreadTaskCallback>
-        DispatchOffThreadTaskCb = monkeycage::Sandbox::RegisterCallback(DispatchOffThreadTask);
+    static auto DispatchOffThreadTaskCb =
+        monkeycage::Sandbox::RegisterCallback(DispatchOffThreadTask);
     SetHelperThreadTaskCallback(DispatchOffThreadTaskCb.get(), threadCount,
                                 stackSize);
   }
@@ -1355,7 +1355,7 @@ nsresult XPCJSContext::Initialize() {
 
   PROFILER_SET_JS_CONTEXT(cx);
 
-  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCallbackCb =
+  static auto InterruptCallbackCb =
       monkeycage::Sandbox::RegisterCallback(InterruptCallback);
   JS_AddInterruptCallback(cx, InterruptCallbackCb.get());
 
@@ -1387,9 +1387,8 @@ nsresult XPCJSContext::Initialize() {
     // Only the Parent process has permissions to write to the self-hosted
     // shared memory.
 
-    static monkeycage::SandboxCallback<JS::SelfHostedWriter>
-        CreateSelfHostedSharedMemoryCb =
-            monkeycage::Sandbox::RegisterCallback(CreateSelfHostedSharedMemory);
+    static auto CreateSelfHostedSharedMemoryCb =
+        monkeycage::Sandbox::RegisterCallback(CreateSelfHostedSharedMemory);
     writer = CreateSelfHostedSharedMemoryCb.get();
   }
 

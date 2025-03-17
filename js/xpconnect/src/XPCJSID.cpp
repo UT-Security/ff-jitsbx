@@ -128,19 +128,19 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
         JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT;
     const uint32_t kNoEnum = JSPROP_READONLY | JSPROP_PERMANENT;
 
-    static monkeycage::SandboxCallback<JSNative> ID_EqualsCb =
+    static auto ID_EqualsCb =
         monkeycage::Sandbox::RegisterCallback(ID_Equals);
-    static monkeycage::SandboxCallback<JSNative> ID_GetNumberCb =
+    static auto ID_GetNumberCb =
         monkeycage::Sandbox::RegisterCallback(ID_GetNumber);
-    static monkeycage::SandboxCallback<JSNative> IID_HasInstanceCb =
+    static auto IID_HasInstanceCb =
         monkeycage::Sandbox::RegisterCallback(IID_HasInstance);
-    static monkeycage::SandboxCallback<JSNative> IID_GetNameCb =
+    static auto IID_GetNameCb =
         monkeycage::Sandbox::RegisterCallback(IID_GetName);
-    static monkeycage::SandboxCallback<JSNative> CID_CreateInstanceCb =
+    static auto CID_CreateInstanceCb =
         monkeycage::Sandbox::RegisterCallback(CID_CreateInstance);
-    static monkeycage::SandboxCallback<JSNative> CID_GetServiceCb =
+    static auto CID_GetServiceCb =
         monkeycage::Sandbox::RegisterCallback(CID_GetService);
-    static monkeycage::SandboxCallback<JSNative> CID_GetNameCb =
+    static auto CID_GetNameCb =
         monkeycage::Sandbox::RegisterCallback(CID_GetName);
 
     bool ok =

@@ -2029,13 +2029,13 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
   // The 3 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
 
-  static monkeycage::SandboxCallback<JSNative> internal_JSHistogram_AddCb =
+  static auto internal_JSHistogram_AddCb =
       monkeycage::Sandbox::RegisterCallback(internal_JSHistogram_Add);
-  static monkeycage::SandboxCallback<JSNative> internal_JSHistogram_NameCb =
+  static auto internal_JSHistogram_NameCb =
       monkeycage::Sandbox::RegisterCallback(internal_JSHistogram_Name);
-  static monkeycage::SandboxCallback<JSNative> internal_JSHistogram_SnapshotCb =
+  static auto internal_JSHistogram_SnapshotCb =
       monkeycage::Sandbox::RegisterCallback(internal_JSHistogram_Snapshot);
-  static monkeycage::SandboxCallback<JSNative> internal_JSHistogram_ClearCb =
+  static auto internal_JSHistogram_ClearCb =
       monkeycage::Sandbox::RegisterCallback(internal_JSHistogram_Clear);
   if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_AddCb.get(), 1,
                           0) &&
@@ -2392,21 +2392,16 @@ nsresult internal_WrapAndReturnKeyedHistogram(
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
 
-  static monkeycage::SandboxCallback<JSNative> internal_JSKeyedHistogram_AddCb =
+  static auto internal_JSKeyedHistogram_AddCb =
       monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Add);
-  static monkeycage::SandboxCallback<JSNative>
-      internal_JSKeyedHistogram_NameCb =
-          monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Name);
-  static monkeycage::SandboxCallback<JSNative>
-      internal_JSKeyedHistogram_SnapshotCb =
-          monkeycage::Sandbox::RegisterCallback(
-              internal_JSKeyedHistogram_Snapshot);
-  static monkeycage::SandboxCallback<JSNative>
-      internal_JSKeyedHistogram_KeysCb =
-          monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Keys);
-  static monkeycage::SandboxCallback<JSNative>
-      internal_JSKeyedHistogram_ClearCb = monkeycage::Sandbox::RegisterCallback(
-          internal_JSKeyedHistogram_Clear);
+  static auto internal_JSKeyedHistogram_NameCb =
+      monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Name);
+  static auto internal_JSKeyedHistogram_SnapshotCb =
+      monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Snapshot);
+  static auto internal_JSKeyedHistogram_KeysCb =
+      monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Keys);
+  static auto internal_JSKeyedHistogram_ClearCb =
+      monkeycage::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Clear);
 
   if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb.get(),
                           2, 0) &&

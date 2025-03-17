@@ -420,7 +420,7 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
   // We have no way of knowing whether the underlying function wants to be a
   // constructor or not, so we just mark all forwarders as constructors, and
   // let the underlying function throw for construct calls if it wants.
-  static monkeycage::SandboxCallback<JSNative> FunctionForwarderCb =
+  static auto FunctionForwarderCb =
       monkeycage::Sandbox::RegisterCallback(FunctionForwarder);
   JSFunction* fun = js::NewFunctionByIdWithReserved(
       cx, FunctionForwarderCb.get(), nargs, JSFUN_CONSTRUCTOR, id);

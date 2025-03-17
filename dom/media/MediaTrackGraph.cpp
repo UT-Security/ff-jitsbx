@@ -3939,7 +3939,7 @@ void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
     return;
   }
 
-  static monkeycage::SandboxCallback<JSInterruptCallback> InterruptCb =
+  static auto InterruptCb =
       monkeycage::Sandbox::RegisterCallback(InterruptCallback);
   JS_AddInterruptCallback(aCx, InterruptCb.get());
   impl->mJSContext = aCx;

@@ -433,7 +433,7 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
 
   // Create callback argument and append it to the call arguments.
   JS::sandbox::Rooted<JSObject*> sendResponseObj(aCx);
-  static monkeycage::SandboxCallback<JSNative> CallCallback =
+  static auto CallCallback =
       monkeycage::Sandbox::RegisterCallback(SendResponseCallback::Call);
 
   switch (mCallbackArgType) {

@@ -490,7 +490,7 @@ void XPCWrappedNativeScope::AddSizeOfIncludingThis(
   scopeSizeInfo->mScopeAndMapSize +=
       mWrappedNativeProtoMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
 
-  static monkeycage::SandboxCallback<IterateRealmCallback> AddSizeOfCb =
+  static auto AddSizeOfCb =
       monkeycage::Sandbox::RegisterCallback(AddSizeOfCallback);
   IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo,
                              AddSizeOfCb.get());

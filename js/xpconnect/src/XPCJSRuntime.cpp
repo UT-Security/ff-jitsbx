@@ -944,7 +944,7 @@ void XPCJSRuntime::FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
   }
 }
 
-static monkeycage::SandboxCallback<JSFinalizeCallback> FinalizeCb() {
+static auto FinalizeCb() {
   static auto cb = monkeycage::Sandbox::RegisterCallback(XPCJSRuntime::FinalizeCallback);
   return cb;
 }
@@ -2926,27 +2926,25 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // the GC's allocator.
   JS_SetGCParameter(cx, JSGC_MAX_BYTES, 0xffffffff);
 
-  static monkeycage::SandboxCallback<JSDestroyCompartmentCallback>
-      CompartmentDestroyedCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(CompartmentDestroyedCallback);
+  static auto CompartmentDestroyedCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(CompartmentDestroyedCallback);
   JS_SetDestroyCompartmentCallback(cx, CompartmentDestroyedCallbackCb.get());
 
-  static monkeycage::SandboxCallback<JSSizeOfIncludingThisCompartmentCallback>
-      CompartmentSizeOfIncludingThisCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(
-              CompartmentSizeOfIncludingThisCallback);
+  static auto CompartmentSizeOfIncludingThisCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(
+          CompartmentSizeOfIncludingThisCallback);
   JS_SetSizeOfIncludingThisCompartmentCallback(
       cx, CompartmentSizeOfIncludingThisCallbackCb.get());
 
-  static monkeycage::SandboxCallback<DestroyRealmCallback> DestroyRealmCb =
+  static auto DestroyRealmCb =
       monkeycage::Sandbox::RegisterCallback(DestroyRealm);
   JS::SetDestroyRealmCallback(cx, DestroyRealmCb.get());
 
-  static monkeycage::SandboxCallback<RealmNameCallback> GetRealmNameCallbackCb =
+  static auto GetRealmNameCallbackCb =
       monkeycage::Sandbox::RegisterCallback(GetRealmNameCallback);
   JS::SetRealmNameCallback(cx, GetRealmNameCallbackCb.get());
 
-  static monkeycage::SandboxCallback<JS::GCSliceCallback> GCSliceCallbackCb =
+  static auto GCSliceCallbackCb =
       monkeycage::Sandbox::RegisterCallback(GCSliceCallback);
   mPrevGCSliceCallbackCb.set(
       JS::SetGCSliceCallback(cx, GCSliceCallbackCb.get()));
@@ -2955,9 +2953,8 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
           ? nullptr
           : (JS::GCSliceCallback)sbx_cb_addr((void*)mPrevGCSliceCallbackCb.get());
 
-  static monkeycage::SandboxCallback<JS::DoCycleCollectionCallback>
-      DoCycleCollectionCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(DoCycleCollectionCallback);
+  static auto DoCycleCollectionCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(DoCycleCollectionCallback);
   mPrevDoCycleCollectionCallbackCb.set(
       JS::SetDoCycleCollectionCallback(cx, DoCycleCollectionCallbackCb.get()));
   mPrevDoCycleCollectionCallback =
@@ -2967,54 +2964,47 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
                 (void*)mPrevDoCycleCollectionCallbackCb.get());
 
   JS_AddFinalizeCallback(cx, FinalizeCb().get(), nullptr);
-  static monkeycage::SandboxCallback<JSWeakPointerZonesCallback>
-      WeakPointerZonesCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(WeakPointerZonesCallback);
+  static auto WeakPointerZonesCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(WeakPointerZonesCallback);
   JS_AddWeakPointerZonesCallback(cx, WeakPointerZonesCallbackCb.get(), this);
-  static monkeycage::SandboxCallback<JSWeakPointerCompartmentCallback>
-      WeakPointerCompartmentCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(WeakPointerCompartmentCallback);
+  static auto WeakPointerCompartmentCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(WeakPointerCompartmentCallback);
   JS_AddWeakPointerCompartmentCallback(
       cx, WeakPointerCompartmentCallbackCb.get(), this);
   JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
   if (XRE_IsE10sParentProcess()) {
-    static monkeycage::SandboxCallback<FilenameValidationCallback>
-        FilenameValidationCallbackCb = monkeycage::Sandbox::RegisterCallback(
+    static auto FilenameValidationCallbackCb =
+        monkeycage::Sandbox::RegisterCallback(
             nsContentSecurityUtils::ValidateScriptFilename);
     JS::SetFilenameValidationCallback(FilenameValidationCallbackCb.get());
   }
 
-  static auto PreserveWrapperCb =
-      monkeycage::Sandbox::RegisterCallback<PreserveWrapperCallback>(
-          PreserveWrapper);
+  static auto PreserveWrapperCb = monkeycage::Sandbox::RegisterCallback(
+      (PreserveWrapperCallback)PreserveWrapper);
   js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb.get(),
                                   HasReleasedWrapperCb().get());
 
   JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCallback().get());
 
-  static monkeycage::SandboxCallback<JSAccumulateTelemetryDataCallback>
-      AccumulateTelemetryCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(AccumulateTelemetryCallback);
+  static auto AccumulateTelemetryCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(AccumulateTelemetryCallback);
   JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallbackCb.get());
 
-  static monkeycage::SandboxCallback<JSSetUseCounterCallback>
-      SetUseCounterCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(SetUseCounterCallback);
+  static auto SetUseCounterCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(SetUseCounterCallback);
   JS_SetSetUseCounterCallback(cx, SetUseCounterCallbackCb.get());
 
   js::SetWindowProxyClass(cx, OuterWindowProxyClass());
 
   JS::SetXrayJitInfo(gXrayJitInfo());
 
-  static monkeycage::SandboxCallback<LargeAllocationFailureCallback>
-      OnLargeAllocationFailureCallbackCb =
-          monkeycage::Sandbox::RegisterCallback(OnLargeAllocationFailureCallback);
+  static auto OnLargeAllocationFailureCallbackCb =
+      monkeycage::Sandbox::RegisterCallback(OnLargeAllocationFailureCallback);
   JS::SetProcessLargeAllocationFailureCallback(
       OnLargeAllocationFailureCallbackCb.get());
 
   // The WasmAltDataType is build by the JS engine from the build id.
-  static monkeycage::SandboxCallback<BuildIdOp> GetBuildIdCb =
-      monkeycage::Sandbox::RegisterCallback(GetBuildId);
+  static auto GetBuildIdCb = monkeycage::Sandbox::RegisterCallback(GetBuildId);
   JS::SetProcessBuildIdOp(GetBuildIdCb.get());
   FetchUtil::InitWasmAltDataType();
 
@@ -3034,9 +3024,8 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // isRunOnce mode and compiled function bodies (from
   // JS::CompileFunction). In practice, this means content scripts and event
   // handlers.
-  static monkeycage::SandboxCallback<js::SourceHookLoadCallback>
-      XPCJSSourceHookLoadCb =
-          monkeycage::Sandbox::RegisterCallback(XPCJSSourceHookLoad);
+  static auto XPCJSSourceHookLoadCb =
+      monkeycage::Sandbox::RegisterCallback(XPCJSSourceHookLoad);
   mozilla::UniquePtr<js::SourceHookWithCallback> hook(
       js_new<js::SourceHookWithCallback>(XPCJSSourceHookLoadCb.get()));
   js::SetSourceHook(cx, std::move(hook));
