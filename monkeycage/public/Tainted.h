@@ -10,6 +10,9 @@
 #include <type_traits>
 #include <utility>
 
+#include "js/Utility.h"
+#include "js/sandbox/lib.h"
+
 namespace monkeycage {
 
 namespace detail {
@@ -61,11 +64,13 @@ public:
 };
 
 template<typename T>
-class Tainted: TaintedBase<Tainted, T>  {
+class Tainted: public TaintedBase<Tainted, T>  {
   // TODO: maybe deny class types like RLBox to force usage of Tainted Rooted/Handle types.
 
 private:
   using T_ClassBase = TaintedBase<Tainted, T>;
+  friend class TaintedBase<Tainted, T>;
+  friend class TaintedUnchecked<T>;
   
   // TODO: maybe differentiate between sandbox and app representation here. I suspect this is
   // not required since we are a read-only sandbox. However there are subtleties when it comes
@@ -75,7 +80,7 @@ private:
   inline auto& get_raw_value_ref() noexcept { return data; }
   inline auto& get_raw_value_ref() const noexcept { return data; }
 
-  inline std::remove_cv_t<T> get_raw_value() { return data; }
+  inline std::remove_cv_t<T> get_raw_value() const noexcept { return data; }
 
   template <typename T2 = T, MONKEYCAGE_ENABLE_IF(std::is_pointer_v<T2>)>
   Tainted(T2 val, const void* /* internal tag */) : data(val) {
@@ -100,19 +105,55 @@ public:
   Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
+
+  template<typename T_Rhs>
+  void assign_raw_pointer(T_Rhs val) {
+    static_assert(std::is_pointer_v<T_Rhs>, "Must be a pointer.");
+    static_assert(std::is_assignable_v<T&, T_Rhs>,
+                  "Should assign pointers of compatible types.");
+
+    //TODO: verify that val is a pointer within the sandbox.
+    data = val;
+  }
 };
 
 template <typename T>
 class TaintedUnchecked {
 public:
   template <MONKEYCAGE_ENABLE_IF(std::is_pointer_v<T>)>
-  inline auto to_checked() {
-    // TODO: use the actual secure interface that checks the pointer
+  inline auto UNSAFE_checked() {
     return Tainted<T>::internal_factory(data);
   }
 private:
-  friend class Tainted<T>;
   T data;
+};
+
+// TODO: we probably expect T to be a non-pointer type
+// that is usually RAII style created on the application stack.
+
+// TODO: allocate with placement new on the sandbox stack instead
+// of using heap allocation.
+template <typename T>
+class AutoStackTainted {
+private:
+  Tainted<T*> data;
+public:
+  AutoStackTainted(): data(nullptr) {
+    T* ptr = js_new<T>();
+    data.assign_raw_pointer(ptr);
+  }
+  
+  template<typename... Args>
+  AutoStackTainted(Args&&... args): data(nullptr) {
+    T* ptr = js_new<T>(std::forward<Args>(args)...);
+    data.assign_raw_pointer(ptr);
+  }
+
+  ~AutoStackTainted() {
+    js_delete<T>(data.INTERNAL_unverified_safe());
+  }
+
+  inline auto UNSAFE_unverified() const { return data.UNSAFE_unverified(); }
 };
 
 template<typename T>

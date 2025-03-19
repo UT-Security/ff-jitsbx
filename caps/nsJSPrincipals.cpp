@@ -289,7 +289,7 @@ bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
 
   nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
 
-  *aOutPrincipals = &get(principal.forget().take())->base_;
+  *aOutPrincipals = get(principal.forget().take())->base_;
   return true;
 }
 

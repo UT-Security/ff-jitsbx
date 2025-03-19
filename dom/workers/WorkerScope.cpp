@@ -916,7 +916,7 @@ bool DedicatedWorkerGlobalScope::WrapGlobalObject(
 
   return DedicatedWorkerGlobalScope_Binding::Wrap(
       aCx, this, this, options,
-      &nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
+      nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
 void DedicatedWorkerGlobalScope::PostMessage(
@@ -1078,7 +1078,7 @@ bool SharedWorkerGlobalScope::WrapGlobalObject(
 
   return SharedWorkerGlobalScope_Binding::Wrap(
       aCx, this, this, options,
-      &nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
+      nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
 void SharedWorkerGlobalScope::Close() {
@@ -1121,7 +1121,7 @@ bool ServiceWorkerGlobalScope::WrapGlobalObject(
 
   return ServiceWorkerGlobalScope_Binding::Wrap(
       aCx, this, this, options,
-      &nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
+      nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
 already_AddRefed<Clients> ServiceWorkerGlobalScope::GetClients() {
@@ -1246,7 +1246,7 @@ bool WorkerDebuggerGlobalScope::WrapGlobalObject(
 
   return WorkerDebuggerGlobalScope_Binding::Wrap(
       aCx, this, this, options,
-      &nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
+      nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
 void WorkerDebuggerGlobalScope::GetGlobal(JSContext* aCx,

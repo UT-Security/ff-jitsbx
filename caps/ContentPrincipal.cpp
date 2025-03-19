@@ -364,7 +364,7 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
   static auto SetDomainCb = monkeycage::Sandbox::RegisterCallback(SetDomainCb_);
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  JS::IterateRealmsWithPrincipals(jsapi.cx(), &principals->base_, nullptr, SetDomainCb.get());
+  JS::IterateRealmsWithPrincipals(jsapi.cx(), principals->base_, nullptr, SetDomainCb.get());
 
   return NS_OK;
 }

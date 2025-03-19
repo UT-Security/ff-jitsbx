@@ -17,6 +17,7 @@
 
 #include "js/TypeDecls.h"
 #ifdef JS_SANDBOX_API
+#include "js/Utility.h"
 #include "js/sandbox/lib.h"
 #endif
 
@@ -83,7 +84,7 @@ namespace sandbox {
 #ifdef JS_SANDBOX_API
 
 struct JSPrincipals {
-  ::JSPrincipalsWithOps base_;
+  ::JSPrincipalsWithOps* base_;
 
   static bool writeCb(void* s, JSContext* cx, JSStructuredCloneWriter* writer) {
     auto* self = static_cast<JSPrincipals*>(s);
@@ -107,20 +108,26 @@ struct JSPrincipals {
     return &_ops; 
   }
 
-  JSPrincipals() : base_(this, ops()) {}
+  JSPrincipals() {
+    base_ = js_new<JSPrincipalsWithOps>(this, ops());
+  }
+
+  ~JSPrincipals() {
+    js_free(reinterpret_cast<void*>(base_));
+  }
 
 #ifdef JS_DEBUG
   uint32_t debugToken() {
-    return base_.debugToken;
+    return base_->debugToken;
   }
 #endif
 
   void setDebugToken(uint32_t token) {
-    base_.setDebugToken(token);
+    base_->setDebugToken(token);
   }
   
   mozilla::Atomic<int32_t, mozilla::SequentiallyConsistent>& refcount() {
-    return base_.refcount;
+    return base_->refcount;
   }
 };
 #endif

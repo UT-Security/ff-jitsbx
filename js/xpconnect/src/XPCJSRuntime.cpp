@@ -52,6 +52,7 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "jsapi.h"
 #include "js/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
 #include "js/experimental/SourceHook.h"  // js::{,Set}SourceHook
@@ -3026,9 +3027,11 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // handlers.
   static auto XPCJSSourceHookLoadCb =
       monkeycage::Sandbox::RegisterCallback(XPCJSSourceHookLoad);
-  mozilla::UniquePtr<js::SourceHookWithCallback> hook(
-      js_new<js::SourceHookWithCallback>(XPCJSSourceHookLoadCb.get()));
-  js::SetSourceHook(cx, std::move(hook));
+  {
+    monkeycage::AutoStackTainted<mozilla::UniquePtr<js::SourceHook>>
+        hook(js_new<js::SourceHookWithCallback>(XPCJSSourceHookLoadCb.get()));
+    js::SetSourceHook(cx, hook.UNSAFE_unverified());
+  }
 
   // Register memory reporters and distinguished amount functions.
   RegisterStrongMemoryReporter(new JSMainRuntimeRealmsReporter());

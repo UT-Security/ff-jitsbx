@@ -17,10 +17,12 @@ namespace sandbox {
 #ifdef JS_SANDBOX_API
 class JobQueue {
 private:
-  JS::JobQueueWithOps base_;
+  JS::JobQueueWithOps* base_;
 
 public:
-  virtual ~JobQueue() = default;
+  virtual ~JobQueue() {
+    js_free(base_);
+  }
   
   static void destructorCb(void* p) {
     // TODO  
@@ -83,9 +85,11 @@ public:
     return &__ops;
   }
 
-  JobQueue(): base_(ops(), this) {}
+  JobQueue() {
+    base_ = js_new<JS::JobQueueWithOps>(ops(), this);
+  }
 
-  inline JS::JobQueue* getBase() { return &base_; }
+  inline JS::JobQueue* getBase() { return base_; }
 };
 
 inline JS::JobQueue* GetJobQueue(JobQueue* jq) {

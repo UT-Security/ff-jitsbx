@@ -2070,7 +2070,7 @@ static nsresult CreateNativeGlobalForInner(
   flags |= xpc::DONT_FIRE_ONNEWGLOBALHOOK;
 
   if (!Window_Binding::Wrap(aCx, aNewInner, aNewInner, options,
-                            &nsJSPrincipals::get(principal)->base_, false, aGlobal) ||
+                            nsJSPrincipals::get(principal)->base_, false, aGlobal) ||
       !xpc::InitGlobalObject(aCx, aGlobal, flags)) {
     return NS_ERROR_FAILURE;
   }
@@ -2236,7 +2236,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     MOZ_ASSERT(sameOrigin);
 #endif
     JS::SetRealmPrincipals(realm,
-                           &nsJSPrincipals::get(aDocument->NodePrincipal())->base_);
+                           nsJSPrincipals::get(aDocument->NodePrincipal())->base_);
   } else {
     if (aState) {
       newInnerWindow = wsh->GetInnerWindow();
