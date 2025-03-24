@@ -31,6 +31,7 @@
 #include "mozilla/dom/ProxyHandlerUtils.h"
 #include "mozilla/dom/WindowProxyHolder.h"
 #include "mozilla/dom/XrayExpandoClass.h"
+#include "mozilla/dom/JSTainted.h"
 
 using namespace mozilla::dom;
 using namespace JS;

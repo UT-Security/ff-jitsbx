@@ -15,6 +15,9 @@ namespace mozilla {
 
 namespace dom {
 
+template<class T>
+mozilla::HashSet<void *> PtrTable = mozilla::HashSet<void *>(1);
+
 template<typename T>
 class TaintObj {
 	public:
@@ -27,6 +30,7 @@ class TaintObj {
 		PtrTable.remove((void *)this);
 	}
 };
+
 
 template<typename T>
 class JSTainted;
@@ -127,6 +131,11 @@ public:
   void setNumber(T t) {
     set(JS::NumberValue(t));
   }
+
+  template <typename T>
+  void setString(T t) {
+    set(JS::StringValue(t));
+  }
   
 };
 
@@ -173,6 +182,10 @@ public:
 
   void set(const T& value) {
     get().assign_raw_value(value);  
+  }
+
+  void set(const JSTainted<T>& value) {
+    get().assign_raw_value(value.get_raw_value_ref());
   }
 
   operator const JSTainted<T>&() const { return get(); }
@@ -263,6 +276,11 @@ public:
   void setNumber(T t) {
     static_cast<Wrapper*>(this)->get().setNumber(t);
   }
+
+  template<typename T>
+  void setString(T t) {
+    static_cast<Wrapper*>(this)->get().setString(t);
+  }
 };
 
 template<typename T>
@@ -277,9 +295,48 @@ class JSTaintedJitGetterCallArgs : protected JSTaintedMutableHandle<JS::Value> {
     : JSTaintedMutableHandle(handle) {}
     JSTaintedMutableHandle<JS::Value> rval() { return *static_cast<JSTaintedMutableHandle<JS::Value>*> (this); }
 };
-  
-}
 
-}
+class JSTaintedJitSetterCallArgs : protected JSTaintedMutableHandle<JS::Value> {
+    public:
+        explicit JSTaintedJitSetterCallArgs(JSTaintedMutableHandle<JS::Value> rooted) :
+        JSTaintedMutableHandle(rooted) {}
+
+        JSTaintedMutableHandle<JS::Value> operator[](unsigned i) {
+            MOZ_ASSERT(i == 0);
+            return *this;
+        }
+
+        unsigned length() const { return 1; }
+};
+
+class MOZ_STACK_CLASS TaintedGlobalObject {
+    public:
+    TaintedGlobalObject(JSContext* aCx, JSTainted<JSObject*> aObject);
+   
+     JSTainted<JSObject*> Get() const { return mGlobalJSObject; }
+      
+     // The context that this returns is not guaranteed to be in the compartment of
+     // the object returned from Get(), in fact it's generally in the caller's
+     // compartment.
+     JSContext* Context() const { return mCx; }
+   
+     bool Failed() const { return !Get().UNSAFE_unverified_ref(); }
+
+    nsISupports* GetAsSupports() const;
+      
+    protected:
+     JSTaintedRooted<JSObject*> mGlobalJSObject;
+     JSContext* mCx;
+     mutable nsISupports* MOZ_UNSAFE_REF(
+         "Valid because GlobalObject is a stack "
+         "class, and mGlobalObject points to the "
+         "global, so it won't be destroyed as long "
+         "as GlobalObject lives on the stack") mGlobalObject;
+   };
+   
+  
+} //namespace DOM
+
+} //namespace mozilla
 
 #endif

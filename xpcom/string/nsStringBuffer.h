@@ -9,6 +9,7 @@
 
 #include <atomic>
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsStringFwd.h"
 
 template <class T>
@@ -160,6 +161,7 @@ class nsStringBuffer {
    *       (2-byte units for wide strings).
    */
   void ToString(uint32_t aLen, nsAString& aStr, bool aMoveOwnership = false);
+  void ToString(mozilla::dom::JSTainted<size_t> aLen, nsAString& aStr, bool aMoveOwnership = false);
   void ToString(uint32_t aLen, nsACString& aStr, bool aMoveOwnership = false);
 
   /**

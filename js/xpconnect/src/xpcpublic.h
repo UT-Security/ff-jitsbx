@@ -26,6 +26,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/DOMString.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/fallible.h"
 #include "nsAtom.h"
 #include "nsCOMPtr.h"
@@ -245,6 +246,10 @@ class XPCStringConvert {
                               nsStringBuffer** sharedBuffer,
                               JS::MutableHandle<JS::Value> vp);
 
+  static bool ReadableToJSVal(JSContext* cx, const nsAString& readable,
+                              nsStringBuffer** sharedBuffer,
+                              mozilla::dom::JSTaintedMutableHandle<JS::Value> vp);
+
   // Convert the given stringbuffer/length pair to a jsval
   static MOZ_ALWAYS_INLINE bool StringBufferToJSVal(
       JSContext* cx, nsStringBuffer* buf, uint32_t length,
@@ -259,6 +264,20 @@ class XPCStringConvert {
     return true;
   }
 
+    static MOZ_ALWAYS_INLINE bool StringBufferToJSVal(
+      JSContext* cx, nsStringBuffer* buf, uint32_t length,
+      mozilla::dom::JSTaintedMutableHandle<JS::Value> rval, bool* sharedBuffer) {
+    JSString* str = JS_NewMaybeExternalString(
+        cx, static_cast<char16_t*>(buf->Data()), length,
+        &sDOMStringExternalString, sharedBuffer);
+    if (!str) {
+      return false;
+    }
+    rval.setString(str);
+    return true;
+  }
+
+
   static inline bool StringLiteralToJSVal(JSContext* cx,
                                           const char16_t* literal,
                                           uint32_t length,
@@ -272,6 +291,21 @@ class XPCStringConvert {
     rval.setString(str);
     return true;
   }
+
+  static inline bool StringLiteralToJSVal(JSContext* cx,
+                                          const char16_t* literal,
+                                          uint32_t length,
+                                          mozilla::dom::JSTaintedMutableHandle<JS::Value> rval) {
+    bool ignored;
+    JSString* str = JS_NewMaybeExternalString(
+        cx, literal, length, &sLiteralExternalString, &ignored);
+    if (!str) {
+      return false;
+    }
+    rval.setString(str);
+    return true;
+  }
+
 
   static inline bool DynamicAtomToJSVal(JSContext* cx, nsDynamicAtom* atom,
                                         JS::MutableHandle<JS::Value> rval) {
@@ -351,6 +385,9 @@ bool Base64Decode(JSContext* cx, JS::Handle<JS::Value> val,
  */
 bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
                           JS::MutableHandle<JS::Value> rval);
+bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
+                          mozilla::dom::JSTaintedMutableHandle<JS::Value> rval);
+
 inline bool StringToJsval(JSContext* cx, nsAString& str,
                           JS::MutableHandle<JS::Value> rval) {
   // From the T_ASTRING case in XPCConvert::NativeData2JS.

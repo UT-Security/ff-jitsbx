@@ -206,10 +206,10 @@ interface nsIPrintSettings;
   [Replaceable, Constant, StoreInSlot,
    CrossOriginReadable] readonly attribute WindowProxy self;
   [LegacyUnforgeable, StoreInSlot, Pure] readonly attribute Document? document;
-  [Throws] attribute DOMString name;
+  [Throws, Tainted] attribute DOMString name;
   [PutForwards=href, LegacyUnforgeable, CrossOriginReadable,
    CrossOriginWritable] readonly attribute Location location;
-  [Throws] readonly attribute History history;
+  [Throws, Tainted] readonly attribute History history;
   readonly attribute CustomElementRegistry customElements;
   [Replaceable, Throws] readonly attribute BarProp locationbar;
   [Replaceable, Throws] readonly attribute BarProp menubar;

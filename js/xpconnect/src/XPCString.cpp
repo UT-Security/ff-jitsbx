@@ -109,15 +109,63 @@ bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
   JSString* str = JS_NewUCStringCopyN(cx, readable.BeginReading(), length);
   if (!str) {
     return false;
+  } 
+  vp.setString(str);
+  return true;
+}
+
+bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
+                                       nsStringBuffer** sharedBuffer,
+                                       JSTaintedMutableHandle<JS::Value> vp) {
+  *sharedBuffer = nullptr;
+
+  uint32_t length = readable.Length();
+
+  if (readable.IsLiteral()) {
+    return StringLiteralToJSVal(cx, readable.BeginReading(), length, vp);
+  }
+
+  nsStringBuffer* buf = nsStringBuffer::FromString(readable);
+  if (buf) {
+    bool shared;
+    if (!StringBufferToJSVal(cx, buf, length, vp, &shared)) {
+      return false;
+    }
+    if (shared) {
+      *sharedBuffer = buf;
+    }
+    return true;
+  }
+
+  // blech, have to copy.
+  JSString* str = JS_NewUCStringCopyN(cx, readable.BeginReading(), length);
+  if (!str) {
+    return false;
   }
   vp.setString(str);
   return true;
 }
 
+
 namespace xpc {
 
 bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
                           MutableHandleValue rval) {
+  nsStringBuffer* sharedBuffer;
+  if (!XPCStringConvert::ReadableToJSVal(cx, str, &sharedBuffer, rval)) {
+    return false;
+  }
+
+  if (sharedBuffer) {
+    // The string was shared but ReadableToJSVal didn't addref it.
+    // Move the ownership from str to jsstr.
+    str.ForgetSharedBuffer();
+  }
+  return true;
+}
+
+bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
+                          mozilla::dom::JSTaintedMutableHandle<JS::Value> rval) {
   nsStringBuffer* sharedBuffer;
   if (!XPCStringConvert::ReadableToJSVal(cx, str, &sharedBuffer, rval)) {
     return false;

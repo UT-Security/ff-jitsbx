@@ -9,6 +9,7 @@
 
 #include "domstubs.h"
 #include "mozilla/dom/ConsoleBinding.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/TimeStamp.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTHashMap.h"
@@ -50,6 +51,10 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   MOZ_CAN_RUN_SCRIPT
   static void Log(const GlobalObject& aGlobal,
                   const Sequence<JS::Value>& aData);
+
+  MOZ_CAN_RUN_SCRIPT
+  static void Log(const TaintedGlobalObject& aGlobal,
+                  const Sequence<JSTainted<JS::Value>>& aData);
 
   MOZ_CAN_RUN_SCRIPT
   static void Info(const GlobalObject& aGlobal,
@@ -180,8 +185,14 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
 
   static already_AddRefed<Console> GetConsole(const GlobalObject& aGlobal);
 
+  static already_AddRefed<Console> GetConsole(const TaintedGlobalObject& aGlobal);
+
   static already_AddRefed<Console> GetConsoleInternal(
       const GlobalObject& aGlobal, ErrorResult& aRv);
+
+  static already_AddRefed<Console> GetConsoleInternal(
+      const TaintedGlobalObject& aGlobal, ErrorResult& aRv);
+
 
   MOZ_CAN_RUN_SCRIPT
   static void ProfileMethod(const GlobalObject& aGlobal, MethodName aName,
@@ -202,11 +213,21 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   static void Method(const GlobalObject& aGlobal, MethodName aName,
                      const nsAString& aString,
                      const Sequence<JS::Value>& aData);
+    MOZ_CAN_RUN_SCRIPT
+   static void Method(const TaintedGlobalObject& aGlobal, MethodName aMethodName,
+                     const nsAString& aMethodString,
+                     const Sequence<JSTainted<JS::Value>>& aData);
+
 
   MOZ_CAN_RUN_SCRIPT
   void MethodInternal(JSContext* aCx, MethodName aName,
                       const nsAString& aString,
                       const Sequence<JS::Value>& aData);
+
+  MOZ_CAN_RUN_SCRIPT
+  void MethodInternal(JSContext* aCx, MethodName aName,
+                      const nsAString& aString,
+                      const Sequence<JSTainted<JS::Value>>& aData);
 
   MOZ_CAN_RUN_SCRIPT
   static void StringMethod(const GlobalObject& aGlobal, const nsAString& aLabel,
@@ -225,12 +246,16 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   // Returns true on success; otherwise false.
   bool StoreCallData(JSContext* aCx, ConsoleCallData* aCallData,
                      const Sequence<JS::Value>& aArguments);
+  bool StoreCallData(JSContext* aCx, ConsoleCallData* aCallData,
+                     const Sequence<JSTainted<JS::Value>>& aArguments);
 
   void UnstoreCallData(ConsoleCallData* aData);
 
   // aCx and aArguments must be in the same JS compartment.
   MOZ_CAN_RUN_SCRIPT
   void NotifyHandler(JSContext* aCx, const Sequence<JS::Value>& aArguments,
+                     ConsoleCallData* aData);
+  void NotifyHandler(JSContext* aCx, const Sequence<JSTainted<JS::Value>>& aArguments,
                      ConsoleCallData* aData);
 
   // PopulateConsoleNotificationInTheTargetScope receives aCx and aArguments in
@@ -246,6 +271,12 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   //   called.
   static bool PopulateConsoleNotificationInTheTargetScope(
       JSContext* aCx, const Sequence<JS::Value>& aArguments,
+      JS::Handle<JSObject*> aTargetScope,
+      JS::MutableHandle<JS::Value> aEventValue, ConsoleCallData* aData,
+      nsTArray<nsString>* aGroupStack);
+
+  static bool PopulateConsoleNotificationInTheTargetScope(
+      JSContext* aCx, const Sequence<JSTainted<JS::Value>>& aArguments,
       JS::Handle<JSObject*> aTargetScope,
       JS::MutableHandle<JS::Value> aEventValue, ConsoleCallData* aData,
       nsTArray<nsString>* aGroupStack);
@@ -276,6 +307,10 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
                          DOMHighResTimeStamp aTimestamp, nsAString& aTimerLabel,
                          DOMHighResTimeStamp* aTimerValue);
 
+  TimerStatus StartTimer(JSContext* aCx, const JSTainted<JS::Value>& aName,
+                         DOMHighResTimeStamp aTimestamp, nsAString& aTimerLabel,
+                         DOMHighResTimeStamp* aTimerValue);
+
   // CreateStartTimerValue generates a ConsoleTimerStart dictionary exposed as
   // JS::Value. If aTimerStatus is false, it generates a ConsoleTimerError
   // instead. It's called only after the execution StartTimer on the owning
@@ -302,6 +337,11 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   TimerStatus LogTimer(JSContext* aCx, const JS::Value& aName,
                        DOMHighResTimeStamp aTimestamp, nsAString& aTimerLabel,
                        double* aTimerDuration, bool aCancelTimer);
+
+  TimerStatus LogTimer(JSContext* aCx, const JSTainted<JS::Value>& aName,
+                       DOMHighResTimeStamp aTimestamp, nsAString& aTimerLabel,
+                       double* aTimerDuration, bool aCancelTimer);
+
 
   // This method generates a ConsoleTimerEnd dictionary exposed as JS::Value, or
   // a ConsoleTimerError dictionary if aTimerStatus is false. See LogTimer.
@@ -330,6 +370,9 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   // * aCountLabel - the label that will be populated by this method.
   uint32_t IncreaseCounter(JSContext* aCx, const Sequence<JS::Value>& aData,
                            nsAString& aCountLabel);
+  uint32_t IncreaseCounter(JSContext* aCx, const Sequence<JSTainted<JS::Value>>& aData,
+                           nsAString& aCountLabel);
+
 
   // This method follows the same pattern as StartTimer: its runs on the owning
   // thread and populate aCountLabel, used by CreateCounterResetValue. Returns
@@ -343,6 +386,9 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   // * aCountLabel - the label that will be populated by this method.
   uint32_t ResetCounter(JSContext* aCx, const Sequence<JS::Value>& aData,
                         nsAString& aCountLabel);
+  uint32_t ResetCounter(JSContext* aCx, const Sequence<JSTainted<JS::Value>>& aData,
+                        nsAString& aCountLabel);
+
 
   static bool ShouldIncludeStackTrace(MethodName aMethodName);
 
@@ -354,6 +400,10 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
                       const Sequence<JS::Value>& aData,
                       DOMHighResTimeStamp* aTimeStamp);
 
+  bool MonotonicTimer(JSContext* aCx, MethodName aMethodName,
+                      const Sequence<JSTainted<JS::Value>>& aData,
+                      DOMHighResTimeStamp* aTimeStamp);
+
   void StringifyElement(Element* aElement, nsAString& aOut);
 
   MOZ_CAN_RUN_SCRIPT
@@ -362,10 +412,20 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
                                 nsIStackFrame* aStack);
 
   MOZ_CAN_RUN_SCRIPT
+  void MaybeExecuteDumpFunction(JSContext* aCx, const nsAString& aMethodName,
+                                const Sequence<JSTainted<JS::Value>>& aData,
+                                nsIStackFrame* aStack);
+
+  MOZ_CAN_RUN_SCRIPT
   void MaybeExecuteDumpFunctionForTime(JSContext* aCx, MethodName aMethodName,
                                        const nsAString& aMethodString,
                                        uint64_t aMonotonicTimer,
                                        const JS::Value& aData);
+  MOZ_CAN_RUN_SCRIPT
+  void MaybeExecuteDumpFunctionForTime(JSContext* aCx, MethodName aMethodName,
+                                       const nsAString& aMethodString,
+                                       uint64_t aMonotonicTimer,
+                                       const JSTainted<JS::Value>& aData);
 
   MOZ_CAN_RUN_SCRIPT
   void ExecuteDumpFunction(const nsAString& aMessage);
@@ -379,6 +439,7 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
   class ArgumentData {
    public:
     bool Initialize(JSContext* aCx, const Sequence<JS::Value>& aArguments);
+    bool Initialize(JSContext* aCx, const Sequence<JSTainted<JS::Value>>& aArguments);
     void Trace(const TraceCallbacks& aCallbacks, void* aClosure);
     bool PopulateArgumentsSequence(Sequence<JS::Value>& aSequence) const;
     JSObject* Global() const { return mGlobal; }

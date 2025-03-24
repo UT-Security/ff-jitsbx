@@ -83,6 +83,7 @@
 #include "ipc/ErrorIPCUtils.h"
 #include "ipc/IPCMessageUtilsSpecializations.h"
 #include "mozilla/dom/DocGroup.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsXULElement.h"
 
 namespace mozilla {
@@ -2464,6 +2465,79 @@ nsISupports* GlobalObject::GetAsSupports() const {
   Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   return nullptr;
 }
+
+TaintedGlobalObject::TaintedGlobalObject(JSContext* aCx, JSTainted<JSObject*> aObject)
+    : mGlobalJSObject(aCx), mCx(aCx), mGlobalObject(nullptr) {
+  MOZ_ASSERT(mCx);
+  JS::Rooted<JSObject*> obj(aCx, aObject.UNSAFE_unverified_ref());
+  if (js::IsWrapper(obj)) {
+    // aCx correctly represents the current global here.
+    obj = js::CheckedUnwrapDynamic(obj, aCx, /* stopAtWindowProxy = */ false);
+    if (!obj) {
+      // We should never end up here on a worker thread, since there shouldn't
+      // be any security wrappers to worry about.
+      if (!MOZ_LIKELY(NS_IsMainThread())) {
+        MOZ_CRASH();
+      }
+
+      Throw(aCx, NS_ERROR_XPC_SECURITY_MANAGER_VETO);
+      return;
+    }
+  }
+
+  mGlobalJSObject.set(JS::GetNonCCWObjectGlobal(obj));
+}
+
+nsISupports* TaintedGlobalObject::GetAsSupports() const {
+  if (mGlobalObject) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(!js::IsWrapper(mGlobalJSObject.get().UNSAFE_unverified_ref()));
+
+  // Most of our globals are DOM objects.  Try that first.  Note that this
+  // assumes that either the first nsISupports in the object is the canonical
+  // one or that we don't care about the canonical nsISupports here.
+  mGlobalObject = UnwrapDOMObjectToISupports(mGlobalJSObject.get());
+  if (mGlobalObject) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(NS_IsMainThread(), "All our worker globals are DOM objects");
+
+  // Remove everything below here once all our global objects are using new
+  // bindings.  If that ever happens; it would need to include Sandbox and
+  // BackstagePass.
+
+  // See whether mGlobalJSObject is an XPCWrappedNative.  This will redo the
+  // IsWrapper bit above and the UnwrapDOMObjectToISupports in the case when
+  // we're not actually an XPCWrappedNative, but this should be a rare-ish case
+  // anyway.
+  //
+  // It's OK to use ReflectorToISupportsStatic, because we know we don't have a
+  // cross-compartment wrapper.
+  nsCOMPtr<nsISupports> supp = xpc::ReflectorToISupportsStatic(mGlobalJSObject.get().UNSAFE_unverified_ref());
+  if (supp) {
+    // See documentation for mGlobalJSObject for why this assignment is OK.
+    mGlobalObject = supp;
+    return mGlobalObject;
+  }
+
+  // And now a final hack.  Sandbox is not a reflector, but it does have an
+  // nsIGlobalObject hanging out in its private slot.  Handle that case here,
+  // (though again, this will do the useless UnwrapDOMObjectToISupports if we
+  // got here for something that is somehow not a DOM object, not an
+  // XPCWrappedNative _and_ not a Sandbox).
+  if (XPCConvert::GetISupportsFromJSObject(mGlobalJSObject.get().UNSAFE_unverified_ref(), &mGlobalObject)) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(!mGlobalObject);
+
+  Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+  return nullptr;
+}
+
 
 nsIPrincipal* GlobalObject::GetSubjectPrincipal() const {
   if (!NS_IsMainThread()) {

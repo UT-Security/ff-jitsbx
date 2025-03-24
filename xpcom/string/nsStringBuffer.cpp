@@ -7,6 +7,7 @@
 #include "nsStringBuffer.h"
 
 #include "mozilla/MemoryReporting.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsISupportsImpl.h"
 #include "nsString.h"
 
@@ -132,6 +133,24 @@ void nsStringBuffer::ToString(uint32_t aLen, nsAString& aStr,
   }
   aStr.Finalize();
   aStr.SetData(data, aLen, flags);
+}
+
+void nsStringBuffer::ToString(mozilla::dom::JSTainted<size_t> aLen, nsAString& aStr,
+                              bool aMoveOwnership) {
+  char16_t* data = static_cast<char16_t*>(Data());
+
+  MOZ_DIAGNOSTIC_ASSERT(data[aLen] == char16_t(0),
+                        "data should be null terminated");
+
+  nsAString::DataFlags flags =
+      nsAString::DataFlags::REFCOUNTED | nsAString::DataFlags::TERMINATED;
+
+  if (!aMoveOwnership) {
+    AddRef();
+  }
+  aStr.Finalize();
+  MOZ_ASSERT(aLen.UNSAFE_unverified_ref() <= StorageSize());
+  aStr.SetData(data, aLen.UNSAFE_unverified_ref(), flags);
 }
 
 void nsStringBuffer::ToString(uint32_t aLen, nsACString& aStr,

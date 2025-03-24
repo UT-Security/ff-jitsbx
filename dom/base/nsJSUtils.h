@@ -23,6 +23,7 @@
 #include "js/String.h"  // JS::{,Lossy}CopyLinearStringChars, JS::CopyStringChars, JS::Get{,Linear}StringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "nsString.h"
 #include "xpcpublic.h"
+#include "mozilla/dom/JSTainted.h"
 
 class nsIScriptContext;
 class nsIScriptElement;
@@ -130,6 +131,57 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   return JS::CopyStringChars(cx, dest.BeginWriting(), s, len);
 }
 
+inline void AssignFromStringBuffer(nsStringBuffer* buffer, mozilla::dom::JSTainted<size_t> len,
+                                   nsAString& dest) {
+  buffer->ToString(len, dest);
+}
+
+template <typename T, typename std::enable_if_t<std::is_same<
+                          typename T::char_type, char16_t>::value>* = nullptr>
+inline bool AssignJSString(JSContext* cx, T& dest, mozilla::dom::JSTainted<JSString*> s) {
+  mozilla::dom::JSTainted<size_t> len;
+  len.assign_raw_value(JS::GetStringLength(s.UNSAFE_unverified_ref()));
+  static_assert(JS::MaxStringLength < (1 << 30),
+                "Shouldn't overflow here or in SetCapacity");
+
+  const char16_t* chars;
+  if (XPCStringConvert::MaybeGetDOMStringChars(s.UNSAFE_unverified_ref(), &chars)) {
+    // The characters represent an existing string buffer that we shared with
+    // JS.  We can share that buffer ourselves if the string corresponds to the
+    // whole buffer; otherwise we have to copy.
+    if (chars[len.UNSAFE_unverified_ref()] == '\0') {
+      AssignFromStringBuffer(
+          nsStringBuffer::FromData(const_cast<char16_t*>(chars)), len, dest);
+      return true;
+    }
+  } else if (XPCStringConvert::MaybeGetLiteralStringChars(s.UNSAFE_unverified_ref(), &chars)) {
+    // The characters represent a literal char16_t string constant
+    // compiled into libxul; we can just use it as-is.
+    dest.AssignLiteral(chars, len.UNSAFE_unverified_ref());
+    return true;
+  }
+
+  // We don't bother checking for a dynamic-atom external string, because we'd
+  // just need to copy out of it anyway.
+
+  if (MOZ_UNLIKELY(!dest.SetLength(len.UNSAFE_unverified_ref(), mozilla::fallible))) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
+
+  char16_t *temp = (char16_t *)js_malloc(len.UNSAFE_unverified_ref() + 1);
+  if (MOZ_UNLIKELY(!temp)) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
+  bool worked = JS::CopyStringChars(cx, temp, s.UNSAFE_unverified_ref(), len.UNSAFE_unverified_ref());
+  if(worked) {
+    std::copy_n(temp, len.UNSAFE_unverified_ref(), dest.BeginWriting());
+  }
+  js_free(temp);
+  return worked;
+}
+
 // Specialization for UTF8String.
 template <typename T, typename std::enable_if_t<std::is_same<
                           typename T::char_type, char>::value>* = nullptr>
@@ -210,6 +262,10 @@ class nsTAutoJSString : public nsTAutoString<T> {
    * (this->IsEmpty()), and initialized with one of the init() methods below.
    */
   nsTAutoJSString() = default;
+
+  bool init(JSContext* aContext, mozilla::dom::JSTainted<JSString*> str) {
+    return AssignJSString(aContext, *this, str);
+  }
 
   bool init(JSContext* aContext, JSString* str) {
     return AssignJSString(aContext, *this, str);

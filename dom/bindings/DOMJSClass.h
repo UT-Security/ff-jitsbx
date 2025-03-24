@@ -560,6 +560,52 @@ struct DOMJSClass {
   const JSClass* ToJSClass() const { return &mBase; }
 };
 
+struct TaintedDOMJSClass {
+  // It would be nice to just inherit from JSClass, but that precludes pure
+  // compile-time initialization of the form |DOMJSClass = {...};|, since C++
+  // only allows brace initialization for aggregate/POD types.
+  const JSClass mBase;
+
+  // A list of interfaces that this object implements, in order of decreasing
+  // derivedness.
+  const prototypes::ID mInterfaceChain[MAX_PROTOTYPE_CHAIN_LENGTH];
+
+  // We store the DOM object in reserved slot with index DOM_OBJECT_SLOT or in
+  // the proxy private if we use a proxy object.
+  // Sometimes it's an nsISupports and sometimes it's not; this class tells
+  // us which it is.
+  const bool mDOMObjectIsISupports;
+
+  const NativePropertyHooks* mNativeHooks;
+
+  // A callback to find the associated global for our C++ object.  Note that
+  // this is used in cases when that global is _changing_, so it will not match
+  // the global of the JSObject* passed in to this function!
+  AssociatedGlobalGetter mGetAssociatedGlobal;
+  ProtoHandleGetter mGetProto;
+
+  // This stores the CC participant for the native, null if this class does not
+  // implement cycle collection or if it inherits from nsISupports (we can get
+  // the CC participant by QI'ing in that case).
+  nsCycleCollectionParticipant* mParticipant;
+
+  // The serializer for this class if the relevant object is [Serializable].
+  // Null otherwise.
+  WebIDLSerializer mSerializer;
+
+  // A callback to get the wrapper cache for C++ objects that don't inherit from
+  // nsISupports, or null.
+  WrapperCacheGetter mWrapperCacheGetter;
+
+
+    static const TaintedDOMJSClass* FromJSClass(const JSClass* base) {
+        MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);
+        return reinterpret_cast<const TaintedDOMJSClass*>(base);
+    }    
+
+    const JSClass* ToJSClass() const { return &mBase; }
+};
+
 // Special JSClass for DOM interface and interface prototype objects.
 struct DOMIfaceAndProtoJSClass {
   // It would be nice to just inherit from JSClass, but that precludes pure

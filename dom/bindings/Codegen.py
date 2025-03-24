@@ -7558,6 +7558,7 @@ class CGArgumentConverter(CGThing):
         member,
         invalidEnumValueFatal=True,
         lenientFloatCode=None,
+        isTainted=False
     ):
         CGThing.__init__(self)
         self.argument = argument
@@ -7587,9 +7588,14 @@ class CGArgumentConverter(CGThing):
                 "args[${index}]"
             ).substitute(replacer)
         else:
-            self.replacementVariables["val"] = string.Template(
-                "args[${index}]"
-            ).substitute(replacer)
+            if isTainted:
+                self.replacementVariables["val"] = string.Template(
+                    "args[${index}]"
+                ).substitute(replacer)
+            else:
+                self.replacementVariables["val"] = string.Template(
+                    "args[${index}]"
+                ).substitute(replacer)
         haveValueCheck = string.Template("args.hasDefined(${index})").substitute(
             replacer
         )
@@ -9230,6 +9236,7 @@ class CGPerSignatureCall(CGThing):
                     idlNode,
                     invalidEnumValueFatal=not setter,
                     lenientFloatCode=lenientFloatCode,
+                    isTainted=isTainted
                 )
             )
 
@@ -10330,7 +10337,7 @@ class CGSetterCall(CGPerSignatureCall):
     setter.
     """
 
-    def __init__(self, argType, nativeMethodName, descriptor, attr):
+    def __init__(self, argType, nativeMethodName, descriptor, attr, isTainted=False):
         if attr.getExtendedAttribute("UseCounter"):
             useCounterName = "%s_%s_setter" % (
                 descriptor.interface.identifier.name,
@@ -10350,6 +10357,7 @@ class CGSetterCall(CGPerSignatureCall):
             attr,
             setter=True,
             useCounterName=useCounterName,
+            isTainted=isTainted
         )
 
     def wrap_return_value(self):
@@ -11339,8 +11347,19 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
     def definition_body(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor, self.attr)
         type = self.attr.type
-        call = CGSetterCall(type, nativeName, self.descriptor, self.attr).define()
+        tainted = self.attr.getExtendedAttribute("Tainted")
+        call = CGSetterCall(type, nativeName, self.descriptor, self.attr, isTainted=tainted).define()
         prefix = ""
+        if tainted:
+            prefix = dedent(
+                """
+                JSTaintedJitSetterCallArgs test_args (
+                    JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+                        reinterpret_cast<JSTainted<JS::Value>*>(args[0].address())
+                    )
+                );
+                """
+            )
         if self.attr.getExtendedAttribute("CrossOriginWritable"):
             if type.isGeckoInterface() and not type.unroll().inner.isExternal():
                 # a setter taking a Gecko interface would require us to deal with remote
@@ -11363,15 +11382,25 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
                 nativeType=self.descriptor.nativeType,
                 call=call,
             )
-
-        return prefix + fill(
-            """
-            auto* self = static_cast<${nativeType}*>(void_self);
-            $*{call}
-            """,
-            nativeType=self.descriptor.nativeType,
-            call=call,
-        )
+        if tainted: 
+            return prefix + fill(
+                """
+                JSAppPtr taint_self (void_self);
+                auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);                
+                $*{call}
+                """,
+                nativeType=self.descriptor.nativeType,
+                call=call,
+            )
+        else:
+            return prefix + fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                $*{call}
+                """,
+                nativeType=self.descriptor.nativeType,
+                call=call,
+            )
 
     def auto_profiler_label(self):
         interface_name = self.descriptor.interface.identifier.name

@@ -35,6 +35,7 @@
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/PrototypeList.h"
 #include "mozilla/dom/RemoteObjectProxy.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/SegmentedVector.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Likely.h"
@@ -130,13 +131,40 @@ inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   return static_cast<T*>(val.toPrivate());
 }
 
+template <class T>
+inline T* UnwrapPossiblyNotInitializedDOMObject(JSTainted<JSObject*> obj) {
+  // This is used by the OjectMoved JSClass hook which can be called before
+  // JS_NewObject has returned and so before we have a chance to set
+  // DOM_OBJECT_SLOT to anything useful.
+
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj.UNSAFE_unverified_ref())),
+             "Don't pass non-DOM objects to this function");
+
+  JSTainted<JS::Value> val (JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT));
+  if (val.UNSAFE_unverified_ref().isUndefined()) {
+    return nullptr;
+  }
+  return static_cast<T*>(val.UNSAFE_unverified_ref().toPrivate());
+}
+
+
 inline const DOMJSClass* GetDOMClass(const JSClass* clasp) {
   return IsDOMClass(clasp) ? DOMJSClass::FromJSClass(clasp) : nullptr;
 }
 
+inline const TaintedDOMJSClass* GetTaintedDOMClass(const JSClass* clasp) {
+  return IsDOMClass(clasp) ? TaintedDOMJSClass::FromJSClass(clasp) : nullptr;
+}
+
+
 inline const DOMJSClass* GetDOMClass(JSObject* obj) {
   return GetDOMClass(JS::GetClass(obj));
 }
+
+inline const TaintedDOMJSClass* GetTaintedDOMClass(JSTainted<JSObject*> obj) {
+  return GetTaintedDOMClass(JS::GetClass(obj.UNSAFE_unverified_ref()));
+}
+
 
 inline nsISupports* UnwrapDOMObjectToISupports(JSObject* aObject) {
   const DOMJSClass* clasp = GetDOMClass(aObject);
@@ -146,6 +174,16 @@ inline nsISupports* UnwrapDOMObjectToISupports(JSObject* aObject) {
 
   return UnwrapPossiblyNotInitializedDOMObject<nsISupports>(aObject);
 }
+
+inline nsISupports* UnwrapDOMObjectToISupports(JSTainted<JSObject*> aObject) {
+  const TaintedDOMJSClass* clasp = GetTaintedDOMClass(aObject);
+  if (!clasp || !clasp->mDOMObjectIsISupports) {
+    return nullptr;
+  }
+
+  return UnwrapPossiblyNotInitializedDOMObject<nsISupports>(aObject);
+}
+
 
 inline bool IsDOMObject(JSObject* obj) { return IsDOMClass(JS::GetClass(obj)); }
 
@@ -1214,6 +1252,75 @@ MOZ_ALWAYS_INLINE bool DoGetOrCreateDOMReflector(
   return JS_WrapValue(cx, rval);
 }
 
+template <class T, GetOrCreateReflectorWrapBehavior wrapBehavior>
+MOZ_ALWAYS_INLINE bool DoGetOrCreateDOMReflector(
+    JSContext* cx, T* value, JS::Handle<JSObject*> givenProto,
+    JSTaintedMutableHandle<JS::Value> rval) {
+  MOZ_ASSERT(value);
+  MOZ_ASSERT_IF(givenProto, js::IsObjectInContextCompartment(givenProto, cx));
+  JSObject* obj = value->GetWrapper();
+  if (obj) {
+#ifdef DEBUG
+    AssertReflectorHasGivenProto(cx, obj, givenProto);
+    // Have to reget obj because AssertReflectorHasGivenProto can
+    // trigger gc so the pointer may now be invalid.
+    obj = value->GetWrapper();
+#endif
+  } else {
+    obj = value->WrapObject(cx, givenProto);
+    if (!obj) {
+      // At this point, obj is null, so just return false.
+      // Callers seem to be testing JS_IsExceptionPending(cx) to
+      // figure out whether WrapObject() threw.
+      return false;
+    }
+
+#ifdef DEBUG
+    if (std::is_base_of<nsWrapperCache, T>::value) {
+      CheckWrapperCacheTracing<T>::Check(value);
+    }
+#endif
+  }
+
+#ifdef DEBUG
+  const DOMJSClass* clasp = GetDOMClass(obj);
+  // clasp can be null if the cache contained a non-DOM object.
+  if (clasp) {
+    // Some sanity asserts about our object.  Specifically:
+    // 1)  If our class claims we're nsISupports, we better be nsISupports
+    //     XXXbz ideally, we could assert that reinterpret_cast to nsISupports
+    //     does the right thing, but I don't see a way to do it.  :(
+    // 2)  If our class doesn't claim we're nsISupports we better be
+    //     reinterpret_castable to nsWrapperCache.
+    MOZ_ASSERT(clasp, "What happened here?");
+    MOZ_ASSERT_IF(clasp->mDOMObjectIsISupports,
+                  (std::is_base_of<nsISupports, T>::value));
+    MOZ_ASSERT(CheckWrapperCacheCast<T>::Check());
+  }
+#endif
+
+#ifdef ENABLE_RECORD_TUPLE
+  MOZ_ASSERT(!js::gc::MaybeForwardedIsExtendedPrimitive(*obj));
+#endif
+  rval.set(JS::ObjectValue(*obj));
+
+  if (JS::GetCompartment(obj) == js::GetContextCompartment(cx)) {
+    return TypeNeedsOuterization<T>::value ? TryToOuterize(rval) : true;
+  }
+
+  if (wrapBehavior == eDontWrapIntoContextCompartment) {
+    if (TypeNeedsOuterization<T>::value) {
+      JSAutoRealm ar(cx, obj);
+      return TryToOuterize(rval);
+    }
+
+    return true;
+  }
+    JS::Rooted<JS::Value> temp_rooted (cx, rval.get().UNSAFE_unverified_ref());
+    JS::MutableHandle<JS::Value> temp (&temp_rooted);
+  return JS_WrapValue(cx, temp);
+}
+
 }  // namespace binding_detail
 
 // Create a JSObject wrapping "value", if there isn't one already, and store it
@@ -1233,6 +1340,16 @@ MOZ_ALWAYS_INLINE bool GetOrCreateDOMReflector(
   return DoGetOrCreateDOMReflector<T, eWrapIntoContextCompartment>(
       cx, value, givenProto, rval);
 }
+
+template <class T>
+MOZ_ALWAYS_INLINE bool GetOrCreateDOMReflector(
+    JSContext* cx, T* value, JSTaintedMutableHandle<JS::Value> rval,
+    JS::Handle<JSObject*> givenProto = nullptr) {
+  using namespace binding_detail;
+  return DoGetOrCreateDOMReflector<T, eWrapIntoContextCompartment>(
+      cx, value, givenProto, rval);
+}
+
 
 // Like GetOrCreateDOMReflector but doesn't wrap into the context compartment,
 // and hence does not actually require cx to be in a compartment.
@@ -1811,6 +1928,12 @@ struct GetOrCreateDOMReflectorHelper {
                                  JS::MutableHandle<JS::Value> rval) {
     return GetOrCreateDOMReflector(cx, value.get(), rval, givenProto);
   }
+
+  static inline bool GetOrCreate(JSContext* cx, const T& value,
+                                 JS::Handle<JSObject*> givenProto,
+                                 JSTaintedMutableHandle<JS::Value> rval) {
+    return GetOrCreateDOMReflector(cx, value.get(), rval, givenProto);
+  }
 };
 
 template <class T>
@@ -1818,6 +1941,13 @@ struct GetOrCreateDOMReflectorHelper<T, false> {
   static inline bool GetOrCreate(JSContext* cx, T& value,
                                  JS::Handle<JSObject*> givenProto,
                                  JS::MutableHandle<JS::Value> rval) {
+    static_assert(IsRefcounted<T>::value, "Don't pass owned classes in here.");
+    return GetOrCreateDOMReflector(cx, &value, rval, givenProto);
+  }
+
+  static inline bool GetOrCreate(JSContext* cx, T& value,
+                                 JS::Handle<JSObject*> givenProto,
+                                 JSTaintedMutableHandle<JS::Value> rval) {
     static_assert(IsRefcounted<T>::value, "Don't pass owned classes in here.");
     return GetOrCreateDOMReflector(cx, &value, rval, givenProto);
   }
@@ -1830,6 +1960,15 @@ inline bool GetOrCreateDOMReflector(
   return GetOrCreateDOMReflectorHelper<T>::GetOrCreate(cx, value, givenProto,
                                                        rval);
 }
+
+template <class T>
+inline bool GetOrCreateDOMReflector(
+    JSContext* cx, T& value, JSTaintedMutableHandle<JS::Value> rval,
+    JS::Handle<JSObject*> givenProto = nullptr) {
+  return GetOrCreateDOMReflectorHelper<T>::GetOrCreate(cx, value, givenProto,
+                                                       rval);
+}
+
 
 // Helper for calling GetOrCreateDOMReflectorNoWrap with smart pointers
 // (UniquePtr/RefPtr/nsCOMPtr) or references.
