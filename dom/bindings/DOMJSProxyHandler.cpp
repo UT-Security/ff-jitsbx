@@ -12,7 +12,9 @@
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/BindingUtils.h"
 
+#include "monkeycage/GCAPI.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "jsapi.h"
 #include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
@@ -39,11 +41,11 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
   JS::Value v = js::GetProxyPrivate(proxy);
   bool isOverrideBuiltins = !v.isObject() && !v.isUndefined();
   if (expando) {
-    bool hasOwn;
-    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, &hasOwn))
+    monkeycage::AutoStackTainted<bool> hasOwn{false};
+    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, hasOwn.UNSAFE_unverified()))
       return DOMProxyShadowsResult::ShadowCheckFailed;
 
-    if (hasOwn) {
+    if (*hasOwn.UNSAFE_unverified()) {
       return isOverrideBuiltins
                  ? DOMProxyShadowsResult::ShadowsViaIndirectExpando
                  : DOMProxyShadowsResult::ShadowsViaDirectExpando;
@@ -55,11 +57,11 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
     return DOMProxyShadowsResult::DoesntShadow;
   }
 
-  bool hasOwn;
-  if (!js::sandbox::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
+  monkeycage::AutoStackTainted<bool> hasOwn;
+  if (!js::sandbox::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, hasOwn.UNSAFE_unverified()))
     return DOMProxyShadowsResult::ShadowCheckFailed;
 
-  return hasOwn ? DOMProxyShadowsResult::Shadows
+  return *hasOwn.UNSAFE_unverified() ? DOMProxyShadowsResult::Shadows
                 : DOMProxyShadowsResult::DoesntShadowUnique;
 }
 
@@ -92,7 +94,7 @@ static inline void CheckExpandoObject(JSObject* proxy,
   nsISupports* native = UnwrapDOMObject<nsISupports>(proxy);
   nsWrapperCache* cache;
   // QueryInterface to nsWrapperCache will not GC.
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   CallQueryInterface(native, &cache);
   MOZ_ASSERT(cache->PreservingWrapper());
 #endif
@@ -114,7 +116,7 @@ static inline void CheckDOMProxy(JSObject* proxy) {
   nsWrapperCache* cache;
   // QI to nsWrapperCache cannot GC for very non-obvious reasons; see
   // https://searchfox.org/mozilla-central/rev/55da592d85c2baf8d8818010c41d9738c97013d2/js/xpconnect/src/XPCWrappedJSClass.cpp#521,545-548
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   CallQueryInterface(native, &cache);
   MOZ_ASSERT(cache->GetWrapperPreserveColor() == proxy);
 #endif

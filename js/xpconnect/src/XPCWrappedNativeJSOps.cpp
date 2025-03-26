@@ -12,6 +12,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "js/CharacterEncoding.h"
 #include "js/Class.h"
 #include "js/Object.h"  // JS::GetClass
@@ -206,7 +207,7 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
     }
     JS::sandbox::RootedObject mainObj(ccx, underware->GetJSObject());
     if (mainObj) {
-      JSAutoRealm ar(ccx, underware->GetJSObjectGlobal());
+      MC::JSAutoRealm ar(ccx, underware->GetJSObjectGlobal());
 
       // We don't have to root this ID, as it's already rooted by our context.
       HandleId id =

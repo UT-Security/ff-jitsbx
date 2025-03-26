@@ -9,6 +9,7 @@
 #include "nsJSPrincipals.h"
 #include "nsCOMPtr.h"
 #include "nsStringBuffer.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/dom/StructuredCloneTags.h"
@@ -363,7 +364,7 @@ bool nsJSPrincipals::write(JSContext* aCx, JSStructuredCloneWriter* aWriter) {
 }
 
 bool nsJSPrincipals::isSystemOrAddonPrincipal() {
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   return this->IsSystemPrincipal() ||
          this->GetIsAddonOrExpandedAddonPrincipal();
 }

@@ -151,7 +151,7 @@ EventListenerInfo::SetEnabled(bool aEnabled) {
 NS_IMETHODIMP
 EventListenerInfo::GetListenerObject(JSContext* aCx,
                                      JS::MutableHandle<JS::Value> aObject) {
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   GetJSVal(aCx, ar, aObject);
   return NS_OK;
 }
@@ -162,7 +162,7 @@ EventListenerInfo::GetListenerObject(JSContext* aCx,
 
 NS_IMPL_ISUPPORTS(EventListenerService, nsIEventListenerService)
 
-bool EventListenerInfo::GetJSVal(JSContext* aCx, Maybe<JSAutoRealm>& aAr,
+bool EventListenerInfo::GetJSVal(JSContext* aCx, Maybe<MC::JSAutoRealm>& aAr,
                                  JS::MutableHandle<JS::Value> aJSVal) {
   if (mScriptedListener) {
     aJSVal.setObject(*mScriptedListener);
@@ -179,7 +179,7 @@ EventListenerInfo::ToSource(nsAString& aResult) {
   aResult.SetIsVoid(true);
 
   AutoSafeJSContext cx;
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   JS::sandbox::Rooted<JS::Value> v(cx);
   if (GetJSVal(cx, ar, &v)) {
     JSString* str = JS_ValueToSource(cx, v);

@@ -8,13 +8,14 @@
 
 #include <utility>
 #include "MainThreadUtils.h"
+#include "monkeycage/GCAPI.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/Conversions.h"
 #include "js/ErrorReport.h"
 #include "js/Exception.h"
-#include "js/GCAPI.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "js/TypeDecls.h"
 #include "js/Value.h"
@@ -330,7 +331,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
       // particular, we do not expose this data to anyone, which is very
       // important; otherwise it could be a cross-origin information leak.
       exnObj = js::UncheckedUnwrap(exnObj);
-      JSAutoRealm ar(aCx, exnObj);
+      MC::JSAutoRealm ar(aCx, exnObj);
 
       nsAutoJSString stack, filename, name, message;
       int32_t line;
@@ -510,7 +511,7 @@ void AutoJSAPI::ReportException() {
     }
   }
   MOZ_ASSERT(JS_IsGlobalObject(errorGlobal));
-  JSAutoRealm ar(cx(), errorGlobal);
+  MC::JSAutoRealm ar(cx(), errorGlobal);
   JS::ExceptionStack exnStack(cx());
   JS::ErrorReportBuilder jsReport(cx());
   if (StealExceptionAndStack(&exnStack) &&
@@ -613,7 +614,7 @@ AutoIncumbentScript::~AutoIncumbentScript() { ScriptSettingsStack::Pop(this); }
 
 AutoNoJSAPI::AutoNoJSAPI(JSContext* aCx)
     : ScriptSettingsStackEntry(nullptr, eNoJSAPI),
-      JSAutoNullableRealm(aCx, nullptr),
+      MC::JSAutoNullableRealm(aCx, nullptr),
       mCx(aCx) {
   // Make sure we don't seem to have an incumbent global due to
   // whatever script is running right now.
@@ -632,7 +633,7 @@ AutoNoJSAPI::~AutoNoJSAPI() {
 }  // namespace dom
 
 AutoJSContext::AutoJSContext() : mCx(nullptr) {
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   MOZ_ASSERT(!mCx, "mCx should not be initialized!");
   MOZ_ASSERT(NS_IsMainThread());
 

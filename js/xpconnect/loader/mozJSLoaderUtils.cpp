@@ -13,6 +13,8 @@
 #include "js/Transcoding.h"
 #include "js/experimental/JSStencil.h"
 
+#include "monkeycage/Tainted.h"
+
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Span.h"
 
@@ -56,19 +58,19 @@ nsresult ReadCachedStencil(StartupCache* cache, nsACString& cachePath,
 
 nsresult WriteCachedStencil(StartupCache* cache, nsACString& cachePath,
                             JSContext* cx, JS::Stencil* stencil) {
-  JS::TranscodeBuffer buffer;
-  JS::TranscodeResult code = JS::EncodeStencil(cx, stencil, buffer);
+  monkeycage::AutoStackTainted<JS::TranscodeBuffer> buffer;
+  JS::TranscodeResult code = JS::EncodeStencil(cx, stencil, *buffer.UNSAFE_unverified());
   if (code != JS::TranscodeResult::Ok) {
     return HandleTranscodeResult(cx, code);
   }
 
-  size_t size = buffer.length();
+  size_t size = buffer.UNSAFE_unverified()->length();
   if (size > UINT32_MAX) {
     return NS_ERROR_FAILURE;
   }
 
   mozilla::Vector<uint8_t> bufferCopy;
-  if(!bufferCopy.append(buffer.begin(), buffer.length())) {
+  if(!bufferCopy.append(buffer.UNSAFE_unverified()->begin(), buffer.UNSAFE_unverified()->length())) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   

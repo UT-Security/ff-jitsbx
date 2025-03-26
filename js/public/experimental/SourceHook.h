@@ -106,6 +106,11 @@ class JS_PUBLIC_API SourceHookWithCallback : public SourceHook {
 extern JS_PUBLIC_API void SetSourceHook(JSContext* cx,
                                         mozilla::UniquePtr<SourceHook> hook);
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API void SetSourceHook(JSContext* cx,
+                                        mozilla::UniquePtr<SourceHook>* hook);
+#endif
+
 /** Remove |cx|'s source hook, and return it. The caller now owns the hook. */
 extern JS_PUBLIC_API mozilla::UniquePtr<SourceHook> ForgetSourceHook(
     JSContext* cx);

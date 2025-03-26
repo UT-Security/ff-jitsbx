@@ -30,6 +30,13 @@ JS_PUBLIC_API void js::SetSourceHook(JSContext* cx,
   cx->runtime()->sourceHook.ref() = std::move(hook);
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API void js::SetSourceHook(JSContext* cx,
+                                     mozilla::UniquePtr<SourceHook>* hook) {
+  cx->runtime()->sourceHook.ref() = std::move(*hook);
+}
+#endif
+
 JS_PUBLIC_API mozilla::UniquePtr<js::SourceHook> js::ForgetSourceHook(
     JSContext* cx) {
   return std::move(cx->runtime()->sourceHook.ref());

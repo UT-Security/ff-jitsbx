@@ -75,6 +75,8 @@
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "js/Warnings.h"            // JS::WarnASCII
 
+#include "monkeycage/GCAPI.h"
+
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
@@ -5886,9 +5888,9 @@ nsresult CanvasRenderingContext2D::GetImageDataArray(
                                     SurfaceFormat::A8R8G8B8_UINT32);
     }
 
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
-    uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
+    uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, *nogc.UNSAFE_unverified());
     MOZ_ASSERT(!isShared);  // Should not happen, data was created above
 
     if (usePlaceholder) {

@@ -13,6 +13,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/Proxy.h"
 #include "js/Wrapper.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -205,7 +206,7 @@ bool StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
   StackScopedCloneData data(cx, &options);
   {
     // For parsing val we have to enter (a realm in) its compartment.
-    JSAutoRealm ar(cx, sourceScope);
+    MC::JSAutoRealm ar(cx, sourceScope);
     if (!data.Write(cx, val)) {
       return false;
     }
@@ -286,7 +287,7 @@ static void MaybeSanitizeException(JSContext* cx,
   // Re-enter the unwrappedFun Realm to do get the current exception, so we
   // don't end up unnecessarily wrapping exceptions.
   {  // Scope for JSAutoRealm
-    JSAutoRealm ar(cx, unwrappedFun);
+    MC::JSAutoRealm ar(cx, unwrappedFun);
 
     JS::ExceptionStack exnStack(cx);
 
@@ -359,7 +360,7 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
     // We manually implement the contents of CrossCompartmentWrapper::call
     // here, because certain function wrappers (notably content->nsEP) are
     // not callable.
-    JSAutoRealm ar(cx, unwrappedFun);
+    MC::JSAutoRealm ar(cx, unwrappedFun);
     bool crossCompartment =
         JS::GetCompartment(unwrappedFun) != JS::GetCompartment(&args.callee());
     if (crossCompartment) {
@@ -482,7 +483,7 @@ bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
   {
     // We need to operate in the target scope from here on, let's enter
     // its realm.
-    JSAutoRealm ar(cx, targetScope);
+    MC::JSAutoRealm ar(cx, targetScope);
 
     // Unwrapping to see if we have a callable.
     funObj = UncheckedUnwrap(funObj);
@@ -574,7 +575,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
 
   JS::sandbox::RootedObject obj(cx);
   {
-    JSAutoRealm ar(cx, scope);
+    MC::JSAutoRealm ar(cx, scope);
     JS_MarkCrossZoneId(cx, options.defineAs);
 
     obj = JS_NewPlainObject(cx);

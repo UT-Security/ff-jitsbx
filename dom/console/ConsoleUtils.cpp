@@ -17,6 +17,7 @@
 #include "mozilla/dom/RootedDictionary.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/Realm.h"
 
 namespace mozilla::dom {
 
@@ -80,7 +81,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   // We don't need a proxy here.
   global = js::UncheckedUnwrap(global);
 
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
 
   RootedDictionary<ConsoleEvent> event(cx);
 

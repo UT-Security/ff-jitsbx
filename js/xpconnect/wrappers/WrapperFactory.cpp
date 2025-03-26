@@ -19,6 +19,7 @@
 #include "jsfriendapi.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
 #include "js/Object.h"              // JS::GetPrivate, JS::GetCompartment
+#include "monkeycage/Realm.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
@@ -98,7 +99,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
   MOZ_ASSERT(bool(GetXrayWaiver(obj)) == allowExisting);
   XPCWrappedNativeScope* scope = ObjectScope(obj);
 
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
   JSObject* waiver = Wrapper::New(cx, obj, js::sandbox::GetWrapper(XrayWaiver()));
   if (!waiver) {
     return nullptr;
@@ -263,7 +264,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
 
   XPCWrappedNative* wn = XPCWrappedNative::Get(obj);
 
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
   XPCCallContext ccx(cx, obj);
   JS::sandbox::RootedObject wrapScope(cx, scope);
 

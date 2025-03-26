@@ -5,6 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "js/experimental/TypedData.h"  // JS_GetFloat32ArrayData
+#include "monkeycage/GCAPI.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/TypedArray.h"
@@ -48,10 +49,10 @@ void Pose::SetFloat32Array(JSContext* aJSContext, nsWrapperCache* creator,
       return;
     }
   } else {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared = false;
     JS::sandbox::Rooted<JSObject*> obj(aJSContext, aObj.get());
-    float* data = JS_GetFloat32ArrayData(obj, &isShared, nogc);
+    float* data = JS_GetFloat32ArrayData(obj, &isShared, *nogc.UNSAFE_unverified());
     if (data) {
       memcpy(data, aVal, aValLength * sizeof(float));
     }

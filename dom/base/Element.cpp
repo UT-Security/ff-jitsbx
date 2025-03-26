@@ -21,6 +21,7 @@
 #include "ExpandedPrincipal.h"
 #include "PresShellInlines.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozAutoDocUpdate.h"
 #include "mozilla/AnimationComparator.h"
 #include "mozilla/AnimationTarget.h"
@@ -3679,7 +3680,7 @@ already_AddRefed<Animation> Element::Animate(
 
   // Animation constructor follows the standard Xray calling convention and
   // needs to be called in the target element's realm.
-  JSAutoRealm ar(aContext, global.Get());
+  MC::JSAutoRealm ar(aContext, global.Get());
 
   AnimationTimeline* timeline = OwnerDoc()->Timeline();
   RefPtr<Animation> animation = Animation::Constructor(

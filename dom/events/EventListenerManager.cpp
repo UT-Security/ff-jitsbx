@@ -8,6 +8,7 @@
 #undef CreateEvent
 
 #include "js/loader/LoadedScript.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -1122,7 +1123,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   JS::sandbox::Rooted<JSObject*> wrapScope(cx, global->GetGlobalJSObject());
   JS::sandbox::Rooted<JS::Value> v(cx);
   {
-    JSAutoRealm ar(cx, wrapScope);
+    MC::JSAutoRealm ar(cx, wrapScope);
     nsresult rv = nsContentUtils::WrapNative(cx, mTarget, &v,
                                              /* aAllowWrapping = */ false);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1131,7 +1132,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   }
 
   JS::sandbox::Rooted<JSObject*> target(cx, &v.toObject());
-  JSAutoRealm ar(cx, target);
+  MC::JSAutoRealm ar(cx, target);
 
   // Now that we've entered the realm we actually care about, create our
   // scope chain.  Note that we start with |element|, not aElement, because
@@ -1164,21 +1165,21 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   RefPtr<JS::loader::EventScript> eventScript =
       new JS::loader::EventScript(fetchOptions, uri);
 
-  JS::CompileOptions options(cx);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
   // Use line 0 to make the function body starts from line 1.
-  options.setIntroductionType("eventHandler")
+  options.UNSAFE_unverified()->setIntroductionType("eventHandler")
       .setFileAndLine(url.get(), 0)
       .setDeferDebugMetadata(true);
 
   JS::sandbox::Rooted<JSObject*> handler(cx);
-  result = nsJSUtils::CompileFunction(jsapi, scopeChain, options,
+  result = nsJSUtils::CompileFunction(jsapi, scopeChain, *options.UNSAFE_unverified(),
                                       nsAtomCString(typeAtom), argCount,
                                       argNames, *body, handler.address());
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
 
   JS::sandbox::Rooted<JS::Value> privateValue(cx, JS::PrivateValue(eventScript));
-  result = nsJSUtils::UpdateFunctionDebugMetadata(jsapi, handler, options,
+  result = nsJSUtils::UpdateFunctionDebugMetadata(jsapi, handler, *options.UNSAFE_unverified(),
                                                   jsStr, privateValue);
   NS_ENSURE_SUCCESS(result, result);
 

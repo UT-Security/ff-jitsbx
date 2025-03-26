@@ -64,6 +64,7 @@
 #include "GainNode.h"
 #include "IIRFilterNode.h"
 #include "js/ArrayBuffer.h"  // JS::StealArrayBufferContents
+#include "monkeycage/Realm.h"
 #include "MediaElementAudioSourceNode.h"
 #include "MediaStreamAudioDestinationNode.h"
 #include "MediaStreamAudioSourceNode.h"
@@ -656,7 +657,7 @@ already_AddRefed<Promise> AudioContext::DecodeAudioData(
     return promise.forget();
   }
 
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
   aBuffer.ComputeState();
 
   if (!aBuffer.Data()) {

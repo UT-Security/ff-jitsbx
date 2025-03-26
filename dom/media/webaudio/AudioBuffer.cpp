@@ -9,6 +9,8 @@
 #include "jsfriendapi.h"
 #include "js/ArrayBuffer.h"             // JS::StealArrayBufferContents
 #include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/ErrorResult.h"
 #include "AudioSegment.h"
 #include "AudioChannelFormat.h"
@@ -277,7 +279,7 @@ bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
     return false;
   }
 
-  JSAutoRealm ar(aJSContext, global->AsGlobal()->GetGlobalJSObject());
+  MC::JSAutoRealm ar(aJSContext, global->AsGlobal()->GetGlobalJSObject());
 
   for (uint32_t i = 0; i < mJSChannels.Length(); ++i) {
     if (mJSChannels[i]) {
@@ -296,9 +298,9 @@ bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
     if (!mSharedChannels.IsNull()) {
       // "4. Attach ArrayBuffers containing copies of the data to the
       // AudioBuffer, to be returned by the next call to getChannelData."
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       bool isShared;
-      float* jsData = JS_GetFloat32ArrayData(array, &isShared, nogc);
+      float* jsData = JS_GetFloat32ArrayData(array, &isShared, *nogc.UNSAFE_unverified());
       MOZ_ASSERT(!isShared);  // Was created as unshared above
       CopyChannelDataToFloat(mSharedChannels, i, 0, jsData, Length());
     }
@@ -322,7 +324,7 @@ void AudioBuffer::CopyFromChannel(const Float32Array& aDestination,
   if (aBufferOffset >= length) {
     return;
   }
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   aDestination.ComputeState();
   uint32_t count = std::min(length - aBufferOffset, aDestination.Length());
 
@@ -334,7 +336,7 @@ void AudioBuffer::CopyFromChannel(const Float32Array& aDestination,
     }
     bool isShared = false;
     const float* sourceData =
-        JS_GetFloat32ArrayData(channelArray, &isShared, nogc);
+        JS_GetFloat32ArrayData(channelArray, &isShared, *nogc.UNSAFE_unverified());
     // The sourceData arrays should all have originated in
     // RestoreJSChannelData, where they are created unshared.
     MOZ_ASSERT(!isShared);
@@ -366,7 +368,7 @@ void AudioBuffer::CopyToChannel(JSContext* aJSContext,
     return;
   }
 
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   JSObject* channelArray = mJSChannels[aChannelNumber];
   // This may differ from Length() if the buffer has been detached.
   uint32_t length = JS_GetTypedArrayLength(channelArray);
@@ -377,7 +379,7 @@ void AudioBuffer::CopyToChannel(JSContext* aJSContext,
   aSource.ComputeState();
   uint32_t count = std::min(length - aBufferOffset, aSource.Length());
   bool isShared = false;
-  float* channelData = JS_GetFloat32ArrayData(channelArray, &isShared, nogc);
+  float* channelData = JS_GetFloat32ArrayData(channelArray, &isShared, *nogc.UNSAFE_unverified());
   // The channelData arrays should all have originated in
   // RestoreJSChannelData, where they are created unshared.
   MOZ_ASSERT(!isShared);
@@ -408,7 +410,7 @@ AudioBuffer::StealJSArrayDataIntoSharedChannels(JSContext* aJSContext) {
     return nullptr;
   }
 
-  JSAutoRealm ar(aJSContext, global->AsGlobal()->GetGlobalJSObject());
+  MC::JSAutoRealm ar(aJSContext, global->AsGlobal()->GetGlobalJSObject());
 
   // "1. If any of the AudioBuffer's ArrayBuffer have been detached, abort
   // these steps, and return a zero-length channel data buffers to the

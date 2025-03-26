@@ -272,7 +272,7 @@ void PromiseDebugging::FlushUncaughtRejectionsInternal() {
     }
 
     if (!suppressReporting) {
-      JSAutoRealm ar(cx, promise);
+      MC::JSAutoRealm ar(cx, promise);
       Promise::ReportRejectedPromise(cx, promise);
     }
   }

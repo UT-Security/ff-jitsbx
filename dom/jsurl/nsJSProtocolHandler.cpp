@@ -7,6 +7,7 @@
 #include "nsCOMPtr.h"
 #include "jsapi.h"
 #include "js/Wrapper.h"
+#include "monkeycage/Tainted.h"
 #include "nsCRT.h"
 #include "nsError.h"
 #include "nsString.h"
@@ -320,11 +321,11 @@ nsresult nsJSThunk::EvaluateScript(
 
   JS::sandbox::Rooted<JS::Value> v(cx, JS::UndefinedValue());
   // Finally, we have everything needed to evaluate the expression.
-  JS::CompileOptions options(cx);
-  options.setFileAndLine(mURL.get(), 1);
-  options.setIntroductionType("javascriptURL");
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+  options.UNSAFE_unverified()->setFileAndLine(mURL.get(), 1);
+  options.UNSAFE_unverified()->setIntroductionType("javascriptURL");
   {
-    JSExecutionContext exec(cx, globalJSObject, options);
+    JSExecutionContext exec(cx, globalJSObject, *options.UNSAFE_unverified());
     exec.SetCoerceToString(true);
     exec.Compile(NS_ConvertUTF8toUTF16(script));
     rv = exec.ExecScript(&v);

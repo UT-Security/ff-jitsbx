@@ -17,6 +17,7 @@
 #include "jsapi.h"
 #include "js/CallAndConstruct.h"    // JS::Construct
 #include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/Realm.h"
 #include "nsContentUtils.h"
 
 namespace mozilla::dom {
@@ -59,7 +60,7 @@ already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
 
   // We're about to construct the actor, so make sure we're in the JSM realm
   // while importing etc.
-  JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+  MC::JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
 
   // Load the module using mozJSModuleLoader.
   RefPtr loader = mozJSModuleLoader::Get();

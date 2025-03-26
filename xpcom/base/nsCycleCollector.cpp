@@ -166,6 +166,7 @@
 #include <utility>
 
 #include "js/SliceBudget.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoGlobalTimelineMarker.h"
 #include "mozilla/Likely.h"
@@ -2711,7 +2712,7 @@ void nsCycleCollector::ForgetSkippable(js::SliceBudget& aBudget,
 }
 
 MOZ_NEVER_INLINE void nsCycleCollector::MarkRoots(SliceBudget& aBudget) {
-  JS::AutoAssertNoGC nogc;
+  MC::AutoAssertNoGC nogc;
   TimeLog timeLog;
   AutoRestore<bool> ar(mScanInProgress);
   MOZ_RELEASE_ASSERT(!mScanInProgress);
@@ -3002,7 +3003,7 @@ void nsCycleCollector::ScanBlackNodes() {
 }
 
 void nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild) {
-  JS::AutoAssertNoGC nogc;
+  MC::AutoAssertNoGC nogc;
   AutoRestore<bool> ar(mScanInProgress);
   MOZ_RELEASE_ASSERT(!mScanInProgress);
   mScanInProgress = true;
@@ -3089,7 +3090,7 @@ bool nsCycleCollector::CollectWhite() {
   uint32_t numWhiteJSZones = 0;
 
   {
-    JS::AutoAssertNoGC nogc;
+    MC::AutoAssertNoGC nogc;
     bool hasJSRuntime = !!mCCJSRuntime;
     nsCycleCollectionParticipant* zoneParticipant =
         hasJSRuntime ? mCCJSRuntime->ZoneParticipant() : nullptr;
@@ -3147,7 +3148,7 @@ bool nsCycleCollector::CollectWhite() {
   }
   timeLog.Checkpoint("CollectWhite::Unlink");
 
-  JS::AutoAssertNoGC nogc;
+  MC::AutoAssertNoGC nogc;
   for (auto iter = whiteNodes.Iter(); !iter.Done(); iter.Next()) {
     PtrInfo* pinfo = iter.Get();
     MOZ_ASSERT(pinfo->mParticipant,
@@ -3665,7 +3666,7 @@ void nsCycleCollector::BeginCollection(
   timeLog.Checkpoint("Post-FreeSnowWhite finish IGC");
 
   // Set up the data structures for building the graph.
-  JS::AutoAssertNoGC nogc;
+  MC::AutoAssertNoGC nogc;
   JS::AutoEnterCycleCollection autocc(mCCJSRuntime->Runtime());
   mGraph.Init();
   mResults.Init();
@@ -3751,7 +3752,7 @@ void nsCycleCollector::SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf,
 JSPurpleBuffer* nsCycleCollector::GetJSPurpleBuffer() {
   if (!mJSPurpleBuffer) {
     // The Release call here confuses the GC analysis.
-    JS::AutoSuppressGCAnalysis nogc;
+    MC::AutoSuppressGCAnalysis nogc;
     // JSPurpleBuffer keeps itself alive, but we need to create it in such way
     // that it ends up in the normal purple buffer. That happens when
     // nsRefPtr goes out of the scope and calls Release.

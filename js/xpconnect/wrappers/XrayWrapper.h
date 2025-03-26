@@ -17,6 +17,7 @@
 #include "js/Object.h"              // JS::GetReservedSlot
 #include "js/sandbox/Proxy.h"
 #include "js/sandbox/Wrapper.h"
+#include "monkeycage/Realm.h"
 
 // Slot where Xray functions for Web IDL methods store a pointer to
 // the Xray wrapper they're associated with.
@@ -242,7 +243,7 @@ class JSXrayTraits : public XrayTraits {
     }
 
     {
-      JSAutoRealm ar(cx, target);
+      MC::JSAutoRealm ar(cx, target);
       if (!JS_GetClassPrototype(cx, key, protop)) {
         return false;
       }
@@ -343,7 +344,7 @@ class OpaqueXrayTraits : public XrayTraits {
     // prototype. This is preferable to using a null prototype because it
     // lets things like |toString| and |__proto__| work.
     {
-      JSAutoRealm ar(cx, target);
+      MC::JSAutoRealm ar(cx, target);
       if (!JS_GetClassPrototype(cx, JSProto_Object, protop)) {
         return false;
       }

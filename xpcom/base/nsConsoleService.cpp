@@ -25,6 +25,7 @@
 #include "nsISupportsPrimitives.h"
 #include "nsGlobalWindowInner.h"
 #include "js/friend/ErrorMessages.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/dom/WindowGlobalParent.h"
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/dom/BrowserParent.h"
@@ -430,7 +431,7 @@ nsConsoleService::CallFunctionAndLogException(
 
   // AutoJSAPI picks `targetGlobal` as execution compartment
   // whereas we expect to run `function` from the callsites compartment.
-  JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
+  MC::JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
 
   JS::sandbox::RootedValue funVal(ccx, function);
   if (!JS_WrapValue(ccx, &funVal)) {

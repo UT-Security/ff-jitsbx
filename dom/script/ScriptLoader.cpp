@@ -31,6 +31,7 @@
 #include "js/SourceText.h"
 #include "js/Transcoding.h"
 #include "js/Utility.h"
+#include "monkeycage/Tainted.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
 #include "nsContentSecurityManager.h"
@@ -1516,19 +1517,19 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   }
 
   JSContext* cx = jsapi.cx();
-  JS::CompileOptions options(cx);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
 
   // Introduction script will actually be computed and set when the script is
   // collected from offthread
   JS::sandbox::Rooted<JSScript*> dummyIntroductionScript(cx);
-  nsresult rv = FillCompileOptionsForRequest(cx, aRequest, &options,
+  nsresult rv = FillCompileOptionsForRequest(cx, aRequest, options.UNSAFE_unverified(),
                                              &dummyIntroductionScript);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
   if (aRequest->IsTextSource()) {
-    if (!JS::CanCompileOffThread(cx, options, aRequest->ScriptTextLength())) {
+    if (!JS::CanCompileOffThread(cx, *options.UNSAFE_unverified(), aRequest->ScriptTextLength())) {
       TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                      "scriptloader_main_thread_compile");
       return NS_OK;
@@ -1538,7 +1539,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
 
     size_t length =
         aRequest->mScriptBytecode.length() - aRequest->mBytecodeOffset;
-    JS::DecodeOptions decodeOptions(options);
+    JS::DecodeOptions decodeOptions(*options.UNSAFE_unverified());
     if (!JS::CanDecodeOffThread(cx, decodeOptions, length)) {
       return NS_OK;
     }
@@ -1554,7 +1555,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   runnable->RecordStartTime();
 
   JS::OffThreadToken* token = nullptr;
-  rv = StartOffThreadCompilation(cx, aRequest, options, runnable, &token);
+  rv = StartOffThreadCompilation(cx, aRequest, *options.UNSAFE_unverified(), runnable, &token);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(token);
 
@@ -2382,10 +2383,10 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
       new ClassicScript(aRequest->mFetchOptions, aRequest->mBaseURL);
   JS::sandbox::Rooted<JS::Value> classicScriptValue(cx, JS::PrivateValue(classicScript));
 
-  JS::CompileOptions options(cx);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
   JS::sandbox::Rooted<JSScript*> introductionScript(cx);
   nsresult rv =
-      FillCompileOptionsForRequest(cx, aRequest, &options, &introductionScript);
+      FillCompileOptionsForRequest(cx, aRequest, options.UNSAFE_unverified(), &introductionScript);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -2394,7 +2395,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                  "scriptloader_execute");
   JS::sandbox::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
-  JSExecutionContext exec(cx, global, options, classicScriptValue,
+  JSExecutionContext exec(cx, global, *options.UNSAFE_unverified(), classicScriptValue,
                           introductionScript);
 
   rv = CompileOrDecodeClassicScript(cx, exec, aRequest);

@@ -36,10 +36,11 @@
 #include "imgILoader.h"
 #include "imgIRequest.h"
 #include "imgLoader.h"
+#include "monkeycage/BuildId.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Tainted.h"
 #include "js/Array.h"
 #include "js/ArrayBuffer.h"
-#include "js/BuildId.h"
-#include "js/GCAPI.h"
 #include "js/Id.h"
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty
@@ -847,12 +848,12 @@ bool nsContentUtils::InitJSBytecodeMimeType() {
   MOZ_ASSERT(!sJSScriptBytecodeMimeType);
   MOZ_ASSERT(!sJSModuleBytecodeMimeType);
 
-  JS::BuildIdCharVector jsBuildId;
-  if (!JS::GetScriptTranscodingBuildId(&jsBuildId)) {
+  monkeycage::AutoStackTainted<JS::BuildIdCharVector> jsBuildId;
+  if (!MC_JS::GetScriptTranscodingBuildId(jsBuildId)) {
     return false;
   }
 
-  nsDependentCSubstring jsBuildIdStr(jsBuildId.begin(), jsBuildId.length());
+  nsDependentCSubstring jsBuildIdStr(jsBuildId.UNSAFE_unverified()->begin(), jsBuildId.UNSAFE_unverified()->length());
   sJSScriptBytecodeMimeType =
       new nsCString("javascript/moz-script-bytecode-"_ns + jsBuildIdStr);
   sJSModuleBytecodeMimeType =
@@ -6795,9 +6796,9 @@ nsresult nsContentUtils::CreateArrayBuffer(JSContext* aCx,
 
   if (dataLen > 0) {
     NS_ASSERTION(JS::IsArrayBufferObject(*aResult), "What happened?");
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
-    memcpy(JS::GetArrayBufferData(*aResult, &isShared, nogc),
+    memcpy(JS::GetArrayBufferData(*aResult, &isShared, *nogc.UNSAFE_unverified()),
            aData.BeginReading(), dataLen);
     MOZ_ASSERT(!isShared);
   }

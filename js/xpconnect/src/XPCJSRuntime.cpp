@@ -6,7 +6,8 @@
 
 /* Per JSRuntime object */
 
-#include "js/Context.h"
+#include "monkeycage/Context.h"
+#include "monkeycage/GCAPI.h"
 #include "js/MemoryCallbacks.h"
 #include "js/Principals.h"
 #include "js/Realm.h"
@@ -54,7 +55,7 @@
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
 #include "jsapi.h"
-#include "js/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
+#include "monkeycage/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
 #include "js/experimental/SourceHook.h"  // js::{,Set}SourceHook
 #include "js/GCAPI.h"
 #include "js/MemoryFunctions.h"
@@ -1081,9 +1082,9 @@ static void OnLargeAllocationFailureCallback() {
 // which is not guaranteed by the callers of GetBuildId.
 extern const char gToolkitBuildID[];
 
-bool mozilla::GetBuildId(JS::BuildIdCharVector* aBuildID) {
+bool mozilla::GetBuildId(monkeycage::TaintedUnchecked<JS::BuildIdCharVector*> aBuildID) {
   size_t length = std::char_traits<char>::length(gToolkitBuildID);
-  return aBuildID->append(gToolkitBuildID, length);
+  return aBuildID.UNSAFE_unverified()->append(gToolkitBuildID, length);
 }
 
 size_t XPCJSRuntime::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) {
@@ -2886,7 +2887,7 @@ js::UniquePtr<EdgeRange> ReflectorNode::edges(JSContext* cx,
   // to guard against uninitialized objects.
   nsISupports* supp = UnwrapDOMObjectToISupports(&get());
   if (supp) {
-    JS::AutoSuppressGCAnalysis nogc;  // bug 1582326
+    MC::AutoSuppressGCAnalysis nogc;  // bug 1582326
 
     nsINode* node;
     // UnwrapDOMObjectToISupports can only return non-null if its argument is
@@ -3006,7 +3007,7 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
 
   // The WasmAltDataType is build by the JS engine from the build id.
   static auto GetBuildIdCb = monkeycage::Sandbox::RegisterCallback(GetBuildId);
-  JS::SetProcessBuildIdOp(GetBuildIdCb.get());
+  MC_JS::SetProcessBuildIdOp(GetBuildIdCb);
   FetchUtil::InitWasmAltDataType();
 
   // The JS engine needs to keep the source code around in order to implement
@@ -3088,7 +3089,7 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
   // could GC, but that's only possible if nsIXPCScriptable::GetJSClass()
   // somehow released a reference to the nsIXPCScriptable, which isn't going to
   // happen.
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   nsCOMPtr<nsIXPCScriptable> scr = p->GetScriptable();
   if (!scr) {
     return false;

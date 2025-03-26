@@ -148,7 +148,7 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
   JSContext* cx = jsapi.cx();
 
   JS::sandbox::Rooted<JSObject*> rootedCallback(cx, unwrappedCallback);
-  JSAutoRealm ar(cx, rootedCallback);
+  MC::JSAutoRealm ar(cx, rootedCallback);
 
   JS::sandbox::Rooted<JSFunction*> rootedFunction(cx,
                                          JS_GetObjectFunction(rootedCallback));
@@ -340,11 +340,11 @@ bool CallbackObject::CallSetup::ShouldRethrowException(
 }
 
 CallbackObject::CallSetup::~CallSetup() {
-  // To get our nesting right we have to destroy our JSAutoRealm first.
+  // To get our nesting right we have to destroy our MC::JSAutoRealm first.
   // In particular, we want to do this before we try reporting any exceptions,
   // so we end up reporting them while in the realm of our entry point,
   // not whatever cross-compartment wrappper mCallback might be.
-  // Be careful: the JSAutoRealm might not have been constructed at all!
+  // Be careful: the MC::JSAutoRealm might not have been constructed at all!
   mAr.reset();
 
   // Now, if we have a JSContext, report any pending errors on it, unless we
@@ -412,7 +412,7 @@ already_AddRefed<nsISupports> CallbackObjectHolderBase::ToXPCOMCallback(
     return nullptr;
   }
 
-  JSAutoRealm ar(cx, aCallback->CallbackGlobalOrNull());
+  MC::JSAutoRealm ar(cx, aCallback->CallbackGlobalOrNull());
 
   RefPtr<nsXPCWrappedJS> wrappedJS;
   nsresult rv = nsXPCWrappedJS::GetNewOrUsed(cx, callback, aIID,

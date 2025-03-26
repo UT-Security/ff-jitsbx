@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsXULAppAPI.h"
+#include "monkeycage/Realm.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"             // JS::NewArrayObject
@@ -526,7 +527,7 @@ static bool XPCShellInterruptCallback(JSContext* cx) {
 
   MOZ_ASSERT(js::IsFunctionObject(&callback.toObject()));
 
-  JSAutoRealm ar(cx, &callback.toObject());
+  MC::JSAutoRealm ar(cx, &callback.toObject());
   JS::sandbox::RootedValue rv(cx);
   if (!JS_CallFunctionValue(cx, nullptr, callback,
                             JS::HandleValueArray::empty(), &rv) ||
@@ -1355,7 +1356,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
       backstagePass->SetGlobalObject(glob);
 
-      JSAutoRealm ar(cx, glob);
+      MC::JSAutoRealm ar(cx, glob);
 
       if (!JS_InitReflectParse(cx, glob)) {
         return 1;

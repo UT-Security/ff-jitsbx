@@ -24,6 +24,7 @@
 #include "js/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
 #include "js/SourceText.h"             // JS::Source{Ownership,Text}
 #include "js/Wrapper.h"
+#include "monkeycage/Realm.h"
 
 #include "mozilla/ContentPrincipal.h"
 #include "mozilla/dom/ScriptLoader.h"
@@ -180,7 +181,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
     }
   }
 
-  JSAutoRealm rar(cx, targetObj);
+  MC::JSAutoRealm rar(cx, targetObj);
   if (!JS_WrapValue(cx, retval)) {
     return false;
   }
@@ -195,7 +196,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
     }
 
     if (storeIntoStartupCache) {
-      JSAutoRealm ar(cx, script);
+      MC::JSAutoRealm ar(cx, script);
       WriteCachedStencil(StartupCache::GetSingleton(), cachePath, cx, stencil);
     }
   }
@@ -253,7 +254,7 @@ bool mozJSSubScriptLoader::ReadStencil(
     len = buf.Length();
   }
 
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
 
   // Note that when using the ScriptPreloader cache with loadSubScript, there
   // will be a side-effect of keeping the global that the script was compiled
@@ -354,7 +355,7 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     return NS_ERROR_FAILURE;
   }
 
-  JSAutoRealm ar(cx, targetObj);
+  MC::JSAutoRealm ar(cx, targetObj);
 
   nsCOMPtr<nsIIOService> serv = do_GetService(NS_IOSERVICE_CONTRACTID);
   if (!serv) {

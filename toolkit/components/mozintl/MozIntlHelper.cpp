@@ -9,6 +9,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "js/Wrapper.h"
+#include "monkeycage/Realm.h"
 
 using namespace mozilla;
 
@@ -31,7 +32,7 @@ static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::JSAutoRealm ar(cx, realIntlObj);
 
   if (!JS_DefineFunctions(cx, realIntlObj, funcs)) {
     return NS_ERROR_FAILURE;
@@ -63,7 +64,7 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::JSAutoRealm ar(cx, realIntlObj);
 
   if (!JS::AddMozDateTimeFormatConstructor(cx, realIntlObj)) {
     return NS_ERROR_FAILURE;
@@ -86,7 +87,7 @@ MozIntlHelper::AddDisplayNamesConstructor(JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::JSAutoRealm ar(cx, realIntlObj);
 
   if (!JS::AddMozDisplayNamesConstructor(cx, realIntlObj)) {
     return NS_ERROR_FAILURE;

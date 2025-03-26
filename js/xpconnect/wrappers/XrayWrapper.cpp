@@ -14,7 +14,9 @@
 
 #include "xpcprivate.h"
 
+#include "monkeycage/Realm.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "jsapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
@@ -286,7 +288,7 @@ bool JSXrayTraits::getOwnPropertyFromWrapperIfSafe(
   JS::sandbox::RootedObject target(cx, getTargetObject(wrapper));
   JS::sandbox::RootedObject wrapperGlobal(cx, JS::CurrentGlobalOrNull(cx));
   {
-    JSAutoRealm ar(cx, target);
+    MC::JSAutoRealm ar(cx, target);
     JS_MarkCrossZoneId(cx, id);
     if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, wrapperGlobal, id,
                                         outDesc)) {
@@ -321,7 +323,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
 
   // Disallow accessor properties.
   if (desc->isAccessorDescriptor()) {
-    JSAutoRealm ar(cx, wrapperGlobal);
+    MC::JSAutoRealm ar(cx, wrapperGlobal);
     JS_MarkCrossZoneId(cx, id);
     return ReportWrapperDenial(cx, id, WrapperDenialForXray,
                                "property has accessor");
@@ -330,11 +332,11 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
   // Apply extra scrutiny to objects.
   if (desc->value().isObject()) {
     JS::sandbox::RootedObject propObj(cx, js::UncheckedUnwrap(&desc->value().toObject()));
-    JSAutoRealm ar(cx, propObj);
+    MC::JSAutoRealm ar(cx, propObj);
 
     // Disallow non-subsumed objects.
     if (!AccessCheck::subsumes(target, propObj)) {
-      JSAutoRealm ar(cx, wrapperGlobal);
+      MC::JSAutoRealm ar(cx, wrapperGlobal);
       JS_MarkCrossZoneId(cx, id);
       return ReportWrapperDenial(cx, id, WrapperDenialForXray,
                                  "value not same-origin with target");
@@ -343,7 +345,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
     // Disallow non-Xrayable objects.
     XrayType xrayType = GetXrayType(propObj);
     if (xrayType == NotXray || xrayType == XrayForOpaqueObject) {
-      JSAutoRealm ar(cx, wrapperGlobal);
+      MC::JSAutoRealm ar(cx, wrapperGlobal);
       JS_MarkCrossZoneId(cx, id);
       return ReportWrapperDenial(cx, id, WrapperDenialForXray,
                                  "value not Xrayable");
@@ -351,7 +353,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
 
     // Disallow callables.
     if (JS::IsCallable(propObj)) {
-      JSAutoRealm ar(cx, wrapperGlobal);
+      MC::JSAutoRealm ar(cx, wrapperGlobal);
       JS_MarkCrossZoneId(cx, id);
       return ReportWrapperDenial(cx, id, WrapperDenialForXray,
                                  "value is callable");
@@ -360,7 +362,7 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
 
   // Disallow any property that shadows something on its (Xrayed)
   // prototype chain.
-  JSAutoRealm ar2(cx, wrapperGlobal);
+  MC::JSAutoRealm ar2(cx, wrapperGlobal);
   JS_MarkCrossZoneId(cx, id);
   JS::sandbox::RootedObject proto(cx);
   bool foundOnProto = false;
@@ -543,7 +545,7 @@ bool JSXrayTraits::resolveOwnProperty(
                 ->isWebExtensionContentScript) {
           JS::sandbox::Rooted<Maybe<PropertyDescriptor>> innerDesc(cx);
           {
-            JSAutoRealm ar(cx, target);
+            MC::JSAutoRealm ar(cx, target);
             JS_MarkCrossZoneId(cx, id);
             if (!JS_GetOwnPropertyDescriptorById(cx, target, id, &innerDesc)) {
               return false;
@@ -568,7 +570,7 @@ bool JSXrayTraits::resolveOwnProperty(
         uint16_t length;
         JS::sandbox::RootedFunction fun(cx, JS_GetObjectFunction(target));
         {
-          JSAutoRealm ar(cx, target);
+          MC::JSAutoRealm ar(cx, target);
           if (!JS_GetFunctionLength(cx, fun, &length)) {
             return false;
           }
@@ -594,7 +596,7 @@ bool JSXrayTraits::resolveOwnProperty(
               ShouldResolvePrototypeProperty(standardConstructor)) {
             JS::sandbox::RootedObject standardProto(cx);
             {
-              JSAutoRealm ar(cx, target);
+              MC::JSAutoRealm ar(cx, target);
               if (!JS_GetClassPrototype(cx, standardConstructor,
                                         &standardProto)) {
                 return false;
@@ -709,7 +711,7 @@ bool JSXrayTraits::resolveOwnProperty(
   if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_CONSTRUCTOR)) {
     JS::sandbox::RootedObject constructor(cx);
     {
-      JSAutoRealm ar(cx, target);
+      MC::JSAutoRealm ar(cx, target);
       if (!JS_GetClassObject(cx, key, &constructor)) {
         return false;
       }
@@ -757,7 +759,7 @@ bool JSXrayTraits::delete_(JSContext* cx, HandleObject wrapper, HandleId id,
   if (isObjectOrArrayInstance) {
     JS::sandbox::RootedObject wrapperGlobal(cx, JS::CurrentGlobalOrNull(cx));
     JS::sandbox::RootedObject target(cx, getTargetObject(wrapper));
-    JSAutoRealm ar(cx, target);
+    MC::JSAutoRealm ar(cx, target);
     JS_MarkCrossZoneId(cx, id);
     JS::sandbox::Rooted<Maybe<PropertyDescriptor>> desc(cx);
     if (!getOwnPropertyFromTargetIfSafe(cx, target, wrapper, wrapperGlobal, id,
@@ -828,7 +830,7 @@ bool JSXrayTraits::defineProperty(
     }
 
     JS::sandbox::Rooted<PropertyDescriptor> wrappedDesc(cx, desc);
-    JSAutoRealm ar(cx, target);
+    MC::JSAutoRealm ar(cx, target);
     JS_MarkCrossZoneId(cx, id);
     if (!JS_WrapPropertyDescriptor(cx, &wrappedDesc) ||
         !JS_DefinePropertyById(cx, target, id, wrappedDesc, result)) {
@@ -848,7 +850,7 @@ bool JSXrayTraits::defineProperty(
       (desc.value().isNumber() || desc.value().isUndefined()) &&
       IsArrayIndex(GetArrayIndexFromId(id))) {
     JS::sandbox::RootedObject target(cx, getTargetObject(wrapper));
-    JSAutoRealm ar(cx, target);
+    MC::JSAutoRealm ar(cx, target);
     JS_MarkCrossZoneId(cx, id);
     if (!JS_DefinePropertyById(cx, target, id, desc, result)) {
       return false;
@@ -917,7 +919,7 @@ bool JSXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
       MOZ_ASSERT(props.empty());
       JS::sandbox::RootedObject wrapperGlobal(cx, JS::CurrentGlobalOrNull(cx));
       {
-        JSAutoRealm ar(cx, target);
+        MC::JSAutoRealm ar(cx, target);
         JS::sandbox::RootedIdVector targetProps(cx);
         if (!js::GetPropertyKeys(cx, target, flags | JSITER_OWNONLY,
                                  &targetProps)) {
@@ -1282,7 +1284,7 @@ bool XrayTraits::getExpandoObjectInternal(JSContext* cx, JSObject* expandoChain,
   // The expando object lives in the compartment of the target, so all our
   // work needs to happen there.
   JS::sandbox::RootedObject head(cx, expandoChain);
-  JSAutoRealm ar(cx, head);
+  MC::JSAutoRealm ar(cx, head);
 
   // Iterate through the chain, looking for a same-origin object.
   while (head) {
@@ -1371,7 +1373,7 @@ JSObject* XrayTraits::attachExpandoObject(JSContext* cx, HandleObject target,
   // Note the exclusive wrapper, if there is one.
   JS::sandbox::RootedObject wrapperHolder(cx);
   if (exclusiveWrapper) {
-    JSAutoRealm ar(cx, exclusiveWrapperGlobal);
+    MC::JSAutoRealm ar(cx, exclusiveWrapperGlobal);
     wrapperHolder =
         JS_NewObjectWithGivenProto(cx, &gWrapperHolderClass, nullptr);
     if (!wrapperHolder) {
@@ -1389,7 +1391,7 @@ JSObject* XrayTraits::attachExpandoObject(JSContext* cx, HandleObject target,
   // Store it on the exclusive wrapper, if there is one.
   if (exclusiveWrapper) {
     JS::sandbox::RootedObject cachedExpandoObject(cx, expandoObject);
-    JSAutoRealm ar(cx, exclusiveWrapperGlobal);
+    MC::JSAutoRealm ar(cx, exclusiveWrapperGlobal);
     if (!JS_WrapObject(cx, &cachedExpandoObject)) {
       return nullptr;
     }
@@ -1422,7 +1424,7 @@ JSObject* XrayTraits::ensureExpandoObject(JSContext* cx, HandleObject wrapper,
   JS::sandbox::RootedObject wrapperGlobal(cx, JS::CurrentGlobalOrNull(cx));
 
   // Expando objects live in the target compartment.
-  JSAutoRealm ar(cx, target);
+  MC::JSAutoRealm ar(cx, target);
   JS::sandbox::RootedObject expandoObject(cx);
   if (!getExpandoObject(cx, target, wrapper, &expandoObject)) {
     return nullptr;
@@ -1467,7 +1469,7 @@ bool XrayTraits::cloneExpandoChain(JSContext* cx, HandleObject dst,
         // The global containing this wrapper holder has an xray for |src|
         // with expandos. Create an xray in the global for |dst| which
         // will be associated with a clone of |src|'s expando object.
-        JSAutoRealm ar(cx, unwrappedHolder);
+        MC::JSAutoRealm ar(cx, unwrappedHolder);
         exclusiveWrapper = dst;
         if (!JS_WrapObject(cx, &exclusiveWrapper)) {
           return false;
@@ -1475,7 +1477,7 @@ bool XrayTraits::cloneExpandoChain(JSContext* cx, HandleObject dst,
         exclusiveWrapperGlobal = JS::CurrentGlobalOrNull(cx);
       }
     } else {
-      JSAutoRealm ar(cx, oldHead);
+      MC::JSAutoRealm ar(cx, oldHead);
       movingIntoXrayCompartment =
           expandoObjectMatchesConsumer(cx, oldHead, GetObjectPrincipal(dst));
     }
@@ -1616,7 +1618,7 @@ bool XrayTraits::resolveOwnProperty(
   // Check for expando properties first. Note that the expando object lives
   // in the target compartment.
   if (expando) {
-    JSAutoRealm ar(cx, expando);
+    MC::JSAutoRealm ar(cx, expando);
     JS_MarkCrossZoneId(cx, id);
     if (!JS_GetOwnPropertyDescriptorById(cx, expando, id, desc)) {
       return false;
@@ -1626,7 +1628,7 @@ bool XrayTraits::resolveOwnProperty(
   // Next, check for ES builtins.
   if (!desc.isSome() && JS_IsGlobalObject(target)) {
     JSProtoKey key = JS_IdToProtoKey(cx, id);
-    JSAutoRealm ar(cx, target);
+    MC::JSAutoRealm ar(cx, target);
     if (key != JSProto_Null) {
       MOZ_ASSERT(key < JSProto_LIMIT);
       JS::sandbox::RootedObject constructor(cx);
@@ -1662,14 +1664,14 @@ bool XrayTraits::resolveOwnProperty(
   // sort out own-ness for the holder.
   if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       WrapperFactory::AllowWaiver(wrapper)) {
-    bool found = false;
-    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
+    monkeycage::AutoStackTainted<bool> found{false};
+    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, found.UNSAFE_unverified())) {
       return false;
     }
 
     static auto wrappedJSObject_getterCb =
         monkeycage::Sandbox::RegisterCallback(wrappedJSObject_getter);
-    if (!found &&
+    if (!*found.UNSAFE_unverified() &&
         !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getterCb.get(),
                                nullptr, JSPROP_ENUMERATE)) {
       return false;
@@ -1780,7 +1782,7 @@ bool DOMXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
   if (JS_IsGlobalObject(obj)) {
     // We could do this in a shared enumerateNames with JSXrayTraits, but we
     // don't really have globals we expose via those.
-    JSAutoRealm ar(cx, obj);
+    MC::JSAutoRealm ar(cx, obj);
     if (!JS_NewEnumerateStandardClassesIncludingResolved(
             cx, obj, props, !(flags & JSITER_HIDDEN))) {
       return false;
@@ -2017,7 +2019,7 @@ bool XrayWrapper<Base, Traits>::defineProperty(JSContext* cx,
 
   // We're placing an expando. The expando objects live in the target
   // compartment, so we need to enter it.
-  JSAutoRealm ar(cx, target);
+  MC::JSAutoRealm ar(cx, target);
   JS_MarkCrossZoneId(cx, id);
 
   // Wrap the property descriptor for the target compartment.
@@ -2057,7 +2059,7 @@ bool XrayWrapper<Base, Traits>::delete_(JSContext* cx, HandleObject wrapper,
   }
 
   if (expando) {
-    JSAutoRealm ar(cx, expando);
+    MC::JSAutoRealm ar(cx, expando);
     JS_MarkCrossZoneId(cx, id);
     bool hasProp;
     if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
@@ -2198,8 +2200,8 @@ bool XrayWrapper<Base, Traits>::getPrototype(
 
   if (expando) {
     JS::sandbox::RootedValue v(cx);
-    {  // Scope for JSAutoRealm
-      JSAutoRealm ar(cx, expando);
+    {  // Scope for MC::JSAutoRealm
+      MC::JSAutoRealm ar(cx, expando);
       v = JS::GetReservedSlot(expando, JSSLOT_EXPANDO_PROTOTYPE);
     }
     if (!v.isUndefined()) {
@@ -2247,7 +2249,7 @@ bool XrayWrapper<Base, Traits>::setPrototype(JSContext* cx,
   }
 
   // The expando lives in the target's realm, so do our installation there.
-  JSAutoRealm ar(cx, target);
+  MC::JSAutoRealm ar(cx, target);
 
   JS::sandbox::RootedValue v(cx, ObjectOrNullValue(proto));
   if (!JS_WrapValue(cx, &v)) {
@@ -2300,7 +2302,7 @@ bool XrayWrapper<Base, Traits>::getPropertyKeys(
   }
 
   if (expando) {
-    JSAutoRealm ar(cx, expando);
+    MC::JSAutoRealm ar(cx, expando);
     if (!js::GetPropertyKeys(cx, expando, flags, props)) {
       return false;
     }

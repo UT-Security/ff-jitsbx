@@ -103,6 +103,7 @@
 #include "nsGenericHTMLFrameElement.h"
 
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/dom/HTMLIFrameElement.h"
 #include "nsSandboxFlags.h"
 #include "mozilla/layers/CompositorBridgeChild.h"
@@ -2151,7 +2152,7 @@ void nsFrameLoader::SetOwnerContent(Element* aContent) {
 
   JS::sandbox::Rooted<JSObject*> wrapper(jsapi.cx(), GetWrapper());
   if (wrapper) {
-    JSAutoRealm ar(jsapi.cx(), wrapper);
+    MC::JSAutoRealm ar(jsapi.cx(), wrapper);
     IgnoredErrorResult rv;
     UpdateReflectorGlobal(jsapi.cx(), wrapper, rv);
     Unused << NS_WARN_IF(rv.Failed());

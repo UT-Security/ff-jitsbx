@@ -28,6 +28,7 @@
 #include "js/Transcoding.h"
 #include "js/Utility.h"
 #include "jsapi.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ArrayIterator.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -1883,18 +1884,18 @@ nsresult nsXULPrototypeScript::Compile(
   }
 
   // Ok, compile it to create a prototype script object!
-  JS::CompileOptions options(cx);
-  FillCompileOptions(options);
-  options.setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+  FillCompileOptions(*options.UNSAFE_unverified());
+  options.UNSAFE_unverified()->setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
       .setFileAndLine(urlspec.get(), mOutOfLine ? 1 : aLineNo);
 
   JS::sandbox::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
 
-  if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
+  if (aOffThreadReceiver && JS::CanCompileOffThread(cx, *options.UNSAFE_unverified(), aTextLength)) {
     static JS::OffThreadCompileCallback OffThreadScriptReceiverCallbackCb =
         monkeycage::Sandbox::RegisterCallback(OffThreadScriptReceiverCallback).get();
     if (!JS::CompileToStencilOffThread(
-            cx, options, srcBuf, OffThreadScriptReceiverCallbackCb,
+            cx, *options.UNSAFE_unverified(), srcBuf, OffThreadScriptReceiverCallbackCb,
             static_cast<void*>(aOffThreadReceiver))) {
       JS_ClearPendingException(cx);
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1902,7 +1903,7 @@ nsresult nsXULPrototypeScript::Compile(
     NotifyOffThreadScriptCompletedRunnable::NoteReceiver(aOffThreadReceiver);
   } else {
     RefPtr<JS::Stencil> stencil =
-        JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+        JS::CompileGlobalScriptToStencil(cx, *options.UNSAFE_unverified(), srcBuf);
     if (!stencil) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -1924,9 +1925,9 @@ nsresult nsXULPrototypeScript::InstantiateScript(
     JSContext* aCx, JS::MutableHandle<JSScript*> aScript) {
   MOZ_ASSERT(mStencil);
 
-  JS::CompileOptions options(aCx);
-  FillCompileOptions(options);
-  JS::InstantiateOptions instantiateOptions(options);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(aCx);
+  FillCompileOptions(*options.UNSAFE_unverified());
+  JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
   aScript.set(JS::InstantiateGlobalStencil(aCx, instantiateOptions, mStencil));
   if (!aScript) {
     JS_ClearPendingException(aCx);

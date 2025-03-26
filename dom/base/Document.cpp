@@ -37,6 +37,7 @@
 #include "imgRequestProxy.h"
 #include "js/Value.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozAutoDocUpdate.h"
 #include "mozIDOMWindow.h"
 #include "mozIThirdPartyUtil.h"
@@ -2267,7 +2268,7 @@ void Document::AccumulateJSTelemetry(
 
   AutoJSContext cx;
   JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
-  JSAutoRealm ar(cx, globalObject);
+  MC::JSAutoRealm ar(cx, globalObject);
   JS::JSTimers timers = JS::GetJSTimers(cx);
 
   if (!timers.executionTime.IsZero()) {
@@ -10262,7 +10263,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
       // false, and documents should always insist on being wrapped in an
       // canonical scope. But we try to pass something sane anyway.
       JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
-      JSAutoRealm ar(cx, globalObject);
+      MC::JSAutoRealm ar(cx, globalObject);
       JS::sandbox::Rooted<JS::Value> v(cx);
       rv = nsContentUtils::WrapNative(cx, ToSupports(this), this, &v,
                                       /* aAllowWrapping = */ false);

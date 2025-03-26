@@ -9,6 +9,8 @@
 #include "xpcprivate.h"
 #include "XPCMaps.h"
 #include "js/Wrapper.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Tainted.h"
 
 #include "mozilla/MemoryReporting.h"
 #include "nsIScriptError.h"
@@ -218,7 +220,7 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
   // Make sure the code below does not GC. This means we don't need to trace the
   // PropertyKeys in the MemberVector, or the XPCNativeInterface we create
   // before it's added to the map.
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
 
   const uint16_t methodCount = aInfo->MethodCount();
   const uint16_t constCount = aInfo->ConstantCount();

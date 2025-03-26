@@ -10,6 +10,7 @@
 #include "js/RootingAPI.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Assertions.h"
@@ -347,7 +348,7 @@ WorkerRunnable::Run() {
   // situation described above when globalObject is null.  Make sure to enter
   // the realm of the worker's reflector if there is one.  There might
   // not be one if we're just starting to compile the script for this worker.
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   if (!targetIsWorkerThread && mWorkerPrivate->IsDedicatedWorker() &&
       mWorkerPrivate->ParentEventTargetRef()->GetWrapper()) {
     JSObject* wrapper = mWorkerPrivate->ParentEventTargetRef()->GetWrapper();

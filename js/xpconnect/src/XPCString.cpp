@@ -21,6 +21,7 @@
 #include "nscore.h"
 #include "nsString.h"
 #include "nsStringBuffer.h"
+#include "monkeycage/GCAPI.h"
 #include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "xpcpublic.h"
@@ -85,7 +86,7 @@ void XPCStringConvert::DOMExternalStringFinalize(
 size_t XPCStringConvert::DOMExternalStringSizeOfBuffer(
     const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) {
   // We promised the JS engine we would not GC.  Enforce that:
-  JS::AutoCheckCannotGC autoCannotGC;
+  MC::AutoCheckCannotGC autoCannotGC;
 
   const nsStringBuffer* buf =
       nsStringBuffer::FromData(const_cast<char16_t*>(aChars));

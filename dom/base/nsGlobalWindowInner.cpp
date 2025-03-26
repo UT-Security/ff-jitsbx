@@ -40,6 +40,7 @@
 #include "js/shadow/String.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Tainted.h"
 #include "mozIDOMWindow.h"
 #include "moz_external_vr.h"
 #include "mozilla/AlreadyAddRefed.h"
@@ -6220,13 +6221,13 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   // http://www.whatwg.org/specs/web-apps/current-work/#timer-initialisation-steps
   nsAutoMicroTask mt;
   AutoEntryScript aes(mGlobal, aExecutionReason, true);
-  JS::CompileOptions options(aes.cx());
-  options.setFileAndLine(mFileName.get(), mLineNo);
-  options.setNoScriptRval(true);
-  options.setIntroductionType("domTimer");
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(aes.cx());
+  options.UNSAFE_unverified()->setFileAndLine(mFileName.get(), mLineNo);
+  options.UNSAFE_unverified()->setNoScriptRval(true);
+  options.UNSAFE_unverified()->setIntroductionType("domTimer");
   JS::sandbox::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
-    JSExecutionContext exec(aes.cx(), global, options);
+    JSExecutionContext exec(aes.cx(), global, *options.UNSAFE_unverified());
     nsresult rv = exec.Compile(mExpr);
 
     JS::sandbox::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());

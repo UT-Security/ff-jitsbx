@@ -24,6 +24,7 @@
 #include "js/sandbox/RootingAPI.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -386,11 +387,11 @@ class CallbackObject : public nsISupports {
     Maybe<JS::sandbox::Rooted<JSObject*>> mAsyncStack;
     Maybe<JS::AutoSetAsyncStackForNewCalls> mAsyncStackSetter;
 
-    // Can't construct a JSAutoRealm without a JSContext either.  Also,
+    // Can't construct a MC::JSAutoRealm without a JSContext either.  Also,
     // Put mAr after mAutoEntryScript so that we exit the realm before we
     // pop the script settings stack. Though in practice we'll often manually
     // order those two things.
-    Maybe<JSAutoRealm> mAr;
+    Maybe<MC::JSAutoRealm> mAr;
 
     // Our BindingCallContext.  This is a Maybe so we can avoid constructing it
     // until after we have a JSContext to construct it with.

@@ -10,6 +10,7 @@
 
 #include "AccessCheck.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
@@ -236,7 +237,7 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
       funobj = XPCWrapper::UnsafeUnwrapSecurityWrapper(funobj);
     }
 
-    JSAutoRealm ar(cx, funobj);
+    MC::JSAutoRealm ar(cx, funobj);
 
     JS::sandbox::RootedValue funval(cx, ObjectValue(*funobj));
     JSFunction* fun = JS_ValueToFunction(cx, funval);
@@ -1405,7 +1406,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
 
   {
-    JSAutoRealm ar(cx, sandbox);
+    MC::JSAutoRealm ar(cx, sandbox);
 
     // This creates a SandboxPrivate and passes ownership of it to |sandbox|.
     SandboxPrivate::Create(principal, sandbox);
@@ -1519,7 +1520,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
 
   xpc::SetSandboxMetadata(cx, sandbox, options.metadata);
 
-  JSAutoRealm ar(cx, sandbox);
+  MC::JSAutoRealm ar(cx, sandbox);
   JS_FireOnNewGlobalObject(cx, sandbox);
 
   return NS_OK;
@@ -2155,7 +2156,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
     // This is clearly Gecko-specific and not in any spec.
     mozilla::dom::AutoEntryScript aes(priv, "XPConnect sandbox evaluation");
     JSContext* sandcx = aes.cx();
-    JSAutoRealm ar(sandcx, sandbox);
+    MC::JSAutoRealm ar(sandcx, sandbox);
 
     JS::CompileOptions options(sandcx);
     options.setFileAndLine(filenameBuf.get(), lineNo);
@@ -2214,7 +2215,7 @@ nsresult xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox,
 
   JS::sandbox::RootedValue metadata(cx);
   {
-    JSAutoRealm ar(cx, sandbox);
+    MC::JSAutoRealm ar(cx, sandbox);
     metadata =
         JS::GetReservedSlot(sandbox, XPCONNECT_SANDBOX_CLASS_METADATA_SLOT);
   }
@@ -2234,7 +2235,7 @@ nsresult xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox,
 
   JS::sandbox::RootedValue metadata(cx);
 
-  JSAutoRealm ar(cx, sandbox);
+  MC::JSAutoRealm ar(cx, sandbox);
   if (!JS_StructuredClone(cx, metadataArg, &metadata, nullptr, nullptr)) {
     return NS_ERROR_UNEXPECTED;
   }

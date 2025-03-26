@@ -11,6 +11,7 @@
 
 #include "js/MapAndSet.h"
 #include "js/WeakMap.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/BackgroundHangMonitor.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -242,7 +243,7 @@ Timers::~Timers() {
 
 JSObject* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                       bool aCreate) {
-  JSAutoRealm ar(aCx, mTimers);
+  MC::JSAutoRealm ar(aCx, mTimers);
 
   JS::sandbox::Rooted<JS::Value> histogram(aCx);
   JS::sandbox::Rooted<JS::Value> objs(aCx);
@@ -265,7 +266,7 @@ JSObject* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
 
 TimerKeys* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                        JS::Handle<JSObject*> aObj, bool aCreate) {
-  JSAutoRealm ar(aCx, mTimers);
+  MC::JSAutoRealm ar(aCx, mTimers);
 
   JS::sandbox::Rooted<JSObject*> objs(aCx, Get(aCx, aHistogram, aCreate));
   if (!objs) {

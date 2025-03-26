@@ -20,6 +20,7 @@
 #include "js/Object.h"              // JS::GetCompartment
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/RealmIterators.h"
+#include "monkeycage/Realm.h"
 #include "mozJSModuleLoader.h"
 
 #include "mozilla/dom/BindingUtils.h"
@@ -192,7 +193,7 @@ bool XPCWrappedNativeScope::AllowContentXBLScope(Realm* aRealm) {
 namespace xpc {
 JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
   JS::sandbox::RootedObject contentScope(cx, contentScopeArg);
-  JSAutoRealm ar(cx, contentScope);
+  MC::JSAutoRealm ar(cx, contentScope);
   nsIPrincipal* principal = GetObjectPrincipal(contentScope);
 
   if (principal->IsSystemPrincipal()) {
@@ -239,7 +240,7 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope() {
   // XXX might not want to do this at xpconnect shutdown time???
   mComponents = nullptr;
 
-  MOZ_RELEASE_ASSERT(!mXrayExpandos.initialized());
+  MOZ_RELEASE_ASSERT(!mXrayExpandos.UNSAFE_unverified()->initialized());
 
   mCompartment = nullptr;
 }
@@ -290,8 +291,8 @@ void XPCWrappedNativeScope::UpdateWeakPointersAfterGC(JSTracer* trc) {
     // The fields below are traced only if there's a live global in the
     // compartment, see TraceXPCGlobal. The compartment has no live globals so
     // clear these pointers here.
-    if (mXrayExpandos.initialized()) {
-      mXrayExpandos.destroy();
+    if (mXrayExpandos.UNSAFE_unverified()->initialized()) {
+      mXrayExpandos.UNSAFE_unverified()->destroy();
     }
     mIDProto = nullptr;
     mIIDProto = nullptr;
@@ -355,8 +356,8 @@ void XPCWrappedNativeScope::SystemIsBeingShutDown() {
     cur->mCIDProto = nullptr;
 
     // Similarly, destroy mXrayExpandos to prevent assertion failures.
-    if (cur->mXrayExpandos.initialized()) {
-      cur->mXrayExpandos.destroy();
+    if (cur->mXrayExpandos.UNSAFE_unverified()->initialized()) {
+      cur->mXrayExpandos.UNSAFE_unverified()->destroy();
     }
 
     // Walk the protos first. Wrapper shutdown can leave dangling
@@ -379,18 +380,18 @@ void XPCWrappedNativeScope::SystemIsBeingShutDown() {
 
 JSObject* XPCWrappedNativeScope::GetExpandoChain(HandleObject target) {
   MOZ_ASSERT(ObjectScope(target) == this);
-  if (!mXrayExpandos.initialized()) {
+  if (!mXrayExpandos.UNSAFE_unverified()->initialized()) {
     return nullptr;
   }
-  return mXrayExpandos.lookup(target);
+  return mXrayExpandos.UNSAFE_unverified()->lookup(target);
 }
 
 JSObject* XPCWrappedNativeScope::DetachExpandoChain(HandleObject target) {
   MOZ_ASSERT(ObjectScope(target) == this);
-  if (!mXrayExpandos.initialized()) {
+  if (!mXrayExpandos.UNSAFE_unverified()->initialized()) {
     return nullptr;
   }
-  return mXrayExpandos.removeValue(target);
+  return mXrayExpandos.UNSAFE_unverified()->removeValue(target);
 }
 
 bool XPCWrappedNativeScope::SetExpandoChain(JSContext* cx, HandleObject target,
@@ -398,10 +399,10 @@ bool XPCWrappedNativeScope::SetExpandoChain(JSContext* cx, HandleObject target,
   MOZ_ASSERT(ObjectScope(target) == this);
   MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
   MOZ_ASSERT_IF(chain, ObjectScope(chain) == this);
-  if (!mXrayExpandos.initialized() && !mXrayExpandos.init(cx)) {
+  if (!mXrayExpandos.UNSAFE_unverified()->initialized() && !mXrayExpandos.UNSAFE_unverified()->init(cx)) {
     return false;
   }
-  return mXrayExpandos.put(cx, target, chain);
+  return mXrayExpandos.UNSAFE_unverified()->put(cx, target, chain);
 }
 
 /***************************************************************************/

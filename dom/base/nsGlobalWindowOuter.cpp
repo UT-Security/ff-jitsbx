@@ -86,6 +86,7 @@
 #include "js/PropertySpec.h"
 #include "js/RealmIterators.h"
 #include "js/sandbox/Wrapper.h"
+#include "monkeycage/Realm.h"
 #include "nsLayoutUtils.h"
 #include "nsReadableUtils.h"
 #include "nsJSEnvironment.h"
@@ -622,11 +623,11 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
     }
 
     // Fall through to js::Wrapper.
-    {  // Scope for JSAutoRealm while we are dealing with js::Wrapper.
+    {  // Scope for MC::JSAutoRealm while we are dealing with js::Wrapper.
       // When forwarding to js::Wrapper, we should just enter the Realm of proxy
       // for now.  That's what js::Wrapper expects, and since we're same-origin
       // anyway this is not changing any security behavior.
-      JSAutoRealm ar(cx, proxy);
+      MC::JSAutoRealm ar(cx, proxy);
       JS_MarkCrossZoneId(cx, id);
       bool ok = js::sandbox::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
       if (!ok) {
@@ -779,8 +780,8 @@ bool nsOuterWindowProxy::ownPropertyKeys(
     // for now.  That's what js::Wrapper expects, and since we're same-origin
     // anyway this is not changing any security behavior.
     JS::sandbox::RootedVector<jsid> innerProps(cx);
-    {  // Scope for JSAutoRealm so we can mark the ids once we exit it
-      JSAutoRealm ar(cx, proxy);
+    {  // Scope for MC::JSAutoRealm so we can mark the ids once we exit it
+      MC::JSAutoRealm ar(cx, proxy);
       if (!js::sandbox::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
         return false;
       }
@@ -845,7 +846,7 @@ bool nsOuterWindowProxy::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
   // We're same-origin, so it should be safe to enter the Realm of "proxy".
   // Let's do that, just in case, to avoid cross-compartment issues in our
   // js::Wrapper caller..
-  JSAutoRealm ar(cx, proxy);
+  MC::JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return js::sandbox::Wrapper::delete_(cx, proxy, id, result);
 }
@@ -873,7 +874,7 @@ bool nsOuterWindowProxy::has(JSContext* cx, JS::Handle<JSObject*> proxy,
 
   // Just to be safe in terms of compartment asserts, enter the Realm of
   // "proxy".  We're same-origin with it, so this should be safe.
-  JSAutoRealm ar(cx, proxy);
+  MC::JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return js::sandbox::Wrapper::has(cx, proxy, id, bp);
 }
@@ -910,7 +911,7 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
 
   // Just to be safe in terms of compartment asserts, enter the Realm of
   // "proxy".  We're same-origin with it, so this should be safe.
-  JSAutoRealm ar(cx, proxy);
+  MC::JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return js::sandbox::Wrapper::hasOwn(cx, proxy, id, bp);
 }
@@ -942,10 +943,10 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     Window_Binding::CountMaybeMissingProperty(proxy, id);
   }
 
-  {  // Scope for JSAutoRealm
+  {  // Scope for MC::JSAutoRealm
     // Enter "proxy"'s Realm.  We're in the same-origin case, so this should be
     // safe.
-    JSAutoRealm ar(cx, proxy);
+    MC::JSAutoRealm ar(cx, proxy);
 
     JS_MarkCrossZoneId(cx, id);
 
@@ -979,7 +980,7 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   // Do the rest in the Realm of "proxy", since we're in the same-origin case.
-  JSAutoRealm ar(cx, proxy);
+  MC::JSAutoRealm ar(cx, proxy);
   JS::sandbox::Rooted<JS::Value> wrappedArg(cx, v);
   if (!MaybeWrapValue(cx, &wrappedArg)) {
     return false;
@@ -1019,8 +1020,8 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   // for now.  That's what js::Wrapper expects, and since we're same-origin
   // anyway this is not changing any security behavior.
   JS::sandbox::RootedVector<jsid> innerProps(cx);
-  {  // Scope for JSAutoRealm so we can mark the ids once we exit it.
-    JSAutoRealm ar(cx, proxy);
+  {  // Scope for MC::JSAutoRealm so we can mark the ids once we exit it.
+    MC::JSAutoRealm ar(cx, proxy);
     if (!js::sandbox::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
       return false;
     }
@@ -1131,7 +1132,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
 
   JS::sandbox::Rooted<JS::Value> targetFunc(cx);
   {
-    JSAutoRealm ar(cx, innerObj);
+    MC::JSAutoRealm ar(cx, innerObj);
     if (!JS_GetProperty(cx, innerObj, "print", &targetFunc)) {
       return false;
     }
@@ -1205,7 +1206,7 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
   nsGlobalWindowInner* inner = nullptr;
   {
     // Do the unwrap in the Realm of the object we're looking at.
-    JSAutoRealm ar(cx, unwrappedObj);
+    MC::JSAutoRealm ar(cx, unwrappedObj);
     UNWRAP_MAYBE_CROSS_ORIGIN_OBJECT(Window, &unwrappedObj, inner, cx);
   }
   if (!inner) {
@@ -1226,7 +1227,7 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
   // our "thisv", just in case someone grabs a "print" method off one PDF
   // document and .call()s it on another one.
   {
-    JSAutoRealm ar(cx, realCallee);
+    MC::JSAutoRealm ar(cx, realCallee);
     if (!MaybeWrapValue(cx, &thisv)) {
       return false;
     }
@@ -1294,7 +1295,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
                                      bool isChrome) {
   MOZ_ASSERT(JS_IsGlobalObject(global));
 
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
 
   js::WrapperOptions options;
   options.setClass(OuterWindowProxyClass());
@@ -1925,7 +1926,7 @@ bool nsGlobalWindowOuter::ComputeIsSecureContext(Document* aDocument,
 
 static bool InitializeLegacyNetscapeObject(JSContext* aCx,
                                            JS::Handle<JSObject*> aGlobal) {
-  JSAutoRealm ar(aCx, aGlobal);
+  MC::JSAutoRealm ar(aCx, aGlobal);
 
   // Note: MathJax depends on window.netscape being exposed. See bug 791526.
   JS::sandbox::Rooted<JSObject*> obj(aCx);
@@ -2353,7 +2354,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     }
 
     // Enter the new global's realm.
-    JSAutoRealm ar(cx, GetWrapperPreserveColor());
+    MC::JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
     {
       JS::sandbox::Rooted<JSObject*> outer(cx, GetWrapperPreserveColor());
@@ -2389,7 +2390,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     }
   }
 
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
   if (!aState && !reUseInnerWindow) {
     // Loading a new page and creating a new inner window, *not*
@@ -2555,7 +2556,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
   jsapi.Init();
   JSContext* cx = jsapi.cx();
 
-  JSAutoRealm ar(cx, localProxy);
+  MC::JSAutoRealm ar(cx, localProxy);
 
   // Clear out existing references from the browsing context and outer window to
   // the proxy, and from the proxy to the outer window. These references will
@@ -4049,7 +4050,7 @@ bool nsGlobalWindowOuter::DispatchResizeEvent(const CSSIntSize& aSize) {
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
   DOMWindowResizeEventDetail detail;
   detail.mWidth = aSize.width;
@@ -4663,7 +4664,7 @@ void nsGlobalWindowOuter::MacFullscreenMenubarOverlapChanged(
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::JSAutoRealm ar(cx, GetWrapperPreserveColor());
 
   JS::sandbox::Rooted<JS::Value> detailValue(cx);
   if (!ToJSValue(cx, aOverlapAmount, &detailValue)) {
@@ -7172,7 +7173,7 @@ nsresult nsGlobalWindowOuter::SecurityCheckURL(const char* aURL,
   }
   AutoJSContext cx;
   nsGlobalWindowInner* sourceWin = nsGlobalWindowInner::Cast(sourceWindow);
-  JSAutoRealm ar(cx, sourceWin->GetGlobalJSObject());
+  MC::JSAutoRealm ar(cx, sourceWin->GetGlobalJSObject());
 
   // Resolve the baseURI, which could be relative to the calling window.
   //

@@ -96,7 +96,9 @@
 #include <string.h>
 
 #include "xpcpublic.h"
+#include "monkeycage/Realm.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "js/HashTable.h"
 #include "js/GCHashTable.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
@@ -813,8 +815,8 @@ class XPCWrappedNativeScope final
                                              JSTracer* trc);
 
   void TraceInside(JSTracer* trc) {
-    if (mXrayExpandos.initialized()) {
-      mXrayExpandos.trace(trc);
+    if (mXrayExpandos.UNSAFE_unverified()->initialized()) {
+      mXrayExpandos.UNSAFE_unverified()->trace(trc);
     }
     JS::TraceEdge(trc, &mIDProto, "XPCWrappedNativeScope::mIDProto");
     JS::TraceEdge(trc, &mIIDProto, "XPCWrappedNativeScope::mIIDProto");
@@ -883,7 +885,7 @@ class XPCWrappedNativeScope final
   RefPtr<nsXPCComponents> mComponents;
   JS::Compartment* mCompartment;
 
-  JS::WeakMapPtr<JSObject*, JSObject*> mXrayExpandos;
+  monkeycage::AutoStackTainted<JS::WeakMapPtr<JSObject*, JSObject*>> mXrayExpandos;
 
   // For remote XUL domains, we run all XBL in the content scope for compat
   // reasons (though we sometimes pref this off for automation). We
@@ -1959,7 +1961,7 @@ class MOZ_RAII AutoScriptEvaluate {
   JSContext* mJSContext;
   mozilla::Maybe<JS::AutoSaveExceptionState> mState;
   bool mEvaluated;
-  mozilla::Maybe<JSAutoRealm> mAutoRealm;
+  mozilla::Maybe<MC::JSAutoRealm> mAutoRealm;
 
   // No copying or assignment allowed
   AutoScriptEvaluate(const AutoScriptEvaluate&) = delete;

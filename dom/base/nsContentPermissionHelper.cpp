@@ -30,6 +30,7 @@
 #include "mozilla/dom/Document.h"
 #include "nsIWeakReferenceUtils.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
+#include "monkeycage/Realm.h"
 
 using mozilla::Unused;  // <snicker>
 using namespace mozilla::dom;
@@ -612,7 +613,7 @@ nsresult TranslateChoices(
       jsapi.Init();
 
       JSContext* cx = jsapi.cx();
-      JSAutoRealm ar(cx, obj);
+      MC::JSAutoRealm ar(cx, obj);
 
       JS::sandbox::Rooted<JS::Value> val(cx);
 

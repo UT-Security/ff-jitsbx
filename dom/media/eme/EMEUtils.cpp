@@ -7,6 +7,7 @@
 #include "mozilla/EMEUtils.h"
 
 #include "jsfriendapi.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/StaticPrefs_media.h"
 #include "mozilla/dom/KeySystemNames.h"
 #include "mozilla/dom/UnionTypes.h"
@@ -27,7 +28,7 @@ ArrayData GetArrayBufferViewOrArrayBufferData(
     const dom::ArrayBufferViewOrArrayBuffer& aBufferOrView) {
   MOZ_ASSERT(aBufferOrView.IsArrayBuffer() ||
              aBufferOrView.IsArrayBufferView());
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   if (aBufferOrView.IsArrayBuffer()) {
     const dom::ArrayBuffer& buffer = aBufferOrView.GetAsArrayBuffer();
     buffer.ComputeState();
@@ -44,7 +45,7 @@ ArrayData GetArrayBufferViewOrArrayBufferData(
 void CopyArrayBufferViewOrArrayBufferData(
     const dom::ArrayBufferViewOrArrayBuffer& aBufferOrView,
     nsTArray<uint8_t>& aOutData) {
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   ArrayData data = GetArrayBufferViewOrArrayBufferData(aBufferOrView);
   aOutData.Clear();
   if (!data.IsValid()) {

@@ -8,6 +8,7 @@
 #define _xpc_WRAPPERFACTORY_H
 
 #include "js/Wrapper.h"
+#include "monkeycage/Tainted.h"
 
 namespace xpc {
 
@@ -20,9 +21,9 @@ class WrapperFactory {
 
   // Return true if any of any of the nested wrappers have the flag set.
   static bool HasWrapperFlag(JSObject* wrapper, unsigned flag) {
-    unsigned flags = 0;
-    js::UncheckedUnwrap(wrapper, true, &flags);
-    return !!(flags & flag);
+    monkeycage::AutoStackTainted<unsigned> flags{0};
+    js::UncheckedUnwrap(wrapper, true, flags.UNSAFE_unverified());
+    return !!(*flags.UNSAFE_unverified() & flag);
   }
 
   static bool IsXrayWrapper(JSObject* wrapper) {

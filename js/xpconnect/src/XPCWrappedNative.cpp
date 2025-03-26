@@ -18,6 +18,8 @@
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/GCAPI.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
 #include "XrayWrapper.h"
@@ -193,7 +195,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
 
   // Immediately enter the global's realm, so that everything else we
   // create ends up there.
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
 
   // If requested, initialize the standard classes on the global.
   if (initStandardClasses && !JS::InitRealmStandardClasses(cx)) {
@@ -350,7 +352,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
 
   JS::sandbox::RootedObject parent(cx, Scope->GetGlobalForWrappedNatives());
 
-  mozilla::Maybe<JSAutoRealm> ar;
+  mozilla::Maybe<MC::JSAutoRealm> ar;
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
     JS::sandbox::RootedObject plannedParent(cx, parent);
@@ -786,7 +788,7 @@ void XPCWrappedNative::FlatJSObjectFinalized() {
 }
 
 void XPCWrappedNative::FlatJSObjectMoved(JSObject* obj, const JSObject* old) {
-  JS::AutoAssertGCCallback inCallback;
+  MC::AutoAssertGCCallback inCallback;
   MOZ_ASSERT(mFlatJSObject == old);
 
   nsWrapperCache* cache = nullptr;

@@ -42,6 +42,7 @@
 #include "chrome/common/ipc_channel.h"
 #include "ipc/IPCMessageUtils.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "js/RootingAPI.h"
 #include "js/StructuredClone.h"
 #include "js/Value.h"
@@ -6494,7 +6495,7 @@ class DeserializeIndexValueHelper final : public Runnable {
     QM_TRY(OkIf(global), NS_OK,
            [this](const NotOk) { OperationCompleted(NS_ERROR_FAILURE); });
 
-    const JSAutoRealm ar(cx, global);
+    const MC::JSAutoRealm ar(cx, global);
 
     JS::sandbox::Rooted<JS::Value> value(cx);
     QM_TRY(MOZ_TO_RESULT(DeserializeIndexValue(cx, &value)), NS_OK,

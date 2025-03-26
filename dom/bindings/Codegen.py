@@ -4710,7 +4710,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
               return true;
             }
 
-            JSAutoRealm ar(aCx, global);
+            MC::JSAutoRealm ar(aCx, global);
             $*{declareProto}
 
             $*{createObject}
@@ -4915,7 +4915,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
             // aReflector is a new global, so has a new realm.  Enter it
             // before doing anything with it.
-            JSAutoRealm ar(aCx, aReflector);
+            MC::JSAutoRealm ar(aCx, aReflector);
 
             if (!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties})) {
               $*{failureCode}
@@ -5008,7 +5008,7 @@ class CGClearCachedValueMethod(CGAbstractMethod):
                 """
                 JS::sandbox::Rooted<JS::Value> temp(aCx);
                 JSJitGetterCallArgs args(&temp);
-                JSAutoRealm ar(aCx, obj);
+                MC::JSAutoRealm ar(aCx, obj);
                 if (!get_${name}(aCx, obj, aObject, args)) {
                   JS::SetReservedSlot(obj, ${slotIndex}, oldValue);
                   return false;
@@ -6603,7 +6603,7 @@ def getJSToNativeConversionInfo(
 
               JS::sandbox::Rooted<JSObject*> globalObj(cx);
               $*{getPromiseGlobal}
-              JSAutoRealm ar(cx, globalObj);
+              MC::JSAutoRealm ar(cx, globalObj);
               GlobalObject promiseGlobal(cx, globalObj);
               if (promiseGlobal.Failed()) {
                 $*{exceptionCode}
@@ -9363,7 +9363,7 @@ class CGPerSignatureCall(CGThing):
                 # JSAPI types, present.  Effectively, we're emulating a
                 # CrossCompartmentWrapper, but working with the C++ types, not the
                 # original list of JS::Values.
-                cgThings.append(CGGeneric("Maybe<JSAutoRealm> ar;\n"))
+                cgThings.append(CGGeneric("Maybe<MC::JSAutoRealm> ar;\n"))
                 xraySteps.append(CGGeneric("ar.emplace(cx, obj);\n"))
                 xraySteps.append(
                     CGGeneric(
@@ -9754,14 +9754,14 @@ class CGPerSignatureCall(CGThing):
                 """
                 {
                   JS::sandbox::Rooted<JSObject*> conversionScope(cx, ${conversionScope});
-                  JSAutoRealm ar(cx, conversionScope);
+                  MC::JSAutoRealm ar(cx, conversionScope);
                   do { // block we break out of when done wrapping
                     $*{wrapCode}
                   } while (false);
                   $*{postConversionSteps}
                 }
                 { // And now store things in the realm of our slotStorage.
-                  JSAutoRealm ar(cx, slotStorage);
+                  MC::JSAutoRealm ar(cx, slotStorage);
                   $*{slotStorageSteps}
                 }
                 // And now make sure args.rval() is in the caller realm.
@@ -14023,7 +14023,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
               // then use the fact that it created the objects as a flag
               // to avoid re-resolving the properties if someone deletes
               // them.
-              JSAutoRealm ar(cx, obj);
+              MC::JSAutoRealm ar(cx, obj);
               JS_MarkCrossZoneId(cx, id);
               JS::sandbox::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> objDesc(cx);
               if (!self->DoResolve(cx, obj, id, &objDesc)) {
@@ -14656,7 +14656,7 @@ class CGCountMaybeMissingProperty(CGAbstractMethod):
 
         switch = dict()
         if charIndex == 0:
-            switch["precondition"] = "StringIdChars chars(nogc, str);\n"
+            switch["precondition"] = "StringIdChars chars(*nogc.UNSAFE_unverified(), str);\n"
         else:
             switch["precondition"] = ""
 
@@ -14722,7 +14722,7 @@ class CGCountMaybeMissingProperty(CGAbstractMethod):
             Maybe<UseCounter> counter;
             {
               // Scope for our no-GC section, so we don't need to rely on SetUseCounter not GCing.
-              JS::AutoCheckCannotGC nogc;
+              MC::AutoCheckCannotGC nogc;
               JSLinearString* str = JS::AtomToLinearString(id.toAtom());
               // Don't waste time fetching the chars until we've done the length switch.
               $*{switch}
@@ -15141,7 +15141,7 @@ class CGDeleteNamedProperty(CGAbstractStaticMethod):
             MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(xray));
             MOZ_ASSERT(js::IsProxy(proxy));
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-            JSAutoRealm ar(cx, proxy);
+            MC::JSAutoRealm ar(cx, proxy);
             bool deleteSucceeded = false;
             bool found = false;
             $*{namedBody}
@@ -15184,7 +15184,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 }
 
                 // Safe to enter the Realm of proxy now.
-                JSAutoRealm ar(cx, proxy);
+                MC::JSAutoRealm ar(cx, proxy);
                 JS_MarkCrossZoneId(cx, id);
                 """
             )
@@ -15383,7 +15383,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                 """
                 {  // Scope for accessing the expando.
                   // Safe to enter our compartment, because IsPlatformObjectSameOrigin tested true.
-                  JSAutoRealm ar(cx, proxy);
+                  MC::JSAutoRealm ar(cx, proxy);
                   $*{addExpandoProps}
                 }
                 for (auto& id : props) {
@@ -15435,7 +15435,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                 }
 
                 // Now safe to enter the Realm of proxy and do the rest of the work there.
-                JSAutoRealm ar(cx, proxy);
+                MC::JSAutoRealm ar(cx, proxy);
                 JS_MarkCrossZoneId(cx, id);
                 """
             )
@@ -15592,7 +15592,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
                 $*{missingPropUseCounters}
                 { // Scope for the JSAutoRealm accessing expando and prototype.
-                  JSAutoRealm ar(cx, proxy);
+                  MC::JSAutoRealm ar(cx, proxy);
                   JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
                   if (!MaybeWrapValue(cx, &wrappedReceiver)) {
                     return false;
@@ -16102,7 +16102,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
               { // Scope so we can wrap our PropertyDescriptor back into
                 // the caller compartment.
                 // Enter the Realm of "proxy" so we can work with it.
-                JSAutoRealm ar(cx, proxy);
+                MC::JSAutoRealm ar(cx, proxy);
 
                 JS_MarkCrossZoneId(cx, id);
 
@@ -16226,7 +16226,7 @@ class CGDOMJSProxyHandler_set(ClassMethod):
             }
 
             // Safe to enter the Realm of proxy now, since it's same-origin with us.
-            JSAutoRealm ar(cx, proxy);
+            MC::JSAutoRealm ar(cx, proxy);
             JS::sandbox::Rooted<JS::Value> wrappedReceiver(cx, receiver);
             if (!MaybeWrapValue(cx, &wrappedReceiver)) {
               return false;
@@ -17169,7 +17169,7 @@ class CGDictionary(CGThing):
                   JS_ReportOutOfMemory(cx);
                   return false;
                 }
-                JSAutoRealm ar(cx, scope);
+                MC::JSAutoRealm ar(cx, scope);
                 JS::sandbox::Rooted<JS::Value> val(cx);
                 if (!ToObjectInternal(cx, &val)) {
                   return false;
@@ -20346,7 +20346,7 @@ class CGJSImplClass(CGBindingImplClass):
             }
 
             // Now define it on our chrome object
-            JSAutoRealm ar(aCx, mImpl->CallbackGlobalOrNull());
+            MC::JSAutoRealm ar(aCx, mImpl->CallbackGlobalOrNull());
             if (!JS_WrapObject(aCx, &obj)) {
               return nullptr;
             }
@@ -22101,7 +22101,7 @@ class CGHelperFunctionGenerator(CallbackMember):
                   aRv.Throw(NS_ERROR_UNEXPECTED);
                   return%s;
                 }
-                JSAutoRealm tempRealm(cx, scope);
+                MC::JSAutoRealm tempRealm(cx, scope);
                 """
                 % self.getDefaultRetval()
             )
@@ -22182,7 +22182,7 @@ class CGHelperFunctionGenerator(CallbackMember):
 
     def getRvalDecl(self):
         # hack to make sure we put JSAutoRealm inside the body scope
-        return "JSAutoRealm reflectorRealm(cx, obj);\n"
+        return "MC::JSAutoRealm reflectorRealm(cx, obj);\n"
 
     def getArgcDecl(self):
         # Don't need argc for anything.

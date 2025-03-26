@@ -8,6 +8,7 @@
 #define mozilla_EventListenerService_h_
 
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/Attributes.h"
 #include "nsCycleCollectionParticipant.h"
 #include "EventListenerManager.h"
@@ -58,7 +59,7 @@ class EventListenerInfo final : public nsIEventListenerInfo {
  protected:
   virtual ~EventListenerInfo();
 
-  bool GetJSVal(JSContext* aCx, Maybe<JSAutoRealm>& aAr,
+  bool GetJSVal(JSContext* aCx, Maybe<MC::JSAutoRealm>& aAr,
                 JS::MutableHandle<JS::Value> aJSVal);
 
   RefPtr<EventListenerManager> mListenerManager;

@@ -5,6 +5,7 @@
 
 #include "reflect.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 
 #include "nsString.h"
 #include "xpc_make_class.h"
@@ -28,7 +29,7 @@ Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
   JS::sandbox::Rooted<JSObject*> global(cx, JS::GetScriptedCallerGlobal(cx));
   if (!global) return NS_ERROR_NOT_AVAILABLE;
 
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
   *_retval = JS_InitReflectParse(cx, global);
   return NS_OK;
 }

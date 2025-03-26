@@ -22,6 +22,8 @@
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -163,15 +165,15 @@ bool WorkerScriptTimeoutHandler::Call(const char* aExecutionReason) {
   AutoEntryScript aes(mGlobal, aExecutionReason, false);
 
   JSContext* cx = aes.cx();
-  JS::CompileOptions options(cx);
-  options.setFileAndLine(mFileName.get(), mLineNo).setNoScriptRval(true);
-  options.setIntroductionType("domTimer");
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+  options.UNSAFE_unverified()->setFileAndLine(mFileName.get(), mLineNo).setNoScriptRval(true);
+  options.UNSAFE_unverified()->setIntroductionType("domTimer");
 
   JS::sandbox::Rooted<JS::Value> unused(cx);
   JS::SourceText<char16_t> srcBuf;
   if (!srcBuf.init(cx, mExpr.BeginReading(), mExpr.Length(),
                    JS::SourceOwnership::Borrowed) ||
-      !JS::Evaluate(cx, options, srcBuf, &unused)) {
+      !JS::Evaluate(cx, *options.UNSAFE_unverified(), srcBuf, &unused)) {
     if (!JS_IsExceptionPending(cx)) {
       return false;
     }
@@ -1293,7 +1295,7 @@ void WorkerDebuggerGlobalScope::LoadSubScript(
     const Optional<JS::Handle<JSObject*>>& aSandbox, ErrorResult& aRv) {
   AssertIsOnWorkerThread();
 
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   if (aSandbox.WasPassed()) {
     // We only care about worker debugger sandbox objects here, so
     // CheckedUnwrapStatic is fine.

@@ -31,6 +31,7 @@
 #include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions
 #include "js/experimental/JSStencil.h"
 #include "js/Transcoding.h"
+#include "monkeycage/Realm.h"
 #include "MainThreadUtils.h"
 #include "nsDebug.h"
 #include "nsDirectoryServiceUtils.h"
@@ -625,7 +626,7 @@ void ScriptPreloader::PrepareCacheWriteInternal() {
   }
 
   AutoSafeJSAPI jsapi;
-  JSAutoRealm ar(jsapi.cx(), xpc::PrivilegedJunkScope());
+  MC::JSAutoRealm ar(jsapi.cx(), xpc::PrivilegedJunkScope());
   bool found = false;
   for (auto& script : IterHash(mScripts, Match<ScriptStatus::Saved>())) {
     // Don't write any scripts that are also in the child cache. They'll be
@@ -1087,7 +1088,7 @@ void ScriptPreloader::FinishOffThreadDecode(JS::OffThreadToken* token) {
   AutoSafeJSAPI jsapi;
   JSContext* cx = jsapi.cx();
 
-  JSAutoRealm ar(cx, xpc::CompilationScope());
+  MC::JSAutoRealm ar(cx, xpc::CompilationScope());
   Vector<RefPtr<JS::Stencil>> stencils;
 
   // If this fails, we still need to mark the scripts as finished. Any that
@@ -1159,7 +1160,7 @@ void ScriptPreloader::DecodeNextBatch(size_t chunkSize,
 
   AutoSafeJSAPI jsapi;
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, scope ? scope : xpc::CompilationScope());
+  MC::JSAutoRealm ar(cx, scope ? scope : xpc::CompilationScope());
 
   JS::CompileOptions options(cx);
   FillCompileOptionsForCachedStencil(options);

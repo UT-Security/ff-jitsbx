@@ -94,7 +94,7 @@ struct
   // [2] https://docs.microsoft.com/en-us/cpp/build/return-values-cpp
 
   already_AddRefed(already_AddRefed<T>&& aOther)
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(JS_SANDBOX)
       : mRawPtr(aOther.take()){}
 #else
       = default;
@@ -128,7 +128,7 @@ struct
       : mRawPtr(aOther.take()) {}
 
   ~already_AddRefed()
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(JS_SANDBOX)
   {
     MOZ_ASSERT(!mRawPtr);
   }

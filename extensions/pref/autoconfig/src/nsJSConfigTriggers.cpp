@@ -6,6 +6,7 @@
 #include "nsJSConfigTriggers.h"
 
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "nsIXPConnect.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -66,7 +67,7 @@ nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
   autoconfigSb.init(cx, js::UncheckedUnwrap(sandbox));
 
   // Define gSandbox on system sandbox.
-  JSAutoRealm ar(cx, autoconfigSystemSb);
+  MC::JSAutoRealm ar(cx, autoconfigSystemSb);
 
   JS::sandbox::Rooted<JS::Value> value(cx, JS::ObjectValue(*sandbox));
 
@@ -155,7 +156,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
     convertedScript = NS_ConvertASCIItoUTF16(script);
   }
   {
-    JSAutoRealm ar(cx, autoconfigSystemSb);
+    MC::JSAutoRealm ar(cx, autoconfigSystemSb);
     JS::sandbox::Rooted<JS::Value> value(cx, JS::BooleanValue(isUTF8));
     if (!JS_DefineProperty(cx, autoconfigSystemSb, "gIsUTF8", value,
                            JSPROP_ENUMERATE)) {

@@ -14,6 +14,7 @@
 
 #include "base/basictypes.h"
 #include "MainThreadUtils.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/ArenaAllocatorExtensions.h"
 #include "mozilla/ArenaAllocator.h"
@@ -1490,7 +1491,7 @@ static void AddAccessCount(const nsACString& aPrefName) {
   // 1474789), and triggers assertions here if we try to add usage count entries
   // from background threads.
   if (NS_IsMainThread()) {
-    monkeycage::AutoStackTainted<JS::AutoSuppressGCAnalysis> nogc;  // Hash functions will not GC.
+    MC::AutoSuppressGCAnalysis nogc;  // Hash functions will not GC.
     uint32_t& count = gAccessCounts->LookupOrInsert(aPrefName);
     count++;
   }

@@ -17,7 +17,8 @@
 #include "nsNetUtil.h"
 #include "nsStreamUtils.h"
 #include "nsString.h"
-#include "js/BuildId.h"
+#include "monkeycage/Tainted.h"
+#include "monkeycage/BuildId.h"
 #include "mozilla/dom/Document.h"
 
 #include "mozilla/ClearOnShutdown.h"
@@ -659,12 +660,12 @@ void FetchUtil::InitWasmAltDataType() {
 
   type.Append(nsLiteralCString("wasm-"));
 
-  JS::BuildIdCharVector buildId;
-  if (!JS::GetOptimizedEncodingBuildId(&buildId)) {
+  monkeycage::AutoStackTainted<JS::BuildIdCharVector> buildId;
+  if (!MC_JS::GetOptimizedEncodingBuildId(buildId)) {
     MOZ_CRASH("build id oom");
   }
 
-  type.Append(buildId.begin(), buildId.length());
+  type.Append(buildId.UNSAFE_unverified()->begin(), buildId.UNSAFE_unverified()->length());
 }
 
 static bool ThrowException(JSContext* aCx, unsigned errorNumber) {

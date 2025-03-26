@@ -33,6 +33,7 @@
 #include "js/Exception.h"
 #include "js/SourceText.h"
 #include "js/TypeDecls.h"
+#include "monkeycage/Tainted.h"
 #include "nsError.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentSecurityManager.h"
@@ -1136,14 +1137,14 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
     return NS_SUCCEEDED(rv);
   }
 
-  JS::CompileOptions options(aCx);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(aCx);
   // The introduction script is used by the DOM script loader as a way
   // to fill the Debugger Metadata for the JS Execution context. We don't use
   // the JS Execution context as we are not making use of async compilation
   // (delegation to another worker to produce bytecode or compile a string to a
   // JSScript), so it is not used in this context.
   JS::sandbox::Rooted<JSScript*> unusedIntroductionScript(aCx);
-  nsresult rv = FillCompileOptionsForRequest(aCx, aRequest, &options,
+  nsresult rv = FillCompileOptionsForRequest(aCx, aRequest, options.UNSAFE_unverified(),
                                              &unusedIntroductionScript);
 
   MOZ_ASSERT(NS_SUCCEEDED(rv), "Filling compile options should not fail");
@@ -1183,9 +1184,9 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
 
   bool successfullyEvaluated =
       aRequest->IsUTF8Text()
-          ? EvaluateSourceBuffer(aCx, options, classicScript,
+          ? EvaluateSourceBuffer(aCx, *options.UNSAFE_unverified(), classicScript,
                                  maybeSource.ref<JS::SourceText<Utf8Unit>>())
-          : EvaluateSourceBuffer(aCx, options, classicScript,
+          : EvaluateSourceBuffer(aCx, *options.UNSAFE_unverified(), classicScript,
                                  maybeSource.ref<JS::SourceText<char16_t>>());
 
   if (aRequest->IsCanceled()) {

@@ -13,6 +13,7 @@
 #include "mozilla/Unused.h"
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "XPCWrapper.h"
 #include "jsfriendapi.h"
 #include "js/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
@@ -456,7 +457,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
     if (!global) {
       return nullptr;
     }
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
 
     RealmPrivate::Init(global, site);
 
@@ -513,7 +514,7 @@ bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
                       uint32_t aFlags) {
   // Immediately enter the global's realm so that everything we create
   // ends up there.
-  JSAutoRealm ar(aJSContext, aGlobal);
+  MC::JSAutoRealm ar(aJSContext, aGlobal);
 
   // Stuff coming through this path always ends up as a DOM global.
   MOZ_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL);
@@ -576,7 +577,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
   }
 
   {  // Scope for JSAutoRealm
-    JSAutoRealm ar(aJSContext, global);
+    MC::JSAutoRealm ar(aJSContext, global);
     if (!JS_DefineProfilingFunctions(aJSContext, global)) {
       return UnexpectedFailure(NS_ERROR_OUT_OF_MEMORY);
     }
@@ -594,7 +595,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
 
 nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
   JS::sandbox::RootedObject inner(cx, js::UncheckedUnwrap(obj));
-  JSAutoRealm ar(cx, inner);
+  MC::JSAutoRealm ar(cx, inner);
 
   JS::sandbox::RootedFunction fun(cx, JS_GetObjectFunction(inner));
   if (!fun) {
@@ -662,7 +663,7 @@ static nsresult NativeInterface2JSObject(JSContext* aCx, HandleObject aScope,
                                          nsWrapperCache* aCache,
                                          const nsIID* aIID, bool aAllowWrapping,
                                          MutableHandleValue aVal) {
-  JSAutoRealm ar(aCx, aScope);
+  MC::JSAutoRealm ar(aCx, aScope);
 
   nsresult rv;
   xpcObjectHelper helper(aCOMObj, aCache);

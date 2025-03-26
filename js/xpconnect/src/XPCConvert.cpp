@@ -21,6 +21,9 @@
 
 #include "nsWrapperCacheInlines.h"
 
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Realm.h"
+
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
@@ -568,17 +571,17 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
 #ifdef DEBUG
       if (JS::StringHasLatin1Chars(str)) {
         size_t len;
-        AutoCheckCannotGC nogc;
+        MC::AutoCheckCannotGC nogc;
         const Latin1Char* chars =
-            JS_GetLatin1StringCharsAndLength(cx, nogc, str, &len);
+            JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &len);
         if (chars) {
           CheckCharsInCharRange(chars, len);
         }
       } else {
         size_t len;
-        AutoCheckCannotGC nogc;
+        MC::AutoCheckCannotGC nogc;
         const char16_t* chars =
-            JS_GetTwoByteStringCharsAndLength(cx, nogc, str, &len);
+            JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &len);
         if (chars) {
           CheckCharsInCharRange(chars, len);
         }
@@ -901,7 +904,7 @@ bool XPCConvert::NativeInterface2JSObject(JSContext* cx, MutableHandleValue d,
     return false;
   }
 
-  JSAutoRealm ar(cx, xpcscope->GetGlobalForWrappedNatives());
+  MC::JSAutoRealm ar(cx, xpcscope->GetGlobalForWrappedNatives());
 
   // First, see if this object supports the wrapper cache. In that case, the
   // object to use is found as cache->GetWrapper(). If that is null, then the
@@ -1458,9 +1461,9 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
     }
 
     // Get the backing memory buffer to copy out of.
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared = false;
-    const void* data = JS_GetArrayBufferViewData(jsarray, &isShared, nogc);
+    const void* data = JS_GetArrayBufferViewData(jsarray, &isShared, *nogc.UNSAFE_unverified());
 
     // Require opting in to shared memory - a future project.
     if (isShared) {

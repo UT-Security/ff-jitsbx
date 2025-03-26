@@ -38,9 +38,10 @@
 #include "nsIX509Cert.h"  // for NS_IX509CERT_IID
 
 #include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{,ByteLength},IsArrayBufferObject}
-#include "js/GCAPI.h"        // JS::AutoCheckCannotGC
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
+
+#include "monkeycage/GCAPI.h"        // JS::AutoCheckCannotGC
 
 using mozilla::AsBytes;
 using mozilla::MakeUnique;
@@ -839,14 +840,14 @@ nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
 
     // Copy data into actual buffer.
 
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
     if (bufferLength != JS::GetArrayBufferByteLength(buffer)) {
       return NS_ERROR_FAILURE;
     }
 
     char* data = reinterpret_cast<char*>(
-        JS::GetArrayBufferData(buffer, &isShared, nogc));
+        JS::GetArrayBufferData(buffer, &isShared, *nogc.UNSAFE_unverified()));
     MOZ_ASSERT(!isShared);  // Implied by JS::GetArrayBufferData()
     if (!data) {
       return NS_ERROR_FAILURE;

@@ -25,6 +25,7 @@
 #include "js/SourceText.h"  // JS::Source{Ownership,Text}
 #include "js/Utility.h"
 #include "js/Warnings.h"  // JS::SetWarningReporter
+#include "monkeycage/Realm.h"
 #include "prnetdb.h"
 #include "nsITimer.h"
 #include "mozilla/Atomics.h"
@@ -465,7 +466,7 @@ class JSContextWrapper {
     }
     JS::sandbox::Rooted<JSObject*> global(mContext, mGlobal);
 
-    JSAutoRealm ar(mContext, global);
+    MC::JSAutoRealm ar(mContext, global);
     AutoPACErrorReporter aper(mContext);
     if (!JS_DefineFunctions(mContext, global, PACGlobalFunctions)) {
       return NS_ERROR_FAILURE;
@@ -547,7 +548,7 @@ nsresult ProxyAutoConfig::SetupJS() {
   if (!mJSContext) return NS_ERROR_FAILURE;
 
   JSContext* cx = mJSContext->Context();
-  JSAutoRealm ar(cx, mJSContext->Global());
+  MC::JSAutoRealm ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // check if this is a data: uri so that we don't spam the js console with
@@ -639,7 +640,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
   if (!mJSContext || !mJSContext->IsOK()) return NS_ERROR_NOT_AVAILABLE;
 
   JSContext* cx = mJSContext->Context();
-  JSAutoRealm ar(cx, mJSContext->Global());
+  MC::JSAutoRealm ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // the sRunning flag keeps a new PAC file from being installed
@@ -705,7 +706,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
 void ProxyAutoConfig::GC() {
   if (!mJSContext || !mJSContext->IsOK()) return;
 
-  JSAutoRealm ar(mJSContext->Context(), mJSContext->Global());
+  MC::JSAutoRealm ar(mJSContext->Context(), mJSContext->Global());
   JS_MaybeGC(mJSContext->Context());
 }
 

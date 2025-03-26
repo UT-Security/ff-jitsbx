@@ -14,6 +14,7 @@
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
 #include "js/TracingAPI.h"
+#include "monkeycage/GCAPI.h"
 #include "xpcpublic.h"
 
 #include "mozilla/AppShutdown.h"
@@ -576,7 +577,7 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
 
   nsCString data;
   {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
 
     auto obj = &value.toObject();
     bool isShared;
@@ -584,7 +585,7 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
     size_t len = JS::GetArrayBufferByteLength(obj);
     NS_ENSURE_TRUE(len <= INT32_MAX, NS_ERROR_INVALID_ARG);
     nsDependentCSubstring lz4(
-        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, &isShared, nogc)),
+        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, &isShared, *nogc.UNSAFE_unverified())),
         uint32_t(len));
 
     MOZ_TRY_VAR(data, DecodeLZ4(lz4, STRUCTURED_CLONE_MAGIC));

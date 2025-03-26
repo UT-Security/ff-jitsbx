@@ -11,6 +11,7 @@
 #include <cstdint>
 #include "ErrorList.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "js/BuildId.h"
 #include "js/ErrorReport.h"
 #include "js/GCAPI.h"
@@ -829,7 +830,7 @@ bool ThreadSafeIsChromeOrUAWidget(JSContext* cx, JSObject* obj);
 /**
  * Fill the given vector with the buildid.
  */
-bool GetBuildId(JS::BuildIdCharVector* aBuildID);
+bool GetBuildId(monkeycage::TaintedUnchecked<JS::BuildIdCharVector*> aBuildID);
 
 }  // namespace mozilla
 

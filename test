@@ -1,0 +1,60 @@
+diff --git a/monkeycage/lfi/liblfi/pal/platform.c b/monkeycage/lfi/liblfi/pal/platform.c
+index adc62435c6..cb851fecea 100644
+--- a/monkeycage/lfi/liblfi/pal/platform.c
++++ b/monkeycage/lfi/liblfi/pal/platform.c
+@@ -12,7 +12,7 @@ lfi_new_plat(size_t pagesize)
+ {
+     struct PlatOptions opts = (struct PlatOptions) {
+         .pagesize = pagesize,
+-        .vmsize = gb(4),
++        .vmsize = gb(256),
+         .verifier = NULL,
+     };
+ 
+@@ -21,13 +21,13 @@ lfi_new_plat(size_t pagesize)
+         return NULL;
+ 
+     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
+-        .minalign = gb(4),
+-        .maxalign = gb(4),
++        .minalign = gb(256),
++        .maxalign = gb(256),
+         .guardsize = 0,
+     });
+     if (!bm)
+         goto err1;
+-    if (!boxmap_reserve(bm, gb(256)))
++    if (!boxmap_reserve(bm, gb(512)))
+         goto err2;
+ 
+     *plat = (struct LFIPlatform) {
+diff --git a/monkeycage/lfi/liblfi/pal/platform.c b/monkeycage/lfi/liblfi/pal/platform.c
+index adc62435c6..cb851fecea 100644
+--- a/monkeycage/lfi/liblfi/pal/platform.c
++++ b/monkeycage/lfi/liblfi/pal/platform.c
+@@ -12,7 +12,7 @@ lfi_new_plat(size_t pagesize)
+ {
+     struct PlatOptions opts = (struct PlatOptions) {
+         .pagesize = pagesize,
+-        .vmsize = gb(4),
++        .vmsize = gb(256),
+         .verifier = NULL,
+     };
+ 
+@@ -21,13 +21,13 @@ lfi_new_plat(size_t pagesize)
+         return NULL;
+ 
+     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
+-        .minalign = gb(4),
+-        .maxalign = gb(4),
++        .minalign = gb(256),
++        .maxalign = gb(256),
+         .guardsize = 0,
+     });
+     if (!bm)
+         goto err1;
+-    if (!boxmap_reserve(bm, gb(256)))
++    if (!boxmap_reserve(bm, gb(512)))
+         goto err2;
+ 
+     *plat = (struct LFIPlatform) {

@@ -12,6 +12,7 @@
 #include "mozilla/dom/ScriptTrace.h"
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/CompilationAndEvaluation.h"
 #include "js/ContextOptions.h"        // JS::ContextOptionsRef
@@ -599,14 +600,14 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     JSContext* cx = jsapi.cx();
     JS::sandbox::Rooted<JSObject*> module(cx);
 
-    JS::CompileOptions options(cx);
+    monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
     JS::sandbox::RootedScript introductionScript(cx);
-    rv = mLoader->FillCompileOptionsForRequest(cx, aRequest, &options,
+    rv = mLoader->FillCompileOptionsForRequest(cx, aRequest, options.UNSAFE_unverified(),
                                                &introductionScript);
 
     if (NS_SUCCEEDED(rv)) {
       JS::sandbox::Rooted<JSObject*> global(cx, mGlobalObject->GetGlobalJSObject());
-      rv = CompileFetchedModule(cx, global, options, aRequest, &module);
+      rv = CompileFetchedModule(cx, global, *options.UNSAFE_unverified(), aRequest, &module);
     }
 
     MOZ_DIAGNOSTIC_ASSERT(NS_SUCCEEDED(rv) == (module != nullptr));
@@ -614,7 +615,7 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     if (module) {
       JS::sandbox::RootedValue privateValue(cx);
       JS::sandbox::RootedScript moduleScript(cx, JS::GetModuleScript(module));
-      JS::InstantiateOptions instantiateOptions(options);
+      JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
       if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
                                    privateValue, nullptr, introductionScript,
                                    nullptr)) {

@@ -32,6 +32,8 @@
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -692,7 +694,7 @@ void nsFrameMessageManager::ReceiveMessage(
       // We passed the unwrapped object to AutoEntryScript so we now need to
       // enter the realm of the global object that represents the realm of our
       // callback.
-      JSAutoRealm ar(cx, objectGlobal);
+      MC::JSAutoRealm ar(cx, objectGlobal);
 
       RootedDictionary<ReceiveMessageArgument> argument(cx);
 
@@ -914,7 +916,7 @@ void nsFrameMessageManager::GetInitialProcessData(
     // We create the initial object in the junk scope. If we created it in a
     // normal realm, that realm would leak until shutdown.
     JS::sandbox::Rooted<JSObject*> global(aCx, xpc::PrivilegedJunkScope());
-    JSAutoRealm ar(aCx, global);
+    MC::JSAutoRealm ar(aCx, global);
 
     JS::sandbox::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {
@@ -1202,9 +1204,9 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
   AutoEntryScript aes(aMessageManager, "message manager script load");
   JSContext* cx = aes.cx();
   if (stencil) {
-    JS::CompileOptions options(cx);
-    FillCompileOptionsForCachedStencil(options);
-    JS::InstantiateOptions instantiateOptions(options);
+    monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+    FillCompileOptionsForCachedStencil(*options.UNSAFE_unverified());
+    JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
     JS::sandbox::Rooted<JSScript*> script(
         cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil));
 
@@ -1318,14 +1320,14 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       return nullptr;
     }
 
-    JS::CompileOptions options(cx);
-    FillCompileOptionsForCachedStencil(options);
-    options.setFileAndLine(url.get(), 1);
+    monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+    FillCompileOptionsForCachedStencil(*options.UNSAFE_unverified());
+    options.UNSAFE_unverified()->setFileAndLine(url.get(), 1);
 
     // If we are not encoding to the ScriptPreloader cache, we can now relax the
     // compile options and use the JS syntax-parser for lower latency.
     if (!useScriptPreloader || !ScriptPreloader::GetChildSingleton().Active()) {
-      options.setSourceIsLazy(false);
+      options.UNSAFE_unverified()->setSourceIsLazy(false);
     }
 
     JS::SourceText<Utf8Unit> srcBuf;
@@ -1334,7 +1336,7 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       return nullptr;
     }
 
-    stencil = JS::CompileGlobalScriptToStencil(cx, options, srcBuf);
+    stencil = JS::CompileGlobalScriptToStencil(cx, *options.UNSAFE_unverified(), srcBuf);
     if (!stencil) {
       return nullptr;
     }
@@ -1347,7 +1349,7 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
 
 #ifdef DEBUG
     // The above shouldn't touch any options for instantiation.
-    JS::InstantiateOptions instantiateOptions(options);
+    JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
     instantiateOptions.assertDefault();
 #endif
   }

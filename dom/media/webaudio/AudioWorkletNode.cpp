@@ -14,6 +14,7 @@
 #include "js/Exception.h"
 #include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_GetProperty
+#include "monkeycage/GCAPI.h"
 #include "mozilla/dom/AudioWorkletNodeBinding.h"
 #include "mozilla/dom/AudioParamMapBinding.h"
 #include "mozilla/dom/AutoEntryScript.h"
@@ -386,10 +387,10 @@ static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
         channelRef = array;
       } else if (aInit == ArrayElementInit::Zero) {
         // Need only zero existing arrays as new arrays are already zeroed.
-        JS::AutoCheckCannotGC nogc;
+        MC::AutoCheckCannotGC nogc;
         bool isShared;
         float* elementData =
-            JS_GetFloat32ArrayData(channelRef, &isShared, nogc);
+            JS_GetFloat32ArrayData(channelRef, &isShared, *nogc.UNSAFE_unverified());
         MOZ_ASSERT(!isShared);  // Was created as unshared
         std::fill_n(elementData, WEBAUDIO_BLOCK_SIZE, 0.0f);
       }
@@ -535,10 +536,10 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     float volume = input.mVolume;
     const auto& channelData = input.ChannelData<float>();
     const auto& float32Arrays = mInputs.mPorts[i].mFloat32Arrays;
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     for (size_t c = 0; c < channelCount; ++c) {
       bool isShared;
-      float* dest = JS_GetFloat32ArrayData(float32Arrays[c], &isShared, nogc);
+      float* dest = JS_GetFloat32ArrayData(float32Arrays[c], &isShared, *nogc.UNSAFE_unverified());
       MOZ_ASSERT(!isShared);  // Was created as unshared
       AudioBlockCopyChannelWithScale(channelData[c], volume, dest);
     }
@@ -557,9 +558,9 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     if (length != WEBAUDIO_BLOCK_SIZE) {
       return;
     }
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
-    float* dest = JS_GetFloat32ArrayData(float32Arrays, &isShared, nogc);
+    float* dest = JS_GetFloat32ArrayData(float32Arrays, &isShared, *nogc.UNSAFE_unverified());
     MOZ_ASSERT(!isShared);  // Was created as unshared
 
     size_t frames =
@@ -594,10 +595,10 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
         // https://bugzilla.mozilla.org/show_bug.cgi?id=1619486
         return;
       }
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       bool isShared;
       const float* src =
-          JS_GetFloat32ArrayData(float32Arrays[c], &isShared, nogc);
+          JS_GetFloat32ArrayData(float32Arrays[c], &isShared, *nogc.UNSAFE_unverified());
       MOZ_ASSERT(!isShared);  // Was created as unshared
       PodCopy(output->ChannelFloatsForWrite(c), src, WEBAUDIO_BLOCK_SIZE);
     }

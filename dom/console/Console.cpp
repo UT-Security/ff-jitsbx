@@ -10,6 +10,7 @@
 #include "ConsoleCommon.h"
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
 #include "mozilla/dom/BlobBinding.h"
@@ -521,7 +522,7 @@ class ConsoleCallDataWorkletRunnable final : public ConsoleWorkletRunnable {
     // don't need a proxy here.
     global = js::UncheckedUnwrap(global);
 
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
 
     // We don't need to set a parent object in mCallData bacause there are not
     // DOM objects exposed to worklet.
@@ -627,7 +628,7 @@ class ConsoleWorkerRunnable : public WorkerProxyToMainThreadRunnable,
     // We don't need a proxy here.
     global = js::UncheckedUnwrap(global);
 
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
 
     nsCOMPtr<nsIGlobalObject> globalObject = xpc::NativeGlobal(global);
     if (NS_WARN_IF(!globalObject)) {
@@ -754,7 +755,7 @@ class ConsoleProfileWorkletRunnable final : public ConsoleWorkletRunnable {
     // don't need a proxy here.
     global = js::UncheckedUnwrap(global);
 
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
 
     // We don't need to set a parent object in mCallData bacause there are not
     // DOM objects exposed to worklet.
@@ -1679,7 +1680,7 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
                                                       aData->mCountValue);
   }
 
-  JSAutoRealm ar2(aCx, aTargetScope);
+  MC::JSAutoRealm ar2(aCx, aTargetScope);
 
   if (NS_WARN_IF(!ToJSValue(aCx, event, aEventValue))) {
     return false;
@@ -2482,7 +2483,7 @@ void Console::RetrieveConsoleEvents(JSContext* aCx,
     JS::sandbox::Rooted<JS::Value> value(aCx);
 
     JS::sandbox::Rooted<JSObject*> sequenceScope(aCx, mArgumentStorage[i].Global());
-    JSAutoRealm ar(aCx, sequenceScope);
+    MC::JSAutoRealm ar(aCx, sequenceScope);
 
     Sequence<JS::Value> sequence;
     SequenceRooter<JS::Value> arguments(aCx, &sequence);

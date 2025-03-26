@@ -19,6 +19,8 @@
 #endif
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
+#include "monkeycage/Realm.h"
 #include "jsapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/CharacterEncoding.h"
@@ -595,14 +597,14 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
                                            const nsACString& aLocation,
                                            MutableHandleObject aGlobal) {
   auto backstagePass = MakeRefPtr<BackstagePass>();
-  RealmOptions options;
-  auto& creationOptions = options.creationOptions();
+  monkeycage::AutoStackTainted<RealmOptions> options;
+  auto& creationOptions = options.UNSAFE_unverified()->creationOptions();
 
   creationOptions.setFreezeBuiltins(true).setNewCompartmentInSystemZone();
   if (IsDevToolsLoader()) {
     creationOptions.setInvisibleToDebugger(true);
   }
-  xpc::SetPrefableRealmOptions(options);
+  xpc::SetPrefableRealmOptions(*options.UNSAFE_unverified());
 
   // Defer firing OnNewGlobalObject until after the __URI__ property has
   // been defined so the JS debugger can tell what module the global is
@@ -616,7 +618,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
   nsresult rv = xpc::InitClassesWithNewWrappedGlobal(
       aCx, static_cast<nsIGlobalObject*>(backstagePass),
       nsContentUtils::GetSystemPrincipal(), xpc::DONT_FIRE_ONNEWGLOBALHOOK,
-      options, &global);
+      *options.UNSAFE_unverified(), &global);
 #ifdef DEBUG
   mIsInitializingLoaderGlobal = false;
 #endif
@@ -626,7 +628,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
 
   backstagePass->SetGlobalObject(global);
 
-  JSAutoRealm ar(aCx, global);
+  MC::JSAutoRealm ar(aCx, global);
   if (!JS_DefineFunctions(aCx, global, gGlobalFun())) {
     return;
   }
@@ -755,7 +757,7 @@ JSObject* mozJSModuleLoader::PrepareObjectForLocation(JSContext* aCx,
                                                       bool aRealFile) {
   JS::sandbox::RootedObject globalObj(aCx, GetSharedGlobal(aCx));
   NS_ENSURE_TRUE(globalObj, nullptr);
-  JSAutoRealm ar(aCx, globalObj);
+  MC::JSAutoRealm ar(aCx, globalObj);
 
   // |thisObj| is the object we set properties on for a particular .jsm.
   JS::sandbox::RootedObject thisObj(aCx, JS::NewJSMEnvironment(aCx));
@@ -843,7 +845,7 @@ nsresult mozJSModuleLoader::ObjectForLocation(
   NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
   MOZ_ASSERT(!JS_IsGlobalObject(obj));
 
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
 
   JS::sandbox::RootedScript script(cx);
   rv = GetScriptForLocation(cx, aInfo, aModuleFile, realFile, &script,
@@ -954,19 +956,19 @@ nsresult mozJSModuleLoader::GetScriptForLocation(
     // The script wasn't in the cache , so compile it now.
     LOG(("Slow loading %s\n", nativePath.get()));
 
-    CompileOptions options(aCx);
-    ScriptPreloader::FillCompileOptionsForCachedStencil(options);
-    options.setFileAndLine(nativePath.get(), 1);
+    monkeycage::AutoStackTainted<CompileOptions> options(aCx);
+    ScriptPreloader::FillCompileOptionsForCachedStencil(*options.UNSAFE_unverified());
+    options.UNSAFE_unverified()->setFileAndLine(nativePath.get(), 1);
     if (aInfo.IsModule()) {
-      options.setModule();
+      options.UNSAFE_unverified()->setModule();
       // Top level await is not supported in synchronously loaded modules.
-      options.topLevelAwait = false;
+      options.UNSAFE_unverified()->topLevelAwait = false;
 
       // Make all top-level `vars` available in `ModuleEnvironmentObject`.
-      options.deoptimizeModuleGlobalVars = true;
+      options.UNSAFE_unverified()->deoptimizeModuleGlobalVars = true;
     } else {
-      options.setForceStrictMode();
-      options.setNonSyntacticScope(true);
+      options.UNSAFE_unverified()->setForceStrictMode();
+      options.UNSAFE_unverified()->setNonSyntacticScope(true);
     }
 
     // If we can no longer write to caches, we should stop using lazy sources
@@ -974,7 +976,7 @@ nsresult mozJSModuleLoader::GetScriptForLocation(
     // processes after the ScriptPreloader is flushed where we can read but no
     // longer write.
     if (!storeIntoStartupCache && !ScriptPreloader::GetSingleton().Active()) {
-      options.setSourceIsLazy(false);
+      options.UNSAFE_unverified()->setSourceIsLazy(false);
     }
 
     if (aUseMemMap) {
@@ -988,7 +990,7 @@ nsresult mozJSModuleLoader::GetScriptForLocation(
       JS::SourceText<mozilla::Utf8Unit> srcBuf;
       if (srcBuf.init(aCx, buf.get(), map.size(),
                       JS::SourceOwnership::Borrowed)) {
-        stencil = CompileStencil(aCx, options, srcBuf, aInfo.IsModule());
+        stencil = CompileStencil(aCx, *options.UNSAFE_unverified(), srcBuf, aInfo.IsModule());
       }
     } else {
       nsCString str;
@@ -997,13 +999,13 @@ nsresult mozJSModuleLoader::GetScriptForLocation(
       JS::SourceText<mozilla::Utf8Unit> srcBuf;
       if (srcBuf.init(aCx, str.get(), str.Length(),
                       JS::SourceOwnership::Borrowed)) {
-        stencil = CompileStencil(aCx, options, srcBuf, aInfo.IsModule());
+        stencil = CompileStencil(aCx, *options.UNSAFE_unverified(), srcBuf, aInfo.IsModule());
       }
     }
 
 #ifdef DEBUG
     // The above shouldn't touch any options for instantiation.
-    JS::InstantiateOptions instantiateOptions(options);
+    JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
     instantiateOptions.assertDefault();
 #endif
 
@@ -1379,7 +1381,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
   dom::AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, aMod->obj);
+  MC::JSAutoRealm ar(cx, aMod->obj);
 
   JS::sandbox::RootedValue symbols(cx);
   {
@@ -1583,7 +1585,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
 
         if (exception.isObject()) {
           JS::sandbox::Rooted<JSObject*> exceptionObj(aCx, &exception.toObject());
-          JSAutoRealm ar(aCx, exceptionObj);
+          MC::JSAutoRealm ar(aCx, exceptionObj);
           JSErrorReport* report = JS_ErrorFromException(aCx, exceptionObj);
           if (report) {
             switch (report->errorNumber) {
@@ -1655,7 +1657,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
   MOZ_ASSERT(mod->obj, "Import table contains entry with no object");
   JS::sandbox::RootedObject globalProxy(aCx);
   {
-    JSAutoRealm ar(aCx, mod->obj);
+    MC::JSAutoRealm ar(aCx, mod->obj);
 
     globalProxy = CreateJSMEnvironmentProxy(aCx, mod->obj);
     if (!globalProxy) {
@@ -1711,7 +1713,7 @@ nsresult mozJSModuleLoader::TryFallbackToImportESModule(
 
   JS::sandbox::RootedObject globalProxy(aCx);
   {
-    JSAutoRealm ar(aCx, moduleNamespace);
+    MC::JSAutoRealm ar(aCx, moduleNamespace);
 
     JS::sandbox::RootedObject moduleObject(
         aCx, JS::GetModuleForNamespace(aCx, moduleNamespace));
@@ -1802,7 +1804,7 @@ nsresult mozJSModuleLoader::ImportESModule(
   // The module loader should be instantiated when fetching the shared global
   MOZ_ASSERT(mModuleLoader);
 
-  JSAutoRealm ar(aCx, globalObj);
+  MC::JSAutoRealm ar(aCx, globalObj);
 
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aLocation);

@@ -14,6 +14,7 @@
 #include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/Maybe.h"
 
+#include "monkeycage/Realm.h"
 #include "jsapi.h"
 #include "js/Exception.h"
 #include "js/Warnings.h"  // JS::WarningReporter
@@ -285,7 +286,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   // AutoJSAPI, so Init must NOT be called on subclasses that use this.
   AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread, Type aType);
 
-  mozilla::Maybe<JSAutoNullableRealm> mAutoNullableRealm;
+  mozilla::Maybe<MC::JSAutoNullableRealm> mAutoNullableRealm;
   JSContext* mCx;
 
   // Whether we're mainthread or not; set when we're initialized.
@@ -321,7 +322,7 @@ class AutoIncumbentScript : protected ScriptSettingsStackEntry {
  * This class may not be instantiated if an exception is pending.
  */
 class AutoNoJSAPI : protected ScriptSettingsStackEntry,
-                    protected JSAutoNullableRealm {
+                    protected MC::JSAutoNullableRealm {
  public:
   AutoNoJSAPI() : AutoNoJSAPI(danger::GetJSContext()) {}
   ~AutoNoJSAPI();

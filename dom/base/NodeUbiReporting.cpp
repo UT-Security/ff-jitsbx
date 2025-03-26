@@ -6,6 +6,7 @@
 
 #include "NodeUbiReporting.h"
 #include "js/UbiNodeUtils.h"
+#include "monkeycage/GCAPI.h"
 #include "nsWindowSizes.h"
 
 using JS::ubi::EdgeRange;
@@ -27,7 +28,7 @@ void JS::ubi::Concrete<nsINode>::construct(void* storage, nsINode* ptr) {
 
 js::UniquePtr<EdgeRange> JS::ubi::Concrete<nsINode>::edges(
     JSContext* cx, bool wantNames) const {
-  AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   auto range = js::MakeUnique<SimpleEdgeRange>();
   if (!range) {
     return nullptr;
@@ -55,7 +56,7 @@ js::UniquePtr<EdgeRange> JS::ubi::Concrete<nsINode>::edges(
 
 JS::ubi::Node::Size JS::ubi::Concrete<nsINode>::size(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   mozilla::SizeOfState sz(mallocSizeOf);
   nsWindowSizes wn(sz);
   size_t n = 0;
@@ -69,7 +70,7 @@ const char16_t* JS::ubi::Concrete<nsINode>::descriptiveTypeName() const {
 
 JS::ubi::Node::Size JS::ubi::Concrete<mozilla::dom::Document>::size(
     mozilla::MallocSizeOf mallocSizeOf) const {
-  AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   mozilla::SizeOfState sz(mallocSizeOf);
   nsWindowSizes wn(sz);
   getDoc().DocAddSizeOfIncludingThis(wn);

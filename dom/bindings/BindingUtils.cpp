@@ -23,6 +23,7 @@
 
 #include "AccessCheck.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter,Method}CallArgs, JSJit{Getter,Setter}Op, JSJitInfo
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
@@ -808,13 +809,13 @@ static JSObject* CreateConstructor(JSContext* cx, JS::Handle<JSObject*> global,
 static bool DefineConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                               JS::Handle<jsid> name,
                               JS::Handle<JSObject*> constructor) {
-  bool alreadyDefined;
-  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, &alreadyDefined)) {
+  monkeycage::AutoStackTainted<bool> alreadyDefined{false};
+  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, alreadyDefined.UNSAFE_unverified())) {
     return false;
   }
 
   // This is Enumerable: False per spec.
-  return alreadyDefined ||
+  return *alreadyDefined.UNSAFE_unverified() ||
          JS_DefinePropertyById(cx, global, name, constructor, JSPROP_RESOLVING);
 }
 
@@ -1719,7 +1720,7 @@ static bool ResolvePrototypeOrConstructor(
     bool& cacheOnHolder) {
   JS::sandbox::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
   {
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
     ProtoAndIfaceCache& protoAndIfaceCache = *GetProtoAndIfaceCache(global);
     // This function is called when resolving the "constructor" and "prototype"
     // properties of Xrays for DOM prototypes and constructors respectively.
@@ -2322,7 +2323,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
                                   domClass->mGetAssociatedGlobal(aCx, aObj));
   MOZ_ASSERT(JS_IsGlobalObject(newGlobal));
 
-  JSAutoRealm oldAr(aCx, oldGlobal);
+  MC::JSAutoRealm oldAr(aCx, oldGlobal);
 
   if (oldGlobal == newGlobal) {
     return;
@@ -2339,7 +2340,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
     expandoObject = DOMProxyHandler::GetAndClearExpandoObject(aObj);
   }
 
-  JSAutoRealm newAr(aCx, newGlobal);
+  MC::JSAutoRealm newAr(aCx, newGlobal);
 
   // First we clone the reflector. We get a copy of its properties and clone its
   // expando chain.
@@ -2804,9 +2805,9 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
     size_t badCharIndex;
     char16_t badChar;
     {
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       const char16_t* chars =
-          JS_GetTwoByteStringCharsAndLength(cx, nogc, s, &length);
+          JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), s, &length);
       if (!chars) {
         return false;
       }
@@ -2868,7 +2869,10 @@ bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
              "Should have a global here, since we plan to resolve standard "
              "classes!");
 
-  return JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp);
+  monkeycage::AutoStackTainted<bool> resolved{false};
+  bool ret = JS_ResolveStandardClass(aCx, aObj, aId, resolved.UNSAFE_unverified());
+  *aResolvedp = *resolved.UNSAFE_unverified();
+  return ret;
 }
 
 JSResolveOp ResolveGlobalCb() {
@@ -3673,7 +3677,7 @@ static bool GetBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
     // Since backing object access can happen in non-originating realms,
     // make sure to create the backing object in reflector realm.
     {
-      JSAutoRealm ar(aCx, reflector);
+      MC::JSAutoRealm ar(aCx, reflector);
       JS::sandbox::Rooted<JSObject*> newBackingObj(aCx);
       newBackingObj.set(Method(aCx, aArgs...));
       if (NS_WARN_IF(!newBackingObj)) {
@@ -3855,7 +3859,7 @@ bool GetDesiredProto(JSContext* aCx, const JS::CallArgs& aCallArgs,
   {
     // JS::GetRealmGlobalOrNull should not be returning null here, because we
     // have live objects in the Realm.
-    JSAutoRealm ar(aCx, JS::GetRealmGlobalOrNull(realm));
+    MC::JSAutoRealm ar(aCx, JS::GetRealmGlobalOrNull(realm));
     aDesiredProto.set(
         GetPerInterfaceObjectHandle(aCx, aProtoId, aCreator, true));
     if (!aDesiredProto) {
@@ -3987,7 +3991,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
   // objects as constructors?  Of course it's not clear that the spec check
   // makes sense to start with: https://github.com/whatwg/html/issues/3575
   {
-    JSAutoRealm ar(aCx, newTarget);
+    MC::JSAutoRealm ar(aCx, newTarget);
     JS::Handle<JSObject*> constructor =
         GetPerInterfaceObjectHandle(aCx, aConstructorId, aCreator, true);
     if (!constructor) {
@@ -4050,7 +4054,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
 
     // We want to get the constructor from our global's realm, not the
     // caller realm.
-    JSAutoRealm ar(aCx, global.Get());
+    MC::JSAutoRealm ar(aCx, global.Get());
     JS::sandbox::Rooted<JSObject*> constructor(aCx, cb(aCx));
 
     // CheckedUnwrapStatic is OK here, since our callee is callable, hence not a
@@ -4085,7 +4089,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
 
     // We want to get the constructor from our global's realm, not the
     // caller realm.
-    JSAutoRealm ar(aCx, global.Get());
+    MC::JSAutoRealm ar(aCx, global.Get());
     JS::sandbox::Rooted<JSObject*> constructor(aCx, cb(aCx));
     if (!constructor) {
       return false;
@@ -4117,7 +4121,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
     // Now we go to construct an element.  We want to do this in global's
     // realm, not caller realm (the normal constructor behavior),
     // just in case those elements create JS things.
-    JSAutoRealm ar(aCx, global.Get());
+    MC::JSAutoRealm ar(aCx, global.Get());
     AutoConstructionDepth acd(definition);
 
     RefPtr<NodeInfo> nodeInfo = doc->NodeInfoManager()->GetNodeInfo(
@@ -4163,7 +4167,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
     JS::sandbox::Rooted<JSObject*> reflector(aCx, element->GetWrapper());
     if (reflector) {
       // reflector might be in different realm.
-      JSAutoRealm ar(aCx, reflector);
+      MC::JSAutoRealm ar(aCx, reflector);
       JS::sandbox::Rooted<JSObject*> givenProto(aCx, desiredProto);
       if (!JS_WrapObject(aCx, &givenProto) ||
           !JS_SetPrototype(aCx, reflector, givenProto)) {
@@ -4179,7 +4183,7 @@ bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
   // Tail end of step 8 and step 13: returning the element.  We want to do this
   // part in the global's realm, though in practice it won't matter much
   // because Element always knows which realm it should be created in.
-  JSAutoRealm ar(aCx, global.Get());
+  MC::JSAutoRealm ar(aCx, global.Get());
   if (!js::IsObjectInContextCompartment(desiredProto, aCx) &&
       !JS_WrapObject(aCx, &desiredProto)) {
     return false;
@@ -4199,7 +4203,7 @@ void AssertReflectorHasGivenProto(JSContext* aCx, JSObject* aReflector,
   }
 
   JS::sandbox::Rooted<JSObject*> reflector(aCx, aReflector);
-  JSAutoRealm ar(aCx, reflector);
+  MC::JSAutoRealm ar(aCx, reflector);
   JS::sandbox::Rooted<JSObject*> reflectorProto(aCx);
   bool ok = JS_GetPrototype(aCx, reflector, &reflectorProto);
   MOZ_ASSERT(ok);

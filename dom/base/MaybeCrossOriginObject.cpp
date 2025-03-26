@@ -20,6 +20,7 @@
 #include "js/WeakMap.h"
 #include "js/sandbox/Wrapper.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
 #include "AccessCheck.h"
 #include "nsContentUtils.h"
 
@@ -243,7 +244,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
     // Enter the Realm of "obj" when we allocate the WeakMap, since we are going
     // to store it in a slot on "obj" and in general we may not be
     // same-compartment with "obj" here.
-    JSAutoRealm ar(cx, obj);
+    MC::JSAutoRealm ar(cx, obj);
     JSObject* newMap = JS::NewWeakMapObject(cx);
     if (!newMap) {
       return false;
@@ -291,7 +292,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
 
   JS::sandbox::Rooted<JS::Value> holderVal(cx);
   {  // Scope for working with the map
-    JSAutoRealm ar(cx, map);
+    MC::JSAutoRealm ar(cx, map);
     if (!MaybeWrapObject(cx, &key)) {
       return false;
     }
@@ -334,7 +335,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
 
   holderVal.setObject(*holder);
   {  // Scope for working with the map
-    JSAutoRealm ar(cx, map);
+    MC::JSAutoRealm ar(cx, map);
 
     // Key is already in the right Realm, but we need to wrap the value.
     if (!MaybeWrapValue(cx, &holderVal)) {
@@ -366,7 +367,7 @@ bool MaybeCrossOriginObject<Base>::getPrototype(
   }
 
   {  // Scope for JSAutoRealm
-    JSAutoRealm ar(cx, proxy);
+    MC::JSAutoRealm ar(cx, proxy);
     protop.set(getSameOriginPrototype(cx));
     if (!protop) {
       return false;
@@ -446,7 +447,7 @@ bool MaybeCrossOriginObject<Base>::defineProperty(
   }
 
   // Enter the Realm of proxy and do the remaining work in there.
-  JSAutoRealm ar(cx, proxy);
+  MC::JSAutoRealm ar(cx, proxy);
   JS::sandbox::Rooted<JS::PropertyDescriptor> descCopy(cx, desc);
   if (!JS_WrapPropertyDescriptor(cx, &descCopy)) {
     return false;

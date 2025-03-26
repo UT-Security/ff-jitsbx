@@ -12,6 +12,8 @@
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HashFunctions.h"
@@ -139,7 +141,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
   if (xpc::WrapperFactory::IsXrayWrapper(aObj)) {
     JS::sandbox::Rooted<JSObject*> constructor(aCx);
     {
-      JSAutoRealm ar(aCx, global);
+      MC::JSAutoRealm ar(aCx, global);
       constructor = FindNamedConstructorForXray(aCx, aId, entry);
     }
     if (NS_WARN_IF(!constructor)) {
@@ -208,10 +210,15 @@ bool WebIDLGlobalNameHash::ResolveForSystemGlobal(JSContext* aCx,
                                                   bool* aResolvedp) {
   MOZ_ASSERT(JS_IsGlobalObject(aObj));
 
+  monkeycage::AutoStackTainted<bool> resolved{false};
+  
   // First we try to resolve standard classes.
-  if (!JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp)) {
+  if (!JS_ResolveStandardClass(aCx, aObj, aId, resolved.UNSAFE_unverified())) {
     return false;
   }
+
+  *aResolvedp = *resolved.UNSAFE_unverified();
+  
   if (*aResolvedp) {
     return true;
   }

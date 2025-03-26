@@ -37,6 +37,7 @@
 #include "js/Exception.h"  // JS::ExceptionStack
 #include "js/Object.h"     // JS::GetCompartment
 #include "js/StructuredClone.h"
+#include "monkeycage/Realm.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
@@ -139,7 +140,7 @@ bool Promise::MaybePropagateUserInputEventHandling() {
 already_AddRefed<Promise> Promise::Resolve(
     nsIGlobalObject* aGlobal, JSContext* aCx, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv, PropagateUserInteraction aPropagateUserInteraction) {
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
   JS::sandbox::Rooted<JSObject*> p(aCx, JS::CallOriginalPromiseResolve(aCx, aValue));
   if (!p) {
     aRv.NoteJSContextException(aCx);
@@ -154,7 +155,7 @@ already_AddRefed<Promise> Promise::Reject(nsIGlobalObject* aGlobal,
                                           JSContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
   JS::sandbox::Rooted<JSObject*> p(aCx, JS::CallOriginalPromiseReject(aCx, aValue));
   if (!p) {
     aRv.NoteJSContextException(aCx);
@@ -597,7 +598,7 @@ already_AddRefed<Promise> Promise::RejectWithExceptionFromContext(
     return nullptr;
   }
 
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
   if (!JS_WrapValue(aCx, &exn)) {
     // We just give up.
     aError.StealExceptionFromJSContext(aCx);
@@ -696,7 +697,7 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
   // cross-origin objects as "uncaught exception: Object".
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
   {
-    Maybe<JSAutoRealm> ar;
+    Maybe<MC::JSAutoRealm> ar;
     JS::sandbox::Rooted<JS::Value> unwrapped(aCx, result);
     if (unwrapped.isObject()) {
       unwrapped.setObject(*js::UncheckedUnwrap(&unwrapped.toObject()));

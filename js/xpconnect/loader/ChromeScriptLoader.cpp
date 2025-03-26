@@ -19,6 +19,8 @@
 #include "js/SourceText.h"
 #include "js/Utility.h"
 
+#include "monkeycage/Tainted.h"
+
 #include "mozilla/Attributes.h"
 #include "mozilla/SchedulerGroup.h"
 #include "mozilla/dom/ChromeUtils.h"

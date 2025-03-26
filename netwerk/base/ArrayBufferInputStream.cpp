@@ -9,6 +9,7 @@
 #include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
+#include "monkeycage/GCAPI.h"
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ScriptSettings.h"
 
@@ -46,10 +47,10 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
 
   mBufferLength = bufferLength;
 
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   bool isShared;
   char* src =
-      (char*)JS::GetArrayBufferData(arrayBuffer, &isShared, nogc) + offset;
+      (char*)JS::GetArrayBufferData(arrayBuffer, &isShared, *nogc.UNSAFE_unverified()) + offset;
   memcpy(&mArrayBuffer[0], src, mBufferLength);
   return NS_OK;
 }

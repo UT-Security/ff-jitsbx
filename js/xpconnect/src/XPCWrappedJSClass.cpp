@@ -27,6 +27,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Realm.h"
 
 using namespace xpc;
 using namespace JS;
@@ -288,7 +289,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
   JS::sandbox::RootedObject objScope(RootingCx(), GetJSObjectGlobal());
-  JSAutoRealm ar(aes.cx(), objScope);
+  MC::JSAutoRealm ar(aes.cx(), objScope);
 
   // We support nsISupportsWeakReference iff the root wrapped JSObject
   // claims to support it in its QueryInterface implementation.
@@ -601,7 +602,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
 
       // Enter the unwrapped object's realm. This is the realm that was used to
       // enter the AutoEntryScript.
-      JSAutoRealm ar(cx, js::UncheckedUnwrap(aObj));
+      MC::JSAutoRealm ar(cx, js::UncheckedUnwrap(aObj));
       aes.ReportException();
       reportable = false;
     }
@@ -744,7 +745,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
   JS::sandbox::RootedObject scope(cx, GetJSObjectGlobal());
-  JSAutoRealm ar(cx, scope);
+  MC::JSAutoRealm ar(cx, scope);
 
   const nsXPTInterfaceInfo* interfaceInfo = GetInfo();
   JS::sandbox::RootedId id(cx);

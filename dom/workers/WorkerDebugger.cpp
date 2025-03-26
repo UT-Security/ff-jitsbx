@@ -97,7 +97,7 @@ class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable {
     JS::sandbox::Rooted<JSObject*> global(aCx, globalScope->GetWrapper());
 
     ErrorResult rv;
-    JSAutoRealm ar(aCx, global);
+    MC::JSAutoRealm ar(aCx, global);
     workerinternals::LoadMainScript(aWorkerPrivate, nullptr, mScriptURL,
                                     DebuggerScript, rv, mDocumentEncoding);
     rv.WouldReportJSException();

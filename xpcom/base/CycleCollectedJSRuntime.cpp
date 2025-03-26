@@ -66,7 +66,6 @@
 #include "js/WaitCallbacks.h"
 #include "js/Zone.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
-#include "js/GCAPI.h"
 #include "js/HeapAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
@@ -74,6 +73,8 @@
 #include "js/ShadowRealmCallbacks.h"
 #include "js/SliceBudget.h"
 #include "jsfriendapi.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -672,7 +673,7 @@ static bool InitializeShadowRealm(JSContext* aCx,
                                   JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(StaticPrefs::javascript_options_experimental_shadow_realms());
 
-  JSAutoRealm ar(aCx, aGlobal);
+  MC::JSAutoRealm ar(aCx, aGlobal);
   return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 
@@ -1606,7 +1607,7 @@ void CycleCollectedJSRuntime::RemoveJSHolder(void* aHolder) {
   if (tracer) {
     // Bug 1531951: The analysis can't see through the virtual call but we know
     // that the ClearJSHolder tracer will never GC.
-    JS::AutoSuppressGCAnalysis nogc;
+    MC::AutoSuppressGCAnalysis nogc;
     tracer->Trace(aHolder, ClearJSHolder(), nullptr);
   }
 }
@@ -1704,7 +1705,7 @@ void CycleCollectedJSRuntime::DeferredFinalize(
     DeferredFinalizeAppendFunction aAppendFunc, DeferredFinalizeFunction aFunc,
     void* aThing) {
   // Tell the analysis that the function pointers will not GC.
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   mDeferredFinalizerTable.WithEntryHandle(aFunc, [&](auto&& entry) {
     if (entry) {
       aAppendFunc(entry.Data(), aThing);

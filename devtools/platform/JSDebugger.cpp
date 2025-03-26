@@ -9,6 +9,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Wrapper.h"
+#include "monkeycage/Realm.h"
 #include "nsServiceManagerUtils.h"
 
 #define JSDEBUGGER_CONTRACTID "@mozilla.org/jsdebugger;1"
@@ -44,7 +45,7 @@ JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
   if (!JS_DefineDebuggerObject(cx, obj)) {
     return NS_ERROR_FAILURE;
   }

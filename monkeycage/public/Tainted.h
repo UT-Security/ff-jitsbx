@@ -121,8 +121,9 @@ template <typename T>
 class TaintedUnchecked {
 public:
   template <MONKEYCAGE_ENABLE_IF(std::is_pointer_v<T>)>
-  inline auto UNSAFE_checked() {
-    return Tainted<T>::internal_factory(data);
+  inline auto UNSAFE_unverified() {
+    static_assert(sizeof(this) == sizeof(data), "TaintedUnchecked<T> should be transparent");
+    return data;
   }
 private:
   T data;
@@ -152,6 +153,8 @@ public:
   ~AutoStackTainted() {
     js_delete<T>(data.INTERNAL_unverified_safe());
   }
+
+  inline operator const Tainted<T*>&() const { return data; }
 
   inline auto UNSAFE_unverified() const { return data.UNSAFE_unverified(); }
 };

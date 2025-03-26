@@ -10,6 +10,7 @@
 #include "AccessCheck.h"
 
 #include "js/PropertyAndElement.h"  // JS_DefineFunction
+#include "monkeycage/Realm.h"
 
 using namespace xpc;
 using namespace mozilla;
@@ -64,7 +65,7 @@ static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
 // static
 bool AttachNewConstructorObject(JSContext* aCx,
                                 JS::HandleObject aGlobalObject) {
-  JSAutoRealm ar(aCx, aGlobalObject);
+  MC::JSAutoRealm ar(aCx, aGlobalObject);
   static auto XrayWrapperConstructorCb =
       monkeycage::Sandbox::RegisterCallback(XrayWrapperConstructor);
   JSFunction* xpcnativewrapper = JS_DefineFunction(

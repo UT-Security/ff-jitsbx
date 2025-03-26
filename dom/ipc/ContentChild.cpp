@@ -542,7 +542,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
         rv = scriptError->GetStackGlobal(&stackGlobal);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        JSAutoRealm ar(cx, &stackGlobal.toObject());
+        MC::JSAutoRealm ar(cx, &stackGlobal.toObject());
 
         StructuredCloneData data;
         ErrorResult err;

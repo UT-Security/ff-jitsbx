@@ -7,6 +7,7 @@
 #include "mozilla/dom/SimpleGlobalObject.h"
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "jsapi.h"
 #include "js/Class.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetObjectISupports, JS::SetObjectISupports
@@ -133,7 +134,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
       return nullptr;
     }
 
-    JSAutoRealm ar(cx, global);
+    MC::JSAutoRealm ar(cx, global);
 
     // It's important to create the nsIGlobalObject for our new global before we
     // start trying to wrap things like the prototype into its compartment,

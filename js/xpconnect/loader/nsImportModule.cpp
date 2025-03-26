@@ -14,6 +14,7 @@
 #include "xpcpublic.h"
 #include "xpcprivate.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/Realm.h"
 
 using mozilla::dom::AutoJSAPI;
 
@@ -26,7 +27,7 @@ static void AnnotateCrashReportWithJSException(JSContext* aCx,
   if (JS_GetPendingException(aCx, &exn)) {
     JS_ClearPendingException(aCx);
 
-    JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+    MC::JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
     JS_WrapValue(aCx, &exn);
 
     nsAutoCString file;

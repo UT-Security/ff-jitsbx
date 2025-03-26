@@ -16,6 +16,7 @@
 #include "mozJSModuleLoader.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollector.h"
+#include "monkeycage/Realm.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"  // JS::IsArrayObject
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
@@ -1608,7 +1609,7 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
   JS::sandbox::RootedObject global(cx, JS::GetScriptedCallerGlobal(cx));
   MOZ_ASSERT(global);
   js::AssertSameCompartment(cx, global);
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
 
   // Don't allow doing this if the global is a Window.
   nsGlobalWindowInner* win;
@@ -1789,7 +1790,7 @@ nsXPCComponents_Utils::GetFunctionSourceLocation(HandleValue funcValue,
   uint32_t lineNumber;
   {
     JS::sandbox::RootedObject funcObj(cx, UncheckedUnwrap(&funcValue.toObject()));
-    JSAutoRealm ar(cx, funcObj);
+    MC::JSAutoRealm ar(cx, funcObj);
 
     JS::sandbox::Rooted<JSFunction*> func(cx, JS_GetObjectFunction(funcObj));
     NS_ENSURE_TRUE(func, NS_ERROR_INVALID_ARG);
@@ -1937,7 +1938,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
   }
 
   JS::sandbox::RootedObject obj(cx, js::UncheckedUnwrap(&vobj.toObject()));
-  JSAutoRealm ar(cx, obj);
+  MC::JSAutoRealm ar(cx, obj);
   JS::sandbox::Rooted<IdVector> ida(cx, IdVector(cx));
   if (!JS_Enumerate(cx, obj, &ida)) {
     return NS_ERROR_FAILURE;
@@ -2040,7 +2041,7 @@ nsXPCComponents_Utils::Dispatch(HandleValue runnableArg, HandleValue scope,
                                 JSContext* cx) {
   JS::sandbox::RootedValue runnable(cx, runnableArg);
   // Enter the given realm, if any, and rewrap runnable.
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   if (scope.isObject()) {
     JSObject* scopeObj = js::UncheckedUnwrap(&scope.toObject());
     if (!scopeObj) {
@@ -2326,7 +2327,7 @@ bool xpc::CloneInto(JSContext* aCx, HandleValue aValue, HandleValue aScope,
   JS::sandbox::RootedObject sourceScope(aCx, JS::CurrentGlobalOrNull(aCx));
 
   {
-    JSAutoRealm ar(aCx, scope);
+    MC::JSAutoRealm ar(aCx, scope);
     aCloned.set(aValue);
     if (!StackScopedClone(aCx, options, sourceScope, aCloned)) {
       return false;

@@ -14,6 +14,7 @@
 #include "js/Value.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Maybe.h"
@@ -48,7 +49,7 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
   holder->mName = aName;
   holder->mAnonymizedName = aAnonymizedName.IsVoid() ? aName : aAnonymizedName;
 
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   JS::sandbox::Rooted<JS::Value> value(cx, aValue);
 
   if (aTargetGlobal) {
@@ -108,7 +109,7 @@ void StructuredCloneBlob::Deserialize(JSContext* aCx,
   }
 
   {
-    JSAutoRealm ar(aCx, scope);
+    MC::JSAutoRealm ar(aCx, scope);
 
     mHolder->Read(xpc::NativeGlobal(scope), aCx, aResult, aRv);
     if (aRv.Failed()) {

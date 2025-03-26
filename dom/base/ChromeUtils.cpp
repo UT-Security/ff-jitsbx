@@ -8,6 +8,7 @@
 
 #include "JSOracleParent.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Realm.h"
 #include "js/CallAndConstruct.h"  // JS::Call
 #include "js/CharacterEncoding.h"
 #include "js/Object.h"              // JS::GetClass
@@ -391,7 +392,7 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
       return;
     }
 
-    JSAutoRealm ar(cx, obj);
+    MC::JSAutoRealm ar(cx, obj);
 
     if (!JS_Enumerate(cx, obj, &ids) || !values.reserve(ids.length()) ||
         !valuesIds.reserve(ids.length())) {
@@ -415,7 +416,7 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
 
   JS::sandbox::Rooted<JSObject*> obj(cx);
   {
-    Maybe<JSAutoRealm> ar;
+    Maybe<MC::JSAutoRealm> ar;
     if (aTarget) {
       // Our target could be anything, so we want CheckedUnwrapDynamic here.
       // "cx" represents the current Realm when we were called from bindings, so
@@ -806,7 +807,7 @@ static bool ModuleGetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
 
     // ESM's namespace is from the module's realm.
     {
-      JSAutoRealm ar(aCx, moduleNamespace);
+      MC::JSAutoRealm ar(aCx, moduleNamespace);
       if (!JS_GetPropertyById(aCx, moduleNamespace, id, &value)) {
         return false;
       }
@@ -1592,7 +1593,7 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
     uint32_t line = 0;
     uint32_t column = 0;
 
-    Maybe<JSAutoRealm> ar;
+    Maybe<MC::JSAutoRealm> ar;
     JS::sandbox::Rooted<JSObject*> stack(cx);
     if (aStack) {
       stack = UncheckedUnwrap(aStack);

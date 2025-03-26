@@ -18,6 +18,7 @@
 #include "js/PropertySpec.h"
 #include "js/RealmOptions.h"
 #include "js/SourceText.h"  // JS::Source{Ownership,Text}
+#include "monkeycage/Realm.h"
 
 #include "xpcpublic.h"
 
@@ -402,7 +403,7 @@ bool XPCShellEnvironment::Init() {
     NS_ERROR("Failed to get global JSObject!");
     return false;
   }
-  JSAutoRealm ar(cx, globalObj);
+  MC::JSAutoRealm ar(cx, globalObj);
 
   backstagePass->SetGlobalObject(globalObj);
 

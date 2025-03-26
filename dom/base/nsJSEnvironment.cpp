@@ -7,6 +7,7 @@
 #include "js/GCAPI.h"
 #include "js/Promise.h"
 #include "js/StreamConsumer.h"
+#include "monkeycage/Realm.h"
 #include "nsError.h"
 #include "nsJSEnvironment.h"
 #include "nsIScriptGlobalObject.h"
@@ -708,7 +709,7 @@ nsresult nsJSContext::ConvertSupportsTojsvals(
           NS_ASSERTION(prim == nullptr,
                        "Don't pass nsISupportsPrimitives - use nsIVariant!");
 #endif
-          JSAutoRealm ar(aCx, aScope);
+          MC::JSAutoRealm ar(aCx, aScope);
           rv = nsContentUtils::WrapNative(aCx, arg, thisVal);
         }
       }
@@ -895,7 +896,7 @@ nsresult nsJSContext::AddSupportsPrimitiveTojsvals(JSContext* aCx,
 
       JS::sandbox::Rooted<JSObject*> scope(aCx, GetWindowProxy());
       JS::sandbox::Rooted<JS::Value> v(aCx);
-      JSAutoRealm ar(aCx, scope);
+      MC::JSAutoRealm ar(aCx, scope);
       nsresult rv = nsContentUtils::WrapNative(aCx, data, iid, &v);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1012,7 +1013,7 @@ nsresult nsJSContext::InitClasses(JS::Handle<JSObject*> aGlobalObj) {
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, aGlobalObj);
+  MC::JSAutoRealm ar(cx, aGlobalObj);
 
 #ifdef MOZ_JPROF
   // Attempt to initialize JProf functions

@@ -13,6 +13,8 @@
 #include "js/Array.h"
 #include "js/experimental/TypedData.h"
 
+#include "monkeycage/GCAPI.h"
+
 namespace mozilla::jni {
 namespace detail {
 bool CheckJS(JSContext* aCx, bool aResult) {
@@ -49,9 +51,9 @@ nsresult BoxString(JSContext* aCx, JS::Handle<JS::Value> aData,
   JNIEnv* const env = aOut.Env();
   const char16_t* chars;
   {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     size_t len = 0;
-    chars = JS_GetTwoByteStringCharsAndLength(aCx, nogc, str, &len);
+    chars = JS_GetTwoByteStringCharsAndLength(aCx, *nogc.UNSAFE_unverified(), str, &len);
     if (chars) {
       aOut = jni::String::LocalRef::Adopt(
           env, env->NewString(reinterpret_cast<const jchar*>(chars), len));
@@ -90,9 +92,9 @@ nsresult BoxArrayPrimitive(JSContext* aCx, JS::Handle<JSObject*> aData,
 
 nsresult BoxByteArray(JSContext* aCx, JS::Handle<JSObject*> aData,
                       jni::Object::LocalRef& aOut) {
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   bool isShared = false;
-  const void* data = JS_GetArrayBufferViewData(aData, &isShared, nogc);
+  const void* data = JS_GetArrayBufferViewData(aData, &isShared, *nogc.UNSAFE_unverified());
   size_t length = JS_GetArrayBufferViewByteLength(aData);
 
   aOut = jni::ByteArray::New(reinterpret_cast<const int8_t*>(data), length);

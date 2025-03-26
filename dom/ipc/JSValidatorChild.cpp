@@ -19,6 +19,8 @@
 #include "js/CompileOptions.h"
 #include "js/RealmOptions.h"
 
+#include "monkeycage/Tainted.h"
+
 using namespace mozilla::dom;
 using Encoding = mozilla::Encoding;
 
@@ -201,11 +203,11 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
     return ValidatorResult::Failure;
   }
 
-  JSAutoRealm ar(cx, global);
+  MC::JSAutoRealm ar(cx, global);
 
   // Parse to JavaScript
   RefPtr<JS::Stencil> stencil =
-      CompileGlobalScriptToStencil(cx, JS::CompileOptions(cx), srcBuf);
+      CompileGlobalScriptToStencil(cx, *monkeycage::AutoStackTainted<JS::CompileOptions>(cx).UNSAFE_unverified(), srcBuf);
 
   if (!stencil) {
     JS_ClearPendingException(cx);

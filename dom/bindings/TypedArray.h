@@ -12,10 +12,11 @@
 #include "js/ArrayBuffer.h"
 #include "js/ArrayBufferMaybeShared.h"
 #include "js/experimental/TypedData.h"  // js::Unwrap(Ui|I)nt(8|16|32)Array, js::Get(Ui|I)nt(8|16|32)ArrayLengthAndData, js::UnwrapUint8ClampedArray, js::GetUint8ClampedArrayLengthAndData, js::UnwrapFloat(32|64)Array, js::GetFloat(32|64)ArrayLengthAndData, JS_GetArrayBufferViewType
-#include "js/GCAPI.h"                   // JS::AutoCheckCannotGC
 #include "js/sandbox/RootingAPI.h"              // JS::Rooted
 #include "js/ScalarType.h"              // JS::Scalar::Type
 #include "js/SharedArrayBuffer.h"
+#include "monkeycage/GCAPI.h"                   // JS::AutoCheckCannotGC
+#include "monkeycage/Realm.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/SpiderMonkeyInterface.h"
@@ -132,9 +133,9 @@ struct TypedArray_base : public SpiderMonkeyInterfaceObjectStorage,
     MOZ_ASSERT(inited());
     MOZ_ASSERT(!mComputed);
     size_t length;
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     mData =
-        ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, nogc);
+        ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, *nogc.UNSAFE_unverified());
     MOZ_RELEASE_ASSERT(length <= INT32_MAX,
                        "Bindings must have checked ArrayBuffer{View} length");
     mLength = length;
@@ -168,7 +169,7 @@ struct TypedArray : public TypedArray_base<ArrayT> {
                                  uint32_t length,
                                  const element_type* data = nullptr) {
     JS::sandbox::Rooted<JSObject*> creatorWrapper(cx);
-    Maybe<JSAutoRealm> ar;
+    Maybe<MC::JSAutoRealm> ar;
     if (creator && (creatorWrapper = creator->GetWrapperPreserveColor())) {
       ar.emplace(cx, creatorWrapper);
     }
@@ -208,9 +209,9 @@ struct TypedArray : public TypedArray_base<ArrayT> {
       return nullptr;
     }
     if (data) {
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       bool isShared;
-      element_type* buf = array.getData(&isShared, nogc);
+      element_type* buf = array.getData(&isShared, *nogc.UNSAFE_unverified());
       // Data will not be shared, until a construction protocol exists
       // for constructing shared data.
       MOZ_ASSERT(!isShared);

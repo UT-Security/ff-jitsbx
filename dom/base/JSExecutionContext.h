@@ -13,6 +13,7 @@
 #include "js/Value.h"
 #include "js/experimental/JSStencil.h"
 #include "jsapi.h"
+#include "monkeycage/Realm.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ProfilerLabels.h"
@@ -37,7 +38,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSContext* mCx;
 
   // Handles switching to our global's realm.
-  JSAutoRealm mRealm;
+  MC::JSAutoRealm mRealm;
 
   // Set to a valid handle if a return value is expected.
   JS::sandbox::Rooted<JS::Value> mRetValue;

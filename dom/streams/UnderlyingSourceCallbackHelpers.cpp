@@ -12,6 +12,7 @@
 #include "mozilla/dom/WorkerCommon.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/WorkerRunnable.h"
+#include "monkeycage/GCAPI.h"
 #include "js/experimental/TypedData.h"
 #include "nsStreamUtils.h"
 
@@ -321,11 +322,11 @@ void InputToReadableStreamAlgorithms::WriteIntoReadRequestBuffer(
     // current state of our static hazard analysis, we need to do the
     // suppression here. This can be removed with future improvements
     // to the static analysis.
-    JS::AutoSuppressGCAnalysis suppress;
-    JS::AutoCheckCannotGC noGC;
+    MC::AutoSuppressGCAnalysis suppress;
+    MC::AutoCheckCannotGC noGC;
     bool isSharedMemory;
 
-    buffer = JS_GetArrayBufferViewData(aBuffer, &isSharedMemory, noGC);
+    buffer = JS_GetArrayBufferViewData(aBuffer, &isSharedMemory, *noGC.UNSAFE_unverified());
     MOZ_ASSERT(!isSharedMemory);
 
     rv = mInput->Read(static_cast<char*>(buffer), aLength, &written);

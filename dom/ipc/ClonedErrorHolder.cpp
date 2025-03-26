@@ -16,6 +16,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/Realm.h"
 #include "nsReadableUtils.h"
 #include "xpcpublic.h"
 
@@ -116,7 +117,7 @@ void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
     }
   }
 
-  Maybe<JSAutoRealm> ar;
+  Maybe<MC::JSAutoRealm> ar;
   if (stack) {
     ar.emplace(aCx, stack);
   }
