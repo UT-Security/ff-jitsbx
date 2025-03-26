@@ -26,8 +26,6 @@ enum {
 
 struct LFIPlatform;
 
-struct LFIPlatform* lfi_new_plat(size_t pagesize);
-
 struct LFIAddrSpace;
 
 struct LFIContext;
@@ -56,6 +54,15 @@ struct LFILoadInfo {
     uint16_t elfphnum;
     uint16_t elfphentsize;
 };
+
+struct LFIPlatOptions {
+    size_t pagesize;
+    size_t vmsize;
+    bool sysexternal;
+    bool poc;
+};
+
+struct LFIPlatform* lfi_new_plat(struct LFIPlatOptions opts);
 
 typedef void (*SysHandlerFn)(struct LFIContext* ctx);
 
@@ -92,10 +99,6 @@ struct LFILoadOpts {
     bool perf;
     char* gdbfile;
 };
-
-typedef struct {
-    void* verify;
-} LFIVerifier;
 
 bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
 bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);

@@ -69,7 +69,32 @@ lfi_tux_proc_run(struct TuxThread* p)
 }
 
 EXPORT void
-lfi_tux_soboxinit(struct Tux* tux, bool val)
+lfi_tux_libinit(struct Tux* tux, bool val)
 {
-    tux->opts.soboxinit = val;
+    tux->opts.libinit = val;
+}
+
+extern void lfi_ctx_internal(void)
+    asm ("lfi_ctx_internal");
+
+static struct LFILibCalls calls = {
+    .lfi_ctx_fn        = &lfi_ctx_internal,
+    .lfi_new_plat      = &lfi_new_plat,
+    .lfi_tux_new       = &lfi_tux_new,
+    .lfi_strerror      = &lfi_strerror,
+    .lfi_tux_proc_new  = &lfi_tux_proc_new,
+    .lfi_tux_ctx       = &lfi_tux_ctx,
+    .lfi_tux_libinit   = &lfi_tux_libinit,
+    .lfi_tux_proc_run  = &lfi_tux_proc_run,
+    .lfi_thread_init   = &lfi_thread_init,
+    .lfi_host_fdopen   = &lfi_host_fdopen,
+    .lfi_as_mapany     = &lfi_as_mapany,
+    .lfi_as_mprotect   = &lfi_as_mprotect,
+    .lfi_ctx_as        = &lfi_ctx_as,
+};
+
+EXPORT void*
+lfi_libcalls(void)
+{
+    return &calls;
 }
