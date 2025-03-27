@@ -6,12 +6,10 @@
 
 #include "jitsbx/JitSandboxMask.h"
 
+#include <iostream>
 void js::sandbox::init() {
-#ifdef JITSBX_HEAP_MASK_ACTIVE
   __asm__ __volatile__("wrgsbase %0": : "r" (0x100000000));
-#endif
-#ifdef JITSBX_HEAP_MASK_PASSIVE
-  __asm__ __volatile__("wrgsbase %0": : "r" (0x100000000));
+#ifdef JITSBX_HEAP_MASK
   char log_file_path[100];
   snprintf(log_file_path, 100, "/tmp/mozilla/%d.log", getpid());
   log_mutex.lock();

@@ -51,8 +51,13 @@ class MoveEmitterX86 {
                                size_t swapCount);
   void emitInt32Move(const MoveOperand& from, const MoveOperand& to,
                      const MoveResolver& moves, size_t i);
+#ifdef JITSBX_HEAP_MASK
   void emitGeneralMove(const MoveOperand& from, const MoveOperand& to,
-                       const MoveResolver& moves, size_t i);
+                       const MoveResolver& moves, size_t i, bool mask);
+#else
+  void emitGeneralMove(const MoveOperand& from, const MoveOperand& to,
+                       const MoveResolver& moves, size_t i, bool mask = true);
+#endif
   void emitFloat32Move(const MoveOperand& from, const MoveOperand& to);
   void emitDoubleMove(const MoveOperand& from, const MoveOperand& to);
   void emitSimd128Move(const MoveOperand& from, const MoveOperand& to);
@@ -62,7 +67,11 @@ class MoveEmitterX86 {
  public:
   explicit MoveEmitterX86(MacroAssembler& masm);
   ~MoveEmitterX86();
+#ifdef JITSBX_HEAP_MASK
+  void emit(const MoveResolver& moves, bool mask = true);
+#else
   void emit(const MoveResolver& moves);
+#endif
   void finish();
 
   void setScratchRegister(Register reg) {

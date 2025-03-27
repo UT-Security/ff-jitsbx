@@ -1037,7 +1037,11 @@ class Assembler : public AssemblerX86Shared {
     append(wasm::SymbolicAccess(CodeOffset(masm.currentOffset()), imm));
   }
   void mov(const Operand& src, Register dest) { movq(src, dest); }
+#ifdef JITSBX_HEAP_MASK
+  void mov(Register src, const Operand& dest, bool mask = true) { movq(src, dest, mask); }
+#else
   void mov(Register src, const Operand& dest) { movq(src, dest); }
+#endif
   void mov(Imm32 imm32, const Operand& dest) { movq(imm32, dest); }
   void mov(Register src, Register dest) { movq(src, dest); }
   void mov(CodeLabel* label, Register dest) {

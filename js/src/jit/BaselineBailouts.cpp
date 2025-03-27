@@ -732,7 +732,12 @@ bool BaselineStackBuilder::buildBaselineFrame() {
   // Get |argsObj| if present.
   ArgumentsObject* argsObj = nullptr;
   if (script_->needsArgsObj()) {
+#ifdef JITSBX_HEAP_MASK
+    Value* maybeArgsObjPtr = js_jitsbx_new<Value>(iter_.read());
+    Value maybeArgsObj = *maybeArgsObjPtr;
+#else
     Value maybeArgsObj = iter_.read();
+#endif
     MOZ_ASSERT(maybeArgsObj.isObject() || maybeArgsObj.isUndefined() ||
                maybeArgsObj.isMagic(JS_OPTIMIZED_OUT));
     if (maybeArgsObj.isObject()) {

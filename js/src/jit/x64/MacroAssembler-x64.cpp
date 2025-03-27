@@ -894,7 +894,11 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
     }
 
     MoveEmitter emitter(*this);
+#ifdef JITSBX_HEAP_MASK
+    emitter.emit(moveResolver_, false);
+#else
     emitter.emit(moveResolver_);
+#endif
     emitter.finish();
   }
 

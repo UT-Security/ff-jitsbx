@@ -3198,7 +3198,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
    // ask2374
-#ifdef JITSBX_HEAP_MASK_PASSIVE
+#ifdef JITSBX_HEAP_MASK
 #ifdef JS_CODEGEN_X64
   void movq_rr(RegisterID src, RegisterID dst) {
     spew("movq       %s, %s", GPReg64Name(src), GPReg64Name(dst));
@@ -3273,7 +3273,14 @@ class BaseAssembler : public GenericAssembler {
   void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index,
                        int32_t scale) {
     spew("jitSandboxCheck");
-    RegisterID scratch = (base == r15) ? r14 : r15;
+    RegisterID scratch;
+    if (base != r15 && index != r15) {
+      scratch = r15;
+    } else if (base != r14 && index != r14) {
+      scratch = r14;
+    } else {
+      scratch = r13;
+    }
     push_r(rax);
     push_r(rdi);
     push_r(scratch);

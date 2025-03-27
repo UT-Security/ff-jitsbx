@@ -274,9 +274,6 @@ void InitHeapMemory() {
 
   MOZ_RELEASE_ASSERT(heapMemory.init(),
                      "Failed to initialize JitSandbox heap memory");
-
-  // Initialize gsbase
-  //__asm__ __volatile__("wrgsbase %0" : : "r"(JITSBX_HEAP_BASE));
 }
 
 void* MapAlignedPages(size_t length, size_t alignment) {

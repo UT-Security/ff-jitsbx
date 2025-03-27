@@ -172,8 +172,8 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
     movq(scratch, Operand(dest));
   }
-  void storeValue(ValueOperand val, BaseIndex dest) {
-    storeValue(val, Operand(dest));
+  void storeValue(ValueOperand val, BaseIndex dest, bool mask = true) {
+    storeValue(val, Operand(dest), mask);
   }
   void storeValue(const Address& src, const Address& dest, Register temp) {
     loadPtr(src, temp);

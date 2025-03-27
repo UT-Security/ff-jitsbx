@@ -4164,7 +4164,7 @@ bool BaselineInterpreterCodeGen::emitFormalArgAccess(JSOp op) {
       masm.guardedCallPreBarrierAnyZone(argAddr, MIRType::Value,
                                         R0.scratchReg());
       masm.loadValue(frame.addressOfStackValue(-1), R0);
-      masm.storeValue(R0, argAddr);
+      masm.storeValue(R0, argAddr, true);
 
       // Reload the arguments object.
       masm.loadPtr(frame.addressOfArgsObj(), reg);
