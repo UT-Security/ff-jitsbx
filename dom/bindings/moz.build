@@ -115,6 +115,7 @@ UNIFIED_SOURCES += [
     "DOMJSProxyHandler.cpp",
     "Exceptions.cpp",
     "IterableIterator.cpp",
+    "JSTainted.cpp",
     "nsScriptError.cpp",
     "nsScriptErrorWithStack.cpp",
     "ObservableArrayProxyHandler.cpp",

@@ -2584,7 +2584,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
   }
 
   if (string.IsEmpty()) {
-    bool ret = false;
+    bool ret = true;
     for(uint32_t i = 0; i < aData.Length(); i++) {
       ret = ret && aSequence.AppendElement(aData[i].UNSAFE_unverified_ref(), fallible);
     }

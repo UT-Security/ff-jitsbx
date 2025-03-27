@@ -9,6 +9,7 @@
 
 #include "vm/StringType.h"
 
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/PodOperations.h"
 #include "mozilla/Range.h"
 

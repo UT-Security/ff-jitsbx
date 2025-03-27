@@ -187,7 +187,7 @@ js/src/tests/style/BadIncludesOrder-inl.h:20: error:
 js/src/tests/style/BadIncludesOrder-inl.h:28:29: error:
     "vm/JSScript.h" should be included after "vm/JSFunction.h"
 
-js/src/vm/StringType.h:10: error:
+js/src/vm/StringType-inl.h:12: error:
     "mozilla/dom/JSTainted.h" is included using the wrong path;
     did you forget a prefix, or is the file not yet committed?
 

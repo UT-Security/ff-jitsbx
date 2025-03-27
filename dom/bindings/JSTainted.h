@@ -8,6 +8,8 @@
 #define mozilla_dom_JSTainted_h__
 
 #include <type_traits>
+#include <functional>
+#include <uchar.h>
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 
@@ -17,6 +19,8 @@ namespace dom {
 
 template<class T>
 mozilla::HashSet<void *> PtrTable = mozilla::HashSet<void *>(1);
+
+extern mozilla::HashSet<const char16_t *> TaintedExternalStringBacking;
 
 template<typename T>
 class TaintObj {
@@ -55,7 +59,7 @@ class JSAppPtr {
         return static_cast<T*>(cur);
       }
     }
-    return nullptr;
+    MOZ_CRASH("Invalid AppPtr Detected.");
   }
 
   private:
@@ -104,6 +108,19 @@ public:
   
 private:
   T data;
+};
+
+template <>
+class JSTaintedOperations<const char16_t**> {
+  public:
+    const char16_t ** verify(std::function<bool(const char16_t **)> f) {
+      const char16_t ** data = static_cast<JSTainted<const char16_t**>*>(this)->get_raw_value_ref();
+      if(f(data)) {
+        return data;
+      } else {
+        MOZ_CRASH("Invalid JSExternalString backing store.");
+      }
+    }
 };
 
 template<typename T>

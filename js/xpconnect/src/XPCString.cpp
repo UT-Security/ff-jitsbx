@@ -24,6 +24,8 @@
 #include "jsapi.h"
 #include "xpcpublic.h"
 
+#include "mozilla/dom/JSTainted.h"
+
 using namespace JS;
 
 const XPCStringConvert::LiteralExternalString
@@ -37,6 +39,7 @@ const XPCStringConvert::DynamicAtomExternalString
 
 void XPCStringConvert::LiteralExternalString::finalize(char16_t* aChars) const {
   // Nothing to do.
+  mozilla::dom::TaintedExternalStringBacking.remove(aChars);
 }
 
 size_t XPCStringConvert::LiteralExternalString::sizeOfBuffer(
@@ -48,7 +51,9 @@ size_t XPCStringConvert::LiteralExternalString::sizeOfBuffer(
 void XPCStringConvert::DOMStringExternalString::finalize(
     char16_t* aChars) const {
   nsStringBuffer* buf = nsStringBuffer::FromData(aChars);
+  mozilla::dom::TaintedExternalStringBacking.remove(aChars);
   buf->Release();
+  
 }
 
 size_t XPCStringConvert::DOMStringExternalString::sizeOfBuffer(
@@ -70,6 +75,7 @@ void XPCStringConvert::DynamicAtomExternalString::finalize(
   // nsDynamicAtom::Release is always-inline and defined in a translation unit
   // we can't get to here.  So we need to go through nsAtom::Release to call
   // it.
+  mozilla::dom::TaintedExternalStringBacking.remove(aChars);
   static_cast<nsAtom*>(atom)->Release();
 }
 

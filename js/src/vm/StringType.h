@@ -7,7 +7,6 @@
 #ifndef vm_StringType_h
 #define vm_StringType_h
 
-#include "mozilla/dom/JSTainted.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/Range.h"
@@ -1163,7 +1162,7 @@ static_assert(sizeof(JSFatInlineString) % js::gc::CellAlignBytes == 0,
               "fat inline strings shouldn't waste space up to the next cell "
               "boundary");
 
-class JSExternalString : public mozilla::dom::TaintObj<JSExternalString>, public JSLinearString {
+class JSExternalString : public JSLinearString {
   friend class js::gc::CellAllocator;
 
   JSExternalString(const char16_t* chars, size_t length,

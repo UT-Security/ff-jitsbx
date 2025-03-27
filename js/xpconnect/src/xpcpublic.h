@@ -260,6 +260,9 @@ class XPCStringConvert {
     if (!str) {
       return false;
     }
+    if (!mozilla::dom::TaintedExternalStringBacking.put(static_cast<char16_t*>(buf->Data()))) {
+      return false;
+    }
     rval.setString(str);
     return true;
   }
@@ -271,6 +274,9 @@ class XPCStringConvert {
         cx, static_cast<char16_t*>(buf->Data()), length,
         &sDOMStringExternalString, sharedBuffer);
     if (!str) {
+      return false;
+    }
+    if (!mozilla::dom::TaintedExternalStringBacking.put(static_cast<char16_t*>(buf->Data()))) {
       return false;
     }
     rval.setString(str);
@@ -288,6 +294,9 @@ class XPCStringConvert {
     if (!str) {
       return false;
     }
+    if (!mozilla::dom::TaintedExternalStringBacking.put(literal)) {
+      return false;
+    }
     rval.setString(str);
     return true;
   }
@@ -302,6 +311,9 @@ class XPCStringConvert {
     if (!str) {
       return false;
     }
+    if (!mozilla::dom::TaintedExternalStringBacking.put(literal)) {
+      return false;
+    }
     rval.setString(str);
     return true;
   }
@@ -314,6 +326,9 @@ class XPCStringConvert {
         JS_NewMaybeExternalString(cx, atom->GetUTF16String(), atom->GetLength(),
                                   &sDynamicAtomExternalString, &sharedAtom);
     if (!str) {
+      return false;
+    }
+    if (!mozilla::dom::TaintedExternalStringBacking.put(atom->GetUTF16String())) {
       return false;
     }
     if (sharedAtom) {

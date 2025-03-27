@@ -144,19 +144,32 @@ inline bool AssignJSString(JSContext* cx, T& dest, mozilla::dom::JSTainted<JSStr
   static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
 
-  const char16_t* chars;
-  if (XPCStringConvert::MaybeGetDOMStringChars(s.UNSAFE_unverified_ref(), &chars)) {
+  mozilla::dom::JSTainted<const char16_t**> tchars ((const char16_t**)js_malloc(sizeof(char16_t*)));
+  if(!tchars.get_raw_value_ref()) {
+    JS_ReportOutOfMemory(cx);
+    return false;
+  }
+  if (XPCStringConvert::MaybeGetDOMStringChars(s.UNSAFE_unverified_ref(), tchars.UNSAFE_unverified_ref())) {
     // The characters represent an existing string buffer that we shared with
     // JS.  We can share that buffer ourselves if the string corresponds to the
     // whole buffer; otherwise we have to copy.
-    if (chars[len.UNSAFE_unverified_ref()] == '\0') {
+    const char16_t * v_chars = *(tchars.verify([] (const char16_t ** uchars) {
+      return mozilla::dom::TaintedExternalStringBacking.has(*uchars);
+    }));
+    js_free(tchars.UNSAFE_unverified_ref());
+    if(!v_chars) {
+      return false;
+    }
+    if (v_chars[len.UNSAFE_unverified_ref()] == '\0') {
       AssignFromStringBuffer(
-          nsStringBuffer::FromData(const_cast<char16_t*>(chars)), len, dest);
+          nsStringBuffer::FromData(const_cast<char16_t*>(v_chars)), len, dest);
       return true;
     }
-  } else if (XPCStringConvert::MaybeGetLiteralStringChars(s.UNSAFE_unverified_ref(), &chars)) {
+  } else if (XPCStringConvert::MaybeGetLiteralStringChars(s.UNSAFE_unverified_ref(), tchars.UNSAFE_unverified_ref())) {
     // The characters represent a literal char16_t string constant
     // compiled into libxul; we can just use it as-is.
+    const char16_t * chars = *(tchars.UNSAFE_unverified_ref());
+    js_free(tchars.UNSAFE_unverified_ref());
     dest.AssignLiteral(chars, len.UNSAFE_unverified_ref());
     return true;
   }
