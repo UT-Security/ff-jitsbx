@@ -335,7 +335,13 @@ size_t MapIteratorObject::objectMoved(JSObject* obj, JSObject* old) {
   }
 
   AutoEnterOOMUnsafeRegion oomUnsafe;
+#ifdef JITSBX_HEAP
+  // TODO: moving this range into the heap should be safe since its just an
+  // iterator, but verify with Mozilla
+  auto newRange = iter->zone()->jitsbx_new_<ValueMap::Range>(*range);
+#else
   auto newRange = iter->zone()->new_<ValueMap::Range>(*range);
+#endif
   if (!newRange) {
     oomUnsafe.crash(
         "MapIteratorObject failed to allocate Range data while tenuring.");
@@ -1186,7 +1192,11 @@ size_t SetIteratorObject::objectMoved(JSObject* obj, JSObject* old) {
   }
 
   AutoEnterOOMUnsafeRegion oomUnsafe;
+#ifdef JITSBX_HEAP
+  auto newRange = iter->zone()->jitsbx_new_<ValueSet::Range>(*range);
+#else
   auto newRange = iter->zone()->new_<ValueSet::Range>(*range);
+#endif
   if (!newRange) {
     oomUnsafe.crash(
         "SetIteratorObject failed to allocate Range data while tenuring.");

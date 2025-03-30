@@ -4164,7 +4164,10 @@ bool BaselineInterpreterCodeGen::emitFormalArgAccess(JSOp op) {
       masm.guardedCallPreBarrierAnyZone(argAddr, MIRType::Value,
                                         R0.scratchReg());
       masm.loadValue(frame.addressOfStackValue(-1), R0);
-      masm.storeValue(R0, argAddr, true);
+      // ask2374
+      // TODO: sandbox this better later. args accessed by the Baseline
+      // Interpreter need to be pushed onto the sandbox stack.
+      masm.storeValue(R0, argAddr, false);
 
       // Reload the arguments object.
       masm.loadPtr(frame.addressOfArgsObj(), reg);

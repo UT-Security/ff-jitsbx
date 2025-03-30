@@ -61,7 +61,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, src);
@@ -76,7 +75,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_ADD_EvGv, offset, base, index, scale, src);
@@ -118,8 +116,7 @@ class BaseAssemblerX64 : public BaseAssembler {
 #ifdef JITSBX_HEAP_MASK_PASSIVE
     jitSandboxCheck(offset, base);
 #endif
-#ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
+#ifdef jitsbx_heap_mask_active
     emitGSMask();
 #endif
     ((BaseAssembler*)this)->cfiLabelNopAlign();
@@ -139,7 +136,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(addr);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(addr);
     emitGSMask();
 #endif
     ((BaseAssembler*)this)->cfiLabelNopAlign();
@@ -185,7 +181,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, src);
@@ -200,7 +195,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_AND_EvGv, offset, base, index, scale, src);
@@ -225,7 +219,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, src);
@@ -240,7 +233,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_OR_EvGv, offset, base, index, scale, src);
@@ -273,7 +265,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, src);
@@ -288,7 +279,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_XOR_EvGv, offset, base, index, scale, src);
@@ -398,7 +388,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, src);
@@ -413,7 +402,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_SUB_EvGv, offset, base, index, scale, src);
@@ -786,7 +774,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp(PRE_LOCK);
@@ -802,7 +789,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp(PRE_LOCK);
@@ -821,7 +807,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, src);
@@ -835,7 +820,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_XCHG_GvEv, offset, base, index, scale, src);
@@ -856,7 +840,6 @@ class BaseAssemblerX64 : public BaseAssembler {
       jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     }
@@ -880,7 +863,6 @@ class BaseAssemblerX64 : public BaseAssembler {
       jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     }
@@ -905,7 +887,6 @@ class BaseAssemblerX64 : public BaseAssembler {
       jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     }
@@ -935,7 +916,6 @@ class BaseAssemblerX64 : public BaseAssembler {
       jitSandboxCheck(addr);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(addr);
     emitGSMask();
 #endif
     }
@@ -980,7 +960,6 @@ class BaseAssemblerX64 : public BaseAssembler {
       jitSandboxCheck(addr);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(addr);
     emitGSMask();
 #endif
     }
@@ -1049,7 +1028,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, GROUP11_MOV);
@@ -1065,7 +1043,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(offset, base, index, scale);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(offset, base, index, scale);
     emitGSMask();
 #endif
     m_formatter.oneByteOp64(OP_GROUP11_EvIz, offset, base, index, scale,
@@ -1080,7 +1057,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     jitSandboxCheck(addr);
 #endif
 #ifdef JITSBX_HEAP_MASK_ACTIVE
-    jitSandboxCheck(addr);
     emitGSMask();
 #endif
     ((BaseAssembler*)this)->cfiLabelNopAlign();
@@ -1245,7 +1221,7 @@ class BaseAssemblerX64 : public BaseAssembler {
   }
 
   // ask2374
-#ifdef JITSBX_HEAP_MASK
+#ifdef JITSBX_HEAP_MASK_PASSIVE
   // JIT mask check helpers
   void push_r(RegisterID reg) {
     spew("push       %s", GPRegName(reg));
@@ -1272,13 +1248,20 @@ class BaseAssemblerX64 : public BaseAssembler {
   void jitSandboxCheck(int32_t offset, RegisterID base, RegisterID index,
                        int32_t scale) {
     spew("jitSandboxCheck");
-    RegisterID scratch = (index == r15) ? r14 : r15;
+    RegisterID scratch;
+    if (base != r15 && index != r15) {
+      scratch = r15;
+    } else if (base != r14 && index != r14) {
+      scratch = r14;
+    } else {
+      scratch = r13;
+    }
     push_r(rax);
     push_r(rdi);
     push_r(scratch);
     movq_rr(base, scratch);
     movq_rr(index, rdi);
-    shlq_ir(scale, rdi);
+    imulq_ir(scale, rdi, rdi);
     addq_rr(scratch, rdi);
     addq_i32r(offset, rdi);
     movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
@@ -1295,8 +1278,6 @@ class BaseAssemblerX64 : public BaseAssembler {
     movq_i64r((int64_t)addr, rdi);
     movq_i64r((int64_t)(js::sandbox::checkJitMask), rax);
     call_r(rax);
-    pop_r(rdi);
-    pop_r(rax);
   }
 #endif
   // ask2374
