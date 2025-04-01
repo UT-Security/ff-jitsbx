@@ -388,7 +388,7 @@ void MoveEmitterX86::emitInt32Move(const MoveOperand& from,
 #ifdef JITSBX_HEAP_MASK
 void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
                                      const MoveOperand& to,
-                                     const MoveResolver& moves, size_t i, bool mask = true) {
+                                     const MoveResolver& moves, size_t i, bool mask) {
 #else
 void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
                                      const MoveOperand& to,

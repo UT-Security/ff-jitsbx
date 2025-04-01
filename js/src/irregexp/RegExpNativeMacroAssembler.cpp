@@ -1214,7 +1214,13 @@ void SMRegExpMacroAssembler::successHandler() {
     if (mode_ == UC16) {
       masm_.rshiftPtrArithmetic(Imm32(1), temp0_);
     }
+#ifdef JITSBX_HEAP
+    // TODO: Temporary fix. Make sure to switch to switch to sandbox stack
+    // instead of disabling mask in general.
+    masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)), false);
+#else
     masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
+#endif
   }
 
   masm_.movePtr(ImmWord(js::RegExpRunStatus_Success), temp0_);

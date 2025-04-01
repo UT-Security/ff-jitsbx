@@ -125,7 +125,9 @@ JS_PUBLIC_API const char* JS::detail::InitWithFailureDiagnostic(
 #endif
 
   // ask2374
+#ifdef JITSBX
   js::sandbox::init();
+#endif
   // ask2374
 
   MOZ_ASSERT(libraryInitState == InitState::Uninitialized,

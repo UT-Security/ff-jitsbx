@@ -4167,7 +4167,11 @@ bool BaselineInterpreterCodeGen::emitFormalArgAccess(JSOp op) {
       // ask2374
       // TODO: sandbox this better later. args accessed by the Baseline
       // Interpreter need to be pushed onto the sandbox stack.
+#ifdef JITSBX_HEAP_MASK
       masm.storeValue(R0, argAddr, false);
+#else
+      masm.storeValue(R0, argAddr);
+#endif
 
       // Reload the arguments object.
       masm.loadPtr(frame.addressOfArgsObj(), reg);

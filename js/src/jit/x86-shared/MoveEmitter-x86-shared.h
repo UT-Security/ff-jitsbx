@@ -53,10 +53,10 @@ class MoveEmitterX86 {
                      const MoveResolver& moves, size_t i);
 #ifdef JITSBX_HEAP_MASK
   void emitGeneralMove(const MoveOperand& from, const MoveOperand& to,
-                       const MoveResolver& moves, size_t i, bool mask);
+                       const MoveResolver& moves, size_t i, bool mask = true);
 #else
   void emitGeneralMove(const MoveOperand& from, const MoveOperand& to,
-                       const MoveResolver& moves, size_t i, bool mask = true);
+                       const MoveResolver& moves, size_t i);
 #endif
   void emitFloat32Move(const MoveOperand& from, const MoveOperand& to);
   void emitDoubleMove(const MoveOperand& from, const MoveOperand& to);

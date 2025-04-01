@@ -172,9 +172,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
     movq(scratch, Operand(dest));
   }
+#ifdef JITSBX_HEAP_MASK
   void storeValue(ValueOperand val, BaseIndex dest, bool mask = true) {
     storeValue(val, Operand(dest), mask);
   }
+#else
+  void storeValue(ValueOperand val, BaseIndex dest) {
+    storeValue(val, Operand(dest));
+  }
+#endif
   void storeValue(const Address& src, const Address& dest, Register temp) {
     loadPtr(src, temp);
     storePtr(temp, dest);
