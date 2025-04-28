@@ -289,22 +289,22 @@ static void MaybeSanitizeException(JSContext* cx,
   {  // Scope for JSAutoRealm
     MC::JSAutoRealm ar(cx, unwrappedFun);
 
-    JS::ExceptionStack exnStack(cx);
+    monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(cx);
 
     // If JS::GetPendingExceptionStack returns false, we somehow failed to wrap
     // the exception into our compartment. It seems fine to treat this as an
     // uncatchable exception by returning without setting any exception on the
     // JS context.
-    if (!JS::GetPendingExceptionStack(cx, &exnStack)) {
+    if (!JS::GetPendingExceptionStack(cx, exnStack.UNSAFE_unverified())) {
       JS_ClearPendingException(cx);
       return;
     }
 
     // Let through non-objects as-is, because some APIs rely on
     // that and accidental exceptions are never non-objects.
-    if (!exnStack.exception().isObject() ||
+    if (!exnStack.UNSAFE_unverified()->exception().isObject() ||
         callerPrincipal->Subsumes(nsContentUtils::ObjectPrincipal(
-            js::UncheckedUnwrap(&exnStack.exception().toObject())))) {
+            js::UncheckedUnwrap(&exnStack.UNSAFE_unverified()->exception().toObject())))) {
       // Just leave exn as-is.
       return;
     }
@@ -315,7 +315,7 @@ static void MaybeSanitizeException(JSContext* cx,
     {  // Scope for AutoJSAPI
       AutoJSAPI jsapi;
       if (jsapi.Init(unwrappedFun)) {
-        JS::SetPendingExceptionStack(cx, exnStack);
+        JS::SetPendingExceptionStack(cx, *exnStack.UNSAFE_unverified());
       }
       // If Init() fails, we can't report the exception, but oh, well.
 

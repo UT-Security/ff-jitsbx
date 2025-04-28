@@ -704,7 +704,7 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
       ar.emplace(aCx, &unwrapped.toObject());
     }
 
-    JS::ErrorReportBuilder report(aCx);
+    monkeycage::AutoStackTainted<JS::ErrorReportBuilder> report(aCx);
     RefPtr<Exception> exn;
     if (unwrapped.isObject() &&
         (NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, &unwrapped, exn)) ||
@@ -712,13 +712,13 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
       xpcReport->Init(aCx, exn, isChrome, innerWindowID);
     } else {
       // Use the resolution site as the exception stack
-      JS::ExceptionStack exnStack(aCx, unwrapped, resolutionSite);
-      if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+      monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx, unwrapped, resolutionSite);
+      if (!report.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::NoSideEffects)) {
         JS_ClearPendingException(aCx);
         return;
       }
 
-      xpcReport->Init(report.report(), report.toStringResult().c_str(),
+      xpcReport->Init(report.UNSAFE_unverified()->report(), report.UNSAFE_unverified()->toStringResult().c_str(),
                       isChrome, innerWindowID);
     }
   }

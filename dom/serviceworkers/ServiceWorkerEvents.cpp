@@ -505,14 +505,14 @@ class MOZ_STACK_CLASS AutoCancel {
     MOZ_ASSERT(!aRv.Failed());
 
     // Let's take the pending exception.
-    JS::ExceptionStack exnStack(aCx);
-    if (!JS::StealPendingExceptionStack(aCx, &exnStack)) {
+    monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx);
+    if (!JS::StealPendingExceptionStack(aCx, exnStack.UNSAFE_unverified())) {
       return;
     }
 
     // Converting the exception in a JS::ErrorReportBuilder.
-    JS::ErrorReportBuilder report(aCx);
-    if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    monkeycage::AutoStackTainted<JS::ErrorReportBuilder> report(aCx);
+    if (!report.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(aCx);
       return;
     }
@@ -522,7 +522,7 @@ class MOZ_STACK_CLASS AutoCancel {
     MOZ_ASSERT(mParams.Length() == 1);
 
     // Let's store the error message here.
-    mMessageName.Assign(report.toStringResult().c_str());
+    mMessageName.Assign(report.UNSAFE_unverified()->toStringResult().c_str());
     mParams.Clear();
   }
 

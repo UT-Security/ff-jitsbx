@@ -1281,15 +1281,15 @@ void WorkerScriptLoader::LogExceptionToConsole(JSContext* aCx,
   MOZ_ASSERT(!JS_IsExceptionPending(aCx));
   MOZ_ASSERT(!mRv.Failed());
 
-  JS::ExceptionStack exnStack(aCx, exn, nullptr);
-  JS::ErrorReportBuilder report(aCx);
-  if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx, exn, nullptr);
+  monkeycage::AutoStackTainted<JS::ErrorReportBuilder> report(aCx);
+  if (!report.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::WithSideEffects)) {
     JS_ClearPendingException(aCx);
     return;
   }
 
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-  xpcReport->Init(report.report(), report.toStringResult().c_str(),
+  xpcReport->Init(report.UNSAFE_unverified()->report(), report.UNSAFE_unverified()->toStringResult().c_str(),
                   aWorkerPrivate->IsChromeWorker(), aWorkerPrivate->WindowID());
 
   RefPtr<AsyncErrorReporter> r = new AsyncErrorReporter(xpcReport);

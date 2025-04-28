@@ -512,10 +512,10 @@ void AutoJSAPI::ReportException() {
   }
   MOZ_ASSERT(JS_IsGlobalObject(errorGlobal));
   MC::JSAutoRealm ar(cx(), errorGlobal);
-  JS::ExceptionStack exnStack(cx());
-  JS::ErrorReportBuilder jsReport(cx());
-  if (StealExceptionAndStack(&exnStack) &&
-      jsReport.init(cx(), exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(cx());
+  monkeycage::AutoStackTainted<JS::ErrorReportBuilder> jsReport(cx());
+  if (StealExceptionAndStack(exnStack.UNSAFE_unverified()) &&
+      jsReport.UNSAFE_unverified()->init(cx(), *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::WithSideEffects)) {
     if (mIsMainThread) {
       RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
 
@@ -536,17 +536,17 @@ void AutoJSAPI::ReportException() {
 
       bool isChrome =
           nsContentUtils::ObjectPrincipal(errorGlobal)->IsSystemPrincipal();
-      xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
+      xpcReport->Init(jsReport.UNSAFE_unverified()->report(), jsReport.UNSAFE_unverified()->toStringResult().c_str(),
                       isChrome, innerWindowID);
-      if (inner && jsReport.report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
+      if (inner && jsReport.UNSAFE_unverified()->report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
         JS::sandbox::RootingContext* rcx = JS::sandbox::RootingContext::get(cx());
-        DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.exception(),
-                                 exnStack.stack());
+        DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.UNSAFE_unverified()->exception(),
+                                 exnStack.UNSAFE_unverified()->stack());
       } else {
         JS::sandbox::Rooted<JSObject*> stack(cx());
         JS::sandbox::Rooted<JSObject*> stackGlobal(cx());
-        xpc::FindExceptionStackForConsoleReport(inner, exnStack.exception(),
-                                                exnStack.stack(), &stack,
+        xpc::FindExceptionStackForConsoleReport(inner, exnStack.UNSAFE_unverified()->exception(),
+                                                exnStack.UNSAFE_unverified()->stack(), &stack,
                                                 &stackGlobal);
         // This error is not associated with a specific window,
         // so omit the exception value to mitigate potential leaks.
@@ -564,8 +564,8 @@ void AutoJSAPI::ReportException() {
       // because it may want to put it in its error events and has no other way
       // to get hold of it.  After we invoke ReportError, clear the exception on
       // cx(), just in case ReportError didn't.
-      JS::SetPendingExceptionStack(cx(), exnStack);
-      ccjscx->ReportError(jsReport.report(), jsReport.toStringResult());
+      JS::SetPendingExceptionStack(cx(), *exnStack.UNSAFE_unverified());
+      ccjscx->ReportError(jsReport.UNSAFE_unverified()->report(), jsReport.UNSAFE_unverified()->toStringResult());
       ClearException();
     }
   } else {
@@ -582,11 +582,11 @@ bool AutoJSAPI::PeekException(JS::MutableHandle<JS::Value> aVal) {
 }
 
 bool AutoJSAPI::StealException(JS::MutableHandle<JS::Value> aVal) {
-  JS::ExceptionStack exnStack(cx());
-  if (!StealExceptionAndStack(&exnStack)) {
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(cx());
+  if (!StealExceptionAndStack(exnStack.UNSAFE_unverified())) {
     return false;
   }
-  aVal.set(exnStack.exception());
+  aVal.set(exnStack.UNSAFE_unverified()->exception());
   return true;
 }
 

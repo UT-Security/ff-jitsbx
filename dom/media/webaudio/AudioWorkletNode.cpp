@@ -215,36 +215,36 @@ void WorkletNodeEngine::SendProcessorError(AudioNodeTrack* aTrack,
     return;
   }
 
-  JS::ExceptionStack exnStack(aCx);
-  if (JS::StealPendingExceptionStack(aCx, &exnStack)) {
-    JS::ErrorReportBuilder jsReport(aCx);
-    if (!jsReport.init(aCx, exnStack,
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx);
+  if (JS::StealPendingExceptionStack(aCx, exnStack.UNSAFE_unverified())) {
+    monkeycage::AutoStackTainted<JS::ErrorReportBuilder> jsReport(aCx);
+    if (!jsReport.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(),
                        JS::ErrorReportBuilder::WithSideEffects)) {
       ProcessorErrorDetails details;
       details.mMessage.Assign(u"Unknown processor error");
       SendErrorToMainThread(aTrack, details);
       // Set the exception and stack back to have it in the console with a stack
       // trace.
-      JS::SetPendingExceptionStack(aCx, exnStack);
+      JS::SetPendingExceptionStack(aCx, *exnStack.UNSAFE_unverified());
       return;
     }
 
     ProcessorErrorDetails details;
 
-    CopyUTF8toUTF16(mozilla::MakeStringSpan(jsReport.report()->filename),
+    CopyUTF8toUTF16(mozilla::MakeStringSpan(jsReport.UNSAFE_unverified()->report()->filename),
                     details.mFilename);
 
-    xpc::ErrorReport::ErrorReportToMessageString(jsReport.report(),
+    xpc::ErrorReport::ErrorReportToMessageString(jsReport.UNSAFE_unverified()->report(),
                                                  details.mMessage);
-    details.mLineno = jsReport.report()->lineno;
-    details.mColno = jsReport.report()->column;
-    MOZ_ASSERT(!jsReport.report()->isMuted);
+    details.mLineno = jsReport.UNSAFE_unverified()->report()->lineno;
+    details.mColno = jsReport.UNSAFE_unverified()->report()->column;
+    MOZ_ASSERT(!jsReport.UNSAFE_unverified()->report()->isMuted);
 
     SendErrorToMainThread(aTrack, details);
 
     // Set the exception and stack back to have it in the console with a stack
     // trace.
-    JS::SetPendingExceptionStack(aCx, exnStack);
+    JS::SetPendingExceptionStack(aCx, *exnStack.UNSAFE_unverified());
   } else {
     NS_WARNING("No exception, but processor errored out?");
   }

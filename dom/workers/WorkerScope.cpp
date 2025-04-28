@@ -350,9 +350,9 @@ nsISerialEventTarget* WorkerGlobalScopeBase::EventTargetFor(
 void WorkerGlobalScopeBase::ReportError(JSContext* aCx,
                                         JS::Handle<JS::Value> aError,
                                         CallerType, ErrorResult& aRv) {
-  JS::ErrorReportBuilder jsReport(aCx);
-  JS::ExceptionStack exnStack(aCx, aError, nullptr);
-  if (!jsReport.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+  monkeycage::AutoStackTainted<JS::ErrorReportBuilder> jsReport(aCx);
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx, aError, nullptr);
+  if (!jsReport.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::NoSideEffects)) {
     return aRv.NoteJSContextException(aCx);
   }
 
@@ -360,9 +360,9 @@ void WorkerGlobalScopeBase::ReportError(JSContext* aCx,
   // because it may want to put it in its error events and has no other way
   // to get hold of it.  After we invoke ReportError, clear the exception on
   // cx(), just in case ReportError didn't.
-  JS::SetPendingExceptionStack(aCx, exnStack);
-  mWorkerPrivate->ReportError(aCx, jsReport.toStringResult(),
-                              jsReport.report());
+  JS::SetPendingExceptionStack(aCx, *exnStack.UNSAFE_unverified());
+  mWorkerPrivate->ReportError(aCx, jsReport.UNSAFE_unverified()->toStringResult(),
+                              jsReport.UNSAFE_unverified()->report());
   JS_ClearPendingException(aCx);
 }
 

@@ -197,18 +197,18 @@ class MOZ_STACK_CLASS AutoPACErrorReporter {
     if (!JS_IsExceptionPending(mCx)) {
       return;
     }
-    JS::ExceptionStack exnStack(mCx);
-    if (!JS::StealPendingExceptionStack(mCx, &exnStack)) {
+    monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(mCx);
+    if (!JS::StealPendingExceptionStack(mCx, exnStack.UNSAFE_unverified())) {
       return;
     }
 
-    JS::ErrorReportBuilder report(mCx);
-    if (!report.init(mCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    monkeycage::AutoStackTainted<JS::ErrorReportBuilder> report(mCx);
+    if (!report.UNSAFE_unverified()->init(mCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(mCx);
       return;
     }
 
-    PACLogErrorOrWarning(u"Error"_ns, report.report());
+    PACLogErrorOrWarning(u"Error"_ns, report.UNSAFE_unverified()->report());
   }
 };
 

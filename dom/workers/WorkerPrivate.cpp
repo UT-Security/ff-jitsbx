@@ -4882,16 +4882,16 @@ void WorkerPrivate::ReportError(JSContext* aCx,
     report->AssignErrorReport(aReport);
   }
 
-  JS::ExceptionStack exnStack(aCx);
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx);
   if (JS_IsExceptionPending(aCx)) {
-    if (!JS::StealPendingExceptionStack(aCx, &exnStack)) {
+    if (!JS::StealPendingExceptionStack(aCx, exnStack.UNSAFE_unverified())) {
       JS_ClearPendingException(aCx);
       return;
     }
 
     JS::sandbox::Rooted<JSObject*> stack(aCx), stackGlobal(aCx);
     xpc::FindExceptionStackForConsoleReport(
-        nullptr, exnStack.exception(), exnStack.stack(), &stack, &stackGlobal);
+        nullptr, exnStack.UNSAFE_unverified()->exception(), exnStack.UNSAFE_unverified()->stack(), &stack, &stackGlobal);
 
     if (stack) {
       MC::JSAutoRealm ar(aCx, stackGlobal);
@@ -4929,7 +4929,7 @@ void WorkerPrivate::ReportError(JSContext* aCx,
                      JS::CurrentGlobalOrNull(aCx);
 
   WorkerErrorReport::ReportError(aCx, this, fireAtScope, nullptr,
-                                 std::move(report), 0, exnStack.exception());
+                                 std::move(report), 0, exnStack.UNSAFE_unverified()->exception());
 
   data->mErrorHandlerRecursionCount--;
 }

@@ -196,12 +196,12 @@ void WorkletJSContext::ReportError(JSErrorReport* aReport,
 
   JSContext* cx = Context();
   if (JS_IsExceptionPending(cx)) {
-    JS::ExceptionStack exnStack(cx);
-    if (JS::StealPendingExceptionStack(cx, &exnStack)) {
+    monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(cx);
+    if (JS::StealPendingExceptionStack(cx, exnStack.UNSAFE_unverified())) {
       JS::sandbox::Rooted<JSObject*> stack(cx);
       JS::sandbox::Rooted<JSObject*> stackGlobal(cx);
-      xpc::FindExceptionStackForConsoleReport(nullptr, exnStack.exception(),
-                                              exnStack.stack(), &stack,
+      xpc::FindExceptionStackForConsoleReport(nullptr, exnStack.UNSAFE_unverified()->exception(),
+                                              exnStack.UNSAFE_unverified()->stack(), &stack,
                                               &stackGlobal);
       if (stack) {
         reporter->SerializeStack(cx, stack);

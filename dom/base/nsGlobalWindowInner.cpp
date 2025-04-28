@@ -4303,20 +4303,20 @@ void nsGlobalWindowInner::ReportError(JSContext* aCx,
     return aRv.Throw(NS_ERROR_XPC_SECURITY_MANAGER_VETO);
   }
 
-  JS::ErrorReportBuilder jsReport(aCx);
-  JS::ExceptionStack exnStack(aCx, aError, nullptr);
-  if (!jsReport.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+  monkeycage::AutoStackTainted<JS::ErrorReportBuilder> jsReport(aCx);
+  monkeycage::AutoStackTainted<JS::ExceptionStack> exnStack(aCx, aError, nullptr);
+  if (!jsReport.UNSAFE_unverified()->init(aCx, *exnStack.UNSAFE_unverified(), JS::ErrorReportBuilder::NoSideEffects)) {
     return aRv.NoteJSContextException(aCx);
   }
 
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
   bool isChrome = aCallerType == CallerType::System;
-  xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
+  xpcReport->Init(jsReport.UNSAFE_unverified()->report(), jsReport.UNSAFE_unverified()->toStringResult().c_str(),
                   isChrome, WindowID());
 
   JS::sandbox::RootingContext* rcx = JS::sandbox::RootingContext::get(aCx);
-  DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack.exception(),
-                           exnStack.stack());
+  DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack.UNSAFE_unverified()->exception(),
+                           exnStack.UNSAFE_unverified()->stack());
 }
 
 void nsGlobalWindowInner::Atob(const nsAString& aAsciiBase64String,
