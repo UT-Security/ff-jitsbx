@@ -2680,9 +2680,9 @@ JSString* IOUtils::JsBuffer::IntoString(JSContext* aCx, JsBuffer aBuffer) {
   if (IsAscii(aBuffer.BeginReading())) {
     // If the string is just plain ASCII, then we can hand the buffer off to
     // JavaScript as a Latin1 string (since ASCII is a subset of Latin1).
-    JS::UniqueLatin1Chars asLatin1(
+    monkeycage::AutoStackTainted<JS::UniqueLatin1Chars> asLatin1(
         reinterpret_cast<JS::Latin1Char*>(aBuffer.mBuffer.release()));
-    return JS_NewLatin1String(aCx, std::move(asLatin1), aBuffer.mLength);
+    return JS_NewLatin1String(aCx, asLatin1.UNSAFE_unverified(), aBuffer.mLength);
   }
 
   // If the string is encodable as Latin1, we need to deflate the string to a

@@ -14,6 +14,7 @@
  * the generated code itself.
  */
 
+#include <cstring>
 #include "mozilla/Assertions.h"
 
 #include "jsapi.h"
@@ -21,6 +22,8 @@
 #include "js/Conversions.h"
 #include "js/SourceText.h"
 #include "js/String.h"  // JS::{,Lossy}CopyLinearStringChars, JS::CopyStringChars, JS::Get{,Linear}StringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
+#include "monkeycage/Tainted.h"
+#include "nsAttrName.h"
 #include "nsString.h"
 #include "xpcpublic.h"
 
@@ -127,7 +130,18 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
-  return JS::CopyStringChars(cx, dest.BeginWriting(), s, len);
+
+  using char_t = typename T::char_type;
+  char_t* destCopy = (char_t*)js_malloc(len * sizeof(char_t));
+  bool result = JS::CopyStringChars(cx, destCopy, s, len);
+  if (!result) {
+    js_free(destCopy);
+    return result;
+  }
+
+  memcpy(dest.BeginWriting(), destCopy, len * sizeof(char_t));
+  js_free(destCopy);
+  return result;
 }
 
 // Specialization for UTF8String.
@@ -160,16 +174,23 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 
   auto handle = handleOrErr.unwrap();
 
-  size_t read;
-  size_t written;
-  auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, handle.AsSpan(), &read, &written);
+  monkeycage::AutoStackTainted<size_t> read;
+  monkeycage::AutoStackTainted<size_t> written;
+  
+  char* bufCopy = (char*)js_malloc(bufLen.value());
+  mozilla::Span<char> spanCopy{bufCopy, bufLen.value()};
+  
+  auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, spanCopy, read.UNSAFE_unverified(), written.UNSAFE_unverified());
   if (MOZ_UNLIKELY(!maybe)) {
+    js_free(bufCopy);
     JS_ReportOutOfMemory(cx);
     return false;
   }
 
-  MOZ_ASSERT(read == JS::GetStringLength(s));
-  handle.Finish(written, kAllowShrinking);
+  MOZ_ASSERT(*read.UNSAFE_unverified() == JS::GetStringLength(s));
+  memcpy(handle.AsSpan().data(), bufCopy, bufLen.value());
+  js_free(bufCopy);
+  handle.Finish(*written.UNSAFE_unverified(), kAllowShrinking);
   return true;
 }
 
@@ -178,7 +199,11 @@ inline void AssignJSLinearString(nsAString& dest, JSLinearString* s) {
   static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
   dest.SetLength(len);
-  JS::CopyLinearStringChars(dest.BeginWriting(), s, len);
+
+  char16_t* destCopy = (char16_t*)js_malloc(len);
+    JS::CopyLinearStringChars(destCopy, s, len);
+  memcpy(dest.BeginWriting(), destCopy, len);
+  js_free(destCopy);
 }
 
 inline void AssignJSLinearString(nsACString& dest, JSLinearString* s) {
@@ -186,7 +211,10 @@ inline void AssignJSLinearString(nsACString& dest, JSLinearString* s) {
   static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
   dest.SetLength(len);
-  JS::LossyCopyLinearStringChars(dest.BeginWriting(), s, len);
+  char* destCopy = (char*)js_malloc(len);
+  JS::LossyCopyLinearStringChars(destCopy, s, len);
+  memcpy(dest.BeginWriting(), destCopy, len);
+  js_free(destCopy);
 }
 
 template <typename T>

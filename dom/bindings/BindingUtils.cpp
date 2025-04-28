@@ -2807,12 +2807,12 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
     {
       MC::AutoCheckCannotGC nogc;
       const char16_t* chars =
-          JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), s, &length);
+          JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), s, length.UNSAFE_unverified());
       if (!chars) {
         return false;
       }
 
-      for (size_t i = 0; i < length; i++) {
+      for (size_t i = 0; i < *length.UNSAFE_unverified(); i++) {
         if (chars[i] > 255) {
           badCharIndex = i;
           badChar = chars[i];
@@ -2823,7 +2823,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
     }
 
     if (foundBadChar) {
-      MOZ_ASSERT(badCharIndex < length);
+      MOZ_ASSERT(badCharIndex < *length.UNSAFE_unverified());
       MOZ_ASSERT(badChar > 255);
       // The largest unsigned 64 bit number (18,446,744,073,709,551,615) has
       // 20 digits, plus one more for the null terminator.
@@ -2841,19 +2841,24 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
       return false;
     }
   } else {
-    length = JS::GetStringLength(s);
+    *length.UNSAFE_unverified() = JS::GetStringLength(s);
   }
 
   static_assert(JS::MaxStringLength < UINT32_MAX,
                 "length+1 shouldn't overflow");
 
-  if (!result.SetLength(length, fallible)) {
+  if (!result.SetLength(*length.UNSAFE_unverified(), fallible)) {
     return false;
   }
 
-  if (!JS_EncodeStringToBuffer(cx, s, result.BeginWriting(), length)) {
+  char* resultCopy = (char*)js_malloc(*length.UNSAFE_unverified());
+  if (!JS_EncodeStringToBuffer(cx, s, resultCopy, *length.UNSAFE_unverified())) {
+    js_free(resultCopy);
     return false;
   }
+
+  memcpy(result.BeginWriting(), resultCopy, *length.UNSAFE_unverified());
+  js_free(resultCopy);
 
   return true;
 }

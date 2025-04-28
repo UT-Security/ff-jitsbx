@@ -32,17 +32,24 @@ void TextEncoder::EncodeInto(JSContext* aCx, JS::Handle<JSString*> aSrc,
                              TextEncoderEncodeIntoResult& aResult,
                              OOMReporter& aError) {
   aDst.ComputeState();
-  size_t read;
-  size_t written;
+  monkeycage::AutoStackTainted<size_t> read;
+  monkeycage::AutoStackTainted<size_t> written;
+  
+  char* bufCopy = (char*)js_malloc(aDst.Length());
+  mozilla::Span<char> spanCopy{bufCopy, aDst.Length()};
+  
   auto maybe = JS_EncodeStringToUTF8BufferPartial(
-      aCx, aSrc, AsWritableChars(Span(aDst.Data(), aDst.Length())), &read, &written);
+      aCx, aSrc, spanCopy, read.UNSAFE_unverified(), written.UNSAFE_unverified());
   if (!maybe) {
+    js_free(bufCopy);
     aError.ReportOOM();
     return;
   }
-  MOZ_ASSERT(written <= aDst.Length());
-  aResult.mRead.Construct() = read;
-  aResult.mWritten.Construct() = written;
+  MOZ_ASSERT(*written.UNSAFE_unverified() <= aDst.Length());
+  memcpy(aDst.Data(), bufCopy, aDst.Length());
+  js_free(bufCopy);
+  aResult.mRead.Construct() = *read.UNSAFE_unverified();
+  aResult.mWritten.Construct() = *written.UNSAFE_unverified();
 }
 
 void TextEncoder::GetEncoding(nsACString& aEncoding) {

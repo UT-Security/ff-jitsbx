@@ -1387,22 +1387,22 @@ inline bool FindEnumStringIndex(BindingCallContext& cx, JS::Handle<JS::Value> v,
   }
 
   {
-    size_t length;
+    monkeycage::AutoStackTainted<size_t> length;
     MC::AutoCheckCannotGC nogc;
     if (JS::StringHasLatin1Chars(str)) {
       const JS::Latin1Char* chars =
-          JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &length);
+          JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length.UNSAFE_unverified());
       if (!chars) {
         return false;
       }
-      *index = FindEnumStringIndexImpl(chars, length, values);
+      *index = FindEnumStringIndexImpl(chars, *length.UNSAFE_unverified(), values);
     } else {
       const char16_t* chars =
-          JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &length);
+          JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length.UNSAFE_unverified());
       if (!chars) {
         return false;
       }
-      *index = FindEnumStringIndexImpl(chars, length, values);
+      *index = FindEnumStringIndexImpl(chars, *length.UNSAFE_unverified(), values);
     }
     if (*index >= 0) {
       return true;

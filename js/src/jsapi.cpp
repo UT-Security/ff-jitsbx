@@ -3067,6 +3067,16 @@ JS_PUBLIC_API JSString* JS_NewLatin1String(
   return NewString<CanGC>(cx, std::move(chars), length);
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API JSString* JS_NewLatin1String(
+    JSContext* cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy>* chars,
+    size_t length) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  return NewString<CanGC>(cx, std::move(*chars), length);
+}
+#endif
+
 JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
                                        JS::UniqueTwoByteChars chars,
                                        size_t length) {
@@ -3075,6 +3085,16 @@ JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
   return NewString<CanGC>(cx, std::move(chars), length);
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
+                                       JS::UniqueTwoByteChars* chars,
+                                       size_t length) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  return NewString<CanGC>(cx, std::move(*chars), length);
+}
+#endif
+
 JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(JSContext* cx,
                                                   JS::UniqueTwoByteChars chars,
                                                   size_t length) {
@@ -3082,6 +3102,16 @@ JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(JSContext* cx,
   CHECK_THREAD(cx);
   return NewStringDontDeflate<CanGC>(cx, std::move(chars), length);
 }
+
+#ifdef JS_SANDBOX
+JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(JSContext* cx,
+                                                  JS::UniqueTwoByteChars* chars,
+                                                  size_t length) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  return NewStringDontDeflate<CanGC>(cx, std::move(*chars), length);
+}
+#endif
 
 JS_PUBLIC_API JSString* JS_NewUCStringCopyN(JSContext* cx, const char16_t* s,
                                             size_t n) {

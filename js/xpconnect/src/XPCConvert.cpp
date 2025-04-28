@@ -6,6 +6,7 @@
 
 /* Data conversion between native and JavaScript types. */
 
+#include <cstring>
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Range.h"
 #include "mozilla/Sprintf.h"
@@ -257,18 +258,18 @@ bool XPCConvert::NativeData2JS(JSContext* cx, MutableHandleValue d,
         using UniqueLatin1Chars =
             js::UniquePtr<JS::Latin1Char[], JS::FreePolicy>;
 
-        UniqueLatin1Chars buffer(static_cast<JS::Latin1Char*>(
+        monkeycage::AutoStackTainted<UniqueLatin1Chars> buffer(static_cast<JS::Latin1Char*>(
             JS_string_malloc(cx, allocLen.value())));
-        if (!buffer) {
+        if (!*buffer.UNSAFE_unverified()) {
           return false;
         }
 
         size_t written = LossyConvertUtf8toLatin1(
-            *utf8String, Span(reinterpret_cast<char*>(buffer.get()), len));
-        buffer[written] = 0;
+            *utf8String, Span(reinterpret_cast<char*>(buffer.UNSAFE_unverified()->get()), len));
+        (*buffer.UNSAFE_unverified())[written] = 0;
 
         // written can never exceed len, so the truncation is OK.
-        JSString* str = JS_NewLatin1String(cx, std::move(buffer), written);
+        JSString* str = JS_NewLatin1String(cx, buffer.UNSAFE_unverified(), written);
         if (!str) {
           return false;
         }
@@ -570,20 +571,20 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
 
 #ifdef DEBUG
       if (JS::StringHasLatin1Chars(str)) {
-        size_t len;
+        monkeycage::AutoStackTainted<size_t> len;
         MC::AutoCheckCannotGC nogc;
         const Latin1Char* chars =
-            JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &len);
+            JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, len.UNSAFE_unverified());
         if (chars) {
-          CheckCharsInCharRange(chars, len);
+          CheckCharsInCharRange(chars, *len.UNSAFE_unverified());
         }
       } else {
-        size_t len;
+        monkeycage::AutoStackTainted<size_t> len;
         MC::AutoCheckCannotGC nogc;
         const char16_t* chars =
-            JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, &len);
+            JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, len.UNSAFE_unverified());
         if (chars) {
-          CheckCharsInCharRange(chars, len);
+          CheckCharsInCharRange(chars, *len.UNSAFE_unverified());
         }
       }
 #endif  // DEBUG
@@ -603,11 +604,14 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
           length = arrlen;
         }
       }
-      char* buffer = static_cast<char*>(moz_xmalloc(length + 1));
-      if (!JS_EncodeStringToBuffer(cx, str, buffer, length)) {
-        free(buffer);
+      char* buffer_sbx = static_cast<char*>(js_malloc(length + 1));
+      if (!JS_EncodeStringToBuffer(cx, str, buffer_sbx, length)) {
+        js_free(buffer_sbx);
         return false;
       }
+      char* buffer = static_cast<char*>(moz_xmalloc(length + 1));
+      memcpy(buffer, buffer_sbx, length + 1);
+      js_free(buffer_sbx);
       buffer[length] = '\0';
       *((void**)d) = buffer;
       return true;
@@ -646,11 +650,15 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
 
       size_t byte_len = (len + 1) * sizeof(char16_t);
       *((void**)d) = moz_xmalloc(byte_len);
-      mozilla::Range<char16_t> destChars(*((char16_t**)d), len + 1);
+      char16_t* buffer = (char16_t*)js_malloc(byte_len);
+      mozilla::Range<char16_t> destChars(buffer, len + 1);
       if (!JS_CopyStringChars(cx, destChars, str)) {
+        js_free(buffer);
         return false;
       }
       destChars[len] = 0;
+      memcpy(*((void**)d), buffer, byte_len);
+      js_free(buffer);
 
       return true;
     }
@@ -687,10 +695,13 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
         return false;
       }
 
+      char* bufCopy = (char*)js_malloc(utf8Length);
       mozilla::DebugOnly<size_t> written = JS::DeflateStringToUTF8Buffer(
-          linear, mozilla::Span(rs->BeginWriting(), utf8Length));
+          linear, mozilla::Span(bufCopy, utf8Length));
       MOZ_ASSERT(written == utf8Length);
 
+      memcpy(rs->BeginWriting(), bufCopy, utf8Length);
+      js_free(bufCopy);
       return true;
     }
 
@@ -726,9 +737,16 @@ bool XPCConvert::JSData2Native(JSContext* cx, void* d, HandleValue s,
       if (rs->Length() != uint32_t(length)) {
         return false;
       }
-      if (!JS_EncodeStringToBuffer(cx, str, rs->BeginWriting(), length)) {
+
+      char* bufferCopy = (char*)js_malloc(length);
+      //if (!JS_EncodeStringToBuffer(cx, str, rs->BeginWriting(), length)) {
+      if (!JS_EncodeStringToBuffer(cx, str, bufferCopy, length)) {
+        js_free(bufferCopy);
         return false;
       }
+
+      memcpy(rs->BeginWriting(), bufferCopy, length);
+      js_free(bufferCopy);
 
       return true;
     }

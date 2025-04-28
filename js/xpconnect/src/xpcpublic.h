@@ -252,9 +252,11 @@ class XPCStringConvert {
   static MOZ_ALWAYS_INLINE bool StringBufferToJSVal(
       JSContext* cx, nsStringBuffer* buf, uint32_t length,
       JS::MutableHandle<JS::Value> rval, bool* sharedBuffer) {
+    monkeycage::AutoStackTainted<bool> sharedBufferSbx;
     JSString* str = JS_NewMaybeExternalString(
         cx, static_cast<char16_t*>(buf->Data()), length,
-        sDOMStringExternalString(), sharedBuffer);
+        sDOMStringExternalString(), sharedBufferSbx.UNSAFE_unverified());
+    *sharedBuffer = *sharedBufferSbx.UNSAFE_unverified();
     if (!str) {
       return false;
     }
@@ -266,9 +268,9 @@ class XPCStringConvert {
                                           const char16_t* literal,
                                           uint32_t length,
                                           JS::MutableHandle<JS::Value> rval) {
-    bool ignored;
+    monkeycage::AutoStackTainted<bool> ignored;
     JSString* str = JS_NewMaybeExternalString(
-        cx, literal, length, sLiteralExternalString(), &ignored);
+        cx, literal, length, sLiteralExternalString(), ignored.UNSAFE_unverified());
     if (!str) {
       return false;
     }
@@ -278,14 +280,14 @@ class XPCStringConvert {
 
   static inline bool DynamicAtomToJSVal(JSContext* cx, nsDynamicAtom* atom,
                                         JS::MutableHandle<JS::Value> rval) {
-    bool sharedAtom;
+    monkeycage::AutoStackTainted<bool> sharedAtom;
     JSString* str =
         JS_NewMaybeExternalString(cx, atom->GetUTF16String(), atom->GetLength(),
-                                  sDynamicAtomExternalString(), &sharedAtom);
+                                  sDynamicAtomExternalString(), sharedAtom.UNSAFE_unverified());
     if (!str) {
       return false;
     }
-    if (sharedAtom) {
+    if (*sharedAtom.UNSAFE_unverified()) {
       // We only have non-owning atoms in DOMString for now.
       // nsDynamicAtom::AddRef is always-inline and defined in a
       // translation unit we can't get to here.  So we need to go through
