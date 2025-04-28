@@ -97,6 +97,19 @@ extern JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
 extern JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(
     JSContext* cx, JS::UniqueTwoByteChars chars, size_t length);
 
+#ifdef JS_PUBLIC_API
+extern JS_PUBLIC_API JSString* JS_NewLatin1String(
+    JSContext* cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy>* chars,
+    size_t length);
+
+extern JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
+                                              JS::UniqueTwoByteChars* chars,
+                                              size_t length);
+
+extern JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(
+    JSContext* cx, JS::UniqueTwoByteChars* chars, size_t length);
+#endif
+
 extern JS_PUBLIC_API JSString* JS_NewUCStringCopyN(JSContext* cx,
                                                    const char16_t* s, size_t n);
 
