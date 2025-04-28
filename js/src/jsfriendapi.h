@@ -899,7 +899,7 @@ public:
 namespace sandbox {
 #ifdef JS_SANDBOX_API
 class CompartmentTransplantCallback {
-js::CompartmentTransplantWithCallback inner_;
+js::CompartmentTransplantWithCallback* inner_;
 
 public:
   virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) = 0;
@@ -914,10 +914,15 @@ public:
     return cb;
   }
 
-  CompartmentTransplantCallback()
-      : inner_(this, registerCb()) {}
+  CompartmentTransplantCallback() {
+    inner_ = js_new<js::CompartmentTransplantWithCallback>(this, registerCb());
+  }
 
-  js::CompartmentTransplantCallback* getCompartmentTransplantCallback() { return &inner_; }
+  ~CompartmentTransplantCallback() {
+    js_free(inner_);
+  }
+
+  js::CompartmentTransplantCallback* getCompartmentTransplantCallback() { return inner_; }
 };
 
 inline static js::CompartmentTransplantCallback* GetCompartmentTransplantCallback(js::sandbox::CompartmentTransplantCallback* cb) {

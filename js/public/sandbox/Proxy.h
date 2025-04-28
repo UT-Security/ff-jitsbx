@@ -264,7 +264,7 @@ namespace sandbox {
 
 class BaseProxyHandler {
  private:
-  js::BaseProxyHandler* base_;
+  const js::BaseProxyHandler* base_;
 
  public:
   DEFINE_PROXY_HANDLER_OPS_CALLBACKS(BaseProxyHandler)
@@ -276,11 +276,11 @@ class BaseProxyHandler {
         ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy);
   }
 
-  explicit inline BaseProxyHandler(js::BaseProxyHandler* base)
+  explicit inline BaseProxyHandler(const js::BaseProxyHandler* base)
       : base_(base) {}
 
   ~BaseProxyHandler() {
-    js_free(reinterpret_cast<void*>(base_));
+    js_free((void*)base_);
   }
 
   inline const js::BaseProxyHandler* getProxyHandler() const { return base_; }

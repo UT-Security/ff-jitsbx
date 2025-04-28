@@ -12,9 +12,19 @@
 #include "js/sandbox/Proxy.h"
 #include "js/sandbox/lib.h"
 #include "js/Utility.h"
+
+#include "monkeycage/Tainted.h"
 #endif
 
 namespace js {
+
+#ifdef JS_SANDBOX_API
+inline JSObject* UncheckedUnwrap(JSObject* obj, bool stopAtWindowProxy,
+                                 monkeycage::Tainted<unsigned*> flagsp) {
+  return UncheckedUnwrap(obj, stopAtWindowProxy, flagsp.UNSAFE_unverified());
+}
+#endif
+
 namespace sandbox {
 #ifdef JS_SANDBOX_API
 

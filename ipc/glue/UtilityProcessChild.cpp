@@ -40,6 +40,8 @@
 #include "nsThreadManager.h"
 #include "GeckoProfiler.h"
 
+#include "monkeycage/Sandbox.h"
+
 #include "mozilla/ipc/ProcessChild.h"
 #include "mozilla/FOGIPC.h"
 #include "mozilla/glean/GleanMetrics.h"
@@ -79,8 +81,6 @@ RefPtr<UtilityProcessChild> UtilityProcessChild::Get() {
   return sUtilityProcessChild;
 }
 
-extern "C" void sbx_init(void);
-
 bool UtilityProcessChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
                                const nsCString& aParentBuildID,
                                uint64_t aSandboxingKind) {
@@ -119,7 +119,7 @@ bool UtilityProcessChild::Init(mozilla::ipc::UntypedEndpoint&& aEndpoint,
   // At the moment, only ORB uses JSContext in the
   // Utility Process and ORB uses GENERIC_UTILITY
   if (mSandbox == SandboxingKind::GENERIC_UTILITY) {
-    sbx_init();
+    monkeycage::Sandbox::Initialize();
     JS::DisableJitBackend();
     if (!JS_Init()) {
       return false;
