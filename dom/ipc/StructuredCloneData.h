@@ -70,13 +70,13 @@ class SharedJSAllocatedData final {
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedJSAllocatedData)
 
-  JSStructuredCloneData& Data() { return mData; }
-  size_t DataLength() const { return mData.Size(); }
+  JSStructuredCloneData& Data() { return *mData.UNSAFE_unverified(); }
+  size_t DataLength() const { return mData.UNSAFE_unverified()->Size(); }
 
  private:
   ~SharedJSAllocatedData() = default;
 
-  JSStructuredCloneData mData;
+  monkeycage::AutoHeapTainted<JSStructuredCloneData> mData;
 };
 
 /**
@@ -210,7 +210,7 @@ class StructuredCloneData : public StructuredCloneHolder {
   bool UseExternalData(const JSStructuredCloneData& aData) {
     auto iter = aData.Start();
     bool success = false;
-    mExternalData = aData.Borrow(iter, aData.Size(), &success);
+    *mExternalData.UNSAFE_unverified() = aData.Borrow(iter, aData.Size(), &success);
     mInitialized = true;
     return success;
   }
@@ -230,17 +230,17 @@ class StructuredCloneData : public StructuredCloneHolder {
   bool StealExternalData(JSStructuredCloneData& aData);
 
   JSStructuredCloneData& Data() {
-    return mSharedData ? mSharedData->Data() : mExternalData;
+    return mSharedData ? mSharedData->Data() : *mExternalData.UNSAFE_unverified();
   }
 
   const JSStructuredCloneData& Data() const {
-    return mSharedData ? mSharedData->Data() : mExternalData;
+    return mSharedData ? mSharedData->Data() : *mExternalData.UNSAFE_unverified();
   }
 
   void InitScope(JS::StructuredCloneScope aScope) { Data().initScope(aScope); }
 
   size_t DataLength() const {
-    return mSharedData ? mSharedData->DataLength() : mExternalData.Size();
+    return mSharedData ? mSharedData->DataLength() : mExternalData.UNSAFE_unverified()->Size();
   }
 
   SharedJSAllocatedData* SharedData() const { return mSharedData; }
@@ -255,7 +255,7 @@ class StructuredCloneData : public StructuredCloneHolder {
   already_AddRefed<SharedJSAllocatedData> TakeSharedData();
 
  private:
-  JSStructuredCloneData mExternalData;
+  monkeycage::AutoHeapTainted<JSStructuredCloneData> mExternalData;
   RefPtr<SharedJSAllocatedData> mSharedData;
 
   bool mInitialized;

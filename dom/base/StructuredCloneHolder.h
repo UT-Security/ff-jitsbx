@@ -12,6 +12,7 @@
 #include <utility>
 #include "js/StructuredClone.h"
 #include "js/TypeDecls.h"
+#include "js/UniquePtr.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
@@ -149,7 +150,7 @@ class StructuredCloneHolderBase {
   }
 
  protected:
-  UniquePtr<JSAutoStructuredCloneBuffer> mBuffer;
+  js::UniquePtr<JSAutoStructuredCloneBuffer> mBuffer;
 
   StructuredCloneScope mStructuredCloneScope;
 

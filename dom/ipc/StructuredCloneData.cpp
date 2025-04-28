@@ -59,7 +59,7 @@ StructuredCloneData::~StructuredCloneData() = default;
 StructuredCloneData& StructuredCloneData::operator=(
     StructuredCloneData&& aOther) {
   mBlobImplArray = std::move(aOther.mBlobImplArray);
-  mExternalData = std::move(aOther.mExternalData);
+  *mExternalData.UNSAFE_unverified() = std::move(*aOther.mExternalData.UNSAFE_unverified());
   mSharedData = std::move(aOther.mSharedData);
   mInitialized = aOther.mInitialized;
 
@@ -130,10 +130,10 @@ void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
     return;
   }
 
-  JSStructuredCloneData data(mBuffer->scope());
-  mBuffer->giveTo(&data);
+  monkeycage::AutoStackTainted<JSStructuredCloneData> data(mBuffer->scope());
+  mBuffer->giveTo(data.UNSAFE_unverified());
   mBuffer = nullptr;
-  mSharedData = new SharedJSAllocatedData(std::move(data));
+  mSharedData = new SharedJSAllocatedData(std::move(*data.UNSAFE_unverified()));
   mInitialized = true;
 }
 

@@ -13,6 +13,7 @@
 #include "js/StructuredClone.h"
 #include "js/Value.h"
 #include "js/Wrapper.h"
+#include "js/UniquePtr.h"
 #include "jsapi.h"
 #include "monkeycage/Realm.h"
 #include "mozilla/Assertions.h"
@@ -187,7 +188,7 @@ bool StructuredCloneBlob::Holder::ReadStructuredCloneInternal(
     length -= size;
   }
 
-  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+  mBuffer = js::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
   mBuffer->adopt(std::move(data), version, StructuredCloneHolder::sCallbacks());
 

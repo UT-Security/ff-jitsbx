@@ -12,6 +12,7 @@
 #include "monkeycage/Sandbox.h"
 #include "js/CallArgs.h"
 #include "js/StructuredClone.h"
+#include "js/UniquePtr.h"
 #include "js/Value.h"
 #include "js/WasmModule.h"
 #include "js/Wrapper.h"
@@ -276,7 +277,7 @@ bool StructuredCloneHolderBase::Write(
   MOZ_ASSERT(!mBuffer, "Double Write is not allowed");
   MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
 
-  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+  mBuffer = js::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
 
   if (!mBuffer->write(aCx, aValue, aTransfer, aCloneDataPolicy,
