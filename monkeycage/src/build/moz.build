@@ -19,6 +19,10 @@ FORCE_STATIC_LIB = True
 STATIC_LIBRARY_NAME = "js_sandboxed"
 NO_EXPAND_LIBS = True
 
+LIBRARY_DEFINES["NODLOPEN"] = True
+LIBRARY_DEFINES["LARGEBOX"] = True
+LIBRARY_DEFINES["SINGLEBOX"] = True
+
 SOURCES += [
     "./gen/embed/lib/arch/x64/callback.S",
     "./gen/embed/lib/arch/x64/trampolines.S",
