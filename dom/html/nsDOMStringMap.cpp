@@ -31,7 +31,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsDOMStringMap)
     tmp->mElement->RemoveMutationObserver(tmp);
     tmp->mElement = nullptr;
   }
-  tmp->mExpandoAndGeneration.OwnerUnlinked();
+  tmp->mExpandoAndGeneration.UNSAFE_unverified()->OwnerUnlinked();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsDOMStringMap)
@@ -237,6 +237,6 @@ void nsDOMStringMap::AttributeChanged(Element* aElement, int32_t aNameSpaceID,
        aModType == MutationEvent_Binding::REMOVAL) &&
       aNameSpaceID == kNameSpaceID_None &&
       StringBeginsWith(nsDependentAtomString(aAttribute), u"data-"_ns)) {
-    ++mExpandoAndGeneration.generation;
+    ++mExpandoAndGeneration.UNSAFE_unverified()->generation;
   }
 }

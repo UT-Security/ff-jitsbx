@@ -2749,7 +2749,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(Document)
   // assume that *most* cycles you actually want to break somewhere
   // else, and not unlink an awful lot here.
 
-  tmp->mExpandoAndGeneration.OwnerUnlinked();
+  tmp->mExpandoAndGeneration.UNSAFE_unverified()->OwnerUnlinked();
 
   if (tmp->mAnimationController) {
     tmp->mAnimationController->Unlink();
@@ -4131,7 +4131,7 @@ void Document::GetLastModified(nsAString& aLastModified) const {
 }
 
 static void IncrementExpandoGeneration(Document& aDoc) {
-  ++aDoc.mExpandoAndGeneration.generation;
+  ++aDoc.mExpandoAndGeneration.UNSAFE_unverified()->generation;
 }
 
 void Document::AddToNameTable(Element* aElement, nsAtom* aName) {

@@ -2137,7 +2137,7 @@ def finalizeHook(descriptor, hookName, gcx, obj):
             // It's important to do this before we ClearWrapper, of course.
             JSObject* reflector = self->GetWrapperMaybeDead();
             if (!reflector || reflector == ${obj}) {
-              self->mExpandoAndGeneration.expando = JS::UndefinedValue();
+              self->mExpandoAndGeneration.UNSAFE_unverified()->expando = JS::UndefinedValue();
             }
             """,
             obj=obj,
@@ -4360,8 +4360,8 @@ def CreateBindingJSObject(descriptor):
             assert not descriptor.isMaybeCrossOriginObject()
             create = dedent(
                 """
-                aObject->mExpandoAndGeneration.expando.setUndefined();
-                JS::sandbox::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
+                aObject->mExpandoAndGeneration.UNSAFE_unverified()->expando.setUndefined();
+                JS::sandbox::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(aObject->mExpandoAndGeneration.UNSAFE_unverified()));
                 creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           proto, /* aLazyProto = */ false, aObject,
                                           expandoValue, aReflector);

@@ -5435,7 +5435,7 @@ class Document : public nsINode,
 
  public:
   // Needs to be public because the bindings code pokes at it.
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  monkeycage::AutoHeapTainted<JS::ExpandoAndGeneration> mExpandoAndGeneration;
 
   bool HasPendingInitialTranslation();
 

@@ -152,7 +152,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(HTMLFormElement,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mTargetContext)
   RadioGroupManager::Unlink(tmp);
   tmp->Clear();
-  tmp->mExpandoAndGeneration.OwnerUnlinked();
+  tmp->mExpandoAndGeneration.UNSAFE_unverified()->OwnerUnlinked();
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(HTMLFormElement,
@@ -1467,7 +1467,7 @@ nsresult HTMLFormElement::RemoveElementFromTableInternal(
   // we're trying to remove...
   if (entry.Data() == aChild) {
     entry.Remove();
-    ++mExpandoAndGeneration.generation;
+    ++mExpandoAndGeneration.UNSAFE_unverified()->generation;
     return NS_OK;
   }
 
@@ -1488,7 +1488,7 @@ nsresult HTMLFormElement::RemoveElementFromTableInternal(
     // If the list is empty we remove if from our hash, this shouldn't
     // happen tho
     entry.Remove();
-    ++mExpandoAndGeneration.generation;
+    ++mExpandoAndGeneration.UNSAFE_unverified()->generation;
   } else if (length == 1) {
     // Only one element left, replace the list in the hash with the
     // single element.
@@ -2084,7 +2084,7 @@ nsresult HTMLFormElement::AddElementToTableInternal(
     if (!entry) {
       // No entry found, add the element
       entry.Insert(aChild);
-      ++mExpandoAndGeneration.generation;
+      ++mExpandoAndGeneration.UNSAFE_unverified()->generation;
     } else {
       // Found something in the hash, check its type
       nsCOMPtr<nsIContent> content = do_QueryInterface(entry.Data());
@@ -2210,7 +2210,7 @@ void HTMLFormElement::RemoveElementFromPastNamesMap(Element* aElement) {
     }
   }
   if (oldCount != mPastNameLookupTable.Count()) {
-    ++mExpandoAndGeneration.generation;
+    ++mExpandoAndGeneration.UNSAFE_unverified()->generation;
   }
 }
 

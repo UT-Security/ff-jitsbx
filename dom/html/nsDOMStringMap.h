@@ -49,7 +49,7 @@ class nsDOMStringMap : public nsStubMutationObserver, public nsWrapperCache {
   void NamedDeleter(const nsAString& aProp, bool& found);
   void GetSupportedNames(nsTArray<nsString>& aNames);
 
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  monkeycage::AutoHeapTainted<JS::ExpandoAndGeneration> mExpandoAndGeneration;
 
  private:
   virtual ~nsDOMStringMap();

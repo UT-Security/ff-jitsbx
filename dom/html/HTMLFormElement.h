@@ -390,7 +390,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
       nsIContent* aForm);
 #endif
 
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  monkeycage::AutoHeapTainted<JS::ExpandoAndGeneration> mExpandoAndGeneration;
 
  protected:
   JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
