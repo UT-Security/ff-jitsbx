@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/ReportingHeader.h"
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/ReportingBinding.h"
@@ -272,15 +272,15 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
     JS::sandbox::Rooted<JSObject*> endpoints(cx, &item.mEndpoints.toObject());
     MOZ_ASSERT(endpoints);
 
-    bool isArray = false;
-    if (!JS::IsArrayObject(cx, endpoints, &isArray) || !isArray) {
+    monkeycage::AutoStackTainted<bool> isArray{false};
+    if (!JS::IsArrayObject(cx, endpoints, isArray) || !*isArray.UNSAFE_unverified()) {
       LogToConsoleIncompleteItem(aChannel, aURI, groupName);
       continue;
     }
 
-    uint32_t endpointsLength;
-    if (!JS::GetArrayLength(cx, endpoints, &endpointsLength) ||
-        endpointsLength == 0) {
+    monkeycage::AutoStackTainted<uint32_t> endpointsLength;
+    if (!JS::GetArrayLength(cx, endpoints, endpointsLength) ||
+        *endpointsLength.UNSAFE_unverified() == 0) {
       LogToConsoleIncompleteItem(aChannel, aURI, groupName);
       continue;
     }
@@ -299,7 +299,7 @@ void ReportingHeader::ReportingFromChannel(nsIHttpChannel* aChannel) {
     group->mTTL = item.mMax_age.toNumber();
     group->mCreationTime = TimeStamp::Now();
 
-    for (uint32_t i = 0; i < endpointsLength; ++i) {
+    for (uint32_t i = 0; i < *endpointsLength.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> element(cx);
       if (!JS_GetElement(cx, endpoints, i, &element)) {
         return nullptr;

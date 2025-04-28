@@ -10,7 +10,7 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "jsapi.h"
-#include "js/Array.h"               // JS::GetArrayLength
+#include "monkeycage/Array.h"               // JS::GetArrayLength
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/FloatingPoint.h"
 
@@ -130,17 +130,17 @@ nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
 
   if (!patternArray.isPrimitive()) {
     JS::sandbox::Rooted<JSObject*> obj(cx, patternArray.toObjectOrNull());
-    uint32_t length;
-    if (!JS::GetArrayLength(cx, obj, &length)) {
+    monkeycage::AutoStackTainted<uint32_t> length;
+    if (!JS::GetArrayLength(cx, obj, length)) {
       // Not an array-like thing
       return NS_ERROR_INVALID_ARG;
-    } else if (length > MAX_NUM_DASHES) {
+    } else if (*length.UNSAFE_unverified() > MAX_NUM_DASHES) {
       // Too many dashes in the pattern
       return NS_ERROR_ILLEGAL_VALUE;
     }
 
     bool haveNonzeroElement = false;
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> elt(cx);
       double d;
       if (!JS_GetElement(cx, obj, i, &elt)) {

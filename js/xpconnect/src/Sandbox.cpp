@@ -12,12 +12,12 @@
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Realm.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "js/Proxy.h"
@@ -898,10 +898,10 @@ bool SandboxProxyHandler::enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
-  uint32_t length;
-  bool ok = JS::GetArrayLength(cx, obj, &length);
+  monkeycage::AutoStackTainted<uint32_t> length;
+  bool ok = JS::GetArrayLength(cx, obj, length);
   NS_ENSURE_TRUE(ok, false);
-  for (uint32_t i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); i++) {
     JS::sandbox::RootedValue nameValue(cx);
     ok = JS_GetElement(cx, obj, i, &nameValue);
     NS_ENSURE_TRUE(ok, false);
@@ -1605,12 +1605,12 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
                                  const SandboxOptions& options,
                                  nsIExpandedPrincipal** out) {
   MOZ_ASSERT(out);
-  uint32_t length;
+  monkeycage::AutoStackTainted<uint32_t> length;
 
-  if (!JS::GetArrayLength(cx, arrayObj, &length)) {
+  if (!JS::GetArrayLength(cx, arrayObj, length)) {
     return false;
   }
-  if (!length) {
+  if (!*length.UNSAFE_unverified()) {
     // We need a whitelist of principals or uri strings to create an
     // expanded principal, if we got an empty array or something else
     // report error.
@@ -1618,8 +1618,8 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
     return false;
   }
 
-  nsTArray<nsCOMPtr<nsIPrincipal>> allowedDomains(length);
-  allowedDomains.SetLength(length);
+  nsTArray<nsCOMPtr<nsIPrincipal>> allowedDomains(*length.UNSAFE_unverified());
+  allowedDomains.SetLength(*length.UNSAFE_unverified());
 
   // If an originAttributes option has been specified, we will use that as the
   // OriginAttribute of all of the string arguments passed to this function.
@@ -1652,7 +1652,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
   // expanded principal object.
 
   // First pass:
-  for (uint32_t i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
     JS::sandbox::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
@@ -1712,7 +1712,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
   }
 
   // Second pass:
-  for (uint32_t i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
     JS::sandbox::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
@@ -1748,15 +1748,15 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
  */
 bool OptionsBase::ParseValue(const char* name, MutableHandleValue prop,
                              bool* aFound) {
-  bool found;
-  bool ok = JS_HasProperty(mCx, mObject, name, &found);
+  monkeycage::AutoStackTainted<bool> found;
+  bool ok = JS_HasProperty(mCx, mObject, name, found);
   NS_ENSURE_TRUE(ok, false);
 
   if (aFound) {
-    *aFound = found;
+    *aFound = *found.UNSAFE_unverified();
   }
 
-  if (!found) {
+  if (!*found.UNSAFE_unverified()) {
     return true;
   }
 
@@ -1937,11 +1937,11 @@ bool SandboxOptions::ParseGlobalProperties() {
   }
 
   JS::sandbox::RootedObject ctors(mCx, &value.toObject());
-  bool isArray;
-  if (!JS::IsArrayObject(mCx, ctors, &isArray)) {
+  monkeycage::AutoStackTainted<bool> isArray;
+  if (!JS::IsArrayObject(mCx, ctors, isArray)) {
     return false;
   }
-  if (!isArray) {
+  if (!*isArray.UNSAFE_unverified()) {
     JS_ReportErrorASCII(mCx,
                         "Expected an array value for wantGlobalProperties");
     return false;
@@ -2065,10 +2065,10 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
     prinOrSop = principal;
   } else if (args[0].isObject()) {
     JS::sandbox::RootedObject obj(cx, &args[0].toObject());
-    bool isArray;
-    if (!JS::IsArrayObject(cx, obj, &isArray)) {
+    monkeycage::AutoStackTainted<bool> isArray;
+    if (!JS::IsArrayObject(cx, obj, isArray)) {
       ok = false;
-    } else if (isArray) {
+    } else if (*isArray.UNSAFE_unverified()) {
       if (options.userContextId != 0) {
         // We don't support passing a userContextId with an array.
         ok = false;

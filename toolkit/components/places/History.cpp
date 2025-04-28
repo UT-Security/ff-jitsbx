@@ -40,7 +40,8 @@
 #include "nsPrintfCString.h"
 #include "nsTHashtable.h"
 #include "jsapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Conversions.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetElement, JS_GetProperty
 #include "mozilla/StaticPrefs_layout.h"
 #include "mozilla/StaticPrefs_places.h"
@@ -216,14 +217,16 @@ nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, JSContext* aCtx,
                                uint32_t* _arrayLength) {
   if (aValue.isObjectOrNull()) {
     JS::sandbox::Rooted<JSObject*> val(aCtx, aValue.toObjectOrNull());
-    bool isArray;
-    if (!JS::IsArrayObject(aCtx, val, &isArray)) {
+    monkeycage::AutoStackTainted<bool> isArray;
+    if (!JS::IsArrayObject(aCtx, val, isArray)) {
       return NS_ERROR_UNEXPECTED;
     }
-    if (isArray) {
+    if (*isArray.UNSAFE_unverified()) {
       _array.set(val);
-      (void)JS::GetArrayLength(aCtx, _array, _arrayLength);
-      NS_ENSURE_ARG(*_arrayLength > 0);
+      monkeycage::AutoStackTainted<uint32_t> length;
+      (void)JS::GetArrayLength(aCtx, _array, length);
+      NS_ENSURE_ARG(*length.UNSAFE_unverified() > 0);
+      *_arrayLength = *length.UNSAFE_unverified();
       return NS_OK;
     }
   }
@@ -357,12 +360,12 @@ nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
   NS_ENSURE_ARG(value.isPrimitive());
   NS_ENSURE_ARG(value.isNumber());
 
-  double num;
-  rc = JS::ToNumber(aCtx, value, &num);
+  monkeycage::AutoStackTainted<double> num;
+  rc = JS::ToNumber(aCtx, value, num);
   NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
-  NS_ENSURE_ARG(IntType(num) == num);
+  NS_ENSURE_ARG(IntType(*num.UNSAFE_unverified()) == *num.UNSAFE_unverified());
 
-  *_int = IntType(num);
+  *_int = IntType(*num.UNSAFE_unverified());
   return NS_OK;
 }
 
@@ -2185,26 +2188,26 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
       NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
       if (!visitsVal.isPrimitive()) {
         visits = visitsVal.toObjectOrNull();
-        bool isArray;
-        if (!JS::IsArrayObject(aCtx, visits, &isArray)) {
+        monkeycage::AutoStackTainted<bool> isArray;
+        if (!JS::IsArrayObject(aCtx, visits, isArray)) {
           return NS_ERROR_UNEXPECTED;
         }
-        if (!isArray) {
+        if (!*isArray.UNSAFE_unverified()) {
           return NS_ERROR_INVALID_ARG;
         }
       }
     }
     NS_ENSURE_ARG(visits);
 
-    uint32_t visitsLength = 0;
+    monkeycage::AutoStackTainted<uint32_t> visitsLength{0};
     if (visits) {
-      (void)JS::GetArrayLength(aCtx, visits, &visitsLength);
+      (void)JS::GetArrayLength(aCtx, visits, visitsLength);
     }
-    NS_ENSURE_ARG(visitsLength > 0);
+    NS_ENSURE_ARG(*visitsLength.UNSAFE_unverified() > 0);
 
     // Check each visit, and build our array of VisitData objects.
-    visitData.SetCapacity(visitData.Length() + visitsLength);
-    for (uint32_t j = 0; j < visitsLength; j++) {
+    visitData.SetCapacity(visitData.Length() + *visitsLength.UNSAFE_unverified());
+    for (uint32_t j = 0; j < *visitsLength.UNSAFE_unverified(); j++) {
       JS::sandbox::Rooted<JSObject*> visit(aCtx);
       rv = GetJSObjectFromArray(aCtx, visits, j, &visit);
       NS_ENSURE_SUCCESS(rv, rv);

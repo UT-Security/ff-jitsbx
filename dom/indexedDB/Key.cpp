@@ -4,18 +4,18 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
 #include "Key.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <stdint.h>          // for UINT32_MAX, uintptr_t
-#include "js/Array.h"        // JS::NewArrayObject
+#include "monkeycage/Array.h"        // JS::NewArrayObject
 #include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,NewArrayBuffer{,WithContents},GetArrayBufferLengthAndData}
 #include "js/Date.h"
 #include "js/experimental/TypedData.h"  // JS_IsArrayBufferViewObject, JS_GetObjectAsArrayBufferView
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"              // JS::GetBuiltinClass
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
 #include "js/Value.h"
 #include "jsfriendapi.h"
 #include "mozilla/Casting.h"
@@ -46,8 +46,8 @@ IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
     JSContext* const aCx, JS::Handle<JSObject*> aObject,
     ArrayConversionPolicy&& aPolicy) {
   // 1. Let `len` be ? ToLength( ? Get(`input`, "length")).
-  uint32_t len;
-  if (!JS::GetArrayLength(aCx, aObject, &len)) {
+  monkeycage::AutoStackTainted<uint32_t> len;
+  if (!JS::GetArrayLength(aCx, aObject, len)) {
     return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
   }
 
@@ -61,20 +61,20 @@ IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
   uint32_t index = 0;
 
   // 5. While `index` is less than `len`:
-  while (index < len) {
+  while (index < *len.UNSAFE_unverified()) {
     JS::sandbox::Rooted<JS::PropertyKey> indexId(aCx);
     if (!JS_IndexToId(aCx, index, &indexId)) {
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
 
     // 1. Let `hop` be ? HasOwnProperty(`input`, `index`).
-    bool hop;
-    if (!JS_HasOwnPropertyById(aCx, aObject, indexId, &hop)) {
+    monkeycage::AutoStackTainted<bool> hop;
+    if (!JS_HasOwnPropertyById(aCx, aObject, indexId, hop)) {
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
 
     // 2. If `hop` is false, return invalid.
-    if (!hop) {
+    if (!*hop.UNSAFE_unverified()) {
       return Err(IDBError(SpecialValues::Invalid));
     }
 

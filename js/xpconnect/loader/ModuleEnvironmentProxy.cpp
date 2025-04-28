@@ -15,7 +15,7 @@
 #include "js/ErrorReport.h"  // JS_ReportOutOfMemory
 #include "js/GCVector.h"     // JS::RootedVector
 #include "js/Id.h"           // JS::PropertyKey
-#include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_GetPropertyById, JS_Enumerate
+#include "monkeycage/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_GetPropertyById, JS_Enumerate
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/sandbox/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
@@ -177,7 +177,10 @@ bool ModuleEnvironmentProxyHandler::has(JSContext* aCx,
   }
 
   JS::sandbox::Rooted<JSObject*> envObj(aCx, getEnvironment(aProxy));
-  return JS_HasOwnPropertyById(aCx, envObj, aId, aBp);
+  monkeycage::AutoStackTainted<bool> bp;
+  bool ret = JS_HasOwnPropertyById(aCx, envObj, aId, bp);
+  *aBp = *bp.UNSAFE_unverified();
+  return ret;
 }
 
 bool ModuleEnvironmentProxyHandler::get(

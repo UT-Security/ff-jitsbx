@@ -8,8 +8,8 @@
 
 #include "geckoview/streaming/GeckoViewStreamingTelemetry.h"
 #include "ipc/TelemetryIPCAccumulator.h"
-#include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/JSONWriter.h"
 #include "mozilla/Preferences.h"
@@ -3364,10 +3364,10 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
     uint32_t kind = static_cast<uint32_t>(value.toInt32());
 
     // Get the optional scalar's recording policy (default to false).
-    bool hasProperty = false;
+    monkeycage::AutoStackTainted<bool> hasProperty{false};
     bool recordOnRelease = false;
-    if (JS_HasProperty(cx, scalarDef, "record_on_release", &hasProperty) &&
-        hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "record_on_release", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "record_on_release", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'record_on_release' for scalar %s.",
@@ -3379,7 +3379,7 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the optional scalar's keyed (default to false).
     bool keyed = false;
-    if (JS_HasProperty(cx, scalarDef, "keyed", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "keyed", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "keyed", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'keyed' for scalar %s.",
@@ -3391,7 +3391,7 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the optional scalar's expired state (default to false).
     bool expired = false;
-    if (JS_HasProperty(cx, scalarDef, "expired", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "expired", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "expired", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'expired' for scalar %s.",
@@ -3403,25 +3403,25 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the scalar's optional stores list (default to ["main"]).
     nsTArray<nsCString> stores;
-    if (JS_HasProperty(cx, scalarDef, "stores", &hasProperty) && hasProperty) {
-      bool isArray = false;
+    if (JS_HasProperty(cx, scalarDef, "stores", hasProperty) && *hasProperty.UNSAFE_unverified()) {
+      monkeycage::AutoStackTainted<bool> isArray{false};
       if (!JS_GetProperty(cx, scalarDef, "stores", &value) ||
-          !JS::IsArrayObject(cx, value, &isArray) || !isArray) {
+          !JS::IsArrayObject(cx, value, isArray) || !*isArray.UNSAFE_unverified()) {
         JS_ReportErrorASCII(cx, "Invalid 'stores' for scalar %s.",
                             PromiseFlatCString(fullName).get());
         return NS_ERROR_FAILURE;
       }
 
       JS::sandbox::Rooted<JSObject*> arrayObj(cx, &value.toObject());
-      uint32_t storesLength = 0;
-      if (!JS::GetArrayLength(cx, arrayObj, &storesLength)) {
+      monkeycage::AutoStackTainted<uint32_t> storesLength{0};
+      if (!JS::GetArrayLength(cx, arrayObj, storesLength)) {
         JS_ReportErrorASCII(cx,
                             "Can't get 'stores' array length for scalar %s.",
                             PromiseFlatCString(fullName).get());
         return NS_ERROR_FAILURE;
       }
 
-      for (uint32_t i = 0; i < storesLength; ++i) {
+      for (uint32_t i = 0; i < *storesLength.UNSAFE_unverified(); ++i) {
         JS::sandbox::Rooted<JS::Value> elt(cx);
         if (!JS_GetElement(cx, arrayObj, i, &elt)) {
           JS_ReportErrorASCII(

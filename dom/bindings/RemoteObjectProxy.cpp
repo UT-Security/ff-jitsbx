@@ -156,11 +156,11 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
     return;
   }
 
-  bool success;
-  if (!JS_SetImmutablePrototype(aCx, obj, &success)) {
+  monkeycage::AutoStackTainted<bool> success;
+  if (!JS_SetImmutablePrototype(aCx, obj, success.UNSAFE_unverified())) {
     return;
   }
-  MOZ_ASSERT(success);
+  MOZ_ASSERT(*success.UNSAFE_unverified());
 
   aNewObjectCreated = true;
 

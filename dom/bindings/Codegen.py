@@ -1436,7 +1436,7 @@ class CGHeaders(CGWrapper):
                 if unrolled.nullable():
                     headerSet.add("mozilla/dom/Nullable.h")
                 elif unrolled.isSequence() or unrolled.isObservableArray():
-                    bindingHeaders.add("js/Array.h")
+                    bindingHeaders.add("monkeycage/Array.h")
                     bindingHeaders.add("js/ForOfIterator.h")
                     if unrolled.isObservableArray():
                         bindingHeaders.add("mozilla/dom/ObservableArrayProxyHandler.h")
@@ -3937,12 +3937,12 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 fill(
                     """
                 {
-                  bool succeeded;
-                  if (!JS_SetImmutablePrototype(aCx, proto, &succeeded)) {
+                  monkeycage::AutoStackTainted<bool> succeeded;
+                  if (!JS_SetImmutablePrototype(aCx, proto, succeeded.UNSAFE_unverified())) {
                     $*{failureCode}
                   }
 
-                  MOZ_ASSERT(succeeded,
+                  MOZ_ASSERT(*succeeded.UNSAFE_unverified(),
                              "making a fresh prototype object's [[Prototype]] "
                              "immutable can internally fail, but it should "
                              "never be unsuccessful");
@@ -14833,11 +14833,11 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
 
             computeCondition = dedent(
                 """
-                bool hasOnProto;
-                if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                monkeycage::AutoStackTainted<bool> hasOnProto;
+                if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                   return false;
                 }
-                callNamedGetter = !hasOnProto;
+                callNamedGetter = !*hasOnProto.UNSAFE_unverified();
                 """
             )
             if self.descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
@@ -15215,11 +15215,11 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 { // Scope for expando
                   JS::sandbox::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
                   if (expando) {
-                    bool hasProp;
-                    if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
+                    monkeycage::AutoStackTainted<bool> hasProp;
+                    if (!JS_HasPropertyById(cx, expando, id, hasProp)) {
                       return false;
                     }
-                    tryNamedDelete = !hasProp;
+                    tryNamedDelete = !*hasProp.UNSAFE_unverified();
                   }
                 }
                 """
@@ -15231,11 +15231,11 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 delete += dedent(
                     """
                     if (tryNamedDelete) {
-                      bool hasOnProto;
-                      if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                      monkeycage::AutoStackTainted<bool> hasOnProto;
+                      if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                         return false;
                       }
-                      tryNamedDelete = !hasOnProto;
+                      tryNamedDelete = !*hasOnProto.UNSAFE_unverified();
                     }
                     """
                 )
@@ -15481,11 +15481,11 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             ):
                 named = fill(
                     """
-                    bool hasOnProto;
-                    if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                    monkeycage::AutoStackTainted<bool> hasOnProto;
+                    if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                       return false;
                     }
-                    if (!hasOnProto) {
+                    if (!*hasOnProto.UNSAFE_unverified()) {
                       $*{protoLacksProperty}
                       return true;
                     }
@@ -15510,9 +15510,9 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             $*{missingPropUseCounters}
             JS::sandbox::Rooted<JSObject*> expando(cx, GetExpandoObject(proxy));
             if (expando) {
-              bool b = true;
-              bool ok = JS_HasPropertyById(cx, expando, id, &b);
-              *bp = !!b;
+              monkeycage::AutoStackTainted<bool> b{true};
+              bool ok = JS_HasPropertyById(cx, expando, id, b);
+              *bp = !!*b.UNSAFE_unverified();
               if (!ok || *bp) {
                 return ok;
               }
@@ -15547,15 +15547,15 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
         getUnforgeableOrExpando = dedent(
             """
-            bool expandoHasProp = false;
+            monkeycage::AutoStackTainted<bool> expandoHasProp{false};
             { // Scope for expando
               JS::sandbox::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
               if (expando) {
-                if (!JS_HasPropertyById(cx, expando, id, &expandoHasProp)) {
+                if (!JS_HasPropertyById(cx, expando, id, expandoHasProp)) {
                   return false;
                 }
 
-                if (expandoHasProp) {
+                if (*expandoHasProp.UNSAFE_unverified()) {
                   // Forward the get to the expando object, but our receiver is whatever our
                   // receiver is.
                   if (!JS_ForwardGetPropertyTo(cx, expando, id, ${receiver}, vp)) {
@@ -15569,8 +15569,8 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
         getOnPrototype = dedent(
             """
-            bool foundOnPrototype;
-            if (!GetPropertyOnPrototype(cx, proxy, ${receiver}, id, &foundOnPrototype, vp)) {
+            monkeycage::AutoStackTainted<bool> foundOnPrototype;
+            if (!GetPropertyOnPrototype(cx, proxy, ${receiver}, id, foundOnPrototype, vp)) {
               return false;
             }
             """
@@ -15600,9 +15600,9 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                   JS_MarkCrossZoneId(cx, id);
 
                   $*{getUnforgeableOrExpando}
-                  if (!expandoHasProp) {
+                  if (!*expandoHasProp.UNSAFE_unverified()) {
                     $*{getOnPrototype}
-                    if (!foundOnPrototype) {
+                    if (!*foundOnPrototype.UNSAFE_unverified()) {
                       MOZ_ASSERT(vp.isUndefined());
                       return true;
                     }
@@ -15627,7 +15627,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
         ) + dedent(
             """
 
-            if (expandoHasProp) {
+            if (*expandoHasProp.UNSAFE_unverified()) {
               return true;
             }
             """
@@ -15663,7 +15663,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
         getOnPrototype = fill(getOnPrototype, receiver="receiver") + dedent(
             """
 
-            if (foundOnPrototype) {
+            if (*foundOnPrototype.UNSAFE_unverified()) {
               return true;
             }
 
@@ -18582,7 +18582,7 @@ class CGBindingRoot(CGThing):
         # JS_DefineUCProperty, JS_ForwardGetPropertyTo, JS_GetProperty,
         # JS_GetPropertyById, JS_HasPropertyById, JS_SetProperty,
         # JS_SetPropertyById
-        bindingHeaders["js/PropertyAndElement.h"] = True
+        bindingHeaders["monkeycage/PropertyAndElement.h"] = True
 
         # JS_GetOwnPropertyDescriptorById
         bindingHeaders["js/PropertyDescriptor.h"] = True
@@ -22636,12 +22636,12 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def preConversion(self):
         return dedent(
             """
-            uint32_t oldLen;
-            if (!JS::GetArrayLength(aCx, aBackingList, &oldLen)) {
+            monkeycage::AutoStackTainted<uint32_t> oldLen;
+            if (!JS::GetArrayLength(aCx, aBackingList, oldLen)) {
               return false;
             }
 
-            if (aIndex > oldLen) {
+            if (aIndex > *oldLen.UNSAFE_unverified()) {
               return aResult.failBadIndex();
             }
             """
@@ -22650,7 +22650,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def preCallback(self):
         return dedent(
             """
-            if (aIndex < oldLen) {
+            if (aIndex < *oldLen.UNSAFE_unverified()) {
               JS::sandbox::Rooted<JS::Value> value(aCx);
               if (!JS_GetElement(aCx, aBackingList, aIndex, &value)) {
                 return false;
@@ -22893,13 +22893,13 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        monkeycage::AutoStackTainted<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
-                        if (aIndex > length) {
+                        if (aIndex > *length.UNSAFE_unverified()) {
                           aRv.ThrowRangeError("Invalid index");
                           return${retval};
                         }
@@ -22915,9 +22915,9 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        monkeycage::AutoStackTainted<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
@@ -22926,20 +22926,20 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                     )
                 )
             ]
-            return (setupCode, "JS_SetElement", ["length", "argv[0]"], [])
+            return (setupCode, "JS_SetElement", ["*length.UNSAFE_unverified()", "argv[0]"], [])
 
         def removelastelement(self):
             setupCode = [
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        monkeycage::AutoStackTainted<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
-                        if (length == 0) {
+                        if (*length.UNSAFE_unverified() == 0) {
                           aRv.Throw(NS_ERROR_NOT_AVAILABLE);
                           return${retval};
                         }
@@ -22948,14 +22948,14 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                     )
                 )
             ]
-            return (setupCode, "JS::SetArrayLength", ["length - 1"], [])
+            return (setupCode, "JS::SetArrayLength", ["*length.UNSAFE_unverified() - 1"], [])
 
         def length(self):
             return (
-                [CGGeneric("uint32_t retVal;\n")],
+                [CGGeneric("monkeycage::AutoStackTainted<uint32_t> length;\nuint32_t retVal;\n")],
                 "JS::GetArrayLength",
-                ["&retVal"],
-                [],
+                ["length"],
+                [CGGeneric("retVal = *length.UNSAFE_unverified();\n")],
             )
 
         def define(self):

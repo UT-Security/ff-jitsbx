@@ -7152,7 +7152,7 @@ static void ReportPatternCompileFailure(nsAString& aPattern,
                                         const Document* aDocument,
                                         JS::MutableHandle<JS::Value> error,
                                         JSContext* cx) {
-  JS::AutoSaveExceptionState savedExc(cx);
+  monkeycage::AutoStackTainted<JS::AutoSaveExceptionState> savedExc(cx);
   JS::sandbox::Rooted<JSObject*> exnObj(cx, &error.toObject());
   JS::sandbox::Rooted<JS::Value> messageVal(cx);
   if (!JS_GetProperty(cx, exnObj, "message", &messageVal)) {
@@ -7170,7 +7170,7 @@ static void ReportPatternCompileFailure(nsAString& aPattern,
   nsContentUtils::ReportToConsole(nsIScriptError::errorFlag, "DOM"_ns,
                                   aDocument, nsContentUtils::eDOM_PROPERTIES,
                                   "PatternAttributeCompileFailure", strings);
-  savedExc.drop();
+  savedExc.UNSAFE_unverified()->drop();
 }
 
 // static

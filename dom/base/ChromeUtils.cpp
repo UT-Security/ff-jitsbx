@@ -1555,10 +1555,10 @@ void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
 
   auto* principals = nsJSPrincipals::get(aPrincipal);
 
-  JS::StackCapture captureMode(JS::FirstSubsumedFrame(cx, principals));
+  monkeycage::AutoStackTainted<JS::StackCapture> captureMode(JS::FirstSubsumedFrame(cx, principals));
 
   JS::sandbox::Rooted<JSObject*> frame(cx);
-  if (!JS::CaptureCurrentStack(cx, &frame, std::move(captureMode))) {
+  if (!JS::CaptureCurrentStack(cx, &frame, std::move(*captureMode.UNSAFE_unverified()))) {
     JS_ClearPendingException(cx);
     aRetval.set(nullptr);
     return;

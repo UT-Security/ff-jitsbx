@@ -15,7 +15,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "js/RootingAPI.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
@@ -109,7 +109,10 @@ struct PrimitiveConversionTraits_smallInt {
   typedef int32_t intermediateType;
   static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToInt32(cx, v, retval);
+    monkeycage::AutoStackTainted<jstype> val;
+    bool res = JS::ToInt32(cx, v, val);
+    *retval = *val.UNSAFE_unverified();
+    return res;
   }
 };
 template <>
@@ -141,7 +144,10 @@ struct PrimitiveConversionTraits<int64_t, eDefault> {
   typedef int64_t intermediateType;
   static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToInt64(cx, v, retval);
+    monkeycage::AutoStackTainted<jstype> val;
+    bool res = JS::ToInt64(cx, v, val);
+    *retval = *val.UNSAFE_unverified();
+    return res;
   }
 };
 
@@ -151,7 +157,10 @@ struct PrimitiveConversionTraits<uint64_t, eDefault> {
   typedef uint64_t intermediateType;
   static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToUint64(cx, v, retval);
+    monkeycage::AutoStackTainted<jstype> val;
+    bool res = JS::ToUint64(cx, v, val);
+    *retval = *val.UNSAFE_unverified();
+    return res;
   }
 };
 
@@ -182,12 +191,12 @@ struct PrimitiveConversionTraits_ToCheckedIntHelper {
 
   static inline bool converter(U cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    double intermediate;
-    if (!JS::ToNumber(cx, v, &intermediate)) {
+    monkeycage::AutoStackTainted<double> intermediate;
+    if (!JS::ToNumber(cx, v, intermediate)) {
       return false;
     }
 
-    return Enforce(cx, sourceDescription, intermediate, retval);
+    return Enforce(cx, sourceDescription, *intermediate.UNSAFE_unverified(), retval);
   }
 };
 
@@ -301,7 +310,10 @@ struct PrimitiveConversionTraits_float {
   typedef double intermediateType;
   static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToNumber(cx, v, retval);
+    monkeycage::AutoStackTainted<jstype> val;
+    bool res = JS::ToNumber(cx, v, val);
+    *retval = *val.UNSAFE_unverified();
+    return res;
   }
 };
 

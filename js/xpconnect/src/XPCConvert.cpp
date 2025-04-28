@@ -26,7 +26,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/experimental/TypedData.h"  // JS_GetArrayBufferViewType, JS_GetArrayBufferViewData, JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "js/MemoryFunctions.h"
@@ -1476,24 +1476,24 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
   }
 
   // If jsarray is not a TypedArrayObject, check for an Array object.
-  uint32_t length = 0;
-  bool isArray = false;
-  if (!JS::IsArrayObject(cx, jsarray, &isArray) || !isArray ||
-      !JS::GetArrayLength(cx, jsarray, &length)) {
+  monkeycage::AutoStackTainted<uint32_t> length{0};
+  monkeycage::AutoStackTainted<bool> isArray{false};
+  if (!JS::IsArrayObject(cx, jsarray, isArray) || !*isArray.UNSAFE_unverified() ||
+      !JS::GetArrayLength(cx, jsarray, length)) {
     if (pErr) {
       *pErr = NS_ERROR_XPC_CANT_CONVERT_OBJECT_TO_ARRAY;
     }
     return false;
   }
 
-  void* buf = allocFixupLen(&length);
+  void* buf = allocFixupLen(length.UNSAFE_unverified());
   if (!buf) {
     return false;
   }
 
   // Translate each array element separately.
   JS::sandbox::RootedValue current(cx);
-  for (uint32_t i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
     if (!JS_GetElement(cx, jsarray, i, &current) ||
         !JSData2Native(cx, aEltType.ElementPtr(buf, i), current, aEltType, aIID,
                        0, pErr)) {

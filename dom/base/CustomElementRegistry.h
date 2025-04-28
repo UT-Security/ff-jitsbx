@@ -9,6 +9,7 @@
 
 #include "js/GCHashTable.h"
 #include "js/TypeDecls.h"
+#include "monkeycage/Tainted.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/CycleCollectedJSContext.h"  // for MicroTaskRunnable
 #include "mozilla/dom/BindingDeclarations.h"
@@ -280,7 +281,7 @@ class CustomElementReactionsStack {
     MOZ_ASSERT(mRecursionDepth);
 
     if (mIsElementQueuePushedForCurrentRecursionDepth) {
-      Maybe<JS::AutoSaveExceptionState> ases;
+      Maybe<monkeycage::AutoHeapTainted<JS::AutoSaveExceptionState>> ases;
       if (aCx) {
         ases.emplace(aCx);
       }

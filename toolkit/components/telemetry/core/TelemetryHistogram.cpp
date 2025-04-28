@@ -13,7 +13,8 @@
 #include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Conversions.h"
 #include "js/GCAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetMaybePtrFromReservedSlot, JS::SetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunction, JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
@@ -1757,10 +1758,10 @@ bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
   if (args[firstArgIndex].isObject() && !args[firstArgIndex].isString()) {
     JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &args[firstArgIndex].toObject());
 
-    bool isArray = false;
-    JS::IsArrayObject(aCx, arrayObj, &isArray);
+    monkeycage::AutoStackTainted<bool> isArray{false};
+    JS::IsArrayObject(aCx, arrayObj, isArray);
 
-    if (!isArray) {
+    if (!*isArray.UNSAFE_unverified()) {
       LogToBrowserConsole(
           nsIScriptError::errorFlag,
           nsLiteralString(
@@ -1768,14 +1769,14 @@ bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
       return false;
     }
 
-    uint32_t arrayLength = 0;
-    if (!JS::GetArrayLength(aCx, arrayObj, &arrayLength)) {
+    monkeycage::AutoStackTainted<uint32_t> arrayLength{0};
+    if (!JS::GetArrayLength(aCx, arrayObj, arrayLength)) {
       LogToBrowserConsole(nsIScriptError::errorFlag,
                           u"Failed while trying to get array length"_ns);
       return false;
     }
 
-    for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
+    for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); arrayIdx++) {
       JS::sandbox::Rooted<JS::Value> element(aCx);
 
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
@@ -3181,36 +3182,38 @@ nsresult internal_ParseHistogramData(
     return NS_ERROR_FAILURE;
   }
 
-  if (!JS::ToInt64(aCx, sumValue, &aOutSum)) {
+  monkeycage::AutoStackTainted<int64_t> out;
+  if (!JS::ToInt64(aCx, sumValue, out)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
+  aOutSum = *out.UNSAFE_unverified();
 
   // Get the "counts" array.
   JS::sandbox::Rooted<JS::Value> countsArray(aCx);
-  bool countsIsArray = false;
+  monkeycage::AutoStackTainted<bool> countsIsArray{false};
   if (!JS_GetProperty(aCx, histogramObj, "counts", &countsArray) ||
-      !JS::IsArrayObject(aCx, countsArray, &countsIsArray)) {
+      !JS::IsArrayObject(aCx, countsArray, countsIsArray)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
 
-  if (!countsIsArray) {
+  if (!*countsIsArray.UNSAFE_unverified()) {
     // The "counts" property needs to be an array. If this is not the case,
     // skip this histogram.
     return NS_ERROR_FAILURE;
   }
 
   // Get the length of the array.
-  uint32_t countsLen = 0;
+  monkeycage::AutoStackTainted<uint32_t> countsLen{0};
   JS::sandbox::Rooted<JSObject*> countsArrayObj(aCx, &countsArray.toObject());
-  if (!JS::GetArrayLength(aCx, countsArrayObj, &countsLen)) {
+  if (!JS::GetArrayLength(aCx, countsArrayObj, countsLen)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
 
   // Parse the "counts" in the array.
-  for (uint32_t arrayIdx = 0; arrayIdx < countsLen; arrayIdx++) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *countsLen.UNSAFE_unverified(); arrayIdx++) {
     JS::sandbox::Rooted<JS::Value> elementValue(aCx);
     int countAsInt = 0;
     if (!JS_GetElement(aCx, countsArrayObj, arrayIdx, &elementValue) ||

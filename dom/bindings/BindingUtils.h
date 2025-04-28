@@ -1850,11 +1850,11 @@ bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
 
 bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                             JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
-                            bool* found, JS::MutableHandle<JS::Value> vp);
+                            monkeycage::Tainted<bool*> found, JS::MutableHandle<JS::Value> vp);
 
 //
 bool HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id, bool* has);
+                            JS::Handle<jsid> id, monkeycage::Tainted<bool*> has);
 
 // Append the property names in "names" to "props". If
 // shadowPrototypeProperties is false then skip properties that are also
@@ -2988,11 +2988,11 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
     return false;
   }
 
-  bool succeeded;
-  if (!JS_SetImmutablePrototype(aCx, aGlobal, &succeeded)) {
+  monkeycage::AutoStackTainted<bool> succeeded;
+  if (!JS_SetImmutablePrototype(aCx, aGlobal, succeeded.UNSAFE_unverified())) {
     return false;
   }
-  MOZ_ASSERT(succeeded,
+  MOZ_ASSERT(*succeeded.UNSAFE_unverified(),
              "making a fresh global object's [[Prototype]] immutable can "
              "internally fail, but it should never be unsuccessful");
 

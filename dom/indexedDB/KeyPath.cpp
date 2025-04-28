@@ -10,8 +10,8 @@
 #include "IndexedDBCommon.h"
 #include "Key.h"
 #include "ReportInternalError.h"
-#include "js/Array.h"  // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_DeleteUCProperty
+#include "monkeycage/Array.h"  // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_DeleteUCProperty
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnUCPropertyDescriptor
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -240,13 +240,13 @@ nsresult GetJSValFromKeyPathString(
   if (targetObject) {
     // If this fails, we lose, and the web page sees a magical property
     // appear on the object :-(
-    JS::ObjectOpResult succeeded;
+    monkeycage::AutoStackTainted<JS::ObjectOpResult> succeeded;
     if (!JS_DeleteUCProperty(aCx, targetObject, targetObjectPropName.get(),
                              targetObjectPropName.Length(), succeeded)) {
       IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
-    QM_TRY(OkIf(succeeded.ok()), NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
+    QM_TRY(OkIf(succeeded.UNSAFE_unverified()->ok()), NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
            IDB_REPORT_INTERNAL_ERR_LAMBDA);
   }
 

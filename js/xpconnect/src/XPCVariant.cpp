@@ -11,7 +11,7 @@
 #include "xpcprivate.h"
 
 #include "jsfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
 #include "js/friend/WindowProxy.h"  // js::ToWindowIfWindowProxy
 #include "js/PropertyAndElement.h"  // JS_GetElement
@@ -175,12 +175,12 @@ bool XPCArrayHomogenizer::GetTypeForArray(JSContext* cx, HandleObject array,
       MOZ_RELEASE_ASSERT(val.isObject(), "invalid type of jsval!");
       jsobj = &val.toObject();
 
-      bool isArray;
-      if (!JS::IsArrayObject(cx, jsobj, &isArray)) {
+      monkeycage::AutoStackTainted<bool> isArray;
+      if (!JS::IsArrayObject(cx, jsobj, isArray)) {
         return false;
       }
 
-      if (isArray) {
+      if (*isArray.UNSAFE_unverified()) {
         type = tArr;
       } else if (xpc::JSValue2ID(cx, val)) {
         type = tID;
@@ -304,16 +304,16 @@ bool XPCVariant::InitializeData(JSContext* cx) {
 
   // Let's see if it is a js array object.
 
-  uint32_t len;
+  monkeycage::AutoStackTainted<uint32_t> len;
 
-  bool isArray;
-  if (!JS::IsArrayObject(cx, jsobj, &isArray) ||
-      (isArray && !JS::GetArrayLength(cx, jsobj, &len))) {
+  monkeycage::AutoStackTainted<bool> isArray;
+  if (!JS::IsArrayObject(cx, jsobj, isArray) ||
+      (*isArray.UNSAFE_unverified() && !JS::GetArrayLength(cx, jsobj, len))) {
     return false;
   }
 
-  if (isArray) {
-    if (!len) {
+  if (*isArray.UNSAFE_unverified()) {
+    if (!*len.UNSAFE_unverified()) {
       // Zero length array
       mData.SetToEmptyArray();
       return true;
@@ -322,12 +322,12 @@ bool XPCVariant::InitializeData(JSContext* cx) {
     nsXPTType type;
     nsID id;
 
-    if (!XPCArrayHomogenizer::GetTypeForArray(cx, jsobj, len, &type, &id)) {
+    if (!XPCArrayHomogenizer::GetTypeForArray(cx, jsobj, *len.UNSAFE_unverified(), &type, &id)) {
       return false;
     }
 
     if (!XPCConvert::JSData2Native(cx, &mData.u.array.mArrayValue, val, type,
-                                   &id, len, nullptr))
+                                   &id, *len.UNSAFE_unverified(), nullptr))
       return false;
 
     const nsXPTType& elty = type.ArrayElementType();
@@ -335,7 +335,7 @@ bool XPCVariant::InitializeData(JSContext* cx) {
     if (elty.IsInterfacePointer()) {
       mData.u.array.mArrayInterfaceID = id;
     }
-    mData.u.array.mArrayCount = len;
+    mData.u.array.mArrayCount = *len.UNSAFE_unverified();
     mData.u.array.mArrayType = elty.Tag();
 
     return true;

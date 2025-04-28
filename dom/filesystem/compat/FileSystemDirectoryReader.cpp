@@ -7,7 +7,7 @@
 #include "FileSystemDirectoryReader.h"
 #include "CallbackRunnables.h"
 #include "FileSystemFileEntry.h"
-#include "js/Array.h"               // JS::NewArrayObject
+#include "monkeycage/Array.h"               // JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/FileBinding.h"
 #include "mozilla/dom/FileSystem.h"
@@ -48,17 +48,17 @@ class PromiseHandler final : public PromiseNativeHandler {
 
     JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
-    uint32_t length;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, &length))) {
+    monkeycage::AutoStackTainted<uint32_t> length;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, length))) {
       return;
     }
 
     Sequence<OwningNonNull<FileSystemEntry>> sequence;
-    if (NS_WARN_IF(!sequence.SetLength(length, fallible))) {
+    if (NS_WARN_IF(!sequence.SetLength(*length.UNSAFE_unverified(), fallible))) {
       return;
     }
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &value))) {
         return;

@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-#include "js/PropertyAndElement.h"  // JS_HasProperty, JS_HasPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_HasProperty, JS_HasPropertyById
 
 /***************************************************************************/
 
@@ -328,8 +328,8 @@ inline void XPCWrappedNative::SweepTearOffs() {
 inline bool xpc_ForcePropertyResolve(JSContext* cx, JS::HandleObject obj,
                                      jsid idArg) {
   JS::sandbox::RootedId id(cx, idArg);
-  bool dummy;
-  return JS_HasPropertyById(cx, obj, id, &dummy);
+  monkeycage::AutoStackTainted<bool> dummy;
+  return JS_HasPropertyById(cx, obj, id, dummy);
 }
 
 inline jsid GetJSIDByIndex(JSContext* cx, unsigned index) {

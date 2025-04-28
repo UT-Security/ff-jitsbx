@@ -9,6 +9,7 @@
 
 #include "js/Promise.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Array.h"
 #include "mozilla/dom/Client.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/ClonedErrorHolder.h"
@@ -54,20 +55,20 @@ ExtensionAPIRequestForwarder::ExtensionAPIRequestForwarder(
 nsresult ExtensionAPIRequestForwarder::JSArrayToSequence(
     JSContext* aCx, JS::Handle<JS::Value> aJSValue,
     dom::Sequence<JS::Value>& aResult) {
-  bool isArray;
+  monkeycage::AutoStackTainted<bool> isArray;
   JS::sandbox::Rooted<JSObject*> obj(aCx, aJSValue.toObjectOrNull());
 
-  if (NS_WARN_IF(!obj || !JS::IsArrayObject(aCx, obj, &isArray))) {
+  if (NS_WARN_IF(!obj || !JS::IsArrayObject(aCx, obj, isArray))) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (isArray) {
-    uint32_t len;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, &len))) {
+  if (*isArray.UNSAFE_unverified()) {
+    monkeycage::AutoStackTainted<uint32_t> len;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, len))) {
       return NS_ERROR_UNEXPECTED;
     }
 
-    for (uint32_t i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < *len.UNSAFE_unverified(); i++) {
       JS::sandbox::Rooted<JS::Value> v(aCx);
       JS_GetElement(aCx, obj, i, &v);
       if (NS_WARN_IF(!aResult.AppendElement(v, fallible))) {

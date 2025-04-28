@@ -10,7 +10,7 @@
 #include "js/CallAndConstruct.h"  // JS_CallFunctionValue
 #include "js/Object.h"            // JS::GetClass
 #include "js/Printf.h"
-#include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_HasPropertyById, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_HasPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "nsArrayEnumerator.h"
 #include "nsINamed.h"
 #include "nsIScriptError.h"
@@ -61,7 +61,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate() {
   if (!mJSContext || !mEvaluated) {
     return;
   }
-  mState->restore();
+  mState->UNSAFE_unverified()->restore();
 }
 
 // It turns out that some errors may be not worth reporting. So, this
@@ -314,12 +314,12 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // have a QueryInterface method, assume it is a JS iterator, and wrap it into
   // an equivalent nsISimpleEnumerator.
   if (aIID.Equals(NS_GET_IID(nsISimpleEnumerator))) {
-    bool found;
+    monkeycage::AutoStackTainted<bool> found;
     XPCJSContext* xpccx = ccx.GetContext();
     if (JS_HasPropertyById(aes.cx(), obj,
                            xpccx->GetStringID(xpccx->IDX_QUERY_INTERFACE),
-                           &found) &&
-        !found) {
+                           found) &&
+        !*found.UNSAFE_unverified()) {
       nsresult rv;
       nsCOMPtr<nsIJSEnumerator> jsEnum;
       if (!XPCConvert::JSObject2NativeInterface(

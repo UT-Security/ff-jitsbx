@@ -24,7 +24,7 @@
 #include "js/friend/WindowProxy.h"      // js::IsWindowProxy
 #include "js/friend/XrayJitInfo.h"      // JS::XrayJitInfo
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "nsJSUtils.h"
@@ -366,12 +366,12 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
   MC::JSAutoRealm ar2(cx, wrapperGlobal);
   JS_MarkCrossZoneId(cx, id);
   JS::sandbox::RootedObject proto(cx);
-  bool foundOnProto = false;
+  monkeycage::AutoStackTainted<bool> foundOnProto{false};
   if (!JS_GetPrototype(cx, wrapper, &proto) ||
-      (proto && !JS_HasPropertyById(cx, proto, id, &foundOnProto))) {
+      (proto && !JS_HasPropertyById(cx, proto, id, foundOnProto))) {
     return false;
   }
-  if (foundOnProto) {
+  if (*foundOnProto.UNSAFE_unverified()) {
     return ReportWrapperDenial(
         cx, id, WrapperDenialForXray,
         "value shadows a property on the standard prototype");
@@ -768,7 +768,10 @@ bool JSXrayTraits::delete_(JSContext* cx, HandleObject wrapper, HandleId id,
       return false;
     }
     if (desc.isSome()) {
-      return JS_DeletePropertyById(cx, target, id, result);
+      monkeycage::AutoStackTainted<ObjectOpResult> result_;
+      bool res = JS_DeletePropertyById(cx, target, id, result_);
+      result = *result_.UNSAFE_unverified();
+      return res;
     }
   }
   return result.succeed();
@@ -1666,7 +1669,7 @@ bool XrayTraits::resolveOwnProperty(
   if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       WrapperFactory::AllowWaiver(wrapper)) {
     monkeycage::AutoStackTainted<bool> found{false};
-    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, found.UNSAFE_unverified())) {
+    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, found)) {
       return false;
     }
 
@@ -2062,12 +2065,15 @@ bool XrayWrapper<Base, Traits>::delete_(JSContext* cx, HandleObject wrapper,
   if (expando) {
     MC::JSAutoRealm ar(cx, expando);
     JS_MarkCrossZoneId(cx, id);
-    bool hasProp;
-    if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
+    monkeycage::AutoStackTainted<bool> hasProp;
+    if (!JS_HasPropertyById(cx, expando, id, hasProp)) {
       return false;
     }
-    if (hasProp) {
-      return JS_DeletePropertyById(cx, expando, id, result);
+    if (*hasProp.UNSAFE_unverified()) {
+      monkeycage::AutoStackTainted<ObjectOpResult> result_;
+      bool res = JS_DeletePropertyById(cx, expando, id, result_);
+      result = *result_.UNSAFE_unverified();
+      return res;
     }
   }
 

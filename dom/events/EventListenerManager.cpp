@@ -8,6 +8,7 @@
 #undef CreateEvent
 
 #include "js/loader/LoadedScript.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Tainted.h"
 #include "mozilla/BasicEvents.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
@@ -964,11 +965,11 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
 
     // Perform CSP check
     nsCOMPtr<nsIContentSecurityPolicy> csp = doc->GetCsp();
-    unsigned lineNum = 0;
-    unsigned columnNum = 0;
+    monkeycage::AutoStackTainted<unsigned> lineNum = 0;
+    monkeycage::AutoStackTainted<unsigned> columnNum = 0;
 
     JSContext* cx = nsContentUtils::GetCurrentJSContext();
-    if (cx && !JS::DescribeScriptedCaller(cx, nullptr, &lineNum, &columnNum)) {
+    if (cx && !JS::DescribeScriptedCaller(cx, nullptr, lineNum, columnNum)) {
       JS_ClearPendingException(cx);
     }
 
@@ -981,7 +982,7 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
           true,    // aParserCreated (true because attribute event handler)
           aElement,
           nullptr,  // nsICSPEventListener
-          aBody, lineNum, columnNum, &allowsInlineScript);
+          aBody, *lineNum.UNSAFE_unverified(), *columnNum.UNSAFE_unverified(), &allowsInlineScript);
       NS_ENSURE_SUCCESS(rv, rv);
 
       // return early if CSP wants us to block inline scripts

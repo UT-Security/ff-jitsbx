@@ -45,7 +45,7 @@ bool xpc_DumpJSStack(bool showArgs, bool showLocals, bool showThisProps) {
 
 JS::UniqueChars xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
                                  bool showThisProps) {
-  JS::AutoSaveExceptionState state(cx);
+  monkeycage::AutoStackTainted<JS::AutoSaveExceptionState> state(cx);
 
   JS::UniqueChars buf =
       JS::FormatStackDump(cx, showArgs, showLocals, showThisProps);
@@ -53,6 +53,6 @@ JS::UniqueChars xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
     DebugDump("Failed to format JavaScript stack for dump");
   }
 
-  state.restore();
+  state.UNSAFE_unverified()->restore();
   return buf;
 }

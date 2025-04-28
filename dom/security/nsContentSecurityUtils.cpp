@@ -29,7 +29,7 @@
 #endif
 
 #include "FramingChecker.h"
-#include "js/Array.h"  // JS::GetArrayLength
+#include "monkeycage/Array.h"  // JS::GetArrayLength
 #include "js/ContextOptions.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "js/RegExp.h"
@@ -181,14 +181,14 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
   }
 
   // Now we know we have a result, and we need to extract it so we can read it.
-  uint32_t length;
+  monkeycage::AutoStackTainted<uint32_t> length;
   JS::sandbox::Rooted<JSObject*> regexResultObj(cx, &regexResult.toObject());
-  if (!JS::GetArrayLength(cx, regexResultObj, &length)) {
+  if (!JS::GetArrayLength(cx, regexResultObj, length)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  MOZ_LOG(sCSMLog, LogLevel::Verbose, ("Regex Matched %i strings", length));
+  MOZ_LOG(sCSMLog, LogLevel::Verbose, ("Regex Matched %i strings", *length.UNSAFE_unverified()));
 
-  for (uint32_t i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); i++) {
     JS::sandbox::Rooted<JS::Value> element(cx);
     if (!JS_GetElement(cx, regexResultObj, i, &element)) {
       return NS_ERROR_NO_CONTENT;

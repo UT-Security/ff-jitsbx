@@ -40,6 +40,7 @@
 #include "nsUnicharUtils.h"
 #include "nsPrintfCString.h"
 #include "jsapi.h"
+#include "monkeycage/jsapi.h"
 
 #define TOPIC_CANVAS_PERMISSIONS_PROMPT "canvas-permissions-prompt"
 #define TOPIC_CANVAS_PERMISSIONS_PROMPT_HIDE_DOORHANGER \
@@ -127,9 +128,9 @@ bool IsImageExtractionAllowed(dom::Document* aDocument, JSContext* aCx,
   }
 
   // Don't show canvas prompt for PDF.js
-  JS::AutoFilename scriptFile;
-  if (JS::DescribeScriptedCaller(aCx, &scriptFile) && scriptFile.get() &&
-      strcmp(scriptFile.get(), "resource://pdf.js/build/pdf.js") == 0) {
+  monkeycage::AutoStackTainted<JS::AutoFilename> scriptFile;
+  if (JS::DescribeScriptedCaller(aCx, scriptFile) && scriptFile.UNSAFE_unverified()->get() &&
+      strcmp(scriptFile.UNSAFE_unverified()->get(), "resource://pdf.js/build/pdf.js") == 0) {
     return true;
   }
 

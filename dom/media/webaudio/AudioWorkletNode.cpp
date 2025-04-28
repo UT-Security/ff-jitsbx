@@ -9,7 +9,7 @@
 #include "AudioNodeEngine.h"
 #include "AudioParamMap.h"
 #include "AudioWorkletImpl.h"
-#include "js/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
+#include "monkeycage/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/Exception.h"
 #include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
@@ -343,9 +343,9 @@ static bool PrepareArray(JSContext* aCx, const T& aElements,
   size_t length = aElements.length();
   if (aArray) {
     // Attempt to reuse.
-    uint32_t oldLength;
-    if (JS::GetArrayLength(aCx, aArray, &oldLength) &&
-        (oldLength == length || JS::SetArrayLength(aCx, aArray, length)) &&
+    monkeycage::AutoStackTainted<uint32_t> oldLength;
+    if (JS::GetArrayLength(aCx, aArray, oldLength) &&
+        (*oldLength.UNSAFE_unverified() == length || JS::SetArrayLength(aCx, aArray, length)) &&
         SetArrayElements(aCx, aElements, aArray)) {
       return true;
     }

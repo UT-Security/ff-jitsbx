@@ -96,11 +96,11 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
     return true;
   }
 
-  bool hasOnPrototype;
-  if (!HasPropertyOnPrototype(aCx, aProxy, aId, &hasOnPrototype)) {
+  monkeycage::AutoStackTainted<bool> hasOnPrototype;
+  if (!HasPropertyOnPrototype(aCx, aProxy, aId, hasOnPrototype)) {
     return false;
   }
-  if (hasOnPrototype) {
+  if (*hasOnPrototype.UNSAFE_unverified()) {
     return true;
   }
 
@@ -268,11 +268,11 @@ JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
     return nullptr;
   }
 
-  bool succeeded;
-  if (!JS_SetImmutablePrototype(aCx, gsp, &succeeded)) {
+  monkeycage::AutoStackTainted<bool> succeeded;
+  if (!JS_SetImmutablePrototype(aCx, gsp, succeeded.UNSAFE_unverified())) {
     return nullptr;
   }
-  MOZ_ASSERT(succeeded,
+  MOZ_ASSERT(*succeeded.UNSAFE_unverified(),
              "errors making the [[Prototype]] of the named properties object "
              "immutable should have been JSAPI failures, not !succeeded");
 

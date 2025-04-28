@@ -6,7 +6,7 @@
 
 #include "ServiceWorkerScriptCache.h"
 
-#include "js/Array.h"               // JS::GetArrayLength
+#include "monkeycage/Array.h"               // JS::GetArrayLength
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/TaskQueue.h"
 #include "mozilla/Unused.h"
@@ -394,8 +394,8 @@ class CompareManager final : public PromiseNativeHandler {
       return;
     }
 
-    uint32_t len = 0;
-    if (!JS::GetArrayLength(aCx, obj, &len)) {
+    monkeycage::AutoStackTainted<uint32_t> len{0};
+    if (!JS::GetArrayLength(aCx, obj, len)) {
       return;
     }
 
@@ -408,7 +408,7 @@ class CompareManager final : public PromiseNativeHandler {
     AutoTArray<nsString, 8> urlList;
 
     // Extract the list of URLs in the old cache.
-    for (uint32_t i = 0; i < len; ++i) {
+    for (uint32_t i = 0; i < *len.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> val(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &val)) ||
           NS_WARN_IF(!val.isObject())) {

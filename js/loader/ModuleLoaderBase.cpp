@@ -799,15 +799,15 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
     ModuleLoaderBase* loader = aRequest->mLoader;
     auto result = loader->ResolveModuleSpecifier(ms, specifier);
     if (result.isErr()) {
-      uint32_t lineNumber = 0;
-      uint32_t columnNumber = 0;
-      JS::GetRequestedModuleSourcePos(cx, moduleRecord, i, &lineNumber,
-                                      &columnNumber);
+      monkeycage::AutoStackTainted<uint32_t> lineNumber{0};
+      monkeycage::AutoStackTainted<uint32_t> columnNumber{0};
+      JS::GetRequestedModuleSourcePos(cx, moduleRecord, i, lineNumber.UNSAFE_unverified(),
+                                      columnNumber.UNSAFE_unverified());
 
       JS::sandbox::Rooted<JS::Value> error(cx);
       nsresult rv =
           loader->HandleResolveFailure(cx, ms, specifier, result.unwrapErr(),
-                                       lineNumber, columnNumber, &error);
+                                       *lineNumber.UNSAFE_unverified(), *columnNumber.UNSAFE_unverified(), &error);
       NS_ENSURE_SUCCESS(rv, rv);
 
       ms->SetParseError(error);

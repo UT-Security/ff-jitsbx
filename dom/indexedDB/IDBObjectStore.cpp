@@ -25,11 +25,11 @@
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
 #include "monkeycage/Sandbox.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/Class.h"
 #include "js/Date.h"
 #include "js/Object.h"  // JS::GetClass
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
 #include "js/StructuredClone.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/ErrorResult.h"
@@ -441,22 +441,22 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     return;
   }
 
-  bool isArray;
-  if (NS_WARN_IF(!JS::IsArrayObject(aCx, val, &isArray))) {
+  monkeycage::AutoStackTainted<bool> isArray;
+  if (NS_WARN_IF(!JS::IsArrayObject(aCx, val, isArray))) {
     IDB_REPORT_INTERNAL_ERR();
     aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
     return;
   }
-  if (isArray) {
+  if (*isArray.UNSAFE_unverified()) {
     JS::sandbox::Rooted<JSObject*> array(aCx, &val.toObject());
-    uint32_t arrayLength;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, array, &arrayLength))) {
+    monkeycage::AutoStackTainted<uint32_t> arrayLength;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, array, arrayLength))) {
       IDB_REPORT_INTERNAL_ERR();
       aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
       return;
     }
 
-    for (uint32_t arrayIndex = 0; arrayIndex < arrayLength; arrayIndex++) {
+    for (uint32_t arrayIndex = 0; arrayIndex < *arrayLength.UNSAFE_unverified(); arrayIndex++) {
       JS::sandbox::Rooted<JS::PropertyKey> indexId(aCx);
       if (NS_WARN_IF(!JS_IndexToId(aCx, arrayIndex, &indexId))) {
         IDB_REPORT_INTERNAL_ERR();
@@ -464,15 +464,15 @@ void IDBObjectStore::AppendIndexUpdateInfo(
         return;
       }
 
-      bool hasOwnProperty;
+      monkeycage::AutoStackTainted<bool> hasOwnProperty;
       if (NS_WARN_IF(
-              !JS_HasOwnPropertyById(aCx, array, indexId, &hasOwnProperty))) {
+              !JS_HasOwnPropertyById(aCx, array, indexId, hasOwnProperty))) {
         IDB_REPORT_INTERNAL_ERR();
         aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
         return;
       }
 
-      if (!hasOwnProperty) {
+      if (!*hasOwnProperty.UNSAFE_unverified()) {
         continue;
       }
 

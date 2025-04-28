@@ -223,12 +223,15 @@ EXPORTS.js.sandbox += [
 ]
 
 EXPORTS.monkeycage += [
+    "../public/Array.h",
     "../public/BuildId.h",
     "../public/Class.h",
     "../public/Context.h",
+    "../public/Conversions.h",
     "../public/GCAPI.h",
     "../public/Initialization.h",
     "../public/jsapi.h",
+    "../public/PropertyAndElement.h",
     "../public/Realm.h",
     "../public/Sandbox.h",
     "../public/Tainted.h",

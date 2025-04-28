@@ -4,9 +4,9 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "js/TypeDecls.h"
 #include "jsapi.h"
 #include "mozilla/BasePrincipal.h"
@@ -1093,19 +1093,19 @@ static void SetElementAsObject(JSContext* aCx, Element* aElement,
     }
 
     // For Multiple Selects Element
-    bool isArray = false;
-    JS::IsArrayObject(aCx, aObject, &isArray);
-    if (!isArray) {
+    monkeycage::AutoStackTainted<bool> isArray{false};
+    JS::IsArrayObject(aCx, aObject, isArray);
+    if (!*isArray.UNSAFE_unverified()) {
       return;
     }
     JS::sandbox::Rooted<JSObject*> arrayObj(aCx, &aObject.toObject());
-    uint32_t arrayLength = 0;
-    if (!JS::GetArrayLength(aCx, arrayObj, &arrayLength)) {
+    monkeycage::AutoStackTainted<uint32_t> arrayLength{0};
+    if (!JS::GetArrayLength(aCx, arrayObj, arrayLength)) {
       JS_ClearPendingException(aCx);
       return;
     }
-    nsTArray<nsString> array(arrayLength);
-    for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
+    nsTArray<nsString> array(*arrayLength.UNSAFE_unverified());
+    for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); arrayIdx++) {
       JS::sandbox::Rooted<JS::Value> element(aCx);
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
         JS_ClearPendingException(aCx);
@@ -1720,8 +1720,8 @@ bool SessionStoreUtils::CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
     return false;
   }
 
-  bool found = false;
-  if (!JS_HasPropertyById(aCx, aSrc, name, &found) || !found) {
+  monkeycage::AutoStackTainted<bool> found{false};
+  if (!JS_HasPropertyById(aCx, aSrc, name, found) || !*found.UNSAFE_unverified()) {
     return true;
   }
 

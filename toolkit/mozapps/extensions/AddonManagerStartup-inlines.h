@@ -8,7 +8,7 @@
 
 #include <utility>
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/Exception.h"
 #include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
 #include "jsapi.h"
@@ -190,15 +190,18 @@ class MOZ_STACK_CLASS ArrayIter : public BaseIter<ArrayIter, ArrayIterElem> {
  public:
   ArrayIter(JSContext* cx, JS::Handle<JSObject*> object)
       : BaseIter(cx, object), mLength(0) {
-    bool isArray;
-    if (!JS::IsArrayObject(cx, object, &isArray) || !isArray) {
+    monkeycage::AutoStackTainted<bool> isArray;
+    if (!JS::IsArrayObject(cx, object, isArray) || !*isArray.UNSAFE_unverified()) {
       JS_ClearPendingException(cx);
       return;
     }
 
-    if (!JS::GetArrayLength(cx, object, &mLength)) {
+    monkeycage::AutoStackTainted<uint32_t> length;
+    if (!JS::GetArrayLength(cx, object, length)) {
       JS_ClearPendingException(cx);
     }
+
+    mLength = *length.UNSAFE_unverified();
   }
 
   uint32_t Length() const { return mLength; }

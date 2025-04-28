@@ -1392,11 +1392,11 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
     }
   }
 
-  bool isArray;
-  if (!JS::IsArrayObject(cx, symbols, &isArray)) {
+  monkeycage::AutoStackTainted<bool> isArray;
+  if (!JS::IsArrayObject(cx, symbols, isArray.UNSAFE_unverified())) {
     return NS_ERROR_FAILURE;
   }
-  if (!isArray) {
+  if (!*isArray.UNSAFE_unverified()) {
     return ReportOnCallerUTF8(cxhelper, ERROR_NOT_AN_ARRAY, aInfo);
   }
 
@@ -1404,8 +1404,8 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
 
   // Iterate over symbols array, installing symbols on targetObj:
 
-  uint32_t symbolCount = 0;
-  if (!JS::GetArrayLength(cx, symbolsObj, &symbolCount)) {
+  monkeycage::AutoStackTainted<uint32_t> symbolCount{0};
+  if (!JS::GetArrayLength(cx, symbolsObj, symbolCount.UNSAFE_unverified())) {
     return ReportOnCallerUTF8(cxhelper, ERROR_GETTING_ARRAY_LENGTH, aInfo);
   }
 
@@ -1423,7 +1423,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
   JS::sandbox::RootedValue value(cx);
   JS::sandbox::RootedId symbolId(cx);
   JS::sandbox::RootedObject symbolHolder(cx);
-  for (uint32_t i = 0; i < symbolCount; ++i) {
+  for (uint32_t i = 0; i < *symbolCount.UNSAFE_unverified(); ++i) {
     if (!JS_GetElement(cx, symbolsObj, i, &value) || !value.isString() ||
         !JS_ValueToId(cx, value, &symbolId)) {
       return ReportOnCallerUTF8(cxhelper, ERROR_ARRAY_ELEMENT, aInfo, i);
@@ -1475,7 +1475,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
       logBuffer.Append(bytes.get());
     }
     logBuffer.Append(' ');
-    if (i == symbolCount - 1) {
+    if (i == *symbolCount.UNSAFE_unverified() - 1) {
       nsCString location;
       MOZ_TRY(aInfo.GetLocation(location));
       LOG(("%s] from %s\n", logBuffer.get(), location.get()));

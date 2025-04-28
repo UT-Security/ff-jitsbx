@@ -193,11 +193,13 @@ already_AddRefed<nsIStackFrame> GetCurrentJSStack(int32_t aMaxDepth) {
     aMaxDepth = MAX_FRAMES;
   }
 
-  JS::StackCapture captureMode =
-      aMaxDepth == 0 ? JS::StackCapture(JS::AllFrames())
-                     : JS::StackCapture(JS::MaxFrames(aMaxDepth));
+  auto captureMode = aMaxDepth == 0
+                         ? monkeycage::AutoStackTainted<JS::StackCapture>(
+                               JS::StackCapture(JS::AllFrames()))
+                         : monkeycage::AutoStackTainted<JS::StackCapture>(
+                               JS::StackCapture(JS::MaxFrames(aMaxDepth)));
 
-  return dom::exceptions::CreateStack(cx, std::move(captureMode));
+  return dom::exceptions::CreateStack(cx, std::move(*captureMode.UNSAFE_unverified()));
 }
 
 namespace exceptions {
@@ -490,21 +492,21 @@ int32_t JSStackFrame::GetLineNumber(JSContext* aCx) {
     return 0;
   }
 
-  uint32_t line;
+  monkeycage::AutoStackTainted<uint32_t> line;
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameLine, mLinenoInitialized,
-                      &canCache, &useCachedValue, &line);
+                      &canCache, &useCachedValue, line.UNSAFE_unverified());
 
   if (useCachedValue) {
     return mLineno;
   }
 
   if (canCache) {
-    mLineno = line;
+    mLineno = *line.UNSAFE_unverified();
     mLinenoInitialized = true;
   }
 
-  return line;
+  return *line.UNSAFE_unverified();
 }
 
 NS_IMETHODIMP

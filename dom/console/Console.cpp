@@ -11,7 +11,8 @@
 
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Realm.h"
-#include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
+#include "monkeycage/Conversions.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BlobImpl.h"
@@ -341,15 +342,15 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
 
     JS::sandbox::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
 
-    uint32_t length;
-    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
+    monkeycage::AutoStackTainted<uint32_t> length;
+    if (!JS::GetArrayLength(aCx, argumentsObj, length)) {
       return;
     }
 
     Sequence<JS::Value> values;
     SequenceRooter<JS::Value> arguments(aCx, &values);
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
@@ -361,7 +362,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       }
     }
 
-    MOZ_ASSERT(values.Length() == length);
+    MOZ_ASSERT(values.Length() == *length.UNSAFE_unverified());
 
     aConsoleData->ProcessCallData(aCx, aCallData, values);
   }
@@ -410,14 +411,14 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       return;
     }
 
-    uint32_t length;
-    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
+    monkeycage::AutoStackTainted<uint32_t> length;
+    if (!JS::GetArrayLength(aCx, argumentsObj, length)) {
       return;
     }
 
     Sequence<JS::Value> arguments;
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
@@ -1337,11 +1338,11 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
 
   callData->SetOriginAttributes(oa);
 
-  JS::StackCapture captureMode =
+  auto captureMode =
       ShouldIncludeStackTrace(aMethodName)
-          ? JS::StackCapture(JS::MaxFrames(DEFAULT_MAX_STACKTRACE_DEPTH))
-          : JS::StackCapture(JS::FirstSubsumedFrame(aCx));
-  nsCOMPtr<nsIStackFrame> stack = CreateStack(aCx, std::move(captureMode));
+          ? monkeycage::AutoStackTainted<JS::StackCapture>(JS::StackCapture(JS::MaxFrames(DEFAULT_MAX_STACKTRACE_DEPTH)))
+          : monkeycage::AutoStackTainted<JS::StackCapture>(JS::StackCapture(JS::FirstSubsumedFrame(aCx)));
+  nsCOMPtr<nsIStackFrame> stack = CreateStack(aCx, std::move(*captureMode.UNSAFE_unverified()));
 
   if (stack) {
     callData->mTopStackFrame.emplace();
@@ -1999,14 +2000,14 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
             break;
           }
 
-          int32_t v;
-          if (NS_WARN_IF(!JS::ToInt32(aCx, value, &v))) {
+          monkeycage::AutoStackTainted<int32_t> v;
+          if (NS_WARN_IF(!JS::ToInt32(aCx, value, v))) {
             return false;
           }
 
           nsCString format;
           MakeFormatString(format, integer, mantissa, 'd');
-          output.AppendPrintf(format.get(), v);
+          output.AppendPrintf(format.get(), *v.UNSAFE_unverified());
         }
         break;
 
@@ -2014,18 +2015,18 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
         if (index < aData.Length()) {
           JS::sandbox::Rooted<JS::Value> value(aCx, aData[index++]);
 
-          double v;
-          if (NS_WARN_IF(!JS::ToNumber(aCx, value, &v))) {
+          monkeycage::AutoStackTainted<double> v;
+          if (NS_WARN_IF(!JS::ToNumber(aCx, value, v))) {
             return false;
           }
 
           // nspr returns "nan", but we want to expose it as "NaN"
-          if (std::isnan(v)) {
-            output.AppendFloat(v);
+          if (std::isnan(*v.UNSAFE_unverified())) {
+            output.AppendFloat(*v.UNSAFE_unverified());
           } else {
             nsCString format;
             MakeFormatString(format, integer, mantissa, 'f');
-            output.AppendPrintf(format.get(), v);
+            output.AppendPrintf(format.get(), *v.UNSAFE_unverified());
           }
         }
         break;

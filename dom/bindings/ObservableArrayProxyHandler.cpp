@@ -8,8 +8,9 @@
 
 #include "jsapi.h"
 #include "js/friend/ErrorMessages.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "js/Object.h"
+#include "monkeycage/Array.h"
 #include "mozilla/dom/JSSlots.h"
 #include "mozilla/dom/ProxyHandlerUtils.h"
 #include "mozilla/dom/ToJSValue.h"
@@ -92,8 +93,8 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
       return false;
     }
 
-    uint32_t oldLen = 0;
-    if (!JS::GetArrayLength(aCx, backingListObj, &oldLen)) {
+    monkeycage::AutoStackTainted<uint32_t> oldLen{0};
+    if (!JS::GetArrayLength(aCx, backingListObj, oldLen)) {
       return false;
     }
 
@@ -102,7 +103,7 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
     // is because `oldLen - 1` could be `-1` if the backing list is empty, but
     // `oldLen` is `uint32_t` in practice. See also
     // https://github.com/whatwg/webidl/issues/1049.
-    if (oldLen != index + 1) {
+    if (*oldLen.UNSAFE_unverified() != index + 1) {
       return aResult.failBadIndex();
     }
 
@@ -134,17 +135,17 @@ bool ObservableArrayProxyHandler::get(JSContext* aCx,
     return false;
   }
 
-  uint32_t length = 0;
-  if (!JS::GetArrayLength(aCx, backingListObj, &length)) {
+  monkeycage::AutoStackTainted<uint32_t> length{0};
+  if (!JS::GetArrayLength(aCx, backingListObj, length)) {
     return false;
   }
 
   if (aId.get() == s_length_id) {
-    return ToJSValue(aCx, length, aVp);
+    return ToJSValue(aCx, *length.UNSAFE_unverified(), aVp);
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
-    if (index >= length) {
+    if (index >= *length.UNSAFE_unverified()) {
       aVp.setUndefined();
       return true;
     }
@@ -162,20 +163,20 @@ bool ObservableArrayProxyHandler::getOwnPropertyDescriptor(
     return false;
   }
 
-  uint32_t length = 0;
-  if (!JS::GetArrayLength(aCx, backingListObj, &length)) {
+  monkeycage::AutoStackTainted<uint32_t> length{0};
+  if (!JS::GetArrayLength(aCx, backingListObj, length)) {
     return false;
   }
 
   if (aId.get() == s_length_id) {
-    JS::sandbox::Rooted<JS::Value> value(aCx, JS::NumberValue(length));
+    JS::sandbox::Rooted<JS::Value> value(aCx, JS::NumberValue(*length.UNSAFE_unverified()));
     aDesc.set(Some(JS::PropertyDescriptor::Data(
         value, {JS::PropertyAttribute::Writable})));
     return true;
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
-    if (index >= length) {
+    if (index >= *length.UNSAFE_unverified()) {
       return true;
     }
 
@@ -292,7 +293,10 @@ bool ObservableArrayProxyHandler::GetBackingListLength(
     return false;
   }
 
-  return JS::GetArrayLength(aCx, backingListObj, aLength);
+  monkeycage::AutoStackTainted<uint32_t> length;
+  bool res = JS::GetArrayLength(aCx, backingListObj, length);
+  *aLength = *length.UNSAFE_unverified();
+  return res;
 }
 
 bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
@@ -316,17 +320,17 @@ bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
                                             JS::Handle<JSObject*> aBackingList,
                                             uint32_t aLength,
                                             JS::ObjectOpResult& aResult) const {
-  uint32_t oldLen;
-  if (!JS::GetArrayLength(aCx, aBackingList, &oldLen)) {
+  monkeycage::AutoStackTainted<uint32_t> oldLen;
+  if (!JS::GetArrayLength(aCx, aBackingList, oldLen)) {
     return false;
   }
 
-  if (aLength > oldLen) {
+  if (aLength > *oldLen.UNSAFE_unverified()) {
     return aResult.failBadArrayLength();
   }
 
   bool ok = true;
-  uint32_t len = oldLen;
+  uint32_t len = *oldLen.UNSAFE_unverified();
   for (; len > aLength; len--) {
     uint32_t indexToDelete = len - 1;
     JS::sandbox::Rooted<JS::Value> value(aCx);
@@ -350,23 +354,23 @@ bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
                                             JS::Handle<JSObject*> aBackingList,
                                             JS::Handle<JS::Value> aValue,
                                             JS::ObjectOpResult& aResult) const {
-  uint32_t uint32Len;
-  if (!ToUint32(aCx, aValue, &uint32Len)) {
+  monkeycage::AutoStackTainted<uint32_t> uint32Len;
+  if (!ToUint32(aCx, aValue, uint32Len)) {
     return false;
   }
 
-  double numberLen;
-  if (!ToNumber(aCx, aValue, &numberLen)) {
+  monkeycage::AutoStackTainted<double> numberLen;
+  if (!ToNumber(aCx, aValue, numberLen)) {
     return false;
   }
 
-  if (uint32Len != numberLen) {
+  if (*uint32Len.UNSAFE_unverified() != *numberLen.UNSAFE_unverified()) {
     JS_ReportErrorNumberASCII(aCx, (JSErrorCallback)sbx_addr((void*)js::GetErrorMessage), nullptr,
                               JSMSG_BAD_INDEX);
     return false;
   }
 
-  return SetLength(aCx, aProxy, aBackingList, uint32Len, aResult);
+  return SetLength(aCx, aProxy, aBackingList, *uint32Len.UNSAFE_unverified(), aResult);
 }
 
 }  // namespace mozilla::dom

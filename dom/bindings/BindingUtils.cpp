@@ -31,7 +31,7 @@
 #include "js/JSON.h"
 #include "js/MapAndSet.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineFunction, JS_DefineFunctionById, JS_DefineFunctions, JS_DefineProperties, JS_DefineProperty, JS_DefinePropertyById, JS_ForwardGetPropertyTo, JS_GetProperty, JS_HasProperty, JS_HasPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineFunction, JS_DefineFunctionById, JS_DefineFunctions, JS_DefineProperties, JS_DefineProperty, JS_DefinePropertyById, JS_ForwardGetPropertyTo, JS_GetProperty, JS_HasProperty, JS_HasPropertyById
 #include "js/StableStringChars.h"
 #include "js/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "js/Symbol.h"
@@ -810,7 +810,7 @@ static bool DefineConstructor(JSContext* cx, JS::Handle<JSObject*> global,
                               JS::Handle<jsid> name,
                               JS::Handle<JSObject*> constructor) {
   monkeycage::AutoStackTainted<bool> alreadyDefined{false};
-  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, alreadyDefined.UNSAFE_unverified())) {
+  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, alreadyDefined)) {
     return false;
   }
 
@@ -2205,13 +2205,13 @@ const js::ObjectOps* sInterfaceObjectClassObjectOps() {
 
 bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                             JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
-                            bool* found, JS::MutableHandle<JS::Value> vp) {
+                            monkeycage::Tainted<bool*> found, JS::MutableHandle<JS::Value> vp) {
   JS::sandbox::Rooted<JSObject*> proto(cx);
   if (!js::GetObjectProto(cx, proxy, &proto)) {
     return false;
   }
   if (!proto) {
-    *found = false;
+    *found.UNSAFE_unverified() = false;
     return true;
   }
 
@@ -2219,7 +2219,7 @@ bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
     return false;
   }
 
-  if (!*found) {
+  if (!*found.UNSAFE_unverified()) {
     return true;
   }
 
@@ -2227,13 +2227,13 @@ bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool HasPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
-                            JS::Handle<jsid> id, bool* has) {
+                            JS::Handle<jsid> id, monkeycage::Tainted<bool*> has) {
   JS::sandbox::Rooted<JSObject*> proto(cx);
   if (!js::GetObjectProto(cx, proxy, &proto)) {
     return false;
   }
   if (!proto) {
-    *has = false;
+    *has.UNSAFE_unverified() = false;
     return true;
   }
 
@@ -2257,11 +2257,11 @@ bool AppendNamedPropertyIds(JSContext* cx, JS::Handle<JSObject*> proxy,
 
     bool shouldAppend = shadowPrototypeProperties;
     if (!shouldAppend) {
-      bool has;
-      if (!HasPropertyOnPrototype(cx, proxy, id, &has)) {
+      monkeycage::AutoStackTainted<bool> has;
+      if (!HasPropertyOnPrototype(cx, proxy, id, has)) {
         return false;
       }
-      shouldAppend = !has;
+      shouldAppend = !*has.UNSAFE_unverified();
     }
 
     if (shouldAppend) {
@@ -2797,7 +2797,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
 
   // Conversion from Javascript string to ByteString is only valid if all
   // characters < 256. This is always the case for Latin1 strings.
-  size_t length;
+  monkeycage::AutoStackTainted<size_t> length;
   if (!JS::StringHasLatin1Chars(s)) {
     // ThrowErrorMessage can GC, so we first scan the string for bad chars
     // and report the error outside the AutoCheckCannotGC scope.

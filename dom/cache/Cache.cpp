@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/cache/Cache.h"
 
-#include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/Headers.h"
 #include "mozilla/dom/InternalResponse.h"
@@ -130,16 +130,16 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
 
     const auto failOnErr = [this](const auto) { Fail(); };
 
-    bool isArray;
-    QM_TRY(OkIf(JS::IsArrayObject(aCx, aValue, &isArray)), QM_VOID, failOnErr);
-    QM_TRY(OkIf(isArray), QM_VOID, failOnErr);
+    monkeycage::AutoStackTainted<bool> isArray;
+    QM_TRY(OkIf(JS::IsArrayObject(aCx, aValue, isArray)), QM_VOID, failOnErr);
+    QM_TRY(OkIf(isArray.UNSAFE_unverified()), QM_VOID, failOnErr);
 
     JS::sandbox::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
-    uint32_t length;
-    QM_TRY(OkIf(JS::GetArrayLength(aCx, obj, &length)), QM_VOID, failOnErr);
+    monkeycage::AutoStackTainted<uint32_t> length;
+    QM_TRY(OkIf(JS::GetArrayLength(aCx, obj, length)), QM_VOID, failOnErr);
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       JS::sandbox::Rooted<JS::Value> value(aCx);
 
       QM_TRY(OkIf(JS_GetElement(aCx, obj, i, &value)), QM_VOID, failOnErr);

@@ -16,7 +16,7 @@
 #include "js/ErrorReport.h"         // JS_ReportOutOfMemory
 #include "js/GCVector.h"            // JS::sandbox::RootedVector
 #include "js/Id.h"                  // JS::PropertyKey
-#include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
+#include "monkeycage/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/sandbox/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
@@ -129,11 +129,11 @@ JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
     JS::sandbox::Rooted<JSObject*> lexical(aCx,
                                   JS_ExtensibleLexicalEnvironment(aModObj));
-    bool found;
-    if (!JS_HasOwnPropertyById(aCx, lexical, aId, &found)) {
+    monkeycage::AutoStackTainted<bool> found;
+    if (!JS_HasOwnPropertyById(aCx, lexical, aId, found)) {
       return nullptr;
     }
-    if (found) {
+    if (*found.UNSAFE_unverified()) {
       return lexical;
     }
   }
@@ -145,11 +145,11 @@ JSObject* ResolveModuleObjectProperty(JSContext* aCx,
                                       const char* aName) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
     JS::sandbox::RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
-    bool found;
-    if (!JS_HasOwnProperty(aCx, lexical, aName, &found)) {
+    monkeycage::AutoStackTainted<bool> found;
+    if (!JS_HasOwnProperty(aCx, lexical, aName, found)) {
       return nullptr;
     }
-    if (found) {
+    if (*found.UNSAFE_unverified()) {
       return lexical;
     }
   }
@@ -195,7 +195,10 @@ bool JSMEnvironmentProxyHandler::has(JSContext* aCx,
   JS::sandbox::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   JS::sandbox::Rooted<JSObject*> holder(
       aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
-  return JS_HasPropertyById(aCx, holder, aId, aBp);
+  monkeycage::AutoStackTainted<bool> b;
+  bool res = JS_HasPropertyById(aCx, holder, aId, b);
+  *aBp = *b.UNSAFE_unverified();
+  return res;
 }
 
 bool JSMEnvironmentProxyHandler::get(JSContext* aCx,

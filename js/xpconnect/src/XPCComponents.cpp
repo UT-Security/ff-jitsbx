@@ -18,13 +18,13 @@
 #include "nsCycleCollector.h"
 #include "monkeycage/Realm.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"  // JS::IsArrayObject
+#include "monkeycage/Array.h"  // JS::IsArrayObject
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
 #include "js/ContextOptions.h"
 #include "js/friend/WindowProxy.h"  // js::ToWindowProxyIfWindow
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
 #include "mozilla/AppShutdown.h"
@@ -897,13 +897,13 @@ struct MOZ_STACK_CLASS ExceptionArgParser {
 
   bool getOption(HandleObject obj, const char* name, MutableHandleValue rv) {
     // Look for the property.
-    bool found;
-    if (!JS_HasProperty(cx, obj, name, &found)) {
+    monkeycage::AutoStackTainted<bool> found;
+    if (!JS_HasProperty(cx, obj, name, found)) {
       return false;
     }
 
     // If it wasn't found, indicate with undefined.
-    if (!found) {
+    if (!*found.UNSAFE_unverified()) {
       rv.setUndefined();
       return true;
     }
@@ -1621,11 +1621,11 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
   NS_ENSURE_TRUE(aPropertyList.isObject(), NS_ERROR_INVALID_ARG);
 
   JS::sandbox::RootedObject propertyList(cx, &aPropertyList.toObject());
-  bool isArray;
-  if (NS_WARN_IF(!JS::IsArrayObject(cx, propertyList, &isArray))) {
+  monkeycage::AutoStackTainted<bool> isArray;
+  if (NS_WARN_IF(!JS::IsArrayObject(cx, propertyList, isArray))) {
     return NS_ERROR_FAILURE;
   }
-  if (NS_WARN_IF(!isArray)) {
+  if (NS_WARN_IF(!*isArray.UNSAFE_unverified())) {
     return NS_ERROR_INVALID_ARG;
   }
 

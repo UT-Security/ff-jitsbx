@@ -9,8 +9,8 @@
 #include <limits>
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "jsapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/Maybe.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticMutex.h"
@@ -998,20 +998,20 @@ static bool GetArrayPropertyValues(JSContext* cx, JS::Handle<JSObject*> obj,
     return false;
   }
 
-  bool isArray = false;
-  if (!JS::IsArrayObject(cx, value, &isArray) || !isArray) {
+  monkeycage::AutoStackTainted<bool> isArray{false};
+  if (!JS::IsArrayObject(cx, value, isArray) || !*isArray.UNSAFE_unverified()) {
     JS_ReportErrorASCII(cx, R"(Property "%s" for event should be an array)",
                         property);
     return false;
   }
 
   JS::sandbox::Rooted<JSObject*> arrayObj(cx, &value.toObject());
-  uint32_t arrayLength;
-  if (!JS::GetArrayLength(cx, arrayObj, &arrayLength)) {
+  monkeycage::AutoStackTainted<uint32_t> arrayLength;
+  if (!JS::GetArrayLength(cx, arrayObj, arrayLength)) {
     return false;
   }
 
-  for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; ++arrayIdx) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); ++arrayIdx) {
     JS::sandbox::Rooted<JS::Value> element(cx);
     if (!JS_GetElement(cx, arrayObj, arrayIdx, &element)) {
       return false;
@@ -1117,9 +1117,9 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // extra_keys is optional.
-    bool hasProperty = false;
-    if (JS_HasProperty(cx, eventObj, "extra_keys", &hasProperty) &&
-        hasProperty) {
+    monkeycage::AutoStackTainted<bool> hasProperty{false};
+    if (JS_HasProperty(cx, eventObj, "extra_keys", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       if (!GetArrayPropertyValues(cx, eventObj, "extra_keys", &extra_keys)) {
         mozilla::Telemetry::AccumulateCategorical(
             LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
@@ -1128,7 +1128,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // expired is optional.
-    if (JS_HasProperty(cx, eventObj, "expired", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "expired", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       JS::sandbox::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "expired", &temp) ||
           !temp.isBoolean()) {
@@ -1141,8 +1141,8 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // record_on_release is optional.
-    if (JS_HasProperty(cx, eventObj, "record_on_release", &hasProperty) &&
-        hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "record_on_release", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       JS::sandbox::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) ||
           !temp.isBoolean()) {

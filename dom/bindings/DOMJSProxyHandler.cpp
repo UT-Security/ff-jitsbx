@@ -17,7 +17,7 @@
 #include "monkeycage/Tainted.h"
 #include "jsapi.h"
 #include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
-#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
 #include "js/Object.h"              // JS::GetCompartment
 
 using namespace JS;
@@ -42,7 +42,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
   bool isOverrideBuiltins = !v.isObject() && !v.isUndefined();
   if (expando) {
     monkeycage::AutoStackTainted<bool> hasOwn{false};
-    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, hasOwn.UNSAFE_unverified()))
+    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, hasOwn))
       return DOMProxyShadowsResult::ShadowCheckFailed;
 
     if (*hasOwn.UNSAFE_unverified()) {
@@ -263,7 +263,10 @@ bool DOMProxyHandler::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
   JS::sandbox::Rooted<JSObject*> expando(cx);
   if (!xpc::WrapperFactory::IsXrayWrapper(proxy) &&
       (expando = GetExpandoObject(proxy))) {
-    return JS_DeletePropertyById(cx, expando, id, result);
+    monkeycage::AutoStackTainted<JS::ObjectOpResult> result_;
+    bool ret = JS_DeletePropertyById(cx, expando, id, result_);
+    result = *result_.UNSAFE_unverified();
+    return ret;
   }
 
   return result.succeed();
