@@ -39,7 +39,7 @@ void JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(JSTracer* trc) {
     }
 
     // Remove or update the JSObject key in the table if necessary.
-    if (!JS_UpdateWeakPointerAfterGC(trc, &iter.get().mutableKey())) {
+    if (!JS_UpdateWeakPointerAfterGCUnbarriered(trc, iter.get().mutableKey().address())) {
       iter.remove();
     }
   }

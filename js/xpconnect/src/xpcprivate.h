@@ -872,9 +872,9 @@ class XPCWrappedNativeScope final
   bool AllowContentXBLScope(JS::Realm* aRealm);
 
   // ID Object prototype caches.
-  JS::Heap<JSObject*> mIDProto;
-  JS::Heap<JSObject*> mIIDProto;
-  JS::Heap<JSObject*> mCIDProto;
+  JS::sandbox::Heap<JSObject*> mIDProto;
+  JS::sandbox::Heap<JSObject*> mIIDProto;
+  JS::sandbox::Heap<JSObject*> mCIDProto;
 
  protected:
   XPCWrappedNativeScope() = delete;
@@ -885,7 +885,7 @@ class XPCWrappedNativeScope final
   RefPtr<nsXPCComponents> mComponents;
   JS::Compartment* mCompartment;
 
-  monkeycage::AutoStackTainted<JS::WeakMapPtr<JSObject*, JSObject*>> mXrayExpandos;
+  monkeycage::AutoHeapTainted<JS::WeakMapPtr<JSObject*, JSObject*>> mXrayExpandos;
 
   // For remote XUL domains, we run all XBL in the content scope for compat
   // reasons (though we sometimes pref this off for automation). We
@@ -1638,7 +1638,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
 
   void UpdateObjectPointerAfterGC(JSTracer* trc) {
     MOZ_ASSERT(IsRootWrapper());
-    JS_UpdateWeakPointerAfterGC(trc, &mJSObj);
+    JS_UpdateWeakPointerAfterGCUnbarriered(trc, mJSObj.address());
   }
 
   bool IsAggregatedToNative() const { return mRoot->mOuter != nullptr; }
@@ -1714,7 +1714,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
                                nsXPTCMiniVariant* nativeParams, bool inOutOnly,
                                uint8_t count);
 
-  JS::Heap<JSObject*> mJSObj;
+  JS::sandbox::Heap<JSObject*> mJSObj;
   const nsXPTInterfaceInfo* const mInfo;
   nsXPCWrappedJS* mRoot;  // If mRoot != this, it is an owning pointer.
   nsXPCWrappedJS* mNext;

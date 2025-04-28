@@ -317,13 +317,13 @@ class CallbackObject : public nsISupports {
   // This is done to ensure that, if JS code can't call a callback f(), or get
   // its members, directly itself, this code won't call f(), or get its members,
   // on the code's behalf.
-  JS::Heap<JSObject*> mCallback;
+  JS::sandbox::Heap<JSObject*> mCallback;
   // mCallbackGlobal is the global that we were in when we created the
   // callback. In particular, it is guaranteed to be same-compartment with
   // aCallback. We store it separately, because we have no way to recover the
   // global if mCallback is a cross-compartment wrapper.
-  JS::Heap<JSObject*> mCallbackGlobal;
-  JS::Heap<JSObject*> mCreationStack;
+  JS::sandbox::Heap<JSObject*> mCallbackGlobal;
+  JS::sandbox::Heap<JSObject*> mCreationStack;
   // Ideally, we'd just hold a reference to the nsIGlobalObject, since that's
   // what we need to pass to AutoIncumbentScript. Unfortunately, that doesn't
   // hold the actual JS global alive. So we maintain an additional pointer to

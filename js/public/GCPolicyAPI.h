@@ -140,6 +140,18 @@ struct GCPolicy<JS::Heap<T>> {
   }
 };
 
+#ifdef JS_SANDBOX_API
+template <typename T>
+struct GCPolicy<JS::sandbox::Heap<T>> {
+  static void trace(JSTracer* trc, JS::sandbox::Heap<T>* thingp, const char* name) {
+    TraceEdge(trc, thingp, name);
+  }
+  static bool traceWeak(JSTracer* trc, JS::sandbox::Heap<T>* thingp) {
+    return !*thingp || js::gc::TraceWeakEdge(trc, thingp);
+  }
+};
+#endif
+
 // GCPolicy<UniquePtr<T>> forwards the contained pointer to GCPolicy<T>.
 template <typename T, typename D>
 struct GCPolicy<mozilla::UniquePtr<T, D>> {

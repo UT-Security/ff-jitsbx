@@ -30,12 +30,20 @@ struct DummyCallbacks final : public TraceCallbacks {
   void Trace(JS::Heap<JS::Value>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mValue++;
   }
+  
+  void Trace(JS::sandbox::Heap<JS::Value>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mValue++;
+  }
 
   void Trace(JS::Heap<jsid>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mId++;
   }
 
   void Trace(JS::Heap<JSObject*>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mObject++;
+  }
+  
+  void Trace(JS::sandbox::Heap<JSObject*>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mObject++;
   }
 

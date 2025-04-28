@@ -141,6 +141,12 @@ template <class T>
 class Heap;
 template <typename T>
 class TenuredHeap;
+
+namespace sandbox {
+template <class T>
+class Heap;
+}
+
 } /* namespace JS */
 
 /*
@@ -151,9 +157,13 @@ class TenuredHeap;
 struct TraceCallbacks {
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const = 0;
+  virtual void Trace(JS::sandbox::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
+  virtual void Trace(JS::sandbox::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const = 0;
@@ -179,9 +189,13 @@ struct TraceCallbackFunc : public TraceCallbacks {
 
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const override;
+  virtual void Trace(JS::sandbox::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const override;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override;
+  virtual void Trace(JS::sandbox::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const override;
@@ -1043,6 +1057,15 @@ inline void ImplCycleCollectionUnlink(JS::Heap<T>& aField) {
 }
 template <typename T>
 inline void ImplCycleCollectionUnlink(JS::Heap<T*>& aField) {
+  aField = nullptr;
+}
+
+template <typename T>
+inline void ImplCycleCollectionUnlink(JS::sandbox::Heap<T>& aField) {
+  aField.setNull();
+}
+template <typename T>
+inline void ImplCycleCollectionUnlink(JS::sandbox::Heap<T*>& aField) {
   aField = nullptr;
 }
 

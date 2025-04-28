@@ -9,6 +9,9 @@
 
 #include "js/RootingAPI.h"
 #include "mozilla/ThreadLocal.h"
+#ifdef JS_SANDBOX_API
+#include "monkeycage/Tainted.h"
+#endif
 
 #ifdef JS_SANDBOX
 namespace JS {
@@ -74,6 +77,106 @@ struct RootedGCThingTraits {
 
 namespace JS {
 namespace sandbox {
+
+template <typename T>
+class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
+  // Please note: this can actually also be used by nsXBLMaybeCompiled<T>, for
+  // legacy reasons.
+  static_assert(js::IsHeapConstructibleType<T>::value,
+                "Type T must be a public GC pointer type");
+
+ public:
+  using ElementType = T;
+
+  Heap() {
+    // No barriers are required for initialization to the default value.
+    static_assert(sizeof(T) == sizeof(Heap<T>),
+                  "Heap<T> must be binary compatible with T.");
+    ptr = js_new<T>(SafelyInitialized<T>::create());
+  }
+  explicit Heap(const T& p) {
+    ptr = js_new<T>(p);
+    postWriteBarrier(SafelyInitialized<T>::create(), *ptr);
+  }
+
+  /*
+   * For Heap, move semantics are equivalent to copy semantics. However, we want
+   * the copy constructor to be explicit, and an explicit move constructor
+   * breaks common usage of move semantics, so we need to define both, even
+   * though they are equivalent.
+   */
+  explicit Heap(const Heap<T>& other) {
+    ptr = js_new<T>(other.getWithoutExpose());
+    postWriteBarrier(SafelyInitialized<T>::create(), *ptr);
+  }
+  Heap(Heap<T>&& other) {
+    ptr = js_new<T>(other.getWithoutExpose());
+    postWriteBarrier(SafelyInitialized<T>::create(), *ptr);
+  }
+
+  Heap& operator=(Heap<T>&& other) {
+    set(other.getWithoutExpose());
+    other.set(SafelyInitialized<T>::create());
+    return *this;
+  }
+
+  ~Heap() {
+    postWriteBarrier(*ptr, SafelyInitialized<T>::create());
+    js_free(ptr);
+  }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(Heap, T);
+
+  const T* address() const { return ptr; }
+  T* address() { return ptr; }
+
+  void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(*ptr); }
+
+  const T& get() const {
+    exposeToActiveJS();
+    return *ptr;
+  }
+  const T& getWithoutExpose() const {
+    js::BarrierMethods<T>::readBarrier(*ptr);
+    return *ptr;
+  }
+  const T& unbarrieredGet() const { return *ptr; }
+
+  void set(const T& newPtr) {
+    T tmp = *ptr;
+    *ptr = newPtr;
+    postWriteBarrier(tmp, *ptr);
+  }
+
+  T* unsafeGet() { return ptr; }
+
+  void unbarrieredSet(const T& newPtr) { *ptr = newPtr; }
+
+  explicit operator bool() const {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(*ptr));
+  }
+  explicit operator bool() {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(*ptr));
+  }
+
+  //operator JS::Heap<T>() const {
+  //  return JS::Heap<T>(getWithoutExpose());
+  //}
+
+  //operator JS::Heap<T>() {
+  //  return JS::Heap<T>(getWithoutExpose());
+  //}
+
+ private:
+  void postWriteBarrier(const T& prev, const T& next) {
+    js::BarrierMethods<T>::postWriteBarrier(ptr, prev, next);
+  }
+
+  T* ptr;
+};
+
+
 
 using RootedListHeads =
     mozilla::EnumeratedArray<RootKind, RootKind::Limit, js::sandbox::StackRootedBase*>;    
@@ -179,17 +282,17 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   template <typename RootingContext,
             typename = std::enable_if_t<std::is_copy_constructible_v<T>,
                                         RootingContext>>
-  explicit Rooted(const RootingContext& cx)
-      : ptr(SafelyInitialized<T>::create()) {
+  explicit Rooted(const RootingContext& cx) {
+    ptr = js_new<T>(SafelyInitialized<T>::create());
     registerWithRootLists(rootLists(cx));
   }
 
   // Provide an initial value. Requires T to be constructible from the given
   // argument.
   template <typename RootingContext, typename S>
-  Rooted(const RootingContext& cx, S&& initial)
-      : ptr(std::forward<S>(initial)) {
-    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+  Rooted(const RootingContext& cx, S&& initial) {
+    ptr = js_new<T>(std::forward<S>(initial));
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
     registerWithRootLists(rootLists(cx));
   }
 
@@ -206,12 +309,14 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
       typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
   explicit Rooted(const RootingContext& cx, CtorArgs... args)
       : ptr(std::forward<CtorArgs>(args)...) {
-    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+    ptr = js_new<T>(std::forward<CtorArgs>(args)...);
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
     registerWithRootLists(rootLists(cx));
   }
 
   ~Rooted() {
     MOZ_ASSERT(*this->stack == this);
+    js_free(ptr);
     *this->stack = this->prev;
   }
 
@@ -220,25 +325,25 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
    * interchangeably with a MutableHandleValue.
    */
   void set(const T& value) {
-    ptr = value;
-    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+    *ptr = value;
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
   }
   void set(T&& value) {
-    ptr = std::move(value);
-    MOZ_ASSERT(GCPolicy<T>::isValid(ptr));
+    *ptr = std::move(value);
+    MOZ_ASSERT(GCPolicy<T>::isValid(*ptr));
   }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(Rooted, T);
 
-  T& get() { return ptr; }
-  const T& get() const { return ptr; }
+  T& get() { return *ptr; }
+  const T& get() const { return *ptr; }
 
-  T* address() { return &ptr; }
-  const T* address() const { return &ptr; }
+  T* address() { return ptr; }
+  const T* address() const { return ptr; }
 
  private:
-  T ptr;
+  T* ptr;
 
   Rooted(const Rooted&) = delete;
 } JS_HAZ_ROOTED;
@@ -288,32 +393,32 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
  public:
   using ElementType = T;
 
-  PersistentRooted() : ptr(SafelyInitialized<T>::create()) {}
+  PersistentRooted() : ptr(nullptr) {}
 
   template <
       typename RootHolder,
       typename = std::enable_if_t<std::is_copy_constructible_v<T>, RootHolder>>
-  explicit PersistentRooted(const RootHolder& cx)
-      : ptr(SafelyInitialized<T>::create()) {
+  explicit PersistentRooted(const RootHolder& cx) {
+    ptr = js_new<T>(SafelyInitialized<T>::create());
     registerWithRootLists(cx);
   }
 
   template <
       typename RootHolder, typename U,
       typename = std::enable_if_t<std::is_constructible_v<T, U>, RootHolder>>
-  PersistentRooted(const RootHolder& cx, U&& initial)
-      : ptr(std::forward<U>(initial)) {
+  PersistentRooted(const RootHolder& cx, U&& initial) {
+    ptr = js_new<T>(std::forward<U>(initial));
     registerWithRootLists(cx);
   }
 
   template <typename RootHolder, typename... CtorArgs,
             typename = std::enable_if_t<detail::IsTraceable_v<T>, RootHolder>>
-  explicit PersistentRooted(const RootHolder& cx, CtorArgs... args)
-      : ptr(std::forward<CtorArgs>(args)...) {
+  explicit PersistentRooted(const RootHolder& cx, CtorArgs... args) {
+    ptr = js_new<T>(std::forward<CtorArgs>(args)...);
     registerWithRootLists(cx);
   }
 
-  PersistentRooted(const PersistentRooted& rhs) : ptr(rhs.ptr) {
+  PersistentRooted(const PersistentRooted& rhs) {
     /*
      * Copy construction takes advantage of the fact that the original
      * is already inserted, and simply adds itself to whatever list the
@@ -322,6 +427,7 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
      * This requires mutating rhs's links, but those should be 'mutable'
      * anyway. C++ doesn't let us declare mutable base classes.
      */
+    *ptr = *rhs.ptr;
     const_cast<PersistentRooted&>(rhs).setNext(this);
   }
 
@@ -332,12 +438,14 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
 
   template <typename U>
   void init(RootingContext* cx, U&& initial) {
-    ptr = std::forward<U>(initial);
+    ptr = js_new<T>(SafelyInitialized<T>::create());
+    *ptr = std::forward<U>(initial);
     registerWithRootLists(cx);
   }
   template <typename U>
   void init(JSContext* cx, U&& initial) {
-    ptr = std::forward<U>(initial);
+    ptr = js_new<T>(SafelyInitialized<T>::create());
+    *ptr = std::forward<U>(initial);
     registerWithRootLists(RootingContext::get(cx));
   }
 
@@ -351,23 +459,23 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
 
-  T& get() { return ptr; }
-  const T& get() const { return ptr; }
+  T& get() { return *ptr; }
+  const T& get() const { return *ptr; }
 
   T* address() {
     MOZ_ASSERT(initialized());
-    return &ptr;
+    return ptr;
   }
-  const T* address() const { return &ptr; }
+  const T* address() const { return ptr; }
 
   template <typename U>
   void set(U&& value) {
     MOZ_ASSERT(initialized());
-    ptr = std::forward<U>(value);
+    *ptr = std::forward<U>(value);
   }
 
  private:
-  T ptr;
+  T* ptr;
 } JS_HAZ_ROOTED;
 
 }
@@ -413,6 +521,41 @@ inline MutableHandle<T>::MutableHandle(sandbox::PersistentRooted<T>* root) {
                 "MutableHandle must be binary compatible with T*.");
   ptr = root->address();
 }
+}
+
+namespace js {
+ template <typename T>
+struct JS_PUBLIC_API StableCellHasher<JS::sandbox::Heap<T>> {
+  using Key = JS::sandbox::Heap<T>;
+  using Lookup = T;
+
+  static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_API
+    monkeycage::AutoStackTainted<HashNumber> hashOutT;
+    bool ret = StableCellHasher<T>::maybeGetHash(l, hashOutT.UNSAFE_unverified());
+    *hashOut = *hashOutT.UNSAFE_unverified();
+    return ret;
+#else
+    return StableCellHasher<T>::maybeGetHash(l, hashOut);
+#endif
+  }
+  static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_API
+    monkeycage::AutoStackTainted<HashNumber> hashOutT;
+    bool ret = StableCellHasher<T>::ensureHash(l, hashOutT.UNSAFE_unverified());
+    *hashOut = *hashOutT.UNSAFE_unverified();
+    return ret;
+#else
+    return StableCellHasher<T>::ensureHash(l, hashOut);
+#endif
+  }
+  static HashNumber hash(const Lookup& l) {
+    return StableCellHasher<T>::hash(l);
+  }
+  static bool match(const Key& k, const Lookup& l) {
+    return StableCellHasher<T>::match(k.unbarrieredGet(), l);
+  }
+}; 
 }
 #else
 namespace JS {

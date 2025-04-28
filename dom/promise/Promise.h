@@ -11,7 +11,7 @@
 #include <type_traits>
 #include <utility>
 #include "ErrorList.h"
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
@@ -434,7 +434,7 @@ class Promise : public SupportsWeakPtr {
 
   RefPtr<nsIGlobalObject> mGlobal;
 
-  JS::Heap<JSObject*> mPromiseObj;
+  JS::sandbox::Heap<JSObject*> mPromiseObj;
 };
 
 }  // namespace mozilla::dom

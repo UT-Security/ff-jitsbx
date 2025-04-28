@@ -132,7 +132,7 @@ class Exception : public nsIException, public nsWrapperCache {
   nsCOMPtr<nsISupports> mData;
 
   bool mHoldingJSVal;
-  JS::Heap<JS::Value> mThrownJSVal;
+  JS::sandbox::Heap<JS::Value> mThrownJSVal;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(Exception, MOZILLA_EXCEPTION_IID)

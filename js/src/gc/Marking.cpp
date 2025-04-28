@@ -2498,11 +2498,31 @@ JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp) {
                            "JS::Heap edge");
 }
 
+#ifdef JS_SANDBOX
+template <typename T>
+JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::sandbox::Heap<T>* thingp) {
+  return TraceEdgeInternal(trc, gc::ConvertToBase(thingp->unsafeGet()),
+                           "JS::sandbox::Heap edge");
+}
+#endif
+
 template <typename T>
 JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow(T* thingp) {
   return IsAboutToBeFinalizedInternal(*ConvertToBase(thingp));
 }
 
+#ifdef JS_SANDBOX
+// Instantiate a copy of the Tracing templates for each public GC type.
+#define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type)            \
+  template JS_PUBLIC_API bool TraceWeakEdge<type>(JSTracer * trc,   \
+                                                  JS::Heap<type>*); \
+  template JS_PUBLIC_API bool TraceWeakEdge<type>(JSTracer * trc,   \
+                                                  JS::sandbox::Heap<type>*); \
+  template JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow<type>(type*);
+JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
+JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(
+    INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
+#else
 // Instantiate a copy of the Tracing templates for each public GC type.
 #define INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS(type)            \
   template JS_PUBLIC_API bool TraceWeakEdge<type>(JSTracer * trc,   \
@@ -2511,6 +2531,7 @@ JS_PUBLIC_API bool EdgeNeedsSweepUnbarrieredSlow(T* thingp) {
 JS_FOR_EACH_PUBLIC_GC_POINTER_TYPE(INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
 JS_FOR_EACH_PUBLIC_TAGGED_GC_POINTER_TYPE(
     INSTANTIATE_ALL_VALID_HEAP_TRACE_FUNCTIONS)
+#endif
 
 #define INSTANTIATE_INTERNAL_IS_MARKED_FUNCTION(type) \
   template bool IsMarkedInternal(JSRuntime* rt, type thing);

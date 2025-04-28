@@ -24,6 +24,13 @@ class Heap;
 template <typename T>
 class TenuredHeap;
 
+#ifdef JS_SANDBOX
+namespace sandbox {
+template <typename T>
+class Heap;
+}
+#endif
+
 /** Returns a static string equivalent of |kind|. */
 JS_PUBLIC_API const char* GCTraceKindToAscii(JS::TraceKind kind);
 
@@ -274,7 +281,7 @@ namespace sandbox {
 #ifdef JS_SANDBOX_API
 class CallbackTracer {
 private:
-  JS::CallbackTracerExternal base_;
+  JS::CallbackTracerExternal* base_;
 
 public:
   virtual void onChild(JS::GCCellPtr thing, const char* name) = 0; 
@@ -290,14 +297,21 @@ public:
   }
 
   CallbackTracer(JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
-                 JS::TraceOptions options = JS::TraceOptions())
-      : base_(this, CallbackTracer::registerOnChildCb(), rt, kind, options) {}
+                 JS::TraceOptions options = JS::TraceOptions()) {
+    base_ = js_new<JS::CallbackTracerExternal>(
+        this, CallbackTracer::registerOnChildCb(), rt, kind, options);
+  }
   CallbackTracer(JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
-                 JS::TraceOptions options = JS::TraceOptions())
-      : base_(this, CallbackTracer::registerOnChildCb(), cx, kind, options) {}
+                 JS::TraceOptions options = JS::TraceOptions()) {
+    base_ = js_new<JS::CallbackTracerExternal>(this, CallbackTracer::registerOnChildCb(), cx, kind, options);      
+  }
 
-  inline JS::CallbackTracer* getCallbackTracer() { return &base_; }
-  JS::TracingContext& context() { return base_.context(); }
+  ~CallbackTracer() {
+    js_free(base_);
+  }
+
+  inline JS::CallbackTracer* getCallbackTracer() { return base_; }
+  JS::TracingContext& context() { return base_->context(); }
 };
 
 inline JS::CallbackTracer* GetCallbackTracer(CallbackTracer* trc) { return trc->getCallbackTracer(); }
@@ -420,6 +434,16 @@ inline void TraceEdge(JSTracer* trc, JS::TenuredHeap<T>* thingp,
   }
 }
 
+#ifdef JS_SANDBOX_API
+template <typename T>
+inline void TraceEdge(JSTracer* trc, JS::sandbox::Heap<T>* thingp, const char* name) {
+  MOZ_ASSERT(thingp);
+  if (*thingp) {
+    js::gc::TraceExternalEdge(trc, thingp->unsafeGet(), name);
+  }
+}
+#endif
+
 // Edges that are always traced as part of root marking do not require
 // incremental barriers. |JS::TraceRoot| overloads allow for marking
 // non-barriered pointers but assert that this happens during root marking.
@@ -466,6 +490,12 @@ namespace gc {
 // Return true if the given edge is not live and is about to be swept.
 template <typename T>
 extern JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::Heap<T>* thingp);
+
+#ifdef JS_SANDBOX
+// Return true if the given edge is not live and is about to be swept.
+template <typename T>
+extern JS_PUBLIC_API bool TraceWeakEdge(JSTracer* trc, JS::sandbox::Heap<T>* thingp);
+#endif
 
 }  // namespace gc
 

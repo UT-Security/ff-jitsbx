@@ -108,13 +108,13 @@ static inline void TraceExactExternalStackRootList(JSTracer* trc,
   }
 }
 
-static inline void TraceExactExternalStackRootTraceableList(JSTracer* trc,
+/*static inline void TraceExactExternalStackRootTraceableList(JSTracer* trc,
                                                     js::sandbox::StackRootedBase* listHead,
                                                     const char* name) {
   for (js::sandbox::StackRootedBase* root = listHead; root; root = root->previous()) {
     static_cast<js::sandbox::StackRootedTraceableBase*>(root)->trace(trc, name);
   }
-}
+}*/
 
 static inline void TraceExternalStackRoots(JSTracer* trc,
                                    JS::sandbox::ExternalRootingCallbacks cb, void* data) {

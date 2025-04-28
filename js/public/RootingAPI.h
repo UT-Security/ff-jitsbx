@@ -30,6 +30,10 @@
 #include "js/TypeDecls.h"
 #include "js/UniquePtr.h"
 
+#ifdef JS_SANDBOX_API
+#include "monkeycage/Tainted.h"
+#endif
+
 /*
  * [SMDOC] Stack Rooting
  *
@@ -884,10 +888,24 @@ struct JS_PUBLIC_API StableCellHasher<JS::Heap<T>> {
   using Lookup = T;
 
   static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_API
+    monkeycage::AutoStackTainted<HashNumber> hashOutT;
+    bool ret = StableCellHasher<T>::maybeGetHash(l, hashOutT.UNSAFE_unverified());
+    *hashOut = *hashOutT.UNSAFE_unverified();
+    return ret;
+#else
     return StableCellHasher<T>::maybeGetHash(l, hashOut);
+#endif
   }
   static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_API
+    monkeycage::AutoStackTainted<HashNumber> hashOutT;
+    bool ret = StableCellHasher<T>::ensureHash(l, hashOutT.UNSAFE_unverified());
+    *hashOut = *hashOutT.UNSAFE_unverified();
+    return ret;
+#else
     return StableCellHasher<T>::ensureHash(l, hashOut);
+#endif
   }
   static HashNumber hash(const Lookup& l) {
     return StableCellHasher<T>::hash(l);
@@ -1161,7 +1179,7 @@ namespace sandbox {
 class MOZ_RAII JS_PUBLIC_API CustomAutoRooter {
 private:
   union {
-    JS::CustomAutoRooterWithOps base_;
+    JS::CustomAutoRooterWithOps* base_;
   };
 
 protected:
@@ -1173,7 +1191,8 @@ protected:
   virtual void trace(JSTracer* trc) = 0;
 
   virtual ~CustomAutoRooter() {
-    base_.JS::CustomAutoRooter::~CustomAutoRooter();
+    base_->JS::CustomAutoRooter::~CustomAutoRooter();
+    js_free(base_);
   }
 
   static const JS::CustomAutoRooterOps* ops() {
@@ -1185,11 +1204,13 @@ protected:
   }
 
 public:
-  explicit CustomAutoRooter(JSContext* cx)
-      : base_(this, ops(), cx) {}
+  explicit CustomAutoRooter(JSContext* cx) {
+    base_ = js_new<JS::CustomAutoRooterWithOps>(this, ops(), cx);    
+  }
       
-  explicit CustomAutoRooter(RootingContext* cx)
-      : base_(this, ops(), cx) {}
+  explicit CustomAutoRooter(RootingContext* cx) {
+    base_ = js_new<JS::CustomAutoRooterWithOps>(this, ops(), cx);      
+  }
 };
 
 #endif

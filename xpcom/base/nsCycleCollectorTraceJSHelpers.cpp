@@ -38,6 +38,13 @@ void TraceCallbackFunc::Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
   }
 }
 
+void TraceCallbackFunc::Trace(JS::sandbox::Heap<JS::Value>* aPtr, const char* aName,
+                              void* aClosure) const {
+  if (aPtr->unbarrieredGet().isGCThing()) {
+    mCallback(aPtr->unbarrieredGet().toGCCellPtr(), aName, aClosure);
+  }
+}
+
 void TraceCallbackFunc::Trace(JS::Heap<jsid>* aPtr, const char* aName,
                               void* aClosure) const {
   if (aPtr->unbarrieredGet().isGCThing()) {
@@ -46,6 +53,13 @@ void TraceCallbackFunc::Trace(JS::Heap<jsid>* aPtr, const char* aName,
 }
 
 void TraceCallbackFunc::Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                              void* aClosure) const {
+  if (*aPtr) {
+    mCallback(JS::GCCellPtr(aPtr->unbarrieredGet()), aName, aClosure);
+  }
+}
+
+void TraceCallbackFunc::Trace(JS::sandbox::Heap<JSObject*>* aPtr, const char* aName,
                               void* aClosure) const {
   if (*aPtr) {
     mCallback(JS::GCCellPtr(aPtr->unbarrieredGet()), aName, aClosure);

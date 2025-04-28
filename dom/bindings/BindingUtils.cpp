@@ -1059,11 +1059,11 @@ bool DefineProperties(JSContext* cx, JS::Handle<JSObject*> obj,
 void CreateInterfaceObjects(
     JSContext* cx, JS::Handle<JSObject*> global,
     JS::Handle<JSObject*> protoProto, const JSClass* protoClass,
-    JS::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
+    JS::sandbox::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
     const JSClass* constructorClass, unsigned ctorNargs,
     bool isConstructorChromeOnly,
     const LegacyFactoryFunction* namedConstructors,
-    JS::Heap<JSObject*>* constructorCache, const NativeProperties* properties,
+    JS::sandbox::Heap<JSObject*>* constructorCache, const NativeProperties* properties,
     const NativeProperties* chromeOnlyProperties, const char* name,
     bool defineOnGlobal, const char* const* unscopableNames, bool isGlobal,
     const char* const* legacyWindowAliases, bool isNamespace) {
@@ -4437,7 +4437,7 @@ JS::Handle<JSObject*> GetPerInterfaceObjectHandle(
    * it's not possible for the object to be gray here.
    */
 
-  const JS::Heap<JSObject*>& entrySlot =
+  const JS::sandbox::Heap<JSObject*>& entrySlot =
       protoAndIfaceCache.EntrySlotMustExist(aSlotId);
   JS::AssertObjectIsNotGray(entrySlot);
   return JS::Handle<JSObject*>::fromMarkedLocation(entrySlot.address());
