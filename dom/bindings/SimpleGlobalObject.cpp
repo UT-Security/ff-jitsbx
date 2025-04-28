@@ -109,8 +109,8 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     jsapi.Init();
     JSContext* cx = jsapi.cx();
 
-    JS::RealmOptions options;
-    options.creationOptions()
+    monkeycage::AutoStackTainted<JS::RealmOptions> options;
+    options.UNSAFE_unverified()->creationOptions()
         .setInvisibleToDebugger(true)
         // Put our SimpleGlobalObjects in the system zone, so we won't create
         // lots of zones for what are probably very short-lived
@@ -121,12 +121,12 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     if (NS_IsMainThread()) {
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
-      options.creationOptions().setTrace(xpc::TraceXPCGlobalCallback().get());
+      options.UNSAFE_unverified()->creationOptions().setTrace(xpc::TraceXPCGlobalCallback().get());
       global = xpc::CreateGlobalObject(cx, SimpleGlobalClass(),
-                                       nsJSPrincipals::get(principal), options);
+                                       nsJSPrincipals::get(principal), *options.UNSAFE_unverified());
     } else {
       global = JS_NewGlobalObject(cx, SimpleGlobalClass(), nullptr,
-                                  JS::DontFireOnNewGlobalHook, options);
+                                  JS::DontFireOnNewGlobalHook, *options.UNSAFE_unverified());
     }
 
     if (!global) {

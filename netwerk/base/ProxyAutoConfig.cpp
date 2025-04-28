@@ -455,11 +455,11 @@ class JSContextWrapper {
       }
     }
 
-    JS::RealmOptions options;
-    options.creationOptions().setNewCompartmentInSystemZone();
-    options.behaviors().setClampAndJitterTime(false);
+    monkeycage::AutoStackTainted<JS::RealmOptions> options;
+    options.UNSAFE_unverified()->creationOptions().setNewCompartmentInSystemZone();
+    options.UNSAFE_unverified()->behaviors().setClampAndJitterTime(false);
     mGlobal = JS_NewGlobalObject(mContext, sGlobalClass(), nullptr,
-                                 JS::DontFireOnNewGlobalHook, options);
+                                 JS::DontFireOnNewGlobalHook, *options.UNSAFE_unverified());
     if (!mGlobal) {
       JS_ClearPendingException(mContext);
       return NS_ERROR_OUT_OF_MEMORY;
@@ -562,9 +562,9 @@ nsresult ProxyAutoConfig::SetupJS() {
   JS::sandbox::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   auto CompilePACScript = [this](JSContext* cx) -> JSScript* {
-    JS::CompileOptions options(cx);
-    options.setSkipFilenameValidation(true);
-    options.setFileAndLine(this->mPACURI.get(), 1);
+    monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+    options.UNSAFE_unverified()->setSkipFilenameValidation(true);
+    options.UNSAFE_unverified()->setFileAndLine(this->mPACURI.get(), 1);
 
     // Per ProxyAutoConfig::Init, compile as UTF-8 if the full data is UTF-8,
     // and otherwise inflate Latin-1 to UTF-16 and compile that.
@@ -577,7 +577,7 @@ nsresult ProxyAutoConfig::SetupJS() {
         return nullptr;
       }
 
-      return JS::Compile(cx, options, srcBuf);
+      return JS::Compile(cx, *options.UNSAFE_unverified(), srcBuf);
     }
 
     // nsReadableUtils.h says that "ASCII" is a misnomer "for legacy reasons",
@@ -590,7 +590,7 @@ nsresult ProxyAutoConfig::SetupJS() {
       return nullptr;
     }
 
-    return JS::Compile(cx, options, source);
+    return JS::Compile(cx, *options.UNSAFE_unverified(), source);
   };
 
   JS::sandbox::Rooted<JSScript*> script(cx, CompilePACScript(cx));

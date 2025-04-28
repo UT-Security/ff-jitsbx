@@ -447,23 +447,23 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     // Store into startup cache only when the script isn't come from any cache.
     storeIntoStartupCache = cache;
 
-    JS::CompileOptions compileOptions(cx);
-    ScriptPreloader::FillCompileOptionsForCachedStencil(compileOptions);
-    compileOptions.setFileAndLine(uriStr.get(), 1);
-    compileOptions.setNonSyntacticScope(!JS_IsGlobalObject(targetObj));
+    monkeycage::AutoStackTainted<JS::CompileOptions> compileOptions(cx);
+    ScriptPreloader::FillCompileOptionsForCachedStencil(*compileOptions.UNSAFE_unverified());
+    compileOptions.UNSAFE_unverified()->setFileAndLine(uriStr.get(), 1);
+    compileOptions.UNSAFE_unverified()->setNonSyntacticScope(!JS_IsGlobalObject(targetObj));
 
     if (options.wantReturnValue) {
-      compileOptions.setNoScriptRval(false);
+      compileOptions.UNSAFE_unverified()->setNoScriptRval(false);
     }
 
-    if (!ReadStencil(getter_AddRefs(stencil), uri, cx, compileOptions, serv,
+    if (!ReadStencil(getter_AddRefs(stencil), uri, cx, *compileOptions.UNSAFE_unverified(), serv,
                      useCompilationScope)) {
       return NS_OK;
     }
 
 #ifdef DEBUG
     // The above shouldn't touch any options for instantiation.
-    JS::InstantiateOptions instantiateOptions(compileOptions);
+    JS::InstantiateOptions instantiateOptions(*compileOptions.UNSAFE_unverified());
     instantiateOptions.assertDefault();
 #endif
   }

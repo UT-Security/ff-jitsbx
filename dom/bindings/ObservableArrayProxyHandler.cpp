@@ -307,12 +307,12 @@ bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
     return false;
   }
 
-  JS::ObjectOpResult result;
-  if (!SetLength(aCx, aProxy, backingListObj, aLength, result)) {
+  monkeycage::AutoStackTainted<JS::ObjectOpResult> result;
+  if (!SetLength(aCx, aProxy, backingListObj, aLength, *result.UNSAFE_unverified())) {
     return false;
   }
 
-  return result ? true : result.reportError(aCx, aProxy);
+  return *result.UNSAFE_unverified() ? true : result.UNSAFE_unverified()->reportError(aCx, aProxy);
 }
 
 bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,

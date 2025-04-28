@@ -6055,21 +6055,21 @@ def getJSToNativeConversionInfo(
         # NOTE: Keep this in sync with variadic conversions as needed
         templateBody = fill(
             """
-            JS::ForOfIterator iter${nestingLevel}(cx);
-            if (!iter${nestingLevel}.init($${val}, JS::ForOfIterator::AllowNonIterable)) {
+            monkeycage::AutoStackTainted<JS::ForOfIterator> iter${nestingLevel}(cx);
+            if (!iter${nestingLevel}.UNSAFE_unverified()->init($${val}, JS::ForOfIterator::AllowNonIterable)) {
               $*{exceptionCode}
             }
-            if (!iter${nestingLevel}.valueIsIterable()) {
+            if (!iter${nestingLevel}.UNSAFE_unverified()->valueIsIterable()) {
               $*{notSequence}
             }
             ${sequenceType} &arr${nestingLevel} = ${arrayRef};
             JS::sandbox::Rooted<JS::Value> temp${nestingLevel}(cx);
             while (true) {
-              bool done${nestingLevel};
-              if (!iter${nestingLevel}.next(&temp${nestingLevel}, &done${nestingLevel})) {
+              monkeycage::AutoStackTainted<bool> done${nestingLevel};
+              if (!iter${nestingLevel}.UNSAFE_unverified()->next(&temp${nestingLevel}, done${nestingLevel}.UNSAFE_unverified())) {
                 $*{exceptionCode}
               }
-              if (done${nestingLevel}) {
+              if (*done${nestingLevel}.UNSAFE_unverified()) {
                 break;
               }
               ${elementType}* slotPtr${nestingLevel} = arr${nestingLevel}.AppendElement(${elementInitializer}mozilla::fallible);

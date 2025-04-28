@@ -1323,9 +1323,9 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
   MOZ_ASSERT(principal);
 
-  JS::RealmOptions realmOptions;
+  monkeycage::AutoStackTainted<JS::RealmOptions> realmOptions;
 
-  auto& creationOptions = realmOptions.creationOptions();
+  auto& creationOptions = realmOptions.UNSAFE_unverified()->creationOptions();
 
   bool isSystemPrincipal = principal->IsSystemPrincipal();
 
@@ -1338,7 +1338,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     creationOptions.setSecureContext(true);
   }
 
-  xpc::SetPrefableRealmOptions(realmOptions);
+  xpc::SetPrefableRealmOptions(*realmOptions.UNSAFE_unverified());
   if (options.sameZoneAs) {
     creationOptions.setNewCompartmentInExistingZone(
         js::UncheckedUnwrap(options.sameZoneAs));
@@ -1357,16 +1357,16 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
       .setTrace(TraceXPCGlobalCallback().get());
 
-  realmOptions.behaviors().setDiscardSource(options.discardSource);
+  realmOptions.UNSAFE_unverified()->behaviors().setDiscardSource(options.discardSource);
 
   if (isSystemPrincipal) {
-    realmOptions.behaviors().setClampAndJitterTime(false);
+    realmOptions.UNSAFE_unverified()->behaviors().setClampAndJitterTime(false);
   }
 
   const JSClass* clasp = SandboxClass();
 
   JS::sandbox::RootedObject sandbox(
-      cx, xpc::CreateGlobalObject(cx, clasp, principal, realmOptions));
+      cx, xpc::CreateGlobalObject(cx, clasp, principal, *realmOptions.UNSAFE_unverified()));
   if (!sandbox) {
     return NS_ERROR_FAILURE;
   }
@@ -2158,9 +2158,9 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
     JSContext* sandcx = aes.cx();
     MC::JSAutoRealm ar(sandcx, sandbox);
 
-    JS::CompileOptions options(sandcx);
-    options.setFileAndLine(filenameBuf.get(), lineNo);
-    options.setSkipFilenameValidation(!enforceFilenameRestrictions);
+    monkeycage::AutoStackTainted<JS::CompileOptions> options(sandcx);
+    options.UNSAFE_unverified()->setFileAndLine(filenameBuf.get(), lineNo);
+    options.UNSAFE_unverified()->setSkipFilenameValidation(!enforceFilenameRestrictions);
     MOZ_ASSERT(JS_IsGlobalObject(sandbox));
 
     const nsPromiseFlatString& flat = PromiseFlatString(source);
@@ -2168,7 +2168,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
     JS::SourceText<char16_t> buffer;
     ok = buffer.init(sandcx, flat.get(), flat.Length(),
                      JS::SourceOwnership::Borrowed) &&
-         JS::Evaluate(sandcx, options, buffer, &v);
+         JS::Evaluate(sandcx, *options.UNSAFE_unverified(), buffer, &v);
 
     // If the sandbox threw an exception, grab it off the context.
     if (aes.HasException()) {

@@ -76,7 +76,7 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
   void FinishCompile(JSContext* aCx);
   void Finish(JSContext* aCx, RefPtr<JS::Stencil> aStencil);
 
-  OwningCompileOptions mOptions;
+  monkeycage::AutoHeapTainted<OwningCompileOptions> mOptions;
   nsCString mURL;
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
   RefPtr<Promise> mPromise;
@@ -96,14 +96,14 @@ nsresult AsyncScriptCompiler::Start(
     nsIPrincipal* aPrincipal) {
   mCharset = aOptions.mCharset;
 
-  CompileOptions options(aCx);
-  options.setFile(mURL.get()).setNoScriptRval(!aOptions.mHasReturnValue);
+  monkeycage::AutoStackTainted<CompileOptions> options(aCx);
+  options.UNSAFE_unverified()->setFile(mURL.get()).setNoScriptRval(!aOptions.mHasReturnValue);
 
   if (!aOptions.mLazilyParse) {
-    options.setForceFullParse();
+    options.UNSAFE_unverified()->setForceFullParse();
   }
 
-  if (NS_WARN_IF(!mOptions.copy(aCx, options))) {
+  if (NS_WARN_IF(!mOptions.UNSAFE_unverified()->copy(aCx, *options.UNSAFE_unverified()))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -139,15 +139,15 @@ static void OffThreadScriptLoaderCallback(JS::OffThreadToken* aToken,
 }
 
 bool AsyncScriptCompiler::StartCompile(JSContext* aCx) {
-  JS::SourceText<Utf8Unit> srcBuf;
-  if (!srcBuf.init(aCx, std::move(mScriptText), mScriptLength)) {
+  monkeycage::AutoStackTainted<JS::SourceText<Utf8Unit>> srcBuf;
+  if (!srcBuf.UNSAFE_unverified()->init(aCx, std::move(mScriptText), mScriptLength)) {
     return false;
   }
 
-  if (JS::CanCompileOffThread(aCx, mOptions, mScriptLength)) {
+  if (JS::CanCompileOffThread(aCx, *mOptions.UNSAFE_unverified(), mScriptLength)) {
     static JS::OffThreadCompileCallback OffThreadScriptLoaderCallbackCb =
         monkeycage::Sandbox::RegisterCallback(OffThreadScriptLoaderCallback).get();
-    if (!JS::CompileToStencilOffThread(aCx, mOptions, srcBuf,
+    if (!JS::CompileToStencilOffThread(aCx, *mOptions.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified(),
                                        OffThreadScriptLoaderCallbackCb,
                                        static_cast<void*>(this))) {
       return false;
@@ -158,7 +158,7 @@ bool AsyncScriptCompiler::StartCompile(JSContext* aCx) {
   }
 
   RefPtr<Stencil> stencil =
-      JS::CompileGlobalScriptToStencil(aCx, mOptions, srcBuf);
+      JS::CompileGlobalScriptToStencil(aCx, *mOptions.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
   if (!stencil) {
     return false;
   }
@@ -193,7 +193,7 @@ void AsyncScriptCompiler::FinishCompile(JSContext* aCx) {
 
 void AsyncScriptCompiler::Finish(JSContext* aCx, RefPtr<JS::Stencil> aStencil) {
   RefPtr<PrecompiledScript> result =
-      new PrecompiledScript(mGlobalObject, aStencil, mOptions);
+      new PrecompiledScript(mGlobalObject, aStencil, *mOptions.UNSAFE_unverified());
 
   mPromise->MaybeResolve(result);
 }

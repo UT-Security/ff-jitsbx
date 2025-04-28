@@ -1292,19 +1292,19 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
     // Make the default XPCShell global use a fresh zone (rather than the
     // System Zone) to improve cross-zone test coverage.
-    JS::RealmOptions options;
-    options.creationOptions().setNewCompartmentAndZone();
-    xpc::SetPrefableRealmOptions(options);
+    monkeycage::AutoStackTainted<JS::RealmOptions> options;
+    options.UNSAFE_unverified()->creationOptions().setNewCompartmentAndZone();
+    xpc::SetPrefableRealmOptions(*options.UNSAFE_unverified());
 
     // Even if we're building in a configuration where source is
     // discarded, there's no reason to do that on XPCShell, and doing so
     // might break various automation scripts.
-    options.behaviors().setDiscardSource(false);
+    options.UNSAFE_unverified()->behaviors().setDiscardSource(false);
 
     JS::sandbox::Rooted<JSObject*> glob(cx);
     rv = xpc::InitClassesWithNewWrappedGlobal(
         cx, static_cast<nsIGlobalObject*>(backstagePass), systemprincipal, 0,
-        options, &glob);
+        *options.UNSAFE_unverified(), &glob);
     if (NS_FAILED(rv)) {
       return 1;
     }

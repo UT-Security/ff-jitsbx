@@ -902,8 +902,8 @@ bool DedicatedWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(!mWorkerPrivate->IsSharedWorker());
 
-  JS::RealmOptions options;
-  mWorkerPrivate->CopyJSRealmOptions(options);
+  monkeycage::AutoStackTainted<JS::RealmOptions> options;
+  mWorkerPrivate->CopyJSRealmOptions(*options.UNSAFE_unverified());
 
   const bool usesSystemPrincipal = mWorkerPrivate->UsesSystemPrincipal();
 
@@ -912,13 +912,13 @@ bool DedicatedWorkerGlobalScope::WrapGlobalObject(
   const bool discardSource =
       usesSystemPrincipal && xpc::ShouldDiscardSystemSource();
 
-  JS::RealmBehaviors& behaviors = options.behaviors();
+  JS::RealmBehaviors& behaviors = options.UNSAFE_unverified()->behaviors();
   behaviors.setDiscardSource(discardSource);
 
-  xpc::SetPrefableRealmOptions(options);
+  xpc::SetPrefableRealmOptions(*options.UNSAFE_unverified());
 
   return DedicatedWorkerGlobalScope_Binding::Wrap(
-      aCx, this, this, options,
+      aCx, this, this, *options.UNSAFE_unverified(),
       nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
@@ -1076,11 +1076,11 @@ bool SharedWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(mWorkerPrivate->IsSharedWorker());
 
-  JS::RealmOptions options;
-  mWorkerPrivate->CopyJSRealmOptions(options);
+  monkeycage::AutoStackTainted<JS::RealmOptions> options;
+  mWorkerPrivate->CopyJSRealmOptions(*options.UNSAFE_unverified());
 
   return SharedWorkerGlobalScope_Binding::Wrap(
-      aCx, this, this, options,
+      aCx, this, this, *options.UNSAFE_unverified(),
       nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
@@ -1119,11 +1119,11 @@ bool ServiceWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(mWorkerPrivate->IsServiceWorker());
 
-  JS::RealmOptions options;
-  mWorkerPrivate->CopyJSRealmOptions(options);
+  monkeycage::AutoStackTainted<JS::RealmOptions> options;
+  mWorkerPrivate->CopyJSRealmOptions(*options.UNSAFE_unverified());
 
   return ServiceWorkerGlobalScope_Binding::Wrap(
-      aCx, this, this, options,
+      aCx, this, this, *options.UNSAFE_unverified(),
       nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 
@@ -1244,11 +1244,11 @@ bool WorkerDebuggerGlobalScope::WrapGlobalObject(
     JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
   AssertIsOnWorkerThread();
 
-  JS::RealmOptions options;
-  mWorkerPrivate->CopyJSRealmOptions(options);
+  monkeycage::AutoStackTainted<JS::RealmOptions> options;
+  mWorkerPrivate->CopyJSRealmOptions(*options.UNSAFE_unverified());
 
   return WorkerDebuggerGlobalScope_Binding::Wrap(
-      aCx, this, this, options,
+      aCx, this, this, *options.UNSAFE_unverified(),
       nsJSPrincipals::get(mWorkerPrivate->GetPrincipal())->base_, true, aReflector);
 }
 

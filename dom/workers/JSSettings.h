@@ -32,8 +32,8 @@ struct JSSettings {
     bool operator==(JSGCParamKey k) const { return key == k; }
   };
 
-  JS::RealmOptions chromeRealmOptions;
-  JS::RealmOptions contentRealmOptions;
+  monkeycage::AutoHeapTainted<JS::RealmOptions> chromeRealmOptions;
+  monkeycage::AutoHeapTainted<JS::RealmOptions> contentRealmOptions;
   CopyableTArray<JSGCSetting> gcSettings;
   JS::ContextOptions contextOptions;
 

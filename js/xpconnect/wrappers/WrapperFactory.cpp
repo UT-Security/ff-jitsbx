@@ -144,19 +144,19 @@ bool WrapperFactory::AllowWaiver(JSObject* wrapper) {
 }
 
 inline bool ShouldWaiveXray(JSContext* cx, JSObject* originalObj) {
-  unsigned flags;
+  monkeycage::AutoStackTainted<unsigned> flags;
   (void)js::UncheckedUnwrap(originalObj, /* stopAtWindowProxy = */ true,
-                            &flags);
+                            flags);
 
   // If the original object did not point through an Xray waiver, we're done.
-  if (!(flags & WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG)) {
+  if (!(*flags.UNSAFE_unverified() & WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG)) {
     return false;
   }
 
   // If the original object was not a cross-compartment wrapper, that means
   // that the caller explicitly created a waiver. Preserve it so that things
   // like WaiveXrayAndWrap work.
-  if (!(flags & Wrapper::CROSS_COMPARTMENT)) {
+  if (!(*flags.UNSAFE_unverified() & Wrapper::CROSS_COMPARTMENT)) {
     return true;
   }
 

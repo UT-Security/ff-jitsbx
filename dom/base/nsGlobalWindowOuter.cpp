@@ -702,13 +702,13 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     return result.failCantDefineWindowElement();
   }
 
-  JS::ObjectOpResult ourResult;
-  bool ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
+  monkeycage::AutoStackTainted<JS::ObjectOpResult> ourResult;
+  bool ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, desc, *ourResult.UNSAFE_unverified());
   if (!ok) {
     return false;
   }
 
-  if (!ourResult.ok()) {
+  if (!ourResult.UNSAFE_unverified()->ok()) {
     // It's possible that this failed because the page got the existing
     // descriptor (which we force to claim to be configurable) and then tried to
     // redefine the property with the descriptor it got but a different value.
@@ -718,7 +718,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     if (!desc.hasConfigurable() || !desc.configurable()) {
       // The incoming descriptor was not explicitly marked "configurable: true",
       // so it failed for some other reason.  Just propagate that reason out.
-      result = ourResult;
+      result = *ourResult.UNSAFE_unverified();
       return true;
     }
 
@@ -731,23 +731,23 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
       // We have no existing property, or its descriptor is already configurable
       // (on the Window itself, where things really can be non-configurable).
       // So we failed for some other reason, which we should propagate out.
-      result = ourResult;
+      result = *ourResult.UNSAFE_unverified();
       return true;
     }
 
     JS::sandbox::Rooted<JS::PropertyDescriptor> updatedDesc(cx, desc);
     updatedDesc.setConfigurable(false);
 
-    JS::ObjectOpResult ourNewResult;
-    ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
+    monkeycage::AutoStackTainted<JS::ObjectOpResult> ourNewResult;
+    ok = js::sandbox::Wrapper::defineProperty(cx, proxy, id, updatedDesc, *ourNewResult.UNSAFE_unverified());
     if (!ok) {
       return false;
     }
 
-    if (!ourNewResult.ok()) {
+    if (!ourNewResult.UNSAFE_unverified()->ok()) {
       // Twiddling the configurable flag didn't help.  Just return this failure
       // out to the caller.
-      result = ourNewResult;
+      result = *ourNewResult.UNSAFE_unverified();
       return true;
     }
   }
@@ -2043,8 +2043,8 @@ static nsresult CreateNativeGlobalForInner(
   nsCOMPtr<nsIExpandedPrincipal> nsEP = do_QueryInterface(principal);
   MOZ_RELEASE_ASSERT(!nsEP, "DOMWindow with nsEP is not supported");
 
-  JS::RealmOptions options;
-  JS::RealmCreationOptions& creationOptions = options.creationOptions();
+  monkeycage::AutoStackTainted<JS::RealmOptions> options;
+  JS::RealmCreationOptions& creationOptions = options.UNSAFE_unverified()->creationOptions();
 
   SelectZone(aCx, principal, aNewInner, creationOptions);
 
@@ -2061,7 +2061,7 @@ static nsresult CreateNativeGlobalForInner(
 
   // TODO(bug 1834744) we will need some way of passing different targets to the
   // JS engine
-  xpc::InitGlobalObjectOptions(options, principal->IsSystemPrincipal(),
+  xpc::InitGlobalObjectOptions(*options.UNSAFE_unverified(), principal->IsSystemPrincipal(),
                                aDocument->ShouldResistFingerprinting(
                                    RFPTarget::IsAlwaysEnabledForPrecompute));
 
@@ -2070,7 +2070,7 @@ static nsresult CreateNativeGlobalForInner(
   uint32_t flags = needComponents ? 0 : xpc::OMIT_COMPONENTS_OBJECT;
   flags |= xpc::DONT_FIRE_ONNEWGLOBALHOOK;
 
-  if (!Window_Binding::Wrap(aCx, aNewInner, aNewInner, options,
+  if (!Window_Binding::Wrap(aCx, aNewInner, aNewInner, *options.UNSAFE_unverified(),
                             nsJSPrincipals::get(principal)->base_, false, aGlobal) ||
       !xpc::InitGlobalObject(aCx, aGlobal, flags)) {
     return NS_ERROR_FAILURE;

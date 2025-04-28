@@ -2393,8 +2393,8 @@ WorkerPrivate::WorkerPrivate(
     RuntimeService::GetDefaultJSSettings(mJSSettings);
 
     {
-      JS::RealmOptions& chromeRealmOptions = mJSSettings.chromeRealmOptions;
-      JS::RealmOptions& contentRealmOptions = mJSSettings.contentRealmOptions;
+      JS::RealmOptions& chromeRealmOptions = *mJSSettings.chromeRealmOptions.UNSAFE_unverified();
+      JS::RealmOptions& contentRealmOptions = *mJSSettings.contentRealmOptions.UNSAFE_unverified();
 
       JS::RealmBehaviors& chromeRealmBehaviors = chromeRealmOptions.behaviors();
       JS::RealmBehaviors& contentRealmBehaviors =

@@ -1212,7 +1212,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
   {
     // scope for the MC::JSAutoRealm so that we restore the realm
     // before we call JS_WrapValue.
-    Maybe<MC::JSAutoRealm> ar;
+    Maybe<monkeycage::AutoHeapTainted<JSAutoRealm>> ar;
     // Maybe<Handle> doesn't so much work, and in any case, adding
     // more Maybe (one for a Rooted and one for a Handle) adds more
     // code (and branches!) than just adding a single rooted.
@@ -1267,7 +1267,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
   {
     // scope for the MC::JSAutoRealm so that we restore the realm
     // before we call JS_WrapValue.
-    Maybe<MC::JSAutoRealm> ar;
+    Maybe<monkeycage::AutoHeapTainted<JSAutoRealm>> ar;
     // Maybe<Handle> doesn't so much work, and in any case, adding
     // more Maybe (one for a Rooted and one for a Handle) adds more
     // code (and branches!) than just adding a single rooted.

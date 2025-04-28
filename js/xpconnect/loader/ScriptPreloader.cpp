@@ -1162,15 +1162,15 @@ void ScriptPreloader::DecodeNextBatch(size_t chunkSize,
   JSContext* cx = jsapi.cx();
   MC::JSAutoRealm ar(cx, scope ? scope : xpc::CompilationScope());
 
-  JS::CompileOptions options(cx);
-  FillCompileOptionsForCachedStencil(options);
+  monkeycage::AutoStackTainted<JS::CompileOptions> options(cx);
+  FillCompileOptionsForCachedStencil(*options.UNSAFE_unverified());
 
   // All XDR buffers are mmapped and live longer than JS runtime.
   // The bytecode can be borrowed from the buffer.
-  options.borrowBuffer = true;
-  options.usePinnedBytecode = true;
+  options.UNSAFE_unverified()->borrowBuffer = true;
+  options.UNSAFE_unverified()->usePinnedBytecode = true;
 
-  JS::DecodeOptions decodeOptions(options);
+  JS::DecodeOptions decodeOptions(*options.UNSAFE_unverified());
 
   static JS::OffThreadCompileCallback OffThreadDecodeCallbackCb =
       monkeycage::Sandbox::RegisterCallback(OffThreadDecodeCallback)

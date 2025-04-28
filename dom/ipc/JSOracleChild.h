@@ -42,7 +42,7 @@ struct JSContextHolder {
 
     JS::sandbox::Rooted<JSObject*> global(
         mCx, JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
-                                JS::FireOnNewGlobalHook, JS::RealmOptions()));
+                                JS::FireOnNewGlobalHook, *monkeycage::AutoStackTainted<JS::RealmOptions>().UNSAFE_unverified()));
 
     if (!global) {
       MOZ_CRASH("Failed to create the global");

@@ -352,7 +352,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
 
   JS::sandbox::RootedObject parent(cx, Scope->GetGlobalForWrappedNatives());
 
-  mozilla::Maybe<MC::JSAutoRealm> ar;
+  mozilla::Maybe<monkeycage::AutoHeapTainted<JSAutoRealm>> ar;
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
     JS::sandbox::RootedObject plannedParent(cx, parent);
