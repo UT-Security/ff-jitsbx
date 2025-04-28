@@ -102,7 +102,7 @@ public:
   Tainted() = default;
   Tainted(const Tainted<T>& p) = default;
 
-  Tainted(const std::nullptr_t& arg) : data(arg) {
+  constexpr Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
 
