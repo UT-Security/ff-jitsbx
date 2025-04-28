@@ -140,17 +140,49 @@ private:
   Tainted<T*> data;
 public:
   AutoStackTainted(): data(nullptr) {
-    T* ptr = js_new<T>();
+    void* memory = sbx_stackpush(sizeof(T));
+    T* ptr = memory ? new (memory) T() : nullptr;
     data.assign_raw_pointer(ptr);
   }
   
   template<typename... Args>
   AutoStackTainted(Args&&... args): data(nullptr) {
-    T* ptr = js_new<T>(std::forward<Args>(args)...);
+    void* memory = sbx_stackpush(sizeof(T));
+    T* ptr = memory ? new (memory) T(std::forward<Args>(args)...) : nullptr;
     data.assign_raw_pointer(ptr);
   }
 
   ~AutoStackTainted() {
+    if(data.INTERNAL_unverified_safe()) {
+      data.INTERNAL_unverified_safe()->~T();
+      sbx_stackpop(sizeof(T), (void*)data.INTERNAL_unverified_safe());
+    }
+  }
+
+  inline operator const Tainted<T*>&() const { return data; }
+  inline operator Tainted<T*>() { return data; }
+
+  inline auto UNSAFE_unverified() const { return data.UNSAFE_unverified(); }
+};
+
+
+template <typename T>
+class AutoHeapTainted {
+private:
+  Tainted<T*> data;
+public:
+  AutoHeapTainted(): data(nullptr) {
+    T* ptr = js_new<T>();
+    data.assign_raw_pointer(ptr);
+  }
+
+  template<typename... Args>
+  AutoHeapTainted(Args&&... args): data(nullptr) {
+    T* ptr = js_new<T>(std::forward<Args>(args)...);
+    data.assign_raw_pointer(ptr);
+  }
+
+  ~AutoHeapTainted() {
     js_delete<T>(data.INTERNAL_unverified_safe());
   }
 
