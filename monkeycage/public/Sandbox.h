@@ -45,6 +45,8 @@ inline void compile_time_for(F func) {
 template <typename T>
 class SandboxCallback;
 
+extern "C" void* lfi_libcalls(void);
+
 class Sandbox {
 private:
   static inline std::atomic_flag initialized = ATOMIC_FLAG_INIT;
@@ -61,7 +63,7 @@ public:
       // sandbox is already initialized / in the process of being initialized.
       return false;
     }
-    sbx_init();
+    sbx_init(lfi_libcalls());
     return true;
   }
 
