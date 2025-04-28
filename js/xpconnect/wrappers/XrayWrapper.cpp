@@ -17,6 +17,7 @@
 #include "monkeycage/Realm.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
+#include "monkeycage/jsapi.h"
 #include "jsapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
@@ -218,15 +219,15 @@ bool ReportWrapperDenial(JSContext* cx, HandleId id, WrapperDenialType type,
   if (!propertyName.init(cx, str)) {
     return false;
   }
-  AutoFilename filename;
-  unsigned line = 0, column = 0;
-  DescribeScriptedCaller(cx, &filename, &line, &column);
+  monkeycage::AutoStackTainted<AutoFilename> filename;
+  monkeycage::AutoStackTainted<unsigned> line = 0, column = 0;
+  DescribeScriptedCaller(cx, filename, line, column);
 
   // Warn to the terminal for the logs.
   NS_WARNING(
       nsPrintfCString("Silently denied access to property %s: %s (@%s:%u:%u)",
                       NS_LossyConvertUTF16toASCII(propertyName).get(), reason,
-                      filename.get(), line, column)
+                      filename.UNSAFE_unverified()->get(), *line.UNSAFE_unverified(), *column.UNSAFE_unverified())
           .get());
 
   // If this isn't the first warning on this topic for this global, we've

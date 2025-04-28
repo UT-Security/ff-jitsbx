@@ -39,6 +39,7 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
 #include "nsJSEnvironment.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Sandbox.h"
 #include "jsapi.h"
 #include "js/ArrayBuffer.h"
@@ -594,11 +595,11 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsDependentCString filename("unknown file");
-    JS::AutoFilename scriptFilename;
+    monkeycage::AutoStackTainted<JS::AutoFilename> scriptFilename;
     // Computing the line number can be very expensive (see bug 1330231 for
     // example), so don't request it here.
-    if (JS::DescribeScriptedCaller(cx, &scriptFilename)) {
-      if (const char* file = scriptFilename.get()) {
+    if (JS::DescribeScriptedCaller(cx, scriptFilename)) {
+      if (const char* file = scriptFilename.UNSAFE_unverified()->get()) {
         filename.Assign(file, strlen(file));
       }
       PROFILER_MARKER_TEXT("JS::InterruptCallback", JS, {}, filename);

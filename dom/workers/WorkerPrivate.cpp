@@ -16,6 +16,7 @@
 #include "js/LocaleSensitive.h"
 #include "js/MemoryMetrics.h"
 #include "js/SourceText.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Realm.h"
 #include "MessageEventRunnable.h"
 #include "mozilla/AntiTrackingUtils.h"
@@ -2968,8 +2969,8 @@ nsresult WorkerPrivate::GetLoadInfo(
 
       // We're being created outside of a window. Need to figure out the script
       // that is creating us in order for us to use relative URIs later on.
-      JS::AutoFilename fileName;
-      if (JS::DescribeScriptedCaller(aCx, &fileName)) {
+      monkeycage::AutoStackTainted<JS::AutoFilename> fileName;
+      if (JS::DescribeScriptedCaller(aCx, fileName)) {
         // In most cases, fileName is URI. In a few other cases
         // (e.g. xpcshell), fileName is a file path. Ideally, we would
         // prefer testing whether fileName parses as an URI and fallback
@@ -2984,14 +2985,14 @@ nsresult WorkerPrivate::GetLoadInfo(
           return rv;
         }
 
-        rv = scriptFile->InitWithPath(NS_ConvertUTF8toUTF16(fileName.get()));
+        rv = scriptFile->InitWithPath(NS_ConvertUTF8toUTF16(fileName.UNSAFE_unverified()->get()));
         if (NS_SUCCEEDED(rv)) {
           rv = NS_NewFileURI(getter_AddRefs(loadInfo.mBaseURI), scriptFile);
         }
         if (NS_FAILED(rv)) {
           // As expected, fileName is not a path, so proceed with
           // a uri.
-          rv = NS_NewURI(getter_AddRefs(loadInfo.mBaseURI), fileName.get());
+          rv = NS_NewURI(getter_AddRefs(loadInfo.mBaseURI), fileName.UNSAFE_unverified()->get());
         }
         if (NS_FAILED(rv)) {
           return rv;

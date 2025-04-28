@@ -24,6 +24,7 @@
 #include "js/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
 #include "js/SourceText.h"             // JS::Source{Ownership,Text}
 #include "js/Wrapper.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Realm.h"
 
 #include "mozilla/ContentPrincipal.h"
@@ -349,8 +350,8 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
   nsAutoCString scheme;
 
   // Figure out who's calling us
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(cx, &filename)) {
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  if (!JS::DescribeScriptedCaller(cx, filename)) {
     // No scripted frame means we don't know who's calling, bail.
     return NS_ERROR_FAILURE;
   }

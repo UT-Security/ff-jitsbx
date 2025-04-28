@@ -31,6 +31,7 @@
 #include "js/Initialization.h"
 #include "js/LocaleSensitive.h"
 #include "js/WasmFeatures.h"
+#include "monkeycage/jsapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -522,20 +523,20 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
 
   if (reportViolation) {
     nsString fileName;
-    uint32_t lineNum = 0;
-    uint32_t columnNum = 0;
+    monkeycage::AutoStackTainted<uint32_t> lineNum = 0;
+    monkeycage::AutoStackTainted<uint32_t> columnNum = 0;
 
-    JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineNum, &columnNum) &&
-        file.get()) {
-      CopyUTF8toUTF16(MakeStringSpan(file.get()), fileName);
+    monkeycage::AutoStackTainted<JS::AutoFilename> file;
+    if (JS::DescribeScriptedCaller(aCx, file, lineNum, columnNum) &&
+        file.UNSAFE_unverified()->get()) {
+      CopyUTF8toUTF16(MakeStringSpan(file.UNSAFE_unverified()->get()), fileName);
     } else {
       MOZ_ASSERT(!JS_IsExceptionPending(aCx));
     }
 
     RefPtr<LogViolationDetailsRunnable> runnable =
         new LogViolationDetailsRunnable(worker, violationType, fileName,
-                                        lineNum, columnNum, scriptSample);
+                                        *lineNum.UNSAFE_unverified(), *columnNum.UNSAFE_unverified(), scriptSample);
 
     ErrorResult rv;
     runnable->Dispatch(Killing, rv);

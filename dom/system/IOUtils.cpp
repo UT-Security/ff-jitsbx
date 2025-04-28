@@ -14,6 +14,7 @@
 #include "js/Utility.h"
 #include "js/experimental/TypedData.h"
 #include "jsfriendapi.h"
+#include "monkeycage/jsapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CheckedInt.h"
@@ -288,17 +289,17 @@ static bool AssertParentProcessWithCallerLocationImpl(GlobalObject& aGlobal,
 
   JSContext* cx = jsapi.cx();
 
-  JS::AutoFilename scriptFilename;
-  unsigned lineNo = 0;
-  unsigned colNo = 0;
+  monkeycage::AutoStackTainted<JS::AutoFilename> scriptFilename;
+  monkeycage::AutoStackTainted<unsigned> lineNo = 0;
+  monkeycage::AutoStackTainted<unsigned> colNo = 0;
 
   NS_ENSURE_TRUE(
-      JS::DescribeScriptedCaller(cx, &scriptFilename, &lineNo, &colNo), false);
+      JS::DescribeScriptedCaller(cx, scriptFilename, lineNo, colNo), false);
 
-  NS_ENSURE_TRUE(scriptFilename.get(), false);
+  NS_ENSURE_TRUE(scriptFilename.UNSAFE_unverified()->get(), false);
 
-  reason.AppendPrintf(" Called from %s:%d:%d.", scriptFilename.get(), lineNo,
-                      colNo);
+  reason.AppendPrintf(" Called from %s:%d:%d.", scriptFilename.UNSAFE_unverified()->get(), *lineNo.UNSAFE_unverified(),
+                      *colNo.UNSAFE_unverified());
   return false;
 }
 

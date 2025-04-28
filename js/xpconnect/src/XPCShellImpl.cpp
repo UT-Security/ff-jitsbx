@@ -6,6 +6,7 @@
 
 #include "nsXULAppAPI.h"
 #include "monkeycage/Realm.h"
+#include "monkeycage/jsapi.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Array.h"             // JS::NewArrayObject
@@ -163,9 +164,9 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
   // XXX: your platform should really implement this
   return false;
 #else
-  JS::AutoFilename filename;
-  if (JS::DescribeScriptedCaller(cx, &filename) && filename.get()) {
-    NS_ConvertUTF8toUTF16 filenameString(filename.get());
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  if (JS::DescribeScriptedCaller(cx, filename) && filename.UNSAFE_unverified()->get()) {
+    NS_ConvertUTF8toUTF16 filenameString(filename.UNSAFE_unverified()->get());
 
 #  if defined(XP_WIN)
     // replace forward slashes with backslashes,

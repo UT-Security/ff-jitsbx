@@ -26,6 +26,7 @@
 #include "js/SourceText.h"
 #include "js/TypeDecls.h"
 #include "jsfriendapi.h"
+#include "monkeycage/jsapi.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Element.h"
@@ -50,22 +51,29 @@ using namespace mozilla::dom;
 
 bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsACString& aFilename,
                                    uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, aColumn)) {
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  monkeycage::AutoStackTainted<uint32_t> lineno = 0, column = 0;
+  if (!JS::DescribeScriptedCaller(aContext, filename, lineno, column)) {
     return false;
   }
 
-  return aFilename.Assign(filename.get(), fallible);
+  *aLineno = *lineno.UNSAFE_unverified();
+  *aColumn = *column.UNSAFE_unverified();
+
+  return aFilename.Assign(filename.UNSAFE_unverified()->get(), fallible);
 }
 
 bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsAString& aFilename,
                                    uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, aColumn)) {
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  monkeycage::AutoStackTainted<uint32_t> lineno = 0, column = 0;
+  if (!JS::DescribeScriptedCaller(aContext, filename, lineno, column)) {
     return false;
   }
 
-  return aFilename.Assign(NS_ConvertUTF8toUTF16(filename.get()), fallible);
+  *aLineno = *lineno.UNSAFE_unverified();
+  *aColumn = *column.UNSAFE_unverified();
+  return aFilename.Assign(NS_ConvertUTF8toUTF16(filename.UNSAFE_unverified()->get()), fallible);
 }
 
 uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext) {

@@ -10,6 +10,7 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/jsapi.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -1372,17 +1373,17 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(workerPrivate);
 
-    unsigned lineno, column;
-    JS::AutoFilename file;
-    if (!JS::DescribeScriptedCaller(aGlobal.Context(), &file, &lineno,
-                                    &column)) {
+    monkeycage::AutoStackTainted<unsigned> lineno, column;
+    monkeycage::AutoStackTainted<JS::AutoFilename> file;
+    if (!JS::DescribeScriptedCaller(aGlobal.Context(), file, lineno,
+                                    column)) {
       NS_WARNING("Failed to get line number and filename in workers.");
     }
 
     RefPtr<InitRunnable> runnable = new InitRunnable(
         workerPrivate, webSocketImpl,
         workerPrivate->GlobalScope()->GetClientInfo(), !!aTransportProvider,
-        aUrl, protocolArray, nsDependentCString(file.get()), lineno, column);
+        aUrl, protocolArray, nsDependentCString(file.UNSAFE_unverified()->get()), *lineno.UNSAFE_unverified(), *column.UNSAFE_unverified());
     runnable->Dispatch(Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
@@ -1609,12 +1610,12 @@ nsresult WebSocketImpl::Init(JSContext* aCx, bool aIsSecure,
   } else {
     MOZ_ASSERT(aCx);
 
-    unsigned lineno, column;
-    JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineno, &column)) {
-      mScriptFile = file.get();
-      mScriptLine = lineno;
-      mScriptColumn = column;
+    monkeycage::AutoStackTainted<unsigned> lineno, column;
+    monkeycage::AutoStackTainted<JS::AutoFilename> file;
+    if (JS::DescribeScriptedCaller(aCx, file, lineno, column)) {
+      mScriptFile = file.UNSAFE_unverified()->get();
+      mScriptLine = *lineno.UNSAFE_unverified();
+      mScriptColumn = *column.UNSAFE_unverified();
     }
   }
 

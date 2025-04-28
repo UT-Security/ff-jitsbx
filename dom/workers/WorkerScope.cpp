@@ -22,6 +22,7 @@
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Realm.h"
 #include "monkeycage/Tainted.h"
 #include "mozilla/AlreadyAddRefed.h"
@@ -1337,11 +1338,11 @@ void WorkerDebuggerGlobalScope::SetImmediate(Function& aHandler,
 
 void WorkerDebuggerGlobalScope::ReportError(JSContext* aCx,
                                             const nsAString& aMessage) {
-  JS::AutoFilename chars;
-  uint32_t lineno = 0;
-  JS::DescribeScriptedCaller(aCx, &chars, &lineno);
-  nsString filename(NS_ConvertUTF8toUTF16(chars.get()));
-  mWorkerPrivate->ReportErrorToDebugger(filename, lineno, aMessage);
+  monkeycage::AutoStackTainted<JS::AutoFilename> chars;
+  monkeycage::AutoStackTainted<uint32_t> lineno = 0;
+  JS::DescribeScriptedCaller(aCx, chars, lineno);
+  nsString filename(NS_ConvertUTF8toUTF16(chars.UNSAFE_unverified()->get()));
+  mWorkerPrivate->ReportErrorToDebugger(filename, *lineno.UNSAFE_unverified(), aMessage);
 }
 
 void WorkerDebuggerGlobalScope::RetrieveConsoleEvents(

@@ -71,6 +71,7 @@
 #include "nsContentUtils.h"
 #include "nsJSUtils.h"
 #include "nsILoadInfo.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Sandbox.h"
 #include "js/sandbox/RootingAPI.h"
 
@@ -531,12 +532,12 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
   }
 
   if (reportViolation) {
-    JS::AutoFilename scriptFilename;
+    monkeycage::AutoStackTainted<JS::AutoFilename> scriptFilename;
     nsAutoString fileName;
-    unsigned lineNum = 0;
-    unsigned columnNum = 0;
-    if (JS::DescribeScriptedCaller(cx, &scriptFilename, &lineNum, &columnNum)) {
-      if (const char* file = scriptFilename.get()) {
+    monkeycage::AutoStackTainted<unsigned> lineNum = 0;
+    monkeycage::AutoStackTainted<unsigned> columnNum = 0;
+    if (JS::DescribeScriptedCaller(cx, scriptFilename, lineNum, columnNum)) {
+      if (const char* file = scriptFilename.UNSAFE_unverified()->get()) {
         CopyUTF8toUTF16(nsDependentCString(file), fileName);
       }
     } else {
@@ -555,8 +556,8 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
             : nsIContentSecurityPolicy::VIOLATION_TYPE_WASM_EVAL;
     csp->LogViolationDetails(violationType,
                              nullptr,  // triggering element
-                             cspEventListener, fileName, scriptSample, lineNum,
-                             columnNum, u""_ns, u""_ns);
+                             cspEventListener, fileName, scriptSample, *lineNum.UNSAFE_unverified(),
+                             *columnNum.UNSAFE_unverified(), u""_ns, u""_ns);
   }
 
   return evalOK;

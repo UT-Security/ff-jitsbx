@@ -228,6 +228,7 @@ EXPORTS.monkeycage += [
     "../public/Context.h",
     "../public/GCAPI.h",
     "../public/Initialization.h",
+    "../public/jsapi.h",
     "../public/Realm.h",
     "../public/Sandbox.h",
     "../public/Tainted.h",

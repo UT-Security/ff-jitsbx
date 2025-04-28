@@ -37,6 +37,7 @@
 #include "imgRequestProxy.h"
 #include "js/Value.h"
 #include "jsapi.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Realm.h"
 #include "mozAutoDocUpdate.h"
 #include "mozIDOMWindow.h"
@@ -4325,13 +4326,13 @@ void Document::NoteScriptTrackingStatus(const nsACString& aURL,
 }
 
 bool Document::IsScriptTracking(JSContext* aCx) const {
-  JS::AutoFilename filename;
-  uint32_t line = 0;
-  uint32_t column = 0;
-  if (!JS::DescribeScriptedCaller(aCx, &filename, &line, &column)) {
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  monkeycage::AutoStackTainted<uint32_t> line = 0;
+  monkeycage::AutoStackTainted<uint32_t> column = 0;
+  if (!JS::DescribeScriptedCaller(aCx, filename, line, column)) {
     return false;
   }
-  return mTrackingScripts.Contains(nsDependentCString(filename.get()));
+  return mTrackingScripts.Contains(nsDependentCString(filename.UNSAFE_unverified()->get()));
 }
 
 void Document::GetContentType(nsAString& aContentType) {

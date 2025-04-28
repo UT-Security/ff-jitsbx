@@ -40,6 +40,7 @@
 #include "js/shadow/String.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/jsapi.h"
 #include "monkeycage/Tainted.h"
 #include "mozIDOMWindow.h"
 #include "moz_external_vr.h"
@@ -5180,16 +5181,17 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
   }
 
   // Check if we should offer the option to debug
-  JS::AutoFilename filename;
-  unsigned lineno;
+  monkeycage::AutoStackTainted<JS::AutoFilename> filename;
+  monkeycage::AutoStackTainted<unsigned> lineno;
   // Computing the line number can be very expensive (see bug 1330231 for
   // example), and we don't use the line number anywhere except than in the
   // parent process, so we avoid computing it elsewhere.  This gives us most of
   // the wins we are interested in, since the source of the slowness here is
   // minified scripts which is more common in Web content that is loaded in the
   // content process.
-  unsigned* linenop = XRE_IsParentProcess() ? &lineno : nullptr;
-  bool hasFrame = JS::DescribeScriptedCaller(aCx, &filename, linenop);
+  bool hasFrame = JS::DescribeScriptedCaller(
+      aCx, filename,
+      XRE_IsParentProcess() ? (monkeycage::Tainted<unsigned*>)lineno : monkeycage::Tainted<unsigned*>(nullptr));
 
   // Record the slow script event if we haven't done so already for this inner
   // window (which represents a particular page to the user).
@@ -5208,7 +5210,7 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
     nsCOMPtr<nsIBrowserChild> child =
         docShell ? docShell->GetBrowserChild() : nullptr;
     action =
-        monitor->NotifySlowScript(child, filename.get(), aAddonId, aDuration);
+        monitor->NotifySlowScript(child, filename.UNSAFE_unverified()->get(), aAddonId, aDuration);
     if (action == ProcessHangMonitor::Terminate) {
       return KillSlowScript;
     }
@@ -5308,12 +5310,12 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
   }
 
   // Append file and line number information, if available
-  if (filename.get()) {
+  if (filename.UNSAFE_unverified()->get()) {
     nsAutoString scriptLocation;
     // We want to drop the middle part of too-long locations.  We'll
     // define "too-long" as longer than 60 UTF-16 code units.  Just
     // have to be a bit careful about unpaired surrogates.
-    NS_ConvertUTF8toUTF16 filenameUTF16(filename.get());
+    NS_ConvertUTF8toUTF16 filenameUTF16(filename.UNSAFE_unverified()->get());
     if (filenameUTF16.Length() > 60) {
       // XXXbz Do we need to insert any bidi overrides here?
       size_t cutStart = 30;
@@ -5344,7 +5346,7 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
       msg.AppendLiteral("\n\n");
       msg.Append(scriptLocation);
       msg.Append(':');
-      msg.AppendInt(lineno);
+      msg.AppendInt(*lineno.UNSAFE_unverified());
     }
   }
 
