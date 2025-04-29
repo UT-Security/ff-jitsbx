@@ -231,25 +231,25 @@ class ElementTranslationHandler : public PromiseNativeHandler {
 
     nsTArray<Nullable<L10nMessage>> l10nData;
     if (aValue.isObject()) {
-      JS::ForOfIterator iter(aCx);
-      if (!iter.init(aValue, JS::ForOfIterator::AllowNonIterable)) {
+      monkeycage::AutoStackTainted<JS::ForOfIterator> iter(aCx);
+      if (!iter.UNSAFE_unverified()->init(aValue, JS::ForOfIterator::AllowNonIterable)) {
         mReturnValuePromise->MaybeRejectWithUndefined();
         return;
       }
-      if (!iter.valueIsIterable()) {
+      if (!iter.UNSAFE_unverified()->valueIsIterable()) {
         mReturnValuePromise->MaybeRejectWithUndefined();
         return;
       }
 
       JS::sandbox::Rooted<JS::Value> temp(aCx);
       while (true) {
-        bool done;
-        if (!iter.next(&temp, &done)) {
+        monkeycage::AutoStackTainted<bool> done;
+        if (!iter.UNSAFE_unverified()->next(&temp, done.UNSAFE_unverified())) {
           mReturnValuePromise->MaybeRejectWithUndefined();
           return;
         }
 
-        if (done) {
+        if (*done.UNSAFE_unverified()) {
           break;
         }
 

@@ -733,13 +733,13 @@ bool CustomElementRegistry::JSObjectToAtomArray(
       return false;
     }
 
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(iterable, JS::ForOfIterator::AllowNonIterable)) {
+    monkeycage::AutoStackTainted<JS::ForOfIterator> iter(aCx);
+    if (!iter.UNSAFE_unverified()->init(iterable, JS::ForOfIterator::AllowNonIterable)) {
       aRv.NoteJSContextException(aCx);
       return false;
     }
 
-    if (!iter.valueIsIterable()) {
+    if (!iter.UNSAFE_unverified()->valueIsIterable()) {
       aRv.ThrowTypeError<MSG_CONVERSION_ERROR>(NS_ConvertUTF16toUTF8(aName),
                                                "sequence");
       return false;
@@ -747,12 +747,12 @@ bool CustomElementRegistry::JSObjectToAtomArray(
 
     JS::sandbox::Rooted<JS::Value> attribute(aCx);
     while (true) {
-      bool done;
-      if (!iter.next(&attribute, &done)) {
+      monkeycage::AutoStackTainted<bool> done;
+      if (!iter.UNSAFE_unverified()->next(&attribute, done.UNSAFE_unverified())) {
         aRv.NoteJSContextException(aCx);
         return false;
       }
-      if (done) {
+      if (*done.UNSAFE_unverified()) {
         break;
       }
 

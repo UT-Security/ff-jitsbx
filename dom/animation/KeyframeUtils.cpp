@@ -210,14 +210,14 @@ nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
   // sequence of keyframes first, and if that fails due to not being iterable,
   // we try to convert it to a property-indexed keyframe.
   JS::sandbox::Rooted<JS::Value> objectValue(aCx, JS::ObjectValue(*aFrames));
-  JS::ForOfIterator iter(aCx);
-  if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
+  monkeycage::AutoStackTainted<JS::ForOfIterator> iter(aCx);
+  if (!iter.UNSAFE_unverified()->init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return keyframes;
   }
 
-  if (iter.valueIsIterable()) {
-    GetKeyframeListFromKeyframeSequence(aCx, aDocument, iter, keyframes,
+  if (iter.UNSAFE_unverified()->valueIsIterable()) {
+    GetKeyframeListFromKeyframeSequence(aCx, aDocument, *iter.UNSAFE_unverified(), keyframes,
                                         aContext, aRv);
   } else {
     GetKeyframeListFromPropertyIndexedKeyframe(aCx, aDocument, objectValue,
@@ -580,19 +580,19 @@ static bool AppendStringOrStringSequenceToArray(JSContext* aCx,
   if (aAllowLists == ListAllowance::eAllow && aValue.isObject()) {
     // The value is an object, and we want to allow lists; convert
     // aValue to (DOMString or sequence<DOMString>).
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(aValue, JS::ForOfIterator::AllowNonIterable)) {
+    monkeycage::AutoStackTainted<JS::ForOfIterator> iter(aCx);
+    if (!iter.UNSAFE_unverified()->init(aValue, JS::ForOfIterator::AllowNonIterable)) {
       return false;
     }
-    if (iter.valueIsIterable()) {
+    if (iter.UNSAFE_unverified()->valueIsIterable()) {
       // If the object is iterable, convert it to sequence<DOMString>.
       JS::sandbox::Rooted<JS::Value> element(aCx);
       for (;;) {
-        bool done;
-        if (!iter.next(&element, &done)) {
+        monkeycage::AutoStackTainted<bool> done;
+        if (!iter.UNSAFE_unverified()->next(&element, done.UNSAFE_unverified())) {
           return false;
         }
-        if (done) {
+        if (*done.UNSAFE_unverified()) {
           break;
         }
         if (!AppendValueAsString(aCx, aValues, element)) {

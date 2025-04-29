@@ -159,12 +159,12 @@ void AudioWorkletGlobalScope::RegisterProcessor(
      *    sequence<AudioParamDescriptor>.
      */
     JS::sandbox::Rooted<JS::Value> objectValue(aCx, descriptors);
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
+    monkeycage::AutoStackTainted<JS::ForOfIterator> iter(aCx);
+    if (!iter.UNSAFE_unverified()->init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
-    if (!iter.valueIsIterable()) {
+    if (!iter.UNSAFE_unverified()->valueIsIterable()) {
       aRv.ThrowTypeError<MSG_CONVERSION_ERROR>(
           "AudioWorkletProcessor.parameterDescriptors", "sequence");
       return;
@@ -172,7 +172,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
     /*
      * 7.2 and 7.3 (and substeps)
      */
-    map = DescriptorsFromJS(aCx, &iter, aRv);
+    map = DescriptorsFromJS(aCx, iter.UNSAFE_unverified(), aRv);
     if (aRv.Failed()) {
       return;
     }
