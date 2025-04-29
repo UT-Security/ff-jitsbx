@@ -18,7 +18,7 @@ class CustomEvent final : public Event {
  private:
   virtual ~CustomEvent();
 
-  JS::Heap<JS::Value> mDetail;
+  JS::sandbox::Heap<JS::Value> mDetail;
 
  public:
   explicit CustomEvent(mozilla::dom::EventTarget* aOwner,

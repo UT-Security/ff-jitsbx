@@ -286,7 +286,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   // AutoJSAPI, so Init must NOT be called on subclasses that use this.
   AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread, Type aType);
 
-  mozilla::Maybe<MC::JSAutoNullableRealm> mAutoNullableRealm;
+  mozilla::Maybe<monkeycage::AutoHeapTainted<JSAutoNullableRealm>> mAutoNullableRealm;
   JSContext* mCx;
 
   // Whether we're mainthread or not; set when we're initialized.

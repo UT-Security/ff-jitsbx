@@ -52,19 +52,19 @@ class SharedJSAllocatedData final {
 
   static already_AddRefed<SharedJSAllocatedData> CreateFromExternalData(
       const char* aData, size_t aDataLength) {
-    JSStructuredCloneData buf(JS::StructuredCloneScope::DifferentProcess);
-    NS_ENSURE_TRUE(buf.AppendBytes(aData, aDataLength), nullptr);
+    monkeycage::AutoStackTainted<JSStructuredCloneData> buf(JS::StructuredCloneScope::DifferentProcess);
+    NS_ENSURE_TRUE(buf.UNSAFE_unverified()->AppendBytes(aData, aDataLength), nullptr);
     RefPtr<SharedJSAllocatedData> sharedData =
-        new SharedJSAllocatedData(std::move(buf));
+        new SharedJSAllocatedData(std::move(*buf.UNSAFE_unverified()));
     return sharedData.forget();
   }
 
   static already_AddRefed<SharedJSAllocatedData> CreateFromExternalData(
       const JSStructuredCloneData& aData) {
-    JSStructuredCloneData buf(aData.scope());
-    NS_ENSURE_TRUE(buf.Append(aData), nullptr);
+    monkeycage::AutoStackTainted<JSStructuredCloneData> buf(aData.scope());
+    NS_ENSURE_TRUE(buf.UNSAFE_unverified()->Append(aData), nullptr);
     RefPtr<SharedJSAllocatedData> sharedData =
-        new SharedJSAllocatedData(std::move(buf));
+        new SharedJSAllocatedData(std::move(*buf.UNSAFE_unverified()));
     return sharedData.forget();
   }
 
