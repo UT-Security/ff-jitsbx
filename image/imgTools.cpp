@@ -31,7 +31,7 @@
 #include "ScriptedNotificationObserver.h"
 #include "imgIScriptedNotificationObserver.h"
 #include "gfxPlatform.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
 #include "Orientation.h"
@@ -297,19 +297,19 @@ imgTools::DecodeImageFromArrayBuffer(JS::Handle<JS::Value> aArrayBuffer,
     return NS_ERROR_FAILURE;
   }
 
-  uint8_t* bufferData = nullptr;
-  size_t bufferLength = 0;
-  bool isSharedMemory = false;
+  monkeycage::AutoStackTainted<uint8_t*> bufferData = nullptr;
+  monkeycage::AutoStackTainted<size_t> bufferLength = 0;
+  monkeycage::AutoStackTainted<bool> isSharedMemory = false;
 
-  JS::GetArrayBufferLengthAndData(obj, &bufferLength, &isSharedMemory,
-                                  &bufferData);
+  JS::GetArrayBufferLengthAndData(obj, bufferLength, isSharedMemory,
+                                  bufferData);
 
   // Throw for large ArrayBuffers to prevent truncation.
-  if (bufferLength > INT32_MAX) {
+  if (*bufferLength.UNSAFE_unverified() > INT32_MAX) {
     return NS_ERROR_ILLEGAL_VALUE;
   }
 
-  return DecodeImageFromBuffer((char*)bufferData, bufferLength, aMimeType,
+  return DecodeImageFromBuffer((char*)*bufferData.UNSAFE_unverified(), *bufferLength.UNSAFE_unverified(), aMimeType,
                                aContainer);
 }
 

@@ -15,7 +15,7 @@
 #include <stdint.h>
 #include <utility>
 #include "MainThreadUtils.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
 #include "js/experimental/TypedData.h"
@@ -53,21 +53,21 @@ nsresult GetWriteData(JSContext* aCx, JS::Handle<JS::Value> aValue,
     bool isView = false;
     if (JS::IsArrayBufferObject(obj) ||
         (isView = JS_IsArrayBufferViewObject(obj))) {
-      uint8_t* data;
-      size_t length;
-      bool unused;
+      monkeycage::AutoStackTainted<uint8_t*> data;
+      monkeycage::AutoStackTainted<size_t> length;
+      monkeycage::AutoStackTainted<bool> unused;
       if (isView) {
-        JS_GetObjectAsArrayBufferView(obj, &length, &unused, &data);
+        JS_GetObjectAsArrayBufferView(obj, length.UNSAFE_unverified(), unused.UNSAFE_unverified(), data.UNSAFE_unverified());
       } else {
-        JS::GetObjectAsArrayBuffer(obj, &length, &data);
+        JS::GetObjectAsArrayBuffer(obj, length, data);
       }
 
       // Throw for large buffers to prevent truncation.
-      if (length > INT32_MAX) {
+      if (*length.UNSAFE_unverified() > INT32_MAX) {
         return NS_ERROR_ILLEGAL_VALUE;
       }
 
-      if (NS_WARN_IF(!aData.Assign(reinterpret_cast<char*>(data), length,
+      if (NS_WARN_IF(!aData.Assign(reinterpret_cast<char*>(*data.UNSAFE_unverified()), *length.UNSAFE_unverified(),
                                    fallible_t()))) {
         return NS_ERROR_OUT_OF_MEMORY;
       }

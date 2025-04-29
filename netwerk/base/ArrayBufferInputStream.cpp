@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "ArrayBufferInputStream.h"
 #include "nsStreamUtils.h"
-#include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
+#include "monkeycage/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
 #include "monkeycage/GCAPI.h"
@@ -48,9 +48,9 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
   mBufferLength = bufferLength;
 
   MC::AutoCheckCannotGC nogc;
-  bool isShared;
+  monkeycage::AutoStackTainted<bool> isShared;
   char* src =
-      (char*)JS::GetArrayBufferData(arrayBuffer, &isShared, *nogc.UNSAFE_unverified()) + offset;
+      (char*)JS::GetArrayBufferData(arrayBuffer, isShared, *nogc.UNSAFE_unverified()) + offset;
   memcpy(&mArrayBuffer[0], src, mBufferLength);
   return NS_OK;
 }

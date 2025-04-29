@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <stdint.h>          // for UINT32_MAX, uintptr_t
 #include "monkeycage/Array.h"        // JS::NewArrayObject
-#include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,NewArrayBuffer{,WithContents},GetArrayBufferLengthAndData}
+#include "monkeycage/ArrayBuffer.h"  // JS::{IsArrayBufferObject,NewArrayBuffer{,WithContents},GetArrayBufferLengthAndData}
 #include "js/Date.h"
 #include "js/experimental/TypedData.h"  // JS_IsArrayBufferViewObject, JS_GetObjectAsArrayBufferView
 #include "js/MemoryFunctions.h"
@@ -831,20 +831,22 @@ double Key::DecodeNumber(const EncodedDataType*& aPos,
 
 Result<Ok, nsresult> Key::EncodeBinary(JSObject* aObject, bool aIsViewObject,
                                        uint8_t aTypeOffset) {
-  uint8_t* bufferData;
-  size_t bufferLength;
+  monkeycage::AutoStackTainted<uint8_t*> bufferData;
+  monkeycage::AutoStackTainted<size_t> bufferLength;
 
   // We must use JS::GetObjectAsArrayBuffer()/JS_GetObjectAsArrayBufferView()
   // instead of js::GetArrayBufferLengthAndData(). The object might be wrapped,
   // the former will handle the wrapped case, the later won't.
   if (aIsViewObject) {
-    bool unused;
-    JS_GetObjectAsArrayBufferView(aObject, &bufferLength, &unused, &bufferData);
+    monkeycage::AutoStackTainted<bool> unused;
+    JS_GetObjectAsArrayBufferView(aObject, bufferLength.UNSAFE_unverified(),
+                                  unused.UNSAFE_unverified(),
+                                  bufferData.UNSAFE_unverified());
   } else {
-    JS::GetObjectAsArrayBuffer(aObject, &bufferLength, &bufferData);
+    JS::GetObjectAsArrayBuffer(aObject, bufferLength, bufferData);
   }
 
-  return EncodeAsString(Span{bufferData, bufferLength}.AsConst(),
+  return EncodeAsString(Span{*bufferData.UNSAFE_unverified(), *bufferLength.UNSAFE_unverified()}.AsConst(),
                         eBinary + aTypeOffset);
 }
 

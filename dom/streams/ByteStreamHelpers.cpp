@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/ByteStreamHelpers.h"
 #include "mozilla/dom/ReadableByteStreamController.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "js/RootingAPI.h"
 #include "js/experimental/TypedData.h"
 #include "mozilla/ErrorResult.h"
@@ -54,13 +54,13 @@ bool CanTransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject,
   // Step 5. Return true.
   // Note: WASM memories are the only buffers that would qualify
   // as having an undefined [[ArrayBufferDetachKey]],
-  bool hasDefinedArrayBufferDetachKey = false;
+  monkeycage::AutoStackTainted<bool> hasDefinedArrayBufferDetachKey = false;
   if (!JS::HasDefinedArrayBufferDetachKey(aCx, aObject,
-                                          &hasDefinedArrayBufferDetachKey)) {
+                                          hasDefinedArrayBufferDetachKey)) {
     aRv.StealExceptionFromJSContext(aCx);
     return false;
   }
-  return !hasDefinedArrayBufferDetachKey;
+  return !*hasDefinedArrayBufferDetachKey.UNSAFE_unverified();
 }
 
 // https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array

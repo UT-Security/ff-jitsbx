@@ -224,6 +224,7 @@ EXPORTS.js.sandbox += [
 
 EXPORTS.monkeycage += [
     "../public/Array.h",
+    "../public/ArrayBuffer.h",
     "../public/BuildId.h",
     "../public/Class.h",
     "../public/Context.h",

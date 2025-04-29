@@ -8,8 +8,8 @@
 
 #include "jsapi.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"  // JS::IsArrayObject
-#include "js/ArrayBuffer.h"
+#include "monkeycage/Array.h"  // JS::IsArrayObject
+#include "monkeycage/ArrayBuffer.h"
 #include "js/Exception.h"
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
@@ -580,12 +580,12 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
     MC::AutoCheckCannotGC nogc;
 
     auto obj = &value.toObject();
-    bool isShared;
+    monkeycage::AutoStackTainted<bool> isShared;
 
     size_t len = JS::GetArrayBufferByteLength(obj);
     NS_ENSURE_TRUE(len <= INT32_MAX, NS_ERROR_INVALID_ARG);
     nsDependentCSubstring lz4(
-        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, &isShared, *nogc.UNSAFE_unverified())),
+        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, isShared, *nogc.UNSAFE_unverified())),
         uint32_t(len));
 
     MOZ_TRY_VAR(data, DecodeLZ4(lz4, STRUCTURED_CLONE_MAGIC));
@@ -782,8 +782,8 @@ AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
                                     JS::Handle<JS::Value> locations,
                                     JSContext* cx, nsIJSRAIIHelper** result) {
   auto IsArray = [cx](JS::Handle<JS::Value> val) -> bool {
-    bool isArray;
-    return JS::IsArrayObject(cx, val, &isArray) && isArray;
+    monkeycage::AutoStackTainted<bool> isArray;
+    return JS::IsArrayObject(cx, val, isArray) && *isArray.UNSAFE_unverified();
   };
 
   NS_ENSURE_ARG_POINTER(manifestURI);

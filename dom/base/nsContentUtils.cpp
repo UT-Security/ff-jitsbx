@@ -40,7 +40,7 @@
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Tainted.h"
 #include "js/Array.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "js/Id.h"
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty
@@ -6797,10 +6797,10 @@ nsresult nsContentUtils::CreateArrayBuffer(JSContext* aCx,
   if (dataLen > 0) {
     NS_ASSERTION(JS::IsArrayBufferObject(*aResult), "What happened?");
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
-    memcpy(JS::GetArrayBufferData(*aResult, &isShared, *nogc.UNSAFE_unverified()),
+    monkeycage::AutoStackTainted<bool> isShared;
+    memcpy(JS::GetArrayBufferData(*aResult, isShared, *nogc.UNSAFE_unverified()),
            aData.BeginReading(), dataLen);
-    MOZ_ASSERT(!isShared);
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());
   }
 
   return NS_OK;

@@ -37,7 +37,7 @@
 #include "nsIURI.h"       // for NS_IURI_IID
 #include "nsIX509Cert.h"  // for NS_IX509CERT_IID
 
-#include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{,ByteLength},IsArrayBufferObject}
+#include "monkeycage/ArrayBuffer.h"  // JS::{GetArrayBuffer{,ByteLength},IsArrayBufferObject}
 #include "js/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "js/Value.h"       // JS::Value
 
@@ -841,14 +841,14 @@ nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
     // Copy data into actual buffer.
 
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
+    monkeycage::AutoStackTainted<bool> isShared;
     if (bufferLength != JS::GetArrayBufferByteLength(buffer)) {
       return NS_ERROR_FAILURE;
     }
 
     char* data = reinterpret_cast<char*>(
-        JS::GetArrayBufferData(buffer, &isShared, *nogc.UNSAFE_unverified()));
-    MOZ_ASSERT(!isShared);  // Implied by JS::GetArrayBufferData()
+        JS::GetArrayBufferData(buffer, isShared, *nogc.UNSAFE_unverified()));
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Implied by JS::GetArrayBufferData()
     if (!data) {
       return NS_ERROR_FAILURE;
     }
