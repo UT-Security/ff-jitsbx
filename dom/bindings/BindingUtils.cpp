@@ -24,6 +24,7 @@
 #include "AccessCheck.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
+#include "monkeycage/jsapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter,Method}CallArgs, JSJit{Getter,Setter}Op, JSJitInfo
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
@@ -1322,12 +1323,12 @@ static bool InitPropertyInfos(JSContext* cx, const Prefable<SpecT>* pref,
     // in the "specs" array of the relevant Prefable.
     uint32_t specIndex = 0;
     do {
-      jsid id;
+      monkeycage::AutoStackTainted<jsid> id;
       if (!JS::PropertySpecNameToPermanentId(cx, ToPropertySpecName(spec->name),
-                                             &id)) {
+                                             id)) {
         return false;
       }
-      infos->SetId(id);
+      infos->SetId(*id.UNSAFE_unverified());
       infos->type = type;
       infos->prefIndex = prefIndex;
       infos->specIndex = specIndex++;

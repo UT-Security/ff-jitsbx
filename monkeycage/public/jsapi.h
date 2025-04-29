@@ -21,6 +21,11 @@ inline bool DescribeScriptedCaller(JSContext* cx,
   return DescribeScriptedCaller(cx, filename.UNSAFE_unverified(), lineno.UNSAFE_unverified(), column.UNSAFE_unverified());
 }
 
+inline bool PropertySpecNameToPermanentId(JSContext* cx,
+                                          JSPropertySpec::Name name,
+                                          monkeycage::Tainted<jsid*> idp) {
+ return PropertySpecNameToPermanentId(cx, name, idp.UNSAFE_unverified());
+}
 }
 
 #endif
