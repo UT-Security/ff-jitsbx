@@ -1,0 +1,59 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+option(
+    "--enable-js-sandbox",
+    default=False,
+    help="{Enable|Disable} the JavaScript sandbox.",
+)
+
+@depends("--enable-js-sandbox", target)
+def js_sandbox(enable_js_sandbox, target):
+    if enable_js_sandbox and target.cpu != "x86_64":
+        die("--enable-js-sandbox works only on x86-64")
+
+    is_linux = target.kernel == "Linux" and target.os == "GNU"
+    if enable_js_sandbox and not is_linux:
+        die("--enable-js-sandbox works only on GNU Linux")
+
+    if enable_js_sandbox:
+        return True
+
+set_config("JS_SANDBOX", js_sandbox)
+set_define("JS_SANDBOX", js_sandbox)
+
+option(
+	"--js-sandbox-type",
+	help="Select the type of sandboxing for the JavaScript engine.",
+	nargs=1,
+	when=js_sandbox,
+	choices=("noop", "dylib", "lfi"),
+	default="noop",
+)
+
+@depends("--js-sandbox-type", when=js_sandbox)
+def js_sandbox_noop(js_sandbox_type):
+	if js_sandbox_type[0] == "noop":
+		return True
+
+set_config("JS_SANDBOX_NOOP", js_sandbox_noop)
+set_define("JS_SANDBOX_NOOP", js_sandbox_noop)
+
+@depends("--js-sandbox-type", when=js_sandbox)
+def js_sandbox_dylib(js_sandbox_type):
+	if js_sandbox_type[0] == "dylib":
+		return True
+
+set_config("JS_SANDBOX_DYLIB", js_sandbox_dylib)
+set_define("JS_SANDBOX_DYLIB", js_sandbox_dylib)
+
+@depends("--js-sandbox-type", when=js_sandbox)
+def js_sandbox_lfi(js_sandbox_type):
+	if js_sandbox_type[0] == "lfi":
+		return True
+
+set_config("JS_SANDBOX_LFI", js_sandbox_lfi)
+set_define("JS_SANDBOX_LFI", js_sandbox_lfi)

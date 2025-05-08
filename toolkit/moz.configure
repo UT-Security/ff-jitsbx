@@ -381,6 +381,10 @@ sndio = pkg_check_modules("MOZ_SNDIO", "sndio", when="--enable-sndio")
 
 set_config("MOZ_SNDIO", depends_if(sndio)(lambda _: True))
 
+# Monkeycage: Javascript engine sandboxing
+# ==============================================================
+include("../monkeycage/moz.configure")
+
 # Javascript engine
 # ==============================================================
 include("../js/moz.configure")
