@@ -76,12 +76,22 @@ private:
   void operator=(const SourceText&) = delete;
 };
 }
+
+template <typename Unit>
+inline JS::SourceText<Unit>& MC_UNSAFE(MC::SourceText<Unit>& srcBuf) {
+  return srcBuf.inner_;
+}
 #else
 namespace MC {
   
 template <typename Unit>
 using SourceText = JS::SourceText<Unit>;
 
+}
+
+template <typename Unit>
+inline JS::SourceText<Unit>& MC_UNSAFE(MC::SourceText<Unit>& srcBuf) {
+  return srcBuf;
 }
 #endif
 
