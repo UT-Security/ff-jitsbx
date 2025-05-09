@@ -4,15 +4,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-if not CONFIG['JS_SANDBOX']: 
-	FINAL_LIBRARY = "js"
+if CONFIG["JS_SHARED_LIBRARY"]:
+    GeckoSharedLibrary("js-caged", linkage=None)
+    SHARED_LIBRARY_NAME = "mozjs-caged"   
 else:
-	FINAL_LIBRARY = "js-caged"
+    Library("js-caged")
+	
+FORCE_STATIC_LIB = True
+STATIC_LIBRARY_NAME = "js_caged"
+NO_EXPAND_LIBS = True
 
-	DIRS += ["build"]
-
-if CONFIG['JS_SANDBOX_NOOP']:
-	USE_LIBS += ["js"]
-
-EXPORTS.monkeycage += []
-
+DIST_INSTALL = True
