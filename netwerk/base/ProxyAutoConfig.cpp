@@ -14,16 +14,24 @@
 #include "nsIConsoleService.h"
 #include "nsIURLParser.h"
 #include "nsJSUtils.h"
-#include "jsfriendapi.h"
-#include "js/CallAndConstruct.h"          // JS_CallFunctionName
-#include "js/CompilationAndEvaluation.h"  // JS::Compile
-#include "js/ContextOptions.h"
-#include "js/Initialization.h"
-#include "js/PropertyAndElement.h"  // JS_DefineFunctions, JS_GetProperty
+#include "monkeycage/CallAndConstruct.h"          // JS_CallFunctionName
+#include "monkeycage/CompilationAndEvaluation.h"  // JS::Compile
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Context.h"
+#include "monkeycage/ContextOptions.h"
+#include "monkeycage/ErrorReport.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/GlobalObject.h"
+#include "monkeycage/Initialization.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions, JS_GetProperty
 #include "js/PropertySpec.h"
-#include "js/SourceText.h"  // JS::Source{Ownership,Text}
+#include "monkeycage/Realm.h"
+#include "monkeycage/SourceText.h"  // JS::Source{Ownership,Text}
+#include "monkeycage/Stack.h"
+#include "monkeycage/String.h"
 #include "js/Utility.h"
-#include "js/Warnings.h"  // JS::SetWarningReporter
+#include "monkeycage/Warnings.h"  // JS::SetWarningReporter
 #include "prnetdb.h"
 #include "nsITimer.h"
 #include "mozilla/Atomics.h"
@@ -187,20 +195,20 @@ static void PACWarningReporter(JSContext* aCx, JSErrorReport* aReport) {
 }
 
 class MOZ_STACK_CLASS AutoPACErrorReporter {
-  JSContext* mCx;
+  MCContext* mCx;
 
  public:
-  explicit AutoPACErrorReporter(JSContext* aCx) : mCx(aCx) {}
+  explicit AutoPACErrorReporter(MCContext* aCx) : mCx(aCx) {}
   ~AutoPACErrorReporter() {
     if (!JS_IsExceptionPending(mCx)) {
       return;
     }
-    JS::ExceptionStack exnStack(mCx);
+    MC::ExceptionStack exnStack(mCx);
     if (!JS::StealPendingExceptionStack(mCx, &exnStack)) {
       return;
     }
 
-    JS::ErrorReportBuilder report(mCx);
+    MC::ErrorReportBuilder report(mCx);
     if (!report.init(mCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(mCx);
       return;
@@ -389,7 +397,7 @@ static const JSFunctionSpec PACGlobalFunctions[] = {
 class JSContextWrapper {
  public:
   static JSContextWrapper* Create(uint32_t aExtraHeapSize) {
-    JSContext* cx = JS_NewContext(JS::DefaultHeapMaxBytes + aExtraHeapSize);
+    MCContext* cx = MC_NewContext(JS::DefaultHeapMaxBytes + aExtraHeapSize);
     if (NS_WARN_IF(!cx)) return nullptr;
 
     JS::ContextOptionsRef(cx).setDisableIon().setDisableEvalSecurityChecks();
@@ -403,7 +411,7 @@ class JSContextWrapper {
     return entry;
   }
 
-  JSContext* Context() const { return mContext; }
+  MCContext* Context() const { return mContext; }
 
   JSObject* Global() const { return mGlobal; }
 
@@ -422,14 +430,14 @@ class JSContextWrapper {
   bool IsOK() { return mOK; }
 
  private:
-  JSContext* mContext;
+  MCContext* mContext;
   JS::PersistentRooted<JSObject*> mGlobal;
   bool mOK;
 
   static const JSClass sGlobalClass;
 
-  explicit JSContextWrapper(JSContext* cx)
-      : mContext(cx), mGlobal(cx, nullptr), mOK(false) {
+  explicit JSContextWrapper(MCContext* cx)
+      : mContext(cx), mGlobal(MC_UNSAFE(cx), nullptr), mOK(false) {
     MOZ_COUNT_CTOR(JSContextWrapper);
   }
 
@@ -462,9 +470,9 @@ class JSContextWrapper {
       JS_ClearPendingException(mContext);
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    JS::Rooted<JSObject*> global(mContext, mGlobal);
+    JS::Rooted<JSObject*> global(MC_UNSAFE(mContext), mGlobal);
 
-    JSAutoRealm ar(mContext, global);
+    MCAutoRealm ar(mContext, global);
     AutoPACErrorReporter aper(mContext);
     if (!JS_DefineFunctions(mContext, global, PACGlobalFunctions)) {
       return NS_ERROR_FAILURE;
@@ -541,8 +549,8 @@ nsresult ProxyAutoConfig::SetupJS() {
   mJSContext = JSContextWrapper::Create(mExtraHeapSize);
   if (!mJSContext) return NS_ERROR_FAILURE;
 
-  JSContext* cx = mJSContext->Context();
-  JSAutoRealm ar(cx, mJSContext->Global());
+  MCContext* cx = mJSContext->Context();
+  MCAutoRealm ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // check if this is a data: uri so that we don't spam the js console with
@@ -553,10 +561,10 @@ nsresult ProxyAutoConfig::SetupJS() {
 
   SetRunning(this);
 
-  JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+  JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
 
-  auto CompilePACScript = [this](JSContext* cx) -> JSScript* {
-    JS::CompileOptions options(cx);
+  auto CompilePACScript = [this](MCContext* cx) -> JSScript* {
+    MC::CompileOptions options(cx);
     options.setSkipFilenameValidation(true);
     options.setFileAndLine(this->mPACURI.get(), 1);
 
@@ -565,7 +573,7 @@ nsresult ProxyAutoConfig::SetupJS() {
     const char* scriptData = this->mConcatenatedPACData.get();
     size_t scriptLength = this->mConcatenatedPACData.Length();
     if (mozilla::IsUtf8(mozilla::Span(scriptData, scriptLength))) {
-      JS::SourceText<Utf8Unit> srcBuf;
+      MC::SourceText<Utf8Unit> srcBuf;
       if (!srcBuf.init(cx, scriptData, scriptLength,
                        JS::SourceOwnership::Borrowed)) {
         return nullptr;
@@ -578,7 +586,7 @@ nsresult ProxyAutoConfig::SetupJS() {
     // and this handles not just ASCII but Latin-1 too.
     NS_ConvertASCIItoUTF16 inflated(this->mConcatenatedPACData);
 
-    JS::SourceText<char16_t> source;
+    MC::SourceText<char16_t> source;
     if (!source.init(cx, inflated.get(), inflated.Length(),
                      JS::SourceOwnership::Borrowed)) {
       return nullptr;
@@ -587,7 +595,7 @@ nsresult ProxyAutoConfig::SetupJS() {
     return JS::Compile(cx, options, source);
   };
 
-  JS::Rooted<JSScript*> script(cx, CompilePACScript(cx));
+  JS::Rooted<JSScript*> script(MC_UNSAFE(cx), CompilePACScript(cx));
   if (!script || !JS_ExecuteScript(cx, script)) {
     nsString alertMessage(u"PAC file failed to install from "_ns);
     if (isDataURI) {
@@ -633,8 +641,8 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
 
   if (!mJSContext || !mJSContext->IsOK()) return NS_ERROR_NOT_AVAILABLE;
 
-  JSContext* cx = mJSContext->Context();
-  JSAutoRealm ar(cx, mJSContext->Global());
+  MCContext* cx = mJSContext->Context();
+  MCAutoRealm ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // the sRunning flag keeps a new PAC file from being installed
@@ -669,23 +677,23 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
   }
 
   JS::Rooted<JSString*> uriString(
-      cx,
+      MC_UNSAFE(cx),
       JS_NewStringCopyN(cx, clensedURI.BeginReading(), clensedURI.Length()));
   JS::Rooted<JSString*> hostString(
-      cx, JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
+      MC_UNSAFE(cx), JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
 
   if (uriString && hostString) {
-    JS::RootedValueArray<2> args(cx);
+    JS::RootedValueArray<2> args(MC_UNSAFE(cx));
     args[0].setString(uriString);
     args[1].setString(hostString);
 
-    JS::Rooted<JS::Value> rval(cx);
-    JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+    JS::Rooted<JS::Value> rval(MC_UNSAFE(cx));
+    JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
     bool ok = JS_CallFunctionName(cx, global, "FindProxyForURL", args, &rval);
 
     if (ok && rval.isString()) {
       nsAutoJSString pacString;
-      if (pacString.init(cx, rval.toString())) {
+      if (pacString.init(MC_UNSAFE(cx), rval.toString())) {
         CopyUTF16toUTF8(pacString, result);
         rv = NS_OK;
       }
@@ -700,7 +708,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
 void ProxyAutoConfig::GC() {
   if (!mJSContext || !mJSContext->IsOK()) return;
 
-  JSAutoRealm ar(mJSContext->Context(), mJSContext->Global());
+  MCAutoRealm ar(mJSContext->Context(), mJSContext->Global());
   JS_MaybeGC(mJSContext->Context());
 }
 
@@ -768,7 +776,7 @@ bool ProxyAutoConfig::MyIPAddressTryHost(const nsACString& hostName,
 
   NetAddr remoteAddress;
   nsAutoCString localDottedDecimal;
-  JSContext* cx = mJSContext->Context();
+  MCContext* cx = mJSContext->Context();
 
   if (PACResolve(hostName, &remoteAddress, timeout) &&
       SrcAddress(&remoteAddress, localDottedDecimal)) {
@@ -787,9 +795,9 @@ bool ProxyAutoConfig::MyIPAddressTryHost(const nsACString& hostName,
 bool ProxyAutoConfig::MyIPAddress(const JS::CallArgs& aArgs) {
   nsAutoCString remoteDottedDecimal;
   nsAutoCString localDottedDecimal;
-  JSContext* cx = mJSContext->Context();
-  JS::Rooted<JS::Value> v(cx);
-  JS::Rooted<JSObject*> global(cx, mJSContext->Global());
+  MCContext* cx = mJSContext->Context();
+  JS::Rooted<JS::Value> v(MC_UNSAFE(cx));
+  JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
 
   bool useMultihomedDNS =
       JS_GetProperty(cx, global, "pacUseMultihomedDNS", &v) &&
