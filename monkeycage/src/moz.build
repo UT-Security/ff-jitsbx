@@ -14,5 +14,22 @@ else:
 if CONFIG['JS_SANDBOX_NOOP']:
 	USE_LIBS += ["js"]
 
-EXPORTS.monkeycage += []
+EXPORTS.monkeycage += [
+	"../public/CallAndConstruct.h",
+	"../public/CompilationAndEvaluation.h",
+	"../public/CompileOptions.h",
+	"../public/Context.h",
+	"../public/ContextOptions.h",
+	"../public/ErrorReport.h",
+	"../public/Exception.h",
+	"../public/GCAPI.h",
+	"../public/GlobalObject.h",
+	"../public/Initialization.h",
+	"../public/PropertyAndElement.h",
+	"../public/Realm.h",
+	"../public/SourceText.h",
+	"../public/Stack.h",
+	"../public/String.h",
+	"../public/Warnings.h",
+]
 
