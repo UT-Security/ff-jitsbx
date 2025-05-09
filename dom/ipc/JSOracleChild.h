@@ -11,10 +11,10 @@
 
 #include "js/CharacterEncoding.h"
 #include "js/HeapAPI.h"
-#include "js/Initialization.h"
-#include "jsapi.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/Context.h"
+#include "monkeycage/GlobalObject.h"
+#include "monkeycage/Initialization.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/Context.h"
 
 namespace mozilla::ipc {
 class UtilityProcessParent;
@@ -26,7 +26,7 @@ struct JSContextHolder {
     MOZ_RELEASE_ASSERT(JS_IsInitialized(),
                        "UtilityProcessChild::Init should have JS initialized");
 
-    mCx = JS_NewContext(JS::DefaultHeapMaxBytes);
+    mCx = MC_NewContext(JS::DefaultHeapMaxBytes);
     if (!mCx) {
       MOZ_CRASH("Failed to create JS Context");
       return;
@@ -41,7 +41,7 @@ struct JSContextHolder {
         "JSValidatorGlobal", JSCLASS_GLOBAL_FLAGS, &JS::DefaultGlobalClassOps};
 
     JS::Rooted<JSObject*> global(
-        mCx, JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
+        MC_UNSAFE(mCx), JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
                                 JS::FireOnNewGlobalHook, JS::RealmOptions()));
 
     if (!global) {
@@ -49,7 +49,7 @@ struct JSContextHolder {
       return;
     }
 
-    mGlobal.init(mCx, global);
+    mGlobal.init(MC_UNSAFE(mCx), global);
   }
 
   ~JSContextHolder() {
@@ -60,7 +60,7 @@ struct JSContextHolder {
 
   static void MaybeInit();
 
-  JSContext* mCx;
+  MCContext* mCx;
   JS::PersistentRooted<JSObject*> mGlobal;
 };
 
@@ -74,7 +74,7 @@ class JSOracleChild final : public PJSOracleChild {
 
   void Start(Endpoint<PJSOracleChild>&& aEndpoint);
 
-  static struct JSContext* JSContext();
+  static MCContext* JSContext();
   static class JSObject* JSObject();
 
  private:

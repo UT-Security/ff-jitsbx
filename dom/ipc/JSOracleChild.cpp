@@ -26,7 +26,7 @@ void JSContextHolder::MaybeInit() {
 }
 
 /* static */
-JSContext* JSOracleChild::JSContext() {
+MCContext* JSOracleChild::JSContext() {
   MOZ_ASSERT(sJSContextHolder);
   return sJSContextHolder->mCx;
 }

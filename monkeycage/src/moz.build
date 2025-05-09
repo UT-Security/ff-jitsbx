@@ -25,11 +25,16 @@ EXPORTS.monkeycage += [
 	"../public/GCAPI.h",
 	"../public/GlobalObject.h",
 	"../public/Initialization.h",
+	"../public/JSON.h",
 	"../public/PropertyAndElement.h",
 	"../public/Realm.h",
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/String.h",
 	"../public/Warnings.h",
+]
+
+EXPORTS.monkeycage.experimental += [
+	"../public/experimental/JSStencil.h",
 ]
 

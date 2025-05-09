@@ -5,18 +5,19 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/dom/JSValidatorChild.h"
-#include "js/JSON.h"
+#include "monkeycage/JSON.h"
 #include "mozilla/dom/JSOracleChild.h"
 
 #include "mozilla/Encoding.h"
 #include "mozilla/dom/ScriptDecoding.h"
 #include "mozilla/ipc/Endpoint.h"
 
-#include "js/experimental/JSStencil.h"
-#include "js/SourceText.h"
-#include "js/Exception.h"
-#include "js/GlobalObject.h"
-#include "js/CompileOptions.h"
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/GlobalObject.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Realm.h"
 #include "js/RealmOptions.h"
 
 using namespace mozilla::dom;
@@ -184,28 +185,28 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
 
   MOZ_DIAGNOSTIC_ASSERT(IsUtf8(aSpan));
 
-  JSContext* cx = JSOracleChild::JSContext();
+  MCContext* cx = JSOracleChild::JSContext();
   if (!cx) {
     return ValidatorResult::Failure;
   }
 
-  JS::Rooted<JSObject*> global(cx, JSOracleChild::JSObject());
+  JS::Rooted<JSObject*> global(MC_UNSAFE(cx), JSOracleChild::JSObject());
   if (!global) {
     return ValidatorResult::Failure;
   }
 
-  JS::SourceText<Utf8Unit> srcBuf;
+  MC::SourceText<Utf8Unit> srcBuf;
   if (!srcBuf.init(cx, aSpan.Elements(), aSpan.Length(),
                    JS::SourceOwnership::Borrowed)) {
     JS_ClearPendingException(cx);
     return ValidatorResult::Failure;
   }
 
-  JSAutoRealm ar(cx, global);
+  MCAutoRealm ar(cx, global);
 
   // Parse to JavaScript
   RefPtr<JS::Stencil> stencil =
-      CompileGlobalScriptToStencil(cx, JS::CompileOptions(cx), srcBuf);
+      JS::CompileGlobalScriptToStencil(cx, MC::CompileOptions(cx), srcBuf);
 
   if (!stencil) {
     JS_ClearPendingException(cx);
@@ -215,7 +216,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
   MOZ_ASSERT(!aSpan.IsEmpty());
 
   // Parse to JSON
-  JS::Rooted<JS::Value> json(cx);
+  JS::Rooted<JS::Value> json(MC_UNSAFE(cx));
   if (IsAscii(aSpan)) {
     // Ascii is a subset of Latin1, and JS_ParseJSON can take Latin1 directly
     if (JS_ParseJSON(cx,
