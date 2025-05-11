@@ -15,9 +15,21 @@
 
 #ifdef JS_SANDBOX
 
+#include "monkeycage/Context.h"
+
 inline void JS_MaybeGC(MCContext* cx) {
   return JS_MaybeGC(cx->cx_);
 }
+
+namespace JS {
+
+inline void SetHostCleanupFinalizationRegistryCallback(
+    MCContext* cx, JSHostCleanupFinalizationRegistryCallback cb, void* data) {
+ return SetHostCleanupFinalizationRegistryCallback(cx->cx_, cb, data);
+}
+
+inline void ClearKeptObjects(MCContext* cx) { ClearKeptObjects(cx->cx_); }
+}  // namespace JS
 
 #endif
 

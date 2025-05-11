@@ -13,6 +13,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/Promise.h"
+#include "monkeycage/Context.h"
 #include "js/GCVector.h"
 #include "js/Promise.h"
 
@@ -181,12 +182,12 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
 
   JSContext* Context() const {
     MOZ_ASSERT(mJSContext);
-    return mJSContext;
+    return MC_UNSAFE(mJSContext);
   }
 
   JS::RootingContext* RootingCx() const {
     MOZ_ASSERT(mJSContext);
-    return JS::RootingContext::get(mJSContext);
+    return JS::RootingContext::get(MC_UNSAFE(mJSContext));
   }
 
   void SetTargetedMicroTaskRecursionDepth(uint32_t aDepth) {
@@ -196,7 +197,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   void UpdateMicroTaskSuppressionGeneration() { ++mSuppressionGeneration; }
 
  protected:
-  JSContext* MaybeContext() const { return mJSContext; }
+  JSContext* MaybeContext() const { return MC_UNSAFE(mJSContext); }
 
  public:
   // nsThread entrypoints
@@ -307,7 +308,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
  private:
   CycleCollectedJSRuntime* mRuntime;
 
-  JSContext* mJSContext;
+  MCContext* mJSContext;
 
   nsCOMPtr<dom::Exception> mPendingException;
   nsThread* mOwningThread;  // Manual refcounting to avoid include hell.

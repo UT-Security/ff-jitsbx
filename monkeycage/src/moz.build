@@ -26,6 +26,7 @@ EXPORTS.monkeycage += [
 	"../public/GlobalObject.h",
 	"../public/Initialization.h",
 	"../public/JSON.h",
+	"../public/Promise.h",
 	"../public/PropertyAndElement.h",
 	"../public/Realm.h",
 	"../public/SourceText.h",
