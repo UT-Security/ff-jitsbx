@@ -15,6 +15,7 @@
 
 struct MCContext {
   JSContext* cx_;
+  void* data_;
 };
 
 inline JSContext* MC_UNSAFE(MCContext* cx) {
@@ -29,12 +30,23 @@ inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nu
   
   MCContext* cx = new MCContext();
   cx->cx_ = jscx;
+  cx->data_ = nullptr;
   return cx;
 }
 
 inline void JS_DestroyContext(MCContext* cx) {
   JS_DestroyContext(cx->cx_);
   delete cx;  
+}
+
+inline void* JS_GetContextPrivate(MCContext* cx) {
+  return cx->data_;
+}
+
+inline void JS_SetContextPrivate(MCContext* cx, void* data) { 
+  //TODO(abhishekcs): duplication exists for now until all of Gecko uses MCContext* and this function.
+  cx->data_ = data;
+  JS_SetContextPrivate(cx->cx_, data);
 }
 #else
 using MCContext = JSContext;

@@ -10,9 +10,11 @@
 #include <utility>
 
 #include "js/Debug.h"
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Promise.h"
 #include "js/Utility.h"
 #include "jsapi.h"
+#include "monkeycage/Context.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/AutoRestore.h"
@@ -84,7 +86,7 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
   JS_SetContextPrivate(mJSContext, nullptr);
 
   mRuntime->SetContext(nullptr);
-  mRuntime->Shutdown(mJSContext);
+  mRuntime->Shutdown(MC_UNSAFE(mJSContext));
 
   // Last chance to process any events.
   CleanupIDBTransactions(mBaseRecursionDepth);
@@ -126,12 +128,12 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
   MOZ_ASSERT(!mJSContext);
 
   mozilla::dom::InitScriptSettings();
-  mJSContext = JS_NewContext(aMaxBytes, aParentRuntime);
+  mJSContext = MC_NewContext(aMaxBytes, aParentRuntime);
   if (!mJSContext) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mRuntime = CreateRuntime(mJSContext);
+  mRuntime = CreateRuntime(MC_UNSAFE(mJSContext));
   mRuntime->SetContext(this);
 
   mOwningThread->SetScriptObserver(this);
@@ -143,10 +145,10 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
   JS::SetJobQueue(mJSContext, this);
   JS::SetPromiseRejectionTrackerCallback(mJSContext,
                                          PromiseRejectionTrackerCallback, this);
-  mUncaughtRejections.init(mJSContext,
+  mUncaughtRejections.init(MC_UNSAFE(mJSContext),
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
-  mConsumedRejections.init(mJSContext,
+  mConsumedRejections.init(MC_UNSAFE(mJSContext),
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
 
