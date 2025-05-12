@@ -12,3 +12,16 @@ if not CONFIG['JS_SANDBOX']:
 	include('/js/app.mozbuild')
 elif CONFIG['JS_SANDBOX_NOOP']:
 	include('/js/app.mozbuild')
+elif CONFIG['JS_SANDBOX_DYLIB']:
+	DIRS += [
+		'/config/external/nspr',
+		'/config/external/zlib',
+		'/memory',
+		'/mfbt',
+		'/mozglue',
+	]
+
+	if CONFIG['JS_HAS_INTL_API']:
+		DIRS += [
+			'/config/external/icu',
+		]
