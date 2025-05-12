@@ -9,6 +9,7 @@
 #include "ImageEncoder.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Value.h"
 #include "MediaTrackGraph.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
@@ -584,7 +585,7 @@ void HTMLCanvasElement::AfterMaybeChangeAttr(int32_t aNamespaceID,
       (aName == nsGkAtoms::width || aName == nsGkAtoms::height ||
        aName == nsGkAtoms::moz_opaque)) {
     ErrorResult dummy;
-    UpdateContext(nullptr, JS::NullHandleValue, dummy);
+    UpdateContext(nullptr, MC::NullHandleValue(), dummy);
   }
 }
 
@@ -996,7 +997,7 @@ nsresult HTMLCanvasElement::GetContext(const nsAString& aContextId,
                                        nsISupports** aContext) {
   ErrorResult rv;
   mMaybeModified = true;  // For FirstContentfulPaint
-  *aContext = GetContext(nullptr, aContextId, JS::NullHandleValue, rv).take();
+  *aContext = GetContext(nullptr, aContextId, MC::NullHandleValue(), rv).take();
   return rv.StealNSResult();
 }
 
@@ -1011,7 +1012,7 @@ already_AddRefed<nsISupports> HTMLCanvasElement::GetContext(
   mMaybeModified = true;  // For FirstContentfulPaint
   return CanvasRenderingContextHelper::GetOrCreateContext(
       aCx, aContextId,
-      aContextOptions.isObject() ? aContextOptions : JS::NullHandleValue, aRv);
+      aContextOptions.isObject() ? aContextOptions : MC::NullHandleValue(), aRv);
 }
 
 nsIntSize HTMLCanvasElement::GetSize() { return GetWidthHeight(); }

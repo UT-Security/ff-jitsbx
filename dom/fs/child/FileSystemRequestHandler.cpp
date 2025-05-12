@@ -31,6 +31,7 @@
 #include "mozilla/dom/quota/QuotaCommon.h"
 #include "mozilla/dom/quota/ResultExtensions.h"
 #include "mozilla/ipc/RandomAccessStreamUtils.h"
+#include "monkeycage/Value.h"
 
 namespace mozilla::dom::fs {
 
@@ -229,7 +230,7 @@ void ResolveCallback(FileSystemResolveResponse&& aResponse,
   }
 
   // Spec says if there is no parent/child relationship, return null
-  aPromise->MaybeResolve(JS::NullHandleValue);
+  aPromise->MaybeResolve(MC::NullHandleValue());
 }
 
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)

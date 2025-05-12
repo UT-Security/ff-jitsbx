@@ -16,6 +16,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "monkeycage/Value.h"
 
 struct JSContext;
 
@@ -179,7 +180,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   void CanvasAttrChanged() {
     ErrorResult dummy;
-    UpdateContext(nullptr, JS::NullHandleValue, dummy);
+    UpdateContext(nullptr, MC::NullHandleValue(), dummy);
   }
 
   bool mNeutered = false;

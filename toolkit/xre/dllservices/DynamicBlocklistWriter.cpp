@@ -6,6 +6,7 @@
 
 #include "mozilla/DynamicBlocklist.h"
 #include "mozilla/LauncherRegistryInfo.h"
+#include "monkeycage/Value.h"
 
 #include "nsISafeOutputStream.h"
 #include "nsNetUtil.h"
@@ -122,7 +123,7 @@ void DynamicBlocklistWriter::Run() {
       // Don't capture mPromise by copy because we're not in the main thread
       NS_NewRunnableFunction(__func__, [promise = std::move(mPromise), rv]() {
         if (NS_SUCCEEDED(rv)) {
-          promise->MaybeResolve(JS::NullHandleValue);
+          promise->MaybeResolve(MC::NullHandleValue());
         } else {
           promise->MaybeReject(rv);
         }

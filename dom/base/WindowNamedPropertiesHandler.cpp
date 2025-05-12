@@ -14,6 +14,7 @@
 #include "nsHTMLDocument.h"
 #include "nsJSUtils.h"
 #include "xpcprivate.h"
+#include "monkeycage/Value.h"
 
 namespace mozilla::dom {
 
@@ -259,7 +260,7 @@ JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
 
   JS::Rooted<JSObject*> gsp(
       aCx, js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),
-                              JS::NullHandleValue, aProto, options));
+                              MC::NullHandleValue(), aProto, options));
   if (!gsp) {
     return nullptr;
   }

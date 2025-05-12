@@ -6381,7 +6381,7 @@ def getJSToNativeConversionInfo(
             initDictionaryWithNull = CGIfWrapper(
                 CGGeneric("return false;\n"),
                 (
-                    '!%s.RawSetAs%s(%s).Init(cx, JS::NullHandleValue, "Member of %s")'
+                    '!%s.RawSetAs%s(%s).Init(cx, MC::NullHandleValue(), "Member of %s")'
                     % (
                         declLoc,
                         getUnionMemberName(defaultValue.type),
@@ -7204,7 +7204,7 @@ def getJSToNativeConversionInfo(
             assert isinstance(defaultValue, IDLDefaultDictionaryValue)
             # Initializing from JS null does the right thing to give
             # us a default-initialized dictionary.
-            val = "(${haveValue}) ? ${val} : JS::NullHandleValue"
+            val = "(${haveValue}) ? ${val} : MC::NullHandleValue()"
         else:
             val = "${val}"
 
@@ -16981,7 +16981,7 @@ class CGDictionary(CGThing):
 
         if self.dictionary.parent:
             if self.dictionary.parent.needsConversionFromJS:
-                args = "nullptr, JS::NullHandleValue"
+                args = "nullptr, MC::NullHandleValue()"
             else:
                 args = ""
             body += fill(
@@ -17308,7 +17308,7 @@ class CGDictionary(CGThing):
             baseConstructors = None
 
         if d.needsConversionFromJS:
-            initArgs = "nullptr, JS::NullHandleValue"
+            initArgs = "nullptr, MC::NullHandleValue()"
         else:
             initArgs = ""
         ctors = [
@@ -17480,7 +17480,7 @@ class CGDictionary(CGThing):
         }
 
         if isKnownMissing:
-            replacements["val"] = "(JS::NullHandleValue)"
+            replacements["val"] = "(MC::NullHandleValue())"
         else:
             replacements["val"] = "temp.ref()"
             replacements["maybeMutableVal"] = "temp.ptr()"

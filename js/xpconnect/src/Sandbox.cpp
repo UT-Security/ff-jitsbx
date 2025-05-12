@@ -21,6 +21,7 @@
 #include "js/Proxy.h"
 #include "js/SourceText.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsIException.h"  // for nsIStackFrame
@@ -313,7 +314,7 @@ static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
     return false;
   }
   RootedDictionary<dom::RequestInit> options(cx);
-  if (!options.Init(callCx, args.hasDefined(1) ? args[1] : JS::NullHandleValue,
+  if (!options.Init(callCx, args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }
@@ -373,7 +374,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 
   RootedDictionary<dom::StructuredSerializeOptions> options(cx);
   BindingCallContext callCx(cx, "structuredClone");
-  if (!options.Init(cx, args.hasDefined(1) ? args[1] : JS::NullHandleValue,
+  if (!options.Init(cx, args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }

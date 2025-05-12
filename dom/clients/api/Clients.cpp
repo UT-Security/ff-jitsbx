@@ -21,6 +21,7 @@
 #include "mozilla/StorageAccess.h"
 #include "nsIGlobalObject.h"
 #include "nsString.h"
+#include "monkeycage/Value.h"
 
 namespace mozilla::dom {
 
@@ -240,7 +241,7 @@ already_AddRefed<Promise> Clients::OpenWindow(const nsAString& aURL,
       &ClientManager::OpenWindow, args, mGlobal,
       [outerPromise, global](const ClientOpResult& aResult) {
         if (aResult.type() != ClientOpResult::TClientInfoAndState) {
-          outerPromise->MaybeResolve(JS::NullHandleValue);
+          outerPromise->MaybeResolve(MC::NullHandleValue());
           return;
         }
         RefPtr<Client> client =

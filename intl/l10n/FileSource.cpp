@@ -6,6 +6,7 @@
 
 #include "FileSource.h"
 #include "mozilla/dom/Promise.h"
+#include "monkeycage/Value.h"
 
 using namespace mozilla::dom;
 
@@ -153,7 +154,7 @@ already_AddRefed<Promise> L10nFileSource::FetchFile(const nsACString& aLocale,
           RefPtr<FluentResource> res = new FluentResource(global, aRes);
           promise->MaybeResolve(res);
         } else {
-          promise->MaybeResolve(JS::NullHandleValue);
+          promise->MaybeResolve(MC::NullHandleValue());
         }
       },
       &status);

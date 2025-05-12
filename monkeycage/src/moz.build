@@ -11,6 +11,10 @@ else:
 
 	DIRS += ["build"]
 
+UNIFIED_SOURCES += [
+	"Value.cpp",
+]
+
 if CONFIG['JS_SANDBOX_NOOP']:
 	USE_LIBS += ["js"]
 
@@ -311,6 +315,7 @@ EXPORTS.monkeycage += [
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/String.h",
+	"../public/Value.h",
 	"../public/Warnings.h",
 ]
 

@@ -22,6 +22,7 @@
 #include "nsComponentManagerUtils.h"
 #include "nsIWindowsRegKey.h"
 #include "nsThreadUtils.h"
+#include "monkeycage/Value.h"
 
 #include <objbase.h>
 
@@ -913,7 +914,7 @@ AboutThirdParty::CollectSystemInfo(JSContext* aCx, dom::Promise** aResult) {
 
   CollectSystemInfoAsync()->Then(
       GetMainThreadSerialEventTarget(), __func__,
-      [promise](bool) { promise->MaybeResolve(JS::NullHandleValue); },
+      [promise](bool) { promise->MaybeResolve(MC::NullHandleValue()); },
       [promise](nsresult aRv) { promise->MaybeReject(aRv); });
 
   promise.forget(aResult);
