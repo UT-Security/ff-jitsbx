@@ -10,6 +10,7 @@
 #include "mozilla/dom/SerializedStackHolder.h"
 #include "mozilla/dom/WorkerCommon.h"
 #include "jsapi.h"
+#include "monkeycage/Value.h"
 
 namespace mozilla {
 
@@ -58,7 +59,7 @@ class WorkerErrorReport : public WorkerErrorBase, public SerializedStackHolder {
       JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
       DOMEventTargetHelper* aTarget, UniquePtr<WorkerErrorReport> aReport,
       uint64_t aInnerWindowId,
-      JS::Handle<JS::Value> aException = JS::NullHandleValue);
+      JS::Handle<JS::Value> aException = MC::NullHandleValue());
 
   static void LogErrorToConsole(JSContext* aCx, WorkerErrorReport& aReport,
                                 uint64_t aInnerWindowId);

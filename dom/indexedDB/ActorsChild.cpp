@@ -21,6 +21,7 @@
 #include "js/Array.h"               // JS::NewArrayObject, JS::SetArrayLength
 #include "js/Date.h"                // JS::NewDateObject, JS::TimeClip
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
+#include "monkeycage/Value.h"
 #include <mozIRemoteLazyInputStream.h>
 #include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/BasicEvents.h"
@@ -2530,7 +2531,7 @@ void BackgroundCursorChild<CursorType>::HandleResponse(
       mTransaction
           ? SafeRefPtr{&mTransaction.ref(), AcquireStrongRefFromRawPtr{}}
           : nullptr,
-      JS::NullHandleValue);
+      MC::NullHandleValue());
 
   if (!mCursor) {
     MOZ_ALWAYS_SUCCEEDS(this->GetActorEventTarget()->Dispatch(

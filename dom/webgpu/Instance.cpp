@@ -13,6 +13,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/gfx/CanvasManagerChild.h"
 #include "mozilla/gfx/gfxVars.h"
+#include "monkeycage/Value.h"
 
 #include <optional>
 #include <string_view>
@@ -102,7 +103,7 @@ already_AddRefed<dom::Promise> Instance::RequestAdapter(
         if (aResponseReason.isSome()) {
           promise->MaybeRejectWithAbortError("Internal communication error!");
         } else {
-          promise->MaybeResolve(JS::NullHandleValue);
+          promise->MaybeResolve(MC::NullHandleValue());
         }
       });
 

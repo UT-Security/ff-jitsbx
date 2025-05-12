@@ -49,7 +49,7 @@
 #include "js/RegExpFlags.h"
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -10803,7 +10803,7 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
       aOutStr.Truncate();
       JS::Rooted<JS::Value> value(aCx, aValue);
       nsAutoString serializedValue;
-      NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, JS::NullHandleValue,
+      NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, MC::NullHandleValue(),
                                   JSONCreator, &serializedValue),
                      false);
       aOutStr = serializedValue;
@@ -10811,7 +10811,7 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
     }
     case UndefinedIsVoidString: {
       aOutStr.SetIsVoid(true);
-      return JS::ToJSON(aCx, aValue, nullptr, JS::NullHandleValue, JSONCreator,
+      return JS::ToJSON(aCx, aValue, nullptr, MC::NullHandleValue(), JSONCreator,
                         &aOutStr);
     }
     default:

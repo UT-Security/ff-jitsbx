@@ -1523,6 +1523,10 @@ extern JS_PUBLIC_DATA const HandleValue TrueHandleValue;
 extern JS_PUBLIC_DATA const HandleValue FalseHandleValue;
 extern JS_PUBLIC_DATA const Handle<mozilla::Maybe<Value>> NothingHandleValue;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API const Value* JSVAL_NULL_ADDRESS();
+#endif
+
 }  // namespace JS
 
 #endif /* js_Value_h */

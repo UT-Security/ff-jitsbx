@@ -33,6 +33,10 @@ const HandleValue FalseHandleValue =
 const Handle<mozilla::Maybe<Value>> NothingHandleValue =
     Handle<mozilla::Maybe<Value>>::fromMarkedLocation(&JSVAL_NOTHING);
 
+const Value* JSVAL_NULL_ADDRESS() {
+    return &JSVAL_NULL;
+}
+
 }  // namespace JS
 
 void js::ReportBadValueTypeAndCrash(const JS::Value& value) {

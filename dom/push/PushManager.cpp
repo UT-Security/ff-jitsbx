@@ -32,6 +32,8 @@
 #include "nsContentUtils.h"
 #include "nsServiceManagerUtils.h"
 
+#include "monkeycage/Value.h"
+
 namespace mozilla::dom {
 
 namespace {
@@ -116,7 +118,7 @@ class GetSubscriptionResultRunnable final : public WorkerRunnable {
     RefPtr<Promise> promise = mProxy->WorkerPromise();
     if (NS_SUCCEEDED(mStatus)) {
       if (mEndpoint.IsEmpty()) {
-        promise->MaybeResolve(JS::NullHandleValue);
+        promise->MaybeResolve(MC::NullHandleValue());
       } else {
         RefPtr<PushSubscription> sub = new PushSubscription(
             nullptr, mEndpoint, mScope, std::move(mExpirationTime),

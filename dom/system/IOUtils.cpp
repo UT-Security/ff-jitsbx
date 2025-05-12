@@ -14,6 +14,7 @@
 #include "js/Utility.h"
 #include "js/experimental/TypedData.h"
 #include "jsfriendapi.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CheckedInt.h"
@@ -606,7 +607,7 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         JS::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
-        if (!JS_Stringify(cx, &rootedValue, nullptr, JS::NullHandleValue,
+        if (!JS_Stringify(cx, &rootedValue, nullptr, MC::NullHandleValue(),
                           AppendJsonAsUtf8, &utf8Str)) {
           JS::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
           if (JS_GetPendingException(cx, &exn)) {

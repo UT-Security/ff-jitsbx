@@ -20,6 +20,7 @@
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "js/Wrapper.h"
 #include "js/Zone.h"
+#include "monkeycage/Value.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"
 #include "mozilla/Assertions.h"

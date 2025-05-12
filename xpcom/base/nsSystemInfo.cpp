@@ -17,6 +17,7 @@
 #include "mozilla/Sprintf.h"
 #include "jsapi.h"
 #include "js/PropertyAndElement.h"  // JS_SetProperty
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Promise.h"
 
 #ifdef XP_WIN
@@ -1442,7 +1443,7 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(MC::NullHandleValue());
       });
 
   promise.forget(aResult);
@@ -1593,7 +1594,7 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when countryCode is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(MC::NullHandleValue());
       });
 
   promise.forget(aResult);
@@ -1651,7 +1652,7 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
       },
       [capturedPromise](const nsresult rv) {
         // Resolve with null when installYear is not available from the system
-        capturedPromise->MaybeResolve(JS::NullHandleValue);
+        capturedPromise->MaybeResolve(MC::NullHandleValue());
       });
 
   promise.forget(aResult);
