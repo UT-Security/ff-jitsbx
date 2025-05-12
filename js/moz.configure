@@ -289,6 +289,10 @@ set_define("JS_CODEGEN_X86", jit_codegen.x86)
 set_define("JS_CODEGEN_X64", jit_codegen.x64)
 set_define("JS_CODEGEN_WASM32", jit_codegen.wasm32)
 
+# Monkeycage: Javascript engine sandboxing
+# ==============================================================
+
+include("../monkeycage/moz.configure")
 
 # Profiling
 # =======================================================
