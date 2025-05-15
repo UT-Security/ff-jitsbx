@@ -220,7 +220,11 @@ class MOZ_STACK_CLASS CallArgsBase {
    */
   HandleValue get(unsigned i) const {
     return i < length() ? HandleValue::fromMarkedLocation(&this->argv_[i])
+#ifdef JS_SANDBOX_API
+                        : HandleValue::fromMarkedLocation(JS::JSVAL_VOID_ADDRESS());
+#else
                         : UndefinedHandleValue;
+#endif
   }
 
   /*

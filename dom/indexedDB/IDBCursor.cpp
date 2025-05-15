@@ -12,6 +12,7 @@
 #include "IDBRequest.h"
 #include "IDBTransaction.h"
 #include "IndexedDatabaseInlines.h"
+#include "monkeycage/Value.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/UnionTypes.h"
@@ -636,7 +637,7 @@ RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Update(
       }
 
       request = objectStore.AddOrPut(aCx, valueWrapper,
-                                     /* aKey */ JS::UndefinedHandleValue,
+                                     /* aKey */ MC::UndefinedHandleValue(),
                                      /* aOverwrite */ true,
                                      /* aFromCursor */ true, aRv);
       if (aRv.Failed()) {

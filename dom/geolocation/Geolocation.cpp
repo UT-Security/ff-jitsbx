@@ -6,6 +6,7 @@
 
 #include "Geolocation.h"
 
+#include "monkeycage/Value.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/CycleCollectedJSContext.h"  // for nsAutoMicroTask
 #include "mozilla/dom/ContentChild.h"
@@ -1148,7 +1149,7 @@ int32_t Geolocation::WatchPosition(GeoPositionCallback aCallback,
     return 0;
   }
 
-  request->Allow(JS::UndefinedHandleValue);
+  request->Allow(MC::UndefinedHandleValue());
   return watchId;
 }
 

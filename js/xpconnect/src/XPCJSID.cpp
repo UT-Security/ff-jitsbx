@@ -12,6 +12,7 @@
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctionById, JS_DefineProperty, JS_DefinePropertyById
 #include "js/Symbol.h"
+#include "monkeycage/Wrapper.h"
 #include "nsContentUtils.h"
 
 using namespace mozilla;
@@ -389,7 +390,7 @@ static nsresult FindObjectForHasInstance(JSContext* cx, HandleObject objArg,
     // here, because we might in fact be looking for a Window.  "cx" represents
     // our current global.
     JSObject* o =
-        js::IsWrapper(obj) ? js::CheckedUnwrapDynamic(obj, cx, false) : obj;
+        mc::IsWrapper(obj) ? js::CheckedUnwrapDynamic(obj, cx, false) : obj;
     if (o && (IsWrappedNativeReflector(o) || IsDOMObject(o))) {
       target.set(o);
       return NS_OK;

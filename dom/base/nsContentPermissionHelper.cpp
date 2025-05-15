@@ -30,6 +30,7 @@
 #include "mozilla/dom/Document.h"
 #include "nsIWeakReferenceUtils.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
+#include "monkeycage/Value.h"
 
 using mozilla::Unused;  // <snicker>
 using namespace mozilla::dom;
@@ -558,7 +559,7 @@ class RequestAllowEvent : public Runnable {
   NS_IMETHOD Run() override {
     // MOZ_KnownLive is OK, because we never drop the ref to mRequest.
     if (mAllow) {
-      MOZ_KnownLive(mRequest)->Allow(JS::UndefinedHandleValue);
+      MOZ_KnownLive(mRequest)->Allow(MC::UndefinedHandleValue());
     } else {
       MOZ_KnownLive(mRequest)->Cancel();
     }
@@ -830,7 +831,7 @@ mozilla::ipc::IPCResult RemotePermissionRequest::RecvNotifyResult(
   if (aAllow && mWindow->IsCurrentInnerWindow()) {
     // Use 'undefined' if no choice is provided.
     if (aChoices.IsEmpty()) {
-      DoAllow(JS::UndefinedHandleValue);
+      DoAllow(MC::UndefinedHandleValue());
       return IPC_OK();
     }
 

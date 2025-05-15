@@ -331,6 +331,10 @@ template Realm* TracerConcreteWithRealm<js::BaseScript>::realm() const;
 template JS::Compartment* TracerConcreteWithRealm<js::BaseScript>::compartment()
     const;
 
+#ifdef JS_SANDBOX
+Concrete<JSObject>::Concrete(JSObject* ptr) : TracerConcrete<JSObject>(ptr) {}
+#endif
+    
 bool Concrete<JSObject>::hasAllocationStack() const {
   return !!js::Debugger::getObjectAllocationSite(get());
 }
@@ -500,7 +504,7 @@ void Concrete<JSObject>::construct(void* storage, JSObject* ptr) {
   new (storage) Concrete(ptr);
 }
 
-void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
+JS_PUBLIC_API void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
                                              void (*callback)(void*,
                                                               JSObject*)) {
   cx->runtime()->constructUbiNodeForDOMObjectCallback = callback;

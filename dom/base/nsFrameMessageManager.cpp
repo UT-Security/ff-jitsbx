@@ -29,6 +29,7 @@
 #include "js/SourceText.h"
 #include "js/StructuredClone.h"
 #include "js/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
 #include "jsfriendapi.h"
@@ -516,7 +517,7 @@ void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
 
   StructuredCloneData data;
   if (!aObj.isUndefined() &&
-      !GetParamsForMessage(aCx, aObj, JS::UndefinedHandleValue, data)) {
+      !GetParamsForMessage(aCx, aObj, MC::UndefinedHandleValue(), data)) {
     aError.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
     return;
   }

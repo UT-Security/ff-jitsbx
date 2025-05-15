@@ -19,6 +19,7 @@
 #include "js/OffThreadScriptCompilation.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/SourceText.h"
+#include "monkeycage/Value.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/ScriptLoadContext.h"
@@ -691,7 +692,7 @@ nsresult ModuleLoaderBase::HandleResolveFailure(
   }
 
   if (!JS::CreateError(aCx, JSEXN_TYPEERR, nullptr, filename, aLineNumber,
-                       aColumnNumber, nullptr, string, JS::NothingHandleValue,
+                       aColumnNumber, nullptr, string, MC::NothingHandleValue(),
                        aErrorOut)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

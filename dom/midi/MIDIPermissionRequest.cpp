@@ -4,6 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#include "monkeycage/Value.h"
 #include "mozilla/dom/MIDIPermissionRequest.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/MIDIAccessManager.h"
@@ -98,7 +99,7 @@ MIDIPermissionRequest::Run() {
     bool allow =
         Preferences::GetBool("media.navigator.permission.disabled", false);
     if (allow) {
-      Allow(JS::UndefinedHandleValue);
+      Allow(MC::UndefinedHandleValue());
     } else {
       Cancel();
     }
@@ -118,7 +119,7 @@ MIDIPermissionRequest::Run() {
   // which is why we use the non-"Exact" variants of these APIs. See bug
   // 1757218.
   if (nsContentUtils::IsSitePermAllow(mPrincipal, permName)) {
-    Allow(JS::UndefinedHandleValue);
+    Allow(MC::UndefinedHandleValue());
     return NS_OK;
   }
 

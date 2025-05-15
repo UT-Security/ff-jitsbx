@@ -13,6 +13,7 @@
 #include "mozilla/Preferences.h"
 #include "js/CharacterEncoding.h"
 #include "js/Class.h"
+#include "monkeycage/Id.h"
 #include "js/Object.h"  // JS::GetClass
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
@@ -726,7 +727,7 @@ bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
   // N.B. we want obj to be the callee, not JS_THIS(cx, vp)
   RootedObject obj(cx, &args.callee());
 
-  XPCCallContext ccx(cx, obj, nullptr, JS::VoidHandlePropertyKey, args.length(),
+  XPCCallContext ccx(cx, obj, nullptr, MC::VoidHandlePropertyKey(), args.length(),
                      args.array(), args.rval().address());
   if (!ccx.IsValid()) {
     return false;
@@ -744,7 +745,7 @@ bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  XPCCallContext ccx(cx, obj, nullptr, JS::VoidHandlePropertyKey, args.length(),
+  XPCCallContext ccx(cx, obj, nullptr, MC::VoidHandlePropertyKey(), args.length(),
                      args.array(), args.rval().address());
   if (!ccx.IsValid()) {
     return false;
@@ -951,7 +952,7 @@ bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   obj = FixUpThisIfBroken(obj, funobj);
-  XPCCallContext ccx(cx, obj, funobj, JS::VoidHandlePropertyKey, args.length(),
+  XPCCallContext ccx(cx, obj, funobj, MC::VoidHandlePropertyKey(), args.length(),
                      args.array(), vp);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -980,7 +981,7 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
   RootedObject obj(cx, &args.thisv().toObject());
 
   obj = FixUpThisIfBroken(obj, funobj);
-  XPCCallContext ccx(cx, obj, funobj, JS::VoidHandlePropertyKey, args.length(),
+  XPCCallContext ccx(cx, obj, funobj, MC::VoidHandlePropertyKey(), args.length(),
                      args.array(), vp);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);

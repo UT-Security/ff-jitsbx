@@ -2091,6 +2091,16 @@ const JSClass* const JS::ArrayBuffer::UnsharedClass =
 const JSClass* const JS::ArrayBuffer::SharedClass =
     &SharedArrayBufferObject::class_;
 
+#ifdef JS_SANDBOX
+const JSClass* JS::ArrayBuffer::GetUnsharedClass() {
+  return UnsharedClass;
+}
+
+const JSClass* JS::ArrayBuffer::GetSharedClass() {
+  return SharedClass;
+}
+#endif
+
 /* static */ JS::ArrayBuffer JS::ArrayBuffer::create(JSContext* cx,
                                                      size_t nbytes) {
   AssertHeapIsIdle();

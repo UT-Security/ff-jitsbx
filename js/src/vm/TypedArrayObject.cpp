@@ -2932,6 +2932,12 @@ namespace JS {
 
 const JSClass* const TypedArray_base::classes = TypedArrayObject::classes;
 
+#ifdef JS_SANDBOX
+const JSClass* TypedArray_base::getClasses() {
+  return classes;
+}
+#endif
+
 #define INSTANTIATE(ExternalType, NativeType, Name) \
   template class TypedArray<JS::Scalar::Name>;
 JS_FOR_EACH_TYPED_ARRAY(INSTANTIATE)

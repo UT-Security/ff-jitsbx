@@ -5148,7 +5148,7 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
     MOZ_ASSERT(JS::IsUnwrappedSavedFrame(stackObj));
 
     JS::Rooted<JSObject*> stackGlobal(cx, JS::GetNonCCWObjectGlobal(stackObj));
-    msg = new nsScriptErrorWithStack(JS::NothingHandleValue, stackObj,
+    msg = new nsScriptErrorWithStack(MC::NothingHandleValue(), stackObj,
                                      stackGlobal);
   } else {
     msg = new nsScriptError();

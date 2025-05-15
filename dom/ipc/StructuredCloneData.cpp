@@ -20,6 +20,7 @@
 #include "MainThreadUtils.h"
 #include "StructuredCloneTags.h"
 #include "jsapi.h"
+#include "monkeycage/Value.h"
 
 using namespace mozilla::ipc;
 
@@ -116,7 +117,7 @@ void StructuredCloneData::Read(JSContext* aCx,
 
 void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) {
-  Write(aCx, aValue, JS::UndefinedHandleValue, JS::CloneDataPolicy(), aRv);
+  Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy(), aRv);
 }
 
 void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,

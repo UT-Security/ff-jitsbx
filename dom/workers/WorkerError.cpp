@@ -17,6 +17,7 @@
 #include "js/UniquePtr.h"
 #include "js/friend/ErrorMessages.h"
 #include "jsapi.h"
+#include "monkeycage/Value.h"
 #include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/ArrayIterator.h"
 #include "mozilla/Assertions.h"
@@ -412,7 +413,7 @@ void WorkerErrorReport::LogErrorToConsole(const ErrorData& aReport,
   AssertIsOnMainThread();
 
   RefPtr<nsScriptErrorBase> scriptError =
-      CreateScriptError(nullptr, JS::NothingHandleValue, aStack, aStackGlobal);
+      CreateScriptError(nullptr, MC::NothingHandleValue(), aStack, aStackGlobal);
 
   NS_WARNING_ASSERTION(scriptError, "Failed to create script error!");
 

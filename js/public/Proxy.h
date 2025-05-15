@@ -713,6 +713,12 @@ extern JS_PUBLIC_DATA const JSClassOps ProxyClassOps;
 extern JS_PUBLIC_DATA const js::ClassExtension ProxyClassExtension;
 extern JS_PUBLIC_DATA const js::ObjectOps ProxyObjectOps;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API const JSClassOps* GetProxyClassOps();
+extern JS_PUBLIC_API const js::ClassExtension* GetProxyClassExtension();
+extern JS_PUBLIC_API const js::ObjectOps* GetProxyObjectOps();
+#endif
+
 template <unsigned Flags>
 constexpr unsigned CheckProxyFlags() {
   constexpr size_t reservedSlots =

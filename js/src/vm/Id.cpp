@@ -16,6 +16,12 @@ using namespace js;
 
 static const JS::PropertyKey voidKeyValue = JS::PropertyKey::Void();
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API const JS::PropertyKey* JS::voidKeyValueAddress() {
+  return &voidKeyValue;
+}
+#endif
+
 const JS::HandleId JS::VoidHandlePropertyKey =
     JS::HandleId::fromMarkedLocation(&voidKeyValue);
 

@@ -25,6 +25,14 @@ def js_sandbox(enable_js_sandbox, target):
 set_config("JS_SANDBOX", js_sandbox)
 set_define("JS_SANDBOX", js_sandbox)
 
+@depends(build_project, js_sandbox)
+def js_sandbox_api(build_project, js_sandbox):
+	if js_sandbox and build_project in ("browser"):
+		return True
+
+set_config("JS_SANDBOX_API", js_sandbox_api)
+set_define("JS_SANDBOX_API", js_sandbox_api)
+
 option(
 	"--js-sandbox-type",
 	help="Select the type of sandboxing for the JavaScript engine.",

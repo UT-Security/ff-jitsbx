@@ -37,6 +37,10 @@ class PropertyResult;
 extern JS_PUBLIC_DATA const JSClass* const FunctionClassPtr;
 extern JS_PUBLIC_DATA const JSClass* const FunctionExtendedClassPtr;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API const JSClass* GetFunctionClassPtr();
+extern JS_PUBLIC_API const JSClass* GetFunctionExtendedClassPtr(); 
+#endif
 }  // namespace js
 
 namespace JS {
@@ -186,13 +190,13 @@ class ObjectOpResult {
   }
 
   /* Throw a TypeError. Call this only if !ok(). */
-  bool reportError(JSContext* cx, HandleObject obj, HandleId id);
+  JS_PUBLIC_API bool reportError(JSContext* cx, HandleObject obj, HandleId id);
 
   /*
    * The same as reportError(cx, obj, id), except the operation is not
    * associated with a particular property id.
    */
-  bool reportError(JSContext* cx, HandleObject obj);
+  JS_PUBLIC_API bool reportError(JSContext* cx, HandleObject obj);
 
   // Convenience method. Return true if ok(); otherwise throw a TypeError
   // and return false.
@@ -679,7 +683,11 @@ struct alignas(js::gc::JSClassAlignBytes) JSClass {
   bool emulatesUndefined() const { return flags & JSCLASS_EMULATES_UNDEFINED; }
 
   bool isJSFunction() const {
+#ifdef JS_SANDBOX_API
+    return this == js::GetFunctionClassPtr() || this == js::GetFunctionExtendedClassPtr();
+#else
     return this == js::FunctionClassPtr || this == js::FunctionExtendedClassPtr;
+#endif
   }
 
   bool nonProxyCallable() const {

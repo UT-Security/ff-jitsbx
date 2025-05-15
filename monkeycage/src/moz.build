@@ -12,6 +12,9 @@ else:
 	DIRS += ["build"]
 
 UNIFIED_SOURCES += [
+	"GlobalObject.cpp",
+	"Id.cpp",
+	"Proxy.cpp",
 	"Value.cpp",
 ]
 
@@ -307,16 +310,19 @@ EXPORTS.monkeycage += [
 	"../public/Exception.h",
 	"../public/GCAPI.h",
 	"../public/GlobalObject.h",
+	"../public/Id.h",
 	"../public/Initialization.h",
 	"../public/JSON.h",
 	"../public/Promise.h",
 	"../public/PropertyAndElement.h",
+	"../public/Proxy.h",
 	"../public/Realm.h",
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/String.h",
 	"../public/Value.h",
 	"../public/Warnings.h",
+	"../public/Wrapper.h",
 ]
 
 EXPORTS.monkeycage.experimental += [

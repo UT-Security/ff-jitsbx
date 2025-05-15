@@ -11,6 +11,7 @@
 #include "VRThread.h"
 #include "VRDisplayClient.h"
 #include "nsGlobalWindow.h"
+#include "monkeycage/Value.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "mozilla/StaticPtr.h"
 #include "mozilla/layers/CompositorThread.h"  // for CompositorThread
@@ -301,7 +302,7 @@ mozilla::ipc::IPCResult VRManagerChild::RecvNotifyPuppetCommandBufferCompleted(
   RefPtr<dom::Promise> promise = mRunPuppetPromise;
   mRunPuppetPromise = nullptr;
   if (aSuccess) {
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(MC::UndefinedHandleValue());
   } else {
     promise->MaybeRejectWithUndefined();
   }
@@ -313,7 +314,7 @@ mozilla::ipc::IPCResult VRManagerChild::RecvNotifyPuppetResetComplete() {
   promises.AppendElements(mResetPuppetPromises);
   mResetPuppetPromises.Clear();
   for (const auto& promise : promises) {
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(MC::UndefinedHandleValue());
   }
   return IPC_OK();
 }

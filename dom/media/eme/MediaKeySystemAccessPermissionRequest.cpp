@@ -6,6 +6,7 @@
 
 #include "MediaKeySystemAccessPermissionRequest.h"
 
+#include "monkeycage/Value.h"
 #include "nsGlobalWindowInner.h"
 
 namespace mozilla::dom {
@@ -64,7 +65,7 @@ nsresult MediaKeySystemAccessPermissionRequest::Start() {
       CheckPromptPrefs();
   if (promptResult ==
       MediaKeySystemAccessPermissionRequest::PromptResult::Granted) {
-    return Allow(JS::UndefinedHandleValue);
+    return Allow(MC::UndefinedHandleValue());
   }
   if (promptResult ==
       MediaKeySystemAccessPermissionRequest::PromptResult::Denied) {

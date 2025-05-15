@@ -29,7 +29,7 @@
 
 #include "js/RootingAPI.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "nsISupports.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/dom/IterableIteratorBinding.h"

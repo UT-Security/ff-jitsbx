@@ -26,6 +26,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/Wrapper.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/LoadContext.h"
@@ -1952,7 +1953,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
 
     RootedObject propobj(cx, &v.toObject());
     // TODO Deal with non-functions.
-    if (!js::IsWrapper(propobj) || !JS::IsCallable(propobj)) {
+    if (!mc::IsWrapper(propobj) || !JS::IsCallable(propobj)) {
       continue;
     }
 

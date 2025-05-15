@@ -42,6 +42,12 @@ using JS::detail::libraryInitState;
 
 InitState JS::detail::libraryInitState;
 
+#ifdef JS_SANDBOX
+InitState JS::detail::getLibraryInitState() {
+  return libraryInitState;
+}
+#endif
+
 #ifdef DEBUG
 static unsigned MessageParameterCount(const char* format) {
   unsigned numfmtspecs = 0;

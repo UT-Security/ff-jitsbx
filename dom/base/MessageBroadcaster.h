@@ -7,6 +7,7 @@
 #ifndef mozilla_dom_MessageBroadcaster_h
 #define mozilla_dom_MessageBroadcaster_h
 
+#include "monkeycage/Value.h"
 #include "mozilla/dom/MessageListenerManager.h"
 #include "nsContentUtils.h"
 
@@ -28,7 +29,7 @@ class MessageBroadcaster : public MessageListenerManager {
   void BroadcastAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
                              JS::Handle<JS::Value> aObj,
                              mozilla::ErrorResult& aError) {
-    DispatchAsyncMessage(aCx, aMessageName, aObj, JS::UndefinedHandleValue,
+    DispatchAsyncMessage(aCx, aMessageName, aObj, MC::UndefinedHandleValue(),
                          aError);
   }
   uint32_t ChildCount() { return mChildManagers.Length(); }

@@ -11,6 +11,7 @@
 
 #include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
+#include "monkeycage/Value.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/Document.h"
@@ -440,7 +441,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     cloneDataPolicy.allowSharedMemoryObjects();
 
     if (NS_WARN_IF(
-            !Write(aCx, aValue, JS::UndefinedHandleValue, cloneDataPolicy))) {
+            !Write(aCx, aValue, MC::UndefinedHandleValue(), cloneDataPolicy))) {
       // Ignore the message.
       return false;
     }

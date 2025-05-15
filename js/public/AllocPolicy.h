@@ -57,27 +57,51 @@ class AllocPolicyBase {
 
   template <typename T>
   T* maybe_pod_malloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return maybe_pod_arena_malloc<T>(js::GetMallocArena(), numElems);
+#else
     return maybe_pod_arena_malloc<T>(js::MallocArena, numElems);
+#endif
   }
   template <typename T>
   T* maybe_pod_calloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return maybe_pod_arena_calloc<T>(js::GetMallocArena(), numElems);
+#else
     return maybe_pod_arena_calloc<T>(js::MallocArena, numElems);
+#endif
   }
   template <typename T>
   T* maybe_pod_realloc(T* p, size_t oldSize, size_t newSize) {
+#ifdef JS_SANDBOX_API
+    return maybe_pod_arena_realloc<T>(js::GetMallocArena(), p, oldSize, newSize);
+#else
     return maybe_pod_arena_realloc<T>(js::MallocArena, p, oldSize, newSize);
+#endif
   }
   template <typename T>
   T* pod_malloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_malloc<T>(js::GetMallocArena(), numElems);
+#else
     return pod_arena_malloc<T>(js::MallocArena, numElems);
+#endif
   }
   template <typename T>
   T* pod_calloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_calloc<T>(js::GetMallocArena(), numElems);
+#else
     return pod_arena_calloc<T>(js::MallocArena, numElems);
+#endif
   }
   template <typename T>
   T* pod_realloc(T* p, size_t oldSize, size_t newSize) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_realloc<T>(js::GetMallocArena(), p, oldSize, newSize);
+#else
     return pod_arena_realloc<T>(js::MallocArena, p, oldSize, newSize);
+#endif
   }
 
   template <typename T>
@@ -194,17 +218,29 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
 
   template <typename T>
   T* pod_malloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_malloc<T>(js::GetMallocArena(), numElems);
+#else
     return pod_arena_malloc<T>(js::MallocArena, numElems);
+#endif
   }
 
   template <typename T>
   T* pod_calloc(size_t numElems) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_calloc<T>(js::GetMallocArena(), numElems);
+#else
     return pod_arena_calloc<T>(js::MallocArena, numElems);
+#endif
   }
 
   template <typename T>
   T* pod_realloc(T* prior, size_t oldSize, size_t newSize) {
+#ifdef JS_SANDBOX_API
+    return pod_arena_realloc<T>(js::GetMallocArena(), prior, oldSize, newSize);
+#else
     return pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
+#endif
   }
 
   template <typename T>

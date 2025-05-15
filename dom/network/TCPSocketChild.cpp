@@ -27,7 +27,7 @@ namespace IPC {
 bool DeserializeArrayBuffer(JSContext* cx, const nsTArray<uint8_t>& aBuffer,
                             JS::MutableHandle<JS::Value> aVal) {
   mozilla::UniquePtr<uint8_t[], JS::FreePolicy> data(
-      js_pod_arena_malloc<uint8_t>(js::ArrayBufferContentsArena,
+      js_pod_arena_malloc<uint8_t>(js::GetArrayBufferContentsArena(),
                                    aBuffer.Length()));
   if (!data) return false;
   memcpy(data.get(), aBuffer.Elements(), aBuffer.Length());

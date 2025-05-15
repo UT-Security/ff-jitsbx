@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/DebugOnly.h"
 #include "mozilla/TaskQueue.h"
 #include "mozilla/dom/FetchDriver.h"
@@ -946,7 +946,7 @@ void FetchDriver::FailWithNetworkError(nsresult rv) {
   // mObserver could be null after OnResponseAvailable().
   if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking,
-                             JS::UndefinedHandleValue);
+                             MC::UndefinedHandleValue());
     mObserver = nullptr;
   }
 
@@ -1476,7 +1476,7 @@ void FetchDriver::FinishOnStopRequest(
 
   if (mObserver) {
     mObserver->OnResponseEnd(FetchDriverObserver::eByNetworking,
-                             JS::UndefinedHandleValue);
+                             MC::UndefinedHandleValue());
     mObserver = nullptr;
   }
 

@@ -23,6 +23,7 @@
 #include "mozilla/dom/ipc/StructuredCloneData.h"
 #include "mozilla/ProfilerMarkers.h"
 #include "js/Promise.h"
+#include "monkeycage/Value.h"
 #include "xpcprivate.h"
 #include "nsFrameMessageManager.h"
 #include "nsICrashReporter.h"
@@ -208,7 +209,7 @@ void JSActor::SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
                       JSActorMessageMarker{}, mName, aMessageName);
   Maybe<ipc::StructuredCloneData> data{std::in_place};
   if (!nsFrameMessageManager::GetParamsForMessage(
-          aCx, aObj, JS::UndefinedHandleValue, *data)) {
+          aCx, aObj, MC::UndefinedHandleValue(), *data)) {
     aRv.ThrowDataCloneError(nsPrintfCString(
         "Failed to serialize message '%s::%s'",
         NS_LossyConvertUTF16toASCII(aMessageName).get(), mName.get()));
@@ -231,7 +232,7 @@ already_AddRefed<Promise> JSActor::SendQuery(JSContext* aCx,
                       JSActorMessageMarker{}, mName, aMessageName);
   Maybe<ipc::StructuredCloneData> data{std::in_place};
   if (!nsFrameMessageManager::GetParamsForMessage(
-          aCx, aObj, JS::UndefinedHandleValue, *data)) {
+          aCx, aObj, MC::UndefinedHandleValue(), *data)) {
     aRv.ThrowDataCloneError(nsPrintfCString(
         "Failed to serialize message '%s::%s'",
         NS_LossyConvertUTF16toASCII(aMessageName).get(), mName.get()));

@@ -18,6 +18,7 @@
 #include "jsfriendapi.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
 #include "js/Object.h"              // JS::GetPrivate, JS::GetCompartment
+#include "monkeycage/Wrapper.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
@@ -53,12 +54,12 @@ const Wrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
 const WaiveXrayWrapper WaiveXrayWrapper::singleton(0);
 
 bool WrapperFactory::IsOpaqueWrapper(JSObject* obj) {
-  return IsWrapper(obj) &&
+  return mc::IsWrapper(obj) &&
          Wrapper::wrapperHandler(obj) == &PermissiveXrayOpaque::singleton;
 }
 
 bool WrapperFactory::IsCOW(JSObject* obj) {
-  return IsWrapper(obj) &&
+  return mc::IsWrapper(obj) &&
          Wrapper::wrapperHandler(obj) == &ChromeObjectWrapper::singleton;
 }
 
@@ -235,7 +236,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
 
   // Here are the rules for wrapping:
   // We should never get a proxy here (the JS engine unwraps those for us).
-  MOZ_ASSERT(!IsWrapper(obj));
+  MOZ_ASSERT(!mc::IsWrapper(obj));
 
   // Now, our object is ready to be wrapped, but several objects (notably
   // nsJSIIDs) have a wrapper per scope. If we are about to wrap one of
@@ -444,7 +445,7 @@ static const Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
 
 JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
                                  HandleObject obj) {
-  MOZ_ASSERT(!IsWrapper(obj) || GetProxyHandler(obj) == &XrayWaiver ||
+  MOZ_ASSERT(!mc::IsWrapper(obj) || GetProxyHandler(obj) == &XrayWaiver ||
                  js::IsWindowProxy(obj),
              "wrapped object passed to rewrap");
   MOZ_ASSERT(!js::IsWindow(obj));

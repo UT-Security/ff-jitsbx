@@ -486,7 +486,7 @@ class JSContextWrapper {
 
 const JSClass JSContextWrapper::sGlobalClass = {"PACResolutionThreadGlobal",
                                                 JSCLASS_GLOBAL_FLAGS,
-                                                &JS::DefaultGlobalClassOps};
+                                                MC::DefaultGlobalClassOps()};
 
 void ProxyAutoConfig::SetThreadLocalIndex(uint32_t index) {
   RunningIndex() = index;

@@ -16,6 +16,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "nsReadableUtils.h"
 #include "xpcpublic.h"
 
@@ -301,7 +302,7 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
       return false;
     }
     if (!JS::CreateError(aCx, mExnType, stack, filename, mLineNumber, mColumn,
-                         nullptr, message, JS::NothingHandleValue, aResult)) {
+                         nullptr, message, MC::NothingHandleValue(), aResult)) {
       return false;
     }
 

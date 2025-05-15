@@ -6,7 +6,7 @@
 
 #include "AbortController.h"
 #include "AbortSignal.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/AbortControllerBinding.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
@@ -41,7 +41,7 @@ already_AddRefed<AbortController> AbortController::Constructor(
 }
 
 AbortController::AbortController(nsIGlobalObject* aGlobal)
-    : mGlobal(aGlobal), mAborted(false), mReason(JS::UndefinedHandleValue) {
+    : mGlobal(aGlobal), mAborted(false), mReason(MC::UndefinedHandleValue()) {
   mozilla::HoldJSObjects(this);
 }
 

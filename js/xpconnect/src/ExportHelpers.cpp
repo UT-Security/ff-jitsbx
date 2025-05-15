@@ -10,9 +10,10 @@
 #include "jsfriendapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/Exception.h"
+#include "monkeycage/Id.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "js/Proxy.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -87,7 +88,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
       }
 
       FunctionForwarderOptions forwarderOptions;
-      if (!xpc::NewFunctionForwarder(aCx, JS::VoidHandlePropertyKey, obj,
+      if (!xpc::NewFunctionForwarder(aCx, MC::VoidHandlePropertyKey(), obj,
                                      forwarderOptions, &functionValue)) {
         return nullptr;
       }
@@ -248,7 +249,7 @@ static bool CheckSameOriginArg(JSContext* cx, FunctionForwarderOptions& options,
              "wrapping the values");
 
   // Non-wrappers are fine.
-  if (!js::IsWrapper(obj)) {
+  if (!mc::IsWrapper(obj)) {
     return true;
   }
 

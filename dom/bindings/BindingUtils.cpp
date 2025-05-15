@@ -984,7 +984,7 @@ static JSObject* CreateInterfacePrototypeObject(
 
     for (; *unscopableNames; ++unscopableNames) {
       if (!JS_DefineProperty(cx, unscopableObj, *unscopableNames,
-                             JS::TrueHandleValue, JSPROP_ENUMERATE)) {
+                             MC::TrueHandleValue(), JSPROP_ENUMERATE)) {
         return nullptr;
       }
     }
@@ -2397,7 +2397,7 @@ GlobalObject::GlobalObject(JSContext* aCx, JSObject* aObject)
     : mGlobalJSObject(aCx), mCx(aCx), mGlobalObject(nullptr) {
   MOZ_ASSERT(mCx);
   JS::Rooted<JSObject*> obj(aCx, aObject);
-  if (js::IsWrapper(obj)) {
+  if (mc::IsWrapper(obj)) {
     // aCx correctly represents the current global here.
     obj = js::CheckedUnwrapDynamic(obj, aCx, /* stopAtWindowProxy = */ false);
     if (!obj) {
@@ -2420,7 +2420,7 @@ nsISupports* GlobalObject::GetAsSupports() const {
     return mGlobalObject;
   }
 
-  MOZ_ASSERT(!js::IsWrapper(mGlobalJSObject));
+  MOZ_ASSERT(!mc::IsWrapper(mGlobalJSObject));
 
   // Most of our globals are DOM objects.  Try that first.  Note that this
   // assumes that either the first nsISupports in the object is the canonical
@@ -3065,7 +3065,7 @@ struct CrossOriginThisPolicy : public MaybeGlobalThisPolicy {
       return rv;
     }
 
-    if (js::IsWrapper(wrapper)) {
+    if (mc::IsWrapper(wrapper)) {
       // We want CheckedUnwrapDynamic here: aCx represents the Realm we are in
       // right now, so we want to check whether that Realm should be able to
       // access the object.  And this object can definitely be a WindowProxy, so

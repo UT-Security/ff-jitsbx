@@ -18,6 +18,7 @@
 #include "js/CompileOptions.h"     // JS::ReadOnlyCompileOptions
 #include "js/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
+#include "monkeycage/Value.h"
 #include "GeckoProfiler.h"
 #include "mozJSModuleLoader.h"
 #include "nsJSEnvironment.h"
@@ -306,7 +307,7 @@ void xpc::ErrorReport::LogToStderr() {
 }
 
 void xpc::ErrorReport::LogToConsole() {
-  LogToConsoleWithStack(nullptr, JS::NothingHandleValue, nullptr, nullptr);
+  LogToConsoleWithStack(nullptr, MC::NothingHandleValue(), nullptr, nullptr);
 }
 
 void xpc::ErrorReport::LogToConsoleWithStack(

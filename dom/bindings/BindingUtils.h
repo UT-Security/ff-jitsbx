@@ -16,9 +16,10 @@
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
+#include "monkeycage/Proxy.h"
 #include "js/RealmOptions.h"
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "js/Zone.h"
 #include "monkeycage/Value.h"
 #include "mozilla/ArrayUtils.h"
@@ -233,7 +234,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(V& obj, U& value,
   }
 
   /* Maybe we have a security wrapper or outer window? */
-  if (!mayBeWrapper || !js::IsWrapper(obj)) {
+  if (!mayBeWrapper || !mc::IsWrapper(obj)) {
     // For non-cross-origin-accessible methods and properties, remote object
     // proxies should behave the same as opaque wrappers.
     if (IsRemoteObjectProxy(obj)) {
@@ -260,10 +261,10 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(V& obj, U& value,
     // that's not what the caller is looking for, so we're going to fail out
     // anyway below once we do the recursive call to ourselves with wrapper
     // unwrapping disabled.
-    MOZ_ASSERT(!js::IsWrapper(unwrappedObj) || js::IsWindowProxy(unwrappedObj));
+    MOZ_ASSERT(!mc::IsWrapper(unwrappedObj) || js::IsWindowProxy(unwrappedObj));
   } else {
     // We shouldn't have a wrapper by now.
-    MOZ_ASSERT(!js::IsWrapper(unwrappedObj));
+    MOZ_ASSERT(!mc::IsWrapper(unwrappedObj));
   }
 
   // Recursive call is OK, because now we're using false for mayBeWrapper and
@@ -435,7 +436,7 @@ MOZ_ALWAYS_INLINE bool IsInstanceOf(JSObject* obj) {
 
 template <prototypes::ID PrototypeID, class T, typename U>
 MOZ_ALWAYS_INLINE nsresult UnwrapNonWrapperObject(JSObject* obj, U& value) {
-  MOZ_ASSERT(!js::IsWrapper(obj));
+  MOZ_ASSERT(!mc::IsWrapper(obj));
   return binding_detail::UnwrapObjectInternal<T, false>(
       obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, nullptr);
 }
@@ -1212,7 +1213,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
     // code (and branches!) than just adding a single rooted.
     JS::Rooted<JSObject*> scope(cx, scopeArg);
     JS::Rooted<JSObject*> proto(cx, givenProto);
-    if (js::IsWrapper(scope)) {
+    if (mc::IsWrapper(scope)) {
       // We are working in the Realm of cx and will be producing our reflector
       // there, so we need to succeed if that realm has access to the scope.
       scope =
@@ -1267,7 +1268,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
     // code (and branches!) than just adding a single rooted.
     JS::Rooted<JSObject*> scope(cx, scopeArg);
     JS::Rooted<JSObject*> proto(cx, givenProto);
-    if (js::IsWrapper(scope)) {
+    if (mc::IsWrapper(scope)) {
       // We are working in the Realm of cx and will be producing our reflector
       // there, so we need to succeed if that realm has access to the scope.
       scope =
@@ -2545,7 +2546,7 @@ already_AddRefed<T> ConstructJSImplementation(const char* aContractId,
     return nullptr;
   }
 
-  MOZ_RELEASE_ASSERT(!js::IsWrapper(jsImplObj));
+  MOZ_RELEASE_ASSERT(!mc::IsWrapper(jsImplObj));
   JS::Rooted<JSObject*> jsImplGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplObj));
   RefPtr<T> newObj = new T(jsImplObj, jsImplGlobal, aGlobal);
   return newObj.forget();

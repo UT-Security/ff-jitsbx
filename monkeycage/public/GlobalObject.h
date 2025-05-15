@@ -25,4 +25,8 @@ inline void JS_FireOnNewGlobalObject(MCContext* cx, JS::HandleObject global) {
 }
 #endif
 
+namespace MC {
+extern const JSClassOps* DefaultGlobalClassOps();
+}
+
 #endif

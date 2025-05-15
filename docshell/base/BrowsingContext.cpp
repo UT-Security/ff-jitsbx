@@ -1878,7 +1878,7 @@ static const RemoteLocationProxy sSingleton;
 // malloc.
 template <>
 const JSClass RemoteLocationProxy::Base::sClass =
-    PROXY_CLASS_DEF("Proxy", JSCLASS_HAS_RESERVED_SLOTS(2));
+    MONKEYCAGE_PROXY_CLASS_DEF("Proxy", JSCLASS_HAS_RESERVED_SLOTS(2));
 
 void BrowsingContext::Location(JSContext* aCx,
                                JS::MutableHandle<JSObject*> aLocation,

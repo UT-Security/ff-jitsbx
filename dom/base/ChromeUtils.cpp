@@ -13,7 +13,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById, JS::IdVector
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/SavedFrameAPI.h"
-#include "js/Value.h"  // JS::Value, JS::StringValue
+#include "monkeycage/Value.h"  // JS::Value, JS::StringValue
 #include "jsfriendapi.h"
 #include "WrapperFactory.h"
 
@@ -686,7 +686,7 @@ static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   //   * the getter function is retrieved from property descriptor and called
   //   * the lambda gets the property again
   //   * the getter function throws and accessed again
-  js::SetFunctionNativeReserved(callee, SLOT_PARAMS, JS::UndefinedHandleValue);
+  js::SetFunctionNativeReserved(callee, SLOT_PARAMS, MC::UndefinedHandleValue());
 
   JS::Rooted<JSObject*> paramsObj(aCx, &paramsVal.toObject());
 
@@ -1610,7 +1610,7 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
 
     JS::Rooted<JS::Value> err(cx);
     if (!JS::CreateError(cx, JSEXN_ERR, stack, fileName, line, column, nullptr,
-                         message, JS::NothingHandleValue, &err)) {
+                         message, MC::NothingHandleValue(), &err)) {
       return;
     }
 

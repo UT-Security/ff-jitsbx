@@ -25,6 +25,7 @@
 #include "js/Array.h"  // JS::NewArrayObject
 #include "js/GCAPI.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
+#include "monkeycage/Value.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/Atomics.h"
@@ -1669,7 +1670,7 @@ TelemetryImpl::GatherMemory(JSContext* aCx, Promise** aResult) {
   }
 
   MemoryTelemetry::Get().GatherReports(
-      [promise]() { promise->MaybeResolve(JS::UndefinedHandleValue); });
+      [promise]() { promise->MaybeResolve(MC::UndefinedHandleValue()); });
 
   promise.forget(aResult);
   return NS_OK;

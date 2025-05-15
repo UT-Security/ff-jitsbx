@@ -1525,6 +1525,10 @@ extern JS_PUBLIC_DATA const Handle<mozilla::Maybe<Value>> NothingHandleValue;
 
 #ifdef JS_SANDBOX
 extern JS_PUBLIC_API const Value* JSVAL_NULL_ADDRESS();
+extern JS_PUBLIC_API const Value* JSVAL_VOID_ADDRESS();
+extern JS_PUBLIC_API const Value* JSVAL_TRUE_ADDRESS();
+extern JS_PUBLIC_API const Value* JSVAL_FALSE_ADDRESS();
+extern JS_PUBLIC_API const mozilla::Maybe<Value>* JSVAL_NOTHING_ADDRESS();
 #endif
 
 }  // namespace JS

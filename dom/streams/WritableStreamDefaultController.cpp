@@ -6,7 +6,7 @@
 
 #include "js/Exception.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AbortSignal.h"
@@ -150,7 +150,7 @@ void SetUpWritableStreamDefaultController(
 
   // Step 6. Set controller.[[signal]] to a new AbortSignal.
   RefPtr<AbortSignal> signal = new AbortSignal(aController->GetParentObject(),
-                                               false, JS::UndefinedHandleValue);
+                                               false, MC::UndefinedHandleValue());
   aController->SetSignal(signal);
 
   // Step 7. Set controller.[[started]] to false.
