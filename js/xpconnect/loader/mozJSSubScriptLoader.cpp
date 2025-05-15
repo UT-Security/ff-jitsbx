@@ -23,7 +23,7 @@
 #include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::DecodeOptions
 #include "js/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
 #include "js/SourceText.h"             // JS::Source{Ownership,Text}
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 
 #include "mozilla/ContentPrincipal.h"
 #include "mozilla/dom/ScriptLoader.h"
@@ -127,7 +127,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
                         HandleObject loadScope, MutableHandleValue retval,
                         nsIURI* uri, bool storeIntoStartupCache,
                         bool storeIntoPreloadCache, JS::Stencil* stencil) {
-  MOZ_ASSERT(!js::IsWrapper(targetObj));
+  MOZ_ASSERT(!mc::IsWrapper(targetObj));
 
   JS::InstantiateOptions options;
   JS::RootedScript script(cx,

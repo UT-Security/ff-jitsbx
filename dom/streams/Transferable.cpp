@@ -9,7 +9,7 @@
 #include "js/RootingAPI.h"
 #include "js/String.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "nsCycleCollectionParticipant.h"
@@ -372,7 +372,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
   already_AddRefed<Promise> CloseCallback(JSContext* aCx,
                                           ErrorResult& aRv) override {
     // Step 1: Perform ! PackAndPostMessage(port, "close", undefined).
-    PackAndPostMessage(aCx, mPort, u"close"_ns, JS::UndefinedHandleValue, aRv);
+    PackAndPostMessage(aCx, mPort, u"close"_ns, MC::UndefinedHandleValue(), aRv);
     // (We'll check the result after step 2)
 
     // Step 2: Disentangle port.
@@ -395,7 +395,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
     JS::Rooted<JS::Value> error(aCx);
     bool result = PackAndPostMessageHandlingError(
         aCx, mPort, u"error"_ns,
-        aReason.WasPassed() ? aReason.Value() : JS::UndefinedHandleValue,
+        aReason.WasPassed() ? aReason.Value() : MC::UndefinedHandleValue(),
         &error);
 
     // Step 2: Disentangle port.
@@ -710,7 +710,7 @@ class CrossRealmReadableUnderlyingSourceAlgorithms final
     // Step 7: Let pullAlgorithm be the following steps:
 
     // Step 7.1: Perform ! PackAndPostMessage(port, "pull", undefined).
-    PackAndPostMessage(aCx, mPort, u"pull"_ns, JS::UndefinedHandleValue, aRv);
+    PackAndPostMessage(aCx, mPort, u"pull"_ns, MC::UndefinedHandleValue(), aRv);
     if (aRv.Failed()) {
       return nullptr;
     }
@@ -730,7 +730,7 @@ class CrossRealmReadableUnderlyingSourceAlgorithms final
     JS::Rooted<JS::Value> error(aCx);
     bool result = PackAndPostMessageHandlingError(
         aCx, mPort, u"error"_ns,
-        aReason.WasPassed() ? aReason.Value() : JS::UndefinedHandleValue,
+        aReason.WasPassed() ? aReason.Value() : MC::UndefinedHandleValue(),
         &error);
 
     // Step 8.2: Disentangle port.

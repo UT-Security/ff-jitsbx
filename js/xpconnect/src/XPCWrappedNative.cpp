@@ -17,6 +17,7 @@
 #include "js/Printf.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "jsfriendapi.h"
+#include "monkeycage/Value.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
 #include "XrayWrapper.h"
@@ -1194,7 +1195,7 @@ bool CallMethodHelper::Call() {
 CallMethodHelper::~CallMethodHelper() {
   for (nsXPTCVariant& param : mDispatchParams) {
     uint32_t arraylen = 0;
-    if (!GetArraySizeFromParam(param.type, UndefinedHandleValue, &arraylen)) {
+    if (!GetArraySizeFromParam(param.type, MC::UndefinedHandleValue(), &arraylen)) {
       continue;
     }
 
@@ -1323,7 +1324,7 @@ bool CallMethodHelper::GatherAndConvertResults() {
     uint32_t array_count = 0;
     nsID param_iid;
     if (!GetInterfaceTypeFromParam(type, &param_iid) ||
-        !GetArraySizeFromParam(type, UndefinedHandleValue, &array_count))
+        !GetArraySizeFromParam(type, MC::UndefinedHandleValue(), &array_count))
       return false;
 
     nsresult err;
@@ -1656,7 +1657,7 @@ void CallMethodHelper::trace(JSTracer* aTrc) {
     }
 
     uint32_t arrayLen = 0;
-    if (!GetArraySizeFromParam(param.type, UndefinedHandleValue, &arrayLen)) {
+    if (!GetArraySizeFromParam(param.type, MC::UndefinedHandleValue(), &arrayLen)) {
       continue;
     }
 

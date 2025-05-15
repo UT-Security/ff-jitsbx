@@ -10,7 +10,7 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/OriginTrials.h"
@@ -67,7 +67,7 @@ namespace mozilla::dom {
  */
 inline bool IsSecureContextOrObjectIsFromSecureContext(JSContext* aCx,
                                                        JSObject* aObj) {
-  MOZ_ASSERT(!js::IsWrapper(aObj));
+  MOZ_ASSERT(!mc::IsWrapper(aObj));
   return JS::GetIsSecureContext(js::GetContextRealm(aCx)) ||
          JS::GetIsSecureContext(js::GetNonCCWObjectRealm(aObj));
 }
@@ -167,7 +167,7 @@ struct PrefableDisablers {
 template <typename T>
 struct Prefable {
   inline bool isEnabled(JSContext* cx, JS::Handle<JSObject*> obj) const {
-    MOZ_ASSERT(!js::IsWrapper(obj));
+    MOZ_ASSERT(!mc::IsWrapper(obj));
     if (MOZ_LIKELY(!disablers)) {
       return true;
     }

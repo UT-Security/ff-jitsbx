@@ -11,7 +11,7 @@
 #include "mozilla/dom/RootedDictionary.h"
 #include "js/PropertyAndElement.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "jsapi.h"
 #include "mozilla/dom/ReadableStreamDefaultReaderBinding.h"
 #include "mozilla/dom/UnderlyingSourceBinding.h"
@@ -82,7 +82,7 @@ bool ReadableStreamReaderGenericInitialize(ReadableStreamGenericReader* aReader,
     // Step 4.
     case ReadableStream::ReaderState::Closed:
       // Step 4.1.
-      aReader->ClosedPromise()->MaybeResolve(JS::UndefinedHandleValue);
+      aReader->ClosedPromise()->MaybeResolve(MC::UndefinedHandleValue());
 
       return true;
     // Step 5.

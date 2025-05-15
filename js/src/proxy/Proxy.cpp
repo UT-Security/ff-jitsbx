@@ -989,6 +989,20 @@ const ObjectOps js::ProxyObjectOps = {
     Proxy::fun_toString,              // funToString
 };
 
+#ifdef JS_SANDBOX
+const JSClassOps* js::GetProxyClassOps() {
+  return &ProxyClassOps;
+}
+
+const js::ClassExtension* js::GetProxyClassExtension() {
+  return &ProxyClassExtension;
+}
+
+const js::ObjectOps* js::GetProxyObjectOps() {
+  return &ProxyObjectOps;
+}
+#endif
+
 static const JSFunctionSpec proxy_static_methods[] = {
     JS_FN("revocable", proxy_revocable, 2, 0), JS_FS_END};
 

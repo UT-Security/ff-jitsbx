@@ -740,7 +740,7 @@ class CGDOMProxyJSClass(CGThing):
         return fill(
             """
             static const DOMJSClass sClass = {
-              PROXY_CLASS_DEF("${name}",
+              MONKEYCAGE_PROXY_CLASS_DEF("${name}",
                               ${flags}),
               $*{descriptor}
             };
@@ -4289,7 +4289,7 @@ def CreateBindingJSObject(descriptor):
                 """
                 creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
                                           ${proto}, /* aLazyProto = */ ${lazyProto},
-                                          aObject, JS::UndefinedHandleValue, aReflector);
+                                          aObject, MC::UndefinedHandleValue(), aReflector);
                 """,
                 proto=proto,
                 lazyProto=lazyProto,
@@ -4376,7 +4376,7 @@ def InitUnforgeablePropertiesOnHolder(
             JS::Rooted<JS::PropertyKey> toPrimitive(aCx,
               JS::GetWellKnownSymbolKey(aCx, JS::SymbolCode::toPrimitive));
             if (!JS_DefinePropertyById(aCx, ${holderName}, toPrimitive,
-                                       JS::UndefinedHandleValue,
+                                       MC::UndefinedHandleValue(),
                                        JSPROP_READONLY | JSPROP_PERMANENT)) {
               $*{failureCode}
             }
@@ -20460,7 +20460,7 @@ class CGCallback(CGClass):
         argnamesWithThis = ["s.GetCallContext()", "thisValJS"] + argnames
         argnamesWithoutThis = [
             "s.GetCallContext()",
-            "JS::UndefinedHandleValue",
+            "MC::UndefinedHandleValue()",
         ] + argnames
         # Now that we've recorded the argnames for our call to our private
         # method, insert our optional argument for the execution reason.

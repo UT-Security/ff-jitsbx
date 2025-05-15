@@ -10,7 +10,7 @@
 #include "js/Array.h"
 #include "js/PropertyAndElement.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -143,7 +143,7 @@ void WritableStream::FinishErroring(JSContext* aCx, ErrorResult& aRv) {
   bool abortWasAlreadyErroring = mPendingAbortRequestWasAlreadyErroring;
 
   // Step 10. Set stream.[[pendingAbortRequest]] to undefined.
-  SetPendingAbortRequest(nullptr, JS::UndefinedHandleValue, false);
+  SetPendingAbortRequest(nullptr, MC::UndefinedHandleValue(), false);
 
   // Step 11. If abortRequest’s was already erroring is true,
   if (abortWasAlreadyErroring) {
@@ -219,7 +219,7 @@ void WritableStream::FinishInFlightClose() {
       mPendingAbortRequestPromise->MaybeResolveWithUndefined();
 
       // Step 6.2.2. Set stream.[[pendingAbortRequest]] to undefined.
-      SetPendingAbortRequest(nullptr, JS::UndefinedHandleValue, false);
+      SetPendingAbortRequest(nullptr, MC::UndefinedHandleValue(), false);
     }
   }
 
@@ -262,7 +262,7 @@ void WritableStream::FinishInFlightCloseWithError(JSContext* aCx,
     mPendingAbortRequestPromise->MaybeReject(aError);
 
     // Step 5.2. Set stream.[[pendingAbortRequest]] to undefined.
-    SetPendingAbortRequest(nullptr, JS::UndefinedHandleValue, false);
+    SetPendingAbortRequest(nullptr, MC::UndefinedHandleValue(), false);
   }
 
   // Step 6. Perform ! WritableStreamDealWithRejection(stream, error).

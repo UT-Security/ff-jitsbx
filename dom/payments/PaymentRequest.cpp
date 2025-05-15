@@ -5,6 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "BasicCardPayment.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/FeaturePolicyUtils.h"
@@ -887,7 +888,7 @@ void PaymentRequest::RespondAbortPayment(bool aSuccess) {
 
   if (mAbortPromise) {
     if (aSuccess) {
-      mAbortPromise->MaybeResolve(JS::UndefinedHandleValue);
+      mAbortPromise->MaybeResolve(MC::UndefinedHandleValue());
       mAbortPromise = nullptr;
       ErrorResult abortResult;
       abortResult.ThrowAbortError("The PaymentRequest is aborted");

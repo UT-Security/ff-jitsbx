@@ -1051,6 +1051,16 @@ const JSClass js::ExtendedFunctionClass = {
 const JSClass* const js::FunctionClassPtr = &FunctionClass;
 const JSClass* const js::FunctionExtendedClassPtr = &ExtendedFunctionClass;
 
+#ifdef JS_SANDBOX
+const JSClass* js::GetFunctionClassPtr() {
+  return js::FunctionClassPtr;
+}
+
+const JSClass* js::GetFunctionExtendedClassPtr() {
+  return js::FunctionExtendedClassPtr;
+}
+#endif
+
 bool JSFunction::isDerivedClassConstructor() const {
   bool derived = hasBaseScript() && baseScript()->isDerivedClassConstructor();
   MOZ_ASSERT_IF(derived, isClassConstructor());

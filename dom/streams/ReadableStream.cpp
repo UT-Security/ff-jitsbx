@@ -15,7 +15,7 @@
 #include "js/Exception.h"
 #include "js/PropertyAndElement.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -254,7 +254,7 @@ static void InitializeReadableStream(ReadableStream* aStream) {
 
   // Step 2.
   aStream->SetReader(nullptr);
-  aStream->SetStoredError(JS::UndefinedHandleValue);
+  aStream->SetStoredError(MC::UndefinedHandleValue());
 
   // Step 3.
   aStream->SetDisturbed(false);
@@ -388,7 +388,7 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
     while (RefPtr<ReadIntoRequest> readIntoRequest =
                readIntoRequests.popFirst()) {
       // Step 6.3.1.Perform readIntoRequest’s close steps, given undefined.
-      readIntoRequest->CloseSteps(aCx, JS::UndefinedHandleValue, aRv);
+      readIntoRequest->CloseSteps(aCx, MC::UndefinedHandleValue(), aRv);
       if (aRv.Failed()) {
         return nullptr;
       }

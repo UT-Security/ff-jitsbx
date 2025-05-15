@@ -21,6 +21,7 @@
 #include "nsISupportsImpl.h"
 
 #include "js/Exception.h"
+#include "monkeycage/Value.h"
 
 namespace mozilla::dom {
 
@@ -275,7 +276,7 @@ bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
   // Step 3. Closing must be propagated forward: if source.[[state]] is or
   // becomes "closed", then
   if (source->State() == ReadableStream::ReaderState::Closed) {
-    OnSourceClosed(aCx, JS::UndefinedHandleValue);
+    OnSourceClosed(aCx, MC::UndefinedHandleValue());
     return true;
   }
 
@@ -284,7 +285,7 @@ bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
   // or dest.[[state]] is "closed", then
   if (dest->CloseQueuedOrInFlight() ||
       dest->State() == WritableStream::WriterState::Closed) {
-    OnDestClosed(aCx, JS::UndefinedHandleValue);
+    OnDestClosed(aCx, MC::UndefinedHandleValue());
     return true;
   }
 
@@ -748,10 +749,10 @@ void PipeToPump::OnSourceClosed(JSContext* aCx, JS::Handle<JS::Value>) {
               return WritableStreamDefaultWriterCloseWithErrorPropagation(
                   aCx, writer, aRv);
             },
-        JS::NothingHandleValue);
+        MC::NothingHandleValue());
   } else {
     // Step 3.2 Otherwise, shutdown.
-    Shutdown(aCx, JS::NothingHandleValue);
+    Shutdown(aCx, MC::NothingHandleValue());
   }
 }
 

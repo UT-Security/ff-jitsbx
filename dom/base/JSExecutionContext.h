@@ -10,7 +10,7 @@
 #include "js/GCVector.h"
 #include "js/OffThreadScriptCompilation.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "js/experimental/JSStencil.h"
 #include "jsapi.h"
 #include "mozilla/Assertions.h"
@@ -96,7 +96,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSExecutionContext(
       JSContext* aCx, JS::Handle<JSObject*> aGlobal,
       JS::CompileOptions& aCompileOptions,
-      JS::Handle<JS::Value> aDebuggerPrivateValue = JS::UndefinedHandleValue,
+      JS::Handle<JS::Value> aDebuggerPrivateValue = MC::UndefinedHandleValue(),
       JS::Handle<JSScript*> aDebuggerIntroductionScript = nullptr);
 
   JSExecutionContext(const JSExecutionContext&) = delete;

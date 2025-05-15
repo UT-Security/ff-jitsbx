@@ -6,6 +6,7 @@
 
 #include "BroadcastChannel.h"
 #include "BroadcastChannelChild.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/BroadcastChannelBinding.h"
 #include "mozilla/dom/Navigator.h"
 #include "mozilla/dom/File.h"
@@ -282,7 +283,7 @@ void BroadcastChannel::PostMessage(JSContext* aCx,
   RefPtr<SharedMessageBody> data = new SharedMessageBody(
       StructuredCloneHolder::TransferringNotSupported, agentClusterId);
 
-  data->Write(aCx, aMessage, JS::UndefinedHandleValue, mPortUUID,
+  data->Write(aCx, aMessage, MC::UndefinedHandleValue(), mPortUUID,
               mRefMessageBodyService, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return;

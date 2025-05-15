@@ -10,6 +10,7 @@
 #include "js/TypeDecls.h"
 #include "jsapi.h"
 #include "js/SavedFrameAPI.h"
+#include "monkeycage/Wrapper.h"
 #include "xpcpublic.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/HoldDropJSObjects.h"
@@ -65,7 +66,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
     return;
   }
   MOZ_ASSERT(
-      syntheticVal.isObject() && !js::IsWrapper(&syntheticVal.toObject()),
+      syntheticVal.isObject() && !mc::IsWrapper(&syntheticVal.toObject()),
       "Must have a reflector here, not a wrapper");
   JS_SetPendingException(aCx, syntheticVal);
 }

@@ -1122,7 +1122,11 @@ class JS_PUBLIC_API Concrete<js::BaseScript>
 template <>
 class JS_PUBLIC_API Concrete<JSObject> : public TracerConcrete<JSObject> {
  protected:
+#ifdef JS_SANDBOX
+  explicit Concrete(JSObject* ptr);
+#else
   explicit Concrete(JSObject* ptr) : TracerConcrete<JSObject>(ptr) {}
+#endif
 
  public:
   static void construct(void* storage, JSObject* ptr);
@@ -1138,8 +1142,17 @@ class JS_PUBLIC_API Concrete<JSObject> : public TracerConcrete<JSObject> {
 
   CoarseType coarseType() const final { return CoarseType::Object; }
 
-  const char16_t* typeName() const override { return concreteTypeName; }
+  const char16_t* typeName() const override {
+#ifdef JS_SANDBOX_API
+    return getConcreteTypeName();
+#else
+    return concreteTypeName;
+#endif
+  }
   static const char16_t concreteTypeName[];
+#ifdef JS_SANDBOX
+  static const char16_t* getConcreteTypeName();
+#endif
 };
 
 // For JSString, we extend the generic template with a 'size' implementation.
@@ -1190,9 +1203,8 @@ class JS_PUBLIC_API Concrete<void> : public Base {
 
 // Set |cx|'s runtime hook for constructing ubi::Nodes for DOM classes to
 // |callback|.
-void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
-                                             void (*callback)(void*,
-                                                              JSObject*));
+extern JS_PUBLIC_API void SetConstructUbiNodeForDOMObjectCallback(
+    JSContext* cx, void (*callback)(void*, JSObject*));
 
 }  // namespace ubi
 }  // namespace JS

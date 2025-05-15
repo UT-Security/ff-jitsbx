@@ -424,6 +424,10 @@ const Wrapper Wrapper::singleton((unsigned)0);
 const Wrapper Wrapper::singletonWithPrototype((unsigned)0, true);
 JSObject* const Wrapper::defaultProto = TaggedProto::LazyProto;
 
+const char* Wrapper::getFamily() {
+  return &Wrapper::family;
+}
+
 /* Compartments. */
 
 JSObject* js::TransparentObjectWrapper(JSContext* cx, HandleObject existing,

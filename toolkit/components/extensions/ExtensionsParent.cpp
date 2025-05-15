@@ -11,6 +11,7 @@
 #include "mozilla/RefPtr.h"
 #include "jsapi.h"
 #include "js/PropertyAndElement.h"  // JS_SetProperty
+#include "monkeycage/Value.h"
 #include "nsImportModule.h"
 #include "xpcpublic.h"
 
@@ -31,7 +32,7 @@ extIWebNavigation* ExtensionsParent::WebNavigation() {
 void ExtensionsParent::ActorDestroy(ActorDestroyReason aWhy) {}
 
 static inline JS::Handle<JS::Value> ToJSBoolean(bool aValue) {
-  return aValue ? JS::TrueHandleValue : JS::FalseHandleValue;
+  return aValue ? MC::TrueHandleValue() : MC::FalseHandleValue();
 }
 
 JS::Value FrameTransitionDataToJSValue(const FrameTransitionData& aData) {

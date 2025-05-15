@@ -23,6 +23,7 @@
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
+#include "monkeycage/Wrapper.h"
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 
@@ -1586,7 +1587,7 @@ static bool wrappedJSObject_getter(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   RootedObject wrapper(cx, &args.thisv().toObject());
-  if (!IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper) ||
+  if (!js::IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper) ||
       !WrapperFactory::AllowWaiver(wrapper)) {
     JS_ReportErrorASCII(cx, "Unexpected object");
     return false;

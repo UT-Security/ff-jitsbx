@@ -86,7 +86,7 @@ struct InstantiationStorage {
     other.gcOutput_ = nullptr;
   }
 
-  ~InstantiationStorage();
+  JS_PUBLIC_API ~InstantiationStorage();
 
  private:
   InstantiationStorage(const InstantiationStorage& other) = delete;
@@ -95,7 +95,7 @@ struct InstantiationStorage {
  public:
   bool isValid() const { return !!gcOutput_; }
 
-  void trace(JSTracer* trc);
+  JS_PUBLIC_API void trace(JSTracer* trc);
 };
 
 }  // namespace JS

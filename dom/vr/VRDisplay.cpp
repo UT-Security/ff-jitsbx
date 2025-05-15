@@ -6,6 +6,7 @@
 
 #include "nsWrapperCache.h"
 
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/ElementBinding.h"
 #include "mozilla/dom/Promise.h"
@@ -491,7 +492,7 @@ already_AddRefed<Promise> VRDisplay::RequestPresent(
       mPresentation = mClient->BeginPresentation(aLayers, presentationGroup);
     }
     mFrameInfo.Clear();
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(MC::UndefinedHandleValue());
   }
   return promise.forget();
 }
@@ -535,7 +536,7 @@ already_AddRefed<Promise> VRDisplay::ExitPresent(ErrorResult& aRv) {
     // started the presentation.
     promise->MaybeRejectWithUndefined();
   } else {
-    promise->MaybeResolve(JS::UndefinedHandleValue);
+    promise->MaybeResolve(MC::UndefinedHandleValue());
     ExitPresentInternal();
   }
 

@@ -33,9 +33,27 @@ const HandleValue FalseHandleValue =
 const Handle<mozilla::Maybe<Value>> NothingHandleValue =
     Handle<mozilla::Maybe<Value>>::fromMarkedLocation(&JSVAL_NOTHING);
 
+#ifdef JS_SANDBOX
 const Value* JSVAL_NULL_ADDRESS() {
     return &JSVAL_NULL;
 }
+
+const Value* JSVAL_VOID_ADDRESS() {
+    return &JSVAL_VOID;
+}
+
+const Value* JSVAL_TRUE_ADDRESS() {
+    return &JSVAL_TRUE;
+}
+
+const Value* JSVAL_FALSE_ADDRESS() {
+    return &JSVAL_FALSE;
+}
+
+const mozilla::Maybe<Value>* JSVAL_NOTHING_ADDRESS() {
+    return &JSVAL_NOTHING;
+}
+#endif
 
 }  // namespace JS
 

@@ -4,19 +4,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* JS::Value implementation. */
+#ifndef mc_Id_h
+#define mc_Id_h
 
-#ifndef mc_Value_h
-#define mc_Value_h
-
-#include "js/Value.h"
+#include "js/Id.h"
 
 namespace MC {
-const JS::HandleValue& NullHandleValue();
-const JS::HandleValue& UndefinedHandleValue();
-const JS::HandleValue& TrueHandleValue();
-const JS::HandleValue& FalseHandleValue();
-const JS::Handle<mozilla::Maybe<JS::Value>>& NothingHandleValue();
+  
+const JS::HandleId& VoidHandlePropertyKey();
+
 }
 
 #endif

@@ -97,6 +97,7 @@
 
 #include "xpcpublic.h"
 #include "js/HashTable.h"
+#include "monkeycage/Id.h"
 #include "js/GCHashTable.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
@@ -648,7 +649,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
 
   explicit XPCCallContext(JSContext* cx, JS::HandleObject obj = nullptr,
                           JS::HandleObject funobj = nullptr,
-                          JS::HandleId id = JS::VoidHandlePropertyKey,
+                          JS::HandleId id = MC::VoidHandlePropertyKey(),
                           unsigned argc = NO_ARGS, JS::Value* argv = nullptr,
                           JS::Value* rval = nullptr);
 

@@ -6,6 +6,7 @@
 
 #include "XRPermissionRequest.h"
 #include "nsGlobalWindowInner.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/Preferences.h"
 #include "nsContentUtils.h"
@@ -63,7 +64,7 @@ nsresult XRPermissionRequest::Start() {
   }
   PromptResult pr = CheckPromptPrefs();
   if (pr == PromptResult::Granted) {
-    return Allow(JS::UndefinedHandleValue);
+    return Allow(MC::UndefinedHandleValue());
   }
   if (pr == PromptResult::Denied) {
     return Cancel();

@@ -16,7 +16,7 @@
 #include "js/GCAPI.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "js/Warnings.h"
 #include "js/Wrapper.h"
 #include "js/friend/ErrorMessages.h"
@@ -546,7 +546,7 @@ void AutoJSAPI::ReportException() {
                                                 &stackGlobal);
         // This error is not associated with a specific window,
         // so omit the exception value to mitigate potential leaks.
-        xpcReport->LogToConsoleWithStack(inner, JS::NothingHandleValue, stack,
+        xpcReport->LogToConsoleWithStack(inner, MC::NothingHandleValue(), stack,
                                          stackGlobal);
       }
     } else {

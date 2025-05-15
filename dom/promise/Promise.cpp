@@ -8,6 +8,7 @@
 #include "mozilla/dom/Promise-inl.h"
 
 #include "js/Debug.h"
+#include "monkeycage/Wrapper.h"
 
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
@@ -37,6 +38,7 @@
 #include "js/Exception.h"  // JS::ExceptionStack
 #include "js/Object.h"     // JS::GetCompartment
 #include "js/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsDebug.h"
@@ -632,7 +634,7 @@ already_AddRefed<Promise> Promise::CreateFromExisting(
 void Promise::MaybeResolveWithUndefined() {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
-  MaybeResolve(JS::UndefinedHandleValue);
+  MaybeResolve(MC::UndefinedHandleValue());
 }
 
 void Promise::MaybeReject(const RefPtr<MediaStreamError>& aArg) {
@@ -644,12 +646,12 @@ void Promise::MaybeReject(const RefPtr<MediaStreamError>& aArg) {
 void Promise::MaybeRejectWithUndefined() {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
-  MaybeSomething(JS::UndefinedHandleValue, &Promise::MaybeReject);
+  MaybeSomething(MC::UndefinedHandleValue(), &Promise::MaybeReject);
 }
 
 void Promise::ReportRejectedPromise(JSContext* aCx,
                                     JS::Handle<JSObject*> aPromise) {
-  MOZ_ASSERT(!js::IsWrapper(aPromise));
+  MOZ_ASSERT(!mc::IsWrapper(aPromise));
 
   MOZ_ASSERT(JS::GetPromiseState(aPromise) == JS::PromiseState::Rejected);
 

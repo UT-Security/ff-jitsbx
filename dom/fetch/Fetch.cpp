@@ -7,7 +7,7 @@
 #include "Fetch.h"
 
 #include "js/RootingAPI.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/dom/Document.h"
@@ -88,7 +88,7 @@ class AbortSignalMainThread final : public AbortSignalImpl {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(AbortSignalMainThread)
 
   explicit AbortSignalMainThread(bool aAborted)
-      : AbortSignalImpl(aAborted, JS::UndefinedHandleValue) {
+      : AbortSignalImpl(aAborted, MC::UndefinedHandleValue()) {
     mozilla::HoldJSObjects(this);
   }
 
@@ -193,7 +193,7 @@ NS_IMPL_ISUPPORTS0(AbortSignalProxy)
 NS_IMETHODIMP AbortSignalProxyRunnable::Run() {
   MOZ_ASSERT(NS_IsMainThread());
   AbortSignalImpl* signalImpl = mProxy->GetOrCreateSignalImplForMainThread();
-  signalImpl->SignalAbort(JS::UndefinedHandleValue);
+  signalImpl->SignalAbort(MC::UndefinedHandleValue());
   return NS_OK;
 }
 

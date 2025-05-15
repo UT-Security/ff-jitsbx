@@ -59,6 +59,7 @@
 #include "js/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
 #include "js/friend/WindowProxy.h"  // js::SetWindowProxyClass
 #include "js/friend/XrayJitInfo.h"  // JS::SetXrayJitInfo
+#include "monkeycage/Wrapper.h"
 #include "mozilla/dom/AbortSignalBinding.h"
 #include "mozilla/dom/GeneratedAtomList.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -618,7 +619,7 @@ JSObject* CompilationScope() { return XPCJSRuntime::Get()->LoaderGlobal(); }
 
 nsGlobalWindowInner* WindowOrNull(JSObject* aObj) {
   MOZ_ASSERT(aObj);
-  MOZ_ASSERT(!js::IsWrapper(aObj));
+  MOZ_ASSERT(!mc::IsWrapper(aObj));
 
   nsGlobalWindowInner* win = nullptr;
   UNWRAP_NON_WRAPPER_OBJECT(Window, aObj, win);

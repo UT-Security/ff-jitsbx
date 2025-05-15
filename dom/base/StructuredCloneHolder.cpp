@@ -10,7 +10,7 @@
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
 #include "js/CallArgs.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "js/WasmModule.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
@@ -260,7 +260,7 @@ void StructuredCloneHolderBase::Clear() {
 
 bool StructuredCloneHolderBase::Write(JSContext* aCx,
                                       JS::Handle<JS::Value> aValue) {
-  return Write(aCx, aValue, JS::UndefinedHandleValue, JS::CloneDataPolicy());
+  return Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy());
 }
 
 bool StructuredCloneHolderBase::Write(
@@ -353,7 +353,7 @@ StructuredCloneHolder::~StructuredCloneHolder() {
 
 void StructuredCloneHolder::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                   ErrorResult& aRv) {
-  Write(aCx, aValue, JS::UndefinedHandleValue, JS::CloneDataPolicy(), aRv);
+  Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy(), aRv);
 }
 
 void StructuredCloneHolder::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,

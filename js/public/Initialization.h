@@ -28,6 +28,10 @@ enum class InitState { Uninitialized = 0, Initializing, Running, ShutDown };
  */
 extern JS_PUBLIC_DATA InitState libraryInitState;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API InitState getLibraryInitState();
+#endif
+
 enum class FrontendOnly { No, Yes };
 
 extern JS_PUBLIC_API const char* InitWithFailureDiagnostic(
@@ -112,7 +116,11 @@ inline bool JS_FrontendOnlyInit(void) {
  * or hand off the task to another consumer.
  */
 inline bool JS_IsInitialized(void) {
+#ifdef JS_SANDBOX_API
+  return JS::detail::getLibraryInitState() >= JS::detail::InitState::Running;
+#else
   return JS::detail::libraryInitState >= JS::detail::InitState::Running;
+#endif
 }
 
 namespace JS {

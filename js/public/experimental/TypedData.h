@@ -365,12 +365,24 @@ class JS_PUBLIC_API ArrayBuffer : public ArrayBufferOrView {
   static const JSClass* const UnsharedClass;
   static const JSClass* const SharedClass;
 
+#ifdef JS_SANDBOX
+  //TODO(abhishek): add a Monkeycage API that caches the result.
+  static const JSClass* GetUnsharedClass();
+  static const JSClass* GetSharedClass();
+#endif
+
   static ArrayBuffer fromObject(JSObject* unwrapped) {
     if (unwrapped) {
       const JSClass* clasp = GetClass(unwrapped);
+#ifdef JS_SANDBOX_API
+      if (clasp == GetUnsharedClass() || clasp == GetSharedClass()) {
+        return ArrayBuffer(unwrapped);
+      }
+#else
       if (clasp == UnsharedClass || clasp == SharedClass) {
         return ArrayBuffer(unwrapped);
       }
+#endif
     }
     return ArrayBuffer(nullptr);
   }
@@ -429,11 +441,20 @@ class JS_PUBLIC_API DataView : public ArrayBufferView {
 
  public:
   static const JSClass* const ClassPtr;
+#ifdef JS_SANDBOX
+  static const JSClass* GetClassPtr();
+#endif
 
   static DataView fromObject(JSObject* unwrapped) {
+#ifdef JS_SANDBOX_API
+    if (unwrapped && GetClass(unwrapped) == GetClassPtr()) {
+      return DataView(unwrapped);
+    }
+#else
     if (unwrapped && GetClass(unwrapped) == ClassPtr) {
       return DataView(unwrapped);
     }
+#endif
     return DataView(nullptr);
   }
 
@@ -455,6 +476,9 @@ class JS_PUBLIC_API TypedArray_base : public ArrayBufferView {
   explicit TypedArray_base(JSObject* unwrapped) : ArrayBufferView(unwrapped) {}
 
   static const JSClass* const classes;
+#ifdef JS_SANDBOX
+  static const JSClass* getClasses();
+#endif
 
  public:
   static TypedArray_base fromObject(JSObject* unwrapped);
@@ -489,7 +513,11 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   // class due to order dependencies. This is the only way I could get it to
   // work on both Windows and POSIX.
   static const JSClass* clasp() {
+#ifdef JS_SANDBOX_API
+    return &TypedArray_base::getClasses()[static_cast<int>(TypedArrayElementType)];
+#else
     return &TypedArray_base::classes[static_cast<int>(TypedArrayElementType)];
+#endif
   }
 
   static TypedArray create(JSContext* cx, size_t nelements);
@@ -530,7 +558,7 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   // |*isSharedMemory| will be set to true if the typed array maps a
   // SharedArrayBuffer, otherwise to false.
   //
-  DataType* getLengthAndData(size_t* length, bool* isSharedMemory,
+  JS_PUBLIC_API DataType* getLengthAndData(size_t* length, bool* isSharedMemory,
                              const JS::AutoRequireNoGC& nogc);
 
   DataType* getData(bool* isSharedMemory, const JS::AutoRequireNoGC& nogc) {

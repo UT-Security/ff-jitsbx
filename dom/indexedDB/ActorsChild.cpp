@@ -953,7 +953,7 @@ void BackgroundFactoryRequestChild::HandleResponse(
       aResponse.previousVersion());
   MOZ_ASSERT(successEvent);
 
-  SetResultAndDispatchSuccessEvent(mRequest, nullptr, JS::UndefinedHandleValue,
+  SetResultAndDispatchSuccessEvent(mRequest, nullptr, MC::UndefinedHandleValue(),
                                    std::move(successEvent));
 
   MOZ_ASSERT(!mDatabaseActor);
@@ -1879,7 +1879,7 @@ mozilla::ipc::IPCResult BackgroundRequestChild::Recv__delete__(
 
       case RequestResponse::TObjectStoreDeleteResponse:
       case RequestResponse::TObjectStoreClearResponse:
-        HandleResponse(JS::UndefinedHandleValue);
+        HandleResponse(MC::UndefinedHandleValue());
         break;
 
       case RequestResponse::TObjectStoreCountResponse:

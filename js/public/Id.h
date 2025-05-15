@@ -218,6 +218,10 @@ namespace JS {
 // Handle<PropertyKey> version of PropertyKey::Void().
 extern JS_PUBLIC_DATA const JS::HandleId VoidHandlePropertyKey;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API const JS::PropertyKey* voidKeyValueAddress();
+#endif
+
 template <>
 struct GCPolicy<jsid> {
   static void trace(JSTracer* trc, jsid* idp, const char* name) {

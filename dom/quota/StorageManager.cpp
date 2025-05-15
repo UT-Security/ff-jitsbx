@@ -15,6 +15,7 @@
 #include "MainThreadUtils.h"
 #include "js/CallArgs.h"
 #include "js/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MacroForEach.h"
@@ -670,7 +671,7 @@ nsresult PersistentStoragePermissionRequest::Start() {
   }
 #endif
   if (pr == PromptResult::Granted) {
-    return Allow(JS::UndefinedHandleValue);
+    return Allow(MC::UndefinedHandleValue());
   }
   if (pr == PromptResult::Denied) {
     return Cancel();

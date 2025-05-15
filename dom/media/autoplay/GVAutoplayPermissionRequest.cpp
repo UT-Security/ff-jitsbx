@@ -4,6 +4,7 @@
 
 #include "GVAutoplayPermissionRequest.h"
 
+#include "monkeycage/Value.h"
 #include "mozilla/dom/HTMLMediaElement.h"
 #include "mozilla/Logging.h"
 #include "mozilla/StaticPrefs_media.h"
@@ -100,7 +101,7 @@ void GVAutoplayPermissionRequest::CreateRequest(nsGlobalWindowInner* aWindow,
          aType == RType::eAUDIBLE) ||
         (testingPref == TestRequest::eAllowInAudible &&
          aType == RType::eINAUDIBLE)) {
-      request->Allow(JS::UndefinedHandleValue);
+      request->Allow(MC::UndefinedHandleValue());
     } else if (testingPref == TestRequest::eDenyAll ||
                (testingPref == TestRequest::eDenyAudible &&
                 aType == RType::eAUDIBLE) ||

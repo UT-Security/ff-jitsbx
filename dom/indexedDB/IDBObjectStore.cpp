@@ -30,6 +30,7 @@
 #include "js/Object.h"  // JS::GetClass
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
 #include "js/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/ResultExtensions.h"
@@ -1012,7 +1013,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
   AssertIsOnOwningThread();
 
   return OpenCursorInternal(/* aKeysOnly */ false, aCx,
-                            JS::UndefinedHandleValue, aDirection, aRv);
+                            MC::UndefinedHandleValue(), aDirection, aRv);
 }
 
 RefPtr<IDBRequest> IDBObjectStore::OpenKeyCursor(JSContext* aCx,

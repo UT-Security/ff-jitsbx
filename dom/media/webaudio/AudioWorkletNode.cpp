@@ -14,6 +14,7 @@
 #include "js/Exception.h"
 #include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_GetProperty
+#include "monkeycage/Value.h"
 #include "mozilla/dom/AudioWorkletNodeBinding.h"
 #include "mozilla/dom/AudioParamMapBinding.h"
 #include "mozilla/dom/AutoEntryScript.h"
@@ -776,7 +777,7 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
           StructuredCloneHolder::CloningSupported,
           StructuredCloneHolder::TransferringNotSupported,
           JS::StructuredCloneScope::SameProcess);
-  serializedOptions->Write(cx, optionsVal, JS::UndefinedHandleValue,
+  serializedOptions->Write(cx, optionsVal, MC::UndefinedHandleValue(),
                            cloneDataPolicy, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;

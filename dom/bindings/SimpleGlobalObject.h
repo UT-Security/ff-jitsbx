@@ -17,7 +17,7 @@
 #include "nsIGlobalObject.h"
 #include "nsWrapperCache.h"
 #include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "nsISupportsImpl.h"
 #include "nsCycleCollectionParticipant.h"
 
@@ -48,7 +48,7 @@ class SimpleGlobalObject : public nsIGlobalObject, public nsWrapperCache {
   // Note that creating new globals is not cheap and should not be done
   // gratuitously.  Please think carefully before you use this function.
   static JSObject* Create(GlobalType globalType, JS::Handle<JS::Value> proto =
-                                                     JS::UndefinedHandleValue);
+                                                     MC::UndefinedHandleValue());
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(SimpleGlobalObject)

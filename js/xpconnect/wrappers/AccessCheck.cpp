@@ -15,6 +15,7 @@
 
 #include "jsfriendapi.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment
+#include "monkeycage/Wrapper.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -61,7 +62,7 @@ bool AccessCheck::subsumesConsideringDomainIgnoringFPD(JS::Realm* a,
 
 // Does the compartment of the wrapper subsumes the compartment of the wrappee?
 bool AccessCheck::wrapperSubsumes(JSObject* wrapper) {
-  MOZ_ASSERT(js::IsWrapper(wrapper));
+  MOZ_ASSERT(mc::IsWrapper(wrapper));
   JSObject* wrapped = js::UncheckedUnwrap(wrapper);
   return CompartmentOriginInfo::Subsumes(JS::GetCompartment(wrapper),
                                          JS::GetCompartment(wrapped));
@@ -96,7 +97,7 @@ bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
   RootedObject obj(cx, &v.toObject());
 
   // Non-wrappers are fine.
-  if (!js::IsWrapper(obj)) {
+  if (!mc::IsWrapper(obj)) {
     return true;
   }
 

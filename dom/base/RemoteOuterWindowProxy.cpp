@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "AccessCheck.h"
-#include "js/Proxy.h"
+#include "monkeycage/Proxy.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/BrowsingContext.h"
 #include "mozilla/dom/ProxyHandlerUtils.h"
@@ -60,7 +60,7 @@ static const RemoteOuterWindowProxy sSingleton;
 // malloc.
 template <>
 const JSClass RemoteOuterWindowProxy::Base::sClass =
-    PROXY_CLASS_DEF("Proxy", JSCLASS_HAS_RESERVED_SLOTS(2));
+    MONKEYCAGE_PROXY_CLASS_DEF("Proxy", JSCLASS_HAS_RESERVED_SLOTS(2));
 
 bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
                                JS::Handle<JSObject*> aTransplantTo,

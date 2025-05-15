@@ -8,6 +8,7 @@
 #ifndef mozilla_dom_TaskSignal_h
 #define mozilla_dom_TaskSignal_h
 
+#include "monkeycage/Value.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/dom/AbortSignal.h"
 #include "mozilla/dom/WebTaskSchedulingBinding.h"
@@ -17,7 +18,7 @@ namespace mozilla::dom {
 class TaskSignal : public AbortSignal {
  public:
   TaskSignal(nsIGlobalObject* aGlobal, TaskPriority aPriority)
-      : AbortSignal(aGlobal, false, JS::UndefinedHandleValue),
+      : AbortSignal(aGlobal, false, MC::UndefinedHandleValue()),
         mPriority(aPriority),
         mPriorityChanging(false) {}
 
