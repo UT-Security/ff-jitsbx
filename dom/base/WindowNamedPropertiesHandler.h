@@ -13,8 +13,13 @@ namespace mozilla::dom {
 
 class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
  public:
+#ifdef JS_SANDBOX
+  inline WindowNamedPropertiesHandler()
+      : BaseDOMProxyHandler(nullptr, /* hasPrototype = */ true) {}
+#else
   constexpr WindowNamedPropertiesHandler()
       : BaseDOMProxyHandler(nullptr, /* hasPrototype = */ true) {}
+#endif
   virtual bool getOwnPropDescriptor(
       JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
       bool /* unused */,

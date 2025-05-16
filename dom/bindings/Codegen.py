@@ -14407,7 +14407,7 @@ class CGProxyIsProxy(CGAbstractMethod):
         return ""
 
     def definition_body(self):
-        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == DOMProxyHandler::getInstance();\n"
+        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == MC_UNSAFE(DOMProxyHandler::getInstance());\n"
 
 
 class CGProxyUnwrap(CGAbstractMethod):
@@ -14429,7 +14429,7 @@ class CGProxyUnwrap(CGAbstractMethod):
         return fill(
             """
             MOZ_ASSERT(js::IsProxy(obj));
-            if (js::GetProxyHandler(obj) != DOMProxyHandler::getInstance()) {
+            if (js::GetProxyHandler(obj) != MC_UNSAFE(DOMProxyHandler::getInstance())) {
               MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(obj));
               obj = js::UncheckedUnwrap(obj);
             }
@@ -15326,7 +15326,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                   // Just hand this off to BaseProxyHandler to do the slow-path thing.
                   // The BaseProxyHandler code is OK with this happening without entering the
                   // compartment of "proxy", which is important to get the right answers.
-                  return js::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+                  return mc::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
                 }
 
                 // Now safe to enter the Realm of proxy and do the rest of the work there.
@@ -16185,8 +16185,9 @@ class CGDOMJSProxyHandler(CGClass):
             CGJSProxyHandler_getInstance("DOMProxyHandler"),
             CGDOMJSProxyHandler_delete(descriptor),
         ]
+        #TODO(abhishekcs): constexpr'ness of constructor should be JS_SANDBOX dependent.
         constructors = [
-            ClassConstructor([], constexpr=True, visibility="public", explicit=True)
+            ClassConstructor([], constexpr=False, visibility="public", explicit=True)
         ]
 
         if descriptor.supportsIndexedProperties():

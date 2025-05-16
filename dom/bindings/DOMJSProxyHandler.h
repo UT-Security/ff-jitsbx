@@ -12,7 +12,7 @@
 
 #include "jsapi.h"
 #include "js/Object.h"  // JS::GetClass
-#include "js/Proxy.h"
+#include "monkeycage/Proxy.h"
 
 namespace mozilla::dom {
 
@@ -37,11 +37,17 @@ namespace mozilla::dom {
  * the object is about to die.)
  */
 
-class BaseDOMProxyHandler : public js::BaseProxyHandler {
+class BaseDOMProxyHandler : public mc::BaseProxyHandler {
  public:
+#ifdef JS_SANDBOX
+  explicit inline BaseDOMProxyHandler(const void* aProxyFamily,
+                                         bool aHasPrototype = false)
+      : mc::BaseProxyHandler(aProxyFamily, aHasPrototype) {}
+#else
   explicit constexpr BaseDOMProxyHandler(const void* aProxyFamily,
                                          bool aHasPrototype = false)
-      : js::BaseProxyHandler(aProxyFamily, aHasPrototype) {}
+      : mc::BaseProxyHandler(aProxyFamily, aHasPrototype) {}
+#endif
 
   // Implementations of methods that can be implemented in terms of
   // other lower-level methods.
@@ -85,7 +91,11 @@ class BaseDOMProxyHandler : public js::BaseProxyHandler {
 
 class DOMProxyHandler : public BaseDOMProxyHandler {
  public:
+#ifdef JS_SANDBOX
+  inline DOMProxyHandler() : BaseDOMProxyHandler(&family) {}
+#else
   constexpr DOMProxyHandler() : BaseDOMProxyHandler(&family) {}
+#endif
 
   bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id,
@@ -155,7 +165,7 @@ inline bool IsDOMProxy(JSObject* obj) {
 
 inline const DOMProxyHandler* GetDOMProxyHandler(JSObject* obj) {
   MOZ_ASSERT(IsDOMProxy(obj));
-  return static_cast<const DOMProxyHandler*>(js::GetProxyHandler(obj));
+  return static_cast<const DOMProxyHandler*>(mc::GetProxyHandler(obj));
 }
 
 }  // namespace mozilla::dom

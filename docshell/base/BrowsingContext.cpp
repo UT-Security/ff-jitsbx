@@ -1859,8 +1859,13 @@ class RemoteLocationProxy
  public:
   typedef RemoteObjectProxy Base;
 
+#ifdef JS_SANDBOX
+  inline RemoteLocationProxy()
+      : RemoteObjectProxy(prototypes::id::Location) {}
+#else
   constexpr RemoteLocationProxy()
       : RemoteObjectProxy(prototypes::id::Location) {}
+#endif
 
   void NoteChildren(JSObject* aProxy,
                     nsCycleCollectionTraversalCallback& aCb) const override {
@@ -1871,7 +1876,10 @@ class RemoteLocationProxy
   }
 };
 
-static const RemoteLocationProxy sSingleton;
+static const RemoteLocationProxy* sSingleton() {
+  static const RemoteLocationProxy inner_;
+  return &inner_;
+}
 
 // Give RemoteLocationProxy 2 reserved slots, like the other wrappers,
 // so JSObject::swap can swap it with CrossCompartmentWrappers without requiring
@@ -1884,7 +1892,7 @@ void BrowsingContext::Location(JSContext* aCx,
                                JS::MutableHandle<JSObject*> aLocation,
                                ErrorResult& aError) {
   aError.MightThrowJSException();
-  sSingleton.GetProxyObject(aCx, &mLocation, /* aTransplantTo = */ nullptr,
+  sSingleton()->GetProxyObject(aCx, &mLocation, /* aTransplantTo = */ nullptr,
                             aLocation);
   if (!aLocation) {
     aError.StealExceptionFromJSContext(aCx);

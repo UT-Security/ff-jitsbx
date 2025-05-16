@@ -19,7 +19,7 @@
 #include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
-#include "js/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
+#include "monkeycage/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
 #include "js/RootingAPI.h"  // JS::Rooted, JS::Handle, JS::MutableHandle
 #include "js/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
 #include "js/Value.h"  // JS::Value, JS::UndefinedValue, JS_UNINITIALIZED_LEXICAL
@@ -28,7 +28,7 @@
 namespace mozilla {
 namespace loader {
 
-struct JSMEnvironmentProxyHandler : public js::BaseProxyHandler {
+struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   JSMEnvironmentProxyHandler() : BaseProxyHandler(&gFamily, false) {}
 
   bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
@@ -114,10 +114,14 @@ struct JSMEnvironmentProxyHandler : public js::BaseProxyHandler {
 
  public:
   static const char gFamily;
-  static const JSMEnvironmentProxyHandler gHandler;
+  static const JSMEnvironmentProxyHandler* gHandler();
 };
 
-const JSMEnvironmentProxyHandler JSMEnvironmentProxyHandler::gHandler;
+const JSMEnvironmentProxyHandler* JSMEnvironmentProxyHandler::gHandler() {
+  static const JSMEnvironmentProxyHandler inner_;
+  return &inner_;
+}
+
 const char JSMEnvironmentProxyHandler::gFamily = 0;
 
 JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
@@ -252,7 +256,7 @@ JSObject* CreateJSMEnvironmentProxy(JSContext* aCx,
   options.setLazyProto(true);
 
   JS::Rooted<JS::Value> globalVal(aCx, JS::ObjectValue(*aGlobalObj));
-  return NewProxyObject(aCx, &JSMEnvironmentProxyHandler::gHandler, globalVal,
+  return NewProxyObject(aCx, JSMEnvironmentProxyHandler::gHandler(), globalVal,
                         nullptr, options);
 }
 

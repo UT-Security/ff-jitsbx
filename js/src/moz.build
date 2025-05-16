@@ -297,6 +297,11 @@ EXPORTS.js.shadow += [
     "../public/shadow/Zone.h",
 ]
 
+if CONFIG["JS_SANDBOX"]:
+    EXPORTS.js.sandbox += [
+        "../public/sandbox/Proxy.h",
+    ]
+
 UNIFIED_SOURCES += [
     "builtin/Array.cpp",
     "builtin/AtomicsObject.cpp",
@@ -438,6 +443,11 @@ UNIFIED_SOURCES += [
     "vm/WindowProxy.cpp",
     "vm/Xdr.cpp",
 ]
+
+if CONFIG["JS_SANDBOX"]:
+    UNIFIED_SOURCES += [
+        "sandbox/ExternalProxy.cpp",
+    ]
 
 if CONFIG["MOZ_JS_STREAMS"]:
     UNIFIED_SOURCES += [

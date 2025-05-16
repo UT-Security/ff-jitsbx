@@ -7,6 +7,7 @@
 #ifndef mc_Wrapper_h
 #define mc_Wrapper_h
 
+#include "monkeycage/Proxy.h"
 #include "js/Wrapper.h"
 
 #ifdef JS_SANDBOX

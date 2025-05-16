@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_RemoteObjectProxy_h
 #define mozilla_dom_RemoteObjectProxy_h
 
-#include "js/Proxy.h"
+#include "monkeycage/Proxy.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
 #include "mozilla/dom/PrototypeList.h"
@@ -22,12 +22,18 @@ class BrowsingContext;
  * don't depend on properties/methods of the specific WebIDL interface that this
  * proxy implements.
  */
-class RemoteObjectProxyBase : public js::BaseProxyHandler,
+class RemoteObjectProxyBase : public mc::BaseProxyHandler,
                               public MaybeCrossOriginObjectMixins {
  protected:
+#ifdef JS_SANDBOX
+  explicit inline RemoteObjectProxyBase(prototypes::ID aPrototypeID)
+      : BaseProxyHandler(&sCrossOriginProxyFamily, false),
+        mPrototypeID(aPrototypeID) {}
+#else
   explicit constexpr RemoteObjectProxyBase(prototypes::ID aPrototypeID)
       : BaseProxyHandler(&sCrossOriginProxyFamily, false),
         mPrototypeID(aPrototypeID) {}
+#endif
 
  public:
   bool finalizeInBackground(const JS::Value& priv) const final { return false; }
@@ -89,9 +95,12 @@ class RemoteObjectProxyBase : public js::BaseProxyHandler,
    */
   static inline bool IsRemoteObjectProxy(JSObject* aProxy,
                                          prototypes::ID aProtoID) {
+    //TODO(abhishekcs): We should ideally be using mc::GetProxyHandler here to start with.
+    // Unfortunately it doesn't perform the requisite app-pointer validation currently so we
+    // end up egregiously trusting the results of js::GetProxyHandler and handler->family().
     const js::BaseProxyHandler* handler = js::GetProxyHandler(aProxy);
     return handler->family() == &sCrossOriginProxyFamily &&
-           static_cast<const RemoteObjectProxyBase*>(handler)->mPrototypeID ==
+           static_cast<const RemoteObjectProxyBase*>(mc::GetProxyHandler(aProxy))->mPrototypeID ==
                aProtoID;
   }
 
