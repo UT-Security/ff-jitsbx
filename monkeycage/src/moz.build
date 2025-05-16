@@ -226,6 +226,10 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 		"/js/public/shadow/Zone.h",
 	]
 
+	EXPORTS.js.sandbox += [
+		"/js/public/sandbox/Proxy.h",
+	]
+
 	selfhosted_inputs = [
 		"/js/public/friend/ErrorNumbers.msg",
 		# ProfilingCategoryList.h is being indirectly included, and it must be passed
