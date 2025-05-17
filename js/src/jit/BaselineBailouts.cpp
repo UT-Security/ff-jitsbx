@@ -19,6 +19,9 @@
 #include "jit/Ion.h"
 #include "jit/IonScript.h"
 #include "jit/JitFrames.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/JitSpewer.h"
 #include "jit/JitZone.h"
@@ -106,6 +109,14 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   size_t bufferUsed_ = 0;
   size_t framePushed_ = 0;
 
+#ifdef JITSBX_CFI_STACK
+  jitsbx::NativeStackJitFrameLayout* nativeFrame_ = nullptr;
+
+  size_t bufferNativeTotal_ = 256;
+  size_t bufferNativeAvail_ = 0;
+  size_t bufferNativeUsed_ = 0;
+#endif
+
   UniquePtr<BaselineBailoutInfo> header_;
 
   JSScript* script_;
@@ -138,6 +149,9 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!header_);
     MOZ_ASSERT(bufferUsed_ == 0);
+#ifdef JITSBX_CFI_STACK
+    MOZ_ASSERT(bufferNativeUsed_ == 0);
+#endif
 
     uint8_t* bufferRaw = cx_->pod_calloc<uint8_t>(bufferTotal_);
     if (!bufferRaw) {
@@ -149,6 +163,19 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
     header_->incomingStack = reinterpret_cast<uint8_t*>(frame_);
     header_->copyStackTop = bufferRaw + bufferTotal_;
     header_->copyStackBottom = header_->copyStackTop;
+
+#ifdef JITSBX_CFI_STACK
+    uint8_t* bufferNativeRaw = cx_->pod_calloc<uint8_t>(bufferNativeTotal_);
+    if (!bufferNativeRaw) {
+      return false;
+    }
+    bufferNativeAvail_ = bufferNativeTotal_;
+
+    header_->incomingNativeStack = reinterpret_cast<uint8_t*>(nativeFrame_);
+    header_->copyNativeStackTop = bufferNativeRaw + bufferNativeTotal_;
+    header_->copyNativeStackBottom = header_->copyNativeStackTop;
+#endif
+
     return true;
   }
 
@@ -410,6 +437,103 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
     }
     return reinterpret_cast<uint8_t*>(frame_) + (offset - bufferUsed_);
   }
+
+#ifdef JITSBX_CFI_STACK
+  [[nodiscard]] bool enlargeNative() {
+    MOZ_ASSERT(header_ != nullptr);
+    if (bufferNativeTotal_ & mozilla::tl::MulOverflowMask<2>::value) {
+      ReportOutOfMemory(cx_);
+      return false;
+    }
+
+    size_t newSize = bufferNativeTotal_ * 2;
+    uint8_t* newBufferRaw = cx_->pod_calloc<uint8_t>(newSize);
+    if (!newBufferRaw) {
+      return false;
+    }
+
+    // Initialize the new buffer.
+    //
+    //   Before:
+    //
+    //     [ .. | Payload ]
+    //
+    //   After:
+    //
+    //     [ ............... | Payload ]
+    //
+    // Size of Payload is |bufferNativeUsed_|.
+    //
+    // We need to copy from the old buffer to the new buffer and
+    // the update header_.
+    //
+    // We also need to update |copyNativeStackBottom| and |copyNativeStackTop|
+    // because these fields point to the Payload's start and end, respectively.
+    memcpy(newBufferRaw + newSize - bufferNativeUsed_,
+           header_->copyNativeStackBottom, bufferNativeUsed_);
+    header_->copyNativeStackTop = newBufferRaw + newSize;
+    header_->copyNativeStackBottom =
+        header_->copyNativeStackTop - bufferNativeUsed_;
+    bufferNativeTotal_ = newSize;
+    bufferNativeAvail_ = newSize - bufferNativeUsed_;
+    return true;
+  }
+
+  [[nodiscard]] bool subtractNative(size_t size, const char* info = nullptr) {
+    // enlarge the buffer if need be.
+    while (size > bufferNativeAvail_) {
+      if (!enlargeNative()) {
+        return false;
+      }
+    }
+
+    // write out element.
+    header_->copyNativeStackBottom -= size;
+    bufferNativeAvail_ -= size;
+    bufferNativeUsed_ += size;
+    // framePushed_ += size;
+    if (info) {
+      JitSpew(JitSpew_BaselineBailouts, "      SUB_%03d   %p/%p %-15s",
+              (int)size, header_->copyNativeStackBottom,
+              virtualPointerAtNativeStackOffset(0), info);
+    }
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] bool writeNative(const T& t) {
+    MOZ_ASSERT(!(uintptr_t(&t) >= uintptr_t(header_->copyNativeStackBottom) &&
+                 uintptr_t(&t) < uintptr_t(header_->copyNativeStackTop)),
+               "Should not reference memory that can be freed");
+    if (!subtractNative(sizeof(T))) {
+      return false;
+    }
+    memcpy(header_->copyNativeStackBottom, &t, sizeof(T));
+    return true;
+  }
+
+  template <typename T>
+  [[nodiscard]] bool writeNativePtr(T* t, const char* info) {
+    if (!writeNative<T*>(t)) {
+      return false;
+    }
+    if (info) {
+      JitSpew(JitSpew_BaselineBailouts, "      WRITE_PTR %p/%p %-15s %p",
+              header_->copyNativeStackBottom,
+              virtualPointerAtNativeStackOffset(0), info, t);
+    }
+    return true;
+  }
+
+  inline uint8_t* virtualPointerAtNativeStackOffset(size_t offset) {
+    if (offset < bufferNativeUsed_) {
+      return reinterpret_cast<uint8_t*>(nativeFrame_) -
+             (bufferNativeUsed_ - offset);
+    }
+    return reinterpret_cast<uint8_t*>(nativeFrame_) +
+           (offset - bufferNativeUsed_);
+  }
+#endif
 };
 
 BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
@@ -421,6 +545,10 @@ BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
       frame_(static_cast<JitFrameLayout*>(frameIter.current())),
       iter_(iter),
       outermostFrameFormals_(cx),
+#ifdef JITSBX_CFI_STACK
+      nativeFrame_(static_cast<jitsbx::NativeStackJitFrameLayout*>(
+          frameIter.currentNative())),
+#endif
       script_(frameIter.script()),
       fun_(frameIter.maybeCallee()),
       excInfo_(excInfo),
@@ -474,6 +602,11 @@ bool BaselineStackBuilder::initFrame() {
     if (!writePtr(prevFramePtr(), "PrevFramePtr")) {
       return false;
     }
+#ifdef JITSBX_CFI_STACK
+    if (!writeNativePtr(prevFramePtr(), "PrevNativeFramePtr")) {
+      return false;
+    }
+#endif
   }
   prevFramePtr_ = virtualPointerAtStackOffset(0);
 
@@ -599,7 +732,12 @@ bool BaselineStackBuilder::buildBaselineFrame() {
   // Get |argsObj| if present.
   ArgumentsObject* argsObj = nullptr;
   if (script_->needsArgsObj()) {
+#ifdef JITSBX_HEAP_MASK
+    Value* maybeArgsObjPtr = js_jitsbx_new<Value>(iter_.read());
+    Value maybeArgsObj = *maybeArgsObjPtr;
+#else
     Value maybeArgsObj = iter_.read();
+#endif
     MOZ_ASSERT(maybeArgsObj.isObject() || maybeArgsObj.isUndefined() ||
                maybeArgsObj.isMagic(JS_OPTIMIZED_OUT));
     if (maybeArgsObj.isObject()) {
@@ -875,7 +1013,15 @@ bool BaselineStackBuilder::finishOuterFrame() {
   }
 
   uint8_t* retAddr = baselineInterp.retAddrForIC(op_);
+#ifdef JITSBX_CFI_STACK
+  if (!writeNativePtr(retAddr, "ReturnAddrNative")) {
+    return false;
+  }
+
+  return writePtr((uint8_t*)0xdeadbeef, "ReturnAddr");
+#else
   return writePtr(retAddr, "ReturnAddr");
+#endif
 }
 
 bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
@@ -909,6 +1055,11 @@ bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
   if (!writePtr(prevFramePtr(), "PrevFramePtr")) {
     return false;
   }
+#ifdef JITSBX_CFI_STACK
+  if (!writeNativePtr(prevFramePtr(), "PrevFramePtrNative")) {
+    return false;
+  }
+#endif
   prevFramePtr_ = virtualPointerAtStackOffset(0);
 
   // Write stub pointer.
@@ -1028,9 +1179,19 @@ bool BaselineStackBuilder::buildStubFrame(uint32_t frameSize,
   // Push return address into ICCall_Scripted stub, immediately after the call.
   void* baselineCallReturnAddr = getStubReturnAddress();
   MOZ_ASSERT(baselineCallReturnAddr);
+#ifdef JITSBX_CFI_STACK
+  if (!writeNativePtr(baselineCallReturnAddr, "ReturnAddrNative")) {
+    return false;
+  }
+
+  if (!writePtr((uint8_t*)0xdeadbeef, "ReturnAddr")) {
+    return false;
+  }
+#else
   if (!writePtr(baselineCallReturnAddr, "ReturnAddr")) {
     return false;
   }
+#endif
 
   // The stack must be aligned after the callee pushes the frame pointer.
   MOZ_ASSERT((framePushed() + sizeof(void*)) % JitStackAlignment == 0);
@@ -1077,6 +1238,11 @@ bool BaselineStackBuilder::buildRectifierFrame(uint32_t actualArgc,
   if (!writePtr(prevFramePtr(), "PrevFramePtr")) {
     return false;
   }
+#ifdef JITSBX_CFI_STACK
+  if (!writeNativePtr(prevFramePtr(), "PrevFramePtrNative")) {
+    return false;
+  }
+#endif
   prevFramePtr_ = virtualPointerAtStackOffset(0);
 
   // Align the stack based on the number of arguments.
@@ -1131,9 +1297,19 @@ bool BaselineStackBuilder::buildRectifierFrame(uint32_t actualArgc,
   void* rectReturnAddr =
       cx_->runtime()->jitRuntime()->getArgumentsRectifierReturnAddr().value;
   MOZ_ASSERT(rectReturnAddr);
+#ifdef JITSBX_CFI_STACK
+  if (!writeNativePtr(rectReturnAddr, "ReturnAddrNative")) {
+    return false;
+  }
+
+  if (!writePtr((uint8_t*)0xdeadbeef, "ReturnAddr")) {
+    return false;
+  }
+#else
   if (!writePtr(rectReturnAddr, "ReturnAddr")) {
     return false;
   }
+#endif
 
   // The stack must be aligned after the callee pushes the frame pointer.
   MOZ_ASSERT((framePushed() + sizeof(void*)) % JitStackAlignment == 0);
@@ -1613,9 +1789,20 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   // Do stack check.
   bool overRecursed = false;
   BaselineBailoutInfo* info = builder.info();
+#ifdef JITSBX_CFI_STACK
+  size_t numBytesToPush =
+      info->copyNativeStackTop - info->copyNativeStackBottom;
+  MOZ_ASSERT((numBytesToPush % sizeof(uintptr_t)) == 0);
+  uint8_t* newsp = info->incomingNativeStack - numBytesToPush;
+
+  size_t numSbxBytesToPush = info->copyStackTop - info->copyStackBottom;
+  MOZ_ASSERT((numSbxBytesToPush % sizeof(uintptr_t)) == 0);
+  uint8_t* newspSbx = info->incomingStack - numSbxBytesToPush;
+#else
   size_t numBytesToPush = info->copyStackTop - info->copyStackBottom;
   MOZ_ASSERT((numBytesToPush % sizeof(uintptr_t)) == 0);
   uint8_t* newsp = info->incomingStack - numBytesToPush;
+#endif
 #ifdef JS_SIMULATOR
   if (Simulator::Current()->overRecursed(uintptr_t(newsp))) {
     overRecursed = true;
@@ -1623,6 +1810,12 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
 #else
   AutoCheckRecursionLimit recursion(cx);
   if (!recursion.checkWithStackPointerDontReport(cx, newsp)) {
+    overRecursed = true;
+  }
+#endif
+#ifdef JITSBX_CFI_STACK
+  jitsbx::AutoCheckSandboxStackRecursionLimit recursionSbx(cx);
+  if (!recursionSbx.checkWithStackPointerDontReport(cx, newspSbx)) {
     overRecursed = true;
   }
 #endif

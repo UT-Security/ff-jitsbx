@@ -14,6 +14,7 @@ moz_memory = ['mozglue-static/moz_memory']
 simd-accel = ['jsrust_shared/simd-accel']
 smoosh = ['jsrust_shared/smoosh']
 gluesmith = ['jsrust_shared/gluesmith']
+jitsbx-verifier = ['jsrust_shared/jitsbx-verifier']
 
 [dependencies]
 jsrust_shared = { path = "./shared" }

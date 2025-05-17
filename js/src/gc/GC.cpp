@@ -4713,7 +4713,14 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
       kind = Zone::SystemZone;
     }
 
+#ifdef JITSBX_HEAP
+    // TODO: place zones inside the sandbox. should be safe because this is
+    // used as nursery allocation metadata and the entire nursery was placed in
+    // the sandbox, but should be verified.
+    zoneHolder = JitsbxMakeUnique<Zone>(cx->runtime(), kind);
+#else
     zoneHolder = MakeUnique<Zone>(cx->runtime(), kind);
+#endif
     if (!zoneHolder || !zoneHolder->init()) {
       ReportOutOfMemory(cx);
       return nullptr;
@@ -4734,13 +4741,22 @@ Realm* js::NewRealm(JSContext* cx, JSPrincipals* principals,
     }
 
     comp = compHolder.get();
+#ifdef JITSBX_HEAP
+    if(!comp->init()) {
+      ReportOutOfMemory(cx);
+      return nullptr;
+    }
+#endif
   }
 
   UniquePtr<Realm> realm(cx->new_<Realm>(comp, options));
   if (!realm) {
     return nullptr;
   }
-  realm->init(cx, principals);
+  if (!realm->init(cx, principals)) {
+    ReportOutOfMemory(cx);
+    return nullptr;
+  }
 
   // Make sure we don't put system and non-system realms in the same
   // compartment.

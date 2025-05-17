@@ -213,7 +213,11 @@ void js::NurseryDecommitTask::run(AutoLockHelperThreadState& lock) {
 }
 
 js::Nursery::Nursery(GCRuntime* gc)
-    : position_(0),
+    : 
+#ifdef JITSBX_HEAP
+#else
+      position_(0),
+#endif
       currentEnd_(0),
       gc(gc),
       currentChunk_(0),
@@ -239,6 +243,13 @@ js::Nursery::Nursery(GCRuntime* gc)
   if (env && *env) {
     canAllocateBigInts_ = (*env == '1');
   }
+
+#ifdef JITSBX_HEAP
+  position_ = (uintptr_t*)js_jitsbx_malloc(sizeof(uintptr_t));
+  *position_ = 0;
+
+  pretenuringNursery = js_jitsbx_new<gc::PretenuringNursery>();
+#endif
 }
 
 static void PrintAndExit(const char* message) {
@@ -312,7 +323,12 @@ bool js::Nursery::init(AutoLockGCBgAlloc& lock) {
   return initFirstChunk(lock);
 }
 
-js::Nursery::~Nursery() { disable(); }
+js::Nursery::~Nursery() { 
+  disable();
+#ifdef JITSBX_HEAP
+  js_free(position_);
+#endif
+}
 
 void js::Nursery::enable() {
   MOZ_ASSERT(isEmpty());
@@ -378,7 +394,11 @@ void js::Nursery::disable() {
   // We must reset currentEnd_ so that there is no space for anything in the
   // nursery. JIT'd code uses this even if the nursery is disabled.
   currentEnd_ = 0;
+#ifdef JITSBX_HEAP
+  *position_ = 0;
+#else
   position_ = 0;
+#endif
   gc->storeBuffer().disable();
 
   if (gc->wasInitialized()) {
@@ -548,7 +568,11 @@ void* js::Nursery::allocateCell(gc::AllocSite* site, size_t size,
   // MacroAssembler::updateAllocSite.
   uint32_t allocCount = site->incAllocCount();
   if (allocCount == 1) {
+#ifdef JITSBX_HEAP
+    pretenuringNursery->insertIntoAllocatedList(site);
+#else
     pretenuringNursery.insertIntoAllocatedList(site);
+#endif
   } else {
     MOZ_ASSERT_IF(site->isNormal(), site->isInAllocatedList());
   }
@@ -571,7 +595,11 @@ inline void* js::Nursery::allocate(size_t size) {
   }
 
   void* thing = (void*)position();
+#ifdef JITSBX_HEAP
+  *position_ = position() + size;
+#else
   position_ = position() + size;
+#endif
 
   DebugOnlyPoison(thing, JS_ALLOCATED_NURSERY_PATTERN, size,
                   MemCheckKind::MakeUndefined);
@@ -617,7 +645,11 @@ void* js::Nursery::allocateBuffer(Zone* zone, size_t nbytes) {
     }
   }
 
+#ifdef JITSBX_HEAP
+  void* buffer = zone->pod_jitsbx_malloc<uint8_t>(nbytes);
+#else
   void* buffer = zone->pod_malloc<uint8_t>(nbytes);
+#endif
   if (buffer && !registerMallocedBuffer(buffer, nbytes)) {
     js_free(buffer);
     return nullptr;
@@ -630,7 +662,11 @@ void* js::Nursery::allocateBuffer(Zone* zone, JSObject* obj, size_t nbytes) {
   MOZ_ASSERT(nbytes > 0);
 
   if (!IsInsideNursery(obj)) {
+#ifdef JITSBX_HEAP
+    return zone->pod_jitsbx_malloc<uint8_t>(nbytes);
+#else
     return zone->pod_malloc<uint8_t>(nbytes);
+#endif
   }
 
   return allocateBuffer(zone, nbytes);
@@ -642,14 +678,23 @@ void* js::Nursery::allocateBufferSameLocation(JSObject* obj, size_t nbytes) {
   MOZ_ASSERT(nbytes <= MaxNurseryBufferSize);
 
   if (!IsInsideNursery(obj)) {
+#ifdef JITSBX_HEAP
+    return obj->zone()->pod_jitsbx_malloc<uint8_t>(nbytes);
+#else
     return obj->zone()->pod_malloc<uint8_t>(nbytes);
+#endif
   }
 
   return allocate(nbytes);
 }
 
+#ifdef JITSBX_HEAP
+void* js::Nursery::allocateZeroedBuffer(
+    Zone* zone, size_t nbytes, arena_id_t arena /*= js::JitsbxMallocArena*/) {
+#else
 void* js::Nursery::allocateZeroedBuffer(
     Zone* zone, size_t nbytes, arena_id_t arena /*= js::MallocArena*/) {
+#endif
   MOZ_ASSERT(nbytes > 0);
 
   if (nbytes <= MaxNurseryBufferSize) {
@@ -668,8 +713,13 @@ void* js::Nursery::allocateZeroedBuffer(
   return buffer;
 }
 
+#ifdef JITSBX_HEAP
+void* js::Nursery::allocateZeroedBuffer(
+    JSObject* obj, size_t nbytes, arena_id_t arena /*= js::JitsbxMallocArena*/) {
+#else
 void* js::Nursery::allocateZeroedBuffer(
     JSObject* obj, size_t nbytes, arena_id_t arena /*= js::MallocArena*/) {
+#endif
   MOZ_ASSERT(obj);
   MOZ_ASSERT(nbytes > 0);
 
@@ -683,13 +733,22 @@ void* js::Nursery::reallocateBuffer(Zone* zone, Cell* cell, void* oldBuffer,
                                     size_t oldBytes, size_t newBytes) {
   if (!IsInsideNursery(cell)) {
     MOZ_ASSERT(!isInside(oldBuffer));
+#ifdef JITSBX_HEAP
+    return zone->pod_jitsbx_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+#else
     return zone->pod_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+#endif
   }
 
   if (!isInside(oldBuffer)) {
     MOZ_ASSERT(mallocedBufferBytes >= oldBytes);
+#ifdef JITSBX_HEAP
+    void* newBuffer =
+        zone->pod_jitsbx_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+#else
     void* newBuffer =
         zone->pod_realloc<uint8_t>((uint8_t*)oldBuffer, oldBytes, newBytes);
+#endif
     if (newBuffer) {
       if (oldBuffer != newBuffer) {
         MOZ_ALWAYS_TRUE(
@@ -718,7 +777,11 @@ void* js::Nursery::allocateBuffer(JS::BigInt* bi, size_t nbytes) {
   MOZ_ASSERT(nbytes > 0);
 
   if (!IsInsideNursery(bi)) {
+#ifdef JITSBX_HEAP
+    return bi->zone()->pod_jitsbx_malloc<uint8_t>(nbytes);
+#else
     return bi->zone()->pod_malloc<uint8_t>(nbytes);
+#endif
   }
   return allocateBuffer(bi->zone(), nbytes);
 }
@@ -872,8 +935,13 @@ void js::Nursery::renderProfileJSON(JSONPrinter& json) const {
   // These counters only contain consistent data if the profiler is enabled,
   // and then there's no guarentee.
   if (runtime()->geckoProfiler().enabled()) {
+#ifdef JITSBX_HEAP
+    json.property("cells_allocated_nursery",
+                  pretenuringNursery->totalAllocCount());
+#else
     json.property("cells_allocated_nursery",
                   pretenuringNursery.totalAllocCount());
+#endif
     json.property("cells_allocated_tenured",
                   stats().allocsSinceMinorGCTenured());
   }
@@ -1155,7 +1223,11 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
     // freed after this point.
     gc->storeBuffer().clear();
 
+#ifdef JITSBX_HEAP
+    MOZ_ASSERT(!pretenuringNursery->hasAllocatedSites());
+#else
     MOZ_ASSERT(!pretenuringNursery.hasAllocatedSites());
+#endif
   }
 
   if (!isEnabled()) {
@@ -1530,9 +1602,15 @@ void js::Nursery::traceRoots(AutoGCSession& session, TenuringTracer& mover) {
 size_t js::Nursery::doPretenuring(JSRuntime* rt, JS::GCReason reason,
                                   bool validPromotionRate,
                                   double promotionRate) {
+#ifdef JITSBX_HEAP
+  size_t sitesPretenured = pretenuringNursery->doPretenuring(
+      gc, reason, validPromotionRate, promotionRate, reportPretenuring_,
+      reportPretenuringThreshold_);
+#else
   size_t sitesPretenured = pretenuringNursery.doPretenuring(
       gc, reason, validPromotionRate, promotionRate, reportPretenuring_,
       reportPretenuringThreshold_);
+#endif
 
   bool highPromotionRate =
       validPromotionRate && promotionRate > tunables().pretenureThreshold();
@@ -1722,7 +1800,11 @@ MOZ_ALWAYS_INLINE void js::Nursery::setCurrentChunk(unsigned chunkno) {
   MOZ_ASSERT(chunkno < allocatedChunkCount());
 
   currentChunk_ = chunkno;
+#ifdef JITSBX_HEAP
+  *position_ = chunk(chunkno).start();
+#else
   position_ = chunk(chunkno).start();
+#endif
   setCurrentEnd();
 }
 

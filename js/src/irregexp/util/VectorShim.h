@@ -33,6 +33,19 @@ T* NewArray(size_t size) {
   return result;
 }
 
+#ifdef JITSBX_HEAP
+template <typename T>
+T* NewJitsbxArray(size_t size) {
+  static_assert(std::is_pod<T>::value, "");
+  js::AutoEnterOOMUnsafeRegion oomUnsafe;
+  T* result = static_cast<T*>(js_jitsbx_malloc(size * sizeof(T)));
+  if (!result) {
+    oomUnsafe.crash("Irregexp NewArray");
+  }
+  return result;
+}
+#endif
+
 template <typename T>
 void DeleteArray(T* array) {
   js_free(array);

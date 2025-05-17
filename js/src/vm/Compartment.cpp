@@ -26,6 +26,7 @@
 #include "js/WrapperCallbacks.h"
 #include "proxy/DeadObjectProxy.h"
 #include "proxy/DOMProxy.h"
+#include "vm/Iteration.h"
 #include "vm/JSContext.h"
 #ifdef ENABLE_RECORD_TUPLE
 #  include "vm/RecordTupleShared.h"
@@ -46,7 +47,18 @@ Compartment::Compartment(Zone* zone, bool invisibleToDebugger)
       runtime_(zone->runtimeFromAnyThread()),
       invisibleToDebugger_(invisibleToDebugger),
       crossCompartmentObjectWrappers(zone, 0),
+#ifdef JITSBX_HEAP
+      enumerators_(nullptr),
+#endif
       realms_(zone) {}
+
+#ifdef JITSBX_HEAP
+Compartment::~Compartment() { 
+  if (this->enumerators_) {
+    js_free(this->enumerators_);
+  }
+}
+#endif
 
 #ifdef JSGC_HASH_TABLE_CHECKS
 
@@ -603,7 +615,11 @@ JS_PUBLIC_API bool js::CompartmentHasLiveGlobal(JS::Compartment* comp) {
 
 void Compartment::traceWeakNativeIterators(JSTracer* trc) {
   /* Sweep list of native iterators. */
+#ifdef JITSBX_HEAP
+  NativeIteratorListIter iter(enumerators_);
+#else
   NativeIteratorListIter iter(&enumerators_);
+#endif
   while (!iter.done()) {
     NativeIterator* ni = iter.next();
     JSObject* iterObj = ni->iterObj();

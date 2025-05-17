@@ -485,10 +485,17 @@ static void* ComputeRandomAllocationAddress() {
 static void* ReserveProcessExecutableMemory(size_t bytes) {
   // Note that randomAddr is just a hint: if the address is not available
   // mmap will pick a different address.
+#ifdef JITSBX_CFI_BUNDLE
+  void* randomAddr = (void*)(uintptr_t(jitsbx::ExecutableMemoryBase));
+  void* p = MozTaggedAnonymousMmap(randomAddr, bytes, PROT_NONE,
+                                   MAP_NORESERVE | MAP_FIXED | MAP_PRIVATE | MAP_ANON, -1,
+                                   0, "js-executable-memory");
+#else
   void* randomAddr = ComputeRandomAllocationAddress();
   void* p = MozTaggedAnonymousMmap(randomAddr, bytes, PROT_NONE,
                                    MAP_NORESERVE | MAP_PRIVATE | MAP_ANON, -1,
                                    0, "js-executable-memory");
+#endif
   if (p == MAP_FAILED) {
     return nullptr;
   }
@@ -621,6 +628,11 @@ class ProcessExecutableMemory {
   static_assert(
       (MaxCodeBytesPerProcess % ExecutableCodePageSize) == 0,
       "MaxCodeBytesPerProcess must be a multiple of ExecutableCodePageSize");
+#ifdef JITSBX_CFI_BUNDLE
+  static_assert(
+      (AllocatedCodeBytesPerProcess % ExecutableCodePageSize) == 0,
+      "AllocatedCodeBytesPerProcess must be a multiple of ExecutableCodePageSize");
+#endif
   static const size_t MaxCodePages =
       MaxCodeBytesPerProcess / ExecutableCodePageSize;
 
@@ -658,7 +670,11 @@ class ProcessExecutableMemory {
     MOZ_RELEASE_ASSERT(HasJitBackend());
     MOZ_RELEASE_ASSERT(gc::SystemPageSize() <= ExecutableCodePageSize);
 
+#ifdef JITSBX_CFI_BUNDLE
+    void* p = ReserveProcessExecutableMemory(AllocatedCodeBytesPerProcess);
+#else
     void* p = ReserveProcessExecutableMemory(MaxCodeBytesPerProcess);
+#endif
     if (!p) {
       return false;
     }
@@ -684,7 +700,11 @@ class ProcessExecutableMemory {
     MOZ_ASSERT(initialized());
     MOZ_ASSERT(pages_.empty());
     MOZ_ASSERT(pagesAllocated_ == 0);
+#ifdef JITSBX_CFI_BUNDLE
+    DeallocateProcessExecutableMemory(base_, AllocatedCodeBytesPerProcess);
+#else
     DeallocateProcessExecutableMemory(base_, MaxCodeBytesPerProcess);
+#endif
     base_ = nullptr;
     rng_.reset();
     MOZ_ASSERT(!initialized());

@@ -18,6 +18,9 @@
 #include "jit/BaselineIC.h"
 #include "jit/CalleeToken.h"
 #include "jit/JitFrames.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "jit/mips32/Simulator-mips32.h"
 #include "jit/mips64/Simulator-mips64.h"
@@ -42,6 +45,9 @@
 #include "debugger/DebugAPI-inl.h"
 #include "jit/BaselineFrame-inl.h"
 #include "jit/VMFunctionList-inl.h"
+#ifdef JITSBX_CFI_STACK
+#include "jit/JSJitFrameIter-inl.h"
+#endif
 #include "vm/Interpreter-inl.h"
 #include "vm/JSScript-inl.h"
 #include "vm/NativeObject-inl.h"
@@ -577,6 +583,12 @@ static bool CheckOverRecursedImpl(JSContext* cx, size_t extra) {
     return false;
   }
 #endif
+#ifdef JITSBX_CFI_STACK
+  jitsbx::AutoCheckSandboxStackRecursionLimit recursionSbx(cx);
+  if (!recursionSbx.checkWithExtra(cx, extra)) {
+    return false;
+  }
+#endif
 
   // This handles 2).
   gc::MaybeVerifyBarriers(cx);
@@ -998,15 +1010,37 @@ bool DebugPrologue(JSContext* cx, BaselineFrame* frame) {
 
 bool DebugEpilogueOnBaselineReturn(JSContext* cx, BaselineFrame* frame,
                                    const jsbytecode* pc) {
+#ifdef JITSBX_CFI_STACK
+  JSJitFrameIter iter(cx->activation()->asJit());
+  jitsbx::NativeStackJitFrameLayout* nativeFrame = nullptr;
+  while (!iter.done()) {
+    if (iter.isBaselineJS() && iter.baselineFrame() == frame) {
+      nativeFrame = iter.currentNative();
+      break;
+    }
+    ++iter;
+  }
+
+  MOZ_RELEASE_ASSERT(nativeFrame != nullptr);
+  if (!DebugEpilogue(cx, frame, nativeFrame, pc, true)) {
+#else
   if (!DebugEpilogue(cx, frame, pc, true)) {
+#endif
     return false;
   }
 
   return true;
 }
 
+#ifdef JITSBX_CFI_STACK
+bool DebugEpilogue(
+    JSContext* cx, BaselineFrame* frame,
+    jitsbx::NativeStackJitFrameLayout* nativeFrame, const jsbytecode* pc,
+    bool ok) {
+#else
 bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, const jsbytecode* pc,
                    bool ok) {
+#endif
   // If DebugAPI::onLeaveFrame returns |true| we have to return the frame's
   // return value. If it returns |false|, the debugger threw an exception.
   // In both cases we have to pop debug scopes.
@@ -1020,7 +1054,13 @@ bool DebugEpilogue(JSContext* cx, BaselineFrame* frame, const jsbytecode* pc,
     // Pop this frame by updating packedExitFP, so that the exception
     // handling code will start at the previous frame.
     JitFrameLayout* prefix = frame->framePrefix();
+#ifdef JITSBX_CFI_STACK
+    // TODO(JITSBX_CFI_STACK): does some "prefix" operation need to be done
+    // for the native frame too ?
+    EnsureUnwoundJitExitFrame(cx->activation()->asJit(), prefix, nativeFrame);
+#else
     EnsureUnwoundJitExitFrame(cx->activation()->asJit(), prefix);
+#endif
     return false;
   }
 

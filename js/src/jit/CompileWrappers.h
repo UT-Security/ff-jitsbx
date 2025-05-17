@@ -41,6 +41,12 @@ class FreeSpan;
 
 }  // namespace gc
 
+#ifdef JITSBX
+namespace jitsbx {
+class JitSandbox;
+}  // namespace jitsbx
+#endif
+
 namespace jit {
 
 class JitRuntime;
@@ -59,6 +65,10 @@ class CompileRuntime {
 
 #ifdef JS_GC_ZEAL
   const uint32_t* addressOfGCZealModeBits();
+#endif
+
+#ifdef JITSBX
+  const jitsbx::JitSandbox* jitSandbox();
 #endif
 
   const JitRuntime* jitRuntime();
@@ -111,6 +121,9 @@ class CompileZone {
   bool allocNurseryStrings();
   bool allocNurseryBigInts();
   void* addressOfNurseryPosition();
+#ifdef JITSBX_HEAP
+  void* addressOfNurseryEnd();
+#endif
 
   void* addressOfNurseryAllocatedSites();
 

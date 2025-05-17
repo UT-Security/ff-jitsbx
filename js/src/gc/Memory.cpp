@@ -11,6 +11,9 @@
 #include "mozilla/RandomNum.h"
 #include "mozilla/TaggedAnonymousMemory.h"
 
+#ifdef JITSBX_HEAP
+#include "jitsbx/JitSandboxMemory.h"
+#endif
 #include "jit/JitOptions.h"
 #include "js/HeapAPI.h"
 #include "js/Utility.h"
@@ -402,6 +405,11 @@ void InitMemorySubsystem() {
 #else  // !defined(JS_64BIT)
     numAddressBits = 32;
 #endif
+
+#ifdef JITSBX_HEAP
+    jitsbx::InitHeapMemory();
+#endif
+
 #ifdef RLIMIT_AS
     if (jit::HasJitBackend()) {
       rlimit as_limit;
@@ -446,6 +454,16 @@ void* MapAlignedPages(size_t length, size_t alignment) {
 #else
 
 #  ifdef JS_64BIT
+
+#ifdef JITSBX_HEAP
+  void* sbxRegion = jitsbx::MapAlignedPages(length, alignment);
+
+  MOZ_RELEASE_ASSERT(!IsInvalidRegion(sbxRegion, length));
+  MOZ_ASSERT(OffsetFromAligned(sbxRegion, alignment) == 0);
+
+  return sbxRegion;
+#endif
+
   // Use the scattershot allocator if the address range is large enough.
   if (UsingScattershotAllocator()) {
     void* region = MapAlignedPagesRandom(length, alignment);
@@ -779,10 +797,15 @@ void UnmapPages(void* region, size_t length) {
                      OffsetFromAligned(region, allocGranularity) == 0);
   MOZ_RELEASE_ASSERT(length > 0 && length % pageSize == 0);
 
+
+#ifdef JITSBX_HEAP
+  jitsbx::UnmapPages(region, length);
+  return;
+#else
   // ASan does not automatically unpoison memory, so we have to do this here.
   MOZ_MAKE_MEM_UNDEFINED(region, length);
-
   UnmapInternal(region, length);
+#endif
 }
 
 static void CheckDecommit(void* region, size_t length) {

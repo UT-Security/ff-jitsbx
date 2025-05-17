@@ -4320,12 +4320,15 @@ CodeOffset MacroAssembler::call(Label* label) {
   return CodeOffset(currentOffset());
 }
 
-void MacroAssembler::call(ImmWord imm) { call(ImmPtr((void*)imm.value)); }
+CodeOffset MacroAssembler::call(ImmWord imm) {
+  return call(ImmPtr((void*)imm.value));
+}
 
-void MacroAssembler::call(ImmPtr imm) {
+CodeOffset MacroAssembler::call(ImmPtr imm) {
   BufferOffset bo = m_buffer.nextOffset();
   addPendingJump(bo, imm, RelocationKind::HARDCODED);
   ma_call(imm);
+  return CodeOffset(currentOffset());
 }
 
 CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
@@ -4333,17 +4336,17 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress imm) {
   return call(CallReg);
 }
 
-void MacroAssembler::call(const Address& addr) {
+CodeOffset MacroAssembler::call(const Address& addr) {
   loadPtr(addr, CallReg);
-  call(CallReg);
+  return call(CallReg);
 }
 
-void MacroAssembler::call(JitCode* c) {
+CodeOffset MacroAssembler::call(JitCode* c) {
   BufferOffset bo = m_buffer.nextOffset();
   addPendingJump(bo, ImmPtr(c->raw()), RelocationKind::JITCODE);
   ScratchRegisterScope scratch(*this);
   ma_movPatchable(ImmPtr(c->raw()), scratch, Always);
-  callJitNoProfiler(scratch);
+  return CodeOffset(callJitNoProfiler(scratch));
 }
 
 CodeOffset MacroAssembler::callWithPatch() {

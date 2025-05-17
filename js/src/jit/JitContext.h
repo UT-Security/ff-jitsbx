@@ -40,6 +40,12 @@ enum class AbortReason : uint8_t {
   Error = 6,
 };
 }  // namespace jit
+
+#ifdef JITSBX
+namespace jitsbx {
+class JitSandbox;
+}  // namespace jitsbx
+#endif
 }  // namespace js
 
 namespace mozilla::detail {
@@ -97,6 +103,11 @@ class MOZ_RAII JitContext {
   // Wrapper with information about the current runtime. nullptr for Wasm
   // compilations.
   CompileRuntime* runtime = nullptr;
+
+#ifdef JITSBX
+  // Information about the current JIT sandbox. nullptr for Wasm compilations.
+  const jitsbx::JitSandbox* jitSandbox = nullptr;
+#endif
 
   // Constructor for compilations happening on the main thread.
   explicit JitContext(JSContext* cx);

@@ -58,12 +58,14 @@ class MacroAssemblerX86Shared : public Assembler {
   typedef HashMap<double, size_t, DefaultHasher<double>, SystemAllocPolicy>
       DoubleMap;
   DoubleMap doubleMap_;
+  uint32_t doublePool_;
 
   using Float = Constant<float>;
   Vector<Float, 0, SystemAllocPolicy> floats_;
   typedef HashMap<float, size_t, DefaultHasher<float>, SystemAllocPolicy>
       FloatMap;
   FloatMap floatMap_;
+  uint32_t floatPool_;
 
   struct SimdData : public Constant<SimdConstant> {
     explicit SimdData(SimdConstant d) : Constant<SimdConstant>(d) {}
@@ -76,6 +78,7 @@ class MacroAssemblerX86Shared : public Assembler {
   typedef HashMap<SimdConstant, size_t, SimdConstant, SystemAllocPolicy>
       SimdMap;
   SimdMap simdMap_;
+  uint32_t simdPool_;
 
   template <class T, class Map>
   T* getConstant(const typename T::Pod& value, Map& map,
@@ -97,6 +100,11 @@ class MacroAssemblerX86Shared : public Assembler {
   void addToPCRel4(uint32_t offset, int32_t bias) {
     return masm.addToPCRel4(offset, bias);
   }
+
+  uint32_t doublePool() { return doublePool_; }
+  uint32_t floatPool() { return floatPool_; }
+  uint32_t simdPool() { return simdPool_; }
+  
 
   // Evaluate srcDest = minmax<isMax>{Float32,Double}(srcDest, second).
   // Checks for NaN if canBeNaN is true.
@@ -181,8 +189,6 @@ class MacroAssemblerX86Shared : public Assembler {
   void jump(JitCode* code) { jmp(code); }
   void jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
   void jump(ImmPtr ptr) { jmp(ptr); }
-  void jump(Register reg) { jmp(Operand(reg)); }
-  void jump(const Address& addr) { jmp(Operand(addr)); }
 
   void convertInt32ToDouble(Register src, FloatRegister dest) {
     // vcvtsi2sd and friends write only part of their output register, which
@@ -332,9 +338,15 @@ class MacroAssemblerX86Shared : public Assembler {
     load32(src, dest);
   }
   template <typename S, typename T>
+#ifdef JITSBX_HEAP_MASK
+  void store32(const S& src, const T& dest, bool mask = true) {
+    movl(src, Operand(dest), mask);
+  }
+#else
   void store32(const S& src, const T& dest) {
     movl(src, Operand(dest));
   }
+#endif
   template <typename S, typename T>
   void store32Unaligned(const S& src, const T& dest) {
     store32(src, dest);
@@ -904,9 +916,9 @@ class MacroAssemblerX86Shared : public Assembler {
 
   // Emit a JMP that can be toggled to a CMP. See ToggleToJmp(), ToggleToCmp().
   CodeOffset toggledJump(Label* label) {
-    CodeOffset offset(size());
+    //CodeOffset offset(size());
     jump(label);
-    return offset;
+    return CodeOffset(size() - 5);
   }
 
   template <typename T>

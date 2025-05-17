@@ -43,6 +43,13 @@ typename detail::UniqueSelector<T>::SingleObject MakeUnique(Args&&... aArgs) {
   return UniquePtr<T>(js_new<T>(std::forward<Args>(aArgs)...));
 }
 
+#ifdef JITSBX_HEAP
+template <typename T, typename... Args>
+typename detail::UniqueSelector<T>::SingleObject JitsbxMakeUnique(Args&&... aArgs) {
+  return UniquePtr<T>(js_jitsbx_new<T>(std::forward<Args>(aArgs)...));
+}
+#endif
+
 template <typename T>
 typename detail::UniqueSelector<T>::UnknownBound MakeUnique(
     decltype(sizeof(int)) aN) = delete;

@@ -137,9 +137,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   // X86/X64-common interface.
   /////////////////////////////////////////////////////////////////
 
+#ifdef JITSBX_HEAP_MASK
+  void storeValue(ValueOperand val, Operand dest, bool mask = true) {
+    movq(val.valueReg(), dest, mask);
+  }
+#else
   void storeValue(ValueOperand val, Operand dest) {
     movq(val.valueReg(), dest);
   }
+#endif
   void storeValue(ValueOperand val, const Address& dest) {
     storeValue(val, Operand(dest));
   }
@@ -166,9 +172,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     }
     movq(scratch, Operand(dest));
   }
+#ifdef JITSBX_HEAP_MASK
+  void storeValue(ValueOperand val, BaseIndex dest, bool mask = true) {
+    storeValue(val, Operand(dest), mask);
+  }
+#else
   void storeValue(ValueOperand val, BaseIndex dest) {
     storeValue(val, Operand(dest));
   }
+#endif
   void storeValue(const Address& src, const Address& dest, Register temp) {
     loadPtr(src, temp);
     storePtr(temp, dest);
@@ -634,9 +646,15 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     movq(imm, scratch);
     movq(scratch, Operand(address));
   }
+#ifdef JITSBX_HEAP_MASK
+  void storePtr(Register src, const Address& address, bool mask = true) {
+    movq(src, Operand(address), mask);
+  }
+#else
   void storePtr(Register src, const Address& address) {
     movq(src, Operand(address));
   }
+#endif
   void store64(Register src, const Address& address) {
     movq(src, Operand(address));
   }
@@ -647,6 +665,17 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
     movq(src, Operand(address));
   }
   void storePtr(Register src, const Operand& dest) { movq(src, dest); }
+#ifdef JITSBX_HEAP_MASK
+  void storePtr(Register src, AbsoluteAddress address, bool mask = true) {
+    if (X86Encoding::IsAddressImmediate(address.addr)) {
+      movq(src, Operand(address), mask);
+    } else {
+      ScratchRegisterScope scratch(asMasm());
+      mov(ImmPtr(address.addr), scratch);
+      storePtr(src, Address(scratch, 0x0), mask);
+    }
+  }
+#else
   void storePtr(Register src, AbsoluteAddress address) {
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movq(src, Operand(address));
@@ -656,6 +685,18 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       storePtr(src, Address(scratch, 0x0));
     }
   }
+#endif
+#ifdef JITSBX_HEAP_MASK
+  void store32(Register src, AbsoluteAddress address, bool mask = true) {
+    if (X86Encoding::IsAddressImmediate(address.addr)) {
+      movl(src, Operand(address), mask);
+    } else {
+      ScratchRegisterScope scratch(asMasm());
+      mov(ImmPtr(address.addr), scratch);
+      store32(src, Address(scratch, 0x0), mask);
+    }
+  }
+#else
   void store32(Register src, AbsoluteAddress address) {
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movl(src, Operand(address));
@@ -665,6 +706,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
       store32(src, Address(scratch, 0x0));
     }
   }
+#endif
   void store16(Register src, AbsoluteAddress address) {
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movw(src, Operand(address));

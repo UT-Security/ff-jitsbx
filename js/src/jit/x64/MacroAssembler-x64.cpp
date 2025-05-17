@@ -5,7 +5,9 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/x64/MacroAssembler-x64.h"
-
+#ifdef JITSBX_CFI_BUNDLE
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/BaselineFrame.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
@@ -459,27 +461,53 @@ void MacroAssemblerX64::bindOffsets(
 }
 
 void MacroAssemblerX64::finish() {
+  AutoCreatedBy acb(asMasm(), "MacroAssemblerX64::finish");
   if (!doubles_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % sizeof(double) == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(sizeof(double));
+#endif
   }
+  doublePool_ = masm.size();
+
   for (const Double& d : doubles_) {
+    asMasm().sbxBundleAlignConstant(sizeof(double));
     bindOffsets(d.uses);
     masm.doubleConstant(d.value);
   }
 
   if (!floats_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % sizeof(float) == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(sizeof(float));
+#endif
+    floatPool_ = masm.size();
   }
   for (const Float& f : floats_) {
+    asMasm().sbxBundleAlignConstant(sizeof(float));
     bindOffsets(f.uses);
     masm.floatConstant(f.value);
   }
 
   // SIMD memory values must be suitably aligned.
   if (!simds_.empty()) {
+#ifdef JITSBX_CFI_BUNDLE
+    static_assert(jitsbx::BundleAlignment % SimdMemoryAlignment == 0,
+                  "No need to consider float alignment for bundle alignment");
+    masm.haltingAlign(jitsbx::BundleAlignment);
+#else
     masm.haltingAlign(SimdMemoryAlignment);
+#endif
+    simdPool_ = masm.size();
   }
   for (const SimdData& v : simds_) {
+    asMasm().sbxBundleAlignConstant(SimdMemoryAlignment);
     bindOffsets(v.uses);
     masm.simd128Constant(v.value.bytes());
   }
@@ -512,7 +540,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   movq(rsp, rax);
 
   // Call the handler.
-  using Fn = void (*)(ResumeFromException * rfe);
+  using Fn = void (*)(ResumeFromException* rfe);
   asMasm().setupUnalignedABICall(rcx);
   asMasm().passABIArg(rax);
   asMasm().callWithABI<Fn, HandleException>(
@@ -552,13 +580,38 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // the entry frame.
   bind(&entryFrame);
   asMasm().moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()), false);
+#else
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
+  asMasm().sbxToNativeStack();
   ret();
 
   // If we found a catch handler, this must be a baseline frame. Restore state
   // and jump to the catch block.
   bind(&catch_);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()), false);
+#else
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -570,6 +623,18 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   ValueOperand exception = ValueOperand(rcx);
   loadValue(Address(esp, ResumeFromException::offsetOfException()), exception);
 
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax, AbsoluteAddress(
+                    (const void*)GetJitContext()
+                        ->jitSandbox->addressOfSavedNativeStackPtr()), false);
+#else
+  storePtr(rax, AbsoluteAddress(
+                    (const void*)GetJitContext()
+                        ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
@@ -582,6 +647,18 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   // Used in debug mode and for GeneratorReturn.
   Label profilingInstrumentation;
   bind(&returnBaseline);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()), false);
+#else
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   loadValue(Address(rbp, BaselineFrame::reverseOffsetOfReturnValue()),
@@ -610,12 +687,26 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   }
 
   movq(rbp, rsp);
+  asMasm().sbxPopFrame();
+  asMasm().sbxToNativeStack();
   pop(rbp);
   ret();
 
   // If we are bailing out to baseline to handle an exception, jump to the
   // bailout tail stub. Load 1 (true) in ReturnReg to indicate success.
   bind(&bailout);
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(rsp, ResumeFromException::offsetOfNativeStackPointer()), rax);
+#ifdef JITSBX_HEAP_MASK
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()), false);
+#else
+  storePtr(rax,
+           AbsoluteAddress((const void*)GetJitContext()
+                               ->jitSandbox->addressOfSavedNativeStackPtr()));
+#endif
+#endif
   loadPtr(Address(rsp, ResumeFromException::offsetOfBailoutInfo()), r9);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
   move32(Imm32(1), ReturnReg);
@@ -738,6 +829,7 @@ void MacroAssembler::setupUnalignedABICall(Register scratch) {
   setupNativeABICall();
   dynamicAlignment_ = true;
 
+  sbxAssertSandboxStackWithScratch(scratch);
   movq(rsp, scratch);
   andq(Imm32(~(ABIStackAlignment - 1)), rsp);
   push(scratch);
@@ -750,8 +842,19 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   if (dynamicAlignment_) {
     // sizeof(intptr_t) accounts for the saved stack pointer pushed by
     // setupUnalignedABICall.
+#ifdef JITSBX_CFI_STACK
+    if (!callFromWasm) {
+      // Since any ABI arguments passed on the stack need to be pushed on
+      // the native-stack, we don't consider them for sandbox-stack alignment.
+      stackForCall = ComputeByteAlignment(sizeof(uintptr_t), ABIStackAlignment);
+    } else {
+      stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
+                                           ABIStackAlignment);
+    }
+#else
     stackForCall += ComputeByteAlignment(stackForCall + sizeof(intptr_t),
                                          ABIStackAlignment);
+#endif
   } else {
     uint32_t alignmentAtPrologue = callFromWasm ? sizeof(wasm::Frame) : 0;
     stackForCall += ComputeByteAlignment(
@@ -761,6 +864,28 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
   *stackAdjust = stackForCall;
   reserveStack(stackForCall);
 
+#ifdef JITSBX_CFI_STACK
+  if (!callFromWasm) {
+    // assert that sandbox-stack is properly aligned.
+    assertStackAlignment(ABIStackAlignment);
+
+    // switch to native-stack and take care of alignment
+    // before positioning ABI args.
+    sbxToNativeStack();
+    // we expect the native-stack to always be aligned.
+    assertStackAlignment(ABIStackAlignment);
+
+    stackForCall = abiArgs_.stackBytesConsumedSoFar();
+    stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
+
+    if (stackForCall != 0) {
+      subFromStackPtr(Imm32(stackForCall));
+    }
+  }
+#endif
+
+  // TODO(JITSBX): separate the MoveEmitter's register moves
+  // from the stack moves to reduce the bundle size here.
   // Position all arguments.
   {
     enoughMemory_ &= moveResolver_.resolve();
@@ -769,7 +894,11 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
     }
 
     MoveEmitter emitter(*this);
+#ifdef JITSBX_HEAP_MASK
+    emitter.emit(moveResolver_, false);
+#else
     emitter.emit(moveResolver_);
+#endif
     emitter.finish();
   }
 
@@ -778,6 +907,20 @@ void MacroAssembler::callWithABIPre(uint32_t* stackAdjust, bool callFromWasm) {
 
 void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                                      bool cleanupArg) {
+#ifdef JITSBX_CFI_STACK
+  // cleanupArg is actually callFromWasm
+  if (!cleanupArg) {
+    // We rely on the ABIArgGenerator state to mirror and undo the native-stack
+    // alignment push done in callWithABIPre.
+    uint32_t stackForCall = abiArgs_.stackBytesConsumedSoFar();
+    stackForCall += ComputeByteAlignment(stackForCall, ABIStackAlignment);
+
+    if (stackForCall != 0) {
+      addToStackPtr(Imm32(stackForCall));
+    }
+    sbxToSandboxStack();
+  }
+#endif
   freeStack(stackAdjust);
   if (dynamicAlignment_) {
     pop(rsp);
@@ -812,7 +955,15 @@ void MacroAssembler::callWithABINoProfiler(Register fun, MoveOp::Type result) {
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JITSBX
+  // cfi-stack(SAFETY): we already switched to the native-stack in
+  // callWithABIPre.
+  // cfi-label(SAFETY): TODO(JITSBX): since the expected target is a C++
+  // it doesn't have a label. Use a trampoline with a table check.
+  callCFIUnsafe(fun);
+#else
   call(fun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 
@@ -831,7 +982,15 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
 
   uint32_t stackAdjust;
   callWithABIPre(&stackAdjust);
+#ifdef JITSBX
+  // cfi-stack(SAFETY): we already switched to the native-stack in
+  // callWithABIPre.
+  // cfi-label(SAFETY): TODO(JITSBX): since the expected target is a C++
+  // it doesn't have a label. Use a trampoline with a table check.
+  callCFIUnsafe(safeFun);
+#else
   call(safeFun);
+#endif
   callWithABIPost(stackAdjust, result);
 }
 

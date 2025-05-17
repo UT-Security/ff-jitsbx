@@ -139,14 +139,24 @@ class Nursery {
   // Allocate a zero-initialized buffer for a given zone, using the nursery if
   // possible. If the buffer isn't allocated in the nursery, the given arena is
   // used.
+#ifdef JITSBX_HEAP
+  void* allocateZeroedBuffer(JS::Zone* zone, size_t nbytes,
+                             arena_id_t arena = js::JitsbxMallocArena);
+#else
   void* allocateZeroedBuffer(JS::Zone* zone, size_t nbytes,
                              arena_id_t arena = js::MallocArena);
+#endif
 
   // Allocate a zero-initialized buffer for a given object, using the nursery if
   // possible and obj is in the nursery. If the buffer isn't allocated in the
   // nursery, the given arena is used.
+#ifdef JITSBX_HEAP
+  void* allocateZeroedBuffer(JSObject* obj, size_t nbytes,
+                             arena_id_t arena = js::JitsbxMallocArena);
+#else
   void* allocateZeroedBuffer(JSObject* obj, size_t nbytes,
                              arena_id_t arena = js::MallocArena);
+#endif
 
   // Resize an existing buffer.
   void* reallocateBuffer(JS::Zone* zone, gc::Cell* cell, void* oldBuffer,
@@ -284,10 +294,17 @@ class Nursery {
   }
   MOZ_ALWAYS_INLINE size_t freeSpace() const {
     MOZ_ASSERT(isEnabled());
+#ifdef JITSBX_HEAP
+    MOZ_ASSERT(currentEnd_ - *position_ <= NurseryChunkUsableSize);
+    MOZ_ASSERT(currentChunk_ < maxChunkCount());
+    return (currentEnd_ - *position_) +
+           (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+#else
     MOZ_ASSERT(currentEnd_ - position_ <= NurseryChunkUsableSize);
     MOZ_ASSERT(currentChunk_ < maxChunkCount());
     return (currentEnd_ - position_) +
            (maxChunkCount() - currentChunk_ - 1) * gc::ChunkSize;
+#endif
   }
 
 #ifdef JS_GC_ZEAL
@@ -304,13 +321,22 @@ class Nursery {
   // Print total profile times on shutdown.
   void printTotalProfileTimes();
 
+#ifdef JITSBX_HEAP
+  void* addressOfPosition() const { return (void**)position_; }
+  void* addressOfEnd() const { return (void**)&currentEnd_; }
+#else
   void* addressOfPosition() const { return (void**)&position_; }
   static constexpr int32_t offsetOfCurrentEndFromPosition() {
     return offsetof(Nursery, currentEnd_) - offsetof(Nursery, position_);
   }
+#endif
 
   void* addressOfNurseryAllocatedSites() {
+#ifdef JITSBX_HEAP
+    return pretenuringNursery->addressOfAllocatedSites();
+#else
     return pretenuringNursery.addressOfAllocatedSites();
+#endif
   }
 
   void requestMinorGC(JS::GCReason reason) const;
@@ -350,12 +376,21 @@ class Nursery {
     return startTimes_[ProfileKey::Total];
   }
 
+#ifdef JITSBX_HEAP
+  bool canCreateAllocSite() { return pretenuringNursery->canCreateAllocSite(); }
+  void noteAllocSiteCreated() { pretenuringNursery->noteAllocSiteCreated(); }
+  bool reportPretenuring() const { return reportPretenuring_; }
+  void maybeStopPretenuring(gc::GCRuntime* gc) {
+    pretenuringNursery->maybeStopPretenuring(gc);
+  }
+#else
   bool canCreateAllocSite() { return pretenuringNursery.canCreateAllocSite(); }
   void noteAllocSiteCreated() { pretenuringNursery.noteAllocSiteCreated(); }
   bool reportPretenuring() const { return reportPretenuring_; }
   void maybeStopPretenuring(gc::GCRuntime* gc) {
     pretenuringNursery.maybeStopPretenuring(gc);
   }
+#endif
 
   void setAllocFlagsForZone(JS::Zone* zone);
 
@@ -372,7 +407,11 @@ class Nursery {
   // Fields used during allocation fast path are grouped first:
 
   // Pointer to the first unallocated byte in the nursery.
+#ifdef JITSBX_HEAP
+  uintptr_t* position_;
+#else
   uintptr_t position_;
+#endif
 
   // Pointer to the last byte of space in the current chunk.
   uintptr_t currentEnd_;
@@ -398,7 +437,11 @@ class Nursery {
   // changed by maybeResizeNursery() each collection. It includes chunk headers.
   size_t capacity_;
 
+#ifdef JITSBX_HEAP
+  gc::PretenuringNursery* pretenuringNursery;
+#else
   gc::PretenuringNursery pretenuringNursery;
+#endif
 
   mozilla::TimeDuration timeInChunkAlloc_;
 
@@ -549,7 +592,11 @@ class Nursery {
 
   MOZ_ALWAYS_INLINE uintptr_t currentEnd() const;
 
+#ifdef JITSBX_HEAP
+  uintptr_t position() const { return *position_; }
+#else
   uintptr_t position() const { return position_; }
+#endif
 
   MOZ_ALWAYS_INLINE bool isSubChunkMode() const;
 

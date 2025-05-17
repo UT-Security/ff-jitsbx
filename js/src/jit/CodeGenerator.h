@@ -82,6 +82,15 @@ class OutOfLineBoxNonStrictThis;
 class OutOfLineArrayPush;
 class OutOfLineWasmCallPostWriteBarrier;
 
+#ifdef JITSBX_CFI_STACK
+template <typename LCallIns>
+class OutOfLineCallNative;
+
+class OutOfLineCallDOMNative;
+class OutOfLineGetDOMProperty;
+class OutOfLineSetDOMProperty;
+#endif
+
 class CodeGenerator final : public CodeGeneratorSpecific {
   [[nodiscard]] bool generateBody();
 
@@ -102,6 +111,13 @@ class CodeGenerator final : public CodeGeneratorSpecific {
   template <typename Fn, Fn fn, class ArgSeq, class StoreOutputTo>
   inline OutOfLineCode* oolCallVM(LInstruction* ins, const ArgSeq& args,
                                   const StoreOutputTo& out);
+
+#ifdef JITSBX_CFI_STACK
+  void tailCallVMInternal(VMFunctionId id, LInstruction* ins);
+#endif
+
+  template <typename Fn, Fn fn>
+  void maybeTailCallVM(LInstruction* ins);
 
   template <typename LCallIns>
   void emitCallNative(LCallIns* call, JSNative native);
@@ -185,6 +201,17 @@ class CodeGenerator final : public CodeGeneratorSpecific {
 
   void visitOutOfLineWasmCallPostWriteBarrier(
       OutOfLineWasmCallPostWriteBarrier* ool);
+
+#ifdef JITSBX_CFI_STACK    
+  template <typename LCallIns>
+  void visitOutOfLineCallNative(OutOfLineCallNative<LCallIns>* ool);  
+
+  void visitOutOfLineCallDOMNative(OutOfLineCallDOMNative* ool);
+
+  void visitOutOfLineGetDOMProperty(OutOfLineGetDOMProperty* ool);
+
+  void visitOutOfLineSetDOMProperty(OutOfLineSetDOMProperty* ool);
+#endif
 
  private:
   void emitPostWriteBarrier(const LAllocation* obj);

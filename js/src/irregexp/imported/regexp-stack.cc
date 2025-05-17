@@ -72,7 +72,11 @@ Address RegExpStack::EnsureCapacity(size_t size) {
   if (size > kMaximumStackSize) return kNullAddress;
   if (thread_local_.memory_size_ < size) {
     if (size < kMinimumDynamicStackSize) size = kMinimumDynamicStackSize;
+#ifdef JITSBX_HEAP
+    byte* new_memory = NewJitsbxArray<byte>(size);
+#else
     byte* new_memory = NewArray<byte>(size);
+#endif
     if (thread_local_.memory_size_ > 0) {
       // Copy original memory into top of new memory.
       MemCopy(new_memory + size - thread_local_.memory_size_,

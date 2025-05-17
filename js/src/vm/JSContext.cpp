@@ -131,6 +131,13 @@ bool JSContext::init(ContextKind kind) {
     return false;
   }
 
+#ifdef JITSBX_HEAP
+  inlinedICScript_ = jitsbx_new_<js::ContextData<js::jit::ICScript*>>(this, nullptr);
+  if (!inlinedICScript_) {
+    return false;
+  }
+#endif
+
   // Set the ContextKind last, so that ProtectedData checks will allow us to
   // initialize this context before it becomes the runtime's active context.
   kind_ = kind;
@@ -1041,7 +1048,11 @@ JSContext::JSContext(JSRuntime* runtime, const JS::ContextOptions& options)
       interruptCallbacks_(this),
       interruptCallbackDisabled(this, false),
       interruptBits_(0),
+#ifdef JITSBX_HEAP
+      inlinedICScript_(nullptr),
+#else
       inlinedICScript_(this, nullptr),
+#endif
       jitStackLimit(JS::NativeStackLimitMin),
       jitStackLimitNoInterrupt(this, JS::NativeStackLimitMin),
       jobQueue(this, nullptr),
@@ -1061,6 +1072,12 @@ JSContext::~JSContext() {
   // Clear the ContextKind first, so that ProtectedData checks will allow us to
   // destroy this context even if the runtime is already gone.
   kind_ = ContextKind::Uninitialized;
+
+#ifdef JITSBX_HEAP
+  if (inlinedICScript_) {
+    js_delete(inlinedICScript_);
+  }
+#endif
 
   /* Free the stuff hanging off of cx. */
   MOZ_ASSERT(!resolvingList);

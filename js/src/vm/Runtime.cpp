@@ -279,6 +279,10 @@ void JSRuntime::destroyRuntime() {
   defaultLocale = nullptr;
   js_delete(jitRuntime_.ref());
 
+#ifdef JITSBX
+  js_delete(jitSandbox_.ref());
+#endif
+
 #ifdef DEBUG
   initialized_ = false;
 #endif

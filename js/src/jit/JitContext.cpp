@@ -5,6 +5,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "jit/JitContext.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#include "jitsbx/JitSandboxContext.h"
+#endif
 
 #include "mozilla/Assertions.h"
 #include "mozilla/ThreadLocal.h"
@@ -63,17 +67,29 @@ JitContext* jit::MaybeGetJitContext() { return CurrentJitContext(); }
 
 JitContext::JitContext(CompileRuntime* rt) : runtime(rt) {
   MOZ_ASSERT(rt);
+#ifdef JITSBX
+  jitSandbox = runtime->jitSandbox();
+  MOZ_ASSERT(jitSandbox);
+#endif
   SetJitContext(this);
 }
 
 JitContext::JitContext(JSContext* cx)
     : cx(cx), runtime(CompileRuntime::get(cx->runtime())) {
+#ifdef JITSBX
+  jitSandbox = runtime->jitSandbox();
+  MOZ_ASSERT(jitSandbox);
+#endif
   SetJitContext(this);
 }
 
 JitContext::JitContext() {
 #ifdef DEBUG
   isCompilingWasm_ = true;
+#endif
+#ifdef JITSBX
+  jitSandbox = jitsbx::GetJitSandboxContext()->jitSandbox;
+  MOZ_ASSERT(jitSandbox);
 #endif
   SetJitContext(this);
 }

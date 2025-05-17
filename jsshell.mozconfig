@@ -1,0 +1,10 @@
+ac_add_options --enable-project=js
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-debug-@CONFIG_GUESS@
+
+ac_add_options --enable-debug
+ac_add_options --disable-optimize
+ac_add_options --enable-jit-sandbox
+ac_add_options --enable-jit-sandbox-heap
+ac_add_options --enable-jit-sandbox-realm
+ac_add_options --enable-jit-sandbox-heap-mask=passive
+ac_add_options --enable-jit-sandbox-cfi-stack

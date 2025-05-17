@@ -80,6 +80,33 @@ class AllocPolicyBase {
     return pod_arena_realloc<T>(js::MallocArena, p, oldSize, newSize);
   }
 
+#ifdef JITSBX_HEAP
+  template <typename T>
+  T* maybe_pod_jitsbx_malloc(size_t numElems) {
+    return maybe_pod_arena_malloc<T>(js::JitsbxMallocArena, numElems);
+  }
+  template <typename T>
+  T* maybe_pod_jitsbx_calloc(size_t numElems) {
+    return maybe_pod_arena_calloc<T>(js::JitsbxMallocArena, numElems);
+  }
+  template <typename T>
+  T* maybe_pod_jitsbx_realloc(T* p, size_t oldSize, size_t newSize) {
+    return maybe_pod_arena_realloc<T>(js::JitsbxMallocArena, p, oldSize, newSize);
+  }
+  template <typename T>
+  T* pod_jitsbx_malloc(size_t numElems) {
+    return pod_arena_malloc<T>(js::JitsbxMallocArena, numElems);
+  }
+  template <typename T>
+  T* pod_jitsbx_calloc(size_t numElems) {
+    return pod_arena_calloc<T>(js::JitsbxMallocArena, numElems);
+  }
+  template <typename T>
+  T* pod_jitsbx_realloc(T* p, size_t oldSize, size_t newSize) {
+    return pod_arena_realloc<T>(js::JitsbxMallocArena, p, oldSize, newSize);
+  }
+#endif
+
   template <typename T>
   void free_(T* p, size_t numElems = 0) {
     js_free(p);
@@ -206,6 +233,23 @@ class JS_PUBLIC_API TempAllocPolicy : public AllocPolicyBase {
   T* pod_realloc(T* prior, size_t oldSize, size_t newSize) {
     return pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
   }
+
+#ifdef JITSBX_HEAP
+  template <typename T>
+  T* pod_jitsbx_malloc(size_t numElems) {
+    return pod_arena_malloc<T>(js::JitsbxMallocArena, numElems);
+  }
+
+  template <typename T>
+  T* pod_jitsbx_calloc(size_t numElems) {
+    return pod_arena_calloc<T>(js::JitsbxMallocArena, numElems);
+  }
+
+  template <typename T>
+  T* pod_jitsbx_realloc(T* prior, size_t oldSize, size_t newSize) {
+    return pod_arena_realloc<T>(js::JitsbxMallocArena, prior, oldSize, newSize);
+  }
+#endif
 
   template <typename T>
   void free_(T* p, size_t numElems = 0) {

@@ -106,6 +106,12 @@ class Simulator;
 #endif
 }  // namespace jit
 
+#ifdef JITSBX
+namespace jitsbx {
+class JitSandbox;
+}  // namespace jitsbx
+#endif
+
 namespace frontend {
 struct CompilationInput;
 struct CompilationStencil;
@@ -658,6 +664,15 @@ struct JSRuntime {
 
  public:
   js::coverage::LCovRuntime& lcovOutput() { return lcovOutput_.ref(); }
+
+#ifdef JITSBX
+ private:
+  js::UnprotectedData<js::jitsbx::JitSandbox*> jitSandbox_;
+
+ public:
+  [[nodiscard]] bool createJitSandbox(JSContext* cx);
+  js::jitsbx::JitSandbox* jitSandbox() const { return jitSandbox_.ref(); }
+#endif
 
  private:
   js::UnprotectedData<js::jit::JitRuntime*> jitRuntime_;

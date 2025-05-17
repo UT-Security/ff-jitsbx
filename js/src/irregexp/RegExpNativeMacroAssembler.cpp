@@ -74,6 +74,7 @@ SMRegExpMacroAssembler::SMRegExpMacroAssembler(JSContext* cx,
 
   masm_.jump(&entry_label_);  // We'll generate the entry code later
   masm_.bind(&start_label_);  // and continue from here.
+  masm_.sbxAssertSandboxStack();
 }
 
 int SMRegExpMacroAssembler::stack_limit_slack() {
@@ -121,7 +122,9 @@ void SMRegExpMacroAssembler::Backtrack() {
 }
 
 void SMRegExpMacroAssembler::Bind(Label* label) {
+  masm_.sbxBundleAlignNop();
   masm_.bind(label->inner());
+  masm_.sbxEmitCFILabel();
   if (label->patchOffset_.bound()) {
     AddLabelPatch(label->patchOffset_, label->pos());
   }
@@ -1034,8 +1037,10 @@ void SMRegExpMacroAssembler::createStackFrame() {
   // Initialize the PSP from the SP.
   masm_.initPseudoStackPtr();
 #endif
-
+  masm_.sbxAssertNativeStack();
   masm_.Push(js::jit::FramePointer);
+  masm_.sbxToSandboxStack();
+  masm_.sbxPushFrame();
   masm_.moveStackPtrTo(js::jit::FramePointer);
 
   // Push non-volatile registers which might be modified by jitcode.
@@ -1067,7 +1072,12 @@ void SMRegExpMacroAssembler::createStackFrame() {
   // avoid failing repeatedly when the regex code is called from Ion JIT code.
   // (See bug 1208819)
   js::jit::Label stack_ok;
+#ifdef JITSBX_CFI_STACK
+  // TODO(JITSBX_CFI_STACK): add a second check for native-stack pointer too.
+  AbsoluteAddress limit_addr(cx_->runtime()->jitSandbox()->addressOfSandboxStackLimit());
+#else
   AbsoluteAddress limit_addr(cx_->addressOfJitStackLimitNoInterrupt());
+#endif
   masm_.branchStackPtrRhs(Assembler::Below, limit_addr, &stack_ok);
 
   // There is not enough space on the stack. Exit with an exception.
@@ -1175,6 +1185,7 @@ void SMRegExpMacroAssembler::successHandler() {
     return;
   }
   masm_.bind(&success_label_);
+  masm_.sbxAssertSandboxStack();
 
   // Copy captures to the MatchPairs pointed to by the InputOutputData.
   // Captures are stored as positions, which are negative byte offsets
@@ -1203,7 +1214,13 @@ void SMRegExpMacroAssembler::successHandler() {
     if (mode_ == UC16) {
       masm_.rshiftPtrArithmetic(Imm32(1), temp0_);
     }
+#ifdef JITSBX_HEAP
+    // TODO: Temporary fix. Make sure to switch to switch to sandbox stack
+    // instead of disabling mask in general.
+    masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)), false);
+#else
     masm_.store32(temp0_, Address(matchesReg, i * sizeof(int32_t)));
+#endif
   }
 
   masm_.movePtr(ImmWord(js::RegExpRunStatus_Success), temp0_);
@@ -1212,6 +1229,7 @@ void SMRegExpMacroAssembler::successHandler() {
 
 void SMRegExpMacroAssembler::exitHandler() {
   masm_.bind(&exit_label_);
+  masm_.sbxAssertSandboxStack();
 
   if (temp0_ != js::jit::ReturnReg) {
     masm_.movePtr(temp0_, js::jit::ReturnReg);
@@ -1225,6 +1243,8 @@ void SMRegExpMacroAssembler::exitHandler() {
     masm_.Pop(*iter);
   }
 
+  masm_.sbxPopFrame();
+  masm_.sbxToNativeStack();
   masm_.Pop(js::jit::FramePointer);
 
 #ifdef JS_CODEGEN_ARM64
@@ -1259,6 +1279,7 @@ void SMRegExpMacroAssembler::backtrackHandler() {
     return;
   }
   masm_.bind(&backtrack_label_);
+  masm_.sbxAssertSandboxStack();
   Backtrack();
 }
 
@@ -1273,15 +1294,21 @@ void SMRegExpMacroAssembler::stackOverflowHandler() {
   // Called if the backtrack-stack limit has been hit.
   masm_.bind(&stack_overflow_label_);
 
+#ifdef JS_USE_LINK_REGISTER
+  masm_.pushReturnAddress();
+#endif
+  masm_.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm_.push(js::jit::FramePointer);
+#endif
+  masm_.sbxToSandboxStack();
+  masm_.sbxPushReturnAddress();
+
   // Load argument
   masm_.movePtr(ImmPtr(isolate()->regexp_stack()), temp1_);
 
   // Save registers before calling C function
   LiveGeneralRegisterSet volatileRegs(GeneralRegisterSet::Volatile());
-
-#ifdef JS_USE_LINK_REGISTER
-  masm_.pushReturnAddress();
-#endif
 
   // Adjust for the return address on the stack.
   size_t frameOffset = sizeof(void*);
@@ -1317,6 +1344,12 @@ void SMRegExpMacroAssembler::stackOverflowHandler() {
 
   // Resume execution in calling code.
   masm_.bind(&overflow_return);
+  masm_.sbxAssertSandboxStack();
+  masm_.sbxPopReturnAddress();
+  masm_.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm_.pop(js::jit::FramePointer);
+#endif
   masm_.ret();
 }
 

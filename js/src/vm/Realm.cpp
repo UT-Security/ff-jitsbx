@@ -18,6 +18,9 @@
 #include "debugger/Debugger.h"
 #include "gc/GC.h"
 #include "jit/JitRealm.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "js/CallAndConstruct.h"      // JS::IsCallable
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
@@ -48,6 +51,9 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
       zone_(comp->zone()),
       runtime_(comp->runtimeFromMainThread()),
       creationOptions_(options.creationOptions()),
+#ifdef JITSBX_HEAP
+      randomNumberGenerator_(nullptr),
+#endif
       behaviors_(options.behaviors()),
       objects_(zone_),
       randomKeyGenerator_(runtime_->forkRandomKeyGenerator()),
@@ -56,6 +62,9 @@ Realm::Realm(Compartment* comp, const JS::RealmOptions& options)
                                     zone_->isGCFinished()),
       wasm(runtime_) {
   runtime_->numRealms++;
+#ifdef JITSBX_REALM
+  runtime_->jitSandbox()->activeRealms.insert(this);
+#endif
 }
 
 Realm::~Realm() {
@@ -69,9 +78,18 @@ Realm::~Realm() {
 
   MOZ_ASSERT(runtime_->numRealms > 0);
   runtime_->numRealms--;
+#ifdef JITSBX_REALM
+  runtime_->jitSandbox()->activeRealms.erase(this);
+#endif
+
+#ifdef JITSBX_HEAP
+  if (randomNumberGenerator_) {
+    js_delete(randomNumberGenerator_);
+  }
+#endif
 }
 
-void Realm::init(JSContext* cx, JSPrincipals* principals) {
+bool Realm::init(JSContext* cx, JSPrincipals* principals) {
   /*
    * As a hack, we clear our timezone cache every time we create a new realm.
    * This ensures that the cache is always relatively fresh, but shouldn't
@@ -87,7 +105,36 @@ void Realm::init(JSContext* cx, JSPrincipals* principals) {
     JS_HoldPrincipals(principals);
     principals_ = principals;
   }
+
+#ifdef JITSBX_HEAP
+  randomNumberGenerator_ = cx->jitsbx_new_<mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG>>();
+  if (!randomNumberGenerator_) {
+    return false;
+  }
+#endif
+  return true;
 }
+
+#ifdef JITSBX
+bool JSRuntime::createJitSandbox(JSContext* cx) {
+  using namespace js::jitsbx;
+
+  MOZ_ASSERT(!jitSandbox_);
+
+  JitSandbox* jitSandbox = cx->new_<JitSandbox>();
+  if (!jitSandbox) {
+    return false;
+  }
+
+  if (!jitSandbox->initialize(cx)) {
+    js_delete(jitSandbox);
+    return false;
+  }
+
+  jitSandbox_ = jitSandbox;
+  return true;
+}
+#endif
 
 bool JSRuntime::createJitRuntime(JSContext* cx) {
   using namespace js::jit;

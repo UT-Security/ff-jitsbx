@@ -1,0 +1,94 @@
+## 0.3.0
+
+TODO: Reader::next_n should return the number of items read as Err(ReadError::Incomplete(n)) if the buffer is exhausted
+TODO: Reader::offset should return an AddressDiff<Address>, not a bare Address
+TODO: impls of `fn one` and `fn zero` so downstream users don't have to import num_traits directly
+
+## 0.2.8
+
+added an impl of `From<ReadError>` for `StandardPartialDecoderError`, matching the existing `StandardDecodeError` impl.
+
+moved a use of `serde` types to be covered by the relevant cfg flag; using `colors` without `serde` (unlikely) now actually builds.
+
+fixed up doc comments to build without error.
+
+(and additional testing permutations to validate cfg flags and doc comments in the future)
+
+## 0.2.7
+
+moved `AnnotatingDecoder` and its associated types to `annotation/`, for module-level documentation about that feature.
+
+yanked 0.2.6 because there was not yet a user of it other than myself, and it had this feature in the wrong location in the crate.
+
+## 0.2.6
+
+added `AnnotatingDecoder` and associated traits `FieldDescription` and `DescriptionSink` for architectures to report meanings for bit ranges in decoded instructions.
+
+added `NullSink`, with an `impl<T> DescriptionSink<T> for NullSink` - `NullSink` can always be used to discard instruction annotations. this is mostly useful for shared annotating and non-annotating decode logic.
+
+added a `docs/` directory for `yaxpeax-arch`: trip reports for `yaxpeax-arch` design. if `yaxpeax` eventually grows an RFC process one day, these are the kind of changes that would get RFC'd.
+
+added `docs/0001-AnnotatingDecoder.md`, describing motivation and implementation notes of `AnnotatingDecoder`.
+
+## 0.2.5
+
+added `yaxpeax-lc87` to the matrix
+
+## 0.2.4
+
+fix incorrect `Reader` impls of `offset` and `total_offset` on non-`u8` words
+
+## 0.2.3
+
+added `Reader` impls for `U8Reader` on `u16` addresses
+
+## 0.2.2
+
+added `ReaderBuilder` trait and impls for `U8Reader` on various address and word types.
+
+added documentation for `Reader`, `U8Reader`, and `ReaderBuilder`.
+
+avoid an unlikely violation of `core::ptr::offset` safety rules on 32-bit architectures.
+
+## 0.2.1
+
+updated architecture matrix
+
+## 0.2.0
+
+correct a bug in 0.1.0 that incorrectly bounded `DecodeError` and did not actually require `std::error::Error`. added a test that `std::error::Error` is actually required of `Arch::DecodeError` in non-std builds.
+
+## 0.1.0
+
+new trait `Reader` to provide a reader of `Arch`-defined `Word`s. in many cases it is acceptable for `Word` to be `u8`, but `yaxpeax-arch` provides pre-defined words `u8`, `U16le`, `U16be`, `U32le`, `U32be`, `U64le`, and `U64be`.
+
+`yaxpeax_arch::U8Reader` is a struct to read from `&[u8]` that implements `Reader` for all predefined words. it is suitable to read larger words if the minimum word size is still one byte.
+
+`Decoder` now decodes from a `Reader<A::Address, A::Word>`, to prepare for ISAs where instruction sizes are not multiples of 8 bits.
+
+`yaxpeax_arch::DecodeError` now requires a `std::error::Error` impl for `std` builds, to support interop with the Rust `error` ecosystem.
+
+committed to `AddressDiff` being convertable to a primitive with `AddressDiff::to_const`
+- this addresses the need for hacks to translate an instruction length into a usize
+
+## 0.0.5
+
+swap the `termion` dependency for `crossterm`. this is motivated by improved cross-platform support (notably Windows) as well as removing a type parameter from `Colored` and `YaxColors`.
+
+## 0.0.4
+
+add `AddressDiff`. `LengthedInstruction::len` now return `AddressDiff`. the length of an instruction is the difference between two addresses, not itself an address.
+
+## 0.0.3
+
+`ColorSettings` gets a default impl
+
+## 0.0.2
+
+add `AddressDisplay` to provide a usable interface to display `Address` implementors.
+
+at the same time, remove `Address::stringy()`. it was a very bad interface, and will not be missed.
+
+## 0.0.1
+
+history starts here

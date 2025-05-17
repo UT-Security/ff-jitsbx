@@ -1797,10 +1797,10 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   // invoke-from-interpreter jit stub, thus serving as the initial, unoptimized
   // jit-entry stub for any exported wasm function that has a jit-entry.
 
+  JitContext jitContext;
 #ifdef DEBUG
   // We need to allow this machine code to bake in a C++ code pointer, so we
   // disable the wasm restrictions while generating this stub.
-  JitContext jitContext;
   bool oldFlag = jitContext.setIsCompilingWasm(false);
 #endif
 

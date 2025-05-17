@@ -595,12 +595,22 @@ void MacroAssembler::bumpPointerAllocate(Register result, Register temp,
   // Use a relative 32 bit offset to the Nursery position_ to currentEnd_ to
   // avoid 64-bit immediate loads.
   void* posAddr = zone->addressOfNurseryPosition();
+#ifdef JITSBX_HEAP
+  void* endAddr = zone->addressOfNurseryEnd();
+#else
   int32_t endOffset = Nursery::offsetOfCurrentEndFromPosition();
+#endif
 
   movePtr(ImmPtr(posAddr), temp);
   loadPtr(Address(temp, 0), result);
   addPtr(Imm32(totalSize), result);
+#ifdef JITSBX_HEAP
+  movePtr(ImmPtr(endAddr), temp);
+  branchPtr(Assembler::Below, Address(temp, 0), result, fail);
+  movePtr(ImmPtr(posAddr), temp);
+#else
   branchPtr(Assembler::Below, Address(temp, endOffset), result, fail);
+#endif
   storePtr(result, Address(temp, 0));
   subPtr(Imm32(size), result);
 
@@ -2056,7 +2066,23 @@ static const uint8_t* ContextRealmPtr(CompileRuntime* rt) {
 }
 
 void MacroAssembler::switchToRealm(Register realm) {
+#ifdef JITSBX_REALM
+  AllocatableRegisterSet regs(RegisterSet::Volatile());
+  LiveRegisterSet save(regs.asLiveSet());
+  PushRegsInMask(save);
+  if (regs.has(realm)) {
+    regs.takeUnchecked(realm);
+  }
+  Register temp = regs.takeAnyGeneral();
+  setupUnalignedABICall(temp);
+  passABIArg(realm);
+  using Fn = void (*)(JS::Realm* realm);
+  callWithABI<Fn, js::jitsbx::switchToRealm>(
+      MoveOp::GENERAL, CheckUnsafeCallWithABI::DontCheckOther);
+  PopRegsInMask(save);
+#else
   storePtr(realm, AbsoluteAddress(ContextRealmPtr(runtime())));
+#endif
 }
 
 void MacroAssembler::switchToRealm(const void* realm, Register scratch) {
@@ -2076,6 +2102,18 @@ void MacroAssembler::switchToObjectRealm(Register obj, Register scratch) {
 void MacroAssembler::switchToBaselineFrameRealm(Register scratch) {
   Address envChain(FramePointer,
                    BaselineFrame::reverseOffsetOfEnvironmentChain());
+  loadPtr(envChain, scratch);
+  switchToObjectRealm(scratch, scratch);
+}
+
+void MacroAssembler::switchToBaselineFrameRealmFromStub(Register scratch) {
+#ifdef JITSBX_CFI_STACK
+  loadPtr(Address(FramePointer, 0), scratch);
+  Address envChain(scratch, BaselineFrame::reverseOffsetOfEnvironmentChain());
+#else
+  Address envChain(FramePointer,
+                   BaselineFrame::reverseOffsetOfEnvironmentChain());
+#endif
   loadPtr(envChain, scratch);
   switchToObjectRealm(scratch, scratch);
 }
@@ -2936,18 +2974,58 @@ void MacroAssembler::generateBailoutTail(Register scratch,
       bind(&endOfCopy);
     }
 
+#ifdef JITSBX_CFI_STACK
+    sbxToNativeStack();
+    // Copy data onto native stack.
+    loadPtr(
+        Address(bailoutInfo, offsetof(BaselineBailoutInfo, copyNativeStackTop)),
+        copyCur);
+    loadPtr(Address(bailoutInfo,
+                    offsetof(BaselineBailoutInfo, copyNativeStackBottom)),
+            copyEnd);
+    {
+      Label copyNativeLoop;
+      Label endOfNativeCopy;
+      bind(&copyNativeLoop);
+      branchPtr(Assembler::BelowOrEqual, copyCur, copyEnd, &endOfNativeCopy);
+      subPtr(Imm32(sizeof(uintptr_t)), copyCur);
+      subFromStackPtr(Imm32(sizeof(uintptr_t)));
+      loadPtr(Address(copyCur, 0), temp);
+#ifdef JITSBX_HEAP_MASK
+      storePtr(temp, Address(getStackPointer(), 0), false);
+#else
+      storePtr(temp, Address(getStackPointer(), 0));
+#endif
+      jump(&copyNativeLoop);
+      bind(&endOfNativeCopy);
+    }
+
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
             FramePointer);
+    push(FramePointer);
+    sbxToSandboxStack();
+#else
+    loadPtr(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeFramePtr)),
+            FramePointer);
+#endif
 
     // Enter exit frame for the FinishBailoutToBaseline call.
     pushFrameDescriptor(FrameType::BaselineJS);
+#ifdef JITSBX_CFI_STACK
+    sbxPushFrame();
+#else
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
     push(FramePointer);
+#endif
     // No GC things to mark on the stack, push a bare token.
     loadJSContext(scratch);
     enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
     // Save needed values onto stack temporarily.
+    // cfi-stack(SAFETY): pushing a code-pointer to the sandbox-stack.
+    // Safe since we are in a trusted function calling a trusted C++ leaf
+    // function.
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
 
     // Call a stub to free allocated memory and create arguments objects.
@@ -2967,11 +3045,16 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 
     // Discard exit frame.
     addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
-
+#ifdef JITSBX_CFI_STACK
+    sbxToNativeStack();
+    addToStackPtr(Imm32(sizeof(void*) * 2));
+    sbxToSandboxStack();
+#endif
     jump(jitcodeReg);
   }
 
   bind(&bailoutFailed);
+  sbxAssertSandboxStack();
   {
     // jit::Bailout or jit::InvalidationBailout failed and returned false. The
     // Ion frame has already been discarded and the stack pointer points to the
@@ -3031,7 +3114,11 @@ static const uint8_t* ContextInlinedICScriptPtr(CompileRuntime* rt) {
 }
 
 void MacroAssembler::storeICScriptInJSContext(Register icScript) {
+#ifdef JITSBX_HEAP
+  storePtr(icScript, AbsoluteAddress(((JSContext*)runtime()->mainContextPtr())->addressOfInlinedICScript()));
+#else
   storePtr(icScript, AbsoluteAddress(ContextInlinedICScriptPtr(runtime())));
+#endif
 }
 
 void MacroAssembler::handleFailure() {
@@ -3539,6 +3626,9 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+#ifdef JITSBX
+  disableSandbox();
+#endif
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
@@ -3555,6 +3645,9 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
+#ifdef JITSBX
+  disableSandbox();
+#endif
 }
 
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,
@@ -3844,14 +3937,24 @@ void MacroAssembler::callWithABINoProfiler(void* fun, MoveOp::Type result,
     push(ReturnReg);
     loadJSContext(ReturnReg);
     Address flagAddr(ReturnReg, JSContext::offsetOfInUnsafeCallWithABI());
+#ifdef JITSBX_HEAP_MASK
+    store32(Imm32(1), flagAddr, false);
+#else
     store32(Imm32(1), flagAddr);
+#endif
     pop(ReturnReg);
     // On arm64, SP may be < PSP now (that's OK).
     // eg testcase: tests/bug1375074.js
   }
 #endif
 
+#ifdef JITSBX
+  // cfi-stack(SAFETY): we already switched to the native-stack in
+  // callWithABIPre.
+  callCFIUnsafe(ImmPtr(fun));
+#else
   call(ImmPtr(fun));
+#endif
 
   callWithABIPost(stackAdjust, result);
 
@@ -3909,7 +4012,13 @@ void MacroAssembler::callDebugWithABI(wasm::SymbolicAddress imm,
 
 void MacroAssembler::linkExitFrame(Register cxreg, Register scratch) {
   loadPtr(Address(cxreg, JSContext::offsetOfActivation()), scratch);
+#ifdef JITSBX_HEAP_MASK
+  // ask2374
+  storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()), false);
+  // ask2374
+#else
   storeStackPtr(Address(scratch, JitActivation::offsetOfPackedExitFP()));
+#endif
 }
 
 // ===============================================================

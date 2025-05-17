@@ -517,6 +517,214 @@ option(
 set_define("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 set_config("JS_MASM_VERBOSE", depends_if("--enable-masm-verbose")(lambda _: True))
 
+# JIT Sandbox
+# =======================================================
+
+option(
+    "--enable-jit-sandbox",
+    default=False,
+    help="{Enable|Disable} JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox", target, "--enable-jit")
+def jit_sandbox(jit_sandbox, target, jit_enabled):
+    if jit_sandbox and target.cpu != "x86_64":
+        die("--enable-jit-sandbox works only on x86-64")
+        
+    is_linux = target.kernel == "Linux" and target.os == "GNU"
+    if jit_sandbox and not is_linux:
+        die("--enable-jit-sandbox works only on GNU Linux")
+
+    if jit_sandbox and not jit_enabled:
+        return
+
+    if jit_sandbox:
+        return True
+
+set_config("JITSBX", jit_sandbox)
+set_define("JITSBX", jit_sandbox)
+
+option(
+    "--enable-jit-sandbox-heap",
+    default=False,
+    help="{Enable|Disable} JIT sandbox heap.",
+)
+
+@depends("--enable-jit-sandbox-heap", "--enable-jit-sandbox")
+def jit_sandbox_heap(jit_sandbox_heap, jit_sandbox):
+    if jit_sandbox and jit_sandbox_heap:
+        return True
+
+set_config("JITSBX_HEAP", jit_sandbox_heap)
+set_define("JITSBX_HEAP", jit_sandbox_heap)
+
+# ask2374
+option(
+    "--enable-jit-sandbox-heap-mask",
+    nargs="?",
+    choices=("active", "passive", "none"),
+    default="none",
+    help="{active|passive|none} JIT sandbo heap mask enforcement mode.",
+)
+
+@depends("--enable-jit-sandbox-heap-mask", "--enable-jit-sandbox-heap", "--enable-jit-sandbox")
+def jit_sandbox_heap_mask(jit_sandbox_heap_mask, jit_sandbox_heap, jit_sandbox):
+    if jit_sandbox_heap and jit_sandbox:
+        mode = jit_sandbox_heap_mask[0]
+        return namespace(**{mode: True})
+
+
+set_config("JITSBX_HEAP_MASK", depends_if(jit_sandbox_heap_mask)(lambda x: x in ["active", "passive"]))
+set_define("JITSBX_HEAP_MASK", depends_if(jit_sandbox_heap_mask)(lambda x: x in ["active", "passive"]))
+set_config("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
+set_define("JITSBX_HEAP_MASK_ACTIVE", jit_sandbox_heap_mask.active)
+set_config("JITSBX_HEAP_MASK_PASSIVE", jit_sandbox_heap_mask.passive)
+set_define("JITSBX_HEAP_MASK_PASSIVE", jit_sandbox_heap_mask.passive)
+# ask2374
+
+option(
+    "--enable-jit-sandbox-realm",
+    default=False,
+    help="{Enable|Disable} JIT sandbox realm verification.",
+)
+
+@depends("--enable-jit-sandbox-realm", "--enable-jit-sandbox")
+def jit_sandbox_realm(jit_sandbox_realm, jit_sandbox):
+    if jit_sandbox and jit_sandbox_realm:
+        return True
+
+set_config("JITSBX_REALM", jit_sandbox_realm)
+set_define("JITSBX_REALM", jit_sandbox_realm)
+
+option(
+    "--enable-jit-sandbox-verifier",
+    default=False,
+    help="{Enable|Disable} JIT sandbox code verifier.",
+)
+
+@depends("--enable-jit-sandbox-verifier", "--enable-jit-sandbox")
+def jit_sandbox_verifier(jit_sandbox_verifier, jit_sandbox):
+    if jit_sandbox and jit_sandbox_verifier:
+        return True
+
+set_config("JITSBX_VERIFIER", jit_sandbox_verifier)
+set_define("JITSBX_VERIFIER", jit_sandbox_verifier)
+
+option(
+    "--enable-jit-sandbox-cfi-stack",
+    default=False,
+    help="{Enable|Disable} safe-stack inspired backward-edge CFI for the JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox-cfi-stack", "--enable-jit-sandbox")
+def jit_sandbox_cfi_stack(jit_sandbox_cfi_stack, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_stack:
+        return True
+
+set_config("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
+set_define("JITSBX_CFI_STACK", jit_sandbox_cfi_stack)
+
+option(
+    "--enable-jit-sandbox-cfi-label4",
+    default=False,
+    help="{Enable|Disable} classic CFI 4-byte label forward-edge protections for the JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox-cfi-label4", "--enable-jit-sandbox")
+def jit_sandbox_cfi_label4(jit_sandbox_cfi_label4, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_label4:
+        return True
+
+set_config("JITSBX_CFI_LABEL4", jit_sandbox_cfi_label4)
+set_define("JITSBX_CFI_LABEL4", jit_sandbox_cfi_label4)
+
+
+option(
+    "--enable-jit-sandbox-cfi-label8",
+    default=False,
+    help="{Enable|Disable} classic CFI 8-byte label forward-edge protections for the JIT sandbox.",
+)
+
+@depends("--enable-jit-sandbox-cfi-label8", "--enable-jit-sandbox")
+def jit_sandbox_cfi_label8(jit_sandbox_cfi_label8, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_label8:
+        return True
+
+set_config("JITSBX_CFI_LABEL8", jit_sandbox_cfi_label8)
+set_define("JITSBX_CFI_LABEL8", jit_sandbox_cfi_label8)
+
+option(
+    "--enable-jit-sandbox-cfi-bundle",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle", "--enable-jit-sandbox")
+def jit_sandbox_cfi_bundle(jit_sandbox_cfi_bundle, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_bundle:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
+set_define("JITSBX_CFI_BUNDLE", jit_sandbox_cfi_bundle)
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-align-instr",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-align-instr", "--enable-jit-sandbox")
+def jit_sandbox_cfi_bundle_align_instr(jit_sandbox_cfi_bundle_align_instr, jit_sandbox):
+    if jit_sandbox and jit_sandbox_cfi_bundle_align_instr:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_ALIGN_INSTR", jit_sandbox_cfi_bundle_align_instr)
+set_define("JITSBX_CFI_BUNDLE_ALIGN_INSTR", jit_sandbox_cfi_bundle_align_instr)
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-call",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-call", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_call(jit_sandbox_cfi_bundle_call, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_call:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_CALL", jit_sandbox_cfi_bundle_call)
+set_define("JITSBX_CFI_BUNDLE_CALL", jit_sandbox_cfi_bundle_call)
+
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-jump",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-jump", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_jump(jit_sandbox_cfi_bundle_jump, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_jump:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_JUMP", jit_sandbox_cfi_bundle_jump)
+set_define("JITSBX_CFI_BUNDLE_JUMP", jit_sandbox_cfi_bundle_jump)
+
+
+option(
+    "--enable-jit-sandbox-cfi-bundle-ret",
+    default=False,
+    help="{Enable|Disable} NaCl-style bundling for CFI within the JIT sandbox",
+)
+
+@depends("--enable-jit-sandbox-cfi-bundle-ret", "--enable-jit-sandbox-cfi-bundle")
+def jit_sandbox_cfi_bundle_ret(jit_sandbox_cfi_bundle_ret, jit_sandbox_cfi_bundle):
+    if jit_sandbox_cfi_bundle and jit_sandbox_cfi_bundle_ret:
+        return True
+
+set_config("JITSBX_CFI_BUNDLE_RET", jit_sandbox_cfi_bundle_ret)
+set_define("JITSBX_CFI_BUNDLE_RET", jit_sandbox_cfi_bundle_ret)
+
 # Architecture feature flags
 # =======================================================
 

@@ -83,6 +83,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   enterJITOffset_ = startTrampolineCode(masm);
 
+  masm.sbxAssertNativeStack();
   masm.assertStackAlignment(ABIStackAlignment,
                             -int32_t(sizeof(uintptr_t)) /* return address */);
 
@@ -141,6 +142,10 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // End of pushes reflected in EnterJITStackEntry, i.e. EnterJITStackEntry
   // starts at this rsp.
+
+  // cfi-stack: save the current sandbox stack pointer in r15.
+  masm.sbxLoadSavedSandboxStackPtr(r15);
+  masm.sbxToSandboxStack();
 
   // Remember number of bytes occupied by argument vector
   masm.mov(reg_argc, r13);
@@ -204,6 +209,25 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   masm.movq(result, reg_argc);
   masm.unboxInt32(Operand(reg_argc, 0), reg_argc);
 
+#ifdef JITSBX_CFI_STACK
+  // save the value of this parameter in r13 since rbp
+  // is modified before we actually need to use it.
+  masm.movq(numStackValuesAddr, r13);
+
+  masm.sbxToNativeStack();
+
+  // save the native-stack rbp.
+  masm.push(rbp);
+  // maintain 16-byte stack alignment.
+  masm.subPtr(Imm32(sizeof(void*)), rsp);
+
+  // TODO(JITSBX): do we need to substract the padding ?
+  //masm.subq(r12, r15);
+  masm.mov(r15, rbp);
+
+  masm.sbxToSandboxStack();
+#endif
+
   // Push the callee token.
   masm.push(token);
 
@@ -225,14 +249,23 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.branchTestPtr(Assembler::Zero, OsrFrameReg, OsrFrameReg, &notOsr);
 
     Register numStackValues = regs.takeAny();
+#ifdef JITSBX_CFI_STACK
+    // use the value in r13 we saved earlier.
+    masm.mov(r13, numStackValues);
+#else
     masm.movq(numStackValuesAddr, numStackValues);
+#endif
 
+    masm.sbxToNativeStack();
     // Push return address
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
 
     // Frame prologue.
     masm.push(rbp);
+
+    masm.sbxToSandboxStack();
+    masm.sbxPushFrame();
     masm.mov(rsp, rbp);
 
     // Reserve frame.
@@ -250,17 +283,23 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     // Enter exit frame.
     masm.pushFrameDescriptor(FrameType::BaselineJS);
+    masm.sbxToNativeStack();
     masm.push(Imm32(0));  // Fake return address.
     masm.push(FramePointer);
+    masm.sbxToSandboxStack();
+    masm.sbxPushFrame();
     // No GC things to mark, push a bare token.
     masm.loadJSContext(scratch);
     masm.enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
     regs.add(valuesSize);
 
+    // cfi-stack(SAFETY): pushing a code-pointer to the sandbox-stack.
+    // Safe since we are in a trusted function calling a trusted C++ leaf
+    // function.
     masm.push(reg_code);
 
-    using Fn = bool (*)(BaselineFrame * frame, InterpreterFrame * interpFrame,
+    using Fn = bool (*)(BaselineFrame* frame, InterpreterFrame* interpFrame,
                         uint32_t numStackValues);
     masm.setupUnalignedABICall(scratch);
     masm.passABIArg(framePtrScratch);  // BaselineFrame
@@ -275,6 +314,12 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
     Label error;
     masm.addPtr(Imm32(ExitFrameLayout::SizeWithFooter()), rsp);
+#ifdef JITSBX_CFI_STACK
+    // clean-up the exit frame on the native-stack.
+    masm.sbxToNativeStack();
+    masm.addPtr(Imm32(2 * sizeof(void*)), rsp);
+    masm.sbxToSandboxStack();
+#endif
     masm.branchIfFalseBool(ReturnReg, &error);
 
     // If OSR-ing, then emit instrumentation for setting lastProfilerFrame
@@ -294,6 +339,8 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     // OOM: frame epilogue, load error value, discard return address and return.
     masm.bind(&error);
     masm.mov(rbp, rsp);
+    masm.sbxPopFrame();
+    masm.sbxToNativeStack();
     masm.pop(rbp);
     masm.addPtr(Imm32(sizeof(uintptr_t)), rsp);  // Return address.
     masm.moveValue(MagicValue(JS_ION_ERROR), JSReturnOperand);
@@ -303,12 +350,19 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.movq(scopeChain, R1.scratchReg());
   }
 
+  masm.sbxToNativeStack();
+
   // The call will push the return address and frame pointer on the stack, thus
   // we check that the stack would be aligned once the call is complete.
   masm.assertStackAlignment(JitStackAlignment, 2 * sizeof(uintptr_t));
 
   // Call function.
+#ifdef JITSBX_CFI_STACK
+  // cfi-stack(SAFETY): we already switched to the native-stack above.
+  masm.callJitNoProfilerCFIStackUnsafe(reg_code);
+#else
   masm.callJitNoProfiler(reg_code);
+#endif
 
   {
     // Interpreter -> Baseline OSR will return here.
@@ -317,15 +371,34 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     masm.bind(&oomReturnLabel);
   }
 
+  masm.sbxToSandboxStack();
+
+#ifndef JITSBX_CFI_STACK
   // Discard arguments and padding. Set rsp to the address of the
   // EnterJITStackEntry on the stack.
   masm.lea(Operand(rbp, EnterJITStackEntry::offsetFromFP()), rsp);
+#else
+  // discard JitFrameLayout and pushed arguments on the sandbox-stack
+  // with the rbp we setup earlier.
+  masm.mov(rbp, rsp);
+
+  // switch to the native-stack and tidy up the padding,
+  // restore the rbp we saved before continuing to restore
+  // the saved registers and return.
+  masm.sbxToNativeStack();
+  masm.addPtr(Imm32(sizeof(void*)), rsp);
+  masm.pop(rbp);
+#endif
 
   /*****************************************************************
   Place return value where it belongs, pop all saved registers
   *****************************************************************/
   masm.pop(r12);  // vp
+#ifdef JITSBX_HEAP_MASK
+  masm.storeValue(JSReturnOperand, Operand(r12, 0), false);
+#else
   masm.storeValue(JSReturnOperand, Operand(r12, 0));
+#endif
 
   // Restore non-volatile registers.
 #if defined(_WIN64)
@@ -353,7 +426,11 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Restore frame pointer and return.
   masm.pop(rbp);
+#ifdef JITSBX_CFI_BUNDLE_RET
+  masm.retCFIUnsafe();
+#else
   masm.ret();
+#endif
 }
 
 // static
@@ -423,8 +500,7 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
   masm.reserveStack(sizeof(void*));
   masm.movq(rsp, rbx);
 
-  using Fn =
-      bool (*)(InvalidationBailoutStack * sp, BaselineBailoutInfo * *info);
+  using Fn = bool (*)(InvalidationBailoutStack* sp, BaselineBailoutInfo** info);
   masm.setupUnalignedABICall(rdx);
   masm.passABIArg(rax);
   masm.passABIArg(rbx);
@@ -455,6 +531,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
       break;
   }
 
+  masm.sbxEmitCFILabel();
   // Caller:
   // [arg2] [arg1] [this] [[argc] [callee] [descr] [raddr]] <- rsp
 
@@ -463,7 +540,10 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   // NOTE: if this changes, fix the Baseline bailout code too!
   // See BaselineStackBuilder::calculatePrevFramePtr and
   // BaselineStackBuilder::buildRectifierFrame (in BaselineBailouts.cpp).
+  masm.sbxAssertNativeStack();
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.movq(rsp, FramePointer);
 
   // Load argc.
@@ -609,6 +689,8 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   }
 
   masm.mov(FramePointer, StackPointer);
+  masm.sbxPopFrame();
+  masm.sbxToNativeStack();
   masm.pop(FramePointer);
   masm.ret();
 }
@@ -629,7 +711,7 @@ static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
   masm.movq(rsp, r9);
 
   // Call the bailout function.
-  using Fn = bool (*)(BailoutStack * sp, BaselineBailoutInfo * *info);
+  using Fn = bool (*)(BailoutStack* sp, BaselineBailoutInfo** info);
   masm.setupUnalignedABICall(rax);
   masm.passABIArg(r8);
   masm.passABIArg(r9);
@@ -650,7 +732,7 @@ void JitRuntime::generateBailoutHandler(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutHandler");
 
   bailoutHandlerOffset_ = startTrampolineCode(masm);
-
+  masm.sbxAssertSandboxStack();
   GenerateBailoutThunk(masm, bailoutTail);
 }
 
@@ -673,6 +755,7 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   Register cxreg = IntArgReg0;
   regs.take(cxreg);
 
+  masm.sbxEmitCFILabel();
   // Stack is:
   //    ... frame ...
   //  +12 [args]
@@ -680,7 +763,10 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
   //  +0  returnAddress
   //
   // Push the frame pointer to finish the exit frame, then link it up.
+  masm.sbxAssertNativeStack();
   masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+  masm.sbxPushFrame();
   masm.moveStackPtrTo(FramePointer);
   masm.loadJSContext(cxreg);
   masm.enterExitFrame(cxreg, regs.getAny(), &f);
@@ -820,15 +906,28 @@ bool JitRuntime::generateVMWrapper(JSContext* cx, MacroAssembler& masm,
     masm.speculationBarrier();
   }
 
-  // Pop ExitFooterFrame and the frame pointer.
+  // Pop ExitFooterFrame.
   masm.leaveExitFrame(0);
+#ifdef JITSBX_CFI_STACK
+  // Clear rest of the frame and arguments on sandbox-stack.
+  // TODO(JITSBX_CFI_STACK): sandbox this rsp add.
+  masm.addq(Imm32(sizeof(ExitFrameLayout) +
+                  f.explicitStackSlots() * sizeof(void*) +
+                  f.extraValuesToPop * sizeof(Value)), rsp);
+	masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+
+  // Return.
+  masm.ret();
+#else
+  // Pop the FramePointer.
   masm.pop(FramePointer);
 
   // Return. Subtract sizeof(void*) for the frame pointer.
   masm.retn(Imm32(sizeof(ExitFrameLayout) - sizeof(void*) +
                   f.explicitStackSlots() * sizeof(void*) +
                   f.extraValuesToPop * sizeof(Value)));
-
+#endif
   return true;
 }
 
@@ -837,6 +936,13 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generatePreBarrier");
 
   uint32_t offset = startTrampolineCode(masm);
+
+  masm.sbxAssertNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.push(FramePointer);
+#endif
+  masm.sbxToSandboxStack();
+  masm.sbxPushReturnAddress();
 
   static_assert(PreBarrierReg == rdx);
   Register temp1 = rax;
@@ -868,12 +974,25 @@ uint32_t JitRuntime::generatePreBarrier(JSContext* cx, MacroAssembler& masm,
   masm.callWithABI(JitPreWriteBarrier(type));
 
   masm.PopRegsInMask(regs);
+
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.ret();
 
   masm.bind(&noBarrier);
   masm.pop(temp3);
   masm.pop(temp2);
   masm.pop(temp1);
+  masm.sbxAssertSandboxStack();
+  masm.sbxPopReturnAddress();
+  masm.sbxToNativeStack();
+#ifdef JITSBX_CFI_STACK
+  masm.pop(FramePointer);
+#endif
   masm.ret();
 
   return offset;
@@ -884,5 +1003,6 @@ void JitRuntime::generateBailoutTailStub(MacroAssembler& masm,
   AutoCreatedBy acb(masm, "JitRuntime::generateBailoutTailStub");
 
   masm.bind(bailoutTail);
+  masm.sbxAssertSandboxStack();
   masm.generateBailoutTail(rdx, r9);
 }

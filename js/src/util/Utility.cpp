@@ -17,6 +17,9 @@
 
 #include "jstypes.h"
 
+#ifdef JITSBX_HEAP
+#include "jitsbx/JitSandboxMemory.h"
+#endif
 #include "util/Poison.h"
 #include "vm/HelperThreads.h"
 
@@ -101,6 +104,9 @@ bool js::gExtraPoisoningEnabled = false;
 #endif
 
 JS_PUBLIC_DATA arena_id_t js::MallocArena;
+#ifdef JITSBX_HEAP
+JS_PUBLIC_DATA arena_id_t js::JitsbxMallocArena;
+#endif
 JS_PUBLIC_DATA arena_id_t js::ArrayBufferContentsArena;
 JS_PUBLIC_DATA arena_id_t js::StringBufferArena;
 
@@ -112,8 +118,18 @@ void js::InitMallocAllocator() {
   arena_params_t params;
   params.mMaxDirtyIncreaseOverride = 5;
   params.mFlags |= ARENA_FLAG_RANDOMIZE_SMALL_ENABLED;
+#ifdef JITSBX_HEAP
+  params.mChunkPageOverride = { jitsbx::MapAlignedPages, jitsbx::UnmapPages };
+#endif
   ArrayBufferContentsArena = moz_create_arena_with_params(&params);
   StringBufferArena = moz_create_arena_with_params(&params);
+
+#ifdef JITSBX_HEAP
+  arena_params_t jitsbxArenaParams;
+  jitsbxArenaParams.mMaxDirtyIncreaseOverride = 5;
+  jitsbxArenaParams.mChunkPageOverride = { jitsbx::MapAlignedPages, jitsbx::UnmapPages };
+  JitsbxMallocArena = moz_create_arena_with_params(&jitsbxArenaParams);
+#endif
 }
 
 void js::ShutDownMallocAllocator() {

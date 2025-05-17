@@ -601,22 +601,22 @@ class MacroAssembler : public MacroAssemblerSpecific {
   CodeOffset call(Register reg) PER_SHARED_ARCH;
   CodeOffset call(Label* label) PER_SHARED_ARCH;
 
-  void call(const Address& addr) PER_SHARED_ARCH;
-  void call(ImmWord imm) PER_SHARED_ARCH;
+  CodeOffset call(const Address& addr) PER_SHARED_ARCH;
+  CodeOffset call(ImmWord imm) PER_SHARED_ARCH;
   // Call a target native function, which is neither traceable nor movable.
-  void call(ImmPtr imm) PER_SHARED_ARCH;
+  CodeOffset call(ImmPtr imm) PER_SHARED_ARCH;
   CodeOffset call(wasm::SymbolicAddress imm) PER_SHARED_ARCH;
   inline CodeOffset call(const wasm::CallSiteDesc& desc,
                          wasm::SymbolicAddress imm);
 
   // Call a target JitCode, which must be traceable, and may be movable.
-  void call(JitCode* c) PER_SHARED_ARCH;
+  CodeOffset call(JitCode* c) PER_SHARED_ARCH;
 
-  inline void call(TrampolinePtr code);
+  inline CodeOffset call(TrampolinePtr code);
 
   inline CodeOffset call(const wasm::CallSiteDesc& desc, const Register reg);
   inline CodeOffset call(const wasm::CallSiteDesc& desc, uint32_t funcDefIndex);
-  inline void call(const wasm::CallSiteDesc& desc, wasm::Trap trap);
+  inline CodeOffset call(const wasm::CallSiteDesc& desc, wasm::Trap trap);
 
   CodeOffset callWithPatch() PER_SHARED_ARCH;
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) PER_SHARED_ARCH;
@@ -624,8 +624,8 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Push the return address and make a call. On platforms where this function
   // is not defined, push the link register (pushReturnAddress) at the entry
   // point of the callee.
-  void callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
-  void callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
+  CodeOffset callAndPushReturnAddress(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callAndPushReturnAddress(Label* label) DEFINED_ON(x86_shared);
 
   // These do not adjust framePushed().
   void pushReturnAddress()
@@ -950,6 +950,159 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // current thread, which should be the location of the latest exit frame.
   void linkExitFrame(Register cxreg, Register scratch);
 
+  // ===============================================================
+  // JIT Sandbox instructions
+  
+  // ===============================================================
+  // JIT Sandbox Stack-Switching Backward-Edge CFI
+ public:
+  // stack state assertions
+  inline void sbxAssertNativeStack();
+  inline void sbxAssertSandboxStack();
+  inline void sbxAssertSandboxStackWithScratch(Register scratch);
+
+  // stack switching instructions
+  inline void sbxToNativeStack();
+  inline void sbxToSandboxStack();
+
+  // sandbox stack frame manipulation
+  inline void sbxPushReturnAddress();
+  inline void sbxPushFramePointer();
+  inline void sbxPushFrame();
+  inline void sbxPopReturnAddress();
+  inline void sbxPopFramePointer();
+  inline void sbxPopFrame();
+  inline void sbxPopStubFrame();
+
+  inline void sbxLoadSavedSandboxStackPtr(Register dest);
+  inline void sbxLoadSavedNativeStackPtr(Register dest);
+#ifdef JITSBX_CFI_STACK
+  inline void sbxRestoreFramePointer();
+#endif
+
+  // ===============================================================
+  // JIT Sandbox Classic Forward-Edge CFI
+public:
+  // emit the CFI label
+  inline void sbxEmitCFILabel();
+  
+  // ===============================================================
+  // JIT Sandbox Bundling Forward/Backward-Edge CFI
+public:
+  // nop align the instruction stream to bundle boundary
+  inline void sbxBundleAlignNop(uint8_t extra = 0);
+  inline void sbxMaybeBundleAlignNop(uint32_t size);
+  // assert that the masm stream is bundle aligned
+  inline void sbxAssertBundleAligned();
+  // halt align the instruction stream for emitting constant pool
+  inline void sbxBundleAlignConstant(unsigned int size);
+
+  // ===============================================================
+  // JIT Sandbox call helpers
+private:
+  //NOTE: these private helper functions DO NOT check the isSandboxed()
+  // flag on the MacroAssembler - the caller needs to do this as appropriate
+#ifdef JITSBX_CFI_LABEL4
+  // indirect call helpers with 4-byte CFI label checks
+  // stack-switching is done when enabled at build-time
+  CodeOffset callCFILabel4(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFILabel4(const Address& addr) DEFINED_ON(x86_shared);
+
+  // indirect call helpers with 4-byte CFI label checks BUT
+  // stack-switching is skipped even when enabled at build-time
+  CodeOffset callCFILabel4CFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFILabel4CFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+#ifdef JITSBX_CFI_LABEL8
+  // indirect call helpers with 8-byte CFI label checks
+  // stack-switching is done when enabled at build-time
+  CodeOffset callCFILabel8(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFILabel8(const Address& addr) DEFINED_ON(x86_shared);
+  
+  // indirect call helpers with 8-byte CFI label checks BUT
+  // stack-switching is skipped even when enabled at build-time
+  CodeOffset callCFILabel8CFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFILabel8CFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+#ifdef JITSBX_CFI_BUNDLE_CALL
+  // indirect call helpers that ensure both the call-target and return-target
+  // are bundle aligned 
+  CodeOffset callCFIBundle(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFIBundle(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+public:
+#ifdef JITSBX
+  // unsafe call instructions that skip all forward/backward-edge CFI checks
+  CodeOffset callCFIUnsafe(Label* label) DEFINED_ON(x86_shared);
+  CodeOffset callCFIUnsafe(ImmPtr target) DEFINED_ON(x86_shared);
+  CodeOffset callCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+      
+#ifdef JITSBX_CFI_STACK
+  // unsafe call instructions that skip CFI stack switching
+  CodeOffset callCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+  CodeOffset callCFIStackUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+
+  CodeOffset callAndPushReturnAddressCFIStackUnsafe(Register reg) DEFINED_ON(x86_shared);
+      
+  inline uint32_t callJitNoProfilerCFIStackUnsafe(Register callee);
+#endif
+
+  // ===============================================================
+  // JIT Sandbox jump helpers
+private:
+  //NOTE: these private helper functions DO NOT check the isSandboxed()
+  // flag on the MacroAssembler - the caller needs to do this as appropriate
+#ifdef JITSBX_CFI_LABEL4
+  // indirect call helpers with 4-byte CFI label checks
+  void jumpCFILabel4(Register reg) DEFINED_ON(x86_shared);
+  void jumpCFILabel4(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+#ifdef JITSBX_CFI_LABEL8
+  // indirect call helpers with 8-byte CFI label checks
+  void jumpCFILabel8(Register reg) DEFINED_ON(x86_shared);
+  void jumpCFILabel8(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+#ifdef JITSBX_CFI_BUNDLE_JUMP
+  // indirect jump helpers that ensure the target is bundle aligned 
+  void jumpCFIBundle(Register reg) DEFINED_ON(x86_shared);
+  void jumpCFIBundle(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+public:
+  void jump(Label* label) DEFINED_ON(x86_shared);
+  void jump(JitCode* code) DEFINED_ON(x86_shared);
+  void jump(TrampolinePtr code) DEFINED_ON(x86_shared);
+  void jump(ImmPtr ptr) DEFINED_ON(x86_shared);
+  void jump(Register reg) DEFINED_ON(x86_shared);
+  void jump(const Address& addr) DEFINED_ON(x86_shared);
+
+#ifdef JITSBX
+  // indirect jump helpers that skip all forward-edge CFI checks.
+  void jumpCFIUnsafe(Register reg) DEFINED_ON(x86_shared);
+  void jumpCFIUnsafe(const Address& addr) DEFINED_ON(x86_shared);
+#endif
+
+  // ===============================================================
+  // JIT Sandbox ret helpers
+public:
+  void ret() DEFINED_ON(x86_shared);
+
+#ifdef JITSBX_CFI_BUNDLE_RET
+  // pop-jump replacement for return that ensures the target
+  // is properly bundle aligned
+  void retCFIBundle() DEFINED_ON(x86_shared);
+
+  // return and skip bundle alignment checks
+  void retCFIUnsafe() DEFINED_ON(x86_shared);
+#endif
+    
  public:
   // ===============================================================
   // Move instructions
@@ -4674,6 +4827,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void switchToRealm(const void* realm, Register scratch);
   void switchToObjectRealm(Register obj, Register scratch);
   void switchToBaselineFrameRealm(Register scratch);
+  void switchToBaselineFrameRealmFromStub(Register scratch);
   void switchToWasmInstanceRealm(Register scratch1, Register scratch2);
   void debugAssertContextRealm(const void* realm, Register scratch);
 
@@ -5265,10 +5419,18 @@ class MacroAssembler : public MacroAssemblerSpecific {
   void loadStackPtr(T t) {
     loadPtr(t, getStackPointer());
   }
+
+#ifdef JITSBX_HEAP_MASK
+  template <typename T>
+  void storeStackPtr(T t, bool mask = true) {
+    storePtr(getStackPointer(), t, mask);
+  }
+#else
   template <typename T>
   void storeStackPtr(T t) {
     storePtr(getStackPointer(), t);
   }
+#endif
 
   // StackPointer testing functions.
   // On ARM64, sp can function as the zero register depending on context.

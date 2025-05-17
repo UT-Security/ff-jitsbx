@@ -22,6 +22,7 @@
 #include "util/Unicode.h"
 #include "vm/Interpreter.h"
 #include "vm/JSContext.h"
+#include "vm/MatchPairs.h"
 #include "vm/RegExpObject.h"
 #include "vm/RegExpStatics.h"
 #include "vm/SelfHosting.h"
@@ -319,17 +320,28 @@ bool js::ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res,
     return false;
   }
 
-  VectorMatchPairs matches;
+#ifdef JITSBX_HEAP
+    VectorMatchPairs* matchesPtr = js_jitsbx_new<VectorMatchPairs>();
+    VectorMatchPairs& matches = *matchesPtr;
+#else
+    VectorMatchPairs matches;
+#endif
 
   RegExpRunStatus status =
       ExecuteRegExpImpl(cx, res, &shared, input, *lastIndex, &matches);
   if (status == RegExpRunStatus_Error) {
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return false;
   }
 
   if (status == RegExpRunStatus_Success_NotFound) {
     /* ExecuteRegExp() previously returned an array or null. */
     rval.setNull();
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return true;
   }
 
@@ -338,10 +350,18 @@ bool js::ExecuteRegExpLegacy(JSContext* cx, RegExpStatics* res,
   if (test) {
     /* Forbid an array, as an optimization. */
     rval.setBoolean(true);
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return true;
   }
-
+#ifdef JITSBX_HEAP
+  bool ret = CreateRegExpMatchResult(cx, shared, input, matches, rval);
+  delete matchesPtr;
+  return ret;
+#else
   return CreateRegExpMatchResult(cx, shared, input, matches, rval);
+#endif
 }
 
 static bool CheckPatternSyntaxSlow(JSContext* cx, Handle<JSAtom*> pattern,
@@ -1153,24 +1173,41 @@ static bool RegExpMatcherImpl(JSContext* cx, HandleObject regexp,
                               HandleString string, int32_t lastIndex,
                               MutableHandleValue rval) {
   /* Execute regular expression and gather matches. */
-  VectorMatchPairs matches;
+#ifdef JITSBX_HEAP
+    VectorMatchPairs* matchesPtr = js_jitsbx_new<VectorMatchPairs>();
+    VectorMatchPairs& matches = *matchesPtr;
+#else
+    VectorMatchPairs matches;
+#endif
 
   /* Steps 3, 9-14, except 12.a.i, 12.c.i.1. */
   RegExpRunStatus status =
       ExecuteRegExp(cx, regexp, string, lastIndex, &matches);
   if (status == RegExpRunStatus_Error) {
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return false;
   }
 
   /* Steps 12.a, 12.c. */
   if (status == RegExpRunStatus_Success_NotFound) {
     rval.setNull();
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return true;
   }
 
   /* Steps 16-25 */
   RootedRegExpShared shared(cx, regexp->as<RegExpObject>().getShared());
+#ifdef JITSBX_HEAP
+  bool ret = CreateRegExpMatchResult(cx, shared, string, matches, rval);
+  delete matchesPtr;
+  return ret;
+#else
   return CreateRegExpMatchResult(cx, shared, string, matches, rval);
+#endif
 }
 
 /*
@@ -1222,23 +1259,37 @@ static bool RegExpSearcherImpl(JSContext* cx, HandleObject regexp,
                                HandleString string, int32_t lastIndex,
                                int32_t* result) {
   /* Execute regular expression and gather matches. */
+#ifdef JITSBX_HEAP
+  VectorMatchPairs* matchesPtr = js_jitsbx_new<VectorMatchPairs>();
+  VectorMatchPairs& matches = *matchesPtr;
+#else
   VectorMatchPairs matches;
+#endif
 
   /* Steps 3, 9-14, except 12.a.i, 12.c.i.1. */
   RegExpRunStatus status =
       ExecuteRegExp(cx, regexp, string, lastIndex, &matches);
   if (status == RegExpRunStatus_Error) {
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return false;
   }
 
   /* Steps 12.a, 12.c. */
   if (status == RegExpRunStatus_Success_NotFound) {
     *result = -1;
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return true;
   }
 
   /* Steps 16-25 */
   *result = CreateRegExpSearchResult(matches);
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
   return true;
 }
 
@@ -1308,7 +1359,12 @@ static bool RegExpBuiltinExecMatchRaw(JSContext* cx,
     }
     lastIndexNew = (*maybeMatches)[0].limit;
   } else {
+#ifdef JITSBX_HEAP
+    VectorMatchPairs* matchesPtr = js_jitsbx_new<VectorMatchPairs>();
+    VectorMatchPairs& matches = *matchesPtr;
+#else
     VectorMatchPairs matches;
+#endif
     RegExpRunStatus status =
         ExecuteRegExp(cx, regexp, input, lastIndex, &matches);
     if (status == RegExpRunStatus_Error) {
@@ -1324,6 +1380,9 @@ static bool RegExpBuiltinExecMatchRaw(JSContext* cx,
       }
       lastIndexNew = matches[0].limit;
     }
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
   }
 
   RegExpFlags flags = regexp->getFlags();
@@ -1360,10 +1419,18 @@ static bool RegExpBuiltinExecTestRaw(JSContext* cx,
   MOZ_ASSERT(lastIndex >= 0);
   MOZ_ASSERT(size_t(lastIndex) <= input->length());
 
-  VectorMatchPairs matches;
+#ifdef JITSBX_HEAP
+    VectorMatchPairs* matchesPtr = js_jitsbx_new<VectorMatchPairs>();
+    VectorMatchPairs& matches = *matchesPtr;
+#else
+    VectorMatchPairs matches;
+#endif
   RegExpRunStatus status =
       ExecuteRegExp(cx, regexp, input, lastIndex, &matches);
   if (status == RegExpRunStatus_Error) {
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return false;
   }
 
@@ -1371,11 +1438,20 @@ static bool RegExpBuiltinExecTestRaw(JSContext* cx,
 
   RegExpFlags flags = regexp->getFlags();
   if (!flags.global() && !flags.sticky()) {
+#ifdef JITSBX_HEAP
+    delete matchesPtr;
+#endif
     return true;
   }
 
   int32_t lastIndexNew = *result ? matches[0].limit : 0;
+#ifdef JITSBX_HEAP
+  bool ret = SetLastIndex<CalledFromJit>(cx, regexp, lastIndexNew);
+  delete matchesPtr;
+  return ret;
+#else
   return SetLastIndex<CalledFromJit>(cx, regexp, lastIndexNew);
+#endif
 }
 
 bool js::RegExpBuiltinExecTestFromJit(JSContext* cx,

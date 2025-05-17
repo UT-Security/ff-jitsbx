@@ -23,6 +23,9 @@
 
 #include <algorithm>
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
 #include "jit/ABIArgGenerator.h"
 #include "jit/CodeGenerator.h"
 #include "jit/CompileInfo.h"
@@ -8555,6 +8558,10 @@ bool wasm::IonCompileFunctions(const ModuleEnvironment& moduleEnv,
   MOZ_ASSERT(compilerEnv.debug() == DebugEnabled::False);
 
   TempAllocator alloc(&lifo);
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv.state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv.jitSandbox_);
+#endif
   JitContext jitContext;
   MOZ_ASSERT(IsCompilingWasm());
   WasmMacroAssembler masm(alloc, moduleEnv);

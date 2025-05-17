@@ -301,7 +301,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
    * through these methods - it will update cx->realm_ directly.
    */
  private:
+#ifndef JITSBX_REALM
   inline void setRealm(JS::Realm* realm);
+#endif
   inline void enterRealm(JS::Realm* realm);
 
   inline void enterAtomsZone();
@@ -318,6 +320,9 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   inline void enterRealmOf(js::Shape* target);
   inline void enterNullRealm();
 
+#ifdef JITSBX_REALM
+  inline void setRealm(JS::Realm* realm);
+#endif
   inline void setRealmForJitExceptionHandler(JS::Realm* realm);
 
   inline void leaveRealm(JS::Realm* oldRealm);
@@ -859,7 +864,11 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
   // being invoked as part of a trial inlining.  Contains nullptr at
   // all times except for the brief moment between being set in the
   // caller and read in the callee's prologue.
+#ifdef JITSBX_HEAP
+  js::ContextData<js::jit::ICScript*>* inlinedICScript_;
+#else
   js::ContextData<js::jit::ICScript*> inlinedICScript_;
+#endif
 
  public:
   void* addressOfInterruptBits() { return &interruptBits_; }
@@ -875,7 +884,11 @@ struct JS_PUBLIC_API JSContext : public JS::RootingContext,
 
   const void* addressOfRealm() const { return &realm_; }
 
+#ifdef JITSBX_HEAP
+  void* addressOfInlinedICScript() { return inlinedICScript_; }
+#else
   void* addressOfInlinedICScript() { return &inlinedICScript_; }
+#endif
 
   // Futex state, used by Atomics.wait() and Atomics.wake() on the Atomics
   // object.

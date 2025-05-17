@@ -25,6 +25,12 @@ namespace wasm {
 class Instance;
 }
 
+#ifdef JITSBX_CFI_STACK
+namespace jitsbx {
+class NativeStackJitFrameLayout;   
+}
+#endif
+
 namespace jit {
 
 enum class FrameType;
@@ -124,6 +130,9 @@ enum class ExceptionResumeKind : int32_t {
 // Data needed to recover from an exception.
 struct ResumeFromException {
   uint8_t* framePointer;
+#ifdef JITSBX_CFI_STACK
+  uint8_t* nativeStackPointer;
+#endif
   uint8_t* stackPointer;
   uint8_t* target;
   ExceptionResumeKind kind;
@@ -142,6 +151,11 @@ struct ResumeFromException {
   static size_t offsetOfFramePointer() {
     return offsetof(ResumeFromException, framePointer);
   }
+#ifdef JITSBX_CFI_STACK
+  static size_t offsetOfNativeStackPointer() {
+    return offsetof(ResumeFromException, nativeStackPointer);
+  }
+#endif
   static size_t offsetOfStackPointer() {
     return offsetof(ResumeFromException, stackPointer);
   }
@@ -167,7 +181,11 @@ static_assert(sizeof(ResumeFromException) % 16 == 0,
 
 void HandleException(ResumeFromException* rfe);
 
+#ifdef JITSBX_CFI_STACK
+void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame, jitsbx::NativeStackJitFrameLayout* nativeFrame);
+#else
 void EnsureUnwoundJitExitFrame(JitActivation* act, JitFrameLayout* frame);
+#endif
 
 void TraceJitActivations(JSContext* cx, JSTracer* trc);
 

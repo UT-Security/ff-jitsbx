@@ -27,6 +27,13 @@
 #include "wasm/WasmShareable.h"
 
 namespace js {
+
+#ifdef JITSBX
+namespace jitsbx {
+class JitSandbox;
+}
+#endif
+
 namespace wasm {
 
 enum class Shareable { False, True };
@@ -133,6 +140,10 @@ struct CompileArgs : ShareableBase<CompileArgs> {
   ScriptedCaller scriptedCaller;
   UniqueChars sourceMapURL;
 
+#ifdef JITSBX
+  const jitsbx::JitSandbox* jitSandbox;
+#endif
+
   bool baselineEnabled;
   bool ionEnabled;
   bool debugEnabled;
@@ -164,6 +175,9 @@ struct CompileArgs : ShareableBase<CompileArgs> {
 
   explicit CompileArgs(ScriptedCaller&& scriptedCaller)
       : scriptedCaller(std::move(scriptedCaller)),
+#ifdef JITSBX
+        jitSandbox(nullptr),
+#endif
         baselineEnabled(false),
         ionEnabled(false),
         debugEnabled(false),
@@ -195,6 +209,9 @@ struct CompilerEnvironment {
       CompileMode mode_;
       Tier tier_;
       DebugEnabled debug_;
+#ifdef JITSBX
+      const jitsbx::JitSandbox* jitSandbox_;
+#endif
     };
   };
 
@@ -206,8 +223,12 @@ struct CompilerEnvironment {
   // Save the provided values for mode, tier, and debug, and the initial value
   // for gc/refTypes. A subsequent computeParameters() will compute the
   // final value of gc/refTypes.
+#ifdef JITSBX
+  CompilerEnvironment(CompileMode mode, Tier tier, DebugEnabled debugEnabled,
+                      const jitsbx::JitSandbox* jitSandbox);
+#else
   CompilerEnvironment(CompileMode mode, Tier tier, DebugEnabled debugEnabled);
-
+#endif
   // Compute any remaining compilation parameters.
   void computeParameters(Decoder& d);
 

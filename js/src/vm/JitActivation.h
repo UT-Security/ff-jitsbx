@@ -16,6 +16,9 @@
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxActivation.h"
+#endif
 #include "jit/IonTypes.h"        // CHECK_OSIPOINT_REGISTERS
 #include "jit/JSJitFrameIter.h"  // js::jit::{JSJitFrameIter,RInstructionResults}
 #ifdef CHECK_OSIPOINT_REGISTERS
@@ -52,6 +55,10 @@ class JitActivation : public Activation {
   uint32_t encodedWasmExitReason_;
 
   JitActivation* prevJitActivation_;
+
+#ifdef JITSBX
+  jitsbx::JitSandboxActivation jitSandboxActivation_;
+#endif
 
   // Rematerialized Ion frames which has info copied out of snapshots. Maps
   // frame pointers (i.e. packedExitFP_) to a vector of rematerializations of
@@ -117,6 +124,13 @@ class JitActivation : public Activation {
   static size_t offsetOfPrevJitActivation() {
     return offsetof(JitActivation, prevJitActivation_);
   }
+
+#ifdef JITSBX
+  const jitsbx::JitSandboxActivation* jitSandboxActivation() const {
+    return &jitSandboxActivation_;
+  }
+  jitsbx::JitSandboxActivation* jitSandboxActivation() { return &jitSandboxActivation_; }
+#endif
 
   bool hasExitFP() const { return !!packedExitFP_; }
   uint8_t* jsOrWasmExitFP() const {

@@ -38,6 +38,10 @@
 #include "wasm/WasmIonCompile.h"
 #include "wasm/WasmStubs.h"
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
+
 using namespace js;
 using namespace js::jit;
 using namespace js::wasm;
@@ -389,6 +393,11 @@ bool ModuleGenerator::init(Metadata* maybeAsmJSMetadata) {
 
   CompiledCode& importCode = tasks_[0].output;
   MOZ_ASSERT(importCode.empty());
+
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv_->jitSandbox_);
+#endif
 
   if (!GenerateImportFunctions(*moduleEnv_, metadataTier_->funcImports,
                                &importCode)) {
@@ -762,6 +771,11 @@ bool ModuleGenerator::locallyCompileCurrentTask() {
 bool ModuleGenerator::finishTask(CompileTask* task) {
   AutoCreatedBy acb(masm_, "ModuleGenerator::finishTask");
 
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv_->jitSandbox_);
+#endif
+
   masm_.haltingAlign(CodeAlignment);
 
   if (!linkCompiledCode(task->output)) {
@@ -999,6 +1013,11 @@ UniqueCodeTier ModuleGenerator::finishCodeTier() {
   // Now that all imports/exports are known, we can generate a special
   // CompiledCode containing stubs.
 
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv_->jitSandbox_);
+#endif
+
   CompiledCode& stubCode = tasks_[0].output;
   MOZ_ASSERT(stubCode.empty());
 
@@ -1155,6 +1174,11 @@ SharedModule ModuleGenerator::finishModule(
     return nullptr;
   }
 
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv_->jitSandbox_);
+#endif
+
   MutableCode code =
       js_new<Code>(std::move(codeTier), *metadata, std::move(jumpTables));
   if (!code || !code->initialize(*linkData_)) {
@@ -1235,6 +1259,11 @@ bool ModuleGenerator::finishTier2(const Module& module) {
     // want to exercise both tier1 and tier2 code in this case.
     ThisThread::SleepMilliseconds(500);
   }
+
+#ifdef JITSBX
+  MOZ_ASSERT(compilerEnv_->state_ == CompilerEnvironment::Computed);
+  jitsbx::JitSandboxContext jitsbxContext(compilerEnv_->jitSandbox_);
+#endif
 
   return module.finishTier2(*linkData_, std::move(codeTier));
 }

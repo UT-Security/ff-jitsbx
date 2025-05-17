@@ -100,7 +100,11 @@ bool MoveEmitterX86::maybeEmitOptimizedCycle(const MoveResolver& moves,
   return false;
 }
 
+#ifdef JITSBX_HEAP_MASK
+void MoveEmitterX86::emit(const MoveResolver& moves, bool mask) {
+#else
 void MoveEmitterX86::emit(const MoveResolver& moves) {
+#endif
 #if defined(JS_CODEGEN_X86) && defined(DEBUG)
   // Clobber any scratch register we have, to make regalloc bugs more visible.
   if (scratchRegister_.isSome()) {
@@ -161,7 +165,11 @@ void MoveEmitterX86::emit(const MoveResolver& moves) {
         emitInt32Move(from, to, moves, i);
         break;
       case MoveOp::GENERAL:
+#ifdef JITSBX_HEAP_MASK
+        emitGeneralMove(from, to, moves, i, mask);
+#else
         emitGeneralMove(from, to, moves, i);
+#endif
         break;
       case MoveOp::SIMD128:
         emitSimd128Move(from, to);
@@ -377,11 +385,21 @@ void MoveEmitterX86::emitInt32Move(const MoveOperand& from,
   }
 }
 
+#ifdef JITSBX_HEAP_MASK
+void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
+                                     const MoveOperand& to,
+                                     const MoveResolver& moves, size_t i, bool mask) {
+#else
 void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
                                      const MoveOperand& to,
                                      const MoveResolver& moves, size_t i) {
+#endif
   if (from.isGeneralReg()) {
+#ifdef JITSBX_HEAP_MASK
+    masm.mov(from.reg(), toOperand(to), mask);
+#else
     masm.mov(from.reg(), toOperand(to));
+#endif
   } else if (to.isGeneralReg()) {
     MOZ_ASSERT(from.isMemoryOrEffectiveAddress());
     if (from.isMemory()) {
@@ -394,7 +412,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
     Maybe<Register> reg = findScratchRegister(moves, i);
     if (reg.isSome()) {
       masm.loadPtr(toAddress(from), reg.value());
+#ifdef JITSBX_HEAP_MASK
+      masm.mov(reg.value(), toOperand(to), mask);
+#else
       masm.mov(reg.value(), toOperand(to));
+#endif
     } else {
       // No scratch register available; bounce it off the stack.
       masm.Push(toOperand(from));
@@ -406,7 +428,11 @@ void MoveEmitterX86::emitGeneralMove(const MoveOperand& from,
     Maybe<Register> reg = findScratchRegister(moves, i);
     if (reg.isSome()) {
       masm.lea(toOperand(from), reg.value());
+#ifdef JITSBX_HEAP_MASK
+      masm.mov(reg.value(), toOperand(to), mask);
+#else
       masm.mov(reg.value(), toOperand(to));
+#endif
     } else {
       // This is tricky without a scratch reg. We can't do an lea. Bounce the
       // base register off the stack, then add the offset in place. Note that

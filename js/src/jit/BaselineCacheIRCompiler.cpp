@@ -79,6 +79,7 @@ AutoStubFrame::AutoStubFrame(BaselineCacheIRCompiler& compiler)
     : compiler(compiler)
 #ifdef DEBUG
       ,
+      framePushedBeforeEnterStubFrame_(0),
       framePushedAtEnterStubFrame_(0)
 #endif
 {
@@ -86,14 +87,38 @@ AutoStubFrame::AutoStubFrame(BaselineCacheIRCompiler& compiler)
 void AutoStubFrame::enter(MacroAssembler& masm, Register scratch,
                           CallCanGC canGC) {
   MOZ_ASSERT(compiler.allocator.stackPushed() == 0);
+#ifdef DEBUG
+  framePushedBeforeEnterStubFrame_ = masm.framePushed();
+#endif
+#ifdef JITSBX_CFI_STACK
+#ifdef DEBUG
+  // Compute frame size. Because the frame descriptor, return address and
+  // frame pointer are not yet on the sandbox-stack this is:
+  //
+  //   FramePointer
+  //   - StackPointer
 
+  masm.movq(FramePointer, scratch);
+  masm.subq(StackPointer, scratch);
+
+  Address frameSizeAddr(FramePointer,
+                        BaselineFrame::reverseOffsetOfDebugFrameSize());
+  masm.store32(scratch, frameSizeAddr);
+#endif
+  masm.push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
+  masm.sbxPushFrame();
+  // account for the frame descriptor, return address and frame pointer.
+  masm.adjustFrame(3 * sizeof(uintptr_t));
+  masm.mov(StackPointer, FramePointer);
+  masm.Push(ICStubReg);
+#else
   if (JitOptions.enableICFramePointers) {
     // If we have already pushed the frame pointer, pop it
     // before creating the stub frame.
     masm.pop(FramePointer);
   }
   EmitBaselineEnterStubFrame(masm, scratch);
-
+#endif
 #ifdef DEBUG
   framePushedAtEnterStubFrame_ = masm.framePushed();
 #endif
@@ -112,12 +137,25 @@ void AutoStubFrame::leave(MacroAssembler& masm) {
   masm.setFramePushed(framePushedAtEnterStubFrame_);
 #endif
 
+#ifdef JITSBX_CFI_STACK
+  Address stubAddr(FramePointer, BaselineStubFrameLayout::ICStubOffsetFromFP);
+  masm.loadPtr(stubAddr, ICStubReg);
+  masm.mov(FramePointer, StackPointer);
+  masm.sbxPopStubFrame();
+  // account for popping everything off of the sandbox-stack
+  masm.implicitPop(4 * sizeof(uintptr_t));
+#else
   EmitBaselineLeaveStubFrame(masm);
   if (JitOptions.enableICFramePointers) {
     // We will pop the frame pointer when we return,
     // so we have to push it again now.
     masm.push(FramePointer);
   }
+#endif
+
+#ifdef DEBUG
+  MOZ_ASSERT(masm.framePushed() == framePushedBeforeEnterStubFrame_);
+#endif
 }
 
 #ifdef DEBUG
@@ -142,12 +180,23 @@ void BaselineCacheIRCompiler::callVM(MacroAssembler& masm) {
 JitCode* BaselineCacheIRCompiler::compile() {
   AutoCreatedBy acb(masm, "BaselineCacheIRCompiler::compile");
 
+  masm.sbxAssertBundleAligned();
+  masm.sbxEmitCFILabel();
 #ifndef JS_USE_LINK_REGISTER
+#ifndef JITSBX_CFI_STACK
+  // don't account for the return address when using
+  // split stack since it has been pushed on the native-stack.
   masm.adjustFrame(sizeof(intptr_t));
+#endif
 #endif
 #ifdef JS_CODEGEN_ARM
   masm.setSecondScratchReg(BaselineSecondScratchReg);
 #endif
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertNativeStack();
+  masm.push(FramePointer);
+  masm.sbxToSandboxStack();
+#else
   if (JitOptions.enableICFramePointers) {
     /* [SMDOC] Baseline IC Frame Pointers
      *
@@ -174,6 +223,7 @@ JitCode* BaselineCacheIRCompiler::compile() {
     MOZ_ASSERT(baselineFrameReg() != FramePointer);
     masm.loadPtr(Address(FramePointer, 0), baselineFrameReg());
   }
+#endif
 
   // Count stub entries: We count entries rather than successes as it much
   // easier to ensure ICStubReg is valid at entry than at exit.
@@ -188,6 +238,7 @@ JitCode* BaselineCacheIRCompiler::compile() {
 #define DEFINE_OP(op, ...)                 \
   case CacheOp::op:                        \
     if (!emit##op(reader)) return nullptr; \
+    masm.sbxAssertSandboxStack();          \
     break;
       CACHE_IR_OPS(DEFINE_OP)
 #undef DEFINE_OP
@@ -206,9 +257,15 @@ JitCode* BaselineCacheIRCompiler::compile() {
     if (!emitFailurePath(i)) {
       return nullptr;
     }
+#ifdef JITSBX_CFI_STACK
+    masm.sbxAssertSandboxStack();
+    masm.sbxToNativeStack();
+    masm.pop(FramePointer);
+#else
     if (JitOptions.enableICFramePointers) {
       masm.pop(FramePointer);
     }
+#endif
     EmitStubGuardFailure(masm);
   }
 
@@ -552,7 +609,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedGetterShared(
   stubFrame.leave(masm);
 
   if (!sameRealm) {
-    masm.switchToBaselineFrameRealm(R1.scratchReg());
+    masm.switchToBaselineFrameRealmFromStub(R1.scratchReg());
   }
 
   return true;
@@ -1636,7 +1693,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedSetterShared(
   stubFrame.leave(masm);
 
   if (!sameRealm) {
-    masm.switchToBaselineFrameRealm(R1.scratchReg());
+    masm.switchToBaselineFrameRealmFromStub(R1.scratchReg());
   }
 
   return true;
@@ -1853,9 +1910,15 @@ bool BaselineCacheIRCompiler::emitMegamorphicSetElement(ObjOperandId objId,
 bool BaselineCacheIRCompiler::emitReturnFromIC() {
   JitSpew(JitSpew_Codegen, "%s", __FUNCTION__);
   allocator.discardStack(masm);
+#ifdef JITSBX_CFI_STACK
+  masm.sbxAssertSandboxStack();
+  masm.sbxToNativeStack();
+  masm.pop(FramePointer);
+#else
   if (JitOptions.enableICFramePointers) {
     masm.pop(FramePointer);
   }
+#endif
   EmitReturnFromIC(masm);
   return true;
 }
@@ -3040,8 +3103,11 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
   masm.push(argcReg);
 
   masm.pushFrameDescriptor(FrameType::BaselineStub);
+  masm.sbxPushFrame();
+  masm.sbxToNativeStack(); 
   masm.push(ICTailCallReg);
   masm.push(FramePointer);
+  masm.sbxToSandboxStack();
   masm.loadJSContext(scratch);
   masm.enterFakeExitFrameForNative(scratch, scratch, isConstructing);
 
@@ -3089,10 +3155,15 @@ bool BaselineCacheIRCompiler::emitCallNativeShared(
       Address(masm.getStackPointer(), NativeExitFrameLayout::offsetOfResult()),
       output.valueReg());
 
+#ifdef JITSBX_CFI_STACK
+  masm.sbxToNativeStack();
+  masm.addToStackPtr(Imm32(2 * sizeof(void*)));
+  masm.sbxToSandboxStack();
+#endif
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;
@@ -3374,7 +3445,7 @@ bool BaselineCacheIRCompiler::emitCallScriptedFunction(ObjOperandId calleeId,
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;
@@ -3480,7 +3551,7 @@ bool BaselineCacheIRCompiler::emitCallInlinedFunction(ObjOperandId calleeId,
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(codeReg);
+    masm.switchToBaselineFrameRealmFromStub(codeReg);
   }
 
   return true;
@@ -3565,7 +3636,7 @@ bool BaselineCacheIRCompiler::emitCallBoundScriptedFunction(
   stubFrame.leave(masm);
 
   if (!isSameRealm) {
-    masm.switchToBaselineFrameRealm(scratch2);
+    masm.switchToBaselineFrameRealmFromStub(scratch2);
   }
 
   return true;

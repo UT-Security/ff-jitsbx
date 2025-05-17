@@ -8,6 +8,9 @@
 #define jit_JSJitFrameIter_inl_h
 
 #include "jit/JSJitFrameIter.h"
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
 
 #include "jit/Bailouts.h"
 #include "jit/BaselineFrame.h"
@@ -18,8 +21,13 @@ namespace js {
 namespace jit {
 
 inline uint8_t* JSJitFrameIter::returnAddress() const {
+#ifdef JITSBX_CFI_STACK
+  jitsbx::NativeStackJitFrameLayout* currentNative = (jitsbx::NativeStackJitFrameLayout*)currentNative_;
+  return currentNative->returnAddress();
+#else
   CommonFrameLayout* current = (CommonFrameLayout*)current_;
   return current->returnAddress();
+#endif
 }
 
 inline FrameType JSJitFrameIter::prevType() const {

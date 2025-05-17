@@ -13,6 +13,9 @@
 #include <stdint.h>  // uint8_t, uint32_t
 #include <stdlib.h>  // getenv
 
+#ifdef JITSBX
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/BaselineFrame.h"   // js::jit::BaselineFrame
 #include "jit/JitFrames.h"       // js::jit::EnsureUnwoundJitExitFrame
 #include "jit/JSJitFrameIter.h"  // js::jit::{FrameType,InlineFrameIterator,JSJitFrameIter,MaybeReadFallback,SnapshotIterator}
@@ -203,7 +206,12 @@ void JitFrameIter::settle() {
     }
 
     iter_.destroy();
+#ifdef JITSBX_CFI_STACK
+    // TODO(JITSBX_CFI_STACK): figure out what needs to be passed for nativeFP arg.
+    iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP, nullptr);
+#else
     iter_.construct<jit::JSJitFrameIter>(act_, prevFrameType, prevFP);
+#endif
     MOZ_ASSERT(!asJSJit().done());
     return;
   }
@@ -215,8 +223,15 @@ void JitFrameIter::operator++() {
     const jit::JSJitFrameIter& jitFrame = asJSJit();
 
     jit::JitFrameLayout* prevFrame = nullptr;
+#ifdef JITSBX_CFI_STACK
+    jitsbx::NativeStackJitFrameLayout* prevNativeFrame = nullptr;
+#endif
     if (mustUnwindActivation_ && jitFrame.isScripted()) {
       prevFrame = jitFrame.jsFrame();
+#ifdef JITSBX_CFI_STACK
+      // TODO(JITSBX_CFI_STACK): jsFrame above handles bailout case too.
+      prevNativeFrame = jitFrame.currentNative();
+#endif
     }
 
     ++asJSJit();
@@ -227,7 +242,12 @@ void JitFrameIter::operator++() {
       // don't see this frame when they use ScriptFrameIter, and (2)
       // ScriptFrameIter does not crash when accessing an IonScript
       // that's destroyed by the ionScript->decref call.
+#ifdef JITSBX_CFI_STACK
+      MOZ_ASSERT(prevNativeFrame);
+      EnsureUnwoundJitExitFrame(act_, prevFrame, prevNativeFrame);
+#else
       EnsureUnwoundJitExitFrame(act_, prevFrame);
+#endif
     }
   } else if (isWasm()) {
     ++asWasm();

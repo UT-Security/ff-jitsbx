@@ -10,6 +10,9 @@
 #include "jit/CalleeToken.h"
 #include "jit/Ion.h"
 #include "jit/JitCommon.h"
+#ifdef JITSBX_CFI_STACK
+#include "jitsbx/JitSandbox.h"
+#endif
 #include "jit/JitRuntime.h"
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
 #include "vm/Interpreter.h"
@@ -36,6 +39,12 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
   if (!recursion.check(cx)) {
     return EnterJitStatus::Error;
   }
+#ifdef JITSBX_CFI_STACK
+  jitsbx::AutoCheckSandboxStackRecursionLimit recursionSbx(cx);
+  if (!recursionSbx.check(cx)) {
+    return EnterJitStatus::Error;
+  }
+#endif
 
   // jit::Bailout(), jit::InvalidationBailout(), and jit::HandleException()
   // reset the counter to zero, so assert here it's also zero when we enter
@@ -101,9 +110,9 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 #ifdef DEBUG
     nogc.reset();
 #endif
-    CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */ nullptr,
-                        calleeToken, envChain, /* osrNumStackValues = */ 0,
-                        result.address());
+    CALL_GENERATED_CODE(enter, code, maxArgc, maxArgv, /* osrFrame = */
+                        nullptr, calleeToken, envChain,
+                        /* osrNumStackValues = */ 0, result.address());
   }
 
   // Ensure the counter was reset to zero after exiting from JIT code.
@@ -131,7 +140,7 @@ static EnterJitStatus JS_HAZ_JSNATIVE_CALLER EnterJit(JSContext* cx,
 // Call the per-script interpreter entry trampoline.
 bool js::jit::EnterInterpreterEntryTrampoline(uint8_t* code, JSContext* cx,
                                               RunState* state) {
-  using EnterTrampolineCodePtr = bool (*)(JSContext * cx, RunState*);
+  using EnterTrampolineCodePtr = bool (*)(JSContext* cx, RunState*);
   auto funcPtr = JS_DATA_TO_FUNC_PTR(EnterTrampolineCodePtr, code);
   return CALL_GENERATED_2(funcPtr, cx, state);
 }

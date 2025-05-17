@@ -436,10 +436,27 @@ class JS::Compartment {
  private:
   // Head node of list of active iterators that may need deleted property
   // suppression.
+#ifdef JITSBX_HEAP
+  js::NativeIteratorListHead* enumerators_;
+#else
   js::NativeIteratorListHead enumerators_;
+#endif
 
  public:
+#ifdef JITSBX_HEAP
+  bool init() {
+    void* mem = js_jitsbx_malloc(sizeof(js::NativeIteratorListHead));
+    if (!mem) {
+      return false;
+    }
+    enumerators_ = new (mem) js::NativeIteratorListHead();
+    return true;
+  }
+  ~Compartment();
+  js::NativeIteratorListHead* enumeratorsAddr() { return enumerators_; }
+#else
   js::NativeIteratorListHead* enumeratorsAddr() { return &enumerators_; }
+#endif
   MOZ_ALWAYS_INLINE bool objectMaybeInIteration(JSObject* obj);
 
   void traceWeakNativeIterators(JSTracer* trc);

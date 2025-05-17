@@ -22,6 +22,12 @@ namespace js {
 
 class ArgumentsObject;
 
+#ifdef JITSBX_CFI_STACK
+namespace jitsbx {
+class NativeStackJitFrameLayout;
+}  // namespace jitsbx
+#endif
+
 namespace jit {
 
 enum class FrameType {
@@ -109,6 +115,12 @@ void AssertJitStackInvariants(JSContext* cx);
 
 class JSJitFrameIter {
  protected:
+#ifdef JITSBX_CFI_STACK
+  // When using stack-switching for backward-edge CFI for the sandbox,
+  // current_ points to the sandbox-stack during iteration.
+  // currentNative_ is used to track the current frame on the native-stack.
+  uint8_t* currentNative_;
+#endif
   uint8_t* current_;
   FrameType type_;
   uint8_t* resumePCinCurrentFrame_;
@@ -129,8 +141,13 @@ class JSJitFrameIter {
 
   // A constructor specialized for jit->wasm frames, which starts at a
   // specific FP.
+#ifdef JITSBX_CFI_STACK
+  JSJitFrameIter(const JitActivation* activation, FrameType frameType,
+                 uint8_t* fp, uint8_t* nfp);
+#else
   JSJitFrameIter(const JitActivation* activation, FrameType frameType,
                  uint8_t* fp);
+#endif
 
   void setResumePCInCurrentFrame(uint8_t* newAddr) {
     resumePCinCurrentFrame_ = newAddr;
@@ -142,6 +159,12 @@ class JSJitFrameIter {
   const JitActivation* activation() const { return activation_; }
 
   CommonFrameLayout* current() const { return (CommonFrameLayout*)current_; }
+#ifdef JITSBX_CFI_STACK
+  jitsbx::NativeStackJitFrameLayout* currentNative() const {
+    return (jitsbx::NativeStackJitFrameLayout*)currentNative_;
+  }
+  uint8_t* fpNative() const { return currentNative_; }
+#endif
 
   inline uint8_t* returnAddress() const;
 
@@ -203,6 +226,9 @@ class JSJitFrameIter {
   // Previous frame information extracted from the current frame.
   inline FrameType prevType() const;
   uint8_t* prevFp() const;
+#ifdef JITSBX_CFI_STACK
+  uint8_t* prevNativeFp() const;
+#endif
 
   // Functions used to iterate on frames. When prevType is an entry,
   // the current frame is the last JS Jit frame.

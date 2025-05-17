@@ -504,6 +504,15 @@ void js::GenerateXorShift128PlusSeed(mozilla::Array<uint64_t, 2>& seed) {
 
 mozilla::non_crypto::XorShift128PlusRNG&
 Realm::getOrCreateRandomNumberGenerator() {
+#ifdef JITSBX_HEAP
+  if (randomNumberGenerator_->isNothing()) {
+    mozilla::Array<uint64_t, 2> seed;
+    GenerateXorShift128PlusSeed(seed);
+    randomNumberGenerator_->emplace(seed[0], seed[1]);
+  }
+
+  return randomNumberGenerator_->ref();
+#else
   if (randomNumberGenerator_.isNothing()) {
     mozilla::Array<uint64_t, 2> seed;
     GenerateXorShift128PlusSeed(seed);
@@ -511,6 +520,7 @@ Realm::getOrCreateRandomNumberGenerator() {
   }
 
   return randomNumberGenerator_.ref();
+#endif
 }
 
 double js::math_random_impl(JSContext* cx) {

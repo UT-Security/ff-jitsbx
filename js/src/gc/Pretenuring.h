@@ -97,7 +97,8 @@ class AllocSite {
   uintptr_t rawScript() const { return scriptAndState & ~STATE_MASK; }
 
  public:
-  AllocSite() : nurseryTenuredCount(0), invalidationCount(0), traceKind_(0) {}
+  AllocSite() : nurseryTenuredCount(0), invalidationCount(0), traceKind_(0) {
+  }
 
   // Create a dummy site to use for unknown allocations.
   explicit AllocSite(JS::Zone* zone, JS::TraceKind kind)

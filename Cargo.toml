@@ -5,7 +5,7 @@
 # and do not need to be listed here. Their external dependencies are vendored
 # into `third_party/rust` by `mach vendor rust`.
 members = [
-  "js/src/frontend/smoosh",
+  "js/src/frontend/smoosh", "js/src/jitsbx/verifier",
   "js/src/rust",
   "netwerk/test/http3server",
   "security/manager/ssl/builtins",

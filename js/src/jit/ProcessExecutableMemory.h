@@ -21,7 +21,12 @@ static const size_t MaxCodeBytesPerProcess = 140 * 1024 * 1024;
 // asserts that is <= INT32_MAX. The INT32_MAX limit is required for making a
 // single call to RtlInstallFunctionTableCallback(). (This limit could be
 // relaxed in the future by making multiple calls.)
+#ifdef JITSBX_CFI_BUNDLE
+static const size_t MaxCodeBytesPerProcess = 512 * 1024 * 1024;
+static const size_t AllocatedCodeBytesPerProcess = (int64_t)512 * 1024 * 1024;
+#else
 static const size_t MaxCodeBytesPerProcess = 2044 * 1024 * 1024;
+#endif
 #endif
 
 // Limit on the number of bytes of code memory per buffer.  This limit comes

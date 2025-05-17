@@ -12,6 +12,10 @@
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 
+#ifdef JITSBX_CFI_BUNDLE
+#include "jitsbx/JitSandbox.h"
+#endif
+
 namespace js {
 namespace jit {
 
@@ -253,7 +257,11 @@ static constexpr Register PreBarrierReg = rdx;
 static constexpr Register InterpreterPCReg = r14;
 
 static constexpr uint32_t ABIStackAlignment = 16;
+#ifdef JITSBX_CFI_BUNDLE
+static constexpr uint32_t CodeAlignment = jitsbx::BundleAlignment;
+#else
 static constexpr uint32_t CodeAlignment = 16;
+#endif
 static constexpr uint32_t JitStackAlignment = 16;
 
 static constexpr uint32_t JitStackValueAlignment =
@@ -354,6 +362,8 @@ class Assembler : public AssemblerX86Shared {
   // Copy the assembly code to the given buffer, and perform any pending
   // relocations relying on the target address.
   void executableCopy(uint8_t* buffer);
+
+  uint32_t extendedJumpTable() { return extendedJumpTable_; }
 
   void assertNoGCThings() const {
 #ifdef DEBUG
@@ -458,6 +468,27 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#ifdef JITSBX_HEAP_MASK
+  void movq(Register src, const Operand& dest, bool mask = true) {
+    switch (dest.kind()) {
+      case Operand::REG:
+        masm.movq_rr(src.encoding(), dest.reg());
+        break;
+      case Operand::MEM_REG_DISP:
+        masm.movq_rm(src.encoding(), dest.disp(), dest.base(), mask);
+        break;
+      case Operand::MEM_SCALE:
+        masm.movq_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
+                     dest.scale(), mask);
+        break;
+      case Operand::MEM_ADDRESS32:
+        masm.movq_rm(src.encoding(), dest.address(), mask);
+        break;
+      default:
+        MOZ_CRASH("unexpected operand kind");
+    }
+  }
+#else
   void movq(Register src, const Operand& dest) {
     switch (dest.kind()) {
       case Operand::REG:
@@ -477,6 +508,7 @@ class Assembler : public AssemblerX86Shared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+#endif
   void movq(Imm32 imm32, const Operand& dest) {
     switch (dest.kind()) {
       case Operand::REG:
@@ -1005,7 +1037,11 @@ class Assembler : public AssemblerX86Shared {
     append(wasm::SymbolicAccess(CodeOffset(masm.currentOffset()), imm));
   }
   void mov(const Operand& src, Register dest) { movq(src, dest); }
+#ifdef JITSBX_HEAP_MASK
+  void mov(Register src, const Operand& dest, bool mask = true) { movq(src, dest, mask); }
+#else
   void mov(Register src, const Operand& dest) { movq(src, dest); }
+#endif
   void mov(Imm32 imm32, const Operand& dest) { movq(imm32, dest); }
   void mov(Register src, Register dest) { movq(src, dest); }
   void mov(CodeLabel* label, Register dest) {
@@ -1014,6 +1050,15 @@ class Assembler : public AssemblerX86Shared {
   }
   void xchg(Register src, Register dest) { xchgq(src, dest); }
 
+  static size_t sizeOfLea(const Operand& src, Register dest) {
+    switch (src.kind()) {
+      case Operand::MEM_REG_DISP:
+        return X86Encoding::BaseAssemblerSpecific::sizeOfLeaq_mr(src.disp(), src.base(), dest.encoding());
+        break;
+      default:
+        MOZ_CRASH("unexepcted operand kind");
+    }
+  }
   void lea(const Operand& src, Register dest) {
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
@@ -1147,24 +1192,26 @@ class Assembler : public AssemblerX86Shared {
   void j(Condition cond, JitCode* target) {
     j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
-  void call(JitCode* target) {
+  CodeOffset call(JitCode* target) {
     JmpSrc src = masm.call();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    return CodeOffset(masm.currentOffset());
   }
-  void call(ImmWord target) { call(ImmPtr((void*)target.value)); }
-  void call(ImmPtr target) {
+  CodeOffset call(ImmWord target) { return call(ImmPtr((void*)target.value)); }
+  CodeOffset call(ImmPtr target) {
     JmpSrc src = masm.call();
     addPendingJump(src, target, RelocationKind::HARDCODED);
+    return CodeOffset(masm.currentOffset());
   }
 
   // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
-    CodeOffset offset(size());
+    //CodeOffset offset(size());
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
-    MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
-    return offset;
+    //MOZ_ASSERT_IF(!oom(), size() - offset.offset() == ToggledCallSize(nullptr));
+    return CodeOffset(size() - ToggledCallSize(nullptr));
   }
 
   static size_t ToggledCallSize(uint8_t* code) {

@@ -32,7 +32,10 @@ inline void EmitBaselineTailCallVM(TrampolinePtr target, MacroAssembler& masm,
 
   // Push frame descriptor and perform the tail call.
   masm.pushFrameDescriptor(FrameType::BaselineJS);
+#ifndef JITSBX_CFI_STACK
   masm.push(ICTailCallReg);
+#endif
+  masm.sbxToNativeStack();
   masm.jump(target);
 }
 
@@ -73,6 +76,46 @@ inline void EmitBaselineEnterStubFrame(MacroAssembler& masm, Register) {
 
   masm.Push(ICStubReg);
 }
+
+#ifdef JITSBX_CFI_STACK
+inline void EmitBaselineFallbackICPrologue(MacroAssembler& masm,
+                                           Register scratch2) {
+  masm.sbxAssertNativeStack();
+  masm.Push(FramePointer);
+  masm.sbxToSandboxStack();
+
+  // Push frame descriptor on top of the stack.
+  masm.Push(ImmWord(MakeFrameDescriptor(FrameType::BaselineJS)));
+
+  // Push return address and frame pointer to complete frame.
+  masm.sbxPushFrame();
+
+  // Save old frame pointer, stack pointer and stub reg.
+  masm.mov(StackPointer, FramePointer);
+
+#ifdef DEBUG
+  // Compute frame size. Because the frame descriptor, return address and
+  // frame pointer are on the stack this is:
+  //
+  //   0(FramePointer)
+  //   - StackPointer
+  //   - sizeof(return address) - sizeof(frame pointer) - sizeof(frame
+  //   descriptor)
+
+  ScratchRegisterScope scratch(masm);
+  masm.loadPtr(Address(FramePointer, 0), scratch);
+  masm.subq(StackPointer, scratch);
+  masm.subq(Imm32(3 * sizeof(void*)), scratch);
+
+  masm.loadPtr(Address(FramePointer, 0), scratch2);
+  Address frameSizeAddr(scratch2,
+                        BaselineFrame::reverseOffsetOfDebugFrameSize());
+  masm.store32(scratch, frameSizeAddr);
+#endif
+
+  masm.Push(ICStubReg);
+}
+#endif
 
 }  // namespace jit
 }  // namespace js

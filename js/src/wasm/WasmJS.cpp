@@ -79,6 +79,10 @@
 #include "vm/NativeObject-inl.h"
 #include "wasm/WasmInstance-inl.h"
 
+#ifdef JITSBX
+#include "jitsbx/JitSandboxContext.h"
+#endif
+
 /*
  * [SMDOC] WebAssembly code rules (evolving)
  *
@@ -681,6 +685,10 @@ bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
     return false;
   }
 
+#ifdef JITSBX
+  compileArgs->jitSandbox = cx->runtime()->jitSandbox();
+#endif
+
   // The caller has ensured CodeCachingAvailable(). Moreover, we want to ensure
   // we go straight to tier-2 so that we synchronously call
   // JS::OptimizedEncodingListener::storeOptimizedEncoding().
@@ -717,6 +725,9 @@ bool wasm::CompileAndSerialize(JSContext* cx, const ShareableBytes& bytecode,
 
 bool wasm::DeserializeModule(JSContext* cx, const Bytes& serialized,
                              MutableHandleObject moduleObj) {
+#ifdef JITSBX
+  jitsbx::JitSandboxContext jitsbxContext(cx->runtime()->jitSandbox());
+#endif
   MutableModule module =
       Module::deserialize(serialized.begin(), serialized.length());
   if (!module) {
@@ -2377,6 +2388,9 @@ bool WasmInstanceObject::getExportedFunction(
     // until Instance::callExport() to create the fast entry stubs.
     if (funcType.canHaveJitEntry()) {
       if (!funcExport.hasEagerStubs()) {
+#ifdef JITSBX
+        jitsbx::JitSandboxContext jitsbxContext(cx->runtime()->jitSandbox());
+#endif
         if (!EnsureBuiltinThunksInitialized()) {
           return false;
         }
@@ -5076,6 +5090,9 @@ class CompileStreamTask : public PromiseHelperTask, public JS::StreamConsumer {
   }
 
   void consumeOptimizedEncoding(const uint8_t* begin, size_t length) override {
+#ifdef JITSBX
+  jitsbx::JitSandboxContext jitsbxContext(compileArgs_.get()->jitSandbox);
+#endif
     module_ = Module::deserialize(begin, length);
 
     MOZ_ASSERT(streamState_.lock().get() == Env);

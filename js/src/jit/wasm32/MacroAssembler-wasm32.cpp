@@ -395,13 +395,25 @@ void MacroAssembler::callWithABINoProfiler(const Address& fun,
   MOZ_CRASH();
 }
 
-void MacroAssembler::call(const Address& addr) { MOZ_CRASH(); }
+CodeOffset MacroAssembler::call(const Address& addr) {
+  MOZ_CRASH();
+  return CodeOffset(0);
+}
 
-void MacroAssembler::call(ImmWord imm) { MOZ_CRASH(); }
+CodeOffset MacroAssembler::call(ImmWord imm) {
+  MOZ_CRASH();
+  return CodeOffset(0);
+}
 
-void MacroAssembler::call(ImmPtr imm) { MOZ_CRASH(); }
+CodeOffset MacroAssembler::call(ImmPtr imm) {
+  MOZ_CRASH();
+  return CodeOffset(0);
+}
 
-void MacroAssembler::call(JitCode* c) { MOZ_CRASH(); }
+CodeOffset MacroAssembler::call(JitCode* c) {
+  MOZ_CRASH();
+  return CodeOffset(0);
+}
 
 void MacroAssembler::callWithABIPost(uint32_t stackAdjust, MoveOp::Type result,
                                      bool callFromWasm) {

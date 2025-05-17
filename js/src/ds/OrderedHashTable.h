@@ -76,6 +76,14 @@ class OrderedHashTable {
   class Range;
   friend class Range;
 
+#ifdef JITSBX_HEAP
+  struct JitsbxData {
+    Range* ranges;  // list of all live Ranges on this table in malloc memory
+    Range* nurseryRanges;  // list of all live Ranges on this table in the GC
+                           // nursery
+  };
+#endif
+
  private:
   Data** hashTable;       // hash table (has hashBuckets() elements)
   Data* data;             // data vector, an array of Data objects
@@ -84,9 +92,13 @@ class OrderedHashTable {
   uint32_t dataCapacity;  // size of data, in elements
   uint32_t liveCount;     // dataLength less empty (removed) entries
   uint32_t hashShift;     // multiplicative hash shift
+#ifdef JITSBX_HEAP
+  JitsbxData* jitsbxData;
+#else
   Range* ranges;  // list of all live Ranges on this table in malloc memory
   Range*
       nurseryRanges;  // list of all live Ranges on this table in the GC nursery
+#endif
   AllocPolicy alloc;
   mozilla::HashCodeScrambler hcs;  // don't reveal pointer hash codes
 
@@ -96,11 +108,19 @@ class OrderedHashTable {
   template <void (*f)(Range* range, uint32_t arg)>
   void forEachRange(uint32_t arg = 0) {
     Range* next;
+#ifdef JITSBX_HEAP
+    for (Range* r = jitsbxData->ranges; r; r = next) {
+#else
     for (Range* r = ranges; r; r = next) {
+#endif
       next = r->next;
       f(r, arg);
     }
+#ifdef JITSBX_HEAP
+    for (Range* r = jitsbxData->nurseryRanges; r; r = next) {
+#else
     for (Range* r = nurseryRanges; r; r = next) {
+#endif
       next = r->next;
       f(r, arg);
     }
@@ -114,13 +134,27 @@ class OrderedHashTable {
         dataCapacity(0),
         liveCount(0),
         hashShift(0),
+#ifdef JITSBX_HEAP
+        jitsbxData(nullptr),
+#else
         ranges(nullptr),
         nurseryRanges(nullptr),
+#endif
         alloc(std::move(ap)),
         hcs(hcs) {}
 
   [[nodiscard]] bool init() {
     MOZ_ASSERT(!hashTable, "init must be called at most once");
+
+#ifdef JITSBX_HEAP
+    //jitsbxData = alloc.template pod_jitsbx_malloc<JitsbxData>(1);
+    jitsbxData = (JitsbxData*)js_jitsbx_malloc(sizeof(JitsbxData));
+    if (!jitsbxData) {
+      return false;
+    }
+    jitsbxData->ranges = nullptr;
+    jitsbxData->nurseryRanges = nullptr;
+#endif
 
     uint32_t buckets = initialBuckets();
     Data** tableAlloc = alloc.template pod_malloc<Data*>(buckets);
@@ -134,6 +168,10 @@ class OrderedHashTable {
     uint32_t capacity = uint32_t(buckets * fillFactor());
     Data* dataAlloc = alloc.template pod_malloc<Data>(capacity);
     if (!dataAlloc) {
+#ifdef JITSBX_HEAP
+      //alloc.free_(jitsbxData, 1);
+      js_free(jitsbxData);
+#endif
       alloc.free_(tableAlloc, buckets);
       return false;
     }
@@ -157,10 +195,19 @@ class OrderedHashTable {
       alloc.free_(hashTable, hashBuckets());
     }
     freeData(data, dataLength, dataCapacity);
+#ifdef JITSBX_HEAP
+      //alloc.free_(jitsbxData, 1);
+      js_free(jitsbxData);
+#endif
   }
 
   size_t sizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf) const {
     size_t size = 0;
+#ifdef JITSBX_HEAP
+    if(jitsbxData) {
+      size += mallocSizeOf(jitsbxData);
+    }
+#endif 
     if (hashTable) {
       size += mallocSizeOf(hashTable);
     }
@@ -377,8 +424,14 @@ class OrderedHashTable {
         : ht(other.ht),
           i(other.i),
           count(other.count),
+#ifdef JITSBX_HEAP
+          prevp(&(ht->jitsbxData->ranges)),
+          next(ht->jitsbxData->ranges)
+#else
           prevp(&ht->ranges),
-          next(ht->ranges) {
+          next(ht->ranges)
+#endif
+          {
       *prevp = this;
       if (next) {
         next->prevp = &next;
@@ -515,9 +568,17 @@ class OrderedHashTable {
     // Range operates on a mutable table but its interface does not permit
     // modification of the contents of the table.
     auto* self = const_cast<OrderedHashTable*>(this);
+#ifdef JITSBX_HEAP
+    return Range(self, &(self->jitsbxData->ranges));
+#else
     return Range(self, &self->ranges);
+#endif
   }
+#ifdef JITSBX_HEAP
+  MutableRange mutableAll() { return MutableRange(this, &(jitsbxData->ranges)); }
+#else
   MutableRange mutableAll() { return MutableRange(this, &ranges); }
+#endif
 
   void trace(JSTracer* trc) {
     for (uint32_t i = 0; i < dataLength; i++) {
@@ -553,12 +614,20 @@ class OrderedHashTable {
    */
   Range* createRange(void* buffer, bool inNursery) const {
     auto* self = const_cast<OrderedHashTable*>(this);
+#ifdef JITSBX_HEAP
+    Range** listp = inNursery ? &(self->jitsbxData->nurseryRanges) : &(self->jitsbxData->ranges);
+#else
     Range** listp = inNursery ? &self->nurseryRanges : &self->ranges;
+#endif
     new (buffer) Range(self, listp);
     return static_cast<Range*>(buffer);
   }
 
+#ifdef JITSBX_HEAP
+  void destroyNurseryRanges() { jitsbxData->nurseryRanges = nullptr; }
+#else
   void destroyNurseryRanges() { nurseryRanges = nullptr; }
+#endif
 
   /*
    * Change the value of the given key.
