@@ -346,8 +346,11 @@ nsPIDOMWindowOuter* nsPIDOMWindowOuter::GetFromCurrentInner(
 // We store the nsGlobalWindowOuter* in our first slot.
 //
 // We store our holder weakmap in the second slot.
-const JSClass OuterWindowProxyClass = MONKEYCAGE_PROXY_CLASS_DEF(
-    "Proxy", JSCLASS_HAS_RESERVED_SLOTS(2)); /* additional class flags */
+const JSClass* OuterWindowProxyClass() {
+  static const JSClass inner_ = MONKEYCAGE_PROXY_CLASS_DEF(
+      "Proxy", JSCLASS_HAS_RESERVED_SLOTS(2)); /* additional class flags */
+  return &inner_;
+}
 
 static const size_t OUTER_WINDOW_SLOT = 0;
 static const size_t HOLDER_WEAKMAP_SLOT = 1;
@@ -1295,7 +1298,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   JSAutoRealm ar(cx, global);
 
   js::WrapperOptions options;
-  options.setClass(&OuterWindowProxyClass);
+  options.setClass(OuterWindowProxyClass());
   JSObject* obj =
       mc::Wrapper::New(cx, global,
                        isChrome ? nsChromeOuterWindowProxy::singleton()

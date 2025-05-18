@@ -241,22 +241,26 @@ bool WindowNamedPropertiesHandler::delete_(JSContext* aCx,
 
 // Note that this class doesn't need any reserved slots, but SpiderMonkey
 // asserts all proxy classes have at least one reserved slot.
-static const DOMIfaceAndProtoJSClass WindowNamedPropertiesClass = {
-    MONKEYCAGE_PROXY_CLASS_DEF("WindowProperties", JSCLASS_IS_DOMIFACEANDPROTOJSCLASS |
-                                            JSCLASS_HAS_RESERVED_SLOTS(1)),
-    eNamedPropertiesObject,
-    false,
-    prototypes::id::_ID_Count,
-    0,
-    &sEmptyNativePropertyHooks,
-    "[object WindowProperties]",
-    EventTarget_Binding::GetProtoObject};
+static const DOMIfaceAndProtoJSClass* WindowNamedPropertiesClass() {
+  static const DOMIfaceAndProtoJSClass inner_ = {
+      MONKEYCAGE_PROXY_CLASS_DEF(
+          "WindowProperties",
+          JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(1)),
+      eNamedPropertiesObject,
+      false,
+      prototypes::id::_ID_Count,
+      0,
+      &sEmptyNativePropertyHooks,
+      "[object WindowProperties]",
+      EventTarget_Binding::GetProtoObject};
+  return &inner_;
+}
 
 // static
 JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
                                                JS::Handle<JSObject*> aProto) {
   js::ProxyOptions options;
-  options.setClass(&WindowNamedPropertiesClass.mBase);
+  options.setClass(&WindowNamedPropertiesClass()->mBase);
 
   JS::Rooted<JSObject*> gsp(
       aCx, js::NewProxyObject(aCx, WindowNamedPropertiesHandler::getInstance(),

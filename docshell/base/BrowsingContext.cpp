@@ -1885,8 +1885,11 @@ static const RemoteLocationProxy* sSingleton() {
 // so JSObject::swap can swap it with CrossCompartmentWrappers without requiring
 // malloc.
 template <>
-const JSClass RemoteLocationProxy::Base::sClass =
+const JSClass* RemoteLocationProxy::Base::sClass() {
+  static const JSClass inner_ =
     MONKEYCAGE_PROXY_CLASS_DEF("Proxy", JSCLASS_HAS_RESERVED_SLOTS(2));
+  return &inner_;
+}
 
 void BrowsingContext::Location(JSContext* aCx,
                                JS::MutableHandle<JSObject*> aLocation,

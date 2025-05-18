@@ -682,16 +682,19 @@ class CGDOMJSClass(CGThing):
               ${objectMoved} /* objectMovedOp */
             };
 
-            static const DOMJSClass sClass = {
-              { "${name}",
-                ${flags},
-                &sClassOps,
-                JS_NULL_CLASS_SPEC,
-                &sClassExtension,
-                JS_NULL_OBJECT_OPS
-              },
-              $*{descriptor}
-            };
+            static const DOMJSClass* sClass() {
+                static const DOMJSClass inner_ = {
+                  { "${name}",
+                    ${flags},
+                    &sClassOps,
+                    JS_NULL_CLASS_SPEC,
+                    &sClassExtension,
+                    JS_NULL_OBJECT_OPS
+                  },
+                  $*{descriptor}
+                };
+                return &inner_;
+            }
             static_assert(${instanceReservedSlots} == DOM_INSTANCE_RESERVED_SLOTS,
                           "Must have the right minimal number of reserved slots.");
             static_assert(${reservedSlots} >= ${slotCount},
@@ -739,11 +742,14 @@ class CGDOMProxyJSClass(CGThing):
             flags.append("JSCLASS_EMULATES_UNDEFINED")
         return fill(
             """
-            static const DOMJSClass sClass = {
-              MONKEYCAGE_PROXY_CLASS_DEF("${name}",
-                              ${flags}),
-              $*{descriptor}
-            };
+            static const DOMJSClass* sClass() {
+                static const DOMJSClass inner_ = {
+                  MONKEYCAGE_PROXY_CLASS_DEF("${name}",
+                                  ${flags}),
+                    $*{descriptor}
+                };
+                return &inner_;
+            }
             """,
             name=self.descriptor.interface.identifier.name,
             flags=" | ".join(flags),
@@ -3797,7 +3803,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 holderClass = "nullptr"
                 holderProto = "nullptr"
             else:
-                holderClass = "sClass.ToJSClass()"
+                holderClass = "sClass()->ToJSClass()"
                 holderProto = "proto"
                 needProtoVar = True
             createUnforgeableHolder = CGGeneric(
@@ -4273,7 +4279,7 @@ def CreateBindingJSObject(descriptor):
                 """
                 aObject->mExpandoAndGeneration.expando.setUndefined();
                 JS::Rooted<JS::Value> expandoValue(aCx, JS::PrivateValue(&aObject->mExpandoAndGeneration));
-                creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
+                creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           proto, /* aLazyProto = */ false, aObject,
                                           expandoValue, aReflector);
                 """
@@ -4287,7 +4293,7 @@ def CreateBindingJSObject(descriptor):
                 lazyProto = "false"
             create = fill(
                 """
-                creator.CreateProxyObject(aCx, &sClass.mBase, DOMProxyHandler::getInstance(),
+                creator.CreateProxyObject(aCx, &sClass()->mBase, DOMProxyHandler::getInstance(),
                                           ${proto}, /* aLazyProto = */ ${lazyProto},
                                           aObject, MC::UndefinedHandleValue(), aReflector);
                 """,
@@ -4297,7 +4303,7 @@ def CreateBindingJSObject(descriptor):
     else:
         create = dedent(
             """
-            creator.CreateObject(aCx, sClass.ToJSClass(), proto, aObject, aReflector);
+            creator.CreateObject(aCx, sClass()->ToJSClass(), proto, aObject, aReflector);
             """
         )
     return (
@@ -4816,7 +4822,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             if (!CreateGlobal<${nativeType}, ${getProto}>(aCx,
                                              aObject,
                                              aCache,
-                                             sClass.ToJSClass(),
+                                             sClass()->ToJSClass(),
                                              aOptions,
                                              aPrincipal,
                                              aInitStandardClasses,

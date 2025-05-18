@@ -434,7 +434,7 @@ class JSContextWrapper {
   JS::PersistentRooted<JSObject*> mGlobal;
   bool mOK;
 
-  static const JSClass sGlobalClass;
+  static const JSClass* sGlobalClass();
 
   explicit JSContextWrapper(MCContext* cx)
       : mContext(cx), mGlobal(MC_UNSAFE(cx), nullptr), mOK(false) {
@@ -464,7 +464,7 @@ class JSContextWrapper {
     JS::RealmOptions options;
     options.creationOptions().setNewCompartmentInSystemZone();
     options.behaviors().setClampAndJitterTime(false);
-    mGlobal = JS_NewGlobalObject(mContext, &sGlobalClass, nullptr,
+    mGlobal = JS_NewGlobalObject(mContext, sGlobalClass(), nullptr,
                                  JS::DontFireOnNewGlobalHook, options);
     if (!mGlobal) {
       JS_ClearPendingException(mContext);
@@ -484,9 +484,12 @@ class JSContextWrapper {
   }
 };
 
-const JSClass JSContextWrapper::sGlobalClass = {"PACResolutionThreadGlobal",
-                                                JSCLASS_GLOBAL_FLAGS,
-                                                MC::DefaultGlobalClassOps()};
+const JSClass* JSContextWrapper::sGlobalClass() {
+  static const JSClass inner_ = {"PACResolutionThreadGlobal",
+                                 JSCLASS_GLOBAL_FLAGS,
+                                 MC::DefaultGlobalClassOps()};
+  return &inner_;
+}
 
 void ProxyAutoConfig::SetThreadLocalIndex(uint32_t index) {
   RunningIndex() = index;
