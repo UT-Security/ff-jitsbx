@@ -150,3 +150,7 @@ JSString* OpaqueCrossCompartmentWrapper::fun_toString(JSContext* cx,
 }
 
 const OpaqueCrossCompartmentWrapper OpaqueCrossCompartmentWrapper::singleton;
+
+const OpaqueCrossCompartmentWrapper* OpaqueCrossCompartmentWrapper::getSingleton() {
+    return &singleton;
+}

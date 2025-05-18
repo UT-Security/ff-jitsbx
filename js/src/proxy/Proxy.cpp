@@ -1015,6 +1015,12 @@ const JSClass js::ProxyClass = PROXY_CLASS_DEF_WITH_CLASS_SPEC(
     JSCLASS_HAS_CACHED_PROTO(JSProto_Proxy) | JSCLASS_HAS_RESERVED_SLOTS(2),
     &ProxyClassSpec);
 
+#ifdef JS_SANDBOX
+const JSClass* js::getProxyClass() {
+  return &ProxyClass;
+}
+#endif
+
 JS_PUBLIC_API JSObject* js::NewProxyObject(JSContext* cx,
                                            const BaseProxyHandler* handler,
                                            HandleValue priv, JSObject* proto_,

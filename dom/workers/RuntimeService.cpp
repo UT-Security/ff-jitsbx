@@ -743,18 +743,18 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   // Note: the JS engine unwraps CCWs before calling this callback.
   JS::Rooted<JSObject*> originGlobal(cx, JS::GetNonCCWObjectGlobal(obj));
 
-  const js::Wrapper* wrapper = nullptr;
+  const mc::Wrapper* wrapper = nullptr;
   if (IsWorkerDebuggerGlobalOrSandbox(targetGlobal) &&
       IsWorkerDebuggerGlobalOrSandbox(originGlobal)) {
-    wrapper = &js::CrossCompartmentWrapper::singleton;
+    wrapper = mc::CrossCompartmentWrapper::getSingleton();
   } else {
-    wrapper = &js::OpaqueCrossCompartmentWrapper::singleton;
+    wrapper = mc::OpaqueCrossCompartmentWrapper::getSingleton();
   }
 
   if (existing) {
-    js::Wrapper::Renew(existing, obj, wrapper);
+    mc::Wrapper::Renew(existing, obj, wrapper);
   }
-  return js::Wrapper::New(cx, obj, wrapper);
+  return mc::Wrapper::New(cx, obj, wrapper);
 }
 
 static const JSWrapObjectCallbacks WrapObjectCallbacks = {

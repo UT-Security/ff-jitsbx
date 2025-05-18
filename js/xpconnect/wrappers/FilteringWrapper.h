@@ -11,14 +11,18 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "js/CallNonGenericMethod.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 
 namespace xpc {
 
 template <typename Base, typename Policy>
 class FilteringWrapper : public Base {
  public:
+#ifdef JS_SANDBOX
+  inline explicit FilteringWrapper(unsigned flags) : Base(flags) {}
+#else
   constexpr explicit FilteringWrapper(unsigned flags) : Base(flags) {}
+#endif
 
   virtual bool enter(JSContext* cx, JS::Handle<JSObject*> wrapper,
                      JS::Handle<jsid> id, js::Wrapper::Action act,
@@ -49,7 +53,7 @@ class FilteringWrapper : public Base {
   virtual bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                             JS::MutableHandleObject protop) const override;
 
-  static const FilteringWrapper singleton;
+  static const FilteringWrapper* getSingleton();
 };
 
 }  // namespace xpc

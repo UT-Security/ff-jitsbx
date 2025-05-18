@@ -10,6 +10,7 @@
 #include "AccessCheck.h"
 #include "XPCWrapper.h"
 #include "ChromeObjectWrapper.h"
+#include "CrossOriginObjectWrapper.h"
 #include "WrapperFactory.h"
 
 #include "xpcprivate.h"
@@ -32,9 +33,9 @@ using namespace mozilla;
 namespace xpc {
 
 #ifndef MOZ_UNIFIED_BUILD
-extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+extern template class FilteringWrapper<mc::CrossCompartmentSecurityWrapper,
                                        Opaque>;
-extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
+extern template class FilteringWrapper<mc::CrossCompartmentSecurityWrapper,
                                        OpaqueWithCall>;
 #endif
 
@@ -45,22 +46,33 @@ extern template class FilteringWrapper<js::CrossCompartmentSecurityWrapper,
 // transparent wrapper in the origin (non-chrome) compartment. When
 // an object with that special wrapper applied crosses into chrome,
 // we know to not apply an X-ray wrapper.
-const Wrapper XrayWaiver(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+const mc::Wrapper* getXrayWaiver() {
+  static const mc::Wrapper inner_(WrapperFactory::WAIVE_XRAY_WRAPPER_FLAG);
+  return &inner_;
+}
 
 // When objects for which we waived the X-ray wrapper cross into
 // chrome, we wrap them into a special cross-compartment wrapper
 // that transitively extends the waiver to all properties we get
 // off it.
-const WaiveXrayWrapper WaiveXrayWrapper::singleton(0);
+const WaiveXrayWrapper* WaiveXrayWrapper::getSingleton() {
+  static const WaiveXrayWrapper inner_(0);
+  return &inner_;
+}
+
+bool WrapperFactory::IsCrossOriginWrapper(JSObject* obj) {
+  return (js::IsProxy(obj) &&
+          js::GetProxyHandler(obj) == MC_UNSAFE(CrossOriginObjectWrapper::getSingleton()));
+}
 
 bool WrapperFactory::IsOpaqueWrapper(JSObject* obj) {
   return mc::IsWrapper(obj) &&
-         Wrapper::wrapperHandler(obj) == &PermissiveXrayOpaque::singleton;
+         mc::Wrapper::wrapperHandler(obj) == PermissiveXrayOpaque::getSingleton();
 }
 
 bool WrapperFactory::IsCOW(JSObject* obj) {
   return mc::IsWrapper(obj) &&
-         Wrapper::wrapperHandler(obj) == &ChromeObjectWrapper::singleton;
+         mc::Wrapper::wrapperHandler(obj) == ChromeObjectWrapper::getSingleton();
 }
 
 JSObject* WrapperFactory::GetXrayWaiver(HandleObject obj) {
@@ -86,7 +98,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
   XPCWrappedNativeScope* scope = ObjectScope(obj);
 
   JSAutoRealm ar(cx, obj);
-  JSObject* waiver = Wrapper::New(cx, obj, &XrayWaiver);
+  JSObject* waiver = mc::Wrapper::New(cx, obj, getXrayWaiver());
   if (!waiver) {
     return nullptr;
   }
@@ -124,7 +136,7 @@ bool WrapperFactory::AllowWaiver(JS::Compartment* target,
 
 /* static */
 bool WrapperFactory::AllowWaiver(JSObject* wrapper) {
-  MOZ_ASSERT(js::IsCrossCompartmentWrapper(wrapper));
+  MOZ_ASSERT(mc::IsCrossCompartmentWrapper(wrapper));
   return AllowWaiver(JS::GetCompartment(wrapper),
                      JS::GetCompartment(js::UncheckedUnwrap(wrapper)));
 }
@@ -340,7 +352,7 @@ static bool CompartmentsMayHaveHadTransparentCCWs(
 
 #ifdef DEBUG
 static void DEBUG_CheckUnwrapSafety(HandleObject obj,
-                                    const js::Wrapper* handler,
+                                    const mc::Wrapper* handler,
                                     JS::Realm* origin, JS::Realm* target) {
   JS::Compartment* targetCompartment = JS::GetCompartmentForRealm(target);
   if (!js::AllowNewWrapper(targetCompartment, obj)) {
@@ -352,7 +364,7 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
     // allowed, but we might have a CrossOriginObjectWrapper here which allows
     // it dynamically.
     MOZ_ASSERT(!handler->hasSecurityPolicy() ||
-               handler == &CrossOriginObjectWrapper::singleton);
+               handler == CrossOriginObjectWrapper::getSingleton());
   } else {
     // Otherwise, it should depend on whether the target subsumes the origin.
     bool subsumes =
@@ -378,8 +390,8 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
                                                 targetCompartmentPrivate)) {
         // We should have a transparent CCW, unless we have a cross-origin
         // object, in which case it will be a CrossOriginObjectWrapper.
-        MOZ_ASSERT(handler == &CrossCompartmentWrapper::singleton ||
-                   handler == &CrossOriginObjectWrapper::singleton);
+        MOZ_ASSERT(handler == mc::CrossCompartmentWrapper::getSingleton() ||
+                   handler == CrossOriginObjectWrapper::getSingleton());
       } else {
         MOZ_ASSERT(handler->hasSecurityPolicy());
       }
@@ -387,7 +399,7 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
       // Even if target subsumes origin, we might have a wrapper with a security
       // policy here, if it happens to be a CrossOriginObjectWrapper.
       MOZ_ASSERT(!handler->hasSecurityPolicy() ||
-                 handler == &CrossOriginObjectWrapper::singleton);
+                 handler == CrossOriginObjectWrapper::getSingleton());
     }
   }
 }
@@ -396,56 +408,59 @@ static void DEBUG_CheckUnwrapSafety(HandleObject obj,
     {}
 #endif
 
-const CrossOriginObjectWrapper CrossOriginObjectWrapper::singleton;
+const CrossOriginObjectWrapper* CrossOriginObjectWrapper::getSingleton() {
+  static const CrossOriginObjectWrapper inner_;
+  return &inner_;
+}
 
 bool CrossOriginObjectWrapper::dynamicCheckedUnwrapAllowed(
     HandleObject obj, JSContext* cx) const {
-  MOZ_ASSERT(js::GetProxyHandler(obj) == this,
+  MOZ_ASSERT(js::GetProxyHandler(obj) == MC_UNSAFE(this),
              "Why are we getting called for some random object?");
   JSObject* target = wrappedObject(obj);
   return dom::MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(cx,
                                                                        target);
 }
 
-static const Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
+static const mc::Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
                                     bool waiveXrays, JSObject* obj) {
   // Waived Xray uses a modified CCW that has transparent behavior but
   // transitively waives Xrays on arguments.
   if (waiveXrays) {
     MOZ_ASSERT(!securityWrapper);
-    return &WaiveXrayWrapper::singleton;
+    return WaiveXrayWrapper::getSingleton();
   }
 
   // If we don't want or can't use Xrays, select a wrapper that's either
   // entirely transparent or entirely opaque.
   if (xrayType == NotXray) {
     if (!securityWrapper) {
-      return &CrossCompartmentWrapper::singleton;
+      return mc::CrossCompartmentWrapper::getSingleton();
     }
-    return &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                             Opaque>::singleton;
+    return FilteringWrapper<mc::CrossCompartmentSecurityWrapper,
+                             Opaque>::getSingleton();
   }
 
   // Ok, we're using Xray. If this isn't a security wrapper, use the permissive
   // version and skip the filter.
   if (!securityWrapper) {
     if (xrayType == XrayForDOMObject) {
-      return &PermissiveXrayDOM::singleton;
+      return PermissiveXrayDOM::getSingleton();
     } else if (xrayType == XrayForJSObject) {
-      return &PermissiveXrayJS::singleton;
+      return PermissiveXrayJS::getSingleton();
     }
     MOZ_ASSERT(xrayType == XrayForOpaqueObject);
-    return &PermissiveXrayOpaque::singleton;
+    return PermissiveXrayOpaque::getSingleton();
   }
 
   // There's never any reason to expose other objects to non-subsuming actors.
   // Just use an opaque wrapper in these cases.
-  return &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
+  return FilteringWrapper<mc::CrossCompartmentSecurityWrapper, Opaque>::getSingleton();
 }
 
 JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
                                  HandleObject obj) {
-  MOZ_ASSERT(!mc::IsWrapper(obj) || GetProxyHandler(obj) == &XrayWaiver ||
+  MOZ_ASSERT(!mc::IsWrapper(obj) || mc::GetProxyHandler(obj) == getXrayWaiver() ||
                  js::IsWindowProxy(obj),
              "wrapped object passed to rewrap");
   MOZ_ASSERT(!js::IsWindow(obj));
@@ -467,7 +482,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
           : AccessCheck::subsumesConsideringDomainIgnoringFPD(target, origin);
   bool sameOrigin = targetSubsumesOrigin && originSubsumesTarget;
 
-  const Wrapper* wrapper;
+  const mc::Wrapper* wrapper;
 
   CompartmentPrivate* originCompartmentPrivate =
       CompartmentPrivate::Get(origin);
@@ -488,21 +503,21 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
     // call (but nothing else).
     JSProtoKey key = IdentifyStandardInstance(obj);
     if (key == JSProto_Function || key == JSProto_BoundFunction) {
-      wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                  OpaqueWithCall>::singleton;
+      wrapper = FilteringWrapper<mc::CrossCompartmentSecurityWrapper,
+                                  OpaqueWithCall>::getSingleton();
     }
 
     // For vanilla JSObjects exposed from chrome to content, we use a wrapper
     // that fails silently in a few cases. We'd like to get rid of this
     // eventually, but in their current form they don't cause much trouble.
     else if (key == JSProto_Object) {
-      wrapper = &ChromeObjectWrapper::singleton;
+      wrapper = ChromeObjectWrapper::getSingleton();
     }
 
     // Otherwise we get an opaque wrapper.
     else {
       wrapper =
-          &FilteringWrapper<CrossCompartmentSecurityWrapper, Opaque>::singleton;
+          FilteringWrapper<mc::CrossCompartmentSecurityWrapper, Opaque>::getSingleton();
     }
   }
 
@@ -515,7 +530,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
            IsCrossOriginAccessibleObject(obj) &&
            (!targetSubsumesOrigin || (!originCompartmentPrivate->wantXrays &&
                                       !targetCompartmentPrivate->wantXrays))) {
-    wrapper = &CrossOriginObjectWrapper::singleton;
+    wrapper = CrossOriginObjectWrapper::getSingleton();
   }
 
   // Special handling for other web objects.  Again, we only want this in
@@ -528,7 +543,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
            CompartmentsMayHaveHadTransparentCCWs(originCompartmentPrivate,
                                                  targetCompartmentPrivate)) {
     isTransparentWrapperDueToDocumentDomain = true;
-    wrapper = &CrossCompartmentWrapper::singleton;
+    wrapper = mc::CrossCompartmentWrapper::getSingleton();
   }
 
   //
@@ -571,8 +586,8 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
           JS_IsBuiltinFunctionConstructor(fun)) {
         NS_WARNING(
             "Trying to expose eval or Function to non-subsuming content!");
-        wrapper = &FilteringWrapper<CrossCompartmentSecurityWrapper,
-                                    Opaque>::singleton;
+        wrapper = FilteringWrapper<mc::CrossCompartmentSecurityWrapper,
+                                    Opaque>::getSingleton();
       }
     }
   }
@@ -580,10 +595,10 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
   DEBUG_CheckUnwrapSafety(obj, wrapper, origin, target);
 
   if (existing) {
-    return Wrapper::Renew(existing, obj, wrapper);
+    return mc::Wrapper::Renew(existing, obj, wrapper);
   }
 
-  return Wrapper::New(cx, obj, wrapper);
+  return mc::Wrapper::New(cx, obj, wrapper);
 }
 
 // Call WaiveXrayAndWrap when you have a JS object that you don't want to be
@@ -644,8 +659,8 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
 static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
                                      HandleObject newobj,
                                      bool crossCompartmentTransplant) {
-  MOZ_ASSERT(Wrapper::wrapperHandler(oldWaiver) == &XrayWaiver);
-  MOZ_ASSERT(!js::IsCrossCompartmentWrapper(newobj));
+  MOZ_ASSERT(mc::Wrapper::wrapperHandler(oldWaiver) == getXrayWaiver());
+  MOZ_ASSERT(!mc::IsCrossCompartmentWrapper(newobj));
 
   if (crossCompartmentTransplant) {
     // If the new compartment has a CCW for oldWaiver, nuke this CCW. This

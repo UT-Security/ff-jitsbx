@@ -37,11 +37,11 @@ using namespace mozilla::dom;
 using namespace JS;
 using namespace mozilla;
 
-using js::BaseProxyHandler;
+using mc::BaseProxyHandler;
 using js::CheckedUnwrapStatic;
-using js::IsCrossCompartmentWrapper;
+using mc::IsCrossCompartmentWrapper;
 using js::UncheckedUnwrap;
-using js::Wrapper;
+using mc::Wrapper;
 
 namespace xpc {
 
@@ -1032,7 +1032,7 @@ bool JSXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
 
 bool JSXrayTraits::construct(JSContext* cx, HandleObject wrapper,
                              const JS::CallArgs& args,
-                             const js::Wrapper& baseInstance) {
+                             const mc::Wrapper& baseInstance) {
   JSXrayTraits& self = JSXrayTraits::singleton;
   JS::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
   if (!holder) {
@@ -1587,7 +1587,7 @@ static bool wrappedJSObject_getter(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
   RootedObject wrapper(cx, &args.thisv().toObject());
-  if (!js::IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper) ||
+  if (!mc::IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper) ||
       !WrapperFactory::AllowWaiver(wrapper)) {
     JS_ReportErrorASCII(cx, "Unexpected object");
     return false;
@@ -1783,7 +1783,7 @@ bool DOMXrayTraits::enumerateNames(JSContext* cx, HandleObject wrapper,
 
 bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
                          const JS::CallArgs& args,
-                         const js::Wrapper& baseInstance) {
+                         const mc::Wrapper& baseInstance) {
   RootedObject obj(cx, getTargetObject(wrapper));
   const JSClass* clasp = JS::GetClass(obj);
   // What we have is either a WebIDL interface object, a WebIDL prototype
@@ -1805,7 +1805,7 @@ bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
 
 bool DOMXrayTraits::construct(JSContext* cx, HandleObject wrapper,
                               const JS::CallArgs& args,
-                              const js::Wrapper& baseInstance) {
+                              const mc::Wrapper& baseInstance) {
   RootedObject obj(cx, getTargetObject(wrapper));
   MOZ_ASSERT(mozilla::dom::HasConstructor(obj));
   const JSClass* clasp = JS::GetClass(obj);
@@ -1883,8 +1883,8 @@ bool XrayWrapper<Base, Traits>::getOwnPropertyDescriptor(
     JSContext* cx, HandleObject wrapper, HandleId id,
     MutableHandle<Maybe<PropertyDescriptor>> desc) const {
   assertEnteredPolicy(cx, wrapper, id,
-                      BaseProxyHandler::GET | BaseProxyHandler::SET |
-                          BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
+                      js::BaseProxyHandler::GET | js::BaseProxyHandler::SET |
+                          js::BaseProxyHandler::GET_PROPERTY_DESCRIPTOR);
   RootedObject target(cx, Traits::getTargetObject(wrapper));
   RootedObject holder(cx, Traits::singleton.ensureHolder(cx, wrapper));
   if (!holder) {
@@ -1927,20 +1927,20 @@ static bool RecreateLostWaivers(JSContext* cx, const PropertyDescriptor* orig,
 
   RootedObject rewaived(cx);
   if (valueWasWaived &&
-      !IsCrossCompartmentWrapper(&wrapped.value().toObject())) {
+      !mc::IsCrossCompartmentWrapper(&wrapped.value().toObject())) {
     rewaived = &wrapped.value().toObject();
     rewaived = WrapperFactory::WaiveXray(cx, UncheckedUnwrap(rewaived));
     NS_ENSURE_TRUE(rewaived, false);
     wrapped.value().set(ObjectValue(*rewaived));
   }
-  if (getterWasWaived && !IsCrossCompartmentWrapper(wrapped.getter())) {
+  if (getterWasWaived && !mc::IsCrossCompartmentWrapper(wrapped.getter())) {
     // We can't end up with WindowProxy or Location as getters.
     MOZ_ASSERT(CheckedUnwrapStatic(wrapped.getter()));
     rewaived = WrapperFactory::WaiveXray(cx, wrapped.getter());
     NS_ENSURE_TRUE(rewaived, false);
     wrapped.setGetter(rewaived);
   }
-  if (setterWasWaived && !IsCrossCompartmentWrapper(wrapped.setter())) {
+  if (setterWasWaived && !mc::IsCrossCompartmentWrapper(wrapped.setter())) {
     // We can't end up with WindowProxy or Location as setters.
     MOZ_ASSERT(CheckedUnwrapStatic(wrapped.setter()));
     rewaived = WrapperFactory::WaiveXray(cx, wrapped.setter());
@@ -1957,7 +1957,7 @@ bool XrayWrapper<Base, Traits>::defineProperty(JSContext* cx,
                                                HandleId id,
                                                Handle<PropertyDescriptor> desc,
                                                ObjectOpResult& result) const {
-  assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::SET);
+  assertEnteredPolicy(cx, wrapper, id, js::BaseProxyHandler::SET);
 
   Rooted<Maybe<PropertyDescriptor>> existingDesc(cx);
   Rooted<JSObject*> existingHolder(cx);
@@ -2030,7 +2030,7 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::ownPropertyKeys(
     JSContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
-                      BaseProxyHandler::ENUMERATE);
+                      js::BaseProxyHandler::ENUMERATE);
   return getPropertyKeys(
       cx, wrapper, JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
 }
@@ -2039,7 +2039,7 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::delete_(JSContext* cx, HandleObject wrapper,
                                         HandleId id,
                                         ObjectOpResult& result) const {
-  assertEnteredPolicy(cx, wrapper, id, BaseProxyHandler::SET);
+  assertEnteredPolicy(cx, wrapper, id, js::BaseProxyHandler::SET);
 
   // Check the expando object.
   RootedObject target(cx, Traits::getTargetObject(wrapper));
@@ -2118,14 +2118,14 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::hasOwn(JSContext* cx, HandleObject wrapper,
                                        HandleId id, bool* bp) const {
   // Skip our Base if it isn't already ProxyHandler.
-  return js::BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
+  return mc::BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getOwnEnumerablePropertyKeys(
     JSContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
   // Skip our Base if it isn't already ProxyHandler.
-  return js::BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, wrapper, props);
+  return mc::BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, wrapper, props);
 }
 
 template <typename Base, typename Traits>
@@ -2139,31 +2139,31 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::call(JSContext* cx, HandleObject wrapper,
                                      const JS::CallArgs& args) const {
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
-                      BaseProxyHandler::CALL);
+                      js::BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::call(cx, wrapper, args, Base::singleton);
+  return Traits::call(cx, wrapper, args, *Base::getSingleton());
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::construct(JSContext* cx, HandleObject wrapper,
                                           const JS::CallArgs& args) const {
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
-                      BaseProxyHandler::CALL);
+                      js::BaseProxyHandler::CALL);
   // Hard cast the singleton since SecurityWrapper doesn't have one.
-  return Traits::construct(cx, wrapper, args, Base::singleton);
+  return Traits::construct(cx, wrapper, args, *Base::getSingleton());
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getBuiltinClass(JSContext* cx,
                                                 JS::HandleObject wrapper,
                                                 js::ESClass* cls) const {
-  return Traits::getBuiltinClass(cx, wrapper, Base::singleton, cls);
+  return Traits::getBuiltinClass(cx, wrapper, *Base::getSingleton(), cls);
 }
 
 template <typename Base, typename Traits>
 const char* XrayWrapper<Base, Traits>::className(JSContext* cx,
                                                  HandleObject wrapper) const {
-  return Traits::className(cx, wrapper, Base::singleton);
+  return Traits::className(cx, wrapper, *Base::getSingleton());
 }
 
 template <typename Base, typename Traits>
@@ -2281,7 +2281,7 @@ bool XrayWrapper<Base, Traits>::getPropertyKeys(
     JSContext* cx, HandleObject wrapper, unsigned flags,
     MutableHandleIdVector props) const {
   assertEnteredPolicy(cx, wrapper, JS::PropertyKey::Void(),
-                      BaseProxyHandler::ENUMERATE);
+                      js::BaseProxyHandler::ENUMERATE);
 
   // Enumerate expando properties first. Note that the expando object lives
   // in the target compartment.
@@ -2312,8 +2312,10 @@ bool XrayWrapper<Base, Traits>::getPropertyKeys(
  */
 
 template <typename Base, typename Traits>
-const xpc::XrayWrapper<Base, Traits> xpc::XrayWrapper<Base, Traits>::singleton(
-    0);
+const xpc::XrayWrapper<Base, Traits>* xpc::XrayWrapper<Base, Traits>::getSingleton() {
+  static const xpc::XrayWrapper<Base, Traits> inner_(0);
+  return &inner_;
+}
 
 template class PermissiveXrayDOM;
 template class PermissiveXrayJS;
@@ -2325,7 +2327,7 @@ template class PermissiveXrayOpaque;
  */
 static bool IsCrossCompartmentXrayCallback(
     const js::BaseProxyHandler* handler) {
-  return handler == &PermissiveXrayDOM::singleton;
+  return handler == MC_UNSAFE(PermissiveXrayDOM::getSingleton());
 }
 
 JS::XrayJitInfo gXrayJitInfo = {

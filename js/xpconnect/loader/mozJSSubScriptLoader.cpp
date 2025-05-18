@@ -334,7 +334,7 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     return NS_ERROR_FAILURE;
   }
 
-  MOZ_ASSERT(!js::IsWrapper(targetObj), "JS_FindCompilationScope must unwrap");
+  MOZ_ASSERT(!mc::IsWrapper(targetObj), "JS_FindCompilationScope must unwrap");
 
   if (js::GetNonCCWObjectRealm(loadScope) !=
       js::GetNonCCWObjectRealm(targetObj)) {

@@ -16,6 +16,7 @@ UNIFIED_SOURCES += [
 	"Id.cpp",
 	"Proxy.cpp",
 	"Value.cpp",
+	"Wrapper.cpp",
 ]
 
 if CONFIG['JS_SANDBOX_NOOP']:
@@ -228,6 +229,7 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 
 	EXPORTS.js.sandbox += [
 		"/js/public/sandbox/Proxy.h",
+		"/js/public/sandbox/Wrapper.h",
 	]
 
 	selfhosted_inputs = [

@@ -5287,7 +5287,7 @@ class CastableObjectUnwrapper:
                     $*{exceptionCode}
                   }
                   JS::Rooted<JSObject*> jsImplSourceObj(cx, &${source}.toObject());
-                  MOZ_RELEASE_ASSERT(!js::IsWrapper(jsImplSourceObj),
+                  MOZ_RELEASE_ASSERT(!mc::IsWrapper(jsImplSourceObj),
                                      "Don't return JS implementations from other compartments");
                   JS::Rooted<JSObject*> jsImplSourceGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplSourceObj));
                   ${target} = new ${type}(jsImplSourceObj, jsImplSourceGlobal, contentGlobal);
