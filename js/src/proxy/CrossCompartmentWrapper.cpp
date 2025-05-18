@@ -354,6 +354,10 @@ bool CrossCompartmentWrapper::boxedValue_unbox(JSContext* cx,
 
 const CrossCompartmentWrapper CrossCompartmentWrapper::singleton(0u);
 
+const CrossCompartmentWrapper* CrossCompartmentWrapper::getSingleton() {
+  return &singleton;
+}
+
 JS_PUBLIC_API void js::NukeCrossCompartmentWrapper(JSContext* cx,
                                                    JSObject* wrapper) {
   JS::Compartment* comp = wrapper->compartment();

@@ -3121,7 +3121,7 @@ struct MaybeCrossOriginObjectThisPolicy : public MaybeGlobalThisPolicy {
     // If we do _not_ have a CCW here, then we need to check whether it's a
     // cross-origin-accessible object, and if it is check whether it's
     // same-origin-domain with our current callee.
-    if (!js::IsCrossCompartmentWrapper(aObj) &&
+    if (!mc::IsCrossCompartmentWrapper(aObj) &&
         xpc::IsCrossOriginAccessibleObject(aObj) &&
         !MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(aCx, aObj)) {
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;

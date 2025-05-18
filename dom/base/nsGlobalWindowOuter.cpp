@@ -85,7 +85,7 @@
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
 #include "js/RealmIterators.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "nsLayoutUtils.h"
 #include "nsReadableUtils.h"
 #include "nsJSEnvironment.h"
@@ -352,11 +352,15 @@ const JSClass OuterWindowProxyClass = MONKEYCAGE_PROXY_CLASS_DEF(
 static const size_t OUTER_WINDOW_SLOT = 0;
 static const size_t HOLDER_WEAKMAP_SLOT = 1;
 
-class nsOuterWindowProxy : public MaybeCrossOriginObject<js::Wrapper> {
-  using Base = MaybeCrossOriginObject<js::Wrapper>;
+class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
+  using Base = MaybeCrossOriginObject<mc::Wrapper>;
 
  public:
+#ifdef JS_SANDBOX
+  inline nsOuterWindowProxy() : Base(0) {}
+#else
   constexpr nsOuterWindowProxy() : Base(0) {}
+#endif
 
   bool finalizeInBackground(const JS::Value& priv) const override {
     return false;
@@ -495,7 +499,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<js::Wrapper> {
   bool isCallable(JSObject* obj) const override { return false; }
   bool isConstructor(JSObject* obj) const override { return false; }
 
-  static const nsOuterWindowProxy singleton;
+  static const nsOuterWindowProxy* singleton();
 
   static nsGlobalWindowOuter* GetOuterWindow(JSObject* proxy) {
     nsGlobalWindowOuter* outerWindow =
@@ -624,7 +628,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
       // anyway this is not changing any security behavior.
       JSAutoRealm ar(cx, proxy);
       JS_MarkCrossZoneId(cx, id);
-      bool ok = js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
+      bool ok = mc::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
       if (!ok) {
         return false;
       }
@@ -698,7 +702,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
   }
 
   JS::ObjectOpResult ourResult;
-  bool ok = js::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
+  bool ok = mc::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
   if (!ok) {
     return false;
   }
@@ -718,7 +722,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     }
 
     JS::Rooted<Maybe<JS::PropertyDescriptor>> existingDesc(cx);
-    ok = js::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, &existingDesc);
+    ok = mc::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, &existingDesc);
     if (!ok) {
       return false;
     }
@@ -734,7 +738,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     updatedDesc.setConfigurable(false);
 
     JS::ObjectOpResult ourNewResult;
-    ok = js::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
+    ok = mc::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
     if (!ok) {
       return false;
     }
@@ -777,7 +781,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
     JS::RootedVector<jsid> innerProps(cx);
     {  // Scope for JSAutoRealm so we can mark the ids once we exit it
       JSAutoRealm ar(cx, proxy);
-      if (!js::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
+      if (!mc::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
         return false;
       }
     }
@@ -843,7 +847,7 @@ bool nsOuterWindowProxy::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
   // js::Wrapper caller..
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::delete_(cx, proxy, id, result);
+  return mc::Wrapper::delete_(cx, proxy, id, result);
 }
 
 JSObject* nsOuterWindowProxy::getSameOriginPrototype(JSContext* cx) const {
@@ -871,7 +875,7 @@ bool nsOuterWindowProxy::has(JSContext* cx, JS::Handle<JSObject*> proxy,
   // "proxy".  We're same-origin with it, so this should be safe.
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::has(cx, proxy, id, bp);
+  return mc::Wrapper::has(cx, proxy, id, bp);
 }
 
 bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
@@ -892,7 +896,7 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
     //
     // The BaseProxyHandler code is OK with this happening without entering the
     // compartment of "proxy".
-    return js::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
+    return mc::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
   }
 
   if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
@@ -904,7 +908,7 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
   // "proxy".  We're same-origin with it, so this should be safe.
   JSAutoRealm ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
-  return js::Wrapper::hasOwn(cx, proxy, id, bp);
+  return mc::Wrapper::hasOwn(cx, proxy, id, bp);
 }
 
 bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
@@ -947,7 +951,7 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     }
 
     // Fall through to js::Wrapper.
-    if (!js::Wrapper::get(cx, proxy, wrappedReceiver, id, vp)) {
+    if (!mc::Wrapper::get(cx, proxy, wrappedReceiver, id, vp)) {
       return false;
     }
   }
@@ -983,7 +987,7 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
 
   JS_MarkCrossZoneId(cx, id);
 
-  return js::Wrapper::set(cx, proxy, id, wrappedArg, wrappedReceiver, result);
+  return mc::Wrapper::set(cx, proxy, id, wrappedArg, wrappedReceiver, result);
 }
 
 bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
@@ -1013,7 +1017,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   JS::RootedVector<jsid> innerProps(cx);
   {  // Scope for JSAutoRealm so we can mark the ids once we exit it.
     JSAutoRealm ar(cx, proxy);
-    if (!js::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
+    if (!mc::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
       return false;
     }
   }
@@ -1252,16 +1256,23 @@ already_AddRefed<nsIPrincipal> nsOuterWindowProxy::GetNoPDFJSPrincipal(
   return nullptr;
 }
 
-const nsOuterWindowProxy nsOuterWindowProxy::singleton;
+const nsOuterWindowProxy* nsOuterWindowProxy::singleton() {
+  static const nsOuterWindowProxy inner_;
+  return &inner_;
+}
 
 class nsChromeOuterWindowProxy : public nsOuterWindowProxy {
  public:
+#ifdef JS_SANDBOX
+  inline nsChromeOuterWindowProxy() : nsOuterWindowProxy() {}
+#else
   constexpr nsChromeOuterWindowProxy() : nsOuterWindowProxy() {}
+#endif
 
   const char* className(JSContext* cx,
                         JS::Handle<JSObject*> wrapper) const override;
 
-  static const nsChromeOuterWindowProxy singleton;
+  static const nsChromeOuterWindowProxy* singleton();
 };
 
 const char* nsChromeOuterWindowProxy::className(
@@ -1271,7 +1282,10 @@ const char* nsChromeOuterWindowProxy::className(
   return "ChromeWindow";
 }
 
-const nsChromeOuterWindowProxy nsChromeOuterWindowProxy::singleton;
+const nsChromeOuterWindowProxy* nsChromeOuterWindowProxy::singleton() {
+  static const nsChromeOuterWindowProxy inner_;
+  return &inner_;
+}
 
 static JSObject* NewOuterWindowProxy(JSContext* cx,
                                      JS::Handle<JSObject*> global,
@@ -1283,9 +1297,9 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   js::WrapperOptions options;
   options.setClass(&OuterWindowProxyClass);
   JSObject* obj =
-      js::Wrapper::New(cx, global,
-                       isChrome ? &nsChromeOuterWindowProxy::singleton
-                                : &nsOuterWindowProxy::singleton,
+      mc::Wrapper::New(cx, global,
+                       isChrome ? nsChromeOuterWindowProxy::singleton()
+                                : nsOuterWindowProxy::singleton(),
                        options);
   MOZ_ASSERT_IF(obj, js::IsWindowProxy(obj));
   return obj;

@@ -20,11 +20,15 @@ struct OpaqueWithSilentFailing;
 // reasons. For extra security, we override the traps that allow content to pass
 // an object to chrome, and perform extra security checks on them.
 #define ChromeObjectWrapperBase \
-  FilteringWrapper<js::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
+  FilteringWrapper<mc::CrossCompartmentSecurityWrapper, OpaqueWithSilentFailing>
 
 class ChromeObjectWrapper : public ChromeObjectWrapperBase {
  public:
+#ifdef JS_SANDBOX
+  inline ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
+#else
   constexpr ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
+#endif
 
   virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                               JS::Handle<jsid> id,
@@ -34,7 +38,7 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase {
                    JS::HandleValue v, JS::HandleValue receiver,
                    JS::ObjectOpResult& result) const override;
 
-  static const ChromeObjectWrapper singleton;
+  static const ChromeObjectWrapper* getSingleton();
 };
 
 } /* namespace xpc */

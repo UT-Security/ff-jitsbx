@@ -188,7 +188,7 @@ struct JS_PUBLIC_API ProxyHandlerOps {
   bool finalizeInBackground(const JS::Value& priv) const override;               \
   bool canNurseryAllocate() const override;                                      \
   bool enter(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,           \
-             Action act, bool mayThrow, bool* bp) const override;                \
+       BaseProxyHandler::Action act, bool mayThrow, bool* bp) const override;    \
   bool getOwnPropertyDescriptor(                                                 \
       JSContext* cx, JS::HandleObject proxy, JS::HandleId id,                    \
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc)            \
@@ -243,7 +243,7 @@ struct JS_PUBLIC_API ProxyHandlerOps {
   const char* className(JSContext* cx, JS::HandleObject proxy) const override;   \
   JSString* fun_toString(JSContext* cx, JS::HandleObject proxy,                  \
                          bool isToSource) const override;                        \
-  RegExpShared* regexp_toShared(JSContext* cx,                                   \
+  js::RegExpShared* regexp_toShared(JSContext* cx,                               \
                                 JS::HandleObject proxy) const override;          \
   bool boxedValue_unbox(JSContext* cx, JS::HandleObject proxy,                   \
                         JS::MutableHandleValue vp) const override;               \
@@ -264,7 +264,7 @@ bool name::canNurseryAllocate() const {                                         
   return ops->canNurseryAllocate(handler);                                       \
 }                                                                                \
 bool name::enter(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,       \
-                 Action act, bool mayThrow, bool* bp) const {                    \
+                 BaseProxyHandler::Action act, bool mayThrow, bool* bp) const {  \
   return ops->enter(handler, cx, wrapper, id, act, mayThrow, bp);                \
 }                                                                                \
 bool name::getOwnPropertyDescriptor(                                             \
@@ -370,7 +370,7 @@ JSString* name::fun_toString(JSContext* cx, JS::HandleObject proxy,             
                              bool isToSource) const {                            \
   return ops->fun_toString(handler, cx, proxy, isToSource);                      \
 }                                                                                \
-RegExpShared* name::regexp_toShared(JSContext* cx,                               \
+js::RegExpShared* name::regexp_toShared(JSContext* cx,                           \
                                     JS::HandleObject proxy) const {              \
   return ops->regexp_toShared(handler, cx, proxy);                               \
 }                                                                                \

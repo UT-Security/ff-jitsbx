@@ -168,9 +168,15 @@ template <typename Base>
 class MaybeCrossOriginObject : public Base,
                                public MaybeCrossOriginObjectMixins {
  protected:
+#ifdef JS_SANDBOX
+  template <typename... Args>
+  inline MaybeCrossOriginObject(Args&&... aArgs)
+      : Base(std::forward<Args>(aArgs)...) {}
+#else
   template <typename... Args>
   constexpr MaybeCrossOriginObject(Args&&... aArgs)
       : Base(std::forward<Args>(aArgs)...) {}
+#endif
 
   /**
    * Implementation of [[GetPrototypeOf]] as defined in

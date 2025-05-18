@@ -326,7 +326,7 @@ JSObject* nsXPCWrappedJS::GetJSObject() { return mJSObj; }
 
 JSObject* nsIXPConnectWrappedJS::GetJSObjectGlobal() {
   JSObject* obj = AsXPCWrappedJS()->mJSObj;
-  if (js::IsCrossCompartmentWrapper(obj)) {
+  if (mc::IsCrossCompartmentWrapper(obj)) {
     JS::Compartment* comp = JS::GetCompartment(obj);
     return js::GetFirstGlobalInCompartment(comp);
   }

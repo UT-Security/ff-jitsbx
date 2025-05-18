@@ -15,10 +15,10 @@
 #include "js/Object.h"              // JS::GetClass
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperties
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
-#include "js/Proxy.h"
+#include "monkeycage/Proxy.h"
 #include "js/RootingAPI.h"
 #include "js/WeakMap.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "jsfriendapi.h"
 #include "AccessCheck.h"
 #include "nsContentUtils.h"
@@ -34,7 +34,7 @@ namespace mozilla::dom {
 /* static */
 bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(JSContext* cx,
                                                               JSObject* obj) {
-  MOZ_ASSERT(!js::IsCrossCompartmentWrapper(obj));
+  MOZ_ASSERT(!mc::IsCrossCompartmentWrapper(obj));
   // WindowProxy and Window must always be same-Realm, so we can do
   // our IsPlatformObjectSameOrigin check against either one.  But verify that
   // in case we have a WindowProxy the right things happen.
@@ -475,7 +475,7 @@ bool MaybeCrossOriginObject<Base>::enumerate(
 }
 
 // Force instantiations of the out-of-line template methods we need.
-template class MaybeCrossOriginObject<js::Wrapper>;
+template class MaybeCrossOriginObject<mc::Wrapper>;
 template class MaybeCrossOriginObject<DOMProxyHandler>;
 
 }  // namespace mozilla::dom

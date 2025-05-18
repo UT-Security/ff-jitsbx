@@ -150,7 +150,7 @@ nsScriptErrorWithStack::ToString(nsACString& /*UTF8*/ aResult) {
 
 static bool IsObjectGlobalDying(JSObject* aObj) {
   // CCWs are not associated with a single global
-  if (js::IsCrossCompartmentWrapper(aObj)) {
+  if (mc::IsCrossCompartmentWrapper(aObj)) {
     return false;
   }
 

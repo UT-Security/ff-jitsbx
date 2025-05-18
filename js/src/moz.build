@@ -300,6 +300,7 @@ EXPORTS.js.shadow += [
 if CONFIG["JS_SANDBOX"]:
     EXPORTS.js.sandbox += [
         "../public/sandbox/Proxy.h",
+        "../public/sandbox/Wrapper.h",
     ]
 
 UNIFIED_SOURCES += [
@@ -447,6 +448,7 @@ UNIFIED_SOURCES += [
 if CONFIG["JS_SANDBOX"]:
     UNIFIED_SOURCES += [
         "sandbox/ExternalProxy.cpp",
+        "sandbox/ExternalWrapper.cpp",
     ]
 
 if CONFIG["MOZ_JS_STREAMS"]:

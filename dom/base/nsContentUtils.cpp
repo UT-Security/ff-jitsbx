@@ -3574,7 +3574,7 @@ nsIPrincipal* nsContentUtils::ObjectPrincipal(JSObject* aObj) {
   JS::AssertObjectBelongsToCurrentThread(aObj);
 #endif
 
-  MOZ_DIAGNOSTIC_ASSERT(!js::IsCrossCompartmentWrapper(aObj));
+  MOZ_DIAGNOSTIC_ASSERT(!mc::IsCrossCompartmentWrapper(aObj));
 
   JS::Realm* realm = js::GetNonCCWObjectRealm(aObj);
   JSPrincipals* principals = JS::GetRealmPrincipals(realm);

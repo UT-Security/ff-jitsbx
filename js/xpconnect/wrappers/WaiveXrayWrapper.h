@@ -10,14 +10,19 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 
 namespace xpc {
 
-class WaiveXrayWrapper : public js::CrossCompartmentWrapper {
+class WaiveXrayWrapper : public mc::CrossCompartmentWrapper {
  public:
+#ifdef JS_SANDBOX
+  explicit inline WaiveXrayWrapper(unsigned flags)
+      : mc::CrossCompartmentWrapper(flags) {}
+#else
   explicit constexpr WaiveXrayWrapper(unsigned flags)
-      : js::CrossCompartmentWrapper(flags) {}
+      : mc::CrossCompartmentWrapper(flags) {}
+#endif
 
   virtual bool getOwnPropertyDescriptor(
       JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
@@ -40,7 +45,7 @@ class WaiveXrayWrapper : public js::CrossCompartmentWrapper {
                           JS::NativeImpl impl,
                           const JS::CallArgs& args) const override;
 
-  static const WaiveXrayWrapper singleton;
+  static const WaiveXrayWrapper* getSingleton();
 };
 
 }  // namespace xpc

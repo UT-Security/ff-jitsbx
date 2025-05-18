@@ -30,7 +30,7 @@ static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   JS::RootedValue v(cx, args[0]);
-  if (!v.isObject() || !js::IsCrossCompartmentWrapper(&v.toObject()) ||
+  if (!v.isObject() || !mc::IsCrossCompartmentWrapper(&v.toObject()) ||
       !WrapperFactory::AllowWaiver(&v.toObject())) {
     args.rval().set(v);
     return true;

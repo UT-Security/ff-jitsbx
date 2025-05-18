@@ -48,12 +48,12 @@ bool PreserveWrapper(JSContext* aCx, JS::Handle<JSObject*> aObj) {
 JSObject* Wrap(JSContext* aCx, JS::Handle<JSObject*> aExisting,
                JS::Handle<JSObject*> aObj) {
   if (aExisting) {
-    js::Wrapper::Renew(aExisting, aObj,
-                       &js::OpaqueCrossCompartmentWrapper::singleton);
+    mc::Wrapper::Renew(aExisting, aObj,
+                       mc::OpaqueCrossCompartmentWrapper::getSingleton());
   }
 
-  return js::Wrapper::New(aCx, aObj,
-                          &js::OpaqueCrossCompartmentWrapper::singleton);
+  return mc::Wrapper::New(aCx, aObj,
+                          mc::OpaqueCrossCompartmentWrapper::getSingleton());
 }
 
 const JSWrapObjectCallbacks WrapObjectCallbacks = {

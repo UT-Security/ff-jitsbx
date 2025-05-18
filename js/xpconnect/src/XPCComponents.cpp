@@ -1974,7 +1974,7 @@ nsXPCComponents_Utils::IsDeadWrapper(HandleValue obj, bool* out) {
   }
 
   // We should never have cross-compartment wrappers for dead wrappers.
-  MOZ_ASSERT_IF(js::IsCrossCompartmentWrapper(&obj.toObject()),
+  MOZ_ASSERT_IF(mc::IsCrossCompartmentWrapper(&obj.toObject()),
                 !JS_IsDeadWrapper(js::UncheckedUnwrap(&obj.toObject())));
 
   *out = JS_IsDeadWrapper(&obj.toObject());
@@ -2116,7 +2116,7 @@ nsXPCComponents_Utils::NukeSandbox(HandleValue obj, JSContext* cx) {
   AUTO_PROFILER_LABEL("nsXPCComponents_Utils::NukeSandbox", OTHER);
   NS_ENSURE_TRUE(obj.isObject(), NS_ERROR_INVALID_ARG);
   JSObject* wrapper = &obj.toObject();
-  NS_ENSURE_TRUE(IsWrapper(wrapper), NS_ERROR_INVALID_ARG);
+  NS_ENSURE_TRUE(mc::IsWrapper(wrapper), NS_ERROR_INVALID_ARG);
   RootedObject sb(cx, UncheckedUnwrap(wrapper));
   NS_ENSURE_TRUE(IsSandbox(sb), NS_ERROR_INVALID_ARG);
 

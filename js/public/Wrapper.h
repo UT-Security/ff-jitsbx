@@ -179,6 +179,8 @@ class JS_PUBLIC_API Wrapper : public ForwardingProxyHandler {
   static JSObject* const defaultProto;
 
   static const char* getFamily();
+  static const Wrapper* getSingleton();
+  static const Wrapper* getSingletonWithPrototype();
 };
 
 inline JSObject* WrapperOptions::proto() const {
@@ -260,6 +262,8 @@ class JS_PUBLIC_API CrossCompartmentWrapper : public Wrapper {
 
   static const CrossCompartmentWrapper singleton;
   static const CrossCompartmentWrapper singletonWithPrototype;
+
+  static const CrossCompartmentWrapper* getSingleton();
 };
 
 class JS_PUBLIC_API OpaqueCrossCompartmentWrapper
@@ -326,6 +330,8 @@ class JS_PUBLIC_API OpaqueCrossCompartmentWrapper
                                  bool isToSource) const override;
 
   static const OpaqueCrossCompartmentWrapper singleton;
+
+  static const OpaqueCrossCompartmentWrapper* getSingleton();
 };
 
 /*

@@ -22,7 +22,7 @@ namespace mc {
    return h->canNurseryAllocate();                                                           \
  }                                                                                           \
  static bool enterCb(const void* p, JSContext* cx, JS::HandleObject wrapper,                 \
-                     JS::HandleId id, js::BaseProxyHandler::Action act,                      \
+                     JS::HandleId id, BaseProxyHandler::Action act,                          \
                      bool mayThrow, bool* bp) {                                              \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    return h->enter(cx, wrapper, id, act, mayThrow, bp);                                      \
@@ -248,7 +248,9 @@ namespace mc {
 
 class BaseProxyHandler {
   const js::BaseProxyHandler* inner_;
-
+public:
+  using Action = js::BaseProxyHandler::Action;
+private:
  DEFINE_PROXY_HANDLER_OPS_CALLBACKS(BaseProxyHandler)
 
  public:
@@ -257,6 +259,9 @@ class BaseProxyHandler {
     inner_ = js_new<js::sandbox::BaseProxyHandler>(
         ops(), this, aFamily, aHasPrototype, aHasSecurityPolicy);
   }
+
+  explicit inline BaseProxyHandler(const js::BaseProxyHandler* inner)
+      : inner_(inner) {}
 
   ~BaseProxyHandler() { js_free((void*)inner_); }
   
@@ -277,9 +282,9 @@ class BaseProxyHandler {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::canNurseryAllocate();
   }
 
+
   virtual bool enter(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-                     js::BaseProxyHandler::Action act, bool mayThrow,
-                     bool* bp) const {
+                     Action act, bool mayThrow, bool* bp) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::enter(
         cx, wrapper, id, act, mayThrow, bp);
   }
@@ -473,6 +478,8 @@ inline const BaseProxyHandler* GetProxyHandler(const JSObject* obj) {
 
 }  // namespace mc
 
+inline const js::BaseProxyHandler* MC_UNSAFE(const mc::BaseProxyHandler* handler) { return handler->UNSAFE_getProxyHandler(); }
+
 namespace js {
 
 inline JSObject* NewProxyObject(JSContext* cx,
@@ -496,6 +503,8 @@ inline const BaseProxyHandler* GetProxyHandler(const JSObject* obj) {
 }
 
 }
+
+inline const js::BaseProxyHandler* MC_UNSAFE(const mc::BaseProxyHandler* handler) { return handler; }
 #endif
 
 

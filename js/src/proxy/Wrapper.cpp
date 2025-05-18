@@ -428,6 +428,14 @@ const char* Wrapper::getFamily() {
   return &Wrapper::family;
 }
 
+const Wrapper* Wrapper::getSingleton() {
+  return &Wrapper::singleton;
+}
+
+const Wrapper* Wrapper::getSingletonWithPrototype() {
+  return &Wrapper::singletonWithPrototype;
+}
+
 /* Compartments. */
 
 JSObject* js::TransparentObjectWrapper(JSContext* cx, HandleObject existing,
