@@ -30,9 +30,21 @@ namespace js {
 
 mozilla::Atomic<AutoEnterOOMUnsafeRegion*> AutoEnterOOMUnsafeRegion::owner_;
 
+#ifdef JS_SANDBOX
+void AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
+    AnnotateOOMAllocationSizeCallback callback) {
+  annotateOOMSizeCallback = callback;
+}
+#endif
+
 namespace oom {
 
 JS_PUBLIC_DATA FailureSimulator simulator;
+#ifdef JS_SANDBOX
+JS_PUBLIC_API FailureSimulator& getSimulator() {
+  return simulator;
+}
+#endif
 static MOZ_THREAD_LOCAL(uint32_t) threadType;
 
 bool InitThreadType() { return threadType.init(); }

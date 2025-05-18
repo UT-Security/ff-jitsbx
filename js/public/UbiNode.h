@@ -1024,7 +1024,11 @@ class MOZ_STACK_CLASS JS_PUBLIC_API RootList {
 template <>
 class JS_PUBLIC_API Concrete<RootList> : public Base {
  protected:
+#ifdef JS_SANDBOX
+  explicit Concrete(RootList* ptr);
+#else
   explicit Concrete(RootList* ptr) : Base(ptr) {}
+#endif
   RootList& get() const { return *static_cast<RootList*>(ptr); }
 
  public:
@@ -1186,7 +1190,11 @@ class JS_PUBLIC_API Concrete<void> : public Base {
   JS::Realm* realm() const override;
   CoarseType coarseType() const final;
 
+#ifdef JS_SANDBOX
+  explicit Concrete(void* ptr);
+#else
   explicit Concrete(void* ptr) : Base(ptr) {}
+#endif
 
  public:
   static void construct(void* storage, void* ptr) {

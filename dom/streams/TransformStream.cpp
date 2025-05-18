@@ -318,7 +318,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
     // Step 1:Perform ! TransformStreamError(stream, reason).
     TransformStreamError(
         aCx, mStream,
-        aReason.WasPassed() ? aReason.Value() : JS::UndefinedHandleValue, aRv);
+        aReason.WasPassed() ? aReason.Value() : MC::UndefinedHandleValue(), aRv);
     if (aRv.Failed()) {
       return nullptr;
     }
@@ -482,7 +482,7 @@ class TransformStreamUnderlyingSourceAlgorithms final
     // reason).
     TransformStreamErrorWritableAndUnblockWrite(
         aCx, mStream,
-        aReason.WasPassed() ? aReason.Value() : JS::UndefinedHandleValue, aRv);
+        aReason.WasPassed() ? aReason.Value() : MC::UndefinedHandleValue(), aRv);
     if (aRv.Failed()) {
       return nullptr;
     }

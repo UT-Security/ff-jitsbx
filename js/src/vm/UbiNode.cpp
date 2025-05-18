@@ -133,6 +133,10 @@ size_t StackFrame::functionDisplayNameLength() {
   return functionDisplayName().length();
 }
 
+#ifdef JS_SANDBOX
+Concrete<void>::Concrete(void* ptr) : Base(ptr) {}
+#endif
+
 // All operations on null ubi::Nodes crash.
 CoarseType Concrete<void>::coarseType() const { MOZ_CRASH("null ubi::Node"); }
 const char16_t* Concrete<void>::typeName() const {
@@ -472,6 +476,10 @@ bool RootList::addRoot(Node node, const char16_t* edgeName) {
 
   return edges.append(Edge(name.release(), node));
 }
+
+#ifdef JS_SANDBOX
+Concrete<RootList>::Concrete(RootList* ptr) : Base(ptr) {}
+#endif
 
 const char16_t Concrete<RootList>::concreteTypeName[] = u"JS::ubi::RootList";
 

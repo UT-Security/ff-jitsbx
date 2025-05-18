@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/TestInterfaceAsyncIterableSingleWithArgs.h"
 #include "ScriptSettings.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/TestInterfaceJSMaplikeSetlikeIterableBinding.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -111,7 +111,7 @@ TestInterfaceAsyncIterableSingleWithArgs::IteratorReturn(
   }
 
   mReturnLastCalledWith = aValue;
-  promise->MaybeResolve(JS::UndefinedHandleValue);
+  promise->MaybeResolve(MC::UndefinedHandleValue());
   return promise.forget();
 }
 
