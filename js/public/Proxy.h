@@ -379,6 +379,9 @@ class JS_PUBLIC_API BaseProxyHandler {
 };
 
 extern JS_PUBLIC_DATA const JSClass ProxyClass;
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API const JSClass* getProxyClass();
+#endif
 
 inline bool IsProxy(const JSObject* obj) {
   return reinterpret_cast<const JS::shadow::Object*>(obj)->shape->isProxy();
@@ -576,8 +579,13 @@ inline bool IsScriptedProxy(const JSObject* obj) {
 class MOZ_STACK_CLASS ProxyOptions {
  protected:
   /* protected constructor for subclass */
+#ifdef JS_SANDBOX_API
+  explicit ProxyOptions(bool lazyProtoArg)
+      : lazyProto_(lazyProtoArg), clasp_(getProxyClass()) {}
+#else
   explicit ProxyOptions(bool lazyProtoArg)
       : lazyProto_(lazyProtoArg), clasp_(&ProxyClass) {}
+#endif
 
  public:
   ProxyOptions() : ProxyOptions(false) {}

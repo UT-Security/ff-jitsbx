@@ -186,16 +186,24 @@ class FailureSimulator {
 };
 extern JS_PUBLIC_DATA FailureSimulator simulator;
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API FailureSimulator& getSimulator();
+#else
+static inline FailureSimulator& getSimulator() {
+  return simulator;
+}
+#endif
+
 inline bool IsSimulatedOOMAllocation() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::OOM);
+  return getSimulator().isSimulatedFailure(FailureSimulator::Kind::OOM);
 }
 
 inline bool ShouldFailWithOOM() {
-  return simulator.shouldFail(FailureSimulator::Kind::OOM);
+  return getSimulator().shouldFail(FailureSimulator::Kind::OOM);
 }
 
 inline bool HadSimulatedOOM() {
-  return simulator.hadFailure(FailureSimulator::Kind::OOM);
+  return getSimulator().hadFailure(FailureSimulator::Kind::OOM);
 }
 
 /*
@@ -203,15 +211,15 @@ inline bool HadSimulatedOOM() {
  */
 
 inline bool IsSimulatedStackOOMCheck() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::StackOOM);
+  return getSimulator().isSimulatedFailure(FailureSimulator::Kind::StackOOM);
 }
 
 inline bool ShouldFailWithStackOOM() {
-  return simulator.shouldFail(FailureSimulator::Kind::StackOOM);
+  return getSimulator().shouldFail(FailureSimulator::Kind::StackOOM);
 }
 
 inline bool HadSimulatedStackOOM() {
-  return simulator.hadFailure(FailureSimulator::Kind::StackOOM);
+  return getSimulator().hadFailure(FailureSimulator::Kind::StackOOM);
 }
 
 /*
@@ -219,15 +227,15 @@ inline bool HadSimulatedStackOOM() {
  */
 
 inline bool IsSimulatedInterruptCheck() {
-  return simulator.isSimulatedFailure(FailureSimulator::Kind::Interrupt);
+  return getSimulator().isSimulatedFailure(FailureSimulator::Kind::Interrupt);
 }
 
 inline bool ShouldFailWithInterrupt() {
-  return simulator.shouldFail(FailureSimulator::Kind::Interrupt);
+  return getSimulator().shouldFail(FailureSimulator::Kind::Interrupt);
 }
 
 inline bool HadSimulatedInterrupt() {
-  return simulator.hadFailure(FailureSimulator::Kind::Interrupt);
+  return getSimulator().hadFailure(FailureSimulator::Kind::Interrupt);
 }
 
 } /* namespace oom */
@@ -313,10 +321,15 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
   using AnnotateOOMAllocationSizeCallback = void (*)(size_t);
   static mozilla::Atomic<AnnotateOOMAllocationSizeCallback, mozilla::Relaxed>
       annotateOOMSizeCallback;
+#ifdef JS_SANDBOX
+  static JS_PUBLIC_API void setAnnotateOOMAllocationSizeCallback(
+      AnnotateOOMAllocationSizeCallback callback);
+#else
   static void setAnnotateOOMAllocationSizeCallback(
       AnnotateOOMAllocationSizeCallback callback) {
     annotateOOMSizeCallback = callback;
   }
+#endif
 
 #  if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
   AutoEnterOOMUnsafeRegion()
