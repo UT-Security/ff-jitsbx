@@ -152,7 +152,7 @@ extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
     JSContext* aCx, nsGlobalWindowInner* aWindow, const nsAString& aExpression,
     mozilla::ErrorResult& aError);
 
-extern const JSClass OuterWindowProxyClass;
+extern const JSClass* OuterWindowProxyClass();
 
 //*****************************************************************************
 // nsGlobalWindowInner: Global Object for Scripting
