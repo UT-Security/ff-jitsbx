@@ -17,6 +17,7 @@
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "js/RealmOptions.h"
+#include "monkeycage/Sandbox.h"
 #include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "js/Zone.h"
 #include "monkeycage/Value.h"

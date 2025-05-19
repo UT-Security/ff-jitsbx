@@ -131,6 +131,8 @@
 
 #include "VRProcessChild.h"
 
+#include "monkeycage/Sandbox.h"
+
 using namespace mozilla;
 
 using mozilla::ipc::BrowserProcessSubThread;
@@ -320,6 +322,8 @@ nsresult XRE_InitChildProcess(int aArgc, char* aArgv[],
   ScopedLogging logger;
 
   mozilla::LogModule::Init(aArgc, aArgv);
+
+  MC::Sandbox::Initialize();
 
   AUTO_BASE_PROFILER_LABEL("XRE_InitChildProcess (around Gecko Profiler)",
                            OTHER);

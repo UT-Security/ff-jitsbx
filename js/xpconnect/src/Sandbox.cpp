@@ -19,6 +19,7 @@
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
+#include "monkeycage/Sandbox.h"
 #include "js/SourceText.h"
 #include "js/StructuredClone.h"
 #include "monkeycage/Value.h"
@@ -511,30 +512,34 @@ static size_t sandbox_moved(JSObject* obj, JSObject* old) {
 #define XPCONNECT_SANDBOX_CLASS_METADATA_SLOT \
   (XPCONNECT_GLOBAL_EXTRA_SLOT_OFFSET)
 
-static const JSClassOps SandboxClassOps = {
-    nullptr,                         // addProperty
-    nullptr,                         // delProperty
-    nullptr,                         // enumerate
-    JS_NewEnumerateStandardClasses,  // newEnumerate
-    JS_ResolveStandardClass,         // resolve
-    JS_MayResolveStandardClass,      // mayResolve
-    sandbox_finalize,                // finalize
-    nullptr,                         // call
-    nullptr,                         // construct
-    JS_GlobalObjectTraceHook,        // trace
-};
+static const JSClass* SandboxClass() {
+  static const JSClassOps ops_ = {
+      nullptr,                         // addProperty
+      nullptr,                         // delProperty
+      nullptr,                         // enumerate
+      MC::Sandbox::Address(JS_NewEnumerateStandardClasses),  // newEnumerate
+      MC::Sandbox::Address(JS_ResolveStandardClass),         // resolve
+      MC::Sandbox::Address(JS_MayResolveStandardClass),      // mayResolve
+      sandbox_finalize,                // finalize
+      nullptr,                         // call
+      nullptr,                         // construct
+      MC::Sandbox::Address(JS_GlobalObjectTraceHook),        // trace
+  };
 
-static const js::ClassExtension SandboxClassExtension = {
-    sandbox_moved,  // objectMovedOp
-};
+  static const js::ClassExtension ext_ = {
+      sandbox_moved,  // objectMovedOp
+  };
 
-static const JSClass SandboxClass = {
-    "Sandbox",
-    XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(1) | JSCLASS_FOREGROUND_FINALIZE,
-    &SandboxClassOps,
-    JS_NULL_CLASS_SPEC,
-    &SandboxClassExtension,
-    JS_NULL_OBJECT_OPS};
+  static const JSClass inner_ = {
+      "Sandbox",
+      XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(1) | JSCLASS_FOREGROUND_FINALIZE,
+      &ops_,
+      JS_NULL_CLASS_SPEC,
+      &ext_,
+      JS_NULL_OBJECT_OPS};
+
+  return &inner_;
+}
 
 static const JSFunctionSpec SandboxFunctions[] = {
     JS_FN("dump", SandboxDump, 1, 0), JS_FN("debug", SandboxDebug, 1, 0),
@@ -542,7 +547,7 @@ static const JSFunctionSpec SandboxFunctions[] = {
 
 bool xpc::IsSandbox(JSObject* obj) {
   const JSClass* clasp = JS::GetClass(obj);
-  return clasp == &SandboxClass;
+  return clasp == SandboxClass();
 }
 
 /***************************************************************************/
@@ -1353,7 +1358,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     realmOptions.behaviors().setClampAndJitterTime(false);
   }
 
-  const JSClass* clasp = &SandboxClass;
+  const JSClass* clasp = SandboxClass();
 
   RootedObject sandbox(
       cx, xpc::CreateGlobalObject(cx, clasp, principal, realmOptions));
