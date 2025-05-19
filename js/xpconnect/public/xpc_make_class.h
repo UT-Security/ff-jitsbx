@@ -12,6 +12,7 @@
 
 #include "xpcpublic.h"
 #include "mozilla/dom/DOMJSClass.h"
+#include "monkeycage/Sandbox.h"
 
 bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, JS::HandleObject obj,
                                        JS::HandleId id, JS::HandleValue v);
@@ -88,7 +89,7 @@ extern const js::ClassExtension XPC_WN_JSClassExtension;
                                                  : nullptr,                   \
                                                                               \
         /* trace */                                                           \
-        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? JS_GlobalObjectTraceHook \
+        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? MC::Sandbox::Address(JS_GlobalObjectTraceHook) \
                                                    : XPCWrappedNative_Trace,  \
   }
 

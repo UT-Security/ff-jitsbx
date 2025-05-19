@@ -305,7 +305,12 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 
 		USE_LIBS += ["intlcomponents"]
 
+# Monkeycage specific API
+EXPORTS.monkeycage += [
+	"../public/Sandbox.h"
+]
 
+# Monkeycage API wrappers for JSAPI
 EXPORTS.monkeycage += [
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",

@@ -636,7 +636,7 @@ class CGDOMJSClass(CGThing):
             classFlags += (
                 "JSCLASS_DOM_GLOBAL | JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(DOM_GLOBAL_SLOTS)"
             )
-            traceHook = "JS_GlobalObjectTraceHook"
+            traceHook = "MC::Sandbox::Address(JS_GlobalObjectTraceHook)"
             reservedSlots = "JSCLASS_GLOBAL_APPLICATION_SLOTS"
         else:
             classFlags += "JSCLASS_HAS_RESERVED_SLOTS(%d)" % slotCount
@@ -665,24 +665,24 @@ class CGDOMJSClass(CGThing):
 
         return fill(
             """
-            static const JSClassOps sClassOps = {
-              ${addProperty}, /* addProperty */
-              nullptr,               /* delProperty */
-              nullptr,               /* enumerate */
-              ${newEnumerate}, /* newEnumerate */
-              ${resolve}, /* resolve */
-              ${mayResolve}, /* mayResolve */
-              ${finalize}, /* finalize */
-              ${call}, /* call */
-              nullptr,               /* construct */
-              ${trace}, /* trace */
-            };
-
-            static const js::ClassExtension sClassExtension = {
-              ${objectMoved} /* objectMovedOp */
-            };
-
             static const DOMJSClass* sClass() {
+                static const JSClassOps sClassOps = {
+                  ${addProperty}, /* addProperty */
+                  nullptr,               /* delProperty */
+                  nullptr,               /* enumerate */
+                  ${newEnumerate}, /* newEnumerate */
+                  ${resolve}, /* resolve */
+                  ${mayResolve}, /* mayResolve */
+                  ${finalize}, /* finalize */
+                  ${call}, /* call */
+                  nullptr,               /* construct */
+                  ${trace}, /* trace */
+                };
+
+                static const js::ClassExtension sClassExtension = {
+                  ${objectMoved} /* objectMovedOp */
+                };
+
                 static const DOMJSClass inner_ = {
                   { "${name}",
                     ${flags},

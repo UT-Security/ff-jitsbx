@@ -259,6 +259,8 @@
 #  include "mozilla/GfxInfo.h"
 #endif
 
+#include "monkeycage/Sandbox.h"
+
 extern uint32_t gRestartMode;
 extern void InstallSignalHandlers(const char* ProgramName);
 
@@ -5697,6 +5699,8 @@ int XREMain::XRE_main(int argc, char* argv[], const BootstrapConfig& aConfig) {
 #ifndef XP_LINUX
   NS_SetCurrentThreadName("MainThread");
 #endif
+
+  MC::Sandbox::Initialize();
 
   AUTO_BASE_PROFILER_LABEL("XREMain::XRE_main (around Gecko Profiler)", OTHER);
   AUTO_PROFILER_INIT;
