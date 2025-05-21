@@ -15,6 +15,7 @@
 #include "nsServiceManagerUtils.h"
 #include "nsStringFwd.h"
 #include "js/TypeDecls.h"
+#include "monkeycage/Context.h"
 
 #include <stdint.h>
 
@@ -54,10 +55,10 @@ class nsScriptSecurityManager final : public nsIScriptSecurityManager {
   // Invoked exactly once, by XPConnect.
   static void InitStatics();
 
-  void InitJSCallbacks(JSContext* aCx);
+  void InitJSCallbacks(MCContext* aCx);
 
   // This has to be static because it is called after gScriptSecMan is cleared.
-  static void ClearJSCallbacks(JSContext* aCx);
+  static void ClearJSCallbacks(MCContext* aCx);
 
   static already_AddRefed<mozilla::SystemPrincipal>
   SystemPrincipalSingletonConstructor();

@@ -39,11 +39,11 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
 #include "nsJSEnvironment.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/ArrayBuffer.h"
-#include "js/ContextOptions.h"
+#include "monkeycage/ContextOptions.h"
 #include "js/HelperThreadAPI.h"
-#include "js/Initialization.h"
+#include "monkeycage/Initialization.h"
 #include "js/MemoryMetrics.h"
 #include "js/OffThreadScriptCompilation.h"
 #include "js/WasmFeatures.h"
@@ -864,7 +864,7 @@ static void LoadStartupJSPrefs(XPCJSContext* xpccx) {
   //
   // 'Live' prefs are handled by ReloadPrefsCallback below.
 
-  JSContext* cx = xpccx->Context();
+  MCContext* cx = xpccx->Context();
 
   // Some prefs are unlisted in all.js / StaticPrefs (and thus are invisible in
   // about:config). Make sure we use explicit defaults here.
@@ -988,7 +988,7 @@ static void ReloadPrefsCallback(const char* pref, void* aXpccx) {
   // Note: Prefs that require a restart are handled in LoadStartupJSPrefs above.
 
   auto xpccx = static_cast<XPCJSContext*>(aXpccx);
-  JSContext* cx = xpccx->Context();
+  MCContext* cx = xpccx->Context();
 
   sDiscardSystemSource =
       Preferences::GetBool(JS_OPTIONS_DOT_STR "discardSystemSource");
@@ -1158,7 +1158,7 @@ XPCJSRuntime* XPCJSContext::Runtime() const {
   return static_cast<XPCJSRuntime*>(CycleCollectedJSContext::Runtime());
 }
 
-CycleCollectedJSRuntime* XPCJSContext::CreateRuntime(JSContext* aCx) {
+CycleCollectedJSRuntime* XPCJSContext::CreateRuntime(MCContext* aCx) {
   return new XPCJSRuntime(aCx);
 }
 
@@ -1211,7 +1211,7 @@ nsresult XPCJSContext::Initialize() {
   }
 
   MOZ_ASSERT(Context());
-  JSContext* cx = Context();
+  MCContext* cx = Context();
 
   // The JS engine permits us to set different stack limits for system code,
   // trusted script, and untrusted script. We have tests that ensure that
@@ -1348,11 +1348,12 @@ nsresult XPCJSContext::Initialize() {
       cx, kStackQuota, kStackQuota - kSystemCodeBuffer,
       kStackQuota - kSystemCodeBuffer - kTrustedScriptBuffer);
 
-  PROFILER_SET_JS_CONTEXT(cx);
+  PROFILER_SET_JS_CONTEXT(MC_UNSAFE(cx));
 
-  JS_AddInterruptCallback(cx, InterruptCallback);
+  static auto InterruptCallbackCb = MC::Sandbox::RegisterCallback(InterruptCallback);
+  JS_AddInterruptCallback(cx, InterruptCallbackCb);
 
-  Runtime()->Initialize(cx);
+  Runtime()->Initialize(Context());
 
   LoadStartupJSPrefs(this);
 
@@ -1496,5 +1497,5 @@ void XPCJSContext::AfterProcessTask(uint32_t aNewRecursionDepth) {
 void XPCJSContext::MaybePokeGC() { nsJSContext::MaybePokeGC(); }
 
 bool XPCJSContext::IsSystemCaller() const {
-  return nsContentUtils::IsSystemCaller(Context());
+  return nsContentUtils::IsSystemCaller(MC_UNSAFE(Context()));
 }

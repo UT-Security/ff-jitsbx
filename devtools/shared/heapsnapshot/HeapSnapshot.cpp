@@ -69,7 +69,7 @@ MallocSizeOf GetCurrentThreadDebuggerMallocSizeOf() {
   MOZ_ASSERT(ccjscx);
   auto cx = ccjscx->Context();
   MOZ_ASSERT(cx);
-  auto mallocSizeOf = JS::dbg::GetDebuggerMallocSizeOf(cx);
+  auto mallocSizeOf = JS::dbg::GetDebuggerMallocSizeOf(MC_UNSAFE(cx));
   MOZ_ASSERT(mallocSizeOf);
   return mallocSizeOf;
 }
@@ -519,8 +519,8 @@ already_AddRefed<DominatorTree> HeapSnapshot::ComputeDominatorTree(
     MOZ_ASSERT(ccjscx);
     auto cx = ccjscx->Context();
     MOZ_ASSERT(cx);
-    JS::AutoCheckCannotGC nogc(cx);
-    maybeTree = JS::ubi::DominatorTree::Create(cx, nogc, getRoot());
+    JS::AutoCheckCannotGC nogc(MC_UNSAFE(cx));
+    maybeTree = JS::ubi::DominatorTree::Create(MC_UNSAFE(cx), nogc, getRoot());
   }
 
   if (NS_WARN_IF(maybeTree.isNothing())) {

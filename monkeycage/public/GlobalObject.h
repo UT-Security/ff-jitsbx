@@ -23,6 +23,12 @@ inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
 inline void JS_FireOnNewGlobalObject(MCContext* cx, JS::HandleObject global) {
   return JS_FireOnNewGlobalObject(cx->cx_, global);
 }
+
+namespace JS {
+inline JSObject* CurrentGlobalOrNull(MCContext* cx) {
+  return CurrentGlobalOrNull(cx->cx_);
+}
+}
 #endif
 
 namespace MC {

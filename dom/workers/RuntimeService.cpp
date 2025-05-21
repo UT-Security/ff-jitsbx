@@ -22,12 +22,17 @@
 #include "mozilla/ipc/BackgroundChild.h"
 #include "GeckoProfiler.h"
 #include "js/experimental/CTypes.h"  // JS::CTypesActivityType, JS::SetCTypesActivityCallback
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
+#include "mcapi.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
-#include "js/ContextOptions.h"
-#include "js/Initialization.h"
+#include "monkeycage/ContextOptions.h"
+#include "monkeycage/GlobalObject.h"
+#include "monkeycage/Initialization.h"
 #include "js/LocaleSensitive.h"
+#include "monkeycage/Principals.h"
+#include "monkeycage/Promise.h"
 #include "js/WasmFeatures.h"
+#include "monkeycage/WrapperCallbacks.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -757,16 +762,20 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   return mc::Wrapper::New(cx, obj, wrapper);
 }
 
-static const JSWrapObjectCallbacks WrapObjectCallbacks = {
-    Wrap,
-    nullptr,
-};
+static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
+  static const MCWrapObjectCallbacks inner_{
+    MC::Sandbox::RegisterCallback(Wrap),
+    MC::Sandbox::Callback<JSPreWrapCallback>{nullptr},
+  };
+
+  return &inner_;
+}
 
 class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime {
  public:
   // The heap size passed here doesn't matter, we will change it later in the
   // call to JS_SetGCParameter inside InitJSContextForWorker.
-  explicit WorkerJSRuntime(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  explicit WorkerJSRuntime(MCContext* aCx, WorkerPrivate* aWorkerPrivate)
       : CycleCollectedJSRuntime(aCx), mWorkerPrivate(aWorkerPrivate) {
     MOZ_COUNT_CTOR_INHERITED(WorkerJSRuntime, CycleCollectedJSRuntime);
     MOZ_ASSERT(aWorkerPrivate);
@@ -783,7 +792,7 @@ class WorkerJSRuntime final : public mozilla::CycleCollectedJSRuntime {
     }
   }
 
-  void Shutdown(JSContext* cx) override {
+  void Shutdown(MCContext* cx) override {
     // The CC is shut down, and the superclass destructor will GC, so make sure
     // we don't try to CC again.
     mWorkerPrivate = nullptr;
@@ -852,7 +861,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
   // bit of a pain.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY ~WorkerJSContext() {
     MOZ_COUNT_DTOR_INHERITED(WorkerJSContext, CycleCollectedJSContext);
-    JSContext* cx = MaybeContext();
+    MCContext* cx = MaybeContext();
     if (!cx) {
       return;  // Initialize() must have failed
     }
@@ -867,7 +876,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
   WorkerJSContext* GetAsWorkerJSContext() override { return this; }
 
-  CycleCollectedJSRuntime* CreateRuntime(JSContext* aCx) override {
+  CycleCollectedJSRuntime* CreateRuntime(MCContext* aCx) override {
     return new WorkerJSRuntime(aCx, mWorkerPrivate);
   }
 
@@ -878,12 +887,15 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
       return rv;
     }
 
-    JSContext* cx = Context();
+    MCContext* cx = Context();
 
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
-    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::Destroy);
-    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
-    JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+    static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb, HasReleasedWrapperCb());
+    
+    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCb());
+    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
+
+    JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
     if (mWorkerPrivate->IsDedicatedWorker()) {
       JS_SetFutexCanWait(cx);
     }
@@ -900,10 +912,10 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
     std::deque<RefPtr<MicroTaskRunnable>>* microTaskQueue = nullptr;
 
-    JSContext* cx = Context();
+    MCContext* cx = Context();
     NS_ASSERTION(cx, "This should never be null!");
 
-    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+    JS::Rooted<JSObject*> global(MC_UNSAFE(cx), JS::CurrentGlobalOrNull(cx));
     NS_ASSERTION(global, "This should never be null!");
 
     // On worker threads, if the current global is the worker global or
@@ -929,7 +941,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
   void ReportError(JSErrorReport* aReport,
                    JS::ConstUTF8CharsZ aToStringResult) override {
-    mWorkerPrivate->ReportError(Context(), aToStringResult, aReport);
+    mWorkerPrivate->ReportError(MC_UNSAFE(Context()), aToStringResult, aReport);
   }
 
   WorkerPrivate* GetWorkerPrivate() const { return mWorkerPrivate; }
@@ -1339,7 +1351,7 @@ bool RuntimeService::ScheduleWorker(WorkerPrivate& aWorkerPrivate) {
   }
 
   aWorkerPrivate.SetThread(thread.unsafeGetRawPtr());
-  JSContext* cx = CycleCollectedJSContext::Get()->Context();
+  MCContext* cx = CycleCollectedJSContext::Get()->Context();
   nsCOMPtr<nsIRunnable> runnable = new WorkerThreadPrimaryRunnable(
       &aWorkerPrivate, thread.clonePtr(), JS_GetParentRuntime(cx));
   if (NS_FAILED(
@@ -2130,7 +2142,7 @@ WorkerThreadPrimaryRunnable::Run() {
         return rv;
       }
 
-      JSContext* cx = context->Context();
+      JSContext* cx = MC_UNSAFE(context->Context());
 
       if (!InitJSContextForWorker(mWorkerPrivate, cx)) {
         return NS_ERROR_FAILURE;

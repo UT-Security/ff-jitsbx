@@ -15,7 +15,7 @@
 #include "mozilla/dom/Promise.h"
 #include "monkeycage/Context.h"
 #include "js/GCVector.h"
-#include "js/Promise.h"
+#include "monkeycage/Promise.h"
 
 #include "nsCOMPtr.h"
 #include "nsRefPtrHashtable.h"
@@ -143,7 +143,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   MOZ_IS_CLASS_INIT
   nsresult Initialize(JSRuntime* aParentRuntime, uint32_t aMaxBytes);
 
-  virtual CycleCollectedJSRuntime* CreateRuntime(JSContext* aCx) = 0;
+  virtual CycleCollectedJSRuntime* CreateRuntime(MCContext* aCx) = 0;
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
@@ -180,9 +180,9 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   std::deque<RefPtr<MicroTaskRunnable>>& GetMicroTaskQueue();
   std::deque<RefPtr<MicroTaskRunnable>>& GetDebuggerMicroTaskQueue();
 
-  JSContext* Context() const {
+  MCContext* Context() const {
     MOZ_ASSERT(mJSContext);
-    return MC_UNSAFE(mJSContext);
+    return mJSContext;
   }
 
   JS::RootingContext* RootingCx() const {
@@ -197,7 +197,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   void UpdateMicroTaskSuppressionGeneration() { ++mSuppressionGeneration; }
 
  protected:
-  JSContext* MaybeContext() const { return MC_UNSAFE(mJSContext); }
+  MCContext* MaybeContext() const { return mJSContext; }
 
  public:
   // nsThread entrypoints

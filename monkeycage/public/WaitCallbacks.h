@@ -3,27 +3,22 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
-#ifndef mc_Warnings_h
-#define mc_Warnings_h
 
-#include "js/Warnings.h"
+#ifndef mc_WaitCallbacks_h
+#define mc_WaitCallbacks_h
+
+#include "js/WaitCallbacks.h"
 
 #ifdef JS_SANDBOX
-#include "monkeycage/Context.h"
+
 #include "monkeycage/Sandbox.h"
 
 namespace JS {
-
-inline WarningReporter GetWarningReporter(MCContext* cx) {
-  return GetWarningReporter(cx->cx_);
+inline void SetWaitCallback(JSRuntime* rt, MC::Sandbox::Callback<BeforeWaitCallback> beforeWait,
+                            MC::Sandbox::Callback<AfterWaitCallback> afterWait, size_t requiredMemory) {
+  return SetWaitCallback(rt, beforeWait.UNSAFE_get(), afterWait.UNSAFE_get(), requiredMemory);
 }
-
-inline WarningReporter SetWarningReporter(
-    MCContext* cx, MC::Sandbox::Callback<WarningReporter> reporter) {
-  return SetWarningReporter(cx->cx_, reporter.UNSAFE_get());
 }
-}  // namespace JS
 #endif
 
 #endif

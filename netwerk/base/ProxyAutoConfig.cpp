@@ -27,6 +27,7 @@
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "monkeycage/Realm.h"
+#include "monkeycage/Sandbox.h"
 #include "monkeycage/SourceText.h"  // JS::Source{Ownership,Text}
 #include "monkeycage/Stack.h"
 #include "monkeycage/String.h"
@@ -448,7 +449,8 @@ class JSContextWrapper {
      */
     JS_SetNativeStackQuota(mContext, 128 * sizeof(size_t) * 1024);
 
-    JS::SetWarningReporter(mContext, PACWarningReporter);
+    static auto PACWarningReporterCb = MC::Sandbox::RegisterCallback(PACWarningReporter);
+    JS::SetWarningReporter(mContext, PACWarningReporterCb);
 
     // When available, set the self-hosted shared memory to be read, so that
     // we can decode the self-hosted content instead of parsing it.

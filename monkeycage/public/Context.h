@@ -13,9 +13,13 @@
 
 #ifdef JS_SANDBOX
 
+#include "mozilla/Assertions.h"
+
 struct MCContext {
   JSContext* cx_;
   void* data_;
+
+  static inline thread_local MCContext* mcx_;
 };
 
 inline JSContext* MC_UNSAFE(MCContext* cx) {
@@ -23,20 +27,36 @@ inline JSContext* MC_UNSAFE(MCContext* cx) {
 }
 
 inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nullptr) { 
+  MOZ_RELEASE_ASSERT(!MCContext::mcx_, "Attempt to create duplication MCContext in thread");
+
   JSContext* jscx = JS_NewContext(maxbytes, parentRuntime);
   if (!jscx) {
     return nullptr;
   }
   
   MCContext* cx = new MCContext();
+  MOZ_RELEASE_ASSERT(cx, "MCContext allocation failed!");
+
   cx->cx_ = jscx;
   cx->data_ = nullptr;
+
+  MCContext::mcx_ = cx;
   return cx;
 }
 
+inline MCContext* JS_SanitizeContext(JSContext* cx) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
+  return MCContext::mcx_;
+}
+
 inline void JS_DestroyContext(MCContext* cx) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_, "Attempt to delete MCContext in non-allocating thread");
+  MOZ_RELEASE_ASSERT(MCContext::mcx_ == cx, "Attempt to delete MCConxtext from different thread");
+
   JS_DestroyContext(cx->cx_);
   delete cx;  
+  MCContext::mcx_ = nullptr;
 }
 
 inline void* JS_GetContextPrivate(MCContext* cx) {
@@ -48,6 +68,18 @@ inline void JS_SetContextPrivate(MCContext* cx, void* data) {
   cx->data_ = data;
   JS_SetContextPrivate(cx->cx_, data);
 }
+
+inline JSRuntime* JS_GetParentRuntime(MCContext* cx) {
+  return JS_GetParentRuntime(cx->cx_);
+}
+
+inline JSRuntime* JS_GetRuntime(MCContext* cx) {
+  return JS_GetRuntime(cx->cx_);
+}
+
+inline void JS_SetFutexCanWait(MCContext* cx) {
+  return JS_SetFutexCanWait(cx->cx_);
+}
 #else
 using MCContext = JSContext;
 
@@ -57,6 +89,10 @@ inline JSContext* MC_UNSAFE(MCContext* cx) {
 
 inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nullptr) { 
   return JS_NewContext(maxbytes, parentRuntime);
+}
+
+inline MCContext* JS_SanitizeContext(JSContext* cx) {
+  return cx;
 }
 
 #endif

@@ -12,6 +12,33 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Sandbox.h"
+
+namespace JS {
+
+inline Realm* GetCurrentRealmOrNull(MCContext* cx) {
+  return GetCurrentRealmOrNull(cx->cx_);
+}
+
+inline void SetDestroyRealmCallback(
+    MCContext* cx, MC::Sandbox::Callback<DestroyRealmCallback> callback) {
+  return SetDestroyRealmCallback(cx->cx_, callback.UNSAFE_get());
+}
+
+inline void SetRealmNameCallback(
+    MCContext* cx, MC::Sandbox::Callback<RealmNameCallback> callback) {
+  return SetRealmNameCallback(cx->cx_, callback.UNSAFE_get());
+}
+
+inline JS::Realm* EnterRealm(MCContext* cx, JSObject* target) {
+  return EnterRealm(cx->cx_, target);
+}
+
+inline void LeaveRealm(MCContext* cx, JS::Realm* oldRealm) {
+  return LeaveRealm(cx->cx_, oldRealm);  
+}
+
+}
 
 class MOZ_RAII MCAutoRealm {
   JSAutoRealm inner_;

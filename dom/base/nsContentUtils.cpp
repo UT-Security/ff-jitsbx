@@ -39,9 +39,9 @@
 #include "js/Array.h"
 #include "js/ArrayBuffer.h"
 #include "js/BuildId.h"
-#include "js/GCAPI.h"
-#include "js/Id.h"
-#include "js/JSON.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Id.h"
+#include "monkeycage/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty
 #include "js/PropertyDescriptor.h"
 #include "js/Realm.h"
@@ -52,7 +52,7 @@
 #include "monkeycage/Value.h"
 #include "js/Wrapper.h"
 #include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "mozAutoDocUpdate.h"
 #include "mozIDOMWindow.h"
 #include "nsIOService.h"
@@ -2689,7 +2689,7 @@ bool nsContentUtils::IsSystemCaller(JSContext* aCx) {
 
 bool nsContentUtils::ThreadsafeIsSystemCaller(JSContext* aCx) {
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
-  MOZ_ASSERT(ccjscx->Context() == aCx);
+  MOZ_ASSERT(ccjscx->Context() == JS_SanitizeContext(aCx));
 
   return ccjscx->IsSystemCaller();
 }
@@ -6378,7 +6378,7 @@ JSContext* nsContentUtils::GetCurrentJSContext() {
   if (!IsJSAPIActive()) {
     return nullptr;
   }
-  return danger::GetJSContext();
+  return MC_UNSAFE(danger::GetJSContext());
 }
 
 template <typename StringType, typename CharType>

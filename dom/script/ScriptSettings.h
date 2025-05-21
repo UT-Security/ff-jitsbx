@@ -14,9 +14,9 @@
 #include "mozilla/dom/JSExecutionManager.h"
 #include "mozilla/Maybe.h"
 
-#include "jsapi.h"
-#include "js/Exception.h"
-#include "js/Warnings.h"  // JS::WarningReporter
+#include "mcapi.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/Warnings.h"  // JS::WarningReporter
 
 class JSObject;
 class nsIGlobalObject;
@@ -123,7 +123,7 @@ namespace danger {
 // Get the JSContext for this thread.  This is in the "danger" namespace because
 // we generally want people using AutoJSAPI instead, unless they really know
 // what they're doing.
-JSContext* GetJSContext();
+MCContext* GetJSContext();
 
 }  // namespace danger
 
@@ -321,7 +321,7 @@ class AutoIncumbentScript : protected ScriptSettingsStackEntry {
  * This class may not be instantiated if an exception is pending.
  */
 class AutoNoJSAPI : protected ScriptSettingsStackEntry,
-                    protected JSAutoNullableRealm {
+                    protected MC::AutoStackTainted<JSAutoNullableRealm> {
  public:
   AutoNoJSAPI() : AutoNoJSAPI(danger::GetJSContext()) {}
   ~AutoNoJSAPI();
@@ -329,14 +329,14 @@ class AutoNoJSAPI : protected ScriptSettingsStackEntry,
  private:
   // Helper constructor to avoid doing GetJSContext() multiple times
   // during construction.
-  explicit AutoNoJSAPI(JSContext* aCx);
+  explicit AutoNoJSAPI(MCContext* aCx);
 
   // Stashed JSContext* so we don't need to GetJSContext in our destructor.
   // It's probably safe to hold on to this, in the sense that the world should
   // not get torn down while we're on the stack, and if it's not, we'd need to
   // fix JSAutoNullableRealm to not hold on to a JSContext either, or
   // something.
-  JSContext* mCx;
+  MCContext* mCx;
 
   AutoYieldJSThreadExecution mExecutionYield;
 };

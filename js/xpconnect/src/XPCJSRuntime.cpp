@@ -45,19 +45,19 @@
 #include "nsCCUncollectableMarker.h"
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
-#include "js/experimental/SourceHook.h"  // js::{,Set}SourceHook
-#include "js/GCAPI.h"
+#include "monkeycage/experimental/SourceHook.h"  // js::{,Set}SourceHook
+#include "monkeycage/GCAPI.h"
 #include "js/MemoryFunctions.h"
-#include "js/MemoryMetrics.h"
+#include "monkeycage/MemoryMetrics.h"
 #include "js/Object.h"  // JS::GetClass
-#include "js/RealmIterators.h"
+#include "monkeycage/RealmIterators.h"
 #include "js/SliceBudget.h"
 #include "js/UbiNode.h"
 #include "js/UbiNodeUtils.h"
-#include "js/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
-#include "js/friend/WindowProxy.h"  // js::SetWindowProxyClass
+#include "monkeycage/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
+#include "monkeycage/friend/WindowProxy.h"  // js::SetWindowProxyClass
 #include "js/friend/XrayJitInfo.h"  // JS::SetXrayJitInfo
 #include "monkeycage/Wrapper.h"
 #include "mozilla/dom/AbortSignalBinding.h"
@@ -938,6 +938,11 @@ void XPCJSRuntime::FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
   }
 }
 
+static MC::Sandbox::Callback<JSFinalizeCallback> FinalizeCallbackCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPCJSRuntime::FinalizeCallback);
+  return inner_;
+}
+
 /* static */
 void XPCJSRuntime::WeakPointerZonesCallback(JSTracer* trc, void* data) {
   // Called before each sweeping slice -- after processing any final marking
@@ -1100,16 +1105,16 @@ size_t CompartmentPrivate::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) {
 
 /***************************************************************************/
 
-void XPCJSRuntime::Shutdown(JSContext* cx) {
+void XPCJSRuntime::Shutdown(MCContext* cx) {
   // This destructor runs before ~CycleCollectedJSContext, which does the actual
   // JS_DestroyContext() call. But destroying the context triggers one final GC,
   // which can call back into the context with various callbacks if we aren't
   // careful. Remove the relevant callbacks, but leave the weak pointer
   // callbacks to clear out any remaining table entries.
-  JS_RemoveFinalizeCallback(cx, FinalizeCallback);
+  JS_RemoveFinalizeCallback(cx, FinalizeCallbackCb());
   xpc_DelocalizeRuntime(JS_GetRuntime(cx));
 
-  JS::SetGCSliceCallback(cx, mPrevGCSliceCallback);
+  JS::SetGCSliceCallback(MC_UNSAFE(cx), mPrevGCSliceCallback);
 
   nsScriptSecurityManager::ClearJSCallbacks(cx);
 
@@ -1232,32 +1237,32 @@ void xpc::RemoveGCCallback(xpcGCCallback cb) {
 }
 
 static int64_t JSMainRuntimeGCHeapDistinguishedAmount() {
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   return int64_t(JS_GetGCParameter(cx, JSGC_TOTAL_CHUNKS)) * js::gc::ChunkSize;
 }
 
 static int64_t JSMainRuntimeTemporaryPeakDistinguishedAmount() {
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   return JS::PeakSizeOfTemporary(cx);
 }
 
 static int64_t JSMainRuntimeCompartmentsSystemDistinguishedAmount() {
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   return JS::SystemCompartmentCount(cx);
 }
 
 static int64_t JSMainRuntimeCompartmentsUserDistinguishedAmount() {
-  JSContext* cx = XPCJSContext::Get()->Context();
+  MCContext* cx = XPCJSContext::Get()->Context();
   return JS::UserCompartmentCount(cx);
 }
 
 static int64_t JSMainRuntimeRealmsSystemDistinguishedAmount() {
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   return JS::SystemRealmCount(cx);
 }
 
 static int64_t JSMainRuntimeRealmsUserDistinguishedAmount() {
-  JSContext* cx = XPCJSContext::Get()->Context();
+  MCContext* cx = XPCJSContext::Get()->Context();
   return JS::UserRealmCount(cx);
 }
 
@@ -2083,7 +2088,8 @@ class JSMainRuntimeRealmsReporter final : public nsIMemoryReporter {
 
     Data d;
     d.anonymizeID = anonymize ? 1 : 0;
-    JS::IterateRealms(XPCJSContext::Get()->Context(), &d, RealmCallback);
+    static auto RealmCallbackCb = MC::Sandbox::RegisterCallback(RealmCallback);
+    JS::IterateRealms(XPCJSContext::Get()->Context(), &d, RealmCallbackCb);
 
     for (auto& path : d.paths) {
       REPORT(nsCString(path), KIND_OTHER, UNITS_COUNT, 1,
@@ -2268,7 +2274,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 
   XPCJSRuntimeStats rtStats(windowPaths, topWindowPaths, anonymize);
   OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);
-  JSContext* cx = XPCJSContext::Get()->Context();
+  JSContext* cx = MC_UNSAFE(XPCJSContext::Get()->Context());
   if (!JS::CollectRuntimeStats(cx, &rtStats, &orphanReporter, anonymize)) {
     return;
   }
@@ -2557,7 +2563,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
                             size_t* jsStringsSize, size_t* jsPrivateSize,
                             size_t* jsOtherSize) {
-  JSContext* cx = XPCJSContext::Get()->Context();
+  JSContext* cx = MC_UNSAFE(XPCJSContext::Get()->Context());
   JS::RootedObject obj(cx, objArg);
 
   TabSizes sizes;
@@ -2782,10 +2788,15 @@ class XPCJSSourceHook : public js::SourceHook {
   }
 };
 
-static const JSWrapObjectCallbacks WrapObjectCallbacks = {
-    xpc::WrapperFactory::Rewrap, xpc::WrapperFactory::PrepareForWrapping};
+static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
+  static const MCWrapObjectCallbacks inner_{
+      MC::Sandbox::RegisterCallback(xpc::WrapperFactory::Rewrap),
+      MC::Sandbox::RegisterCallback(xpc::WrapperFactory::PrepareForWrapping),
+  };
+  return &inner_;
+}
 
-XPCJSRuntime::XPCJSRuntime(JSContext* aCx)
+XPCJSRuntime::XPCJSRuntime(MCContext* aCx)
     : CycleCollectedJSRuntime(aCx),
       mWrappedJSMap(mozilla::MakeUnique<JSObject2WrappedJSMap>()),
       mIID2NativeInterfaceMap(mozilla::MakeUnique<IID2NativeInterfaceMap>()),
@@ -2862,8 +2873,8 @@ void ConstructUbiNode(void* storage, JSObject* ptr) {
   JS::ubi::ReflectorNode::construct(storage, ptr);
 }
 
-void XPCJSRuntime::Initialize(JSContext* cx) {
-  mLoaderGlobal.init(cx, nullptr);
+void XPCJSRuntime::Initialize(MCContext* cx) {
+  mLoaderGlobal.init(MC_UNSAFE(cx), nullptr);
 
   // these jsids filled in later when we have a JSContext to work with.
   mStrIDs[0] = JS::PropertyKey::Void();
@@ -2878,27 +2889,55 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   // the GC's allocator.
   JS_SetGCParameter(cx, JSGC_MAX_BYTES, 0xffffffff);
 
-  JS_SetDestroyCompartmentCallback(cx, CompartmentDestroyedCallback);
+  static auto CompartmentDestroyedCallbackCb = MC::Sandbox::RegisterCallback(CompartmentDestroyedCallback);
+  JS_SetDestroyCompartmentCallback(cx, CompartmentDestroyedCallbackCb);
+
+  static auto CompartmentSizeOfIncludingThisCallbackCb =
+      MC::Sandbox::RegisterCallback(CompartmentSizeOfIncludingThisCallback);
   JS_SetSizeOfIncludingThisCompartmentCallback(
-      cx, CompartmentSizeOfIncludingThisCallback);
-  JS::SetDestroyRealmCallback(cx, DestroyRealm);
-  JS::SetRealmNameCallback(cx, GetRealmNameCallback);
-  mPrevGCSliceCallback = JS::SetGCSliceCallback(cx, GCSliceCallback);
+      cx, CompartmentSizeOfIncludingThisCallbackCb);
+
+  static auto DestroyRealmCb = MC::Sandbox::RegisterCallback(DestroyRealm);
+  JS::SetDestroyRealmCallback(cx, DestroyRealmCb);
+
+  static auto GetRealmNameCallbackCb = MC::Sandbox::RegisterCallback(GetRealmNameCallback);
+  JS::SetRealmNameCallback(cx, GetRealmNameCallbackCb);
+  
+  static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
+  mPrevGCSliceCallback = JS::SetGCSliceCallback(cx, GCSliceCallbackCb);
+
+  static auto DoCycleCollectionCallbackCb = MC::Sandbox::RegisterCallback(DoCycleCollectionCallback);
   mPrevDoCycleCollectionCallback =
-      JS::SetDoCycleCollectionCallback(cx, DoCycleCollectionCallback);
-  JS_AddFinalizeCallback(cx, FinalizeCallback, nullptr);
-  JS_AddWeakPointerZonesCallback(cx, WeakPointerZonesCallback, this);
-  JS_AddWeakPointerCompartmentCallback(cx, WeakPointerCompartmentCallback,
+      JS::SetDoCycleCollectionCallback(cx, DoCycleCollectionCallbackCb);
+    
+  JS_AddFinalizeCallback(cx, FinalizeCallbackCb(), nullptr);
+
+  static auto WeakPointerZonesCallbackCb = MC::Sandbox::RegisterCallback(WeakPointerZonesCallback);
+  JS_AddWeakPointerZonesCallback(cx, WeakPointerZonesCallbackCb, this);
+
+  static auto WeakPointerCompartmentCallbackCb = MC::Sandbox::RegisterCallback(WeakPointerCompartmentCallback);
+  JS_AddWeakPointerCompartmentCallback(cx, WeakPointerCompartmentCallbackCb,
                                        this);
-  JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+  JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
   if (XRE_IsE10sParentProcess()) {
     JS::SetFilenameValidationCallback(
         nsContentSecurityUtils::ValidateScriptFilename);
   }
-  js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
-  JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
-  JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallback);
-  JS_SetSetUseCounterCallback(cx, SetUseCounterCallback);
+
+  static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(
+      static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
+  js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb,
+                                  HasReleasedWrapperCb());
+
+  JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
+
+  static auto AccumulateTelemetryCallbackCb =
+      MC::Sandbox::RegisterCallback(AccumulateTelemetryCallback);
+  JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallbackCb);
+
+  static auto SetUseCounterCallbackCb =
+      MC::Sandbox::RegisterCallback(SetUseCounterCallback);
+  JS_SetSetUseCounterCallback(cx, SetUseCounterCallbackCb);
 
   js::SetWindowProxyClass(cx, OuterWindowProxyClass());
 
@@ -2947,15 +2986,15 @@ void XPCJSRuntime::Initialize(JSContext* cx) {
   mozilla::RegisterJSSizeOfTab(JSSizeOfTab);
 
   // Set the callback for reporting memory to ubi::Node.
-  JS::ubi::SetConstructUbiNodeForDOMObjectCallback(cx, &ConstructUbiNode);
+  JS::ubi::SetConstructUbiNodeForDOMObjectCallback(MC_UNSAFE(cx), &ConstructUbiNode);
 
   xpc_LocalizeRuntime(JS_GetRuntime(cx));
 }
 
-bool XPCJSRuntime::InitializeStrings(JSContext* cx) {
+bool XPCJSRuntime::InitializeStrings(MCContext* cx) {
   // if it is our first context then we need to generate our string ids
   if (mStrIDs[0].isVoid()) {
-    RootedString str(cx);
+    RootedString str(MC_UNSAFE(cx));
     for (unsigned i = 0; i < XPCJSContext::IDX_TOTAL_COUNT; i++) {
       str = JS_AtomizeAndPinString(cx, mStrings[i]);
       if (!str) {

@@ -7,7 +7,7 @@
 #include "mozilla/ProcessHangMonitor.h"
 #include "mozilla/ProcessHangMonitorIPC.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "xpcprivate.h"
 
 #include "mozilla/Atomics.h"
@@ -189,7 +189,7 @@ class HangMonitorChild : public PProcessHangMonitorChild,
   int32_t mCancelContentJSEpoch MOZ_GUARDED_BY(mMonitor);
   bool mShutdownDone MOZ_GUARDED_BY(mMonitor);
 
-  JSContext* mContext;  // const after constructor
+  MCContext* mContext;  // const after constructor
 
   // This field is only accessed on the hang thread.
   bool mIPCOpen;
@@ -405,7 +405,7 @@ bool HangMonitorChild::InterruptCallback() {
     RefPtr<BrowserChild> browserChild =
         BrowserChild::FindBrowserChild(paintWhileInterruptingJSTab);
     if (browserChild) {
-      js::AutoAssertNoContentJS nojs(mContext);
+      MC::AutoStackTainted<js::AutoAssertNoContentJS> nojs(mContext);
       if (paintWhileInterruptingJS.value()) {
         browserChild->PaintWhileInterruptingJS(paintWhileInterruptingJSEpoch);
       } else {
@@ -417,7 +417,7 @@ bool HangMonitorChild::InterruptCallback() {
 
   // Only handle the interrupt for cancelling content JS if we have a
   // non-privileged script (i.e. not part of Gecko or an add-on).
-  JS::Rooted<JSObject*> global(mContext, JS::CurrentGlobalOrNull(mContext));
+  JS::Rooted<JSObject*> global(MC_UNSAFE(mContext), JS::CurrentGlobalOrNull(mContext));
   nsIPrincipal* principal = xpc::GetObjectPrincipal(global);
   if (principal && (principal->IsSystemPrincipal() ||
                     principal->GetIsAddonOrExpandedAddonPrincipal())) {
@@ -449,7 +449,7 @@ bool HangMonitorChild::InterruptCallback() {
   }
 
   if (cancelContentJS) {
-    js::AutoAssertNoContentJS nojs(mContext);
+    MC::AutoStackTainted<js::AutoAssertNoContentJS> nojs(mContext);
 
     RefPtr<BrowserChild> browserChild =
         BrowserChild::FindBrowserChild(cancelContentJSTab);
@@ -1224,8 +1224,9 @@ void mozilla::CreateHangMonitorChild(
     Endpoint<PProcessHangMonitorChild>&& aEndpoint) {
   ReleaseAssertIsOnMainThread();
 
-  JSContext* cx = danger::GetJSContext();
-  JS_AddInterruptCallback(cx, InterruptCallback);
+  MCContext* cx = danger::GetJSContext();
+  static auto InterruptCallbackCb = MC::Sandbox::RegisterCallback(InterruptCallback);
+  JS_AddInterruptCallback(cx, InterruptCallbackCb);
 
   ProcessHangMonitor* monitor = ProcessHangMonitor::GetOrCreate();
   HangMonitorChild::CreateAndBind(monitor, std::move(aEndpoint));

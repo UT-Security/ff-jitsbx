@@ -52,7 +52,7 @@ struct DevTools : public ::testing::Test {
     _initialized = true;
   }
 
-  JSContext* getContext() { return CycleCollectedJSContext::Get()->Context(); }
+  JSContext* getContext() { return MC_UNSAFE(CycleCollectedJSContext::Get()->Context()); }
 
   static void reportError(JSContext* cx, const char* message,
                           JSErrorReport* report) {

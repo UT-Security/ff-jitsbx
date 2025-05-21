@@ -9,11 +9,11 @@
 #include <algorithm>
 #include <utility>
 
-#include "js/Debug.h"
+#include "monkeycage/Debug.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Promise.h"
 #include "js/Utility.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "monkeycage/Context.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AsyncEventDispatcher.h"
@@ -81,12 +81,12 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
     return;
   }
 
-  JS::SetHostCleanupFinalizationRegistryCallback(mJSContext, nullptr, nullptr);
+  JS::SetHostCleanupFinalizationRegistryCallback(mJSContext, MC::Sandbox::Callback<JSHostCleanupFinalizationRegistryCallback>(nullptr), nullptr);
 
   JS_SetContextPrivate(mJSContext, nullptr);
 
   mRuntime->SetContext(nullptr);
-  mRuntime->Shutdown(MC_UNSAFE(mJSContext));
+  mRuntime->Shutdown(mJSContext);
 
   // Last chance to process any events.
   CleanupIDBTransactions(mBaseRecursionDepth);
@@ -133,7 +133,7 @@ nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  mRuntime = CreateRuntime(MC_UNSAFE(mJSContext));
+  mRuntime = CreateRuntime(mJSContext);
   mRuntime->SetContext(this);
 
   mOwningThread->SetScriptObserver(this);
@@ -243,8 +243,9 @@ JSObject* CycleCollectedJSContext::getIncumbentGlobal(JSContext* aCx) {
 }
 
 bool CycleCollectedJSContext::enqueuePromiseJob(
-    JSContext* aCx, JS::HandleObject aPromise, JS::HandleObject aJob,
+    JSContext* uCx, JS::HandleObject aPromise, JS::HandleObject aJob,
     JS::HandleObject aAllocationSite, JS::HandleObject aIncumbentGlobal) {
+  MCContext* aCx = JS_SanitizeContext(uCx);
   MOZ_ASSERT(aCx == Context());
   MOZ_ASSERT(Get() == this);
 
@@ -252,7 +253,7 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
   if (aIncumbentGlobal) {
     global = xpc::NativeGlobal(aIncumbentGlobal);
   }
-  JS::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
+  JS::RootedObject jobGlobal(MC_UNSAFE(aCx), JS::CurrentGlobalOrNull(aCx));
   RefPtr<PromiseJobRunnable> runnable = new PromiseJobRunnable(
       aPromise, aJob, jobGlobal, aAllocationSite, global);
   DispatchToMicroTask(runnable.forget());
@@ -262,7 +263,8 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
 // Used only by the SpiderMonkey Debugger API, and even then only via
 // JS::AutoDebuggerJobQueueInterruption, to ensure that the debuggee's queue is
 // not affected; see comments in js/public/Promise.h.
-void CycleCollectedJSContext::runJobs(JSContext* aCx) {
+void CycleCollectedJSContext::runJobs(JSContext* uCx) {
+  MCContext* aCx = JS_SanitizeContext(uCx);
   MOZ_ASSERT(aCx == Context());
   MOZ_ASSERT(Get() == this);
   PerformMicroTaskCheckPoint();
@@ -312,10 +314,11 @@ CycleCollectedJSContext::saveJobQueue(JSContext* cx) {
 
 /* static */
 void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
-    JSContext* aCx, bool aMutedErrors, JS::HandleObject aPromise,
+    JSContext* uCx, bool aMutedErrors, JS::HandleObject aPromise,
     JS::PromiseRejectionHandlingState state, void* aData) {
   CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(aData);
 
+  MCContext* aCx = JS_SanitizeContext(uCx);
   MOZ_ASSERT(aCx == self->Context());
   MOZ_ASSERT(Get() == self);
 
@@ -353,7 +356,7 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
     if (!promise && !aMutedErrors) {
       nsIGlobalObject* global = xpc::NativeGlobal(aPromise);
       if (nsCOMPtr<EventTarget> owner = do_QueryInterface(global)) {
-        RootedDictionary<PromiseRejectionEventInit> init(aCx);
+        RootedDictionary<PromiseRejectionEventInit> init(MC_UNSAFE(aCx));
         init.mPromise = Promise::CreateFromExisting(global, aPromise);
         init.mReason = JS::GetPromiseResult(aPromise);
 
@@ -820,9 +823,10 @@ void FinalizationRegistryCleanup::Destroy() {
 }
 
 void FinalizationRegistryCleanup::Init() {
-  JSContext* cx = mContext->Context();
-  mCallbacks.init(cx);
-  JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallback, this);
+  MCContext* cx = mContext->Context();
+  mCallbacks.init(MC_UNSAFE(cx));
+  static auto QueueCallbackCb = MC::Sandbox::RegisterCallback(QueueCallback);
+  JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallbackCb, this);
 }
 
 /* static */

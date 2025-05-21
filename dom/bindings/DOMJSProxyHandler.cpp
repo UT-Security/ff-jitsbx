@@ -12,7 +12,7 @@
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/BindingUtils.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
 #include "js/Object.h"              // JS::GetCompartment
@@ -23,7 +23,7 @@ namespace mozilla::dom {
 
 jsid s_length_id = JS::PropertyKey::Void();
 
-bool DefineStaticJSVals(JSContext* cx) {
+bool DefineStaticJSVals(MCContext* cx) {
   return AtomizeAndPinJSString(cx, s_length_id, "length");
 }
 

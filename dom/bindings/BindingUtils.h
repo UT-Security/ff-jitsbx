@@ -9,7 +9,7 @@
 
 #include <type_traits>
 
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
@@ -18,8 +18,8 @@
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "js/RealmOptions.h"
 #include "monkeycage/Sandbox.h"
-#include "js/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
-#include "js/Zone.h"
+#include "monkeycage/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
+#include "monkeycage/Zone.h"
 #include "monkeycage/Value.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"
@@ -1473,6 +1473,8 @@ bool TryPreserveWrapper(JS::Handle<JSObject*> obj);
 
 bool HasReleasedWrapper(JS::Handle<JSObject*> obj);
 
+MC::Sandbox::Callback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb();
+
 // Can only be called with a DOM JSClass.
 bool InstanceClassHasProtoAtDepth(const JSClass* clasp, uint32_t protoID,
                                   uint32_t depth);
@@ -1813,6 +1815,18 @@ inline JSObject* GetCallbackFromCallbackObject(JSContext* aCx, T& aObj) {
   return GetCallbackFromCallbackObjectHelper<T>::Get(aCx, aObj);
 }
 
+#ifdef JS_SANDBOX
+static inline bool AtomizeAndPinJSString(MCContext* cx, jsid& id,
+                                         const char* chars) {
+  if (JSString* str = ::JS_AtomizeAndPinString(cx, chars)) {
+    id = JS::PropertyKey::fromPinnedString(str);
+    return true;
+  }
+  return false;
+}
+#endif
+
+//TODO(abhishek): Remove this function
 static inline bool AtomizeAndPinJSString(JSContext* cx, jsid& id,
                                          const char* chars) {
   if (JSString* str = ::JS_AtomizeAndPinString(cx, chars)) {

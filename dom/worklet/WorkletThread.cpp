@@ -17,9 +17,15 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/EventQueue.h"
 #include "mozilla/ThreadEventQueue.h"
-#include "js/ContextOptions.h"
-#include "js/Exception.h"
-#include "js/Initialization.h"
+#include "monkeycage/ContextOptions.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/GlobalObject.h"
+#include "monkeycage/Initialization.h"
+#include "monkeycage/Promise.h"
+#include "monkeycage/Stack.h"
+#include "monkeycage/WrapperCallbacks.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "XPCSelfHostedShmem.h"
 
 namespace mozilla::dom {
@@ -56,10 +62,14 @@ JSObject* Wrap(JSContext* aCx, JS::Handle<JSObject*> aExisting,
                           mc::OpaqueCrossCompartmentWrapper::getSingleton());
 }
 
-const JSWrapObjectCallbacks WrapObjectCallbacks = {
-    Wrap,
-    nullptr,
-};
+static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
+  static const MCWrapObjectCallbacks inner_{
+    MC::Sandbox::RegisterCallback(Wrap),
+    MC::Sandbox::Callback<JSPreWrapCallback>{nullptr},
+  };
+
+  return &inner_;
+}
 
 }  // namespace
 
@@ -67,7 +77,7 @@ const JSWrapObjectCallbacks WrapObjectCallbacks = {
 
 class WorkletJSRuntime final : public mozilla::CycleCollectedJSRuntime {
  public:
-  explicit WorkletJSRuntime(JSContext* aCx) : CycleCollectedJSRuntime(aCx) {}
+  explicit WorkletJSRuntime(MCContext* aCx) : CycleCollectedJSRuntime(aCx) {}
 
   ~WorkletJSRuntime() override = default;
 
@@ -111,7 +121,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
   MOZ_CAN_RUN_SCRIPT_BOUNDARY ~WorkletJSContext() override {
     MOZ_ASSERT(!NS_IsMainThread());
 
-    JSContext* cx = MaybeContext();
+    MCContext* cx = MaybeContext();
     if (!cx) {
       return;  // Initialize() must have failed
     }
@@ -121,7 +131,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
 
   WorkletJSContext* GetAsWorkletJSContext() override { return this; }
 
-  CycleCollectedJSRuntime* CreateRuntime(JSContext* aCx) override {
+  CycleCollectedJSRuntime* CreateRuntime(MCContext* aCx) override {
     return new WorkletJSRuntime(aCx);
   }
 
@@ -134,12 +144,15 @@ class WorkletJSContext final : public CycleCollectedJSContext {
       return rv;
     }
 
-    JSContext* cx = Context();
+    MCContext* cx = Context();
 
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapper, HasReleasedWrapper);
-    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::Destroy);
-    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipals);
-    JS_SetWrapObjectCallbacks(cx, &WrapObjectCallbacks);
+    static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb, HasReleasedWrapperCb());
+    
+    JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCb());
+    JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
+
+    JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
     JS_SetFutexCanWait(cx);
 
     return NS_OK;
@@ -152,11 +165,11 @@ class WorkletJSContext final : public CycleCollectedJSContext {
     MOZ_ASSERT(!NS_IsMainThread());
     MOZ_ASSERT(runnable);
 
-    JSContext* cx = Context();
+    MCContext* cx = Context();
     MOZ_ASSERT(cx);
 
 #ifdef DEBUG
-    JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+    JS::Rooted<JSObject*> global(MC_UNSAFE(cx), JS::CurrentGlobalOrNull(cx));
     MOZ_ASSERT(global);
 #endif
 
@@ -194,7 +207,7 @@ void WorkletJSContext::ReportError(JSErrorReport* aReport,
                   GetCurrentWorkletWindowID());
   RefPtr<AsyncErrorReporter> reporter = new AsyncErrorReporter(xpcReport);
 
-  JSContext* cx = Context();
+  JSContext* cx = MC_UNSAFE(Context());
   if (JS_IsExceptionPending(cx)) {
     JS::ExceptionStack exnStack(cx);
     if (JS::StealPendingExceptionStack(cx, &exnStack)) {
@@ -338,7 +351,7 @@ static bool DispatchToEventLoop(void* aClosure,
               return;
             }
 
-            aDispatchable->run(wjc->Context(),
+            aDispatchable->run(MC_UNSAFE(wjc->Context()),
                                JS::Dispatchable::NotShuttingDown);
           }),
       NS_DISPATCH_NORMAL);
@@ -375,7 +388,8 @@ void WorkletThread::EnsureCycleCollectedJSContext(
 
   // A thread lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(context->Context(), DispatchToEventLoop,
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(context->Context(), DispatchToEventLoopCb,
                               NS_GetCurrentThread());
 
   JS_SetNativeStackQuota(context->Context(),

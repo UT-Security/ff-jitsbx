@@ -570,7 +570,7 @@ NS_IMPL_RELEASE(nsXPCComponents_utils_Sandbox)
 class SandboxProxyHandler : public mc::Wrapper {
  public:
 #ifdef JS_SANDBOX
-  inline SandboxProxyHandler() : mc::Wrapper(0, false) {}
+  inline SandboxProxyHandler() : mc::Wrapper(0, false, false) {}
 #else
   constexpr SandboxProxyHandler() : mc::Wrapper(0) {}
 #endif
@@ -631,7 +631,7 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj) {
 class SandboxCallableProxyHandler : public mc::Wrapper {
  public:
 #ifdef JS_SANDBOX
-  inline SandboxCallableProxyHandler() : mc::Wrapper(0, false) {}
+  inline SandboxCallableProxyHandler() : mc::Wrapper(0, false, false) {}
 #else
   constexpr SandboxCallableProxyHandler() : mc::Wrapper(0) {}
 #endif

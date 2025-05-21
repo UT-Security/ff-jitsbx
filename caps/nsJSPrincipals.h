@@ -7,7 +7,8 @@
 #ifndef nsJSPrincipals_h__
 #define nsJSPrincipals_h__
 
-#include "js/Principals.h"
+#include "monkeycage/Principals.h"
+#include "monkeycage/Sandbox.h"
 #include "nsIPrincipal.h"
 
 struct JSContext;
@@ -26,9 +27,12 @@ class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
   static bool Subsume(JSPrincipals* jsprin, JSPrincipals* other);
   static void Destroy(JSPrincipals* jsprin);
 
+  static MC::Sandbox::Callback<JSDestroyPrincipalsOp> DestroyCb();
+
   /* JSReadPrincipalsOp for nsJSPrincipals */
   static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
                              JSPrincipals** aOutPrincipals);
+  static MC::Sandbox::Callback<JSReadPrincipalsOp> ReadPrincipalsCb();
 
   static bool ReadKnownPrincipalType(JSContext* aCx,
                                      JSStructuredCloneReader* aReader,

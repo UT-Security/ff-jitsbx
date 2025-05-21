@@ -19,12 +19,29 @@ inline void SetJobQueue(MCContext* cx, JobQueue* queue) {
   SetJobQueue(cx->cx_, queue);
 }
 
+inline void JobQueueIsEmpty(MCContext* cx) {
+  return JobQueueIsEmpty(cx->cx_);
+}
+
+inline void JobQueueMayNotBeEmpty(MCContext* cx) {
+  return JobQueueMayNotBeEmpty(cx->cx_);
+}
+
 inline void SetPromiseRejectionTrackerCallback(
     MCContext* cx, PromiseRejectionTrackerCallback callback,
     void* data = nullptr) {
   return SetPromiseRejectionTrackerCallback(cx->cx_, callback, data);
 }
 
+inline void InitDispatchToEventLoop(
+    MCContext* cx, MC::Sandbox::Callback<DispatchToEventLoopCallback> callback,
+    void* closure) {
+  return InitDispatchToEventLoop(cx->cx_, callback.UNSAFE_get(), closure);
+}
+
+inline void ShutdownAsyncTasks(MCContext* cx) {
+  return ShutdownAsyncTasks(cx->cx_);
+}
 }
 
 #endif

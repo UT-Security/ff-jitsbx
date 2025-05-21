@@ -311,32 +311,56 @@ EXPORTS.monkeycage += [
 ]
 
 # Monkeycage API wrappers for JSAPI
+EXPORTS += [
+	"mcapi.h",
+	"mcfriendapi.h",
+]
+
 EXPORTS.monkeycage += [
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",
 	"../public/CompileOptions.h",
 	"../public/Context.h",
 	"../public/ContextOptions.h",
+	"../public/Debug.h",
 	"../public/ErrorReport.h",
 	"../public/Exception.h",
 	"../public/GCAPI.h",
 	"../public/GlobalObject.h",
 	"../public/Id.h",
 	"../public/Initialization.h",
+	"../public/Interrupt.h",
 	"../public/JSON.h",
+	"../public/MemoryCallbacks.h",
+	"../public/MemoryMetrics.h",
+	"../public/Principals.h",
 	"../public/Promise.h",
 	"../public/PropertyAndElement.h",
 	"../public/Proxy.h",
 	"../public/Realm.h",
+	"../public/RealmIterators.h",
+	"../public/ShadowRealmCallbacks.h",
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/String.h",
+	"../public/Tainted.h",
+	"../public/Utility.h",
 	"../public/Value.h",
+	"../public/WaitCallbacks.h",
 	"../public/Warnings.h",
 	"../public/Wrapper.h",
+	"../public/WrapperCallbacks.h",
+	"../public/Zone.h",
 ]
 
 EXPORTS.monkeycage.experimental += [
 	"../public/experimental/JSStencil.h",
+	"../public/experimental/SourceHook.h",
+]
+
+EXPORTS.monkeycage.friend += [
+	"../public/friend/PerformanceHint.h",
+	"../public/friend/UsageStatistics.h",
+	"../public/friend/WindowProxy.h",
 ]
 

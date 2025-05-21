@@ -11,7 +11,8 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsCycleCollector.h"
 
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Realm.h"
 
 #include "gtest/gtest.h"
 
@@ -325,21 +326,21 @@ TEST(JSHolderMap, GCIntegration)
 {
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
   ASSERT_NE(ccjscx, nullptr);
-  JSContext* cx = ccjscx->Context();
+  MCContext* cx = ccjscx->Context();
   ASSERT_NE(cx, nullptr);
 
   static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
                                       &JS::DefaultGlobalClassOps};
 
   JS::RealmOptions options;
-  JS::RootedObject global(cx);
+  JS::RootedObject global(MC_UNSAFE(cx));
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);
   ASSERT_NE(global, nullptr);
 
-  JSAutoRealm ar(cx, global);
+  MCAutoRealm ar(cx, global);
 
-  TestHoldersAreMarkedGray(cx);
-  TestHoldersAreMoved(cx, true);
-  TestHoldersAreMoved(cx, false);
+  TestHoldersAreMarkedGray(MC_UNSAFE(cx));
+  TestHoldersAreMoved(MC_UNSAFE(cx), true);
+  TestHoldersAreMoved(MC_UNSAFE(cx), false);
 }

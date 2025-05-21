@@ -1562,24 +1562,24 @@ nsresult nsScriptSecurityManager::Init() {
   return NS_OK;
 }
 
-void nsScriptSecurityManager::InitJSCallbacks(JSContext* aCx) {
+void nsScriptSecurityManager::InitJSCallbacks(MCContext* aCx) {
   //-- Register security check callback in the JS engine
   //   Currently this is used to control access to function.caller
 
-  static const JSSecurityCallbacks securityCallbacks = {
-      ContentSecurityPolicyPermitsJSAction,
-      JSPrincipalsSubsume,
+  static const MCSecurityCallbacks securityCallbacks{
+      MC::Sandbox::RegisterCallback(ContentSecurityPolicyPermitsJSAction),
+      MC::Sandbox::RegisterCallback(JSPrincipalsSubsume),
   };
 
   MOZ_ASSERT(!JS_GetSecurityCallbacks(aCx));
   JS_SetSecurityCallbacks(aCx, &securityCallbacks);
-  JS_InitDestroyPrincipalsCallback(aCx, nsJSPrincipals::Destroy);
+  JS_InitDestroyPrincipalsCallback(aCx, nsJSPrincipals::DestroyCb());
 
   JS_SetTrustedPrincipals(aCx, BasePrincipal::Cast(mSystemPrincipal));
 }
 
 /* static */
-void nsScriptSecurityManager::ClearJSCallbacks(JSContext* aCx) {
+void nsScriptSecurityManager::ClearJSCallbacks(MCContext* aCx) {
   JS_SetSecurityCallbacks(aCx, nullptr);
   JS_SetTrustedPrincipals(aCx, nullptr);
 }

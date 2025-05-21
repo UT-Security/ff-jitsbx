@@ -71,6 +71,11 @@ void nsJSPrincipals::Destroy(JSPrincipals* jsprin) {
   nsjsprin->Release();
 }
 
+MC::Sandbox::Callback<JSDestroyPrincipalsOp> nsJSPrincipals::DestroyCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(Destroy);
+  return inner_;
+}
+
 #ifdef DEBUG
 
 // Defined here so one can do principals->dump() in the debugger
@@ -108,6 +113,11 @@ bool nsJSPrincipals::ReadPrincipals(JSContext* aCx,
   }
 
   return ReadKnownPrincipalType(aCx, aReader, tag, aOutPrincipals);
+}
+
+MC::Sandbox::Callback<JSReadPrincipalsOp> nsJSPrincipals::ReadPrincipalsCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(ReadPrincipals);
+  return inner_;
 }
 
 static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader,
