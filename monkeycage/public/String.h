@@ -23,6 +23,16 @@ inline JSString* JS_NewStringCopyZ(MCContext* cx, const char* s) {
   return JS_NewStringCopyZ(cx->cx_, s);
 }
 
+inline JSString* JS_AtomizeAndPinStringN(MCContext* cx, const char* s,
+                                         size_t length) {
+  return JS_AtomizeAndPinStringN(cx->cx_, s, length);
+}
+
+// Note: unlike the non-pinning JS_Atomize* functions, this can be called
+// without entering a realm/zone.
+inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
+  return JS_AtomizeAndPinString(cx->cx_, s);
+}
 #endif
 
 #endif

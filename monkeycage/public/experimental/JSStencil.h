@@ -32,6 +32,16 @@ inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
   return CompileGlobalScriptToStencil(cx->cx_, options.inner_, srcBuf.inner_);
 }
 }  // namespace JS
+
+// ************************************************************************
+//   Off-thread compilation/transcoding
+// ************************************************************************
+
+namespace JS {
+inline void CancelOffThreadToken(MCContext* cx, OffThreadToken* token) {
+  return CancelOffThreadToken(cx->cx_, token);
+}
+}  // namespace JS
 #endif
 
 #endif

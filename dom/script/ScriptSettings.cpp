@@ -12,17 +12,17 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/Conversions.h"
 #include "js/ErrorReport.h"
-#include "js/Exception.h"
-#include "js/GCAPI.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/GCAPI.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "js/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "js/Warnings.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ScriptLoadRequest.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -253,7 +253,7 @@ bool IsJSAPIActive() {
 }
 
 namespace danger {
-JSContext* GetJSContext() { return CycleCollectedJSContext::Get()->Context(); }
+MCContext* GetJSContext() { return CycleCollectedJSContext::Get()->Context(); }
 }  // namespace danger
 
 JS::RootingContext* RootingCx() {
@@ -290,7 +290,7 @@ void WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep);
 void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
                              JSContext* aCx, bool aIsMainThread) {
   MOZ_ASSERT(aCx);
-  MOZ_ASSERT(aCx == danger::GetJSContext());
+  MOZ_ASSERT(aCx == MC_UNSAFE(danger::GetJSContext()));
   MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
   MOZ_ASSERT(bool(aGlobalObject) == bool(aGlobal));
   MOZ_ASSERT_IF(aGlobalObject,
@@ -395,14 +395,14 @@ AutoJSAPI::AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread,
   MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
 
   InitInternal(aGlobalObject, aGlobalObject->GetGlobalJSObject(),
-               danger::GetJSContext(), aIsMainThread);
+               MC_UNSAFE(danger::GetJSContext()), aIsMainThread);
 }
 
 void AutoJSAPI::Init() {
   MOZ_ASSERT(!mCx, "An AutoJSAPI should only be initialised once");
 
   InitInternal(/* aGlobalObject */ nullptr, /* aGlobal */ nullptr,
-               danger::GetJSContext(), NS_IsMainThread());
+               MC_UNSAFE(danger::GetJSContext()), NS_IsMainThread());
 }
 
 bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject, JSContext* aCx) {
@@ -423,7 +423,7 @@ bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject, JSContext* aCx) {
 }
 
 bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject) {
-  return Init(aGlobalObject, danger::GetJSContext());
+  return Init(aGlobalObject, MC_UNSAFE(danger::GetJSContext()));
 }
 
 bool AutoJSAPI::Init(JSObject* aObject) {
@@ -608,9 +608,9 @@ AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
 
 AutoIncumbentScript::~AutoIncumbentScript() { ScriptSettingsStack::Pop(this); }
 
-AutoNoJSAPI::AutoNoJSAPI(JSContext* aCx)
+AutoNoJSAPI::AutoNoJSAPI(MCContext* aCx)
     : ScriptSettingsStackEntry(nullptr, eNoJSAPI),
-      JSAutoNullableRealm(aCx, nullptr),
+      MC::AutoStackTainted<JSAutoNullableRealm>(aCx, nullptr),
       mCx(aCx) {
   // Make sure we don't seem to have an incumbent global due to
   // whatever script is running right now.
@@ -634,7 +634,7 @@ AutoJSContext::AutoJSContext() : mCx(nullptr) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (dom::IsJSAPIActive()) {
-    mCx = dom::danger::GetJSContext();
+    mCx = MC_UNSAFE(dom::danger::GetJSContext());
   } else {
     mJSAPI.Init();
     mCx = mJSAPI.cx();

@@ -15,22 +15,22 @@ const char* Wrapper::getFamily() {
 }
 
 const Wrapper* Wrapper::getSingleton() {
-  static const Wrapper inner_(js::Wrapper::getSingleton());
+  static const Wrapper inner_(js::Wrapper::getSingleton(), false);
   return &inner_;
 }
 
 const Wrapper* Wrapper::getSingletonWithPrototype() {
-  static const Wrapper inner_(js::Wrapper::getSingletonWithPrototype());
+  static const Wrapper inner_(js::Wrapper::getSingletonWithPrototype(), false);
   return &inner_;
 }
 
 const CrossCompartmentWrapper* CrossCompartmentWrapper::getSingleton() {
-  static const CrossCompartmentWrapper inner_(js::CrossCompartmentWrapper::getSingleton());
+  static const CrossCompartmentWrapper inner_(js::CrossCompartmentWrapper::getSingleton(), false);
   return &inner_;
 }
 
 const OpaqueCrossCompartmentWrapper* OpaqueCrossCompartmentWrapper::getSingleton() {
-  static const OpaqueCrossCompartmentWrapper inner_(js::OpaqueCrossCompartmentWrapper::getSingleton());
+  static const OpaqueCrossCompartmentWrapper inner_(js::OpaqueCrossCompartmentWrapper::getSingleton(), false);
   return &inner_;
 }
 

@@ -26,8 +26,8 @@ class ForwardingProxyHandler : public BaseProxyHandler {
       : BaseProxyHandler(js_new<js::sandbox::ForwardingProxyHandler>(
             ops(), this, aProxyFamily, aHasPrototype, aHasSecurityPolicy)) {}
 
-  explicit inline ForwardingProxyHandler(const js::ForwardingProxyHandler* base)
-      : BaseProxyHandler(base) {}
+  explicit inline ForwardingProxyHandler(const js::ForwardingProxyHandler* base, bool owned = true)
+      : BaseProxyHandler(base, owned) {}
 
   inline const js::ForwardingProxyHandler* UNSAFE_getProxyHandler() const { return static_cast<const js::ForwardingProxyHandler*>(BaseProxyHandler::UNSAFE_getProxyHandler()); }
 
@@ -464,8 +464,8 @@ class Wrapper : public ForwardingProxyHandler {
       : ForwardingProxyHandler(js_new<js::sandbox::Wrapper>(
             ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy)) {}
 
-  explicit inline Wrapper(const js::Wrapper* base)
-      : ForwardingProxyHandler(base) {}
+  explicit inline Wrapper(const js::Wrapper* base, bool owned = true)
+      : ForwardingProxyHandler(base, owned) {}
 
   inline const js::Wrapper* UNSAFE_getWrapper() const {
     return static_cast<const js::Wrapper*>(
@@ -521,8 +521,8 @@ public:
            ops(), this, aFlags, aHasPrototype, aHasSecurityPolicy)) {}
 
  explicit inline CrossCompartmentWrapper(
-     const js::CrossCompartmentWrapper* base)
-     : Wrapper(base) {}
+     const js::CrossCompartmentWrapper* base, bool owned = true)
+     : Wrapper(base, owned) {}
 
  inline const js::CrossCompartmentWrapper* UNSAFE_getWrapper() const {
    return static_cast<const js::CrossCompartmentWrapper*>(
@@ -695,8 +695,8 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
             js_new<js::sandbox::OpaqueCrossCompartmentWrapper>(ops(), this)) {}
 
   explicit inline OpaqueCrossCompartmentWrapper(
-      const js::OpaqueCrossCompartmentWrapper* base)
-      : CrossCompartmentWrapper(base) {}
+      const js::OpaqueCrossCompartmentWrapper* base, bool owned = true)
+      : CrossCompartmentWrapper(base, owned) {}
 
   inline const js::OpaqueCrossCompartmentWrapper* UNSAFE_getWrapper() const {
     return static_cast<const js::OpaqueCrossCompartmentWrapper*>(

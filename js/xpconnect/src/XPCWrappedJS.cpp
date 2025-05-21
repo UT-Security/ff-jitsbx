@@ -12,7 +12,7 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/Sprintf.h"
 #include "js/Object.h"  // JS::GetCompartment
-#include "js/RealmIterators.h"
+#include "monkeycage/RealmIterators.h"
 #include "nsCCUncollectableMarker.h"
 #include "nsContentUtils.h"
 #include "nsThreadUtils.h"
@@ -485,8 +485,9 @@ void XPCJSRuntime::AssertInvalidWrappedJSNotInTable(
   if (!wrapper->IsValid()) {
     MOZ_ASSERT(!GetMultiCompartmentWrappedJSMap()->HasWrapper(wrapper));
     if (!mGCIsRunning) {
-      JSContext* cx = XPCJSContext::Get()->Context();
-      JS_IterateCompartments(cx, wrapper, NotHasWrapperAssertionCallback);
+      MCContext* cx = XPCJSContext::Get()->Context();
+      static auto NotHasWrapperAssertionCallbackCb = MC::Sandbox::RegisterCallback(NotHasWrapperAssertionCallback);
+      JS_IterateCompartments(cx, wrapper, NotHasWrapperAssertionCallbackCb);
     }
   }
 #endif

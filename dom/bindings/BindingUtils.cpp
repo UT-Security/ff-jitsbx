@@ -21,18 +21,18 @@
 #include "mozilla/UseCounter.h"
 
 #include "AccessCheck.h"
-#include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
+#include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/experimental/JitInfo.h"  // JSJit{Getter,Setter,Method}CallArgs, JSJit{Getter,Setter}Op, JSJitInfo
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
-#include "js/Id.h"
-#include "js/JSON.h"
+#include "monkeycage/Id.h"
+#include "monkeycage/JSON.h"
 #include "js/MapAndSet.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineFunction, JS_DefineFunctionById, JS_DefineFunctions, JS_DefineProperties, JS_DefineProperty, JS_DefinePropertyById, JS_ForwardGetPropertyTo, JS_GetProperty, JS_HasProperty, JS_HasPropertyById
 #include "js/StableStringChars.h"
-#include "js/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
+#include "monkeycage/String.h"  // JS::GetStringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "js/Symbol.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "nsContentCreatorFunctions.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
@@ -477,7 +477,7 @@ template <typename CleanupPolicy>
 void TErrorResult<CleanupPolicy>::ClearUnionData() {
   AssertInOwningThread();
   if (IsJSException()) {
-    JSContext* cx = dom::danger::GetJSContext();
+    JSContext* cx = MC_UNSAFE(dom::danger::GetJSContext());
     MOZ_ASSERT(cx);
     mExtra.mJSException.setUndefined();
     js::RemoveRawValueRoot(cx, &mExtra.mJSException);
@@ -519,7 +519,7 @@ TErrorResult<CleanupPolicy>& TErrorResult<CleanupPolicy>::operator=(
     InitMessage(aRHS.mExtra.mMessage);
     aRHS.mExtra.mMessage = nullptr;
   } else if (aRHS.IsJSException()) {
-    JSContext* cx = dom::danger::GetJSContext();
+    JSContext* cx = MC_UNSAFE(dom::danger::GetJSContext());
     MOZ_ASSERT(cx);
     JS::Value& exn = InitJSException();
     if (!js::AddRawValueRoot(cx, &exn, "TErrorResult::mExtra::mJSException")) {
@@ -601,7 +601,7 @@ void TErrorResult<CleanupPolicy>::CloneTo(TErrorResult& aRv) const {
 #ifdef DEBUG
     aRv.mUnionState = HasJSException;
 #endif
-    JSContext* cx = dom::danger::GetJSContext();
+    JSContext* cx = MC_UNSAFE(dom::danger::GetJSContext());
     JS::Rooted<JS::Value> exception(cx, mExtra.mJSException);
     aRv.ThrowJSException(cx, exception);
   }
@@ -1230,6 +1230,11 @@ bool HasReleasedWrapper(JS::Handle<JSObject*> obj) {
   }
 
   return cache && !cache->PreservingWrapper();
+}
+
+MC::Sandbox::Callback<js::HasReleasedWrapperCallback> HasReleasedWrapperCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(HasReleasedWrapper);
+  return inner_;
 }
 
 // Can only be called with a DOM JSClass.

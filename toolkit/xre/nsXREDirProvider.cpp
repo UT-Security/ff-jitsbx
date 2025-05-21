@@ -9,7 +9,7 @@
 #  include "commonupdatedir.h"
 #endif
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "xpcpublic.h"
 #include "prprf.h"
 
@@ -865,7 +865,7 @@ void nsXREDirProvider::DoShutdown() {
 
 #ifdef DEBUG
     // Not having this causes large intermittent leaks. See bug 1340425.
-    if (JSContext* cx = mozilla::dom::danger::GetJSContext()) {
+    if (MCContext* cx = mozilla::dom::danger::GetJSContext()) {
       JS_GC(cx);
     }
 #endif

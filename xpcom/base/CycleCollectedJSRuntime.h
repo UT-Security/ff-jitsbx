@@ -14,8 +14,8 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/SegmentedVector.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/TypeDecls.h"
 
 #include "nsCycleCollectionParticipant.h"
@@ -218,10 +218,10 @@ class CycleCollectedJSRuntime {
   friend class CycleCollectedJSContext;
 
  protected:
-  CycleCollectedJSRuntime(JSContext* aMainContext);
+  CycleCollectedJSRuntime(MCContext* aMainContext);
   virtual ~CycleCollectedJSRuntime();
 
-  virtual void Shutdown(JSContext* cx);
+  virtual void Shutdown(MCContext* cx);
 
   size_t SizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
   void UnmarkSkippableJSHolders();
@@ -351,7 +351,7 @@ class CycleCollectedJSRuntime {
   void SetLargeAllocationFailure(OOMState aNewState);
 
   void AnnotateAndSetOutOfMemory(OOMState* aStatePtr, OOMState aNewState);
-  void OnGC(JSContext* aContext, JSGCStatus aStatus, JS::GCReason aReason);
+  void OnGC(MCContext* aContext, JSGCStatus aStatus, JS::GCReason aReason);
   void OnOutOfMemory();
   void OnLargeAllocationFailure();
 

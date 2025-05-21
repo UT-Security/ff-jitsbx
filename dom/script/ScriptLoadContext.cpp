@@ -16,6 +16,7 @@
 #include "js/SourceText.h"
 #include "js/loader/LoadContextBase.h"
 #include "js/loader/ModuleLoadRequest.h"
+#include "monkeycage/experimental/JSStencil.h"
 
 #include "ScriptLoadContext.h"
 #include "ModuleLoadRequest.h"
@@ -102,7 +103,7 @@ void ScriptLoadContext::MaybeCancelOffThreadScript() {
 
   // Cancel parse if it hasn't been started yet or wait for it to finish and
   // clean up finished parse data.
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   JS::CancelOffThreadToken(cx, mOffThreadToken);
   mOffThreadToken = nullptr;
 

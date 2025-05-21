@@ -11,7 +11,7 @@
 
 #include "mozilla/UniquePtr.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nsTArray.h"
 
 #include "gtest/gtest.h"
@@ -125,17 +125,17 @@ static void TestShrink(JSContext* cx) {
 }
 
 template <class ArrayT>
-static void TestArrayType(JSContext* cx) {
-  TestGrow<ArrayT>(cx);
-  TestShrink<ArrayT>(cx);
+static void TestArrayType(MCContext* cx) {
+  TestGrow<ArrayT>(MC_UNSAFE(cx));
+  TestShrink<ArrayT>(MC_UNSAFE(cx));
 }
 
-static void CreateGlobalAndRunTest(JSContext* cx) {
+static void CreateGlobalAndRunTest(MCContext* cx) {
   static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
                                       &JS::DefaultGlobalClassOps};
 
   JS::RealmOptions options;
-  JS::PersistentRootedObject global(cx);
+  JS::PersistentRootedObject global(MC_UNSAFE(cx));
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);
   ASSERT_TRUE(global != nullptr);
@@ -155,7 +155,7 @@ TEST(GCPostBarriers, nsTArray)
 {
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
   ASSERT_TRUE(ccjscx != nullptr);
-  JSContext* cx = ccjscx->Context();
+  MCContext* cx = ccjscx->Context();
   ASSERT_TRUE(cx != nullptr);
 
   CreateGlobalAndRunTest(cx);

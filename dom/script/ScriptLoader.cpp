@@ -271,7 +271,7 @@ void ScriptLoader::SetGlobalObject(nsIGlobalObject* aGlobalObject) {
   }
 
   MOZ_ASSERT(mModuleLoader->GetGlobalObject() == aGlobalObject);
-  MOZ_ASSERT(aGlobalObject->GetModuleLoader(dom::danger::GetJSContext()) ==
+  MOZ_ASSERT(aGlobalObject->GetModuleLoader(MC_UNSAFE(dom::danger::GetJSContext())) ==
              mModuleLoader);
 }
 

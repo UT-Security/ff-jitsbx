@@ -248,6 +248,7 @@ namespace mc {
 
 class BaseProxyHandler {
   const js::BaseProxyHandler* inner_;
+  bool owned_;
 public:
   using Action = js::BaseProxyHandler::Action;
 private:
@@ -258,12 +259,13 @@ private:
                             bool aHasSecurityPolicy = false) {
     inner_ = js_new<js::sandbox::BaseProxyHandler>(
         ops(), this, aFamily, aHasPrototype, aHasSecurityPolicy);
+    owned_ = true;
   }
 
-  explicit inline BaseProxyHandler(const js::BaseProxyHandler* inner)
-      : inner_(inner) {}
+  explicit inline BaseProxyHandler(const js::BaseProxyHandler* inner, bool owned = true)
+      : inner_(inner), owned_(owned) {}
 
-  ~BaseProxyHandler() { js_free((void*)inner_); }
+  ~BaseProxyHandler() { if(owned_) { js_free((void*)inner_); } }
   
   bool hasPrototype() const { return UNSAFE_getProxyHandler()->hasPrototype(); }
 

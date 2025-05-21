@@ -101,6 +101,7 @@
 #include "js/GCHashTable.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/Sandbox.h"
 #include "js/TracingAPI.h"
 #include "js/WeakMapPtr.h"
 #include "nscore.h"
@@ -281,7 +282,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
   XPCJSRuntime* Runtime() const;
 
   virtual mozilla::CycleCollectedJSRuntime* CreateRuntime(
-      JSContext* aCx) override;
+      MCContext* aCx) override;
 
   XPCCallContext* GetCallContext() const { return mCallContext; }
   XPCCallContext* SetCallContext(XPCCallContext* ccx) {
@@ -475,7 +476,7 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
     return mWrappedNativeScopes;
   }
 
-  bool InitializeStrings(JSContext* cx);
+  bool InitializeStrings(MCContext* cx);
 
   virtual bool DescribeCustomObjects(JSObject* aObject, const JSClass* aClasp,
                                      char (&aName)[72]) const override;
@@ -566,11 +567,11 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   void DeleteSingletonScopes();
 
  private:
-  explicit XPCJSRuntime(JSContext* aCx);
+  explicit XPCJSRuntime(MCContext* aCx);
 
   MOZ_IS_CLASS_INIT
-  void Initialize(JSContext* cx);
-  void Shutdown(JSContext* cx) override;
+  void Initialize(MCContext* cx);
+  void Shutdown(MCContext* cx) override;
 
   static const char* const mStrings[XPCJSContext::IDX_TOTAL_COUNT];
   jsid mStrIDs[XPCJSContext::IDX_TOTAL_COUNT];
@@ -2162,7 +2163,7 @@ NS_DEFINE_STATIC_IID_ACCESSOR(XPCVariant, XPCVARIANT_IID)
 // Utilities
 
 inline JSContext* xpc_GetSafeJSContext() {
-  return XPCJSContext::Get()->Context();
+  return MC_UNSAFE(XPCJSContext::Get()->Context());
 }
 
 namespace xpc {
@@ -2826,7 +2827,7 @@ bool SandboxCreateStructuredClone(JSContext* cx, JS::Handle<JSObject*> obj);
 
 namespace mozilla {
 namespace dom {
-extern bool DefineStaticJSVals(JSContext* cx);
+extern bool DefineStaticJSVals(MCContext* cx);
 }  // namespace dom
 }  // namespace mozilla
 

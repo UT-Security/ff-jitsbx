@@ -10,7 +10,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Object.h"  // JS::GetClass
 #include "monkeycage/Proxy.h"
 

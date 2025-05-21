@@ -41,12 +41,12 @@
 #endif
 #include "xpcpublic.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Array.h"               // JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/PropertySpec.h"
 #include "js/SliceBudget.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "nsIArray.h"
 #include "CCGCScheduler.h"
 #include "WrapperFactory.h"
@@ -1027,7 +1027,7 @@ void nsJSContext::SetProcessingScriptTag(bool aFlag) {
 
 // static
 void nsJSContext::SetLowMemoryState(bool aState) {
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
   JS::SetLowMemoryState(cx, aState);
 }
 
@@ -1041,7 +1041,7 @@ static void GarbageCollectImpl(JS::GCReason aReason,
 
   // We use danger::GetJSContext() since AutoJSAPI will assert if the current
   // thread's context is null (such as during shutdown).
-  JSContext* cx = danger::GetJSContext();
+  MCContext* cx = danger::GetJSContext();
 
   if (!nsContentUtils::XPConnect() || !cx) {
     return;

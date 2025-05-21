@@ -6348,7 +6348,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
   if (!(aFlags & PaintInternalFlags::PaintComposite)) {
     // We need to allow content JS when the flag is set since we may trigger
     // MozAfterPaint events in content in those cases.
-    nojs.emplace(dom::danger::GetJSContext());
+    nojs.emplace(MC_UNSAFE(dom::danger::GetJSContext()));
   }
 #endif
 

@@ -4,26 +4,24 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
  
-#ifndef mc_Warnings_h
-#define mc_Warnings_h
+#ifndef mc_friend_WindowProxy_h
+#define mc_friend_WindowProxy_h
 
-#include "js/Warnings.h"
+#include "js/friend/WindowProxy.h"
 
 #ifdef JS_SANDBOX
+
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
 
-namespace JS {
+namespace js {
 
-inline WarningReporter GetWarningReporter(MCContext* cx) {
-  return GetWarningReporter(cx->cx_);
+inline void SetWindowProxyClass(MCContext* cx, const JSClass* clasp) {
+  return SetWindowProxyClass(cx->cx_, clasp);
 }
 
-inline WarningReporter SetWarningReporter(
-    MCContext* cx, MC::Sandbox::Callback<WarningReporter> reporter) {
-  return SetWarningReporter(cx->cx_, reporter.UNSAFE_get());
-}
-}  // namespace JS
+}  // namespace js
+
 #endif
 
 #endif

@@ -58,17 +58,17 @@
 #include <algorithm>
 #include <utility>
 
-#include "js/Debug.h"
+#include "monkeycage/Debug.h"
 #include "js/RealmOptions.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
 #include "js/HeapAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
 #include "js/PropertyAndElement.h"  // JS_DefineProperty
-#include "js/Warnings.h"            // JS::SetWarningReporter
-#include "js/ShadowRealmCallbacks.h"
+#include "monkeycage/Warnings.h"            // JS::SetWarningReporter
+#include "monkeycage/ShadowRealmCallbacks.h"
 #include "js/SliceBudget.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -671,7 +671,7 @@ static bool InitializeShadowRealm(JSContext* aCx,
   return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 
-CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
+CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
     : mContext(nullptr),
       mGCThingCycleCollectorGlobal(sGCThingCycleCollectorGlobal),
       mJSZoneCycleCollectorGlobal(sJSZoneCycleCollectorGlobal),
@@ -696,12 +696,19 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
   }
 #endif
 
-  if (!JS_AddExtraGCRootsTracer(aCx, TraceBlackJS, this)) {
+  static auto TraceBlackJSCb = MC::Sandbox::RegisterCallback(TraceBlackJS);
+  if (!JS_AddExtraGCRootsTracer(aCx, TraceBlackJSCb, this)) {
     MOZ_CRASH("JS_AddExtraGCRootsTracer failed");
   }
-  JS_SetGrayGCRootsTracer(aCx, TraceGrayJS, this);
-  JS_SetGCCallback(aCx, GCCallback, this);
-  mPrevGCSliceCallback = JS::SetGCSliceCallback(aCx, GCSliceCallback);
+
+  static auto TraceGrayJSCb = MC::Sandbox::RegisterCallback(TraceGrayJS);
+  JS_SetGrayGCRootsTracer(aCx, TraceGrayJSCb, this);
+
+  static auto GCCallbackCb = MC::Sandbox::RegisterCallback(GCCallback);
+  JS_SetGCCallback(aCx, GCCallbackCb, this);
+
+  static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
+  mPrevGCSliceCallback = JS::SetGCSliceCallback(aCx, GCSliceCallbackCb);
 
   if (NS_IsMainThread()) {
     // We would like to support all threads here, but the way timeline consumers
@@ -711,32 +718,51 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(JSContext* aCx)
     // currently possible. For now, add global markers only when we are on the
     // main thread, since the UI for this tracing data only displays data
     // relevant to the main-thread.
+    static auto GCNurseryCollectionCallbackCb =
+        MC::Sandbox::RegisterCallback(GCNurseryCollectionCallback);
     mPrevGCNurseryCollectionCallback =
-        JS::SetGCNurseryCollectionCallback(aCx, GCNurseryCollectionCallback);
+        JS::SetGCNurseryCollectionCallback(aCx, GCNurseryCollectionCallbackCb);
   }
 
-  JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCb, this);
-  JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallback, this);
-  JS::SetWaitCallback(mJSRuntime, BeforeWaitCallback, AfterWaitCallback,
-                      sizeof(dom::AutoYieldJSThreadExecution));
-  JS::SetWarningReporter(aCx, MozCrashWarningReporter);
-  JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealm);
-  JS::SetShadowRealmGlobalCreationCallback(aCx, dom::NewShadowRealmGlobal);
+  static auto JSObjectsTenuredCbCb = MC::Sandbox::RegisterCallback(JSObjectsTenuredCb);
+  JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCbCb, this);
 
-  js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
-      CrashReporter::AnnotateOOMAllocationSize);
+  static auto OutOfMemoryCallbackCb = MC::Sandbox::RegisterCallback(OutOfMemoryCallback);
+  JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallbackCb, this);
+  
+  static auto BeforeWaitCallbackCb = MC::Sandbox::RegisterCallback(BeforeWaitCallback);
+  static auto AfterWaitCallbackCb = MC::Sandbox::RegisterCallback(AfterWaitCallback);
+  JS::SetWaitCallback(mJSRuntime, BeforeWaitCallbackCb, AfterWaitCallbackCb,
+                                          sizeof(dom::AutoYieldJSThreadExecution));
 
-  static js::DOMCallbacks DOMcallbacks = {InstanceClassHasProtoAtDepth};
-  SetDOMCallbacks(aCx, &DOMcallbacks);
+  static auto MozCrashWarningReporterCb = MC::Sandbox::RegisterCallback(MozCrashWarningReporter);
+  JS::SetWarningReporter(aCx, MozCrashWarningReporterCb);
+
+  static auto InitializeShadowRealmCb = MC::Sandbox::RegisterCallback(InitializeShadowRealm);
+  JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealmCb);
+
+  static auto NewShadowRealmGlobalCb = MC::Sandbox::RegisterCallback(dom::NewShadowRealmGlobal);
+  JS::SetShadowRealmGlobalCreationCallback(aCx, NewShadowRealmGlobalCb);
+
+  static auto AnnotateOOMAllocationSizeCb =
+      MC::Sandbox::RegisterCallback(CrashReporter::AnnotateOOMAllocationSize);
+  mc::setAnnotateOOMAllocationSizeCallback(AnnotateOOMAllocationSizeCb);
+
+  static auto DOMcallbacks = mc::DOMCallbacks{MC::Sandbox::RegisterCallback(InstanceClassHasProtoAtDepth)};
+  js::SetDOMCallbacks(aCx, &DOMcallbacks);
+
+  //TODO(abhishek): EnvironmentPreparer is a class with virtual methods
   js::SetScriptEnvironmentPreparer(aCx, &mEnvironmentPreparer);
 
-  JS::dbg::SetDebuggerMallocSizeOf(aCx, moz_malloc_size_of);
+  //TODO(abhishek): do we use the version of this function inside the sandbox?
+  JS::dbg::SetDebuggerMallocSizeOf(MC_UNSAFE(aCx), moz_malloc_size_of);
 
 #ifdef MOZ_JS_DEV_ERROR_INTERCEPTOR
   JS_SetErrorInterceptorCallback(mJSRuntime, &mErrorInterceptor);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
 
-  JS_SetDestroyZoneCallback(aCx, OnZoneDestroyed);
+  static auto OnZoneDestroyedCb = MC::Sandbox::RegisterCallback(OnZoneDestroyed);
+  JS_SetDestroyZoneCallback(aCx, OnZoneDestroyedCb);
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -755,7 +781,7 @@ class JSLeakTracer : public JS::CallbackTracer {
 };
 #endif
 
-void CycleCollectedJSRuntime::Shutdown(JSContext* cx) {
+void CycleCollectedJSRuntime::Shutdown(MCContext* cx) {
 #ifdef MOZ_JS_DEV_ERROR_INTERCEPTOR
   mErrorInterceptor.Shutdown(mJSRuntime);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
@@ -772,7 +798,7 @@ void CycleCollectedJSRuntime::Shutdown(JSContext* cx) {
   mShutdownCalled = true;
 #endif
 
-  JS_SetDestroyZoneCallback(cx, nullptr);
+  JS_SetDestroyZoneCallback(cx, MC::Sandbox::Callback<JSDestroyZoneCallback>(nullptr));
 }
 
 CycleCollectedJSRuntime::~CycleCollectedJSRuntime() {
@@ -1025,9 +1051,10 @@ bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
 }
 
 /* static */
-void CycleCollectedJSRuntime::GCCallback(JSContext* aContext,
+void CycleCollectedJSRuntime::GCCallback(JSContext* uContext,
                                          JSGCStatus aStatus,
                                          JS::GCReason aReason, void* aData) {
+  MCContext* aContext = JS_SanitizeContext(uContext);
   CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
 
   MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
@@ -1041,7 +1068,7 @@ void CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
                                               JS::GCProgress aProgress,
                                               const JS::GCDescription& aDesc) {
   CycleCollectedJSRuntime* self = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
+  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     if (aProgress == JS::GC_CYCLE_END) {
@@ -1174,7 +1201,7 @@ void CycleCollectedJSRuntime::GCNurseryCollectionCallback(
     JSContext* aContext, JS::GCNurseryProgress aProgress,
     JS::GCReason aReason) {
   CycleCollectedJSRuntime* self = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
+  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!TimelineConsumers::IsEmpty()) {
@@ -1239,7 +1266,7 @@ void CycleCollectedJSRuntime::OutOfMemoryCallback(JSContext* aContext,
                                                   void* aData) {
   CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
 
-  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
+  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
   MOZ_ASSERT(CycleCollectedJSContext::Get()->Runtime() == self);
 
   self->OnOutOfMemory();
@@ -1604,13 +1631,13 @@ bool CycleCollectedJSRuntime::AreGCGrayBitsValid() const {
 
 void CycleCollectedJSRuntime::GarbageCollect(JS::GCOptions aOptions,
                                              JS::GCReason aReason) const {
-  JSContext* cx = CycleCollectedJSContext::Get()->Context();
+  MCContext* cx = CycleCollectedJSContext::Get()->Context();
   JS::PrepareForFullGC(cx);
   JS::NonIncrementalGC(cx, aOptions, aReason);
 }
 
 void CycleCollectedJSRuntime::JSObjectsTenured() {
-  JSContext* cx = CycleCollectedJSContext::Get()->Context();
+  MCContext* cx = CycleCollectedJSContext::Get()->Context();
   for (auto iter = mNurseryObjects.Iter(); !iter.Done(); iter.Next()) {
     nsWrapperCache* cache = iter.Get();
     JSObject* wrapper = cache->GetWrapperMaybeDead();
@@ -1652,7 +1679,7 @@ void CycleCollectedJSRuntime::DeferredFinalize(nsISupports* aSupports) {
 }
 
 void CycleCollectedJSRuntime::DumpJSHeap(FILE* aFile) {
-  JSContext* cx = CycleCollectedJSContext::Get()->Context();
+  JSContext* cx = MC_UNSAFE(CycleCollectedJSContext::Get()->Context());
 
   mozilla::MallocSizeOf mallocSizeOf =
       PR_GetEnv("MOZ_GC_LOG_SIZE") ? moz_malloc_size_of : nullptr;
@@ -1837,7 +1864,7 @@ void CycleCollectedJSRuntime::AnnotateAndSetOutOfMemory(OOMState* aStatePtr,
       annotation, nsDependentCString(OOMStateToString(aNewState)));
 }
 
-void CycleCollectedJSRuntime::OnGC(JSContext* aContext, JSGCStatus aStatus,
+void CycleCollectedJSRuntime::OnGC(MCContext* aContext, JSGCStatus aStatus,
                                    JS::GCReason aReason) {
   switch (aStatus) {
     case JSGC_BEGIN:
@@ -1899,7 +1926,7 @@ void CycleCollectedJSRuntime::SetLargeAllocationFailure(OOMState aNewState) {
 }
 
 void CycleCollectedJSRuntime::PrepareWaitingZonesForGC() {
-  JSContext* cx = CycleCollectedJSContext::Get()->Context();
+  MCContext* cx = CycleCollectedJSContext::Get()->Context();
   if (mZonesWaitingForGC.Count() == 0) {
     JS::PrepareForFullGC(cx);
   } else {

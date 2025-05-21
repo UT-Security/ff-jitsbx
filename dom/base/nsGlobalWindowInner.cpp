@@ -27,7 +27,7 @@
 #include "WindowNamedPropertiesHandler.h"
 #include "js/ComparisonOperators.h"
 #include "js/CompileOptions.h"
-#include "js/friend/PerformanceHint.h"
+#include "monkeycage/friend/PerformanceHint.h"
 #include "js/Id.h"
 #include "js/loader/LoadedScript.h"
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty

@@ -53,6 +53,21 @@ inline bool JS_IsExceptionPending(MCContext* cx) {
   return JS_IsExceptionPending(cx->cx_);
 }
 
+inline bool JS_IsThrowingOutOfMemory(MCContext* cx) {
+  return JS_IsThrowingOutOfMemory(cx->cx_);
+}
+
+inline bool JS_GetPendingException(MCContext* cx,
+                                                 JS::MutableHandleValue vp) {
+  return JS_GetPendingException(cx->cx_, vp);
+}
+
+inline void JS_SetPendingException(
+    MCContext* cx, JS::HandleValue v,
+    JS::ExceptionStackBehavior behavior = JS::ExceptionStackBehavior::Capture) {
+  return JS_SetPendingException(cx->cx_, v, behavior);
+}
+
 inline void JS_ClearPendingException(MCContext* cx) {
   JS_ClearPendingException(cx->cx_);
 }
