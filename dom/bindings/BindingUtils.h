@@ -25,12 +25,12 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/DeferredFinalize.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/Tainting.h"
 #include "mozilla/dom/BindingCallContext.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/DOMJSClass.h"
 #include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/dom/JSSlots.h"
-#include "mozilla/dom/JSTainted.h"
 #include "mozilla/dom/NonRefcountedDOMObject.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/PrototypeList.h"
@@ -92,6 +92,11 @@ inline bool IsDOMClass(const JSClass* clasp) {
   return clasp->flags & JSCLASS_IS_DOMJSCLASS;
 }
 
+inline JSTainted<bool> IsDOMClass(JSTainted<const JSClass*> clasp) {
+  JSTainted<uint32_t> flags (clasp.UNSAFE_unverified_ref()->flags); 
+  return flags & JSCLASS_IS_DOMJSCLASS;
+}
+
 // Return true if the JSClass is used for non-proxy DOM objects.
 inline bool IsNonProxyDOMClass(const JSClass* clasp) {
   return IsDOMClass(clasp) && clasp->isNativeObject();
@@ -116,6 +121,16 @@ inline T* UnwrapDOMObject(JSObject* obj) {
 }
 
 template <class T>
+inline T* UnwrapDOMObject(JSTainted<JSObject*> obj) {
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  JS::Value val = JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT);
+  JSAppPtr<T> ret (static_cast<T*>(val.toPrivate()));
+  return ret.verify(TaintObj<T>::PtrTable); 
+}
+
+template <class T>
 inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
   // This is used by the OjectMoved JSClass hook which can be called before
   // JS_NewObject has returned and so before we have a chance to set
@@ -132,12 +147,13 @@ inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
 }
 
 template <class T>
-inline T* UnwrapPossiblyNotInitializedDOMObject(JSTainted<JSObject*> obj) {
+inline JSAppPtr<T> UnwrapPossiblyNotInitializedDOMObject(JSTainted<JSObject*> obj) {
   // This is used by the OjectMoved JSClass hook which can be called before
   // JS_NewObject has returned and so before we have a chance to set
   // DOM_OBJECT_SLOT to anything useful.
 
-  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj.UNSAFE_unverified_ref())),
+  JSTainted<const JSClass*> jsclass (JS::GetClass(obj.UNSAFE_unverified_ref()));
+  MOZ_ASSERT(IsDOMClass(jsclass),
              "Don't pass non-DOM objects to this function");
 
   JSTainted<JS::Value> val (JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT));
@@ -152,19 +168,19 @@ inline const DOMJSClass* GetDOMClass(const JSClass* clasp) {
   return IsDOMClass(clasp) ? DOMJSClass::FromJSClass(clasp) : nullptr;
 }
 
-inline const TaintedDOMJSClass* GetTaintedDOMClass(const JSClass* clasp) {
-  return IsDOMClass(clasp) ? TaintedDOMJSClass::FromJSClass(clasp) : nullptr;
+inline JSTainted<const DOMJSClass*> GetDOMClass(JSTainted<const JSClass*> clasp) {
+  return IsDOMClass(clasp).UNSAFE_unverified_ref() ? 
+    JSTainted<const DOMJSClass*>::FromJSClass(clasp) : nullptr;
 }
-
 
 inline const DOMJSClass* GetDOMClass(JSObject* obj) {
   return GetDOMClass(JS::GetClass(obj));
 }
 
-inline const TaintedDOMJSClass* GetTaintedDOMClass(JSTainted<JSObject*> obj) {
-  return GetTaintedDOMClass(JS::GetClass(obj.UNSAFE_unverified_ref()));
+inline JSTainted<const DOMJSClass*> GetDOMClass(JSTainted<JSObject*> obj) {
+  JSTainted<const JSClass*> js_class (JS::GetClass(obj.UNSAFE_unverified_ref()));
+  return GetDOMClass(js_class);
 }
-
 
 inline nsISupports* UnwrapDOMObjectToISupports(JSObject* aObject) {
   const DOMJSClass* clasp = GetDOMClass(aObject);
@@ -175,9 +191,9 @@ inline nsISupports* UnwrapDOMObjectToISupports(JSObject* aObject) {
   return UnwrapPossiblyNotInitializedDOMObject<nsISupports>(aObject);
 }
 
-inline nsISupports* UnwrapDOMObjectToISupports(JSTainted<JSObject*> aObject) {
-  const TaintedDOMJSClass* clasp = GetTaintedDOMClass(aObject);
-  if (!clasp || !clasp->mDOMObjectIsISupports) {
+inline JSAppPtr<nsISupports> UnwrapDOMObjectToISupports(JSTainted<JSObject*> aObject) {
+  JSTainted<const DOMJSClass*> clasp = GetDOMClass(aObject);
+  if (!clasp || !clasp.mDOMObjectIsISupports().UNSAFE_unverified_ref()) {
     return nullptr;
   }
 
@@ -2212,6 +2228,20 @@ class SequenceTracer<JS::Value, false, false, false> {
   }
 };
 
+template <>
+class SequenceTracer<JSTainted<JS::Value>, false, false, false> {
+  explicit SequenceTracer() = delete;  // Should never be instantiated
+
+ public:
+  static void TraceSequence(JSTracer* trc, JSTainted<JS::Value>* valp, JSTainted<JS::Value>* end) {
+    for (; valp != end; ++valp) {
+      //This is very bad code that will be replaced with valp once we work out
+      //heap masks
+      JS::TraceRoot(trc, reinterpret_cast<JS::Value*>((void*)valp), "sequence<any>");
+    }
+  }
+};
+
 // sequence<sequence<T>>
 template <typename T>
 class SequenceTracer<Sequence<T>, false, false, false> {
@@ -3385,6 +3415,7 @@ already_AddRefed<Element> CreateXULOrHTMLElement(
     JS::Handle<JSObject*> aGivenProto, ErrorResult& aRv);
 
 void SetUseCounter(JSObject* aObject, UseCounter aUseCounter);
+void SetUseCounter(JSTainted<JSObject*> aObject, UseCounter aUseCounter);
 void SetUseCounter(UseCounterWorker aUseCounter);
 
 // Warnings

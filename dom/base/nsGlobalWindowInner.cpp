@@ -7890,6 +7890,10 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,
   MOZ_ASSERT(aOuterWindow);
   mBrowsingContext = aOuterWindow->GetBrowsingContext();
 
+  using AppPtr = mozilla::dom::TaintObj<nsGlobalWindowInner>;
+  if(!AppPtr::PtrTable.put(static_cast<void*>(this)))
+	MOZ_CRASH("nsPIDOMWindow: couldn't update pointer table");
+
   if (mWindowGlobalChild) {
     mWindowID = aActor->InnerWindowId();
 
@@ -7899,7 +7903,10 @@ nsPIDOMWindowInner::nsPIDOMWindowInner(nsPIDOMWindowOuter* aOuterWindow,
   }
 }
 
-nsPIDOMWindowInner::~nsPIDOMWindowInner() = default;
+nsPIDOMWindowInner::~nsPIDOMWindowInner() {
+  using AppPtr = mozilla::dom::TaintObj<nsGlobalWindowInner>;
+  AppPtr::PtrTable.remove(static_cast<void*>(this));
+}
 
 #undef FORWARD_TO_OUTER
 #undef FORWARD_TO_OUTER_OR_THROW

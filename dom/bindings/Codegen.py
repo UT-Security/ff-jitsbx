@@ -1967,7 +1967,7 @@ class CGAbstractStaticMethod(CGAbstractMethod):
             args,
             inline=False,
             static=True,
-            canRunScript=canRunScript,
+            canRunScript=canRunScript
         )
 
 
@@ -7563,6 +7563,7 @@ class CGArgumentConverter(CGThing):
         CGThing.__init__(self)
         self.argument = argument
         self.argDescription = argDescription
+        self.tainted = isTainted
         assert not argument.defaultValue or argument.optional
 
         replacer = {"index": index, "argc": "args.length()"}
@@ -7643,7 +7644,10 @@ class CGArgumentConverter(CGThing):
             )
         else:
             rooterDecl = ""
-        replacer["elemType"] = typeConversion.declType.define()
+        if self.tainted:
+            replacer["elemType"] = "JSTainted<%s>" % typeConversion.declType.define()
+        else:
+            replacer["elemType"] = typeConversion.declType.define()
 
         replacer["elementInitializer"] = initializerForType(self.argument.type) or ""
 
@@ -7807,7 +7811,7 @@ def getWrapTemplateForType(
                 exceptionCode=exceptionCode,
                 successCode=successCode,
             )
-        if isTainted:
+        if isTainted and value != "":
             return ("${jsvalRef}.%s(%s.get().UNSAFE_unverified_ref());\n" % (setter, value)) + tail
         else:
             return ("${jsvalRef}.%s(%s);\n" % (setter, value)) + tail
@@ -9111,21 +9115,42 @@ class CGPerSignatureCall(CGThing):
             if isConstructor:
                 objForGlobalObject = "obj"
             else:
-                objForGlobalObject = "xpc::XrayAwareCalleeGlobal(obj)"
-            cgThings.append(
-                CGGeneric(
-                    fill(
-                        """
-                GlobalObject global(cx, ${obj});
-                if (global.Failed()) {
-                  return false;
-                }
+                if isTainted:
+                    unsafeObj = "obj.get().UNSAFE_unverified_ref()"
+                    objForGlobalObject = f"xpc::XrayAwareCalleeGlobal({unsafeObj})"
+                else:
+                    objForGlobalObject = "xpc::XrayAwareCalleeGlobal(obj)"
+            if isTainted:
+                cgThings.append(
+                    CGGeneric(
+                        fill(
+                            """
+                    JSTainted<JSObject*> jsglobal (${obj});
+                    TaintedGlobalObject global(cx, jsglobal);
+                    if (global.Failed()) {
+                      return false;
+                    }
 
-                """,
-                        obj=objForGlobalObject,
+                    """,
+                            obj=objForGlobalObject,
+                        )
                     )
                 )
-            )
+            else:
+                cgThings.append(
+                    CGGeneric(
+                        fill(
+                            """
+                    GlobalObject global(cx, ${obj});
+                    if (global.Failed()) {
+                      return false;
+                    }
+
+                    """,
+                            obj=objForGlobalObject,
+                        )
+                    )
+                )
             argsPre.append("global")
 
         # For JS-implemented interfaces we do not want to base the
@@ -9802,6 +9827,11 @@ class CGMethodCall(CGThing):
         else:
             useCounterName = None
 
+        if method.getExtendedAttribute("Tainted"):
+            isTainted = True
+        else:
+            isTainted = False
+
         if method.isStatic():
             nativeType = descriptor.nativeType
             staticTypeOverride = PropertyDefiner.getStringAttr(
@@ -9831,6 +9861,7 @@ class CGMethodCall(CGThing):
                 argConversionStartsAt=argConversionStartsAt,
                 isConstructor=isConstructor,
                 useCounterName=useCounterName,
+                isTainted=isTainted
             )
 
         signatures = method.signatures()
@@ -10455,21 +10486,31 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
     CGThing which is already properly indented.
     """
 
-    def __init__(self, descriptor, name):
+    def __init__(self, descriptor, name, isTainted=False):
+        self.tainted = isTainted
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", JSNativeArguments(), canRunScript=True
-        )
+            self, descriptor, name, "bool", JSNativeArguments(), canRunScript=True)
 
     def definition_body(self):
         # Make sure that "obj" is in the same compartment as "cx", since we'll
         # later use it to wrap return values.
-        unwrap = dedent(
-            """
-            JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-            JS::Rooted<JSObject*> obj(cx, &args.callee());
+        if self.tainted:
+            unwrap = dedent(
+                """
+                JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+                JSTaintedRooted<JSObject*> obj(cx);
+                obj.set(&args.callee());
 
-            """
-        )
+                """
+            )
+        else:
+            unwrap = dedent(
+                """
+                JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+                JS::Rooted<JSObject*> obj(cx, &args.callee());
+
+                """
+            )
         return unwrap + self.generate_code().define()
 
     def generate_code(self):
@@ -11013,10 +11054,10 @@ class CGStaticMethod(CGAbstractStaticBindingMethod):
     A class for generating the C++ code for an IDL static method.
     """
 
-    def __init__(self, descriptor, method):
+    def __init__(self, descriptor, method, isTainted=False):
         self.method = method
         name = CppKeywords.checkMethodName(IDLToCIdentifier(method.identifier.name))
-        CGAbstractStaticBindingMethod.__init__(self, descriptor, name)
+        CGAbstractStaticBindingMethod.__init__(self, descriptor, name, isTainted)
 
     def generate_code(self):
         nativeName = CGSpecializedMethod.makeNativeName(self.descriptor, self.method)
@@ -11085,7 +11126,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
         if tainted:
             prefix = fill(
                 """
-                JSAppPtr taint_self (void_self);
+                JSAppPtr<${nativeType}> taint_self (void_self);
                 auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);
                 JSTaintedJitGetterCallArgs test_args (
                     JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
@@ -11385,7 +11426,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
         if tainted: 
             return prefix + fill(
                 """
-                JSAppPtr taint_self (void_self);
+                JSAppPtr<${nativeType}> taint_self (void_self);
                 auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);                
                 $*{call}
                 """,
@@ -16488,7 +16529,8 @@ class CGDescriptor(CGThing):
                 ):
                     if m.isStatic():
                         assert descriptor.interface.hasInterfaceObject()
-                        cgThings.append(CGStaticMethod(descriptor, m))
+                        tainted = m.getExtendedAttribute("Tainted")
+                        cgThings.append(CGStaticMethod(descriptor, m, tainted))
                         if m.returnsPromise():
                             cgThings.append(CGStaticMethodJitinfo(m))
                     elif descriptor.interface.hasInterfacePrototypeObject():

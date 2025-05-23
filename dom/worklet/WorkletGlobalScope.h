@@ -11,6 +11,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/dom/BindingDeclarations.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsDOMNavigationTiming.h"
 #include "nsIGlobalObject.h"
 #include "nsWrapperCache.h"
@@ -39,7 +40,7 @@ class WorkletModuleLoader;
 
 class Console;
 
-class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
+class WorkletGlobalScope : public mozilla::dom::TaintObj<WorkletGlobalScope>, public nsIGlobalObject, public nsWrapperCache {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(WORKLET_IID)
 

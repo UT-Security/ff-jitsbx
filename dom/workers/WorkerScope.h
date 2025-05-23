@@ -23,6 +23,7 @@
 #include "mozilla/dom/PerformanceWorker.h"
 #include "mozilla/dom/SafeRefPtr.h"
 #include "mozilla/dom/WorkerPrivate.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsIGlobalObject.h"
@@ -220,7 +221,8 @@ class NamedWorkerGlobalScopeMixin {
 
 }  // namespace workerinternals
 
-class WorkerGlobalScope : public WorkerGlobalScopeBase {
+class WorkerGlobalScope :   public mozilla::dom::TaintObj<WorkerGlobalScope>,
+							public WorkerGlobalScopeBase {
  public:
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WorkerGlobalScope,
@@ -503,7 +505,9 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
   SafeRefPtr<extensions::ExtensionBrowser> mExtensionBrowser;
 };
 
-class WorkerDebuggerGlobalScope final : public WorkerGlobalScopeBase {
+class WorkerDebuggerGlobalScope final : public mozilla::dom::TaintObj<
+											WorkerDebuggerGlobalScope>,
+										public WorkerGlobalScopeBase {
  public:
   using WorkerGlobalScopeBase::WorkerGlobalScopeBase;
 

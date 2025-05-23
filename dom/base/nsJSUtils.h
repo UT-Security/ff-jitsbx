@@ -182,7 +182,7 @@ inline bool AssignJSString(JSContext* cx, T& dest, mozilla::dom::JSTainted<JSStr
     return false;
   }
 
-  char16_t *temp = (char16_t *)js_malloc(len.UNSAFE_unverified_ref() + 1);
+  char16_t *temp = (char16_t *)js_malloc(2 * (len.UNSAFE_unverified_ref() + 1));
   if (MOZ_UNLIKELY(!temp)) {
     JS_ReportOutOfMemory(cx);
     return false;

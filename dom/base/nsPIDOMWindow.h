@@ -14,6 +14,7 @@
 #include "nsTArray.h"
 #include "Units.h"
 #include "mozilla/dom/EventTarget.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/TaskCategory.h"
@@ -102,7 +103,8 @@ enum class FullscreenReason {
     }                                                \
   }
 
-class nsPIDOMWindowInner : public mozIDOMWindow {
+class nsPIDOMWindowInner : 	//public mozilla::dom::TaintObj<nsGlobalWindowInner>,
+							public mozIDOMWindow {
  protected:
   using Document = mozilla::dom::Document;
   friend nsGlobalWindowInner;

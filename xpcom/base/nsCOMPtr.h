@@ -26,6 +26,7 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsCycleCollectionNoteChild.h"
 #include "nsDebug.h"  // for |NS_ASSERTION|
 #include "nsISupportsUtils.h"  // for |nsresult|, |NS_ADDREF|, |NS_GET_TEMPLATE_IID| et al
@@ -161,6 +162,17 @@ class MOZ_STACK_CLASS nsQueryInterface final
     return nsQueryInterfaceISupports::operator()(aIID, aAnswer);
   }
 };
+
+//forward declaration for specializations
+/*
+namespace mozilla {
+namespace dom {
+
+class nsGlobalWindowInner final;
+class nsPIDOMWindowInner;
+
+}
+}*/
 
 class MOZ_STACK_CLASS nsQueryInterfaceISupportsWithError {
  public:

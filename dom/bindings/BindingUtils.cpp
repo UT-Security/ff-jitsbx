@@ -44,6 +44,8 @@
 #include "nsIXPConnect.h"
 #include "nsUTF8Utils.h"
 #include "WorkerPrivate.h"
+#include "WorkletGlobalScope.h"
+#include "WorkerScope.h"
 #include "WorkerRunnable.h"
 #include "WrapperFactory.h"
 #include "xpcprivate.h"
@@ -2488,6 +2490,15 @@ TaintedGlobalObject::TaintedGlobalObject(JSContext* aCx, JSTainted<JSObject*> aO
   mGlobalJSObject.set(JS::GetNonCCWObjectGlobal(obj));
 }
 
+bool VerifyGlobalObject(nsISupports* global) {
+	void * global_void = static_cast<void*>(global);
+	return 
+		TaintObj<nsGlobalWindowInner>::PtrTable.has(global_void)  ||
+		TaintObj<WorkletGlobalScope>::PtrTable.has(global_void)   ||
+		TaintObj<WorkerGlobalScope>::PtrTable.has(global_void)   ||
+		TaintObj<WorkerDebuggerGlobalScope>::PtrTable.has(global_void);
+}
+
 nsISupports* TaintedGlobalObject::GetAsSupports() const {
   if (mGlobalObject) {
     return mGlobalObject;
@@ -2498,8 +2509,9 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   // Most of our globals are DOM objects.  Try that first.  Note that this
   // assumes that either the first nsISupports in the object is the canonical
   // one or that we don't care about the canonical nsISupports here.
-  mGlobalObject = UnwrapDOMObjectToISupports(mGlobalJSObject.get());
-  if (mGlobalObject) {
+  JSAppPtr<nsISupports> maybeGlobalObject = UnwrapDOMObjectToISupports(mGlobalJSObject.get());
+  if (maybeGlobalObject) {
+    mGlobalObject = maybeGlobalObject.verify(VerifyGlobalObject);
     return mGlobalObject;
   }
 
@@ -2520,7 +2532,12 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   if (supp) {
     // See documentation for mGlobalJSObject for why this assignment is OK.
     mGlobalObject = supp;
-    return mGlobalObject;
+	if(!VerifyGlobalObject(mGlobalObject)) {
+		mGlobalObject = nullptr;
+		return nullptr;
+	} else {
+    	return mGlobalObject;
+	}
   }
 
   // And now a final hack.  Sandbox is not a reflector, but it does have an
@@ -2529,6 +2546,8 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   // got here for something that is somehow not a DOM object, not an
   // XPCWrappedNative _and_ not a Sandbox).
   if (XPCConvert::GetISupportsFromJSObject(mGlobalJSObject.get().UNSAFE_unverified_ref(), &mGlobalObject)) {
+	if(!VerifyGlobalObject(mGlobalObject)) 
+		mGlobalObject = nullptr;
     return mGlobalObject;
   }
 
@@ -2538,6 +2557,58 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   return nullptr;
 }
 
+JSAppPtr<nsISupports> TaintedGlobalObject::GetAsTaintedSupports() const {
+  if (mGlobalObject) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(!js::IsWrapper(mGlobalJSObject.get().UNSAFE_unverified_ref()));
+
+  // Most of our globals are DOM objects.  Try that first.  Note that this
+  // assumes that either the first nsISupports in the object is the canonical
+  // one or that we don't care about the canonical nsISupports here.
+  mGlobalObject = 
+	UnwrapDOMObjectToISupports(mGlobalJSObject.get().UNSAFE_unverified_ref());
+  if (mGlobalObject) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(NS_IsMainThread(), "All our worker globals are DOM objects");
+
+  // Remove everything below here once all our global objects are using new
+  // bindings.  If that ever happens; it would need to include Sandbox and
+  // BackstagePass.
+
+  // See whether mGlobalJSObject is an XPCWrappedNative.  This will redo the
+  // IsWrapper bit above and the UnwrapDOMObjectToISupports in the case when
+  // we're not actually an XPCWrappedNative, but this should be a rare-ish case
+  // anyway.
+  //
+  // It's OK to use ReflectorToISupportsStatic, because we know we don't have a
+  // cross-compartment wrapper.
+  nsCOMPtr<nsISupports> supp = 
+	xpc::ReflectorToISupportsStatic(mGlobalJSObject.get().UNSAFE_unverified_ref());
+  if (supp) {
+    // See documentation for mGlobalJSObject for why this assignment is OK.
+    mGlobalObject = supp;
+    return mGlobalObject;
+  }
+
+  // And now a final hack.  Sandbox is not a reflector, but it does have an
+  // nsIGlobalObject hanging out in its private slot.  Handle that case here,
+  // (though again, this will do the useless UnwrapDOMObjectToISupports if we
+  // got here for something that is somehow not a DOM object, not an
+  // XPCWrappedNative _and_ not a Sandbox).
+  if (XPCConvert::GetISupportsFromJSObject(
+	mGlobalJSObject.get().UNSAFE_unverified_ref(), &mGlobalObject)) {
+    return mGlobalObject;
+  }
+
+  MOZ_ASSERT(!mGlobalObject);
+
+  Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+  return nullptr;
+}
 
 nsIPrincipal* GlobalObject::GetSubjectPrincipal() const {
   if (!NS_IsMainThread()) {
@@ -4171,6 +4242,17 @@ void SetUseCounter(JSObject* aObject, UseCounter aUseCounter) {
       xpc::WindowGlobalOrNull(js::UncheckedUnwrap(aObject));
   if (win && win->GetDocument()) {
     win->GetDocument()->SetUseCounter(aUseCounter);
+  }
+}
+
+void SetUseCounter(JSTainted<JSObject*> aObject, UseCounter aUseCounter) {
+  JSTainted<JSObject*> uObject (js::UncheckedUnwrap(aObject.UNSAFE_unverified_ref()));
+  JSAppPtr<nsGlobalWindowInner> tainted_win = xpc::WindowGlobalOrNull(uObject.UNSAFE_unverified_ref());
+  if (tainted_win) {
+    nsGlobalWindowInner* win = tainted_win.verify<nsGlobalWindowInner>(mozilla::dom::TaintObj<nsGlobalWindowInner>::PtrTable);
+    if (win->GetDocument()) {
+        win->GetDocument()->SetUseCounter(aUseCounter);
+    }
   }
 }
 

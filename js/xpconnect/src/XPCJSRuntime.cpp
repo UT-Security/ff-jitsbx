@@ -65,6 +65,7 @@
 #include "mozilla/dom/Element.h"
 #include "mozilla/dom/FetchUtil.h"
 #include "mozilla/dom/WindowBinding.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ProcessHangMonitor.h"

@@ -2574,7 +2574,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
   JS::Rooted<JS::Value> format(aCx, aData[0].UNSAFE_unverified_ref());
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS::ToString(aCx, format));
-  if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+  if (NS_WARN_IF(!jsString)) {
     return false;
   }
 
@@ -2707,7 +2707,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
           JS::Rooted<JS::Value> v(aCx, aData[index++].UNSAFE_unverified_ref());
           JSTaintedRooted<JSString*> jsString(aCx);
           jsString.set(JS::ToString(aCx, v));
-          if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+          if (NS_WARN_IF(!jsString)) {
             return false;
           }
 
@@ -2737,7 +2737,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
           JS::Rooted<JS::Value> value(aCx, aData[index++].UNSAFE_unverified_ref());
           JSTaintedRooted<JSString*> jsString(aCx);
           jsString.set(JS::ToString(aCx, value));
-          if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+          if (NS_WARN_IF(!jsString)) {
             return false;
           }
 
@@ -2758,7 +2758,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
           if (value.isBigInt()) {
             JSTaintedRooted<JSString*> jsString(aCx);
             jsString.set(JS::ToString(aCx, value));
-            if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+            if (NS_WARN_IF(!jsString)) {
               return false;
             }
 
@@ -2920,7 +2920,7 @@ Console::TimerStatus Console::StartTimer(JSContext* aCx, const JSTainted<JS::Val
   JS::Rooted<JS::Value> name(aCx, aName.UNSAFE_unverified_ref());
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS::ToString(aCx, name));
-  if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+  if (NS_WARN_IF(!jsString)) {
     return eTimerJSException;
   }
 
@@ -3022,7 +3022,7 @@ Console::TimerStatus Console::LogTimer(JSContext* aCx, const JSTainted<JS::Value
   JS::Rooted<JS::Value> name(aCx, aName.UNSAFE_unverified_ref());
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS::ToString(aCx, name));
-  if (NS_WARN_IF(!jsString.get().UNSAFE_unverified_ref())) {
+  if (NS_WARN_IF(!jsString)) {
     return eTimerJSException;
   }
 
@@ -3161,7 +3161,7 @@ uint32_t Console::IncreaseCounter(JSContext* aCx,
   JS::Rooted<JS::Value> labelValue(aCx, aArguments[0].UNSAFE_unverified_ref());
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS::ToString(aCx, labelValue));
-  if (!jsString.get().UNSAFE_unverified_ref()) {
+  if (!jsString) {
     return 0;  // We cannot continue.
   }
 
@@ -3230,7 +3230,7 @@ uint32_t Console::ResetCounter(JSContext* aCx,
   JS::Rooted<JS::Value> labelValue(aCx, aArguments[0].UNSAFE_unverified_ref());
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS::ToString(aCx, labelValue));
-  if (!jsString.get().UNSAFE_unverified_ref()) {
+  if (!jsString) {
     return 0;  // We cannot continue.
   }
 
@@ -3609,12 +3609,16 @@ already_AddRefed<Console> Console::GetConsoleInternal(
   return debuggerScope->GetConsole(aRv);
 }
 
+void checkWindow(void * win) {
+	if(!mozilla::dom::TaintObj<nsGlobalWindowInner>::PtrTable.has(win)) 
+		MOZ_CRASH("Invalid window global");
+}
+
 already_AddRefed<Console> Console::GetConsoleInternal(
     const TaintedGlobalObject& aGlobal, ErrorResult& aRv) {
   // Window
   if (NS_IsMainThread()) {
-    nsCOMPtr<nsPIDOMWindowInner> innerWindow =
-        do_QueryInterface(aGlobal.GetAsSupports());
+    nsCOMPtr<nsPIDOMWindowInner> innerWindow = do_QueryInterface(aGlobal.GetAsSupports());
 
     // we are probably running a chrome script.
     if (!innerWindow) {
@@ -3627,7 +3631,8 @@ already_AddRefed<Console> Console::GetConsoleInternal(
       return console.forget();
     }
 
-    nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(innerWindow);
+	checkWindow(static_cast<void*>(innerWindow));
+	nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(innerWindow);
     return window->GetConsole(aGlobal.Context(), aRv);
   }
 
@@ -3643,8 +3648,10 @@ already_AddRefed<Console> Console::GetConsoleInternal(
   MOZ_ASSERT(!NS_IsMainThread());
 
   JSContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
-  MOZ_ASSERT(workerPrivate);
+  JSAppPtr<WorkerPrivate*> tainted_workerPrivate (GetWorkerPrivateFromContext(cx));
+  MOZ_ASSERT(tainted_workerPrivate);
+  WorkerPrivate* workerPrivate = 
+	tainted_workerPrivate.verify<WorkerPrivate>(mozilla::dom::TaintObj<WorkerPrivate>::PtrTable);
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   if (NS_WARN_IF(!global)) {
@@ -3661,8 +3668,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
 
   // Debugger worker scope
 
-  WorkerDebuggerGlobalScope* debuggerScope =
-      workerPrivate->DebuggerGlobalScope();
+  WorkerDebuggerGlobalScope* debuggerScope = workerPrivate->DebuggerGlobalScope();
   MOZ_ASSERT(debuggerScope);
   MOZ_ASSERT(debuggerScope == global, "Which kind of global do we have?");
 
@@ -3769,7 +3775,7 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
         JSTaintedRooted<JSString*> jsString(aCx);
       jsString.set(JS::ToString(aCx, value));
 
-      if(!jsString.get().UNSAFE_unverified_ref()) {
+      if(!jsString) {
         return false;
       }
 
@@ -3787,7 +3793,7 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
       JSTaintedRooted<JSString*> jsString(aCx);
       jsString.set(JS::ToString(aCx, value));
 
-      if(!jsString.get().UNSAFE_unverified_ref()) {
+      if(!jsString) {
         return false;
       }
 
@@ -3998,7 +4004,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
 
     JSTaintedRooted<JSString*> jsString(aCx);
     jsString.set(JS_ValueToSource(aCx, v));
-    if (!jsString.get().UNSAFE_unverified_ref()) {
+    if (!jsString) {
       continue;
     }
 
@@ -4110,7 +4116,7 @@ void Console::MaybeExecuteDumpFunctionForTime(JSContext* aCx,
   JSTaintedRooted<JSString*> jsString(aCx);
   jsString.set(JS_ValueToSource(aCx, v));
 
-  if (!jsString.get().UNSAFE_unverified_ref()) {
+  if (!jsString) {
     return;
   }
 

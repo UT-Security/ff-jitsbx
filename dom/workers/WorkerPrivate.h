@@ -39,6 +39,7 @@
 #include "mozilla/dom/workerinternals/JSSettings.h"
 #include "mozilla/dom/workerinternals/Queue.h"
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/net/NeckoChannelParams.h"
 #include "mozilla/StaticPrefs_extensions.h"
 #include "nsContentUtils.h"
@@ -127,7 +128,8 @@ class MOZ_CAPABILITY("mutex") SharedMutex {
 nsString ComputeWorkerPrivateId();
 
 class WorkerPrivate final
-    : public RelativeTimeline,
+    : public mozilla::dom::TaintObj<WorkerPrivate>,
+	  public RelativeTimeline,
       public SupportsCheckedUnsafePtr<CheckIf<DiagnosticAssertEnabled>> {
  public:
   // Callback invoked on the parent thread when the worker's cancellation is

@@ -25,6 +25,7 @@
 #include "mozilla/dom/DOMString.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/NodeBinding.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsTHashtable.h"
 #include <iosfwd>
 
@@ -301,7 +302,7 @@ class nsNodeWeakReference final : public nsIWeakReference {
  * nsIContent and Document share.  An instance of this interface has a list
  * of nsIContent children and provides access to them.
  */
-class nsINode : public mozilla::dom::EventTarget {
+class nsINode : public mozilla::dom::EventTarget, public mozilla::dom::TaintObj<nsINode> {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   void AssertInvariantsOnNodeInfoChange();
 #endif

@@ -10,31 +10,30 @@
 #include <type_traits>
 #include <functional>
 #include <uchar.h>
+#include <mozilla/Tainting.h>
 #include "js/RootingAPI.h"
 #include "js/Value.h"
+#include "js/experimental/JitInfo.h"
 
 namespace mozilla {
 
 namespace dom {
-
-template<class T>
-mozilla::HashSet<void *> PtrTable = mozilla::HashSet<void *>(1);
 
 extern mozilla::HashSet<const char16_t *> TaintedExternalStringBacking;
 
 template<typename T>
 class TaintObj {
 	public:
-	static inline mozilla::HashSet<void *> PtrTable = mozilla::HashSet<void *>(1);
+	static inline mozilla::HashSet<void*> PtrTable = mozilla::HashSet<void*>(1);
 	TaintObj() {
-		if(PtrTable.put((void *)this))
-		;
+		if(!PtrTable.put(this)) {
+			MOZ_CRASH("Couldn't add new pointer to pointer table");
+        }
 	}
 	~TaintObj() {
-		PtrTable.remove((void *)this);
+		PtrTable.remove(this);
 	}
 };
-
 
 template<typename T>
 class JSTainted;
@@ -45,21 +44,35 @@ class JSTaintedVolatile;
 template <typename T, typename Enable = void>
 class JSTaintedOperations {};
 
+template<typename T>
 class JSAppPtr;
 
+template<typename T>
 class JSAppPtr {
   public:
-  explicit JSAppPtr(void * ptr) : app_ptr(ptr) {}
+  JSAppPtr(void * ptr) : app_ptr(ptr) {}
   
-  template <typename T>
-  T* verify(const mozilla::HashSet<void*> & PtrTable) {
-    for (auto iter = PtrTable.iter(); !iter.done(); iter.next()) {
-      void * cur = iter.get();
-      if (app_ptr == cur) {
-        return static_cast<T*>(cur);
-      }
+  template <typename O>
+  O* verify(const mozilla::HashSet<void*> & PtrTable) {
+    if(PtrTable.has(static_cast<void*>(app_ptr))) {
+      return static_cast<O*>(app_ptr);
+    } else {
+      MOZ_CRASH("Invalid AppPtr Detected.");
     }
-    MOZ_CRASH("Invalid AppPtr Detected.");
+  }
+
+  //TODO: replace w/ macros that allow branching
+  //see Tainted types under mfbt
+  T* verify(std::function<bool(T*)> f) {
+    if(f(static_cast<T*>(app_ptr))) {
+        return static_cast<T*>(app_ptr);
+    } else {
+        return nullptr;
+    }
+  }
+
+  operator bool() {
+    return app_ptr != nullptr;
   }
 
   private:
@@ -123,6 +136,23 @@ class JSTaintedOperations<const char16_t**> {
     }
 };
 
+template <>
+class JSTaintedOperations<uint32_t> {
+    public:
+    JSTainted<uint32_t> operator & (uint32_t other) {
+         uint32_t data = static_cast<JSTainted<uint32_t>*>(this)->get_raw_value_ref();
+         JSTainted<uint32_t> ret (data & other);
+         return ret;
+    }
+    
+    operator JSTainted<bool>() {
+        uint32_t data = static_cast<JSTainted<uint32_t>*>(this)->get_raw_value_ref();
+        JSTainted<bool> ret (data != 0);
+        return ret;
+    }
+};
+
+
 template<typename T>
 class JSTaintedVolatile : JSTaintedBase<JSTaintedVolatile, T> {
 public:
@@ -153,6 +183,10 @@ public:
   void setString(T t) {
     set(JS::StringValue(t));
   }
+
+  void setUndefined(void) {
+    set(JS::UndefinedValue());
+  }
   
 };
 
@@ -182,12 +216,14 @@ public:
   }
 };
 
+
 template <typename Wrapper, typename T, typename Enable = void>
 class JSTaintedWrapperOperations {};
 
 template <typename Wrapper, typename T, typename Enable = void>
 class JSTaintedMutableWrapperOperations
   : public JSTaintedWrapperOperations<Wrapper, T> {};
+
 
 template<typename T>
 class JSTaintedRooted : public JSTaintedMutableWrapperOperations<JSTaintedRooted<T>, T> {
@@ -205,6 +241,7 @@ public:
     get().assign_raw_value(value.get_raw_value_ref());
   }
 
+
   operator const JSTainted<T>&() const { return get(); }
   const JSTainted<T>& operator->() const { return get(); }
 
@@ -216,6 +253,14 @@ public:
 
 private:
   JSTainted<JS::Rooted<T>> ptr;
+};
+
+template <typename T>
+class JSTaintedMutableWrapperOperations<JSTaintedRooted<T*>, T*> {
+  public:
+  operator bool() {
+    return (reinterpret_cast<JSTaintedRooted<T*>*>(this))->get().UNSAFE_unverified_ref() != nullptr;
+  }
 };
 
 template<typename T>
@@ -230,6 +275,11 @@ public:
   
   operator const JSTainted<T>&() const { get(); }
   const JSTainted<T>& operator->() const { get(); } 
+
+  operator bool() {
+    return ptr != nullptr;
+  }
+
 private:
   JSTaintedHandle() = default;
   
@@ -265,6 +315,10 @@ public:
   const JSTainted<T>& operator->() const { get(); } 
   void set(const T& v) { ptr->assign_raw_value(v); }
 
+  operator bool() {
+    return ptr != nullptr;
+  }
+
     //TODO: verify p is within the sandbox
     //also this is very unsafe.....
   static JSTaintedMutableHandle<T> fromMarkedLocation(JSTainted<T>* p) {
@@ -297,6 +351,11 @@ public:
   template<typename T>
   void setString(T t) {
     static_cast<Wrapper*>(this)->get().setString(t);
+  }
+
+  template<typename T>
+  void setUndefined(T t) {
+    static_cast<Wrapper*>(this)->get().setUndefined();
   }
 };
 
@@ -340,6 +399,8 @@ class MOZ_STACK_CLASS TaintedGlobalObject {
      bool Failed() const { return !Get().UNSAFE_unverified_ref(); }
 
     nsISupports* GetAsSupports() const;
+
+	JSAppPtr<nsISupports> GetAsTaintedSupports(void) const;
       
     protected:
      JSTaintedRooted<JSObject*> mGlobalJSObject;
@@ -349,8 +410,45 @@ class MOZ_STACK_CLASS TaintedGlobalObject {
          "class, and mGlobalObject points to the "
          "global, so it won't be destroyed as long "
          "as GlobalObject lives on the stack") mGlobalObject;
-   };
+};
    
+//TODO:
+// create reflection of https://searchfox.org/mozilla-esr115/source/js/public/experimental/JitInfo.h#75
+// 
+template <>
+class JSTaintedOperations<JSJitMethodCallArgs> {
+  public:
+
+    mozilla::Tainted<bool> requireAtLeast(JSContext* cx, const char* fnname,
+						unsigned required) {
+	//We should be fine just forwarding this request.
+    //worst-case is that some nonsense sandbox data gets accessed,
+    //which we won't treat as trusted anyway
+    
+    JSJitMethodCallArgs& data = 
+        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->
+        get_raw_value_ref();
+    mozilla::Tainted<bool> result (data.requireAtLeast(cx, fnname, required));
+    return result;
+  }
+
+  mozilla::Tainted<unsigned> length(void) {
+    JSJitMethodCallArgs& data = 
+        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->
+        get_raw_value_ref();
+    mozilla::Tainted<unsigned> result (data.length());
+    return result;
+  }
+
+  /*
+  JSTaintedMutableHandle<JS::Value> rval(void) {
+    JS::MutableHandle<JS::Value> untaint_rval = 
+        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->get_raw_value_ref();
+        
+  }
+  */
+
+};
   
 } //namespace DOM
 
