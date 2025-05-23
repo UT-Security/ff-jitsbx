@@ -163,17 +163,6 @@ class MOZ_STACK_CLASS nsQueryInterface final
   }
 };
 
-//forward declaration for specializations
-/*
-namespace mozilla {
-namespace dom {
-
-class nsGlobalWindowInner final;
-class nsPIDOMWindowInner;
-
-}
-}*/
-
 class MOZ_STACK_CLASS nsQueryInterfaceISupportsWithError {
  public:
   nsQueryInterfaceISupportsWithError(nsISupports* aRawPtr, nsresult* aError)
