@@ -202,7 +202,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
     return ValidatorResult::Failure;
   }
 
-  MCAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   // Parse to JavaScript
   RefPtr<JS::Stencil> stencil =
