@@ -11,11 +11,11 @@
 
 #ifdef JS_SANDBOX
 
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
-inline void SetWaitCallback(JSRuntime* rt, MC::Sandbox::Callback<BeforeWaitCallback> beforeWait,
-                            MC::Sandbox::Callback<AfterWaitCallback> afterWait, size_t requiredMemory) {
+inline void SetWaitCallback(JSRuntime* rt, MC::SandboxCallback<BeforeWaitCallback> beforeWait,
+                            MC::SandboxCallback<AfterWaitCallback> afterWait, size_t requiredMemory) {
   return SetWaitCallback(rt, beforeWait.UNSAFE_get(), afterWait.UNSAFE_get(), requiredMemory);
 }
 }

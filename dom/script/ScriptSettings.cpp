@@ -27,7 +27,7 @@
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/DebugOnly.h"
-#include "mozilla/Maybe.h"
+#include "monkeycage/tainted/Maybe.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/ThreadLocal.h"
 #include "mozilla/dom/AutoEntryScript.h"
@@ -299,12 +299,12 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
   bool haveException = JS_IsExceptionPending(aCx);
 #endif  // DEBUG
 
-  mCx = aCx;
+  mCx = JS_SanitizeContext(aCx);
   mIsMainThread = aIsMainThread;
   if (aGlobal) {
     JS::AssertObjectIsNotGray(aGlobal);
   }
-  mAutoNullableRealm.emplace(mCx, aGlobal);
+  mAutoNullableRealm->emplace(mCx, aGlobal);
   mGlobalObject = aGlobalObject;
 
   ScriptSettingsStack::Push(this);
@@ -610,7 +610,7 @@ AutoIncumbentScript::~AutoIncumbentScript() { ScriptSettingsStack::Pop(this); }
 
 AutoNoJSAPI::AutoNoJSAPI(MCContext* aCx)
     : ScriptSettingsStackEntry(nullptr, eNoJSAPI),
-      MC::AutoStackTainted<JSAutoNullableRealm>(aCx, nullptr),
+      MC::SandboxStack<JSAutoNullableRealm>(aCx, nullptr),
       mCx(aCx) {
   // Make sure we don't seem to have an incumbent global due to
   // whatever script is running right now.

@@ -11,11 +11,11 @@
 
 #ifdef JS_SANDBOX
 
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace mc {
 inline void setAnnotateOOMAllocationSizeCallback(
-    MC::Sandbox::Callback<
+    MC::SandboxCallback<
         js::AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback>
         callback) {
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(

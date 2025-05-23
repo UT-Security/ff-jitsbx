@@ -12,7 +12,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
 
@@ -21,12 +21,12 @@ inline Realm* GetCurrentRealmOrNull(MCContext* cx) {
 }
 
 inline void SetDestroyRealmCallback(
-    MCContext* cx, MC::Sandbox::Callback<DestroyRealmCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<DestroyRealmCallback> callback) {
   return SetDestroyRealmCallback(cx->cx_, callback.UNSAFE_get());
 }
 
 inline void SetRealmNameCallback(
-    MCContext* cx, MC::Sandbox::Callback<RealmNameCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<RealmNameCallback> callback) {
   return SetRealmNameCallback(cx->cx_, callback.UNSAFE_get());
 }
 

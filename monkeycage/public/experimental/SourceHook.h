@@ -12,7 +12,6 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
 
 namespace js {
 

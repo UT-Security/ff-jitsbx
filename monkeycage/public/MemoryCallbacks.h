@@ -10,13 +10,13 @@
 
 #ifdef JS_SANDBOX
 
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 struct MCContext;
 
 namespace JS {
 
-inline void SetOutOfMemoryCallback(MCContext* cx, MC::Sandbox::Callback<OutOfMemoryCallback> cb,
+inline void SetOutOfMemoryCallback(MCContext* cx, MC::SandboxCallback<OutOfMemoryCallback> cb,
                                    void* data) {
   return SetOutOfMemoryCallback(cx->cx_, cb.UNSAFE_get(), data);  
 }

@@ -16,6 +16,7 @@
 
 #include "mcapi.h"
 #include "monkeycage/Exception.h"
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/Warnings.h"  // JS::WarningReporter
 
 class JSObject;
@@ -240,7 +241,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   JSContext* cx() const {
     MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
     MOZ_ASSERT(IsStackTop());
-    return mCx;
+    return MC_UNSAFE(mCx);
   }
 
 #ifdef DEBUG
@@ -285,8 +286,8 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   // AutoJSAPI, so Init must NOT be called on subclasses that use this.
   AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread, Type aType);
 
-  mozilla::Maybe<JSAutoNullableRealm> mAutoNullableRealm;
-  JSContext* mCx;
+  MC::SandboxStack<mozilla::Maybe<JSAutoNullableRealm>> mAutoNullableRealm;
+  MCContext* mCx;
 
   // Whether we're mainthread or not; set when we're initialized.
   bool mIsMainThread;
@@ -321,7 +322,7 @@ class AutoIncumbentScript : protected ScriptSettingsStackEntry {
  * This class may not be instantiated if an exception is pending.
  */
 class AutoNoJSAPI : protected ScriptSettingsStackEntry,
-                    protected MC::AutoStackTainted<JSAutoNullableRealm> {
+                    protected MC::SandboxStack<JSAutoNullableRealm> {
  public:
   AutoNoJSAPI() : AutoNoJSAPI(danger::GetJSContext()) {}
   ~AutoNoJSAPI();

@@ -7,121 +7,12 @@
 #ifndef mc_Sandbox_h
 #define mc_Sandbox_h
 
+#include "monkeycage/unsafe/SandboxImpl.h"
+#include "monkeycage/SandboxCallback.h"
+
 #include <atomic>
 #include <mutex>
 #include <shared_mutex>
-
-#if defined(JS_SANDBOX_NOOP)
-namespace MC {
-namespace detail {
-
-template <typename T>
-class SandboxCallback {
-  T fn_;
-
-  friend class SandboxNoop;
-  explicit SandboxCallback(T fn): fn_(fn) {}
-public:
-  explicit SandboxCallback(const std::nullptr_t& arg): fn_(arg) {}
-
-  T UNSAFE_get() const { return fn_; }
-};
-
-class SandboxNoop {
-public:
-  static inline bool Initialize() {
-    return true;
-  }
-
-  template<typename T_Fn>
-  static inline T_Fn Address(T_Fn external_addr) {
-    return external_addr;
-  }
-
-  template<typename T_Ret, typename... T_Args>
-  using T_Cb = T_Ret (*)(T_Args...);
-
-  template<typename T_Ret, typename... T_Args>
-  static SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> callback) {
-    return SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
-  }
-};
-
-}
-}
-#elif defined(JS_SANDBOX_DYLIB)
-#include "monkeycage/unsafe/lib.h"
-
-namespace MC {
-namespace detail {
-
-template <typename T>
-class SandboxCallback {
-  T fn_;
-
-  friend class SandboxDylib;
-  explicit SandboxCallback(T fn): fn_(fn) {}
-public:
-  explicit SandboxCallback(const std::nullptr_t& arg): fn_(arg) {}
-
-  T UNSAFE_get() const { return fn_; }
-};
-
-class SandboxDylib {
-public:
-  static bool Initialize() {
-    monkeycage_init();
-    return true;
-  }
-
-  template<typename T_Fn>
-  static inline T_Fn Address(T_Fn external_addr) {
-    return (T_Fn)(monkeycage_addr((void*)external_addr));
-  }
-
-  template<typename T_Ret, typename... T_Args>
-  using T_Cb = T_Ret (*)(T_Args...);
-
-  template<typename T_Ret, typename... T_Args>
-  static SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> callback) {
-    return SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
-  }
-  
-};
-
-}
-}
-#else
-
-namespace MC {
-namespace detail {
-
-template <typename T>
-using SandboxCallback = T;
-
-class SandboxNone {
-public:
-  static inline bool Initialize() {
-    return true;
-  }
-
-  template<typename T_Fn>
-  static inline T_Fn Address(T_Fn external_addr) {
-    return external_addr;
-  }
-
-  template<typename T_Ret, typename... T_Args>
-  using T_Cb = T_Ret (*)(T_Args...);
-
-  template<typename T_Ret, typename... T_Args>
-  static SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> callback) {
-    return callback;
-  }
-};
-
-}
-}
-#endif
 
 namespace MC {
 namespace detail {
@@ -159,7 +50,6 @@ public:
   }
   
 };
-
 }
 
 #if defined(JS_SANDBOX_NOOP)
@@ -169,7 +59,6 @@ using Sandbox = detail::Sandbox<detail::SandboxDylib>;
 #else
 using Sandbox = detail::Sandbox<detail::SandboxNone>;
 #endif
-
 }
 
 #endif

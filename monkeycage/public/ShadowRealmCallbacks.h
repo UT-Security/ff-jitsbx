@@ -11,18 +11,18 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
 
 
 inline void SetShadowRealmInitializeGlobalCallback(
-    MCContext* cx, MC::Sandbox::Callback<GlobalInitializeCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<GlobalInitializeCallback> callback) {
   return SetShadowRealmInitializeGlobalCallback(cx->cx_, callback.UNSAFE_get());
 }
 
 inline void SetShadowRealmGlobalCreationCallback(
-    MCContext* cx, MC::Sandbox::Callback<GlobalCreationCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<GlobalCreationCallback> callback) {
   return SetShadowRealmGlobalCreationCallback(cx->cx_, callback.UNSAFE_get());
 }
 }

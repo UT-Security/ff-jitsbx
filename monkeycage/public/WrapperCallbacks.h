@@ -11,15 +11,15 @@
 
 #ifdef JS_SANDBOX
 
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 struct MCWrapObjectCallbacks {
 private:
   JSWrapObjectCallbacks inner_;
 public:
  explicit MCWrapObjectCallbacks(
-     MC::Sandbox::Callback<JSWrapObjectCallback> wrap,
-     MC::Sandbox::Callback<JSPreWrapCallback> preWrap)
+     MC::SandboxCallback<JSWrapObjectCallback> wrap,
+     MC::SandboxCallback<JSPreWrapCallback> preWrap)
      : inner_{wrap.UNSAFE_get(), preWrap.UNSAFE_get()} {}
 
  const JSWrapObjectCallbacks* UNSAFE_get() const { return &inner_; }

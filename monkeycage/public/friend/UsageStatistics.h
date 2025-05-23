@@ -14,15 +14,15 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 inline void JS_SetAccumulateTelemetryCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSAccumulateTelemetryDataCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<JSAccumulateTelemetryDataCallback> callback) {
   return JS_SetAccumulateTelemetryCallback(cx->cx_, callback.UNSAFE_get());
 }
 
 inline void JS_SetSetUseCounterCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSSetUseCounterCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<JSSetUseCounterCallback> callback) {
   return JS_SetSetUseCounterCallback(cx->cx_, callback.UNSAFE_get());
 }
 
