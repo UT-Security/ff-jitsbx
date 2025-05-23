@@ -338,7 +338,7 @@ TEST(JSHolderMap, GCIntegration)
                               JS::FireOnNewGlobalHook, options);
   ASSERT_NE(global, nullptr);
 
-  MCAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   TestHoldersAreMarkedGray(MC_UNSAFE(cx));
   TestHoldersAreMoved(MC_UNSAFE(cx), true);

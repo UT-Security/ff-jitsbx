@@ -39,17 +39,6 @@ inline void LeaveRealm(MCContext* cx, JS::Realm* oldRealm) {
 }
 
 }
-
-class MOZ_RAII MCAutoRealm {
-  JSAutoRealm inner_;
-
- public:
-  MCAutoRealm(MCContext* cx, JSObject* target) : inner_(cx->cx_, target) {}
-  MCAutoRealm(MCContext* cx, JSScript* target) : inner_(cx->cx_, target) {}
-  ~MCAutoRealm() = default;
-};
-#else
-using MCAutoRealm = JSAutoRealm;
 #endif
 
 #endif
