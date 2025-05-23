@@ -16,7 +16,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
 
@@ -58,17 +58,17 @@ inline void FinishIncrementalGC(MCContext* cx, GCReason reason) {
 }
 
 inline GCSliceCallback SetGCSliceCallback(
-    MCContext* cx, MC::Sandbox::Callback<GCSliceCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<GCSliceCallback> callback) {
   return SetGCSliceCallback(cx->cx_, callback.UNSAFE_get());
 }
 
 inline GCNurseryCollectionCallback SetGCNurseryCollectionCallback(
-    MCContext* cx, MC::Sandbox::Callback<GCNurseryCollectionCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<GCNurseryCollectionCallback> callback) {
  return SetGCNurseryCollectionCallback(cx->cx_, callback.UNSAFE_get()); 
 }
 
 inline DoCycleCollectionCallback
-SetDoCycleCollectionCallback(MCContext* cx, MC::Sandbox::Callback<DoCycleCollectionCallback> callback) {
+SetDoCycleCollectionCallback(MCContext* cx, MC::SandboxCallback<DoCycleCollectionCallback> callback) {
     return SetDoCycleCollectionCallback(cx->cx_, callback.UNSAFE_get());
 }
 
@@ -78,7 +78,7 @@ inline void SetLowMemoryState(MCContext* cx, bool newState) {
 
 }
 
-inline bool JS_AddExtraGCRootsTracer(MCContext* cx, MC::Sandbox::Callback<JSTraceDataOp> traceOp,
+inline bool JS_AddExtraGCRootsTracer(MCContext* cx, MC::SandboxCallback<JSTraceDataOp> traceOp,
                                      void* data) { 
  return JS_AddExtraGCRootsTracer(cx->cx_, traceOp.UNSAFE_get(), data);
 }
@@ -90,42 +90,42 @@ inline void JS_GC(MCContext* cx, JS::GCReason reason = JS::GCReason::API) {
 inline void JS_MaybeGC(MCContext* cx) { return JS_MaybeGC(cx->cx_); }
 
 inline void JS_SetGCCallback(MCContext* cx,
-                             MC::Sandbox::Callback<JSGCCallback> cb,
+                             MC::SandboxCallback<JSGCCallback> cb,
                              void* data) {
   return JS_SetGCCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
 inline void JS_SetObjectsTenuredCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSObjectsTenuredCallback> cb,
+    MCContext* cx, MC::SandboxCallback<JSObjectsTenuredCallback> cb,
     void* data) {
   return JS_SetObjectsTenuredCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
-inline bool JS_AddFinalizeCallback(MCContext* cx, MC::Sandbox::Callback<JSFinalizeCallback> cb, void* data) {
+inline bool JS_AddFinalizeCallback(MCContext* cx, MC::SandboxCallback<JSFinalizeCallback> cb, void* data) {
     return JS_AddFinalizeCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
-inline void JS_RemoveFinalizeCallback(MCContext* cx, MC::Sandbox::Callback<JSFinalizeCallback> cb) {
+inline void JS_RemoveFinalizeCallback(MCContext* cx, MC::SandboxCallback<JSFinalizeCallback> cb) {
     return JS_RemoveFinalizeCallback(cx->cx_, cb.UNSAFE_get());
 }
 
 inline bool JS_AddWeakPointerZonesCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSWeakPointerZonesCallback> cb, void* data) {
+    MCContext* cx, MC::SandboxCallback<JSWeakPointerZonesCallback> cb, void* data) {
     return JS_AddWeakPointerZonesCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
 inline void JS_RemoveWeakPointerZonesCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSWeakPointerZonesCallback> cb) {
+    MCContext* cx, MC::SandboxCallback<JSWeakPointerZonesCallback> cb) {
     return JS_RemoveWeakPointerZonesCallback(cx->cx_, cb.UNSAFE_get());
 }
 
 inline bool JS_AddWeakPointerCompartmentCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSWeakPointerCompartmentCallback> cb, void* data) {
+    MCContext* cx, MC::SandboxCallback<JSWeakPointerCompartmentCallback> cb, void* data) {
     return JS_AddWeakPointerCompartmentCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
 inline void JS_RemoveWeakPointerCompartmentCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSWeakPointerCompartmentCallback> cb) {
+    MCContext* cx, MC::SandboxCallback<JSWeakPointerCompartmentCallback> cb) {
     return JS_RemoveWeakPointerCompartmentCallback(cx->cx_, cb.UNSAFE_get());
 }
 
@@ -144,7 +144,7 @@ inline uint32_t JS_GetGCParameter(MCContext* cx, JSGCParamKey key) {
 namespace JS {
 
 inline void SetHostCleanupFinalizationRegistryCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSHostCleanupFinalizationRegistryCallback> cb, void* data) {
+    MCContext* cx, MC::SandboxCallback<JSHostCleanupFinalizationRegistryCallback> cb, void* data) {
  return SetHostCleanupFinalizationRegistryCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 

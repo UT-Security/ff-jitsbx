@@ -405,7 +405,7 @@ bool HangMonitorChild::InterruptCallback() {
     RefPtr<BrowserChild> browserChild =
         BrowserChild::FindBrowserChild(paintWhileInterruptingJSTab);
     if (browserChild) {
-      MC::AutoStackTainted<js::AutoAssertNoContentJS> nojs(mContext);
+      MC::SandboxStack<js::AutoAssertNoContentJS> nojs(mContext);
       if (paintWhileInterruptingJS.value()) {
         browserChild->PaintWhileInterruptingJS(paintWhileInterruptingJSEpoch);
       } else {
@@ -449,7 +449,7 @@ bool HangMonitorChild::InterruptCallback() {
   }
 
   if (cancelContentJS) {
-    MC::AutoStackTainted<js::AutoAssertNoContentJS> nojs(mContext);
+    MC::SandboxStack<js::AutoAssertNoContentJS> nojs(mContext);
 
     RefPtr<BrowserChild> browserChild =
         BrowserChild::FindBrowserChild(cancelContentJSTab);

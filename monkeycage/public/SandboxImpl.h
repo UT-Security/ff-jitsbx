@@ -3,24 +3,16 @@
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
- 
-#ifndef mc_friend_WindowProxy_h
-#define mc_friend_WindowProxy_h
 
-#include "js/friend/WindowProxy.h"
+#ifndef mc_unsafe_SandboxImpl_h
+#define mc_unsafe_SandboxImpl_h
 
-#ifdef JS_SANDBOX
-
-#include "monkeycage/Context.h"
-
-namespace js {
-
-inline void SetWindowProxyClass(MCContext* cx, const JSClass* clasp) {
-  return SetWindowProxyClass(cx->cx_, clasp);
-}
-
-}  // namespace js
-
+#if defined(JS_SANDBOX_NOOP)
+#include "monkeycage/unsafe/SandboxNoop.h"
+#elif defined(JS_SANDBOX_DYLIB)
+#include "monkeycage/unsafe/SandboxDylib.h"
+#else
+#include "monkeycage/unsafe/SandboxNone.h"
 #endif
 
 #endif

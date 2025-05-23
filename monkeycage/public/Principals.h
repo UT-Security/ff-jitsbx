@@ -14,15 +14,15 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 struct MCSecurityCallbacks {
 private:
   JSSecurityCallbacks inner_;
 public:
  explicit MCSecurityCallbacks(
-     MC::Sandbox::Callback<JSCSPEvalChecker> contentSecurityPolicyAllows,
-     MC::Sandbox::Callback<JSSubsumesOp> subsumes)
+     MC::SandboxCallback<JSCSPEvalChecker> contentSecurityPolicyAllows,
+     MC::SandboxCallback<JSSubsumesOp> subsumes)
      : inner_{contentSecurityPolicyAllows.UNSAFE_get(), subsumes.UNSAFE_get()} {}
   const JSSecurityCallbacks* UNSAFE_get() const { return &inner_; }
 };
@@ -43,13 +43,13 @@ inline void JS_SetTrustedPrincipals(MCContext* cx, JSPrincipals* prin) {
 
 inline void JS_InitDestroyPrincipalsCallback(
     MCContext* cx,
-    MC::Sandbox::Callback<JSDestroyPrincipalsOp> destroyPrincipals) {
+    MC::SandboxCallback<JSDestroyPrincipalsOp> destroyPrincipals) {
   return JS_InitDestroyPrincipalsCallback(cx->cx_,
                                          destroyPrincipals.UNSAFE_get());
 }
 
 inline void JS_InitReadPrincipalsCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSReadPrincipalsOp> read) {
+    MCContext* cx, MC::SandboxCallback<JSReadPrincipalsOp> read) {
   return JS_InitReadPrincipalsCallback(cx->cx_, read.UNSAFE_get());
 }
 #else

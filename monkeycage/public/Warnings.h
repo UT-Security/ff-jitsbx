@@ -11,7 +11,7 @@
 
 #ifdef JS_SANDBOX
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
 
@@ -20,7 +20,7 @@ inline WarningReporter GetWarningReporter(MCContext* cx) {
 }
 
 inline WarningReporter SetWarningReporter(
-    MCContext* cx, MC::Sandbox::Callback<WarningReporter> reporter) {
+    MCContext* cx, MC::SandboxCallback<WarningReporter> reporter) {
   return SetWarningReporter(cx->cx_, reporter.UNSAFE_get());
 }
 }  // namespace JS

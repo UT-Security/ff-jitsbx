@@ -307,7 +307,14 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 
 # Monkeycage specific API
 EXPORTS.monkeycage += [
-	"../public/Sandbox.h"
+	"../public/Sandbox.h",
+	"../public/SandboxCallback.h",
+	"../public/SandboxStack.h",
+	"../public/Tainted.h",
+]
+
+EXPORTS.monkeycage.tainted += [
+	"../public/tainted/Maybe.h",
 ]
 
 # Monkeycage API wrappers for JSAPI
@@ -343,7 +350,6 @@ EXPORTS.monkeycage += [
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/String.h",
-	"../public/Tainted.h",
 	"../public/Utility.h",
 	"../public/Value.h",
 	"../public/WaitCallbacks.h",
@@ -363,4 +369,21 @@ EXPORTS.monkeycage.friend += [
 	"../public/friend/UsageStatistics.h",
 	"../public/friend/WindowProxy.h",
 ]
+
+EXPORTS.monkeycage.unsafe += [
+	"../public/SandboxImpl.h",
+]
+
+if CONFIG["JS_SANDBOX_NOOP"]:
+	EXPORTS.monkeycage.unsafe += [
+		"../public/SandboxNoop.h",
+	]
+elif CONFIG["JS_SANDBOX_DYLIB"]:
+	EXPORTS.monkeycage.unsafe += [
+		"../public/SandboxDylib.h",
+	]
+else:
+	EXPORTS.monkeycage.unsafe += [
+		"../public/SandboxNone.h",
+	]
 

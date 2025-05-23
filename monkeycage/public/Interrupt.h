@@ -11,14 +11,14 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxCallback.h"
 
 inline bool JS_CheckForInterrupt(MCContext* cx) {
   return JS_CheckForInterrupt(cx->cx_);
 }
 
 inline bool JS_AddInterruptCallback(
-    MCContext* cx, MC::Sandbox::Callback<JSInterruptCallback> callback) {
+    MCContext* cx, MC::SandboxCallback<JSInterruptCallback> callback) {
   return JS_AddInterruptCallback(cx->cx_, callback.UNSAFE_get());
 }
 
