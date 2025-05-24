@@ -2831,8 +2831,8 @@ extern bool DefineStaticJSVals(MCContext* cx);
 }  // namespace dom
 }  // namespace mozilla
 
-bool xpc_LocalizeRuntime(JSRuntime* rt);
-void xpc_DelocalizeRuntime(JSRuntime* rt);
+bool xpc_LocalizeRuntime(MCRuntime* rt);
+void xpc_DelocalizeRuntime(MCRuntime* rt);
 
 /***************************************************************************/
 // Inlines use the above - include last.

@@ -14,8 +14,8 @@
 #include "js/ErrorReport.h"
 #include "monkeycage/Exception.h"
 #include "monkeycage/GCAPI.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
-#include "js/TypeDecls.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "js/Warnings.h"
 #include "monkeycage/Wrapper.h"
@@ -288,9 +288,9 @@ AutoJSAPI::~AutoJSAPI() {
 void WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep);
 
 void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
-                             JSContext* aCx, bool aIsMainThread) {
+                             MCContext* aCx, bool aIsMainThread) {
   MOZ_ASSERT(aCx);
-  MOZ_ASSERT(aCx == MC_UNSAFE(danger::GetJSContext()));
+  MOZ_ASSERT(aCx == danger::GetJSContext());
   MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
   MOZ_ASSERT(bool(aGlobalObject) == bool(aGlobal));
   MOZ_ASSERT_IF(aGlobalObject,
@@ -299,7 +299,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
   bool haveException = JS_IsExceptionPending(aCx);
 #endif  // DEBUG
 
-  mCx = JS_SanitizeContext(aCx);
+  mCx = aCx;
   mIsMainThread = aIsMainThread;
   if (aGlobal) {
     JS::AssertObjectIsNotGray(aGlobal);
@@ -311,28 +311,30 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
 
   mOldWarningReporter.emplace(JS::GetWarningReporter(aCx));
 
-  JS::SetWarningReporter(aCx, WarningOnlyErrorReporter);
+  static auto WarningOnlyErrorReporterCb =
+      MC::Sandbox::RegisterCallback(WarningOnlyErrorReporter);
+  JS::SetWarningReporter(aCx, WarningOnlyErrorReporterCb);
 
 #ifdef DEBUG
   if (haveException) {
-    JS::Rooted<JS::Value> exn(aCx);
+    MC::Rooted<JS::Value> exn(aCx);
     JS_GetPendingException(aCx, &exn);
 
     JS_ClearPendingException(aCx);
     if (exn.isObject()) {
-      JS::Rooted<JSObject*> exnObj(aCx, &exn.toObject());
+      MC::Rooted<JSObject*> exnObj(aCx, &exn.toObject());
 
       // Make sure we can actually read things from it.  This UncheckedUwrap is
       // safe because we're only getting data for a debug printf.  In
       // particular, we do not expose this data to anyone, which is very
       // important; otherwise it could be a cross-origin information leak.
       exnObj = js::UncheckedUnwrap(exnObj);
-      JSAutoRealm ar(aCx, exnObj);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, exnObj);
 
       nsAutoJSString stack, filename, name, message;
       int32_t line;
 
-      JS::Rooted<JS::Value> tmp(aCx);
+      MC::Rooted<JS::Value> tmp(aCx);
       if (!JS_GetProperty(aCx, exnObj, "filename", &tmp)) {
         JS_ClearPendingException(aCx);
       }
@@ -342,26 +344,26 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
         }
       }
 
-      if (!filename.init(aCx, tmp)) {
+      if (!filename.init(MC_UNSAFE(aCx), tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "stack", &tmp) ||
-          !stack.init(aCx, tmp)) {
+          !stack.init(MC_UNSAFE(aCx), tmp)) {
         JS_ClearPendingException(aCx);
       }
 
-      if (!JS_GetProperty(aCx, exnObj, "name", &tmp) || !name.init(aCx, tmp)) {
+      if (!JS_GetProperty(aCx, exnObj, "name", &tmp) || !name.init(MC_UNSAFE(aCx), tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "message", &tmp) ||
-          !message.init(aCx, tmp)) {
+          !message.init(MC_UNSAFE(aCx), tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "lineNumber", &tmp) ||
-          !JS::ToInt32(aCx, tmp, &line)) {
+          !JS::ToInt32(MC_UNSAFE(aCx), tmp, &line)) {
         JS_ClearPendingException(aCx);
         line = 0;
       }
@@ -374,7 +376,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
     } else {
       // It's a primitive... not much we can do other than stringify it.
       nsAutoJSString exnStr;
-      if (!exnStr.init(aCx, exn)) {
+      if (!exnStr.init(MC_UNSAFE(aCx), exn)) {
         JS_ClearPendingException(aCx);
       }
 
@@ -395,17 +397,17 @@ AutoJSAPI::AutoJSAPI(nsIGlobalObject* aGlobalObject, bool aIsMainThread,
   MOZ_ASSERT(aIsMainThread == NS_IsMainThread());
 
   InitInternal(aGlobalObject, aGlobalObject->GetGlobalJSObject(),
-               MC_UNSAFE(danger::GetJSContext()), aIsMainThread);
+               danger::GetJSContext(), aIsMainThread);
 }
 
 void AutoJSAPI::Init() {
   MOZ_ASSERT(!mCx, "An AutoJSAPI should only be initialised once");
 
   InitInternal(/* aGlobalObject */ nullptr, /* aGlobal */ nullptr,
-               MC_UNSAFE(danger::GetJSContext()), NS_IsMainThread());
+               danger::GetJSContext(), NS_IsMainThread());
 }
 
-bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject, JSContext* aCx) {
+bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject, MCContext* aCx) {
   MOZ_ASSERT(!mCx, "An AutoJSAPI should only be initialised once");
   MOZ_ASSERT(aCx);
 
@@ -423,7 +425,7 @@ bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject, JSContext* aCx) {
 }
 
 bool AutoJSAPI::Init(nsIGlobalObject* aGlobalObject) {
-  return Init(aGlobalObject, MC_UNSAFE(danger::GetJSContext()));
+  return Init(aGlobalObject, danger::GetJSContext());
 }
 
 bool AutoJSAPI::Init(JSObject* aObject) {
@@ -431,7 +433,7 @@ bool AutoJSAPI::Init(JSObject* aObject) {
   return Init(xpc::NativeGlobal(aObject));
 }
 
-bool AutoJSAPI::Init(nsPIDOMWindowInner* aWindow, JSContext* aCx) {
+bool AutoJSAPI::Init(nsPIDOMWindowInner* aWindow, MCContext* aCx) {
   return Init(nsGlobalWindowInner::Cast(aWindow), aCx);
 }
 
@@ -439,7 +441,7 @@ bool AutoJSAPI::Init(nsPIDOMWindowInner* aWindow) {
   return Init(nsGlobalWindowInner::Cast(aWindow));
 }
 
-bool AutoJSAPI::Init(nsGlobalWindowInner* aWindow, JSContext* aCx) {
+bool AutoJSAPI::Init(nsGlobalWindowInner* aWindow, MCContext* aCx) {
   return Init(static_cast<nsIGlobalObject*>(aWindow), aCx);
 }
 

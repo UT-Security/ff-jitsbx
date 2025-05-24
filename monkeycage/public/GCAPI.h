@@ -72,6 +72,18 @@ SetDoCycleCollectionCallback(MCContext* cx, MC::SandboxCallback<DoCycleCollectio
     return SetDoCycleCollectionCallback(cx->cx_, callback.UNSAFE_get());
 }
 
+inline bool IsIncrementalGCInProgress(MCContext* cx) {
+    return IsIncrementalGCInProgress(cx->cx_);
+}
+
+inline bool IsIncrementalGCInProgress(MCRuntime* rt) {
+    return IsIncrementalGCInProgress(rt->rt_);
+}
+
+inline bool WasIncrementalGC(MCRuntime* rt) {
+    return WasIncrementalGC(rt->rt_);
+}
+
 inline void SetLowMemoryState(MCContext* cx, bool newState) {
     return SetLowMemoryState(cx->cx_, newState);
 }
@@ -143,12 +155,29 @@ inline uint32_t JS_GetGCParameter(MCContext* cx, JSGCParamKey key) {
 
 namespace JS {
 
+inline GCReason WantEagerMinorGC(MCRuntime* rt) {
+    return WantEagerMinorGC(rt->rt_);
+}
+
+inline GCReason WantEagerMajorGC(MCRuntime* rt) {
+    return WantEagerMajorGC(rt->rt_);
+}
+
+inline void MaybeRunNurseryCollection(MCRuntime* rt, JS::GCReason reason) {
+    return MaybeRunNurseryCollection(rt->rt_, reason);
+}
+
 inline void SetHostCleanupFinalizationRegistryCallback(
     MCContext* cx, MC::SandboxCallback<JSHostCleanupFinalizationRegistryCallback> cb, void* data) {
  return SetHostCleanupFinalizationRegistryCallback(cx->cx_, cb.UNSAFE_get(), data);
 }
 
 inline void ClearKeptObjects(MCContext* cx) { ClearKeptObjects(cx->cx_); }
+
+inline bool AtomsZoneIsCollecting(MCRuntime* runtime) {
+    return AtomsZoneIsCollecting(runtime->rt_);    
+}
+
 }  // namespace JS
 
 namespace js {

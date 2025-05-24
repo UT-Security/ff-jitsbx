@@ -13,12 +13,13 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/RootingAPI.h"
 
 inline bool JS_CallFunctionName(MCContext* cx, JS::Handle<JSObject*> obj,
                                 const char* name,
                                 const JS::HandleValueArray& args,
-                                JS::MutableHandle<JS::Value> rval) {
-  return JS_CallFunctionName(cx->cx_, obj, name, args, rval);
+                                MC::MutableHandle<JS::Value> rval) {
+  return JS_CallFunctionName(cx->cx_, obj, name, args, rval.MC_INTERNAL_SAFE_get());
 }
 #endif
 

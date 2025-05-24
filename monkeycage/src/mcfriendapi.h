@@ -33,6 +33,14 @@ using DOMCallbacks = struct JSDOMCallbacks;
 
 namespace js {
 
+inline bool AreGCGrayBitsValid(MCRuntime* rt) {
+    return AreGCGrayBitsValid(rt->rt_);
+}
+
+inline bool CheckGrayMarkingState(MCRuntime* rt) {
+    return CheckGrayMarkingState(rt->rt_);
+}
+
 inline void SetDOMCallbacks(MCContext* cx, const mc::DOMCallbacks* callbacks) {
   return SetDOMCallbacks(cx->cx_, callbacks->UNSAFE_get());
 }

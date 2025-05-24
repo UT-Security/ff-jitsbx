@@ -141,7 +141,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   virtual ~CycleCollectedJSContext();
 
   MOZ_IS_CLASS_INIT
-  nsresult Initialize(JSRuntime* aParentRuntime, uint32_t aMaxBytes);
+  nsresult Initialize(MCRuntime* aParentRuntime, uint32_t aMaxBytes);
 
   virtual CycleCollectedJSRuntime* CreateRuntime(MCContext* aCx) = 0;
 

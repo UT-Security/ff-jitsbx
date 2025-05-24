@@ -28,7 +28,7 @@
 #include "monkeycage/ContextOptions.h"
 #include "monkeycage/GlobalObject.h"
 #include "monkeycage/Initialization.h"
-#include "js/LocaleSensitive.h"
+#include "monkeycage/LocaleSensitive.h"
 #include "monkeycage/Principals.h"
 #include "monkeycage/Promise.h"
 #include "js/WasmFeatures.h"
@@ -880,7 +880,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     return new WorkerJSRuntime(aCx, mWorkerPrivate);
   }
 
-  nsresult Initialize(JSRuntime* aParentRuntime) {
+  nsresult Initialize(MCRuntime* aParentRuntime) {
     nsresult rv = CycleCollectedJSContext::Initialize(
         aParentRuntime, WORKER_DEFAULT_RUNTIME_HEAPSIZE);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -957,7 +957,7 @@ namespace {
 class WorkerThreadPrimaryRunnable final : public Runnable {
   WorkerPrivate* mWorkerPrivate;
   SafeRefPtr<WorkerThread> mThread;
-  JSRuntime* mParentRuntime;
+  MCRuntime* mParentRuntime;
 
   class FinishedRunnable final : public Runnable {
     SafeRefPtr<WorkerThread> mThread;
@@ -980,7 +980,7 @@ class WorkerThreadPrimaryRunnable final : public Runnable {
  public:
   WorkerThreadPrimaryRunnable(WorkerPrivate* aWorkerPrivate,
                               SafeRefPtr<WorkerThread> aThread,
-                              JSRuntime* aParentRuntime)
+                              MCRuntime* aParentRuntime)
       : mozilla::Runnable("WorkerThreadPrimaryRunnable"),
         mWorkerPrivate(aWorkerPrivate),
         mThread(std::move(aThread)),

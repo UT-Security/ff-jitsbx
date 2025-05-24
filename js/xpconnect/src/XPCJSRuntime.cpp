@@ -2994,7 +2994,7 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
 bool XPCJSRuntime::InitializeStrings(MCContext* cx) {
   // if it is our first context then we need to generate our string ids
   if (mStrIDs[0].isVoid()) {
-    RootedString str(MC_UNSAFE(cx));
+    MC::RootedString str(cx);
     for (unsigned i = 0; i < XPCJSContext::IDX_TOTAL_COUNT; i++) {
       str = JS_AtomizeAndPinString(cx, mStrings[i]);
       if (!str) {

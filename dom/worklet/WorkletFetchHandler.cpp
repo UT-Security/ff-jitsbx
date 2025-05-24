@@ -66,7 +66,7 @@ class StartModuleLoadRunnable final : public Runnable {
   nsCOMPtr<nsIURI> mURI;
   nsCOMPtr<nsIURI> mReferrer;
   const nsTArray<nsString>& mLocalizedStrs;
-  JSRuntime* mParentRuntime;
+  MCRuntime* mParentRuntime;
   JS::ContextOptions mContextOptions;
 };
 

@@ -135,7 +135,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
     return new WorkletJSRuntime(aCx);
   }
 
-  nsresult Initialize(JSRuntime* aParentRuntime) {
+  nsresult Initialize(MCRuntime* aParentRuntime) {
     MOZ_ASSERT(!NS_IsMainThread());
 
     nsresult rv = CycleCollectedJSContext::Initialize(
@@ -361,7 +361,7 @@ static bool DispatchToEventLoop(void* aClosure,
 
 // static
 void WorkletThread::EnsureCycleCollectedJSContext(
-    JSRuntime* aParentRuntime, const JS::ContextOptions& aOptions) {
+    MCRuntime* aParentRuntime, const JS::ContextOptions& aOptions) {
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
   if (ccjscx) {
     MOZ_ASSERT(ccjscx->GetAsWorkletJSContext());

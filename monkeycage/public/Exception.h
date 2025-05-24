@@ -12,6 +12,8 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 
 namespace MC {
 class MOZ_STACK_CLASS ExceptionStack {
@@ -57,9 +59,8 @@ inline bool JS_IsThrowingOutOfMemory(MCContext* cx) {
   return JS_IsThrowingOutOfMemory(cx->cx_);
 }
 
-inline bool JS_GetPendingException(MCContext* cx,
-                                                 JS::MutableHandleValue vp) {
-  return JS_GetPendingException(cx->cx_, vp);
+inline bool JS_GetPendingException(MCContext* cx, MC::MutableHandleValue vp) {
+  return JS_GetPendingException(cx->cx_, vp.MC_INTERNAL_SAFE_get());
 }
 
 inline void JS_SetPendingException(

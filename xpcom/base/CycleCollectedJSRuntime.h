@@ -355,8 +355,8 @@ class CycleCollectedJSRuntime {
   void OnOutOfMemory();
   void OnLargeAllocationFailure();
 
-  JSRuntime* Runtime() { return mJSRuntime; }
-  const JSRuntime* Runtime() const { return mJSRuntime; }
+  MCRuntime* Runtime() { return mJSRuntime; }
+  const MCRuntime* Runtime() const { return mJSRuntime; }
 
   bool HasPendingIdleGCTask() const {
     // Idle GC task associates with JSRuntime.
@@ -446,7 +446,7 @@ class CycleCollectedJSRuntime {
 
   JSZoneParticipant mJSZoneCycleCollectorGlobal;
 
-  JSRuntime* mJSRuntime;
+  MCRuntime* mJSRuntime;
   bool mHasPendingIdleGCTask;
 
   JS::GCSliceCallback mPrevGCSliceCallback;

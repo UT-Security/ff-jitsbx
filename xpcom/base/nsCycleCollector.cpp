@@ -2480,7 +2480,7 @@ class SnowWhiteKiller : public TraceCallbacks {
       mCollector->RemoveObjectFromGraph(aObject.mPointer);
       aObject.mRefCnt->stabilizeForDeletion();
       {
-        JS::AutoEnterCycleCollection autocc(mCollector->Runtime()->Runtime());
+        MC::SandboxStack<JS::AutoEnterCycleCollection> autocc(mCollector->Runtime()->Runtime());
         aObject.mParticipant->Trace(aObject.mPointer, *this, nullptr);
       }
       aObject.mParticipant->DeleteCycleCollectable(aObject.mPointer);
@@ -2719,7 +2719,7 @@ MOZ_NEVER_INLINE void nsCycleCollector::MarkRoots(SliceBudget& aBudget) {
   MOZ_ASSERT(mIncrementalPhase == GraphBuildingPhase);
 
   AUTO_PROFILER_LABEL_CATEGORY_PAIR(GCCC_BuildGraph);
-  JS::AutoEnterCycleCollection autocc(Runtime()->Runtime());
+  MC::SandboxStack<JS::AutoEnterCycleCollection> autocc(Runtime()->Runtime());
   bool doneBuilding = mBuilder->BuildGraph(aBudget);
 
   if (!doneBuilding) {
@@ -3009,7 +3009,7 @@ void nsCycleCollector::ScanRoots(bool aFullySynchGraphBuild) {
   mWhiteNodeCount = 0;
   MOZ_ASSERT(mIncrementalPhase == ScanAndCollectWhitePhase);
 
-  JS::AutoEnterCycleCollection autocc(Runtime()->Runtime());
+  MC::SandboxStack<JS::AutoEnterCycleCollection> autocc(Runtime()->Runtime());
 
   if (!aFullySynchGraphBuild) {
     ScanIncrementalRoots();
@@ -3666,7 +3666,7 @@ void nsCycleCollector::BeginCollection(
 
   // Set up the data structures for building the graph.
   JS::AutoAssertNoGC nogc;
-  JS::AutoEnterCycleCollection autocc(mCCJSRuntime->Runtime());
+  MC::SandboxStack<JS::AutoEnterCycleCollection> autocc(mCCJSRuntime->Runtime());
   mGraph.Init();
   mResults.Init();
   mResults.mSuspectedAtCCStart = SuspectedCount();

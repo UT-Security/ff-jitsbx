@@ -153,9 +153,9 @@ class IncrementalFinalizeRunnable : public DiscardableRunnable {
 }  // namespace mozilla
 
 struct NoteWeakMapChildrenTracer : public JS::CallbackTracer {
-  NoteWeakMapChildrenTracer(JSRuntime* aRt,
+  NoteWeakMapChildrenTracer(MCRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
-      : JS::CallbackTracer(aRt, JS::TracerKind::Callback),
+      : JS::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback),
         mCb(aCb),
         mTracedAny(false),
         mMap(nullptr),
@@ -188,8 +188,8 @@ void NoteWeakMapChildrenTracer::onChild(JS::GCCellPtr aThing,
 }
 
 struct NoteWeakMapsTracer : public js::WeakMapTracer {
-  NoteWeakMapsTracer(JSRuntime* aRt, nsCycleCollectionNoteRootCallback& aCccb)
-      : js::WeakMapTracer(aRt), mCb(aCccb), mChildTracer(aRt, aCccb) {}
+  NoteWeakMapsTracer(MCRuntime* aRt, nsCycleCollectionNoteRootCallback& aCccb)
+      : js::WeakMapTracer(MC_UNSAFE(aRt)), mCb(aCccb), mChildTracer(aRt, aCccb) {}
   void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override;
   nsCycleCollectionNoteRootCallback& mCb;
   NoteWeakMapChildrenTracer mChildTracer;
@@ -285,8 +285,8 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
 }
 
 struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
-  explicit FixWeakMappingGrayBitsTracer(JSRuntime* aRt)
-      : js::WeakMapTracer(aRt) {}
+  explicit FixWeakMappingGrayBitsTracer(MCRuntime* aRt)
+      : js::WeakMapTracer(MC_UNSAFE(aRt)) {}
 
   void FixAll() {
     do {
@@ -316,10 +316,10 @@ struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
 #ifdef DEBUG
 // Check whether weak maps are marked correctly according to the logic above.
 struct CheckWeakMappingGrayBitsTracer : public js::WeakMapTracer {
-  explicit CheckWeakMappingGrayBitsTracer(JSRuntime* aRt)
-      : js::WeakMapTracer(aRt), mFailed(false) {}
+  explicit CheckWeakMappingGrayBitsTracer(MCRuntime* aRt)
+      : js::WeakMapTracer(MC_UNSAFE(aRt)), mFailed(false) {}
 
-  static bool Check(JSRuntime* aRt) {
+  static bool Check(MCRuntime* aRt) {
     CheckWeakMappingGrayBitsTracer tracer(aRt);
     js::TraceWeakMaps(&tracer);
     return !tracer.mFailed;
@@ -395,8 +395,8 @@ JSZoneParticipant::TraverseNative(void* aPtr,
 }
 
 struct TraversalTracer : public JS::CallbackTracer {
-  TraversalTracer(JSRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
-      : JS::CallbackTracer(aRt, JS::TracerKind::Callback,
+  TraversalTracer(MCRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
+      : JS::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback,
                            JS::TraceOptions(JS::WeakMapTraceAction::Skip,
                                             JS::WeakEdgeTraceAction::Trace)),
         mCb(aCb) {}
@@ -768,8 +768,8 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
 #ifdef NS_BUILD_REFCNT_LOGGING
 class JSLeakTracer : public JS::CallbackTracer {
  public:
-  explicit JSLeakTracer(JSRuntime* aRuntime)
-      : JS::CallbackTracer(aRuntime, JS::TracerKind::Callback,
+  explicit JSLeakTracer(MCRuntime* aRuntime)
+      : JS::CallbackTracer(MC_UNSAFE(aRuntime), JS::TracerKind::Callback,
                            JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
  private:
