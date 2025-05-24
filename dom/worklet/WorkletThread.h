@@ -33,7 +33,7 @@ class WorkletThread final : public nsThread, public nsIObserver {
   // Threads that call EnsureCycleCollectedJSContext must call
   // DeleteCycleCollectedJSContext::Get() before terminating.  Clients of
   // Create() do not need to do this as Terminate() will ensure this happens.
-  static void EnsureCycleCollectedJSContext(JSRuntime* aParentRuntime,
+  static void EnsureCycleCollectedJSContext(MCRuntime* aParentRuntime,
                                             const JS::ContextOptions& aOptions);
   static void DeleteCycleCollectedJSContext();
 

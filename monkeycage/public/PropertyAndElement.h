@@ -13,10 +13,11 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/RootingAPI.h"
 
 inline bool JS_GetProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                           const char* name, JS::MutableHandleValue vp) {
- return JS_GetProperty(cx->cx_, obj, name, vp);
+                           const char* name, MC::MutableHandle<JS::Value> vp) {
+ return JS_GetProperty(cx->cx_, obj, name, vp.MC_INTERNAL_SAFE_get());
 }
 
 inline bool JS_DefineFunctions(MCContext* cx, JS::Handle<JSObject*> obj,

@@ -90,6 +90,11 @@ public:
   }
   
   template <typename... Args>
+  Tainted(MCRuntime* rt, Args&&... args) : data_(MC_UNSAFE(rt), std::forward<Args>(args)...) {
+    //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
+  }
+  
+  template <typename... Args>
   Tainted(Args&&... args) : data_(std::forward<Args>(args)...) {
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }

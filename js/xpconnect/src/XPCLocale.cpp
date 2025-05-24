@@ -6,7 +6,7 @@
 
 #include "mozilla/Assertions.h"
 
-#include "js/LocaleSensitive.h"
+#include "monkeycage/LocaleSensitive.h"
 
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
@@ -53,7 +53,7 @@ XPCLocaleObserver::Observe(nsISupports* aSubject, const char* aTopic,
   if (!strcmp(aTopic, "intl:app-locales-changed") ||
       (!strcmp(aTopic, "nsPref:changed") &&
        !NS_strcmp(aData, u"javascript.use_us_english_locale"))) {
-    JSRuntime* rt = CycleCollectedJSRuntime::Get()->Runtime();
+    MCRuntime* rt = CycleCollectedJSRuntime::Get()->Runtime();
     if (!xpc_LocalizeRuntime(rt)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -96,7 +96,7 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks {
    * Return the XPCLocaleCallbacks that's hidden away in |rt|. (This impl uses
    * the locale callbacks struct to store away its per-context data.)
    */
-  static XPCLocaleCallbacks* This(JSRuntime* rt) {
+  static XPCLocaleCallbacks* This(MCRuntime* rt) {
     // Locale information for |cx| was associated using xpc_LocalizeContext;
     // assert and double-check this.
     const JSLocaleCallbacks* lc = JS_GetLocaleCallbacks(rt);
@@ -119,7 +119,7 @@ struct XPCLocaleCallbacks : public JSLocaleCallbacks {
   NS_DECL_OWNINGTHREAD
 };
 
-bool xpc_LocalizeRuntime(JSRuntime* rt) {
+bool xpc_LocalizeRuntime(MCRuntime* rt) {
   // We want to assign the locale callbacks only the first time we
   // localize the context.
   // All consequent calls to this function are result of language changes
@@ -146,7 +146,7 @@ bool xpc_LocalizeRuntime(JSRuntime* rt) {
   return JS_SetDefaultLocale(rt, rpLocales[0].get());
 }
 
-void xpc_DelocalizeRuntime(JSRuntime* rt) {
+void xpc_DelocalizeRuntime(MCRuntime* rt) {
   const XPCLocaleCallbacks* lc = XPCLocaleCallbacks::This(rt);
   JS_SetLocaleCallbacks(rt, nullptr);
   delete lc;

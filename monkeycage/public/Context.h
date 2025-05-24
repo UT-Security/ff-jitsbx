@@ -14,10 +14,18 @@
 #ifdef JS_SANDBOX
 
 #include "mozilla/Assertions.h"
+#include "monkeycage/RootingAPI.h"
 
-struct MCContext {
+struct MCRuntime {
+  MCRuntime* parent_;
+  JSRuntime* rt_;
+};
+
+struct MCContext : MC::RootingContext {
   JSContext* cx_;
   void* data_;
+
+  MCRuntime* rt_;
 
   static inline thread_local MCContext* mcx_;
 };
@@ -26,19 +34,35 @@ inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx->cx_;
 }
 
-inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nullptr) { 
+inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
+  return rt->rt_;
+}
+
+inline MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nullptr) { 
   MOZ_RELEASE_ASSERT(!MCContext::mcx_, "Attempt to create duplication MCContext in thread");
 
-  JSContext* jscx = JS_NewContext(maxbytes, parentRuntime);
+  JSContext* jscx = JS_NewContext(maxbytes, parentRuntime == nullptr ? nullptr : parentRuntime->rt_);
   if (!jscx) {
+    return nullptr;
+  }
+
+  JSRuntime* jsrt = JS_GetRuntime(jscx);
+  if (!jsrt) {
     return nullptr;
   }
   
   MCContext* cx = new MCContext();
   MOZ_RELEASE_ASSERT(cx, "MCContext allocation failed!");
 
+  MCRuntime* rt = new MCRuntime();
+  MOZ_RELEASE_ASSERT(rt, "MCRuntime allocation failed!");
+
+  rt->parent_ = parentRuntime;
+  rt->rt_ = jsrt;
+
   cx->cx_ = jscx;
   cx->data_ = nullptr;
+  cx->rt_ = rt;
 
   MCContext::mcx_ = cx;
   return cx;
@@ -55,6 +79,7 @@ inline void JS_DestroyContext(MCContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_ == cx, "Attempt to delete MCConxtext from different thread");
 
   JS_DestroyContext(cx->cx_);
+  delete cx->rt_;
   delete cx;  
   MCContext::mcx_ = nullptr;
 }
@@ -69,22 +94,27 @@ inline void JS_SetContextPrivate(MCContext* cx, void* data) {
   JS_SetContextPrivate(cx->cx_, data);
 }
 
-inline JSRuntime* JS_GetParentRuntime(MCContext* cx) {
-  return JS_GetParentRuntime(cx->cx_);
+inline MCRuntime* JS_GetParentRuntime(MCContext* cx) {
+  return cx->rt_->parent_;
 }
 
-inline JSRuntime* JS_GetRuntime(MCContext* cx) {
-  return JS_GetRuntime(cx->cx_);
+inline MCRuntime* JS_GetRuntime(MCContext* cx) {
+  return cx->rt_;
 }
 
 inline void JS_SetFutexCanWait(MCContext* cx) {
   return JS_SetFutexCanWait(cx->cx_);
 }
 #else
+using MCRuntime = JSRuntime;
 using MCContext = JSContext;
 
 inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx;
+}
+
+inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
+  return rt;
 }
 
 inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nullptr) { 

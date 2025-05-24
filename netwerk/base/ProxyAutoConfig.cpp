@@ -472,9 +472,9 @@ class JSContextWrapper {
       JS_ClearPendingException(mContext);
       return NS_ERROR_OUT_OF_MEMORY;
     }
-    JS::Rooted<JSObject*> global(MC_UNSAFE(mContext), mGlobal);
+    MC::Rooted<JSObject*> global(mContext, mGlobal);
 
-    MCAutoRealm ar(mContext, global);
+    MC::SandboxStack<JSAutoRealm> ar(mContext, global);
     AutoPACErrorReporter aper(mContext);
     if (!JS_DefineFunctions(mContext, global, PACGlobalFunctions)) {
       return NS_ERROR_FAILURE;
@@ -555,7 +555,7 @@ nsresult ProxyAutoConfig::SetupJS() {
   if (!mJSContext) return NS_ERROR_FAILURE;
 
   MCContext* cx = mJSContext->Context();
-  MCAutoRealm ar(cx, mJSContext->Global());
+  MC::SandboxStack<JSAutoRealm> ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // check if this is a data: uri so that we don't spam the js console with
@@ -566,7 +566,7 @@ nsresult ProxyAutoConfig::SetupJS() {
 
   SetRunning(this);
 
-  JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
+  MC::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   auto CompilePACScript = [this](MCContext* cx) -> JSScript* {
     MC::CompileOptions options(cx);
@@ -600,7 +600,7 @@ nsresult ProxyAutoConfig::SetupJS() {
     return JS::Compile(cx, options, source);
   };
 
-  JS::Rooted<JSScript*> script(MC_UNSAFE(cx), CompilePACScript(cx));
+  MC::Rooted<JSScript*> script(cx, CompilePACScript(cx));
   if (!script || !JS_ExecuteScript(cx, script)) {
     nsString alertMessage(u"PAC file failed to install from "_ns);
     if (isDataURI) {
@@ -647,7 +647,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
   if (!mJSContext || !mJSContext->IsOK()) return NS_ERROR_NOT_AVAILABLE;
 
   MCContext* cx = mJSContext->Context();
-  MCAutoRealm ar(cx, mJSContext->Global());
+  MC::SandboxStack<JSAutoRealm> ar(cx, mJSContext->Global());
   AutoPACErrorReporter aper(cx);
 
   // the sRunning flag keeps a new PAC file from being installed
@@ -681,19 +681,19 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
     }
   }
 
-  JS::Rooted<JSString*> uriString(
-      MC_UNSAFE(cx),
+  MC::Rooted<JSString*> uriString(
+      cx,
       JS_NewStringCopyN(cx, clensedURI.BeginReading(), clensedURI.Length()));
-  JS::Rooted<JSString*> hostString(
-      MC_UNSAFE(cx), JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
+  MC::Rooted<JSString*> hostString(
+      cx, JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
 
   if (uriString && hostString) {
     JS::RootedValueArray<2> args(MC_UNSAFE(cx));
     args[0].setString(uriString);
     args[1].setString(hostString);
 
-    JS::Rooted<JS::Value> rval(MC_UNSAFE(cx));
-    JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
+    MC::Rooted<JS::Value> rval(cx);
+    MC::Rooted<JSObject*> global(cx, mJSContext->Global());
     bool ok = JS_CallFunctionName(cx, global, "FindProxyForURL", args, &rval);
 
     if (ok && rval.isString()) {
@@ -713,7 +713,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
 void ProxyAutoConfig::GC() {
   if (!mJSContext || !mJSContext->IsOK()) return;
 
-  MCAutoRealm ar(mJSContext->Context(), mJSContext->Global());
+  MC::SandboxStack<JSAutoRealm> ar(mJSContext->Context(), mJSContext->Global());
   JS_MaybeGC(mJSContext->Context());
 }
 
@@ -801,8 +801,8 @@ bool ProxyAutoConfig::MyIPAddress(const JS::CallArgs& aArgs) {
   nsAutoCString remoteDottedDecimal;
   nsAutoCString localDottedDecimal;
   MCContext* cx = mJSContext->Context();
-  JS::Rooted<JS::Value> v(MC_UNSAFE(cx));
-  JS::Rooted<JSObject*> global(MC_UNSAFE(cx), mJSContext->Global());
+  MC::Rooted<JS::Value> v(cx);
+  MC::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   bool useMultihomedDNS =
       JS_GetProperty(cx, global, "pacUseMultihomedDNS", &v) &&

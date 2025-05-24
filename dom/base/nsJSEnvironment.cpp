@@ -1709,7 +1709,7 @@ void nsJSContext::MaybePokeGC() {
     return;
   }
 
-  JSRuntime* rt = CycleCollectedJSRuntime::Get()->Runtime();
+  MCRuntime* rt = CycleCollectedJSRuntime::Get()->Runtime();
   JS::GCReason reason = JS::WantEagerMinorGC(rt);
   if (reason != JS::GCReason::NO_REASON) {
     MOZ_ASSERT(reason == JS::GCReason::EAGER_NURSERY_COLLECTION);

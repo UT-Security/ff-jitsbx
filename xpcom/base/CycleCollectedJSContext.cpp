@@ -123,7 +123,7 @@ CycleCollectedJSContext::~CycleCollectedJSContext() {
   mRuntime = nullptr;
 }
 
-nsresult CycleCollectedJSContext::Initialize(JSRuntime* aParentRuntime,
+nsresult CycleCollectedJSContext::Initialize(MCRuntime* aParentRuntime,
                                              uint32_t aMaxBytes) {
   MOZ_ASSERT(!mJSContext);
 
@@ -253,7 +253,7 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
   if (aIncumbentGlobal) {
     global = xpc::NativeGlobal(aIncumbentGlobal);
   }
-  JS::RootedObject jobGlobal(MC_UNSAFE(aCx), JS::CurrentGlobalOrNull(aCx));
+  MC::RootedObject jobGlobal(aCx, JS::CurrentGlobalOrNull(aCx));
   RefPtr<PromiseJobRunnable> runnable = new PromiseJobRunnable(
       aPromise, aJob, jobGlobal, aAllocationSite, global);
   DispatchToMicroTask(runnable.forget());

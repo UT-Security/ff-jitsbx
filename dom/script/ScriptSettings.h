@@ -228,15 +228,15 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   // If aGlobalObject represents a web-visible global, errors reported by this
   // AutoJSAPI as it comes off the stack will fire the relevant error events and
   // show up in the corresponding web console.
-  [[nodiscard]] bool Init(nsIGlobalObject* aGlobalObject, JSContext* aCx);
+  [[nodiscard]] bool Init(nsIGlobalObject* aGlobalObject, MCContext* aCx);
 
   // Convenience functions to take an nsPIDOMWindowInner or nsGlobalWindowInner,
   // when it is more easily available than an nsIGlobalObject.
   [[nodiscard]] bool Init(nsPIDOMWindowInner* aWindow);
-  [[nodiscard]] bool Init(nsPIDOMWindowInner* aWindow, JSContext* aCx);
+  [[nodiscard]] bool Init(nsPIDOMWindowInner* aWindow, MCContext* aCx);
 
   [[nodiscard]] bool Init(nsGlobalWindowInner* aWindow);
-  [[nodiscard]] bool Init(nsGlobalWindowInner* aWindow, JSContext* aCx);
+  [[nodiscard]] bool Init(nsGlobalWindowInner* aWindow, MCContext* aCx);
 
   JSContext* cx() const {
     MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
@@ -295,7 +295,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
 
  private:
   void InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
-                    JSContext* aCx, bool aIsMainThread);
+                    MCContext* aCx, bool aIsMainThread);
 
   AutoJSAPI(const AutoJSAPI&) = delete;
   AutoJSAPI& operator=(const AutoJSAPI&) = delete;
