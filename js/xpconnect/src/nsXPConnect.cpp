@@ -798,10 +798,40 @@ static already_AddRefed<nsISupports> ReflectorToISupports(JSObject* reflector) {
   return canonical.forget();
 }
 
+static JSTainted<already_AddRefed<nsISupports>> ReflectorToISupports(JSTainted<JSObject*> reflector) {
+  if (!reflector) {
+    return nullptr;
+  }
+
+  // Try XPCWrappedNatives.
+  if (IsWrappedNativeReflector(reflector).UNSAFE_unverified_ref()) {
+    JSTainted<XPCWrappedNative*> wn = XPCWrappedNative::Get(reflector);
+    if (!wn) {
+      return nullptr;
+    }
+    JSTainted<nsCOMPtr<nsISupports>> native = wn.UNSAFE_unverified_ref()->Native();
+    return native.forget();
+  }
+
+  // Try DOM objects.  This QI without taking a ref first is safe, because
+  // this if non-null our thing will definitely be a DOM object, and we know
+  // their QI to nsISupports doesn't do anything weird.
+  JSTainted<nsCOMPtr<nsISupports>> canonical =
+      do_QueryInterface(mozilla::dom::UnwrapDOMObjectToISupports(reflector));
+  return canonical.forget();
+}
+
 already_AddRefed<nsISupports> xpc::ReflectorToISupportsStatic(
     JSObject* reflector) {
   // Unwrap security wrappers, if allowed.
   return ReflectorToISupports(js::CheckedUnwrapStatic(reflector));
+}
+
+JSTainted<already_AddRefed<nsISupports>> xpc::ReflectorToISupportsStatic(
+    JSTainted<JSObject*> reflector) {
+  // Unwrap security wrappers, if allowed.
+  JSTainted<JSObject*> uObject (js::CheckedUnwrapStatic(reflector.UNSAFE_unverified_ref()));
+  return ReflectorToISupports(uObject);
 }
 
 already_AddRefed<nsISupports> xpc::ReflectorToISupportsDynamic(

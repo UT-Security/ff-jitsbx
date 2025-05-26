@@ -11,6 +11,7 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/dom/MaybeCrossOriginObject.h"
 #include "mozilla/dom/PrototypeList.h"
+#include "mozilla/dom/JSTainted.h"
 #include "xpcpublic.h"
 
 namespace mozilla::dom {
@@ -104,6 +105,15 @@ class RemoteObjectProxyBase : public js::BaseProxyHandler,
     return handler->family() == &sCrossOriginProxyFamily;
   }
 
+  static inline mozilla::dom::JSTainted<bool> IsRemoteObjectProxy
+    (mozilla::dom::JSTainted<JSObject*> aProxy) {
+    mozilla::dom::JSTainted<const js::BaseProxyHandler*> handler  
+        (js::GetProxyHandler(aProxy.UNSAFE_unverified_ref()));
+    JSTainted<bool> result (
+        handler.UNSAFE_unverified_ref()->family() == &sCrossOriginProxyFamily);
+    return result;
+  }
+
  protected:
   /**
    * Gets an existing cached proxy object, or creates a new one and caches it.
@@ -188,6 +198,17 @@ inline bool IsRemoteObjectProxy(JSObject* aObj, prototypes::ID aProtoID) {
  */
 inline bool IsRemoteObjectProxy(JSObject* aObj) {
   if (!js::IsProxy(aObj)) {
+    return false;
+  }
+  return RemoteObjectProxyBase::IsRemoteObjectProxy(aObj);
+}
+
+/**
+ * Returns true if aObj is a cross-process proxy object, no matter
+ * which WebIDL interface it corresponds to.
+ */
+inline JSTainted<bool> IsRemoteObjectProxy(JSTainted<JSObject*> aObj) {
+  if (!js::IsProxy(aObj.UNSAFE_unverified_ref())) {
     return false;
   }
   return RemoteObjectProxyBase::IsRemoteObjectProxy(aObj);

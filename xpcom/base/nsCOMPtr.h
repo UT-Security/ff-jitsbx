@@ -201,6 +201,12 @@ inline nsQueryInterface<mozilla::PointedToType<T>> do_QueryInterface(T aPtr) {
 }
 
 template <class T>
+inline mozilla::dom::JSTainted<nsQueryInterface<T>> do_QueryInterface
+    (mozilla::dom::JSAppPtr<T> aPtr) {
+    return nsQueryInterface<T>(aPtr.UNVERIFIED_ref());
+}
+
+template <class T>
 inline nsQueryInterfaceWithError<mozilla::PointedToType<T>> do_QueryInterface(
     T aRawPtr, nsresult* aError) {
   return nsQueryInterfaceWithError<mozilla::PointedToType<T>>(aRawPtr, aError);
@@ -788,6 +794,43 @@ class MOZ_IS_REFPTR nsCOMPtr final {
     return reinterpret_cast<T**>(&mRawPtr);
 #endif
   }
+};
+
+template <typename T>
+class mozilla::dom::JSTainted<nsCOMPtr<T>> {
+    public:
+        JSTainted(decltype(nullptr)) : ptr(nullptr) {}
+        JSTainted(T* rawptr) : ptr (rawptr) {}
+
+        MOZ_IMPLICIT JSTainted(JSTainted<already_AddRefed<T>>& aSmartPtr) :
+        ptr (aSmartPtr.UNVERIFIED_ref()) {}
+
+        MOZ_IMPLICIT JSTainted(JSTainted<already_AddRefed<T>>&& aSmartPtr) :
+        ptr (aSmartPtr.UNVERIFIED_ref()) {}
+
+        template<typename O>
+        JSTainted(mozilla::dom::JSTainted<nsQueryInterface<O>> queryInterface) :
+            ptr(queryInterface.UNSAFE_unverified_ref()) {}
+
+        JSTainted<already_AddRefed<T>> MOZ_MAY_CALL_AFTER_MUST_RETURN forget() {
+            return ptr.forget();
+        }
+
+        //TODO: probably not good to return an nsCOMPtr
+        template<typename O>
+        nsCOMPtr<T> verify(std::function<bool(O*)> verify_func) {
+            if(verify_func(ptr)) {
+                return ptr;
+            } else {
+                return nullptr;
+            }
+        }
+
+        operator bool() {
+            return ptr;
+        }
+    private:
+    nsCOMPtr<T> ptr;
 };
 
 template <typename T>

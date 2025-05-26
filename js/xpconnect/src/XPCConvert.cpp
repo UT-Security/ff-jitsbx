@@ -35,6 +35,7 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/PrimitiveConversions.h"
 #include "mozilla/dom/Promise.h"
+#include "mozilla/dom/JSTainted.h"
 
 using namespace xpc;
 using namespace mozilla;
@@ -56,6 +57,17 @@ using namespace JS;
 bool XPCConvert::GetISupportsFromJSObject(JSObject* obj, nsISupports** iface) {
   if (JS::GetClass(obj)->slot0IsISupports()) {
     *iface = JS::GetObjectISupports<nsISupports>(obj);
+    return true;
+  }
+  *iface = UnwrapDOMObjectToISupports(obj);
+  return !!*iface;
+}
+
+mozilla::dom::JSTainted<bool> XPCConvert::GetISupportsFromJSObject(
+  mozilla::dom::JSTainted<JSObject*> obj,
+  mozilla::dom::JSAppPtr<nsISupports>* iface) {
+  if (JS::GetClass(obj.UNSAFE_unverified_ref())->slot0IsISupports()) {
+    *iface = JS::GetObjectISupports<nsISupports>(obj.UNSAFE_unverified_ref());
     return true;
   }
   *iface = UnwrapDOMObjectToISupports(obj);

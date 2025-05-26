@@ -127,7 +127,7 @@ inline T* UnwrapDOMObject(JSTainted<JSObject*> obj) {
 
   JS::Value val = JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT);
   JSAppPtr<T> ret (static_cast<T*>(val.toPrivate()));
-  return ret.verify(TaintObj<T>::PtrTable); 
+  return ret.template verify<T>(TaintObj<T>::PtrTable); 
 }
 
 template <class T>
@@ -147,7 +147,7 @@ inline T* UnwrapPossiblyNotInitializedDOMObject(JSObject* obj) {
 }
 
 template <class T>
-inline JSAppPtr<T> UnwrapPossiblyNotInitializedDOMObject(JSTainted<JSObject*> obj) {
+inline JSAppPtr<T> UnwrapPossiblyNotInitializedDOMObject(mozilla::dom::JSTainted<JSObject*> obj) {
   // This is used by the OjectMoved JSClass hook which can be called before
   // JS_NewObject has returned and so before we have a chance to set
   // DOM_OBJECT_SLOT to anything useful.
@@ -156,7 +156,7 @@ inline JSAppPtr<T> UnwrapPossiblyNotInitializedDOMObject(JSTainted<JSObject*> ob
   MOZ_ASSERT(IsDOMClass(jsclass),
              "Don't pass non-DOM objects to this function");
 
-  JSTainted<JS::Value> val (JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT));
+  mozilla::dom::JSTainted<JS::Value> val (JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT));
   if (val.UNSAFE_unverified_ref().isUndefined()) {
     return nullptr;
   }
@@ -354,6 +354,97 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(V& obj, U& value,
   return NS_ERROR_XPC_BAD_CONVERT_JS;
 }
 
+template <class T, bool mayBeWrapper, typename U, typename V, typename CxType>
+MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(JSTainted<V>& obj, U& value,
+                                                prototypes::ID protoID,
+                                                uint32_t protoDepth,
+                                                const CxType& cx) {
+  static_assert(std::is_same_v<CxType, JSContext*> ||
+                    std::is_same_v<CxType, BindingCallContext> ||
+                    std::is_same_v<CxType, decltype(nullptr)>,
+                "Unexpected CxType");
+
+  /* First check to see whether we have a DOM object */
+  JSTainted<const DOMJSClass*> domClass = GetDOMClass(obj);
+  if (domClass) {
+    /* This object is a DOM object.  Double-check that it is safely
+       castable to T by checking whether it claims to inherit from the
+       class identified by protoID. */
+    if (domClass.UNSAFE_unverified_ref()->mInterfaceChain[protoDepth] == protoID) {
+      value = UnwrapDOMObject<T>(obj);
+      return NS_OK;
+    }
+  }
+
+  /* Maybe we have a security wrapper or outer window? */
+  if (!mayBeWrapper || !js::IsWrapper(obj.UNSAFE_unverified_ref())) {
+    // For non-cross-origin-accessible methods and properties, remote object
+    // proxies should behave the same as opaque wrappers.
+    if (IsRemoteObjectProxy(obj).UNSAFE_unverified_ref()) {
+      return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+    }
+
+    /* Not a DOM object, not a wrapper, just bail */
+    return NS_ERROR_XPC_BAD_CONVERT_JS;
+  }
+
+  JSTainted<JSObject*> unwrappedObj;
+  if (std::is_same_v<CxType, decltype(nullptr)>) {
+    unwrappedObj = js::CheckedUnwrapStatic(obj.UNSAFE_unverified_ref());
+  } else {
+    unwrappedObj =
+        js::CheckedUnwrapDynamic(obj.UNSAFE_unverified_ref(), cx, /* stopAtWindowProxy = */ false);
+  }
+  if (!unwrappedObj) {
+    return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
+  }
+
+  if (std::is_same_v<CxType, decltype(nullptr)>) {
+    // We might still have a windowproxy here.  But it shouldn't matter, because
+    // that's not what the caller is looking for, so we're going to fail out
+    // anyway below once we do the recursive call to ourselves with wrapper
+    // unwrapping disabled.
+    MOZ_ASSERT(!js::IsWrapper(unwrappedObj.UNSAFE_unverified_ref()) 
+        || js::IsWindowProxy(unwrappedObj.UNSAFE_unverified_ref()));
+  } else {
+    // We shouldn't have a wrapper by now.
+    MOZ_ASSERT(!js::IsWrapper(unwrappedObj.UNSAFE_unverified_ref()));
+  }
+
+  // Recursive call is OK, because now we're using false for mayBeWrapper and
+  // we never reach this code if that boolean is false, so can't keep calling
+  // ourselves.
+  //
+  // Unwrap into a temporary pointer, because in general unwrapping into
+  // something of type U might trigger GC (e.g. release the value currently
+  // stored in there, with arbitrary consequences) and invalidate the
+  // "unwrappedObj" pointer.
+  T* tempValue = nullptr;
+  nsresult rv = UnwrapObjectInternal<T, false>(unwrappedObj, tempValue, protoID,
+                                               protoDepth, nullptr);
+  if (NS_SUCCEEDED(rv)) {
+    // Suppress a hazard related to keeping tempValue alive across
+    // UnwrapObjectInternal, because the analysis can't tell that this function
+    // will not GC if maybeWrapped=False and we've already gone through a level
+    // of unwrapping so unwrappedObj will be !IsWrapper.
+    JS::AutoSuppressGCAnalysis suppress;
+
+    // It's very important to not update "obj" with the "unwrappedObj" value
+    // until we know the unwrap has succeeded.  Otherwise, in a situation in
+    // which we have an overload of object and primitive we could end up
+    // converting to the primitive from the unwrappedObj, whereas we want to do
+    // it from the original object.
+    obj = unwrappedObj;
+    // And now assign to "value"; at this point we don't care if a GC happens
+    // and invalidates unwrappedObj.
+    value = tempValue;
+    return NS_OK;
+  }
+
+  /* It's the wrong sort of DOM object */
+  return NS_ERROR_XPC_BAD_CONVERT_JS;
+}
+
 struct MutableObjectHandleWrapper {
   explicit MutableObjectHandleWrapper(JS::MutableHandle<JSObject*> aHandle)
       : mHandle(aHandle) {}
@@ -490,6 +581,13 @@ MOZ_ALWAYS_INLINE bool IsInstanceOf(JSObject* obj) {
 template <prototypes::ID PrototypeID, class T, typename U>
 MOZ_ALWAYS_INLINE nsresult UnwrapNonWrapperObject(JSObject* obj, U& value) {
   MOZ_ASSERT(!js::IsWrapper(obj));
+  return binding_detail::UnwrapObjectInternal<T, false>(
+      obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, nullptr);
+}
+
+template <prototypes::ID PrototypeID, class T, typename U>
+MOZ_ALWAYS_INLINE nsresult UnwrapNonWrapperObject(JSTainted<JSObject*> obj, U& value) {
+  MOZ_ASSERT(!js::IsWrapper(obj.UNSAFE_unverified_ref()));
   return binding_detail::UnwrapObjectInternal<T, false>(
       obj, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, nullptr);
 }

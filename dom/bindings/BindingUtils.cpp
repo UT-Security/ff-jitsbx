@@ -2528,16 +2528,14 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   //
   // It's OK to use ReflectorToISupportsStatic, because we know we don't have a
   // cross-compartment wrapper.
-  nsCOMPtr<nsISupports> supp = xpc::ReflectorToISupportsStatic(mGlobalJSObject.get().UNSAFE_unverified_ref());
+  JSTainted<nsCOMPtr<nsISupports>> supp = xpc::ReflectorToISupportsStatic(mGlobalJSObject.get());
   if (supp) {
+    //make nsCOMPtr happy
+    //TODO: tainted type for nsCOMPtr should probably be adjusted to make this unnecessary
+    nsCOMPtr<nsISupports> safeSupp = supp.verify<nsISupports>(VerifyGlobalObject);
     // See documentation for mGlobalJSObject for why this assignment is OK.
-    mGlobalObject = supp;
-	if(!VerifyGlobalObject(mGlobalObject)) {
-		mGlobalObject = nullptr;
-		return nullptr;
-	} else {
-    	return mGlobalObject;
-	}
+    mGlobalObject = safeSupp;
+    return mGlobalObject;
   }
 
   // And now a final hack.  Sandbox is not a reflector, but it does have an
@@ -2545,9 +2543,9 @@ nsISupports* TaintedGlobalObject::GetAsSupports() const {
   // (though again, this will do the useless UnwrapDOMObjectToISupports if we
   // got here for something that is somehow not a DOM object, not an
   // XPCWrappedNative _and_ not a Sandbox).
-  if (XPCConvert::GetISupportsFromJSObject(mGlobalJSObject.get().UNSAFE_unverified_ref(), &mGlobalObject)) {
-	if(!VerifyGlobalObject(mGlobalObject)) 
-		mGlobalObject = nullptr;
+  JSAppPtr<nsISupports> tempGlobal (nullptr);
+  if (XPCConvert::GetISupportsFromJSObject(mGlobalJSObject.get(), &tempGlobal).UNSAFE_unverified_ref()) {
+    mGlobalObject = tempGlobal.verify(VerifyGlobalObject);
     return mGlobalObject;
   }
 
@@ -4247,12 +4245,10 @@ void SetUseCounter(JSObject* aObject, UseCounter aUseCounter) {
 
 void SetUseCounter(JSTainted<JSObject*> aObject, UseCounter aUseCounter) {
   JSTainted<JSObject*> uObject (js::UncheckedUnwrap(aObject.UNSAFE_unverified_ref()));
-  JSAppPtr<nsGlobalWindowInner> tainted_win = xpc::WindowGlobalOrNull(uObject.UNSAFE_unverified_ref());
-  if (tainted_win) {
-    nsGlobalWindowInner* win = tainted_win.verify<nsGlobalWindowInner>(mozilla::dom::TaintObj<nsGlobalWindowInner>::PtrTable);
-    if (win->GetDocument()) {
-        win->GetDocument()->SetUseCounter(aUseCounter);
-    }
+  nsGlobalWindowInner* win =
+      xpc::WindowGlobalOrNull(uObject);
+  if (win && win->GetDocument()) {
+    win->GetDocument()->SetUseCounter(aUseCounter);
   }
 }
 

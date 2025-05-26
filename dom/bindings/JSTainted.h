@@ -11,6 +11,7 @@
 #include <functional>
 #include <uchar.h>
 #include <mozilla/Tainting.h>
+#include <mozilla/AlreadyAddRefed.h>
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 #include "js/experimental/JitInfo.h"
@@ -71,6 +72,10 @@ class JSAppPtr {
     }
   }
 
+  T* UNVERIFIED_ref(void) {
+    return static_cast<T*>(app_ptr);
+  }
+
   operator bool() {
     return app_ptr != nullptr;
   }
@@ -105,6 +110,7 @@ public:
   explicit JSTainted(const RootingContext& cx) : data(cx) {}
 
   JSTainted(T val, const void* /* internal tag */) : data(val) {}
+  JSTainted(T val) : data(val) {}
 
   inline auto& get_raw_value_ref() noexcept { return data; }
   inline auto& get_raw_value_ref() const noexcept { return data; }
@@ -121,6 +127,31 @@ public:
   
 private:
   T data;
+};
+
+template <typename T>
+class JSTainted<already_AddRefed<T>> {
+    public:
+        JSTainted() : data (nullptr) {}
+        MOZ_IMPLICIT JSTainted(decltype(nullptr)) : data(nullptr) {}
+        explicit JSTainted(T* rawptr) : data (rawptr) {}
+
+        JSTainted(JSTainted<already_AddRefed<T>>&& other) 
+        : data (other.data) {}
+
+        JSTainted(already_AddRefed<T>&& other)
+        : data (other.take()) {}
+        
+        JSTainted<already_AddRefed<T>>&
+        operator=(already_AddRefed<T>&& other) {
+            data = other.data;
+            return *this;
+        } 
+
+        inline auto& UNVERIFIED_ref() noexcept { return data; }
+
+    private:
+    already_AddRefed<T> data;
 };
 
 template <>
@@ -160,6 +191,16 @@ public:
 
 private:
   T data;
+};
+
+template <typename T>
+class JSTaintedOperations<T*> {
+    public:
+    operator bool() {
+        return 
+            static_cast<JSTainted<T*>*>(this)->UNSAFE_unverified_ref() 
+                == nullptr;
+    }
 };
 
 template <>

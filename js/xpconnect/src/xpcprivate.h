@@ -89,6 +89,7 @@
 #include "mozilla/Vector.h"
 
 #include "mozilla/dom/ScriptSettings.h"
+#include "mozilla/dom/JSTainted.h"
 
 #include <math.h>
 #include <stdint.h>
@@ -182,6 +183,11 @@ namespace xpc {
 
 inline bool IsWrappedNativeReflector(JSObject* obj) {
   return JS::GetClass(obj)->isWrappedNative();
+}
+
+inline mozilla::dom::JSTainted<bool> IsWrappedNativeReflector(
+    mozilla::dom::JSTainted<JSObject*> obj) {
+  return JS::GetClass(obj.UNSAFE_unverified_ref())->isWrappedNative();
 }
 
 }  // namespace xpc
@@ -1401,6 +1407,12 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
     return JS::GetObjectISupports<XPCWrappedNative>(obj);
   }
 
+  static mozilla::dom::JSTainted<XPCWrappedNative*> Get
+    (mozilla::dom::JSTainted<JSObject*> obj) {
+    MOZ_ASSERT(xpc::IsWrappedNativeReflector(obj.UNSAFE_unverified_ref()));
+    return JS::GetObjectISupports<XPCWrappedNative>(obj.UNSAFE_unverified_ref());
+  }
+
  private:
   void SetFlatJSObject(JSObject* object);
   void UnsetFlatJSObject();
@@ -1804,6 +1816,9 @@ class XPCConvert {
   // Note - This return the XPCWrappedNative, rather than the native itself,
   // for the WN case. You probably want UnwrapReflectorToISupports.
   static bool GetISupportsFromJSObject(JSObject* obj, nsISupports** iface);
+  static mozilla::dom::JSTainted<bool> GetISupportsFromJSObject(
+    mozilla::dom::JSTainted<JSObject*> obj, 
+    mozilla::dom::JSAppPtr<nsISupports>* iface);
 
   static nsresult JSValToXPCException(JSContext* cx, JS::MutableHandleValue s,
                                       const char* ifaceName,

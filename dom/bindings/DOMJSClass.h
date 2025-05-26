@@ -561,7 +561,7 @@ struct DOMJSClass {
 };
 
 template<>
-class JSTainted<const DOMJSClass*> {
+class JSTainted<const DOMJSClass*> : public JSTaintedBase<JSTainted, const DOMJSClass *> {
     public:
     JSTainted(const DOMJSClass* clasp) : data(clasp) {}
 
@@ -579,6 +579,9 @@ class JSTainted<const DOMJSClass*> {
         JSTainted<bool> result (data->mDOMObjectIsISupports);
         return result;
     }
+
+    inline auto& get_raw_value_ref() noexcept { return data; }
+    inline auto& get_raw_value_ref() const noexcept { return data; }
 
     private:
     const DOMJSClass* data;

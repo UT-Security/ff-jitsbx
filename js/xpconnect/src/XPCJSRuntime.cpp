@@ -626,9 +626,25 @@ nsGlobalWindowInner* WindowOrNull(JSObject* aObj) {
   return win;
 }
 
+nsGlobalWindowInner* WindowOrNull(JSTainted<JSObject*> aObj) {
+  MOZ_ASSERT(aObj);
+  MOZ_ASSERT(!js::IsWrapper(aObj.UNSAFE_unverified_ref()));
+
+  nsGlobalWindowInner* win = nullptr;
+  UNWRAP_NON_WRAPPER_OBJECT(Window, aObj, win);
+  return win;
+}
+
 nsGlobalWindowInner* WindowGlobalOrNull(JSObject* aObj) {
   MOZ_ASSERT(aObj);
   JSObject* glob = JS::GetNonCCWObjectGlobal(aObj);
+
+  return WindowOrNull(glob);
+}
+
+nsGlobalWindowInner* WindowGlobalOrNull(JSTainted<JSObject*> aObj) {
+  MOZ_ASSERT(aObj);
+  JSObject* glob = JS::GetNonCCWObjectGlobal(aObj.UNSAFE_unverified_ref());
 
   return WindowOrNull(glob);
 }

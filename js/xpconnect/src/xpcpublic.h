@@ -542,6 +542,8 @@ bool Throw(JSContext* cx, nsresult rv);
  * non-null for Window or Location, use ReflectorToISupportsDynamic.
  */
 already_AddRefed<nsISupports> ReflectorToISupportsStatic(JSObject* reflector);
+mozilla::dom::JSTainted<already_AddRefed<nsISupports>> 
+    ReflectorToISupportsStatic(mozilla::dom::JSTainted<JSObject*> reflector);
 
 /**
  * Returns the nsISupports native behind a given reflector (either DOM or
@@ -597,6 +599,7 @@ nsIGlobalObject* CurrentNativeGlobal(JSContext* cx);
  * Otherwise, returns null.
  */
 nsGlobalWindowInner* WindowOrNull(JSObject* aObj);
+nsGlobalWindowInner* WindowOrNull(mozilla::dom::JSTainted<JSObject*> aObj);
 
 /**
  * If |aObj| has a window for a global, returns the associated nsGlobalWindow.
@@ -604,6 +607,7 @@ nsGlobalWindowInner* WindowOrNull(JSObject* aObj);
  * because CCWs are not associated with a single global/realm.
  */
 nsGlobalWindowInner* WindowGlobalOrNull(JSObject* aObj);
+nsGlobalWindowInner* WindowGlobalOrNull(mozilla::dom::JSTainted<JSObject*> aObj);
 
 /**
  * If |aObj| is a Sandbox object associated with a DOMWindow via a
