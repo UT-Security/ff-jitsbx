@@ -14,7 +14,7 @@
 #include "mozilla/dom/AtomList.h"
 #include "mozilla/dom/Promise.h"
 #include "monkeycage/Context.h"
-#include "js/GCVector.h"
+#include "monkeycage/GCVector.h"
 #include "monkeycage/Promise.h"
 
 #include "nsCOMPtr.h"
@@ -128,8 +128,8 @@ class FinalizationRegistryCleanup {
   // pointer to its containing context here.
   CycleCollectedJSContext* mContext;
 
-  using CallbackVector = JS::GCVector<Callback, 0, InfallibleAllocPolicy>;
-  JS::PersistentRooted<CallbackVector> mCallbacks;
+  using CallbackVector = MC::GCVector<Callback, 0, InfallibleAllocPolicy>;
+  MC::PersistentRooted<CallbackVector> mCallbacks;
 };
 
 class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
@@ -266,13 +266,13 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // event loop without the rejection being handled.
   // Note that this can contain nullptrs in place of promises removed because
   // they're consumed before it'd be reported.
-  JS::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
+  MC::PersistentRooted<MC::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
       mUncaughtRejections;
 
   // Promises in this list have previously been reported as rejected
   // (because they were in the above list), but the rejection was handled
   // in the last turn of the event loop.
-  JS::PersistentRooted<JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
+  MC::PersistentRooted<MC::GCVector<JSObject*, 0, js::SystemAllocPolicy>>
       mConsumedRejections;
   nsTArray<nsCOMPtr<nsISupports /* UncaughtRejectionObserver */>>
       mUncaughtRejectionObservers;

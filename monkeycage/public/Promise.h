@@ -12,6 +12,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/SandboxCallback.h"
 
 namespace JS {
   
@@ -28,9 +29,9 @@ inline void JobQueueMayNotBeEmpty(MCContext* cx) {
 }
 
 inline void SetPromiseRejectionTrackerCallback(
-    MCContext* cx, PromiseRejectionTrackerCallback callback,
+    MCContext* cx, MC::SandboxCallback<PromiseRejectionTrackerCallback> callback,
     void* data = nullptr) {
-  return SetPromiseRejectionTrackerCallback(cx->cx_, callback, data);
+  return SetPromiseRejectionTrackerCallback(cx->cx_, callback.UNSAFE_get(), data);
 }
 
 inline void InitDispatchToEventLoop(

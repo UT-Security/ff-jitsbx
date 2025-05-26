@@ -334,6 +334,7 @@ EXPORTS.monkeycage += [
 	"../public/ErrorReport.h",
 	"../public/Exception.h",
 	"../public/GCAPI.h",
+	"../public/GCVector.h",
 	"../public/GlobalObject.h",
 	"../public/Id.h",
 	"../public/Initialization.h",

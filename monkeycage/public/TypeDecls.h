@@ -26,12 +26,25 @@ template <typename T>
 class MutableHandle;
 template <typename T>
 class Rooted;
+template <typename T>
+class PersistentRooted;
+template <typename T>
+class RootedVector;
+
+template <typename T, typename AllocPolicy = js::TempAllocPolicy>
+using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 #else
 template <typename T>
 using Rooted = JS::Rooted<T>;
 
 template <typename T>
 using MutableHandle = JS::MutableHandle<T>;
+
+template <typename T>
+using PersistentRooted = JS::PersistentRooted<T>;
+
+template <typename T, typename AllocPolicy = js::TempAllocPoliy>
+using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 #endif
 
 typedef MutableHandle<JSFunction*> MutableHandleFunction;

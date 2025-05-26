@@ -143,12 +143,15 @@ nsresult CycleCollectedJSContext::Initialize(MCRuntime* aParentRuntime,
   NS_GetCurrentThread()->SetCanInvokeJS(true);
 
   JS::SetJobQueue(mJSContext, this);
+
+  static auto PromiseRejectionTrackerCallbackCb =
+      MC::Sandbox::RegisterCallback(PromiseRejectionTrackerCallback);
   JS::SetPromiseRejectionTrackerCallback(mJSContext,
-                                         PromiseRejectionTrackerCallback, this);
-  mUncaughtRejections.init(MC_UNSAFE(mJSContext),
+                                         PromiseRejectionTrackerCallbackCb, this);
+  mUncaughtRejections.init(mJSContext,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
-  mConsumedRejections.init(MC_UNSAFE(mJSContext),
+  mConsumedRejections.init(mJSContext,
                            JS::GCVector<JSObject*, 0, js::SystemAllocPolicy>(
                                js::SystemAllocPolicy()));
 
@@ -824,7 +827,7 @@ void FinalizationRegistryCleanup::Destroy() {
 
 void FinalizationRegistryCleanup::Init() {
   MCContext* cx = mContext->Context();
-  mCallbacks.init(MC_UNSAFE(cx));
+  mCallbacks.init(cx);
   static auto QueueCallbackCb = MC::Sandbox::RegisterCallback(QueueCallback);
   JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallbackCb, this);
 }

@@ -14,6 +14,7 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/Exception.h"
 #include "monkeycage/GCAPI.h"
+#include "monkeycage/GCVector.h"
 #include "monkeycage/GlobalObject.h"
 #include "monkeycage/Interrupt.h"
 #include "monkeycage/MemoryCallbacks.h"
@@ -34,6 +35,14 @@
 inline void JS_SetWrapObjectCallbacks(
     MCContext* cx, const MCWrapObjectCallbacks* callbacks) {
   JS_SetWrapObjectCallbacks(cx->cx_, callbacks->UNSAFE_get());
+}
+
+inline bool JS_WrapObject(MCContext* cx, MC::MutableHandleObject objp) {
+  return JS_WrapObject(cx->cx_, objp.MC_INTERNAL_SAFE_get());
+}
+
+inline bool JS_WrapValue(MCContext* cx, MC::MutableHandleValue vp) {
+  return JS_WrapValue(cx->cx_, vp.MC_INTERNAL_SAFE_get());
 }
 
 inline void JS_SetParallelParsingEnabled(MCContext* cx, bool enabled) {
