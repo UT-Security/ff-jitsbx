@@ -8,26 +8,26 @@
 #define mozilla_dom_RootedDictionary_h__
 
 #include "mozilla/dom/Nullable.h"
-#include "jsapi.h"
+#include "mcapi.h"
 
 namespace mozilla::dom {
 
 template <typename T>
-class MOZ_RAII RootedDictionary final : public T, private JS::CustomAutoRooter {
+class MOZ_RAII RootedDictionary final : public T, private MC::CustomAutoRooter {
  public:
   template <typename CX>
-  explicit RootedDictionary(const CX& cx) : T(), JS::CustomAutoRooter(cx) {}
+  explicit RootedDictionary(const CX& cx) : T(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { this->TraceDictionary(trc); }
 };
 
 template <typename T>
 class MOZ_RAII NullableRootedDictionary final : public Nullable<T>,
-                                                private JS::CustomAutoRooter {
+                                                private MC::CustomAutoRooter {
  public:
   template <typename CX>
   explicit NullableRootedDictionary(const CX& cx)
-      : Nullable<T>(), JS::CustomAutoRooter(cx) {}
+      : Nullable<T>(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override {
     if (!this->IsNull()) {

@@ -2141,23 +2141,23 @@ void DoTraceSequence(JSTracer* trc, nsTArray<T>& seq) {
 
 // Rooter class for sequences; this is what we mostly use in the codegen
 template <typename T>
-class MOZ_RAII SequenceRooter final : private JS::CustomAutoRooter {
+class MOZ_RAII SequenceRooter final : private MC::CustomAutoRooter {
  public:
   template <typename CX>
   SequenceRooter(const CX& cx, FallibleTArray<T>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : MC::CustomAutoRooter(cx),
         mFallibleArray(aSequence),
         mSequenceType(eFallibleArray) {}
 
   template <typename CX>
   SequenceRooter(const CX& cx, nsTArray<T>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : MC::CustomAutoRooter(cx),
         mInfallibleArray(aSequence),
         mSequenceType(eInfallibleArray) {}
 
   template <typename CX>
   SequenceRooter(const CX& cx, Nullable<nsTArray<T>>* aSequence)
-      : JS::CustomAutoRooter(cx),
+      : MC::CustomAutoRooter(cx),
         mNullableArray(aSequence),
         mSequenceType(eNullableArray) {}
 
@@ -2188,15 +2188,15 @@ class MOZ_RAII SequenceRooter final : private JS::CustomAutoRooter {
 
 // Rooter class for Record; this is what we mostly use in the codegen.
 template <typename K, typename V>
-class MOZ_RAII RecordRooter final : private JS::CustomAutoRooter {
+class MOZ_RAII RecordRooter final : private MC::CustomAutoRooter {
  public:
   template <typename CX>
   RecordRooter(const CX& cx, Record<K, V>* aRecord)
-      : JS::CustomAutoRooter(cx), mRecord(aRecord), mRecordType(eRecord) {}
+      : MC::CustomAutoRooter(cx), mRecord(aRecord), mRecordType(eRecord) {}
 
   template <typename CX>
   RecordRooter(const CX& cx, Nullable<Record<K, V>>* aRecord)
-      : JS::CustomAutoRooter(cx),
+      : MC::CustomAutoRooter(cx),
         mNullableRecord(aRecord),
         mRecordType(eNullableRecord) {}
 
@@ -2223,21 +2223,21 @@ class MOZ_RAII RecordRooter final : private JS::CustomAutoRooter {
 };
 
 template <typename T>
-class MOZ_RAII RootedUnion : public T, private JS::CustomAutoRooter {
+class MOZ_RAII RootedUnion : public T, private MC::CustomAutoRooter {
  public:
   template <typename CX>
-  explicit RootedUnion(const CX& cx) : T(), JS::CustomAutoRooter(cx) {}
+  explicit RootedUnion(const CX& cx) : T(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { this->TraceUnion(trc); }
 };
 
 template <typename T>
 class MOZ_STACK_CLASS NullableRootedUnion : public Nullable<T>,
-                                            private JS::CustomAutoRooter {
+                                            private MC::CustomAutoRooter {
  public:
   template <typename CX>
   explicit NullableRootedUnion(const CX& cx)
-      : Nullable<T>(), JS::CustomAutoRooter(cx) {}
+      : Nullable<T>(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override {
     if (!this->IsNull()) {

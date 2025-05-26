@@ -8,17 +8,17 @@
 #define mozilla_dom_RootedRecord_h__
 
 #include "mozilla/dom/Record.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 
 namespace mozilla::dom {
 
 template <typename K, typename V>
 class MOZ_RAII RootedRecord final : public Record<K, V>,
-                                    private JS::CustomAutoRooter {
+                                    private MC::CustomAutoRooter {
  public:
   template <typename CX>
   explicit RootedRecord(const CX& cx)
-      : Record<K, V>(), JS::CustomAutoRooter(cx) {}
+      : Record<K, V>(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { TraceRecord(trc, *this); }
 };

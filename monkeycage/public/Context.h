@@ -29,6 +29,7 @@ struct MCRuntime {
 
 struct MCContext : MC::RootingContext {
   JSContext* cx_;
+  JS::RootingContext* rcx_;
   void* data_;
 
   MCRuntime* rt_;
@@ -49,6 +50,12 @@ extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nu
 inline MCContext* JS_SanitizeContext(JSContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);
   MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
+  return MCContext::mcx_;
+}
+
+inline MCContext* JS_SanitizeContext(JS::RootingContext* rcx) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT(MCContext::mcx_->rcx_ == rcx);
   return MCContext::mcx_;
 }
 

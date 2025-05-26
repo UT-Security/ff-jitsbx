@@ -432,13 +432,13 @@ class JSContextWrapper {
 
  private:
   MCContext* mContext;
-  JS::PersistentRooted<JSObject*> mGlobal;
+  MC::PersistentRooted<JSObject*> mGlobal;
   bool mOK;
 
   static const JSClass* sGlobalClass();
 
   explicit JSContextWrapper(MCContext* cx)
-      : mContext(cx), mGlobal(MC_UNSAFE(cx), nullptr), mOK(false) {
+      : mContext(cx), mGlobal(cx, nullptr), mOK(false) {
     MOZ_COUNT_CTOR(JSContextWrapper);
   }
 

@@ -16,8 +16,8 @@
 #include "nsISupports.h"
 #include "nsIURI.h"
 #include "nsClassHashtable.h"
-#include "jsapi.h"
-#include "js/experimental/JSStencil.h"
+#include "mcapi.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "SkipCheckForBrokenURLOrZeroSized.h"
 
 #include "xpcpublic.h"
@@ -209,9 +209,9 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 
     size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const;
 
-    JS::PersistentRootedObject obj;
-    JS::PersistentRootedObject exports;
-    JS::PersistentRootedScript thisObjectKey;
+    MC::PersistentRootedObject obj;
+    MC::PersistentRootedObject exports;
+    MC::PersistentRootedScript thisObjectKey;
     char* location;
     nsCString resolvedURL;
   };
@@ -232,8 +232,8 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
       return aMallocSizeOf(this);
     }
 
-    JS::PersistentRootedObject globalProxy;
-    JS::PersistentRootedObject moduleNamespace;
+    MC::PersistentRootedObject globalProxy;
+    MC::PersistentRootedObject moduleNamespace;
   };
 
   nsresult ExtractExports(JSContext* aCx, ModuleLoaderInfo& aInfo,
@@ -255,8 +255,8 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
 #ifdef DEBUG
   bool mIsInitializingLoaderGlobal = false;
 #endif
-  JS::PersistentRooted<JSObject*> mLoaderGlobal;
-  JS::PersistentRooted<JSObject*> mServicesObj;
+  MC::PersistentRooted<JSObject*> mLoaderGlobal;
+  MC::PersistentRooted<JSObject*> mServicesObj;
 
   RefPtr<mozilla::loader::ComponentModuleLoader> mModuleLoader;
 };

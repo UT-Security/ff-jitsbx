@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_SpiderMonkeyInterface_h
 #define mozilla_dom_SpiderMonkeyInterface_h
 
-#include "jsapi.h"
-#include "js/RootingAPI.h"
+#include "mcapi.h"
+#include "monkeycage/RootingAPI.h"
 #include "js/TracingAPI.h"
 
 namespace mozilla::dom {
@@ -59,11 +59,11 @@ struct SpiderMonkeyInterfaceObjectStorage {
 
 // A class for rooting an existing SpiderMonkey Interface struct
 template <typename InterfaceType>
-class MOZ_RAII SpiderMonkeyInterfaceRooter : private JS::CustomAutoRooter {
+class MOZ_RAII SpiderMonkeyInterfaceRooter : private MC::CustomAutoRooter {
  public:
   template <typename CX>
   SpiderMonkeyInterfaceRooter(const CX& cx, InterfaceType* aInterface)
-      : JS::CustomAutoRooter(cx), mInterface(aInterface) {}
+      : MC::CustomAutoRooter(cx), mInterface(aInterface) {}
 
   virtual void trace(JSTracer* trc) override { mInterface->TraceSelf(trc); }
 
@@ -76,11 +76,11 @@ template <typename Inner>
 struct Nullable;
 template <typename InterfaceType>
 class MOZ_RAII SpiderMonkeyInterfaceRooter<Nullable<InterfaceType>>
-    : private JS::CustomAutoRooter {
+    : private MC::CustomAutoRooter {
  public:
   template <typename CX>
   SpiderMonkeyInterfaceRooter(const CX& cx, Nullable<InterfaceType>* aInterface)
-      : JS::CustomAutoRooter(cx), mInterface(aInterface) {}
+      : MC::CustomAutoRooter(cx), mInterface(aInterface) {}
 
   virtual void trace(JSTracer* trc) override {
     if (!mInterface->IsNull()) {
