@@ -12,6 +12,7 @@
 #include "jsapi.h"
 
 #include "monkeycage/Context.h"
+#include "monkeycage/ErrorReport.h"
 #include "monkeycage/Exception.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/GCVector.h"

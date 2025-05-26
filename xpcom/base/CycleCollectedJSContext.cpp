@@ -237,7 +237,7 @@ class PromiseJobRunnable final : public MicroTaskRunnable {
   bool mPropagateUserInputEventHandling;
 };
 
-JSObject* CycleCollectedJSContext::getIncumbentGlobal(JSContext* aCx) {
+JSObject* CycleCollectedJSContext::getIncumbentGlobal(MCContext* aCx) {
   nsIGlobalObject* global = mozilla::dom::GetIncumbentGlobal();
   if (global) {
     return global->GetGlobalJSObject();
@@ -246,9 +246,8 @@ JSObject* CycleCollectedJSContext::getIncumbentGlobal(JSContext* aCx) {
 }
 
 bool CycleCollectedJSContext::enqueuePromiseJob(
-    JSContext* uCx, JS::HandleObject aPromise, JS::HandleObject aJob,
+    MCContext* aCx, JS::HandleObject aPromise, JS::HandleObject aJob,
     JS::HandleObject aAllocationSite, JS::HandleObject aIncumbentGlobal) {
-  MCContext* aCx = JS_SanitizeContext(uCx);
   MOZ_ASSERT(aCx == Context());
   MOZ_ASSERT(Get() == this);
 
@@ -266,8 +265,7 @@ bool CycleCollectedJSContext::enqueuePromiseJob(
 // Used only by the SpiderMonkey Debugger API, and even then only via
 // JS::AutoDebuggerJobQueueInterruption, to ensure that the debuggee's queue is
 // not affected; see comments in js/public/Promise.h.
-void CycleCollectedJSContext::runJobs(JSContext* uCx) {
-  MCContext* aCx = JS_SanitizeContext(uCx);
+void CycleCollectedJSContext::runJobs(MCContext* aCx) {
   MOZ_ASSERT(aCx == Context());
   MOZ_ASSERT(Get() == this);
   PerformMicroTaskCheckPoint();
@@ -283,7 +281,7 @@ bool CycleCollectedJSContext::empty() const {
 // Preserve a debuggee's microtask queue while it is interrupted by the
 // debugger. See the comments for JS::AutoDebuggerJobQueueInterruption.
 class CycleCollectedJSContext::SavedMicroTaskQueue
-    : public JS::JobQueue::SavedJobQueue {
+    : public MC::JobQueue::SavedJobQueue {
  public:
   explicit SavedMicroTaskQueue(CycleCollectedJSContext* ccjs) : ccjs(ccjs) {
     ccjs->mDebuggerRecursionDepth++;
@@ -302,8 +300,8 @@ class CycleCollectedJSContext::SavedMicroTaskQueue
   std::deque<RefPtr<MicroTaskRunnable>> mQueue;
 };
 
-js::UniquePtr<JS::JobQueue::SavedJobQueue>
-CycleCollectedJSContext::saveJobQueue(JSContext* cx) {
+js::UniquePtr<MC::JobQueue::SavedJobQueue>
+CycleCollectedJSContext::saveJobQueue(MCContext* cx) {
   auto saved = js::MakeUnique<SavedMicroTaskQueue>(this);
   if (!saved) {
     // When MakeUnique's allocation fails, the SavedMicroTaskQueue constructor

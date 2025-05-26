@@ -229,6 +229,7 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 	]
 
 	EXPORTS.js.sandbox += [
+		"/js/public/sandbox/Promise.h",
 		"/js/public/sandbox/Proxy.h",
 		"/js/public/sandbox/Wrapper.h",
 	]

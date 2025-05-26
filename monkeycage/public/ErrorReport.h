@@ -39,6 +39,9 @@ struct MOZ_STACK_CLASS JS_PUBLIC_API ErrorReportBuilder {
 
 }  // namespace MC
 
+inline MOZ_COLD void JS_ReportOutOfMemory(MCContext* cx) {
+  return JS_ReportOutOfMemory(cx->cx_); 
+}
 #else
 
 namespace MC {
