@@ -202,7 +202,7 @@ class Timers final : public BackgroundHangAnnotator {
  private:
   ~Timers();
 
-  JS::PersistentRooted<JSObject*> mTimers;
+  MC::PersistentRooted<JSObject*> mTimers;
   DataMutex<mozilla::LinkedList<RefPtr<Timer>>> mBHRAnnotationTimers;
   bool mSuppressErrors = false;
 

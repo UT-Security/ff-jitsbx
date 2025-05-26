@@ -8,17 +8,17 @@
 #define mozilla_dom_RootedSequence_h__
 
 #include "mozilla/dom/BindingDeclarations.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 
 namespace mozilla::dom::binding_detail {
 
 template <typename T>
 class MOZ_RAII RootedAutoSequence final : public AutoSequence<T>,
-                                          private JS::CustomAutoRooter {
+                                          private MC::CustomAutoRooter {
  public:
   template <typename CX>
   explicit RootedAutoSequence(const CX& cx)
-      : AutoSequence<T>(), JS::CustomAutoRooter(cx) {}
+      : AutoSequence<T>(), MC::CustomAutoRooter(cx) {}
 
   virtual void trace(JSTracer* trc) override { DoTraceSequence(trc, *this); }
 };

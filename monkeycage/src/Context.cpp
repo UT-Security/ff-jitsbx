@@ -105,9 +105,17 @@ void MCRuntime::tracePersistentRoots(JSTracer* trc) {
       trc, heapRoots[JS::RootKind::Traceable], "sandbox-persistent-traceable");
 }
 
+void MC::RootingContext::traceCustomAutoRooters(JSTracer* trc) {
+  CustomAutoRooter* head = customAutoRooters_;
+  for (CustomAutoRooter* rooter = head; rooter; rooter = rooter->down) {
+    rooter->trace(trc);
+  }
+}
+
 static void SandboxRootsTracer(JSTracer* trc, void* data) {
   MCContext* cx = JS_SanitizeContext((JSContext*)data);
 
+  cx->traceCustomAutoRooters(trc);
   cx->traceStackRoots(trc);
   cx->rt_->tracePersistentRoots(trc);
 }
@@ -168,6 +176,7 @@ MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime) {
   rt->rt_ = jsrt;
 
   cx->cx_ = jscx;
+  cx->rcx_ = JS::RootingContext::get(jscx);
   cx->data_ = nullptr;
   cx->rt_ = rt;
 

@@ -2874,7 +2874,7 @@ void ConstructUbiNode(void* storage, JSObject* ptr) {
 }
 
 void XPCJSRuntime::Initialize(MCContext* cx) {
-  mLoaderGlobal.init(MC_UNSAFE(cx), nullptr);
+  mLoaderGlobal.init(cx, nullptr);
 
   // these jsids filled in later when we have a JSContext to work with.
   mStrIDs[0] = JS::PropertyKey::Void();

@@ -7,7 +7,7 @@
 #ifndef mozilla_JSObjectHolder_h
 #define mozilla_JSObjectHolder_h
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "nsISupportsImpl.h"
 
 namespace mozilla {
@@ -34,7 +34,7 @@ class JSObjectHolder final : public nsISupports {
  private:
   ~JSObjectHolder() = default;
 
-  JS::PersistentRooted<JSObject*> mJSObject;
+  MC::PersistentRooted<JSObject*> mJSObject;
 };
 
 }  // namespace mozilla

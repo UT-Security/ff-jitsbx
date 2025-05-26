@@ -30,6 +30,8 @@ template <typename T>
 class PersistentRooted;
 template <typename T>
 class RootedVector;
+template <typename T>
+class PersistentRootedVector;
 
 template <typename T, typename AllocPolicy = js::TempAllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
@@ -42,6 +44,12 @@ using MutableHandle = JS::MutableHandle<T>;
 
 template <typename T>
 using PersistentRooted = JS::PersistentRooted<T>;
+
+template <typename T>
+using RootedVector = JS::RootedVector<T>;
+
+template <typename T>
+using PersistentRootedVector = JS::PersistentRootedVector<T>;
 
 template <typename T, typename AllocPolicy = js::TempAllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
@@ -64,6 +72,22 @@ typedef Rooted<JS::Symbol*> RootedSymbol;
 typedef Rooted<JS::BigInt*> RootedBigInt;
 typedef Rooted<JS::PropertyKey> RootedId;
 typedef Rooted<JS::Value> RootedValue;
+
+typedef RootedVector<JS::Value> RootedValueVector;
+typedef RootedVector<JSObject*> RootedObjectVector;
+typedef RootedVector<JS::PropertyKey> RootedIdVector;
+
+typedef PersistentRooted<JSObject*> PersistentRootedObject;
+typedef PersistentRooted<JSFunction*> PersistentRootedFunction;
+typedef PersistentRooted<JSScript*> PersistentRootedScript;
+typedef PersistentRooted<JSString*> PersistentRootedString;
+typedef PersistentRooted<JS::Symbol*> PersistentRootedSymbol;
+typedef PersistentRooted<JS::BigInt*> PersistentRootedBigInt;
+typedef PersistentRooted<JS::PropertyKey> PersistentRootedId;
+typedef PersistentRooted<JS::Value> PersistentRootedValue;
+
+typedef PersistentRootedVector<JS::PropertyKey> PersistentRootedIdVector;
+typedef PersistentRootedVector<JSObject*> PersistentRootedObjectVector;
 }
 
 #endif

@@ -199,6 +199,17 @@ struct Cell;
 
 } /* namespace js */
 
+#ifdef JS_SANDBOX_API
+namespace MC {
+
+template <typename T>
+class Rooted;
+template <typename T>
+class PersistentRooted;
+
+}
+#endif
+
 namespace JS {
 
 JS_PUBLIC_API void HeapObjectPostWriteBarrier(JSObject** objp, JSObject* prev,
@@ -699,6 +710,12 @@ class MOZ_STACK_CLASS MutableHandle
 
   inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
   inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
+
+#ifdef JS_SANDBOX_API
+  //TODO(abhishek): These are UNSAFE temporary conversions.
+  inline MOZ_IMPLICIT MutableHandle(MC::Rooted<T>* root);
+  inline MOZ_IMPLICIT MutableHandle(MC::PersistentRooted<T>* root);
+#endif
 
  private:
   // Disallow nullptr for overloading purposes.

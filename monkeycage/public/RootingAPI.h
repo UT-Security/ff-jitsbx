@@ -32,7 +32,7 @@ class MOZ_STACK_CLASS MutableHandle
   using ElementType = T;
 
   inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
-  //inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
+  inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
 
  private:
   // Disallow nullptr for overloading purposes.
@@ -61,11 +61,6 @@ class MOZ_STACK_CLASS MutableHandle
   
   //INTERNAL CONVERSION OPERATIONS
   inline JS::MutableHandle<T> MC_INTERNAL_SAFE_get() {
-    return JS::MutableHandle<T>::fromMarkedLocation(address());
-  }
-
-  //TODO(abhishek): UNSAFE CONVERSION
-  inline MOZ_IMPLICIT operator JS::MutableHandle<T>() {
     return JS::MutableHandle<T>::fromMarkedLocation(address());
   }
 
@@ -149,12 +144,17 @@ struct MCContext;
 struct MCRuntime;
 
 extern MCContext* JS_SanitizeContext(JSContext*);
+extern MCContext* JS_SanitizeContext(JS::RootingContext*);
 
 namespace MC {
 
+class CustomAutoRooter;
+  
 using RootedListHeads =
     mozilla::EnumeratedArray<JS::RootKind, JS::RootKind::Limit, mc::StackRootedBase*>;
-    
+
+using CustomAutoRooterListHead = CustomAutoRooter*;
+
 // Superclass of MCContext which can be used for rooting data in use by the
 // current thread but that does not provide all the functions of a MCContext.
 class RootingContext {
@@ -162,6 +162,10 @@ class RootingContext {
   RootedListHeads stackRoots_;
   template <typename T>
   friend class Rooted;
+
+  // Stack GC roots for CustomAutoRooter classes.
+  CustomAutoRooterListHead customAutoRooters_;
+  friend class CustomAutoRooter;
 
  public:
   RootingContext() {
@@ -171,6 +175,7 @@ class RootingContext {
   }
 
   void traceStackRoots(JSTracer* trc);
+  void traceCustomAutoRooters(JSTracer* trc);
 
   static const RootingContext* get(const MCContext* cx) {
     return reinterpret_cast<const RootingContext*>(cx);
@@ -180,6 +185,41 @@ class RootingContext {
     return reinterpret_cast<RootingContext*>(cx);
   }
 };
+
+class CustomAutoRooter {
+public:
+  //TODO(abhishek): remove these two overloads.
+ CustomAutoRooter(JS::RootingContext* cx)
+     : CustomAutoRooter(JS_SanitizeContext(cx)) {}
+ CustomAutoRooter(JSContext* cx)
+     : CustomAutoRooter(JS_SanitizeContext(cx)) {}
+ CustomAutoRooter(MCContext* cx)
+     : CustomAutoRooter(MC::RootingContext::get(cx)) {}
+ CustomAutoRooter(RootingContext* cx)
+     : down(cx->customAutoRooters_), stackTop(&cx->customAutoRooters_) {
+   MOZ_ASSERT(this != *stackTop);
+   *stackTop = this;
+ }
+
+protected:
+  virtual ~CustomAutoRooter() {
+    MOZ_ASSERT(this == *stackTop);
+    *stackTop = down;
+  }
+
+  /** Supplied by derived class to trace roots */
+  virtual void trace(JSTracer* trc) = 0;
+
+private:
+  friend class RootingContext;
+
+  CustomAutoRooter* const down;
+  CustomAutoRooter** const stackTop;
+
+  /* No copy or assignment semantics */
+  CustomAutoRooter(CustomAutoRooter& ida) = delete;
+  void operator=(CustomAutoRooter& ida) = delete;
+} JS_HAZ_ROOTED_BASE;
 
 namespace detail {
 
@@ -209,6 +249,15 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
 
   inline RootedListHeads& rootLists(MCContext* cx) {
     return rootLists(RootingContext::get(cx));
+  }
+
+  //TODO(abhishek): remove this overload.
+  inline RootedListHeads& rootLists(JSContext* cx) {
+    return rootLists(JS_SanitizeContext(cx));
+  }
+
+  inline RootedListHeads& rootLists(JS::RootingContext* cx) {
+    return rootLists(JS_SanitizeContext(cx));
   }
 
  public:
@@ -268,17 +317,10 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   //TODO(abhishek): UNSAFE CONVERSION OPERATIONS
   // These should be removed once we have safe Tainted MCAPI
   // versions of Handle and MutableHandle.
-
   template <typename S = T,
             typename = std::enable_if_t<std::is_convertible_v<S, T>, T>>
   inline MOZ_IMPLICIT operator JS::Handle<S>() const {
     return JS::Handle<S>::fromMarkedLocation(address());
-  }
-
-  template <typename S = T,
-            typename = std::enable_if_t<std::is_convertible_v<S, T>, T>>
-  inline MOZ_IMPLICIT operator JS::MutableHandle<S>() {
-    return JS::MutableHandle<S>::fromMarkedLocation(address());
   }
 
  private:
@@ -289,17 +331,6 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
 
 }  // namespace MC
 
-
-namespace MC {
-
-template <typename T>
-inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
-  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
-                "MutableHandle must be binary compatible with T*.");
-  ptr = root->address();
-}
-
-}
 
 namespace MC {
 
@@ -323,10 +354,17 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
 
   // Used when JSContext type is incomplete and so it is not known to inherit
   // from RootingContext.
-  void registerWithRootLists(MCContext* cx) {
+  inline void registerWithRootLists(MCContext* cx) {
     registerWithRootLists(RootingContext::get(cx));
   }
 
+  inline void registerWithRootLists(JSContext* cx) {
+    registerWithRootLists(JS_SanitizeContext(cx));
+  }
+
+  inline void registerWithRootLists(JS::RootingContext* cx) {
+    registerWithRootLists(JS_SanitizeContext(cx));
+  }
  public:
   using ElementType = T;
 
@@ -408,9 +446,67 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
     ptr = std::forward<U>(value);
   }
 
+  // TODO(abhishek): UNSAFE CONVERSION OPERATIONS
+  //  These should be removed once we have safe Tainted MCAPI
+  //  versions of Handle and MutableHandle.
+  template <typename S = T,
+            typename = std::enable_if_t<std::is_convertible_v<S, T>, T>>
+  inline MOZ_IMPLICIT operator JS::Handle<S>() const {
+    return JS::Handle<S>::fromMarkedLocation(address());
+  }
+
  private:
   T ptr;
 } JS_HAZ_ROOTED;
+}
+
+namespace MC {
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(PersistentRooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+}  // namespace MC
+
+namespace JS {
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(MC::Rooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+
+template <typename T>
+inline MutableHandle<T>::MutableHandle(MC::PersistentRooted<T>* root) {
+  static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
+                "MutableHandle must be binary compatible with T*.");
+  ptr = root->address();
+}
+
+namespace detail {
+
+template <typename T>
+struct DefineComparisonOps<MC::Rooted<T>> : std::true_type {
+  static const T& get(const MC::Rooted<T>& v) { return v.get(); }
+};
+
+template <typename T>
+struct DefineComparisonOps<MC::PersistentRooted<T>> : std::true_type {
+  static const T& get(const MC::PersistentRooted<T>& v) { return v.get(); }
+};
+
+}
+
 }
 #else
 
@@ -424,6 +520,8 @@ using PersistentRooted = JS::PersistentRooted<T>;
 
 template <typename T>
 using MutableHandle = JS::MutableHandle<T>;
+
+using CustomAutoRooter = JS::CustomAutoRooter;
 
 }
 
