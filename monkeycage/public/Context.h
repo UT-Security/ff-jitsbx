@@ -19,6 +19,12 @@
 struct MCRuntime {
   MCRuntime* parent_;
   JSRuntime* rt_;
+
+  mozilla::EnumeratedArray<JS::RootKind, JS::RootKind::Limit,
+      mozilla::LinkedList<mc::PersistentRootedBase>> heapRoots;
+
+  void tracePersistentRoots(JSTracer* trc);
+  void finishPersistentRoots();
 };
 
 struct MCContext : MC::RootingContext {
@@ -38,35 +44,7 @@ inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
   return rt->rt_;
 }
 
-inline MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nullptr) { 
-  MOZ_RELEASE_ASSERT(!MCContext::mcx_, "Attempt to create duplication MCContext in thread");
-
-  JSContext* jscx = JS_NewContext(maxbytes, parentRuntime == nullptr ? nullptr : parentRuntime->rt_);
-  if (!jscx) {
-    return nullptr;
-  }
-
-  JSRuntime* jsrt = JS_GetRuntime(jscx);
-  if (!jsrt) {
-    return nullptr;
-  }
-  
-  MCContext* cx = new MCContext();
-  MOZ_RELEASE_ASSERT(cx, "MCContext allocation failed!");
-
-  MCRuntime* rt = new MCRuntime();
-  MOZ_RELEASE_ASSERT(rt, "MCRuntime allocation failed!");
-
-  rt->parent_ = parentRuntime;
-  rt->rt_ = jsrt;
-
-  cx->cx_ = jscx;
-  cx->data_ = nullptr;
-  cx->rt_ = rt;
-
-  MCContext::mcx_ = cx;
-  return cx;
-}
+extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nullptr);
 
 inline MCContext* JS_SanitizeContext(JSContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);

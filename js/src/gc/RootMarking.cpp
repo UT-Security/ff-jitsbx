@@ -312,6 +312,11 @@ void js::gc::GCRuntime::traceRuntimeCommon(JSTracer* trc,
       const RootEntry& entry = r.front();
       TraceRoot(trc, entry.key(), entry.value());
     }
+
+#ifdef JS_SANDBOX
+    // Trace stack roots added through Monkeycage APIs
+    traceSandboxStackRoots(trc);
+#endif
   }
 
   // Trace runtime global roots.
@@ -403,6 +408,31 @@ IncrementalProgress GCRuntime::traceEmbeddingGrayRoots(JSTracer* trc,
   return callback.op(trc, budget, callback.data) ? Finished : NotFinished;
 }
 
+#ifdef JS_SANDBOX
+void GCRuntime::traceSandboxStackRoots(JSTracer* trc) {
+  // The analysis doesn't like the function pointer below.
+  JS::AutoSuppressGCAnalysis nogc;
+  
+  const Callback<JSTraceDataOp>& callback = sandboxStackRootTracer.ref();
+  if (!callback.op) {
+    return;
+  }
+
+  (*callback.op)(trc, callback.data);
+}
+
+void GCRuntime::finishSandboxPersistentRoots() {
+  const Callback<JSSandboxClearPersistentRootsCallback>& callback =
+      sandboxClearPersistentRootsCallback.ref();
+
+    if (!callback.op) {
+      return;
+    }
+
+    (*callback.op)(callback.data);
+}
+#endif
+
 #ifdef DEBUG
 class AssertNoRootsTracer final : public JS::CallbackTracer {
   void onChild(JS::GCCellPtr thing, const char* name) override {
@@ -446,6 +476,10 @@ void js::gc::GCRuntime::finishRoots() {
   traceEmbeddingBlackRoots(&trc);
   traceEmbeddingGrayRoots(&trc);
   clearBlackAndGrayRootTracers();
+#ifdef JS_SANDBOX
+  finishSandboxPersistentRoots();
+  clearSandboxStackRootsTracer();
+#endif
 }
 
 void js::gc::GCRuntime::checkNoRuntimeRoots(AutoGCSession& session) {

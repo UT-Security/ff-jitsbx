@@ -1403,6 +1403,23 @@ void GCRuntime::clearBlackAndGrayRootTracers() {
   setGrayRootsTracer(nullptr, nullptr);
 }
 
+#ifdef JS_SANDBOX
+void GCRuntime::setSandboxStackRootsTracer(JSTraceDataOp traceOp, void* data) {
+  AssertHeapIsIdle();
+  sandboxStackRootTracer.ref() = {traceOp, data};
+}
+
+void GCRuntime::clearSandboxStackRootsTracer() {
+  MOZ_ASSERT(rt->isBeingDestroyed());
+  setSandboxStackRootsTracer(nullptr, nullptr);
+}
+
+void GCRuntime::setSandboxClearPersistentRootsCallback(JSSandboxClearPersistentRootsCallback cb, void* data) {
+  AssertHeapIsIdle();
+  sandboxClearPersistentRootsCallback.ref() = {cb, data};
+}
+#endif
+
 void GCRuntime::setGCCallback(JSGCCallback callback, void* data) {
   gcCallback.ref() = {callback, data};
 }
