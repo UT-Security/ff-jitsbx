@@ -132,7 +132,7 @@ class FinalizationRegistryCleanup {
   MC::PersistentRooted<CallbackVector> mCallbacks;
 };
 
-class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
+class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
   friend class CycleCollectedJSRuntime;
   friend class SuppressedMicroTasks;
 
@@ -291,8 +291,8 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // Others protect the debuggee microtask queue from the debugger's
   // interruptions; see the comments on JS::AutoDebuggerJobQueueInterruption for
   // details.
-  JSObject* getIncumbentGlobal(JSContext* cx) override;
-  bool enqueuePromiseJob(JSContext* cx, JS::Handle<JSObject*> promise,
+  JSObject* getIncumbentGlobal(MCContext* cx) override;
+  bool enqueuePromiseJob(MCContext* cx, JS::Handle<JSObject*> promise,
                          JS::Handle<JSObject*> job,
                          JS::Handle<JSObject*> allocationSite,
                          JS::Handle<JSObject*> incumbentGlobal) override;
@@ -300,10 +300,10 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private JS::JobQueue {
   // headers.  The caller presumably knows this can run script (like everything
   // in SpiderMonkey!) and will deal.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void runJobs(JSContext* cx) override;
+  void runJobs(MCContext* cx) override;
   bool empty() const override;
   class SavedMicroTaskQueue;
-  js::UniquePtr<SavedJobQueue> saveJobQueue(JSContext*) override;
+  js::UniquePtr<SavedJobQueue> saveJobQueue(MCContext*) override;
 
  private:
   CycleCollectedJSRuntime* mRuntime;

@@ -148,6 +148,8 @@ struct RootedGCThingTraits {
 struct MCContext;
 struct MCRuntime;
 
+extern MCContext* JS_SanitizeContext(JSContext*);
+
 namespace MC {
 
 using RootedListHeads =

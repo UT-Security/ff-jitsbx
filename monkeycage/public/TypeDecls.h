@@ -43,7 +43,7 @@ using MutableHandle = JS::MutableHandle<T>;
 template <typename T>
 using PersistentRooted = JS::PersistentRooted<T>;
 
-template <typename T, typename AllocPolicy = js::TempAllocPoliy>
+template <typename T, typename AllocPolicy = js::TempAllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 #endif
 
