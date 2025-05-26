@@ -1283,6 +1283,19 @@ JS_PUBLIC_API void JS_RemoveExtraGCRootsTracer(JSContext* cx,
   return cx->runtime()->gc.removeBlackRootsTracer(traceOp, data);
 }
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API void JS_SetSandboxStackRootsTracer(JSContext* cx,
+                                              JSTraceDataOp traceOp,
+                                              void* data) {
+  return cx->runtime()->gc.setSandboxStackRootsTracer(traceOp, data);
+}
+
+JS_PUBLIC_API void JS_SetSandboxClearPersistentRootsCallback(
+    JSContext* cx, JSSandboxClearPersistentRootsCallback cb, void* data) {
+  return cx->runtime()->gc.setSandboxClearPersistentRootsCallback(cb, data);
+}
+#endif
+
 JS_PUBLIC_API JS::GCReason JS::WantEagerMinorGC(JSRuntime* rt) {
   if (rt->gc.nursery().shouldCollect()) {
     return JS::GCReason::EAGER_NURSERY_COLLECTION;

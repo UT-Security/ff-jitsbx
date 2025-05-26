@@ -456,6 +456,11 @@ class GCRuntime {
   [[nodiscard]] bool addBlackRootsTracer(JSTraceDataOp traceOp, void* data);
   void removeBlackRootsTracer(JSTraceDataOp traceOp, void* data);
   void clearBlackAndGrayRootTracers();
+#ifdef JS_SANDBOX
+  void setSandboxStackRootsTracer(JSTraceDataOp traceOp, void* data);
+  void clearSandboxStackRootsTracer();
+  void setSandboxClearPersistentRootsCallback(JSSandboxClearPersistentRootsCallback cb, void* data);
+#endif
 
   void setGCCallback(JSGCCallback callback, void* data);
   void callGCCallback(JSGCStatus status, JS::GCReason reason) const;
@@ -768,6 +773,10 @@ class GCRuntime {
   void traceEmbeddingGrayRoots(JSTracer* trc);
   IncrementalProgress traceEmbeddingGrayRoots(JSTracer* trc,
                                               SliceBudget& budget);
+#ifdef JS_SANDBOX
+  void traceSandboxStackRoots(JSTracer* trc);
+  void finishSandboxPersistentRoots();
+#endif
   void checkNoRuntimeRoots(AutoGCSession& session);
   void maybeDoCycleCollection();
   void findDeadCompartments();
@@ -1322,6 +1331,11 @@ class GCRuntime {
    */
   MainThreadData<CallbackVector<JSTraceDataOp>> blackRootTracers;
   MainThreadOrGCTaskData<Callback<JSGrayRootsTracer>> grayRootTracer;
+#ifdef JS_SANDBOX
+  MainThreadOrGCTaskData<Callback<JSTraceDataOp>> sandboxStackRootTracer;
+  MainThreadOrGCTaskData<Callback<JSSandboxClearPersistentRootsCallback>>
+      sandboxClearPersistentRootsCallback;
+#endif
 
   /* Always preserve JIT code during GCs, for testing. */
   MainThreadData<bool> alwaysPreserveCode;

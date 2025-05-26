@@ -1159,6 +1159,17 @@ extern JS_PUBLIC_API void JS_RemoveExtraGCRootsTracer(JSContext* cx,
                                                       JSTraceDataOp traceOp,
                                                       void* data);
 
+#ifdef JS_SANDBOX
+extern JS_PUBLIC_API void JS_SetSandboxStackRootsTracer(JSContext* cx,
+                                                     JSTraceDataOp traceOp,
+                                                     void* data);
+
+typedef void (*JSSandboxClearPersistentRootsCallback)(void* data);
+
+extern JS_PUBLIC_API void JS_SetSandboxClearPersistentRootsCallback(
+    JSContext* cx, JSSandboxClearPersistentRootsCallback cb, void* data);
+#endif
+
 extern JS_PUBLIC_API void JS_GC(JSContext* cx,
                                 JS::GCReason reason = JS::GCReason::API);
 

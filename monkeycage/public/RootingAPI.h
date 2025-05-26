@@ -14,10 +14,11 @@
 namespace MC {
 
 template <typename T>
-class Rooted;
-
-template <typename T>
 class MutableHandle;
+template <typename T>
+class Rooted;
+template <typename T>
+class PersistentRooted;
 
 }
 
@@ -58,8 +59,13 @@ class MOZ_STACK_CLASS MutableHandle
   DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
   DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(*ptr);
   
-  //UNSAFE CONVERSION OPERATIONS
+  //INTERNAL CONVERSION OPERATIONS
   inline JS::MutableHandle<T> MC_INTERNAL_SAFE_get() {
+    return JS::MutableHandle<T>::fromMarkedLocation(address());
+  }
+
+  //TODO(abhishek): UNSAFE CONVERSION
+  inline MOZ_IMPLICIT operator JS::MutableHandle<T>() {
     return JS::MutableHandle<T>::fromMarkedLocation(address());
   }
 
@@ -92,8 +98,23 @@ class StackRootedBase {
   }
 };
 
+class PersistentRootedBase
+    : protected mozilla::LinkedListElement<PersistentRootedBase> {
+ protected:
+  friend class mozilla::LinkedList<PersistentRootedBase>;
+  friend class mozilla::LinkedListElement<PersistentRootedBase>;
+
+  template <typename T>
+  auto* derived() {
+    return static_cast<MC::PersistentRooted<T>*>(this);
+  }
+};
+
 struct StackRootedTraceableBase : public StackRootedBase,
                                   public VirtualTraceable {};
+
+class PersistentRootedTraceableBase : public PersistentRootedBase,
+                                      public VirtualTraceable {};
 
 template <typename Base, typename T>
 class TypedRootedGCThingBase : public Base {
@@ -113,18 +134,19 @@ class TypedRootedTraceableBase : public Base {
 template <typename T>
 struct RootedTraceableTraits {
   using StackBase = TypedRootedTraceableBase<StackRootedTraceableBase, T>;
-  // using PersistentBase =
-  //     TypedRootedTraceableBase<PersistentRootedTraceableBase, T>;
+  using PersistentBase =
+      TypedRootedTraceableBase<PersistentRootedTraceableBase, T>;
 };
 
 template <typename T>
 struct RootedGCThingTraits {
   using StackBase = TypedRootedGCThingBase<StackRootedBase, T>;
-  // using PersistentBase = TypedRootedGCThingBase<PersistentRootedBase, T>;
+  using PersistentBase = TypedRootedGCThingBase<PersistentRootedBase, T>;
 };
 }  // namespace mc
 
 struct MCContext;
+struct MCRuntime;
 
 namespace MC {
 
@@ -145,6 +167,8 @@ class RootingContext {
       listHead = nullptr;
     }
   }
+
+  void traceStackRoots(JSTracer* trc);
 
   static const RootingContext* get(const MCContext* cx) {
     return reinterpret_cast<const RootingContext*>(cx);
@@ -274,12 +298,127 @@ inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
 }
 
 }
+
+namespace MC {
+
+extern void AddPersistentRoot(RootingContext* cx, JS::RootKind kind, mc::PersistentRootedBase* root);
+extern void AddPersistentRoot(MCRuntime* rt, JS::RootKind kind, mc::PersistentRootedBase* root);
+
+template <typename T>
+class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
+                         public js::RootedOperations<T, PersistentRooted<T>> {
+  void registerWithRootLists(RootingContext* cx) {
+    MOZ_ASSERT(!initialized());
+    JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+    AddPersistentRoot(cx, kind, this);
+  }
+
+  void registerWithRootLists(MCRuntime* rt) {
+    MOZ_ASSERT(!initialized());
+    JS::RootKind kind = JS::MapTypeToRootKind<T>::kind;
+    AddPersistentRoot(rt, kind, this);
+  }
+
+  // Used when JSContext type is incomplete and so it is not known to inherit
+  // from RootingContext.
+  void registerWithRootLists(MCContext* cx) {
+    registerWithRootLists(RootingContext::get(cx));
+  }
+
+ public:
+  using ElementType = T;
+
+  PersistentRooted() : ptr(JS::SafelyInitialized<T>::create()) {}
+
+  template <
+      typename RootHolder,
+      typename = std::enable_if_t<std::is_copy_constructible_v<T>, RootHolder>>
+  explicit PersistentRooted(const RootHolder& cx)
+      : ptr(JS::SafelyInitialized<T>::create()) {
+    registerWithRootLists(cx);
+  }
+
+  template <
+      typename RootHolder, typename U,
+      typename = std::enable_if_t<std::is_constructible_v<T, U>, RootHolder>>
+  PersistentRooted(const RootHolder& cx, U&& initial)
+      : ptr(std::forward<U>(initial)) {
+    registerWithRootLists(cx);
+  }
+
+  template <typename RootHolder, typename... CtorArgs,
+            typename = std::enable_if_t<detail::IsTraceable_v<T>, RootHolder>>
+  explicit PersistentRooted(const RootHolder& cx, CtorArgs... args)
+      : ptr(std::forward<CtorArgs>(args)...) {
+    registerWithRootLists(cx);
+  }
+
+  PersistentRooted(const PersistentRooted& rhs) : ptr(rhs.ptr) {
+    /*
+     * Copy construction takes advantage of the fact that the original
+     * is already inserted, and simply adds itself to whatever list the
+     * original was on - no JSRuntime pointer needed.
+     *
+     * This requires mutating rhs's links, but those should be 'mutable'
+     * anyway. C++ doesn't let us declare mutable base classes.
+     */
+    const_cast<PersistentRooted&>(rhs).setNext(this);
+  }
+
+  bool initialized() const { return this->isInList(); }
+
+  void init(RootingContext* cx) { init(cx, JS::SafelyInitialized<T>::create()); }
+  void init(MCContext* cx) { init(RootingContext::get(cx)); }
+
+  template <typename U>
+  void init(RootingContext* cx, U&& initial) {
+    ptr = std::forward<U>(initial);
+    registerWithRootLists(cx);
+  }
+  template <typename U>
+  void init(MCContext* cx, U&& initial) {
+    ptr = std::forward<U>(initial);
+    registerWithRootLists(RootingContext::get(cx));
+  }
+
+  void reset() {
+    if (initialized()) {
+      set(JS::SafelyInitialized<T>::create());
+      this->remove();
+    }
+  }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
+
+  T& get() { return ptr; }
+  const T& get() const { return ptr; }
+
+  T* address() {
+    MOZ_ASSERT(initialized());
+    return &ptr;
+  }
+  const T* address() const { return &ptr; }
+
+  template <typename U>
+  void set(U&& value) {
+    MOZ_ASSERT(initialized());
+    ptr = std::forward<U>(value);
+  }
+
+ private:
+  T ptr;
+} JS_HAZ_ROOTED;
+}
 #else
 
 namespace MC {
 
 template <typename T>
 using Rooted = JS::Rooted<T>;
+
+template <typename T>
+using PersistentRooted = JS::PersistentRooted<T>;
 
 template <typename T>
 using MutableHandle = JS::MutableHandle<T>;

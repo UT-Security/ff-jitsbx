@@ -12,6 +12,7 @@ else:
 	DIRS += ["build"]
 
 UNIFIED_SOURCES += [
+	"Context.cpp",
 	"GlobalObject.cpp",
 	"Id.cpp",
 	"Proxy.cpp",
