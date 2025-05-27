@@ -352,8 +352,8 @@ public:
   const JSTainted<T>& get() const { return *ptr; }
   JSTainted<T>& get() { return *ptr; }
     
-  operator const JSTainted<T>&() const { get(); }
-  const JSTainted<T>& operator->() const { get(); } 
+  operator const JSTainted<T>&() const { return get(); }
+  const JSTainted<T>& operator->() const { return get(); } 
   void set(const T& v) { ptr->assign_raw_value(v); }
 
   operator bool() {
@@ -394,8 +394,7 @@ public:
     static_cast<Wrapper*>(this)->get().setString(t);
   }
 
-  template<typename T>
-  void setUndefined(T t) {
+  void setUndefined() {
     static_cast<Wrapper*>(this)->get().setUndefined();
   }
 };
@@ -453,42 +452,47 @@ class MOZ_STACK_CLASS TaintedGlobalObject {
          "as GlobalObject lives on the stack") mGlobalObject;
 };
    
-//TODO:
-// create reflection of https://searchfox.org/mozilla-esr115/source/js/public/experimental/JitInfo.h#75
-// 
 template <>
-class JSTaintedOperations<JSJitMethodCallArgs> {
+class JSTaintedOperations<JS::CallArgs> {
   public:
 
     mozilla::Tainted<bool> requireAtLeast(JSContext* cx, const char* fnname,
 						unsigned required) {
-	//We should be fine just forwarding this request.
-    //worst-case is that some nonsense sandbox data gets accessed,
-    //which we won't treat as trusted anyway
-    
-    JSJitMethodCallArgs& data = 
-        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->
+    JS::CallArgs& data = 
+        static_cast<JSTainted<JS::CallArgs>*>(this)->
         get_raw_value_ref();
     mozilla::Tainted<bool> result (data.requireAtLeast(cx, fnname, required));
     return result;
   }
 
   mozilla::Tainted<unsigned> length(void) {
-    JSJitMethodCallArgs& data = 
-        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->
-        get_raw_value_ref();
-    mozilla::Tainted<unsigned> result (data.length());
+    mozilla::Tainted<unsigned> result (raw_ref().length());
     return result;
   }
 
-  /*
-  JSTaintedMutableHandle<JS::Value> rval(void) {
-    JS::MutableHandle<JS::Value> untaint_rval = 
-        static_cast<JSTainted<JSJitMethodCallArgs>*>(this)->get_raw_value_ref();
-        
+  JSObject& callee() {
+    return raw_ref().callee();
   }
-  */
 
+  //Both are fine in the context of console since CallArgs is located on the stack
+  //probably won't be fine in the future where CallArgs is in sandbox memory (so SM can remove root, trigger a gc, then boom)
+  JSTaintedMutableHandle<JS::Value> operator[](unsigned i) {
+    JS::CallArgs& data = static_cast<JSTainted<JS::CallArgs>*>(this)->get_raw_value_ref();
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(data[i].address()));
+  }
+
+  JSTaintedMutableHandle<JS::Value> rval() {
+    JS::CallArgs& data = static_cast<JSTainted<JS::CallArgs>*>(this)->get_raw_value_ref();
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(data.rval().address()));
+  }
+
+  private:
+  JS::CallArgs raw_ref() {
+      return static_cast<JSTainted<JS::CallArgs>*>(this)->get_raw_value_ref();
+  }
+    
 };
   
 } //namespace DOM

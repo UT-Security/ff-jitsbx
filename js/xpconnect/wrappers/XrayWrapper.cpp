@@ -157,6 +157,33 @@ JSObject* XrayAwareCalleeGlobal(JSObject* fun) {
   return JS::GetNonCCWObjectGlobal(xrayTarget);
 }
 
+using JSTaintedObject = mozilla::dom::JSTainted<JSObject*>;
+JSTaintedObject XrayAwareCalleeGlobal(JSTaintedObject fun) {
+  MOZ_ASSERT(js::IsFunctionObject(fun));
+
+  if (!js::FunctionHasNativeReserved(fun.UNSAFE_unverified_ref())) {
+    // Just a normal function, no Xrays involved.
+    return JS::GetNonCCWObjectGlobal(fun.UNSAFE_unverified_ref());
+  }
+
+  // The functions we expect here have the Xray wrapper they're associated with
+  // in their XRAY_DOM_FUNCTION_PARENT_WRAPPER_SLOT and, in a debug build,
+  // themselves in their XRAY_DOM_FUNCTION_NATIVE_SLOT_FOR_SELF.  Assert that
+  // last bit.
+  MOZ_ASSERT(&js::GetFunctionNativeReserved(
+                  fun.UNSAFE_unverified_ref(), 
+                  XRAY_DOM_FUNCTION_NATIVE_SLOT_FOR_SELF)
+                  .toObject() == fun.UNSAFE_unverified_ref());
+
+  Value v =
+      js::GetFunctionNativeReserved(fun.UNSAFE_unverified_ref(), 
+        XRAY_DOM_FUNCTION_PARENT_WRAPPER_SLOT);
+  MOZ_ASSERT(IsXrayWrapper(&v.toObject()));
+
+  JSObject* xrayTarget = js::UncheckedUnwrap(&v.toObject());
+  return JS::GetNonCCWObjectGlobal(xrayTarget);
+}
+
 JSObject* XrayTraits::getExpandoChain(HandleObject obj) {
   return ObjectScope(obj)->GetExpandoChain(obj);
 }

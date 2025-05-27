@@ -160,6 +160,8 @@ bool IsXrayWrapper(JSObject* obj);
 // To emphasize the obvious: the return value here is not necessarily same-
 // compartment with the argument.
 JSObject* XrayAwareCalleeGlobal(JSObject* fun);
+mozilla::dom::JSTainted<JSObject*> XrayAwareCalleeGlobal
+    (mozilla::dom::JSTainted<JSObject*> fun);
 
 void TraceXPCGlobal(JSTracer* trc, JSObject* obj);
 

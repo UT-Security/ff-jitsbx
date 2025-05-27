@@ -31,7 +31,7 @@ namespace console {
   undefined error(any... data);
   [UseCounter]
   undefined info(any... data);
-  [UseCounter]
+  [UseCounter, Tainted]
   undefined log(any... data);
   [UseCounter]
   undefined table(any... data); // FIXME: The spec is still unclear about this.

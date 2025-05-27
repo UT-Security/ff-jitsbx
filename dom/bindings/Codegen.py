@@ -1229,13 +1229,18 @@ class CGElseChain(CGThing):
 
 
 class CGTemplatedType(CGWrapper):
-    def __init__(self, templateName, child, isConst=False, isReference=False):
+    def __init__(self, templateName, child, isConst=False, isReference=False, isTainted=False):
         if isinstance(child, list):
             child = CGList(child, ", ")
         const = "const " if isConst else ""
-        pre = "%s%s<" % (const, templateName)
-        ref = "&" if isReference else ""
-        post = ">%s" % ref
+        if isTainted:
+            pre = "%s%s<JSTainted<" % (const, templateName)
+            ref = "&" if isReference else ""
+            post = ">>%s" % ref
+        else:
+            pre = "%s%s<" % (const, templateName)
+            ref = "&" if isReference else ""
+            post = ">%s" % ref
         CGWrapper.__init__(self, child, pre=pre, post=post)
 
 
@@ -7635,13 +7640,19 @@ class CGArgumentConverter(CGThing):
 
         replacer = dict(self.argcAndIndex, **self.replacementVariables)
         replacer["seqType"] = CGTemplatedType(
-            "AutoSequence", typeConversion.declType
+            "AutoSequence", typeConversion.declType, isTainted=self.tainted
         ).define()
         if typeNeedsRooting(self.argument.type):
-            rooterDecl = (
-                "SequenceRooter<%s> ${holderName}(cx, &${declName});\n"
-                % typeConversion.declType.define()
-            )
+            if self.tainted:
+                rooterDecl = (
+                    "SequenceRooter<JSTainted<%s>> ${holderName}(cx, &${declName});\n"
+                    % typeConversion.declType.define()
+                )
+            else:
+                rooterDecl = (
+                    "SequenceRooter<%s> ${holderName}(cx, &${declName});\n"
+                    % typeConversion.declType.define()
+                )
         else:
             rooterDecl = ""
         if self.tainted:
@@ -7652,22 +7663,42 @@ class CGArgumentConverter(CGThing):
         replacer["elementInitializer"] = initializerForType(self.argument.type) or ""
 
         # NOTE: Keep this in sync with sequence conversions as needed
-        variadicConversion = string.Template(
-            "${seqType} ${declName};\n"
-            + rooterDecl
-            + dedent(
-                """
-                if (${argc} > ${index}) {
-                  if (!${declName}.SetCapacity(${argc} - ${index}, mozilla::fallible)) {
-                    JS_ReportOutOfMemory(cx);
-                    return false;
-                  }
-                  for (uint32_t variadicArg = ${index}; variadicArg < ${argc}; ++variadicArg) {
-                    // OK to do infallible append here, since we ensured capacity already.
-                    ${elemType}& slot = *${declName}.AppendElement(${elementInitializer});
-                """
-            )
-        ).substitute(replacer)
+        if self.tainted:
+            variadicConversion = string.Template(
+                "${seqType} ${declName};\n"
+                + rooterDecl
+                + dedent(
+                    """
+                    mozilla::Tainted<unsigned> raw_len = ${argc};
+                    if (MOZ_IS_VALID(raw_len, raw_len > ${index})) {
+                      unsigned len = MOZ_VALIDATE_AND_GET(raw_len, raw_len > ${index});
+                      if (!${declName}.SetCapacity(len - ${index}, mozilla::fallible)) {
+                        JS_ReportOutOfMemory(cx);
+                        return false;
+                      }
+                      for (uint32_t variadicArg = ${index}; variadicArg < len; ++variadicArg) {
+                        // OK to do infallible append here, since we ensured capacity already.
+                        ${elemType}& slot = *${declName}.AppendElement(${elementInitializer});
+                    """
+                )
+            ).substitute(replacer)
+        else: 
+            variadicConversion = string.Template(
+                "${seqType} ${declName};\n"
+                + rooterDecl
+                + dedent(
+                    """
+                    if (${argc} > ${index}) {
+                      if (!${declName}.SetCapacity(${argc} - ${index}, mozilla::fallible)) {
+                        JS_ReportOutOfMemory(cx);
+                        return false;
+                      }
+                      for (uint32_t variadicArg = ${index}; variadicArg < ${argc}; ++variadicArg) {
+                        // OK to do infallible append here, since we ensured capacity already.
+                        ${elemType}& slot = *${declName}.AppendElement(${elementInitializer});
+                    """
+                )
+            ).substitute(replacer)
 
         val = string.Template("args[variadicArg]").substitute(replacer)
         variadicConversion += indent(
@@ -9072,6 +9103,7 @@ class CGPerSignatureCall(CGThing):
             not dontSetSlot and idlNode.isAttr() and idlNode.slotIndices is not None
         )
         self.isTainted = isTainted
+        self.isTestArgs = getter or setter
         cgThings = []
 
         deprecated = idlNode.getExtendedAttribute("Deprecated") or (
@@ -9115,18 +9147,13 @@ class CGPerSignatureCall(CGThing):
             if isConstructor:
                 objForGlobalObject = "obj"
             else:
-                if isTainted:
-                    unsafeObj = "obj.get().UNSAFE_unverified_ref()"
-                    objForGlobalObject = f"xpc::XrayAwareCalleeGlobal({unsafeObj})"
-                else:
-                    objForGlobalObject = "xpc::XrayAwareCalleeGlobal(obj)"
+                objForGlobalObject = "xpc::XrayAwareCalleeGlobal(obj)"
             if isTainted:
                 cgThings.append(
                     CGGeneric(
                         fill(
                             """
-                    JSTainted<JSObject*> jsglobal (${obj});
-                    TaintedGlobalObject global(cx, jsglobal);
+                    TaintedGlobalObject global(cx, ${obj});
                     if (global.Failed()) {
                       return false;
                     }
@@ -9579,7 +9606,7 @@ class CGPerSignatureCall(CGThing):
         else:
             successCode = None
 
-        if self.isTainted : 
+        if self.isTainted and self.isTestArgs: 
             resultTemplateValues = {
                 "jsvalRef": "test_args.rval()",
                 "jsvalHandle": "test_args.rval()",
@@ -10497,7 +10524,7 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
         if self.tainted:
             unwrap = dedent(
                 """
-                JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
+                JSTainted<JS::CallArgs> args = JS::CallArgsFromVp(argc, vp);
                 JSTaintedRooted<JSObject*> obj(cx);
                 obj.set(&args.callee());
 
