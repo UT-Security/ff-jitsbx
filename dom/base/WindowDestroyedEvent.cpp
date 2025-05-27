@@ -113,7 +113,7 @@ WindowDestroyedEvent::Run() {
         dom::AutoJSAPI jsapi;
         jsapi.Init();
         JSContext* cx = jsapi.cx();
-        JS::Rooted<JSObject*> obj(cx, currentInner->GetGlobalJSObject());
+        MC::Rooted<JSObject*> obj(cx, currentInner->GetGlobalJSObject());
         if (obj && !js::IsSystemRealm(js::GetNonCCWObjectRealm(obj))) {
           JS::Realm* realm = js::GetNonCCWObjectRealm(obj);
 

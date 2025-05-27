@@ -580,14 +580,14 @@ nsresult UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
   JSContext* cx = jsapi.cx();
 
   // Copy packet data to ArrayBuffer
-  JS::Rooted<JSObject*> arrayBuf(
+  MC::Rooted<JSObject*> arrayBuf(
       cx, ArrayBuffer::Create(cx, aData.Length(), aData.Elements()));
 
   if (NS_WARN_IF(!arrayBuf)) {
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JS::Value> jsData(cx, JS::ObjectValue(*arrayBuf));
+  MC::Rooted<JS::Value> jsData(cx, JS::ObjectValue(*arrayBuf));
 
   // Create DOM event
   RootedDictionary<UDPMessageEventInit> init(cx);

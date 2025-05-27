@@ -6,9 +6,9 @@
 
 #include "JSDebugger.h"
 #include "nsThreadUtils.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/Wrapper.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/Wrapper.h"
 #include "nsServiceManagerUtils.h"
 
 #define JSDEBUGGER_CONTRACTID "@mozilla.org/jsdebugger;1"
@@ -34,7 +34,7 @@ JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  JS::Rooted<JSObject*> obj(cx, &global.toObject());
+  MC::Rooted<JSObject*> obj(cx, &global.toObject());
   obj = js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false);
   if (!obj) {
     return NS_ERROR_FAILURE;

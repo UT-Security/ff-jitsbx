@@ -50,7 +50,7 @@ static void LogError(JSContext* aCx, const nsCString& aMessage) {
   //
   // Unfortunately, there isn't currently a more straightforward way to do
   // this from C++.
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  MC::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
 
   AutoJSAPI jsapi;
   if (jsapi.Init(global)) {
@@ -244,8 +244,8 @@ JSObject* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                       bool aCreate) {
   JSAutoRealm ar(aCx, mTimers);
 
-  JS::Rooted<JS::Value> histogram(aCx);
-  JS::Rooted<JS::Value> objs(aCx);
+  MC::Rooted<JS::Value> histogram(aCx);
+  MC::Rooted<JS::Value> objs(aCx);
 
   if (!xpc::NonVoidStringToJsval(aCx, aHistogram, &histogram) ||
       !JS::MapGet(aCx, mTimers, histogram, &objs)) {
@@ -267,20 +267,20 @@ TimerKeys* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                        JS::Handle<JSObject*> aObj, bool aCreate) {
   JSAutoRealm ar(aCx, mTimers);
 
-  JS::Rooted<JSObject*> objs(aCx, Get(aCx, aHistogram, aCreate));
+  MC::Rooted<JSObject*> objs(aCx, Get(aCx, aHistogram, aCreate));
   if (!objs) {
     return nullptr;
   }
 
   // If no object is passed, use mTimers as a stand-in for a null object
   // (which cannot be used as a weak map key).
-  JS::Rooted<JSObject*> obj(aCx, aObj ? aObj : mTimers);
+  MC::Rooted<JSObject*> obj(aCx, aObj ? aObj : mTimers);
   if (!JS_WrapObject(aCx, &obj)) {
     return nullptr;
   }
 
   RefPtr<TimerKeys> keys;
-  JS::Rooted<JS::Value> keysObj(aCx);
+  MC::Rooted<JS::Value> keysObj(aCx);
   if (!JS::GetWeakMapEntry(aCx, objs, obj, &keysObj)) {
     return nullptr;
   }

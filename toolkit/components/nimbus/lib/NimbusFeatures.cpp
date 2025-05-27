@@ -148,23 +148,23 @@ nsresult NimbusFeatures::GetExperimentSlug(const nsACString& aFeatureId,
     return NS_ERROR_UNEXPECTED;
   }
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> json(cx, JS::NullValue());
+  MC::Rooted<JS::Value> json(cx, JS::NullValue());
   if (JS_ParseJSON(cx, prefValue.BeginReading(), prefValue.Length(), &json) &&
       json.isObject()) {
-    JS::Rooted<JSObject*> experimentJSON(cx, json.toObjectOrNull());
-    JS::Rooted<JS::Value> expSlugValue(cx);
+    MC::Rooted<JSObject*> experimentJSON(cx, json.toObjectOrNull());
+    MC::Rooted<JS::Value> expSlugValue(cx);
     if (!JS_GetProperty(cx, experimentJSON, "slug", &expSlugValue)) {
       return NS_ERROR_UNEXPECTED;
     }
     AssignJSString(cx, aExperimentSlug, expSlugValue.toString());
 
-    JS::Rooted<JS::Value> branchJSON(cx);
+    MC::Rooted<JS::Value> branchJSON(cx);
     if (!JS_GetProperty(cx, experimentJSON, "branch", &branchJSON) &&
         !branchJSON.isObject()) {
       return NS_ERROR_UNEXPECTED;
     }
-    JS::Rooted<JSObject*> branchObj(cx, branchJSON.toObjectOrNull());
-    JS::Rooted<JS::Value> branchSlugValue(cx);
+    MC::Rooted<JSObject*> branchObj(cx, branchJSON.toObjectOrNull());
+    MC::Rooted<JS::Value> branchSlugValue(cx);
     if (!JS_GetProperty(cx, branchObj, "slug", &branchSlugValue)) {
       return NS_ERROR_UNEXPECTED;
     }

@@ -12,11 +12,11 @@
 #include "nsNetUtil.h"
 #include "nsThreadUtils.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/experimental/JSStencil.h"  // JS::CompileGlobalScriptToStencil, JS::InstantiateGlobalStencil, JS::OffThreadCompileToStencil
-#include "js/SourceText.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/experimental/JSStencil.h"  // JS::CompileGlobalScriptToStencil, JS::InstantiateGlobalStencil, JS::OffThreadCompileToStencil
+#include "monkeycage/SourceText.h"
 #include "js/Utility.h"
 
 #include "mozilla/Attributes.h"
@@ -195,7 +195,7 @@ void AsyncScriptCompiler::Finish(JSContext* aCx, RefPtr<JS::Stencil> aStencil) {
 }
 
 void AsyncScriptCompiler::Reject(JSContext* aCx) {
-  RootedValue value(aCx, JS::UndefinedValue());
+  MC::RootedValue value(aCx, JS::UndefinedValue());
   if (JS_GetPendingException(aCx, &value)) {
     JS_ClearPendingException(aCx);
   }
@@ -208,7 +208,7 @@ void AsyncScriptCompiler::Reject(JSContext* aCx, const char* aMsg) {
   msg.AppendLiteral(": ");
   AppendUTF8toUTF16(mURL, msg);
 
-  RootedValue exn(aCx);
+  MC::RootedValue exn(aCx);
   if (xpc::NonVoidStringToJsval(aCx, msg, &exn)) {
     JS_SetPendingException(aCx, exn);
   }
@@ -304,7 +304,7 @@ void PrecompiledScript::ExecuteInGlobal(JSContext* aCx, HandleObject aGlobal,
                                         MutableHandleValue aRval,
                                         ErrorResult& aRv) {
   {
-    RootedObject targetObj(aCx, JS_FindCompilationScope(aCx, aGlobal));
+    MC::RootedObject targetObj(aCx, JS_FindCompilationScope(aCx, aGlobal));
     // Use AutoEntryScript for its ReportException method call.
     // This will ensure notified any exception happening in the content script
     // directly to the console, so that exceptions are flagged with the right
@@ -315,7 +315,7 @@ void PrecompiledScript::ExecuteInGlobal(JSContext* aCx, HandleObject aGlobal,
 
     // See assertion in constructor.
     JS::InstantiateOptions options;
-    Rooted<JSScript*> script(
+    MC::Rooted<JSScript*> script(
         cx, JS::InstantiateGlobalStencil(cx, options, mStencil));
     if (!script) {
       aRv.NoteJSContextException(aCx);
@@ -323,7 +323,7 @@ void PrecompiledScript::ExecuteInGlobal(JSContext* aCx, HandleObject aGlobal,
     }
 
     if (!JS_ExecuteScript(cx, script, aRval)) {
-      JS::RootedValue exn(cx);
+      MC::RootedValue exn(cx);
       if (aOptions.mReportExceptions) {
         // Note that ReportException will consume the exception.
         aes.ReportException();

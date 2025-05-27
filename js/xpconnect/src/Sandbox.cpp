@@ -173,7 +173,7 @@ static bool SandboxDump(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  RootedString str(cx, ToString(cx, args[0]));
+  MC::RootedString str(cx, ToString(cx, args[0]));
   if (!str) {
     return false;
   }
@@ -222,7 +222,7 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedString funname(cx);
+  MC::RootedString funname(cx);
   if (args.length() > 1) {
     // Use the second parameter as the function name.
     funname = ToString(cx, args[1]);
@@ -231,14 +231,14 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
     }
   } else {
     // NB: funobj must only be used to get the JSFunction out.
-    RootedObject funobj(cx, &args[0].toObject());
+    MC::RootedObject funobj(cx, &args[0].toObject());
     if (js::IsProxy(funobj)) {
       funobj = XPCWrapper::UnsafeUnwrapSecurityWrapper(funobj);
     }
 
     JSAutoRealm ar(cx, funobj);
 
-    RootedValue funval(cx, ObjectValue(*funobj));
+    MC::RootedValue funval(cx, ObjectValue(*funobj));
     JSFunction* fun = JS_ValueToFunction(cx, funval);
     if (!fun) {
       XPCThrower::Throw(NS_ERROR_INVALID_ARG, cx);
@@ -254,7 +254,7 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
   }
   JS_MarkCrossZoneIdValue(cx, StringValue(funname));
 
-  RootedId id(cx);
+  MC::RootedId id(cx);
   if (!JS_StringToId(cx, funname, &id)) {
     return false;
   }
@@ -262,7 +262,7 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
   // We need to resolve the this object, because this function is used
   // unbound and should still work and act on the original sandbox.
 
-  RootedObject thisObject(cx);
+  MC::RootedObject thisObject(cx);
   if (!args.computeThis(cx, &thisObject)) {
     return false;
   }
@@ -282,7 +282,7 @@ bool xpc::SandboxCreateCrypto(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(native);
 
   dom::Crypto* crypto = new dom::Crypto(native);
-  JS::RootedObject wrapped(cx, crypto->WrapObject(cx, nullptr));
+  MC::RootedObject wrapped(cx, crypto->WrapObject(cx, nullptr));
   return JS_DefineProperty(cx, obj, "crypto", wrapped, JSPROP_ENUMERATE);
 }
 
@@ -296,7 +296,7 @@ static bool SandboxCreateRTCIdentityProvider(JSContext* cx,
 
   dom::RTCIdentityProviderRegistrar* registrar =
       new dom::RTCIdentityProviderRegistrar(nativeGlobal);
-  JS::RootedObject wrapped(cx, registrar->WrapObject(cx, nullptr));
+  MC::RootedObject wrapped(cx, registrar->WrapObject(cx, nullptr));
   return JS_DefineProperty(cx, obj, "rtcIdentityProvider", wrapped,
                            JSPROP_ENUMERATE);
 }
@@ -339,7 +339,7 @@ static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
 
 static bool SandboxFetchPromise(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
-  RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
+  MC::RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
   if (SandboxFetch(cx, scope, args)) {
     return true;
   }
@@ -362,7 +362,7 @@ static bool SandboxCreateStorage(JSContext* cx, JS::HandleObject obj) {
   MOZ_ASSERT(native);
 
   dom::StorageManager* storageManager = new dom::StorageManager(native);
-  JS::RootedObject wrapped(cx, storageManager->WrapObject(cx, nullptr));
+  MC::RootedObject wrapped(cx, storageManager->WrapObject(cx, nullptr));
   return JS_DefineProperty(cx, obj, "storage", wrapped, JSPROP_ENUMERATE);
 }
 
@@ -386,7 +386,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  JS::Rooted<JS::Value> result(cx);
+  MC::Rooted<JS::Value> result(cx);
   ErrorResult rv;
   nsContentUtils::StructuredClone(cx, global, args[0], options, &result, rv);
   if (rv.MaybeSetPendingException(cx)) {
@@ -417,7 +417,7 @@ static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  RootedObject obj(cx, &args[0].toObject());
+  MC::RootedObject obj(cx, &args[0].toObject());
   // CheckedUnwrapStatic is OK here, since we only care about whether
   // it's a scripted proxy and the things CheckedUnwrapStatic fails on
   // are not.
@@ -444,7 +444,7 @@ static bool SandboxExportFunction(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
+  MC::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
   return ExportFunction(cx, args[0], args[1], options, args.rval());
 }
 
@@ -455,7 +455,7 @@ static bool SandboxCreateObjectIn(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject optionsObj(cx);
+  MC::RootedObject optionsObj(cx);
   bool calledWithOptions = args.length() > 1;
   if (calledWithOptions) {
     if (!args[1].isObject()) {
@@ -481,7 +481,7 @@ static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
+  MC::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
   return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
 }
 
@@ -657,13 +657,13 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
   // We forward the call to our underlying callable.
 
   // Get our SandboxProxyHandler proxy.
-  RootedObject sandboxProxy(cx, getSandboxProxy(proxy));
+  MC::RootedObject sandboxProxy(cx, getSandboxProxy(proxy));
   MOZ_ASSERT(js::IsProxy(sandboxProxy) &&
              js::GetProxyHandler(sandboxProxy) == MC_UNSAFE(sandboxProxyHandler()));
 
   // The global of the sandboxProxy is the sandbox global, and the
   // target object is the original proto.
-  RootedObject sandboxGlobal(cx, JS::GetNonCCWObjectGlobal(sandboxProxy));
+  MC::RootedObject sandboxGlobal(cx, JS::GetNonCCWObjectGlobal(sandboxProxy));
   MOZ_ASSERT(IsSandbox(sandboxGlobal));
 
   // If our this object is the sandbox global, we call with this set to the
@@ -696,9 +696,9 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
   // if the sandboxPrototype is an Xray Wrapper, which lets us appropriately
   // remap |this|.
   bool isXray = WrapperFactory::IsXrayWrapper(sandboxProxy);
-  RootedValue thisVal(cx, args.thisv());
+  MC::RootedValue thisVal(cx, args.thisv());
   if (isXray) {
-    RootedObject thisObject(cx);
+    MC::RootedObject thisObject(cx);
     if (!args.computeThis(cx, &thisObject)) {
       return false;
     }
@@ -709,7 +709,7 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
     thisVal = ObjectValue(*js::GetProxyTargetObject(sandboxProxy));
   }
 
-  RootedValue func(cx, js::GetProxyPrivate(proxy));
+  MC::RootedValue func(cx, js::GetProxyPrivate(proxy));
   return JS::Call(cx, thisVal, func, args, args.rval());
 }
 
@@ -726,7 +726,7 @@ static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
   MOZ_ASSERT(js::IsProxy(sandboxProtoProxy) &&
              js::GetProxyHandler(sandboxProtoProxy) == MC_UNSAFE(sandboxProxyHandler()));
 
-  RootedValue priv(cx, ObjectValue(*callable));
+  MC::RootedValue priv(cx, ObjectValue(*callable));
   // We want to claim to have the same proto as our wrapped callable, so set
   // ourselves up with a lazy proto.
   js::ProxyOptions options;
@@ -766,7 +766,7 @@ static bool IsMaybeWrappedDOMConstructor(JSObject* obj) {
 bool SandboxProxyHandler::getPropertyDescriptorImpl(
     JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     bool getOwn, MutableHandle<Maybe<PropertyDescriptor>> desc_) const {
-  JS::RootedObject obj(cx, wrappedObject(proxy));
+  MC::RootedObject obj(cx, wrappedObject(proxy));
 
   MOZ_ASSERT(JS::GetCompartment(obj) == JS::GetCompartment(proxy));
 
@@ -775,7 +775,7 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
       return false;
     }
   } else {
-    Rooted<JSObject*> holder(cx);
+    MC::Rooted<JSObject*> holder(cx);
     if (!JS_GetPropertyDescriptorById(cx, obj, id, desc_, &holder)) {
       return false;
     }
@@ -785,7 +785,7 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
     return true;
   }
 
-  Rooted<PropertyDescriptor> desc(cx, *desc_);
+  MC::Rooted<PropertyDescriptor> desc(cx, *desc_);
 
   // Now fix up the getter/setter/value as needed.
   if (desc.hasGetter() && !WrapAccessorFunction(cx, desc.getter(), proxy)) {
@@ -795,7 +795,7 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
     return false;
   }
   if (desc.hasValue() && desc.value().isObject()) {
-    RootedObject val(cx, &desc.value().toObject());
+    MC::RootedObject val(cx, &desc.value().toObject());
     if (JS::IsCallable(val) &&
         // Don't wrap DOM constructors: they don't care about the "this"
         // they're invoked with anyway, being constructors.  And if we wrap
@@ -827,7 +827,7 @@ bool SandboxProxyHandler::getOwnPropertyDescriptor(
 bool SandboxProxyHandler::has(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, bool* bp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
-  Rooted<Maybe<PropertyDescriptor>> desc(cx);
+  MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
   if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
@@ -845,7 +845,7 @@ bool SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
                               JS::MutableHandle<Value> vp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
-  Rooted<Maybe<PropertyDescriptor>> desc(cx);
+  MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
   if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
@@ -864,7 +864,7 @@ bool SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   MOZ_ASSERT(desc->isAccessorDescriptor());
-  RootedObject getter(cx, desc->getter());
+  MC::RootedObject getter(cx, desc->getter());
 
   if (!getter) {
     vp.setUndefined();
@@ -897,7 +897,7 @@ bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
   bool ok = JS::GetArrayLength(cx, obj, &length);
   NS_ENSURE_TRUE(ok, false);
   for (uint32_t i = 0; i < length; i++) {
-    RootedValue nameValue(cx);
+    MC::RootedValue nameValue(cx);
     ok = JS_GetElement(cx, obj, i, &nameValue);
     NS_ENSURE_TRUE(ok, false);
     if (!nameValue.isString()) {
@@ -1006,7 +1006,7 @@ bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
       rtcIdentityProvider = true;
 #endif
     } else {
-      RootedString nameStr(cx, nameValue.toString());
+      MC::RootedString nameStr(cx, nameValue.toString());
       JS::UniqueChars name = JS_EncodeStringToUTF8(cx, nameStr);
       if (!name) {
         return false;
@@ -1184,7 +1184,7 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   // - just that the caller wants the property defined
   if (isSecureContext) {
     bool hasSecureContext = IsSecureContextOrObjectIsFromSecureContext(cx, obj);
-    JS::Rooted<JS::Value> secureJsValue(cx, JS::BooleanValue(hasSecureContext));
+    MC::Rooted<JS::Value> secureJsValue(cx, JS::BooleanValue(hasSecureContext));
     return JS_DefineProperty(cx, obj, "isSecureContext", secureJsValue,
                              JSPROP_ENUMERATE);
   }
@@ -1360,7 +1360,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
 
   const JSClass* clasp = SandboxClass();
 
-  RootedObject sandbox(
+  MC::RootedObject sandbox(
       cx, xpc::CreateGlobalObject(cx, clasp, principal, realmOptions));
   if (!sandbox) {
     return NS_ERROR_FAILURE;
@@ -1445,7 +1445,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
       if (useSandboxProxy) {
         // Wrap it up in a proxy that will do the right thing in terms
         // of this-binding for methods.
-        RootedValue priv(cx, ObjectValue(*options.proto));
+        MC::RootedValue priv(cx, ObjectValue(*options.proto));
         options.proto =
             js::NewProxyObject(cx, sandboxProxyHandler(), priv, nullptr);
         if (!options.proto) {
@@ -1515,7 +1515,7 @@ NS_IMETHODIMP
 nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative* wrapper,
                                     JSContext* cx, JSObject* objArg,
                                     const CallArgs& args, bool* _retval) {
-  RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
   return CallOrConstruct(wrapper, cx, obj, args, _retval);
 }
 
@@ -1523,7 +1523,7 @@ NS_IMETHODIMP
 nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative* wrapper,
                                          JSContext* cx, JSObject* objArg,
                                          const CallArgs& args, bool* _retval) {
-  RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
   return CallOrConstruct(wrapper, cx, obj, args, _retval);
 }
 
@@ -1616,7 +1616,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
   Maybe<OriginAttributes> attrs;
   if (options.originAttributes) {
     attrs.emplace();
-    JS::RootedValue val(cx, JS::ObjectValue(*options.originAttributes));
+    MC::RootedValue val(cx, JS::ObjectValue(*options.originAttributes));
     if (!attrs->Init(cx, val)) {
       // The originAttributes option, if specified, must be valid!
       JS_ReportErrorASCII(cx, "Expected a valid OriginAttributes object");
@@ -1638,7 +1638,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
 
   // First pass:
   for (uint32_t i = 0; i < length; ++i) {
-    RootedValue allowed(cx);
+    MC::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
     }
@@ -1648,7 +1648,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
       // In case of object let's see if it's a Principal or a
       // ScriptObjectPrincipal.
       nsCOMPtr<nsISupports> prinOrSop;
-      RootedObject obj(cx, &allowed.toObject());
+      MC::RootedObject obj(cx, &allowed.toObject());
       if (!GetPrincipalOrSOP(cx, obj, getter_AddRefs(prinOrSop))) {
         return false;
       }
@@ -1698,7 +1698,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
 
   // Second pass:
   for (uint32_t i = 0; i < length; ++i) {
-    RootedValue allowed(cx);
+    MC::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
     }
@@ -1706,7 +1706,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
     nsCOMPtr<nsIPrincipal> principal;
     if (allowed.isString()) {
       // In case of string let's try to fetch a content principal from it.
-      RootedString str(cx, allowed.toString());
+      MC::RootedString str(cx, allowed.toString());
 
       // attrs here is either a default OriginAttributes in case the
       // originAttributes option isn't specified, and no object in the array
@@ -1753,7 +1753,7 @@ bool OptionsBase::ParseValue(const char* name, MutableHandleValue prop,
  */
 bool OptionsBase::ParseBoolean(const char* name, bool* prop) {
   MOZ_ASSERT(prop);
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1775,7 +1775,7 @@ bool OptionsBase::ParseBoolean(const char* name, bool* prop) {
  * Helper that tries to get an object property from the options object.
  */
 bool OptionsBase::ParseObject(const char* name, MutableHandleObject prop) {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1796,7 +1796,7 @@ bool OptionsBase::ParseObject(const char* name, MutableHandleObject prop) {
  * Helper that tries to get an object property from the options object.
  */
 bool OptionsBase::ParseJSString(const char* name, MutableHandleString prop) {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1817,7 +1817,7 @@ bool OptionsBase::ParseJSString(const char* name, MutableHandleString prop) {
  * Helper that tries to get a string property from the options object.
  */
 bool OptionsBase::ParseString(const char* name, nsCString& prop) {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1841,7 +1841,7 @@ bool OptionsBase::ParseString(const char* name, nsCString& prop) {
  * Helper that tries to get a string property from the options object.
  */
 bool OptionsBase::ParseString(const char* name, nsString& prop) {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1868,7 +1868,7 @@ bool OptionsBase::ParseString(const char* name, nsString& prop) {
  * Helper that tries to get jsid property from the options object.
  */
 bool OptionsBase::ParseId(const char* name, MutableHandleId prop) {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1885,7 +1885,7 @@ bool OptionsBase::ParseId(const char* name, MutableHandleId prop) {
  */
 bool OptionsBase::ParseUInt32(const char* name, uint32_t* prop) {
   MOZ_ASSERT(prop);
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue(name, &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1907,7 +1907,7 @@ bool OptionsBase::ParseUInt32(const char* name, uint32_t* prop) {
  * the options object.
  */
 bool SandboxOptions::ParseGlobalProperties() {
-  RootedValue value(mCx);
+  MC::RootedValue value(mCx);
   bool found;
   bool ok = ParseValue("wantGlobalProperties", &value, &found);
   NS_ENSURE_TRUE(ok, false);
@@ -1921,7 +1921,7 @@ bool SandboxOptions::ParseGlobalProperties() {
     return false;
   }
 
-  RootedObject ctors(mCx, &value.toObject());
+  MC::RootedObject ctors(mCx, &value.toObject());
   bool isArray;
   if (!JS::IsArrayObject(mCx, ctors, &isArray)) {
     return false;
@@ -2021,7 +2021,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
     return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
   }
 
-  RootedObject optionsObject(cx,
+  MC::RootedObject optionsObject(cx,
                              calledWithOptions ? &args[1].toObject() : nullptr);
 
   SandboxOptions options(cx, optionsObject);
@@ -2035,10 +2035,10 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
   nsCOMPtr<nsISupports> prinOrSop;
 
   if (args[0].isString()) {
-    RootedString str(cx, args[0].toString());
+    MC::RootedString str(cx, args[0].toString());
     OriginAttributes attrs;
     if (options.originAttributes) {
-      JS::RootedValue val(cx, JS::ObjectValue(*options.originAttributes));
+      MC::RootedValue val(cx, JS::ObjectValue(*options.originAttributes));
       if (!attrs.Init(cx, val)) {
         // The originAttributes option, if specified, must be valid!
         JS_ReportErrorASCII(cx, "Expected a valid OriginAttributes object");
@@ -2049,7 +2049,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
     ok = ParsePrincipal(cx, str, attrs, getter_AddRefs(principal));
     prinOrSop = principal;
   } else if (args[0].isObject()) {
-    RootedObject obj(cx, &args[0].toObject());
+    MC::RootedObject obj(cx, &args[0].toObject());
     bool isArray;
     if (!JS::IsArrayObject(cx, obj, &isArray)) {
       ok = false;
@@ -2082,7 +2082,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
 
   if (options.metadata.isNullOrUndefined()) {
     // If the caller is running in a sandbox, inherit.
-    RootedObject callerGlobal(cx, JS::GetScriptedCallerGlobal(cx));
+    MC::RootedObject callerGlobal(cx, JS::GetScriptedCallerGlobal(cx));
     if (IsSandbox(callerGlobal)) {
       rv = GetSandboxMetadata(cx, callerGlobal, &options.metadata);
       if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -2111,7 +2111,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
   bool waiveXray = xpc::WrapperFactory::HasWaiveXrayFlag(sandboxArg);
   // CheckedUnwrapStatic is fine here, since we're checking for "is it a
   // sandbox".
-  RootedObject sandbox(cx, js::CheckedUnwrapStatic(sandboxArg));
+  MC::RootedObject sandbox(cx, js::CheckedUnwrapStatic(sandboxArg));
   if (!sandbox || !IsSandbox(sandbox)) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -2133,8 +2133,8 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
   }
 
   // We create a separate cx to do the sandbox evaluation. Scope it.
-  RootedValue v(cx, UndefinedValue());
-  RootedValue exn(cx, UndefinedValue());
+  MC::RootedValue v(cx, UndefinedValue());
+  MC::RootedValue exn(cx, UndefinedValue());
   bool ok = true;
   {
     // We're about to evaluate script, so make an AutoEntryScript.
@@ -2198,7 +2198,7 @@ nsresult xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsSandbox(sandbox));
 
-  RootedValue metadata(cx);
+  MC::RootedValue metadata(cx);
   {
     JSAutoRealm ar(cx, sandbox);
     metadata =
@@ -2218,7 +2218,7 @@ nsresult xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsSandbox(sandbox));
 
-  RootedValue metadata(cx);
+  MC::RootedValue metadata(cx);
 
   JSAutoRealm ar(cx, sandbox);
   if (!JS_StructuredClone(cx, metadataArg, &metadata, nullptr, nullptr)) {

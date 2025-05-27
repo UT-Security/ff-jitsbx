@@ -5,8 +5,8 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "nsXULAppAPI.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"             // JS::NewArrayObject
 #include "js/CallAndConstruct.h"  // JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
@@ -198,8 +198,8 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
       // don't normalize symlinks, because that's kind of confusing
       if (NS_SUCCEEDED(location->IsSymlink(&symlink)) && !symlink)
         location->Normalize();
-      RootedObject locationObj(cx);
-      RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
+      MC::RootedObject locationObj(cx);
+      MC::RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
       rv = nsXPConnect::XPConnect()->WrapNative(
           cx, scope, location, NS_GET_IID(nsIFile), locationObj.address());
       if (NS_SUCCEEDED(rv) && locationObj) {
@@ -234,7 +234,7 @@ static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
   // While 4096 might be quite arbitrary, this is something to be fixed in
   // bug 105707. It is also the same limit as in ProcessFile.
   char buf[4096];
-  RootedString str(cx);
+  MC::RootedString str(cx);
 
   /* If a prompt was specified, construct the string */
   if (args.length() > 0) {
@@ -286,7 +286,7 @@ static bool Print(JSContext* cx, unsigned argc, Value* vp) {
   }
 #endif  // FUZZING_INTERFACES
 
-  RootedString str(cx);
+  MC::RootedString str(cx);
   nsAutoCString utf8output;
 
   for (unsigned i = 0; i < args.length(); i++) {
@@ -319,7 +319,7 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  RootedString str(cx, ToString(cx, args[0]));
+  MC::RootedString str(cx, ToString(cx, args[0]));
   if (!str) {
     return false;
   }
@@ -349,7 +349,7 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
 static bool Load(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  JS::RootedObject thisObject(cx);
+  MC::RootedObject thisObject(cx);
   if (!args.computeThis(cx, &thisObject)) {
     return false;
   }
@@ -358,7 +358,7 @@ static bool Load(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedString str(cx);
+  MC::RootedString str(cx);
   for (unsigned i = 0; i < args.length(); i++) {
     str = ToString(cx, args[i]);
     if (!str) {
@@ -370,7 +370,7 @@ static bool Load(JSContext* cx, unsigned argc, Value* vp) {
     }
     JS::CompileOptions options(cx);
     options.setIsRunOnce(true).setSkipFilenameValidation(true);
-    JS::Rooted<JSScript*> script(
+    MC::Rooted<JSScript*> script(
         cx, JS::CompileUtf8Path(cx, options, filename.get()));
     if (!script) {
       return false;
@@ -445,7 +445,7 @@ static bool SendCommand(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedString str(cx, ToString(cx, args[0]));
+  MC::RootedString str(cx, ToString(cx, args[0]));
   if (!str) {
     JS_ReportErrorASCII(cx, "Could not convert argument 1 to string!");
     return false;
@@ -470,7 +470,7 @@ static bool Options(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   ContextOptions oldContextOptions = ContextOptionsRef(cx);
 
-  RootedString str(cx);
+  MC::RootedString str(cx);
   JS::UniqueChars opt;
   for (unsigned i = 0; i < args.length(); ++i) {
     str = ToString(cx, args[i]);
@@ -517,7 +517,7 @@ static PersistentRootedValue* sScriptedInterruptCallback = nullptr;
 
 static bool XPCShellInterruptCallback(JSContext* cx) {
   MOZ_ASSERT(sScriptedInterruptCallback->initialized());
-  RootedValue callback(cx, *sScriptedInterruptCallback);
+  MC::RootedValue callback(cx, *sScriptedInterruptCallback);
 
   // If no interrupt callback was set by script, no-op.
   if (callback.isUndefined()) {
@@ -527,7 +527,7 @@ static bool XPCShellInterruptCallback(JSContext* cx) {
   MOZ_ASSERT(js::IsFunctionObject(&callback.toObject()));
 
   JSAutoRealm ar(cx, &callback.toObject());
-  RootedValue rv(cx);
+  MC::RootedValue rv(cx);
   if (!JS_CallFunctionValue(cx, nullptr, callback,
                             JS::HandleValueArray::empty(), &rv) ||
       !rv.isBoolean()) {
@@ -595,7 +595,7 @@ static bool RegisterAppManifest(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  Rooted<JSObject*> arg1(cx, &args[0].toObject());
+  MC::Rooted<JSObject*> arg1(cx, &args[0].toObject());
   nsCOMPtr<nsIFile> file;
   nsresult rv = nsXPConnect::XPConnect()->WrapJS(cx, arg1, NS_GET_IID(nsIFile),
                                                  getter_AddRefs(file));
@@ -724,7 +724,7 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
     return false;
   }
 
-  JS::RootedScript script(cx, JS::Compile(cx, options, srcBuf));
+  MC::RootedScript script(cx, JS::Compile(cx, options, srcBuf));
   if (!script) {
     return false;
   }
@@ -732,7 +732,7 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
     return true;
   }
 
-  JS::RootedValue result(cx);
+  MC::RootedValue result(cx);
   if (!JS_ExecuteScript(cx, script, &result)) {
     return false;
   }
@@ -741,7 +741,7 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
     return true;
   }
 
-  RootedString str(cx, JS::ToString(cx, result));
+  MC::RootedString str(cx, JS::ToString(cx, result));
   if (!str) {
     return false;
   }
@@ -758,7 +758,7 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
 static bool ProcessFile(AutoJSAPI& jsapi, const char* filename, FILE* file,
                         bool forceTTY) {
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   MOZ_ASSERT(global);
 
   if (forceTTY) {
@@ -785,8 +785,8 @@ static bool ProcessFile(AutoJSAPI& jsapi, const char* filename, FILE* file,
       return false;
     }
 
-    JS::RootedScript script(cx);
-    JS::RootedValue unused(cx);
+    MC::RootedScript script(cx);
+    MC::RootedValue unused(cx);
     JS::CompileOptions options(cx);
     options.setFileAndLine(filenameUtf8.get(), 1)
         .setIsRunOnce(true)
@@ -879,7 +879,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
   const char rcfilename[] = "xpcshell.js";
   FILE* rcfile;
   int rootPosition;
-  JS::Rooted<JSObject*> argsObj(cx);
+  MC::Rooted<JSObject*> argsObj(cx);
   char* filename = nullptr;
   bool isInteractive = true;
   bool forceTTY = false;
@@ -894,7 +894,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
     }
   }
 
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
   /*
    * Scan past all optional arguments so we can create the arguments object
@@ -933,7 +933,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
   }
 
   for (int j = 0, length = argc - rootPosition; j < length; j++) {
-    RootedString str(cx, JS_NewStringCopyZ(cx, argv[rootPosition++]));
+    MC::RootedString str(cx, JS_NewStringCopyZ(cx, argv[rootPosition++]));
     if (!str || !JS_DefineElement(cx, argsObj, j, str, JSPROP_ENUMERATE)) {
       return 1;
     }
@@ -977,7 +977,7 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
         isInteractive = forceTTY = true;
         break;
       case 'e': {
-        RootedValue rval(cx);
+        MC::RootedValue rval(cx);
 
         if (++i == argc) {
           return printUsageAndSetExitCode();
@@ -1071,6 +1071,8 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
   NS_LogInit();
 
   mozilla::LogModule::Init(argc, argv);
+
+  MC::Sandbox::Initialize();
 
   // This guard ensures that all threads that attempt to register themselves
   // with the IOInterposer will be properly tracked.
@@ -1299,7 +1301,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
     // might break various automation scripts.
     options.behaviors().setDiscardSource(false);
 
-    JS::Rooted<JSObject*> glob(cx);
+    MC::Rooted<JSObject*> glob(cx);
     rv = xpc::InitClassesWithNewWrappedGlobal(
         cx, static_cast<nsIGlobalObject*>(backstagePass), systemprincipal, 0,
         options, &glob);
@@ -1417,7 +1419,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
       JS_DropPrincipals(cx, gJSPrincipals);
       JS_SetAllNonReservedSlotsToUndefined(glob);
-      JS::RootedObject lexicalEnv(cx, JS_GlobalLexicalEnvironment(glob));
+      MC::RootedObject lexicalEnv(cx, JS_GlobalLexicalEnvironment(glob));
       JS_SetAllNonReservedSlotsToUndefined(lexicalEnv);
       JS_GC(cx);
     }

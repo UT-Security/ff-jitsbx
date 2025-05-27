@@ -635,7 +635,7 @@ void nsPrintJob::FirePrintingErrorEvent(nsresult aPrintError) {
   }
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JS::Value> detail(
+  MC::Rooted<JS::Value> detail(
       cx, JS::NumberValue(static_cast<double>(aPrintError)));
   event->InitCustomEvent(cx, u"PrintingError"_ns, false, false, detail);
   event->SetTrusted(true);

@@ -10,7 +10,7 @@
 #include <cstdint>
 #include "ScopedNSSTypes.h"
 #include "certt.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "keythi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"

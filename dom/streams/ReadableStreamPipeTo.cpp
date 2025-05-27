@@ -192,13 +192,13 @@ void PipeToPump::PerformAbortAlgorithm(JSContext* aCx,
   // Note: All the following steps are 14.1.xx
 
   // Step 1. Let error be signal’s abort reason.
-  JS::Rooted<JS::Value> error(aCx);
+  MC::Rooted<JS::Value> error(aCx);
   aSignal->GetReason(aCx, &error);
 
   auto action = [](JSContext* aCx, PipeToPump* aPipeToPump,
                    JS::Handle<mozilla::Maybe<JS::Value>> aError,
                    ErrorResult& aRv) MOZ_CAN_RUN_SCRIPT {
-    JS::Rooted<JS::Value> error(aCx, *aError);
+    MC::Rooted<JS::Value> error(aCx, *aError);
 
     // Step 2. Let actions be an empty ordered set.
     nsTArray<RefPtr<Promise>> actions;
@@ -247,7 +247,7 @@ void PipeToPump::PerformAbortAlgorithm(JSContext* aCx,
 
   // Step 5. Shutdown with an action consisting of getting a promise to wait for
   // all of the actions in actions, and with error.
-  JS::Rooted<Maybe<JS::Value>> someError(aCx, Some(error.get()));
+  MC::Rooted<Maybe<JS::Value>> someError(aCx, Some(error.get()));
   ShutdownWithAction(aCx, action, someError);
 }
 
@@ -260,7 +260,7 @@ bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
   // Step 1. Errors must be propagated forward: if source.[[state]] is or
   // becomes "errored", then
   if (source->State() == ReadableStream::ReaderState::Errored) {
-    JS::Rooted<JS::Value> storedError(aCx, source->StoredError());
+    MC::Rooted<JS::Value> storedError(aCx, source->StoredError());
     OnSourceErrored(aCx, storedError);
     return true;
   }
@@ -268,7 +268,7 @@ bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
   // Step 2. Errors must be propagated backward: if dest.[[state]] is or becomes
   // "errored", then
   if (dest->State() == WritableStream::WriterState::Errored) {
-    JS::Rooted<JS::Value> storedError(aCx, dest->StoredError());
+    MC::Rooted<JS::Value> storedError(aCx, dest->StoredError());
     OnDestErrored(aCx, storedError);
     return true;
   }
@@ -366,7 +366,7 @@ class WriteFinishedPromiseHandler final : public PromiseNativeHandler {
 
   MOZ_CAN_RUN_SCRIPT void WriteFinished(JSContext* aCx) {
     RefPtr<PipeToPump> pipeToPump = mPipeToPump;  // XXX known-live?
-    JS::Rooted<Maybe<JS::Value>> error(aCx);
+    MC::Rooted<Maybe<JS::Value>> error(aCx);
     if (mHasError) {
       error = Some(mError);
     }
@@ -462,7 +462,7 @@ class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
     // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action
     // Step 5. Upon fulfillment of p, finalize, passing along originalError if
     // it was given.
-    JS::Rooted<Maybe<JS::Value>> error(aCx);
+    MC::Rooted<Maybe<JS::Value>> error(aCx);
     if (mHasError) {
       error = Some(mError);
     }
@@ -474,7 +474,7 @@ class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
     // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action
     // Step 6. Upon rejection of p with reason newError, finalize with
     // newError.
-    JS::Rooted<Maybe<JS::Value>> error(aCx, Some(aReason));
+    MC::Rooted<Maybe<JS::Value>> error(aCx, Some(aReason));
     mPipeToPump->Finalize(aCx, error);
   }
 };
@@ -505,9 +505,9 @@ void PipeToPump::ShutdownWithActionAfterFinishedWrite(
 
   // Error while calling actions above, continue immediately with finalization.
   if (rv.MaybeSetPendingException(aCx)) {
-    JS::Rooted<Maybe<JS::Value>> someError(aCx);
+    MC::Rooted<Maybe<JS::Value>> someError(aCx);
 
-    JS::Rooted<JS::Value> error(aCx);
+    MC::Rooted<JS::Value> error(aCx);
     if (JS_GetPendingException(aCx, &error)) {
       someError = Some(error.get());
     }
@@ -561,7 +561,7 @@ void PipeToPump::Finalize(JSContext* aCx,
 
   // Step 4. If error was given, reject promise with error.
   if (aError.isSome()) {
-    JS::Rooted<JS::Value> error(aCx, *aError);
+    MC::Rooted<JS::Value> error(aCx, *aError);
     mPromise->MaybeReject(error);
   } else {
     // Step 5. Otherwise, resolve promise with undefined.
@@ -720,8 +720,8 @@ void PipeToPump::Read(JSContext* aCx) {
     // happen i.e. when `WritableStreamDefaultWriterWrite` called from
     // `OnReadFulfilled` (via PipeToReadRequest::ChunkSteps) fails in
     // a synchronous fashion.
-    JS::Rooted<JS::Value> error(aCx);
-    JS::Rooted<Maybe<JS::Value>> someError(aCx);
+    MC::Rooted<JS::Value> error(aCx);
+    MC::Rooted<Maybe<JS::Value>> someError(aCx);
 
     // The error was moved to the JSContext by MaybeSetPendingException.
     if (JS_GetPendingException(aCx, &error)) {
@@ -797,14 +797,14 @@ void PipeToPump::OnSourceErrored(JSContext* aCx,
   // Step 1.1 If preventAbort is false, shutdown with an action of
   // ! WritableStreamAbort(dest, source.[[storedError]])
   // and with source.[[storedError]].
-  JS::Rooted<Maybe<JS::Value>> error(aCx, Some(aSourceStoredError));
+  MC::Rooted<Maybe<JS::Value>> error(aCx, Some(aSourceStoredError));
   if (!mPreventAbort) {
     ShutdownWithAction(
         aCx,
         [](JSContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
-              JS::Rooted<JS::Value> error(aCx, *aError);
+              MC::Rooted<JS::Value> error(aCx, *aError);
               RefPtr<WritableStream> dest = aPipeToPump->mWriter->GetStream();
               return WritableStreamAbort(aCx, dest, error, aRv);
             },
@@ -831,11 +831,11 @@ void PipeToPump::OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>) {
   MOZ_ASSERT(!mReadChunk);
 
   // Step 4.2. Let destClosed be a new TypeError.
-  JS::Rooted<Maybe<JS::Value>> destClosed(aCx, Nothing());
+  MC::Rooted<Maybe<JS::Value>> destClosed(aCx, Nothing());
   {
     ErrorResult rv;
     rv.ThrowTypeError("Cannot pipe to closed stream");
-    JS::Rooted<JS::Value> error(aCx);
+    MC::Rooted<JS::Value> error(aCx);
     bool ok = ToJSValue(aCx, std::move(rv), &error);
     MOZ_RELEASE_ASSERT(ok, "must be ok");
     destClosed = Some(error.get());
@@ -849,7 +849,7 @@ void PipeToPump::OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>) {
         [](JSContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
-              JS::Rooted<JS::Value> error(aCx, *aError);
+              MC::Rooted<JS::Value> error(aCx, *aError);
               RefPtr<ReadableStream> dest = aPipeToPump->mReader->GetStream();
               return ReadableStreamCancel(aCx, dest, error, aRv);
             },
@@ -867,14 +867,14 @@ void PipeToPump::OnDestErrored(JSContext* aCx,
   // Step 2.1. If preventCancel is false, shutdown with an action of
   // ! ReadableStreamCancel(source, dest.[[storedError]])
   // and with dest.[[storedError]].
-  JS::Rooted<Maybe<JS::Value>> error(aCx, Some(aDestStoredError));
+  MC::Rooted<Maybe<JS::Value>> error(aCx, Some(aDestStoredError));
   if (!mPreventCancel) {
     ShutdownWithAction(
         aCx,
         [](JSContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
-              JS::Rooted<JS::Value> error(aCx, *aError);
+              MC::Rooted<JS::Value> error(aCx, *aError);
               RefPtr<ReadableStream> dest = aPipeToPump->mReader->GetStream();
               return ReadableStreamCancel(aCx, dest, error, aRv);
             },

@@ -26,6 +26,8 @@
 #include "monkeycage/String.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Utility.h"
+#include "monkeycage/Value.h"
+#include "monkeycage/ValueArray.h"
 #include "monkeycage/WaitCallbacks.h"
 #include "monkeycage/WrapperCallbacks.h"
 

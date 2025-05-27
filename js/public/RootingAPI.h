@@ -665,6 +665,19 @@ class MOZ_NONHEAP_CLASS Handle : public js::HandleOperations<T, Handle<T>> {
       const PersistentRooted<S>& root,
       std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
 
+#ifdef JS_SANDBOX_API
+  // TODO(abhishek): These are UNSAFE temporary conversions.
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const MC::Rooted<S>& root,
+      std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
+
+  template <typename S>
+  inline MOZ_IMPLICIT Handle(
+      const MC::PersistentRooted<S>& root,
+      std::enable_if_t<std::is_convertible_v<S, T>, int> dummy = 0);
+#endif
+
   /* Construct a read only handle from a mutable handle. */
   template <typename S>
   inline MOZ_IMPLICIT Handle(

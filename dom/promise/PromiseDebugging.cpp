@@ -77,7 +77,7 @@ void PromiseDebugging::GetState(GlobalObject& aGlobal,
                                 ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
+  MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
     aRv.ThrowTypeError<MSG_IS_NOT_PROMISE>();
     return;
@@ -103,7 +103,7 @@ void PromiseDebugging::GetPromiseID(GlobalObject& aGlobal,
                                     nsString& aID, ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
+  MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
     aRv.ThrowTypeError<MSG_IS_NOT_PROMISE>();
     return;
@@ -120,7 +120,7 @@ void PromiseDebugging::GetAllocationStack(GlobalObject& aGlobal,
                                           ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
+  MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
     aRv.ThrowTypeError<MSG_IS_NOT_PROMISE>();
     return;
@@ -135,7 +135,7 @@ void PromiseDebugging::GetRejectionStack(GlobalObject& aGlobal,
                                          ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
+  MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
     aRv.ThrowTypeError<MSG_IS_NOT_PROMISE>();
     return;
@@ -150,7 +150,7 @@ void PromiseDebugging::GetFullfillmentStack(GlobalObject& aGlobal,
                                             ErrorResult& aRv) {
   JSContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
-  JS::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
+  MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
     aRv.ThrowTypeError<MSG_IS_NOT_PROMISE>();
     return;
@@ -254,7 +254,7 @@ void PromiseDebugging::FlushUncaughtRejectionsInternal() {
   auto& observers = storage->mUncaughtRejectionObservers;
 
   for (size_t i = 0; i < uncaught.length(); i++) {
-    JS::Rooted<JSObject*> promise(cx, uncaught[i]);
+    MC::Rooted<JSObject*> promise(cx, uncaught[i]);
     // Filter out nullptrs which might've been added by
     // PromiseDebugging::AddConsumedRejection.
     if (!promise) {
@@ -281,7 +281,7 @@ void PromiseDebugging::FlushUncaughtRejectionsInternal() {
   // Notify observers of consumed Promise.
 
   for (size_t i = 0; i < consumed.length(); i++) {
-    JS::Rooted<JSObject*> promise(cx, consumed[i]);
+    MC::Rooted<JSObject*> promise(cx, consumed[i]);
 
     for (size_t j = 0; j < observers.Length(); ++j) {
       RefPtr<UncaughtRejectionObserver> obs =

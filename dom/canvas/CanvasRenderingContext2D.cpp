@@ -5768,7 +5768,7 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
     h = 1;
   }
 
-  JS::Rooted<JSObject*> array(aCx);
+  MC::Rooted<JSObject*> array(aCx);
   aError = GetImageDataArray(aCx, aSx, aSy, w, h, aSubjectPrincipal,
                              array.address());
   if (aError.Failed()) {
@@ -5807,7 +5807,7 @@ nsresult CanvasRenderingContext2D::GetImageDataArray(
     return NS_ERROR_DOM_SYNTAX_ERR;
   }
 
-  JS::Rooted<JSObject*> darray(aCx, JS_NewUint8ClampedArray(aCx, len.value()));
+  MC::Rooted<JSObject*> darray(aCx, JS_NewUint8ClampedArray(aCx, len.value()));
   if (!darray) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

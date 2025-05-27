@@ -1202,7 +1202,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
   static_assert(IsRefcounted<T>::value, "Don't pass owned classes in here.");
   MOZ_ASSERT(value);
   // We try to wrap in the realm of the underlying object of "scope"
-  JS::Rooted<JSObject*> obj(cx);
+  MC::Rooted<JSObject*> obj(cx);
   {
     // scope for the JSAutoRealm so that we restore the realm
     // before we call JS_WrapValue.
@@ -1210,8 +1210,8 @@ inline bool WrapNewBindingNonWrapperCachedObject(
     // Maybe<Handle> doesn't so much work, and in any case, adding
     // more Maybe (one for a Rooted and one for a Handle) adds more
     // code (and branches!) than just adding a single rooted.
-    JS::Rooted<JSObject*> scope(cx, scopeArg);
-    JS::Rooted<JSObject*> proto(cx, givenProto);
+    MC::Rooted<JSObject*> scope(cx, scopeArg);
+    MC::Rooted<JSObject*> proto(cx, givenProto);
     if (mc::IsWrapper(scope)) {
       // We are working in the Realm of cx and will be producing our reflector
       // there, so we need to succeed if that realm has access to the scope.
@@ -1257,7 +1257,7 @@ inline bool WrapNewBindingNonWrapperCachedObject(
     MOZ_CRASH("Don't try to wrap null objects");
   }
   // We try to wrap in the realm of the underlying object of "scope"
-  JS::Rooted<JSObject*> obj(cx);
+  MC::Rooted<JSObject*> obj(cx);
   {
     // scope for the JSAutoRealm so that we restore the realm
     // before we call JS_WrapValue.
@@ -1265,8 +1265,8 @@ inline bool WrapNewBindingNonWrapperCachedObject(
     // Maybe<Handle> doesn't so much work, and in any case, adding
     // more Maybe (one for a Rooted and one for a Handle) adds more
     // code (and branches!) than just adding a single rooted.
-    JS::Rooted<JSObject*> scope(cx, scopeArg);
-    JS::Rooted<JSObject*> proto(cx, givenProto);
+    MC::Rooted<JSObject*> scope(cx, scopeArg);
+    MC::Rooted<JSObject*> proto(cx, givenProto);
     if (mc::IsWrapper(scope)) {
       // We are working in the Realm of cx and will be producing our reflector
       // there, so we need to succeed if that realm has access to the scope.
@@ -1375,7 +1375,7 @@ inline bool FindEnumStringIndex(BindingCallContext& cx, JS::Handle<JS::Value> v,
                                 const EnumEntry* values, const char* type,
                                 const char* sourceDescription, int* index) {
   // JS_StringEqualsAscii is slow as molasses, so don't use it here.
-  JS::Rooted<JSString*> str(cx, JS::ToString(cx, v));
+  MC::Rooted<JSString*> str(cx, JS::ToString(cx, v));
   if (!str) {
     return false;
   }
@@ -1499,7 +1499,7 @@ inline bool WrapObject(JSContext* cx, T* p, nsWrapperCache* cache,
                        const nsIID* iid, JS::MutableHandle<JS::Value> rval) {
   if (xpc_FastGetCachedWrapper(cx, cache, rval)) return true;
   xpcObjectHelper helper(ToSupports(p), cache);
-  JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
   return XPCOMObjectToJsval(cx, scope, helper, iid, true, rval);
 }
 
@@ -1583,11 +1583,11 @@ bool WrapObject(JSContext* cx, const WindowProxyHolder& p,
 template <typename T>
 static inline JSObject* WrapNativeISupports(JSContext* cx, T* p,
                                             nsWrapperCache* cache) {
-  JS::Rooted<JSObject*> retval(cx);
+  MC::Rooted<JSObject*> retval(cx);
   {
     xpcObjectHelper helper(ToSupports(p), cache);
-    JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
-    JS::Rooted<JS::Value> v(cx);
+    MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
+    MC::Rooted<JS::Value> v(cx);
     retval = XPCOMObjectToJsval(cx, scope, helper, nullptr, false, &v)
                  ? v.toObjectOrNull()
                  : nullptr;
@@ -1626,7 +1626,7 @@ struct WrapNativeHelper<T, false> {
     JSObject* obj;
     if (cache && (obj = cache->GetWrapper())) {
 #ifdef DEBUG
-      JS::Rooted<JSObject*> rootedObj(cx, obj);
+      MC::Rooted<JSObject*> rootedObj(cx, obj);
       NS_ASSERTION(WrapNativeISupports(cx, parent, cache) == rootedObj,
                    "Unexpected object in nsWrapperCache");
       obj = rootedObj;
@@ -1672,7 +1672,7 @@ static inline JSObject* FindAssociatedGlobal(
       if (xpc::IsInUAWidgetScope(obj)) {
         return obj;
       }
-      JS::Rooted<JSObject*> rootedObj(cx, obj);
+      MC::Rooted<JSObject*> rootedObj(cx, obj);
       JSObject* uaWidgetScope = xpc::GetUAWidgetScope(cx, rootedObj);
       MOZ_ASSERT_IF(uaWidgetScope, JS_IsGlobalObject(uaWidgetScope));
       JS::AssertObjectIsNotGray(uaWidgetScope);
@@ -1957,7 +1957,7 @@ inline bool ConvertIdToString(JSContext* cx, JS::Handle<JS::PropertyKey> id,
     isSymbol = true;
     return true;
   } else {
-    JS::Rooted<JS::Value> nameVal(cx, js::IdToValue(id));
+    MC::Rooted<JS::Value> nameVal(cx, js::IdToValue(id));
     if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify, result)) {
       return false;
     }
@@ -2325,7 +2325,7 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
  */
 inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
                                JS::MutableHandle<JSObject*> protop) {
-  JS::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
+  MC::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
   {
     JSAutoRealm ar(cx, global);
     const DOMJSClass* domClass = GetDOMClass(obj);
@@ -2553,14 +2553,14 @@ already_AddRefed<T> ConstructJSImplementation(const char* aContractId,
                                               nsIGlobalObject* aGlobal,
                                               ErrorResult& aRv) {
   JS::RootingContext* cx = RootingCx();
-  JS::Rooted<JSObject*> jsImplObj(cx);
+  MC::Rooted<JSObject*> jsImplObj(cx);
   ConstructJSImplementation(aContractId, aGlobal, &jsImplObj, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
   MOZ_RELEASE_ASSERT(!mc::IsWrapper(jsImplObj));
-  JS::Rooted<JSObject*> jsImplGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplObj));
+  MC::Rooted<JSObject*> jsImplGlobal(cx, JS::GetNonCCWObjectGlobal(jsImplObj));
   RefPtr<T> newObj = new T(jsImplObj, jsImplGlobal, aGlobal);
   return newObj.forget();
 }
@@ -2770,7 +2770,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     T* mNative;
   };
 
-  JS::Rooted<JSObject*> mReflector;
+  MC::Rooted<JSObject*> mReflector;
   std::conditional_t<IsRefcounted<T>::value, RefPtr<T>, OwnedNative> mNative;
 };
 

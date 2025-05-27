@@ -36,7 +36,7 @@ struct RsaHashedKeyAlgorithmStorage {
   CryptoBuffer mPublicExponent;
 
   bool ToKeyAlgorithm(JSContext* aCx, RsaHashedKeyAlgorithm& aRsa) const {
-    JS::Rooted<JSObject*> exponent(aCx, mPublicExponent.ToUint8Array(aCx));
+    MC::Rooted<JSObject*> exponent(aCx, mPublicExponent.ToUint8Array(aCx));
     if (!exponent) {
       return false;
     }

@@ -66,11 +66,11 @@ already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
   MOZ_ASSERT(loader);
 
   // If a module URI was provided, use it to construct an instance of the actor.
-  JS::Rooted<JSObject*> actorObj(aCx);
+  MC::Rooted<JSObject*> actorObj(aCx);
   if (side.mModuleURI || side.mESModuleURI) {
-    JS::Rooted<JSObject*> exports(aCx);
+    MC::Rooted<JSObject*> exports(aCx);
     if (side.mModuleURI) {
-      JS::Rooted<JSObject*> global(aCx);
+      MC::Rooted<JSObject*> global(aCx);
       aRv = loader->Import(aCx, side.mModuleURI.ref(), &global, &exports);
       if (aRv.Failed()) {
         return nullptr;
@@ -84,7 +84,7 @@ already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
     MOZ_ASSERT(exports, "null exports!");
 
     // Load the specific property from our module.
-    JS::Rooted<JS::Value> ctor(aCx);
+    MC::Rooted<JS::Value> ctor(aCx);
     nsAutoCString ctorName(aName);
     ctorName.Append(isParent ? "Parent"_ns : "Child"_ns);
     if (!JS_GetProperty(aCx, exports, ctorName.get(), &ctor)) {
@@ -155,10 +155,10 @@ void JSActorManager::ReceiveRawMessage(
       MakeScopeExit([&] { Unused << error.MaybeSetPendingException(cx); });
 
   // If an async stack was provided, set up our async stack state.
-  JS::Rooted<JSObject*> stack(cx);
+  MC::Rooted<JSObject*> stack(cx);
   Maybe<JS::AutoSetAsyncStackForNewCalls> stackSetter;
   {
-    JS::Rooted<JS::Value> stackVal(cx);
+    MC::Rooted<JS::Value> stackVal(cx);
     if (aStack) {
       aStack->Read(cx, &stackVal, error);
       if (error.Failed()) {
@@ -184,7 +184,7 @@ void JSActorManager::ReceiveRawMessage(
     return;
   }
 
-  JS::Rooted<JS::Value> data(cx);
+  MC::Rooted<JS::Value> data(cx);
   if (aData) {
     aData->Read(cx, &data, error);
     if (error.Failed()) {

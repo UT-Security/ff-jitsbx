@@ -66,8 +66,8 @@ NS_IMETHODIMP
 BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
                        JSObject* objArg, jsid idArg, bool* resolvedp,
                        bool* _retval) {
-  JS::RootedObject obj(cx, objArg);
-  JS::RootedId id(cx, idArg);
+  MC::RootedObject obj(cx, objArg);
+  MC::RootedId id(cx, idArg);
   *_retval =
       WebIDLGlobalNameHash::ResolveForSystemGlobal(cx, obj, id, resolvedp);
   if (!*_retval) {
@@ -113,7 +113,7 @@ BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
                             JSObject* objArg,
                             JS::MutableHandleIdVector properties,
                             bool enumerableOnly, bool* _retval) {
-  JS::RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
 
   XPCJSContext* xpccx = XPCJSContext::Get();
   if (!properties.append(xpccx->GetStringID(XPCJSContext::IDX_FETCH)) ||

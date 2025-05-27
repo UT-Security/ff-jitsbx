@@ -66,11 +66,11 @@ void ExtensionTest::CallWebExtMethodAssertEq(
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   uint32_t argsCount = aArgs.Length();
 
-  JS::Rooted<JS::Value> expectedVal(
+  MC::Rooted<JS::Value> expectedVal(
       aCx, argsCount > 0 ? aArgs[0] : JS::UndefinedValue());
-  JS::Rooted<JS::Value> actualVal(
+  MC::Rooted<JS::Value> actualVal(
       aCx, argsCount > 1 ? aArgs[1] : JS::UndefinedValue());
-  JS::Rooted<JS::Value> messageVal(
+  MC::Rooted<JS::Value> messageVal(
       aCx, argsCount > 2 ? aArgs[2] : JS::UndefinedValue());
 
   bool isEqual;
@@ -79,9 +79,9 @@ void ExtensionTest::CallWebExtMethodAssertEq(
     return;
   }
 
-  JS::Rooted<JSString*> expectedJSString(aCx, JS::ToString(aCx, expectedVal));
-  JS::Rooted<JSString*> actualJSString(aCx, JS::ToString(aCx, actualVal));
-  JS::Rooted<JSString*> messageJSString(aCx, JS::ToString(aCx, messageVal));
+  MC::Rooted<JSString*> expectedJSString(aCx, JS::ToString(aCx, expectedVal));
+  MC::Rooted<JSString*> actualJSString(aCx, JS::ToString(aCx, actualVal));
+  MC::Rooted<JSString*> messageJSString(aCx, JS::ToString(aCx, messageVal));
 
   nsString expected;
   nsString actual;
@@ -125,7 +125,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   // Stringify the actual value, if the expected value is a regexp or a string
   // then it will be used as part of the matching assertion, otherwise it is
   // still interpolated in the assertion message.
-  JS::Rooted<JSString*> actualToString(aCx, JS::ToString(aCx, aActualValue));
+  MC::Rooted<JSString*> actualToString(aCx, JS::ToString(aCx, aActualValue));
   NS_ENSURE_TRUE(actualToString, false);
   nsAutoJSString actualString;
   NS_ENSURE_TRUE(actualString.init(aCx, actualToString), false);
@@ -133,7 +133,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   bool matched = false;
 
   if (aExpectedMatchValue.isObject()) {
-    JS::Rooted<JSObject*> expectedMatchObj(aCx,
+    MC::Rooted<JSObject*> expectedMatchObj(aCx,
                                            &aExpectedMatchValue.toObject());
 
     bool isRegexp;
@@ -144,7 +144,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
       // match.
       nsString input(actualString);
       size_t index = 0;
-      JS::Rooted<JS::Value> rxResult(aCx);
+      MC::Rooted<JS::Value> rxResult(aCx);
       NS_ENSURE_TRUE(JS::ExecuteRegExpNoStatics(
                          aCx, expectedMatchObj, input.BeginWriting(),
                          actualString.Length(), &index, true, &rxResult),
@@ -163,7 +163,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
       // - if the function return a falsey value, the assertion should fail and
       //   no exception is raised to the extension code that called the
       //   assertion
-      JS::Rooted<JS::Value> retval(aCx);
+      MC::Rooted<JS::Value> retval(aCx);
       aRv.MightThrowJSException();
       if (!JS::Call(aCx, MC::UndefinedHandleValue(), expectedMatchObj,
                     JS::HandleValueArray(aActualValue), &retval)) {
@@ -186,7 +186,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   } else if (aExpectedMatchValue.isString()) {
     // Expected value is a string, assertion should fail if the expected string
     // isn't equal to the stringified actual value.
-    JS::Rooted<JSString*> expectedToString(
+    MC::Rooted<JSString*> expectedToString(
         aCx, JS::ToString(aCx, aExpectedMatchValue));
     NS_ENSURE_TRUE(expectedToString, false);
 
@@ -202,9 +202,9 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
     // TODO(Bug 1731094): as a low priority follow up, we may want to reconsider
     // and compare the entire stringified error (which is also often a common
     // behavior in many third party JS test frameworks).
-    JS::Rooted<JS::Value> messageVal(aCx);
+    MC::Rooted<JS::Value> messageVal(aCx);
     if (aActualValue.isObject()) {
-      JS::Rooted<JSObject*> actualValueObj(aCx, &aActualValue.toObject());
+      MC::Rooted<JSObject*> actualValueObj(aCx, &aActualValue.toObject());
 
       if (!JS_GetProperty(aCx, actualValueObj, "message", &messageVal)) {
         // GetProperty may raise an exception, in that case we steal the
@@ -229,7 +229,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
 
   // Convert the expected value to a source string, to be interpolated
   // in the assertion message.
-  JS::Rooted<JSString*> expectedToSource(
+  MC::Rooted<JSString*> expectedToSource(
       aCx, JS_ValueToSource(aCx, aExpectedMatchValue));
   NS_ENSURE_TRUE(expectedToSource, false);
   nsAutoJSString expectedSource;
@@ -248,8 +248,8 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   // interpolated assertion message to the test.assertTrue API method on the
   // main thread.
   dom::Sequence<JS::Value> assertTrueArgs;
-  JS::Rooted<JS::Value> arg0(aCx);
-  JS::Rooted<JS::Value> arg1(aCx);
+  MC::Rooted<JS::Value> arg0(aCx);
+  MC::Rooted<JS::Value> arg1(aCx);
   NS_ENSURE_FALSE(!dom::ToJSValue(aCx, matched, &arg0) ||
                       !dom::ToJSValue(aCx, message, &arg1) ||
                       !assertTrueArgs.AppendElement(arg0, fallible) ||
@@ -274,12 +274,12 @@ MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
   // to pass it to the AssertMatchInternal.
   ErrorResult erv;
   erv.MightThrowJSException();
-  JS::Rooted<JS::Value> ignoredRetval(aCx);
+  MC::Rooted<JS::Value> ignoredRetval(aCx);
   aFunction.Call({}, &ignoredRetval, erv, "ExtensionTest::AssertThrows",
                  dom::Function::eRethrowExceptions);
 
   bool didThrow = false;
-  JS::Rooted<JS::Value> exn(aCx);
+  MC::Rooted<JS::Value> exn(aCx);
 
   if (erv.MaybeSetPendingException(aCx) && JS_GetPendingException(aCx, &exn)) {
     JS_ClearPendingException(aCx);
@@ -289,7 +289,7 @@ MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
   // If the function did not throw, then the assertion is failed
   // and the result should be forwarded to assertTrue on the main thread.
   if (!didThrow) {
-    JS::Rooted<JSString*> expectedErrorToSource(
+    MC::Rooted<JSString*> expectedErrorToSource(
         aCx, JS_ValueToSource(aCx, aExpectedError));
     if (NS_WARN_IF(!expectedErrorToSource)) {
       ThrowUnexpectedError(aCx, aRv);
@@ -309,8 +309,8 @@ MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
     }
 
     dom::Sequence<JS::Value> assertTrueArgs;
-    JS::Rooted<JS::Value> arg0(aCx);
-    JS::Rooted<JS::Value> arg1(aCx);
+    MC::Rooted<JS::Value> arg0(aCx);
+    MC::Rooted<JS::Value> arg1(aCx);
     if (NS_WARN_IF(!dom::ToJSValue(aCx, false, &arg0) ||
                    !dom::ToJSValue(aCx, message, &arg1) ||
                    !assertTrueArgs.AppendElement(arg0, fallible) ||
@@ -366,8 +366,8 @@ class AssertRejectsHandler final : public dom::PromiseNativeHandler {
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
     nsAutoJSString expectedErrorSource;
-    JS::Rooted<JS::Value> rootedExpectedMatchValue(aCx, mExpectedMatchValue);
-    JS::Rooted<JSString*> expectedErrorToSource(
+    MC::Rooted<JS::Value> rootedExpectedMatchValue(aCx, mExpectedMatchValue);
+    MC::Rooted<JSString*> expectedErrorToSource(
         aCx, JS_ValueToSource(aCx, rootedExpectedMatchValue));
     if (NS_WARN_IF(!expectedErrorToSource ||
                    !expectedErrorSource.init(aCx, expectedErrorToSource))) {
@@ -384,8 +384,8 @@ class AssertRejectsHandler final : public dom::PromiseNativeHandler {
     }
 
     dom::Sequence<JS::Value> assertTrueArgs;
-    JS::Rooted<JS::Value> arg0(aCx);
-    JS::Rooted<JS::Value> arg1(aCx);
+    MC::Rooted<JS::Value> arg0(aCx);
+    MC::Rooted<JS::Value> arg1(aCx);
     if (NS_WARN_IF(!dom::ToJSValue(aCx, false, &arg0) ||
                    !dom::ToJSValue(aCx, message, &arg1) ||
                    !assertTrueArgs.AppendElement(arg0, fallible) ||
@@ -408,7 +408,7 @@ class AssertRejectsHandler final : public dom::PromiseNativeHandler {
   MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
-    JS::Rooted<JS::Value> expectedMatchRooted(aCx, mExpectedMatchValue);
+    MC::Rooted<JS::Value> expectedMatchRooted(aCx, mExpectedMatchValue);
     ErrorResult erv;
 
     if (NS_WARN_IF(!MOZ_KnownLive(mExtensionTest)

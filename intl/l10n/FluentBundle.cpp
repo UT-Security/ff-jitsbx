@@ -14,7 +14,7 @@
 #include "nsIInputStream.h"
 #include "nsStringFwd.h"
 #include "nsTArray.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement
 
 using namespace mozilla::dom;
 
@@ -173,7 +173,7 @@ bool extendJSArrayWithErrors(JSContext* aCx, JS::Handle<JSObject*> aErrors,
   }
 
   for (auto& err : aInput) {
-    JS::Rooted<JS::Value> jsval(aCx);
+    MC::Rooted<JS::Value> jsval(aCx);
     if (!ToJSValue(aCx, NS_ConvertUTF8toUTF16(err), &jsval)) {
       return false;
     }

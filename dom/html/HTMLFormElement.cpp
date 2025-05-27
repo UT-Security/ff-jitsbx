@@ -1933,7 +1933,7 @@ bool HTMLFormElement::CheckValidFormSubmission() {
   if (!jsapi.Init(GetOwnerGlobal())) {
     return false;
   }
-  JS::Rooted<JS::Value> detail(jsapi.cx());
+  MC::Rooted<JS::Value> detail(jsapi.cx());
   if (!ToJSValue(jsapi.cx(), invalidElements, &detail)) {
     return false;
   }

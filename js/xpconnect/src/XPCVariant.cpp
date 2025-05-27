@@ -151,8 +151,8 @@ bool XPCArrayHomogenizer::GetTypeForArray(JSContext* cx, HandleObject array,
   Type state = tUnk;
   Type type;
 
-  RootedValue val(cx);
-  RootedObject jsobj(cx);
+  MC::RootedValue val(cx);
+  MC::RootedObject jsobj(cx);
   for (uint32_t i = 0; i < length; i++) {
     if (!JS_GetElement(cx, array, i, &val)) {
       return false;
@@ -249,7 +249,7 @@ bool XPCVariant::InitializeData(JSContext* cx) {
     return false;
   }
 
-  RootedValue val(cx, GetJSVal());
+  MC::RootedValue val(cx, GetJSVal());
 
   if (val.isInt32()) {
     mData.SetFromInt32(val.toInt32());
@@ -273,7 +273,7 @@ bool XPCVariant::InitializeData(JSContext* cx) {
     return true;
   }
   if (val.isString()) {
-    RootedString str(cx, val.toString());
+    MC::RootedString str(cx, val.toString());
     if (!str) {
       return false;
     }
@@ -300,7 +300,7 @@ bool XPCVariant::InitializeData(JSContext* cx) {
   // leaving only JSObject...
   MOZ_RELEASE_ASSERT(val.isObject(), "invalid type of jsval!");
 
-  RootedObject jsobj(cx, &val.toObject());
+  MC::RootedObject jsobj(cx, &val.toObject());
 
   // Let's see if it is a js array object.
 
@@ -367,7 +367,7 @@ bool XPCVariant::VariantDataToJS(JSContext* cx, nsIVariant* variant,
   // Get the type early because we might need to spoof it below.
   uint16_t type = variant->GetDataType();
 
-  RootedValue realVal(cx);
+  MC::RootedValue realVal(cx);
   nsresult rv = variant->GetAsJSVal(&realVal);
 
   if (NS_SUCCEEDED(rv) &&

@@ -40,7 +40,7 @@ struct JSContextHolder {
     static JSClass jsValidatorGlobalClass = {
         "JSValidatorGlobal", JSCLASS_GLOBAL_FLAGS, MC::DefaultGlobalClassOps()};
 
-    JS::Rooted<JSObject*> global(
+    MC::Rooted<JSObject*> global(
         MC_UNSAFE(mCx), JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
                                 JS::FireOnNewGlobalHook, JS::RealmOptions()));
 
@@ -61,7 +61,7 @@ struct JSContextHolder {
   static void MaybeInit();
 
   MCContext* mCx;
-  JS::PersistentRooted<JSObject*> mGlobal;
+  MC::PersistentRooted<JSObject*> mGlobal;
 };
 
 class PJSValidatorChild;

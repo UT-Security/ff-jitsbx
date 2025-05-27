@@ -3400,7 +3400,7 @@ void HTMLMediaElement::MozGetMetadata(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JSObject*> tags(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> tags(aCx, JS_NewPlainObject(aCx));
   if (!tags) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
@@ -3409,7 +3409,7 @@ void HTMLMediaElement::MozGetMetadata(JSContext* aCx,
     for (const auto& entry : *mTags) {
       nsString wideValue;
       CopyUTF8toUTF16(entry.GetData(), wideValue);
-      JS::Rooted<JSString*> string(aCx,
+      MC::Rooted<JSString*> string(aCx,
                                    JS_NewUCStringCopyZ(aCx, wideValue.Data()));
       if (!string || !JS_DefineProperty(aCx, tags, entry.GetKey().Data(),
                                         string, JSPROP_ENUMERATE)) {

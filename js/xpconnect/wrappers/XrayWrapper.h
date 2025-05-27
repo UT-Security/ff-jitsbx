@@ -11,8 +11,8 @@
 
 #include "WrapperFactory.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/friend/XrayJitInfo.h"  // JS::XrayJitInfo
 #include "js/Object.h"              // JS::GetReservedSlot
 #include "monkeycage/Proxy.h"
@@ -207,7 +207,7 @@ class JSXrayTraits : public XrayTraits {
   static bool call(JSContext* cx, JS::HandleObject wrapper,
                    const JS::CallArgs& args, const mc::Wrapper& baseInstance) {
     JSXrayTraits& self = JSXrayTraits::singleton;
-    JS::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
+    MC::RootedObject holder(cx, self.ensureHolder(cx, wrapper));
     if (!holder) {
       return false;
     }
@@ -216,7 +216,7 @@ class JSXrayTraits : public XrayTraits {
       return baseInstance.call(cx, wrapper, args);
     }
 
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    MC::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }
@@ -227,7 +227,7 @@ class JSXrayTraits : public XrayTraits {
 
   bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
                     JS::HandleObject target, JS::MutableHandleObject protop) {
-    JS::RootedObject holder(cx, ensureHolder(cx, wrapper));
+    MC::RootedObject holder(cx, ensureHolder(cx, wrapper));
     if (!holder) {
       return false;
     }
@@ -324,7 +324,7 @@ class OpaqueXrayTraits : public XrayTraits {
 
   static bool call(JSContext* cx, JS::HandleObject wrapper,
                    const JS::CallArgs& args, const mc::Wrapper& baseInstance) {
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    MC::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }
@@ -332,7 +332,7 @@ class OpaqueXrayTraits : public XrayTraits {
   static bool construct(JSContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args,
                         const mc::Wrapper& baseInstance) {
-    JS::RootedValue v(cx, JS::ObjectValue(*wrapper));
+    MC::RootedValue v(cx, JS::ObjectValue(*wrapper));
     js::ReportIsNotFunction(cx, v);
     return false;
   }

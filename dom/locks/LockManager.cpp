@@ -104,7 +104,7 @@ static bool ValidateRequestArguments(const nsAString& name,
       }
 
       JSContext* cx = jsapi.cx();
-      JS::Rooted<JS::Value> reason(cx);
+      MC::Rooted<JS::Value> reason(cx);
       options.mSignal.Value().GetReason(cx, &reason);
       aRv.MightThrowJSException();
       aRv.ThrowJSException(cx, reason);

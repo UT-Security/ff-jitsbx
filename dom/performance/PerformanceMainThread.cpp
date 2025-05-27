@@ -108,8 +108,8 @@ PerformanceMainThread::~PerformanceMainThread() {
 void PerformanceMainThread::GetMozMemory(JSContext* aCx,
                                          JS::MutableHandle<JSObject*> aObj) {
   if (!mMozMemory) {
-    JS::Rooted<JSObject*> mozMemoryObj(aCx, JS_NewPlainObject(aCx));
-    JS::Rooted<JSObject*> gcMemoryObj(aCx, js::gc::NewMemoryInfoObject(aCx));
+    MC::Rooted<JSObject*> mozMemoryObj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> gcMemoryObj(aCx, js::gc::NewMemoryInfoObject(aCx));
     if (!mozMemoryObj || !gcMemoryObj) {
       MOZ_CRASH("out of memory creating performance.mozMemory");
     }

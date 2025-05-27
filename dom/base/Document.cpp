@@ -4375,7 +4375,7 @@ bool Document::HasPendingL10nMutations() const {
 }
 
 bool Document::DocumentSupportsL10n(JSContext* aCx, JSObject* aObject) {
-  JS::Rooted<JSObject*> object(aCx, aObject);
+  MC::Rooted<JSObject*> object(aCx, aObject);
   nsCOMPtr<nsIPrincipal> callerPrincipal =
       nsContentUtils::SubjectPrincipal(aCx);
   nsGlobalWindowInner* win = xpc::WindowOrNull(object);
@@ -10253,7 +10253,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
   bool sameDocument = oldDocument == this;
 
   AutoJSContext cx;
-  JS::Rooted<JSObject*> newScope(cx, nullptr);
+  MC::Rooted<JSObject*> newScope(cx, nullptr);
   if (!sameDocument) {
     newScope = GetWrapper();
     if (!newScope && GetScopeObject() && GetScopeObject()->HasJSGlobal()) {
@@ -10263,7 +10263,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
       // canonical scope. But we try to pass something sane anyway.
       JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
       JSAutoRealm ar(cx, globalObject);
-      JS::Rooted<JS::Value> v(cx);
+      MC::Rooted<JS::Value> v(cx);
       rv = nsContentUtils::WrapNative(cx, ToSupports(this), this, &v,
                                       /* aAllowWrapping = */ false);
       if (rv.Failed()) return nullptr;
@@ -13510,7 +13510,7 @@ nsresult Document::GetStateObject(JS::MutableHandle<JS::Value> aState) {
       if (!jsapi.Init(GetScopeObject())) {
         return NS_ERROR_UNEXPECTED;
       }
-      JS::Rooted<JS::Value> value(jsapi.cx());
+      MC::Rooted<JS::Value> value(jsapi.cx());
       nsresult rv =
           mStateObjectContainer->DeserializeToJsval(jsapi.cx(), &value);
       NS_ENSURE_SUCCESS(rv, rv);

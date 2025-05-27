@@ -1119,8 +1119,8 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   //
   // The wrapScope doesn't really matter here, because the target will create
   // its reflector in the proper scope, and then we'll enter that realm.
-  JS::Rooted<JSObject*> wrapScope(cx, global->GetGlobalJSObject());
-  JS::Rooted<JS::Value> v(cx);
+  MC::Rooted<JSObject*> wrapScope(cx, global->GetGlobalJSObject());
+  MC::Rooted<JS::Value> v(cx);
   {
     JSAutoRealm ar(cx, wrapScope);
     nsresult rv = nsContentUtils::WrapNative(cx, mTarget, &v,
@@ -1130,7 +1130,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
     }
   }
 
-  JS::Rooted<JSObject*> target(cx, &v.toObject());
+  MC::Rooted<JSObject*> target(cx, &v.toObject());
   JSAutoRealm ar(cx, target);
 
   // Now that we've entered the realm we actually care about, create our
@@ -1138,7 +1138,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   // mTarget is different from aElement in the <body> case, where mTarget is a
   // Window, and in that case we do not want the scope chain to include the body
   // or the document.
-  JS::RootedVector<JSObject*> scopeChain(cx);
+  MC::RootedVector<JSObject*> scopeChain(cx);
   if (!nsJSUtils::GetScopeChainForElement(cx, element, &scopeChain)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1147,7 +1147,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   // Most of our names are short enough that we don't even have to malloc
   // the JS string stuff, so don't worry about playing games with
   // refcounting XPCOM stringbuffers.
-  JS::Rooted<JSString*> jsStr(
+  MC::Rooted<JSString*> jsStr(
       cx, JS_NewUCStringCopyN(cx, str.BeginReading(), str.Length()));
   NS_ENSURE_TRUE(jsStr, NS_ERROR_OUT_OF_MEMORY);
 
@@ -1170,20 +1170,20 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
       .setFileAndLine(url.get(), 0)
       .setDeferDebugMetadata(true);
 
-  JS::Rooted<JSObject*> handler(cx);
+  MC::Rooted<JSObject*> handler(cx);
   result = nsJSUtils::CompileFunction(jsapi, scopeChain, options,
                                       nsAtomCString(typeAtom), argCount,
                                       argNames, *body, handler.address());
   NS_ENSURE_SUCCESS(result, result);
   NS_ENSURE_TRUE(handler, NS_ERROR_FAILURE);
 
-  JS::Rooted<JS::Value> privateValue(cx, JS::PrivateValue(eventScript));
+  MC::Rooted<JS::Value> privateValue(cx, JS::PrivateValue(eventScript));
   result = nsJSUtils::UpdateFunctionDebugMetadata(jsapi, handler, options,
                                                   jsStr, privateValue);
   NS_ENSURE_SUCCESS(result, result);
 
   MOZ_ASSERT(js::IsObjectInContextCompartment(handler, cx));
-  JS::Rooted<JSObject*> handlerGlobal(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> handlerGlobal(cx, JS::CurrentGlobalOrNull(cx));
 
   if (jsEventHandler->EventName() == nsGkAtoms::onerror && win) {
     RefPtr<OnErrorEventHandlerNonNull> handlerCallback =
@@ -1682,8 +1682,8 @@ nsresult EventListenerManager::GetListenerInfo(
       eventType.Assign(Substring(nsDependentAtomString(listener.mTypeAtom), 2));
     }
 
-    JS::Rooted<JSObject*> callback(RootingCx());
-    JS::Rooted<JSObject*> callbackGlobal(RootingCx());
+    MC::Rooted<JSObject*> callback(RootingCx());
+    MC::Rooted<JSObject*> callbackGlobal(RootingCx());
     if (JSEventHandler* handler = listener.GetJSEventHandler()) {
       if (handler->GetTypedEventHandler().HasEventHandler()) {
         CallbackFunction* callbackFun = handler->GetTypedEventHandler().Ptr();

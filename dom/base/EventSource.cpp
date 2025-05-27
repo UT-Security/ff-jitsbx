@@ -1533,7 +1533,7 @@ void EventSourceImpl::DispatchAllMessageEvents() {
     }
 
     // Now we can turn our string into a jsval
-    JS::Rooted<JS::Value> jsData(cx);
+    MC::Rooted<JS::Value> jsData(cx);
     {
       JSString* jsString;
       jsString = JS_NewUCStringCopyN(cx, message->mData.get(),

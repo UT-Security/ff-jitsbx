@@ -449,12 +449,12 @@ void TabListener::UpdateSessionStore(bool aIsFlush) {
     return;
   }
 
-  JS::Rooted<JS::Value> update(jsapi.cx());
+  MC::Rooted<JS::Value> update(jsapi.cx());
   if (!ToJSValue(jsapi.cx(), data, &update)) {
     return;
   }
 
-  JS::Rooted<JS::Value> key(jsapi.cx(),
+  MC::Rooted<JS::Value> key(jsapi.cx(),
                             context->Canonical()->Top()->PermanentKey());
 
   nsresult rv = funcs->UpdateSessionStore(

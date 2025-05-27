@@ -221,11 +221,11 @@ class nsTAutoJSString : public nsTAutoString<T> {
     }
 
     // Stringify, making sure not to run script.
-    JS::Rooted<JSString*> str(aContext);
+    MC::Rooted<JSString*> str(aContext);
     if (v.isObject()) {
       str = JS_NewStringCopyZ(aContext, "[Object]");
     } else {
-      JS::Rooted<JS::Value> rootedVal(aContext, v);
+      MC::Rooted<JS::Value> rootedVal(aContext, v);
       str = JS::ToString(aContext, rootedVal);
     }
 
@@ -233,7 +233,7 @@ class nsTAutoJSString : public nsTAutoString<T> {
   }
 
   bool init(JSContext* aContext, jsid id) {
-    JS::Rooted<JS::Value> v(aContext);
+    MC::Rooted<JS::Value> v(aContext);
     return JS_IdToValue(aContext, id, &v) && init(aContext, v);
   }
 

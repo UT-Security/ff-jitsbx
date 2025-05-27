@@ -24,6 +24,7 @@ JS_PUBLIC_API void TraceValueArray(JSTracer* trc, size_t length,
                                    JS::Value* elements);
 }  // namespace js
 
+
 namespace JS {
 
 /* A fixed-size array of values, for use inside Rooted<>. */
@@ -36,6 +37,24 @@ struct ValueArray {
 /** RootedValueArray roots an internal fixed-size array of Values. */
 template <size_t N>
 using RootedValueArray = Rooted<ValueArray<N>>;
+
+}
+
+#ifdef JS_SANDBOX_API
+namespace MC {
+  
+template <typename T>
+class Rooted;
+
+template <typename T>
+class RootedVector;
+
+template <size_t N>
+using RootedValueArray = Rooted<JS::ValueArray<N>>;
+}
+#endif
+
+namespace JS {
 
 /**
  * A generic handle to an array of rooted values.
@@ -61,6 +80,13 @@ class HandleValueArray {
   MOZ_IMPLICIT HandleValueArray(const RootedValueArray<N>& values)
       : length_(N), elements_(values.begin()) {}
 
+#ifdef JS_SANDBOX_API
+  MOZ_IMPLICIT HandleValueArray(const MC::RootedVector<Value>& values);
+
+  template <size_t N>
+  MOZ_IMPLICIT HandleValueArray(const MC::RootedValueArray<N>& values);
+#endif
+      
   /** CallArgs must already be rooted somewhere up the stack. */
   MOZ_IMPLICIT HandleValueArray(const JS::CallArgs& args)
       : length_(args.length()), elements_(args.array()) {}

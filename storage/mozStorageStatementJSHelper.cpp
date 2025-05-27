@@ -39,7 +39,7 @@ static bool stepFunc(JSContext* aCtx, uint32_t argc, JS::Value* _vp) {
     return false;
   }
 
-  JS::Rooted<JSObject*> obj(aCtx, &args.thisv().toObject());
+  MC::Rooted<JSObject*> obj(aCtx, &args.thisv().toObject());
   nsresult rv =
       xpc->GetWrappedNativeOfJSObject(aCtx, obj, getter_AddRefs(wrapper));
   if (NS_FAILED(rv)) {
@@ -91,7 +91,7 @@ nsresult StatementJSHelper::getRow(Statement* aStatement, JSContext* aCtx,
                "Invalid state to get the row object - all calls will fail!");
 #endif
 
-  JS::Rooted<JSObject*> scope(aCtx, aScopeObj);
+  MC::Rooted<JSObject*> scope(aCtx, aScopeObj);
 
   if (!aStatement->mStatementRowHolder) {
     dom::GlobalObject global(aCtx, scope);
@@ -134,7 +134,7 @@ nsresult StatementJSHelper::getParams(Statement* aStatement, JSContext* aCtx,
                "Invalid state to get the params object - all calls will fail!");
 #endif
 
-  JS::Rooted<JSObject*> scope(aCtx, aScopeObj);
+  MC::Rooted<JSObject*> scope(aCtx, aScopeObj);
 
   if (!aStatement->mStatementParamsHolder) {
     dom::GlobalObject global(aCtx, scope);
@@ -193,8 +193,8 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
                            bool* _retval) {
   if (!aId.isString()) return NS_OK;
 
-  JS::Rooted<JSObject*> scope(aCtx, aScopeObj);
-  JS::Rooted<jsid> id(aCtx, aId);
+  MC::Rooted<JSObject*> scope(aCtx, aScopeObj);
+  MC::Rooted<jsid> id(aCtx, aId);
 
 #ifdef DEBUG
   {
@@ -215,7 +215,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
     return NS_OK;
   }
 
-  JS::Rooted<JS::Value> val(aCtx);
+  MC::Rooted<JS::Value> val(aCtx);
 
   if (::JS_LinearStringEqualsLiteral(str, "row")) {
     nsresult rv = getRow(stmt, aCtx, scope, val.address());

@@ -130,7 +130,7 @@ class IDBRequest : public DOMEventTargetHelper {
 
     JSContext* cx = autoJS.cx();
 
-    JS::Rooted<JS::Value> result(cx);
+    MC::Rooted<JS::Value> result(cx);
     nsresult rv = aCallback(cx, &result);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       // This can only fail if the structured clone contains a mutable file

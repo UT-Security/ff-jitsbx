@@ -140,7 +140,7 @@ void FetchStreamReader::CloseAndRelease(JSContext* aCx, nsresult aStatus) {
     } else {
       rv = aStatus;
     }
-    JS::Rooted<JS::Value> errorValue(aCx);
+    MC::Rooted<JS::Value> errorValue(aCx);
     if (ToJSValue(aCx, std::move(rv), &errorValue)) {
       IgnoredErrorResult ignoredError;
       // It's currently safe to cancel an already closed reader because, per the

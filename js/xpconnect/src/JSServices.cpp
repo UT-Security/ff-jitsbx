@@ -54,8 +54,8 @@ static bool Services_NewEnumerate(JSContext* cx, HandleObject obj,
     return false;
   }
 
-  RootedId id(cx);
-  RootedString name(cx);
+  MC::RootedId id(cx);
+  MC::RootedString name(cx);
   for (const auto& service : services) {
     name = JS_AtomizeString(cx, service.Name().get());
     if (!name || !JS_StringToId(cx, name, &id)) {
@@ -99,7 +99,7 @@ static bool GetServiceImpl(JSContext* cx, const xpcom::JSServiceEntry& service,
     }
   }
 
-  JS::RootedValue val(cx);
+  MC::RootedValue val(cx);
 
   const nsIID* iid = ifaces.Length() ? ifaces[0] : nullptr;
   xpcObjectHelper helper(inst);
@@ -126,7 +126,7 @@ static bool GetServiceImpl(JSContext* cx, const xpcom::JSServiceEntry& service,
 
 static JSObject* GetService(JSContext* cx, const xpcom::JSServiceEntry& service,
                             ErrorResult& aRv) {
-  JS::RootedObject obj(cx);
+  MC::RootedObject obj(cx);
   if (!GetServiceImpl(cx, service, &obj, aRv)) {
     return nullptr;
   }
@@ -148,7 +148,7 @@ static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     *resolvedp = true;
 
     ErrorResult rv;
-    JS::RootedValue val(cx);
+    MC::RootedValue val(cx);
 
     val.setObjectOrNull(GetService(cx, *service, rv));
     if (rv.MaybeSetPendingException(cx)) {

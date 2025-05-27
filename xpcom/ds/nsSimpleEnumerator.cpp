@@ -48,7 +48,7 @@ nsresult JSEnumerator::Next(JSContext* aCx, JS::MutableHandleValue aResult) {
   } else {
     result.mDone = false;
 
-    JS::RootedValue value(aCx);
+    MC::RootedValue value(aCx);
     MOZ_TRY(nsContentUtils::WrapNative(aCx, elem, &mIID, &value));
     result.mValue = value;
   }

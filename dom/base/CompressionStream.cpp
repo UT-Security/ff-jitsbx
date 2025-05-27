@@ -104,7 +104,7 @@ class CompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
     mZStream.avail_in = aInput.Length();
     mZStream.next_in = const_cast<uint8_t*>(aInput.Elements());
 
-    JS::RootedVector<JSObject*> array(aCx);
+    MC::RootedVector<JSObject*> array(aCx);
 
     do {
       static uint16_t kBufferSize = 16384;
@@ -163,7 +163,7 @@ class CompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
       // into Uint8Arrays.
       // (The buffer is 'split' by having a fixed sized buffer above.)
 
-      JS::Rooted<JSObject*> view(
+      MC::Rooted<JSObject*> view(
           aCx, nsJSUtils::MoveBufferAsUint8Array(aCx, written, buffer));
       if (!view || !array.append(view)) {
         JS_ClearPendingException(aCx);
@@ -178,7 +178,7 @@ class CompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
 
     // Step 5: For each Uint8Array array, enqueue array in cs's transform.
     for (const auto& view : array) {
-      JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*view));
+      MC::Rooted<JS::Value> value(aCx, JS::ObjectValue(*view));
       aController.Enqueue(aCx, value, aRv);
       if (aRv.Failed()) {
         return;

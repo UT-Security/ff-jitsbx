@@ -51,7 +51,7 @@ static already_AddRefed<DebuggerNotificationManager> GetManager(
   // The debuggee global here is likely a debugger-compartment cross-compartment
   // wrapper for the debuggee global object, so we need to unwrap it to get
   // the real debuggee-compartment global object.
-  JS::Rooted<JSObject*> debuggeeGlobalRooted(
+  MC::Rooted<JSObject*> debuggeeGlobalRooted(
       aCx, js::UncheckedUnwrap(aDebuggeeGlobal, false));
 
   if (!debuggeeGlobalRooted) {

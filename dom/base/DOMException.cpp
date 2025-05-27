@@ -397,7 +397,7 @@ already_AddRefed<DOMException> DOMException::Create(
 
 static bool ReadAsCString(JSContext* aCx, JSStructuredCloneReader* aReader,
                           nsCString& aString) {
-  JS::Rooted<JSString*> jsMessage(aCx);
+  MC::Rooted<JSString*> jsMessage(aCx);
   if (!JS_ReadString(aReader, &jsMessage)) {
     return false;
   }
@@ -425,15 +425,15 @@ already_AddRefed<DOMException> DOMException::ReadStructuredClone(
 
 bool DOMException::WriteStructuredClone(
     JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
-  JS::Rooted<JS::Value> messageValue(aCx);
-  JS::Rooted<JS::Value> nameValue(aCx);
+  MC::Rooted<JS::Value> messageValue(aCx);
+  MC::Rooted<JS::Value> nameValue(aCx);
   if (!NonVoidByteStringToJsval(aCx, mMessage, &messageValue) ||
       !NonVoidByteStringToJsval(aCx, mName, &nameValue)) {
     return false;
   }
 
-  JS::Rooted<JSString*> message(aCx, messageValue.toString());
-  JS::Rooted<JSString*> name(aCx, nameValue.toString());
+  MC::Rooted<JSString*> message(aCx, messageValue.toString());
+  MC::Rooted<JSString*> name(aCx, nameValue.toString());
 
   static_assert(sizeof(nsresult) == 4);
 

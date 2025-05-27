@@ -40,7 +40,7 @@ bool RemoteObjectProxyBase::ownPropertyKeys(
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginownpropertykeys-(-o-)
   // step 2 and
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginproperties-(-o-)
-  JS::Rooted<JSObject*> holder(aCx);
+  MC::Rooted<JSObject*> holder(aCx);
   if (!EnsureHolder(aCx, aProxy, &holder) ||
       !js::GetPropertyKeys(aCx, holder,
                            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
@@ -149,8 +149,8 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
 
   js::ProxyOptions options;
   options.setClass(aClasp);
-  JS::Rooted<JS::Value> native(aCx, JS::PrivateValue(aNative));
-  JS::Rooted<JSObject*> obj(
+  MC::Rooted<JS::Value> native(aCx, JS::PrivateValue(aNative));
+  MC::Rooted<JSObject*> obj(
       aCx, js::NewProxyObject(aCx, this, native, nullptr, options));
   if (!obj) {
     return;

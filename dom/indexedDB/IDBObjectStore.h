@@ -79,7 +79,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
   struct StructuredCloneInfo;
 
   class MOZ_STACK_CLASS ValueWrapper final {
-    JS::Rooted<JS::Value> mValue;
+    MC::Rooted<JS::Value> mValue;
     bool mCloned;
 
    public:
@@ -90,7 +90,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
     MOZ_COUNTED_DTOR_NESTED(ValueWrapper, IDBObjectStore::ValueWrapper)
 
-    const JS::Rooted<JS::Value>& Value() const { return mValue; }
+    const MC::Rooted<JS::Value>& Value() const { return mValue; }
 
     bool Clone(JSContext* aCx);
   };

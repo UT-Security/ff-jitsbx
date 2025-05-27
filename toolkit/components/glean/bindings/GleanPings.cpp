@@ -43,7 +43,7 @@ bool GleanPings::DefineGleanPings(JSContext* aCx,
     return false;
   }
 
-  JS::Rooted<JS::Value> gleanPings(aCx);
+  MC::Rooted<JS::Value> gleanPings(aCx);
   js::AssertSameCompartment(aCx, aGlobal);
 
   auto impl = MakeRefPtr<GleanPings>();

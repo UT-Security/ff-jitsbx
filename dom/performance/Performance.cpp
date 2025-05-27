@@ -695,10 +695,10 @@ already_AddRefed<PerformanceMeasure> Performance::Measure(
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> detail(aCx);
+  MC::Rooted<JS::Value> detail(aCx);
   if (options && !options->mDetail.isNullOrUndefined()) {
     StructuredSerializeOptions serializeOptions;
-    JS::Rooted<JS::Value> valueToClone(aCx, options->mDetail);
+    MC::Rooted<JS::Value> valueToClone(aCx, options->mDetail);
     nsContentUtils::StructuredClone(aCx, GetParentObject(), valueToClone,
                                     serializeOptions, &detail, aRv);
     if (aRv.Failed()) {

@@ -488,7 +488,7 @@ void AutoJSAPI::ReportException() {
   // when the destructor is called. However, the JS engine requires us
   // to be in a realm when we fetch the pending exception. In this case,
   // we enter the privileged junk scope and don't dispatch any error events.
-  JS::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
+  MC::Rooted<JSObject*> errorGlobal(cx(), JS::CurrentGlobalOrNull(cx()));
   if (!errorGlobal) {
     if (mIsMainThread) {
       errorGlobal = xpc::PrivilegedJunkScope();
@@ -541,8 +541,8 @@ void AutoJSAPI::ReportException() {
         DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.exception(),
                                  exnStack.stack());
       } else {
-        JS::Rooted<JSObject*> stack(cx());
-        JS::Rooted<JSObject*> stackGlobal(cx());
+        MC::Rooted<JSObject*> stack(cx());
+        MC::Rooted<JSObject*> stackGlobal(cx());
         xpc::FindExceptionStackForConsoleReport(inner, exnStack.exception(),
                                                 exnStack.stack(), &stack,
                                                 &stackGlobal);

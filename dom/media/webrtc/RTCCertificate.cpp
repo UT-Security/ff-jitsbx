@@ -16,8 +16,8 @@
 #include "cert.h"
 #include "cryptohi.h"
 #include "js/StructuredClone.h"
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "keyhi.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MacroForEach.h"
@@ -270,7 +270,7 @@ static PRTime ReadExpires(JSContext* aCx, const ObjectOrString& aOptions,
   if (!aOptions.IsObject()) {
     return EXPIRATION_DEFAULT;
   }
-  JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*aOptions.GetAsObject()));
+  MC::Rooted<JS::Value> value(aCx, JS::ObjectValue(*aOptions.GetAsObject()));
   if (!expiration.Init(aCx, value)) {
     aRv.NoteJSContextException(aCx);
     return 0;

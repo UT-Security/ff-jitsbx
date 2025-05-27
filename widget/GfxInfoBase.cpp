@@ -1530,35 +1530,35 @@ void GfxInfoBase::RemoveCollector(GfxInfoCollectorBase* collector) {
 
 static void AppendMonitor(JSContext* aCx, widget::Screen& aScreen,
                           JS::Handle<JSObject*> aOutArray, int32_t aIndex) {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   auto screenSize = aScreen.GetRect().Size();
 
-  JS::Rooted<JS::Value> screenWidth(aCx, JS::Int32Value(screenSize.width));
+  MC::Rooted<JS::Value> screenWidth(aCx, JS::Int32Value(screenSize.width));
   JS_SetProperty(aCx, obj, "screenWidth", screenWidth);
 
-  JS::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value(screenSize.height));
+  MC::Rooted<JS::Value> screenHeight(aCx, JS::Int32Value(screenSize.height));
   JS_SetProperty(aCx, obj, "screenHeight", screenHeight);
 
   // XXX Just preserving behavior since this is exposed to telemetry, but we
   // could consider including this everywhere.
 #ifdef XP_MACOSX
-  JS::Rooted<JS::Value> scale(
+  MC::Rooted<JS::Value> scale(
       aCx, JS::NumberValue(aScreen.GetContentsScaleFactor()));
   JS_SetProperty(aCx, obj, "scale", scale);
 #endif
 
 #ifdef XP_WIN
-  JS::Rooted<JS::Value> refreshRate(aCx,
+  MC::Rooted<JS::Value> refreshRate(aCx,
                                     JS::Int32Value(aScreen.GetRefreshRate()));
   JS_SetProperty(aCx, obj, "refreshRate", refreshRate);
 
-  JS::Rooted<JS::Value> pseudoDisplay(
+  MC::Rooted<JS::Value> pseudoDisplay(
       aCx, JS::BooleanValue(aScreen.GetIsPseudoDisplay()));
   JS_SetProperty(aCx, obj, "pseudoDisplay", pseudoDisplay);
 #endif
 
-  JS::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
+  MC::Rooted<JS::Value> element(aCx, JS::ObjectValue(*obj));
   JS_SetElement(aCx, aOutArray, aIndex, element);
 }
 
@@ -1581,7 +1581,7 @@ nsresult GfxInfoBase::FindMonitors(JSContext* aCx,
 
 NS_IMETHODIMP
 GfxInfoBase::GetMonitors(JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+  MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
 
   nsresult rv = FindMonitors(aCx, array);
   if (NS_FAILED(rv)) {
@@ -1595,12 +1595,12 @@ GfxInfoBase::GetMonitors(JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
 static inline bool SetJSPropertyString(JSContext* aCx,
                                        JS::Handle<JSObject*> aObj,
                                        const char* aProp, const char* aString) {
-  JS::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, aString));
+  MC::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, aString));
   if (!str) {
     return false;
   }
 
-  JS::Rooted<JS::Value> val(aCx, JS::StringValue(str));
+  MC::Rooted<JS::Value> val(aCx, JS::StringValue(str));
   return JS_SetProperty(aCx, aObj, aProp, val);
 }
 
@@ -1616,7 +1616,7 @@ static inline bool AppendJSElement(JSContext* aCx, JS::Handle<JSObject*> aObj,
 
 nsresult GfxInfoBase::GetFeatures(JSContext* aCx,
                                   JS::MutableHandle<JS::Value> aOut) {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
   if (!obj) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1640,13 +1640,13 @@ nsresult GfxInfoBase::GetFeatures(JSContext* aCx,
 
 nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
                                     JS::MutableHandle<JS::Value> aOut) {
-  JS::Rooted<JSObject*> containerObj(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> containerObj(aCx, JS_NewPlainObject(aCx));
   if (!containerObj) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   aOut.setObject(*containerObj);
 
-  JS::Rooted<JSObject*> featureArray(aCx, JS::NewArrayObject(aCx, 0));
+  MC::Rooted<JSObject*> featureArray(aCx, JS::NewArrayObject(aCx, 0));
   if (!featureArray) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1654,7 +1654,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
   // Collect features.
   gfxConfig::ForEachFeature([&](const char* aName, const char* aDescription,
                                 FeatureState& aFeature) -> void {
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {
       return;
     }
@@ -1665,7 +1665,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
       return;
     }
 
-    JS::Rooted<JS::Value> log(aCx);
+    MC::Rooted<JS::Value> log(aCx);
     if (!BuildFeatureStateLog(aCx, aFeature, &log)) {
       return;
     }
@@ -1678,7 +1678,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
     }
   });
 
-  JS::Rooted<JSObject*> fallbackArray(aCx, JS::NewArrayObject(aCx, 0));
+  MC::Rooted<JSObject*> fallbackArray(aCx, JS::NewArrayObject(aCx, 0));
   if (!fallbackArray) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1686,7 +1686,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
   // Collect fallbacks.
   gfxConfig::ForEachFallback(
       [&](const char* aName, const char* aMessage) -> void {
-        JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+        MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
         if (!obj) {
           return;
         }
@@ -1701,7 +1701,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
         }
       });
 
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
 
   val = JS::ObjectValue(*featureArray);
   JS_SetProperty(aCx, containerObj, "features", val);
@@ -1715,7 +1715,7 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* aCx,
 bool GfxInfoBase::BuildFeatureStateLog(JSContext* aCx,
                                        const FeatureState& aFeature,
                                        JS::MutableHandle<JS::Value> aOut) {
-  JS::Rooted<JSObject*> log(aCx, JS::NewArrayObject(aCx, 0));
+  MC::Rooted<JSObject*> log(aCx, JS::NewArrayObject(aCx, 0));
   if (!log) {
     return false;
   }
@@ -1724,7 +1724,7 @@ bool GfxInfoBase::BuildFeatureStateLog(JSContext* aCx,
   aFeature.ForEachStatusChange([&](const char* aType, FeatureStatus aStatus,
                                    const char* aMessage,
                                    const nsCString& aFailureId) -> void {
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {
       return;
     }
@@ -1747,7 +1747,7 @@ bool GfxInfoBase::BuildFeatureStateLog(JSContext* aCx,
 }
 
 void GfxInfoBase::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
-  JS::Rooted<JSObject*> obj(aCx);
+  MC::Rooted<JSObject*> obj(aCx);
 
   gfx::FeatureState& hwCompositing =
       gfxConfig::GetFeature(gfx::Feature::HW_COMPOSITING);
@@ -1777,20 +1777,20 @@ bool GfxInfoBase::InitFeatureObject(JSContext* aCx,
                                     const char* aName,
                                     mozilla::gfx::FeatureState& aFeatureState,
                                     JS::MutableHandle<JSObject*> aOutObj) {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
   if (!obj) {
     return false;
   }
 
   nsCString status = aFeatureState.GetStatusAndFailureIdString();
 
-  JS::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, status.get()));
-  JS::Rooted<JS::Value> val(aCx, JS::StringValue(str));
+  MC::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, status.get()));
+  MC::Rooted<JS::Value> val(aCx, JS::StringValue(str));
   JS_SetProperty(aCx, obj, "status", val);
 
   // Add the feature object to the container.
   {
-    JS::Rooted<JS::Value> val(aCx, JS::ObjectValue(*obj));
+    MC::Rooted<JS::Value> val(aCx, JS::ObjectValue(*obj));
     JS_SetProperty(aCx, aContainer, aName, val);
   }
 
@@ -1800,7 +1800,7 @@ bool GfxInfoBase::InitFeatureObject(JSContext* aCx,
 
 nsresult GfxInfoBase::GetActiveCrashGuards(JSContext* aCx,
                                            JS::MutableHandle<JS::Value> aOut) {
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+  MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
   if (!array) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1808,7 +1808,7 @@ nsresult GfxInfoBase::GetActiveCrashGuards(JSContext* aCx,
 
   DriverCrashGuard::ForEachActiveCrashGuard(
       [&](const char* aName, const char* aPrefName) -> void {
-        JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+        MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
         if (!obj) {
           return;
         }

@@ -8,7 +8,7 @@
 #include "TelemetryEvent.h"
 #include <limits>
 #include "ipc/TelemetryIPCAccumulator.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/Maybe.h"
@@ -561,7 +561,7 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
                               JS::MutableHandle<JSObject*> result,
                               unsigned int dataset) {
   // We serialize the events to a JS array.
-  JS::Rooted<JSObject*> eventsArray(cx,
+  MC::Rooted<JSObject*> eventsArray(cx,
                                     JS::NewArrayObject(cx, events.Length()));
   if (!eventsArray) {
     return NS_ERROR_FAILURE;
@@ -574,10 +574,10 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
     // [timestamp, category, method, object, value]
     // [timestamp, category, method, object, null, extra]
     // [timestamp, category, method, object, value, extra]
-    JS::RootedVector<JS::Value> items(cx);
+    MC::RootedVector<JS::Value> items(cx);
 
     // Add timestamp.
-    JS::Rooted<JS::Value> val(cx);
+    MC::Rooted<JS::Value> val(cx);
     if (!items.append(JS::NumberValue(floor(record.Timestamp())))) {
       return NS_ERROR_FAILURE;
     }
@@ -624,7 +624,7 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
     // Add the optional extra dictionary.
     // To save a little space, only add it when it is not empty.
     if (!record.Extra().IsEmpty()) {
-      JS::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
+      MC::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
       if (!obj) {
         return NS_ERROR_FAILURE;
       }
@@ -632,7 +632,7 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
       // Add extra key & value entries.
       const ExtraArray& extra = record.Extra();
       for (uint32_t i = 0; i < extra.Length(); ++i) {
-        JS::Rooted<JS::Value> value(cx);
+        MC::Rooted<JS::Value> value(cx);
         value.setString(ToJSString(cx, extra[i].value));
 
         if (!JS_DefineProperty(cx, obj, extra[i].key.get(), value,
@@ -648,7 +648,7 @@ nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
     }
 
     // Add the record to the events array.
-    JS::Rooted<JSObject*> itemsArray(cx, JS::NewArrayObject(cx, items));
+    MC::Rooted<JSObject*> itemsArray(cx, JS::NewArrayObject(cx, items));
     if (!JS_DefineElement(cx, eventsArray, i, itemsArray, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
@@ -811,8 +811,8 @@ nsresult TelemetryEvent::RecordEvent(const nsACString& aCategory,
   // Extract extra dictionary.
   ExtraArray extra;
   if (aExtra.isObject()) {
-    JS::Rooted<JSObject*> obj(cx, &aExtra.toObject());
-    JS::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
+    MC::Rooted<JSObject*> obj(cx, &aExtra.toObject());
+    MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
     if (!JS_Enumerate(cx, obj, &ids)) {
       LogToBrowserConsole(nsIScriptError::warningFlag,
                           u"Failed to enumerate object."_ns);
@@ -833,7 +833,7 @@ nsresult TelemetryEvent::RecordEvent(const nsACString& aCategory,
         return NS_OK;
       }
 
-      JS::Rooted<JS::Value> value(cx);
+      MC::Rooted<JS::Value> value(cx);
       if (!JS_GetPropertyById(cx, obj, ids[i], &value)) {
         LogToBrowserConsole(nsIScriptError::warningFlag,
                             u"Failed to get extra property."_ns);
@@ -991,7 +991,7 @@ void TelemetryEvent::RecordEventNative(
 static bool GetArrayPropertyValues(JSContext* cx, JS::Handle<JSObject*> obj,
                                    const char* property,
                                    nsTArray<nsCString>* results) {
-  JS::Rooted<JS::Value> value(cx);
+  MC::Rooted<JS::Value> value(cx);
   if (!JS_GetProperty(cx, obj, property, &value)) {
     JS_ReportErrorASCII(cx, R"(Missing required property "%s" for event)",
                         property);
@@ -1005,14 +1005,14 @@ static bool GetArrayPropertyValues(JSContext* cx, JS::Handle<JSObject*> obj,
     return false;
   }
 
-  JS::Rooted<JSObject*> arrayObj(cx, &value.toObject());
+  MC::Rooted<JSObject*> arrayObj(cx, &value.toObject());
   uint32_t arrayLength;
   if (!JS::GetArrayLength(cx, arrayObj, &arrayLength)) {
     return false;
   }
 
   for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; ++arrayIdx) {
-    JS::Rooted<JS::Value> element(cx);
+    MC::Rooted<JS::Value> element(cx);
     if (!JS_GetElement(cx, arrayObj, arrayIdx, &element)) {
       return false;
     }
@@ -1056,8 +1056,8 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JS::Rooted<JSObject*> obj(cx, &aEventData.toObject());
-  JS::Rooted<JS::IdVector> eventPropertyIds(cx, JS::IdVector(cx));
+  MC::Rooted<JSObject*> obj(cx, &aEventData.toObject());
+  MC::Rooted<JS::IdVector> eventPropertyIds(cx, JS::IdVector(cx));
   if (!JS_Enumerate(cx, obj, &eventPropertyIds)) {
     mozilla::Telemetry::AccumulateCategorical(
         LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
@@ -1087,14 +1087,14 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
       return NS_ERROR_INVALID_ARG;
     }
 
-    JS::Rooted<JS::Value> value(cx);
+    MC::Rooted<JS::Value> value(cx);
     if (!JS_GetPropertyById(cx, obj, eventPropertyIds[i], &value) ||
         !value.isObject()) {
       mozilla::Telemetry::AccumulateCategorical(
           LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
       return NS_ERROR_FAILURE;
     }
-    JS::Rooted<JSObject*> eventObj(cx, &value.toObject());
+    MC::Rooted<JSObject*> eventObj(cx, &value.toObject());
 
     // Extract the event registration data.
     nsTArray<nsCString> methods;
@@ -1129,7 +1129,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
 
     // expired is optional.
     if (JS_HasProperty(cx, eventObj, "expired", &hasProperty) && hasProperty) {
-      JS::Rooted<JS::Value> temp(cx);
+      MC::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "expired", &temp) ||
           !temp.isBoolean()) {
         mozilla::Telemetry::AccumulateCategorical(
@@ -1143,7 +1143,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     // record_on_release is optional.
     if (JS_HasProperty(cx, eventObj, "record_on_release", &hasProperty) &&
         hasProperty) {
-      JS::Rooted<JS::Value> temp(cx);
+      MC::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) ||
           !temp.isBoolean()) {
         mozilla::Telemetry::AccumulateCategorical(
@@ -1291,14 +1291,14 @@ nsresult TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear,
   }
 
   // (2) Serialize the events to a JS object.
-  JS::Rooted<JSObject*> rootObj(cx, JS_NewPlainObject(cx));
+  MC::Rooted<JSObject*> rootObj(cx, JS_NewPlainObject(cx));
   if (!rootObj) {
     return NS_ERROR_FAILURE;
   }
 
   const uint32_t processLength = processEvents.Length();
   for (uint32_t i = 0; i < processLength; ++i) {
-    JS::Rooted<JSObject*> eventsArray(cx);
+    MC::Rooted<JSObject*> eventsArray(cx);
     if (NS_FAILED(SerializeEventsArray(processEvents[i].second, cx,
                                        &eventsArray, aDataset))) {
       return NS_ERROR_FAILURE;

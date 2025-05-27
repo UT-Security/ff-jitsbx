@@ -6774,7 +6774,7 @@ nsresult nsContentUtils::WrapNative(JSContext* cx, nsISupports* native,
     MOZ_CRASH();
   }
 
-  JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
   nsresult rv = sXPConnect->WrapNativeToJSVal(cx, scope, native, cache, aIID,
                                               aAllowWrapping, vp);
   return rv;
@@ -7152,12 +7152,12 @@ static void ReportPatternCompileFailure(nsAString& aPattern,
                                         JS::MutableHandle<JS::Value> error,
                                         JSContext* cx) {
   JS::AutoSaveExceptionState savedExc(cx);
-  JS::Rooted<JSObject*> exnObj(cx, &error.toObject());
-  JS::Rooted<JS::Value> messageVal(cx);
+  MC::Rooted<JSObject*> exnObj(cx, &error.toObject());
+  MC::Rooted<JS::Value> messageVal(cx);
   if (!JS_GetProperty(cx, exnObj, "message", &messageVal)) {
     return;
   }
-  JS::Rooted<JSString*> messageStr(cx, messageVal.toString());
+  MC::Rooted<JSString*> messageStr(cx, messageVal.toString());
   MOZ_ASSERT(messageStr);
 
   AutoTArray<nsString, 2> strings;
@@ -7194,7 +7194,7 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
 
   // Check if the pattern by itself is valid first, and not that it only becomes
   // valid once we add ^(?: and )$.
-  JS::Rooted<JS::Value> error(cx);
+  MC::Rooted<JS::Value> error(cx);
   if (!JS::CheckRegExpSyntax(
           cx, static_cast<char16_t*>(aPattern.BeginWriting()),
           aPattern.Length(), JS::RegExpFlag::Unicode, &error)) {
@@ -7210,7 +7210,7 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
   aPattern.InsertLiteral(u"^(?:", 0);
   aPattern.AppendLiteral(")$");
 
-  JS::Rooted<JSObject*> re(
+  MC::Rooted<JSObject*> re(
       cx,
       JS::NewUCRegExpObject(cx, static_cast<char16_t*>(aPattern.BeginWriting()),
                             aPattern.Length(), JS::RegExpFlag::Unicode));
@@ -7218,7 +7218,7 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
     return Nothing();
   }
 
-  JS::Rooted<JS::Value> rval(cx, JS::NullValue());
+  MC::Rooted<JS::Value> rval(cx, JS::NullValue());
   if (!aHasMultiple) {
     size_t idx = 0;
     if (!JS::ExecuteRegExpNoStatics(
@@ -9724,7 +9724,7 @@ static void DoCustomElementCreate(Element** aElement, JSContext* aCx,
                                   Document* aDoc, NodeInfo* aNodeInfo,
                                   CustomElementConstructor* aConstructor,
                                   ErrorResult& aRv) {
-  JS::Rooted<JS::Value> constructResult(aCx);
+  MC::Rooted<JS::Value> constructResult(aCx);
   aConstructor->Construct(&constructResult, aRv, "Custom Element Create",
                           CallbackFunction::eRethrowExceptions);
   if (aRv.Failed()) {
@@ -10218,13 +10218,13 @@ nsresult nsContentUtils::CreateJSValueFromSequenceOfObject(
     return NS_OK;
   }
 
-  JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, aTransfer.Length()));
+  MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, aTransfer.Length()));
   if (!array) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
   for (uint32_t i = 0; i < aTransfer.Length(); ++i) {
-    JS::Rooted<JSObject*> object(aCx, aTransfer[i]);
+    MC::Rooted<JSObject*> object(aCx, aTransfer[i]);
     if (!object) {
       continue;
     }
@@ -10245,7 +10245,7 @@ void nsContentUtils::StructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
                                      const StructuredSerializeOptions& aOptions,
                                      JS::MutableHandle<JS::Value> aRetval,
                                      ErrorResult& aError) {
-  JS::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
   aError = nsContentUtils::CreateJSValueFromSequenceOfObject(
       aCx, aOptions.mTransfer, &transferArray);
   if (NS_WARN_IF(aError.Failed())) {
@@ -10676,7 +10676,7 @@ void nsContentUtils::ExtractErrorValues(
   MOZ_ASSERT(aColumnOut);
 
   if (aValue.isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, &aValue.toObject());
+    MC::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
     // Try to process as an Error object.  Use the file/line/column values
     // from the Error as they will be more specific to the root cause of
@@ -10801,7 +10801,7 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
   switch (aBehavior) {
     case UndefinedIsNullStringLiteral: {
       aOutStr.Truncate();
-      JS::Rooted<JS::Value> value(aCx, aValue);
+      MC::Rooted<JS::Value> value(aCx, aValue);
       nsAutoString serializedValue;
       NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, MC::NullHandleValue(),
                                   JSONCreator, &serializedValue),
@@ -10853,7 +10853,7 @@ static nsGlobalWindowInner* GetInnerWindowForGlobal(nsIGlobalObject* aGlobal) {
   // the |source| of the received message to be the window set as the
   // sandboxPrototype. This used to work incidentally for unrelated reasons, but
   // now we need to do some special handling to support it.
-  JS::Rooted<JSObject*> scope(RootingCx(), aGlobal->GetGlobalJSObject());
+  MC::Rooted<JSObject*> scope(RootingCx(), aGlobal->GetGlobalJSObject());
   NS_ENSURE_TRUE(scope, nullptr);
 
   if (xpc::IsSandbox(scope)) {

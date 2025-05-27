@@ -29,7 +29,7 @@ void ConvertMethodData(JSContext* aCx, const PaymentMethodData& aMethodData,
   // Convert JSObject to a serialized string
   nsAutoString serializedData;
   if (aMethodData.mData.WasPassed()) {
-    JS::Rooted<JSObject*> object(aCx, aMethodData.mData.Value());
+    MC::Rooted<JSObject*> object(aCx, aMethodData.mData.Value());
     if (NS_WARN_IF(
             NS_FAILED(SerializeFromJSObject(aCx, object, serializedData)))) {
       aRv.ThrowTypeError(
@@ -60,7 +60,7 @@ void ConvertModifier(JSContext* aCx, const PaymentDetailsModifier& aModifier,
   // Convert JSObject to a serialized string
   nsAutoString serializedData;
   if (aModifier.mData.WasPassed()) {
-    JS::Rooted<JSObject*> object(aCx, aModifier.mData.Value());
+    MC::Rooted<JSObject*> object(aCx, aModifier.mData.Value());
     if (NS_WARN_IF(
             NS_FAILED(SerializeFromJSObject(aCx, object, serializedData)))) {
       aRv.ThrowTypeError("The Modifier.data must be a serializable object");
@@ -204,7 +204,7 @@ void ConvertDetailsUpdate(JSContext* aCx, const PaymentDetailsUpdate& aDetails,
 
   nsAutoString paymentMethodErrors;
   if (aDetails.mPaymentMethodErrors.WasPassed()) {
-    JS::Rooted<JSObject*> object(aCx, aDetails.mPaymentMethodErrors.Value());
+    MC::Rooted<JSObject*> object(aCx, aDetails.mPaymentMethodErrors.Value());
     if (NS_WARN_IF(NS_FAILED(
             SerializeFromJSObject(aCx, object, paymentMethodErrors)))) {
       aRv.ThrowTypeError("The PaymentMethodErrors can not be serialized");
@@ -628,7 +628,7 @@ void PaymentRequestManager::RetryPayment(JSContext* aCx,
 
   nsAutoString paymentMethodErrors;
   if (aErrors.mPaymentMethod.WasPassed()) {
-    JS::Rooted<JSObject*> object(aCx, aErrors.mPaymentMethod.Value());
+    MC::Rooted<JSObject*> object(aCx, aErrors.mPaymentMethod.Value());
     if (NS_WARN_IF(NS_FAILED(
             SerializeFromJSObject(aCx, object, paymentMethodErrors)))) {
       aRv.ThrowTypeError("The PaymentMethodErrors can not be serialized");

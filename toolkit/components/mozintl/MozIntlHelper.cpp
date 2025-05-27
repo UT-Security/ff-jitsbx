@@ -4,11 +4,11 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "MozIntlHelper.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/experimental/Intl.h"   // JS::AddMozDateTimeFormatConstructor
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 
 using namespace mozilla;
 
@@ -25,7 +25,7 @@ static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
   }
 
   // We might be adding functions to a Window.
-  JS::Rooted<JSObject*> realIntlObj(
+  MC::Rooted<JSObject*> realIntlObj(
       cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;
@@ -57,7 +57,7 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
   }
 
   // We might be adding this constructor to a Window
-  JS::Rooted<JSObject*> realIntlObj(
+  MC::Rooted<JSObject*> realIntlObj(
       cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;
@@ -80,7 +80,7 @@ MozIntlHelper::AddDisplayNamesConstructor(JS::Handle<JS::Value> val,
   }
 
   // We might be adding this constructor to a Window
-  JS::Rooted<JSObject*> realIntlObj(
+  MC::Rooted<JSObject*> realIntlObj(
       cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;

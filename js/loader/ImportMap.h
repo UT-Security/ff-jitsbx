@@ -10,7 +10,7 @@
 #include <functional>
 #include <map>
 
-#include "js/SourceText.h"
+#include "monkeycage/SourceText.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"

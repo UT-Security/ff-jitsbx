@@ -195,7 +195,7 @@ AddModuleThrowErrorRunnable::Run() {
   }
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> error(cx);
+  MC::Rooted<JS::Value> error(cx);
   ErrorResult result;
   Read(global, cx, &error, result);
   Unused << NS_WARN_IF(result.Failed());
@@ -239,7 +239,7 @@ void WorkletModuleLoader::OnModuleLoadComplete(ModuleLoadRequest* aRequest) {
     }
 
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JS::Value> error(cx, aRequest->mModuleScript->ErrorToRethrow());
+    MC::Rooted<JS::Value> error(cx, aRequest->mModuleScript->ErrorToRethrow());
     RefPtr<AddModuleThrowErrorRunnable> runnable =
         new AddModuleThrowErrorRunnable(handlerRef);
     ErrorResult result;

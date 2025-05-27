@@ -1942,7 +1942,7 @@ void Notification::GetData(JSContext* aCx,
       return;
     }
 
-    JS::Rooted<JS::Value> data(aCx);
+    MC::Rooted<JS::Value> data(aCx);
     rv = container->DeserializeToJsval(aCx, &data);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aRetval.setNull();
@@ -2254,7 +2254,7 @@ already_AddRefed<Notification> Notification::CreateAndShow(
   }
 
   // Make a structured clone of the aOptions.mData object
-  JS::Rooted<JS::Value> data(aCx, aOptions.mData);
+  MC::Rooted<JS::Value> data(aCx, aOptions.mData);
   notification->InitFromJSVal(aCx, data, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;

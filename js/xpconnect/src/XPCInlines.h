@@ -327,7 +327,7 @@ inline void XPCWrappedNative::SweepTearOffs() {
 
 inline bool xpc_ForcePropertyResolve(JSContext* cx, JS::HandleObject obj,
                                      jsid idArg) {
-  JS::RootedId id(cx, idArg);
+  MC::RootedId id(cx, idArg);
   bool dummy;
   return JS_HasPropertyById(cx, obj, id, &dummy);
 }

@@ -153,8 +153,8 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
   nsTArray<nsCString> extraKeys;
   nsTArray<nsCString> extraValues;
   if (!aExtra.isNullOrUndefined()) {
-    JS::RootedObject obj(aCx, &aExtra.toObject());
-    JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+    MC::RootedObject obj(aCx, &aExtra.toObject());
+    MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
     if (!JS_Enumerate(aCx, obj, &keys)) {
       LogToBrowserConsole(nsIScriptError::warningFlag,
                           u"Failed to enumerate experiment extras object."_ns);
@@ -170,7 +170,7 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
         return NS_OK;
       }
 
-      JS::Rooted<JS::Value> value(aCx);
+      MC::Rooted<JS::Value> value(aCx);
       if (!JS_GetPropertyById(aCx, obj, keys[i], &value)) {
         LogToBrowserConsole(nsIScriptError::warningFlag,
                             u"Failed to get experiment extra property."_ns);
@@ -238,12 +238,12 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* aCx,
                                             &extraValues);
   MOZ_ASSERT(extraKeys.Length() == extraValues.Length());
 
-  JS::RootedObject jsExperimentDataObj(aCx, JS_NewPlainObject(aCx));
+  MC::RootedObject jsExperimentDataObj(aCx, JS_NewPlainObject(aCx));
   if (NS_WARN_IF(!jsExperimentDataObj)) {
     return NS_ERROR_FAILURE;
   }
 
-  JS::RootedValue jsBranchStr(aCx);
+  MC::RootedValue jsBranchStr(aCx);
   if (!dom::ToJSValue(aCx, branch, &jsBranchStr) ||
       !JS_DefineProperty(aCx, jsExperimentDataObj, "branch", jsBranchStr,
                          JSPROP_ENUMERATE)) {
@@ -251,7 +251,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
 
-  JS::RootedObject jsExtraObj(aCx, JS_NewPlainObject(aCx));
+  MC::RootedObject jsExtraObj(aCx, JS_NewPlainObject(aCx));
   if (!JS_DefineProperty(aCx, jsExperimentDataObj, "extra", jsExtraObj,
                          JSPROP_ENUMERATE)) {
     NS_WARNING("Failed to define extra for experiment data object.");
@@ -259,7 +259,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* aCx,
   }
 
   for (unsigned int i = 0; i < extraKeys.Length(); i++) {
-    JS::RootedValue jsValueStr(aCx);
+    MC::RootedValue jsValueStr(aCx);
     if (!dom::ToJSValue(aCx, extraValues[i], &jsValueStr) ||
         !JS_DefineProperty(aCx, jsExtraObj, extraKeys[i].Data(), jsValueStr,
                            JSPROP_ENUMERATE)) {

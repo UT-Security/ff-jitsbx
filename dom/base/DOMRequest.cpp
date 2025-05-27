@@ -156,7 +156,7 @@ void DOMRequest::Then(JSContext* aCx, AnyCallback* aResolveCallback,
   }
 
   // Just use the global of the Promise itself as the callee global.
-  JS::Rooted<JSObject*> global(aCx, mPromise->PromiseObj());
+  MC::Rooted<JSObject*> global(aCx, mPromise->PromiseObj());
   global = JS::GetNonCCWObjectGlobal(global);
   mPromise->Then(aCx, global, aResolveCallback, aRejectCallback, aRetval, aRv);
 }
@@ -218,7 +218,7 @@ class FireSuccessAsyncTask : public mozilla::Runnable {
 
  private:
   RefPtr<DOMRequest> mReq;
-  JS::PersistentRooted<JS::Value> mResult;
+  MC::PersistentRooted<JS::Value> mResult;
 };
 
 class FireErrorAsyncTask : public mozilla::Runnable {

@@ -355,7 +355,7 @@ void BodyUtil::ConsumeArrayBuffer(JSContext* aCx,
                                   JS::MutableHandle<JSObject*> aValue,
                                   uint32_t aInputLength, uint8_t* aInput,
                                   ErrorResult& aRv) {
-  JS::Rooted<JSObject*> arrayBuffer(aCx);
+  MC::Rooted<JSObject*> arrayBuffer(aCx);
   arrayBuffer = JS::NewArrayBufferWithContents(aCx, aInputLength,
                                                reinterpret_cast<void*>(aInput));
   if (!arrayBuffer) {
@@ -452,14 +452,14 @@ void BodyUtil::ConsumeJson(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
                            const nsString& aStr, ErrorResult& aRv) {
   aRv.MightThrowJSException();
 
-  JS::Rooted<JS::Value> json(aCx);
+  MC::Rooted<JS::Value> json(aCx);
   if (!JS_ParseJSON(aCx, aStr.get(), aStr.Length(), &json)) {
     if (!JS_IsExceptionPending(aCx)) {
       aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
       return;
     }
 
-    JS::Rooted<JS::Value> exn(aCx);
+    MC::Rooted<JS::Value> exn(aCx);
     DebugOnly<bool> gotException = JS_GetPendingException(aCx, &exn);
     MOZ_ASSERT(gotException);
 

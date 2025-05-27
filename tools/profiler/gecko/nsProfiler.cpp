@@ -308,7 +308,7 @@ nsProfiler::GetProfile(double aSinceTime, char** aProfile) {
 NS_IMETHODIMP
 nsProfiler::GetSharedLibraries(JSContext* aCx,
                                JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   {
     JSONStringWriteFunc<nsCString> buffer;
     JSONWriter w(buffer, JSONWriter::SingleLineStyle);
@@ -322,7 +322,7 @@ nsProfiler::GetSharedLibraries(JSContext* aCx,
                                  static_cast<const char16_t*>(buffer16.get()),
                                  buffer16.Length(), &val));
   }
-  JS::Rooted<JSObject*> obj(aCx, &val.toObject());
+  MC::Rooted<JSObject*> obj(aCx, &val.toObject());
   if (!obj) {
     return NS_ERROR_FAILURE;
   }
@@ -333,7 +333,7 @@ nsProfiler::GetSharedLibraries(JSContext* aCx,
 NS_IMETHODIMP
 nsProfiler::GetActiveConfiguration(JSContext* aCx,
                                    JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JS::Value> jsValue(aCx);
+  MC::Rooted<JS::Value> jsValue(aCx);
   {
     JSONStringWriteFunc<nsCString> buffer;
     JSONWriter writer(buffer, JSONWriter::SingleLineStyle);
@@ -346,7 +346,7 @@ nsProfiler::GetActiveConfiguration(JSContext* aCx,
   if (jsValue.isNull()) {
     aResult.setNull();
   } else {
-    JS::Rooted<JSObject*> obj(aCx, &jsValue.toObject());
+    MC::Rooted<JSObject*> obj(aCx, &jsValue.toObject());
     if (!obj) {
       return NS_ERROR_FAILURE;
     }
@@ -372,7 +372,7 @@ nsProfiler::GetProfileData(double aSinceTime, JSContext* aCx,
   NS_ConvertUTF8toUTF16 js_string(nsDependentCString(profile.get()));
   auto profile16 = static_cast<const char16_t*>(js_string.get());
 
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   MOZ_ALWAYS_TRUE(JS_ParseJSON(aCx, profile16, js_string.Length(), &val));
 
   aResult.set(val);
@@ -418,7 +418,7 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
             JSContext* cx = jsapi.cx();
 
             // Now parse the JSON so that we resolve with a JS Object.
-            JS::Rooted<JS::Value> val(cx);
+            MC::Rooted<JS::Value> val(cx);
             {
               NS_ConvertUTF8toUTF16 js_string(aResult.mProfile);
               if (!JS_ParseJSON(cx,
@@ -427,7 +427,7 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
                 if (!jsapi.HasException()) {
                   promise->MaybeReject(NS_ERROR_DOM_UNKNOWN_ERR);
                 } else {
-                  JS::Rooted<JS::Value> exn(cx);
+                  MC::Rooted<JS::Value> exn(cx);
                   DebugOnly<bool> gotException = jsapi.StealException(&exn);
                   MOZ_ASSERT(gotException);
 
@@ -486,7 +486,7 @@ nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* aCx,
                 cx, aResult.mProfile.Length(),
                 reinterpret_cast<const uint8_t*>(aResult.mProfile.Data()));
             if (typedArray) {
-              JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*typedArray));
+              MC::Rooted<JS::Value> val(cx, JS::ObjectValue(*typedArray));
               promise->MaybeResolve(val);
             } else {
               promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
@@ -592,10 +592,10 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
               promise->MaybeReject(NS_ERROR_OUT_OF_MEMORY);
               return;
             }
-            JS::Rooted<JS::Value> typedArrayValue(cx,
+            MC::Rooted<JS::Value> typedArrayValue(cx,
                                                   JS::ObjectValue(*typedArray));
             // Get the additional information object.
-            JS::Rooted<JS::Value> additionalInfoVal(cx);
+            MC::Rooted<JS::Value> additionalInfoVal(cx);
             if (aResult.mAdditionalInformation.isSome()) {
               aResult.mAdditionalInformation->ToJSValue(cx, &additionalInfoVal);
             } else {
@@ -603,7 +603,7 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
             }
 
             // Create the return object.
-            JS::Rooted<JSObject*> resultObj(cx, JS_NewPlainObject(cx));
+            MC::Rooted<JSObject*> resultObj(cx, JS_NewPlainObject(cx));
             JS_SetProperty(cx, resultObj, "profile", typedArrayValue);
             JS_SetProperty(cx, resultObj, "additionalInformation",
                            additionalInfoVal);
@@ -709,18 +709,18 @@ nsProfiler::GetSymbolTable(const nsACString& aDebugPath,
 
             JSContext* cx = jsapi.cx();
 
-            JS::Rooted<JSObject*> addrsArray(
+            MC::Rooted<JSObject*> addrsArray(
                 cx, dom::Uint32Array::Create(cx, aSymbolTable.mAddrs.Length(),
                                              aSymbolTable.mAddrs.Elements()));
-            JS::Rooted<JSObject*> indexArray(
+            MC::Rooted<JSObject*> indexArray(
                 cx, dom::Uint32Array::Create(cx, aSymbolTable.mIndex.Length(),
                                              aSymbolTable.mIndex.Elements()));
-            JS::Rooted<JSObject*> bufferArray(
+            MC::Rooted<JSObject*> bufferArray(
                 cx, dom::Uint8Array::Create(cx, aSymbolTable.mBuffer.Length(),
                                             aSymbolTable.mBuffer.Elements()));
 
             if (addrsArray && indexArray && bufferArray) {
-              JS::Rooted<JSObject*> tuple(cx, JS::NewArrayObject(cx, 3));
+              MC::Rooted<JSObject*> tuple(cx, JS::NewArrayObject(cx, 3));
               JS_SetElement(cx, tuple, 0, addrsArray);
               JS_SetElement(cx, tuple, 1, indexArray);
               JS_SetElement(cx, tuple, 2, bufferArray);

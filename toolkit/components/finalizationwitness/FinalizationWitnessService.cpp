@@ -5,7 +5,7 @@
 #include "FinalizationWitnessService.h"
 
 #include "nsString.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions
@@ -140,8 +140,8 @@ bool ForgetImpl(JSContext* cx, const JS::CallArgs& args) {
     JS_ReportErrorASCII(cx, "forget() takes no arguments");
     return false;
   }
-  JS::Rooted<JS::Value> valSelf(cx, args.thisv());
-  JS::Rooted<JSObject*> objSelf(cx, &valSelf.toObject());
+  MC::Rooted<JS::Value> valSelf(cx, args.thisv());
+  MC::Rooted<JSObject*> objSelf(cx, &valSelf.toObject());
 
   RefPtr<FinalizationEvent> event = ExtractFinalizationEvent(objSelf);
   if (event == nullptr) {
@@ -182,7 +182,7 @@ NS_IMETHODIMP
 FinalizationWitnessService::Make(const char* aTopic, const char16_t* aValue,
                                  JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aRetval) {
-  JS::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass));
+  MC::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass));
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

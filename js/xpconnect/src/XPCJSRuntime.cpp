@@ -1217,7 +1217,7 @@ static void GetRealmName(JS::Realm* realm, nsCString& name, int* anonymizeID,
 }
 
 extern void xpc::GetCurrentRealmName(JSContext* cx, nsCString& name) {
-  RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   if (!global) {
     name.AssignLiteral("no global");
     return;
@@ -2178,9 +2178,9 @@ class XPCJSRuntimeStats : public JS::RuntimeStats {
     extras->pathPrefix.AssignLiteral("explicit/js-non-window/zones/");
 
     // Get some global in this zone.
-    Rooted<Realm*> realm(dom::RootingCx(), js::GetAnyRealmInZone(zone));
+    MC::Rooted<Realm*> realm(dom::RootingCx(), js::GetAnyRealmInZone(zone));
     if (realm) {
-      RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
+      MC::RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
       if (global) {
         RefPtr<nsGlobalWindowInner> window;
         if (NS_SUCCEEDED(UNWRAP_NON_WRAPPER_OBJECT(Window, global, window))) {
@@ -2208,7 +2208,7 @@ class XPCJSRuntimeStats : public JS::RuntimeStats {
 
     // Get the realm's global.
     bool needZone = true;
-    RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
+    MC::RootedObject global(dom::RootingCx(), JS::GetRealmGlobalOrNull(realm));
     if (global) {
       RefPtr<nsGlobalWindowInner> window;
       if (NS_SUCCEEDED(UNWRAP_NON_WRAPPER_OBJECT(Window, global, window))) {
@@ -2564,7 +2564,7 @@ static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
                             size_t* jsStringsSize, size_t* jsPrivateSize,
                             size_t* jsOtherSize) {
   JSContext* cx = MC_UNSAFE(XPCJSContext::Get()->Context());
-  JS::RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
 
   TabSizes sizes;
   OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);

@@ -285,13 +285,13 @@ static void TestHoldersAreMarkedGray(JSContext* cx) {
 
 // Test GC things stored in JS holders are updated by compacting GC.
 static void TestHoldersAreMoved(JSContext* cx, bool singleZone) {
-  JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+  MC::RootedObject obj(cx, JS_NewPlainObject(cx));
   ASSERT_TRUE(obj);
 
   // Set a property so we can check we have the same object at the end.
   const char* PropertyName = "answer";
   const int32_t PropertyValue = 42;
-  JS::RootedValue value(cx, JS::Int32Value(PropertyValue));
+  MC::RootedValue value(cx, JS::Int32Value(PropertyValue));
   ASSERT_TRUE(JS_SetProperty(cx, obj, PropertyName, value));
 
   // Ensure the object is tenured.
@@ -333,7 +333,7 @@ TEST(JSHolderMap, GCIntegration)
                                       &JS::DefaultGlobalClassOps};
 
   JS::RealmOptions options;
-  JS::RootedObject global(MC_UNSAFE(cx));
+  MC::RootedObject global(cx);
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);
   ASSERT_NE(global, nullptr);

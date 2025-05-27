@@ -54,7 +54,7 @@ XPCWrappedNativeProto::~XPCWrappedNativeProto() {
 bool XPCWrappedNativeProto::Init(JSContext* cx, nsIXPCScriptable* scriptable) {
   mScriptable = scriptable;
 
-  JS::RootedObject proto(cx, JS::GetRealmObjectPrototype(cx));
+  MC::RootedObject proto(cx, JS::GetRealmObjectPrototype(cx));
   mJSProtoObject = JS_NewObjectWithGivenProto(cx, &XPC_WN_Proto_JSClass, proto);
 
   bool success = !!mJSProtoObject;

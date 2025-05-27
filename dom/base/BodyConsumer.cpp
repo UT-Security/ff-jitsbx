@@ -702,14 +702,12 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
-      free(aResult);
-      aResult = static_cast<uint8_t*>(JS_malloc(cx, aResultLength));
-      JS::Rooted<JSObject*> arrayBuffer(cx);
+      MC::Rooted<JSObject*> arrayBuffer(cx);
       BodyUtil::ConsumeArrayBuffer(cx, &arrayBuffer, aResultLength, aResult,
                                    error);
 
       if (!error.Failed()) {
-        JS::Rooted<JS::Value> val(cx);
+        MC::Rooted<JS::Value> val(cx);
         val.setObjectOrNull(arrayBuffer);
 
         localPromise->MaybeResolve(val);
@@ -743,7 +741,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
         if (mConsumeType == CONSUME_TEXT) {
           localPromise->MaybeResolve(decoded);
         } else {
-          JS::Rooted<JS::Value> json(cx);
+          MC::Rooted<JS::Value> json(cx);
           BodyUtil::ConsumeJson(cx, &json, decoded, error);
           if (!error.Failed()) {
             localPromise->MaybeResolve(json);

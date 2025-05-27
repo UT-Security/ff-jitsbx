@@ -27,7 +27,7 @@
 #include "js/SourceText.h"
 #include "js/Transcoding.h"
 #include "js/Utility.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ArrayIterator.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -1888,7 +1888,7 @@ nsresult nsXULPrototypeScript::Compile(
   options.setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
       .setFileAndLine(urlspec.get(), mOutOfLine ? 1 : aLineNo);
 
-  JS::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
 
   if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
     if (!JS::CompileToStencilOffThread(

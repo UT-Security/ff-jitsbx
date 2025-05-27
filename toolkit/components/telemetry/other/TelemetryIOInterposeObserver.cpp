@@ -9,7 +9,7 @@
 #include "js/Array.h"               // JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineUCProperty
 #include "js/PropertyDescriptor.h"  // JSPROP_ENUMERATE, JSPROP_READONLY
-#include "js/ValueArray.h"
+#include "monkeycage/ValueArray.h"
 #include "nsIFile.h"
 
 namespace mozilla::Telemetry {
@@ -107,7 +107,7 @@ void TelemetryIOInterposeObserver::Observe(Observation& aOb) {
 bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
                                                     JSContext* cx,
                                                     JS::Handle<JSObject*> obj) {
-  JS::RootedValueArray<NUM_STAGES> stages(cx);
+  MC::RootedValueArray<NUM_STAGES> stages(cx);
 
   FileStatsByStage& statsByStage = *entry->GetModifiableData();
   for (int s = STAGE_STARTUP; s < NUM_STAGES; ++s) {
@@ -122,7 +122,7 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
     }
 
     // Array we want to report
-    JS::RootedValueArray<6> stats(cx);
+    MC::RootedValueArray<6> stats(cx);
     stats[0].setNumber(fileStats.totalTime);
     stats[1].setNumber(fileStats.creates);
     stats[2].setNumber(fileStats.reads);
@@ -131,7 +131,7 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
     stats[5].setNumber(fileStats.stats);
 
     // Create jsStats as array of elements above
-    JS::Rooted<JSObject*> jsStats(cx, JS::NewArrayObject(cx, stats));
+    MC::Rooted<JSObject*> jsStats(cx, JS::NewArrayObject(cx, stats));
     if (!jsStats) {
       continue;
     }
@@ -139,7 +139,7 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
     stages[s].setObject(*jsStats);
   }
 
-  JS::Rooted<JSObject*> jsEntry(cx, JS::NewArrayObject(cx, stages));
+  MC::Rooted<JSObject*> jsEntry(cx, JS::NewArrayObject(cx, stages));
   if (!jsEntry) {
     return false;
   }

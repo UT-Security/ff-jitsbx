@@ -148,7 +148,7 @@ nsresult ModuleLoader::CompileFetchedModule(
     JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleOut) {
   if (aRequest->GetScriptLoadContext()->mWasCompiledOMT) {
-    JS::Rooted<JS::InstantiationStorage> storage(aCx);
+    MC::Rooted<JS::InstantiationStorage> storage(aCx);
     RefPtr<JS::Stencil> stencil = JS::FinishOffThreadStencil(
         aCx, aRequest->GetScriptLoadContext()->mOffThreadToken,
         storage.address());

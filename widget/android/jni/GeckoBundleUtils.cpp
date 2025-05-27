@@ -31,7 +31,7 @@ nsresult BoxString(JSContext* aCx, JS::Handle<JS::Value> aData,
 
   MOZ_ASSERT(aData.isString());
 
-  JS::Rooted<JSString*> str(aCx, aData.toString());
+  MC::Rooted<JSString*> str(aCx, aData.toString());
 
   if (JS::StringHasLatin1Chars(str)) {
     nsAutoJSString autoStr;
@@ -73,7 +73,7 @@ template <typename Type, bool (JS::Value::*IsType)() const,
 nsresult BoxArrayPrimitive(JSContext* aCx, JS::Handle<JSObject*> aData,
                            jni::Object::LocalRef& aOut, size_t aLength,
                            JS::Handle<JS::Value> aElement) {
-  JS::Rooted<JS::Value> element(aCx);
+  MC::Rooted<JS::Value> element(aCx);
   auto data = MakeUnique<Type[]>(aLength);
   data[0] = (aElement.get().*ToType)();
 
@@ -110,7 +110,7 @@ nsresult BoxArrayObject(JSContext* aCx, JS::Handle<JSObject*> aData,
                         jni::Object::LocalRef& aOut, size_t aLength,
                         JS::Handle<JS::Value> aElement, IsType&& aIsType) {
   auto out = jni::ObjectArray::New<Type>(aLength);
-  JS::Rooted<JS::Value> element(aCx);
+  MC::Rooted<JS::Value> element(aCx);
   jni::Object::LocalRef jniElement(aOut.Env());
 
   nsresult rv = (*Box)(aCx, aElement, jniElement);
@@ -145,7 +145,7 @@ nsresult BoxArray(JSContext* aCx, JS::Handle<JSObject*> aData,
 
   // We only check the first element's type. If the array has mixed types,
   // we'll throw an error during actual conversion.
-  JS::Rooted<JS::Value> element(aCx);
+  MC::Rooted<JS::Value> element(aCx);
   NS_ENSURE_TRUE(CheckJS(aCx, JS_GetElement(aCx, aData, 0, &element)),
                  NS_ERROR_FAILURE);
 
@@ -189,7 +189,7 @@ nsresult BoxArray(JSContext* aCx, JS::Handle<JSObject*> aData,
       return false;
     }
     bool array = false;
-    JS::Rooted<JSObject*> obj(aCx, &val.toObject());
+    MC::Rooted<JSObject*> obj(aCx, &val.toObject());
     // We don't support array of arrays.
     return CheckJS(aCx, JS::IsArrayObject(aCx, obj, &array)) && !array;
   };
@@ -215,8 +215,8 @@ nsresult BoxObject(JSContext* aCx, JS::Handle<JS::Value> aData,
 
   MOZ_ASSERT(aData.isObject());
 
-  JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
-  JS::Rooted<JSObject*> obj(aCx, &aData.toObject());
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JSObject*> obj(aCx, &aData.toObject());
 
   bool isArray = false;
   if (CheckJS(aCx, JS::IsArrayObject(aCx, obj, &isArray)) && isArray) {
@@ -235,16 +235,16 @@ nsresult BoxObject(JSContext* aCx, JS::Handle<JS::Value> aData,
 
   // Iterate through each property of the JS object.
   for (size_t i = 0; i < ids.length(); i++) {
-    const JS::RootedId id(aCx, ids[i]);
-    JS::Rooted<JS::Value> idVal(aCx);
-    JS::Rooted<JS::Value> val(aCx);
+    const MC::RootedId id(aCx, ids[i]);
+    MC::Rooted<JS::Value> idVal(aCx);
+    MC::Rooted<JS::Value> val(aCx);
     jni::Object::LocalRef key(aOut.Env());
     jni::Object::LocalRef value(aOut.Env());
 
     NS_ENSURE_TRUE(CheckJS(aCx, JS_IdToValue(aCx, id, &idVal)),
                    NS_ERROR_FAILURE);
 
-    JS::Rooted<JSString*> idStr(aCx, JS::ToString(aCx, idVal));
+    MC::Rooted<JSString*> idStr(aCx, JS::ToString(aCx, idVal));
     NS_ENSURE_TRUE(CheckJS(aCx, !!idStr), NS_ERROR_FAILURE);
 
     idVal.setString(idStr);

@@ -6,7 +6,7 @@
 
 #include "CombinedStacks.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Array.h"               // JS::NewArrayObject
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include "js/String.h"
@@ -156,12 +156,12 @@ void CombinedStacks::Clear() {
 }
 
 JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
-  JS::Rooted<JSObject*> ret(cx, JS_NewPlainObject(cx));
+  MC::Rooted<JSObject*> ret(cx, JS_NewPlainObject(cx));
   if (!ret) {
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> moduleArray(cx, JS::NewArrayObject(cx, 0));
+  MC::Rooted<JSObject*> moduleArray(cx, JS::NewArrayObject(cx, 0));
   if (!moduleArray) {
     return nullptr;
   }
@@ -177,7 +177,7 @@ JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
     const Telemetry::ProcessedStack::Module& module =
         stacks.GetModule(moduleIndex);
 
-    JS::Rooted<JSObject*> moduleInfoArray(cx, JS::NewArrayObject(cx, 0));
+    MC::Rooted<JSObject*> moduleInfoArray(cx, JS::NewArrayObject(cx, 0));
     if (!moduleInfoArray) {
       return nullptr;
     }
@@ -189,14 +189,14 @@ JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
     unsigned index = 0;
 
     // Module name
-    JS::Rooted<JSString*> str(cx, JS_NewUCStringCopyZ(cx, module.mName.get()));
+    MC::Rooted<JSString*> str(cx, JS_NewUCStringCopyZ(cx, module.mName.get()));
     if (!str || !JS_DefineElement(cx, moduleInfoArray, index++, str,
                                   JSPROP_ENUMERATE)) {
       return nullptr;
     }
 
     // Module breakpad identifier
-    JS::Rooted<JSString*> id(cx,
+    MC::Rooted<JSString*> id(cx,
                              JS_NewStringCopyZ(cx, module.mBreakpadId.get()));
     if (!id ||
         !JS_DefineElement(cx, moduleInfoArray, index, id, JSPROP_ENUMERATE)) {
@@ -204,7 +204,7 @@ JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
     }
   }
 
-  JS::Rooted<JSObject*> reportArray(cx, JS::NewArrayObject(cx, 0));
+  MC::Rooted<JSObject*> reportArray(cx, JS::NewArrayObject(cx, 0));
   if (!reportArray) {
     return nullptr;
   }
@@ -216,7 +216,7 @@ JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
   const size_t length = stacks.GetStackCount();
   for (size_t i = 0; i < length; ++i) {
     // Represent call stack PCs as (module index, offset) pairs.
-    JS::Rooted<JSObject*> pcArray(cx, JS::NewArrayObject(cx, 0));
+    MC::Rooted<JSObject*> pcArray(cx, JS::NewArrayObject(cx, 0));
     if (!pcArray) {
       return nullptr;
     }
@@ -229,7 +229,7 @@ JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
     const uint32_t pcCount = stack.size();
     for (size_t pcIndex = 0; pcIndex < pcCount; ++pcIndex) {
       const Telemetry::ProcessedStack::Frame& frame = stack[pcIndex];
-      JS::Rooted<JSObject*> framePair(cx, JS::NewArrayObject(cx, 0));
+      MC::Rooted<JSObject*> framePair(cx, JS::NewArrayObject(cx, 0));
       if (!framePair) {
         return nullptr;
       }

@@ -44,7 +44,7 @@ already_AddRefed<PermissionStatus> CreatePermissionStatus(
     JSContext* aCx, JS::Handle<JSObject*> aPermission,
     nsPIDOMWindowInner* aWindow, ErrorResult& aRv) {
   PermissionDescriptor permission;
-  JS::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aPermission));
+  MC::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aPermission));
   if (NS_WARN_IF(!permission.Init(aCx, value))) {
     aRv.NoteJSContextException(aCx);
     return nullptr;
@@ -124,7 +124,7 @@ already_AddRefed<Promise> Permissions::Revoke(JSContext* aCx,
   }
 
   PermissionDescriptor permission;
-  JS::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aPermission));
+  MC::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aPermission));
   if (NS_WARN_IF(!permission.Init(aCx, value))) {
     aRv.NoteJSContextException(aCx);
     return nullptr;

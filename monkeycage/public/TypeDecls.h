@@ -33,7 +33,7 @@ class RootedVector;
 template <typename T>
 class PersistentRootedVector;
 
-template <typename T, typename AllocPolicy = js::TempAllocPolicy>
+template <typename T, typename AllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 #else
 template <typename T>
@@ -51,7 +51,7 @@ using RootedVector = JS::RootedVector<T>;
 template <typename T>
 using PersistentRootedVector = JS::PersistentRootedVector<T>;
 
-template <typename T, typename AllocPolicy = js::TempAllocPolicy>
+template <typename T, typename AllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 #endif
 

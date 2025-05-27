@@ -165,7 +165,7 @@ bool StructuredCloneWriteCallback(JSContext* aCx,
   }
 
   // UNWRAP_OBJECT calls might mutate this.
-  JS::Rooted<JSObject*> obj(aCx, aObj);
+  MC::Rooted<JSObject*> obj(aCx, aObj);
 
   {
     Blob* blob = nullptr;
@@ -247,7 +247,7 @@ bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
       static_cast<IDBObjectStore::StructuredCloneInfo*>(aClosure);
 
   // UNWRAP_OBJECT calls might mutate this.
-  JS::Rooted<JSObject*> obj(aCx, aObj);
+  MC::Rooted<JSObject*> obj(aCx, aObj);
 
   {
     Blob* blob = nullptr;
@@ -304,7 +304,7 @@ using indexedDB::WrapAsJSObject;
 
 template <typename T>
 JSObject* WrapAsJSObject(JSContext* const aCx, T& aBaseObject) {
-  JS::Rooted<JSObject*> result(aCx);
+  MC::Rooted<JSObject*> result(aCx);
   const bool res = WrapAsJSObject(aCx, aBaseObject, &result);
   return res ? static_cast<JSObject*>(result) : nullptr;
 }
@@ -337,7 +337,7 @@ JSObject* CopyingStructuredCloneReadCallback(
       case SCTAG_DOM_FILE: {
         MOZ_ASSERT(file.Type() == StructuredCloneFileBase::eBlob);
 
-        JS::Rooted<JSObject*> result(aCx);
+        MC::Rooted<JSObject*> result(aCx);
 
         {
           // Create a scope so ~RefPtr fires before returning an unwrapped
@@ -436,7 +436,7 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     return;
   }
 
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   if (NS_FAILED(aKeyPath.ExtractKeyAsJSVal(aCx, aVal, val.address()))) {
     return;
   }
@@ -448,7 +448,7 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     return;
   }
   if (isArray) {
-    JS::Rooted<JSObject*> array(aCx, &val.toObject());
+    MC::Rooted<JSObject*> array(aCx, &val.toObject());
     uint32_t arrayLength;
     if (NS_WARN_IF(!JS::GetArrayLength(aCx, array, &arrayLength))) {
       IDB_REPORT_INTERNAL_ERR();
@@ -457,7 +457,7 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     }
 
     for (uint32_t arrayIndex = 0; arrayIndex < arrayLength; arrayIndex++) {
-      JS::Rooted<JS::PropertyKey> indexId(aCx);
+      MC::Rooted<JS::PropertyKey> indexId(aCx);
       if (NS_WARN_IF(!JS_IndexToId(aCx, arrayIndex, &indexId))) {
         IDB_REPORT_INTERNAL_ERR();
         aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -476,7 +476,7 @@ void IDBObjectStore::AppendIndexUpdateInfo(
         continue;
       }
 
-      JS::Rooted<JS::Value> arrayItem(aCx);
+      MC::Rooted<JS::Value> arrayItem(aCx);
       if (NS_WARN_IF(!JS_GetPropertyById(aCx, array, indexId, &arrayItem))) {
         IDB_REPORT_INTERNAL_ERR();
         aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
@@ -1726,7 +1726,7 @@ bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
 
   StructuredCloneInfo cloneInfo;
 
-  JS::Rooted<JS::Value> clonedValue(aCx);
+  MC::Rooted<JS::Value> clonedValue(aCx);
   if (!JS_StructuredClone(aCx, mValue, &clonedValue, &callbacks, &cloneInfo)) {
     return false;
   }

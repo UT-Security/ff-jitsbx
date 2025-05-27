@@ -51,7 +51,7 @@ JSObject* PushSubscriptionOptions::WrapObject(
 void PushSubscriptionOptions::GetApplicationServerKey(
     JSContext* aCx, JS::MutableHandle<JSObject*> aKey, ErrorResult& aRv) {
   if (!mRawAppServerKey.IsEmpty() && !mAppServerKey) {
-    JS::Rooted<JSObject*> appServerKey(aCx);
+    MC::Rooted<JSObject*> appServerKey(aCx);
     PushUtil::CopyArrayToArrayBuffer(aCx, mRawAppServerKey, &appServerKey, aRv);
     if (aRv.Failed()) {
       return;

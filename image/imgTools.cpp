@@ -32,8 +32,8 @@
 #include "imgIScriptedNotificationObserver.h"
 #include "gfxPlatform.h"
 #include "js/ArrayBuffer.h"
-#include "js/RootingAPI.h"  // JS::{Handle,Rooted}
-#include "js/Value.h"       // JS::Value
+#include "monkeycage/RootingAPI.h"  // JS::{Handle,Rooted}
+#include "monkeycage/Value.h"       // JS::Value
 #include "Orientation.h"
 
 using namespace mozilla::gfx;
@@ -291,7 +291,7 @@ imgTools::DecodeImageFromArrayBuffer(JS::Handle<JS::Value> aArrayBuffer,
     return NS_ERROR_FAILURE;
   }
 
-  JS::Rooted<JSObject*> obj(aCx,
+  MC::Rooted<JSObject*> obj(aCx,
                             JS::UnwrapArrayBuffer(&aArrayBuffer.toObject()));
   if (!obj) {
     return NS_ERROR_FAILURE;

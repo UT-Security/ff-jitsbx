@@ -8,8 +8,8 @@
 #define RTCStatsReport_h_
 
 #include "api/units/timestamp.h"  // webrtc::Timestamp
-#include "js/RootingAPI.h"        // JS::Rooted
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"        // JS::Rooted
+#include "monkeycage/Value.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/MozPromise.h"
 #include "mozilla/TimeStamp.h"
@@ -179,11 +179,11 @@ class RTCStatsReport final : public nsWrapperCache {
     AutoEntryScript aes(mParent->AsGlobal()->GetGlobalJSObject(),
                         "RTCStatsReport::SetRTCStats");
     JSContext* cx = aes.cx();
-    JS::Rooted<JS::Value> val(cx);
+    MC::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aValue), &val)) {
       return NS_ERROR_FAILURE;
     }
-    JS::Rooted<JSObject*> jsObject(cx, &val.toObject());
+    MC::Rooted<JSObject*> jsObject(cx, &val.toObject());
 
     ErrorResult rv;
     Set(key, jsObject, rv);

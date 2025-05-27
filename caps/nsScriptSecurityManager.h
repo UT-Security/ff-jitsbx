@@ -14,7 +14,7 @@
 #include "nsCOMPtr.h"
 #include "nsServiceManagerUtils.h"
 #include "nsStringFwd.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Context.h"
 
 #include <stdint.h>

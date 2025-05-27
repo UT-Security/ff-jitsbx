@@ -741,7 +741,7 @@ NS_IMETHODIMP CycleCollectedJSContext::NotifyUnhandledRejections::Run() {
     }
 
     JS::RootingContext* cx = cccx->RootingCx();
-    JS::RootedObject promiseObj(cx, promise->PromiseObj());
+    MC::RootedObject promiseObj(cx, promise->PromiseObj());
     MOZ_ASSERT(JS::IsPromiseObject(promiseObj));
 
     // Only fire unhandledrejection if the promise is still not handled;
@@ -789,7 +789,7 @@ nsresult CycleCollectedJSContext::NotifyUnhandledRejections::Cancel() {
       continue;
     }
 
-    JS::RootedObject promiseObj(cccx->RootingCx(), promise->PromiseObj());
+    MC::RootedObject promiseObj(cccx->RootingCx(), promise->PromiseObj());
     cccx->mPendingUnhandledRejections.Remove(JS::GetPromiseID(promiseObj));
   }
   return NS_OK;
@@ -858,7 +858,7 @@ void FinalizationRegistryCleanup::DoCleanup() {
 
   JS::RootingContext* cx = mContext->RootingCx();
 
-  JS::Rooted<CallbackVector> callbacks(cx);
+  MC::Rooted<CallbackVector> callbacks(cx);
   std::swap(callbacks.get(), mCallbacks.get());
 
   for (const Callback& callback : callbacks) {
@@ -866,9 +866,9 @@ void FinalizationRegistryCleanup::DoCleanup() {
         JS_GetFunctionObject(callback.mCallbackFunction));
     JS::ExposeObjectToActiveJS(callback.mIncumbentGlobal);
 
-    JS::RootedObject functionObj(
+    MC::RootedObject functionObj(
         cx, JS_GetFunctionObject(callback.mCallbackFunction));
-    JS::RootedObject globalObj(cx, JS::GetNonCCWObjectGlobal(functionObj));
+    MC::RootedObject globalObj(cx, JS::GetNonCCWObjectGlobal(functionObj));
 
     nsIGlobalObject* incumbentGlobal =
         xpc::NativeGlobal(callback.mIncumbentGlobal);

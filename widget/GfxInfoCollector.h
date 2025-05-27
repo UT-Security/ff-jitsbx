@@ -10,7 +10,7 @@
 
 #include "mozilla/Attributes.h"
 #include "nsStringFwd.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 
 namespace mozilla {
 namespace widget {
@@ -32,7 +32,7 @@ class MOZ_STACK_CLASS InfoObject {
   InfoObject(InfoObject&);
 
   JSContext* mCx;
-  JS::Rooted<JSObject*> mObj;
+  MC::Rooted<JSObject*> mObj;
   bool mOk;
 };
 

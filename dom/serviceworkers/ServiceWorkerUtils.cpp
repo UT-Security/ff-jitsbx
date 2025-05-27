@@ -50,7 +50,7 @@ bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal) {
   }
 
   // xpc::CurrentNativeGlobal below requires rooting
-  JS::Rooted<JSObject*> global(aCx, aGlobal);
+  MC::Rooted<JSObject*> global(aCx, aGlobal);
 
   if (IsInPrivateBrowsing(aCx)) {
     return false;

@@ -652,11 +652,11 @@ class DebuggerImmediateRunnable : public WorkerRunnable {
 
   virtual bool WorkerRun(JSContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override {
-    JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
-    JS::Rooted<JS::Value> callable(
+    MC::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+    MC::Rooted<JS::Value> callable(
         aCx, JS::ObjectOrNullValue(mHandler->CallableOrNull()));
     JS::HandleValueArray args = JS::HandleValueArray::empty();
-    JS::Rooted<JS::Value> rval(aCx);
+    MC::Rooted<JS::Value> rval(aCx);
 
     // WorkerRunnable::Run will report the exception if it happens.
     return JS_CallFunctionValue(aCx, global, callable, args, &rval);
@@ -4609,7 +4609,7 @@ void WorkerPrivate::PostMessageToParent(
   AssertIsOnWorkerThread();
   MOZ_DIAGNOSTIC_ASSERT(IsDedicatedWorker());
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
 
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
                                                           &transferable);
@@ -4887,7 +4887,7 @@ void WorkerPrivate::ReportError(JSContext* aCx,
       return;
     }
 
-    JS::Rooted<JSObject*> stack(aCx), stackGlobal(aCx);
+    MC::Rooted<JSObject*> stack(aCx), stackGlobal(aCx);
     xpc::FindExceptionStackForConsoleReport(
         nullptr, exnStack.exception(), exnStack.stack(), &stack, &stackGlobal);
 
@@ -5071,7 +5071,7 @@ bool WorkerPrivate::RunExpiredTimeouts(JSContext* aCx) {
   bool retval = true;
 
   auto comparator = GetUniquePtrComparator(data->mTimeouts);
-  JS::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
+  MC::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
 
   // We want to make sure to run *something*, even if the timer fired a little
   // early. Fudge the value of now to at least include the first timeout.
@@ -5546,7 +5546,7 @@ bool WorkerPrivate::ConnectMessagePort(JSContext* aCx,
 
   WorkerGlobalScope* globalScope = GlobalScope();
 
-  JS::Rooted<JSObject*> jsGlobal(aCx, globalScope->GetWrapper());
+  MC::Rooted<JSObject*> jsGlobal(aCx, globalScope->GetWrapper());
   MOZ_ASSERT(jsGlobal);
 
   // This UniqueMessagePortId is used to create a new port, still connected
@@ -5603,7 +5603,7 @@ WorkerGlobalScope* WorkerPrivate::GetOrCreateGlobalScope(JSContext* aCx) {
                                                   WorkerName(), rfp);
   }
 
-  JS::Rooted<JSObject*> global(aCx);
+  MC::Rooted<JSObject*> global(aCx);
   NS_ENSURE_TRUE(data->mScope->WrapGlobalObject(aCx, &global), nullptr);
 
   JSAutoRealm ar(aCx, global);
@@ -5633,7 +5633,7 @@ WorkerDebuggerGlobalScope* WorkerPrivate::CreateDebuggerGlobalScope(
   data->mDebuggerScope =
       new WorkerDebuggerGlobalScope(this, std::move(clientSource), rfp);
 
-  JS::Rooted<JSObject*> global(aCx);
+  MC::Rooted<JSObject*> global(aCx);
   NS_ENSURE_TRUE(data->mDebuggerScope->WrapGlobalObject(aCx, &global), nullptr);
 
   JSAutoRealm ar(aCx, global);

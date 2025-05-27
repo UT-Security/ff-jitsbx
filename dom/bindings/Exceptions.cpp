@@ -41,7 +41,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JSObject*> exnObj(aCx, &exnVal.toObject());
+  MC::Rooted<JSObject*> exnObj(aCx, &exnVal.toObject());
   MOZ_ASSERT(js::IsObjectInContextCompartment(exnObj, aCx),
              "exnObj needs to be in the right compartment for the "
              "CheckedUnwrapDynamic thing to make sense");
@@ -61,7 +61,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
   // is also why we don't just call ThrowExceptionObject on the Exception we
   // create: it would do the right thing, but that fact is not obvious.
   RefPtr<Exception> syntheticException = CreateException(NS_ERROR_UNEXPECTED);
-  JS::Rooted<JS::Value> syntheticVal(aCx);
+  MC::Rooted<JS::Value> syntheticVal(aCx);
   if (!GetOrCreateDOMReflector(aCx, syntheticException, &syntheticVal)) {
     return;
   }
@@ -72,7 +72,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
 }
 
 void ThrowExceptionObject(JSContext* aCx, Exception* aException) {
-  JS::Rooted<JS::Value> thrown(aCx);
+  MC::Rooted<JS::Value> thrown(aCx);
 
   // If we stored the original thrown JS value in the exception
   // (see XPCConvert::ConstructException) and we are in a web context
@@ -368,7 +368,7 @@ static void GetValueIfNotCached(
   MOZ_ASSERT(aStack);
   MOZ_ASSERT(JS::IsUnwrappedSavedFrame(aStack));
 
-  JS::Rooted<JSObject*> stack(aCx, aStack);
+  MC::Rooted<JSObject*> stack(aCx, aStack);
 
   JSPrincipals* principals = GetPrincipalsForStackGetter(aCx, stack, aCanCache);
   if (*aCanCache && aIsCached) {
@@ -394,7 +394,7 @@ void JSStackFrame::GetFilename(JSContext* aCx, nsAString& aFilename) {
     return;
   }
 
-  JS::Rooted<JSString*> filename(aCx);
+  MC::Rooted<JSString*> filename(aCx);
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameSource,
                       mFilenameInitialized, &canCache, &useCachedValue,
@@ -430,7 +430,7 @@ void JSStackFrame::GetName(JSContext* aCx, nsAString& aFunction) {
     return;
   }
 
-  JS::Rooted<JSString*> name(aCx);
+  MC::Rooted<JSString*> name(aCx);
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameFunctionDisplayName,
                       mFunnameInitialized, &canCache, &useCachedValue, &name);
@@ -559,7 +559,7 @@ void JSStackFrame::GetAsyncCause(JSContext* aCx, nsAString& aAsyncCause) {
     return;
   }
 
-  JS::Rooted<JSString*> asyncCause(aCx);
+  MC::Rooted<JSString*> asyncCause(aCx);
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameAsyncCause,
                       mAsyncCauseInitialized, &canCache, &useCachedValue,
@@ -600,7 +600,7 @@ already_AddRefed<nsIStackFrame> JSStackFrame::GetAsyncCaller(JSContext* aCx) {
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> asyncCallerObj(aCx);
+  MC::Rooted<JSObject*> asyncCallerObj(aCx);
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameAsyncParent,
                       mAsyncCallerInitialized, &canCache, &useCachedValue,
@@ -633,7 +633,7 @@ already_AddRefed<nsIStackFrame> JSStackFrame::GetCaller(JSContext* aCx) {
     return nullptr;
   }
 
-  JS::Rooted<JSObject*> callerObj(aCx);
+  MC::Rooted<JSObject*> callerObj(aCx);
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameParent, mCallerInitialized,
                       &canCache, &useCachedValue, &callerObj);
@@ -671,7 +671,7 @@ void JSStackFrame::GetFormattedStack(JSContext* aCx, nsAString& aStack) {
   // make the templates more complicated to deal, but in the meantime
   // let's just inline GetValueIfNotCached here.
 
-  JS::Rooted<JSObject*> stack(aCx, mStack);
+  MC::Rooted<JSObject*> stack(aCx, mStack);
 
   bool canCache;
   JSPrincipals* principals = GetPrincipalsForStackGetter(aCx, stack, &canCache);
@@ -680,7 +680,7 @@ void JSStackFrame::GetFormattedStack(JSContext* aCx, nsAString& aStack) {
     return;
   }
 
-  JS::Rooted<JSString*> formattedStack(aCx);
+  MC::Rooted<JSString*> formattedStack(aCx);
   if (!JS::BuildStackString(aCx, principals, stack, &formattedStack)) {
     JS_ClearPendingException(aCx);
     aStack.Truncate();
@@ -740,7 +740,7 @@ void JSStackFrame::ToString(JSContext* aCx, nsACString& _retval) {
 
 already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
                                             JS::StackCapture&& aCaptureMode) {
-  JS::Rooted<JSObject*> stack(aCx);
+  MC::Rooted<JSObject*> stack(aCx);
   if (!JS::CaptureCurrentStack(aCx, &stack, std::move(aCaptureMode))) {
     return nullptr;
   }

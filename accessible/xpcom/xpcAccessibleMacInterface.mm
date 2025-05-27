@@ -232,7 +232,7 @@ nsresult xpcAccessibleMacInterface::NSObjectToJsValue(id aObj, JSContext* aCx,
   } else if ([aObj isKindOfClass:[NSArray class]]) {
     NSArray* objArr = (NSArray*)aObj;
 
-    JS::RootedVector<JS::Value> v(aCx);
+    MC::RootedVector<JS::Value> v(aCx);
     if (!v.resize([objArr count])) {
       return NS_ERROR_FAILURE;
     }
@@ -247,11 +247,11 @@ nsresult xpcAccessibleMacInterface::NSObjectToJsValue(id aObj, JSContext* aCx,
     }
     aResult.setObject(*arrayObj);
   } else if ([aObj isKindOfClass:[NSDictionary class]]) {
-    JS::RootedObject obj(aCx, JS_NewPlainObject(aCx));
+    MC::RootedObject obj(aCx, JS_NewPlainObject(aCx));
     for (NSString* key in aObj) {
       nsAutoString strKey;
       nsCocoaUtils::GetStringForNSString(key, strKey);
-      JS::RootedValue value(aCx);
+      MC::RootedValue value(aCx);
       nsresult rv = NSObjectToJsValue(aObj[key], aCx, &value);
       NS_ENSURE_SUCCESS(rv, rv);
       JS_SetUCProperty(aCx, obj, strKey.get(), strKey.Length(), value);
@@ -319,7 +319,7 @@ id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, JSContex
     }
     return nsCocoaUtils::ToNSString(temp);
   } else if (aValue.isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, aValue.toObjectOrNull());
+    MC::Rooted<JSObject*> obj(aCx, aValue.toObjectOrNull());
 
     bool isArray;
     JS::IsArrayObject(aCx, obj, &isArray);
@@ -330,7 +330,7 @@ id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, JSContex
       JS::GetArrayLength(aCx, obj, &len);
       NSMutableArray* array = [NSMutableArray arrayWithCapacity:len];
       for (uint32_t i = 0; i < len; i++) {
-        JS::RootedValue v(aCx);
+        MC::RootedValue v(aCx);
         JS_GetElement(aCx, obj, i, &v);
         [array addObject:JsValueToNSObject(v, aCx, aResult)];
         NS_ENSURE_SUCCESS(*aResult, nil);
@@ -376,13 +376,13 @@ id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, JSContex
 id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSContext* aCx,
                                                nsresult* aResult) {
   *aResult = NS_ERROR_FAILURE;
-  JS::RootedValue valueTypeValue(aCx);
+  MC::RootedValue valueTypeValue(aCx);
   if (!JS_GetProperty(aCx, aObject, "valueType", &valueTypeValue)) {
     NS_WARNING("Could not get valueType");
     return nil;
   }
 
-  JS::RootedValue valueValue(aCx);
+  MC::RootedValue valueValue(aCx);
   if (!JS_GetProperty(aCx, aObject, "value", &valueValue)) {
     NS_WARNING("Could not get value");
     return nil;
@@ -401,7 +401,7 @@ id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSConte
     return nil;
   }
 
-  JS::Rooted<JSObject*> value(aCx, valueValue.toObjectOrNull());
+  MC::Rooted<JSObject*> value(aCx, valueValue.toObjectOrNull());
 
   if (valueType.EqualsLiteral("NSRange")) {
     uint32_t len;
@@ -411,9 +411,9 @@ id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSConte
       return nil;
     }
 
-    JS::RootedValue locationValue(aCx);
+    MC::RootedValue locationValue(aCx);
     JS_GetElement(aCx, value, 0, &locationValue);
-    JS::RootedValue lengthValue(aCx);
+    MC::RootedValue lengthValue(aCx);
     JS_GetElement(aCx, value, 1, &lengthValue);
     if (!locationValue.isInt32() || !lengthValue.isInt32()) {
       NS_WARNING("Expected an array of integers");
@@ -430,13 +430,13 @@ id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSConte
 id xpcAccessibleMacInterface::JsValueToSpecifiedNSObject(JS::HandleObject aObject, JSContext* aCx,
                                                          nsresult* aResult) {
   *aResult = NS_ERROR_FAILURE;
-  JS::RootedValue objectTypeValue(aCx);
+  MC::RootedValue objectTypeValue(aCx);
   if (!JS_GetProperty(aCx, aObject, "objectType", &objectTypeValue)) {
     NS_WARNING("Could not get objectType");
     return nil;
   }
 
-  JS::RootedValue objectValue(aCx);
+  MC::RootedValue objectValue(aCx);
   if (!JS_GetProperty(aCx, aObject, "object", &objectValue)) {
     NS_WARNING("Could not get object");
     return nil;
@@ -459,10 +459,10 @@ id xpcAccessibleMacInterface::JsValueToSpecifiedNSObject(JS::HandleObject aObjec
     return nil;
   }
 
-  JS::Rooted<JSObject*> object(aCx, objectValue.toObjectOrNull());
+  MC::Rooted<JSObject*> object(aCx, objectValue.toObjectOrNull());
 
   if (objectType.EqualsLiteral("NSDictionary")) {
-    JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+    MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
     if (!JS_Enumerate(aCx, object, &ids)) {
       NS_WARNING("Unable to get keys from dictionary object");
       return nil;
@@ -473,14 +473,14 @@ id xpcAccessibleMacInterface::JsValueToSpecifiedNSObject(JS::HandleObject aObjec
     for (size_t i = 0, n = ids.length(); i < n; i++) {
       nsresult rv = NS_OK;
       // get current key
-      JS::RootedValue currentKey(aCx);
+      MC::RootedValue currentKey(aCx);
       JS_IdToValue(aCx, ids[i], &currentKey);
       id unwrappedKey = JsValueToNSObject(currentKey, aCx, &rv);
       NS_ENSURE_SUCCESS(rv, nil);
       MOZ_ASSERT([unwrappedKey isKindOfClass:[NSString class]]);
 
       // get associated value for current key
-      JS::RootedValue currentValue(aCx);
+      MC::RootedValue currentValue(aCx);
       JS_GetPropertyById(aCx, object, ids[i], &currentValue);
       id unwrappedValue = JsValueToNSObject(currentValue, aCx, &rv);
       NS_ENSURE_SUCCESS(rv, nil);

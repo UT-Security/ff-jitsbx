@@ -59,7 +59,7 @@ class MOZ_STACK_CLASS LoadSubScriptOptions : public OptionsBase {
            ParseBoolean("wantReturnValue", &wantReturnValue);
   }
 
-  RootedObject target;
+  MC::RootedObject target;
   bool ignoreCache;
   bool wantReturnValue;
 };
@@ -99,7 +99,7 @@ static void SubscriptCachePath(JSContext* cx, nsIURI* uri,
 static void ReportError(JSContext* cx, const nsACString& msg) {
   NS_ConvertUTF8toUTF16 ucMsg(msg);
 
-  RootedValue exn(cx);
+  MC::RootedValue exn(cx);
   if (xpc::NonVoidStringToJsval(cx, ucMsg, &exn)) {
     JS_SetPendingException(cx, exn);
   }
@@ -130,7 +130,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
   MOZ_ASSERT(!mc::IsWrapper(targetObj));
 
   JS::InstantiateOptions options;
-  JS::RootedScript script(cx,
+  MC::RootedScript script(cx,
                           JS::InstantiateGlobalStencil(cx, options, stencil));
   if (!script) {
     return false;
@@ -146,7 +146,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
     }
     retval.setUndefined();
   } else {
-    JS::RootedObjectVector envChain(cx);
+    MC::RootedObjectVector envChain(cx);
     if (!envChain.append(targetObj)) {
       return false;
     }
@@ -318,8 +318,8 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     const nsAString& url, LoadSubScriptOptions& options, JSContext* cx,
     MutableHandleValue retval) {
   nsresult rv = NS_OK;
-  RootedObject targetObj(cx);
-  RootedObject loadScope(cx);
+  MC::RootedObject targetObj(cx);
+  MC::RootedObject loadScope(cx);
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
   loader->FindTargetObject(cx, &loadScope);
 

@@ -190,7 +190,7 @@ class ValueDeserializationHelperBase {
     // support for de-serialization of WebAssembly.Modules has been removed in
     // bug 1561876. Full removal is tracked in bug 1487479.
 
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (NS_WARN_IF(!obj)) {
       return false;
     }
@@ -269,7 +269,7 @@ class ValueDeserializationHelper<StructuredCloneFileParent>
     aFile.MutateType(StructuredCloneFileBase::eMutableFile);
 
     // Just make a dummy object.
-    JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
     if (NS_WARN_IF(!obj)) {
       return false;
@@ -368,7 +368,7 @@ JSObject* CommonStructuredCloneReadCallback(
   if (aTag == SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE ||
       aTag == SCTAG_DOM_BLOB || aTag == SCTAG_DOM_FILE ||
       aTag == SCTAG_DOM_MUTABLEFILE || aTag == SCTAG_DOM_WASM_MODULE) {
-    JS::Rooted<JSObject*> result(aCx);
+    MC::Rooted<JSObject*> result(aCx);
 
     if (aTag == SCTAG_DOM_WASM_MODULE) {
       WasmModuleData data(aData);

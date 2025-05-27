@@ -393,7 +393,7 @@ void BroadcastChannel::MessageReceived(const MessageData& aData) {
   }
 
   IgnoredErrorResult rv;
-  JS::Rooted<JS::Value> value(cx);
+  MC::Rooted<JS::Value> value(cx);
 
   data->Read(cx, &value, mRefMessageBodyService,
              SharedMessageBody::ReadMethod::KeepRefMessageBody, rv);

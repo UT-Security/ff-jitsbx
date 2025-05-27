@@ -23,7 +23,7 @@ SerializedStackHolder::SerializedStackHolder()
 
 void SerializedStackHolder::WriteStack(JSContext* aCx,
                                        JS::Handle<JSObject*> aStack) {
-  JS::Rooted<JS::Value> stackValue(aCx, JS::ObjectValue(*aStack));
+  MC::Rooted<JS::Value> stackValue(aCx, JS::ObjectValue(*aStack));
   mHolder.Write(aCx, stackValue, IgnoreErrors());
 
   // StructuredCloneHolder::Write can leave a pending exception on the context.
@@ -54,7 +54,7 @@ void SerializedStackHolder::SerializeWorkerStack(JSContext* aCx,
 }
 
 void SerializedStackHolder::SerializeCurrentStack(JSContext* aCx) {
-  JS::Rooted<JSObject*> stack(aCx);
+  MC::Rooted<JSObject*> stack(aCx);
   if (JS::CurrentGlobalOrNull(aCx) && !JS::CaptureCurrentStack(aCx, &stack)) {
     JS_ClearPendingException(aCx);
     return;
@@ -76,7 +76,7 @@ JSObject* SerializedStackHolder::ReadStack(JSContext* aCx) {
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> stackValue(aCx);
+  MC::Rooted<JS::Value> stackValue(aCx);
 
   mHolder.Read(xpc::CurrentNativeGlobal(aCx), aCx, &stackValue, IgnoreErrors());
 
@@ -119,12 +119,12 @@ void ConvertSerializedStackToJSON(UniquePtr<SerializedStackHolder> aStackHolder,
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   JSContext* cx = jsapi.cx();
 
-  JS::Rooted<JSObject*> savedFrame(cx, aStackHolder->ReadStack(cx));
+  MC::Rooted<JSObject*> savedFrame(cx, aStackHolder->ReadStack(cx));
   if (!savedFrame) {
     return;
   }
 
-  JS::Rooted<JSObject*> converted(cx);
+  MC::Rooted<JSObject*> converted(cx);
   converted = JS::ConvertSavedFrameToPlainObject(
       cx, savedFrame, JS::SavedFrameSelfHosted::Exclude);
   if (!converted) {
@@ -132,7 +132,7 @@ void ConvertSerializedStackToJSON(UniquePtr<SerializedStackHolder> aStackHolder,
     return;
   }
 
-  JS::Rooted<JS::Value> convertedValue(cx, JS::ObjectValue(*converted));
+  MC::Rooted<JS::Value> convertedValue(cx, JS::ObjectValue(*converted));
   if (!nsContentUtils::StringifyJSON(cx, convertedValue, aStackString,
                                      UndefinedIsNullStringLiteral)) {
     JS_ClearPendingException(cx);

@@ -25,21 +25,21 @@ bool WaiveXrayWrapper::getOwnPropertyDescriptor(
     return true;
   }
 
-  Rooted<PropertyDescriptor> desc_(cx, *desc);
+  MC::Rooted<PropertyDescriptor> desc_(cx, *desc);
   if (desc_.hasValue()) {
     if (!WrapperFactory::WaiveXrayAndWrap(cx, desc_.value())) {
       return false;
     }
   }
   if (desc_.hasGetter() && desc_.getter()) {
-    RootedValue v(cx, JS::ObjectValue(*desc_.getter()));
+    MC::RootedValue v(cx, JS::ObjectValue(*desc_.getter()));
     if (!WrapperFactory::WaiveXrayAndWrap(cx, &v)) {
       return false;
     }
     desc_.setGetter(&v.toObject());
   }
   if (desc_.hasSetter() && desc_.setter()) {
-    RootedValue v(cx, JS::ObjectValue(*desc_.setter()));
+    MC::RootedValue v(cx, JS::ObjectValue(*desc_.setter()));
     if (!WrapperFactory::WaiveXrayAndWrap(cx, &v)) {
       return false;
     }

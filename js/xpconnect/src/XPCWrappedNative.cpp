@@ -184,7 +184,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
   aOptions.creationOptions().setTrace(XPCWrappedNative::Trace);
   xpc::SetPrefableRealmOptions(aOptions);
 
-  RootedObject global(cx,
+  MC::RootedObject global(cx,
                       xpc::CreateGlobalObject(cx, clasp, principal, aOptions));
   if (!global) {
     return NS_ERROR_FAILURE;
@@ -209,7 +209,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
 
   // Set up the prototype on the global.
   MOZ_ASSERT(proto->GetJSProtoObject());
-  RootedObject protoObj(cx, proto->GetJSProtoObject());
+  MC::RootedObject protoObj(cx, proto->GetJSProtoObject());
   bool success = JS_SetPrototype(cx, global, protoObj);
   if (!success) {
     return NS_ERROR_FAILURE;
@@ -348,12 +348,12 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
                      getter_AddRefs(scrWrapper));
   }
 
-  RootedObject parent(cx, Scope->GetGlobalForWrappedNatives());
+  MC::RootedObject parent(cx, Scope->GetGlobalForWrappedNatives());
 
   mozilla::Maybe<JSAutoRealm> ar;
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
-    RootedObject plannedParent(cx, parent);
+    MC::RootedObject plannedParent(cx, parent);
     nsresult rv = scrWrapper->PreCreate(identity, cx, parent, parent.address());
     if (NS_FAILED(rv)) {
       return rv;
@@ -380,7 +380,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
     // interesting path (the DOM code tends to make this happen sometimes).
 
     if (cache) {
-      RootedObject cached(cx, cache->GetWrapper());
+      MC::RootedObject cached(cx, cache->GetWrapper());
       if (cached) {
         wrapper = XPCWrappedNative::Get(cached);
       }
@@ -643,7 +643,7 @@ bool XPCWrappedNative::Init(JSContext* cx, nsIXPCScriptable* aScriptable) {
                  jsclazz->getResolve() && jsclazz->hasFinalize(),
              "bad class");
 
-  RootedObject protoJSObject(cx, HasProto() ? GetProto()->GetJSProtoObject()
+  MC::RootedObject protoJSObject(cx, HasProto() ? GetProto()->GetJSProtoObject()
                                             : JS::GetRealmObjectPrototype(cx));
   if (!protoJSObject) {
     return false;
@@ -965,7 +965,7 @@ nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
 
   nsCOMPtr<nsIXPConnectWrappedJS> wrappedJS(do_QueryInterface(qiResult));
   if (wrappedJS) {
-    RootedObject jso(cx, wrappedJS->GetJSObject());
+    MC::RootedObject jso(cx, wrappedJS->GetJSObject());
     if (jso == mFlatJSObject) {
       // The implementing JSObject is the same as ours! Just say OK
       // without actually extending the set.
@@ -1111,7 +1111,7 @@ class MOZ_STACK_CLASS CallMethodHelper final {
 
   MOZ_ALWAYS_INLINE bool Call();
 
-  // Trace implementation so we can put our CallMethodHelper in a Rooted<T>.
+  // Trace implementation so we can put our CallMethodHelper in a MC::Rooted<T>.
   void trace(JSTracer* aTrc);
 };
 
@@ -1123,7 +1123,7 @@ bool XPCWrappedNative::CallMethod(XPCCallContext& ccx,
     return Throw(rv, ccx);
   }
 
-  JS::Rooted<CallMethodHelper> helper(ccx, /* init = */ ccx);
+  MC::Rooted<CallMethodHelper> helper(ccx, /* init = */ ccx);
   return helper.get().Call();
 }
 
@@ -1225,7 +1225,7 @@ bool CallMethodHelper::GetArraySizeFromParam(const nsXPTType& type,
   // cleaning up the params. from the array.
   if (argnum >= mArgc && maybeArray.isObject()) {
     MOZ_ASSERT(mMethodInfo->Param(argnum).IsOptional());
-    RootedObject arrayOrNull(mCallContext, &maybeArray.toObject());
+    MC::RootedObject arrayOrNull(mCallContext, &maybeArray.toObject());
 
     bool isArray;
     bool ok = false;
@@ -1291,7 +1291,7 @@ bool CallMethodHelper::GetOutParamSource(uint8_t paramIndex,
                "Expected either enough arguments or an optional argument");
     Value arg = paramIndex < mArgc ? mArgv[paramIndex] : JS::NullValue();
     if (paramIndex < mArgc) {
-      RootedObject obj(mCallContext);
+      MC::RootedObject obj(mCallContext);
       if (!arg.isPrimitive()) {
         obj = &arg.toObject();
       }
@@ -1319,7 +1319,7 @@ bool CallMethodHelper::GatherAndConvertResults() {
 
     const nsXPTType& type = paramInfo.GetType();
     nsXPTCVariant* dp = GetDispatchParam(i);
-    RootedValue v(mCallContext, NullValue());
+    MC::RootedValue v(mCallContext, NullValue());
 
     uint32_t array_count = 0;
     nsID param_iid;
@@ -1339,7 +1339,7 @@ bool CallMethodHelper::GatherAndConvertResults() {
     } else if (i < mArgc) {
       // we actually assured this before doing the invoke
       MOZ_ASSERT(mArgv[i].isObject(), "out var is not object");
-      RootedObject obj(mCallContext, &mArgv[i].toObject());
+      MC::RootedObject obj(mCallContext, &mArgv[i].toObject());
       if (!JS_SetPropertyById(mCallContext, obj, mIdxValueId, v)) {
         ThrowBadParam(NS_ERROR_XPC_CANT_SET_OUT_VAL, i, mCallContext);
         return false;
@@ -1367,7 +1367,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
     return false;
   }
 
-  JS::RootedValue iidarg(mCallContext, mArgv[0]);
+  MC::RootedValue iidarg(mCallContext, mArgv[0]);
   Maybe<nsID> iid = xpc::JSValue2ID(mCallContext, iidarg);
   if (!iid) {
     ThrowBadParam(NS_ERROR_XPC_BAD_CONVERT_JS, 0, mCallContext);
@@ -1382,7 +1382,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
     return false;
   }
 
-  RootedValue v(mCallContext, NullValue());
+  MC::RootedValue v(mCallContext, NullValue());
   nsresult err;
   bool success = XPCConvert::NativeData2JS(mCallContext, &v, &qiresult,
                                            {nsXPTType::T_INTERFACE_IS},
@@ -1491,7 +1491,7 @@ bool CallMethodHelper::ConvertIndependentParam(uint8_t i) {
   // we want to know before the call, rather than after.
   //
   // This is a no-op for 'in' params.
-  RootedValue src(mCallContext);
+  MC::RootedValue src(mCallContext);
   if (!GetOutParamSource(i, &src)) {
     return false;
   }
@@ -1582,7 +1582,7 @@ bool CallMethodHelper::ConvertDependentParam(uint8_t i) {
   // we want to know before the call, rather than after.
   //
   // This is a no-op for 'in' params.
-  RootedValue src(mCallContext);
+  MC::RootedValue src(mCallContext);
   if (!GetOutParamSource(i, &src)) {
     return false;
   }

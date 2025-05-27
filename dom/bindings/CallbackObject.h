@@ -88,7 +88,7 @@ class CallbackObject : public nsISupports {
                           JS::Handle<JSObject*> aCallbackGlobal,
                           nsIGlobalObject* aIncumbentGlobal) {
     if (aCx && JS::IsAsyncStackCaptureEnabledForRealm(aCx)) {
-      JS::Rooted<JSObject*> stack(aCx);
+      MC::Rooted<JSObject*> stack(aCx);
       if (!JS::CaptureCurrentStack(aCx, &stack)) {
         JS_ClearPendingException(aCx);
       }
@@ -378,12 +378,12 @@ class CallbackObject : public nsISupports {
     Maybe<AutoEntryScript> mAutoEntryScript;
     Maybe<AutoIncumbentScript> mAutoIncumbentScript;
 
-    Maybe<JS::Rooted<JSObject*>> mRootedCallable;
+    Maybe<MC::Rooted<JSObject*>> mRootedCallable;
     // The global of mRootedCallable.
-    Maybe<JS::Rooted<JSObject*>> mRootedCallableGlobal;
+    Maybe<MC::Rooted<JSObject*>> mRootedCallableGlobal;
 
     // Members which are used to set the async stack.
-    Maybe<JS::Rooted<JSObject*>> mAsyncStack;
+    Maybe<MC::Rooted<JSObject*>> mAsyncStack;
     Maybe<JS::AutoSetAsyncStackForNewCalls> mAsyncStackSetter;
 
     // Can't construct a JSAutoRealm without a JSContext either.  Also,
@@ -609,9 +609,9 @@ void ImplCycleCollectionUnlink(CallbackObjectHolder<T, U>& aField) {
 // purposes.
 template <typename T>
 class MOZ_RAII MOZ_IS_SMARTPTR_TO_REFCOUNTED RootedCallback
-    : public JS::Rooted<T> {
+    : public MC::Rooted<T> {
  public:
-  explicit RootedCallback(JSContext* cx) : JS::Rooted<T>(cx), mCx(cx) {}
+  explicit RootedCallback(JSContext* cx) : MC::Rooted<T>(cx), mCx(cx) {}
 
   // We need a way to make assignment from pointers (how we're normally used)
   // work.

@@ -214,7 +214,7 @@ void FindExceptionStackForConsoleReport(
   }
 
   JS::RootingContext* rcx = RootingCx();
-  JS::Rooted<JSObject*> exceptionObject(rcx, &exceptionValue.toObject());
+  MC::Rooted<JSObject*> exceptionObject(rcx, &exceptionValue.toObject());
   if (JSObject* excStack = JS::ExceptionStackOrNull(exceptionObject)) {
     // At this point we know exceptionObject is a possibly-wrapped
     // js::ErrorObject that has excStack as stack. excStack might also be a CCW,
@@ -248,7 +248,7 @@ void FindExceptionStackForConsoleReport(
   if (!stack) {
     return;
   }
-  JS::Rooted<JS::Value> value(rcx);
+  MC::Rooted<JS::Value> value(rcx);
   stack->GetNativeSavedFrame(&value);
   if (value.isObject()) {
     stackObj.set(&value.toObject());
@@ -423,11 +423,11 @@ class ScriptErrorEvent : public Runnable {
     }
 
     if (status != nsEventStatus_eConsumeNoDefault) {
-      JS::Rooted<JSObject*> stack(rootingCx);
-      JS::Rooted<JSObject*> stackGlobal(rootingCx);
+      MC::Rooted<JSObject*> stack(rootingCx);
+      MC::Rooted<JSObject*> stackGlobal(rootingCx);
       xpc::FindExceptionStackForConsoleReport(win, mError, mErrorStack, &stack,
                                               &stackGlobal);
-      JS::Rooted<Maybe<JS::Value>> exception(rootingCx, Some(mError));
+      MC::Rooted<Maybe<JS::Value>> exception(rootingCx, Some(mError));
       nsGlobalWindowInner* inner = nsGlobalWindowInner::Cast(win);
       mReport->LogToConsoleWithStack(inner, exception, stack, stackGlobal);
     }
@@ -438,8 +438,8 @@ class ScriptErrorEvent : public Runnable {
  private:
   nsCOMPtr<nsPIDOMWindowInner> mWindow;
   RefPtr<xpc::ErrorReport> mReport;
-  JS::PersistentRooted<JS::Value> mError;
-  JS::PersistentRooted<JSObject*> mErrorStack;
+  MC::PersistentRooted<JS::Value> mError;
+  MC::PersistentRooted<JSObject*> mErrorStack;
 
   static bool sHandlingScriptError;
 };
@@ -611,9 +611,9 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
   }
   JSContext* cx = jsapi.cx();
 
-  JS::RootedVector<JS::Value> args(cx);
+  MC::RootedVector<JS::Value> args(cx);
 
-  JS::Rooted<JSObject*> global(cx, GetWindowProxy());
+  MC::Rooted<JSObject*> global(cx, GetWindowProxy());
   nsresult rv = ConvertSupportsTojsvals(cx, aArgs, global, &args);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -625,7 +625,7 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
     }
   }
 
-  JS::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, args));
+  MC::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, args));
   if (!array) {
     return NS_ERROR_FAILURE;
   }
@@ -890,8 +890,8 @@ nsresult nsJSContext::AddSupportsPrimitiveTojsvals(JSContext* aCx,
 
       AutoFree iidGuard(iid);  // Free iid upon destruction.
 
-      JS::Rooted<JSObject*> scope(aCx, GetWindowProxy());
-      JS::Rooted<JS::Value> v(aCx);
+      MC::Rooted<JSObject*> scope(aCx, GetWindowProxy());
+      MC::Rooted<JS::Value> v(aCx);
       JSAutoRealm ar(aCx, scope);
       nsresult rv = nsContentUtils::WrapNative(aCx, data, iid, &v);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -2223,8 +2223,8 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   MOZ_ASSERT(ok, "Problem with system global?");
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JSObject*> stack(cx);
-  JS::Rooted<JSObject*> stackGlobal(cx);
+  MC::Rooted<JSObject*> stack(cx);
+  MC::Rooted<JSObject*> stackGlobal(cx);
   if (mStackHolder) {
     stack = mStackHolder->ReadStack(cx);
     if (stack) {
@@ -2232,7 +2232,7 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
     }
   }
 
-  JS::Rooted<Maybe<JS::Value>> exception(cx, Nothing());
+  MC::Rooted<Maybe<JS::Value>> exception(cx, Nothing());
   if (mHasException) {
     MOZ_ASSERT(NS_IsMainThread());
     exception = Some(mException);
@@ -2359,7 +2359,7 @@ NS_IMETHODIMP nsJSArgArray::QueryElementAt(uint32_t index, const nsIID& uuid,
   if (uuid.Equals(NS_GET_IID(nsIVariant)) ||
       uuid.Equals(NS_GET_IID(nsISupports))) {
     // Have to copy a Heap into a Rooted to work with it.
-    JS::Rooted<JS::Value> val(mContext, mArgv[index]);
+    MC::Rooted<JS::Value> val(mContext, mArgv[index]);
     return nsContentUtils::XPConnect()->JSToVariant(mContext, val,
                                                     (nsIVariant**)result);
   }

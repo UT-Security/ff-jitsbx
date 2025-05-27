@@ -34,7 +34,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
                                           JS::Handle<jsid> id) {
   using DOMProxyShadowsResult = JS::DOMProxyShadowsResult;
 
-  JS::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
+  MC::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
   JS::Value v = js::GetProxyPrivate(proxy);
   bool isOverrideBuiltins = !v.isObject() && !v.isUndefined();
   if (expando) {
@@ -170,7 +170,7 @@ JSObject* DOMProxyHandler::EnsureExpandoObject(JSContext* cx,
     }
   }
 
-  JS::Rooted<JSObject*> expando(
+  MC::Rooted<JSObject*> expando(
       cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr));
   if (!expando) {
     return nullptr;
@@ -220,7 +220,7 @@ bool DOMProxyHandler::defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
     return result.succeed();
   }
 
-  JS::Rooted<JSObject*> expando(cx, EnsureExpandoObject(cx, proxy));
+  MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(cx, proxy));
   if (!expando) {
     return false;
   }
@@ -261,7 +261,7 @@ bool DOMProxyHandler::set(JSContext* cx, Handle<JSObject*> proxy,
 bool DOMProxyHandler::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
                               JS::ObjectOpResult& result) const {
-  JS::Rooted<JSObject*> expando(cx);
+  MC::Rooted<JSObject*> expando(cx);
   if (!xpc::WrapperFactory::IsXrayWrapper(proxy) &&
       (expando = GetExpandoObject(proxy))) {
     return JS_DeletePropertyById(cx, expando, id, result);

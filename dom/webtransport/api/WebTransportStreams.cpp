@@ -114,7 +114,7 @@ void WebTransportIncomingStreamsAlgorithms::BuildStream(JSContext* aCx,
       return;
     }
     // Step 7.2 Enqueue stream to transport.[[IncomingUnidirectionalStreams]].
-    JS::Rooted<JS::Value> jsStream(aCx);
+    MC::Rooted<JS::Value> jsStream(aCx);
     if (MOZ_UNLIKELY(!ToJSValue(aCx, readableStream, &jsStream))) {
       aRv.ThrowUnknownError("Internal error");
       return;
@@ -143,7 +143,7 @@ void WebTransportIncomingStreamsAlgorithms::BuildStream(JSContext* aCx,
                                                 output, aRv);
 
     // Step 7.2 Enqueue stream to transport.[[IncomingBidirectionalStreams]].
-    JS::Rooted<JS::Value> jsStream(aCx);
+    MC::Rooted<JS::Value> jsStream(aCx);
     if (MOZ_UNLIKELY(!ToJSValue(aCx, stream, &jsStream))) {
       return;
     }

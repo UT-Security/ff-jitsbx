@@ -112,14 +112,14 @@ static UniquePtr<SpecifierMap> SortAndNormalizeSpecifierMap(
   // Step 1. Let normalized be an empty ordered map.
   UniquePtr<SpecifierMap> normalized = MakeUnique<SpecifierMap>();
 
-  JS::Rooted<JS::IdVector> specifierKeys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> specifierKeys(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, aOriginalMap, &specifierKeys)) {
     return nullptr;
   }
 
   // Step 2. For each specifierKey → value of originalMap,
   for (size_t i = 0; i < specifierKeys.length(); i++) {
-    const JS::RootedId specifierId(aCx, specifierKeys[i]);
+    const MC::RootedId specifierId(aCx, specifierKeys[i]);
     nsAutoJSString specifierKey;
     NS_ENSURE_TRUE(specifierKey.init(aCx, specifierId), nullptr);
 
@@ -134,7 +134,7 @@ static UniquePtr<SpecifierMap> SortAndNormalizeSpecifierMap(
       continue;
     }
 
-    JS::RootedValue idVal(aCx);
+    MC::RootedValue idVal(aCx);
     NS_ENSURE_TRUE(JS_GetPropertyById(aCx, aOriginalMap, specifierId, &idVal),
                    nullptr);
     // Step 2.3. If value is not a string, then:
@@ -234,7 +234,7 @@ static bool IsMapObject(JSContext* aCx, JS::HandleValue aMapVal, bool* aIsMap) {
 static UniquePtr<ScopeMap> SortAndNormalizeScopes(
     JSContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
     const ReportWarningHelper& aWarning) {
-  JS::Rooted<JS::IdVector> scopeKeys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> scopeKeys(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, aOriginalMap, &scopeKeys)) {
     return nullptr;
   }
@@ -244,14 +244,14 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
 
   // Step 2. For each scopePrefix → potentialSpecifierMap of originalMap,
   for (size_t i = 0; i < scopeKeys.length(); i++) {
-    const JS::RootedId scopeKey(aCx, scopeKeys[i]);
+    const MC::RootedId scopeKey(aCx, scopeKeys[i]);
     nsAutoJSString scopePrefix;
     NS_ENSURE_TRUE(scopePrefix.init(aCx, scopeKey), nullptr);
 
     // Step 2.1. If potentialSpecifierMap is not an ordered map, then throw a
     // TypeError indicating that the value of the scope with prefix scopePrefix
     // needs to be a JSON object.
-    JS::RootedValue mapVal(aCx);
+    MC::RootedValue mapVal(aCx);
     NS_ENSURE_TRUE(JS_GetPropertyById(aCx, aOriginalMap, scopeKey, &mapVal),
                    nullptr);
 
@@ -290,7 +290,7 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
 
     // Step 2.5. Set normalized[normalizedScopePrefix] to the result of sorting
     // and normalizing a specifier map given potentialSpecifierMap and baseURL.
-    JS::RootedObject potentialSpecifierMap(aCx, &mapVal.toObject());
+    MC::RootedObject potentialSpecifierMap(aCx, &mapVal.toObject());
     UniquePtr<SpecifierMap> specifierMap = SortAndNormalizeSpecifierMap(
         aCx, potentialSpecifierMap, aBaseURL, aWarning);
     if (!specifierMap) {
@@ -316,7 +316,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     const ReportWarningHelper& aWarning) {
   // Step 1. Let parsed be the result of parsing JSON into Infra values given
   // input.
-  JS::Rooted<JS::Value> parsedVal(aCx);
+  MC::Rooted<JS::Value> parsedVal(aCx);
   if (!JS_ParseJSON(aCx, aInput.get(), aInput.length(), &parsedVal)) {
     NS_WARNING("Parsing Import map string failed");
 
@@ -324,12 +324,12 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     // If so we update the error message from JSON parser to make it more clear
     // that the parsing of import map has failed.
     MOZ_ASSERT(JS_IsExceptionPending(aCx));
-    JS::Rooted<JS::Value> exn(aCx);
+    MC::Rooted<JS::Value> exn(aCx);
     if (!JS_GetPendingException(aCx, &exn)) {
       return nullptr;
     }
     MOZ_ASSERT(exn.isObject());
-    JS::Rooted<JSObject*> obj(aCx, &exn.toObject());
+    MC::Rooted<JSObject*> obj(aCx, &exn.toObject());
     JSErrorReport* err = JS_ErrorFromException(aCx, obj);
     if (err->exnType == JSEXN_SYNTAXERR) {
       JS_ClearPendingException(aCx);
@@ -353,8 +353,8 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     return nullptr;
   }
 
-  JS::RootedObject parsedObj(aCx, &parsedVal.toObject());
-  JS::RootedValue importsVal(aCx);
+  MC::RootedObject parsedObj(aCx, &parsedVal.toObject());
+  MC::RootedValue importsVal(aCx);
   if (!JS_GetProperty(aCx, parsedObj, "imports", &importsVal)) {
     return nullptr;
   }
@@ -382,7 +382,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
 
     // Step 4.2. Set sortedAndNormalizedImports to the result of sorting and
     // normalizing a module specifier map given parsed["imports"] and baseURL.
-    JS::RootedObject importsObj(aCx, &importsVal.toObject());
+    MC::RootedObject importsObj(aCx, &importsVal.toObject());
     sortedAndNormalizedImports =
         SortAndNormalizeSpecifierMap(aCx, importsObj, aBaseURL, aWarning);
     if (!sortedAndNormalizedImports) {
@@ -390,7 +390,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     }
   }
 
-  JS::RootedValue scopesVal(aCx);
+  MC::RootedValue scopesVal(aCx);
   if (!JS_GetProperty(aCx, parsedObj, "scopes", &scopesVal)) {
     return nullptr;
   }
@@ -418,7 +418,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
 
     // Step 6.2. Set sortedAndNormalizedScopes to the result of sorting and
     // normalizing scopes given parsed["scopes"] and baseURL.
-    JS::RootedObject scopesObj(aCx, &scopesVal.toObject());
+    MC::RootedObject scopesObj(aCx, &scopesVal.toObject());
     sortedAndNormalizedScopes =
         SortAndNormalizeScopes(aCx, scopesObj, aBaseURL, aWarning);
     if (!sortedAndNormalizedScopes) {
@@ -429,13 +429,13 @@ UniquePtr<ImportMap> ImportMap::ParseString(
   // Step 7. If parsed’s keys contains any items besides "imports" or
   // "scopes", then the user agent should report a warning to the console
   // indicating that an invalid top-level key was present in the import map.
-  JS::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, parsedObj, &keys)) {
     return nullptr;
   }
 
   for (size_t i = 0; i < keys.length(); i++) {
-    const JS::RootedId key(aCx, keys[i]);
+    const MC::RootedId key(aCx, keys[i]);
     nsAutoJSString val;
     NS_ENSURE_TRUE(val.init(aCx, key), nullptr);
     if (val.EqualsLiteral("imports") || val.EqualsLiteral("scopes")) {

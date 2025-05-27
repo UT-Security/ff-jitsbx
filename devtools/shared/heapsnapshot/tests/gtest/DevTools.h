@@ -11,10 +11,10 @@
 #include "CoreDump.pb.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
-#include "js/Principals.h"
+#include "monkeycage/Principals.h"
 #include "js/UbiNode.h"
 #include "js/UniquePtr.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "jspubtd.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/devtools/HeapSnapshot.h"
@@ -32,7 +32,7 @@ struct DevTools : public ::testing::Test {
   JSContext* cx;
   JS::Compartment* compartment;
   JS::Zone* zone;
-  JS::PersistentRooted<JSObject*> global;
+  MC::PersistentRooted<JSObject*> global;
 
   DevTools() : _initialized(false), cx(nullptr) {}
 

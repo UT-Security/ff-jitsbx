@@ -877,7 +877,7 @@ void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
   MOZ_ASSERT(aClasp);
   MOZ_ASSERT(aClasp == JS::GetClass(aObj));
 
-  JS::Rooted<JSObject*> obj(RootingCx(), aObj);
+  MC::Rooted<JSObject*> obj(RootingCx(), aObj);
 
   if (NoteCustomGCThingXPCOMChildren(aClasp, obj, aCb)) {
     // Nothing else to do!
@@ -2056,14 +2056,14 @@ bool CycleCollectedJSRuntime::GetRecentDevError(
   }
 
   // Create a copy of the exception.
-  JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+  MC::RootedObject obj(cx, JS_NewPlainObject(cx));
   if (!obj) {
     return false;
   }
 
-  JS::RootedValue message(cx);
-  JS::RootedValue filename(cx);
-  JS::RootedValue stack(cx);
+  MC::RootedValue message(cx);
+  MC::RootedValue filename(cx);
+  MC::RootedValue stack(cx);
   if (!ToJSValue(cx, mErrorInterceptor.mThrownError->mMessage, &message) ||
       !ToJSValue(cx, mErrorInterceptor.mThrownError->mFilename, &filename) ||
       !ToJSValue(cx, mErrorInterceptor.mThrownError->mStack, &stack)) {

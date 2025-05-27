@@ -749,7 +749,7 @@ static const dom::ConstantSpec gWinProperties[] = {
 JSObject* GetOrCreateObjectProperty(JSContext* cx,
                                     JS::Handle<JSObject*> aObject,
                                     const char* aProperty) {
-  JS::Rooted<JS::Value> val(cx);
+  MC::Rooted<JS::Value> val(cx);
   if (!JS_GetProperty(cx, aObject, aProperty, &val)) {
     return nullptr;
   }
@@ -778,7 +778,7 @@ bool SetStringProperty(JSContext* cx, JS::Handle<JSObject*> aObject,
   }
   JSString* strValue = JS_NewUCStringCopyZ(cx, aValue.get());
   NS_ENSURE_TRUE(strValue, false);
-  JS::Rooted<JS::Value> valValue(cx, JS::StringValue(strValue));
+  MC::Rooted<JS::Value> valValue(cx, JS::StringValue(strValue));
   return JS_SetProperty(cx, aObject, aProperty, valValue);
 }
 
@@ -797,18 +797,18 @@ bool OSFileConstantsService::DefineOSFileConstants(
     return false;
   }
 
-  JS::Rooted<JSObject*> objOS(aCx);
+  MC::Rooted<JSObject*> objOS(aCx);
   if (!(objOS = GetOrCreateObjectProperty(aCx, aGlobal, "OS"))) {
     return false;
   }
-  JS::Rooted<JSObject*> objConstants(aCx);
+  MC::Rooted<JSObject*> objConstants(aCx);
   if (!(objConstants = GetOrCreateObjectProperty(aCx, objOS, "Constants"))) {
     return false;
   }
 
   // Build OS.Constants.libc
 
-  JS::Rooted<JSObject*> objLibc(aCx);
+  MC::Rooted<JSObject*> objLibc(aCx);
   if (!(objLibc = GetOrCreateObjectProperty(aCx, objConstants, "libc"))) {
     return false;
   }
@@ -819,7 +819,7 @@ bool OSFileConstantsService::DefineOSFileConstants(
 #if defined(XP_WIN)
   // Build OS.Constants.Win
 
-  JS::Rooted<JSObject*> objWin(aCx);
+  MC::Rooted<JSObject*> objWin(aCx);
   if (!(objWin = GetOrCreateObjectProperty(aCx, objConstants, "Win"))) {
     return false;
   }
@@ -830,7 +830,7 @@ bool OSFileConstantsService::DefineOSFileConstants(
 
   // Build OS.Constants.Sys
 
-  JS::Rooted<JSObject*> objSys(aCx);
+  MC::Rooted<JSObject*> objSys(aCx);
   if (!(objSys = GetOrCreateObjectProperty(aCx, objConstants, "Sys"))) {
     return false;
   }
@@ -885,7 +885,7 @@ OSFileConstantsService::Init(JSContext* aCx) {
   }
 
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
-  JS::Rooted<JSObject*> targetObj(aCx);
+  MC::Rooted<JSObject*> targetObj(aCx);
   loader->FindTargetObject(aCx, &targetObj);
 
   if (!DefineOSFileConstants(aCx, targetObj)) {

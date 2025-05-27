@@ -7,8 +7,8 @@
 #ifndef mozilla_loader_ModuleEnvironmentProxy_h
 #define mozilla_loader_ModuleEnvironmentProxy_h
 
-#include "js/TypeDecls.h"   // JSContext, JSObject
-#include "js/RootingAPI.h"  // JS::Handle
+#include "monkeycage/TypeDecls.h"   // JSContext, JSObject
+#include "monkeycage/RootingAPI.h"  // JS::Handle
 
 namespace mozilla {
 namespace loader {

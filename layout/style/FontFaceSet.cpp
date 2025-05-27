@@ -350,7 +350,7 @@ already_AddRefed<FontFaceSetIterator> FontFaceSet::Values() {
 
 void FontFaceSet::ForEach(JSContext* aCx, FontFaceSetForEachCallback& aCallback,
                           JS::Handle<JS::Value> aThisArg, ErrorResult& aRv) {
-  JS::Rooted<JS::Value> thisArg(aCx, aThisArg);
+  MC::Rooted<JS::Value> thisArg(aCx, aThisArg);
   for (size_t i = 0; i < SizeIncludingNonAuthorOrigins(); i++) {
     RefPtr<FontFace> face = GetFontFaceAt(i);
     if (!face) {
