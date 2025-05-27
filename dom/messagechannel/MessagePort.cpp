@@ -111,7 +111,7 @@ class PostMessageRunnable final : public CancelableRunnable {
     JSContext* cx = jsapi.cx();
 
     IgnoredErrorResult rv;
-    JS::Rooted<JS::Value> value(cx);
+    MC::Rooted<JS::Value> value(cx);
 
     UniquePtr<AbstractTimelineMarker> start;
     UniquePtr<AbstractTimelineMarker> end;
@@ -308,7 +308,7 @@ void MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   // Here we want to check if the transerable object list contains
   // this port.
   for (uint32_t i = 0; i < aTransferable.Length(); ++i) {
-    JS::Rooted<JSObject*> object(aCx, aTransferable[i]);
+    MC::Rooted<JSObject*> object(aCx, aTransferable[i]);
     if (!object) {
       continue;
     }
@@ -321,7 +321,7 @@ void MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     }
   }
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
 
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
                                                           &transferable);

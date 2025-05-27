@@ -173,7 +173,7 @@ already_AddRefed<Promise> XRSystem::RequestSession(
     for (const JS::Value& val : arr) {
       if (!val.isNull() && !val.isUndefined()) {
         bool bFound = false;
-        JS::Rooted<JS::Value> v(aCx, val);
+        MC::Rooted<JS::Value> v(aCx, val);
         int index = 0;
         if (FindEnumStringIndex<false>(
                 callCx, v, XRReferenceSpaceTypeValues::strings,
@@ -198,7 +198,7 @@ already_AddRefed<Promise> XRSystem::RequestSession(
     const Sequence<JS::Value>& arr = (aOptions.mOptionalFeatures.Value());
     for (const JS::Value& val : arr) {
       if (!val.isNull() && !val.isUndefined()) {
-        JS::Rooted<JS::Value> v(aCx, val);
+        MC::Rooted<JS::Value> v(aCx, val);
         int index = 0;
         if (FindEnumStringIndex<false>(
                 callCx, v, XRReferenceSpaceTypeValues::strings,

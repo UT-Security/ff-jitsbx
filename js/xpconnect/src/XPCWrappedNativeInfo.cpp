@@ -49,7 +49,7 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
                               HandleObject parent, Value* vp) {
   MOZ_ASSERT(iface == GetInterface());
   if (IsConstant()) {
-    RootedValue resultVal(ccx);
+    MC::RootedValue resultVal(ccx);
     nsCString name;
     if (NS_FAILED(iface->GetInterfaceInfo()->GetConstant(mIndex, &resultVal,
                                                          getter_Copies(name))))
@@ -276,13 +276,13 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
   }
 
   for (unsigned int i = 0; i < constCount; i++) {
-    RootedValue constant(cx);
+    MC::RootedValue constant(cx);
     nsCString namestr;
     if (NS_FAILED(aInfo->GetConstant(i, &constant, getter_Copies(namestr)))) {
       return nullptr;
     }
 
-    RootedString str(cx, JS_AtomizeString(cx, namestr.get()));
+    MC::RootedString str(cx, JS_AtomizeString(cx, namestr.get()));
     if (!str) {
       NS_ERROR("bad constant name");
       return nullptr;
@@ -307,12 +307,12 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
   if (!bytes) {
     return nullptr;
   }
-  RootedString str(cx, JS_AtomizeString(cx, bytes));
+  MC::RootedString str(cx, JS_AtomizeString(cx, bytes));
   if (!str) {
     return nullptr;
   }
 
-  RootedId interfaceName(cx, PropertyKey::NonIntAtom(str));
+  MC::RootedId interfaceName(cx, PropertyKey::NonIntAtom(str));
 
   // Use placement new to create an object with the right amount of space
   // to hold the members array

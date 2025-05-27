@@ -12,7 +12,7 @@
 #include <stdio.h>  // fflush, fprintf, fputs
 
 #include "FuzzingInterface.h"
-#include "jsapi.h"
+#include "mcapi.h"
 
 #include "js/CompilationAndEvaluation.h"  // JS::Evaluate
 #include "js/CompileOptions.h"            // JS::CompileOptions
@@ -21,7 +21,7 @@
 #include "js/Exception.h"                 // JS::StealPendingExceptionStack
 #include "js/experimental/TypedData.h"  // JS_GetUint8ClampedArrayData, JS_NewUint8ClampedArray
 #include "js/PropertyAndElement.h"  // JS_SetProperty, JS_HasOwnProperty
-#include "js/RootingAPI.h"          // JS::Rooted
+#include "monkeycage/RootingAPI.h"          // MC::Rooted
 #include "js/SourceText.h"          // JS::Source{Ownership,Text}
 #include "js/Value.h"               // JS::Value
 
@@ -64,7 +64,7 @@ int FuzzXPCRuntimeStart(AutoJSAPI* jsapi, int* argc, char*** argv,
 
 int FuzzXPCRuntimeInit() {
   JSContext* cx = gJsapi->cx();
-  JS::Rooted<JS::Value> v(cx);
+  MC::Rooted<JS::Value> v(cx);
   JS::CompileOptions opts(cx);
 
   // Load the fuzzing module specified in the FUZZER environment variable
@@ -83,7 +83,7 @@ int FuzzXPCRuntimeFuzz(const uint8_t* buf, size_t size) {
 
   JSContext* cx = gJsapi->cx();
 
-  JS::Rooted<JSObject*> arr(cx, JS_NewUint8ClampedArray(cx, size));
+  MC::Rooted<JSObject*> arr(cx, JS_NewUint8ClampedArray(cx, size));
   if (!arr) {
     MOZ_CRASH("OOM");
   }
@@ -96,13 +96,13 @@ int FuzzXPCRuntimeFuzz(const uint8_t* buf, size_t size) {
     memcpy(data, buf, size);
   } while (false);
 
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
-  JS::RootedValue arrVal(cx, JS::ObjectValue(*arr));
+  MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::RootedValue arrVal(cx, JS::ObjectValue(*arr));
   if (!JS_SetProperty(cx, global, "fuzzBuf", arrVal)) {
     MOZ_CRASH("JS_SetProperty failed");
   }
 
-  JS::Rooted<JS::Value> v(cx);
+  MC::Rooted<JS::Value> v(cx);
   JS::CompileOptions opts(cx);
 
   static const char data[] = "JSFuzzIterate();";
@@ -132,9 +132,9 @@ int FuzzXPCRuntimeFuzz(const uint8_t* buf, size_t size) {
 
 int FuzzXPCRuntimeShutdown() {
   JSContext* cx = gJsapi->cx();
-  JS::Rooted<JS::Value> v(cx);
+  MC::Rooted<JS::Value> v(cx);
   JS::CompileOptions opts(cx);
-  JS::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
   bool found = false;
   if (JS_HasOwnProperty(cx, global, "JSFuzzShutdown", &found)) {

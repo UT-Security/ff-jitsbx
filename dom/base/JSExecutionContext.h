@@ -7,12 +7,12 @@
 #ifndef DOM_BASE_JSEXECUTIONCONTEXT_H_
 #define DOM_BASE_JSEXECUTIONCONTEXT_H_
 
-#include "js/GCVector.h"
+#include "monkeycage/GCVector.h"
 #include "js/OffThreadScriptCompilation.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "js/experimental/JSStencil.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ProfilerLabels.h"
@@ -40,10 +40,10 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSAutoRealm mRealm;
 
   // Set to a valid handle if a return value is expected.
-  JS::Rooted<JS::Value> mRetValue;
+  MC::Rooted<JS::Value> mRetValue;
 
   // The compiled script.
-  JS::Rooted<JSScript*> mScript;
+  MC::Rooted<JSScript*> mScript;
 
   // The compilation options applied throughout
   JS::CompileOptions& mCompileOptions;
@@ -53,8 +53,8 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   //
   // For more details see CompilationAndEvaluation.h, and the comments on
   // UpdateDebugMetadata
-  JS::Rooted<JS::Value> mDebuggerPrivateValue;
-  JS::Rooted<JSScript*> mDebuggerIntroductionScript;
+  MC::Rooted<JS::Value> mDebuggerPrivateValue;
+  MC::Rooted<JSScript*> mDebuggerIntroductionScript;
 
   // returned value forwarded when we have to interupt the execution eagerly
   // with mSkip.

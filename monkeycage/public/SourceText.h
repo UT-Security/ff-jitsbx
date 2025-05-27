@@ -9,6 +9,9 @@
 #include "js/SourceText.h"
 
 #ifdef JS_SANDBOX
+
+#include "monkeycage/Context.h"
+
 namespace MC {
 
 template <typename Unit>

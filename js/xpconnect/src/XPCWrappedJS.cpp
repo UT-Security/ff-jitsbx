@@ -349,7 +349,7 @@ nsresult nsXPCWrappedJS::GetNewOrUsed(JSContext* cx, JS::HandleObject jsObj,
     return NS_ERROR_FAILURE;
   }
 
-  JS::RootedObject rootJSObj(cx, GetRootJSObject(cx, jsObj));
+  MC::RootedObject rootJSObj(cx, GetRootJSObject(cx, jsObj));
   if (!rootJSObj) {
     return NS_ERROR_FAILURE;
   }

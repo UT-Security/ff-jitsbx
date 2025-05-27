@@ -2404,7 +2404,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
           const auto mask = uint8_t(*maybe);
           const auto bs = std::bitset<4>(mask);
           const auto src = std::array<bool, 4>{bs[0], bs[1], bs[2], bs[3]};
-          JS::Rooted<JS::Value> arr(cx);
+          MC::Rooted<JS::Value> arr(cx);
           if (!dom::ToJSValue(cx, src.data(), src.size(), &arr)) {
             rv = NS_ERROR_OUT_OF_MEMORY;
           }
@@ -2625,7 +2625,7 @@ void ClientWebGLContext::GetIndexedParameter(
       case LOCAL_GL_COLOR_WRITEMASK: {
         const auto bs = std::bitset<4>(*maybe);
         const auto src = std::array<bool, 4>{bs[0], bs[1], bs[2], bs[3]};
-        JS::Rooted<JS::Value> arr(cx);
+        MC::Rooted<JS::Value> arr(cx);
         if (!dom::ToJSValue(cx, src.data(), src.size(), &arr)) {
           rv = NS_ERROR_OUT_OF_MEMORY;
         }
@@ -4673,7 +4673,7 @@ void ClientWebGLContext::GetVertexAttrib(JSContext* cx, GLuint index,
 
   switch (pname) {
     case LOCAL_GL_CURRENT_VERTEX_ATTRIB: {
-      JS::Rooted<JSObject*> obj(cx);
+      MC::Rooted<JSObject*> obj(cx);
 
       const auto& attrib = genericAttribs[index];
       switch (attrib.type) {
@@ -6017,7 +6017,7 @@ void ClientWebGLContext::GetActiveUniformBlockParameter(
 
       case LOCAL_GL_UNIFORM_BLOCK_ACTIVE_UNIFORM_INDICES: {
         const auto& indices = block.activeUniformIndices;
-        JS::Rooted<JSObject*> obj(
+        MC::Rooted<JSObject*> obj(
             cx,
             dom::Uint32Array::Create(cx, this, indices.size(), indices.data()));
         if (!obj) {
@@ -6052,7 +6052,7 @@ void ClientWebGLContext::GetActiveUniforms(
   const auto& list = res.active.activeUniforms;
 
   const auto count = uniformIndices.Length();
-  JS::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, count));
+  MC::Rooted<JSObject*> array(cx, JS::NewArrayObject(cx, count));
   if (!array) return;  // Just bail.
 
   for (const auto i : IntegerRange(count)) {
@@ -6064,7 +6064,7 @@ void ClientWebGLContext::GetActiveUniforms(
     }
     const auto& uniform = list[index];
 
-    JS::Rooted<JS::Value> value(cx);
+    MC::Rooted<JS::Value> value(cx);
     switch (pname) {
       case LOCAL_GL_UNIFORM_TYPE:
         value = JS::NumberValue(uniform.elemType);

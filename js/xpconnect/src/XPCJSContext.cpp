@@ -711,7 +711,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
 
   // Get the DOM window associated with the running script. If the script is
   // running in a non-DOM scope, we have to just let it keep running.
-  RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
+  MC::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   RefPtr<nsGlobalWindowInner> win = WindowOrNull(global);
   if (!win) {
     // If this is a sandbox associated with a DOMWindow via a

@@ -40,7 +40,7 @@ JSObject* Crypto::WrapObject(JSContext* aCx,
 void Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
                              JS::MutableHandle<JSObject*> aRetval,
                              ErrorResult& aRv) {
-  JS::Rooted<JSObject*> view(aCx, aArray.Obj());
+  MC::Rooted<JSObject*> view(aCx, aArray.Obj());
 
   // Throw if the wrong type of ArrayBufferView is passed in
   // (Part of the Web Crypto API spec)

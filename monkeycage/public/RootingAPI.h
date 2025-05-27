@@ -314,15 +314,6 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   T* address() { return &ptr; }
   const T* address() const { return &ptr; }
 
-  //TODO(abhishek): UNSAFE CONVERSION OPERATIONS
-  // These should be removed once we have safe Tainted MCAPI
-  // versions of Handle and MutableHandle.
-  template <typename S = T,
-            typename = std::enable_if_t<std::is_convertible_v<S, T>, T>>
-  inline MOZ_IMPLICIT operator JS::Handle<S>() const {
-    return JS::Handle<S>::fromMarkedLocation(address());
-  }
-
  private:
   T ptr;
 
@@ -410,6 +401,9 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
   void init(RootingContext* cx) { init(cx, JS::SafelyInitialized<T>::create()); }
   void init(MCContext* cx) { init(RootingContext::get(cx)); }
 
+  //TODO(abhishek): Remove this UNSAFE overload
+  void init(JSContext* cx) { init(JS_SanitizeContext(cx)); }
+
   template <typename U>
   void init(RootingContext* cx, U&& initial) {
     ptr = std::forward<U>(initial);
@@ -419,6 +413,12 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
   void init(MCContext* cx, U&& initial) {
     ptr = std::forward<U>(initial);
     registerWithRootLists(RootingContext::get(cx));
+  }
+  
+  //TODO(abhishek): Remove this UNSAFE overload
+  template <typename U>
+  void init(JSContext* cx, U&& initial) {
+    init(JS_SanitizeContext(cx), initial);
   }
 
   void reset() {
@@ -446,15 +446,6 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
     ptr = std::forward<U>(value);
   }
 
-  // TODO(abhishek): UNSAFE CONVERSION OPERATIONS
-  //  These should be removed once we have safe Tainted MCAPI
-  //  versions of Handle and MutableHandle.
-  template <typename S = T,
-            typename = std::enable_if_t<std::is_convertible_v<S, T>, T>>
-  inline MOZ_IMPLICIT operator JS::Handle<S>() const {
-    return JS::Handle<S>::fromMarkedLocation(address());
-  }
-
  private:
   T ptr;
 } JS_HAZ_ROOTED;
@@ -478,6 +469,22 @@ inline MutableHandle<T>::MutableHandle(PersistentRooted<T>* root) {
 }  // namespace MC
 
 namespace JS {
+
+template <typename T>
+template <typename S>
+inline Handle<T>::Handle(
+    const MC::Rooted<S>& root,
+    std::enable_if_t<std::is_convertible_v<S, T>, int> dummy) {
+  ptr = reinterpret_cast<const T*>(root.address());
+}
+
+template <typename T>
+template <typename S>
+inline Handle<T>::Handle(
+    const MC::PersistentRooted<S>& root,
+    std::enable_if_t<std::is_convertible_v<S, T>, int> dummy) {
+  ptr = reinterpret_cast<const T*>(root.address());
+}
 
 template <typename T>
 inline MutableHandle<T>::MutableHandle(MC::Rooted<T>* root) {

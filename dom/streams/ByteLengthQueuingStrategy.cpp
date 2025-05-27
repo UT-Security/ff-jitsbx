@@ -44,7 +44,7 @@ static bool ByteLengthQueuingStrategySize(JSContext* cx, unsigned argc,
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   // Step 1: Return ? GetV(chunk, "byteLength").
-  JS::Rooted<JSObject*> chunkObj(cx, JS::ToObject(cx, args.get(0)));
+  MC::Rooted<JSObject*> chunkObj(cx, JS::ToObject(cx, args.get(0)));
   if (!chunkObj) {
     return false;
   }
@@ -79,7 +79,7 @@ already_AddRefed<Function> ByteLengthQueuingStrategy::GetSize(
 
   // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
   // globalObject’s relevant Realm).
-  JS::Rooted<JSFunction*> sizeFunction(
+  MC::Rooted<JSFunction*> sizeFunction(
       cx, JS_NewFunction(cx, ByteLengthQueuingStrategySize, 1, 0, "size"));
   if (!sizeFunction) {
     aRv.StealExceptionFromJSContext(cx);
@@ -89,8 +89,8 @@ already_AddRefed<Function> ByteLengthQueuingStrategy::GetSize(
   // Step 3. Set globalObject’s byte length queuing strategy size function to
   // a Function that represents a reference to F,
   // with callback context equal to globalObject’s relevant settings object.
-  JS::Rooted<JSObject*> funObj(cx, JS_GetFunctionObject(sizeFunction));
-  JS::Rooted<JSObject*> global(cx, mGlobal->GetGlobalJSObject());
+  MC::Rooted<JSObject*> funObj(cx, JS_GetFunctionObject(sizeFunction));
+  MC::Rooted<JSObject*> global(cx, mGlobal->GetGlobalJSObject());
   RefPtr<Function> function = new Function(cx, funObj, global, mGlobal);
   mGlobal->SetByteLengthQueuingStrategySizeFunction(function);
 

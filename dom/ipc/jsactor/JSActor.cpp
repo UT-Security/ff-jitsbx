@@ -112,7 +112,7 @@ void JSActor::InvokeCallback(CallbackFunction callback) {
   AutoEntryScript aes(GetParentObject(), "JSActor destroy callback");
   JSContext* cx = aes.cx();
   MozJSActorCallbacks callbacksHolder;
-  JS::Rooted<JS::Value> val(cx, JS::ObjectOrNullValue(GetWrapper()));
+  MC::Rooted<JS::Value> val(cx, JS::ObjectOrNullValue(GetWrapper()));
   if (NS_WARN_IF(!callbacksHolder.Init(cx, val))) {
     return;
   }
@@ -140,7 +140,7 @@ nsresult JSActor::QueryInterfaceActor(const nsIID& aIID, void** aPtr) {
     AutoEntryScript aes(GetParentObject(), "JSActor query interface");
     JSContext* cx = aes.cx();
 
-    JS::Rooted<JSObject*> self(cx, GetWrapper());
+    MC::Rooted<JSObject*> self(cx, GetWrapper());
     JSAutoRealm ar(cx, self);
 
     RefPtr<nsXPCWrappedJS> wrappedJS;
@@ -189,12 +189,12 @@ static Maybe<ipc::StructuredCloneData> TryClone(JSContext* aCx,
 
 static Maybe<ipc::StructuredCloneData> CloneJSStack(
     JSContext* aCx, JS::Handle<JSObject*> aStack) {
-  JS::Rooted<JS::Value> stackVal(aCx, JS::ObjectOrNullValue(aStack));
+  MC::Rooted<JS::Value> stackVal(aCx, JS::ObjectOrNullValue(aStack));
   return TryClone(aCx, stackVal);
 }
 
 static Maybe<ipc::StructuredCloneData> CaptureJSStack(JSContext* aCx) {
-  JS::Rooted<JSObject*> stack(aCx, nullptr);
+  MC::Rooted<JSObject*> stack(aCx, nullptr);
   if (JS::IsAsyncStackCaptureEnabledForRealm(aCx) &&
       !JS::CaptureCurrentStack(aCx, &stack)) {
     JS_ClearPendingException(aCx);
@@ -278,7 +278,7 @@ void JSActor::CallReceiveMessage(JSContext* aCx,
 
   if (GetWrapperPreserveColor()) {
     // Invoke the actual callback.
-    JS::Rooted<JSObject*> global(aCx, JS::GetNonCCWObjectGlobal(GetWrapper()));
+    MC::Rooted<JSObject*> global(aCx, JS::GetNonCCWObjectGlobal(GetWrapper()));
     RefPtr<MessageListener> messageListener =
         new MessageListener(GetWrapper(), global, nullptr, nullptr);
     messageListener->ReceiveMessage(argument, aRetVal, aRv,
@@ -296,7 +296,7 @@ void JSActor::ReceiveMessage(JSContext* aCx,
   profiler_add_marker("ReceiveMessage", geckoprofiler::category::IPC, {},
                       JSActorMessageMarker{}, mName, aMetadata.messageName());
 
-  JS::Rooted<JS::Value> retval(aCx);
+  MC::Rooted<JS::Value> retval(aCx);
   CallReceiveMessage(aCx, aMetadata, aData, &retval, aRv);
 }
 
@@ -317,7 +317,7 @@ void JSActor::ReceiveQuery(JSContext* aCx, const JSActorMessageMeta& aMetadata,
   promise->AppendNativeHandler(handler);
 
   ErrorResult error;
-  JS::Rooted<JS::Value> retval(aCx);
+  MC::Rooted<JS::Value> retval(aCx);
   CallReceiveMessage(aCx, aMetadata, aData, &retval, error);
 
   // If we have a promise, resolve or reject it respectively.
@@ -353,7 +353,7 @@ void JSActor::ReceiveQueryReply(JSContext* aCx,
 
   Promise* promise = query->mPromise;
   JSAutoRealm ar(aCx, promise->PromiseObj());
-  JS::RootedValue data(aCx, aData);
+  MC::RootedValue data(aCx, aData);
   if (NS_WARN_IF(!JS_WrapValue(aCx, &data))) {
     aRv.NoteJSContextException(aCx);
     return;
@@ -403,12 +403,12 @@ void JSActor::QueryHandler::RejectedCallback(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> value(aCx, aValue);
+  MC::Rooted<JS::Value> value(aCx, aValue);
   if (value.isObject()) {
-    JS::Rooted<JSObject*> error(aCx, &value.toObject());
+    MC::Rooted<JSObject*> error(aCx, &value.toObject());
     if (RefPtr<ClonedErrorHolder> ceh =
             ClonedErrorHolder::Create(aCx, error, IgnoreErrors())) {
-      JS::RootedObject obj(aCx);
+      MC::RootedObject obj(aCx);
       // Note: We can't use `ToJSValue` here because ClonedErrorHolder isn't
       // wrapper cached.
       if (ceh->WrapObject(aCx, nullptr, &obj)) {
@@ -459,7 +459,7 @@ void JSActor::QueryHandler::ResolvedCallback(JSContext* aCx,
     auto exc = MakeRefPtr<Exception>(msg, NS_ERROR_FAILURE, "DataCloneError"_ns,
                                      nullptr, nullptr);
 
-    JS::Rooted<JS::Value> val(aCx);
+    MC::Rooted<JS::Value> val(aCx);
     if (ToJSValue(aCx, exc, &val)) {
       RejectedCallback(aCx, val, aRv);
     } else {
@@ -483,8 +483,8 @@ void JSActor::QueryHandler::SendReply(JSContext* aCx, JSActorMessageKind aKind,
   meta.queryId() = mQueryId;
   meta.kind() = aKind;
 
-  JS::Rooted<JSObject*> promise(aCx, mPromise->PromiseObj());
-  JS::Rooted<JSObject*> stack(aCx, JS::GetPromiseResolutionSite(promise));
+  MC::Rooted<JSObject*> promise(aCx, mPromise->PromiseObj());
+  MC::Rooted<JSObject*> stack(aCx, JS::GetPromiseResolutionSite(promise));
 
   mActor->SendRawMessage(meta, std::move(aData), CloneJSStack(aCx, stack),
                          IgnoreErrors());

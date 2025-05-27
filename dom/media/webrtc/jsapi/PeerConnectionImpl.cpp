@@ -13,7 +13,7 @@
 #include "base/histogram.h"
 #include "common/time_profiling/timecard.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nspr.h"
 #include "nss.h"
 #include "pk11pub.h"
@@ -78,7 +78,7 @@
 #include "nsNetUtil.h"
 #include "js/ArrayBuffer.h"    // JS::NewArrayBufferWithContents
 #include "js/GCAnnotations.h"  // JS_HAZ_ROOTED
-#include "js/RootingAPI.h"     // JS::{{,Mutable}Handle,Rooted}
+#include "monkeycage/RootingAPI.h"     // JS::{{,Mutable}Handle,Rooted}
 #include "mozilla/PeerIdentity.h"
 #include "mozilla/dom/RTCCertificate.h"
 #include "mozilla/dom/RTCSctpTransportBinding.h"  // RTCSctpTransportState
@@ -2166,7 +2166,7 @@ void PeerConnectionImpl::DumpPacket_m(size_t level, dom::mozPacketDumpType type,
     return;
   }
 
-  JS::Rooted<JSObject*> jsobj(
+  MC::Rooted<JSObject*> jsobj(
       jsapi.cx(),
       JS::NewArrayBufferWithContents(jsapi.cx(), size, packet.release()));
 

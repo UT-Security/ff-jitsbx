@@ -1837,7 +1837,7 @@ JSObject* VideoFrame::ReadStructuredClone(
     return nullptr;
   }
 
-  JS::Rooted<JS::Value> value(aCx, JS::NullValue());
+  MC::Rooted<JS::Value> value(aCx, JS::NullValue());
   // To avoid a rooting hazard error from returning a raw JSObject* before
   // running the RefPtr destructor, RefPtr needs to be destructed before
   // returning the raw JSObject*, which is why the RefPtr<VideoFrame> is created

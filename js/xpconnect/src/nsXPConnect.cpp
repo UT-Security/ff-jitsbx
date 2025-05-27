@@ -437,7 +437,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
       principal != nsContentUtils::GetNullSubjectPrincipal(),
       "The null subject principal is getting inherited - fix that!");
 
-  RootedObject global(cx);
+  MC::RootedObject global(cx);
   {
     SiteIdentifier site;
     nsresult rv = BasePrincipal::Cast(principal)->GetSiteIdentifier(site);
@@ -560,7 +560,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
   NS_ENSURE_SUCCESS(rv, rv);
 
   // Grab a copy of the global and enter its compartment.
-  RootedObject global(aJSContext, wrappedGlobal->GetFlatJSObject());
+  MC::RootedObject global(aJSContext, wrappedGlobal->GetFlatJSObject());
   MOZ_ASSERT(JS_IsGlobalObject(global));
 
   if (!InitGlobalObject(aJSContext, global, aFlags)) {
@@ -585,16 +585,16 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
 }
 
 nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
-  RootedObject inner(cx, js::UncheckedUnwrap(obj));
+  MC::RootedObject inner(cx, js::UncheckedUnwrap(obj));
   JSAutoRealm ar(cx, inner);
 
-  RootedFunction fun(cx, JS_GetObjectFunction(inner));
+  MC::RootedFunction fun(cx, JS_GetObjectFunction(inner));
   if (!fun) {
     // If the object isn't a function, it's likely that it has a single
     // function property (for things like nsITimerCallback). In this case,
     // return the name of that function property.
 
-    Rooted<IdVector> idArray(cx, IdVector(cx));
+    MC::Rooted<IdVector> idArray(cx, IdVector(cx));
     if (!JS_Enumerate(cx, inner, &idArray)) {
       JS_ClearPendingException(cx);
       return nsCString("error");
@@ -604,8 +604,8 @@ nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
       return nsCString("nonfunction");
     }
 
-    RootedId id(cx, idArray[0]);
-    RootedValue v(cx);
+    MC::RootedId id(cx, idArray[0]);
+    MC::RootedValue v(cx);
     if (!JS_GetPropertyById(cx, inner, id, &v)) {
       JS_ClearPendingException(cx);
       return nsCString("nonfunction");
@@ -615,12 +615,12 @@ nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
       return nsCString("nonfunction");
     }
 
-    RootedObject vobj(cx, &v.toObject());
+    MC::RootedObject vobj(cx, &v.toObject());
     return GetFunctionName(cx, vobj);
   }
 
-  RootedString funName(cx, JS_GetFunctionDisplayId(fun));
-  RootedScript script(cx, JS_GetFunctionScript(cx, fun));
+  MC::RootedString funName(cx, JS_GetFunctionDisplayId(fun));
+  MC::RootedScript script(cx, JS_GetFunctionScript(cx, fun));
   const char* filename = script ? JS_GetScriptFilename(script) : "anonymous";
   const char* filenameSuffix = strrchr(filename, '/');
 
@@ -632,7 +632,7 @@ nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
 
   nsCString displayName("anonymous");
   if (funName) {
-    RootedValue funNameVal(cx, StringValue(funName));
+    MC::RootedValue funNameVal(cx, StringValue(funName));
     if (!XPCConvert::JSData2Native(cx, &displayName, funNameVal,
                                    {nsXPTType::T_UTF8STRING}, nullptr, 0,
                                    nullptr)) {
@@ -677,8 +677,8 @@ nsresult nsIXPConnect::WrapNative(JSContext* aJSContext, JSObject* aScopeArg,
   MOZ_ASSERT(aScopeArg, "bad param");
   MOZ_ASSERT(aCOMObj, "bad param");
 
-  RootedObject aScope(aJSContext, aScopeArg);
-  RootedValue v(aJSContext);
+  MC::RootedObject aScope(aJSContext, aScopeArg);
+  MC::RootedValue v(aJSContext);
   nsresult rv = NativeInterface2JSObject(aJSContext, aScope, aCOMObj, nullptr,
                                          &aIID, true, &v);
   if (NS_FAILED(rv)) {
@@ -703,7 +703,7 @@ nsresult nsIXPConnect::WrapNativeToJSVal(JSContext* aJSContext,
   MOZ_ASSERT(aScopeArg, "bad param");
   MOZ_ASSERT(aCOMObj, "bad param");
 
-  RootedObject aScope(aJSContext, aScopeArg);
+  MC::RootedObject aScope(aJSContext, aScopeArg);
   return NativeInterface2JSObject(aJSContext, aScope, aCOMObj, aCache, aIID,
                                   aAllowWrapping, aVal);
 }
@@ -716,7 +716,7 @@ nsresult nsIXPConnect::WrapJS(JSContext* aJSContext, JSObject* aJSObjArg,
 
   *result = nullptr;
 
-  RootedObject aJSObj(aJSContext, aJSObjArg);
+  MC::RootedObject aJSObj(aJSContext, aJSObjArg);
 
   nsresult rv = NS_ERROR_UNEXPECTED;
   if (!XPCConvert::JSObject2NativeInterface(aJSContext, result, aJSObj, &aIID,
@@ -748,7 +748,7 @@ nsresult nsIXPConnect::WrapJSAggregatedToNative(nsISupports* aOuter,
 
   *result = nullptr;
 
-  RootedObject aJSObj(aJSContext, aJSObjArg);
+  MC::RootedObject aJSObj(aJSContext, aJSObjArg);
   nsresult rv;
   if (!XPCConvert::JSObject2NativeInterface(aJSContext, result, aJSObj, &aIID,
                                             aOuter, &rv))
@@ -763,7 +763,7 @@ nsresult nsIXPConnect::GetWrappedNativeOfJSObject(
   MOZ_ASSERT(aJSObjArg, "bad param");
   MOZ_ASSERT(_retval, "bad param");
 
-  RootedObject aJSObj(aJSContext, aJSObjArg);
+  MC::RootedObject aJSObj(aJSContext, aJSObjArg);
   aJSObj = js::CheckedUnwrapDynamic(aJSObj, aJSContext,
                                     /* stopAtWindowProxy = */ false);
   if (!aJSObj || !IsWrappedNativeReflector(aJSObj)) {
@@ -817,7 +817,7 @@ nsresult nsIXPConnect::CreateSandbox(JSContext* cx, nsIPrincipal* principal,
                                      JSObject** _retval) {
   *_retval = nullptr;
 
-  RootedValue rval(cx);
+  MC::RootedValue rval(cx);
   SandboxOptions options;
   nsresult rv = CreateSandboxObject(cx, &rval, principal, options);
   MOZ_ASSERT(NS_FAILED(rv) || !rval.isPrimitive(),
@@ -838,7 +838,7 @@ nsresult nsIXPConnect::EvalInSandboxObject(const nsAString& source,
     return NS_ERROR_INVALID_ARG;
   }
 
-  RootedObject sandbox(cx, sandboxArg);
+  MC::RootedObject sandbox(cx, sandboxArg);
   nsCString filenameStr;
   if (filename) {
     filenameStr.Assign(filename);
@@ -912,7 +912,7 @@ nsresult nsIXPConnect::VariantToJS(JSContext* ctx, JSObject* scopeArg,
   MOZ_ASSERT(scopeArg, "bad param");
   MOZ_ASSERT(value, "bad param");
 
-  RootedObject scope(ctx, scopeArg);
+  MC::RootedObject scope(ctx, scopeArg);
   MOZ_ASSERT(js::IsObjectInContextCompartment(scope, ctx));
 
   nsresult rv = NS_OK;

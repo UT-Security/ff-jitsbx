@@ -54,8 +54,8 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
   nsTArray<nsCString> extraValues;
   CopyableTArray<Telemetry::EventExtraEntry> telExtras;
 
-  JS::Rooted<JSObject*> obj(aCx, &aExtra.toObject());
-  JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JSObject*> obj(aCx, &aExtra.toObject());
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, obj, &ids)) {
     LogToBrowserConsole(
         nsIScriptError::warningFlag,
@@ -75,7 +75,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
     // We accept camelCase extra keys, but Glean requires snake_case.
     auto snakeKey = camelToSnake(jsKey);
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!JS_GetPropertyById(aCx, obj, ids[i], &value)) {
       LogToBrowserConsole(
           nsIScriptError::warningFlag,
@@ -141,7 +141,7 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
   auto events = optEvents.extract();
 
   auto count = events.Length();
-  JS::Rooted<JSObject*> eventArray(aCx, JS::NewArrayObject(aCx, count));
+  MC::Rooted<JSObject*> eventArray(aCx, JS::NewArrayObject(aCx, count));
   if (NS_WARN_IF(!eventArray)) {
     return NS_ERROR_FAILURE;
   }
@@ -149,7 +149,7 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
   for (size_t i = 0; i < count; i++) {
     auto* value = &events[i];
 
-    JS::Rooted<JSObject*> eventObj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> eventObj(aCx, JS_NewPlainObject(aCx));
     if (NS_WARN_IF(!eventObj)) {
       return NS_ERROR_FAILURE;
     }
@@ -160,21 +160,21 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
       return NS_ERROR_FAILURE;
     }
 
-    JS::Rooted<JS::Value> catStr(aCx);
+    MC::Rooted<JS::Value> catStr(aCx);
     if (!dom::ToJSValue(aCx, value->mCategory, &catStr) ||
         !JS_DefineProperty(aCx, eventObj, "category", catStr,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define category for event object.");
       return NS_ERROR_FAILURE;
     }
-    JS::Rooted<JS::Value> nameStr(aCx);
+    MC::Rooted<JS::Value> nameStr(aCx);
     if (!dom::ToJSValue(aCx, value->mName, &nameStr) ||
         !JS_DefineProperty(aCx, eventObj, "name", nameStr, JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define name for event object.");
       return NS_ERROR_FAILURE;
     }
 
-    JS::Rooted<JSObject*> extraObj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> extraObj(aCx, JS_NewPlainObject(aCx));
     if (!JS_DefineProperty(aCx, eventObj, "extra", extraObj,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define extra for event object.");
@@ -184,7 +184,7 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
     for (auto pair : value->mExtra) {
       auto key = std::get<0>(pair);
       auto val = std::get<1>(pair);
-      JS::Rooted<JS::Value> valStr(aCx);
+      MC::Rooted<JS::Value> valStr(aCx);
       if (!dom::ToJSValue(aCx, val, &valStr) ||
           !JS_DefineProperty(aCx, extraObj, key.Data(), valStr,
                              JSPROP_ENUMERATE)) {

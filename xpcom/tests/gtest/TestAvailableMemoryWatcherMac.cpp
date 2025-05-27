@@ -150,7 +150,7 @@ class MemoryWatcherTelemetryEvent {
 
  public:
   explicit MemoryWatcherTelemetryEvent(JSContext* aCx) : mLastCountOfEvents(0) {
-    JS::RootedValue snapshot(aCx);
+    MC::RootedValue snapshot(aCx);
     TelemetryTestHelpers::GetEventSnapshot(aCx, &snapshot);
     nsTArray<nsString> eventValues = TelemetryTestHelpers::EventValuesToArray(
         aCx, snapshot, sEventCategory, sEventMethod, sEventObject);
@@ -158,7 +158,7 @@ class MemoryWatcherTelemetryEvent {
   }
 
   void ValidateLastEvent(JSContext* aCx) {
-    JS::RootedValue snapshot(aCx);
+    MC::RootedValue snapshot(aCx);
     TelemetryTestHelpers::GetEventSnapshot(aCx, &snapshot);
     nsTArray<nsString> eventValues = TelemetryTestHelpers::EventValuesToArray(
         aCx, snapshot, sEventCategory, sEventMethod, sEventObject);

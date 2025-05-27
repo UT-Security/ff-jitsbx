@@ -288,7 +288,7 @@ bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
     // The following code first zeroes the array and then copies our data
     // into it. We could avoid this with additional JS APIs to construct
     // an array (or ArrayBuffer) containing initial data.
-    JS::Rooted<JSObject*> array(aJSContext,
+    MC::Rooted<JSObject*> array(aJSContext,
                                 JS_NewFloat32Array(aJSContext, Length()));
     if (!array) {
       return false;
@@ -428,9 +428,9 @@ AudioBuffer::StealJSArrayDataIntoSharedChannels(JSContext* aJSContext) {
   RefPtr<ThreadSharedFloatArrayBufferList> result =
       new ThreadSharedFloatArrayBufferList(mJSChannels.Length());
   for (uint32_t i = 0; i < mJSChannels.Length(); ++i) {
-    JS::Rooted<JSObject*> arrayBufferView(aJSContext, mJSChannels[i]);
+    MC::Rooted<JSObject*> arrayBufferView(aJSContext, mJSChannels[i]);
     bool isSharedMemory;
-    JS::Rooted<JSObject*> arrayBuffer(
+    MC::Rooted<JSObject*> arrayBuffer(
         aJSContext, JS_GetArrayBufferViewBuffer(aJSContext, arrayBufferView,
                                                 &isSharedMemory));
     // The channel data arrays should all have originated in

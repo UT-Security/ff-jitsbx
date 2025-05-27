@@ -20,7 +20,7 @@ nsresult xpcJSWeakReference::Init(JSContext* cx, const JS::Value& object) {
     return NS_OK;
   }
 
-  JS::RootedObject obj(cx, &object.toObject());
+  MC::RootedObject obj(cx, &object.toObject());
 
   XPCCallContext ccx(cx);
 
@@ -70,7 +70,7 @@ xpcJSWeakReference::Get(JSContext* aCx, MutableHandleValue aRetval) {
                                       aRetval);
   }
 
-  JS::RootedObject obj(aCx, wrappedObj->GetJSObject());
+  MC::RootedObject obj(aCx, wrappedObj->GetJSObject());
   if (!obj) {
     return NS_OK;
   }

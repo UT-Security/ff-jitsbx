@@ -1452,7 +1452,7 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext* cx, const nsIID& aIID,
   // XXX Special case for Exception ?
 
   // We give remote-XUL allowlisted domains a free pass here. See bug 932906.
-  JS::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
+  MC::Rooted<JS::Realm*> contextRealm(cx, JS::GetCurrentRealmOrNull(cx));
   MOZ_RELEASE_ASSERT(contextRealm);
   if (!xpc::AllowContentXBLScope(contextRealm)) {
     return NS_OK;

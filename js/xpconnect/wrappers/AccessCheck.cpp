@@ -94,7 +94,7 @@ bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
   if (!v.isObject()) {
     return true;
   }
-  RootedObject obj(cx, &v.toObject());
+  MC::RootedObject obj(cx, &v.toObject());
 
   // Non-wrappers are fine.
   if (!mc::IsWrapper(obj)) {
@@ -142,9 +142,9 @@ void AccessCheck::reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
     // We want to use JS_ValueToSource here, because that most closely
     // matches what AutoEnterPolicy::reportErrorIfExceptionIsNotPending
     // does.
-    JS::RootedValue idVal(cx, js::IdToValue(id));
+    MC::RootedValue idVal(cx, js::IdToValue(id));
     nsAutoJSString propName;
-    JS::RootedString idStr(cx, JS_ValueToSource(cx, idVal));
+    MC::RootedString idStr(cx, JS_ValueToSource(cx, idVal));
     if (!idStr || !propName.init(cx, idStr)) {
       return;
     }

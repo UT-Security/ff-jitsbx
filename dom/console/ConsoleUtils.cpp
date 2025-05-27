@@ -71,7 +71,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   JSContext* cx = jsapi.cx();
 
   ConsoleCommon::ClearException ce(cx);
-  JS::Rooted<JSObject*> global(cx, GetOrCreateSandbox(cx));
+  MC::Rooted<JSObject*> global(cx, GetOrCreateSandbox(cx));
   if (NS_WARN_IF(!global)) {
     return;
   }
@@ -110,7 +110,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   event.mTimeStamp = JS_Now() / PR_USEC_PER_MSEC;
   event.mMicroSecondTimeStamp = JS_Now();
 
-  JS::Rooted<JS::Value> messageValue(cx);
+  MC::Rooted<JS::Value> messageValue(cx);
   if (!dom::ToJSValue(cx, aMessage, &messageValue)) {
     return;
   }
@@ -127,13 +127,13 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
     return;
   }
 
-  JS::Rooted<JS::Value> eventValue(cx);
+  MC::Rooted<JS::Value> eventValue(cx);
   if (!ToJSValue(cx, event, &eventValue)) {
     return;
   }
 
   // This is a legacy property.
-  JS::Rooted<JSObject*> eventObj(cx, &eventValue.toObject());
+  MC::Rooted<JSObject*> eventObj(cx, &eventValue.toObject());
   if (NS_WARN_IF(!JS_DefineProperty(cx, eventObj, "wrappedJSObject", eventObj,
                                     JSPROP_ENUMERATE))) {
     return;
@@ -152,7 +152,7 @@ JSObject* ConsoleUtils::GetOrCreateSandbox(JSContext* aCx) {
     RefPtr<NullPrincipal> nullPrincipal =
         NullPrincipal::CreateWithoutOriginAttributes();
 
-    JS::Rooted<JSObject*> sandbox(aCx);
+    MC::Rooted<JSObject*> sandbox(aCx);
     nsresult rv = xpc->CreateSandbox(aCx, nullPrincipal, sandbox.address());
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return nullptr;

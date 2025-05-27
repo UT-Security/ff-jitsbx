@@ -12,7 +12,7 @@
 #include "mozilla/ipc/Shmem.h"
 #include "ipc/WebGPUChild.h"
 #include "js/ArrayBuffer.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "nsContentUtils.h"
 #include "nsWrapperCache.h"
 #include "Device.h"
@@ -222,7 +222,7 @@ static void ExternalBufferFreeCallback(void* aContents, void* aUserData) {
 
 void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
                             const dom::Optional<uint64_t>& aSize,
-                            JS::Rooted<JSObject*>* aObject, ErrorResult& aRv) {
+                            MC::Rooted<JSObject*>* aObject, ErrorResult& aRv) {
   if (!mMapped) {
     aRv.ThrowInvalidStateError("Buffer is not mapped");
     return;
@@ -264,7 +264,7 @@ void Buffer::UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv) {
 
   bool detachedArrayBuffers = true;
   for (const auto& arrayBuffer : mMapped->mArrayBuffers) {
-    JS::Rooted<JSObject*> rooted(aCx, arrayBuffer);
+    MC::Rooted<JSObject*> rooted(aCx, arrayBuffer);
     if (!JS::DetachArrayBuffer(aCx, rooted)) {
       detachedArrayBuffers = false;
     }

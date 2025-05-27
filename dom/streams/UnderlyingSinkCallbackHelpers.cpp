@@ -43,7 +43,7 @@ void UnderlyingSinkAlgorithms::StartCallback(
   // an algorithm which returns the result of invoking
   // underlyingSinkDict["start"] with argument list « controller » and callback
   // this value underlyingSink.
-  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
+  MC::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
   return mStartCallback->Call(thisObj, aController, aRetVal, aRv,
                               "UnderlyingSink.start",
                               CallbackFunction::eRethrowExceptions);
@@ -63,7 +63,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::WriteCallback(
   // an algorithm which takes an argument chunk and returns the result of
   // invoking underlyingSinkDict["write"] with argument list « chunk, controller
   // » and callback this value underlyingSink.
-  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
+  MC::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
   RefPtr<Promise> promise = mWriteCallback->Call(
       thisObj, aChunk, aController, aRv, "UnderlyingSink.write",
       CallbackFunction::eRethrowExceptions);
@@ -83,7 +83,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::CloseCallback(
   // an algorithm which returns the result of invoking
   // underlyingSinkDict["close"] with argument list «» and callback this value
   // underlyingSink.
-  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
+  MC::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
   RefPtr<Promise> promise =
       mCloseCallback->Call(thisObj, aRv, "UnderlyingSink.close",
                            CallbackFunction::eRethrowExceptions);
@@ -102,7 +102,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::AbortCallback(
 
   // Step 9: Let abortAlgorithm be an algorithm that returns a promise resolved
   // with undefined.
-  JS::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
+  MC::Rooted<JSObject*> thisObj(aCx, mUnderlyingSink);
   RefPtr<Promise> promise =
       mAbortCallback->Call(thisObj, aReason, aRv, "UnderlyingSink.abort",
                            CallbackFunction::eRethrowExceptions);
@@ -256,7 +256,7 @@ already_AddRefed<Promise> WritableStreamToOutput::AbortCallbackImpl(
   // Step 3. Let abortAlgorithmWrapper be an algorithm that runs these steps:
 
   if (aReason.WasPassed() && aReason.Value().isObject()) {
-    JS::Rooted<JSObject*> obj(aCx, &aReason.Value().toObject());
+    MC::Rooted<JSObject*> obj(aCx, &aReason.Value().toObject());
     RefPtr<WebTransportError> error;
     UnwrapObject<prototypes::id::WebTransportError, WebTransportError>(
         obj, error, nullptr);

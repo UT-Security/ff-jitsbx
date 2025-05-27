@@ -17,12 +17,12 @@ namespace mozilla::dom {
 bool CallbackInterface::GetCallableProperty(
     BindingCallContext& cx, JS::Handle<jsid> aPropId,
     JS::MutableHandle<JS::Value> aCallable) {
-  JS::Rooted<JSObject*> obj(cx, CallbackKnownNotGray());
+  MC::Rooted<JSObject*> obj(cx, CallbackKnownNotGray());
   if (!JS_GetPropertyById(cx, obj, aPropId, aCallable)) {
     return false;
   }
   if (!aCallable.isObject() || !JS::IsCallable(&aCallable.toObject())) {
-    JS::Rooted<JSString*> propId(cx, aPropId.toString());
+    MC::Rooted<JSString*> propId(cx, aPropId.toString());
     JS::UniqueChars propName = JS_EncodeStringToUTF8(cx, propId);
     nsPrintfCString description("Property '%s'", propName.get());
     cx.ThrowErrorMessage<MSG_NOT_CALLABLE>(description.get());

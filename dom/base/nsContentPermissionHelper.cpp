@@ -29,7 +29,7 @@
 #include "nsServiceManagerUtils.h"
 #include "mozilla/dom/Document.h"
 #include "nsIWeakReferenceUtils.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
 #include "monkeycage/Value.h"
 
 using mozilla::Unused;  // <snicker>
@@ -601,7 +601,7 @@ nsresult TranslateChoices(
     for (uint32_t i = 0; i < aPermissionRequests.Length(); ++i) {
       nsCString type = aPermissionRequests[i].type();
 
-      JS::Rooted<JSObject*> obj(RootingCx(), &aChoices.toObject());
+      MC::Rooted<JSObject*> obj(RootingCx(), &aChoices.toObject());
       // People really shouldn't be passing WindowProxy or Location
       // objects for the choices here.
       obj = js::CheckedUnwrapStatic(obj);
@@ -615,7 +615,7 @@ nsresult TranslateChoices(
       JSContext* cx = jsapi.cx();
       JSAutoRealm ar(cx, obj);
 
-      JS::Rooted<JS::Value> val(cx);
+      MC::Rooted<JS::Value> val(cx);
 
       if (!JS_GetProperty(cx, obj, type.BeginReading(), &val) ||
           !val.isString()) {
@@ -843,19 +843,19 @@ mozilla::ipc::IPCResult RemotePermissionRequest::RecvNotifyResult(
     }
 
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JSObject*> obj(cx);
+    MC::Rooted<JSObject*> obj(cx);
     obj = JS_NewPlainObject(cx);
     for (uint32_t i = 0; i < aChoices.Length(); ++i) {
       const nsString& choice = aChoices[i].choice();
       const nsCString& type = aChoices[i].type();
-      JS::Rooted<JSString*> jChoice(
+      MC::Rooted<JSString*> jChoice(
           cx, JS_NewUCStringCopyN(cx, choice.get(), choice.Length()));
-      JS::Rooted<JS::Value> vChoice(cx, StringValue(jChoice));
+      MC::Rooted<JS::Value> vChoice(cx, JS::StringValue(jChoice));
       if (!JS_SetProperty(cx, obj, type.get(), vChoice)) {
         return IPC_FAIL_NO_REASON(this);
       }
     }
-    JS::Rooted<JS::Value> val(cx, JS::ObjectValue(*obj));
+    MC::Rooted<JS::Value> val(cx, JS::ObjectValue(*obj));
     DoAllow(val);
   } else {
     DoCancel();

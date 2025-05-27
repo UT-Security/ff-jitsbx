@@ -13,8 +13,8 @@
 #define TelemetryIOInterposeObserver_h__
 
 #include "core/TelemetryCommon.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/IOInterposer.h"
 #include "nsBaseHashtable.h"
 #include "nsHashKeys.h"

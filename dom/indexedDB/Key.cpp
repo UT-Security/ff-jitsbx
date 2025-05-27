@@ -62,7 +62,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
 
   // 5. While `index` is less than `len`:
   while (index < len) {
-    JS::Rooted<JS::PropertyKey> indexId(aCx);
+    MC::Rooted<JS::PropertyKey> indexId(aCx);
     if (!JS_IndexToId(aCx, index, &indexId)) {
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
@@ -79,7 +79,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
     }
 
     // 3. Let `entry` be ? Get(`input`, `index`).
-    JS::Rooted<JS::Value> entry(aCx);
+    MC::Rooted<JS::Value> entry(aCx);
     if (!JS_GetPropertyById(aCx, aObject, indexId, &entry)) {
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
@@ -407,7 +407,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSValInternal(
   }
 
   if (aVal.isObject()) {
-    JS::Rooted<JSObject*> object(aCx, &aVal.toObject());
+    MC::Rooted<JSObject*> object(aCx, &aVal.toObject());
 
     js::ESClass builtinClass;
     if (!JS::GetBuiltinClass(aCx, object, &builtinClass)) {
@@ -462,7 +462,7 @@ nsresult Key::DecodeJSValInternal(const EncodedDataType*& aPos,
   }
 
   if (*aPos - aTypeOffset >= eArray) {
-    JS::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
+    MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
     if (!array) {
       NS_WARNING("Failed to make array!");
       IDB_REPORT_INTERNAL_ERR();
@@ -477,7 +477,7 @@ nsresult Key::DecodeJSValInternal(const EncodedDataType*& aPos,
     }
 
     uint32_t index = 0;
-    JS::Rooted<JS::Value> val(aCx);
+    MC::Rooted<JS::Value> val(aCx);
     while (aPos < aEnd && *aPos - aTypeOffset != eTerminator) {
       QM_TRY(MOZ_TO_RESULT(DecodeJSValInternal(aPos, aEnd, aCx, aTypeOffset,
                                                &val, aRecursionDepth + 1)));
@@ -851,7 +851,7 @@ Result<Ok, nsresult> Key::EncodeBinary(JSObject* aObject, bool aIsViewObject,
 // static
 JSObject* Key::DecodeBinary(const EncodedDataType*& aPos,
                             const EncodedDataType* aEnd, JSContext* aCx) {
-  JS::Rooted<JSObject*> rv(aCx);
+  MC::Rooted<JSObject*> rv(aCx);
   DecodeStringy<eBinary, uint8_t>(
       aPos, aEnd,
       [&rv, aCx](uint8_t** out, uint32_t decodedSize) {
@@ -927,7 +927,7 @@ nsresult Key::ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) const {
 }
 
 nsresult Key::ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aVal) const {
-  JS::Rooted<JS::Value> value(aCx);
+  MC::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {
     aVal = value;

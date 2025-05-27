@@ -98,7 +98,7 @@ static void EncodeNative(JSContext* aCx, mozilla::Decoder* aDecoder,
   // https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk
   // Step 4.2.2.1. Let chunk be a Uint8Array object wrapping an ArrayBuffer
   // containing output.
-  JS::Rooted<JSObject*> arrayBuffer(
+  MC::Rooted<JSObject*> arrayBuffer(
       aCx, JS::NewArrayBufferWithContents(aCx, written, buffer.release()));
   if (!arrayBuffer.get()) {
     JS_ClearPendingException(aCx);
@@ -128,13 +128,13 @@ class TextEncoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
       JSContext* aCx, const nsAString& aInput,
       TransformStreamDefaultController& aController, bool aFlush,
       ErrorResult& aRv) {
-    JS::Rooted<JSObject*> outView(aCx);
+    MC::Rooted<JSObject*> outView(aCx);
     // Passing a Decoder for a reason, see the comments in the method.
     EncodeNative(aCx, mEncoderStream->Decoder(), aInput, aFlush, &outView, aRv);
 
     if (JS_GetTypedArrayLength(outView) > 0) {
       // Step 4.2.2.2. Enqueue chunk into encoder’s transform.
-      JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*outView));
+      MC::Rooted<JS::Value> value(aCx, JS::ObjectValue(*outView));
       aController.Enqueue(aCx, value, aRv);
     }
   }

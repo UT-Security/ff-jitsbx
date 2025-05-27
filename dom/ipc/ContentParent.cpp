@@ -3036,7 +3036,7 @@ bool ContentParent::InitInternal(ProcessPriority aInitialPriority) {
       if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
         MOZ_CRASH();
       }
-      JS::Rooted<JS::Value> init(jsapi.cx());
+      MC::Rooted<JS::Value> init(jsapi.cx());
       // We'll crash on failure, so use a IgnoredErrorResult (which also
       // auto-suppresses exceptions).
       IgnoredErrorResult rv;
@@ -5136,7 +5136,7 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
     }
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JS::Value> stack(cx);
+    MC::Rooted<JS::Value> stack(cx);
     ErrorResult rv;
     data.Read(cx, &stack, rv);
     if (rv.Failed() || !stack.isObject()) {
@@ -5144,10 +5144,10 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
       return IPC_OK();
     }
 
-    JS::Rooted<JSObject*> stackObj(cx, &stack.toObject());
+    MC::Rooted<JSObject*> stackObj(cx, &stack.toObject());
     MOZ_ASSERT(JS::IsUnwrappedSavedFrame(stackObj));
 
-    JS::Rooted<JSObject*> stackGlobal(cx, JS::GetNonCCWObjectGlobal(stackObj));
+    MC::Rooted<JSObject*> stackGlobal(cx, JS::GetNonCCWObjectGlobal(stackObj));
     msg = new nsScriptErrorWithStack(MC::NothingHandleValue(), stackObj,
                                      stackGlobal);
   } else {

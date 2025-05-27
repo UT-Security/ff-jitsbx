@@ -115,7 +115,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
 }
 
 JSObject* WrapperFactory::WaiveXray(JSContext* cx, JSObject* objArg) {
-  RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
   obj = UncheckedUnwrap(obj);
   MOZ_ASSERT(!js::IsWindow(obj));
 
@@ -232,7 +232,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
   MOZ_ASSERT(!JS_IsDeadWrapper(objArg));
 
   bool waive = ShouldWaiveXray(cx, objectPassedToWrap);
-  RootedObject obj(cx, objArg);
+  MC::RootedObject obj(cx, objArg);
   retObj.set(nullptr);
 
   // There are a few cases related to window proxies that are handled first to
@@ -264,7 +264,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
 
   JSAutoRealm ar(cx, obj);
   XPCCallContext ccx(cx, obj);
-  RootedObject wrapScope(cx, scope);
+  MC::RootedObject wrapScope(cx, scope);
 
   if (ccx.GetScriptable() && ccx.GetScriptable()->WantPreCreate()) {
     // We have a precreate hook. This object might enforce that we only
@@ -299,7 +299,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
 
   // This public WrapNativeToJSVal API enters the compartment of 'wrapScope'
   // so we don't have to.
-  RootedValue v(cx);
+  MC::RootedValue v(cx);
   nsresult rv = nsXPConnect::XPConnect()->WrapNativeToJSVal(
       cx, wrapScope, wn->Native(), nullptr, &NS_GET_IID(nsISupports), false,
       &v);
@@ -610,7 +610,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp) {
     return JS_WrapValue(cx, vp);
   }
 
-  RootedObject obj(cx, &vp.toObject());
+  MC::RootedObject obj(cx, &vp.toObject());
   if (!WaiveXrayAndWrap(cx, &obj)) {
     return false;
   }
@@ -622,7 +622,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp) {
 bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
                                       MutableHandleObject argObj) {
   MOZ_ASSERT(argObj);
-  RootedObject obj(cx, js::UncheckedUnwrap(argObj));
+  MC::RootedObject obj(cx, js::UncheckedUnwrap(argObj));
   MOZ_ASSERT(!js::IsWindow(obj));
   if (js::IsObjectInContextCompartment(obj, cx)) {
     argObj.set(obj);
@@ -690,7 +690,7 @@ static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
   // cross-compartment wrapper (which should have no waiver). On the other hand,
   // in the !crossCompartmentTransplant case we know one already exists.
   // CreateXrayWaiver asserts all this.
-  RootedObject newWaiver(
+  MC::RootedObject newWaiver(
       cx, WrapperFactory::CreateXrayWaiver(
               cx, newobj, /* allowExisting = */ !crossCompartmentTransplant));
   if (!newWaiver) {
@@ -723,10 +723,10 @@ static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
 
 JSObject* TransplantObject(JSContext* cx, JS::HandleObject origobj,
                            JS::HandleObject target) {
-  RootedObject oldWaiver(cx, WrapperFactory::GetXrayWaiver(origobj));
+  MC::RootedObject oldWaiver(cx, WrapperFactory::GetXrayWaiver(origobj));
   MOZ_ASSERT_IF(oldWaiver, GetNonCCWObjectRealm(oldWaiver) ==
                                GetNonCCWObjectRealm(origobj));
-  RootedObject newIdentity(cx, JS_TransplantObject(cx, origobj, target));
+  MC::RootedObject newIdentity(cx, JS_TransplantObject(cx, origobj, target));
   if (!newIdentity || !oldWaiver) {
     return newIdentity;
   }
@@ -755,10 +755,10 @@ JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
   // Save the chain of objects that carry origobj's Xray expando properties
   // (from all compartments). TransplantObject will blow this away; we'll
   // restore it manually afterwards.
-  RootedObject expandoChain(
+  MC::RootedObject expandoChain(
       cx, GetXrayTraits(origobj)->detachExpandoChain(origobj));
 
-  RootedObject newIdentity(cx, TransplantObject(cx, origobj, target));
+  MC::RootedObject newIdentity(cx, TransplantObject(cx, origobj, target));
 
   // Copy Xray expando properties to the new wrapper.
   if (!GetXrayTraits(newIdentity)
@@ -773,7 +773,7 @@ JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
 }
 
 static void NukeXrayWaiver(JSContext* cx, JS::HandleObject obj) {
-  RootedObject waiver(cx, WrapperFactory::GetXrayWaiver(obj));
+  MC::RootedObject waiver(cx, WrapperFactory::GetXrayWaiver(obj));
   if (!waiver) {
     return;
   }

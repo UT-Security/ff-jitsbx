@@ -95,7 +95,7 @@ nsresult JSExecutionContext::JoinOffThread(
 
   MOZ_ASSERT(!mWantsReturnValue);
 
-  JS::Rooted<JS::InstantiationStorage> storage(mCx);
+  MC::Rooted<JS::InstantiationStorage> storage(mCx);
   RefPtr<JS::Stencil> stencil =
       JS::FinishOffThreadStencil(mCx, *aOffThreadToken, storage.address());
   *aOffThreadToken = nullptr;  // Mark the token as having been finished.
@@ -188,7 +188,7 @@ nsresult JSExecutionContext::Decode(mozilla::Vector<uint8_t>& aBytecodeBuf,
 nsresult JSExecutionContext::InstantiateStencil(
     RefPtr<JS::Stencil>&& aStencil, JS::InstantiationStorage* aStorage) {
   JS::InstantiateOptions instantiateOptions(mCompileOptions);
-  JS::Rooted<JSScript*> script(
+  MC::Rooted<JSScript*> script(
       mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
                                         aStorage));
   if (!script) {
@@ -253,7 +253,7 @@ static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   }
 
   // We only care about Promise here, so CheckedUnwrapStatic is fine.
-  JS::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(&aValue.toObject()));
+  MC::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(&aValue.toObject()));
   if (!obj) {
     return false;
   }

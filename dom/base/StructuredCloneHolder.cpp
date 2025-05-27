@@ -450,7 +450,7 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
       return nullptr;
     }
 
-    JS::Rooted<JS::Value> result(aCx);
+    MC::Rooted<JS::Value> result(aCx);
     {
       // nsJSPrincipals::ReadKnownPrincipalType addrefs for us, but because of
       // the casting between JSPrincipals* and nsIPrincipal* we can't use
@@ -481,7 +481,7 @@ bool StructuredCloneHolder::WriteFullySerializableObjects(
 
   // Window and Location are not serializable, so it's OK to just do a static
   // unwrap here.
-  JS::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(aObj));
+  MC::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(aObj));
   if (!obj) {
     return xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
   }
@@ -570,7 +570,7 @@ JSObject* ReadBlob(JSContext* aCx, uint32_t aIndex,
   }
 #endif
   MOZ_ASSERT(aIndex < aHolder->BlobImpls().Length());
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   {
     // RefPtr<File> and RefPtr<BlobImpl> need to go out of scope before
     // toObject() is called because the static analysis thinks releasing XPCOM
@@ -663,7 +663,7 @@ JSObject* ReadDirectory(JSContext* aCx, JSStructuredCloneReader* aReader,
   // can GC (because in some cases it can!), and a return statement with a
   // JSObject* type means that JSObject* is on the stack as a raw pointer
   // while destructors are running.
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   {
     RefPtr<Directory> directory =
         ReadDirectoryInternal(aReader, aPathLength, aHolder);
@@ -685,7 +685,7 @@ JSObject* ReadFileList(JSContext* aCx, JSStructuredCloneReader* aReader,
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aReader);
 
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   {
     RefPtr<FileList> fileList = new FileList(aHolder->GlobalDuringRead());
 
@@ -762,7 +762,7 @@ JSObject* ReadFormData(JSContext* aCx, JSStructuredCloneReader* aReader,
   MOZ_ASSERT(aHolder);
 
   // See the serialization of the FormData for the format.
-  JS::Rooted<JS::Value> val(aCx);
+  MC::Rooted<JS::Value> val(aCx);
   {
     RefPtr<FormData> formData = new FormData(aHolder->GlobalDuringRead());
 
@@ -955,7 +955,7 @@ JSObject* ReadInputStream(JSContext* aCx, uint32_t aIndex,
   }
 #endif
   MOZ_ASSERT(aIndex < aHolder->InputStreams().Length());
-  JS::Rooted<JS::Value> result(aCx);
+  MC::Rooted<JS::Value> result(aCx);
   {
     nsCOMPtr<nsIInputStream> inputStream = aHolder->InputStreams()[aIndex];
 
@@ -1014,7 +1014,7 @@ JSObject* StructuredCloneHolder::CustomReadHandler(
       CloneScope() == StructuredCloneScope::SameProcess) {
     // Get the current global object.
     // This can be null.
-    JS::Rooted<JSObject*> result(aCx);
+    MC::Rooted<JSObject*> result(aCx);
     {
       // aIndex is the index of the cloned image.
       result = ImageBitmap::ReadStructuredClone(aCx, aReader, mGlobal,
@@ -1048,7 +1048,7 @@ JSObject* StructuredCloneHolder::CustomReadHandler(
   if (StaticPrefs::dom_media_webcodecs_enabled() &&
       aTag == SCTAG_DOM_VIDEOFRAME &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    JS::Rooted<JSObject*> global(aCx, mGlobal->GetGlobalJSObject());
+    MC::Rooted<JSObject*> global(aCx, mGlobal->GetGlobalJSObject());
     if (VideoFrame_Binding::ConstructorEnabled(aCx, global)) {
       return VideoFrame::ReadStructuredClone(aCx, mGlobal, aReader,
                                              VideoFrames()[aIndex]);
@@ -1065,7 +1065,7 @@ bool StructuredCloneHolder::CustomWriteHandler(
     return false;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aObj);
+  MC::Rooted<JSObject*> obj(aCx, aObj);
 
   // See if this is a File/Blob object.
   {
@@ -1211,7 +1211,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
     }
     mTransferredPorts.AppendElement(port);
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, port, &value)) {
       JS_ClearPendingException(aCx);
       return false;
@@ -1230,7 +1230,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
         OffscreenCanvas::CreateFromCloneData(mGlobal, data);
     delete data;
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, canvas, &value)) {
       JS_ClearPendingException(aCx);
       return false;
@@ -1248,7 +1248,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
         ImageBitmap::CreateFromCloneData(mGlobal, data);
     delete data;
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, bitmap, &value)) {
       JS_ClearPendingException(aCx);
       return false;
@@ -1307,7 +1307,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
       CloneScope() == StructuredCloneScope::SameProcess) {
     MOZ_ASSERT(aContent);
 
-    JS::Rooted<JSObject*> globalObj(aCx, mGlobal->GetGlobalJSObject());
+    MC::Rooted<JSObject*> globalObj(aCx, mGlobal->GetGlobalJSObject());
     // aContent will be released in CustomFreeTransferHandler.
     if (!VideoFrame_Binding::ConstructorEnabled(aCx, globalObj)) {
       return false;
@@ -1324,7 +1324,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
     delete data;
     aContent = nullptr;
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, frame, &value)) {
       JS_ClearPendingException(aCx);
       return false;
@@ -1346,7 +1346,7 @@ StructuredCloneHolder::CustomWriteTransferHandler(
     return false;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aObj);
+  MC::Rooted<JSObject*> obj(aCx, aObj);
 
   {
     MessagePort* port = nullptr;
@@ -1579,7 +1579,7 @@ bool StructuredCloneHolder::CustomCanTransferHandler(
     return false;
   }
 
-  JS::Rooted<JSObject*> obj(aCx, aObj);
+  MC::Rooted<JSObject*> obj(aCx, aObj);
 
   {
     MessagePort* port = nullptr;

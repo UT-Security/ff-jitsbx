@@ -64,7 +64,7 @@ Worker::~Worker() { Terminate(); }
 
 JSObject* Worker::WrapObject(JSContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
-  JS::Rooted<JSObject*> wrapper(aCx,
+  MC::Rooted<JSObject*> wrapper(aCx,
                                 Worker_Binding::Wrap(aCx, this, aGivenProto));
   if (wrapper) {
     // Most DOM objects don't assume they have a reflector. If they don't have
@@ -89,7 +89,7 @@ void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   RefPtr<WorkerPrivate> workerPrivate = mWorkerPrivate;
   Unused << workerPrivate;
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
 
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
                                                           &transferable);

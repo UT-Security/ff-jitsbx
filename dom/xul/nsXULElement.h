@@ -16,10 +16,10 @@
 #include <stdio.h>
 #include "ErrorList.h"
 #include "js/experimental/JSStencil.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "js/SourceText.h"
 #include "js/TracingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"

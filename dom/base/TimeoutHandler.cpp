@@ -163,7 +163,7 @@ void CallbackTimeoutHandler::ReleaseJSObjects() {
 
 bool CallbackTimeoutHandler::Call(const char* aExecutionReason) {
   IgnoredErrorResult rv;
-  JS::Rooted<JS::Value> ignoredVal(RootingCx());
+  MC::Rooted<JS::Value> ignoredVal(RootingCx());
   MOZ_KnownLive(mFunction)->Call(MOZ_KnownLive(mGlobal), mArgs, &ignoredVal, rv,
                                  aExecutionReason);
   return !rv.IsUncatchableException();

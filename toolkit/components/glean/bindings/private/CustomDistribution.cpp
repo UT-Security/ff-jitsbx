@@ -93,7 +93,7 @@ GleanCustomDistribution::TestGetValue(const nsACString& aPingName,
     aResult.set(JS::UndefinedValue());
   } else {
     // Build return value of the form: { sum: #, values: {bucket1: count1, ...}
-    JS::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
     if (!root) {
       return NS_ERROR_FAILURE;
     }
@@ -102,7 +102,7 @@ GleanCustomDistribution::TestGetValue(const nsACString& aPingName,
                            JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;
     }
-    JS::Rooted<JSObject*> valuesObj(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> valuesObj(aCx, JS_NewPlainObject(aCx));
     if (!valuesObj ||
         !JS_DefineProperty(aCx, root, "values", valuesObj, JSPROP_ENUMERATE)) {
       return NS_ERROR_FAILURE;

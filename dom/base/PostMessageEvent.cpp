@@ -159,7 +159,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP PostMessageEvent::Run() {
   }
 
   IgnoredErrorResult rv;
-  JS::Rooted<JS::Value> messageData(cx);
+  MC::Rooted<JS::Value> messageData(cx);
   nsCOMPtr<mozilla::dom::EventTarget> eventTarget =
       do_QueryObject(targetWindow);
 

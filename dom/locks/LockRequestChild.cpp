@@ -104,7 +104,7 @@ void LockRequestChild::RunAbortAlgorithm() {
     mRequest.mPromise->MaybeRejectWithAbortError("The lock request is aborted");
   } else {
     JSContext* cx = jsapi.cx();
-    JS::Rooted<JS::Value> reason(cx);
+    MC::Rooted<JS::Value> reason(cx);
     Signal()->GetReason(cx, &reason);
     mRequest.mPromise->MaybeReject(reason);
   }

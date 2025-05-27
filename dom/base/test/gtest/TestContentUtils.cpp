@@ -69,7 +69,7 @@ TEST(DOM_Base_ContentUtils, IsURIInList)
 TEST(DOM_Base_ContentUtils,
      StringifyJSON_EmptyValue_UndefinedIsNullStringLiteral)
 {
-  JS::Rooted<JSObject*> globalObject(
+  MC::Rooted<JSObject*> globalObject(
       mozilla::dom::RootingCx(),
       mozilla::dom::SimpleGlobalObject::Create(
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
@@ -86,7 +86,7 @@ TEST(DOM_Base_ContentUtils,
 
 TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsNullStringLiteral)
 {
-  JS::Rooted<JSObject*> globalObject(
+  MC::Rooted<JSObject*> globalObject(
       mozilla::dom::RootingCx(),
       mozilla::dom::SimpleGlobalObject::Create(
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
@@ -95,10 +95,10 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsNullStringLiteral)
   JSContext* cx = jsAPI.cx();
   nsAutoString serializedValue;
 
-  JS::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));
-  JS::Rooted<JSString*> valueStr(cx, JS_NewStringCopyZ(cx, "Hello World!"));
+  MC::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));
+  MC::Rooted<JSString*> valueStr(cx, JS_NewStringCopyZ(cx, "Hello World!"));
   ASSERT_TRUE(JS_DefineProperty(cx, jsObj, "key1", valueStr, JSPROP_ENUMERATE));
-  JS::Rooted<JS::Value> jsValue(cx, JS::ObjectValue(*jsObj));
+  MC::Rooted<JS::Value> jsValue(cx, JS::ObjectValue(*jsObj));
 
   ASSERT_TRUE(nsContentUtils::StringifyJSON(cx, jsValue, serializedValue,
                                             UndefinedIsNullStringLiteral));
@@ -108,7 +108,7 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsNullStringLiteral)
 
 TEST(DOM_Base_ContentUtils, StringifyJSON_EmptyValue_UndefinedIsVoidString)
 {
-  JS::Rooted<JSObject*> globalObject(
+  MC::Rooted<JSObject*> globalObject(
       mozilla::dom::RootingCx(),
       mozilla::dom::SimpleGlobalObject::Create(
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
@@ -125,7 +125,7 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_EmptyValue_UndefinedIsVoidString)
 
 TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsVoidString)
 {
-  JS::Rooted<JSObject*> globalObject(
+  MC::Rooted<JSObject*> globalObject(
       mozilla::dom::RootingCx(),
       mozilla::dom::SimpleGlobalObject::Create(
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
@@ -134,10 +134,10 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsVoidString)
   JSContext* cx = jsAPI.cx();
   nsAutoString serializedValue;
 
-  JS::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));
-  JS::Rooted<JSString*> valueStr(cx, JS_NewStringCopyZ(cx, "Hello World!"));
+  MC::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));
+  MC::Rooted<JSString*> valueStr(cx, JS_NewStringCopyZ(cx, "Hello World!"));
   ASSERT_TRUE(JS_DefineProperty(cx, jsObj, "key1", valueStr, JSPROP_ENUMERATE));
-  JS::Rooted<JS::Value> jsValue(cx, JS::ObjectValue(*jsObj));
+  MC::Rooted<JS::Value> jsValue(cx, JS::ObjectValue(*jsObj));
 
   ASSERT_TRUE(nsContentUtils::StringifyJSON(cx, jsValue, serializedValue,
                                             UndefinedIsVoidString));

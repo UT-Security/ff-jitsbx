@@ -106,7 +106,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
     if (outDecodedString.Length()) {
       // Step 4.2. If outputChunk is non-empty, then enqueue outputChunk in
       // decoder’s transform.
-      JS::Rooted<JS::Value> outputChunk(aCx);
+      MC::Rooted<JS::Value> outputChunk(aCx);
       if (!xpc::NonVoidStringToJsval(aCx, outDecodedString, &outputChunk)) {
         JS_ClearPendingException(aCx);
         aRv.Throw(NS_ERROR_UNEXPECTED);

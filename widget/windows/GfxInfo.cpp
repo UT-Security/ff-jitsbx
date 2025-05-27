@@ -1990,7 +1990,7 @@ void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
   // Add the platform neutral features
   GfxInfoBase::DescribeFeatures(aCx, aObj);
 
-  JS::Rooted<JSObject*> obj(aCx);
+  MC::Rooted<JSObject*> obj(aCx);
 
   gfx::FeatureState& d3d11 = gfxConfig::GetFeature(Feature::D3D11_COMPOSITING);
   if (!InitFeatureObject(aCx, aObj, "d3d11", d3d11, &obj)) {
@@ -1998,7 +1998,7 @@ void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
   }
   if (d3d11.GetValue() == gfx::FeatureStatus::Available) {
     DeviceManagerDx* dm = DeviceManagerDx::Get();
-    JS::Rooted<JS::Value> val(aCx,
+    MC::Rooted<JS::Value> val(aCx,
                               JS::Int32Value(dm->GetCompositorFeatureLevel()));
     JS_SetProperty(aCx, obj, "version", val);
 
@@ -2029,8 +2029,8 @@ void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
   }
   {
     const char* version = "1.1";
-    JS::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, version));
-    JS::Rooted<JS::Value> val(aCx, JS::StringValue(str));
+    MC::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, version));
+    MC::Rooted<JS::Value> val(aCx, JS::StringValue(str));
     JS_SetProperty(aCx, obj, "version", val);
   }
 }

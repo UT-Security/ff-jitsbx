@@ -61,11 +61,11 @@ static void DoSessionStoreUpdate(CanonicalBrowsingContext* aBrowsingContext,
     jni::Object::LocalRef scrollBundle(jni::GetGeckoThreadEnv());
 
     if (aFormData) {
-      JS::Rooted<JSObject*> object(jsapi.cx());
+      MC::Rooted<JSObject*> object(jsapi.cx());
       ErrorResult rv;
       aFormData->ToJSON(jsapi.cx(), &object);
 
-      JS::Rooted<JS::Value> value(jsapi.cx(), JS::ObjectValue(*object));
+      MC::Rooted<JS::Value> value(jsapi.cx(), JS::ObjectValue(*object));
 
       if (NS_FAILED(jni::BoxData(jsapi.cx(), value, formDataBundle, true))) {
         JS_ClearPendingException(jsapi.cx());
@@ -74,10 +74,10 @@ static void DoSessionStoreUpdate(CanonicalBrowsingContext* aBrowsingContext,
     }
 
     if (aScroll) {
-      JS::Rooted<JSObject*> object(jsapi.cx());
+      MC::Rooted<JSObject*> object(jsapi.cx());
       ErrorResult rv;
       aScroll->ToJSON(jsapi.cx(), &object);
-      JS::Rooted<JS::Value> value(jsapi.cx(), JS::ObjectValue(*object));
+      MC::Rooted<JS::Value> value(jsapi.cx(), JS::ObjectValue(*object));
 
       if (NS_FAILED(jni::BoxData(jsapi.cx(), value, scrollBundle, true))) {
         JS_ClearPendingException(jsapi.cx());
@@ -158,12 +158,12 @@ static void DoSessionStoreUpdate(CanonicalBrowsingContext* aBrowsingContext,
     return;
   }
 
-  JS::Rooted<JS::Value> update(jsapi.cx());
+  MC::Rooted<JS::Value> update(jsapi.cx());
   if (!ToJSValue(jsapi.cx(), data, &update)) {
     return;
   }
 
-  JS::Rooted<JS::Value> key(jsapi.cx(),
+  MC::Rooted<JS::Value> key(jsapi.cx(),
                             aBrowsingContext->Top()->PermanentKey());
 
   Unused << funcs->UpdateSessionStore(nullptr, aBrowsingContext, key, aEpoch,

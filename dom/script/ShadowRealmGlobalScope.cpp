@@ -36,7 +36,7 @@ NS_INTERFACE_MAP_END
 JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions,
                                JSPrincipals* aPrincipals,
                                JS::Handle<JSObject*> aGlobalObj) {
-  JS::Rooted<JSObject*> reflector(aCx);
+  MC::Rooted<JSObject*> reflector(aCx);
   {
     RefPtr<ShadowRealmGlobalScope> scope;
     GlobalObject global(aCx, aGlobalObj);

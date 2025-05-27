@@ -146,7 +146,7 @@ class SessionStoreUtils {
   static bool CopyChildren(JSContext* aCx, JS::Handle<JSObject*> aDst,
                            const nsTArray<RefPtr<T>>& aChildren) {
     if (!aChildren.IsEmpty()) {
-      JS::Rooted<JSObject*> children(
+      MC::Rooted<JSObject*> children(
           aCx, JS::NewArrayObject(aCx, aChildren.Length()));
 
       for (const auto index : IntegerRange(aChildren.Length())) {
@@ -154,7 +154,7 @@ class SessionStoreUtils {
           continue;
         }
 
-        JS::Rooted<JSObject*> object(aCx);
+        MC::Rooted<JSObject*> object(aCx);
         aChildren[index]->ToJSON(aCx, &object);
 
         if (!JS_DefineElement(aCx, children, index, object, JSPROP_ENUMERATE)) {

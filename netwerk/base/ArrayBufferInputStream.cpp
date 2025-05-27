@@ -7,8 +7,8 @@
 #include "ArrayBufferInputStream.h"
 #include "nsStreamUtils.h"
 #include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
-#include "js/RootingAPI.h"  // JS::{Handle,Rooted}
-#include "js/Value.h"       // JS::Value
+#include "monkeycage/RootingAPI.h"  // JS::{Handle,Rooted}
+#include "monkeycage/Value.h"       // JS::Value
 #include "mozilla/UniquePtrExtensions.h"
 #include "mozilla/dom/ScriptSettings.h"
 
@@ -25,7 +25,7 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
-  JS::Rooted<JSObject*> arrayBuffer(RootingCx(), &aBuffer.toObject());
+  MC::Rooted<JSObject*> arrayBuffer(RootingCx(), &aBuffer.toObject());
   if (!JS::IsArrayBufferObject(arrayBuffer)) {
     return NS_ERROR_FAILURE;
   }

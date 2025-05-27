@@ -83,7 +83,7 @@ void AbortSignalImpl::MaybeAssignAbortError(JSContext* aCx) {
     return;
   }
 
-  JS::Rooted<JS::Value> exception(aCx);
+  MC::Rooted<JS::Value> exception(aCx);
   RefPtr<DOMException> dom = DOMException::Create(NS_ERROR_DOM_ABORT_ERR);
 
   if (NS_WARN_IF(!ToJSValue(aCx, dom, &exception))) {
@@ -167,7 +167,7 @@ class AbortSignalTimeoutHandler final : public TimeoutHandler {
 
     // Step 1. Queue a global task on the timer task source given global to
     // signal abort given signal and a new "TimeoutError" DOMException.
-    JS::Rooted<JS::Value> exception(jsapi.cx());
+    MC::Rooted<JS::Value> exception(jsapi.cx());
     RefPtr<DOMException> dom = DOMException::Create(NS_ERROR_DOM_TIMEOUT_ERR);
     if (NS_WARN_IF(!ToJSValue(jsapi.cx(), dom, &exception))) {
       return true;
@@ -256,7 +256,7 @@ void AbortSignal::ThrowIfAborted(JSContext* aCx, ErrorResult& aRv) {
   aRv.MightThrowJSException();
 
   if (Aborted()) {
-    JS::Rooted<JS::Value> reason(aCx);
+    MC::Rooted<JS::Value> reason(aCx);
     GetReason(aCx, &reason);
     aRv.ThrowJSException(aCx, reason);
   }
@@ -284,7 +284,7 @@ void AbortSignal::SignalAbort(JS::Handle<JS::Value> aReason) {
 }
 
 void AbortSignal::RunAbortAlgorithm() {
-  JS::Rooted<JS::Value> reason(RootingCx(), Signal()->RawReason());
+  MC::Rooted<JS::Value> reason(RootingCx(), Signal()->RawReason());
   SignalAbort(reason);
 }
 

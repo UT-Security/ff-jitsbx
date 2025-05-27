@@ -49,7 +49,7 @@ ClonedErrorHolder::ClonedErrorHolder()
 
 void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
                              ErrorResult& aRv) {
-  JS::Rooted<JSObject*> stack(aCx);
+  MC::Rooted<JSObject*> stack(aCx);
 
   if (JSErrorReport* err = JS_ErrorFromException(aCx, aError)) {
     mType = Type::JSError;
@@ -109,7 +109,7 @@ void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
     mResult = nsresult(exn->Result());
 
     if (nsCOMPtr<nsIStackFrame> frame = exn->GetLocation()) {
-      JS::Rooted<JS::Value> value(aCx);
+      MC::Rooted<JS::Value> value(aCx);
       frame->GetNativeSavedFrame(&value);
       if (value.isObject()) {
         stack = &value.toObject();
@@ -121,7 +121,7 @@ void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
   if (stack) {
     ar.emplace(aCx, stack);
   }
-  JS::Rooted<JS::Value> stackValue(aCx, JS::ObjectOrNullValue(stack));
+  MC::Rooted<JS::Value> stackValue(aCx, JS::ObjectOrNullValue(stack));
   mStack.Write(aCx, stackValue, aRv);
 }
 
@@ -221,7 +221,7 @@ JSObject* ClonedErrorHolder::ReadStructuredClone(
     StructuredCloneHolder* aHolder) {
   // Keep the result object rooted across the call to ClonedErrorHolder::Release
   // to avoid a potential rooting hazard.
-  JS::Rooted<JS::Value> errorVal(aCx);
+  MC::Rooted<JS::Value> errorVal(aCx);
   {
     RefPtr<ClonedErrorHolder> ceh = new ClonedErrorHolder();
     if (!ceh->Init(aCx, aReader) || !ceh->ToErrorValue(aCx, &errorVal)) {
@@ -248,7 +248,7 @@ static bool ToJSString(JSContext* aCx, const nsACString& aStr,
     aJSString.set(nullptr);
     return true;
   }
-  JS::Rooted<JS::Value> res(aCx);
+  MC::Rooted<JS::Value> res(aCx);
   if (xpc::NonVoidStringToJsval(aCx, NS_ConvertUTF8toUTF16(aStr), &res)) {
     aJSString.set(res.toString());
     return true;
@@ -258,8 +258,8 @@ static bool ToJSString(JSContext* aCx, const nsACString& aStr,
 
 bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
                                      JS::MutableHandle<JS::Value> aResult) {
-  JS::Rooted<JS::Value> stackVal(aCx);
-  JS::Rooted<JSObject*> stack(aCx);
+  MC::Rooted<JS::Value> stackVal(aCx);
+  MC::Rooted<JSObject*> stack(aCx);
 
   IgnoredErrorResult rv;
   mStack.Read(xpc::CurrentNativeGlobal(aCx), aCx, &stackVal, rv);
@@ -280,8 +280,8 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
   }
 
   if (mType == Type::JSError) {
-    JS::Rooted<JSString*> filename(aCx);
-    JS::Rooted<JSString*> message(aCx);
+    MC::Rooted<JSString*> filename(aCx);
+    MC::Rooted<JSString*> message(aCx);
 
     // For some unknown reason, we can end up with a void string in mFilename,
     // which will cause filename to be null, which causes JS::CreateError() to
@@ -307,7 +307,7 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
     }
 
     if (!mSourceLine.IsVoid()) {
-      JS::Rooted<JSObject*> errObj(aCx, &aResult.toObject());
+      MC::Rooted<JSObject*> errObj(aCx, &aResult.toObject());
       if (JSErrorReport* err = JS_ErrorFromException(aCx, errObj)) {
         NS_ConvertUTF8toUTF16 sourceLine(mSourceLine);
         // Because this string ends up being consumed as an nsDependentString

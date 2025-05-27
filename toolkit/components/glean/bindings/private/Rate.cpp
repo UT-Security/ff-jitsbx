@@ -6,7 +6,7 @@
 
 #include "mozilla/glean/bindings/Rate.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nsString.h"
 #include "mozilla/Components.h"
 #include "mozilla/ResultVariant.h"
@@ -82,7 +82,7 @@ GleanRate::TestGetValue(const nsACString& aPingName, JSContext* aCx,
     aResult.set(JS::UndefinedValue());
   } else {
     // Build return value of the form: { numerator: n, denominator: d }
-    JS::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
+    MC::Rooted<JSObject*> root(aCx, JS_NewPlainObject(aCx));
     if (!root) {
       return NS_ERROR_FAILURE;
     }

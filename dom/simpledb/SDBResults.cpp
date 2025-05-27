@@ -42,7 +42,7 @@ SDBResult::GetAsArray(nsTArray<uint8_t>& aData) {
 NS_IMETHODIMP
 SDBResult::GetAsArrayBuffer(JSContext* aCx,
                             JS::MutableHandle<JS::Value> _retval) {
-  JS::Rooted<JSObject*> arrayBuffer(aCx);
+  MC::Rooted<JSObject*> arrayBuffer(aCx);
   nsresult rv =
       nsContentUtils::CreateArrayBuffer(aCx, mData, arrayBuffer.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {

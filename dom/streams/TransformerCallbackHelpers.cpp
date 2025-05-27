@@ -39,7 +39,7 @@ already_AddRefed<Promise> TransformerAlgorithms::TransformCallback(
     // Step 2.2. If result is an abrupt completion, return a promise rejected
     // with result.[[Value]].
     if (aRv.MaybeSetPendingException(aCx)) {
-      JS::Rooted<JS::Value> error(aCx);
+      MC::Rooted<JS::Value> error(aCx);
       if (!JS_GetPendingException(aCx, &error)) {
         // Uncatchable exception; we should mark aRv and return.
         aRv.StealExceptionFromJSContext(aCx);
@@ -58,7 +58,7 @@ already_AddRefed<Promise> TransformerAlgorithms::TransformCallback(
   // an algorithm which takes an argument chunk and returns the result of
   // invoking transformerDict["transform"] with argument list « chunk,
   // controller » and callback this value transformer.
-  JS::Rooted<JSObject*> thisObj(aCx, mTransformer);
+  MC::Rooted<JSObject*> thisObj(aCx, mTransformer);
   return MOZ_KnownLive(mTransformCallback)
       ->Call(thisObj, aChunk, aController, aRv,
              "TransformStreamDefaultController.[[transformAlgorithm]]",
@@ -78,7 +78,7 @@ already_AddRefed<Promise> TransformerAlgorithms::FlushCallback(
   // Step 5. If transformerDict["flush"] exists, set flushAlgorithm to an
   // algorithm which returns the result of invoking transformerDict["flush"]
   // with argument list « controller » and callback this value transformer.
-  JS::Rooted<JSObject*> thisObj(aCx, mTransformer);
+  MC::Rooted<JSObject*> thisObj(aCx, mTransformer);
   return MOZ_KnownLive(mFlushCallback)
       ->Call(thisObj, aController, aRv,
              "TransformStreamDefaultController.[[flushAlgorithm]]",

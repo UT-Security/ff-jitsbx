@@ -206,7 +206,7 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
     return;
   }
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
                                                           &transferable);
   if (aRv.Failed()) {

@@ -148,7 +148,7 @@ class IterableIterator : public IterableIteratorBase {
 
   void Next(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
             ErrorResult& aRv) {
-    JS::Rooted<JS::Value> value(aCx, JS::UndefinedValue());
+    MC::Rooted<JS::Value> value(aCx, JS::UndefinedValue());
     if (mIndex >= this->mIterableObj->GetIterableLength()) {
       iterator_utils::DictReturn(aCx, aResult, true, value, aRv);
       return;
@@ -171,7 +171,7 @@ class IterableIterator : public IterableIteratorBase {
         break;
       }
       case IteratorType::Entries: {
-        JS::Rooted<JS::Value> key(aCx);
+        MC::Rooted<JS::Value> key(aCx);
         if (!GetKeyAtIndex(aCx, mIndex, &key)) {
           aRv.Throw(NS_ERROR_FAILURE);
           return;

@@ -74,7 +74,7 @@ static bool ToStringGuts(XPCCallContext& ccx) {
 static bool XPC_WN_Shared_ToString(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  RootedObject obj(cx);
+  MC::RootedObject obj(cx);
   if (!args.computeThis(cx, &obj)) {
     return false;
   }
@@ -103,7 +103,7 @@ static bool XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, Value* vp) {
 static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  RootedObject obj(cx);
+  MC::RootedObject obj(cx);
   if (!JS_ValueToObject(cx, args.thisv(), &obj)) {
     return false;
   }
@@ -197,14 +197,14 @@ static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
 
 static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
                                           XPCWrappedNative* wrapper) {
-  RootedObject obj(ccx);
+  MC::RootedObject obj(ccx);
   {
     nsCOMPtr<nsIXPConnectWrappedJS> underware =
         do_QueryInterface(wrapper->GetIdentityObject());
     if (!underware) {
       return nullptr;
     }
-    RootedObject mainObj(ccx, underware->GetJSObject());
+    MC::RootedObject mainObj(ccx, underware->GetJSObject());
     if (mainObj) {
       JSAutoRealm ar(ccx, underware->GetJSObjectGlobal());
 
@@ -215,7 +215,7 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
       // If the `wrappedJSObject` property is defined, use the result of getting
       // that property, otherwise fall back to the `mainObj` object which is
       // directly being wrapped.
-      RootedValue val(ccx);
+      MC::RootedValue val(ccx);
       if (JS_GetPropertyById(ccx, mainObj, id, &val) && !val.isPrimitive()) {
         obj = val.toObjectOrNull();
       } else {
@@ -239,7 +239,7 @@ static bool XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc,
         "xpconnect double wrapped getter called on incompatible non-object");
     return false;
   }
-  RootedObject obj(cx, &args.thisv().toObject());
+  MC::RootedObject obj(cx, &args.thisv().toObject());
 
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -248,7 +248,7 @@ static bool XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc,
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
              "bad function");
 
-  RootedObject realObject(cx, GetDoubleWrappedJSObject(ccx, wrapper));
+  MC::RootedObject realObject(cx, GetDoubleWrappedJSObject(ccx, wrapper));
   if (!realObject) {
     // This is pretty unexpected at this point. The object originally
     // responded to this get property call and now gives no object.
@@ -285,7 +285,7 @@ static bool DefinePropertyIfFound(
     XPCWrappedNative* wrapperToReflectInterfaceNames,
     XPCWrappedNative* wrapperToReflectDoubleWrap, nsIXPCScriptable* scr,
     unsigned propFlags, bool* resolved) {
-  RootedId id(ccx, idArg);
+  MC::RootedId id(ccx, idArg);
   RefPtr<XPCNativeInterface> iface = ifaceArg;
   XPCJSContext* xpccx = ccx.GetContext();
   bool found;
@@ -319,7 +319,7 @@ static bool DefinePropertyIfFound(
       }
 
       if (call) {
-        RootedFunction fun(ccx, JS_NewFunction(ccx, call, 0, 0, name));
+        MC::RootedFunction fun(ccx, JS_NewFunction(ccx, call, 0, 0, name));
         if (!fun) {
           JS_ReportOutOfMemory(ccx);
           return false;
@@ -329,7 +329,7 @@ static bool DefinePropertyIfFound(
         if (resolved) {
           *resolved = true;
         }
-        RootedObject value(ccx, JS_GetFunctionObject(fun));
+        MC::RootedObject value(ccx, JS_GetFunctionObject(fun));
         return JS_DefinePropertyById(ccx, obj, id, value,
                                      propFlags & ~JSPROP_ENUMERATE);
       }
@@ -343,7 +343,7 @@ static bool DefinePropertyIfFound(
       JS::UniqueChars name;
       RefPtr<XPCNativeInterface> iface2;
       XPCWrappedNativeTearOff* to;
-      RootedObject jso(ccx);
+      MC::RootedObject jso(ccx);
       nsresult rv = NS_OK;
 
       bool defineProperty = false;
@@ -406,7 +406,7 @@ static bool DefinePropertyIfFound(
         return false;
       }
 
-      RootedObject funobj(ccx, JS_GetFunctionObject(fun));
+      MC::RootedObject funobj(ccx, JS_GetFunctionObject(fun));
       if (!funobj) {
         return false;
       }
@@ -434,7 +434,7 @@ static bool DefinePropertyIfFound(
       if (!to) {
         return false;
       }
-      RootedObject jso(ccx, to->GetJSObject());
+      MC::RootedObject jso(ccx, to->GetJSObject());
       if (!jso) {
         return false;
       }
@@ -453,7 +453,7 @@ static bool DefinePropertyIfFound(
   }
 
   if (member->IsConstant()) {
-    RootedValue val(ccx);
+    MC::RootedValue val(ccx);
     AutoResolveName arn(ccx, id);
     if (resolved) {
       *resolved = true;
@@ -468,7 +468,7 @@ static bool DefinePropertyIfFound(
        id == xpccx->GetStringID(XPCJSContext::IDX_QUERY_INTERFACE)))
     propFlags &= ~JSPROP_ENUMERATE;
 
-  RootedValue funval(ccx);
+  MC::RootedValue funval(ccx);
   if (!member->NewFunctionObject(ccx, iface, obj, funval.address())) {
     return false;
   }
@@ -486,8 +486,8 @@ static bool DefinePropertyIfFound(
   MOZ_ASSERT(member->IsAttribute(), "way broken!");
 
   propFlags &= ~JSPROP_READONLY;
-  RootedObject funobjGetter(ccx, funval.toObjectOrNull());
-  RootedObject funobjSetter(ccx);
+  MC::RootedObject funobjGetter(ccx, funval.toObjectOrNull());
+  MC::RootedObject funobjSetter(ccx);
   if (member->IsWritableAttribute()) {
     funobjSetter = funobjGetter;
   }
@@ -705,7 +705,7 @@ bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
 // macro fun!
 #define PRE_HELPER_STUB                                                 \
   /* It's very important for "unwrapped" to be rooted here.  */         \
-  RootedObject unwrapped(cx, js::CheckedUnwrapDynamic(obj, cx, false)); \
+  MC::RootedObject unwrapped(cx, js::CheckedUnwrapDynamic(obj, cx, false)); \
   if (!unwrapped) {                                                     \
     JS_ReportErrorASCII(cx, "Permission denied to operate on object."); \
     return false;                                                       \
@@ -725,7 +725,7 @@ bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
 bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   // N.B. we want obj to be the callee, not JS_THIS(cx, vp)
-  RootedObject obj(cx, &args.callee());
+  MC::RootedObject obj(cx, &args.callee());
 
   XPCCallContext ccx(cx, obj, nullptr, MC::VoidHandlePropertyKey(), args.length(),
                      args.array(), args.rval().address());
@@ -740,7 +740,7 @@ bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
 
 bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-  RootedObject obj(cx, &args.callee());
+  MC::RootedObject obj(cx, &args.callee());
   if (!obj) {
     return false;
   }
@@ -768,8 +768,8 @@ static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  RootedObject obj(cx, &args.thisv().toObject());
-  RootedValue val(cx, args.get(0));
+  MC::RootedObject obj(cx, &args.thisv().toObject());
+  MC::RootedValue val(cx, args.get(0));
 
   bool retval2;
   PRE_HELPER_STUB
@@ -808,7 +808,7 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
-  RootedId old(cx, ccx.SetResolveName(id));
+  MC::RootedId old(cx, ccx.SetResolveName(id));
 
   nsCOMPtr<nsIXPCScriptable> scr = wrapper->GetScriptable();
 
@@ -944,9 +944,9 @@ bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
              "bad function");
-  RootedObject funobj(cx, &args.callee());
+  MC::RootedObject funobj(cx, &args.callee());
 
-  RootedObject obj(cx);
+  MC::RootedObject obj(cx);
   if (!args.computeThis(cx, &obj)) {
     return false;
   }
@@ -971,14 +971,14 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
              "bad function");
-  RootedObject funobj(cx, &args.callee());
+  MC::RootedObject funobj(cx, &args.callee());
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
         cx, "xpconnect getter/setter called on incompatible non-object");
     return false;
   }
-  RootedObject obj(cx, &args.thisv().toObject());
+  MC::RootedObject obj(cx, &args.thisv().toObject());
 
   obj = FixUpThisIfBroken(obj, funobj);
   XPCCallContext ccx(cx, obj, funobj, MC::VoidHandlePropertyKey(), args.length(),

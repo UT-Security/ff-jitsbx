@@ -215,7 +215,7 @@ nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, JSContext* aCtx,
                                JS::MutableHandle<JSObject*> _array,
                                uint32_t* _arrayLength) {
   if (aValue.isObjectOrNull()) {
-    JS::Rooted<JSObject*> val(aCtx, aValue.toObjectOrNull());
+    MC::Rooted<JSObject*> val(aCtx, aValue.toObjectOrNull());
     bool isArray;
     if (!JS::IsArrayObject(aCtx, val, &isArray)) {
       return NS_ERROR_UNEXPECTED;
@@ -253,7 +253,7 @@ already_AddRefed<nsIURI> GetJSValueAsURI(JSContext* aCtx,
     nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
 
     nsCOMPtr<nsIXPConnectWrappedNative> wrappedObj;
-    JS::Rooted<JSObject*> obj(aCtx, aValue.toObjectOrNull());
+    MC::Rooted<JSObject*> obj(aCtx, aValue.toObjectOrNull());
     nsresult rv =
         xpc->GetWrappedNativeOfJSObject(aCtx, obj, getter_AddRefs(wrappedObj));
     NS_ENSURE_SUCCESS(rv, nullptr);
@@ -277,7 +277,7 @@ already_AddRefed<nsIURI> GetJSValueAsURI(JSContext* aCtx,
 already_AddRefed<nsIURI> GetURIFromJSObject(JSContext* aCtx,
                                             JS::Handle<JSObject*> aObject,
                                             const char* aProperty) {
-  JS::Rooted<JS::Value> uriVal(aCtx);
+  MC::Rooted<JS::Value> uriVal(aCtx);
   bool rc = JS_GetProperty(aCtx, aObject, aProperty, &uriVal);
   NS_ENSURE_TRUE(rc, nullptr);
   return GetJSValueAsURI(aCtx, uriVal);
@@ -324,7 +324,7 @@ void GetJSValueAsString(JSContext* aCtx, const JS::Value& aValue,
  */
 void GetStringFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
                            const char* aProperty, nsString& _string) {
-  JS::Rooted<JS::Value> val(aCtx);
+  MC::Rooted<JS::Value> val(aCtx);
   bool rc = JS_GetProperty(aCtx, aObject, aProperty, &val);
   if (!rc) {
     _string.SetIsVoid(true);
@@ -348,7 +348,7 @@ void GetStringFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
 template <typename IntType>
 nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
                             const char* aProperty, IntType* _int) {
-  JS::Rooted<JS::Value> value(aCtx);
+  MC::Rooted<JS::Value> value(aCtx);
   bool rc = JS_GetProperty(aCtx, aObject, aProperty, &value);
   NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
   if (value.isUndefined()) {
@@ -383,7 +383,7 @@ nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
 nsresult GetJSObjectFromArray(JSContext* aCtx, JS::Handle<JSObject*> aArray,
                               uint32_t aIndex,
                               JS::MutableHandle<JSObject*> objOut) {
-  JS::Rooted<JS::Value> value(aCtx);
+  MC::Rooted<JS::Value> value(aCtx);
   bool rc = JS_GetElement(aCtx, aArray, aIndex, &value);
   NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
   NS_ENSURE_ARG(!value.isPrimitive());
@@ -2138,7 +2138,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
   NS_ENSURE_TRUE(!aPlaceInfos.isPrimitive(), NS_ERROR_INVALID_ARG);
 
   uint32_t infosLength;
-  JS::Rooted<JSObject*> infos(aCtx);
+  MC::Rooted<JSObject*> infos(aCtx);
   nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, aCtx, &infos, &infosLength);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2146,7 +2146,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
 
   nsTArray<VisitData> visitData;
   for (uint32_t i = 0; i < infosLength; i++) {
-    JS::Rooted<JSObject*> info(aCtx);
+    MC::Rooted<JSObject*> info(aCtx);
     nsresult rv = GetJSObjectFromArray(aCtx, infos, i, &info);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -2178,9 +2178,9 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     nsString title;
     GetStringFromJSObject(aCtx, info, "title", title);
 
-    JS::Rooted<JSObject*> visits(aCtx, nullptr);
+    MC::Rooted<JSObject*> visits(aCtx, nullptr);
     {
-      JS::Rooted<JS::Value> visitsVal(aCtx);
+      MC::Rooted<JS::Value> visitsVal(aCtx);
       bool rc = JS_GetProperty(aCtx, info, "visits", &visitsVal);
       NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
       if (!visitsVal.isPrimitive()) {
@@ -2205,7 +2205,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     // Check each visit, and build our array of VisitData objects.
     visitData.SetCapacity(visitData.Length() + visitsLength);
     for (uint32_t j = 0; j < visitsLength; j++) {
-      JS::Rooted<JSObject*> visit(aCtx);
+      MC::Rooted<JSObject*> visit(aCtx);
       rv = GetJSObjectFromArray(aCtx, visits, j, &visit);
       NS_ENSURE_SUCCESS(rv, rv);
 

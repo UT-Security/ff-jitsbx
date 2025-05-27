@@ -31,6 +31,7 @@
 #include "monkeycage/SourceText.h"  // JS::Source{Ownership,Text}
 #include "monkeycage/Stack.h"
 #include "monkeycage/String.h"
+#include "monkeycage/ValueArray.h"
 #include "js/Utility.h"
 #include "monkeycage/Warnings.h"  // JS::SetWarningReporter
 #include "prnetdb.h"
@@ -326,7 +327,7 @@ static bool PACDnsResolve(JSContext* cx, unsigned int argc, JS::Value* vp) {
     return true;
   }
 
-  JS::Rooted<JSString*> arg1(cx);
+  MC::Rooted<JSString*> arg1(cx);
   arg1 = args[0].toString();
 
   nsAutoJSString hostName;
@@ -370,7 +371,7 @@ static bool PACProxyAlert(JSContext* cx, unsigned int argc, JS::Value* vp) {
 
   if (!args.requireAtLeast(cx, "alert", 1)) return false;
 
-  JS::Rooted<JSString*> arg1(cx, JS::ToString(cx, args[0]));
+  MC::Rooted<JSString*> arg1(cx, JS::ToString(cx, args[0]));
   if (!arg1) return false;
 
   nsAutoJSString message;
@@ -688,7 +689,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
       cx, JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
 
   if (uriString && hostString) {
-    JS::RootedValueArray<2> args(MC_UNSAFE(cx));
+    MC::RootedValueArray<2> args(MC_UNSAFE(cx));
     args[0].setString(uriString);
     args[1].setString(hostString);
 

@@ -601,7 +601,7 @@ void SimpleRequestResolver::HandleResponse(bool aResponse) {
 [[nodiscard]] static bool ToJSValue(JSContext* aCx,
                                     const nsTArray<LSItemInfo>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
-  JS::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
+  MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
   if (!obj) {
     return false;
   }
@@ -611,7 +611,7 @@ void SimpleRequestResolver::HandleResponse(bool aResponse) {
 
     const nsString& key = itemInfo.key();
 
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!ToJSValue(aCx, itemInfo.value().AsString(), &value)) {
       return false;
     }

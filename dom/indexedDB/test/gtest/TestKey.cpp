@@ -15,10 +15,10 @@
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/ArrayBuffer.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement, JS_SetElement
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "js/String.h"
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 
 // TODO: This PrintTo overload is defined in dom/media/gtest/TestGroupId.cpp.
 // However, it is not used, probably because of
@@ -27,7 +27,7 @@ void PrintTo(const nsString& value, std::ostream* os);
 
 using namespace mozilla;
 using namespace mozilla::dom::indexedDB;
-using JS::Rooted;
+using MC::Rooted;
 
 // DOM_IndexedDB_Key_Ctor tests test the construction of a Key, and check the
 // properties of the constructed key with the const methods afterwards. The

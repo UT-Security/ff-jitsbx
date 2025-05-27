@@ -647,11 +647,11 @@ static void GetPropertyBagFromEvent(Event* aEvent,
   if (!jsapi.Init(customEvent->GetParentObject())) return;
 
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> detail(cx);
+  MC::Rooted<JS::Value> detail(cx);
   customEvent->GetDetail(cx, &detail);
   if (!detail.isObject()) return;
 
-  JS::Rooted<JSObject*> detailObj(cx, &detail.toObject());
+  MC::Rooted<JSObject*> detailObj(cx, &detail.toObject());
 
   nsresult rv;
   nsCOMPtr<nsIPropertyBag2> propBag;

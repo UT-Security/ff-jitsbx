@@ -71,7 +71,7 @@ nsMacPreferencesReader::ReadPreferences(JSContext* aCx, JS::MutableHandle<JS::Va
 
   NS_ConvertUTF8toUTF16 jsonStr16(jsonStr.StringCRef());
 
-  JS::RootedValue val(aCx);
+  MC::RootedValue val(aCx);
   MOZ_ALWAYS_TRUE(JS_ParseJSON(aCx, jsonStr16.get(), jsonStr16.Length(), &val));
 
   aResult.set(val);

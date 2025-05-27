@@ -72,7 +72,7 @@ bool ToJSValue(JSContext* aCx, const WindowProxyHolder& aArgument,
     aValue.setNull();
     return true;
   }
-  JS::Rooted<JSObject*> windowProxy(aCx);
+  MC::Rooted<JSObject*> windowProxy(aCx);
   if (bc->IsInProcess()) {
     windowProxy = bc->GetWindowProxy();
     if (!windowProxy) {

@@ -8,7 +8,11 @@
 #define mc_GCVector_h
 
 #include "js/GCVector.h"
+#ifdef JS_SANDBOX
+#include "monkeycage/Context.h"
+#endif
 #include "monkeycage/RootingAPI.h"
+
 
 namespace MC {
 
@@ -16,7 +20,7 @@ template <typename T, size_t MinInlineCapacity = 0,
           typename AllocPolicy = js::TempAllocPolicy>
 using GCVector = JS::GCVector<T, MinInlineCapacity, AllocPolicy>;
 
-template <typename T, typename AllocPolicy>
+template <typename T, typename AllocPolicy = js::TempAllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
 
 #ifdef JS_SANDBOX
@@ -28,6 +32,8 @@ class RootedVector : public Rooted<MC::StackGCVector<T>> {
 
  public:
   explicit RootedVector(MCContext* cx) : Base(cx, Vec(cx->cx_)) {}
+  //TODO(abhishek): UNSAFE overload - remove
+  explicit RootedVector(JSContext* cx) : Base(cx, Vec(cx)) {}
 };
 #else
 template <typename T>

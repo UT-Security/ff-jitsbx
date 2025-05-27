@@ -129,7 +129,7 @@ class nsIGlobalObject : public nsISupports,
    * situations where we are sure no CC activity can happen while the return
    * value is used and the return value does not end up escaping to the heap in
    * any way.  In all other cases, and in particular in cases where the return
-   * value is held in a JS::Rooted or passed to the JSAutoRealm constructor, use
+   * value is held in a MC::Rooted or passed to the JSAutoRealm constructor, use
    * GetGlobalJSObject.
    */
   virtual JSObject* GetGlobalJSObjectPreserveColor() const = 0;

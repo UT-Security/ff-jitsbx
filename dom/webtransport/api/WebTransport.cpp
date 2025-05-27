@@ -526,7 +526,7 @@ void WebTransport::PropagateError(Stream* aStream, WebTransportError* aError) {
     return;
   }
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> errorValue(cx);
+  MC::Rooted<JS::Value> errorValue(cx);
   bool ok = ToJSValue(cx, aError, &errorValue);
   if (!ok) {
     rv.ThrowUnknownError("Internal error");
@@ -823,7 +823,7 @@ void WebTransport::Cleanup(WebTransportError* aError,
     return;
   }
   JSContext* cx = jsapi.cx();
-  JS::Rooted<JS::Value> errorValue(cx);
+  MC::Rooted<JS::Value> errorValue(cx);
   bool ok = ToJSValue(cx, aError, &errorValue);
   if (!ok) {
     aRv.ThrowUnknownError("Internal error");

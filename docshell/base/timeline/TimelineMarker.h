@@ -8,7 +8,7 @@
 #define mozilla_TimelineMarker_h_
 
 #include "AbstractTimelineMarker.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 
 namespace mozilla {
 
@@ -36,7 +36,7 @@ class TimelineMarker : public AbstractTimelineMarker {
   // in this case changing nsDocShell to participate in cycle
   // collection was deemed too invasive, and the markers are only held
   // here temporarily to boot.
-  JS::PersistentRooted<JSObject*> mStackTrace;
+  MC::PersistentRooted<JSObject*> mStackTrace;
 
   void CaptureStackIfNecessary(MarkerTracingType aTracingType,
                                MarkerStackRequest aStackRequest);

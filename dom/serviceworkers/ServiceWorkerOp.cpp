@@ -974,7 +974,7 @@ class MessageEventOp final : public ExtendableEventOp {
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
     MOZ_ASSERT(!mPromiseHolder.IsEmpty());
 
-    JS::Rooted<JS::Value> messageData(aCx);
+    MC::Rooted<JS::Value> messageData(aCx);
     nsCOMPtr<nsIGlobalObject> sgo = aWorkerPrivate->GlobalScope();
     ErrorResult rv;
     if (!mData->IsErrorMessageData()) {

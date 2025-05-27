@@ -121,8 +121,8 @@ nsCString MessageManagerFuzzer::GetFuzzValueFromFile() {
 void MessageManagerFuzzer::MutateObject(JSContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         unsigned short int aRecursionCounter) {
-  JS::Rooted<JSObject*> object(aCx, &aValue.toObject());
-  JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JSObject*> object(aCx, &aValue.toObject());
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
 
   if (!JS_Enumerate(aCx, object, &ids)) {
     return;
@@ -143,10 +143,10 @@ void MessageManagerFuzzer::MutateObject(JSContext* aCx,
     }
 
     // Retrieve Property value.
-    JS::Rooted<JS::Value> propertyValue(aCx);
+    MC::Rooted<JS::Value> propertyValue(aCx);
     JS_GetPropertyById(aCx, object, ids[i], &propertyValue);
 
-    JS::Rooted<JS::Value> newPropValue(aCx);
+    MC::Rooted<JS::Value> newPropValue(aCx);
     MutateValue(aCx, propertyValue, &newPropValue, aRecursionCounter);
 
     JS_SetPropertyById(aCx, object, ids[i], newPropValue);
@@ -193,7 +193,7 @@ bool MessageManagerFuzzer::MutateValue(
     }
     JSString* str = JS_NewStringCopyZ(aCx, x.get());
     aOutMutationValue.set(JS::StringValue(str));
-    JS::Rooted<JSString*> rootedValue(aCx, aValue.toString());
+    MC::Rooted<JSString*> rootedValue(aCx, aValue.toString());
     JS::UniqueChars valueChars = JS_EncodeStringToUTF8(aCx, rootedValue);
     MSGMGR_FUZZER_LOG("%*s! Mutated value of type |string|: '%s' to '%s'",
                       aRecursionCounter * 4, "", valueChars.get(), x.get());
@@ -222,10 +222,10 @@ bool MessageManagerFuzzer::Mutate(JSContext* aCx, const nsAString& aMessageName,
 
   unsigned short int aRecursionCounter = 0;
   ErrorResult rv;
-  JS::Rooted<JS::Value> t(aCx, aTransfer);
+  MC::Rooted<JS::Value> t(aCx, aTransfer);
 
   /* Read original StructuredCloneData. */
-  JS::Rooted<JS::Value> scdContent(aCx);
+  MC::Rooted<JS::Value> scdContent(aCx);
   aData->Read(aCx, &scdContent, rv);
   if (NS_WARN_IF(rv.Failed())) {
     rv.SuppressException();
@@ -233,7 +233,7 @@ bool MessageManagerFuzzer::Mutate(JSContext* aCx, const nsAString& aMessageName,
     return false;
   }
 
-  JS::Rooted<JS::Value> scdMutationContent(aCx);
+  MC::Rooted<JS::Value> scdMutationContent(aCx);
   bool isMutated =
       MutateValue(aCx, scdContent, &scdMutationContent, aRecursionCounter);
 
@@ -252,7 +252,7 @@ bool MessageManagerFuzzer::Mutate(JSContext* aCx, const nsAString& aMessageName,
 
   /* Mutated and successfully written to StructuredCloneData object. */
   if (isMutated) {
-    JS::Rooted<JSString*> str(aCx, JS_ValueToSource(aCx, scdMutationContent));
+    MC::Rooted<JSString*> str(aCx, JS_ValueToSource(aCx, scdMutationContent));
     JS::UniqueChars strChars = JS_EncodeStringToUTF8(aCx, str);
     MSGMGR_FUZZER_LOG("Mutated '%s' Message: %s",
                       NS_ConvertUTF16toUTF8(aMessageName).get(),

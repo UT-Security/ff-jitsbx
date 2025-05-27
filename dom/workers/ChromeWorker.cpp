@@ -67,7 +67,7 @@ ChromeWorker::~ChromeWorker() = default;
 
 JSObject* ChromeWorker::WrapObject(JSContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
-  JS::Rooted<JSObject*> wrapper(
+  MC::Rooted<JSObject*> wrapper(
       aCx, ChromeWorker_Binding::Wrap(aCx, this, aGivenProto));
   if (wrapper) {
     // Most DOM objects don't assume they have a reflector. If they don't have

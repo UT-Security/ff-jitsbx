@@ -209,7 +209,7 @@ nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
   // At this point we know we have an object. We try to convert it to a
   // sequence of keyframes first, and if that fails due to not being iterable,
   // we try to convert it to a property-indexed keyframe.
-  JS::Rooted<JS::Value> objectValue(aCx, JS::ObjectValue(*aFrames));
+  MC::Rooted<JS::Value> objectValue(aCx, JS::ObjectValue(*aFrames));
   JS::ForOfIterator iter(aCx);
   if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -386,7 +386,7 @@ static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
                                     JS::ForOfIterator& aIterator,
                                     const char* aContext,
                                     nsTArray<Keyframe>& aResult) {
-  JS::Rooted<JS::Value> value(aCx);
+  MC::Rooted<JS::Value> value(aCx);
   // Parsing errors should only be reported after we have finished iterating
   // through all values. If we have any early returns while iterating, we should
   // ignore parsing errors.
@@ -438,7 +438,7 @@ static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
     // Look for additional property-values pairs on the object.
     nsTArray<PropertyValuesPair> propertyValuePairs;
     if (value.isObject()) {
-      JS::Rooted<JSObject*> object(aCx, &value.toObject());
+      MC::Rooted<JSObject*> object(aCx, &value.toObject());
       if (!GetPropertyValuesPairs(aCx, object, ListAllowance::eDisallow,
                                   propertyValuePairs)) {
         return false;
@@ -512,7 +512,7 @@ static bool GetPropertyValuesPairs(JSContext* aCx,
   // We don't compare the jsids that we encounter with those for
   // the explicit dictionary members, since we know that none
   // of the CSS property IDL names clash with them.
-  JS::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
   if (!JS_Enumerate(aCx, aObject, &ids)) {
     return false;
   }
@@ -553,7 +553,7 @@ static bool GetPropertyValuesPairs(JSContext* aCx,
   properties.Sort(AdditionalProperty::PropertyComparator());
 
   for (AdditionalProperty& p : properties) {
-    JS::Rooted<JS::Value> value(aCx);
+    MC::Rooted<JS::Value> value(aCx);
     if (!JS_GetPropertyById(aCx, aObject, ids[p.mJsidIndex], &value)) {
       return false;
     }
@@ -586,7 +586,7 @@ static bool AppendStringOrStringSequenceToArray(JSContext* aCx,
     }
     if (iter.valueIsIterable()) {
       // If the object is iterable, convert it to sequence<DOMString>.
-      JS::Rooted<JS::Value> element(aCx);
+      MC::Rooted<JS::Value> element(aCx);
       for (;;) {
         bool done;
         if (!iter.next(&element, &done)) {
@@ -991,7 +991,7 @@ static void GetKeyframeListFromPropertyIndexedKeyframe(
   }
 
   // Get all the property--value-list pairs off the object.
-  JS::Rooted<JSObject*> object(aCx, &aValue.toObject());
+  MC::Rooted<JSObject*> object(aCx, &aValue.toObject());
   nsTArray<PropertyValuesPair> propertyValuesPairs;
   if (!GetPropertyValuesPairs(aCx, object, ListAllowance::eAllow,
                               propertyValuesPairs)) {

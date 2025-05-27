@@ -55,18 +55,18 @@ void FontFaceSetIterator::Next(JSContext* aCx,
     return;
   }
 
-  JS::Rooted<JS::Value> value(aCx);
+  MC::Rooted<JS::Value> value(aCx);
   if (!ToJSValue(aCx, face, &value)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return;
   }
 
   if (mIsKeyAndValue) {
-    JS::RootedValueArray<2> values(aCx);
+    MC::RootedValueArray<2> values(aCx);
     values[0].set(value);
     values[1].set(value);
 
-    JS::Rooted<JSObject*> array(aCx);
+    MC::Rooted<JSObject*> array(aCx);
     array = JS::NewArrayObject(aCx, values);
     if (array) {
       aResult.mValue.setObject(*array);

@@ -52,10 +52,10 @@ static void TestGrow(JSContext* cx) {
    * Create the array and fill it with new JS objects. With GGC these will be
    * allocated in the nursery.
    */
-  JS::RootedValue value(cx);
+  MC::RootedValue value(cx);
   const char* property = "foo";
   for (size_t i = 0; i < ElementCount; ++i) {
-    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+    MC::RootedObject obj(cx, JS_NewPlainObject(cx));
     ASSERT_FALSE(JS::ObjectIsTenured(obj));
     value = JS::Int32Value(static_cast<int32_t>(i));
     ASSERT_TRUE(JS_SetProperty(cx, obj, property, value));
@@ -73,7 +73,7 @@ static void TestGrow(JSContext* cx) {
    */
   ASSERT_EQ(array->Length(), ElementCount);
   for (size_t i = 0; i < array->Length(); i++) {
-    JS::RootedObject obj(cx, array->ElementAt(i));
+    MC::RootedObject obj(cx, array->ElementAt(i));
     ASSERT_TRUE(JS::ObjectIsTenured(obj));
     ASSERT_TRUE(JS_GetProperty(cx, obj, property, &value));
     ASSERT_TRUE(value.isInt32());
@@ -96,10 +96,10 @@ static void TestShrink(JSContext* cx) {
    * Create the array and fill it with new JS objects. With GGC these will be
    * allocated in the nursery.
    */
-  JS::RootedValue value(cx);
+  MC::RootedValue value(cx);
   const char* property = "foo";
   for (size_t i = 0; i < ElementCount; ++i) {
-    JS::RootedObject obj(cx, JS_NewPlainObject(cx));
+    MC::RootedObject obj(cx, JS_NewPlainObject(cx));
     ASSERT_FALSE(JS::ObjectIsTenured(obj));
     value = JS::Int32Value(static_cast<int32_t>(i));
     ASSERT_TRUE(JS_SetProperty(cx, obj, property, value));
@@ -114,7 +114,7 @@ static void TestShrink(JSContext* cx) {
 
   ASSERT_EQ(array->Length(), InitialElements);
   for (size_t i = 0; i < array->Length(); i++) {
-    JS::RootedObject obj(cx, array->ElementAt(i));
+    MC::RootedObject obj(cx, array->ElementAt(i));
     ASSERT_TRUE(JS::ObjectIsTenured(obj));
     ASSERT_TRUE(JS_GetProperty(cx, obj, property, &value));
     ASSERT_TRUE(value.isInt32());
@@ -135,7 +135,7 @@ static void CreateGlobalAndRunTest(MCContext* cx) {
                                       &JS::DefaultGlobalClassOps};
 
   JS::RealmOptions options;
-  JS::PersistentRootedObject global(MC_UNSAFE(cx));
+  MC::PersistentRootedObject global(cx);
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);
   ASSERT_TRUE(global != nullptr);

@@ -49,7 +49,7 @@ bool Glean::DefineGlean(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
     return false;
   }
 
-  JS::Rooted<JS::Value> glean(aCx);
+  MC::Rooted<JS::Value> glean(aCx);
   js::AssertSameCompartment(aCx, aGlobal);
 
   auto impl = MakeRefPtr<Glean>();

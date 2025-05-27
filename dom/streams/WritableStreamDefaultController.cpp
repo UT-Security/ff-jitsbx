@@ -176,7 +176,7 @@ void SetUpWritableStreamDefaultController(
 
   // Step 15. Let startResult be the result of performing startAlgorithm. (This
   // may throw an exception.)
-  JS::Rooted<JS::Value> startResult(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> startResult(aCx, JS::UndefinedValue());
   RefPtr<WritableStreamDefaultController> controller(aController);
   aAlgorithms->StartCallback(aCx, *controller, &startResult, aRv);
   if (aRv.Failed()) {
@@ -253,7 +253,7 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
   stream->MarkCloseRequestInFlight();
 
   // Step 3. Perform ! DequeueValue(controller).
-  JS::Rooted<JS::Value> value(aCx);
+  MC::Rooted<JS::Value> value(aCx);
   DequeueValue(aController, &value);
 
   // Step 4. Assert: controller.[[queue]] is empty.
@@ -331,7 +331,7 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
                        state == WritableStream::WriterState::Erroring);
 
             // Step 4.4. Perform ! DequeueValue(controller).
-            JS::Rooted<JS::Value> value(aCx);
+            MC::Rooted<JS::Value> value(aCx);
             DequeueValue(aController, &value);
 
             // Step 4.5. If ! WritableStreamCloseQueuedOrInFlight(stream) is
@@ -414,7 +414,7 @@ static void WritableStreamDefaultControllerAdvanceQueueIfNeeded(
   }
 
   // Step 8. Let value be ! PeekQueueValue(controller).
-  JS::Rooted<JS::Value> value(aCx);
+  MC::Rooted<JS::Value> value(aCx);
   PeekQueueValue(aController, &value);
 
   // Step 9. If value is the close sentinel, perform !
@@ -434,7 +434,7 @@ void WritableStreamDefaultControllerClose(
     JSContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1. Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
-  JS::Rooted<JS::Value> aCloseSentinel(aCx, JS::MagicValue(CLOSE_SENTINEL));
+  MC::Rooted<JS::Value> aCloseSentinel(aCx, JS::MagicValue(CLOSE_SENTINEL));
   EnqueueValueWithSize(aController, aCloseSentinel, 0, aRv);
   MOZ_ASSERT(!aRv.Failed());
 
@@ -455,7 +455,7 @@ void WritableStreamDefaultControllerWrite(
   // Step 2. If enqueueResult is an abrupt completion,
   if (rv.MaybeSetPendingException(aCx,
                                   "WritableStreamDefaultController.write")) {
-    JS::Rooted<JS::Value> error(aCx);
+    MC::Rooted<JS::Value> error(aCx);
     JS_GetPendingException(aCx, &error);
     JS_ClearPendingException(aCx);
 
@@ -542,7 +542,7 @@ double WritableStreamDefaultControllerGetChunkSize(
   // Step 2. If returnValue is an abrupt completion,
   if (aRv.MaybeSetPendingException(
           aCx, "WritableStreamDefaultController.[[strategySizeAlgorithm]]")) {
-    JS::Rooted<JS::Value> error(aCx);
+    MC::Rooted<JS::Value> error(aCx);
     JS_GetPendingException(aCx, &error);
     JS_ClearPendingException(aCx);
 

@@ -744,12 +744,12 @@ MOZ_CAN_RUN_SCRIPT void reportCompilationMessagesToConsole(
       [&](const nsString& message, dom::Sequence<JS::Value>* args)
           MOZ_CAN_RUN_SCRIPT {
             args->Clear();
-            JS::Rooted<JSString*> jsStr(
+            MC::Rooted<JSString*> jsStr(
                 cx, JS_NewUCStringCopyN(cx, message.Data(), message.Length()));
             if (!jsStr) {
               return;
             }
-            JS::Rooted<JS::Value> val(cx, JS::StringValue(jsStr));
+            MC::Rooted<JS::Value> val(cx, JS::StringValue(jsStr));
             if (!args->AppendElement(val, fallible)) {
               return;
             }

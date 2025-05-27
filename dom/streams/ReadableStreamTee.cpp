@@ -74,7 +74,7 @@ void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
       : public MicroTaskRunnable {
     // Virtually const, but is cycle collected
     MOZ_KNOWN_LIVE RefPtr<TeeState> mTeeState;
-    JS::PersistentRooted<JS::Value> mChunk;
+    MC::PersistentRooted<JS::Value> mChunk;
 
    public:
     ReadableStreamDefaultTeeReadRequestChunkSteps(JSContext* aCx,
@@ -95,8 +95,8 @@ void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
       mTeeState->SetReadAgain(false);
 
       // Step 2.
-      JS::Rooted<JS::Value> chunk1(cx, mChunk);
-      JS::Rooted<JS::Value> chunk2(cx, mChunk);
+      MC::Rooted<JS::Value> chunk1(cx, mChunk);
+      MC::Rooted<JS::Value> chunk2(cx, mChunk);
 
       // Step 3. Skipped until we implement cloneForBranch2 path.
       MOZ_RELEASE_ASSERT(!mTeeState->CloneForBranch2());
@@ -235,7 +235,7 @@ MOZ_CAN_RUN_SCRIPT void ByteStreamTeePullAlgorithm(JSContext* aCx,
   } else {
     // Step {17,18}.5: Otherwise, perform pullWithBYOBReader, given
     // byobRequest.[[view]] and {false, true}.
-    JS::Rooted<JSObject*> view(aCx, byobRequest->View());
+    MC::Rooted<JSObject*> view(aCx, byobRequest->View());
     PullWithBYOBReader(aCx, aTeeState, view, aForBranch, aRv);
   }
 
@@ -286,26 +286,26 @@ class ByteStreamTeeSourceAlgorithms final
     // Step 3.
     if (mTeeState->Canceled(otherStream())) {
       // Step 3.1
-      JS::Rooted<JSObject*> compositeReason(aCx, JS::NewArrayObject(aCx, 2));
+      MC::Rooted<JSObject*> compositeReason(aCx, JS::NewArrayObject(aCx, 2));
       if (!compositeReason) {
         aRv.StealExceptionFromJSContext(aCx);
         return nullptr;
       }
 
-      JS::Rooted<JS::Value> reason1(aCx, mTeeState->Reason1());
+      MC::Rooted<JS::Value> reason1(aCx, mTeeState->Reason1());
       if (!JS_SetElement(aCx, compositeReason, 0, reason1)) {
         aRv.StealExceptionFromJSContext(aCx);
         return nullptr;
       }
 
-      JS::Rooted<JS::Value> reason2(aCx, mTeeState->Reason2());
+      MC::Rooted<JS::Value> reason2(aCx, mTeeState->Reason2());
       if (!JS_SetElement(aCx, compositeReason, 1, reason2)) {
         aRv.StealExceptionFromJSContext(aCx);
         return nullptr;
       }
 
       // Step 3.2
-      JS::Rooted<JS::Value> compositeReasonValue(
+      MC::Rooted<JS::Value> compositeReasonValue(
           aCx, JS::ObjectValue(*compositeReason));
       RefPtr<ReadableStream> stream(mTeeState->GetStream());
       RefPtr<Promise> cancelResult =
@@ -358,7 +358,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
     // Step 15.2.1
     class PullWithDefaultReaderChunkStepMicrotask : public MicroTaskRunnable {
       RefPtr<TeeState> mTeeState;
-      JS::PersistentRooted<JSObject*> mChunk;
+      MC::PersistentRooted<JSObject*> mChunk;
 
      public:
       PullWithDefaultReaderChunkStepMicrotask(JSContext* aCx,
@@ -385,21 +385,21 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
         mTeeState->SetReadAgainForBranch2(false);
 
         // Step 3. Let chunk1 and chunk2 be chunk.
-        JS::Rooted<JSObject*> chunk1(cx, mChunk);
-        JS::Rooted<JSObject*> chunk2(cx, mChunk);
+        MC::Rooted<JSObject*> chunk1(cx, mChunk);
+        MC::Rooted<JSObject*> chunk2(cx, mChunk);
 
         // Step 4. If canceled1 is false and canceled2 is false,
         ErrorResult rv;
         if (!mTeeState->Canceled1() && !mTeeState->Canceled2()) {
           // Step 4.1. Let cloneResult be CloneAsUint8Array(chunk).
-          JS::Rooted<JSObject*> cloneResult(cx, CloneAsUint8Array(cx, mChunk));
+          MC::Rooted<JSObject*> cloneResult(cx, CloneAsUint8Array(cx, mChunk));
 
           // Step 4.2. If cloneResult is an abrupt completion,
           if (!cloneResult) {
             // Step 4.2.1 Perform
             // !ReadableByteStreamControllerError(branch1.[[controller]],
             // cloneResult.[[Value]]).
-            JS::Rooted<JS::Value> exceptionValue(cx);
+            MC::Rooted<JS::Value> exceptionValue(cx);
             if (!JS_GetPendingException(cx, &exceptionValue)) {
               // Uncatchable exception, simply return.
               return;
@@ -496,7 +496,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
 
     MOZ_ASSERT(aChunk.isObjectOrNull());
     MOZ_ASSERT(aChunk.toObjectOrNull() != nullptr);
-    JS::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
+    MC::Rooted<JSObject*> chunk(aCx, &aChunk.toObject());
     RefPtr<PullWithDefaultReaderChunkStepMicrotask> task =
         MakeRefPtr<PullWithDefaultReaderChunkStepMicrotask>(aCx, mTeeState,
                                                             chunk);
@@ -633,7 +633,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
     // Step 16.4 chunk steps, Step 1.
     class PullWithBYOBReaderChunkMicrotask : public MicroTaskRunnable {
       RefPtr<TeeState> mTeeState;
-      JS::PersistentRooted<JSObject*> mChunk;
+      MC::PersistentRooted<JSObject*> mChunk;
       const TeeBranch mForBranch;
 
      public:
@@ -677,11 +677,11 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
         if (!otherCanceled) {
           // Step 5.1 (using the name clonedChunk because we don't want to name
           // the completion record explicitly)
-          JS::Rooted<JSObject*> clonedChunk(cx, CloneAsUint8Array(cx, mChunk));
+          MC::Rooted<JSObject*> clonedChunk(cx, CloneAsUint8Array(cx, mChunk));
 
           // Step 5.2. If cloneResult is an abrupt completion,
           if (!clonedChunk) {
-            JS::Rooted<JS::Value> exception(cx);
+            MC::Rooted<JS::Value> exception(cx);
             if (!JS_GetPendingException(cx, &exception)) {
               // Uncatchable exception. Return with pending
               // exception still on context.
@@ -779,7 +779,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
 
     MOZ_ASSERT(aChunk.isObjectOrNull());
     MOZ_ASSERT(aChunk.toObjectOrNull());
-    JS::Rooted<JSObject*> chunk(aCx, aChunk.toObjectOrNull());
+    MC::Rooted<JSObject*> chunk(aCx, aChunk.toObjectOrNull());
     RefPtr<PullWithBYOBReaderChunkMicrotask> task =
         MakeRefPtr<PullWithBYOBReaderChunkMicrotask>(aCx, mTeeState, chunk,
                                                      mForBranch);
@@ -827,7 +827,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
       MOZ_ASSERT(aChunk.isObject());
       MOZ_ASSERT(aChunk.toObjectOrNull());
 
-      JS::Rooted<JSObject*> chunkObject(aCx, &aChunk.toObject());
+      MC::Rooted<JSObject*> chunkObject(aCx, &aChunk.toObject());
       MOZ_ASSERT(JS_IsArrayBufferViewObject(chunkObject));
       // Step 6.1.
       MOZ_ASSERT(JS_GetArrayBufferViewByteLength(chunkObject) == 0);

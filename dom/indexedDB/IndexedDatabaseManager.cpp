@@ -397,7 +397,7 @@ bool IndexedDatabaseManager::DefineIndexedDB(JSContext* aCx,
 
   MOZ_ASSERT(factory, "This should never fail for chrome!");
 
-  JS::Rooted<JS::Value> indexedDB(aCx);
+  MC::Rooted<JS::Value> indexedDB(aCx);
   js::AssertSameCompartment(aCx, aGlobal);
   if (!GetOrCreateDOMReflector(aCx, factory, &indexedDB)) {
     return false;

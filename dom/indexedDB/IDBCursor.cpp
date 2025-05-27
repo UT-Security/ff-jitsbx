@@ -313,7 +313,7 @@ void IDBTypedCursor<CursorType>::GetValue(JSContext* const aCx,
         mRooted = true;
       }
 
-      JS::Rooted<JS::Value> val(aCx);
+      MC::Rooted<JS::Value> val(aCx);
       if (NS_WARN_IF(!IDBObjectStore::DeserializeValue(
               aCx, std::move(mData.mCloneInfo), &val))) {
         aRv.Throw(NS_ERROR_DOM_DATA_CLONE_ERR);
@@ -644,7 +644,7 @@ RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Update(
         return nullptr;
       }
     } else {
-      JS::Rooted<JS::Value> keyVal(aCx);
+      MC::Rooted<JS::Value> keyVal(aCx);
       aRv = primaryKey.ToJSVal(aCx, &keyVal);
       if (aRv.Failed()) {
         return nullptr;
@@ -717,7 +717,7 @@ RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Delete(JSContext* const aCx,
 
     const Key& primaryKey = mData.GetObjectStoreKey();
 
-    JS::Rooted<JS::Value> key(aCx);
+    MC::Rooted<JS::Value> key(aCx);
     aRv = primaryKey.ToJSVal(aCx, &key);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;

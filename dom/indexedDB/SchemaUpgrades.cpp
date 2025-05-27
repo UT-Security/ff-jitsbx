@@ -2779,7 +2779,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
     jsapi.Init();
     JSContext* cx = jsapi.cx();
 
-    JS::Rooted<JSObject*> global(cx, GetSandbox(cx));
+    MC::Rooted<JSObject*> global(cx, GetSandbox(cx));
     if (NS_WARN_IF(!global)) {
       OperationCompleted(NS_ERROR_FAILURE);
       return NS_OK;
@@ -2787,7 +2787,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
 
     const JSAutoRealm ar(cx, global);
 
-    JS::Rooted<JS::Value> value(cx);
+    MC::Rooted<JS::Value> value(cx);
     const nsresult rv = DeserializeUpgradeValue(cx, &value);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       OperationCompleted(rv);

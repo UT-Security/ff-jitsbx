@@ -91,7 +91,7 @@ void Client::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   MOZ_DIAGNOSTIC_ASSERT(workerPrivate->IsServiceWorker());
   workerPrivate->AssertIsOnWorkerThread();
 
-  JS::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
+  MC::Rooted<JS::Value> transferable(aCx, JS::UndefinedValue());
   aRv = nsContentUtils::CreateJSValueFromSequenceOfObject(aCx, aTransferable,
                                                           &transferable);
   if (aRv.Failed()) {

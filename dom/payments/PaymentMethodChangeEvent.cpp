@@ -135,7 +135,7 @@ void PaymentMethodChangeEvent::GetMethodDetails(
         }
       }
       MOZ_ASSERT(aCx);
-      JS::Rooted<JS::Value> value(aCx);
+      MC::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!basicCardDetails.ToObjectInternal(aCx, &value))) {
         return;
       }

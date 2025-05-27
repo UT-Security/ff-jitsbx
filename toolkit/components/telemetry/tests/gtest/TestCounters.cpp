@@ -37,16 +37,16 @@ TEST_F(TelemetryTestFixture, AutoCounter) {
   }
 
   // Get a snapshot for all the histograms
-  JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
+  MC::Rooted<JS::Value> snapshot(cx.GetJSContext());
   GetSnapshots(cx.GetJSContext(), mTelemetry, telemetryTestCountName, &snapshot,
                false);
 
   // Get the histogram from the snapshot
-  JS::Rooted<JS::Value> histogram(cx.GetJSContext());
+  MC::Rooted<JS::Value> histogram(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), telemetryTestCountName, snapshot, &histogram);
 
   // Get "sum" property from histogram
-  JS::Rooted<JS::Value> sum(cx.GetJSContext());
+  MC::Rooted<JS::Value> sum(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
@@ -73,16 +73,16 @@ TEST_F(TelemetryTestFixture, AutoCounterUnderflow) {
   }
 
   // Get a snapshot for all the histograms
-  JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
+  MC::Rooted<JS::Value> snapshot(cx.GetJSContext());
   GetSnapshots(cx.GetJSContext(), mTelemetry, telemetryTestCountName, &snapshot,
                false);
 
   // Get the histogram from the snapshot
-  JS::Rooted<JS::Value> histogram(cx.GetJSContext());
+  MC::Rooted<JS::Value> histogram(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), telemetryTestCountName, snapshot, &histogram);
 
   // Get "sum" property from histogram
-  JS::Rooted<JS::Value> sum(cx.GetJSContext());
+  MC::Rooted<JS::Value> sum(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
@@ -116,16 +116,16 @@ TEST_F(TelemetryTestFixture, RuntimeAutoCounter) {
     autoCounter += kExpectedValue / 2;
   }
   // Get a snapshot for all the histograms
-  JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
+  MC::Rooted<JS::Value> snapshot(cx.GetJSContext());
   GetSnapshots(cx.GetJSContext(), mTelemetry, telemetryTestCountName, &snapshot,
                false);
 
   // Get the histogram from the snapshot
-  JS::Rooted<JS::Value> histogram(cx.GetJSContext());
+  MC::Rooted<JS::Value> histogram(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), telemetryTestCountName, snapshot, &histogram);
 
   // Get "sum" property from histogram
-  JS::Rooted<JS::Value> sum(cx.GetJSContext());
+  MC::Rooted<JS::Value> sum(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
@@ -153,16 +153,16 @@ TEST_F(TelemetryTestFixture, RuntimeAutoCounterUnderflow) {
   }
 
   // Get a snapshot for all the histograms
-  JS::Rooted<JS::Value> snapshot(cx.GetJSContext());
+  MC::Rooted<JS::Value> snapshot(cx.GetJSContext());
   GetSnapshots(cx.GetJSContext(), mTelemetry, telemetryTestCountName, &snapshot,
                false);
 
   // Get the histogram from the snapshot
-  JS::Rooted<JS::Value> histogram(cx.GetJSContext());
+  MC::Rooted<JS::Value> histogram(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), telemetryTestCountName, snapshot, &histogram);
 
   // Get "sum" property from histogram
-  JS::Rooted<JS::Value> sum(cx.GetJSContext());
+  MC::Rooted<JS::Value> sum(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|

@@ -184,7 +184,7 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  RootedString str(cx, JS::ToString(cx, args[0]));
+  MC::RootedString str(cx, JS::ToString(cx, args[0]));
   if (!str) {
     return false;
   }
@@ -599,7 +599,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
   // Defer firing OnNewGlobalObject until after the __URI__ property has
   // been defined so the JS debugger can tell what module the global is
   // for
-  RootedObject global(aCx);
+  MC::RootedObject global(aCx);
 
 #ifdef DEBUG
   // See mozJSModuleLoader::DefineJSServices.
@@ -645,7 +645,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
 
 JSObject* mozJSModuleLoader::GetSharedGlobal(JSContext* aCx) {
   if (!mLoaderGlobal) {
-    JS::RootedObject globalObj(aCx);
+    MC::RootedObject globalObj(aCx);
 
     CreateLoaderGlobal(
         aCx, IsDevToolsLoader() ? "DevTools global"_ns : "shared JSM global"_ns,
@@ -685,7 +685,7 @@ nsresult mozJSModuleLoader::LoadSingleModuleScript(
 
   bool realFile = LocationIsRealFile(aRequest->mURI);
 
-  RootedScript script(aCx);
+  MC::RootedScript script(aCx);
   rv = GetScriptForLocation(aCx, info, sourceFile, realFile, aScriptOut);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -745,17 +745,17 @@ JSObject* mozJSModuleLoader::PrepareObjectForLocation(JSContext* aCx,
                                                       nsIFile* aModuleFile,
                                                       nsIURI* aURI,
                                                       bool aRealFile) {
-  RootedObject globalObj(aCx, GetSharedGlobal(aCx));
+  MC::RootedObject globalObj(aCx, GetSharedGlobal(aCx));
   NS_ENSURE_TRUE(globalObj, nullptr);
   JSAutoRealm ar(aCx, globalObj);
 
   // |thisObj| is the object we set properties on for a particular .jsm.
-  RootedObject thisObj(aCx, JS::NewJSMEnvironment(aCx));
+  MC::RootedObject thisObj(aCx, JS::NewJSMEnvironment(aCx));
   NS_ENSURE_TRUE(thisObj, nullptr);
 
   if (aRealFile) {
     if (XRE_IsParentProcess()) {
-      RootedObject locationObj(aCx);
+      MC::RootedObject locationObj(aCx);
 
       nsresult rv = nsXPConnect::XPConnect()->WrapNative(
           aCx, thisObj, aModuleFile, NS_GET_IID(nsIFile),
@@ -774,7 +774,7 @@ JSObject* mozJSModuleLoader::PrepareObjectForLocation(JSContext* aCx,
   nsAutoCString nativePath;
   NS_ENSURE_SUCCESS(aURI->GetSpec(nativePath), nullptr);
 
-  RootedString exposedUri(
+  MC::RootedString exposedUri(
       aCx, JS_NewStringCopyN(aCx, nativePath.get(), nativePath.Length()));
   NS_ENSURE_TRUE(exposedUri, nullptr);
 
@@ -830,14 +830,14 @@ nsresult mozJSModuleLoader::ObjectForLocation(
 
   bool realFile = LocationIsRealFile(aInfo.URI());
 
-  RootedObject obj(
+  MC::RootedObject obj(
       cx, PrepareObjectForLocation(cx, aModuleFile, aInfo.URI(), realFile));
   NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
   MOZ_ASSERT(!JS_IsGlobalObject(obj));
 
   JSAutoRealm ar(cx, obj);
 
-  RootedScript script(cx);
+  MC::RootedScript script(cx);
   rv = GetScriptForLocation(cx, aInfo, aModuleFile, realFile, &script,
                             aLocation);
   if (NS_FAILED(rv)) {
@@ -869,7 +869,7 @@ nsresult mozJSModuleLoader::ObjectForLocation(
 
     bool executeOk = false;
     if (JS_IsGlobalObject(obj)) {
-      JS::RootedValue rval(cx);
+      MC::RootedValue rval(cx);
       executeOk = JS_ExecuteScript(aescx, script, &rval);
     } else {
       executeOk = JS::ExecuteInJSMEnvironment(aescx, script, obj);
@@ -1046,7 +1046,7 @@ void mozJSModuleLoader::UnloadModules() {
 
   if (mLoaderGlobal) {
     MOZ_ASSERT(JS_HasExtensibleLexicalEnvironment(mLoaderGlobal));
-    JS::RootedObject lexicalEnv(dom::RootingCx(),
+    MC::RootedObject lexicalEnv(dom::RootingCx(),
                                 JS_ExtensibleLexicalEnvironment(mLoaderGlobal));
     JS_SetAllNonReservedSlotsToUndefined(lexicalEnv);
     JS_SetAllNonReservedSlotsToUndefined(mLoaderGlobal);
@@ -1081,7 +1081,7 @@ JSScript* mozJSModuleLoader::InstantiateStencil(JSContext* aCx,
   JS::InstantiateOptions instantiateOptions;
 
   if (aIsModule) {
-    RootedObject module(aCx);
+    MC::RootedObject module(aCx);
     module = JS::InstantiateModuleStencil(aCx, instantiateOptions, aStencil);
     if (!module) {
       return nullptr;
@@ -1099,8 +1099,8 @@ nsresult mozJSModuleLoader::ImportInto(const nsACString& registryLocation,
                                        MutableHandleValue retval) {
   MOZ_ASSERT(nsContentUtils::IsCallerChrome());
 
-  RootedValue targetVal(cx, targetValArg);
-  RootedObject targetObject(cx, nullptr);
+  MC::RootedValue targetVal(cx, targetValArg);
+  MC::RootedObject targetObject(cx, nullptr);
 
   if (optionalArgc) {
     // The caller passed in the optional second argument. Get it.
@@ -1132,7 +1132,7 @@ nsresult mozJSModuleLoader::ImportInto(const nsACString& registryLocation,
 
   js::AssertSameCompartment(cx, targetObject);
 
-  RootedObject global(cx);
+  MC::RootedObject global(cx);
   nsresult rv = ImportInto(registryLocation, targetObject, cx, &global);
 
   if (global) {
@@ -1334,17 +1334,17 @@ nsresult mozJSModuleLoader::ImportInto(const nsACString& aLocation,
                                        MutableHandleObject vp) {
   vp.set(nullptr);
 
-  JS::RootedObject exports(cx);
+  MC::RootedObject exports(cx);
   MOZ_TRY(Import(cx, aLocation, vp, &exports, !targetObj));
 
   if (targetObj) {
-    JS::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
+    MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
     if (!JS_Enumerate(cx, exports, &ids)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
-    JS::RootedValue value(cx);
-    JS::RootedId id(cx);
+    MC::RootedValue value(cx);
+    MC::RootedId id(cx);
     for (jsid idVal : ids) {
       id = idVal;
       if (!JS_GetPropertyById(cx, exports, id, &value) ||
@@ -1373,9 +1373,9 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
   JSContext* cx = jsapi.cx();
   JSAutoRealm ar(cx, aMod->obj);
 
-  RootedValue symbols(cx);
+  MC::RootedValue symbols(cx);
   {
-    RootedObject obj(
+    MC::RootedObject obj(
         cx, ResolveModuleObjectProperty(cx, aMod->obj, "EXPORTED_SYMBOLS"));
     if (!obj || !JS_GetProperty(cx, obj, "EXPORTED_SYMBOLS", &symbols)) {
       return ReportOnCallerUTF8(cxhelper, ERROR_NOT_PRESENT, aInfo);
@@ -1390,7 +1390,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
     return ReportOnCallerUTF8(cxhelper, ERROR_NOT_AN_ARRAY, aInfo);
   }
 
-  RootedObject symbolsObj(cx, &symbols.toObject());
+  MC::RootedObject symbolsObj(cx, &symbols.toObject());
 
   // Iterate over symbols array, installing symbols on targetObj:
 
@@ -1410,9 +1410,9 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
 
   bool missing = false;
 
-  RootedValue value(cx);
-  RootedId symbolId(cx);
-  RootedObject symbolHolder(cx);
+  MC::RootedValue value(cx);
+  MC::RootedId symbolId(cx);
+  MC::RootedObject symbolHolder(cx);
   for (uint32_t i = 0; i < symbolCount; ++i) {
     if (!JS_GetElement(cx, symbolsObj, i, &value) || !value.isString() ||
         !JS_ValueToId(cx, value, &symbolId)) {
@@ -1422,7 +1422,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
     symbolHolder = ResolveModuleObjectPropertyById(cx, aMod->obj, symbolId);
     if (!symbolHolder ||
         !JS_GetPropertyById(cx, symbolHolder, symbolId, &value)) {
-      RootedString symbolStr(cx, symbolId.toString());
+      MC::RootedString symbolStr(cx, symbolId.toString());
       JS::UniqueChars bytes = JS_EncodeStringToUTF8(cx, symbolStr);
       if (!bytes) {
         return NS_ERROR_FAILURE;
@@ -1434,7 +1434,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
     // It's possible |value| is the uninitialized lexical MagicValue when
     // there's a cyclic import: const obj = ChromeUtils.import("parent.jsm").
     if (value.isMagic(JS_UNINITIALIZED_LEXICAL)) {
-      RootedString symbolStr(cx, symbolId.toString());
+      MC::RootedString symbolStr(cx, symbolId.toString());
       JS::UniqueChars bytes = JS_EncodeStringToUTF8(cx, symbolStr);
       if (!bytes) {
         return NS_ERROR_FAILURE;
@@ -1448,7 +1448,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
     }
 
     if (!JS_SetPropertyById(cx, aExports, symbolId, value)) {
-      RootedString symbolStr(cx, symbolId.toString());
+      MC::RootedString symbolStr(cx, symbolId.toString());
       JS::UniqueChars bytes = JS_EncodeStringToUTF8(cx, symbolStr);
       if (!bytes) {
         return NS_ERROR_FAILURE;
@@ -1555,7 +1555,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
     mLocations.InsertOrUpdate(newEntry->resolvedURL,
                               MakeUnique<nsCString>(info.Key()));
 
-    RootedValue exception(aCx);
+    MC::RootedValue exception(aCx);
     {
       mInProgressImports.InsertOrUpdate(info.Key(), newEntry.get());
       auto cleanup =
@@ -1574,7 +1574,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
         bool isModuleSyntaxError = false;
 
         if (exception.isObject()) {
-          JS::Rooted<JSObject*> exceptionObj(aCx, &exception.toObject());
+          MC::Rooted<JSObject*> exceptionObj(aCx, &exception.toObject());
           JSAutoRealm ar(aCx, exceptionObj);
           JSErrorReport* report = JS_ErrorFromException(aCx, exceptionObj);
           if (report) {
@@ -1645,7 +1645,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
   }
 
   MOZ_ASSERT(mod->obj, "Import table contains entry with no object");
-  JS::RootedObject globalProxy(aCx);
+  MC::RootedObject globalProxy(aCx);
   {
     JSAutoRealm ar(aCx, mod->obj);
 
@@ -1659,7 +1659,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
   }
   aModuleGlobal.set(globalProxy);
 
-  JS::RootedObject exports(aCx, mod->exports);
+  MC::RootedObject exports(aCx, mod->exports);
   if (!exports && !aIgnoreExports) {
     MOZ_TRY(ExtractExports(aCx, info, mod, &exports));
   }
@@ -1687,7 +1687,7 @@ nsresult mozJSModuleLoader::TryFallbackToImportESModule(
     return NS_ERROR_FILE_NOT_FOUND;
   }
 
-  JS::RootedObject moduleNamespace(aCx);
+  MC::RootedObject moduleNamespace(aCx);
   // The fallback can fail if the URL was not for ESMified JSM.  Suppress the
   // error message, the crash, and also the telemetry event for the failure.
   nsresult rv = ImportESModule(aCx, mjsLocation, &moduleNamespace,
@@ -1701,11 +1701,11 @@ nsresult mozJSModuleLoader::TryFallbackToImportESModule(
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::RootedObject globalProxy(aCx);
+  MC::RootedObject globalProxy(aCx);
   {
     JSAutoRealm ar(aCx, moduleNamespace);
 
-    JS::RootedObject moduleObject(
+    MC::RootedObject moduleObject(
         aCx, JS::GetModuleForNamespace(aCx, moduleNamespace));
     if (!moduleObject) {
       return NS_ERROR_FAILURE;
@@ -1730,7 +1730,7 @@ nsresult mozJSModuleLoader::TryFallbackToImportESModule(
   aModuleGlobal.set(globalProxy);
 
   if (!aIgnoreExports) {
-    JS::RootedObject exports(aCx, moduleNamespace);
+    MC::RootedObject exports(aCx, moduleNamespace);
     if (!JS_WrapObject(aCx, &exports)) {
       return NS_ERROR_FAILURE;
     }
@@ -1751,14 +1751,14 @@ nsresult mozJSModuleLoader::TryCachedFallbackToImportESModule(
     return NS_OK;
   }
 
-  JS::RootedObject globalProxy(aCx, fallbackMod->globalProxy);
+  MC::RootedObject globalProxy(aCx, fallbackMod->globalProxy);
   if (!JS_WrapObject(aCx, &globalProxy)) {
     return NS_ERROR_FAILURE;
   }
   aModuleGlobal.set(globalProxy);
 
   if (!aIgnoreExports) {
-    JS::RootedObject exports(aCx, fallbackMod->moduleNamespace);
+    MC::RootedObject exports(aCx, fallbackMod->moduleNamespace);
     if (!JS_WrapObject(aCx, &exports)) {
       return NS_ERROR_FAILURE;
     }
@@ -1787,7 +1787,7 @@ nsresult mozJSModuleLoader::ImportESModule(
                     MarkerInnerWindowIdFromJSContext(aCx)),
       Substring(aLocation, 0, std::min(size_t(128), aLocation.Length())));
 
-  RootedObject globalObj(aCx, GetSharedGlobal(aCx));
+  MC::RootedObject globalObj(aCx, GetSharedGlobal(aCx));
   NS_ENSURE_TRUE(globalObj, NS_ERROR_FAILURE);
   MOZ_ASSERT(xpc::Scriptability::Get(globalObj).Allowed());
 
@@ -1851,7 +1851,7 @@ nsresult mozJSModuleLoader::ImportESModule(
   }
 
   RefPtr<ModuleScript> moduleScript = request->mModuleScript;
-  JS::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
+  MC::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
   aModuleNamespace.set(JS::GetModuleNamespace(aCx, module));
 
   return NS_OK;
@@ -1901,12 +1901,12 @@ bool mozJSModuleLoader::DefineJSServices(JSContext* aCx,
     return true;
   }
 
-  JS::Rooted<JS::Value> services(aCx, ObjectValue(*mServicesObj));
+  MC::Rooted<JS::Value> services(aCx, ObjectValue(*mServicesObj));
   if (!JS_WrapValue(aCx, &services)) {
     return false;
   }
 
-  JS::Rooted<JS::PropertyKey> servicesId(
+  MC::Rooted<JS::PropertyKey> servicesId(
       aCx, XPCJSContext::Get()->GetStringID(XPCJSContext::IDX_SERVICES));
   return JS_DefinePropertyById(aCx, aGlobal, servicesId, services, 0);
 }

@@ -11,7 +11,7 @@
 #include "ScriptLoadRequest.h"
 
 #include "ImportMap.h"
-#include "js/TypeDecls.h"  // JS::MutableHandle, JS::Handle, JS::Root
+#include "monkeycage/TypeDecls.h"  // JS::MutableHandle, JS::Handle, JS::Root
 #include "js/Modules.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCOMArray.h"

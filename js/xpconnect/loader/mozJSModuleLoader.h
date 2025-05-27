@@ -189,7 +189,7 @@ class mozJSModuleLoader final : public nsIMemoryReporter {
     void Clear() {
       if (obj) {
         if (JS_HasExtensibleLexicalEnvironment(obj)) {
-          JS::RootedObject lexicalEnv(mozilla::dom::RootingCx(),
+          MC::RootedObject lexicalEnv(mozilla::dom::RootingCx(),
                                       JS_ExtensibleLexicalEnvironment(obj));
           JS_SetAllNonReservedSlotsToUndefined(lexicalEnv);
         }

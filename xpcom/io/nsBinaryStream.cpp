@@ -38,9 +38,9 @@
 #include "nsIX509Cert.h"  // for NS_IX509CERT_IID
 
 #include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{,ByteLength},IsArrayBufferObject}
-#include "js/GCAPI.h"        // JS::AutoCheckCannotGC
-#include "js/RootingAPI.h"  // JS::{Handle,Rooted}
-#include "js/Value.h"       // JS::Value
+#include "monkeycage/GCAPI.h"        // JS::AutoCheckCannotGC
+#include "monkeycage/RootingAPI.h"  // JS::{Handle,Rooted}
+#include "monkeycage/Value.h"       // JS::Value
 
 using mozilla::AsBytes;
 using mozilla::MakeUnique;
@@ -808,7 +808,7 @@ nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
-  JS::Rooted<JSObject*> buffer(aCx, &aBuffer.toObject());
+  MC::Rooted<JSObject*> buffer(aCx, &aBuffer.toObject());
   if (!JS::IsArrayBufferObject(buffer)) {
     return NS_ERROR_FAILURE;
   }

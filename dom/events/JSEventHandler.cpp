@@ -147,7 +147,7 @@ nsresult JSEventHandler::HandleEvent(Event* aEvent) {
     RefPtr<OnErrorEventHandlerNonNull> handler =
         mTypedHandler.OnErrorEventHandler();
     ErrorResult rv;
-    JS::Rooted<JS::Value> retval(RootingCx());
+    MC::Rooted<JS::Value> retval(RootingCx());
     handler->Call(target, msgOrEvent, fileName, lineNumber, columnNumber, error,
                   &retval, rv);
     if (rv.Failed()) {
@@ -195,7 +195,7 @@ nsresult JSEventHandler::HandleEvent(Event* aEvent) {
   MOZ_ASSERT(mTypedHandler.Type() == TypedEventHandler::eNormal);
   ErrorResult rv;
   RefPtr<EventHandlerNonNull> handler = mTypedHandler.NormalEventHandler();
-  JS::Rooted<JS::Value> retval(RootingCx());
+  MC::Rooted<JS::Value> retval(RootingCx());
   handler->Call(target, *aEvent, &retval, rv);
   if (rv.Failed()) {
     return rv.StealNSResult();

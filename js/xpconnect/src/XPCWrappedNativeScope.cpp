@@ -104,7 +104,7 @@ bool XPCWrappedNativeScope::GetComponentsJSObject(JSContext* cx,
     mComponents = new nsXPCComponents(this);
   }
 
-  RootedValue val(cx);
+  MC::RootedValue val(cx);
   xpcObjectHelper helper(mComponents);
   bool ok = XPCConvert::NativeInterface2JSObject(cx, &val, helper, nullptr,
                                                  false, nullptr);
@@ -124,7 +124,7 @@ static bool DefineSubcomponentProperty(JSContext* aCx, HandleObject aGlobal,
                                        nsISupports* aSubcomponent,
                                        const nsID* aIID,
                                        unsigned int aStringIndex) {
-  RootedValue subcompVal(aCx);
+  MC::RootedValue subcompVal(aCx);
   xpcObjectHelper helper(aSubcomponent);
   if (!XPCConvert::NativeInterface2JSObject(aCx, &subcompVal, helper, aIID,
                                             false, nullptr))
@@ -132,21 +132,21 @@ static bool DefineSubcomponentProperty(JSContext* aCx, HandleObject aGlobal,
   if (NS_WARN_IF(!subcompVal.isObject())) {
     return false;
   }
-  RootedId id(aCx, XPCJSContext::Get()->GetStringID(aStringIndex));
+  MC::RootedId id(aCx, XPCJSContext::Get()->GetStringID(aStringIndex));
   return JS_DefinePropertyById(aCx, aGlobal, id, subcompVal, 0);
 }
 
 bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
-  RootedObject components(aCx);
+  MC::RootedObject components(aCx);
   if (!GetComponentsJSObject(aCx, &components)) {
     return false;
   }
 
-  RootedObject global(aCx, CurrentGlobalOrNull(aCx));
+  MC::RootedObject global(aCx, CurrentGlobalOrNull(aCx));
 
   const unsigned attrs = JSPROP_READONLY | JSPROP_RESOLVING | JSPROP_PERMANENT;
 
-  RootedId id(aCx,
+  MC::RootedId id(aCx,
               XPCJSContext::Get()->GetStringID(XPCJSContext::IDX_COMPONENTS));
   if (!JS_DefinePropertyById(aCx, global, id, components, attrs)) {
     return false;
@@ -173,7 +173,7 @@ bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
 }
 
 bool XPCWrappedNativeScope::AttachJSServices(JSContext* aCx) {
-  RootedObject global(aCx, CurrentGlobalOrNull(aCx));
+  MC::RootedObject global(aCx, CurrentGlobalOrNull(aCx));
   return mozJSModuleLoader::Get()->DefineJSServices(aCx, global);
 }
 
@@ -191,7 +191,7 @@ bool XPCWrappedNativeScope::AllowContentXBLScope(Realm* aRealm) {
 
 namespace xpc {
 JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
-  JS::RootedObject contentScope(cx, contentScopeArg);
+  MC::RootedObject contentScope(cx, contentScopeArg);
   JSAutoRealm ar(cx, contentScope);
   nsIPrincipal* principal = GetObjectPrincipal(contentScope);
 
@@ -203,7 +203,7 @@ JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
 }
 
 JSObject* GetUAWidgetScope(JSContext* cx, nsIPrincipal* principal) {
-  RootedObject scope(cx, XPCJSRuntime::Get()->GetUAWidgetScope(cx, principal));
+  MC::RootedObject scope(cx, XPCJSRuntime::Get()->GetUAWidgetScope(cx, principal));
   NS_ENSURE_TRUE(scope, nullptr);  // See bug 858642.
 
   scope = js::UncheckedUnwrap(scope);
