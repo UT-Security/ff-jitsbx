@@ -5226,8 +5226,13 @@ static void replace_malloc_init_funcs(malloc_table_t* table) {
     GENERIC_MALLOC_DECL2_MINGW(name, name##_impl, return_type, ##__VA_ARGS__)
 #endif
 
+#ifdef JS_LFI_TOOLCHAIN
+#define NOTHROW_MALLOC_DECL(...) \
+  MOZ_MEMORY_API MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
+#else
 #define NOTHROW_MALLOC_DECL(...) \
   MOZ_MEMORY_API MACRO_CALL(GENERIC_MALLOC_DECL, (noexcept(true), __VA_ARGS__))
+#endif
 #define MALLOC_DECL(...) \
   MOZ_MEMORY_API MACRO_CALL(GENERIC_MALLOC_DECL, (, __VA_ARGS__))
 #define MALLOC_FUNCS MALLOC_FUNCS_MALLOC

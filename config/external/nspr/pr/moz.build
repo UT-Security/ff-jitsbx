@@ -28,6 +28,8 @@ if CONFIG["OS_ARCH"] == "Linux":
         SOURCES += ["/nsprpub/pr/src/md/unix/os_Linux_x86.s"]
     elif CONFIG["CPU_ARCH"] == "ppc":
         SOURCES += ["/nsprpub/pr/src/md/unix/os_Linux_ppc.s"]
+    if CONFIG["JS_LFI_TOOLCHAIN"]:
+        ASFLAGS += ["-g0"]
 elif CONFIG["OS_TARGET"] in ("FreeBSD", "OpenBSD", "NetBSD"):
     DEFINES["HAVE_BSD_FLOCK"] = True
     DEFINES["HAVE_SOCKLEN_T"] = True

@@ -6,6 +6,9 @@
 
 FINAL_LIBRARY = "js"
 
+if CONFIG["JS_LFI_TOOLCHAIN"]:
+    ASFLAGS += ["-g0"]
+
 if CONFIG["MOZ_SYSTEM_FFI"]:
     OS_LIBS += CONFIG["MOZ_FFI_LIBS"]
 else:
