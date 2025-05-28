@@ -21,8 +21,36 @@ namespace MC {
 class JobQueue {
  public:
   JS::sandbox::JobQueue* inner_;
- private:
 
+  virtual ~JobQueue() = default;
+  virtual JSObject* getIncumbentGlobal(MCContext* cx) = 0;
+  virtual bool enqueuePromiseJob(MCContext* cx, JS::HandleObject promise,
+                                 JS::HandleObject job,
+                                 JS::HandleObject allocationSite,
+                                 JS::HandleObject incumbentGlobal) = 0;
+  virtual void runJobs(MCContext* cx) = 0;
+  virtual bool empty() const = 0;
+
+ protected:
+  class SavedJobQueue {
+    static void destructorCb(void* p) {
+      auto savedJobQueue = static_cast<SavedJobQueue*>(p);
+      delete savedJobQueue;
+    }
+
+   public:
+    js::UniquePtr<JS::sandbox::JobQueue::SavedJobQueue> inner_;
+
+    SavedJobQueue()
+        : inner_(js::MakeUnique<JS::sandbox::JobQueue::SavedJobQueue>(
+              Sandbox::RegisterCallback(destructorCb).UNSAFE_get(), this)) {}
+
+    virtual ~SavedJobQueue() = default;
+  };
+
+  virtual mozilla::UniquePtr<SavedJobQueue> saveJobQueue(MCContext* cx) = 0;
+
+ private:
   static void destructorCb(void* p) {
     auto jobQueue = static_cast<JobQueue*>(p);
     delete jobQueue;
@@ -57,7 +85,10 @@ class JobQueue {
   static js::UniquePtr<JS::sandbox::JobQueue::SavedJobQueue> saveJobQueueCb(void* p, JSContext* cx) {
     auto jobQueue = static_cast<JobQueue*>(p);
     MCContext* mcx = JS_SanitizeContext(cx);
-    return std::move(jobQueue->saveJobQueue(mcx)->inner_);
+    // Ownership over the outer SavedJobQueue* was given to inner_
+    // at the time of construction. We just forget it here.
+    SavedJobQueue* savedJobQueue = jobQueue->saveJobQueue(mcx).release();
+    return std::move(savedJobQueue->inner_);
   }
 
   static const JS::sandbox::JobQueue::JobQueueOps* ops() {
@@ -72,38 +103,10 @@ class JobQueue {
 
     return &inner_;
   }
-
- public:
-  virtual ~JobQueue() = default;
-  virtual JSObject* getIncumbentGlobal(MCContext* cx) = 0;
-  virtual bool enqueuePromiseJob(MCContext* cx, JS::HandleObject promise,
-                                 JS::HandleObject job,
-                                 JS::HandleObject allocationSite,
-                                 JS::HandleObject incumbentGlobal) = 0;
-  virtual void runJobs(MCContext* cx) = 0;
-  virtual bool empty() const = 0;
-
+public:
   JobQueue() {
     inner_ = js_new<JS::sandbox::JobQueue>(ops(), this);
   }
-
- protected:
-  class SavedJobQueue {
-    static void destructorCb(void* p) {
-      auto savedJobQueue = static_cast<SavedJobQueue*>(p);
-      delete savedJobQueue;
-    }
-
-   public:
-    js::UniquePtr<JS::sandbox::JobQueue::SavedJobQueue> inner_;
-
-    SavedJobQueue()
-        : inner_(js::MakeUnique<JS::sandbox::JobQueue::SavedJobQueue>(
-              Sandbox::RegisterCallback(destructorCb).UNSAFE_get(), this)) {}
-
-    virtual ~SavedJobQueue() = default;
-  };
-  virtual js::UniquePtr<SavedJobQueue> saveJobQueue(MCContext* cx) = 0;
 };
 }
 

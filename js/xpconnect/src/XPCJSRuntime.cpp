@@ -2756,8 +2756,8 @@ static nsresult ReadSourceFromFilename(JSContext* cx, const char* filename,
 // The JS engine calls this object's 'load' member function when it needs
 // the source for a chrome JS function. See the comment in the XPCJSRuntime
 // constructor.
-class XPCJSSourceHook : public js::SourceHook {
-  bool load(JSContext* cx, const char* filename, char16_t** twoByteSource,
+class XPCJSSourceHook : public mc::SourceHook {
+  bool load(MCContext* cx, const char* filename, char16_t** twoByteSource,
             char** utf8Source, size_t* length) override {
     MOZ_ASSERT((twoByteSource != nullptr) != (utf8Source != nullptr),
                "must be called requesting only one of UTF-8 or UTF-16 source");
@@ -2769,7 +2769,7 @@ class XPCJSSourceHook : public js::SourceHook {
       *utf8Source = nullptr;
     }
 
-    if (!nsContentUtils::IsSystemCaller(cx)) {
+    if (!nsContentUtils::IsSystemCaller(MC_UNSAFE(cx))) {
       return true;
     }
 
@@ -2778,9 +2778,9 @@ class XPCJSSourceHook : public js::SourceHook {
     }
 
     nsresult rv =
-        ReadSourceFromFilename(cx, filename, twoByteSource, utf8Source, length);
+        ReadSourceFromFilename(MC_UNSAFE(cx), filename, twoByteSource, utf8Source, length);
     if (NS_FAILED(rv)) {
-      xpc::Throw(cx, rv);
+      xpc::Throw(MC_UNSAFE(cx), rv);
       return false;
     }
 
@@ -2965,7 +2965,7 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
   // isRunOnce mode and compiled function bodies (from
   // JS::CompileFunction). In practice, this means content scripts and event
   // handlers.
-  mozilla::UniquePtr<XPCJSSourceHook> hook(new XPCJSSourceHook);
+  mc::AppUniquePtr<XPCJSSourceHook> hook(new XPCJSSourceHook);
   js::SetSourceHook(cx, std::move(hook));
 
   // Register memory reporters and distinguished amount functions.

@@ -452,7 +452,7 @@ struct JSRuntime {
   /* Call this to get the name of a realm. */
   js::MainThreadData<JS::RealmNameCallback> realmNameCallback;
 
-  js::MainThreadData<mozilla::UniquePtr<js::SourceHook>> sourceHook;
+  js::MainThreadData<js::UniquePtr<js::SourceHook>> sourceHook;
 
   js::MainThreadData<const JSSecurityCallbacks*> securityCallbacks;
   js::MainThreadData<const js::DOMCallbacks*> DOMcallbacks;

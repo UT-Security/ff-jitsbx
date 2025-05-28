@@ -6,21 +6,20 @@
 
 #include "js/experimental/SourceHook.h"
 
-#include "mozilla/UniquePtr.h"  // mozilla::UniquePtr
-
 #include <utility>  // std::move
 
 #include "jstypes.h"  // JS_PUBLIC_API
 
+#include "js/UniquePtr.h"  // js::UniquePtr
 #include "vm/JSContext.h"  // JSContext
 #include "vm/Runtime.h"    // JSRuntime
 
 JS_PUBLIC_API void js::SetSourceHook(JSContext* cx,
-                                     mozilla::UniquePtr<SourceHook> hook) {
+                                     js::UniquePtr<SourceHook> hook) {
   cx->runtime()->sourceHook.ref() = std::move(hook);
 }
 
-JS_PUBLIC_API mozilla::UniquePtr<js::SourceHook> js::ForgetSourceHook(
+JS_PUBLIC_API js::UniquePtr<js::SourceHook> js::ForgetSourceHook(
     JSContext* cx) {
   return std::move(cx->runtime()->sourceHook.ref());
 }

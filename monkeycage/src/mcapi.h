@@ -25,6 +25,7 @@
 #include "monkeycage/Stack.h"
 #include "monkeycage/String.h"
 #include "monkeycage/TypeDecls.h"
+#include "monkeycage/UniquePtr.h"
 #include "monkeycage/Utility.h"
 #include "monkeycage/Value.h"
 #include "monkeycage/ValueArray.h"

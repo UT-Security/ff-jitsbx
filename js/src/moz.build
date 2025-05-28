@@ -301,6 +301,7 @@ if CONFIG["JS_SANDBOX"]:
     EXPORTS.js.sandbox += [
         "../public/sandbox/Promise.h",
         "../public/sandbox/Proxy.h",
+        "../public/sandbox/SourceHook.h",
         "../public/sandbox/Wrapper.h",
     ]
 
@@ -450,6 +451,7 @@ if CONFIG["JS_SANDBOX"]:
     UNIFIED_SOURCES += [
         "sandbox/ExternalPromise.cpp",
         "sandbox/ExternalProxy.cpp",
+        "sandbox/ExternalSourceHook.cpp",
         "sandbox/ExternalWrapper.cpp",
     ]
 
