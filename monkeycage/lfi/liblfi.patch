@@ -1,0 +1,145 @@
+diff --git a/liblfi/host/linux/dir.c b/liblfi/host/linux/dir.c
+index 42dbdc50c1..0edcede6fb 100644
+--- a/liblfi/host/linux/dir.c
++++ b/liblfi/host/linux/dir.c
+@@ -1,11 +1,18 @@
+ #define _GNU_SOURCE
+ #include <dirent.h>
+ #include <stdio.h>
++#include <syscall.h>
++#include <sys/stat.h>
++#include <unistd.h>
+ 
+ #include "types.h"
+ #include "host/posix/file.h"
+ #include "host/error.h"
+ 
++static inline ssize_t getdents64(int fd, void* dirp, size_t count) {
++    return syscall(__NR_getdents64, fd, dirp, count);
++}
++
+ ssize_t
+ host_getdents64(struct HostFile* file, void* dirp, size_t count)
+ {
+diff --git a/liblfi/host/linux/random.c b/liblfi/host/linux/random.c
+index fc3ca368c7..086ee5eaca 100644
+--- a/liblfi/host/linux/random.c
++++ b/liblfi/host/linux/random.c
+@@ -1,9 +1,19 @@
+ #include <errno.h>
+-#include <sys/random.h>
++#include <unistd.h>
+ 
+ #include "host/error.h"
+ #include "host.h"
+ 
++#define SYS_getrandom 318
++
++/* Flags for use with getrandom.  */
++#define GRND_NONBLOCK 0x01
++#define GRND_RANDOM 0x02
++
++static ssize_t getrandom(void* buf, size_t buflen, unsigned int flags) {
++    return syscall(SYS_getrandom, buf, buflen, flags);
++}
++
+ static unsigned int
+ linuxflags(unsigned int flags)
+ {
+diff --git a/liblfi/include/lfi.h b/liblfi/include/lfi.h
+index c08ba3b36a..d10511e978 100644
+--- a/liblfi/include/lfi.h
++++ b/liblfi/include/lfi.h
+@@ -92,6 +92,10 @@ struct LFILoadOpts {
+     char* gdbfile;
+ };
+ 
++typedef struct {
++    void* verify;
++} LFIVerifier;
++
+ bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
+ bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);
+ 
+diff --git a/liblfi/pal/platform.h b/liblfi/pal/platform.h
+index 1e355e9703..85dfe79eba 100644
+--- a/liblfi/pal/platform.h
++++ b/liblfi/pal/platform.h
+@@ -1,6 +1,5 @@
+ #pragma once
+ 
+-#include "lfiv.h"
+ #include "lfi.h"
+ #include "lfi_arch.h"
+ #include "mmap.h"
+diff --git a/liblfi/pal/vm.c b/liblfi/pal/vm.c
+index 022b831117..9b1fd0b9a7 100644
+--- a/liblfi/pal/vm.c
++++ b/liblfi/pal/vm.c
+@@ -3,7 +3,6 @@
+ #include <unistd.h>
+ #include <errno.h>
+ 
+-#include "lfiv.h"
+ #include "lfi.h"
+ #include "boxmap.h"
+ #include "pal/platform.h"
+@@ -80,10 +79,6 @@ protectverify(lfiptr_t base, size_t size, int prot, LFIVerifier* verifier)
+         return -1;
+     }
+ 
+-    assert(verifier);
+-    if (!lfiv_verify(verifier, (void*) base, size, (uintptr_t) base)) {
+-        return -1;
+-    }
+     return host_mprotect((void*) base, size, prot);
+ }
+ 
+diff --git a/liblfi/types.h b/liblfi/types.h
+index b5a51e65c7..fa1e0d7b78 100644
+--- a/liblfi/types.h
++++ b/liblfi/types.h
+@@ -2,7 +2,7 @@
+ 
+ #include <stdint.h>
+ 
+-#define EXPORT __attribute__((visibility("default")))
++#define EXPORT
+ 
+ typedef uint64_t  u64;
+ typedef uint32_t  u32;
+
+diff --git a/liblfi/pal/arch/x64/regs.c b/liblfi/pal/arch/x64/regs.c
+index b497b6073c..e9cc970e0b 100644
+--- a/liblfi/pal/arch/x64/regs.c
++++ b/liblfi/pal/arch/x64/regs.c
+@@ -8,6 +8,7 @@ lfi_regs_init(struct TuxRegs* regs, struct LFIAddrSpace* as, struct LFIContext*
+     regs->gs  = as->base;
+     regs->rsp = as->base;
+     regs->r13 = (uintptr_t) ctx->sys;
++    regs->r15 = as->size - 1;
+ }
+ 
+ uintptr_t*
+
+diff --git a/liblfi/pal/platform.c b/liblfi/pal/platform.c
+index 893c79bc06..2c48bbd9b8 100644
+--- a/liblfi/pal/platform.c
++++ b/liblfi/pal/platform.c
+@@ -15,13 +15,13 @@ lfi_new_plat(struct LFIPlatOptions opts)
+         return NULL;
+ 
+     struct BoxMap* bm = boxmap_new((struct BoxMapOptions) {
+-        .minalign = gb(4),
+-        .maxalign = gb(4),
++        .minalign = gb(256),
++        .maxalign = gb(256),
+         .guardsize = kb(80),
+     });
+     if (!bm)
+         goto err1;
+-    if (!boxmap_reserve(bm, gb(256)))
++    if (!boxmap_reserve(bm, gb(512)))
+         goto err2;
+ 
+     *plat = (struct LFIPlatform) {
