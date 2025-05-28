@@ -1,0 +1,10 @@
+diff --git a/liblfi/config.h b/liblfi/config.h
+new file mode 100644
+index 0000000000..878b9339dc
+--- /dev/null
++++ b/liblfi/config.h
+@@ -0,0 +1,4 @@
++#pragma once
++
++#define CONFIG_MAX_FUTEX 512
++#define CONFIG_THREADS 1
