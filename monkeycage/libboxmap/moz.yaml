@@ -1,0 +1,23 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "General"
+
+origin:
+  name: libboxmap
+  description: A small library for allocating large chunks of the virtual address space.
+  url: https://github.com/zyedidia/libboxmap/tree/master
+
+  release: 9d5d994c07cc8b4ae332cd69814e627a27a178c1 (2024-12-17T06:29:49Z).
+  revision: 9d5d994c07cc8b4ae332cd69814e627a27a178c1
+
+  license: MIT
+
+vendoring:
+  url: https://github.com/zyedidia/libboxmap
+  source-hosting: github
+
+  exclude:
+    - test
+    - meson.build
