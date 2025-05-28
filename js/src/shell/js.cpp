@@ -6909,14 +6909,13 @@ static bool WithSourceHook(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  mozilla::UniquePtr<ShellSourceHook> hook =
-      mozilla::MakeUnique<ShellSourceHook>(cx,
-                                           args[0].toObject().as<JSFunction>());
+  js::UniquePtr<ShellSourceHook> hook =
+      js::MakeUnique<ShellSourceHook>(cx, args[0].toObject().as<JSFunction>());
   if (!hook) {
     return false;
   }
 
-  mozilla::UniquePtr<SourceHook> savedHook = js::ForgetSourceHook(cx);
+  js::UniquePtr<SourceHook> savedHook = js::ForgetSourceHook(cx);
   js::SetSourceHook(cx, std::move(hook));
 
   RootedObject fun(cx, &args[1].toObject());

@@ -300,9 +300,13 @@ class CycleCollectedJSContext::SavedMicroTaskQueue
   std::deque<RefPtr<MicroTaskRunnable>> mQueue;
 };
 
-js::UniquePtr<MC::JobQueue::SavedJobQueue>
+mc::AppUniquePtr<MC::JobQueue::SavedJobQueue>
 CycleCollectedJSContext::saveJobQueue(MCContext* cx) {
+#ifdef JS_SANDBOX
+  auto saved = mozilla::MakeUnique<SavedMicroTaskQueue>(this);
+#else
   auto saved = js::MakeUnique<SavedMicroTaskQueue>(this);
+#endif
   if (!saved) {
     // When MakeUnique's allocation fails, the SavedMicroTaskQueue constructor
     // is never called, so mPendingMicroTaskRunnables is still initialized.

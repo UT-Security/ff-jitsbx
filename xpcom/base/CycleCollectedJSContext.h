@@ -16,6 +16,7 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/GCVector.h"
 #include "monkeycage/Promise.h"
+#include "monkeycage/UniquePtr.h"
 
 #include "nsCOMPtr.h"
 #include "nsRefPtrHashtable.h"
@@ -303,7 +304,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
   void runJobs(MCContext* cx) override;
   bool empty() const override;
   class SavedMicroTaskQueue;
-  js::UniquePtr<SavedJobQueue> saveJobQueue(MCContext*) override;
+  mc::AppUniquePtr<SavedJobQueue> saveJobQueue(MCContext*) override;
 
  private:
   CycleCollectedJSRuntime* mRuntime;

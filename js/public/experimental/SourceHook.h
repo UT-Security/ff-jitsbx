@@ -36,11 +36,11 @@
 #ifndef js_experimental_SourceHook_h
 #define js_experimental_SourceHook_h
 
-#include "mozilla/UniquePtr.h"  // mozilla::UniquePtr
 
 #include <stddef.h>  // size_t
 
 #include "jstypes.h"  // JS_PUBLIC_API
+#include "js/UniquePtr.h"  // js::UniquePtr
 
 struct JS_PUBLIC_API JSContext;
 
@@ -88,10 +88,10 @@ class SourceHook {
  * set.
  */
 extern JS_PUBLIC_API void SetSourceHook(JSContext* cx,
-                                        mozilla::UniquePtr<SourceHook> hook);
+                                        js::UniquePtr<SourceHook> hook);
 
 /** Remove |cx|'s source hook, and return it. The caller now owns the hook. */
-extern JS_PUBLIC_API mozilla::UniquePtr<SourceHook> ForgetSourceHook(
+extern JS_PUBLIC_API js::UniquePtr<SourceHook> ForgetSourceHook(
     JSContext* cx);
 
 }  // namespace js

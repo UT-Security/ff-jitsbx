@@ -231,6 +231,7 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 	EXPORTS.js.sandbox += [
 		"/js/public/sandbox/Promise.h",
 		"/js/public/sandbox/Proxy.h",
+		"/js/public/sandbox/SourceHook.h",
 		"/js/public/sandbox/Wrapper.h",
 	]
 
@@ -356,6 +357,7 @@ EXPORTS.monkeycage += [
 	"../public/Stack.h",
 	"../public/String.h",
 	"../public/TypeDecls.h",
+	"../public/UniquePtr.h",
 	"../public/Utility.h",
 	"../public/Value.h",
 	"../public/ValueArray.h",

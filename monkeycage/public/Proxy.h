@@ -10,6 +10,9 @@
 #ifdef JS_SANDBOX
 #include "js/sandbox/Proxy.h"
 
+#include "monkeycage/Context.h"
+#include "monkeycage/Sandbox.h"
+
 namespace mc {
 
 #define DEFINE_PROXY_HANDLER_OPS_CALLBACKS(ExternalProxyHandler)                             \
