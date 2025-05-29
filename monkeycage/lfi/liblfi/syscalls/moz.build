@@ -1,0 +1,37 @@
+# -*- Mode: python; indent-tabs-mode: nil; tab-width: 40 -*-
+# vim: set filetype=python:
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+FINAL_LIBRARY = "lfi"
+
+LOCAL_INCLUDES += [
+	"..",
+	"../arch"
+]
+
+if CONFIG["CPU_ARCH"] == "x86_64":
+	LOCAL_INCLUDES += [
+		"../arch/x64",
+	]
+
+SOURCES += [
+	"strace.c",
+	"sys_clock.c",
+	"sys_cwd.c",
+	"sys_fcntl.c",
+	"sys_file.c",
+	"sys_info.c",
+	"sys_ioctl.c",
+	"sys_mem.c",
+	"sys_none.c",
+	"sys_prctl.c",
+	"sys_proc.c",
+	"sys_random.c",
+	"sys_signal.c",
+]
+
+SOURCES += [
+	"sys_thread.c"
+]
