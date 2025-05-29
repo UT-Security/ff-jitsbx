@@ -52,6 +52,27 @@ public:
     return addr();
   }
 };
+#elif defined(JS_SANDBOX_LFI)
+template <typename T>
+class SandboxStackPtr {
+private:
+  T inner_;
+
+public:
+  SandboxStackPtr() = default;
+
+  template <typename... Args>
+  SandboxStackPtr(Args&&... args) : inner_(std::forward<Args>(args)...) {}
+
+  //TODO(abhishek): do we need to do anything special for copy/move-constructor?
+  inline T* addr() const {
+    return const_cast<T*>(&inner_);
+  }
+
+  inline T* operator->() const {
+    return addr();
+  }
+};
 #else
 template <typename T>
 class SandboxStackPtr {
