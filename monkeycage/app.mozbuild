@@ -12,7 +12,7 @@ if not CONFIG['JS_SANDBOX']:
 	include('/js/app.mozbuild')
 elif CONFIG['JS_SANDBOX_NOOP']:
 	include('/js/app.mozbuild')
-elif CONFIG['JS_SANDBOX_DYLIB']:
+elif CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 	DIRS += [
 		'/config/external/nspr',
 		'/config/external/zlib',
@@ -25,3 +25,11 @@ elif CONFIG['JS_SANDBOX_DYLIB']:
 		DIRS += [
 			'/config/external/icu',
 		]
+
+if CONFIG['JS_SANDBOX_LFI']:
+	DIRS += [
+		'/monkeycage/cwalk',
+		'/monkeycage/libmmap',
+		'/monkeycage/libboxmap',
+		'/monkeycage/lfi',
+	]

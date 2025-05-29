@@ -41,6 +41,23 @@ class SandboxCallback {
 
   T UNSAFE_get() const { return fn_; }
 };
+#elif defined(JS_SANDBOX_LFI)
+
+class SandboxLFI;
+
+template <typename T>
+class SandboxCallback {
+  T fn_;
+
+  friend class SandboxLFI;
+  explicit SandboxCallback(T fn) : fn_(fn) {}
+
+ public:
+  explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
+
+  T UNSAFE_get() const { return fn_; }
+};
+
 #else
 template <typename T>
 using SandboxCallback = T;

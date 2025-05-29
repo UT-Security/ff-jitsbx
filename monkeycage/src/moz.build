@@ -23,7 +23,7 @@ UNIFIED_SOURCES += [
 if CONFIG['JS_SANDBOX_NOOP']:
 	USE_LIBS += ["js"]
 
-if CONFIG['JS_SANDBOX_DYLIB']:
+if CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 	include("/js/src/js-config.mozbuild")
 	include("/js/src/js-cxxflags.mozbuild")
 
@@ -308,6 +308,9 @@ if CONFIG['JS_SANDBOX_DYLIB']:
 
 		USE_LIBS += ["intlcomponents"]
 
+	if CONFIG["JS_SANDBOX_LFI"]:
+		USE_LIBS += ["lfi"]
+
 # Monkeycage specific API
 EXPORTS.monkeycage += [
 	"../public/Sandbox.h",
@@ -390,6 +393,10 @@ if CONFIG["JS_SANDBOX_NOOP"]:
 elif CONFIG["JS_SANDBOX_DYLIB"]:
 	EXPORTS.monkeycage.unsafe += [
 		"../public/SandboxDylib.h",
+	]
+elif CONFIG["JS_SANDBOX_LFI"]:
+	EXPORTS.monkeycage.unsafe += [
+		"../public/SandboxLFI.h",
 	]
 else:
 	EXPORTS.monkeycage.unsafe += [

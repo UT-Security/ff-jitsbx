@@ -11,6 +11,8 @@
 #include "monkeycage/unsafe/SandboxNoop.h"
 #elif defined(JS_SANDBOX_DYLIB)
 #include "monkeycage/unsafe/SandboxDylib.h"
+#elif defined(JS_SANDBOX_LFI)
+#include "monkeycage/unsafe/SandboxLFI.h"
 #else
 #include "monkeycage/unsafe/SandboxNone.h"
 #endif

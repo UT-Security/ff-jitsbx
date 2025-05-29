@@ -56,6 +56,8 @@ public:
 using Sandbox = detail::Sandbox<detail::SandboxNoop>;
 #elif defined(JS_SANDBOX_DYLIB)
 using Sandbox = detail::Sandbox<detail::SandboxDylib>;
+#elif defined(JS_SANDBOX_LFI)
+using Sandbox = detail::Sandbox<detail::SandboxLFI>;
 #else
 using Sandbox = detail::Sandbox<detail::SandboxNone>;
 #endif

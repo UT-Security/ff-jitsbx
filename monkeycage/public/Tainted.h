@@ -136,6 +136,9 @@ using Tainted = detail::Tainted<T, detail::SandboxNoop>;
 #elif defined(JS_SANDBOX_DYLIB)
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxDylib>;
+#elif defined(JS_SANDBOX_LFI)
+template <typename T>
+using Tainted = detail::Tainted<T, detail::SandboxLFI>;
 #else
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxNone>;
