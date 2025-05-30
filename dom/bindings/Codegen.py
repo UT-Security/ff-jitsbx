@@ -10526,7 +10526,7 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
                 """
                 JSTainted<JS::CallArgs> args = JS::CallArgsFromVp(argc, vp);
                 JSTaintedRooted<JSObject*> obj(cx);
-                obj.set(&args.callee());
+                obj.set(args.callee_ptr());
 
                 """
             )

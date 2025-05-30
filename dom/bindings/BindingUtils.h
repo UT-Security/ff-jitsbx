@@ -94,7 +94,7 @@ inline bool IsDOMClass(const JSClass* clasp) {
 
 inline JSTainted<bool> IsDOMClass(JSTainted<const JSClass*> clasp) {
   JSTainted<uint32_t> flags (clasp.UNSAFE_unverified_ref()->flags); 
-  return flags & JSCLASS_IS_DOMJSCLASS;
+  return flags.UNSAFE_unverified_ref() & JSCLASS_IS_DOMJSCLASS;
 }
 
 // Return true if the JSClass is used for non-proxy DOM objects.
@@ -480,6 +480,32 @@ struct MutableValueHandleWrapper {
 
 }  // namespace binding_detail
 
+template<>
+class JSTainted<binding_detail::MutableValueHandleWrapper> {
+  public:
+  explicit JSTainted(JSTaintedMutableHandle<JS::Value> aHandle)
+      : mHandle(aHandle) {}
+
+  void operator=(JSTainted<JSObject*> aObject) {
+    MOZ_ASSERT(aObject);
+#ifdef ENABLE_RECORD_TUPLE
+    MOZ_ASSERT(!js::gc::MaybeForwardedIsExtendedPrimitive(*aObject.UNSAFE_unverified_ref()));
+#endif
+    mHandle.setObject(*aObject.UNSAFE_unverified_ref());
+  }
+
+  operator JSTainted<JSObject*>() const { 
+    return &mHandle.get().UNSAFE_unverified_ref().toObject(); 
+  }
+
+  JSObject* UNSAFE_unverified_ref() const { 
+    return &mHandle.get().UNSAFE_unverified_ref().toObject();
+  }
+
+ private:
+  JSTaintedMutableHandle<JS::Value> mHandle;
+};
+
 // UnwrapObject overloads that ensure we have a MutableHandle to keep it alive.
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JSObject*> obj,
@@ -494,6 +520,15 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JS::Value> obj,
                                         U& value, const CxType& cx) {
   MOZ_ASSERT(obj.isObject());
   binding_detail::MutableValueHandleWrapper wrapper(obj);
+  return binding_detail::UnwrapObjectInternal<T, true>(
+      wrapper, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
+}
+
+template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
+MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSTaintedMutableHandle<JS::Value> obj,
+                                        U& value, const CxType& cx) {
+  MOZ_ASSERT(obj.UNSAFE_unverified_ref().isObject());
+  JSTainted<binding_detail::MutableValueHandleWrapper> wrapper(obj);
   return binding_detail::UnwrapObjectInternal<T, true>(
       wrapper, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);
 }

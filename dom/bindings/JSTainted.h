@@ -124,6 +124,10 @@ public:
 
     data = val;
   }
+
+  JSTainted<T*> operator&(void) const {
+    return &data;
+  }
   
 private:
   T data;
@@ -199,7 +203,7 @@ class JSTaintedOperations<T*> {
     operator bool() {
         return 
             static_cast<JSTainted<T*>*>(this)->UNSAFE_unverified_ref() 
-                == nullptr;
+                != nullptr;
     }
 };
 
@@ -227,6 +231,11 @@ public:
 
   void setUndefined(void) {
     set(JS::UndefinedValue());
+  }
+
+  template <typename T>
+  void setObject(T t) {
+    set(JS::ObjectValue(t));
   }
   
 };
@@ -356,6 +365,11 @@ public:
   const JSTainted<T>& operator->() const { return get(); } 
   void set(const T& v) { ptr->assign_raw_value(v); }
 
+  template<typename O>
+  void setObject(O& obj) {
+    set(JS::ObjectValue(obj));
+  }
+
   operator bool() {
     return ptr != nullptr;
   }
@@ -470,8 +484,11 @@ class JSTaintedOperations<JS::CallArgs> {
     return result;
   }
 
-  JSObject& callee() {
-    return raw_ref().callee();
+  //TODO: have an actual callee() field
+  //this is an ugly hack to get Console.log() working
+  //while also ensuring that we follow tainted rules
+  JSTainted<JSObject*> callee_ptr() {
+    return &raw_ref().callee();
   }
 
   //Both are fine in the context of console since CallArgs is located on the stack
