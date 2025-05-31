@@ -766,10 +766,10 @@ class MOZ_STACK_CLASS XPCCallContext final {
 // These are the various JSClasses and callbacks whose use that required
 // visibility from more than one .cpp file.
 
-extern const JSClass XPC_WN_NoHelper_JSClass;
-extern const JSClass XPC_WN_Proto_JSClass;
-extern const JSClass XPC_WN_Tearoff_JSClass;
-extern const JSClass XPC_WN_NoHelper_Proto_JSClass;
+extern const JSClass* XPC_WN_NoHelper_JSClass();
+extern const JSClass* XPC_WN_Proto_JSClass();
+extern const JSClass* XPC_WN_Tearoff_JSClass();
+extern const JSClass* XPC_WN_NoHelper_Proto_JSClass();
 
 extern bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, JS::Value* vp);
 
