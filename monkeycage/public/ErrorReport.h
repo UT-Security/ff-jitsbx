@@ -39,6 +39,24 @@ struct MOZ_STACK_CLASS JS_PUBLIC_API ErrorReportBuilder {
 
 }  // namespace MC
 
+template <typename... Args>
+inline void JS_ReportErrorASCII(MCContext* cx, const char* format,
+                                Args... args) {
+  return JS_ReportErrorASCII(cx->cx_, format, args...);
+}
+
+template <typename... Args>
+inline void JS_ReportErrorLatin1(MCContext* cx, const char* format,
+                                 Args... args) {
+  return JS_ReportErrorLatin1(cx->cx_, format, args...);
+}
+
+template <typename... Args>
+inline void JS_ReportErrorUTF8(MCContext* cx, const char* format,
+                               Args... args) {
+  return JS_ReportErrorUTF8(cx->cx_, format, args...);
+}
+
 inline MOZ_COLD void JS_ReportOutOfMemory(MCContext* cx) {
   return JS_ReportOutOfMemory(cx->cx_); 
 }
