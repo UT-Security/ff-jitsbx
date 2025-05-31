@@ -408,47 +408,47 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  static const js::sandbox::WrapperOps* ops() {                                               \
    static const js::sandbox::WrapperOps __ops = {                                            \
        {                                                                                     \
-       .finalizeInBackground = finalizeInBackgroundCb,                                       \
-       .canNurseryAllocate = canNurseryAllocateCb,                                           \
-       .enter = enterCb,                                                                     \
-       .getOwnPropertyDescriptor = getOwnPropertyDescriptorCb,                               \
-       .defineProperty = definePropertyCb,                                                   \
-       .ownPropertyKeys = ownPropertyKeysCb,                                                 \
-       .delete_ = delete_Cb,                                                                 \
-       .getPrototype = getPrototypeCb,                                                       \
-       .setPrototype = setPrototypeCb,                                                       \
-       .getPrototypeIfOrdinary = getPrototypeIfOrdinaryCb,                                   \
-       .setImmutablePrototype = setImmutablePrototypeCb,                                     \
-       .preventExtensions = preventExtensionsCb,                                             \
-       .isExtensible = isExtensibleCb,                                                       \
-       .has = hasCb,                                                                         \
-       .get = getCb,                                                                         \
-       .set = setCb,                                                                         \
-       .useProxyExpandoObjectForPrivateFields = useProxyExpandoObjectForPrivateFieldsCb,     \
-       .throwOnPrivateField = throwOnPrivateFieldCb,                                         \
-       .call = callCb,                                                                       \
-       .construct = constructCb,                                                             \
-       .enumerate = enumerateCb,                                                             \
-       .hasOwn = hasOwnCb,                                                                   \
-       .getOwnEnumerablePropertyKeys = getOwnEnumerablePropertyKeysCb,                       \
-       .nativeCall = nativeCallCb,                                                           \
-       .getBuiltinClass = getBuiltinClassCb,                                                 \
-       .isArray = isArrayCb,                                                                 \
-       .className = classNameCb,                                                             \
-       .fun_toString = fun_toStringCb,                                                       \
-       .regexp_toShared = regexp_toSharedCb,                                                 \
-       .boxedValue_unbox = boxedValue_unboxCb,                                               \
-       .trace = traceCb,                                                                     \
-       .finalize = finalizeCb,                                                               \
-       .objectMoved = objectMovedCb,                                                         \
-       .isCallable = isCallableCb,                                                           \
-       .isConstructor = isConstructorCb,                                                     \
-       .getElements = getElementsCb,                                                         \
-       .isScripted = isScriptedCb,                                                           \
-       },                                                                                    \
-       dynamicCheckedUnwrapAllowedCb,                                                        \
-   };                                                                                        \
-   return &__ops;                                                                            \
+       .finalizeInBackground = MC::Sandbox::RegisterCallback(finalizeInBackgroundCb).UNSAFE_get(),                                       \
+       .canNurseryAllocate = MC::Sandbox::RegisterCallback(canNurseryAllocateCb).UNSAFE_get(),                                           \
+       .enter = MC::Sandbox::RegisterCallback(enterCb).UNSAFE_get(),                                                                     \
+       .getOwnPropertyDescriptor = MC::Sandbox::RegisterCallback(getOwnPropertyDescriptorCb).UNSAFE_get(),                               \
+       .defineProperty = MC::Sandbox::RegisterCallback(definePropertyCb).UNSAFE_get(),                                                   \
+       .ownPropertyKeys = MC::Sandbox::RegisterCallback(ownPropertyKeysCb).UNSAFE_get(),                                                 \
+       .delete_ = MC::Sandbox::RegisterCallback(delete_Cb).UNSAFE_get(),                                                                 \
+       .getPrototype = MC::Sandbox::RegisterCallback(getPrototypeCb).UNSAFE_get(),                                                       \
+       .setPrototype = MC::Sandbox::RegisterCallback(setPrototypeCb).UNSAFE_get(),                                                       \
+       .getPrototypeIfOrdinary = MC::Sandbox::RegisterCallback(getPrototypeIfOrdinaryCb).UNSAFE_get(),                                   \
+       .setImmutablePrototype = MC::Sandbox::RegisterCallback(setImmutablePrototypeCb).UNSAFE_get(),                                     \
+       .preventExtensions = MC::Sandbox::RegisterCallback(preventExtensionsCb).UNSAFE_get(),                                             \
+       .isExtensible = MC::Sandbox::RegisterCallback(isExtensibleCb).UNSAFE_get(),                                                       \
+       .has = MC::Sandbox::RegisterCallback(hasCb).UNSAFE_get(),                                                                         \
+       .get = MC::Sandbox::RegisterCallback(getCb).UNSAFE_get(),                                                                         \
+       .set = MC::Sandbox::RegisterCallback(setCb).UNSAFE_get(),                                                                         \
+       .useProxyExpandoObjectForPrivateFields = MC::Sandbox::RegisterCallback(useProxyExpandoObjectForPrivateFieldsCb).UNSAFE_get(),     \
+       .throwOnPrivateField = MC::Sandbox::RegisterCallback(throwOnPrivateFieldCb).UNSAFE_get(),                                         \
+       .call = MC::Sandbox::RegisterCallback(callCb).UNSAFE_get(),                                                                       \
+       .construct = MC::Sandbox::RegisterCallback(constructCb).UNSAFE_get(),                                                             \
+       .enumerate = MC::Sandbox::RegisterCallback(enumerateCb).UNSAFE_get(),                                                             \
+       .hasOwn = MC::Sandbox::RegisterCallback(hasOwnCb).UNSAFE_get(),                                                                   \
+       .getOwnEnumerablePropertyKeys = MC::Sandbox::RegisterCallback(getOwnEnumerablePropertyKeysCb).UNSAFE_get(),                       \
+       .nativeCall = MC::Sandbox::RegisterCallback(nativeCallCb).UNSAFE_get(),                                                           \
+       .getBuiltinClass = MC::Sandbox::RegisterCallback(getBuiltinClassCb).UNSAFE_get(),                                                 \
+       .isArray = MC::Sandbox::RegisterCallback(isArrayCb).UNSAFE_get(),                                                                 \
+       .className = MC::Sandbox::RegisterCallback(classNameCb).UNSAFE_get(),                                                             \
+       .fun_toString = MC::Sandbox::RegisterCallback(fun_toStringCb).UNSAFE_get(),                                                       \
+       .regexp_toShared = MC::Sandbox::RegisterCallback(regexp_toSharedCb).UNSAFE_get(),                                                 \
+       .boxedValue_unbox = MC::Sandbox::RegisterCallback(boxedValue_unboxCb).UNSAFE_get(),                                               \
+       .trace = MC::Sandbox::RegisterCallback(traceCb).UNSAFE_get(),                                                                     \
+       .finalize = MC::Sandbox::RegisterCallback(finalizeCb).UNSAFE_get(),                                                               \
+       .objectMoved = MC::Sandbox::RegisterCallback(objectMovedCb).UNSAFE_get(),                                                         \
+       .isCallable = MC::Sandbox::RegisterCallback(isCallableCb).UNSAFE_get(),                                                           \
+       .isConstructor = MC::Sandbox::RegisterCallback(isConstructorCb).UNSAFE_get(),                                                     \
+       .getElements = MC::Sandbox::RegisterCallback(getElementsCb).UNSAFE_get(),                                                         \
+       .isScripted = MC::Sandbox::RegisterCallback(isScriptedCb).UNSAFE_get(),                                                           \
+       },                                                                                                                                \
+       MC::Sandbox::RegisterCallback(dynamicCheckedUnwrapAllowedCb).UNSAFE_get(),                                                        \
+   };                                                                                                                                    \
+   return &__ops;                                                                                                                        \
  }
 
 class Wrapper : public ForwardingProxyHandler {
