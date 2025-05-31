@@ -330,6 +330,7 @@ EXPORTS += [
 ]
 
 EXPORTS.monkeycage += [
+	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",
 	"../public/CompileOptions.h",
@@ -377,6 +378,7 @@ EXPORTS.monkeycage.experimental += [
 ]
 
 EXPORTS.monkeycage.friend += [
+	"../public/friend/JSMEnvironment.h",
 	"../public/friend/PerformanceHint.h",
 	"../public/friend/UsageStatistics.h",
 	"../public/friend/WindowProxy.h",

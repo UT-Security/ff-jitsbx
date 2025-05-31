@@ -80,6 +80,11 @@ inline mozilla::MarkerInnerWindowId MarkerInnerWindowIdFromJSContext(
       nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(aContext));
 }
 
+inline mozilla::MarkerInnerWindowId MarkerInnerWindowIdFromJSContext(MCContext* aContext) {
+  return mozilla::MarkerInnerWindowId(
+      nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(MC_UNSAFE(aContext)));
+}
+
 // Bring category names from Base Profiler into the geckoprofiler::category
 // namespace, for consistency with other Gecko Profiler identifiers.
 namespace geckoprofiler::category {

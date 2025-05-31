@@ -46,7 +46,7 @@
 #include "nsCycleCollectionNoteRootCallback.h"
 #include "nsCycleCollector.h"
 #include "mcapi.h"
-#include "js/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
+#include "monkeycage/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
 #include "monkeycage/experimental/SourceHook.h"  // js::{,Set}SourceHook
 #include "monkeycage/GCAPI.h"
 #include "js/MemoryFunctions.h"
@@ -2946,7 +2946,8 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
       OnLargeAllocationFailureCallback);
 
   // The WasmAltDataType is build by the JS engine from the build id.
-  JS::SetProcessBuildIdOp(GetBuildId);
+  static auto GetBuildIdCb = MC::Sandbox::RegisterCallback(GetBuildId);
+  JS::SetProcessBuildIdOp(GetBuildIdCb);
   FetchUtil::InitWasmAltDataType();
 
   // The JS engine needs to keep the source code around in order to implement
