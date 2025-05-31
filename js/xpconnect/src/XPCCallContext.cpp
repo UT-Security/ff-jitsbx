@@ -17,7 +17,7 @@ using namespace xpc;
 using namespace JS;
 
 static inline bool IsTearoffClass(const JSClass* clazz) {
-  return clazz == &XPC_WN_Tearoff_JSClass;
+  return clazz == XPC_WN_Tearoff_JSClass();
 }
 
 XPCCallContext::XPCCallContext(

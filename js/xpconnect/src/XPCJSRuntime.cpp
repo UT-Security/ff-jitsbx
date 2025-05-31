@@ -2920,8 +2920,9 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
                                        this);
   JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
   if (XRE_IsE10sParentProcess()) {
-    JS::SetFilenameValidationCallback(
+    static auto ValidateScriptFilenameCb = MC::Sandbox::RegisterCallback(
         nsContentSecurityUtils::ValidateScriptFilename);
+    JS::SetFilenameValidationCallback(ValidateScriptFilenameCb);
   }
 
   static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(
@@ -3015,7 +3016,7 @@ bool XPCJSRuntime::InitializeStrings(MCContext* cx) {
 
 bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
                                          char (&name)[72]) const {
-  if (clasp != &XPC_WN_Proto_JSClass) {
+  if (clasp != XPC_WN_Proto_JSClass()) {
     return false;
   }
 
@@ -3038,7 +3039,7 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
 bool XPCJSRuntime::NoteCustomGCThingXPCOMChildren(
     const JSClass* clasp, JSObject* obj,
     nsCycleCollectionTraversalCallback& cb) const {
-  if (clasp != &XPC_WN_Tearoff_JSClass) {
+  if (clasp != XPC_WN_Tearoff_JSClass()) {
     return false;
   }
 

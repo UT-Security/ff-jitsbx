@@ -244,6 +244,12 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
     return MC_UNSAFE(mCx);
   }
 
+  MCContext* mcx() const {
+    MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
+    MOZ_ASSERT(IsStackTop());
+    return mCx;
+  }
+
 #ifdef DEBUG
   bool IsStackTop() const;
 #endif

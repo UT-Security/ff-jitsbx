@@ -15,6 +15,7 @@
 
 #include "mozilla/Assertions.h"
 #include "monkeycage/RootingAPI.h"
+#include "monkeycage/SandboxCallback.h"
 
 struct MCRuntime {
   MCRuntime* parent_;
@@ -90,6 +91,15 @@ inline MCRuntime* JS_GetRuntime(MCContext* cx) {
 inline void JS_SetFutexCanWait(MCContext* cx) {
   return JS_SetFutexCanWait(cx->cx_);
 }
+
+namespace JS {
+
+inline void SetFilenameValidationCallback(
+    MC::SandboxCallback<FilenameValidationCallback> cb) {
+  return SetFilenameValidationCallback(cb.UNSAFE_get());
+}
+}  // namespace JS
+
 #else
 using MCRuntime = JSRuntime;
 using MCContext = JSContext;

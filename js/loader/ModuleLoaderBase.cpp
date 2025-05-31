@@ -15,9 +15,9 @@
 #include "js/CompilationAndEvaluation.h"
 #include "js/ContextOptions.h"        // JS::ContextOptionsRef
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
-#include "js/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
+#include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/SourceText.h"
 #include "monkeycage/Value.h"
 #include "mozilla/BasePrincipal.h"
@@ -70,16 +70,22 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(ModuleLoaderBase)
 void ModuleLoaderBase::EnsureModuleHooksInitialized() {
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSRuntime* rt = JS_GetRuntime(jsapi.cx());
+  MCRuntime* rt = JS_GetRuntime(jsapi.mcx());
   if (JS::GetModuleResolveHook(rt)) {
     return;
   }
 
-  JS::SetModuleResolveHook(rt, HostResolveImportedModule);
-  JS::SetModuleMetadataHook(rt, HostPopulateImportMeta);
-  JS::SetScriptPrivateReferenceHooks(rt, HostAddRefTopLevelScript,
-                                     HostReleaseTopLevelScript);
-  JS::SetModuleDynamicImportHook(rt, HostImportModuleDynamically);
+  static auto HostResolveImportedModuleCb = MC::Sandbox::RegisterCallback(HostResolveImportedModule);
+  static auto HostPopulateImportMetaCb = MC::Sandbox::RegisterCallback(HostPopulateImportMeta);
+  static auto HostAddRefTopLevelScriptCb = MC::Sandbox::RegisterCallback(HostAddRefTopLevelScript);
+  static auto HostReleaseTopLevelScriptCb = MC::Sandbox::RegisterCallback(HostReleaseTopLevelScript);
+  static auto HostImportModuleDynamicallyCb = MC::Sandbox::RegisterCallback(HostImportModuleDynamically);
+
+  JS::SetModuleResolveHook(rt, HostResolveImportedModuleCb);
+  JS::SetModuleMetadataHook(rt, HostPopulateImportMetaCb);
+  JS::SetScriptPrivateReferenceHooks(rt, HostAddRefTopLevelScriptCb,
+                                     HostReleaseTopLevelScriptCb);
+  JS::SetModuleDynamicImportHook(rt, HostImportModuleDynamicallyCb);
 
   JS::ImportAssertionVector assertions;
   // ImportAssertionVector has inline storage for one element so this cannot

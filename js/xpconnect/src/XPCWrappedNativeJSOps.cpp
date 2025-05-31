@@ -518,14 +518,29 @@ static bool XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
+static auto XPC_WN_OnlyIWrite_AddPropertyStubCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_AddPropertyStub);
+  return inner_;
+}
+
 bool XPC_WN_CannotModifyPropertyStub(JSContext* cx, HandleObject obj,
                                      HandleId id, HandleValue v) {
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
+MC::SandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_CannotModifyPropertyStub);
+  return inner_;
+}
+
 bool XPC_WN_CannotDeletePropertyStub(JSContext* cx, HandleObject obj,
                                      HandleId id, ObjectOpResult& result) {
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
+}
+
+MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_CannotDeletePropertyStub);
+  return inner_;
 }
 
 bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
@@ -566,6 +581,11 @@ bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
   return true;
 }
 
+MC::SandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Shared_Enumerate);
+  return inner_;
+}
+
 /***************************************************************************/
 
 enum WNHelperType { WN_NOHELPER, WN_HELPER };
@@ -601,6 +621,11 @@ void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj) {
   WrappedNativeFinalize(gcx, obj, WN_NOHELPER);
 }
 
+MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_NoHelper_Finalize);
+  return inner_;
+}
+
 /*
  * General comment about XPConnect tracing: Given a C++ object |wrapper| and its
  * corresponding JS object |obj|, calling |wrapper->TraceSelf| will ask the JS
@@ -627,6 +652,11 @@ void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj) {
   XPCWrappedNative::Trace(trc, obj);
 }
 
+MC::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPCWrappedNative_Trace);
+  return inner_;
+}
+
 static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
                                     HandleId id, bool* resolvedp) {
   XPCCallContext ccx(cx, obj, nullptr, id);
@@ -649,31 +679,44 @@ static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
       resolvedp);
 }
 
-static const JSClassOps XPC_WN_NoHelper_JSClassOps = {
-    XPC_WN_OnlyIWrite_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,    // delProperty
-    XPC_WN_Shared_Enumerate,            // enumerate
-    nullptr,                            // newEnumerate
-    XPC_WN_NoHelper_Resolve,            // resolve
-    nullptr,                            // mayResolve
-    XPC_WN_NoHelper_Finalize,           // finalize
-    nullptr,                            // call
-    nullptr,                            // construct
-    XPCWrappedNative::Trace,            // trace
-};
+static const JSClassOps* XPC_WN_NoHelper_JSClassOps() {
+  static const JSClassOps inner_ = {
+      XPC_WN_OnlyIWrite_AddPropertyStubCb().UNSAFE_get(),  // addProperty
+      XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),    // delProperty
+      XPC_WN_Shared_EnumerateCb().UNSAFE_get(),            // enumerate
+      nullptr,                            // newEnumerate
+      MC::Sandbox::RegisterCallback(XPC_WN_NoHelper_Resolve).UNSAFE_get(),            // resolve
+      nullptr,                            // mayResolve
+      XPC_WN_NoHelper_FinalizeCb().UNSAFE_get(),           // finalize
+      nullptr,                            // call
+      nullptr,                            // construct
+      XPCWrappedNative_TraceCb().UNSAFE_get(),            // trace
+  };
 
-const js::ClassExtension XPC_WN_JSClassExtension = {
-    WrappedNativeObjectMoved,  // objectMovedOp
-};
+  return &inner_;
+}
 
-const JSClass XPC_WN_NoHelper_JSClass = {
+const js::ClassExtension* XPC_WN_JSClassExtension() {
+  static const js::ClassExtension inner_ = {
+    MC::Sandbox::RegisterCallback(WrappedNativeObjectMoved).UNSAFE_get(),  // objectMovedOp
+  };
+
+  return &inner_;
+}
+
+const JSClass* XPC_WN_NoHelper_JSClass() {
+  static const JSClass inner_ = {
     "XPCWrappedNative_NoHelper",
     JSCLASS_IS_WRAPPED_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(1) |
         JSCLASS_SLOT0_IS_NSISUPPORTS | JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_NoHelper_JSClassOps,
+    XPC_WN_NoHelper_JSClassOps(),
     JS_NULL_CLASS_SPEC,
-    &XPC_WN_JSClassExtension,
-    JS_NULL_OBJECT_OPS};
+    XPC_WN_JSClassExtension(),
+    JS_NULL_OBJECT_OPS
+  };
+
+  return &inner_;
+}
 
 /***************************************************************************/
 
@@ -689,6 +732,11 @@ bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, HandleObject obj,
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
+MC::SandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingPropertyStub);
+  return inner_;
+}
+
 bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
                                              HandleId id,
                                              ObjectOpResult& result) {
@@ -700,6 +748,11 @@ bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
     return result.succeed();
   }
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
+}
+
+MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingDeletePropertyStub);
+  return inner_;
 }
 
 // macro fun!
@@ -738,6 +791,11 @@ bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
   POST_HELPER_STUB
 }
 
+MC::SandboxCallback<JSNative> XPC_WN_Helper_CallCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Call);
+  return inner_;
+}
+
 bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MC::RootedObject obj(cx, &args.callee());
@@ -754,6 +812,11 @@ bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   PRE_HELPER_STUB
   Construct(wrapper, cx, obj, args, &retval);
   POST_HELPER_STUB
+}
+
+MC::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Construct);
+  return inner_;
 }
 
 static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
@@ -780,6 +843,11 @@ static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
 
 void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj) {
   WrappedNativeFinalize(gcx, obj, WN_HELPER);
+}
+
+MC::SandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Finalize);
+  return inner_;
 }
 
 // RAII class used to store the wrapper in the context when resolving a lazy
@@ -871,6 +939,11 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
   return retval;
 }
 
+MC::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Resolve);
+  return inner_;
+}
+
 /***************************************************************************/
 
 bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
@@ -898,6 +971,11 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
   return retval;
 }
 
+MC::SandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_NewEnumerate);
+  return inner_;
+}
+
 /***************************************************************************/
 /***************************************************************************/
 
@@ -921,7 +999,7 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
 // Components.utils because it implements nsIXPCScriptable (giving it a custom
 // JSClass) but not nsIClassInfo (which would put the methods on a prototype).
 
-#define IS_NOHELPER_CLASS(clasp) (clasp == &XPC_WN_NoHelper_JSClass)
+#define IS_NOHELPER_CLASS(clasp) (clasp == XPC_WN_NoHelper_JSClass())
 #define IS_CU_CLASS(clasp) \
   (clasp->name[0] == 'n' && !strcmp(clasp->name, "nsXPCComponents_Utils"))
 
@@ -1011,19 +1089,19 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
 
 /* static */
 XPCWrappedNativeProto* XPCWrappedNativeProto::Get(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass);
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass());
   return JS::GetMaybePtrFromReservedSlot<XPCWrappedNativeProto>(obj, ProtoSlot);
 }
 
 /* static */
 XPCWrappedNativeTearOff* XPCWrappedNativeTearOff::Get(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Tearoff_JSClass);
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Tearoff_JSClass());
   return JS::GetMaybePtrFromReservedSlot<XPCWrappedNativeTearOff>(obj,
                                                                   TearOffSlot);
 }
 
 static bool XPC_WN_Proto_Enumerate(JSContext* cx, HandleObject obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
     return false;
@@ -1082,7 +1160,7 @@ static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
                                                     HandleObject obj,
                                                     HandleId id,
                                                     HandleValue v) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
@@ -1104,7 +1182,7 @@ static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
 
 static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
                                  bool* resolvedp) {
-  MOZ_ASSERT(JS::GetClass(obj) == &XPC_WN_Proto_JSClass, "bad proto");
+  MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
@@ -1124,31 +1202,35 @@ static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_ENUMERATE, resolvedp);
 }
 
-static const JSClassOps XPC_WN_Proto_JSClassOps = {
-    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,          // delProperty
-    XPC_WN_Proto_Enumerate,                   // enumerate
-    nullptr,                                  // newEnumerate
-    XPC_WN_Proto_Resolve,                     // resolve
-    nullptr,                                  // mayResolve
-    XPC_WN_Proto_Finalize,                    // finalize
-    nullptr,                                  // call
-    nullptr,                                  // construct
-    nullptr,                                  // trace
-};
+const JSClass* XPC_WN_Proto_JSClass() {
+  static const JSClassOps XPC_WN_Proto_JSClassOps = {
+      MC::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_Proto_AddPropertyStub).UNSAFE_get(),  // addProperty
+      XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),          // delProperty
+      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Enumerate).UNSAFE_get(),                   // enumerate
+      nullptr,                                  // newEnumerate
+      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Resolve).UNSAFE_get(),                     // resolve
+      nullptr,                                  // mayResolve
+      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Finalize).UNSAFE_get(),                    // finalize
+      nullptr,                                  // call
+      nullptr,                                  // construct
+      nullptr,                                  // trace
+  };
 
-static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
-    XPC_WN_Proto_ObjectMoved,  // objectMovedOp
-};
+  static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
+      MC::Sandbox::RegisterCallback(XPC_WN_Proto_ObjectMoved).UNSAFE_get(),  // objectMovedOp
+  };
 
-const JSClass XPC_WN_Proto_JSClass = {
-    "XPC_WN_Proto_JSClass",
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeProto::SlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_Proto_JSClassOps,
-    JS_NULL_CLASS_SPEC,
-    &XPC_WN_Proto_ClassExtension,
-    JS_NULL_OBJECT_OPS};
+  static const JSClass inner_ = {
+      "XPC_WN_Proto_JSClass",
+      JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeProto::SlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &XPC_WN_Proto_JSClassOps,
+      JS_NULL_CLASS_SPEC,
+      &XPC_WN_Proto_ClassExtension,
+      JS_NULL_OBJECT_OPS};
+
+  return &inner_;
+}
 
 /***************************************************************************/
 
@@ -1212,26 +1294,30 @@ static size_t XPC_WN_TearOff_ObjectMoved(JSObject* obj, JSObject* old) {
   return 0;
 }
 
-static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
-    XPC_WN_OnlyIWrite_AddPropertyStub,  // addProperty
-    XPC_WN_CannotDeletePropertyStub,    // delProperty
-    XPC_WN_TearOff_Enumerate,           // enumerate
-    nullptr,                            // newEnumerate
-    XPC_WN_TearOff_Resolve,             // resolve
-    nullptr,                            // mayResolve
-    XPC_WN_TearOff_Finalize,            // finalize
-    nullptr,                            // call
-    nullptr,                            // construct
-    nullptr,                            // trace
-};
+const JSClass* XPC_WN_Tearoff_JSClass() {
+  static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
+      XPC_WN_OnlyIWrite_AddPropertyStubCb().UNSAFE_get(),  // addProperty
+      XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),    // delProperty
+      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Enumerate).UNSAFE_get(),           // enumerate
+      nullptr,                            // newEnumerate
+      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Resolve).UNSAFE_get(),             // resolve
+      nullptr,                            // mayResolve
+      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Finalize).UNSAFE_get(),            // finalize
+      nullptr,                            // call
+      nullptr,                            // construct
+      nullptr,                            // trace
+  };
 
-static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
-    XPC_WN_TearOff_ObjectMoved,  // objectMovedOp
-};
+  static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
+      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_ObjectMoved).UNSAFE_get(),  // objectMovedOp
+  };
 
-const JSClass XPC_WN_Tearoff_JSClass = {
-    "WrappedNative_TearOff",
-    JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeTearOff::SlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &XPC_WN_Tearoff_JSClassOps, JS_NULL_CLASS_SPEC,
-    &XPC_WN_Tearoff_JSClassExtension};
+  static const JSClass inner_ = {
+      "WrappedNative_TearOff",
+      JSCLASS_HAS_RESERVED_SLOTS(XPCWrappedNativeTearOff::SlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &XPC_WN_Tearoff_JSClassOps, JS_NULL_CLASS_SPEC,
+      &XPC_WN_Tearoff_JSClassExtension};
+
+  return &inner_;
+}
