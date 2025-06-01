@@ -352,15 +352,33 @@ class XPCStringConvert {
            callbacks == desiredCallbacks;
   }
 
+  static MOZ_ALWAYS_INLINE bool MaybeGetExternalStringChars(
+      mozilla::dom::JSTainted<JSString*> str, 
+      const JSExternalStringCallbacks* desiredCallbacks,
+      mozilla::dom::JSTainted<const char16_t**> chars) {
+    const JSExternalStringCallbacks* callbacks;
+    return JS::IsExternalString(str.UNSAFE_unverified_ref(), &callbacks, chars.UNSAFE_unverified_ref()) &&
+           callbacks == desiredCallbacks;
+  }
+
   // Returns non-null chars if the given string is a literal external string.
   static MOZ_ALWAYS_INLINE bool MaybeGetLiteralStringChars(
       JSString* str, const char16_t** chars) {
+    return MaybeGetExternalStringChars(str, &sLiteralExternalString, chars);
+  }
+  static MOZ_ALWAYS_INLINE bool MaybeGetLiteralStringChars(
+      mozilla::dom::JSTainted<JSString*> str, 
+      mozilla::dom::JSTainted<const char16_t**> chars) {
     return MaybeGetExternalStringChars(str, &sLiteralExternalString, chars);
   }
 
   // Returns non-null chars if the given string is a DOM external string.
   static MOZ_ALWAYS_INLINE bool MaybeGetDOMStringChars(JSString* str,
                                                        const char16_t** chars) {
+    return MaybeGetExternalStringChars(str, &sDOMStringExternalString, chars);
+  }
+  static MOZ_ALWAYS_INLINE bool MaybeGetDOMStringChars(mozilla::dom::JSTainted<JSString*> str,
+                                                       mozilla::dom::JSTainted<const char16_t**> chars) {
     return MaybeGetExternalStringChars(str, &sDOMStringExternalString, chars);
   }
 

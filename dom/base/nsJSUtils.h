@@ -131,16 +131,16 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
   return JS::CopyStringChars(cx, dest.BeginWriting(), s, len);
 }
 
-inline void AssignFromStringBuffer(nsStringBuffer* buffer, mozilla::dom::JSTainted<size_t> len,
+inline void AssignFromStringBuffer(nsStringBuffer* buffer, mozilla::Tainted<size_t> len,
                                    nsAString& dest) {
   buffer->ToString(len, dest);
 }
 
+
 template <typename T, typename std::enable_if_t<std::is_same<
                           typename T::char_type, char16_t>::value>* = nullptr>
 inline bool AssignJSString(JSContext* cx, T& dest, mozilla::dom::JSTainted<JSString*> s) {
-  mozilla::dom::JSTainted<size_t> len;
-  len.assign_raw_value(JS::GetStringLength(s.UNSAFE_unverified_ref()));
+  mozilla::Tainted<size_t> len (JS::GetStringLength(s.UNSAFE_unverified_ref()));
   static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
 
@@ -149,47 +149,55 @@ inline bool AssignJSString(JSContext* cx, T& dest, mozilla::dom::JSTainted<JSStr
     JS_ReportOutOfMemory(cx);
     return false;
   }
-  if (XPCStringConvert::MaybeGetDOMStringChars(s.UNSAFE_unverified_ref(), tchars.UNSAFE_unverified_ref())) {
+  auto verifyTaintedString = [] (const char16_t **uchars) {
+    return mozilla::dom::TaintedExternalStringBacking.has(*uchars);
+  };
+  if (XPCStringConvert::MaybeGetDOMStringChars(s, tchars)) {
     // The characters represent an existing string buffer that we shared with
     // JS.  We can share that buffer ourselves if the string corresponds to the
     // whole buffer; otherwise we have to copy.
-    const char16_t * v_chars = *(tchars.verify([] (const char16_t ** uchars) {
-      return mozilla::dom::TaintedExternalStringBacking.has(*uchars);
-    }));
+    const char16_t * v_chars = *(tchars.verify(verifyTaintedString));
     js_free(tchars.UNSAFE_unverified_ref());
     if(!v_chars) {
       return false;
     }
-    if (v_chars[len.UNSAFE_unverified_ref()] == '\0') {
+    size_t ulen = MOZ_NO_VALIDATE(len, 
+        "It doesn't really matter what the length is. If too long, we leak data, which is fine");
+    if (v_chars[ulen] == '\0') {
       AssignFromStringBuffer(
           nsStringBuffer::FromData(const_cast<char16_t*>(v_chars)), len, dest);
       return true;
     }
-  } else if (XPCStringConvert::MaybeGetLiteralStringChars(s.UNSAFE_unverified_ref(), tchars.UNSAFE_unverified_ref())) {
+  } else if (XPCStringConvert::MaybeGetLiteralStringChars(s, tchars)) {
     // The characters represent a literal char16_t string constant
     // compiled into libxul; we can just use it as-is.
-    const char16_t * chars = *(tchars.UNSAFE_unverified_ref());
+    size_t ulen = MOZ_NO_VALIDATE(len, "At worst, an attacker would just read more data from libxul.");
+    const char16_t * chars = *(tchars.verify(verifyTaintedString));
     js_free(tchars.UNSAFE_unverified_ref());
-    dest.AssignLiteral(chars, len.UNSAFE_unverified_ref());
+    dest.AssignLiteral(chars, ulen);
     return true;
   }
 
   // We don't bother checking for a dynamic-atom external string, because we'd
   // just need to copy out of it anyway.
 
-  if (MOZ_UNLIKELY(!dest.SetLength(len.UNSAFE_unverified_ref(), mozilla::fallible))) {
+  size_t ulen = MOZ_NO_VALIDATE(len, 
+    "We set the size of the destination buffer to the length, so no possibility of overflow"
+    "Setting the length in dest automatically inserts a null-terminator at the end as well"
+    );
+  if (MOZ_UNLIKELY(!dest.SetLength(ulen, mozilla::fallible))) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
 
-  char16_t *temp = (char16_t *)js_malloc(sizeof(char16_t) * (len.UNSAFE_unverified_ref() + 1));
+  char16_t *temp = (char16_t *)js_malloc(sizeof(char16_t) * (ulen + 1));
   if (MOZ_UNLIKELY(!temp)) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
-  bool worked = JS::CopyStringChars(cx, temp, s.UNSAFE_unverified_ref(), len.UNSAFE_unverified_ref());
+  bool worked = JS::CopyStringChars(cx, temp, s.UNSAFE_unverified_ref(), ulen);
   if(worked) {
-    std::copy_n(temp, len.UNSAFE_unverified_ref(), dest.BeginWriting());
+    std::copy_n(temp, ulen, dest.BeginWriting());
   }
   js_free(temp);
   return worked;

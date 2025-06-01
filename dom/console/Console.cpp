@@ -3609,11 +3609,6 @@ already_AddRefed<Console> Console::GetConsoleInternal(
   return debuggerScope->GetConsole(aRv);
 }
 
-void checkWindow(void * win) {
-	if(!mozilla::dom::TaintObj<nsGlobalWindowInner>::PtrTable.has(win)) 
-		MOZ_CRASH("Invalid window global");
-}
-
 already_AddRefed<Console> Console::GetConsoleInternal(
     const TaintedGlobalObject& aGlobal, ErrorResult& aRv) {
   // Window
@@ -3631,7 +3626,6 @@ already_AddRefed<Console> Console::GetConsoleInternal(
       return console.forget();
     }
 
-	checkWindow(static_cast<void*>(innerWindow));
 	nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(innerWindow);
     return window->GetConsole(aGlobal.Context(), aRv);
   }

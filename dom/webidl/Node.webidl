@@ -68,7 +68,7 @@ interface Node : EventTarget {
   // instead of the desired UA Widget scope.
   [CEReactions, Throws, Func="IsNotUAWidget"]
   Node insertBefore(Node node, Node? child);
-  [CEReactions, Throws, Func="IsNotUAWidget"]
+  [CEReactions, Throws, Tainted, Func="IsNotUAWidget"]
   Node appendChild(Node node);
   [CEReactions, Throws, Func="IsNotUAWidget"]
   Node replaceChild(Node node, Node child);

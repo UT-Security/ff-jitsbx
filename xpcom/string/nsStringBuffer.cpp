@@ -135,7 +135,7 @@ void nsStringBuffer::ToString(uint32_t aLen, nsAString& aStr,
   aStr.SetData(data, aLen, flags);
 }
 
-void nsStringBuffer::ToString(mozilla::dom::JSTainted<size_t> aLen, nsAString& aStr,
+void nsStringBuffer::ToString(mozilla::Tainted<size_t> aLen, nsAString& aStr,
                               bool aMoveOwnership) {
   char16_t* data = static_cast<char16_t*>(Data());
 
@@ -149,8 +149,8 @@ void nsStringBuffer::ToString(mozilla::dom::JSTainted<size_t> aLen, nsAString& a
     AddRef();
   }
   aStr.Finalize();
-  MOZ_ASSERT(aLen.UNSAFE_unverified_ref() <= StorageSize());
-  aStr.SetData(data, aLen.UNSAFE_unverified_ref(), flags);
+  size_t safe_aLen = MOZ_VALIDATE_AND_GET(aLen, aLen <= StorageSize());
+  aStr.SetData(data, safe_aLen, flags);
 }
 
 void nsStringBuffer::ToString(uint32_t aLen, nsACString& aStr,

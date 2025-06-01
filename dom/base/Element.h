@@ -41,6 +41,7 @@
 #include "mozilla/dom/NodeInfo.h"
 #include "mozilla/dom/RustTypes.h"
 #include "mozilla/dom/ShadowRootBinding.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsAtom.h"
 #include "nsAttrValue.h"
 #include "nsAttrValueInlines.h"
@@ -220,7 +221,8 @@ class Grid;
     SetAttr(nsGkAtoms::attr, aValue, aRv);                      \
   }
 
-class Element : public FragmentOrElement {
+class Element : public TaintObj<Element>,
+                public FragmentOrElement {
  public:
 #ifdef MOZILLA_INTERNAL_API
   explicit Element(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)

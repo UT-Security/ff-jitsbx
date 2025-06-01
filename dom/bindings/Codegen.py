@@ -5576,6 +5576,7 @@ def getJSToNativeConversionInfo(
     isCallbackReturnValue=False,
     sourceDescription="value",
     nestingLevel="",
+    isTainted=False
 ):
     """
     Get a template for converting a JS value to a native object based on the
@@ -5769,7 +5770,7 @@ def getJSToNativeConversionInfo(
             # used as a template later, and val will be filled in then.
             templateBody = fill(
                 """
-                if ($${val}.isObject()) {
+                if ($${val}.${maybeTaint}isObject()) {
                   $*{templateBody}
                 $*{elifLine}
                   $*{elifBody}
@@ -5777,6 +5778,7 @@ def getJSToNativeConversionInfo(
                   $*{failureBody}
                 }
                 """,
+                maybeTaint = "get().UNSAFE_unverified_ref()." if isTainted else "",
                 templateBody=templateBody,
                 elifLine=elifLine,
                 elifBody=elifBody,
@@ -7625,6 +7627,7 @@ class CGArgumentConverter(CGThing):
             isMember="Variadic" if self.argument.variadic else False,
             allowTreatNonCallableAsNull=self.argument.allowTreatNonCallableAsNull(),
             sourceDescription=self.argDescription,
+            isTainted=self.tainted
         )
 
         if not self.argument.variadic:
@@ -9906,10 +9909,11 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0 and not method.isMaplikeOrSetlikeOrIterableMethod():
                 code = fill(
                     """
-                    if (!args.requireAtLeast(cx, "${methodName}", ${requiredArgs})) {
+                    if (!args.requireAtLeast(cx, "${methodName}", ${requiredArgs})${taintUnsafe}) {
                       return false;
                     }
                     """,
+                    taintUnsafe = ".UNSAFE_unverified_ref()" if isTainted else "",
                     requiredArgs=requiredArgs,
                     methodName=methodName,
                 )
@@ -10603,15 +10607,24 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
     can call with lower overhead.
     """
 
-    def __init__(self, descriptor, method):
+    def __init__(self, descriptor, method, isTainted=False):
         self.method = method
+        self.tainted = isTainted
         name = CppKeywords.checkMethodName(IDLToCIdentifier(method.identifier.name))
-        args = [
-            Argument("JSContext*", "cx"),
-            Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("void*", "void_self"),
-            Argument("const JSJitMethodCallArgs&", "args"),
-        ]
+        if isTainted:
+            args = [
+                Argument("JSContext*", "cx"),
+                Argument("JS::Handle<JSObject*>", "obj"),
+                Argument("void*", "void_self"),
+                Argument("const JSJitMethodCallArgs&", "temp_args"),
+            ]
+        else:
+            args = [
+                Argument("JSContext*", "cx"),
+                Argument("JS::Handle<JSObject*>", "obj"),
+                Argument("void*", "void_self"),
+                Argument("const JSJitMethodCallArgs&", "args"),
+            ]
         CGAbstractStaticMethod.__init__(
             self, descriptor, name, "bool", args, canRunScript=True
         )
@@ -10648,14 +10661,27 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
                 nativeType=self.descriptor.nativeType,
                 call=call,
             )
-        return prefix + fill(
-            """
-            auto* self = static_cast<${nativeType}*>(void_self);
-            $*{call}
-            """,
-            nativeType=self.descriptor.nativeType,
-            call=call,
-        )
+        if self.tainted:
+            return prefix + fill(
+                """
+                auto args = 
+                    reinterpret_cast<const JSTainted<JSJitMethodCallArgs>&>(temp_args);
+                JSAppPtr<${nativeType}> taint_self = void_self;
+                auto* self = taint_self.verify_as_type();
+                $*{call}
+                """,
+                nativeType=self.descriptor.nativeType,
+                call=call,
+            )
+        else:
+            return prefix + fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                $*{call}
+                """,
+                nativeType=self.descriptor.nativeType,
+                call=call,
+            )
 
     def auto_profiler_label(self):
         interface_name = self.descriptor.interface.identifier.name
@@ -11154,7 +11180,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
             prefix = fill(
                 """
                 JSAppPtr<${nativeType}> taint_self (void_self);
-                auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);
+                auto* self = taint_self.verify_as_type();
                 JSTaintedJitGetterCallArgs test_args (
                     JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
                         reinterpret_cast<JSTainted<JS::Value>*>(args.rval().address())
@@ -11454,7 +11480,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
             return prefix + fill(
                 """
                 JSAppPtr<${nativeType}> taint_self (void_self);
-                auto* self = taint_self.verify<${nativeType}>(TaintObj<${nativeType}>::PtrTable);                
+                auto* self = taint_self.verify_as_type();                
                 $*{call}
                 """,
                 nativeType=self.descriptor.nativeType,
@@ -16554,14 +16580,14 @@ class CGDescriptor(CGThing):
                     not m.isIdentifierLess()
                     or m == descriptor.operations["Stringifier"]
                 ):
+                    tainted = m.getExtendedAttribute("Tainted")
                     if m.isStatic():
                         assert descriptor.interface.hasInterfaceObject()
-                        tainted = m.getExtendedAttribute("Tainted")
                         cgThings.append(CGStaticMethod(descriptor, m, tainted))
                         if m.returnsPromise():
                             cgThings.append(CGStaticMethodJitinfo(m))
                     elif descriptor.interface.hasInterfacePrototypeObject():
-                        specializedMethod = CGSpecializedMethod(descriptor, m)
+                        specializedMethod = CGSpecializedMethod(descriptor, m, tainted)
                         cgThings.append(specializedMethod)
                         if m.returnsPromise():
                             cgThings.append(

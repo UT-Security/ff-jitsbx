@@ -72,6 +72,14 @@ class JSAppPtr {
     }
   }
 
+  T* verify_as_type(void) {
+    if(TaintObj<T>::PtrTable.has(static_cast<void*>(app_ptr))) {
+        return static_cast<T*>(app_ptr);
+    } else {
+        MOZ_CRASH("Invalid app pointer as native type");
+    }
+  }
+
   T* UNVERIFIED_ref(void) {
     return static_cast<T*>(app_ptr);
   }
@@ -511,7 +519,65 @@ class JSTaintedOperations<JS::CallArgs> {
   }
     
 };
-  
+
+template <>
+class JSTaintedOperations<const JSJitMethodCallArgs> {
+  public:
+
+    mozilla::Tainted<bool> requireAtLeast(JSContext* cx, const char* fnname,
+						unsigned required) {
+    mozilla::Tainted<bool> result (raw_ref().requireAtLeast(cx, fnname, required));
+    return result;
+  }
+
+  //Both are fine in the context of console since CallArgs is located on the stack
+  //probably won't be fine in the future where CallArgs is in sandbox memory (so SM can remove root, trigger a gc, then boom)
+  JSTaintedMutableHandle<JS::Value> operator[](unsigned i) {
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(raw_ref()[i].address()));
+  }
+
+  JSTaintedMutableHandle<JS::Value> rval() {
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(raw_ref().rval().address()));
+  }
+
+  private:
+  const JSJitMethodCallArgs raw_ref() {
+      return static_cast<JSTainted<const JSJitMethodCallArgs>*>(this)->get_raw_value_ref();
+  }
+    
+};
+
+template <>
+class JSTaintedOperations<JSJitMethodCallArgs> {
+  public:
+
+    JSTainted<bool> requireAtLeast(JSContext* cx, const char* fnname,
+						unsigned required) {
+    JSTainted<bool> result (raw_ref().requireAtLeast(cx, fnname, required));
+    return result;
+  }
+
+  //Both are fine in the context of console since CallArgs is located on the stack
+  //probably won't be fine in the future where CallArgs is in sandbox memory (so SM can remove root, trigger a gc, then boom)
+  JSTaintedMutableHandle<JS::Value> operator[](unsigned i) {
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(raw_ref()[i].address()));
+  }
+
+  JSTaintedMutableHandle<JS::Value> rval() {
+    return JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+        reinterpret_cast<JSTainted<JS::Value>*>(raw_ref().rval().address()));
+  }
+
+  private:
+  JSJitMethodCallArgs raw_ref() {
+      return static_cast<JSTainted< JSJitMethodCallArgs>*>(this)->get_raw_value_ref();
+  }
+    
+};
+   
 } //namespace DOM
 
 } //namespace mozilla

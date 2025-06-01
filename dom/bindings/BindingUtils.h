@@ -602,6 +602,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObjectWithCrossOriginAsserts(V&& obj,
   AssertStaticUnwrapOK<PrototypeID>();
   return UnwrapObject<PrototypeID, T>(obj, value, nullptr);
 }
+
 }  // namespace binding_detail
 
 template <prototypes::ID PrototypeID, class T>
