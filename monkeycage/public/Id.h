@@ -15,4 +15,17 @@ const JS::HandleId& VoidHandlePropertyKey();
 
 }
 
+#ifdef JS_SANDBOX
+
+#include "monkeycage/Context.h"
+
+namespace JS {
+
+inline PropertyKey GetWellKnownSymbolKey(MCContext* cx, SymbolCode which) {
+ return GetWellKnownSymbolKey(cx->cx_, which);
+}
+}
+
+#endif
+
 #endif

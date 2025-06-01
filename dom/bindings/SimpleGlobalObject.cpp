@@ -64,7 +64,7 @@ static const JSClass* SimpleGlobalClass() {
       nullptr,
       nullptr,
       MC::Sandbox::Address(JS_NewEnumerateStandardClasses),
-      MC::Sandbox::Address(JS_ResolveStandardClass),
+      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),
       MC::Sandbox::Address(JS_MayResolveStandardClass),
       SimpleGlobal_finalize,
       nullptr,

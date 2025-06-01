@@ -518,7 +518,7 @@ static const JSClass* SandboxClass() {
       nullptr,                         // delProperty
       nullptr,                         // enumerate
       MC::Sandbox::Address(JS_NewEnumerateStandardClasses),  // newEnumerate
-      MC::Sandbox::Address(JS_ResolveStandardClass),         // resolve
+      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),         // resolve
       MC::Sandbox::Address(JS_MayResolveStandardClass),      // mayResolve
       sandbox_finalize,                // finalize
       nullptr,                         // call

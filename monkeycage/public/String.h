@@ -23,6 +23,16 @@ inline JSString* JS_NewStringCopyZ(MCContext* cx, const char* s) {
   return JS_NewStringCopyZ(cx->cx_, s);
 }
 
+
+inline JSString* JS_AtomizeStringN(MCContext* cx, const char* s,
+                                                 size_t length) {
+  return JS_AtomizeStringN(cx->cx_, s, length);
+}
+
+inline JSString* JS_AtomizeString(MCContext* cx, const char* s) {
+  return JS_AtomizeString(cx->cx_, s);
+}
+
 inline JSString* JS_AtomizeAndPinStringN(MCContext* cx, const char* s,
                                          size_t length) {
   return JS_AtomizeAndPinStringN(cx->cx_, s, length);

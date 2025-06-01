@@ -56,10 +56,10 @@
 
 #endif  // defined(XP_WIN)
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
-#include "js/PropertyAndElement.h"  // JS_DefineObject, JS_DefineProperty, JS_GetProperty, JS_SetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineObject, JS_DefineProperty, JS_GetProperty, JS_SetProperty
 #include "BindingUtils.h"
 
 // Used to provide information on the OS
@@ -812,7 +812,7 @@ bool OSFileConstantsService::DefineOSFileConstants(
   if (!(objLibc = GetOrCreateObjectProperty(aCx, objConstants, "libc"))) {
     return false;
   }
-  if (!dom::DefineConstants(aCx, objLibc, gLibcProperties)) {
+  if (!dom::DefineConstants(JS_SanitizeContext(aCx), objLibc, gLibcProperties)) {
     return false;
   }
 

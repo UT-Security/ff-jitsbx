@@ -946,6 +946,12 @@ const Wrapper* Wrapper::wrapperHandler(const JSObject* wrapper) {
   // TODO(abhishek): the above assert is not enough to make the below cast safe.
   return static_cast<const Wrapper*>(GetProxyHandler(wrapper));
 }
+
+
+inline JSObject* CheckedUnwrapDynamic(JSObject* obj, MCContext* cx,
+                                             bool stopAtWindowProxy = true) {
+    return js::CheckedUnwrapDynamic(obj, cx->cx_, stopAtWindowProxy);
+}
 }
 #else
 namespace mc {

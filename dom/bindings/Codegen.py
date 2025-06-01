@@ -2199,7 +2199,8 @@ class CGClassConstructor(CGAbstractStaticMethod):
             # compartment.
             return fill(
                 """
-                return HTMLConstructor(cx, argc, vp,
+                MCContext* mcx = JS_SanitizeContext(cx);
+                return HTMLConstructor(mcx, argc, vp,
                                        constructors::id::${name},
                                        prototypes::id::${name},
                                        CreateInterfaceObjects);
@@ -2231,15 +2232,16 @@ class CGClassConstructor(CGAbstractStaticMethod):
 
         preamble = fill(
             """
+            MCContext* mcx = JS_SanitizeContext(cx);
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
             MC::Rooted<JSObject*> obj(cx, &args.callee());
             $*{conditionsCheck}
             if (!args.isConstructing()) {
-              return ThrowConstructorWithoutNew(cx, "${ctorName}");
+              return ThrowConstructorWithoutNew(mcx, "${ctorName}");
             }
 
             MC::Rooted<JSObject*> desiredProto(cx);
-            if (!GetDesiredProto(cx, args,
+            if (!GetDesiredProto(mcx, args,
                                  prototypes::id::${name},
                                  CreateInterfaceObjects,
                                  &desiredProto)) {
@@ -3642,9 +3644,10 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         call = fill(
             """
+            MCContext* mCx = JS_SanitizeContext(aCx);
             JS::Heap<JSObject*>* protoCache = ${protoCache};
             JS::Heap<JSObject*>* interfaceCache = ${interfaceCache};
-            dom::CreateInterfaceObjects(aCx, aGlobal, ${parentProto},
+            dom::CreateInterfaceObjects(mCx, aGlobal, ${parentProto},
                                         ${protoClass}, protoCache,
                                         ${constructorProto}, ${interfaceClass}, ${constructArgs}, ${isConstructorChromeOnly}, ${namedConstructors},
                                         interfaceCache,
@@ -4340,7 +4343,7 @@ def InitUnforgeablePropertiesOnHolder(
 
     defineUnforgeableAttrs = fill(
         """
-        if (!DefineLegacyUnforgeableAttributes(aCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableAttributes(mCx, ${holderName}, %s)) {
           $*{failureCode}
         }
         """,
@@ -4349,7 +4352,7 @@ def InitUnforgeablePropertiesOnHolder(
     )
     defineUnforgeableMethods = fill(
         """
-        if (!DefineLegacyUnforgeableMethods(aCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableMethods(mCx, ${holderName}, %s)) {
           $*{failureCode}
         }
         """,
@@ -4834,7 +4837,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // before doing anything with it.
             JSAutoRealm ar(aCx, aReflector);
 
-            if (!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties})) {
+            MCContext* mCx = JS_SanitizeContext(aCx);
+            if (!DefineProperties(mCx, aReflector, ${properties}, ${chromeProperties})) {
               $*{failureCode}
             }
             $*{unforgeable}
