@@ -3984,8 +3984,9 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
   }
 
   for (uint32_t i = 0; i < aData.Length(); ++i) {
-    JS::Rooted<JS::Value> v(aCx, aData[i].UNSAFE_unverified_ref());
-    if (v.isObject()) {
+    JSTaintedRooted<JS::Value> v(aCx);
+    v.set(aData[i].UNSAFE_unverified_ref());
+    if (v.get().UNSAFE_unverified_ref().isObject()) {
       Element* element = nullptr;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(Element, &v, element))) {
         if (i != 0) {
@@ -3997,7 +3998,8 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
     }
 
     JSTaintedRooted<JSString*> jsString(aCx);
-    jsString.set(JS_ValueToSource(aCx, v));
+    JS::Rooted<JS::Value> temp_rooted (aCx, v.get().UNSAFE_unverified_ref());
+    jsString.set(JS_ValueToSource(aCx, temp_rooted));
     if (!jsString) {
       continue;
     }
