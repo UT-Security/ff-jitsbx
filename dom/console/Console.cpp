@@ -415,8 +415,9 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       }
     }
 
-    JS::Rooted<JS::Value> value(aCx, JS::ObjectValue(*arguments));
-    return WriteData(aCx, value);
+    JSTaintedRooted<JS::Value> value(aCx);
+    value.set(JS::ObjectValue(*arguments));
+    return WriteData(aCx, &value);
   }
 
   // Helper method for Profile calls
@@ -463,6 +464,24 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   }
 
   bool WriteData(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+    // We use structuredClone to send the JSValue to the main-thread, in order
+    // to store it into the Console API Service. The consumer will be the
+    // console panel in the devtools and, because of this, we want to allow the
+    // cloning of sharedArrayBuffers and WASM modules.
+    JS::CloneDataPolicy cloneDataPolicy;
+    cloneDataPolicy.allowIntraClusterClonableSharedObjects();
+    cloneDataPolicy.allowSharedMemoryObjects();
+
+    if (NS_WARN_IF(
+            !Write(aCx, aValue, JS::UndefinedHandleValue, cloneDataPolicy))) {
+      // Ignore the message.
+      return false;
+    }
+
+    return true;
+  }
+
+  bool WriteData(JSContext* aCx, JSTaintedHandle<JS::Value> aValue) {
     // We use structuredClone to send the JSValue to the main-thread, in order
     // to store it into the Console API Service. The consumer will be the
     // console panel in the devtools and, because of this, we want to allow the
@@ -2785,10 +2804,15 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JSTainted<JS::Value>
         if (index < aData.Length()) {
           JS::Rooted<JS::Value> value(aCx, aData[index++].UNSAFE_unverified_ref());
 
-          double v;
-          if (NS_WARN_IF(!JS::ToNumber(aCx, value, &v))) {
+          JSTainted<double*> tv = (double*)js_malloc(sizeof(double));
+          if(!tv) {
             return false;
           }
+          double v;
+          if (NS_WARN_IF(!JS::ToNumber(aCx, value, tv.UNSAFE_unverified_ref()))) {
+            return false;
+          }
+          v = *(tv.UNSAFE_unverified_ref());
 
           // nspr returns "nan", but we want to expose it as "NaN"
           if (std::isnan(v)) {
@@ -3765,8 +3789,8 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
     // The 'timeStamp' recordings do not need an argument; use empty string
     // if no arguments passed in.
     if (isTimelineRecording && aMethodName == MethodTimeStamp) {
-        JS::Rooted<JS::Value> value(aCx, aData[0].UNSAFE_unverified_ref());
-        JSTaintedRooted<JSString*> jsString(aCx);
+      JS::Rooted<JS::Value> value(aCx, aData[0].UNSAFE_unverified_ref());
+      JSTaintedRooted<JSString*> jsString(aCx);
       jsString.set(JS::ToString(aCx, value));
 
       if(!jsString) {
@@ -3985,7 +4009,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
 
   for (uint32_t i = 0; i < aData.Length(); ++i) {
     JSTaintedRooted<JS::Value> v(aCx);
-    v.set(aData[i].UNSAFE_unverified_ref());
+    v.set(aData[i]);
     if (v.get().UNSAFE_unverified_ref().isObject()) {
       Element* element = nullptr;
       if (NS_SUCCEEDED(UNWRAP_OBJECT(Element, &v, element))) {

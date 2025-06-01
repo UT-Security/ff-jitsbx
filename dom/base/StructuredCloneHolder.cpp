@@ -42,6 +42,7 @@
 #include "mozilla/dom/ImageBitmap.h"
 #include "mozilla/dom/ImageBitmapBinding.h"
 #include "mozilla/dom/JSExecutionManager.h"
+#include "mozilla/dom/JSTainted.h"
 #include "mozilla/dom/MessagePort.h"
 #include "mozilla/dom/MessagePortBinding.h"
 #include "mozilla/dom/OffscreenCanvas.h"
@@ -274,6 +275,30 @@ bool StructuredCloneHolderBase::Write(
       mStructuredCloneScope, &StructuredCloneHolder::sCallbacks, this);
 
   if (!mBuffer->write(aCx, aValue, aTransfer, aCloneDataPolicy,
+                      &StructuredCloneHolder::sCallbacks, this)) {
+    mBuffer = nullptr;
+    return false;
+  }
+
+  // Let's update our scope to the final one. The new one could be more
+  // restrictive of the current one.
+  MOZ_ASSERT(mStructuredCloneScope >= mBuffer->scope());
+  mStructuredCloneScope = mBuffer->scope();
+  return true;
+}
+
+bool StructuredCloneHolderBase::Write(
+    JSContext* aCx, JSTaintedHandle<JS::Value> aValue,
+    JS::Handle<JS::Value> aTransfer,
+    const JS::CloneDataPolicy& aCloneDataPolicy) {
+  MOZ_ASSERT(!mBuffer, "Double Write is not allowed");
+  MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
+
+  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+      mStructuredCloneScope, &StructuredCloneHolder::sCallbacks, this);
+
+  JS::Rooted<JS::Value> temp (aCx, aValue.get().UNSAFE_unverified_ref());
+  if (!mBuffer->write(aCx, temp, aTransfer, aCloneDataPolicy,
                       &StructuredCloneHolder::sCallbacks, this)) {
     mBuffer = nullptr;
     return false;

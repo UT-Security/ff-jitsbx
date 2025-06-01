@@ -17,6 +17,7 @@
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/UniquePtr.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -118,6 +119,9 @@ class StructuredCloneHolderBase {
   // Like Write() but it supports the transferring of objects and handling
   // of cloning policy.
   bool Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+             JS::Handle<JS::Value> aTransfer,
+             const JS::CloneDataPolicy& aCloneDataPolicy);
+  bool Write(JSContext* aCx, JSTaintedHandle<JS::Value> aValue,
              JS::Handle<JS::Value> aTransfer,
              const JS::CloneDataPolicy& aCloneDataPolicy);
 
