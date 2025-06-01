@@ -17,6 +17,7 @@
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/GCVector.h"
 #include "monkeycage/GlobalObject.h"
+#include "monkeycage/Id.h"
 #include "monkeycage/Interrupt.h"
 #include "monkeycage/MemoryCallbacks.h"
 #include "monkeycage/Realm.h"
@@ -42,12 +43,55 @@ inline void JS_SetWrapObjectCallbacks(
   JS_SetWrapObjectCallbacks(cx->cx_, callbacks->UNSAFE_get());
 }
 
-inline bool JS_WrapObject(MCContext* cx, MC::MutableHandleObject objp) {
-  return JS_WrapObject(cx->cx_, objp.MC_INTERNAL_SAFE_get());
+inline bool JS_WrapObject(MCContext* cx, JS::MutableHandleObject objp) {
+  return JS_WrapObject(cx->cx_, objp);
 }
 
-inline bool JS_WrapValue(MCContext* cx, MC::MutableHandleValue vp) {
-  return JS_WrapValue(cx->cx_, vp.MC_INTERNAL_SAFE_get());
+inline bool JS_WrapValue(MCContext* cx, JS::MutableHandleValue vp) {
+  return JS_WrapValue(cx->cx_, vp);
+}
+
+inline bool JS_ResolveStandardClass(MCContext* cx, JS::HandleObject obj,
+                                    JS::HandleId id, bool* resolved) {
+  return JS_ResolveStandardClass(cx->cx_, obj, id, resolved);
+}
+
+inline bool JS_LinkConstructorAndPrototype(MCContext* cx,
+                                           JS::Handle<JSObject*> ctor,
+                                           JS::Handle<JSObject*> proto) {
+  return JS_LinkConstructorAndPrototype(cx->cx_, ctor, proto);
+}
+
+inline bool JS_InstanceOf(MCContext* cx, JS::Handle<JSObject*> obj,
+                          const JSClass* clasp, JS::CallArgs* args) {
+  return JS_InstanceOf(cx->cx_, obj, clasp, args);
+}
+
+inline bool JS_HasInstance(MCContext* cx, JS::Handle<JSObject*> obj,
+                           JS::Handle<JS::Value> v, bool* bp) {
+  return JS_HasInstance(cx->cx_, obj, v, bp);
+}
+
+inline JSObject* JS_GetConstructor(MCContext* cx, JS::Handle<JSObject*> proto) {
+  return JS_GetConstructor(cx->cx_, proto);
+}
+
+inline JSObject* JS_NewObject(MCContext* cx, const JSClass* clasp) {
+  return JS_NewObject(cx->cx_, clasp);
+}
+
+inline JSObject* JS_NewObjectWithGivenProto(MCContext* cx, const JSClass* clasp,
+                                     JS::Handle<JSObject*> proto) {
+  return JS_NewObjectWithGivenProto(cx->cx_, clasp, proto);
+}
+
+inline JSObject* JS_NewPlainObject(MCContext* cx) {
+  return JS_NewPlainObject(cx->cx_);
+}
+
+inline bool JS_SetPrototype(MCContext* cx, JS::HandleObject obj,
+                            JS::HandleObject proto) {
+  return JS_SetPrototype(cx->cx_, obj, proto);
 }
 
 inline void JS_SetParallelParsingEnabled(MCContext* cx, bool enabled) {

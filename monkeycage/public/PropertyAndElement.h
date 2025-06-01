@@ -8,6 +8,7 @@
 #ifndef mc_PropertyAndElement_h
 #define mc_PropertyAndElement_h
 
+#include "SandboxCallback.h"
 #include "js/PropertyAndElement.h"
 
 #ifdef JS_SANDBOX
@@ -200,9 +201,61 @@ inline bool JS_SetUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
  return JS_SetUCProperty(cx->cx_, obj, name, namelen, v);
 }
 
+//TODO(abhishek): Potentially need to change the JSPropertySpec args type.
+inline bool JS_DefineProperties(MCContext* cx, JS::Handle<JSObject*> obj,
+                                const JSPropertySpec* ps) {
+ return JS_DefineProperties(cx->cx_, obj, ps);
+}
+
+inline bool JS_AlreadyHasOwnPropertyById(MCContext* cx,
+                                         JS::Handle<JSObject*> obj,
+                                         JS::Handle<jsid> id, bool* foundp) {
+  return JS_AlreadyHasOwnPropertyById(cx->cx_, obj, id, foundp);
+}
+
+inline bool JS_AlreadyHasOwnProperty(MCContext* cx, JS::Handle<JSObject*> obj,
+                                     const char* name, bool* foundp) {
+  return JS_AlreadyHasOwnProperty(cx->cx_, obj, name, foundp);
+}
+
+inline bool JS_AlreadyHasOwnUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
+                                       const char16_t* name, size_t namelen,
+                                       bool* foundp) {
+  return JS_AlreadyHasOwnUCProperty(cx->cx_, obj, name, namelen, foundp);
+}
+
+inline bool JS_AlreadyHasOwnElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                                    uint32_t index, bool* foundp) {
+  return JS_AlreadyHasOwnElement(cx->cx_, obj, index, foundp);
+}
+
 inline bool JS_DefineFunctions(MCContext* cx, JS::Handle<JSObject*> obj,
                                const JSFunctionSpec* fs) {
   return JS_DefineFunctions(cx->cx_, obj, fs);
+}
+
+inline JSFunction* JS_DefineFunction(MCContext* cx, JS::Handle<JSObject*> obj,
+                                     const char* name,
+                                     MC::SandboxCallback<JSNative> call,
+                                     unsigned nargs, unsigned attrs) {
+  return JS_DefineFunction(cx->cx_, obj, name, call.UNSAFE_get(), nargs, attrs);
+}
+
+inline JSFunction* JS_DefineUCFunction(MCContext* cx, JS::Handle<JSObject*> obj,
+                                       const char16_t* name, size_t namelen,
+                                       MC::SandboxCallback<JSNative> call,
+                                       unsigned nargs, unsigned attrs) {
+  return JS_DefineUCFunction(cx->cx_, obj, name, namelen, call.UNSAFE_get(),
+                             nargs, attrs);
+}
+
+inline JSFunction* JS_DefineFunctionById(MCContext* cx,
+                                         JS::Handle<JSObject*> obj,
+                                         JS::Handle<jsid> id,
+                                         MC::SandboxCallback<JSNative> call,
+                                         unsigned nargs, unsigned attrs) {
+  return JS_DefineFunctionById(cx->cx_, obj, id, call.UNSAFE_get(), nargs,
+                               attrs);
 }
 
 #endif

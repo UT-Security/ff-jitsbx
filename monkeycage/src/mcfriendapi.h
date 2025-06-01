@@ -14,6 +14,32 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
 
+namespace js {
+inline JSFunction* DefineFunctionWithReserved(MCContext* cx, JSObject* obj,
+                                       const char* name,
+                                       MC::SandboxCallback<JSNative> call,
+                                       unsigned nargs, unsigned attrs) {
+  return DefineFunctionWithReserved(cx->cx_, obj, name, call.UNSAFE_get(),
+                                    nargs, attrs);
+}
+
+inline JSFunction* NewFunctionWithReserved(MCContext* cx,
+                                    MC::SandboxCallback<JSNative> call,
+                                    unsigned nargs, unsigned flags,
+                                    const char* name) {
+  return NewFunctionWithReserved(cx->cx_, call.UNSAFE_get(), nargs, flags,
+                                 name);
+}
+
+inline JSFunction* NewFunctionByIdWithReserved(MCContext* cx,
+                                        MC::SandboxCallback<JSNative> native,
+                                        unsigned nargs, unsigned flags,
+                                        jsid id) {
+  return NewFunctionByIdWithReserved(cx->cx_, native.UNSAFE_get(), nargs, flags,
+                                     id);
+}
+}  // namespace js
+
 namespace mc {
 
 struct JSDOMCallbacks {
@@ -66,7 +92,11 @@ inline void SetPreserveWrapperCallbacks(
     MC::Sandbox::Callback<HasReleasedWrapperCallback> hasReleasedWrapper) {
   return SetPreserveWrapperCallbacks(cx->cx_, preserveWrapper.UNSAFE_get(), hasReleasedWrapper.UNSAFE_get());
 }
+
+inline bool IsObjectInContextCompartment(JSObject* obj, const MCContext* cx) {
+  return IsObjectInContextCompartment(obj, cx->cx_);
 }
+}  // namespace js
 
 inline void JS_SetGrayGCRootsTracer(
     MCContext* cx, MC::Sandbox::Callback<JSGrayRootsTracer> traceOp,

@@ -30,6 +30,10 @@ inline void SetRealmNameCallback(
   return SetRealmNameCallback(cx->cx_, callback.UNSAFE_get());
 }
 
+inline Realm* GetFunctionRealm(MCContext* cx, HandleObject objArg) {
+  return GetFunctionRealm(cx->cx_, objArg);
+}
+
 inline JS::Realm* EnterRealm(MCContext* cx, JSObject* target) {
   return EnterRealm(cx->cx_, target);
 }

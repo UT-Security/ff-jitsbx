@@ -689,7 +689,7 @@ inline void DestroyProtoAndIfaceCache(JSObject* obj) {
 /**
  * Add constants to an object.
  */
-bool DefineConstants(JSContext* cx, JS::Handle<JSObject*> obj,
+bool DefineConstants(MCContext* cx, JS::Handle<JSObject*> obj,
                      const ConstantSpec* cs);
 
 struct JSNativeHolder {
@@ -767,7 +767,7 @@ struct LegacyFactoryFunction {
  */
 // clang-format on
 void CreateInterfaceObjects(
-    JSContext* cx, JS::Handle<JSObject*> global,
+    MCContext* cx, JS::Handle<JSObject*> global,
     JS::Handle<JSObject*> protoProto, const JSClass* protoClass,
     JS::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
     const JSClass* constructorClass, unsigned ctorNargs,
@@ -791,7 +791,7 @@ void CreateInterfaceObjects(
  *                  interface doesn't have any ChromeOnly properties or if the
  *                  object is being created in non-chrome compartment.
  */
-bool DefineProperties(JSContext* cx, JS::Handle<JSObject*> obj,
+bool DefineProperties(MCContext* cx, JS::Handle<JSObject*> obj,
                       const NativeProperties* properties,
                       const NativeProperties* chromeOnlyProperties);
 
@@ -799,14 +799,14 @@ bool DefineProperties(JSContext* cx, JS::Handle<JSObject*> obj,
  * Define the legacy unforgeable methods on an object.
  */
 bool DefineLegacyUnforgeableMethods(
-    JSContext* cx, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> obj,
     const Prefable<const JSFunctionSpec>* props);
 
 /*
  * Define the legacy unforgeable attributes on an object.
  */
 bool DefineLegacyUnforgeableAttributes(
-    JSContext* cx, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> obj,
     const Prefable<const JSPropertySpec>* props);
 
 #define HAS_MEMBER_TYPEDEFS \
@@ -1849,7 +1849,7 @@ void GetInterface(JSContext* aCx, T* aThis, JS::Handle<JS::Value> aIID,
 
 bool ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
 
-bool ThrowConstructorWithoutNew(JSContext* cx, const char* name);
+bool ThrowConstructorWithoutNew(MCContext* cx, const char* name);
 
 // Helper for throwing an "invalid this" exception.
 bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
@@ -2267,6 +2267,8 @@ enum { CONSTRUCTOR_NATIVE_HOLDER_RESERVED_SLOT = 0 };
 
 bool Constructor(JSContext* cx, unsigned argc, JS::Value* vp);
 
+MC::SandboxCallback<JSNative> ConstructorCb();
+
 // Implementation of the bits that XrayWrapper needs
 
 /**
@@ -2419,12 +2421,12 @@ extern const js::ObjectOps sInterfaceObjectClassObjectOps;
 
 inline bool UseDOMXray(JSObject* obj) {
   const JSClass* clasp = JS::GetClass(obj);
-  return IsDOMClass(clasp) || JS_IsNativeFunction(obj, Constructor) ||
+  return IsDOMClass(clasp) || JS_IsNativeFunction(obj, ConstructorCb().UNSAFE_get()) ||
          IsDOMIfaceAndProtoClass(clasp);
 }
 
 inline bool IsDOMConstructor(JSObject* obj) {
-  if (JS_IsNativeFunction(obj, dom::Constructor)) {
+  if (JS_IsNativeFunction(obj, dom::ConstructorCb().UNSAFE_get())) {
     // LegacyFactoryFunction, like Image
     return true;
   }
@@ -2438,7 +2440,7 @@ inline bool IsDOMConstructor(JSObject* obj) {
 
 #ifdef DEBUG
 inline bool HasConstructor(JSObject* obj) {
-  return JS_IsNativeFunction(obj, Constructor) ||
+  return JS_IsNativeFunction(obj, ConstructorCb().UNSAFE_get()) ||
          JS::GetClass(obj)->getConstruct();
 }
 #endif
@@ -2525,8 +2527,12 @@ bool InterfaceHasInstance(JSContext* cx, unsigned argc, JS::Value* vp);
 bool InterfaceHasInstance(JSContext* cx, int prototypeID, int depth,
                           JS::Handle<JSObject*> instance, bool* bp);
 
+MC::SandboxCallback<JSNative> InterfaceHasInstanceCb();
+
 // Used to implement the cross-context <Interface>.isInstance static method.
 bool InterfaceIsInstance(JSContext* cx, unsigned argc, JS::Value* vp);
+
+MC::SandboxCallback<JSNative> InterfaceIsInstanceCb();
 
 // Helper for lenient getters/setters to report to console.  If this
 // returns false, we couldn't even get a global.
@@ -3178,7 +3184,7 @@ bool GetObservableArrayBackingObject(
 // CallArgs.  The CallArgs must be for a constructor call.  The
 // aProtoId/aCreator arguments are used to get a default if we don't find a
 // prototype on the newTarget of the callargs.
-bool GetDesiredProto(JSContext* aCx, const JS::CallArgs& aCallArgs,
+bool GetDesiredProto(MCContext* aCx, const JS::CallArgs& aCallArgs,
                      prototypes::id::ID aProtoId,
                      CreateInterfaceObjectsMethod aCreator,
                      JS::MutableHandle<JSObject*> aDesiredProto);
@@ -3223,7 +3229,7 @@ namespace binding_detail {
 JSObject* UnprivilegedJunkScopeOrWorkerGlobal(const fallible_t&);
 
 // Implementation of the [HTMLConstructor] extended attribute.
-bool HTMLConstructor(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
+bool HTMLConstructor(MCContext* aCx, unsigned aArgc, JS::Value* aVp,
                      constructors::id::ID aConstructorId,
                      prototypes::id::ID aProtoId,
                      CreateInterfaceObjectsMethod aCreator);
