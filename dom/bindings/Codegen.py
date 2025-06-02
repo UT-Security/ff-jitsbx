@@ -1982,14 +1982,24 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
 
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, isTainted=False):
+        self.tainted = isTainted
         CGAbstractStaticMethod.__init__(self, descriptor, name, returnType, args)
 
     def definition_body_prologue(self):
-        return "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n" % (
-            self.descriptor.nativeType,
-            self.descriptor.nativeType,
-        )
+        if self.tainted:
+            return fill("""
+                          JSTaintedRooted<JSObject*> taint_obj(cx);
+                          taint_obj.set(obj);
+                          JSAppPtr<${nativeType}> taint_self = UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(obj);
+                          ${nativeType}* self = taint_self.verify_as_type();
+                          """,
+                          nativeType=self.descriptor.nativeType)
+        else:
+            return "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n" % (
+                self.descriptor.nativeType,
+                self.descriptor.nativeType,
+            )
 
     def definition_body(self):
         return self.definition_body_prologue() + self.generate_code()
@@ -2003,7 +2013,7 @@ class CGAddPropertyHook(CGAbstractClassHook):
     A hook for addProperty, used to preserve our wrapper from GC.
     """
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isTainted=False):
         args = [
             Argument("JSContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
@@ -2011,7 +2021,7 @@ class CGAddPropertyHook(CGAbstractClassHook):
             Argument("JS::Handle<JS::Value>", "val"),
         ]
         CGAbstractClassHook.__init__(
-            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args
+            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args, isTainted=isTainted
         )
 
     def generate_code(self):
@@ -16652,7 +16662,7 @@ class CGDescriptor(CGThing):
 
         if descriptor.concrete and not descriptor.proxy:
             if wantsAddProperty(descriptor):
-                cgThings.append(CGAddPropertyHook(descriptor))
+                cgThings.append(CGAddPropertyHook(descriptor, isTainted=descriptor.tainted))
 
             # Always have a finalize hook, regardless of whether the class
             # wants a custom hook.

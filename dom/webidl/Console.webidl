@@ -162,7 +162,7 @@ dictionary ConsoleCounterError {
   DOMString error = "";
 };
 
-[ChromeOnly,
+[ChromeOnly, Tainted,
  Exposed=(Window,Worker,WorkerDebugger,Worklet)]
 // This is basically a copy of the console namespace.
 interface ConsoleInstance {

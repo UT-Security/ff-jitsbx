@@ -432,6 +432,16 @@ class Descriptor(DescriptorProvider):
         self.config = config
         self.interface = interface
 
+        if not interface.isExternal:
+            self.tainted = interface.getExtendedAttribute("Tainted")
+        else:
+            #TODO(Anthony): actually make it taint
+            print("Interface name: " + str(interface))
+            if str(interface) == "Interface \'ConsoleInstance\'" :
+                self.tainted = True
+            else:
+                self.tainted = False
+
         self.wantsXrays = not interface.isExternal() and interface.isExposedInWindow()
 
         if self.wantsXrays:

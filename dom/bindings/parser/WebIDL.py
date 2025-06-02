@@ -552,7 +552,7 @@ class IDLExposureMixins:
 
 
 class IDLExternalInterface(IDLObjectWithIdentifier):
-    def __init__(self, location, parentScope, identifier):
+    def __init__(self, location, parentScope, identifier, isTainted=False):
         assert isinstance(identifier, IDLUnresolvedIdentifier)
         assert isinstance(parentScope, IDLScope)
         self.parent = None
@@ -2018,6 +2018,8 @@ class IDLInterface(IDLInterfaceOrNamespace):
                     self.identifier.name, self.globalNames
                 )
                 self._isOnGlobalProtoChain = True
+            elif identifier == "Tainted":
+                pass
             elif identifier == "LegacyWindowAlias":
                 if attr.hasValue():
                     self.legacyWindowAliases = [attr.value()]
