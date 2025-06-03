@@ -118,7 +118,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     if (NS_IsMainThread()) {
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
-      options.creationOptions().setTrace(xpc::TraceXPCGlobal);
+      options.creationOptions().setTrace(xpc::TraceXPCGlobalCb().UNSAFE_get());
       global = xpc::CreateGlobalObject(cx, SimpleGlobalClass(),
                                        nsJSPrincipals::get(principal), options);
     } else {

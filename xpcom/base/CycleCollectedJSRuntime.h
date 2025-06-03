@@ -16,7 +16,7 @@
 #include "mozilla/SegmentedVector.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 
 #include "nsCycleCollectionParticipant.h"
 #include "nsTHashMap.h"
@@ -449,8 +449,8 @@ class CycleCollectedJSRuntime {
   MCRuntime* mJSRuntime;
   bool mHasPendingIdleGCTask;
 
-  JS::GCSliceCallback mPrevGCSliceCallback;
-  JS::GCNurseryCollectionCallback mPrevGCNurseryCollectionCallback;
+  MC::SandboxCallback<JS::GCSliceCallback> mPrevGCSliceCallback;
+  MC::SandboxCallback<JS::GCNurseryCollectionCallback> mPrevGCNurseryCollectionCallback;
 
   mozilla::TimeStamp mLatestNurseryCollectionStart;
 

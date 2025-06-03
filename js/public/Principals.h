@@ -56,6 +56,38 @@ struct JSPrincipals {
   JS_PUBLIC_API void dump();
 };
 
+#ifdef JS_SANDBOX
+
+namespace sandbox {
+
+struct JS_PUBLIC_API JSPrincipals : public ::JSPrincipals {
+public:
+  using WriteOp = bool (*)(void* p, JSContext*, JSStructuredCloneWriter*);
+  using IsSystemOrAddonPrincipalOp = bool (*)(void* p);
+
+  struct Ops {
+    WriteOp write;
+    IsSystemOrAddonPrincipalOp isSystemOrAddonPrincipal;
+  };
+
+private:
+  const Ops* ops_;
+  void* principals_;
+
+public:
+  JSPrincipals(const Ops* ops, void* principals);
+
+  void* getPrincipals() { return principals_; }
+
+  virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) override;
+
+  virtual bool isSystemOrAddonPrincipal() override;
+};
+
+}  // namespace sandbox
+
+#endif
+
 extern JS_PUBLIC_API void JS_HoldPrincipals(JSPrincipals* principals);
 
 extern JS_PUBLIC_API void JS_DropPrincipals(JSContext* cx,

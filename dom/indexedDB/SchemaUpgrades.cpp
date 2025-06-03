@@ -25,10 +25,10 @@
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
 #include "SafeRefPtr.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "js/StructuredClone.h"
-#include "js/Value.h"
-#include "jsapi.h"
+#include "monkeycage/Value.h"
+#include "mcapi.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageFunction.h"
 #include "mozIStorageStatement.h"
@@ -2802,7 +2802,9 @@ class DeserializeUpgradeValueHelper final : public Runnable {
   nsresult DeserializeUpgradeValue(JSContext* aCx,
                                    JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        StructuredCloneReadCallback<StructuredCloneReadInfoParent>,
+        MC::Sandbox::RegisterCallback(
+            StructuredCloneReadCallback<StructuredCloneReadInfoParent>)
+            .UNSAFE_get(),
         nullptr,
         nullptr,
         nullptr,

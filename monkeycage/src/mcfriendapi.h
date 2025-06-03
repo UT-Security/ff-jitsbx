@@ -12,6 +12,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Principals.h"
 #include "monkeycage/Sandbox.h"
 
 namespace js {
@@ -55,6 +56,13 @@ public:
 
 using DOMCallbacks = struct JSDOMCallbacks;
 
+}
+
+namespace JS {
+
+inline void SetRealmPrincipals(JS::Realm* realm, MCPrincipals* principals) {
+  return SetRealmPrincipals(realm, principals->inner_);
+}
 }
 
 namespace js {
@@ -104,10 +112,135 @@ inline void JS_SetGrayGCRootsTracer(
   return JS_SetGrayGCRootsTracer(cx->cx_, traceOp.UNSAFE_get(), data);
 }
 
+namespace mc {
+class CompartmentTransplantCallback {
+ public:
+  js::CompartmentTransplantCallback* inner_;
+ private:
+
+  static JSObject* getObjectToTransplantCb(void* p, JS::Compartment* compartment) {
+    auto outer = static_cast<CompartmentTransplantCallback*>(p);      
+    return outer->getObjectToTransplant(compartment);
+  }
+
+  MC::SandboxCallback<js::sandbox::CompartmentTransplantCallback::GetObjectToTransplantOp> op() {
+    static auto inner_ = MC::Sandbox::RegisterCallback(getObjectToTransplantCb);
+    return inner_;
+  }
+ public:
+  CompartmentTransplantCallback() {
+    inner_ = js_new<js::sandbox::CompartmentTransplantCallback>(op().UNSAFE_get(), this);  
+  }
+
+  ~CompartmentTransplantCallback() {
+    js_free((void*)inner_);
+  }
+  
+  virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) = 0;
+};
+
+class CompartmentFilter {
+ public:
+  js::CompartmentFilter* inner_;
+
+ private:
+  static bool matchCb(const void* p, JS::Compartment* c) {
+    auto filter = static_cast<const CompartmentFilter*>(p);
+    return filter->match(c);
+  }
+
+  static MC::SandboxCallback<js::sandbox::CompartmentFilter::MatchOp> op() {
+    static auto inner_ = MC::Sandbox::RegisterCallback(matchCb);
+    return inner_;
+  }
+
+ public:
+  CompartmentFilter() {
+    inner_ = js_new<js::sandbox::CompartmentFilter>(op().UNSAFE_get(), this);
+  }
+
+  ~CompartmentFilter() { js_free((void*)inner_); }
+
+  virtual bool match(JS::Compartment* c) const = 0;
+};
+
+struct AllCompartments : public CompartmentFilter {
+  virtual bool match(JS::Compartment* c) const override { return true; }
+};
+
+struct SingleCompartment : public CompartmentFilter {
+  JS::Compartment* ours;
+  explicit SingleCompartment(JS::Compartment* c) : ours(c) {}
+  virtual bool match(JS::Compartment* c) const override { return c == ours; }
+};
+}  // namespace mc
+
+namespace js {
+
+inline void RemapRemoteWindowProxies(
+    JSContext* cx, mc::CompartmentTransplantCallback* callback,
+    JS::MutableHandleObject newTarget) {
+  return RemapRemoteWindowProxies(cx, callback->inner_, newTarget);  
+}
+
+inline bool NukeCrossCompartmentWrappers(
+    JSContext* cx, const mc::CompartmentFilter& sourceFilter, JS::Realm* target,
+    NukeReferencesToWindow nukeReferencesToWindow,
+    NukeReferencesFromTarget nukeReferencesFromTarget) {
+  return NukeCrossCompartmentWrappers(cx, *sourceFilter.inner_, target,
+                                      nukeReferencesToWindow,
+                                      nukeReferencesFromTarget);
+}
+}  // namespace js
+
+namespace mc {
+
+struct WeakMapTracer {
+  js::WeakMapTracer* inner_;
+
+ private:
+  static void traceCb(void* p, JSObject* m, JS::GCCellPtr key,
+                      JS::GCCellPtr value) {
+    auto tracer = static_cast<mc::WeakMapTracer*>(p);
+    return tracer->trace(m, key, value);
+  }
+
+  static MC::SandboxCallback<js::sandbox::WeakMapTracer::TraceOp> op() {
+    static auto inner_ = MC::Sandbox::RegisterCallback(traceCb);
+    return inner_;
+  }
+
+ public:
+  explicit WeakMapTracer(JSRuntime* rt) {
+    inner_ = js_new<js::sandbox::WeakMapTracer>(op().UNSAFE_get(), this, rt);
+  }
+
+  ~WeakMapTracer() { js_free((void*)inner_); }
+
+  virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
+};
+
+}  // namespace mc
+
+namespace js {
+  
+inline void TraceWeakMaps(mc::WeakMapTracer* trc) {
+  return TraceWeakMaps(trc->inner_);
+}
+
+}
+
 #else
 
 namespace mc {
 using DOMCallbacks = js::DOMCallbacks;
+using CompartmentTransplantCallback = js::CompartmentTransplantCallback;
+
+using CompartmentFilter = js::CompartmentFilter;
+using AllCompartments = js::AllCompartments;
+using SingleCompartment = js::SingleCompartment;
+
+using WeakMapTracer = js::WeakMapTracer;
 }
 
 #endif

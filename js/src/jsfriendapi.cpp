@@ -495,6 +495,17 @@ JS_PUBLIC_API JSObject* JS_NewDeadWrapper(JSContext* cx, JSObject* origObj) {
   return NewDeadProxyObject(cx, origObj);
 }
 
+#ifdef JS_SANDBOX
+js::sandbox::WeakMapTracer::WeakMapTracer(TraceOp traceOp, void* tracer,
+                                          JSRuntime* rt)
+    : js::WeakMapTracer(rt), traceOp_(traceOp), tracer_(tracer) {}
+
+void js::sandbox::WeakMapTracer::trace(JSObject* m, JS::GCCellPtr key,
+                                       JS::GCCellPtr value) {
+  return traceOp_(tracer_, m, key, value);
+}
+#endif
+
 void js::TraceWeakMaps(WeakMapTracer* trc) {
   WeakMapBase::traceAllMappings(trc);
 }

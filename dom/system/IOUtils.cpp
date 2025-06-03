@@ -607,8 +607,10 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         MC::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
+        static auto AppendJsonAsUtf8Cb =
+            MC::Sandbox::RegisterCallback(AppendJsonAsUtf8);
         if (!JS_Stringify(cx, &rootedValue, nullptr, MC::NullHandleValue(),
-                          AppendJsonAsUtf8, &utf8Str)) {
+                          AppendJsonAsUtf8Cb.UNSAFE_get(), &utf8Str)) {
           MC::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
           if (JS_GetPendingException(cx, &exn)) {
             JS_ClearPendingException(cx);

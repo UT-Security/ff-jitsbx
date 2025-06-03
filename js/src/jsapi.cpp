@@ -732,6 +732,17 @@ JS_PUBLIC_API JSObject* JS_TransplantObject(JSContext* cx, HandleObject origobj,
   return newIdentity;
 }
 
+#ifdef JS_SANDBOX
+js::sandbox::CompartmentTransplantCallback::CompartmentTransplantCallback(
+    GetObjectToTransplantOp op, void* outer)
+    : op_(op), outer_(outer) {}
+
+JSObject* js::sandbox::CompartmentTransplantCallback::getObjectToTransplant(
+    JS::Compartment* compartment) {
+  return op_(outer_, compartment);
+}
+#endif
+
 JS_PUBLIC_API void js::RemapRemoteWindowProxies(
     JSContext* cx, CompartmentTransplantCallback* callback,
     MutableHandleObject target) {
@@ -3373,6 +3384,24 @@ JS_EncodeStringToUTF8BufferPartial(JSContext* cx, JSString* str,
   CHECK_THREAD(cx);
   JS::AutoCheckCannotGC nogc;
   return str->encodeUTF8Partial(nogc, buffer);
+}
+
+JS_PUBLIC_API bool JS_EncodeStringToUTF8BufferPartial(
+    JSContext* cx, JSString* str, mozilla::Span<char> buffer, size_t* read,
+    size_t* written) {
+  AssertHeapIsIdle();
+  CHECK_THREAD(cx);
+  JS::AutoCheckCannotGC nogc;
+  auto maybe = str->encodeUTF8Partial(nogc, buffer);
+  if (!maybe) {
+    return false;
+  }
+
+  size_t readv, writtenv;
+  std::tie(readv, writtenv) = *maybe;
+  *read = readv;
+  *written = writtenv;
+  return true;
 }
 
 JS_PUBLIC_API JS::Symbol* JS::NewSymbol(JSContext* cx,

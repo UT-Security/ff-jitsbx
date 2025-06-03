@@ -8,7 +8,7 @@
 
 #include "xpcprivate.h"
 #include "XPCMaps.h"
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 
 #include "mozilla/MemoryReporting.h"
 #include "nsIScriptError.h"
@@ -64,7 +64,7 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
   // This is a method or attribute - we'll be needing a function object
 
   int argc;
-  JSNative callback;
+  MC::SandboxCallback<JSNative> callback{nullptr};
 
   if (IsMethod()) {
     const nsXPTMethodInfo* info;
@@ -78,10 +78,12 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
       argc--;
     }
 
-    callback = XPC_WN_CallMethod;
+    static auto XPC_WN_CallMethodCb = MC::Sandbox::RegisterCallback(XPC_WN_CallMethod);
+    callback = XPC_WN_CallMethodCb;
   } else {
     argc = 0;
-    callback = XPC_WN_GetterSetter;
+    static auto XPC_WN_GetterSetterCb = MC::Sandbox::RegisterCallback(XPC_WN_GetterSetter);
+    callback = XPC_WN_GetterSetterCb;
   }
 
   jsid name = GetName();
@@ -89,9 +91,9 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
 
   JSFunction* fun;
   if (name.isString()) {
-    fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, name);
+    fun = js::NewFunctionByIdWithReserved(ccx, callback.UNSAFE_get(), argc, 0, name);
   } else {
-    fun = js::NewFunctionWithReserved(ccx, callback, argc, 0, nullptr);
+    fun = js::NewFunctionWithReserved(ccx, callback.UNSAFE_get(), argc, 0, nullptr);
   }
   if (!fun) {
     return false;

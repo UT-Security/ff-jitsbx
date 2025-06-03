@@ -16,7 +16,7 @@
 #include "monkeycage/Id.h"
 #include "js/Object.h"  // JS::GetClass
 #include "js/Printf.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
 #include "js/Symbol.h"
 
 #include <string_view>
@@ -304,22 +304,26 @@ static bool DefinePropertyIfFound(
 
   if (!found) {
     if (reflectToStringAndToSource) {
-      JSNative call;
+      MC::SandboxCallback<JSNative> call{nullptr};
       if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_STRING)) {
-        call = XPC_WN_Shared_ToString;
+        static auto XPC_WN_Shared_ToStringCb =
+            MC::Sandbox::RegisterCallback(XPC_WN_Shared_ToString);
+        call = XPC_WN_Shared_ToStringCb;
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_STRING);
       } else if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_SOURCE)) {
-        call = XPC_WN_Shared_ToSource;
+        static auto XPC_WN_Shared_ToSourceCb =
+            MC::Sandbox::RegisterCallback(XPC_WN_Shared_ToSource);
+        call = XPC_WN_Shared_ToSourceCb;
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_SOURCE);
       } else if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
-        call = XPC_WN_Shared_toPrimitive;
+        static auto XPC_WN_Shared_toPrimitiveCb =
+            MC::Sandbox::RegisterCallback(XPC_WN_Shared_toPrimitive);
+        call = XPC_WN_Shared_toPrimitiveCb;
         name = "[Symbol.toPrimitive]";
-      } else {
-        call = nullptr;
       }
 
-      if (call) {
-        MC::RootedFunction fun(ccx, JS_NewFunction(ccx, call, 0, 0, name));
+      if (call.UNSAFE_get()) {
+        MC::RootedFunction fun(ccx, JS_NewFunction(ccx, call.UNSAFE_get(), 0, 0, name));
         if (!fun) {
           JS_ReportOutOfMemory(ccx);
           return false;
@@ -400,7 +404,9 @@ static bool DefinePropertyIfFound(
       id = xpccx->GetStringID(XPCJSContext::IDX_WRAPPED_JSOBJECT);
       name = xpccx->GetStringName(XPCJSContext::IDX_WRAPPED_JSOBJECT);
 
-      fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetter, 0, 0, name);
+      static auto XPC_WN_DoubleWrappedGetterCb =
+          MC::Sandbox::RegisterCallback(XPC_WN_DoubleWrappedGetter);
+      fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetterCb.UNSAFE_get(), 0, 0, name);
 
       if (!fun) {
         return false;
@@ -888,8 +894,10 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     if (scr->AllowPropModsDuringResolve()) {
       asrw.emplace(ccx, wrapper);
     }
+    static auto XPC_WN_Helper_HasInstanceCb =
+        MC::Sandbox::RegisterCallback(XPC_WN_Helper_HasInstance);
     if (!JS_DefineFunctionById(
-            cx, obj, id, XPC_WN_Helper_HasInstance, 1,
+            cx, obj, id, XPC_WN_Helper_HasInstanceCb.UNSAFE_get(), 1,
             JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING)) {
       rv = NS_ERROR_FAILURE;
     } else {

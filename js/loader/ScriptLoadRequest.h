@@ -341,7 +341,11 @@ class ScriptLoadRequest
   // Holds the SRI serialized hash and the script bytecode for non-inline
   // scripts. The data is laid out according to ScriptBytecodeDataLayout
   // or, if compression is enabled, ScriptBytecodeCompressedDataLayout.
+#ifdef JS_SANDBOX
+  mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy> mScriptBytecode;
+#else
   mozilla::Vector<uint8_t> mScriptBytecode;
+#endif
   uint32_t mBytecodeOffset;  // Offset of the bytecode in mScriptBytecode
 
   const nsCOMPtr<nsIURI> mURI;

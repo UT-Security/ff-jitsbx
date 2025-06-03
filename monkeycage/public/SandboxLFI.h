@@ -33,10 +33,19 @@ class SandboxLFI {
 
   template <typename T_Ret, typename... T_Args>
   static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(
-      T_Cb<T_Ret, T_Args...> callback) {
+      T_Cb<T_Ret, T_Args...> app_callback) {
     return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(
+        app_callback, reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
+                      monkeycage_register_cb((void*)app_callback, 0)));
+  }
+
+  template <typename T_Ret, typename... T_Args>
+  static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(
+      T_Cb<T_Ret, T_Args...> sbx_callback) {
+    return sbx_callback ? MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(
         reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
-            monkeycage_register_cb((void*)callback, 0)));
+            monkeycage_retrieve_cb((void*)sbx_callback)),
+        sbx_callback) :  MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>{nullptr};
   }
 };
 }  // namespace detail

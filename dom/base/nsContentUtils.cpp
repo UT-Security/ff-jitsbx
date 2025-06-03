@@ -47,11 +47,11 @@
 #include "js/Realm.h"
 #include "js/RegExp.h"
 #include "js/RegExpFlags.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
 #include "mcfriendapi.h"
 #include "mozAutoDocUpdate.h"
 #include "mozIDOMWindow.h"
@@ -10798,20 +10798,23 @@ static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
 bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                    nsAString& aOutStr, JSONBehavior aBehavior) {
   MOZ_ASSERT(aCx);
+
+  static auto JSONCreatorCb = MC::Sandbox::RegisterCallback(JSONCreator);
+  
   switch (aBehavior) {
     case UndefinedIsNullStringLiteral: {
       aOutStr.Truncate();
       MC::Rooted<JS::Value> value(aCx, aValue);
       nsAutoString serializedValue;
       NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, MC::NullHandleValue(),
-                                  JSONCreator, &serializedValue),
+                                  JSONCreatorCb.UNSAFE_get(), &serializedValue),
                      false);
       aOutStr = serializedValue;
       return true;
     }
     case UndefinedIsVoidString: {
       aOutStr.SetIsVoid(true);
-      return JS::ToJSON(aCx, aValue, nullptr, MC::NullHandleValue(), JSONCreator,
+      return JS::ToJSON(aCx, aValue, nullptr, MC::NullHandleValue(), JSONCreatorCb.UNSAFE_get(),
                         &aOutStr);
     }
     default:

@@ -60,24 +60,29 @@ static bool IID_Resolve(JSContext* cx, HandleObject obj, HandleId id,
 static bool IID_MayResolve(const JSAtomState& names, jsid id,
                            JSObject* maybeObj);
 
-static const JSClassOps sIID_ClassOps = {
-    nullptr,           // addProperty
-    nullptr,           // delProperty
-    nullptr,           // enumerate
-    IID_NewEnumerate,  // newEnumerate
-    IID_Resolve,       // resolve
-    IID_MayResolve,    // mayResolve
-    nullptr,           // finalize
-    nullptr,           // call
-    nullptr,           // construct
-    nullptr,           // trace
-};
-
 // Interface ID objects use a single reserved slot containing a pointer to the
 // nsXPTInterfaceInfo object for the interface in question.
 enum { kIID_InfoSlot, kIID_SlotCount };
-static const JSClass sIID_Class = {
-    "nsJSIID", JSCLASS_HAS_RESERVED_SLOTS(kIID_SlotCount), &sIID_ClassOps};
+
+static const JSClass* sIID_Class() {
+  static const JSClassOps sIID_ClassOps = {
+      nullptr,           // addProperty
+      nullptr,           // delProperty
+      nullptr,           // enumerate
+      MC::Sandbox::RegisterCallback(IID_NewEnumerate).UNSAFE_get(),  // newEnumerate
+      MC::Sandbox::RegisterCallback(IID_Resolve).UNSAFE_get(),       // resolve
+      MC::Sandbox::RegisterCallback(IID_MayResolve).UNSAFE_get(),    // mayResolve
+      nullptr,           // finalize
+      nullptr,           // call
+      nullptr,           // construct
+      nullptr,           // trace
+  };
+
+  static const JSClass inner_ = {
+      "nsJSIID", JSCLASS_HAS_RESERVED_SLOTS(kIID_SlotCount), &sIID_ClassOps};
+
+  return &inner_;
+}
 
 /******************************************************************************
  * # Contract IDs #
@@ -123,32 +128,40 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
         JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT;
     const uint32_t kNoEnum = JSPROP_READONLY | JSPROP_PERMANENT;
 
+    static auto ID_EqualsCb = MC::Sandbox::RegisterCallback(ID_Equals);
+    static auto ID_GetNumberCb = MC::Sandbox::RegisterCallback(ID_GetNumber);
+    static auto IID_HasInstanceCb = MC::Sandbox::RegisterCallback(IID_HasInstance);
+    static auto IID_GetNameCb = MC::Sandbox::RegisterCallback(IID_GetName);
+    static auto CID_CreateInstanceCb = MC::Sandbox::RegisterCallback(CID_CreateInstance);
+    static auto CID_GetServiceCb = MC::Sandbox::RegisterCallback(CID_GetService);
+    static auto CID_GetNameCb = MC::Sandbox::RegisterCallback(CID_GetName);
+
     bool ok =
         idProto && iidProto && cidProto &&
         // Methods and properties on all ID Objects:
-        JS_DefineFunction(aCx, idProto, "equals", ID_Equals, 1, kFlags) &&
-        JS_DefineProperty(aCx, idProto, "number", ID_GetNumber, nullptr,
+        JS_DefineFunction(aCx, idProto, "equals", ID_EqualsCb.UNSAFE_get(), 1, kFlags) &&
+        JS_DefineProperty(aCx, idProto, "number", ID_GetNumberCb.UNSAFE_get(), nullptr,
                           kFlags) &&
 
         // Methods for IfaceID objects, which also inherit ID properties:
-        JS_DefineFunctionById(aCx, iidProto, hasInstance, IID_HasInstance, 1,
+        JS_DefineFunctionById(aCx, iidProto, hasInstance, IID_HasInstanceCb.UNSAFE_get(), 1,
                               kNoEnum) &&
-        JS_DefineProperty(aCx, iidProto, "name", IID_GetName, nullptr,
+        JS_DefineProperty(aCx, iidProto, "name", IID_GetNameCb.UNSAFE_get(), nullptr,
                           kFlags) &&
 
         // Methods for ContractID objects, which also inherit ID properties:
-        JS_DefineFunction(aCx, cidProto, "createInstance", CID_CreateInstance,
+        JS_DefineFunction(aCx, cidProto, "createInstance", CID_CreateInstanceCb.UNSAFE_get(),
                           1, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "getService", CID_GetService, 1,
+        JS_DefineFunction(aCx, cidProto, "getService", CID_GetServiceCb.UNSAFE_get(), 1,
                           kFlags) &&
-        JS_DefineProperty(aCx, cidProto, "name", CID_GetName, nullptr,
+        JS_DefineProperty(aCx, cidProto, "name", CID_GetNameCb.UNSAFE_get(), nullptr,
                           kFlags) &&
 
         // ToString returns '.number' on generic IDs, while returning
         // '.name' on other ID types.
-        JS_DefineFunction(aCx, idProto, "toString", ID_GetNumber, 0, kFlags) &&
-        JS_DefineFunction(aCx, iidProto, "toString", IID_GetName, 0, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "toString", CID_GetName, 0, kFlags);
+        JS_DefineFunction(aCx, idProto, "toString", ID_GetNumberCb.UNSAFE_get(), 0, kFlags) &&
+        JS_DefineFunction(aCx, iidProto, "toString", IID_GetNameCb.UNSAFE_get(), 0, kFlags) &&
+        JS_DefineFunction(aCx, cidProto, "toString", CID_GetNameCb.UNSAFE_get(), 0, kFlags);
     if (!ok) {
       return nullptr;
     }
@@ -160,7 +173,7 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
 
   if (aClass == &sID_Class) {
     return scope->mIDProto;
-  } else if (aClass == &sIID_Class) {
+  } else if (aClass == sIID_Class()) {
     return scope->mIIDProto;
   } else if (aClass == &sCID_Class) {
     return scope->mCIDProto;
@@ -182,7 +195,7 @@ static JSObject* GetIDObject(HandleValue aVal, const JSClass* aClass) {
 }
 
 static const nsXPTInterfaceInfo* GetInterfaceInfo(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &sIID_Class);
+  MOZ_ASSERT(JS::GetClass(obj) == sIID_Class());
   return static_cast<const nsXPTInterfaceInfo*>(
       JS::GetReservedSlot(obj, kIID_InfoSlot).toPrivate());
 }
@@ -217,7 +230,7 @@ Maybe<nsID> JSValue2ID(JSContext* aCx, HandleValue aVal) {
     // Construct a nsID inside the Maybe, and copy the rawid into it.
     id.emplace();
     memcpy(id.ptr(), &rawid, sizeof(nsID));
-  } else if (JS::GetClass(obj) == &sIID_Class) {
+  } else if (JS::GetClass(obj) == sIID_Class()) {
     // IfaceID objects store a nsXPTInterfaceInfo* pointer.
     const nsXPTInterfaceInfo* info = GetInterfaceInfo(obj);
     id.emplace(info->IID());
@@ -279,7 +292,7 @@ bool ID2JSValue(JSContext* aCx, const nsID& aId, MutableHandleValue aVal) {
 
 bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
                      MutableHandleValue aVal) {
-  MC::RootedObject obj(aCx, NewIDObjectHelper(aCx, &sIID_Class));
+  MC::RootedObject obj(aCx, NewIDObjectHelper(aCx, sIID_Class()));
   if (!obj) {
     return false;
   }
@@ -473,7 +486,7 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
 static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  MC::RootedObject obj(aCx, GetIDObject(args.thisv(), &sIID_Class));
+  MC::RootedObject obj(aCx, GetIDObject(args.thisv(), sIID_Class()));
   if (!obj) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }

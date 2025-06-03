@@ -78,7 +78,7 @@
 #include "prtime.h"
 #include "xpcpublic.h"
 
-#include "js/Date.h"
+#include "monkeycage/Date.h"
 
 using namespace mozilla;
 
@@ -216,8 +216,11 @@ void nsRFPService::UpdateRFPPref() {
 
   bool resistFingerprinting = nsContentUtils::ShouldResistFingerprinting();
 
+  static auto ReduceTimePrecisionAsUSecsWrapperCb =
+      MC::Sandbox::RegisterCallback(
+          nsRFPService::ReduceTimePrecisionAsUSecsWrapper);
   JS::SetReduceMicrosecondTimePrecisionCallback(
-      nsRFPService::ReduceTimePrecisionAsUSecsWrapper);
+      ReduceTimePrecisionAsUSecsWrapperCb);
 
   // The JavaScript engine can already set the timezone per realm/global,
   // but we think there are still other users of libc that rely

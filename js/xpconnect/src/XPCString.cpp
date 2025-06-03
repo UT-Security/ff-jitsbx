@@ -21,19 +21,28 @@
 #include "nscore.h"
 #include "nsString.h"
 #include "nsStringBuffer.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "xpcpublic.h"
 
 using namespace JS;
 
-const XPCStringConvert::LiteralExternalString
-    XPCStringConvert::sLiteralExternalString;
+const XPCStringConvert::LiteralExternalString*
+XPCStringConvert::sLiteralExternalString() {
+  static const XPCStringConvert::LiteralExternalString inner_;
+  return &inner_;
+}
 
-const XPCStringConvert::DOMStringExternalString
-    XPCStringConvert::sDOMStringExternalString;
+const XPCStringConvert::DOMStringExternalString*
+XPCStringConvert::sDOMStringExternalString() {
+  static const XPCStringConvert::DOMStringExternalString inner_;
+  return &inner_;
+}
 
-const XPCStringConvert::DynamicAtomExternalString
-    XPCStringConvert::sDynamicAtomExternalString;
+const XPCStringConvert::DynamicAtomExternalString*
+XPCStringConvert::sDynamicAtomExternalString() {
+  static const XPCStringConvert::DynamicAtomExternalString inner_;
+  return &inner_;
+}
 
 void XPCStringConvert::LiteralExternalString::finalize(char16_t* aChars) const {
   // Nothing to do.

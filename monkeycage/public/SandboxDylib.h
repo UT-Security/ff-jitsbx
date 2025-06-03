@@ -32,6 +32,12 @@ class SandboxDylib {
       T_Cb<T_Ret, T_Args...> callback) {
     return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
   }
+
+  template <typename T_Ret, typename... T_Args>
+  static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(
+      T_Cb<T_Ret, T_Args...> callback) {
+    return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
+  }
 };
 }  // namespace detail
 }  // namespace MC

@@ -697,16 +697,19 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // Security policy:
   static const JSSecurityCallbacks securityCallbacks = {
-      ContentSecurityPolicyAllows};
+      MC::Sandbox::RegisterCallback(ContentSecurityPolicyAllows).UNSAFE_get()};
   JS_SetSecurityCallbacks(aWorkerCx, &securityCallbacks);
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoop,
+
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCb.UNSAFE_get(),
                               (void*)aWorkerPrivate);
 
-  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStream,
-                                FetchUtil::ReportJSStreamError);
+  static auto ConsumeStreamCb = MC::Sandbox::RegisterCallback(ConsumeStream);
+  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCb.UNSAFE_get(),
+                                FetchUtil::ReportJSStreamErrorCb().UNSAFE_get());
 
   // When available, set the self-hosted shared memory to be read, so that we
   // can decode the self-hosted content instead of parsing it.
@@ -718,9 +721,14 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
     return false;
   }
 
-  JS_AddInterruptCallback(aWorkerCx, InterruptCallback);
+  static auto InterruptCallbackCb =
+      MC::Sandbox::RegisterCallback(InterruptCallback);
+  JS_AddInterruptCallback(aWorkerCx, InterruptCallbackCb.UNSAFE_get());
 
-  JS::SetCTypesActivityCallback(aWorkerCx, CTypesActivityCallback);
+  static auto CTypesActivityCallbackCb =
+      MC::Sandbox::RegisterCallback(CTypesActivityCallback);
+  JS::SetCTypesActivityCallback(aWorkerCx,
+                                CTypesActivityCallbackCb.UNSAFE_get());
 
 #ifdef JS_GC_ZEAL
   JS_SetGCZeal(aWorkerCx, settings.gcZeal, settings.gcZealFrequency);

@@ -433,12 +433,14 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
   // Create callback argument and append it to the call arguments.
   MC::Rooted<JSObject*> sendResponseObj(aCx);
 
+  static auto SendResponseCallbackCallCb = MC::Sandbox::RegisterCallback(SendResponseCallback::Call);
+
   switch (mCallbackArgType) {
     case CallbackType::CALLBACK_NONE:
       break;
     case CallbackType::CALLBACK_SEND_RESPONSE: {
       MC::Rooted<JSFunction*> sendResponseFn(
-          aCx, js::NewFunctionWithReserved(aCx, SendResponseCallback::Call,
+          aCx, js::NewFunctionWithReserved(aCx, SendResponseCallbackCallCb.UNSAFE_get(),
                                            /* nargs */ 1, 0, "sendResponse"));
       sendResponseObj = JS_GetFunctionObject(sendResponseFn);
       MC::Rooted<JS::Value> sendResponseValue(

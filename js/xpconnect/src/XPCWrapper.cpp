@@ -9,7 +9,7 @@
 #include "WrapperFactory.h"
 #include "AccessCheck.h"
 
-#include "js/PropertyAndElement.h"  // JS_DefineFunction
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction
 
 using namespace xpc;
 using namespace mozilla;
@@ -64,14 +64,18 @@ static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
 bool AttachNewConstructorObject(JSContext* aCx,
                                 JS::HandleObject aGlobalObject) {
   JSAutoRealm ar(aCx, aGlobalObject);
+
+  static auto XrayWrapperConstructorCb = MC::Sandbox::RegisterCallback(XrayWrapperConstructor);
   JSFunction* xpcnativewrapper = JS_DefineFunction(
-      aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructor, 1,
+      aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructorCb.UNSAFE_get(), 1,
       JSPROP_READONLY | JSPROP_PERMANENT | JSFUN_CONSTRUCTOR);
   if (!xpcnativewrapper) {
     return false;
   }
   MC::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
-  return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNW, 1,
+
+  static auto UnwrapNWCb = MC::Sandbox::RegisterCallback(UnwrapNW);
+  return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNWCb.UNSAFE_get(), 1,
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }
 

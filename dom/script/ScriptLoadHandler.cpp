@@ -435,7 +435,11 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
 
       mRequest->mBytecodeOffset = JS::AlignTranscodingBytecodeOffset(sriLength);
 
+#ifdef JS_SANDBOX
+      Vector<uint8_t, 0, js::MallocAllocPolicy> compressedBytecode;
+#else
       Vector<uint8_t> compressedBytecode;
+#endif
       // mRequest has the compressed bytecode, but will be filled with the
       // uncompressed bytecode
       compressedBytecode.swap(mRequest->mScriptBytecode);

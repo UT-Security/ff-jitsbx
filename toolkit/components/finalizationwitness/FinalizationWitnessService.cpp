@@ -8,7 +8,7 @@
 #include "mcapi.h"
 #include "js/CallNonGenericMethod.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_DefineFunctions
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "nsIThread.h"
 
@@ -107,24 +107,27 @@ void Finalize(JS::GCContext* gcx, JSObject* objSelf) {
   // during shutdown. In that case, there is not much we can do.
 }
 
-static const JSClassOps sWitnessClassOps = {
-    nullptr /* addProperty */,
-    nullptr /* delProperty */,
-    nullptr /* enumerate */,
-    nullptr /* newEnumerate */,
-    nullptr /* resolve */,
-    nullptr /* mayResolve */,
-    Finalize /* finalize */
-};
+static const JSClass* sWitnessClass() {
+  static const JSClassOps sWitnessClassOps = {
+      nullptr /* addProperty */,
+      nullptr /* delProperty */,
+      nullptr /* enumerate */,
+      nullptr /* newEnumerate */,
+      nullptr /* resolve */,
+      nullptr /* mayResolve */,
+      MC::Sandbox::RegisterCallback(Finalize).UNSAFE_get() /* finalize */
+  };
 
-static const JSClass sWitnessClass = {
-    "FinalizationWitness",
-    JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS) |
-        JSCLASS_FOREGROUND_FINALIZE,
-    &sWitnessClassOps};
+  static const JSClass inner_ = {
+      "FinalizationWitness",
+      JSCLASS_HAS_RESERVED_SLOTS(WITNESS_INSTANCES_SLOTS) |
+          JSCLASS_FOREGROUND_FINALIZE,
+      &sWitnessClassOps};
+  return &inner_;
+}
 
 bool IsWitness(JS::Handle<JS::Value> v) {
-  return v.isObject() && JS::GetClass(&v.toObject()) == &sWitnessClass;
+  return v.isObject() && JS::GetClass(&v.toObject()) == sWitnessClass();
 }
 
 /**
@@ -158,8 +161,14 @@ bool Forget(JSContext* cx, unsigned argc, JS::Value* vp) {
   return JS::CallNonGenericMethod<IsWitness, ForgetImpl>(cx, args);
 }
 
-static const JSFunctionSpec sWitnessClassFunctions[] = {
-    JS_FN("forget", Forget, 0, JSPROP_READONLY | JSPROP_PERMANENT), JS_FS_END};
+static const JSFunctionSpec* sWitnessClassFunctions() {
+  static const JSFunctionSpec inner_[] = {
+      JS_FN("forget", MC::Sandbox::RegisterCallback(Forget).UNSAFE_get(), 0,
+            JSPROP_READONLY | JSPROP_PERMANENT),
+      JS_FS_END};
+
+  return inner_;
+}
 
 }  // namespace
 
@@ -182,11 +191,11 @@ NS_IMETHODIMP
 FinalizationWitnessService::Make(const char* aTopic, const char16_t* aValue,
                                  JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aRetval) {
-  MC::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, &sWitnessClass));
+  MC::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, sWitnessClass()));
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
-  if (!JS_DefineFunctions(aCx, objResult, sWitnessClassFunctions)) {
+  if (!JS_DefineFunctions(aCx, objResult, sWitnessClassFunctions())) {
     return NS_ERROR_FAILURE;
   }
 

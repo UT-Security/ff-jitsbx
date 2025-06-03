@@ -573,6 +573,36 @@ struct JSExternalStringCallbacks {
                               mozilla::MallocSizeOf mallocSizeOf) const = 0;
 };
 
+#ifdef JS_SANDBOX
+namespace sandbox {
+
+struct JS_PUBLIC_API JSExternalStringCallbacks : public ::JSExternalStringCallbacks {
+ public:
+  using FinalizeOp = void (*)(const void*, char16_t*);
+  using SizeOfBufferOp = size_t (*)(const void*, const char16_t*,
+                                    mozilla::MallocSizeOf mallocSizeOf);
+
+  struct Ops {
+    FinalizeOp finalize;
+    SizeOfBufferOp sizeOfBuffer;
+  };
+
+ private:
+  const Ops* ops_;
+  const void* callbacks_;
+
+ public:
+  JSExternalStringCallbacks(const Ops* ops, const void* callbacks);
+  
+  virtual void finalize(char16_t* chars) const override;
+  virtual size_t sizeOfBuffer(
+      const char16_t* chars, mozilla::MallocSizeOf mallocSizeOf) const override;
+
+  const void* getExternalStringCallbacks() const { return callbacks_; }
+};
+}  // namespace sandbox
+#endif
+
 namespace JS {
 
 #define GCREASONS(D)                                                   \

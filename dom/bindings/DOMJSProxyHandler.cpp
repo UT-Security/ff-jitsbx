@@ -66,7 +66,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
 struct SetDOMProxyInformation {
   SetDOMProxyInformation() {
     JS::SetDOMProxyInformation((const void*)&DOMProxyHandler::family,
-                               DOMProxyShadows,
+                               MC::Sandbox::RegisterCallback(DOMProxyShadows).UNSAFE_get(),
                                &RemoteObjectProxyBase::sCrossOriginProxyFamily);
   }
 };

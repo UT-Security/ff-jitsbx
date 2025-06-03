@@ -232,6 +232,7 @@ if CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 		"/js/public/sandbox/Promise.h",
 		"/js/public/sandbox/Proxy.h",
 		"/js/public/sandbox/SourceHook.h",
+		"/js/public/sandbox/TracingAPI.h",
 		"/js/public/sandbox/Wrapper.h",
 	]
 
@@ -330,12 +331,14 @@ EXPORTS += [
 ]
 
 EXPORTS.monkeycage += [
+	"../public/AllocationLogging.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",
 	"../public/CompileOptions.h",
 	"../public/Context.h",
 	"../public/ContextOptions.h",
+	"../public/Date.h",
 	"../public/Debug.h",
 	"../public/ErrorReport.h",
 	"../public/Exception.h",
@@ -361,7 +364,9 @@ EXPORTS.monkeycage += [
 	"../public/ShadowRealmCallbacks.h",
 	"../public/SourceText.h",
 	"../public/Stack.h",
+	"../public/StreamConsumer.h",
 	"../public/String.h",
+	"../public/TracingAPI.h",
 	"../public/TypeDecls.h",
 	"../public/UniquePtr.h",
 	"../public/Utility.h",

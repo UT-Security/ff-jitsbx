@@ -1271,7 +1271,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
                   "ScriptSecurityManager service.\n");
         } else {
           // fetch the JS principals and stick in a global
-          gJSPrincipals = nsJSPrincipals::get(systemprincipal);
+          gJSPrincipals = nsJSPrincipals::get(systemprincipal)->inner_;
           JS_HoldPrincipals(gJSPrincipals);
         }
       } else {

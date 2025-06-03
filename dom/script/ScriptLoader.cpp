@@ -2581,7 +2581,11 @@ void ScriptLoader::EncodeRequestBytecode(JSContext* aCx,
     return;
   }
 
+#ifdef JS_SANDBOX
+  Vector<uint8_t, 0, js::MallocAllocPolicy> compressedBytecode;
+#else
   Vector<uint8_t> compressedBytecode;
+#endif
   // TODO probably need to move this to a helper thread
   if (!ScriptBytecodeCompress(aRequest->mScriptBytecode,
                               aRequest->mBytecodeOffset, compressedBytecode)) {

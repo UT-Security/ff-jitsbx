@@ -9,7 +9,7 @@
 #include "AudioNodeEngine.h"
 #include "AudioNodeTrack.h"
 #include "AudioWorkletImpl.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/ForOfIterator.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty
 #include "mozilla/BasePrincipal.h"
@@ -61,7 +61,7 @@ bool AudioWorkletGlobalScope::WrapGlobalObject(
       IsSharedMemoryAllowed());
 
   return AudioWorkletGlobalScope_Binding::Wrap(
-      aCx, this, this, options, BasePrincipal::Cast(mImpl->Principal()), true,
+      aCx, this, this, options, BasePrincipal::Cast(mImpl->Principal())->inner_, true,
       aReflector);
 }
 

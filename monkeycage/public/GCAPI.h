@@ -11,12 +11,70 @@
 #ifndef mc_GCAPI_h
 #define mc_GCAPI_h
 
+#include "SandboxCallback.h"
 #include "js/GCAPI.h"
 
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
-#include "monkeycage/SandboxCallback.h"
+#include "monkeycage/Sandbox.h"
+
+struct MCExternalStringCallbacks {
+ public:
+  JSExternalStringCallbacks* inner_;
+
+ private:
+  static void finalizeCb(const void* p, char16_t* chars) {
+    auto callbacks = static_cast<const MCExternalStringCallbacks*>(p);
+    return callbacks->finalize(chars);
+  }
+
+  static size_t sizeOfBufferCb(const void* p, const char16_t* chars,
+                               mozilla::MallocSizeOf mallocSizeOf) {
+    auto callbacks = static_cast<const MCExternalStringCallbacks*>(p);
+    return callbacks->sizeOfBuffer(chars, mallocSizeOf);
+  }
+
+  static const sandbox::JSExternalStringCallbacks::Ops* ops() {
+    static const sandbox::JSExternalStringCallbacks::Ops inner_{
+        MC::Sandbox::RegisterCallback(finalizeCb).UNSAFE_get(),
+        MC::Sandbox::RegisterCallback(sizeOfBufferCb).UNSAFE_get(),
+    };
+
+    return &inner_;
+  }
+
+ public:
+  MCExternalStringCallbacks() {
+    inner_ = js_new<sandbox::JSExternalStringCallbacks>(ops(), (const void*)this);
+  }
+
+  ~MCExternalStringCallbacks() { js_free((void*)inner_); }
+
+  virtual void finalize(char16_t* chars) const = 0;
+  virtual size_t sizeOfBuffer(const char16_t* chars,
+                              mozilla::MallocSizeOf mallocSizeOf) const = 0;
+};
+
+inline JSString* JS_NewExternalString(
+    JSContext* cx, const char16_t* chars, size_t length,
+    const MCExternalStringCallbacks* callbacks) {
+    return JS_NewExternalString(cx, chars, length, callbacks->inner_);
+}
+
+inline JSString* JS_NewMaybeExternalString(
+    JSContext* cx, const char16_t* chars, size_t length,
+    const MCExternalStringCallbacks* callbacks, bool* allocatedExternal) {
+    return JS_NewMaybeExternalString(cx, chars, length, callbacks->inner_, allocatedExternal);
+}
+
+inline const MCExternalStringCallbacks* MC_GetExternalStringCallbacks(
+    JSString* str) {
+  return static_cast<const MCExternalStringCallbacks*>(
+      static_cast<const sandbox::JSExternalStringCallbacks*>(
+          JS_GetExternalStringCallbacks(str))
+          ->getExternalStringCallbacks());
+}
 
 namespace JS {
 
@@ -57,19 +115,27 @@ inline void FinishIncrementalGC(MCContext* cx, GCReason reason) {
     return FinishIncrementalGC(cx->cx_, reason);
 }
 
-inline GCSliceCallback SetGCSliceCallback(
+inline MC::SandboxCallback<GCSliceCallback> SetGCSliceCallback(
     MCContext* cx, MC::SandboxCallback<GCSliceCallback> callback) {
-  return SetGCSliceCallback(cx->cx_, callback.UNSAFE_get());
+  GCSliceCallback UNSAFE_callback = SetGCSliceCallback(cx->cx_, callback.UNSAFE_get());
+  return MC::Sandbox::RetrieveCallback(UNSAFE_callback);
 }
 
-inline GCNurseryCollectionCallback SetGCNurseryCollectionCallback(
+inline MC::SandboxCallback<GCNurseryCollectionCallback> SetGCNurseryCollectionCallback(
     MCContext* cx, MC::SandboxCallback<GCNurseryCollectionCallback> callback) {
- return SetGCNurseryCollectionCallback(cx->cx_, callback.UNSAFE_get()); 
+ GCNurseryCollectionCallback UNSAFE_callback = SetGCNurseryCollectionCallback(cx->cx_, callback.UNSAFE_get()); 
+ return MC::Sandbox::RetrieveCallback(UNSAFE_callback);
 }
 
-inline DoCycleCollectionCallback
+inline MC::SandboxCallback<DoCycleCollectionCallback>
 SetDoCycleCollectionCallback(MCContext* cx, MC::SandboxCallback<DoCycleCollectionCallback> callback) {
-    return SetDoCycleCollectionCallback(cx->cx_, callback.UNSAFE_get());
+    DoCycleCollectionCallback UNSAFE_callback = SetDoCycleCollectionCallback(cx->cx_, callback.UNSAFE_get());
+    return MC::Sandbox::RetrieveCallback(UNSAFE_callback);
+}
+
+inline void SetCreateGCSliceBudgetCallback(
+    MCContext* cx, MC::SandboxCallback<CreateSliceBudgetCallback> cb) {
+  return SetCreateGCSliceBudgetCallback(cx->cx_, cb.UNSAFE_get());
 }
 
 inline bool IsIncrementalGCInProgress(MCContext* cx) {
@@ -215,6 +281,10 @@ inline void JS_ScheduleGC(MCContext* cx, uint32_t count) {
 }
 
 #endif
+
+#else
+
+using MCExternalStringCallbacks = JSExternalStringCallbacks;
 
 #endif
 

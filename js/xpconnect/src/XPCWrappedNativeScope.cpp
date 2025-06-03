@@ -18,8 +18,8 @@
 #include "XPCMaps.h"
 #include "mozilla/Unused.h"
 #include "js/Object.h"              // JS::GetCompartment
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
-#include "js/RealmIterators.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
+#include "monkeycage/RealmIterators.h"
 #include "mozJSModuleLoader.h"
 
 #include "mozilla/dom/BindingUtils.h"
@@ -471,6 +471,18 @@ void XPCWrappedNativeScope::AddSizeOfAllScopesIncludingThis(
   }
 }
 
+static void AddSizeOfIncludingThisCallback(JSContext*, void* aData,
+                                           JS::Realm* aRealm,
+                                           const JS::AutoRequireNoGC& nogc) {
+  auto* scopeSizeInfo = static_cast<XPCWrappedNativeScope::ScopeSizeInfo*>(aData);
+  JSObject* global = GetRealmGlobalOrNull(aRealm);
+  if (global && dom::HasProtoAndIfaceCache(global)) {
+    dom::ProtoAndIfaceCache* cache = dom::GetProtoAndIfaceCache(global);
+    scopeSizeInfo->mProtoAndIfaceCacheSize +=
+        cache->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
+  }
+}
+
 void XPCWrappedNativeScope::AddSizeOfIncludingThis(
     JSContext* cx, ScopeSizeInfo* scopeSizeInfo) {
   scopeSizeInfo->mScopeAndMapSize += scopeSizeInfo->mMallocSizeOf(this);
@@ -479,17 +491,9 @@ void XPCWrappedNativeScope::AddSizeOfIncludingThis(
   scopeSizeInfo->mScopeAndMapSize +=
       mWrappedNativeProtoMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
 
-  auto realmCb = [](JSContext*, void* aData, JS::Realm* aRealm,
-                    const JS::AutoRequireNoGC& nogc) {
-    auto* scopeSizeInfo = static_cast<ScopeSizeInfo*>(aData);
-    JSObject* global = GetRealmGlobalOrNull(aRealm);
-    if (global && dom::HasProtoAndIfaceCache(global)) {
-      dom::ProtoAndIfaceCache* cache = dom::GetProtoAndIfaceCache(global);
-      scopeSizeInfo->mProtoAndIfaceCacheSize +=
-          cache->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
-    }
-  };
-  IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo, realmCb);
+  static auto realmCb = MC::Sandbox::RegisterCallback(AddSizeOfIncludingThisCallback);
+  IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo,
+                             realmCb.UNSAFE_get());
 
   // There are other XPCWrappedNativeScope members that could be measured;
   // the above ones have been seen by DMD to be worth measuring.  More stuff

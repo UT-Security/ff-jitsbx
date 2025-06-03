@@ -10,12 +10,12 @@
 #include "base/histogram.h"
 #include "geckoview/streaming/GeckoViewStreamingTelemetry.h"
 #include "ipc/TelemetryIPCAccumulator.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetMaybePtrFromReservedSlot, JS::SetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunction, JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunction, JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/gfx/GPUProcessManager.h"
 #include "mozilla/Atomics.h"
@@ -1646,19 +1646,24 @@ static constexpr uint32_t HistogramObjectSlotCount =
 
 void internal_JSHistogram_finalize(JS::GCContext*, JSObject*);
 
-static const JSClassOps sJSHistogramClassOps = {nullptr, /* addProperty */
-                                                nullptr, /* delProperty */
-                                                nullptr, /* enumerate */
-                                                nullptr, /* newEnumerate */
-                                                nullptr, /* resolve */
-                                                nullptr, /* mayResolve */
-                                                internal_JSHistogram_finalize};
+static const JSClass* sJSHistogramClass() {
+  static const JSClassOps sJSHistogramClassOps = {
+      nullptr, /* addProperty */
+      nullptr, /* delProperty */
+      nullptr, /* enumerate */
+      nullptr, /* newEnumerate */
+      nullptr, /* resolve */
+      nullptr, /* mayResolve */
+      MC::Sandbox::RegisterCallback(internal_JSHistogram_finalize).UNSAFE_get()};
 
-static const JSClass sJSHistogramClass = {
-    "JSHistogram", /* name */
-    JSCLASS_HAS_RESERVED_SLOTS(HistogramObjectSlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE, /* flags */
-    &sJSHistogramClassOps};
+  static const JSClass inner_ = {
+      "JSHistogram", /* name */
+      JSCLASS_HAS_RESERVED_SLOTS(HistogramObjectSlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE, /* flags */
+      &sJSHistogramClassOps};
+
+  return &inner_;
+}
 
 struct JSHistogramData {
   HistogramID histogramId;
@@ -1803,7 +1808,7 @@ bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
 }
 
 static JSHistogramData* GetJSHistogramData(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &sJSHistogramClass);
+  MOZ_ASSERT(JS::GetClass(obj) == sJSHistogramClass());
   return JS::GetMaybePtrFromReservedSlot<JSHistogramData>(
       obj, HistogramObjectDataSlot);
 }
@@ -1812,7 +1817,7 @@ bool internal_JSHistogram_Add(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSHistogram class");
     return false;
   }
@@ -1848,7 +1853,7 @@ bool internal_JSHistogram_Name(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSHistogram class");
     return false;
   }
@@ -1917,7 +1922,7 @@ bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
   }
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSHistogram class");
     return false;
   }
@@ -1980,7 +1985,7 @@ bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSHistogram class");
     return false;
   }
@@ -2014,18 +2019,23 @@ bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
                                          JS::MutableHandle<JS::Value> ret) {
-  MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSHistogramClass));
+  MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, sJSHistogramClass()));
   if (!obj) {
     return NS_ERROR_FAILURE;
   }
 
+  static auto internal_JSHistogram_AddCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Add);
+  static auto internal_JSHistogram_NameCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Name);
+  static auto internal_JSHistogram_SnapshotCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Snapshot);
+  static auto internal_JSHistogram_ClearCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Clear);
+
   // The 3 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_Add, 1, 0) &&
-        JS_DefineFunction(cx, obj, "name", internal_JSHistogram_Name, 1, 0) &&
-        JS_DefineFunction(cx, obj, "snapshot", internal_JSHistogram_Snapshot, 1,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_AddCb.UNSAFE_get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "name", internal_JSHistogram_NameCb.UNSAFE_get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "snapshot", internal_JSHistogram_SnapshotCb.UNSAFE_get(), 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", internal_JSHistogram_Clear, 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSHistogram_ClearCb.UNSAFE_get(), 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }
@@ -2038,7 +2048,7 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
 }
 
 void internal_JSHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
-  if (!obj || JS::GetClass(obj) != &sJSHistogramClass) {
+  if (!obj || JS::GetClass(obj) != sJSHistogramClass()) {
     MOZ_ASSERT_UNREACHABLE("Should have the right JS class.");
     return;
   }
@@ -2071,23 +2081,28 @@ namespace {
 
 void internal_JSKeyedHistogram_finalize(JS::GCContext*, JSObject*);
 
-static const JSClassOps sJSKeyedHistogramClassOps = {
-    nullptr, /* addProperty */
-    nullptr, /* delProperty */
-    nullptr, /* enumerate */
-    nullptr, /* newEnumerate */
-    nullptr, /* resolve */
-    nullptr, /* mayResolve */
-    internal_JSKeyedHistogram_finalize};
+static const JSClass* sJSKeyedHistogramClass() {
+  static const JSClassOps sJSKeyedHistogramClassOps = {
+      nullptr, /* addProperty */
+      nullptr, /* delProperty */
+      nullptr, /* enumerate */
+      nullptr, /* newEnumerate */
+      nullptr, /* resolve */
+      nullptr, /* mayResolve */
+      MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_finalize)
+          .UNSAFE_get()};
 
-static const JSClass sJSKeyedHistogramClass = {
-    "JSKeyedHistogram", /* name */
-    JSCLASS_HAS_RESERVED_SLOTS(HistogramObjectSlotCount) |
-        JSCLASS_FOREGROUND_FINALIZE, /* flags */
-    &sJSKeyedHistogramClassOps};
+  static const JSClass inner_ = {
+      "JSKeyedHistogram", /* name */
+      JSCLASS_HAS_RESERVED_SLOTS(HistogramObjectSlotCount) |
+          JSCLASS_FOREGROUND_FINALIZE, /* flags */
+      &sJSKeyedHistogramClassOps};
+
+  return &inner_;
+}
 
 static JSHistogramData* GetJSKeyedHistogramData(JSObject* obj) {
-  MOZ_ASSERT(JS::GetClass(obj) == &sJSKeyedHistogramClass);
+  MOZ_ASSERT(JS::GetClass(obj) == sJSKeyedHistogramClass());
   return JS::GetMaybePtrFromReservedSlot<JSHistogramData>(
       obj, HistogramObjectDataSlot);
 }
@@ -2103,7 +2118,7 @@ bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSKeyedHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSKeyedHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSKeyedHistogram class");
     return false;
   }
@@ -2164,7 +2179,7 @@ bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSKeyedHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSKeyedHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSKeyedHistogram class");
     return false;
   }
@@ -2224,7 +2239,7 @@ bool internal_JSKeyedHistogram_Name(JSContext* cx, unsigned argc,
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSKeyedHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSKeyedHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSKeyedHistogram class");
     return false;
   }
@@ -2247,7 +2262,7 @@ bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSKeyedHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSKeyedHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSKeyedHistogram class");
     return false;
   }
@@ -2319,7 +2334,7 @@ bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
-      JS::GetClass(&args.thisv().toObject()) != &sJSKeyedHistogramClass) {
+      JS::GetClass(&args.thisv().toObject()) != sJSKeyedHistogramClass()) {
     JS_ReportErrorASCII(cx, "Wrong JS class, expected JSKeyedHistogram class");
     return false;
   }
@@ -2364,19 +2379,26 @@ bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnKeyedHistogram(
     HistogramID id, JSContext* cx, JS::MutableHandle<JS::Value> ret) {
-  MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, &sJSKeyedHistogramClass));
+  MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, sJSKeyedHistogramClass()));
   if (!obj) return NS_ERROR_FAILURE;
+
+  static auto internal_JSKeyedHistogram_AddCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Add);
+  static auto internal_JSKeyedHistogram_NameCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Name);
+  static auto internal_JSKeyedHistogram_SnapshotCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Snapshot);
+  static auto internal_JSKeyedHistogram_KeysCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Keys);
+  static auto internal_JSKeyedHistogram_ClearCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Clear);
+  
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_Add, 2,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb.UNSAFE_get(), 2,
                           0) &&
-        JS_DefineFunction(cx, obj, "name", internal_JSKeyedHistogram_Name, 1,
+        JS_DefineFunction(cx, obj, "name", internal_JSKeyedHistogram_NameCb.UNSAFE_get(), 1,
                           0) &&
         JS_DefineFunction(cx, obj, "snapshot",
-                          internal_JSKeyedHistogram_Snapshot, 1, 0) &&
-        JS_DefineFunction(cx, obj, "keys", internal_JSKeyedHistogram_Keys, 1,
+                          internal_JSKeyedHistogram_SnapshotCb.UNSAFE_get(), 1, 0) &&
+        JS_DefineFunction(cx, obj, "keys", internal_JSKeyedHistogram_KeysCb.UNSAFE_get(), 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", internal_JSKeyedHistogram_Clear, 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSKeyedHistogram_ClearCb.UNSAFE_get(), 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }
@@ -2389,7 +2411,7 @@ nsresult internal_WrapAndReturnKeyedHistogram(
 }
 
 void internal_JSKeyedHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
-  if (!obj || JS::GetClass(obj) != &sJSKeyedHistogramClass) {
+  if (!obj || JS::GetClass(obj) != sJSKeyedHistogramClass()) {
     MOZ_ASSERT_UNREACHABLE("Should have the right JS class.");
     return;
   }

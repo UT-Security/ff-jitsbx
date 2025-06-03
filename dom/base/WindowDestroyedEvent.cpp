@@ -7,8 +7,8 @@
 #include "WindowDestroyedEvent.h"
 
 #include "nsJSUtils.h"
-#include "jsapi.h"
-#include "js/Wrapper.h"
+#include "mcapi.h"
+#include "monkeycage/Wrapper.h"
 #include "nsIPrincipal.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIAppStartup.h"
@@ -24,7 +24,7 @@
 
 namespace mozilla {
 
-struct BrowserCompartmentMatcher : public js::CompartmentFilter {
+struct BrowserCompartmentMatcher : public mc::CompartmentFilter {
   bool match(JS::Compartment* aC) const override {
     return !xpc::MightBeWebContentCompartment(aC);
   }

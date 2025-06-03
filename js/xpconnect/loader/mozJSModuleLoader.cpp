@@ -221,9 +221,14 @@ static bool Debug(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 }
 
-static const JSFunctionSpec gGlobalFun[] = {
-    JS_FN("dump", Dump, 1, 0), JS_FN("debug", Debug, 1, 0),
-    JS_FN("atob", Atob, 1, 0), JS_FN("btoa", Btoa, 1, 0), JS_FS_END};
+static const JSFunctionSpec* gGlobalFun() {
+  static const JSFunctionSpec inner_[] = {
+      JS_FN("dump", MC::Sandbox::RegisterCallback(Dump).UNSAFE_get(), 1, 0),
+      JS_FN("debug", MC::Sandbox::RegisterCallback(Debug).UNSAFE_get(), 1, 0),
+      JS_FN("atob", AtobCb().UNSAFE_get(), 1, 0),
+      JS_FN("btoa", BtoaCb().UNSAFE_get(), 1, 0), JS_FS_END};
+  return inner_;
+}
 
 class MOZ_STACK_CLASS JSCLContextHelper {
  public:
@@ -619,7 +624,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
   backstagePass->SetGlobalObject(global);
 
   JSAutoRealm ar(aCx, global);
-  if (!JS_DefineFunctions(aCx, global, gGlobalFun)) {
+  if (!JS_DefineFunctions(aCx, global, gGlobalFun())) {
     return;
   }
 

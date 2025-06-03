@@ -624,7 +624,7 @@ void BrowsingContext::SetDocShell(nsIDocShell* aDocShell) {
 // proxy from the map, because the object will be transplanted into another kind
 // of object.
 class MOZ_STACK_CLASS CompartmentRemoteProxyTransplantCallback
-    : public js::CompartmentTransplantCallback {
+    : public mc::CompartmentTransplantCallback {
  public:
   explicit CompartmentRemoteProxyTransplantCallback(
       BrowsingContext* aBrowsingContext)

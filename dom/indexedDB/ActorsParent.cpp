@@ -6516,7 +6516,7 @@ class DeserializeIndexValueHelper final : public Runnable {
   nsresult DeserializeIndexValue(JSContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        StructuredCloneReadCallback<StructuredCloneReadInfoParent>,
+        MC::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoParent>).UNSAFE_get(),
         nullptr,
         nullptr,
         nullptr,

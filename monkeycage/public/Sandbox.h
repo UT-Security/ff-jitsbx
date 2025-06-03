@@ -44,9 +44,15 @@ public:
   using Callback = MC::detail::SandboxCallback<T>;
 
   template<typename T_Ret, typename... T_Args>
-  static Callback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> callback) {
+  static Callback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> app_callback) {
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
-    return MC_Sbx::RegisterCallback(callback);
+    return MC_Sbx::RegisterCallback(app_callback);
+  }
+
+  template<typename T_Ret, typename... T_Args>
+  static Callback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(T_Cb<T_Ret, T_Args...> sbx_callback) {    
+    std::unique_lock<std::shared_mutex> guard(callback_mutex);
+    return MC_Sbx::RetrieveCallback(sbx_callback);
   }
   
 };

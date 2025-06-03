@@ -98,7 +98,7 @@ using namespace mozilla::dom;
 #  undef CompareString
 #endif
 
-static JS::GCSliceCallback sPrevGCSliceCallback;
+static MC::SandboxCallback<JS::GCSliceCallback> sPrevGCSliceCallback{nullptr};
 
 static bool sIncrementalCC = false;
 
@@ -1872,7 +1872,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
   }
 
   if (sPrevGCSliceCallback) {
-    (*sPrevGCSliceCallback)(aCx, aProgress, aDesc);
+    (sPrevGCSliceCallback)(aCx, aProgress, aDesc);
   }
 }
 
@@ -2043,13 +2043,18 @@ void nsJSContext::EnsureStatics() {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.cx(), DOMGCSliceCallback);
+  static auto DOMGCSliceCallbackCb = MC::Sandbox::RegisterCallback(DOMGCSliceCallback);
+  sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.mcx(), DOMGCSliceCallbackCb);
 
-  JS::SetCreateGCSliceBudgetCallback(jsapi.cx(), CreateGCSliceBudget);
+  static auto CreateGCSliceBudgetCb = MC::Sandbox::RegisterCallback(CreateGCSliceBudget);
+  JS::SetCreateGCSliceBudgetCallback(jsapi.mcx(), CreateGCSliceBudgetCb);
 
-  JS::InitDispatchToEventLoop(jsapi.cx(), DispatchToEventLoop, nullptr);
-  JS::InitConsumeStreamCallback(jsapi.cx(), ConsumeStream,
-                                FetchUtil::ReportJSStreamError);
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(jsapi.mcx(), DispatchToEventLoopCb, nullptr);
+
+  static auto ConsumeStreamCb = MC::Sandbox::RegisterCallback(ConsumeStream);
+  JS::InitConsumeStreamCallback(jsapi.mcx(), ConsumeStreamCb,
+                                FetchUtil::ReportJSStreamErrorCb());
 
   // Set these global xpconnect options...
   Preferences::RegisterCallbackAndCall(SetMemoryPrefChangedCallbackMB,

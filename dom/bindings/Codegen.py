@@ -495,11 +495,11 @@ class CGNativePropertyHooks(CGThing):
             resolveOwnProperty = "nullptr"
             enumerateOwnProperties = "nullptr"
         if self.properties.hasNonChromeOnly():
-            regular = "sNativeProperties.Upcast()"
+            regular = "sNativeProperties()->Upcast()"
         else:
             regular = "nullptr"
         if self.properties.hasChromeOnly():
-            chrome = "sChromeOnlyNativeProperties.Upcast()"
+            chrome = "sChromeOnlyNativeProperties()->Upcast()"
         else:
             chrome = "nullptr"
         constructorID = "constructors::id::"
@@ -514,14 +514,15 @@ class CGNativePropertyHooks(CGThing):
             prototypeID += "_ID_Count"
 
         if self.descriptor.wantsXrayExpandoClass:
-            expandoClass = "&sXrayExpandoObjectClass"
+            expandoClass = "sXrayExpandoObjectClass()"
         else:
-            expandoClass = "&DefaultXrayExpandoObjectClass"
+            expandoClass = "DefaultXrayExpandoObjectClass()"
 
         return fill(
             """
             bool sNativePropertiesInited = false;
-            const NativePropertyHooks sNativePropertyHooks = {
+            const NativePropertyHooks* sNativePropertyHooks() {
+            static const NativePropertyHooks inner_ = {
               ${resolveOwnProperty},
               ${enumerateOwnProperties},
               ${deleteNamedProperty},
@@ -530,6 +531,9 @@ class CGNativePropertyHooks(CGThing):
               ${constructorID},
               ${expandoClass}
             };
+
+            return &inner_;
+            }
             """,
             resolveOwnProperty=resolveOwnProperty,
             enumerateOwnProperties=enumerateOwnProperties,
@@ -546,7 +550,7 @@ def NativePropertyHooks(descriptor):
     return (
         "&sEmptyNativePropertyHooks"
         if not descriptor.wantsXrays
-        else "&sNativePropertyHooks"
+        else "sNativePropertyHooks()"
     )
 
 
@@ -622,14 +626,22 @@ class CGDOMJSClass(CGThing):
         return ""
 
     def define(self):
+        hookCallbacks = []
+        
         callHook = (
-            LEGACYCALLER_HOOK_NAME
+            "%sCb().UNSAFE_get()" % LEGACYCALLER_HOOK_NAME
             if self.descriptor.operations["LegacyCaller"]
             else "nullptr"
         )
+        if callHook != "nullptr":
+            hookCallbacks.append(CGMonkeycageStaticCallback(LEGACYCALLER_HOOK_NAME, "JSNative"))
+
         objectMovedHook = (
-            OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
+            "%sCb().UNSAFE_get()" % OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
         )
+        if objectMovedHook != "nullptr":
+            hookCallbacks.append(CGMonkeycageStaticCallback(OBJECT_MOVED_HOOK_NAME, "JSObjectMovedOp"))
+        
         slotCount = InstanceReservedSlots(self.descriptor)
         classFlags = "JSCLASS_IS_DOMJSCLASS | JSCLASS_FOREGROUND_FINALIZE | "
         if self.descriptor.isGlobal():
@@ -651,19 +663,27 @@ class CGDOMJSClass(CGThing):
             classFlags += " | JSCLASS_SKIP_NURSERY_FINALIZE"
 
         if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
-            resolveHook = RESOLVE_HOOK_NAME
-            mayResolveHook = MAY_RESOLVE_HOOK_NAME
-            newEnumerateHook = NEW_ENUMERATE_HOOK_NAME
+            hookCallbacks.append(CGMonkeycageStaticCallback(RESOLVE_HOOK_NAME, "JSResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticCallback(MAY_RESOLVE_HOOK_NAME, "JSMayResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticCallback(NEW_ENUMERATE_HOOK_NAME, "JSNewEnumerateOp"))
+            
+            resolveHook = "%sCb().UNSAFE_get()" % RESOLVE_HOOK_NAME
+            mayResolveHook = "%sCb().UNSAFE_get()" % MAY_RESOLVE_HOOK_NAME
+            newEnumerateHook = "%sCb().UNSAFE_get()" % NEW_ENUMERATE_HOOK_NAME
         elif self.descriptor.isGlobal():
-            resolveHook = "mozilla::dom::ResolveGlobal"
-            mayResolveHook = "mozilla::dom::MayResolveGlobal"
-            newEnumerateHook = "mozilla::dom::EnumerateGlobal"
+            resolveHook = "mozilla::dom::ResolveGlobalCb().UNSAFE_get()"
+            mayResolveHook = "mozilla::dom::MayResolveGlobalCb().UNSAFE_get()"
+            newEnumerateHook = "mozilla::dom::EnumerateGlobalCb().UNSAFE_get()"
         else:
             resolveHook = "nullptr"
             mayResolveHook = "nullptr"
             newEnumerateHook = "nullptr"
 
-        return fill(
+        if wantsAddProperty(self.descriptor):
+            hookCallbacks.append(CGMonkeycageStaticCallback(ADDPROPERTY_HOOK_NAME, "JSAddPropertyOp"))
+        hookCallbacks.append(CGMonkeycageStaticCallback(FINALIZE_HOOK_NAME, "JSFinalizeOp"))
+
+        return CGList(hookCallbacks).define() + fill(
             """
             static const DOMJSClass* sClass() {
                 static const JSClassOps sClassOps = {
@@ -702,13 +722,13 @@ class CGDOMJSClass(CGThing):
             """,
             name=self.descriptor.interface.getClassName(),
             flags=classFlags,
-            addProperty=ADDPROPERTY_HOOK_NAME
+            addProperty="%sCb().UNSAFE_get()" % ADDPROPERTY_HOOK_NAME
             if wantsAddProperty(self.descriptor)
             else "nullptr",
             newEnumerate=newEnumerateHook,
             resolve=resolveHook,
             mayResolve=mayResolveHook,
-            finalize=FINALIZE_HOOK_NAME,
+            finalize="%sCb().UNSAFE_get()" % FINALIZE_HOOK_NAME,
             call=callHook,
             trace=traceHook,
             objectMoved=objectMovedHook,
@@ -782,7 +802,7 @@ class CGXrayExpandoJSClass(CGThing):
             // allocating slots only for those would make the slot index
             // computations much more complicated, so let's do this the simple
             // way for now.
-            DEFINE_XRAY_EXPANDO_CLASS(static, sXrayExpandoObjectClass, ${memberSlots});
+            DEFINE_XRAY_EXPANDO_CLASS(static, sXrayExpandoObjectClass, ${memberSlots})
             """,
             memberSlots=self.descriptor.interface.totalMembersInSlots,
         )
@@ -862,7 +882,8 @@ class CGPrototypeJSClass(CGThing):
         )
         return fill(
             """
-            static const DOMIfaceAndProtoJSClass sPrototypeClass = {
+            static const DOMIfaceAndProtoJSClass* sPrototypeClass() {
+            static const DOMIfaceAndProtoJSClass inner_ = {
               {
                 "${name}Prototype",
                 JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(${slotCount}),
@@ -879,6 +900,9 @@ class CGPrototypeJSClass(CGThing):
               nullptr,
               ${protoGetter}
             };
+
+            return &inner_;
+            }
             """,
             name=self.descriptor.interface.getClassName(),
             slotCount=slotCount,
@@ -951,14 +975,16 @@ class CGInterfaceObjectJSClass(CGThing):
 
         if ctorname == "ThrowingConstructor":
             ret = ""
-            classOpsPtr = "&sBoringInterfaceObjectClassClassOps"
+            classOpsPtr = "sBoringInterfaceObjectClassClassOps()"
         elif ctorname == "nullptr":
             ret = ""
             classOpsPtr = "JS_NULL_CLASS_OPS"
         else:
-            ret = fill(
+            constructorCb = CGMonkeycageStaticCallback(ctorname, "JSNative").define()
+            ret = constructorCb + "\n" + fill(
                 """
-                static const JSClassOps sInterfaceObjectClassOps = {
+                static const JSClassOps* sInterfaceObjectClassOps() {
+                static const JSClassOps inner_ = {
                     nullptr,               /* addProperty */
                     nullptr,               /* delProperty */
                     nullptr,               /* enumerate */
@@ -970,11 +996,13 @@ class CGInterfaceObjectJSClass(CGThing):
                     ${ctorname}, /* construct */
                     nullptr,               /* trace */
                 };
-
+                
+                return &inner_;
+                }
                 """,
-                ctorname=ctorname,
+                ctorname="%sCb().UNSAFE_get()" % ctorname,
             )
-            classOpsPtr = "&sInterfaceObjectClassOps"
+            classOpsPtr = "sInterfaceObjectClassOps()"
 
         if self.descriptor.interface.isNamespace():
             classString = self.descriptor.interface.getExtendedAttribute("ClassString")
@@ -992,11 +1020,12 @@ class CGInterfaceObjectJSClass(CGThing):
             )
             # We need non-default ObjectOps so we can actually make
             # use of our funToString.
-            objectOps = "&sInterfaceObjectClassObjectOps"
+            objectOps = "sInterfaceObjectClassObjectOps()"
 
         ret = ret + fill(
             """
-            static const DOMIfaceAndProtoJSClass sInterfaceObjectClass = {
+            static const DOMIfaceAndProtoJSClass* sInterfaceObjectClass() {
+            static const DOMIfaceAndProtoJSClass inner_ = {
               {
                 "${classString}",
                 JSCLASS_IS_DOMIFACEANDPROTOJSCLASS | JSCLASS_HAS_RESERVED_SLOTS(${slotCount}),
@@ -1013,6 +1042,9 @@ class CGInterfaceObjectJSClass(CGThing):
               ${funToString},
               ${protoGetter}
             };
+
+            return &inner_;
+            }
             """,
             classString=classString,
             slotCount=slotCount,
@@ -1958,6 +1990,32 @@ class CGAbstractMethod(CGThing):
         return None  # Override me!
 
 
+class CGMonkeycageStaticCallback(CGThing):
+    """
+    Class for codegen of static function that registers and manages
+    a callback function with the sandbox.  
+    """
+
+    def __init__(self,
+                 name,
+                 type,
+    ):
+        CGThing.__init__(self)
+        self.name = name
+        self.type = type
+
+    def define(self):
+        return fill(
+            """
+            static auto ${functionName}Cb() {
+                static auto inner_ = MC::Sandbox::RegisterCallback(${functionName});
+                return inner_;
+            }
+            """,
+            returnType=self.type,
+            functionName=self.name
+        )
+
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
     Abstract base class for codegen of implementation-only (no
@@ -2618,8 +2676,8 @@ class PropertyDefiner:
             };
             """
         )
-        prefableWithDisablersTemplate = "  { &%s_disablers%d, &%s_specs[%d] }"
-        prefableWithoutDisablersTemplate = "  { nullptr, &%s_specs[%d] }"
+        prefableWithDisablersTemplate = "  { &%s_disablers%d, &%s_specs()[%d] }"
+        prefableWithoutDisablersTemplate = "  { nullptr, &%s_specs()[%d] }"
 
         def switchToCondition(condition, specs):
             # Set up pointers to the new sets of specs inside prefableSpecs
@@ -2658,13 +2716,21 @@ class PropertyDefiner:
         specType = "const " + specType
         arrays = fill(
             """
-            static ${specType} ${name}_specs[] = {
-            ${specs}
-            };
+            static ${specType}* ${name}_specs() {
+                static ${specType} inner_[] = {
+                ${specs}
+                };
+
+                return inner_;
+            }
 
             ${disablers}
-            static const Prefable<${specType}> ${name}[] = {
-            ${prefableSpecs}
+            static const Prefable<${specType}>* ${name}() {
+                static const Prefable<${specType}> inner_[] = {
+                ${prefableSpecs}
+                };
+
+                return inner_;
             };
 
             """,
@@ -2977,25 +3043,26 @@ class MethodDefiner(PropertyDefiner):
                 )
                 if m.get("allowCrossOriginThis", False):
                     accessor = (
-                        "(GenericMethod<CrossOriginThisPolicy, %s>)" % exceptionPolicy
+                        "(GenericMethodCb<CrossOriginThisPolicy, %s>().UNSAFE_get())" % exceptionPolicy
                     )
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
                     accessor = (
-                        "(GenericMethod<MaybeCrossOriginObjectThisPolicy, %s>)"
+                        "(GenericMethodCb<MaybeCrossOriginObjectThisPolicy, %s>().UNSAFE_get())"
                         % exceptionPolicy
                     )
                 elif descriptor.interface.isOnGlobalProtoChain():
                     accessor = (
-                        "(GenericMethod<MaybeGlobalThisPolicy, %s>)" % exceptionPolicy
+                        "(GenericMethodCb<MaybeGlobalThisPolicy, %s>().UNSAFE_get())" % exceptionPolicy
                     )
                 else:
-                    accessor = "(GenericMethod<NormalThisPolicy, %s>)" % exceptionPolicy
+                    accessor = "(GenericMethodCb<NormalThisPolicy, %s>().UNSAFE_get())" % exceptionPolicy
             else:
                 if m.get("returnsPromise", False):
                     jitinfo = "&%s_methodinfo" % accessor
-                    accessor = "StaticMethodPromiseWrapper"
+                    accessor = "StaticMethodPromiseWrapperCb().UNSAFE_get()"
                 else:
                     jitinfo = "nullptr"
+                    accessor = ("MC::Sandbox::RegisterCallback((JSNative)%s).UNSAFE_get()" % accessor) if accessor != "nullptr" else accessor
 
         return (
             m["name"],
@@ -3091,7 +3158,7 @@ class AttrDefiner(PropertyDefiner):
                         "static Promise-returning "
                         "attribute %s.%s" % (descriptor.name, attr.identifier.name)
                     )
-                accessor = "get_" + IDLToCIdentifier(attr.identifier.name)
+                accessor = "MC::Sandbox::RegisterCallback(get_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.type.isPromise():
@@ -3108,28 +3175,28 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "GenericGetter<MaybeCrossOriginObjectLenientThisPolicy, %s>"
+                            "GenericGetterCb<MaybeCrossOriginObjectLenientThisPolicy, %s>().UNSAFE_get()"
                             % exceptionPolicy
                         )
                     else:
                         accessor = (
-                            "GenericGetter<LenientThisPolicy, %s>" % exceptionPolicy
+                            "GenericGetterCb<LenientThisPolicy, %s>().UNSAFE_get()" % exceptionPolicy
                         )
                 elif attr.getExtendedAttribute("CrossOriginReadable"):
                     accessor = (
-                        "GenericGetter<CrossOriginThisPolicy, %s>" % exceptionPolicy
+                        "GenericGetterCb<CrossOriginThisPolicy, %s>().UNSAFE_get()" % exceptionPolicy
                     )
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
                     accessor = (
-                        "GenericGetter<MaybeCrossOriginObjectThisPolicy, %s>"
+                        "GenericGetterCb<MaybeCrossOriginObjectThisPolicy, %s>().UNSAFE_get()"
                         % exceptionPolicy
                     )
                 elif descriptor.interface.isOnGlobalProtoChain():
                     accessor = (
-                        "GenericGetter<MaybeGlobalThisPolicy, %s>" % exceptionPolicy
+                        "GenericGetterCb<MaybeGlobalThisPolicy, %s>().UNSAFE_get()" % exceptionPolicy
                     )
                 else:
-                    accessor = "GenericGetter<NormalThisPolicy, %s>" % exceptionPolicy
+                    accessor = "GenericGetterCb<NormalThisPolicy, %s>().UNSAFE_get()" % exceptionPolicy
                 jitinfo = "&%s_getterinfo" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -3144,7 +3211,7 @@ class AttrDefiner(PropertyDefiner):
             if crossOriginOnly and not attr.getExtendedAttribute("CrossOriginWritable"):
                 return "nullptr, nullptr"
             if static:
-                accessor = "set_" + IDLToCIdentifier(attr.identifier.name)
+                accessor = "MC::Sandbox::RegisterCallback(set_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3156,18 +3223,18 @@ class AttrDefiner(PropertyDefiner):
                         )
                     if descriptor.interface.hasDescendantWithCrossOriginMembers:
                         accessor = (
-                            "GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>"
+                            "GenericSetterCb<MaybeCrossOriginObjectLenientThisPolicy>().UNSAFE_get()"
                         )
                     else:
-                        accessor = "GenericSetter<LenientThisPolicy>"
+                        accessor = "GenericSetterCb<LenientThisPolicy>().UNSAFE_get()"
                 elif attr.getExtendedAttribute("CrossOriginWritable"):
-                    accessor = "GenericSetter<CrossOriginThisPolicy>"
+                    accessor = "GenericSetterCb<CrossOriginThisPolicy>().UNSAFE_get()"
                 elif descriptor.interface.hasDescendantWithCrossOriginMembers:
-                    accessor = "GenericSetter<MaybeCrossOriginObjectThisPolicy>"
+                    accessor = "GenericSetterCb<MaybeCrossOriginObjectThisPolicy>().UNSAFE_get()"
                 elif descriptor.interface.isOnGlobalProtoChain():
-                    accessor = "GenericSetter<MaybeGlobalThisPolicy>"
+                    accessor = "GenericSetterCb<MaybeGlobalThisPolicy>().UNSAFE_get()"
                 else:
-                    accessor = "GenericSetter<NormalThisPolicy>"
+                    accessor = "GenericSetterCb<NormalThisPolicy>().UNSAFE_get()"
                 jitinfo = "&%s_setterinfo" % IDLToCIdentifier(attr.identifier.name)
             return "%s, %s" % (accessor, jitinfo)
 
@@ -3334,7 +3401,7 @@ class CGNativeProperties(CGList):
                         idsOffset += propertyArray.length(chrome)
                     else:
                         ids = "nullptr"
-                    duo = "{ %s, %s }" % (varName, ids)
+                    duo = "{ %s(), %s }" % (varName, ids)
                     nativePropsDuos.append(CGGeneric(duo))
                 else:
                     bitfields = "false, 0"
@@ -3353,7 +3420,7 @@ class CGNativeProperties(CGList):
                 )
             ]
 
-            pre = "static const NativePropertiesN<%d> %s = {\n" % (duosOffset, name)
+            pre = "static const NativePropertiesN<%d>* %s() {\nstatic const NativePropertiesN<%d> inner_ = {\n" % (duosOffset, name, duosOffset)
             post = "\n};\n"
             if descriptor.wantsXrays:
                 pre = fill(
@@ -3373,7 +3440,7 @@ class CGNativeProperties(CGList):
                     post = fill(
                         """
                         $*{post}
-                        static_assert(${iteratorAliasIndex} < 1ull << (CHAR_BIT * sizeof(${name}.iteratorAliasMethodIndex) - 1),
+                        static_assert(${iteratorAliasIndex} < 1ull << (CHAR_BIT * sizeof(inner_.iteratorAliasMethodIndex) - 1),
                             "We have an iterator alias index that is oversized");
                         """,
                         post=post,
@@ -3383,7 +3450,7 @@ class CGNativeProperties(CGList):
                 post = fill(
                     """
                     $*{post}
-                    static_assert(${propertyInfoCount} < 1ull << (CHAR_BIT * sizeof(${name}.propertyInfoCount)),
+                    static_assert(${propertyInfoCount} < 1ull << (CHAR_BIT * sizeof(inner_.propertyInfoCount)),
                         "We have a property info count that is oversized");
                     """,
                     post=post,
@@ -3396,6 +3463,14 @@ class CGNativeProperties(CGList):
                 nativePropsInts.append(CGGeneric("0"))
                 nativePropsPtrs.append(CGGeneric("nullptr"))
             nativeProps = nativePropsInts + nativePropsPtrs + nativePropsDuos
+            post = fill(
+                """
+                $*{post}
+                return &inner_;
+                }
+                """,
+                post=post
+            )
             return CGWrapper(CGIndenter(CGList(nativeProps, ",\n")), pre=pre, post=post)
 
         nativeProperties = []
@@ -3467,7 +3542,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                         // This is unfortunately a linear scan through sAttributes, but we
                         // only do it for things which _might_ be disabled, which should
                         // help keep the performance problems down.
-                        if (IsGetterEnabled(cx, unwrappedObj, (JSJitGetterOp)get_${name}, sAttributes)) {
+                        if (IsGetterEnabled(cx, unwrappedObj, (JSJitGetterOp)get_${name}, sAttributes())) {
                           $*{getAndDefine}
                         }
                         """,
@@ -3594,7 +3669,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             namedConstructors = "nullptr"
 
         if needInterfacePrototypeObject:
-            protoClass = "&sPrototypeClass.mBase"
+            protoClass = "&sPrototypeClass()->mBase"
             protoCache = (
                 "&aProtoAndIfaceCache.EntrySlotOrCreate(prototypes::id::%s)"
                 % self.descriptor.name
@@ -3608,7 +3683,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             getParentProto = None
 
         if needInterfaceObject:
-            interfaceClass = "&sInterfaceObjectClass.mBase"
+            interfaceClass = "&sInterfaceObjectClass()->mBase"
             interfaceCache = (
                 "&aProtoAndIfaceCache.EntrySlotOrCreate(constructors::id::%s)"
                 % self.descriptor.name
@@ -3625,11 +3700,11 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         isGlobal = self.descriptor.isGlobal() is not None
         if self.properties.hasNonChromeOnly():
-            properties = "sNativeProperties.Upcast()"
+            properties = "sNativeProperties()->Upcast()"
         else:
             properties = "nullptr"
         if self.properties.hasChromeOnly():
-            chromeProperties = "sChromeOnlyNativeProperties.Upcast()"
+            chromeProperties = "sChromeOnlyNativeProperties()->Upcast()"
         else:
             chromeProperties = "nullptr"
 
@@ -4343,7 +4418,7 @@ def InitUnforgeablePropertiesOnHolder(
 
     defineUnforgeableAttrs = fill(
         """
-        if (!DefineLegacyUnforgeableAttributes(mCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableAttributes(mCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4352,7 +4427,7 @@ def InitUnforgeablePropertiesOnHolder(
     )
     defineUnforgeableMethods = fill(
         """
-        if (!DefineLegacyUnforgeableMethods(mCx, ${holderName}, %s)) {
+        if (!DefineLegacyUnforgeableMethods(mCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4789,11 +4864,11 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
     def definition_body(self):
         if self.properties.hasNonChromeOnly():
-            properties = "sNativeProperties.Upcast()"
+            properties = "sNativeProperties()->Upcast()"
         else:
             properties = "nullptr"
         if self.properties.hasChromeOnly():
-            chromeProperties = "nsContentUtils::ThreadsafeIsSystemCaller(aCx) ? sChromeOnlyNativeProperties.Upcast() : nullptr"
+            chromeProperties = "nsContentUtils::ThreadsafeIsSystemCaller(aCx) ? sChromeOnlyNativeProperties()->Upcast() : nullptr"
         else:
             chromeProperties = "nullptr"
 
@@ -5091,7 +5166,7 @@ class CGCrossOriginProperties(CGThing):
     def declare(self):
         return dedent(
             """
-            extern const CrossOriginProperties sCrossOriginProperties;
+            extern const CrossOriginProperties& sCrossOriginProperties();
             """
         )
 
@@ -5120,6 +5195,7 @@ class CGCrossOriginProperties(CGThing):
         )
         return fill(
             """
+            const CrossOriginProperties& sCrossOriginProperties() {
             static const JSPropertySpec sCrossOriginAttributes[] = {
               $*{attributeSpecs}
             };
@@ -5128,12 +5204,15 @@ class CGCrossOriginProperties(CGThing):
             };
             $*{chromeOnlyAttributeSpecs}
             $*{chromeOnlyMethodSpecs}
-            const CrossOriginProperties sCrossOriginProperties = {
+            static const CrossOriginProperties inner_ = {
               sCrossOriginAttributes,
               sCrossOriginMethods,
               ${chromeOnlyAttributes},
               ${chromeOnlyMethods}
             };
+
+            return inner_;
+            }
             """,
             attributeSpecs=",\n".join(self.attributeSpecs),
             methodSpecs=",\n".join(self.methodSpecs),
@@ -16170,7 +16249,7 @@ class CGDOMJSProxyHandler_EnsureHolder(ClassMethod):
             """
             return EnsureHolder(cx, proxy,
                                 JSCLASS_RESERVED_SLOTS(JS::GetClass(proxy)) - 1,
-                                sCrossOriginProperties, holder);
+                                sCrossOriginProperties(), holder);
             """
         )
 

@@ -13,8 +13,8 @@
 #include "mozilla/Unused.h"
 
 #include "XPCWrapper.h"
-#include "jsfriendapi.h"
-#include "js/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
+#include "mcfriendapi.h"
+#include "monkeycage/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
 #include "js/CompileOptions.h"     // JS::ReadOnlyCompileOptions
 #include "js/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
@@ -151,7 +151,9 @@ void nsXPConnect::InitStatics() {
 #ifdef NS_BUILD_REFCNT_LOGGING
   // These functions are used for reporting leaks, so we register them as early
   // as possible to avoid missing any classes' creations.
-  JS::SetLogCtorDtorFunctions(NS_LogCtor, NS_LogDtor);
+  static auto NS_LogCtorCb = MC::Sandbox::RegisterCallback(NS_LogCtor);
+  static auto NS_LogDtorCb = MC::Sandbox::RegisterCallback(NS_LogDtor);
+  JS::SetLogCtorDtorFunctions(NS_LogCtorCb, NS_LogDtorCb);
 #endif
   ReadOnlyPage::Init();
 
@@ -425,6 +427,11 @@ void xpc::TraceXPCGlobal(JSTracer* trc, JSObject* obj) {
   }
 }
 
+MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(TraceXPCGlobal);
+  return inner_;
+}
+
 namespace xpc {
 
 JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
@@ -443,7 +450,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
     nsresult rv = BasePrincipal::Cast(principal)->GetSiteIdentifier(site);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal),
+    global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal)->inner_,
                                 JS::DontFireOnNewGlobalHook, aOptions);
     if (!global) {
       return nullptr;
@@ -462,7 +469,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
       // unless that flag is set.
       if (!((const JSClass*)clasp)->isWrappedNative()) {
         VerifyTraceProtoAndIfaceCacheCalledTracer trc(cx);
-        TraceChildren(&trc, GCCellPtr(global.get()));
+        TraceChildren(trc.getCallbackTracer(), GCCellPtr(global.get()));
         MOZ_ASSERT(trc.ok,
                    "Trace hook on global needs to call TraceXPCGlobal for "
                    "XPConnect compartments.");
@@ -1047,6 +1054,11 @@ bool Atob(JSContext* cx, unsigned argc, Value* vp) {
   return xpc::Base64Decode(cx, args[0], args.rval());
 }
 
+MC::SandboxCallback<JSNative> AtobCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(Atob);
+  return inner_;
+}
+
 bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.length()) {
@@ -1054,6 +1066,11 @@ bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   return xpc::Base64Encode(cx, args[0], args.rval());
+}
+
+MC::SandboxCallback<JSNative> BtoaCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(Btoa);
+  return inner_;
 }
 
 bool IsXrayWrapper(JSObject* obj) { return WrapperFactory::IsXrayWrapper(obj); }

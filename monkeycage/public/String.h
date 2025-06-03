@@ -14,6 +14,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/GCAPI.h"
 
 inline JSString* JS_NewStringCopyN(MCContext* cx, const char* s, size_t n) {
   return JS_NewStringCopyN(cx->cx_, s, n);
@@ -42,6 +43,24 @@ inline JSString* JS_AtomizeAndPinStringN(MCContext* cx, const char* s,
 // without entering a realm/zone.
 inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
   return JS_AtomizeAndPinString(cx->cx_, s);
+}
+
+namespace JS {
+
+MOZ_ALWAYS_INLINE bool IsExternalString(
+    JSString* str, const MCExternalStringCallbacks** callbacks,
+    const char16_t** chars) {
+  const JSExternalStringCallbacks* callbacks_;
+  bool ret = IsExternalString(str, &callbacks_, chars);
+  if (!ret) {
+    return ret;
+  }
+
+  *callbacks = static_cast<const MCExternalStringCallbacks*>(
+      static_cast<const sandbox::JSExternalStringCallbacks*>(callbacks_)
+          ->getExternalStringCallbacks());
+  return ret;
+}
 }
 #endif
 

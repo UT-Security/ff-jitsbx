@@ -609,8 +609,8 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   bool mDoingFinalization;
   mozilla::LinkedList<nsXPCWrappedJS> mSubjectToFinalizationWJS;
   nsTArray<xpcGCCallback> extraGCCallbacks;
-  JS::GCSliceCallback mPrevGCSliceCallback;
-  JS::DoCycleCollectionCallback mPrevDoCycleCollectionCallback;
+  MC::SandboxCallback<JS::GCSliceCallback> mPrevGCSliceCallback{nullptr};
+  MC::SandboxCallback<JS::DoCycleCollectionCallback> mPrevDoCycleCollectionCallback{nullptr};
   mozilla::WeakPtr<SandboxPrivate> mUnprivilegedJunkScope;
   MC::PersistentRootedObject mLoaderGlobal;
   RefPtr<AsyncFreeSnowWhite> mAsyncSnowWhiteFreer;
@@ -2170,8 +2170,10 @@ namespace xpc {
 
 // JSNatives to expose atob and btoa in various non-DOM XPConnect scopes.
 bool Atob(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::SandboxCallback<JSNative> AtobCb();
 
 bool Btoa(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::SandboxCallback<JSNative> BtoaCb();
 
 // Helper function that creates a JSFunction that wraps a native function that
 // forwards the call to the original 'callable'.

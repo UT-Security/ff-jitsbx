@@ -7,7 +7,7 @@
 #ifndef mozilla_extensions_ExtensionEventListener_h
 #define mozilla_extensions_ExtensionEventListener_h
 
-#include "js/Promise.h"  // JS::IsPromiseObject
+#include "monkeycage/Promise.h"  // JS::IsPromiseObject
 #include "mozIExtensionAPIRequestHandling.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
 #include "mozilla/dom/StructuredCloneHolder.h"

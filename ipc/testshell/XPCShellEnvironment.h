@@ -33,7 +33,7 @@ class XPCShellEnvironment {
   bool EvaluateString(const nsAString& aString, nsString* aResult = nullptr);
 
   JSPrincipals* GetPrincipal() {
-    return nsJSPrincipals::get(nsContentUtils::GetSystemPrincipal());
+    return nsJSPrincipals::get(nsContentUtils::GetSystemPrincipal())->inner_;
   }
 
   JSObject* GetGlobalObject() { return mGlobalHolder; }

@@ -12,8 +12,8 @@
 #include "js/CallArgs.h"
 #include "monkeycage/Value.h"
 #include "js/WasmModule.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/AutoRestore.h"
 #include "mozilla/ErrorResult.h"
@@ -221,16 +221,20 @@ void AssertTagValues() {
 
 }  // anonymous namespace
 
-const JSStructuredCloneCallbacks StructuredCloneHolder::sCallbacks = {
-    StructuredCloneCallbacksRead,
-    StructuredCloneCallbacksWrite,
-    StructuredCloneCallbacksError,
-    StructuredCloneCallbacksReadTransfer,
-    StructuredCloneCallbacksWriteTransfer,
-    StructuredCloneCallbacksFreeTransfer,
-    StructuredCloneCallbacksCanTransfer,
-    StructuredCloneCallbacksSharedArrayBuffer,
-};
+const JSStructuredCloneCallbacks* StructuredCloneHolder::sCallbacks() {
+  static const JSStructuredCloneCallbacks inner_ = {
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksRead).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksWrite).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksError).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksReadTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksWriteTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksFreeTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksCanTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksSharedArrayBuffer).UNSAFE_get(),
+  };
+
+  return &inner_;
+}
 
 // StructuredCloneHolderBase class
 
@@ -271,10 +275,10 @@ bool StructuredCloneHolderBase::Write(
   MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
 
   mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
-      mStructuredCloneScope, &StructuredCloneHolder::sCallbacks, this);
+      mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
 
   if (!mBuffer->write(aCx, aValue, aTransfer, aCloneDataPolicy,
-                      &StructuredCloneHolder::sCallbacks, this)) {
+                      StructuredCloneHolder::sCallbacks(), this)) {
     mBuffer = nullptr;
     return false;
   }
@@ -298,7 +302,7 @@ bool StructuredCloneHolderBase::Read(
   MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
 
   bool ok = mBuffer->read(aCx, aValue, aCloneDataPolicy,
-                          &StructuredCloneHolder::sCallbacks, this);
+                          StructuredCloneHolder::sCallbacks(), this);
   return ok;
 }
 
@@ -419,7 +423,7 @@ void StructuredCloneHolder::ReadFromBuffer(
   mGlobal = aGlobal;
 
   if (!JS_ReadStructuredClone(aCx, aBuffer, aAlgorithmVersion, CloneScope(),
-                              aValue, aCloneDataPolicy, &sCallbacks, this)) {
+                              aValue, aCloneDataPolicy, sCallbacks(), this)) {
     JS_ClearPendingException(aCx);
     aRv.ThrowDataCloneError(mErrorMessage);
     return;
