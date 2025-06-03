@@ -55,7 +55,7 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
   }
 
   bool hasOwn;
-  if (!GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
+  if (!mc::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
     return DOMProxyShadowsResult::ShadowCheckFailed;
 
   return hasOwn ? DOMProxyShadowsResult::Shadows

@@ -3258,7 +3258,7 @@ bool GenericGetter(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
   }
 
   MOZ_ASSERT(info->type() == JSJitInfo::Getter);
-  JSJitGetterOp getter = info->getter;
+  MC::SandboxCallback<JSJitGetterOp> getter = MC::Sandbox::RetrieveCallback(info->getter);
   bool ok = getter(cx_UNSAFE, obj, self, JSJitGetterCallArgs(args));
 #ifdef DEBUG
   if (ok) {
@@ -3354,7 +3354,7 @@ bool GenericSetter(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
     return ThrowNoSetterArg(MC_UNSAFE(cx), args, protoID);
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Setter);
-  JSJitSetterOp setter = info->setter;
+  MC::SandboxCallback<JSJitSetterOp> setter = MC::Sandbox::RetrieveCallback(info->setter);
   if (!setter(cx_UNSAFE, obj, self, JSJitSetterCallArgs(args))) {
     return false;
   }
@@ -3426,7 +3426,7 @@ bool GenericMethod(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
     }
   }
   MOZ_ASSERT(info->type() == JSJitInfo::Method);
-  JSJitMethodOp method = info->method;
+  MC::SandboxCallback<JSJitMethodOp> method = MC::Sandbox::RetrieveCallback(info->method);
   bool ok = method(cx_UNSAFE, obj, self, JSJitMethodCallArgs(args));
 #ifdef DEBUG
   if (ok) {
