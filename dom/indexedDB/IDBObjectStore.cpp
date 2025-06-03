@@ -278,7 +278,7 @@ bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
 
 nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
   static const JSStructuredCloneCallbacks kStructuredCloneCallbacks = {
-      nullptr /* read */,          StructuredCloneWriteCallback /* write */,
+      nullptr /* read */,          MC::Sandbox::RegisterCallback(StructuredCloneWriteCallback).UNSAFE_get() /* write */,
       nullptr /* reportError */,   nullptr /* readTransfer */,
       nullptr /* writeTransfer */, nullptr /* freeTransfer */,
       nullptr /* canTransfer */,   nullptr /* sabCloned */
@@ -546,7 +546,7 @@ bool IDBObjectStore::DeserializeValue(
   MOZ_ASSERT(!(aCloneReadInfo.Data().Size() % sizeof(uint64_t)));
 
   static const JSStructuredCloneCallbacks callbacks = {
-      StructuredCloneReadCallback<StructuredCloneReadInfoChild>,
+      MC::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoChild>).UNSAFE_get(),
       nullptr,
       nullptr,
       nullptr,
@@ -1714,8 +1714,8 @@ bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
   }
 
   static const JSStructuredCloneCallbacks callbacks = {
-      CopyingStructuredCloneReadCallback /* read */,
-      CopyingStructuredCloneWriteCallback /* write */,
+      MC::Sandbox::RegisterCallback(CopyingStructuredCloneReadCallback).UNSAFE_get() /* read */,
+      MC::Sandbox::RegisterCallback(CopyingStructuredCloneWriteCallback).UNSAFE_get() /* write */,
       nullptr /* reportError */,
       nullptr /* readTransfer */,
       nullptr /* writeTransfer */,

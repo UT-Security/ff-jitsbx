@@ -415,9 +415,12 @@ static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
 static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
                                              JS::Handle<JSObject*> aHolder,
                                              NativeHandlerTask aTask) {
-  JSFunction* func = js::NewFunctionWithReserved(aCx, NativeHandlerCallback,
-                                                 /* nargs = */ 1,
-                                                 /* flags = */ 0, nullptr);
+  static auto NativeHandlerCallbackCb =
+      MC::Sandbox::RegisterCallback(NativeHandlerCallback);
+  JSFunction* func =
+      js::NewFunctionWithReserved(aCx, NativeHandlerCallbackCb.UNSAFE_get(),
+                                  /* nargs = */ 1,
+                                  /* flags = */ 0, nullptr);
   if (!func) {
     return nullptr;
   }

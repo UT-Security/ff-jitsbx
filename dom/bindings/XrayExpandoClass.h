@@ -22,15 +22,18 @@
  * the ones Xray expandos want.
  */
 #define DEFINE_XRAY_EXPANDO_CLASS(maybeStatic_, name_, extraSlots_)           \
-  maybeStatic_ const JSClass name_ = {                                        \
+  maybeStatic_ const JSClass* name_() {                                       \
+  static const JSClass inner_ = {                                             \
       "XrayExpandoObject",                                                    \
       JSCLASS_HAS_RESERVED_SLOTS(xpc::JSSLOT_EXPANDO_COUNT + (extraSlots_)) | \
           JSCLASS_FOREGROUND_FINALIZE,                                        \
-      &xpc::XrayExpandoObjectClassOps}
+      xpc::XrayExpandoObjectClassOps()};                                      \
+      return &inner_;                                                         \
+  }
 
 namespace mozilla::dom {
 
-extern const JSClass DefaultXrayExpandoObjectClass;
+extern const JSClass* DefaultXrayExpandoObjectClass();
 
 }  // namespace mozilla::dom
 

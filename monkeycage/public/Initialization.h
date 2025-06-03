@@ -8,6 +8,7 @@
 #ifndef mc_Initialization_h
 #define mc_Initialization_h
 
+#include "SandboxCallback.h"
 #include "js/Initialization.h"
 
 #ifdef JS_SANDBOX
@@ -22,6 +23,15 @@ inline bool InitSelfHostedCode(MCContext* cx,
   return InitSelfHostedCode(cx->cx_, cache, writer);
 }
 }
+
+inline bool JS_SetICUMemoryFunctions(
+    MC::SandboxCallback<JS_ICUAllocFn> allocFn,
+    MC::SandboxCallback<JS_ICUReallocFn> reallocFn,
+    MC::SandboxCallback<JS_ICUFreeFn> freeFn) {
+  return JS_SetICUMemoryFunctions(allocFn.UNSAFE_get(), reallocFn.UNSAFE_get(),
+                                  freeFn.UNSAFE_get());
+}
+
 #endif
 
 #endif

@@ -21,7 +21,7 @@ class PrincipalInfo;
 }  // namespace ipc
 }  // namespace mozilla
 
-class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
+class nsJSPrincipals : public nsIPrincipal, public MCPrincipals {
  public:
   /* SpiderMonkey security callbacks. */
   static bool Subsume(JSPrincipals* jsprin, JSPrincipals* other);
@@ -55,13 +55,16 @@ class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
    * principal, and vice-versa.
    */
   static nsJSPrincipals* get(JSPrincipals* principals) {
-    nsJSPrincipals* self = static_cast<nsJSPrincipals*>(principals);
-    MOZ_ASSERT_IF(self, self->debugToken == DEBUG_TOKEN);
+    nsJSPrincipals* self =
+        static_cast<nsJSPrincipals*>(static_cast<MCPrincipals*>(
+            static_cast<::sandbox::JSPrincipals*>(principals)
+                ->getPrincipals()));
+    MOZ_ASSERT_IF(self, self->getDebugToken() == DEBUG_TOKEN);
     return self;
   }
   static nsJSPrincipals* get(nsIPrincipal* principal) {
     nsJSPrincipals* self = static_cast<nsJSPrincipals*>(principal);
-    MOZ_ASSERT_IF(self, self->debugToken == DEBUG_TOKEN);
+    MOZ_ASSERT_IF(self, self->getDebugToken() == DEBUG_TOKEN);
     return self;
   }
 
@@ -69,7 +72,7 @@ class nsJSPrincipals : public nsIPrincipal, public JSPrincipals {
   NS_IMETHOD_(MozExternalRefCountType) Release(void) override;
 
   nsJSPrincipals() {
-    refcount = 0;
+    refcount() = 0;
     setDebugToken(DEBUG_TOKEN);
   }
 

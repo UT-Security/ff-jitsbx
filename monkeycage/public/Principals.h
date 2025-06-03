@@ -13,8 +13,61 @@
 
 #ifdef JS_SANDBOX
 
+#include "js/Utility.h"
 #include "monkeycage/Context.h"
-#include "monkeycage/SandboxCallback.h"
+#include "monkeycage/Sandbox.h"
+
+struct MCPrincipals {
+  JSPrincipals* inner_;
+private:
+  static bool writeCb(void* p, JSContext* cx, JSStructuredCloneWriter* writer) {
+    auto principals = static_cast<MCPrincipals*>(p);
+    return principals->write(cx, writer);
+  }
+
+  static bool isSystemOrAddonPrincipalCb(void* p) {
+    auto principals = static_cast<MCPrincipals*>(p);
+    return principals->isSystemOrAddonPrincipal();
+  }
+
+  static const ::sandbox::JSPrincipals::Ops* ops() {
+    static ::sandbox::JSPrincipals::Ops inner_ {
+      MC::Sandbox::RegisterCallback(writeCb).UNSAFE_get(),
+      MC::Sandbox::RegisterCallback(isSystemOrAddonPrincipalCb).UNSAFE_get(),
+    };
+
+    return &inner_;
+  }
+
+public:
+  MCPrincipals() {
+    inner_ = js_new<::sandbox::JSPrincipals>(ops(), this);
+  }
+
+  ~MCPrincipals() {
+    js_free((void*)inner_);
+  }
+
+#ifdef JS_DEBUG
+  uint32_t getDebugToken() {
+    return inner_->debugToken;
+  }
+#endif
+  
+  void setDebugToken(uint32_t token) {
+#ifdef JS_DEBUG
+    inner_->debugToken = token;
+#endif
+  }
+
+  mozilla::Atomic<int32_t, mozilla::SequentiallyConsistent>& refcount() {
+    return inner_->refcount;
+  }
+
+  virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) = 0;
+
+  virtual bool isSystemOrAddonPrincipal() = 0; 
+};
 
 struct MCSecurityCallbacks {
 private:
@@ -37,8 +90,8 @@ inline const JSSecurityCallbacks* JS_GetSecurityCallbacks(MCContext* cx) {
 }
 
 //TODO(abhishek): Since JSPrincipals* has virtual methods we need a wrapper class here.
-inline void JS_SetTrustedPrincipals(MCContext* cx, JSPrincipals* prin) {
-  return JS_SetTrustedPrincipals(cx->cx_, prin);
+inline void JS_SetTrustedPrincipals(MCContext* cx, MCPrincipals* prin) {
+  return JS_SetTrustedPrincipals(cx->cx_, prin ? prin->inner_ : nullptr);
 }
 
 inline void JS_InitDestroyPrincipalsCallback(
@@ -54,6 +107,7 @@ inline void JS_InitReadPrincipalsCallback(
 }
 #else
 
+using MCPrincipals = JSPrincipals;
 using MCSecurityCallbacks = JSSecurityCallbacks;
 
 #endif

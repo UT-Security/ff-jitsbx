@@ -389,6 +389,14 @@ static bool NukedAllRealms(JS::Compartment* comp) {
   return true;
 }
 
+#ifdef JS_SANDBOX
+js::sandbox::CompartmentFilter::CompartmentFilter(MatchOp op, const void* filter): op_(op), filter_(filter) {}
+
+bool js::sandbox::CompartmentFilter::match(JS::Compartment* c) const {
+  return op_(filter_, c);
+}
+#endif
+
 /*
  * NukeChromeCrossCompartmentWrappersForGlobal reaches into chrome and cuts
  * all of the cross-compartment wrappers that point to an object in the |target|

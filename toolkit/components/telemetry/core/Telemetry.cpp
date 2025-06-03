@@ -20,11 +20,11 @@
 #  include "geckoview/TelemetryGeckoViewPersistence.h"
 #endif
 #include "ipc/TelemetryIPCAccumulator.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::NewArrayObject
-#include "js/GCAPI.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include "monkeycage/Value.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/dom/Promise.h"

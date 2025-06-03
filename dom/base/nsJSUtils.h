@@ -160,15 +160,14 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 
   auto handle = handleOrErr.unwrap();
 
-  auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, handle.AsSpan());
+  size_t read;
+  size_t written;
+
+  auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, handle.AsSpan(), &read, &written);
   if (MOZ_UNLIKELY(!maybe)) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
-
-  size_t read;
-  size_t written;
-  std::tie(read, written) = *maybe;
 
   MOZ_ASSERT(read == JS::GetStringLength(s));
   handle.Finish(written, kAllowShrinking);

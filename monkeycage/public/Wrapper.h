@@ -13,6 +13,7 @@
 #ifdef JS_SANDBOX
 
 #include "js/sandbox/Wrapper.h"
+#include "mcfriendapi.h"
 
 namespace mc {
 
@@ -951,6 +952,15 @@ const Wrapper* Wrapper::wrapperHandler(const JSObject* wrapper) {
 inline JSObject* CheckedUnwrapDynamic(JSObject* obj, MCContext* cx,
                                              bool stopAtWindowProxy = true) {
     return js::CheckedUnwrapDynamic(obj, cx->cx_, stopAtWindowProxy);
+}
+}
+
+namespace js {
+
+inline bool RecomputeWrappers(JSContext* cx,
+                              const mc::CompartmentFilter& sourceFilter,
+                              const mc::CompartmentFilter& targetFilter) {
+  return RecomputeWrappers(cx, *sourceFilter.inner_, *targetFilter.inner_);
 }
 }
 #else

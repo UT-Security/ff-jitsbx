@@ -672,7 +672,7 @@ void NukeAllWrappersForRealm(
   // * Nuke all wrappers into the realm.
   // * Nuke all wrappers out of the realm's compartment, once we have nuked all
   //   realms in it.
-  js::NukeCrossCompartmentWrappers(cx, js::AllCompartments(), realm,
+  js::NukeCrossCompartmentWrappers(cx, mc::AllCompartments(), realm,
                                    nukeReferencesToWindow,
                                    js::NukeAllReferences);
 
@@ -809,7 +809,7 @@ void XPCJSRuntime::GCSliceCallback(JSContext* cx, JS::GCProgress progress,
   CrashReporter::SetGarbageCollecting(progress == JS::GC_CYCLE_BEGIN);
 
   if (self->mPrevGCSliceCallback) {
-    (*self->mPrevGCSliceCallback)(cx, progress, desc);
+    (self->mPrevGCSliceCallback)(cx, progress, desc);
   }
 }
 
@@ -830,7 +830,7 @@ void XPCJSRuntime::DoCycleCollectionCallback(JSContext* cx) {
   }
 
   if (self->mPrevDoCycleCollectionCallback) {
-    (*self->mPrevDoCycleCollectionCallback)(cx);
+    (self->mPrevDoCycleCollectionCallback)(cx);
   }
 }
 
@@ -1114,7 +1114,7 @@ void XPCJSRuntime::Shutdown(MCContext* cx) {
   JS_RemoveFinalizeCallback(cx, FinalizeCallbackCb());
   xpc_DelocalizeRuntime(JS_GetRuntime(cx));
 
-  JS::SetGCSliceCallback(MC_UNSAFE(cx), mPrevGCSliceCallback);
+  JS::SetGCSliceCallback(cx, mPrevGCSliceCallback);
 
   nsScriptSecurityManager::ClearJSCallbacks(cx);
 
@@ -2942,7 +2942,7 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
 
   js::SetWindowProxyClass(cx, OuterWindowProxyClass());
 
-  JS::SetXrayJitInfo(&gXrayJitInfo);
+  JS::SetXrayJitInfo(gXrayJitInfo());
   JS::SetProcessLargeAllocationFailureCallback(
       OnLargeAllocationFailureCallback);
 

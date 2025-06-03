@@ -1416,6 +1416,11 @@ bool ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp) {
   return ThrowErrorMessage<MSG_ILLEGAL_CONSTRUCTOR>(cx, (void*)nullptr);
 }
 
+MC::SandboxCallback<JSNative> ThrowingConstructorCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(ThrowingConstructor);
+  return inner_;
+}
+
 bool ThrowConstructorWithoutNew(MCContext* cx, const char* name) {
   return ThrowErrorMessage<MSG_CONSTRUCTOR_WITHOUT_NEW>(MC_UNSAFE(cx), name);
 }
@@ -1816,7 +1821,7 @@ static bool ResolvePrototypeOrConstructor(
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
               ->wantsInterfaceHasInstance) {
         cacheOnHolder = true;
-        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstance,
+        JSNativeWrapper interfaceIsInstanceWrapper = {InterfaceIsInstanceCb().UNSAFE_get(),
                                                       nullptr};
         JSObject* funObj =
             XrayCreateFunction(cx, wrapper, interfaceIsInstanceWrapper, 1, id);
@@ -2097,7 +2102,7 @@ const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj) {
       GetNativePropertyHooks(cx, obj, type);
   if (!IsInstance(type)) {
     // Non-instances don't need any special expando classes.
-    return &DefaultXrayExpandoObjectClass;
+    return DefaultXrayExpandoObjectClass();
   }
 
   return nativePropertyHooks->mXrayExpandoClass;
@@ -2121,14 +2126,16 @@ namespace binding_detail {
 bool ResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
-  return js::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
+  //TODO(abhishekcs): unsafe assumptions being made here
+  return mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
                                                             desc);
 }
 
 bool EnumerateOwnProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::Handle<JSObject*> obj,
                             JS::MutableHandleVector<jsid> props) {
-  return js::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
+  //TODO(abhishekcs): unsafe assumptions being made here
+  return mc::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
 }
 
 }  // namespace binding_detail
@@ -2148,7 +2155,7 @@ JSObject* GetCachedSlotStorageObjectSlow(JSContext* cx,
   return xpc::EnsureXrayExpandoObject(cx, obj);
 }
 
-DEFINE_XRAY_EXPANDO_CLASS(, DefaultXrayExpandoObjectClass, 0);
+DEFINE_XRAY_EXPANDO_CLASS(, DefaultXrayExpandoObjectClass, 0)
 
 bool sEmptyNativePropertiesInited = true;
 NativePropertyHooks sEmptyNativePropertyHooks = {
@@ -2160,7 +2167,8 @@ NativePropertyHooks sEmptyNativePropertyHooks = {
     constructors::id::_ID_Count,
     nullptr};
 
-const JSClassOps sBoringInterfaceObjectClassClassOps = {
+const JSClassOps* sBoringInterfaceObjectClassClassOps() {
+  static const JSClassOps inner_ = {
     nullptr,             /* addProperty */
     nullptr,             /* delProperty */
     nullptr,             /* enumerate */
@@ -2168,12 +2176,16 @@ const JSClassOps sBoringInterfaceObjectClassClassOps = {
     nullptr,             /* resolve */
     nullptr,             /* mayResolve */
     nullptr,             /* finalize */
-    ThrowingConstructor, /* call */
-    ThrowingConstructor, /* construct */
+    ThrowingConstructorCb().UNSAFE_get(), /* call */
+    ThrowingConstructorCb().UNSAFE_get(), /* construct */
     nullptr,             /* trace */
-};
+  };
 
-const js::ObjectOps sInterfaceObjectClassObjectOps = {
+  return &inner_;
+}
+
+const js::ObjectOps* sInterfaceObjectClassObjectOps() {
+  static const js::ObjectOps inner_ = {
     nullptr,                 /* lookupProperty */
     nullptr,                 /* defineProperty */
     nullptr,                 /* hasProperty */
@@ -2182,8 +2194,11 @@ const js::ObjectOps sInterfaceObjectClassObjectOps = {
     nullptr,                 /* getOwnPropertyDescriptor */
     nullptr,                 /* deleteProperty */
     nullptr,                 /* getElements */
-    InterfaceObjectToString, /* funToString */
-};
+    MC::Sandbox::RegisterCallback((JSFunToStringOp)InterfaceObjectToString).UNSAFE_get(), /* funToString */
+  };
+
+  return &inner_;
+}
 
 bool GetPropertyOnPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
                             JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
@@ -2853,9 +2868,19 @@ bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
   return JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp);
 }
 
+MC::SandboxCallback<JSResolveOp> ResolveGlobalCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(ResolveGlobal);
+  return inner_;
+}
+
 bool MayResolveGlobal(const JSAtomState& aNames, jsid aId,
                       JSObject* aMaybeObj) {
   return JS_MayResolveStandardClass(aNames, aId, aMaybeObj);
+}
+
+MC::SandboxCallback<JSMayResolveOp> MayResolveGlobalCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(MayResolveGlobal);
+  return inner_;
 }
 
 bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
@@ -2867,6 +2892,11 @@ bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
 
   return JS_NewEnumerateStandardClasses(aCx, aObj, aProperties,
                                         aEnumerableOnly);
+}
+
+MC::SandboxCallback<JSNewEnumerateOp> EnumerateGlobalCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(EnumerateGlobal);
+  return inner_;
 }
 
 bool IsNonExposedGlobal(JSContext* aCx, JSObject* aGlobal,
@@ -3238,32 +3268,61 @@ bool GenericGetter(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
   return ExceptionPolicy::HandleException(cx, args, info, ok);
 }
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+MC::SandboxCallback<JSNative> GenericGetterCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(GenericGetter<ThisPolicy, ExceptionPolicy>);
+  return inner_;
+}
+
 // Force instantiation of the specializations of GenericGetter we need here.
 template bool GenericGetter<NormalThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                unsigned argc,
                                                                JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<NormalThisPolicy, ThrowExceptions>();
+
 template bool GenericGetter<NormalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<NormalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericGetter<MaybeGlobalThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<MaybeGlobalThisPolicy, ThrowExceptions>();
+
 template bool GenericGetter<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericGetter<LenientThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                 unsigned argc,
                                                                 JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<LenientThisPolicy, ThrowExceptions>();
+
 // There aren't any [LenientThis] Promise-returning getters, so don't
 // bother instantiating that specialization.
 template bool GenericGetter<CrossOriginThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<CrossOriginThisPolicy, ThrowExceptions>();
+
 // There aren't any cross-origin Promise-returning getters, so don't
 // bother instantiating that specialization.
 template bool GenericGetter<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>();
+
 // There aren't any maybe-cross-origin-object Promise-returning getters, so
 // don't bother instantiating that specialization.
 template bool GenericGetter<MaybeCrossOriginObjectLenientThisPolicy,
                             ThrowExceptions>(JSContext* cx, unsigned argc,
                                              JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericGetterCb<MaybeCrossOriginObjectLenientThisPolicy, ThrowExceptions>();
 // There aren't any maybe-cross-origin-object Promise-returning lenient-this
 // getters, so don't bother instantiating that specialization.
 
@@ -3306,20 +3365,39 @@ bool GenericSetter(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
   return true;
 }
 
+template <typename ThisPolicy>
+MC::SandboxCallback<JSNative> GenericSetterCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(GenericSetter<ThisPolicy>);
+  return inner_;
+}
+
 // Force instantiation of the specializations of GenericSetter we need here.
 template bool GenericSetter<NormalThisPolicy>(JSContext* cx, unsigned argc,
                                               JS::Value* vp);
+template MC::SandboxCallback<JSNative> GenericSetterCb<NormalThisPolicy>();
+
 template bool GenericSetter<MaybeGlobalThisPolicy>(JSContext* cx, unsigned argc,
                                                    JS::Value* vp);
+template MC::SandboxCallback<JSNative> GenericSetterCb<MaybeGlobalThisPolicy>();
+
 template bool GenericSetter<LenientThisPolicy>(JSContext* cx, unsigned argc,
                                                JS::Value* vp);
+template MC::SandboxCallback<JSNative> GenericSetterCb<LenientThisPolicy>();
+
 template bool GenericSetter<CrossOriginThisPolicy>(JSContext* cx, unsigned argc,
                                                    JS::Value* vp);
+template MC::SandboxCallback<JSNative> GenericSetterCb<CrossOriginThisPolicy>();
+
 template bool GenericSetter<MaybeCrossOriginObjectThisPolicy>(JSContext* cx,
                                                               unsigned argc,
                                                               JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericSetterCb<MaybeCrossOriginObjectThisPolicy>();
+
 template bool GenericSetter<MaybeCrossOriginObjectLenientThisPolicy>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericSetterCb<MaybeCrossOriginObjectLenientThisPolicy>();
 
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericMethod(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
@@ -3358,26 +3436,52 @@ bool GenericMethod(JSContext* cx_UNSAFE, unsigned argc, JS::Value* vp) {
   return ExceptionPolicy::HandleException(cx, args, info, ok);
 }
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+MC::SandboxCallback<JSNative> GenericMethodCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(GenericMethod<ThisPolicy, ExceptionPolicy>);
+  return inner_;
+}
+
 // Force instantiation of the specializations of GenericMethod we need here.
 template bool GenericMethod<NormalThisPolicy, ThrowExceptions>(JSContext* cx,
                                                                unsigned argc,
                                                                JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<NormalThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<NormalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<NormalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericMethod<MaybeGlobalThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<MaybeGlobalThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<MaybeGlobalThisPolicy, ConvertExceptionsToPromises>();
+
 template bool GenericMethod<CrossOriginThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<CrossOriginThisPolicy, ThrowExceptions>();
+
 // There aren't any cross-origin Promise-returning methods, so don't
 // bother instantiating that specialization.
 template bool GenericMethod<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>(
     JSContext* cx, unsigned argc, JS::Value* vp);
+template MC::SandboxCallback<JSNative>
+GenericMethodCb<MaybeCrossOriginObjectThisPolicy, ThrowExceptions>();
+
 template bool GenericMethod<MaybeCrossOriginObjectThisPolicy,
                             ConvertExceptionsToPromises>(JSContext* cx,
                                                          unsigned argc,
                                                          JS::Value* vp);
+template MC::SandboxCallback<JSNative> GenericMethodCb<
+    MaybeCrossOriginObjectThisPolicy, ConvertExceptionsToPromises>();
 
 }  // namespace binding_detail
 
@@ -3394,6 +3498,11 @@ bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp) {
   }
 
   return ConvertExceptionToPromise(cx, args.rval());
+}
+
+MC::SandboxCallback<JSNative> StaticMethodPromiseWrapperCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(StaticMethodPromiseWrapper);
+  return inner_;
 }
 
 bool ConvertExceptionToPromise(JSContext* cx,

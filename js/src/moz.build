@@ -302,6 +302,7 @@ if CONFIG["JS_SANDBOX"]:
         "../public/sandbox/Promise.h",
         "../public/sandbox/Proxy.h",
         "../public/sandbox/SourceHook.h",
+        "../public/sandbox/TracingAPI.h",
         "../public/sandbox/Wrapper.h",
     ]
 
@@ -449,9 +450,12 @@ UNIFIED_SOURCES += [
 
 if CONFIG["JS_SANDBOX"]:
     UNIFIED_SOURCES += [
+        "sandbox/ExternalCallbackTracer.cpp",
+        "sandbox/ExternalJSPrincipals.cpp",
         "sandbox/ExternalPromise.cpp",
         "sandbox/ExternalProxy.cpp",
         "sandbox/ExternalSourceHook.cpp",
+        "sandbox/ExternalStringCallbacks.cpp",
         "sandbox/ExternalWrapper.cpp",
     ]
 

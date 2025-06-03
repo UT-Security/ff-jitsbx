@@ -25,7 +25,9 @@
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/ScriptPrivate.h"
 #include "monkeycage/Stack.h"
+#include "monkeycage/StreamConsumer.h"
 #include "monkeycage/String.h"
+#include "monkeycage/TracingAPI.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/UniquePtr.h"
 #include "monkeycage/Utility.h"
@@ -34,6 +36,7 @@
 #include "monkeycage/WaitCallbacks.h"
 #include "monkeycage/WrapperCallbacks.h"
 
+#include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
 
 #ifdef JS_SANDBOX

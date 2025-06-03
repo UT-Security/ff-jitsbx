@@ -14,16 +14,27 @@ namespace detail {
 class SandboxNoop;
 
 template <typename T>
-class SandboxCallback {
-  T fn_;
+class SandboxCallback;
+
+template <typename T_Ret, typename... T_Args>
+class SandboxCallback<T_Ret(*)(T_Args...)> {
+  using T_Cb = T_Ret (*)(T_Args...);
+  T_Cb fn_;
 
   friend class SandboxNoop;
-  explicit SandboxCallback(T fn) : fn_(fn) {}
+  explicit SandboxCallback(T_Cb fn) : fn_(fn) {}
 
  public:
   explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
-  T UNSAFE_get() const { return fn_; }
+  T_Cb UNSAFE_get() const { return fn_; }
+
+  operator bool() const { return fn_ == nullptr ? false : true; }
+
+  template <typename... Args>
+  T_Ret operator()(Args&&... args) {
+    return fn_(std::forward<Args>(args)...);
+  }
 };
 #elif defined(JS_SANDBOX_DYLIB)
 
@@ -40,22 +51,42 @@ class SandboxCallback {
   explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
   T UNSAFE_get() const { return fn_; }
+
+  operator bool() const { return fn_ == nullptr ? false : true; }
+
+  template <typename... Args>
+  T_Ret operator()(Args&&... args) {
+    return fn_(std::forward<Args>(args)...);
+  }
 };
 #elif defined(JS_SANDBOX_LFI)
 
 class SandboxLFI;
 
 template <typename T>
-class SandboxCallback {
-  T fn_;
+class SandboxCallback;
+
+template <typename T_Ret, typename... T_Args>
+class SandboxCallback<T_Ret(*)(T_Args...)> {
+  using T_Cb = T_Ret (*)(T_Args...);
+  
+  T_Cb app_fn_;
+  T_Cb sbx_fn_;
 
   friend class SandboxLFI;
-  explicit SandboxCallback(T fn) : fn_(fn) {}
+  explicit SandboxCallback(T_Cb app_fn, T_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
 
  public:
-  explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
+  explicit SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
 
-  T UNSAFE_get() const { return fn_; }
+  T_Cb UNSAFE_get() const { return sbx_fn_; }
+
+  operator bool() const { return app_fn_ == nullptr ? false : true; }
+
+  template <typename... Args>
+  T_Ret operator()(Args&&... args) {
+    return app_fn_(std::forward<Args>(args)...);
+  }
 };
 
 #else

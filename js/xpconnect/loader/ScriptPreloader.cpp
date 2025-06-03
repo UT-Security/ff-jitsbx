@@ -1171,9 +1171,11 @@ void ScriptPreloader::DecodeNextBatch(size_t chunkSize,
 
   JS::DecodeOptions decodeOptions(options);
 
+  static auto OffThreadDecodeCallbackCb =
+      MC::Sandbox::RegisterCallback(OffThreadDecodeCallback);
   if (!JS::CanDecodeOffThread(cx, decodeOptions, size) ||
       !JS::DecodeMultiStencilsOffThread(cx, decodeOptions, mParsingSources,
-                                        OffThreadDecodeCallback,
+                                        OffThreadDecodeCallbackCb.UNSAFE_get(),
                                         static_cast<void*>(this))) {
     // If we fail here, we don't move on to process the next batch, so make
     // sure we don't have any other scripts left to process.

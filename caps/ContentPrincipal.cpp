@@ -357,7 +357,7 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
   }
 
   static auto SetDomainCallbackCb = MC::Sandbox::RegisterCallback(SetDomainCallback);
-  JSPrincipals* principals =
+  MCPrincipals* principals =
       nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
 
   dom::AutoJSAPI jsapi;

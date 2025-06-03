@@ -14,13 +14,13 @@
 
 #include "xpcprivate.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
 #include "js/friend/WindowProxy.h"      // js::IsWindowProxy
 #include "js/friend/XrayJitInfo.h"      // JS::XrayJitInfo
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById, JS_HasProperty, JS_HasPropertyById
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "monkeycage/Wrapper.h"
@@ -1208,18 +1208,23 @@ static void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
   NS_RELEASE(principal);
 }
 
-const JSClassOps XrayExpandoObjectClassOps = {
-    nullptr,                // addProperty
-    nullptr,                // delProperty
-    nullptr,                // enumerate
-    nullptr,                // newEnumerate
-    nullptr,                // resolve
-    nullptr,                // mayResolve
-    ExpandoObjectFinalize,  // finalize
-    nullptr,                // call
-    nullptr,                // construct
-    nullptr,                // trace
-};
+const JSClassOps* XrayExpandoObjectClassOps() {
+  static const JSClassOps inner_ = {
+      nullptr,  // addProperty
+      nullptr,  // delProperty
+      nullptr,  // enumerate
+      nullptr,  // newEnumerate
+      nullptr,  // resolve
+      nullptr,  // mayResolve
+      MC::Sandbox::RegisterCallback(ExpandoObjectFinalize)
+          .UNSAFE_get(),  // finalize
+      nullptr,            // call
+      nullptr,            // construct
+      nullptr,            // trace
+  };
+
+  return &inner_;
+}
 
 bool XrayTraits::expandoObjectMatchesConsumer(JSContext* cx,
                                               HandleObject expandoObject,
@@ -1529,7 +1534,7 @@ JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper) {
 
 const JSClass* XrayTraits::getExpandoClass(JSContext* cx,
                                            HandleObject target) const {
-  return &DefaultXrayExpandoObjectClass;
+  return DefaultXrayExpandoObjectClass();
 }
 
 static const size_t JSSLOT_XRAY_HOLDER = 0;
@@ -1662,7 +1667,10 @@ bool XrayTraits::resolveOwnProperty(
     if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
       return false;
     }
-    if (!found && !JS_DefinePropertyById(cx, holder, id, wrappedJSObject_getter,
+    static auto wrappedJSObject_getterCb =
+        MC::Sandbox::RegisterCallback(wrappedJSObject_getter);
+    if (!found && !JS_DefinePropertyById(cx, holder, id,
+                                         wrappedJSObject_getterCb.UNSAFE_get(),
                                          nullptr, JSPROP_ENUMERATE)) {
       return false;
     }
@@ -1793,7 +1801,7 @@ bool DOMXrayTraits::call(JSContext* cx, HandleObject wrapper,
   // are using "legacycaller".  At this time for all the legacycaller users it
   // makes more sense to invoke on the xray compartment, so we just go ahead
   // and do that for everything.
-  if (JSNative call = clasp->getCall()) {
+  if (MC::SandboxCallback<JSNative> call = MC::Sandbox::RetrieveCallback(clasp->getCall())) {
     // call it on the Xray compartment
     return call(cx, args.length(), args.base());
   }
@@ -1811,7 +1819,7 @@ bool DOMXrayTraits::construct(JSContext* cx, HandleObject wrapper,
   const JSClass* clasp = JS::GetClass(obj);
   // See comments in DOMXrayTraits::call() explaining what's going on here.
   if (clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS) {
-    if (JSNative construct = clasp->getConstruct()) {
+    if (MC::SandboxCallback<JSNative> construct = MC::Sandbox::RetrieveCallback(clasp->getConstruct())) {
       if (!construct(cx, args.length(), args.base())) {
         return false;
       }
@@ -2330,9 +2338,15 @@ static bool IsCrossCompartmentXrayCallback(
   return handler == MC_UNSAFE(PermissiveXrayDOM::getSingleton());
 }
 
-JS::XrayJitInfo gXrayJitInfo = {
-    IsCrossCompartmentXrayCallback, CompartmentHasExclusiveExpandos,
-    JSSLOT_XRAY_HOLDER, XrayTraits::HOLDER_SLOT_EXPANDO,
-    JSSLOT_EXPANDO_PROTOTYPE};
+JS::XrayJitInfo* gXrayJitInfo() {
+  static JS::XrayJitInfo inner_ = {
+      MC::Sandbox::RegisterCallback(IsCrossCompartmentXrayCallback)
+          .UNSAFE_get(),
+      MC::Sandbox::RegisterCallback(CompartmentHasExclusiveExpandos)
+          .UNSAFE_get(),
+      JSSLOT_XRAY_HOLDER, XrayTraits::HOLDER_SLOT_EXPANDO,
+      JSSLOT_EXPANDO_PROTOTYPE};
+  return &inner_;
+}
 
 }  // namespace xpc

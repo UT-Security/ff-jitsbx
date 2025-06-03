@@ -100,8 +100,8 @@
 #include "GeckoProfiler.h"
 #include "ProfilerControl.h"
 
-#include "jsapi.h"
-#include "js/Initialization.h"
+#include "mcapi.h"
+#include "monkeycage/Initialization.h"
 #include "mozilla/StaticPrefs_javascript.h"
 #include "XPCSelfHostedShmem.h"
 
@@ -547,8 +547,15 @@ namespace mozilla {
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
   if (!sICUReporterInitialized) {
-    if (!JS_SetICUMemoryFunctions(ICUReporter::Alloc, ICUReporter::Realloc,
-                                  ICUReporter::Free)) {
+    static auto ICUReporterAllocCb =
+        MC::Sandbox::RegisterCallback(ICUReporter::Alloc);
+    static auto ICUReporterReallocCb =
+        MC::Sandbox::RegisterCallback(ICUReporter::Realloc);
+    static auto ICUReporterFreeCb =
+        MC::Sandbox::RegisterCallback(ICUReporter::Free);
+
+    if (!JS_SetICUMemoryFunctions(ICUReporterAllocCb, ICUReporterReallocCb,
+                                  ICUReporterFreeCb)) {
       MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
     }
     sICUReporterInitialized = true;

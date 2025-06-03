@@ -643,11 +643,11 @@ inline void AllocateProtoAndIfaceCache(JSObject* obj,
 }
 
 #ifdef DEBUG
-struct VerifyTraceProtoAndIfaceCacheCalledTracer : public JS::CallbackTracer {
+struct VerifyTraceProtoAndIfaceCacheCalledTracer : public MC::CallbackTracer {
   bool ok;
 
   explicit VerifyTraceProtoAndIfaceCacheCalledTracer(JSContext* cx)
-      : JS::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
+      : MC::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
         ok(false) {}
 
   void onChild(JS::GCCellPtr, const char* name) override {
@@ -664,7 +664,9 @@ inline void TraceProtoAndIfaceCache(JSTracer* trc, JSObject* obj) {
   if (trc->kind() == JS::TracerKind::VerifyTraceProtoAndIface) {
     // We don't do anything here, we only want to verify that
     // TraceProtoAndIfaceCache was called.
-    static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(trc)->ok = true;
+    static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(
+        static_cast<JS::sandbox::CallbackTracer*>(trc)->getCallbackTracer())
+        ->ok = true;
     return;
   }
 #endif
@@ -1849,6 +1851,8 @@ void GetInterface(JSContext* aCx, T* aThis, JS::Handle<JS::Value> aIID,
 
 bool ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
 
+MC::SandboxCallback<JSNative> ThrowingConstructorCb();
+
 bool ThrowConstructorWithoutNew(MCContext* cx, const char* name);
 
 // Helper for throwing an "invalid this" exception.
@@ -2415,9 +2419,9 @@ inline JSObject* GetCachedSlotStorageObject(JSContext* cx,
 
 extern NativePropertyHooks sEmptyNativePropertyHooks;
 
-extern const JSClassOps sBoringInterfaceObjectClassClassOps;
+extern const JSClassOps* sBoringInterfaceObjectClassClassOps();
 
-extern const js::ObjectOps sInterfaceObjectClassObjectOps;
+extern const js::ObjectOps* sInterfaceObjectClassObjectOps();
 
 inline bool UseDOMXray(JSObject* obj) {
   const JSClass* clasp = JS::GetClass(obj);
@@ -2889,12 +2893,15 @@ void FinalizeGlobal(JS::GCContext* aGcx, JSObject* aObj);
 
 bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
                    JS::Handle<jsid> aId, bool* aResolvedp);
+MC::SandboxCallback<JSResolveOp> ResolveGlobalCb();
 
 bool MayResolveGlobal(const JSAtomState& aNames, jsid aId, JSObject* aMaybeObj);
+MC::SandboxCallback<JSMayResolveOp> MayResolveGlobalCb();
 
 bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
                      JS::MutableHandleVector<jsid> aProperties,
                      bool aEnumerableOnly);
+MC::SandboxCallback<JSNewEnumerateOp> EnumerateGlobalCb();
 
 struct CreateGlobalOptionsGeneric {
   static void TraceGlobal(JSTracer* aTrc, JSObject* aObj) {
@@ -2950,8 +2957,9 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, JS::RealmOptions& aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
+  static auto TraceGlobalCb = MC::Sandbox::RegisterCallback(CreateGlobalOptions<T>::TraceGlobal);
   aOptions.creationOptions()
-      .setTrace(CreateGlobalOptions<T>::TraceGlobal)
+      .setTrace(TraceGlobalCb.UNSAFE_get())
       .setProfilerRealmID(GetWindowID(aNative));
   xpc::SetPrefableRealmOptions(aOptions);
 
@@ -3019,6 +3027,9 @@ namespace binding_detail {
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp);
 
+template <typename ThisPolicy, typename ExceptionPolicy>
+MC::SandboxCallback<JSNative> GenericGetterCb();
+
 /**
  * WebIDL setters have a "generic" JSNative that is responsible for the
  * following things:
@@ -3034,6 +3045,9 @@ bool GenericGetter(JSContext* cx, unsigned argc, JS::Value* vp);
  */
 template <typename ThisPolicy>
 bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp);
+
+template <typename ThisPolicy>
+MC::SandboxCallback<JSNative> GenericSetterCb();
 
 /**
  * WebIDL methods have a "generic" JSNative that is responsible for the
@@ -3052,6 +3066,9 @@ bool GenericSetter(JSContext* cx, unsigned argc, JS::Value* vp);
  */
 template <typename ThisPolicy, typename ExceptionPolicy>
 bool GenericMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+
+template <typename ThisPolicy, typename ExceptionPolicy>
+MC::SandboxCallback<JSNative> GenericMethodCb();
 
 // A this-extraction policy for normal getters/setters/methods.
 struct NormalThisPolicy;
@@ -3083,6 +3100,7 @@ struct ConvertExceptionsToPromises;
 }  // namespace binding_detail
 
 bool StaticMethodPromiseWrapper(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::SandboxCallback<JSNative> StaticMethodPromiseWrapperCb();
 
 // ConvertExceptionToPromise should only be called when we have an error
 // condition (e.g. returned false from a JSAPI method).  Note that there may be

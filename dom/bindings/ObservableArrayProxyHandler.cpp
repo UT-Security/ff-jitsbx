@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/ObservableArrayProxyHandler.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/Conversions.h"
 #include "js/Object.h"
@@ -361,7 +361,7 @@ bool ObservableArrayProxyHandler::SetLength(JSContext* aCx,
   }
 
   if (uint32Len != numberLen) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_BAD_INDEX);
     return false;
   }

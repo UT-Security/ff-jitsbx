@@ -1078,7 +1078,7 @@ bool nsOuterWindowProxy::EnsureHolder(
     JSContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandle<JSObject*> holder) const {
   return EnsureHolder(cx, proxy, HOLDER_WEAKMAP_SLOT,
-                      Window_Binding::sCrossOriginProperties, holder);
+                      Window_Binding::sCrossOriginProperties(), holder);
 }
 
 size_t nsOuterWindowProxy::objectMoved(JSObject* obj, JSObject* old) const {
@@ -1151,8 +1151,9 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
     return false;
   }
 
+  static auto PDFJSPrintMethodCb = MC::Sandbox::RegisterCallback(PDFJSPrintMethod);
   JSFunction* fun =
-      js::NewFunctionWithReserved(cx, PDFJSPrintMethod, 0, 0, "print");
+      js::NewFunctionWithReserved(cx, PDFJSPrintMethodCb.UNSAFE_get(), 0, 0, "print");
   if (!fun) {
     return false;
   }
@@ -2007,7 +2008,8 @@ static JS::RealmCreationOptions& SelectZone(
     // Now try to find an existing compartment that's same-origin
     // with our principal.
     CompartmentFinderState data(aPrincipal);
-    JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartment);
+    static auto FindSameOriginCompartmentCb = MC::Sandbox::RegisterCallback(FindSameOriginCompartment);
+    JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartmentCb.UNSAFE_get());
     if (data.compartment) {
       return aOptions.setExistingCompartment(data.compartment);
     }
@@ -2067,7 +2069,7 @@ static nsresult CreateNativeGlobalForInner(
   flags |= xpc::DONT_FIRE_ONNEWGLOBALHOOK;
 
   if (!Window_Binding::Wrap(aCx, aNewInner, aNewInner, options,
-                            nsJSPrincipals::get(principal), false, aGlobal) ||
+                            nsJSPrincipals::get(principal)->inner_, false, aGlobal) ||
       !xpc::InitGlobalObject(aCx, aGlobal, flags)) {
     return NS_ERROR_FAILURE;
   }

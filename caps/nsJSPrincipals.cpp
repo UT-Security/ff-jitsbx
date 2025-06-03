@@ -21,16 +21,16 @@ using namespace mozilla::ipc;
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsJSPrincipals::AddRef() {
-  MOZ_ASSERT(int32_t(refcount) >= 0, "illegal refcnt");
-  nsrefcnt count = ++refcount;
+  MOZ_ASSERT(int32_t(refcount()) >= 0, "illegal refcnt");
+  nsrefcnt count = ++refcount();
   NS_LOG_ADDREF(this, count, "nsJSPrincipals", sizeof(*this));
   return count;
 }
 
 NS_IMETHODIMP_(MozExternalRefCountType)
 nsJSPrincipals::Release() {
-  MOZ_ASSERT(0 != refcount, "dup release");
-  nsrefcnt count = --refcount;
+  MOZ_ASSERT(0 != refcount(), "dup release");
+  nsrefcnt count = --refcount();
   NS_LOG_RELEASE(this, count, "nsJSPrincipals");
   if (count == 0) {
     delete this;
@@ -62,11 +62,11 @@ void nsJSPrincipals::Destroy(JSPrincipals* jsprin) {
   // The refcount logging considers AddRef-to-1 to indicate creation,
   // so trick it into thinking it's otherwise, but balance the
   // Release() we do below.
-  nsjsprin->refcount++;
+  nsjsprin->refcount()++;
   nsjsprin->AddRef();
-  nsjsprin->refcount--;
+  nsjsprin->refcount()--;
 #else
-  nsjsprin->refcount++;
+  nsjsprin->refcount()++;
 #endif
   nsjsprin->Release();
 }
@@ -82,7 +82,11 @@ MC::Sandbox::Callback<JSDestroyPrincipalsOp> nsJSPrincipals::DestroyCb() {
 JS_PUBLIC_API void JSPrincipals::dump() {
   if (debugToken == nsJSPrincipals::DEBUG_TOKEN) {
     nsAutoCString str;
-    nsresult rv = static_cast<nsJSPrincipals*>(this)->GetScriptLocation(str);
+    nsresult rv =
+        static_cast<nsJSPrincipals*>(
+            static_cast<MCPrincipals*>(
+                static_cast<::sandbox::JSPrincipals*>(this)->getPrincipals()))
+            ->GetScriptLocation(str);
     fprintf(stderr, "nsIPrincipal (%p) = %s\n", static_cast<void*>(this),
             NS_SUCCEEDED(rv) ? str.get() : "(unknown)");
   } else {
@@ -299,7 +303,7 @@ bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
 
   nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
 
-  *aOutPrincipals = get(principal.forget().take());
+  *aOutPrincipals = get(principal.forget().take())->inner_;
   return true;
 }
 

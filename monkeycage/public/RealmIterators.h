@@ -18,6 +18,7 @@
 
 #include "monkeycage/Context.h"
 #include "monkeycage/Realm.h"
+#include "monkeycage/Principals.h"
 #include "monkeycage/SandboxCallback.h"
 
 namespace JS {
@@ -29,9 +30,9 @@ inline void IterateRealms(
 }
 
 inline void IterateRealmsWithPrincipals(
-    MCContext* cx, JSPrincipals* principals, void* data,
+    MCContext* cx, MCPrincipals* principals, void* data,
     MC::SandboxCallback<IterateRealmCallback> realmCallback) {
-  return IterateRealmsWithPrincipals(cx->cx_, principals, data,
+  return IterateRealmsWithPrincipals(cx->cx_, principals->inner_, data,
                                      realmCallback.UNSAFE_get());
 }
 

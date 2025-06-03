@@ -18,12 +18,19 @@
 #include <stdint.h>  // uint8_t, uint32_t
 
 #include "js/TypeDecls.h"
+#ifdef JS_SANDBOX
+#include "js/AllocPolicy.h"
+#endif
 
 namespace JS {
 
 class JS_PUBLIC_API ReadOnlyCompileOptions;
 
+#ifdef JS_SANDBOX
+using TranscodeBuffer = mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>;
+#else
 using TranscodeBuffer = mozilla::Vector<uint8_t>;
+#endif
 using TranscodeRange = mozilla::Range<const uint8_t>;
 
 struct TranscodeSource final {

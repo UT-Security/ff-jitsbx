@@ -811,4 +811,9 @@ void FetchUtil::ReportJSStreamError(JSContext* aCx, size_t aErrorCode) {
   JS_SetPendingException(aCx, value);
 }
 
+MC::SandboxCallback<JS::ReportStreamErrorCallback> FetchUtil::ReportJSStreamErrorCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(ReportJSStreamError);
+  return inner_;
+}
+
 }  // namespace mozilla::dom

@@ -76,6 +76,7 @@ class FetchUtil final {
    * untyped 'size_t' instead of Gecko 'nsresult'.
    */
   static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
+  static MC::SandboxCallback<JS::ReportStreamErrorCallback> ReportJSStreamErrorCb();
 };
 
 }  // namespace mozilla::dom

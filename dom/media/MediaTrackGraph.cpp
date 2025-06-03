@@ -3936,7 +3936,9 @@ void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
     MOZ_ASSERT(impl->mJSContext == aCx);
     return;
   }
-  JS_AddInterruptCallback(aCx, InterruptCallback);
+  static auto InterruptCallbackCb =
+      MC::Sandbox::RegisterCallback(InterruptCallback);
+  JS_AddInterruptCallback(aCx, InterruptCallbackCb.UNSAFE_get());
   impl->mJSContext = aCx;
   if (impl->mInterruptJSCalled) {
     JS_RequestInterruptCallback(aCx);

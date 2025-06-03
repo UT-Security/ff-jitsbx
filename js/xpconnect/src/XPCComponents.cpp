@@ -16,7 +16,7 @@
 #include "mozJSModuleLoader.h"
 #include "nsContentUtils.h"
 #include "nsCycleCollector.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::IsArrayObject
 #include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
@@ -985,6 +985,7 @@ class nsXPCComponents_Constructor final : public nsIXPCComponents_Constructor,
  private:
   virtual ~nsXPCComponents_Constructor();
   static bool InnerConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
+  static MC::SandboxCallback<JSNative> InnerConstructorCb();
   static nsresult CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
                                   JSContext* cx, HandleObject obj,
                                   const CallArgs& args, bool* _retval);
@@ -1110,6 +1111,11 @@ bool nsXPCComponents_Constructor::InnerConstructor(JSContext* cx, unsigned argc,
   return true;
 }
 
+MC::SandboxCallback<JSNative> nsXPCComponents_Constructor::InnerConstructorCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(InnerConstructor);
+  return inner_;
+}
+
 NS_IMETHODIMP
 nsXPCComponents_Constructor::Call(nsIXPConnectWrappedNative* wrapper,
                                   JSContext* cx, JSObject* objArg,
@@ -1159,7 +1165,7 @@ nsresult nsXPCComponents_Constructor::CallOrConstruct(
     return ThrowAndFail(NS_ERROR_DOM_XPCONNECT_ACCESS_DENIED, cx, _retval);
   }
 
-  JSFunction* ctorfn = JS_NewFunction(cx, InnerConstructor, 0,
+  JSFunction* ctorfn = JS_NewFunction(cx, InnerConstructorCb().UNSAFE_get(), 0,
                                       JSFUN_CONSTRUCTOR, "XPCOM_Constructor");
   if (!ctorfn) {
     return ThrowAndFail(NS_ERROR_OUT_OF_MEMORY, cx, _retval);
@@ -1269,7 +1275,7 @@ nsXPCComponents_Constructor::HasInstance(nsIXPConnectWrappedNative* wrapper,
                                          HandleValue val, bool* isa,
                                          bool* _retval) {
   *isa =
-      val.isObject() && JS_IsNativeFunction(&val.toObject(), InnerConstructor);
+      val.isObject() && JS_IsNativeFunction(&val.toObject(), InnerConstructorCb().UNSAFE_get());
   return NS_OK;
 }
 
@@ -2002,13 +2008,13 @@ nsXPCComponents_Utils::RecomputeWrappers(HandleValue vobj, JSContext* cx) {
 
   // If no compartment was given, recompute all.
   if (!c) {
-    js::RecomputeWrappers(cx, js::AllCompartments(), js::AllCompartments());
+    js::RecomputeWrappers(cx, mc::AllCompartments(), mc::AllCompartments());
     // Otherwise, recompute wrappers for the given compartment.
   } else {
-    js::RecomputeWrappers(cx, js::SingleCompartment(c),
-                          js::AllCompartments()) &&
-        js::RecomputeWrappers(cx, js::AllCompartments(),
-                              js::SingleCompartment(c));
+    js::RecomputeWrappers(cx, mc::SingleCompartment(c),
+                          mc::AllCompartments()) &&
+        js::RecomputeWrappers(cx, mc::AllCompartments(),
+                              mc::SingleCompartment(c));
   }
 
   return NS_OK;
@@ -2024,8 +2030,8 @@ nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext* cx) {
                      "Don't call setWantXrays on system-principal scopes");
   JS::Compartment* compartment = JS::GetCompartment(scopeObj);
   CompartmentPrivate::Get(scopeObj)->wantXrays = true;
-  bool ok = js::RecomputeWrappers(cx, js::SingleCompartment(compartment),
-                                  js::AllCompartments());
+  bool ok = js::RecomputeWrappers(cx, mc::SingleCompartment(compartment),
+                                  mc::AllCompartments());
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }

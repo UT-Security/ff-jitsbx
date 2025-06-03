@@ -1703,8 +1703,9 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
     } else {
+      static auto LazyStackGetterCb = MC::Sandbox::RegisterCallback(LazyStackGetter);
       JSFunction* fun =
-          js::NewFunctionWithReserved(aCx, LazyStackGetter, 0, 0, "stacktrace");
+          js::NewFunctionWithReserved(aCx, LazyStackGetterCb.UNSAFE_get(), 0, 0, "stacktrace");
       if (NS_WARN_IF(!fun)) {
         return false;
       }

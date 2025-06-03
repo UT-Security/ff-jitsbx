@@ -14,7 +14,7 @@
 #include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/SavedFrameAPI.h"
 #include "monkeycage/Value.h"  // JS::Value, JS::StringValue
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "WrapperFactory.h"
 
 #include "mozilla/Base64.h"
@@ -723,9 +723,10 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
     return false;
   }
 
+  static auto JSLazyGetterCb = MC::Sandbox::RegisterCallback(JSLazyGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSLazyGetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSLazyGetterCb.UNSAFE_get(), 0, 0, id)));
   if (!getter) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -863,13 +864,15 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
   }
   idValue = js::IdToValue(id);
 
+  static auto JSModuleGetterCb = MC::Sandbox::RegisterCallback(JSModuleGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleGetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleGetterCb.UNSAFE_get(), 0, 0, id)));
 
+  static auto JSModuleSetterCb = MC::Sandbox::RegisterCallback(JSModuleSetter);
   MC::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleSetter, 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleSetterCb.UNSAFE_get(), 0, 0, id)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -890,13 +893,15 @@ static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                  JS::Handle<JS::Value> aResourceURI) {
   MC::Rooted<JS::Value> idVal(aCx, JS::StringValue(aId.toString()));
 
+  static auto ESModuleGetterCb = MC::Sandbox::RegisterCallback(ESModuleGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleGetter, 0, 0, aId)));
+               aCx, ESModuleGetterCb.UNSAFE_get(), 0, 0, aId)));
 
+  static auto ESModuleSetterCb = MC::Sandbox::RegisterCallback(ESModuleSetter);
   MC::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleSetter, 0, 0, aId)));
+               aCx, ESModuleSetterCb.UNSAFE_get(), 0, 0, aId)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -1543,7 +1548,7 @@ void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
 
   auto* principals = nsJSPrincipals::get(aPrincipal);
 
-  JS::StackCapture captureMode(JS::FirstSubsumedFrame(cx, principals));
+  JS::StackCapture captureMode(JS::FirstSubsumedFrame(cx, principals->inner_));
 
   MC::Rooted<JSObject*> frame(cx);
   if (!JS::CaptureCurrentStack(cx, &frame, std::move(captureMode))) {
@@ -1557,7 +1562,7 @@ void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
   // privileged frames that we don't care about at the top of the stack, though.
   // We need to filter those out to get the frame we actually want.
   aRetval.set(
-      js::GetFirstSubsumedSavedFrame(cx, principals, frame, kSkipSelfHosted));
+      js::GetFirstSubsumedSavedFrame(cx, principals->inner_, frame, kSkipSelfHosted));
 }
 
 /* static */

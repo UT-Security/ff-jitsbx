@@ -152,10 +152,10 @@ class IncrementalFinalizeRunnable : public DiscardableRunnable {
 
 }  // namespace mozilla
 
-struct NoteWeakMapChildrenTracer : public JS::CallbackTracer {
+struct NoteWeakMapChildrenTracer : public MC::CallbackTracer {
   NoteWeakMapChildrenTracer(MCRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
-      : JS::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback),
+      : MC::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback),
         mCb(aCb),
         mTracedAny(false),
         mMap(nullptr),
@@ -183,13 +183,13 @@ void NoteWeakMapChildrenTracer::onChild(JS::GCCellPtr aThing,
     mCb.NoteWeakMapping(mMap, mKey, mKeyDelegate, aThing);
     mTracedAny = true;
   } else {
-    JS::TraceChildren(this, aThing);
+    JS::TraceChildren(getCallbackTracer(), aThing);
   }
 }
 
-struct NoteWeakMapsTracer : public js::WeakMapTracer {
+struct NoteWeakMapsTracer : public mc::WeakMapTracer {
   NoteWeakMapsTracer(MCRuntime* aRt, nsCycleCollectionNoteRootCallback& aCccb)
-      : js::WeakMapTracer(MC_UNSAFE(aRt)), mCb(aCccb), mChildTracer(aRt, aCccb) {}
+      : mc::WeakMapTracer(MC_UNSAFE(aRt)), mCb(aCccb), mChildTracer(aRt, aCccb) {}
   void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override;
   nsCycleCollectionNoteRootCallback& mCb;
   NoteWeakMapChildrenTracer mChildTracer;
@@ -234,7 +234,7 @@ void NoteWeakMapsTracer::trace(JSObject* aMap, JS::GCCellPtr aKey,
     mChildTracer.mKeyDelegate = kdelegate;
 
     if (!aValue.is<JSString>()) {
-      JS::TraceChildren(&mChildTracer, aValue);
+      JS::TraceChildren(mChildTracer.getCallbackTracer(), aValue);
     }
 
     // The delegate could hold alive the key, so report something to the CC
@@ -284,9 +284,9 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
   }
 }
 
-struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
+struct FixWeakMappingGrayBitsTracer : public mc::WeakMapTracer {
   explicit FixWeakMappingGrayBitsTracer(MCRuntime* aRt)
-      : js::WeakMapTracer(MC_UNSAFE(aRt)) {}
+      : mc::WeakMapTracer(MC_UNSAFE(aRt)) {}
 
   void FixAll() {
     do {
@@ -315,9 +315,9 @@ struct FixWeakMappingGrayBitsTracer : public js::WeakMapTracer {
 
 #ifdef DEBUG
 // Check whether weak maps are marked correctly according to the logic above.
-struct CheckWeakMappingGrayBitsTracer : public js::WeakMapTracer {
+struct CheckWeakMappingGrayBitsTracer : public mc::WeakMapTracer {
   explicit CheckWeakMappingGrayBitsTracer(MCRuntime* aRt)
-      : js::WeakMapTracer(MC_UNSAFE(aRt)), mFailed(false) {}
+      : mc::WeakMapTracer(MC_UNSAFE(aRt)), mFailed(false) {}
 
   static bool Check(MCRuntime* aRt) {
     CheckWeakMappingGrayBitsTracer tracer(aRt);
@@ -394,9 +394,9 @@ JSZoneParticipant::TraverseNative(void* aPtr,
   return NS_OK;
 }
 
-struct TraversalTracer : public JS::CallbackTracer {
+struct TraversalTracer : public MC::CallbackTracer {
   TraversalTracer(MCRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
-      : JS::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback,
+      : MC::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback,
                            JS::TraceOptions(JS::WeakMapTraceAction::Skip,
                                             JS::WeakEdgeTraceAction::Trace)),
         mCb(aCb) {}
@@ -426,7 +426,7 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
   if (JS::IsCCTraceKind(aThing.kind())) {
     if (MOZ_UNLIKELY(mCb.WantDebugInfo())) {
       char buffer[200];
-      context().getEdgeName(name, buffer, sizeof(buffer));
+      getCallbackTracer()->context().getEdgeName(name, buffer, sizeof(buffer));
       mCb.NoteNextEdgeName(buffer);
     }
     mCb.NoteJSChild(aThing);
@@ -434,14 +434,14 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
   }
 
   // Allow re-use of this tracer inside trace callback.
-  JS::AutoClearTracingContext actc(this);
+  JS::AutoClearTracingContext actc(getCallbackTracer());
 
   if (aThing.is<js::Shape>()) {
     // The maximum depth of traversal when tracing a Shape is unbounded, due to
     // the parent pointers on the shape.
-    JS_TraceShapeCycleCollectorChildren(this, aThing);
+    JS_TraceShapeCycleCollectorChildren(getCallbackTracer(), aThing);
   } else {
-    JS::TraceChildren(this, aThing);
+    JS::TraceChildren(getCallbackTracer(), aThing);
   }
 }
 
@@ -766,10 +766,10 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-class JSLeakTracer : public JS::CallbackTracer {
+class JSLeakTracer : public MC::CallbackTracer {
  public:
   explicit JSLeakTracer(MCRuntime* aRuntime)
-      : JS::CallbackTracer(MC_UNSAFE(aRuntime), JS::TracerKind::Callback,
+      : MC::CallbackTracer(MC_UNSAFE(aRuntime), JS::TracerKind::Callback,
                            JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
  private:
@@ -790,8 +790,8 @@ void CycleCollectedJSRuntime::Shutdown(MCContext* cx) {
   // remain are flagged as leaks.
 #ifdef NS_BUILD_REFCNT_LOGGING
   JSLeakTracer tracer(Runtime());
-  TraceNativeBlackRoots(&tracer);
-  TraceAllNativeGrayRoots(&tracer);
+  TraceNativeBlackRoots(tracer.getCallbackTracer());
+  TraceAllNativeGrayRoots(tracer.getCallbackTracer());
 #endif
 
 #ifdef DEBUG
@@ -868,7 +868,7 @@ void CycleCollectedJSRuntime::DescribeGCThing(
 void CycleCollectedJSRuntime::NoteGCThingJSChildren(
     JS::GCCellPtr aThing, nsCycleCollectionTraversalCallback& aCb) const {
   TraversalTracer trc(mJSRuntime, aCb);
-  JS::TraceChildren(&trc, aThing);
+  JS::TraceChildren(trc.getCallbackTracer(), aThing);
 }
 
 void CycleCollectedJSRuntime::NoteGCThingXPCOMChildren(
@@ -977,7 +977,7 @@ void CycleCollectedJSRuntime::TraverseZone(
    * unnecessary loop edges to the graph (bug 842137).
    */
   TraversalTracer trc(mJSRuntime, aCb);
-  js::TraceGrayWrapperTargets(&trc, aZone);
+  js::TraceGrayWrapperTargets(trc.getCallbackTracer(), aZone);
 
   /*
    * To find C++ children of things in the zone, we scan every JS Object in

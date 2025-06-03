@@ -1201,7 +1201,8 @@ nsresult XPCJSContext::Initialize() {
   if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
     size_t threadCount = TaskController::GetPoolThreadCount();
     size_t stackSize = TaskController::GetThreadStackSize();
-    SetHelperThreadTaskCallback(&DispatchOffThreadTask, threadCount, stackSize);
+    static auto DispatchOffThreadTaskCb = MC::Sandbox::RegisterCallback(DispatchOffThreadTask);
+    SetHelperThreadTaskCallback(DispatchOffThreadTaskCb.UNSAFE_get(), threadCount, stackSize);
   }
 
   nsresult rv =

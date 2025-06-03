@@ -12,12 +12,13 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Principals.h"
 
 inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
-                                    JSPrincipals* principals,
+                                    MCPrincipals* principals,
                                     JS::OnNewGlobalHookOption hookOption,
                                     const JS::RealmOptions& options) {
-  return JS_NewGlobalObject(cx->cx_, clasp, principals, hookOption, options);
+  return JS_NewGlobalObject(cx->cx_, clasp, principals->inner_, hookOption, options);
 }
 
 inline void JS_FireOnNewGlobalObject(MCContext* cx, JS::HandleObject global) {

@@ -273,6 +273,25 @@ struct WeakMapTracer {
   virtual void trace(JSObject* m, JS::GCCellPtr key, JS::GCCellPtr value) = 0;
 };
 
+#ifdef JS_SANDBOX
+namespace sandbox {
+
+struct JS_PUBLIC_API WeakMapTracer : public js::WeakMapTracer {
+  using TraceOp = void (*)(void* p, JSObject*, JS::GCCellPtr, JS::GCCellPtr);
+
+ private:
+  TraceOp traceOp_;
+  void* tracer_;
+
+ public:
+  explicit WeakMapTracer(TraceOp traceOp, void* tracer, JSRuntime* rt);
+  virtual void trace(JSObject* m, JS::GCCellPtr key,
+                     JS::GCCellPtr value) override;
+};
+
+}  // namespace sandbox
+#endif
+
 extern JS_PUBLIC_API void TraceWeakMaps(WeakMapTracer* trc);
 
 extern JS_PUBLIC_API bool AreGCGrayBitsValid(JSRuntime* rt);
@@ -514,6 +533,23 @@ typedef enum NukeReferencesFromTarget {
 struct CompartmentFilter {
   virtual bool match(JS::Compartment* c) const = 0;
 };
+
+#ifdef JS_SANDBOX
+namespace sandbox {
+
+struct JS_PUBLIC_API CompartmentFilter : public js::CompartmentFilter {
+  using MatchOp = bool (*)(const void* p, JS::Compartment* c);
+
+ private:
+  MatchOp op_;
+  const void* filter_;
+
+ public:
+   CompartmentFilter(MatchOp op, const void* filter);
+   virtual bool match(JS::Compartment* c) const override;
+};
+}
+#endif
 
 struct AllCompartments : public CompartmentFilter {
   virtual bool match(JS::Compartment* c) const override { return true; }
@@ -789,6 +825,21 @@ class JS_PUBLIC_API CompartmentTransplantCallback {
  public:
   virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) = 0;
 };
+
+#ifdef JS_SANDBOX
+namespace sandbox {
+class JS_PUBLIC_API CompartmentTransplantCallback: public js::CompartmentTransplantCallback {
+ public:
+   using GetObjectToTransplantOp = JSObject* (*)(void*, JS::Compartment*);
+ private:
+   GetObjectToTransplantOp op_;
+   void* outer_;
+ public:
+  CompartmentTransplantCallback(GetObjectToTransplantOp op, void* outer);
+  virtual JSObject* getObjectToTransplant(JS::Compartment* compartment) override;
+};
+}
+#endif
 
 // Gather a set of remote window proxies by calling the callback on every
 // compartment, then transform them into cross-compartment wrappers to newTarget
