@@ -48,17 +48,9 @@ inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
 
 extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nullptr);
 
-inline MCContext* JS_SanitizeContext(JSContext* cx) {
-  MOZ_RELEASE_ASSERT(MCContext::mcx_);
-  MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
-  return MCContext::mcx_;
-}
+extern MCContext* JS_SanitizeContext(JSContext* cx);
 
-inline MCContext* JS_SanitizeContext(JS::RootingContext* rcx) {
-  MOZ_RELEASE_ASSERT(MCContext::mcx_);
-  MOZ_RELEASE_ASSERT(MCContext::mcx_->rcx_ == rcx);
-  return MCContext::mcx_;
-}
+extern MCContext* JS_SanitizeContext(JS::RootingContext* rcx);
 
 inline void JS_DestroyContext(MCContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_, "Attempt to delete MCContext in non-allocating thread");

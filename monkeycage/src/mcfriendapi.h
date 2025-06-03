@@ -71,9 +71,11 @@ inline bool AreGCGrayBitsValid(MCRuntime* rt) {
     return AreGCGrayBitsValid(rt->rt_);
 }
 
+#if defined(JS_GC_ZEAL) || defined(DEBUG)
 inline bool CheckGrayMarkingState(MCRuntime* rt) {
     return CheckGrayMarkingState(rt->rt_);
 }
+#endif
 
 inline void SetDOMCallbacks(MCContext* cx, const mc::DOMCallbacks* callbacks) {
   return SetDOMCallbacks(cx->cx_, callbacks->UNSAFE_get());

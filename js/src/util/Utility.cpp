@@ -24,18 +24,19 @@ using namespace js;
 
 using mozilla::Maybe;
 
+#ifdef JS_SANDBOX
+JS_PUBLIC_API void js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
+    AnnotateOOMAllocationSizeCallback callback) {
+  annotateOOMSizeCallback = callback;
+}
+#endif
+
 #if defined(DEBUG) || defined(JS_OOM_BREAKPOINT)
 /* For OOM testing functionality in Utility.h. */
 namespace js {
 
 mozilla::Atomic<AutoEnterOOMUnsafeRegion*> AutoEnterOOMUnsafeRegion::owner_;
 
-#ifdef JS_SANDBOX
-void AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
-    AnnotateOOMAllocationSizeCallback callback) {
-  annotateOOMSizeCallback = callback;
-}
-#endif
 
 namespace oom {
 
