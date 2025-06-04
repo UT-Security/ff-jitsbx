@@ -436,7 +436,6 @@ class Descriptor(DescriptorProvider):
             self.tainted = interface.getExtendedAttribute("Tainted")
         else:
             #TODO(Anthony): actually make it taint
-            print("Interface name: " + str(interface))
             if str(interface) == "Interface \'ConsoleInstance\'" :
                 self.tainted = True
             else:

@@ -22,18 +22,45 @@ namespace dom {
 
 extern mozilla::HashSet<const char16_t *> TaintedExternalStringBacking;
 
+using TaintTable = mozilla::HashMap<void*, uint32_t>;
+
 template<typename T>
 class TaintObj {
 	public:
-	static inline mozilla::HashSet<void*> PtrTable = mozilla::HashSet<void*>(1);
+	static inline TaintTable PtrTable = TaintTable(1);
 	TaintObj() {
-		if(!PtrTable.put(this)) {
+		if(!PtrTable.put(this, 1)) {
 			MOZ_CRASH("Couldn't add new pointer to pointer table");
         }
 	}
 	~TaintObj() {
 		PtrTable.remove(this);
 	}
+    static void incRefCnt(T* native) {
+        TaintTable::Ptr p =  PtrTable.lookup(static_cast<void*>(native));
+        if(p) {
+            if(!PtrTable.put(static_cast<void*>(native), p->value() + 1)) {
+                MOZ_CRASH("Failed to update refcount in pointer table");
+            }
+        } else {
+            if(!PtrTable.put(static_cast<void*>(native), 1)) {
+                MOZ_CRASH("Failed to insert AppPointer in NativeWrapping");
+            }
+        }
+    }
+    static void decRefCnt(T* native) {
+        TaintTable::Ptr p = PtrTable.lookup(static_cast<void*>(native));
+        if(p) {
+            uint32_t cnt = p->value();
+            if (cnt == 0) {
+                MOZ_CRASH("Double free on AppPointer detected");
+            } else {
+                if(!PtrTable.put(static_cast<void*>(native), cnt - 1)) {
+                    MOZ_CRASH("Failed to decrement refcount");
+                }
+            }
+        }
+    }
 };
 
 template<typename T>
@@ -54,7 +81,7 @@ class JSAppPtr {
   JSAppPtr(void * ptr) : app_ptr(ptr) {}
   
   template <typename O>
-  O* verify(const mozilla::HashSet<void*> & PtrTable) {
+  O* verify(TaintTable & PtrTable) {
     if(PtrTable.has(static_cast<void*>(app_ptr))) {
       return static_cast<O*>(app_ptr);
     } else {

@@ -127,7 +127,7 @@ inline T* UnwrapDOMObject(JSTainted<JSObject*> obj) {
 
   JS::Value val = JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT);
   JSAppPtr<T> ret (static_cast<T*>(val.toPrivate()));
-  return ret.template verify<T>(TaintObj<T>::PtrTable); 
+  return ret.verify_as_type(); 
 }
 
 template <class T>
@@ -3067,6 +3067,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     aReflector.set(
         js::NewProxyObject(aCx, aHandler, aExpandoValue, aProto, options));
     if (aReflector) {
+      TaintObj<T>::incRefCnt(aNative);
       js::SetProxyReservedSlot(aReflector, DOM_OBJECT_SLOT,
                                JS::PrivateValue(aNative));
       mNative = aNative;
@@ -3084,6 +3085,7 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
                     JS::MutableHandle<JSObject*> aReflector) {
     aReflector.set(JS_NewObjectWithGivenProto(aCx, aClass, aProto));
     if (aReflector) {
+      TaintObj<T>::incRefCnt(aNative);
       JS::SetReservedSlot(aReflector, DOM_OBJECT_SLOT,
                           JS::PrivateValue(aNative));
       mNative = aNative;

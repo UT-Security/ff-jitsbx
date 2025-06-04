@@ -1989,8 +1989,8 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
     def definition_body_prologue(self):
         if self.tainted:
             return fill("""
-                          JSTaintedRooted<JSObject*> taint_obj(cx);
-                          taint_obj.set(obj);
+                          //Comparison w/ App Pointer shouldn't trigger GC
+                          JSTainted<JSObject*> taint_obj(obj);
                           JSAppPtr<${nativeType}> taint_self = UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(obj);
                           ${nativeType}* self = taint_self.verify_as_type();
                           """,
@@ -2063,7 +2063,7 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
         )
 
 
-def finalizeHook(descriptor, hookName, gcx, obj):
+def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False):
     finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
@@ -2115,6 +2115,8 @@ def finalizeHook(descriptor, hookName, gcx, obj):
         """,
         obj=obj,
     )
+    if isTainted:
+        finalize += "TaintObj<%s>::decRefCnt(self);\n" % descriptor.nativeType
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
     return CGIfWrapper(CGGeneric(finalize), "self")
 
@@ -2124,13 +2126,14 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isTainted=False):
+        self.tainted = isTainted
         args = [Argument("JS::GCContext*", "gcx"), Argument("JSObject*", "obj")]
-        CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME, "void", args)
+        CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME, "void", args, isTainted)
 
     def generate_code(self):
         return finalizeHook(
-            self.descriptor, self.name, self.args[0].name, self.args[1].name
+            self.descriptor, self.name, self.args[0].name, self.args[1].name, self.tainted
         ).define()
 
 
@@ -16666,7 +16669,7 @@ class CGDescriptor(CGThing):
 
             # Always have a finalize hook, regardless of whether the class
             # wants a custom hook.
-            cgThings.append(CGClassFinalizeHook(descriptor))
+            cgThings.append(CGClassFinalizeHook(descriptor, isTainted=descriptor.tainted))
 
         if wantsGetWrapperCache(descriptor):
             cgThings.append(CGGetWrapperCacheHook(descriptor))
