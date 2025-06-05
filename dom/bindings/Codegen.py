@@ -14505,7 +14505,7 @@ class CGProxyIsProxy(CGAbstractMethod):
         return ""
 
     def definition_body(self):
-        return "return js::IsProxy(obj) && js::GetProxyHandler(obj) == MC_UNSAFE(DOMProxyHandler::getInstance());\n"
+        return "return js::IsProxy(obj) && mc::IsProxyHandler(obj, DOMProxyHandler::getInstance());\n"
 
 
 class CGProxyUnwrap(CGAbstractMethod):
@@ -14527,7 +14527,7 @@ class CGProxyUnwrap(CGAbstractMethod):
         return fill(
             """
             MOZ_ASSERT(js::IsProxy(obj));
-            if (js::GetProxyHandler(obj) != MC_UNSAFE(DOMProxyHandler::getInstance())) {
+            if (!mc::IsProxyHandler(obj, DOMProxyHandler::getInstance())) {
               MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(obj));
               obj = js::UncheckedUnwrap(obj);
             }

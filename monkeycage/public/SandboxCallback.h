@@ -25,7 +25,7 @@ class SandboxCallback<T_Ret(*)(T_Args...)> {
   explicit SandboxCallback(T_Cb fn) : fn_(fn) {}
 
  public:
-  explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
+  SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
   T_Cb UNSAFE_get() const { return fn_; }
 
@@ -48,7 +48,7 @@ class SandboxCallback {
   explicit SandboxCallback(T fn) : fn_(fn) {}
 
  public:
-  explicit SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
+  SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
   T UNSAFE_get() const { return fn_; }
 
@@ -77,7 +77,7 @@ class SandboxCallback<T_Ret(*)(T_Args...)> {
   explicit SandboxCallback(T_Cb app_fn, T_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
 
  public:
-  explicit SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
+  SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
 
   T_Cb UNSAFE_get() const { return sbx_fn_; }
 

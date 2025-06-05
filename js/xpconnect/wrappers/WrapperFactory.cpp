@@ -67,12 +67,12 @@ bool WrapperFactory::IsCrossOriginWrapper(JSObject* obj) {
 
 bool WrapperFactory::IsOpaqueWrapper(JSObject* obj) {
   return mc::IsWrapper(obj) &&
-         mc::Wrapper::wrapperHandler(obj) == PermissiveXrayOpaque::getSingleton();
+         mc::IsWrapperHandler(obj, PermissiveXrayOpaque::getSingleton());
 }
 
 bool WrapperFactory::IsCOW(JSObject* obj) {
   return mc::IsWrapper(obj) &&
-         mc::Wrapper::wrapperHandler(obj) == ChromeObjectWrapper::getSingleton();
+         mc::IsWrapperHandler(obj, ChromeObjectWrapper::getSingleton());
 }
 
 JSObject* WrapperFactory::GetXrayWaiver(HandleObject obj) {
@@ -659,7 +659,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
 static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
                                      HandleObject newobj,
                                      bool crossCompartmentTransplant) {
-  MOZ_ASSERT(mc::Wrapper::wrapperHandler(oldWaiver) == getXrayWaiver());
+  MOZ_ASSERT(mc::IsWrapperHandler(oldWaiver, getXrayWaiver()));
   MOZ_ASSERT(!mc::IsCrossCompartmentWrapper(newobj));
 
   if (crossCompartmentTransplant) {
@@ -828,6 +828,10 @@ nsIGlobalObject* NativeGlobal(JSObject* obj) {
 }
 
 nsIGlobalObject* CurrentNativeGlobal(JSContext* cx) {
+  return xpc::NativeGlobal(JS::CurrentGlobalOrNull(cx));
+}
+
+nsIGlobalObject* CurrentNativeGlobal(MCContext* cx) {
   return xpc::NativeGlobal(JS::CurrentGlobalOrNull(cx));
 }
 

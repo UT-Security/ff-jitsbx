@@ -133,6 +133,11 @@ static const JSErrorFormatString* GetErrorMessage(void* aUserRef,
   return &ErrorFormatString[aErrorNumber];
 }
 
+static MC::SandboxCallback<JSErrorCallback> GetErrorMessageCb() {
+  static auto inner_ = MC::Sandbox::RegisterCallback(GetErrorMessage);
+  return inner_;
+}
+
 uint16_t GetErrorArgCount(const ErrNum aErrorNumber) {
   return GetErrorMessage(nullptr, aErrorNumber)->argCount;
 }
@@ -145,7 +150,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
   va_start(ap, aErrorNumber);
 
   if (!ErrorFormatHasContext[aErrorNumber]) {
-    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessage, nullptr, aErrorNumber, ap);
+    JS_ReportErrorNumberUTF8VA(aCx, GetErrorMessageCb().UNSAFE_get(), nullptr, aErrorNumber, ap);
     va_end(ap);
     return;
   }
@@ -171,7 +176,7 @@ void binding_detail::ThrowErrorMessage(JSContext* aCx,
     }
   }
 
-  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessage, nullptr, aErrorNumber,
+  JS_ReportErrorNumberUTF8Array(aCx, GetErrorMessageCb().UNSAFE_get(), nullptr, aErrorNumber,
                                 args);
   va_end(ap);
 }
@@ -199,7 +204,7 @@ static bool ThrowInvalidThis(JSContext* aCx, const JS::CallArgs& aArgs,
 
   const ErrNum errorNumber = MSG_METHOD_THIS_DOES_NOT_IMPLEMENT_INTERFACE;
   MOZ_RELEASE_ASSERT(GetErrorArgCount(errorNumber) == 2);
-  JS_ReportErrorNumberUC(aCx, GetErrorMessage, nullptr,
+  JS_ReportErrorNumberUC(aCx, GetErrorMessageCb().UNSAFE_get(), nullptr,
                          static_cast<unsigned>(errorNumber),
                          static_cast<const char16_t*>(funcNameStr.get()),
                          static_cast<const char16_t*>(ifaceName.get()));
@@ -313,7 +318,7 @@ void TErrorResult<CleanupPolicy>::SetPendingExceptionWithMessage(
   }
   args[argCount] = nullptr;
 
-  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessage, nullptr,
+  JS_ReportErrorNumberUTF8Array(aCx, dom::GetErrorMessageCb().UNSAFE_get(), nullptr,
                                 static_cast<unsigned>(message->mErrorNumber),
                                 argCount > 0 ? args : nullptr);
 

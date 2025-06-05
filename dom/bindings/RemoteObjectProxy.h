@@ -95,11 +95,7 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
    */
   static inline bool IsRemoteObjectProxy(JSObject* aProxy,
                                          prototypes::ID aProtoID) {
-    //TODO(abhishekcs): We should ideally be using mc::GetProxyHandler here to start with.
-    // Unfortunately it doesn't perform the requisite app-pointer validation currently so we
-    // end up egregiously trusting the results of js::GetProxyHandler and handler->family().
-    const js::BaseProxyHandler* handler = js::GetProxyHandler(aProxy);
-    return handler->family() == &sCrossOriginProxyFamily &&
+    return mc::GetProxyHandlerFamily(aProxy) == &sCrossOriginProxyFamily &&
            static_cast<const RemoteObjectProxyBase*>(mc::GetProxyHandler(aProxy))->mPrototypeID ==
                aProtoID;
   }
@@ -109,8 +105,7 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
    * interface it represents.  aProxy should be a proxy object.
    */
   static inline bool IsRemoteObjectProxy(JSObject* aProxy) {
-    const js::BaseProxyHandler* handler = js::GetProxyHandler(aProxy);
-    return handler->family() == &sCrossOriginProxyFamily;
+    return mc::GetProxyHandlerFamily(aProxy) == &sCrossOriginProxyFamily;
   }
 
  protected:

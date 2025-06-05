@@ -163,7 +163,7 @@ class ShadowingDOMProxyHandler : public DOMProxyHandler {
 
 inline bool IsDOMProxy(JSObject* obj) {
   return js::IsProxy(obj) &&
-         js::GetProxyHandler(obj)->family() == &DOMProxyHandler::family;
+         mc::GetProxyHandlerFamily(obj) == &DOMProxyHandler::family;
 }
 
 inline const DOMProxyHandler* GetDOMProxyHandler(JSObject* obj) {

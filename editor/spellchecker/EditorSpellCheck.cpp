@@ -478,10 +478,11 @@ EditorSpellCheck::CheckCurrentWord(const nsAString& aSuggestedWord,
 
 NS_IMETHODIMP
 EditorSpellCheck::Suggest(const nsAString& aSuggestedWord, uint32_t aCount,
-                          JSContext* aCx, Promise** aPromise) {
+                          JSContext* aCx_UNSAFE, Promise** aPromise) {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
-  nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+  nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(mCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -586,9 +587,11 @@ EditorSpellCheck::GetCurrentDictionaries(nsTArray<nsCString>& aDictionaries) {
 
 NS_IMETHODIMP
 EditorSpellCheck::SetCurrentDictionaries(
-    const nsTArray<nsCString>& aDictionaries, JSContext* aCx,
+    const nsTArray<nsCString>& aDictionaries, JSContext* aCx_UNSAFE,
     Promise** aPromise) {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
+
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
 
   RefPtr<EditorSpellCheck> kungFuDeathGrip = this;
 
@@ -677,7 +680,7 @@ EditorSpellCheck::SetCurrentDictionaries(
     }
   }
 
-  nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
+  nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(mCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;
   }

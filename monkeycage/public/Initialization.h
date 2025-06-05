@@ -19,8 +19,8 @@ namespace JS {
   
 inline bool InitSelfHostedCode(MCContext* cx,
                                       SelfHostedCache cache = nullptr,
-                                      SelfHostedWriter writer = nullptr) {
-  return InitSelfHostedCode(cx->cx_, cache, writer);
+                                      MC::SandboxCallback<SelfHostedWriter> writer = nullptr) {
+  return InitSelfHostedCode(cx->cx_, cache, writer.UNSAFE_get());
 }
 }
 

@@ -1377,11 +1377,11 @@ nsresult XPCJSContext::Initialize() {
   // can decode the self-hosted content instead of parsing it.
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
   JS::SelfHostedCache selfHostedContent = shm.Content();
-  JS::SelfHostedWriter writer = nullptr;
+  MC::SandboxCallback<JS::SelfHostedWriter> writer = nullptr;
   if (XRE_IsParentProcess() && sSelfHostedUseSharedMemory) {
     // Only the Parent process has permissions to write to the self-hosted
     // shared memory.
-    writer = CreateSelfHostedSharedMemory;
+    writer = MC::Sandbox::RegisterCallback(CreateSelfHostedSharedMemory);
   }
 
   if (!JS::InitSelfHostedCode(cx, selfHostedContent, writer)) {

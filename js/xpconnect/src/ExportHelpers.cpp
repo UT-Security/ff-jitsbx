@@ -11,8 +11,8 @@
 #include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
 #include "js/Exception.h"
 #include "monkeycage/Id.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
-#include "js/Proxy.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
+#include "monkeycage/Proxy.h"
 #include "monkeycage/Wrapper.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/Unused.h"
@@ -474,7 +474,7 @@ bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
     return false;
   }
 
-  if (js::IsScriptedProxy(targetScope)) {
+  if (mc::IsScriptedProxy(targetScope)) {
     JS_ReportErrorASCII(cx, "Defining property on proxy object is not allowed");
     return false;
   }
@@ -567,7 +567,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
 
   bool define = !options.defineAs.isVoid();
 
-  if (define && js::IsScriptedProxy(scope)) {
+  if (define && mc::IsScriptedProxy(scope)) {
     JS_ReportErrorASCII(cx, "Defining property on proxy object is not allowed");
     return false;
   }
