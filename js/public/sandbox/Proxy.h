@@ -413,6 +413,8 @@ public:
  DECLARE_PROXY_HANDLER_OPS_METHODS
 };
 
+JS_PUBLIC_API bool ProxyHandlerIsScripted(const js::BaseProxyHandler* handler);
+
 }  // namespace sandbox
 }  // namespace js
 

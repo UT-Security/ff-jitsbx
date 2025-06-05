@@ -103,7 +103,7 @@ class ObservableArrayProxyHandler : public mc::ForwardingProxyHandler {
 };
 
 inline bool IsObservableArrayProxy(JSObject* obj) {
-  return js::IsProxy(obj) && js::GetProxyHandler(obj)->family() ==
+  return js::IsProxy(obj) && mc::GetProxyHandlerFamily(obj) ==
                                  &ObservableArrayProxyHandler::family;
 }
 

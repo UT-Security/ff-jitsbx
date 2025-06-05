@@ -16,3 +16,7 @@ js::sandbox::BaseProxyHandler::BaseProxyHandler(const ProxyHandlerOps* ops,
       handler_(handler) {}
 
 DEFINE_PROXY_HANDLER_OPS_METHODS(js::sandbox::BaseProxyHandler, ops_, handler_)
+
+bool js::sandbox::ProxyHandlerIsScripted(const js::BaseProxyHandler* handler) {
+  return handler->isScripted();
+}

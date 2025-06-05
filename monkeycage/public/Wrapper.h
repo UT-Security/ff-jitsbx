@@ -492,8 +492,6 @@ class Wrapper : public ForwardingProxyHandler {
     return js::Wrapper::Renew(existing, obj, handler->UNSAFE_getWrapper());
   }
 
-  static inline const Wrapper* wrapperHandler(const JSObject* wrapper);
-
   static inline JSObject* wrappedObject(JSObject* wrapper) {
     return js::Wrapper::wrappedObject(wrapper);
   }
@@ -934,20 +932,18 @@ typedef SecurityWrapper<CrossCompartmentWrapper> CrossCompartmentSecurityWrapper
 
 inline bool IsWrapper(const JSObject* obj) {
   return js::IsProxy(obj) &&
-         js::GetProxyHandler(obj)->family() == js::Wrapper::getFamily();
+         mc::GetProxyHandlerFamily(obj) == mc::Wrapper::getFamily();
+}
+
+inline bool IsWrapperHandler(const JSObject* obj, const Wrapper* wrapper) {
+  MOZ_ASSERT(IsWrapper(obj));
+  return static_cast<const js::Wrapper*>(js::GetProxyHandler(obj)) == wrapper->UNSAFE_getWrapper();
 }
 
 inline bool IsCrossCompartmentWrapper(const JSObject* obj) {
   return IsWrapper(obj) &&
          (static_cast<const js::Wrapper*>(js::GetProxyHandler(obj))->flags() & js::Wrapper::CROSS_COMPARTMENT);
 }
-
-const Wrapper* Wrapper::wrapperHandler(const JSObject* wrapper) {
-  MOZ_ASSERT(IsWrapper(wrapper));
-  // TODO(abhishek): the above assert is not enough to make the below cast safe.
-  return static_cast<const Wrapper*>(GetProxyHandler(wrapper));
-}
-
 
 inline JSObject* CheckedUnwrapDynamic(JSObject* obj, MCContext* cx,
                                              bool stopAtWindowProxy = true) {

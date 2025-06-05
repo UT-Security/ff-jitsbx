@@ -13,6 +13,11 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
 
+#include "mozilla/Assertions.h"
+
+#include <shared_mutex>
+#include <unordered_set>
+
 namespace mc {
 
 #define DEFINE_PROXY_HANDLER_OPS_CALLBACKS(ExternalProxyHandler)                             \
@@ -252,7 +257,14 @@ namespace mc {
 class BaseProxyHandler {
   const js::BaseProxyHandler* inner_;
   bool owned_;
+
+  static inline std::unordered_set<const void*> ptr_table;
+  static inline std::shared_mutex ptr_table_mutex;
 public:
+  static bool isValid(const void* ptr) {
+    std::shared_lock lock(ptr_table_mutex);
+    return ptr_table.find(ptr) != ptr_table.end(); 
+  }
   using Action = js::BaseProxyHandler::Action;
 private:
  DEFINE_PROXY_HANDLER_OPS_CALLBACKS(BaseProxyHandler)
@@ -263,12 +275,28 @@ private:
     inner_ = js_new<js::sandbox::BaseProxyHandler>(
         ops(), this, aFamily, aHasPrototype, aHasSecurityPolicy);
     owned_ = true;
+    std::unique_lock lock(ptr_table_mutex);
+    ptr_table.insert(this);
   }
 
   explicit inline BaseProxyHandler(const js::BaseProxyHandler* inner, bool owned = true)
-      : inner_(inner), owned_(owned) {}
+      : inner_(inner), owned_(owned) {
+    if (owned_) {
+      std::unique_lock lock(ptr_table_mutex);
+      ptr_table.insert(this);
+    }
+  }
 
-  ~BaseProxyHandler() { if(owned_) { js_free((void*)inner_); } }
+  ~BaseProxyHandler() {
+    if (owned_) {
+      {
+        std::unique_lock lock(ptr_table_mutex);
+        ptr_table.erase(this);
+      }
+      js_free((void*)inner_);
+    }
+  }
+
   
   bool hasPrototype() const { return UNSAFE_getProxyHandler()->hasPrototype(); }
 
@@ -472,13 +500,27 @@ private:
   }
 };
 
+inline bool IsProxyHandler(const JSObject* obj, const BaseProxyHandler* handler) {
+  return js::GetProxyHandler(obj) == handler->UNSAFE_getProxyHandler();
+}
+
 // TODO(abhishek): move to js namespace once argument is Tainted
 inline const BaseProxyHandler* GetProxyHandler(const JSObject* obj) {
-  // TODO(abhishek): both casts are unsafe and need to be tainted - probably by maintaining a table of
-  // valid monkeycage::BaseProxyHandler pointers.
-  return static_cast<const BaseProxyHandler*>(
-      static_cast<const js::sandbox::BaseProxyHandler*>(js::GetProxyHandler(obj))
-          ->getHandler());
+  const void* ptr =
+      static_cast<const js::sandbox::BaseProxyHandler*>(
+          js::GetProxyHandler(obj))
+          ->getHandler();
+
+  MOZ_RELEASE_ASSERT(BaseProxyHandler::isValid(ptr), "Unexpeted mc::BaseProxyHandler app pointer");
+  return static_cast<const BaseProxyHandler*>(ptr);
+}
+
+inline const void* GetProxyHandlerFamily(const JSObject* obj) {
+  return js::GetProxyHandler(obj)->family();
+}
+
+inline bool IsScriptedProxy(const JSObject* obj) {
+  return js::IsProxy(obj) && js::sandbox::ProxyHandlerIsScripted(js::GetProxyHandler(obj));
 }
 
 }  // namespace mc

@@ -541,6 +541,8 @@ nsIGlobalObject* NativeGlobal(JSObject* obj);
  */
 nsIGlobalObject* CurrentNativeGlobal(JSContext* cx);
 
+nsIGlobalObject* CurrentNativeGlobal(MCContext* cx);
+
 /**
  * If |aObj| is a window, returns the associated nsGlobalWindow.
  * Otherwise, returns null.

@@ -864,14 +864,16 @@ nsWindowsShellService::CreateShortcut(
     nsIFile* aBinary, const nsTArray<nsString>& aArguments,
     const nsAString& aDescription, nsIFile* aIconFile, uint16_t aIconIndex,
     const nsAString& aAppUserModelId, const nsAString& aShortcutFolder,
-    const nsAString& aShortcutName, JSContext* aCx, dom::Promise** aPromise) {
+    const nsAString& aShortcutName, JSContext* aCx_UNSAFE, dom::Promise** aPromise) {
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+
   ErrorResult rv;
   RefPtr<dom::Promise> promise =
-      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+      dom::Promise::Create(xpc::CurrentNativeGlobal(mCx), rv);
 
   if (MOZ_UNLIKELY(rv.Failed())) {
     return rv.StealNSResult();
@@ -1152,14 +1154,16 @@ static bool HasMatchingShortcutImpl(const nsAString& aAppUserModelId,
 
 NS_IMETHODIMP nsWindowsShellService::HasMatchingShortcut(
     const nsAString& aAppUserModelId, const bool aPrivateBrowsing,
-    JSContext* aCx, dom::Promise** aPromise) {
+    JSContext* aCx_UNSAFE, dom::Promise** aPromise) {
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+
   ErrorResult rv;
   RefPtr<dom::Promise> promise =
-      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+      dom::Promise::Create(xpc::CurrentNativeGlobal(mCx), rv);
 
   if (MOZ_UNLIKELY(rv.Failed())) {
     return rv.StealNSResult();
@@ -1467,7 +1471,7 @@ static nsresult PinCurrentAppToTaskbarImpl(
 
 static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
                                                 bool aPrivateBrowsing,
-                                                JSContext* aCx,
+                                                MCContext* mCx,
                                                 dom::Promise** aPromise) {
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
@@ -1480,7 +1484,7 @@ static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
 
   ErrorResult rv;
   RefPtr<dom::Promise> promise =
-      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+      dom::Promise::Create(xpc::CurrentNativeGlobal(mCx), rv);
 
   if (MOZ_UNLIKELY(rv.Failed())) {
     return rv.StealNSResult();
@@ -1573,7 +1577,7 @@ static nsresult PinCurrentAppToTaskbarAsyncImpl(bool aCheckOnly,
 
 NS_IMETHODIMP
 nsWindowsShellService::PinCurrentAppToTaskbarAsync(bool aPrivateBrowsing,
-                                                   JSContext* aCx,
+                                                   JSContext* aCx_UNSAFE,
                                                    dom::Promise** aPromise) {
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1712628 tracks implementing
   // this for MSIX packages.
@@ -1581,21 +1585,25 @@ nsWindowsShellService::PinCurrentAppToTaskbarAsync(bool aPrivateBrowsing,
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+
   return PinCurrentAppToTaskbarAsyncImpl(
-      /* aCheckOnly */ false, aPrivateBrowsing, aCx, aPromise);
+      /* aCheckOnly */ false, aPrivateBrowsing, mCx, aPromise);
 }
 
 NS_IMETHODIMP
 nsWindowsShellService::CheckPinCurrentAppToTaskbarAsync(
-    bool aPrivateBrowsing, JSContext* aCx, dom::Promise** aPromise) {
+    bool aPrivateBrowsing, JSContext* aCx_UNSAFE, dom::Promise** aPromise) {
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1712628 tracks implementing
   // this for MSIX packages.
   if (widget::WinUtils::HasPackageIdentity()) {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
+  MContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+
   return PinCurrentAppToTaskbarAsyncImpl(
-      /* aCheckOnly = */ true, aPrivateBrowsing, aCx, aPromise);
+      /* aCheckOnly = */ true, aPrivateBrowsing, mCx, aPromise);
 }
 
 static bool IsCurrentAppPinnedToTaskbarSync(const nsAutoString& aumid) {
@@ -1724,7 +1732,7 @@ static bool IsCurrentAppPinnedToTaskbarSync(const nsAutoString& aumid) {
 
 NS_IMETHODIMP
 nsWindowsShellService::IsCurrentAppPinnedToTaskbarAsync(
-    const nsAString& aumid, JSContext* aCx, /* out */ dom::Promise** aPromise) {
+    const nsAString& aumid, JSContext* aCx_UNSAFE, /* out */ dom::Promise** aPromise) {
   // https://bugzilla.mozilla.org/show_bug.cgi?id=1712628 tracks implementing
   // this for MSIX packages.
   if (widget::WinUtils::HasPackageIdentity()) {
@@ -1735,9 +1743,11 @@ nsWindowsShellService::IsCurrentAppPinnedToTaskbarAsync(
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
+  MContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
+
   ErrorResult rv;
   RefPtr<dom::Promise> promise =
-      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
+      dom::Promise::Create(xpc::CurrentNativeGlobal(mCx), rv);
   if (MOZ_UNLIKELY(rv.Failed())) {
     return rv.StealNSResult();
   }

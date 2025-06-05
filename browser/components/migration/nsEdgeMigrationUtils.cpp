@@ -15,9 +15,10 @@ namespace mozilla {
 NS_IMPL_ISUPPORTS(nsEdgeMigrationUtils, nsIEdgeMigrationUtils)
 
 NS_IMETHODIMP
-nsEdgeMigrationUtils::IsDbLocked(nsIFile* aFile, JSContext* aCx,
+nsEdgeMigrationUtils::IsDbLocked(nsIFile* aFile, JSContext* aCx_UNSAFE,
                                  dom::Promise** aPromise) {
   NS_ENSURE_ARG_POINTER(aFile);
+  MCContext* mCx = JS_SanitizeContext(aCx_UNSAFE);
 
   nsString path;
   nsresult rv = aFile->GetPath(path);
@@ -25,7 +26,7 @@ nsEdgeMigrationUtils::IsDbLocked(nsIFile* aFile, JSContext* aCx,
 
   ErrorResult err;
   RefPtr<dom::Promise> promise =
-      dom::Promise::Create(xpc::CurrentNativeGlobal(aCx), err);
+      dom::Promise::Create(xpc::CurrentNativeGlobal(mCx), err);
 
   if (MOZ_UNLIKELY(err.Failed())) {
     return err.StealNSResult();

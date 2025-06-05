@@ -1896,7 +1896,7 @@ nsXPCComponents_Utils::IsProxy(HandleValue vobj, JSContext* cx, bool* rval) {
   obj = js::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
   NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
 
-  *rval = js::IsScriptedProxy(obj);
+  *rval = mc::IsScriptedProxy(obj);
   return NS_OK;
 }
 

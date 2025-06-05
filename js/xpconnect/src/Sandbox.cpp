@@ -431,7 +431,7 @@ static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  args.rval().setBoolean(js::IsScriptedProxy(obj));
+  args.rval().setBoolean(mc::IsScriptedProxy(obj));
   return true;
 }
 
