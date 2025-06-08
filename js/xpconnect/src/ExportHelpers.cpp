@@ -590,7 +590,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
   }
 
   rval.setObject(*obj);
-  if (!WrapperFactory::WaiveXrayAndWrap(cx, rval)) {
+  if (!WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), rval)) {
     return false;
   }
 

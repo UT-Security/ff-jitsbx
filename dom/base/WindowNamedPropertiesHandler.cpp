@@ -74,7 +74,7 @@ static bool ShouldExposeChildWindow(const nsString& aNameBeingResolved,
 }
 
 bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     bool /* unused */,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const {
   aDesc.reset();
@@ -98,7 +98,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   }
 
   bool hasOnPrototype;
-  if (!HasPropertyOnPrototype(aCx, aProxy, aId, &hasOnPrototype)) {
+  if (!HasPropertyOnPrototype(MC_UNSAFE(aCx), aProxy, aId, &hasOnPrototype)) {
     return false;
   }
   if (hasOnPrototype) {
@@ -106,7 +106,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   }
 
   nsAutoJSString str;
-  if (!str.init(aCx, aId)) {
+  if (!str.init(MC_UNSAFE(aCx), aId)) {
     return false;
   }
 
@@ -123,7 +123,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
       // global scope is still allowed, since |var| only looks up |own|
       // properties. But unqualified shadowing will fail, per-spec.
       MC::Rooted<JS::Value> v(aCx);
-      if (!ToJSValue(aCx, WindowProxyHolder(std::move(child)), &v)) {
+      if (!ToJSValue(MC_UNSAFE(aCx), WindowProxyHolder(std::move(child)), &v)) {
         return false;
       }
       aDesc.set(mozilla::Some(
@@ -143,7 +143,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   MC::Rooted<JS::Value> v(aCx);
   Element* element = document->GetElementById(str);
   if (element) {
-    if (!ToJSValue(aCx, element, &v)) {
+    if (!ToJSValue(MC_UNSAFE(aCx), element, &v)) {
       return false;
     }
     aDesc.set(mozilla::Some(
@@ -153,7 +153,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   }
 
   ErrorResult rv;
-  bool found = document->ResolveName(aCx, str, &v, rv);
+  bool found = document->ResolveName(MC_UNSAFE(aCx), str, &v, rv);
   if (rv.MaybeSetPendingException(aCx)) {
     return false;
   }
@@ -167,14 +167,14 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
 }
 
 bool WindowNamedPropertiesHandler::defineProperty(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::Handle<JS::PropertyDescriptor> aDesc,
     JS::ObjectOpResult& result) const {
   return result.failCantDefineWindowNamedProperty();
 }
 
 bool WindowNamedPropertiesHandler::ownPropNames(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
     JS::MutableHandleVector<jsid> aProps) const {
   if (!(flags & JSITER_HIDDEN)) {
     // None of our named properties are enumerable.
@@ -199,7 +199,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
       }
     }
   }
-  if (!AppendNamedPropertyIds(aCx, aProxy, names, false, aProps)) {
+  if (!AppendNamedPropertyIds(MC_UNSAFE(aCx), aProxy, names, false, aProps)) {
     return false;
   }
 
@@ -219,7 +219,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   document->GetSupportedNames(names);
 
   MC::RootedVector<jsid> docProps(aCx);
-  if (!AppendNamedPropertyIds(aCx, aProxy, names, false, &docProps)) {
+  if (!AppendNamedPropertyIds(MC_UNSAFE(aCx), aProxy, names, false, &docProps)) {
     return false;
   }
 
@@ -232,7 +232,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   return js::AppendUnique(aCx, aProps, docProps);
 }
 
-bool WindowNamedPropertiesHandler::delete_(JSContext* aCx,
+bool WindowNamedPropertiesHandler::delete_(MCContext* aCx,
                                            JS::Handle<JSObject*> aProxy,
                                            JS::Handle<jsid> aId,
                                            JS::ObjectOpResult& aResult) const {

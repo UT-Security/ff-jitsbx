@@ -52,14 +52,14 @@ class BaseDOMProxyHandler : public mc::BaseProxyHandler {
   // Implementations of methods that can be implemented in terms of
   // other lower-level methods.
   bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const override;
   virtual bool ownPropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleVector<jsid> props) const override;
 
   virtual bool getPrototypeIfOrdinary(
-      JSContext* cx, JS::Handle<JSObject*> proxy, bool* isOrdinary,
+      MCContext* cx, JS::Handle<JSObject*> proxy, MC::Tainted<bool*> isOrdinary,
       JS::MutableHandle<JSObject*> proto) const override;
 
   // We override getOwnEnumerablePropertyKeys() and implement it directly
@@ -67,7 +67,7 @@ class BaseDOMProxyHandler : public mc::BaseProxyHandler {
   // ownPropertyKeys and then filter out the non-enumerable ones. This avoids
   // unnecessary work during enumeration.
   virtual bool getOwnEnumerablePropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleVector<jsid> props) const override;
 
  protected:
@@ -75,7 +75,7 @@ class BaseDOMProxyHandler : public mc::BaseProxyHandler {
   // functionality.  The "flags" argument is either JSITER_OWNONLY (for keys())
   // or JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS (for
   // ownPropertyKeys()).
-  virtual bool ownPropNames(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool ownPropNames(MCContext* cx, JS::Handle<JSObject*> proxy,
                             unsigned flags,
                             JS::MutableHandleVector<jsid> props) const = 0;
 
@@ -84,7 +84,7 @@ class BaseDOMProxyHandler : public mc::BaseProxyHandler {
   // named getOwnPropertyDescriptor to avoid subclasses that override it hiding
   // our public getOwnPropertyDescriptor.
   virtual bool getOwnPropDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       bool ignoreNamedProps,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const = 0;
 };
@@ -97,24 +97,24 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
   constexpr DOMProxyHandler() : BaseDOMProxyHandler(&family) {}
 #endif
 
-  bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id,
                       JS::Handle<JS::PropertyDescriptor> desc,
                       JS::ObjectOpResult& result) const override {
     bool unused;
     return defineProperty(cx, proxy, id, desc, result, &unused);
   }
-  virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
                               JS::Handle<JS::PropertyDescriptor> desc,
                               JS::ObjectOpResult& result, bool* done) const;
-  bool delete_(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                JS::ObjectOpResult& result) const override;
-  bool preventExtensions(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::ObjectOpResult& result) const override;
-  bool isExtensible(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
                     bool* extensible) const override;
-  bool set(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
            JS::ObjectOpResult& result) const override;
 
@@ -123,7 +123,7 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
    * an indexed setter, call it and set *done to true on success. Otherwise, set
    * *done to false.
    */
-  virtual bool setCustom(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool setCustom(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                          bool* done) const;
 

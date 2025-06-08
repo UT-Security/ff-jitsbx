@@ -205,18 +205,18 @@ class MOZ_STACK_CLASS AutoPACErrorReporter {
     if (!JS_IsExceptionPending(mCx)) {
       return;
     }
-    MC::ExceptionStack exnStack(mCx);
-    if (!JS::StealPendingExceptionStack(mCx, &exnStack)) {
+    MC::SandboxStack<JS::ExceptionStack> exnStack(mCx);
+    if (!JS::StealPendingExceptionStack(mCx, exnStack)) {
       return;
     }
 
-    MC::ErrorReportBuilder report(mCx);
-    if (!report.init(mCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    MC::SandboxStack<JS::ErrorReportBuilder> report(mCx);
+    if (!report->init(mCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(mCx);
       return;
     }
 
-    PACLogErrorOrWarning(u"Error"_ns, report.report());
+    PACLogErrorOrWarning(u"Error"_ns, report->report());
   }
 };
 
@@ -570,17 +570,17 @@ nsresult ProxyAutoConfig::SetupJS() {
   MC::Rooted<JSObject*> global(cx, mJSContext->Global());
 
   auto CompilePACScript = [this](MCContext* cx) -> JSScript* {
-    MC::CompileOptions options(cx);
-    options.setSkipFilenameValidation(true);
-    options.setFileAndLine(this->mPACURI.get(), 1);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
+    options->setSkipFilenameValidation(true);
+    options->setFileAndLine(this->mPACURI.get(), 1);
 
     // Per ProxyAutoConfig::Init, compile as UTF-8 if the full data is UTF-8,
     // and otherwise inflate Latin-1 to UTF-16 and compile that.
     const char* scriptData = this->mConcatenatedPACData.get();
     size_t scriptLength = this->mConcatenatedPACData.Length();
     if (mozilla::IsUtf8(mozilla::Span(scriptData, scriptLength))) {
-      MC::SourceText<Utf8Unit> srcBuf;
-      if (!srcBuf.init(cx, scriptData, scriptLength,
+      MC::SandboxStack<JS::SourceText<Utf8Unit>> srcBuf;
+      if (!srcBuf->init(cx, scriptData, scriptLength,
                        JS::SourceOwnership::Borrowed)) {
         return nullptr;
       }
@@ -592,8 +592,8 @@ nsresult ProxyAutoConfig::SetupJS() {
     // and this handles not just ASCII but Latin-1 too.
     NS_ConvertASCIItoUTF16 inflated(this->mConcatenatedPACData);
 
-    MC::SourceText<char16_t> source;
-    if (!source.init(cx, inflated.get(), inflated.Length(),
+    MC::SandboxStack<JS::SourceText<char16_t>> source;
+    if (!source->init(cx, inflated.get(), inflated.Length(),
                      JS::SourceOwnership::Borrowed)) {
       return nullptr;
     }
@@ -689,7 +689,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
       cx, JS_NewStringCopyN(cx, aTestHost.BeginReading(), aTestHost.Length()));
 
   if (uriString && hostString) {
-    MC::RootedValueArray<2> args(MC_UNSAFE(cx));
+    MC::RootedValueArray<2> args(cx);
     args[0].setString(uriString);
     args[1].setString(hostString);
 

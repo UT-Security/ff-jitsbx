@@ -1117,7 +1117,7 @@ nsresult mozJSModuleLoader::ImportInto(const nsACString& registryLocation,
       // content by passing a raw content JS object (where Xrays aren't
       // possible), we aim for consistency here. Waive xray.
       if (WrapperFactory::IsXrayWrapper(&targetVal.toObject()) &&
-          !WrapperFactory::WaiveXrayAndWrap(cx, &targetVal)) {
+          !WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), &targetVal)) {
         return NS_ERROR_FAILURE;
       }
       targetObject = &targetVal.toObject();

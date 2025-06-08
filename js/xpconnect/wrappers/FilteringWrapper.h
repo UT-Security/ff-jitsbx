@@ -11,6 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "js/CallNonGenericMethod.h"
+#include "monkeycage/Tainted.h"
 #include "monkeycage/Wrapper.h"
 
 namespace xpc {
@@ -24,33 +25,33 @@ class FilteringWrapper : public Base {
   constexpr explicit FilteringWrapper(unsigned flags) : Base(flags) {}
 #endif
 
-  virtual bool enter(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool enter(MCContext* cx, JS::Handle<JSObject*> wrapper,
                      JS::Handle<jsid> id, js::Wrapper::Action act,
-                     bool mayThrow, bool* bp) const override;
+                     bool mayThrow, MC::Tainted<bool*> bp) const override;
 
   virtual bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc)
       const override;
-  virtual bool ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool ownPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                                JS::MutableHandleIdVector props) const override;
 
   virtual bool getOwnEnumerablePropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> wrapper,
+      MCContext* cx, JS::Handle<JSObject*> wrapper,
       JS::MutableHandleIdVector props) const override;
-  virtual bool enumerate(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool enumerate(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          JS::MutableHandleIdVector props) const override;
 
-  virtual bool call(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool call(MCContext* cx, JS::Handle<JSObject*> wrapper,
                     const JS::CallArgs& args) const override;
-  virtual bool construct(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool construct(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          const JS::CallArgs& args) const override;
 
-  virtual bool nativeCall(JSContext* cx, JS::IsAcceptableThis test,
+  virtual bool nativeCall(MCContext* cx, JS::IsAcceptableThis test,
                           JS::NativeImpl impl,
                           const JS::CallArgs& args) const override;
 
-  virtual bool getPrototype(JSContext* cx, JS::HandleObject wrapper,
+  virtual bool getPrototype(MCContext* cx, JS::HandleObject wrapper,
                             JS::MutableHandleObject protop) const override;
 
   static const FilteringWrapper* getSingleton();

@@ -6,7 +6,7 @@
 
 #include "WaiveXrayWrapper.h"
 #include "WrapperFactory.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/CallAndConstruct.h"  // JS::IsCallable
 
 using namespace JS;
@@ -14,7 +14,7 @@ using namespace JS;
 namespace xpc {
 
 bool WaiveXrayWrapper::getOwnPropertyDescriptor(
-    JSContext* cx, HandleObject wrapper, HandleId id,
+    MCContext* cx, HandleObject wrapper, HandleId id,
     MutableHandle<mozilla::Maybe<PropertyDescriptor>> desc) const {
   if (!CrossCompartmentWrapper::getOwnPropertyDescriptor(cx, wrapper, id,
                                                          desc)) {
@@ -50,20 +50,20 @@ bool WaiveXrayWrapper::getOwnPropertyDescriptor(
   return true;
 }
 
-bool WaiveXrayWrapper::get(JSContext* cx, HandleObject wrapper,
+bool WaiveXrayWrapper::get(MCContext* cx, HandleObject wrapper,
                            HandleValue receiver, HandleId id,
                            MutableHandleValue vp) const {
   return CrossCompartmentWrapper::get(cx, wrapper, receiver, id, vp) &&
          WrapperFactory::WaiveXrayAndWrap(cx, vp);
 }
 
-bool WaiveXrayWrapper::call(JSContext* cx, HandleObject wrapper,
+bool WaiveXrayWrapper::call(MCContext* cx, HandleObject wrapper,
                             const JS::CallArgs& args) const {
   return CrossCompartmentWrapper::call(cx, wrapper, args) &&
          WrapperFactory::WaiveXrayAndWrap(cx, args.rval());
 }
 
-bool WaiveXrayWrapper::construct(JSContext* cx, HandleObject wrapper,
+bool WaiveXrayWrapper::construct(MCContext* cx, HandleObject wrapper,
                                  const JS::CallArgs& args) const {
   return CrossCompartmentWrapper::construct(cx, wrapper, args) &&
          WrapperFactory::WaiveXrayAndWrap(cx, args.rval());
@@ -71,21 +71,21 @@ bool WaiveXrayWrapper::construct(JSContext* cx, HandleObject wrapper,
 
 // NB: This is important as the other side of a handshake with FieldGetter. See
 // nsXBLProtoImplField.cpp.
-bool WaiveXrayWrapper::nativeCall(JSContext* cx, JS::IsAcceptableThis test,
+bool WaiveXrayWrapper::nativeCall(MCContext* cx, JS::IsAcceptableThis test,
                                   JS::NativeImpl impl,
                                   const JS::CallArgs& args) const {
   return CrossCompartmentWrapper::nativeCall(cx, test, impl, args) &&
          WrapperFactory::WaiveXrayAndWrap(cx, args.rval());
 }
 
-bool WaiveXrayWrapper::getPrototype(JSContext* cx, HandleObject wrapper,
+bool WaiveXrayWrapper::getPrototype(MCContext* cx, HandleObject wrapper,
                                     MutableHandleObject protop) const {
   return CrossCompartmentWrapper::getPrototype(cx, wrapper, protop) &&
          (!protop || WrapperFactory::WaiveXrayAndWrap(cx, protop));
 }
 
 bool WaiveXrayWrapper::getPrototypeIfOrdinary(
-    JSContext* cx, HandleObject wrapper, bool* isOrdinary,
+    MCContext* cx, HandleObject wrapper, MC::Tainted<bool*> isOrdinary,
     MutableHandleObject protop) const {
   return CrossCompartmentWrapper::getPrototypeIfOrdinary(cx, wrapper,
                                                          isOrdinary, protop) &&

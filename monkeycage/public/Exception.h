@@ -13,40 +13,23 @@
 
 #include "monkeycage/Context.h"
 #include "monkeycage/RootingAPI.h"
+#include "monkeycage/Tainted.h"
 #include "monkeycage/TypeDecls.h"
-
-namespace MC {
-class MOZ_STACK_CLASS ExceptionStack {
- public:
-  //TODO(abhishek): this should be a private member
-  JS::ExceptionStack inner_;
-  
-  explicit ExceptionStack(MCContext* cx) : inner_(cx->cx_) {}
-
-  ExceptionStack(MCContext* cx, JS::HandleValue exception, JS::HandleObject stack)
-      : inner_(cx->cx_, exception, stack) {}
-
-  JS::HandleValue exception() const { return inner_.exception(); }
-
-  // |stack| can be null.
-  JS::HandleObject stack() const { return inner_.stack(); }
-};
-}
 
 namespace JS {
 
-inline bool GetPendingExceptionStack(MCContext* cx, MC::ExceptionStack* exceptionStack) {
-  return GetPendingExceptionStack(cx->cx_, &exceptionStack->inner_);
+inline bool GetPendingExceptionStack(MCContext* cx, MC::Tainted<ExceptionStack*> exceptionStack) {
+  return GetPendingExceptionStack(cx->cx_, exceptionStack.UNSAFE_unverified());
 }
 
 inline bool StealPendingExceptionStack(MCContext* cx,
-                                       MC::ExceptionStack* exceptionStack) {
-  return StealPendingExceptionStack(cx->cx_, &exceptionStack->inner_);  
+                                       MC::Tainted<ExceptionStack*> exceptionStack) {
+  return StealPendingExceptionStack(cx->cx_, exceptionStack.UNSAFE_unverified());  
 }
 
 inline void SetPendingExceptionStack(
-    MCContext* cx, const MC::ExceptionStack& exceptionStack) {
-  return SetPendingExceptionStack(cx->cx_, exceptionStack.inner_);
+    MCContext* cx, MC::Tainted<const ExceptionStack*> exceptionStack) {
+  return SetPendingExceptionStack(cx->cx_, *exceptionStack.UNSAFE_unverified());
 }
 
 }
@@ -73,12 +56,5 @@ inline void JS_ClearPendingException(MCContext* cx) {
   JS_ClearPendingException(cx->cx_);
 }
 
-#else
-namespace MC {
-
-using ExceptionStack = JS::ExceptionStack;
-
-}
 #endif
-
 #endif

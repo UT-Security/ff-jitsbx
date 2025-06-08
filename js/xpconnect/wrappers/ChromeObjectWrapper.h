@@ -30,11 +30,11 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase {
   constexpr ChromeObjectWrapper() : ChromeObjectWrapperBase(0) {}
 #endif
 
-  virtual bool defineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool defineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                               JS::Handle<jsid> id,
                               JS::Handle<JS::PropertyDescriptor> desc,
                               JS::ObjectOpResult& result) const override;
-  virtual bool set(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+  virtual bool set(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
                    JS::ObjectOpResult& result) const override;
 

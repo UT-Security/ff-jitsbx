@@ -26,6 +26,12 @@ class AsyncStatementParams final : public nsISupports, public nsWrapperCache {
   explicit AsyncStatementParams(nsPIDOMWindowInner* aWindow,
                                 AsyncStatement* aStatement);
 
+  inline void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
+                   JS::MutableHandle<JS::Value> aResult,
+                   mozilla::ErrorResult& aRv) {
+   return NamedGetter(MC_UNSAFE(aCx), aName, aFound, aResult, aRv); 
+  }
+  
   void NamedGetter(JSContext* aCx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JS::Value> aResult,
                    mozilla::ErrorResult& aRv);
@@ -38,6 +44,12 @@ class AsyncStatementParams final : public nsISupports, public nsWrapperCache {
     // Unfortunately we don't know how many params there are in the async case,
     // so we have to lie.
     return UINT16_MAX;
+  }
+
+  inline void IndexedGetter(MCContext* aCx, uint32_t aIndex, bool& aFound,
+                            JS::MutableHandle<JS::Value> aResult,
+                            mozilla::ErrorResult& aRv) {
+    return IndexedGetter(MC_UNSAFE(aCx), aIndex, aFound, aResult, aRv);
   }
 
   void IndexedGetter(JSContext* aCx, uint32_t aIndex, bool& aFound,

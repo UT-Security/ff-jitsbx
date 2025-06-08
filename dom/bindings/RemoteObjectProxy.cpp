@@ -6,42 +6,42 @@
 
 #include "RemoteObjectProxy.h"
 #include "AccessCheck.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/Object.h"  // JS::GetClass
 #include "xpcprivate.h"
 
 namespace mozilla::dom {
 
 bool RemoteObjectProxyBase::getOwnPropertyDescriptor(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const {
   bool ok = CrossOriginGetOwnPropertyHelper(aCx, aProxy, aId, aDesc);
   if (!ok || aDesc.isSome()) {
     return ok;
   }
 
-  return CrossOriginPropertyFallback(aCx, aProxy, aId, aDesc);
+  return CrossOriginPropertyFallback(MC_UNSAFE(aCx), aProxy, aId, aDesc);
 }
 
 bool RemoteObjectProxyBase::defineProperty(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::Handle<JS::PropertyDescriptor> aDesc,
     JS::ObjectOpResult& aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-defineownproperty
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-defineownproperty
   // step 2
-  return ReportCrossOriginDenial(aCx, aId, "define"_ns);
+  return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "define"_ns);
 }
 
 bool RemoteObjectProxyBase::ownPropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginownpropertykeys-(-o-)
   // step 2 and
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginproperties-(-o-)
   MC::Rooted<JSObject*> holder(aCx);
-  if (!EnsureHolder(aCx, aProxy, &holder) ||
+  if (!EnsureHolder(MC_UNSAFE(aCx), aProxy, &holder) ||
       !js::GetPropertyKeys(aCx, holder,
                            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
                            aProps)) {
@@ -50,21 +50,21 @@ bool RemoteObjectProxyBase::ownPropertyKeys(
 
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginownpropertykeys-(-o-)
   // step 3 and 4
-  return xpc::AppendCrossOriginWhitelistedPropNames(aCx, aProps);
+  return xpc::AppendCrossOriginWhitelistedPropNames(MC_UNSAFE(aCx), aProps);
 }
 
-bool RemoteObjectProxyBase::delete_(JSContext* aCx,
+bool RemoteObjectProxyBase::delete_(MCContext* aCx,
                                     JS::Handle<JSObject*> aProxy,
                                     JS::Handle<jsid> aId,
                                     JS::ObjectOpResult& aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-delete
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-delete step 2
-  return ReportCrossOriginDenial(aCx, aId, "delete"_ns);
+  return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "delete"_ns);
 }
 
 bool RemoteObjectProxyBase::getPrototypeIfOrdinary(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, bool* aIsOrdinary,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, MC::Tainted<bool*> aIsOrdinary,
     JS::MutableHandle<JSObject*> aProtop) const {
   // WindowProxy's and Location's [[GetPrototypeOf]] traps aren't the ordinary
   // definition:
@@ -80,7 +80,7 @@ bool RemoteObjectProxyBase::getPrototypeIfOrdinary(
 }
 
 bool RemoteObjectProxyBase::preventExtensions(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::ObjectOpResult& aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-preventextensions
   // and
@@ -88,7 +88,7 @@ bool RemoteObjectProxyBase::preventExtensions(
   return aResult.failCantPreventExtensions();
 }
 
-bool RemoteObjectProxyBase::isExtensible(JSContext* aCx,
+bool RemoteObjectProxyBase::isExtensible(MCContext* aCx,
                                          JS::Handle<JSObject*> aProxy,
                                          bool* aExtensible) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-isextensible
@@ -98,29 +98,29 @@ bool RemoteObjectProxyBase::isExtensible(JSContext* aCx,
   return true;
 }
 
-bool RemoteObjectProxyBase::get(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+bool RemoteObjectProxyBase::get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                 JS::Handle<JS::Value> aReceiver,
                                 JS::Handle<jsid> aId,
                                 JS::MutableHandle<JS::Value> aVp) const {
-  return CrossOriginGet(aCx, aProxy, aReceiver, aId, aVp);
+  return CrossOriginGet(MC_UNSAFE(aCx), aProxy, aReceiver, aId, aVp);
 }
 
-bool RemoteObjectProxyBase::set(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+bool RemoteObjectProxyBase::set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                 JS::Handle<jsid> aId,
                                 JS::Handle<JS::Value> aValue,
                                 JS::Handle<JS::Value> aReceiver,
                                 JS::ObjectOpResult& aResult) const {
-  return CrossOriginSet(aCx, aProxy, aId, aValue, aReceiver, aResult);
+  return CrossOriginSet(MC_UNSAFE(aCx), aProxy, aId, aValue, aReceiver, aResult);
 }
 
 bool RemoteObjectProxyBase::getOwnEnumerablePropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
   return true;
 }
 
 const char* RemoteObjectProxyBase::className(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy) const {
+    MCContext* aCx, JS::Handle<JSObject*> aProxy) const {
   MOZ_ASSERT(js::IsProxy(aProxy));
 
   return "Object";

@@ -312,7 +312,7 @@ void ChromeUtils::WaiveXrays(GlobalObject& aGlobal, JS::Handle<JS::Value> aVal,
                              JS::MutableHandle<JS::Value> aRetval,
                              ErrorResult& aRv) {
   MC::Rooted<JS::Value> value(aGlobal.Context(), aVal);
-  if (!xpc::WrapperFactory::WaiveXrayAndWrap(aGlobal.Context(), &value)) {
+  if (!xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(aGlobal.Context()), &value)) {
     aRv.NoteJSContextException(aGlobal.Context());
   } else {
     aRetval.set(value);

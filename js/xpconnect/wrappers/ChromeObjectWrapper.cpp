@@ -21,7 +21,7 @@ const ChromeObjectWrapper* ChromeObjectWrapper::getSingleton() {
   return &inner_;
 }
 
-bool ChromeObjectWrapper::defineProperty(JSContext* cx, HandleObject wrapper,
+bool ChromeObjectWrapper::defineProperty(MCContext* cx, HandleObject wrapper,
                                          HandleId id,
                                          Handle<PropertyDescriptor> desc,
                                          ObjectOpResult& result) const {
@@ -32,7 +32,7 @@ bool ChromeObjectWrapper::defineProperty(JSContext* cx, HandleObject wrapper,
   return ChromeObjectWrapperBase::defineProperty(cx, wrapper, id, desc, result);
 }
 
-bool ChromeObjectWrapper::set(JSContext* cx, HandleObject wrapper, HandleId id,
+bool ChromeObjectWrapper::set(MCContext* cx, HandleObject wrapper, HandleId id,
                               HandleValue v, HandleValue receiver,
                               ObjectOpResult& result) const {
   if (!AccessCheck::checkPassToPrivilegedCode(cx, wrapper, v)) {

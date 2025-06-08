@@ -2497,7 +2497,7 @@ enum WrapperDenialType {
   WrapperDenialForCOW,
   WrapperDenialTypeCount
 };
-bool ReportWrapperDenial(JSContext* cx, JS::HandleId id, WrapperDenialType type,
+bool ReportWrapperDenial(MCContext* cx, JS::HandleId id, WrapperDenialType type,
                          const char* reason);
 
 class CompartmentOriginInfo {

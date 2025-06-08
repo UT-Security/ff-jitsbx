@@ -1921,7 +1921,7 @@ bool XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
   if (!js::IsProxy(obj)) return true;
 
   const DOMProxyHandler* handler = GetDOMProxyHandler(obj);
-  return handler->defineProperty(cx, wrapper, id, desc, result, done);
+  return handler->defineProperty(JS_SanitizeContext(cx), wrapper, id, desc, result, done);
 }
 
 template <typename SpecType>
@@ -2122,7 +2122,7 @@ bool XrayDeleteNamedProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
   if (!IsInstance(type) || !nativePropertyHooks->mDeleteNamedProperty) {
     return opresult.succeed();
   }
-  return nativePropertyHooks->mDeleteNamedProperty(cx, wrapper, obj, id,
+  return nativePropertyHooks->mDeleteNamedProperty(JS_SanitizeContext(cx), wrapper, obj, id,
                                                    opresult);
 }
 
@@ -2132,7 +2132,7 @@ bool ResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
   //TODO(abhishekcs): unsafe assumptions being made here
-  return mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
+  return mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(JS_SanitizeContext(cx), wrapper, id,
                                                             desc);
 }
 
@@ -2140,7 +2140,7 @@ bool EnumerateOwnProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::Handle<JSObject*> obj,
                             JS::MutableHandleVector<jsid> props) {
   //TODO(abhishekcs): unsafe assumptions being made here
-  return mc::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
+  return mc::GetProxyHandler(obj)->ownPropertyKeys(JS_SanitizeContext(cx), wrapper, props);
 }
 
 }  // namespace binding_detail

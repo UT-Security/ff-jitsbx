@@ -18,41 +18,44 @@
 #include "monkeycage/Exception.h"
 
 namespace MC {
+namespace detail {
 
-struct MOZ_STACK_CLASS JS_PUBLIC_API ErrorReportBuilder {
-  JS::ErrorReportBuilder inner_;
+template <typename MC_Sbx>
+class TaintedVolatile<JS::ErrorReportBuilder, MC_Sbx> {
+ private:
+  JS::ErrorReportBuilder data;
 
-  explicit ErrorReportBuilder(MCContext* cx) : inner_(cx->cx_) {}
-  ~ErrorReportBuilder() = default;
-
-  bool init(MCContext* cx, const MC::ExceptionStack& exnStack,
+ public:
+  bool init(MCContext* cx, MC::Tainted<const JS::ExceptionStack*> exnStack,
             JS::ErrorReportBuilder::SniffingBehavior sniffingBehavior) {
-    return inner_.init(cx->cx_, exnStack.inner_, sniffingBehavior);
+    return data.init(cx->cx_, *exnStack.UNSAFE_unverified(), sniffingBehavior);
   }
 
-  JSErrorReport* report() const { return inner_.report(); }
+  JSErrorReport* report() const { return data.report(); }
 
   const JS::ConstUTF8CharsZ toStringResult() const {
-    return inner_.toStringResult();
+    return data.toStringResult();
   }
 };
+
+}  // namespace detail
 
 }  // namespace MC
 
 template <typename... Args>
-inline void JS_ReportErrorASCII(MCContext* cx, const char* format,
+inline MOZ_FORMAT_PRINTF(2, 0) void JS_ReportErrorASCII(MCContext* cx, const char* format,
                                 Args... args) {
   return JS_ReportErrorASCII(cx->cx_, format, args...);
 }
 
 template <typename... Args>
-inline void JS_ReportErrorLatin1(MCContext* cx, const char* format,
+inline MOZ_FORMAT_PRINTF(2, 0) void JS_ReportErrorLatin1(MCContext* cx, const char* format,
                                  Args... args) {
   return JS_ReportErrorLatin1(cx->cx_, format, args...);
 }
 
 template <typename... Args>
-inline void JS_ReportErrorUTF8(MCContext* cx, const char* format,
+inline MOZ_FORMAT_PRINTF(2, 0) void JS_ReportErrorUTF8(MCContext* cx, const char* format,
                                Args... args) {
   return JS_ReportErrorUTF8(cx->cx_, format, args...);
 }
@@ -60,15 +63,7 @@ inline void JS_ReportErrorUTF8(MCContext* cx, const char* format,
 inline MOZ_COLD void JS_ReportOutOfMemory(MCContext* cx) {
   return JS_ReportOutOfMemory(cx->cx_); 
 }
-#else
-
-namespace MC {
-
-using ErrorReportBuilder = JS::ErrorReportBuilder;
-
-}
 
 #endif
-
 
 #endif

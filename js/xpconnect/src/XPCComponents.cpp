@@ -2179,7 +2179,7 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::WaiveXrays(HandleValue aVal, JSContext* aCx,
                                   MutableHandleValue aRetval) {
   MC::RootedValue value(aCx, aVal);
-  if (!xpc::WrapperFactory::WaiveXrayAndWrap(aCx, &value)) {
+  if (!xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(aCx), &value)) {
     return NS_ERROR_FAILURE;
   }
   aRetval.set(value);

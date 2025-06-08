@@ -9,7 +9,6 @@
 
 #include <type_traits>
 
-#include "mcfriendapi.h"
 #include "js/CharacterEncoding.h"
 #include "js/Conversions.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
@@ -17,10 +16,13 @@
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "js/RealmOptions.h"
+#include "monkeycage/GCVector.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "monkeycage/Zone.h"
 #include "monkeycage/Value.h"
+#include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"
 #include "mozilla/Assertions.h"

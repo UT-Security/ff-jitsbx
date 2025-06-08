@@ -605,7 +605,7 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
 // wrapped in an Xray wrapper. cx->compartment is the compartment that will be
 // using the returned object. If the object to be wrapped is already in the
 // correct compartment, then this returns the unwrapped object.
-bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp) {
+bool WrapperFactory::WaiveXrayAndWrap(MCContext* cx, MutableHandleValue vp) {
   if (vp.isPrimitive()) {
     return JS_WrapValue(cx, vp);
   }
@@ -619,7 +619,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx, MutableHandleValue vp) {
   return true;
 }
 
-bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
+bool WrapperFactory::WaiveXrayAndWrap(MCContext* cx,
                                       MutableHandleObject argObj) {
   MOZ_ASSERT(argObj);
   MC::RootedObject obj(cx, js::UncheckedUnwrap(argObj));
@@ -639,7 +639,7 @@ bool WrapperFactory::WaiveXrayAndWrap(JSContext* cx,
   // to things in |obj|'s compartment.
   JS::Compartment* target = js::GetContextCompartment(cx);
   JS::Compartment* origin = JS::GetCompartment(obj);
-  obj = AllowWaiver(target, origin) ? WaiveXray(cx, obj) : obj;
+  obj = AllowWaiver(target, origin) ? WaiveXray(MC_UNSAFE(cx), obj) : obj;
   if (!obj) {
     return false;
   }
@@ -762,7 +762,7 @@ JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
 
   // Copy Xray expando properties to the new wrapper.
   if (!GetXrayTraits(newIdentity)
-           ->cloneExpandoChain(cx, newIdentity, expandoChain)) {
+           ->cloneExpandoChain(JS_SanitizeContext(cx), newIdentity, expandoChain)) {
     // Failure here means some expandos were not copied over. The object graph
     // and the Xray machinery are left in a consistent state, but mysteriously
     // losing these expandos is too weird to allow.

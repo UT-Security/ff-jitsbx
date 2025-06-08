@@ -40,38 +40,38 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
 
   // Standard internal methods
   bool getOwnPropertyDescriptor(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const override;
-  bool ownPropertyKeys(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool ownPropertyKeys(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::MutableHandleVector<jsid> aProps) const override;
-  bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<jsid> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
                       JS::ObjectOpResult& result) const final;
-  bool delete_(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<jsid> aId, JS::ObjectOpResult& aResult) const final;
 
-  bool getPrototypeIfOrdinary(JSContext* aCx, JS::Handle<JSObject*> aProxy,
-                              bool* aIsOrdinary,
+  bool getPrototypeIfOrdinary(MCContext* aCx, JS::Handle<JSObject*> aProxy,
+                              MC::Tainted<bool*> aIsOrdinary,
                               JS::MutableHandle<JSObject*> aProtop) const final;
 
-  bool preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                          JS::ObjectOpResult& aResult) const final;
-  bool isExtensible(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     bool* aExtensible) const final;
 
-  bool get(JSContext* cx, JS::Handle<JSObject*> aProxy,
+  bool get(MCContext* cx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<jsid> aId,
            JS::MutableHandle<JS::Value> aVp) const final;
-  bool set(JSContext* cx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+  bool set(MCContext* cx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
            JS::Handle<JS::Value> aValue, JS::Handle<JS::Value> aReceiver,
            JS::ObjectOpResult& aResult) const final;
 
   // SpiderMonkey extensions
   bool getOwnEnumerablePropertyKeys(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
       JS::MutableHandleVector<jsid> aProps) const override;
-  const char* className(JSContext* aCx,
+  const char* className(MCContext* aCx,
                         JS::Handle<JSObject*> aProxy) const final;
 
   // Cross origin objects like RemoteWindowProxy should not participate in

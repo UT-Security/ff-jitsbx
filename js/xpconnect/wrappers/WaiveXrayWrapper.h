@@ -25,23 +25,23 @@ class WaiveXrayWrapper : public mc::CrossCompartmentWrapper {
 #endif
 
   virtual bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<jsid> id,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc)
       const override;
-  virtual bool getPrototype(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool getPrototype(MCContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::MutableHandle<JSObject*> protop) const override;
   virtual bool getPrototypeIfOrdinary(
-      JSContext* cx, JS::Handle<JSObject*> wrapper, bool* isOrdinary,
+      MCContext* cx, JS::Handle<JSObject*> wrapper, MC::Tainted<bool*> isOrdinary,
       JS::MutableHandle<JSObject*> protop) const override;
-  virtual bool get(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool get(MCContext* cx, JS::Handle<JSObject*> wrapper,
                    JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
                    JS::MutableHandle<JS::Value> vp) const override;
-  virtual bool call(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool call(MCContext* cx, JS::Handle<JSObject*> wrapper,
                     const JS::CallArgs& args) const override;
-  virtual bool construct(JSContext* cx, JS::Handle<JSObject*> wrapper,
+  virtual bool construct(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          const JS::CallArgs& args) const override;
 
-  virtual bool nativeCall(JSContext* cx, JS::IsAcceptableThis test,
+  virtual bool nativeCall(MCContext* cx, JS::IsAcceptableThis test,
                           JS::NativeImpl impl,
                           const JS::CallArgs& args) const override;
 

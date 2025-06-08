@@ -34,6 +34,14 @@ inline bool JS_RefreshCrossCompartmentWrappers(MCContext* cx,
                                                JS::Handle<JSObject*> obj) {
     return JS_RefreshCrossCompartmentWrappers(cx->cx_, obj);
 }
+
+inline void JS_MarkCrossZoneId(MCContext* cx, jsid id) {
+    return JS_MarkCrossZoneId(cx->cx_, id);
+}
+
+inline void JS_MarkCrossZoneIdValue(MCContext* cx, const JS::Value& value) {
+    return JS_MarkCrossZoneIdValue(cx->cx_, value);
+}
 #endif
 
 #endif

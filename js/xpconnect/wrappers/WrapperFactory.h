@@ -8,6 +8,7 @@
 #define _xpc_WRAPPERFACTORY_H
 
 #include "js/Wrapper.h"
+#include "monkeycage/Context.h"
 
 namespace xpc {
 
@@ -65,8 +66,8 @@ class WrapperFactory {
                           JS::Handle<JSObject*> obj);
 
   // Wrap wrapped object into a waiver wrapper and then re-wrap it.
-  static bool WaiveXrayAndWrap(JSContext* cx, JS::MutableHandle<JS::Value> vp);
-  static bool WaiveXrayAndWrap(JSContext* cx,
+  static bool WaiveXrayAndWrap(MCContext* cx, JS::MutableHandle<JS::Value> vp);
+  static bool WaiveXrayAndWrap(MCContext* cx,
                                JS::MutableHandle<JSObject*> object);
 };
 

@@ -42,6 +42,10 @@ inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx->cx_;
 }
 
+inline JSContext* MC_UNSAFE(JSContext* cx) {
+  return cx;
+}
+
 inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
   return rt->rt_;
 }
@@ -83,6 +87,21 @@ inline MCRuntime* JS_GetRuntime(MCContext* cx) {
 inline void JS_SetFutexCanWait(MCContext* cx) {
   return JS_SetFutexCanWait(cx->cx_);
 }
+
+namespace js {
+
+inline JS::Realm* GetContextRealm(const MCContext* cx) {
+  return GetContextRealm(cx->cx_);
+}
+
+inline JS::Compartment* GetContextCompartment(const MCContext* cx) {
+  return GetContextCompartment(cx->cx_);
+}
+
+inline JS::Zone* GetContextZone(const MCContext* cx) {
+  return GetContextZone(cx->cx_);
+}
+}  // namespace js
 
 namespace JS {
 

@@ -25,6 +25,11 @@ class StatementRow final : public nsISupports, public nsWrapperCache {
 
   explicit StatementRow(nsPIDOMWindowInner* aWindow, Statement* aStatement);
 
+  inline void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
+                          JS::MutableHandle<JS::Value> aResult,
+                          mozilla::ErrorResult& aRv) {
+    return NamedGetter(MC_UNSAFE(aCx), aName, aFound, aResult, aRv);
+  }
   void NamedGetter(JSContext* aCx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JS::Value> aResult,
                    mozilla::ErrorResult& aRv);

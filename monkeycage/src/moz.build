@@ -332,6 +332,7 @@ EXPORTS += [
 
 EXPORTS.monkeycage += [
 	"../public/AllocationLogging.h",
+	"../public/Array.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",
@@ -356,6 +357,7 @@ EXPORTS.monkeycage += [
 	"../public/Principals.h",
 	"../public/Promise.h",
 	"../public/PropertyAndElement.h",
+	"../public/PropertyDescriptor.h",
 	"../public/Proxy.h",
 	"../public/Realm.h",
 	"../public/RealmIterators.h",

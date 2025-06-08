@@ -108,6 +108,11 @@ class nsHTMLDocument : public mozilla::dom::Document {
                              JS::Handle<JSObject*> aGivenProto) override;
   bool IsRegistrableDomainSuffixOfOrEqualTo(const nsAString& aHostSuffixString,
                                             const nsACString& aOrigHost);
+  void NamedGetter(MCContext* cx, const nsAString& aName, bool& aFound,
+                   JS::MutableHandle<JSObject*> aRetval,
+                   mozilla::ErrorResult& rv) {
+    return NamedGetter(MC_UNSAFE(cx), aName, aFound, aRetval, rv);
+  }
   void NamedGetter(JSContext* cx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JSObject*> aRetval,
                    mozilla::ErrorResult& rv) {

@@ -15,17 +15,18 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/CompileOptions.h"
 #include "monkeycage/SourceText.h"
+#include "monkeycage/Tainted.h"
 
 namespace JS {
 
-inline JSScript* Compile(MCContext* cx, const MC::CompileOptions& options,
-                         MC::SourceText<char16_t>& srcBuf) {
-  return Compile(cx->cx_, options.inner_, srcBuf.inner_);
+inline JSScript* Compile(MCContext* cx, MC::Tainted<const CompileOptions*> options,
+                         MC::Tainted<SourceText<char16_t>*> srcBuf) {
+  return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 
-inline JSScript* Compile(MCContext* cx, const MC::CompileOptions& options,
-                         MC::SourceText<mozilla::Utf8Unit>& srcBuf) {
-  return Compile(cx->cx_, options.inner_, srcBuf.inner_);
+inline JSScript* Compile(MCContext* cx, MC::Tainted<const CompileOptions*> options,
+                         MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
+  return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 }  // namespace JS
 

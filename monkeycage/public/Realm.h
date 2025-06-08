@@ -30,6 +30,34 @@ inline void SetRealmNameCallback(
   return SetRealmNameCallback(cx->cx_, callback.UNSAFE_get());
 }
 
+inline JSObject* GetRealmObjectPrototype(MCContext* cx) {
+  return GetRealmObjectPrototype(cx->cx_);
+}
+
+inline JS::Handle<JSObject*> GetRealmObjectPrototypeHandle(MCContext* cx) {
+  return GetRealmObjectPrototypeHandle(cx->cx_);
+}
+
+inline JSObject* GetRealmFunctionPrototype(MCContext* cx) {
+  return GetRealmFunctionPrototype(cx->cx_);
+}
+
+inline JSObject* GetRealmArrayPrototype(MCContext* cx) {
+  return GetRealmArrayPrototype(cx->cx_);
+}
+
+inline JSObject* GetRealmErrorPrototype(MCContext* cx) {
+  return GetRealmErrorPrototype(cx->cx_);
+}
+
+inline JSObject* GetRealmIteratorPrototype(MCContext* cx) {
+  return GetRealmIteratorPrototype(cx->cx_);
+}
+
+inline JSObject* GetRealmAsyncIteratorPrototype(MCContext* cx) {
+  return GetRealmAsyncIteratorPrototype(cx->cx_);
+}
+
 inline Realm* GetFunctionRealm(MCContext* cx, HandleObject objArg) {
   return GetFunctionRealm(cx->cx_, objArg);
 }

@@ -15,21 +15,23 @@
 #include "monkeycage/CompileOptions.h"
 #include "monkeycage/SourceText.h"
 
+#include "monkeycage/Tainted.h"
+
 // ************************************************************************
 //   Compilation
 // ************************************************************************
 
 namespace JS {
 inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, const MC::CompileOptions& options,
-    MC::SourceText<mozilla::Utf8Unit>& srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, options.inner_, srcBuf.inner_);
+    MCContext* cx, MC::Tainted<const CompileOptions*> options,
+    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
+  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 
 inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, const MC::CompileOptions& options,
-    MC::SourceText<char16_t>& srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, options.inner_, srcBuf.inner_);
+    MCContext* cx, MC::Tainted<const CompileOptions*> options,
+    MC::Tainted<SourceText<char16_t>*> srcBuf) {
+  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 }  // namespace JS
 

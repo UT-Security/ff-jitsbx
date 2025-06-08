@@ -13,7 +13,7 @@
 #include "xpcpublic.h"
 #include "xpcprivate.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Symbol.h"
 
 using namespace JS;
@@ -82,32 +82,32 @@ bool AppendCrossOriginWhitelistedPropNames(JSContext* cx,
 // that. So we just stub out the unreachable paths.
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::getOwnPropertyDescriptor(
-    JSContext* cx, HandleObject wrapper, HandleId id,
+    MCContext* cx, HandleObject wrapper, HandleId id,
     MutableHandle<mozilla::Maybe<PropertyDescriptor>> desc) const {
   MOZ_CRASH("FilteringWrappers are now always opaque");
 }
 
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::ownPropertyKeys(
-    JSContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
+    MCContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
   MOZ_CRASH("FilteringWrappers are now always opaque");
 }
 
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::getOwnEnumerablePropertyKeys(
-    JSContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
+    MCContext* cx, HandleObject wrapper, MutableHandleIdVector props) const {
   MOZ_CRASH("FilteringWrappers are now always opaque");
 }
 
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::enumerate(
-    JSContext* cx, HandleObject wrapper,
+    MCContext* cx, HandleObject wrapper,
     JS::MutableHandleIdVector props) const {
   MOZ_CRASH("FilteringWrappers are now always opaque");
 }
 
 template <typename Base, typename Policy>
-bool FilteringWrapper<Base, Policy>::call(JSContext* cx,
+bool FilteringWrapper<Base, Policy>::call(MCContext* cx,
                                           JS::Handle<JSObject*> wrapper,
                                           const JS::CallArgs& args) const {
   if (!Policy::checkCall(cx, wrapper, args)) {
@@ -117,7 +117,7 @@ bool FilteringWrapper<Base, Policy>::call(JSContext* cx,
 }
 
 template <typename Base, typename Policy>
-bool FilteringWrapper<Base, Policy>::construct(JSContext* cx,
+bool FilteringWrapper<Base, Policy>::construct(MCContext* cx,
                                                JS::Handle<JSObject*> wrapper,
                                                const JS::CallArgs& args) const {
   if (!Policy::checkCall(cx, wrapper, args)) {
@@ -128,7 +128,7 @@ bool FilteringWrapper<Base, Policy>::construct(JSContext* cx,
 
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::nativeCall(
-    JSContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl,
+    MCContext* cx, JS::IsAcceptableThis test, JS::NativeImpl impl,
     const JS::CallArgs& args) const {
   if (Policy::allowNativeCall(cx, test, impl)) {
     return Base::Permissive::nativeCall(cx, test, impl, args);
@@ -138,7 +138,7 @@ bool FilteringWrapper<Base, Policy>::nativeCall(
 
 template <typename Base, typename Policy>
 bool FilteringWrapper<Base, Policy>::getPrototype(
-    JSContext* cx, JS::HandleObject wrapper,
+    MCContext* cx, JS::HandleObject wrapper,
     JS::MutableHandleObject protop) const {
   // Filtering wrappers do not allow access to the prototype.
   protop.set(nullptr);
@@ -146,9 +146,9 @@ bool FilteringWrapper<Base, Policy>::getPrototype(
 }
 
 template <typename Base, typename Policy>
-bool FilteringWrapper<Base, Policy>::enter(JSContext* cx, HandleObject wrapper,
+bool FilteringWrapper<Base, Policy>::enter(MCContext* cx, HandleObject wrapper,
                                            HandleId id, Wrapper::Action act,
-                                           bool mayThrow, bool* bp) const {
+                                           bool mayThrow, MC::Tainted<bool*> bp) const {
   if (!Policy::check(cx, wrapper, id, act)) {
     *bp =
         JS_IsExceptionPending(cx) ? false : Policy::deny(cx, act, id, mayThrow);
