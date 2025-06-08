@@ -16,9 +16,8 @@
 #include "js/ErrorReport.h"         // JS_ReportOutOfMemory
 #include "monkeycage/GCVector.h"            // MC::RootedVector
 #include "js/Id.h"                  // JS::PropertyKey
-#include "js/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
-#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
-#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
+#include "monkeycage/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
+#include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "monkeycage/Proxy.h"  // js::ProxyOptions, js::NewProxyObject, js::GetProxyPrivate
 #include "monkeycage/RootingAPI.h"  // MC::Rooted, JS::Handle, JS::MutableHandle
 #include "monkeycage/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
@@ -31,20 +30,20 @@ namespace loader {
 struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   JSMEnvironmentProxyHandler() : BaseProxyHandler(&gFamily, false) {}
 
-  bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
                       JS::ObjectOpResult& aResult) const override {
     return aResult.fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
   }
 
-  bool getPrototype(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool getPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::MutableHandle<JSObject*> aProtop) const override {
     aProtop.set(nullptr);
     return true;
   }
 
-  bool setPrototype(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool setPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::Handle<JSObject*> aProto,
                     JS::ObjectOpResult& aResult) const override {
     if (!aProto) {
@@ -54,55 +53,55 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   }
 
   bool getPrototypeIfOrdinary(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy, bool* aIsOrdinary,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, MC::Tainted<bool*> aIsOrdinary,
       JS::MutableHandle<JSObject*> aProtop) const override {
     *aIsOrdinary = false;
     return true;
   }
 
-  bool setImmutablePrototype(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool setImmutablePrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                              bool* aSucceeded) const override {
     *aSucceeded = true;
     return true;
   }
 
-  bool preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                          JS::ObjectOpResult& aResult) const override {
     aResult.succeed();
     return true;
   }
 
-  bool isExtensible(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     bool* aExtensible) const override {
     *aExtensible = false;
     return true;
   }
 
-  bool set(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::Value> aValue,
            JS::Handle<JS::Value> aReceiver,
            JS::ObjectOpResult& aResult) const override {
     return aResult.failReadOnly();
   }
 
-  bool delete_(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<JS::PropertyKey> aId,
                JS::ObjectOpResult& aResult) const override {
     return aResult.failCantDelete();
   }
 
   bool getOwnPropertyDescriptor(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
       JS::Handle<JS::PropertyKey> aId,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc)
       const override;
-  bool has(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool has(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, bool* aBp) const override;
-  bool get(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<JS::PropertyKey> aId,
            JS::MutableHandle<JS::Value> aVp) const override;
   bool ownPropertyKeys(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
       JS::MutableHandleVector<JS::PropertyKey> aProps) const override;
 
  private:
@@ -158,12 +157,12 @@ JSObject* ResolveModuleObjectProperty(JSContext* aCx,
 }
 
 bool JSMEnvironmentProxyHandler::getOwnPropertyDescriptor(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
   if (!JS_GetOwnPropertyDescriptorById(aCx, holder, aId, aDesc)) {
     return false;
   }
@@ -189,24 +188,24 @@ bool JSMEnvironmentProxyHandler::getOwnPropertyDescriptor(
   return true;
 }
 
-bool JSMEnvironmentProxyHandler::has(JSContext* aCx,
+bool JSMEnvironmentProxyHandler::has(MCContext* aCx,
                                      JS::Handle<JSObject*> aProxy,
                                      JS::Handle<JS::PropertyKey> aId,
                                      bool* aBp) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
   return JS_HasPropertyById(aCx, holder, aId, aBp);
 }
 
-bool JSMEnvironmentProxyHandler::get(JSContext* aCx,
+bool JSMEnvironmentProxyHandler::get(MCContext* aCx,
                                      JS::Handle<JSObject*> aProxy,
                                      JS::Handle<JS::Value> aReceiver,
                                      JS::Handle<JS::PropertyKey> aId,
                                      JS::MutableHandle<JS::Value> aVp) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
   if (!JS_GetPropertyById(aCx, holder, aId, aVp)) {
     return false;
   }
@@ -219,10 +218,10 @@ bool JSMEnvironmentProxyHandler::get(JSContext* aCx,
 }
 
 bool JSMEnvironmentProxyHandler::ownPropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<JS::PropertyKey> aProps) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
-  MC::Rooted<JS::IdVector> globalIds(aCx, JS::IdVector(aCx));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
+  MC::Rooted<JS::IdVector> globalIds(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, globalObj, &globalIds)) {
     return false;
   }
@@ -235,7 +234,7 @@ bool JSMEnvironmentProxyHandler::ownPropertyKeys(
   }
 
   MC::RootedObject lexicalEnv(aCx, JS_ExtensibleLexicalEnvironment(globalObj));
-  MC::Rooted<JS::IdVector> lexicalIds(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> lexicalIds(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, lexicalEnv, &lexicalIds)) {
     return false;
   }

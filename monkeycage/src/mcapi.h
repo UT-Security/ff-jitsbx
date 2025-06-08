@@ -41,8 +41,29 @@
 
 #ifdef JS_SANDBOX
 
-inline void JS_SetWrapObjectCallbacks(
-    MCContext* cx, const MCWrapObjectCallbacks* callbacks) {
+inline bool JS_ValueToObject(MCContext* cx, JS::HandleValue v,
+                             JS::MutableHandleObject objp) {
+  return JS_ValueToObject(cx->cx_, v, objp);
+}
+
+inline JSFunction* JS_ValueToFunction(MCContext* cx, JS::HandleValue v) {
+  return JS_ValueToFunction(cx->cx_, v);
+}
+
+inline JSFunction* JS_ValueToConstructor(MCContext* cx, JS::HandleValue v) {
+  return JS_ValueToConstructor(cx->cx_, v);
+}
+
+inline JSString* JS_ValueToSource(MCContext* cx, JS::Handle<JS::Value> v) {
+  return JS_ValueToSource(cx->cx_, v);
+}
+
+inline JSType JS_TypeOfValue(MCContext* cx, JS::Handle<JS::Value> v) {
+  return JS_TypeOfValue(cx->cx_, v);  
+}
+
+inline void JS_SetWrapObjectCallbacks(MCContext* cx,
+                                      const MCWrapObjectCallbacks* callbacks) {
   JS_SetWrapObjectCallbacks(cx->cx_, callbacks->UNSAFE_get());
 }
 
@@ -57,6 +78,53 @@ inline bool JS_WrapValue(MCContext* cx, JS::MutableHandleValue vp) {
 inline bool JS_ResolveStandardClass(MCContext* cx, JS::HandleObject obj,
                                     JS::HandleId id, bool* resolved) {
   return JS_ResolveStandardClass(cx->cx_, obj, id, resolved);
+}
+
+inline bool JS_EnumerateStandardClasses(MCContext* cx, JS::HandleObject obj) {
+  return JS_EnumerateStandardClasses(cx->cx_, obj);
+}
+
+inline bool JS_NewEnumerateStandardClasses(MCContext* cx, JS::HandleObject obj,
+                                           JS::MutableHandleIdVector properties,
+                                           bool enumerableOnly) {
+  return JS_NewEnumerateStandardClasses(cx->cx_, obj, properties,
+                                        enumerableOnly);
+}
+
+inline bool JS_NewEnumerateStandardClassesIncludingResolved(
+    MCContext* cx, JS::HandleObject obj, JS::MutableHandleIdVector properties,
+    bool enumerableOnly) {
+  return JS_NewEnumerateStandardClassesIncludingResolved(
+      cx->cx_, obj, properties, enumerableOnly);
+}
+
+inline bool JS_GetClassObject(MCContext* cx, JSProtoKey key,
+                              JS::MutableHandle<JSObject*> objp) {
+  return JS_GetClassObject(cx->cx_, key, objp);
+}
+
+inline bool JS_GetClassPrototype(MCContext* cx, JSProtoKey key,
+                                 JS::MutableHandle<JSObject*> objp) {
+  return JS_GetClassPrototype(cx->cx_, key, objp);
+}
+
+inline JSProtoKey JS_IdToProtoKey(MCContext* cx, JS::HandleId id) {
+  return JS_IdToProtoKey(cx->cx_, id);
+}
+
+inline bool JS_ValueToId(MCContext* cx, JS::HandleValue v,
+                         JS::MutableHandleId idp) {
+  return JS_ValueToId(cx->cx_, v, idp);
+}
+
+inline bool JS_StringToId(MCContext* cx, JS::HandleString s,
+                          JS::MutableHandleId idp) {
+  return JS_StringToId(cx->cx_, s, idp);
+}
+
+inline bool JS_IdToValue(MCContext* cx, jsid id,
+                         JS::MutableHandle<JS::Value> vp) {
+  return JS_IdToValue(cx->cx_, id, vp);
 }
 
 inline bool JS_LinkConstructorAndPrototype(MCContext* cx,
@@ -92,9 +160,57 @@ inline JSObject* JS_NewPlainObject(MCContext* cx) {
   return JS_NewPlainObject(cx->cx_);
 }
 
+inline bool JS_GetPrototype(MCContext* cx, JS::HandleObject obj,
+                            JS::MutableHandleObject result) {
+  return JS_GetPrototype(cx->cx_, obj, result);
+}
+
+inline bool JS_GetPrototypeIfOrdinary(MCContext* cx, JS::HandleObject obj,
+                                      bool* isOrdinary,
+                                      JS::MutableHandleObject result) {
+  return JS_GetPrototypeIfOrdinary(cx->cx_, obj, isOrdinary, result);
+}
+
 inline bool JS_SetPrototype(MCContext* cx, JS::HandleObject obj,
                             JS::HandleObject proto) {
   return JS_SetPrototype(cx->cx_, obj, proto);
+}
+
+namespace JS {
+
+inline JSFunction* GetSelfHostedFunction(MCContext* cx,
+                                         const char* selfHostedName,
+                                         HandleId id, unsigned nargs) {
+  return GetSelfHostedFunction(cx->cx_, selfHostedName, id, nargs);
+}
+
+inline JSFunction* NewFunctionFromSpec(MCContext* cx, const JSFunctionSpec* fs,
+                                       HandleId id) {
+  return NewFunctionFromSpec(cx->cx_, fs, id);
+}
+
+inline JSFunction* NewFunctionFromSpec(MCContext* cx, const JSFunctionSpec* fs) {
+  return NewFunctionFromSpec(cx->cx_, fs);
+}
+}  // namespace JS
+
+inline bool JS_GetFunctionLength(MCContext* cx, JS::HandleFunction fun,
+                                 uint16_t* length) {
+  return JS_GetFunctionLength(cx->cx_, fun, length);
+}
+
+namespace JS {
+
+inline bool PropertySpecNameToPermanentId(MCContext* cx,
+                                          JSPropertySpec::Name name,
+                                          jsid* idp) {
+  return PropertySpecNameToPermanentId(cx->cx_, name, idp);
+}
+} /* namespace JS */
+
+inline JSObject* JS_NewObjectForConstructor(MCContext* cx, const JSClass* clasp,
+                                            const JS::CallArgs& args) {
+  return JS_NewObjectForConstructor(cx->cx_, clasp, args);
 }
 
 inline void JS_SetParallelParsingEnabled(MCContext* cx, bool enabled) {
@@ -116,6 +232,20 @@ inline bool JS_GetGlobalJitCompilerOption(MCContext* cx,
                                           JSJitCompilerOption opt,
                                           uint32_t* valueOut) {
   return JS_GetGlobalJitCompilerOption(cx->cx_, opt, valueOut);
+}
+
+inline bool JS_IndexToId(MCContext* cx, uint32_t index,
+                         JS::MutableHandleId id) {
+  return JS_IndexToId(cx->cx_, index, id);
+}
+
+inline bool JS_CharsToId(MCContext* cx, JS::TwoByteChars chars,
+                         JS::MutableHandleId id) {
+  return JS_CharsToId(cx->cx_, chars, id);
+}
+inline bool JS_IsIdentifier(MCContext* cx, JS::HandleString str,
+                            bool* isIdentifier) {
+  return JS_IsIdentifier(cx->cx_, str, isIdentifier);
 }
 
 namespace JS {

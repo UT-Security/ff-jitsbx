@@ -190,13 +190,13 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
     return ValidatorResult::Failure;
   }
 
-  MC::Rooted<JSObject*> global(MC_UNSAFE(cx), JSOracleChild::JSObject());
+  MC::Rooted<JSObject*> global(cx, JSOracleChild::JSObject());
   if (!global) {
     return ValidatorResult::Failure;
   }
 
-  MC::SourceText<Utf8Unit> srcBuf;
-  if (!srcBuf.init(cx, aSpan.Elements(), aSpan.Length(),
+  MC::SandboxStack<JS::SourceText<Utf8Unit>> srcBuf;
+  if (!srcBuf->init(cx, aSpan.Elements(), aSpan.Length(),
                    JS::SourceOwnership::Borrowed)) {
     JS_ClearPendingException(cx);
     return ValidatorResult::Failure;
@@ -206,7 +206,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
 
   // Parse to JavaScript
   RefPtr<JS::Stencil> stencil =
-      JS::CompileGlobalScriptToStencil(cx, MC::CompileOptions(cx), srcBuf);
+      JS::CompileGlobalScriptToStencil(cx, MC::SandboxStack<JS::CompileOptions>(cx), srcBuf);
 
   if (!stencil) {
     JS_ClearPendingException(cx);
@@ -216,7 +216,7 @@ JSValidatorChild::ValidatorResult JSValidatorChild::ShouldAllowJS(
   MOZ_ASSERT(!aSpan.IsEmpty());
 
   // Parse to JSON
-  MC::Rooted<JS::Value> json(MC_UNSAFE(cx));
+  MC::Rooted<JS::Value> json(cx);
   if (IsAscii(aSpan)) {
     // Ascii is a subset of Latin1, and JS_ParseJSON can take Latin1 directly
     if (JS_ParseJSON(cx,

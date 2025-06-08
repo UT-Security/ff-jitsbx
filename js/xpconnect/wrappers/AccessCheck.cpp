@@ -13,7 +13,7 @@
 #include "XrayWrapper.h"
 #include "FilteringWrapper.h"
 
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment
 #include "monkeycage/Wrapper.h"
 #include "mozilla/BasePrincipal.h"
@@ -88,7 +88,7 @@ bool IsCrossOriginAccessibleObject(JSObject* obj) {
          (clasp->name[0] == 'W' && !strcmp(clasp->name, "Window"));
 }
 
-bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
+bool AccessCheck::checkPassToPrivilegedCode(MCContext* cx, HandleObject wrapper,
                                             HandleValue v) {
   // Primitives are fine.
   if (!v.isObject()) {
@@ -112,7 +112,7 @@ bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
   return false;
 }
 
-bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
+bool AccessCheck::checkPassToPrivilegedCode(MCContext* cx, HandleObject wrapper,
                                             const CallArgs& args) {
   if (!checkPassToPrivilegedCode(cx, wrapper, args.thisv())) {
     return false;
@@ -125,7 +125,7 @@ bool AccessCheck::checkPassToPrivilegedCode(JSContext* cx, HandleObject wrapper,
   return true;
 }
 
-void AccessCheck::reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
+void AccessCheck::reportCrossOriginDenial(MCContext* cx, JS::HandleId id,
                                           const nsACString& accessType) {
   // This function exists because we want to report DOM SecurityErrors, not JS
   // Errors, when denying access on cross-origin DOM objects.  It's
@@ -145,7 +145,7 @@ void AccessCheck::reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
     MC::RootedValue idVal(cx, js::IdToValue(id));
     nsAutoJSString propName;
     MC::RootedString idStr(cx, JS_ValueToSource(cx, idVal));
-    if (!idStr || !propName.init(cx, idStr)) {
+    if (!idStr || !propName.init(MC_UNSAFE(cx), idStr)) {
       return;
     }
     message = "Permission denied to "_ns + accessType + " property "_ns +
@@ -156,7 +156,7 @@ void AccessCheck::reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
   MOZ_ALWAYS_TRUE(rv.MaybeSetPendingException(cx));
 }
 
-bool OpaqueWithSilentFailing::deny(JSContext* cx, js::Wrapper::Action act,
+bool OpaqueWithSilentFailing::deny(MCContext* cx, js::Wrapper::Action act,
                                    HandleId id, bool mayThrow) {
   // Fail silently for GET, ENUMERATE, and GET_PROPERTY_DESCRIPTOR.
   if (act == js::Wrapper::GET || act == js::Wrapper::ENUMERATE ||

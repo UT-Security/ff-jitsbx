@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_ObservableArrayProxyHandler_h
 #define mozilla_dom_ObservableArrayProxyHandler_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Wrapper.h"
 
 namespace mozilla::dom {
@@ -33,34 +33,34 @@ class ObservableArrayProxyHandler : public mc::ForwardingProxyHandler {
 
   // Implementations of methods that can be implemented in terms of
   // other lower-level methods.
-  bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
                       JS::ObjectOpResult& aResult) const override;
 
-  bool delete_(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<JS::PropertyKey> aId,
                JS::ObjectOpResult& aResult) const override;
 
-  bool get(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<JS::PropertyKey> aId,
            JS::MutableHandle<JS::Value> aVp) const override;
 
   bool getOwnPropertyDescriptor(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
       JS::Handle<JS::PropertyKey> aId,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const override;
 
-  bool has(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool has(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, bool* aBp) const override;
 
-  bool ownPropertyKeys(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool ownPropertyKeys(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::MutableHandleVector<jsid> aProps) const override;
 
-  bool preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                          JS::ObjectOpResult& aResult) const override;
 
-  bool set(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::Value> aV,
            JS::Handle<JS::Value> aReceiver,
            JS::ObjectOpResult& aResult) const override;

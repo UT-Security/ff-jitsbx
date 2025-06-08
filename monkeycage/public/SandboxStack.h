@@ -120,25 +120,20 @@ public:
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
 
-  //TODO(abhishek): revisit the type-parameter T to TaintedVolatile.
-  using T_OpDerefRet = TaintedVolatile<T, MC_Sbx>;
-
-  inline T_OpDerefRet& operator*() {
-    auto ret_ptr_const =
-      reinterpret_cast<const T_OpDerefRet*>(data_.addr());
-    // Safe - If T_OpDerefRet is not a const ptr, this is trivially safe
-    //        If T_OpDerefRet is a const ptr, then the const is captured
-    //        inside the wrapper
-    auto ret_ptr = const_cast<T_OpDerefRet*>(ret_ptr_const);
-    return *ret_ptr;
+  inline operator Tainted<const T*, MC_Sbx>() const {
+    Tainted<const T*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data_.addr());
+    return ret;
   }
   
-  inline const T_OpDerefRet* operator->() const {
-    return reinterpret_cast<const T_OpDerefRet*>(data_.addr());
+  inline operator Tainted<T*, MC_Sbx>() const {
+    Tainted<T*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data_.addr());
+    return ret;
   }
-
-  inline T_OpDerefRet* operator->() {
-    return const_cast<T_OpDerefRet*>(std::as_const(*this).operator->());
+  
+  inline Tainted<T*, MC_Sbx> operator->() const {
+    return operator Tainted<T*, MC_Sbx>();
   }
 };
 

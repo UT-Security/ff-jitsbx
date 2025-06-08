@@ -16,6 +16,9 @@ namespace MC {
 
 namespace detail {
 
+#define if_constexpr_named(varName, ...)                              \
+  if constexpr (constexpr auto varName = __VA_ARGS__; varName)
+
 template<typename T, typename MC_Sbx>
 class Tainted;
 
@@ -95,7 +98,15 @@ public:
   Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
-  
+
+  template<typename T_Rhs>
+  void assign_raw_pointer(T_Rhs val) {
+    static_assert(std::is_pointer_v<T_Rhs>, "Must be a pointer");
+    static_assert(std::is_assignable_v<T&, T_Rhs>,
+                  "Should assign pointers of compatible types.");
+    //TODO(abhishek): check that `val` is a pointer within the sandbox.
+    data = val;
+  }
 };
 
 template<typename T, typename MC_Sbx>
@@ -122,10 +133,37 @@ private:
   inline auto& get_sandbox_value_ref() noexcept { return data; }
   inline auto& get_sandbox_value_ref() const noexcept { return data; }
 
+  inline std::remove_cv_t<T> get_raw_value() const noexcept {
+    return data;
+  }
+
   TaintedVolatile() = default;
   TaintedVolatile(const TaintedVolatile<T, MC_Sbx>& p) = default;
 
 public:
+
+  template<typename T_RhsRef>
+  inline TaintedVolatile<T, MC_Sbx>& operator=(T_RhsRef&& val) {
+    using T_Rhs = std::remove_reference_t<T_RhsRef>;
+    //using T_Rhs_El = std::remove_all_extents_t<T_Rhs>;
+
+    if_constexpr_named(cond1, std::is_same_v<std::remove_const_t<T_Rhs>, std::nullptr_t>) {
+      static_assert(std::is_pointer_v<T>,
+                    "Null pointer can only be assigned to pointers");
+      data = nullptr;
+    }
+    else if_constexpr_named(cond2,
+                            std::is_fundamental_v<T> || std::is_enum_v<T>) {
+      get_sandbox_value_ref() = val;
+    }
+    else {
+      // TODO: fail here !
+      auto unknownCase = !(cond1 || cond2);
+      static_assert(unknownCase, "Unsupported assignment");
+    }
+
+    return *this;
+  }
   
 };
 

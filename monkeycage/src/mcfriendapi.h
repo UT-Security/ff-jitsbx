@@ -15,6 +15,8 @@
 #include "monkeycage/Principals.h"
 #include "monkeycage/Sandbox.h"
 
+#include "js/PropertyDescriptor.h"
+
 namespace js {
 inline JSFunction* DefineFunctionWithReserved(MCContext* cx, JSObject* obj,
                                        const char* name,
@@ -39,7 +41,43 @@ inline JSFunction* NewFunctionByIdWithReserved(MCContext* cx,
   return NewFunctionByIdWithReserved(cx->cx_, native.UNSAFE_get(), nargs, flags,
                                      id);
 }
+
+inline bool GetRealmOriginalEval(MCContext* cx, JS::MutableHandleObject eval) {
+  return GetRealmOriginalEval(cx->cx_, eval);
+}
+
+inline bool GetObjectProto(MCContext* cx, JS::HandleObject obj,
+                           JS::MutableHandleObject proto) {
+  return GetObjectProto(cx->cx_, obj, proto);
+}
+
+inline bool GetPropertyKeys(MCContext* cx, JS::HandleObject obj,
+                                   unsigned flags,
+                                   JS::MutableHandleIdVector props) {
+  return GetPropertyKeys(cx->cx_, obj, flags, props);
+}
+
+inline bool AppendUnique(MCContext* cx, JS::MutableHandleIdVector base,
+                                JS::HandleIdVector others) {
+  return AppendUnique(cx->cx_, base, others);
+}
 }  // namespace js
+
+inline bool JS_CopyOwnPropertiesAndPrivateFields(
+    MCContext* cx, JS::HandleObject target, JS::HandleObject obj) {
+  return JS_CopyOwnPropertiesAndPrivateFields(cx->cx_, target, obj);
+}
+
+inline bool JS_WrapPropertyDescriptor(
+    MCContext* cx, JS::MutableHandle<JS::PropertyDescriptor> desc) {
+  return JS_WrapPropertyDescriptor(cx->cx_, desc);
+}
+
+inline bool JS_WrapPropertyDescriptor(
+    MCContext* cx,
+    JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) {
+  return JS_WrapPropertyDescriptor(cx->cx_, desc);
+}
 
 namespace mc {
 
@@ -97,6 +135,26 @@ inline void SetScriptEnvironmentPreparer(
   return SetScriptEnvironmentPreparer(cx->cx_, preparer);
 }
 
+inline bool GetElementsWithAdder(MCContext* cx, JS::HandleObject obj,
+                                 JS::HandleObject receiver, uint32_t begin,
+                                 uint32_t end, js::ElementAdder* adder) {
+  return GetElementsWithAdder(cx->cx_, obj, receiver, begin, end, adder);
+}
+
+inline bool ForwardToNative(MCContext* cx, MC::SandboxCallback<JSNative> native,
+                                   const JS::CallArgs& args) {
+  return ForwardToNative(cx->cx_, native.UNSAFE_get(), args);
+}
+
+inline bool SetPropertyIgnoringNamedGetter(
+    MCContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v,
+    JS::HandleValue receiver,
+    JS::Handle<mozilla::Maybe<JS::PropertyDescriptor>> ownDesc,
+    JS::ObjectOpResult& result) {
+  return SetPropertyIgnoringNamedGetter(cx->cx_, obj, id, v, receiver, ownDesc,
+                                        result);
+}
+
 inline void SetPreserveWrapperCallbacks(
     MCContext* cx, MC::Sandbox::Callback<PreserveWrapperCallback> preserveWrapper,
     MC::Sandbox::Callback<HasReleasedWrapperCallback> hasReleasedWrapper) {
@@ -105,6 +163,10 @@ inline void SetPreserveWrapperCallbacks(
 
 inline bool IsObjectInContextCompartment(JSObject* obj, const MCContext* cx) {
   return IsObjectInContextCompartment(obj, cx->cx_);
+}
+
+inline bool ReportIsNotFunction(MCContext* cx, JS::HandleValue v) {
+  return ReportIsNotFunction(cx->cx_, v);
 }
 }  // namespace js
 
@@ -230,6 +292,18 @@ inline void TraceWeakMaps(mc::WeakMapTracer* trc) {
   return TraceWeakMaps(trc->inner_);
 }
 
+inline bool ShouldIgnorePropertyDefinition(MCContext* cx, JSProtoKey key,
+                                           jsid id) {
+  return ShouldIgnorePropertyDefinition(cx->cx_, key, id);
+}
+
+inline void AssertSameCompartment(MCContext* cx, JSObject* obj) {
+  return AssertSameCompartment(cx->cx_, obj);
+}
+
+inline void AssertSameCompartment(MCContext* cx, JS::HandleValue v) {
+  return AssertSameCompartment(cx->cx_, v);
+}
 }
 
 #else

@@ -21,17 +21,17 @@ class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
       : BaseDOMProxyHandler(nullptr, /* hasPrototype = */ true) {}
 #endif
   virtual bool getOwnPropDescriptor(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
       bool /* unused */,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const override;
-  virtual bool defineProperty(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                               JS::Handle<jsid> aId,
                               JS::Handle<JS::PropertyDescriptor> aDesc,
                               JS::ObjectOpResult& result) const override;
   virtual bool ownPropNames(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
       JS::MutableHandleVector<jsid> aProps) const override;
-  virtual bool delete_(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::Handle<jsid> aId,
                        JS::ObjectOpResult& aResult) const override;
 
@@ -39,16 +39,16 @@ class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
   // have static prototypes, so the version inherited from BaseDOMProxyHandler
   // will do the right thing.
 
-  virtual bool preventExtensions(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                  JS::ObjectOpResult& aResult) const override {
     return aResult.failCantPreventExtensions();
   }
-  virtual bool isExtensible(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                             bool* aIsExtensible) const override {
     *aIsExtensible = true;
     return true;
   }
-  virtual const char* className(JSContext* aCx,
+  virtual const char* className(MCContext* aCx,
                                 JS::Handle<JSObject*> aProxy) const override {
     return "WindowProperties";
   }

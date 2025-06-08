@@ -22,7 +22,7 @@ namespace mozilla::dom {
 const char ObservableArrayProxyHandler::family = 0;
 
 bool ObservableArrayProxyHandler::defineProperty(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::PropertyDescriptor> aDesc,
     JS::ObjectOpResult& aResult) const {
   if (aId.get() == s_length_id) {
@@ -40,11 +40,11 @@ bool ObservableArrayProxyHandler::defineProperty(
     }
     if (aDesc.hasValue()) {
       MC::Rooted<JSObject*> backingListObj(aCx);
-      if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+      if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
         return false;
       }
 
-      return SetLength(aCx, aProxy, backingListObj, aDesc.value(), aResult);
+      return SetLength(MC_UNSAFE(aCx), aProxy, backingListObj, aDesc.value(), aResult);
     }
     return aResult.succeed();
   }
@@ -64,11 +64,11 @@ bool ObservableArrayProxyHandler::defineProperty(
     }
     if (aDesc.hasValue()) {
       MC::Rooted<JSObject*> backingListObj(aCx);
-      if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+      if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
         return false;
       }
 
-      return SetIndexedValue(aCx, aProxy, backingListObj, index, aDesc.value(),
+      return SetIndexedValue(MC_UNSAFE(aCx), aProxy, backingListObj, index, aDesc.value(),
                              aResult);
     }
     return aResult.succeed();
@@ -78,7 +78,7 @@ bool ObservableArrayProxyHandler::defineProperty(
                                                 aResult);
 }
 
-bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
+bool ObservableArrayProxyHandler::delete_(MCContext* aCx,
                                           JS::Handle<JSObject*> aProxy,
                                           JS::Handle<JS::PropertyKey> aId,
                                           JS::ObjectOpResult& aResult) const {
@@ -88,12 +88,12 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
     MC::Rooted<JSObject*> backingListObj(aCx);
-    if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+    if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
       return false;
     }
 
-    uint32_t oldLen = 0;
-    if (!JS::GetArrayLength(aCx, backingListObj, &oldLen)) {
+    MC::SandboxStack<uint32_t> oldLen{0};
+    if (!JS::GetArrayLength(aCx, backingListObj, oldLen)) {
       return false;
     }
 
@@ -102,7 +102,7 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
     // is because `oldLen - 1` could be `-1` if the backing list is empty, but
     // `oldLen` is `uint32_t` in practice. See also
     // https://github.com/whatwg/webidl/issues/1049.
-    if (oldLen != index + 1) {
+    if (oldLen->UNSAFE_unverified() != index + 1) {
       return aResult.failBadIndex();
     }
 
@@ -111,7 +111,7 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
       return false;
     }
 
-    if (!OnDeleteItem(aCx, aProxy, value, index)) {
+    if (!OnDeleteItem(MC_UNSAFE(aCx), aProxy, value, index)) {
       return false;
     }
 
@@ -124,13 +124,13 @@ bool ObservableArrayProxyHandler::delete_(JSContext* aCx,
   return ForwardingProxyHandler::delete_(aCx, aProxy, aId, aResult);
 }
 
-bool ObservableArrayProxyHandler::get(JSContext* aCx,
+bool ObservableArrayProxyHandler::get(MCContext* aCx,
                                       JS::Handle<JSObject*> aProxy,
                                       JS::Handle<JS::Value> aReceiver,
                                       JS::Handle<JS::PropertyKey> aId,
                                       JS::MutableHandle<JS::Value> aVp) const {
   MC::Rooted<JSObject*> backingListObj(aCx);
-  if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+  if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
     return false;
   }
 
@@ -140,7 +140,7 @@ bool ObservableArrayProxyHandler::get(JSContext* aCx,
   }
 
   if (aId.get() == s_length_id) {
-    return ToJSValue(aCx, length, aVp);
+    return ToJSValue(MC_UNSAFE(aCx), length, aVp);
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
@@ -154,28 +154,28 @@ bool ObservableArrayProxyHandler::get(JSContext* aCx,
 }
 
 bool ObservableArrayProxyHandler::getOwnPropertyDescriptor(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const {
   MC::Rooted<JSObject*> backingListObj(aCx);
-  if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+  if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
     return false;
   }
 
-  uint32_t length = 0;
-  if (!JS::GetArrayLength(aCx, backingListObj, &length)) {
+  MC::SandboxStack<uint32_t> length{0};
+  if (!JS::GetArrayLength(aCx, backingListObj, length)) {
     return false;
   }
 
   if (aId.get() == s_length_id) {
-    MC::Rooted<JS::Value> value(aCx, JS::NumberValue(length));
+    MC::Rooted<JS::Value> value(aCx, JS::NumberValue(length->UNSAFE_unverified()));
     aDesc.set(Some(JS::PropertyDescriptor::Data(
         value, {JS::PropertyAttribute::Writable})));
     return true;
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
-    if (index >= length) {
+    if (index >= length->UNSAFE_unverified()) {
       return true;
     }
 
@@ -194,7 +194,7 @@ bool ObservableArrayProxyHandler::getOwnPropertyDescriptor(
                                                           aDesc);
 }
 
-bool ObservableArrayProxyHandler::has(JSContext* aCx,
+bool ObservableArrayProxyHandler::has(MCContext* aCx,
                                       JS::Handle<JSObject*> aProxy,
                                       JS::Handle<JS::PropertyKey> aId,
                                       bool* aBp) const {
@@ -205,7 +205,7 @@ bool ObservableArrayProxyHandler::has(JSContext* aCx,
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
     uint32_t length = 0;
-    if (!GetBackingListLength(aCx, aProxy, &length)) {
+    if (!GetBackingListLength(MC_UNSAFE(aCx), aProxy, &length)) {
       return false;
     }
 
@@ -216,10 +216,10 @@ bool ObservableArrayProxyHandler::has(JSContext* aCx,
 }
 
 bool ObservableArrayProxyHandler::ownPropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
   uint32_t length = 0;
-  if (!GetBackingListLength(aCx, aProxy, &length)) {
+  if (!GetBackingListLength(MC_UNSAFE(aCx), aProxy, &length)) {
     return false;
   }
 
@@ -232,12 +232,12 @@ bool ObservableArrayProxyHandler::ownPropertyKeys(
 }
 
 bool ObservableArrayProxyHandler::preventExtensions(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::ObjectOpResult& aResult) const {
   return aResult.failCantPreventExtensions();
 }
 
-bool ObservableArrayProxyHandler::set(JSContext* aCx,
+bool ObservableArrayProxyHandler::set(MCContext* aCx,
                                       JS::Handle<JSObject*> aProxy,
                                       JS::Handle<JS::PropertyKey> aId,
                                       JS::Handle<JS::Value> aV,
@@ -245,20 +245,20 @@ bool ObservableArrayProxyHandler::set(JSContext* aCx,
                                       JS::ObjectOpResult& aResult) const {
   if (aId.get() == s_length_id) {
     MC::Rooted<JSObject*> backingListObj(aCx);
-    if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+    if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
       return false;
     }
 
-    return SetLength(aCx, aProxy, backingListObj, aV, aResult);
+    return SetLength(MC_UNSAFE(aCx), aProxy, backingListObj, aV, aResult);
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
     MC::Rooted<JSObject*> backingListObj(aCx);
-    if (!GetBackingListObject(aCx, aProxy, &backingListObj)) {
+    if (!GetBackingListObject(MC_UNSAFE(aCx), aProxy, &backingListObj)) {
       return false;
     }
 
-    return SetIndexedValue(aCx, aProxy, backingListObj, index, aV, aResult);
+    return SetIndexedValue(MC_UNSAFE(aCx), aProxy, backingListObj, index, aV, aResult);
   }
   return ForwardingProxyHandler::set(aCx, aProxy, aId, aV, aReceiver, aResult);
 }

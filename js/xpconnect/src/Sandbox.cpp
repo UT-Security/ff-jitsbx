@@ -10,17 +10,17 @@
 
 #include "AccessCheck.h"
 #include "jsfriendapi.h"
-#include "js/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
-#include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
+#include "monkeycage/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::IsCallable
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
-#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
 #include "monkeycage/Sandbox.h"
-#include "js/SourceText.h"
+#include "monkeycage/SourceText.h"
 #include "js/StructuredClone.h"
 #include "monkeycage/Value.h"
 #include "nsContentUtils.h"
@@ -521,7 +521,7 @@ static const JSClass* SandboxClass() {
       nullptr,                         // addProperty
       nullptr,                         // delProperty
       nullptr,                         // enumerate
-      MC::Sandbox::Address(JS_NewEnumerateStandardClasses),  // newEnumerate
+      MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)),  // newEnumerate
       MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),         // resolve
       MC::Sandbox::Address(JS_MayResolveStandardClass),      // mayResolve
       MC::Sandbox::RegisterCallback(sandbox_finalize).UNSAFE_get(),   // finalize
@@ -589,27 +589,27 @@ class SandboxProxyHandler : public mc::Wrapper {
 #endif
 
   virtual bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const override;
 
   // We just forward the high-level methods to the BaseProxyHandler versions
   // which implement them in terms of lower-level methods.
-  virtual bool has(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool has(MCContext* cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<jsid> id, bool* bp) const override;
-  virtual bool get(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool get(MCContext* cx, JS::Handle<JSObject*> proxy,
                    JS::HandleValue receiver, JS::Handle<jsid> id,
                    JS::MutableHandle<JS::Value> vp) const override;
-  virtual bool set(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool set(MCContext* cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                    JS::Handle<JS::Value> receiver,
                    JS::ObjectOpResult& result) const override;
 
-  virtual bool hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id, bool* bp) const override;
   virtual bool getOwnEnumerablePropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleIdVector props) const override;
-  virtual bool enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool enumerate(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::MutableHandleIdVector props) const override;
 
  private:
@@ -649,7 +649,7 @@ class SandboxCallableProxyHandler : public mc::Wrapper {
   constexpr SandboxCallableProxyHandler() : mc::Wrapper(0) {}
 #endif
 
-  virtual bool call(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool call(MCContext* cx, JS::Handle<JSObject*> proxy,
                     const JS::CallArgs& args) const override;
 
   static const size_t SandboxProxySlot = 0;
@@ -664,7 +664,7 @@ static const SandboxCallableProxyHandler* sandboxCallableProxyHandler() {
   return &inner_;
 }
 
-bool SandboxCallableProxyHandler::call(JSContext* cx,
+bool SandboxCallableProxyHandler::call(MCContext* cx,
                                        JS::Handle<JSObject*> proxy,
                                        const JS::CallArgs& args) const {
   // We forward the call to our underlying callable.
@@ -712,7 +712,7 @@ bool SandboxCallableProxyHandler::call(JSContext* cx,
   MC::RootedValue thisVal(cx, args.thisv());
   if (isXray) {
     MC::RootedObject thisObject(cx);
-    if (!args.computeThis(cx, &thisObject)) {
+    if (!args.computeThis(MC_UNSAFE(cx), &thisObject)) {
       return false;
     }
     thisVal.setObject(*thisObject);
@@ -827,9 +827,9 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
 }
 
 bool SandboxProxyHandler::getOwnPropertyDescriptor(
-    JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     MutableHandle<Maybe<PropertyDescriptor>> desc) const {
-  return getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ true, desc);
+  return getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ true, desc);
 }
 
 /*
@@ -837,29 +837,29 @@ bool SandboxProxyHandler::getOwnPropertyDescriptor(
  * in terms of the fundamental traps.
  */
 
-bool SandboxProxyHandler::has(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool SandboxProxyHandler::has(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, bool* bp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
   MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
-  if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
+  if (!getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
 
   *bp = desc.isSome();
   return true;
 }
-bool SandboxProxyHandler::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool SandboxProxyHandler::hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
                                  JS::Handle<jsid> id, bool* bp) const {
   return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
 }
 
-bool SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool SandboxProxyHandler::get(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<JS::Value> receiver,
                               JS::Handle<jsid> id,
                               JS::MutableHandle<Value> vp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
   MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
-  if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
+  if (!getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
 
@@ -884,10 +884,10 @@ bool SandboxProxyHandler::get(JSContext* cx, JS::Handle<JSObject*> proxy,
     return true;
   }
 
-  return Call(cx, receiver, getter, HandleValueArray::empty(), vp);
+  return Call(MC_UNSAFE(cx), receiver, getter, HandleValueArray::empty(), vp);
 }
 
-bool SandboxProxyHandler::set(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool SandboxProxyHandler::set(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, JS::Handle<Value> v,
                               JS::Handle<Value> receiver,
                               JS::ObjectOpResult& result) const {
@@ -895,12 +895,12 @@ bool SandboxProxyHandler::set(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool SandboxProxyHandler::getOwnEnumerablePropertyKeys(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     MutableHandleIdVector props) const {
   return BaseProxyHandler::getOwnEnumerablePropertyKeys(cx, proxy, props);
 }
 
-bool SandboxProxyHandler::enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool SandboxProxyHandler::enumerate(MCContext* cx, JS::Handle<JSObject*> proxy,
                                     JS::MutableHandleIdVector props) const {
   return BaseProxyHandler::enumerate(cx, proxy, props);
 }
@@ -2206,7 +2206,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
 
   // Transitively apply Xray waivers if |sb| was waived.
   if (waiveXray) {
-    ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
+    ok = xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), &v);
   } else {
     ok = JS_WrapValue(cx, &v);
   }

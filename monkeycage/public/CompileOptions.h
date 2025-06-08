@@ -11,144 +11,104 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Tainted.h"
+
 namespace MC {
-  
-class MOZ_STACK_CLASS CompileOptions final {
-public:
-  JS::CompileOptions inner_;
-  
-  // Default options determined using the JSContext.
-  explicit CompileOptions(MCContext* cx) : inner_(cx->cx_) {}
 
-  CompileOptions& setFile(const char* f) {
-    inner_.setFile(f);
+namespace detail {
+
+template <typename MC_Sbx>
+class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
+ private:
+  JS::CompileOptions data;
+
+ public:
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setFile(const char* f) {
+    data.setFile(f);
     return *this;
   }
 
-  CompileOptions& setLine(unsigned l) {
-    inner_.setLine(l);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setLine(unsigned l) {
+    data.setLine(l);
     return *this;
   }
 
-  CompileOptions& setFileAndLine(const char* f, unsigned l) {
-    inner_.setFileAndLine(f, l);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setFileAndLine(const char* f,
+                                                              unsigned l) {
+    data.setFileAndLine(f, l);
     return *this;
   }
 
-  CompileOptions& setSourceMapURL(const char16_t* s) {
-    inner_.setSourceMapURL(s);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setSourceMapURL(
+      const char16_t* s) {
+    data.setSourceMapURL(s);
     return *this;
   }
 
-  CompileOptions& setMutedErrors(bool mute) {
-    inner_.setMutedErrors(mute);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setMutedErrors(bool mute) {
+    data.setMutedErrors(mute);
     return *this;
   }
 
-  CompileOptions& setColumn(unsigned c) {
-    inner_.setColumn(c);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setColumn(unsigned c) {
+    data.setColumn(c);
     return *this;
   }
 
-  CompileOptions& setScriptSourceOffset(unsigned o) {
-    inner_.setScriptSourceOffset(o);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setScriptSourceOffset(
+      unsigned o) {
+    data.setScriptSourceOffset(o);
     return *this;
   }
 
-  CompileOptions& setIsRunOnce(bool once) {
-    inner_.setIsRunOnce(once);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setIsRunOnce(bool once) {
+    data.setIsRunOnce(once);
     return *this;
   }
 
-  CompileOptions& setNoScriptRval(bool nsr) {
-    inner_.setNoScriptRval(nsr);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setNoScriptRval(bool nsr) {
+    data.setNoScriptRval(nsr);
     return *this;
   }
 
-  CompileOptions& setSkipFilenameValidation(bool b) {
-    inner_.setSkipFilenameValidation(b);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setSkipFilenameValidation(bool b) {
+    data.setSkipFilenameValidation(b);
     return *this;
   }
 
-  CompileOptions& setSelfHostingMode(bool shm) {
-    inner_.setSelfHostingMode(shm);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setSelfHostingMode(bool shm) {
+    data.setSelfHostingMode(shm);
     return *this;
   }
 
-  CompileOptions& setSourceIsLazy(bool l) {
-    inner_.setSourceIsLazy(l);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setSourceIsLazy(bool l) {
+    data.setSourceIsLazy(l);
     return *this;
   }
 
-  CompileOptions& setNonSyntacticScope(bool n) {
-    inner_.setNonSyntacticScope(n);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setNonSyntacticScope(bool n) {
+    data.setNonSyntacticScope(n);
     return *this;
   }
 
-  CompileOptions& setIntroductionType(const char* t) {
-    inner_.setIntroductionType(t);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setIntroductionType(const char* t) {
+    data.setIntroductionType(t);
     return *this;
   }
 
-  CompileOptions& setDeferDebugMetadata(bool v = true) {
-    inner_.setDeferDebugMetadata(v);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setDeferDebugMetadata(bool v = true) {
+    data.setDeferDebugMetadata(v);
     return *this;
   }
 
-  CompileOptions& setHideScriptFromDebugger(bool v = true) {
-    inner_.setHideScriptFromDebugger(v);
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setHideScriptFromDebugger(bool v = true) {
+    data.setHideScriptFromDebugger(v);
     return *this;
   }
-
-  CompileOptions& setIntroductionInfo(const char* introducerFn,
-                                      const char* intro, unsigned line,
-                                      uint32_t offset) {
-    inner_.setIntroductionInfo(introducerFn, intro, line, offset);
-    return *this;
-  }
-
-  // Set introduction information according to any currently executing script.
-  CompileOptions& setIntroductionInfoToCaller(
-      MCContext* cx, const char* introductionType,
-      JS::MutableHandle<JSScript*> introductionScript) {
-    inner_.setIntroductionInfoToCaller(cx->cx_, introductionType, introductionScript);
-    return *this;
-  }
-
-  CompileOptions& setDiscardSource() {
-    inner_.setDiscardSource();
-    return *this;
-  }
-
-  CompileOptions& setForceFullParse() {
-    inner_.setForceFullParse();
-    return *this;
-  }
-
-  CompileOptions& setEagerDelazificationStrategy(
-      JS::DelazificationOption strategy) {
-    inner_.setEagerDelazificationStrategy(strategy);
-    return *this;
-  }
-
-  CompileOptions& setForceStrictMode() {
-    inner_.setForceStrictMode();
-    return *this;
-  }
-
-  CompileOptions& setModule() {
-    inner_.setModule();
-    return *this;
-  }
-
-  CompileOptions(const CompileOptions& rhs) = delete;
-  CompileOptions& operator=(const CompileOptions& rhs) = delete;
 };
+
+}  // namespace detail
 }  // namespace MC
-#else
-namespace MC {
-using CompileOptions = JS::CompileOptions;
-}
 #endif
 
 #endif

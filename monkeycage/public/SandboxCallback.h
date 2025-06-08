@@ -41,16 +41,21 @@ class SandboxCallback<T_Ret(*)(T_Args...)> {
 class SandboxDylib;
 
 template <typename T>
-class SandboxCallback {
-  T fn_;
+class SandboxCallback;
+
+template <typename T_Ret, typename... T_Args>
+class SandboxCallback<T_Ret(*)(T_Args...)> {
+  using T_Cb = T_Ret (*)(T_Args...);
+  
+  T_Cb fn_;
 
   friend class SandboxDylib;
-  explicit SandboxCallback(T fn) : fn_(fn) {}
+  explicit SandboxCallback(T_Cb fn) : fn_(fn) {}
 
  public:
   SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
-  T UNSAFE_get() const { return fn_; }
+  T_Cb UNSAFE_get() const { return fn_; }
 
   operator bool() const { return fn_ == nullptr ? false : true; }
 

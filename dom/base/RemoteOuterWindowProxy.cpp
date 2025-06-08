@@ -40,14 +40,14 @@ class RemoteOuterWindowProxy
 
   // Standard internal methods
   bool getOwnPropertyDescriptor(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const final;
-  bool ownPropertyKeys(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool ownPropertyKeys(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::MutableHandleVector<jsid> aProps) const final;
 
   // SpiderMonkey extensions
   bool getOwnEnumerablePropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleVector<jsid> props) const final;
 
   void NoteChildren(JSObject* aProxy,
@@ -102,19 +102,19 @@ static bool WrapResult(JSContext* aCx, JS::Handle<JSObject*> aProxy,
 }
 
 bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const {
   BrowsingContext* bc = GetBrowsingContext(aProxy);
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
     Span<RefPtr<BrowsingContext>> children = bc->Children();
     if (index < children.Length()) {
-      return WrapResult(aCx, aProxy, children[index],
+      return WrapResult(MC_UNSAFE(aCx), aProxy, children[index],
                         {JS::PropertyAttribute::Configurable,
                          JS::PropertyAttribute::Enumerable},
                         aDesc);
     }
-    return ReportCrossOriginDenial(aCx, aId, "access"_ns);
+    return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "access"_ns);
   }
 
   bool ok = CrossOriginGetOwnPropertyHelper(aCx, aProxy, aId, aDesc);
@@ -130,19 +130,19 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
 
   if (aId.isString()) {
     nsAutoJSString str;
-    if (!str.init(aCx, aId.toString())) {
+    if (!str.init(MC_UNSAFE(aCx), aId.toString())) {
       return false;
     }
 
     for (BrowsingContext* child : bc->Children()) {
       if (child->NameEquals(str)) {
-        return WrapResult(aCx, aProxy, child,
+        return WrapResult(MC_UNSAFE(aCx), aProxy, child,
                           {JS::PropertyAttribute::Configurable}, aDesc);
       }
     }
   }
 
-  return CrossOriginPropertyFallback(aCx, aProxy, aId, aDesc);
+  return CrossOriginPropertyFallback(MC_UNSAFE(aCx), aProxy, aId, aDesc);
 }
 
 bool AppendIndexedPropertyNames(JSContext* aCx, BrowsingContext* aContext,
@@ -159,13 +159,13 @@ bool AppendIndexedPropertyNames(JSContext* aCx, BrowsingContext* aContext,
 }
 
 bool RemoteOuterWindowProxy::ownPropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
   BrowsingContext* bc = GetBrowsingContext(aProxy);
 
   // https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-ownpropertykeys:crossoriginownpropertykeys-(-o-)
   // step 3 to 5
-  if (!AppendIndexedPropertyNames(aCx, bc, aProps)) {
+  if (!AppendIndexedPropertyNames(MC_UNSAFE(aCx), bc, aProps)) {
     return false;
   }
 
@@ -175,9 +175,9 @@ bool RemoteOuterWindowProxy::ownPropertyKeys(
 }
 
 bool RemoteOuterWindowProxy::getOwnEnumerablePropertyKeys(
-    JSContext* aCx, JS::Handle<JSObject*> aProxy,
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
-  return AppendIndexedPropertyNames(aCx, GetBrowsingContext(aProxy), aProps);
+  return AppendIndexedPropertyNames(MC_UNSAFE(aCx), GetBrowsingContext(aProxy), aProps);
 }
 
 }  // namespace mozilla::dom

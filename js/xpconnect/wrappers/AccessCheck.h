@@ -7,6 +7,7 @@
 #ifndef __AccessCheck_h__
 #define __AccessCheck_h__
 
+#include "monkeycage/Context.h"
 #include "js/Id.h"
 #include "js/Wrapper.h"
 #include "nsString.h"
@@ -28,14 +29,14 @@ class AccessCheck {
   static bool isChrome(JS::Compartment* compartment);
   static bool isChrome(JS::Realm* realm);
   static bool isChrome(JSObject* obj);
-  static bool checkPassToPrivilegedCode(JSContext* cx, JS::HandleObject wrapper,
+  static bool checkPassToPrivilegedCode(MCContext* cx, JS::HandleObject wrapper,
                                         JS::HandleValue value);
-  static bool checkPassToPrivilegedCode(JSContext* cx, JS::HandleObject wrapper,
+  static bool checkPassToPrivilegedCode(MCContext* cx, JS::HandleObject wrapper,
                                         const JS::CallArgs& args);
   // Called to report the correct sort of exception when our policy denies and
   // should throw.  The accessType argument should be one of "access",
   // "define", "delete", depending on which operation is being denied.
-  static void reportCrossOriginDenial(JSContext* cx, JS::HandleId id,
+  static void reportCrossOriginDenial(MCContext* cx, JS::HandleId id,
                                       const nsACString& accessType);
 };
 
@@ -48,7 +49,7 @@ class AccessCheck {
 bool IsCrossOriginAccessibleObject(JSObject* obj);
 
 struct Policy {
-  static bool checkCall(JSContext* cx, JS::HandleObject wrapper,
+  static bool checkCall(MCContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args) {
     MOZ_CRASH("As a rule, filtering wrappers are non-callable");
   }
@@ -57,15 +58,15 @@ struct Policy {
 // This policy allows no interaction with the underlying callable. Everything
 // throws.
 struct Opaque : public Policy {
-  static bool check(JSContext* cx, JSObject* wrapper, jsid id,
+  static bool check(MCContext* cx, JSObject* wrapper, jsid id,
                     js::Wrapper::Action act) {
     return false;
   }
-  static bool deny(JSContext* cx, js::Wrapper::Action act, JS::HandleId id,
+  static bool deny(MCContext* cx, js::Wrapper::Action act, JS::HandleId id,
                    bool mayThrow) {
     return false;
   }
-  static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test,
+  static bool allowNativeCall(MCContext* cx, JS::IsAcceptableThis test,
                               JS::NativeImpl impl) {
     return false;
   }
@@ -73,19 +74,19 @@ struct Opaque : public Policy {
 
 // Like the above, but allows CALL.
 struct OpaqueWithCall : public Policy {
-  static bool check(JSContext* cx, JSObject* wrapper, jsid id,
+  static bool check(MCContext* cx, JSObject* wrapper, jsid id,
                     js::Wrapper::Action act) {
     return act == js::Wrapper::CALL;
   }
-  static bool deny(JSContext* cx, js::Wrapper::Action act, JS::HandleId id,
+  static bool deny(MCContext* cx, js::Wrapper::Action act, JS::HandleId id,
                    bool mayThrow) {
     return false;
   }
-  static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test,
+  static bool allowNativeCall(MCContext* cx, JS::IsAcceptableThis test,
                               JS::NativeImpl impl) {
     return false;
   }
-  static bool checkCall(JSContext* cx, JS::HandleObject wrapper,
+  static bool checkCall(MCContext* cx, JS::HandleObject wrapper,
                         const JS::CallArgs& args) {
     return AccessCheck::checkPassToPrivilegedCode(cx, wrapper, args);
   }
@@ -97,14 +98,14 @@ struct OpaqueWithCall : public Policy {
 // ENUMERATE, and GET_PROPERTY_DESCRIPTOR. This is done for backwards
 // compatibility. See bug 1397513.
 struct OpaqueWithSilentFailing : public Policy {
-  static bool check(JSContext* cx, JS::HandleObject wrapper, JS::HandleId id,
+  static bool check(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                     js::Wrapper::Action act) {
     return false;
   }
 
-  static bool deny(JSContext* cx, js::Wrapper::Action act, JS::HandleId id,
+  static bool deny(MCContext* cx, js::Wrapper::Action act, JS::HandleId id,
                    bool mayThrow);
-  static bool allowNativeCall(JSContext* cx, JS::IsAcceptableThis test,
+  static bool allowNativeCall(MCContext* cx, JS::IsAcceptableThis test,
                               JS::NativeImpl impl) {
     return false;
   }

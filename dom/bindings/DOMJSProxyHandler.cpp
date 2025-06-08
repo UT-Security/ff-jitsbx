@@ -14,7 +14,7 @@
 
 #include "mcapi.h"
 #include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
-#include "js/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
 #include "js/Object.h"              // JS::GetCompartment
 
 using namespace JS;
@@ -29,10 +29,11 @@ bool DefineStaticJSVals(MCContext* cx) {
 
 const char DOMProxyHandler::family = 0;
 
-JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx,
+JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx_,
                                           JS::Handle<JSObject*> proxy,
                                           JS::Handle<jsid> id) {
   using DOMProxyShadowsResult = JS::DOMProxyShadowsResult;
+  MCContext* cx = JS_SanitizeContext(cx_);
 
   MC::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
   JS::Value v = js::GetProxyPrivate(proxy);
@@ -191,27 +192,27 @@ JSObject* DOMProxyHandler::EnsureExpandoObject(JSContext* cx,
   return expando;
 }
 
-bool DOMProxyHandler::preventExtensions(JSContext* cx,
+bool DOMProxyHandler::preventExtensions(MCContext* cx,
                                         JS::Handle<JSObject*> proxy,
                                         JS::ObjectOpResult& result) const {
   // always extensible per WebIDL
   return result.failCantPreventExtensions();
 }
 
-bool DOMProxyHandler::isExtensible(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool DOMProxyHandler::isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
                                    bool* extensible) const {
   *extensible = true;
   return true;
 }
 
 bool BaseDOMProxyHandler::getOwnPropertyDescriptor(
-    JSContext* cx, Handle<JSObject*> proxy, Handle<jsid> id,
+    MCContext* cx, Handle<JSObject*> proxy, Handle<jsid> id,
     MutableHandle<Maybe<PropertyDescriptor>> desc) const {
   return getOwnPropDescriptor(cx, proxy, id, /* ignoreNamedProps = */ false,
                               desc);
 }
 
-bool DOMProxyHandler::defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool DOMProxyHandler::defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                                      JS::Handle<jsid> id,
                                      Handle<PropertyDescriptor> desc,
                                      JS::ObjectOpResult& result,
@@ -220,7 +221,7 @@ bool DOMProxyHandler::defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
     return result.succeed();
   }
 
-  MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(cx, proxy));
+  MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(MC_UNSAFE(cx), proxy));
   if (!expando) {
     return false;
   }
@@ -232,7 +233,7 @@ bool DOMProxyHandler::defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
   return true;
 }
 
-bool DOMProxyHandler::set(JSContext* cx, Handle<JSObject*> proxy,
+bool DOMProxyHandler::set(MCContext* cx, Handle<JSObject*> proxy,
                           Handle<jsid> id, Handle<JS::Value> v,
                           Handle<JS::Value> receiver,
                           ObjectOpResult& result) const {
@@ -248,7 +249,7 @@ bool DOMProxyHandler::set(JSContext* cx, Handle<JSObject*> proxy,
 
   // Make sure to ignore our named properties when checking for own
   // property descriptors for a set.
-  Rooted<Maybe<PropertyDescriptor>> ownDesc(cx);
+  MC::Rooted<Maybe<PropertyDescriptor>> ownDesc(cx);
   if (!getOwnPropDescriptor(cx, proxy, id, /* ignoreNamedProps = */ true,
                             &ownDesc)) {
     return false;
@@ -258,7 +259,7 @@ bool DOMProxyHandler::set(JSContext* cx, Handle<JSObject*> proxy,
                                             result);
 }
 
-bool DOMProxyHandler::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool DOMProxyHandler::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
                               JS::ObjectOpResult& result) const {
   MC::Rooted<JSObject*> expando(cx);
@@ -271,14 +272,14 @@ bool DOMProxyHandler::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool BaseDOMProxyHandler::ownPropertyKeys(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandleVector<jsid> props) const {
   return ownPropNames(cx, proxy,
                       JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS, props);
 }
 
 bool BaseDOMProxyHandler::getPrototypeIfOrdinary(
-    JSContext* cx, JS::Handle<JSObject*> proxy, bool* isOrdinary,
+    MCContext* cx, JS::Handle<JSObject*> proxy, MC::Tainted<bool*> isOrdinary,
     JS::MutableHandle<JSObject*> proto) const {
   *isOrdinary = true;
   proto.set(GetStaticPrototype(proxy));
@@ -286,12 +287,12 @@ bool BaseDOMProxyHandler::getPrototypeIfOrdinary(
 }
 
 bool BaseDOMProxyHandler::getOwnEnumerablePropertyKeys(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandleVector<jsid> props) const {
   return ownPropNames(cx, proxy, JSITER_OWNONLY, props);
 }
 
-bool DOMProxyHandler::setCustom(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool DOMProxyHandler::setCustom(MCContext* cx, JS::Handle<JSObject*> proxy,
                                 JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                                 bool* done) const {
   *done = false;

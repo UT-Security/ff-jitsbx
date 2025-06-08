@@ -7880,7 +7880,7 @@ def getWrapTemplateForType(
         else:
             tail = fill(
                 """
-                if (!${maybeWrap}(cx, $${jsvalHandle})) {
+                if (!${maybeWrap}(MC_UNSAFE(cx), $${jsvalHandle})) {
                   $*{exceptionCode}
                 }
                 $*{successCode}
@@ -8116,10 +8116,10 @@ def getWrapTemplateForType(
         if not descriptor.interface.isExternal():
             if descriptor.wrapperCache:
                 wrapMethod = "GetOrCreateDOMReflector"
-                wrapArgs = "cx, %s, ${jsvalHandle}" % result
+                wrapArgs = "MC_UNSAFE(cx), %s, ${jsvalHandle}" % result
             else:
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-                wrapArgs = "cx, ${obj}, %s, ${jsvalHandle}" % result
+                wrapArgs = "MC_UNSAFE(cx), ${obj}, %s, ${jsvalHandle}" % result
             if isConstructorRetval:
                 wrapArgs += ", desiredProto"
             wrap = "%s(%s)" % (wrapMethod, wrapArgs)
@@ -8131,7 +8131,7 @@ def getWrapTemplateForType(
                 getIID = "&NS_GET_IID(%s), " % descriptor.nativeType
             else:
                 getIID = ""
-            wrap = "WrapObject(cx, %s, %s${jsvalHandle})" % (result, getIID)
+            wrap = "WrapObject(MC_UNSAFE(cx), %s, %s${jsvalHandle})" % (result, getIID)
             failed = None
 
         wrappingCode += wrapAndSetPtr(wrap, failed)
@@ -8143,13 +8143,13 @@ def getWrapTemplateForType(
     if type.isDOMString() or type.isUSVString():
         if type.nullable():
             return (
-                wrapAndSetPtr("xpc::StringToJsval(cx, %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("xpc::StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "xpc::NonVoidStringToJsval(cx, %s, ${jsvalHandle})" % result
+                    "xpc::NonVoidStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8157,13 +8157,13 @@ def getWrapTemplateForType(
     if type.isByteString():
         if type.nullable():
             return (
-                wrapAndSetPtr("ByteStringToJsval(cx, %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("ByteStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "NonVoidByteStringToJsval(cx, %s, ${jsvalHandle})" % result
+                    "NonVoidByteStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8171,13 +8171,13 @@ def getWrapTemplateForType(
     if type.isUTF8String():
         if type.nullable():
             return (
-                wrapAndSetPtr("UTF8StringToJsval(cx, %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("UTF8StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "NonVoidUTF8StringToJsval(cx, %s, ${jsvalHandle})" % result
+                    "NonVoidUTF8StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8189,7 +8189,7 @@ def getWrapTemplateForType(
             resultLoc = result
         conversion = fill(
             """
-            if (!ToJSValue(cx, ${result}, $${jsvalHandle})) {
+            if (!ToJSValue(MC_UNSAFE(cx), ${result}, $${jsvalHandle})) {
               $*{exceptionCode}
             }
             $*{successCode}
@@ -8209,7 +8209,7 @@ def getWrapTemplateForType(
         # Callbacks can store null if we nuked the compartments their
         # objects lived in.
         wrapCode = setObjectOrNull(
-            "GetCallbackFromCallbackObject(cx, %(result)s)", wrapAsType=type
+            "GetCallbackFromCallbackObject(MC_UNSAFE(cx), %(result)s)", wrapAsType=type
         )
         if type.nullable():
             wrapCode = (
@@ -8288,11 +8288,11 @@ def getWrapTemplateForType(
         return (setObject("*%s.Obj()" % result, wrapAsType=type), False)
 
     if type.isUnion():
-        return (wrapAndSetPtr("%s.ToJSVal(cx, ${obj}, ${jsvalHandle})" % result), False)
+        return (wrapAndSetPtr("%s.ToJSVal(MC_UNSAFE(cx), ${obj}, ${jsvalHandle})" % result), False)
 
     if type.isDictionary():
         return (
-            wrapAndSetPtr("%s.ToObjectInternal(cx, ${jsvalHandle})" % result),
+            wrapAndSetPtr("%s.ToObjectInternal(MC_UNSAFE(cx), ${jsvalHandle})" % result),
             False,
         )
 
@@ -9387,7 +9387,7 @@ class CGPerSignatureCall(CGThing):
                 Maybe<AutoCEReaction> ceReaction;
                 DocGroup* docGroup = self->GetDocGroup();
                 if (docGroup) {
-                  ceReaction.emplace(docGroup->CustomElementReactionsStack(), cx);
+                  ceReaction.emplace(docGroup->CustomElementReactionsStack(), MC_UNSAFE(cx));
                 }
                 """
                     )
@@ -14397,7 +14397,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
                 """
                 $*{decls}
                 bool isSymbol;
-                if (!ConvertIdToString(cx, ${idName}, ${argName}, isSymbol)) {
+                if (!ConvertIdToString(MC_UNSAFE(cx), ${idName}, ${argName}, isSymbol)) {
                   return false;
                 }
                 if (!isSymbol) {
@@ -14419,7 +14419,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             $*{decls}
             MC::Rooted<JS::Value> nameVal(cx, ${value});
             if (!nameVal.isSymbol()) {
-              if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
+              if (!ConvertJSValueToString(MC_UNSAFE(cx), nameVal, eStringify, eStringify,
                                           ${argName})) {
                 return false;
               }
@@ -14735,7 +14735,7 @@ class CGCountMaybeMissingProperty(CGAbstractMethod):
 class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("bool", "ignoreNamedProps"),
@@ -14759,7 +14759,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             xrayDecl = dedent(
                 """
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-                MOZ_ASSERT(IsPlatformObjectSameOrigin(cx, proxy),
+                MOZ_ASSERT(IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy),
                            "getOwnPropertyDescriptor() and set() should have dealt");
                 MOZ_ASSERT(js::IsObjectInContextCompartment(proxy, cx),
                            "getOwnPropertyDescriptor() and set() should have dealt");
@@ -14827,7 +14827,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             computeCondition = dedent(
                 """
                 bool hasOnProto;
-                if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
                   return false;
                 }
                 callNamedGetter = !hasOnProto;
@@ -14901,7 +14901,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
         # The usual convention is to name the ObjectOpResult out-parameter
         # `result`, but that name is a bit overloaded around here.
         args = [
-            Argument("JSContext*", "cx_"),
+            Argument("MCContext*", "cx_"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::PropertyDescriptor>", "desc"),
@@ -14930,14 +14930,14 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(cx_, "${error_label}");
+                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = cx_;
+                    JSContext* cx = MC_UNSAFE(cx_);
                     """
                 )
             set += fill(
@@ -14982,14 +14982,14 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if error_label:
                 set += fill(
                     """
-                    BindingCallContext cx(cx_, "${error_label}");
+                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 set += dedent(
                     """
-                    JSContext* cx = cx_;
+                    JSContext* cx = MC_UNSAFE(cx_);
                     """
                 )
             if self.descriptor.hasLegacyUnforgeableMembers:
@@ -15014,7 +15014,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if self.descriptor.supportsNamedProperties():
                 set += fill(
                     """
-                    JSContext* cx = cx_;
+                    JSContext* cx = MC_UNSAFE(cx_);
                     bool found = false;
                     $*{presenceChecker}
 
@@ -15030,7 +15030,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if self.descriptor.isMaybeCrossOriginObject():
                 set += dedent(
                     """
-                    MOZ_ASSERT(IsPlatformObjectSameOrigin(cx_, proxy),
+                    MOZ_ASSERT(IsPlatformObjectSameOrigin(MC_UNSAFE(cx_), proxy),
                                "Why did the MaybeCrossOriginObject defineProperty override fail?");
                     MOZ_ASSERT(js::IsObjectInContextCompartment(proxy, cx_),
                                "Why did the MaybeCrossOriginObject defineProperty override fail?");
@@ -15118,7 +15118,7 @@ def getDeleterBody(descriptor, type, foundVar=None):
 class CGDeleteNamedProperty(CGAbstractStaticMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "xray"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
@@ -15134,7 +15134,7 @@ class CGDeleteNamedProperty(CGAbstractStaticMethod):
             MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(xray));
             MOZ_ASSERT(js::IsProxy(proxy));
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-            JSAutoRealm ar(cx, proxy);
+            MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
             bool deleteSucceeded = false;
             bool found = false;
             $*{namedBody}
@@ -15150,7 +15150,7 @@ class CGDeleteNamedProperty(CGAbstractStaticMethod):
 class CGDOMJSProxyHandler_delete(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::ObjectOpResult&", "opresult"),
@@ -15172,12 +15172,12 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             delete += dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-                  return ReportCrossOriginDenial(cx, id, "delete"_ns);
+                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+                  return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "delete"_ns);
                 }
 
                 // Safe to enter the Realm of proxy now.
-                JSAutoRealm ar(cx, proxy);
+                MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
                 JS_MarkCrossZoneId(cx, id);
                 """
             )
@@ -15225,7 +15225,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                     """
                     if (tryNamedDelete) {
                       bool hasOnProto;
-                      if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                      if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
                         return false;
                       }
                       tryNamedDelete = !hasOnProto;
@@ -15266,7 +15266,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
         descriptor,
     ):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("unsigned", "flags"),
             Argument("JS::MutableHandleVector<jsid>", "props"),
@@ -15281,14 +15281,14 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
             xrayDecl = dedent(
                 """
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
                   if (!(flags & JSITER_HIDDEN)) {
                     // There are no enumerable cross-origin props, so we're done.
                     return true;
                   }
 
                   MC::Rooted<JSObject*> holder(cx);
-                  if (!EnsureHolder(cx, proxy, &holder)) {
+                  if (!EnsureHolder(MC_UNSAFE(cx), proxy, &holder)) {
                     return false;
                   }
 
@@ -15296,7 +15296,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                     return false;
                   }
 
-                  return xpc::AppendCrossOriginWhitelistedPropNames(cx, props);
+                  return xpc::AppendCrossOriginWhitelistedPropNames(MC_UNSAFE(cx), props);
                 }
 
                 """
@@ -15343,7 +15343,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                 """
                 nsTArray<nsString> names;
                 UnwrapProxy(proxy)->GetSupportedNames(names${callerType});
-                if (!AppendNamedPropertyIds(cx, proxy, names, ${shadow}, props)) {
+                if (!AppendNamedPropertyIds(MC_UNSAFE(cx), proxy, names, ${shadow}, props)) {
                   return false;
                 }
                 """,
@@ -15376,7 +15376,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                 """
                 {  // Scope for accessing the expando.
                   // Safe to enter our compartment, because IsPlatformObjectSameOrigin tested true.
-                  JSAutoRealm ar(cx, proxy);
+                  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
                   $*{addExpandoProps}
                 }
                 for (auto& id : props) {
@@ -15406,7 +15406,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
 class CGDOMJSProxyHandler_hasOwn(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("bool*", "bp"),
@@ -15420,7 +15420,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             maybeCrossOrigin = dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
                   // Just hand this off to BaseProxyHandler to do the slow-path thing.
                   // The BaseProxyHandler code is OK with this happening without entering the
                   // compartment of "proxy", which is important to get the right answers.
@@ -15428,7 +15428,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                 }
 
                 // Now safe to enter the Realm of proxy and do the rest of the work there.
-                JSAutoRealm ar(cx, proxy);
+                MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
                 JS_MarkCrossZoneId(cx, id);
                 """
             )
@@ -15475,7 +15475,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
                 named = fill(
                     """
                     bool hasOnProto;
-                    if (!HasPropertyOnPrototype(cx, proxy, id, &hasOnProto)) {
+                    if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
                       return false;
                     }
                     if (!hasOnProto) {
@@ -15524,7 +15524,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
 class CGDOMJSProxyHandler_get(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<JS::Value>", "receiver"),
             Argument("JS::Handle<jsid>", "id"),
@@ -15563,7 +15563,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
         getOnPrototype = dedent(
             """
             bool foundOnPrototype;
-            if (!GetPropertyOnPrototype(cx, proxy, ${receiver}, id, &foundOnPrototype, vp)) {
+            if (!GetPropertyOnPrototype(MC_UNSAFE(cx), proxy, ${receiver}, id, &foundOnPrototype, vp)) {
               return false;
             }
             """
@@ -15579,15 +15579,15 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
                             "Should not have a XrayWrapper here");
 
-                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-                  return CrossOriginGet(cx, proxy, receiver, id, vp);
+                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+                  return CrossOriginGet(MC_UNSAFE(cx), proxy, receiver, id, vp);
                 }
 
                 $*{missingPropUseCounters}
                 { // Scope for the JSAutoRealm accessing expando and prototype.
-                  JSAutoRealm ar(cx, proxy);
+                  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
                   MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-                  if (!MaybeWrapValue(cx, &wrappedReceiver)) {
+                  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
                     return false;
                   }
                   JS_MarkCrossZoneId(cx, id);
@@ -15602,7 +15602,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                   }
                 }
 
-                return MaybeWrapValue(cx, vp);
+                return MaybeWrapValue(MC_UNSAFE(cx), vp);
                 """,
                 missingPropUseCounters=missingPropUseCountersForDescriptor(
                     self.descriptor
@@ -15689,7 +15689,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 class CGDOMJSProxyHandler_setCustom(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx_"),
+            Argument("MCContext*", "cx_"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::Value>", "v"),
@@ -15743,14 +15743,14 @@ class CGDOMJSProxyHandler_setCustom(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(cx_, "${error_label}");
+                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = cx_;
+                    JSContext* cx = MC_UNSAFE(cx_);
                     """
                 )
             return fill(
@@ -15776,14 +15776,14 @@ class CGDOMJSProxyHandler_setCustom(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(cx_, "${error_label}");
+                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = cx_;
+                    JSContext* cx = MC_UNSAFE(cx_);
                     """
                 )
             setIndexed = fill(
@@ -15811,7 +15811,7 @@ class CGDOMJSProxyHandler_setCustom(ClassMethod):
 class CGDOMJSProxyHandler_className(ClassMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
         ]
         ClassMethod.__init__(
@@ -15829,7 +15829,7 @@ class CGDOMJSProxyHandler_className(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             crossOrigin = dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
                   return "Object";
                 }
 
@@ -15910,7 +15910,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
         assert descriptor.supportsIndexedProperties()
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("uint32_t", "begin"),
             Argument("uint32_t", "end"),
@@ -15932,7 +15932,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
             "jsvalHandle": "&temp",
             "obj": "proxy",
             "successCode": (
-                "if (!adder->append(cx, temp)) return false;\n" "continue;\n"
+                "if (!adder->append(MC_UNSAFE(cx), temp)) return false;\n" "continue;\n"
             ),
         }
         get = CGProxyIndexedGetter(
@@ -15995,7 +15995,7 @@ class CGJSProxyHandler_getInstance(ClassMethod):
 class CGDOMJSProxyHandler_call(ClassMethod):
     def __init__(self):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("const JS::CallArgs&", "args"),
         ]
@@ -16007,7 +16007,7 @@ class CGDOMJSProxyHandler_call(ClassMethod):
     def getBody(self):
         return fill(
             """
-            return js::ForwardToNative(cx, ${legacyCaller}, args);
+            return js::ForwardToNative(MC_UNSAFE(cx), ${legacyCaller}, args);
             """,
             legacyCaller=LEGACYCALLER_HOOK_NAME,
         )
@@ -16068,7 +16068,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
         assert descriptor.isMaybeCrossOriginObject()
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::MutableHandle<Maybe<JS::PropertyDescriptor>>", "desc"),
@@ -16091,11 +16091,11 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
 
             // Step 1.
-            if (IsPlatformObjectSameOrigin(cx, proxy)) {
+            if (IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
               { // Scope so we can wrap our PropertyDescriptor back into
                 // the caller compartment.
                 // Enter the Realm of "proxy" so we can work with it.
-                JSAutoRealm ar(cx, proxy);
+                MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
 
                 JS_MarkCrossZoneId(cx, id);
 
@@ -16121,7 +16121,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
             }
 
             // And step 4.
-            return CrossOriginPropertyFallback(cx, proxy, id, desc);
+            return CrossOriginPropertyFallback(MC_UNSAFE(cx), proxy, id, desc);
             """
         )
 
@@ -16165,7 +16165,7 @@ class CGDOMJSProxyHandler_definePropertySameOrigin(ClassMethod):
         assert descriptor.isMaybeCrossOriginObject()
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::PropertyDescriptor>", "desc"),
@@ -16199,7 +16199,7 @@ class CGDOMJSProxyHandler_set(ClassMethod):
         assert descriptor.isMaybeCrossOriginObject()
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::Value>", "v"),
@@ -16214,19 +16214,19 @@ class CGDOMJSProxyHandler_set(ClassMethod):
     def getBody(self):
         return dedent(
             """
-            if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-              return CrossOriginSet(cx, proxy, id, v, receiver, result);
+            if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+              return CrossOriginSet(MC_UNSAFE(cx), proxy, id, v, receiver, result);
             }
 
             // Safe to enter the Realm of proxy now, since it's same-origin with us.
-            JSAutoRealm ar(cx, proxy);
+            MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
             MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-            if (!MaybeWrapValue(cx, &wrappedReceiver)) {
+            if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
               return false;
             }
 
             MC::Rooted<JS::Value> wrappedValue(cx, v);
-            if (!MaybeWrapValue(cx, &wrappedValue)) {
+            if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedValue)) {
               return false;
             }
 
@@ -18531,11 +18531,12 @@ class CGBindingRoot(CGThing):
             or descriptorHasObservableArrayTypes(d)
             for d in descriptors
         )
-        bindingDeclareHeaders["js/TypeDecls.h"] = not bindingDeclareHeaders["jsapi.h"]
-        bindingDeclareHeaders["js/RootingAPI.h"] = not bindingDeclareHeaders["jsapi.h"]
+        bindingDeclareHeaders["monkeycage/TypeDecls.h"] = not bindingDeclareHeaders["jsapi.h"]
+        bindingDeclareHeaders["monkeycage/RootingAPI.h"] = not bindingDeclareHeaders["jsapi.h"]
+        bindingDeclareHeaders["mcapi.h"] = True
 
         # JS::IsCallable
-        bindingDeclareHeaders["js/CallAndConstruct.h"] = True
+        bindingDeclareHeaders["monkeycage/CallAndConstruct.h"] = True
 
         def descriptorHasIteratorAlias(desc):
             def hasIteratorAlias(m):
@@ -18564,10 +18565,10 @@ class CGBindingRoot(CGThing):
         bindingHeaders["js/Object.h"] = True
 
         # JS::IsCallable, JS::Call, JS::Construct
-        bindingHeaders["js/CallAndConstruct.h"] = True
+        bindingHeaders["monkeycage/CallAndConstruct.h"] = True
 
         # JS_IsExceptionPending
-        bindingHeaders["js/Exception.h"] = True
+        bindingHeaders["monkeycage/Exception.h"] = True
 
         # JS::Map{Clear, Delete, Has, Get, Set}
         bindingHeaders["js/MapAndSet.h"] = True
@@ -18576,10 +18577,10 @@ class CGBindingRoot(CGThing):
         # JS_DefineUCProperty, JS_ForwardGetPropertyTo, JS_GetProperty,
         # JS_GetPropertyById, JS_HasPropertyById, JS_SetProperty,
         # JS_SetPropertyById
-        bindingHeaders["js/PropertyAndElement.h"] = True
+        bindingHeaders["monkeycage/PropertyAndElement.h"] = True
 
         # JS_GetOwnPropertyDescriptorById
-        bindingHeaders["js/PropertyDescriptor.h"] = True
+        bindingHeaders["monkeycage/PropertyDescriptor.h"] = True
 
         def descriptorDeprecated(desc):
             iface = desc.interface

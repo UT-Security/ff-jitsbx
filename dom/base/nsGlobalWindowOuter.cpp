@@ -76,15 +76,15 @@
 
 // Helper Classes
 #include "nsJSUtils.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/CallAndConstruct.h"    // JS::Call
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
 #include "js/friend/WindowProxy.h"  // js::IsWindowProxy, js::SetWindowProxy
 #include "js/PropertyAndElement.h"  // JS_DefineObject, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
-#include "js/RealmIterators.h"
+#include "monkeycage/RealmIterators.h"
 #include "monkeycage/Wrapper.h"
 #include "nsLayoutUtils.h"
 #include "nsReadableUtils.h"
@@ -378,14 +378,14 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * with cx.
    */
   bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const override;
 
   /*
    * Implementation of the same-origin case of
    * <https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-getownproperty>.
    */
-  bool definePropertySameOrigin(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool definePropertySameOrigin(MCContext* cx, JS::Handle<JSObject*> proxy,
                                 JS::Handle<jsid> id,
                                 JS::Handle<JS::PropertyDescriptor> desc,
                                 JS::ObjectOpResult& result) const override;
@@ -398,7 +398,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * "proxy" is the WindowProxy object involved.  It may not be same-compartment
    * with cx.
    */
-  bool ownPropertyKeys(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool ownPropertyKeys(MCContext* cx, JS::Handle<JSObject*> proxy,
                        JS::MutableHandleVector<jsid> props) const override;
   /**
    * Implementation of [[Delete]] as defined at
@@ -407,7 +407,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * "proxy" is the WindowProxy object involved.  It may not be same-compartment
    * with cx.
    */
-  bool delete_(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                JS::ObjectOpResult& result) const override;
 
   /**
@@ -426,7 +426,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * method, so we just want the "normal object" behavior.  We have to override
    * it, because js::Wrapper also overrides, with "not normal" behavior.
    */
-  bool has(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool has(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            bool* bp) const override;
 
   /**
@@ -441,7 +441,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    *
    * "vp" is the return value.  It will be same-compartment with "cx".
    */
-  bool get(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool get(MCContext* cx, JS::Handle<JSObject*> proxy,
            JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
            JS::MutableHandle<JS::Value> vp) const override;
 
@@ -457,7 +457,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * "receiver" is the receiver ("this") for the set.  It will be
    * same-compartment with "cx".
    */
-  bool set(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
            JS::ObjectOpResult& result) const override;
 
@@ -473,7 +473,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * "proxy" is the WindowProxy object involved.  It may not be same-compartment
    * with cx.
    */
-  bool hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
               bool* bp) const override;
 
   /**
@@ -487,13 +487,13 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * with cx.
    */
   bool getOwnEnumerablePropertyKeys(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleVector<jsid> props) const override;
 
   /**
    * Hook used by SpiderMonkey to implement Object.prototype.toString.
    */
-  const char* className(JSContext* cx,
+  const char* className(MCContext* cx,
                         JS::Handle<JSObject*> wrapper) const override;
 
   void finalize(JS::GCContext* gcx, JSObject* proxy) const override;
@@ -553,11 +553,11 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
       nsGlobalWindowInner* inner);
 };
 
-const char* nsOuterWindowProxy::className(JSContext* cx,
+const char* nsOuterWindowProxy::className(MCContext* cx,
                                           JS::Handle<JSObject*> proxy) const {
   MOZ_ASSERT(js::IsProxy(proxy));
 
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     return "Object";
   }
 
@@ -582,14 +582,14 @@ void nsOuterWindowProxy::finalize(JS::GCContext* gcx, JSObject* proxy) const {
 }
 
 bool nsOuterWindowProxy::getOwnPropertyDescriptor(
-    JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const {
   // First check for indexed access.  This is
   // https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-getownproperty
   // step 2, mostly.
   MC::Rooted<JS::Value> subframe(cx);
   bool found;
-  if (!GetSubframeWindow(cx, proxy, id, &subframe, found)) {
+  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id, &subframe, found)) {
     return false;
   }
   if (found) {
@@ -603,14 +603,14 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
     return true;
   }
 
-  bool isSameOrigin = IsPlatformObjectSameOrigin(cx, proxy);
+  bool isSameOrigin = IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy);
 
   // If we did not find a subframe, we could still have an indexed property
   // access.  In that case we should throw a SecurityError in the cross-origin
   // case.
   if (!isSameOrigin && IsArrayIndex(GetArrayIndexFromId(id))) {
     // Step 2.5.2.
-    return ReportCrossOriginDenial(cx, id, "access"_ns);
+    return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "access"_ns);
   }
 
   // Step 2.5.1 is handled via the forwarding to js::Wrapper; it saves us an
@@ -629,7 +629,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
       // When forwarding to js::Wrapper, we should just enter the Realm of proxy
       // for now.  That's what js::Wrapper expects, and since we're same-origin
       // anyway this is not changing any security behavior.
-      JSAutoRealm ar(cx, proxy);
+      MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
       JS_MarkCrossZoneId(cx, id);
       bool ok = mc::Wrapper::getOwnPropertyDescriptor(cx, proxy, id, desc);
       if (!ok) {
@@ -639,7 +639,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
 #if 0
       // See https://github.com/tc39/ecma262/issues/672 for more information.
       if (desc.isSome() &&
-          !IsNonConfigurableReadonlyPrimitiveGlobalProp(cx, id)) {
+          !IsNonConfigurableReadonlyPrimitiveGlobalProp(MC_UNSAFE(cx), id)) {
         (*desc).setConfigurable(true);
       }
 #endif
@@ -662,8 +662,8 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   // Non-spec step for the PDF viewer's window.print().  This comes before we
   // check for named subframes, because in the same-origin case print() would
   // shadow those.
-  if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PRINT)) {
-    if (!MaybeGetPDFJSPrintMethod(cx, proxy, desc)) {
+  if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_PRINT)) {
+    if (!MaybeGetPDFJSPrintMethod(MC_UNSAFE(cx), proxy, desc)) {
       return false;
     }
 
@@ -675,13 +675,13 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   // Step 6 -- check for named subframes.
   if (id.isString()) {
     nsAutoJSString name;
-    if (!name.init(cx, id.toString())) {
+    if (!name.init(MC_UNSAFE(cx), id.toString())) {
       return false;
     }
     nsGlobalWindowOuter* win = GetOuterWindow(proxy);
     if (RefPtr<BrowsingContext> childDOMWin = win->GetChildWindow(name)) {
       MC::Rooted<JS::Value> childValue(cx);
-      if (!ToJSValue(cx, WindowProxyHolder(childDOMWin), &childValue)) {
+      if (!ToJSValue(MC_UNSAFE(cx), WindowProxyHolder(childDOMWin), &childValue)) {
         return false;
       }
       desc.set(Some(JS::PropertyDescriptor::Data(
@@ -691,11 +691,11 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   }
 
   // And step 7.
-  return CrossOriginPropertyFallback(cx, proxy, id, desc);
+  return CrossOriginPropertyFallback(MC_UNSAFE(cx), proxy, id, desc);
 }
 
 bool nsOuterWindowProxy::definePropertySameOrigin(
-    JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult& result) const {
   if (IsArrayIndex(GetArrayIndexFromId(id))) {
     // Spec says to Reject whether this is a supported index or not,
@@ -770,20 +770,20 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
 }
 
 bool nsOuterWindowProxy::ownPropertyKeys(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandleVector<jsid> props) const {
   // Just our indexed stuff followed by our "normal" own property names.
   if (!AppendIndexedPropertyNames(proxy, props)) {
     return false;
   }
 
-  if (IsPlatformObjectSameOrigin(cx, proxy)) {
+  if (IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     // When forwarding to js::Wrapper, we should just enter the Realm of proxy
     // for now.  That's what js::Wrapper expects, and since we're same-origin
     // anyway this is not changing any security behavior.
     MC::RootedVector<jsid> innerProps(cx);
     {  // Scope for JSAutoRealm so we can mark the ids once we exit it
-      JSAutoRealm ar(cx, proxy);
+      MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
       if (!mc::Wrapper::ownPropertyKeys(cx, proxy, &innerProps)) {
         return false;
       }
@@ -797,7 +797,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
   // In the cross-origin case we purposefully exclude subframe names from the
   // list of property names we report here.
   MC::Rooted<JSObject*> holder(cx);
-  if (!EnsureHolder(cx, proxy, &holder)) {
+  if (!EnsureHolder(MC_UNSAFE(cx), proxy, &holder)) {
     return false;
   }
 
@@ -816,26 +816,26 @@ bool nsOuterWindowProxy::ownPropertyKeys(
   if (inner) {
     nsCOMPtr<nsIPrincipal> targetPrincipal = GetNoPDFJSPrincipal(inner);
     if (targetPrincipal &&
-        nsContentUtils::SubjectPrincipal(cx)->Equals(targetPrincipal)) {
+        nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx))->Equals(targetPrincipal)) {
       MC::RootedVector<jsid> printProp(cx);
-      if (!printProp.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PRINT)) ||
+      if (!printProp.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_PRINT)) ||
           !js::AppendUnique(cx, props, printProp)) {
         return false;
       }
     }
   }
 
-  return xpc::AppendCrossOriginWhitelistedPropNames(cx, props);
+  return xpc::AppendCrossOriginWhitelistedPropNames(MC_UNSAFE(cx), props);
 }
 
-bool nsOuterWindowProxy::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool nsOuterWindowProxy::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
                                  JS::Handle<jsid> id,
                                  JS::ObjectOpResult& result) const {
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-    return ReportCrossOriginDenial(cx, id, "delete"_ns);
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+    return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "delete"_ns);
   }
 
-  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
+  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
     // Fail (which means throw if strict, else return false).
     return result.failCantDeleteWindowElement();
   }
@@ -848,7 +848,7 @@ bool nsOuterWindowProxy::delete_(JSContext* cx, JS::Handle<JSObject*> proxy,
   // We're same-origin, so it should be safe to enter the Realm of "proxy".
   // Let's do that, just in case, to avoid cross-compartment issues in our
   // js::Wrapper caller..
-  JSAutoRealm ar(cx, proxy);
+  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return mc::Wrapper::delete_(cx, proxy, id, result);
 }
@@ -857,37 +857,37 @@ JSObject* nsOuterWindowProxy::getSameOriginPrototype(JSContext* cx) const {
   return Window_Binding::GetProtoObjectHandle(cx);
 }
 
-bool nsOuterWindowProxy::has(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool nsOuterWindowProxy::has(MCContext* cx, JS::Handle<JSObject*> proxy,
                              JS::Handle<jsid> id, bool* bp) const {
   // We could just directly forward this method to js::BaseProxyHandler, but
   // that involves reifying the actual property descriptor, which might be more
   // work than we have to do for has() on the Window.
 
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     // In the cross-origin case we only have own properties.  Just call hasOwn
     // directly.
     return hasOwn(cx, proxy, id, bp);
   }
 
-  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
+  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
     *bp = true;
     return true;
   }
 
   // Just to be safe in terms of compartment asserts, enter the Realm of
   // "proxy".  We're same-origin with it, so this should be safe.
-  JSAutoRealm ar(cx, proxy);
+  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return mc::Wrapper::has(cx, proxy, id, bp);
 }
 
-bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool nsOuterWindowProxy::hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
                                 JS::Handle<jsid> id, bool* bp) const {
   // We could just directly forward this method to js::BaseProxyHandler, but
   // that involves reifying the actual property descriptor, which might be more
   // work than we have to do for hasOwn() on the Window.
 
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     // Avoiding reifying the property descriptor here would require duplicating
     // a bunch of "is this property exposed cross-origin" logic, which is
     // probably not worth it.  Just forward this along to the base
@@ -902,34 +902,34 @@ bool nsOuterWindowProxy::hasOwn(JSContext* cx, JS::Handle<JSObject*> proxy,
     return mc::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
   }
 
-  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
+  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
     *bp = true;
     return true;
   }
 
   // Just to be safe in terms of compartment asserts, enter the Realm of
   // "proxy".  We're same-origin with it, so this should be safe.
-  JSAutoRealm ar(cx, proxy);
+  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
   JS_MarkCrossZoneId(cx, id);
   return mc::Wrapper::hasOwn(cx, proxy, id, bp);
 }
 
-bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
                              JS::Handle<JS::Value> receiver,
                              JS::Handle<jsid> id,
                              JS::MutableHandle<JS::Value> vp) const {
-  if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
+  if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
     vp.set(JS::ObjectValue(*proxy));
-    return MaybeWrapValue(cx, vp);
+    return MaybeWrapValue(MC_UNSAFE(cx), vp);
   }
 
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-    return CrossOriginGet(cx, proxy, receiver, id, vp);
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+    return CrossOriginGet(MC_UNSAFE(cx), proxy, receiver, id, vp);
   }
 
   bool found;
-  if (!GetSubframeWindow(cx, proxy, id, vp, found)) {
+  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id, vp, found)) {
     return false;
   }
 
@@ -944,12 +944,12 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
   {  // Scope for JSAutoRealm
     // Enter "proxy"'s Realm.  We're in the same-origin case, so this should be
     // safe.
-    JSAutoRealm ar(cx, proxy);
+    MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
 
     JS_MarkCrossZoneId(cx, id);
 
     MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-    if (!MaybeWrapValue(cx, &wrappedReceiver)) {
+    if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
       return false;
     }
 
@@ -960,15 +960,15 @@ bool nsOuterWindowProxy::get(JSContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   // Make sure our return value is in the caller compartment.
-  return MaybeWrapValue(cx, vp);
+  return MaybeWrapValue(MC_UNSAFE(cx), vp);
 }
 
-bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
+bool nsOuterWindowProxy::set(MCContext* cx, JS::Handle<JSObject*> proxy,
                              JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                              JS::Handle<JS::Value> receiver,
                              JS::ObjectOpResult& result) const {
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
-    return CrossOriginSet(cx, proxy, id, v, receiver, result);
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+    return CrossOriginSet(MC_UNSAFE(cx), proxy, id, v, receiver, result);
   }
 
   if (IsArrayIndex(GetArrayIndexFromId(id))) {
@@ -978,13 +978,13 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   // Do the rest in the Realm of "proxy", since we're in the same-origin case.
-  JSAutoRealm ar(cx, proxy);
+  MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
   MC::Rooted<JS::Value> wrappedArg(cx, v);
-  if (!MaybeWrapValue(cx, &wrappedArg)) {
+  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedArg)) {
     return false;
   }
   MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-  if (!MaybeWrapValue(cx, &wrappedReceiver)) {
+  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
     return false;
   }
 
@@ -994,7 +994,7 @@ bool nsOuterWindowProxy::set(JSContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandleVector<jsid> props) const {
   // We could just stop overring getOwnEnumerablePropertyKeys and let our
   // superclasses deal (by falling back on the BaseProxyHandler implementation
@@ -1008,7 +1008,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
     return false;
   }
 
-  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     // All the cross-origin properties other than the indexed props are
     // non-enumerable, so we're done here.
     return true;
@@ -1019,7 +1019,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   // anyway this is not changing any security behavior.
   MC::RootedVector<jsid> innerProps(cx);
   {  // Scope for JSAutoRealm so we can mark the ids once we exit it.
-    JSAutoRealm ar(cx, proxy);
+    MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
     if (!mc::Wrapper::getOwnEnumerablePropertyKeys(cx, proxy, &innerProps)) {
       return false;
     }
@@ -1273,14 +1273,14 @@ class nsChromeOuterWindowProxy : public nsOuterWindowProxy {
   constexpr nsChromeOuterWindowProxy() : nsOuterWindowProxy() {}
 #endif
 
-  const char* className(JSContext* cx,
+  const char* className(MCContext* cx,
                         JS::Handle<JSObject*> wrapper) const override;
 
   static const nsChromeOuterWindowProxy* singleton();
 };
 
 const char* nsChromeOuterWindowProxy::className(
-    JSContext* cx, JS::Handle<JSObject*> proxy) const {
+    MCContext* cx, JS::Handle<JSObject*> proxy) const {
   MOZ_ASSERT(js::IsProxy(proxy));
 
   return "ChromeWindow";

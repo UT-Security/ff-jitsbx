@@ -74,7 +74,7 @@ class MaybeCrossOriginObjectMixins {
    * cross-process proxy for one of those.
    */
   bool CrossOriginGetOwnPropertyHelper(
-      JSContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const;
 
   /**
@@ -193,7 +193,7 @@ class MaybeCrossOriginObject : public Base,
    * "protop" is the prototype value (possibly null).  It is guaranteed to be
    * same-compartment with cx after this function returns successfully.
    */
-  bool getPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool getPrototype(MCContext* cx, JS::Handle<JSObject*> proxy,
                     JS::MutableHandle<JSObject*> protop) const final;
 
   /**
@@ -217,21 +217,21 @@ class MaybeCrossOriginObject : public Base,
    * "proto" is the new prototype object (possibly null).  It must be
    * same-compartment with "cx".
    */
-  bool setPrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool setPrototype(MCContext* cx, JS::Handle<JSObject*> proxy,
                     JS::Handle<JSObject*> proto,
                     JS::ObjectOpResult& result) const final;
 
   /**
    * Our non-standard getPrototypeIfOrdinary hook.
    */
-  bool getPrototypeIfOrdinary(JSContext* cx, JS::Handle<JSObject*> proxy,
-                              bool* isOrdinary,
+  bool getPrototypeIfOrdinary(MCContext* cx, JS::Handle<JSObject*> proxy,
+                              MC::Tainted<bool*> isOrdinary,
                               JS::MutableHandle<JSObject*> protop) const final;
 
   /**
    * Our non-standard setImmutablePrototype hook.
    */
-  bool setImmutablePrototype(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool setImmutablePrototype(MCContext* cx, JS::Handle<JSObject*> proxy,
                              bool* succeeded) const final;
 
   /**
@@ -240,7 +240,7 @@ class MaybeCrossOriginObject : public Base,
    * and
    * <https://html.spec.whatwg.org/multipage/history.html#location-isextensible>.
    */
-  bool isExtensible(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
                     bool* extensible) const final;
 
   /**
@@ -249,7 +249,7 @@ class MaybeCrossOriginObject : public Base,
    * and
    * <https://html.spec.whatwg.org/multipage/history.html#location-preventextensions>.
    */
-  bool preventExtensions(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::ObjectOpResult& result) const final;
 
   /**
@@ -259,7 +259,7 @@ class MaybeCrossOriginObject : public Base,
    * be same-compartment with cx.
    */
   bool getOwnPropertyDescriptor(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const override = 0;
 
   /**
@@ -271,7 +271,7 @@ class MaybeCrossOriginObject : public Base,
    * be same-compartment with cx.
    *
    */
-  bool defineProperty(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id,
                       JS::Handle<JS::PropertyDescriptor> desc,
                       JS::ObjectOpResult& result) const final;
@@ -292,7 +292,7 @@ class MaybeCrossOriginObject : public Base,
    * "desc" is a the descriptor being defined.  It will be same-compartment with
    * cx.
    */
-  virtual bool definePropertySameOrigin(JSContext* cx,
+  virtual bool definePropertySameOrigin(MCContext* cx,
                                         JS::Handle<JSObject*> proxy,
                                         JS::Handle<jsid> id,
                                         JS::Handle<JS::PropertyDescriptor> desc,
@@ -309,7 +309,7 @@ class MaybeCrossOriginObject : public Base,
    *
    * "vp" is the return value.  It will be same-compartment with "cx".
    */
-  bool get(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool get(MCContext* cx, JS::Handle<JSObject*> proxy,
            JS::Handle<JS::Value> receiver, JS::Handle<jsid> id,
            JS::MutableHandle<JS::Value> vp) const override = 0;
 
@@ -324,7 +324,7 @@ class MaybeCrossOriginObject : public Base,
    * "receiver" is the receiver ("this") for the set.  It will be
    * same-compartment with "cx".
    */
-  bool set(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
            JS::ObjectOpResult& result) const override = 0;
 
@@ -334,13 +334,13 @@ class MaybeCrossOriginObject : public Base,
    * "proxy" is the WindowProxy or Location object involved.  It may or may not
    * be same-compartment with "cx".
    */
-  bool delete_(JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+  bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                JS::ObjectOpResult& result) const override = 0;
 
   /**
    * Spidermonkey-internal hook for enumerating objects.
    */
-  bool enumerate(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool enumerate(MCContext* cx, JS::Handle<JSObject*> proxy,
                  JS::MutableHandleVector<jsid> props) const final;
 
   // Cross origin objects should not participate in private fields.
@@ -351,7 +351,7 @@ class MaybeCrossOriginObject : public Base,
    * need to implement this, because we don't know what className they want.
    * Except in the cross-origin case, when we could maybe handle it...
    */
-  const char* className(JSContext* cx,
+  const char* className(MCContext* cx,
                         JS::Handle<JSObject*> proxy) const override = 0;
 };
 

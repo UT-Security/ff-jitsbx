@@ -12,7 +12,7 @@
 #include <type_traits>  // for is_base_of, enable_if_t, enable_if, is_pointer, is_same, void_t
 #include <utility>        // for forward
 #include "ErrorList.h"    // for nsresult
-#include "js/Array.h"     // for NewArrayObject
+#include "monkeycage/Array.h"     // for NewArrayObject
 #include "monkeycage/GCVector.h"  // for RootedVector, MutableWrappedPtrOperations
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineUCProperty
 #include "monkeycage/RootingAPI.h"          // for MutableHandle, Rooted, Handle, Heap

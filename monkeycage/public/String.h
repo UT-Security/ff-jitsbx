@@ -16,6 +16,14 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/GCAPI.h"
 
+inline JSString* JS_GetEmptyString(MCContext* cx) {
+  return JS_GetEmptyString(cx->cx_);
+}
+
+inline JS::Value JS_GetEmptyStringValue(MCContext* cx) {
+  return JS_GetEmptyStringValue(cx->cx_);
+}
+
 inline JSString* JS_NewStringCopyN(MCContext* cx, const char* s, size_t n) {
   return JS_NewStringCopyN(cx->cx_, s, n);
 }

@@ -36,7 +36,7 @@ static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  bool ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
+  bool ok = xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), &v);
   NS_ENSURE_TRUE(ok, false);
   args.rval().set(v);
   return true;
