@@ -276,7 +276,7 @@ extern JS_PUBLIC_API OffThreadToken* DecodeStencilOffThread(
 // `sources` should be alive until the end of
 // `FinishDecodeMultiStencilsOffThread`.
 extern JS_PUBLIC_API OffThreadToken* DecodeMultiStencilsOffThread(
-    JSContext* cx, const DecodeOptions& options, TranscodeSources& sources,
+    JSContext* cx, const DecodeOptions& options, const TranscodeSources& sources,
     OffThreadCompileCallback callback, void* callbackData);
 
 // Finish the off-thread task to compile the source text into a JS::Stencil,

@@ -131,7 +131,7 @@ JS_PUBLIC_API bool JS::CanDecodeOffThread(JSContext* cx,
 }
 
 JS_PUBLIC_API JS::OffThreadToken* JS::DecodeMultiStencilsOffThread(
-    JSContext* cx, const DecodeOptions& options, TranscodeSources& sources,
+    JSContext* cx, const DecodeOptions& options, const TranscodeSources& sources,
     OffThreadCompileCallback callback, void* callbackData) {
 #ifdef DEBUG
   size_t length = 0;

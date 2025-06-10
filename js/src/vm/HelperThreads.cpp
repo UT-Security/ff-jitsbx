@@ -671,9 +671,9 @@ struct DecodeStencilTask : public ParseTask {
 };
 
 struct MultiStencilsDecodeTask : public ParseTask {
-  JS::TranscodeSources* sources;
+  const JS::TranscodeSources* sources;
 
-  MultiStencilsDecodeTask(JSContext* cx, JS::TranscodeSources& sources,
+  MultiStencilsDecodeTask(JSContext* cx, const JS::TranscodeSources& sources,
                           JS::OffThreadCompileCallback callback,
                           void* callbackData);
   void parse(FrontendContext* fc) override;
@@ -785,7 +785,7 @@ void DecodeStencilTask::parse(FrontendContext* fc) {
 }
 
 MultiStencilsDecodeTask::MultiStencilsDecodeTask(
-    JSContext* cx, JS::TranscodeSources& sources,
+    JSContext* cx, const JS::TranscodeSources& sources,
     JS::OffThreadCompileCallback callback, void* callbackData)
     : ParseTask(ParseTaskKind::MultiStencilsDecode, cx, callback, callbackData),
       sources(&sources) {}
@@ -1521,7 +1521,7 @@ JS::OffThreadToken* js::StartOffThreadDecodeStencil(
 
 JS::OffThreadToken* js::StartOffThreadDecodeMultiStencils(
     JSContext* cx, const JS::DecodeOptions& options,
-    JS::TranscodeSources& sources, JS::OffThreadCompileCallback callback,
+    const JS::TranscodeSources& sources, JS::OffThreadCompileCallback callback,
     void* callbackData) {
   auto task = cx->make_unique<MultiStencilsDecodeTask>(cx, sources, callback,
                                                        callbackData);
