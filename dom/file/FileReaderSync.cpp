@@ -60,7 +60,7 @@ void FileReaderSync::ReadAsArrayBuffer(JSContext* aCx,
   }
 
   UniquePtr<char[], JS::FreePolicy> bufferData(
-      js_pod_arena_malloc<char>(js::GetArrayBufferContentsArena(), blobSize));
+      js_pod_arena_malloc<char>(mc::GetArrayBufferContentsArena(), blobSize));
   if (!bufferData) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
