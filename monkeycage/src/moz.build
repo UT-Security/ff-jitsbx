@@ -16,6 +16,7 @@ UNIFIED_SOURCES += [
 	"GlobalObject.cpp",
 	"Id.cpp",
 	"Proxy.cpp",
+	"Utility.cpp",
 	"Value.cpp",
 	"Wrapper.cpp",
 ]

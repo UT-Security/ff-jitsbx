@@ -2637,11 +2637,11 @@ IOUtils::JsBuffer::JsBuffer(IOUtils::BufferKind aBufferKind, size_t aCapacity)
   if (mCapacity) {
     if (aBufferKind == BufferKind::String) {
       mBuffer = JS::UniqueChars(
-          js_pod_arena_malloc<char>(js::GetStringBufferArena(), mCapacity));
+          js_pod_arena_malloc<char>(mc::GetStringBufferArena(), mCapacity));
     } else {
       MOZ_RELEASE_ASSERT(aBufferKind == BufferKind::Uint8Array);
       mBuffer = JS::UniqueChars(
-          js_pod_arena_malloc<char>(js::GetArrayBufferContentsArena(), mCapacity));
+          js_pod_arena_malloc<char>(mc::GetArrayBufferContentsArena(), mCapacity));
     }
   }
 }

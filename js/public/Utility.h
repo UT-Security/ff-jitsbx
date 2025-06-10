@@ -359,6 +359,16 @@ struct MOZ_RAII JS_PUBLIC_DATA AutoEnterOOMUnsafeRegion {
 
 // Malloc allocation.
 
+#ifdef JS_SANDBOX_API
+namespace mc {
+
+extern arena_id_t GetMallocArena();
+extern arena_id_t GetArrayBufferContentsArena();
+extern arena_id_t GetStringBufferArena();
+
+}
+#endif
+
 namespace js {
 
 extern JS_PUBLIC_DATA arena_id_t MallocArena;
@@ -397,7 +407,7 @@ static inline void* js_arena_malloc(arena_id_t arena, size_t bytes) {
 
 static inline void* js_malloc(size_t bytes) {
 #ifdef JS_SANDBOX_API
-  return js_arena_malloc(js::GetMallocArena(), bytes);
+  return js_arena_malloc(mc::GetMallocArena(), bytes);
 #else
   return js_arena_malloc(js::MallocArena, bytes);
 #endif
@@ -426,7 +436,7 @@ static inline void* js_arena_calloc(arena_id_t arena, size_t nmemb,
 
 static inline void* js_calloc(size_t bytes) {
 #ifdef JS_SANDBOX_API
-  return js_arena_calloc(js::GetMallocArena(), bytes);
+  return js_arena_calloc(mc::GetMallocArena(), bytes);
 #else
   return js_arena_calloc(js::MallocArena, bytes);
 #endif
@@ -434,7 +444,7 @@ static inline void* js_calloc(size_t bytes) {
 
 static inline void* js_calloc(size_t nmemb, size_t size) {
 #ifdef JS_SANDBOX_API
-  return js_arena_calloc(js::GetMallocArena(), nmemb, size);
+  return js_arena_calloc(mc::GetMallocArena(), nmemb, size);
 #else
   return js_arena_calloc(js::MallocArena, nmemb, size);
 #endif
@@ -457,7 +467,7 @@ static inline void* js_arena_realloc(arena_id_t arena, void* p, size_t bytes) {
 
 static inline void* js_realloc(void* p, size_t bytes) {
 #ifdef JS_SANDBOX_API
-  return js_arena_realloc(js::GetMallocArena(), p, bytes);
+  return js_arena_realloc(mc::GetMallocArena(), p, bytes);
 #else
   return js_arena_realloc(js::MallocArena, p, bytes);
 #endif
@@ -646,7 +656,7 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_malloc(arena_id_t arena,
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_malloc(size_t numElems) {
 #ifdef JS_SANDBOX_API
-  return js_pod_arena_malloc<T>(js::GetMallocArena(), numElems);
+  return js_pod_arena_malloc<T>(mc::GetMallocArena(), numElems);
 #else
   return js_pod_arena_malloc<T>(js::MallocArena, numElems);
 #endif
@@ -665,7 +675,7 @@ static MOZ_ALWAYS_INLINE T* js_pod_arena_calloc(arena_id_t arena,
 template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_calloc(size_t numElems) {
 #ifdef JS_SANDBOX_API
-  return js_pod_arena_calloc<T>(js::GetMallocArena(), numElems);
+  return js_pod_arena_calloc<T>(mc::GetMallocArena(), numElems);
 #else
   return js_pod_arena_calloc<T>(js::MallocArena, numElems);
 #endif
@@ -687,7 +697,7 @@ template <class T>
 static MOZ_ALWAYS_INLINE T* js_pod_realloc(T* prior, size_t oldSize,
                                            size_t newSize) {
 #ifdef JS_SANDBOX_API
-  return js_pod_arena_realloc<T>(js::GetMallocArena(), prior, oldSize, newSize);
+  return js_pod_arena_realloc<T>(mc::GetMallocArena(), prior, oldSize, newSize);
 #else
   return js_pod_arena_realloc<T>(js::MallocArena, prior, oldSize, newSize);
 #endif

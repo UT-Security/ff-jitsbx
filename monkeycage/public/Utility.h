@@ -9,6 +9,12 @@
 
 #include "js/Utility.h"
 
+namespace mc {
+extern arena_id_t GetMallocArena();
+extern arena_id_t GetArrayBufferContentsArena();
+extern arena_id_t GetStringBufferArena();
+}
+
 #ifdef JS_SANDBOX
 
 #include "monkeycage/SandboxCallback.h"
