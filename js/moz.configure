@@ -294,6 +294,14 @@ set_define("JS_CODEGEN_WASM32", jit_codegen.wasm32)
 
 include("../monkeycage/moz.configure")
 
+@depends(js_standalone, js_sandbox_dylib)
+def js_dylib_toolchain(js_standalone, js_sandbox_dylib):
+	if js_standalone and js_sandbox_dylib:
+		return True
+
+set_config("JS_DYLIB_TOOLCHAIN", js_dylib_toolchain)
+set_define("JS_DYLIB_TOOLCHAIN", js_dylib_toolchain)
+
 @depends(js_standalone, js_sandbox_lfi)
 def js_lfi_toolchain(js_standalone, js_sandbox_lfi):
 	if js_standalone and js_sandbox_lfi:
