@@ -12,12 +12,13 @@
 #include "nsCycleCollectionParticipant.h"
 #include "AudioNode.h"
 #include "mozilla/dom/TypedArray.h"
+#include "mozilla/dom/JSTainted.h"
 #include "WebAudioUtils.h"
 #include "js/TypeDecls.h"
 
 namespace mozilla::dom {
 
-class AudioParam final : public nsWrapperCache, public AudioParamTimeline {
+class AudioParam final : public TaintObj<AudioParam>, public nsWrapperCache, public AudioParamTimeline {
   virtual ~AudioParam();
 
  public:

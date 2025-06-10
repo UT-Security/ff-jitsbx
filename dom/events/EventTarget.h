@@ -9,6 +9,7 @@
 
 #include "mozilla/dom/Nullable.h"
 #include "nsISupports.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsWrapperCache.h"
 #include "nsAtom.h"
 
@@ -48,7 +49,9 @@ enum class EventCallbackDebuggerNotificationType : uint8_t;
     }                                                \
   }
 
-class EventTarget : public nsISupports, public nsWrapperCache {
+class EventTarget : public nsISupports, 
+                    public nsWrapperCache,
+                    public TaintObj<EventTarget> {
  public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_EVENTTARGET_IID)
 

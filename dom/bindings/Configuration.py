@@ -421,6 +421,19 @@ def MemberIsLegacyUnforgeable(member, descriptor):
         )
     )
 
+def isAppPtr(iface):
+    istr = str(iface)
+    if istr == "Interface \'AudioParam\'":
+        return True
+    if istr == "Interface \'BroadcastChannel'":
+        return True
+    if istr == "Interface \'CacheStorage'":
+        return True
+    if istr == "Interface \'WebSocket'":
+        return True
+    if istr == "Interface \'EventTarget'":
+        return True
+    return False
 
 class Descriptor(DescriptorProvider):
     """
@@ -432,11 +445,12 @@ class Descriptor(DescriptorProvider):
         self.config = config
         self.interface = interface
 
+        self.appPtr = isAppPtr(interface)
         if not interface.isExternal:
             self.tainted = interface.getExtendedAttribute("Tainted")
         else:
             #TODO(Anthony): actually make it taint
-            if str(interface) == "Interface \'ConsoleInstance\'" :
+            if str(interface) == "Interface \'ConsoleInstance\'":
                 self.tainted = True
             else:
                 self.tainted = False

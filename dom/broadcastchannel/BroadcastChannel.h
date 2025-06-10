@@ -11,6 +11,7 @@
 #include "mozilla/DOMEventTargetHelper.h"
 #include "nsTArray.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/dom/JSTainted.h"
 
 class nsIGlobalObject;
 
@@ -26,7 +27,8 @@ class BroadcastChannelChild;
 class RefMessageBodyService;
 class WorkerRef;
 
-class BroadcastChannel final : public DOMEventTargetHelper {
+class BroadcastChannel final :  public TaintObj<BroadcastChannel>,
+                                public DOMEventTargetHelper {
   friend class BroadcastChannelChild;
 
   using PrincipalInfo = mozilla::ipc::PrincipalInfo;

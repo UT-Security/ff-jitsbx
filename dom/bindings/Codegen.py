@@ -1982,14 +1982,15 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
 
-    def __init__(self, descriptor, name, returnType, args, isTainted=False):
+    def __init__(self, descriptor, name, returnType, args, isTainted=False, isAppPtr=False):
         self.tainted = isTainted
+        self.appPtr = isAppPtr
         CGAbstractStaticMethod.__init__(self, descriptor, name, returnType, args)
 
     def definition_body_prologue(self):
-        if self.tainted:
+        if self.tainted or self.appPtr:
             return fill("""
-                          //Comparison w/ App Pointer shouldn't trigger GC
+                          //Comparison with App Pointer shouldn't trigger GC
                           JSTainted<JSObject*> taint_obj(obj);
                           JSAppPtr<${nativeType}> taint_self = UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(obj);
                           ${nativeType}* self = taint_self.verify_as_type();
@@ -2013,7 +2014,7 @@ class CGAddPropertyHook(CGAbstractClassHook):
     A hook for addProperty, used to preserve our wrapper from GC.
     """
 
-    def __init__(self, descriptor, isTainted=False):
+    def __init__(self, descriptor, isTainted=False, isAppPtr=False):
         args = [
             Argument("JSContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
@@ -2021,7 +2022,13 @@ class CGAddPropertyHook(CGAbstractClassHook):
             Argument("JS::Handle<JS::Value>", "val"),
         ]
         CGAbstractClassHook.__init__(
-            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args, isTainted=isTainted
+            self, 
+            descriptor, 
+            ADDPROPERTY_HOOK_NAME, 
+            "bool", 
+            args, 
+            isTainted=isTainted,
+            isAppPtr=isAppPtr
         )
 
     def generate_code(self):
@@ -2048,10 +2055,15 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
     nsWrapperCache pointer for a non-nsISupports object.
     """
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isAppPtr=False):
         args = [Argument("JS::Handle<JSObject*>", "obj")]
         CGAbstractClassHook.__init__(
-            self, descriptor, GETWRAPPERCACHE_HOOK_NAME, "nsWrapperCache*", args
+            self, 
+            descriptor, 
+            GETWRAPPERCACHE_HOOK_NAME, 
+            "nsWrapperCache*", 
+            args,
+            isAppPtr=isAppPtr
         )
 
     def generate_code(self):
@@ -2126,10 +2138,17 @@ class CGClassFinalizeHook(CGAbstractClassHook):
     A hook for finalize, used to release our native object.
     """
 
-    def __init__(self, descriptor, isTainted=False):
+    def __init__(self, descriptor, isTainted=False, isAppPtr=False):
         self.tainted = isTainted
         args = [Argument("JS::GCContext*", "gcx"), Argument("JSObject*", "obj")]
-        CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME, "void", args, isTainted)
+        CGAbstractClassHook.__init__(
+            self, 
+            descriptor, 
+            FINALIZE_HOOK_NAME, 
+            "void", 
+            args, 
+            isTainted,
+            isAppPtr)
 
     def generate_code(self):
         return finalizeHook(
@@ -2158,10 +2177,10 @@ class CGClassObjectMovedHook(CGAbstractClassHook):
     is holding moves.
     """
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isAppPtr=False):
         args = [Argument("JSObject*", "obj"), Argument("JSObject*", "old")]
         CGAbstractClassHook.__init__(
-            self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args
+            self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args, isAppPtr
         )
 
     def generate_code(self):
@@ -10620,9 +10639,10 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
     can call with lower overhead.
     """
 
-    def __init__(self, descriptor, method, isTainted=False):
+    def __init__(self, descriptor, method, isTainted=False, isAppPtr=False):
         self.method = method
         self.tainted = isTainted
+        self.appPtr = isAppPtr
         name = CppKeywords.checkMethodName(IDLToCIdentifier(method.identifier.name))
         if isTainted:
             args = [
@@ -10674,25 +10694,35 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
                 nativeType=self.descriptor.nativeType,
                 call=call,
             )
+        if self.tainted or self.appPtr:
+            prefix = prefix + fill(
+                """
+                JSAppPtr<${nativeType}> taint_self = void_self;
+                auto* self = taint_self.verify_as_type();
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
+        else:
+            prefix = prefix + fill(
+                """
+                auto* self = static_cast<${nativeType}*>(void_self);
+                """,
+                nativeType=self.descriptor.nativeType,
+            )
         if self.tainted:
             return prefix + fill(
                 """
                 auto args = 
                     reinterpret_cast<const JSTainted<JSJitMethodCallArgs>&>(temp_args);
-                JSAppPtr<${nativeType}> taint_self = void_self;
-                auto* self = taint_self.verify_as_type();
                 $*{call}
                 """,
-                nativeType=self.descriptor.nativeType,
                 call=call,
             )
         else:
             return prefix + fill(
                 """
-                auto* self = static_cast<${nativeType}*>(void_self);
                 $*{call}
                 """,
-                nativeType=self.descriptor.nativeType,
                 call=call,
             )
 
@@ -11155,8 +11185,9 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     that the JIT can call with lower overhead.
     """
 
-    def __init__(self, descriptor, attr):
+    def __init__(self, descriptor, attr, isAppPtr=False):
         self.attr = attr
+        self.appPtr = isAppPtr
         name = "get_" + IDLToCIdentifier(attr.identifier.name)
         tainted = attr.getExtendedAttribute("Tainted")
 
@@ -11189,22 +11220,13 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
 
     def definition_body(self):
         tainted = self.attr.getExtendedAttribute("Tainted")
-        if tainted:
+        if tainted or self.appPtr:
             prefix = fill(
                 """
                 JSAppPtr<${nativeType}> taint_self (void_self);
                 auto* self = taint_self.verify_as_type();
-                JSTaintedJitGetterCallArgs test_args (
-                    JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
-                        reinterpret_cast<JSTainted<JS::Value>*>(args.rval().address())
-                    )
-                );
-                JSTaintedRooted<JSObject*> tr_obj (cx);
-                tr_obj.set(obj);
-                JSTaintedHandle<JSObject*> taint_obj (&tr_obj);
                 """,
                 nativeType=self.descriptor.nativeType,
-                ifaceName=self.descriptor.name
             )
         else:
             prefix = fill(
@@ -11213,7 +11235,19 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 """,
                 nativeType=self.descriptor.nativeType,
             )
-            
+        if tainted:
+            prefix = prefix + dedent(
+                """
+                JSTaintedJitGetterCallArgs test_args (
+                    JSTaintedMutableHandle<JS::Value>::fromMarkedLocation(
+                        reinterpret_cast<JSTainted<JS::Value>*>(args.rval().address())
+                    )
+                );
+                JSTaintedRooted<JSObject*> tr_obj (cx);
+                tr_obj.set(obj);
+                JSTaintedHandle<JSObject*> taint_obj (&tr_obj);
+                """
+            )            
 
         if self.attr.isMaplikeOrSetlikeAttr():
             assert not self.attr.getExtendedAttribute("CrossOriginReadable")
@@ -11438,8 +11472,9 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
     that the JIT can call with lower overhead.
     """
 
-    def __init__(self, descriptor, attr):
+    def __init__(self, descriptor, attr, isAppPtr=False):
         self.attr = attr
+        self.appPtr = isAppPtr
         name = "set_" + IDLToCIdentifier(attr.identifier.name)
         args = [
             Argument("JSContext*", "cx"),
@@ -11489,25 +11524,22 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
                 nativeType=self.descriptor.nativeType,
                 call=call,
             )
-        if tainted: 
-            return prefix + fill(
+        if tainted or self.appPtr:
+            prefix = prefix + fill(
                 """
                 JSAppPtr<${nativeType}> taint_self (void_self);
                 auto* self = taint_self.verify_as_type();                
-                $*{call}
                 """,
                 nativeType=self.descriptor.nativeType,
-                call=call,
             )
         else:
-            return prefix + fill(
+            prefix = prefix + fill(
                 """
                 auto* self = static_cast<${nativeType}*>(void_self);
-                $*{call}
                 """,
                 nativeType=self.descriptor.nativeType,
-                call=call,
             )
+        return prefix + dedent(call)
 
     def auto_profiler_label(self):
         interface_name = self.descriptor.interface.identifier.name
@@ -16577,6 +16609,7 @@ class CGDescriptor(CGThing):
             cgThings.append(
                 CGClassConstructor(descriptor, n, LegacyFactoryFunctionName(n))
             )
+        isAppPtr = descriptor.appPtr
         for m in descriptor.interface.members:
             if m.isMethod() and m.identifier.name == "QueryInterface":
                 continue
@@ -16600,7 +16633,7 @@ class CGDescriptor(CGThing):
                         if m.returnsPromise():
                             cgThings.append(CGStaticMethodJitinfo(m))
                     elif descriptor.interface.hasInterfacePrototypeObject():
-                        specializedMethod = CGSpecializedMethod(descriptor, m, tainted)
+                        specializedMethod = CGSpecializedMethod(descriptor, m, tainted, isAppPtr)
                         cgThings.append(specializedMethod)
                         if m.returnsPromise():
                             cgThings.append(
@@ -16626,7 +16659,7 @@ class CGDescriptor(CGThing):
                     assert descriptor.interface.hasInterfaceObject()
                     cgThings.append(CGStaticGetter(descriptor, m))
                 elif descriptor.interface.hasInterfacePrototypeObject():
-                    specializedGetter = CGSpecializedGetter(descriptor, m)
+                    specializedGetter = CGSpecializedGetter(descriptor, m, isAppPtr)
                     cgThings.append(specializedGetter)
                     if m.type.isPromise():
                         cgThings.append(
@@ -16639,7 +16672,7 @@ class CGDescriptor(CGThing):
                         assert descriptor.interface.hasInterfaceObject()
                         cgThings.append(CGStaticSetter(descriptor, m))
                     elif descriptor.interface.hasInterfacePrototypeObject():
-                        cgThings.append(CGSpecializedSetter(descriptor, m))
+                        cgThings.append(CGSpecializedSetter(descriptor, m, isAppPtr))
                         if props.isCrossOriginSetter:
                             needCrossOriginPropertyArrays = True
                 elif m.getExtendedAttribute("PutForwards"):
@@ -16665,17 +16698,21 @@ class CGDescriptor(CGThing):
 
         if descriptor.concrete and not descriptor.proxy:
             if wantsAddProperty(descriptor):
-                cgThings.append(CGAddPropertyHook(descriptor, isTainted=descriptor.tainted))
+                cgThings.append(CGAddPropertyHook(descriptor, 
+                                                  isTainted=descriptor.tainted, 
+                                                  isAppPtr=descriptor.appPtr))
 
             # Always have a finalize hook, regardless of whether the class
             # wants a custom hook.
-            cgThings.append(CGClassFinalizeHook(descriptor, isTainted=descriptor.tainted))
+            cgThings.append(CGClassFinalizeHook(descriptor, 
+                                                isTainted=descriptor.tainted,
+                                                isAppPtr=descriptor.appPtr))
 
         if wantsGetWrapperCache(descriptor):
-            cgThings.append(CGGetWrapperCacheHook(descriptor))
+            cgThings.append(CGGetWrapperCacheHook(descriptor, isAppPtr))
 
         if descriptor.concrete and descriptor.wrapperCache and not descriptor.proxy:
-            cgThings.append(CGClassObjectMovedHook(descriptor))
+            cgThings.append(CGClassObjectMovedHook(descriptor, isAppPtr))
 
         properties = PropertyArrays(descriptor)
         cgThings.append(CGGeneric(define=str(properties)))
