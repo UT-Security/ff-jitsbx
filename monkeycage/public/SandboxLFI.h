@@ -7,6 +7,7 @@
 #ifndef mc_unsafe_SandboxLFI_h
 #define mc_unsafe_SandboxLFI_h
 
+#include <type_traits>
 #include "monkeycage/unsafe/lib.h"
 #include "monkeycage/SandboxCallback.h"
 
@@ -17,6 +18,37 @@ namespace detail {
 extern "C" void* lfi_libcalls(void);
 
 class SandboxLFI {
+  template <size_t T_NumIntegerArgs, size_t T_NumFloatArgs, typename T_Ret>
+  static inline size_t CallbackStackArgs(size_t stack_args_size, T_Ret (*)()) {
+    return stack_args_size;
+  }
+
+  template <size_t T_NumIntegerArgs, size_t T_NumFloatArgs, typename T_Ret,
+            typename T_Arg, typename... T_Args>
+  static inline size_t CallbackStackArgs(size_t stack_args_size,
+                                         T_Ret (*)(T_Arg, T_Args...)) {
+    if constexpr (std::is_same_v<T_Arg, float> ||
+                  std::is_same_v<T_Arg, double>) {
+      if constexpr (T_NumFloatArgs < 8) {
+        return CallbackStackArgs<T_NumIntegerArgs, T_NumFloatArgs + 1>(
+            stack_args_size, reinterpret_cast<T_Ret (*)(T_Args...)>(0));
+      } else {
+        return CallbackStackArgs<T_NumIntegerArgs, T_NumFloatArgs + 1>(
+            stack_args_size + sizeof(T_Arg),
+            reinterpret_cast<T_Ret (*)(T_Args...)>(0));
+      }
+    } else {
+      if constexpr (T_NumIntegerArgs < 6) {
+        return CallbackStackArgs<T_NumIntegerArgs + 1, T_NumFloatArgs>(
+            stack_args_size, reinterpret_cast<T_Ret (*)(T_Args...)>(0));
+      } else {
+        return CallbackStackArgs<T_NumIntegerArgs + 1, T_NumFloatArgs>(
+            stack_args_size + sizeof(T_Arg),
+            reinterpret_cast<T_Ret (*)(T_Args...)>(0));
+      }
+    }
+  }
+
  public:
   static bool Initialize() {
     monkeycage_init(lfi_libcalls());
@@ -34,9 +66,10 @@ class SandboxLFI {
   template <typename T_Ret, typename... T_Args>
   static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(
       T_Cb<T_Ret, T_Args...> app_callback) {
+    size_t stack_args_size = CallbackStackArgs<0, 0, T_Ret, T_Args...>(0, reinterpret_cast<T_Ret (*)(T_Args...)>(0));
     return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(
         app_callback, reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
-                      monkeycage_register_cb((void*)app_callback, 0)));
+                      monkeycage_register_cb((void*)app_callback, stack_args_size)));
   }
 
   template <typename T_Ret, typename... T_Args>

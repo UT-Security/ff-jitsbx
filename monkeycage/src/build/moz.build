@@ -16,6 +16,7 @@ NO_EXPAND_LIBS = True
 
 if CONFIG["JS_SANDBOX_DYLIB"]:
     SOURCES += [
+        "./dylib/embed/arch/x64/callback.S",
         "./dylib/embed/arch/x64/trampolines.S",
         "./dylib/embed/lib.c"
     ]
