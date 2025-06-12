@@ -28,6 +28,7 @@
 #include "mozilla/dom/ConstraintValidation.h"
 #include "mozilla/dom/FileInputType.h"
 #include "mozilla/dom/HiddenInputType.h"
+#include "mozilla/dom/JSTainted.h"
 #include "nsGenericHTMLElement.h"
 #include "nsImageLoadingContent.h"
 #include "nsCOMPtr.h"
@@ -108,7 +109,8 @@ class UploadLastDir final : public nsIObserver, public nsSupportsWeakReference {
   };
 };
 
-class HTMLInputElement final : public TextControlElement,
+class HTMLInputElement final : public TaintObj<HTMLInputElement>,
+                               public TextControlElement,
                                public nsImageLoadingContent,
                                public ConstraintValidation {
   friend class AfterSetFilesOrDirectoriesCallback;

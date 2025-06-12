@@ -16706,7 +16706,7 @@ class CGDescriptor(CGThing):
             # wants a custom hook.
             cgThings.append(CGClassFinalizeHook(descriptor, 
                                                 isTainted=descriptor.tainted,
-                                                isAppPtr=descriptor.appPtr))
+                                                isAppPtr=False))
 
         if wantsGetWrapperCache(descriptor):
             cgThings.append(CGGetWrapperCacheHook(descriptor, isAppPtr))
