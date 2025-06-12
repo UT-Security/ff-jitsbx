@@ -14,30 +14,30 @@ FORCE_STATIC_LIB = True
 STATIC_LIBRARY_NAME = "js_caged"
 NO_EXPAND_LIBS = True
 
-if CONFIG["JS_SANDBOX_DYLIB"]:
-    SOURCES += [
-        "./dylib/embed/arch/x64/callback.S",
-        "./dylib/embed/arch/x64/trampolines.S",
-        "./dylib/embed/lib.c"
-    ]
-
-    EXPORTS.monkeycage.unsafe += [
-        "./dylib/embed/lib.h"
-    ]
-elif CONFIG["JS_SANDBOX_LFI"]:
-    LIBRARY_DEFINES["NODLOPEN"] = True
-    LIBRARY_DEFINES["LARGEBOX"] = True
-    LIBRARY_DEFINES["SINGLEBOX"] = True
-
-    SOURCES += [
-        "./lfilib/embed/lib/arch/x64/callback.S",
-        "./lfilib/embed/lib/arch/x64/trampolines.S",
-        "./lfilib/embed/lib/includes.c",
-        "./lfilib/embed/lib/lib.c",
-    ]
-    
-    EXPORTS.monkeycage.unsafe += [
-        "./lfilib/embed/lib/lib.h"
-    ]
+#if CONFIG["JS_SANDBOX_DYLIB"]:
+#    SOURCES += [
+#        "./dylib/embed/arch/x64/callback.S",
+#        "./dylib/embed/arch/x64/trampolines.S",
+#        "./dylib/embed/lib.c"
+#    ]
+#
+#    EXPORTS.monkeycage.unsafe += [
+#        "./dylib/embed/lib.h"
+#    ]
+#elif CONFIG["JS_SANDBOX_LFI"]:
+#    LIBRARY_DEFINES["NODLOPEN"] = True
+#    LIBRARY_DEFINES["LARGEBOX"] = True
+#    LIBRARY_DEFINES["SINGLEBOX"] = True
+#
+#    SOURCES += [
+#        "./lfilib/embed/lib/arch/x64/callback.S",
+#        "./lfilib/embed/lib/arch/x64/trampolines.S",
+#        "./lfilib/embed/lib/includes.c",
+#        "./lfilib/embed/lib/lib.c",
+#    ]
+#    
+#    EXPORTS.monkeycage.unsafe += [
+#        "./lfilib/embed/lib/lib.h"
+#    ]
 
 DIST_INSTALL = True

@@ -8,6 +8,7 @@ import sys
 import time
 import traceback
 from collections import OrderedDict, defaultdict
+import copy
 
 import mozinfo
 import mozpack.path as mozpath
@@ -45,6 +46,9 @@ from .data import (
     InstallationTarget,
     IPDLCollection,
     JARManifest,
+    LFILibrary,
+    LFISources,
+    LFIUnifiedSources,
     Library,
     Linkable,
     LocalInclude,
@@ -97,6 +101,7 @@ class TreeMetadataEmitter(LoggingMixin):
         self._compile_dirs = set()
         self._host_compile_dirs = set()
         self._wasm_compile_dirs = set()
+        self._lfi_compile_dirs = set()
         self._asm_compile_dirs = set()
         self._compile_flags = dict()
         self._compile_as_flags = dict()
@@ -216,7 +221,7 @@ class TreeMetadataEmitter(LoggingMixin):
 
         # Next do FINAL_LIBRARY linkage.
         for lib in (l for libs in self._libs.values() for l in libs):
-            if not isinstance(lib, (StaticLibrary, RustLibrary)) or not lib.link_into:
+            if not isinstance(lib, (StaticLibrary, RustLibrary, LFILibrary)) or not lib.link_into:
                 continue
             if lib.link_into not in self._libs:
                 raise SandboxValidationError(
@@ -224,7 +229,13 @@ class TreeMetadataEmitter(LoggingMixin):
                     % lib.link_into,
                     contexts[os.path.normcase(lib.objdir)],
                 )
-            candidates = self._libs[lib.link_into]
+            candidates = [clib for clib in self._libs[lib.link_into] if clib.KIND == lib.KIND]
+            if len(candidates) == 0:
+                raise SandboxValidationError(
+                    'FINAL_LIBRARY ("%s") does not match any LIBRARY_NAME with appropriate KIND ("%s")'
+                    % (lib.link_into, lib.KIND),
+                    contexts[os.path.normcase(lib.objdir)],
+                )
 
             # When there are multiple candidates, but all are in the same
             # directory and have a different type, we want all of them to
@@ -348,6 +359,7 @@ class TreeMetadataEmitter(LoggingMixin):
         "host": "HOST_LIBRARY_NAME",
         "target": "LIBRARY_NAME",
         "wasm": "SANDBOXED_WASM_LIBRARY_NAME",
+        "lfi": "LFI_LIBRARY_NAME",
     }
 
     ARCH_VAR = {"host": "HOST_OS_ARCH", "target": "OS_TARGET"}
@@ -376,7 +388,7 @@ class TreeMetadataEmitter(LoggingMixin):
         # 1474022).
         if (
             not isinstance(
-                obj, (StaticLibrary, HostLibrary, HostSharedLibrary, BaseRustProgram)
+                obj, (StaticLibrary, HostLibrary, HostSharedLibrary, BaseRustProgram, LFILibrary)
             )
             and obj.cxx_link
         ):
@@ -387,7 +399,7 @@ class TreeMetadataEmitter(LoggingMixin):
                 self._link_library(
                     context, obj, variable, self.STDCXXCOMPAT_NAME[obj.KIND]
                 )
-            if obj.KIND == "target":
+            if obj.KIND == "target" or obj.KIND == "lfi":
                 for lib in context.config.substs.get("STLPORT_LIBS", []):
                     obj.link_system_library(lib)
 
@@ -617,6 +629,7 @@ class TreeMetadataEmitter(LoggingMixin):
         linkables = []
         host_linkables = []
         wasm_linkables = []
+        lfi_linkables = []
 
         def add_program(prog, var):
             if var.startswith("HOST_"):
@@ -748,8 +761,18 @@ class TreeMetadataEmitter(LoggingMixin):
 
         wasm_lib = context.get("SANDBOXED_WASM_LIBRARY_NAME")
 
+        lfi_name = context.get("LFI_LIBRARY_NAME") 
+
+        lfi_final_lib = context.get("LFI_FINAL_LIBRARY")
+
+        if lfi_final_lib and not lfi_name:
+            # If no LFI_LIBRARY_NAME is given, create one.
+            lfi_name = "%s" % context.relsrcdir.replace("/", "_")
+
         shared_args = {}
         static_args = {}
+
+        lfi_args = {}
 
         if final_lib:
             if static_lib:
@@ -771,6 +794,9 @@ class TreeMetadataEmitter(LoggingMixin):
                 )
             static_args["link_into"] = final_lib
             static_lib = True
+
+        if lfi_final_lib:
+            lfi_args["link_into"] = lfi_final_lib
 
         if libname:
             if is_framework:
@@ -955,6 +981,17 @@ class TreeMetadataEmitter(LoggingMixin):
             wasm_linkables.append(lib)
             self._wasm_compile_dirs.add(context.objdir)
 
+        if lfi_name:               
+            if context.get("NO_EXPAND_LIBS"):
+                lfi_args["no_expand_lib"] = True
+
+            lfi_args['real_name'] = lfi_name
+            lfi_lib = LFILibrary(context, lfi_name, **lfi_args)
+            self._libs[lfi_name].append(lfi_lib)
+            self._linkage.append((context, lfi_lib, "USE_LIBS"))
+            lfi_linkables.append(lfi_lib)
+            self._lfi_compile_dirs.add(context.objdir)
+
         seen = {}
         for symbol in ("SOURCES", "UNIFIED_SOURCES"):
             for src in context.get(symbol, []):
@@ -974,7 +1011,7 @@ class TreeMetadataEmitter(LoggingMixin):
         # Only emit sources if we have linkables defined in the same context.
         # Note the linkables are not emitted in this function, but much later,
         # after aggregation (because of e.g. USE_LIBS processing).
-        if not (linkables or host_linkables or wasm_linkables):
+        if not (linkables or host_linkables or wasm_linkables or lfi_linkables):
             return
 
         # TODO: objdirs with only host things in them shouldn't need target
@@ -1022,6 +1059,14 @@ class TreeMetadataEmitter(LoggingMixin):
                         context,
                     )
 
+        # If this context defines an LFI Library we duplicate all target SOURCES
+        # and UNIFIED_SOURCES as the corresponding LFI variables.
+        if lfi_name:
+            sources["LFI_SOURCES"] = copy.deepcopy(sources["SOURCES"])
+            gen_sources["LFI_SOURCES"] = copy.deepcopy(gen_sources["SOURCES"])
+            sources["LFI_UNIFIED_SOURCES"] = copy.deepcopy(sources["UNIFIED_SOURCES"])
+            gen_sources["LFI_UNIFIED_SOURCES"] = copy.deepcopy(gen_sources["UNIFIED_SOURCES"])
+        
         # Process the .cpp files generated by IPDL as generated sources within
         # the context which declared the IPDL_SOURCES attribute.
         ipdl_root = self.config.substs.get("IPDL_ROOT")
@@ -1091,6 +1136,10 @@ class TreeMetadataEmitter(LoggingMixin):
         # sources.)
         if sources["WASM_SOURCES"] or gen_sources["WASM_SOURCES"]:
             varmap["WASM_SOURCES"] = (WasmSources, [".c", ".cpp"])
+ 
+        if lfi_name:
+            varmap["LFI_SOURCES"] = (LFISources, all_suffixes)
+            varmap["LFI_UNIFIED_SOURCES"] = (LFIUnifiedSources, [".c", ".mm", ".m", ".cpp"])
         # Track whether there are any C++ source files.
         # Technically this won't do the right thing for SIMPLE_PROGRAMS in
         # a directory with mixed C and C++ source, but it's not that important.
@@ -1134,6 +1183,8 @@ class TreeMetadataEmitter(LoggingMixin):
                 srcs = list(obj.files)
                 if isinstance(obj, UnifiedSources) and obj.have_unified_mapping:
                     srcs = sorted(dict(obj.unified_source_mapping).keys())
+                if isinstance(obj, LFIUnifiedSources) and obj.have_unified_mapping:
+                    srcs = sorted(dict(obj.unified_source_mapping).keys())
                 ctxt_sources[variable][canonical_suffix] += srcs
                 yield obj
 
@@ -1148,6 +1199,11 @@ class TreeMetadataEmitter(LoggingMixin):
             for wasm_linkable in wasm_linkables:
                 for suffix, srcs in ctxt_sources["WASM_SOURCES"].items():
                     wasm_linkable.sources[suffix] += srcs
+            for lfi_linkable in lfi_linkables:
+                for target_var in ("LFI_SOURCES", "LFI_UNIFIED_SOURCES"):
+                    for suffix, srcs in ctxt_sources[target_var].items():
+                        lfi_linkable.sources[suffix] += srcs
+                
 
         for f, flags in sorted(six.iteritems(all_flags)):
             if flags.flags:
@@ -1159,6 +1215,7 @@ class TreeMetadataEmitter(LoggingMixin):
         for vars, linkable_items in (
             (("SOURCES", "UNIFIED_SOURCES"), linkables),
             (("HOST_SOURCES",), host_linkables),
+            (("LFI_SOURCES", "LFI_UNIFIED_SOURCES"), lfi_linkables),
         ):
             for var in vars:
                 if cxx_sources[var]:

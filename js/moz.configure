@@ -307,8 +307,8 @@ def js_lfi_toolchain(js_standalone, js_sandbox_lfi):
 	if js_standalone and js_sandbox_lfi:
 		return True
 
-set_config("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
-set_define("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
+#set_config("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
+#set_define("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
 
 option(
     "--enable-js-sandbox-heap",

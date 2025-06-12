@@ -57,10 +57,10 @@ USE_LIBS += [
 ]
 
 # mozglue is needed to run SpiderMonkey independently within the LFI sandbox.
-if CONFIG["JS_LFI_TOOLCHAIN"] or CONFIG["JS_DYLIB_TOOLCHAIN"]:
-    USE_LIBS += [
-        "mozglue"
-    ]
+#if CONFIG["JS_LFI_TOOLCHAIN"] or CONFIG["JS_DYLIB_TOOLCHAIN"]:
+#    USE_LIBS += [
+#        "mozglue"
+#    ]
 
 if CONFIG["OS_ARCH"] not in ("WINNT", "HP-UX"):
     OS_LIBS += [

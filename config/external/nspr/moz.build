@@ -6,6 +6,9 @@
 
 Library("nspr")
 
+if CONFIG["JS_SANDBOX_LFI"]:
+    LFI_LIBRARY_NAME = "nspr_lfi"
+
 if CONFIG["MOZ_BUILD_NSPR"]:
     DIRS += [
         "pr",

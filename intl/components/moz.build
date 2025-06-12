@@ -80,3 +80,5 @@ if not CONFIG["JS_STANDALONE"]:
 DEFINES["MOZ_HAS_MOZGLUE"] = True
 
 Library("intlcomponents")
+if CONFIG["JS_SANDBOX_LFI"]:
+    LFILibrary("intlcomponents")

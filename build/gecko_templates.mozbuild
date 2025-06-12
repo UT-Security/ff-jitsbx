@@ -122,3 +122,8 @@ def GeckoFramework(name, output_category=None, **kwargs):
     kwargs.setdefault('mozglue', 'library')
 
     GeckoBinary(**kwargs)
+
+@template
+def LFILibrary(name):
+    LFI_LIBRARY_NAME = name
+    

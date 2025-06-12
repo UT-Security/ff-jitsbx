@@ -31,6 +31,9 @@ from mozbuild.frontend.data import (
     HostLibrary,
     HostSources,
     IPDLCollection,
+    LFILibrary,
+    LFISources,
+    LFIUnifiedSources,
     LocalizedFiles,
     LocalizedPreprocessedFiles,
     SandboxedWasmLibrary,
@@ -154,6 +157,19 @@ class CommonBackend(BuildBackend):
             if hasattr(self, "_process_unified_sources"):
                 self._process_unified_sources(obj)
 
+        elif isinstance(obj, LFIUnifiedSources):
+            if obj.generated_files:
+                self._handle_generated_sources(obj.generated_files)
+
+            # Unified sources aren't relevant to artifact builds.
+            if self.environment.is_artifact_build:
+                return True
+
+            if obj.have_unified_mapping:
+                self._write_unified_files(obj.unified_source_mapping, obj.objdir)
+            if hasattr(self, "_process_lfi_unified_sources"):
+                self._process_lfi_unified_sources(obj)
+
         elif isinstance(obj, BaseProgram):
             self._binaries.programs.append(obj)
             return False
@@ -168,7 +184,7 @@ class CommonBackend(BuildBackend):
             )
             return False
 
-        elif isinstance(obj, (Sources, HostSources)):
+        elif isinstance(obj, (Sources, HostSources, LFISources)):
             if obj.generated_files:
                 self._handle_generated_sources(obj.generated_files)
             return False
@@ -245,7 +261,7 @@ class CommonBackend(BuildBackend):
                 objs.append(o)
 
         def expand(lib, recurse_objs, system_libs):
-            if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)):
+            if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary, LFILibrary)):
                 if lib.no_expand_lib:
                     static_libs.append(lib)
                     recurse_objs = False
@@ -269,10 +285,10 @@ class CommonBackend(BuildBackend):
         add_objs(input_bin)
 
         system_libs = not isinstance(
-            input_bin, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)
+            input_bin, (HostLibrary, StaticLibrary, SandboxedWasmLibrary, LFILibrary)
         )
         for lib in input_bin.linked_libraries:
-            if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)):
+            if isinstance(lib, (HostLibrary, StaticLibrary, SandboxedWasmLibrary, LFILibrary)):
                 expand(lib, True, system_libs)
             elif isinstance(lib, SharedLibrary):
                 if lib not in seen_libs:

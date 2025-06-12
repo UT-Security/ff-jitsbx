@@ -48,6 +48,8 @@ from ..frontend.data import (
     HostSources,
     InstallationTarget,
     JARManifest,
+    LFILibrary,
+    LFISources,
     Linkable,
     LocalInclude,
     LocalizedFiles,
@@ -501,6 +503,28 @@ class RecursiveMakeBackend(MakeBackend):
                     for var in variables:
                         backend_file.write("%s += %s\n" % (var, p))
             self._compile_graph[mozpath.join(backend_file.relobjdir, "target-objects")]
+        elif isinstance(obj, LFISources):
+            suffix_map = {
+                ".s": "LFI_ASFILES",
+                ".c": "LFI_CSRCS",
+                ".m": "LFI_CMSRCS",
+                ".mm": "LFI_CMMSRCS",
+                ".cpp": "LFI_CPPSRCS",
+                ".S": "LFI_SSRCS",
+            }
+            variables = [suffix_map[obj.canonical_suffix]]
+            for files, base, cls, prefix in (
+                (obj.static_files, backend_file.srcdir, SourcePath, ""),
+                (obj.generated_files, backend_file.objdir, ObjDirPath, "!"),
+            ):
+                for f in sorted(files):
+                    p = self._pretty_path(
+                        cls(obj._context, prefix + mozpath.relpath(f, base)),
+                        backend_file,
+                    )
+                    for var in variables:
+                        backend_file.write("%s += %s\n" % (var, p))
+            self._compile_graph[mozpath.join(backend_file.relobjdir, "target-objects")]
         elif isinstance(obj, VariablePassthru):
             # Sorted so output is consistent and we don't bump mtimes.
             for k, v in sorted(obj.variables.items()):
@@ -623,6 +647,10 @@ class RecursiveMakeBackend(MakeBackend):
 
         elif isinstance(obj, SandboxedWasmLibrary):
             self._process_sandboxed_wasm_library(obj, backend_file)
+
+        elif isinstance(obj, LFILibrary):
+            self._process_lfi_library(obj, backend_file)
+            self._process_linked_libraries(obj, backend_file)
 
         elif isinstance(obj, HostLibrary):
             self._process_linked_libraries(obj, backend_file)
@@ -1069,6 +1097,35 @@ class RecursiveMakeBackend(MakeBackend):
 
         self._compile_graph[mozpath.join(backend_file.relobjdir, "target-objects")]
 
+    def _process_lfi_unified_sources(self, obj):
+        backend_file = self._get_backend_file_for(obj)
+
+        suffix_map = {
+            ".c": "UNIFIED_LFI_CSRCS",
+            ".m": "UNIFIED_LFI_CMSRCS",
+            ".mm": "UNIFIED_LFI_CMMSRCS",
+            ".cpp": "UNIFIED_LFI_CPPSRCS",
+        }
+
+        var = suffix_map[obj.canonical_suffix]
+        non_unified_var = var[len("UNIFIED_") :]
+
+        if obj.have_unified_mapping:
+            self._add_unified_build_rules(
+                backend_file,
+                obj.unified_source_mapping,
+                unified_files_makefile_variable=var,
+                include_curdir_build_rules=False,
+            )
+            backend_file.write("%s += $(%s)\n" % (non_unified_var, var))
+        else:
+            # Sorted so output is consistent and we don't bump mtimes.
+            source_files = list(sorted(obj.files))
+
+            backend_file.write("%s += %s\n" % (non_unified_var, " ".join(source_files)))
+
+        self._compile_graph[mozpath.join(backend_file.relobjdir, "target-objects")]
+
     def _process_directory_traversal(self, obj, backend_file):
         """Process a data.DirectoryTraversal instance."""
         fh = backend_file.fh
@@ -1360,6 +1417,10 @@ class RecursiveMakeBackend(MakeBackend):
     def _process_sandboxed_wasm_library(self, libdef, backend_file):
         backend_file.write("WASM_ARCHIVE := %s\n" % libdef.basename)
 
+    def _process_lfi_library(self, libdef, backend_file):
+        backend_file.write_once("LFI_LIBRARY_NAME := %s\n" % libdef.basename)
+        backend_file.write("LFI_REAL_LIBRARY := %s\n" % libdef.lib_name)
+
     def _process_rust_library(self, libdef, backend_file):
         backend_file.write_once(
             "%s := %s\n" % (libdef.LIB_FILE_VAR, libdef.import_name)
@@ -1413,13 +1474,13 @@ class RecursiveMakeBackend(MakeBackend):
         # creating an archive with AR, which doesn't understand list files.
         if (
             objs == obj.objs
-            and not isinstance(obj, (HostLibrary, StaticLibrary, SandboxedWasmLibrary))
-            or isinstance(obj, (StaticLibrary, SandboxedWasmLibrary))
+            and not isinstance(obj, (HostLibrary, StaticLibrary, SandboxedWasmLibrary, LFILibrary))
+            or isinstance(obj, (StaticLibrary, SandboxedWasmLibrary, LFILibrary))
             and obj.no_expand_lib
         ):
             backend_file.write_once("%s_OBJS := %s\n" % (obj.name, objs_ref))
             backend_file.write("%s: %s\n" % (obj_target, objs_ref))
-        elif not isinstance(obj, (HostLibrary, StaticLibrary, SandboxedWasmLibrary)):
+        elif not isinstance(obj, (HostLibrary, StaticLibrary, SandboxedWasmLibrary, LFILibrary)):
             list_file_path = "%s.list" % obj.name.replace(".", "_")
             list_file_ref = self._make_list_file(
                 obj.KIND, obj.objdir, objs, list_file_path
@@ -1432,7 +1493,7 @@ class RecursiveMakeBackend(MakeBackend):
             backend_file.write_once("%s: %s\n" % (obj_target, obj.symbols_file))
 
         for lib in shared_libs:
-            assert obj.KIND != "host" and obj.KIND != "wasm"
+            assert obj.KIND != "host" and obj.KIND != "wasm" and obj.KIND != "lfi"
             backend_file.write_once(
                 "SHARED_LIBS += %s\n" % pretty_relpath(lib, lib.import_name)
             )
@@ -1454,8 +1515,10 @@ class RecursiveMakeBackend(MakeBackend):
                 backend_file.write_once("OS_LIBS += %s\n" % lib)
             elif obj.KIND == "host":
                 backend_file.write_once("HOST_EXTRA_LIBS += %s\n" % lib)
+            elif obj.KIND == "lfi":
+                backend_file.write_once("LFI_OS_LIBS += %s\n" % lib)
 
-        if not isinstance(obj, (StaticLibrary, HostLibrary)) or obj.no_expand_lib:
+        if not isinstance(obj, (StaticLibrary, HostLibrary, LFILibrary)) or obj.no_expand_lib:
             # This will create the node even if there aren't any linked libraries.
             build_target = self._build_target_for_obj(obj)
             self._compile_graph[build_target]
@@ -1465,7 +1528,7 @@ class RecursiveMakeBackend(MakeBackend):
             def recurse_libraries(obj):
                 for lib in obj.linked_libraries:
                     if (
-                        isinstance(lib, (StaticLibrary, HostLibrary))
+                        isinstance(lib, (StaticLibrary, HostLibrary, LFILibrary))
                         and not lib.no_expand_lib
                     ):
                         recurse_libraries(lib)

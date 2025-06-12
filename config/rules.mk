@@ -92,6 +92,14 @@ endif
 endif
 endif
 
+ifndef LFI_LIBRARY
+ifdef LFI_REAL_LIBRARY
+ifdef NO_EXPAND_LIBS
+LFI_LIBRARY			:= $(LFI_REAL_LIBRARY)
+endif
+endif
+endif
+
 ifdef FORCE_SHARED_LIB
 ifdef MKSHLIB
 
@@ -198,6 +206,19 @@ RS_STATICLIB_CRATE_OBJ = $(addprefix lib,$(notdir $(RS_STATICLIB_CRATE_SRC:.rs=.
 ifndef OBJS
 _OBJS = $(COBJS) $(SOBJS) $(CPPOBJS) $(CMOBJS) $(CMMOBJS) $(ASOBJS) $(CWASMOBJS) $(CPPWASMOBJS)
 OBJS = $(strip $(_OBJS))
+endif
+
+LFI_COBJS = $(notdir $(LFI_CSRCS:.c=.$(LFI_OBJ_SUFFIX)))
+LFI_SOBJS = $(notdir $(LFI_SSRCS:.S=.$(LFI_OBJ_SUFFIX)))
+# CPPSRCS can have different extensions (eg: .cpp, .cc)
+LFI_CPPOBJS = $(notdir $(addsuffix .$(LFI_OBJ_SUFFIX),$(basename $(LFI_CPPSRCS))))
+LFI_CMOBJS = $(notdir $(LFI_CMSRCS:.m=.$(LFI_OBJ_SUFFIX)))
+LFI_CMMOBJS = $(notdir $(LFI_CMMSRCS:.mm=.$(LFI_OBJ_SUFFIX)))
+# ASFILES can have different extensions (.s, .asm)
+LFI_ASOBJS = $(notdir $(addsuffix .$(LFI_OBJ_SUFFIX),$(basename $(LFI_ASFILES))))
+ifndef LFI_OBJS
+_LFI_OBJS = $(LDI_COBJS) $(LFI_SOBJS) $(LFI_CPPOBJS) $(LFI_CMOBJS) $(LFI_CMMOBJS) $(LFI_ASOBJS)
+LFI_OBJS = $(strip $(_LFI_OBJS))
 endif
 
 HOST_COBJS = $(addprefix host_,$(notdir $(HOST_CSRCS:.c=.$(OBJ_SUFFIX))))

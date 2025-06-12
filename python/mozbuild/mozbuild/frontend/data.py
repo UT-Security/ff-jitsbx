@@ -686,6 +686,25 @@ class SandboxedWasmLibrary(Library):
         """Can be overridden by a base class for custom behavior."""
         return self.config.substs.get("WASM_OBJ_SUFFIX", "")
 
+class LFILibrary(Library):
+    """Context derived container object for a static LFI library"""
+
+    KIND = "lfi"
+    __slots__ = ("link_into", "no_expand_lib")
+
+    def __init__(self, context, basename, real_name=None, link_into=None, no_expand_lib=False):
+        # LFI libraries are not going to compile unless we have a compiler
+        # and toolchain for them.
+        # TODO(abhishek): also require LFI_RUSTC potentially.
+        assert context.config.substs["LFI_CC"] and context.config.substs["LFI_CXX"]
+
+        Library.__init__(self, context, basename, "%s.lfi" % real_name)
+        self.link_into = link_into
+        self.no_expand_lib = no_expand_lib
+
+    def _obj_suffix(self):
+        """Can be overridden by a base class for custom behavior."""
+        return self.config.substs.get("LFI_OBJ_SUFFIX", "")
 
 class BaseRustLibrary(object):
     slots = (
@@ -1110,6 +1129,13 @@ class WasmSources(BaseSources):
             self, context, static_files, generated_files, canonical_suffix
         )
 
+class LFISources(BaseSources):
+    """Represents files to be compiled with the LFI compiler during the build."""
+
+    def __init__(self, context, static_files, generated_files, canonical_suffix):
+        BaseSources.__init__(
+            self, context, static_files, generated_files, canonical_suffix
+        )
 
 class UnifiedSources(BaseSources):
     """Represents files to be compiled in a unified fashion during the build."""
@@ -1150,6 +1176,44 @@ class UnifiedSources(BaseSources):
                 )
             )
 
+class LFIUnifiedSources(BaseSources):
+    """Represents files to be compiled with the LFI compiler in a unified fashion during the build."""
+
+    __slots__ = ("have_unified_mapping", "unified_source_mapping")
+
+    def __init__(self, context, static_files, generated_files, canonical_suffix):
+        BaseSources.__init__(
+            self, context, static_files, generated_files, canonical_suffix
+        )
+
+        unified_build = context.config.substs.get("ENABLE_UNIFIED_BUILD", False)
+        files_per_unified_file = (
+            context.get("FILES_PER_UNIFIED_FILE", 16) if unified_build else 1
+        )
+
+        self.have_unified_mapping = files_per_unified_file > 1
+
+        if self.have_unified_mapping:
+            # On Windows, path names have a maximum length of 255 characters,
+            # so avoid creating extremely long path names.
+            unified_prefix = context.relsrcdir
+            if len(unified_prefix) > 20:
+                unified_prefix = unified_prefix[-20:].split("/", 1)[-1]
+            unified_prefix = unified_prefix.replace("/", "_")
+
+            suffix = self.canonical_suffix[1:]
+            unified_prefix = "Unified_lfi_%s_%s" % (suffix, unified_prefix)
+            self.unified_source_mapping = list(
+                group_unified_files(
+                    # NOTE: self.files is already (partially) sorted, and we
+                    # intentionally do not re-sort it here to avoid a dependency
+                    # on the build environment's objdir path.
+                    self.files,
+                    unified_prefix=unified_prefix,
+                    unified_suffix=suffix,
+                    files_per_unified_file=files_per_unified_file,
+                )
+            )
 
 class InstallationTarget(ContextDerived):
     """Describes the rules that affect where files get installed to."""

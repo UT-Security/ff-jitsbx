@@ -65,3 +65,33 @@ def js_sandbox_lfi(js_sandbox_type):
 
 set_config("JS_SANDBOX_LFI", js_sandbox_lfi)
 set_define("JS_SANDBOX_LFI", js_sandbox_lfi)
+
+@depends(js_sandbox_lfi)
+def requires_lfi_toolchain(js_sandbox_lfi):
+	if js_sandbox_lfi:
+		return True
+
+with only_when(requires_lfi_toolchain & compile_environment):
+	def lfi_compiler_with_flags(compiler):
+		if compiler:
+			return (
+				compiler.wrapper + [compiler.compiler] + compiler.flags
+			)
+	
+	lfi_cc = compiler("C", lfi)
+
+	@depends(lfi_cc)
+	def lfi_cc_with_flags(lfi_cc):
+		return lfi_compiler_with_flags(lfi_cc)
+	
+	set_config("LFI_CC", lfi_cc_with_flags)
+
+	lfi_cxx = compiler("C++", lfi, c_compiler=lfi_cc)
+	
+	@depends(lfi_cxx)
+	def lfi_cxx_with_flags(lfi_cxx):
+		return lfi_compiler_with_flags(lfi_cxx)
+
+	set_config("LFI_CXX", lfi_cxx_with_flags)
+
+	set_config("LFI_OBJ_SUFFIX", "lfi.o")

@@ -1828,6 +1828,22 @@ VARIABLES = {
         """The name of the static sandboxed wasm library generated for a directory.
         """,
     ),
+    "LFI_LIBRARY_NAME": (
+        six.text_type,
+        six.text_type,
+        """The name of the static lfi library generated for a directory.
+        """  
+    ),
+    "LFI_FINAL_LIBRARY": (
+        six.text_type,
+        six.text_type,
+        """LFI Library in which the objects of the current directory will be linked.
+
+        This variable contains the name of a library, defined elsewhere with
+        ``LFI_LIBRARY_NAME``, in which the objects of the current directory will be
+        linked.
+        """,
+    ),
     "SHARED_LIBRARY_OUTPUT_CATEGORY": (
         six.text_type,
         six.text_type,

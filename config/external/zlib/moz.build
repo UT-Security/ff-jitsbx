@@ -5,6 +5,8 @@
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
 Library("zlib")
+if CONFIG["JS_SANDBOX_LFI"]:
+    LFI_LIBRARY_NAME = "zlib_lfi"
 
 if CONFIG["MOZ_SYSTEM_ZLIB"]:
     OS_LIBS += CONFIG["MOZ_ZLIB_LIBS"]

@@ -15,6 +15,8 @@ if CONFIG['ZLIB_IN_MOZGLUE']:
 else:
     # The final library is in config/external/zlib
     FINAL_LIBRARY = 'zlib'
+    if CONFIG['JS_SANDBOX_LFI']:
+        LFI_FINAL_LIBRARY = 'zlib'
 
 # These files can't be unified because zlib's headers don't use include guards.
 SOURCES += [
