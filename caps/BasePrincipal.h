@@ -79,8 +79,7 @@ class SiteIdentifier {
  *
  * We should merge nsJSPrincipals into this class at some point.
  */
-class BasePrincipal : public nsJSPrincipals, 
-                      public mozilla::dom::TaintObj<nsIPrincipal> {
+class BasePrincipal : public nsJSPrincipals {
  public:
   // Warning: this enum impacts Principal serialization into JSON format.
   // Only update if you know exactly what you are doing

@@ -433,8 +433,8 @@ def isAppPtr(iface):
         return True
     #if istr == "Interface \'EventTarget'":
     #    return True
-    #if istr == "Interface \'HTMLInputElement'":
-    #    return True
+    if istr == "Interface \'HTMLInputElement'":
+        return True
     #if istr == "Interface \'Node'":
     #    return True
     return False

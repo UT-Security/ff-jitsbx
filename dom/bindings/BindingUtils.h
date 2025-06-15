@@ -1466,8 +1466,9 @@ MOZ_ALWAYS_INLINE bool DoGetOrCreateDOMReflector(
 
     return true;
   }
-    JS::Rooted<JS::Value> temp_rooted (cx, rval.get().UNSAFE_unverified_ref());
-    JS::MutableHandle<JS::Value> temp (&temp_rooted);
+    JS::MutableHandle<JS::Value> temp 
+        (JS::MutableHandle<JS::Value>::fromMarkedLocation(
+            reinterpret_cast<JS::Value*>(rval.address())));
   return JS_WrapValue(cx, temp);
 }
 
