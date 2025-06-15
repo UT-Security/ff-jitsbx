@@ -11,7 +11,6 @@
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/TypedArray.h"
 #include "mozilla/dom/WebSocketBinding.h"  // for BinaryType
-#include "mozilla/dom/JSTainted.h"
 #include "mozilla/DOMEventTargetHelper.h"
 #include "mozilla/Mutex.h"
 #include "nsCOMPtr.h"
@@ -36,7 +35,7 @@ class Blob;
 class StringOrStringSequence;
 class WebSocketImpl;
 
-class WebSocket final : public TaintObj<WebSocket>, public DOMEventTargetHelper {
+class WebSocket final : public DOMEventTargetHelper {
   friend class WebSocketImpl;
 
  public:

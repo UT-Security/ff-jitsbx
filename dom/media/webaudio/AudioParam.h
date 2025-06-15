@@ -18,7 +18,7 @@
 
 namespace mozilla::dom {
 
-class AudioParam final : public TaintObj<AudioParam>, public nsWrapperCache, public AudioParamTimeline {
+class AudioParam final : public nsWrapperCache, public AudioParamTimeline {
   virtual ~AudioParam();
 
  public:

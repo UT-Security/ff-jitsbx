@@ -10,7 +10,6 @@
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/cache/Types.h"
 #include "mozilla/dom/cache/TypeUtils.h"
-#include "mozilla/dom/JSTainted.h"
 #include "nsCOMPtr.h"
 #include "nsISupportsImpl.h"
 #include "nsTArray.h"
@@ -39,8 +38,7 @@ namespace cache {
 class CacheStorageChild;
 class CacheWorkerRef;
 
-class CacheStorage final : public mozilla::dom::TaintObj<CacheStorage>,
-                           public nsISupports,
+class CacheStorage final : public nsISupports,
                            public nsWrapperCache,
                            public TypeUtils {
   using PBackgroundChild = mozilla::ipc::PBackgroundChild;

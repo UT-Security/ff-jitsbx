@@ -55,10 +55,16 @@ class TaintObj {
             if (cnt == 0) {
                 MOZ_CRASH("Double free on AppPointer detected");
             } else {
-                if(!PtrTable.put(static_cast<void*>(native), cnt - 1)) {
-                    MOZ_CRASH("Failed to decrement refcount");
+                if(!(--cnt)) {
+                    PtrTable.remove(static_cast<void*>(native));
+                } else {
+                    if(!PtrTable.put(static_cast<void*>(native), cnt)) {
+                        MOZ_CRASH("Failed to decrement refcount");
+                    }
                 }
             }
+        } else {
+            MOZ_CRASH("Attempted to decrement refcount of bad object");
         }
     }
 };
