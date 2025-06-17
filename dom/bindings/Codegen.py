@@ -1992,8 +1992,7 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
             return fill("""
                           //Comparison with App Pointer shouldn't trigger GC
                           JSTainted<JSObject*> taint_obj(obj);
-                          JSAppPtr<${nativeType}> taint_self = UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(obj);
-                          ${nativeType}* self = taint_self.verify_as_type();
+                          JSAppPtr<${nativeType}> taint_self = UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(taint_obj);
                           """,
                           nativeType=self.descriptor.nativeType)
         else:
@@ -2021,6 +2020,8 @@ class CGAddPropertyHook(CGAbstractClassHook):
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::Value>", "val"),
         ]
+        self.tainted = isTainted
+        self.appPtr = isAppPtr
         CGAbstractClassHook.__init__(
             self, 
             descriptor, 
@@ -2037,16 +2038,33 @@ class CGAddPropertyHook(CGAbstractClassHook):
         # cycle collected objects, so if addProperty is ever changed to do
         # anything more or less than preserve the wrapper, TryPreserveWrapper
         # will need to be changed.
-        return dedent(
-            """
-            // We don't want to preserve if we don't have a wrapper, and we
-            // obviously can't preserve if we're not initialized.
-            if (self && self->GetWrapperPreserveColor()) {
-              PreserveWrapper(self);
-            }
-            return true;
-            """
-        )
+        if self.tainted or self.appPtr:
+            return fill(
+                """
+                // We don't want to preserve if we don't have a wrapper, and we
+                // obviously can't preserve if we're not initialized.
+                if (taint_self) {
+                    ${nativeType}* self = taint_self.verify_as_type();
+                    if(self->GetWrapperPreserveColor()) {
+                        PreserveWrapper(self);
+                    }
+                }
+                return true;
+                """,
+                nativeType=self.descriptor.nativeType
+            )
+        else:
+            return dedent(
+                """
+                // We don't want to preserve if we don't have a wrapper, and we
+                // obviously can't preserve if we're not initialized.
+                if (self && self->GetWrapperPreserveColor()) {
+                    PreserveWrapper(self);
+                }
+                return true;
+                """,
+            )
+            
 
 
 class CGGetWrapperCacheHook(CGAbstractClassHook):
@@ -2056,6 +2074,7 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
     """
 
     def __init__(self, descriptor, isAppPtr=False):
+        self.appPtr = isAppPtr
         args = [Argument("JS::Handle<JSObject*>", "obj")]
         CGAbstractClassHook.__init__(
             self, 
@@ -2068,15 +2087,26 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
 
     def generate_code(self):
         assert self.descriptor.wrapperCache
-        return dedent(
-            """
-            return self;
-            """
-        )
+        if self.appPtr:
+            return dedent(
+                """
+                return taint_self.verify_as_type();
+                """
+            )
+        else:
+            return dedent(
+                """
+                return self;
+                """
+            )
 
 
-def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False):
-    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
+def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False):
+    if isTainted or isAppPtr:
+        finalize = "%s* self = taint_self.verify_as_type();\n" % descriptor.nativeType
+    else:
+        finalize = ""
+    finalize += "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
             """
@@ -2127,11 +2157,13 @@ def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False):
         """,
         obj=obj,
     )
-    if isTainted:
+    if isTainted or isAppPtr:
         finalize += "TaintObj<%s>::decRefCnt(self);\n" % descriptor.nativeType
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
-    return CGIfWrapper(CGGeneric(finalize), "self")
-
+    if isTainted or isAppPtr:
+        return CGIfWrapper(CGGeneric(finalize), "taint_self")
+    else:
+        return CGIfWrapper(CGGeneric(finalize), "self")
 
 class CGClassFinalizeHook(CGAbstractClassHook):
     """
@@ -2140,35 +2172,56 @@ class CGClassFinalizeHook(CGAbstractClassHook):
 
     def __init__(self, descriptor, isTainted=False, isAppPtr=False):
         self.tainted = isTainted
+        self.appPtr = isAppPtr
         args = [Argument("JS::GCContext*", "gcx"), Argument("JSObject*", "obj")]
         CGAbstractClassHook.__init__(
             self, 
             descriptor, 
             FINALIZE_HOOK_NAME, 
             "void", 
-            args, 
+            args,
             isTainted,
             isAppPtr)
 
     def generate_code(self):
         return finalizeHook(
-            self.descriptor, self.name, self.args[0].name, self.args[1].name, self.tainted
+            self.descriptor, 
+            self.name, 
+            self.args[0].name, 
+            self.args[1].name, 
+            self.tainted,
+            self.appPtr
         ).define()
 
 
-def objectMovedHook(descriptor, hookName, obj, old):
+def objectMovedHook(descriptor, hookName, obj, old, isAppPtr):
     assert descriptor.wrapperCache
-    return fill(
-        """
-        if (self) {
-          UpdateWrapper(self, self, ${obj}, ${old});
-        }
+    if isAppPtr:
+        return fill(
+            """
+            if (taint_self) {
+              ${nativeType}* self = taint_self.verify_as_type();
+              UpdateWrapper(self, self, ${obj}, ${old});
+            }
 
-        return 0;
-        """,
-        obj=obj,
-        old=old,
-    )
+            return 0;
+            """,
+            nativeType=descriptor.nativeType,
+            obj=obj,
+            old=old,
+        )
+    else:
+        return fill(
+            """
+            if (self) {
+              UpdateWrapper(self, self, ${obj}, ${old});
+            }
+
+            return 0;
+            """,
+            obj=obj,
+            old=old,
+        )
 
 
 class CGClassObjectMovedHook(CGAbstractClassHook):
@@ -2178,6 +2231,7 @@ class CGClassObjectMovedHook(CGAbstractClassHook):
     """
 
     def __init__(self, descriptor, isAppPtr=False):
+        self.movedAppPtr = isAppPtr
         args = [Argument("JSObject*", "obj"), Argument("JSObject*", "old")]
         CGAbstractClassHook.__init__(
             self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args, isAppPtr
@@ -2185,7 +2239,11 @@ class CGClassObjectMovedHook(CGAbstractClassHook):
 
     def generate_code(self):
         return objectMovedHook(
-            self.descriptor, self.name, self.args[0].name, self.args[1].name
+            self.descriptor, 
+            self.name, 
+            self.args[0].name, 
+            self.args[1].name, 
+            self.movedAppPtr
         )
 
 
@@ -16037,6 +16095,7 @@ class CGDOMJSProxyHandler_objectMoved(ClassMethod):
             OBJECT_MOVED_HOOK_NAME,
             self.args[0].name,
             self.args[1].name,
+            False
         )
 
 

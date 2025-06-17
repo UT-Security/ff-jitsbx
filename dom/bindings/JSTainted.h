@@ -12,6 +12,7 @@
 #include <uchar.h>
 #include <mozilla/Tainting.h>
 #include <mozilla/AlreadyAddRefed.h>
+#include <mozilla/Atomics.h>
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 #include "js/experimental/JitInfo.h"
@@ -28,6 +29,7 @@ template<typename T>
 class TaintObj {
 	public:
 	static inline TaintTable PtrTable = TaintTable(1);
+    static inline mozilla::Atomic<bool> ptrLock = mozilla::Atomic<bool>(false);
 	TaintObj() {
 		if(!PtrTable.put(this, 1)) {
 			MOZ_CRASH("Couldn't add new pointer to pointer table");
@@ -37,6 +39,7 @@ class TaintObj {
 		PtrTable.remove(this);
 	}
     static void incRefCnt(T* native) {
+        acquire();
         TaintTable::Ptr p =  PtrTable.lookup(static_cast<void*>(native));
         if(p) {
             if(!PtrTable.put(static_cast<void*>(native), p->value() + 1)) {
@@ -47,8 +50,10 @@ class TaintObj {
                 MOZ_CRASH("Failed to insert AppPointer in NativeWrapping");
             }
         }
+        release();
     }
     static void decRefCnt(T* native) {
+        acquire();
         TaintTable::Ptr p = PtrTable.lookup(static_cast<void*>(native));
         if(p) {
             uint32_t cnt = p->value();
@@ -66,6 +71,14 @@ class TaintObj {
         } else {
             MOZ_CRASH("Attempted to decrement refcount of bad object");
         }
+        release();
+    }
+    static bool acquire(void) {
+        while(!ptrLock.compareExchange(false, true));
+        return true;
+    }
+    static void release(void) {
+        ptrLock = false;
     }
 };
 
