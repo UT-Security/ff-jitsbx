@@ -3068,7 +3068,6 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
     aReflector.set(
         js::NewProxyObject(aCx, aHandler, aExpandoValue, aProto, options));
     if (aReflector) {
-      TaintObj<T>::incRefCnt(aNative);
       js::SetProxyReservedSlot(aReflector, DOM_OBJECT_SLOT,
                                JS::PrivateValue(aNative));
       mNative = aNative;
@@ -3086,7 +3085,6 @@ class MOZ_STACK_CLASS BindingJSObjectCreator {
                     JS::MutableHandle<JSObject*> aReflector) {
     aReflector.set(JS_NewObjectWithGivenProto(aCx, aClass, aProto));
     if (aReflector) {
-      TaintObj<T>::incRefCnt(aNative);
       JS::SetReservedSlot(aReflector, DOM_OBJECT_SLOT,
                           JS::PrivateValue(aNative));
       mNative = aNative;

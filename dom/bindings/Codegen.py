@@ -2158,7 +2158,9 @@ def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False
         obj=obj,
     )
     if isTainted or isAppPtr:
-        finalize += "TaintObj<%s>::decRefCnt(self);\n" % descriptor.nativeType
+        for parentInterface in descriptor.prototypeChain:
+            parentNative = descriptor.getDescriptor(parentInterface).nativeType
+            finalize += "TaintObj<%s>::decRefCnt(self);\n" % parentNative
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
     if isTainted or isAppPtr:
         return CGIfWrapper(CGGeneric(finalize), "taint_self")
@@ -4356,7 +4358,7 @@ class CGDeserializer(CGAbstractMethod):
         )
 
 
-def CreateBindingJSObject(descriptor):
+def CreateBindingJSObject(descriptor, isAppPtr=False):
     objDecl = "BindingJSObjectCreator<%s> creator(aCx);\n" % descriptor.nativeType
 
     # We don't always need to root obj, but there are a variety
@@ -4394,6 +4396,23 @@ def CreateBindingJSObject(descriptor):
             """
             creator.CreateObject(aCx, sClass.ToJSClass(), proto, aObject, aReflector);
             """
+        )
+    if isAppPtr:
+        addAppPtr = ""
+        for parentInterface in descriptor.prototypeChain:
+            nativeParent = descriptor.getDescriptor(parentInterface)
+            addAppPtr = addAppPtr + "TaintObj<%s>::incRefCnt(aObject);\n" % nativeParent.nativeType
+        return (
+            objDecl
+            + create
+            + dedent(
+                """
+                if (!aReflector) {
+                    return false;
+                }
+                """,
+            )
+            + addAppPtr
         )
     return (
         objDecl
@@ -4650,8 +4669,9 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     Create a wrapper JSObject for a given native that implements nsWrapperCache.
     """
 
-    def __init__(self, descriptor):
+    def __init__(self, descriptor, isAppPtr=False):
         assert descriptor.interface.hasInterfacePrototypeObject()
+        self.appPtr = isAppPtr
         args = [
             Argument("JSContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
@@ -4743,7 +4763,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
             nativeType=self.descriptor.nativeType,
             assertInheritance=AssertInheritanceChain(self.descriptor),
             declareProto=DeclareProto(self.descriptor),
-            createObject=CreateBindingJSObject(self.descriptor),
+            createObject=CreateBindingJSObject(self.descriptor, self.appPtr),
             unforgeable=CopyUnforgeablePropertiesToInstance(
                 self.descriptor, failureCode
             ),
@@ -4786,9 +4806,10 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
     nsWrapperCache.
     """
 
-    def __init__(self, descriptor, static=False, signatureOnly=False):
+    def __init__(self, descriptor, static=False, signatureOnly=False, isAppPtr=False):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
+        self.appPtr = isAppPtr
         self.noGivenProto = (
             descriptor.interface.isIteratorInterface()
             or descriptor.interface.isAsyncIteratorInterface()
@@ -4842,7 +4863,7 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
             assertions=AssertInheritanceChain(self.descriptor),
             assertGivenProto=assertGivenProto,
             declareProto=declareProto,
-            createObject=CreateBindingJSObject(self.descriptor),
+            createObject=CreateBindingJSObject(self.descriptor, self.appPtr),
             unforgeable=CopyUnforgeablePropertiesToInstance(
                 self.descriptor, failureCode
             ),
@@ -4858,8 +4879,9 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     properties should be a PropertyArrays instance.
     """
 
-    def __init__(self, descriptor, properties):
+    def __init__(self, descriptor, properties, isAppPtr=False):
         assert descriptor.interface.hasInterfacePrototypeObject()
+        self.appPtr = isAppPtr
         args = [
             Argument("JSContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
@@ -4882,6 +4904,12 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             chromeProperties = "nsContentUtils::ThreadsafeIsSystemCaller(aCx) ? sChromeOnlyNativeProperties.Upcast() : nullptr"
         else:
             chromeProperties = "nullptr"
+        
+        removeAppPtr = ""
+        if self.appPtr:
+            for parentDesc in self.descriptor.prototypeChain:
+                parentNative = self.descriptor.getDescriptor(parentDesc).nativeType
+                removeAppPtr = removeAppPtr + (f"TaintObj<%s>::decRefCnt(aObject);\n" % parentNative)
 
         failureCode = dedent(
             """
@@ -4889,7 +4917,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             aCache->ClearWrapper();
             return false;
             """
-        )
+        ) + removeAppPtr
 
         if self.descriptor.hasLegacyUnforgeableMembers:
             unforgeable = InitUnforgeablePropertiesOnHolder(
@@ -4902,6 +4930,11 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             getProto = "JS::GetRealmObjectPrototypeHandle"
         else:
             getProto = "GetProtoObjectHandle"
+        incAppPtr = ""
+        if self.appPtr:
+            for parentDesc in self.descriptor.prototypeChain:
+                parentNative = self.descriptor.getDescriptor(parentDesc).nativeType
+                incAppPtr = incAppPtr + (f"TaintObj<%s>::incRefCnt(aObject);\n" % parentNative)
         return fill(
             """
             $*{assertions}
@@ -4923,6 +4956,8 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // before doing anything with it.
             JSAutoRealm ar(aCx, aReflector);
 
+            $*{incAppPtr}
+
             if (!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties})) {
               $*{failureCode}
             }
@@ -4940,6 +4975,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             failureCode=failureCode,
             unforgeable=unforgeable,
             slots=InitMemberSlots(self.descriptor, failureCode),
+            incAppPtr=incAppPtr
         )
 
 
@@ -16887,9 +16923,9 @@ class CGDescriptor(CGThing):
 
             if descriptor.isGlobal():
                 assert descriptor.wrapperCache
-                cgThings.append(CGWrapGlobalMethod(descriptor, properties))
+                cgThings.append(CGWrapGlobalMethod(descriptor, properties, descriptor.appPtr))
             elif descriptor.wrapperCache:
-                cgThings.append(CGWrapWithCacheMethod(descriptor))
+                cgThings.append(CGWrapWithCacheMethod(descriptor, descriptor.appPtr))
                 cgThings.append(CGWrapMethod(descriptor))
             else:
                 cgThings.append(

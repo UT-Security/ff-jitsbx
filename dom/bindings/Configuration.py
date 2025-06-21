@@ -423,17 +423,19 @@ def MemberIsLegacyUnforgeable(member, descriptor):
 
 def isAppPtr(iface):
     istr = str(iface)
-    if istr == "Interface \'AudioParam\'":
-        return True
-    if istr == "Interface \'BroadcastChannel'":
-        return True
-    if istr == "Interface \'CacheStorage'":
-        return True
-    if istr == "Interface \'WebSocket'":
-        return True
+    #if istr == "Interface \'AudioParam\'":
+    #    return True
+    #if istr == "Interface \'BroadcastChannel'":
+    #    return True
+    #if istr == "Interface \'CacheStorage'":
+    #    return True
+    #if istr == "Interface \'WebSocket'":
+    #    return True
     #if istr == "Interface \'EventTarget'":
     #    return True
     if istr == "Interface \'HTMLInputElement'":
+        return True
+    if istr == "Interface \'Window'":
         return True
     #if istr == "Interface \'Node'":
     #    return True
