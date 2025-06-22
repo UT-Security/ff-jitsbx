@@ -11,7 +11,7 @@
 
 namespace mozilla::dom {
 
-class ConsoleInstance final : public TaintObj<ConsoleInstance>, public nsISupports, public nsWrapperCache {
+class ConsoleInstance final : public nsISupports, public nsWrapperCache {
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(ConsoleInstance)

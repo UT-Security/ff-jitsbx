@@ -52,6 +52,20 @@ class TaintObj {
         }
         release();
     }
+
+    //mostly for smart pointers
+    static void incRefCnt(T& native) {
+        incRefCnt(&native);
+    }
+    static void incRefCnt(UniquePtr<T>& native) {
+        incRefCnt(native.get());
+    }
+    /*
+    static void incRefCnt(SmartPtr<T>& native) {
+        incRefCnt(native.get());
+    }
+    */
+
     static void decRefCnt(T* native) {
         acquire();
         TaintTable::Ptr p = PtrTable.lookup(static_cast<void*>(native));

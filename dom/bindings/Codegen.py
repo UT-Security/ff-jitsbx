@@ -2262,11 +2262,12 @@ class CGClassConstructor(CGAbstractStaticMethod):
     JS-visible constructor for our objects
     """
 
-    def __init__(self, descriptor, ctor, name=CONSTRUCT_HOOK_NAME):
+    def __init__(self, descriptor, ctor, name=CONSTRUCT_HOOK_NAME, isAppPtr=False):
         CGAbstractStaticMethod.__init__(
             self, descriptor, name, "bool", JSNativeArguments()
         )
         self._ctor = ctor
+        self.appPtr = isAppPtr
 
     def define(self):
         if not self._ctor:
@@ -9210,6 +9211,7 @@ class CGPerSignatureCall(CGThing):
         dontSetSlot=False,
         extendedAttributes=None,
         isTainted=False,
+        isAppPtr=True
     ):
         assert idlNode.isMethod() == (not getter and not setter)
         assert idlNode.isAttr() == (getter or setter)
@@ -9579,6 +9581,15 @@ class CGPerSignatureCall(CGThing):
                     isTainted=isTainted,
                 )
             )
+        
+        if isConstructor and isAppPtr:
+            addAppPtr = ""
+            for parentInterface in descriptor.prototypeChain:
+                nativeParent = descriptor.getDescriptor(parentInterface)
+                realResultVar = "result" if resultVar == None else resultVar
+                incRef = "TaintObj<%s>::incRefCnt(%s);\n" % (nativeParent.nativeType, realResultVar)
+                addAppPtr = addAppPtr + incRef
+            cgThings.append(CGGeneric(addAppPtr))
 
         if useCounterName:
             # Generate a telemetry call for when [UseCounter] is used.
@@ -16663,7 +16674,7 @@ class CGDescriptor(CGThing):
             iteratorDescriptor = descriptor.getDescriptor(itr_iface.identifier.name)
             iteratorCGThings.append(
                 CGWrapNonWrapperCacheMethod(
-                    iteratorDescriptor, static=True, signatureOnly=True
+                    iteratorDescriptor, static=True, signatureOnly=True, isAppPtr=descriptor.appPtr
                 )
             )
             iteratorCGThings = CGList(
@@ -16702,7 +16713,7 @@ class CGDescriptor(CGThing):
         unscopableNames = list()
         for n in descriptor.interface.legacyFactoryFunctions:
             cgThings.append(
-                CGClassConstructor(descriptor, n, LegacyFactoryFunctionName(n))
+                CGClassConstructor(descriptor, n, LegacyFactoryFunctionName(n), isAppPtr=descriptor.appPtr)
             )
         isAppPtr = descriptor.appPtr
         for m in descriptor.interface.members:
@@ -16864,7 +16875,7 @@ class CGDescriptor(CGThing):
             cgThings.append(CGNativePropertyHooks(descriptor, properties))
 
         if descriptor.interface.hasInterfaceObject():
-            cgThings.append(CGClassConstructor(descriptor, descriptor.interface.ctor()))
+            cgThings.append(CGClassConstructor(descriptor, descriptor.interface.ctor(), isAppPtr=descriptor.appPtr))
             cgThings.append(CGInterfaceObjectJSClass(descriptor, properties))
             cgThings.append(CGLegacyFactoryFunctions(descriptor))
 
@@ -16929,7 +16940,9 @@ class CGDescriptor(CGThing):
                 cgThings.append(CGWrapMethod(descriptor))
             else:
                 cgThings.append(
-                    CGWrapNonWrapperCacheMethod(descriptor, static=isIteratorInterface)
+                    CGWrapNonWrapperCacheMethod(descriptor, 
+                                                static=isIteratorInterface, 
+                                                isAppPtr=descriptor.appPtr)
                 )
 
         # If we're not wrappercached, we don't know how to clear our

@@ -421,7 +421,11 @@ def MemberIsLegacyUnforgeable(member, descriptor):
         )
     )
 
+def isInterface(iface, name):
+    return str(iface) == (f"Interface '%s'" % name)
+
 def isAppPtr(iface):
+    return True
     istr = str(iface)
     #if istr == "Interface \'AudioParam\'":
     #    return True
@@ -437,8 +441,22 @@ def isAppPtr(iface):
         return True
     if istr == "Interface \'Window'":
         return True
-    #if istr == "Interface \'Node'":
-    #    return True
+    if istr == "Interface \'WorkletGlobalScope":
+        return True
+    if isInterface(iface, "WorkerGlobalScope"):
+        return True
+    if isInterface(iface, "DedicatedWorkerGlobalScope"):
+        return True
+    if isInterface(iface, "SharedWorkerGlobalScope"):
+        return True
+    if isInterface(iface, "ServiceWorkerGlobalScope"):
+        return True
+    if isInterface(iface, "WorkerDebuggerGlobalScope"):
+        return True
+    if isInterface(iface, "Console"):
+        return True
+    if isInterface(iface, "ConsoleInstance"):
+        return True
     return False
 
 class Descriptor(DescriptorProvider):
