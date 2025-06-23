@@ -1,26 +1,3 @@
-diff --git a/liblfi/host/linux/dir.c b/liblfi/host/linux/dir.c
-index 42dbdc50c1..0edcede6fb 100644
---- a/liblfi/host/linux/dir.c
-+++ b/liblfi/host/linux/dir.c
-@@ -1,11 +1,18 @@
- #define _GNU_SOURCE
- #include <dirent.h>
- #include <stdio.h>
-+#include <syscall.h>
-+#include <sys/stat.h>
-+#include <unistd.h>
- 
- #include "types.h"
- #include "host/posix/file.h"
- #include "host/error.h"
- 
-+static inline ssize_t getdents64(int fd, void* dirp, size_t count) {
-+    return syscall(__NR_getdents64, fd, dirp, count);
-+}
-+
- ssize_t
- host_getdents64(struct HostFile* file, void* dirp, size_t count)
- {
 diff --git a/liblfi/host/linux/random.c b/liblfi/host/linux/random.c
 index fc3ca368c7..086ee5eaca 100644
 --- a/liblfi/host/linux/random.c
@@ -138,7 +115,7 @@ index 893c79bc06..2c48bbd9b8 100644
      });
      if (!bm)
          goto err1;
--    if (!boxmap_reserve(bm, gb(256)))
+-    if (!boxmap_reserve(bm, gb(32)))
 +    if (!boxmap_reserve(bm, gb(512)))
          goto err2;
  
