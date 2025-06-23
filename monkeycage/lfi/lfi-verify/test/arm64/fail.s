@@ -80,3 +80,11 @@ add w18, w21, w7, uxtw #0
 ---
 // stp w11, w18, [x18], #-0x28
 .long 0x28bb4a4b
+---
+.inst   0x48207e43
+---
+// flags: --sandbox=stores
+ldr x0, [x21], #16
+---
+// flags: --sandbox=stores
+str x0, [x1]

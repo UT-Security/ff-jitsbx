@@ -1,9 +1,25 @@
 #include <stdio.h>
+#include <stdint.h>
+#include <stdbool.h>
+
+#ifndef __linux__
+
+bool
+perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
+{
+    (void) elf_data, (void) size, (void) offset;
+    fprintf(stderr, "perf is not supported on non-linux platforms\n");
+    return false;
+}
+
+#else
+
 #include <unistd.h>
 #include <elf.h>
 #include <string.h>
-#include <stdbool.h>
 #include <dirent.h>
+
+#include "log.h"
 
 static bool
 direxists(const char* dirname)
@@ -16,7 +32,7 @@ direxists(const char* dirname)
     return false;
 }
 
-int
+bool
 perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
 {
     char* tmpdir = "/data/local/tmp";
@@ -29,9 +45,11 @@ perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
     snprintf(output_file, sizeof(output_file), "%s/perf-%d.map", tmpdir, getpid());
     FILE *out = fopen(output_file, "w");
     if (!out) {
+        LOG("failed to create output file %s", output_file);
         perror("fopen");
         goto err;
     }
+    LOG("successfully created output file %s", output_file);
 
     // Ensure the buffer is large enough for an ELF header
     if (size < sizeof(Elf64_Ehdr)) {
@@ -99,8 +117,10 @@ perf_output_jit_interface_file(uint8_t *elf_data, size_t size, uintptr_t offset)
 
     fclose(out);
     printf("Perf map written to: %s\n", output_file);
-    return 0;
+    return true;
 err:
     if (out) fclose(out);
-    return 1;
+    return false;
 }
+
+#endif

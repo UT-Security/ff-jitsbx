@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "lfiv.h"
 #include "lfi.h"
 #include "boxmap.h"
 #include "pal/platform.h"
@@ -79,6 +80,10 @@ protectverify(uintptr_t base, size_t size, int prot, LFIVerifier* verifier)
         return -1;
     }
 
+    assert(verifier);
+    if (!lfiv_verify(verifier, (void*) base, size, (uintptr_t) base)) {
+        return -1;
+    }
     return host_mprotect((void*) base, size, prot);
 }
 
@@ -163,7 +168,9 @@ lfi_as_munmap(struct LFIAddrSpace* as, lfiptr_t addr, size_t size)
 EXPORT void
 lfi_as_free(struct LFIAddrSpace* as)
 {
-    assert(!"unimplemented");
+    host_mmap((void*) as->base, as->size, LFI_PROT_NONE, LFI_MAP_ANONYMOUS | LFI_MAP_PRIVATE | LFI_MAP_FIXED, NULL, 0);
+    boxmap_rmspace(as->plat->bm, as->base, as->size);
+    free(as);
 }
 
 EXPORT lfiptr_t

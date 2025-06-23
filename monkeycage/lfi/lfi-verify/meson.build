@@ -4,7 +4,9 @@ fadec = subproject('fadec').get_variable('fadec')
 srcs = files(
   'arm64/verify.c',
   'amd64/verify.c',
-  'amd64/x86-all.bdd.c',
+  'amd64/ht.c',
+  'amd64/bdd.c',
+  'amd64/bddinc.s',
 )
 
 liblfiv = static_library(
