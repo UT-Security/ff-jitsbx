@@ -9,8 +9,8 @@ origin:
   description: A small library for allocating large chunks of the virtual address space.
   url: https://github.com/zyedidia/libboxmap/tree/master
 
-  release: 9d5d994c07cc8b4ae332cd69814e627a27a178c1 (2024-12-17T06:29:49Z).
-  revision: 9d5d994c07cc8b4ae332cd69814e627a27a178c1
+  release: 91cb88892026e100e0f7d1f3a704fe31e0855560 (2025-06-16T03:30:42Z).
+  revision: 91cb88892026e100e0f7d1f3a704fe31e0855560
 
   license: MIT
 
