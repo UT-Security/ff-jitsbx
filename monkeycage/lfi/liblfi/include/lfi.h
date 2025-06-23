@@ -8,6 +8,10 @@
 #include "lfi_arch.h"
 #include "lfi_host.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum {
     LFI_MAP_SHARED    = 1,
     LFI_MAP_PRIVATE   = 2,
@@ -90,6 +94,7 @@ void                    lfi_ctx_pause(struct LFIContext* ctx, uint64_t val);
 void                    lfi_ctx_tpset(struct LFIContext* ctx, lfiptr_t tp);
 struct LFIAddrSpace*    lfi_ctx_as(struct LFIContext* ctx);
 bool                    lfi_ctx_validptr(struct LFIContext* ctx, lfiptr_t lp);
+struct LFIContext*      lfi_get_myctx(void);
 
 void                    lfi_sys_handler(struct LFIPlatform* plat, SysHandlerFn fn);
 
@@ -100,13 +105,15 @@ struct LFILoadOpts {
     char* gdbfile;
 };
 
-typedef struct {
-    void* verify;
-} LFIVerifier;
-
 bool                    lfi_proc_loadelf(struct LFIAddrSpace* as, uint8_t* prog, size_t progsz, uint8_t* interp, size_t interpsz, struct LFILoadInfo* o_info, struct LFILoadOpts opts);
 bool                    lfi_proc_init(struct LFIContext* ctx, struct LFIAddrSpace* as, struct LFILoadInfo info);
+bool                    lfi_proc_loadsyms(struct LFIContext* ctx, uint8_t* elfdat, size_t elfsize);
+uint64_t                lfi_proc_sym(struct LFIContext* ctx, char* sym);
 
 void lfi_thread_init(void (*thread_create)(void*), void* pausefn);
 
 char* lfi_strerror(void);
+
+#ifdef __cplusplus
+}
+#endif

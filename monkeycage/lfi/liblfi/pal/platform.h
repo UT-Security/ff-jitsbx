@@ -2,6 +2,7 @@
 
 #include <assert.h>
 
+#include "lfiv.h"
 #include "lfi.h"
 #include "lfi_arch.h"
 #include "mmap.h"
@@ -29,16 +30,27 @@ struct LFIAddrSpace {
 struct Sys {
     uintptr_t rtcalls[256];
     uintptr_t base;
-    uintptr_t ctx;
+    uintptr_t ctxp;
+};
+
+struct ElfTable {
+    char* tab;
+    size_t size;
 };
 
 struct LFIContext {
     void* kstackp;
     uintptr_t tp;
+    uintptr_t ktpderef;
+    uintptr_t _pad;
     struct TuxRegs regs;
     void* ctxp;
     struct Sys* sys;
     struct LFIAddrSpace* as;
+
+    uintptr_t elfbase;
+    struct ElfTable symtab;
+    struct ElfTable strtab;
 };
 
 static inline size_t

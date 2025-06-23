@@ -7,6 +7,12 @@ nop
 ---
 // flags: --decl
 .bundle_align_mode 4
+start:
+jmp s1
+nop
+s1:
+jmp foo
+nop
 foo:
 jz bar
 .p2align 4
@@ -17,6 +23,12 @@ jo foo
 bar:
 ---
 .bundle_align_mode 4
+start:
+jmp s1
+nop
+s1:
+jmp foo
+nop
 cmp %eax, %eax
 foo:
 jz bar
@@ -29,3 +41,15 @@ imul %rdi, %rax
 jo x
 .p2align 4
 bar:
+---
+// flags: --poc
+movq %r11, %rax
+---
+// flags: --poc
+movq %r11, %gs:(%eax) // this is probably technically allowed, since only the lowbits are read, but it's fine to reject
+---
+// flags: --poc
+stosq
+---
+// flags: --poc
+movsq
