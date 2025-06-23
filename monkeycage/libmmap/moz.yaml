@@ -9,8 +9,8 @@ origin:
   description: mmap functionality used by liblfi
   url: https://github.com/zyedidia/libmmap/tree/tux
 
-  release: cf0af0908d6c2f22ca4e760296773bd03d72a3c2 (2024-12-01T03:32:06Z).
-  revision: cf0af0908d6c2f22ca4e760296773bd03d72a3c2
+  release: d0c10ca703cba0e7e8fe7d361f7c40352422f692 (2025-06-06T01:46:16Z).
+  revision: d0c10ca703cba0e7e8fe7d361f7c40352422f692
 
   license: MIT
 
