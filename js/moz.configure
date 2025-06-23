@@ -311,6 +311,20 @@ set_config("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
 set_define("JS_LFI_TOOLCHAIN", js_lfi_toolchain)
 
 option(
+    "--enable-js-sandbox-lfi-stub",
+    default=False,
+    when=js_lfi_toolchain,
+    help="{Enable|Disable} JS sandbox heap masking.",
+)
+
+@depends("--enable-js-sandbox-lfi-stub", when=js_lfi_toolchain)
+def js_sandbox_lfi_stub(enable_js_sandbox_lfi_stub):
+	if enable_js_sandbox_lfi_stub:
+		return True
+
+set_config("JS_SANDBOX_LFI_STUB", js_sandbox_lfi_stub)
+
+option(
     "--enable-js-sandbox-heap",
     default=False,
     help="{Enable|Disable} JS sandbox heap masking.",
