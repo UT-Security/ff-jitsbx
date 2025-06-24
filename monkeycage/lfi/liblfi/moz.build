@@ -32,6 +32,7 @@ CFLAGS += ["-std=gnu11"]
 SOURCES += [
 	"buf.c",
 	"elfload.c",
+	"elfsym.c",
 	"err.c",
 	"fd.c",
 	"file.c",
