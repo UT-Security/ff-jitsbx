@@ -2100,6 +2100,16 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
                 """
             )
 
+def removeAppPtr(descriptor, obj):
+    if len(descriptor.prototypeChain) == 1:
+        return f"TaintObj<%s>::decRefCnt(%s);\n" % (descriptor.nativeType, obj)
+    else:
+        decAppPtr = f"if(TaintObj<%s>::decRefCnt(%s)) {{\n" % (descriptor.nativeType, obj)
+        for desc in descriptor.prototypeChain[:-1]:
+            nativeType = descriptor.getDescriptor(desc).nativeType
+            decAppPtr = decAppPtr + (f"TaintObj<%s>::decRefCnt(%s);\n" % (nativeType, obj))
+        decAppPtr = decAppPtr + "}\n"
+        return decAppPtr
 
 def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False):
     if isTainted or isAppPtr:
@@ -2158,9 +2168,7 @@ def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False
         obj=obj,
     )
     if isTainted or isAppPtr:
-        for parentInterface in descriptor.prototypeChain:
-            parentNative = descriptor.getDescriptor(parentInterface).nativeType
-            finalize += "TaintObj<%s>::decRefCnt(self);\n" % parentNative
+        finalize += removeAppPtr(descriptor, "self")
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
     if isTainted or isAppPtr:
         return CGIfWrapper(CGGeneric(finalize), "taint_self")
@@ -4399,10 +4407,6 @@ def CreateBindingJSObject(descriptor, isAppPtr=False):
             """
         )
     if isAppPtr:
-        addAppPtr = ""
-        for parentInterface in descriptor.prototypeChain:
-            nativeParent = descriptor.getDescriptor(parentInterface)
-            addAppPtr = addAppPtr + "TaintObj<%s>::incRefCnt(aObject);\n" % nativeParent.nativeType
         return (
             objDecl
             + create
@@ -4413,7 +4417,7 @@ def CreateBindingJSObject(descriptor, isAppPtr=False):
                 }
                 """,
             )
-            + addAppPtr
+            + addAppPtr(descriptor, "aObject")
         )
     return (
         objDecl
@@ -4871,6 +4875,20 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
             slots=InitMemberSlots(self.descriptor, failureCode),
         )
 
+def addAppPtr(desc, obj):
+    if len(desc.prototypeChain) == 1:
+        incAppPtr = "TaintObj<%s>::incRefCnt(%s);\n" % (desc.nativeType, obj)
+    else:
+        incAppPtr = fill("""
+                        if(TaintObj<${nativeType}>::incRefCnt(${obj})) {
+                        """,
+                    nativeType=desc.nativeType,
+                    obj=obj)
+        for parentDesc in desc.prototypeChain[:-1]:
+            parentNative = desc.getDescriptor(parentDesc).nativeType
+            incAppPtr = incAppPtr + (f"TaintObj<%s>::incRefCnt(%s);\n" % (parentNative, obj))
+        incAppPtr = incAppPtr + "}\n"
+    return incAppPtr
 
 class CGWrapGlobalMethod(CGAbstractMethod):
     """
@@ -4906,19 +4924,16 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         else:
             chromeProperties = "nullptr"
         
-        removeAppPtr = ""
+        decAppPtr = ""
         if self.appPtr:
-            for parentDesc in self.descriptor.prototypeChain:
-                parentNative = self.descriptor.getDescriptor(parentDesc).nativeType
-                removeAppPtr = removeAppPtr + (f"TaintObj<%s>::decRefCnt(aObject);\n" % parentNative)
-
+            decAppPtr = removeAppPtr(self.descriptor, "aObject")
         failureCode = dedent(
             """
             aCache->ReleaseWrapper(aObject);
             aCache->ClearWrapper();
             return false;
             """
-        ) + removeAppPtr
+        ) + decAppPtr
 
         if self.descriptor.hasLegacyUnforgeableMembers:
             unforgeable = InitUnforgeablePropertiesOnHolder(
@@ -4933,9 +4948,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             getProto = "GetProtoObjectHandle"
         incAppPtr = ""
         if self.appPtr:
-            for parentDesc in self.descriptor.prototypeChain:
-                parentNative = self.descriptor.getDescriptor(parentDesc).nativeType
-                incAppPtr = incAppPtr + (f"TaintObj<%s>::incRefCnt(aObject);\n" % parentNative)
+            incAppPtr = addAppPtr(self.descriptor, "aObject")
         return fill(
             """
             $*{assertions}
@@ -9583,13 +9596,8 @@ class CGPerSignatureCall(CGThing):
             )
         
         if isConstructor and isAppPtr:
-            addAppPtr = ""
-            for parentInterface in descriptor.prototypeChain:
-                nativeParent = descriptor.getDescriptor(parentInterface)
-                realResultVar = "result" if resultVar == None else resultVar
-                incRef = "TaintObj<%s>::incRefCnt(%s);\n" % (nativeParent.nativeType, realResultVar)
-                addAppPtr = addAppPtr + incRef
-            cgThings.append(CGGeneric(addAppPtr))
+            incAppPtr = addAppPtr(descriptor, "result" if resultVar == None else resultVar)
+            cgThings.append(CGGeneric(incAppPtr))
 
         if useCounterName:
             # Generate a telemetry call for when [UseCounter] is used.

@@ -31,34 +31,37 @@ class TaintObj {
 	static inline TaintTable PtrTable = TaintTable(1);
     static inline mozilla::Atomic<bool> ptrLock = mozilla::Atomic<bool>(false);
 	TaintObj() {
-		if(!PtrTable.put(this, 1)) {
+		if(!PtrTable.putNew(this, 1)) {
 			MOZ_CRASH("Couldn't add new pointer to pointer table");
         }
 	}
 	~TaintObj() {
 		PtrTable.remove(this);
 	}
-    static void incRefCnt(T* native) {
+
+    //returns true if we added a new pointer to the table, false otherwise
+    static bool incRefCnt(T* native) {
         acquire();
         TaintTable::Ptr p =  PtrTable.lookup(static_cast<void*>(native));
         if(p) {
-            if(!PtrTable.put(static_cast<void*>(native), p->value() + 1)) {
-                MOZ_CRASH("Failed to update refcount in pointer table");
-            }
+            p->value() = p->value() + 1;
+            release();
+            return false;
         } else {
-            if(!PtrTable.put(static_cast<void*>(native), 1)) {
+            if(!PtrTable.putNew(static_cast<void*>(native), 1)) {
                 MOZ_CRASH("Failed to insert AppPointer in NativeWrapping");
             }
+            release();
+            return true;
         }
-        release();
     }
 
     //mostly for smart pointers
-    static void incRefCnt(T& native) {
-        incRefCnt(&native);
+    static bool incRefCnt(T& native) {
+        return incRefCnt(&native);
     }
-    static void incRefCnt(UniquePtr<T>& native) {
-        incRefCnt(native.get());
+    static bool incRefCnt(UniquePtr<T>& native) {
+        return incRefCnt(native.get());
     }
     /*
     static void incRefCnt(SmartPtr<T>& native) {
@@ -66,7 +69,8 @@ class TaintObj {
     }
     */
 
-    static void decRefCnt(T* native) {
+    //returns true if we removed the pointer from the table, false otherwise
+    static bool decRefCnt(T* native) {
         acquire();
         TaintTable::Ptr p = PtrTable.lookup(static_cast<void*>(native));
         if(p) {
@@ -76,16 +80,17 @@ class TaintObj {
             } else {
                 if(!(--cnt)) {
                     PtrTable.remove(static_cast<void*>(native));
+                    release();
+                    return true;
                 } else {
-                    if(!PtrTable.put(static_cast<void*>(native), cnt)) {
-                        MOZ_CRASH("Failed to decrement refcount");
-                    }
+                    p->value() = cnt;
+                    release();
+                    return false;
                 }
             }
         } else {
             MOZ_CRASH("Attempted to decrement refcount of bad object");
         }
-        release();
     }
     static bool acquire(void) {
         while(!ptrLock.compareExchange(false, true));
