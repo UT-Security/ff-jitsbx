@@ -10,9 +10,10 @@
 
 #include "ipc/IPCMessageUtils.h"
 #include "ProcessedStack.h"
+#include "jstypes.h"
 
-class JSObject;
-struct JSContext;
+class JS_PUBLIC_API JSObject;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 namespace Telemetry {

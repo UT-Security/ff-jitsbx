@@ -26,7 +26,7 @@ extern mozilla::LogModule* GetMediaSourceAPILog();
   MOZ_LOG(GetMediaSourceLog(), mozilla::LogLevel::Debug, \
           ("SourceBufferList(%p)::%s: " arg, this, __func__, ##__VA_ARGS__))
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 
 using TimeUnit = mozilla::media::TimeUnit;

@@ -61,7 +61,7 @@
 #  define SPOOFED_HTTP_UA_OS "Windows NT 10.0"
 #endif
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class WidgetKeyboardEvent;

@@ -46,7 +46,7 @@ class JSAutoRealm;
 class JSObject;
 class JSTracer;
 class nsCycleCollectionTraversalCallback;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace JS {
 class AutoSetAsyncStackForNewCalls;

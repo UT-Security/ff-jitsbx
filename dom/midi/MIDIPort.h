@@ -15,7 +15,7 @@
 #include "mozilla/dom/MIDIPortChild.h"
 #include "mozilla/dom/MIDIPortInterface.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla::dom {
 

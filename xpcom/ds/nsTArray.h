@@ -100,7 +100,7 @@ template <class T>
 class Endpoint;
 }  // namespace mozilla::ipc
 
-class JSStructuredCloneData;
+class __attribute__((visibility("default"))) JSStructuredCloneData;
 
 template <class T>
 class RefPtr;

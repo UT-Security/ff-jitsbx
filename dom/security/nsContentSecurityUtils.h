@@ -13,7 +13,7 @@
 #include "mozilla/Maybe.h"
 #include "nsStringFwd.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsIChannel;
 class nsIHttpChannel;
 class nsIPrincipal;

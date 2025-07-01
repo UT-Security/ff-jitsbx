@@ -53,7 +53,7 @@
 #include "nscore.h"
 
 class JSObject;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct nsID;
 
 namespace mozilla {

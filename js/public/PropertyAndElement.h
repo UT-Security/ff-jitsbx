@@ -18,7 +18,7 @@
 #include "js/Id.h"          // jsid
 #include "js/RootingAPI.h"  // JS::Handle, JS::MutableHandle
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSFunction;
 class JSObject;
 class JSString;

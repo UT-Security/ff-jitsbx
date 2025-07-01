@@ -23,25 +23,26 @@ LIBRARY_DEFINES["MOZ_HAS_MOZGLUE"] = True
 # In fact, we now build both a static and a shared library, as the
 # JS shell would like to link to the static library.
 
-if CONFIG["JS_SHARED_LIBRARY"]:
-    GeckoSharedLibrary("js", linkage=None)
-    SHARED_LIBRARY_NAME = CONFIG["JS_LIBRARY_NAME"]
+GeckoSharedLibrary("js", linkage=None)
+SHARED_LIBRARY_NAME = CONFIG["JS_LIBRARY_NAME"]
 
-    # Ensure symbol versions of shared library on Linux do not conflict
-    # with those in libxul.
-    if CONFIG["OS_TARGET"] == "Linux":
-        GeneratedFile(
-            "symverscript",
-            script="/build/gen_symverscript.py",
-            inputs=["symverscript.in"],
-            flags=[CONFIG["JS_LIBRARY_NAME"].replace("-", "_")],
-        )
-        SYMBOLS_FILE = "!symverscript"
-else:
-    Library("js")
+# Ensure symbol versions of shared library on Linux do not conflict
+# with those in libxul.
+if CONFIG["OS_TARGET"] == "Linux":
+    GeneratedFile(
+        "symverscript",
+        script="/build/gen_symverscript.py",
+        inputs=["symverscript.in"],
+        flags=[CONFIG["JS_LIBRARY_NAME"].replace("-", "_")],
+    )
+    SYMBOLS_FILE = "!symverscript"
 
-FORCE_STATIC_LIB = True
-STATIC_LIBRARY_NAME = "js_static"
+#FORCE_STATIC_LIB = True
+#STATIC_LIBRARY_NAME = "js_static"
+
+#USE_LIBS += [
+#    "mozglue",
+#]
 
 if CONFIG["JS_HAS_INTL_API"]:
     USE_LIBS += [
@@ -90,19 +91,19 @@ if CONFIG["MOZ_NEEDS_LIBATOMIC"]:
 
 OS_LIBS += CONFIG["REALTIME_LIBS"]
 
-NO_EXPAND_LIBS = True
+#NO_EXPAND_LIBS = True
 
 DIST_INSTALL = True
 
 # Run SpiderMonkey style checker after linking the static library. This avoids
 # running the script for no-op builds.
-GeneratedFile(
-    "spidermonkey_checks",
-    script="/config/run_spidermonkey_checks.py",
-    inputs=[
-        "!%sjs_static.%s" % (CONFIG["LIB_PREFIX"], CONFIG["LIB_SUFFIX"]),
-        "/config/check_spidermonkey_style.py",
-        "/config/check_macroassembler_style.py",
-        "/config/check_js_opcode.py",
-    ],
-)
+#GeneratedFile(
+#    "spidermonkey_checks",
+#    script="/config/run_spidermonkey_checks.py",
+#    inputs=[
+#        "!%sjs_static.%s" % (CONFIG["LIB_PREFIX"], CONFIG["LIB_SUFFIX"]),
+#        "/config/check_spidermonkey_style.py",
+#        "/config/check_macroassembler_style.py",
+#        "/config/check_js_opcode.py",
+#    ],
+#)

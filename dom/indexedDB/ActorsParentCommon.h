@@ -24,7 +24,7 @@
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 class mozIStorageConnection;
 class mozIStorageStatement;

@@ -40,21 +40,21 @@
 // dom/base/WindowDestroyedEvent.cpp outside of js
 #include "jsfriendapi.h"
 
-class JSObject;
-class JSString;
-class JSTracer;
+class JS_PUBLIC_API JSObject;
+class JS_PUBLIC_API JSString;
+class JS_PUBLIC_API JSTracer;
 class nsGlobalWindowInner;
 class nsIGlobalObject;
 class nsIHandleReportCallback;
 class nsIPrincipal;
 class nsPIDOMWindowInner;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct nsID;
 struct nsXPTInterfaceInfo;
 
 namespace JS {
 class Compartment;
-class ContextOptions;
+class JS_PUBLIC_API ContextOptions;
 class Realm;
 class RealmOptions;
 class Value;

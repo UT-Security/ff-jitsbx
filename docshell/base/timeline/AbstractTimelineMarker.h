@@ -12,7 +12,7 @@
 #include "nsXULAppAPI.h"            // for GeckoProcessType
 #include "mozilla/UniquePtr.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 
 namespace mozilla {

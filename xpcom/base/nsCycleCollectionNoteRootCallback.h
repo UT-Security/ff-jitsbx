@@ -8,13 +8,14 @@
 #define nsCycleCollectionNoteRootCallback_h__
 
 #include "nscore.h"
+#include "jstypes.h"
 
 class nsCycleCollectionParticipant;
 class nsISupports;
-class JSObject;
+class JS_PUBLIC_API JSObject;
 
 namespace JS {
-class GCCellPtr;
+class JS_PUBLIC_API GCCellPtr;
 }
 
 class nsCycleCollectionNoteRootCallback {

@@ -18,7 +18,7 @@
 class nsIRunnable;
 
 namespace JS {
-class ContextOptions;
+class JS_PUBLIC_API ContextOptions;
 };  // namespace JS
 
 namespace mozilla::dom {

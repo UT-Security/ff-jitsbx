@@ -17,12 +17,12 @@
 #  include <jni.h>
 #endif
 
-class JSString;
+class JS_PUBLIC_API JSString;
 class MessageLoop;
 class nsIDirectoryServiceProvider;
 class nsIFile;
 class nsISupports;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct XREChildData;
 struct XREShellData;
 

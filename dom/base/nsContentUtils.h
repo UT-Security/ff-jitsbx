@@ -122,7 +122,7 @@ class nsTextFragment;
 class nsView;
 class nsWrapperCache;
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct nsPoint;
 
 template <class T>

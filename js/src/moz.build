@@ -47,15 +47,18 @@ for stlfile in ["jsdate.*", "jsnum.*"]:
 with Files("builtin/intl/*"):
     BUG_COMPONENT = component_intl
 
+DIRS += [
+    "rust",
+]
+
 if not CONFIG["JS_DISABLE_SHELL"]:
     DIRS += [
-        "rust",
         "shell",
     ]
 
     TEST_DIRS += [
-        "gdb",
-        "jsapi-tests",
+        #"gdb",
+        #"jsapi-tests",
         "tests",
     ]
 

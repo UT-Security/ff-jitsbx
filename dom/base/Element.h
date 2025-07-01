@@ -96,7 +96,7 @@ class nsIURI;
 class nsMappedAttributes;
 class nsPresContext;
 class nsWindowSizes;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct ServoNodeData;
 template <class E>
 class nsTArray;

@@ -58,7 +58,7 @@ class nsIPrincipal;
 class nsIURI;
 class nsXULPrototypeDocument;
 class nsXULPrototypeNode;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 using nsPrototypeArray = nsTArray<RefPtr<nsXULPrototypeNode>>;
 

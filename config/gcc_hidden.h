@@ -3,4 +3,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 /* Begin all files as hidden visibility */
+#ifndef EXPORT_JS_API
 #pragma GCC visibility push(hidden)
+#endif

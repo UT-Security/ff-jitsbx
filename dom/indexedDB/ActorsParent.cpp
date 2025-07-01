@@ -199,7 +199,7 @@
 #include "prtypes.h"
 #include "snappy/snappy.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 template <class T>
 class nsPtrHashKey;

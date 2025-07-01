@@ -10,7 +10,7 @@
 
 class JSObject;
 class nsINode;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class ErrorResult;

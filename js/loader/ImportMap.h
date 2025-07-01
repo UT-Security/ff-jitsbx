@@ -19,7 +19,7 @@
 #include "nsTArray.h"
 #include "ResolveResult.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsIScriptElement;
 class nsIURI;
 

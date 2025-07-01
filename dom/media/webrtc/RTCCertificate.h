@@ -23,7 +23,7 @@
 #include "sslt.h"
 
 class JSObject;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 

@@ -126,7 +126,7 @@ class TracingContext {
   // heap. On the other hand, the description provided by this method may be
   // substantially more accurate and useful than those provided by only the
   // name and index.
-  void getEdgeName(const char* name, char* buffer, size_t bufferSize);
+  JS_PUBLIC_API void getEdgeName(const char* name, char* buffer, size_t bufferSize);
 
   // The trace implementation may associate a callback with one or more edges
   // using AutoTracingDetails. This functor is called by getEdgeName and

@@ -28,7 +28,7 @@
 #include "SourceBufferTask.h"
 
 class JSObject;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 

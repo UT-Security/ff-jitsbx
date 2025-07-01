@@ -24,7 +24,7 @@ class JSObject;
 class nsIContent;
 class nsINode;
 class nsRange;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla::dom {
 class Document;

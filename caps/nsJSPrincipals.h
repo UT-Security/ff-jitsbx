@@ -10,7 +10,7 @@
 #include "js/Principals.h"
 #include "nsIPrincipal.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 

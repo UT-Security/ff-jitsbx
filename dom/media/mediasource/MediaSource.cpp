@@ -40,7 +40,7 @@
 #  include "mozilla/java/HardwareCodecCapabilityUtilsWrappers.h"
 #endif
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 
 mozilla::LogModule* GetMediaSourceLog() {

@@ -14,7 +14,7 @@
 #include "jsapi.h"
 
 class JSString;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla::dom {
 /*

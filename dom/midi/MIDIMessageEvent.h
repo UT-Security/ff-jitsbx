@@ -18,7 +18,7 @@
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 namespace mozilla::dom {
 struct MIDIMessageEventInit;
 

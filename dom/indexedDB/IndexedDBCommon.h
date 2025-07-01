@@ -9,7 +9,7 @@
 
 #include "mozilla/dom/quota/QuotaCommon.h"
 
-class JSStructuredCloneData;
+class JS_PUBLIC_API JSStructuredCloneData;
 class nsIInputStream;
 
 namespace mozilla::dom::indexedDB {

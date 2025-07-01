@@ -27,7 +27,7 @@
 
 #include <stdint.h>
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 // Insert an RAII object in this scope to enter a label stack frame. Any
 // samples collected in this scope will contain this label in their stack.

@@ -22,7 +22,7 @@
 class JSObject;
 class nsIHttpChannel;
 class nsITimedChannel;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla::dom {
 

@@ -8,8 +8,9 @@
 #define mozilla_dom_CSPEvalChecker_h
 
 #include "nsString.h"
+#include "jstypes.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsGlobalWindowInner;
 
 namespace mozilla::dom {

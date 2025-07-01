@@ -17,7 +17,7 @@
 #include "mozilla/RefPtr.h"
 #include "nsCycleCollectionParticipant.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class CancelableRunnable;

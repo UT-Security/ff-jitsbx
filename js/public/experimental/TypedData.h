@@ -381,7 +381,7 @@ class JS_PUBLIC_API ArrayBuffer : public ArrayBufferOrView {
   bool isDetached() const;
   bool isSharedMemory() const;
 
-  uint8_t* getLengthAndData(size_t* length, bool* isSharedMemory,
+  uint8_t* JS_PUBLIC_API getLengthAndData(size_t* length, bool* isSharedMemory,
                             const JS::AutoRequireNoGC&);
 
   uint8_t* getData(bool* isSharedMemory, const JS::AutoRequireNoGC& nogc) {
@@ -412,7 +412,7 @@ class JS_PUBLIC_API ArrayBufferView : public ArrayBufferOrView {
   bool isDetached() const;
   bool isSharedMemory() const;
 
-  uint8_t* getLengthAndData(size_t* length, bool* isSharedMemory,
+  uint8_t* JS_PUBLIC_API getLengthAndData(size_t* length, bool* isSharedMemory,
                             const JS::AutoRequireNoGC&);
   uint8_t* getData(bool* isSharedMemory, const JS::AutoRequireNoGC& nogc) {
     size_t length;
@@ -530,7 +530,7 @@ class JS_PUBLIC_API TypedArray : public TypedArray_base {
   // |*isSharedMemory| will be set to true if the typed array maps a
   // SharedArrayBuffer, otherwise to false.
   //
-  DataType* getLengthAndData(size_t* length, bool* isSharedMemory,
+  DataType* JS_PUBLIC_API getLengthAndData(size_t* length, bool* isSharedMemory,
                              const JS::AutoRequireNoGC& nogc);
 
   DataType* getData(bool* isSharedMemory, const JS::AutoRequireNoGC& nogc) {

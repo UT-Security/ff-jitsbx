@@ -12,7 +12,7 @@
 #include "nsTArrayForwardDeclare.h"  // For nsTArray
 #include "js/RootingAPI.h"           // For JS::Handle
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 
 namespace mozilla {

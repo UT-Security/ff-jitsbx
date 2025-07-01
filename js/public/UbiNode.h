@@ -1190,7 +1190,7 @@ class JS_PUBLIC_API Concrete<void> : public Base {
 
 // Set |cx|'s runtime hook for constructing ubi::Nodes for DOM classes to
 // |callback|.
-void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
+JS_PUBLIC_API void SetConstructUbiNodeForDOMObjectCallback(JSContext* cx,
                                              void (*callback)(void*,
                                                               JSObject*));
 

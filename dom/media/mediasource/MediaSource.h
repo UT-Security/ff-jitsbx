@@ -22,7 +22,7 @@
 #include "nscore.h"
 #include "TimeUnits.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 class nsPIDOMWindowInner;
 

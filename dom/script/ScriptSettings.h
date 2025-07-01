@@ -24,7 +24,7 @@ class nsIPrincipal;
 class nsPIDOMWindowInner;
 class nsGlobalWindowInner;
 class nsIScriptContext;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace JS {
 class ExceptionStack;

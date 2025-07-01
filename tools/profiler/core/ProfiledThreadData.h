@@ -24,7 +24,7 @@
 
 class nsIEventTarget;
 class ProfilerCodeAddressService;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct ThreadStreamingContext;
 
 // This class contains information about a thread that is only relevant while

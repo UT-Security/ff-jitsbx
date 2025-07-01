@@ -19,7 +19,7 @@
 #include "nsCompatibility.h"
 
 class nsIPrincipal;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 
 namespace mozilla {

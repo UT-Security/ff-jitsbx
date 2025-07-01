@@ -18,7 +18,7 @@
 #include "gfxTypes.h"  // for gfxAlphaType
 #include "nsCycleCollectionParticipant.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 

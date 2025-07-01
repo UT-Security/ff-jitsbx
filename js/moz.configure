@@ -88,18 +88,18 @@ set_define("JS_NUNBOX32", depends(target)(lambda t: t.bitness == 32 or None))
 # ==================================================================
 option(
     "--disable-shared-js",
-    when=js_standalone,
+#    when=js_standalone,
     help="{Create|Do not create} a shared library",
 )
 
 option(
     "--disable-export-js",
-    when=js_standalone,
+#    when=js_standalone,
     help="{Mark|Do not mark} JS symbols as DLL exported/visible",
 )
 
 
-@depends("--disable-shared-js", "--disable-export-js", when=js_standalone)
+@depends("--disable-shared-js", "--disable-export-js")
 def shared_js(shared_js, export_js):
     if shared_js:
         if not export_js:
@@ -110,7 +110,7 @@ def shared_js(shared_js, export_js):
 set_config("JS_SHARED_LIBRARY", shared_js)
 
 
-@depends(shared_js, "--disable-export-js", when=js_standalone)
+@depends(shared_js, "--disable-export-js")
 def exportable_js_api(shared_js, export_js):
     if not shared_js and export_js:
         return True

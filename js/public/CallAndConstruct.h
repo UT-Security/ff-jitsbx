@@ -16,7 +16,7 @@
 #include "js/Value.h"       // JS::Value, JS::ObjectValue
 #include "js/ValueArray.h"  // JS::HandleValueArray
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class JSObject;
 class JSFunction;
 

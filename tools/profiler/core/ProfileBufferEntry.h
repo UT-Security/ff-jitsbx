@@ -27,7 +27,7 @@
 #include "nsString.h"
 
 class ProfilerCodeAddressService;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 class ProfileBufferEntry {
  public:

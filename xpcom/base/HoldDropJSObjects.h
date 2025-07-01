@@ -15,7 +15,7 @@ class nsScriptObjectTracer;
 class nsCycleCollectionParticipant;
 
 namespace JS {
-class Zone;
+class __attribute__((visibility("default"))) Zone;
 }
 
 // Only HoldJSObjects and DropJSObjects should be called directly.

@@ -22,7 +22,7 @@
 #include "mozilla/dom/AnimationBinding.h"  // for AnimationPlayState
 #include "mozilla/dom/AnimationTimeline.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsCSSPropertyIDSet;
 class nsIFrame;
 class nsIGlobalObject;

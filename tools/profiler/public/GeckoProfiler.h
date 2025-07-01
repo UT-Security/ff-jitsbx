@@ -121,7 +121,7 @@ static inline void profiler_record_wakeup_count(
 
 class ProfilerBacktrace;
 class ProfilerCodeAddressService;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class ProfileBufferControlledChunkManager;

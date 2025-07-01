@@ -40,7 +40,10 @@
 #if defined(STATIC_JS_API)
 #  define JS_PUBLIC_API
 #  define JS_PUBLIC_DATA
-#elif defined(EXPORT_JS_API) || defined(STATIC_EXPORTABLE_JS_API)
+#elif defined(EXPORT_JS_API)
+#  define JS_PUBLIC_API MOZ_EXPORT
+#  define JS_PUBLIC_DATA MOZ_EXPORT
+#elif defined(STATIC_EXPORTABLE_JS_API)
 #  define JS_PUBLIC_API MOZ_EXPORT
 #  define JS_PUBLIC_DATA MOZ_EXPORT
 #else

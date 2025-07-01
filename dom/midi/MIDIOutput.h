@@ -11,7 +11,7 @@
 #include "mozilla/Attributes.h"
 #include "nsWrapperCache.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class ErrorResult;

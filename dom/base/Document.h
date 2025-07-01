@@ -184,7 +184,7 @@ class nsSimpleContentList;
 class nsTextNode;
 class nsViewManager;
 class nsXULPrototypeDocument;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct nsFont;
 
 namespace mozilla {

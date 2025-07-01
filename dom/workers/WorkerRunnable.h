@@ -22,7 +22,7 @@
 #include "nsThreadUtils.h"
 #include "nscore.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsIEventTarget;
 class nsIGlobalObject;
 

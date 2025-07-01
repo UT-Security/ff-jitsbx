@@ -24,7 +24,7 @@
 class JSObject;
 class nsIGlobalObject;
 class nsIInputStream;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 

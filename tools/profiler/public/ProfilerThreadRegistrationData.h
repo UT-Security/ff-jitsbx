@@ -49,7 +49,7 @@
 
 class ProfiledThreadData;
 class PSAutoLock;
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 // Enum listing which profiling features are active for a single thread.
 enum class ThreadProfilingFeatures : uint32_t {

@@ -6,7 +6,7 @@
 #ifndef nsDeviceContextSpecGTK_h___
 #define nsDeviceContextSpecGTK_h___
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 #include "nsIDeviceContextSpec.h"
 #include "nsIPrinterList.h"

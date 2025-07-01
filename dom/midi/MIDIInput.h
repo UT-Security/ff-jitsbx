@@ -9,7 +9,7 @@
 
 #include "mozilla/dom/MIDIPort.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla::dom {
 

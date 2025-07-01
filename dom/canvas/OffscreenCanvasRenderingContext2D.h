@@ -10,7 +10,7 @@
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/CanvasRenderingContext2D.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 class nsIGlobalObject;
 
 namespace mozilla::dom {

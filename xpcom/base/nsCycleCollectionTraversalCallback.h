@@ -9,13 +9,14 @@
 
 #include <cstdint>
 #include "nscore.h"
+#include "jstypes.h"
 
 class nsCycleCollectionParticipant;
 class nsISupports;
-class JSObject;
+class JS_PUBLIC_API JSObject;
 
 namespace JS {
-class GCCellPtr;
+class JS_PUBLIC_API GCCellPtr;
 }
 
 class NS_NO_VTABLE nsCycleCollectionTraversalCallback {

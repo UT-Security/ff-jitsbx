@@ -10,11 +10,12 @@
 #include "mozilla/origin_trials_ffi_generated.h"
 #include "mozilla/EnumSet.h"
 #include "nsStringFwd.h"
+#include "jstypes.h"
 
 class nsIPrincipal;
 class nsGlobalWindowInner;
-struct JSContext;
-class JSObject;
+struct JS_PUBLIC_API JSContext;
+class JS_PUBLIC_API JSObject;
 
 namespace mozilla {
 

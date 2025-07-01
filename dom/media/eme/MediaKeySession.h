@@ -20,7 +20,7 @@
 #include "mozilla/dom/MediaKeysBinding.h"
 #include "mozilla/dom/MediaKeyMessageEventBinding.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 namespace mozilla {
 class ErrorResult;

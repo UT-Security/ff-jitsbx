@@ -15,7 +15,7 @@
 #include "nsIUDPSocketChild.h"
 #include "nsTArray.h"
 
-struct JSContext;
+struct JS_PUBLIC_API JSContext;
 
 //
 // set MOZ_LOG=UDPSocket:5
