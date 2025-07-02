@@ -186,13 +186,13 @@ class ObjectOpResult {
   }
 
   /* Throw a TypeError. Call this only if !ok(). */
-  bool reportError(JSContext* cx, HandleObject obj, HandleId id);
+  JS_PUBLIC_API bool reportError(JSContext* cx, HandleObject obj, HandleId id);
 
   /*
    * The same as reportError(cx, obj, id), except the operation is not
    * associated with a particular property id.
    */
-  bool reportError(JSContext* cx, HandleObject obj);
+  JS_PUBLIC_API bool reportError(JSContext* cx, HandleObject obj);
 
   // Convenience method. Return true if ok(); otherwise throw a TypeError
   // and return false.

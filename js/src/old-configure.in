@@ -1032,11 +1032,7 @@ dnl ========================================================
 
 MOZ_CHECK_ALLOCATOR
 
-if test -n "$JS_STANDALONE"; then
-JS_LIBRARY_NAME="mozjs-$MOZILLA_SYMBOLVERSION"
-else
 JS_LIBRARY_NAME="mozjs"
-fi
 JS_CONFIG_LIBS="$NSPR_LIBS $LIBS"
 if test -n "$GNU_CC"; then
 JS_CONFIG_MOZ_JS_LIBS='-L${libdir} -l${JS_LIBRARY_NAME}'

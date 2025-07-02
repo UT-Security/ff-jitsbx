@@ -476,7 +476,7 @@ JS_PUBLIC_API JSObject* UnwrapOneCheckedDynamic(JS::HandleObject obj,
 // the GC or off the main thread.
 JS_PUBLIC_API JSObject* UncheckedUnwrapWithoutExpose(JSObject* obj);
 
-void ReportAccessDenied(JSContext* cx);
+JS_PUBLIC_API void ReportAccessDenied(JSContext* cx);
 
 JS_PUBLIC_API void NukeCrossCompartmentWrapper(JSContext* cx,
                                                JSObject* wrapper);

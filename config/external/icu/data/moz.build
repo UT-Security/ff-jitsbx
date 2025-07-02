@@ -31,6 +31,8 @@ SOURCES += [
     "icu_data.S",
 ]
 
+ASFLAGS += ["-g0"]
+
 if CONFIG["OS_ARCH"] == "WINNT" and CONFIG["CC_TYPE"] == "clang-cl":
     USE_INTEGRATED_CLANGCL_AS = True
 

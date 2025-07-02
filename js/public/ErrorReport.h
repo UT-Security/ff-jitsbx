@@ -321,7 +321,7 @@ class JSErrorReport : public JSErrorBase {
     initBorrowedLinebuf(linebufArg, linebufLengthArg, tokenOffsetArg);
     ownsLinebuf_ = true;
   }
-  void initBorrowedLinebuf(const char16_t* linebufArg, size_t linebufLengthArg,
+  JS_PUBLIC_API void initBorrowedLinebuf(const char16_t* linebufArg, size_t linebufLengthArg,
                            size_t tokenOffsetArg);
 
   bool isWarning() const { return isWarning_; }
