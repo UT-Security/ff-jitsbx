@@ -55,17 +55,17 @@ struct MOZ_CAPABILITY("mutex") Mutex {
     }
 #elif defined(XP_DARWIN)
     mMutex = OS_UNFAIR_LOCK_INIT;
-#elif defined(XP_LINUX) && !defined(ANDROID)
-    pthread_mutexattr_t attr;
-    if (pthread_mutexattr_init(&attr) != 0) {
-      return false;
-    }
-    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ADAPTIVE_NP);
-    if (pthread_mutex_init(&mMutex, &attr) != 0) {
-      pthread_mutexattr_destroy(&attr);
-      return false;
-    }
-    pthread_mutexattr_destroy(&attr);
+//#elif defined(XP_LINUX) && !defined(ANDROID)
+//    pthread_mutexattr_t attr;
+//    if (pthread_mutexattr_init(&attr) != 0) {
+//      return false;
+//    }
+//    pthread_mutexattr_settype(&attr, PTHREAD_MUTEX_ADAPTIVE_NP);
+//    if (pthread_mutex_init(&mMutex, &attr) != 0) {
+//      pthread_mutexattr_destroy(&attr);
+//      return false;
+//    }
+//    pthread_mutexattr_destroy(&attr);
 #else
     if (pthread_mutex_init(&mMutex, nullptr) != 0) {
       return false;
@@ -169,8 +169,8 @@ typedef Mutex StaticMutex;
 
 #  if defined(XP_DARWIN)
 #    define STATIC_MUTEX_INIT OS_UNFAIR_LOCK_INIT
-#  elif defined(XP_LINUX) && !defined(ANDROID)
-#    define STATIC_MUTEX_INIT PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP
+//#  elif defined(XP_LINUX) && !defined(ANDROID)
+//#    define STATIC_MUTEX_INIT PTHREAD_ADAPTIVE_MUTEX_INITIALIZER_NP
 #  else
 #    define STATIC_MUTEX_INIT PTHREAD_MUTEX_INITIALIZER
 #  endif
