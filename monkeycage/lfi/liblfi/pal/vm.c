@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <errno.h>
 
+#include "lfiv.h"
 #include "lfi.h"
 #include "boxmap.h"
 #include "pal/platform.h"
@@ -79,6 +80,10 @@ protectverify(uintptr_t base, size_t size, int prot, LFIVerifier* verifier)
         return -1;
     }
 
+    assert(verifier);
+    if (!lfiv_verify(verifier, (void*) base, size, (uintptr_t) base)) {
+        return -1;
+    }
     return host_mprotect((void*) base, size, prot);
 }
 
