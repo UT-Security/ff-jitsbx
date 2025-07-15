@@ -1891,8 +1891,9 @@ nsresult nsXULPrototypeScript::Compile(
   MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
 
   if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
+    static auto OffThreadScriptReceiverCallbackCb = MC::Sandbox::RegisterCallback(OffThreadScriptReceiverCallback);
     if (!JS::CompileToStencilOffThread(
-            cx, options, srcBuf, OffThreadScriptReceiverCallback,
+            cx, options, srcBuf, OffThreadScriptReceiverCallbackCb.UNSAFE_get(),
             static_cast<void*>(aOffThreadReceiver))) {
       JS_ClearPendingException(cx);
       return NS_ERROR_OUT_OF_MEMORY;

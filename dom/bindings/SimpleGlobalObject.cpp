@@ -66,13 +66,13 @@ static const JSClass* SimpleGlobalClass() {
       MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)),
       MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),
       MC::Sandbox::Address(JS_MayResolveStandardClass),
-      SimpleGlobal_finalize,
+      MC::Sandbox::RegisterCallback(SimpleGlobal_finalize).UNSAFE_get(),
       nullptr,
       nullptr,
       MC::Sandbox::Address(JS_GlobalObjectTraceHook),
   };
 
-  static const js::ClassExtension ext_ = {SimpleGlobal_moved};
+  static const js::ClassExtension ext_ = {MC::Sandbox::RegisterCallback(SimpleGlobal_moved).UNSAFE_get()};
 
   static_assert(JSCLASS_GLOBAL_APPLICATION_SLOTS > 0,
                 "Need at least one slot for JSCLASS_SLOT0_IS_NSISUPPORTS");
