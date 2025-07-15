@@ -13,8 +13,8 @@
 #include "zlib.h"
 
 #include "prsystem.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/CompilationAndEvaluation.h"
 #include "js/ContextOptions.h"        // JS::ContextOptionsRef
@@ -1591,8 +1591,8 @@ static inline nsresult CompileResultForToken(void* aToken) {
 nsresult ScriptLoader::StartOffThreadCompilation(
     JSContext* aCx, ScriptLoadRequest* aRequest, JS::CompileOptions& aOptions,
     Runnable* aRunnable, JS::OffThreadToken** aTokenOut) {
-  const JS::OffThreadCompileCallback callback =
-      OffThreadCompilationCompleteCallback;
+  static const auto callback =
+      MC::Sandbox::RegisterCallback(OffThreadCompilationCompleteCallback);
 
   if (aRequest->IsBytecode()) {
     JS::DecodeOptions decodeOptions(aOptions);

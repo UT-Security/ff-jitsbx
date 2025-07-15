@@ -2286,7 +2286,8 @@ bool DictionaryBase::ParseJSON(JSContext* aCx, const nsAString& aJSON,
 
 bool DictionaryBase::StringifyToJSON(JSContext* aCx, JS::Handle<JSObject*> aObj,
                                      nsAString& aJSON) const {
-  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToString, &aJSON);
+  static auto AppendJSONToStringCb = MC::Sandbox::RegisterCallback(AppendJSONToString);
+  return JS::ToJSONMaybeSafely(aCx, aObj, AppendJSONToStringCb.UNSAFE_get(), &aJSON);
 }
 
 /* static */
