@@ -1436,6 +1436,9 @@ class AssemblerX86Shared : public AssemblerShared {
   static size_t CallSize(Register reg) {
     return X86Encoding::BaseAssembler::call_r_size(reg.encoding());
   }
+  static size_t CallSize(const Operand& op) {
+    return X86Encoding::BaseAssembler::call_m_size(op.disp(), op.base());
+  }
   void call(const Operand& op) {
     AutoBundleScope bundle(*this);
     switch (op.kind()) {

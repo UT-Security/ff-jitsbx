@@ -2798,6 +2798,10 @@ class BaseAssembler : public GenericAssembler {
   static size_t call_r_size(RegisterID dst) {
     return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
   }
+  
+  static size_t call_m_size(int32_t offset, RegisterID base) {
+    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
+  }
 
   void call_m(int32_t offset, RegisterID base) {
     spew("call       *" MEM_ob, ADDR_ob(offset, base));
@@ -5724,6 +5728,10 @@ class BaseAssembler : public GenericAssembler {
       memoryModRM(offset, base, reg);
     }
 
+    static size_t oneByteOpSize(OneByteOpcodeID opcode, int32_t offset, RegisterID rm, int reg) {
+      return emitRexIfNeededSize(reg, 0, rm) + 1 + 1;
+    }
+    
     void oneByteOp_disp32(OneByteOpcodeID opcode, int32_t offset,
                           RegisterID base, int reg) {
       mbuffer().ensureSpace(MaxInstructionSize);

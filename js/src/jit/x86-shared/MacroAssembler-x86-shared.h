@@ -183,7 +183,7 @@ class MacroAssemblerX86Shared : public Assembler {
   void jump(JitCode* code) { jmp(code); }
   void jump(TrampolinePtr code) { jmp(ImmPtr(code.value)); }
   void jump(ImmPtr ptr) { jmp(ptr); }
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX_CFI_MASKS
   void jump(Register reg);
   void jump(const Address& addr);
 #else
@@ -932,7 +932,7 @@ class MacroAssemblerX86Shared : public Assembler {
     // Exists for ARM compatibility.
   }
 
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX_CFI_MASKS
   void ret();
 #endif
 
