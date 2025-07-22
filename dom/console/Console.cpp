@@ -3666,10 +3666,10 @@ already_AddRefed<Console> Console::GetConsoleInternal(
   MOZ_ASSERT(!NS_IsMainThread());
 
   JSContext* cx = aGlobal.Context();
-  JSAppPtr<WorkerPrivate*> tainted_workerPrivate (GetWorkerPrivateFromContext(cx));
+  JSAppPtr<WorkerPrivate> tainted_workerPrivate (GetWorkerPrivateFromContext(cx));
   MOZ_ASSERT(tainted_workerPrivate);
   WorkerPrivate* workerPrivate = 
-	tainted_workerPrivate.verify<WorkerPrivate>(mozilla::dom::TaintObj<WorkerPrivate>::PtrTable);
+	tainted_workerPrivate.verify_as_type();
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   if (NS_WARN_IF(!global)) {

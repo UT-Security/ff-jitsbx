@@ -121,7 +121,7 @@ using mozilla::dom::AutoNoJSAPI;
     if (!(_cond)) DebugAbort(__FILE__, __LINE__, #_cond, ##__VA_ARGS__); \
   } while (0)
 
-static MessageChannel* gParentProcessBlocker = nullptr;
+static mozilla::ipc::MessageChannel* gParentProcessBlocker = nullptr;
 
 namespace mozilla {
 namespace ipc {

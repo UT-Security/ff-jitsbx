@@ -138,8 +138,9 @@ void nsStringBuffer::ToString(uint32_t aLen, nsAString& aStr,
 void nsStringBuffer::ToString(mozilla::Tainted<size_t> aLen, nsAString& aStr,
                               bool aMoveOwnership) {
   char16_t* data = static_cast<char16_t*>(Data());
+  size_t safe_aLen = MOZ_VALIDATE_AND_GET(aLen, aLen <= StorageSize());
 
-  MOZ_DIAGNOSTIC_ASSERT(data[aLen] == char16_t(0),
+  MOZ_DIAGNOSTIC_ASSERT(data[safe_aLen] == char16_t(0),
                         "data should be null terminated");
 
   nsAString::DataFlags flags =
@@ -149,7 +150,6 @@ void nsStringBuffer::ToString(mozilla::Tainted<size_t> aLen, nsAString& aStr,
     AddRef();
   }
   aStr.Finalize();
-  size_t safe_aLen = MOZ_VALIDATE_AND_GET(aLen, aLen <= StorageSize());
   aStr.SetData(data, safe_aLen, flags);
 }
 

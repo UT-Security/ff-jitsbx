@@ -2101,7 +2101,8 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
             )
 
 def removeAppPtr(descriptor, obj):
-    if len(descriptor.prototypeChain) == 1:
+    if True:
+    #if len(descriptor.prototypeChain) == 1:
         return f"TaintObj<%s>::decRefCnt(%s);\n" % (descriptor.nativeType, obj)
     else:
         decAppPtr = f"if(TaintObj<%s>::decRefCnt(%s)) {{\n" % (descriptor.nativeType, obj)
@@ -4876,7 +4877,8 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
         )
 
 def addAppPtr(desc, obj):
-    if len(desc.prototypeChain) == 1:
+    if True:
+    #if len(desc.prototypeChain) == 1:
         incAppPtr = "TaintObj<%s>::incRefCnt(%s);\n" % (desc.nativeType, obj)
     else:
         incAppPtr = fill("""
@@ -19051,14 +19053,6 @@ class CGBindingRoot(CGThing):
         cgthings.extend(traverseMethods)
         cgthings.extend(unlinkMethods)
 
-        # add code pointer table
-#        for d in descriptors:
-#            cgthings.append(
-#                CGGeneric(
-#                    "mozilla::HashSet<void*> %sBindingPtrTable (1);" % d.interface.identifier.name
-#                )
-#            )
-
         # Do codegen for all the dictionaries.  We have to be a bit careful
         # here, because we have to generate these in order from least derived
         # to most derived so that class inheritance works out.  We also have to
@@ -23319,6 +23313,150 @@ class GlobalGenRoots:
     To generate code, call the method associated with the target, and then
     call the appropriate define/declare method.
     """
+
+    @staticmethod
+    def AppPtrTypeTags(config):
+        def buildDescriptorTree(descriptors, other):
+            """
+            builds a descriptor forest where descriptor Y is a child of X if X is Y's parent
+            """
+            descTree = { }
+            descRoots = []
+            for d in descriptors:
+                if d.interface.isExternal() or not d.parentPrototypeName:
+                    descRoots.append(d.nativeType)
+                else:
+                    parentNative = d.getDescriptor(d.parentPrototypeName).nativeType
+                    if parentNative not in descTree:
+                        descTree[parentNative] = [d.nativeType]
+                    else:
+                        descTree[parentNative].append(d.nativeType)
+            descRoots.extend(other)
+            return (descTree, descRoots)
+        
+        def generateForwardDecs(descriptors, other):
+            """
+            Generates forward declarations for all requisite classes
+            """                
+            namespaceSearch = re.compile("([a-z0-9A-Z_]+)::")
+            def generateForwardDec(nativeType):
+                namespaces = []
+                cur = nativeType
+                while (match := namespaceSearch.match(cur)):
+                    nspace = match[0]
+                    cur = cur.removeprefix(nspace)
+                    namespaces.append(nspace[:-2])
+                return CGNamespace.build(namespaces, CGGeneric(declare=f"class %s;\n" % cur))
+        
+            forwardDecs = []
+            for d in descriptors:
+                namespaces = []
+                cur = d.nativeType
+                if "IterableIterator" in cur:
+                    continue
+                forwardDecs.append(generateForwardDec(cur))
+            for d in other:
+                forwardDecs.append(generateForwardDec(d))
+            return CGList(forwardDecs)               
+    
+        def generateTypeTags(descTree, descRoots):
+            """
+            Generates type tags for each native type in the descriptor tree.
+            Returns a dictionary of type names -> tag ranges. Tag ranges are inclusive on both ends
+            """
+            def typeTagHelper(curTag, descToTags, curDesc):
+                """
+                Takes in next available tag and current descriptor to tag as arguments, returns next available tag
+                """
+                if not curDesc in descTree.keys() or not descTree[curDesc]:
+                    descToTags[curDesc] = (curTag, curTag)
+                    return curTag + 1
+                else:
+                    starting = curTag
+                    curTag = curTag + 1
+                    for d in descTree[curDesc]:
+                        if d == curDesc:
+                            continue
+                        curTag = typeTagHelper(curTag, descToTags, d)
+                    descToTags[curDesc] = (starting, curTag-1)
+                    return curTag
+            descToTags = { }
+            curTag = 1 #we reserve 0 as a permanent invalid tag
+            for d in descRoots:
+                curTag = typeTagHelper(curTag, descToTags, d)
+            return descToTags
+
+        def genSpecializationForType(nativeType, curTag):
+            start, end = curTag
+            tagVar = ClassMember("tag", "inline uint32_t", "public", static=True, body=f"{start}")
+            if start == end:
+                verifyBody = f"return oTag == {start};\n"
+            else:
+                verifyBody = f"return (oTag >= {start} && oTag <= {end});\n"
+            verify = ClassMethod("verify", 
+                                 "bool",
+                                 args=[Argument("uint32_t", "oTag")],
+                                 inline=True,
+                                 static=True, 
+                                 bodyInHeader=True,
+                                 body=dedent(verifyBody))
+            getTag = ClassMethod("getTag",
+                                 "uint32_t",
+                                 args=[],
+                                 inline=True,
+                                 static=True,
+                                 bodyInHeader=True,
+                                 body=f"return {start};\n")
+            specClass = CGClass("TagVerify", 
+                                templateArgs=[CGGeneric()],
+                                templateSpecialization=[nativeType],
+                                methods=[verify, getTag])
+            return specClass
+        descTree, descRoots = buildDescriptorTree(config.descriptors, ["mozilla::dom::WorkerPrivate"])
+        descToTags = generateTypeTags(descTree, descRoots)
+        desctoTagData = [genSpecializationForType(nativeType, tag) for nativeType, tag in descToTags.items()]
+        forwardDecs = generateForwardDecs(config.descriptors, ["mozilla::dom::WorkerPrivate"])
+        verifyBad = ClassMethod("verify",
+                                "bool",
+                                args=[Argument("uint32_t", "oTag")],
+                                inline=True,
+                                static=True,
+                                bodyInHeader=True,
+                                body='MOZ_CRASH("Unknown AppPtr Tag");')
+        getTag = ClassMethod("getTag",
+                             "uint32_t",
+                             args=[],
+                             inline=True,
+                             static=True,
+                             bodyInHeader=True,
+                             body='return 0;')
+        verifyTemplate = CGClass("TagVerify",
+                                 templateArgs=[CGGeneric(declare="typename T")],
+                                 methods=[verifyBad, getTag])
+        iterForwardDec = CGGeneric(declare=dedent("""
+        namespace mozilla::dom::binding_detail {
+
+template <typename T>
+class AsyncIterableIteratorWithReturn;
+
+
+template <typename T>
+class AsyncIterableIteratorNoReturn;
+
+template <typename T, bool NeedReturnMethod>
+using AsyncIterableIteratorNative =
+    std::conditional_t<NeedReturnMethod, AsyncIterableIteratorWithReturn<T>,
+                       AsyncIterableIteratorNoReturn<T>>;
+}                               
+namespace mozilla::dom {
+template<typename T>
+class IterableIterator;
+} // namespace mozilla::dom
+        """))
+        forwardDecs.append(iterForwardDec)
+        forwardDecs.append(verifyTemplate)
+        forwardDecs.extend(desctoTagData)
+        return forwardDecs
 
     @staticmethod
     def GeneratedAtomList(config):

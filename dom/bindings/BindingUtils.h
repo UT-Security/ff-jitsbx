@@ -122,7 +122,7 @@ inline T* UnwrapDOMObject(JSObject* obj) {
 
 template <class T>
 inline T* UnwrapDOMObject(JSTainted<JSObject*> obj) {
-  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj.UNSAFE_unverified_ref())),
              "Don't pass non-DOM objects to this function");
 
   JS::Value val = JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT);
@@ -153,7 +153,7 @@ inline JSAppPtr<T> UnwrapPossiblyNotInitializedDOMObject(mozilla::dom::JSTainted
   // DOM_OBJECT_SLOT to anything useful.
 
   JSTainted<const JSClass*> jsclass (JS::GetClass(obj.UNSAFE_unverified_ref()));
-  MOZ_ASSERT(IsDOMClass(jsclass),
+  MOZ_ASSERT(IsDOMClass(jsclass).UNSAFE_unverified_ref(),
              "Don't pass non-DOM objects to this function");
 
   mozilla::dom::JSTainted<JS::Value> val (JS::GetReservedSlot(obj.UNSAFE_unverified_ref(), DOM_OBJECT_SLOT));
@@ -527,7 +527,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObject(JS::MutableHandle<JS::Value> obj,
 template <prototypes::ID PrototypeID, class T, typename U, typename CxType>
 MOZ_ALWAYS_INLINE nsresult UnwrapObject(JSTaintedMutableHandle<JS::Value> obj,
                                         U& value, const CxType& cx) {
-  MOZ_ASSERT(obj.UNSAFE_unverified_ref().isObject());
+  MOZ_ASSERT(obj.get().UNSAFE_unverified_ref().isObject());
   JSTainted<binding_detail::MutableValueHandleWrapper> wrapper(obj);
   return binding_detail::UnwrapObjectInternal<T, true>(
       wrapper, value, PrototypeID, PrototypeTraits<PrototypeID>::Depth, cx);

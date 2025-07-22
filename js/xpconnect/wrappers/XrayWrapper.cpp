@@ -159,7 +159,7 @@ JSObject* XrayAwareCalleeGlobal(JSObject* fun) {
 
 using JSTaintedObject = mozilla::dom::JSTainted<JSObject*>;
 JSTaintedObject XrayAwareCalleeGlobal(JSTaintedObject fun) {
-  MOZ_ASSERT(js::IsFunctionObject(fun));
+  MOZ_ASSERT(js::IsFunctionObject(fun.UNSAFE_unverified_ref()));
 
   if (!js::FunctionHasNativeReserved(fun.UNSAFE_unverified_ref())) {
     // Just a normal function, no Xrays involved.

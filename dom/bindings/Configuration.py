@@ -426,38 +426,6 @@ def isInterface(iface, name):
 
 def isAppPtr(iface):
     return True
-    istr = str(iface)
-    #if istr == "Interface \'AudioParam\'":
-    #    return True
-    #if istr == "Interface \'BroadcastChannel'":
-    #    return True
-    #if istr == "Interface \'CacheStorage'":
-    #    return True
-    #if istr == "Interface \'WebSocket'":
-    #    return True
-    #if istr == "Interface \'EventTarget'":
-    #    return True
-    if istr == "Interface \'HTMLInputElement'":
-        return True
-    if istr == "Interface \'Window'":
-        return True
-    if istr == "Interface \'WorkletGlobalScope":
-        return True
-    if isInterface(iface, "WorkerGlobalScope"):
-        return True
-    if isInterface(iface, "DedicatedWorkerGlobalScope"):
-        return True
-    if isInterface(iface, "SharedWorkerGlobalScope"):
-        return True
-    if isInterface(iface, "ServiceWorkerGlobalScope"):
-        return True
-    if isInterface(iface, "WorkerDebuggerGlobalScope"):
-        return True
-    if isInterface(iface, "Console"):
-        return True
-    if isInterface(iface, "ConsoleInstance"):
-        return True
-    return False
 
 class Descriptor(DescriptorProvider):
     """

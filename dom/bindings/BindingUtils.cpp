@@ -2493,11 +2493,10 @@ TaintedGlobalObject::TaintedGlobalObject(JSContext* aCx, JSTainted<JSObject*> aO
 bool VerifyGlobalObject(nsISupports* global) {
 	void * global_void = static_cast<void*>(global);
 	return 
-        TaintObj<nsPIDOMWindowInner>::PtrTable.has(global_void) ||
-		TaintObj<nsGlobalWindowInner>::PtrTable.has(global_void)  ||
-		TaintObj<WorkletGlobalScope>::PtrTable.has(global_void)   ||
-		TaintObj<WorkerGlobalScope>::PtrTable.has(global_void)   ||
-		TaintObj<WorkerDebuggerGlobalScope>::PtrTable.has(global_void);
+		TaintObj<nsGlobalWindowInner>::verifyPtr(global_void)  ||
+		TaintObj<WorkletGlobalScope>::verifyPtr(global_void)   ||
+		TaintObj<WorkerGlobalScope>::verifyPtr(global_void)   ||
+		TaintObj<WorkerDebuggerGlobalScope>::verifyPtr(global_void);
 }
 
 nsISupports* TaintedGlobalObject::GetAsSupports() const {

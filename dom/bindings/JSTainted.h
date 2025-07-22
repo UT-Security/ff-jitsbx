@@ -13,9 +13,12 @@
 #include <mozilla/Tainting.h>
 #include <mozilla/AlreadyAddRefed.h>
 #include <mozilla/Atomics.h>
+#include <mozilla/RWLock.h>
+#include <mozilla/Likely.h>
 #include "js/RootingAPI.h"
 #include "js/Value.h"
 #include "js/experimental/JitInfo.h"
+#include "mozilla/dom/AppPtrTypeTags.h"
 
 namespace mozilla {
 
@@ -23,35 +26,70 @@ namespace dom {
 
 extern mozilla::HashSet<const char16_t *> TaintedExternalStringBacking;
 
-using TaintTable = mozilla::HashMap<void*, uint32_t>;
+typedef uint32_t TypeTag;
+
+class AppPtrInfo {
+    public:
+    explicit AppPtrInfo() {
+        refCount = 1;
+        tag = 0;
+    }
+
+    template<typename T>
+    inline void setTag() {
+        tag = TagVerify<T>::getTag();
+    }
+
+    inline void incRefCnt(void) {
+        refCount++;
+    }
+
+    //decrements ref count and returns true if it hits zero
+    inline bool decRefCnt(void) {
+        if(!--refCount)
+            return true;
+        else
+            return false;
+    }
+
+    template<typename T>
+    inline bool verify(void) {
+        return TagVerify<T>::verify(tag);
+    }
+
+    private:
+    uint32_t refCount;
+    TypeTag tag;
+};
+
+using TaintTable = mozilla::HashMap<void*, AppPtrInfo>;
+extern TaintTable allExternalPtr;
+extern mozilla::RWLock externalPtrLock;
 
 template<typename T>
 class TaintObj {
 	public:
-	static inline TaintTable PtrTable = TaintTable(1);
-    static inline mozilla::Atomic<bool> ptrLock = mozilla::Atomic<bool>(false);
 	TaintObj() {
-		if(!PtrTable.putNew(this, 1)) {
-			MOZ_CRASH("Couldn't add new pointer to pointer table");
-        }
+        incRefCnt(reinterpret_cast<T*>(this));
 	}
 	~TaintObj() {
-		PtrTable.remove(this);
+        decRefCnt(reinterpret_cast<T*>(this));
 	}
 
     //returns true if we added a new pointer to the table, false otherwise
     static bool incRefCnt(T* native) {
-        acquire();
-        TaintTable::Ptr p =  PtrTable.lookup(static_cast<void*>(native));
+        mozilla::AutoWriteLock wLock (externalPtrLock);
+        TaintTable::Ptr p =  allExternalPtr.lookup(static_cast<void*>(native));
         if(p) {
-            p->value() = p->value() + 1;
-            release();
+            p->value().incRefCnt();
+            p->value().setTag<T>();
             return false;
         } else {
-            if(!PtrTable.putNew(static_cast<void*>(native), 1)) {
+            AppPtrInfo newInfo;
+            newInfo.setTag<T>();
+            if(!allExternalPtr.putNew(static_cast<void*>(native), newInfo)) {
                 MOZ_CRASH("Failed to insert AppPointer in NativeWrapping");
             }
-            release();
             return true;
         }
     }
@@ -70,34 +108,22 @@ class TaintObj {
     */
 
     //returns true if we removed the pointer from the table, false otherwise
-    static bool decRefCnt(T* native) {
-        acquire();
-        TaintTable::Ptr p = PtrTable.lookup(static_cast<void*>(native));
+    static void decRefCnt(T* native) {
+        mozilla::AutoWriteLock wLock (externalPtrLock);
+        TaintTable::Ptr p = allExternalPtr.lookup(static_cast<void*>(native));
         if(p) {
-            uint32_t cnt = p->value();
-            if (cnt == 0) {
-                MOZ_CRASH("Double free on AppPointer detected");
-            } else {
-                if(!(--cnt)) {
-                    PtrTable.remove(static_cast<void*>(native));
-                    release();
-                    return true;
-                } else {
-                    p->value() = cnt;
-                    release();
-                    return false;
-                }
+            if(p->value().decRefCnt()) {
+                allExternalPtr.removeNoResize(p);
             }
         } else {
             MOZ_CRASH("Attempted to decrement refcount of bad object");
         }
     }
-    static bool acquire(void) {
-        while(!ptrLock.compareExchange(false, true));
-        return true;
-    }
-    static void release(void) {
-        ptrLock = false;
+
+    static bool verifyPtr(void * ptr) {
+        mozilla::AutoReadLock rLock (externalPtrLock);
+        TaintTable::Ptr p = allExternalPtr.lookup(ptr);
+        return p && p->value().verify<T>();
     }
 };
 
@@ -118,19 +144,10 @@ class JSAppPtr {
   public:
   JSAppPtr(void * ptr) : app_ptr(ptr) {}
   
-  template <typename O>
-  O* verify(TaintTable & PtrTable) {
-    if(PtrTable.has(static_cast<void*>(app_ptr))) {
-      return static_cast<O*>(app_ptr);
-    } else {
-      MOZ_CRASH("Invalid AppPtr Detected.");
-    }
-  }
-
   //TODO: replace w/ macros that allow branching
   //see Tainted types under mfbt
   T* verify(std::function<bool(T*)> f) {
-    if(f(static_cast<T*>(app_ptr))) {
+    if(MOZ_LIKELY(f(static_cast<T*>(app_ptr)))) {
         return static_cast<T*>(app_ptr);
     } else {
         return nullptr;
@@ -138,7 +155,7 @@ class JSAppPtr {
   }
 
   T* verify_as_type(void) {
-    if(TaintObj<T>::PtrTable.has(static_cast<void*>(app_ptr))) {
+    if(MOZ_LIKELY(TaintObj<T>::verifyPtr(app_ptr))) {
         return static_cast<T*>(app_ptr);
     } else {
         MOZ_CRASH("Invalid app pointer as native type");
@@ -154,6 +171,8 @@ class JSAppPtr {
   }
 
   private:
+  //this is mostly for profiling so that the compiler doesn't optimize away verify()
+  static inline int hits = 0;
   void * app_ptr;
 };
 

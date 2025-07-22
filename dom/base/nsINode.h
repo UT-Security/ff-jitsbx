@@ -302,7 +302,7 @@ class nsNodeWeakReference final : public nsIWeakReference {
  * nsIContent and Document share.  An instance of this interface has a list
  * of nsIContent children and provides access to them.
  */
-class nsINode : public mozilla::dom::EventTarget, public mozilla::dom::TaintObj<nsINode> {
+class nsINode : public mozilla::dom::EventTarget {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
   void AssertInvariantsOnNodeInfoChange();
 #endif
