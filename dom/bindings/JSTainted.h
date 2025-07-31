@@ -44,9 +44,14 @@ class AppPtrInfo {
         refCount++;
     }
 
+    inline uint32_t getRefCnt(void) const {
+        return refCount;
+    }
+
     //decrements ref count and returns true if it hits zero
     inline bool decRefCnt(void) {
-        if(!--refCount)
+        --refCount;
+        if(refCount == 0)
             return true;
         else
             return false;
@@ -77,12 +82,14 @@ class TaintObj {
 	}
 
     //returns true if we added a new pointer to the table, false otherwise
-    static bool incRefCnt(T* native) {
+    static bool incRefCnt(T* native, bool isChrome=false) {
         mozilla::AutoWriteLock wLock (externalPtrLock);
         TaintTable::Ptr p =  allExternalPtr.lookup(static_cast<void*>(native));
         if(p) {
+            if(!p->value().verify<T>()) {
+                MOZ_CRASH("Wrong type in app pointer table");
+            }
             p->value().incRefCnt();
-            p->value().setTag<T>();
             return false;
         } else {
             AppPtrInfo newInfo;
@@ -124,6 +131,9 @@ class TaintObj {
         mozilla::AutoReadLock rLock (externalPtrLock);
         TaintTable::Ptr p = allExternalPtr.lookup(ptr);
         return p && p->value().verify<T>();
+    }
+    static bool verifyPtr(T* ptr) {
+        return verifyPtr(static_cast<void*>(ptr));
     }
 };
 
@@ -171,8 +181,6 @@ class JSAppPtr {
   }
 
   private:
-  //this is mostly for profiling so that the compiler doesn't optimize away verify()
-  static inline int hits = 0;
   void * app_ptr;
 };
 

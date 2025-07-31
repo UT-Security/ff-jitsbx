@@ -2101,20 +2101,12 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
             )
 
 def removeAppPtr(descriptor, obj):
-    if True:
-    #if len(descriptor.prototypeChain) == 1:
         return f"TaintObj<%s>::decRefCnt(%s);\n" % (descriptor.nativeType, obj)
-    else:
-        decAppPtr = f"if(TaintObj<%s>::decRefCnt(%s)) {{\n" % (descriptor.nativeType, obj)
-        for desc in descriptor.prototypeChain[:-1]:
-            nativeType = descriptor.getDescriptor(desc).nativeType
-            decAppPtr = decAppPtr + (f"TaintObj<%s>::decRefCnt(%s);\n" % (nativeType, obj))
-        decAppPtr = decAppPtr + "}\n"
-        return decAppPtr
 
 def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False):
     if isTainted or isAppPtr:
         finalize = "%s* self = taint_self.verify_as_type();\n" % descriptor.nativeType
+        finalize += removeAppPtr(descriptor, "self")
     else:
         finalize = ""
     finalize += "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
@@ -2168,8 +2160,6 @@ def finalizeHook(descriptor, hookName, gcx, obj, isTainted=False, isAppPtr=False
         """,
         obj=obj,
     )
-    if isTainted or isAppPtr:
-        finalize += removeAppPtr(descriptor, "self")
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
     if isTainted or isAppPtr:
         return CGIfWrapper(CGGeneric(finalize), "taint_self")
@@ -4877,19 +4867,7 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
         )
 
 def addAppPtr(desc, obj):
-    if True:
-    #if len(desc.prototypeChain) == 1:
-        incAppPtr = "TaintObj<%s>::incRefCnt(%s);\n" % (desc.nativeType, obj)
-    else:
-        incAppPtr = fill("""
-                        if(TaintObj<${nativeType}>::incRefCnt(${obj})) {
-                        """,
-                    nativeType=desc.nativeType,
-                    obj=obj)
-        for parentDesc in desc.prototypeChain[:-1]:
-            parentNative = desc.getDescriptor(parentDesc).nativeType
-            incAppPtr = incAppPtr + (f"TaintObj<%s>::incRefCnt(%s);\n" % (parentNative, obj))
-        incAppPtr = incAppPtr + "}\n"
+    incAppPtr = "TaintObj<%s>::incRefCnt(%s);\n" % (desc.nativeType, obj)
     return incAppPtr
 
 class CGWrapGlobalMethod(CGAbstractMethod):
@@ -9597,9 +9575,9 @@ class CGPerSignatureCall(CGThing):
                 )
             )
         
-        if isConstructor and isAppPtr:
-            incAppPtr = addAppPtr(descriptor, "result" if resultVar == None else resultVar)
-            cgThings.append(CGGeneric(incAppPtr))
+        #if isConstructor and isAppPtr:
+        #    incAppPtr = addAppPtr(descriptor, "result" if resultVar == None else resultVar)
+        #    cgThings.append(CGGeneric(incAppPtr))
 
         if useCounterName:
             # Generate a telemetry call for when [UseCounter] is used.
@@ -16124,14 +16102,19 @@ class CGDOMJSProxyHandler_finalize(ClassMethod):
         self.descriptor = descriptor
 
     def getBody(self):
-        return (
-            "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(proxy);\n"
-            % (self.descriptor.nativeType, self.descriptor.nativeType)
+        return fill(
+            """
+            JSTainted<JSObject*> taintProxy = proxy;
+            JSAppPtr<${nativeType}> taint_self = 
+              UnwrapPossiblyNotInitializedDOMObject<${nativeType}>(taintProxy);
+            """,
+            nativeType=self.descriptor.nativeType
         ) + finalizeHook(
             self.descriptor,
             FINALIZE_HOOK_NAME,
             self.args[0].name,
             self.args[1].name,
+            isAppPtr=True
         ).define()
 
 
@@ -23316,6 +23299,7 @@ class GlobalGenRoots:
 
     @staticmethod
     def AppPtrTypeTags(config):
+        customNeeded = ["mozilla::dom::WorkerPrivate", "mozilla::extensions::MatchPatternSet"]
         def buildDescriptorTree(descriptors, other):
             """
             builds a descriptor forest where descriptor Y is a child of X if X is Y's parent
@@ -23412,10 +23396,10 @@ class GlobalGenRoots:
                                 templateSpecialization=[nativeType],
                                 methods=[verify, getTag])
             return specClass
-        descTree, descRoots = buildDescriptorTree(config.descriptors, ["mozilla::dom::WorkerPrivate"])
+        descTree, descRoots = buildDescriptorTree(config.descriptors, customNeeded)
         descToTags = generateTypeTags(descTree, descRoots)
         desctoTagData = [genSpecializationForType(nativeType, tag) for nativeType, tag in descToTags.items()]
-        forwardDecs = generateForwardDecs(config.descriptors, ["mozilla::dom::WorkerPrivate"])
+        forwardDecs = generateForwardDecs(config.descriptors, customNeeded)
         verifyBad = ClassMethod("verify",
                                 "bool",
                                 args=[Argument("uint32_t", "oTag")],
