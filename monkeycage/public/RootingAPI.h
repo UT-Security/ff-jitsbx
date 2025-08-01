@@ -7,7 +7,7 @@
 #ifndef mc_RootingAPI_h
 #define mc_RootingAPI_h
 
-#include "js/RootingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 
 #ifdef JS_SANDBOX
 
@@ -72,74 +72,6 @@ class MOZ_STACK_CLASS MutableHandle
 };
 }  // namespace MC
 
-namespace mc {
-
-struct VirtualTraceable {
-  virtual ~VirtualTraceable() = default;
-  virtual void trace(JSTracer* trc, const char* name) = 0;
-};
-
-class StackRootedBase {
- public:
-  StackRootedBase* previous() { return prev; }
-
- protected:
-  StackRootedBase** stack;
-  StackRootedBase* prev;
-
-  template <typename T>
-  auto* derived() {
-    return static_cast<MC::Rooted<T>*>(this);
-  }
-};
-
-class PersistentRootedBase
-    : protected mozilla::LinkedListElement<PersistentRootedBase> {
- protected:
-  friend class mozilla::LinkedList<PersistentRootedBase>;
-  friend class mozilla::LinkedListElement<PersistentRootedBase>;
-
-  template <typename T>
-  auto* derived() {
-    return static_cast<MC::PersistentRooted<T>*>(this);
-  }
-};
-
-struct StackRootedTraceableBase : public StackRootedBase,
-                                  public VirtualTraceable {};
-
-class PersistentRootedTraceableBase : public PersistentRootedBase,
-                                      public VirtualTraceable {};
-
-template <typename Base, typename T>
-class TypedRootedGCThingBase : public Base {
- public:
-  void trace(JSTracer* trc, const char* name);
-};
-
-template <typename Base, typename T>
-class TypedRootedTraceableBase : public Base {
- public:
-  void trace(JSTracer* trc, const char* name) override {
-    auto* self = this->template derived<T>();
-    JS::GCPolicy<T>::trace(trc, self->address(), name);
-  }
-};
-
-template <typename T>
-struct RootedTraceableTraits {
-  using StackBase = TypedRootedTraceableBase<StackRootedTraceableBase, T>;
-  using PersistentBase =
-      TypedRootedTraceableBase<PersistentRootedTraceableBase, T>;
-};
-
-template <typename T>
-struct RootedGCThingTraits {
-  using StackBase = TypedRootedGCThingBase<StackRootedBase, T>;
-  using PersistentBase = TypedRootedGCThingBase<PersistentRootedBase, T>;
-};
-}  // namespace mc
-
 struct MCContext;
 struct MCRuntime;
 
@@ -150,9 +82,6 @@ namespace MC {
 
 class CustomAutoRooter;
   
-using RootedListHeads =
-    mozilla::EnumeratedArray<JS::RootKind, JS::RootKind::Limit, mc::StackRootedBase*>;
-
 using CustomAutoRooterListHead = CustomAutoRooter*;
 
 // Superclass of MCContext which can be used for rooting data in use by the
@@ -221,21 +150,8 @@ private:
   void operator=(CustomAutoRooter& ida) = delete;
 } JS_HAZ_ROOTED_BASE;
 
-namespace detail {
-
 template <typename T>
-constexpr bool IsTraceable_v =
-    JS::MapTypeToRootKind<T>::kind == JS::RootKind::Traceable;
-
-template <typename T>
-using RootedTraits =
-    std::conditional_t<IsTraceable_v<T>, mc::RootedTraceableTraits<T>,
-                       mc::RootedGCThingTraits<T>>;
-
-} /* namespace detail */
-
-template <typename T>
-class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
+class MOZ_RAII Rooted : public detail::Rooted<T>,
                         public js::RootedOperations<T, Rooted<T>> {
   inline void registerWithRootLists(RootedListHeads& roots) {
     this->stack = &roots[JS::MapTypeToRootKind<T>::kind];
@@ -266,24 +182,19 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
   template <typename RootingContext,
             typename = std::enable_if_t<std::is_copy_constructible_v<T>,
                                         RootingContext>>
-  explicit Rooted(const RootingContext& cx)
-      : ptr(JS::SafelyInitialized<T>::create()) {
+  explicit Rooted(const RootingContext& cx) : detail::Rooted<T>() {
     registerWithRootLists(rootLists(cx));
   }
 
   template <typename RootingContext, typename S>
-  Rooted(const RootingContext& cx, S&& initial)
-      : ptr(std::forward<S>(initial)) {
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
+  Rooted(const RootingContext& cx, S&& initial) : detail::Rooted<T>(std::forward<S>(initial)) {
     registerWithRootLists(rootLists(cx));
   }
 
   template <
       typename RootingContext, typename... CtorArgs,
       typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
-  explicit Rooted(const RootingContext& cx, CtorArgs... args)
-      : ptr(std::forward<CtorArgs>(args)...) {
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
+  explicit Rooted(const RootingContext& cx, CtorArgs... args) : detail::Rooted<T>(std::forward<CtorArgs>(args)...) {
     registerWithRootLists(rootLists(cx));
   }
 
@@ -297,26 +208,24 @@ class MOZ_RAII Rooted : public detail::RootedTraits<T>::StackBase,
    * interchangeably with a MutableHandleValue.
    */
   void set(const T& value) {
-    ptr = value;
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
+    this->ptr = value;
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(this->ptr));
   }
   void set(T&& value) {
-    ptr = std::move(value);
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
+    this->ptr = std::move(value);
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(this->ptr));
   }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(Rooted, T);
 
-  T& get() { return ptr; }
-  const T& get() const { return ptr; }
+  T& get() { return this->ptr; }
+  const T& get() const { return this->ptr; }
 
-  T* address() { return &ptr; }
-  const T* address() const { return &ptr; }
+  T* address() { return &this->ptr; }
+  const T* address() const { return &this->ptr; }
 
  private:
-  T ptr;
-
   Rooted(const Rooted&) = delete;
 } JS_HAZ_ROOTED;
 
@@ -329,7 +238,7 @@ extern void AddPersistentRoot(RootingContext* cx, JS::RootKind kind, mc::Persist
 extern void AddPersistentRoot(MCRuntime* rt, JS::RootKind kind, mc::PersistentRootedBase* root);
 
 template <typename T>
-class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
+class PersistentRooted : public detail::PersistentRooted<T>,
                          public js::RootedOperations<T, PersistentRooted<T>> {
   void registerWithRootLists(RootingContext* cx) {
     MOZ_ASSERT(!initialized());
@@ -359,13 +268,13 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
  public:
   using ElementType = T;
 
-  PersistentRooted() : ptr(JS::SafelyInitialized<T>::create()) {}
+  PersistentRooted() : detail::PersistentRooted<T>(JS::SafelyInitialized<T>::create()) {}
 
   template <
       typename RootHolder,
       typename = std::enable_if_t<std::is_copy_constructible_v<T>, RootHolder>>
   explicit PersistentRooted(const RootHolder& cx)
-      : ptr(JS::SafelyInitialized<T>::create()) {
+      : detail::PersistentRooted<T>(JS::SafelyInitialized<T>::create()) {
     registerWithRootLists(cx);
   }
 
@@ -373,18 +282,18 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
       typename RootHolder, typename U,
       typename = std::enable_if_t<std::is_constructible_v<T, U>, RootHolder>>
   PersistentRooted(const RootHolder& cx, U&& initial)
-      : ptr(std::forward<U>(initial)) {
+      : detail::PersistentRooted<T>(std::forward<U>(initial)) {
     registerWithRootLists(cx);
   }
 
   template <typename RootHolder, typename... CtorArgs,
             typename = std::enable_if_t<detail::IsTraceable_v<T>, RootHolder>>
   explicit PersistentRooted(const RootHolder& cx, CtorArgs... args)
-      : ptr(std::forward<CtorArgs>(args)...) {
+      : detail::PersistentRooted<T>(std::forward<CtorArgs>(args)...) {
     registerWithRootLists(cx);
   }
 
-  PersistentRooted(const PersistentRooted& rhs) : ptr(rhs.ptr) {
+  PersistentRooted(const PersistentRooted& rhs) : detail::PersistentRooted<T>(rhs) {
     /*
      * Copy construction takes advantage of the fact that the original
      * is already inserted, and simply adds itself to whatever list the
@@ -406,12 +315,12 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
 
   template <typename U>
   void init(RootingContext* cx, U&& initial) {
-    ptr = std::forward<U>(initial);
+    this->ptr = std::forward<U>(initial);
     registerWithRootLists(cx);
   }
   template <typename U>
   void init(MCContext* cx, U&& initial) {
-    ptr = std::forward<U>(initial);
+    this->ptr = std::forward<U>(initial);
     registerWithRootLists(RootingContext::get(cx));
   }
   
@@ -431,23 +340,20 @@ class PersistentRooted : public detail::RootedTraits<T>::PersistentBase,
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
 
-  T& get() { return ptr; }
-  const T& get() const { return ptr; }
+  T& get() { return this->ptr; }
+  const T& get() const { return this->ptr; }
 
   T* address() {
     MOZ_ASSERT(initialized());
-    return &ptr;
+    return &this->ptr;
   }
-  const T* address() const { return &ptr; }
+  const T* address() const { return &this->ptr; }
 
   template <typename U>
   void set(U&& value) {
     MOZ_ASSERT(initialized());
-    ptr = std::forward<U>(value);
+    this->ptr = std::forward<U>(value);
   }
-
- private:
-  T ptr;
 } JS_HAZ_ROOTED;
 }
 

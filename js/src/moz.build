@@ -306,6 +306,7 @@ if CONFIG["JS_SANDBOX"]:
     EXPORTS.js.sandbox += [
         "../public/sandbox/Promise.h",
         "../public/sandbox/Proxy.h",
+        "../public/sandbox/RootingAPI.h",
         "../public/sandbox/SourceHook.h",
         "../public/sandbox/TracingAPI.h",
         "../public/sandbox/Wrapper.h",
@@ -462,6 +463,7 @@ if CONFIG["JS_SANDBOX"]:
         "sandbox/ExternalSourceHook.cpp",
         "sandbox/ExternalStringCallbacks.cpp",
         "sandbox/ExternalWrapper.cpp",
+        "sandbox/RootMarking.cpp",
     ]
 
 if CONFIG["MOZ_JS_STREAMS"]:

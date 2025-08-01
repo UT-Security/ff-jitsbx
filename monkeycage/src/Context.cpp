@@ -8,6 +8,7 @@
 
 #ifdef JS_SANDBOX 
 
+#include "js/sandbox/RootingAPI.h"
 #include "js/TracingAPI.h"
 #include "mcapi.h"
 #include "monkeycage/Sandbox.h"
@@ -16,21 +17,7 @@ template <typename Base, typename T>
 inline void mc::TypedRootedGCThingBase<Base, T>::trace(JSTracer* trc,
                                                    const char* name) {
   auto* self = this->template derived<T>();
-  JS::TraceRoot(trc, self->address(), name);
-}
-
-//TODO(abhishek): THIS IS INEFFICIENT
-// We are calling into the sandbox to trace each individual root.
-template <typename T>
-static inline void TraceExactStackRootList(JSTracer* trc,
-                                           mc::StackRootedBase* listHead,
-                                           const char* name) {
-  // Check size of Rooted<T> does not increase.
-  static_assert(sizeof(MC::Rooted<T>) == sizeof(T) + 2 * sizeof(uintptr_t));
-
-  for (mc::StackRootedBase* root = listHead; root; root = root->previous()) {
-    static_cast<MC::Rooted<T>*>(root)->trace(trc, name);
-  }
+  JS::TraceRoot(trc, self->addr(), name);
 }
 
 static inline void TraceExactStackRootTraceableList(JSTracer* trc,
@@ -43,19 +30,7 @@ static inline void TraceExactStackRootTraceableList(JSTracer* trc,
 
 static inline void TraceStackRoots(JSTracer* trc,
                                    MC::RootedListHeads& stackRoots) {
-  TraceExactStackRootList<JS::BigInt*>(trc, stackRoots[JS::RootKind::BigInt],
-                                 "sandbox-exact-BigInt");
-  TraceExactStackRootList<JS::Symbol*>(trc, stackRoots[JS::RootKind::Symbol],
-                                 "sandbox-exact-Symbol");
-  TraceExactStackRootList<JSString*>(trc, stackRoots[JS::RootKind::String],
-                                 "sandbox-exact-String");
-  TraceExactStackRootList<JSObject*>(trc, stackRoots[JS::RootKind::Object],
-                                 "sandbox-exact-Object");
-  TraceExactStackRootList<JSScript*>(trc, stackRoots[JS::RootKind::Script],
-                                 "sandbox-exact-Script");
-  TraceExactStackRootList<jsid>(trc, stackRoots[JS::RootKind::Id], "exact-id");
-  TraceExactStackRootList<JS::Value>(trc, stackRoots[JS::RootKind::Value],
-                                     "exact-value");
+  JS::TraceExactStackRootLists(trc, stackRoots);
 
   // RootedTraceable uses virtual dispatch.
   JS::AutoSuppressGCAnalysis nogc;
@@ -68,14 +43,6 @@ void MC::RootingContext::traceStackRoots(JSTracer* trc) {
   TraceStackRoots(trc, stackRoots_);
 }
 
-template <typename T>
-static inline void TracePersistentRootedList(
-    JSTracer* trc, mozilla::LinkedList<mc::PersistentRootedBase>& list, const char* name) {
-  for (mc::PersistentRootedBase* root : list) {
-    static_cast<MC::PersistentRooted<T>*>(root)->trace(trc, name);
-  }
-}
-
 static inline void TracePersistentRootedTraceableList(
     JSTracer* trc, mozilla::LinkedList<mc::PersistentRootedBase>& list, const char* name) {
   for (mc::PersistentRootedBase* root : list) {
@@ -84,20 +51,8 @@ static inline void TracePersistentRootedTraceableList(
 }
 
 void MCRuntime::tracePersistentRoots(JSTracer* trc) {
-  TracePersistentRootedList<JS::BigInt*>(trc, heapRoots[JS::RootKind::BigInt],
-                                  "sandbox-persistent-BigInt");
-  TracePersistentRootedList<JS::Symbol*>(trc, heapRoots[JS::RootKind::Symbol],
-                                  "sandbox-persistent-JSSymbol");
-  TracePersistentRootedList<JSString*>(trc, heapRoots[JS::RootKind::String],
-                                  "sandbox-persistent-String");
-  TracePersistentRootedList<JSObject*>(trc, heapRoots[JS::RootKind::Object],
-                                  "sandbox-persistent-Object");
-  TracePersistentRootedList<JSScript*>(trc, heapRoots[JS::RootKind::Script],
-                                  "sandbox-persistent-Script");
-  TracePersistentRootedList<jsid>(trc, heapRoots[JS::RootKind::Id],
-                                  "sandbox-persistent-id");
-  TracePersistentRootedList<JS::Value>(trc, heapRoots[JS::RootKind::Value],
-                                   "sandbox-persistent-value");
+  JS::TracePersistentRootedLists(trc, heapRoots);
+
   // RootedTraceable uses virtual dispatch.
   JS::AutoSuppressGCAnalysis nogc;
 
