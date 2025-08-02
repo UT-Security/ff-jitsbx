@@ -199,6 +199,17 @@ class BaseAssembler : public GenericAssembler {
     nop_eight();
   }
 
+  void nop_ten() {
+    m_formatter.oneByteOp(OP_NOP_66);
+    m_formatter.oneByteOp(PRE_SEG_CS);
+    nop_eight();
+  }
+
+  void nop_eleven() {
+    m_formatter.oneByteOp(PRE_OPERAND_SIZE);
+    nop_ten();
+  }
+
   void insert_nop(int size) {
     switch (size) {
       case 1:
@@ -229,119 +240,99 @@ class BaseAssembler : public GenericAssembler {
         nop_nine();
         break;
       case 10:
-        nop_three();
-        nop_seven();
+        nop_ten();
         break;
       case 11:
-        nop_four();
-        nop_seven();
+        nop_eleven();
         break;
       case 12:
-        nop_six();
-        nop_six();
+        nop_eleven();
+        nop_one();
         break;
       case 13:
-        nop_six();
-        nop_seven();
+        nop_eleven();
+        nop_two();
         break;
       case 14:
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_three();
         break;
       case 15:
-        nop_one();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_four();
         break;
       case 16:
-        nop_two();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_five();
         break;
       case 17:
-        nop_three();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_six();
         break;
       case 18:
-        nop_four();
-        nop_seven();
+        nop_eleven();
         nop_seven();
         break;
       case 19:
-        nop_five();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eight();
         break;
       case 20:
-        nop_six();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_nine();
         break;
       case 21:
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_ten();
         break;
       case 22:
-        nop_one();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
         break;
       case 23:
-        nop_two();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_one();
         break;
       case 24:
-        nop_three();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_two();
         break;
       case 25:
-        nop_four();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_three();
         break;
       case 26:
-        nop_five();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_four();
         break;
       case 27:
-        nop_six();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_five();
         break;
       case 28:
-        nop_seven();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_six();
         break;
       case 29:
-        nop_eight();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
         nop_seven();
         break;
       case 30:
-        nop_nine();
-        nop_seven();
-        nop_seven();
-        nop_seven();
+        nop_eleven();
+        nop_eleven();
+        nop_eight();
         break;
       case 31:
+        nop_eleven();
+        nop_eleven();
         nop_nine();
-        nop_eight();
-        nop_seven();
-        nop_seven();
         break;
       default:
         MOZ_CRASH("Unhandled alignment");

@@ -80,6 +80,7 @@ enum OneByteOpcodeID {
   OP_SUB_GvEv = 0x2B,
   OP_SUB_EAXIv = 0x2D,
   PRE_PREDICT_BRANCH_NOT_TAKEN = 0x2E,
+  PRE_SEG_CS = 0x2E,
   OP_XOR_EbGb = 0x30,
   OP_XOR_EvGv = 0x31,
   OP_XOR_GvEv = 0x33,
