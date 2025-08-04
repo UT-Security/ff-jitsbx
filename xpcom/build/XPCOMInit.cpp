@@ -546,7 +546,7 @@ namespace mozilla {
 
 void SetICUMemoryFunctions() {
   static bool sICUReporterInitialized = false;
-  if (!sICUReporterInitialized) {
+  /*if (!sICUReporterInitialized) {
     static auto ICUReporterAllocCb =
         MC::Sandbox::RegisterCallback(ICUReporter::Alloc);
     static auto ICUReporterReallocCb =
@@ -559,7 +559,7 @@ void SetICUMemoryFunctions() {
       MOZ_CRASH("JS_SetICUMemoryFunctions failed.");
     }
     sICUReporterInitialized = true;
-  }
+  }*/
 }
 
 nsresult ShutdownXPCOM(nsIServiceManager* aServMgr) {
