@@ -60,7 +60,7 @@ namespace js {
 
 inline void SetSourceHook(MCContext* cx, mozilla::UniquePtr<mc::SourceHook> hook) {
   auto hookPtr = hook.release();
-  return SetSourceHook(cx->cx_, std::move(hookPtr->inner_));
+  return SetSourceHook(cx->cx_, hookPtr->inner_.release());
 }
 }
 
