@@ -90,6 +90,11 @@ class SourceHook {
 extern JS_PUBLIC_API void SetSourceHook(JSContext* cx,
                                         js::UniquePtr<SourceHook> hook);
 
+#ifdef JS_SANDBOX
+//(SAFETY): caller should ensure that ownership is transfered 
+extern JS_PUBLIC_API void SetSourceHook(JSContext* cx, SourceHook* hook);
+#endif
+
 /** Remove |cx|'s source hook, and return it. The caller now owns the hook. */
 extern JS_PUBLIC_API js::UniquePtr<SourceHook> ForgetSourceHook(
     JSContext* cx);
