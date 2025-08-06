@@ -38,7 +38,7 @@
 #include "imgLoader.h"
 #include "js/Array.h"
 #include "js/ArrayBuffer.h"
-#include "js/BuildId.h"
+#include "monkeycage/BuildId.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Id.h"
 #include "monkeycage/JSON.h"
@@ -847,12 +847,12 @@ bool nsContentUtils::InitJSBytecodeMimeType() {
   MOZ_ASSERT(!sJSScriptBytecodeMimeType);
   MOZ_ASSERT(!sJSModuleBytecodeMimeType);
 
-  JS::BuildIdCharVector jsBuildId;
-  if (!JS::GetScriptTranscodingBuildId(&jsBuildId)) {
+  MC::SandboxStack<JS::BuildIdCharVector> jsBuildId;
+  if (!JS::GetScriptTranscodingBuildId(jsBuildId)) {
     return false;
   }
 
-  nsDependentCSubstring jsBuildIdStr(jsBuildId.begin(), jsBuildId.length());
+  nsDependentCSubstring jsBuildIdStr(jsBuildId->begin().UNSAFE_unverified(), jsBuildId->length().UNSAFE_unverified());
   sJSScriptBytecodeMimeType =
       new nsCString("javascript/moz-script-bytecode-"_ns + jsBuildIdStr);
   sJSModuleBytecodeMimeType =

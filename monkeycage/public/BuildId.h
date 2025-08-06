@@ -17,6 +17,7 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/SandboxCallback.h"
+#include "monkeycage/Vector.h"
 
 namespace JS {
 
@@ -24,6 +25,13 @@ inline void SetProcessBuildIdOp(MC::SandboxCallback<BuildIdOp> buildIdOp) {
   return SetProcessBuildIdOp(buildIdOp.UNSAFE_get());
 }
 
+inline bool GetOptimizedEncodingBuildId(MC::Tainted<BuildIdCharVector*> buildId) {
+ return GetOptimizedEncodingBuildId(buildId.UNSAFE_unverified());
+}
+
+inline bool GetScriptTranscodingBuildId(MC::Tainted<BuildIdCharVector*> buildId) {
+ return GetScriptTranscodingBuildId(buildId.UNSAFE_unverified());
+}
 }
 
 #endif

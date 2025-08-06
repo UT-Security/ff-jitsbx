@@ -376,6 +376,7 @@ EXPORTS.monkeycage += [
 	"../public/Utility.h",
 	"../public/Value.h",
 	"../public/ValueArray.h",
+	"../public/Vector.h",
 	"../public/WaitCallbacks.h",
 	"../public/Warnings.h",
 	"../public/Wrapper.h",

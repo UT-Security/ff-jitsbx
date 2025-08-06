@@ -86,7 +86,7 @@ private:
     return data;
   }
 
-  template<typename T2 = T, typename = std::enable_if_t<std::is_pointer_v<T>, T>>
+  template<typename T2 = T, typename = std::enable_if_t<std::is_pointer_v<T2>, T>>
   Tainted(T2 val, const void* /* internal tag */) : data(val) {
     // Sanity check
     static_assert(std::is_pointer_v<T>);
@@ -98,6 +98,12 @@ public:
   Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
+
+  template <typename T_Arg,
+            typename = std::enable_if_t<
+                std::is_fundamental_v<std::remove_reference_t<T_Arg>> &&
+                    std::is_fundamental_v<T>, T>>
+  Tainted(T_Arg&& arg) : data(std::forward<T_Arg>(arg)) {}
 
   template<typename T_Rhs>
   void assign_raw_pointer(T_Rhs val) {
