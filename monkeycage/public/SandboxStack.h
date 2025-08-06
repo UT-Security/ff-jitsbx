@@ -56,17 +56,30 @@ public:
 template <typename T>
 class SandboxStackPtr {
 private:
-  T inner_;
+  T* inner_;
 
 public:
-  SandboxStackPtr() = default;
+  SandboxStackPtr() : inner_(nullptr) {
+    void* memory = monkeycage_stackpush(sizeof(T));
+    inner_ = memory ? new (memory) T() : nullptr;
+  }
 
   template <typename... Args>
-  SandboxStackPtr(Args&&... args) : inner_(std::forward<Args>(args)...) {}
+  SandboxStackPtr(Args&&... args) : inner_(nullptr) {
+    void* memory = monkeycage_stackpush(sizeof(T));
+    inner_ = memory ? new (memory) T(std::forward<Args>(args)...) : nullptr;
+  }
+
+  ~SandboxStackPtr() {
+    if (inner_) {
+      inner_->~T();
+      monkeycage_stackpop(sizeof(T), (void*)inner_);
+    }
+  }
 
   //TODO(abhishek): do we need to do anything special for copy/move-constructor?
   inline T* addr() const {
-    return const_cast<T*>(&inner_);
+    return const_cast<T*>(inner_);
   }
 
   inline T* operator->() const {
