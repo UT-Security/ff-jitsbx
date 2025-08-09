@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/SimpleGlobalObject.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Class.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetObjectISupports, JS::SetObjectISupports
 #include "monkeycage/Sandbox.h"
@@ -106,9 +106,9 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     jsapi.Init();
     JSContext* cx = jsapi.cx();
 
-    JS::RealmOptions options;
-    options.creationOptions()
-        .setInvisibleToDebugger(true)
+    MC::SandboxStack<JS::RealmOptions> options;
+    options->creationOptions()
+        ->setInvisibleToDebugger(true)
         // Put our SimpleGlobalObjects in the system zone, so we won't create
         // lots of zones for what are probably very short-lived
         // compartments.  This should help them be GCed quicker and take up
@@ -118,7 +118,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
     if (NS_IsMainThread()) {
       nsCOMPtr<nsIPrincipal> principal =
           NullPrincipal::CreateWithoutOriginAttributes();
-      options.creationOptions().setTrace(xpc::TraceXPCGlobalCb().UNSAFE_get());
+      options->creationOptions()->setTrace(xpc::TraceXPCGlobalCb());
       global = xpc::CreateGlobalObject(cx, SimpleGlobalClass(),
                                        nsJSPrincipals::get(principal), options);
     } else {

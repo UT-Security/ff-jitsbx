@@ -800,9 +800,9 @@ static JS::WeakRefSpecifier GetWeakRefsEnabled() {
   return JS::WeakRefSpecifier::EnabledWithoutCleanupSome;
 }
 
-void xpc::SetPrefableRealmOptions(JS::RealmOptions& options) {
-  options.creationOptions()
-      .setSharedMemoryAndAtomicsEnabled(sSharedMemoryEnabled)
+void xpc::SetPrefableRealmOptions(MC::Tainted<JS::RealmOptions*> options) {
+  options->creationOptions()
+      ->setSharedMemoryAndAtomicsEnabled(sSharedMemoryEnabled)
       .setCoopAndCoepEnabled(
           StaticPrefs::browser_tabs_remote_useCrossOriginOpenerPolicy() &&
           StaticPrefs::browser_tabs_remote_useCrossOriginEmbedderPolicy())

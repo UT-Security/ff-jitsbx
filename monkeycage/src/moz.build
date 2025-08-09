@@ -363,6 +363,7 @@ EXPORTS.monkeycage += [
 	"../public/Proxy.h",
 	"../public/Realm.h",
 	"../public/RealmIterators.h",
+	"../public/RealmOptions.h",
 	"../public/RootingAPI.h",
 	"../public/ScriptPrivate.h",
 	"../public/ShadowRealmCallbacks.h",

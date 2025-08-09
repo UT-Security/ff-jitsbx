@@ -15,13 +15,13 @@
 #include "ScriptLoader.h"
 #include "js/CompilationAndEvaluation.h"
 #include "js/CompileOptions.h"
-#include "js/RealmOptions.h"
+#include "monkeycage/RealmOptions.h"
 #include "js/RootingAPI.h"
 #include "js/SourceText.h"
 #include "js/Value.h"
 #include "js/Wrapper.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/BaseProfilerMarkersPrerequisites.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -899,7 +899,7 @@ bool DedicatedWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(!mWorkerPrivate->IsSharedWorker());
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   mWorkerPrivate->CopyJSRealmOptions(options);
 
   const bool usesSystemPrincipal = mWorkerPrivate->UsesSystemPrincipal();
@@ -909,8 +909,8 @@ bool DedicatedWorkerGlobalScope::WrapGlobalObject(
   const bool discardSource =
       usesSystemPrincipal && xpc::ShouldDiscardSystemSource();
 
-  JS::RealmBehaviors& behaviors = options.behaviors();
-  behaviors.setDiscardSource(discardSource);
+  MC::Tainted<JS::RealmBehaviors*> behaviors = options->behaviors();
+  behaviors->setDiscardSource(discardSource);
 
   xpc::SetPrefableRealmOptions(options);
 
@@ -1073,7 +1073,7 @@ bool SharedWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(mWorkerPrivate->IsSharedWorker());
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   mWorkerPrivate->CopyJSRealmOptions(options);
 
   return SharedWorkerGlobalScope_Binding::Wrap(
@@ -1116,7 +1116,7 @@ bool ServiceWorkerGlobalScope::WrapGlobalObject(
   AssertIsOnWorkerThread();
   MOZ_ASSERT(mWorkerPrivate->IsServiceWorker());
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   mWorkerPrivate->CopyJSRealmOptions(options);
 
   return ServiceWorkerGlobalScope_Binding::Wrap(
@@ -1241,7 +1241,7 @@ bool WorkerDebuggerGlobalScope::WrapGlobalObject(
     JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
   AssertIsOnWorkerThread();
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   mWorkerPrivate->CopyJSRealmOptions(options);
 
   return WorkerDebuggerGlobalScope_Binding::Wrap(

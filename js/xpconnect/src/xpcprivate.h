@@ -1431,7 +1431,7 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
   static nsresult WrapNewGlobal(JSContext* cx, xpcObjectHelper& nativeHelper,
                                 nsIPrincipal* principal,
                                 bool initStandardClasses,
-                                JS::RealmOptions& aOptions,
+                                MC::Tainted<JS::RealmOptions*> aOptions,
                                 XPCWrappedNative** wrappedGlobal);
 
   static nsresult GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
@@ -2410,7 +2410,7 @@ class MOZ_STACK_CLASS StackScopedCloneOptions : public OptionsBase {
 
 JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
                              nsIPrincipal* principal,
-                             JS::RealmOptions& aOptions);
+                             MC::Tainted<JS::RealmOptions*> aOptions);
 
 // Modify the provided compartment options, consistent with |aPrincipal| and
 // with globally-cached values of various preferences.
@@ -2420,7 +2420,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
 // existing global object.  (The type system should make this obvious, because
 // you can't get a *mutable* JS::RealmOptions& from an existing global
 // object.)
-void InitGlobalObjectOptions(JS::RealmOptions& aOptions,
+void InitGlobalObjectOptions(MC::Tainted<JS::RealmOptions*> aOptions,
                              bool aIsSystemPrincipal,
                              bool aShouldResistFingerprinting);
 

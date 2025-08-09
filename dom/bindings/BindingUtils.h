@@ -2956,23 +2956,23 @@ uint64_t GetWindowID(DedicatedWorkerGlobalScope* aGlobal);
 // compartment are consistent with other global objects.
 template <class T, ProtoHandleGetter GetProto>
 bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
-                  const JSClass* aClass, JS::RealmOptions& aOptions,
+                  const JSClass* aClass, MC::Tainted<JS::RealmOptions*> aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
   static auto TraceGlobalCb = MC::Sandbox::RegisterCallback(CreateGlobalOptions<T>::TraceGlobal);
-  aOptions.creationOptions()
-      .setTrace(TraceGlobalCb.UNSAFE_get())
+  aOptions->creationOptions()
+      ->setTrace(TraceGlobalCb)
       .setProfilerRealmID(GetWindowID(aNative));
   xpc::SetPrefableRealmOptions(aOptions);
 
   aGlobal.set(JS_NewGlobalObject(aCx, aClass, aPrincipal,
-                                 JS::DontFireOnNewGlobalHook, aOptions));
+                                 JS::DontFireOnNewGlobalHook, *aOptions.UNSAFE_unverified()));
   if (!aGlobal) {
     NS_WARNING("Failed to create global");
     return false;
   }
 
-  JSAutoRealm ar(aCx, aGlobal);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
   {
     JS::SetReservedSlot(aGlobal, DOM_OBJECT_SLOT, JS::PrivateValue(aNative));

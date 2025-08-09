@@ -1331,9 +1331,9 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   }
   MOZ_ASSERT(principal);
 
-  JS::RealmOptions realmOptions;
+  MC::SandboxStack<JS::RealmOptions> realmOptions;
 
-  auto& creationOptions = realmOptions.creationOptions();
+  auto creationOptions = realmOptions->creationOptions();
 
   bool isSystemPrincipal = principal->IsSystemPrincipal();
 
@@ -1343,32 +1343,32 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
 
   // If we are able to see [SecureContext] API code
   if (options.forceSecureContext) {
-    creationOptions.setSecureContext(true);
+    creationOptions->setSecureContext(true);
   }
 
   xpc::SetPrefableRealmOptions(realmOptions);
   if (options.sameZoneAs) {
-    creationOptions.setNewCompartmentInExistingZone(
+    creationOptions->setNewCompartmentInExistingZone(
         js::UncheckedUnwrap(options.sameZoneAs));
   } else if (options.freshZone) {
-    creationOptions.setNewCompartmentAndZone();
+    creationOptions->setNewCompartmentAndZone();
   } else if (isSystemPrincipal && !options.invisibleToDebugger &&
              !options.freshCompartment) {
     // Use a shared system compartment for system-principal sandboxes that don't
     // require invisibleToDebugger (this is a compartment property, see bug
     // 1482215).
-    creationOptions.setExistingCompartment(xpc::PrivilegedJunkScope());
+    creationOptions->setExistingCompartment(xpc::PrivilegedJunkScope());
   } else {
-    creationOptions.setNewCompartmentInSystemZone();
+    creationOptions->setNewCompartmentInSystemZone();
   }
 
-  creationOptions.setInvisibleToDebugger(options.invisibleToDebugger)
-      .setTrace(TraceXPCGlobalCb().UNSAFE_get());
+  creationOptions->setInvisibleToDebugger(options.invisibleToDebugger)
+      .setTrace(TraceXPCGlobalCb());
 
-  realmOptions.behaviors().setDiscardSource(options.discardSource);
+  realmOptions->behaviors()->setDiscardSource(options.discardSource);
 
   if (isSystemPrincipal) {
-    realmOptions.behaviors().setClampAndJitterTime(false);
+    realmOptions->behaviors()->setClampAndJitterTime(false);
   }
 
   const JSClass* clasp = SandboxClass();
@@ -1393,7 +1393,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
   // benefit. So we just switch it off here.
   bool wantXrays = AccessCheck::isChrome(sandbox) ? false : options.wantXrays;
 
-  if (creationOptions.compartmentSpecifier() ==
+  if (creationOptions->compartmentSpecifier() ==
       JS::CompartmentSpecifier::ExistingCompartment) {
     // Make sure the compartment we're reusing has flags that match what we
     // would set on a new compartment.

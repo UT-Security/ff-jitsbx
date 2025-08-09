@@ -16,7 +16,7 @@
 #include "js/CompilationAndEvaluation.h"  // JS::Compile{,Utf8File}
 #include "js/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperty, JS_GetProperty
 #include "js/PropertySpec.h"
-#include "js/RealmOptions.h"
+#include "monkeycage/RealmOptions.h"
 #include "js/SourceText.h"  // JS::Source{Ownership,Text}
 
 #include "xpcpublic.h"
@@ -385,8 +385,8 @@ bool XPCShellEnvironment::Init() {
 
   auto backstagePass = MakeRefPtr<BackstagePass>();
 
-  JS::RealmOptions options;
-  options.creationOptions().setNewCompartmentInSystemZone();
+  MC::SandboxStack<JS::RealmOptions> options;
+  options->creationOptions()->setNewCompartmentInSystemZone();
   xpc::SetPrefableRealmOptions(options);
 
   MC::Rooted<JSObject*> globalObj(cx);
@@ -402,7 +402,7 @@ bool XPCShellEnvironment::Init() {
     NS_ERROR("Failed to get global JSObject!");
     return false;
   }
-  JSAutoRealm ar(cx, globalObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, globalObj);
 
   backstagePass->SetGlobalObject(globalObj);
 

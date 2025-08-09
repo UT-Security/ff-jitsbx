@@ -33,9 +33,11 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ShadowRealmGlobalScope)
   NS_INTERFACE_MAP_ENTRY(ShadowRealmGlobalScope)
 NS_INTERFACE_MAP_END
 
-JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions,
+JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions_UNSAFE,
                                JSPrincipals* aPrincipals,
                                JS::Handle<JSObject*> aGlobalObj) {
+  MC::Tainted<JS::RealmOptions*> aOptions(nullptr);
+  aOptions.assign_raw_pointer(&aOptions_UNSAFE);
   MC::Rooted<JSObject*> reflector(aCx);
   {
     RefPtr<ShadowRealmGlobalScope> scope;

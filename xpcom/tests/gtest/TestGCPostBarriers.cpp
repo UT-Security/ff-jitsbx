@@ -134,7 +134,7 @@ static void CreateGlobalAndRunTest(MCContext* cx) {
   static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
                                       &JS::DefaultGlobalClassOps};
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   MC::PersistentRootedObject global(cx);
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);

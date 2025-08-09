@@ -47,17 +47,17 @@ bool AudioWorkletGlobalScope::WrapGlobalObject(
   // The graph needs a handle on the JSContext so it can interrupt JS.
   Impl()->DestinationTrack()->Graph()->NotifyJSContext(aCx);
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
 
   // TODO(bug 1834744)
-  options.behaviors().setShouldResistFingerprinting(
+  options->behaviors()->setShouldResistFingerprinting(
       ShouldResistFingerprinting(RFPTarget::IsAlwaysEnabledForPrecompute));
 
   // The SharedArrayBuffer global constructor property should not be present in
   // a fresh global object when shared memory objects aren't allowed (because
   // COOP/COEP support isn't enabled, or because COOP/COEP don't act to isolate
   // this worklet to a separate process).
-  options.creationOptions().setDefineSharedArrayBufferConstructor(
+  options->creationOptions()->setDefineSharedArrayBufferConstructor(
       IsSharedMemoryAllowed());
 
   return AudioWorkletGlobalScope_Binding::Wrap(
