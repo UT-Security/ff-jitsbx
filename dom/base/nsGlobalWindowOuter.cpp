@@ -1977,12 +1977,13 @@ static JS::CompartmentIterResult FindSameOriginCompartment(
   return JS::CompartmentIterResult::Stop;
 }
 
-static JS::RealmCreationOptions& SelectZone(
+static void SelectZone(
     JSContext* aCx, nsIPrincipal* aPrincipal, nsGlobalWindowInner* aNewInner,
-    JS::RealmCreationOptions& aOptions) {
+    MC::Tainted<JS::RealmCreationOptions*> aOptions) {
   // Use the shared system compartment for chrome windows.
   if (aPrincipal->IsSystemPrincipal()) {
-    return aOptions.setExistingCompartment(xpc::PrivilegedJunkScope());
+    aOptions->setExistingCompartment(xpc::PrivilegedJunkScope());
+    return;
   }
 
   BrowsingContext* bc = aNewInner->GetBrowsingContext();
@@ -1990,7 +1991,8 @@ static JS::RealmCreationOptions& SelectZone(
     // We're a toplevel load.  Use a new zone.  This way, when we do
     // zone-based compartment sharing we won't share compartments
     // across navigations.
-    return aOptions.setNewCompartmentAndZone();
+    aOptions->setNewCompartmentAndZone();
+    return;
   }
 
   // Find the in-process ancestor highest in the hierarchy.
@@ -2011,13 +2013,16 @@ static JS::RealmCreationOptions& SelectZone(
     static auto FindSameOriginCompartmentCb = MC::Sandbox::RegisterCallback(FindSameOriginCompartment);
     JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartmentCb.UNSAFE_get());
     if (data.compartment) {
-      return aOptions.setExistingCompartment(data.compartment);
+      aOptions->setExistingCompartment(data.compartment);
+      return;
     }
-    return aOptions.setNewCompartmentInExistingZone(
+    aOptions->setNewCompartmentInExistingZone(
         ancestor->GetGlobalJSObject());
+    return;
   }
 
-  return aOptions.setNewCompartmentAndZone();
+  aOptions->setNewCompartmentAndZone();
+  return;
 }
 
 /**
@@ -2041,12 +2046,12 @@ static nsresult CreateNativeGlobalForInner(
   nsCOMPtr<nsIExpandedPrincipal> nsEP = do_QueryInterface(principal);
   MOZ_RELEASE_ASSERT(!nsEP, "DOMWindow with nsEP is not supported");
 
-  JS::RealmOptions options;
-  JS::RealmCreationOptions& creationOptions = options.creationOptions();
+  MC::SandboxStack<JS::RealmOptions> options;
+  MC::Tainted<JS::RealmCreationOptions*> creationOptions = options->creationOptions();
 
   SelectZone(aCx, principal, aNewInner, creationOptions);
 
-  creationOptions.setSecureContext(aIsSecureContext);
+  creationOptions->setSecureContext(aIsSecureContext);
 
   // Define the SharedArrayBuffer global constructor property only if shared
   // memory may be used and structured-cloned (e.g. through postMessage).
@@ -2054,7 +2059,7 @@ static nsresult CreateNativeGlobalForInner(
   // When the global constructor property isn't defined, the SharedArrayBuffer
   // constructor can still be reached through Web Assembly.  Omitting the global
   // property just prevents feature-tests from being misled.  See bug 1624266.
-  creationOptions.setDefineSharedArrayBufferConstructor(
+  creationOptions->setDefineSharedArrayBufferConstructor(
       aDefineSharedArrayBufferConstructor);
 
   // TODO(bug 1834744) we will need some way of passing different targets to the

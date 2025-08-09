@@ -10,8 +10,8 @@
 #include <stdint.h>
 
 #include "js/ContextOptions.h"
-#include "js/GCAPI.h"
-#include "js/RealmOptions.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/RealmOptions.h"
 #include "mozilla/Maybe.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -32,8 +32,8 @@ struct JSSettings {
     bool operator==(JSGCParamKey k) const { return key == k; }
   };
 
-  JS::RealmOptions chromeRealmOptions;
-  JS::RealmOptions contentRealmOptions;
+  MC::SandboxStack<JS::RealmOptions> chromeRealmOptions;
+  MC::SandboxStack<JS::RealmOptions> contentRealmOptions;
   CopyableTArray<JSGCSetting> gcSettings;
   JS::ContextOptions contextOptions;
 

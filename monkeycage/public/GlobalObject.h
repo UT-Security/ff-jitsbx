@@ -13,12 +13,20 @@
 
 #include "monkeycage/Context.h"
 #include "monkeycage/Principals.h"
+#include "monkeycage/Tainted.h"
 
 inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
                                     MCPrincipals* principals,
                                     JS::OnNewGlobalHookOption hookOption,
-                                    const JS::RealmOptions& options) {
-  return JS_NewGlobalObject(cx->cx_, clasp, principals->inner_, hookOption, options);
+                                    const MC::Tainted<JS::RealmOptions*> options) {
+  return JS_NewGlobalObject(cx->cx_, clasp, principals->inner_, hookOption, *options.UNSAFE_unverified());
+}
+
+inline JSObject* JS_NewGlobalObject(JSContext* cx, const JSClass* clasp,
+                                    MCPrincipals* principals,
+                                    JS::OnNewGlobalHookOption hookOption,
+                                    const MC::Tainted<JS::RealmOptions*> options) {
+  return JS_NewGlobalObject(cx, clasp, principals->inner_, hookOption, *options.UNSAFE_unverified());
 }
 
 inline void JS_FireOnNewGlobalObject(MCContext* cx, JS::HandleObject global) {

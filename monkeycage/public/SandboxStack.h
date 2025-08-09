@@ -144,10 +144,18 @@ public:
     ret.assign_raw_pointer(data_.addr());
     return ret;
   }
+
+  inline auto& operator*() {
+    Tainted<T*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data_.addr());
+    return *ret;
+  }
   
   inline Tainted<T*, MC_Sbx> operator->() const {
     return operator Tainted<T*, MC_Sbx>();
   }
+  
+  inline auto UNSAFE_unverified() const { return data_.addr(); }
 };
 
 }

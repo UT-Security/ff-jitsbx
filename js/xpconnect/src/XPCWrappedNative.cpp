@@ -156,7 +156,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
                                          xpcObjectHelper& nativeHelper,
                                          nsIPrincipal* principal,
                                          bool initStandardClasses,
-                                         JS::RealmOptions& aOptions,
+                                         MC::Tainted<JS::RealmOptions*> aOptions,
                                          XPCWrappedNative** wrappedGlobal) {
   nsCOMPtr<nsISupports> identity = do_QueryInterface(nativeHelper.Object());
 
@@ -181,7 +181,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
   MOZ_ASSERT(clasp->flags & JSCLASS_IS_GLOBAL);
 
   // Create the global.
-  aOptions.creationOptions().setTrace(XPCWrappedNative_TraceCb().UNSAFE_get());
+  aOptions->creationOptions()->setTrace(XPCWrappedNative_TraceCb());
   xpc::SetPrefableRealmOptions(aOptions);
 
   MC::RootedObject global(cx,
@@ -193,7 +193,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
 
   // Immediately enter the global's realm, so that everything else we
   // create ends up there.
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   // If requested, initialize the standard classes on the global.
   if (initStandardClasses && !JS::InitRealmStandardClasses(cx)) {

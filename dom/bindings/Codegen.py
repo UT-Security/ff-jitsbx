@@ -4853,7 +4853,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             Argument("JSContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
             Argument("nsWrapperCache*", "aCache"),
-            Argument("JS::RealmOptions&", "aOptions"),
+            Argument("MC::Tainted<JS::RealmOptions*>", "aOptions"),
             Argument("JSPrincipals*", "aPrincipal"),
             Argument("bool", "aInitStandardClasses"),
             Argument("JS::MutableHandle<JSObject*>", "aReflector"),
@@ -4910,7 +4910,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
             // aReflector is a new global, so has a new realm.  Enter it
             // before doing anything with it.
-            JSAutoRealm ar(aCx, aReflector);
+            MC::SandboxStack<JSAutoRealm> ar(aCx, aReflector);
 
             MCContext* mCx = JS_SanitizeContext(aCx);
             if (!DefineProperties(mCx, aReflector, ${properties}, ${chromeProperties})) {

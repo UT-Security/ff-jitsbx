@@ -18,7 +18,7 @@
 #  include <windows.h>
 #endif
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
 #include "js/CharacterEncoding.h"
 #include "js/CompilationAndEvaluation.h"
@@ -592,12 +592,12 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
                                            const nsACString& aLocation,
                                            MutableHandleObject aGlobal) {
   auto backstagePass = MakeRefPtr<BackstagePass>();
-  RealmOptions options;
-  auto& creationOptions = options.creationOptions();
+  MC::SandboxStack<RealmOptions> options;
+  auto creationOptions = options->creationOptions();
 
-  creationOptions.setFreezeBuiltins(true).setNewCompartmentInSystemZone();
+  creationOptions->setFreezeBuiltins(true).setNewCompartmentInSystemZone();
   if (IsDevToolsLoader()) {
-    creationOptions.setInvisibleToDebugger(true);
+    creationOptions->setInvisibleToDebugger(true);
   }
   xpc::SetPrefableRealmOptions(options);
 

@@ -436,7 +436,7 @@ namespace xpc {
 
 JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
                              nsIPrincipal* principal,
-                             JS::RealmOptions& aOptions) {
+                             MC::Tainted<JS::RealmOptions*> aOptions) {
   MOZ_ASSERT(NS_IsMainThread(), "using a principal off the main thread?");
   MOZ_ASSERT(principal);
 
@@ -450,7 +450,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
     nsresult rv = BasePrincipal::Cast(principal)->GetSiteIdentifier(site);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal)->inner_,
+    global = JS_NewGlobalObject(cx, clasp, nsJSPrincipals::get(principal),
                                 JS::DontFireOnNewGlobalHook, aOptions);
     if (!global) {
       return nullptr;
@@ -488,23 +488,23 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
   return global;
 }
 
-void InitGlobalObjectOptions(JS::RealmOptions& aOptions,
+void InitGlobalObjectOptions(MC::Tainted<JS::RealmOptions*> aOptions,
                              bool aIsSystemPrincipal,
                              bool aShouldResistFingerprinting) {
   bool shouldDiscardSystemSource = ShouldDiscardSystemSource();
 
   if (aIsSystemPrincipal) {
     // Make toSource functions [ChromeOnly]
-    aOptions.creationOptions().setToSourceEnabled(true);
+    aOptions->creationOptions()->setToSourceEnabled(true);
     // Make sure [SecureContext] APIs are visible:
-    aOptions.creationOptions().setSecureContext(true);
-    aOptions.behaviors().setClampAndJitterTime(false);
+    aOptions->creationOptions()->setSecureContext(true);
+    aOptions->behaviors()->setClampAndJitterTime(false);
   }
-  aOptions.behaviors().setShouldResistFingerprinting(
+  aOptions->behaviors()->setShouldResistFingerprinting(
       aShouldResistFingerprinting);
 
   if (shouldDiscardSystemSource) {
-    aOptions.behaviors().setDiscardSource(aIsSystemPrincipal);
+    aOptions->behaviors()->setDiscardSource(aIsSystemPrincipal);
   }
 }
 
@@ -540,7 +540,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
                                          nsISupports* aCOMObj,
                                          nsIPrincipal* aPrincipal,
                                          uint32_t aFlags,
-                                         JS::RealmOptions& aOptions,
+                                         MC::Tainted<JS::RealmOptions*> aOptions,
                                          MutableHandleObject aNewGlobal) {
   MOZ_ASSERT(aJSContext, "bad param");
   MOZ_ASSERT(aCOMObj, "bad param");

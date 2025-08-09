@@ -22,6 +22,7 @@
 #include "monkeycage/MemoryCallbacks.h"
 #include "monkeycage/Realm.h"
 #include "monkeycage/RealmIterators.h"
+#include "monkeycage/RealmOptions.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/ScriptPrivate.h"
 #include "monkeycage/Stack.h"

@@ -332,7 +332,7 @@ TEST(JSHolderMap, GCIntegration)
   static const JSClass GlobalClass = {"global", JSCLASS_GLOBAL_FLAGS,
                                       &JS::DefaultGlobalClassOps};
 
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   MC::RootedObject global(cx);
   global = JS_NewGlobalObject(cx, &GlobalClass, nullptr,
                               JS::FireOnNewGlobalHook, options);

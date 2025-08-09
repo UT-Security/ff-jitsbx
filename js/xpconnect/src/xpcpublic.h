@@ -180,7 +180,7 @@ MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCb();
  */
 nsresult InitClassesWithNewWrappedGlobal(
     JSContext* aJSContext, nsISupports* aCOMObj, nsIPrincipal* aPrincipal,
-    uint32_t aFlags, JS::RealmOptions& aOptions,
+    uint32_t aFlags, MC::Tainted<JS::RealmOptions*> aOptions,
     JS::MutableHandle<JSObject*> aNewGlobal);
 
 enum InitClassesFlag {
@@ -582,7 +582,7 @@ class MOZ_RAII AutoScriptActivity {
 // racey.
 bool ShouldDiscardSystemSource();
 
-void SetPrefableRealmOptions(JS::RealmOptions& options);
+void SetPrefableRealmOptions(MC::Tainted<JS::RealmOptions*> options);
 void SetPrefableContextOptions(JS::ContextOptions& options);
 
 class ErrorBase {

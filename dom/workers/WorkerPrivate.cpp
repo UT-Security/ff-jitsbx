@@ -2391,36 +2391,36 @@ WorkerPrivate::WorkerPrivate(
     RuntimeService::GetDefaultJSSettings(mJSSettings);
 
     {
-      JS::RealmOptions& chromeRealmOptions = mJSSettings.chromeRealmOptions;
-      JS::RealmOptions& contentRealmOptions = mJSSettings.contentRealmOptions;
+      MC::Tainted<JS::RealmOptions*> chromeRealmOptions = mJSSettings.chromeRealmOptions;
+      MC::Tainted<JS::RealmOptions*> contentRealmOptions = mJSSettings.contentRealmOptions;
 
-      JS::RealmBehaviors& chromeRealmBehaviors = chromeRealmOptions.behaviors();
-      JS::RealmBehaviors& contentRealmBehaviors =
-          contentRealmOptions.behaviors();
+      MC::Tainted<JS::RealmBehaviors*> chromeRealmBehaviors = chromeRealmOptions->behaviors();
+      MC::Tainted<JS::RealmBehaviors*> contentRealmBehaviors =
+          contentRealmOptions->behaviors();
 
       bool usesSystemPrincipal = UsesSystemPrincipal();
 
       // Make timing imprecise in unprivileged code to blunt Spectre timing
       // attacks.
       bool clampAndJitterTime = !usesSystemPrincipal;
-      chromeRealmBehaviors.setClampAndJitterTime(clampAndJitterTime)
+      chromeRealmBehaviors->setClampAndJitterTime(clampAndJitterTime)
           .setShouldResistFingerprinting(false);
-      contentRealmBehaviors.setClampAndJitterTime(clampAndJitterTime)
+      contentRealmBehaviors->setClampAndJitterTime(clampAndJitterTime)
           .setShouldResistFingerprinting(mLoadInfo.mShouldResistFingerprinting);
 
-      JS::RealmCreationOptions& chromeCreationOptions =
-          chromeRealmOptions.creationOptions();
-      JS::RealmCreationOptions& contentCreationOptions =
-          contentRealmOptions.creationOptions();
+      MC::Tainted<JS::RealmCreationOptions*> chromeCreationOptions =
+          chromeRealmOptions->creationOptions();
+      MC::Tainted<JS::RealmCreationOptions*> contentCreationOptions =
+          contentRealmOptions->creationOptions();
 
       // Expose uneval and toSource functions only if this is privileged code.
       bool toSourceEnabled = usesSystemPrincipal;
-      chromeCreationOptions.setToSourceEnabled(toSourceEnabled);
-      contentCreationOptions.setToSourceEnabled(toSourceEnabled);
+      chromeCreationOptions->setToSourceEnabled(toSourceEnabled);
+      contentCreationOptions->setToSourceEnabled(toSourceEnabled);
 
       if (mIsSecureContext) {
-        chromeCreationOptions.setSecureContext(true);
-        contentCreationOptions.setSecureContext(true);
+        chromeCreationOptions->setSecureContext(true);
+        contentCreationOptions->setSecureContext(true);
       }
 
       // Check if it's a privileged addon executing in order to allow access
@@ -2453,9 +2453,9 @@ WorkerPrivate::WorkerPrivate(
       // (because COOP/COEP support isn't enabled, or because COOP/COEP don't
       // act to isolate this worker to a separate process).
       const bool defineSharedArrayBufferConstructor = IsSharedMemoryAllowed();
-      chromeCreationOptions.setDefineSharedArrayBufferConstructor(
+      chromeCreationOptions->setDefineSharedArrayBufferConstructor(
           defineSharedArrayBufferConstructor);
-      contentCreationOptions.setDefineSharedArrayBufferConstructor(
+      contentCreationOptions->setDefineSharedArrayBufferConstructor(
           defineSharedArrayBufferConstructor);
     }
 
