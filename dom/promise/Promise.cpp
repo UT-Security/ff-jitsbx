@@ -141,7 +141,7 @@ bool Promise::MaybePropagateUserInputEventHandling() {
 already_AddRefed<Promise> Promise::Resolve(
     nsIGlobalObject* aGlobal, JSContext* aCx, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv, PropagateUserInteraction aPropagateUserInteraction) {
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal->GetGlobalJSObject());
   MC::Rooted<JSObject*> p(aCx, JS::CallOriginalPromiseResolve(aCx, aValue));
   if (!p) {
     aRv.NoteJSContextException(aCx);
@@ -156,7 +156,7 @@ already_AddRefed<Promise> Promise::Reject(nsIGlobalObject* aGlobal,
                                           JSContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal->GetGlobalJSObject());
   MC::Rooted<JSObject*> p(aCx, JS::CallOriginalPromiseReject(aCx, aValue));
   if (!p) {
     aRv.NoteJSContextException(aCx);
@@ -599,7 +599,7 @@ already_AddRefed<Promise> Promise::RejectWithExceptionFromContext(
     return nullptr;
   }
 
-  JSAutoRealm ar(aCx, aGlobal->GetGlobalJSObject());
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal->GetGlobalJSObject());
   if (!JS_WrapValue(aCx, &exn)) {
     // We just give up.
     aError.StealExceptionFromJSContext(aCx);

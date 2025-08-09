@@ -350,7 +350,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
 
   MC::RootedObject parent(cx, Scope->GetGlobalForWrappedNatives());
 
-  mozilla::Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<mozilla::Maybe<JSAutoRealm>> ar;
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
     MC::RootedObject plannedParent(cx, parent);
@@ -366,7 +366,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
     MOZ_ASSERT(JS_IsGlobalObject(parent),
                "Non-global being used to parent XPCWrappedNative?");
 
-    ar.emplace(static_cast<JSContext*>(cx), parent);
+    ar->emplace(static_cast<JSContext*>(cx), parent);
 
     if (parent != plannedParent) {
       XPCWrappedNativeScope* betterScope = ObjectScope(parent);
@@ -397,7 +397,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
       return NS_OK;
     }
   } else {
-    ar.emplace(static_cast<JSContext*>(cx), parent);
+    ar->emplace(static_cast<JSContext*>(cx), parent);
   }
 
   AutoMarkingWrappedNativeProtoPtr proto(cx);

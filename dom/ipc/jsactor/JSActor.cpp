@@ -141,7 +141,7 @@ nsresult JSActor::QueryInterfaceActor(const nsIID& aIID, void** aPtr) {
     JSContext* cx = aes.cx();
 
     MC::Rooted<JSObject*> self(cx, GetWrapper());
-    JSAutoRealm ar(cx, self);
+    MC::SandboxStack<JSAutoRealm> ar(cx, self);
 
     RefPtr<nsXPCWrappedJS> wrappedJS;
     nsresult rv = nsXPCWrappedJS::GetNewOrUsed(
@@ -352,7 +352,7 @@ void JSActor::ReceiveQueryReply(JSContext* aCx,
                       JSActorMessageMarker{}, mName, aMetadata.messageName());
 
   Promise* promise = query->mPromise;
-  JSAutoRealm ar(aCx, promise->PromiseObj());
+  MC::SandboxStack<JSAutoRealm> ar(aCx, promise->PromiseObj());
   MC::RootedValue data(aCx, aData);
   if (NS_WARN_IF(!JS_WrapValue(aCx, &data))) {
     aRv.NoteJSContextException(aCx);

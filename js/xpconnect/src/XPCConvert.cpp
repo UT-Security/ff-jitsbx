@@ -901,7 +901,7 @@ bool XPCConvert::NativeInterface2JSObject(JSContext* cx, MutableHandleValue d,
     return false;
   }
 
-  JSAutoRealm ar(cx, xpcscope->GetGlobalForWrappedNatives());
+  MC::SandboxStack<JSAutoRealm> ar(cx, xpcscope->GetGlobalForWrappedNatives());
 
   // First, see if this object supports the wrapper cache. In that case, the
   // object to use is found as cache->GetWrapper(). If that is null, then the

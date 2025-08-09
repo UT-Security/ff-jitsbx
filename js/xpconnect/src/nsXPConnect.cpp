@@ -455,7 +455,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
     if (!global) {
       return nullptr;
     }
-    JSAutoRealm ar(cx, global);
+    MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
     RealmPrivate::Init(global, site);
 
@@ -512,7 +512,7 @@ bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
                       uint32_t aFlags) {
   // Immediately enter the global's realm so that everything we create
   // ends up there.
-  JSAutoRealm ar(aJSContext, aGlobal);
+  MC::SandboxStack<JSAutoRealm> ar(aJSContext, aGlobal);
 
   // Stuff coming through this path always ends up as a DOM global.
   MOZ_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL);
@@ -575,7 +575,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
   }
 
   {  // Scope for JSAutoRealm
-    JSAutoRealm ar(aJSContext, global);
+    MC::SandboxStack<JSAutoRealm> ar(aJSContext, global);
     if (!JS_DefineProfilingFunctions(aJSContext, global)) {
       return UnexpectedFailure(NS_ERROR_OUT_OF_MEMORY);
     }
@@ -593,7 +593,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
 
 nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
   MC::RootedObject inner(cx, js::UncheckedUnwrap(obj));
-  JSAutoRealm ar(cx, inner);
+  MC::SandboxStack<JSAutoRealm> ar(cx, inner);
 
   MC::RootedFunction fun(cx, JS_GetObjectFunction(inner));
   if (!fun) {
@@ -661,7 +661,7 @@ static nsresult NativeInterface2JSObject(JSContext* aCx, HandleObject aScope,
                                          nsWrapperCache* aCache,
                                          const nsIID* aIID, bool aAllowWrapping,
                                          MutableHandleValue aVal) {
-  JSAutoRealm ar(aCx, aScope);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aScope);
 
   nsresult rv;
   xpcObjectHelper helper(aCOMObj, aCache);

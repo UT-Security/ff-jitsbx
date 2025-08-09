@@ -4705,7 +4705,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
               return true;
             }
 
-            JSAutoRealm ar(aCx, global);
+            MC::SandboxStack<JSAutoRealm> ar(aCx, global);
             $*{declareProto}
 
             $*{createObject}
@@ -5004,7 +5004,7 @@ class CGClearCachedValueMethod(CGAbstractMethod):
                 """
                 MC::Rooted<JS::Value> temp(aCx);
                 JSJitGetterCallArgs args(&temp);
-                JSAutoRealm ar(aCx, obj);
+                MC::SandboxStack<JSAutoRealm> ar(aCx, obj);
                 if (!get_${name}(aCx, obj, aObject, args)) {
                   JS::SetReservedSlot(obj, ${slotIndex}, oldValue);
                   return false;
@@ -6599,7 +6599,7 @@ def getJSToNativeConversionInfo(
 
               MC::Rooted<JSObject*> globalObj(cx);
               $*{getPromiseGlobal}
-              JSAutoRealm ar(cx, globalObj);
+              MC::SandboxStack<JSAutoRealm> ar(cx, globalObj);
               GlobalObject promiseGlobal(cx, globalObj);
               if (promiseGlobal.Failed()) {
                 $*{exceptionCode}
@@ -9750,14 +9750,14 @@ class CGPerSignatureCall(CGThing):
                 """
                 {
                   MC::Rooted<JSObject*> conversionScope(cx, ${conversionScope});
-                  JSAutoRealm ar(cx, conversionScope);
+                  MC::SandboxStack<JSAutoRealm> ar(cx, conversionScope);
                   do { // block we break out of when done wrapping
                     $*{wrapCode}
                   } while (false);
                   $*{postConversionSteps}
                 }
                 { // And now store things in the realm of our slotStorage.
-                  JSAutoRealm ar(cx, slotStorage);
+                  MC::SandboxStack<JSAutoRealm> ar(cx, slotStorage);
                   $*{slotStorageSteps}
                 }
                 // And now make sure args.rval() is in the caller realm.
@@ -14016,7 +14016,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
               // then use the fact that it created the objects as a flag
               // to avoid re-resolving the properties if someone deletes
               // them.
-              JSAutoRealm ar(cx, obj);
+              MC::SandboxStack<JSAutoRealm> ar(cx, obj);
               JS_MarkCrossZoneId(cx, id);
               MC::Rooted<mozilla::Maybe<JS::PropertyDescriptor>> objDesc(cx);
               if (!self->DoResolve(cx, obj, id, &objDesc)) {
@@ -17163,7 +17163,7 @@ class CGDictionary(CGThing):
                   JS_ReportOutOfMemory(cx);
                   return false;
                 }
-                JSAutoRealm ar(cx, scope);
+                MC::SandboxStack<JSAutoRealm> ar(cx, scope);
                 MC::Rooted<JS::Value> val(cx);
                 if (!ToObjectInternal(cx, &val)) {
                   return false;
@@ -20341,7 +20341,7 @@ class CGJSImplClass(CGBindingImplClass):
             }
 
             // Now define it on our chrome object
-            JSAutoRealm ar(aCx, mImpl->CallbackGlobalOrNull());
+            MC::SandboxStack<JSAutoRealm> ar(aCx, mImpl->CallbackGlobalOrNull());
             if (!JS_WrapObject(aCx, &obj)) {
               return nullptr;
             }
@@ -22095,7 +22095,7 @@ class CGHelperFunctionGenerator(CallbackMember):
                   aRv.Throw(NS_ERROR_UNEXPECTED);
                   return%s;
                 }
-                JSAutoRealm tempRealm(cx, scope);
+                MC::SandboxStack<JSAutoRealm> tempRealm(cx, scope);
                 """
                 % self.getDefaultRetval()
             )
@@ -22176,7 +22176,7 @@ class CGHelperFunctionGenerator(CallbackMember):
 
     def getRvalDecl(self):
         # hack to make sure we put JSAutoRealm inside the body scope
-        return "JSAutoRealm reflectorRealm(cx, obj);\n"
+        return "MC::SandboxStack<JSAutoRealm> reflectorRealm(cx, obj);\n"
 
     def getArgcDecl(self):
         # Don't need argc for anything.

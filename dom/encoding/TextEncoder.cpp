@@ -16,7 +16,7 @@ void TextEncoder::Encode(JSContext* aCx, JS::Handle<JSObject*> aObj,
                          const nsACString& aUtf8String,
                          JS::MutableHandle<JSObject*> aRetval,
                          OOMReporter& aRv) {
-  JSAutoRealm ar(aCx, aObj);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aObj);
   JSObject* outView = Uint8Array::Create(aCx, aUtf8String);
   if (!outView) {
     aRv.ReportOOM();

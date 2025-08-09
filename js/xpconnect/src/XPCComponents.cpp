@@ -26,6 +26,7 @@
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/tainted/Maybe.h"
 #include "monkeycage/Wrapper.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Attributes.h"
@@ -1609,7 +1610,7 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
   MC::RootedObject global(cx, JS::GetScriptedCallerGlobal(cx));
   MOZ_ASSERT(global);
   js::AssertSameCompartment(cx, global);
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   // Don't allow doing this if the global is a Window.
   nsGlobalWindowInner* win;
@@ -1790,7 +1791,7 @@ nsXPCComponents_Utils::GetFunctionSourceLocation(HandleValue funcValue,
   uint32_t lineNumber;
   {
     MC::RootedObject funcObj(cx, UncheckedUnwrap(&funcValue.toObject()));
-    JSAutoRealm ar(cx, funcObj);
+    MC::SandboxStack<JSAutoRealm> ar(cx, funcObj);
 
     MC::Rooted<JSFunction*> func(cx, JS_GetObjectFunction(funcObj));
     NS_ENSURE_TRUE(func, NS_ERROR_INVALID_ARG);
@@ -1938,7 +1939,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
   }
 
   MC::RootedObject obj(cx, js::UncheckedUnwrap(&vobj.toObject()));
-  JSAutoRealm ar(cx, obj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, obj);
   MC::Rooted<IdVector> ida(cx, IdVector(cx));
   if (!JS_Enumerate(cx, obj, &ida)) {
     return NS_ERROR_FAILURE;
@@ -2041,13 +2042,13 @@ nsXPCComponents_Utils::Dispatch(HandleValue runnableArg, HandleValue scope,
                                 JSContext* cx) {
   MC::RootedValue runnable(cx, runnableArg);
   // Enter the given realm, if any, and rewrap runnable.
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
   if (scope.isObject()) {
     JSObject* scopeObj = js::UncheckedUnwrap(&scope.toObject());
     if (!scopeObj) {
       return NS_ERROR_FAILURE;
     }
-    ar.emplace(cx, scopeObj);
+    ar->emplace(cx, scopeObj);
     if (!JS_WrapValue(cx, &runnable)) {
       return NS_ERROR_FAILURE;
     }
@@ -2327,7 +2328,7 @@ bool xpc::CloneInto(JSContext* aCx, HandleValue aValue, HandleValue aScope,
   MC::RootedObject sourceScope(aCx, JS::CurrentGlobalOrNull(aCx));
 
   {
-    JSAutoRealm ar(aCx, scope);
+    MC::SandboxStack<JSAutoRealm> ar(aCx, scope);
     aCloned.set(aValue);
     if (!StackScopedClone(aCx, options, sourceScope, aCloned)) {
       return false;

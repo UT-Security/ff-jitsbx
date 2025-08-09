@@ -2785,7 +2785,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
       return NS_OK;
     }
 
-    const JSAutoRealm ar(cx, global);
+    const MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
     MC::Rooted<JS::Value> value(cx);
     const nsresult rv = DeserializeUpgradeValue(cx, &value);

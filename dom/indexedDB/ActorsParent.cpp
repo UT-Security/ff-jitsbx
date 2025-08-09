@@ -6493,7 +6493,7 @@ class DeserializeIndexValueHelper final : public Runnable {
     QM_TRY(OkIf(global), NS_OK,
            [this](const NotOk) { OperationCompleted(NS_ERROR_FAILURE); });
 
-    const JSAutoRealm ar(cx, global);
+    const MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
     MC::Rooted<JS::Value> value(cx);
     QM_TRY(MOZ_TO_RESULT(DeserializeIndexValue(cx, &value)), NS_OK,

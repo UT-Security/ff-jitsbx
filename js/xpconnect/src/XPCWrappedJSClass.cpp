@@ -24,9 +24,10 @@
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/dom/MozQueryInterface.h"
+#include "monkeycage/tainted/Maybe.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 
 using namespace xpc;
 using namespace JS;
@@ -43,7 +44,7 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope) {
 
   mEvaluated = true;
 
-  mAutoRealm.emplace(mJSContext, scope);
+  mAutoRealm->emplace(mJSContext, scope);
 
   // Saving the exception state keeps us from interfering with another script
   // that may also be running on this context.  This occurred first with the
@@ -288,7 +289,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
   MC::RootedObject objScope(RootingCx(), GetJSObjectGlobal());
-  JSAutoRealm ar(aes.cx(), objScope);
+  MC::SandboxStack<JSAutoRealm> ar(aes.cx(), objScope);
 
   // We support nsISupportsWeakReference iff the root wrapped JSObject
   // claims to support it in its QueryInterface implementation.
@@ -601,7 +602,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
 
       // Enter the unwrapped object's realm. This is the realm that was used to
       // enter the AutoEntryScript.
-      JSAutoRealm ar(cx, js::UncheckedUnwrap(aObj));
+      MC::SandboxStack<JSAutoRealm> ar(cx, js::UncheckedUnwrap(aObj));
       aes.ReportException();
       reportable = false;
     }
@@ -744,7 +745,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
   MC::RootedObject scope(cx, GetJSObjectGlobal());
-  JSAutoRealm ar(cx, scope);
+  MC::SandboxStack<JSAutoRealm> ar(cx, scope);
 
   const nsXPTInterfaceInfo* interfaceInfo = GetInfo();
   MC::RootedId id(cx);

@@ -31,7 +31,7 @@ static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, realIntlObj);
 
   if (!JS_DefineFunctions(cx, realIntlObj, funcs)) {
     return NS_ERROR_FAILURE;
@@ -63,7 +63,7 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, realIntlObj);
 
   if (!JS::AddMozDateTimeFormatConstructor(cx, realIntlObj)) {
     return NS_ERROR_FAILURE;
@@ -86,7 +86,7 @@ MozIntlHelper::AddDisplayNamesConstructor(JS::Handle<JS::Value> val,
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, realIntlObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, realIntlObj);
 
   if (!JS::AddMozDisplayNamesConstructor(cx, realIntlObj)) {
     return NS_ERROR_FAILURE;

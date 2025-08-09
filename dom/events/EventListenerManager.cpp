@@ -1122,7 +1122,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   MC::Rooted<JSObject*> wrapScope(cx, global->GetGlobalJSObject());
   MC::Rooted<JS::Value> v(cx);
   {
-    JSAutoRealm ar(cx, wrapScope);
+    MC::SandboxStack<JSAutoRealm> ar(cx, wrapScope);
     nsresult rv = nsContentUtils::WrapNative(cx, mTarget, &v,
                                              /* aAllowWrapping = */ false);
     if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -1131,7 +1131,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   }
 
   MC::Rooted<JSObject*> target(cx, &v.toObject());
-  JSAutoRealm ar(cx, target);
+  MC::SandboxStack<JSAutoRealm> ar(cx, target);
 
   // Now that we've entered the realm we actually care about, create our
   // scope chain.  Note that we start with |element|, not aElement, because

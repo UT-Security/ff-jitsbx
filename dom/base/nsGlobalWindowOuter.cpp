@@ -1130,7 +1130,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
 
   MC::Rooted<JS::Value> targetFunc(cx);
   {
-    JSAutoRealm ar(cx, innerObj);
+    MC::SandboxStack<JSAutoRealm> ar(cx, innerObj);
     if (!JS_GetProperty(cx, innerObj, "print", &targetFunc)) {
       return false;
     }
@@ -1203,7 +1203,7 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
   nsGlobalWindowInner* inner = nullptr;
   {
     // Do the unwrap in the Realm of the object we're looking at.
-    JSAutoRealm ar(cx, unwrappedObj);
+    MC::SandboxStack<JSAutoRealm> ar(cx, unwrappedObj);
     UNWRAP_MAYBE_CROSS_ORIGIN_OBJECT(Window, &unwrappedObj, inner, cx);
   }
   if (!inner) {
@@ -1224,7 +1224,7 @@ bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
   // our "thisv", just in case someone grabs a "print" method off one PDF
   // document and .call()s it on another one.
   {
-    JSAutoRealm ar(cx, realCallee);
+    MC::SandboxStack<JSAutoRealm> ar(cx, realCallee);
     if (!MaybeWrapValue(cx, &thisv)) {
       return false;
     }
@@ -1296,7 +1296,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
                                      bool isChrome) {
   MOZ_ASSERT(JS_IsGlobalObject(global));
 
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   js::WrapperOptions options;
   options.setClass(OuterWindowProxyClass());
@@ -1927,7 +1927,7 @@ bool nsGlobalWindowOuter::ComputeIsSecureContext(Document* aDocument,
 
 static bool InitializeLegacyNetscapeObject(JSContext* aCx,
                                            JS::Handle<JSObject*> aGlobal) {
-  JSAutoRealm ar(aCx, aGlobal);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
   // Note: MathJax depends on window.netscape being exposed. See bug 791526.
   MC::Rooted<JSObject*> obj(aCx);
@@ -2357,7 +2357,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     }
 
     // Enter the new global's realm.
-    JSAutoRealm ar(cx, GetWrapperPreserveColor());
+    MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
     {
       MC::Rooted<JSObject*> outer(cx, GetWrapperPreserveColor());
@@ -2393,7 +2393,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
     }
   }
 
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
   if (!aState && !reUseInnerWindow) {
     // Loading a new page and creating a new inner window, *not*
@@ -2559,7 +2559,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
   jsapi.Init();
   JSContext* cx = jsapi.cx();
 
-  JSAutoRealm ar(cx, localProxy);
+  MC::SandboxStack<JSAutoRealm> ar(cx, localProxy);
 
   // Clear out existing references from the browsing context and outer window to
   // the proxy, and from the proxy to the outer window. These references will
@@ -4053,7 +4053,7 @@ bool nsGlobalWindowOuter::DispatchResizeEvent(const CSSIntSize& aSize) {
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
   DOMWindowResizeEventDetail detail;
   detail.mWidth = aSize.width;
@@ -4667,7 +4667,7 @@ void nsGlobalWindowOuter::MacFullscreenMenubarOverlapChanged(
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, GetWrapperPreserveColor());
+  MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
   MC::Rooted<JS::Value> detailValue(cx);
   if (!ToJSValue(cx, aOverlapAmount, &detailValue)) {
@@ -7176,7 +7176,7 @@ nsresult nsGlobalWindowOuter::SecurityCheckURL(const char* aURL,
   }
   AutoJSContext cx;
   nsGlobalWindowInner* sourceWin = nsGlobalWindowInner::Cast(sourceWindow);
-  JSAutoRealm ar(cx, sourceWin->GetGlobalJSObject());
+  MC::SandboxStack<JSAutoRealm> ar(cx, sourceWin->GetGlobalJSObject());
 
   // Resolve the baseURI, which could be relative to the calling window.
   //

@@ -526,7 +526,7 @@ static bool XPCShellInterruptCallback(JSContext* cx) {
 
   MOZ_ASSERT(js::IsFunctionObject(&callback.toObject()));
 
-  JSAutoRealm ar(cx, &callback.toObject());
+  MC::SandboxStack<JSAutoRealm> ar(cx, &callback.toObject());
   MC::RootedValue rv(cx);
   if (!JS_CallFunctionValue(cx, nullptr, callback,
                             JS::HandleValueArray::empty(), &rv) ||
@@ -1357,7 +1357,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
 
       backstagePass->SetGlobalObject(glob);
 
-      JSAutoRealm ar(cx, glob);
+      MC::SandboxStack<JSAutoRealm> ar(cx, glob);
 
       if (!JS_InitReflectParse(cx, glob)) {
         return 1;

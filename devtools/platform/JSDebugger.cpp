@@ -44,7 +44,7 @@ JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  JSAutoRealm ar(cx, obj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, obj);
   if (!JS_DefineDebuggerObject(cx, obj)) {
     return NS_ERROR_FAILURE;
   }

@@ -66,7 +66,7 @@ nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
   autoconfigSb.init(cx, js::UncheckedUnwrap(sandbox));
 
   // Define gSandbox on system sandbox.
-  JSAutoRealm ar(cx, autoconfigSystemSb);
+  MC::SandboxStack<JSAutoRealm> ar(cx, autoconfigSystemSb);
 
   MC::Rooted<JS::Value> value(cx, JS::ObjectValue(*sandbox));
 
@@ -155,7 +155,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
     convertedScript = NS_ConvertASCIItoUTF16(script);
   }
   {
-    JSAutoRealm ar(cx, autoconfigSystemSb);
+    MC::SandboxStack<JSAutoRealm> ar(cx, autoconfigSystemSb);
     MC::Rooted<JS::Value> value(cx, JS::BooleanValue(isUTF8));
     if (!JS_DefineProperty(cx, autoconfigSystemSb, "gIsUTF8", value,
                            JSPROP_ENUMERATE)) {

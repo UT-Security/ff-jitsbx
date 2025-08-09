@@ -623,7 +623,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(JSContext* aCx,
 
   backstagePass->SetGlobalObject(global);
 
-  JSAutoRealm ar(aCx, global);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, global);
   if (!JS_DefineFunctions(aCx, global, gGlobalFun())) {
     return;
   }
@@ -752,7 +752,7 @@ JSObject* mozJSModuleLoader::PrepareObjectForLocation(JSContext* aCx,
                                                       bool aRealFile) {
   MC::RootedObject globalObj(aCx, GetSharedGlobal(aCx));
   NS_ENSURE_TRUE(globalObj, nullptr);
-  JSAutoRealm ar(aCx, globalObj);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, globalObj);
 
   // |thisObj| is the object we set properties on for a particular .jsm.
   MC::RootedObject thisObj(aCx, JS::NewJSMEnvironment(aCx));
@@ -840,7 +840,7 @@ nsresult mozJSModuleLoader::ObjectForLocation(
   NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
   MOZ_ASSERT(!JS_IsGlobalObject(obj));
 
-  JSAutoRealm ar(cx, obj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, obj);
 
   MC::RootedScript script(cx);
   rv = GetScriptForLocation(cx, aInfo, aModuleFile, realFile, &script,
@@ -1376,7 +1376,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
   dom::AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, aMod->obj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, aMod->obj);
 
   MC::RootedValue symbols(cx);
   {
@@ -1580,7 +1580,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
 
         if (exception.isObject()) {
           MC::Rooted<JSObject*> exceptionObj(aCx, &exception.toObject());
-          JSAutoRealm ar(aCx, exceptionObj);
+          MC::SandboxStack<JSAutoRealm> ar(aCx, exceptionObj);
           JSErrorReport* report = JS_ErrorFromException(aCx, exceptionObj);
           if (report) {
             switch (report->errorNumber) {
@@ -1652,7 +1652,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
   MOZ_ASSERT(mod->obj, "Import table contains entry with no object");
   MC::RootedObject globalProxy(aCx);
   {
-    JSAutoRealm ar(aCx, mod->obj);
+    MC::SandboxStack<JSAutoRealm> ar(aCx, mod->obj);
 
     globalProxy = CreateJSMEnvironmentProxy(aCx, mod->obj);
     if (!globalProxy) {
@@ -1708,7 +1708,7 @@ nsresult mozJSModuleLoader::TryFallbackToImportESModule(
 
   MC::RootedObject globalProxy(aCx);
   {
-    JSAutoRealm ar(aCx, moduleNamespace);
+    MC::SandboxStack<JSAutoRealm> ar(aCx, moduleNamespace);
 
     MC::RootedObject moduleObject(
         aCx, JS::GetModuleForNamespace(aCx, moduleNamespace));
@@ -1799,7 +1799,7 @@ nsresult mozJSModuleLoader::ImportESModule(
   // The module loader should be instantiated when fetching the shared global
   MOZ_ASSERT(mModuleLoader);
 
-  JSAutoRealm ar(aCx, globalObj);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, globalObj);
 
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aLocation);

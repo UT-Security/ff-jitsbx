@@ -1139,7 +1139,7 @@ MOZ_ALWAYS_INLINE bool DoGetOrCreateDOMReflector(
 
   if (wrapBehavior == eDontWrapIntoContextCompartment) {
     if (TypeNeedsOuterization<T>::value) {
-      JSAutoRealm ar(cx, obj);
+      MC::SandboxStack<JSAutoRealm> ar(cx, obj);
       return TryToOuterize(rval);
     }
 
@@ -2335,7 +2335,7 @@ inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
                                JS::MutableHandle<JSObject*> protop) {
   MC::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
   {
-    JSAutoRealm ar(cx, global);
+    MC::SandboxStack<JSAutoRealm> ar(cx, global);
     const DOMJSClass* domClass = GetDOMClass(obj);
     if (domClass) {
       ProtoHandleGetter protoGetter = domClass->mGetProto;

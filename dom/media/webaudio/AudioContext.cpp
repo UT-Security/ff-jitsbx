@@ -656,7 +656,7 @@ already_AddRefed<Promise> AudioContext::DecodeAudioData(
     return promise.forget();
   }
 
-  JSAutoRealm ar(cx, obj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, obj);
   aBuffer.ComputeState();
 
   if (!aBuffer.Data()) {

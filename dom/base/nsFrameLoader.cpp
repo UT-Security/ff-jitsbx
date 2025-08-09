@@ -2151,7 +2151,7 @@ void nsFrameLoader::SetOwnerContent(Element* aContent) {
 
   MC::Rooted<JSObject*> wrapper(jsapi.cx(), GetWrapper());
   if (wrapper) {
-    JSAutoRealm ar(jsapi.cx(), wrapper);
+    MC::SandboxStack<JSAutoRealm> ar(jsapi.cx(), wrapper);
     IgnoredErrorResult rv;
     UpdateReflectorGlobal(jsapi.cx(), wrapper, rv);
     Unused << NS_WARN_IF(rv.Failed());

@@ -26,7 +26,7 @@ static void AnnotateCrashReportWithJSException(JSContext* aCx,
   if (JS_GetPendingException(aCx, &exn)) {
     JS_ClearPendingException(aCx);
 
-    JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+    MC::SandboxStack<JSAutoRealm> ar(aCx, xpc::PrivilegedJunkScope());
     JS_WrapValue(aCx, &exn);
 
     nsAutoCString file;

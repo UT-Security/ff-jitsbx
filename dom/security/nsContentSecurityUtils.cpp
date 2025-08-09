@@ -147,7 +147,7 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
   // We can use the junk scope here, because we're just using it for regexp
   // evaluation, not actual script execution, and we disable statics so that the
   // evaluation does not interact with the execution global.
-  JSAutoRealm ar(cx, xpc::PrivilegedJunkScope());
+  MC::SandboxStack<JSAutoRealm> ar(cx, xpc::PrivilegedJunkScope());
 
   MC::Rooted<JSObject*> regexp(
       cx, JS::NewUCRegExpObject(cx, aPattern.BeginReading(), aPattern.Length(),

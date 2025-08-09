@@ -705,7 +705,7 @@ nsresult nsJSContext::ConvertSupportsTojsvals(
           NS_ASSERTION(prim == nullptr,
                        "Don't pass nsISupportsPrimitives - use nsIVariant!");
 #endif
-          JSAutoRealm ar(aCx, aScope);
+          MC::SandboxStack<JSAutoRealm> ar(aCx, aScope);
           rv = nsContentUtils::WrapNative(aCx, arg, thisVal);
         }
       }
@@ -892,7 +892,7 @@ nsresult nsJSContext::AddSupportsPrimitiveTojsvals(JSContext* aCx,
 
       MC::Rooted<JSObject*> scope(aCx, GetWindowProxy());
       MC::Rooted<JS::Value> v(aCx);
-      JSAutoRealm ar(aCx, scope);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, scope);
       nsresult rv = nsContentUtils::WrapNative(aCx, data, iid, &v);
       NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1009,7 +1009,7 @@ nsresult nsJSContext::InitClasses(JS::Handle<JSObject*> aGlobalObj) {
   AutoJSAPI jsapi;
   jsapi.Init();
   JSContext* cx = jsapi.cx();
-  JSAutoRealm ar(cx, aGlobalObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, aGlobalObj);
 
 #ifdef MOZ_JPROF
   // Attempt to initialize JProf functions
