@@ -422,7 +422,7 @@ class CompileScriptRunnable final : public WorkerDebuggeeRunnable {
     // that point yet.  So we need to enter the realm of our global,
     // because setting a pending exception on aCx involves wrapping into its
     // current compartment.  Luckily we have a global now.
-    JSAutoRealm ar(aCx, globalScope->GetGlobalJSObject());
+    MC::SandboxStack<JSAutoRealm> ar(aCx, globalScope->GetGlobalJSObject());
     if (rv.MaybeSetPendingException(aCx)) {
       // In the event of an uncaught exception, the worker should still keep
       // running (return true) but should not be marked as having executed
@@ -3281,7 +3281,7 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
 
         // Now *might* be a good time to GC. Let the JS engine make the
         // decision.
-        JSAutoRealm ar(aCx, globalScope->GetGlobalJSObject());
+        MC::SandboxStack<JSAutoRealm> ar(aCx, globalScope->GetGlobalJSObject());
         JS_MaybeGC(aCx);
       }
     } else if (normalRunnablesPending) {
@@ -3292,7 +3292,7 @@ void WorkerPrivate::DoRunLoop(JSContext* aCx) {
       if (normalRunnablesPending && GlobalScope()) {
         // Now *might* be a good time to GC. Let the JS engine make the
         // decision.
-        JSAutoRealm ar(aCx, GlobalScope()->GetGlobalJSObject());
+        MC::SandboxStack<JSAutoRealm> ar(aCx, GlobalScope()->GetGlobalJSObject());
         JS_MaybeGC(aCx);
       }
     }
@@ -4892,7 +4892,7 @@ void WorkerPrivate::ReportError(JSContext* aCx,
         nullptr, exnStack.exception(), exnStack.stack(), &stack, &stackGlobal);
 
     if (stack) {
-      JSAutoRealm ar(aCx, stackGlobal);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, stackGlobal);
       report->SerializeWorkerStack(aCx, this, stack);
     }
   } else {
@@ -5606,7 +5606,7 @@ WorkerGlobalScope* WorkerPrivate::GetOrCreateGlobalScope(JSContext* aCx) {
   MC::Rooted<JSObject*> global(aCx);
   NS_ENSURE_TRUE(data->mScope->WrapGlobalObject(aCx, &global), nullptr);
 
-  JSAutoRealm ar(aCx, global);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, global);
 
   if (!RegisterBindings(aCx, global)) {
     data->mScope = nullptr;
@@ -5636,7 +5636,7 @@ WorkerDebuggerGlobalScope* WorkerPrivate::CreateDebuggerGlobalScope(
   MC::Rooted<JSObject*> global(aCx);
   NS_ENSURE_TRUE(data->mDebuggerScope->WrapGlobalObject(aCx, &global), nullptr);
 
-  JSAutoRealm ar(aCx, global);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, global);
 
   if (!RegisterDebuggerBindings(aCx, global)) {
     data->mDebuggerScope = nullptr;

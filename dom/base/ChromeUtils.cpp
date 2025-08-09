@@ -390,7 +390,7 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
       return;
     }
 
-    JSAutoRealm ar(cx, obj);
+    MC::SandboxStack<JSAutoRealm> ar(cx, obj);
 
     if (!JS_Enumerate(cx, obj, &ids) || !values.reserve(ids.length()) ||
         !valuesIds.reserve(ids.length())) {
@@ -804,7 +804,7 @@ static bool ModuleGetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
 
     // ESM's namespace is from the module's realm.
     {
-      JSAutoRealm ar(aCx, moduleNamespace);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, moduleNamespace);
       if (!JS_GetPropertyById(aCx, moduleNamespace, id, &value)) {
         return false;
       }

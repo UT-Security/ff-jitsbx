@@ -206,7 +206,7 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
     }
     MC::RootedObject mainObj(ccx, underware->GetJSObject());
     if (mainObj) {
-      JSAutoRealm ar(ccx, underware->GetJSObjectGlobal());
+      MC::SandboxStack<JSAutoRealm> ar(ccx, underware->GetJSObjectGlobal());
 
       // We don't have to root this ID, as it's already rooted by our context.
       HandleId id =

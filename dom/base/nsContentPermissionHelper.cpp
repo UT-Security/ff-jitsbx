@@ -613,7 +613,7 @@ nsresult TranslateChoices(
       jsapi.Init();
 
       JSContext* cx = jsapi.cx();
-      JSAutoRealm ar(cx, obj);
+      MC::SandboxStack<JSAutoRealm> ar(cx, obj);
 
       MC::Rooted<JS::Value> val(cx);
 

@@ -667,7 +667,7 @@ static bool InitializeShadowRealm(JSContext* aCx,
                                   JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(StaticPrefs::javascript_options_experimental_shadow_realms());
 
-  JSAutoRealm ar(aCx, aGlobal);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
   return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 

@@ -108,7 +108,7 @@ void StructuredCloneBlob::Deserialize(JSContext* aCx,
   }
 
   {
-    JSAutoRealm ar(aCx, scope);
+    MC::SandboxStack<JSAutoRealm> ar(aCx, scope);
 
     mHolder->Read(xpc::NativeGlobal(scope), aCx, aResult, aRv);
     if (aRv.Failed()) {

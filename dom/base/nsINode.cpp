@@ -1555,7 +1555,7 @@ static nsresult UpdateGlobalsInSubtree(nsIContent* aRoot) {
   MC::Rooted<JSObject*> reflector(cx);
   for (nsIContent* cur = aRoot; cur; cur = cur->GetNextNode(aRoot)) {
     if ((reflector = cur->GetWrapper())) {
-      JSAutoRealm ar(cx, reflector);
+      MC::SandboxStack<JSAutoRealm> ar(cx, reflector);
       UpdateReflectorGlobal(cx, reflector, rv);
       rv.WouldReportJSException();
       if (rv.Failed()) {
@@ -3443,7 +3443,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       MC::Rooted<JSObject*> wrapper(cx);
       if ((wrapper = aNode->GetWrapper())) {
         MOZ_ASSERT(IsDOMObject(wrapper));
-        JSAutoRealm ar(cx, wrapper);
+        MC::SandboxStack<JSAutoRealm> ar(cx, wrapper);
         UpdateReflectorGlobal(cx, wrapper, aError);
         if (aError.Failed()) {
           if (wasRegistered) {

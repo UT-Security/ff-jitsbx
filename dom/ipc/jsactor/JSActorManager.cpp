@@ -59,7 +59,7 @@ already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
 
   // We're about to construct the actor, so make sure we're in the JSM realm
   // while importing etc.
-  JSAutoRealm ar(aCx, xpc::PrivilegedJunkScope());
+  MC::SandboxStack<JSAutoRealm> ar(aCx, xpc::PrivilegedJunkScope());
 
   // Load the module using mozJSModuleLoader.
   RefPtr loader = mozJSModuleLoader::Get();

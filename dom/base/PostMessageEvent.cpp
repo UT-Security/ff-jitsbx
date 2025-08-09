@@ -89,7 +89,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP PostMessageEvent::Run() {
     }
   }
 
-  JSAutoRealm ar(cx, targetWindow->GetWrapper());
+  MC::SandboxStack<JSAutoRealm> ar(cx, targetWindow->GetWrapper());
 
   // Ensure that any origin which might have been provided is the origin of this
   // window's document.  Note that we do this *now* instead of when postMessage

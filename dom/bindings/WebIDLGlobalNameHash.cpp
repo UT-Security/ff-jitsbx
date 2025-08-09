@@ -139,7 +139,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
   if (xpc::WrapperFactory::IsXrayWrapper(aObj)) {
     MC::Rooted<JSObject*> constructor(aCx);
     {
-      JSAutoRealm ar(aCx, global);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, global);
       constructor = FindNamedConstructorForXray(aCx, aId, entry);
     }
     if (NS_WARN_IF(!constructor)) {

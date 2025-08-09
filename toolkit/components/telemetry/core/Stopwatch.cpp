@@ -242,7 +242,7 @@ Timers::~Timers() {
 
 JSObject* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                       bool aCreate) {
-  JSAutoRealm ar(aCx, mTimers);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, mTimers);
 
   MC::Rooted<JS::Value> histogram(aCx);
   MC::Rooted<JS::Value> objs(aCx);
@@ -265,7 +265,7 @@ JSObject* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
 
 TimerKeys* Timers::Get(JSContext* aCx, const nsAString& aHistogram,
                        JS::Handle<JSObject*> aObj, bool aCreate) {
-  JSAutoRealm ar(aCx, mTimers);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, mTimers);
 
   MC::Rooted<JSObject*> objs(aCx, Get(aCx, aHistogram, aCreate));
   if (!objs) {

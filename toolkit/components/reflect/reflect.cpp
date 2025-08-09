@@ -28,7 +28,7 @@ Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
   MC::Rooted<JSObject*> global(cx, JS::GetScriptedCallerGlobal(cx));
   if (!global) return NS_ERROR_NOT_AVAILABLE;
 
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
   *_retval = JS_InitReflectParse(cx, global);
   return NS_OK;
 }

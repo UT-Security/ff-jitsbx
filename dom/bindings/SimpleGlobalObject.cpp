@@ -131,7 +131,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
       return nullptr;
     }
 
-    JSAutoRealm ar(cx, global);
+    MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
     // It's important to create the nsIGlobalObject for our new global before we
     // start trying to wrap things like the prototype into its compartment,

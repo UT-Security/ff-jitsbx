@@ -1959,7 +1959,7 @@ class MOZ_RAII AutoScriptEvaluate {
   JSContext* mJSContext;
   mozilla::Maybe<JS::AutoSaveExceptionState> mState;
   bool mEvaluated;
-  mozilla::Maybe<JSAutoRealm> mAutoRealm;
+  MC::SandboxStack<mozilla::Maybe<JSAutoRealm>> mAutoRealm;
 
   // No copying or assignment allowed
   AutoScriptEvaluate(const AutoScriptEvaluate&) = delete;

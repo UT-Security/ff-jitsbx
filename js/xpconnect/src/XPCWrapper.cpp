@@ -63,7 +63,7 @@ static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
 // static
 bool AttachNewConstructorObject(JSContext* aCx,
                                 JS::HandleObject aGlobalObject) {
-  JSAutoRealm ar(aCx, aGlobalObject);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobalObject);
 
   static auto XrayWrapperConstructorCb = MC::Sandbox::RegisterCallback(XrayWrapperConstructor);
   JSFunction* xpcnativewrapper = JS_DefineFunction(

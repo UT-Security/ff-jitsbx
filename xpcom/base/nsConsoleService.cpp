@@ -430,7 +430,7 @@ nsConsoleService::CallFunctionAndLogException(
 
   // AutoJSAPI picks `targetGlobal` as execution compartment
   // whereas we expect to run `function` from the callsites compartment.
-  JSAutoRealm ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
+  MC::SandboxStack<JSAutoRealm> ar(ccx, JS::GetRealmGlobalOrNull(contextRealm));
 
   MC::RootedValue funVal(ccx, function);
   if (!JS_WrapValue(ccx, &funVal)) {

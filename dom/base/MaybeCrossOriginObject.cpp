@@ -243,7 +243,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
     // Enter the Realm of "obj" when we allocate the WeakMap, since we are going
     // to store it in a slot on "obj" and in general we may not be
     // same-compartment with "obj" here.
-    JSAutoRealm ar(cx, obj);
+    MC::SandboxStack<JSAutoRealm> ar(cx, obj);
     JSObject* newMap = JS::NewWeakMapObject(cx);
     if (!newMap) {
       return false;
@@ -291,7 +291,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
 
   MC::Rooted<JS::Value> holderVal(cx);
   {  // Scope for working with the map
-    JSAutoRealm ar(cx, map);
+    MC::SandboxStack<JSAutoRealm> ar(cx, map);
     if (!MaybeWrapObject(cx, &key)) {
       return false;
     }
@@ -334,7 +334,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
 
   holderVal.setObject(*holder);
   {  // Scope for working with the map
-    JSAutoRealm ar(cx, map);
+    MC::SandboxStack<JSAutoRealm> ar(cx, map);
 
     // Key is already in the right Realm, but we need to wrap the value.
     if (!MaybeWrapValue(cx, &holderVal)) {

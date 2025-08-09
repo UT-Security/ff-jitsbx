@@ -693,7 +693,7 @@ void nsFrameMessageManager::ReceiveMessage(
       // We passed the unwrapped object to AutoEntryScript so we now need to
       // enter the realm of the global object that represents the realm of our
       // callback.
-      JSAutoRealm ar(cx, objectGlobal);
+      MC::SandboxStack<JSAutoRealm> ar(cx, objectGlobal);
 
       RootedDictionary<ReceiveMessageArgument> argument(cx);
 
@@ -915,7 +915,7 @@ void nsFrameMessageManager::GetInitialProcessData(
     // We create the initial object in the junk scope. If we created it in a
     // normal realm, that realm would leak until shutdown.
     MC::Rooted<JSObject*> global(aCx, xpc::PrivilegedJunkScope());
-    JSAutoRealm ar(aCx, global);
+    MC::SandboxStack<JSAutoRealm> ar(aCx, global);
 
     MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
     if (!obj) {

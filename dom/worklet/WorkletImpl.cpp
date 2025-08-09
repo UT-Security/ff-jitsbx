@@ -87,7 +87,7 @@ dom::WorkletGlobalScope* WorkletImpl::GetGlobalScope() {
   MC::Rooted<JSObject*> global(cx);
   NS_ENSURE_TRUE(mGlobalScope->WrapGlobalObject(cx, &global), nullptr);
 
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   // Init Web IDL bindings
   if (!dom::RegisterWorkletBindings(cx, global)) {

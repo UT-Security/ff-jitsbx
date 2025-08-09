@@ -16,13 +16,14 @@
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "xpcprivate.h"                   // xpc::OptionsBase
 #include "js/CompilationAndEvaluation.h"  // JS::Compile
 #include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::DecodeOptions
 #include "js/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
 #include "js/SourceText.h"             // JS::Source{Ownership,Text}
+#include "monkeycage/tainted/Maybe.h"
 #include "monkeycage/Wrapper.h"
 
 #include "mozilla/ContentPrincipal.h"
@@ -180,7 +181,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
     }
   }
 
-  JSAutoRealm rar(cx, targetObj);
+  MC::SandboxStack<JSAutoRealm> rar(cx, targetObj);
   if (!JS_WrapValue(cx, retval)) {
     return false;
   }
@@ -195,7 +196,7 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
     }
 
     if (storeIntoStartupCache) {
-      JSAutoRealm ar(cx, script);
+      MC::SandboxStack<JSAutoRealm> ar(cx, script);
       WriteCachedStencil(StartupCache::GetSingleton(), cachePath, cx, stencil);
     }
   }
@@ -253,7 +254,7 @@ bool mozJSSubScriptLoader::ReadStencil(
     len = buf.Length();
   }
 
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
 
   // Note that when using the ScriptPreloader cache with loadSubScript, there
   // will be a side-effect of keeping the global that the script was compiled
@@ -264,7 +265,7 @@ bool mozJSSubScriptLoader::ReadStencil(
   // executed, avoiding leaks on the first session when we don't have a
   // startup cache.
   if (useCompilationScope) {
-    ar.emplace(cx, xpc::CompilationScope());
+    ar->emplace(cx, xpc::CompilationScope());
   }
 
   JS::SourceText<Utf8Unit> srcBuf;
@@ -354,7 +355,7 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     return NS_ERROR_FAILURE;
   }
 
-  JSAutoRealm ar(cx, targetObj);
+  MC::SandboxStack<JSAutoRealm> ar(cx, targetObj);
 
   nsCOMPtr<nsIIOService> serv = do_GetService(NS_IOSERVICE_CONTRACTID);
   if (!serv) {

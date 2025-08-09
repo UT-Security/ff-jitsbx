@@ -192,7 +192,7 @@ bool XPCWrappedNativeScope::AllowContentXBLScope(Realm* aRealm) {
 namespace xpc {
 JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
   MC::RootedObject contentScope(cx, contentScopeArg);
-  JSAutoRealm ar(cx, contentScope);
+  MC::SandboxStack<JSAutoRealm> ar(cx, contentScope);
   nsIPrincipal* principal = GetObjectPrincipal(contentScope);
 
   if (principal->IsSystemPrincipal()) {

@@ -37,7 +37,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   JSContext* mCx;
 
   // Handles switching to our global's realm.
-  JSAutoRealm mRealm;
+  MC::SandboxStack<JSAutoRealm> mRealm;
 
   // Set to a valid handle if a return value is expected.
   MC::Rooted<JS::Value> mRetValue;

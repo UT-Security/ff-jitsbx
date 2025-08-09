@@ -509,7 +509,7 @@ void AutoJSAPI::ReportException() {
     }
   }
   MOZ_ASSERT(JS_IsGlobalObject(errorGlobal));
-  JSAutoRealm ar(cx(), errorGlobal);
+  MC::SandboxStack<JSAutoRealm> ar(cx(), errorGlobal);
   JS::ExceptionStack exnStack(cx());
   JS::ErrorReportBuilder jsReport(cx());
   if (StealExceptionAndStack(&exnStack) &&

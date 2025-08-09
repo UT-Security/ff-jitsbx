@@ -80,7 +80,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   // We don't need a proxy here.
   global = js::UncheckedUnwrap(global);
 
-  JSAutoRealm ar(cx, global);
+  MC::SandboxStack<JSAutoRealm> ar(cx, global);
 
   RootedDictionary<ConsoleEvent> event(cx);
 

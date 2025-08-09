@@ -148,7 +148,7 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
   JSContext* cx = jsapi.cx();
 
   MC::Rooted<JSObject*> rootedCallback(cx, unwrappedCallback);
-  JSAutoRealm ar(cx, rootedCallback);
+  MC::SandboxStack<JSAutoRealm> ar(cx, rootedCallback);
 
   MC::Rooted<JSFunction*> rootedFunction(cx,
                                          JS_GetObjectFunction(rootedCallback));
@@ -412,7 +412,7 @@ already_AddRefed<nsISupports> CallbackObjectHolderBase::ToXPCOMCallback(
     return nullptr;
   }
 
-  JSAutoRealm ar(cx, aCallback->CallbackGlobalOrNull());
+  MC::SandboxStack<JSAutoRealm> ar(cx, aCallback->CallbackGlobalOrNull());
 
   RefPtr<nsXPCWrappedJS> wrappedJS;
   nsresult rv = nsXPCWrappedJS::GetNewOrUsed(cx, callback, aIID,

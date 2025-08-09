@@ -1724,7 +1724,7 @@ static bool ResolvePrototypeOrConstructor(
     bool& cacheOnHolder) {
   MC::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
   {
-    JSAutoRealm ar(cx, global);
+    MC::SandboxStack<JSAutoRealm> ar(cx, global);
     ProtoAndIfaceCache& protoAndIfaceCache = *GetProtoAndIfaceCache(global);
     // This function is called when resolving the "constructor" and "prototype"
     // properties of Xrays for DOM prototypes and constructors respectively.
@@ -2326,7 +2326,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
                                   domClass->mGetAssociatedGlobal(aCx, aObj));
   MOZ_ASSERT(JS_IsGlobalObject(newGlobal));
 
-  JSAutoRealm oldAr(aCx, oldGlobal);
+  MC::SandboxStack<JSAutoRealm> oldAr(aCx, oldGlobal);
 
   if (oldGlobal == newGlobal) {
     return;
@@ -2343,7 +2343,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
     expandoObject = DOMProxyHandler::GetAndClearExpandoObject(aObj);
   }
 
-  JSAutoRealm newAr(aCx, newGlobal);
+  MC::SandboxStack<JSAutoRealm> newAr(aCx, newGlobal);
 
   // First we clone the reflector. We get a copy of its properties and clone its
   // expando chain.
@@ -3689,7 +3689,7 @@ static bool GetBackingObject(JSContext* aCx, JS::Handle<JSObject*> aObj,
     // Since backing object access can happen in non-originating realms,
     // make sure to create the backing object in reflector realm.
     {
-      JSAutoRealm ar(aCx, reflector);
+      MC::SandboxStack<JSAutoRealm> ar(aCx, reflector);
       MC::Rooted<JSObject*> newBackingObj(aCx);
       newBackingObj.set(Method(aCx, aArgs...));
       if (NS_WARN_IF(!newBackingObj)) {
@@ -4215,7 +4215,7 @@ void AssertReflectorHasGivenProto(JSContext* aCx, JSObject* aReflector,
   }
 
   MC::Rooted<JSObject*> reflector(aCx, aReflector);
-  JSAutoRealm ar(aCx, reflector);
+  MC::SandboxStack<JSAutoRealm> ar(aCx, reflector);
   MC::Rooted<JSObject*> reflectorProto(aCx);
   bool ok = JS_GetPrototype(aCx, reflector, &reflectorProto);
   MOZ_ASSERT(ok);
