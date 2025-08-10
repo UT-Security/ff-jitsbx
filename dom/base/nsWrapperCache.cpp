@@ -126,7 +126,7 @@ void nsWrapperCache::CheckCCWrapperTraversal(void* aScriptObjectHolder,
 
   // The CC traversal machinery cannot trigger GC; however, the analysis cannot
   // see through the COM layer, so we use a suppression to help it.
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
 
   aTracer->TraverseNativeAndJS(aScriptObjectHolder, callback);
   MOZ_ASSERT(callback.mFound,

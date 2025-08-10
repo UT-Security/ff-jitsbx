@@ -631,7 +631,7 @@ AutoNoJSAPI::~AutoNoJSAPI() {
 }  // namespace dom
 
 AutoJSContext::AutoJSContext() : mCx(nullptr) {
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   MOZ_ASSERT(!mCx, "mCx should not be initialized!");
   MOZ_ASSERT(NS_IsMainThread());
 

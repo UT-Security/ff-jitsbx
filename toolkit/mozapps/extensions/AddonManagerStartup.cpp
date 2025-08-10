@@ -6,10 +6,10 @@
 #include "AddonManagerStartup.h"
 #include "AddonManagerStartup-inlines.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/Array.h"  // JS::IsArrayObject
-#include "js/ArrayBuffer.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/Array.h"  // JS::IsArrayObject
+#include "monkeycage/ArrayBuffer.h"
 #include "js/Exception.h"
 #include "js/JSON.h"
 #include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
@@ -576,7 +576,7 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
 
   nsCString data;
   {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
 
     auto obj = &value.toObject();
     bool isShared;

@@ -11,13 +11,13 @@
 #ifndef mc_GCAPI_h
 #define mc_GCAPI_h
 
-#include "SandboxCallback.h"
 #include "js/GCAPI.h"
 
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxStack.h"
 
 struct MCExternalStringCallbacks {
  public:
@@ -153,6 +153,22 @@ inline bool WasIncrementalGC(MCRuntime* rt) {
 inline void SetLowMemoryState(MCContext* cx, bool newState) {
     return SetLowMemoryState(cx->cx_, newState);
 }
+
+}
+
+namespace MC {
+
+#ifdef DEBUG
+using AutoAssertNoGC = SandboxStack<JS::AutoAssertNoGC>;
+using AutoSuppressGCAnalysis = SandboxStack<JS::AutoSuppressGCAnalysis>;
+using AutoAssertGCCallback = SandboxStack<JS::AutoAssertGCCallback>;
+using AutoCheckCannotGC = SandboxStack<JS::AutoCheckCannotGC>;
+#else
+using AutoAssertNoGC = JS::AutoAssertNoGC;
+using AutoSuppressGCAnalysis = JS::AutoSuppressGCAnalysis;
+using AutoAssertGCCallback = JS::AutoAssertGCCallback;
+using AutoCheckCannotGC = JS::AutoCheckCannotGC;
+#endif
 
 }
 

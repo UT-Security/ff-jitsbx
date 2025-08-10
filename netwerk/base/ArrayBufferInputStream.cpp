@@ -6,7 +6,7 @@
 #include <algorithm>
 #include "ArrayBufferInputStream.h"
 #include "nsStreamUtils.h"
-#include "js/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
+#include "monkeycage/ArrayBuffer.h"  // JS::{GetArrayBuffer{ByteLength,Data},IsArrayBufferObject}
 #include "monkeycage/RootingAPI.h"  // JS::{Handle,Rooted}
 #include "monkeycage/Value.h"       // JS::Value
 #include "mozilla/UniquePtrExtensions.h"
@@ -46,7 +46,7 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
 
   mBufferLength = bufferLength;
 
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   bool isShared;
   char* src =
       (char*)JS::GetArrayBufferData(arrayBuffer, &isShared, nogc) + offset;

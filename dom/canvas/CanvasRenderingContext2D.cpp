@@ -66,11 +66,11 @@
 
 #include <algorithm>
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength
 #include "js/Conversions.h"
-#include "js/experimental/TypedData.h"  // JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData
+#include "monkeycage/experimental/TypedData.h"  // JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData
 #include "js/HeapAPI.h"
 #include "js/PropertyAndElement.h"  // JS_GetElement
 #include "js/Warnings.h"            // JS::WarnASCII
@@ -5886,7 +5886,7 @@ nsresult CanvasRenderingContext2D::GetImageDataArray(
                                     SurfaceFormat::A8R8G8B8_UINT32);
     }
 
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
     uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
     MOZ_ASSERT(!isShared);  // Should not happen, data was created above

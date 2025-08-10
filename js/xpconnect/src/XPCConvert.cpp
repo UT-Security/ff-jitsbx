@@ -21,11 +21,11 @@
 
 #include "nsWrapperCacheInlines.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/CharacterEncoding.h"
-#include "js/experimental/TypedData.h"  // JS_GetArrayBufferViewType, JS_GetArrayBufferViewData, JS_GetTypedArrayLength, JS_IsTypedArrayObject
+#include "monkeycage/experimental/TypedData.h"  // JS_GetArrayBufferViewType, JS_GetArrayBufferViewData, JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"              // JS::GetClass
 #include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetElement
@@ -1458,7 +1458,7 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
     }
 
     // Get the backing memory buffer to copy out of.
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared = false;
     const void* data = JS_GetArrayBufferViewData(jsarray, &isShared, nogc);
 

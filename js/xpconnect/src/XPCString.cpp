@@ -63,7 +63,7 @@ void XPCStringConvert::DOMStringExternalString::finalize(
 size_t XPCStringConvert::DOMStringExternalString::sizeOfBuffer(
     const char16_t* aChars, mozilla::MallocSizeOf aMallocSizeOf) const {
   // We promised the JS engine we would not GC.  Enforce that:
-  JS::AutoCheckCannotGC autoCannotGC;
+  MC::AutoCheckCannotGC autoCannotGC;
 
   const nsStringBuffer* buf =
       nsStringBuffer::FromData(const_cast<char16_t*>(aChars));

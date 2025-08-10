@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/experimental/TypedData.h"  // JS_GetFloat32ArrayData
+#include "monkeycage/experimental/TypedData.h"  // JS_GetFloat32ArrayData
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/dom/TypedArray.h"
@@ -48,7 +48,7 @@ void Pose::SetFloat32Array(JSContext* aJSContext, nsWrapperCache* creator,
       return;
     }
   } else {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared = false;
     MC::Rooted<JSObject*> obj(aJSContext, aObj.get());
     float* data = JS_GetFloat32ArrayData(obj, &isShared, nogc);

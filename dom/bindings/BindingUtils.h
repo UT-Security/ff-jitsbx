@@ -284,7 +284,7 @@ MOZ_ALWAYS_INLINE nsresult UnwrapObjectInternal(V& obj, U& value,
     // UnwrapObjectInternal, because the analysis can't tell that this function
     // will not GC if maybeWrapped=False and we've already gone through a level
     // of unwrapping so unwrappedObj will be !IsWrapper.
-    JS::AutoSuppressGCAnalysis suppress;
+    MC::AutoSuppressGCAnalysis suppress;
 
     // It's very important to not update "obj" with the "unwrappedObj" value
     // until we know the unwrap has succeeded.  Otherwise, in a situation in
@@ -1048,7 +1048,7 @@ struct CheckWrapperCacheTracing<T, true> {
   static void Check(T* aObject) {
     // Rooting analysis thinks QueryInterface may GC, but we're dealing with
     // a subset of QueryInterface, C++ only types here.
-    JS::AutoSuppressGCAnalysis nogc;
+    MC::AutoSuppressGCAnalysis nogc;
 
     nsWrapperCache* wrapperCacheFromQI = nullptr;
     aObject->QueryInterface(NS_GET_IID(nsWrapperCache),
@@ -1386,7 +1386,7 @@ inline bool FindEnumStringIndex(BindingCallContext& cx, JS::Handle<JS::Value> v,
 
   {
     size_t length;
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     if (JS::StringHasLatin1Chars(str)) {
       const JS::Latin1Char* chars =
           JS_GetLatin1StringCharsAndLength(cx, nogc, str, &length);
@@ -1443,7 +1443,7 @@ inline void ClearWrapper(T* p, nsWrapperCache* cache, JSObject* obj) {
 template <class T>
 inline void ClearWrapper(T* p, void*, JSObject* obj) {
   // QueryInterface to nsWrapperCache can't GC, we hope.
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
 
   nsWrapperCache* cache;
   CallQueryInterface(p, &cache);
@@ -1453,13 +1453,13 @@ inline void ClearWrapper(T* p, void*, JSObject* obj) {
 template <class T>
 inline void UpdateWrapper(T* p, nsWrapperCache* cache, JSObject* obj,
                           const JSObject* old) {
-  JS::AutoAssertGCCallback inCallback;
+  MC::AutoAssertGCCallback inCallback;
   cache->UpdateWrapper(obj, old);
 }
 
 template <class T>
 inline void UpdateWrapper(T* p, void*, JSObject* obj, const JSObject* old) {
-  JS::AutoAssertGCCallback inCallback;
+  MC::AutoAssertGCCallback inCallback;
   nsWrapperCache* cache;
   CallQueryInterface(p, &cache);
   UpdateWrapper(p, cache, obj, old);
@@ -3266,7 +3266,7 @@ class StringIdChars {
  public:
   // Require a non-const ref to an AutoRequireNoGC to prevent callers
   // from passing temporaries.
-  StringIdChars(JS::AutoRequireNoGC& nogc, JSLinearString* str) {
+  StringIdChars(MC::AutoCheckCannotGC& nogc, JSLinearString* str) {
     mIsLatin1 = JS::LinearStringHasLatin1Chars(str);
     if (mIsLatin1) {
       mLatin1Chars = JS::GetLatin1LinearStringChars(nogc, str);
