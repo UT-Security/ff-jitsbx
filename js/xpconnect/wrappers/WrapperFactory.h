@@ -20,11 +20,7 @@ class WrapperFactory {
   };
 
   // Return true if any of any of the nested wrappers have the flag set.
-  static bool HasWrapperFlag(JSObject* wrapper, unsigned flag) {
-    unsigned flags = 0;
-    js::UncheckedUnwrap(wrapper, true, &flags);
-    return !!(flags & flag);
-  }
+  static bool HasWrapperFlag(JSObject* wrapper, unsigned flag);
 
   static bool IsXrayWrapper(JSObject* wrapper) {
     return HasWrapperFlag(wrapper, IS_XRAY_WRAPPER_FLAG);

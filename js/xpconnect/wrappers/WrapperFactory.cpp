@@ -16,9 +16,10 @@
 #include "xpcprivate.h"
 #include "XPCMaps.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
 #include "js/Object.h"              // JS::GetPrivate, JS::GetCompartment
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/Wrapper.h"
 #include "mozilla/Likely.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -58,6 +59,12 @@ const mc::Wrapper* getXrayWaiver() {
 const WaiveXrayWrapper* WaiveXrayWrapper::getSingleton() {
   static const WaiveXrayWrapper inner_(0);
   return &inner_;
+}
+
+bool WrapperFactory::HasWrapperFlag(JSObject* wrapper, unsigned flag) {
+  MC::SandboxStack<unsigned> flags = 0;
+  js::UncheckedUnwrap(wrapper, true, flags);
+  return !!(*flags.UNSAFE_unverified() & flag);
 }
 
 bool WrapperFactory::IsCrossOriginWrapper(JSObject* obj) {

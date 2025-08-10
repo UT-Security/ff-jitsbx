@@ -989,6 +989,14 @@ inline bool RecomputeWrappers(JSContext* cx,
                               const mc::CompartmentFilter& targetFilter) {
   return RecomputeWrappers(cx, *sourceFilter.inner_, *targetFilter.inner_);
 }
+
+//TODO(abhishek): readd default for stopAtWindowProxy when call is unambiguous
+inline JSObject* UncheckedUnwrap(JSObject* obj,
+                                        bool stopAtWindowProxy,
+                                        MC::Tainted<unsigned*> flagsp) {
+    return UncheckedUnwrap(obj, stopAtWindowProxy, flagsp.UNSAFE_unverified());
+}
+
 }
 #else
 namespace mc {
