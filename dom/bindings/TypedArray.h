@@ -12,7 +12,7 @@
 #include "js/ArrayBuffer.h"
 #include "js/ArrayBufferMaybeShared.h"
 #include "js/experimental/TypedData.h"  // js::Unwrap(Ui|I)nt(8|16|32)Array, js::Get(Ui|I)nt(8|16|32)ArrayLengthAndData, js::UnwrapUint8ClampedArray, js::GetUint8ClampedArrayLengthAndData, js::UnwrapFloat(32|64)Array, js::GetFloat(32|64)ArrayLengthAndData, JS_GetArrayBufferViewType
-#include "monkeycage/GCAPI.h"                   // JS::AutoCheckCannotGC
+#include "monkeycage/GCAPI.h"                   // MC::AutoCheckCannotGC
 #include "monkeycage/RootingAPI.h"              // JS::Rooted
 #include "js/ScalarType.h"              // JS::Scalar::Type
 #include "js/SharedArrayBuffer.h"
@@ -132,9 +132,14 @@ struct TypedArray_base : public SpiderMonkeyInterfaceObjectStorage,
     MOZ_ASSERT(inited());
     MOZ_ASSERT(!mComputed);
     size_t length;
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
+#ifdef DEBUG
+    mData =
+        ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, *nogc.UNSAFE_unverified());
+#else
     mData =
         ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, nogc);
+#endif
     MOZ_RELEASE_ASSERT(length <= INT32_MAX,
                        "Bindings must have checked ArrayBuffer{View} length");
     mLength = length;
@@ -208,9 +213,13 @@ struct TypedArray : public TypedArray_base<ArrayT> {
       return nullptr;
     }
     if (data) {
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       bool isShared;
+#ifdef DEBUG
+      element_type* buf = array.getData(&isShared, *nogc.UNSAFE_unverified());
+#else
       element_type* buf = array.getData(&isShared, nogc);
+#endif
       // Data will not be shared, until a construction protocol exists
       // for constructing shared data.
       MOZ_ASSERT(!isShared);

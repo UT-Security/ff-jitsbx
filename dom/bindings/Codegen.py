@@ -14715,7 +14715,7 @@ class CGCountMaybeMissingProperty(CGAbstractMethod):
             Maybe<UseCounter> counter;
             {
               // Scope for our no-GC section, so we don't need to rely on SetUseCounter not GCing.
-              JS::AutoCheckCannotGC nogc;
+              MC::AutoCheckCannotGC nogc;
               JSLinearString* str = JS::AtomToLinearString(id.toAtom());
               // Don't waste time fetching the chars until we've done the length switch.
               $*{switch}

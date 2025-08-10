@@ -335,6 +335,7 @@ EXPORTS += [
 EXPORTS.monkeycage += [
 	"../public/AllocationLogging.h",
 	"../public/Array.h",
+	"../public/ArrayBuffer.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
 	"../public/CompilationAndEvaluation.h",
@@ -388,6 +389,7 @@ EXPORTS.monkeycage += [
 EXPORTS.monkeycage.experimental += [
 	"../public/experimental/JSStencil.h",
 	"../public/experimental/SourceHook.h",
+	"../public/experimental/TypedData.h",
 ]
 
 EXPORTS.monkeycage.friend += [

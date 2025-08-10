@@ -96,7 +96,7 @@ static inline void CheckExpandoObject(JSObject* proxy,
   nsISupports* native = UnwrapDOMObject<nsISupports>(proxy);
   nsWrapperCache* cache;
   // QueryInterface to nsWrapperCache will not GC.
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   CallQueryInterface(native, &cache);
   MOZ_ASSERT(cache->PreservingWrapper());
 #endif
@@ -118,7 +118,7 @@ static inline void CheckDOMProxy(JSObject* proxy) {
   nsWrapperCache* cache;
   // QI to nsWrapperCache cannot GC for very non-obvious reasons; see
   // https://searchfox.org/mozilla-central/rev/55da592d85c2baf8d8818010c41d9738c97013d2/js/xpconnect/src/XPCWrappedJSClass.cpp#521,545-548
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   CallQueryInterface(native, &cache);
   MOZ_ASSERT(cache->GetWrapperPreserveColor() == proxy);
 #endif

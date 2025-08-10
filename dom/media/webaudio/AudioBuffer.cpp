@@ -6,9 +6,9 @@
 
 #include "AudioBuffer.h"
 #include "mozilla/dom/AudioBufferBinding.h"
-#include "jsfriendapi.h"
-#include "js/ArrayBuffer.h"             // JS::StealArrayBufferContents
-#include "js/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
+#include "mcfriendapi.h"
+#include "monkeycage/ArrayBuffer.h"             // JS::StealArrayBufferContents
+#include "monkeycage/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
 #include "mozilla/ErrorResult.h"
 #include "AudioSegment.h"
 #include "AudioChannelFormat.h"
@@ -296,7 +296,7 @@ bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
     if (!mSharedChannels.IsNull()) {
       // "4. Attach ArrayBuffers containing copies of the data to the
       // AudioBuffer, to be returned by the next call to getChannelData."
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       bool isShared;
       float* jsData = JS_GetFloat32ArrayData(array, &isShared, nogc);
       MOZ_ASSERT(!isShared);  // Was created as unshared above
@@ -322,7 +322,7 @@ void AudioBuffer::CopyFromChannel(const Float32Array& aDestination,
   if (aBufferOffset >= length) {
     return;
   }
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   aDestination.ComputeState();
   uint32_t count = std::min(length - aBufferOffset, aDestination.Length());
 
@@ -366,7 +366,7 @@ void AudioBuffer::CopyToChannel(JSContext* aJSContext,
     return;
   }
 
-  JS::AutoCheckCannotGC nogc;
+  MC::AutoCheckCannotGC nogc;
   JSObject* channelArray = mJSChannels[aChannelNumber];
   // This may differ from Length() if the buffer has been detached.
   uint32_t length = JS_GetTypedArrayLength(channelArray);

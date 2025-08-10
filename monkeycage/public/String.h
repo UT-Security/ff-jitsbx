@@ -15,6 +15,7 @@
 
 #include "monkeycage/Context.h"
 #include "monkeycage/GCAPI.h"
+#include "monkeycage/Tainted.h"
 
 inline JSString* JS_GetEmptyString(MCContext* cx) {
   return JS_GetEmptyString(cx->cx_);
@@ -53,7 +54,30 @@ inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
   return JS_AtomizeAndPinString(cx->cx_, s);
 }
 
+inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
+    JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
+    size_t* length) {
+  return JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length);
+}
+
+inline const char16_t* JS_GetTwoByteStringCharsAndLength(
+    JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
+    size_t* length) {
+  return JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length);
+}
+
 namespace JS {
+
+
+MOZ_ALWAYS_INLINE const Latin1Char* GetLatin1LinearStringChars(
+    const MC::Tainted<AutoCheckCannotGC*> nogc, JSLinearString* linear) {
+  return GetLatin1LinearStringChars(*nogc.UNSAFE_unverified(), linear);
+}
+
+MOZ_ALWAYS_INLINE const char16_t* GetTwoByteLinearStringChars(
+    const MC::Tainted<AutoCheckCannotGC*> nogc, JSLinearString* linear) {
+  return GetTwoByteLinearStringChars(*nogc.UNSAFE_unverified(), linear);
+}
 
 MOZ_ALWAYS_INLINE bool IsExternalString(
     JSString* str, const MCExternalStringCallbacks** callbacks,

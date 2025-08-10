@@ -2807,7 +2807,7 @@ bool ConvertJSValueToByteString(BindingCallContext& cx, JS::Handle<JS::Value> v,
     size_t badCharIndex;
     char16_t badChar;
     {
-      JS::AutoCheckCannotGC nogc;
+      MC::AutoCheckCannotGC nogc;
       const char16_t* chars =
           JS_GetTwoByteStringCharsAndLength(cx, nogc, s, &length);
       if (!chars) {

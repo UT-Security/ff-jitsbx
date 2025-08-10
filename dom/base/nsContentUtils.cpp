@@ -36,8 +36,8 @@
 #include "imgILoader.h"
 #include "imgIRequest.h"
 #include "imgLoader.h"
-#include "js/Array.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/Array.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "monkeycage/BuildId.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Id.h"
@@ -6795,7 +6795,7 @@ nsresult nsContentUtils::CreateArrayBuffer(JSContext* aCx,
 
   if (dataLen > 0) {
     NS_ASSERTION(JS::IsArrayBufferObject(*aResult), "What happened?");
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
     bool isShared;
     memcpy(JS::GetArrayBufferData(*aResult, &isShared, nogc),
            aData.BeginReading(), dataLen);

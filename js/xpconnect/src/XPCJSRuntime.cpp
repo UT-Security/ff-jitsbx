@@ -2848,7 +2848,7 @@ js::UniquePtr<EdgeRange> ReflectorNode::edges(JSContext* cx,
   // to guard against uninitialized objects.
   nsISupports* supp = UnwrapDOMObjectToISupports(&get());
   if (supp) {
-    JS::AutoSuppressGCAnalysis nogc;  // bug 1582326
+    MC::AutoSuppressGCAnalysis nogc;  // bug 1582326
 
     nsINode* node;
     // UnwrapDOMObjectToISupports can only return non-null if its argument is
@@ -3025,7 +3025,7 @@ bool XPCJSRuntime::DescribeCustomObjects(JSObject* obj, const JSClass* clasp,
   // could GC, but that's only possible if nsIXPCScriptable::GetJSClass()
   // somehow released a reference to the nsIXPCScriptable, which isn't going to
   // happen.
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
   nsCOMPtr<nsIXPCScriptable> scr = p->GetScriptable();
   if (!scr) {
     return false;

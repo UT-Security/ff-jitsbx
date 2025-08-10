@@ -1564,7 +1564,7 @@ void CycleCollectedJSRuntime::RemoveJSHolder(void* aHolder) {
   if (tracer) {
     // Bug 1531951: The analysis can't see through the virtual call but we know
     // that the ClearJSHolder tracer will never GC.
-    JS::AutoSuppressGCAnalysis nogc;
+    MC::AutoSuppressGCAnalysis nogc;
     tracer->Trace(aHolder, ClearJSHolder(), nullptr);
   }
 }
@@ -1662,7 +1662,7 @@ void CycleCollectedJSRuntime::DeferredFinalize(
     DeferredFinalizeAppendFunction aAppendFunc, DeferredFinalizeFunction aFunc,
     void* aThing) {
   // Tell the analysis that the function pointers will not GC.
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   mDeferredFinalizerTable.WithEntryHandle(aFunc, [&](auto&& entry) {
     if (entry) {
       aAppendFunc(entry.Data(), aThing);

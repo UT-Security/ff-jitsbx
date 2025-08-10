@@ -377,7 +377,7 @@ bool nsJSPrincipals::write(JSContext* aCx, JSStructuredCloneWriter* aWriter) {
 }
 
 bool nsJSPrincipals::isSystemOrAddonPrincipal() {
-  JS::AutoSuppressGCAnalysis suppress;
+  MC::AutoSuppressGCAnalysis suppress;
   return this->IsSystemPrincipal() ||
          this->GetIsAddonOrExpandedAddonPrincipal();
 }

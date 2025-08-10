@@ -254,7 +254,7 @@ size_t BindingJSObjectMallocBytes(Blob* aBlob) {
   // TODO: The hazard analysis currently can't see that none of the
   // implementations of the GetAllocationSize virtual method call can GC (see
   // bug 1531951).
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
 
   return aBlob->GetAllocationSize();
 }

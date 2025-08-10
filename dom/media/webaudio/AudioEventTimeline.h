@@ -19,7 +19,7 @@
 #include "WebAudioUtils.h"
 
 // XXX Avoid including this here by moving function bodies to the cpp file
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
 
 namespace mozilla {
 
@@ -345,7 +345,7 @@ class AudioEventTimeline {
       MOZ_ASSERT(!mEvents[0].mTrack,
                  "AudioParam tracks should never be destroyed on the real-time "
                  "thread.");
-      JS::AutoSuppressGCAnalysis suppress;
+      MC::AutoSuppressGCAnalysis suppress;
       mEvents.RemoveElementAt(0);
     }
   }
