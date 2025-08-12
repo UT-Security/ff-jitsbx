@@ -1352,6 +1352,50 @@ class GeneratedFile(ContextDerived):
         else:
             self.required_during_compile = required_during_compile
 
+class LibraryGeneratedFile(ContextDerived):
+    """Represents a library generated file."""
+
+    KIND = "target-objects"
+
+    __slots__ = (
+        "script",
+        "method",
+        "outputs",
+        "input",
+        "input_library",
+        "flags",
+        "force",
+        "py2",
+    )
+
+    def __init__(
+        self,
+        context,
+        script,
+        method,
+        outputs,
+        input,
+        flags=(),
+        force=False,
+        py2=False,
+        required_during_compile=None,
+    ):
+        ContextDerived.__init__(self, context)
+        self.script = script
+        self.method = method
+        self.outputs = outputs if isinstance(outputs, tuple) else (outputs,)
+        self.input = input
+        self.input_library = None
+        self.flags = flags
+        self.force = force
+        self.py2 = py2
+
+    def link_input_library(self, obj):
+        assert isinstance(obj, SharedLibrary)
+        if obj.KIND != "target":
+            raise LinkageWrongKindError("%s != %s" % (obj.KIND, self.KIND))
+        self.input_library = obj
+        obj.refs.append(self)
 
 class ChromeManifestEntry(ContextDerived):
     """Represents a chrome.manifest entry."""

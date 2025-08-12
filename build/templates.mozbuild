@@ -209,6 +209,37 @@ def GeneratedFile(name, *names, **kwargs):
     generated_file.force = force
 
 @template
+def LibraryGeneratedFile(input, name, *names, **kwargs):
+    """Add one or more LIBRARY_GENERATED_FILES with the given attributes.
+
+    You must pass in at least one generated file (the "name" argument). Other
+    names can be included as positional arguments after "name"."""
+    script = kwargs.pop('script', None)
+    entry_point = kwargs.pop('entry_point', None)
+    flags = kwargs.pop('flags', [])
+    force = kwargs.pop('force', False)
+    if kwargs:
+        error('Unrecognized argument(s) to GeneratedFile: %s' %
+              ', '.join(kwargs))
+    if entry_point and not script:
+       error('entry_point cannot be provided if script is not provided')
+    if script and ':' in script:
+       error('script should not include a `:`. If you want to provide an '
+             'alternative entry point for your script, use the entry_point '
+             'parameter.')
+
+    key = (name,) + names if names else name
+    LIBRARY_GENERATED_FILES += [key]
+    library_generated_file = LIBRARY_GENERATED_FILES[key]
+    if script and not entry_point:
+        library_generated_file.script = script
+    if script and entry_point:
+        library_generated_file.script = script + ':' + entry_point
+    library_generated_file.input = input
+    library_generated_file.flags = flags
+    library_generated_file.force = force
+
+@template
 def CbindgenHeader(name, inputs):
     """Add one GENERATED_FILES by running RunCbindgen.py"""
 

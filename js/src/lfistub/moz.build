@@ -9,9 +9,11 @@ GeckoProgram("lfistub", linkage=None)
 USE_LIBS += ["static:js"]
 
 SOURCES += [
-	"embed/stub/arch/x64/main.s",
-	"embed/stub/thread.c",
+	"!main.s",
+	"!thread.c",
 ]
+
+LibraryGeneratedFile("js", "main.s", "thread.c", script="GenerateLFIStubFiles.py", entry_point="generate_lfi_stub")
 
 LDFLAGS += ["-static-pie", "-lc++", "-lc++abi"]
 
