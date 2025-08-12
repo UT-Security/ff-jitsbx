@@ -33,6 +33,7 @@ from .data import (
     ExternalStaticLibrary,
     FinalTargetFiles,
     FinalTargetPreprocessedFiles,
+    LibraryGeneratedFile,
     GeneratedFile,
     HostDefines,
     HostLibrary,
@@ -105,6 +106,7 @@ class TreeMetadataEmitter(LoggingMixin):
         self._crate_verified_local = set()
         self._crate_directories = dict()
         self._idls = defaultdict(set)
+        self._lib_generated_files = set()
 
         # Keep track of external paths (third party build systems), starting
         # from what we run a subconfigure in. We'll eliminate some directories
@@ -213,6 +215,22 @@ class TreeMetadataEmitter(LoggingMixin):
                     ]
 
                 yield collection
+
+        for g in self._lib_generated_files:
+            if g.input not in self._libs:
+                raise SandboxValidationError(
+                    'LIBRARY_GENERATED_FILES input ("%s") does not match any LIBRARY_NAME'
+                    % g.input,
+                    contexts[os.path.normcase(g.context)],
+                )
+            candidates = self._libs[g.input]
+            if (
+                len(set(type(l) for l in candidates)) == len(candidates)
+                and len(set(l.objdir for l in candidates)) == 1
+            ):
+                for c in candidates:
+                    if isinstance(c, (SharedLibrary)):
+                        g.link_input_library(c)
 
         # Next do FINAL_LIBRARY linkage.
         for lib in (l for libs in self._libs.values() for l in libs):
@@ -1296,6 +1314,12 @@ class TreeMetadataEmitter(LoggingMixin):
                     localized_generated_files.add(f)
             yield obj
 
+        for obj in self._process_library_generated_files(context):
+            for f in obj.outputs:
+                generated_files.add(f)
+            self._lib_generated_files.add(obj)
+            yield obj
+
         for path in context["CONFIGURE_SUBST_FILES"]:
             sub = self._create_substitution(ConfigFileSubstitution, context, path)
             generated_files.add(str(sub.relpath))
@@ -1625,6 +1649,50 @@ class TreeMetadataEmitter(LoggingMixin):
                 )
 
         yield XPIDLModule(context, xpidl_module, context["XPIDL_SOURCES"])
+        
+    def _process_library_generated_files(self, context):
+        library_generated_files = context.get("LIBRARY_GENERATED_FILES") or []
+        if not library_generated_files:
+            return
+
+        for f in library_generated_files:
+            flags = library_generated_files[f]
+            outputs = f
+            input = flags.input
+            if flags.script:
+                method = "main"
+                script = SourcePath(context, flags.script).full_path
+
+                # Deal with cases like "C:\\path\\to\\script.py:function".
+                if ".py:" in script:
+                    script, method = script.rsplit(".py:", 1)
+                    script += ".py"
+
+                if not os.path.exists(script):
+                    raise SandboxValidationError(
+                        "Script for generating %s does not exist: %s" % (f, script),
+                        context,
+                    )
+                if os.path.splitext(script)[1] != ".py":
+                    raise SandboxValidationError(
+                        "Script for generating %s does not end in .py: %s"
+                        % (f, script),
+                        context,
+                    )
+            else:
+                script = None
+                method = None
+
+            yield LibraryGeneratedFile(
+                context,
+                script,
+                method,
+                outputs,
+                input,
+                flags.flags,
+                force=flags.force,
+            )
+            
 
     def _process_generated_files(self, context):
         for path in context["CONFIGURE_DEFINE_FILES"]:

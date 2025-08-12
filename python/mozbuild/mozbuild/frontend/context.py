@@ -1200,6 +1200,10 @@ GeneratedFilesList = StrictOrderingOnAppendListWithFlagsFactory(
     {"script": six.text_type, "inputs": list, "force": bool, "flags": list}
 )
 
+LibraryGeneratedFilesList = StrictOrderingOnAppendListWithFlagsFactory(
+    {"script": six.text_type, "input": six.text_type, "force": bool, "flags": list}
+)
+
 
 class Files(SubContext):
     """Metadata attached to files.
@@ -1553,6 +1557,12 @@ VARIABLES = {
         localization).  Please consult a build peer (on the #build channel at
         https://chat.mozilla.org) before using ``force``.
         """,
+    ),
+    "LIBRARY_GENERATED_FILES": (
+        LibraryGeneratedFilesList,
+        list,
+        """  
+        """
     ),
     "DEFINES": (
         InitializedDefines,

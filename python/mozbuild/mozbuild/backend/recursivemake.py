@@ -39,6 +39,7 @@ from ..frontend.data import (
     FinalTargetFiles,
     FinalTargetPreprocessedFiles,
     GeneratedFile,
+    LibraryGeneratedFile,
     HostDefines,
     HostLibrary,
     HostProgram,
@@ -547,6 +548,64 @@ class RecursiveMakeBackend(MakeBackend):
                 obj, tier, extra_dependencies="backend.mk" if obj.flags else ""
             ):
                 backend_file.write(stmt + "\n")
+
+        elif isinstance(obj, LibraryGeneratedFile):
+            outputs = []
+            substs = {}
+            for o in obj.outputs:
+                try:
+                    outputs.append(
+                        self._format_generated_file_output_name(o.format(**substs), obj)
+                    )
+                except KeyError as e:
+                    raise ValueError(
+                        "%s not in %s is not a valid substitution in %s"
+                        % (e.args[0], ", ".join(sorted(substs.keys())), o)
+                    )
+
+            def pretty_relpath(lib, name):
+                return os.path.normpath(
+                    mozpath.join(mozpath.relpath(lib.objdir, obj.objdir), name)
+                )
+            
+            build_target = self._build_target_for_obj(obj)
+            self._compile_graph[build_target]
+
+            self._compile_graph[build_target].add(
+                    self._build_target_for_obj(obj.input_library)
+            )
+            
+            first_output = outputs[0]
+            stub_file = mozpath.join(
+                mozpath.dirname(first_output),
+                "%s.stub" % mozpath.basename(first_output),
+            )
+            for output in outputs:
+                backend_file.write("%s: %s\n" % (output, stub_file))
+
+            backend_file.write(
+                (
+                    """{stub}: {script} {input}
+\t$(call py_action,file_generate,{script} """  # wrap for E501
+                    """{method} {output} {stub} {stub} {input} {flags})
+"""
+                ).format(
+                    stub=stub_file,
+                    output=first_output,
+                    input=pretty_relpath(obj.input_library, obj.input_library.import_name),
+                    flags=" " + " ".join(shell_quote(f) for f in obj.flags)
+                    if obj.flags
+                    else "",
+                    # Locale repacks repack multiple locales from a single configured objdir,
+                    # so standard mtime dependencies won't work properly when the build is re-run
+                    # with a different locale as input. IS_LANGUAGE_REPACK will reliably be set
+                    # in this situation, so simply force the generation to run in that case.
+                    script=obj.script,
+                    method=obj.method,
+                )
+            )
+
+            
 
         elif isinstance(obj, JARManifest):
             self._no_skip["misc"].add(backend_file.relobjdir)
