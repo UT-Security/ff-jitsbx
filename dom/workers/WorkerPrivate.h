@@ -689,8 +689,8 @@ class WorkerPrivate final
 
   void CopyJSRealmOptions(MC::Tainted<JS::RealmOptions*> aOptions) {
     mozilla::MutexAutoLock lock(mMutex);
-    *aOptions = IsChromeWorker() ? *mJSSettings.chromeRealmOptions
-                                : *mJSSettings.contentRealmOptions;
+    *aOptions.UNSAFE_unverified() = IsChromeWorker() ? mJSSettings.chromeRealmOptions
+                                : mJSSettings.contentRealmOptions;
   }
 
   // The ability to be a chrome worker is orthogonal to the type of
