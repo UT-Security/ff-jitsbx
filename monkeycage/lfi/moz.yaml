@@ -7,7 +7,7 @@ bugzilla:
 origin:
   name: lfi
   description: lfi sandboxing runtime
-  url: https://github.com/zyedidia/lfi/tree/master
+  url: https://github.com/UT-Security/lfi/tree/monkeycage
 
   release: 9dc7c77e420b8110b42611db645102ffce6050a3 (2025-07-03T23:31:56Z).
   revision: 9dc7c77e420b8110b42611db645102ffce6050a3
@@ -15,7 +15,7 @@ origin:
   license: MIT
 
 vendoring:
-  url: https://github.com/zyedidia/lfi
+  url: https://github.com/UT-Security/lfi
   source-hosting: github
 
   patches:
