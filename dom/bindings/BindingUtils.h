@@ -22,6 +22,7 @@
 #include "monkeycage/String.h"  // JS::GetLatin1LinearStringChars, JS::GetTwoByteLinearStringChars, JS::GetLinearStringLength, JS::LinearStringHasLatin1Chars, JS::StringHasLatin1Chars
 #include "monkeycage/Zone.h"
 #include "monkeycage/Value.h"
+#include "monkeycage/AppPtr.h"
 #include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Array.h"

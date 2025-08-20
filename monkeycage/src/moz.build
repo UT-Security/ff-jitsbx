@@ -334,6 +334,7 @@ EXPORTS += [
 
 EXPORTS.monkeycage += [
 	"../public/AllocationLogging.h",
+    "../public/AppPtr.h",
 	"../public/Array.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",

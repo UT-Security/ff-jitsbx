@@ -461,7 +461,7 @@ ContentParentsMemoryReporter::CollectReports(
 
   for (uint32_t i = 0; i < cps.Length(); i++) {
     ContentParent* cp = cps[i];
-    MessageChannel* channel = cp->GetIPCChannel();
+    mozilla::ipc::MessageChannel* channel = cp->GetIPCChannel();
 
     nsString friendlyName;
     cp->FriendlyName(friendlyName, aAnonymize);
