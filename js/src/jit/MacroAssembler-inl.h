@@ -13,9 +13,6 @@
 #include "mozilla/MathAlgorithms.h"
 
 #include "gc/Zone.h"
-#ifdef JS_SANDBOX_BUNDLE
-#include "sandbox/Bundle.h"
-#endif
 #include "jit/CalleeToken.h"
 #include "jit/CompileWrappers.h"
 #include "jit/JitFrames.h"

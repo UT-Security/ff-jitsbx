@@ -12,7 +12,7 @@
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
 #ifdef JS_SANDBOX_BUNDLE
-#  include "sandbox/Bundle.h"
+#include "sandbox/Bundle.h"
 #endif
 
 namespace js {
@@ -283,7 +283,7 @@ static constexpr Register InterpreterPCReg = r14;
 
 static constexpr uint32_t ABIStackAlignment = 16;
 #ifdef JS_SANDBOX_BUNDLE
-static constexpr uint32_t CodeAlignment = sandbox::BUNDLE_SIZE;
+static constexpr uint32_t CodeAlignment = js::sandbox::BUNDLE_SIZE;
 #else
 static constexpr uint32_t CodeAlignment = 16;
 #endif
@@ -433,9 +433,9 @@ class Assembler : public AssemblerX86Shared {
   }
 
   CodeOffset movWithPatch(ImmWord word, Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.movq_i64r(word.value, dest.encoding());
-    bundle.unlock();
+    bundle.end();
     return CodeOffset(masm.currentOffset());
   }
   CodeOffset movWithPatch(ImmPtr imm, Register dest) {
@@ -452,7 +452,7 @@ class Assembler : public AssemblerX86Shared {
   // attempt to optimize its immediate field size. When a full 64-bit
   // immediate is needed for a relocation, use movWithPatch.
   void movq(ImmWord word, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     // Load a 64-bit immediate into a register. If the value falls into
     // certain ranges, we can use specialized instructions which have
     // smaller encodings.
@@ -472,13 +472,13 @@ class Assembler : public AssemblerX86Shared {
     movq(ImmWord(uintptr_t(imm.value)), dest);
   }
   void movq(ImmGCPtr ptr, Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.movq_i64r(uintptr_t(ptr.value), dest.encoding());
-    bundle.unlock();
+    bundle.end();
     writeDataRelocation(ptr);
   }
   void movq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movq_rr(src.reg(), dest.encoding());
@@ -498,8 +498,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void movq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movq_rr(src.encoding(), dest.reg());
@@ -519,8 +519,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void movq(Imm32 imm32, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
@@ -540,20 +540,20 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void vmovq(Register src, FloatRegister dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vmovq_rr(src.encoding(), dest.encoding());
   }
   void vmovq(FloatRegister src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vmovq_rr(src.encoding(), dest.encoding());
   }
   void movq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.movq_rr(src.encoding(), dest.encoding());
   }
 
   void cmovCCq(Condition cond, const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     switch (src.kind()) {
       case Operand::REG:
@@ -571,59 +571,59 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void cmovCCq(Condition cond, Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     masm.cmovCCq_rr(cc, src.encoding(), dest.encoding());
   }
 
   void cmovzq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     cmovCCq(Condition::Zero, src, dest);
   }
   void cmovnzq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     cmovCCq(Condition::NonZero, src, dest);
   }
 
   template <typename T>
   void lock_addq(T src, const Operand& unsafeOp) {
-    AutoBundleScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     addq(src, op);
   }
   template <typename T>
   void lock_subq(T src, const Operand& unsafeOp) {
-    AutoBundleScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     subq(src, op);
   }
   template <typename T>
   void lock_andq(T src, const Operand& unsafeOp) {
-    AutoBundleScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     andq(src, op);
   }
   template <typename T>
   void lock_orq(T src, const Operand& unsafeOp) {
-    AutoBundleScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     orq(src, op);
   }
   template <typename T>
   void lock_xorq(T src, const Operand& unsafeOp) {
-    AutoBundleScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     xorq(src, op);
   }
 
   void lock_cmpxchgq(Register src, const Operand& unsafeMem) {
-    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
+    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -639,13 +639,13 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void xchgq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.xchgq_rr(src.encoding(), dest.encoding());
   }
 
   void xchgq(Register src, const Operand& unsafeMem) {
-    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
+    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgq_rm(src.encoding(), mem.disp(), mem.base());
@@ -660,8 +660,8 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void lock_xaddq(Register srcdest, const Operand& unsafeMem) {
-    AutoBundleScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
+    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddq_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -676,7 +676,7 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void movsbq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movsbq_rr(src.reg(), dest.encoding());
@@ -700,7 +700,7 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void movswq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movswq_rr(src.reg(), dest.encoding());
@@ -724,11 +724,11 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void movslq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.movslq_rr(src.encoding(), dest.encoding());
   }
   void movslq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movslq_rr(src.reg(), dest.encoding());
@@ -746,15 +746,15 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void andq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.andq_rr(src.encoding(), dest.encoding());
   }
   void andq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.andq_ir(imm.value, dest.encoding());
   }
   void andq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.andq_rr(src.reg(), dest.encoding());
@@ -774,8 +774,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void andq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andq_rr(src.encoding(), dest.reg());
@@ -793,18 +793,18 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void addq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.addq_ir(imm.value, dest.encoding());
   }
   CodeOffset addqWithPatch(Imm32 imm, Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.addq_i32r(imm.value, dest.encoding());
-    bundle.unlock();
+    bundle.end();
     return CodeOffset(masm.currentOffset());
   }
   void addq(Imm32 imm, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_ir(imm.value, dest.reg());
@@ -824,11 +824,11 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void addq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.addq_rr(src.encoding(), dest.encoding());
   }
   void addq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.addq_rr(src.reg(), dest.encoding());
@@ -848,8 +848,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void addq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_rr(src.encoding(), dest.reg());
@@ -867,15 +867,15 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void subq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.subq_ir(imm.value, dest.encoding());
   }
   void subq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.subq_rr(src.encoding(), dest.encoding());
   }
   void subq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.subq_rr(src.reg(), dest.encoding());
@@ -891,8 +891,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void subq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subq_rr(src.encoding(), dest.reg());
@@ -909,70 +909,70 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void shlq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shlq_ir(imm.value, dest.encoding());
   }
   void shrq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shrq_ir(imm.value, dest.encoding());
   }
   void sarq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.sarq_ir(imm.value, dest.encoding());
   }
   void shlq_cl(Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shlq_CLr(dest.encoding());
   }
   void shrq_cl(Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shrq_CLr(dest.encoding());
   }
   void sarq_cl(Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.sarq_CLr(dest.encoding());
   }
   void sarxq(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.sarxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
   void shlxq(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shlxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
   void shrxq(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.shrxq_rrr(src.encoding(), shift.encoding(), dest.encoding());
   }
   void rolq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.rolq_ir(imm.value, dest.encoding());
   }
   void rolq_cl(Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.rolq_CLr(dest.encoding());
   }
   void rorq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.rorq_ir(imm.value, dest.encoding());
   }
   void rorq_cl(Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.rorq_CLr(dest.encoding());
   }
   void orq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.orq_ir(imm.value, dest.encoding());
   }
   void orq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.orq_rr(src.encoding(), dest.encoding());
   }
   void orq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.orq_rr(src.reg(), dest.encoding());
@@ -988,8 +988,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void orq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orq_rr(src.encoding(), dest.reg());
@@ -1006,15 +1006,15 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void xorq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.xorq_rr(src.encoding(), dest.encoding());
   }
   void xorq(Imm32 imm, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.xorq_ir(imm.value, dest.encoding());
   }
   void xorq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.xorq_rr(src.reg(), dest.encoding());
@@ -1034,8 +1034,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void xorq(Register src, const Operand& unsafeDest) {
-    AutoBundleScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
+    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorq_rr(src.encoding(), dest.reg());
@@ -1053,40 +1053,40 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void bsrq(const Register& src, const Register& dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.bsrq_rr(src.encoding(), dest.encoding());
   }
   void bsfq(const Register& src, const Register& dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.bsfq_rr(src.encoding(), dest.encoding());
   }
   void bswapq(const Register& reg) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.bswapq_r(reg.encoding());
   }
   void lzcntq(const Register& src, const Register& dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.lzcntq_rr(src.encoding(), dest.encoding());
   }
   void tzcntq(const Register& src, const Register& dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.tzcntq_rr(src.encoding(), dest.encoding());
   }
   void popcntq(const Register& src, const Register& dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.popcntq_rr(src.encoding(), dest.encoding());
   }
 
   void imulq(Imm32 imm, Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.imulq_ir(imm.value, src.encoding(), dest.encoding());
   }
   void imulq(Register src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.imulq_rr(src.encoding(), dest.encoding());
   }
   void imulq(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.imulq_rr(src.reg(), dest.encoding());
@@ -1103,43 +1103,43 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void cqo() {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.cqo();
   }
   void idivq(Register divisor) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.idivq_r(divisor.encoding());
   }
   void udivq(Register divisor) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.divq_r(divisor.encoding());
   }
 
   void vcvtsi2sdq(Register src, FloatRegister dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vcvtsi2sdq_rr(src.encoding(), dest.encoding());
   }
 
   void vpextrq(unsigned lane, FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE41());
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vpextrq_irr(lane, src.encoding(), dest.encoding());
   }
 
   void vpinsrq(unsigned lane, Register src1, FloatRegister src0,
                FloatRegister dest) {
     MOZ_ASSERT(HasSSE41());
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vpinsrq_irr(lane, src1.encoding(), src0.encoding(), dest.encoding());
   }
 
   void negq(Register reg) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.negq_r(reg.encoding());
   }
 
   void notq(Register reg) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.notq_r(reg.encoding());
   }
 
@@ -1157,7 +1157,9 @@ class Assembler : public AssemblerX86Shared {
   }
   void mov(ImmPtr imm, Register dest) { movq(imm, dest); }
   void mov(wasm::SymbolicAddress imm, Register dest) {
+    AutoBundleInstructionScope bundle(*this);
     masm.movq_i64r(-1, dest.encoding());
+    bundle.end();
     append(wasm::SymbolicAccess(CodeOffset(masm.currentOffset()), imm));
   }
   void mov(const Operand& src, Register dest) { movq(src, dest); }
@@ -1165,15 +1167,15 @@ class Assembler : public AssemblerX86Shared {
   void mov(Imm32 imm32, const Operand& dest) { movq(imm32, dest); }
   void mov(Register src, Register dest) { movq(src, dest); }
   void mov(CodeLabel* label, Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.movq_i64r(/* placeholder */ 0, dest.encoding());
-    bundle.unlock();
+    bundle.end();
     label->patchAt()->bind(masm.size());
   }
   void xchg(Register src, Register dest) { xchgq(src, dest); }
 
   void lea(const Operand& src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.leaq_mr(src.disp(), src.base(), dest.encoding());
@@ -1191,44 +1193,44 @@ class Assembler : public AssemblerX86Shared {
   void cmovzPtr(const Operand& src, Register dest) { return cmovzq(src, dest); }
 
   CodeOffset loadRipRelativeInt32(Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.movl_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeInt64(Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.movq_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeDouble(FloatRegister dest) {
     // TODO(JS_SANDBOX_BUNDLE)
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovsd_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeFloat32(FloatRegister dest) {
     // TODO(JS_SANDBOX_BUNDLE)
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovss_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeInt32x4(FloatRegister dest) {
     // TODO(JS_SANDBOX_BUNDLE)
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovdqa_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeFloat32x4(FloatRegister dest) {
     // TODO(JS_SANDBOX_BUNDLE)
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovaps_ripr(dest.encoding()).offset());
   }
   CodeOffset leaRipRelative(Register dest) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.leaq_rip(dest.encoding()).offset());
   }
 
   void cmpq(Register rhs, Register lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.cmpq_rr(rhs.encoding(), lhs.encoding());
   }
   void cmpq(Register rhs, const Operand& lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpq_rr(rhs.encoding(), lhs.reg());
@@ -1248,11 +1250,11 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void cmpq(Imm32 rhs, Register lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.cmpq_ir(rhs.value, lhs.encoding());
   }
   void cmpq(Imm32 rhs, const Operand& lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.cmpq_ir(rhs.value, lhs.reg());
@@ -1272,7 +1274,7 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void cmpq(const Operand& rhs, Register lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (rhs.kind()) {
       case Operand::REG:
         masm.cmpq_rr(rhs.reg(), lhs.encoding());
@@ -1286,15 +1288,15 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void testq(Imm32 rhs, Register lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.testq_ir(rhs.value, lhs.encoding());
   }
   void testq(Register rhs, Register lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.testq_rr(rhs.encoding(), lhs.encoding());
   }
   void testq(Imm32 rhs, const Operand& lhs) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     switch (lhs.kind()) {
       case Operand::REG:
         masm.testq_ir(rhs.value, lhs.reg());
@@ -1310,16 +1312,16 @@ class Assembler : public AssemblerX86Shared {
 
   void jmp(ImmPtr target, RelocationKind reloc = RelocationKind::HARDCODED) {
     MOZ_ASSERT(hasCreator());
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.jmp();
-    bundle.unlock();
+    bundle.end();
     addPendingJump(src, target, reloc);
   }
   void j(Condition cond, ImmPtr target,
          RelocationKind reloc = RelocationKind::HARDCODED) {
-    AutoOwnBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.jCC(static_cast<X86Encoding::Condition>(cond));
-    bundle.unlock();
+    bundle.end();
     addPendingJump(src, target, reloc);
   }
 
@@ -1330,18 +1332,16 @@ class Assembler : public AssemblerX86Shared {
     j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
   void call(JitCode* target) {
-    AutoOwnBundleScope bundle(*this);
-    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
+    AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.call();
-    bundle.unlock();
+    bundle.end();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
   void call(ImmWord target) { call(ImmPtr((void*)target.value)); }
   void call(ImmPtr target) {
-    AutoOwnBundleScope bundle(*this);
-    bundle.alignToEnd(X86Encoding::BaseAssembler::call_size());
+    AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.call();
-    bundle.unlock();
+    bundle.end();
     addPendingJump(src, target, RelocationKind::HARDCODED);
   }
 
@@ -1349,22 +1349,10 @@ class Assembler : public AssemblerX86Shared {
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
 #ifdef JS_SANDBOX_BUNDLE
-    AutoOwnBundleScope bundle(*this);
-    bundle.alignToEnd(ToggledCallSize(nullptr));
-#  ifdef DEBUG
-    size_t bundleSizeBefore = bundle.size();
-#  endif
+    AutoBundleInstructionScope bundle(*this);
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
-#  ifdef DEBUG
-    size_t bundleSizeAfter = bundle.size();
-#  endif
-    bundle.unlock();
+    bundle.end();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
-    MOZ_ASSERT_IF(
-        !oom(), bundleSizeAfter - bundleSizeBefore == ToggledCallSize(nullptr));
-#  ifdef JS_SANDBOX_CFI
-    MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#  endif
     return CodeOffset(size() - ToggledCallSize(nullptr));
 #else
     CodeOffset offset(size());
@@ -1384,19 +1372,19 @@ class Assembler : public AssemblerX86Shared {
   using AssemblerX86Shared::call;
 
   void vcvttsd2sq(FloatRegister src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vcvttsd2sq_rr(src.encoding(), dest.encoding());
   }
   void vcvttss2sq(FloatRegister src, Register dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vcvttss2sq_rr(src.encoding(), dest.encoding());
   }
   void vcvtsq2sd(Register src1, FloatRegister src0, FloatRegister dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vcvtsq2sd_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void vcvtsq2ss(Register src1, FloatRegister src0, FloatRegister dest) {
-    AutoBundleScope bundle(*this);
+    AutoBundleInstructionScope bundle(*this);
     masm.vcvtsq2ss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
 };

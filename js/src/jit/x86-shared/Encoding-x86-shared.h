@@ -10,13 +10,21 @@
 #include <type_traits>
 
 #include "jit/x86-shared/Constants-x86-shared.h"
+#ifdef JS_SANDBOX_BUNDLE
+#include "sandbox/Bundle.h"
+#endif
 
 namespace js {
 namespace jit {
 
 namespace X86Encoding {
 
+#ifdef JS_SANDBOX_BUNDLE
+// Pretend each bundle is an atomic instruction.
+static const size_t MaxInstructionSize = sandbox::BUNDLE_SIZE;
+#else
 static const size_t MaxInstructionSize = 16;
+#endif
 
 // These enumerated values are following the Intel documentation Volume 2C [1],
 // Appendix A.2 and Appendix A.3.

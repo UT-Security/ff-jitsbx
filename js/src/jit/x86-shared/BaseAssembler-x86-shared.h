@@ -34,7 +34,7 @@
 #include "mozilla/IntegerPrintfMacros.h"
 
 #ifdef JS_SANDBOX_BUNDLE
-#include "sandbox/Bundle.h"
+#include "jit/x86-shared/AssemblerBundleBuffer-x86-shared.h"
 #endif
 #include "jit/x86-shared/AssemblerBuffer-x86-shared.h"
 #include "jit/x86-shared/Encoding-x86-shared.h"
@@ -59,46 +59,36 @@ class BaseAssembler : public GenericAssembler {
   unsigned char* data() { return m_formatter.data(); }
   bool oom() const { return m_formatter.oom(); }
   bool reserve(size_t size) { return m_formatter.reserve(size); }
-  bool swapBuffer(wasm::Bytes& other) { return m_formatter.swapBuffer(other); }
+  bool swapBuffer(wasm::Bytes& other) {
+#ifdef JS_SANDBOX_BUNDLE
+      haltingAlign(js::sandbox::BUNDLE_SIZE);
+#endif
+    return m_formatter.swapBuffer(other);
+  }
 
 #ifdef JS_SANDBOX_BUNDLE
-  bool bundleLock() {
-    return m_formatter.bundleLock();
+  inline bool beginBundleInstruction() {
+    return m_formatter.beginBundleInstruction();
+  } 
+
+  inline void endBundleInstruction() {
+    m_formatter.endBundleInstruction();
   }
 
-  size_t bundleAdjust(size_t extra) {
-    return sandbox::isSameBundle(
-        m_formatter.size(),
-        m_formatter.size() + m_formatter.bundleSize() + extra - 1)
-        ? 0
-        : sandbox::BUNDLE_SIZE - m_formatter.size() % sandbox::BUNDLE_SIZE;
+  inline void beginBundleGroup() {
+    m_formatter.beginBundleGroup();
   }
 
-  void bundleUnlock() {
-    MOZ_ASSERT(m_formatter.bundleSize() <= sandbox::BUNDLE_SIZE, "Bundle exceeds maximum bundle size");
-    
-    m_formatter.bundleUnlockStart();
-    // check if current bundle crosses a bundle boundary
-    if (!sandbox::isSameBundle(m_formatter.size(), m_formatter.size() + m_formatter.bundleSize() - 1)) {
-      // current bundle needs to begin at it's own bundle boundary
-      bundleNopAlign();
-    }
-    m_formatter.bundleUnlockEnd();
-  }
-
-  size_t bundleSize() {
-    MOZ_ASSERT(m_formatter.is_in_bundle(), "need to be within bundle");
-    return m_formatter.bundleSize();
-  }
-
-  void bundleNopAlign() {
-    nopAlign(sandbox::BUNDLE_SIZE);
-  }
-
-  bool inBundle() {
-    return m_formatter.is_in_bundle();
+  inline void endBundleGroup() {
+    m_formatter.endBundleGroup();
   }
 #endif
+
+  inline void ensureBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+    m_formatter.ensureBundleSpace(space);
+#endif
+  }
 
   void nop() {
     spew("nop");
@@ -213,126 +203,246 @@ class BaseAssembler : public GenericAssembler {
   void insert_nop(int size) {
     switch (size) {
       case 1:
+        m_formatter.beginBundleInstruction();
         nop_one();
+        m_formatter.endBundleInstruction();
         break;
       case 2:
+        m_formatter.beginBundleInstruction();
         nop_two();
+        m_formatter.endBundleInstruction();
         break;
       case 3:
+        m_formatter.beginBundleInstruction();
         nop_three();
+        m_formatter.endBundleInstruction();
         break;
       case 4:
+        m_formatter.beginBundleInstruction();
         nop_four();
+        m_formatter.endBundleInstruction();
         break;
       case 5:
+        m_formatter.beginBundleInstruction();
         nop_five();
+        m_formatter.endBundleInstruction();
         break;
       case 6:
+        m_formatter.beginBundleInstruction();
         nop_six();
+        m_formatter.endBundleInstruction();
         break;
       case 7:
+        m_formatter.beginBundleInstruction();
         nop_seven();
+        m_formatter.endBundleInstruction();
         break;
       case 8:
+        m_formatter.beginBundleInstruction();
         nop_eight();
+        m_formatter.endBundleInstruction();
         break;
       case 9:
+        m_formatter.beginBundleInstruction();
         nop_nine();
+        m_formatter.endBundleInstruction();
         break;
       case 10:
+        m_formatter.beginBundleInstruction();
         nop_ten();
+        m_formatter.endBundleInstruction();
         break;
       case 11:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
         break;
       case 12:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_one();
+        m_formatter.endBundleInstruction();
         break;
       case 13:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_two();
+        m_formatter.endBundleInstruction();
         break;
       case 14:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_three();
+        m_formatter.endBundleInstruction();
         break;
       case 15:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_four();
+        m_formatter.endBundleInstruction();
         break;
       case 16:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_five();
+        m_formatter.endBundleInstruction();
         break;
       case 17:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_six();
+        m_formatter.endBundleInstruction();
         break;
       case 18:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_seven();
+        m_formatter.endBundleInstruction();
         break;
       case 19:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eight();
+        m_formatter.endBundleInstruction();
         break;
       case 20:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_nine();
+        m_formatter.endBundleInstruction();
         break;
       case 21:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_ten();
+        m_formatter.endBundleInstruction();
         break;
       case 22:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
         break;
       case 23:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_one();
+        m_formatter.endBundleInstruction();
         break;
       case 24:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_two();
+        m_formatter.endBundleInstruction();
         break;
       case 25:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_three();
+        m_formatter.endBundleInstruction();
         break;
       case 26:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_four();
+        m_formatter.endBundleInstruction();
         break;
       case 27:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_five();
+        m_formatter.endBundleInstruction();
         break;
       case 28:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_six();
+        m_formatter.endBundleInstruction();
         break;
       case 29:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_seven();
+        m_formatter.endBundleInstruction();
         break;
       case 30:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eight();
+        m_formatter.endBundleInstruction();
         break;
       case 31:
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_eleven();
+        m_formatter.endBundleInstruction();
+        m_formatter.beginBundleInstruction();
         nop_nine();
+        m_formatter.endBundleInstruction();
         break;
       default:
         MOZ_CRASH("Unhandled alignment");
@@ -2759,22 +2869,12 @@ class BaseAssembler : public GenericAssembler {
 
   // Flow control:
 
-#ifdef JS_SANDBOX_BUNDLE
-  [[nodiscard]] JmpSrc call() {
-    m_formatter.oneByteOp(OP_CALL_rel32);
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
-    JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
-    spew("call       .Lfrom%d", r.offset());
-    return r;
-  }
-#else
   [[nodiscard]] JmpSrc call() {
     m_formatter.oneByteOp(OP_CALL_rel32);
     JmpSrc r = m_formatter.immediateRel32();
     spew("call       .Lfrom%d", r.offset());
     return r;
   }
-#endif
 
   static size_t call_size() {
     // 1 byte opcode + 4 byte offset
@@ -2802,52 +2902,18 @@ class BaseAssembler : public GenericAssembler {
   // Comparison of EAX against a 32-bit immediate. The immediate is patched
   // in as if it were a jump target. The intention is to toggle the first
   // byte of the instruction between a CMP and a JMP to produce a pseudo-NOP.
-#ifdef JS_SANDBOX_BUNDLE
-  [[nodiscard]] JmpSrc cmp_eax() {
-    m_formatter.oneByteOp(OP_CMP_EAXIv);
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
-    JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
-    spew("cmpl       %%eax, .Lfrom%d", r.offset());
-    return r;
-  }
-#else
   [[nodiscard]] JmpSrc cmp_eax() {
     m_formatter.oneByteOp(OP_CMP_EAXIv);
     JmpSrc r = m_formatter.immediateRel32();
     spew("cmpl       %%eax, .Lfrom%d", r.offset());
     return r;
   }
-#endif
 
-#ifdef JS_SANDBOX_BUNDLE
   void jmp_i(JmpDst dst) {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
-    int32_t diff = dst.offset() - m_formatter.size();
-    spew("jmp        .Llabel%d", dst.offset());
-
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(2) : 0;
-    // The jump immediate is an offset from the end of the jump instruction.
-    // A jump instruction is either 1 byte opcode and 1 byte offset, or 1
-    // byte opcode and 4 bytes offset.
-    if (CAN_SIGN_EXTEND_8_32(diff - 2 - adjustment)) {
-      m_formatter.oneByteOp(OP_JMP_rel8);
-      m_formatter.immediate8s(diff - 2 - adjustment);
-    } else {
-      int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(5) : 0;
-      m_formatter.oneByteOp(OP_JMP_rel32);
-      m_formatter.immediate32(diff - 5 - adjustment);
-    }
-  }
-  [[nodiscard]] JmpSrc jmp() {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
-    m_formatter.oneByteOp(OP_JMP_rel32);
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
-    JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
-    spew("jmp        .Lfrom%d", r.offset());
-    return r;
-  }
-#else
-  void jmp_i(JmpDst dst) {
+    // Make sure 2-byte jump instruction will not cross a bundle boundary.
+    // This ensures that the subsequent diff calculation is correct.
+    m_formatter.ensureBundleSpace(2);
+    
     int32_t diff = dst.offset() - m_formatter.size();
     spew("jmp        .Llabel%d", dst.offset());
 
@@ -2858,6 +2924,13 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(OP_JMP_rel8);
       m_formatter.immediate8s(diff - 2);
     } else {
+#ifdef JS_SANDBOX_BUNDLE
+      // Ensure that a 5-byte jump will not cross a bundle boundary.
+      // We also need to recompute diff to ensure it takes any adjustments
+      // due to bundling into account.
+      m_formatter.ensureBundleSpace(5);
+      diff = dst.offset() - m_formatter.size();
+#endif
       m_formatter.oneByteOp(OP_JMP_rel32);
       m_formatter.immediate32(diff - 5);
     }
@@ -2868,7 +2941,6 @@ class BaseAssembler : public GenericAssembler {
     spew("jmp        .Lfrom%d", r.offset());
     return r;
   }
-#endif
 
   void jmp_r(RegisterID dst) {
     spew("jmp        *%s", GPRegName(dst));
@@ -2886,37 +2958,11 @@ class BaseAssembler : public GenericAssembler {
                           GROUP5_OP_JMPN);
   }
 
-#ifdef JS_SANDBOX_BUNDLE
   void jCC_i(Condition cond, JmpDst dst) {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
-    int32_t diff = dst.offset() - m_formatter.size();
-    spew("j%s        .Llabel%d", CCName(cond), dst.offset());
+    // Make sure 2-byte jump instruction will not cross a bundle boundary.
+    // This ensures that the subsequent diff calculation is correct.
+    m_formatter.ensureBundleSpace(2);
 
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(2) : 0;
-
-    // The jump immediate is an offset from the end of the jump instruction.
-    // A conditional jump instruction is either 1 byte opcode and 1 byte
-    // offset, or 2 bytes opcode and 4 bytes offset.
-    if (CAN_SIGN_EXTEND_8_32(diff - 2 - adjustment)) {
-      m_formatter.oneByteOp(jccRel8(cond));
-      m_formatter.immediate8s(diff - 2 - adjustment);
-    } else {
-      int32_t adjustment =
-          m_formatter.is_in_bundle() ? bundleAdjust(6) : 0;
-      m_formatter.twoByteOp(jccRel32(cond));
-      m_formatter.immediate32(diff - 6 - adjustment);
-    }
-  }
-  [[nodiscard]] JmpSrc jCC(Condition cond) {
-    MOZ_ASSERT(m_formatter.bundleSize() == 0, "Should be a fresh bundle");
-    m_formatter.twoByteOp(jccRel32(cond));
-    int32_t adjustment = m_formatter.is_in_bundle() ? bundleAdjust(4) : 0;
-    JmpSrc r = JmpSrc(m_formatter.immediateRel32().offset() + m_formatter.bundleSize() + adjustment);
-    spew("j%s        .Lfrom%d", CCName(cond), r.offset());
-    return r;
-  }
-#else
-  void jCC_i(Condition cond, JmpDst dst) {
     int32_t diff = dst.offset() - m_formatter.size();
     spew("j%s        .Llabel%d", CCName(cond), dst.offset());
 
@@ -2927,6 +2973,13 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(jccRel8(cond));
       m_formatter.immediate8s(diff - 2);
     } else {
+#ifdef JS_SANDBOX_BUNDLE
+      // Ensure that a 6-byte jump will not cross a bundle boundary.
+      // We also need to recompute diff to ensure it takes any adjustments
+      // due to bundling into account.
+      m_formatter.ensureBundleSpace(6);
+      diff = dst.offset() - m_formatter.size();
+#endif
       m_formatter.twoByteOp(jccRel32(cond));
       m_formatter.immediate32(diff - 6);
     }
@@ -2937,7 +2990,6 @@ class BaseAssembler : public GenericAssembler {
     spew("j%s        .Lfrom%d", CCName(cond), r.offset());
     return r;
   }
-#endif
 
   // SSE operations:
 
@@ -4737,7 +4789,9 @@ class BaseAssembler : public GenericAssembler {
   void haltingAlign(int alignment) {
     spew(".balign %d, 0x%x   # hlt", alignment, unsigned(OP_HLT));
     while (!m_formatter.isAligned(alignment)) {
+      m_formatter.beginBundleInstruction();
       m_formatter.oneByteOp(OP_HLT);
+      m_formatter.endBundleInstruction();
     }
   }
 
@@ -5651,7 +5705,7 @@ class BaseAssembler : public GenericAssembler {
     //
     // These are emmitted prior to the instruction.
 
-    void prefix(OneByteOpcodeID pre) { mbuffer().putByte(pre); }
+    void prefix(OneByteOpcodeID pre) { m_buffer.putByte(pre); }
 
     void legacySSEPrefix(VexOperandType ty) {
       switch (ty) {
@@ -5690,20 +5744,20 @@ class BaseAssembler : public GenericAssembler {
     /* clang-format on */
 
     void oneByteOp(OneByteOpcodeID opcode) {
-      mbuffer().ensureSpace(MaxInstructionSize);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.ensureSpace(MaxInstructionSize);
+      m_buffer.putByteUnchecked(opcode);
     }
 
     void oneByteOp(OneByteOpcodeID opcode, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(0, 0, reg);
-      mbuffer().putByteUnchecked(opcode + (reg & 7));
+      m_buffer.putByteUnchecked(opcode + (reg & 7));
     }
 
     void oneByteOp(OneByteOpcodeID opcode, RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, rm);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
@@ -5713,9 +5767,9 @@ class BaseAssembler : public GenericAssembler {
     
     void oneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                    int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
@@ -5725,66 +5779,66 @@ class BaseAssembler : public GenericAssembler {
     
     void oneByteOp_disp32(OneByteOpcodeID opcode, int32_t offset,
                           RegisterID base, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(offset, base, reg);
     }
 
     void oneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                    RegisterID index, int scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, index, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
     void oneByteOp_disp32(OneByteOpcodeID opcode, int32_t offset,
                           RegisterID index, int scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, index, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(offset, index, scale, reg);
     }
 
     void oneByteOp(OneByteOpcodeID opcode, const void* address, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(address, reg);
     }
 
     void oneByteOp_disp32(OneByteOpcodeID opcode, const void* address,
                           int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(address, reg);
     }
 #ifdef JS_CODEGEN_X64
     void oneByteRipOp(OneByteOpcodeID opcode, int ripOffset, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void oneByteRipOp64(OneByteOpcodeID opcode, int ripOffset, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void twoByteRipOp(TwoByteOpcodeID opcode, int ripOffset, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void twoByteRipOpVex(VexOperandType ty, TwoByteOpcodeID opcode,
@@ -5794,28 +5848,28 @@ class BaseAssembler : public GenericAssembler {
       int w = 0, v = src0, l = 0;
       threeOpVex(ty, r, x, b, m, w, v, l, opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 #endif
 
     void twoByteOp(TwoByteOpcodeID opcode) {
-      mbuffer().ensureSpace(MaxInstructionSize);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.ensureSpace(MaxInstructionSize);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
     }
 
     void twoByteOp(TwoByteOpcodeID opcode, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(0, 0, reg);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode + (reg & 7));
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode + (reg & 7));
     }
 
     void twoByteOp(TwoByteOpcodeID opcode, RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
@@ -5830,10 +5884,10 @@ class BaseAssembler : public GenericAssembler {
 
     void twoByteOp(TwoByteOpcodeID opcode, int32_t offset, RegisterID base,
                    int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
@@ -5848,10 +5902,10 @@ class BaseAssembler : public GenericAssembler {
 
     void twoByteOp_disp32(TwoByteOpcodeID opcode, int32_t offset,
                           RegisterID base, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(offset, base, reg);
     }
 
@@ -5867,10 +5921,10 @@ class BaseAssembler : public GenericAssembler {
 
     void twoByteOp(TwoByteOpcodeID opcode, int32_t offset, RegisterID base,
                    RegisterID index, int scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, index, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
@@ -5885,10 +5939,10 @@ class BaseAssembler : public GenericAssembler {
     }
 
     void twoByteOp(TwoByteOpcodeID opcode, const void* address, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(address, reg);
     }
 
@@ -5903,11 +5957,11 @@ class BaseAssembler : public GenericAssembler {
 
     void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                      RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
@@ -5932,22 +5986,22 @@ class BaseAssembler : public GenericAssembler {
 
     void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                      int32_t offset, RegisterID base, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
     void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                      int32_t offset, RegisterID base, RegisterID index,
                      int32_t scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, index, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
@@ -5992,23 +6046,23 @@ class BaseAssembler : public GenericAssembler {
 
     void threeByteOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                      const void* address, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(address, reg);
     }
 
     void threeByteRipOp(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                         int ripOffset, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(reg, 0, 0);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void threeByteOpVex(VexOperandType ty, ThreeByteOpcodeID opcode,
@@ -6048,7 +6102,7 @@ class BaseAssembler : public GenericAssembler {
       int w = 0, v = src0, l = 0;
       threeOpVex(ty, r, x, b, m, w, v, l, opcode);
       putModRm(ModRmMemoryNoDisp, noBase, reg);
-      mbuffer().putIntUnchecked(ripOffset);
+      m_buffer.putIntUnchecked(ripOffset);
     }
 
     void vblendvOpVex(VexOperandType ty, ThreeByteOpcodeID opcode,
@@ -6100,93 +6154,93 @@ class BaseAssembler : public GenericAssembler {
     // normal (non-'64'-postfixed) formatters should be used.
 
     void oneByteOp64(OneByteOpcodeID opcode) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(0, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
     }
 
     void oneByteOp64(OneByteOpcodeID opcode, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(0, 0, reg);
-      mbuffer().putByteUnchecked(opcode + (reg & 7));
+      m_buffer.putByteUnchecked(opcode + (reg & 7));
     }
 
     void oneByteOp64(OneByteOpcodeID opcode, RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, rm);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
     void oneByteOp64(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                      int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
     void oneByteOp64_disp32(OneByteOpcodeID opcode, int32_t offset,
                             RegisterID base, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(offset, base, reg);
     }
 
     void oneByteOp64(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                      RegisterID index, int scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, index, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
     void oneByteOp64(OneByteOpcodeID opcode, const void* address, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(address, reg);
     }
 
     void twoByteOp64(TwoByteOpcodeID opcode, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(0, 0, reg);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode + (reg & 7));
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode + (reg & 7));
     }
 
     void twoByteOp64(TwoByteOpcodeID opcode, RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
     void twoByteOp64(TwoByteOpcodeID opcode, int offset, RegisterID base,
                      int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
     void twoByteOp64(TwoByteOpcodeID opcode, int offset, RegisterID base,
                      RegisterID index, int scale, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, index, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
     void twoByteOp64(TwoByteOpcodeID opcode, const void* address, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, 0);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(address, reg);
     }
 
@@ -6201,11 +6255,11 @@ class BaseAssembler : public GenericAssembler {
 
     void threeByteOp64(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
                        RegisterID rm, int reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexW(reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(escape);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 #endif  // JS_CODEGEN_X64
@@ -6246,21 +6300,21 @@ class BaseAssembler : public GenericAssembler {
     // operands.
 
     void oneByteOp8(OneByteOpcodeID opcode) {
-      mbuffer().ensureSpace(MaxInstructionSize);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.ensureSpace(MaxInstructionSize);
+      m_buffer.putByteUnchecked(opcode);
     }
 
     void oneByteOp8(OneByteOpcodeID opcode, RegisterID r) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(r), 0, 0, r);
-      mbuffer().putByteUnchecked(opcode + (r & 7));
+      m_buffer.putByteUnchecked(opcode + (r & 7));
     }
 
     void oneByteOp8(OneByteOpcodeID opcode, RegisterID rm,
                     GroupOpcodeID groupOp) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(rm), 0, 0, rm);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, groupOp);
     }
 
@@ -6268,68 +6322,68 @@ class BaseAssembler : public GenericAssembler {
     void oneByteOp8_norex(OneByteOpcodeID opcode, HRegisterID rm,
                           GroupOpcodeID groupOp) {
       MOZ_ASSERT(!regRequiresRex(RegisterID(rm)));
-      mbuffer().ensureSpace(MaxInstructionSize);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.ensureSpace(MaxInstructionSize);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(RegisterID(rm), groupOp);
     }
 
     void oneByteOp8(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                     RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg), reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
     void oneByteOp8_disp32(OneByteOpcodeID opcode, int32_t offset,
                            RegisterID base, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg), reg, 0, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(offset, base, reg);
     }
 
     void oneByteOp8(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                     RegisterID index, int scale, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg), reg, index, base);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
     void oneByteOp8(OneByteOpcodeID opcode, const void* address,
                     RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg), reg, 0, 0);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM_disp32(address, reg);
     }
 
     void twoByteOp8(TwoByteOpcodeID opcode, RegisterID rm, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg) || byteRegRequiresRex(rm), reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
     void twoByteOp8(TwoByteOpcodeID opcode, int32_t offset, RegisterID base,
                     RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg) || regRequiresRex(base), reg, 0, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, reg);
     }
 
     void twoByteOp8(TwoByteOpcodeID opcode, int32_t offset, RegisterID base,
                     RegisterID index, int scale, RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(reg) || regRequiresRex(base) ||
                     regRequiresRex(index),
                 reg, index, base);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       memoryModRM(offset, base, index, scale, reg);
     }
 
@@ -6339,19 +6393,19 @@ class BaseAssembler : public GenericAssembler {
     // prefix to disambiguate it from ah..bh.
     void twoByteOp8_movx(TwoByteOpcodeID opcode, RegisterID rm,
                          RegisterID reg) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(regRequiresRex(reg) || byteRegRequiresRex(rm), reg, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
 
     void twoByteOp8(TwoByteOpcodeID opcode, RegisterID rm,
                     GroupOpcodeID groupOp) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIf(byteRegRequiresRex(rm), 0, 0, rm);
-      mbuffer().putByteUnchecked(OP_2BYTE_ESCAPE);
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, groupOp);
     }
 
@@ -6364,105 +6418,105 @@ class BaseAssembler : public GenericAssembler {
     // A signed 8-bit immediate.
     MOZ_ALWAYS_INLINE void immediate8s(int32_t imm) {
       MOZ_ASSERT(CAN_SIGN_EXTEND_8_32(imm));
-      mbuffer().putByteUnchecked(imm);
+      m_buffer.putByteUnchecked(imm);
     }
 
     // An unsigned 8-bit immediate.
     MOZ_ALWAYS_INLINE void immediate8u(uint32_t imm) {
       MOZ_ASSERT(CAN_ZERO_EXTEND_8_32(imm));
-      mbuffer().putByteUnchecked(int32_t(imm));
+      m_buffer.putByteUnchecked(int32_t(imm));
     }
 
     // An 8-bit immediate with is either signed or unsigned, for use in
     // instructions which actually only operate on 8 bits.
     MOZ_ALWAYS_INLINE void immediate8(int32_t imm) {
-      mbuffer().putByteUnchecked(imm);
+      m_buffer.putByteUnchecked(imm);
     }
 
     // A signed 16-bit immediate.
     MOZ_ALWAYS_INLINE void immediate16s(int32_t imm) {
       MOZ_ASSERT(CAN_SIGN_EXTEND_16_32(imm));
-      mbuffer().putShortUnchecked(imm);
+      m_buffer.putShortUnchecked(imm);
     }
 
     // An unsigned 16-bit immediate.
     MOZ_ALWAYS_INLINE void immediate16u(int32_t imm) {
       MOZ_ASSERT(CAN_ZERO_EXTEND_16_32(imm));
-      mbuffer().putShortUnchecked(imm);
+      m_buffer.putShortUnchecked(imm);
     }
 
     // A 16-bit immediate with is either signed or unsigned, for use in
     // instructions which actually only operate on 16 bits.
     MOZ_ALWAYS_INLINE void immediate16(int32_t imm) {
-      mbuffer().putShortUnchecked(imm);
+      m_buffer.putShortUnchecked(imm);
     }
 
     MOZ_ALWAYS_INLINE void immediate32(int32_t imm) {
-      mbuffer().putIntUnchecked(imm);
+      m_buffer.putIntUnchecked(imm);
     }
 
     MOZ_ALWAYS_INLINE void immediate64(int64_t imm) {
-      mbuffer().putInt64Unchecked(imm);
+      m_buffer.putInt64Unchecked(imm);
     }
 
     [[nodiscard]] MOZ_ALWAYS_INLINE JmpSrc immediateRel32() {
-      mbuffer().putIntUnchecked(0);
+      m_buffer.putIntUnchecked(0);
       return JmpSrc(m_buffer.size());
     }
 
     // Data:
 
     void jumpTablePointer(uintptr_t ptr) {
-      mbuffer().ensureSpace(sizeof(uintptr_t));
+      m_buffer.ensureSpace(sizeof(uintptr_t));
 #ifdef JS_CODEGEN_X64
-      mbuffer().putInt64Unchecked(ptr);
+      m_buffer.putInt64Unchecked(ptr);
 #else
-      mbuffer().putIntUnchecked(ptr);
+      m_buffer.putIntUnchecked(ptr);
 #endif
     }
 
     void doubleConstant(double d) {
-      mbuffer().ensureSpace(sizeof(double));
-      mbuffer().putInt64Unchecked(mozilla::BitwiseCast<uint64_t>(d));
+      m_buffer.ensureSpace(sizeof(double));
+      m_buffer.putInt64Unchecked(mozilla::BitwiseCast<uint64_t>(d));
     }
 
     void floatConstant(float f) {
-      mbuffer().ensureSpace(sizeof(float));
-      mbuffer().putIntUnchecked(mozilla::BitwiseCast<uint32_t>(f));
+      m_buffer.ensureSpace(sizeof(float));
+      m_buffer.putIntUnchecked(mozilla::BitwiseCast<uint32_t>(f));
     }
 
     void simd128Constant(const void* data) {
       const uint8_t* bytes = reinterpret_cast<const uint8_t*>(data);
-      mbuffer().ensureSpace(16);
+      m_buffer.ensureSpace(16);
       for (size_t i = 0; i < 16; ++i) {
-        mbuffer().putByteUnchecked(bytes[i]);
+        m_buffer.putByteUnchecked(bytes[i]);
       }
     }
 
     void int64Constant(int64_t i) {
-      mbuffer().ensureSpace(sizeof(int64_t));
-      mbuffer().putInt64Unchecked(i);
+      m_buffer.ensureSpace(sizeof(int64_t));
+      m_buffer.putInt64Unchecked(i);
     }
 
     void int32Constant(int32_t i) {
-      mbuffer().ensureSpace(sizeof(int32_t));
-      mbuffer().putIntUnchecked(i);
+      m_buffer.ensureSpace(sizeof(int32_t));
+      m_buffer.putIntUnchecked(i);
     }
 
     // Administrative methods:
 
     size_t size() const { return m_buffer.size(); }
-    const unsigned char* buffer() const { assertNotInBundle(); return m_buffer.buffer(); }
-    unsigned char* data() { assertNotInBundle(); return m_buffer.data(); }
+    const unsigned char* buffer() const { return m_buffer.buffer(); }
+    unsigned char* data() { return m_buffer.data(); }
     bool oom() const { return m_buffer.oom(); }
-    bool reserve(size_t size) { assertNotInBundle(); return m_buffer.reserve(size); }
-    bool swapBuffer(wasm::Bytes& other) { assertNotInBundle(); return m_buffer.swap(other); }
+    bool reserve(size_t size) { return m_buffer.reserve(size); }
+    bool swapBuffer(wasm::Bytes& other) { return m_buffer.swap(other); }
     bool isAligned(int alignment) const {
-      return mbuffer().isAligned(alignment);
+      return m_buffer.isAligned(alignment);
     }
 
     [[nodiscard]] bool append(const unsigned char* values, size_t size) {
-      return mbuffer().append(values, size);
+      return m_buffer.append(values, size);
     }
 
    private:
@@ -6490,7 +6544,7 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JS_CODEGEN_X64
     // Format a REX prefix byte.
     void emitRex(bool w, int r, int x, int b) {
-      mbuffer().putByteUnchecked(PRE_REX | ((int)w << 3) | ((r >> 3) << 2) |
+      m_buffer.putByteUnchecked(PRE_REX | ((int)w << 3) | ((r >> 3) << 2) |
                                 ((x >> 3) << 1) | (b >> 3));
     }
 
@@ -6533,7 +6587,7 @@ class BaseAssembler : public GenericAssembler {
 #endif
 
     void putModRm(ModRmMode mode, RegisterID rm, int reg) {
-      mbuffer().putByteUnchecked((mode << 6) | ((reg & 7) << 3) | (rm & 7));
+      m_buffer.putByteUnchecked((mode << 6) | ((reg & 7) << 3) | (rm & 7));
     }
 
     void putModRmSib(ModRmMode mode, RegisterID base, RegisterID index,
@@ -6541,7 +6595,7 @@ class BaseAssembler : public GenericAssembler {
       MOZ_ASSERT(mode != ModRmRegister);
 
       putModRm(mode, hasSib, reg);
-      mbuffer().putByteUnchecked((scale << 6) | ((index & 7) << 3) | (base & 7));
+      m_buffer.putByteUnchecked((scale << 6) | ((index & 7) << 3) | (base & 7));
     }
 
     void registerModRM(RegisterID rm, int reg) {
@@ -6561,10 +6615,10 @@ class BaseAssembler : public GenericAssembler {
           putModRmSib(ModRmMemoryNoDisp, base, noIndex, 0, reg);
         } else if (CAN_SIGN_EXTEND_8_32(offset)) {
           putModRmSib(ModRmMemoryDisp8, base, noIndex, 0, reg);
-          mbuffer().putByteUnchecked(offset);
+          m_buffer.putByteUnchecked(offset);
         } else {
           putModRmSib(ModRmMemoryDisp32, base, noIndex, 0, reg);
-          mbuffer().putIntUnchecked(offset);
+          m_buffer.putIntUnchecked(offset);
         }
       } else {
 #ifdef JS_CODEGEN_X64
@@ -6575,10 +6629,10 @@ class BaseAssembler : public GenericAssembler {
           putModRm(ModRmMemoryNoDisp, base, reg);
         } else if (CAN_SIGN_EXTEND_8_32(offset)) {
           putModRm(ModRmMemoryDisp8, base, reg);
-          mbuffer().putByteUnchecked(offset);
+          m_buffer.putByteUnchecked(offset);
         } else {
           putModRm(ModRmMemoryDisp32, base, reg);
-          mbuffer().putIntUnchecked(offset);
+          m_buffer.putIntUnchecked(offset);
         }
       }
     }
@@ -6592,10 +6646,10 @@ class BaseAssembler : public GenericAssembler {
       if (base == hasSib) {
 #endif
         putModRmSib(ModRmMemoryDisp32, base, noIndex, 0, reg);
-        mbuffer().putIntUnchecked(offset);
+        m_buffer.putIntUnchecked(offset);
       } else {
         putModRm(ModRmMemoryDisp32, base, reg);
-        mbuffer().putIntUnchecked(offset);
+        m_buffer.putIntUnchecked(offset);
       }
     }
 
@@ -6611,10 +6665,10 @@ class BaseAssembler : public GenericAssembler {
         putModRmSib(ModRmMemoryNoDisp, base, index, scale, reg);
       } else if (CAN_SIGN_EXTEND_8_32(offset)) {
         putModRmSib(ModRmMemoryDisp8, base, index, scale, reg);
-        mbuffer().putByteUnchecked(offset);
+        m_buffer.putByteUnchecked(offset);
       } else {
         putModRmSib(ModRmMemoryDisp32, base, index, scale, reg);
-        mbuffer().putIntUnchecked(offset);
+        m_buffer.putIntUnchecked(offset);
       }
     }
 
@@ -6637,7 +6691,7 @@ class BaseAssembler : public GenericAssembler {
       //
       // See Intel developer manual, Vol 2, 2.1.5, Table 2-3.
       putModRmSib(ModRmMemoryNoDisp, noBase, index, scale, reg);
-      mbuffer().putIntUnchecked(offset);
+      m_buffer.putIntUnchecked(offset);
     }
 
     void memoryModRM_disp32(const void* address, int reg) {
@@ -6650,7 +6704,7 @@ class BaseAssembler : public GenericAssembler {
       // noBase + ModRmMemoryNoDisp means noBase + ModRmMemoryDisp32!
       putModRm(ModRmMemoryNoDisp, noBase, reg);
 #endif
-      mbuffer().putIntUnchecked(disp);
+      m_buffer.putIntUnchecked(disp);
     }
 
     void memoryModRM(const void* address, int reg) {
@@ -6659,7 +6713,7 @@ class BaseAssembler : public GenericAssembler {
 
     void threeOpVex(VexOperandType p, int r, int x, int b, int m, int w, int v,
                     int l, int opcode) {
-      mbuffer().ensureSpace(MaxInstructionSize);
+      m_buffer.ensureSpace(MaxInstructionSize);
 
       if (v == invalid_xmm) {
         v = XMMRegisterID(0);
@@ -6667,71 +6721,57 @@ class BaseAssembler : public GenericAssembler {
 
       if (x == 0 && b == 0 && m == 1 && w == 0) {
         // Two byte VEX.
-        mbuffer().putByteUnchecked(PRE_VEX_C5);
-        mbuffer().putByteUnchecked(((r << 7) | (v << 3) | (l << 2) | p) ^ 0xf8);
+        m_buffer.putByteUnchecked(PRE_VEX_C5);
+        m_buffer.putByteUnchecked(((r << 7) | (v << 3) | (l << 2) | p) ^ 0xf8);
       } else {
         // Three byte VEX.
-        mbuffer().putByteUnchecked(PRE_VEX_C4);
-        mbuffer().putByteUnchecked(((r << 7) | (x << 6) | (b << 5) | m) ^ 0xe0);
-        mbuffer().putByteUnchecked(((w << 7) | (v << 3) | (l << 2) | p) ^ 0x78);
+        m_buffer.putByteUnchecked(PRE_VEX_C4);
+        m_buffer.putByteUnchecked(((r << 7) | (x << 6) | (b << 5) | m) ^ 0xe0);
+        m_buffer.putByteUnchecked(((w << 7) | (v << 3) | (l << 2) | p) ^ 0x78);
       }
 
-      mbuffer().putByteUnchecked(opcode);
+      m_buffer.putByteUnchecked(opcode);
     }
 
-    AssemblerBuffer m_buffer;
+   public:
+    inline bool beginBundleInstruction() {
 #ifdef JS_SANDBOX_BUNDLE
-    AssemblerBuffer m_bundle_buffer;
-
-    bool in_bundle = false;
-public:
-    bool is_in_bundle() {
-      return in_bundle;
-    }
-
-    bool bundleLock() {
-      if (!in_bundle) {
-        in_bundle = true;
-        return true;
-      } else {
-        return false;
-      }
-    }
-
-    void bundleUnlockStart() {
-      MOZ_ASSERT(in_bundle, "need to be within a bundle");
-      in_bundle = false;
-    }
-
-    void bundleUnlockEnd() {
-      m_buffer.appendUnchecked(m_bundle_buffer.buffer(), m_bundle_buffer.size());    
-      m_bundle_buffer.clear();
-    }
-    
-    size_t bundleSize() const { 
-      return m_bundle_buffer.size();
-    }
-private:
+      return m_buffer.beginBundleInstruction();
 #endif
+      return false;
+    }
 
-    inline AssemblerBuffer& mbuffer() {
+    inline void endBundleInstruction() {
 #ifdef JS_SANDBOX_BUNDLE
-      return in_bundle ? m_bundle_buffer : m_buffer;
+      m_buffer.endBundleInstruction();
+#endif
+    }
+
+    inline void beginBundleGroup() {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.beginBundleGroup();
+#endif
+    }
+
+    inline void endBundleGroup() {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.endBundleGroup();
+#endif
+    }
+
+    inline void ensureBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.ensureBundleSpace(space);
+#endif
+    }
+
+   private:
+#ifdef JS_SANDBOX_BUNDLE
+    AssemblerBundleBuffer m_buffer;
 #else
-      return m_buffer;
+    AssemblerBuffer m_buffer;
 #endif
-    }
-   
-    inline const AssemblerBuffer& mbuffer() const {
-      return m_buffer;
-    }
 
-    inline void assertNotInBundle() const {
-#ifdef JS_SANDBOX_BUNDLE
-      MOZ_ASSERT(!in_bundle, "should not be in bundle");
-#endif
-    }
-    
   } m_formatter;
 
   bool useVEX_;

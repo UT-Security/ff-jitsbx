@@ -137,13 +137,18 @@ class AssemblerBuffer {
     // This should only be called with small |space| values to ensure
     // we don't overflow below.
 #ifdef JS_SANDBOX_BUNDLE
-    MOZ_ASSERT(space < sandbox::BUNDLE_SIZE);
+    MOZ_ASSERT(space <= sandbox::BUNDLE_SIZE);
 #else
     MOZ_ASSERT(space <= 16);
 #endif
     if (MOZ_UNLIKELY(!m_buffer.reserve(m_buffer.length() + space))) {
       oomDetected();
     }
+  }
+
+  void shrinkBy(size_t length) {
+    MOZ_ASSERT(length <= m_buffer.length(), "Shrinkage underflow");
+    m_buffer.shrinkBy(length);
   }
 
   bool isAligned(size_t alignment) const {

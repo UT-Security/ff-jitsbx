@@ -6,6 +6,7 @@
 
 #include "jit/x64/MacroAssembler-x64.h"
 
+#include "Assembler-x64.h"
 #include "jit/BaselineFrame.h"
 #include "jit/JitFrames.h"
 #include "jit/JitRuntime.h"
@@ -31,14 +32,14 @@ void MacroAssemblerX64::loadConstantDouble(double d, FloatRegister dest) {
     return;
   }
 
-  AutoOwnBundleScope bundle(*this);
+  AutoBundleInstructionScope bundle(*this);
   // The constants will be stored in a pool appended to the text (see
   // finish()), so they will always be a fixed distance from the
   // instructions which reference them. This allows the instructions to use
   // PC-relative addressing. Use "jump" label support code, because we need
   // the same PC-relative address patching that jumps use.
   JmpSrc j = masm.vmovsd_ripr(dest.encoding());
-  bundle.unlock();
+  bundle.end();
   propagateOOM(dbl->uses.append(j));
 }
 
@@ -50,10 +51,11 @@ void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
   if (!flt) {
     return;
   }
-  AutoOwnBundleScope bundle(*this);
+  
+  AutoBundleInstructionScope bundle(*this);
   // See comment in loadConstantDouble
   JmpSrc j = masm.vmovss_ripr(dest.encoding());
-  bundle.unlock();
+  bundle.end();
   propagateOOM(flt->uses.append(j));
 }
 
@@ -65,9 +67,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
-  AutoOwnBundleScope bundle(*this);
+  AutoBundleInstructionScope bundle(*this);
   JmpSrc j = (masm.*op)(reg.encoding());
-  bundle.unlock();
+  bundle.end();
   propagateOOM(val->uses.append(j));
 }
 
@@ -79,9 +81,9 @@ void MacroAssemblerX64::vpRiprOpSimd128(
   if (!val) {
     return;
   }
-  AutoOwnBundleScope bundle(*this);
+  AutoBundleInstructionScope bundle(*this);
   JmpSrc j = (masm.*op)(src.encoding(), dest.encoding());
-  bundle.unlock();
+  bundle.end();
   propagateOOM(val->uses.append(j));
 }
 
@@ -468,11 +470,14 @@ void MacroAssemblerX64::bindOffsets(
 }
 
 void MacroAssemblerX64::finish() {
+  masm.haltingAlign(CodeAlignment);
+  
   if (!doubles_.empty()) {
     masm.haltingAlign(sizeof(double));
   }
   for (const Double& d : doubles_) {
     bindOffsets(d.uses);
+    AutoBundleInstructionScope bundle(*this);
     masm.doubleConstant(d.value);
   }
 
@@ -481,6 +486,7 @@ void MacroAssemblerX64::finish() {
   }
   for (const Float& f : floats_) {
     bindOffsets(f.uses);
+    AutoBundleInstructionScope bundle(*this);
     masm.floatConstant(f.value);
   }
 
@@ -490,6 +496,7 @@ void MacroAssemblerX64::finish() {
   }
   for (const SimdData& v : simds_) {
     bindOffsets(v.uses);
+    AutoBundleInstructionScope bundle(*this);
     masm.simd128Constant(v.value.bytes());
   }
 

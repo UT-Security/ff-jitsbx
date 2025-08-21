@@ -163,7 +163,7 @@ class MacroAssemblerX86Shared : public Assembler {
   void storeLoadFence() {
     // This implementation follows Linux.
     if (HasSSE2()) {
-      AutoBundleScope bundle(*this);
+      AutoBundleInstructionScope bundle(*this);
       masm.mfence();
     } else {
       lock_addl(Imm32(0), Operand(Address(esp, 0)));

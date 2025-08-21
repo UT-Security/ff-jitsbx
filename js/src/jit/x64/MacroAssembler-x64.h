@@ -92,9 +92,6 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   // X64 helpers.
   /////////////////////////////////////////////////////////////////
   void writeDataRelocation(const Value& val) {
-#ifdef JS_SANDBOX_BUNDLE
-    assertNotInBundle();
-#endif
     // Raw GC pointer relocations and Value relocations both end up in
     // Assembler::TraceDataRelocations.
     if (val.isGCThing()) {

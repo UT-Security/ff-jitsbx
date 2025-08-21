@@ -113,7 +113,6 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
                                RelocationKind reloc) {
   MOZ_ASSERT(target.value != nullptr);
-  assertNotInBundle();
 
   // Emit reloc before modifying the jump table, since it computes a 0-based
   // index. This jump is not patchable at runtime.
@@ -147,6 +146,7 @@ void Assembler::finish() {
     // Since we may be folowed by non-executable data, eagerly insert an
     // undefined instruction byte to prevent processors from decoding
     // gibberish into their pipelines. See Intel performance guides.
+    AutoBundleInstructionScope bundle(*this);
     masm.ud2();
     return;
   }
@@ -157,6 +157,8 @@ void Assembler::finish() {
 
   // Zero the extended jumps table.
   for (size_t i = 0; i < extendedJumps_.length(); i++) {
+    AutoBundleGroupScope bundle(*this);
+    bundle.ensureSpace(SizeOfJumpTableEntry);
 #ifdef DEBUG
     size_t oldSize = masm.size();
 #endif
@@ -165,7 +167,7 @@ void Assembler::finish() {
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 6);
     // Following an indirect branch with ud2 hints to the hardware that
     // there's no fall-through. This also aligns the 64-bit immediate.
-    masm.ud2();
+    masm.ud2();    
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
     masm.immediate64(0);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == SizeOfExtendedJump);

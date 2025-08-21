@@ -642,6 +642,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpq(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
+  js::jit::AutoBundleGroupScope debugTrapStubBundle1(*this);
+  debugTrapStubBundle1.ensureSpace(7);
   // 74 OFFS
   Label L;
   L.bind(masm.currentOffset() + 7);
@@ -649,6 +651,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 
   // E8 OFFS OFFS OFFS OFFS
   masm.call(&debugTrapStub_);
+  debugTrapStubBundle1.end();
+  
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 
@@ -660,6 +664,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpl(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
+  js::jit::AutoBundleGroupScope debugTrapStubBundle2(*this);
+  debugTrapStubBundle2.ensureSpace(7);
   // 74 OFFS
   Label L;
   L.bind(masm.currentOffset() + 7);
@@ -667,6 +673,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 
   // E8 OFFS OFFS OFFS OFFS
   masm.call(&debugTrapStub_);
+  debugTrapStubBundle2.end();
+
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
 

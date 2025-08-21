@@ -12,9 +12,6 @@
 #include "jsmath.h"
 #include "x64/Assembler-x64.h"
 
-#ifdef JS_SANDBOX_BUNDLE
-#  include "sandbox/Bundle.h"
-#endif
 #include "jit/JitFrames.h"
 #include "jit/MacroAssembler.h"
 #include "js/ScalarType.h"  // js::Scalar::Type
@@ -948,10 +945,9 @@ void MacroAssembler::patchFarJump(CodeOffset farJump, uint32_t targetOffset) {
 }
 
 CodeOffset MacroAssembler::nopPatchableToCall() {
-  AutoOwnBundleScope bundle(*this);
-  bundle.alignToEnd(5);
+  AutoBundleInstructionScope bundle(*this);
   masm.nop_five();
-  bundle.unlock();
+  bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom() && isSandboxed(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
@@ -1897,7 +1893,7 @@ void MacroAssembler::speculationBarrier() {
   // Spectre mitigation recommended by Intel and AMD suggest to use lfence as
   // a way to force all speculative execution of instructions to end.
   MOZ_ASSERT(HasSSE2());
-  AutoBundleScope bundle(*this);
+  AutoBundleInstructionScope bundle(*this);
   masm.lfence();
 }
 

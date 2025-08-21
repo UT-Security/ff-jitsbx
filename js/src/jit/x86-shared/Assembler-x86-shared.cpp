@@ -355,76 +355,50 @@ void CPUInfo::ComputeFlags() {
 }
 
 #ifdef JS_SANDBOX_BUNDLE
-AutoBundleScope::AutoBundleScope(AssemblerX86Shared& masm): isOwn_(false), masm(masm) {
-  if (masm.isSandboxed()) {
-    isOwn_ = masm.bundleLock();  
+AutoBundleInstructionScope::AutoBundleInstructionScope(AssemblerX86Shared& masm): masm(masm), active_(true) {
+  nested_ = !masm.beginBundleInstruction();
+}
+
+void AutoBundleInstructionScope::end() {
+  MOZ_ASSERT(active_, "Unexpected inactive instruction bundle");
+  if (!nested_) masm.endBundleInstruction();
+  active_ = false;
+}
+
+AutoBundleInstructionScope::~AutoBundleInstructionScope() {
+  if (active_) {
+    if (!nested_) masm.endBundleInstruction();
+    active_ = false;
+  }
+}
+
+AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm): masm(masm), active_(true) {
+  masm.beginBundleGroup();
+}
+
+void AutoBundleGroupScope::ensureSpace(size_t space) {
+  masm.ensureBundleSpace(space);
+}
+
+void AutoBundleGroupScope::end() {
+  MOZ_ASSERT(active_, "Unexpected inactive bundle group");
+  masm.endBundleGroup();
+  active_ = false;
+}
+
+AutoBundleGroupScope::~AutoBundleGroupScope() {
+  if (active_) {
+    masm.endBundleGroup();
+    active_ = false;
   }
 }
 #else
-AutoBundleScope::AutoBundleScope(AssemblerX86Shared& masm) {
-}
-#endif
+AutoBundleInstructionScope::AutoBundleInstructionScope(AssemblerX86Shared& masm) {}
+void AutoBundleInstructionScope::end() {}
+AutoBundleInstructionScope::~AutoBundleInstructionScope() {}
 
-AutoBundleScope::~AutoBundleScope() {
-#ifdef JS_SANDBOX_BUNDLE
-  if (masm.isSandboxed() && isOwn_) {
-    masm.bundleUnlock();
-  }
+AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm) {}
+void AutoBundleGroupScope::ensureSpace(size_t space);
+void AutoBundleGroupScope::end() {}
+AutoBundleGroupScope::~AutoBundleInstructionScope() {}
 #endif
-}
-
-#ifdef JS_SANDBOX_BUNDLE
-AutoOwnBundleScope::AutoOwnBundleScope(AssemblerX86Shared& masm): isUnlocked_(false), masm(masm) {
-  if (masm.isSandboxed()) {
-    MOZ_ASSERT(masm.bundleLock(), "Cannot nest bundles here");
-  }
-}
-#else
-AutoOwnBundleScope::AutoOwnBundleScope(AssemblerX86Shared& masm) {
-}
-#endif
-
-void AutoOwnBundleScope::alignToEnd(size_t extra) {
-#ifdef JS_SANDBOX_CFI
-  if (masm.isSandboxed()) {
-    MOZ_ASSERT(size() <= sandbox::BUNDLE_SIZE - extra, "bundle too small");
-    size_t padding =
-        sandbox::isSameBundle(masm.size(), masm.size() + size() + extra - 1)
-            ? sandbox::BUNDLE_SIZE - (masm.size() % sandbox::BUNDLE_SIZE) -
-                  size() - extra
-            : sandbox::BUNDLE_SIZE - size() - extra;
-    if (padding) {
-      masm.nop(padding);
-    }
-  }
-#endif
-}
-
-void AutoOwnBundleScope::unlock() {
-#ifdef JS_SANDBOX_BUNDLE
-  if (masm.isSandboxed()) {
-    MOZ_ASSERT(!isUnlocked_, "Double bundle unlock");
-    masm.bundleUnlock();
-    isUnlocked_ = true;
-  }
-#endif
-}
-
-#ifdef JS_SANDBOX_BUNDLE
-size_t AutoOwnBundleScope::size() {
-  if (masm.isSandboxed()) {
-    return masm.bundleSize();
-  } else {
-    return 0;
-  }
-}
-#endif
-
-
-AutoOwnBundleScope::~AutoOwnBundleScope() {
-#ifdef JS_SANDBOX_BUNDLE
-  if (masm.isSandboxed() && !isUnlocked_) {
-    masm.bundleUnlock();
-  }
-#endif
-}
