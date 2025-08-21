@@ -18,6 +18,9 @@ inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
                                     MCPrincipals* principals,
                                     JS::OnNewGlobalHookOption hookOption,
                                     const JS::RealmOptions& options) {
+  if(!principals) {
+    return JS_NewGlobalObject(cx->cx_, clasp, nullptr, hookOption, options);
+  }
   return JS_NewGlobalObject(cx->cx_, clasp, principals->inner_, hookOption, options);
 }
 

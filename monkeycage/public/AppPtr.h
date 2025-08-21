@@ -63,7 +63,8 @@ extern mozilla::RWLock externalPtrLock;
 }
 
 template<typename T>
-static void incRefCnt(T* native, bool isChrome=false) {
+static void incRefCnt(T* native) {
+    #ifdef MC_APP_PTR
     mozilla::AutoWriteLock wLock (detail::externalPtrLock);
     detail::TaintTable::Ptr p = detail::allExternalPtr.lookup(static_cast<void*>(native));
     if(p) {
@@ -75,20 +76,22 @@ static void incRefCnt(T* native, bool isChrome=false) {
             MOZ_CRASH("Failed to insert AppPointer in NativeWrapping");
         }
     }
+    #endif
 }
 
 template<typename T>
-static bool incRefCnt(T& native) {
+static void incRefCnt(T& native) {
     return incRefCnt<T>(&native);
 }
 
 template<typename T>
-static bool incRefCnt(mozilla::UniquePtr<T>& native) {
+static void incRefCnt(mozilla::UniquePtr<T>& native) {
     return incRefCnt<T>(native.get());
 }
 
 template <typename T>
 static void decRefCnt(T* native) {
+    #ifdef MC_APP_PTR
     mozilla::AutoWriteLock wLock (detail::externalPtrLock);
     detail::TaintTable::Ptr p = detail::allExternalPtr.lookup(static_cast<void*>(native));
     if(p) {
@@ -98,13 +101,18 @@ static void decRefCnt(T* native) {
     } else {
         MOZ_CRASH("Attempted to decrement refcount of bad object");
     }
+    #endif
 }
 
 template <typename T>
 static bool verifyPtr(void * ptr) {
+    #ifdef MC_APP_PTR
     mozilla::AutoReadLock rLock (detail::externalPtrLock);
-    detail::TaintTable::Ptr p = detail::allExternalPtr.lookup(ptr);
+    detail::TaintTable::Ptr p = detail::allExternalPtr.readonlyThreadsafeLookup(ptr);
     return p && p->value().verify<T>();
+    #else
+    return true;
+    #endif
 }
 
 template <typename T>
