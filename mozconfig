@@ -3,6 +3,7 @@ ac_add_options --enable-project=browser
  
 ac_add_options --enable-js-sandbox
 ac_add_options --js-sandbox-type=noop
+ac_add_options --enable-app-pointer
  
 # Enable optimizations as well so that the test suite runs much faster. If
 # you are having trouble using a debugger, you should disable optimization.
