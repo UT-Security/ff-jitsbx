@@ -2041,14 +2041,21 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
     'this' unwrapping as it assumes that the unwrapped type is always known.
     """
 
-    def __init__(self, descriptor, name, returnType, args):
+    def __init__(self, descriptor, name, returnType, args, isAppPtr=False):
+        self.appPtr = isAppPtr
         CGAbstractStaticMethod.__init__(self, descriptor, name, returnType, args)
 
     def definition_body_prologue(self):
-        return "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n" % (
-            self.descriptor.nativeType,
-            self.descriptor.nativeType,
-        )
+        if self.appPtr:
+            return "MC::AppPtr<%s> tself = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n" % (
+                self.descriptor.nativeType,
+                self.descriptor.nativeType,
+            )
+        else:
+            return "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n" % (
+                self.descriptor.nativeType,
+                self.descriptor.nativeType,
+            )
 
     def definition_body(self):
         return self.definition_body_prologue() + self.generate_code()
@@ -2070,7 +2077,7 @@ class CGAddPropertyHook(CGAbstractClassHook):
             Argument("JS::Handle<JS::Value>", "val"),
         ]
         CGAbstractClassHook.__init__(
-            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args
+            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args, True
         )
 
     def generate_code(self):
@@ -2079,15 +2086,19 @@ class CGAddPropertyHook(CGAbstractClassHook):
         # cycle collected objects, so if addProperty is ever changed to do
         # anything more or less than preserve the wrapper, TryPreserveWrapper
         # will need to be changed.
-        return dedent(
+        return fill(
             """
             // We don't want to preserve if we don't have a wrapper, and we
             // obviously can't preserve if we're not initialized.
-            if (self && self->GetWrapperPreserveColor()) {
-              PreserveWrapper(self);
+            if (tself) {
+              ${nativeType}* self = tself.verify_as_type();  
+              if(self->GetWrapperPreserveColor()) {  
+                PreserveWrapper(self);
+              }
             }
             return true;
-            """
+            """,
+            nativeType=self.descriptor.nativeType
         )
 
 
@@ -2100,20 +2111,28 @@ class CGGetWrapperCacheHook(CGAbstractClassHook):
     def __init__(self, descriptor):
         args = [Argument("JS::Handle<JSObject*>", "obj")]
         CGAbstractClassHook.__init__(
-            self, descriptor, GETWRAPPERCACHE_HOOK_NAME, "nsWrapperCache*", args
+            self, descriptor, GETWRAPPERCACHE_HOOK_NAME, "nsWrapperCache*", args, True
         )
 
     def generate_code(self):
         assert self.descriptor.wrapperCache
         return dedent(
             """
-            return self;
+            //if tself is null, verify will fail.
+            if(!tself) {
+                return nullptr;
+            }
+            return tself.verify_as_type();
             """
         )
 
+def removeAppPtr(descriptor, obj):
+        return f"MC::decRefCnt<%s>(%s);\n" % (descriptor.nativeType, obj)
 
 def finalizeHook(descriptor, hookName, gcx, obj):
-    finalize = "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
+    finalize = "%s* self = tself.verify_as_type();\n" % descriptor.nativeType
+    finalize += removeAppPtr(descriptor, "self")
+    finalize += "JS::SetReservedSlot(%s, DOM_OBJECT_SLOT, JS::UndefinedValue());\n" % obj
     if descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
         finalize += fill(
             """
@@ -2165,7 +2184,7 @@ def finalizeHook(descriptor, hookName, gcx, obj):
         obj=obj,
     )
     finalize += "AddForDeferredFinalization<%s>(self);\n" % descriptor.nativeType
-    return CGIfWrapper(CGGeneric(finalize), "self")
+    return CGIfWrapper(CGGeneric(finalize), "tself")
 
 
 class CGClassFinalizeHook(CGAbstractClassHook):
@@ -2175,7 +2194,12 @@ class CGClassFinalizeHook(CGAbstractClassHook):
 
     def __init__(self, descriptor):
         args = [Argument("JS::GCContext*", "gcx"), Argument("JSObject*", "obj")]
-        CGAbstractClassHook.__init__(self, descriptor, FINALIZE_HOOK_NAME, "void", args)
+        CGAbstractClassHook.__init__(self, 
+                                     descriptor, 
+                                     FINALIZE_HOOK_NAME, 
+                                     "void", 
+                                     args,
+                                     isAppPtr=True)
 
     def generate_code(self):
         return finalizeHook(
@@ -2187,12 +2211,14 @@ def objectMovedHook(descriptor, hookName, obj, old):
     assert descriptor.wrapperCache
     return fill(
         """
-        if (self) {
+        if (tself) {
+          ${nativeType}* self = tself.verify_as_type();  
           UpdateWrapper(self, self, ${obj}, ${old});
         }
 
         return 0;
         """,
+        nativeType=descriptor.nativeType,
         obj=obj,
         old=old,
     )
@@ -2207,7 +2233,7 @@ class CGClassObjectMovedHook(CGAbstractClassHook):
     def __init__(self, descriptor):
         args = [Argument("JSObject*", "obj"), Argument("JSObject*", "old")]
         CGAbstractClassHook.__init__(
-            self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args
+            self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args, True
         )
 
     def generate_code(self):
@@ -4386,13 +4412,16 @@ def CreateBindingJSObject(descriptor):
         )
     return (
         objDecl
+        + addAppPtr(descriptor, "aObject")
         + create
-        + dedent(
+        + fill(
             """
         if (!aReflector) {
+          ${remove}  
           return false;
         }
-        """
+        """,
+        remove=removeAppPtr(descriptor, "aObject")
         )
     )
 
@@ -4838,6 +4867,9 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
             slots=InitMemberSlots(self.descriptor, failureCode),
         )
 
+def addAppPtr(desc, obj):
+    incAppPtr = "MC::incRefCnt<%s>(%s);\n" % (desc.nativeType, obj)
+    return incAppPtr
 
 class CGWrapGlobalMethod(CGAbstractMethod):
     """
@@ -4872,12 +4904,15 @@ class CGWrapGlobalMethod(CGAbstractMethod):
         else:
             chromeProperties = "nullptr"
 
-        failureCode = dedent(
+        #TODO(Anthony): decrement AppPtr ref count
+        failureCode = fill(
             """
             aCache->ReleaseWrapper(aObject);
             aCache->ClearWrapper();
+            $*{decAppPtr}
             return false;
-            """
+            """,
+            decAppPtr=removeAppPtr(self.descriptor, "aObject")
         )
 
         if self.descriptor.hasLegacyUnforgeableMembers:
@@ -4911,6 +4946,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // aReflector is a new global, so has a new realm.  Enter it
             // before doing anything with it.
             JSAutoRealm ar(aCx, aReflector);
+            $*{incAppPtr}
 
             MCContext* mCx = JS_SanitizeContext(aCx);
             if (!DefineProperties(mCx, aReflector, ${properties}, ${chromeProperties})) {
@@ -4922,6 +4958,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 
             return true;
             """,
+            incAppPtr=addAppPtr(self.descriptor, "aObject"),
             assertions=AssertInheritanceChain(self.descriptor),
             nativeType=self.descriptor.nativeType,
             getProto=getProto,
@@ -5402,6 +5439,9 @@ class CastableObjectUnwrapper:
               nsresult rv = UnwrapObject<${protoID}, ${type}>(${mutableSource}, ${target}, cx);
               if (NS_FAILED(rv)) {
                 $*{codeOnFailure}
+              }
+              if(!MC::verifyPtr<${type}>(${target})) {
+                MOZ_CRASH("Failed app pointer validation");
               }
             }
             """,
@@ -10628,7 +10668,8 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
             )
         return prefix + fill(
             """
-            auto* self = static_cast<${nativeType}*>(void_self);
+            MC::AppPtr<${nativeType}> tself = void_self;
+            auto* self = tself.verify_as_type();
             $*{call}
             """,
             nativeType=self.descriptor.nativeType,
@@ -11119,7 +11160,8 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     def definition_body(self):
         prefix = fill(
             """
-            auto* self = static_cast<${nativeType}*>(void_self);
+            MC::AppPtr<${nativeType}> tself (void_self);
+            auto* self = tself.verify_as_type();
             """,
             nativeType=self.descriptor.nativeType,
         )
@@ -11376,6 +11418,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
                     self.attr.identifier.name,
                 )
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
+            #TODO(Anthony): verify proxy
             prefix = fill(
                 """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
@@ -11390,7 +11433,8 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
 
         return prefix + fill(
             """
-            auto* self = static_cast<${nativeType}*>(void_self);
+            MC::AppPtr<${nativeType}> tself (void_self);
+            auto* self = tself.verify_as_type();
             $*{call}
             """,
             nativeType=self.descriptor.nativeType,
@@ -15875,7 +15919,7 @@ class CGDOMJSProxyHandler_finalize(ClassMethod):
 
     def getBody(self):
         return (
-            "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(proxy);\n"
+            "MC::AppPtr<%s> tself = UnwrapPossiblyNotInitializedDOMObject<%s>(proxy);\n"
             % (self.descriptor.nativeType, self.descriptor.nativeType)
         ) + finalizeHook(
             self.descriptor,
@@ -15895,7 +15939,7 @@ class CGDOMJSProxyHandler_objectMoved(ClassMethod):
 
     def getBody(self):
         return (
-            "%s* self = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n"
+            "MC::AppPtr<%s> tself = UnwrapPossiblyNotInitializedDOMObject<%s>(obj);\n"
             % (self.descriptor.nativeType, self.descriptor.nativeType)
         ) + objectMovedHook(
             self.descriptor,

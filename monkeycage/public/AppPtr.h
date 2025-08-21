@@ -11,6 +11,7 @@
 #include <mozilla/Atomics.h>
 #include <mozilla/RWLock.h>
 #include <mozilla/Likely.h>
+#include <mozilla/HashTable.h>
 #include <mozilla/dom/TypeTags.h>
 
 namespace MC {
@@ -108,7 +109,7 @@ static bool verifyPtr(void * ptr) {
 
 template <typename T>
 static bool verifyPtr(T* ptr) {
-    return verifyPtr(static_cast<void*>(ptr));
+    return verifyPtr<T>(static_cast<void*>(ptr));
 }
 
 template<typename T>
