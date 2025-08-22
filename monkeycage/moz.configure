@@ -68,6 +68,7 @@ set_define("JS_SANDBOX_LFI", js_sandbox_lfi)
 
 option(
     "--enable-app-pointer",
+    default=False,
     help="Enable app pointer checking for DOM objects",
 )
 
@@ -75,8 +76,6 @@ option(
 def mc_app_ptr(enable_app_pointer):
     if enable_app_pointer:
         return True
-    else:
-        return False
 
 set_config("MC_APP_PTR", mc_app_ptr)
 set_define("MC_APP_PTR", mc_app_ptr)

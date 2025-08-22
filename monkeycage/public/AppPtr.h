@@ -57,8 +57,10 @@ class AppPtrInfo {
 };
 
 using TaintTable = mozilla::HashMap<void*, AppPtrInfo>;
+#ifdef MC_APP_PTR
 extern TaintTable allExternalPtr;
 extern mozilla::RWLock externalPtrLock;
+#endif
 
 }
 
