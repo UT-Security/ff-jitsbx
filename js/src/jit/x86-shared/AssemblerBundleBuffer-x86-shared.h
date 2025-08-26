@@ -29,10 +29,8 @@ enum class BundleMode {
 class AssemblerBundleBuffer {
   template <size_t size, typename T>
   MOZ_ALWAYS_INLINE void sizedAppend(T value) {
-    if(oom()) return;
     ensureBundleSpace(size);
-    MOZ_ASSERT(bundle_length + size <= sandbox::BUNDLE_SIZE, "Expected enough space in bundle");
-    memcpy(bundle_buffer + bundle_length, reinterpret_cast<unsigned char*>(&value), size);
+    MOZ_ASSERT(oom() || bundle_length + size <= sandbox::BUNDLE_SIZE, "Expected enough space in bundle");
     bundle_length += size;
   }
 
@@ -46,49 +44,41 @@ class AssemblerBundleBuffer {
     m_inner_buffer.ensureSpace(space);
   }
 
-  inline void ensureBundleSpace(size_t space) {
+  void ensureBundleSpace(size_t space) {
     MOZ_ASSERT(in_bundle, "Expected to be within a bundle");
-    MOZ_ASSERT(bundle_length <= js::sandbox::BUNDLE_SIZE,
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
                "Unexpected bundle overflow");
-    if(oom()) return;
-    if (js::sandbox::BUNDLE_SIZE - bundle_length < space) {
-      // TODO(JS_SANDBOX_BUNDLE): process and prepare for next bundle.
+    if (MOZ_UNLIKELY(oom()))
+      return;
+    
+    size_t bundle_space = js::sandbox::BUNDLE_SIZE - bundle_length; 
+    if (MOZ_UNLIKELY(bundle_space < space)) {
+        MOZ_ASSERT(bundle_length > 0, "Expected to be in midst of emission");
 
-      // All but the currently emitted instruction/group belong to the current bundle.
+        // All but the currently emitted instruction/group belong to the current
+        // bundle.
 
-      // NOP pad out the bundle to complete it.
-      size_t nop_size = js::sandbox::BUNDLE_SIZE - bundle_start;
+        // NOP padding required to pad out the partial instruction/group
+        // being emitted + the remainder of the bundle.
+        size_t nop_size = js::sandbox::BUNDLE_SIZE - bundle_start;
+        MOZ_ASSERT(nop_size > 0 && nop_size < js::sandbox::BUNDLE_SIZE,
+                   "Unexpected nop padding size");
 
-      MOZ_ASSERT(nop_size < js::sandbox::BUNDLE_SIZE, "Unexpected NOP padding size");
+        // we expect this to not fail since bundle_space < space and
+        // the caller should already ensured that the buffer has space
+        // available.
+        m_inner_buffer.infallibleGrowByUninitialized(bundle_space);
 
-      // Our new bundle now has only the bytes corresponding to the current
-      // instruction/group.
-      bundle_length = bundle_length - bundle_start;
+        m_inner_buffer.ensureSpace(nop_size - bundle_space + space);
+        unsigned char* current_start = m_inner_buffer.data() + m_inner_buffer.size() - nop_size;
 
-      if (nop_size) {
-        // undo the write of the current instruction/group.
-        m_inner_buffer.shrinkBy(bundle_length);
+        bundle_length -= bundle_start;
+        m_inner_buffer.infallibleAppend(current_start, bundle_length);
 
-        // ensure that the underlying buffer has enough space.
-        m_inner_buffer.ensureSpace(nop_size + space);
+        memcpy(current_start, nops[nop_size], nop_size);
         
-        // insert nops to align to end of bundle.
-        if(!m_inner_buffer.append(nops[nop_size], nop_size)) {
-          return;
-        }
-
-        MOZ_ASSERT(m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0, "Expected bundle aligned buffer");
-
-        if (bundle_length &&
-            m_inner_buffer.append(bundle_buffer + bundle_start,
-                                  bundle_length)) {
-          memcpy(bundle_buffer, bundle_buffer + bundle_start,
-                 bundle_length);
-        }
-      }
-
-      // the current instruction starts the bundle.
-      bundle_start = 0;
+        // the current instruction starts the bundle.
+        bundle_start = 0;
     }
   }
 
@@ -135,7 +125,8 @@ class AssemblerBundleBuffer {
 
   [[nodiscard]] bool append(const unsigned char* values, size_t size) {
     MOZ_ASSERT(!in_bundle, "Unexpected to be in bundle");
-    MOZ_ASSERT(bundle_length == 0, "Unexpected pending bundle");
+    MOZ_ASSERT(bundle_length == 0 || bundle_length == js::sandbox::BUNDLE_SIZE,
+               "Unexpected pending bundle");
     return m_inner_buffer.append(values, size);
   }
 
@@ -149,7 +140,9 @@ class AssemblerBundleBuffer {
 
   bool swap(Vector<uint8_t, 0, SystemAllocPolicy>& bytes) {
     MOZ_ASSERT(!in_bundle, "Unexpected to be in bundle");
-    MOZ_ASSERT(oom() || bundle_length == 0, "Unexpected pending bundle");
+    MOZ_ASSERT(oom() || bundle_length == 0 ||
+                   bundle_length == js::sandbox::BUNDLE_SIZE,
+               "Unexpected pending bundle");
     return m_inner_buffer.swap(bytes);
   }
 
@@ -162,55 +155,59 @@ class AssemblerBundleBuffer {
     return m_inner_buffer.data();
   }
 
-  bool beginBundleInstruction() {
+  MOZ_ALWAYS_INLINE bool beginBundleInstruction() {
     if (in_bundle) return false;
-    MOZ_ASSERT(mode == BundleMode::Instruction, "Expected instruction bundling");
-    MOZ_ASSERT(bundle_length < js::sandbox::BUNDLE_SIZE, "Unexpected unprocessed full bundle");
+    MOZ_ASSERT(mode == BundleMode::Instruction,
+               "Expected instruction bundling");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected unprocessed full bundle");
 
+    bundle_length %= js::sandbox::BUNDLE_SIZE;
     bundle_start = bundle_length;
     in_bundle = true;
     return true;
   }
 
-  void endBundleInstruction() {
+  MOZ_ALWAYS_INLINE void endBundleInstruction() {
     MOZ_ASSERT(in_bundle, "Unexpected instruction end outside instruction");
-    MOZ_ASSERT(mode == BundleMode::Instruction, "Expected instruction bundling mode");
-    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0, "Unexpected 0 length instruction");
-    MOZ_ASSERT(bundle_length <= js::sandbox::BUNDLE_SIZE, "Unexpected oversized bundle");
+    MOZ_ASSERT(mode == BundleMode::Instruction,
+               "Expected instruction bundling mode");
+    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0,
+               "Unexpected 0 length instruction");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected oversized bundle");
 
     in_bundle = false;
-    if (bundle_length == js::sandbox::BUNDLE_SIZE) {
-      MOZ_ASSERT(m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0,
-                 "Expected bundle aligned buffer");
-      // we are in a new empty bundle
-      bundle_length = 0;
-    }
+    MOZ_ASSERT_IF(!oom() && bundle_length == js::sandbox::BUNDLE_SIZE,
+                  m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
   }
 
-  void beginBundleGroup() {
-    MOZ_ASSERT(!in_bundle, "Unexpected nested bundle group");
-    MOZ_ASSERT(mode == BundleMode::Instruction, "Expected instruction bundling");
-    MOZ_ASSERT(bundle_length < js::sandbox::BUNDLE_SIZE, "Unexpected unprocessed full bundle");
+  MOZ_ALWAYS_INLINE bool beginBundleGroup() {
+    if (in_bundle) return false;
+    MOZ_ASSERT(mode == BundleMode::Instruction,
+               "Expected instruction bundling");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected unprocessed full bundle");
 
     in_bundle = true;
     mode = BundleMode::Group;
+    bundle_length %= js::sandbox::BUNDLE_SIZE;
     bundle_start = bundle_length;
+    return true;
   }
 
-  void endBundleGroup() {
+  MOZ_ALWAYS_INLINE void endBundleGroup() {
     MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
     MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
-    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0, "Unexpected 0 length group");
-    MOZ_ASSERT(bundle_length <= js::sandbox::BUNDLE_SIZE, "Unexpected oversized bundle");
-    
+    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0,
+               "Unexpected 0 length group");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected oversized bundle");
+
     in_bundle = false;
     mode = BundleMode::Instruction;
-    if (bundle_length == js::sandbox::BUNDLE_SIZE) {
-      MOZ_ASSERT(m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0,
-                 "Expected bundle aligned buffer");
-      // we are in a new empty bundle
-      bundle_length = 0;
-    }
+    MOZ_ASSERT_IF(!oom() && bundle_length == js::sandbox::BUNDLE_SIZE,
+                  m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
   }
 
  protected:
@@ -230,7 +227,7 @@ class AssemblerBundleBuffer {
       // 2
       {0x66, 0x90},
       // 3
-      {0xf, 0x1f, 0x00},
+      {0x0f, 0x1f, 0x00},
       // 4
       {0x0f, 0x1f, 0x40, 0x00},
       // 5
@@ -250,10 +247,10 @@ class AssemblerBundleBuffer {
       // 12
       {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x90},
       // 13
-      {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x60,
+      {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x66,
        0x90},
       // 14
-      {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0xf,
+      {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f,
        0x1f, 0x00},
       // 15
       {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0f,
@@ -288,7 +285,7 @@ class AssemblerBundleBuffer {
       // 25
       {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00,
-       0x00, 0x00, 0x00, 0x00, 0xf,  0x1f, 0x00},
+       0x00, 0x00, 0x00, 0x00, 0x0f,  0x1f, 0x00},
       // 26
       {0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00, 0x00, 0x00,
        0x00, 0x00, 0x66, 0x66, 0x2e, 0x0f, 0x1f, 0x84, 0x00,

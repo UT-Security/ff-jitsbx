@@ -181,10 +181,12 @@ class AssemblerBuffer {
     return true;
   }
 
-  void appendUnchecked(const unsigned char* values, size_t size) {
-    if (MOZ_UNLIKELY(!m_buffer.append(values, size))) {
-      oomDetected();
-    }
+  void infallibleAppend(const unsigned char* values, size_t size) {
+    m_buffer.infallibleAppend(values, size);
+  }
+
+  void infallibleGrowByUninitialized(size_t size) {
+    m_buffer.infallibleGrowByUninitialized(size);
   }
 
   size_t size() const { return m_buffer.length(); }

@@ -3539,9 +3539,6 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc, bool limitedSize)
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
-
-  // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
-  // unsafeSetIsSandboxed(false);
 }
 
 WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
@@ -3558,8 +3555,6 @@ WasmMacroAssembler::WasmMacroAssembler(TempAllocator& alloc,
   if (!limitedSize) {
     setUnlimitedBuffer();
   }
-  // SAFETY(JS_SANDBOX): WASM code is currently not sandboxed.
-  // unsafeSetIsSandboxed(false);
 }
 
 bool MacroAssembler::icBuildOOLFakeExitFrame(void* fakeReturnAddr,

@@ -703,14 +703,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   void storePtr(Register src, const Operand& dest) { movq(src, dest); }
   void storePtr(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
-    if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
-                 "Unexpected 32-bit immediate destination within sandbox");
-      ScratchRegisterScope scratch(asMasm());
-      mov(ImmPtr(address.addr), scratch);
-      storePtr(src, Address(scratch, 0x0));
-      return;
-    }
+    MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+               "Unexpected 32-bit immediate destination within sandbox");
+    ScratchRegisterScope scratch(asMasm());
+    mov(ImmPtr(address.addr), scratch);
+    storePtr(src, Address(scratch, 0x0));
+    return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movq(src, Operand(address));
@@ -722,14 +720,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   }
   void store32(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
-    if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
-                 "Unexpected 32-bit immediate destination within sandbox");
-      ScratchRegisterScope scratch(asMasm());
-      mov(ImmPtr(address.addr), scratch);
-      store32(src, Address(scratch, 0x0));
-      return;
-    }
+    MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+               "Unexpected 32-bit immediate destination within sandbox");
+    ScratchRegisterScope scratch(asMasm());
+    mov(ImmPtr(address.addr), scratch);
+    store32(src, Address(scratch, 0x0));
+    return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movl(src, Operand(address));
@@ -741,14 +737,12 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
   }
   void store16(Register src, AbsoluteAddress address) {
 #ifdef JS_SANDBOX_HEAP
-    if (isSandboxed()) {
-      MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
-                 "Unexpected 32-bit immediate destination within sandbox");
-      ScratchRegisterScope scratch(asMasm());
-      mov(ImmPtr(address.addr), scratch);
-      store16(src, Address(scratch, 0x0));
-      return;
-    }
+    MOZ_ASSERT(!X86Encoding::IsAddressImmediate(address.addr),
+               "Unexpected 32-bit immediate destination within sandbox");
+    ScratchRegisterScope scratch(asMasm());
+    mov(ImmPtr(address.addr), scratch);
+    store16(src, Address(scratch, 0x0));
+    return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {
       movw(src, Operand(address));

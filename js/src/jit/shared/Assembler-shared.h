@@ -599,6 +599,10 @@ class AssemblerShared {
   wasm::TrapSiteVectorArray trapSites_;
   wasm::SymbolicAccessVector symbolicAccesses_;
   wasm::TryNoteVector tryNotes_;
+#ifdef JS_SANDBOX_CFI
+  CodeLabelVector retAddrSites_;
+#endif
+
 #ifdef DEBUG
   // To facilitate figuring out which part of SM created each instruction as
   // shown by IONFLAGS=codegen, this maintains a stack of (notionally)
@@ -608,10 +612,6 @@ class AssemblerShared {
   mozilla::Vector<const char*> creators_;
 #endif
 
-#ifdef JS_SANDBOX
-  bool isSandboxed_;
-#endif
-
  protected:
   CodeLabelVector codeLabels_;
 
@@ -619,27 +619,9 @@ class AssemblerShared {
   bool embedsNurseryPointers_;
 
  public:
-#ifdef JS_SANDBOX
-  AssemblerShared() : isSandboxed_(true), enoughMemory_(true), embedsNurseryPointers_(false) {}
-#else
   AssemblerShared() : enoughMemory_(true), embedsNurseryPointers_(false) {}
-#endif
 
   ~AssemblerShared();
-
-  bool isSandboxed() {
-#ifdef JS_SANDBOX
-    return isSandboxed_;
-#else
-    return true;
-#endif
-  }
-
-  void unsafeSetIsSandboxed(bool isSandboxed) {
-#ifdef JS_SANDBOX
-    isSandboxed_ = isSandboxed;
-#endif
-  }
 
 #ifdef DEBUG
   // Do not use these directly; instead use `class AutoCreatedBy`.
@@ -664,6 +646,14 @@ class AssemblerShared {
   size_t numCodeLabels() const { return codeLabels_.length(); }
   CodeLabel codeLabel(size_t i) { return codeLabels_[i]; }
   CodeLabelVector& codeLabels() { return codeLabels_; }
+
+#ifdef JS_SANDBOX_CFI
+  void addRetAddrSite(CodeOffset loadOffset, CodeOffset retOffset) {
+    propagateOOM(retAddrSites_.emplaceBack(loadOffset, retOffset));
+  }
+
+  CodeLabelVector& retAddrSites() { return retAddrSites_; }
+#endif
 
   // WebAssembly metadata emitted by masm operations accumulated on the
   // MacroAssembler, and swapped into a wasm::CompiledCode after finish().

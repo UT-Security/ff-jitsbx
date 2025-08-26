@@ -353,6 +353,34 @@ set_config("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
 set_define("JS_SANDBOX_BUNDLE", js_sandbox_bundle)
 
 option(
+    "--enable-js-sandbox-use-ret",
+    default=False,
+    help="{Enable|Disable} JIT code bundling for JS sandbox.",
+)
+
+@depends("--enable-js-sandbox-use-ret", "--enable-js-sandbox")
+def js_sandbox_use_ret(js_sandbox_use_ret, js_sandbox):
+    if js_sandbox and js_sandbox_use_ret:
+        return True
+
+set_config("JS_SANDBOX_USE_RET", js_sandbox_use_ret)
+set_define("JS_SANDBOX_USE_RET", js_sandbox_use_ret)
+
+option(
+    "--enable-js-sandbox-no-call",
+    default=False,
+    help="{Enable|Disable} JIT code bundling for JS sandbox.",
+)
+
+@depends("--enable-js-sandbox-no-call", "--enable-js-sandbox")
+def js_sandbox_no_call(js_sandbox_no_call, js_sandbox):
+    if js_sandbox and js_sandbox_no_call:
+        return True
+
+set_config("JS_SANDBOX_NO_CALL", js_sandbox_no_call)
+set_define("JS_SANDBOX_NO_CALL", js_sandbox_no_call)
+
+option(
     "--enable-js-sandbox-cfi",
     default=False,
     help="{Enable|Disable} JS sandbox CFI.",

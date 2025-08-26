@@ -500,6 +500,19 @@ void MacroAssemblerX64::finish() {
     masm.simd128Constant(v.value.bytes());
   }
 
+#ifdef JS_SANDBOX_CFI
+  for (size_t i = 0; i < retAddrSites().length(); i++) {
+    CodeLabel& l = retAddrSites()[i];
+    CodeLocationLabel patchAt(masm.data() + l.patchAt()->offset());
+    CodeLocationLabel target(masm.data() + l.target()->offset());
+
+    ptrdiff_t off = target - patchAt;
+    MOZ_ASSERT(off > ptrdiff_t(INT32_MIN));
+    MOZ_ASSERT(off < ptrdiff_t(INT32_MAX));
+    PatchWrite_Imm32(patchAt, Imm32(off));
+  }
+#endif
+
   MacroAssemblerX86Shared::finish();
 }
 

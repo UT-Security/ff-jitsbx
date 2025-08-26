@@ -643,10 +643,14 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
                                       Instance::offsetOfDebugTrapHandler())));
 
   js::jit::AutoBundleGroupScope debugTrapStubBundle1(*this);
-  debugTrapStubBundle1.ensureSpace(7);
+  debugTrapStubBundle1.ensureSpace(16);
   // 74 OFFS
   Label L;
+#ifdef JS_SANDBOX_CFI
+  L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
+#else
   L.bind(masm.currentOffset() + 7);
+#endif
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS
@@ -665,10 +669,14 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
                                       Instance::offsetOfDebugTrapHandler())));
 
   js::jit::AutoBundleGroupScope debugTrapStubBundle2(*this);
-  debugTrapStubBundle2.ensureSpace(7);
+  debugTrapStubBundle2.ensureSpace(16);
   // 74 OFFS
   Label L;
+#ifdef JS_SANDBOX_CFI
+  L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
+#else
   L.bind(masm.currentOffset() + 7);
+#endif
   masm.j(Assembler::Zero, &L);
 
   // E8 OFFS OFFS OFFS OFFS

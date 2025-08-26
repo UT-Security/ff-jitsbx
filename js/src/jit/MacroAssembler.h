@@ -671,6 +671,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   static void patchNearAddressMove(CodeLocationLabel loc,
                                    CodeLocationLabel target)
       DEFINED_ON(x86, x64, arm, arm64, loong64, riscv64, wasm32, mips_shared);
+  void patchNearAddressMove(CodeOffset loc, CodeOffset target) DEFINED_ON(x64);
 
  public:
   // ===============================================================

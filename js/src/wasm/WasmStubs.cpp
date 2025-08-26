@@ -2721,12 +2721,7 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
 
 // We know that StackPointer is word-aligned, but not necessarily
 // stack-aligned, so we need to align it dynamically.
-#ifdef JS_SANDBOX
-  Register preAlignStackPointer = SandboxMaskReg;
-  masm.push(SandboxMaskReg);
-#else
   Register preAlignStackPointer = ABINonVolatileReg;
-#endif
   masm.moveStackPtrTo(preAlignStackPointer);
   masm.andToStackPtr(Imm32(~(ABIStackAlignment - 1)));
   if (ShadowStackSpace) {
@@ -2744,9 +2739,6 @@ static bool GenerateTrapExit(MacroAssembler& masm, Label* throwLabel,
   // ReturnReg, so store ReturnReg in the above-reserved stack slot which we
   // use to jump to via ret.
   masm.moveToStackPtr(preAlignStackPointer);
-#ifdef JS_SANDBOX
-  masm.pop(SandboxMaskReg);
-#endif
   masm.storePtr(ReturnReg, Address(masm.getStackPointer(), offsetOfReturnWord));
   masm.PopRegsInMask(RegsToPreserve);
 #ifdef JS_CODEGEN_ARM64

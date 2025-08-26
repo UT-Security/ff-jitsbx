@@ -229,13 +229,11 @@ static constexpr FloatRegister ABINonArgDoubleReg =
 
 // These registers may be volatile or nonvolatile.
 // Note: these three registers are all guaranteed to be different
+static constexpr Register ABINonArgReturnReg0 = r10;
 #ifdef JS_SANDBOX
-static constexpr Register ABINonArgReturnReg0 = r10;
-// TODO(JS_SANDBOX): Make sure r11 this doesnt overlap with uses of scratchreg
 static constexpr Register ABINonArgReturnReg1 = r11;
-// static constexpr Register ABINonVolatileReg = rbx;
+static constexpr Register ABINonVolatileReg = rbp;
 #else
-static constexpr Register ABINonArgReturnReg0 = r10;
 static constexpr Register ABINonArgReturnReg1 = r12;
 static constexpr Register ABINonVolatileReg = r13;
 #endif
@@ -1159,8 +1157,8 @@ class Assembler : public AssemblerX86Shared {
   void mov(wasm::SymbolicAddress imm, Register dest) {
     AutoBundleInstructionScope bundle(*this);
     masm.movq_i64r(-1, dest.encoding());
-    bundle.end();
     append(wasm::SymbolicAccess(CodeOffset(masm.currentOffset()), imm));
+    bundle.end();
   }
   void mov(const Operand& src, Register dest) { movq(src, dest); }
   void mov(Register src, const Operand& dest) { movq(src, dest); }
@@ -1332,13 +1330,24 @@ class Assembler : public AssemblerX86Shared {
     j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
   void call(JitCode* target) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.call();
     bundle.end();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
-  void call(ImmWord target) { call(ImmPtr((void*)target.value)); }
+  void call(ImmWord target) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
+    call(ImmPtr((void*)target.value));
+  }
   void call(ImmPtr target) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.call();
     bundle.end();

@@ -229,7 +229,7 @@ ABIFunctionType MacroAssembler::signature() const {
 
 inline void MacroAssembler::bundleAlignNop() {
 #ifdef JS_SANDBOX_CFI
-  if (isSandboxed() && !oom()) {
+  if (!oom()) {
     nopAlign(sandbox::BUNDLE_SIZE); 
   }
 #endif

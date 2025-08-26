@@ -69,6 +69,10 @@ private:
 #ifdef JS_SANDBOX_BUNDLE
   AssemblerX86Shared& masm;
 
+  // Track whether this instance is nested within another.
+  // This happens when instructions have lock prefixes etc.
+  bool nested_;
+  
   // Track whether the instruction bundle has been ended using end().
   // Used to decide whether the destructor needs to actually mark the end of the instruction.
   bool active_;
@@ -76,6 +80,7 @@ private:
 public:
   AutoBundleGroupScope(AssemblerX86Shared& masm);
   void ensureSpace(size_t space);
+  void nopToEnd();
   void end();
   ~AutoBundleGroupScope();
 };
@@ -383,8 +388,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.endBundleInstruction();
   }
 
-  inline void beginBundleGroup() {
-    masm.beginBundleGroup();
+  inline bool beginBundleGroup() {
+    return masm.beginBundleGroup();
   }
 
   inline void endBundleGroup() {
@@ -398,7 +403,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   Operand sandboxMemoryWrite(const Operand& op) {
 #ifdef JS_SANDBOX_HEAP
-    if (isSandboxed() && !op.sandboxed()) {
+    if (!op.sandboxed()) {
 #  ifdef DEBUG
       Label sandboxed;
 #  endif
@@ -1383,16 +1388,25 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void ret() {
     MOZ_ASSERT(hasCreator());
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected return instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     masm.ret();
   }
   void retn(Imm32 n) {
     MOZ_ASSERT(hasCreator());
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected return instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     // Remove the size of the return address which is included in the frame.
     masm.ret_i(n.value - sizeof(void*));
   }
   void call(Label* label) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     JmpSrc j = masm.call();
     bundle.end();
@@ -1408,6 +1422,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void call(Register reg) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     masm.call_r(reg.encoding());
   }
@@ -1418,6 +1435,9 @@ class AssemblerX86Shared : public AssemblerShared {
     return X86Encoding::BaseAssembler::call_m_size(op.disp(), op.base());
   }
   void call(const Operand& op) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call instruction");
+#endif
     AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:

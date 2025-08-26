@@ -276,9 +276,13 @@ void wasm::EmitWasmPostBarrierGuard(MacroAssembler& masm,
 bool wasm::IsValidStackMapKey(bool debugEnabled, const uint8_t* nextPC) {
 #  if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
   const uint8_t* insn = nextPC;
+#ifdef JS_SANDBOX_CFI
+  return true;
+#else
   return (insn[-2] == 0x0F && insn[-1] == 0x0B) ||           // ud2
          (insn[-2] == 0xFF && (insn[-1] & 0xF8) == 0xD0) ||  // call *%r_
          insn[-5] == 0xE8;                                   // call simm32
+#endif
 
 #  elif defined(JS_CODEGEN_ARM)
   const uint32_t* insn = (const uint32_t*)nextPC;

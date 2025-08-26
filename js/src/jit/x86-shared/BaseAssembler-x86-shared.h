@@ -30,6 +30,7 @@
 #ifndef jit_x86_shared_BaseAssembler_x86_shared_h
 #define jit_x86_shared_BaseAssembler_x86_shared_h
 
+#include "Assembler-x86-shared.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/IntegerPrintfMacros.h"
 
@@ -75,14 +76,32 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.endBundleInstruction();
   }
 
-  inline void beginBundleGroup() {
-    m_formatter.beginBundleGroup();
+  inline bool beginBundleGroup() {
+    return m_formatter.beginBundleGroup();
   }
 
   inline void endBundleGroup() {
     m_formatter.endBundleGroup();
   }
 #endif
+
+  struct AutoBundleInstructionScope {
+#ifdef JS_SANDBOX_BUNDLE
+    BaseAssembler& masm_;
+    bool nested_;
+
+    AutoBundleInstructionScope(BaseAssembler& masm): masm_(masm) {
+      nested_ = !masm_.beginBundleInstruction();
+    }
+
+    ~AutoBundleInstructionScope() {
+      if (!nested_) masm_.endBundleInstruction();
+    }
+#else
+    AutoBundleInstructionScope(BaseAssembler& masm) {}
+    ~AutoBundleInstructionScope() {}
+#endif
+  };
 
   inline void ensureBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
@@ -133,20 +152,26 @@ class BaseAssembler : public GenericAssembler {
    * architecture software developer manual.
    * They are defined for sequences of sizes from 1 to 9 included.
    */
-  void nop_one() { m_formatter.oneByteOp(OP_NOP); }
+  void nop_one() {
+    AutoBundleInstructionScope bundle(*this);
+    m_formatter.oneByteOp(OP_NOP);
+  }
 
   void nop_two() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     m_formatter.oneByteOp(OP_NOP);
   }
 
   void nop_three() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_00);
   }
 
   void nop_four() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_40);
@@ -154,6 +179,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_five() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_44);
@@ -162,11 +188,13 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_six() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     nop_five();
   }
 
   void nop_seven() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_80);
@@ -176,6 +204,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_eight() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_0F);
     m_formatter.oneByteOp(OP_NOP_1F);
     m_formatter.oneByteOp(OP_NOP_84);
@@ -185,17 +214,20 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void nop_nine() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     nop_eight();
   }
 
   void nop_ten() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(OP_NOP_66);
     m_formatter.oneByteOp(PRE_SEG_CS);
     nop_eight();
   }
 
   void nop_eleven() {
+    AutoBundleInstructionScope bundle(*this);
     m_formatter.oneByteOp(PRE_OPERAND_SIZE);
     nop_ten();
   }
@@ -203,246 +235,126 @@ class BaseAssembler : public GenericAssembler {
   void insert_nop(int size) {
     switch (size) {
       case 1:
-        m_formatter.beginBundleInstruction();
         nop_one();
-        m_formatter.endBundleInstruction();
         break;
       case 2:
-        m_formatter.beginBundleInstruction();
         nop_two();
-        m_formatter.endBundleInstruction();
         break;
       case 3:
-        m_formatter.beginBundleInstruction();
         nop_three();
-        m_formatter.endBundleInstruction();
         break;
       case 4:
-        m_formatter.beginBundleInstruction();
         nop_four();
-        m_formatter.endBundleInstruction();
         break;
       case 5:
-        m_formatter.beginBundleInstruction();
         nop_five();
-        m_formatter.endBundleInstruction();
         break;
       case 6:
-        m_formatter.beginBundleInstruction();
         nop_six();
-        m_formatter.endBundleInstruction();
         break;
       case 7:
-        m_formatter.beginBundleInstruction();
         nop_seven();
-        m_formatter.endBundleInstruction();
         break;
       case 8:
-        m_formatter.beginBundleInstruction();
         nop_eight();
-        m_formatter.endBundleInstruction();
         break;
       case 9:
-        m_formatter.beginBundleInstruction();
         nop_nine();
-        m_formatter.endBundleInstruction();
         break;
       case 10:
-        m_formatter.beginBundleInstruction();
         nop_ten();
-        m_formatter.endBundleInstruction();
         break;
       case 11:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
         break;
       case 12:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_one();
-        m_formatter.endBundleInstruction();
         break;
       case 13:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_two();
-        m_formatter.endBundleInstruction();
         break;
       case 14:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_three();
-        m_formatter.endBundleInstruction();
         break;
       case 15:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_four();
-        m_formatter.endBundleInstruction();
         break;
       case 16:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_five();
-        m_formatter.endBundleInstruction();
         break;
       case 17:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_six();
-        m_formatter.endBundleInstruction();
         break;
       case 18:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_seven();
-        m_formatter.endBundleInstruction();
         break;
       case 19:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eight();
-        m_formatter.endBundleInstruction();
         break;
       case 20:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_nine();
-        m_formatter.endBundleInstruction();
         break;
       case 21:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_ten();
-        m_formatter.endBundleInstruction();
         break;
       case 22:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
         break;
       case 23:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_one();
-        m_formatter.endBundleInstruction();
         break;
       case 24:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_two();
-        m_formatter.endBundleInstruction();
         break;
       case 25:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_three();
-        m_formatter.endBundleInstruction();
         break;
       case 26:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_four();
-        m_formatter.endBundleInstruction();
         break;
       case 27:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_five();
-        m_formatter.endBundleInstruction();
         break;
       case 28:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_six();
-        m_formatter.endBundleInstruction();
         break;
       case 29:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_seven();
-        m_formatter.endBundleInstruction();
         break;
       case 30:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eight();
-        m_formatter.endBundleInstruction();
         break;
       case 31:
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_eleven();
-        m_formatter.endBundleInstruction();
-        m_formatter.beginBundleInstruction();
         nop_nine();
-        m_formatter.endBundleInstruction();
         break;
       default:
         MOZ_CRASH("Unhandled alignment");
@@ -2870,6 +2782,9 @@ class BaseAssembler : public GenericAssembler {
   // Flow control:
 
   [[nodiscard]] JmpSrc call() {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call");
+#endif
     m_formatter.oneByteOp(OP_CALL_rel32);
     JmpSrc r = m_formatter.immediateRel32();
     spew("call       .Lfrom%d", r.offset());
@@ -2882,6 +2797,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_r(RegisterID dst) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call");
+#endif
     m_formatter.oneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
     spew("call       *%s", GPRegName(dst));
   }
@@ -2895,6 +2813,9 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_m(int32_t offset, RegisterID base) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected call");
+#endif
     spew("call       *" MEM_ob, ADDR_ob(offset, base));
     m_formatter.oneByteOp(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
   }
@@ -4753,11 +4674,17 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void ret() {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected ret");
+#endif
     spew("ret");
     m_formatter.oneByteOp(OP_RET);
   }
 
   void ret_i(int32_t imm) {
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(false, "Unexpected ret");
+#endif
     spew("ret        $%d", imm);
     m_formatter.oneByteOp(OP_RET_Iz);
     m_formatter.immediate16u(imm);
@@ -4789,9 +4716,8 @@ class BaseAssembler : public GenericAssembler {
   void haltingAlign(int alignment) {
     spew(".balign %d, 0x%x   # hlt", alignment, unsigned(OP_HLT));
     while (!m_formatter.isAligned(alignment)) {
-      m_formatter.beginBundleInstruction();
+      AutoBundleInstructionScope bundle(*this);
       m_formatter.oneByteOp(OP_HLT);
-      m_formatter.endBundleInstruction();
     }
   }
 
@@ -6734,26 +6660,27 @@ class BaseAssembler : public GenericAssembler {
     }
 
    public:
-    inline bool beginBundleInstruction() {
+    MOZ_ALWAYS_INLINE bool beginBundleInstruction() {
 #ifdef JS_SANDBOX_BUNDLE
       return m_buffer.beginBundleInstruction();
 #endif
       return false;
     }
 
-    inline void endBundleInstruction() {
+    MOZ_ALWAYS_INLINE void endBundleInstruction() {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.endBundleInstruction();
 #endif
     }
 
-    inline void beginBundleGroup() {
+    MOZ_ALWAYS_INLINE bool beginBundleGroup() {
 #ifdef JS_SANDBOX_BUNDLE
-      m_buffer.beginBundleGroup();
+      return m_buffer.beginBundleGroup();
 #endif
+      return false;
     }
 
-    inline void endBundleGroup() {
+    MOZ_ALWAYS_INLINE void endBundleGroup() {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.endBundleGroup();
 #endif
