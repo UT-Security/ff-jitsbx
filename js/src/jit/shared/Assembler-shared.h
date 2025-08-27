@@ -599,7 +599,7 @@ class AssemblerShared {
   wasm::TrapSiteVectorArray trapSites_;
   wasm::SymbolicAccessVector symbolicAccesses_;
   wasm::TryNoteVector tryNotes_;
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX
   CodeLabelVector retAddrSites_;
 #endif
 
@@ -647,7 +647,7 @@ class AssemblerShared {
   CodeLabel codeLabel(size_t i) { return codeLabels_[i]; }
   CodeLabelVector& codeLabels() { return codeLabels_; }
 
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX
   void addRetAddrSite(CodeOffset loadOffset, CodeOffset retOffset) {
     propagateOOM(retAddrSites_.emplaceBack(loadOffset, retOffset));
   }

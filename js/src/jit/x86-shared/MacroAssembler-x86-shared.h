@@ -932,7 +932,7 @@ class MacroAssemblerX86Shared : public Assembler {
     // Exists for ARM compatibility.
   }
 
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_RET)
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
   void ret();
 
   void retn(Imm32 n);

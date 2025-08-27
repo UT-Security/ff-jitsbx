@@ -648,6 +648,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   Label L;
 #ifdef JS_SANDBOX_CFI
   L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
+#elif defined(JS_SANDBOX)
+  L.bind(masm.currentOffset() + 16);
 #else
   L.bind(masm.currentOffset() + 7);
 #endif
@@ -674,6 +676,8 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   Label L;
 #ifdef JS_SANDBOX_CFI
   L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
+#elif defined(JS_SANDBOX)
+  L.bind(masm.currentOffset() + 16);
 #else
   L.bind(masm.currentOffset() + 7);
 #endif

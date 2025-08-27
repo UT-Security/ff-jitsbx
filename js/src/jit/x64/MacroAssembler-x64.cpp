@@ -500,7 +500,7 @@ void MacroAssemblerX64::finish() {
     masm.simd128Constant(v.value.bytes());
   }
 
-#ifdef JS_SANDBOX_CFI
+#ifdef JS_SANDBOX
   for (size_t i = 0; i < retAddrSites().length(); i++) {
     CodeLabel& l = retAddrSites()[i];
     CodeLocationLabel patchAt(masm.data() + l.patchAt()->offset());
