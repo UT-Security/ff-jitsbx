@@ -1330,7 +1330,7 @@ class Assembler : public AssemblerX86Shared {
     j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
   void call(JitCode* target) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1338,14 +1338,20 @@ class Assembler : public AssemblerX86Shared {
     bundle.end();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
   }
+  static size_t CallSize(JitCode* target) {
+    return X86Encoding::BaseAssembler::call_size();
+  }
   void call(ImmWord target) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     call(ImmPtr((void*)target.value));
   }
+  static size_t CallSize(ImmWord target) {
+    return X86Encoding::BaseAssembler::call_size();
+  }
   void call(ImmPtr target) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1353,15 +1359,24 @@ class Assembler : public AssemblerX86Shared {
     bundle.end();
     addPendingJump(src, target, RelocationKind::HARDCODED);
   }
+  static size_t CallSize(ImmPtr target) {
+    return X86Encoding::BaseAssembler::call_size();
+  }
 
   // Emit a CALL or CMP (nop) instruction. ToggleCall can be used to patch
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
 #ifdef JS_SANDBOX_BUNDLE
     AutoBundleInstructionScope bundle(*this);
+#ifdef JS_SANDBOX_CFI
+    bundle.nopToEnd(ToggledCallSize(nullptr));
+#endif
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
     bundle.end();
     addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
+#endif
     return CodeOffset(size() - ToggledCallSize(nullptr));
 #else
     CodeOffset offset(size());

@@ -81,6 +81,36 @@ class AssemblerBundleBuffer {
         bundle_start = 0;
     }
   }
+  
+  void ensureExactBundleSpace(size_t space) {
+    ensureBundleSpace(space);
+
+    // need to fill up the current bundle with NOPs until only "space" bytes are left.
+    size_t nop_size = js::sandbox::BUNDLE_SIZE - bundle_start - space;
+    if (!oom() && nop_size > 0) {
+      m_inner_buffer.ensureSpace(nop_size);
+      m_inner_buffer.infallibleAppend(nops[nop_size], nop_size);
+      bundle_length += nop_size;
+    }
+  }
+
+  void makeBundleSpace(size_t space) {
+    MOZ_ASSERT(!in_bundle, "Unexpected to be within a bundle");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected bundle overflow");
+    if (MOZ_UNLIKELY(oom())) return;
+    size_t bundle_space = js::sandbox::BUNDLE_SIZE - bundle_length;
+    if (MOZ_UNLIKELY(bundle_space < space)) {
+        // NOP padding required to pad out the remainder of the bundle.
+        if (bundle_space > 0) {
+          m_inner_buffer.ensureSpace(bundle_space);
+          m_inner_buffer.infallibleAppend(nops[bundle_space], bundle_space);
+        }
+
+        // we are at a new bundle now.
+        bundle_length = 0;
+    }
+  }
 
   bool isAligned(size_t alignment) const {
     return m_inner_buffer.isAligned(alignment);

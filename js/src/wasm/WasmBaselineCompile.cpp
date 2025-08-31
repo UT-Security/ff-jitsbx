@@ -642,13 +642,12 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpq(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
-  js::jit::AutoBundleGroupScope debugTrapStubBundle1(*this);
-  debugTrapStubBundle1.ensureSpace(16);
+  masm.makeBundleSpace(16);
   // 74 OFFS
   Label L;
 #ifdef JS_SANDBOX_CFI
   L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
-#elif defined(JS_SANDBOX)
+#elif defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
   L.bind(masm.currentOffset() + 16);
 #else
   L.bind(masm.currentOffset() + 7);
@@ -657,7 +656,6 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 
   // E8 OFFS OFFS OFFS OFFS
   masm.call(&debugTrapStub_);
-  debugTrapStubBundle1.end();
   
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));
@@ -670,13 +668,12 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
   masm.cmpl(Imm32(0), Operand(Address(InstanceReg,
                                       Instance::offsetOfDebugTrapHandler())));
 
-  js::jit::AutoBundleGroupScope debugTrapStubBundle2(*this);
-  debugTrapStubBundle2.ensureSpace(16);
+  masm.makeBundleSpace(16);
   // 74 OFFS
   Label L;
 #ifdef JS_SANDBOX_CFI
   L.bind((masm.currentOffset() + js::sandbox::BUNDLE_SIZE) & -js::sandbox::BUNDLE_SIZE);
-#elif defined(JS_SANDBOX)
+#elif defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
   L.bind(masm.currentOffset() + 16);
 #else
   L.bind(masm.currentOffset() + 7);
@@ -685,7 +682,6 @@ void BaseCompiler::insertBreakablePoint(CallSiteDesc::Kind kind) {
 
   // E8 OFFS OFFS OFFS OFFS
   masm.call(&debugTrapStub_);
-  debugTrapStubBundle2.end();
 
   masm.append(CallSiteDesc(iter_.lastOpcodeOffset(), kind),
               CodeOffset(masm.currentOffset()));

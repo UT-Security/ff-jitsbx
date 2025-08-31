@@ -108,6 +108,19 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.ensureBundleSpace(space);
 #endif
   }
+  
+  inline void ensureExactBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+    m_formatter.ensureExactBundleSpace(space);
+#endif
+  }
+
+  inline void makeBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+    m_formatter.makeBundleSpace(space);
+#endif
+  }
+  
 
   void nop() {
     spew("nop");
@@ -2782,7 +2795,7 @@ class BaseAssembler : public GenericAssembler {
   // Flow control:
 
   [[nodiscard]] JmpSrc call() {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call");
 #endif
     m_formatter.oneByteOp(OP_CALL_rel32);
@@ -2797,7 +2810,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_r(RegisterID dst) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call");
 #endif
     m_formatter.oneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
@@ -2813,7 +2826,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void call_m(int32_t offset, RegisterID base) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call");
 #endif
     spew("call       *" MEM_ob, ADDR_ob(offset, base));
@@ -4674,7 +4687,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void ret() {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected ret");
 #endif
     spew("ret");
@@ -4682,7 +4695,7 @@ class BaseAssembler : public GenericAssembler {
   }
 
   void ret_i(int32_t imm) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected ret");
 #endif
     spew("ret        $%d", imm);
@@ -6689,6 +6702,18 @@ class BaseAssembler : public GenericAssembler {
     inline void ensureBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.ensureBundleSpace(space);
+#endif
+    }
+    
+    inline void ensureExactBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.ensureExactBundleSpace(space);
+#endif
+    }
+
+    inline void makeBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.makeBundleSpace(space);
 #endif
     }
 

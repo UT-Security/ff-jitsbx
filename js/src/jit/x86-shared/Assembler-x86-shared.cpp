@@ -380,11 +380,18 @@ void AutoBundleGroupScope::ensureSpace(size_t space) {
   masm.ensureBundleSpace(space);
 }
 
-void AutoBundleGroupScope::nopToEnd() {
+void AutoBundleGroupScope::nopAndEnd() {
   MOZ_ASSERT(active_, "Unexpected inactive bundle group");
+  MOZ_ASSERT(!nested_, "Unexpected nested bundle group");
   masm.nopAlign(js::sandbox::BUNDLE_SIZE);
-  if(!nested_) masm.endBundleGroup();
+  masm.endBundleGroup();
   active_ = false;
+}
+
+void AutoBundleGroupScope::nopToEnd(size_t space) {
+  MOZ_ASSERT(active_, "Unexpected inactive bundle group");
+  MOZ_ASSERT(!nested_, "Unexpected nested bundle group");
+  masm.ensureExactBundleSpace(space);
 }
 
 void AutoBundleGroupScope::end() {
@@ -407,6 +414,7 @@ AutoBundleInstructionScope::~AutoBundleInstructionScope() {}
 AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm) {}
 void AutoBundleGroupScope::ensureSpace(size_t space) {}
 void AutoBundleGroupScope::nopToEnd() {}
+void AutoBundleGroupScope::nopToEnd(size_t space) {}
 void AutoBundleGroupScope::end() {}
 AutoBundleGroupScope::~AutoBundleGroupScope() {}
 #endif

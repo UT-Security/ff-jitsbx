@@ -80,7 +80,8 @@ private:
 public:
   AutoBundleGroupScope(AssemblerX86Shared& masm);
   void ensureSpace(size_t space);
-  void nopToEnd();
+  void nopToEnd(size_t space);
+  void nopAndEnd();
   void end();
   ~AutoBundleGroupScope();
 };
@@ -399,6 +400,10 @@ class AssemblerX86Shared : public AssemblerShared {
   inline void ensureBundleSpace(size_t space) {
     masm.ensureBundleSpace(space);
   }
+    
+  inline void ensureExactBundleSpace(size_t space) {
+    masm.ensureExactBundleSpace(space);
+  }
 #endif
 
   Operand sandboxMemoryWrite(const Operand& op) {
@@ -412,11 +417,6 @@ class AssemblerX86Shared : public AssemblerShared {
         case Operand::FPREG:
           return op;
         case Operand::MEM_SCALE:
-          if (op.base() == StackPointer.encoding() ||
-              op.base() == FramePointer.encoding()) {
-            return op;
-          }
-
 #  ifdef DEBUG
           MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
                      "Operand to sandbox already uses scratch register");
@@ -438,10 +438,6 @@ class AssemblerX86Shared : public AssemblerShared {
           masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
           return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
         case Operand::MEM_REG_DISP:
-          if (op.base() == StackPointer.encoding() ||
-              op.base() == FramePointer.encoding()) {
-            return op;
-          }
 #  ifdef DEBUG
           masm.push_r(op.base());
           if (op.base() == X86Encoding::rcx) {
@@ -605,6 +601,12 @@ class AssemblerX86Shared : public AssemblerShared {
   static void TraceDataRelocations(JSTracer* trc, JitCode* code,
                                    CompactBufferReader& reader);
 
+  inline void makeBundleSpace(size_t space) {
+#ifdef JS_SANDBOX_BUNDLE
+    masm.makeBundleSpace(space);
+#endif
+  }
+  
   void setUnlimitedBuffer() {
     // No-op on this platform
   }
@@ -1388,7 +1390,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void ret() {
     MOZ_ASSERT(hasCreator());
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected return instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1396,7 +1398,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void retn(Imm32 n) {
     MOZ_ASSERT(hasCreator());
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected return instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1404,7 +1406,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.ret_i(n.value - sizeof(void*));
   }
   void call(Label* label) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1421,8 +1423,13 @@ class AssemblerX86Shared : public AssemblerShared {
       masm.setNextJump(j, prev);
     }
   }
+
+  size_t CallSize(Label* label) {
+    return X86Encoding::BaseAssembler::call_size();
+  }
+  
   void call(Register reg) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1435,7 +1442,7 @@ class AssemblerX86Shared : public AssemblerShared {
     return X86Encoding::BaseAssembler::call_m_size(op.disp(), op.base());
   }
   void call(const Operand& op) {
-#ifdef JS_SANDBOX_CFI
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1455,11 +1462,28 @@ class AssemblerX86Shared : public AssemblerShared {
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.call().offset());
   }
+  static size_t CallWithPatchSize() {
+    return X86Encoding::BaseAssembler::call_size();
+  }
 
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
     unsigned char* code = masm.data();
     X86Encoding::SetRel32(code + callerOffset, code + calleeOffset);
   }
+
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
+  void patchRetAddr(CodeOffset callOffset, CodeOffset retOffset) {
+    unsigned char* code = masm.data();
+    CodeLocationLabel patchAt(code + callOffset.offset());
+    CodeLocationLabel target(code + retOffset.offset());
+
+    ptrdiff_t off = target - patchAt;
+    MOZ_ASSERT(off > ptrdiff_t(INT32_MIN));
+    MOZ_ASSERT(off < ptrdiff_t(INT32_MAX));
+    PatchWrite_Imm32(patchAt, Imm32(off));
+  }
+#endif
+
   CodeOffset farJumpWithPatch() {
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.jmp().offset());
