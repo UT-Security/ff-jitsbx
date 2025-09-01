@@ -377,6 +377,7 @@ AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm): masm(masm)
 }
 
 void AutoBundleGroupScope::ensureSpace(size_t space) {
+  MOZ_ASSERT(active_, "Unexpected inactive instruction bundle");
   masm.ensureBundleSpace(space);
 }
 

@@ -86,7 +86,7 @@ class AssemblerBundleBuffer {
     ensureBundleSpace(space);
 
     // need to fill up the current bundle with NOPs until only "space" bytes are left.
-    size_t nop_size = js::sandbox::BUNDLE_SIZE - bundle_start - space;
+    size_t nop_size = js::sandbox::BUNDLE_SIZE - bundle_length - space;
     if (!oom() && nop_size > 0) {
       m_inner_buffer.ensureSpace(nop_size);
       m_inner_buffer.infallibleAppend(nops[nop_size], nop_size);

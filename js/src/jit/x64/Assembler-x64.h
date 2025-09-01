@@ -1364,7 +1364,7 @@ class Assembler : public AssemblerX86Shared {
   // this instruction.
   CodeOffset toggledCall(JitCode* target, bool enabled) {
 #ifdef JS_SANDBOX_BUNDLE
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI
     bundle.nopToEnd(ToggledCallSize(nullptr));
 #endif
