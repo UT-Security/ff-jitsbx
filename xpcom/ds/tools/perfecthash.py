@@ -346,7 +346,7 @@ class CGHelper(object):
 
               size_t length = JS::GetLinearStringLength(aKey);
 
-              JS::AutoCheckCannotGC nogc;
+              MC::AutoCheckCannotGC nogc;
               if (JS::LinearStringHasLatin1Chars(aKey)) {
                 auto& entry = mozilla::perfecthash::Lookup(
                   JS::GetLatin1LinearStringChars(nogc, aKey),
