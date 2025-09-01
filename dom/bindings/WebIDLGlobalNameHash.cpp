@@ -213,6 +213,9 @@ bool WebIDLGlobalNameHash::ResolveForSystemGlobal(JSContext* aCx,
   if (!JS_ResolveStandardClass(aCx, aObj, aId, resolved.UNSAFE_unverified())) {
     return false;
   }
+
+  *aResolvedp = *resolved.UNSAFE_unverified();
+  
   if (*aResolvedp) {
     return true;
   }
