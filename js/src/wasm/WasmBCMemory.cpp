@@ -380,9 +380,11 @@ void BaseCompiler::prepareMemoryAccess(MemoryAccessDesc* access,
   // Ensure no instance if we don't need it.
 
   if (moduleEnv_.hugeMemoryEnabled()) {
+#ifdef WASM_HAS_HEAPREG
     // We have HeapReg and no bounds checking and need load neither
     // memoryBase nor boundsCheckLimit from instance.
     MOZ_ASSERT_IF(check->omitBoundsCheck, instance.isInvalid());
+#endif
   }
 #ifdef WASM_HAS_HEAPREG
   // We have HeapReg and don't need to load the memoryBase from instance.
@@ -481,7 +483,17 @@ void BaseCompiler::executeLoad(MemoryAccessDesc* access, AccessCheck* check,
                                RegPtr instance, RegI32 ptr, AnyReg dest,
                                RegI32 temp) {
   // Emit the load.  At this point, 64-bit offsets will have been resolved.
-#if defined(JS_CODEGEN_X64)
+#if defined(JS_CODEGEN_X64) && defined(JS_SANDBOX)
+  MOZ_ASSERT(temp.isInvalid());
+  masm.loadPtr(Address(instance, Instance::offsetOfMemoryBase()), SandboxScratchReg);
+  Operand srcAddr(SandboxScratchReg, ptr, TimesOne, access->offset());
+
+  if (dest.tag == AnyReg::I64) {
+    masm.wasmLoadI64(*access, srcAddr, dest.i64());
+  } else {
+    masm.wasmLoad(*access, srcAddr, dest.any());
+  }
+#elif defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
   Operand srcAddr(HeapReg, ptr, TimesOne, access->offset());
 
@@ -596,7 +608,14 @@ void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
                                 RegPtr instance, RegI32 ptr, AnyReg src,
                                 RegI32 temp) {
   // Emit the store.  At this point, 64-bit offsets will have been resolved.
-#if defined(JS_CODEGEN_X64)
+
+#if defined(JS_CODEGEN_X64) && defined(JS_SANDBOX)
+  MOZ_ASSERT(temp.isInvalid());
+  masm.loadPtr(Address(instance, Instance::offsetOfMemoryBase()), SandboxScratchReg);
+  Operand dstAddr(SandboxScratchReg, ptr, TimesOne, access->offset());
+
+  masm.wasmStore(*access, src.any(), dstAddr);
+#elif defined(JS_CODEGEN_X64)
   MOZ_ASSERT(temp.isInvalid());
   Operand dstAddr(HeapReg, ptr, TimesOne, access->offset());
 
@@ -914,6 +933,21 @@ BaseIndex BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
   return BaseIndex(HeapReg, ToRegister(ptr), TimesOne, access->offset());
 }
 
+#elif defined(JS_SANDBOX) && !defined(WASM_HAS_HEAPREG)
+
+// RegIndexType is RegI32 for Memory32 and RegI64 for Memory64.
+template <typename RegIndexType>
+BaseIndex BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
+                                                  AccessCheck* check,
+                                                  RegPtr instance,
+                                                  RegIndexType ptr) {
+  MOZ_ASSERT(needInstanceForAccess(*check) == instance.isValid());
+  prepareMemoryAccess(access, check, instance, ptr);
+  // At this point, 64-bit offsets will have been resolved.
+  masm.loadPtr(Address(instance, Instance::offsetOfMemoryBase()), SandboxScratchReg);
+  return BaseIndex(SandboxScratchReg, ToRegister(ptr), TimesOne, access->offset());
+}
+
 #else
 
 // Some consumers depend on the returned Address not incorporating instance, as
@@ -938,6 +972,7 @@ Address BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
 #ifndef WASM_HAS_HEAPREG
 #  ifdef JS_CODEGEN_X86
 using ScratchAtomicNoHeapReg = ScratchEBX;
+# elif defined(JS_SANDBOX)
 #  else
 #    error "Unimplemented porting interface"
 #  endif
@@ -1440,6 +1475,13 @@ void BaseCompiler::atomicRMW64(MemoryAccessDesc* access, ValType type,
 #  ifndef RABALDR_PIN_INSTANCE
   maybeFree(instance);
 #  endif
+#elif !defined(WASM_HAS_HEAPREG) && defined(JS_SANDBOX)
+  RegPtr instance = maybeLoadInstanceForAccess(check);
+  auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
+  atomic_rmw64::Perform(this, *access, memaddr, op, rv, temp, rd);
+#  ifndef RABALDR_PIN_INSTANCE
+  maybeFree(instance);
+#  endif
 #else
   ScratchAtomicNoHeapReg scratch(*this);
   RegPtr instance =
@@ -1754,6 +1796,14 @@ void BaseCompiler::atomicXchg64(MemoryAccessDesc* access,
   RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
 
 #ifdef WASM_HAS_HEAPREG
+  RegPtr instance = maybeLoadInstanceForAccess(check);
+  auto memaddr =
+      prepareAtomicMemoryAccess<RegIndexType>(access, &check, instance, rp);
+  masm.wasmAtomicExchange64(*access, memaddr, rv, rd);
+#  ifndef RABALDR_PIN_INSTANCE
+  maybeFree(instance);
+#  endif
+#elif !defined(WASM_HAS_HEAPREG) && defined(JS_SANDBOX)
   RegPtr instance = maybeLoadInstanceForAccess(check);
   auto memaddr =
       prepareAtomicMemoryAccess<RegIndexType>(access, &check, instance, rp);
@@ -2189,6 +2239,13 @@ void BaseCompiler::atomicCmpXchg64(MemoryAccessDesc* access, ValType type) {
   RegIndexType rp = popMemoryAccess<RegIndexType>(access, &check);
 
 #ifdef WASM_HAS_HEAPREG
+  RegPtr instance = maybeLoadInstanceForAccess(check);
+  auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
+  atomic_cmpxchg64::Perform(this, *access, memaddr, rexpect, rnew, rd);
+#  ifndef RABALDR_PIN_INSTANCE
+  maybeFree(instance);
+#  endif
+#elif !defined(WASM_HAS_HEAPREG) && defined(JS_SANDBOX)
   RegPtr instance = maybeLoadInstanceForAccess(check);
   auto memaddr = prepareAtomicMemoryAccess(access, &check, instance, rp);
   atomic_cmpxchg64::Perform(this, *access, memaddr, rexpect, rnew, rd);

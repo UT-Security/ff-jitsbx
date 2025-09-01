@@ -642,8 +642,14 @@ void CodeGeneratorX64::wasmStore(const wasm::MemoryAccessDesc& access,
 }
 
 void CodeGenerator::visitWasmHeapBase(LWasmHeapBase* ins) {
+#ifdef JS_SANDBOX
+  masm.loadPtr(Address(ToRegister(ins->instance()),
+                       wasm::Instance::offsetOfMemoryBase()),
+               ToRegister(ins->output()));
+#else
   MOZ_ASSERT(ins->instance()->isBogus());
   masm.movePtr(HeapReg, ToRegister(ins->output()));
+#endif
 }
 
 template <typename T>
@@ -656,6 +662,18 @@ void CodeGeneratorX64::emitWasmLoad(T* ins) {
   // ptr is a GPR and is either a 32-bit value zero-extended to 64-bit, or a
   // true 64-bit value.
   const LAllocation* ptr = ins->ptr();
+#ifdef JS_SANDBOX
+  const LAllocation* memoryBase = ins->memoryBase();
+  Operand srcAddr = ptr->isBogus()
+                        ? Operand(ToRegister(memoryBase), offset)
+                        : Operand(ToRegister(memoryBase), ToRegister(ptr), TimesOne, offset);
+
+  if (mir->type() == MIRType::Int64) {
+    masm.wasmLoadI64(mir->access(), srcAddr, ToOutRegister64(ins));
+  } else {
+    masm.wasmLoad(mir->access(), srcAddr, ToAnyRegister(ins->output()));
+  }
+#else
   Operand srcAddr = ptr->isBogus()
                         ? Operand(HeapReg, offset)
                         : Operand(HeapReg, ToRegister(ptr), TimesOne, offset);
@@ -665,6 +683,7 @@ void CodeGeneratorX64::emitWasmLoad(T* ins) {
   } else {
     masm.wasmLoad(mir->access(), srcAddr, ToAnyRegister(ins->output()));
   }
+#endif
 }
 
 void CodeGenerator::visitWasmLoad(LWasmLoad* ins) { emitWasmLoad(ins); }
@@ -681,9 +700,16 @@ void CodeGeneratorX64::emitWasmStore(T* ins) {
 
   const LAllocation* value = ins->getOperand(ins->ValueIndex);
   const LAllocation* ptr = ins->ptr();
+#ifdef JS_SANDBOX
+  const LAllocation* memoryBase = ins->memoryBase();
+  Operand dstAddr = ptr->isBogus()
+                        ? Operand(ToRegister(memoryBase), offset)
+                        : Operand(ToRegister(memoryBase), ToRegister(ptr), TimesOne, offset);
+#else
   Operand dstAddr = ptr->isBogus()
                         ? Operand(HeapReg, offset)
                         : Operand(HeapReg, ToRegister(ptr), TimesOne, offset);
+#endif
 
   wasmStore(access, value, dstAddr);
 }
@@ -701,10 +727,17 @@ void CodeGenerator::visitWasmCompareExchangeHeap(
   Register ptr = ToRegister(ins->ptr());
   Register oldval = ToRegister(ins->oldValue());
   Register newval = ToRegister(ins->newValue());
+#ifdef JS_SANDBOX
+  Register memoryBase = ToRegister(ins->memoryBase());
+#endif
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   Scalar::Type accessType = mir->access().type();
+#ifdef JS_SANDBOX
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+#else
   BaseIndex srcAddr(HeapReg, ptr, TimesOne, mir->access().offset());
+#endif
 
   if (accessType == Scalar::Int64) {
     masm.wasmCompareExchange64(mir->access(), srcAddr, Register64(oldval),
@@ -720,11 +753,18 @@ void CodeGenerator::visitWasmAtomicExchangeHeap(LWasmAtomicExchangeHeap* ins) {
 
   Register ptr = ToRegister(ins->ptr());
   Register value = ToRegister(ins->value());
+#ifdef JS_SANDBOX
+  Register memoryBase = ToRegister(ins->memoryBase());
+#endif
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
 
   Scalar::Type accessType = mir->access().type();
 
+#ifdef JS_SANDBOX
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+#else
   BaseIndex srcAddr(HeapReg, ptr, TimesOne, mir->access().offset());
+#endif
 
   if (accessType == Scalar::Int64) {
     masm.wasmAtomicExchange64(mir->access(), srcAddr, Register64(value),
@@ -745,6 +785,9 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
       ins->temp()->isBogusTemp() ? InvalidReg : ToRegister(ins->temp());
   Register output = ToRegister(ins->output());
   MOZ_ASSERT(ins->addrTemp()->isBogusTemp());
+#ifdef JS_SANDBOX
+  Register memoryBase = ToRegister(ins->memoryBase());
+#endif
 
   Scalar::Type accessType = mir->access().type();
   if (accessType == Scalar::Uint32) {
@@ -752,7 +795,11 @@ void CodeGenerator::visitWasmAtomicBinopHeap(LWasmAtomicBinopHeap* ins) {
   }
 
   AtomicOp op = mir->operation();
+#ifdef JS_SANDBOX
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+#else
   BaseIndex srcAddr(HeapReg, ptr, TimesOne, mir->access().offset());
+#endif
 
   if (accessType == Scalar::Int64) {
     Register64 val = Register64(ToRegister(value));
@@ -780,7 +827,12 @@ void CodeGenerator::visitWasmAtomicBinopHeapForEffect(
   Scalar::Type accessType = mir->access().type();
   AtomicOp op = mir->operation();
 
+#ifdef JS_SANDBOX
+  Register memoryBase = ToRegister(ins->memoryBase());
+  BaseIndex srcAddr(memoryBase, ptr, TimesOne, mir->access().offset());
+#else
   BaseIndex srcAddr(HeapReg, ptr, TimesOne, mir->access().offset());
+#endif
 
   if (accessType == Scalar::Int64) {
     Register64 val = Register64(ToRegister(value));

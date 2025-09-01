@@ -1366,9 +1366,9 @@ set_config(
 # so we special-case it.
 
 
-@depends("--enable-simulator", target)
-def wasm_has_heapreg(simulator, target):
-    if target.cpu != "x86":
+@depends("--enable-simulator", target, js_sandbox)
+def wasm_has_heapreg(simulator, target, js_sandbox):
+    if target.cpu != "x86" and not js_sandbox:
         return True
 
     if simulator and simulator[0] == "arm":

@@ -2145,7 +2145,7 @@ void CodeGeneratorX86Shared::canonicalizeIfDeterministic(
 template <typename T>
 Operand CodeGeneratorX86Shared::toMemoryAccessOperand(T* lir, int32_t disp) {
   const LAllocation* ptr = lir->ptr();
-#ifdef JS_CODEGEN_X86
+#if defined(JS_CODEGEN_X86) || defined(JS_SANDBOX)
   const LAllocation* memoryBase = lir->memoryBase();
   Operand destAddr = ptr->isBogus() ? Operand(ToRegister(memoryBase), disp)
                                     : Operand(ToRegister(memoryBase),

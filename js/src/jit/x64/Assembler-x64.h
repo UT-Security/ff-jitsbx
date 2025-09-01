@@ -102,9 +102,7 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 };
 
 static constexpr Register ReturnReg = rax;
-#ifdef JS_SANDBOX
-static constexpr Register HeapReg = r12;
-#else
+#ifndef JS_SANDBOX
 static constexpr Register HeapReg = r15;
 #endif
 
@@ -230,11 +228,10 @@ static constexpr FloatRegister ABINonArgDoubleReg =
 // These registers may be volatile or nonvolatile.
 // Note: these three registers are all guaranteed to be different
 static constexpr Register ABINonArgReturnReg0 = r10;
+static constexpr Register ABINonArgReturnReg1 = r12;
 #ifdef JS_SANDBOX
-static constexpr Register ABINonArgReturnReg1 = r11;
 static constexpr Register ABINonVolatileReg = rbp;
 #else
-static constexpr Register ABINonArgReturnReg1 = r12;
 static constexpr Register ABINonVolatileReg = r13;
 #endif
 

@@ -413,7 +413,7 @@ AutoBundleInstructionScope::~AutoBundleInstructionScope() {}
 
 AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm) {}
 void AutoBundleGroupScope::ensureSpace(size_t space) {}
-void AutoBundleGroupScope::nopToEnd() {}
+void AutoBundleGroupScope::nopAndEnd() {}
 void AutoBundleGroupScope::nopToEnd(size_t space) {}
 void AutoBundleGroupScope::end() {}
 AutoBundleGroupScope::~AutoBundleGroupScope() {}
