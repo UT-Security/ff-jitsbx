@@ -77,8 +77,8 @@ inline bool JS_WrapValue(MCContext* cx, JS::MutableHandleValue vp) {
 }
 
 inline bool JS_ResolveStandardClass(MCContext* cx, JS::HandleObject obj,
-                                    JS::HandleId id, bool* resolved) {
-  return JS_ResolveStandardClass(cx->cx_, obj, id, resolved);
+                                    JS::HandleId id, MC::Tainted<bool*> resolved) {
+  return JS_ResolveStandardClass(cx->cx_, obj, id, resolved.UNSAFE_unverified());
 }
 
 inline bool JS_EnumerateStandardClasses(MCContext* cx, JS::HandleObject obj) {

@@ -10,8 +10,8 @@
 #include "js/Id.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
 #include "js/Wrapper.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HashFunctions.h"
@@ -209,9 +209,13 @@ bool WebIDLGlobalNameHash::ResolveForSystemGlobal(JSContext* aCx,
   MOZ_ASSERT(JS_IsGlobalObject(aObj));
 
   // First we try to resolve standard classes.
-  if (!JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp)) {
+  MC::SandboxStack<bool> resolved{*aResolvedp};
+  if (!JS_ResolveStandardClass(aCx, aObj, aId, resolved.UNSAFE_unverified())) {
     return false;
   }
+
+  *aResolvedp = *resolved.UNSAFE_unverified();
+  
   if (*aResolvedp) {
     return true;
   }
