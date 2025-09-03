@@ -191,12 +191,12 @@ ChildDNSService::AsyncResolve(const nsACString& hostname,
                               nsIDNSAdditionalInfo* aInfo,
                               nsIDNSListener* listener, nsIEventTarget* target_,
                               JS::Handle<JS::Value> aOriginAttributes,
-                              JSContext* aCx, uint8_t aArgc,
+                              JSContext* MC_UNSAN(aCx), uint8_t aArgc,
                               nsICancelable** result) {
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -230,11 +230,11 @@ ChildDNSService::CancelAsyncResolve(const nsACString& aHostname,
                                     nsIDNSAdditionalInfo* aInfo,
                                     nsIDNSListener* aListener, nsresult aReason,
                                     JS::Handle<JS::Value> aOriginAttributes,
-                                    JSContext* aCx, uint8_t aArgc) {
+                                    JSContext* MC_UNSAN(aCx), uint8_t aArgc) {
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -257,7 +257,7 @@ NS_IMETHODIMP
 ChildDNSService::Resolve(const nsACString& hostname,
                          nsIDNSService::DNSFlags flags,
                          JS::Handle<JS::Value> aOriginAttributes,
-                         JSContext* aCx, uint8_t aArgc, nsIDNSRecord** result) {
+                         JSContext* MC_UNSAN(aCx), uint8_t aArgc, nsIDNSRecord** result) {
   // not planning to ever support this, since sync IPDL is evil.
   return NS_ERROR_NOT_AVAILABLE;
 }

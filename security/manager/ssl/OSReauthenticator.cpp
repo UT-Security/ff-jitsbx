@@ -488,12 +488,12 @@ NS_IMETHODIMP
 OSReauthenticator::AsyncReauthenticateUser(const nsAString& aMessageText,
                                            const nsAString& aCaptionText,
                                            mozIDOMWindow* aParentWindow,
-                                           JSContext* aCx,
+                                           JSContext* MC_UNSAN(aCx),
                                            Promise** promiseOut) {
-  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(aCx, promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }

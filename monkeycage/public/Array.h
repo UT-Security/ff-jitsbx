@@ -17,6 +17,24 @@
 
 namespace JS {
 
+inline JSObject* NewArrayObject(MCContext* cx, const HandleValueArray& contents) {
+ return NewArrayObject(cx->cx_, contents);
+}
+
+inline JSObject* NewArrayObject(MCContext* cx, size_t length) {
+ return NewArrayObject(cx->cx_, length);
+}
+
+inline bool IsArrayObject(MCContext* cx, Handle<Value> value,
+                                        bool* isArray) {
+ return IsArrayObject(cx->cx_, value, isArray);
+}
+
+inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
+                                        bool* isArray) {
+ return IsArrayObject(cx->cx_, obj, isArray);
+}
+
 inline bool GetArrayLength(MCContext* cx, Handle<JSObject*> obj,
                            MC::Tainted<uint32_t*> lengthp) {
   return GetArrayLength(cx->cx_, obj, lengthp.UNSAFE_unverified());

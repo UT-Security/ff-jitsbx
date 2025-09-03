@@ -8084,13 +8084,13 @@ IPCResult ContentParent::RecvRawMessage(
   return IPC_OK();
 }
 
-NS_IMETHODIMP ContentParent::GetActor(const nsACString& aName, JSContext* aCx,
+NS_IMETHODIMP ContentParent::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
                                       JSProcessActorParent** retval) {
   ErrorResult error;
   RefPtr<JSProcessActorParent> actor =
-      JSActorManager::GetActor(aCx, aName, error)
+      JSActorManager::GetActor(MC_UNSAN(aCx), aName, error)
           .downcast<JSProcessActorParent>();
-  if (error.MaybeSetPendingException(aCx)) {
+  if (error.MaybeSetPendingException(MC_UNSAN(aCx))) {
     return NS_ERROR_FAILURE;
   }
   actor.forget(retval);

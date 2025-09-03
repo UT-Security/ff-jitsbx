@@ -64,8 +64,9 @@ nsresult nsOSPermissionRequestBase::GetPromise(JSContext* aCx,
 
 NS_IMETHODIMP
 nsOSPermissionRequestBase::RequestVideoCapturePermission(
-    JSContext* aCx, Promise** aPromiseOut) {
+    JSContext* MC_UNSAN(aCx), Promise** aPromiseOut) {
   RefPtr<Promise> promiseHandle;
+  MC_SANITIZE(aCx);
   nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
@@ -78,8 +79,9 @@ nsOSPermissionRequestBase::RequestVideoCapturePermission(
 
 NS_IMETHODIMP
 nsOSPermissionRequestBase::RequestAudioCapturePermission(
-    JSContext* aCx, Promise** aPromiseOut) {
+    JSContext* MC_UNSAN(aCx), Promise** aPromiseOut) {
   RefPtr<Promise> promiseHandle;
+  MC_SANITIZE(aCx);
   nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;

@@ -17,15 +17,16 @@
 #include "nsContentUtils.h"
 #include "nsCycleCollector.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"  // JS::IsArrayObject
-#include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
+#include "monkeycage/Array.h"  // JS::IsArrayObject
+#include "monkeycage/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
 #include "js/CharacterEncoding.h"
-#include "js/ContextOptions.h"
+#include "monkeycage/ContextOptions.h"
 #include "js/friend/WindowProxy.h"  // js::ToWindowProxyIfWindow
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
 #include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
+#include "monkeycage/Conversions.h"
 #include "monkeycage/tainted/Maybe.h"
 #include "monkeycage/Wrapper.h"
 #include "mozilla/AppShutdown.h"
@@ -1318,9 +1319,9 @@ nsXPCComponents_Utils::GetSandbox(nsIXPCComponents_utils_Sandbox** aSandbox) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::CreateServicesCache(JSContext* aCx,
+nsXPCComponents_Utils::CreateServicesCache(JSContext* MC_UNSAN(aCx),
                                            MutableHandleValue aServices) {
-  if (JSObject* services = NewJSServices(aCx)) {
+  if (JSObject* services = NewJSServices(MC_UNSAN(aCx))) {
     aServices.setObject(*services);
     return NS_OK;
   }
@@ -1335,16 +1336,16 @@ nsXPCComponents_Utils::PrintStderr(const nsACString& message) {
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
-                                   JSContext* cx) {
+                                   JSContext* MC_UNSAN(cx)) {
   // This function shall never fail! Silently eat any failure conditions.
-
+  MC_SANITIZE(cx);
   nsCOMPtr<nsIConsoleService> console(
       do_GetService(NS_CONSOLESERVICE_CONTRACTID));
   if (!console) {
     return NS_OK;
   }
 
-  nsGlobalWindowInner* win = CurrentWindowOrNull(cx);
+  nsGlobalWindowInner* win = CurrentWindowOrNull(MC_UNSAN(cx));
   const uint64_t innerWindowID = win ? win->WindowID() : 0;
 
   MC::Rooted<Maybe<Value>> exception(cx, Some(error));
@@ -1387,16 +1388,16 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
       JSPrincipals* principals =
           JS::GetRealmPrincipals(js::GetContextRealm(cx));
 
-      if (GetSavedFrameLine(cx, principals, stackObj, &lineNo) !=
+      if (GetSavedFrameLine(MC_UNSAN(cx), principals, stackObj, &lineNo) !=
           SavedFrameResult::Ok) {
         JS_ClearPendingException(cx);
       }
 
       MC::RootedString source(cx);
       nsAutoJSString str;
-      if (GetSavedFrameSource(cx, principals, stackObj, &source) ==
+      if (GetSavedFrameSource(MC_UNSAN(cx), principals, stackObj, &source) ==
               SavedFrameResult::Ok &&
-          str.init(cx, source)) {
+          str.init(MC_UNSAN(cx), source)) {
         fileName = str;
       } else {
         JS_ClearPendingException(cx);
@@ -1404,8 +1405,8 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
     } else {
       nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack();
       if (frame) {
-        frame->GetFilename(cx, fileName);
-        lineNo = frame->GetLineNumber(cx);
+        frame->GetFilename(MC_UNSAN(cx), fileName);
+        lineNo = frame->GetLineNumber(MC_UNSAN(cx));
         MC::Rooted<JS::Value> stack(cx);
         nsresult rv = frame->GetNativeSavedFrame(&stack);
         if (NS_SUCCEEDED(rv) && stack.isObject()) {
@@ -1458,7 +1459,7 @@ nsXPCComponents_Utils::ReportError(HandleValue error, HandleValue stack,
   }
 
   nsAutoJSString msg;
-  if (!msg.init(cx, msgstr)) {
+  if (!msg.init(MC_UNSAN(cx), msgstr)) {
     return NS_OK;
   }
 
@@ -1475,8 +1476,9 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::EvalInSandbox(
     const nsAString& source, HandleValue sandboxVal, HandleValue version,
     const nsACString& filenameArg, int32_t lineNumber,
-    bool enforceFilenameRestrictions, JSContext* cx, uint8_t optionalArgc,
+    bool enforceFilenameRestrictions, JSContext* MC_UNSAN(cx), uint8_t optionalArgc,
     MutableHandleValue retval) {
+  MC_SANITIZE(cx);
   MC::RootedObject sandbox(cx);
   if (!JS_ValueToObject(cx, sandboxVal, &sandbox) || !sandbox) {
     return NS_ERROR_INVALID_ARG;
@@ -1494,24 +1496,24 @@ nsXPCComponents_Utils::EvalInSandbox(
     nsCOMPtr<nsIStackFrame> frame = dom::GetCurrentJSStack();
     if (frame) {
       nsString frameFile;
-      frame->GetFilename(cx, frameFile);
+      frame->GetFilename(MC_UNSAN(cx), frameFile);
       CopyUTF16toUTF8(frameFile, filename);
-      lineNo = frame->GetLineNumber(cx);
+      lineNo = frame->GetLineNumber(MC_UNSAN(cx));
     }
   }
   enforceFilenameRestrictions =
       (optionalArgc >= 4) ? enforceFilenameRestrictions : true;
 
-  return xpc::EvalInSandbox(cx, sandbox, source, filename, lineNo,
+  return xpc::EvalInSandbox(MC_UNSAN(cx), sandbox, source, filename, lineNo,
                             enforceFilenameRestrictions, retval);
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetUAWidgetScope(nsIPrincipal* principal, JSContext* cx,
+nsXPCComponents_Utils::GetUAWidgetScope(nsIPrincipal* principal, JSContext* MC_UNSAN(cx),
                                         MutableHandleValue rval) {
   rval.set(UndefinedValue());
 
-  JSObject* scope = xpc::GetUAWidgetScope(cx, principal);
+  JSObject* scope = xpc::GetUAWidgetScope(MC_UNSAN(cx), principal);
 
   rval.set(JS::ObjectValue(*scope));
 
@@ -1519,38 +1521,38 @@ nsXPCComponents_Utils::GetUAWidgetScope(nsIPrincipal* principal, JSContext* cx,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetSandboxMetadata(HandleValue sandboxVal, JSContext* cx,
+nsXPCComponents_Utils::GetSandboxMetadata(HandleValue sandboxVal, JSContext* MC_UNSAN(cx),
                                           MutableHandleValue rval) {
   if (!sandboxVal.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  MC::RootedObject sandbox(cx, &sandboxVal.toObject());
+  MC::RootedObject sandbox(MC_UNSAN(cx), &sandboxVal.toObject());
   // We only care about sandboxes here, so CheckedUnwrapStatic is fine.
   sandbox = js::CheckedUnwrapStatic(sandbox);
   if (!sandbox || !xpc::IsSandbox(sandbox)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  return xpc::GetSandboxMetadata(cx, sandbox, rval);
+  return xpc::GetSandboxMetadata(MC_UNSAN(cx), sandbox, rval);
 }
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::SetSandboxMetadata(HandleValue sandboxVal,
                                           HandleValue metadataVal,
-                                          JSContext* cx) {
+                                          JSContext* MC_UNSAN(cx)) {
   if (!sandboxVal.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  MC::RootedObject sandbox(cx, &sandboxVal.toObject());
+  MC::RootedObject sandbox(MC_UNSAN(cx), &sandboxVal.toObject());
   // We only care about sandboxes here, so CheckedUnwrapStatic is fine.
   sandbox = js::CheckedUnwrapStatic(sandbox);
   if (!sandbox || !xpc::IsSandbox(sandbox)) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  nsresult rv = xpc::SetSandboxMetadata(cx, sandbox, metadataVal);
+  nsresult rv = xpc::SetSandboxMetadata(MC_UNSAN(cx), sandbox, metadataVal);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1558,7 +1560,7 @@ nsXPCComponents_Utils::SetSandboxMetadata(HandleValue sandboxVal,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::Import(const nsACString& registryLocation,
-                              HandleValue targetObj, JSContext* cx,
+                              HandleValue targetObj, JSContext* MC_UNSAN(cx),
                               uint8_t optionalArgc, MutableHandleValue retval) {
   RefPtr moduleloader = mozJSModuleLoader::Get();
   MOZ_ASSERT(moduleloader);
@@ -1566,7 +1568,7 @@ nsXPCComponents_Utils::Import(const nsACString& registryLocation,
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("nsXPCComponents_Utils::Import", OTHER,
                                         registryLocation);
 
-  return moduleloader->ImportInto(registryLocation, targetObj, cx, optionalArgc,
+  return moduleloader->ImportInto(registryLocation, targetObj, MC_UNSAN(cx), optionalArgc,
                                   retval);
 }
 
@@ -1603,10 +1605,11 @@ nsXPCComponents_Utils::Unload(const nsACString& registryLocation) {
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
-                                              JSContext* cx) {
+                                              JSContext* MC_UNSAN(cx)) {
   // Ensure we're working in the scripted caller's realm. This is not guaranteed
   // to be the current realm because we switch realms when calling cross-realm
   // functions.
+  MC_SANITIZE(cx);
   MC::RootedObject global(cx, JS::GetScriptedCallerGlobal(cx));
   MOZ_ASSERT(global);
   js::AssertSameCompartment(cx, global);
@@ -1630,8 +1633,8 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
     return NS_ERROR_INVALID_ARG;
   }
 
-  if (!options.Parse(cx, propertyList) ||
-      !options.DefineInXPCComponents(cx, global)) {
+  if (!options.Parse(MC_UNSAN(cx), propertyList) ||
+      !options.DefineInXPCComponents(MC_UNSAN(cx), global)) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1639,19 +1642,19 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetWeakReference(HandleValue object, JSContext* cx,
+nsXPCComponents_Utils::GetWeakReference(HandleValue object, JSContext* MC_UNSAN(cx),
                                         xpcIJSWeakReference** _retval) {
   RefPtr<xpcJSWeakReference> ref = new xpcJSWeakReference();
-  nsresult rv = ref->Init(cx, object);
+  nsresult rv = ref->Init(MC_UNSAN(cx), object);
   NS_ENSURE_SUCCESS(rv, rv);
   ref.forget(_retval);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::ForceGC(JSContext* aCx) {
-  PrepareForFullGC(aCx);
-  NonIncrementalGC(aCx, GCOptions::Normal, GCReason::COMPONENT_UTILS);
+nsXPCComponents_Utils::ForceGC(JSContext* MC_UNSAN(aCx)) {
+  PrepareForFullGC(MC_UNSAN(aCx));
+  NonIncrementalGC(MC_UNSAN(aCx), GCOptions::Normal, GCReason::COMPONENT_UTILS);
   return NS_OK;
 }
 
@@ -1694,9 +1697,9 @@ nsXPCComponents_Utils::ClearMaxCCTime() {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::ForceShrinkingGC(JSContext* aCx) {
-  PrepareForFullGC(aCx);
-  NonIncrementalGC(aCx, GCOptions::Shrink, GCReason::COMPONENT_UTILS);
+nsXPCComponents_Utils::ForceShrinkingGC(JSContext* MC_UNSAN(aCx)) {
+  PrepareForFullGC(MC_UNSAN(aCx));
+  NonIncrementalGC(MC_UNSAN(aCx), GCOptions::Shrink, GCReason::COMPONENT_UTILS);
   return NS_OK;
 }
 
@@ -1771,8 +1774,9 @@ nsXPCComponents_Utils::IntentionallyLeak() {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetJSTestingFunctions(JSContext* cx,
+nsXPCComponents_Utils::GetJSTestingFunctions(JSContext* MC_UNSAN(cx),
                                              MutableHandleValue retval) {
+  MC_SANITIZE(cx);
   JSObject* obj = js::GetTestingFunctions(cx);
   if (!obj) {
     return NS_ERROR_XPC_JAVASCRIPT_ERROR;
@@ -1783,10 +1787,11 @@ nsXPCComponents_Utils::GetJSTestingFunctions(JSContext* cx,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetFunctionSourceLocation(HandleValue funcValue,
-                                                 JSContext* cx,
+                                                 JSContext* MC_UNSAN(cx),
                                                  MutableHandleValue retval) {
   NS_ENSURE_TRUE(funcValue.isObject(), NS_ERROR_INVALID_ARG);
-
+  MC_SANITIZE(cx);
+  
   nsAutoString filename;
   uint32_t lineNumber;
   {
@@ -1808,7 +1813,7 @@ nsXPCComponents_Utils::GetFunctionSourceLocation(HandleValue funcValue,
   NS_ENSURE_TRUE(res, NS_ERROR_OUT_OF_MEMORY);
 
   MC::RootedValue filenameVal(cx);
-  if (!xpc::NonVoidStringToJsval(cx, filename, &filenameVal) ||
+  if (!xpc::NonVoidStringToJsval(MC_UNSAN(cx), filename, &filenameVal) ||
       !JS_DefineProperty(cx, res, "filename", filenameVal, JSPROP_ENUMERATE)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
@@ -1825,7 +1830,7 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
                                                   nsIStackFrame* stack,
                                                   const nsAString& asyncCause,
-                                                  JSContext* cx,
+                                                  JSContext* MC_UNSAN(cx),
                                                   MutableHandleValue retval) {
   nsresult rv;
 
@@ -1833,6 +1838,7 @@ nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
     return NS_ERROR_INVALID_ARG;
   }
 
+  MC_SANITIZE(cx);
   MC::Rooted<JS::Value> asyncStack(cx);
   rv = stack->GetNativeSavedFrame(&asyncStack);
   if (NS_FAILED(rv)) {
@@ -1847,7 +1853,7 @@ nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
 
   NS_ConvertUTF16toUTF8 utf8Cause(asyncCause);
   JS::AutoSetAsyncStackForNewCalls sas(
-      cx, asyncStackObj, utf8Cause.get(),
+      MC_UNSAN(cx), asyncStackObj, utf8Cause.get(),
       JS::AutoSetAsyncStackForNewCalls::AsyncCallKind::EXPLICIT);
 
   if (!JS_CallFunctionValue(cx, nullptr, function,
@@ -1859,13 +1865,15 @@ nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetGlobalForObject(HandleValue object, JSContext* cx,
+nsXPCComponents_Utils::GetGlobalForObject(HandleValue object, JSContext* MC_UNSAN(cx),
                                           MutableHandleValue retval) {
   // First argument must be an object.
   if (object.isPrimitive()) {
     return NS_ERROR_XPC_BAD_CONVERT_JS;
   }
 
+  MC_SANITIZE(cx);
+  
   // When getting the global for a cross-compartment wrapper, we really want
   // a wrapper for the foreign global. So we need to unwrap before getting the
   // global and then wrap the result.
@@ -1884,12 +1892,13 @@ nsXPCComponents_Utils::GetGlobalForObject(HandleValue object, JSContext* cx,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::IsProxy(HandleValue vobj, JSContext* cx, bool* rval) {
+nsXPCComponents_Utils::IsProxy(HandleValue vobj, JSContext* MC_UNSAN(cx), bool* rval) {
   if (!vobj.isObject()) {
     *rval = false;
     return NS_OK;
   }
 
+  MC_SANITIZE(cx);
   MC::RootedObject obj(cx, &vobj.toObject());
   // We need to do a dynamic unwrap, because we apparently want to treat
   // "failure to unwrap" differently from "not a proxy" (throw for the former,
@@ -1903,9 +1912,9 @@ nsXPCComponents_Utils::IsProxy(HandleValue vobj, JSContext* cx, bool* rval) {
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::ExportFunction(HandleValue vfunction, HandleValue vscope,
-                                      HandleValue voptions, JSContext* cx,
+                                      HandleValue voptions, JSContext* MC_UNSAN(cx),
                                       MutableHandleValue rval) {
-  if (!xpc::ExportFunction(cx, vfunction, vscope, voptions, rval)) {
+  if (!xpc::ExportFunction(MC_UNSAN(cx), vfunction, vscope, voptions, rval)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1913,22 +1922,24 @@ nsXPCComponents_Utils::ExportFunction(HandleValue vfunction, HandleValue vscope,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::CreateObjectIn(HandleValue vobj, HandleValue voptions,
-                                      JSContext* cx, MutableHandleValue rval) {
+                                      JSContext* MC_UNSAN(cx), MutableHandleValue rval) {
+  MC_SANITIZE(cx);
   MC::RootedObject optionsObject(
       cx, voptions.isObject() ? &voptions.toObject() : nullptr);
-  CreateObjectInOptions options(cx, optionsObject);
+  CreateObjectInOptions options(MC_UNSAN(cx), optionsObject);
   if (voptions.isObject() && !options.Parse()) {
     return NS_ERROR_FAILURE;
   }
 
-  if (!xpc::CreateObjectIn(cx, vobj, options, rval)) {
+  if (!xpc::CreateObjectIn(MC_UNSAN(cx), vobj, options, rval)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
+nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   if (!cx) {
     return NS_ERROR_FAILURE;
   }
@@ -1940,7 +1951,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
 
   MC::RootedObject obj(cx, js::UncheckedUnwrap(&vobj.toObject()));
   MC::SandboxStack<JSAutoRealm> ar(cx, obj);
-  MC::Rooted<IdVector> ida(cx, IdVector(cx));
+  MC::Rooted<IdVector> ida(cx, IdVector(MC_UNSAN(cx)));
   if (!JS_Enumerate(cx, obj, &ida)) {
     return NS_ERROR_FAILURE;
   }
@@ -1965,7 +1976,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* cx) {
     }
 
     FunctionForwarderOptions forwarderOptions;
-    if (!NewFunctionForwarder(cx, id, propobj, forwarderOptions, &v) ||
+    if (!NewFunctionForwarder(MC_UNSAN(cx), id, propobj, forwarderOptions, &v) ||
         !JS_SetPropertyById(cx, obj, id, v))
       return NS_ERROR_FAILURE;
   }
@@ -2000,7 +2011,9 @@ nsXPCComponents_Utils::IsRemoteProxy(HandleValue val, bool* out) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::RecomputeWrappers(HandleValue vobj, JSContext* cx) {
+nsXPCComponents_Utils::RecomputeWrappers(HandleValue vobj, JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
+  
   // Determine the compartment of the given object, if any.
   JS::Compartment* c =
       vobj.isObject()
@@ -2022,10 +2035,11 @@ nsXPCComponents_Utils::RecomputeWrappers(HandleValue vobj, JSContext* cx) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext* cx) {
+nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext* MC_UNSAN(cx)) {
   if (!vscope.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
+  MC_SANITIZE(cx);
   JSObject* scopeObj = js::UncheckedUnwrap(&vscope.toObject());
   MOZ_RELEASE_ASSERT(!AccessCheck::isChrome(scopeObj),
                      "Don't call setWantXrays on system-principal scopes");
@@ -2039,7 +2053,8 @@ nsXPCComponents_Utils::SetWantXrays(HandleValue vscope, JSContext* cx) {
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::Dispatch(HandleValue runnableArg, HandleValue scope,
-                                JSContext* cx) {
+                                JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   MC::RootedValue runnable(cx, runnableArg);
   // Enter the given realm, if any, and rewrap runnable.
   MC::SandboxStack<Maybe<JSAutoRealm>> ar;
@@ -2062,7 +2077,7 @@ nsXPCComponents_Utils::Dispatch(HandleValue runnableArg, HandleValue scope,
   MC::RootedObject runnableObj(cx, &runnable.toObject());
   nsCOMPtr<nsIRunnable> run;
   nsresult rv = nsXPConnect::XPConnect()->WrapJS(
-      cx, runnableObj, NS_GET_IID(nsIRunnable), getter_AddRefs(run));
+      MC_UNSAN(cx), runnableObj, NS_GET_IID(nsIRunnable), getter_AddRefs(run));
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(run);
 
@@ -2070,16 +2085,18 @@ nsXPCComponents_Utils::Dispatch(HandleValue runnableArg, HandleValue scope,
   return NS_DispatchToMainThread(run);
 }
 
-#define GENERATE_JSCONTEXTOPTION_GETTER_SETTER(_attr, _getter, _setter) \
-  NS_IMETHODIMP                                                         \
-  nsXPCComponents_Utils::Get##_attr(JSContext* cx, bool* aValue) {      \
-    *aValue = ContextOptionsRef(cx)._getter();                          \
-    return NS_OK;                                                       \
-  }                                                                     \
-  NS_IMETHODIMP                                                         \
-  nsXPCComponents_Utils::Set##_attr(JSContext* cx, bool aValue) {       \
-    ContextOptionsRef(cx)._setter(aValue);                              \
-    return NS_OK;                                                       \
+#define GENERATE_JSCONTEXTOPTION_GETTER_SETTER(_attr, _getter, _setter)                \
+  NS_IMETHODIMP                                                                        \
+  nsXPCComponents_Utils::Get##_attr(JSContext* MC_UNSAN(cx), bool* aValue) {           \
+    MC_SANITIZE(cx);                                                                   \
+    *aValue = ContextOptionsRef(cx)._getter();                                         \
+    return NS_OK;                                                                      \
+  }                                                                                    \
+  NS_IMETHODIMP                                                                        \
+  nsXPCComponents_Utils::Set##_attr(JSContext* MC_UNSAN(cx), bool aValue) {            \
+    MC_SANITIZE(cx);                                                                   \
+    ContextOptionsRef(cx)._setter(aValue);                                             \
+    return NS_OK;                                                                      \
   }
 
 GENERATE_JSCONTEXTOPTION_GETTER_SETTER(Strict_mode, strictMode, setStrictMode)
@@ -2087,8 +2104,9 @@ GENERATE_JSCONTEXTOPTION_GETTER_SETTER(Strict_mode, strictMode, setStrictMode)
 #undef GENERATE_JSCONTEXTOPTION_GETTER_SETTER
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::SetGCZeal(int32_t aValue, JSContext* cx) {
+nsXPCComponents_Utils::SetGCZeal(int32_t aValue, JSContext* MC_UNSAN(cx)) {
 #ifdef JS_GC_ZEAL
+  MC_SANITIZE(cx);
   JS_SetGCZeal(cx, uint8_t(aValue), JS_DEFAULT_ZEAL_FREQ);
 #endif
   return NS_OK;
@@ -2119,22 +2137,24 @@ nsXPCComponents_Utils::CrashIfNotInAutomation() {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::NukeSandbox(HandleValue obj, JSContext* cx) {
+nsXPCComponents_Utils::NukeSandbox(HandleValue obj, JSContext* MC_UNSAN(cx)) {
   AUTO_PROFILER_LABEL("nsXPCComponents_Utils::NukeSandbox", OTHER);
+  MC_SANITIZE(cx);
   NS_ENSURE_TRUE(obj.isObject(), NS_ERROR_INVALID_ARG);
   JSObject* wrapper = &obj.toObject();
   NS_ENSURE_TRUE(mc::IsWrapper(wrapper), NS_ERROR_INVALID_ARG);
   MC::RootedObject sb(cx, UncheckedUnwrap(wrapper));
   NS_ENSURE_TRUE(IsSandbox(sb), NS_ERROR_INVALID_ARG);
 
-  xpc::NukeAllWrappersForRealm(cx, GetNonCCWObjectRealm(sb));
+  xpc::NukeAllWrappersForRealm(MC_UNSAN(cx), GetNonCCWObjectRealm(sb));
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::BlockScriptForGlobal(HandleValue globalArg,
-                                            JSContext* cx) {
+                                            JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   NS_ENSURE_TRUE(globalArg.isObject(), NS_ERROR_INVALID_ARG);
   MC::RootedObject global(cx, UncheckedUnwrap(&globalArg.toObject(),
                                           /* stopAtWindowProxy = */ false));
@@ -2149,7 +2169,8 @@ nsXPCComponents_Utils::BlockScriptForGlobal(HandleValue globalArg,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::UnblockScriptForGlobal(HandleValue globalArg,
-                                              JSContext* cx) {
+                                              JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   NS_ENSURE_TRUE(globalArg.isObject(), NS_ERROR_INVALID_ARG);
   MC::RootedObject global(cx, UncheckedUnwrap(&globalArg.toObject(),
                                           /* stopAtWindowProxy = */ false));
@@ -2177,8 +2198,9 @@ nsXPCComponents_Utils::IsXrayWrapper(HandleValue obj, bool* aRetval) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::WaiveXrays(HandleValue aVal, JSContext* aCx,
+nsXPCComponents_Utils::WaiveXrays(HandleValue aVal, JSContext* MC_UNSAN(aCx),
                                   MutableHandleValue aRetval) {
+  MC_SANITIZE(aCx);
   MC::RootedValue value(aCx, aVal);
   if (!xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(aCx), &value)) {
     return NS_ERROR_FAILURE;
@@ -2188,13 +2210,14 @@ nsXPCComponents_Utils::WaiveXrays(HandleValue aVal, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::UnwaiveXrays(HandleValue aVal, JSContext* aCx,
+nsXPCComponents_Utils::UnwaiveXrays(HandleValue aVal, JSContext* MC_UNSAN(aCx),
                                     MutableHandleValue aRetval) {
   if (!aVal.isObject()) {
     aRetval.set(aVal);
     return NS_OK;
   }
 
+  MC_SANITIZE(aCx);
   MC::RootedObject obj(aCx, js::UncheckedUnwrap(&aVal.toObject()));
   if (!JS_WrapObject(aCx, &obj)) {
     return NS_ERROR_FAILURE;
@@ -2205,10 +2228,11 @@ nsXPCComponents_Utils::UnwaiveXrays(HandleValue aVal, JSContext* aCx,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetClassName(HandleValue aObj, bool aUnwrap,
-                                    JSContext* aCx, char** aRv) {
+                                    JSContext* MC_UNSAN(aCx), char** aRv) {
   if (!aObj.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
+  MC_SANITIZE(aCx);
   MC::RootedObject obj(aCx, &aObj.toObject());
   if (aUnwrap) {
     obj = js::UncheckedUnwrap(obj, /* stopAtWindowProxy = */ false);
@@ -2225,9 +2249,10 @@ nsXPCComponents_Utils::GetDOMClassInfo(const nsAString& aClassName,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetIncumbentGlobal(HandleValue aCallback, JSContext* aCx,
+nsXPCComponents_Utils::GetIncumbentGlobal(HandleValue aCallback, JSContext* MC_UNSAN(aCx),
                                           MutableHandleValue aOut) {
   nsCOMPtr<nsIGlobalObject> global = mozilla::dom::GetIncumbentGlobal();
+  MC_SANITIZE(aCx);
   MC::RootedValue globalVal(aCx);
 
   if (!global) {
@@ -2254,14 +2279,15 @@ nsXPCComponents_Utils::GetIncumbentGlobal(HandleValue aCallback, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetDebugName(HandleValue aObj, JSContext* aCx,
+nsXPCComponents_Utils::GetDebugName(HandleValue aObj, JSContext* MC_UNSAN(aCx),
                                     nsACString& aOut) {
   if (!aObj.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
 
+  MC_SANITIZE(aCx);
   MC::RootedObject obj(aCx, &aObj.toObject());
-  aOut = xpc::GetFunctionName(aCx, obj);
+  aOut = xpc::GetFunctionName(MC_UNSAN(aCx), obj);
   return NS_OK;
 }
 
@@ -2285,8 +2311,9 @@ nsXPCComponents_Utils::GetWatchdogTimestamp(const nsAString& aCategory,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetJSEngineTelemetryValue(JSContext* cx,
+nsXPCComponents_Utils::GetJSEngineTelemetryValue(JSContext* MC_UNSAN(cx),
                                                  MutableHandleValue rval) {
+  MC_SANITIZE(cx);
   MC::RootedObject obj(cx, JS_NewPlainObject(cx));
   if (!obj) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -2340,9 +2367,9 @@ bool xpc::CloneInto(JSContext* aCx, HandleValue aValue, HandleValue aScope,
 
 NS_IMETHODIMP
 nsXPCComponents_Utils::CloneInto(HandleValue aValue, HandleValue aScope,
-                                 HandleValue aOptions, JSContext* aCx,
+                                 HandleValue aOptions, JSContext* MC_UNSAN(aCx),
                                  MutableHandleValue aCloned) {
-  return xpc::CloneInto(aCx, aValue, aScope, aOptions, aCloned)
+  return xpc::CloneInto(MC_UNSAN(aCx), aValue, aScope, aOptions, aCloned)
              ? NS_OK
              : NS_ERROR_FAILURE;
 }
@@ -2361,11 +2388,13 @@ nsXPCComponents_Utils::GetWebIDLCallerPrincipal(nsIPrincipal** aResult) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetObjectPrincipal(HandleValue val, JSContext* cx,
+nsXPCComponents_Utils::GetObjectPrincipal(HandleValue val, JSContext* MC_UNSAN(cx),
                                           nsIPrincipal** result) {
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
+
+  MC_SANITIZE(cx);
   MC::RootedObject obj(cx, &val.toObject());
   // We need to be able to unwrap to WindowProxy or Location here, so
   // use CheckedUnwrapDynamic.
@@ -2378,11 +2407,12 @@ nsXPCComponents_Utils::GetObjectPrincipal(HandleValue val, JSContext* cx,
 }
 
 NS_IMETHODIMP
-nsXPCComponents_Utils::GetRealmLocation(HandleValue val, JSContext* cx,
+nsXPCComponents_Utils::GetRealmLocation(HandleValue val, JSContext* MC_UNSAN(cx),
                                         nsACString& result) {
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
+  MC_SANITIZE(cx);
   MC::RootedObject obj(cx, &val.toObject());
   // We need to be able to unwrap to WindowProxy or Location here, so
   // use CheckedUnwrapDynamic.
@@ -2596,16 +2626,16 @@ nsXPCComponents::GetManager(nsIComponentManager** aManager) {
 }
 
 NS_IMETHODIMP
-nsXPCComponents::GetReturnCode(JSContext* aCx, MutableHandleValue aOut) {
+nsXPCComponents::GetReturnCode(JSContext* MC_UNSAN(aCx), MutableHandleValue aOut) {
   nsresult res = XPCJSContext::Get()->GetPendingResult();
   aOut.setNumber(static_cast<uint32_t>(res));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsXPCComponents::SetReturnCode(JSContext* aCx, HandleValue aCode) {
+nsXPCComponents::SetReturnCode(JSContext* MC_UNSAN(aCx), HandleValue aCode) {
   nsresult rv;
-  if (!ToUint32(aCx, aCode, (uint32_t*)&rv)) {
+  if (!ToUint32(MC_UNSAN(aCx), aCode, (uint32_t*)&rv)) {
     return NS_ERROR_FAILURE;
   }
   XPCJSContext::Get()->SetPendingResult(rv);

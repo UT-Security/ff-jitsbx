@@ -29,7 +29,8 @@ JSDebugger::JSDebugger() = default;
 JSDebugger::~JSDebugger() = default;
 
 NS_IMETHODIMP
-JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* cx) {
+JSDebugger::AddClass(JS::Handle<JS::Value> global, JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   if (!global.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }

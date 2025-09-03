@@ -162,12 +162,13 @@ WebVTTListener::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aStream,
 }
 
 NS_IMETHODIMP
-WebVTTListener::OnCue(JS::Handle<JS::Value> aCue, JSContext* aCx) {
+WebVTTListener::OnCue(JS::Handle<JS::Value> aCue, JSContext* MC_UNSAN(aCx)) {
   MOZ_ASSERT(!IsCanceled());
   if (!aCue.isObject()) {
     return NS_ERROR_FAILURE;
   }
 
+  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, &aCue.toObject());
   TextTrackCue* cue = nullptr;
   nsresult rv = UNWRAP_OBJECT(VTTCue, &obj, cue);
@@ -180,14 +181,14 @@ WebVTTListener::OnCue(JS::Handle<JS::Value> aCue, JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-WebVTTListener::OnRegion(JS::Handle<JS::Value> aRegion, JSContext* aCx) {
+WebVTTListener::OnRegion(JS::Handle<JS::Value> aRegion, JSContext* MC_UNSAN(aCx)) {
   MOZ_ASSERT(!IsCanceled());
   // Nothing for this callback to do.
   return NS_OK;
 }
 
 NS_IMETHODIMP
-WebVTTListener::OnParsingError(int32_t errorCode, JSContext* cx) {
+WebVTTListener::OnParsingError(int32_t errorCode, JSContext* MC_UNSAN(cx)) {
   MOZ_ASSERT(!IsCanceled());
   // We only care about files that have a bad WebVTT file signature right now
   // as that means the file failed to load.

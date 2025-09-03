@@ -10,9 +10,9 @@
 #include "mcfriendapi.h"
 #include "monkeycage/Array.h"  // JS::IsArrayObject
 #include "monkeycage/ArrayBuffer.h"
-#include "js/Exception.h"
-#include "js/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
+#include "monkeycage/Exception.h"
+#include "monkeycage/JSON.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_SetProperty
 #include "js/TracingAPI.h"
 #include "xpcpublic.h"
 
@@ -491,7 +491,8 @@ InstallLocation::InstallLocation(JSContext* cx, const JS::Value& value)
  *****************************************************************************/
 
 nsresult AddonManagerStartup::ReadStartupData(
-    JSContext* cx, JS::MutableHandle<JS::Value> locations) {
+    JSContext* MC_UNSAN(cx), JS::MutableHandle<JS::Value> locations) {
+  MC_SANITIZE(cx);
   locations.set(JS::UndefinedValue());
 
   nsCOMPtr<nsIFile> file =
@@ -505,7 +506,7 @@ nsresult AddonManagerStartup::ReadStartupData(
     return res.unwrapErr();
   }
 
-  if (data.IsEmpty() || !ParseJSON(cx, data, locations)) {
+  if (data.IsEmpty() || !ParseJSON(MC_UNSAN(cx), data, locations)) {
     return NS_OK;
   }
 
@@ -514,7 +515,7 @@ nsresult AddonManagerStartup::ReadStartupData(
   }
 
   MC::Rooted<JSObject*> locs(cx, &locations.toObject());
-  for (auto e1 : PropertyIter(cx, locs)) {
+  for (auto e1 : PropertyIter(MC_UNSAN(cx), locs)) {
     InstallLocation loc(e1);
 
     bool shouldCheck = loc.ShouldCheckStartupModifications();
@@ -537,12 +538,13 @@ nsresult AddonManagerStartup::ReadStartupData(
 }
 
 nsresult AddonManagerStartup::EncodeBlob(JS::Handle<JS::Value> value,
-                                         JSContext* cx,
+                                         JSContext* MC_UNSAN(cx),
                                          JS::MutableHandle<JS::Value> result) {
+  MC_SANITIZE(cx);
   StructuredCloneData holder;
 
   ErrorResult rv;
-  holder.Write(cx, value, rv);
+  holder.Write(MC_UNSAN(cx), value, rv);
   if (rv.Failed()) {
     return rv.StealNSResult();
   }
@@ -558,14 +560,14 @@ nsresult AddonManagerStartup::EncodeBlob(JS::Handle<JS::Value> value,
   MOZ_TRY_VAR(lz4, EncodeLZ4(scData, STRUCTURED_CLONE_MAGIC));
 
   MC::Rooted<JSObject*> obj(cx);
-  MOZ_TRY(nsContentUtils::CreateArrayBuffer(cx, lz4, &obj.get()));
+  MOZ_TRY(nsContentUtils::CreateArrayBuffer(MC_UNSAN(cx), lz4, &obj.get()));
 
   result.set(JS::ObjectValue(*obj));
   return NS_OK;
 }
 
 nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
-                                         JSContext* cx,
+                                         JSContext* MC_UNSAN(cx),
                                          JS::MutableHandle<JS::Value> result) {
   NS_ENSURE_TRUE(value.isObject() &&
                      JS::IsArrayBufferObject(&value.toObject()) &&
@@ -594,7 +596,7 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
   NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
 
   ErrorResult rv;
-  holder.Read(cx, result, rv);
+  holder.Read(MC_UNSAN(cx), result, rv);
   return rv.StealNSResult();
   ;
 }
@@ -779,7 +781,8 @@ static LinkedList<RegistryEntries>& GetRegistryEntries() {
 NS_IMETHODIMP
 AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
                                     JS::Handle<JS::Value> locations,
-                                    JSContext* cx, nsIJSRAIIHelper** result) {
+                                    JSContext* MC_UNSAN(cx), nsIJSRAIIHelper** result) {
+  MC_SANITIZE(cx);
   auto IsArray = [cx](JS::Handle<JS::Value> val) -> bool {
     bool isArray;
     return JS::IsArrayObject(cx, val, &isArray) && isArray;
@@ -799,16 +802,16 @@ AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
   MC::Rooted<JS::Value> arrayVal(cx);
   MC::Rooted<JSObject*> array(cx);
 
-  for (auto elem : ArrayIter(cx, locs)) {
+  for (auto elem : ArrayIter(MC_UNSAN(cx), locs)) {
     arrayVal = elem.Value();
     NS_ENSURE_TRUE(IsArray(arrayVal), NS_ERROR_INVALID_ARG);
 
     array = &arrayVal.toObject();
 
     AutoTArray<nsCString, 4> vals;
-    for (auto val : ArrayIter(cx, array)) {
+    for (auto val : ArrayIter(MC_UNSAN(cx), array)) {
       nsAutoJSString str;
-      NS_ENSURE_TRUE(str.init(cx, val.Value()), NS_ERROR_OUT_OF_MEMORY);
+      NS_ENSURE_TRUE(str.init(MC_UNSAN(cx), val.Value()), NS_ERROR_OUT_OF_MEMORY);
 
       vals.AppendElement(NS_ConvertUTF16toUTF8(str));
     }

@@ -16,6 +16,16 @@
 
 namespace JS {
 
+inline JSObject* NewDateObject(MCContext* cx, ClippedTime time) {
+  return NewDateObject(cx->cx_, time);
+}
+
+inline JSObject* NewDateObject(MCContext* cx, int year, int mon,
+                                             int mday, int hour, int min,
+                                             int sec) {
+  return NewDateObject(cx->cx_, year, mon, mday, hour, min, sec);
+}
+
 inline void SetReduceMicrosecondTimePrecisionCallback(
     MC::SandboxCallback<ReduceMicrosecondTimePrecisionCallback> callback) {
   return SetReduceMicrosecondTimePrecisionCallback(callback.UNSAFE_get());

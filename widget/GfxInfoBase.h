@@ -12,7 +12,7 @@
 #include "GfxInfoCollector.h"
 #include "gfxFeature.h"
 #include "gfxTelemetry.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Mutex.h"

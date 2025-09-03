@@ -189,6 +189,45 @@ inline bool JS_DefineUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
   return JS_DefineUCProperty(cx->cx_, obj, name, namelen, value, attrs);
 }
 
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, JS::Handle<JS::Value> value,
+                             unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, JS::Handle<JSObject*> getter,
+                             JS::Handle<JSObject*> setter, unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, getter, setter, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, JS::Handle<JSObject*> value,
+                             unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, JS::Handle<JSString*> value,
+                             unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, int32_t value, unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, uint32_t value, unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
+inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                             uint32_t index, double value, unsigned attrs) {
+ return JS_DefineElement(cx->cx_, obj, index, value, attrs);
+}
+
 inline bool JS_HasPropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
                         JS::Handle<jsid> id, bool* foundp) {
   return JS_HasPropertyById(cx->cx_, obj, id, foundp);

@@ -751,8 +751,9 @@ NS_IMETHODIMP
 ServiceWorkerManager::RegisterForTest(nsIPrincipal* aPrincipal,
                                       const nsAString& aScopeURL,
                                       const nsAString& aScriptURL,
-                                      JSContext* aCx,
+                                      JSContext* MC_UNSAN(aCx),
                                       mozilla::dom::Promise** aPromise) {
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -2732,8 +2733,9 @@ ServiceWorkerManager::ReloadRegistrationsForTest() {
 
 NS_IMETHODIMP
 ServiceWorkerManager::RegisterForAddonPrincipal(nsIPrincipal* aPrincipal,
-                                                JSContext* aCx,
+                                                JSContext* MC_UNSAN(aCx),
                                                 dom::Promise** aPromise) {
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -2856,7 +2858,8 @@ ServiceWorkerManager::GetRegistrationForAddonPrincipal(
 NS_IMETHODIMP
 ServiceWorkerManager::WakeForExtensionAPIEvent(
     const nsAString& aExtensionBaseURL, const nsAString& aAPINamespace,
-    const nsAString& aAPIEventName, JSContext* aCx, dom::Promise** aPromise) {
+    const nsAString& aAPIEventName, JSContext* MC_UNSAN(aCx), dom::Promise** aPromise) {
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;

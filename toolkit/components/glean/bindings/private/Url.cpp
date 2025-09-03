@@ -7,8 +7,8 @@
 #include "mozilla/glean/bindings/Url.h"
 
 #include "Common.h"
-#include "jsapi.h"
-#include "js/String.h"
+#include "mcapi.h"
+#include "monkeycage/String.h"
 #include "nsString.h"
 #include "mozilla/Components.h"
 #include "mozilla/ResultVariant.h"
@@ -54,8 +54,9 @@ GleanUrl::Set(const nsACString& aValue) {
 }
 
 NS_IMETHODIMP
-GleanUrl::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
+GleanUrl::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
                        JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mUrl.TestGetValue(aStorageName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

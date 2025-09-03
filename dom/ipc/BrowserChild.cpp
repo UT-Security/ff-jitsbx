@@ -3738,8 +3738,9 @@ void BrowserChild::NotifyContentBlockingEvent(
 }
 
 NS_IMETHODIMP
-BrowserChild::ContentTransformsReceived(JSContext* aCx,
+BrowserChild::ContentTransformsReceived(JSContext* MC_UNSAN(aCx),
                                         dom::Promise** aPromise) {
+  MC_SANITIZE(aCx);
   auto* globalObject = xpc::CurrentNativeGlobal(aCx);
   ErrorResult rv;
   if (mChildToParentConversionMatrix) {

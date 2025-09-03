@@ -36,9 +36,9 @@
 #include "nsAppShellCID.h"
 #include "nsXPCOMCIDInternal.h"
 #include "mozilla/Services.h"
-#include "jsapi.h"
-#include "js/Date.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "mcapi.h"
+#include "monkeycage/Date.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "prenv.h"
 #include "nsAppDirectoryServiceDefs.h"
 
@@ -820,8 +820,9 @@ nsAppStartup::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 NS_IMETHODIMP
-nsAppStartup::GetStartupInfo(JSContext* aCx,
+nsAppStartup::GetStartupInfo(JSContext* MC_UNSAN(aCx),
                              JS::MutableHandle<JS::Value> aRetval) {
+  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   aRetval.setObject(*obj);

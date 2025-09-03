@@ -382,9 +382,9 @@ static void GetValueIfNotCached(
               JS::SavedFrameSelfHosted::Exclude);
 }
 
-NS_IMETHODIMP JSStackFrame::GetFilenameXPCOM(JSContext* aCx,
+NS_IMETHODIMP JSStackFrame::GetFilenameXPCOM(JSContext* MC_UNSAN(aCx),
                                              nsAString& aFilename) {
-  GetFilename(aCx, aFilename);
+  GetFilename(MC_UNSAN(aCx), aFilename);
   return NS_OK;
 }
 
@@ -419,8 +419,8 @@ void JSStackFrame::GetFilename(JSContext* aCx, nsAString& aFilename) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetNameXPCOM(JSContext* aCx, nsAString& aFunction) {
-  GetName(aCx, aFunction);
+JSStackFrame::GetNameXPCOM(JSContext* MC_UNSAN(aCx), nsAString& aFunction) {
+  GetName(MC_UNSAN(aCx), aFunction);
   return NS_OK;
 }
 
@@ -481,8 +481,8 @@ int32_t JSStackFrame::GetSourceId(JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetSourceIdXPCOM(JSContext* aCx, int32_t* aSourceId) {
-  *aSourceId = GetSourceId(aCx);
+JSStackFrame::GetSourceIdXPCOM(JSContext* MC_UNSAN(aCx), int32_t* aSourceId) {
+  *aSourceId = GetSourceId(MC_UNSAN(aCx));
   return NS_OK;
 }
 
@@ -509,8 +509,8 @@ int32_t JSStackFrame::GetLineNumber(JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetLineNumberXPCOM(JSContext* aCx, int32_t* aLineNumber) {
-  *aLineNumber = GetLineNumber(aCx);
+JSStackFrame::GetLineNumberXPCOM(JSContext* MC_UNSAN(aCx), int32_t* aLineNumber) {
+  *aLineNumber = GetLineNumber(MC_UNSAN(aCx));
   return NS_OK;
 }
 
@@ -537,8 +537,8 @@ int32_t JSStackFrame::GetColumnNumber(JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetColumnNumberXPCOM(JSContext* aCx, int32_t* aColumnNumber) {
-  *aColumnNumber = GetColumnNumber(aCx);
+JSStackFrame::GetColumnNumberXPCOM(JSContext* MC_UNSAN(aCx), int32_t* aColumnNumber) {
+  *aColumnNumber = GetColumnNumber(MC_UNSAN(aCx));
   return NS_OK;
 }
 
@@ -548,8 +548,8 @@ NS_IMETHODIMP JSStackFrame::GetSourceLine(nsACString& aSourceLine) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetAsyncCauseXPCOM(JSContext* aCx, nsAString& aAsyncCause) {
-  GetAsyncCause(aCx, aAsyncCause);
+JSStackFrame::GetAsyncCauseXPCOM(JSContext* MC_UNSAN(aCx), nsAString& aAsyncCause) {
+  GetAsyncCause(MC_UNSAN(aCx), aAsyncCause);
   return NS_OK;
 }
 
@@ -589,9 +589,9 @@ void JSStackFrame::GetAsyncCause(JSContext* aCx, nsAString& aAsyncCause) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetAsyncCallerXPCOM(JSContext* aCx,
+JSStackFrame::GetAsyncCallerXPCOM(JSContext* MC_UNSAN(aCx),
                                   nsIStackFrame** aAsyncCaller) {
-  *aAsyncCaller = GetAsyncCaller(aCx).take();
+  *aAsyncCaller = GetAsyncCaller(MC_UNSAN(aCx)).take();
   return NS_OK;
 }
 
@@ -623,8 +623,8 @@ already_AddRefed<nsIStackFrame> JSStackFrame::GetAsyncCaller(JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetCallerXPCOM(JSContext* aCx, nsIStackFrame** aCaller) {
-  *aCaller = GetCaller(aCx).take();
+JSStackFrame::GetCallerXPCOM(JSContext* MC_UNSAN(aCx), nsIStackFrame** aCaller) {
+  *aCaller = GetCaller(MC_UNSAN(aCx)).take();
   return NS_OK;
 }
 
@@ -655,8 +655,8 @@ already_AddRefed<nsIStackFrame> JSStackFrame::GetCaller(JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-JSStackFrame::GetFormattedStackXPCOM(JSContext* aCx, nsAString& aStack) {
-  GetFormattedStack(aCx, aStack);
+JSStackFrame::GetFormattedStackXPCOM(JSContext* MC_UNSAN(aCx), nsAString& aStack) {
+  GetFormattedStack(MC_UNSAN(aCx), aStack);
   return NS_OK;
 }
 
@@ -709,8 +709,8 @@ NS_IMETHODIMP JSStackFrame::GetNativeSavedFrame(
 }
 
 NS_IMETHODIMP
-JSStackFrame::ToStringXPCOM(JSContext* aCx, nsACString& _retval) {
-  ToString(aCx, _retval);
+JSStackFrame::ToStringXPCOM(JSContext* MC_UNSAN(aCx), nsACString& _retval) {
+  ToString(MC_UNSAN(aCx), _retval);
   return NS_OK;
 }
 

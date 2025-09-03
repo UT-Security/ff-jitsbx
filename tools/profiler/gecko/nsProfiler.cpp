@@ -15,10 +15,10 @@
 #include "GeckoProfiler.h"
 #include "ProfilerControl.h"
 #include "ProfilerParent.h"
-#include "js/Array.h"  // JS::NewArrayObject
-#include "js/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_SetElement
-#include "js/Value.h"
+#include "monkeycage/Array.h"  // JS::NewArrayObject
+#include "monkeycage/JSON.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_SetElement
+#include "monkeycage/Value.h"
 #include "json/json.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/JSONStringWriteFuncs.h"
@@ -150,7 +150,7 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
                           const nsTArray<nsCString>& aFeatures,
                           const nsTArray<nsCString>& aFilters,
                           uint64_t aActiveTabID, double aDuration,
-                          JSContext* aCx, Promise** aPromise) {
+                          JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   ResetGathering(NS_ERROR_DOM_ABORT_ERR);
 
   Vector<const char*> featureStringVector;
@@ -168,7 +168,7 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
     return rv;
   }
 
-  return RunFunctionAndConvertPromise(aCx, aPromise, [&]() {
+  return RunFunctionAndConvertPromise(MC_UNSAN(aCx), aPromise, [&]() {
     return profiler_start(PowerOfTwo32(aEntries), aInterval, features,
                           filterStringVector.begin(),
                           filterStringVector.length(), aActiveTabID, duration);
@@ -176,9 +176,9 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
 }
 
 NS_IMETHODIMP
-nsProfiler::StopProfiler(JSContext* aCx, Promise** aPromise) {
+nsProfiler::StopProfiler(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   ResetGathering(NS_ERROR_DOM_ABORT_ERR);
-  return RunFunctionAndConvertPromise(aCx, aPromise,
+  return RunFunctionAndConvertPromise(MC_UNSAN(aCx), aPromise,
                                       []() { return profiler_stop(); });
 }
 
@@ -189,14 +189,14 @@ nsProfiler::IsPaused(bool* aIsPaused) {
 }
 
 NS_IMETHODIMP
-nsProfiler::Pause(JSContext* aCx, Promise** aPromise) {
-  return RunFunctionAndConvertPromise(aCx, aPromise,
+nsProfiler::Pause(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
+  return RunFunctionAndConvertPromise(MC_UNSAN(aCx), aPromise,
                                       []() { return profiler_pause(); });
 }
 
 NS_IMETHODIMP
-nsProfiler::Resume(JSContext* aCx, Promise** aPromise) {
-  return RunFunctionAndConvertPromise(aCx, aPromise,
+nsProfiler::Resume(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
+  return RunFunctionAndConvertPromise(MC_UNSAN(aCx), aPromise,
                                       []() { return profiler_resume(); });
 }
 
@@ -207,15 +207,15 @@ nsProfiler::IsSamplingPaused(bool* aIsSamplingPaused) {
 }
 
 NS_IMETHODIMP
-nsProfiler::PauseSampling(JSContext* aCx, Promise** aPromise) {
+nsProfiler::PauseSampling(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   return RunFunctionAndConvertPromise(
-      aCx, aPromise, []() { return profiler_pause_sampling(); });
+      MC_UNSAN(aCx), aPromise, []() { return profiler_pause_sampling(); });
 }
 
 NS_IMETHODIMP
-nsProfiler::ResumeSampling(JSContext* aCx, Promise** aPromise) {
+nsProfiler::ResumeSampling(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   return RunFunctionAndConvertPromise(
-      aCx, aPromise, []() { return profiler_resume_sampling(); });
+      MC_UNSAN(aCx), aPromise, []() { return profiler_resume_sampling(); });
 }
 
 NS_IMETHODIMP
@@ -225,13 +225,14 @@ nsProfiler::ClearAllPages() {
 }
 
 NS_IMETHODIMP
-nsProfiler::WaitOnePeriodicSampling(JSContext* aCx, Promise** aPromise) {
+nsProfiler::WaitOnePeriodicSampling(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
-  if (NS_WARN_IF(!aCx)) {
+  if (NS_WARN_IF(!MC_UNSAN(aCx))) {
     return NS_ERROR_FAILURE;
   }
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_FAILURE;
@@ -306,8 +307,9 @@ nsProfiler::GetProfile(double aSinceTime, char** aProfile) {
 }
 
 NS_IMETHODIMP
-nsProfiler::GetSharedLibraries(JSContext* aCx,
+nsProfiler::GetSharedLibraries(JSContext* MC_UNSAN(aCx),
                                JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   MC::Rooted<JS::Value> val(aCx);
   {
     JSONStringWriteFunc<nsCString> buffer;
@@ -331,8 +333,9 @@ nsProfiler::GetSharedLibraries(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsProfiler::GetActiveConfiguration(JSContext* aCx,
+nsProfiler::GetActiveConfiguration(JSContext* MC_UNSAN(aCx),
                                    JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   MC::Rooted<JS::Value> jsValue(aCx);
   {
     JSONStringWriteFunc<nsCString> buffer;
@@ -362,8 +365,9 @@ nsProfiler::DumpProfileToFile(const char* aFilename) {
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfileData(double aSinceTime, JSContext* aCx,
+nsProfiler::GetProfileData(double aSinceTime, JSContext* MC_UNSAN(aCx),
                            JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   mozilla::UniquePtr<char[]> profile = profiler_get_profile(aSinceTime);
   if (!profile) {
     return NS_ERROR_FAILURE;
@@ -380,9 +384,10 @@ nsProfiler::GetProfileData(double aSinceTime, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
+nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* MC_UNSAN(aCx),
                                 Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
+  MC_SANITIZE(aCx);
 
   if (!profiler_is_active()) {
     return NS_ERROR_FAILURE;
@@ -446,7 +451,7 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, JSContext* aCx,
 }
 
 NS_IMETHODIMP
-nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* aCx,
+nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* MC_UNSAN(aCx),
                                         Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -454,9 +459,11 @@ nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
 
-  if (NS_WARN_IF(!aCx)) {
+  if (NS_WARN_IF(!MC_UNSAN(aCx))) {
     return NS_ERROR_FAILURE;
   }
+
+  MC_SANITIZE(aCx);
 
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
@@ -541,7 +548,7 @@ nsresult CompressString(const nsCString& aString,
 
 NS_IMETHODIMP
 nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
-                                               JSContext* aCx,
+                                               JSContext* MC_UNSAN(aCx),
                                                Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -549,10 +556,11 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
     return NS_ERROR_FAILURE;
   }
 
-  if (NS_WARN_IF(!aCx)) {
+  if (NS_WARN_IF(!MC_UNSAN(aCx))) {
     return NS_ERROR_FAILURE;
   }
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_FAILURE;
@@ -617,7 +625,7 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
 
 NS_IMETHODIMP
 nsProfiler::DumpProfileToFileAsync(const nsACString& aFilename,
-                                   double aSinceTime, JSContext* aCx,
+                                   double aSinceTime, JSContext* MC_UNSAN(aCx),
                                    Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -625,6 +633,7 @@ nsProfiler::DumpProfileToFileAsync(const nsACString& aFilename,
     return NS_ERROR_FAILURE;
   }
 
+  MC_SANITIZE(aCx);
   if (NS_WARN_IF(!aCx)) {
     return NS_ERROR_FAILURE;
   }
@@ -674,10 +683,11 @@ nsProfiler::DumpProfileToFileAsync(const nsACString& aFilename,
 
 NS_IMETHODIMP
 nsProfiler::GetSymbolTable(const nsACString& aDebugPath,
-                           const nsACString& aBreakpadID, JSContext* aCx,
+                           const nsACString& aBreakpadID, JSContext* MC_UNSAN(aCx),
                            Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
 
+  MC_SANITIZE(aCx);
   if (NS_WARN_IF(!aCx)) {
     return NS_ERROR_FAILURE;
   }

@@ -56,5 +56,9 @@ inline void JS_ClearPendingException(MCContext* cx) {
   JS_ClearPendingException(cx->cx_);
 }
 
+inline JSErrorReport* JS_ErrorFromException(MCContext* cx,
+                                            JS::HandleObject obj) {
+  return JS_ErrorFromException(cx->cx_, obj);
+}
 #endif
 #endif

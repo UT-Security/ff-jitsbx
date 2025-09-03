@@ -5,8 +5,8 @@
 
 #include "MozIntlHelper.h"
 #include "mcapi.h"
-#include "js/experimental/Intl.h"   // JS::AddMozDateTimeFormatConstructor
-#include "js/PropertyAndElement.h"  // JS_DefineFunctions
+#include "monkeycage/experimental/Intl.h"   // JS::AddMozDateTimeFormatConstructor
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "monkeycage/Wrapper.h"
 
@@ -41,17 +41,18 @@ static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
 }
 
 NS_IMETHODIMP
-MozIntlHelper::AddGetCalendarInfo(JS::Handle<JS::Value> val, JSContext* cx) {
+MozIntlHelper::AddGetCalendarInfo(JS::Handle<JS::Value> val, JSContext* MC_UNSAN(cx)) {
   static const JSFunctionSpec funcs[] = {
       JS_SELF_HOSTED_FN("getCalendarInfo", "Intl_getCalendarInfo", 1, 0),
       JS_FS_END};
 
-  return AddFunctions(cx, val, funcs);
+  return AddFunctions(MC_UNSAN(cx), val, funcs);
 }
 
 NS_IMETHODIMP
 MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
-                                            JSContext* cx) {
+                                            JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -74,7 +75,8 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
 
 NS_IMETHODIMP
 MozIntlHelper::AddDisplayNamesConstructor(JS::Handle<JS::Value> val,
-                                          JSContext* cx) {
+                                          JSContext* MC_UNSAN(cx)) {
+  MC_SANITIZE(cx);
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
