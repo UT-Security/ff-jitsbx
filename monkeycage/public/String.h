@@ -54,6 +54,11 @@ inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
   return JS_AtomizeAndPinString(cx->cx_, s);
 }
 
+inline JSString* JS_NewUCStringCopyN(MCContext* cx, const char16_t* s,
+                                     size_t n) {
+  return JS_NewUCStringCopyN(cx->cx_, s, n);
+}
+
 inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
     JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
     size_t* length) {

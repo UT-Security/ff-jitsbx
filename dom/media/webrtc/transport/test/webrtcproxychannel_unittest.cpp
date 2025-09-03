@@ -45,12 +45,12 @@ class FakeSocketTransportProvider : public nsISocketTransport {
     return NS_OK;
   }
   NS_IMETHOD GetScriptableOriginAttributes(
-      JSContext* cx, JS::MutableHandle<JS::Value> aOriginAttributes) override {
+      JSContext* MC_UNSAN(cx), JS::MutableHandle<JS::Value> aOriginAttributes) override {
     MOZ_ASSERT(false);
     return NS_OK;
   }
   NS_IMETHOD SetScriptableOriginAttributes(
-      JSContext* cx, JS::Handle<JS::Value> aOriginAttributes) override {
+      JSContext* MC_UNSAN(cx), JS::Handle<JS::Value> aOriginAttributes) override {
     MOZ_ASSERT(false);
     return NS_OK;
   }

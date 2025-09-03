@@ -2416,12 +2416,13 @@ nsNSSComponent::ClearSSLExternalAndInternalSessionCache() {
 
 NS_IMETHODIMP
 nsNSSComponent::AsyncClearSSLExternalAndInternalSessionCache(
-    JSContext* aCx, ::mozilla::dom::Promise** aPromise) {
+    JSContext* MC_UNSAN(aCx), ::mozilla::dom::Promise** aPromise) {
   MOZ_ASSERT(XRE_IsParentProcess());
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_NOT_AVAILABLE;
   }
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_FAILURE;

@@ -151,13 +151,13 @@ PushData::Text(nsAString& aText) {
 }
 
 NS_IMETHODIMP
-PushData::Json(JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
+PushData::Json(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aResult) {
   nsresult rv = EnsureDecodedText();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
   ErrorResult error;
-  BodyUtil::ConsumeJson(aCx, aResult, mDecodedText, error);
+  BodyUtil::ConsumeJson(MC_UNSAN(aCx), aResult, mDecodedText, error);
   return error.StealNSResult();
 }
 

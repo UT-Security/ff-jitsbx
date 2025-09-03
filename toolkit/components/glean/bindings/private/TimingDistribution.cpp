@@ -17,7 +17,7 @@
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 
 // Called from within FOG's Rust impl.
 extern "C" NS_EXPORT void GIFFT_TimingDistributionStart(
@@ -120,9 +120,9 @@ NS_IMPL_CLASSINFO(GleanTimingDistribution, nullptr, 0, {0})
 NS_IMPL_ISUPPORTS_CI(GleanTimingDistribution, nsIGleanTimingDistribution)
 
 NS_IMETHODIMP
-GleanTimingDistribution::Start(JSContext* aCx,
+GleanTimingDistribution::Start(JSContext* MC_UNSAN(aCx),
                                JS::MutableHandle<JS::Value> aResult) {
-  if (!dom::ToJSValue(aCx, mTimingDist.Start(), aResult)) {
+  if (!dom::ToJSValue(MC_UNSAN(aCx), mTimingDist.Start(), aResult)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -142,8 +142,9 @@ GleanTimingDistribution::Cancel(uint64_t aId) {
 
 NS_IMETHODIMP
 GleanTimingDistribution::TestGetValue(const nsACString& aPingName,
-                                      JSContext* aCx,
+                                      JSContext* MC_UNSAN(aCx),
                                       JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mTimingDist.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

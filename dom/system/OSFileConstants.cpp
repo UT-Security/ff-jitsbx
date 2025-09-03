@@ -876,7 +876,7 @@ OSFileConstantsService::~OSFileConstantsService() {
 }
 
 NS_IMETHODIMP
-OSFileConstantsService::Init(JSContext* aCx) {
+OSFileConstantsService::Init(JSContext* MC_UNSAN(aCx)) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsresult rv = InitOSFileConstants();
@@ -885,10 +885,11 @@ OSFileConstantsService::Init(JSContext* aCx) {
   }
 
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
+  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> targetObj(aCx);
-  loader->FindTargetObject(aCx, &targetObj);
+  loader->FindTargetObject(MC_UNSAN(aCx), &targetObj);
 
-  if (!DefineOSFileConstants(aCx, targetObj)) {
+  if (!DefineOSFileConstants(MC_UNSAN(aCx), targetObj)) {
     return NS_ERROR_FAILURE;
   }
 

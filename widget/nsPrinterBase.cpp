@@ -154,10 +154,11 @@ nsresult nsPrinterBase::AsyncPromiseAttributeGetter(
 }
 
 NS_IMETHODIMP nsPrinterBase::CopyFromWithValidation(
-    nsIPrintSettings* aSettingsToCopyFrom, JSContext* aCx,
+    nsIPrintSettings* aSettingsToCopyFrom, JSContext* MC_UNSAN(aCx),
     Promise** aResultPromise) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResultPromise);
+  MC_SANITIZE(aCx);
 
   ErrorResult errorResult;
   RefPtr<dom::Promise> promise =
@@ -177,37 +178,37 @@ NS_IMETHODIMP nsPrinterBase::CopyFromWithValidation(
   return NS_OK;
 }
 
-NS_IMETHODIMP nsPrinterBase::GetSupportsDuplex(JSContext* aCx,
+NS_IMETHODIMP nsPrinterBase::GetSupportsDuplex(JSContext* MC_UNSAN(aCx),
                                                Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
+  return AsyncPromiseAttributeGetter(MC_UNSAN(aCx), aResultPromise,
                                      AsyncAttribute::SupportsDuplex,
                                      &nsPrinterBase::SupportsDuplex);
 }
 
-NS_IMETHODIMP nsPrinterBase::GetSupportsColor(JSContext* aCx,
+NS_IMETHODIMP nsPrinterBase::GetSupportsColor(JSContext* MC_UNSAN(aCx),
                                               Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
+  return AsyncPromiseAttributeGetter(MC_UNSAN(aCx), aResultPromise,
                                      AsyncAttribute::SupportsColor,
                                      &nsPrinterBase::SupportsColor);
 }
 
-NS_IMETHODIMP nsPrinterBase::GetSupportsMonochrome(JSContext* aCx,
+NS_IMETHODIMP nsPrinterBase::GetSupportsMonochrome(JSContext* MC_UNSAN(aCx),
                                                    Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
+  return AsyncPromiseAttributeGetter(MC_UNSAN(aCx), aResultPromise,
                                      AsyncAttribute::SupportsMonochrome,
                                      &nsPrinterBase::SupportsMonochrome);
 }
 
-NS_IMETHODIMP nsPrinterBase::GetSupportsCollation(JSContext* aCx,
+NS_IMETHODIMP nsPrinterBase::GetSupportsCollation(JSContext* MC_UNSAN(aCx),
                                                   Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
+  return AsyncPromiseAttributeGetter(MC_UNSAN(aCx), aResultPromise,
                                      AsyncAttribute::SupportsCollation,
                                      &nsPrinterBase::SupportsCollation);
 }
 
-NS_IMETHODIMP nsPrinterBase::GetPrinterInfo(JSContext* aCx,
+NS_IMETHODIMP nsPrinterBase::GetPrinterInfo(JSContext* MC_UNSAN(aCx),
                                             Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
+  return AsyncPromiseAttributeGetter(MC_UNSAN(aCx), aResultPromise,
                                      AsyncAttribute::PrinterInfo,
                                      &nsPrinterBase::CreatePrinterInfo);
 }

@@ -474,12 +474,13 @@ CommonSocketControl::GetSecurityInfo(nsITransportSecurityInfo** aSecurityInfo) {
 }
 
 NS_IMETHODIMP
-CommonSocketControl::AsyncGetSecurityInfo(JSContext* aCx,
+CommonSocketControl::AsyncGetSecurityInfo(JSContext* MC_UNSAN(aCx),
                                           mozilla::dom::Promise** aPromise) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
-  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
   NS_ENSURE_ARG_POINTER(aPromise);
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (!globalObject) {
     return NS_ERROR_UNEXPECTED;

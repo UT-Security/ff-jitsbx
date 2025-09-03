@@ -15,8 +15,8 @@
 #include "mozilla/LazyIdleThread.h"
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Sprintf.h"
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_SetProperty
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_SetProperty
 #include "monkeycage/Value.h"
 #include "mozilla/dom/Promise.h"
 
@@ -1395,13 +1395,14 @@ RefPtr<nsISerialEventTarget> nsSystemInfo::GetBackgroundTarget() {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
+nsSystemInfo::GetOsInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
   }
 #if defined(XP_WIN)
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -1452,13 +1453,14 @@ nsSystemInfo::GetOsInfo(JSContext* aCx, Promise** aResult) {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
+nsSystemInfo::GetDiskInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
   }
 #ifdef XP_WIN
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -1538,7 +1540,7 @@ nsSystemInfo::GetDiskInfo(JSContext* aCx, Promise** aResult) {
 NS_IMPL_ISUPPORTS_INHERITED(nsSystemInfo, nsHashPropertyBag, nsISystemInfo)
 
 NS_IMETHODIMP
-nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
+nsSystemInfo::GetCountryCode(JSContext* MC_UNSAN(aCx), Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
 
@@ -1546,6 +1548,7 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
     return NS_ERROR_FAILURE;
   }
 #if defined(XP_MACOSX) || defined(XP_WIN)
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -1603,7 +1606,7 @@ nsSystemInfo::GetCountryCode(JSContext* aCx, Promise** aResult) {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
+nsSystemInfo::GetProcessInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
 
@@ -1611,6 +1614,7 @@ nsSystemInfo::GetProcessInfo(JSContext* aCx, Promise** aResult) {
     return NS_ERROR_FAILURE;
   }
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;

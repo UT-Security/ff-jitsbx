@@ -15,7 +15,7 @@
 #include "nsJSUtils.h"
 #include "nsPrintfCString.h"
 #include "nsString.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 
 namespace mozilla::glean {
 
@@ -61,8 +61,9 @@ GleanMemoryDistribution::Accumulate(uint64_t aSample) {
 
 NS_IMETHODIMP
 GleanMemoryDistribution::TestGetValue(const nsACString& aPingName,
-                                      JSContext* aCx,
+                                      JSContext* MC_UNSAN(aCx),
                                       JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mMemoryDist.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

@@ -42,8 +42,9 @@ nsresult JSStringEnumerator::Iterator(nsIJSEnumerator** aResult) {
   return NS_OK;
 }
 
-nsresult JSStringEnumerator::Next(JSContext* aCx,
+nsresult JSStringEnumerator::Next(JSContext* MC_UNSAN(aCx),
                                   JS::MutableHandleValue aResult) {
+  MC_SANITIZE(aCx);
   RootedDictionary<IteratorResult> result(aCx);
 
   nsAutoString elem;
@@ -53,13 +54,13 @@ nsresult JSStringEnumerator::Next(JSContext* aCx,
     result.mDone = false;
 
     if (!ToJSValue(
-            aCx, elem,
+            MC_UNSAN(aCx), elem,
             JS::MutableHandleValue::fromMarkedLocation(&result.mValue))) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
   }
 
-  if (!ToJSValue(aCx, result, aResult)) {
+  if (!ToJSValue(MC_UNSAN(aCx), result, aResult)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;

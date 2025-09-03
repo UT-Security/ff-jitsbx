@@ -171,8 +171,8 @@ LoadContext::SetRemoteSubframes(bool aUseRemoteSubframes) {
 
 NS_IMETHODIMP
 LoadContext::GetScriptableOriginAttributes(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aAttrs) {
-  bool ok = ToJSValue(aCx, mOriginAttributes, aAttrs);
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aAttrs) {
+  bool ok = ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aAttrs);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }

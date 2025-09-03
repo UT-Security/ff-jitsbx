@@ -1013,7 +1013,8 @@ ReferrerInfo::GetOriginalReferrer(nsIURI** aOriginalReferrer) {
 
 NS_IMETHODIMP
 ReferrerInfo::GetReferrerPolicy(
-    JSContext* aCx, nsIReferrerInfo::ReferrerPolicyIDL* aReferrerPolicy) {
+    JSContext* MC_UNSAN(aCx),
+    nsIReferrerInfo::ReferrerPolicyIDL* aReferrerPolicy) {
   *aReferrerPolicy = ReferrerPolicyToReferrerPolicyIDL(mPolicy);
   return NS_OK;
 }

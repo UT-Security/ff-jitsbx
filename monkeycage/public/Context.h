@@ -38,6 +38,9 @@ struct MCContext : MC::RootingContext {
   static inline thread_local MCContext* mcx_;
 };
 
+#define MC_UNSAN(v) v
+#define MC_SANITIZE(v)
+
 inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx->cx_;
 }
@@ -55,6 +58,8 @@ extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nu
 extern MCContext* JS_SanitizeContext(JSContext* cx);
 
 extern MCContext* JS_SanitizeContext(JS::RootingContext* rcx);
+
+inline MCContext* MC_Sanitize(JSContext* cx) { return JS_SanitizeContext(cx); }
 
 inline void JS_DestroyContext(MCContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_, "Attempt to delete MCContext in non-allocating thread");

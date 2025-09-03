@@ -297,7 +297,7 @@ LocalStorageManager2::GetNextGenLocalStorageEnabled(bool* aResult) {
 }
 
 NS_IMETHODIMP
-LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
+LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* MC_UNSAN(aContext),
                               Promise** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
@@ -319,8 +319,8 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
 
   RefPtr<Promise> promise;
 
-  if (aContext) {
-    rv = CreatePromise(aContext, getter_AddRefs(promise));
+  if (MC_UNSAN(aContext)) {
+    rv = CreatePromise(MC_UNSAN(aContext), getter_AddRefs(promise));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -357,14 +357,14 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, JSContext* aContext,
 }
 
 NS_IMETHODIMP
-LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* aContext,
+LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* MC_UNSAN(aContext),
                                   Promise** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
+  nsresult rv = CreatePromise(MC_UNSAN(aContext), getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -388,14 +388,14 @@ LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, JSContext* aContext,
 }
 
 NS_IMETHODIMP
-LocalStorageManager2::GetState(nsIPrincipal* aPrincipal, JSContext* aContext,
+LocalStorageManager2::GetState(nsIPrincipal* aPrincipal, JSContext* MC_UNSAN(aContext),
                                Promise** _retval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aPrincipal);
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
+  nsresult rv = CreatePromise(MC_UNSAN(aContext), getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

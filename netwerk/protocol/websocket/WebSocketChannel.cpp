@@ -3377,9 +3377,9 @@ WebSocketChannel::AsyncOpen(nsIURI* aURI, const nsACString& aOrigin,
                             JS::Handle<JS::Value> aOriginAttributes,
                             uint64_t aInnerWindowID,
                             nsIWebSocketListener* aListener,
-                            nsISupports* aContext, JSContext* aCx) {
+                            nsISupports* aContext, JSContext* MC_UNSAN(aCx)) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return AsyncOpenNative(aURI, aOrigin, attrs, aInnerWindowID, aListener,

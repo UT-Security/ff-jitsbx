@@ -149,10 +149,10 @@ EventListenerInfo::SetEnabled(bool aEnabled) {
 }
 
 NS_IMETHODIMP
-EventListenerInfo::GetListenerObject(JSContext* aCx,
+EventListenerInfo::GetListenerObject(JSContext* MC_UNSAN(aCx),
                                      JS::MutableHandle<JS::Value> aObject) {
   Maybe<JSAutoRealm> ar;
-  GetJSVal(aCx, ar, aObject);
+  GetJSVal(MC_UNSAN(aCx), ar, aObject);
   return NS_OK;
 }
 
@@ -261,12 +261,12 @@ NS_IMETHODIMP
 EventListenerService::AddSystemEventListener(EventTarget* aTarget,
                                              const nsAString& aType,
                                              JS::Handle<JS::Value> aListener,
-                                             bool aUseCapture, JSContext* aCx) {
+                                             bool aUseCapture, JSContext* MC_UNSAN(aCx)) {
   MOZ_ASSERT(aTarget, "Missing target");
 
   NS_ENSURE_TRUE(aTarget, NS_ERROR_UNEXPECTED);
 
-  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
+  RefPtr<EventListener> listener = ToEventListener(MC_UNSAN(aCx), aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -285,12 +285,12 @@ EventListenerService::RemoveSystemEventListener(EventTarget* aTarget,
                                                 const nsAString& aType,
                                                 JS::Handle<JS::Value> aListener,
                                                 bool aUseCapture,
-                                                JSContext* aCx) {
+                                                JSContext* MC_UNSAN(aCx)) {
   MOZ_ASSERT(aTarget, "Missing target");
 
   NS_ENSURE_TRUE(aTarget, NS_ERROR_UNEXPECTED);
 
-  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
+  RefPtr<EventListener> listener = ToEventListener(MC_UNSAN(aCx), aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -308,10 +308,10 @@ EventListenerService::RemoveSystemEventListener(EventTarget* aTarget,
 NS_IMETHODIMP
 EventListenerService::AddListenerForAllEvents(
     EventTarget* aTarget, JS::Handle<JS::Value> aListener, bool aUseCapture,
-    bool aWantsUntrusted, bool aSystemEventGroup, JSContext* aCx) {
+    bool aWantsUntrusted, bool aSystemEventGroup, JSContext* MC_UNSAN(aCx)) {
   NS_ENSURE_STATE(aTarget);
 
-  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
+  RefPtr<EventListener> listener = ToEventListener(MC_UNSAN(aCx), aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -326,10 +326,10 @@ EventListenerService::AddListenerForAllEvents(
 NS_IMETHODIMP
 EventListenerService::RemoveListenerForAllEvents(
     EventTarget* aTarget, JS::Handle<JS::Value> aListener, bool aUseCapture,
-    bool aSystemEventGroup, JSContext* aCx) {
+    bool aSystemEventGroup, JSContext* MC_UNSAN(aCx)) {
   NS_ENSURE_STATE(aTarget);
 
-  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
+  RefPtr<EventListener> listener = ToEventListener(MC_UNSAN(aCx), aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }

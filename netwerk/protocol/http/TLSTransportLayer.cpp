@@ -663,21 +663,21 @@ nsresult TLSTransportLayer::SetOriginAttributes(
 
 NS_IMETHODIMP
 TLSTransportLayer::GetScriptableOriginAttributes(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
   if (!mSocketTransport) {
     return NS_ERROR_FAILURE;
   }
-  return mSocketTransport->GetScriptableOriginAttributes(aCx,
+  return mSocketTransport->GetScriptableOriginAttributes(MC_UNSAN(aCx),
                                                          aOriginAttributes);
 }
 
 NS_IMETHODIMP
 TLSTransportLayer::SetScriptableOriginAttributes(
-    JSContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
+    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
   if (!mSocketTransport) {
     return NS_ERROR_FAILURE;
   }
-  return mSocketTransport->SetScriptableOriginAttributes(aCx,
+  return mSocketTransport->SetScriptableOriginAttributes(MC_UNSAN(aCx),
                                                          aOriginAttributes);
 }
 

@@ -215,9 +215,10 @@ ExtensionEventListener::SerializeCallArguments(const nsTArray<JS::Value>& aArgs,
 
 NS_IMETHODIMP ExtensionEventListener::CallListener(
     const nsTArray<JS::Value>& aArgs, ListenerCallOptions* aCallOptions,
-    JSContext* aCx, dom::Promise** aPromiseResult) {
+    JSContext* MC_UNSAN(aCx), dom::Promise** aPromiseResult) {
   MOZ_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG_POINTER(aPromiseResult);
+  MC_SANITIZE(aCx);
 
   // Process and validate call options.
   APIObjectType apiObjectType = APIObjectType::NONE;
@@ -299,7 +300,7 @@ NS_IMETHODIMP ExtensionEventListener::CallListener(
   }
 
   UniquePtr<dom::StructuredCloneHolder> argsHolder =
-      SerializeCallArguments(args, aCx, rv);
+      SerializeCallArguments(args, MC_UNSAN(aCx), rv);
   if (NS_WARN_IF(rv.Failed())) {
     return rv.StealNSResult();
   }

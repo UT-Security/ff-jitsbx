@@ -15,6 +15,10 @@
 
 #include "monkeycage/Context.h"
 
+inline bool JS_DefineDebuggerObject(MCContext* cx, JS::HandleObject obj) {
+  return JS_DefineDebuggerObject(cx->cx_, obj);  
+}
+
 namespace JS {
 namespace dbg {
   
@@ -28,7 +32,7 @@ inline mozilla::MallocSizeOf GetDebuggerMallocSizeOf(MCContext* cx) {
 }
 
 }
-}
+}  // namespace JS
 
 #endif
 

@@ -15,6 +15,19 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/RootingAPI.h"
 
+inline bool JS_CallFunctionValue(
+    MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<JS::Value> fval,
+    const JS::HandleValueArray& args, JS::MutableHandle<JS::Value> rval) {
+ return JS_CallFunctionValue(cx->cx_, obj, fval, args, rval);
+}
+
+inline bool JS_CallFunction(MCContext* cx, JS::Handle<JSObject*> obj,
+                            JS::Handle<JSFunction*> fun,
+                            const JS::HandleValueArray& args,
+                            JS::MutableHandle<JS::Value> rval) {
+ return JS_CallFunction(cx->cx_, obj, fun, args, rval);
+}
+
 inline bool JS_CallFunctionName(MCContext* cx, JS::Handle<JSObject*> obj,
                                 const char* name,
                                 const JS::HandleValueArray& args,

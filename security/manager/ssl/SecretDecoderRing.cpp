@@ -188,12 +188,13 @@ SecretDecoderRing::EncryptString(const nsACString& text,
 
 NS_IMETHODIMP
 SecretDecoderRing::AsyncEncryptStrings(const nsTArray<nsCString>& plaintexts,
-                                       JSContext* aCx, Promise** aPromise) {
+                                       JSContext* MC_UNSAN(aCx), Promise** aPromise) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG(!plaintexts.IsEmpty());
-  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
   NS_ENSURE_ARG_POINTER(aPromise);
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;
@@ -245,13 +246,14 @@ SecretDecoderRing::DecryptString(const nsACString& encryptedBase64Text,
 
 NS_IMETHODIMP
 SecretDecoderRing::AsyncDecryptStrings(
-    const nsTArray<nsCString>& encryptedStrings, JSContext* aCx,
+    const nsTArray<nsCString>& encryptedStrings, JSContext* MC_UNSAN(aCx),
     Promise** aPromise) {
   MOZ_RELEASE_ASSERT(NS_IsMainThread());
   NS_ENSURE_ARG(!encryptedStrings.IsEmpty());
-  NS_ENSURE_ARG_POINTER(aCx);
+  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
   NS_ENSURE_ARG_POINTER(aPromise);
 
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;

@@ -11,8 +11,8 @@
 #include "mozilla/Components.h"
 #include "mozilla/dom/ToJSValue.h"
 #include "nsIClassInfoImpl.h"
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetProperty, JS_GetPropertyById
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetProperty, JS_GetPropertyById
 #include "nsIScriptError.h"
 
 namespace mozilla::glean {
@@ -37,7 +37,8 @@ nsCString camelToSnake(const nsACString& aCamel) {
 }
 
 NS_IMETHODIMP
-GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
+GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* MC_UNSAN(aCx)) {
+  MC_SANITIZE(aCx);
   if (aExtra.isNullOrUndefined()) {
     mEvent.Record();
     return NS_OK;
@@ -55,7 +56,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
   CopyableTArray<Telemetry::EventExtraEntry> telExtras;
 
   MC::Rooted<JSObject*> obj(aCx, &aExtra.toObject());
-  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(MC_UNSAN(aCx)));
   if (!JS_Enumerate(aCx, obj, &ids)) {
     LogToBrowserConsole(
         nsIScriptError::warningFlag,
@@ -65,7 +66,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
 
   for (size_t i = 0, n = ids.length(); i < n; i++) {
     nsAutoJSCString jsKey;
-    if (!jsKey.init(aCx, ids[i])) {
+    if (!jsKey.init(MC_UNSAN(aCx), ids[i])) {
       LogToBrowserConsole(
           nsIScriptError::warningFlag,
           u"Extra dictionary should only contain string keys. Event will not be recorded."_ns);
@@ -86,7 +87,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
     nsAutoJSCString jsValue;
     if (value.isString() || (value.isInt32() && value.toInt32() >= 0) ||
         value.isBoolean()) {
-      if (!jsValue.init(aCx, value)) {
+      if (!jsValue.init(MC_UNSAN(aCx), value)) {
         LogToBrowserConsole(
             nsIScriptError::warningFlag,
             u"Can't extract extra property. Event will not be recorded."_ns);
@@ -123,8 +124,9 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, JSContext* aCx) {
 }
 
 NS_IMETHODIMP
-GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
+GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
                          JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto resEvents = mEvent.TestGetValue(aStorageName);
   if (resEvents.isErr()) {
     aResult.set(JS::UndefinedValue());
@@ -161,14 +163,14 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
     }
 
     MC::Rooted<JS::Value> catStr(aCx);
-    if (!dom::ToJSValue(aCx, value->mCategory, &catStr) ||
+    if (!dom::ToJSValue(MC_UNSAN(aCx), value->mCategory, &catStr) ||
         !JS_DefineProperty(aCx, eventObj, "category", catStr,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define category for event object.");
       return NS_ERROR_FAILURE;
     }
     MC::Rooted<JS::Value> nameStr(aCx);
-    if (!dom::ToJSValue(aCx, value->mName, &nameStr) ||
+    if (!dom::ToJSValue(MC_UNSAN(aCx), value->mName, &nameStr) ||
         !JS_DefineProperty(aCx, eventObj, "name", nameStr, JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define name for event object.");
       return NS_ERROR_FAILURE;
@@ -185,7 +187,7 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
       auto key = std::get<0>(pair);
       auto val = std::get<1>(pair);
       MC::Rooted<JS::Value> valStr(aCx);
-      if (!dom::ToJSValue(aCx, val, &valStr) ||
+      if (!dom::ToJSValue(MC_UNSAN(aCx), val, &valStr) ||
           !JS_DefineProperty(aCx, extraObj, key.Data(), valStr,
                              JSPROP_ENUMERATE)) {
         NS_WARNING("Failed to define extra property for event object.");
