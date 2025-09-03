@@ -6,8 +6,8 @@
 
 #include "mozilla/LoadInfo.h"
 
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement
 #include "mozilla/Assertions.h"
 #include "mozilla/ExpandedPrincipal.h"
 #include "mozilla/dom/CanonicalBrowsingContext.h"
@@ -1365,8 +1365,8 @@ LoadInfo::GetTargetBrowsingContext(dom::BrowsingContext** aResult) {
 
 NS_IMETHODIMP
 LoadInfo::GetScriptableOriginAttributes(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
-  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aOriginAttributes))) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aOriginAttributes))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1391,9 +1391,9 @@ LoadInfo::ResetPrincipalToInheritToNullPrincipal() {
 
 NS_IMETHODIMP
 LoadInfo::SetScriptableOriginAttributes(
-    JSContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
+    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1632,8 +1632,8 @@ LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
 
 NS_IMETHODIMP
 LoadInfo::GetRedirectChainIncludingInternalRedirects(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(aCx, aChain, mRedirectChainIncludingInternalRedirects);
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aChain) {
+  return GetRedirects(MC_UNSAN(aCx), aChain, mRedirectChainIncludingInternalRedirects);
 }
 
 const RedirectHistoryArray&
@@ -1642,9 +1642,9 @@ LoadInfo::RedirectChainIncludingInternalRedirects() {
 }
 
 NS_IMETHODIMP
-LoadInfo::GetRedirectChain(JSContext* aCx,
+LoadInfo::GetRedirectChain(JSContext* MC_UNSAN(aCx),
                            JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(aCx, aChain, mRedirectChain);
+  return GetRedirects(MC_UNSAN(aCx), aChain, mRedirectChain);
 }
 
 const RedirectHistoryArray& LoadInfo::RedirectChain() { return mRedirectChain; }

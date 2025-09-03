@@ -123,6 +123,10 @@ inline const DOMCallbacks* GetDOMCallbacks(MCContext* cx) {
   return GetDOMCallbacks(cx->cx_);
 }
 
+inline JSObject* GetTestingFunctions(MCContext* cx) {
+  return GetTestingFunctions(cx->cx_);
+}
+
 inline JSLinearString* GetErrorTypeName(MCContext* cx,
                                                       int16_t exnType) {
   return GetErrorTypeName(cx->cx_, exnType);

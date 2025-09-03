@@ -22,7 +22,7 @@
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"  // JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::NewArrayObject
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include "monkeycage/Value.h"
@@ -567,60 +567,60 @@ TelemetryImpl::SetHistogramRecordingEnabled(const nsACString& id,
 NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForHistograms(const nsACString& aStoreName,
                                         bool aClearStore, bool aFilterTest,
-                                        JSContext* aCx,
+                                        JSContext* MC_UNSAN(aCx),
                                         JS::MutableHandle<JS::Value> aResult) {
   constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
   return TelemetryHistogram::CreateHistogramSnapshots(
-      aCx, aResult, aStoreName.IsVoid() ? defaultStore : aStoreName, dataset,
+      MC_UNSAN(aCx), aResult, aStoreName.IsVoid() ? defaultStore : aStoreName, dataset,
       aClearStore, aFilterTest);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForKeyedHistograms(
     const nsACString& aStoreName, bool aClearStore, bool aFilterTest,
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aResult) {
   constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
   return TelemetryHistogram::GetKeyedHistogramSnapshots(
-      aCx, aResult, aStoreName.IsVoid() ? defaultStore : aStoreName, dataset,
+      MC_UNSAN(aCx), aResult, aStoreName.IsVoid() ? defaultStore : aStoreName, dataset,
       aClearStore, aFilterTest);
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetCategoricalLabels(JSContext* aCx,
+TelemetryImpl::GetCategoricalLabels(JSContext* MC_UNSAN(aCx),
                                     JS::MutableHandle<JS::Value> aResult) {
-  return TelemetryHistogram::GetCategoricalHistogramLabels(aCx, aResult);
+  return TelemetryHistogram::GetCategoricalHistogramLabels(MC_UNSAN(aCx), aResult);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForScalars(const nsACString& aStoreName,
                                      bool aClearStore, bool aFilterTest,
-                                     JSContext* aCx,
+                                     JSContext* MC_UNSAN(aCx),
                                      JS::MutableHandle<JS::Value> aResult) {
   constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
   return TelemetryScalar::CreateSnapshots(
-      dataset, aClearStore, aCx, 1, aResult, aFilterTest,
+      dataset, aClearStore, MC_UNSAN(aCx), 1, aResult, aFilterTest,
       aStoreName.IsVoid() ? defaultStore : aStoreName);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::GetSnapshotForKeyedScalars(
     const nsACString& aStoreName, bool aClearStore, bool aFilterTest,
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aResult) {
   constexpr auto defaultStore = "main"_ns;
   unsigned int dataset = mCanRecordExtended
                              ? nsITelemetry::DATASET_PRERELEASE_CHANNELS
                              : nsITelemetry::DATASET_ALL_CHANNELS;
   return TelemetryScalar::CreateKeyedSnapshots(
-      dataset, aClearStore, aCx, 1, aResult, aFilterTest,
+      dataset, aClearStore, MC_UNSAN(aCx), 1, aResult, aFilterTest,
       aStoreName.IsVoid() ? defaultStore : aStoreName);
 }
 
@@ -640,25 +640,25 @@ bool TelemetryImpl::GetSQLStats(JSContext* cx, JS::MutableHandle<JS::Value> ret,
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetSlowSQL(JSContext* cx, JS::MutableHandle<JS::Value> ret) {
-  if (GetSQLStats(cx, ret, false)) return NS_OK;
+TelemetryImpl::GetSlowSQL(JSContext* MC_UNSAN(cx), JS::MutableHandle<JS::Value> ret) {
+  if (GetSQLStats(MC_UNSAN(cx), ret, false)) return NS_OK;
   return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetDebugSlowSQL(JSContext* cx,
+TelemetryImpl::GetDebugSlowSQL(JSContext* MC_UNSAN(cx),
                                JS::MutableHandle<JS::Value> ret) {
   bool revealPrivateSql =
       Preferences::GetBool("toolkit.telemetry.debugSlowSql", false);
-  if (GetSQLStats(cx, ret, revealPrivateSql)) return NS_OK;
+  if (GetSQLStats(MC_UNSAN(cx), ret, revealPrivateSql)) return NS_OK;
   return NS_ERROR_FAILURE;
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
+TelemetryImpl::GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* MC_UNSAN(cx),
                                             Promise** aPromise) {
 #if defined(XP_WIN)
-  return Telemetry::GetUntrustedModuleLoadEvents(aFlags, cx, aPromise);
+  return Telemetry::GetUntrustedModuleLoadEvents(aFlags, MC_UNSAN(cx), aPromise);
 #else
   return NS_ERROR_NOT_IMPLEMENTED;
 #endif
@@ -856,8 +856,9 @@ class GetLoadedModulesRunnable final : public Runnable {
 #endif  // MOZ_GECKO_PROFILER
 
 NS_IMETHODIMP
-TelemetryImpl::GetLoadedModules(JSContext* cx, Promise** aPromise) {
+TelemetryImpl::GetLoadedModules(JSContext* MC_UNSAN(cx), Promise** aPromise) {
 #if defined(MOZ_GECKO_PROFILER)
+  MC_SANITIZE(cx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(cx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -998,7 +999,7 @@ void TelemetryImpl::ReadLateWritesStacks(nsIFile* aProfileDir) {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetLateWrites(JSContext* cx, JS::MutableHandle<JS::Value> ret) {
+TelemetryImpl::GetLateWrites(JSContext* MC_UNSAN(cx), JS::MutableHandle<JS::Value> ret) {
   // The user must call AsyncReadTelemetryData first. We return an empty list
   // instead of reporting a failure so that the rest of telemetry can uniformly
   // handle the read not being available yet.
@@ -1015,9 +1016,9 @@ TelemetryImpl::GetLateWrites(JSContext* cx, JS::MutableHandle<JS::Value> ret) {
   JSObject* report;
   if (!mCachedTelemetryData) {
     CombinedStacks empty;
-    report = CreateJSStackObject(cx, empty);
+    report = CreateJSStackObject(MC_UNSAN(cx), empty);
   } else {
-    report = CreateJSStackObject(cx, mLateWritesStacks);
+    report = CreateJSStackObject(MC_UNSAN(cx), mLateWritesStacks);
   }
 
   if (report == nullptr) {
@@ -1029,15 +1030,15 @@ TelemetryImpl::GetLateWrites(JSContext* cx, JS::MutableHandle<JS::Value> ret) {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetHistogramById(const nsACString& name, JSContext* cx,
+TelemetryImpl::GetHistogramById(const nsACString& name, JSContext* MC_UNSAN(cx),
                                 JS::MutableHandle<JS::Value> ret) {
-  return TelemetryHistogram::GetHistogramById(name, cx, ret);
+  return TelemetryHistogram::GetHistogramById(name, MC_UNSAN(cx), ret);
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetKeyedHistogramById(const nsACString& name, JSContext* cx,
+TelemetryImpl::GetKeyedHistogramById(const nsACString& name, JSContext* MC_UNSAN(cx),
                                      JS::MutableHandle<JS::Value> ret) {
-  return TelemetryHistogram::GetKeyedHistogramById(name, cx, ret);
+  return TelemetryHistogram::GetKeyedHistogramById(name, MC_UNSAN(cx), ret);
 }
 
 /**
@@ -1479,15 +1480,16 @@ bool TelemetryImpl::CanRecordPrereleaseData() { return CanRecordExtended(); }
 NS_IMPL_ISUPPORTS(TelemetryImpl, nsITelemetry, nsIMemoryReporter)
 
 NS_IMETHODIMP
-TelemetryImpl::GetFileIOReports(JSContext* cx,
+TelemetryImpl::GetFileIOReports(JSContext* MC_UNSAN(cx),
                                 JS::MutableHandle<JS::Value> ret) {
+  MC_SANITIZE(cx);
   if (sTelemetryIOObserver) {
     MC::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
     if (!obj) {
       return NS_ERROR_FAILURE;
     }
 
-    if (!sTelemetryIOObserver->ReflectIntoJS(cx, obj)) {
+    if (!sTelemetryIOObserver->ReflectIntoJS(MC_UNSAN(cx), obj)) {
       return NS_ERROR_FAILURE;
     }
     ret.setObject(*obj);
@@ -1532,55 +1534,55 @@ TelemetryImpl::MsSystemNow(double* aResult) {
 
 NS_IMETHODIMP
 TelemetryImpl::ScalarAdd(const nsACString& aName, JS::Handle<JS::Value> aVal,
-                         JSContext* aCx) {
-  return TelemetryScalar::Add(aName, aVal, aCx);
+                         JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::Add(aName, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::ScalarSet(const nsACString& aName, JS::Handle<JS::Value> aVal,
-                         JSContext* aCx) {
-  return TelemetryScalar::Set(aName, aVal, aCx);
+                         JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::Set(aName, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::ScalarSetMaximum(const nsACString& aName,
-                                JS::Handle<JS::Value> aVal, JSContext* aCx) {
-  return TelemetryScalar::SetMaximum(aName, aVal, aCx);
+                                JS::Handle<JS::Value> aVal, JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::SetMaximum(aName, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::KeyedScalarAdd(const nsACString& aName, const nsAString& aKey,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
-  return TelemetryScalar::Add(aName, aKey, aVal, aCx);
+                              JS::Handle<JS::Value> aVal, JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::Add(aName, aKey, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::KeyedScalarSet(const nsACString& aName, const nsAString& aKey,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
-  return TelemetryScalar::Set(aName, aKey, aVal, aCx);
+                              JS::Handle<JS::Value> aVal, JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::Set(aName, aKey, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::KeyedScalarSetMaximum(const nsACString& aName,
                                      const nsAString& aKey,
                                      JS::Handle<JS::Value> aVal,
-                                     JSContext* aCx) {
-  return TelemetryScalar::SetMaximum(aName, aKey, aVal, aCx);
+                                     JSContext* MC_UNSAN(aCx)) {
+  return TelemetryScalar::SetMaximum(aName, aKey, aVal, MC_UNSAN(aCx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::RegisterScalars(const nsACString& aCategoryName,
                                JS::Handle<JS::Value> aScalarData,
-                               JSContext* cx) {
+                               JSContext* MC_UNSAN(cx)) {
   return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, false,
-                                          cx);
+                                          MC_UNSAN(cx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::RegisterBuiltinScalars(const nsACString& aCategoryName,
                                       JS::Handle<JS::Value> aScalarData,
-                                      JSContext* cx) {
-  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, true, cx);
+                                      JSContext* MC_UNSAN(cx)) {
+  return TelemetryScalar::RegisterScalars(aCategoryName, aScalarData, true, MC_UNSAN(cx));
 }
 
 NS_IMETHODIMP
@@ -1595,32 +1597,32 @@ NS_IMETHODIMP
 TelemetryImpl::RecordEvent(const nsACString& aCategory,
                            const nsACString& aMethod, const nsACString& aObject,
                            JS::Handle<JS::Value> aValue,
-                           JS::Handle<JS::Value> aExtra, JSContext* aCx,
+                           JS::Handle<JS::Value> aExtra, JSContext* MC_UNSAN(aCx),
                            uint8_t optional_argc) {
   return TelemetryEvent::RecordEvent(aCategory, aMethod, aObject, aValue,
-                                     aExtra, aCx, optional_argc);
+                                     aExtra, MC_UNSAN(aCx), optional_argc);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::SnapshotEvents(uint32_t aDataset, bool aClear,
-                              uint32_t aEventLimit, JSContext* aCx,
+                              uint32_t aEventLimit, JSContext* MC_UNSAN(aCx),
                               uint8_t optional_argc,
                               JS::MutableHandle<JS::Value> aResult) {
-  return TelemetryEvent::CreateSnapshots(aDataset, aClear, aEventLimit, aCx,
+  return TelemetryEvent::CreateSnapshots(aDataset, aClear, aEventLimit, MC_UNSAN(aCx),
                                          optional_argc, aResult);
 }
 
 NS_IMETHODIMP
 TelemetryImpl::RegisterEvents(const nsACString& aCategory,
-                              JS::Handle<JS::Value> aEventData, JSContext* cx) {
-  return TelemetryEvent::RegisterEvents(aCategory, aEventData, false, cx);
+                              JS::Handle<JS::Value> aEventData, JSContext* MC_UNSAN(cx)) {
+  return TelemetryEvent::RegisterEvents(aCategory, aEventData, false, MC_UNSAN(cx));
 }
 
 NS_IMETHODIMP
 TelemetryImpl::RegisterBuiltinEvents(const nsACString& aCategory,
                                      JS::Handle<JS::Value> aEventData,
-                                     JSContext* cx) {
-  return TelemetryEvent::RegisterEvents(aCategory, aEventData, true, cx);
+                                     JSContext* MC_UNSAN(cx)) {
+  return TelemetryEvent::RegisterEvents(aCategory, aEventData, true, MC_UNSAN(cx));
 }
 
 NS_IMETHODIMP
@@ -1662,8 +1664,9 @@ TelemetryImpl::Shutdown() {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GatherMemory(JSContext* aCx, Promise** aResult) {
+TelemetryImpl::GatherMemory(JSContext* MC_UNSAN(aCx), Promise** aResult) {
   ErrorResult rv;
+  MC_SANITIZE(aCx);
   RefPtr<Promise> promise = Promise::Create(xpc::CurrentNativeGlobal(aCx), rv);
   if (rv.Failed()) {
     return rv.StealNSResult();
@@ -1677,11 +1680,12 @@ TelemetryImpl::GatherMemory(JSContext* aCx, Promise** aResult) {
 }
 
 NS_IMETHODIMP
-TelemetryImpl::GetAllStores(JSContext* aCx,
+TelemetryImpl::GetAllStores(JSContext* MC_UNSAN(aCx),
                             JS::MutableHandle<JS::Value> aResult) {
   StringHashSet stores;
   nsresult rv;
 
+  MC_SANITIZE(aCx);
   rv = TelemetryHistogram::GetAllStores(stores);
   if (NS_FAILED(rv)) {
     return rv;
@@ -1699,7 +1703,7 @@ TelemetryImpl::GetAllStores(JSContext* aCx,
   for (const auto& value : stores) {
     MC::Rooted<JS::Value> store(aCx);
 
-    store.setString(ToJSString(aCx, value));
+    store.setString(ToJSString(MC_UNSAN(aCx), value));
     if (!allStores.append(store)) {
       return NS_ERROR_FAILURE;
     }

@@ -6,9 +6,9 @@
 
 #include "core/TelemetryCommon.h"
 #include "gtest/gtest.h"
-#include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
-#include "js/CallAndConstruct.h"    // JS_CallFunctionName
-#include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetElement, JS_GetProperty
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/CallAndConstruct.h"    // JS_CallFunctionName
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate, JS_GetElement, JS_GetProperty
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/gtest/MozAssertions.h"
 #include "mozilla/Unused.h"

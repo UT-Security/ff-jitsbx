@@ -14,7 +14,7 @@
 #include "nsIClassInfoImpl.h"
 #include "nsIScriptError.h"
 #include "Common.h"
-#include "jsapi.h"
+#include "mcapi.h"
 
 namespace mozilla::glean {
 
@@ -55,8 +55,9 @@ GleanNumerator::AddToNumerator(int32_t aAmount) {
 }
 
 NS_IMETHODIMP
-GleanNumerator::TestGetValue(const nsACString& aPingName, JSContext* aCx,
+GleanNumerator::TestGetValue(const nsACString& aPingName, JSContext* MC_UNSAN(aCx),
                              JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mNumerator.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

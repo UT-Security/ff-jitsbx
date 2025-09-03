@@ -12,6 +12,7 @@
 #include "jsapi.h"
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Debug.h"
 #include "monkeycage/ErrorReport.h"
 #include "monkeycage/Exception.h"
 #include "monkeycage/GCAPI.h"
@@ -20,6 +21,7 @@
 #include "monkeycage/Id.h"
 #include "monkeycage/Interrupt.h"
 #include "monkeycage/MemoryCallbacks.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate
 #include "monkeycage/Realm.h"
 #include "monkeycage/RealmIterators.h"
 #include "monkeycage/RealmOptions.h"
@@ -200,6 +202,22 @@ inline bool JS_GetFunctionLength(MCContext* cx, JS::HandleFunction fun,
   return JS_GetFunctionLength(cx->cx_, fun, length);
 }
 
+inline unsigned JS_GetScriptBaseLineNumber(MCContext* cx, JSScript* script) {
+  return JS_GetScriptBaseLineNumber(cx->cx_, script);
+}
+
+inline JSScript* JS_GetFunctionScript(MCContext* cx, JS::HandleFunction fun) {
+  return JS_GetFunctionScript(cx->cx_, fun);
+}
+
+inline JSString* JS_DecompileScript(MCContext* cx, JS::Handle<JSScript*> script) {
+  return JS_DecompileScript(cx->cx_, script);
+}
+
+inline  JSString* JS_DecompileFunction(MCContext* cx, JS::Handle<JSFunction*> fun) {
+  return JS_DecompileFunction(cx->cx_, fun);
+}
+
 namespace JS {
 
 inline bool PropertySpecNameToPermanentId(MCContext* cx,
@@ -250,6 +268,17 @@ inline bool JS_IsIdentifier(MCContext* cx, JS::HandleString str,
 }
 
 namespace JS {
+
+inline bool DescribeScriptedCaller(
+    MCContext* cx, AutoFilename* filename = nullptr, unsigned* lineno = nullptr,
+    unsigned* column = nullptr) {
+  return DescribeScriptedCaller(cx->cx_, filename, lineno, column);
+}
+
+inline JSObject* GetScriptedCallerGlobal(MCContext* cx) {
+  return GetScriptedCallerGlobal(cx->cx_);
+}
+
 inline void HideScriptedCaller(MCContext* cx) {
   return HideScriptedCaller(cx->cx_);
 }

@@ -2521,8 +2521,8 @@ nsSocketTransport::GetPort(int32_t* port) {
 
 NS_IMETHODIMP
 nsSocketTransport::GetScriptableOriginAttributes(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
-  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aOriginAttributes))) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aOriginAttributes))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -2530,12 +2530,12 @@ nsSocketTransport::GetScriptableOriginAttributes(
 
 NS_IMETHODIMP
 nsSocketTransport::SetScriptableOriginAttributes(
-    JSContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
+    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
   MutexAutoLock lock(mLock);
   NS_ENSURE_FALSE(mFD.IsInitialized(), NS_ERROR_FAILURE);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

@@ -187,7 +187,7 @@ ExtensionAPIRequest::GetApiObjectId(nsACString& aApiObjectId) {
 }
 
 NS_IMETHODIMP
-ExtensionAPIRequest::GetArgs(JSContext* aCx,
+ExtensionAPIRequest::GetArgs(JSContext* MC_UNSAN(aCx),
                              JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
   aRetval.set(mArgs);
@@ -195,7 +195,7 @@ ExtensionAPIRequest::GetArgs(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-ExtensionAPIRequest::GetNormalizedArgs(JSContext* aCx,
+ExtensionAPIRequest::GetNormalizedArgs(JSContext* MC_UNSAN(aCx),
                                        JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
   aRetval.set(mNormalizedArgs);
@@ -203,7 +203,7 @@ ExtensionAPIRequest::GetNormalizedArgs(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-ExtensionAPIRequest::SetNormalizedArgs(JSContext* aCx,
+ExtensionAPIRequest::SetNormalizedArgs(JSContext* MC_UNSAN(aCx),
                                        JS::Handle<JS::Value> aNormalizedArgs) {
   MOZ_ASSERT(NS_IsMainThread());
   mNormalizedArgs.set(aNormalizedArgs);
@@ -212,7 +212,7 @@ ExtensionAPIRequest::SetNormalizedArgs(JSContext* aCx,
 
 NS_IMETHODIMP
 ExtensionAPIRequest::GetCallerSavedFrame(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aSavedFrame) {
+    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aSavedFrame) {
   MOZ_ASSERT(NS_IsMainThread());
   aSavedFrame.set(mStack);
   return NS_OK;

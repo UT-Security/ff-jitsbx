@@ -114,8 +114,9 @@ static void AddToRecentDocs(nsIFile* aTarget, nsAutoString& aPath) {
 nsresult DownloadPlatform::DownloadDone(nsIURI* aSource, nsIURI* aReferrer,
                                         nsIFile* aTarget,
                                         const nsACString& aContentType,
-                                        bool aIsPrivate, JSContext* aCx,
+                                        bool aIsPrivate, JSContext* MC_UNSAN(aCx),
                                         Promise** aPromise) {
+  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject =
       xpc::NativeGlobal(JS::CurrentGlobalOrNull(aCx));
 

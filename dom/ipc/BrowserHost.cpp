@@ -268,7 +268,7 @@ BrowserHost::CreateAboutBlankContentViewer(
 NS_IMETHODIMP
 BrowserHost::MaybeCancelContentJSExecutionFromScript(
     nsIRemoteTab::NavigationType aNavigationType,
-    JS::Handle<JS::Value> aCancelContentJSOptions, JSContext* aCx) {
+    JS::Handle<JS::Value> aCancelContentJSOptions, JSContext* MC_UNSAN(aCx)) {
   // If we're in the process of creating a new window (via window.open), then
   // the load that called this function isn't a "normal" load and should be
   // ignored for the purposes of cancelling content JS.
@@ -276,7 +276,7 @@ BrowserHost::MaybeCancelContentJSExecutionFromScript(
     return NS_OK;
   }
   dom::CancelContentJSOptions cancelContentJSOptions;
-  if (!cancelContentJSOptions.Init(aCx, aCancelContentJSOptions)) {
+  if (!cancelContentJSOptions.Init(MC_UNSAN(aCx), aCancelContentJSOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   if (StaticPrefs::dom_ipc_cancel_content_js_when_navigating()) {

@@ -69,7 +69,7 @@ GleanStringList::Set(const nsTArray<nsCString>& aValue) {
 }
 
 NS_IMETHODIMP
-GleanStringList::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
+GleanStringList::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
                               JS::MutableHandle<JS::Value> aResult) {
   auto result = mStringList.TestGetValue(aStorageName);
   if (result.isErr()) {
@@ -82,7 +82,7 @@ GleanStringList::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
   if (optresult.isNothing()) {
     aResult.set(JS::UndefinedValue());
   } else {
-    if (!dom::ToJSValue(aCx, optresult.ref(), aResult)) {
+    if (!dom::ToJSValue(MC_UNSAN(aCx), optresult.ref(), aResult)) {
       return NS_ERROR_FAILURE;
     }
   }

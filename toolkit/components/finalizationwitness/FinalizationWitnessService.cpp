@@ -189,8 +189,9 @@ NS_IMPL_ISUPPORTS(FinalizationWitnessService, nsIFinalizationWitnessService,
  */
 NS_IMETHODIMP
 FinalizationWitnessService::Make(const char* aTopic, const char16_t* aValue,
-                                 JSContext* aCx,
+                                 JSContext* MC_UNSAN(aCx),
                                  JS::MutableHandle<JS::Value> aRetval) {
+  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> objResult(aCx, JS_NewObject(aCx, sWitnessClass()));
   if (!objResult) {
     return NS_ERROR_OUT_OF_MEMORY;

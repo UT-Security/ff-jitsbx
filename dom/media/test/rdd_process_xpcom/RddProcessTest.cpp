@@ -13,8 +13,9 @@
 namespace mozilla {
 
 NS_IMETHODIMP
-RddProcessTest::TestTelemetryProbes(JSContext* aCx,
+RddProcessTest::TestTelemetryProbes(JSContext* MC_UNSAN(aCx),
                                     mozilla::dom::Promise** aOutPromise) {
+  MC_SANITIZE(aCx);
   NS_ENSURE_ARG(aOutPromise);
   *aOutPromise = nullptr;
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);

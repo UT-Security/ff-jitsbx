@@ -1175,9 +1175,9 @@ BasePrincipal::GetAboutModuleFlags(uint32_t* flags) {
 }
 
 NS_IMETHODIMP
-BasePrincipal::GetOriginAttributes(JSContext* aCx,
+BasePrincipal::GetOriginAttributes(JSContext* MC_UNSAN(aCx),
                                    JS::MutableHandle<JS::Value> aVal) {
-  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aVal))) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aVal))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;

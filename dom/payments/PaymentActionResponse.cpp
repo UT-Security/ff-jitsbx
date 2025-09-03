@@ -47,11 +47,11 @@ GeneralResponseData::GetData(nsAString& aData) {
 }
 
 NS_IMETHODIMP
-GeneralResponseData::InitData(JS::Handle<JS::Value> aValue, JSContext* aCx) {
+GeneralResponseData::InitData(JS::Handle<JS::Value> aValue, JSContext* MC_UNSAN(aCx)) {
   if (aValue.isNullOrUndefined()) {
     return NS_ERROR_FAILURE;
   }
-  nsresult rv = SerializeFromJSVal(aCx, aValue, mData);
+  nsresult rv = SerializeFromJSVal(MC_UNSAN(aCx), aValue, mData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -382,11 +382,11 @@ GeneralMethodChangeDetails::GetDetails(nsAString& aDetails) {
 
 NS_IMETHODIMP
 GeneralMethodChangeDetails::InitData(JS::Handle<JS::Value> aDetails,
-                                     JSContext* aCx) {
+                                     JSContext* MC_UNSAN(aCx)) {
   if (aDetails.isNullOrUndefined()) {
     return NS_ERROR_FAILURE;
   }
-  nsresult rv = SerializeFromJSVal(aCx, aDetails, mDetails);
+  nsresult rv = SerializeFromJSVal(MC_UNSAN(aCx), aDetails, mDetails);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

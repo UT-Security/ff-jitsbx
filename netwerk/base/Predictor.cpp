@@ -465,10 +465,10 @@ NS_IMETHODIMP
 Predictor::Predict(nsIURI* targetURI, nsIURI* sourceURI,
                    PredictorPredictReason reason,
                    JS::Handle<JS::Value> originAttributes,
-                   nsINetworkPredictorVerifier* verifier, JSContext* aCx) {
+                   nsINetworkPredictorVerifier* verifier, JSContext* MC_UNSAN(aCx)) {
   OriginAttributes attrs;
 
-  if (!originAttributes.isObject() || !attrs.Init(aCx, originAttributes)) {
+  if (!originAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), originAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1216,10 +1216,10 @@ bool Predictor::WouldRedirect(nsICacheEntry* entry, uint32_t loadCount,
 NS_IMETHODIMP
 Predictor::Learn(nsIURI* targetURI, nsIURI* sourceURI,
                  PredictorLearnReason reason,
-                 JS::Handle<JS::Value> originAttributes, JSContext* aCx) {
+                 JS::Handle<JS::Value> originAttributes, JSContext* MC_UNSAN(aCx)) {
   OriginAttributes attrs;
 
-  if (!originAttributes.isObject() || !attrs.Init(aCx, originAttributes)) {
+  if (!originAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), originAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

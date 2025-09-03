@@ -7,8 +7,8 @@
 #include "mozilla/glean/bindings/String.h"
 
 #include "Common.h"
-#include "jsapi.h"
-#include "js/String.h"
+#include "mcapi.h"
+#include "monkeycage/String.h"
 #include "nsString.h"
 #include "mozilla/Components.h"
 #include "mozilla/ResultVariant.h"
@@ -54,8 +54,9 @@ GleanString::Set(const nsACString& aValue) {
 }
 
 NS_IMETHODIMP
-GleanString::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
+GleanString::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
                           JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mString.TestGetValue(aStorageName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

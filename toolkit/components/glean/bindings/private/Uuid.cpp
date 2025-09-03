@@ -7,7 +7,7 @@
 #include "mozilla/glean/bindings/Uuid.h"
 
 #include "Common.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Components.h"
 #include "mozilla/ResultVariant.h"
 #include "mozilla/glean/bindings/ScalarGIFFTMap.h"
@@ -66,8 +66,9 @@ GleanUuid::GenerateAndSet() {
 }
 
 NS_IMETHODIMP
-GleanUuid::TestGetValue(const nsACString& aStorageName, JSContext* aCx,
+GleanUuid::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
                         JS::MutableHandle<JS::Value> aResult) {
+  MC_SANITIZE(aCx);
   auto result = mUuid.TestGetValue(aStorageName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());
