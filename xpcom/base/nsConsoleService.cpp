@@ -413,7 +413,7 @@ nsConsoleService::CallFunctionAndLogException(
   }
 
   MC::Rooted<JSObject*> global(
-      cx, js::CheckedUnwrapDynamic(&targetGlobal.toObject(), cx));
+      cx, mc::CheckedUnwrapDynamic(&targetGlobal.toObject(), cx));
   if (!global) {
     return NS_ERROR_INVALID_ARG;
   }

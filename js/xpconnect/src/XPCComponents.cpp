@@ -1903,7 +1903,7 @@ nsXPCComponents_Utils::IsProxy(HandleValue vobj, JSContext* MC_UNSAN(cx), bool* 
   // We need to do a dynamic unwrap, because we apparently want to treat
   // "failure to unwrap" differently from "not a proxy" (throw for the former,
   // return false for the latter).
-  obj = js::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+  obj = mc::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
   NS_ENSURE_TRUE(obj, NS_ERROR_FAILURE);
 
   *rval = mc::IsScriptedProxy(obj);
@@ -2202,7 +2202,7 @@ nsXPCComponents_Utils::WaiveXrays(HandleValue aVal, JSContext* MC_UNSAN(aCx),
                                   MutableHandleValue aRetval) {
   MC_SANITIZE(aCx);
   MC::RootedValue value(aCx, aVal);
-  if (!xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(aCx), &value)) {
+  if (!xpc::WrapperFactory::WaiveXrayAndWrap(aCx, &value)) {
     return NS_ERROR_FAILURE;
   }
   aRetval.set(value);
@@ -2398,7 +2398,7 @@ nsXPCComponents_Utils::GetObjectPrincipal(HandleValue val, JSContext* MC_UNSAN(c
   MC::RootedObject obj(cx, &val.toObject());
   // We need to be able to unwrap to WindowProxy or Location here, so
   // use CheckedUnwrapDynamic.
-  obj = js::CheckedUnwrapDynamic(obj, cx);
+  obj = mc::CheckedUnwrapDynamic(obj, cx);
   MOZ_ASSERT(obj);
 
   nsCOMPtr<nsIPrincipal> prin = nsContentUtils::ObjectPrincipal(obj);
@@ -2416,7 +2416,7 @@ nsXPCComponents_Utils::GetRealmLocation(HandleValue val, JSContext* MC_UNSAN(cx)
   MC::RootedObject obj(cx, &val.toObject());
   // We need to be able to unwrap to WindowProxy or Location here, so
   // use CheckedUnwrapDynamic.
-  obj = js::CheckedUnwrapDynamic(obj, cx);
+  obj = mc::CheckedUnwrapDynamic(obj, cx);
   MOZ_ASSERT(obj);
 
   result = xpc::RealmPrivate::Get(obj)->GetLocation();

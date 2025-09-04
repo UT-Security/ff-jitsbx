@@ -31,7 +31,7 @@ class nsOSPermissionRequestBase : public nsIOSPermissionRequest,
   nsOSPermissionRequestBase() = default;
 
  protected:
-  nsresult GetPromise(JSContext* aCx, RefPtr<Promise>& aPromiseOut);
+  nsresult GetPromise(MCContext* aCx, RefPtr<Promise>& aPromiseOut);
   virtual ~nsOSPermissionRequestBase() = default;
 };
 
