@@ -46,7 +46,7 @@ nsOSPermissionRequestBase::GetScreenCapturePermissionState(uint16_t* aScreen) {
   return NS_OK;
 }
 
-nsresult nsOSPermissionRequestBase::GetPromise(JSContext* aCx,
+nsresult nsOSPermissionRequestBase::GetPromise(MCContext* aCx,
                                                RefPtr<Promise>& aPromiseOut) {
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {

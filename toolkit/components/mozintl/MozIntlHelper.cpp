@@ -59,7 +59,7 @@ MozIntlHelper::AddDateTimeFormatConstructor(JS::Handle<JS::Value> val,
 
   // We might be adding this constructor to a Window
   MC::Rooted<JSObject*> realIntlObj(
-      cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
+      cx, mc::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -83,7 +83,7 @@ MozIntlHelper::AddDisplayNamesConstructor(JS::Handle<JS::Value> val,
 
   // We might be adding this constructor to a Window
   MC::Rooted<JSObject*> realIntlObj(
-      cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
+      cx, mc::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;
   }

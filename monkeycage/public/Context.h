@@ -38,8 +38,8 @@ struct MCContext : MC::RootingContext {
   static inline thread_local MCContext* mcx_;
 };
 
-#define MC_UNSAN(v) v
-#define MC_SANITIZE(v)
+#define MC_UNSAN(v) MC_UNSAN_##v
+#define MC_SANITIZE(v) auto v = MC_Sanitize(MC_UNSAN_##v)
 
 inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx->cx_;

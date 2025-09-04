@@ -319,11 +319,11 @@ CycleCollectedJSContext::saveJobQueue(MCContext* cx) {
 
 /* static */
 void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
-    JSContext* uCx, bool aMutedErrors, JS::HandleObject aPromise,
+    JSContext* MC_UNSAN(aCx), bool aMutedErrors, JS::HandleObject aPromise,
     JS::PromiseRejectionHandlingState state, void* aData) {
   CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(aData);
 
-  MCContext* aCx = JS_SanitizeContext(uCx);
+  MC_SANITIZE(aCx);
   MOZ_ASSERT(aCx == self->Context());
   MOZ_ASSERT(Get() == self);
 
@@ -361,7 +361,7 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
     if (!promise && !aMutedErrors) {
       nsIGlobalObject* global = xpc::NativeGlobal(aPromise);
       if (nsCOMPtr<EventTarget> owner = do_QueryInterface(global)) {
-        RootedDictionary<PromiseRejectionEventInit> init(MC_UNSAFE(aCx));
+        RootedDictionary<PromiseRejectionEventInit> init(aCx);
         init.mPromise = Promise::CreateFromExisting(global, aPromise);
         init.mReason = JS::GetPromiseResult(aPromise);
 
