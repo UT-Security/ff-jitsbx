@@ -832,6 +832,7 @@ bool ThreadSafeIsChromeOrUAWidget(JSContext* cx, JSObject* obj);
  * Fill the given vector with the buildid.
  */
 bool GetBuildId(JS::BuildIdCharVector* aBuildID);
+MC::Tainted<bool> GetBuildIdT(MC::Tainted<JS::BuildIdCharVector*> aBuildID);
 
 }  // namespace mozilla
 

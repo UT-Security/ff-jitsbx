@@ -7,13 +7,19 @@
 #ifndef mc_unsafe_SandboxNoop_h
 #define mc_unsafe_SandboxNoop_h
 
+#include <stdlib.h>
+
+#include "monkeycage/unsafe/lib.h"
 #include "monkeycage/SandboxCallback.h"
 
 namespace MC {
 namespace detail {
 class SandboxNoop {
  public:
-  static inline bool Initialize() { return true; }
+  static inline bool Initialize() {
+    monkeycage_init();
+    return true;
+  }
 
   template <typename T_Fn>
   static inline T_Fn Address(T_Fn external_addr) {
@@ -24,15 +30,24 @@ class SandboxNoop {
   using T_Cb = T_Ret (*)(T_Args...);
 
   template <typename T_Ret, typename... T_Args>
-  static SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(
-      T_Cb<T_Ret, T_Args...> callback) {
-    return SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
+  static T_Cb<T_Ret, T_Args...> RegisterCallback(
+      T_Cb<T_Ret, T_Args...> app_callback, size_t* index) {
+    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(monkeycage_register_cb((void*)app_callback, index));
   }
 
   template <typename T_Ret, typename... T_Args>
-  static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(
-      T_Cb<T_Ret, T_Args...> callback) {
-    return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(callback);
+  static T_Cb<T_Ret, T_Args...> RetrieveCallback(
+      T_Cb<T_Ret, T_Args...> sbx_callback, size_t* index) {
+    if (!sbx_callback) {
+      *index = 40960;
+      return nullptr;
+    }
+    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
+        monkeycage_retrieve_cb((void*)sbx_callback, index));
+  }
+
+  static size_t LastCallbackInvoked() {
+    return monkeycage_last_callback_invoked;
   }
 };
 

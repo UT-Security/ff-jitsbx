@@ -14,7 +14,16 @@ FORCE_STATIC_LIB = True
 STATIC_LIBRARY_NAME = "js_caged"
 NO_EXPAND_LIBS = True
 
-if CONFIG["JS_SANDBOX_DYLIB"]:
+if CONFIG["JS_SANDBOX_NOOP"]:
+    SOURCES += [
+        "./nooplib/callback.S",
+        "./nooplib/lib.c",
+    ]
+
+    EXPORTS.monkeycage.unsafe += [
+        "./nooplib/lib.h"
+    ]
+elif CONFIG["JS_SANDBOX_DYLIB"]:
     SOURCES += [
         "./dylib/embed/arch/x64/callback.S",
         "./dylib/embed/arch/x64/trampolines.S",

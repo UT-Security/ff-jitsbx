@@ -1079,6 +1079,11 @@ bool mozilla::GetBuildId(JS::BuildIdCharVector* aBuildID) {
   return aBuildID->append(gToolkitBuildID, length);
 }
 
+MC::Tainted<bool> mozilla::GetBuildIdT(MC::Tainted<JS::BuildIdCharVector*> aBuildID) {
+  size_t length = std::char_traits<char>::length(gToolkitBuildID);
+  return aBuildID->append(gToolkitBuildID, length);
+}
+
 size_t XPCJSRuntime::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) {
   size_t n = 0;
   n += mallocSizeOf(this);
@@ -2947,7 +2952,8 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
       OnLargeAllocationFailureCallback);
 
   // The WasmAltDataType is build by the JS engine from the build id.
-  static auto GetBuildIdCb = MC::Sandbox::RegisterCallback(GetBuildId);
+  //static auto GetBuildIdCb = MC::Sandbox::RegisterCallback(GetBuildId);
+  static auto GetBuildIdCb = MC::Sandbox::RegisterTaintedCallback(GetBuildIdT);
   JS::SetProcessBuildIdOp(GetBuildIdCb);
   FetchUtil::InitWasmAltDataType();
 

@@ -30,6 +30,11 @@ public:
     ret.assign_raw_pointer(data.begin());
     return ret;
   }
+
+  template <typename U>
+  Tainted<bool, MC_Sbx> append(const U* aBegin, size_t aLength) {
+    return Tainted<bool, MC_Sbx>(data.append(aBegin, aLength));
+  }
 };
           
 }
