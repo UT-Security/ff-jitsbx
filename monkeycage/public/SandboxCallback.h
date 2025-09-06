@@ -11,7 +11,8 @@ namespace MC {
 namespace detail {
 #if defined(JS_SANDBOX_NOOP)
 
-class SandboxNoop;
+template<typename MC_Sbx>
+class Sandbox;
 
 template <typename T>
 class SandboxCallback;
@@ -21,10 +22,12 @@ class SandboxCallback<T_Ret(*)(T_Args...)> {
   using T_Cb = T_Ret (*)(T_Args...);
   T_Cb fn_;
 
-  friend class SandboxNoop;
-  explicit SandboxCallback(T_Cb fn) : fn_(fn) {}
+  template<typename MC_Sbx>
+  friend class Sandbox;
 
  public:
+  explicit SandboxCallback(T_Cb fn, size_t index_) : fn_(fn) {}
+
   SandboxCallback(const std::nullptr_t& arg) : fn_(arg) {}
 
   T_Cb UNSAFE_get() const { return fn_; }

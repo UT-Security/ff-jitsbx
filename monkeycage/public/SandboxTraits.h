@@ -1,0 +1,96 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ * vim: set ts=8 sts=2 et sw=2 tw=80:
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+#ifndef mc_SandboxTraits_h
+#define mc_SandboxTraits_h
+
+#include <type_traits>
+
+namespace MC {
+namespace detail {
+
+template<typename T, typename MC_Sbx>
+class Tainted;
+
+template<typename T, typename MC_Sbx>
+class TaintedVolatile;
+
+template<typename T, typename MC_Sbx>
+class TaintedUnchecked;
+
+#define mc_generate_wrapper_check(name)                                     \
+  namespace detail_mc_is_##name                                             \
+  {                                                                         \
+    template<typename T>                                                    \
+    struct unwrapper : std::false_type                                      \
+    {};                                                                     \
+                                                                            \
+    template<typename T, typename MC_Sbx>                                   \
+    struct unwrapper<name<T, MC_Sbx>> : std::true_type                      \
+    {};                                                                     \
+  }                                                                         \
+                                                                            \
+  template<typename T>                                                      \
+  constexpr bool mc_is_##name##_v =                                         \
+    detail_mc_is_##name::unwrapper<T>::value;                               \
+
+mc_generate_wrapper_check(Tainted);
+mc_generate_wrapper_check(TaintedVolatile);
+mc_generate_wrapper_check(TaintedUnchecked);
+
+#undef mc_generate_wrapper_check
+
+template<typename T>
+constexpr bool mc_is_tainted_or_vol_v =
+  mc_is_Tainted_v<T> || mc_is_TaintedVolatile_v<T>;
+
+template<typename T>
+constexpr bool mc_is_tainted_or_unchecked_v =
+  mc_is_Tainted_v<T> || mc_is_TaintedUnchecked_v<T>;
+
+template<typename T>
+constexpr bool mc_is_wrapper_v =
+  mc_is_Tainted_v<T> || mc_is_TaintedVolatile_v<T> ||
+  mc_is_TaintedUnchecked_v<T>;
+
+namespace detail_mc_remove_wrapper {
+  template<typename T>
+  struct unwrapper
+  {
+    using type = T;
+    using type_sbx = void;
+  };
+
+  template<typename T, typename MC_Sbx>
+  struct unwrapper<Tainted<T, MC_Sbx>>
+  {
+    using type = T;
+    using type_sbx = MC_Sbx;
+  };
+
+  template<typename T, typename MC_Sbx>
+  struct unwrapper<TaintedVolatile<T, MC_Sbx>>
+  {
+    using type = T;
+    using type_sbx = MC_Sbx;
+  };
+
+  template<typename T, typename MC_Sbx>
+  struct unwrapper<TaintedUnchecked<T, MC_Sbx>>
+  {
+    using type = T;
+    using type_sbx = MC_Sbx;
+  };
+}
+
+template<typename T>
+using mc_remove_wrapper_t =
+  typename detail_mc_remove_wrapper::unwrapper<T>::type;
+
+}
+}  // namespace MC
+
+#endif

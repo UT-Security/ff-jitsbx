@@ -7,12 +7,17 @@
 #ifndef mc_Sandbox_h
 #define mc_Sandbox_h
 
-#include "monkeycage/unsafe/SandboxImpl.h"
+#include "SandboxTraits.h"
 #include "monkeycage/SandboxCallback.h"
+#include "monkeycage/SandboxHelpers.h"
+#include "monkeycage/unsafe/SandboxImpl.h"
+#include "monkeycage/SandboxTraits.h"
 
 #include <atomic>
 #include <mutex>
 #include <shared_mutex>
+
+#include "mozilla/Assertions.h"
 
 namespace MC {
 namespace detail {
@@ -23,6 +28,11 @@ private:
   static inline std::atomic_flag initialize_ = ATOMIC_FLAG_INIT;
 
   static inline std::shared_mutex callback_mutex;
+
+  // NOTE: Should be kept in sync with lfi-bind/nooplib
+  static constexpr size_t MAX_CALLBACKS = 40960;
+
+  static inline void* callback_index_to_app_func[MAX_CALLBACKS] = {};
 public:
   static bool Initialize() {
     if (initialize_.test_and_set()) {
@@ -40,21 +50,96 @@ public:
   template<typename T_Ret, typename... T_Args>
   using T_Cb = T_Ret (*)(T_Args...);
 
+  template<typename T_Ret, typename... T_Args>
+  using T_Cb_no_wrap = mc_remove_wrapper_t<T_Ret> (*)(mc_remove_wrapper_t<T_Args>...);
+
   template<typename T>
   using Callback = MC::detail::SandboxCallback<T>;
 
   template<typename T_Ret, typename... T_Args>
   static Callback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> app_callback) {
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
-    return MC_Sbx::RegisterCallback(app_callback);
+    size_t index;
+    T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, &index);
+    callback_index_to_app_func[index] = (void*)app_callback;
+    return Callback<T_Cb<T_Ret, T_Args...>>(sbx_callback, index);
   }
 
   template<typename T_Ret, typename... T_Args>
   static Callback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(T_Cb<T_Ret, T_Args...> sbx_callback) {    
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
-    return MC_Sbx::RetrieveCallback(sbx_callback);
+    size_t index;
+    MC_Sbx::RetrieveCallback(sbx_callback, &index);
+    if (index == 40960) {
+      return Callback<T_Cb<T_Ret, T_Args...>>(nullptr);
+    }
+    return Callback<T_Cb<T_Ret, T_Args...>>(sbx_callback, index);
   }
-  
+
+  template <typename T_Arg>
+  static inline Tainted<T_Arg, MC_Sbx> CallbackInterceptorConvertParam(const T_Arg& arg) {
+    if_constexpr_named (cond1, std::is_fundamental_v<T_Arg>) {
+      Tainted<T_Arg, MC_Sbx> ret(arg);
+    } else if_constexpr_named(cond2, std::is_pointer_v<T_Arg>) {
+      Tainted<T_Arg, MC_Sbx> ret(nullptr);
+      ret.assign_raw_pointer(arg);
+      return ret;
+    } else {
+      constexpr auto unknownCase = !(cond1 || cond2);
+      mc_detail_static_fail_because(unknownCase, "Unknown case for callback interceptor parameter");
+    }
+  }
+
+  template <typename T_Ret, typename... T_Args>
+  static T_Ret CallbackInterceptor(T_Args... params) {
+    using T_Func_Ret =
+        std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
+    using T_Func = T_Func_Ret (*)(Tainted<T_Args, MC_Sbx>...);
+
+    auto app_callback = reinterpret_cast<T_Func>(callback_index_to_app_func[MC_Sbx::LastCallbackInvoked()]);
+
+    if constexpr (std::is_void_v<T_Ret>) {
+      app_callback(CallbackInterceptorConvertParam<T_Args>(params)...);
+    } else {
+      auto tainted_ret = app_callback(CallbackInterceptorConvertParam<T_Args>(params)...);
+      return tainted_ret.UNSAFE_unverified();
+    }
+  }
+
+  template <typename T_Ret, typename... T_Args>
+  static Callback<T_Cb_no_wrap<T_Ret, T_Args...>> RegisterTaintedCallback(
+      T_Ret (*app_callback)(T_Args...)) {
+
+    // Some branches don't use this param.
+    MC_UNUSED(app_callback);
+
+    if_constexpr_named(cond1, !(mc_is_tainted_or_unchecked_v<T_Args> && ...))
+    {
+      mc_detail_static_fail_because(
+        cond1,
+        "Change all callback arguments to be Tainted or TaintedUnchecked."
+      );
+    } else if_constexpr_named(cond2, !(std::is_void_v<T_Ret> || mc_is_tainted_or_unchecked_v<T_Ret>))
+    {
+      mc_detail_static_fail_because(
+        cond2,
+        "Change callback return type to be Tainted or TaintedUnchecked if it not void."
+      );
+    }
+    else {
+      std::unique_lock<std::shared_mutex> guard(callback_mutex);
+      size_t index;
+
+      auto callback_interceptor =
+          CallbackInterceptor<mc_remove_wrapper_t<T_Ret>,
+                              mc_remove_wrapper_t<T_Args>...>;
+
+      T_Cb_no_wrap<T_Ret, T_Args...> sbx_callback =
+          MC_Sbx::RegisterCallback(callback_interceptor, &index);
+      callback_index_to_app_func[index] = (void*)app_callback;
+      return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(sbx_callback, index);
+    }
+  }
 };
 }
 

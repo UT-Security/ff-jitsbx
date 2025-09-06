@@ -8,6 +8,7 @@
 #define mc_Tainted_h
 
 #include "monkeycage/unsafe/SandboxImpl.h"
+#include "monkeycage/SandboxHelpers.h"
 
 #include <type_traits>
 #include <utility>
@@ -16,14 +17,14 @@ namespace MC {
 
 namespace detail {
 
-#define if_constexpr_named(varName, ...)                              \
-  if constexpr (constexpr auto varName = __VA_ARGS__; varName)
-
 template<typename T, typename MC_Sbx>
 class Tainted;
 
 template<typename T, typename MC_Sbx>
 class TaintedVolatile;
+
+template<typename T, typename MC_Sbx>
+class TaintedUnchecked;
 
 template<template<typename, typename> typename T_Wrap, typename T, typename MC_Sbx>
 class TaintedBase {
@@ -170,10 +171,25 @@ public:
 
     return *this;
   }
-  
 };
 
-}
+template <typename T, typename MC_Sbx>
+class TaintedUnchecked {
+ private:
+  T data;
+
+ public:
+  TaintedUnchecked(const std::nullptr_t& arg) : data(arg) {
+    static_assert(std::is_pointer_v<T>);
+  }
+  
+  TaintedUnchecked(T arg) : data(arg) {
+    static_assert(std::is_pointer_v<T>);
+  }
+};
+
+}  // namespace detail
+
 #if defined(JS_SANDBOX_NOOP)
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxNoop>;
