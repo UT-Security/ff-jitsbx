@@ -1459,11 +1459,11 @@ bool XPCConvert::JSArray2Native(JSContext* cx, JS::HandleValue aJSVal,
 
     // Get the backing memory buffer to copy out of.
     MC::AutoCheckCannotGC nogc;
-    bool isShared = false;
-    const void* data = JS_GetArrayBufferViewData(jsarray, &isShared, nogc);
+    MC::SandboxStack<bool> isShared{false};
+    const void* data = JS_GetArrayBufferViewData(jsarray, isShared, nogc);
 
     // Require opting in to shared memory - a future project.
-    if (isShared) {
+    if (*isShared.UNSAFE_unverified()) {
       return false;
     }
 

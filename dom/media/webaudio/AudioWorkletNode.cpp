@@ -388,10 +388,10 @@ static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
       } else if (aInit == ArrayElementInit::Zero) {
         // Need only zero existing arrays as new arrays are already zeroed.
         MC::AutoCheckCannotGC nogc;
-        bool isShared;
+        MC::SandboxStack<bool> isShared;
         float* elementData =
-            JS_GetFloat32ArrayData(channelRef, &isShared, nogc);
-        MOZ_ASSERT(!isShared);  // Was created as unshared
+            JS_GetFloat32ArrayData(channelRef, isShared, nogc);
+        MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Was created as unshared
         std::fill_n(elementData, WEBAUDIO_BLOCK_SIZE, 0.0f);
       }
     }
@@ -538,9 +538,9 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
     const auto& float32Arrays = mInputs.mPorts[i].mFloat32Arrays;
     MC::AutoCheckCannotGC nogc;
     for (size_t c = 0; c < channelCount; ++c) {
-      bool isShared;
-      float* dest = JS_GetFloat32ArrayData(float32Arrays[c], &isShared, nogc);
-      MOZ_ASSERT(!isShared);  // Was created as unshared
+      MC::SandboxStack<bool> isShared;
+      float* dest = JS_GetFloat32ArrayData(float32Arrays[c], isShared, nogc);
+      MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Was created as unshared
       AudioBlockCopyChannelWithScale(channelData[c], volume, dest);
     }
   }
@@ -559,9 +559,9 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
       return;
     }
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
-    float* dest = JS_GetFloat32ArrayData(float32Arrays, &isShared, nogc);
-    MOZ_ASSERT(!isShared);  // Was created as unshared
+    MC::SandboxStack<bool> isShared;
+    float* dest = JS_GetFloat32ArrayData(float32Arrays, isShared, nogc);
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Was created as unshared
 
     size_t frames =
         mParamTimelines[i].mTimeline.HasSimpleValue() ? 1 : WEBAUDIO_BLOCK_SIZE;
@@ -596,10 +596,10 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
         return;
       }
       MC::AutoCheckCannotGC nogc;
-      bool isShared;
+      MC::SandboxStack<bool> isShared;
       const float* src =
-          JS_GetFloat32ArrayData(float32Arrays[c], &isShared, nogc);
-      MOZ_ASSERT(!isShared);  // Was created as unshared
+          JS_GetFloat32ArrayData(float32Arrays[c], isShared, nogc);
+      MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Was created as unshared
       PodCopy(output->ChannelFloatsForWrite(c), src, WEBAUDIO_BLOCK_SIZE);
     }
   }

@@ -7,9 +7,12 @@
 #ifndef mc_Tainted_h
 #define mc_Tainted_h
 
+#include "SandboxHelpers.h"
 #include "monkeycage/unsafe/SandboxImpl.h"
 #include "monkeycage/SandboxHelpers.h"
+#include "monkeycage/SandboxTraits.h"
 
+#include <cstdint>
 #include <type_traits>
 #include <utility>
 
@@ -57,6 +60,30 @@ public:
   inline T_OpDerefRet* operator->() {
     return const_cast<T_OpDerefRet*>(std::as_const(*this).operator->());
   }
+
+  template<typename T_Func>
+  inline auto copy_and_verify_address(T_Func verifier) const {
+    static_assert(std::is_pointer_v<T>,
+                  "copy_and_verify_address must be used on pointers.");
+
+    auto val = reinterpret_cast<uintptr_t>(impl().get_raw_value());
+    return verifier(val);
+  }
+
+  template<typename T_Func>
+  inline auto copy_and_verify(T_Func verifier) const {
+    //using T_Deref = std::remove_cv_t<std::remove_pointer_t<T>>;
+
+    if_constexpr_named(cond1, is_fundamental_or_enum_v<T>) {
+      auto val = impl().get_raw_value();
+      return verifier(val);
+    } else
+    {
+      constexpr bool unknownCase = !(cond1);
+      mc_detail_static_fail_because(
+          unknownCase, "copy_and_verify not supported for this type");
+    }
+  } 
 };
 
 template<typename T, typename MC_Sbx>
@@ -174,17 +201,18 @@ public:
 };
 
 template <typename T, typename MC_Sbx>
-class TaintedUnchecked {
- private:
-  T data;
+class AppPointer {
+  T data_;
 
  public:
-  TaintedUnchecked(const std::nullptr_t& arg) : data(arg) {
-    static_assert(std::is_pointer_v<T>);
-  }
-  
-  TaintedUnchecked(T arg) : data(arg) {
-    static_assert(std::is_pointer_v<T>);
+  AppPointer(T data) : data_(data) {}
+
+  template <typename T_Func>
+  inline auto copy_and_verify(T_Func verifier) const {
+    static_assert(std::is_pointer_v<T>,
+                  "copy_and_verify_address must be used on pointers.");
+
+    return verifier(data_);
   }
 };
 
@@ -193,15 +221,27 @@ class TaintedUnchecked {
 #if defined(JS_SANDBOX_NOOP)
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxNoop>;
+
+template <typename T>
+using AppPointer = detail::AppPointer<T, detail::SandboxNoop>;
 #elif defined(JS_SANDBOX_DYLIB)
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxDylib>;
+
+template <typename T>
+using AppPointer = detail::AppPointer<T, detail::SandboxDylib>;
 #elif defined(JS_SANDBOX_LFI)
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxLFI>;
+
+template <typename T>
+using AppPointer = detail::AppPointer<T, detail::SandboxLFI>;
 #else
 template <typename T>
 using Tainted = detail::Tainted<T, detail::SandboxNone>;
+
+template <typename T>
+using AppPointer = detail::AppPointer<T, detail::SandboxNone>;
 #endif
 }
 

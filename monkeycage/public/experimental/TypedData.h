@@ -20,16 +20,19 @@
 #include "monkeycage/Tainted.h"
 
 inline void* JS_GetArrayBufferViewData(
-    JSObject* obj, bool* isSharedMemory, const MC::Tainted<JS::AutoCheckCannotGC*> nogc) {
-  return JS_GetArrayBufferViewData(obj, isSharedMemory, *nogc.UNSAFE_unverified());
+    JSObject* obj, MC::Tainted<bool*> isSharedMemory,
+    MC::Tainted<const JS::AutoCheckCannotGC*> nogc) {
+  return JS_GetArrayBufferViewData(obj, isSharedMemory.UNSAFE_unverified(),
+                                   *nogc.UNSAFE_unverified());
 }
 
-#define JS_DEFINE_DATA_ACCESSOR(ExternalType, NativeType, Name) \
-  inline ExternalType* JS_Get##Name##ArrayData(                            \
-      JSObject* maybeWrapped, bool* isSharedMemory,                        \
-      const MC::Tainted<JS::AutoCheckCannotGC*> nogc) {                    \
-        return JS_Get##Name##ArrayData(maybeWrapped, isSharedMemory, *nogc.UNSAFE_unverified()); \
-  }
+#  define JS_DEFINE_DATA_ACCESSOR(ExternalType, NativeType, Name)  \
+    inline ExternalType* JS_Get##Name##ArrayData(                  \
+        JSObject* maybeWrapped, MC::Tainted<bool*> isSharedMemory, \
+        MC::Tainted<const JS::AutoCheckCannotGC*> nogc) {          \
+      return JS_Get##Name##ArrayData(maybeWrapped, isSharedMemory.UNSAFE_unverified(), \
+                                     *nogc.UNSAFE_unverified());   \
+    }
 JS_FOR_EACH_TYPED_ARRAY(JS_DEFINE_DATA_ACCESSOR)
 #undef JS_DEFINE_DATA_ACCESSOR
 

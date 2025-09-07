@@ -77,15 +77,21 @@ public:
   }
 
   template <typename T_Arg>
-  static inline Tainted<T_Arg, MC_Sbx> CallbackInterceptorConvertParam(const T_Arg& arg) {
-    if_constexpr_named (cond1, std::is_fundamental_v<T_Arg>) {
-      Tainted<T_Arg, MC_Sbx> ret(arg);
-    } else if_constexpr_named(cond2, std::is_pointer_v<T_Arg>) {
+  static inline mc_tainted_callback_arg_t<T_Arg, MC_Sbx> CallbackInterceptorConvertParam(T_Arg&& arg) {
+    if_constexpr_named (cond1, is_fundamental_or_enum_v<T_Arg>) {
+      return arg;
+    } else if_constexpr_named(cond2, std::is_class_v<T_Arg>) {
+      return arg;
+    } else if_constexpr_named(cond3, std::is_pointer_v<T_Arg> && std::is_void_v<std::remove_pointer_t<T_Arg>>) {
+      return AppPointer<void*, MC_Sbx>(arg);
+    } else if_constexpr_named(cond4, std::is_pointer_v<T_Arg>) {
       Tainted<T_Arg, MC_Sbx> ret(nullptr);
       ret.assign_raw_pointer(arg);
       return ret;
+    } else if_constexpr_named(cond5, std::is_lvalue_reference_v<T_Arg>) {
+      return arg;
     } else {
-      constexpr auto unknownCase = !(cond1 || cond2);
+      constexpr auto unknownCase = !(cond1 || cond2 || cond3 || cond4 || cond5);
       mc_detail_static_fail_because(unknownCase, "Unknown case for callback interceptor parameter");
     }
   }
@@ -94,14 +100,14 @@ public:
   static T_Ret CallbackInterceptor(T_Args... params) {
     using T_Func_Ret =
         std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
-    using T_Func = T_Func_Ret (*)(Tainted<T_Args, MC_Sbx>...);
+    using T_Func = T_Func_Ret (*)(mc_tainted_callback_arg_t<T_Args, MC_Sbx>...);
 
     auto app_callback = reinterpret_cast<T_Func>(callback_index_to_app_func[MC_Sbx::LastCallbackInvoked()]);
 
     if constexpr (std::is_void_v<T_Ret>) {
-      app_callback(CallbackInterceptorConvertParam<T_Args>(params)...);
+      app_callback(CallbackInterceptorConvertParam<T_Args>(std::forward<T_Args>(params))...);
     } else {
-      auto tainted_ret = app_callback(CallbackInterceptorConvertParam<T_Args>(params)...);
+      auto tainted_ret = app_callback(CallbackInterceptorConvertParam<T_Args>(std::forward<T_Args>(params))...);
       return tainted_ret.UNSAFE_unverified();
     }
   }
@@ -113,17 +119,17 @@ public:
     // Some branches don't use this param.
     MC_UNUSED(app_callback);
 
-    if_constexpr_named(cond1, !(mc_is_tainted_or_unchecked_v<T_Args> && ...))
+    if_constexpr_named(cond1, !(mc_is_tainted_callback_arg_v<T_Args> && ...))
     {
       mc_detail_static_fail_because(
         cond1,
-        "Change all callback arguments to be Tainted or TaintedUnchecked."
+        "Change all pointer arguments to be Tainted."
       );
-    } else if_constexpr_named(cond2, !(std::is_void_v<T_Ret> || mc_is_tainted_or_unchecked_v<T_Ret>))
+    } else if_constexpr_named(cond2, !(std::is_void_v<T_Ret> || mc_is_Tainted_v<T_Ret>))
     {
       mc_detail_static_fail_because(
         cond2,
-        "Change callback return type to be Tainted or TaintedUnchecked if it not void."
+        "Change callback return type to be Tainted if it is not void."
       );
     }
     else {

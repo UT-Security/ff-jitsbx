@@ -5887,9 +5887,9 @@ nsresult CanvasRenderingContext2D::GetImageDataArray(
     }
 
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
-    uint8_t* data = JS_GetUint8ClampedArrayData(darray, &isShared, nogc);
-    MOZ_ASSERT(!isShared);  // Should not happen, data was created above
+    MC::SandboxStack<bool> isShared;
+    uint8_t* data = JS_GetUint8ClampedArrayData(darray, isShared, nogc);
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Should not happen, data was created above
 
     if (usePlaceholder) {
       FillPlaceholderCanvas(randomData, len.value(), data);

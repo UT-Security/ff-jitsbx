@@ -447,9 +447,14 @@ NS_IMPL_ISUPPORTS(nsScriptSecurityManager, nsIScriptSecurityManager)
 
 ///////////////// Security Checks /////////////////
 
-bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
-    JSContext* cx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCode) {
-  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
+    MC::Tainted<JSContext*> tcx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCode) {
+
+  MCContext* cx = tcx.copy_and_verify_address([](uintptr_t val) {
+    return JS_SanitizeContext((JSContext*)val);                                              
+  });
+
+  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
 
   nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::SubjectPrincipal();
 
@@ -463,19 +468,19 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
   if (contextForbidsEval) {
     nsAutoJSString scriptSample;
     if (aKind == JS::RuntimeCode::JS &&
-        NS_WARN_IF(!scriptSample.init(cx, aCode))) {
-      return false;
+        NS_WARN_IF(!scriptSample.init(MC_UNSAFE(cx), aCode))) {
+      return MC::Tainted<bool>(false);
     }
 
     if (!nsContentSecurityUtils::IsEvalAllowed(
-            cx, subjectPrincipal->IsSystemPrincipal(), scriptSample)) {
-      return false;
+            MC_UNSAFE(cx), subjectPrincipal->IsSystemPrincipal(), scriptSample)) {
+      return MC::Tainted<bool>(false);
     }
   }
 
   // Get the window, if any, corresponding to the current global
   nsCOMPtr<nsIContentSecurityPolicy> csp;
-  if (nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(cx)) {
+  if (nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(MC_UNSAFE(cx))) {
     csp = win->GetCsp();
   }
 
@@ -490,14 +495,14 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     }
     // don't do anything unless there's a CSP
     if (!csp) {
-      return true;
+      return MC::Tainted<bool>(true);
     }
   }
 
   nsCOMPtr<nsICSPEventListener> cspEventListener;
   if (!NS_IsMainThread()) {
     WorkerPrivate* workerPrivate =
-        mozilla::dom::GetWorkerPrivateFromContext(cx);
+        mozilla::dom::GetWorkerPrivateFromContext(MC_UNSAFE(cx));
     if (workerPrivate) {
       cspEventListener = workerPrivate->CSPEventListener();
     }
@@ -509,11 +514,11 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     nsresult rv = csp->GetAllowsEval(&reportViolation, &evalOK);
     if (NS_FAILED(rv)) {
       NS_WARNING("CSP: failed to get allowsEval");
-      return true;  // fail open to not break sites.
+      return MC::Tainted<bool>(true);  // fail open to not break sites.
     }
   } else {
     if (NS_FAILED(csp->GetAllowsWasmEval(&reportViolation, &evalOK))) {
-      return false;
+      return MC::Tainted<bool>(false);
     }
     if (!evalOK) {
       // Historically, CSP did not block WebAssembly in Firefox, and some
@@ -543,9 +548,9 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
 
     nsAutoJSString scriptSample;
     if (aKind == JS::RuntimeCode::JS &&
-        NS_WARN_IF(!scriptSample.init(cx, aCode))) {
+        NS_WARN_IF(!scriptSample.init(MC_UNSAFE(cx), aCode))) {
       JS_ClearPendingException(cx);
-      return false;
+      return MC::Tainted<bool>(false);
     }
     uint16_t violationType =
         aKind == JS::RuntimeCode::JS
@@ -557,13 +562,13 @@ bool nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
                              columnNum, u""_ns, u""_ns);
   }
 
-  return evalOK;
+  return MC::Tainted<bool>(evalOK);
 }
 
 // static
-bool nsScriptSecurityManager::JSPrincipalsSubsume(JSPrincipals* first,
-                                                  JSPrincipals* second) {
-  return nsJSPrincipals::get(first)->Subsumes(nsJSPrincipals::get(second));
+MC::Tainted<bool> nsScriptSecurityManager::JSPrincipalsSubsume(MC::Tainted<JSPrincipals*> first,
+                                                  MC::Tainted<JSPrincipals*> second) {
+  return nsJSPrincipals::get(first.UNSAFE_unverified())->Subsumes(nsJSPrincipals::get(second.UNSAFE_unverified()));
 }
 
 NS_IMETHODIMP
@@ -586,7 +591,7 @@ nsScriptSecurityManager::CheckSameOriginURI(nsIURI* aSourceURI,
 NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIFromScript(JSContext* cx, nsIURI* aURI) {
   // Get principal of currently executing script.
-  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(cx == MC_UNSAFE(nsContentUtils::GetCurrentJSContext()));
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal();
   nsresult rv = CheckLoadURIWithPrincipal(
       // Passing 0 for the window ID here is OK, because we will report a
@@ -1567,8 +1572,8 @@ void nsScriptSecurityManager::InitJSCallbacks(MCContext* aCx) {
   //   Currently this is used to control access to function.caller
 
   static const MCSecurityCallbacks securityCallbacks{
-      MC::Sandbox::RegisterCallback(ContentSecurityPolicyPermitsJSAction),
-      MC::Sandbox::RegisterCallback(JSPrincipalsSubsume),
+      MC::Sandbox::RegisterTaintedCallback(ContentSecurityPolicyPermitsJSAction),
+      MC::Sandbox::RegisterTaintedCallback(JSPrincipalsSubsume),
   };
 
   MOZ_ASSERT(!JS_GetSecurityCallbacks(aCx));
