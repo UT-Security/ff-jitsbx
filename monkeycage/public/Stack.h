@@ -20,6 +20,16 @@ inline void JS_SetNativeStackQuota(
   JS_SetNativeStackQuota(cx->cx_, systemCodeStackSize, trustedScriptStackSize, untrustedScriptStackSize);
 }
 
+namespace JS {
+
+inline bool CaptureCurrentStack(
+    MCContext* cx, MutableHandleObject stackp,
+    StackCapture&& capture = StackCapture(AllFrames())) {
+  return CaptureCurrentStack(cx->cx_, stackp, std::forward<StackCapture&&>(capture));
+}
+
+}
+
 #endif
 
 #endif

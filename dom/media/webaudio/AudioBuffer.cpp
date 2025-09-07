@@ -297,9 +297,9 @@ bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
       // "4. Attach ArrayBuffers containing copies of the data to the
       // AudioBuffer, to be returned by the next call to getChannelData."
       MC::AutoCheckCannotGC nogc;
-      bool isShared;
-      float* jsData = JS_GetFloat32ArrayData(array, &isShared, nogc);
-      MOZ_ASSERT(!isShared);  // Was created as unshared above
+      MC::SandboxStack<bool> isShared;
+      float* jsData = JS_GetFloat32ArrayData(array, isShared, nogc);
+      MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Was created as unshared above
       CopyChannelDataToFloat(mSharedChannels, i, 0, jsData, Length());
     }
     mJSChannels[i] = array;
@@ -332,12 +332,12 @@ void AudioBuffer::CopyFromChannel(const Float32Array& aDestination,
       // The array's buffer was detached.
       return;
     }
-    bool isShared = false;
+    MC::SandboxStack<bool> isShared{false};
     const float* sourceData =
-        JS_GetFloat32ArrayData(channelArray, &isShared, nogc);
+        JS_GetFloat32ArrayData(channelArray, isShared, nogc);
     // The sourceData arrays should all have originated in
     // RestoreJSChannelData, where they are created unshared.
-    MOZ_ASSERT(!isShared);
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());
     PodMove(aDestination.Data(), sourceData + aBufferOffset, count);
     return;
   }
@@ -376,11 +376,11 @@ void AudioBuffer::CopyToChannel(JSContext* aJSContext,
 
   aSource.ComputeState();
   uint32_t count = std::min(length - aBufferOffset, aSource.Length());
-  bool isShared = false;
-  float* channelData = JS_GetFloat32ArrayData(channelArray, &isShared, nogc);
+  MC::SandboxStack<bool> isShared{false};
+  float* channelData = JS_GetFloat32ArrayData(channelArray, isShared, nogc);
   // The channelData arrays should all have originated in
   // RestoreJSChannelData, where they are created unshared.
-  MOZ_ASSERT(!isShared);
+  MOZ_ASSERT(!*isShared.UNSAFE_unverified());
   PodMove(channelData + aBufferOffset, aSource.Data(), count);
 }
 

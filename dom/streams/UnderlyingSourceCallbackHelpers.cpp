@@ -323,10 +323,10 @@ void InputToReadableStreamAlgorithms::WriteIntoReadRequestBuffer(
     // to the static analysis.
     MC::AutoSuppressGCAnalysis suppress;
     MC::AutoCheckCannotGC noGC;
-    bool isSharedMemory;
+    MC::SandboxStack<bool> isSharedMemory;
 
-    buffer = JS_GetArrayBufferViewData(aBuffer, &isSharedMemory, noGC);
-    MOZ_ASSERT(!isSharedMemory);
+    buffer = JS_GetArrayBufferViewData(aBuffer, isSharedMemory, noGC);
+    MOZ_ASSERT(!*isSharedMemory.UNSAFE_unverified());
 
     rv = mInput->Read(static_cast<char*>(buffer), aLength, &written);
     if (NS_WARN_IF(NS_FAILED(rv))) {

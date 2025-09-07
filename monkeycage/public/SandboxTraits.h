@@ -7,6 +7,8 @@
 #ifndef mc_SandboxTraits_h
 #define mc_SandboxTraits_h
 
+#include "monkeycage/SandboxHelpers.h"
+
 #include <type_traits>
 
 namespace MC {
@@ -19,7 +21,7 @@ template<typename T, typename MC_Sbx>
 class TaintedVolatile;
 
 template<typename T, typename MC_Sbx>
-class TaintedUnchecked;
+class AppPointer;
 
 #define mc_generate_wrapper_check(name)                                     \
   namespace detail_mc_is_##name                                             \
@@ -39,7 +41,7 @@ class TaintedUnchecked;
 
 mc_generate_wrapper_check(Tainted);
 mc_generate_wrapper_check(TaintedVolatile);
-mc_generate_wrapper_check(TaintedUnchecked);
+mc_generate_wrapper_check(AppPointer);
 
 #undef mc_generate_wrapper_check
 
@@ -48,13 +50,8 @@ constexpr bool mc_is_tainted_or_vol_v =
   mc_is_Tainted_v<T> || mc_is_TaintedVolatile_v<T>;
 
 template<typename T>
-constexpr bool mc_is_tainted_or_unchecked_v =
-  mc_is_Tainted_v<T> || mc_is_TaintedUnchecked_v<T>;
-
-template<typename T>
 constexpr bool mc_is_wrapper_v =
-  mc_is_Tainted_v<T> || mc_is_TaintedVolatile_v<T> ||
-  mc_is_TaintedUnchecked_v<T>;
+  mc_is_Tainted_v<T> || mc_is_TaintedVolatile_v<T>;
 
 namespace detail_mc_remove_wrapper {
   template<typename T>
@@ -79,7 +76,7 @@ namespace detail_mc_remove_wrapper {
   };
 
   template<typename T, typename MC_Sbx>
-  struct unwrapper<TaintedUnchecked<T, MC_Sbx>>
+  struct unwrapper<AppPointer<T, MC_Sbx>>
   {
     using type = T;
     using type_sbx = MC_Sbx;
@@ -89,6 +86,42 @@ namespace detail_mc_remove_wrapper {
 template<typename T>
 using mc_remove_wrapper_t =
   typename detail_mc_remove_wrapper::unwrapper<T>::type;
+
+//TODO(abhishek): revisit this to ensure everything is
+// required to be properly Tainted.
+template<typename T>
+constexpr bool mc_is_tainted_callback_arg_v =
+     is_fundamental_or_enum_v<T>
+  || std::is_class_v<T>
+  || std::is_lvalue_reference_v<T>
+  || mc_is_AppPointer_v<T>
+  || mc_is_Tainted_v<T>;
+
+namespace detail_mc_tainted_callback_arg {
+  template<typename T, typename MC_Sbx>
+  struct wrapper
+  {
+    using type = T;
+  };
+
+  template<typename T, typename MC_Sbx>
+  struct wrapper<T*, MC_Sbx>
+  {
+    using type = Tainted<T*, MC_Sbx>;
+  };
+
+  template<typename MC_Sbx>
+  struct wrapper<void*, MC_Sbx>
+  {
+    using type = AppPointer<void*, MC_Sbx>;
+  };
+}
+
+
+template<typename T, typename MC_Sbx>
+using mc_tainted_callback_arg_t =
+  typename detail_mc_tainted_callback_arg::wrapper<T, MC_Sbx>::type;
+
 
 }
 }  // namespace MC

@@ -339,9 +339,9 @@ ContentPrincipal::GetDomain(nsIURI** aDomain) {
 
 // Set the changed-document-domain flag on compartments containing realms
 // using this principal.
-void SetDomainCallback(JSContext*, void*, JS::Realm* aRealm,
+void SetDomainCallback(MC::Tainted<JSContext*>, MC::AppPointer<void*>, MC::Tainted<JS::Realm*> aRealm,
                        const JS::AutoRequireNoGC& nogc) {
-  JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm);
+  JS::Compartment* comp = JS::GetCompartmentForRealm(aRealm.UNSAFE_unverified());
   xpc::SetCompartmentChangedDocumentDomain(comp);
 };
 
@@ -356,7 +356,7 @@ ContentPrincipal::SetDomain(nsIURI* aDomain) {
     SetHasExplicitDomain();
   }
 
-  static auto SetDomainCallbackCb = MC::Sandbox::RegisterCallback(SetDomainCallback);
+  static auto SetDomainCallbackCb = MC::Sandbox::RegisterTaintedCallback(SetDomainCallback);
   MCPrincipals* principals =
       nsJSPrincipals::get(static_cast<nsIPrincipal*>(this));
 
