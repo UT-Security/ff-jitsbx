@@ -17,6 +17,18 @@
 
 #include "js/PropertyDescriptor.h"
 
+inline bool JS_NondeterministicGetWeakMapKeys(MCContext* cx,
+                                              JS::HandleObject obj,
+                                              JS::MutableHandleObject ret) {
+  return JS_NondeterministicGetWeakMapKeys(cx->cx_, obj, ret);
+}
+
+inline bool JS_NondeterministicGetWeakSetKeys(MCContext* cx,
+                                              JS::HandleObject obj,
+                                              JS::MutableHandleObject ret) {
+  return JS_NondeterministicGetWeakSetKeys(cx->cx_, obj, ret);
+}
+
 namespace js {
 inline JSFunction* DefineFunctionWithReserved(MCContext* cx, JSObject* obj,
                                        const char* name,

@@ -1353,7 +1353,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
       return nullptr;
     }
 
-    aRv = webSocketImpl->Init(aGlobal.Context(), isSecure, principal, Nothing(),
+    aRv = webSocketImpl->Init(MC_UNSAFE(aGlobal.Context()), isSecure, principal, Nothing(),
                               nullptr, !!aTransportProvider, aUrl,
                               protocolArray, ""_ns, 0, 0);
 
@@ -1374,7 +1374,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
 
     unsigned lineno, column;
     JS::AutoFilename file;
-    if (!JS::DescribeScriptedCaller(aGlobal.Context(), &file, &lineno,
+    if (!JS::DescribeScriptedCaller(MC_UNSAFE(aGlobal.Context()), &file, &lineno,
                                     &column)) {
       NS_WARNING("Failed to get line number and filename in workers.");
     }
@@ -1467,7 +1467,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     if (ownerWindow) {
       BrowsingContext* browsingContext = ownerWindow->GetBrowsingContext();
       if (browsingContext && browsingContext->WatchedByDevTools()) {
-        stack = GetCurrentStackForNetMonitor(aGlobal.Context());
+        stack = GetCurrentStackForNetMonitor(MC_UNSAFE(aGlobal.Context()));
       }
 
       if (WindowContext* wc = ownerWindow->GetWindowContext()) {
@@ -1485,7 +1485,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     UniquePtr<SerializedStackHolder> stack;
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     if (workerPrivate->IsWatchedByDevTools()) {
-      stack = GetCurrentStackForNetMonitor(aGlobal.Context());
+      stack = GetCurrentStackForNetMonitor(MC_UNSAFE(aGlobal.Context()));
     }
 
     RefPtr<AsyncOpenRunnable> runnable =

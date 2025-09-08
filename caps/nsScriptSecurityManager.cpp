@@ -451,7 +451,7 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     MC::Tainted<JSContext*> tcx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCode) {
 
   MCContext* cx = tcx.copy_and_verify_address([](uintptr_t val) {
-    return JS_SanitizeContext((JSContext*)val);                                              
+    return JS_SanitizeContext((JSContext*)val);                   
   });
 
   MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
@@ -468,7 +468,7 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
   if (contextForbidsEval) {
     nsAutoJSString scriptSample;
     if (aKind == JS::RuntimeCode::JS &&
-        NS_WARN_IF(!scriptSample.init(MC_UNSAFE(cx), aCode))) {
+        NS_WARN_IF(!scriptSample.init(cx, aCode))) {
       return MC::Tainted<bool>(false);
     }
 
@@ -548,7 +548,7 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
 
     nsAutoJSString scriptSample;
     if (aKind == JS::RuntimeCode::JS &&
-        NS_WARN_IF(!scriptSample.init(MC_UNSAFE(cx), aCode))) {
+        NS_WARN_IF(!scriptSample.init(cx, aCode))) {
       JS_ClearPendingException(cx);
       return MC::Tainted<bool>(false);
     }

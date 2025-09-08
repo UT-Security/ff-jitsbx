@@ -13,6 +13,7 @@
 #ifndef mozilla_dom_BindingDeclarations_h__
 #define mozilla_dom_BindingDeclarations_h__
 
+#include "monkeycage/Context.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/TypeDecls.h"
 
@@ -119,7 +120,12 @@ enum class CallerType : uint32_t;
 
 class MOZ_STACK_CLASS GlobalObject {
  public:
+#ifdef JS_SANDBOX
+  GlobalObject(MCContext* aCx, JSObject* aObject);
+  GlobalObject(JSContext* aCx, JSObject* aObject) : GlobalObject(JS_SanitizeContext(aCx), aObject) {}
+#else
   GlobalObject(JSContext* aCx, JSObject* aObject);
+#endif
 
   JSObject* Get() const { return mGlobalJSObject; }
 
@@ -128,7 +134,7 @@ class MOZ_STACK_CLASS GlobalObject {
   // The context that this returns is not guaranteed to be in the compartment of
   // the object returned from Get(), in fact it's generally in the caller's
   // compartment.
-  JSContext* Context() const { return mCx; }
+  MCContext* Context() const { return mCx; }
 
   bool Failed() const { return !Get(); }
 
@@ -142,7 +148,7 @@ class MOZ_STACK_CLASS GlobalObject {
 
  protected:
   MC::Rooted<JSObject*> mGlobalJSObject;
-  JSContext* mCx;
+  MCContext* mCx;
   mutable nsISupports* MOZ_UNSAFE_REF(
       "Valid because GlobalObject is a stack "
       "class, and mGlobalObject points to the "

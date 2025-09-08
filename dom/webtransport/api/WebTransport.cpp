@@ -287,7 +287,7 @@ void WebTransport::Init(const GlobalObject& aGlobal, const nsAString& aURL,
 
   mState = WebTransportState::CONNECTING;
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // Set up Datagram streams
   // Step 16: Let pullDatagramsAlgorithm be an action that runs pullDatagrams
   // with transport.
@@ -317,7 +317,7 @@ void WebTransport::Init(const GlobalObject& aGlobal, const nsAString& aURL,
   RefPtr<WebTransportIncomingStreamsAlgorithms> algorithm =
       mIncomingBidirectionalAlgorithm;
   mIncomingBidirectionalStreams = ReadableStream::CreateNative(
-      cx, global, *algorithm, Some(0.0), nullptr, aError);
+      MC_UNSAFE(cx), global, *algorithm, Some(0.0), nullptr, aError);
   if (aError.Failed()) {
     return;
   }
@@ -332,7 +332,7 @@ void WebTransport::Init(const GlobalObject& aGlobal, const nsAString& aURL,
 
   algorithm = mIncomingUnidirectionalAlgorithm;
   mIncomingUnidirectionalStreams = ReadableStream::CreateNative(
-      cx, global, *algorithm, Some(0.0), nullptr, aError);
+      MC_UNSAFE(cx), global, *algorithm, Some(0.0), nullptr, aError);
   if (aError.Failed()) {
     return;
   }

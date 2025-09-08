@@ -752,7 +752,7 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   /**
    * 8. Convert options dictionary to optionsObject.
    */
-  JSContext* cx = aGlobal.Context();
+  JSContext* cx = MC_UNSAFE(aGlobal.Context());
   MC::Rooted<JS::Value> optionsVal(cx);
   if (NS_WARN_IF(!ToJSValue(cx, aOptions, &optionsVal))) {
     aRv.NoteJSContextException(cx);

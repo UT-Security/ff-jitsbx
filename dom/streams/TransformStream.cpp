@@ -82,7 +82,7 @@ already_AddRefed<TransformStream> TransformStream::CreateGeneric(
   // readableSizeAlgorithm).
   RefPtr<TransformStream> stream =
       new TransformStream(global, nullptr, nullptr);
-  stream->Initialize(aGlobal.Context(), startPromise, writableHighWaterMark,
+  stream->Initialize(MC_UNSAFE(aGlobal.Context()), startPromise, writableHighWaterMark,
                      writableSizeAlgorithm, readableHighWaterMark,
                      readableSizeAlgorithm, aRv);
   if (aRv.Failed()) {
@@ -94,7 +94,7 @@ already_AddRefed<TransformStream> TransformStream::CreateGeneric(
 
   // Step 10. Perform ! SetUpTransformStreamDefaultController(stream,
   // controller, transformAlgorithmWrapper, flushAlgorithmWrapper).
-  SetUpTransformStreamDefaultController(aGlobal.Context(), *stream, *controller,
+  SetUpTransformStreamDefaultController(MC_UNSAFE(aGlobal.Context()), *stream, *controller,
                                         aAlgorithms);
 
   return stream.forget();
@@ -602,11 +602,11 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   if (transformerObj) {
     MC::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*transformerObj));
-    dom::BindingCallContext callCx(aGlobal.Context(),
+    dom::BindingCallContext callCx(MC_UNSAFE(aGlobal.Context()),
                                    "TransformStream.constructor");
     aRv.MightThrowJSException();
     if (!transformerDict.Init(callCx, objValue)) {
-      aRv.StealExceptionFromJSContext(aGlobal.Context());
+      aRv.StealExceptionFromJSContext(MC_UNSAFE(aGlobal.Context()));
       return nullptr;
     }
   }
@@ -668,7 +668,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   // readableSizeAlgorithm).
   RefPtr<TransformStream> transformStream = new TransformStream(global);
   transformStream->Initialize(
-      aGlobal.Context(), startPromise, writableHighWaterMark,
+      MC_UNSAFE(aGlobal.Context()), startPromise, writableHighWaterMark,
       writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm, aRv);
   if (aRv.Failed()) {
     return nullptr;
@@ -678,7 +678,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   // SetUpTransformStreamDefaultControllerFromTransformer(this, transformer,
   // transformerDict).
   SetUpTransformStreamDefaultControllerFromTransformer(
-      aGlobal.Context(), *transformStream, transformerObj, transformerDict);
+      MC_UNSAFE(aGlobal.Context()), *transformStream, transformerObj, transformerDict);
 
   // Step 12. If transformerDict["start"] exists, then resolve startPromise with
   // the result of invoking transformerDict["start"] with argument list «

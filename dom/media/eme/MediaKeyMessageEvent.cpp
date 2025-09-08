@@ -76,7 +76,7 @@ already_AddRefed<MediaKeyMessageEvent> MediaKeyMessageEvent::Constructor(
                                aEventInitDict.mMessage.Obj());
   e->mMessage = JS::CopyArrayBuffer(aGlobal.Context(), buffer);
   if (!e->mMessage) {
-    aRv.NoteJSContextException(aGlobal.Context());
+    aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
     return nullptr;
   }
   e->mMessageType = aEventInitDict.mMessageType;

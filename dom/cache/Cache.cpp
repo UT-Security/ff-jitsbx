@@ -575,7 +575,7 @@ already_AddRefed<Promise> Cache::AddAll(
                        std::move(aRequestList), promise);
 
   RefPtr<Promise> fetchPromise =
-      Promise::All(aGlobal.Context(), fetchList, aRv);
+      Promise::All(MC_UNSAFE(aGlobal.Context()), fetchList, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }

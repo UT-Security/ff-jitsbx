@@ -28,7 +28,7 @@ already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
                                              const nsAString& aScriptURL,
                                              const WorkerOptions& aOptions,
                                              ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   nsCOMPtr<nsIGlobalObject> globalObject =
       do_QueryInterface(aGlobal.GetAsSupports());
@@ -41,7 +41,7 @@ already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
   }
 
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
-      cx, aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
+      MC_UNSAFE(cx), aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
       aOptions.mCredentials, aOptions.mType, aOptions.mName, VoidCString(),
       nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {

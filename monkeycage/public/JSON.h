@@ -15,6 +15,16 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/SandboxCallback.h"
+
+inline bool JS_Stringify(MCContext* cx, JS::MutableHandle<JS::Value> value,
+                         JS::Handle<JSObject*> replacer,
+                         JS::Handle<JS::Value> space,
+                         MC::SandboxCallback<JSONWriteCallback> callback,
+                         void* data) {
+  return JS_Stringify(cx->cx_, value, replacer, space, callback.UNSAFE_get(),
+                      data);
+}
 
 inline bool JS_ParseJSON(MCContext* cx, const char16_t* chars, uint32_t len,
                          JS::MutableHandle<JS::Value> vp) {

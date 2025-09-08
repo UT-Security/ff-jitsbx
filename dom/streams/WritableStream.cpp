@@ -451,11 +451,11 @@ already_AddRefed<WritableStream> WritableStream::Constructor(
   if (underlyingSinkObj) {
     MC::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSinkObj));
-    dom::BindingCallContext callCx(aGlobal.Context(),
+    dom::BindingCallContext callCx(MC_UNSAFE(aGlobal.Context()),
                                    "WritableStream.constructor");
     aRv.MightThrowJSException();
     if (!underlyingSinkDict.Init(callCx, objValue)) {
-      aRv.StealExceptionFromJSContext(aGlobal.Context());
+      aRv.StealExceptionFromJSContext(MC_UNSAFE(aGlobal.Context()));
       return nullptr;
     }
   }
@@ -491,7 +491,7 @@ already_AddRefed<WritableStream> WritableStream::Constructor(
   // Step 7. Perform ? SetUpWritableStreamDefaultControllerFromUnderlyingSink(
   // this, underlyingSink, underlyingSinkDict, highWaterMark, sizeAlgorithm).
   SetUpWritableStreamDefaultControllerFromUnderlyingSink(
-      aGlobal.Context(), writableStream, underlyingSinkObj, underlyingSinkDict,
+      MC_UNSAFE(aGlobal.Context()), writableStream, underlyingSinkObj, underlyingSinkDict,
       highWaterMark, sizeAlgorithm, aRv);
   if (aRv.Failed()) {
     return nullptr;

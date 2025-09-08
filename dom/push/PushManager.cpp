@@ -401,7 +401,7 @@ already_AddRefed<PushManager> PushManager::Constructor(GlobalObject& aGlobal,
   }
 
   RefPtr<PushManagerImpl> impl =
-      PushManagerImpl::Constructor(aGlobal, aGlobal.Context(), aScope, aRv);
+      PushManagerImpl::Constructor(aGlobal, MC_UNSAFE(aGlobal.Context()), aScope, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

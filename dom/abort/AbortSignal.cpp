@@ -210,8 +210,8 @@ static void SetTimeoutForGlobal(GlobalObject& aGlobal, TimeoutHandler& aHandler,
     }
   } else {
     WorkerPrivate* workerPrivate =
-        GetWorkerPrivateFromContext(aGlobal.Context());
-    workerPrivate->SetTimeout(aGlobal.Context(), &aHandler, timeout,
+        GetWorkerPrivateFromContext(MC_UNSAFE(aGlobal.Context()));
+    workerPrivate->SetTimeout(MC_UNSAFE(aGlobal.Context()), &aHandler, timeout,
                               /* aIsInterval */ false,
                               Timeout::Reason::eAbortSignalTimeout, aRv);
     if (aRv.Failed()) {
@@ -234,7 +234,7 @@ already_AddRefed<AbortSignal> AbortSignal::Timeout(GlobalObject& aGlobal,
   // Step 3. Run steps after a timeout given global, "AbortSignal-timeout",
   // milliseconds, and the following step: ...
   RefPtr<TimeoutHandler> handler =
-      new AbortSignalTimeoutHandler(aGlobal.Context(), signal);
+      new AbortSignalTimeoutHandler(MC_UNSAFE(aGlobal.Context()), signal);
 
   // Note: We only supports int32_t range intervals
   int32_t timeout =

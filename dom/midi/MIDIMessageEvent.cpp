@@ -66,7 +66,7 @@ already_AddRefed<MIDIMessageEvent> MIDIMessageEvent::Constructor(
     const auto& a = aEventInitDict.mData.Value();
     a.ComputeState();
     e->mData =
-        Uint8Array::Create(aGlobal.Context(), owner, a.Length(), a.Data());
+        Uint8Array::Create(MC_UNSAFE(aGlobal.Context()), owner, a.Length(), a.Data());
     if (NS_WARN_IF(!e->mData)) {
       aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
       return nullptr;

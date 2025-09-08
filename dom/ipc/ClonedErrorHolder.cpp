@@ -27,7 +27,7 @@ using namespace mozilla::dom;
 already_AddRefed<ClonedErrorHolder> ClonedErrorHolder::Constructor(
     const GlobalObject& aGlobal, JS::Handle<JSObject*> aError,
     ErrorResult& aRv) {
-  return Create(aGlobal.Context(), aError, aRv);
+  return Create(MC_UNSAFE(aGlobal.Context()), aError, aRv);
 }
 
 // static

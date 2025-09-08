@@ -42,8 +42,8 @@ void AnimationUtils::LogAsyncAnimationFailure(nsCString& aMessage,
 }
 
 /* static */
-Document* AnimationUtils::GetCurrentRealmDocument(JSContext* aCx) {
-  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(aCx);
+Document* AnimationUtils::GetCurrentRealmDocument(MCContext* aCx) {
+  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(MC_UNSAFE(aCx));
   if (!win) {
     return nullptr;
   }

@@ -4,11 +4,11 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
-#include "js/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement
-#include "js/TypeDecls.h"
-#include "jsapi.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/JSON.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/TypeDecls.h"
+#include "mcapi.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/PresShell.h"
 #include "mozilla/dom/AutocompleteInfoBinding.h"
@@ -156,11 +156,11 @@ SessionStoreUtils::AddDynamicFrameFilteredListener(
     return nullptr;
   }
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   MC::Rooted<JSObject*> obj(cx, &aListener.toObject());
   MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   RefPtr<EventListener> listener =
-      new EventListener(cx, obj, global, GetIncumbentGlobal());
+      new EventListener(MC_UNSAFE(cx), obj, global, GetIncumbentGlobal());
 
   nsCOMPtr<nsIDOMEventListener> filter(new DynamicFrameEventFilter(listener));
   if (aMozSystemGroup) {
@@ -1232,19 +1232,19 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
         // For about:{sessionrestore,welcomeback} we saved the field as JSON to
         // avoid nested instances causing humongous sessionstore.js files.
         // cf. bug 467409
-        JSContext* cx = aGlobal.Context();
+        MCContext* cx = aGlobal.Context();
         if (entry.mKey.EqualsLiteral("sessionData")) {
           if (url.EqualsLiteral("about:sessionrestore") ||
               url.EqualsLiteral("about:welcomeback")) {
             MC::Rooted<JS::Value> object(
                 cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
-            SetSessionData(cx, node, &object);
+            SetSessionData(MC_UNSAFE(cx), node, &object);
             continue;
           }
         }
         MC::Rooted<JS::Value> object(
             cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
-        SetElementAsObject(cx, node, object);
+        SetElementAsObject(MC_UNSAFE(cx), node, object);
       }
     }
   }
@@ -1262,7 +1262,7 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
       } else {
         MC::Rooted<JS::Value> object(
             aGlobal.Context(), JS::ObjectValue(*entry.mValue.GetAsObject()));
-        SetElementAsObject(aGlobal.Context(), node, object);
+        SetElementAsObject(MC_UNSAFE(aGlobal.Context()), node, object);
       }
     }
   }
@@ -1394,14 +1394,14 @@ static void CollectFrameTreeData(JSContext* aCx,
 /* static */ void SessionStoreUtils::CollectScrollPosition(
     const GlobalObject& aGlobal, WindowProxyHolder& aWindow,
     Nullable<CollectedData>& aRetVal) {
-  CollectFrameTreeData(aGlobal.Context(), aWindow.get(), aRetVal,
+  CollectFrameTreeData(MC_UNSAFE(aGlobal.Context()), aWindow.get(), aRetVal,
                        CollectCurrentScrollPosition);
 }
 
 /* static */ void SessionStoreUtils::CollectFormData(
     const GlobalObject& aGlobal, WindowProxyHolder& aWindow,
     Nullable<CollectedData>& aRetVal) {
-  CollectFrameTreeData(aGlobal.Context(), aWindow.get(), aRetVal,
+  CollectFrameTreeData(MC_UNSAFE(aGlobal.Context()), aWindow.get(), aRetVal,
                        CollectCurrentFormData);
 }
 

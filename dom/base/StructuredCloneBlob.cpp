@@ -12,11 +12,11 @@
 #include <utility>
 #include "js/StructuredClone.h"
 #include "js/Value.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
-#include "mozilla/Maybe.h"
+#include "monkeycage/tainted/Maybe.h"
 #include "mozilla/UniquePtr.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/BlobImpl.h"
@@ -41,47 +41,47 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
     GlobalObject& aGlobal, const nsACString& aName,
     const nsACString& aAnonymizedName, JS::Handle<JS::Value> aValue,
     JS::Handle<JSObject*> aTargetGlobal, ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   RefPtr<StructuredCloneBlob> holder = StructuredCloneBlob::Create();
 
   holder->mName = aName;
   holder->mAnonymizedName = aAnonymizedName.IsVoid() ? aName : aAnonymizedName;
 
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
   MC::Rooted<JS::Value> value(cx, aValue);
 
   if (aTargetGlobal) {
     // OK to unwrap if our caller (represented by cx's Realm) can do it.
     MC::Rooted<JSObject*> targetGlobal(
-        cx, js::CheckedUnwrapDynamic(aTargetGlobal, cx));
+        cx, mc::CheckedUnwrapDynamic(aTargetGlobal, cx));
     if (!targetGlobal) {
       js::ReportAccessDenied(cx);
-      aRv.NoteJSContextException(cx);
+      aRv.NoteJSContextException(MC_UNSAFE(cx));
       return nullptr;
     }
 
-    ar.emplace(cx, targetGlobal);
+    ar->emplace(cx, targetGlobal);
 
     if (!JS_WrapValue(cx, &value)) {
-      aRv.NoteJSContextException(cx);
+      aRv.NoteJSContextException(MC_UNSAFE(cx));
       return nullptr;
     }
   } else if (value.isObject()) {
     // OK to unwrap if our caller (represented by cx's Realm) can do it.
     MC::Rooted<JSObject*> obj(cx,
-                              js::CheckedUnwrapDynamic(&value.toObject(), cx));
+                              mc::CheckedUnwrapDynamic(&value.toObject(), cx));
     if (!obj) {
       js::ReportAccessDenied(cx);
-      aRv.NoteJSContextException(cx);
+      aRv.NoteJSContextException(MC_UNSAFE(cx));
       return nullptr;
     }
 
-    ar.emplace(cx, obj);
+    ar->emplace(cx, obj);
     value = JS::ObjectValue(*obj);
   }
 
-  holder->mHolder->Write(cx, value, aRv);
+  holder->mHolder->Write(MC_UNSAFE(cx), value, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

@@ -1405,8 +1405,8 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 already_AddRefed<XMLHttpRequest> XMLHttpRequestWorker::Construct(
     const GlobalObject& aGlobal, const MozXMLHttpRequestParameters& aParams,
     ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
+  MCContext* cx = aGlobal.Context();
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
   MOZ_ASSERT(workerPrivate);
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());

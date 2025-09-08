@@ -118,11 +118,11 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
     credentials = aOptions.GetAsWorkerOptions().mCredentials;
   }
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   WorkerLoadInfo loadInfo;
   aRv = WorkerPrivate::GetLoadInfo(
-      cx, window, nullptr, aScriptURL, workerType, credentials, false,
+      MC_UNSAFE(cx), window, nullptr, aScriptURL, workerType, credentials, false,
       WorkerPrivate::OverrideLoadGroup, WorkerKindShared, &loadInfo);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;

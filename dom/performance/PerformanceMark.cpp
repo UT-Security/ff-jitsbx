@@ -30,7 +30,7 @@ already_AddRefed<PerformanceMark> PerformanceMark::Constructor(
     const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv) {
   const nsCOMPtr<nsIGlobalObject> global =
       do_QueryInterface(aGlobal.GetAsSupports());
-  return PerformanceMark::Constructor(aGlobal.Context(), global, aMarkName,
+  return PerformanceMark::Constructor(MC_UNSAFE(aGlobal.Context()), global, aMarkName,
                                       aMarkOptions, aRv);
 }
 

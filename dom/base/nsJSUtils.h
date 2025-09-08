@@ -214,6 +214,12 @@ class nsTAutoJSString : public nsTAutoString<T> {
     return AssignJSString(aContext, *this, str);
   }
 
+#ifdef JS_SANDBOX
+  bool init(MCContext* aContext, JSString* str) {
+    return init(MC_UNSAFE(aContext), str);
+  }
+#endif
+
   bool init(JSContext* aContext, const JS::Value& v) {
     if (v.isString()) {
       return init(aContext, v.toString());
@@ -231,10 +237,22 @@ class nsTAutoJSString : public nsTAutoString<T> {
     return str && init(aContext, str);
   }
 
+#ifdef JS_SANDBOX
+  bool init(MCContext* aContext, const JS::Value& v) {
+    return init(MC_UNSAFE(aContext), v);
+  }
+#endif
+
   bool init(JSContext* aContext, jsid id) {
     MC::Rooted<JS::Value> v(aContext);
     return JS_IdToValue(aContext, id, &v) && init(aContext, v);
   }
+
+#ifdef JS_SANDBOX
+  bool init(MCContext* aContext, jsid id) {
+    return init(MC_UNSAFE(aContext), id);
+  }
+#endif
 
   bool init(const JS::Value& v);
 

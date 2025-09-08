@@ -15,7 +15,7 @@
 
 class nsIContent;
 class nsIFrame;
-struct JSContext;
+struct MCContext;
 
 namespace mozilla {
 
@@ -63,7 +63,7 @@ class AnimationUtils {
   /**
    * Get the document from the JS context to use when parsing CSS properties.
    */
-  static Document* GetCurrentRealmDocument(JSContext* aCx);
+  static Document* GetCurrentRealmDocument(MCContext* aCx);
 
   /**
    * Get the document from the global object, or nullptr if the document has

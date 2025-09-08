@@ -277,7 +277,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
 
     const fetch::ResponseBodyInit& body = aBody.Value();
     if (body.IsReadableStream()) {
-      JSContext* cx = aGlobal.Context();
+      JSContext* cx = MC_UNSAFE(aGlobal.Context());
       aRv.MightThrowJSException();
 
       ReadableStream& readableStream = body.GetAsReadableStream();
@@ -297,7 +297,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
       } else {
         // If this is a JS-created ReadableStream, let's create a
         // FetchStreamReader.
-        aRv = FetchStreamReader::Create(aGlobal.Context(), global,
+        aRv = FetchStreamReader::Create(MC_UNSAFE(aGlobal.Context()), global,
                                         getter_AddRefs(r->mFetchStreamReader),
                                         getter_AddRefs(bodyStream));
         if (NS_WARN_IF(aRv.Failed())) {

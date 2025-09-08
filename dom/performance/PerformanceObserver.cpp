@@ -87,7 +87,7 @@ already_AddRefed<PerformanceObserver> PerformanceObserver::Constructor(
     return observer.forget();
   }
 
-  JSContext* cx = aGlobal.Context();
+  JSContext* cx = MC_UNSAFE(aGlobal.Context());
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
   MOZ_ASSERT(workerPrivate);
 
@@ -332,7 +332,7 @@ void PerformanceObserver::GetSupportedEntryTypes(
     validTypes.AppendElement(name);
   }
 
-  if (!ToJSValue(aGlobal.Context(), validTypes, &val)) {
+  if (!ToJSValue(MC_UNSAFE(aGlobal.Context()), validTypes, &val)) {
     /*
      * If this conversion fails, we don't set a result.
      * The spec does not allow us to throw an exception.

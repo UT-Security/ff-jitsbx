@@ -626,7 +626,7 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
   nsCOMPtr<nsIPrincipal> topLevelPrincipal = topSameProcessDoc->NodePrincipal();
 
   // Check payment methods and details
-  IsValidMethodData(aGlobal.Context(), aMethodData, aRv);
+  IsValidMethodData(MC_UNSAFE(aGlobal.Context()), aMethodData, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -642,7 +642,7 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
 
   // Create PaymentRequest and set its |mId|
   RefPtr<PaymentRequest> request;
-  manager->CreatePayment(aGlobal.Context(), window, topLevelPrincipal,
+  manager->CreatePayment(MC_UNSAFE(aGlobal.Context()), window, topLevelPrincipal,
                          aMethodData, aDetails, aOptions,
                          getter_AddRefs(request), aRv);
   if (aRv.Failed()) {

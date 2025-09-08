@@ -1481,7 +1481,7 @@ void ChromeUtils::SaveHeapSnapshotShared(
   ZeroCopyNSIOutputStream zeroCopyStream(outputStream);
   ::google::protobuf::io::GzipOutputStream gzipStream(&zeroCopyStream);
 
-  JSContext* cx = global.Context();
+  JSContext* cx = MC_UNSAFE(global.Context());
 
   {
     ubi::RootList rootList(cx, wantNames);
@@ -1566,7 +1566,7 @@ already_AddRefed<HeapSnapshot> ChromeUtils::ReadHeapSnapshot(
   if (rv.Failed()) return nullptr;
 
   RefPtr<HeapSnapshot> snapshot = HeapSnapshot::Create(
-      global.Context(), global, reinterpret_cast<const uint8_t*>(mm.address()),
+      MC_UNSAFE(global.Context()), global, reinterpret_cast<const uint8_t*>(mm.address()),
       mm.size(), rv);
 
   if (!rv.Failed())

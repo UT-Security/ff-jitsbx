@@ -799,7 +799,7 @@ already_AddRefed<Notification> Notification::Constructor(
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<Notification> notification =
-      CreateAndShow(aGlobal.Context(), global, aTitle, aOptions, u""_ns, aRv);
+      CreateAndShow(MC_UNSAFE(aGlobal.Context()), global, aTitle, aOptions, u""_ns, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }

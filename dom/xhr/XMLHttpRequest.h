@@ -33,7 +33,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
       const GlobalObject& aGlobal, const nsAString& ignored, ErrorResult& aRv) {
     // Pretend like someone passed null, so we can pick up the default values
     MozXMLHttpRequestParameters params;
-    if (!params.Init(aGlobal.Context(), MC::NullHandleValue())) {
+    if (!params.Init(MC_UNSAFE(aGlobal.Context()), MC::NullHandleValue())) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }

@@ -7,8 +7,8 @@
 #include "MediaEncryptedEvent.h"
 #include "mozilla/dom/MediaEncryptedEventBinding.h"
 #include "nsContentUtils.h"
-#include "js/ArrayBuffer.h"
-#include "jsfriendapi.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "mcfriendapi.h"
 #include "nsINode.h"
 #include "mozilla/dom/MediaKeys.h"
 #include "mozilla/HoldDropJSObjects.h"
@@ -78,7 +78,7 @@ already_AddRefed<MediaEncryptedEvent> MediaEncryptedEvent::Constructor(
                                  aEventInitDict.mInitData.Value().Obj());
     e->mInitData = JS::CopyArrayBuffer(aGlobal.Context(), buffer);
     if (!e->mInitData) {
-      aRv.NoteJSContextException(aGlobal.Context());
+      aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
       return nullptr;
     }
   }

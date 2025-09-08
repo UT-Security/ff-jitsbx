@@ -7,15 +7,16 @@
 #include "ChromeUtils.h"
 
 #include "JSOracleParent.h"
-#include "js/CallAndConstruct.h"  // JS::Call
+#include "monkeycage/CallAndConstruct.h"  // JS::Call
 #include "js/CharacterEncoding.h"
 #include "js/Object.h"              // JS::GetClass
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById, JS::IdVector
-#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById, JS::IdVector
+#include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "js/SavedFrameAPI.h"
 #include "monkeycage/Value.h"  // JS::Value, JS::StringValue
 #include "mcfriendapi.h"
 #include "WrapperFactory.h"
+#include "monkeycage/tainted/Maybe.h"
 
 #include "mozilla/Base64.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
@@ -71,7 +72,7 @@ void ChromeUtils::NondeterministicGetWeakMapKeys(
   if (!aMap.isObject()) {
     aRetval.setUndefined();
   } else {
-    JSContext* cx = aGlobal.Context();
+    MCContext* cx = aGlobal.Context();
     MC::Rooted<JSObject*> objRet(cx);
     MC::Rooted<JSObject*> mapObj(cx, &aMap.toObject());
     if (!JS_NondeterministicGetWeakMapKeys(cx, mapObj, &objRet)) {
@@ -89,7 +90,7 @@ void ChromeUtils::NondeterministicGetWeakSetKeys(
   if (!aSet.isObject()) {
     aRetval.setUndefined();
   } else {
-    JSContext* cx = aGlobal.Context();
+    MCContext* cx = aGlobal.Context();
     MC::Rooted<JSObject*> objRet(cx);
     MC::Rooted<JSObject*> setObj(cx, &aSet.toObject());
     if (!JS_NondeterministicGetWeakSetKeys(cx, setObj, &objRet)) {
@@ -163,7 +164,7 @@ void ChromeUtils::Base64URLDecode(GlobalObject& aGlobal,
 
   MC::Rooted<JSObject*> buffer(
       aGlobal.Context(),
-      ArrayBuffer::Create(aGlobal.Context(), data.Length(), data.Elements()));
+      ArrayBuffer::Create(MC_UNSAFE(aGlobal.Context()), data.Length(), data.Elements()));
   if (NS_WARN_IF(!buffer)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -184,8 +185,8 @@ void ChromeUtils::ReleaseAssert(GlobalObject& aGlobal, bool aCondition,
   uint32_t lineNo = 0;
 
   if (nsCOMPtr<nsIStackFrame> location = GetCurrentJSStack(1)) {
-    location->GetFilename(aGlobal.Context(), filename);
-    lineNo = location->GetLineNumber(aGlobal.Context());
+    location->GetFilename(MC_UNSAFE(aGlobal.Context()), filename);
+    lineNo = location->GetLineNumber(MC_UNSAFE(aGlobal.Context()));
   } else {
     filename.Assign(u"<unknown>"_ns);
   }
@@ -226,8 +227,8 @@ void ChromeUtils::AddProfilerMarker(
       // ChromeUtils.addProfilerMarker label automatically added by the webidl
       // binding from DOM to PROFILER so that this function doesn't appear in
       // the marker stack.
-      JSContext* cx = aGlobal.Context();
-      ProfilingStack* stack = js::GetContextProfilingStackIfEnabled(cx);
+      MCContext* cx = aGlobal.Context();
+      ProfilingStack* stack = js::GetContextProfilingStackIfEnabled(MC_UNSAFE(cx));
       if (MOZ_LIKELY(stack)) {
         uint32_t sp = stack->stackPointer;
         if (MOZ_LIKELY(sp > 0)) {
@@ -265,8 +266,8 @@ void ChromeUtils::AddProfilerMarker(
         performance = ownerWindow->GetPerformance();
       }
     } else {
-      JSContext* cx = aGlobal.Context();
-      WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
+      MCContext* cx = aGlobal.Context();
+      WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
       if (workerPrivate) {
         performance = workerPrivate->GlobalScope()->GetPerformance();
       }
@@ -312,8 +313,8 @@ void ChromeUtils::WaiveXrays(GlobalObject& aGlobal, JS::Handle<JS::Value> aVal,
                              JS::MutableHandle<JS::Value> aRetval,
                              ErrorResult& aRv) {
   MC::Rooted<JS::Value> value(aGlobal.Context(), aVal);
-  if (!xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(aGlobal.Context()), &value)) {
-    aRv.NoteJSContextException(aGlobal.Context());
+  if (!xpc::WrapperFactory::WaiveXrayAndWrap(aGlobal.Context(), &value)) {
+    aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
   } else {
     aRetval.set(value);
   }
@@ -332,7 +333,7 @@ void ChromeUtils::UnwaiveXrays(GlobalObject& aGlobal,
   MC::Rooted<JSObject*> obj(aGlobal.Context(),
                             js::UncheckedUnwrap(&aVal.toObject()));
   if (!JS_WrapObject(aGlobal.Context(), &obj)) {
-    aRv.NoteJSContextException(aGlobal.Context());
+    aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
   } else {
     aRetval.setObject(*obj);
   }
@@ -367,11 +368,11 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
                                JS::Handle<JSObject*> aTarget,
                                JS::MutableHandle<JSObject*> aRetval,
                                ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
-  auto cleanup = MakeScopeExit([&]() { aRv.NoteJSContextException(cx); });
+  auto cleanup = MakeScopeExit([&]() { aRv.NoteJSContextException(MC_UNSAFE(cx)); });
 
-  MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
+  MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(MC_UNSAFE(cx)));
   MC::RootedVector<JS::Value> values(cx);
   MC::RootedVector<jsid> valuesIds(cx);
 
@@ -379,7 +380,7 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
     // cx represents our current Realm, so it makes sense to use it for the
     // CheckedUnwrapDynamic call.  We do want CheckedUnwrapDynamic, in case
     // someone is shallow-cloning a Window.
-    MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapDynamic(aObj, cx));
+    MC::Rooted<JSObject*> obj(cx, mc::CheckedUnwrapDynamic(aObj, cx));
     if (!obj) {
       js::ReportAccessDenied(cx);
       return;
@@ -414,17 +415,17 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
 
   MC::Rooted<JSObject*> obj(cx);
   {
-    Maybe<JSAutoRealm> ar;
+    MC::SandboxStack<Maybe<JSAutoRealm>> ar;
     if (aTarget) {
       // Our target could be anything, so we want CheckedUnwrapDynamic here.
       // "cx" represents the current Realm when we were called from bindings, so
       // we can just use that.
-      MC::Rooted<JSObject*> target(cx, js::CheckedUnwrapDynamic(aTarget, cx));
+      MC::Rooted<JSObject*> target(cx, mc::CheckedUnwrapDynamic(aTarget, cx));
       if (!target) {
         js::ReportAccessDenied(cx);
         return;
       }
-      ar.emplace(cx, target);
+      ar->emplace(cx, target);
     }
 
     obj = JS_NewPlainObject(cx);
@@ -555,11 +556,11 @@ void ChromeUtils::Import(const GlobalObject& aGlobal,
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE("ChromeUtils::Import",
                                                      OTHER, aResourceURI);
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   MC::Rooted<JSObject*> global(cx);
   MC::Rooted<JSObject*> exports(cx);
-  nsresult rv = moduleloader->Import(cx, aResourceURI, &global, &exports);
+  nsresult rv = moduleloader->Import(MC_UNSAFE(cx), aResourceURI, &global, &exports);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -568,7 +569,7 @@ void ChromeUtils::Import(const GlobalObject& aGlobal,
   // Import() on the component loader can return NS_OK while leaving an
   // exception on the JSContext.  Check for that case.
   if (JS_IsExceptionPending(cx)) {
-    aRv.NoteJSContextException(cx);
+    aRv.NoteJSContextException(MC_UNSAFE(cx));
     return;
   }
 
@@ -617,11 +618,11 @@ void ChromeUtils::ImportESModule(
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_NONSENSITIVE(
       "ChromeUtils::ImportESModule", OTHER, registryLocation);
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   MC::Rooted<JSObject*> moduleNamespace(cx);
   nsresult rv =
-      moduleloader->ImportESModule(cx, registryLocation, &moduleNamespace);
+      moduleloader->ImportESModule(MC_UNSAFE(cx), registryLocation, &moduleNamespace);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -925,9 +926,9 @@ void ChromeUtils::DefineLazyGetter(const GlobalObject& aGlobal,
                                    JS::Handle<JS::Value> aName,
                                    JS::Handle<JSObject*> aLambda,
                                    ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
-  if (!lazy_getter::DefineLazyGetter(cx, aTarget, aName, aLambda)) {
-    aRv.NoteJSContextException(cx);
+  MCContext* cx = aGlobal.Context();
+  if (!lazy_getter::DefineLazyGetter(MC_UNSAFE(cx), aTarget, aName, aLambda)) {
+    aRv.NoteJSContextException(MC_UNSAFE(cx));
     return;
   }
 }
@@ -938,9 +939,9 @@ void ChromeUtils::DefineModuleGetter(const GlobalObject& global,
                                      const nsAString& id,
                                      const nsAString& resourceURI,
                                      ErrorResult& aRv) {
-  if (!lazy_getter::DefineJSModuleGetter(global.Context(), target, id,
+  if (!lazy_getter::DefineJSModuleGetter(MC_UNSAFE(global.Context()), target, id,
                                          resourceURI)) {
-    aRv.NoteJSContextException(global.Context());
+    aRv.NoteJSContextException(MC_UNSAFE(global.Context()));
   }
 }
 
@@ -949,11 +950,11 @@ void ChromeUtils::DefineESModuleGetters(const GlobalObject& global,
                                         JS::Handle<JSObject*> target,
                                         JS::Handle<JSObject*> modules,
                                         ErrorResult& aRv) {
-  JSContext* cx = global.Context();
+  MCContext* cx = global.Context();
 
-  MC::Rooted<JS::IdVector> props(cx, JS::IdVector(cx));
+  MC::Rooted<JS::IdVector> props(cx, JS::IdVector(MC_UNSAFE(cx)));
   if (!JS_Enumerate(cx, modules, &props)) {
-    aRv.NoteJSContextException(cx);
+    aRv.NoteJSContextException(MC_UNSAFE(cx));
     return;
   }
 
@@ -968,12 +969,12 @@ void ChromeUtils::DefineESModuleGetters(const GlobalObject& global,
     }
 
     if (!JS_GetPropertyById(cx, modules, prop, &resourceURIVal)) {
-      aRv.NoteJSContextException(cx);
+      aRv.NoteJSContextException(MC_UNSAFE(cx));
       return;
     }
 
-    if (!lazy_getter::DefineESModuleGetter(cx, target, prop, resourceURIVal)) {
-      aRv.NoteJSContextException(cx);
+    if (!lazy_getter::DefineESModuleGetter(MC_UNSAFE(cx), target, prop, resourceURIVal)) {
+      aRv.NoteJSContextException(MC_UNSAFE(cx));
       return;
     }
   }
@@ -1544,14 +1545,14 @@ constexpr auto kSkipSelfHosted = JS::SavedFrameSelfHosted::Exclude;
 void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
                                     nsIPrincipal* aPrincipal,
                                     JS::MutableHandle<JSObject*> aRetval) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   auto* principals = nsJSPrincipals::get(aPrincipal);
 
-  JS::StackCapture captureMode(JS::FirstSubsumedFrame(cx, principals->inner_));
+  JS::StackCapture captureMode(JS::FirstSubsumedFrame(MC_UNSAFE(cx), principals->inner_));
 
   MC::Rooted<JSObject*> frame(cx);
-  if (!JS::CaptureCurrentStack(cx, &frame, std::move(captureMode))) {
+  if (!JS::CaptureCurrentStack(MC_UNSAFE(cx), &frame, std::move(captureMode))) {
     JS_ClearPendingException(cx);
     aRetval.set(nullptr);
     return;
@@ -1562,7 +1563,7 @@ void ChromeUtils::GetCallerLocation(const GlobalObject& aGlobal,
   // privileged frames that we don't care about at the top of the stack, though.
   // We need to filter those out to get the frame we actually want.
   aRetval.set(
-      js::GetFirstSubsumedSavedFrame(cx, principals->inner_, frame, kSkipSelfHosted));
+      js::GetFirstSubsumedSavedFrame(MC_UNSAFE(cx), principals->inner_, frame, kSkipSelfHosted));
 }
 
 /* static */
@@ -1576,9 +1577,9 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
     return;
   }
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
-  auto cleanup = MakeScopeExit([&]() { aRv.NoteJSContextException(cx); });
+  auto cleanup = MakeScopeExit([&]() { aRv.NoteJSContextException(MC_UNSAFE(cx)); });
 
   MC::Rooted<JSObject*> retVal(cx);
   {
@@ -1586,19 +1587,19 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
     uint32_t line = 0;
     uint32_t column = 0;
 
-    Maybe<JSAutoRealm> ar;
+    MC::SandboxStack<Maybe<JSAutoRealm>> ar;
     MC::Rooted<JSObject*> stack(cx);
     if (aStack) {
       stack = UncheckedUnwrap(aStack);
-      ar.emplace(cx, stack);
+      ar->emplace(cx, stack);
 
       JSPrincipals* principals =
-          JS::GetRealmPrincipals(js::GetContextRealm(cx));
-      if (JS::GetSavedFrameLine(cx, principals, stack, &line) !=
+          JS::GetRealmPrincipals(js::GetContextRealm(MC_UNSAFE(cx)));
+      if (JS::GetSavedFrameLine(MC_UNSAFE(cx), principals, stack, &line) !=
               JS::SavedFrameResult::Ok ||
-          JS::GetSavedFrameColumn(cx, principals, stack, &column) !=
+          JS::GetSavedFrameColumn(MC_UNSAFE(cx), principals, stack, &column) !=
               JS::SavedFrameResult::Ok ||
-          JS::GetSavedFrameSource(cx, principals, stack, &fileName) !=
+          JS::GetSavedFrameSource(MC_UNSAFE(cx), principals, stack, &fileName) !=
               JS::SavedFrameResult::Ok) {
         return;
       }
@@ -1607,14 +1608,14 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
     MC::Rooted<JSString*> message(cx);
     {
       MC::Rooted<JS::Value> msgVal(cx);
-      if (!xpc::NonVoidStringToJsval(cx, aMessage, &msgVal)) {
+      if (!xpc::NonVoidStringToJsval(MC_UNSAFE(cx), aMessage, &msgVal)) {
         return;
       }
       message = msgVal.toString();
     }
 
     MC::Rooted<JS::Value> err(cx);
-    if (!JS::CreateError(cx, JSEXN_ERR, stack, fileName, line, column, nullptr,
+    if (!JS::CreateError(MC_UNSAFE(cx), JSEXN_ERR, stack, fileName, line, column, nullptr,
                          message, MC::NothingHandleValue(), &err)) {
       return;
     }

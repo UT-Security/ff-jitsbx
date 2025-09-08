@@ -49,7 +49,7 @@ already_AddRefed<CustomEvent> CustomEvent::Constructor(
   RefPtr<CustomEvent> e = new CustomEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   MC::Rooted<JS::Value> detail(aGlobal.Context(), aParam.mDetail);
-  e->InitCustomEvent(aGlobal.Context(), aType, aParam.mBubbles,
+  e->InitCustomEvent(MC_UNSAFE(aGlobal.Context()), aType, aParam.mBubbles,
                      aParam.mCancelable, detail);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);

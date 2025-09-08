@@ -984,6 +984,10 @@ inline JSObject* CheckedUnwrapDynamic(JSObject* obj, MCContext* cx,
 
 namespace js {
 
+inline void ReportAccessDenied(MCContext* cx) {
+    return ReportAccessDenied(cx->cx_);    
+}
+
 inline bool RecomputeWrappers(JSContext* cx,
                               const mc::CompartmentFilter& sourceFilter,
                               const mc::CompartmentFilter& targetFilter) {
