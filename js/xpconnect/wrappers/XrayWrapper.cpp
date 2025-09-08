@@ -1938,21 +1938,21 @@ static bool RecreateLostWaivers(MCContext* cx, const PropertyDescriptor* orig,
   if (valueWasWaived &&
       !mc::IsCrossCompartmentWrapper(&wrapped.value().toObject())) {
     rewaived = &wrapped.value().toObject();
-    rewaived = WrapperFactory::WaiveXray(MC_UNSAFE(cx), UncheckedUnwrap(rewaived));
+    rewaived = WrapperFactory::WaiveXray(cx, UncheckedUnwrap(rewaived));
     NS_ENSURE_TRUE(rewaived, false);
     wrapped.value().set(ObjectValue(*rewaived));
   }
   if (getterWasWaived && !mc::IsCrossCompartmentWrapper(wrapped.getter())) {
     // We can't end up with WindowProxy or Location as getters.
     MOZ_ASSERT(CheckedUnwrapStatic(wrapped.getter()));
-    rewaived = WrapperFactory::WaiveXray(MC_UNSAFE(cx), wrapped.getter());
+    rewaived = WrapperFactory::WaiveXray(cx, wrapped.getter());
     NS_ENSURE_TRUE(rewaived, false);
     wrapped.setGetter(rewaived);
   }
   if (setterWasWaived && !mc::IsCrossCompartmentWrapper(wrapped.setter())) {
     // We can't end up with WindowProxy or Location as setters.
     MOZ_ASSERT(CheckedUnwrapStatic(wrapped.setter()));
-    rewaived = WrapperFactory::WaiveXray(MC_UNSAFE(cx), wrapped.setter());
+    rewaived = WrapperFactory::WaiveXray(cx, wrapped.setter());
     NS_ENSURE_TRUE(rewaived, false);
     wrapped.setSetter(rewaived);
   }

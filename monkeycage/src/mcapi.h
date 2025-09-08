@@ -78,6 +78,11 @@ inline bool JS_WrapValue(MCContext* cx, JS::MutableHandleValue vp) {
   return JS_WrapValue(cx->cx_, vp);
 }
 
+inline JSObject* JS_TransplantObject(MCContext* cx, JS::HandleObject origobj,
+                                     JS::HandleObject target) {
+  return JS_TransplantObject(cx->cx_, origobj, target);
+}
+
 inline bool JS_ResolveStandardClass(MCContext* cx, JS::HandleObject obj,
                                     JS::HandleId id, MC::Tainted<bool*> resolved) {
   return JS_ResolveStandardClass(cx->cx_, obj, id, resolved.UNSAFE_unverified());

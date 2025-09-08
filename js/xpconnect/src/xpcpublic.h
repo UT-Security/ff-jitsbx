@@ -110,15 +110,15 @@ class Scriptability {
   bool mScriptBlockedByPolicy;
 };
 
-JSObject* TransplantObject(JSContext* cx, JS::Handle<JSObject*> origobj,
+JSObject* TransplantObject(MCContext* cx, JS::Handle<JSObject*> origobj,
                            JS::Handle<JSObject*> target);
 
-JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
+JSObject* TransplantObjectRetainingXrayExpandos(MCContext* cx,
                                                 JS::Handle<JSObject*> origobj,
                                                 JS::Handle<JSObject*> target);
 
 // If origObj has an xray waiver, nuke it before transplant.
-JSObject* TransplantObjectNukingXrayWaiver(JSContext* cx,
+JSObject* TransplantObjectNukingXrayWaiver(MCContext* cx,
                                            JS::Handle<JSObject*> origObj,
                                            JS::Handle<JSObject*> target);
 

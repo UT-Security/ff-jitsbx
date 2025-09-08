@@ -2397,7 +2397,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
   CallQueryInterface(native, &cache);
   cache->UpdateWrapperForNewGlobal(native, newobj);
 
-  aObj = xpc::TransplantObjectRetainingXrayExpandos(aCx, aObj, newobj);
+  aObj = xpc::TransplantObjectRetainingXrayExpandos(JS_SanitizeContext(aCx), aObj, newobj);
   if (!aObj) {
     MOZ_CRASH();
   }

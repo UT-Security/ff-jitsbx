@@ -561,6 +561,15 @@ inline const js::BaseProxyHandler* MC_UNSAFE(const mc::BaseProxyHandler* handler
 
 namespace js {
 
+inline JSObject* NewProxyObject(MCContext* cx,
+                                const mc::BaseProxyHandler* handler,
+                                JS::HandleValue priv, JSObject* proto,
+                                const ProxyOptions& options = ProxyOptions()) {
+  return NewProxyObject(cx->cx_, handler->UNSAFE_getProxyHandler(), priv, proto,
+                        options);
+}
+
+//TODO(abhishek): REMOVE this overload
 inline JSObject* NewProxyObject(JSContext* cx,
                                 const mc::BaseProxyHandler* handler,
                                 JS::HandleValue priv, JSObject* proto,
@@ -573,9 +582,18 @@ inline void assertEnteredPolicy(MCContext* cx, JSObject* obj, jsid id,
                                 BaseProxyHandler::Action act) {
   return assertEnteredPolicy(cx->cx_, obj, id, act);
 }
+
+inline void NukeNonCCWProxy(MCContext* cx, JS::HandleObject proxy) {
+  return NukeNonCCWProxy(cx->cx_, proxy);
+}
+
+inline void NukeRemovedCrossCompartmentWrapper(MCContext* cx,
+                                               JSObject* wrapper) {
+  return NukeRemovedCrossCompartmentWrapper(cx->cx_, wrapper);
+}
 }  // namespace js
 #else
-#include "js/Proxy.h"
+#  include "js/Proxy.h"
 
 namespace mc {
 using BaseProxyHandler = js::BaseProxyHandler;
