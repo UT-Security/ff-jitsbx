@@ -513,9 +513,9 @@ class Wrapper : public ForwardingProxyHandler {
     return UNSAFE_getWrapper()->js::Wrapper::dynamicCheckedUnwrapAllowed(obj, cx);
   }
 
-  static inline JSObject* New(JSContext* cx, JSObject* obj, const Wrapper* handler,
+  static inline JSObject* New(MCContext* cx, JSObject* obj, const Wrapper* handler,
                        const js::WrapperOptions& options = js::WrapperOptions()) {
-    return js::Wrapper::New(cx, obj, handler->UNSAFE_getWrapper(), options);
+    return js::Wrapper::New(cx->cx_, obj, handler->UNSAFE_getWrapper(), options);
   }
 
   static JSObject* Renew(JSObject* existing, JSObject* obj,
@@ -1006,7 +1006,29 @@ inline JSObject* UncheckedUnwrap(JSObject* obj,
                                         MC::Tainted<unsigned*> flagsp) {
     return UncheckedUnwrap(obj, stopAtWindowProxy, flagsp.UNSAFE_unverified());
 }
+
+inline void NukeCrossCompartmentWrapper(MCContext* cx,
+                                               JSObject* wrapper) {
+    return NukeCrossCompartmentWrapper(cx->cx_, wrapper);
 }
+
+inline void NukeCrossCompartmentWrapperIfExists(MCContext* cx,
+                                                       JS::Compartment* source,
+                                                       JSObject* target) {
+    return NukeCrossCompartmentWrapperIfExists(cx->cx_, source, target);
+}
+
+inline bool RemapAllWrappersForObject(MCContext* cx, JS::HandleObject oldTarget,
+                                      JS::HandleObject newTarget) {
+  return RemapAllWrappersForObject(cx->cx_, oldTarget, newTarget);
+}
+
+inline bool RecomputeWrappers(MCContext* cx,
+                              const CompartmentFilter& sourceFilter,
+                              const CompartmentFilter& targetFilter) {
+    return RecomputeWrappers(cx->cx_, sourceFilter, targetFilter);
+}
+}  // namespace js
 #else
 namespace mc {
 

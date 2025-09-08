@@ -767,7 +767,7 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   if (existing) {
     mc::Wrapper::Renew(existing, obj, wrapper);
   }
-  return mc::Wrapper::New(cx, obj, wrapper);
+  return mc::Wrapper::New(JS_SanitizeContext(cx), obj, wrapper);
 }
 
 static const MCWrapObjectCallbacks* WrapObjectCallbacks() {

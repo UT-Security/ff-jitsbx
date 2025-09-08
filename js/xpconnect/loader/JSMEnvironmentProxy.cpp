@@ -105,7 +105,7 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
       JS::MutableHandleVector<JS::PropertyKey> aProps) const override;
 
  private:
-  static JSObject* getGlobal(JSContext* aCx, JS::Handle<JSObject*> aProxy) {
+  static JSObject* getGlobal(MCContext* aCx, JS::Handle<JSObject*> aProxy) {
     MC::Rooted<JSObject*> globalObj(aCx,
                                     &js::GetProxyPrivate(aProxy).toObject());
     return globalObj;
@@ -123,7 +123,7 @@ const JSMEnvironmentProxyHandler* JSMEnvironmentProxyHandler::gHandler() {
 
 const char JSMEnvironmentProxyHandler::gFamily = 0;
 
-JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
+JSObject* ResolveModuleObjectPropertyById(MCContext* aCx,
                                           JS::Handle<JSObject*> aModObj,
                                           JS::Handle<JS::PropertyKey> aId) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
@@ -140,7 +140,7 @@ JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
   return aModObj;
 }
 
-JSObject* ResolveModuleObjectProperty(JSContext* aCx,
+JSObject* ResolveModuleObjectProperty(MCContext* aCx,
                                       JS::Handle<JSObject*> aModObj,
                                       const char* aName) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
@@ -160,9 +160,9 @@ bool JSMEnvironmentProxyHandler::getOwnPropertyDescriptor(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   if (!JS_GetOwnPropertyDescriptorById(aCx, holder, aId, aDesc)) {
     return false;
   }
@@ -192,9 +192,9 @@ bool JSMEnvironmentProxyHandler::has(MCContext* aCx,
                                      JS::Handle<JSObject*> aProxy,
                                      JS::Handle<JS::PropertyKey> aId,
                                      bool* aBp) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   return JS_HasPropertyById(aCx, holder, aId, aBp);
 }
 
@@ -203,9 +203,9 @@ bool JSMEnvironmentProxyHandler::get(MCContext* aCx,
                                      JS::Handle<JS::Value> aReceiver,
                                      JS::Handle<JS::PropertyKey> aId,
                                      JS::MutableHandle<JS::Value> aVp) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   MC::Rooted<JSObject*> holder(
-      aCx, ResolveModuleObjectPropertyById(MC_UNSAFE(aCx), globalObj, aId));
+      aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));
   if (!JS_GetPropertyById(aCx, holder, aId, aVp)) {
     return false;
   }
@@ -220,7 +220,7 @@ bool JSMEnvironmentProxyHandler::get(MCContext* aCx,
 bool JSMEnvironmentProxyHandler::ownPropertyKeys(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<JS::PropertyKey> aProps) const {
-  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(MC_UNSAFE(aCx), aProxy));
+  MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   MC::Rooted<JS::IdVector> globalIds(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, globalObj, &globalIds)) {
     return false;
@@ -249,7 +249,7 @@ bool JSMEnvironmentProxyHandler::ownPropertyKeys(
   return true;
 }
 
-JSObject* CreateJSMEnvironmentProxy(JSContext* aCx,
+JSObject* CreateJSMEnvironmentProxy(MCContext* aCx,
                                     JS::Handle<JSObject*> aGlobalObj) {
   js::ProxyOptions options;
   options.setLazyProto(true);

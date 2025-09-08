@@ -9,6 +9,7 @@
 
 #include "js/Wrapper.h"
 #include "monkeycage/Context.h"
+#include "monkeycage/Tainted.h"
 
 namespace xpc {
 
@@ -39,9 +40,9 @@ class WrapperFactory {
   static JSObject* GetXrayWaiver(JS::Handle<JSObject*> obj);
   // If allowExisting is true, there is an existing waiver for obj in
   // its scope, but we want to replace it with the new one.
-  static JSObject* CreateXrayWaiver(JSContext* cx, JS::Handle<JSObject*> obj,
+  static JSObject* CreateXrayWaiver(MCContext* cx, JS::Handle<JSObject*> obj,
                                     bool allowExisting = false);
-  static JSObject* WaiveXray(JSContext* cx, JSObject* obj);
+  static JSObject* WaiveXray(MCContext* cx, JSObject* obj);
 
   // Computes whether we should allow the creation of an Xray waiver from
   // |target| to |origin|.
@@ -51,14 +52,14 @@ class WrapperFactory {
   static bool AllowWaiver(JSObject* wrapper);
 
   // Prepare a given object for wrapping in a new compartment.
-  static void PrepareForWrapping(JSContext* cx, JS::Handle<JSObject*> scope,
+  static void PrepareForWrapping(MC::Tainted<JSContext*> cx, JS::Handle<JSObject*> scope,
                                  JS::Handle<JSObject*> origObj,
                                  JS::Handle<JSObject*> obj,
                                  JS::Handle<JSObject*> objectPassedToWrap,
                                  JS::MutableHandle<JSObject*> retObj);
 
   // Rewrap an object that is about to cross compartment boundaries.
-  static JSObject* Rewrap(JSContext* cx, JS::Handle<JSObject*> existing,
+  static MC::Tainted<JSObject*> Rewrap(MC::Tainted<JSContext*> cx, JS::Handle<JSObject*> existing,
                           JS::Handle<JSObject*> obj);
 
   // Wrap wrapped object into a waiver wrapper and then re-wrap it.

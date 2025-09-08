@@ -1381,7 +1381,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
   MC::RootedValue symbols(cx);
   {
     MC::RootedObject obj(
-        cx, ResolveModuleObjectProperty(cx, aMod->obj, "EXPORTED_SYMBOLS"));
+        cx, ResolveModuleObjectProperty(JS_SanitizeContext(cx), aMod->obj, "EXPORTED_SYMBOLS"));
     if (!obj || !JS_GetProperty(cx, obj, "EXPORTED_SYMBOLS", &symbols)) {
       return ReportOnCallerUTF8(cxhelper, ERROR_NOT_PRESENT, aInfo);
     }
@@ -1424,7 +1424,7 @@ nsresult mozJSModuleLoader::ExtractExports(JSContext* aCx,
       return ReportOnCallerUTF8(cxhelper, ERROR_ARRAY_ELEMENT, aInfo, i);
     }
 
-    symbolHolder = ResolveModuleObjectPropertyById(cx, aMod->obj, symbolId);
+    symbolHolder = ResolveModuleObjectPropertyById(JS_SanitizeContext(cx), aMod->obj, symbolId);
     if (!symbolHolder ||
         !JS_GetPropertyById(cx, symbolHolder, symbolId, &value)) {
       MC::RootedString symbolStr(cx, symbolId.toString());
@@ -1654,7 +1654,7 @@ nsresult mozJSModuleLoader::Import(JSContext* aCx, const nsACString& aLocation,
   {
     MC::SandboxStack<JSAutoRealm> ar(aCx, mod->obj);
 
-    globalProxy = CreateJSMEnvironmentProxy(aCx, mod->obj);
+    globalProxy = CreateJSMEnvironmentProxy(JS_SanitizeContext(aCx), mod->obj);
     if (!globalProxy) {
       return NS_ERROR_FAILURE;
     }

@@ -58,7 +58,7 @@ JSObject* Wrap(JSContext* aCx, JS::Handle<JSObject*> aExisting,
                        mc::OpaqueCrossCompartmentWrapper::getSingleton());
   }
 
-  return mc::Wrapper::New(aCx, aObj,
+  return mc::Wrapper::New(JS_SanitizeContext(aCx), aObj,
                           mc::OpaqueCrossCompartmentWrapper::getSingleton());
 }
 

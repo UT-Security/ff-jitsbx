@@ -96,7 +96,7 @@ JSObject* WrapperFactory::GetXrayWaiver(HandleObject obj) {
   return scope->mWaiverWrapperMap->Find(obj);
 }
 
-JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
+JSObject* WrapperFactory::CreateXrayWaiver(MCContext* cx, HandleObject obj,
                                            bool allowExisting) {
   // The caller is required to have already done a lookup, unless it's
   // trying to replace an existing waiver.
@@ -115,13 +115,13 @@ JSObject* WrapperFactory::CreateXrayWaiver(JSContext* cx, HandleObject obj,
   if (!scope->mWaiverWrapperMap) {
     scope->mWaiverWrapperMap = mozilla::MakeUnique<JSObject2JSObjectMap>();
   }
-  if (!scope->mWaiverWrapperMap->Add(cx, obj, waiver)) {
+  if (!scope->mWaiverWrapperMap->Add(MC_UNSAFE(cx), obj, waiver)) {
     return nullptr;
   }
   return waiver;
 }
 
-JSObject* WrapperFactory::WaiveXray(JSContext* cx, JSObject* objArg) {
+JSObject* WrapperFactory::WaiveXray(MCContext* cx, JSObject* objArg) {
   MC::RootedObject obj(cx, objArg);
   obj = UncheckedUnwrap(obj);
   MOZ_ASSERT(!js::IsWindow(obj));
@@ -148,7 +148,7 @@ bool WrapperFactory::AllowWaiver(JSObject* wrapper) {
                      JS::GetCompartment(js::UncheckedUnwrap(wrapper)));
 }
 
-inline bool ShouldWaiveXray(JSContext* cx, JSObject* originalObj) {
+inline bool ShouldWaiveXray(MCContext* cx, JSObject* originalObj) {
   unsigned flags;
   (void)js::UncheckedUnwrap(originalObj, /* stopAtWindowProxy = */ true,
                             &flags);
@@ -186,7 +186,7 @@ inline bool ShouldWaiveXray(JSContext* cx, JSObject* originalObj) {
 
 // Special handling is needed when wrapping local and remote window proxies.
 // This function returns true if it found a window proxy and dealt with it.
-static bool MaybeWrapWindowProxy(JSContext* cx, HandleObject origObj,
+static bool MaybeWrapWindowProxy(MCContext* cx, HandleObject origObj,
                                  HandleObject obj, MutableHandleObject retObj) {
   bool isWindowProxy = js::IsWindowProxy(obj);
 
@@ -221,7 +221,7 @@ static bool MaybeWrapWindowProxy(JSContext* cx, HandleObject origObj,
   } else {
     // If bc is not in process, then use a remote window proxy, whether or not
     // obj is one already.
-    if (!dom::GetRemoteOuterWindowProxy(cx, bc, origObj, retObj)) {
+    if (!dom::GetRemoteOuterWindowProxy(MC_UNSAFE(cx), bc, origObj, retObj)) {
       MOZ_CRASH("GetRemoteOuterWindowProxy failed");
     }
   }
@@ -229,11 +229,14 @@ static bool MaybeWrapWindowProxy(JSContext* cx, HandleObject origObj,
   return true;
 }
 
-void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
+void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObject scope,
                                         HandleObject origObj,
                                         HandleObject objArg,
                                         HandleObject objectPassedToWrap,
                                         MutableHandleObject retObj) {
+  MCContext* cx = tcx.copy_and_verify_address([](uintptr_t val) {
+    return JS_SanitizeContext((JSContext*)val);
+  });
   // The JS engine calls ToWindowProxyIfWindow and deals with dead wrappers.
   MOZ_ASSERT(!js::IsWindow(objArg));
   MOZ_ASSERT(!JS_IsDeadWrapper(objArg));
@@ -270,7 +273,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
   XPCWrappedNative* wn = XPCWrappedNative::Get(obj);
 
   MC::SandboxStack<JSAutoRealm> ar(cx, obj);
-  XPCCallContext ccx(cx, obj);
+  XPCCallContext ccx(MC_UNSAFE(cx), obj);
   MC::RootedObject wrapScope(cx, scope);
 
   if (ccx.GetScriptable() && ccx.GetScriptable()->WantPreCreate()) {
@@ -281,7 +284,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
     // being accessed across compartments. We would really prefer to
     // replace the above code with a test that says "do you only have one
     // wrapper?"
-    nsresult rv = wn->GetScriptable()->PreCreate(wn->Native(), cx, scope,
+    nsresult rv = wn->GetScriptable()->PreCreate(wn->Native(), MC_UNSAFE(cx), scope,
                                                  wrapScope.address());
     if (NS_FAILED(rv)) {
       retObj.set(waive ? WaiveXray(cx, obj) : obj);
@@ -308,7 +311,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
   // so we don't have to.
   MC::RootedValue v(cx);
   nsresult rv = nsXPConnect::XPConnect()->WrapNativeToJSVal(
-      cx, wrapScope, wn->Native(), nullptr, &NS_GET_IID(nsISupports), false,
+      MC_UNSAFE(cx), wrapScope, wn->Native(), nullptr, &NS_GET_IID(nsISupports), false,
       &v);
   if (NS_FAILED(rv)) {
     return;
@@ -329,7 +332,7 @@ void WrapperFactory::PrepareForWrapping(JSContext* cx, HandleObject scope,
   // to do this cleverly in the common case to avoid too much overhead.
   XPCWrappedNative* newwn = XPCWrappedNative::Get(obj);
   RefPtr<XPCNativeSet> unionSet =
-      XPCNativeSet::GetNewOrUsed(cx, newwn->GetSet(), wn->GetSet(), false);
+      XPCNativeSet::GetNewOrUsed(MC_UNSAFE(cx), newwn->GetSet(), wn->GetSet(), false);
   if (!unionSet) {
     return;
   }
@@ -465,13 +468,15 @@ static const mc::Wrapper* SelectWrapper(bool securityWrapper, XrayType xrayType,
   return FilteringWrapper<mc::CrossCompartmentSecurityWrapper, Opaque>::getSingleton();
 }
 
-JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
+MC::Tainted<JSObject*> WrapperFactory::Rewrap(MC::Tainted<JSContext*> tcx, HandleObject existing,
                                  HandleObject obj) {
   MOZ_ASSERT(!mc::IsWrapper(obj) || mc::GetProxyHandler(obj) == getXrayWaiver() ||
                  js::IsWindowProxy(obj),
              "wrapped object passed to rewrap");
   MOZ_ASSERT(!js::IsWindow(obj));
   MOZ_ASSERT(dom::IsJSAPIActive());
+  MCContext* cx = tcx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
 
   // Compute the information we need to select the right wrapper.
   JS::Realm* origin = js::GetNonCCWObjectRealm(obj);
@@ -601,11 +606,14 @@ JSObject* WrapperFactory::Rewrap(JSContext* cx, HandleObject existing,
 
   DEBUG_CheckUnwrapSafety(obj, wrapper, origin, target);
 
+  MC::Tainted<JSObject*> ret;
   if (existing) {
-    return mc::Wrapper::Renew(existing, obj, wrapper);
+    ret.assign_raw_pointer(mc::Wrapper::Renew(existing, obj, wrapper));
+    return ret;
   }
 
-  return mc::Wrapper::New(cx, obj, wrapper);
+  ret.assign_raw_pointer(mc::Wrapper::New(cx, obj, wrapper));
+  return ret;
 }
 
 // Call WaiveXrayAndWrap when you have a JS object that you don't want to be
@@ -646,7 +654,7 @@ bool WrapperFactory::WaiveXrayAndWrap(MCContext* cx,
   // to things in |obj|'s compartment.
   JS::Compartment* target = js::GetContextCompartment(cx);
   JS::Compartment* origin = JS::GetCompartment(obj);
-  obj = AllowWaiver(target, origin) ? WaiveXray(MC_UNSAFE(cx), obj) : obj;
+  obj = AllowWaiver(target, origin) ? WaiveXray(cx, obj) : obj;
   if (!obj) {
     return false;
   }
@@ -663,7 +671,7 @@ bool WrapperFactory::WaiveXrayAndWrap(MCContext* cx,
  * waivers get fixed up properly.
  */
 
-static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
+static bool FixWaiverAfterTransplant(MCContext* cx, HandleObject oldWaiver,
                                      HandleObject newobj,
                                      bool crossCompartmentTransplant) {
   MOZ_ASSERT(mc::IsWrapperHandler(oldWaiver, getXrayWaiver()));
@@ -728,7 +736,7 @@ static bool FixWaiverAfterTransplant(JSContext* cx, HandleObject oldWaiver,
   return true;
 }
 
-JSObject* TransplantObject(JSContext* cx, JS::HandleObject origobj,
+JSObject* TransplantObject(MCContext* cx, JS::HandleObject origobj,
                            JS::HandleObject target) {
   MC::RootedObject oldWaiver(cx, WrapperFactory::GetXrayWaiver(origobj));
   MOZ_ASSERT_IF(oldWaiver, GetNonCCWObjectRealm(oldWaiver) ==
@@ -756,7 +764,7 @@ JSObject* TransplantObject(JSContext* cx, JS::HandleObject origobj,
   return newIdentity;
 }
 
-JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
+JSObject* TransplantObjectRetainingXrayExpandos(MCContext* cx,
                                                 JS::HandleObject origobj,
                                                 JS::HandleObject target) {
   // Save the chain of objects that carry origobj's Xray expando properties
@@ -769,7 +777,7 @@ JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
 
   // Copy Xray expando properties to the new wrapper.
   if (!GetXrayTraits(newIdentity)
-           ->cloneExpandoChain(JS_SanitizeContext(cx), newIdentity, expandoChain)) {
+           ->cloneExpandoChain(cx, newIdentity, expandoChain)) {
     // Failure here means some expandos were not copied over. The object graph
     // and the Xray machinery are left in a consistent state, but mysteriously
     // losing these expandos is too weird to allow.
@@ -779,7 +787,7 @@ JSObject* TransplantObjectRetainingXrayExpandos(JSContext* cx,
   return newIdentity;
 }
 
-static void NukeXrayWaiver(JSContext* cx, JS::HandleObject obj) {
+static void NukeXrayWaiver(MCContext* cx, JS::HandleObject obj) {
   MC::RootedObject waiver(cx, WrapperFactory::GetXrayWaiver(obj));
   if (!waiver) {
     return;
@@ -798,7 +806,7 @@ static void NukeXrayWaiver(JSContext* cx, JS::HandleObject obj) {
   }
 }
 
-JSObject* TransplantObjectNukingXrayWaiver(JSContext* cx,
+JSObject* TransplantObjectNukingXrayWaiver(MCContext* cx,
                                            JS::HandleObject origObj,
                                            JS::HandleObject target) {
   NukeXrayWaiver(cx, origObj);

@@ -207,6 +207,10 @@ class AppPointer {
  public:
   AppPointer(T data) : data_(data) {}
 
+  inline auto UNSAFE_unverified() const {
+    return data_;
+  }
+
   template <typename T_Func>
   inline auto copy_and_verify(T_Func verifier) const {
     static_assert(std::is_pointer_v<T>,

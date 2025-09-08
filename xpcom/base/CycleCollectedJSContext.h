@@ -114,8 +114,8 @@ class FinalizationRegistryCleanup {
   MOZ_CAN_RUN_SCRIPT void DoCleanup();
 
  private:
-  static void QueueCallback(JSFunction* aDoCleanup, JSObject* aIncumbentGlobal,
-                            void* aData);
+  static void QueueCallback(MC::Tainted<JSFunction*> aDoCleanup, MC::Tainted<JSObject*> aIncumbentGlobal,
+                            MC::AppPointer<void*> aData);
 
   class CleanupRunnable;
 
@@ -150,8 +150,8 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
 
  private:
   static void PromiseRejectionTrackerCallback(
-      JSContext* aCx, bool aMutedErrors, JS::Handle<JSObject*> aPromise,
-      JS::PromiseRejectionHandlingState state, void* aData);
+      MC::Tainted<JSContext*> aCx, bool aMutedErrors, JS::Handle<JSObject*> aPromise,
+      JS::PromiseRejectionHandlingState state, MC::AppPointer<void*> aData);
 
   void AfterProcessMicrotasks();
 

@@ -12,7 +12,7 @@
 #include "monkeycage/Debug.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Promise.h"
-#include "js/Utility.h"
+#include "monkeycage/Utility.h"
 #include "mcapi.h"
 #include "monkeycage/Context.h"
 #include "mozilla/ArrayUtils.h"
@@ -145,7 +145,7 @@ nsresult CycleCollectedJSContext::Initialize(MCRuntime* aParentRuntime,
   JS::SetJobQueue(mJSContext, this);
 
   static auto PromiseRejectionTrackerCallbackCb =
-      MC::Sandbox::RegisterCallback(PromiseRejectionTrackerCallback);
+      MC::Sandbox::RegisterTaintedCallback(PromiseRejectionTrackerCallback);
   JS::SetPromiseRejectionTrackerCallback(mJSContext,
                                          PromiseRejectionTrackerCallbackCb, this);
   mUncaughtRejections.init(mJSContext,
@@ -319,11 +319,13 @@ CycleCollectedJSContext::saveJobQueue(MCContext* cx) {
 
 /* static */
 void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
-    JSContext* MC_UNSAN(aCx), bool aMutedErrors, JS::HandleObject aPromise,
-    JS::PromiseRejectionHandlingState state, void* aData) {
-  CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(aData);
+    MC::Tainted<JSContext*> tCx, bool aMutedErrors, JS::HandleObject aPromise,
+    JS::PromiseRejectionHandlingState state, MC::AppPointer<void*> aData) {
+  CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(aData.UNSAFE_unverified());
+  MCContext* aCx = tCx.copy_and_verify_address([](uintptr_t val) {
+    return JS_SanitizeContext((JSContext*)val);
+  });
 
-  MC_SANITIZE(aCx);
   MOZ_ASSERT(aCx == self->Context());
   MOZ_ASSERT(Get() == self);
 
@@ -830,17 +832,18 @@ void FinalizationRegistryCleanup::Destroy() {
 void FinalizationRegistryCleanup::Init() {
   MCContext* cx = mContext->Context();
   mCallbacks.init(cx);
-  static auto QueueCallbackCb = MC::Sandbox::RegisterCallback(QueueCallback);
+  static auto QueueCallbackCb = MC::Sandbox::RegisterTaintedCallback(QueueCallback);
   JS::SetHostCleanupFinalizationRegistryCallback(cx, QueueCallbackCb, this);
 }
 
 /* static */
-void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,
-                                                JSObject* aIncumbentGlobal,
-                                                void* aData) {
+void FinalizationRegistryCleanup::QueueCallback(
+    MC::Tainted<JSFunction*> aDoCleanup,
+    MC::Tainted<JSObject*> aIncumbentGlobal, MC::AppPointer<void*> aData) {
   FinalizationRegistryCleanup* cleanup =
-      static_cast<FinalizationRegistryCleanup*>(aData);
-  cleanup->QueueCallback(aDoCleanup, aIncumbentGlobal);
+      static_cast<FinalizationRegistryCleanup*>(aData.UNSAFE_unverified());
+  cleanup->QueueCallback(aDoCleanup.UNSAFE_unverified(),
+                         aIncumbentGlobal.UNSAFE_unverified());
 }
 
 void FinalizationRegistryCleanup::QueueCallback(JSFunction* aDoCleanup,

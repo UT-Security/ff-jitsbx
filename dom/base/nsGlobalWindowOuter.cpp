@@ -1301,7 +1301,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   js::WrapperOptions options;
   options.setClass(OuterWindowProxyClass());
   JSObject* obj =
-      mc::Wrapper::New(cx, global,
+      mc::Wrapper::New(JS_SanitizeContext(cx), global,
                        isChrome ? nsChromeOuterWindowProxy::singleton()
                                 : nsOuterWindowProxy::singleton(),
                        options);
@@ -2337,7 +2337,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
                                JS::PrivateValue(nullptr));
       js::SetProxyReservedSlot(obj, HOLDER_WEAKMAP_SLOT, JS::UndefinedValue());
 
-      outerObject = xpc::TransplantObjectNukingXrayWaiver(cx, obj, outerObject);
+      outerObject = xpc::TransplantObjectNukingXrayWaiver(JS_SanitizeContext(cx), obj, outerObject);
 
       if (!outerObject) {
         mBrowsingContext->ClearWindowProxy();
@@ -2584,7 +2584,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
     MOZ_CRASH("PrepareForProcessChange GetRemoteOuterWindowProxy");
   }
 
-  if (!xpc::TransplantObjectNukingXrayWaiver(cx, localProxy, remoteProxy)) {
+  if (!xpc::TransplantObjectNukingXrayWaiver(JS_SanitizeContext(cx), localProxy, remoteProxy)) {
     MOZ_CRASH("PrepareForProcessChange TransplantObject");
   }
 }

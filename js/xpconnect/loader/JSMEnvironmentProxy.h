@@ -14,15 +14,15 @@
 namespace mozilla {
 namespace loader {
 
-JSObject* ResolveModuleObjectPropertyById(JSContext* aCx,
+JSObject* ResolveModuleObjectPropertyById(MCContext* aCx,
                                           JS::Handle<JSObject*> aModObj,
                                           JS::Handle<JS::PropertyKey> aId);
 
-JSObject* ResolveModuleObjectProperty(JSContext* aCx,
+JSObject* ResolveModuleObjectProperty(MCContext* aCx,
                                       JS::Handle<JSObject*> aModObj,
                                       const char* aName);
 
-JSObject* CreateJSMEnvironmentProxy(JSContext* aCx,
+JSObject* CreateJSMEnvironmentProxy(MCContext* aCx,
                                     JS::Handle<JSObject*> aGlobalObj);
 
 }  // namespace loader

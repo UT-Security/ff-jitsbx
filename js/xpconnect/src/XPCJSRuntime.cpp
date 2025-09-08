@@ -2795,8 +2795,8 @@ class XPCJSSourceHook : public mc::SourceHook {
 
 static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
   static const MCWrapObjectCallbacks inner_{
-      MC::Sandbox::RegisterCallback(xpc::WrapperFactory::Rewrap),
-      MC::Sandbox::RegisterCallback(xpc::WrapperFactory::PrepareForWrapping),
+      MC::Sandbox::RegisterTaintedCallback(xpc::WrapperFactory::Rewrap),
+      MC::Sandbox::RegisterTaintedCallback(xpc::WrapperFactory::PrepareForWrapping),
   };
   return &inner_;
 }
