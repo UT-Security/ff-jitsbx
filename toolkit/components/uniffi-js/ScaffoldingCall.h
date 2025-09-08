@@ -127,7 +127,7 @@ class ScaffoldingCallHandler {
     auto callResult = CallScaffoldingFunc(aScaffoldingFunc,
                                           std::move(convertResult.unwrap()));
 
-    ReturnResult(aGlobal.Context(), callResult, aReturnValue, aFuncName);
+    ReturnResult(MC_UNSAFE(aGlobal.Context()), callResult, aReturnValue, aFuncName);
   }
 
  private:

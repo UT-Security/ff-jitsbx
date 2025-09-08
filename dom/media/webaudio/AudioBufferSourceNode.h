@@ -33,7 +33,7 @@ class AudioBufferSourceNode final : public AudioScheduledSourceNode,
   static already_AddRefed<AudioBufferSourceNode> Constructor(
       const GlobalObject& aGlobal, AudioContext& aAudioContext,
       const AudioBufferSourceOptions& aOptions) {
-    return Create(aGlobal.Context(), aAudioContext, aOptions);
+    return Create(MC_UNSAFE(aGlobal.Context()), aAudioContext, aOptions);
   }
 
   JSObject* WrapObject(JSContext* aCx,

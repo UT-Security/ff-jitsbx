@@ -263,7 +263,7 @@ SafeRefPtr<Request> Request::Constructor(const GlobalObject& aGlobal,
                                          const RequestInit& aInit,
                                          ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
-  return Constructor(global, aGlobal.Context(), aInput, aInit, aRv);
+  return Constructor(global, MC_UNSAFE(aGlobal.Context()), aInput, aInit, aRv);
 }
 
 /*static*/

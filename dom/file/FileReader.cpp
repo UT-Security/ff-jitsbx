@@ -151,7 +151,7 @@ already_AddRefed<FileReader> FileReader::Constructor(
   RefPtr<WeakWorkerRef> workerRef;
 
   if (!NS_IsMainThread()) {
-    JSContext* cx = aGlobal.Context();
+    JSContext* cx = MC_UNSAFE(aGlobal.Context());
     WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
     workerRef = WeakWorkerRef::Create(workerPrivate);

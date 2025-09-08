@@ -17,6 +17,11 @@
 
 namespace JS {
 
+inline JSObject* CopyArrayBuffer(
+    MCContext* cx, JS::Handle<JSObject*> maybeArrayBuffer) {
+ return CopyArrayBuffer(cx->cx_, maybeArrayBuffer);
+}
+
 inline uint8_t* GetArrayBufferData(JSObject* obj, bool* isSharedMemory,
                                    const MC::Tainted<AutoCheckCannotGC*> nogc) {
   return GetArrayBufferData(obj, isSharedMemory, *nogc.UNSAFE_unverified());

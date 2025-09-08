@@ -253,7 +253,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::Only(const GlobalObject& aGlobal,
   RefPtr<IDBKeyRange> keyRange =
       new IDBKeyRange(aGlobal.GetAsSupports(), false, false, true);
 
-  GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aValue, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -268,7 +268,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::LowerBound(const GlobalObject& aGlobal,
   RefPtr<IDBKeyRange> keyRange =
       new IDBKeyRange(aGlobal.GetAsSupports(), aOpen, true, false);
 
-  GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Lower(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aValue, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -283,7 +283,7 @@ RefPtr<IDBKeyRange> IDBKeyRange::UpperBound(const GlobalObject& aGlobal,
   RefPtr<IDBKeyRange> keyRange =
       new IDBKeyRange(aGlobal.GetAsSupports(), true, aOpen, false);
 
-  GetKeyFromJSVal(aGlobal.Context(), aValue, keyRange->Upper(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aValue, keyRange->Upper(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -300,12 +300,12 @@ RefPtr<IDBKeyRange> IDBKeyRange::Bound(const GlobalObject& aGlobal,
   RefPtr<IDBKeyRange> keyRange =
       new IDBKeyRange(aGlobal.GetAsSupports(), aLowerOpen, aUpperOpen, false);
 
-  GetKeyFromJSVal(aGlobal.Context(), aLower, keyRange->Lower(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aLower, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  GetKeyFromJSVal(aGlobal.Context(), aUpper, keyRange->Upper(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aUpper, keyRange->Upper(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -327,12 +327,12 @@ RefPtr<IDBLocaleAwareKeyRange> IDBLocaleAwareKeyRange::Bound(
   RefPtr<IDBLocaleAwareKeyRange> keyRange = new IDBLocaleAwareKeyRange(
       aGlobal.GetAsSupports(), aLowerOpen, aUpperOpen, false);
 
-  GetKeyFromJSVal(aGlobal.Context(), aLower, keyRange->Lower(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aLower, keyRange->Lower(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
 
-  GetKeyFromJSVal(aGlobal.Context(), aUpper, keyRange->Upper(), aRv);
+  GetKeyFromJSVal(MC_UNSAFE(aGlobal.Context()), aUpper, keyRange->Upper(), aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

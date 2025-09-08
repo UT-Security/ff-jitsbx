@@ -59,7 +59,7 @@ already_AddRefed<ImageData> ImageData::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
   js::AssertSameCompartment(aGlobal.Context(), aGlobal.Get());
-  JSObject* data = Uint8ClampedArray::Create(aGlobal.Context(), length.value());
+  JSObject* data = Uint8ClampedArray::Create(MC_UNSAFE(aGlobal.Context()), length.value());
   if (!data) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;

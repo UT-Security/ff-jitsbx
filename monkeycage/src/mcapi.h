@@ -179,6 +179,11 @@ inline bool JS_SetPrototype(MCContext* cx, JS::HandleObject obj,
   return JS_SetPrototype(cx->cx_, obj, proto);
 }
 
+inline bool JS_AssignObject(MCContext* cx, JS::HandleObject target,
+                            JS::HandleObject src) {
+  return JS_AssignObject(cx->cx_, target, src);
+}
+
 namespace JS {
 
 inline JSFunction* GetSelfHostedFunction(MCContext* cx,

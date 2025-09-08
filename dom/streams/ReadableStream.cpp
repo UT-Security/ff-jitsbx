@@ -11,10 +11,10 @@
 #include "ReadableStreamTee.h"
 #include "StreamUtils.h"
 #include "TeeState.h"
-#include "js/Array.h"
-#include "js/Exception.h"
-#include "js/PropertyAndElement.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/Array.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/PropertyAndElement.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
@@ -168,11 +168,11 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
   if (underlyingSourceObj) {
     MC::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSourceObj));
-    dom::BindingCallContext callCx(aGlobal.Context(),
+    dom::BindingCallContext callCx(MC_UNSAFE(aGlobal.Context()),
                                    "ReadableStream.constructor");
     aRv.MightThrowJSException();
     if (!underlyingSourceDict.Init(callCx, objValue)) {
-      aRv.StealExceptionFromJSContext(aGlobal.Context());
+      aRv.StealExceptionFromJSContext(MC_UNSAFE(aGlobal.Context()));
       return nullptr;
     }
   }
@@ -200,7 +200,7 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
 
     // Step 4.3
     SetUpReadableByteStreamControllerFromUnderlyingSource(
-        aGlobal.Context(), readableStream, underlyingSourceObj,
+        MC_UNSAFE(aGlobal.Context()), readableStream, underlyingSourceObj,
         underlyingSourceDict, highWaterMark, aRv);
     if (aRv.Failed()) {
       return nullptr;
@@ -230,7 +230,7 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
 
   // Step 5.4.
   SetupReadableStreamDefaultControllerFromUnderlyingSource(
-      aGlobal.Context(), readableStream, underlyingSourceObj,
+      MC_UNSAFE(aGlobal.Context()), readableStream, underlyingSourceObj,
       underlyingSourceDict, highWaterMark, sizeAlgorithm, aRv);
   if (aRv.Failed()) {
     return nullptr;

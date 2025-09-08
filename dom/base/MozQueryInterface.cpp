@@ -30,7 +30,7 @@ static int CompareIIDs(const nsIID& aA, const nsIID& aB) {
 /* static */
 MozQueryInterface* ChromeUtils::GenerateQI(
     const GlobalObject& aGlobal, const Sequence<JS::Value>& aInterfaces) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   nsTArray<nsIID> ifaces;
 
@@ -39,14 +39,14 @@ MozQueryInterface* ChromeUtils::GenerateQI(
     iface = aInterfaces[idx];
 
     // Handle ID objects
-    if (Maybe<nsID> id = xpc::JSValue2ID(cx, iface)) {
+    if (Maybe<nsID> id = xpc::JSValue2ID(MC_UNSAFE(cx), iface)) {
       ifaces.AppendElement(*id);
       continue;
     }
 
     // Accept string valued names
     if (iface.isString()) {
-      JS::UniqueChars name = JS_EncodeStringToLatin1(cx, iface.toString());
+      JS::UniqueChars name = JS_EncodeStringToLatin1(MC_UNSAFE(cx), iface.toString());
 
       const nsXPTInterfaceInfo* iinfo = nsXPTInterfaceInfo::ByName(name.get());
       if (iinfo) {

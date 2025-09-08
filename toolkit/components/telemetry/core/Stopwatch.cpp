@@ -618,7 +618,7 @@ bool Stopwatch::StartKeyed(const dom::GlobalObject& aGlobal,
                            const nsAString& aHistogram, const nsAString& aKey,
                            JS::Handle<JSObject*> aObj,
                            const dom::TelemetryStopwatchOptions& aOptions) {
-  return Timers::Singleton().Start(aGlobal.Context(), aHistogram, aObj, aKey,
+  return Timers::Singleton().Start(MC_UNSAFE(aGlobal.Context()), aHistogram, aObj, aKey,
                                    aOptions.mInSeconds);
 }
 
@@ -650,7 +650,7 @@ int32_t Stopwatch::TimeElapsedKeyed(const dom::GlobalObject& aGlobal,
                                     const nsAString& aKey,
                                     JS::Handle<JSObject*> aObj,
                                     bool aCanceledOkay) {
-  return Timers::Singleton().TimeElapsed(aGlobal.Context(), aHistogram, aObj,
+  return Timers::Singleton().TimeElapsed(MC_UNSAFE(aGlobal.Context()), aHistogram, aObj,
                                          aKey, aCanceledOkay);
 }
 
@@ -665,7 +665,7 @@ bool Stopwatch::Finish(const dom::GlobalObject& aGlobal,
 bool Stopwatch::FinishKeyed(const dom::GlobalObject& aGlobal,
                             const nsAString& aHistogram, const nsAString& aKey,
                             JS::Handle<JSObject*> aObj, bool aCanceledOkay) {
-  return Timers::Singleton().Finish(aGlobal.Context(), aHistogram, aObj, aKey,
+  return Timers::Singleton().Finish(MC_UNSAFE(aGlobal.Context()), aHistogram, aObj, aKey,
                                     aCanceledOkay) != -1;
 }
 
@@ -680,7 +680,7 @@ bool Stopwatch::Cancel(const dom::GlobalObject& aGlobal,
 bool Stopwatch::CancelKeyed(const dom::GlobalObject& aGlobal,
                             const nsAString& aHistogram, const nsAString& aKey,
                             JS::Handle<JSObject*> aObj) {
-  return Timers::Singleton().Delete(aGlobal.Context(), aHistogram, aObj, aKey);
+  return Timers::Singleton().Delete(MC_UNSAFE(aGlobal.Context()), aHistogram, aObj, aKey);
 }
 
 /* static */
@@ -698,7 +698,7 @@ bool UserInteractionStopwatch::Start(const dom::GlobalObject& aGlobal,
     return false;
   }
   return Timers::Singleton().StartUserInteraction(
-      aGlobal.Context(), aUserInteraction, aValue, aObj);
+      MC_UNSAFE(aGlobal.Context()), aUserInteraction, aValue, aObj);
 }
 
 /* static */
@@ -708,7 +708,7 @@ bool UserInteractionStopwatch::Running(const dom::GlobalObject& aGlobal,
   if (!NS_IsMainThread()) {
     return false;
   }
-  return Timers::Singleton().RunningUserInteraction(aGlobal.Context(),
+  return Timers::Singleton().RunningUserInteraction(MC_UNSAFE(aGlobal.Context()),
                                                     aUserInteraction, aObj);
 }
 
@@ -721,7 +721,7 @@ bool UserInteractionStopwatch::Update(const dom::GlobalObject& aGlobal,
     return false;
   }
   return Timers::Singleton().UpdateUserInteraction(
-      aGlobal.Context(), aUserInteraction, aValue, aObj);
+      MC_UNSAFE(aGlobal.Context()), aUserInteraction, aValue, aObj);
 }
 
 /* static */
@@ -731,7 +731,7 @@ bool UserInteractionStopwatch::Cancel(const dom::GlobalObject& aGlobal,
   if (!NS_IsMainThread()) {
     return false;
   }
-  return Timers::Singleton().CancelUserInteraction(aGlobal.Context(),
+  return Timers::Singleton().CancelUserInteraction(MC_UNSAFE(aGlobal.Context()),
                                                    aUserInteraction, aObj);
 }
 
@@ -744,7 +744,7 @@ bool UserInteractionStopwatch::Finish(
     return false;
   }
   return Timers::Singleton().FinishUserInteraction(
-      aGlobal.Context(), aUserInteraction, aObj, aAdditionalText);
+      MC_UNSAFE(aGlobal.Context()), aUserInteraction, aObj, aAdditionalText);
 }
 
 }  // namespace mozilla::telemetry

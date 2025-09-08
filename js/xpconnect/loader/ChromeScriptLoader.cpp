@@ -275,9 +275,9 @@ already_AddRefed<Promise> ChromeUtils::CompileScript(
 
   NS_ConvertUTF16toUTF8 url(aURL);
   RefPtr<AsyncScriptCompiler> compiler =
-      new AsyncScriptCompiler(aGlobal.Context(), global, url, promise);
+      new AsyncScriptCompiler(MC_UNSAFE(aGlobal.Context()), global, url, promise);
 
-  nsresult rv = compiler->Start(aGlobal.Context(), aOptions,
+  nsresult rv = compiler->Start(MC_UNSAFE(aGlobal.Context()), aOptions,
                                 aGlobal.GetSubjectPrincipal());
   if (NS_FAILED(rv)) {
     promise->MaybeReject(rv);

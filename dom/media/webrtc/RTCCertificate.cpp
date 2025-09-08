@@ -301,12 +301,12 @@ already_AddRefed<Promise> RTCCertificate::GenerateCertificate(
     return nullptr;
   }
 
-  PRTime expires = ReadExpires(aGlobal.Context(), aOptions, aRv);
+  PRTime expires = ReadExpires(MC_UNSAFE(aGlobal.Context()), aOptions, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
   RefPtr<WebCryptoTask> task = new GenerateRTCCertificateTask(
-      global, aGlobal.Context(), aOptions, usages, expires);
+      global, MC_UNSAFE(aGlobal.Context()), aOptions, usages, expires);
   task->DispatchWithPromise(p);
   return p.forget();
 }

@@ -28,7 +28,7 @@ class ConvolverNode final : public AudioNode {
   static already_AddRefed<ConvolverNode> Constructor(
       const GlobalObject& aGlobal, AudioContext& aAudioContext,
       const ConvolverOptions& aOptions, ErrorResult& aRv) {
-    return Create(aGlobal.Context(), aAudioContext, aOptions, aRv);
+    return Create(MC_UNSAFE(aGlobal.Context()), aAudioContext, aOptions, aRv);
   }
 
   JSObject* WrapObject(JSContext* aCx,

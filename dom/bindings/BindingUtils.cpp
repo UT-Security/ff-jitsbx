@@ -2424,13 +2424,13 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
   }
 }
 
-GlobalObject::GlobalObject(JSContext* aCx, JSObject* aObject)
+GlobalObject::GlobalObject(MCContext* aCx, JSObject* aObject)
     : mGlobalJSObject(aCx), mCx(aCx), mGlobalObject(nullptr) {
   MOZ_ASSERT(mCx);
   MC::Rooted<JSObject*> obj(aCx, aObject);
   if (mc::IsWrapper(obj)) {
     // aCx correctly represents the current global here.
-    obj = js::CheckedUnwrapDynamic(obj, aCx, /* stopAtWindowProxy = */ false);
+    obj = mc::CheckedUnwrapDynamic(obj, aCx, /* stopAtWindowProxy = */ false);
     if (!obj) {
       // We should never end up here on a worker thread, since there shouldn't
       // be any security wrappers to worry about.
@@ -2438,7 +2438,7 @@ GlobalObject::GlobalObject(JSContext* aCx, JSObject* aObject)
         MOZ_CRASH();
       }
 
-      Throw(aCx, NS_ERROR_XPC_SECURITY_MANAGER_VETO);
+      Throw(MC_UNSAFE(aCx), NS_ERROR_XPC_SECURITY_MANAGER_VETO);
       return;
     }
   }
@@ -2492,7 +2492,7 @@ nsISupports* GlobalObject::GetAsSupports() const {
 
   MOZ_ASSERT(!mGlobalObject);
 
-  Throw(mCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+  Throw(MC_UNSAFE(mCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   return nullptr;
 }
 
@@ -2508,7 +2508,7 @@ nsIPrincipal* GlobalObject::GetSubjectPrincipal() const {
 }
 
 CallerType GlobalObject::CallerType() const {
-  return nsContentUtils::ThreadsafeIsSystemCaller(mCx)
+  return nsContentUtils::ThreadsafeIsSystemCaller(MC_UNSAFE(mCx))
              ? dom::CallerType::System
              : dom::CallerType::NonSystem;
 }
@@ -4334,7 +4334,7 @@ void MaybeShowDeprecationWarning(const GlobalObject& aGlobal,
     return;
   }
 
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aGlobal.Context());
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(aGlobal.Context()));
   if (!workerPrivate) {
     return;
   }
@@ -4358,7 +4358,7 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
     uri = window->GetExtantDoc()->GetDocumentURI();
   } else {
     WorkerPrivate* workerPrivate =
-        GetWorkerPrivateFromContext(aGlobal.Context());
+        GetWorkerPrivateFromContext(MC_UNSAFE(aGlobal.Context()));
     if (!workerPrivate) {
       return;
     }
@@ -4375,7 +4375,7 @@ void MaybeReportDeprecation(const GlobalObject& aGlobal,
   Nullable<uint32_t> columnNumber;
   uint32_t line = 0;
   uint32_t column = 0;
-  if (nsJSUtils::GetCallingLocation(aGlobal.Context(), fileName, &line,
+  if (nsJSUtils::GetCallingLocation(MC_UNSAFE(aGlobal.Context()), fileName, &line,
                                     &column)) {
     lineNumber.SetValue(line);
     columnNumber.SetValue(column);

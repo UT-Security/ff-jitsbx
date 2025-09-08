@@ -1048,7 +1048,7 @@ void Console::StringMethod(const GlobalObject& aGlobal, const nsAString& aLabel,
     return;
   }
 
-  console->StringMethodInternal(aGlobal.Context(), aLabel, aData, aMethodName,
+  console->StringMethodInternal(MC_UNSAFE(aGlobal.Context()), aLabel, aData, aMethodName,
                                 aMethodString);
 }
 
@@ -1082,7 +1082,7 @@ void Console::StringMethodInternal(JSContext* aCx, const nsAString& aLabel,
 /* static */
 void Console::TimeStamp(const GlobalObject& aGlobal,
                         const JS::Handle<JS::Value> aData) {
-  JSContext* cx = aGlobal.Context();
+  JSContext* cx = MC_UNSAFE(aGlobal.Context());
 
   ConsoleCommon::ClearException ce(cx);
 
@@ -1117,7 +1117,7 @@ void Console::ProfileMethod(const GlobalObject& aGlobal, MethodName aName,
     return;
   }
 
-  JSContext* cx = aGlobal.Context();
+  JSContext* cx = MC_UNSAFE(aGlobal.Context());
   console->ProfileMethodInternal(cx, aName, aAction, aData);
 }
 
@@ -1270,7 +1270,7 @@ void Console::Method(const GlobalObject& aGlobal, MethodName aMethodName,
     return;
   }
 
-  console->MethodInternal(aGlobal.Context(), aMethodName, aMethodString, aData);
+  console->MethodInternal(MC_UNSAFE(aGlobal.Context()), aMethodName, aMethodString, aData);
 }
 
 void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
@@ -2551,7 +2551,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
 
     // we are probably running a chrome script.
     if (!innerWindow) {
-      RefPtr<Console> console = new Console(aGlobal.Context(), nullptr, 0, 0);
+      RefPtr<Console> console = new Console(MC_UNSAFE(aGlobal.Context()), nullptr, 0, 0);
       console->Initialize(aRv);
       if (NS_WARN_IF(aRv.Failed())) {
         return nullptr;
@@ -2561,7 +2561,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
     }
 
     nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(innerWindow);
-    return window->GetConsole(aGlobal.Context(), aRv);
+    return window->GetConsole(MC_UNSAFE(aGlobal.Context()), aRv);
   }
 
   // Worklet
@@ -2569,13 +2569,13 @@ already_AddRefed<Console> Console::GetConsoleInternal(
       do_QueryInterface(aGlobal.GetAsSupports());
   if (workletScope) {
     WorkletThread::AssertIsOnWorkletThread();
-    return workletScope->GetConsole(aGlobal.Context(), aRv);
+    return workletScope->GetConsole(MC_UNSAFE(aGlobal.Context()), aRv);
   }
 
   // Workers
   MOZ_ASSERT(!NS_IsMainThread());
 
-  JSContext* cx = aGlobal.Context();
+  JSContext* cx = MC_UNSAFE(aGlobal.Context());
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
   MOZ_ASSERT(workerPrivate);
 
@@ -2681,7 +2681,7 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
 already_AddRefed<ConsoleInstance> Console::CreateInstance(
     const GlobalObject& aGlobal, const ConsoleInstanceOptions& aOptions) {
   RefPtr<ConsoleInstance> console =
-      new ConsoleInstance(aGlobal.Context(), aOptions);
+      new ConsoleInstance(MC_UNSAFE(aGlobal.Context()), aOptions);
   return console.forget();
 }
 

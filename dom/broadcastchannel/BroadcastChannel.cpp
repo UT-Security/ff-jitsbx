@@ -195,7 +195,7 @@ already_AddRefed<BroadcastChannel> BroadcastChannel::Constructor(
       cjs = doc->CookieJarSettings();
     }
   } else {
-    JSContext* cx = aGlobal.Context();
+    JSContext* cx = MC_UNSAFE(aGlobal.Context());
 
     WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
     MOZ_ASSERT(workerPrivate);

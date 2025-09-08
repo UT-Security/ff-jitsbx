@@ -75,7 +75,7 @@ void PromiseDebugging::GetState(GlobalObject& aGlobal,
                                 JS::Handle<JSObject*> aPromise,
                                 PromiseDebuggingStateHolder& aState,
                                 ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
@@ -101,7 +101,7 @@ void PromiseDebugging::GetState(GlobalObject& aGlobal,
 void PromiseDebugging::GetPromiseID(GlobalObject& aGlobal,
                                     JS::Handle<JSObject*> aPromise,
                                     nsString& aID, ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
@@ -118,7 +118,7 @@ void PromiseDebugging::GetAllocationStack(GlobalObject& aGlobal,
                                           JS::Handle<JSObject*> aPromise,
                                           JS::MutableHandle<JSObject*> aStack,
                                           ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
@@ -133,7 +133,7 @@ void PromiseDebugging::GetRejectionStack(GlobalObject& aGlobal,
                                          JS::Handle<JSObject*> aPromise,
                                          JS::MutableHandle<JSObject*> aStack,
                                          ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {
@@ -148,7 +148,7 @@ void PromiseDebugging::GetFullfillmentStack(GlobalObject& aGlobal,
                                             JS::Handle<JSObject*> aPromise,
                                             JS::MutableHandle<JSObject*> aStack,
                                             ErrorResult& aRv) {
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
   // CheckedUnwrapStatic is fine, since we're looking for promises only.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aPromise));
   if (!obj || !JS::IsPromiseObject(obj)) {

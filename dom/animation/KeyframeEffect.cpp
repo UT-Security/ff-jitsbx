@@ -863,7 +863,7 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::ConstructKeyframeEffect(
       doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoType),
       std::move(timingParams), effectOptions);
 
-  effect->SetKeyframes(aGlobal.Context(), aKeyframes, aRv);
+  effect->SetKeyframes(MC_UNSAFE(aGlobal.Context()), aKeyframes, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }

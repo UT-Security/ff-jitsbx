@@ -28,10 +28,10 @@ already_AddRefed<ChromeWorker> ChromeWorker::Constructor(
     Unused << xpc->DebugDumpJSStack(true, true, false);
   }
 
-  JSContext* cx = aGlobal.Context();
+  MCContext* cx = aGlobal.Context();
 
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
-      cx, aScriptURL, true /* aIsChromeWorker */, WorkerKindDedicated,
+      MC_UNSAFE(cx), aScriptURL, true /* aIsChromeWorker */, WorkerKindDedicated,
       RequestCredentials::Omit, aOptions.mType, aOptions.mName, VoidCString(),
       nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {

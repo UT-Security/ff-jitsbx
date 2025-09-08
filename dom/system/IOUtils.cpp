@@ -9,11 +9,11 @@
 #include <cstdint>
 
 #include "ErrorList.h"
-#include "js/ArrayBuffer.h"
-#include "js/JSON.h"
-#include "js/Utility.h"
-#include "js/experimental/TypedData.h"
-#include "jsfriendapi.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/JSON.h"
+#include "monkeycage/Utility.h"
+#include "monkeycage/experimental/TypedData.h"
+#include "mcfriendapi.h"
 #include "monkeycage/Value.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/AutoRestore.h"
@@ -603,14 +603,14 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
           return;
         }
 
-        JSContext* cx = aGlobal.Context();
+        MCContext* cx = aGlobal.Context();
         MC::Rooted<JS::Value> rootedValue(cx, aValue);
         nsCString utf8Str;
 
         static auto AppendJsonAsUtf8Cb =
             MC::Sandbox::RegisterCallback(AppendJsonAsUtf8);
         if (!JS_Stringify(cx, &rootedValue, nullptr, MC::NullHandleValue(),
-                          AppendJsonAsUtf8Cb.UNSAFE_get(), &utf8Str)) {
+                          AppendJsonAsUtf8Cb, &utf8Str)) {
           MC::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
           if (JS_GetPendingException(cx, &exn)) {
             JS_ClearPendingException(cx);
