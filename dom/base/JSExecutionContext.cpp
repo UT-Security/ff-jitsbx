@@ -21,7 +21,7 @@
 #include "monkeycage/Conversions.h"
 #include "monkeycage/experimental/JSStencil.h"
 #include "js/HeapAPI.h"
-#include "js/OffThreadScriptCompilation.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
 #include "js/ProfilingCategory.h"
 #include "monkeycage/Promise.h"
 #include "monkeycage/SourceText.h"
@@ -42,7 +42,7 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-static nsresult EvaluationExceptionToNSResult(JSContext* aCx) {
+static nsresult EvaluationExceptionToNSResult(MCContext* aCx) {
   if (JS_IsExceptionPending(aCx)) {
     return NS_SUCCESS_DOM_SCRIPT_EVALUATION_THREW;
   }
@@ -50,8 +50,8 @@ static nsresult EvaluationExceptionToNSResult(JSContext* aCx) {
 }
 
 JSExecutionContext::JSExecutionContext(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-    JS::CompileOptions& aCompileOptions,
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+    MC::Tainted<JS::CompileOptions*> aCompileOptions,
     JS::Handle<JS::Value> aDebuggerPrivateValue,
     JS::Handle<JSScript*> aDebuggerIntroductionScript)
     : mAutoProfilerLabel("JSExecutionContext",
@@ -74,7 +74,7 @@ JSExecutionContext::JSExecutionContext(
       mScriptUsed(false)
 #endif
 {
-  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(MC_UNSAFE(aCx) == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(CycleCollectedJSContext::Get() &&
              CycleCollectedJSContext::Get()->MicroTaskLevel());
@@ -109,15 +109,15 @@ nsresult JSExecutionContext::JoinOffThread(
 }
 
 template <typename Unit>
-nsresult JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf) {
+nsresult JSExecutionContext::InternalCompile(MC::Tainted<JS::SourceText<Unit>*> aSrcBuf) {
   if (mSkip) {
     return mRv;
   }
 
-  MOZ_ASSERT(aSrcBuf.get());
+  MOZ_ASSERT(aSrcBuf->get());
   MOZ_ASSERT(mRetValue.isUndefined());
 #ifdef DEBUG
-  mWantsReturnValue = !mCompileOptions.noScriptRval;
+  mWantsReturnValue = !mCompileOptions->getNoScriptRval();
 #endif
 
   RefPtr<JS::Stencil> stencil =
@@ -132,11 +132,11 @@ nsresult JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf) {
 }
 
 nsresult JSExecutionContext::Compile(MC::Tainted<JS::SourceText<char16_t>*> aSrcBuf) {
-  return InternalCompile(*aSrcBuf.UNSAFE_unverified());
+  return InternalCompile(aSrcBuf);
 }
 
 nsresult JSExecutionContext::Compile(MC::Tainted<JS::SourceText<Utf8Unit>*> aSrcBuf) {
-  return InternalCompile(*aSrcBuf.UNSAFE_unverified());
+  return InternalCompile(aSrcBuf);
 }
 
 nsresult JSExecutionContext::Compile(const nsAString& aScript) {
@@ -146,7 +146,7 @@ nsresult JSExecutionContext::Compile(const nsAString& aScript) {
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
   MC::SandboxStack<JS::SourceText<char16_t>> srcBuf;
-  if (!srcBuf->init(JS_SanitizeContext(mCx), flatScript.get(), flatScript.Length(),
+  if (!srcBuf->init(mCx, flatScript.get(), flatScript.Length(),
                    JS::SourceOwnership::Borrowed)) {
     mSkip = true;
     mRv = EvaluationExceptionToNSResult(mCx);
@@ -167,8 +167,8 @@ nsresult JSExecutionContext::Decode(mozilla::Vector<uint8_t>& aBytecodeBuf,
     return mRv;
   }
 
-  JS::DecodeOptions decodeOptions(mCompileOptions);
-  decodeOptions.borrowBuffer = true;
+  MC::SandboxStack<JS::DecodeOptions> decodeOptions(*mCompileOptions);
+  decodeOptions->setBorrowBuffer(true);
 
   JS::TranscodeRange range(aBytecodeBuf.begin() + aBytecodeIndex,
                            aBytecodeBuf.length() - aBytecodeIndex);
@@ -192,7 +192,7 @@ nsresult JSExecutionContext::Decode(mozilla::Vector<uint8_t>& aBytecodeBuf,
 
 nsresult JSExecutionContext::InstantiateStencil(
     RefPtr<JS::Stencil>&& aStencil, JS::InstantiationStorage* aStorage) {
-  JS::InstantiateOptions instantiateOptions(mCompileOptions);
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*mCompileOptions);
   MC::Rooted<JSScript*> script(
       mCx, JS::InstantiateGlobalStencil(mCx, instantiateOptions, aStencil,
                                         aStorage));
@@ -213,7 +213,7 @@ nsresult JSExecutionContext::InstantiateStencil(
   MOZ_ASSERT(!mScript);
   mScript.set(script);
 
-  if (instantiateOptions.deferDebugMetadata) {
+  if (instantiateOptions->getDeferDebugMetadata()) {
     if (!JS::UpdateDebugMetadata(mCx, mScript, instantiateOptions,
                                  mDebuggerPrivateValue, nullptr,
                                  mDebuggerIntroductionScript, nullptr)) {
@@ -252,7 +252,7 @@ nsresult JSExecutionContext::ExecScript() {
   return NS_OK;
 }
 
-static bool IsPromiseValue(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+static bool IsPromiseValue(MCContext* aCx, JS::Handle<JS::Value> aValue) {
   if (!aValue.isObject()) {
     return false;
   }

@@ -67,12 +67,13 @@ inline void ExposeScriptToDebugger(MCContext* cx, Handle<JSScript*> script) {
 }
 
 inline bool UpdateDebugMetadata(MCContext* cx, Handle<JSScript*> script,
-                                const InstantiateOptions& options,
+                                MC::Tainted<InstantiateOptions*> options,
                                 HandleValue privateValue,
                                 HandleString elementAttributeName,
                                 HandleScript introScript,
                                 HandleScript scriptOrModule) {
-  return UpdateDebugMetadata(cx->cx_, script, options, privateValue,
+  return UpdateDebugMetadata(cx->cx_, script,
+                             *options.INTERNAL_unverified_safe(), privateValue,
                              elementAttributeName, introScript, scriptOrModule);
 }
 

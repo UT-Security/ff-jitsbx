@@ -158,9 +158,9 @@ nsresult WorkerModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
-  JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*aOptions);
   aModuleScript.set(
-      JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions, stencil));
+      JS::InstantiateModuleStencil(aCx, instantiateOptions, stencil));
   if (!aModuleScript) {
     return NS_ERROR_FAILURE;
   }

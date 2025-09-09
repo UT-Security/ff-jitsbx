@@ -9,6 +9,8 @@
 
 #include "monkeycage/unsafe/SandboxImpl.h"
 #include "monkeycage/Context.h"
+#include "monkeycage/SandboxHelpers.h"
+#include "monkeycage/SandboxTraits.h"
 #include "monkeycage/Tainted.h"
 
 namespace MC {
@@ -115,11 +117,22 @@ class Tainted<SandboxStackPtr<T>, MC_Sbx> {
 private:
   SandboxStackPtr<T> data_;
 
+  template <typename T_Arg>
+  static inline mc_remove_wrapper_t<T_Arg> ConstructorConvertArg(T_Arg&& arg) {
+    if_constexpr_named(cond1, mc_is_Tainted_v<T_Arg>) {
+      return arg.INTERNAL_unverified_safe();
+    } else if_constexpr_named(cond2, mc_is_TaintedVolatile_v<std::remove_reference_t<T_Arg>>) {
+      return arg.INTERNAL_unverified_safe();
+    } else {
+      return arg;
+    }
+  }
+
 public:
   Tainted() = default;
   
   template <typename... Args>
-  Tainted(MCContext* cx, Args&&... args) : data_(MC_UNSAFE(cx), std::forward<Args>(args)...) {
+  Tainted(MCContext* cx, Args&&... args) : data_(MC_UNSAFE(cx), ConstructorConvertArg<Args>(std::forward<Args>(args))...) {
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
   
@@ -129,7 +142,7 @@ public:
   }
   
   template <typename... Args>
-  Tainted(Args&&... args) : data_(std::forward<Args>(args)...) {
+  Tainted(Args&&... args) : data_(ConstructorConvertArg<Args>(std::forward<Args>(args))...) {
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
 

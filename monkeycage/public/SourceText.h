@@ -53,6 +53,9 @@ public:
                    JS::SourceOwnership ownership) {
     return data.init(cx->cx_, chars, charsLength, ownership);
   }
+
+  
+  const typename JS::SourceText<Unit>::CharT* get() const { return data.get(); }
 };
 }  // namespace detail
 }

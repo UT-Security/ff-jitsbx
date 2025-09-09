@@ -13,7 +13,7 @@
 #include "monkeycage/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/MemoryFunctions.h"
 #include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
-#include "js/OffThreadScriptCompilation.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Realm.h"
 #include "monkeycage/SourceText.h"
@@ -150,7 +150,7 @@ nsresult ModuleLoader::CompileFetchedModule(
   if (aRequest->GetScriptLoadContext()->mWasCompiledOMT) {
     MC::Rooted<JS::InstantiationStorage> storage(aCx);
     RefPtr<JS::Stencil> stencil = JS::FinishOffThreadStencil(
-        MC_UNSAFE(aCx), aRequest->GetScriptLoadContext()->mOffThreadToken,
+        aCx, aRequest->GetScriptLoadContext()->mOffThreadToken,
         storage.address());
 
     aRequest->GetScriptLoadContext()->mOffThreadToken = nullptr;
@@ -159,8 +159,8 @@ nsresult ModuleLoader::CompileFetchedModule(
       return NS_ERROR_FAILURE;
     }
 
-    JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
-    aModuleOut.set(JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions,
+    MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*aOptions);
+    aModuleOut.set(JS::InstantiateModuleStencil(aCx, instantiateOptions,
                                                 stencil, storage.address()));
     if (!aModuleOut) {
       return NS_ERROR_FAILURE;
@@ -168,7 +168,7 @@ nsresult ModuleLoader::CompileFetchedModule(
 
     if (aRequest->IsTextSource() &&
         ScriptLoader::ShouldCacheBytecode(aRequest)) {
-      if (!JS::StartIncrementalEncoding(MC_UNSAFE(aCx), std::move(stencil))) {
+      if (!JS::StartIncrementalEncoding(aCx, std::move(stencil))) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -192,8 +192,8 @@ nsresult ModuleLoader::CompileFetchedModule(
     stencil = maybeSource->mapNonEmpty(compile);
   } else {
     MOZ_ASSERT(aRequest->IsBytecode());
-    JS::DecodeOptions decodeOptions(*aOptions.UNSAFE_unverified());
-    decodeOptions.borrowBuffer = true;
+    MC::SandboxStack<JS::DecodeOptions> decodeOptions(*aOptions);
+    decodeOptions->setBorrowBuffer(true);
 
     auto& bytecode = aRequest->mScriptBytecode;
     auto& offset = aRequest->mBytecodeOffset;
@@ -202,7 +202,7 @@ nsresult ModuleLoader::CompileFetchedModule(
                              bytecode.length() - offset);
 
     JS::TranscodeResult tr =
-        JS::DecodeStencil(MC_UNSAFE(aCx), decodeOptions, range, getter_AddRefs(stencil));
+        JS::DecodeStencil(aCx, decodeOptions, range, getter_AddRefs(stencil));
     if (tr != JS::TranscodeResult::Ok) {
       return NS_ERROR_DOM_JS_DECODING_ERROR;
     }
@@ -212,15 +212,15 @@ nsresult ModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
-  JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*aOptions);
   aModuleOut.set(
-      JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions, stencil));
+      JS::InstantiateModuleStencil(aCx, instantiateOptions, stencil));
   if (!aModuleOut) {
     return NS_ERROR_FAILURE;
   }
 
   if (aRequest->IsTextSource() && ScriptLoader::ShouldCacheBytecode(aRequest)) {
-    if (!JS::StartIncrementalEncoding(MC_UNSAFE(aCx), std::move(stencil))) {
+    if (!JS::StartIncrementalEncoding(aCx, std::move(stencil))) {
       return NS_ERROR_FAILURE;
     }
   }

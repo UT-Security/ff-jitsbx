@@ -320,11 +320,11 @@ nsresult nsJSThunk::EvaluateScript(
 
   MC::Rooted<JS::Value> v(cx, JS::UndefinedValue());
   // Finally, we have everything needed to evaluate the expression.
-  JS::CompileOptions options(cx);
-  options.setFileAndLine(mURL.get(), 1);
-  options.setIntroductionType("javascriptURL");
+  MC::SandboxStack<JS::CompileOptions> options(cx);
+  options->setFileAndLine(mURL.get(), 1);
+  options->setIntroductionType("javascriptURL");
   {
-    JSExecutionContext exec(cx, globalJSObject, options);
+    JSExecutionContext exec(JS_SanitizeContext(cx), globalJSObject, options);
     exec.SetCoerceToString(true);
     exec.Compile(NS_ConvertUTF8toUTF16(script));
     rv = exec.ExecScript(&v);
