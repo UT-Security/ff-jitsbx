@@ -80,7 +80,7 @@ bool WorkerModuleLoader::CreateDynamicImportLoader() {
 }
 
 already_AddRefed<ModuleLoadRequest> WorkerModuleLoader::CreateDynamicImport(
-    JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+    MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
     JS::Handle<JS::Value> aReferencingPrivate, JS::Handle<JSString*> aSpecifier,
     JS::Handle<JSObject*> aPromise) {
   WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
@@ -141,16 +141,16 @@ nsresult WorkerModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
 }
 
 nsresult WorkerModuleLoader::CompileFetchedModule(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal, MC::Tainted<JS::CompileOptions*> aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleScript) {
   RefPtr<JS::Stencil> stencil;
   MOZ_ASSERT(aRequest->IsTextSource());
   MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource);
+  nsresult rv = aRequest->GetScriptSource(MC_UNSAFE(aCx), &maybeSource);
   NS_ENSURE_SUCCESS(rv, rv);
 
   auto compile = [&](auto& source) {
-    return JS::CompileModuleScriptToStencil(aCx, aOptions, source);
+    return JS::CompileModuleScriptToStencil(MC_UNSAFE(aCx), *aOptions.UNSAFE_unverified(), source);
   };
   stencil = maybeSource.mapNonEmpty(compile);
 
@@ -158,9 +158,9 @@ nsresult WorkerModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
-  JS::InstantiateOptions instantiateOptions(aOptions);
+  JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
   aModuleScript.set(
-      JS::InstantiateModuleStencil(aCx, instantiateOptions, stencil));
+      JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions, stencil));
   if (!aModuleScript) {
     return NS_ERROR_FAILURE;
   }

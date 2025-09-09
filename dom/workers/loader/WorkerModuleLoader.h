@@ -62,7 +62,7 @@ class WorkerModuleLoader : public JS::loader::ModuleLoaderBase {
       nsIURI* aURI, ModuleLoadRequest* aParent) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
       JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
@@ -74,8 +74,8 @@ class WorkerModuleLoader : public JS::loader::ModuleLoaderBase {
   nsresult StartFetch(ModuleLoadRequest* aRequest) override;
 
   nsresult CompileFetchedModule(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+      MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+      MC::Tainted<JS::CompileOptions*> aOptions, ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
   void OnModuleLoadComplete(ModuleLoadRequest* aRequest) override;

@@ -59,6 +59,11 @@ inline JSString* JS_NewUCStringCopyN(MCContext* cx, const char16_t* s,
   return JS_NewUCStringCopyN(cx->cx_, s, n);
 }
 
+inline JSString* JS_NewUCStringCopyZ(MCContext* cx,
+                                                   const char16_t* s) {
+  return JS_NewUCStringCopyZ(cx->cx_, s);
+}
+
 inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
     JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
     size_t* length) {

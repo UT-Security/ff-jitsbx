@@ -6,8 +6,8 @@
 
 #include "WorkletModuleLoader.h"
 
-#include "js/CompileOptions.h"  // JS::InstantiateOptions
-#include "js/experimental/JSStencil.h"  // JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
+#include "monkeycage/CompileOptions.h"  // JS::InstantiateOptions
+#include "monkeycage/experimental/JSStencil.h"  // JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/loader/ModuleLoadRequest.h"
 #include "mozilla/ScopeExit.h"
 #include "mozilla/Unused.h"
@@ -78,7 +78,7 @@ already_AddRefed<ModuleLoadRequest> WorkletModuleLoader::CreateStaticImport(
 }
 
 already_AddRefed<ModuleLoadRequest> WorkletModuleLoader::CreateDynamicImport(
-    JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+    MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
     JS::Handle<JS::Value> aReferencingPrivate, JS::Handle<JSString*> aSpecifier,
     JS::Handle<JSObject*> aPromise) {
   return nullptr;
@@ -100,17 +100,17 @@ nsresult WorkletModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
 }
 
 nsresult WorkletModuleLoader::CompileFetchedModule(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal, MC::Tainted<JS::CompileOptions*> aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleScript) {
   RefPtr<JS::Stencil> stencil;
   MOZ_ASSERT(aRequest->IsTextSource());
 
   MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource);
+  nsresult rv = aRequest->GetScriptSource(MC_UNSAFE(aCx), &maybeSource);
   NS_ENSURE_SUCCESS(rv, rv);
 
   auto compile = [&](auto& source) {
-    return JS::CompileModuleScriptToStencil(aCx, aOptions, source);
+    return JS::CompileModuleScriptToStencil(MC_UNSAFE(aCx), *aOptions.UNSAFE_unverified(), source);
   };
   stencil = maybeSource.mapNonEmpty(compile);
 
@@ -118,9 +118,9 @@ nsresult WorkletModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
-  JS::InstantiateOptions instantiateOptions(aOptions);
+  JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
   aModuleScript.set(
-      JS::InstantiateModuleStencil(aCx, instantiateOptions, stencil));
+      JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions, stencil));
   return aModuleScript ? NS_OK : NS_ERROR_FAILURE;
 }
 

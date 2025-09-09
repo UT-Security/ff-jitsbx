@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_ScriptLoader_h
 #define mozilla_dom_ScriptLoader_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ScriptKind.h"
 #include "js/loader/ScriptLoadRequest.h"
@@ -634,7 +634,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
       ScriptLoadRequest* aRequest);
 
   void MaybePrepareModuleForBytecodeEncodingBeforeExecute(
-      JSContext* aCx, ModuleLoadRequest* aRequest) override;
+      MCContext* aCx, ModuleLoadRequest* aRequest) override;
 
   nsresult MaybePrepareModuleForBytecodeEncodingAfterExecute(
       ModuleLoadRequest* aRequest, nsresult aRv) override;
@@ -675,7 +675,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   // Fill in CompileOptions, as well as produce the introducer script for
   // subsequent calls to UpdateDebuggerMetadata
   nsresult FillCompileOptionsForRequest(
-      JSContext* aCx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+      MCContext* aCx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
       JS::MutableHandle<JSScript*> aIntroductionScript) override;
 
   uint32_t NumberOfProcessors();

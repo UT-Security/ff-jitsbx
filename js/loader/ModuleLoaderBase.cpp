@@ -11,14 +11,17 @@
 #include "mozilla/dom/ScriptSettings.h"  // AutoJSAPI
 #include "mozilla/dom/ScriptTrace.h"
 
-#include "js/Array.h"  // JS::GetArrayLength
-#include "js/CompilationAndEvaluation.h"
-#include "js/ContextOptions.h"        // JS::ContextOptionsRef
+#include "monkeycage/Array.h"  // JS::GetArrayLength
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/ContextOptions.h"        // JS::ContextOptionsRef
+#include "monkeycage/Conversions.h"
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "monkeycage/ErrorReport.h"
 #include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "js/SourceText.h"
+#include "monkeycage/String.h"
 #include "monkeycage/Value.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/AutoEntryScript.h"
@@ -75,11 +78,16 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
     return;
   }
 
-  static auto HostResolveImportedModuleCb = MC::Sandbox::RegisterCallback(HostResolveImportedModule);
-  static auto HostPopulateImportMetaCb = MC::Sandbox::RegisterCallback(HostPopulateImportMeta);
-  static auto HostAddRefTopLevelScriptCb = MC::Sandbox::RegisterCallback(HostAddRefTopLevelScript);
-  static auto HostReleaseTopLevelScriptCb = MC::Sandbox::RegisterCallback(HostReleaseTopLevelScript);
-  static auto HostImportModuleDynamicallyCb = MC::Sandbox::RegisterCallback(HostImportModuleDynamically);
+  static auto HostResolveImportedModuleCb =
+      MC::Sandbox::RegisterTaintedCallback(HostResolveImportedModule);
+  static auto HostPopulateImportMetaCb =
+      MC::Sandbox::RegisterTaintedCallback(HostPopulateImportMeta);
+  static auto HostAddRefTopLevelScriptCb =
+      MC::Sandbox::RegisterTaintedCallback(HostAddRefTopLevelScript);
+  static auto HostReleaseTopLevelScriptCb =
+      MC::Sandbox::RegisterTaintedCallback(HostReleaseTopLevelScript);
+  static auto HostImportModuleDynamicallyCb =
+      MC::Sandbox::RegisterTaintedCallback(HostImportModuleDynamically);
 
   JS::SetModuleResolveHook(rt, HostResolveImportedModuleCb);
   JS::SetModuleMetadataHook(rt, HostPopulateImportMetaCb);
@@ -109,9 +117,11 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
  * @returns module This is set to the module found.
  */
 // static
-JSObject* ModuleLoaderBase::HostResolveImportedModule(
-    JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+MC::Tainted<JSObject*> ModuleLoaderBase::HostResolveImportedModule(
+    MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aModuleRequest) {
+  MCContext* aCx = tCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   MC::Rooted<JSObject*> module(aCx);
 
   {
@@ -154,12 +164,19 @@ JSObject* ModuleLoaderBase::HostResolveImportedModule(
 
     module.set(ms->ModuleRecord());
   }
-  return module;
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(module.get());
+  return ret;
 }
 
 // static
-bool ModuleLoaderBase::ImportMetaResolve(JSContext* cx, unsigned argc,
-                                         Value* vp) {
+MC::Tainted<bool> ModuleLoaderBase::ImportMetaResolve(MC::Tainted<JSContext*> tcx, unsigned argc,
+                                         MC::Tainted<Value*> tvp) {
+  
+  MCContext* cx = tcx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = tvp.UNSAFE_unverified();
+  
   CallArgs args = CallArgsFromVp(argc, vp);
   MC::RootedValue modulePrivate(
       cx, js::GetFunctionNativeReserved(&args.callee(), ModulePrivateSlot));
@@ -187,7 +204,7 @@ bool ModuleLoaderBase::ImportMetaResolve(JSContext* cx, unsigned argc,
 
 // static
 JSString* ModuleLoaderBase::ImportMetaResolveImpl(
-    JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+    MCContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSString*> aSpecifier) {
   MC::RootedString urlString(aCx);
 
@@ -236,9 +253,11 @@ JSString* ModuleLoaderBase::ImportMetaResolveImpl(
 }
 
 // static
-bool ModuleLoaderBase::HostPopulateImportMeta(
-    JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+MC::Tainted<bool> ModuleLoaderBase::HostPopulateImportMeta(
+    MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aMetaObject) {
+  MCContext* aCx = tCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   RefPtr<ModuleScript> script =
       static_cast<ModuleScript*>(aReferencingPrivate.toPrivate());
   MOZ_ASSERT(script->IsModuleScript());
@@ -263,8 +282,12 @@ bool ModuleLoaderBase::HostPopulateImportMeta(
 
   // https://html.spec.whatwg.org/#import-meta-resolve
   // Define 'resolve' function on the import.meta object.
+
+  static auto ImportMetaResolveCb =
+      MC::Sandbox::RegisterTaintedCallback(ImportMetaResolve);
+
   JSFunction* resolveFunc = js::DefineFunctionWithReserved(
-      aCx, aMetaObject, "resolve", ImportMetaResolve, ImportMetaResolveNumArgs,
+      aCx, aMetaObject, "resolve", ImportMetaResolveCb, ImportMetaResolveNumArgs,
       JSPROP_ENUMERATE);
   if (!resolveFunc) {
     return false;
@@ -280,9 +303,11 @@ bool ModuleLoaderBase::HostPopulateImportMeta(
 }
 
 // static
-bool ModuleLoaderBase::HostImportModuleDynamically(
-    JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+MC::Tainted<bool> ModuleLoaderBase::HostImportModuleDynamically(
+    MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aModuleRequest, JS::Handle<JSObject*> aPromise) {
+  MCContext* aCx = tCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   MOZ_DIAGNOSTIC_ASSERT(aModuleRequest);
   MOZ_DIAGNOSTIC_ASSERT(aPromise);
 
@@ -326,8 +351,9 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 
   if (!request) {
     // Throws TypeError if CreateDynamicImport returns nullptr.
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
-                              JSMSG_DYNAMIC_IMPORT_NOT_SUPPORTED);
+    JS_ReportErrorNumberASCII(
+        aCx, MC::Sandbox::Address<JSErrorCallback>(js::GetErrorMessage),
+        nullptr, JSMSG_DYNAMIC_IMPORT_NOT_SUPPORTED);
 
     return false;
   }
@@ -337,7 +363,7 @@ bool ModuleLoaderBase::HostImportModuleDynamically(
 }
 
 // static
-ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(JSContext* aCx) {
+ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(MCContext* aCx) {
   auto reportError = mozilla::MakeScopeExit([aCx]() {
     JS_ReportErrorASCII(aCx, "No ScriptLoader found for the current context");
   });
@@ -352,7 +378,7 @@ ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(JSContext* aCx) {
     return nullptr;
   }
 
-  ModuleLoaderBase* loader = global->GetModuleLoader(aCx);
+  ModuleLoaderBase* loader = global->GetModuleLoader(MC_UNSAFE(aCx));
   if (!loader) {
     return nullptr;
   }
@@ -365,7 +391,7 @@ ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(JSContext* aCx) {
 
 // static
 LoadedScript* ModuleLoaderBase::GetLoadedScriptOrNull(
-    JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate) {
+    MCContext* aCx, JS::Handle<JS::Value> aReferencingPrivate) {
   if (aReferencingPrivate.isUndefined()) {
     return nullptr;
   }
@@ -591,12 +617,12 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
 
   nsresult rv;
   {
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JSObject*> module(cx);
 
-    JS::CompileOptions options(cx);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
     MC::RootedScript introductionScript(cx);
-    rv = mLoader->FillCompileOptionsForRequest(cx, aRequest, &options,
+    rv = mLoader->FillCompileOptionsForRequest(cx, aRequest, options,
                                                &introductionScript);
 
     if (NS_SUCCEEDED(rv)) {
@@ -609,7 +635,7 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     if (module) {
       MC::RootedValue privateValue(cx);
       MC::RootedScript moduleScript(cx, JS::GetModuleScript(module));
-      JS::InstantiateOptions instantiateOptions(options);
+      JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
       if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
                                    privateValue, nullptr, introductionScript,
                                    nullptr)) {
@@ -672,7 +698,7 @@ nsresult ModuleLoaderBase::GetResolveFailureMessage(ResolveError aError,
 }
 
 nsresult ModuleLoaderBase::HandleResolveFailure(
-    JSContext* aCx, LoadedScript* aScript, const nsAString& aSpecifier,
+    MCContext* aCx, LoadedScript* aScript, const nsAString& aSpecifier,
     ResolveError aError, uint32_t aLineNumber, uint32_t aColumnNumber,
     JS::MutableHandle<JS::Value> aErrorOut) {
   MC::Rooted<JSString*> filename(aCx);
@@ -774,7 +800,7 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> moduleRecord(cx, ms->ModuleRecord());
   uint32_t length = JS::GetRequestedModulesCount(cx, moduleRecord);
 
@@ -793,15 +819,16 @@ nsresult ModuleLoaderBase::ResolveRequestedModules(
     ModuleLoaderBase* loader = aRequest->mLoader;
     auto result = loader->ResolveModuleSpecifier(ms, specifier);
     if (result.isErr()) {
-      uint32_t lineNumber = 0;
-      uint32_t columnNumber = 0;
-      JS::GetRequestedModuleSourcePos(cx, moduleRecord, i, &lineNumber,
-                                      &columnNumber);
+      MC::SandboxStack<uint32_t> lineNumber{0};
+      MC::SandboxStack<uint32_t> columnNumber{0};
+      JS::GetRequestedModuleSourcePos(cx, moduleRecord, i, lineNumber,
+                                      columnNumber);
 
       MC::Rooted<JS::Value> error(cx);
-      nsresult rv =
-          loader->HandleResolveFailure(cx, ms, specifier, result.unwrapErr(),
-                                       lineNumber, columnNumber, &error);
+      nsresult rv = loader->HandleResolveFailure(
+          cx, ms, specifier, result.unwrapErr(),
+          *lineNumber.UNSAFE_unverified(), *columnNumber.UNSAFE_unverified(),
+          &error);
       NS_ENSURE_SUCCESS(rv, rv);
 
       ms->SetParseError(error);
@@ -938,12 +965,12 @@ void ModuleLoaderBase::FinishDynamicImportAndReject(ModuleLoadRequest* aRequest,
     return;
   }
 
-  FinishDynamicImport(jsapi.cx(), aRequest, aResult, nullptr);
+  FinishDynamicImport(jsapi.mcx(), aRequest, aResult, nullptr);
 }
 
 /* static */
 void ModuleLoaderBase::FinishDynamicImport(
-    JSContext* aCx, ModuleLoadRequest* aRequest, nsresult aResult,
+    MCContext* aCx, ModuleLoadRequest* aRequest, nsresult aResult,
     JS::Handle<JSObject*> aEvaluationPromise) {
   LOG(("ScriptLoadRequest (%p): Finish dynamic import %x %d", aRequest,
        unsigned(aResult), JS_IsExceptionPending(aCx)));
@@ -1130,7 +1157,7 @@ bool ModuleLoaderBase::InstantiateModuleGraph(ModuleLoadRequest* aRequest) {
 }
 
 nsresult ModuleLoaderBase::InitDebuggerDataForModuleGraph(
-    JSContext* aCx, ModuleLoadRequest* aRequest) {
+    MCContext* aCx, ModuleLoadRequest* aRequest) {
   // JS scripts can be associated with a DOM element for use by the debugger,
   // but preloading can cause scripts to be compiled before DOM script element
   // nodes have been created. This method ensures that this association takes
@@ -1185,15 +1212,15 @@ nsresult ModuleLoaderBase::EvaluateModule(ModuleLoadRequest* aRequest) {
   mozilla::dom::AutoEntryScript aes(mGlobalObject, "EvaluateModule",
                                     NS_IsMainThread());
 
-  return EvaluateModuleInContext(aes.cx(), aRequest,
+  return EvaluateModuleInContext(JS_SanitizeContext(aes.cx()), aRequest,
                                  JS::ReportModuleErrorsAsync);
 }
 
 nsresult ModuleLoaderBase::EvaluateModuleInContext(
-    JSContext* aCx, ModuleLoadRequest* aRequest,
+    MCContext* aCx, ModuleLoadRequest* aRequest,
     JS::ModuleErrorBehaviour errorBehaviour) {
   MOZ_ASSERT(aRequest->mLoader == this);
-  MOZ_ASSERT(mGlobalObject->GetModuleLoader(aCx) == this);
+  MOZ_ASSERT(mGlobalObject->GetModuleLoader(MC_UNSAFE(aCx)) == this);
 
   AUTO_PROFILER_LABEL("ModuleLoaderBase::EvaluateModule", JS);
 

@@ -12,7 +12,7 @@
 
 #include "ImportMap.h"
 #include "monkeycage/TypeDecls.h"  // JS::MutableHandle, JS::Handle, JS::Root
-#include "js/Modules.h"
+#include "monkeycage/Modules.h"
 #include "nsRefPtrHashtable.h"
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
@@ -94,11 +94,11 @@ class ScriptLoaderInterface : public nsISupports {
   // Fill in CompileOptions, as well as produce the introducer script for
   // subsequent calls to UpdateDebuggerMetadata
   virtual nsresult FillCompileOptionsForRequest(
-      JSContext* cx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+      MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
       JS::MutableHandle<JSScript*> aIntroductionScript) = 0;
 
   virtual void MaybePrepareModuleForBytecodeEncodingBeforeExecute(
-      JSContext* aCx, ModuleLoadRequest* aRequest) {}
+      MCContext* aCx, ModuleLoadRequest* aRequest) {}
 
   virtual nsresult MaybePrepareModuleForBytecodeEncodingAfterExecute(
       ModuleLoadRequest* aRequest, nsresult aRv) {
@@ -223,7 +223,7 @@ class ModuleLoaderBase : public nsISupports {
 
   // Called by HostImportModuleDynamically hook.
   virtual already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
       JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier, JS::Handle<JSObject*> aPromise) = 0;
 
@@ -238,8 +238,8 @@ class ModuleLoaderBase : public nsISupports {
   // Create a JS module for a fetched module request. This might compile source
   // text or decode cached bytecode.
   virtual nsresult CompileFetchedModule(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+      MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+      MC::Tainted<JS::CompileOptions*> aOptions, ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleOut) = 0;
 
   // Called when a module script has been loaded, including imports.
@@ -288,7 +288,7 @@ class ModuleLoaderBase : public nsISupports {
 
   // Evaluate a module in the given context. Does not push an entry to the
   // execution stack.
-  nsresult EvaluateModuleInContext(JSContext* aCx, ModuleLoadRequest* aRequest,
+  nsresult EvaluateModuleInContext(MCContext* aCx, ModuleLoadRequest* aRequest,
                                    JS::ModuleErrorBehaviour errorBehaviour);
 
   void StartDynamicImport(ModuleLoadRequest* aRequest);
@@ -319,32 +319,32 @@ class ModuleLoaderBase : public nsISupports {
  private:
   friend class JS::loader::ModuleLoadRequest;
 
-  static ModuleLoaderBase* GetCurrentModuleLoader(JSContext* aCx);
+  static ModuleLoaderBase* GetCurrentModuleLoader(MCContext* aCx);
   static LoadedScript* GetLoadedScriptOrNull(
-      JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate);
+      MCContext* aCx, JS::Handle<JS::Value> aReferencingPrivate);
 
   static void EnsureModuleHooksInitialized();
 
-  static JSObject* HostResolveImportedModule(
-      JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+  static MC::Tainted<JSObject*> HostResolveImportedModule(
+      MC::Tainted<JSContext*> aCx, JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSObject*> aModuleRequest);
-  static bool HostPopulateImportMeta(JSContext* aCx,
+  static MC::Tainted<bool> HostPopulateImportMeta(MC::Tainted<JSContext*> aCx,
                                      JS::Handle<JS::Value> aReferencingPrivate,
                                      JS::Handle<JSObject*> aMetaObject);
-  static bool ImportMetaResolve(JSContext* cx, unsigned argc, Value* vp);
+  static MC::Tainted<bool> ImportMetaResolve(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<Value*> vp);
   static JSString* ImportMetaResolveImpl(
-      JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+      MCContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier);
-  static bool HostImportModuleDynamically(
-      JSContext* aCx, JS::Handle<JS::Value> aReferencingPrivate,
+  static MC::Tainted<bool> HostImportModuleDynamically(
+      MC::Tainted<JSContext*> aCx, JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSObject*> aModuleRequest, JS::Handle<JSObject*> aPromise);
   static bool HostGetSupportedImportAssertions(
-      JSContext* aCx, JS::ImportAssertionVector& aValues);
+      MCContext* aCx, JS::ImportAssertionVector& aValues);
 
   ResolveResult ResolveModuleSpecifier(LoadedScript* aScript,
                                        const nsAString& aSpecifier);
 
-  nsresult HandleResolveFailure(JSContext* aCx, LoadedScript* aScript,
+  nsresult HandleResolveFailure(MCContext* aCx, LoadedScript* aScript,
                                 const nsAString& aSpecifier,
                                 ResolveError aError, uint32_t aLineNumber,
                                 uint32_t aColumnNumber,
@@ -362,7 +362,7 @@ class ModuleLoaderBase : public nsISupports {
   ModuleScript* GetFetchedModule(nsIURI* aURL) const;
 
   JS::Value FindFirstParseError(ModuleLoadRequest* aRequest);
-  static nsresult InitDebuggerDataForModuleGraph(JSContext* aCx,
+  static nsresult InitDebuggerDataForModuleGraph(MCContext* aCx,
                                                  ModuleLoadRequest* aRequest);
   nsresult ResolveRequestedModules(ModuleLoadRequest* aRequest,
                                    nsCOMArray<nsIURI>* aUrlsOut);
@@ -408,7 +408,7 @@ class ModuleLoaderBase : public nsISupports {
    *        is null, JS::FinishDynamicImport will reject the dynamic import
    *        module promise.
    */
-  static void FinishDynamicImport(JSContext* aCx, ModuleLoadRequest* aRequest,
+  static void FinishDynamicImport(MCContext* aCx, ModuleLoadRequest* aRequest,
                                   nsresult aResult,
                                   JS::Handle<JSObject*> aEvaluationPromise);
 

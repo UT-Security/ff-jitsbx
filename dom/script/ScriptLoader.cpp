@@ -1515,20 +1515,20 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
-  JS::CompileOptions options(cx);
+  MCContext* cx = jsapi.mcx();
+  MC::SandboxStack<JS::CompileOptions> options(cx);
 
   // Introduction script will actually be computed and set when the script is
   // collected from offthread
   MC::Rooted<JSScript*> dummyIntroductionScript(cx);
-  nsresult rv = FillCompileOptionsForRequest(cx, aRequest, &options,
+  nsresult rv = FillCompileOptionsForRequest(cx, aRequest, options,
                                              &dummyIntroductionScript);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
 
   if (aRequest->IsTextSource()) {
-    if (!JS::CanCompileOffThread(cx, options, aRequest->ScriptTextLength())) {
+    if (!JS::CanCompileOffThread(MC_UNSAFE(cx), *options.UNSAFE_unverified(), aRequest->ScriptTextLength())) {
       TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                      "scriptloader_main_thread_compile");
       return NS_OK;
@@ -1538,8 +1538,8 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
 
     size_t length =
         aRequest->mScriptBytecode.length() - aRequest->mBytecodeOffset;
-    JS::DecodeOptions decodeOptions(options);
-    if (!JS::CanDecodeOffThread(cx, decodeOptions, length)) {
+    JS::DecodeOptions decodeOptions(*options.UNSAFE_unverified());
+    if (!JS::CanDecodeOffThread(MC_UNSAFE(cx), decodeOptions, length)) {
       return NS_OK;
     }
   }
@@ -1554,7 +1554,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   runnable->RecordStartTime();
 
   JS::OffThreadToken* token = nullptr;
-  rv = StartOffThreadCompilation(cx, aRequest, options, runnable, &token);
+  rv = StartOffThreadCompilation(MC_UNSAFE(cx), aRequest, *options.UNSAFE_unverified(), runnable, &token);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(token);
 
@@ -1971,7 +1971,7 @@ already_AddRefed<nsIScriptGlobalObject> ScriptLoader::GetScriptGlobalObject() {
 }
 
 nsresult ScriptLoader::FillCompileOptionsForRequest(
-    JSContext* aCx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+    MCContext* aCx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
     JS::MutableHandle<JSScript*> aIntroductionScript) {
   // It's very important to use aRequest->mURI, not the final URI of the channel
   // aRequest ended up getting script data from, as the script filename.
@@ -2029,9 +2029,9 @@ nsresult ScriptLoader::FillCompileOptionsForRequest(
 
   aOptions->setDeferDebugMetadata(true);
 
-  aOptions->borrowBuffer = true;
+  aOptions->setBorrowBuffer(true);
 
-  aOptions->allocateInstantiationStorage = true;
+  aOptions->setAllocateInstantiationStorage(true);
 
   return NS_OK;
 }
@@ -2331,7 +2331,7 @@ bool ScriptLoader::IsAlreadyHandledForBytecodeEncodingPreparation(
 }
 
 void ScriptLoader::MaybePrepareModuleForBytecodeEncodingBeforeExecute(
-    JSContext* aCx, ModuleLoadRequest* aRequest) {
+    MCContext* aCx, ModuleLoadRequest* aRequest) {
   {
     ModuleScript* moduleScript = aRequest->mModuleScript;
     MC::Rooted<JSObject*> module(aCx, moduleScript->ModuleRecord());
@@ -2371,7 +2371,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                       ScriptLoadRequest* aRequest) {
   nsAutoMicroTask mt;
   AutoEntryScript aes(aGlobalObject, "EvaluateScript", true);
-  JSContext* cx = aes.cx();
+  MCContext* cx = JS_SanitizeContext(aes.cx());
 
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
@@ -2381,10 +2381,10 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
       new ClassicScript(aRequest->mFetchOptions, aRequest->mBaseURL);
   MC::Rooted<JS::Value> classicScriptValue(cx, JS::PrivateValue(classicScript));
 
-  JS::CompileOptions options(cx);
+  MC::SandboxStack<JS::CompileOptions> options(cx);
   MC::Rooted<JSScript*> introductionScript(cx);
   nsresult rv =
-      FillCompileOptionsForRequest(cx, aRequest, &options, &introductionScript);
+      FillCompileOptionsForRequest(cx, aRequest, options, &introductionScript);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -2393,10 +2393,10 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                  "scriptloader_execute");
   MC::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
-  JSExecutionContext exec(cx, global, options, classicScriptValue,
+  JSExecutionContext exec(MC_UNSAFE(cx), global, *options.UNSAFE_unverified(), classicScriptValue,
                           introductionScript);
 
-  rv = CompileOrDecodeClassicScript(cx, exec, aRequest);
+  rv = CompileOrDecodeClassicScript(MC_UNSAFE(cx), exec, aRequest);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -2415,7 +2415,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                 MarkerInnerWindowIdFromJSContext(cx),
                                 profilerLabelString);
 
-      rv = ExecuteCompiledScript(cx, exec, classicScript);
+      rv = ExecuteCompiledScript(MC_UNSAFE(cx), exec, classicScript);
     }
   }
 

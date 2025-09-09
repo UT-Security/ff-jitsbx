@@ -29,7 +29,7 @@ class WorkletScriptLoader : public JS::loader::ScriptLoaderInterface {
       const nsTArray<nsString>& aParams) const override {}
 
   nsresult FillCompileOptionsForRequest(
-      JSContext* cx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+      MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
       JS::MutableHandle<JSScript*> aIntroductionScript) override {
     aOptions->setIntroductionType("Worklet");
     aOptions->setFileAndLine(aRequest->mURL.get(), 1);
@@ -67,7 +67,7 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
       nsIURI* aURI, JS::loader::ModuleLoadRequest* aParent) override;
 
   already_AddRefed<JS::loader::ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
       JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
@@ -78,8 +78,8 @@ class WorkletModuleLoader : public JS::loader::ModuleLoaderBase {
   nsresult StartFetch(JS::loader::ModuleLoadRequest* aRequest) override;
 
   nsresult CompileFetchedModule(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aOptions, JS::loader::ModuleLoadRequest* aRequest,
+      MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+      MC::Tainted<JS::CompileOptions*> aOptions, JS::loader::ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
   void OnModuleLoadComplete(JS::loader::ModuleLoadRequest* aRequest) override;
