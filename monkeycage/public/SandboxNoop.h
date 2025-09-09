@@ -31,8 +31,8 @@ class SandboxNoop {
 
   template <typename T_Ret, typename... T_Args>
   static T_Cb<T_Ret, T_Args...> RegisterCallback(
-      T_Cb<T_Ret, T_Args...> app_callback, size_t* index) {
-    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(monkeycage_register_cb((void*)app_callback, index));
+      T_Cb<T_Ret, T_Args...> app_callback, void* key, size_t* index) {
+    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(monkeycage_register_cb((void*)app_callback, key, index));
   }
 
   template <typename T_Ret, typename... T_Args>

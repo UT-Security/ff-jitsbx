@@ -25,11 +25,11 @@ void monkeycage_init() {
 
 #define MAXCALLBACKS 40960
 
-static void* callbacks[MAXCALLBACKS];
+static void* callback_keys[MAXCALLBACKS];
 
-static size_t cbfreeslot() {
+static size_t cbkey_freeslot() {
   for (size_t i = 0; i < MAXCALLBACKS; i++) {
-    if (!callbacks[i]) {
+    if (!callback_keys[i]) {
       return i;
     }
   }
@@ -37,9 +37,9 @@ static size_t cbfreeslot() {
   return MAXCALLBACKS;
 }
 
-static size_t cbfind(void* fn) {
+static size_t cbkey_find(void* key) {
   for(size_t i = 0; i < MAXCALLBACKS; i++) {
-    if (callbacks[i] == fn)
+    if (callback_keys[i] == key)
       return i;
   }
 
@@ -81,12 +81,13 @@ static bool cbinit() {
   return true;
 }
 
-void* monkeycage_register_cb(void* fn, size_t* index) {
+void* monkeycage_register_cb(void* fn, void* key, size_t* index) {
   assert(fn);
+  assert(key);
   assert(index);
-  assert(cbfind(fn) == MAXCALLBACKS && "fn is already registered as a callback");
+  assert(cbkey_find(key) == MAXCALLBACKS && "duplicate key for callback registration");
 
-  size_t slot = cbfreeslot();
+  size_t slot = cbkey_freeslot();
   if (slot == MAXCALLBACKS) {
     *index = MAXCALLBACKS;
     return NULL;
@@ -98,19 +99,19 @@ void* monkeycage_register_cb(void* fn, size_t* index) {
   // write the trampoline into the 'trampoline' field for the chosen slot
   __atomic_store_n(&cbentries[slot].trampoline, (uint64_t) monkeycage_cbtrampoline, __ATOMIC_SEQ_CST);
 
-  // Mark the slot as allocated.
-  callbacks[slot] = fn;
+  // Mark the slot as allocated and save the callback key.
+  callback_keys[slot] = key;
   *index = slot;
 
   return &cbentries[slot].code[0];
 }
 
-void monkeycage_unregister_cb(void* cb) {
-  size_t slot = cbfind(cb);
+void monkeycage_unregister_cb(void* key) {
+  size_t slot = cbkey_find(key);
   if (slot == MAXCALLBACKS)
     return;
 
-  callbacks[slot] = NULL;
+  callback_keys[slot] = NULL;
   __atomic_store_n(&cbentries[slot].target, 0, __ATOMIC_SEQ_CST);
   __atomic_store_n(&cbentries[slot].trampoline, 0, __ATOMIC_SEQ_CST);
 }

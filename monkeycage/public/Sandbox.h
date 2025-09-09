@@ -60,7 +60,7 @@ public:
   static Callback<T_Cb<T_Ret, T_Args...>> RegisterCallback(T_Cb<T_Ret, T_Args...> app_callback) {
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
     size_t index;
-    T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, &index);
+    T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, (void*)app_callback, &index);
     callback_index_to_app_func[index] = (void*)app_callback;
     return Callback<T_Cb<T_Ret, T_Args...>>(sbx_callback, index);
   }
@@ -141,7 +141,7 @@ public:
                               mc_remove_wrapper_t<T_Args>...>;
 
       T_Cb_no_wrap<T_Ret, T_Args...> sbx_callback =
-          MC_Sbx::RegisterCallback(callback_interceptor, &index);
+          MC_Sbx::RegisterCallback(callback_interceptor, (void*)app_callback, &index);
       callback_index_to_app_func[index] = (void*)app_callback;
       return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(sbx_callback, index);
     }
