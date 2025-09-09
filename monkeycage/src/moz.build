@@ -326,6 +326,7 @@ EXPORTS.monkeycage += [
 
 EXPORTS.monkeycage.tainted += [
 	"../public/tainted/Maybe.h",
+	"../public/tainted/MaybeOneOf.h",
 ]
 
 # Monkeycage API wrappers for JSAPI
@@ -376,6 +377,7 @@ EXPORTS.monkeycage += [
 	"../public/StreamConsumer.h",
 	"../public/String.h",
 	"../public/TracingAPI.h",
+	"../public/Transcoding.h",
 	"../public/TypeDecls.h",
 	"../public/UniquePtr.h",
 	"../public/Utility.h",

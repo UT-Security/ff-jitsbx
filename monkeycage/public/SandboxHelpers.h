@@ -33,6 +33,12 @@ template<typename T>
 constexpr bool is_basic_type_v =
   std::is_fundamental_v<T> || std::is_enum_v<T> || std::is_pointer_v<T>;
 
+template <typename T>
+inline auto remove_volatile_from_ptr_cast(T* ptr) {
+  using T_Result = std::add_pointer_t<std::remove_volatile_t<T>>;
+  return const_cast<T_Result>(ptr);
+}
+
 }
 }  // namespace MC
 

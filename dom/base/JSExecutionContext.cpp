@@ -16,19 +16,19 @@
 #include <utility>
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
-#include "js/Conversions.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Conversions.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "js/HeapAPI.h"
 #include "js/OffThreadScriptCompilation.h"
 #include "js/ProfilingCategory.h"
-#include "js/Promise.h"
-#include "js/SourceText.h"
-#include "js/Transcoding.h"
-#include "js/Value.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
+#include "monkeycage/Promise.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/Transcoding.h"
+#include "monkeycage/Value.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/Likely.h"
 #include "nsContentUtils.h"
@@ -131,12 +131,12 @@ nsresult JSExecutionContext::InternalCompile(JS::SourceText<Unit>& aSrcBuf) {
   return InstantiateStencil(std::move(stencil));
 }
 
-nsresult JSExecutionContext::Compile(JS::SourceText<char16_t>& aSrcBuf) {
-  return InternalCompile(aSrcBuf);
+nsresult JSExecutionContext::Compile(MC::Tainted<JS::SourceText<char16_t>*> aSrcBuf) {
+  return InternalCompile(*aSrcBuf.UNSAFE_unverified());
 }
 
-nsresult JSExecutionContext::Compile(JS::SourceText<Utf8Unit>& aSrcBuf) {
-  return InternalCompile(aSrcBuf);
+nsresult JSExecutionContext::Compile(MC::Tainted<JS::SourceText<Utf8Unit>*> aSrcBuf) {
+  return InternalCompile(*aSrcBuf.UNSAFE_unverified());
 }
 
 nsresult JSExecutionContext::Compile(const nsAString& aScript) {
@@ -145,8 +145,8 @@ nsresult JSExecutionContext::Compile(const nsAString& aScript) {
   }
 
   const nsPromiseFlatString& flatScript = PromiseFlatString(aScript);
-  JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.init(mCx, flatScript.get(), flatScript.Length(),
+  MC::SandboxStack<JS::SourceText<char16_t>> srcBuf;
+  if (!srcBuf->init(JS_SanitizeContext(mCx), flatScript.get(), flatScript.Length(),
                    JS::SourceOwnership::Borrowed)) {
     mSkip = true;
     mRv = EvaluationExceptionToNSResult(mCx);

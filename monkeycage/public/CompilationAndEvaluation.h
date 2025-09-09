@@ -46,18 +46,18 @@ inline bool JS_ExecuteScript(MCContext* cx, JS::HandleObjectVector envChain,
 namespace JS {
 
 inline bool Evaluate(MCContext* cx,
-                     MC::Tainted<const ReadOnlyCompileOptions*> options,
+                     MC::Tainted<CompileOptions*> options,
                      MC::Tainted<SourceText<char16_t>*> srcBuf,
                      MutableHandle<Value> rval) {
   return Evaluate(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified(), rval);
 }
 
-inline JSScript* Compile(MCContext* cx, MC::Tainted<const CompileOptions*> options,
+inline JSScript* Compile(MCContext* cx, MC::Tainted<CompileOptions*> options,
                          MC::Tainted<SourceText<char16_t>*> srcBuf) {
   return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 
-inline JSScript* Compile(MCContext* cx, MC::Tainted<const CompileOptions*> options,
+inline JSScript* Compile(MCContext* cx, MC::Tainted<CompileOptions*> options,
                          MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
   return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }

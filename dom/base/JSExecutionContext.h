@@ -11,7 +11,7 @@
 #include "js/OffThreadScriptCompilation.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -133,8 +133,8 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   [[nodiscard]] nsresult JoinOffThread(JS::OffThreadToken** aOffThreadToken);
 
   // Compile a script contained in a SourceText.
-  nsresult Compile(JS::SourceText<char16_t>& aSrcBuf);
-  nsresult Compile(JS::SourceText<mozilla::Utf8Unit>& aSrcBuf);
+  nsresult Compile(MC::Tainted<JS::SourceText<char16_t>*> aSrcBuf);
+  nsresult Compile(MC::Tainted<JS::SourceText<mozilla::Utf8Unit>*> aSrcBuf);
 
   // Compile a script contained in a string.
   nsresult Compile(const nsAString& aScript);

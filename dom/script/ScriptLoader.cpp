@@ -15,22 +15,22 @@
 #include "prsystem.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength
-#include "js/CompilationAndEvaluation.h"
-#include "js/ContextOptions.h"        // JS::ContextOptionsRef
+#include "monkeycage/Array.h"  // JS::GetArrayLength
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/ContextOptions.h"        // JS::ContextOptionsRef
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "js/loader/ScriptLoadRequest.h"
 #include "ScriptCompression.h"
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ModuleLoadRequest.h"
 #include "js/MemoryFunctions.h"
-#include "js/Modules.h"
+#include "monkeycage/Modules.h"
 #include "js/OffThreadScriptCompilation.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
-#include "js/Realm.h"
-#include "js/SourceText.h"
-#include "js/Transcoding.h"
-#include "js/Utility.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/Realm.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/Transcoding.h"
+#include "monkeycage/Utility.h"
 #include "xpcpublic.h"
 #include "GeckoProfiler.h"
 #include "nsContentSecurityManager.h"
@@ -1554,7 +1554,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   runnable->RecordStartTime();
 
   JS::OffThreadToken* token = nullptr;
-  rv = StartOffThreadCompilation(MC_UNSAFE(cx), aRequest, *options.UNSAFE_unverified(), runnable, &token);
+  rv = StartOffThreadCompilation(cx, aRequest, options, runnable, &token);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(token);
 
@@ -1589,36 +1589,36 @@ static inline nsresult CompileResultForToken(void* aToken) {
 }
 
 nsresult ScriptLoader::StartOffThreadCompilation(
-    JSContext* aCx, ScriptLoadRequest* aRequest, JS::CompileOptions& aOptions,
+    MCContext* aCx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
     Runnable* aRunnable, JS::OffThreadToken** aTokenOut) {
   static const auto callback =
       MC::Sandbox::RegisterCallback(OffThreadCompilationCompleteCallback);
 
   if (aRequest->IsBytecode()) {
-    JS::DecodeOptions decodeOptions(aOptions);
+    JS::DecodeOptions decodeOptions(*aOptions.UNSAFE_unverified());
     *aTokenOut = JS::DecodeStencilOffThread(
         aCx, decodeOptions, aRequest->mScriptBytecode,
         aRequest->mBytecodeOffset, callback, aRunnable);
     return CompileResultForToken(*aTokenOut);
   }
 
-  MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(aCx, &maybeSource);
+  MC::SandboxStack<MaybeSourceText> maybeSource;
+  nsresult rv = aRequest->GetScriptSource(aCx, maybeSource);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aRequest->IsModuleRequest()) {
     auto compile = [&](auto& source) {
-      return JS::CompileModuleToStencilOffThread(aCx, aOptions, source,
+      return JS::CompileModuleToStencilOffThread(aCx, aOptions, &source,
                                                  callback, aRunnable);
     };
 
-    MOZ_ASSERT(!maybeSource.empty());
-    *aTokenOut = maybeSource.mapNonEmpty(compile);
+    MOZ_ASSERT(!maybeSource->empty());
+    *aTokenOut = maybeSource->mapNonEmpty(compile);
     return CompileResultForToken(*aTokenOut);
   }
 
   if (ShouldApplyDelazifyStrategy(aRequest)) {
-    ApplyDelazifyStrategy(&aOptions);
+    ApplyDelazifyStrategy(aOptions);
     mTotalFullParseSize +=
         aRequest->ScriptTextLength() > 0
             ? static_cast<uint32_t>(aRequest->ScriptTextLength())
@@ -1632,7 +1632,7 @@ nsresult ScriptLoader::StartOffThreadCompilation(
   }
 
   if (StaticPrefs::dom_expose_test_interfaces()) {
-    switch (aOptions.eagerDelazificationStrategy()) {
+    switch (aOptions->eagerDelazificationStrategy()) {
       case JS::DelazificationOption::OnDemandOnly:
         TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                        "delazification_on_demand_only");
@@ -1654,12 +1654,12 @@ nsresult ScriptLoader::StartOffThreadCompilation(
   }
 
   auto compile = [&](auto& source) {
-    return JS::CompileToStencilOffThread(aCx, aOptions, source, callback,
+    return JS::CompileToStencilOffThread(aCx, aOptions, &source, callback,
                                          aRunnable);
   };
 
-  MOZ_ASSERT(!maybeSource.empty());
-  *aTokenOut = maybeSource.mapNonEmpty(compile);
+  MOZ_ASSERT(!maybeSource->empty());
+  *aTokenOut = maybeSource->mapNonEmpty(compile);
   return CompileResultForToken(*aTokenOut);
 }
 
@@ -2223,7 +2223,7 @@ nsresult ScriptLoader::EvaluateScriptElement(ScriptLoadRequest* aRequest) {
 }
 
 nsresult ScriptLoader::CompileOrDecodeClassicScript(
-    JSContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest) {
+    MCContext* aCx, JSExecutionContext& aExec, ScriptLoadRequest* aRequest) {
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
 
@@ -2266,18 +2266,18 @@ nsresult ScriptLoader::CompileOrDecodeClassicScript(
     // Main thread parsing (inline and small scripts)
     LOG(("ScriptLoadRequest (%p): Compile And Exec", aRequest));
     MOZ_ASSERT(aRequest->IsTextSource());
-    MaybeSourceText maybeSource;
-    rv = aRequest->GetScriptSource(aCx, &maybeSource);
+    MC::SandboxStack<MaybeSourceText> maybeSource;
+    rv = aRequest->GetScriptSource(aCx, maybeSource);
     if (NS_SUCCEEDED(rv)) {
       AUTO_PROFILER_MARKER_TEXT("ScriptCompileMainThread", JS,
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      auto compile = [&](auto& source) { return aExec.Compile(source); };
+      auto compile = [&](auto& source) { return aExec.Compile(&source); };
 
-      MOZ_ASSERT(!maybeSource.empty());
+      MOZ_ASSERT(!maybeSource->empty());
       TimeStamp startTime = TimeStamp::Now();
-      rv = maybeSource.mapNonEmpty(compile);
+      rv = maybeSource->mapNonEmpty(compile);
       mMainThreadParseTime += TimeStamp::Now() - startTime;
     }
   }
@@ -2396,7 +2396,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   JSExecutionContext exec(MC_UNSAFE(cx), global, *options.UNSAFE_unverified(), classicScriptValue,
                           introductionScript);
 
-  rv = CompileOrDecodeClassicScript(MC_UNSAFE(cx), exec, aRequest);
+  rv = CompileOrDecodeClassicScript(cx, exec, aRequest);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -2433,7 +2433,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
 }
 
 /* static */
-LoadedScript* ScriptLoader::GetActiveScript(JSContext* aCx) {
+LoadedScript* ScriptLoader::GetActiveScript(MCContext* aCx) {
   JS::Value value = JS::GetScriptedCallerPrivate(aCx);
   if (value.isUndefined()) {
     return nullptr;
@@ -2544,13 +2544,13 @@ void ScriptLoader::EncodeBytecode() {
     request = mBytecodeEncodingQueue.StealFirst();
     MOZ_ASSERT(!IsWebExtensionRequest(request),
                "Bytecode for web extension content scrips is not cached");
-    EncodeRequestBytecode(aes.cx(), request);
+    EncodeRequestBytecode(JS_SanitizeContext(aes.cx()), request);
     request->mScriptBytecode.clearAndFree();
     request->DropBytecodeCacheReferences();
   }
 }
 
-void ScriptLoader::EncodeRequestBytecode(JSContext* aCx,
+void ScriptLoader::EncodeRequestBytecode(MCContext* aCx,
                                          ScriptLoadRequest* aRequest) {
   using namespace mozilla::Telemetry;
   nsresult rv = NS_OK;
@@ -3300,7 +3300,7 @@ bool ScriptLoader::ShouldApplyDelazifyStrategy(ScriptLoadRequest* aRequest) {
   return false;
 }
 
-void ScriptLoader::ApplyDelazifyStrategy(JS::CompileOptions* aOptions) {
+void ScriptLoader::ApplyDelazifyStrategy(MC::Tainted<JS::CompileOptions*> aOptions) {
   JS::DelazificationOption strategy =
       JS::DelazificationOption::ParseEverythingEagerly;
   uint32_t strategyIndex =

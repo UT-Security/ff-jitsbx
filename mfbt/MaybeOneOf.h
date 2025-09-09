@@ -21,6 +21,15 @@
 #include "mozilla/OperatorNewExtensions.h"
 #include "mozilla/TemplateLib.h"
 
+#ifdef JS_SANDBOX
+namespace MC {
+namespace detail {
+template <class U1, typename U2>
+class TaintedVolatile;
+}
+}  // namespace MC
+#endif
+
 namespace mozilla {
 
 /*
@@ -40,6 +49,12 @@ namespace mozilla {
  */
 template <class T1, class T2>
 class MOZ_NON_PARAM MaybeOneOf {
+
+#ifdef JS_SANDBOX
+  template <class U1, typename U2>
+  friend class MC::detail::TaintedVolatile;
+#endif
+
   static constexpr size_t StorageAlignment =
       tl::Max<alignof(T1), alignof(T2)>::value;
   static constexpr size_t StorageSize = tl::Max<sizeof(T1), sizeof(T2)>::value;

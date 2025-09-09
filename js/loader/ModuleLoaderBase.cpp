@@ -20,7 +20,7 @@
 #include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
-#include "js/SourceText.h"
+#include "monkeycage/SourceText.h"
 #include "monkeycage/String.h"
 #include "monkeycage/Value.h"
 #include "mozilla/BasePrincipal.h"
@@ -1333,13 +1333,13 @@ UniquePtr<ImportMap> ModuleLoaderBase::ParseImportMap(
   }
 
   MOZ_ASSERT(aRequest->IsTextSource());
-  MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(jsapi.cx(), &maybeSource);
+  MC::SandboxStack<MaybeSourceText> maybeSource;
+  nsresult rv = aRequest->GetScriptSource(jsapi.mcx(), maybeSource);
   if (NS_FAILED(rv)) {
     return nullptr;
   }
 
-  JS::SourceText<char16_t>& text = maybeSource.ref<SourceText<char16_t>>();
+  MC::Tainted<JS::SourceText<char16_t>*> text = &maybeSource->ref<SourceText<char16_t>>();
   ReportWarningHelper warning{mLoader, aRequest};
 
   // https://html.spec.whatwg.org/multipage/webappapis.html#create-an-import-map-parse-result
@@ -1359,7 +1359,7 @@ UniquePtr<ImportMap> ModuleLoaderBase::ParseImportMap(
   // supported, therefore parsing and registering import-maps will be executed
   // consecutively. To simplify the implementation, we didn't create the 'error
   // to rethow' item and report the exception immediately(done in ~AutoJSAPI).
-  return ImportMap::ParseString(jsapi.cx(), text, aRequest->mBaseURL, warning);
+  return ImportMap::ParseString(jsapi.cx(), *text.UNSAFE_unverified(), aRequest->mBaseURL, warning);
 }
 
 void ModuleLoaderBase::RegisterImportMap(UniquePtr<ImportMap> aImportMap) {

@@ -105,14 +105,14 @@ nsresult WorkletModuleLoader::CompileFetchedModule(
   RefPtr<JS::Stencil> stencil;
   MOZ_ASSERT(aRequest->IsTextSource());
 
-  MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(MC_UNSAFE(aCx), &maybeSource);
+  MC::SandboxStack<MaybeSourceText> maybeSource;
+  nsresult rv = aRequest->GetScriptSource(aCx, maybeSource);
   NS_ENSURE_SUCCESS(rv, rv);
 
   auto compile = [&](auto& source) {
-    return JS::CompileModuleScriptToStencil(MC_UNSAFE(aCx), *aOptions.UNSAFE_unverified(), source);
+    return JS::CompileModuleScriptToStencil(aCx, aOptions, &source);
   };
-  stencil = maybeSource.mapNonEmpty(compile);
+  stencil = maybeSource->mapNonEmpty(compile);
 
   if (!stencil) {
     return NS_ERROR_FAILURE;

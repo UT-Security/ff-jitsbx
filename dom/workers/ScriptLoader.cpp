@@ -27,12 +27,12 @@
 #include "nsIURI.h"
 #include "nsIXPConnect.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/Exception.h"
-#include "js/SourceText.h"
-#include "js/TypeDecls.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/TypeDecls.h"
 #include "nsError.h"
 #include "nsComponentManagerUtils.h"
 #include "nsContentSecurityManager.h"
@@ -458,10 +458,10 @@ class ScriptExecutorRunnable final : public MainThreadWorkerSyncRunnable {
 };
 
 template <typename Unit>
-static bool EvaluateSourceBuffer(JSContext* aCx,
-                                 const JS::CompileOptions& aOptions,
+static bool EvaluateSourceBuffer(MCContext* aCx,
+                                 MC::Tainted<JS::CompileOptions*> aOptions,
                                  JS::loader::ClassicScript* aClassicScript,
-                                 JS::SourceText<Unit>& aSourceBuffer) {
+                                 MC::Tainted<JS::SourceText<Unit>*> aSourceBuffer) {
   static_assert(std::is_same<Unit, char16_t>::value ||
                     std::is_same<Unit, Utf8Unit>::value,
                 "inferred units must be UTF-8 or UTF-16");
@@ -818,7 +818,7 @@ bool WorkerScriptLoader::StoreCSP() {
   return true;
 }
 
-bool WorkerScriptLoader::ProcessPendingRequests(JSContext* aCx) {
+bool WorkerScriptLoader::ProcessPendingRequests(MCContext* aCx) {
   mWorkerRef->Private()->AssertIsOnWorkerThread();
   // Don't run if something else has already failed.
   if (mExecutionAborted) {
@@ -1088,7 +1088,7 @@ nsresult WorkerScriptLoader::FillCompileOptionsForRequest(
   return NS_OK;
 }
 
-bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
+bool WorkerScriptLoader::EvaluateScript(MCContext* aCx,
                                         ScriptLoadRequest* aRequest) {
   mWorkerRef->Private()->AssertIsOnWorkerThread();
   MOZ_ASSERT(!IsDynamicImport(aRequest));
@@ -1143,7 +1143,7 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
   // (delegation to another worker to produce bytecode or compile a string to a
   // JSScript), so it is not used in this context.
   MC::Rooted<JSScript*> unusedIntroductionScript(aCx);
-  nsresult rv = FillCompileOptionsForRequest(JS_SanitizeContext(aCx), aRequest, options,
+  nsresult rv = FillCompileOptionsForRequest(aCx, aRequest, options,
                                              &unusedIntroductionScript);
 
   MOZ_ASSERT(NS_SUCCEEDED(rv), "Filling compile options should not fail");
@@ -1152,10 +1152,10 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
   MOZ_ASSERT(!mRv.Failed(), "Who failed it and why?");
 
   // Get the source text.
-  ScriptLoadRequest::MaybeSourceText maybeSource;
-  rv = aRequest->GetScriptSource(aCx, &maybeSource);
+  MC::SandboxStack<ScriptLoadRequest::MaybeSourceText> maybeSource;
+  rv = aRequest->GetScriptSource(aCx, maybeSource);
   if (NS_FAILED(rv)) {
-    mRv.StealExceptionFromJSContext(aCx);
+    mRv.StealExceptionFromJSContext(MC_UNSAFE(aCx));
     return false;
   }
 
@@ -1183,16 +1183,16 @@ bool WorkerScriptLoader::EvaluateScript(JSContext* aCx,
 
   bool successfullyEvaluated =
       aRequest->IsUTF8Text()
-          ? EvaluateSourceBuffer(aCx, *options.UNSAFE_unverified(), classicScript,
-                                 maybeSource.ref<JS::SourceText<Utf8Unit>>())
-          : EvaluateSourceBuffer(aCx, *options.UNSAFE_unverified(), classicScript,
-                                 maybeSource.ref<JS::SourceText<char16_t>>());
+          ? EvaluateSourceBuffer(aCx, options, classicScript,
+                                 &maybeSource->ref<JS::SourceText<Utf8Unit>>())
+          : EvaluateSourceBuffer(aCx, options, classicScript,
+                                 &maybeSource->ref<JS::SourceText<char16_t>>());
 
   if (aRequest->IsCanceled()) {
     return false;
   }
   if (!successfullyEvaluated) {
-    mRv.StealExceptionFromJSContext(aCx);
+    mRv.StealExceptionFromJSContext(MC_UNSAFE(aCx));
     return false;
   }
   // steal the loadContext so that the cycle is broken and cycle collector can
@@ -1227,7 +1227,7 @@ void WorkerScriptLoader::ShutdownScriptLoader(bool aResult, bool aMutedError) {
     //    sure...
     if (mRv.Failed()) {
       if (aMutedError && mRv.IsJSException()) {
-        LogExceptionToConsole(mWorkerRef->Private()->GetJSContext(),
+        LogExceptionToConsole(JS_SanitizeContext(mWorkerRef->Private()->GetJSContext()),
                               mWorkerRef->Private());
         mRv.Throw(NS_ERROR_DOM_NETWORK_ERR);
       }
@@ -1265,14 +1265,14 @@ void WorkerScriptLoader::ReportErrorToConsole(ScriptLoadRequest* aRequest,
   workerinternals::ReportLoadError(mRv, aResult, url);
 }
 
-void WorkerScriptLoader::LogExceptionToConsole(JSContext* aCx,
+void WorkerScriptLoader::LogExceptionToConsole(MCContext* aCx,
                                                WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
 
   MOZ_ASSERT(mRv.IsJSException());
 
   MC::Rooted<JS::Value> exn(aCx);
-  if (!ToJSValue(aCx, std::move(mRv), &exn)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), std::move(mRv), &exn)) {
     return;
   }
 
@@ -1280,9 +1280,9 @@ void WorkerScriptLoader::LogExceptionToConsole(JSContext* aCx,
   MOZ_ASSERT(!JS_IsExceptionPending(aCx));
   MOZ_ASSERT(!mRv.Failed());
 
-  JS::ExceptionStack exnStack(aCx, exn, nullptr);
-  JS::ErrorReportBuilder report(aCx);
-  if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  JS::ExceptionStack exnStack(MC_UNSAFE(aCx), exn, nullptr);
+  JS::ErrorReportBuilder report(MC_UNSAFE(aCx));
+  if (!report.init(MC_UNSAFE(aCx), exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
     JS_ClearPendingException(aCx);
     return;
   }
@@ -1654,7 +1654,7 @@ bool ScriptExecutorRunnable::ProcessClassicScripts(
       mScriptLoader->MaybeMoveToLoadedList(request);
     }
   }
-  return mScriptLoader->ProcessPendingRequests(aCx);
+  return mScriptLoader->ProcessPendingRequests(JS_SanitizeContext(aCx));
 }
 
 bool ScriptExecutorRunnable::WorkerRun(JSContext* aCx,
@@ -1723,7 +1723,7 @@ nsresult ChannelFromScriptURLMainThread(
 }
 
 nsresult ChannelFromScriptURLWorkerThread(
-    JSContext* aCx, WorkerPrivate* aParent, const nsAString& aScriptURL,
+    MCContext* aCx, WorkerPrivate* aParent, const nsAString& aScriptURL,
     const WorkerType& aWorkerType, const RequestCredentials& aCredentials,
     WorkerLoadInfo& aLoadInfo) {
   aParent->AssertIsOnWorkerThread();

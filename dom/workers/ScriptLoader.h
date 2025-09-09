@@ -222,7 +222,7 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
 
   bool StoreCSP();
 
-  bool ProcessPendingRequests(JSContext* aCx);
+  bool ProcessPendingRequests(MCContext* aCx);
 
   bool AllScriptsExecuted() {
     return mLoadingRequests.isEmpty() && mLoadedRequests.isEmpty();
@@ -257,7 +257,7 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
 
   nsContentPolicyType GetContentPolicyType(ScriptLoadRequest* aRequest);
 
-  bool EvaluateScript(JSContext* aCx, ScriptLoadRequest* aRequest);
+  bool EvaluateScript(MCContext* aCx, ScriptLoadRequest* aRequest);
 
   nsresult FillCompileOptionsForRequest(
       MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
@@ -273,7 +273,7 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
     MOZ_CRASH("Import maps have not been implemented for this context");
   }
 
-  void LogExceptionToConsole(JSContext* aCx, WorkerPrivate* aWorkerPrivate);
+  void LogExceptionToConsole(MCContext* aCx, WorkerPrivate* aWorkerPrivate);
 
   bool AllModuleRequestsLoaded() const;
   void IncreaseLoadingModuleRequestCount();
@@ -349,7 +349,7 @@ nsresult ChannelFromScriptURLMainThread(
     nsIChannel** aChannel);
 
 nsresult ChannelFromScriptURLWorkerThread(
-    JSContext* aCx, WorkerPrivate* aParent, const nsAString& aScriptURL,
+    MCContext* aCx, WorkerPrivate* aParent, const nsAString& aScriptURL,
     const WorkerType& aWorkerType, const RequestCredentials& aCredentials,
     WorkerLoadInfo& aLoadInfo);
 
