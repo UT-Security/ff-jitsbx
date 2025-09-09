@@ -74,6 +74,13 @@ namespace detail_mc_remove_wrapper {
     using type = T;
     using type_sbx = MC_Sbx;
   };
+  
+  template<typename T, typename MC_Sbx>
+  struct unwrapper<TaintedVolatile<T, MC_Sbx>&>
+  {
+    using type = T&;
+    using type_sbx = MC_Sbx;
+  };
 
   template<typename T, typename MC_Sbx>
   struct unwrapper<AppPointer<T, MC_Sbx>>

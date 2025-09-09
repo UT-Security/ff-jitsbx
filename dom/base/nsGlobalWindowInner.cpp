@@ -6220,13 +6220,13 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   // http://www.whatwg.org/specs/web-apps/current-work/#timer-initialisation-steps
   nsAutoMicroTask mt;
   AutoEntryScript aes(mGlobal, aExecutionReason, true);
-  JS::CompileOptions options(aes.cx());
-  options.setFileAndLine(mFileName.get(), mLineNo);
-  options.setNoScriptRval(true);
-  options.setIntroductionType("domTimer");
+  MC::SandboxStack<JS::CompileOptions> options(aes.cx());
+  options->setFileAndLine(mFileName.get(), mLineNo);
+  options->setNoScriptRval(true);
+  options->setIntroductionType("domTimer");
   MC::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
-    JSExecutionContext exec(aes.cx(), global, options);
+    JSExecutionContext exec(JS_SanitizeContext(aes.cx()), global, options);
     nsresult rv = exec.Compile(mExpr);
 
     MC::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());

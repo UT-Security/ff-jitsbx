@@ -361,6 +361,7 @@ EXPORTS.monkeycage += [
 	"../public/MemoryCallbacks.h",
 	"../public/MemoryMetrics.h",
 	"../public/Modules.h",
+	"../public/OffThreadScriptCompilation.h",
 	"../public/Principals.h",
 	"../public/Promise.h",
 	"../public/PropertyAndElement.h",

@@ -635,7 +635,7 @@ nsresult ModuleLoaderBase::CreateModuleScript(ModuleLoadRequest* aRequest) {
     if (module) {
       MC::RootedValue privateValue(cx);
       MC::RootedScript moduleScript(cx, JS::GetModuleScript(module));
-      JS::InstantiateOptions instantiateOptions(*options.UNSAFE_unverified());
+      MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*options);
       if (!JS::UpdateDebugMetadata(cx, moduleScript, instantiateOptions,
                                    privateValue, nullptr, introductionScript,
                                    nullptr)) {

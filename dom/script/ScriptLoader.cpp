@@ -25,7 +25,7 @@
 #include "js/loader/ModuleLoadRequest.h"
 #include "js/MemoryFunctions.h"
 #include "monkeycage/Modules.h"
-#include "js/OffThreadScriptCompilation.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Realm.h"
 #include "monkeycage/SourceText.h"
@@ -1528,7 +1528,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   }
 
   if (aRequest->IsTextSource()) {
-    if (!JS::CanCompileOffThread(MC_UNSAFE(cx), *options.UNSAFE_unverified(), aRequest->ScriptTextLength())) {
+    if (!JS::CanCompileOffThread(cx, options, aRequest->ScriptTextLength())) {
       TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                      "scriptloader_main_thread_compile");
       return NS_OK;
@@ -1538,8 +1538,8 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
 
     size_t length =
         aRequest->mScriptBytecode.length() - aRequest->mBytecodeOffset;
-    JS::DecodeOptions decodeOptions(*options.UNSAFE_unverified());
-    if (!JS::CanDecodeOffThread(MC_UNSAFE(cx), decodeOptions, length)) {
+    MC::SandboxStack<JS::DecodeOptions> decodeOptions(*options);
+    if (!JS::CanDecodeOffThread(cx, decodeOptions, length)) {
       return NS_OK;
     }
   }
@@ -1595,7 +1595,7 @@ nsresult ScriptLoader::StartOffThreadCompilation(
       MC::Sandbox::RegisterCallback(OffThreadCompilationCompleteCallback);
 
   if (aRequest->IsBytecode()) {
-    JS::DecodeOptions decodeOptions(*aOptions.UNSAFE_unverified());
+    MC::SandboxStack<JS::DecodeOptions> decodeOptions(*aOptions);
     *aTokenOut = JS::DecodeStencilOffThread(
         aCx, decodeOptions, aRequest->mScriptBytecode,
         aRequest->mBytecodeOffset, callback, aRunnable);
@@ -2137,7 +2137,7 @@ class MOZ_RAII AutoSetProcessingScriptTag {
   ~AutoSetProcessingScriptTag() { mContext->SetProcessingScriptTag(mOldTag); }
 };
 
-static nsresult ExecuteCompiledScript(JSContext* aCx, JSExecutionContext& aExec,
+static nsresult ExecuteCompiledScript(MCContext* aCx, JSExecutionContext& aExec,
                                       ClassicScript* aLoaderScript) {
   MC::Rooted<JSScript*> script(aCx, aExec.GetScript());
   if (!script) {
@@ -2393,7 +2393,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
   TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                  "scriptloader_execute");
   MC::Rooted<JSObject*> global(cx, aGlobalObject->GetGlobalJSObject());
-  JSExecutionContext exec(MC_UNSAFE(cx), global, *options.UNSAFE_unverified(), classicScriptValue,
+  JSExecutionContext exec(cx, global, options, classicScriptValue,
                           introductionScript);
 
   rv = CompileOrDecodeClassicScript(cx, exec, aRequest);
@@ -2415,7 +2415,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                 MarkerInnerWindowIdFromJSContext(cx),
                                 profilerLabelString);
 
-      rv = ExecuteCompiledScript(MC_UNSAFE(cx), exec, classicScript);
+      rv = ExecuteCompiledScript(cx, exec, classicScript);
     }
   }
 
