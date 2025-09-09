@@ -10,6 +10,7 @@
 #ifndef mc_ErrorReport_h
 #define mc_ErrorReport_h
 
+#include "SandboxCallback.h"
 #include "js/ErrorReport.h"
 
 #ifdef JS_SANDBOX
@@ -57,10 +58,30 @@ inline void JS_ReportErrorUTF8(MCContext* cx, Args... args) {
   return JS_ReportErrorUTF8(cx->cx_, "%s", args...);
 }
 
+//TODO: allow callback to be either a sandbox address or a sandbox callback.
+template <typename... Args>
+inline void JS_ReportErrorNumberASCII(
+    MCContext* cx, JSErrorCallback errorCallback,
+    void* userRef, const unsigned errorNumber, Args... args) {
+  return JS_ReportErrorNumberASCII(cx->cx_, errorCallback, userRef,
+                                   errorNumber, args...);
+}
+
 inline MOZ_COLD void JS_ReportOutOfMemory(MCContext* cx) {
   return JS_ReportOutOfMemory(cx->cx_); 
 }
 
+namespace JS {
+
+inline bool CreateError(
+    MCContext* cx, JSExnType type, HandleObject stack, HandleString fileName,
+    uint32_t lineNumber, uint32_t columnNumber, JSErrorReport* report,
+    HandleString message, Handle<mozilla::Maybe<Value>> cause,
+    MutableHandleValue rval) {
+  return CreateError(cx->cx_, type, stack, fileName, lineNumber, columnNumber, report, message, cause, rval);
+}
+
+} /* namespace JS */
 #endif
 
 #endif

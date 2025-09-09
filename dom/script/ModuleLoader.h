@@ -55,8 +55,8 @@ class ModuleLoader final : public JS::loader::ModuleLoaderBase {
   void OnModuleLoadComplete(ModuleLoadRequest* aRequest) override;
 
   nsresult CompileFetchedModule(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+      MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+      MC::Tainted<JS::CompileOptions*> aOptions, ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
   // Create a top-level module load request.
@@ -71,7 +71,7 @@ class ModuleLoader final : public JS::loader::ModuleLoaderBase {
 
   // Create a module load request for a dynamic module import.
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
       JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;

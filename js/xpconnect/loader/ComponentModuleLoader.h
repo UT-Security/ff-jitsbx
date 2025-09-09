@@ -34,7 +34,7 @@ class ComponentScriptLoader : public JS::loader::ScriptLoaderInterface {
                               const nsTArray<nsString>& aParams) const override;
 
   nsresult FillCompileOptionsForRequest(
-      JSContext* cx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+      MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
       JS::MutableHandle<JSScript*> aIntroductionScript) override;
 };
 
@@ -49,7 +49,7 @@ class ComponentModuleLoader : public JS::loader::ModuleLoaderBase {
 
   [[nodiscard]] nsresult ProcessRequests();
 
-  void MaybeReportLoadError(JSContext* aCx);
+  void MaybeReportLoadError(MCContext* aCx);
 
  private:
   // An event target that dispatches runnables by executing them
@@ -69,7 +69,7 @@ class ComponentModuleLoader : public JS::loader::ModuleLoaderBase {
       nsIURI* aURI, ModuleLoadRequest* aParent) override;
 
   already_AddRefed<ModuleLoadRequest> CreateDynamicImport(
-      JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+      MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
       JS::Handle<JS::Value> aReferencingPrivate,
       JS::Handle<JSString*> aSpecifier,
       JS::Handle<JSObject*> aPromise) override;
@@ -79,8 +79,8 @@ class ComponentModuleLoader : public JS::loader::ModuleLoaderBase {
   nsresult StartFetch(ModuleLoadRequest* aRequest) override;
 
   nsresult CompileFetchedModule(
-      JSContext* aCx, JS::Handle<JSObject*> aGlobal,
-      JS::CompileOptions& aOptions, ModuleLoadRequest* aRequest,
+      MCContext* aCx, JS::Handle<JSObject*> aGlobal,
+      MC::Tainted<JS::CompileOptions*> aOptions, ModuleLoadRequest* aRequest,
       JS::MutableHandle<JSObject*> aModuleScript) override;
 
   void OnModuleLoadComplete(ModuleLoadRequest* aRequest) override;

@@ -15,10 +15,9 @@
 
 #include "monkeycage/Context.h"
 
-namespace js {
+namespace JS {
 
-
-inline JSString* ToString(MCContext* cx, HandleValue v) {
+inline JSString* ToString(MCContext* cx, JS::HandleValue v) {
   return ToString(cx->cx_, v);
 }
 

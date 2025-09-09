@@ -35,7 +35,7 @@ void ComponentScriptLoader::ReportWarningToConsole(
     const nsTArray<nsString>& aParams) const {}
 
 nsresult ComponentScriptLoader::FillCompileOptionsForRequest(
-    JSContext* cx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+    MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
     JS::MutableHandle<JSScript*> aIntroductionScript) {
   return NS_OK;
 }
@@ -73,7 +73,7 @@ already_AddRefed<ModuleLoadRequest> ComponentModuleLoader::CreateStaticImport(
 }
 
 already_AddRefed<ModuleLoadRequest> ComponentModuleLoader::CreateDynamicImport(
-    JSContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
+    MCContext* aCx, nsIURI* aURI, LoadedScript* aMaybeActiveScript,
     JS::Handle<JS::Value> aReferencingPrivate, JS::Handle<JSString*> aSpecifier,
     JS::Handle<JSObject*> aPromise) {
   return nullptr;  // Not yet implemented.
@@ -156,7 +156,7 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
 }
 
 nsresult ComponentModuleLoader::CompileFetchedModule(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal, JS::CompileOptions& aOptions,
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal, MC::Tainted<JS::CompileOptions*> aOptions,
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleOut) {
   // Compilation already happened in StartFetch. Report the result here.
   ComponentLoadContext* context = aRequest->GetComponentLoadContext();
@@ -176,7 +176,7 @@ nsresult ComponentModuleLoader::CompileFetchedModule(
   return rv;
 }
 
-void ComponentModuleLoader::MaybeReportLoadError(JSContext* aCx) {
+void ComponentModuleLoader::MaybeReportLoadError(MCContext* aCx) {
   if (JS_IsExceptionPending(aCx)) {
     // Do not override.
     return;

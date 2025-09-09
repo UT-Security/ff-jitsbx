@@ -260,7 +260,7 @@ class WorkerScriptLoader : public JS::loader::ScriptLoaderInterface,
   bool EvaluateScript(JSContext* aCx, ScriptLoadRequest* aRequest);
 
   nsresult FillCompileOptionsForRequest(
-      JSContext* cx, ScriptLoadRequest* aRequest, JS::CompileOptions* aOptions,
+      MCContext* cx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
       JS::MutableHandle<JSScript*> aIntroductionScript) override;
 
   void ReportErrorToConsole(ScriptLoadRequest* aRequest,

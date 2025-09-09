@@ -1826,19 +1826,19 @@ nsresult mozJSModuleLoader::ImportESModule(
 
   rv = request->StartModuleLoad();
   if (NS_FAILED(rv)) {
-    mModuleLoader->MaybeReportLoadError(aCx);
+    mModuleLoader->MaybeReportLoadError(JS_SanitizeContext(aCx));
     return rv;
   }
 
   rv = mModuleLoader->ProcessRequests();
   if (NS_FAILED(rv)) {
-    mModuleLoader->MaybeReportLoadError(aCx);
+    mModuleLoader->MaybeReportLoadError(JS_SanitizeContext(aCx));
     return rv;
   }
 
   MOZ_ASSERT(request->IsReadyToRun());
   if (!request->mModuleScript) {
-    mModuleLoader->MaybeReportLoadError(aCx);
+    mModuleLoader->MaybeReportLoadError(JS_SanitizeContext(aCx));
     return NS_ERROR_FAILURE;
   }
 
@@ -1848,7 +1848,7 @@ nsresult mozJSModuleLoader::ImportESModule(
     return NS_ERROR_FAILURE;
   }
 
-  rv = mModuleLoader->EvaluateModuleInContext(aCx, request,
+  rv = mModuleLoader->EvaluateModuleInContext(JS_SanitizeContext(aCx), request,
                                               JS::ThrowModuleErrorsSync);
   NS_ENSURE_SUCCESS(rv, rv);
   if (JS_IsExceptionPending(aCx)) {

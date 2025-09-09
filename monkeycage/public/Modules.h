@@ -13,6 +13,7 @@
 
 #ifdef JS_SANDBOX
 
+#include "monkeycage/CompileOptions.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/SandboxCallback.h"
 
@@ -48,6 +49,87 @@ inline void SetModuleDynamicImportHook(
   return SetModuleDynamicImportHook(rt->rt_, func.UNSAFE_get());
 }
 
+inline bool FinishDynamicModuleImport(MCContext* cx,
+                                      Handle<JSObject*> evaluationPromise,
+                                      Handle<Value> referencingPrivate,
+                                      Handle<JSObject*> moduleRequest,
+                                      Handle<JSObject*> promise) {
+  return FinishDynamicModuleImport(cx->cx_, evaluationPromise,
+                                   referencingPrivate, moduleRequest, promise);
+}
+
+inline JSObject* CompileModule(MCContext* cx,
+                               const ReadOnlyCompileOptions& options,
+                               SourceText<char16_t>& srcBuf) {
+  return CompileModule(cx->cx_, options, srcBuf);
+}
+
+inline JSObject* CompileModule(MCContext* cx,
+                               const ReadOnlyCompileOptions& options,
+                               SourceText<mozilla::Utf8Unit>& srcBuf) {
+  return CompileModule(cx->cx_, options, srcBuf);
+}
+
+inline bool ModuleLink(MCContext* cx, Handle<JSObject*> moduleRecord) {
+  return ModuleLink(cx->cx_, moduleRecord);
+}
+
+inline bool ModuleEvaluate(MCContext* cx, Handle<JSObject*> moduleRecord,
+                           MutableHandleValue rval) {
+  return ModuleEvaluate(cx->cx_, moduleRecord, rval);
+}
+
+inline bool ThrowOnModuleEvaluationFailure(
+    MCContext* cx, Handle<JSObject*> evaluationPromise,
+    ModuleErrorBehaviour errorBehaviour = ReportModuleErrorsAsync) {
+  return ThrowOnModuleEvaluationFailure(cx->cx_, evaluationPromise, errorBehaviour);
+}
+
+inline uint32_t GetRequestedModulesCount(MCContext* cx,
+                                         Handle<JSObject*> moduleRecord) {
+  return GetRequestedModulesCount(cx->cx_, moduleRecord);
+}
+
+inline JSString* GetRequestedModuleSpecifier(MCContext* cx,
+                                             Handle<JSObject*> moduleRecord,
+                                             uint32_t index) {
+  return GetRequestedModuleSpecifier(cx->cx_, moduleRecord, index);
+}
+
+inline void GetRequestedModuleSourcePos(MCContext* cx,
+                                        Handle<JSObject*> moduleRecord,
+                                        uint32_t index,
+                                        MC::Tainted<uint32_t*> lineNumber,
+                                        MC::Tainted<uint32_t*> columnNumber) {
+  return GetRequestedModuleSourcePos(cx->cx_, moduleRecord, index,
+                                     lineNumber.UNSAFE_unverified(),
+                                     columnNumber.UNSAFE_unverified());
+}
+
+inline JSObject* CreateModuleRequest(MCContext* cx,
+                                     Handle<JSString*> specifierArg) {
+  return CreateModuleRequest(cx->cx_, specifierArg);
+}
+
+inline JSString* GetModuleRequestSpecifier(MCContext* cx,
+                                           Handle<JSObject*> moduleRequestArg) {
+  return GetModuleRequestSpecifier(cx->cx_, moduleRequestArg);
+}
+
+inline JSObject* GetModuleNamespace(MCContext* cx,
+                                    Handle<JSObject*> moduleRecord) {
+  return GetModuleNamespace(cx->cx_, moduleRecord);
+}
+
+inline JSObject* GetModuleForNamespace(MCContext* cx,
+                                       Handle<JSObject*> moduleNamespace) {
+  return GetModuleForNamespace(cx->cx_, moduleNamespace);
+}
+
+inline JSObject* GetModuleEnvironment(MCContext* cx,
+                                      Handle<JSObject*> moduleObj) {
+  return GetModuleEnvironment(cx->cx_, moduleObj);
+}
 }  // namespace JS
 #endif
 

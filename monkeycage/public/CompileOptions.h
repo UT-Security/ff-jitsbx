@@ -23,6 +23,14 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
   JS::CompileOptions data;
 
  public:
+  void setBorrowBuffer(bool b) {
+    data.borrowBuffer = b;
+  }
+
+  void setAllocateInstantiationStorage(bool b) {
+    data.allocateInstantiationStorage = b;
+  }
+  
   TaintedVolatile<JS::CompileOptions, MC_Sbx>& setFile(const char* f) {
     data.setFile(f);
     return *this;
@@ -103,6 +111,14 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
 
   TaintedVolatile<JS::CompileOptions, MC_Sbx>& setHideScriptFromDebugger(bool v = true) {
     data.setHideScriptFromDebugger(v);
+    return *this;
+  }
+
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setIntroductionInfoToCaller(
+      MCContext* cx, const char* introductionType,
+      JS::MutableHandle<JSScript*> introductionScript) {
+    data.setIntroductionInfoToCaller(cx->cx_, introductionType,
+                                     introductionScript);
     return *this;
   }
 };
