@@ -4932,6 +4932,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             MOZ_ASSERT(ToSupportsIsOnPrimaryInheritanceChain(aObject, aCache),
                        "nsISupports must be on our primary inheritance chain");
 
+            $*{incAppPtr}
             if (!CreateGlobal<${nativeType}, ${getProto}>(aCx,
                                              aObject,
                                              aCache,
@@ -4946,7 +4947,6 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // aReflector is a new global, so has a new realm.  Enter it
             // before doing anything with it.
             JSAutoRealm ar(aCx, aReflector);
-            $*{incAppPtr}
 
             MCContext* mCx = JS_SanitizeContext(aCx);
             if (!DefineProperties(mCx, aReflector, ${properties}, ${chromeProperties})) {
@@ -14554,7 +14554,7 @@ class CGProxyIsProxy(CGAbstractMethod):
 
 class CGProxyUnwrap(CGAbstractMethod):
     def __init__(self, descriptor):
-        args = [Argument("JSObject*", "obj")]
+        args = [Argument("JSObject*", "unsan_obj")]
         CGAbstractMethod.__init__(
             self,
             descriptor,
@@ -14570,14 +14570,19 @@ class CGProxyUnwrap(CGAbstractMethod):
     def definition_body(self):
         return fill(
             """
-            MOZ_ASSERT(js::IsProxy(obj));
+            MC::Tainted<JSObject*> obj;
+            obj.assign_raw_pointer(unsan_obj);
+            MOZ_ASSERT(js::IsProxy(obj.UNSAFE_unverified()));
             if (!mc::IsProxyHandler(obj, DOMProxyHandler::getInstance())) {
-              MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(obj));
-              obj = js::UncheckedUnwrap(obj);
+              MOZ_ASSERT(xpc::WrapperFactory::IsXrayWrapper(obj.UNSAFE_unverified()));
+              obj = mc::UncheckedUnwrap(obj);
             }
-            MOZ_ASSERT(IsProxy(obj));
-            return static_cast<${type}*>(js::GetProxyReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate());
+            MOZ_ASSERT(IsProxy(obj.UNSAFE_unverified()));
+            MC::AppPtr<${type}> tPtr = 
+                mc::GetProxyReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate();
+            return tPtr.verify_as_type();
             """,
+            #return static_cast<${type}*>(js::GetProxyReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate());
             type=self.descriptor.nativeType,
         )
 

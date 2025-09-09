@@ -109,12 +109,31 @@ static_assert(DOM_OBJECT_SLOT == 0,
               "DOM_OBJECT_SLOT doesn't match the proxy private slot.  "
               "Expect bad things");
 template <class T>
-inline T* UnwrapDOMObject(JSObject* obj) {
+inline T* UnwrapDOMObject(JSObject* unsan_obj) {
+  MC::Tainted<JSObject*> obj;
+  obj.assign_raw_pointer(unsan_obj);
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj.UNSAFE_unverified())),
+             "Don't pass non-DOM objects to this function");
+
+  MC::AppPtr<T> unsan_dom = 
+    JS::GetReservedSlot(obj.UNSAFE_unverified(), DOM_OBJECT_SLOT).toPrivate();
+  return unsan_dom.verify_as_type();
+}
+
+template <>
+inline void* UnwrapDOMObject<void>(JSObject* obj) {
   MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
              "Don't pass non-DOM objects to this function");
 
-  JS::Value val = JS::GetReservedSlot(obj, DOM_OBJECT_SLOT);
-  return static_cast<T*>(val.toPrivate());
+  return JS::GetReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate();
+}
+
+template <>
+inline nsISupports* UnwrapDOMObject<nsISupports>(JSObject* obj) {
+  MOZ_ASSERT(IsDOMClass(JS::GetClass(obj)),
+             "Don't pass non-DOM objects to this function");
+
+  return static_cast<nsISupports*>(JS::GetReservedSlot(obj, DOM_OBJECT_SLOT).toPrivate());
 }
 
 template <class T>

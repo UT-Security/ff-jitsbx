@@ -413,7 +413,7 @@ private:
 
   virtual bool set(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
-                   JS::ObjectOpResult& result) const {
+                  JS::ObjectOpResult& result) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::set(
         cx->cx_, proxy, id, v, receiver, result);
   }
@@ -536,6 +536,10 @@ inline bool IsProxyHandler(const JSObject* obj, const BaseProxyHandler* handler)
   return js::GetProxyHandler(obj) == handler->UNSAFE_getProxyHandler();
 }
 
+inline bool IsProxyHandler(const MC::Tainted<JSObject*> obj, const BaseProxyHandler* handler) {
+  return js::GetProxyHandler(obj.UNSAFE_unverified())  == handler->UNSAFE_getProxyHandler();
+}
+
 // TODO(abhishek): move to js namespace once argument is Tainted
 inline const BaseProxyHandler* GetProxyHandler(const JSObject* obj) {
   const void* ptr =
@@ -553,6 +557,10 @@ inline const void* GetProxyHandlerFamily(const JSObject* obj) {
 
 inline bool IsScriptedProxy(const JSObject* obj) {
   return js::IsProxy(obj) && js::sandbox::ProxyHandlerIsScripted(js::GetProxyHandler(obj));
+}
+
+inline const JS::Value& GetProxyReservedSlot(const MC::Tainted<JSObject*> obj, size_t n) {
+  return js::GetProxyReservedSlot(obj.UNSAFE_unverified(), n);
 }
 
 }  // namespace mc

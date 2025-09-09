@@ -980,6 +980,14 @@ inline JSObject* CheckedUnwrapDynamic(JSObject* obj, MCContext* cx,
                                              bool stopAtWindowProxy = true) {
     return js::CheckedUnwrapDynamic(obj, cx->cx_, stopAtWindowProxy);
 }
+
+inline MC::Tainted<JSObject*> UncheckedUnwrap(MC::Tainted<JSObject*> obj,
+                                                bool stopAtWindowProxy = true,
+                                                unsigned* flagsp = nullptr) {
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(js::UncheckedUnwrap(obj.UNSAFE_unverified(), stopAtWindowProxy, flagsp));
+  return ret;
+}
 }
 
 namespace js {
