@@ -7,3 +7,24 @@
  * Structures and functions for transcoding compiled scripts and functions to
  * and from memory.
  */
+
+#include "js/Transcoding.h"
+
+#ifdef JS_SANDBOX
+
+#include "monkeycage/Context.h"
+
+namespace JS {
+
+inline bool FinishIncrementalEncoding(MCContext* cx, Handle<JSScript*> script,
+                                      TranscodeBuffer& buffer) {
+ return FinishIncrementalEncoding(cx->cx_, script, buffer);
+}
+
+inline bool FinishIncrementalEncoding(MCContext* cx, Handle<JSObject*> module,
+                                      TranscodeBuffer& buffer) {
+ return FinishIncrementalEncoding(cx->cx_, module, buffer);
+}
+}
+
+#endif

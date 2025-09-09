@@ -22,7 +22,24 @@ class TaintedVolatile<JS::SourceText<Unit>, MC_Sbx> {
  private:
   JS::SourceText<Unit> data;
 
+  inline auto& get_sandbox_value_ref() noexcept { return data; }
+  inline auto& get_sandbox_value_ref() const noexcept { return data; }
+
  public:
+  inline Tainted<const JS::SourceText<Unit>*, MC_Sbx> operator&() const noexcept {
+    auto ref = remove_volatile_from_ptr_cast(&this->get_sandbox_value_ref());
+    auto ref_cast = reinterpret_cast<const JS::SourceText<Unit>*>(ref);
+    return Tainted<const JS::SourceText<Unit>*, MC_Sbx>::internal_factory(ref_cast);
+  }
+
+  inline Tainted<JS::SourceText<Unit>*, MC_Sbx> operator&() noexcept {
+    auto taintedVal = &std::as_const(*this);
+    auto raw = const_cast<JS::SourceText<Unit>*>(taintedVal.INTERNAL_unverified_safe());
+    return Tainted<JS::SourceText<Unit>*, MC_Sbx>::internal_factory(raw);
+  }
+
+
+public:
   inline bool init(MCContext* cx, const Unit* units, size_t unitsLength,
                    JS::SourceOwnership ownership) {
     return data.init(cx->cx_, units, unitsLength, ownership);

@@ -8,17 +8,17 @@
 #define js_loader_ScriptLoadRequest_h
 
 #include "js/AllocPolicy.h"
-#include "js/RootingAPI.h"
-#include "js/SourceText.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CORSMode.h"
 #include "mozilla/dom/SRIMetadata.h"
 #include "mozilla/dom/ReferrerPolicyBinding.h"
 #include "mozilla/LinkedList.h"
-#include "mozilla/Maybe.h"
-#include "mozilla/MaybeOneOf.h"
+#include "monkeycage/tainted/Maybe.h"
+#include "monkeycage/tainted/MaybeOneOf.h"
 #include "mozilla/PreloaderBase.h"
 #include "mozilla/StaticPrefs_dom.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
@@ -275,7 +275,7 @@ class ScriptLoadRequest
 
   // Get source text.  On success |aMaybeSource| will contain either UTF-8 or
   // UTF-16 source; on failure it will remain in its initial state.
-  nsresult GetScriptSource(JSContext* aCx, MaybeSourceText* aMaybeSource);
+  nsresult GetScriptSource(MCContext* aCx, MC::Tainted<MaybeSourceText*> aMaybeSource);
 
   void ClearScriptText() {
     MOZ_ASSERT(IsTextSource());

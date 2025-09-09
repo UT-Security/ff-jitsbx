@@ -10,13 +10,13 @@
 #include "mcapi.h"
 #include "monkeycage/CompileOptions.h"  // JS::CompileOptions, JS::InstantiateOptions
 #include "monkeycage/ContextOptions.h"  // JS::ContextOptionsRef
-#include "js/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
+#include "monkeycage/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/MemoryFunctions.h"
 #include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
 #include "js/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
-#include "js/Realm.h"
-#include "js/SourceText.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/SourceText.h"
 #include "js/loader/LoadedScript.h"
 #include "js/loader/ScriptLoadRequest.h"
 #include "js/loader/ModuleLoaderBase.h"
@@ -182,14 +182,14 @@ nsresult ModuleLoader::CompileFetchedModule(
 
   RefPtr<JS::Stencil> stencil;
   if (aRequest->IsTextSource()) {
-    MaybeSourceText maybeSource;
-    nsresult rv = aRequest->GetScriptSource(MC_UNSAFE(aCx), &maybeSource);
+    MC::SandboxStack<MaybeSourceText> maybeSource;
+    nsresult rv = aRequest->GetScriptSource(aCx, maybeSource);
     NS_ENSURE_SUCCESS(rv, rv);
 
     auto compile = [&](auto& source) {
-      return JS::CompileModuleScriptToStencil(MC_UNSAFE(aCx), *aOptions.UNSAFE_unverified(), source);
+      return JS::CompileModuleScriptToStencil(aCx, aOptions, &source);
     };
-    stencil = maybeSource.mapNonEmpty(compile);
+    stencil = maybeSource->mapNonEmpty(compile);
   } else {
     MOZ_ASSERT(aRequest->IsBytecode());
     JS::DecodeOptions decodeOptions(*aOptions.UNSAFE_unverified());

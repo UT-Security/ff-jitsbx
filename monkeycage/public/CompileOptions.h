@@ -121,6 +121,16 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
                                      introductionScript);
     return *this;
   }
+  
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setEagerDelazificationStrategy(
+      JS::DelazificationOption strategy) {
+    data.setEagerDelazificationStrategy(strategy);
+    return *this;
+  }
+  
+  JS::DelazificationOption eagerDelazificationStrategy() const {
+    return data.eagerDelazificationStrategy();
+  }
 };
 
 }  // namespace detail

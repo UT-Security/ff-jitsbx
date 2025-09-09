@@ -2756,7 +2756,7 @@ nsresult WorkerPrivate::GetLoadInfo(
 
     // Passing a pointer to our stack loadInfo is safe here because this
     // method uses a sync runnable to get the channel from the main thread.
-    rv = ChannelFromScriptURLWorkerThread(aCx, aParent, aScriptURL, aWorkerType,
+    rv = ChannelFromScriptURLWorkerThread(JS_SanitizeContext(aCx), aParent, aScriptURL, aWorkerType,
                                           aCredentials, loadInfo);
     if (NS_FAILED(rv)) {
       MOZ_ALWAYS_TRUE(loadInfo.ProxyReleaseMainThreadObjects(aParent));

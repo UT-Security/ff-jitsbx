@@ -16,6 +16,10 @@
 
 namespace JS {
 
+inline JS::Value GetScriptedCallerPrivate(MCContext* cx) {
+  return GetScriptedCallerPrivate(cx->cx_);
+}
+
 inline void SetScriptPrivateReferenceHooks(
     MCRuntime* rt, MC::SandboxCallback<ScriptPrivateReferenceHook> addRefHook,
     MC::SandboxCallback<ScriptPrivateReferenceHook> releaseHook) {

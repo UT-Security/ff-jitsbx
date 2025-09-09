@@ -36,6 +36,7 @@ public:
   inline auto& impl() const { return *static_cast<const T_Wrap<T, MC_Sbx>*>(this); }
 
   inline auto UNSAFE_unverified() const { return impl().get_raw_value(); }
+  inline auto INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
 
 private:
   using T_OpDerefRet = TaintedVolatile<std::remove_pointer_t<T>, MC_Sbx>;
@@ -100,7 +101,11 @@ class Tainted : public TaintedBase<Tainted, T, MC_Sbx> {
   );
 
 private:
-  friend class TaintedBase<Tainted, T, MC_Sbx>;
+  template<template<typename, typename> typename U1, typename U2, typename U3>
+  friend class TaintedBase;
+  
+  template<typename U1, typename U2>
+  friend class TaintedVolatile;
   
   using T_ClassBase = TaintedBase<Tainted, T, MC_Sbx>;
 
@@ -119,7 +124,18 @@ private:
     // Sanity check
     static_assert(std::is_pointer_v<T>);
   }
-public:
+
+  template <typename T_Rhs>
+  static inline Tainted<T, MC_Sbx> internal_factory(T_Rhs&& rhs) {
+    if constexpr (std::is_pointer_v<std::remove_reference_t<T_Rhs>>) {
+      const void* internal_tag = nullptr;
+      return Tainted(std::forward<T_Rhs>(rhs), internal_tag);
+    } else {
+      return Tainted(std::forward<T_Rhs>(rhs));
+    }
+  }
+
+ public:
   Tainted() = default;
   Tainted(const Tainted<T, MC_Sbx>& p) = default;
 
@@ -156,6 +172,12 @@ class TaintedVolatile : public TaintedBase<TaintedVolatile, T, MC_Sbx> {
     "Tainted types support only fundamental, enum and pointer types."
   );
 
+  template<template<typename, typename> typename U1, typename U2, typename U3>
+  friend class TaintedBase;
+  
+  template<typename U1, typename U2>
+  friend class Tainted;
+
 private:
   friend class TaintedBase<TaintedVolatile, T, MC_Sbx>;
   
@@ -175,6 +197,17 @@ private:
   TaintedVolatile(const TaintedVolatile<T, MC_Sbx>& p) = default;
 
 public:
+  inline Tainted<const T*, MC_Sbx> operator&() const noexcept {
+    auto ref = remove_volatile_from_ptr_cast(&this->get_sandbox_value_ref());
+    auto ref_cast = reinterpret_cast<const T*>(ref);
+    return Tainted<const T*, MC_Sbx>::internal_factory(ref_cast);
+  }
+
+  inline Tainted<T*, MC_Sbx> operator&() noexcept {
+    auto taintedVal = &std::as_const(*this);
+    auto raw = const_cast<T*>(taintedVal.INTERNAL_unverified_safe());
+    return Tainted<T*, MC_Sbx>::internal_factory(raw);
+  }
 
   template<typename T_RhsRef>
   inline TaintedVolatile<T, MC_Sbx>& operator=(T_RhsRef&& val) {

@@ -442,7 +442,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    * Get the currently active script. This is used as the initiating script when
    * executing timeout handler scripts.
    */
-  static JS::loader::LoadedScript* GetActiveScript(JSContext* aCx);
+  static JS::loader::LoadedScript* GetActiveScript(MCContext* aCx);
 
   Document* GetDocument() const { return mDocument; }
 
@@ -587,9 +587,9 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   nsresult AttemptOffThreadScriptCompile(ScriptLoadRequest* aRequest,
                                          bool* aCouldCompileOut);
 
-  nsresult StartOffThreadCompilation(JSContext* aCx,
+  nsresult StartOffThreadCompilation(MCContext* aCx,
                                      ScriptLoadRequest* aRequest,
-                                     JS::CompileOptions& aOptions,
+                                     MC::Tainted<JS::CompileOptions*> aOptions,
                                      Runnable* aRunnable,
                                      JS::OffThreadToken** aTokenOut);
 
@@ -608,7 +608,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
 
   // Handles both bytecode and text source scripts; populates exec with a
   // compiled script
-  nsresult CompileOrDecodeClassicScript(JSContext* aCx,
+  nsresult CompileOrDecodeClassicScript(MCContext* aCx,
                                         JSExecutionContext& aExec,
                                         ScriptLoadRequest* aRequest);
 
@@ -663,7 +663,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
    * functions on the cache provided by the channel.
    */
   void EncodeBytecode();
-  void EncodeRequestBytecode(JSContext* aCx, ScriptLoadRequest* aRequest);
+  void EncodeRequestBytecode(MCContext* aCx, ScriptLoadRequest* aRequest);
 
   void GiveUpBytecodeEncoding();
 
@@ -690,7 +690,7 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
   bool MaybeRemovedDeferRequests();
 
   bool ShouldApplyDelazifyStrategy(ScriptLoadRequest* aRequest);
-  void ApplyDelazifyStrategy(JS::CompileOptions* aOptions);
+  void ApplyDelazifyStrategy(MC::Tainted<JS::CompileOptions*> aOptions);
 
   bool ShouldCompileOffThread(ScriptLoadRequest* aRequest);
 

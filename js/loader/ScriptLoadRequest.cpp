@@ -17,7 +17,7 @@
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
 #include "js/OffThreadScriptCompilation.h"
-#include "js/SourceText.h"
+#include "monkeycage/SourceText.h"
 
 #include "ModuleLoadRequest.h"
 #include "nsContentUtils.h"
@@ -193,8 +193,8 @@ bool ScriptLoadRequest::IsMarkedForBytecodeEncoding() const {
   return !!mScriptForBytecodeEncoding;
 }
 
-nsresult ScriptLoadRequest::GetScriptSource(JSContext* aCx,
-                                            MaybeSourceText* aMaybeSource) {
+nsresult ScriptLoadRequest::GetScriptSource(MCContext* aCx,
+                                            MC::Tainted<MaybeSourceText*> aMaybeSource) {
   // If there's no script text, we try to get it from the element
   if (HasScriptLoadContext() && GetScriptLoadContext()->mIsInline) {
     nsAutoString inlineData;
@@ -202,7 +202,7 @@ nsresult ScriptLoadRequest::GetScriptSource(JSContext* aCx,
 
     size_t nbytes = inlineData.Length() * sizeof(char16_t);
     JS::UniqueTwoByteChars chars(
-        static_cast<char16_t*>(JS_malloc(aCx, nbytes)));
+        static_cast<char16_t*>(JS_malloc(MC_UNSAFE(aCx), nbytes)));
     if (!chars) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -210,7 +210,7 @@ nsresult ScriptLoadRequest::GetScriptSource(JSContext* aCx,
     memcpy(chars.get(), inlineData.get(), nbytes);
 
     SourceText<char16_t> srcBuf;
-    if (!srcBuf.init(aCx, std::move(chars), inlineData.Length())) {
+    if (!srcBuf.init(MC_UNSAFE(aCx), std::move(chars), inlineData.Length())) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -228,7 +228,7 @@ nsresult ScriptLoadRequest::GetScriptSource(JSContext* aCx,
     }
 
     SourceText<char16_t> srcBuf;
-    if (!srcBuf.init(aCx, std::move(chars), length)) {
+    if (!srcBuf.init(MC_UNSAFE(aCx), std::move(chars), length)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -245,7 +245,7 @@ nsresult ScriptLoadRequest::GetScriptSource(JSContext* aCx,
   }
 
   SourceText<Utf8Unit> srcBuf;
-  if (!srcBuf.init(aCx, std::move(chars), length)) {
+  if (!srcBuf.init(MC_UNSAFE(aCx), std::move(chars), length)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 

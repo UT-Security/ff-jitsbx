@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
+#include "monkeycage/experimental/JSStencil.h"  // JS::Stencil, JS::CompileModuleScriptToStencil, JS::InstantiateModuleStencil
 #include "js/loader/ModuleLoadRequest.h"
 #include "mozilla/dom/WorkerLoadContext.h"
 #include "mozilla/dom/WorkerPrivate.h"
@@ -145,14 +145,14 @@ nsresult WorkerModuleLoader::CompileFetchedModule(
     ModuleLoadRequest* aRequest, JS::MutableHandle<JSObject*> aModuleScript) {
   RefPtr<JS::Stencil> stencil;
   MOZ_ASSERT(aRequest->IsTextSource());
-  MaybeSourceText maybeSource;
-  nsresult rv = aRequest->GetScriptSource(MC_UNSAFE(aCx), &maybeSource);
+  MC::SandboxStack<MaybeSourceText> maybeSource;
+  nsresult rv = aRequest->GetScriptSource(aCx, maybeSource);
   NS_ENSURE_SUCCESS(rv, rv);
 
   auto compile = [&](auto& source) {
-    return JS::CompileModuleScriptToStencil(MC_UNSAFE(aCx), *aOptions.UNSAFE_unverified(), source);
+    return JS::CompileModuleScriptToStencil(aCx, aOptions, &source);
   };
-  stencil = maybeSource.mapNonEmpty(compile);
+  stencil = maybeSource->mapNonEmpty(compile);
 
   if (!stencil) {
     return NS_ERROR_FAILURE;
@@ -190,7 +190,7 @@ void WorkerModuleLoader::OnModuleLoadComplete(ModuleLoadRequest* aRequest) {
       requestScriptLoader->TryShutdown();
     } else {
       requestScriptLoader->MaybeMoveToLoadedList(aRequest);
-      requestScriptLoader->ProcessPendingRequests(jsapi.cx());
+      requestScriptLoader->ProcessPendingRequests(jsapi.mcx());
     }
   }
 }
