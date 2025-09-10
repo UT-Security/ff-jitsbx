@@ -29,10 +29,7 @@ private:
 
   static inline std::shared_mutex callback_mutex;
 
-  // NOTE: Should be kept in sync with lfi-bind/nooplib
-  static constexpr size_t MAX_CALLBACKS = 40960;
-
-  static inline void* callback_index_to_app_func[MAX_CALLBACKS] = {};
+  static inline void* callback_index_to_app_func[MC_Sbx::MAX_CALLBACKS] = {};
 public:
   static bool Initialize() {
     if (initialize_.test_and_set()) {
@@ -62,18 +59,18 @@ public:
     size_t index;
     T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, (void*)app_callback, &index);
     callback_index_to_app_func[index] = (void*)app_callback;
-    return Callback<T_Cb<T_Ret, T_Args...>>(sbx_callback, index);
+    return Callback<T_Cb<T_Ret, T_Args...>>(app_callback, sbx_callback);
   }
 
   template<typename T_Ret, typename... T_Args>
   static Callback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(T_Cb<T_Ret, T_Args...> sbx_callback) {    
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
     size_t index;
-    MC_Sbx::RetrieveCallback(sbx_callback, &index);
-    if (index == 40960) {
+    T_Cb<T_Ret, T_Args...> app_callback = MC_Sbx::RetrieveCallback(sbx_callback, &index);
+    if (index == MC_Sbx::MAX_CALLBACKS || callback_index_to_app_func[index] != (void*)app_callback) {
       return Callback<T_Cb<T_Ret, T_Args...>>(nullptr);
     }
-    return Callback<T_Cb<T_Ret, T_Args...>>(sbx_callback, index);
+    return Callback<T_Cb<T_Ret, T_Args...>>(app_callback, sbx_callback);
   }
 
   template <typename T_Arg>
@@ -102,7 +99,7 @@ public:
         std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
     using T_Func = T_Func_Ret (*)(mc_tainted_callback_arg_t<T_Args, MC_Sbx>...);
 
-    auto app_callback = reinterpret_cast<T_Func>(callback_index_to_app_func[MC_Sbx::LastCallbackInvoked()]);
+    auto app_callback = reinterpret_cast<T_Func>(callback_index_to_app_func[MC_Sbx::InvokedCallback()]);
 
     if constexpr (std::is_void_v<T_Ret>) {
       app_callback(CallbackInterceptorConvertParam<T_Args>(std::forward<T_Args>(params))...);
@@ -143,7 +140,7 @@ public:
       T_Cb_no_wrap<T_Ret, T_Args...> sbx_callback =
           MC_Sbx::RegisterCallback(callback_interceptor, (void*)app_callback, &index);
       callback_index_to_app_func[index] = (void*)app_callback;
-      return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(sbx_callback, index);
+      return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(nullptr, sbx_callback);
     }
   }
 };

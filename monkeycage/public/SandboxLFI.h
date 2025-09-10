@@ -7,10 +7,11 @@
 #ifndef mc_unsafe_SandboxLFI_h
 #define mc_unsafe_SandboxLFI_h
 
+#include <stdlib.h>
 #include <type_traits>
+
 #include "monkeycage/unsafe/lib.h"
 #include "monkeycage/SandboxCallback.h"
-
 
 namespace MC {
 namespace detail {
@@ -63,23 +64,30 @@ class SandboxLFI {
   template <typename T_Ret, typename... T_Args>
   using T_Cb = T_Ret (*)(T_Args...);
 
+  //(NOTE): Should be kept in sync with lfi-bind
+  static constexpr size_t MAX_CALLBACKS = 40960;
+
   template <typename T_Ret, typename... T_Args>
-  static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RegisterCallback(
-      T_Cb<T_Ret, T_Args...> app_callback) {
-    size_t stack_args_size = CallbackStackArgs<0, 0, T_Ret, T_Args...>(0, reinterpret_cast<T_Ret (*)(T_Args...)>(0));
-    return MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(
-        app_callback, reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
-                      monkeycage_register_cb((void*)app_callback, stack_args_size)));
+  static T_Cb<T_Ret, T_Args...> RegisterCallback(
+      T_Cb<T_Ret, T_Args...> app_callback, void* key, size_t* index) {
+    size_t stack_args_size = CallbackStackArgs<0, 0, T_Ret, T_Args...>(
+        0, reinterpret_cast<T_Ret (*)(T_Args...)>(0));
+    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(monkeycage_register_cb(
+        (void*)app_callback, stack_args_size, key, index));
   }
 
   template <typename T_Ret, typename... T_Args>
-  static MC::SandboxCallback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(
-      T_Cb<T_Ret, T_Args...> sbx_callback) {
-    return sbx_callback ? MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>(
-        reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
-            monkeycage_retrieve_cb((void*)sbx_callback)),
-        sbx_callback) :  MC::SandboxCallback<T_Cb<T_Ret, T_Args...>>{nullptr};
+  static T_Cb<T_Ret, T_Args...> RetrieveCallback(
+      T_Cb<T_Ret, T_Args...> sbx_callback, size_t* index) {
+    if (!sbx_callback) {
+      *index = MAX_CALLBACKS;
+      return nullptr;
+    }
+    return reinterpret_cast<T_Cb<T_Ret, T_Args...>>(
+        monkeycage_retrieve_cb((void*)sbx_callback, index));
   }
+
+  static size_t InvokedCallback() { return monkeycage_invoked_cb(); }
 };
 }  // namespace detail
 }  // namespace MC
