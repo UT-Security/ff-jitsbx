@@ -133,3 +133,7 @@ void* monkeycage_retrieve_cb(void* cb, size_t* index) {
   *index = slot;
   return (void*)cbentries[slot].target;
 }
+
+size_t monkeycage_invoked_cb() {
+  return monkeycage_last_callback_invoked;
+}

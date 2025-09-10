@@ -18,7 +18,7 @@
 #include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
 #include "monkeycage/ErrorReport.h"
 #include "monkeycage/Modules.h"  // JS::FinishDynamicModuleImport, JS::{G,S}etModuleResolveHook, JS::Get{ModulePrivate,ModuleScript,RequestedModule{s,Specifier,SourcePos}}, JS::SetModule{DynamicImport,Metadata}Hook
-#include "js/OffThreadScriptCompilation.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetElement
 #include "monkeycage/SourceText.h"
 #include "monkeycage/String.h"
