@@ -114,6 +114,12 @@ static constexpr uint32_t JitStackValueAlignment =
 
 static const Scale ScalePointer = TimesOne;
 
+#if defined(JS_SANDBOX)
+static constexpr Register SandboxBaseReg{Registers::invalid_reg};
+static constexpr Register SandboxMaskReg{Registers::invalid_reg};
+static constexpr Register SandboxScratchReg{Registers::invalid_reg};
+#endif
+
 class Assembler : public AssemblerShared {
  public:
   enum Condition {
