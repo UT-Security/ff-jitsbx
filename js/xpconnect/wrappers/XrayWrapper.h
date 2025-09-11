@@ -67,8 +67,8 @@ class XrayTraits {
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc);
 
   bool delete_(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-               JS::ObjectOpResult& result) {
-    return result.succeed();
+               MC::Tainted<JS::ObjectOpResult*> result) {
+    return result->succeed();
   }
 
   static bool getBuiltinClass(MCContext* cx, JS::HandleObject wrapper,
@@ -152,13 +152,13 @@ class DOMXrayTraits : public XrayTraits {
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) override;
 
   bool delete_(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-               JS::ObjectOpResult& result);
+               MC::Tainted<JS::ObjectOpResult*> result);
 
   bool defineProperty(
       MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
       JS::Handle<JS::PropertyDescriptor> desc,
       JS::Handle<mozilla::Maybe<JS::PropertyDescriptor>> existingDesc,
-      JS::Handle<JSObject*> existingHolder, JS::ObjectOpResult& result,
+      JS::Handle<JSObject*> existingHolder, MC::Tainted<JS::ObjectOpResult*> result,
       bool* done);
   virtual bool enumerateNames(MCContext* cx, JS::HandleObject wrapper,
                               unsigned flags, JS::MutableHandleIdVector props);
@@ -193,13 +193,13 @@ class JSXrayTraits : public XrayTraits {
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) override;
 
   bool delete_(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
-               JS::ObjectOpResult& result);
+               MC::Tainted<JS::ObjectOpResult*> result);
 
   bool defineProperty(
       MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
       JS::Handle<JS::PropertyDescriptor> desc,
       JS::Handle<mozilla::Maybe<JS::PropertyDescriptor>> existingDesc,
-      JS::Handle<JSObject*> existingHolder, JS::ObjectOpResult& result,
+      JS::Handle<JSObject*> existingHolder, MC::Tainted<JS::ObjectOpResult*> result,
       bool* defined);
 
   virtual bool enumerateNames(MCContext* cx, JS::HandleObject wrapper,
@@ -312,7 +312,7 @@ class OpaqueXrayTraits : public XrayTraits {
       MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
       JS::Handle<JS::PropertyDescriptor> desc,
       JS::Handle<mozilla::Maybe<JS::PropertyDescriptor>> existingDesc,
-      JS::Handle<JSObject*> existingHolder, JS::ObjectOpResult& result,
+      JS::Handle<JSObject*> existingHolder, MC::Tainted<JS::ObjectOpResult*> result,
       bool* defined) {
     *defined = false;
     return true;
@@ -400,19 +400,19 @@ class XrayWrapper : public Base {
   virtual bool defineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                               JS::Handle<jsid> id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result) const override;
+                              MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool ownPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                                JS::MutableHandleIdVector props) const override;
   virtual bool delete_(MCContext* cx, JS::Handle<JSObject*> wrapper,
                        JS::Handle<jsid> id,
-                       JS::ObjectOpResult& result) const override;
+                       MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool enumerate(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          JS::MutableHandleIdVector props) const override;
   virtual bool getPrototype(MCContext* cx, JS::HandleObject wrapper,
                             JS::MutableHandleObject protop) const override;
-  virtual bool setPrototype(MCContext* cx, JS::HandleObject wrapper,
-                            JS::HandleObject proto,
-                            JS::ObjectOpResult& result) const override;
+  virtual bool setPrototype(
+      MCContext* cx, JS::HandleObject wrapper, JS::HandleObject proto,
+      MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool getPrototypeIfOrdinary(
       MCContext* cx, JS::HandleObject wrapper, MC::Tainted<bool*> isOrdinary,
       JS::MutableHandleObject protop) const override;
@@ -423,7 +423,7 @@ class XrayWrapper : public Base {
   virtual bool isExtensible(MCContext* cx, JS::Handle<JSObject*> wrapper,
                             bool* extensible) const override;
   virtual bool has(MCContext* cx, JS::Handle<JSObject*> wrapper,
-                   JS::Handle<jsid> id, bool* bp) const override;
+                   JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
   virtual bool get(MCContext* cx, JS::Handle<JSObject*> wrapper,
                    JS::HandleValue receiver, JS::Handle<jsid> id,
                    JS::MutableHandle<JS::Value> vp) const override;
@@ -438,7 +438,7 @@ class XrayWrapper : public Base {
 
   /* SpiderMonkey extensions. */
   virtual bool hasOwn(MCContext* cx, JS::Handle<JSObject*> wrapper,
-                      JS::Handle<jsid> id, bool* bp) const override;
+                      JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
   virtual bool getOwnEnumerablePropertyKeys(
       MCContext* cx, JS::Handle<JSObject*> wrapper,
       JS::MutableHandleIdVector props) const override;

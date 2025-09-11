@@ -100,16 +100,16 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
   bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id,
                       JS::Handle<JS::PropertyDescriptor> desc,
-                      JS::ObjectOpResult& result) const override {
+                      MC::Tainted<JS::ObjectOpResult*> result) const override {
     bool unused;
     return defineProperty(cx, proxy, id, desc, result, &unused);
   }
   virtual bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result, bool* done) const;
+                              MC::Tainted<JS::ObjectOpResult*> result, bool* done) const;
   bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-               JS::ObjectOpResult& result) const override;
+               MC::Tainted<JS::ObjectOpResult*> result) const override;
   bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::ObjectOpResult& result) const override;
   bool isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,

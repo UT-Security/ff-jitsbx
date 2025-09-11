@@ -595,7 +595,7 @@ class SandboxProxyHandler : public mc::Wrapper {
   // We just forward the high-level methods to the BaseProxyHandler versions
   // which implement them in terms of lower-level methods.
   virtual bool has(MCContext* cx, JS::Handle<JSObject*> proxy,
-                   JS::Handle<jsid> id, bool* bp) const override;
+                   JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
   virtual bool get(MCContext* cx, JS::Handle<JSObject*> proxy,
                    JS::HandleValue receiver, JS::Handle<jsid> id,
                    JS::MutableHandle<JS::Value> vp) const override;
@@ -605,7 +605,7 @@ class SandboxProxyHandler : public mc::Wrapper {
                    JS::ObjectOpResult& result) const override;
 
   virtual bool hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
-                      JS::Handle<jsid> id, bool* bp) const override;
+                      JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
   virtual bool getOwnEnumerablePropertyKeys(
       MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandleIdVector props) const override;
@@ -838,7 +838,7 @@ bool SandboxProxyHandler::getOwnPropertyDescriptor(
  */
 
 bool SandboxProxyHandler::has(MCContext* cx, JS::Handle<JSObject*> proxy,
-                              JS::Handle<jsid> id, bool* bp) const {
+                              JS::Handle<jsid> id, MC::Tainted<bool*> bp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
   MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
   if (!getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ false, &desc)) {
@@ -849,7 +849,7 @@ bool SandboxProxyHandler::has(MCContext* cx, JS::Handle<JSObject*> proxy,
   return true;
 }
 bool SandboxProxyHandler::hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
-                                 JS::Handle<jsid> id, bool* bp) const {
+                                 JS::Handle<jsid> id, MC::Tainted<bool*> bp) const {
   return BaseProxyHandler::hasOwn(cx, proxy, id, bp);
 }
 

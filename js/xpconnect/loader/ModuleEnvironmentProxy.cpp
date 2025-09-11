@@ -11,8 +11,8 @@
 
 #include <stddef.h>  // size_t
 
-#include "js/Class.h"        // JS::ObjectOpResult
-#include "js/ErrorReport.h"  // JS_ReportOutOfMemory
+#include "monkeycage/Class.h"        // JS::ObjectOpResult
+#include "monkeycage/ErrorReport.h"  // JS_ReportOutOfMemory
 #include "monkeycage/GCVector.h"     // MC::RootedVector
 #include "js/Id.h"           // JS::PropertyKey
 #include "monkeycage/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_GetPropertyById, JS_Enumerate
@@ -22,8 +22,8 @@
 #include "monkeycage/TypeDecls.h"   // JSContext, JSObject, JS::MutableHandleVector
 #include "monkeycage/Value.h"       // JS::Value
 #include "js/friend/ErrorMessages.h"  // JSMSG_*
-#include "js/String.h"
-#include "js/Modules.h"
+#include "monkeycage/String.h"
+#include "monkeycage/Modules.h"
 
 namespace mozilla {
 namespace loader {
@@ -34,8 +34,8 @@ struct ModuleEnvironmentProxyHandler : public mc::BaseProxyHandler {
   bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
-                      JS::ObjectOpResult& aResult) const override {
-    return aResult.fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
+                      MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
   }
 
   bool getPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
@@ -46,11 +46,11 @@ struct ModuleEnvironmentProxyHandler : public mc::BaseProxyHandler {
 
   bool setPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::Handle<JSObject*> aProto,
-                    JS::ObjectOpResult& aResult) const override {
+                    MC::Tainted<JS::ObjectOpResult*> aResult) const override {
     if (!aProto) {
-      return aResult.succeed();
+      return aResult->succeed();
     }
-    return aResult.failCantSetProto();
+    return aResult->failCantSetProto();
   }
 
   bool getPrototypeIfOrdinary(
@@ -87,8 +87,8 @@ struct ModuleEnvironmentProxyHandler : public mc::BaseProxyHandler {
 
   bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<JS::PropertyKey> aId,
-               JS::ObjectOpResult& aResult) const override {
-    return aResult.failCantDelete();
+               MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->failCantDelete();
   }
 
   bool getOwnPropertyDescriptor(
@@ -97,7 +97,7 @@ struct ModuleEnvironmentProxyHandler : public mc::BaseProxyHandler {
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc)
       const override;
   bool has(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-           JS::Handle<JS::PropertyKey> aId, bool* aBp) const override;
+           JS::Handle<JS::PropertyKey> aId, MC::Tainted<bool*> aBp) const override;
   bool get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> receiver, JS::Handle<JS::PropertyKey> aId,
            JS::MutableHandle<JS::Value> aVp) const override;
@@ -165,7 +165,7 @@ bool ModuleEnvironmentProxyHandler::getOwnPropertyDescriptor(
 bool ModuleEnvironmentProxyHandler::has(MCContext* aCx,
                                         JS::Handle<JSObject*> aProxy,
                                         JS::Handle<JS::PropertyKey> aId,
-                                        bool* aBp) const {
+                                        MC::Tainted<bool*> aBp) const {
   bool isNamespace;
   if (!equalsNamespace(MC_UNSAFE(aCx), aId, &isNamespace)) {
     return false;

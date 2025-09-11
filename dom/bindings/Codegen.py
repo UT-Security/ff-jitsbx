@@ -14905,7 +14905,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::PropertyDescriptor>", "desc"),
-            Argument("JS::ObjectOpResult&", "opresult"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "opresult"),
             Argument("bool*", "done"),
         ]
         ClassMethod.__init__(
@@ -14949,11 +14949,11 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                   // https://heycam.github.io/webidl/#legacy-platform-object-defineownproperty
                   // Step 1.1.  The no-indexed-setter case is handled by step 1.2.
                   if (!desc.isDataDescriptor()) {
-                    return opresult.failNotDataDescriptor();
+                    return opresult->failNotDataDescriptor();
                   }
 
                   $*{callSetter}
-                  return opresult.succeed();
+                  return opresult->succeed();
                 }
                 """,
                 cxDecl=cxDecl,
@@ -14969,7 +14969,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
                 """
                 if (IsArrayIndex(GetArrayIndexFromId(id))) {
                   *done = true;
-                  return opresult.failNoIndexedSetter();
+                  return opresult->failNoIndexedSetter();
                 }
                 """
             )
@@ -15001,7 +15001,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             tailCode = dedent(
                 """
                 *done = true;
-                return opresult.succeed();
+                return opresult->succeed();
                 """
             )
             set += CGProxyNamedSetter(self.descriptor, tailCode).define()
@@ -15020,7 +15020,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
 
                     if (found) {
                       *done = true;
-                      return opresult.failNoNamedSetter();
+                      return opresult->failNoNamedSetter();
                     }
                     """,
                     presenceChecker=CGProxyNamedPresenceChecker(
@@ -15122,7 +15122,7 @@ class CGDeleteNamedProperty(CGAbstractStaticMethod):
             Argument("JS::Handle<JSObject*>", "xray"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
-            Argument("JS::ObjectOpResult&", "opresult"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "opresult"),
         ]
         CGAbstractStaticMethod.__init__(
             self, descriptor, "DeleteNamedProperty", "bool", args
@@ -15139,9 +15139,9 @@ class CGDeleteNamedProperty(CGAbstractStaticMethod):
             bool found = false;
             $*{namedBody}
             if (!found || deleteSucceeded) {
-              return opresult.succeed();
+              return opresult->succeed();
             }
-            return opresult.failCantDelete();
+            return opresult->failCantDelete();
             """,
             namedBody=getDeleterBody(self.descriptor, "Named", foundVar="found"),
         )
@@ -15153,7 +15153,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
             Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
-            Argument("JS::ObjectOpResult&", "opresult"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "opresult"),
         ]
         ClassMethod.__init__(
             self, "delete_", "bool", args, virtual=True, override=True, const=True
@@ -15192,7 +15192,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 if (IsArrayIndex(index)) {
                   bool deleteSucceeded;
                   $*{indexedBody}
-                  return deleteSucceeded ? opresult.succeed() : opresult.failCantDelete();
+                  return deleteSucceeded ? opresult->succeed() : opresult->failCantDelete();
                 }
                 """,
                 indexedBody=indexedBody,
@@ -15208,11 +15208,11 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 { // Scope for expando
                   MC::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
                   if (expando) {
-                    bool hasProp;
-                    if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
+                    MC::SandboxStack<bool> hasProp;
+                    if (!JS_HasPropertyById(cx, expando, id, hasProp)) {
                       return false;
                     }
-                    tryNamedDelete = !hasProp;
+                    tryNamedDelete = !*hasProp.UNSAFE_unverified();
                   }
                 }
                 """
@@ -15243,7 +15243,7 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                   bool deleteSucceeded;
                   $*{namedBody}
                   if (found) {
-                    return deleteSucceeded ? opresult.succeed() : opresult.failCantDelete();
+                    return deleteSucceeded ? opresult->succeed() : opresult->failCantDelete();
                   }
                 }
                 """,
@@ -15409,7 +15409,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
-            Argument("bool*", "bp"),
+            Argument("MC::Tainted<bool*>", "bp"),
         ]
         ClassMethod.__init__(
             self, "hasOwn", "bool", args, virtual=True, override=True, const=True
@@ -15503,10 +15503,10 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             $*{missingPropUseCounters}
             MC::Rooted<JSObject*> expando(cx, GetExpandoObject(proxy));
             if (expando) {
-              bool b = true;
-              bool ok = JS_HasPropertyById(cx, expando, id, &b);
-              *bp = !!b;
-              if (!ok || *bp) {
+              MC::SandboxStack<bool> b{true};
+              bool ok = JS_HasPropertyById(cx, expando, id, b);
+              *bp = !!*b.UNSAFE_unverified();
+              if (!ok || *bp.UNSAFE_unverified()) {
                 return ok;
               }
             }
@@ -15540,15 +15540,15 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
         getUnforgeableOrExpando = dedent(
             """
-            bool expandoHasProp = false;
+            MC::SandboxStack<bool> expandoHasProp{false};
             { // Scope for expando
               MC::Rooted<JSObject*> expando(cx, DOMProxyHandler::GetExpandoObject(proxy));
               if (expando) {
-                if (!JS_HasPropertyById(cx, expando, id, &expandoHasProp)) {
+                if (!JS_HasPropertyById(cx, expando, id, expandoHasProp)) {
                   return false;
                 }
 
-                if (expandoHasProp) {
+                if (*expandoHasProp.UNSAFE_unverified()) {
                   // Forward the get to the expando object, but our receiver is whatever our
                   // receiver is.
                   if (!JS_ForwardGetPropertyTo(cx, expando, id, ${receiver}, vp)) {
@@ -15593,7 +15593,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                   JS_MarkCrossZoneId(cx, id);
 
                   $*{getUnforgeableOrExpando}
-                  if (!expandoHasProp) {
+                  if (!*expandoHasProp.UNSAFE_unverified()) {
                     $*{getOnPrototype}
                     if (!foundOnPrototype) {
                       MOZ_ASSERT(vp.isUndefined());
@@ -15620,7 +15620,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
         ) + dedent(
             """
 
-            if (expandoHasProp) {
+            if (*expandoHasProp.UNSAFE_unverified()) {
               return true;
             }
             """
@@ -16169,7 +16169,7 @@ class CGDOMJSProxyHandler_definePropertySameOrigin(ClassMethod):
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::PropertyDescriptor>", "desc"),
-            Argument("JS::ObjectOpResult&", "result"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "result"),
         ]
         ClassMethod.__init__(
             self,

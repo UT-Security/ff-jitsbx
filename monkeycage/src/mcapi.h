@@ -11,6 +11,9 @@
 
 #include "jsapi.h"
 
+#ifdef JS_SANDBOX
+
+#include "monkeycage/Class.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/Debug.h"
 #include "monkeycage/ErrorReport.h"
@@ -41,8 +44,6 @@
 
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
-
-#ifdef JS_SANDBOX
 
 inline bool JS_ValueToObject(MCContext* cx, JS::HandleValue v,
                              JS::MutableHandleObject objp) {

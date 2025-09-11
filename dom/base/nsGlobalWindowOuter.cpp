@@ -388,7 +388,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
   bool definePropertySameOrigin(MCContext* cx, JS::Handle<JSObject*> proxy,
                                 JS::Handle<jsid> id,
                                 JS::Handle<JS::PropertyDescriptor> desc,
-                                JS::ObjectOpResult& result) const override;
+                                MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   /**
    * Implementation of [[OwnPropertyKeys]] as defined at
@@ -408,7 +408,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * with cx.
    */
   bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-               JS::ObjectOpResult& result) const override;
+               MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   /**
    * Implementaton of hook for superclass getPrototype() method.
@@ -427,7 +427,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * it, because js::Wrapper also overrides, with "not normal" behavior.
    */
   bool has(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-           bool* bp) const override;
+           MC::Tainted<bool*> bp) const override;
 
   /**
    * Implementation of [[Get]] internal method as defined at
@@ -474,7 +474,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    * with cx.
    */
   bool hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-              bool* bp) const override;
+              MC::Tainted<bool*> bp) const override;
 
   /**
    * Implementation of SpiderMonkey extension which is used as a fast path for
@@ -696,21 +696,21 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
 
 bool nsOuterWindowProxy::definePropertySameOrigin(
     MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult& result) const {
+    JS::Handle<JS::PropertyDescriptor> desc, MC::Tainted<JS::ObjectOpResult*> result) const {
   if (IsArrayIndex(GetArrayIndexFromId(id))) {
     // Spec says to Reject whether this is a supported index or not,
     // since we have no indexed setter or indexed creator.  It is up
     // to the caller to decide whether to throw a TypeError.
-    return result.failCantDefineWindowElement();
+    return result->failCantDefineWindowElement();
   }
 
-  JS::ObjectOpResult ourResult;
+  MC::SandboxStack<JS::ObjectOpResult> ourResult;
   bool ok = mc::Wrapper::defineProperty(cx, proxy, id, desc, ourResult);
   if (!ok) {
     return false;
   }
 
-  if (!ourResult.ok()) {
+  if (!ourResult->ok()) {
     // It's possible that this failed because the page got the existing
     // descriptor (which we force to claim to be configurable) and then tried to
     // redefine the property with the descriptor it got but a different value.
@@ -720,7 +720,7 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
     if (!desc.hasConfigurable() || !desc.configurable()) {
       // The incoming descriptor was not explicitly marked "configurable: true",
       // so it failed for some other reason.  Just propagate that reason out.
-      result = ourResult;
+      *result = *ourResult;
       return true;
     }
 
@@ -733,23 +733,23 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
       // We have no existing property, or its descriptor is already configurable
       // (on the Window itself, where things really can be non-configurable).
       // So we failed for some other reason, which we should propagate out.
-      result = ourResult;
+      *result = *ourResult;
       return true;
     }
 
     MC::Rooted<JS::PropertyDescriptor> updatedDesc(cx, desc);
     updatedDesc.setConfigurable(false);
 
-    JS::ObjectOpResult ourNewResult;
+    MC::SandboxStack<JS::ObjectOpResult> ourNewResult;
     ok = mc::Wrapper::defineProperty(cx, proxy, id, updatedDesc, ourNewResult);
     if (!ok) {
       return false;
     }
 
-    if (!ourNewResult.ok()) {
+    if (!ourNewResult->ok()) {
       // Twiddling the configurable flag didn't help.  Just return this failure
       // out to the caller.
-      result = ourNewResult;
+      *result = *ourNewResult;
       return true;
     }
   }
@@ -760,12 +760,12 @@ bool nsOuterWindowProxy::definePropertySameOrigin(
       !IsNonConfigurableReadonlyPrimitiveGlobalProp(cx, id)) {
     // Give callers a way to detect that they failed to "really" define a
     // non-configurable property.
-    result.failCantDefineWindowNonConfigurable();
+    result->failCantDefineWindowNonConfigurable();
     return true;
   }
 #endif
 
-  result.succeed();
+  result->succeed();
   return true;
 }
 
@@ -830,19 +830,19 @@ bool nsOuterWindowProxy::ownPropertyKeys(
 
 bool nsOuterWindowProxy::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
                                  JS::Handle<jsid> id,
-                                 JS::ObjectOpResult& result) const {
+                                 MC::Tainted<JS::ObjectOpResult*> result) const {
   if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "delete"_ns);
   }
 
   if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
     // Fail (which means throw if strict, else return false).
-    return result.failCantDeleteWindowElement();
+    return result->failCantDeleteWindowElement();
   }
 
   if (IsArrayIndex(GetArrayIndexFromId(id))) {
     // Indexed, but not supported.  Spec says return true.
-    return result.succeed();
+    return result->succeed();
   }
 
   // We're same-origin, so it should be safe to enter the Realm of "proxy".
@@ -858,7 +858,7 @@ JSObject* nsOuterWindowProxy::getSameOriginPrototype(JSContext* cx) const {
 }
 
 bool nsOuterWindowProxy::has(MCContext* cx, JS::Handle<JSObject*> proxy,
-                             JS::Handle<jsid> id, bool* bp) const {
+                             JS::Handle<jsid> id, MC::Tainted<bool*> bp) const {
   // We could just directly forward this method to js::BaseProxyHandler, but
   // that involves reifying the actual property descriptor, which might be more
   // work than we have to do for has() on the Window.
@@ -882,7 +882,7 @@ bool nsOuterWindowProxy::has(MCContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 bool nsOuterWindowProxy::hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
-                                JS::Handle<jsid> id, bool* bp) const {
+                                JS::Handle<jsid> id, MC::Tainted<bool*> bp) const {
   // We could just directly forward this method to js::BaseProxyHandler, but
   // that involves reifying the actual property descriptor, which might be more
   // work than we have to do for hasOwn() on the Window.

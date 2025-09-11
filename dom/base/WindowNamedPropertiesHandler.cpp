@@ -169,8 +169,8 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
 bool WindowNamedPropertiesHandler::defineProperty(
     MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::Handle<JS::PropertyDescriptor> aDesc,
-    JS::ObjectOpResult& result) const {
-  return result.failCantDefineWindowNamedProperty();
+    MC::Tainted<JS::ObjectOpResult*> result) const {
+  return result->failCantDefineWindowNamedProperty();
 }
 
 bool WindowNamedPropertiesHandler::ownPropNames(
@@ -232,11 +232,10 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   return js::AppendUnique(aCx, aProps, docProps);
 }
 
-bool WindowNamedPropertiesHandler::delete_(MCContext* aCx,
-                                           JS::Handle<JSObject*> aProxy,
-                                           JS::Handle<jsid> aId,
-                                           JS::ObjectOpResult& aResult) const {
-  return aResult.failCantDeleteWindowNamedProperty();
+bool WindowNamedPropertiesHandler::delete_(
+    MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+    MC::Tainted<JS::ObjectOpResult*> aResult) const {
+  return aResult->failCantDeleteWindowNamedProperty();
 }
 
 // Note that this class doesn't need any reserved slots, but SpiderMonkey

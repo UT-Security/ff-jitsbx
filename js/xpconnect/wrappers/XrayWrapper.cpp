@@ -363,12 +363,12 @@ bool JSXrayTraits::getOwnPropertyFromTargetIfSafe(
   MC::SandboxStack<JSAutoRealm> ar2(cx, wrapperGlobal);
   JS_MarkCrossZoneId(cx, id);
   MC::RootedObject proto(cx);
-  bool foundOnProto = false;
+  MC::SandboxStack<bool> foundOnProto{false};
   if (!JS_GetPrototype(cx, wrapper, &proto) ||
-      (proto && !JS_HasPropertyById(cx, proto, id, &foundOnProto))) {
+      (proto && !JS_HasPropertyById(cx, proto, id, foundOnProto))) {
     return false;
   }
-  if (foundOnProto) {
+  if (*foundOnProto.UNSAFE_unverified()) {
     return ReportWrapperDenial(
         cx, id, WrapperDenialForXray,
         "value shadows a property on the standard prototype");
@@ -740,7 +740,7 @@ bool JSXrayTraits::resolveOwnProperty(
 }
 
 bool JSXrayTraits::delete_(MCContext* cx, HandleObject wrapper, HandleId id,
-                           ObjectOpResult& result) {
+                           MC::Tainted<ObjectOpResult*> result) {
   MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
 
   MC::RootedObject holder(cx, ensureHolder(cx, wrapper));
@@ -768,14 +768,14 @@ bool JSXrayTraits::delete_(MCContext* cx, HandleObject wrapper, HandleId id,
       return JS_DeletePropertyById(cx, target, id, result);
     }
   }
-  return result.succeed();
+  return result->succeed();
 }
 
 bool JSXrayTraits::defineProperty(
     MCContext* cx, HandleObject wrapper, HandleId id,
     Handle<PropertyDescriptor> desc,
     Handle<Maybe<PropertyDescriptor>> existingDesc,
-    Handle<JSObject*> existingHolder, ObjectOpResult& result, bool* defined) {
+    Handle<JSObject*> existingHolder, MC::Tainted<ObjectOpResult*> result, bool* defined) {
   *defined = false;
   MC::RootedObject holder(cx, ensureHolder(cx, wrapper));
   if (!holder) {
@@ -1664,13 +1664,13 @@ bool XrayTraits::resolveOwnProperty(
   // sort out own-ness for the holder.
   if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       WrapperFactory::AllowWaiver(wrapper)) {
-    bool found = false;
-    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, &found)) {
+    MC::SandboxStack<bool> found{false};
+    if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, found)) {
       return false;
     }
     static auto wrappedJSObject_getterCb =
         MC::Sandbox::RegisterCallback(wrappedJSObject_getter);
-    if (!found && !JS_DefinePropertyById(cx, holder, id,
+    if (!*found.UNSAFE_unverified() && !JS_DefinePropertyById(cx, holder, id,
                                          wrappedJSObject_getterCb,
                                          nullptr, JSPROP_ENUMERATE)) {
       return false;
@@ -1735,27 +1735,27 @@ bool DOMXrayTraits::resolveOwnProperty(
 }
 
 bool DOMXrayTraits::delete_(MCContext* cx, JS::HandleObject wrapper,
-                            JS::HandleId id, JS::ObjectOpResult& result) {
+                            JS::HandleId id, MC::Tainted<JS::ObjectOpResult*> result) {
   MC::RootedObject target(cx, getTargetObject(wrapper));
-  return XrayDeleteNamedProperty(MC_UNSAFE(cx), wrapper, target, id, result);
+  return XrayDeleteNamedProperty(cx, wrapper, target, id, result);
 }
 
 bool DOMXrayTraits::defineProperty(
     MCContext* cx, HandleObject wrapper, HandleId id,
     Handle<PropertyDescriptor> desc,
     Handle<Maybe<PropertyDescriptor>> existingDesc,
-    Handle<JSObject*> existingHolder, JS::ObjectOpResult& result, bool* done) {
+    Handle<JSObject*> existingHolder, MC::Tainted<JS::ObjectOpResult*> result, bool* done) {
   // Check for an indexed property on a Window.  If that's happening, do
   // nothing but set done to true so it won't get added as an expando.
   if (IsWindow(cx, wrapper)) {
     if (IsArrayIndex(GetArrayIndexFromId(id))) {
       *done = true;
-      return result.succeed();
+      return result->succeed();
     }
   }
 
   MC::Rooted<JSObject*> obj(cx, getTargetObject(wrapper));
-  return XrayDefineProperty(MC_UNSAFE(cx), wrapper, obj, id, desc, result, done);
+  return XrayDefineProperty(cx, wrapper, obj, id, desc, result, done);
 }
 
 bool DOMXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
@@ -1965,7 +1965,7 @@ bool XrayWrapper<Base, Traits>::defineProperty(MCContext* cx,
                                                HandleObject wrapper,
                                                HandleId id,
                                                Handle<PropertyDescriptor> desc,
-                                               ObjectOpResult& result) const {
+                                               MC::Tainted<ObjectOpResult*> result) const {
   assertEnteredPolicy(cx, wrapper, id, js::BaseProxyHandler::SET);
 
   MC::Rooted<Maybe<PropertyDescriptor>> existingDesc(cx);
@@ -1991,11 +1991,11 @@ bool XrayWrapper<Base, Traits>::defineProperty(MCContext* cx,
         (desc.hasWritable() && !existingDesc->writable() && desc.writable())) {
       // We should technically report non-configurability in strict mode, but
       // doing that via JSAPI used to be a lot of trouble. See bug 1135997.
-      return result.succeed();
+      return result->succeed();
     }
     if (!existingDesc->writable()) {
       // Same as the above for non-writability.
-      return result.succeed();
+      return result->succeed();
     }
   }
 
@@ -2045,9 +2045,9 @@ bool XrayWrapper<Base, Traits>::ownPropertyKeys(
 }
 
 template <typename Base, typename Traits>
-bool XrayWrapper<Base, Traits>::delete_(MCContext* cx, HandleObject wrapper,
-                                        HandleId id,
-                                        ObjectOpResult& result) const {
+bool XrayWrapper<Base, Traits>::delete_(
+    MCContext* cx, HandleObject wrapper, HandleId id,
+    MC::Tainted<ObjectOpResult*> result) const {
   assertEnteredPolicy(cx, wrapper, id, js::BaseProxyHandler::SET);
 
   // Check the expando object.
@@ -2060,11 +2060,11 @@ bool XrayWrapper<Base, Traits>::delete_(MCContext* cx, HandleObject wrapper,
   if (expando) {
     MC::SandboxStack<JSAutoRealm> ar(cx, expando);
     JS_MarkCrossZoneId(cx, id);
-    bool hasProp;
-    if (!JS_HasPropertyById(cx, expando, id, &hasProp)) {
+    MC::SandboxStack<bool> hasProp;
+    if (!JS_HasPropertyById(cx, expando, id, hasProp)) {
       return false;
     }
-    if (hasProp) {
+    if (*hasProp.UNSAFE_unverified()) {
       return JS_DeletePropertyById(cx, expando, id, result);
     }
   }
@@ -2118,14 +2118,14 @@ bool XrayWrapper<Base, Traits>::set(MCContext* cx, HandleObject wrapper,
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::has(MCContext* cx, HandleObject wrapper,
-                                    HandleId id, bool* bp) const {
+                                    HandleId id, MC::Tainted<bool*> bp) const {
   MOZ_CRASH("Shouldn't be called: we return true for hasPrototype()");
   return false;
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::hasOwn(MCContext* cx, HandleObject wrapper,
-                                       HandleId id, bool* bp) const {
+                                       HandleId id, MC::Tainted<bool*> bp) const {
   // Skip our Base if it isn't already ProxyHandler.
   return mc::BaseProxyHandler::hasOwn(cx, wrapper, id, bp);
 }
@@ -2230,10 +2230,9 @@ bool XrayWrapper<Base, Traits>::getPrototype(
 }
 
 template <typename Base, typename Traits>
-bool XrayWrapper<Base, Traits>::setPrototype(MCContext* cx,
-                                             JS::HandleObject wrapper,
-                                             JS::HandleObject proto,
-                                             JS::ObjectOpResult& result) const {
+bool XrayWrapper<Base, Traits>::setPrototype(
+    MCContext* cx, JS::HandleObject wrapper, JS::HandleObject proto,
+    MC::Tainted<JS::ObjectOpResult*> result) const {
   // Do this only for non-SecurityWrapper-inheriting |Base|. See the comment
   // in getPrototype().
   if (Base::hasSecurityPolicy()) {
@@ -2255,7 +2254,7 @@ bool XrayWrapper<Base, Traits>::setPrototype(MCContext* cx,
     return false;
   }
   JS_SetReservedSlot(expando, JSSLOT_EXPANDO_PROTOTYPE, v);
-  return result.succeed();
+  return result->succeed();
 }
 
 template <typename Base, typename Traits>

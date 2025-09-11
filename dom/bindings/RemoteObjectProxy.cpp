@@ -26,7 +26,7 @@ bool RemoteObjectProxyBase::getOwnPropertyDescriptor(
 bool RemoteObjectProxyBase::defineProperty(
     MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
     JS::Handle<JS::PropertyDescriptor> aDesc,
-    JS::ObjectOpResult& aResult) const {
+    MC::Tainted<JS::ObjectOpResult*> aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-defineownproperty
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-defineownproperty
@@ -56,7 +56,7 @@ bool RemoteObjectProxyBase::ownPropertyKeys(
 bool RemoteObjectProxyBase::delete_(MCContext* aCx,
                                     JS::Handle<JSObject*> aProxy,
                                     JS::Handle<jsid> aId,
-                                    JS::ObjectOpResult& aResult) const {
+                                    MC::Tainted<JS::ObjectOpResult*> aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-delete
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-delete step 2

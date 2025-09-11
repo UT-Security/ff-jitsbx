@@ -36,11 +36,11 @@ class ObservableArrayProxyHandler : public mc::ForwardingProxyHandler {
   bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
-                      JS::ObjectOpResult& aResult) const override;
+                      MC::Tainted<JS::ObjectOpResult*> aResult) const override;
 
   bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<JS::PropertyKey> aId,
-               JS::ObjectOpResult& aResult) const override;
+               MC::Tainted<JS::ObjectOpResult*> aResult) const override;
 
   bool get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<JS::PropertyKey> aId,
@@ -52,7 +52,7 @@ class ObservableArrayProxyHandler : public mc::ForwardingProxyHandler {
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const override;
 
   bool has(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-           JS::Handle<JS::PropertyKey> aId, bool* aBp) const override;
+           JS::Handle<JS::PropertyKey> aId, MC::Tainted<bool*> aBp) const override;
 
   bool ownPropertyKeys(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::MutableHandleVector<jsid> aProps) const override;

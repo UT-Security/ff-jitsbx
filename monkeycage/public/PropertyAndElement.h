@@ -20,8 +20,9 @@
 inline bool JS_DefinePropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
                                   JS::Handle<jsid> id,
                                   JS::Handle<JS::PropertyDescriptor> desc,
-                                  JS::ObjectOpResult& result) {
-  return JS_DefinePropertyById(cx->cx_, obj, id, desc, result);
+                                  MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_DefinePropertyById(cx->cx_, obj, id, desc,
+                               *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DefinePropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -229,33 +230,33 @@ inline bool JS_DefineElement(MCContext* cx, JS::Handle<JSObject*> obj,
 }
 
 inline bool JS_HasPropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
-                        JS::Handle<jsid> id, bool* foundp) {
-  return JS_HasPropertyById(cx->cx_, obj, id, foundp);
+                        JS::Handle<jsid> id, MC::Tainted<bool*> foundp) {
+  return JS_HasPropertyById(cx->cx_, obj, id, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_HasProperty(MCContext* cx, JS::Handle<JSObject*> obj, const char* name,
-                    bool* foundp) {
-  return JS_HasProperty(cx->cx_, obj, name, foundp);
+                    MC::Tainted<bool*> foundp) {
+  return JS_HasProperty(cx->cx_, obj, name, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_HasUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                      const char16_t* name, size_t namelen, bool* vp) {
-  return JS_HasUCProperty(cx->cx_, obj, name, namelen, vp);
+                      const char16_t* name, size_t namelen, MC::Tainted<bool*> vp) {
+  return JS_HasUCProperty(cx->cx_, obj, name, namelen, vp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_HasElement(MCContext* cx, JS::Handle<JSObject*> obj, uint32_t index,
-                   bool* foundp) {
-  return JS_HasElement(cx->cx_, obj, index, foundp);
+                   MC::Tainted<bool*> foundp) {
+  return JS_HasElement(cx->cx_, obj, index, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_HasOwnPropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
-                                  JS::Handle<jsid> id, bool* foundp) {
- return JS_HasOwnPropertyById(cx->cx_, obj, id, foundp);
+                                  JS::Handle<jsid> id, MC::Tainted<bool*> foundp) {
+ return JS_HasOwnPropertyById(cx->cx_, obj, id, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_HasOwnProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                              const char* name, bool* foundp) {
- return JS_HasOwnProperty(cx->cx_, obj, name, foundp);
+                              const char* name, MC::Tainted<bool*> foundp) {
+ return JS_HasOwnProperty(cx->cx_, obj, name, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_ForwardGetPropertyTo(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -305,19 +306,19 @@ inline bool JS_SetUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
 
 inline bool JS_DeletePropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
                                   JS::Handle<jsid> id,
-                                  JS::ObjectOpResult& result) {
-  return JS_DeletePropertyById(cx->cx_, obj, id, result);
+                                  MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_DeletePropertyById(cx->cx_, obj, id, *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DeleteProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                              const char* name, JS::ObjectOpResult& result) {
-  return JS_DeleteProperty(cx->cx_, obj, name, result);
+                              const char* name, MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_DeleteProperty(cx->cx_, obj, name, *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DeleteUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
                                 const char16_t* name, size_t namelen,
-                                JS::ObjectOpResult& result) {
-  return JS_DeleteUCProperty(cx->cx_, obj, name, namelen, result);
+                                MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_DeleteUCProperty(cx->cx_, obj, name, namelen, *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DeleteElement(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -353,24 +354,24 @@ inline bool JS_DefineProperties(MCContext* cx, JS::Handle<JSObject*> obj,
 
 inline bool JS_AlreadyHasOwnPropertyById(MCContext* cx,
                                          JS::Handle<JSObject*> obj,
-                                         JS::Handle<jsid> id, bool* foundp) {
-  return JS_AlreadyHasOwnPropertyById(cx->cx_, obj, id, foundp);
+                                         JS::Handle<jsid> id, MC::Tainted<bool*> foundp) {
+  return JS_AlreadyHasOwnPropertyById(cx->cx_, obj, id, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_AlreadyHasOwnProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                                     const char* name, bool* foundp) {
-  return JS_AlreadyHasOwnProperty(cx->cx_, obj, name, foundp);
+                                     const char* name, MC::Tainted<bool*> foundp) {
+  return JS_AlreadyHasOwnProperty(cx->cx_, obj, name, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_AlreadyHasOwnUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
                                        const char16_t* name, size_t namelen,
-                                       bool* foundp) {
-  return JS_AlreadyHasOwnUCProperty(cx->cx_, obj, name, namelen, foundp);
+                                       MC::Tainted<bool*> foundp) {
+  return JS_AlreadyHasOwnUCProperty(cx->cx_, obj, name, namelen, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_AlreadyHasOwnElement(MCContext* cx, JS::Handle<JSObject*> obj,
-                                    uint32_t index, bool* foundp) {
-  return JS_AlreadyHasOwnElement(cx->cx_, obj, index, foundp);
+                                    uint32_t index, MC::Tainted<bool*> foundp) {
+  return JS_AlreadyHasOwnElement(cx->cx_, obj, index, foundp.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DefineFunctions(MCContext* cx, JS::Handle<JSObject*> obj,

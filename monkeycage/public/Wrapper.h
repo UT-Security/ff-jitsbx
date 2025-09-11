@@ -43,9 +43,9 @@ class ForwardingProxyHandler : public BaseProxyHandler {
   virtual bool defineProperty(MCContext* cx, JS::HandleObject proxy,
                               JS::HandleId id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result) const override {
+                              MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::defineProperty(
-        cx->cx_, proxy, id, desc, result);
+        cx->cx_, proxy, id, desc, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool ownPropertyKeys(MCContext* cx, JS::HandleObject proxy,
@@ -55,9 +55,9 @@ class ForwardingProxyHandler : public BaseProxyHandler {
   }
 
   virtual bool delete_(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                       JS::ObjectOpResult& result) const override {
+                       MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::delete_(
-        cx->cx_, proxy, id, result);
+        cx->cx_, proxy, id, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool enumerate(MCContext* cx, JS::HandleObject proxy,
@@ -72,11 +72,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
         cx->cx_, proxy, protop);
   }
 
-  virtual bool setPrototype(MCContext* cx, JS::HandleObject proxy,
-                            JS::HandleObject proto,
-                            JS::ObjectOpResult& result) const override {
+  virtual bool setPrototype(
+      MCContext* cx, JS::HandleObject proxy, JS::HandleObject proto,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::setPrototype(
-        cx->cx_, proxy, proto, result);
+        cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool getPrototypeIfOrdinary(
@@ -107,9 +107,9 @@ class ForwardingProxyHandler : public BaseProxyHandler {
   }
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                   bool* bp) const override {
+                   MC::Tainted<bool*> bp) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::has(cx->cx_, proxy,
-                                                                     id, bp);
+                                                                     id, bp.INTERNAL_unverified_safe());
   }
 
   virtual bool get(MCContext* cx, JS::HandleObject proxy,
@@ -139,9 +139,9 @@ class ForwardingProxyHandler : public BaseProxyHandler {
   }
 
   virtual bool hasOwn(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                      bool* bp) const override {
+                      MC::Tainted<bool*> bp) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::hasOwn(
-        cx->cx_, proxy, id, bp);
+        cx->cx_, proxy, id, bp.INTERNAL_unverified_safe());
   }
 
   virtual bool getOwnEnumerablePropertyKeys(
@@ -238,9 +238,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  static bool definePropertyCb(const void* p, JSContext* cx,                                  \
                               JS::HandleObject proxy, JS::HandleId id,                       \
                               JS::Handle<JS::PropertyDescriptor> desc,                       \
-                              JS::ObjectOpResult& result) {                                  \
+                              JS::ObjectOpResult& result_) {                                 \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->defineProperty(mcx, proxy, id, desc, result);                                   \
  }                                                                                           \
  static bool ownPropertyKeysCb(const void* p, JSContext* cx,                                 \
@@ -251,9 +253,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
    return h->ownPropertyKeys(mcx, proxy, props);                                             \
  }                                                                                           \
  static bool delete_Cb(const void* p, JSContext* cx, JS::HandleObject proxy,                 \
-                       JS::HandleId id, JS::ObjectOpResult& result) {                        \
+                       JS::HandleId id, JS::ObjectOpResult& result_) {                       \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->delete_(mcx, proxy, id, result);                                                \
  }                                                                                           \
  static bool getPrototypeCb(const void* p, JSContext* cx,                                    \
@@ -265,9 +269,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  }                                                                                           \
  static bool setPrototypeCb(const void* p, JSContext* cx,                                    \
                             JS::HandleObject proxy, JS::HandleObject proto,                  \
-                            JS::ObjectOpResult& result) {                                    \
+                            JS::ObjectOpResult& result_) {                                   \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->setPrototype(mcx, proxy, proto, result);                                        \
  }                                                                                           \
  static bool getPrototypeIfOrdinaryCb(const void* p, JSContext* cx,                          \
@@ -299,9 +305,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
    return h->isExtensible(mcx, proxy, extensible);                                           \
  }                                                                                           \
  static bool hasCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
-                   JS::HandleId id, bool* bp) {                                              \
+                   JS::HandleId id, bool* bp_) {                                             \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> bp{nullptr};                                                           \
+   bp.assign_raw_pointer(bp_);                                                               \
    return h->has(mcx, proxy, id, bp);                                                        \
  }                                                                                           \
  static bool getCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
@@ -345,9 +353,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
    return h->enumerate(mcx, proxy, props);                                                   \
  }                                                                                           \
  static bool hasOwnCb(const void* p, JSContext* cx, JS::HandleObject proxy,                  \
-                      JS::HandleId id, bool* bp) {                                           \
+                      JS::HandleId id, bool* bp_) {                                          \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> bp{nullptr};                                                           \
+   bp.assign_raw_pointer(bp_);                                                               \
    return h->hasOwn(mcx, proxy, id, bp);                                                     \
  }                                                                                           \
  static bool getOwnEnumerablePropertyKeysCb(const void* p, JSContext* cx,                    \
@@ -571,9 +581,9 @@ public:
  virtual bool defineProperty(MCContext* cx, JS::HandleObject proxy,
                              JS::HandleId id,
                              JS::Handle<JS::PropertyDescriptor> desc,
-                             JS::ObjectOpResult& result) const override {
+                             MC::Tainted<JS::ObjectOpResult*> result) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::defineProperty(
-       cx->cx_, proxy, id, desc, result);
+       cx->cx_, proxy, id, desc, *result.INTERNAL_unverified_safe());
  }
 
  virtual bool ownPropertyKeys(MCContext* cx, JS::HandleObject proxy,
@@ -583,9 +593,9 @@ public:
  }
 
  virtual bool delete_(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                      JS::ObjectOpResult& result) const override {
-   return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::delete_(cx->cx_, proxy,
-                                                                    id, result);
+                      MC::Tainted<JS::ObjectOpResult*> result) const override {
+   return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::delete_(
+       cx->cx_, proxy, id, *result.INTERNAL_unverified_safe());
  }
 
  virtual bool enumerate(MCContext* cx, JS::HandleObject proxy,
@@ -600,11 +610,11 @@ public:
        cx->cx_, proxy, protop);
  }
 
- virtual bool setPrototype(MCContext* cx, JS::HandleObject proxy,
-                           JS::HandleObject proto,
-                           JS::ObjectOpResult& result) const override {
+ virtual bool setPrototype(
+     MCContext* cx, JS::HandleObject proxy, JS::HandleObject proto,
+     MC::Tainted<JS::ObjectOpResult*> result) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::setPrototype(
-       cx->cx_, proxy, proto, result);
+       cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
  }
 
  virtual bool getPrototypeIfOrdinary(
@@ -635,9 +645,9 @@ public:
  }
 
  virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                  bool* bp) const override {
+                  MC::Tainted<bool*> bp) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::has(cx->cx_, proxy, id,
-                                                                bp);
+                                                                bp.INTERNAL_unverified_safe());
  }
 
  virtual bool get(MCContext* cx, JS::HandleObject proxy,
@@ -667,9 +677,9 @@ public:
  }
 
  virtual bool hasOwn(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                     bool* bp) const override {
-   return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::hasOwn(cx->cx_, proxy,
-                                                                   id, bp);
+                     MC::Tainted<bool*> bp) const override {
+   return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::hasOwn(
+       cx->cx_, proxy, id, bp.INTERNAL_unverified_safe());
  }
 
  virtual bool getOwnEnumerablePropertyKeys(
@@ -745,9 +755,9 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
   virtual bool defineProperty(MCContext* cx, JS::HandleObject proxy,
                               JS::HandleId id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result) const override {
+                              MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::defineProperty(
-        cx->cx_, proxy, id, desc, result);
+        cx->cx_, proxy, id, desc, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool ownPropertyKeys(MCContext* cx, JS::HandleObject proxy,
@@ -757,9 +767,9 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
   }
 
   virtual bool delete_(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                       JS::ObjectOpResult& result) const override {
+                       MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::delete_(
-        cx->cx_, proxy, id, result);
+        cx->cx_, proxy, id, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool enumerate(MCContext* cx, JS::HandleObject proxy,
@@ -774,11 +784,11 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
         cx->cx_, proxy, protop);
   }
 
-  virtual bool setPrototype(MCContext* cx, JS::HandleObject proxy,
-                            JS::HandleObject proto,
-                            JS::ObjectOpResult& result) const override {
+  virtual bool setPrototype(
+      MCContext* cx, JS::HandleObject proxy, JS::HandleObject proto,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::setPrototype(
-        cx->cx_, proxy, proto, result);
+        cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool getPrototypeIfOrdinary(
@@ -809,9 +819,9 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
   }
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                   bool* bp) const override {
+                   MC::Tainted<bool*> bp) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::has(cx->cx_, proxy, id,
-                                                                 bp);
+                                                                 bp.INTERNAL_unverified_safe());
   }
 
   virtual bool get(MCContext* cx, JS::HandleObject proxy,
@@ -841,9 +851,9 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
   }
 
   virtual bool hasOwn(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                      bool* bp) const override {
-    return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::hasOwn(cx->cx_, proxy,
-                                                                    id, bp);
+                      MC::Tainted<bool*> bp) const override {
+    return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::hasOwn(
+        cx->cx_, proxy, id, bp.INTERNAL_unverified_safe());
   }
 
   virtual bool getOwnEnumerablePropertyKeys(
@@ -906,9 +916,9 @@ class SecurityWrapper : public Base {
   virtual bool defineProperty(MCContext* cx, JS::HandleObject proxy,
                               JS::HandleId id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result) const override {
+                              MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getWrapper()->Unsafe::defineProperty(cx->cx_, proxy, id, desc,
-                                                     result);
+                                                     *result.INTERNAL_unverified_safe());
   }
 
   virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
@@ -921,10 +931,11 @@ class SecurityWrapper : public Base {
     return UNSAFE_getWrapper()->Unsafe::preventExtensions(cx->cx_, proxy, result);
   }
 
-  virtual bool setPrototype(MCContext* cx, JS::HandleObject proxy,
-                            JS::HandleObject proto,
-                            JS::ObjectOpResult& result) const override {
-    return UNSAFE_getWrapper()->Unsafe::setPrototype(cx->cx_, proxy, proto, result);
+  virtual bool setPrototype(
+      MCContext* cx, JS::HandleObject proxy, JS::HandleObject proto,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
+    return UNSAFE_getWrapper()->Unsafe::setPrototype(
+        cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
