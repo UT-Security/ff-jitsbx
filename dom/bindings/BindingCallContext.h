@@ -37,6 +37,11 @@ class MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS BindingCallContext {
   BindingCallContext(JSContext* aCx, const char* aMethodDescription)
       : mCx(aCx), mDescription(aMethodDescription) {}
 
+#ifdef JS_SANDBOX
+  BindingCallContext(MCContext* aCx, const char* aMethodDescription)
+      : BindingCallContext(MC_UNSAFE(aCx), aMethodDescription) {}
+#endif
+
   ~BindingCallContext() = default;
 
   // Allow passing a BindingCallContext as a JSContext*, as needed.

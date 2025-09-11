@@ -283,9 +283,24 @@ inline bool JS_GetProperty(MCContext* cx, JS::Handle<JSObject*> obj,
   return JS_GetProperty(cx->cx_, obj, name, vp.MC_INTERNAL_SAFE_get());
 }
 
+inline bool JS_GetUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
+                             const char16_t* name, size_t namelen,
+                             JS::MutableHandleValue vp) {
+  return JS_GetUCProperty(cx->cx_, obj, name, namelen, vp);
+}
+
 inline bool JS_GetElement(MCContext* cx, JS::Handle<JSObject*> obj,
                           uint32_t index, JS::MutableHandleValue vp) {
   return JS_GetElement(cx->cx_, obj, index, vp);
+}
+
+inline bool JS_ForwardSetPropertyTo(MCContext* cx, JS::Handle<JSObject*> obj,
+                                    JS::Handle<jsid> id,
+                                    JS::Handle<JS::Value> v,
+                                    JS::Handle<JS::Value> receiver,
+                                    MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_ForwardSetPropertyTo(cx->cx_, obj, id, v, receiver,
+                                 *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_SetPropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -302,6 +317,36 @@ inline bool JS_SetUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
                              const char16_t* name, size_t namelen,
                              JS::Handle<JS::Value> v) {
   return JS_SetUCProperty(cx->cx_, obj, name, namelen, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, JS::Handle<JS::Value> v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, JS::Handle<JSObject*> v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, JS::Handle<JSString*> v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, int32_t v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, uint32_t v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
+}
+
+inline bool JS_SetElement(MCContext* cx, JS::Handle<JSObject*> obj,
+                          uint32_t index, double v) {
+  return JS_SetElement(cx->cx_, obj, index, v);
 }
 
 inline bool JS_DeletePropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -322,8 +367,8 @@ inline bool JS_DeleteUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,
 }
 
 inline bool JS_DeleteElement(MCContext* cx, JS::Handle<JSObject*> obj,
-                             uint32_t index, JS::ObjectOpResult& result) {
-  return JS_DeleteElement(cx->cx_, obj, index, result);
+                             uint32_t index, MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_DeleteElement(cx->cx_, obj, index, *result.INTERNAL_unverified_safe());
 }
 
 inline bool JS_DeletePropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
@@ -344,6 +389,14 @@ inline bool JS_DeleteElement(MCContext* cx, JS::Handle<JSObject*> obj,
 inline bool JS_Enumerate(MCContext* cx, JS::Handle<JSObject*> obj,
                          JS::MutableHandle<JS::IdVector> props) {
  return JS_Enumerate(cx->cx_, obj, props);
+}
+
+//TODO(abhishek): Potentially need to change the JSClass args type.
+inline JSObject* JS_DefineObject(MCContext* cx, JS::Handle<JSObject*> obj,
+                                 const char* name,
+                                 const JSClass* clasp = nullptr,
+                                 unsigned attrs = 0) {
+  return JS_DefineObject(cx->cx_, obj, name, clasp, attrs);
 }
 
 //TODO(abhishek): Potentially need to change the JSPropertySpec args type.
@@ -374,6 +427,7 @@ inline bool JS_AlreadyHasOwnElement(MCContext* cx, JS::Handle<JSObject*> obj,
   return JS_AlreadyHasOwnElement(cx->cx_, obj, index, foundp.INTERNAL_unverified_safe());
 }
 
+//TODO(abhishek): Maybe change the JSFunctionSpec argument type
 inline bool JS_DefineFunctions(MCContext* cx, JS::Handle<JSObject*> obj,
                                const JSFunctionSpec* fs) {
   return JS_DefineFunctions(cx->cx_, obj, fs);

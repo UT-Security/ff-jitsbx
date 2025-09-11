@@ -57,16 +57,16 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
                               JS::MutableHandle<JSObject*> aProtop) const final;
 
   bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                         JS::ObjectOpResult& aResult) const final;
+                         MC::Tainted<JS::ObjectOpResult*> aResult) const final;
   bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                    bool* aExtensible) const final;
+                    MC::Tainted<bool*> aExtensible) const final;
 
   bool get(MCContext* cx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<jsid> aId,
            JS::MutableHandle<JS::Value> aVp) const final;
   bool set(MCContext* cx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
            JS::Handle<JS::Value> aValue, JS::Handle<JS::Value> aReceiver,
-           JS::ObjectOpResult& aResult) const final;
+           MC::Tainted<JS::ObjectOpResult*> aResult) const final;
 
   // SpiderMonkey extensions
   bool getOwnEnumerablePropertyKeys(

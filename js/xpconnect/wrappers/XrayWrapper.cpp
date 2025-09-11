@@ -1869,19 +1869,20 @@ const JSClass* DOMXrayTraits::getExpandoClass(MCContext* cx,
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::preventExtensions(
-    MCContext* cx, HandleObject wrapper, ObjectOpResult& result) const {
+    MCContext* cx, HandleObject wrapper,
+    MC::Tainted<ObjectOpResult*> result) const {
   // Xray wrappers are supposed to provide a clean view of the target
   // reflector, hiding any modifications by script in the target scope.  So
   // even if that script freezes the reflector, we don't want to make that
   // visible to the caller. DOM reflectors are always extensible by default,
   // so we can just return failure here.
-  return result.failCantPreventExtensions();
+  return result->failCantPreventExtensions();
 }
 
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::isExtensible(MCContext* cx,
                                              JS::Handle<JSObject*> wrapper,
-                                             bool* extensible) const {
+                                             MC::Tainted<bool*> extensible) const {
   // See above.
   *extensible = true;
   return true;
@@ -2111,7 +2112,7 @@ template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::set(MCContext* cx, HandleObject wrapper,
                                     HandleId id, HandleValue v,
                                     HandleValue receiver,
-                                    ObjectOpResult& result) const {
+                                    MC::Tainted<ObjectOpResult*> result) const {
   MOZ_CRASH("Shouldn't be called: we return true for hasPrototype()");
   return false;
 }
@@ -2275,7 +2276,7 @@ bool XrayWrapper<Base, Traits>::getPrototypeIfOrdinary(
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::setImmutablePrototype(MCContext* cx,
                                                       JS::HandleObject wrapper,
-                                                      bool* succeeded) const {
+                                                      MC::Tainted<bool*> succeeded) const {
   // For now, lacking an obvious place to store a bit, prohibit making an
   // Xray's [[Prototype]] immutable.  We can revisit this (or maybe give all
   // Xrays immutable [[Prototype]], because who does this, really?) later if

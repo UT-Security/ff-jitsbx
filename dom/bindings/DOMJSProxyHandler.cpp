@@ -192,15 +192,15 @@ JSObject* DOMProxyHandler::EnsureExpandoObject(JSContext* cx,
   return expando;
 }
 
-bool DOMProxyHandler::preventExtensions(MCContext* cx,
-                                        JS::Handle<JSObject*> proxy,
-                                        JS::ObjectOpResult& result) const {
+bool DOMProxyHandler::preventExtensions(
+    MCContext* cx, JS::Handle<JSObject*> proxy,
+    MC::Tainted<JS::ObjectOpResult*> result) const {
   // always extensible per WebIDL
-  return result.failCantPreventExtensions();
+  return result->failCantPreventExtensions();
 }
 
 bool DOMProxyHandler::isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
-                                   bool* extensible) const {
+                                   MC::Tainted<bool*> extensible) const {
   *extensible = true;
   return true;
 }
@@ -236,7 +236,7 @@ bool DOMProxyHandler::defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
 bool DOMProxyHandler::set(MCContext* cx, Handle<JSObject*> proxy,
                           Handle<jsid> id, Handle<JS::Value> v,
                           Handle<JS::Value> receiver,
-                          ObjectOpResult& result) const {
+                          MC::Tainted<ObjectOpResult*> result) const {
   MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
              "Should not have a XrayWrapper here");
   bool done;
@@ -244,7 +244,7 @@ bool DOMProxyHandler::set(MCContext* cx, Handle<JSObject*> proxy,
     return false;
   }
   if (done) {
-    return result.succeed();
+    return result->succeed();
   }
 
   // Make sure to ignore our named properties when checking for own

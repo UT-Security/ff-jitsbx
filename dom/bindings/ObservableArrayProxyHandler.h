@@ -57,47 +57,48 @@ class ObservableArrayProxyHandler : public mc::ForwardingProxyHandler {
   bool ownPropertyKeys(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::MutableHandleVector<jsid> aProps) const override;
 
-  bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                         JS::ObjectOpResult& aResult) const override;
+  bool preventExtensions(
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
+      MC::Tainted<JS::ObjectOpResult*> aResult) const override;
 
   bool set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::Value> aV,
            JS::Handle<JS::Value> aReceiver,
-           JS::ObjectOpResult& aResult) const override;
+           MC::Tainted<JS::ObjectOpResult*> aResult) const override;
 
-  bool SetLength(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool SetLength(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                  uint32_t aLength) const;
 
   static const char family;
 
  protected:
   bool GetBackingListObject(
-      JSContext* aCx, JS::Handle<JSObject*> aProxy,
+      MCContext* aCx, JS::Handle<JSObject*> aProxy,
       JS::MutableHandle<JSObject*> aBackingListObject) const;
 
-  bool GetBackingListLength(JSContext* aCx, JS::Handle<JSObject*> aProxy,
-                            uint32_t* aLength) const;
+  bool GetBackingListLength(MCContext* aCx, JS::Handle<JSObject*> aProxy,
+                            MC::Tainted<uint32_t*> aLength) const;
 
-  bool SetLength(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool SetLength(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                  JS::Handle<JSObject*> aBackingList, uint32_t aLength,
-                 JS::ObjectOpResult& aResult) const;
+                 MC::Tainted<JS::ObjectOpResult*> aResult) const;
 
-  bool SetLength(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool SetLength(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                  JS::Handle<JSObject*> aBackingList,
                  JS::Handle<JS::Value> aValue,
-                 JS::ObjectOpResult& aResult) const;
+                 MC::Tainted<JS::ObjectOpResult*> aResult) const;
 
   // Hook for subclasses to invoke the setting the indexed value steps which
   // would invoke DeleteAlgorithm/SetAlgorithm defined and implemented per
   // interface. Returns false and throw exception on failure.
-  virtual bool SetIndexedValue(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool SetIndexedValue(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                JS::Handle<JSObject*> aBackingList,
                                uint32_t aIndex, JS::Handle<JS::Value> aValue,
-                               JS::ObjectOpResult& aResult) const = 0;
+                               MC::Tainted<JS::ObjectOpResult*> aResult) const = 0;
 
   // Hook for subclasses to invoke the DeleteAlgorithm defined and implemented
   // per interface. Returns false and throw exception on failure.
-  virtual bool OnDeleteItem(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  virtual bool OnDeleteItem(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                             JS::Handle<JS::Value> aValue,
                             uint32_t aIndex) const = 0;
 };

@@ -153,8 +153,10 @@ inline void SetScriptEnvironmentPreparer(
 
 inline bool GetElementsWithAdder(MCContext* cx, JS::HandleObject obj,
                                  JS::HandleObject receiver, uint32_t begin,
-                                 uint32_t end, js::ElementAdder* adder) {
-  return GetElementsWithAdder(cx->cx_, obj, receiver, begin, end, adder);
+                                 uint32_t end,
+                                 MC::Tainted<js::ElementAdder*> adder) {
+  return GetElementsWithAdder(cx->cx_, obj, receiver, begin, end,
+                              adder.INTERNAL_unverified_safe());
 }
 
 inline bool ForwardToNative(MCContext* cx, MC::SandboxCallback<JSNative> native,
@@ -166,9 +168,9 @@ inline bool SetPropertyIgnoringNamedGetter(
     MCContext* cx, JS::HandleObject obj, JS::HandleId id, JS::HandleValue v,
     JS::HandleValue receiver,
     JS::Handle<mozilla::Maybe<JS::PropertyDescriptor>> ownDesc,
-    JS::ObjectOpResult& result) {
+    MC::Tainted<JS::ObjectOpResult*> result) {
   return SetPropertyIgnoringNamedGetter(cx->cx_, obj, id, v, receiver, ownDesc,
-                                        result);
+                                        *result.INTERNAL_unverified_safe());
 }
 
 inline void SetPreserveWrapperCallbacks(

@@ -34,7 +34,7 @@ bool ChromeObjectWrapper::defineProperty(MCContext* cx, HandleObject wrapper,
 
 bool ChromeObjectWrapper::set(MCContext* cx, HandleObject wrapper, HandleId id,
                               HandleValue v, HandleValue receiver,
-                              ObjectOpResult& result) const {
+                              MC::Tainted<ObjectOpResult*> result) const {
   if (!AccessCheck::checkPassToPrivilegedCode(cx, wrapper, v)) {
     return false;
   }

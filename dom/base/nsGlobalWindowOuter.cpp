@@ -459,7 +459,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
    */
   bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-           JS::ObjectOpResult& result) const override;
+           MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   // SpiderMonkey extensions
   /**
@@ -966,15 +966,15 @@ bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
 bool nsOuterWindowProxy::set(MCContext* cx, JS::Handle<JSObject*> proxy,
                              JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                              JS::Handle<JS::Value> receiver,
-                             JS::ObjectOpResult& result) const {
+                             MC::Tainted<JS::ObjectOpResult*> result) const {
   if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
-    return CrossOriginSet(MC_UNSAFE(cx), proxy, id, v, receiver, result);
+    return CrossOriginSet(cx, proxy, id, v, receiver, result);
   }
 
   if (IsArrayIndex(GetArrayIndexFromId(id))) {
     // Reject the set.  It's up to the caller to decide whether to throw a
     // TypeError.  If the caller is strict mode JS code, it'll throw.
-    return result.failReadOnly();
+    return result->failReadOnly();
   }
 
   // Do the rest in the Realm of "proxy", since we're in the same-origin case.
