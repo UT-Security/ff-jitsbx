@@ -24,16 +24,16 @@ class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
       MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
       bool /* unused */,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) const override;
-  virtual bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                              JS::Handle<jsid> aId,
-                              JS::Handle<JS::PropertyDescriptor> aDesc,
-                              JS::ObjectOpResult& result) const override;
+  virtual bool defineProperty(
+      MCContext* aCx, JS::Handle<JSObject*> aProxy, JS::Handle<jsid> aId,
+      JS::Handle<JS::PropertyDescriptor> aDesc,
+      MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool ownPropNames(
       MCContext* aCx, JS::Handle<JSObject*> aProxy, unsigned flags,
       JS::MutableHandleVector<jsid> aProps) const override;
   virtual bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        JS::Handle<jsid> aId,
-                       JS::ObjectOpResult& aResult) const override;
+                       MC::Tainted<JS::ObjectOpResult*> aResult) const override;
 
   // No need for getPrototypeIfOrdinary here: window named-properties objects
   // have static prototypes, so the version inherited from BaseDOMProxyHandler

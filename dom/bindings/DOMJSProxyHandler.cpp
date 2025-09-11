@@ -39,11 +39,11 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx_,
   JS::Value v = js::GetProxyPrivate(proxy);
   bool isOverrideBuiltins = !v.isObject() && !v.isUndefined();
   if (expando) {
-    bool hasOwn;
-    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, &hasOwn))
+    MC::SandboxStack<bool> hasOwn;
+    if (!JS_AlreadyHasOwnPropertyById(cx, expando, id, hasOwn))
       return DOMProxyShadowsResult::ShadowCheckFailed;
 
-    if (hasOwn) {
+    if (*hasOwn.UNSAFE_unverified()) {
       return isOverrideBuiltins
                  ? DOMProxyShadowsResult::ShadowsViaIndirectExpando
                  : DOMProxyShadowsResult::ShadowsViaDirectExpando;
@@ -55,11 +55,11 @@ JS::DOMProxyShadowsResult DOMProxyShadows(JSContext* cx_,
     return DOMProxyShadowsResult::DoesntShadow;
   }
 
-  bool hasOwn;
-  if (!mc::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, &hasOwn))
+  MC::SandboxStack<bool> hasOwn;
+  if (!mc::GetProxyHandler(proxy)->hasOwn(cx, proxy, id, hasOwn))
     return DOMProxyShadowsResult::ShadowCheckFailed;
 
-  return hasOwn ? DOMProxyShadowsResult::Shadows
+  return *hasOwn.UNSAFE_unverified() ? DOMProxyShadowsResult::Shadows
                 : DOMProxyShadowsResult::DoesntShadowUnique;
 }
 
@@ -215,10 +215,10 @@ bool BaseDOMProxyHandler::getOwnPropertyDescriptor(
 bool DOMProxyHandler::defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                                      JS::Handle<jsid> id,
                                      Handle<PropertyDescriptor> desc,
-                                     JS::ObjectOpResult& result,
+                                     MC::Tainted<JS::ObjectOpResult*> result,
                                      bool* done) const {
   if (xpc::WrapperFactory::IsXrayWrapper(proxy)) {
-    return result.succeed();
+    return result->succeed();
   }
 
   MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(MC_UNSAFE(cx), proxy));
@@ -261,14 +261,14 @@ bool DOMProxyHandler::set(MCContext* cx, Handle<JSObject*> proxy,
 
 bool DOMProxyHandler::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id,
-                              JS::ObjectOpResult& result) const {
+                              MC::Tainted<JS::ObjectOpResult*> result) const {
   MC::Rooted<JSObject*> expando(cx);
   if (!xpc::WrapperFactory::IsXrayWrapper(proxy) &&
       (expando = GetExpandoObject(proxy))) {
     return JS_DeletePropertyById(cx, expando, id, result);
   }
 
-  return result.succeed();
+  return result->succeed();
 }
 
 bool BaseDOMProxyHandler::ownPropertyKeys(

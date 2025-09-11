@@ -8,7 +8,7 @@
 
 #include "mcapi.h"
 #include "js/friend/ErrorMessages.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "js/Object.h"
 #include "mozilla/dom/JSSlots.h"
 #include "mozilla/dom/ProxyHandlerUtils.h"
@@ -24,19 +24,19 @@ const char ObservableArrayProxyHandler::family = 0;
 bool ObservableArrayProxyHandler::defineProperty(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::PropertyDescriptor> aDesc,
-    JS::ObjectOpResult& aResult) const {
+    MC::Tainted<JS::ObjectOpResult*> aResult) const {
   if (aId.get() == s_length_id) {
     if (aDesc.isAccessorDescriptor()) {
-      return aResult.failNotDataDescriptor();
+      return aResult->failNotDataDescriptor();
     }
     if (aDesc.hasConfigurable() && aDesc.configurable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasEnumerable() && aDesc.enumerable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasWritable() && !aDesc.writable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasValue()) {
       MC::Rooted<JSObject*> backingListObj(aCx);
@@ -44,23 +44,23 @@ bool ObservableArrayProxyHandler::defineProperty(
         return false;
       }
 
-      return SetLength(MC_UNSAFE(aCx), aProxy, backingListObj, aDesc.value(), aResult);
+      return SetLength(MC_UNSAFE(aCx), aProxy, backingListObj, aDesc.value(), *aResult.UNSAFE_unverified());
     }
-    return aResult.succeed();
+    return aResult->succeed();
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
     if (aDesc.isAccessorDescriptor()) {
-      return aResult.failNotDataDescriptor();
+      return aResult->failNotDataDescriptor();
     }
     if (aDesc.hasConfigurable() && !aDesc.configurable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasEnumerable() && !aDesc.enumerable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasWritable() && !aDesc.writable()) {
-      return aResult.failInvalidDescriptor();
+      return aResult->failInvalidDescriptor();
     }
     if (aDesc.hasValue()) {
       MC::Rooted<JSObject*> backingListObj(aCx);
@@ -69,21 +69,21 @@ bool ObservableArrayProxyHandler::defineProperty(
       }
 
       return SetIndexedValue(MC_UNSAFE(aCx), aProxy, backingListObj, index, aDesc.value(),
-                             aResult);
+                             *aResult.UNSAFE_unverified());
     }
-    return aResult.succeed();
+    return aResult->succeed();
   }
 
   return ForwardingProxyHandler::defineProperty(aCx, aProxy, aId, aDesc,
                                                 aResult);
 }
 
-bool ObservableArrayProxyHandler::delete_(MCContext* aCx,
-                                          JS::Handle<JSObject*> aProxy,
-                                          JS::Handle<JS::PropertyKey> aId,
-                                          JS::ObjectOpResult& aResult) const {
+bool ObservableArrayProxyHandler::delete_(
+    MCContext* aCx, JS::Handle<JSObject*> aProxy,
+    JS::Handle<JS::PropertyKey> aId,
+    MC::Tainted<JS::ObjectOpResult*> aResult) const {
   if (aId.get() == s_length_id) {
-    return aResult.failCantDelete();
+    return aResult->failCantDelete();
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {
@@ -103,7 +103,7 @@ bool ObservableArrayProxyHandler::delete_(MCContext* aCx,
     // `oldLen` is `uint32_t` in practice. See also
     // https://github.com/whatwg/webidl/issues/1049.
     if (oldLen->UNSAFE_unverified() != index + 1) {
-      return aResult.failBadIndex();
+      return aResult->failBadIndex();
     }
 
     MC::Rooted<JS::Value> value(aCx);
@@ -119,7 +119,7 @@ bool ObservableArrayProxyHandler::delete_(MCContext* aCx,
       return false;
     }
 
-    return aResult.succeed();
+    return aResult->succeed();
   }
   return ForwardingProxyHandler::delete_(aCx, aProxy, aId, aResult);
 }
@@ -197,7 +197,7 @@ bool ObservableArrayProxyHandler::getOwnPropertyDescriptor(
 bool ObservableArrayProxyHandler::has(MCContext* aCx,
                                       JS::Handle<JSObject*> aProxy,
                                       JS::Handle<JS::PropertyKey> aId,
-                                      bool* aBp) const {
+                                      MC::Tainted<bool*> aBp) const {
   if (aId.get() == s_length_id) {
     *aBp = true;
     return true;

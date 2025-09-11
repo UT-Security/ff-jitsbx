@@ -379,7 +379,7 @@ bool MaybeCrossOriginObject<Base>::getPrototype(
 template <typename Base>
 bool MaybeCrossOriginObject<Base>::setPrototype(
     MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<JSObject*> proto,
-    JS::ObjectOpResult& result) const {
+    MC::Tainted<JS::ObjectOpResult*> result) const {
   // Inlined version of
   // https://tc39.github.io/ecma262/#sec-set-immutable-prototype
   js::AssertSameCompartment(cx, proto);
@@ -398,10 +398,10 @@ bool MaybeCrossOriginObject<Base>::setPrototype(
   }
 
   if (currentProto != proto) {
-    return result.failCantSetProto();
+    return result->failCantSetProto();
   }
 
-  return result.succeed();
+  return result->succeed();
 }
 
 template <typename Base>
@@ -440,7 +440,7 @@ bool MaybeCrossOriginObject<Base>::preventExtensions(
 template <typename Base>
 bool MaybeCrossOriginObject<Base>::defineProperty(
     MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-    JS::Handle<JS::PropertyDescriptor> desc, JS::ObjectOpResult& result) const {
+    JS::Handle<JS::PropertyDescriptor> desc, MC::Tainted<JS::ObjectOpResult*> result) const {
   if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
     return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "define"_ns);
   }

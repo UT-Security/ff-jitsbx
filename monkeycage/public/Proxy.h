@@ -49,9 +49,11 @@ namespace mc {
  static bool definePropertyCb(const void* p, JSContext* cx,                                  \
                               JS::HandleObject proxy, JS::HandleId id,                       \
                               JS::Handle<JS::PropertyDescriptor> desc,                       \
-                              JS::ObjectOpResult& result) {                                  \
+                              JS::ObjectOpResult& result_) {                                 \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->defineProperty(mcx, proxy, id, desc, result);                                   \
  }                                                                                           \
  static bool ownPropertyKeysCb(const void* p, JSContext* cx,                                 \
@@ -62,9 +64,11 @@ namespace mc {
    return h->ownPropertyKeys(mcx, proxy, props);                                             \
  }                                                                                           \
  static bool delete_Cb(const void* p, JSContext* cx, JS::HandleObject proxy,                 \
-                       JS::HandleId id, JS::ObjectOpResult& result) {                        \
+                       JS::HandleId id, JS::ObjectOpResult& result_) {                       \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->delete_(mcx, proxy, id, result);                                                \
  }                                                                                           \
  static bool getPrototypeCb(const void* p, JSContext* cx,                                    \
@@ -76,9 +80,11 @@ namespace mc {
  }                                                                                           \
  static bool setPrototypeCb(const void* p, JSContext* cx,                                    \
                             JS::HandleObject proxy, JS::HandleObject proto,                  \
-                            JS::ObjectOpResult& result) {                                    \
+                            JS::ObjectOpResult& result_) {                                   \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->setPrototype(mcx, proxy, proto, result);                                        \
  }                                                                                           \
  static bool getPrototypeIfOrdinaryCb(const void* p, JSContext* cx,                          \
@@ -110,9 +116,11 @@ namespace mc {
    return h->isExtensible(mcx, proxy, extensible);                                           \
  }                                                                                           \
  static bool hasCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
-                   JS::HandleId id, bool* bp) {                                              \
+                   JS::HandleId id, bool* bp_) {                                             \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> bp{nullptr};                                                           \
+   bp.assign_raw_pointer(bp_);                                                               \
    return h->has(mcx, proxy, id, bp);                                                        \
  }                                                                                           \
  static bool getCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
@@ -156,9 +164,11 @@ namespace mc {
    return h->enumerate(mcx, proxy, props);                                                   \
  }                                                                                           \
  static bool hasOwnCb(const void* p, JSContext* cx, JS::HandleObject proxy,                  \
-                      JS::HandleId id, bool* bp) {                                           \
+                      JS::HandleId id, bool* bp_) {                                          \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> bp{nullptr};                                                           \
+   bp.assign_raw_pointer(bp_);                                                               \
    return h->hasOwn(mcx, proxy, id, bp);                                                     \
  }                                                                                           \
  static bool getOwnEnumerablePropertyKeysCb(const void* p, JSContext* cx,                    \
@@ -361,13 +371,13 @@ private:
   virtual bool defineProperty(MCContext* cx, JS::HandleObject proxy,
                               JS::HandleId id,
                               JS::Handle<JS::PropertyDescriptor> desc,
-                              JS::ObjectOpResult& result) const = 0;
+                              MC::Tainted<JS::ObjectOpResult*> result) const = 0;
 
   virtual bool ownPropertyKeys(MCContext* cx, JS::HandleObject proxy,
                                JS::MutableHandleIdVector props) const = 0;
 
   virtual bool delete_(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                       JS::ObjectOpResult& result) const = 0;
+                       MC::Tainted<JS::ObjectOpResult*> result) const = 0;
 
   virtual bool getPrototype(MCContext* cx, JS::HandleObject proxy,
                             JS::MutableHandleObject protop) const {
@@ -377,9 +387,9 @@ private:
 
   virtual bool setPrototype(MCContext* cx, JS::HandleObject proxy,
                             JS::HandleObject proto,
-                            JS::ObjectOpResult& result) const {
+                            MC::Tainted<JS::ObjectOpResult*> result) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::setPrototype(
-        cx->cx_, proxy, proto, result);
+        cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool getPrototypeIfOrdinary(MCContext* cx, JS::HandleObject proxy,
@@ -399,9 +409,9 @@ private:
                             bool* extensible) const = 0;
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                   bool* bp) const {
-    return UNSAFE_getProxyHandler()->js::BaseProxyHandler::has(cx->cx_, proxy, id,
-                                                               bp);
+                   MC::Tainted<bool*> bp) const {
+    return UNSAFE_getProxyHandler()->js::BaseProxyHandler::has(
+        cx->cx_, proxy, id, bp.INTERNAL_unverified_safe());
   }
 
   virtual bool get(MCContext* cx, JS::HandleObject proxy,
@@ -447,9 +457,9 @@ private:
   }
 
   virtual bool hasOwn(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
-                      bool* bp) const {
-    return UNSAFE_getProxyHandler()->js::BaseProxyHandler::hasOwn(cx->cx_, proxy, id,
-                                                                  bp);
+                      MC::Tainted<bool*> bp) const {
+    return UNSAFE_getProxyHandler()->js::BaseProxyHandler::hasOwn(
+        cx->cx_, proxy, id, bp.INTERNAL_unverified_safe());
   }
 
   virtual bool getOwnEnumerablePropertyKeys(

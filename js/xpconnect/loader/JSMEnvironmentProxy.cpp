@@ -12,8 +12,8 @@
 #include <stddef.h>  // size_t
 
 #include "mcapi.h"  // JS_HasExtensibleLexicalEnvironment, JS_ExtensibleLexicalEnvironment
-#include "js/Class.h"               // JS::ObjectOpResult
-#include "js/ErrorReport.h"         // JS_ReportOutOfMemory
+#include "monkeycage/Class.h"               // JS::ObjectOpResult
+#include "monkeycage/ErrorReport.h"         // JS_ReportOutOfMemory
 #include "monkeycage/GCVector.h"            // MC::RootedVector
 #include "js/Id.h"                  // JS::PropertyKey
 #include "monkeycage/PropertyAndElement.h"  // JS::IdVector, JS_HasPropertyById, JS_HasOwnPropertyById, JS_GetPropertyById, JS_Enumerate
@@ -33,8 +33,8 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<JS::PropertyKey> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
-                      JS::ObjectOpResult& aResult) const override {
-    return aResult.fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
+                      MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->fail(JSMSG_CANT_DEFINE_PROP_OBJECT_NOT_EXTENSIBLE);
   }
 
   bool getPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
@@ -45,11 +45,11 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
 
   bool setPrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::Handle<JSObject*> aProto,
-                    JS::ObjectOpResult& aResult) const override {
+                    MC::Tainted<JS::ObjectOpResult*> aResult) const override {
     if (!aProto) {
-      return aResult.succeed();
+      return aResult->succeed();
     }
-    return aResult.failCantSetProto();
+    return aResult->failCantSetProto();
   }
 
   bool getPrototypeIfOrdinary(
@@ -86,8 +86,8 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
 
   bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                JS::Handle<JS::PropertyKey> aId,
-               JS::ObjectOpResult& aResult) const override {
-    return aResult.failCantDelete();
+               MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->failCantDelete();
   }
 
   bool getOwnPropertyDescriptor(
@@ -96,7 +96,7 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc)
       const override;
   bool has(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-           JS::Handle<JS::PropertyKey> aId, bool* aBp) const override;
+           JS::Handle<JS::PropertyKey> aId, MC::Tainted<bool*> aBp) const override;
   bool get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::Value> aReceiver, JS::Handle<JS::PropertyKey> aId,
            JS::MutableHandle<JS::Value> aVp) const override;
@@ -129,11 +129,11 @@ JSObject* ResolveModuleObjectPropertyById(MCContext* aCx,
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
     MC::Rooted<JSObject*> lexical(aCx,
                                   JS_ExtensibleLexicalEnvironment(aModObj));
-    bool found;
-    if (!JS_HasOwnPropertyById(aCx, lexical, aId, &found)) {
+    MC::SandboxStack<bool> found;
+    if (!JS_HasOwnPropertyById(aCx, lexical, aId, found)) {
       return nullptr;
     }
-    if (found) {
+    if (*found.UNSAFE_unverified()) {
       return lexical;
     }
   }
@@ -145,11 +145,11 @@ JSObject* ResolveModuleObjectProperty(MCContext* aCx,
                                       const char* aName) {
   if (JS_HasExtensibleLexicalEnvironment(aModObj)) {
     MC::RootedObject lexical(aCx, JS_ExtensibleLexicalEnvironment(aModObj));
-    bool found;
-    if (!JS_HasOwnProperty(aCx, lexical, aName, &found)) {
+    MC::SandboxStack<bool> found;
+    if (!JS_HasOwnProperty(aCx, lexical, aName, found)) {
       return nullptr;
     }
-    if (found) {
+    if (*found.UNSAFE_unverified()) {
       return lexical;
     }
   }
@@ -191,7 +191,7 @@ bool JSMEnvironmentProxyHandler::getOwnPropertyDescriptor(
 bool JSMEnvironmentProxyHandler::has(MCContext* aCx,
                                      JS::Handle<JSObject*> aProxy,
                                      JS::Handle<JS::PropertyKey> aId,
-                                     bool* aBp) const {
+                                     MC::Tainted<bool*> aBp) const {
   MC::Rooted<JSObject*> globalObj(aCx, getGlobal(aCx, aProxy));
   MC::Rooted<JSObject*> holder(
       aCx, ResolveModuleObjectPropertyById(aCx, globalObj, aId));

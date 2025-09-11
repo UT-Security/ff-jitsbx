@@ -27,8 +27,8 @@
  * shouldn't be one.
  */
 
-#include "js/Class.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/Class.h"
+#include "monkeycage/TypeDecls.h"
 #include "nsStringFwd.h"
 #include "mozilla/Maybe.h"
 
@@ -219,7 +219,7 @@ class MaybeCrossOriginObject : public Base,
    */
   bool setPrototype(MCContext* cx, JS::Handle<JSObject*> proxy,
                     JS::Handle<JSObject*> proto,
-                    JS::ObjectOpResult& result) const final;
+                    MC::Tainted<JS::ObjectOpResult*> result) const final;
 
   /**
    * Our non-standard getPrototypeIfOrdinary hook.
@@ -274,7 +274,7 @@ class MaybeCrossOriginObject : public Base,
   bool defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id,
                       JS::Handle<JS::PropertyDescriptor> desc,
-                      JS::ObjectOpResult& result) const final;
+                      MC::Tainted<JS::ObjectOpResult*> result) const final;
 
   /**
    * Some of our base classes define _another_ virtual defineProperty, and we
@@ -296,7 +296,7 @@ class MaybeCrossOriginObject : public Base,
                                         JS::Handle<JSObject*> proxy,
                                         JS::Handle<jsid> id,
                                         JS::Handle<JS::PropertyDescriptor> desc,
-                                        JS::ObjectOpResult& result) const = 0;
+                                        MC::Tainted<JS::ObjectOpResult*> result) const = 0;
 
   /**
    * Implementation of [[Get]] is completely delegated to subclasses.
@@ -335,7 +335,7 @@ class MaybeCrossOriginObject : public Base,
    * be same-compartment with "cx".
    */
   bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
-               JS::ObjectOpResult& result) const override = 0;
+               MC::Tainted<JS::ObjectOpResult*> result) const override = 0;
 
   /**
    * Spidermonkey-internal hook for enumerating objects.

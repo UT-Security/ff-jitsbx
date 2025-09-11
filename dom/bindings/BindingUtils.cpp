@@ -808,13 +808,13 @@ static JSObject* CreateConstructor(MCContext* cx, JS::Handle<JSObject*> global,
 static bool DefineConstructor(MCContext* cx, JS::Handle<JSObject*> global,
                               JS::Handle<jsid> name,
                               JS::Handle<JSObject*> constructor) {
-  bool alreadyDefined;
-  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, &alreadyDefined)) {
+  MC::SandboxStack<bool> alreadyDefined;
+  if (!JS_AlreadyHasOwnPropertyById(cx, global, name, alreadyDefined)) {
     return false;
   }
 
   // This is Enumerable: False per spec.
-  return alreadyDefined ||
+  return *alreadyDefined.UNSAFE_unverified() ||
          JS_DefinePropertyById(cx, global, name, constructor, JSPROP_RESOLVING);
 }
 
@@ -1914,14 +1914,14 @@ static bool ResolvePrototypeOrConstructor(
   return true;
 }
 
-bool XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayDefineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::ObjectOpResult& result, bool* done) {
+                        MC::Tainted<JS::ObjectOpResult*> result, bool* done) {
   if (!js::IsProxy(obj)) return true;
 
   const DOMProxyHandler* handler = GetDOMProxyHandler(obj);
-  return handler->defineProperty(JS_SanitizeContext(cx), wrapper, id, desc, result, done);
+  return handler->defineProperty(cx, wrapper, id, desc, result, done);
 }
 
 template <typename SpecType>
@@ -2113,16 +2113,16 @@ const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj) {
   return nativePropertyHooks->mXrayExpandoClass;
 }
 
-bool XrayDeleteNamedProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayDeleteNamedProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                              JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                             JS::ObjectOpResult& opresult) {
+                             MC::Tainted<JS::ObjectOpResult*> opresult) {
   DOMObjectType type;
   const NativePropertyHooks* nativePropertyHooks =
-      GetNativePropertyHooks(cx, obj, type);
+      GetNativePropertyHooks(MC_UNSAFE(cx), obj, type);
   if (!IsInstance(type) || !nativePropertyHooks->mDeleteNamedProperty) {
-    return opresult.succeed();
+    return opresult->succeed();
   }
-  return nativePropertyHooks->mDeleteNamedProperty(JS_SanitizeContext(cx), wrapper, obj, id,
+  return nativePropertyHooks->mDeleteNamedProperty(cx, wrapper, obj, id,
                                                    opresult);
 }
 

@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_DOMJSClass_h
 #define mozilla_dom_DOMJSClass_h
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
 #include "monkeycage/Wrapper.h"
 #include "mozilla/Assertions.h"
@@ -86,7 +86,7 @@ typedef bool (*DeleteNamedProperty)(MCContext* cx,
                                     JS::Handle<JSObject*> wrapper,
                                     JS::Handle<JSObject*> obj,
                                     JS::Handle<jsid> id,
-                                    JS::ObjectOpResult& opresult);
+                                    MC::Tainted<JS::ObjectOpResult*> opresult);
 
 // Returns true if the given global is of a type whose bit is set in
 // aNonExposedGlobals.

@@ -8,7 +8,7 @@
 #include "WrapperFactory.h"
 #include "AccessCheck.h"
 #include "xpcprivate.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/Wrapper.h"
 #include "nsXULAppAPI.h"
 
@@ -24,7 +24,7 @@ const ChromeObjectWrapper* ChromeObjectWrapper::getSingleton() {
 bool ChromeObjectWrapper::defineProperty(MCContext* cx, HandleObject wrapper,
                                          HandleId id,
                                          Handle<PropertyDescriptor> desc,
-                                         ObjectOpResult& result) const {
+                                         MC::Tainted<ObjectOpResult*> result) const {
   if (desc.hasValue() &&
       !AccessCheck::checkPassToPrivilegedCode(cx, wrapper, desc.value())) {
     return false;

@@ -2303,10 +2303,10 @@ bool XrayResolveOwnProperty(
  *      or if we want to always avoid setting this property
  *      (i.e. indexed properties on DOM objects)
  */
-bool XrayDefineProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayDefineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::Handle<JS::PropertyDescriptor> desc,
-                        JS::ObjectOpResult& result, bool* done);
+                        MC::Tainted<JS::ObjectOpResult*> result, bool* done);
 
 /**
  * Add to props the property keys of all indexed or named properties of obj and
@@ -2372,9 +2372,9 @@ const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj);
  * add a "bool* found" argument and change the generated DeleteNamedProperty to
  * use it instead of a local variable.
  */
-bool XrayDeleteNamedProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayDeleteNamedProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                              JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
-                             JS::ObjectOpResult& opresult);
+                             MC::Tainted<JS::ObjectOpResult*> opresult);
 
 namespace binding_detail {
 

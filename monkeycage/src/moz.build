@@ -341,6 +341,7 @@ EXPORTS.monkeycage += [
 	"../public/ArrayBuffer.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
+	"../public/Class.h",
 	"../public/CompilationAndEvaluation.h",
 	"../public/CompileOptions.h",
 	"../public/Context.h",

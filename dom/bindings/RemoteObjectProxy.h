@@ -47,9 +47,10 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
   bool defineProperty(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                       JS::Handle<jsid> aId,
                       JS::Handle<JS::PropertyDescriptor> aDesc,
-                      JS::ObjectOpResult& result) const final;
+                      MC::Tainted<JS::ObjectOpResult*> result) const final;
   bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-               JS::Handle<jsid> aId, JS::ObjectOpResult& aResult) const final;
+               JS::Handle<jsid> aId,
+               MC::Tainted<JS::ObjectOpResult*> aResult) const final;
 
   bool getPrototypeIfOrdinary(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                               MC::Tainted<bool*> aIsOrdinary,
