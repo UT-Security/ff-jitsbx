@@ -62,6 +62,27 @@ class TaintedVolatile<JS::ObjectOpResult, MC_Sbx> {
 
   bool failBadArrayLength() { return data.failBadArrayLength(); }
   bool failBadIndex() { return data.failBadIndex(); }
+
+  bool reportError(MCContext* cx, JS::HandleObject obj, JS::HandleId id) {
+    return data.reportError(cx->cx_, obj, id);
+  }
+
+  bool reportError(MCContext* cx, JS::HandleObject obj) {
+    return data.reportError(cx->cx_, obj);
+  }
+};
+
+template <typename MC_Sbx>
+class TaintedVolatile<js::ElementAdder, MC_Sbx> {
+ private:
+  js::ElementAdder data;
+
+ public:
+  bool append(MCContext* cx, JS::HandleValue v) {
+    return data.append(cx->cx_, v);
+  }
+
+  void appendHole() { return data.appendHole(); }
 };
 
 }  // namespace detail

@@ -36,7 +36,7 @@ class ChromeObjectWrapper : public ChromeObjectWrapperBase {
       MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool set(MCContext* cx, JS::HandleObject wrapper, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
-                   JS::ObjectOpResult& result) const override;
+                   MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   static const ChromeObjectWrapper* getSingleton();
 };

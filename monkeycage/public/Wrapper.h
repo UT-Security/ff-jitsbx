@@ -88,22 +88,24 @@ class ForwardingProxyHandler : public BaseProxyHandler {
   }
 
   virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
-                                     bool* succeeded) const override {
+                                     MC::Tainted<bool*> succeeded) const override {
     return UNSAFE_getProxyHandler()
-        ->js::ForwardingProxyHandler::setImmutablePrototype(cx->cx_, proxy,
-                                                            succeeded);
+        ->js::ForwardingProxyHandler::setImmutablePrototype(
+            cx->cx_, proxy, succeeded.INTERNAL_unverified_safe());
   }
 
-  virtual bool preventExtensions(MCContext* cx, JS::HandleObject proxy,
-                                 JS::ObjectOpResult& result) const override {
+  virtual bool preventExtensions(
+      MCContext* cx, JS::HandleObject proxy,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getProxyHandler()
-        ->js::ForwardingProxyHandler::preventExtensions(cx->cx_, proxy, result);
+        ->js::ForwardingProxyHandler::preventExtensions(
+            cx->cx_, proxy, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
-                            bool* extensible) const override {
+                            MC::Tainted<bool*> extensible) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::isExtensible(
-        cx->cx_, proxy, extensible);
+        cx->cx_, proxy, extensible.INTERNAL_unverified_safe());
   }
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
@@ -121,9 +123,9 @@ class ForwardingProxyHandler : public BaseProxyHandler {
 
   virtual bool set(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
-                   JS::ObjectOpResult& result) const override {
+                   MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getProxyHandler()->js::ForwardingProxyHandler::set(
-        cx->cx_, proxy, id, v, receiver, result);
+        cx->cx_, proxy, id, v, receiver, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool call(MCContext* cx, JS::HandleObject proxy,
@@ -286,22 +288,28 @@ class ForwardingProxyHandler : public BaseProxyHandler {
    return h->getPrototypeIfOrdinary(mcx, proxy, isOrdinary, protop);                         \
  }                                                                                           \
  static bool setImmutablePrototypeCb(const void* p, JSContext* cx,                           \
-                                     JS::HandleObject proxy, bool* succeeded) {              \
+                                     JS::HandleObject proxy, bool* succeeded_) {             \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> succeeded{nullptr};                                                    \
+   succeeded.assign_raw_pointer(succeeded_);                                                 \
    return h->setImmutablePrototype(mcx, proxy, succeeded);                                   \
  }                                                                                           \
  static bool preventExtensionsCb(const void* p, JSContext* cx,                               \
                                  JS::HandleObject proxy,                                     \
-                                 JS::ObjectOpResult& result) {                               \
+                                 JS::ObjectOpResult& result_) {                              \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->preventExtensions(mcx, proxy, result);                                          \
  }                                                                                           \
  static bool isExtensibleCb(const void* p, JSContext* cx,                                    \
-                            JS::HandleObject proxy, bool* extensible) {                      \
+                            JS::HandleObject proxy, bool* extensible_) {                     \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> extensible{nullptr};                                                   \
+   extensible.assign_raw_pointer(extensible_);                                               \
    return h->isExtensible(mcx, proxy, extensible);                                           \
  }                                                                                           \
  static bool hasCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
@@ -321,9 +329,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  }                                                                                           \
  static bool setCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
                    JS::HandleId id, JS::HandleValue v, JS::HandleValue receiver,             \
-                   JS::ObjectOpResult& result) {                                             \
+                   JS::ObjectOpResult& result_) {                                            \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->set(mcx, proxy, id, v, receiver, result);                                       \
  }                                                                                           \
  static bool useProxyExpandoObjectForPrivateFieldsCb(const void* p) {                        \
@@ -433,9 +443,11 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  }                                                                                           \
  static bool getElementsCb(const void* p, JSContext* cx, JS::HandleObject proxy,             \
                            uint32_t begin, uint32_t end,                                     \
-                           js::ElementAdder* adder) {                                        \
+                           js::ElementAdder* adder_) {                                       \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<js::ElementAdder*> adder{nullptr};                                            \
+   adder.assign_raw_pointer(adder_);                                                         \
    return h->getElements(mcx, proxy, begin, end, adder);                                     \
  }                                                                                           \
  static bool isScriptedCb(const void* p) {                                                   \
@@ -625,23 +637,25 @@ public:
            cx->cx_, proxy, isOrdinary.UNSAFE_unverified(), protop);
  }
 
- virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
-                                    bool* succeeded) const override {
+ virtual bool setImmutablePrototype(
+     MCContext* cx, JS::HandleObject proxy,
+     MC::Tainted<bool*> succeeded) const override {
    return UNSAFE_getWrapper()
-       ->js::CrossCompartmentWrapper::setImmutablePrototype(cx->cx_, proxy,
-                                                            succeeded);
+       ->js::CrossCompartmentWrapper::setImmutablePrototype(
+           cx->cx_, proxy, succeeded.INTERNAL_unverified_safe());
  }
 
- virtual bool preventExtensions(MCContext* cx, JS::HandleObject proxy,
-                                JS::ObjectOpResult& result) const override {
+ virtual bool preventExtensions(
+     MCContext* cx, JS::HandleObject proxy,
+     MC::Tainted<JS::ObjectOpResult*> result) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::preventExtensions(
-       cx->cx_, proxy, result);
+       cx->cx_, proxy, *result.INTERNAL_unverified_safe());
  }
 
  virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
-                           bool* extensible) const override {
+                           MC::Tainted<bool*> extensible) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::isExtensible(
-       cx->cx_, proxy, extensible);
+       cx->cx_, proxy, extensible.INTERNAL_unverified_safe());
  }
 
  virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
@@ -659,9 +673,9 @@ public:
 
  virtual bool set(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                   JS::HandleValue v, JS::HandleValue receiver,
-                  JS::ObjectOpResult& result) const override {
+                  MC::Tainted<JS::ObjectOpResult*> result) const override {
    return UNSAFE_getWrapper()->js::CrossCompartmentWrapper::set(
-       cx->cx_, proxy, id, v, receiver, result);
+       cx->cx_, proxy, id, v, receiver, *result.INTERNAL_unverified_safe());
  }
 
  virtual bool call(MCContext* cx, JS::HandleObject proxy,
@@ -799,23 +813,26 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
             cx->cx_, proxy, isOrdinary.UNSAFE_unverified(), protop);
   }
 
-  virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
-                                     bool* succeeded) const override {
+  virtual bool setImmutablePrototype(
+      MCContext* cx, JS::HandleObject proxy,
+      MC::Tainted<bool*> succeeded) const override {
     return UNSAFE_getWrapper()
-        ->js::OpaqueCrossCompartmentWrapper::setImmutablePrototype(cx->cx_, proxy,
-                                                             succeeded);
+        ->js::OpaqueCrossCompartmentWrapper::setImmutablePrototype(
+            cx->cx_, proxy, succeeded.INTERNAL_unverified_safe());
   }
 
-  virtual bool preventExtensions(MCContext* cx, JS::HandleObject proxy,
-                                 JS::ObjectOpResult& result) const override {
-    return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::preventExtensions(
-        cx->cx_, proxy, result);
+  virtual bool preventExtensions(
+      MCContext* cx, JS::HandleObject proxy,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
+    return UNSAFE_getWrapper()
+        ->js::OpaqueCrossCompartmentWrapper::preventExtensions(
+            cx->cx_, proxy, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
-                            bool* extensible) const override {
+                            MC::Tainted<bool*> extensible) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::isExtensible(
-        cx->cx_, proxy, extensible);
+        cx->cx_, proxy, extensible.INTERNAL_unverified_safe());
   }
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
@@ -833,9 +850,9 @@ class OpaqueCrossCompartmentWrapper : public CrossCompartmentWrapper {
 
   virtual bool set(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
-                   JS::ObjectOpResult& result) const override {
+                   MC::Tainted<JS::ObjectOpResult*> result) const override {
     return UNSAFE_getWrapper()->js::OpaqueCrossCompartmentWrapper::set(
-        cx->cx_, proxy, id, v, receiver, result);
+        cx->cx_, proxy, id, v, receiver, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool call(MCContext* cx, JS::HandleObject proxy,
@@ -922,13 +939,16 @@ class SecurityWrapper : public Base {
   }
 
   virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
-                            bool* extensible) const override {
-    return UNSAFE_getWrapper()->Unsafe::isExtensible(cx->cx_, proxy, extensible);
+                            MC::Tainted<bool*> extensible) const override {
+    return UNSAFE_getWrapper()->Unsafe::isExtensible(
+        cx->cx_, proxy, extensible.INTERNAL_unverified_safe());
   }
 
-  virtual bool preventExtensions(MCContext* cx, JS::HandleObject proxy,
-                                 JS::ObjectOpResult& result) const override {
-    return UNSAFE_getWrapper()->Unsafe::preventExtensions(cx->cx_, proxy, result);
+  virtual bool preventExtensions(
+      MCContext* cx, JS::HandleObject proxy,
+      MC::Tainted<JS::ObjectOpResult*> result) const override {
+    return UNSAFE_getWrapper()->Unsafe::preventExtensions(
+        cx->cx_, proxy, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool setPrototype(
@@ -938,10 +958,11 @@ class SecurityWrapper : public Base {
         cx->cx_, proxy, proto, *result.INTERNAL_unverified_safe());
   }
 
-  virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
-                                     bool* succeeded) const override {
-    return UNSAFE_getWrapper()->Unsafe::setImmutablePrototype(cx->cx_, proxy,
-                                                            succeeded);
+  virtual bool setImmutablePrototype(
+      MCContext* cx, JS::HandleObject proxy,
+      MC::Tainted<bool*> succeeded) const override {
+    return UNSAFE_getWrapper()->Unsafe::setImmutablePrototype(
+        cx->cx_, proxy, succeeded.INTERNAL_unverified_safe());
   }
 
   virtual bool nativeCall(MCContext* cx, JS::IsAcceptableThis test,

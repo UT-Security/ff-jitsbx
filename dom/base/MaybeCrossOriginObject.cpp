@@ -179,9 +179,9 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
 
 /* static */
 bool MaybeCrossOriginObjectMixins::CrossOriginSet(
-    JSContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
     JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-    JS::ObjectOpResult& result) {
+    MC::Tainted<JS::ObjectOpResult*> result) {
   // We want to invoke [[GetOwnProperty]] on "obj", but _without_ entering its
   // compartment, because for the proxies we have here [[GetOwnProperty]] will
   // do security checks based on the current Realm.  Unfortunately,
@@ -195,14 +195,14 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   MOZ_ASSERT(
       js::IsWindowProxy(obj) || IsLocation(obj) || IsRemoteObjectProxy(obj),
       "Unexpected proxy");
-  MOZ_ASSERT(!IsPlatformObjectSameOrigin(cx, obj) || IsRemoteObjectProxy(obj),
+  MOZ_ASSERT(!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), obj) || IsRemoteObjectProxy(obj),
              "Why did we get called?");
   js::AssertSameCompartment(cx, receiver);
   js::AssertSameCompartment(cx, v);
 
   // Step 1.
   MC::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
-  if (!mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(JS_SanitizeContext(cx), obj, id, &desc)) {
+  if (!mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
 
@@ -222,11 +222,11 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
     }
 
     // Step 3.2.
-    return result.succeed();
+    return result->succeed();
   }
 
   // Step 4.
-  return ReportCrossOriginDenial(cx, id, "set"_ns);
+  return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "set"_ns);
 }
 
 /* static */
@@ -415,7 +415,7 @@ bool MaybeCrossOriginObject<Base>::getPrototypeIfOrdinary(
 
 template <typename Base>
 bool MaybeCrossOriginObject<Base>::setImmutablePrototype(
-    MCContext* cx, JS::Handle<JSObject*> proxy, bool* succeeded) const {
+    MCContext* cx, JS::Handle<JSObject*> proxy, MC::Tainted<bool*> succeeded) const {
   // We just want to disallow this.
   *succeeded = false;
   return true;
@@ -424,7 +424,7 @@ bool MaybeCrossOriginObject<Base>::setImmutablePrototype(
 template <typename Base>
 bool MaybeCrossOriginObject<Base>::isExtensible(MCContext* cx,
                                                 JS::Handle<JSObject*> proxy,
-                                                bool* extensible) const {
+                                                MC::Tainted<bool*> extensible) const {
   // We never allow [[PreventExtensions]] to succeed.
   *extensible = true;
   return true;
@@ -433,8 +433,8 @@ bool MaybeCrossOriginObject<Base>::isExtensible(MCContext* cx,
 template <typename Base>
 bool MaybeCrossOriginObject<Base>::preventExtensions(
     MCContext* cx, JS::Handle<JSObject*> proxy,
-    JS::ObjectOpResult& result) const {
-  return result.failCantPreventExtensions();
+    MC::Tainted<JS::ObjectOpResult*> result) const {
+  return result->failCantPreventExtensions();
 }
 
 template <typename Base>

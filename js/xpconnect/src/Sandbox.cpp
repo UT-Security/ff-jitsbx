@@ -602,7 +602,7 @@ class SandboxProxyHandler : public mc::Wrapper {
   virtual bool set(MCContext* cx, JS::Handle<JSObject*> proxy,
                    JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                    JS::Handle<JS::Value> receiver,
-                   JS::ObjectOpResult& result) const override;
+                   MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   virtual bool hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
                       JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
@@ -890,7 +890,7 @@ bool SandboxProxyHandler::get(MCContext* cx, JS::Handle<JSObject*> proxy,
 bool SandboxProxyHandler::set(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, JS::Handle<Value> v,
                               JS::Handle<Value> receiver,
-                              JS::ObjectOpResult& result) const {
+                              MC::Tainted<JS::ObjectOpResult*> result) const {
   return BaseProxyHandler::set(cx, proxy, id, v, receiver, result);
 }
 

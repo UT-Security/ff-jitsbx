@@ -118,10 +118,10 @@ class MaybeCrossOriginObjectMixins {
    *
    * "receiver" and "v" will be in the compartment of "cx".
    */
-  static bool CrossOriginSet(JSContext* cx, JS::Handle<JSObject*> obj,
+  static bool CrossOriginSet(MCContext* cx, JS::Handle<JSObject*> obj,
                              JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                              JS::Handle<JS::Value> receiver,
-                             JS::ObjectOpResult& result);
+                             MC::Tainted<JS::ObjectOpResult*> result);
 
   /**
    * Utility method to ensure a holder for cross-origin properties for the
@@ -232,7 +232,7 @@ class MaybeCrossOriginObject : public Base,
    * Our non-standard setImmutablePrototype hook.
    */
   bool setImmutablePrototype(MCContext* cx, JS::Handle<JSObject*> proxy,
-                             bool* succeeded) const final;
+                             MC::Tainted<bool*> succeeded) const final;
 
   /**
    * Implementation of [[IsExtensible]] as defined in
@@ -241,7 +241,7 @@ class MaybeCrossOriginObject : public Base,
    * <https://html.spec.whatwg.org/multipage/history.html#location-isextensible>.
    */
   bool isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
-                    bool* extensible) const final;
+                    MC::Tainted<bool*> extensible) const final;
 
   /**
    * Implementation of [[PreventExtensions]] as defined in
@@ -250,7 +250,7 @@ class MaybeCrossOriginObject : public Base,
    * <https://html.spec.whatwg.org/multipage/history.html#location-preventextensions>.
    */
   bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> proxy,
-                         JS::ObjectOpResult& result) const final;
+                         MC::Tainted<JS::ObjectOpResult*> result) const final;
 
   /**
    * Implementation of [[GetOwnProperty]] is completely delegated to subclasses.
@@ -326,7 +326,7 @@ class MaybeCrossOriginObject : public Base,
    */
   bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-           JS::ObjectOpResult& result) const override = 0;
+           MC::Tainted<JS::ObjectOpResult*> result) const override = 0;
 
   /**
    * Implementation of [[Delete]] is completely delegated to subclasses.

@@ -14,11 +14,57 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Tainted.h"
 
 namespace JS {
 
+inline bool OrdinaryToPrimitive(MCContext* cx, HandleObject obj, JSType type,
+                                MutableHandleValue vp) {
+  return OrdinaryToPrimitive(cx->cx_, obj, type, vp);
+}
+
+inline bool ToNumber(MCContext* cx, HandleValue v, MC::Tainted<double*> out) {
+  return ToNumber(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToInt32(MCContext* cx, JS::HandleValue v, MC::Tainted<int32_t*> out) {
+  return ToInt32(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToUint32(MCContext* cx, HandleValue v, MC::Tainted<uint32_t*> out) {
+  return ToUint32(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToInt16(MCContext* cx, JS::HandleValue v, MC::Tainted<int16_t*> out) {
+  return ToInt16(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToUint16(MCContext* cx, HandleValue v, MC::Tainted<uint16_t*> out) {
+  return ToUint16(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToInt8(MCContext* cx, JS::HandleValue v, MC::Tainted<int8_t*> out) {
+  return ToInt8(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToUint8(MCContext* cx, JS::HandleValue v, MC::Tainted<uint8_t*> out) {
+  return ToUint8(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToInt64(MCContext* cx, HandleValue v, MC::Tainted<int64_t*> out) {
+  return ToInt64(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
+inline bool ToUint64(MCContext* cx, HandleValue v, MC::Tainted<uint64_t*> out) {
+  return ToUint64(cx->cx_, v, out.INTERNAL_unverified_safe());
+}
+
 inline JSString* ToString(MCContext* cx, JS::HandleValue v) {
   return ToString(cx->cx_, v);
+}
+
+inline JSObject* ToObject(MCContext* cx, HandleValue v) {
+  return ToObject(cx->cx_, v);
 }
 
 }

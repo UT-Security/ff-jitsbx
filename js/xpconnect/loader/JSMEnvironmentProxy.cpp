@@ -60,19 +60,19 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   }
 
   bool setImmutablePrototype(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                             bool* aSucceeded) const override {
+                             MC::Tainted<bool*> aSucceeded) const override {
     *aSucceeded = true;
     return true;
   }
 
   bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                         JS::ObjectOpResult& aResult) const override {
-    aResult.succeed();
+                         MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    aResult->succeed();
     return true;
   }
 
   bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                    bool* aExtensible) const override {
+                    MC::Tainted<bool*> aExtensible) const override {
     *aExtensible = false;
     return true;
   }
@@ -80,8 +80,8 @@ struct JSMEnvironmentProxyHandler : public mc::BaseProxyHandler {
   bool set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
            JS::Handle<JS::PropertyKey> aId, JS::Handle<JS::Value> aValue,
            JS::Handle<JS::Value> aReceiver,
-           JS::ObjectOpResult& aResult) const override {
-    return aResult.failReadOnly();
+           MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->failReadOnly();
   }
 
   bool delete_(MCContext* aCx, JS::Handle<JSObject*> aProxy,

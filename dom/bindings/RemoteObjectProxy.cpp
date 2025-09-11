@@ -81,16 +81,16 @@ bool RemoteObjectProxyBase::getPrototypeIfOrdinary(
 
 bool RemoteObjectProxyBase::preventExtensions(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
-    JS::ObjectOpResult& aResult) const {
+    MC::Tainted<JS::ObjectOpResult*> aResult) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-preventextensions
   // and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-preventextensions
-  return aResult.failCantPreventExtensions();
+  return aResult->failCantPreventExtensions();
 }
 
 bool RemoteObjectProxyBase::isExtensible(MCContext* aCx,
                                          JS::Handle<JSObject*> aProxy,
-                                         bool* aExtensible) const {
+                                         MC::Tainted<bool*> aExtensible) const {
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-isextensible
   // and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-isextensible
@@ -109,8 +109,8 @@ bool RemoteObjectProxyBase::set(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                 JS::Handle<jsid> aId,
                                 JS::Handle<JS::Value> aValue,
                                 JS::Handle<JS::Value> aReceiver,
-                                JS::ObjectOpResult& aResult) const {
-  return CrossOriginSet(MC_UNSAFE(aCx), aProxy, aId, aValue, aReceiver, aResult);
+                                MC::Tainted<JS::ObjectOpResult*> aResult) const {
+  return CrossOriginSet(aCx, aProxy, aId, aValue, aReceiver, aResult);
 }
 
 bool RemoteObjectProxyBase::getOwnEnumerablePropertyKeys(

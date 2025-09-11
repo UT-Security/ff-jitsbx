@@ -97,22 +97,28 @@ namespace mc {
    return h->getPrototypeIfOrdinary(mcx, proxy, isOrdinary, protop);                         \
  }                                                                                           \
  static bool setImmutablePrototypeCb(const void* p, JSContext* cx,                           \
-                                     JS::HandleObject proxy, bool* succeeded) {              \
+                                     JS::HandleObject proxy, bool* succeeded_) {             \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> succeeded{nullptr};                                                    \
+   succeeded.assign_raw_pointer(succeeded_);                                                 \
    return h->setImmutablePrototype(mcx, proxy, succeeded);                                   \
  }                                                                                           \
  static bool preventExtensionsCb(const void* p, JSContext* cx,                               \
                                  JS::HandleObject proxy,                                     \
-                                 JS::ObjectOpResult& result) {                               \
+                                 JS::ObjectOpResult& result_) {                              \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->preventExtensions(mcx, proxy, result);                                          \
  }                                                                                           \
  static bool isExtensibleCb(const void* p, JSContext* cx,                                    \
-                            JS::HandleObject proxy, bool* extensible) {                      \
+                            JS::HandleObject proxy, bool* extensible_) {                     \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<bool*> extensible{nullptr};                                                   \
+   extensible.assign_raw_pointer(extensible_);                                               \
    return h->isExtensible(mcx, proxy, extensible);                                           \
  }                                                                                           \
  static bool hasCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
@@ -132,9 +138,11 @@ namespace mc {
  }                                                                                           \
  static bool setCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
                    JS::HandleId id, JS::HandleValue v, JS::HandleValue receiver,             \
-                   JS::ObjectOpResult& result) {                                             \
+                   JS::ObjectOpResult& result_) {                                            \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
+   result.assign_raw_pointer(&result_);                                                      \
    return h->set(mcx, proxy, id, v, receiver, result);                                       \
  }                                                                                           \
  static bool useProxyExpandoObjectForPrivateFieldsCb(const void* p) {                        \
@@ -244,9 +252,11 @@ namespace mc {
  }                                                                                           \
  static bool getElementsCb(const void* p, JSContext* cx, JS::HandleObject proxy,             \
                            uint32_t begin, uint32_t end,                                     \
-                           js::ElementAdder* adder) {                                        \
+                           js::ElementAdder* adder_) {                                       \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   MC::Tainted<js::ElementAdder*> adder{nullptr};                                            \
+   adder.assign_raw_pointer(adder_);                                                         \
    return h->getElements(mcx, proxy, begin, end, adder);                                     \
  }                                                                                           \
  static bool isScriptedCb(const void* p) {                                                   \
@@ -397,16 +407,17 @@ private:
                                       JS::MutableHandleObject protop) const = 0;
 
   virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject proxy,
-                                     bool* succeeded) const {
+                                     MC::Tainted<bool*> succeeded) const {
     return UNSAFE_getProxyHandler()
-        ->js::BaseProxyHandler::setImmutablePrototype(cx->cx_, proxy, succeeded);
+        ->js::BaseProxyHandler::setImmutablePrototype(
+            cx->cx_, proxy, succeeded.INTERNAL_unverified_safe());
   }
 
   virtual bool preventExtensions(MCContext* cx, JS::HandleObject proxy,
-                                 JS::ObjectOpResult& result) const = 0;
+                                 MC::Tainted<JS::ObjectOpResult*> result) const = 0;
 
   virtual bool isExtensible(MCContext* cx, JS::HandleObject proxy,
-                            bool* extensible) const = 0;
+                            MC::Tainted<bool*> extensible) const = 0;
 
   virtual bool has(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    MC::Tainted<bool*> bp) const {
@@ -423,9 +434,9 @@ private:
 
   virtual bool set(MCContext* cx, JS::HandleObject proxy, JS::HandleId id,
                    JS::HandleValue v, JS::HandleValue receiver,
-                   JS::ObjectOpResult& result) const {
+                   MC::Tainted<JS::ObjectOpResult*> result) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::set(
-        cx->cx_, proxy, id, v, receiver, result);
+        cx->cx_, proxy, id, v, receiver, *result.INTERNAL_unverified_safe());
   }
 
   virtual bool useProxyExpandoObjectForPrivateFields() const {
@@ -532,9 +543,9 @@ private:
 
   virtual bool getElements(MCContext* cx, JS::HandleObject proxy,
                            uint32_t begin, uint32_t end,
-                           js::ElementAdder* adder) const {
+                           MC::Tainted<js::ElementAdder*> adder) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::getElements(
-        cx->cx_, proxy, begin, end, adder);
+        cx->cx_, proxy, begin, end, adder.INTERNAL_unverified_safe());
   }
 
   virtual bool isScripted() const {

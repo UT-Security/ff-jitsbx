@@ -40,11 +40,11 @@ class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
   // will do the right thing.
 
   virtual bool preventExtensions(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                                 JS::ObjectOpResult& aResult) const override {
-    return aResult.failCantPreventExtensions();
+                                 MC::Tainted<JS::ObjectOpResult*> aResult) const override {
+    return aResult->failCantPreventExtensions();
   }
   virtual bool isExtensible(MCContext* aCx, JS::Handle<JSObject*> aProxy,
-                            bool* aIsExtensible) const override {
+                            MC::Tainted<bool*> aIsExtensible) const override {
     *aIsExtensible = true;
     return true;
   }

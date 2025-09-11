@@ -15914,7 +15914,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("uint32_t", "begin"),
             Argument("uint32_t", "end"),
-            Argument("js::ElementAdder*", "adder"),
+            Argument("MC::Tainted<js::ElementAdder*>", "adder"),
         ]
         ClassMethod.__init__(
             self, "getElements", "bool", args, virtual=True, override=True, const=True
@@ -15932,7 +15932,7 @@ class CGDOMJSProxyHandler_getElements(ClassMethod):
             "jsvalHandle": "&temp",
             "obj": "proxy",
             "successCode": (
-                "if (!adder->append(MC_UNSAFE(cx), temp)) return false;\n" "continue;\n"
+                "if (!adder->append(cx, temp)) return false;\n" "continue;\n"
             ),
         }
         get = CGProxyIndexedGetter(
@@ -16204,7 +16204,7 @@ class CGDOMJSProxyHandler_set(ClassMethod):
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::Value>", "v"),
             Argument("JS::Handle<JS::Value>", "receiver"),
-            Argument("JS::ObjectOpResult&", "result"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "result"),
         ]
         ClassMethod.__init__(
             self, "set", "bool", args, virtual=True, override=True, const=True
@@ -16215,7 +16215,7 @@ class CGDOMJSProxyHandler_set(ClassMethod):
         return dedent(
             """
             if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
-              return CrossOriginSet(MC_UNSAFE(cx), proxy, id, v, receiver, result);
+              return CrossOriginSet(cx, proxy, id, v, receiver, result);
             }
 
             // Safe to enter the Realm of proxy now, since it's same-origin with us.
@@ -22578,7 +22578,7 @@ class CGObservableArrayProxyHandler_OnDeleteItem(
 
     def __init__(self, descriptor, attr):
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("JS::Handle<JSObject*>", "aProxy"),
             Argument("JS::Handle<JS::Value>", "aValue"),
             Argument("uint32_t", "aIndex"),
@@ -22596,7 +22596,7 @@ class CGObservableArrayProxyHandler_OnDeleteItem(
     def postCallback(self):
         return dedent(
             """
-            return !rv.MaybeSetPendingException(cx);
+            return !rv.MaybeSetPendingException(MC_UNSAFE(cx));
             """
         )
 
@@ -22611,12 +22611,12 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
 
     def __init__(self, descriptor, attr):
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("JS::Handle<JSObject*>", "aProxy"),
             Argument("JS::Handle<JSObject*>", "aBackingList"),
             Argument("uint32_t", "aIndex"),
             Argument("JS::Handle<JS::Value>", "aValue"),
-            Argument("JS::ObjectOpResult&", "aResult"),
+            Argument("MC::Tainted<JS::ObjectOpResult*>", "aResult"),
         ]
         CGObservableArrayProxyHandler_callback.__init__(
             self,
@@ -22630,13 +22630,13 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def preConversion(self):
         return dedent(
             """
-            uint32_t oldLen;
-            if (!JS::GetArrayLength(aCx, aBackingList, &oldLen)) {
+            MC::SandboxStack<uint32_t> oldLen;
+            if (!JS::GetArrayLength(aCx, aBackingList, oldLen)) {
               return false;
             }
 
-            if (aIndex > oldLen) {
-              return aResult.failBadIndex();
+            if (aIndex > *oldLen.UNSAFE_unverified()) {
+              return aResult->failBadIndex();
             }
             """
         )
@@ -22644,7 +22644,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def preCallback(self):
         return dedent(
             """
-            if (aIndex < oldLen) {
+            if (aIndex < *oldLen.UNSAFE_unverified()) {
               MC::Rooted<JS::Value> value(aCx);
               if (!JS_GetElement(aCx, aBackingList, aIndex, &value)) {
                 return false;
@@ -22661,7 +22661,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def postCallback(self):
         return dedent(
             """
-            if (rv.MaybeSetPendingException(cx)) {
+            if (rv.MaybeSetPendingException(MC_UNSAFE(cx))) {
               return false;
             }
 
@@ -22669,7 +22669,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
               return false;
             }
 
-            return aResult.succeed();
+            return aResult->succeed();
             """
         )
 
@@ -22756,7 +22756,7 @@ class CGObservableArraySetterGenerator(CGGeneric):
 
                 ${getBackingObject}
                 const ObservableArrayProxyHandler* handler = GetObservableArrayProxyHandler(backingObj);
-                if (!handler->SetLength(cx, backingObj, 0)) {
+                if (!handler->SetLength(JS_SanitizeContext(cx), backingObj, 0)) {
                   return false;
                 }
 

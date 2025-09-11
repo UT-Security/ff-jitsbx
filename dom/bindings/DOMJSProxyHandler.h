@@ -110,13 +110,14 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
                               MC::Tainted<JS::ObjectOpResult*> result, bool* done) const;
   bool delete_(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
                MC::Tainted<JS::ObjectOpResult*> result) const override;
-  bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> proxy,
-                         JS::ObjectOpResult& result) const override;
+  bool preventExtensions(
+      MCContext* cx, JS::Handle<JSObject*> proxy,
+      MC::Tainted<JS::ObjectOpResult*> result) const override;
   bool isExtensible(MCContext* cx, JS::Handle<JSObject*> proxy,
-                    bool* extensible) const override;
+                    MC::Tainted<bool*> extensible) const override;
   bool set(MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
            JS::Handle<JS::Value> v, JS::Handle<JS::Value> receiver,
-           JS::ObjectOpResult& result) const override;
+           MC::Tainted<JS::ObjectOpResult*> result) const override;
 
   /*
    * If assigning to proxy[id] hits a named setter with OverrideBuiltins or

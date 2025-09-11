@@ -417,11 +417,12 @@ class XrayWrapper : public Base {
       MCContext* cx, JS::HandleObject wrapper, MC::Tainted<bool*> isOrdinary,
       JS::MutableHandleObject protop) const override;
   virtual bool setImmutablePrototype(MCContext* cx, JS::HandleObject wrapper,
-                                     bool* succeeded) const override;
-  virtual bool preventExtensions(MCContext* cx, JS::Handle<JSObject*> wrapper,
-                                 JS::ObjectOpResult& result) const override;
+                                     MC::Tainted<bool*> succeeded) const override;
+  virtual bool preventExtensions(
+      MCContext* cx, JS::Handle<JSObject*> wrapper,
+      MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool isExtensible(MCContext* cx, JS::Handle<JSObject*> wrapper,
-                            bool* extensible) const override;
+                            MC::Tainted<bool*> extensible) const override;
   virtual bool has(MCContext* cx, JS::Handle<JSObject*> wrapper,
                    JS::Handle<jsid> id, MC::Tainted<bool*> bp) const override;
   virtual bool get(MCContext* cx, JS::Handle<JSObject*> wrapper,
@@ -430,7 +431,7 @@ class XrayWrapper : public Base {
   virtual bool set(MCContext* cx, JS::Handle<JSObject*> wrapper,
                    JS::Handle<jsid> id, JS::Handle<JS::Value> v,
                    JS::Handle<JS::Value> receiver,
-                   JS::ObjectOpResult& result) const override;
+                   MC::Tainted<JS::ObjectOpResult*> result) const override;
   virtual bool call(MCContext* cx, JS::Handle<JSObject*> wrapper,
                     const JS::CallArgs& args) const override;
   virtual bool construct(MCContext* cx, JS::Handle<JSObject*> wrapper,
