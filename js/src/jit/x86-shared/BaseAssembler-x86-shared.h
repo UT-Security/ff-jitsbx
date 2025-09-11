@@ -35,7 +35,7 @@
 #include "mozilla/IntegerPrintfMacros.h"
 
 #ifdef JS_SANDBOX_BUNDLE
-#include "jit/x86-shared/AssemblerBundleBuffer-x86-shared.h"
+#  include "jit/x86-shared/AssemblerBundleBuffer-x86-shared.h"
 #endif
 #include "jit/x86-shared/AssemblerBuffer-x86-shared.h"
 #include "jit/x86-shared/Encoding-x86-shared.h"
@@ -62,7 +62,7 @@ class BaseAssembler : public GenericAssembler {
   bool reserve(size_t size) { return m_formatter.reserve(size); }
   bool swapBuffer(wasm::Bytes& other) {
 #ifdef JS_SANDBOX_BUNDLE
-      haltingAlign(js::sandbox::BUNDLE_SIZE);
+    haltingAlign(js::sandbox::BUNDLE_SIZE);
 #endif
     return m_formatter.swapBuffer(other);
   }
@@ -70,19 +70,13 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JS_SANDBOX_BUNDLE
   inline bool beginBundleInstruction() {
     return m_formatter.beginBundleInstruction();
-  } 
-
-  inline void endBundleInstruction() {
-    m_formatter.endBundleInstruction();
   }
 
-  inline bool beginBundleGroup() {
-    return m_formatter.beginBundleGroup();
-  }
+  inline void endBundleInstruction() { m_formatter.endBundleInstruction(); }
 
-  inline void endBundleGroup() {
-    m_formatter.endBundleGroup();
-  }
+  inline bool beginBundleGroup() { return m_formatter.beginBundleGroup(); }
+
+  inline void endBundleGroup() { m_formatter.endBundleGroup(); }
 #endif
 
   struct AutoBundleInstructionScope {
@@ -90,7 +84,7 @@ class BaseAssembler : public GenericAssembler {
     BaseAssembler& masm_;
     bool nested_;
 
-    AutoBundleInstructionScope(BaseAssembler& masm): masm_(masm) {
+    AutoBundleInstructionScope(BaseAssembler& masm) : masm_(masm) {
       nested_ = !masm_.beginBundleInstruction();
     }
 
@@ -108,7 +102,7 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.ensureBundleSpace(space);
 #endif
   }
-  
+
   inline void ensureExactBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
     m_formatter.ensureExactBundleSpace(space);
@@ -120,7 +114,6 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.makeBundleSpace(space);
 #endif
   }
-  
 
   void nop() {
     spew("nop");
@@ -2818,11 +2811,13 @@ class BaseAssembler : public GenericAssembler {
   }
 
   static size_t call_r_size(RegisterID dst) {
-    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, dst, GROUP5_OP_CALLN);
+    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, dst,
+                                                  GROUP5_OP_CALLN);
   }
-  
+
   static size_t call_m_size(int32_t offset, RegisterID base) {
-    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, offset, base, GROUP5_OP_CALLN);
+    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, offset, base,
+                                                  GROUP5_OP_CALLN);
   }
 
   void call_m(int32_t offset, RegisterID base) {
@@ -2847,7 +2842,7 @@ class BaseAssembler : public GenericAssembler {
     // Make sure 2-byte jump instruction will not cross a bundle boundary.
     // This ensures that the subsequent diff calculation is correct.
     m_formatter.ensureBundleSpace(2);
-    
+
     int32_t diff = dst.offset() - m_formatter.size();
     spew("jmp        .Llabel%d", dst.offset());
 
@@ -4676,6 +4671,18 @@ class BaseAssembler : public GenericAssembler {
 
   // Misc instructions:
 
+#ifdef JS_SANDBOX_CET
+  void rdssp(RegisterID reg) {
+    spew("rdsspq      %s", GPReg64Name(reg));
+    m_formatter.legacySSEPrefix(VEX_SS);
+    m_formatter.twoByteOp64(OP2_RDSSP, reg, 1);
+  }
+  void wrss(int offset, RegisterID base, RegisterID src) {
+    // spew("wrssq%s    , %s", GPReg64Name(src), ADDR_ob(offset, base));
+    m_formatter.threeByteOp64(OP3_WRSS, ESCAPE_38, offset, base, src);
+  }
+#endif
+
   void int3() {
     spew("int3");
     m_formatter.oneByteOp(OP_INT3);
@@ -5700,10 +5707,11 @@ class BaseAssembler : public GenericAssembler {
       registerModRM(rm, reg);
     }
 
-    static size_t oneByteOpSize(OneByteOpcodeID opcode, RegisterID rm, int reg) {
+    static size_t oneByteOpSize(OneByteOpcodeID opcode, RegisterID rm,
+                                int reg) {
       return emitRexIfNeededSize(reg, 0, rm) + 1 + 1;
     }
-    
+
     void oneByteOp(OneByteOpcodeID opcode, int32_t offset, RegisterID base,
                    int reg) {
       m_buffer.ensureSpace(MaxInstructionSize);
@@ -5712,10 +5720,11 @@ class BaseAssembler : public GenericAssembler {
       memoryModRM(offset, base, reg);
     }
 
-    static size_t oneByteOpSize(OneByteOpcodeID opcode, int32_t offset, RegisterID rm, int reg) {
+    static size_t oneByteOpSize(OneByteOpcodeID opcode, int32_t offset,
+                                RegisterID rm, int reg) {
       return emitRexIfNeededSize(reg, 0, rm) + 1 + 1;
     }
-    
+
     void oneByteOp_disp32(OneByteOpcodeID opcode, int32_t offset,
                           RegisterID base, int reg) {
       m_buffer.ensureSpace(MaxInstructionSize);
@@ -6201,6 +6210,18 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.putByteUnchecked(opcode);
       registerModRM(rm, reg);
     }
+
+#  ifdef JS_SANDBOX_CET
+    void threeByteOp64(ThreeByteOpcodeID opcode, ThreeByteEscape escape,
+                       int offset, RegisterID base, int reg) {
+      m_buffer.ensureSpace(MaxInstructionSize);
+      emitRexW(reg, 0, base);
+      m_buffer.putByteUnchecked(OP_2BYTE_ESCAPE);
+      m_buffer.putByteUnchecked(escape);
+      m_buffer.putByteUnchecked(opcode);
+      memoryModRM(offset, base, reg);
+    }
+#  endif
 #endif  // JS_CODEGEN_X64
 
     void threeByteOpVex64(VexOperandType ty, ThreeByteOpcodeID opcode,
@@ -6510,8 +6531,8 @@ class BaseAssembler : public GenericAssembler {
     void emitRexIfNeeded(int r, int x, int b) { emitRexIf(false, r, x, b); }
 
     static size_t emitRexIfNeededSize(int r, int x, int b) {
-      if (regRequiresRex(RegisterID(r)) ||
-          regRequiresRex(RegisterID(x)) || regRequiresRex(RegisterID(b))) {
+      if (regRequiresRex(RegisterID(r)) || regRequiresRex(RegisterID(x)) ||
+          regRequiresRex(RegisterID(b))) {
         return 1;
       } else {
         return 0;
@@ -6704,7 +6725,7 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.ensureBundleSpace(space);
 #endif
     }
-    
+
     inline void ensureExactBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.ensureExactBundleSpace(space);

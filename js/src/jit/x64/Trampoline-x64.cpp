@@ -234,6 +234,19 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     // Push return address
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
+#ifdef JS_SANDBOX_CET
+    Label temp;
+    Register scratch2 = regs.takeAny();
+    // masm.breakpoint();
+    // Fake call
+    masm.call(&temp);
+    masm.bind(&temp);
+    // Overwrite saved value in shadow stack
+    masm.readShadowStack(scratch2);
+    masm.writeShadowStack(scratch, Operand(scratch2, 0));
+    // Pop fake retaddr
+    masm.pop(scratch2);
+#endif
 
     // Frame prologue.
     masm.push(rbp);

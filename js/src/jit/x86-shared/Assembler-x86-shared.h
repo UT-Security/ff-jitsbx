@@ -46,7 +46,7 @@ struct ScratchSimd128Scope : public AutoFloatRegisterScope {
 class AssemblerX86Shared;
 
 class AutoBundleInstructionScope {
-private:
+ private:
 #ifdef JS_SANDBOX_BUNDLE
   AssemblerX86Shared& masm;
 
@@ -55,29 +55,31 @@ private:
   bool nested_;
 
   // Track whether the instruction bundle has been ended using end().
-  // Used to decide whether the destructor needs to actually mark the end of the instruction.
+  // Used to decide whether the destructor needs to actually mark the end of the
+  // instruction.
   bool active_;
 #endif
-public:
+ public:
   AutoBundleInstructionScope(AssemblerX86Shared& masm);
   void end();
   ~AutoBundleInstructionScope();
 };
 
 class AutoBundleGroupScope {
-private:
+ private:
 #ifdef JS_SANDBOX_BUNDLE
   AssemblerX86Shared& masm;
 
   // Track whether this instance is nested within another.
   // This happens when instructions have lock prefixes etc.
   bool nested_;
-  
+
   // Track whether the instruction bundle has been ended using end().
-  // Used to decide whether the destructor needs to actually mark the end of the instruction.
+  // Used to decide whether the destructor needs to actually mark the end of the
+  // instruction.
   bool active_;
 #endif
-public:
+ public:
   AutoBundleGroupScope(AssemblerX86Shared& masm);
   void ensureSpace(size_t space);
   void nopToEnd(size_t space);
@@ -381,26 +383,16 @@ class AssemblerX86Shared : public AssemblerShared {
   friend class AutoBundleGroupScope;
 
 #ifdef JS_SANDBOX_BUNDLE
-  inline bool beginBundleInstruction() {
-    return masm.beginBundleInstruction();
-  }
+  inline bool beginBundleInstruction() { return masm.beginBundleInstruction(); }
 
-  inline void endBundleInstruction() {
-    masm.endBundleInstruction();
-  }
+  inline void endBundleInstruction() { masm.endBundleInstruction(); }
 
-  inline bool beginBundleGroup() {
-    return masm.beginBundleGroup();
-  }
+  inline bool beginBundleGroup() { return masm.beginBundleGroup(); }
 
-  inline void endBundleGroup() {
-    masm.endBundleGroup();
-  }
+  inline void endBundleGroup() { masm.endBundleGroup(); }
 
-  inline void ensureBundleSpace(size_t space) {
-    masm.ensureBundleSpace(space);
-  }
-    
+  inline void ensureBundleSpace(size_t space) { masm.ensureBundleSpace(space); }
+
   inline void ensureExactBundleSpace(size_t space) {
     masm.ensureExactBundleSpace(space);
   }
@@ -606,7 +598,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.makeBundleSpace(space);
 #endif
   }
-  
+
   void setUnlimitedBuffer() {
     // No-op on this platform
   }
@@ -1346,12 +1338,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
     label->bind(dst.offset());
   }
-  void bind(CodeLabel* label) {
-    label->target()->bind(currentOffset());
-  }
-  uint32_t currentOffset() {
-    return masm.label().offset();
-  }
+  void bind(CodeLabel* label) { label->target()->bind(currentOffset()); }
+  uint32_t currentOffset() { return masm.label().offset(); }
 
   // Re-routes pending jumps to a new label.
   void retarget(Label* label, Label* target) {
@@ -1427,7 +1415,7 @@ class AssemblerX86Shared : public AssemblerShared {
   size_t CallSize(Label* label) {
     return X86Encoding::BaseAssembler::call_size();
   }
-  
+
   void call(Register reg) {
 #if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
@@ -1506,6 +1494,18 @@ class AssemblerX86Shared : public AssemblerShared {
     X86Encoding::BaseAssembler::patchCallToFiveByteNop(callsite);
   }
 
+#ifdef JS_SANDBOX_CET
+  void readShadowStack(Register reg) { masm.rdssp(reg.encoding()); }
+  void writeShadowStack(Register src, const Operand& dest) {
+    switch (dest.kind()) {
+      case Operand::MEM_REG_DISP:
+        masm.wrss(dest.disp(), dest.base(), src.encoding());
+        break;
+      default:
+        MOZ_CRASH("unimplemented operand kind");
+    }
+  }
+#endif
   void breakpoint() {
     AutoBundleInstructionScope bundle(*this);
     masm.int3();
@@ -2778,7 +2778,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void lock_xaddb(Register srcdest, const Operand& mem) {
-    //TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
+    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
     AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2793,13 +2793,13 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_xaddw(Register srcdest, const Operand& mem) {
-    //TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
+    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
     AutoBundleInstructionScope bundle(*this);
     masm.prefix_16_for_32();
     lock_xaddl(srcdest, mem);
   }
   void lock_xaddl(Register srcdest, const Operand& mem) {
-    //TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
+    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
     AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -5455,7 +5455,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fistp(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5466,7 +5466,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstcw(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5477,7 +5477,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fldcw(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5488,7 +5488,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fnstsw(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5499,7 +5499,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5510,7 +5510,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fld32(const Operand& dest) {
     AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
@@ -5521,7 +5521,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp(const Operand& src) {
     AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
@@ -5532,7 +5532,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  //TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
+  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
   void fstp32(const Operand& src) {
     AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {

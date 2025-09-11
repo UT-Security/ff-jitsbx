@@ -11,7 +11,7 @@
 
 #include "jit/x86-shared/Constants-x86-shared.h"
 #ifdef JS_SANDBOX_BUNDLE
-#include "sandbox/Bundle.h"
+#  include "sandbox/Bundle.h"
 #endif
 
 namespace js {
@@ -184,6 +184,9 @@ enum class ShiftID {
 };
 
 enum TwoByteOpcodeID {
+#ifdef JS_SANDBOX_CET
+  OP2_RDSSP = 0x1e,
+#endif
   OP2_UD2 = 0x0B,
   OP2_MOVSD_VsdWsd = 0x10,
   OP2_MOVPS_VpsWps = 0x10,
@@ -356,6 +359,9 @@ enum TwoByteOpcodeID {
 };
 
 enum ThreeByteOpcodeID {
+#ifdef JS_SANDBOX_CET
+  OP3_WRSS = 0xf6,
+#endif
   OP3_PSHUFB_VdqWdq = 0x00,
   OP3_PHADDD_VdqWdq = 0x02,
   OP3_PMADDUBSW_VdqWdq = 0x04,
