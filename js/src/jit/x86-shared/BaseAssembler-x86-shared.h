@@ -76,7 +76,13 @@ class BaseAssembler : public GenericAssembler {
 
   inline bool beginBundleGroup() { return m_formatter.beginBundleGroup(); }
 
+  inline bool inBundleGroup() { return m_formatter.inBundleGroup(); }
+
   inline void endBundleGroup() { m_formatter.endBundleGroup(); }
+
+  inline size_t bundleOffset() { return m_formatter.bundleOffset(); }
+
+  inline void pauseBundleGroup() { return m_formatter.pauseBundleGroup(); }
 #endif
 
   struct AutoBundleInstructionScope {
@@ -6714,9 +6720,22 @@ class BaseAssembler : public GenericAssembler {
       return false;
     }
 
+    MOZ_ALWAYS_INLINE bool inBundleGroup() {
+#ifdef JS_SANDBOX_BUNDLE
+      return m_buffer.inBundleGroup();
+#endif
+      return false;
+    }
+
     MOZ_ALWAYS_INLINE void endBundleGroup() {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.endBundleGroup();
+#endif
+    }
+
+    MOZ_ALWAYS_INLINE void pauseBundleGroup() {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.pauseBundleGroup();
 #endif
     }
 
@@ -6736,6 +6755,13 @@ class BaseAssembler : public GenericAssembler {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.makeBundleSpace(space);
 #endif
+    }
+
+    MOZ_ALWAYS_INLINE size_t bundleOffset() {
+#ifdef JS_SANDBOX_BUNDLE
+      return m_buffer.bundleOffset();
+#endif
+      return 0;
     }
 
    private:

@@ -226,6 +226,10 @@ class AssemblerBundleBuffer {
     return true;
   }
 
+  MOZ_ALWAYS_INLINE bool inBundleGroup() {
+    return in_bundle && mode == BundleMode::Group;
+  }
+
   MOZ_ALWAYS_INLINE void endBundleGroup() {
     MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
     MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
@@ -238,6 +242,21 @@ class AssemblerBundleBuffer {
     mode = BundleMode::Instruction;
     MOZ_ASSERT_IF(!oom() && bundle_length == js::sandbox::BUNDLE_SIZE,
                   m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
+  }
+
+  MOZ_ALWAYS_INLINE void pauseBundleGroup() {
+    MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
+    MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
+    MOZ_ASSERT(oom() || bundle_length - bundle_start == 0,
+               "Unexpected non-0 length bundle group pause");
+
+    in_bundle = false;
+    mode = BundleMode::Instruction;
+  }
+
+  MOZ_ALWAYS_INLINE size_t bundleOffset() {
+    MOZ_ASSERT(in_bundle, "Expected to be within a bundle");
+    return bundle_length - bundle_start;
   }
 
  protected:

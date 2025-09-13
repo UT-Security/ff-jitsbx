@@ -586,7 +586,12 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
     masm.loadValue(newTargetSrc, newTarget);
 
     // Again, 1 for |this|
+#ifdef JS_SANDBOX_HEAP
+    //NOTE: the below store clobbers r11 when computing masked destination.
+    BaseIndex newTargetDest(rsp, r11, TimesEight, sizeof(Value), true);
+#else
     BaseIndex newTargetDest(rsp, r11, TimesEight, sizeof(Value));
+#endif
     masm.storeValue(newTarget, newTargetDest);
 
     masm.bind(&notConstructing);

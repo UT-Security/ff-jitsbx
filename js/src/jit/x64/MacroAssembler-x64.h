@@ -707,7 +707,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
                "Unexpected 32-bit immediate destination within sandbox");
     ScratchRegisterScope scratch(asMasm());
     mov(ImmPtr(address.addr), scratch);
-    storePtr(src, Address(scratch, 0x0));
+    storePtr(src, Address(scratch, 0x0, true));
     return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {
@@ -724,7 +724,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
                "Unexpected 32-bit immediate destination within sandbox");
     ScratchRegisterScope scratch(asMasm());
     mov(ImmPtr(address.addr), scratch);
-    store32(src, Address(scratch, 0x0));
+    store32(src, Address(scratch, 0x0, true));
     return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {
@@ -741,7 +741,7 @@ class MacroAssemblerX64 : public MacroAssemblerX86Shared {
                "Unexpected 32-bit immediate destination within sandbox");
     ScratchRegisterScope scratch(asMasm());
     mov(ImmPtr(address.addr), scratch);
-    store16(src, Address(scratch, 0x0));
+    store16(src, Address(scratch, 0x0, true));
     return;
 #endif
     if (X86Encoding::IsAddressImmediate(address.addr)) {

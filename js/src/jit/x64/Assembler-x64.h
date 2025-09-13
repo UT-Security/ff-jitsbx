@@ -493,8 +493,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void movq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movq_rr(src.encoding(), dest.reg());
@@ -514,8 +514,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void movq(Imm32 imm32, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
@@ -582,43 +582,43 @@ class Assembler : public AssemblerX86Shared {
 
   template <typename T>
   void lock_addq(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     addq(src, op);
   }
   template <typename T>
   void lock_subq(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     subq(src, op);
   }
   template <typename T>
   void lock_andq(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     andq(src, op);
   }
   template <typename T>
   void lock_orq(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     orq(src, op);
   }
   template <typename T>
   void lock_xorq(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     xorq(src, op);
   }
 
   void lock_cmpxchgq(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -639,8 +639,8 @@ class Assembler : public AssemblerX86Shared {
   }
 
   void xchgq(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgq_rm(src.encoding(), mem.disp(), mem.base());
@@ -769,8 +769,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void andq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andq_rr(src.encoding(), dest.reg());
@@ -798,8 +798,8 @@ class Assembler : public AssemblerX86Shared {
     return CodeOffset(masm.currentOffset());
   }
   void addq(Imm32 imm, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_ir(imm.value, dest.reg());
@@ -843,8 +843,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void addq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addq_rr(src.encoding(), dest.reg());
@@ -886,8 +886,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void subq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subq_rr(src.encoding(), dest.reg());
@@ -983,8 +983,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void orq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orq_rr(src.encoding(), dest.reg());
@@ -1029,8 +1029,8 @@ class Assembler : public AssemblerX86Shared {
     }
   }
   void xorq(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorq_rr(src.encoding(), dest.reg());
@@ -1196,22 +1196,18 @@ class Assembler : public AssemblerX86Shared {
     return CodeOffset(masm.movq_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeDouble(FloatRegister dest) {
-    // TODO(JS_SANDBOX_BUNDLE)
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovsd_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeFloat32(FloatRegister dest) {
-    // TODO(JS_SANDBOX_BUNDLE)
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovss_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeInt32x4(FloatRegister dest) {
-    // TODO(JS_SANDBOX_BUNDLE)
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovdqa_ripr(dest.encoding()).offset());
   }
   CodeOffset loadRipRelativeFloat32x4(FloatRegister dest) {
-    // TODO(JS_SANDBOX_BUNDLE)
     AutoBundleInstructionScope bundle(*this);
     return CodeOffset(masm.vmovaps_ripr(dest.encoding()).offset());
   }

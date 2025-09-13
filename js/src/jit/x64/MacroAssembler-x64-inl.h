@@ -308,7 +308,7 @@ void MacroAssembler::inc64(AbsoluteAddress dest) {
              "Unexpected 32-bit immediate destination within sandbox");
   ScratchRegisterScope scratch(*this);
   mov(ImmPtr(dest.addr), scratch);
-  addPtr(Imm32(1), Address(scratch, 0));
+  addPtr(Imm32(1), Address(scratch, 0, true));
   return;
 #endif
   if (X86Encoding::IsAddressImmediate(dest.addr)) {

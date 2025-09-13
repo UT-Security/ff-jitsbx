@@ -103,6 +103,7 @@ class Operand {
   int32_t disp_;
 #ifdef JS_SANDBOX_HEAP
   bool sandboxed_ = false;
+  bool clobberScratch_ = false;
 #endif
 
  public:
@@ -118,6 +119,52 @@ class Operand {
         scale_(TimesOne),
         index_(Registers::Invalid),
         disp_(0) {}
+#ifdef JS_SANDBOX_HEAP
+  explicit Operand(const Address& address)
+      : kind_(MEM_REG_DISP),
+        base_(address.base.encoding()),
+        scale_(TimesOne),
+        index_(Registers::Invalid),
+        disp_(address.offset),
+        sandboxed_(false),
+        clobberScratch_(address.clobberScratch) {
+    MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding());
+  }
+  explicit Operand(const BaseIndex& address)
+      : kind_(MEM_SCALE),
+        base_(address.base.encoding()),
+        scale_(address.scale),
+        index_(address.index.encoding()),
+        disp_(address.offset),
+        sandboxed_(false),
+        clobberScratch_(address.clobberScratch) {
+    MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding() ||
+                                       index_ == SandboxScratchReg.encoding());
+  }
+  Operand(Register base, Register index, Scale scale, int32_t disp = 0,
+          bool sandboxed = false, bool clobberScratch = false)
+      : kind_(MEM_SCALE),
+        base_(base.encoding()),
+        scale_(scale),
+        index_(index.encoding()),
+        disp_(disp),
+        sandboxed_(sandboxed),
+        clobberScratch_(clobberScratch) {
+    MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding() ||
+                                       index_ == SandboxScratchReg.encoding());
+  }
+  Operand(Register reg, int32_t disp, bool sandboxed = false,
+          bool clobberScratch = false)
+      : kind_(MEM_REG_DISP),
+        base_(reg.encoding()),
+        scale_(TimesOne),
+        index_(Registers::Invalid),
+        disp_(disp),
+        sandboxed_(sandboxed),
+        clobberScratch_(clobberScratch) {
+    MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding());
+  }
+#else
   explicit Operand(const Address& address)
       : kind_(MEM_REG_DISP),
         base_(address.base.encoding()),
@@ -130,23 +177,6 @@ class Operand {
         scale_(address.scale),
         index_(address.index.encoding()),
         disp_(address.offset) {}
-#ifdef JS_SANDBOX_HEAP
-  Operand(Register base, Register index, Scale scale, int32_t disp = 0,
-          bool sandboxed = false)
-      : kind_(MEM_SCALE),
-        base_(base.encoding()),
-        scale_(scale),
-        index_(index.encoding()),
-        disp_(disp),
-        sandboxed_(sandboxed) {}
-  Operand(Register reg, int32_t disp, bool sandboxed = false)
-      : kind_(MEM_REG_DISP),
-        base_(reg.encoding()),
-        scale_(TimesOne),
-        index_(Registers::Invalid),
-        disp_(disp),
-        sandboxed_(sandboxed) {}
-#else
   Operand(Register base, Register index, Scale scale, int32_t disp = 0)
       : kind_(MEM_SCALE),
         base_(base.encoding()),
@@ -175,13 +205,24 @@ class Operand {
 
   Address toAddress() const {
     MOZ_ASSERT(kind() == MEM_REG_DISP);
+#ifdef JS_SANDBOX_HEAP
+    MOZ_ASSERT(!sandboxed_, "Unexpected conversion after sandboxing");
+    return Address(Register::FromCode(base()), disp(), clobberScratch_);
+#else
     return Address(Register::FromCode(base()), disp());
+#endif
   }
 
   BaseIndex toBaseIndex() const {
     MOZ_ASSERT(kind() == MEM_SCALE);
+#ifdef JS_SANDBOX_HEAP
+    MOZ_ASSERT(!sandboxed_, "Unexpected conversion after sandboxing");
+    return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
+                     scale(), disp(), clobberScratch_);
+#else
     return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
                      scale(), disp());
+#endif
   }
 
   Kind kind() const { return kind_; }
@@ -229,8 +270,7 @@ class Operand {
 
 #ifdef JS_SANDBOX_HEAP
   bool sandboxed() const { return sandboxed_; }
-
-  void unsafeSetSandboxed(bool sandboxed) { sandboxed_ = sandboxed; }
+  bool clobberScratch() const { return clobberScratch_; }
 #endif
 };
 
@@ -387,85 +427,150 @@ class AssemblerX86Shared : public AssemblerShared {
 
   inline void endBundleInstruction() { masm.endBundleInstruction(); }
 
+  inline bool endAndBeginBundleInstruction() {
+    masm.endBundleInstruction();
+    return masm.beginBundleInstruction();
+  }
+
   inline bool beginBundleGroup() { return masm.beginBundleGroup(); }
 
+  inline bool inBundleGroup() { return masm.inBundleGroup(); }
+
   inline void endBundleGroup() { masm.endBundleGroup(); }
+
+  inline void pauseBundleGroup() { masm.pauseBundleGroup(); }
 
   inline void ensureBundleSpace(size_t space) { masm.ensureBundleSpace(space); }
 
   inline void ensureExactBundleSpace(size_t space) {
     masm.ensureExactBundleSpace(space);
   }
+
+  inline size_t bundleOffset() { return masm.bundleOffset(); }
+#else
+  inline bool beginBundleInstruction() { return false; }
+  inline void endBundleInstruction() {}
+  inline bool endAndBeginBundleInstruction() { return false; }
+  inline bool beginBundleGroup() { return false; }
+  inline void pauseBundleGroup() {}
 #endif
 
   Operand sandboxMemoryWrite(const Operand& op) {
 #ifdef JS_SANDBOX_HEAP
-    if (!op.sandboxed()) {
-#  ifdef DEBUG
-      Label sandboxed;
-#  endif
-      switch (op.kind()) {
-        case Operand::REG:
-        case Operand::FPREG:
-          return op;
-        case Operand::MEM_SCALE:
-#  ifdef DEBUG
-          MOZ_ASSERT(!op.containsReg(SandboxScratchReg),
-                     "Operand to sandbox already uses scratch register");
-          masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
-                       SandboxScratchReg.encoding());
-          masm.push_r(rcx.encoding());
-          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
-          masm.addq_ir(1, rcx.encoding());
-          masm.shrq_CLr(SandboxScratchReg.encoding());
-          masm.shlq_CLr(SandboxScratchReg.encoding());
-          masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
-          j(Condition::Equal, &sandboxed);
-          breakpoint();
-          bind(&sandboxed);
-          masm.pop_r(rcx.encoding());
-#  endif
-          masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
-                       SandboxScratchReg.encoding());
-          masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
-          return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
-        case Operand::MEM_REG_DISP:
-#  ifdef DEBUG
-          masm.push_r(op.base());
-          if (op.base() == X86Encoding::rcx) {
-            masm.push_r(rbx.encoding());
-            masm.movq_rr(rcx.encoding(), rbx.encoding());
-            masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
-            masm.addq_ir(1, rcx.encoding());
-            masm.shrq_CLr(rbx.encoding());
-            masm.shlq_CLr(rbx.encoding());
-            masm.cmpq_rr(rbx.encoding(), SandboxBaseReg.encoding());
-          } else {
-            masm.push_r(rcx.encoding());
-            masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
-            masm.addq_ir(1, rcx.encoding());
-            masm.shrq_CLr(op.base());
-            masm.shlq_CLr(op.base());
-            masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
-          }
-          j(Condition::Equal, &sandboxed);
-          breakpoint();
-          bind(&sandboxed);
-          if (op.base() == X86Encoding::rcx)
-            masm.pop_r(rbx.encoding());
-          else
-            masm.pop_r(rcx.encoding());
-          masm.pop_r(op.base());
-#  endif
-          masm.andq_rr(SandboxMaskReg.encoding(), op.base());
-          masm.leaq_mr(0, SandboxBaseReg.encoding(), op.base(), TimesOne,
-                       op.base());
-          return Operand(Register(op.base()), op.disp(), true);
-        default:
-          MOZ_CRASH("unexpected operand kind");
-      }
-    } else {
+    if (op.sandboxed()) {
       return op;
+    }
+#ifdef JS_SANDBOX_BUNDLE
+    MOZ_ASSERT(inBundleGroup(), "Expected to be in bundle when masking stores");
+    MOZ_ASSERT(bundleOffset() == 0, "Expected to be at the beginning of the bundle");
+#endif
+#ifdef DEBUG
+    Label sandboxed;
+#endif
+    switch (op.kind()) {
+      case Operand::REG:
+      case Operand::FPREG:
+        return op;
+      case Operand::MEM_SCALE:
+        MOZ_ASSERT(!op.containsReg(SandboxScratchReg) || op.clobberScratch(),
+                   "Must allow ScratchReg to be clobbered");
+        pauseBundleGroup();
+#ifdef DEBUG
+        beginBundleInstruction();
+        masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
+                     SandboxScratchReg.encoding());
+        endAndBeginBundleInstruction();
+        masm.push_r(rcx.encoding());
+        endAndBeginBundleInstruction();
+        masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+        endAndBeginBundleInstruction();
+        masm.addq_ir(1, rcx.encoding());
+        endAndBeginBundleInstruction();
+        masm.shrq_CLr(SandboxScratchReg.encoding());
+        endAndBeginBundleInstruction();
+        masm.shlq_CLr(SandboxScratchReg.encoding());
+        endAndBeginBundleInstruction();
+        masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
+        endAndBeginBundleInstruction();
+        j(Condition::Equal, &sandboxed);
+        endBundleInstruction();
+        breakpoint();
+        bind(&sandboxed);
+        beginBundleInstruction();
+        masm.pop_r(rcx.encoding());
+        endBundleInstruction();
+#endif
+        beginBundleInstruction();
+        masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
+                     SandboxScratchReg.encoding());
+        endBundleInstruction();
+        beginBundleGroup();
+        masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
+        return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
+      case Operand::MEM_REG_DISP:
+        if (op.containsReg(StackPointer)) {
+          //TODO(JS_SANDBOX_HEAP): sandbox %rsp on modification.
+          return op;
+        }
+        MOZ_ASSERT(!op.containsReg(SandboxScratchReg) || op.clobberScratch(),
+                   "Must allow ScratchReg to be clobbered");
+        pauseBundleGroup();
+#ifdef DEBUG
+        beginBundleInstruction();
+        masm.push_r(op.base());
+        endAndBeginBundleInstruction();
+        if (op.base() == X86Encoding::rcx) {
+          masm.push_r(rbx.encoding());
+          endAndBeginBundleInstruction();
+          masm.movq_rr(rcx.encoding(), rbx.encoding());
+          endAndBeginBundleInstruction();
+          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+          endAndBeginBundleInstruction();
+          masm.addq_ir(1, rcx.encoding());
+          endAndBeginBundleInstruction();
+          masm.shrq_CLr(rbx.encoding());
+          endAndBeginBundleInstruction();
+          masm.shlq_CLr(rbx.encoding());
+          endAndBeginBundleInstruction();
+          masm.cmpq_rr(rbx.encoding(), SandboxBaseReg.encoding());
+          endAndBeginBundleInstruction();
+        } else {
+          masm.push_r(rcx.encoding());
+          endAndBeginBundleInstruction();
+          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+          endAndBeginBundleInstruction();
+          masm.addq_ir(1, rcx.encoding());
+          endAndBeginBundleInstruction();
+          masm.shrq_CLr(op.base());
+          endAndBeginBundleInstruction();
+          masm.shlq_CLr(op.base());
+          endAndBeginBundleInstruction();
+          masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
+          endAndBeginBundleInstruction();
+        }
+        j(Condition::Equal, &sandboxed);
+        endBundleInstruction();
+        breakpoint();
+        bind(&sandboxed);
+        beginBundleInstruction();
+        if (op.base() == X86Encoding::rcx)
+          masm.pop_r(rbx.encoding());
+        else
+          masm.pop_r(rcx.encoding());
+        endAndBeginBundleInstruction();
+        masm.pop_r(op.base());
+        endBundleInstruction();
+#endif
+        if (!op.containsReg(SandboxScratchReg)) {
+          beginBundleInstruction();
+          masm.movq_rr(op.base(), SandboxScratchReg.encoding());
+          endBundleInstruction();
+        }
+        beginBundleGroup();
+        masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
+        return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, op.disp(), true);
+      default:
+        MOZ_CRASH("unexpected operand kind");
     }
 #else
     return op;
@@ -707,8 +812,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movl(Register src, const Operand& unsafeDest) {
     MOZ_ASSERT(hasCreator());
+    AutoBundleGroupScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_rr(src.encoding(), dest.reg());
@@ -728,8 +833,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movl(Imm32 imm32, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.movl_i32r(imm32.value, dest.reg());
@@ -798,8 +903,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovaps(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovaps_rm(src.encoding(), dest.disp(), dest.base());
@@ -829,8 +934,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovups(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovups_rm(src.encoding(), dest.disp(), dest.base());
@@ -869,8 +974,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovsd(FloatRegister src, const Address& unsafeDest) {
 #ifdef JS_SANDBOX_HEAP
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base());
@@ -889,9 +994,9 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
   void vmovsd(FloatRegister src, const BaseIndex& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
-    AutoBundleInstructionScope bundle(*this);
     masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                    dest.scale());
   }
@@ -925,8 +1030,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovss(FloatRegister src, const Address& unsafeDest) {
 #ifdef JS_SANDBOX_HEAP
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovss_rm(src.encoding(), dest.disp(), dest.base());
@@ -945,14 +1050,15 @@ class AssemblerX86Shared : public AssemblerShared {
 #endif
   }
   void vmovss(FloatRegister src, const BaseIndex& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(Operand(unsafeDest));
-    AutoBundleInstructionScope bundle(*this);
     MOZ_ASSERT(dest.kind() == Operand::MEM_SCALE);
     masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                    dest.scale());
   }
-  void vmovss(FloatRegister src, const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  void vmovss(FloatRegister src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         vmovss(src, dest.toAddress());
@@ -988,8 +1094,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void vmovdqu(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
     MOZ_ASSERT(hasCreator());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovdqu_rm(src.encoding(), dest.disp(), dest.base());
@@ -1022,8 +1128,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovdqa(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovdqa_rm(src.encoding(), dest.disp(), dest.base());
@@ -1102,8 +1208,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.movb_ir(src.value & 255, dest.encoding());
   }
   void movb(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movb_rm(src.encoding(), dest.disp(), dest.base());
@@ -1117,8 +1223,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movb(Imm32 src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movb_im(src.value, dest.disp(), dest.base());
@@ -1163,8 +1269,8 @@ class AssemblerX86Shared : public AssemblerShared {
     movl(src, dest);
   }
   void movw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movw_rm(src.encoding(), dest.disp(), dest.base());
@@ -1178,8 +1284,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movw(Imm32 src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movw_im(src.value, dest.disp(), dest.base());
@@ -1378,7 +1484,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void ret() {
     MOZ_ASSERT(hasCreator());
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_RET)
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected return instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1386,7 +1492,7 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void retn(Imm32 n) {
     MOZ_ASSERT(hasCreator());
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_RET)
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_RET)
     MOZ_ASSERT(false, "Unexpected return instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1394,7 +1500,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.ret_i(n.value - sizeof(void*));
   }
   void call(Label* label) {
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1430,7 +1536,7 @@ class AssemblerX86Shared : public AssemblerShared {
     return X86Encoding::BaseAssembler::call_m_size(op.disp(), op.base());
   }
   void call(const Operand& op) {
-#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
+#if defined(JS_SANDBOX) && !defined(JS_SANDBOX_USE_CALL)
     MOZ_ASSERT(false, "Unexpected call instruction");
 #endif
     AutoBundleInstructionScope bundle(*this);
@@ -1728,8 +1834,8 @@ class AssemblerX86Shared : public AssemblerShared {
     return CodeOffset(masm.currentOffset());
   }
   void addl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.addl_ir(imm.value, op.reg());
@@ -1748,8 +1854,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.addw_ir(imm.value, op.reg());
@@ -1772,8 +1878,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.subl_ir(imm.value, dest.encoding());
   }
   void subl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.subl_ir(imm.value, op.reg());
@@ -1789,8 +1895,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.subw_ir(imm.value, op.reg());
@@ -1810,8 +1916,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.addl_rr(src.encoding(), dest.encoding());
   }
   void addl(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addl_rr(src.encoding(), dest.reg());
@@ -1828,8 +1934,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.addw_rr(src.encoding(), dest.reg());
@@ -1867,8 +1973,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subl(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subl_rr(src.encoding(), dest.reg());
@@ -1885,8 +1991,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.subw_rr(src.encoding(), dest.reg());
@@ -1907,8 +2013,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.orl_rr(reg.encoding(), dest.encoding());
   }
   void orl(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orl_rr(src.encoding(), dest.reg());
@@ -1925,8 +2031,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.orw_rr(src.encoding(), dest.reg());
@@ -1947,8 +2053,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.orl_ir(imm.value, reg.encoding());
   }
   void orl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.orl_ir(imm.value, op.reg());
@@ -1964,8 +2070,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.orw_ir(imm.value, op.reg());
@@ -1985,8 +2091,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.xorl_rr(src.encoding(), dest.encoding());
   }
   void xorl(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorl_rr(src.encoding(), dest.reg());
@@ -2003,8 +2109,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorw_rr(src.encoding(), dest.reg());
@@ -2025,8 +2131,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.xorl_ir(imm.value, reg.encoding());
   }
   void xorl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.xorl_ir(imm.value, op.reg());
@@ -2042,8 +2148,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.xorw_ir(imm.value, op.reg());
@@ -2063,8 +2169,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.andl_rr(src.encoding(), dest.encoding());
   }
   void andl(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andl_rr(src.encoding(), dest.reg());
@@ -2081,8 +2187,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andw(Register src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.andw_rr(src.encoding(), dest.reg());
@@ -2103,8 +2209,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.andl_ir(imm.value, dest.encoding());
   }
   void andl(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.andl_ir(imm.value, op.reg());
@@ -2120,8 +2226,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andw(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::REG:
         masm.andw_ir(imm.value, op.reg());
@@ -2252,8 +2358,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void negl(const Operand& unsafeSrc) {
+    AutoBundleGroupScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
-    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.negl_r(src.reg());
@@ -2270,8 +2376,8 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.negl_r(reg.encoding());
   }
   void notl(const Operand& unsafeSrc) {
+    AutoBundleGroupScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
-    AutoBundleInstructionScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.notl_r(src.reg());
@@ -2358,8 +2464,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void incl(const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.incl_m32(op.disp(), op.base());
@@ -2369,15 +2475,15 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_incl(const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     incl(op);
   }
 
   void decl(const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.decl_m32(op.disp(), op.base());
@@ -2387,15 +2493,15 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_decl(const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     decl(op);
   }
 
   void addb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.addb_im(imm.value, op.disp(), op.base());
@@ -2409,8 +2515,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addb(Register src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.addb_rm(src.encoding(), op.disp(), op.base());
@@ -2426,8 +2532,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void subb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.subb_im(imm.value, op.disp(), op.base());
@@ -2441,8 +2547,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subb(Register src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.subb_rm(src.encoding(), op.disp(), op.base());
@@ -2458,8 +2564,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void andb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.andb_im(imm.value, op.disp(), op.base());
@@ -2473,8 +2579,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andb(Register src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.andb_rm(src.encoding(), op.disp(), op.base());
@@ -2490,8 +2596,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void orb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.orb_im(imm.value, op.disp(), op.base());
@@ -2505,8 +2611,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orb(Register src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.orb_rm(src.encoding(), op.disp(), op.base());
@@ -2522,8 +2628,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void xorb(Imm32 imm, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xorb_im(imm.value, op.disp(), op.base());
@@ -2537,8 +2643,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorb(Register src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     switch (op.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xorb_rm(src.encoding(), op.disp(), op.base());
@@ -2555,72 +2661,72 @@ class AssemblerX86Shared : public AssemblerShared {
 
   template <typename T>
   void lock_addb(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     addb(src, op);
   }
   template <typename T>
   void lock_subb(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     subb(src, op);
   }
   template <typename T>
   void lock_andb(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     andb(src, op);
   }
   template <typename T>
   void lock_orb(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     orb(src, op);
   }
   template <typename T>
   void lock_xorb(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     xorb(src, op);
   }
 
   template <typename T>
   void lock_addw(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     addw(src, op);
   }
   template <typename T>
   void lock_subw(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     subw(src, op);
   }
   template <typename T>
   void lock_andw(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     andw(src, op);
   }
   template <typename T>
   void lock_orw(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     orw(src, op);
   }
   template <typename T>
   void lock_xorw(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     xorw(src, op);
   }
@@ -2629,43 +2735,43 @@ class AssemblerX86Shared : public AssemblerShared {
   // among other things.  Do not optimize, replace by XADDL, or similar.
   template <typename T>
   void lock_addl(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     addl(src, op);
   }
   template <typename T>
   void lock_subl(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     subl(src, op);
   }
   template <typename T>
   void lock_andl(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     andl(src, op);
   }
   template <typename T>
   void lock_orl(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     orl(src, op);
   }
   template <typename T>
   void lock_xorl(T src, const Operand& unsafeOp) {
+    AutoBundleGroupScope bundle(*this);
     const Operand op = sandboxMemoryWrite(unsafeOp);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     xorl(src, op);
   }
 
   void lock_cmpxchgb(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2680,8 +2786,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_cmpxchgw(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2696,8 +2802,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void lock_cmpxchgl(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2713,8 +2819,9 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void lock_cmpxchg8b(Register srcHi, Register srcLo, Register newHi,
                       Register newLo, const Operand& unsafeMem) {
+    //TODO(JS_SANDBOX_PERF): check if this is necessary.
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     masm.prefix_lock();
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
@@ -2732,8 +2839,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void xchgb(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgb_rm(src.encoding(), mem.disp(), mem.base());
@@ -2747,8 +2854,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xchgw(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgw_rm(src.encoding(), mem.disp(), mem.base());
@@ -2762,8 +2869,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xchgl(Register src, const Operand& unsafeMem) {
+    AutoBundleGroupScope bundle(*this);
     const Operand mem = sandboxMemoryWrite(unsafeMem);
-    AutoBundleInstructionScope bundle(*this);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.xchgl_rm(src.encoding(), mem.disp(), mem.base());
@@ -2777,9 +2884,10 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
 
-  void lock_xaddb(Register srcdest, const Operand& mem) {
-    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
-    AutoBundleInstructionScope bundle(*this);
+  void lock_xaddb(Register srcdest, const Operand& unsafeMem) {
+    //TODO(JS_SANDBOX_PERF): check if this is necessary.
+    AutoBundleGroupScope bundle(*this);
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddb_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -2792,15 +2900,17 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  void lock_xaddw(Register srcdest, const Operand& mem) {
-    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
-    AutoBundleInstructionScope bundle(*this);
+  void lock_xaddw(Register srcdest, const Operand& unsafeMem) {
+    //TODO(JS_SANDBOX_PERF): check if this is necessary.
+    AutoBundleGroupScope bundle(*this);
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     masm.prefix_16_for_32();
     lock_xaddl(srcdest, mem);
   }
-  void lock_xaddl(Register srcdest, const Operand& mem) {
-    // TODO(JS_SANDBOX_HEAP): need to mask mem if it is a heap write
-    AutoBundleInstructionScope bundle(*this);
+  void lock_xaddl(Register srcdest, const Operand& unsafeMem) {
+    //TODO(JS_SANDBOX_PERF): check if this is necessary.
+    AutoBundleGroupScope bundle(*this);
+    const Operand mem = sandboxMemoryWrite(unsafeMem);
     switch (mem.kind()) {
       case Operand::MEM_REG_DISP:
         masm.lock_xaddl_rm(srcdest.encoding(), mem.disp(), mem.base());
@@ -2847,8 +2957,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void pop(const Operand& unsafeSrc) {
+    AutoBundleGroupScope bundle(*this);
     const Operand src = sandboxMemoryWrite(unsafeSrc);
-    AutoBundleInstructionScope bundle(*this);
     MOZ_ASSERT(hasCreator());
     switch (src.kind()) {
       case Operand::REG:
@@ -2972,8 +3082,8 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void vpextrb(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrb_irr(lane, src.encoding(), dest.reg());
@@ -2991,8 +3101,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpextrw(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrw_irr(lane, src.encoding(), dest.reg());
@@ -3516,8 +3626,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovd(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovd_rm(src.encoding(), dest.disp(), dest.base());
@@ -3553,8 +3663,8 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovq(FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE2());
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovq_rm(src.encoding(), dest.disp(), dest.base());
@@ -5239,8 +5349,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovlps(FloatRegister src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovlps_rm(src.encoding(), dest.disp(), dest.base());
@@ -5269,8 +5379,8 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void vmovhps(FloatRegister src, const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vmovhps_rm(src.encoding(), dest.disp(), dest.base());
@@ -5286,8 +5396,8 @@ class AssemblerX86Shared : public AssemblerShared {
   void vextractps(unsigned lane, FloatRegister src, const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE41());
     MOZ_ASSERT(lane < 4);
+    AutoBundleGroupScope bundle(*this);
     const Operand dest = sandboxMemoryWrite(unsafeDest);
-    AutoBundleInstructionScope bundle(*this);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.vextractps_rm(lane, src.encoding(), dest.disp(), dest.base());
@@ -5444,9 +5554,11 @@ class AssemblerX86Shared : public AssemblerShared {
     AutoBundleInstructionScope bundle(*this);
     masm.vmaxss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
-  void fisttp(const Operand& dest) {
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fisttp(const Operand& unsafeDest) {
     MOZ_ASSERT(HasSSE3());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fisttp_m(dest.disp(), dest.base());
@@ -5455,9 +5567,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fistp(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fistp(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fistp_m(dest.disp(), dest.base());
@@ -5466,9 +5579,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fnstcw(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fnstcw(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fnstcw_m(dest.disp(), dest.base());
@@ -5477,9 +5591,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fldcw(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fldcw(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fldcw_m(dest.disp(), dest.base());
@@ -5488,9 +5603,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fnstsw(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fnstsw(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fnstsw_m(dest.disp(), dest.base());
@@ -5499,9 +5615,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fld(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fld(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fld_m(dest.disp(), dest.base());
@@ -5510,9 +5627,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fld32(const Operand& dest) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fld32(const Operand& unsafeDest) {
+    AutoBundleGroupScope bundle(*this);
+    Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fld32_m(dest.disp(), dest.base());
@@ -5521,9 +5639,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fstp(const Operand& src) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fstp(const Operand& unsafeSrc) {
+    AutoBundleGroupScope bundle(*this);
+    Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fstp_m(src.disp(), src.base());
@@ -5532,9 +5651,10 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
-  // TODO(JS_SANDBOX_HEAP): add MEM_SCALE version
-  void fstp32(const Operand& src) {
-    AutoBundleInstructionScope bundle(*this);
+  // TODO(JS_SANDBOX_HEAP): is this actually a destination ?
+  void fstp32(const Operand& unsafeSrc) {
+    AutoBundleGroupScope bundle(*this);
+    Operand src = sandboxMemoryWrite(unsafeSrc);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.fstp32_m(src.disp(), src.base());

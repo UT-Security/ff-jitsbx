@@ -2213,9 +2213,17 @@ Address BaseCompiler::addressOfGlobalVar(const GlobalDesc& global, RegPtr tmp) {
 #endif
   if (global.isIndirect()) {
     masm.loadPtr(Address(tmp, globalToInstanceOffset), tmp);
+#ifdef JS_SANDBOX_HEAP
+    return Address(tmp, 0, true);
+#else
     return Address(tmp, 0);
+#endif
   }
+#ifdef JS_SANDBOX_HEAP
+  return Address(tmp, globalToInstanceOffset, true);
+#else
   return Address(tmp, globalToInstanceOffset);
+#endif
 }
 
 //////////////////////////////////////////////////////////////////////

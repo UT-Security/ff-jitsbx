@@ -612,7 +612,12 @@ void BaseCompiler::executeStore(MemoryAccessDesc* access, AccessCheck* check,
 #if defined(JS_CODEGEN_X64) && defined(JS_SANDBOX)
   MOZ_ASSERT(temp.isInvalid());
   masm.loadPtr(Address(instance, Instance::offsetOfMemoryBase()), SandboxScratchReg);
+#ifdef JS_SANDBOX_HEAP
+  Operand dstAddr(SandboxScratchReg, ptr, TimesOne, access->offset(),
+                  /* sandboxed */ false, /* clobberScratch */ true);
+#else
   Operand dstAddr(SandboxScratchReg, ptr, TimesOne, access->offset());
+#endif
 
   masm.wasmStore(*access, src.any(), dstAddr);
 #elif defined(JS_CODEGEN_X64)
@@ -945,7 +950,11 @@ BaseIndex BaseCompiler::prepareAtomicMemoryAccess(MemoryAccessDesc* access,
   prepareMemoryAccess(access, check, instance, ptr);
   // At this point, 64-bit offsets will have been resolved.
   masm.loadPtr(Address(instance, Instance::offsetOfMemoryBase()), SandboxScratchReg);
+#ifdef JS_SANDBOX_HEAP
+  return BaseIndex(SandboxScratchReg, ToRegister(ptr), TimesOne, access->offset(), true);
+#else
   return BaseIndex(SandboxScratchReg, ToRegister(ptr), TimesOne, access->offset());
+#endif
 }
 
 #else

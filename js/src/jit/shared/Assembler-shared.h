@@ -270,9 +270,18 @@ struct PatchedAbsoluteAddress {
 struct Address {
   RegisterOrSP base;
   int32_t offset;
+#ifdef JS_SANDBOX_HEAP
+  // Indicates that it's safe to clobber a r11 base register.
+  bool clobberScratch;
+#endif
 
+#ifdef JS_SANDBOX_HEAP
+  Address(Register base, int32_t offset, bool clobberScratch = false)
+      : base(RegisterOrSP(base)), offset(offset), clobberScratch(clobberScratch) {}
+#else
   Address(Register base, int32_t offset)
       : base(RegisterOrSP(base)), offset(offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   Address(RegisterOrSP base, int32_t offset) : base(base), offset(offset) {}
@@ -310,9 +319,18 @@ struct BaseIndex {
   Register index;
   Scale scale;
   int32_t offset;
+#ifdef JS_SANDBOX_HEAP
+  // Indicates that it's safe to clobber a r11 base or index register.
+  bool clobberScratch;
+#endif
 
+#ifdef JS_SANDBOX_HEAP
+  BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0, bool clobberScratch = false)
+      : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset), clobberScratch(clobberScratch) {}
+#else
   BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0)
       : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset) {}
+#endif
 
 #ifdef JS_HAS_HIDDEN_SP
   BaseIndex(RegisterOrSP base, Register index, Scale scale, int32_t offset = 0)
