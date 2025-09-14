@@ -83,6 +83,8 @@ class BaseAssembler : public GenericAssembler {
   inline size_t bundleOffset() { return m_formatter.bundleOffset(); }
 
   inline void pauseBundleGroup() { return m_formatter.pauseBundleGroup(); }
+
+  inline void freezeBundleGroup() { return m_formatter.freezeBundleGroup(); }
 #endif
 
   struct AutoBundleInstructionScope {
@@ -2799,6 +2801,7 @@ class BaseAssembler : public GenericAssembler {
 #endif
     m_formatter.oneByteOp(OP_CALL_rel32);
     JmpSrc r = m_formatter.immediateRel32();
+    m_formatter.freezeBundleGroup();
     spew("call       .Lfrom%d", r.offset());
     return r;
   }
@@ -2840,6 +2843,7 @@ class BaseAssembler : public GenericAssembler {
   [[nodiscard]] JmpSrc cmp_eax() {
     m_formatter.oneByteOp(OP_CMP_EAXIv);
     JmpSrc r = m_formatter.immediateRel32();
+    m_formatter.freezeBundleGroup();
     spew("cmpl       %%eax, .Lfrom%d", r.offset());
     return r;
   }
@@ -2869,10 +2873,12 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(OP_JMP_rel32);
       m_formatter.immediate32(diff - 5);
     }
+    m_formatter.freezeBundleGroup();
   }
   [[nodiscard]] JmpSrc jmp() {
     m_formatter.oneByteOp(OP_JMP_rel32);
     JmpSrc r = m_formatter.immediateRel32();
+    m_formatter.freezeBundleGroup();
     spew("jmp        .Lfrom%d", r.offset());
     return r;
   }
@@ -2918,10 +2924,12 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.twoByteOp(jccRel32(cond));
       m_formatter.immediate32(diff - 6);
     }
+    m_formatter.freezeBundleGroup();
   }
   [[nodiscard]] JmpSrc jCC(Condition cond) {
     m_formatter.twoByteOp(jccRel32(cond));
     JmpSrc r = m_formatter.immediateRel32();
+    m_formatter.freezeBundleGroup();
     spew("j%s        .Lfrom%d", CCName(cond), r.offset());
     return r;
   }
@@ -6736,6 +6744,12 @@ class BaseAssembler : public GenericAssembler {
     MOZ_ALWAYS_INLINE void pauseBundleGroup() {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.pauseBundleGroup();
+#endif
+    }
+
+    MOZ_ALWAYS_INLINE void freezeBundleGroup() {
+#if defined(JS_SANDBOX_BUNDLE) && (DEBUG)
+      m_buffer.freezeBundleGroup();
 #endif
     }
 

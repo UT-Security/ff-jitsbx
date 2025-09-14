@@ -223,6 +223,9 @@ void BaseCompiler::jumpTable(const LabelVector& labels, Label* theTable) {
   // Prevent nop sequences to appear in the jump table.
   AutoForbidNops afn(&masm);
 #endif
+#ifdef JS_SANDBOX_BUNDLE
+  masm.nopAlign(js::sandbox::BUNDLE_SIZE);
+#endif
   masm.bind(theTable);
 
   for (const auto& label : labels) {

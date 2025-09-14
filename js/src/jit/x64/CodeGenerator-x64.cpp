@@ -610,19 +610,33 @@ void CodeGeneratorX64::wasmStore(const wasm::MemoryAccessDesc& access,
     Imm32 cst =
         Imm32(mir->type() == MIRType::Int32 ? mir->toInt32() : mir->toInt64());
 
-    masm.append(access, masm.size());
     switch (access.type()) {
       case Scalar::Int8:
       case Scalar::Uint8:
+#ifdef JS_SANDBOX_BUNDLE
+        masm.append(access, masm.movb(cst, dstAddr).offset());
+#else
+        masm.append(access, masm.size());
         masm.movb(cst, dstAddr);
+#endif
         break;
       case Scalar::Int16:
       case Scalar::Uint16:
+#ifdef JS_SANDBOX_BUNDLE
+        masm.append(access, masm.movw(cst, dstAddr).offset());
+#else
+        masm.append(access, masm.size());
         masm.movw(cst, dstAddr);
+#endif
         break;
       case Scalar::Int32:
       case Scalar::Uint32:
+#ifdef JS_SANDBOX_BUNDLE
+        masm.append(access, masm.movl(cst, dstAddr).offset());
+#else
+        masm.append(access, masm.size());
         masm.movl(cst, dstAddr);
+#endif
         break;
       case Scalar::Int64:
       case Scalar::Simd128:

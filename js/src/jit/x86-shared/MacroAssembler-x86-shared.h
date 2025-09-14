@@ -691,8 +691,8 @@ class MacroAssemblerX86Shared : public Assembler {
   void loadUnalignedSimd128(const Operand& src, FloatRegister dest) {
     vmovups(src, dest);
   }
-  void storeUnalignedSimd128(FloatRegister src, const Operand& dest) {
-    vmovups(src, dest);
+  CodeOffset storeUnalignedSimd128(FloatRegister src, const Operand& dest) {
+    return vmovups(src, dest);
   }
 
   static uint32_t ComputeShuffleMask(uint32_t x = 0, uint32_t y = 1,

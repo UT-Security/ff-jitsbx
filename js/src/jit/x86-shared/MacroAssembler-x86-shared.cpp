@@ -705,6 +705,7 @@ CodeOffset MacroAssembler::call(Register reg) {
   bundle.nopToEnd(AssemblerX86Shared::CallSize(reg));
 #endif
   Assembler::call(reg);
+  bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
@@ -740,6 +741,7 @@ CodeOffset MacroAssembler::call(Label* label) {
   bundle.nopToEnd(AssemblerX86Shared::CallSize(label));
 #endif
   Assembler::call(label);
+  bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
@@ -797,6 +799,7 @@ void MacroAssembler::call(const Address& addr) {
   bundle.nopToEnd(AssemblerX86Shared::CallSize(SandboxScratchReg));
 #endif
   Assembler::call(SandboxScratchReg);
+  bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
@@ -853,6 +856,7 @@ CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
   bundle.nopToEnd(AssemblerX86Shared::CallSize(reg));
 #endif
   Assembler::call(reg);
+  bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
@@ -973,6 +977,7 @@ CodeOffset MacroAssembler::callWithPatch() {
   bundle.nopToEnd(AssemblerX86Shared::CallWithPatchSize());
 #endif
   CodeOffset ret = Assembler::callWithPatch();
+  bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
@@ -1518,22 +1523,37 @@ static void CompareExchange(MacroAssembler& masm,
     masm.movl(oldval, output);
   }
 
-  if (access) {
-    masm.append(*access, masm.size());
-  }
+#ifndef JS_SANDBOX_BUNDLE
+  if (access) masm.append(*access, masm.size());
+#endif
 
   // NOTE: the generated code must match the assembly code in gen_cmpxchg in
   // GenerateAtomicOperations.py
   switch (Scalar::byteSize(type)) {
     case 1:
       CheckBytereg(newval);
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_cmpxchgb(newval, Operand(mem)).offset());
+      else masm.lock_cmpxchgb(newval, Operand(mem));
+#else
       masm.lock_cmpxchgb(newval, Operand(mem));
+#endif
       break;
     case 2:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_cmpxchgw(newval, Operand(mem)).offset());
+      else masm.lock_cmpxchgw(newval, Operand(mem));
+#else
       masm.lock_cmpxchgw(newval, Operand(mem));
+#endif
       break;
     case 4:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_cmpxchgl(newval, Operand(mem)).offset());
+      else masm.lock_cmpxchgl(newval, Operand(mem));
+#else
       masm.lock_cmpxchgl(newval, Operand(mem));
+#endif
       break;
   }
 
@@ -1576,20 +1596,35 @@ static void AtomicExchange(MacroAssembler& masm,
     masm.movl(value, output);
   }
 
-  if (access) {
-    masm.append(*access, masm.size());
-  }
+#ifndef JS_SANDBOX_BUNDLE
+  if (access) masm.append(*access, masm.size());
+#endif
 
   switch (Scalar::byteSize(type)) {
     case 1:
       CheckBytereg(output);
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.xchgb(output, Operand(mem)).offset());
+      else masm.xchgb(output, Operand(mem));
+#else
       masm.xchgb(output, Operand(mem));
+#endif
       break;
     case 2:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.xchgw(output, Operand(mem)).offset());
+      else masm.xchgw(output, Operand(mem));
+#else
       masm.xchgw(output, Operand(mem));
+#endif
       break;
     case 4:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.xchgl(output, Operand(mem)).offset());
+      else masm.xchgl(output, Operand(mem));
+#else
       masm.xchgl(output, Operand(mem));
+#endif
       break;
     default:
       MOZ_CRASH("Invalid");
@@ -1649,6 +1684,21 @@ static void AtomicFetchOp(MacroAssembler& masm,
 
   // NOTE: the generated code must match the assembly code in gen_fetchop in
   // GenerateAtomicOperations.py
+#ifdef JS_SANDBOX_BUNDLE
+#define ATOMIC_BITOP_BODY(LOAD, OP, LOCK_CMPXCHG)                            \
+  do {                                                                       \
+    MOZ_ASSERT(output != temp);                                              \
+    MOZ_ASSERT(output == eax);                                               \
+    if (access) masm.append(*access, masm.LOAD(Operand(mem), eax).offset()); \
+    else masm.LOAD(Operand(mem), eax);                                       \
+    Label again;                                                             \
+    masm.bind(&again);                                                       \
+    masm.movl(eax, temp);                                                    \
+    masm.OP(value, temp);                                                    \
+    masm.LOCK_CMPXCHG(temp, Operand(mem));                                   \
+    masm.j(MacroAssembler::NonZero, &again);                                 \
+  } while (0)
+#else
 #define ATOMIC_BITOP_BODY(LOAD, OP, LOCK_CMPXCHG)  \
   do {                                             \
     MOZ_ASSERT(output != temp);                    \
@@ -1662,6 +1712,7 @@ static void AtomicFetchOp(MacroAssembler& masm,
     masm.LOCK_CMPXCHG(temp, Operand(mem));         \
     masm.j(MacroAssembler::NonZero, &again);       \
   } while (0)
+#endif
 
   MOZ_ASSERT_IF(op == AtomicFetchAddOp || op == AtomicFetchSubOp,
                 temp == InvalidReg);
@@ -1674,8 +1725,13 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchSubOp:
           CheckBytereg(value);  // But not for the bitwise ops
           SetupValue(masm, op, value, output);
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xaddb(output, Operand(mem)).offset());
+          else masm.lock_xaddb(output, Operand(mem));
+#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddb(output, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
           CheckBytereg(temp);
@@ -1698,8 +1754,13 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchAddOp:
         case AtomicFetchSubOp:
           SetupValue(masm, op, value, output);
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xaddw(output, Operand(mem)).offset());
+          else masm.lock_xaddw(output, Operand(mem));
+#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddw(output, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
           ATOMIC_BITOP_BODY(movw, andl, lock_cmpxchgw);
@@ -1719,8 +1780,13 @@ static void AtomicFetchOp(MacroAssembler& masm,
         case AtomicFetchAddOp:
         case AtomicFetchSubOp:
           SetupValue(masm, op, value, output);
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xaddl(output, Operand(mem)).offset());
+          else masm.lock_xaddl(output, Operand(mem));
+#else
           if (access) masm.append(*access, masm.size());
           masm.lock_xaddl(output, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
           ATOMIC_BITOP_BODY(movl, andl, lock_cmpxchgl);
@@ -1802,27 +1868,54 @@ static void AtomicEffectOp(MacroAssembler& masm,
                            const wasm::MemoryAccessDesc* access,
                            Scalar::Type arrayType, AtomicOp op, V value,
                            const T& mem) {
+#ifndef JS_SANDBOX_BUNDLE
   if (access) {
     masm.append(*access, masm.size());
   }
+#endif
 
   switch (Scalar::byteSize(arrayType)) {
     case 1:
       switch (op) {
         case AtomicFetchAddOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_addb(value, Operand(mem)).offset());
+          else masm.lock_addb(value, Operand(mem));
+#else
           masm.lock_addb(value, Operand(mem));
+#endif
           break;
         case AtomicFetchSubOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_subb(value, Operand(mem)).offset());
+          else masm.lock_subb(value, Operand(mem));
+#else
           masm.lock_subb(value, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_andb(value, Operand(mem)).offset());
+          else masm.lock_andb(value, Operand(mem));
+#else
           masm.lock_andb(value, Operand(mem));
+#endif
           break;
         case AtomicFetchOrOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_orb(value, Operand(mem)).offset());
+          else masm.lock_orb(value, Operand(mem));
+#else
           masm.lock_orb(value, Operand(mem));
+#endif
           break;
         case AtomicFetchXorOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xorb(value, Operand(mem)).offset());
+          else masm.lock_xorb(value, Operand(mem));
+#else
           masm.lock_xorb(value, Operand(mem));
+#endif
           break;
         default:
           MOZ_CRASH();
@@ -1831,19 +1924,44 @@ static void AtomicEffectOp(MacroAssembler& masm,
     case 2:
       switch (op) {
         case AtomicFetchAddOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_addw(value, Operand(mem)).offset());
+          else masm.lock_addw(value, Operand(mem));
+#else
           masm.lock_addw(value, Operand(mem));
+#endif
           break;
         case AtomicFetchSubOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_subw(value, Operand(mem)).offset());
+          else masm.lock_subw(value, Operand(mem));
+#else
           masm.lock_subw(value, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_andw(value, Operand(mem)).offset());
+          else masm.lock_andw(value, Operand(mem));
+#else
           masm.lock_andw(value, Operand(mem));
+#endif
           break;
         case AtomicFetchOrOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_orw(value, Operand(mem)).offset());
+          else masm.lock_orw(value, Operand(mem));
+#else
           masm.lock_orw(value, Operand(mem));
+#endif
           break;
         case AtomicFetchXorOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xorw(value, Operand(mem)).offset());
+          else masm.lock_xorw(value, Operand(mem));
+#else
           masm.lock_xorw(value, Operand(mem));
+#endif
           break;
         default:
           MOZ_CRASH();
@@ -1852,19 +1970,44 @@ static void AtomicEffectOp(MacroAssembler& masm,
     case 4:
       switch (op) {
         case AtomicFetchAddOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access,  masm.lock_addl(value, Operand(mem)).offset());
+          else  masm.lock_addl(value, Operand(mem));
+#else
           masm.lock_addl(value, Operand(mem));
+#endif
           break;
         case AtomicFetchSubOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_subl(value, Operand(mem)).offset());
+          else masm.lock_subl(value, Operand(mem));
+#else
           masm.lock_subl(value, Operand(mem));
+#endif
           break;
         case AtomicFetchAndOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_andl(value, Operand(mem)).offset());
+          else masm.lock_andl(value, Operand(mem));
+#else
           masm.lock_andl(value, Operand(mem));
+#endif
           break;
         case AtomicFetchOrOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_orl(value, Operand(mem)).offset());
+          else masm.lock_orl(value, Operand(mem));
+#else
           masm.lock_orl(value, Operand(mem));
+#endif
           break;
         case AtomicFetchXorOp:
+#ifdef JS_SANDBOX_BUNDLE
+          if (access) masm.append(*access, masm.lock_xorl(value, Operand(mem)).offset());
+          else masm.lock_xorl(value, Operand(mem)); 
+#else
           masm.lock_xorl(value, Operand(mem));
+#endif
           break;
         default:
           MOZ_CRASH();

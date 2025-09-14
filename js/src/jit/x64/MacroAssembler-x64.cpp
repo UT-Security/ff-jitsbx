@@ -1036,7 +1036,11 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
           access.type() == Scalar::Float32 || access.type() == Scalar::Float64);
   MOZ_ASSERT_IF(access.isWidenSimd128Load(), access.type() == Scalar::Float64);
 
+#ifdef JS_SANDBOX_BUNDLE
+  AutoBundleGroupScope bundle(*this);
+#else
   append(access, size());
+#endif
   switch (access.type()) {
     case Scalar::Int8:
       movsbl(srcAddr, out.gpr());
@@ -1112,6 +1116,10 @@ void MacroAssembler::wasmLoad(const wasm::MemoryAccessDesc& access,
     case Scalar::MaxTypedArrayViewType:
       MOZ_CRASH("unexpected scalar type for wasmLoad");
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, size() - bundle.offset());
+  bundle.end();
+#endif
 
   memoryBarrierAfter(access.sync());
 }
@@ -1122,7 +1130,11 @@ void MacroAssembler::wasmLoadI64(const wasm::MemoryAccessDesc& access,
   // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
+#ifdef JS_SANDBOX_BUNDLE
+  AutoBundleGroupScope bundle(*this);
+#else
   append(access, size());
+#endif
   switch (access.type()) {
     case Scalar::Int8:
       movsbq(srcAddr, out.reg);
@@ -1156,6 +1168,10 @@ void MacroAssembler::wasmLoadI64(const wasm::MemoryAccessDesc& access,
     case Scalar::MaxTypedArrayViewType:
       MOZ_CRASH("unexpected scalar type for wasmLoadI64");
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, size() - bundle.offset());
+  bundle.end();
+#endif
 
   memoryBarrierAfter(access.sync());
 }
@@ -1166,31 +1182,65 @@ void MacroAssembler::wasmStore(const wasm::MemoryAccessDesc& access,
   // GenerateAtomicOperations.py
   memoryBarrierBefore(access.sync());
 
-  append(access, masm.size());
   switch (access.type()) {
     case Scalar::Int8:
     case Scalar::Uint8:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, movb(value.gpr(), dstAddr).offset());
+#else
+      append(access, masm.size());
       movb(value.gpr(), dstAddr);
+#endif
       break;
     case Scalar::Int16:
     case Scalar::Uint16:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, movw(value.gpr(), dstAddr).offset());
+#else
+      append(access, masm.size());
       movw(value.gpr(), dstAddr);
+#endif
       break;
     case Scalar::Int32:
     case Scalar::Uint32:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, movl(value.gpr(), dstAddr).offset());
+#else
+      append(access, masm.size());
       movl(value.gpr(), dstAddr);
+#endif
       break;
     case Scalar::Int64:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, movq(value.gpr(), dstAddr).offset());
+#else
+      append(access, masm.size());
       movq(value.gpr(), dstAddr);
+#endif
       break;
     case Scalar::Float32:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, storeUncanonicalizedFloat32(value.fpu(), dstAddr).offset());
+#else
+      append(access, masm.size());
       storeUncanonicalizedFloat32(value.fpu(), dstAddr);
+#endif
       break;
     case Scalar::Float64:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, storeUncanonicalizedDouble(value.fpu(), dstAddr).offset());
+#else
+      append(access, masm.size());
       storeUncanonicalizedDouble(value.fpu(), dstAddr);
+#endif
       break;
     case Scalar::Simd128:
+#ifdef JS_SANDBOX_BUNDLE
+      append(access, MacroAssemblerX64::storeUnalignedSimd128(value.fpu(), dstAddr).offset());
+#else
+      append(access, masm.size());
       MacroAssemblerX64::storeUnalignedSimd128(value.fpu(), dstAddr);
+#endif
       break;
     case Scalar::Uint8Clamped:
     case Scalar::BigInt64:
@@ -1407,8 +1457,12 @@ void MacroAssembler::wasmCompareExchange64(const wasm::MemoryAccessDesc& access,
   if (expected != output) {
     movq(expected.reg, output.reg);
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, lock_cmpxchgq(replacement.reg, Operand(mem)).offset());
+#else
   append(access, size());
   lock_cmpxchgq(replacement.reg, Operand(mem));
+#endif
 }
 
 void MacroAssembler::wasmCompareExchange64(const wasm::MemoryAccessDesc& access,
@@ -1420,8 +1474,12 @@ void MacroAssembler::wasmCompareExchange64(const wasm::MemoryAccessDesc& access,
   if (expected != output) {
     movq(expected.reg, output.reg);
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, lock_cmpxchgq(replacement.reg, Operand(mem)).offset());
+#else
   append(access, size());
   lock_cmpxchgq(replacement.reg, Operand(mem));
+#endif
 }
 
 void MacroAssembler::wasmAtomicExchange64(const wasm::MemoryAccessDesc& access,
@@ -1430,8 +1488,12 @@ void MacroAssembler::wasmAtomicExchange64(const wasm::MemoryAccessDesc& access,
   if (value != output) {
     movq(value.reg, output.reg);
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, xchgq(output.reg, Operand(mem)).offset());
+#else
   append(access, masm.size());
   xchgq(output.reg, Operand(mem));
+#endif
 }
 
 void MacroAssembler::wasmAtomicExchange64(const wasm::MemoryAccessDesc& access,
@@ -1440,8 +1502,12 @@ void MacroAssembler::wasmAtomicExchange64(const wasm::MemoryAccessDesc& access,
   if (value != output) {
     movq(value.reg, output.reg);
   }
+#ifdef JS_SANDBOX_BUNDLE
+  append(access, xchgq(output.reg, Operand(mem)).offset());
+#else
   append(access, masm.size());
   xchgq(output.reg, Operand(mem));
+#endif
 }
 
 template <typename T>
@@ -1455,29 +1521,38 @@ static void AtomicFetchOp64(MacroAssembler& masm,
     if (value != output) {
       masm.movq(value, output);
     }
-    if (access) {
-      masm.append(*access, masm.size());
-    }
+#ifdef JS_SANDBOX_BUNDLE
+    if (access) masm.append(*access, masm.lock_xaddq(output, Operand(mem)).offset());
+    else masm.lock_xaddq(output, Operand(mem));
+#else
+    if (access) masm.append(*access, masm.size());
     masm.lock_xaddq(output, Operand(mem));
+#endif
   } else if (op == AtomicFetchSubOp) {
     if (value != output) {
       masm.movq(value, output);
     }
     masm.negq(output);
-    if (access) {
-      masm.append(*access, masm.size());
-    }
+#ifdef JS_SANDBOX_BUNDLE
+    if (access) masm.append(*access, masm.lock_xaddq(output, Operand(mem)).offset());
+    else masm.lock_xaddq(output, Operand(mem));
+#else
+    if (access) masm.append(*access, masm.size());
     masm.lock_xaddq(output, Operand(mem));
+#endif
   } else {
     Label again;
     MOZ_ASSERT(output == rax);
     MOZ_ASSERT(value != output);
     MOZ_ASSERT(value != temp);
     MOZ_ASSERT(temp != output);
-    if (access) {
-      masm.append(*access, masm.size());
-    }
+#ifdef JS_SANDBOX_BUNDLE
+    if (access) masm.append(*access, masm.movq(Operand(mem), rax).offset());
+    else masm.movq(Operand(mem), rax);
+#else
+    if (access) masm.append(*access, masm.size());
     masm.movq(Operand(mem), rax);
+#endif
     masm.bind(&again);
     masm.movq(rax, temp);
     switch (op) {
@@ -1516,24 +1591,51 @@ template <typename T>
 static void AtomicEffectOp64(MacroAssembler& masm,
                              const wasm::MemoryAccessDesc* access, AtomicOp op,
                              Register value, const T& mem) {
+#ifndef JS_SANDBOX_BUNDLE
   if (access) {
     masm.append(*access, masm.size());
   }
+#endif
   switch (op) {
     case AtomicFetchAddOp:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_addq(value, Operand(mem)).offset());
+      else masm.lock_addq(value, Operand(mem));
+#else
       masm.lock_addq(value, Operand(mem));
+#endif
       break;
     case AtomicFetchSubOp:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_subq(value, Operand(mem)).offset());
+      else masm.lock_subq(value, Operand(mem));
+#else
       masm.lock_subq(value, Operand(mem));
+#endif
       break;
     case AtomicFetchAndOp:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_andq(value, Operand(mem)).offset());
+      else masm.lock_andq(value, Operand(mem));
+#else
       masm.lock_andq(value, Operand(mem));
+#endif
       break;
     case AtomicFetchOrOp:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_orq(value, Operand(mem)).offset());
+      else masm.lock_orq(value, Operand(mem));
+#else
       masm.lock_orq(value, Operand(mem));
+#endif
       break;
     case AtomicFetchXorOp:
+#ifdef JS_SANDBOX_BUNDLE
+      if (access) masm.append(*access, masm.lock_xorq(value, Operand(mem)).offset());
+      else masm.lock_xorq(value, Operand(mem));
+#else
       masm.lock_xorq(value, Operand(mem));
+#endif
       break;
     default:
       MOZ_CRASH();

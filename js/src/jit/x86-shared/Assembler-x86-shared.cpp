@@ -401,6 +401,16 @@ void AutoBundleGroupScope::end() {
   active_ = false;
 }
 
+void AutoBundleGroupScope::freeze() {
+  MOZ_ASSERT(active_, "Unexpected inactive bundle group");
+  masm.freezeBundleGroup();
+}
+
+size_t AutoBundleGroupScope::offset() {
+  MOZ_ASSERT(active_, "Unexpected inactive bundle group");
+  return masm.bundleOffset();
+}
+
 AutoBundleGroupScope::~AutoBundleGroupScope() {
   if (active_) {
     if(!nested_) masm.endBundleGroup();
@@ -417,5 +427,6 @@ void AutoBundleGroupScope::ensureSpace(size_t space) {}
 void AutoBundleGroupScope::nopAndEnd() {}
 void AutoBundleGroupScope::nopToEnd(size_t space) {}
 void AutoBundleGroupScope::end() {}
+void AutoBundleGroupScope::freeze() {}
 AutoBundleGroupScope::~AutoBundleGroupScope() {}
 #endif

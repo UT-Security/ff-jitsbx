@@ -29,6 +29,7 @@ enum class BundleMode {
 class AssemblerBundleBuffer {
   template <size_t size, typename T>
   MOZ_ALWAYS_INLINE void sizedAppend(T value) {
+    MOZ_ASSERT_IF(mode == BundleMode::Group, !frozen_bundle);
     ensureBundleSpace(size);
     MOZ_ASSERT(oom() || bundle_length + size <= sandbox::BUNDLE_SIZE, "Expected enough space in bundle");
     bundle_length += size;
@@ -38,7 +39,11 @@ class AssemblerBundleBuffer {
   AssemblerBundleBuffer()
       : mode(BundleMode::Instruction),
         bundle_length(0),
-        in_bundle(false) {}
+        in_bundle(false),
+#ifdef DEBUG
+        frozen_bundle(false) 
+#endif
+        {}
 
   void ensureSpace(size_t space) {
     m_inner_buffer.ensureSpace(space);
@@ -239,13 +244,16 @@ class AssemblerBundleBuffer {
                "Unexpected oversized bundle");
 
     in_bundle = false;
+#ifdef DEBUG
+    frozen_bundle = false;
+#endif
     mode = BundleMode::Instruction;
     MOZ_ASSERT_IF(!oom() && bundle_length == js::sandbox::BUNDLE_SIZE,
                   m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
   }
 
   MOZ_ALWAYS_INLINE void pauseBundleGroup() {
-    MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
+    MOZ_ASSERT(in_bundle, "Unexpected bundle group pause outside bundle");
     MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
     MOZ_ASSERT(oom() || bundle_length - bundle_start == 0,
                "Unexpected non-0 length bundle group pause");
@@ -253,6 +261,14 @@ class AssemblerBundleBuffer {
     in_bundle = false;
     mode = BundleMode::Instruction;
   }
+
+#ifdef DEBUG
+  MOZ_ALWAYS_INLINE void freezeBundleGroup() {
+    MOZ_ASSERT(in_bundle, "Unexpected bundle group freeze outside bundle");
+    if (mode == BundleMode::Group)
+      frozen_bundle = true;
+  }
+#endif
 
   MOZ_ALWAYS_INLINE size_t bundleOffset() {
     MOZ_ASSERT(in_bundle, "Expected to be within a bundle");
@@ -266,6 +282,7 @@ class AssemblerBundleBuffer {
   BundleMode mode;
   size_t bundle_length;
   bool in_bundle;
+  bool frozen_bundle;
   size_t bundle_start;
 
   static constexpr unsigned char nops[32][32] = {
