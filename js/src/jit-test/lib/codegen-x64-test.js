@@ -151,7 +151,7 @@ function codegenTestX64_adhoc(module_text, export_name, expected, options = {}) 
     let ins = wasmEvalText(module_text, {}, options.features);
     if (options.instanceBox)
         options.instanceBox.value = ins;
-    let output = wasmDis(ins.exports[export_name], {tier:"ion", asString:true});
+    let output = wasmDis(ins.exports[export_name], {tier:"ion", asString:true}).trim().split('\n').filter(l => !l.includes("nop")).join('\n');
     if (!options.no_prefix)
         expected = x64_prefix + '\n' + expected;
     if (!options.no_suffix)

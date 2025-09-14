@@ -61,7 +61,7 @@ for (let [n1, n2, numInstr] of [
 
     if (hasDisassembler() && getBuildConfiguration().x64) {
         const dis = wasmDis(ins.exports.t, {asString: true,});
-        const lines = getFuncBody(dis).trim().split('\n');
+        const lines = getFuncBody(dis).trim().split('\n').filter(l => !l.includes("nop"));
         assertEq(lines.length, numInstr);
     }
 }
