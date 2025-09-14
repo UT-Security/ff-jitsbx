@@ -61,9 +61,6 @@ class BaseAssembler : public GenericAssembler {
   bool oom() const { return m_formatter.oom(); }
   bool reserve(size_t size) { return m_formatter.reserve(size); }
   bool swapBuffer(wasm::Bytes& other) {
-#ifdef JS_SANDBOX_BUNDLE
-    haltingAlign(js::sandbox::BUNDLE_SIZE);
-#endif
     return m_formatter.swapBuffer(other);
   }
 

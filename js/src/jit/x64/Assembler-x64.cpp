@@ -146,8 +146,11 @@ void Assembler::finish() {
     // Since we may be folowed by non-executable data, eagerly insert an
     // undefined instruction byte to prevent processors from decoding
     // gibberish into their pipelines. See Intel performance guides.
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.ud2();
+#ifdef JS_SANDBOX_BUNDLE
+    masm.haltingAlign(js::sandbox::BUNDLE_SIZE);
+#endif
     return;
   }
 
@@ -173,6 +176,10 @@ void Assembler::finish() {
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == SizeOfExtendedJump);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == SizeOfJumpTableEntry);
   }
+
+#ifdef JS_SANDBOX_BUNDLE
+  masm.haltingAlign(js::sandbox::BUNDLE_SIZE);
+#endif
 }
 
 void Assembler::executableCopy(uint8_t* buffer) {
