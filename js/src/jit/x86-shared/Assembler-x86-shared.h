@@ -67,9 +67,9 @@ class AutoBundleInstructionScope {
 
 class AutoBundleGroupScope {
  private:
-#ifdef JS_SANDBOX_BUNDLE
   AssemblerX86Shared& masm;
 
+#ifdef JS_SANDBOX_BUNDLE
   // Track whether this instance is nested within another.
   // This happens when instructions have lock prefixes etc.
   bool nested_;
@@ -128,7 +128,7 @@ class Operand {
         scale_(TimesOne),
         index_(Registers::Invalid),
         disp_(address.offset),
-        sandboxed_(false),
+        sandboxed_(address.sandboxed),
         clobberScratch_(address.clobberScratch) {
     MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding());
   }
@@ -138,7 +138,7 @@ class Operand {
         scale_(address.scale),
         index_(address.index.encoding()),
         disp_(address.offset),
-        sandboxed_(false),
+        sandboxed_(address.sandboxed),
         clobberScratch_(address.clobberScratch) {
     MOZ_ASSERT_IF(clobberScratch_, base_ == SandboxScratchReg.encoding() ||
                                        index_ == SandboxScratchReg.encoding());
@@ -208,8 +208,7 @@ class Operand {
   Address toAddress() const {
     MOZ_ASSERT(kind() == MEM_REG_DISP);
 #ifdef JS_SANDBOX_HEAP
-    MOZ_ASSERT(!sandboxed_, "Unexpected conversion after sandboxing");
-    return Address(Register::FromCode(base()), disp(), clobberScratch_);
+    return Address(Register::FromCode(base()), disp(), clobberScratch_, sandboxed_);
 #else
     return Address(Register::FromCode(base()), disp());
 #endif
@@ -218,9 +217,8 @@ class Operand {
   BaseIndex toBaseIndex() const {
     MOZ_ASSERT(kind() == MEM_SCALE);
 #ifdef JS_SANDBOX_HEAP
-    MOZ_ASSERT(!sandboxed_, "Unexpected conversion after sandboxing");
     return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
-                     scale(), disp(), clobberScratch_);
+                     scale(), disp(), clobberScratch_, sandboxed_);
 #else
     return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
                      scale(), disp());
@@ -457,6 +455,7 @@ class AssemblerX86Shared : public AssemblerShared {
   inline bool endAndBeginBundleInstruction() { return false; }
   inline bool beginBundleGroup() { return false; }
   inline void pauseBundleGroup() {}
+  inline void freezeBundleGroup() {}
 #endif
 
   Operand sandboxMemoryWrite(const Operand& op) {
@@ -516,8 +515,6 @@ class AssemblerX86Shared : public AssemblerShared {
           //TODO(JS_SANDBOX_HEAP): sandbox %rsp on modification.
           return op;
         }
-        MOZ_ASSERT(!op.containsReg(SandboxScratchReg) || op.clobberScratch(),
-                   "Must allow ScratchReg to be clobbered");
         pauseBundleGroup();
 #ifdef DEBUG
         beginBundleInstruction();
@@ -565,14 +562,10 @@ class AssemblerX86Shared : public AssemblerShared {
         masm.pop_r(op.base());
         endBundleInstruction();
 #endif
-        if (!op.containsReg(SandboxScratchReg)) {
-          beginBundleInstruction();
-          masm.movq_rr(op.base(), SandboxScratchReg.encoding());
-          endBundleInstruction();
-        }
         beginBundleGroup();
-        masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
-        return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, op.disp(), true);
+        masm.andq_rr(SandboxMaskReg.encoding(), op.base());
+        masm.orq_rr(SandboxBaseReg.encoding(), op.base());
+        return Operand(Register(op.base()), op.disp(), true);
       default:
         MOZ_CRASH("unexpected operand kind");
     }
@@ -815,7 +808,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset movl(Register src, const Operand& unsafeDest) {
@@ -841,7 +834,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset movl(Imm32 imm32, const Operand& unsafeDest) {
@@ -866,7 +859,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -965,7 +958,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -1009,7 +1002,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovsd");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
 #else
     AutoBundleGroupScope bundle(*this);
@@ -1017,7 +1010,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vmovsd_rm(src.encoding(), unsafeDest.offset,
                    unsafeDest.base.encoding());
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
 #endif
   }
@@ -1029,7 +1022,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vmovsd_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                    dest.scale());
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   // Note special semantics of this - does not clobber high bits of destination.
@@ -1077,7 +1070,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("Unknown operand for vmovss");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
 #else
     AutoBundleGroupScope bundle(*this);
@@ -1085,7 +1078,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vmovss_rm(src.encoding(), unsafeDest.offset,
                    unsafeDest.base.encoding());
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
 #endif
   }
@@ -1097,7 +1090,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vmovss_rm(src.encoding(), dest.disp(), dest.base(), dest.index(),
                    dest.scale());
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void vmovss(FloatRegister src, const Operand& unsafeDest) {
@@ -1248,7 +1241,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movb(Imm32 src, Register dest) {
@@ -1271,7 +1264,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset movb(Imm32 src, const Operand& unsafeDest) {
@@ -1290,7 +1283,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movzwl(const Operand& src, Register dest) {
@@ -1320,7 +1313,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_16_for_32();
     movl(src, dest);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movw(Imm32 src, Register dest) {
@@ -1344,7 +1337,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset movw(Imm32 src, const Operand& unsafeDest) {
@@ -1363,7 +1356,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movswl(Register src, Register dest) {
@@ -1688,7 +1681,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     AutoBundleInstructionScope bundle(*this);
     masm.ud2();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     bundle.end();
     CodeOffset off(masm.currentOffset() - 2);
     return off;
@@ -2736,7 +2729,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     addb(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2747,7 +2740,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     subb(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2758,7 +2751,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     andb(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2769,7 +2762,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     orb(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2780,7 +2773,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     xorb(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -2792,7 +2785,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     addw(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2803,7 +2796,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     subw(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2814,7 +2807,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     andw(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2825,7 +2818,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     orw(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2836,7 +2829,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     xorw(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -2850,7 +2843,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     addl(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2861,7 +2854,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     subl(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2872,7 +2865,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     andl(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2883,7 +2876,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     orl(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   template <typename T>
@@ -2894,7 +2887,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_lock();
     xorl(src, op);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -2915,7 +2908,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset lock_cmpxchgw(Register src, const Operand& unsafeMem) {
@@ -2935,7 +2928,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset lock_cmpxchgl(Register src, const Operand& unsafeMem) {
@@ -2955,7 +2948,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void lock_cmpxchg8b(Register srcHi, Register srcLo, Register newHi,
@@ -2995,7 +2988,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset xchgw(Register src, const Operand& unsafeMem) {
@@ -3014,7 +3007,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset xchgl(Register src, const Operand& unsafeMem) {
@@ -3033,7 +3026,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
@@ -3054,7 +3047,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset lock_xaddw(Register srcdest, const Operand& unsafeMem) {
@@ -3065,7 +3058,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_16_for_32();
     lock_xaddl(srcdest, mem);
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   CodeOffset lock_xaddl(Register srcdest, const Operand& unsafeMem) {
@@ -3085,7 +3078,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
-    masm.freezeBundleGroup();
+    freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 

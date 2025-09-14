@@ -273,11 +273,13 @@ struct Address {
 #ifdef JS_SANDBOX_HEAP
   // Indicates that it's safe to clobber a r11 base register.
   bool clobberScratch;
+  // Indicates that heap masks are already applied.
+  bool sandboxed;
 #endif
 
 #ifdef JS_SANDBOX_HEAP
-  Address(Register base, int32_t offset, bool clobberScratch = false)
-      : base(RegisterOrSP(base)), offset(offset), clobberScratch(clobberScratch) {}
+  Address(Register base, int32_t offset, bool clobberScratch = false, bool sandboxed = false)
+      : base(RegisterOrSP(base)), offset(offset), clobberScratch(clobberScratch), sandboxed(sandboxed) {}
 #else
   Address(Register base, int32_t offset)
       : base(RegisterOrSP(base)), offset(offset) {}
@@ -322,11 +324,13 @@ struct BaseIndex {
 #ifdef JS_SANDBOX_HEAP
   // Indicates that it's safe to clobber a r11 base or index register.
   bool clobberScratch;
+  // Indicates that heap masks are already applied.
+  bool sandboxed;
 #endif
 
 #ifdef JS_SANDBOX_HEAP
-  BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0, bool clobberScratch = false)
-      : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset), clobberScratch(clobberScratch) {}
+  BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0, bool clobberScratch = false, bool sandboxed = false)
+      : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset), clobberScratch(clobberScratch), sandboxed(sandboxed) {}
 #else
   BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0)
       : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset) {}

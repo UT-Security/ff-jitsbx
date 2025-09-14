@@ -422,11 +422,12 @@ AutoBundleInstructionScope::AutoBundleInstructionScope(AssemblerX86Shared& masm)
 void AutoBundleInstructionScope::end() {}
 AutoBundleInstructionScope::~AutoBundleInstructionScope() {}
 
-AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm) {}
+AutoBundleGroupScope::AutoBundleGroupScope(AssemblerX86Shared& masm): masm(masm) {}
 void AutoBundleGroupScope::ensureSpace(size_t space) {}
 void AutoBundleGroupScope::nopAndEnd() {}
 void AutoBundleGroupScope::nopToEnd(size_t space) {}
 void AutoBundleGroupScope::end() {}
 void AutoBundleGroupScope::freeze() {}
+size_t AutoBundleGroupScope::offset() { return masm.size(); }
 AutoBundleGroupScope::~AutoBundleGroupScope() {}
 #endif
