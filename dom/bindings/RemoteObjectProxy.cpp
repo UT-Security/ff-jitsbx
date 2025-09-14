@@ -20,7 +20,7 @@ bool RemoteObjectProxyBase::getOwnPropertyDescriptor(
     return ok;
   }
 
-  return CrossOriginPropertyFallback(MC_UNSAFE(aCx), aProxy, aId, aDesc);
+  return CrossOriginPropertyFallback(aCx, aProxy, aId, aDesc);
 }
 
 bool RemoteObjectProxyBase::defineProperty(
@@ -31,7 +31,7 @@ bool RemoteObjectProxyBase::defineProperty(
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-defineownproperty
   // step 2
-  return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "define"_ns);
+  return ReportCrossOriginDenial(aCx, aId, "define"_ns);
 }
 
 bool RemoteObjectProxyBase::ownPropertyKeys(
@@ -41,7 +41,7 @@ bool RemoteObjectProxyBase::ownPropertyKeys(
   // step 2 and
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginproperties-(-o-)
   MC::Rooted<JSObject*> holder(aCx);
-  if (!EnsureHolder(MC_UNSAFE(aCx), aProxy, &holder) ||
+  if (!EnsureHolder(aCx, aProxy, &holder) ||
       !js::GetPropertyKeys(aCx, holder,
                            JSITER_OWNONLY | JSITER_HIDDEN | JSITER_SYMBOLS,
                            aProps)) {
@@ -50,7 +50,7 @@ bool RemoteObjectProxyBase::ownPropertyKeys(
 
   // https://html.spec.whatwg.org/multipage/browsers.html#crossoriginownpropertykeys-(-o-)
   // step 3 and 4
-  return xpc::AppendCrossOriginWhitelistedPropNames(MC_UNSAFE(aCx), aProps);
+  return xpc::AppendCrossOriginWhitelistedPropNames(aCx, aProps);
 }
 
 bool RemoteObjectProxyBase::delete_(MCContext* aCx,
@@ -60,7 +60,7 @@ bool RemoteObjectProxyBase::delete_(MCContext* aCx,
   // https://html.spec.whatwg.org/multipage/browsers.html#windowproxy-delete
   // step 3 and
   // https://html.spec.whatwg.org/multipage/browsers.html#location-delete step 2
-  return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "delete"_ns);
+  return ReportCrossOriginDenial(aCx, aId, "delete"_ns);
 }
 
 bool RemoteObjectProxyBase::getPrototypeIfOrdinary(
@@ -102,7 +102,7 @@ bool RemoteObjectProxyBase::get(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                                 JS::Handle<JS::Value> aReceiver,
                                 JS::Handle<jsid> aId,
                                 JS::MutableHandle<JS::Value> aVp) const {
-  return CrossOriginGet(MC_UNSAFE(aCx), aProxy, aReceiver, aId, aVp);
+  return CrossOriginGet(aCx, aProxy, aReceiver, aId, aVp);
 }
 
 bool RemoteObjectProxyBase::set(MCContext* aCx, JS::Handle<JSObject*> aProxy,

@@ -493,7 +493,7 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex);
  * return null on failure.  Will only be called when "wrapper" is an Xray for a
  * DOM object.
  */
-JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper);
+JSObject* EnsureXrayExpandoObject(MCContext* cx, JS::HandleObject wrapper);
 
 // Information about xrays for use by the JITs.
 extern JS::XrayJitInfo* gXrayJitInfo();

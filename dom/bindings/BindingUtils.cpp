@@ -1813,14 +1813,14 @@ static bool ResolvePrototypeOrConstructor(
       return true;
     }
   } else if (type == eInterface) {
-    if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE)) {
+    if (id.get() == GetJSIDByIndex(JS_SanitizeContext(cx), XPCJSContext::IDX_PROTOTYPE)) {
       return nativePropertyHooks->mPrototypeID == prototypes::id::_ID_Count ||
              ResolvePrototypeOrConstructor(
                  cx, wrapper, obj, nativePropertyHooks->mPrototypeID,
                  JSPROP_PERMANENT | JSPROP_READONLY, desc, cacheOnHolder);
     }
 
-    if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_ISINSTANCE)) {
+    if (id.get() == GetJSIDByIndex(JS_SanitizeContext(cx), XPCJSContext::IDX_ISINSTANCE)) {
       const JSClass* objClass = JS::GetClass(obj);
       if (IsDOMIfaceAndProtoClass(objClass) &&
           DOMIfaceAndProtoJSClass::FromJSClass(objClass)
@@ -1876,7 +1876,7 @@ static bool ResolvePrototypeOrConstructor(
   } else {
     MOZ_ASSERT(IsInterfacePrototype(type));
 
-    if (id.get() == GetJSIDByIndex(cx, XPCJSContext::IDX_CONSTRUCTOR)) {
+    if (id.get() == GetJSIDByIndex(JS_SanitizeContext(cx), XPCJSContext::IDX_CONSTRUCTOR)) {
       return nativePropertyHooks->mConstructorID ==
                  constructors::id::_ID_Count ||
              ResolvePrototypeOrConstructor(cx, wrapper, obj,
@@ -1925,12 +1925,12 @@ bool XrayDefineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
 }
 
 template <typename SpecType>
-bool XrayAppendPropertyKeys(JSContext* cx, JS::Handle<JSObject*> obj,
+bool XrayAppendPropertyKeys(MCContext* cx, JS::Handle<JSObject*> obj,
                             const Prefable<const SpecType>* pref,
                             const PropertyInfo* infos, unsigned flags,
                             JS::MutableHandleVector<jsid> props) {
   do {
-    bool prefIsEnabled = pref->isEnabled(cx, obj);
+    bool prefIsEnabled = pref->isEnabled(MC_UNSAFE(cx), obj);
     if (prefIsEnabled) {
       const SpecType* spec = pref->specs;
       do {
@@ -1959,11 +1959,11 @@ bool XrayAppendPropertyKeys(JSContext* cx, JS::Handle<JSObject*> obj,
 
 template <>
 bool XrayAppendPropertyKeys<ConstantSpec>(
-    JSContext* cx, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> obj,
     const Prefable<const ConstantSpec>* pref, const PropertyInfo* infos,
     unsigned flags, JS::MutableHandleVector<jsid> props) {
   do {
-    bool prefIsEnabled = pref->isEnabled(cx, obj);
+    bool prefIsEnabled = pref->isEnabled(MC_UNSAFE(cx), obj);
     if (prefIsEnabled) {
       const ConstantSpec* spec = pref->specs;
       do {
@@ -1997,7 +1997,7 @@ bool XrayAppendPropertyKeys<ConstantSpec>(
     }                                                                         \
   }
 
-bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayOwnPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          JS::Handle<JSObject*> obj, unsigned flags,
                          JS::MutableHandleVector<jsid> props,
                          DOMObjectType type,
@@ -2029,7 +2029,7 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
 
 #undef ADD_KEYS_IF_DEFINED
 
-bool XrayOwnNativePropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayOwnNativePropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                                const NativePropertyHooks* nativePropertyHooks,
                                DOMObjectType type, JS::Handle<JSObject*> obj,
                                unsigned flags,
@@ -2038,21 +2038,21 @@ bool XrayOwnNativePropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
 
   if (type == eInterface &&
       nativePropertyHooks->mPrototypeID != prototypes::id::_ID_Count &&
-      !AddStringToIDVector(cx, props, "prototype")) {
+      !AddStringToIDVector(MC_UNSAFE(cx), props, "prototype")) {
     return false;
   }
 
   if (IsInterfacePrototype(type) &&
       nativePropertyHooks->mConstructorID != constructors::id::_ID_Count &&
       (flags & JSITER_HIDDEN) &&
-      !AddStringToIDVector(cx, props, "constructor")) {
+      !AddStringToIDVector(MC_UNSAFE(cx), props, "constructor")) {
     return false;
   }
 
   const NativePropertiesHolder& nativeProperties =
       nativePropertyHooks->mNativeProperties;
 
-  if (!InitPropertyInfos(cx, nativeProperties)) {
+  if (!InitPropertyInfos(MC_UNSAFE(cx), nativeProperties)) {
     return false;
   }
 
@@ -2072,12 +2072,12 @@ bool XrayOwnNativePropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
   return true;
 }
 
-bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayOwnPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          JS::Handle<JSObject*> obj, unsigned flags,
                          JS::MutableHandleVector<jsid> props) {
   DOMObjectType type;
   const NativePropertyHooks* nativePropertyHooks =
-      GetNativePropertyHooks(cx, obj, type);
+      GetNativePropertyHooks(MC_UNSAFE(cx), obj, type);
   EnumerateOwnProperties enumerateOwnProperties =
       nativePropertyHooks->mEnumerateOwnProperties;
 
@@ -2091,7 +2091,7 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
     // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1071189
     //       Should do something about XBL properties too.
     if (enumerateOwnProperties &&
-        !enumerateOwnProperties(cx, wrapper, obj, props)) {
+        !enumerateOwnProperties(MC_UNSAFE(cx), wrapper, obj, props)) {
       return false;
     }
   }
@@ -2101,10 +2101,10 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
                                    flags, props);
 }
 
-const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj) {
+const JSClass* XrayGetExpandoClass(MCContext* cx, JS::Handle<JSObject*> obj) {
   DOMObjectType type;
   const NativePropertyHooks* nativePropertyHooks =
-      GetNativePropertyHooks(cx, obj, type);
+      GetNativePropertyHooks(MC_UNSAFE(cx), obj, type);
   if (!IsInstance(type)) {
     // Non-instances don't need any special expando classes.
     return DefaultXrayExpandoObjectClass();
@@ -2157,7 +2157,7 @@ JSObject* GetCachedSlotStorageObjectSlow(JSContext* cx,
   }
 
   *isXray = true;
-  return xpc::EnsureXrayExpandoObject(cx, obj);
+  return xpc::EnsureXrayExpandoObject(JS_SanitizeContext(cx), obj);
 }
 
 DEFINE_XRAY_EXPANDO_CLASS(, DefaultXrayExpandoObjectClass, 0)
@@ -3179,7 +3179,7 @@ struct MaybeCrossOriginObjectThisPolicy : public MaybeGlobalThisPolicy {
     // same-origin-domain with our current callee.
     if (!mc::IsCrossCompartmentWrapper(aObj) &&
         xpc::IsCrossOriginAccessibleObject(aObj) &&
-        !MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(MC_UNSAFE(aCx), aObj)) {
+        !MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(aCx, aObj)) {
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
 

@@ -11,7 +11,7 @@
 
 #include <algorithm>
 
-#include "js/PropertyAndElement.h"  // JS_HasProperty, JS_HasPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_HasProperty, JS_HasPropertyById
 
 /***************************************************************************/
 
@@ -332,7 +332,7 @@ inline bool xpc_ForcePropertyResolve(JSContext* cx, JS::HandleObject obj,
   return JS_HasPropertyById(cx, obj, id, &dummy);
 }
 
-inline jsid GetJSIDByIndex(JSContext* cx, unsigned index) {
+inline jsid GetJSIDByIndex(MCContext* cx, unsigned index) {
   XPCJSRuntime* xpcrt = nsXPConnect::GetRuntimeInstance();
   return xpcrt->GetStringID(index);
 }

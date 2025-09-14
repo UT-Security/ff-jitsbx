@@ -167,7 +167,7 @@ JSObject* XrayTraits::detachExpandoChain(HandleObject obj) {
 
 bool XrayTraits::setExpandoChain(MCContext* cx, HandleObject obj,
                                  HandleObject chain) {
-  return ObjectScope(obj)->SetExpandoChain(MC_UNSAFE(cx), obj, chain);
+  return ObjectScope(obj)->SetExpandoChain(cx, obj, chain);
 }
 
 const JSClass XrayTraits::HolderClass = {
@@ -213,7 +213,7 @@ bool ReportWrapperDenial(MCContext* cx, HandleId id, WrapperDenialType type,
   if (!str) {
     return false;
   }
-  if (!propertyName.init(MC_UNSAFE(cx), str)) {
+  if (!propertyName.init(cx, str)) {
     return false;
   }
   AutoFilename filename;
@@ -564,7 +564,7 @@ bool JSXrayTraits::resolveOwnProperty(
         return false;
       }
     } else if (key == JSProto_Function) {
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LENGTH)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_LENGTH)) {
         uint16_t length;
         MC::RootedFunction fun(cx, JS_GetObjectFunction(target));
         {
@@ -576,7 +576,7 @@ bool JSXrayTraits::resolveOwnProperty(
         desc.set(Some(PropertyDescriptor::Data(NumberValue(length), {})));
         return true;
       }
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_NAME)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_NAME)) {
         MC::RootedString fname(cx, JS_GetFunctionId(JS_GetObjectFunction(target)));
         if (fname) {
           JS_MarkCrossZoneIdValue(cx, StringValue(fname));
@@ -590,7 +590,7 @@ bool JSXrayTraits::resolveOwnProperty(
         if (standardConstructor != JSProto_Null) {
           // Handle the 'prototype' property to make
           // xrayedGlobal.StandardClass.prototype work.
-          if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_PROTOTYPE) &&
+          if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE) &&
               ShouldResolvePrototypeProperty(standardConstructor)) {
             MC::RootedObject standardProto(cx);
             {
@@ -636,11 +636,11 @@ bool JSXrayTraits::resolveOwnProperty(
       // type. This limits the ability of content to do anything all that
       // confusing.
       bool isErrorIntProperty =
-          id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LINENUMBER) ||
-          id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_COLUMNNUMBER);
+          id == GetJSIDByIndex(cx, XPCJSContext::IDX_LINENUMBER) ||
+          id == GetJSIDByIndex(cx, XPCJSContext::IDX_COLUMNNUMBER);
       bool isErrorStringProperty =
-          id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_FILENAME) ||
-          id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_MESSAGE);
+          id == GetJSIDByIndex(cx, XPCJSContext::IDX_FILENAME) ||
+          id == GetJSIDByIndex(cx, XPCJSContext::IDX_MESSAGE);
       if (isErrorIntProperty || isErrorStringProperty) {
         MC::RootedObject waiver(cx, wrapper);
         if (!WrapperFactory::WaiveXrayAndWrap(cx, &waiver)) {
@@ -662,24 +662,24 @@ bool JSXrayTraits::resolveOwnProperty(
 
 #if defined(NIGHTLY_BUILD)
       // The optional .cause property can have any value.
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_CAUSE)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_CAUSE)) {
         return getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc);
       }
 #endif
 
       if (key == JSProto_AggregateError &&
-          id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_ERRORS)) {
+          id == GetJSIDByIndex(cx, XPCJSContext::IDX_ERRORS)) {
         return getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc);
       }
     } else if (key == JSProto_RegExp) {
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LASTINDEX)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_LASTINDEX)) {
         return getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc);
       }
     } else if (key == JSProto_BoundFunction) {
       // Bound functions have configurable .name and .length own data
       // properties. Only support string values for .name and number values for
       // .length.
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_NAME)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_NAME)) {
         if (!getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc)) {
           return false;
         }
@@ -689,7 +689,7 @@ bool JSXrayTraits::resolveOwnProperty(
         }
         return true;
       }
-      if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LENGTH)) {
+      if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_LENGTH)) {
         if (!getOwnPropertyFromWrapperIfSafe(cx, wrapper, id, desc)) {
           return false;
         }
@@ -706,7 +706,7 @@ bool JSXrayTraits::resolveOwnProperty(
   }
 
   // Handle the 'constructor' property.
-  if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_CONSTRUCTOR)) {
+  if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_CONSTRUCTOR)) {
     MC::RootedObject constructor(cx);
     {
       MC::SandboxStack<JSAutoRealm> ar(cx, target);
@@ -966,10 +966,10 @@ bool JSXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
         props.infallibleAppend(PropertyKey::Int(i));
       }
     } else if (key == JSProto_Function) {
-      if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LENGTH))) {
+      if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_LENGTH))) {
         return false;
       }
-      if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_NAME))) {
+      if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_NAME))) {
         return false;
       }
       // Handle the .prototype property and static properties on standard
@@ -977,7 +977,7 @@ bool JSXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
       JSProtoKey standardConstructor = constructorFor(holder);
       if (standardConstructor != JSProto_Null) {
         if (ShouldResolvePrototypeProperty(standardConstructor)) {
-          if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_PROTOTYPE))) {
+          if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PROTOTYPE))) {
             return false;
           }
         }
@@ -994,20 +994,20 @@ bool JSXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
         }
       }
     } else if (IsErrorObjectKey(key)) {
-      if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_FILENAME)) ||
-          !props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LINENUMBER)) ||
-          !props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_COLUMNNUMBER)) ||
-          !props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_STACK)) ||
-          !props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_MESSAGE))) {
+      if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_FILENAME)) ||
+          !props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_LINENUMBER)) ||
+          !props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_COLUMNNUMBER)) ||
+          !props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_STACK)) ||
+          !props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_MESSAGE))) {
         return false;
       }
     } else if (key == JSProto_RegExp) {
-      if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LASTINDEX))) {
+      if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_LASTINDEX))) {
         return false;
       }
     } else if (key == JSProto_BoundFunction) {
-      if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_LENGTH)) ||
-          !props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_NAME))) {
+      if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_LENGTH)) ||
+          !props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_NAME))) {
         return false;
       }
     }
@@ -1017,7 +1017,7 @@ bool JSXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
   }
 
   // Add the 'constructor' property.
-  if (!props.append(GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_CONSTRUCTOR))) {
+  if (!props.append(GetJSIDByIndex(cx, XPCJSContext::IDX_CONSTRUCTOR))) {
     return false;
   }
 
@@ -1523,13 +1523,13 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex) {
   }
 }
 
-JSObject* EnsureXrayExpandoObject(JSContext* cx, JS::HandleObject wrapper) {
+JSObject* EnsureXrayExpandoObject(MCContext* cx, JS::HandleObject wrapper) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(GetXrayTraits(wrapper) == &DOMXrayTraits::singleton);
   MOZ_ASSERT(IsXrayWrapper(wrapper));
 
   MC::RootedObject target(cx, DOMXrayTraits::getTargetObject(wrapper));
-  return DOMXrayTraits::singleton.ensureExpandoObject(JS_SanitizeContext(cx), wrapper, target);
+  return DOMXrayTraits::singleton.ensureExpandoObject(cx, wrapper, target);
 }
 
 const JSClass* XrayTraits::getExpandoClass(MCContext* cx,
@@ -1640,7 +1640,7 @@ bool XrayTraits::resolveOwnProperty(
       desc.set(Some(PropertyDescriptor::Data(
           ObjectValue(*constructor),
           {PropertyAttribute::Configurable, PropertyAttribute::Writable})));
-    } else if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_EVAL)) {
+    } else if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_EVAL)) {
       MC::RootedObject eval(cx);
       if (!js::GetRealmOriginalEval(cx, &eval)) {
         return false;
@@ -1648,10 +1648,10 @@ bool XrayTraits::resolveOwnProperty(
       desc.set(Some(PropertyDescriptor::Data(
           ObjectValue(*eval),
           {PropertyAttribute::Configurable, PropertyAttribute::Writable})));
-    } else if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_INFINITY)) {
+    } else if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_INFINITY)) {
       desc.set(Some(PropertyDescriptor::Data(
           DoubleValue(PositiveInfinity<double>()), {})));
-    } else if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_NAN)) {
+    } else if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_NAN)) {
       desc.set(Some(PropertyDescriptor::Data(NaNValue(), {})));
     }
   }
@@ -1662,7 +1662,7 @@ bool XrayTraits::resolveOwnProperty(
 
   // Handle .wrappedJSObject for subsuming callers. This should move once we
   // sort out own-ness for the holder.
-  if (id == GetJSIDByIndex(MC_UNSAFE(cx), XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
+  if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       WrapperFactory::AllowWaiver(wrapper)) {
     MC::SandboxStack<bool> found{false};
     if (!JS_AlreadyHasOwnPropertyById(cx, holder, id, found)) {
@@ -1787,7 +1787,7 @@ bool DOMXrayTraits::enumerateNames(MCContext* cx, HandleObject wrapper,
       return false;
     }
   }
-  return XrayOwnPropertyKeys(MC_UNSAFE(cx), wrapper, obj, flags, props);
+  return XrayOwnPropertyKeys(cx, wrapper, obj, flags, props);
 }
 
 bool DOMXrayTraits::call(MCContext* cx, HandleObject wrapper,
@@ -1843,7 +1843,7 @@ bool DOMXrayTraits::construct(MCContext* cx, HandleObject wrapper,
 bool DOMXrayTraits::getPrototype(MCContext* cx, JS::HandleObject wrapper,
                                  JS::HandleObject target,
                                  JS::MutableHandleObject protop) {
-  return mozilla::dom::XrayGetNativeProto(MC_UNSAFE(cx), target, protop);
+  return mozilla::dom::XrayGetNativeProto(cx, target, protop);
 }
 
 void DOMXrayTraits::preserveWrapper(JSObject* target) {
@@ -1864,7 +1864,7 @@ JSObject* DOMXrayTraits::createHolder(MCContext* cx, JSObject* wrapper) {
 
 const JSClass* DOMXrayTraits::getExpandoClass(MCContext* cx,
                                               HandleObject target) const {
-  return XrayGetExpandoClass(MC_UNSAFE(cx), target);
+  return XrayGetExpandoClass(cx, target);
 }
 
 template <typename Base, typename Traits>
@@ -2105,7 +2105,7 @@ bool XrayWrapper<Base, Traits>::get(MCContext* cx, HandleObject wrapper,
     return true;
   }
 
-  return Call(MC_UNSAFE(cx), receiver, getter, HandleValueArray::empty(), vp);
+  return Call(cx, receiver, getter, HandleValueArray::empty(), vp);
 }
 
 template <typename Base, typename Traits>

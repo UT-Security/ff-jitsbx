@@ -7,9 +7,9 @@
 #include "xpcprivate.h"
 #include "WrapperFactory.h"
 #include "AccessCheck.h"
-#include "jsfriendapi.h"
-#include "js/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
-#include "js/Exception.h"
+#include "mcfriendapi.h"
+#include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
+#include "monkeycage/Exception.h"
 #include "monkeycage/Id.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "monkeycage/Proxy.h"
@@ -405,7 +405,7 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
                           MutableHandleValue vp) {
   MC::RootedId id(cx, idArg);
   if (id.isVoid()) {
-    id = GetJSIDByIndex(cx, XPCJSContext::IDX_EMPTYSTRING);
+    id = GetJSIDByIndex(JS_SanitizeContext(cx), XPCJSContext::IDX_EMPTYSTRING);
   }
 
   // If our callable is a (possibly wrapped) function, we can give

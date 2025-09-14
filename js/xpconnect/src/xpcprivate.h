@@ -305,8 +305,6 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     return old;
   }
 
-  bool JSContextInitialized(JSContext* cx);
-
   virtual void BeforeProcessTask(bool aMightBlock) override;
   virtual void AfterProcessTask(uint32_t aNewRecursionDepth) override;
 
@@ -804,7 +802,7 @@ class XPCWrappedNativeScope final
 
   JSObject* DetachExpandoChain(JS::HandleObject target);
 
-  bool SetExpandoChain(JSContext* cx, JS::HandleObject target,
+  bool SetExpandoChain(MCContext* cx, JS::HandleObject target,
                        JS::HandleObject chain);
 
   static void SystemIsBeingShutDown();
@@ -2488,7 +2486,7 @@ bool StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
 inline bool xpc_ForcePropertyResolve(JSContext* cx, JS::HandleObject obj,
                                      jsid id);
 
-inline jsid GetJSIDByIndex(JSContext* cx, unsigned index);
+inline jsid GetJSIDByIndex(MCContext* cx, unsigned index);
 
 namespace xpc {
 

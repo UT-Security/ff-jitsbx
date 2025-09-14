@@ -62,7 +62,7 @@ class MaybeCrossOriginObjectMixins {
    * same-compartment may not be same-Realm.  "obj" can be a WindowProxy, a
    * Window, or a Location.
    */
-  static bool IsPlatformObjectSameOrigin(JSContext* cx, JSObject* obj);
+  static bool IsPlatformObjectSameOrigin(MCContext* cx, JSObject* obj);
 
  protected:
   /**
@@ -89,7 +89,7 @@ class MaybeCrossOriginObjectMixins {
    * "Location" or a cross-process proxy for one of those.
    */
   static bool CrossOriginPropertyFallback(
-      JSContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc);
 
   /**
@@ -103,7 +103,7 @@ class MaybeCrossOriginObjectMixins {
    * "receiver" will be in the compartment of "cx".  The return value will
    * be in the compartment of "cx".
    */
-  static bool CrossOriginGet(JSContext* cx, JS::Handle<JSObject*> obj,
+  static bool CrossOriginGet(MCContext* cx, JS::Handle<JSObject*> obj,
                              JS::Handle<JS::Value> receiver,
                              JS::Handle<jsid> id,
                              JS::MutableHandle<JS::Value> vp);
@@ -137,7 +137,7 @@ class MaybeCrossOriginObjectMixins {
    * "properties" are the cross-origin attributes and methods we care about,
    * which should get defined on holders.
    */
-  static bool EnsureHolder(JSContext* cx, JS::Handle<JSObject*> obj,
+  static bool EnsureHolder(MCContext* cx, JS::Handle<JSObject*> obj,
                            size_t slot, const CrossOriginProperties& properties,
                            JS::MutableHandle<JSObject*> holder);
 
@@ -149,7 +149,7 @@ class MaybeCrossOriginObjectMixins {
    * Subclasses are expected to implement this by calling our static
    * EnsureHolder with the appropriate arguments.
    */
-  virtual bool EnsureHolder(JSContext* cx, JS::Handle<JSObject*> proxy,
+  virtual bool EnsureHolder(MCContext* cx, JS::Handle<JSObject*> proxy,
                             JS::MutableHandle<JSObject*> holder) const = 0;
 
   /**
@@ -157,7 +157,7 @@ class MaybeCrossOriginObjectMixins {
    * returns false, so it can be used as "return
    * ReportCrossOriginDenial(...);".
    */
-  static bool ReportCrossOriginDenial(JSContext* aCx, JS::Handle<jsid> aId,
+  static bool ReportCrossOriginDenial(MCContext* aCx, JS::Handle<jsid> aId,
                                       const nsACString& aAccessType);
 };
 
@@ -203,7 +203,7 @@ class MaybeCrossOriginObject : public Base,
    *
    * The prototype should come from the Realm of "cx".
    */
-  virtual JSObject* getSameOriginPrototype(JSContext* cx) const = 0;
+  virtual JSObject* getSameOriginPrototype(MCContext* cx) const = 0;
 
   /**
    * Implementation of [[SetPrototypeOf]] as defined in

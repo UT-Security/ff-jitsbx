@@ -14,7 +14,7 @@
 #include "xpcprivate.h"
 
 #include "mcapi.h"
-#include "js/Symbol.h"
+#include "monkeycage/Symbol.h"
 
 using namespace JS;
 using namespace js;
@@ -25,7 +25,7 @@ static JS::SymbolCode sCrossOriginWhitelistedSymbolCodes[] = {
     JS::SymbolCode::toStringTag, JS::SymbolCode::hasInstance,
     JS::SymbolCode::isConcatSpreadable};
 
-static bool IsCrossOriginWhitelistedSymbol(JSContext* cx, JS::HandleId id) {
+static bool IsCrossOriginWhitelistedSymbol(MCContext* cx, JS::HandleId id) {
   if (!id.isSymbol()) {
     return false;
   }
@@ -40,12 +40,12 @@ static bool IsCrossOriginWhitelistedSymbol(JSContext* cx, JS::HandleId id) {
   return false;
 }
 
-bool IsCrossOriginWhitelistedProp(JSContext* cx, JS::HandleId id) {
+bool IsCrossOriginWhitelistedProp(MCContext* cx, JS::HandleId id) {
   return id == GetJSIDByIndex(cx, XPCJSContext::IDX_THEN) ||
          IsCrossOriginWhitelistedSymbol(cx, id);
 }
 
-bool AppendCrossOriginWhitelistedPropNames(JSContext* cx,
+bool AppendCrossOriginWhitelistedPropNames(MCContext* cx,
                                            JS::MutableHandleIdVector props) {
   // Add "then" if it's not already in the list.
   MC::RootedIdVector thenProp(cx);

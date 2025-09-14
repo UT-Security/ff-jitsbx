@@ -2317,7 +2317,7 @@ bool XrayDefineProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
  *     interface or interface prototype object.
  * flags are JSITER_* flags.
  */
-bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool XrayOwnPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
                          JS::Handle<JSObject*> obj, unsigned flags,
                          JS::MutableHandleVector<jsid> props);
 
@@ -2331,7 +2331,7 @@ bool XrayOwnPropertyKeys(JSContext* cx, JS::Handle<JSObject*> wrapper,
  * obj is the target object of the Xray, a binding's instance object or an
  *     interface or interface prototype object.
  */
-inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
+inline bool XrayGetNativeProto(MCContext* cx, JS::Handle<JSObject*> obj,
                                JS::MutableHandle<JSObject*> protop) {
   MC::Rooted<JSObject*> global(cx, JS::GetNonCCWObjectGlobal(obj));
   {
@@ -2340,7 +2340,7 @@ inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
     if (domClass) {
       ProtoHandleGetter protoGetter = domClass->mGetProto;
       if (protoGetter) {
-        protop.set(protoGetter(cx));
+        protop.set(protoGetter(MC_UNSAFE(cx)));
       } else {
         protop.set(JS::GetRealmObjectPrototype(cx));
       }
@@ -2352,7 +2352,7 @@ inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
       MOZ_ASSERT(IsDOMIfaceAndProtoClass(clasp));
       ProtoGetter protoGetter =
           DOMIfaceAndProtoJSClass::FromJSClass(clasp)->mGetParentProto;
-      protop.set(protoGetter(cx));
+      protop.set(protoGetter(MC_UNSAFE(cx)));
     }
   }
 
@@ -2362,7 +2362,7 @@ inline bool XrayGetNativeProto(JSContext* cx, JS::Handle<JSObject*> obj,
 /**
  * Get the Xray expando class to use for the given DOM object.
  */
-const JSClass* XrayGetExpandoClass(JSContext* cx, JS::Handle<JSObject*> obj);
+const JSClass* XrayGetExpandoClass(MCContext* cx, JS::Handle<JSObject*> obj);
 
 /**
  * Delete a named property, if any.  Return value is false if exception thrown,

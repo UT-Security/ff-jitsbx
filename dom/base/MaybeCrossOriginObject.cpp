@@ -17,7 +17,7 @@
 #include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById
 #include "monkeycage/Proxy.h"
 #include "monkeycage/RootingAPI.h"
-#include "js/WeakMap.h"
+#include "monkeycage/WeakMap.h"
 #include "monkeycage/Wrapper.h"
 #include "mcfriendapi.h"
 #include "AccessCheck.h"
@@ -32,7 +32,7 @@ static bool IsLocation(JSObject* obj) {
 namespace mozilla::dom {
 
 /* static */
-bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(JSContext* cx,
+bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(MCContext* cx,
                                                               JSObject* obj) {
   MOZ_ASSERT(!mc::IsCrossCompartmentWrapper(obj));
   // WindowProxy and Window must always be same-Realm, so we can do
@@ -45,7 +45,7 @@ bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(JSContext* cx,
              "WindowProxy not same-Realm as Window?");
 
   BasePrincipal* subjectPrincipal =
-      BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(cx));
+      BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx)));
   BasePrincipal* objectPrincipal =
       BasePrincipal::Cast(nsContentUtils::ObjectPrincipal(obj));
 
@@ -83,14 +83,14 @@ bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(JSContext* cx,
 bool MaybeCrossOriginObjectMixins::CrossOriginGetOwnPropertyHelper(
     MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const {
-  MOZ_ASSERT(!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), obj) || IsRemoteObjectProxy(obj),
+  MOZ_ASSERT(!IsPlatformObjectSameOrigin(cx, obj) || IsRemoteObjectProxy(obj),
              "Why did we get called?");
   // First check for an IDL-defined cross-origin property with the given name.
   // This corresponds to
   // https://html.spec.whatwg.org/multipage/browsers.html#crossorigingetownpropertyhelper-(-o,-p-)
   // step 2.
   MC::Rooted<JSObject*> holder(cx);
-  if (!EnsureHolder(MC_UNSAFE(cx), obj, &holder)) {
+  if (!EnsureHolder(cx, obj, &holder)) {
     return false;
   }
 
@@ -99,7 +99,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGetOwnPropertyHelper(
 
 /* static */
 bool MaybeCrossOriginObjectMixins::CrossOriginPropertyFallback(
-    JSContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
   MOZ_ASSERT(desc.isNothing(), "Why are we being called?");
 
@@ -120,7 +120,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginPropertyFallback(
 
 /* static */
 bool MaybeCrossOriginObjectMixins::CrossOriginGet(
-    JSContext* cx, JS::Handle<JSObject*> obj, JS::Handle<JS::Value> receiver,
+    MCContext* cx, JS::Handle<JSObject*> obj, JS::Handle<JS::Value> receiver,
     JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp) {
   // This is fairly similar to BaseProxyHandler::get, but there are some
   // differences.  Most importantly, we want to throw if we have a descriptor
@@ -147,7 +147,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginGet(
 
   // Step 1.
   MC::Rooted<Maybe<JS::PropertyDescriptor>> desc(cx);
-  if (!mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(JS_SanitizeContext(cx), obj, id, &desc)) {
+  if (!mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, obj, id, &desc)) {
     return false;
   }
 
@@ -195,7 +195,7 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   MOZ_ASSERT(
       js::IsWindowProxy(obj) || IsLocation(obj) || IsRemoteObjectProxy(obj),
       "Unexpected proxy");
-  MOZ_ASSERT(!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), obj) || IsRemoteObjectProxy(obj),
+  MOZ_ASSERT(!IsPlatformObjectSameOrigin(cx, obj) || IsRemoteObjectProxy(obj),
              "Why did we get called?");
   js::AssertSameCompartment(cx, receiver);
   js::AssertSameCompartment(cx, v);
@@ -226,12 +226,12 @@ bool MaybeCrossOriginObjectMixins::CrossOriginSet(
   }
 
   // Step 4.
-  return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "set"_ns);
+  return ReportCrossOriginDenial(cx, id, "set"_ns);
 }
 
 /* static */
 bool MaybeCrossOriginObjectMixins::EnsureHolder(
-    JSContext* cx, JS::Handle<JSObject*> obj, size_t slot,
+    MCContext* cx, JS::Handle<JSObject*> obj, size_t slot,
     const CrossOriginProperties& properties,
     JS::MutableHandle<JSObject*> holder) {
   MOZ_ASSERT(!IsPlatformObjectSameOrigin(cx, obj) || IsRemoteObjectProxy(obj),
@@ -292,7 +292,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
   MC::Rooted<JS::Value> holderVal(cx);
   {  // Scope for working with the map
     MC::SandboxStack<JSAutoRealm> ar(cx, map);
-    if (!MaybeWrapObject(cx, &key)) {
+    if (!MaybeWrapObject(MC_UNSAFE(cx), &key)) {
       return false;
     }
 
@@ -337,7 +337,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
     MC::SandboxStack<JSAutoRealm> ar(cx, map);
 
     // Key is already in the right Realm, but we need to wrap the value.
-    if (!MaybeWrapValue(cx, &holderVal)) {
+    if (!MaybeWrapValue(MC_UNSAFE(cx), &holderVal)) {
       return false;
     }
 
@@ -351,8 +351,8 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
 
 /* static */
 bool MaybeCrossOriginObjectMixins::ReportCrossOriginDenial(
-    JSContext* aCx, JS::Handle<jsid> aId, const nsACString& aAccessType) {
-  xpc::AccessCheck::reportCrossOriginDenial(JS_SanitizeContext(aCx), aId, aAccessType);
+    MCContext* aCx, JS::Handle<jsid> aId, const nsACString& aAccessType) {
+  xpc::AccessCheck::reportCrossOriginDenial(aCx, aId, aAccessType);
   return false;
 }
 
@@ -360,14 +360,14 @@ template <typename Base>
 bool MaybeCrossOriginObject<Base>::getPrototype(
     MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandle<JSObject*> protop) const {
-  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
     protop.set(nullptr);
     return true;
   }
 
   {  // Scope for JSAutoRealm
     MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
-    protop.set(getSameOriginPrototype(MC_UNSAFE(cx)));
+    protop.set(getSameOriginPrototype(cx));
     if (!protop) {
       return false;
     }
@@ -441,8 +441,8 @@ template <typename Base>
 bool MaybeCrossOriginObject<Base>::defineProperty(
     MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     JS::Handle<JS::PropertyDescriptor> desc, MC::Tainted<JS::ObjectOpResult*> result) const {
-  if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
-    return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "define"_ns);
+  if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+    return ReportCrossOriginDenial(cx, id, "define"_ns);
   }
 
   // Enter the Realm of proxy and do the remaining work in there.
