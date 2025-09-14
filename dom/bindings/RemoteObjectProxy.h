@@ -166,7 +166,7 @@ class RemoteObjectProxy : public RemoteObjectProxyBase {
   using RemoteObjectProxyBase::RemoteObjectProxyBase;
 
  private:
-  bool EnsureHolder(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+  bool EnsureHolder(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                     JS::MutableHandle<JSObject*> aHolder) const final {
     return MaybeCrossOriginObjectMixins::EnsureHolder(
         aCx, aProxy, /* slot = */ 0, P(), aHolder);

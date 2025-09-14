@@ -114,7 +114,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
                          JS::PropertyAttribute::Enumerable},
                         aDesc);
     }
-    return ReportCrossOriginDenial(MC_UNSAFE(aCx), aId, "access"_ns);
+    return ReportCrossOriginDenial(aCx, aId, "access"_ns);
   }
 
   bool ok = CrossOriginGetOwnPropertyHelper(aCx, aProxy, aId, aDesc);
@@ -130,7 +130,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
 
   if (aId.isString()) {
     nsAutoJSString str;
-    if (!str.init(MC_UNSAFE(aCx), aId.toString())) {
+    if (!str.init(aCx, aId.toString())) {
       return false;
     }
 
@@ -142,7 +142,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
     }
   }
 
-  return CrossOriginPropertyFallback(MC_UNSAFE(aCx), aProxy, aId, aDesc);
+  return CrossOriginPropertyFallback(aCx, aProxy, aId, aDesc);
 }
 
 bool AppendIndexedPropertyNames(JSContext* aCx, BrowsingContext* aContext,

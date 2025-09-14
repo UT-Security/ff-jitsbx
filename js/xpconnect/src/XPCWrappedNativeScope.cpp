@@ -393,15 +393,15 @@ JSObject* XPCWrappedNativeScope::DetachExpandoChain(HandleObject target) {
   return mXrayExpandos.removeValue(target);
 }
 
-bool XPCWrappedNativeScope::SetExpandoChain(JSContext* cx, HandleObject target,
+bool XPCWrappedNativeScope::SetExpandoChain(MCContext* cx, HandleObject target,
                                             HandleObject chain) {
   MOZ_ASSERT(ObjectScope(target) == this);
   MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
   MOZ_ASSERT_IF(chain, ObjectScope(chain) == this);
-  if (!mXrayExpandos.initialized() && !mXrayExpandos.init(cx)) {
+  if (!mXrayExpandos.initialized() && !mXrayExpandos.init(MC_UNSAFE(cx))) {
     return false;
   }
-  return mXrayExpandos.put(cx, target, chain);
+  return mXrayExpandos.put(MC_UNSAFE(cx), target, chain);
 }
 
 /***************************************************************************/

@@ -457,7 +457,8 @@ class ForwardingProxyHandler : public BaseProxyHandler {
  static bool dynamicCheckedUnwrapAllowedCb(const void* p, JS::HandleObject obj,              \
                                            JSContext* cx) {                                  \
    auto* h = static_cast<const ExternalWrapper*>(p);                                         \
-   return h->dynamicCheckedUnwrapAllowed(obj, cx);                                           \
+   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   return h->dynamicCheckedUnwrapAllowed(obj, mcx);                                          \
  }                                                                                           \
  static const js::sandbox::WrapperOps* ops() {                                               \
    static const js::sandbox::WrapperOps __ops = {                                            \
@@ -531,8 +532,8 @@ class Wrapper : public ForwardingProxyHandler {
   }
 
   virtual bool dynamicCheckedUnwrapAllowed(JS::HandleObject obj,
-                                           JSContext* cx) const {
-    return UNSAFE_getWrapper()->js::Wrapper::dynamicCheckedUnwrapAllowed(obj, cx);
+                                           MCContext* cx) const {
+    return UNSAFE_getWrapper()->js::Wrapper::dynamicCheckedUnwrapAllowed(obj, cx->cx_);
   }
 
   static inline JSObject* New(MCContext* cx, JSObject* obj, const Wrapper* handler,

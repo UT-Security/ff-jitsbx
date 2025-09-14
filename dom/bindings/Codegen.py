@@ -14759,7 +14759,7 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
             xrayDecl = dedent(
                 """
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-                MOZ_ASSERT(IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy),
+                MOZ_ASSERT(IsPlatformObjectSameOrigin(cx, proxy),
                            "getOwnPropertyDescriptor() and set() should have dealt");
                 MOZ_ASSERT(js::IsObjectInContextCompartment(proxy, cx),
                            "getOwnPropertyDescriptor() and set() should have dealt");
@@ -15030,7 +15030,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if self.descriptor.isMaybeCrossOriginObject():
                 set += dedent(
                     """
-                    MOZ_ASSERT(IsPlatformObjectSameOrigin(MC_UNSAFE(cx_), proxy),
+                    MOZ_ASSERT(IsPlatformObjectSameOrigin(cx_, proxy),
                                "Why did the MaybeCrossOriginObject defineProperty override fail?");
                     MOZ_ASSERT(js::IsObjectInContextCompartment(proxy, cx_),
                                "Why did the MaybeCrossOriginObject defineProperty override fail?");
@@ -15172,8 +15172,8 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             delete += dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
-                  return ReportCrossOriginDenial(MC_UNSAFE(cx), id, "delete"_ns);
+                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+                  return ReportCrossOriginDenial(cx, id, "delete"_ns);
                 }
 
                 // Safe to enter the Realm of proxy now.
@@ -15281,14 +15281,14 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
             xrayDecl = dedent(
                 """
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
-                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
                   if (!(flags & JSITER_HIDDEN)) {
                     // There are no enumerable cross-origin props, so we're done.
                     return true;
                   }
 
                   MC::Rooted<JSObject*> holder(cx);
-                  if (!EnsureHolder(MC_UNSAFE(cx), proxy, &holder)) {
+                  if (!EnsureHolder(cx, proxy, &holder)) {
                     return false;
                   }
 
@@ -15296,7 +15296,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                     return false;
                   }
 
-                  return xpc::AppendCrossOriginWhitelistedPropNames(MC_UNSAFE(cx), props);
+                  return xpc::AppendCrossOriginWhitelistedPropNames(cx, props);
                 }
 
                 """
@@ -15420,7 +15420,7 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             maybeCrossOrigin = dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
                   // Just hand this off to BaseProxyHandler to do the slow-path thing.
                   // The BaseProxyHandler code is OK with this happening without entering the
                   // compartment of "proxy", which is important to get the right answers.
@@ -15579,8 +15579,8 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                 MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy),
                             "Should not have a XrayWrapper here");
 
-                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
-                  return CrossOriginGet(MC_UNSAFE(cx), proxy, receiver, id, vp);
+                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
+                  return CrossOriginGet(cx, proxy, receiver, id, vp);
                 }
 
                 $*{missingPropUseCounters}
@@ -15829,7 +15829,7 @@ class CGDOMJSProxyHandler_className(ClassMethod):
         if self.descriptor.isMaybeCrossOriginObject():
             crossOrigin = dedent(
                 """
-                if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+                if (!IsPlatformObjectSameOrigin(cx, proxy)) {
                   return "Object";
                 }
 
@@ -16091,7 +16091,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
             MOZ_ASSERT(!xpc::WrapperFactory::IsXrayWrapper(proxy));
 
             // Step 1.
-            if (IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+            if (IsPlatformObjectSameOrigin(cx, proxy)) {
               { // Scope so we can wrap our PropertyDescriptor back into
                 // the caller compartment.
                 // Enter the Realm of "proxy" so we can work with it.
@@ -16121,7 +16121,7 @@ class CGDOMJSProxyHandler_getOwnPropertyDescriptor(ClassMethod):
             }
 
             // And step 4.
-            return CrossOriginPropertyFallback(MC_UNSAFE(cx), proxy, id, desc);
+            return CrossOriginPropertyFallback(cx, proxy, id, desc);
             """
         )
 
@@ -16135,7 +16135,7 @@ class CGDOMJSProxyHandler_getSameOriginPrototype(ClassMethod):
     def __init__(self, descriptor):
         assert descriptor.isMaybeCrossOriginObject()
 
-        args = [Argument("JSContext*", "cx")]
+        args = [Argument("MCContext*", "cx")]
         ClassMethod.__init__(
             self,
             "getSameOriginPrototype",
@@ -16150,7 +16150,7 @@ class CGDOMJSProxyHandler_getSameOriginPrototype(ClassMethod):
     def getBody(self):
         return dedent(
             """
-            return GetProtoObjectHandle(cx);
+            return GetProtoObjectHandle(MC_UNSAFE(cx));
             """
         )
 
@@ -16214,7 +16214,7 @@ class CGDOMJSProxyHandler_set(ClassMethod):
     def getBody(self):
         return dedent(
             """
-            if (!IsPlatformObjectSameOrigin(MC_UNSAFE(cx), proxy)) {
+            if (!IsPlatformObjectSameOrigin(cx, proxy)) {
               return CrossOriginSet(cx, proxy, id, v, receiver, result);
             }
 
@@ -16244,7 +16244,7 @@ class CGDOMJSProxyHandler_EnsureHolder(ClassMethod):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "proxy"),
             Argument("JS::MutableHandle<JSObject*>", "holder"),
         ]

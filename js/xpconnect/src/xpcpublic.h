@@ -38,7 +38,7 @@
 
 // XXX only for NukeAllWrappersForRealm, which is only used in
 // dom/base/WindowDestroyedEvent.cpp outside of js
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 
 class JSObject;
 class JSString;
@@ -796,13 +796,13 @@ void NukeJSStackFrames(JS::Realm* aRealm);
 // Check whether the given jsid is a property name (string or symbol) whose
 // value can be gotten cross-origin.  Cross-origin gets always return undefined
 // as the value, unless the Xray actually provides a different value.
-bool IsCrossOriginWhitelistedProp(JSContext* cx,
+bool IsCrossOriginWhitelistedProp(MCContext* cx,
                                   JS::Handle<JS::PropertyKey> id);
 
 // Appends to props the jsids for property names (strings or symbols) whose
 // value can be gotten cross-origin.
 bool AppendCrossOriginWhitelistedPropNames(
-    JSContext* cx, JS::MutableHandle<JS::StackGCVector<JS::PropertyKey>> props);
+    MCContext* cx, JS::MutableHandle<JS::StackGCVector<JS::PropertyKey>> props);
 }  // namespace xpc
 
 namespace mozilla {

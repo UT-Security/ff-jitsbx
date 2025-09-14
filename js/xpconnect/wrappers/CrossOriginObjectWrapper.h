@@ -45,7 +45,7 @@ class CrossOriginObjectWrapper : public mc::Wrapper {
 #endif
 
   bool dynamicCheckedUnwrapAllowed(JS::Handle<JSObject*> obj,
-                                   JSContext* cx) const override;
+                                   MCContext* cx) const override;
 
   // Cross origin objects should not participate in private fields.
   virtual bool throwOnPrivateField() const override { return true; }

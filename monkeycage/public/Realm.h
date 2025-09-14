@@ -58,6 +58,10 @@ inline JSObject* GetRealmAsyncIteratorPrototype(MCContext* cx) {
   return GetRealmAsyncIteratorPrototype(cx->cx_);
 }
 
+inline JSObject* GetRealmKeyObject(MCContext* cx) {
+  return GetRealmKeyObject(cx->cx_);
+}
+
 inline Realm* GetFunctionRealm(MCContext* cx, HandleObject objArg) {
   return GetFunctionRealm(cx->cx_, objArg);
 }

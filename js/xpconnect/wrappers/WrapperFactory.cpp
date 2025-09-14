@@ -424,7 +424,7 @@ const CrossOriginObjectWrapper* CrossOriginObjectWrapper::getSingleton() {
 }
 
 bool CrossOriginObjectWrapper::dynamicCheckedUnwrapAllowed(
-    HandleObject obj, JSContext* cx) const {
+    HandleObject obj, MCContext* cx) const {
   MOZ_ASSERT(js::GetProxyHandler(obj) == MC_UNSAFE(this),
              "Why are we getting called for some random object?");
   JSObject* target = wrappedObject(obj);
