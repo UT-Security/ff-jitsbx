@@ -43,21 +43,6 @@ class TaintedVolatile<JS::ErrorReportBuilder, MC_Sbx> {
 
 }  // namespace MC
 
-template <typename... Args>
-inline void JS_ReportErrorASCII(MCContext* cx, Args... args) {
-  return JS_ReportErrorASCII(cx->cx_, "%s", args...);
-}
-
-template <typename... Args>
-inline void JS_ReportErrorLatin1(MCContext* cx, Args... args) {
-  return JS_ReportErrorLatin1(cx->cx_, "%s", args...);
-}
-
-template <typename... Args>
-inline void JS_ReportErrorUTF8(MCContext* cx, Args... args) {
-  return JS_ReportErrorUTF8(cx->cx_, "%s", args...);
-}
-
 //TODO: allow callback to be either a sandbox address or a sandbox callback.
 template <typename... Args>
 inline void JS_ReportErrorNumberASCII(

@@ -78,11 +78,11 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
       argc--;
     }
 
-    static auto XPC_WN_CallMethodCb = MC::Sandbox::RegisterCallback(XPC_WN_CallMethod);
+    static auto XPC_WN_CallMethodCb = MC::Sandbox::RegisterTaintedCallback(XPC_WN_CallMethod);
     callback = XPC_WN_CallMethodCb;
   } else {
     argc = 0;
-    static auto XPC_WN_GetterSetterCb = MC::Sandbox::RegisterCallback(XPC_WN_GetterSetter);
+    static auto XPC_WN_GetterSetterCb = MC::Sandbox::RegisterTaintedCallback(XPC_WN_GetterSetter);
     callback = XPC_WN_GetterSetterCb;
   }
 
@@ -91,9 +91,9 @@ bool XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
 
   JSFunction* fun;
   if (name.isString()) {
-    fun = js::NewFunctionByIdWithReserved(ccx, callback.UNSAFE_get(), argc, 0, name);
+    fun = js::NewFunctionByIdWithReserved(ccx, callback, argc, 0, name);
   } else {
-    fun = js::NewFunctionWithReserved(ccx, callback.UNSAFE_get(), argc, 0, nullptr);
+    fun = js::NewFunctionWithReserved(ccx, callback, argc, 0, nullptr);
   }
   if (!fun) {
     return false;

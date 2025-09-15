@@ -365,7 +365,7 @@ MC::Tainted<bool> ModuleLoaderBase::HostImportModuleDynamically(
 // static
 ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(MCContext* aCx) {
   auto reportError = mozilla::MakeScopeExit([aCx]() {
-    JS_ReportErrorASCII(aCx, "No ScriptLoader found for the current context");
+    JS_ReportErrorASCII(MC_UNSAFE(aCx), "No ScriptLoader found for the current context");
   });
 
   MC::Rooted<JSObject*> object(aCx, JS::CurrentGlobalOrNull(aCx));

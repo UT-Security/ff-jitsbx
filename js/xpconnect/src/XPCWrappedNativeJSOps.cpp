@@ -12,12 +12,12 @@
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
 #include "js/CharacterEncoding.h"
-#include "js/Class.h"
+#include "monkeycage/Class.h"
 #include "monkeycage/Id.h"
 #include "js/Object.h"  // JS::GetClass
 #include "js/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
-#include "js/Symbol.h"
+#include "monkeycage/Symbol.h"
 
 #include <string_view>
 
@@ -30,7 +30,7 @@ using namespace xpc;
 // All of the exceptions thrown into JS from this file go through here.
 // That makes this a nice place to set a breakpoint.
 
-static bool Throw(nsresult errNum, JSContext* cx) {
+static bool Throw(nsresult errNum, MCContext* cx) {
   XPCThrower::Throw(errNum, cx);
   return false;
 }
@@ -71,11 +71,15 @@ static bool ToStringGuts(XPCCallContext& ccx) {
 
 /***************************************************************************/
 
-static bool XPC_WN_Shared_ToString(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> XPC_WN_Shared_ToString(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+  
   CallArgs args = CallArgsFromVp(argc, vp);
 
   MC::RootedObject obj(cx);
-  if (!args.computeThis(cx, &obj)) {
+  if (!args.computeThis(MC_UNSAFE(cx), &obj)) {
     return false;
   }
 
@@ -88,7 +92,11 @@ static bool XPC_WN_Shared_ToString(JSContext* cx, unsigned argc, Value* vp) {
   return ToStringGuts(ccx);
 }
 
-static bool XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> XPC_WN_Shared_ToSource(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   static constexpr std::string_view empty = "({})";
   JSString* str = JS_NewStringCopyN(cx, empty.data(), empty.length());
@@ -100,7 +108,11 @@ static bool XPC_WN_Shared_ToSource(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> XPC_WN_Shared_toPrimitive(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   MC::RootedObject obj(cx);
@@ -111,17 +123,17 @@ static bool XPC_WN_Shared_toPrimitive(JSContext* cx, unsigned argc, Value* vp) {
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
-  JSType hint;
-  if (!GetFirstArgumentAsTypeHint(cx, args, &hint)) {
+  MC::SandboxStack<JSType> hint;
+  if (!GetFirstArgumentAsTypeHint(cx, args, hint)) {
     return false;
   }
 
-  if (hint == JSTYPE_NUMBER) {
+  if (*hint.UNSAFE_unverified() == JSTYPE_NUMBER) {
     args.rval().set(NaNValue());
     return true;
   }
 
-  MOZ_ASSERT(hint == JSTYPE_STRING || hint == JSTYPE_UNDEFINED);
+  MOZ_ASSERT(*hint.UNSAFE_unverified() == JSTYPE_STRING || *hint.UNSAFE_unverified() == JSTYPE_UNDEFINED);
   ccx.SetName(ccx.GetContext()->GetStringID(XPCJSContext::IDX_TO_STRING));
   ccx.SetArgsAndResultPtr(0, nullptr, args.rval().address());
 
@@ -206,7 +218,7 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
     }
     MC::RootedObject mainObj(ccx, underware->GetJSObject());
     if (mainObj) {
-      MC::SandboxStack<JSAutoRealm> ar(ccx, underware->GetJSObjectGlobal());
+      MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(ccx), underware->GetJSObjectGlobal());
 
       // We don't have to root this ID, as it's already rooted by our context.
       HandleId id =
@@ -229,13 +241,17 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
 // This is the getter native function we use to handle 'wrappedJSObject' for
 // double wrapped JSObjects.
 
-static bool XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc,
-                                       Value* vp) {
+static MC::Tainted<bool> XPC_WN_DoubleWrappedGetter(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                       MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        cx,
+        MC_UNSAFE(cx),
         "xpconnect double wrapped getter called on incompatible non-object");
     return false;
   }
@@ -259,8 +275,8 @@ static bool XPC_WN_DoubleWrappedGetter(JSContext* cx, unsigned argc,
 
   // It is a double wrapped object. This should really never appear in
   // content these days, but addons still do it - see bug 965921.
-  if (MOZ_UNLIKELY(!nsContentUtils::IsSystemCaller(cx))) {
-    JS_ReportErrorASCII(cx,
+  if (MOZ_UNLIKELY(!nsContentUtils::IsSystemCaller(MC_UNSAFE(cx)))) {
+    JS_ReportErrorASCII(MC_UNSAFE(cx),
                         "Attempt to use .wrappedJSObject in untrusted code");
     return false;
   }
@@ -284,7 +300,7 @@ static bool DefinePropertyIfFound(
     XPCWrappedNativeScope* scope, bool reflectToStringAndToSource,
     XPCWrappedNative* wrapperToReflectInterfaceNames,
     XPCWrappedNative* wrapperToReflectDoubleWrap, nsIXPCScriptable* scr,
-    unsigned propFlags, bool* resolved) {
+    unsigned propFlags, MC::Tainted<bool*> resolved) {
   MC::RootedId id(ccx, idArg);
   RefPtr<XPCNativeInterface> iface = ifaceArg;
   XPCJSContext* xpccx = ccx.GetContext();
@@ -307,23 +323,23 @@ static bool DefinePropertyIfFound(
       MC::SandboxCallback<JSNative> call{nullptr};
       if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_STRING)) {
         static auto XPC_WN_Shared_ToStringCb =
-            MC::Sandbox::RegisterCallback(XPC_WN_Shared_ToString);
+            MC::Sandbox::RegisterTaintedCallback(XPC_WN_Shared_ToString);
         call = XPC_WN_Shared_ToStringCb;
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_STRING);
       } else if (id == xpccx->GetStringID(XPCJSContext::IDX_TO_SOURCE)) {
         static auto XPC_WN_Shared_ToSourceCb =
-            MC::Sandbox::RegisterCallback(XPC_WN_Shared_ToSource);
+            MC::Sandbox::RegisterTaintedCallback(XPC_WN_Shared_ToSource);
         call = XPC_WN_Shared_ToSourceCb;
         name = xpccx->GetStringName(XPCJSContext::IDX_TO_SOURCE);
       } else if (id.isWellKnownSymbol(JS::SymbolCode::toPrimitive)) {
         static auto XPC_WN_Shared_toPrimitiveCb =
-            MC::Sandbox::RegisterCallback(XPC_WN_Shared_toPrimitive);
+            MC::Sandbox::RegisterTaintedCallback(XPC_WN_Shared_toPrimitive);
         call = XPC_WN_Shared_toPrimitiveCb;
         name = "[Symbol.toPrimitive]";
       }
 
       if (call.UNSAFE_get()) {
-        MC::RootedFunction fun(ccx, JS_NewFunction(ccx, call.UNSAFE_get(), 0, 0, name));
+        MC::RootedFunction fun(ccx, JS_NewFunction(ccx, call, 0, 0, name));
         if (!fun) {
           JS_ReportOutOfMemory(ccx);
           return false;
@@ -361,13 +377,13 @@ static bool DefinePropertyIfFound(
           break;
         }
 
-        iface2 = XPCNativeInterface::GetNewOrUsed(ccx, name.get());
+        iface2 = XPCNativeInterface::GetNewOrUsed(MC_UNSAFE(ccx), name.get());
         if (!iface2) {
           break;
         }
 
         to =
-            wrapperToReflectInterfaceNames->FindTearOff(ccx, iface2, true, &rv);
+            wrapperToReflectInterfaceNames->FindTearOff(MC_UNSAFE(ccx), iface2, true, &rv);
         if (!to) {
           break;
         }
@@ -405,8 +421,8 @@ static bool DefinePropertyIfFound(
       name = xpccx->GetStringName(XPCJSContext::IDX_WRAPPED_JSOBJECT);
 
       static auto XPC_WN_DoubleWrappedGetterCb =
-          MC::Sandbox::RegisterCallback(XPC_WN_DoubleWrappedGetter);
-      fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetterCb.UNSAFE_get(), 0, 0, name);
+          MC::Sandbox::RegisterTaintedCallback(XPC_WN_DoubleWrappedGetter);
+      fun = JS_NewFunction(ccx, XPC_WN_DoubleWrappedGetterCb, 0, 0, name);
 
       if (!fun) {
         return false;
@@ -435,7 +451,7 @@ static bool DefinePropertyIfFound(
   if (!member) {
     if (wrapperToReflectInterfaceNames) {
       XPCWrappedNativeTearOff* to =
-          wrapperToReflectInterfaceNames->FindTearOff(ccx, iface, true);
+          wrapperToReflectInterfaceNames->FindTearOff(MC_UNSAFE(ccx), iface, true);
 
       if (!to) {
         return false;
@@ -510,8 +526,11 @@ static bool DefinePropertyIfFound(
 /***************************************************************************/
 /***************************************************************************/
 
-static bool XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj,
+static MC::Tainted<bool> XPC_WN_OnlyIWrite_AddPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                               HandleId id, HandleValue v) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   XPCCallContext ccx(cx, obj, nullptr, id);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -525,31 +544,37 @@ static bool XPC_WN_OnlyIWrite_AddPropertyStub(JSContext* cx, HandleObject obj,
 }
 
 static auto XPC_WN_OnlyIWrite_AddPropertyStubCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_AddPropertyStub);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_OnlyIWrite_AddPropertyStub);
   return inner_;
 }
 
-bool XPC_WN_CannotModifyPropertyStub(JSContext* cx, HandleObject obj,
+MC::Tainted<bool> XPC_WN_CannotModifyPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                      HandleId id, HandleValue v) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
 MC::SandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_CannotModifyPropertyStub);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_CannotModifyPropertyStub);
   return inner_;
 }
 
-bool XPC_WN_CannotDeletePropertyStub(JSContext* cx, HandleObject obj,
+MC::Tainted<bool> XPC_WN_CannotDeletePropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                      HandleId id, ObjectOpResult& result) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
 MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_CannotDeletePropertyStub);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_CannotDeletePropertyStub);
   return inner_;
 }
 
-bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
+MC::Tainted<bool> XPC_WN_Shared_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -579,7 +604,7 @@ bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
         continue;
 
       JS_MarkCrossZoneId(cx, name);
-      if (!xpc_ForcePropertyResolve(cx, obj, name)) {
+      if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
         return false;
       }
     }
@@ -588,7 +613,7 @@ bool XPC_WN_Shared_Enumerate(JSContext* cx, HandleObject obj) {
 }
 
 MC::SandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Shared_Enumerate);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_Shared_Enumerate);
   return inner_;
 }
 
@@ -663,8 +688,11 @@ MC::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb() {
   return inner_;
 }
 
-static bool XPC_WN_NoHelper_Resolve(JSContext* cx, HandleObject obj,
-                                    HandleId id, bool* resolvedp) {
+static MC::Tainted<bool> XPC_WN_NoHelper_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj,
+                                    HandleId id, MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   XPCCallContext ccx(cx, obj, nullptr, id);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -691,7 +719,7 @@ static const JSClassOps* XPC_WN_NoHelper_JSClassOps() {
       XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),    // delProperty
       XPC_WN_Shared_EnumerateCb().UNSAFE_get(),            // enumerate
       nullptr,                            // newEnumerate
-      MC::Sandbox::RegisterCallback(XPC_WN_NoHelper_Resolve).UNSAFE_get(),            // resolve
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_NoHelper_Resolve).UNSAFE_get(),            // resolve
       nullptr,                            // mayResolve
       XPC_WN_NoHelper_FinalizeCb().UNSAFE_get(),           // finalize
       nullptr,                            // call
@@ -726,8 +754,11 @@ const JSClass* XPC_WN_NoHelper_JSClass() {
 
 /***************************************************************************/
 
-bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, HandleObject obj,
+MC::Tainted<bool> XPC_WN_MaybeResolvingPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                        HandleId id, HandleValue v) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -739,13 +770,16 @@ bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, HandleObject obj,
 }
 
 MC::SandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingPropertyStub);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_MaybeResolvingPropertyStub);
   return inner_;
 }
 
-bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
+MC::Tainted<bool> XPC_WN_MaybeResolvingDeletePropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                              HandleId id,
                                              ObjectOpResult& result) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -757,16 +791,16 @@ bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx, HandleObject obj,
 }
 
 MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_MaybeResolvingDeletePropertyStub);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_MaybeResolvingDeletePropertyStub);
   return inner_;
 }
 
 // macro fun!
 #define PRE_HELPER_STUB                                                 \
   /* It's very important for "unwrapped" to be rooted here.  */         \
-  MC::RootedObject unwrapped(cx, js::CheckedUnwrapDynamic(obj, cx, false)); \
+  MC::RootedObject unwrapped(cx, mc::CheckedUnwrapDynamic(obj, cx, false)); \
   if (!unwrapped) {                                                     \
-    JS_ReportErrorASCII(cx, "Permission denied to operate on object."); \
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "Permission denied to operate on object."); \
     return false;                                                       \
   }                                                                     \
   if (!IsWrappedNativeReflector(unwrapped)) {                           \
@@ -781,7 +815,11 @@ MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubC
   if (NS_FAILED(rv)) return Throw(rv, cx); \
   return retval;
 
-bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> XPC_WN_Helper_Call(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   // N.B. we want obj to be the callee, not JS_THIS(cx, vp)
   MC::RootedObject obj(cx, &args.callee());
@@ -793,16 +831,20 @@ bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   PRE_HELPER_STUB
-  Call(wrapper, cx, obj, args, &retval);
+  Call(wrapper, MC_UNSAFE(cx), obj, args, &retval);
   POST_HELPER_STUB
 }
 
 MC::SandboxCallback<JSNative> XPC_WN_Helper_CallCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Call);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_Helper_Call);
   return inner_;
 }
 
-bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> XPC_WN_Helper_Construct(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MC::RootedObject obj(cx, &args.callee());
   if (!obj) {
@@ -816,24 +858,28 @@ bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   PRE_HELPER_STUB
-  Construct(wrapper, cx, obj, args, &retval);
+  Construct(wrapper, MC_UNSAFE(cx), obj, args, &retval);
   POST_HELPER_STUB
 }
 
 MC::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Construct);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_Helper_Construct);
   return inner_;
 }
 
-static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> XPC_WN_Helper_HasInstance(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
-  if (!args.requireAtLeast(cx, "WrappedNative[Symbol.hasInstance]", 1)) {
+  if (!args.requireAtLeast(MC_UNSAFE(cx), "WrappedNative[Symbol.hasInstance]", 1)) {
     return false;
   }
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        cx, "WrappedNative[Symbol.hasInstance]: unexpected this value");
+        MC_UNSAFE(cx), "WrappedNative[Symbol.hasInstance]: unexpected this value");
     return false;
   }
 
@@ -842,7 +888,7 @@ static bool XPC_WN_Helper_HasInstance(JSContext* cx, unsigned argc, Value* vp) {
 
   bool retval2;
   PRE_HELPER_STUB
-  HasInstance(wrapper, cx, obj, val, &retval2, &retval);
+  HasInstance(wrapper, MC_UNSAFE(cx), obj, val, &retval2, &retval);
   args.rval().setBoolean(retval2);
   POST_HELPER_STUB
 }
@@ -873,8 +919,11 @@ class MOZ_RAII AutoSetResolvingWrapper {
   XPCWrappedNative* mOldResolvingWrapper;
 };
 
-bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                           bool* resolvedp) {
+MC::Tainted<bool> XPC_WN_Helper_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
+                           MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   nsresult rv = NS_OK;
   bool retval = true;
   bool resolved = false;
@@ -895,9 +944,9 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       asrw.emplace(ccx, wrapper);
     }
     static auto XPC_WN_Helper_HasInstanceCb =
-        MC::Sandbox::RegisterCallback(XPC_WN_Helper_HasInstance);
+        MC::Sandbox::RegisterTaintedCallback(XPC_WN_Helper_HasInstance);
     if (!JS_DefineFunctionById(
-            cx, obj, id, XPC_WN_Helper_HasInstanceCb.UNSAFE_get(), 1,
+            cx, obj, id, XPC_WN_Helper_HasInstanceCb, 1,
             JSPROP_READONLY | JSPROP_PERMANENT | JSPROP_RESOLVING)) {
       rv = NS_ERROR_FAILURE;
     } else {
@@ -910,7 +959,7 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     if (scr->AllowPropModsDuringResolve()) {
       asrw.emplace(ccx, wrapper);
     }
-    rv = scr->Resolve(wrapper, cx, obj, id, &resolved, &retval);
+    rv = scr->Resolve(wrapper, MC_UNSAFE(cx), obj, id, &resolved, &retval);
   }
 
   old = ccx.SetResolveName(old);
@@ -948,15 +997,18 @@ bool XPC_WN_Helper_Resolve(JSContext* cx, HandleObject obj, HandleId id,
 }
 
 MC::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Resolve);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_Helper_Resolve);
   return inner_;
 }
 
 /***************************************************************************/
 
-bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
+MC::Tainted<bool> XPC_WN_NewEnumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                          MutableHandleIdVector properties,
                          bool enumerableOnly) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -966,13 +1018,13 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
     return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
   }
 
-  if (!XPC_WN_Shared_Enumerate(cx, obj)) {
+  if (!XPC_WN_Shared_Enumerate(t_cx, obj).UNSAFE_unverified()) {
     return false;
   }
 
   bool retval = true;
   nsresult rv =
-      scr->NewEnumerate(wrapper, cx, obj, properties, enumerableOnly, &retval);
+      scr->NewEnumerate(wrapper, MC_UNSAFE(cx), obj, properties, enumerableOnly, &retval);
   if (NS_FAILED(rv)) {
     return Throw(rv, cx);
   }
@@ -980,7 +1032,7 @@ bool XPC_WN_NewEnumerate(JSContext* cx, HandleObject obj,
 }
 
 MC::SandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_NewEnumerate);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_NewEnumerate);
   return inner_;
 }
 
@@ -1026,14 +1078,18 @@ MOZ_ALWAYS_INLINE JSObject* FixUpThisIfBroken(JSObject* obj, JSObject* funobj) {
   return obj;
 }
 
-bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> XPC_WN_CallMethod(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
              "bad function");
   MC::RootedObject funobj(cx, &args.callee());
 
   MC::RootedObject obj(cx);
-  if (!args.computeThis(cx, &obj)) {
+  if (!args.computeThis(MC_UNSAFE(cx), &obj)) {
     return false;
   }
 
@@ -1053,7 +1109,11 @@ bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, Value* vp) {
   return XPCWrappedNative::CallMethod(ccx);
 }
 
-bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> XPC_WN_GetterSetter(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   MOZ_ASSERT(JS_TypeOfValue(cx, args.calleev()) == JSTYPE_FUNCTION,
              "bad function");
@@ -1061,7 +1121,7 @@ bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, Value* vp) {
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        cx, "xpconnect getter/setter called on incompatible non-object");
+        MC_UNSAFE(cx), "xpconnect getter/setter called on incompatible non-object");
     return false;
   }
   MC::RootedObject obj(cx, &args.thisv().toObject());
@@ -1108,7 +1168,10 @@ XPCWrappedNativeTearOff* XPCWrappedNativeTearOff::Get(JSObject* obj) {
                                                                   TearOffSlot);
 }
 
-static bool XPC_WN_Proto_Enumerate(JSContext* cx, HandleObject obj) {
+static MC::Tainted<bool> XPC_WN_Proto_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
   if (!self) {
@@ -1134,7 +1197,7 @@ static bool XPC_WN_Proto_Enumerate(JSContext* cx, HandleObject obj) {
     for (uint16_t k = 0; k < member_count; k++) {
       jsid name = iface->GetMemberAt(k)->GetName();
       JS_MarkCrossZoneId(cx, name);
-      if (!xpc_ForcePropertyResolve(cx, obj, name)) {
+      if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
         return false;
       }
     }
@@ -1164,10 +1227,13 @@ static size_t XPC_WN_Proto_ObjectMoved(JSObject* obj, JSObject* old) {
 
 /*****************************************************/
 
-static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
+static MC::Tainted<bool> XPC_WN_OnlyIWrite_Proto_AddPropertyStub(MC::Tainted<JSContext*> t_cx,
                                                     HandleObject obj,
                                                     HandleId id,
                                                     HandleValue v) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
@@ -1188,8 +1254,11 @@ static bool XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext* cx,
   return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 }
 
-static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                                 bool* resolvedp) {
+static MC::Tainted<bool> XPC_WN_Proto_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
+                                 MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
@@ -1212,11 +1281,11 @@ static bool XPC_WN_Proto_Resolve(JSContext* cx, HandleObject obj, HandleId id,
 
 const JSClass* XPC_WN_Proto_JSClass() {
   static const JSClassOps XPC_WN_Proto_JSClassOps = {
-      MC::Sandbox::RegisterCallback(XPC_WN_OnlyIWrite_Proto_AddPropertyStub).UNSAFE_get(),  // addProperty
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_OnlyIWrite_Proto_AddPropertyStub).UNSAFE_get(),  // addProperty
       XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),          // delProperty
-      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Enumerate).UNSAFE_get(),                   // enumerate
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_Proto_Enumerate).UNSAFE_get(),                   // enumerate
       nullptr,                                  // newEnumerate
-      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Resolve).UNSAFE_get(),                     // resolve
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_Proto_Resolve).UNSAFE_get(),                     // resolve
       nullptr,                                  // mayResolve
       MC::Sandbox::RegisterCallback(XPC_WN_Proto_Finalize).UNSAFE_get(),                    // finalize
       nullptr,                                  // call
@@ -1242,7 +1311,9 @@ const JSClass* XPC_WN_Proto_JSClass() {
 
 /***************************************************************************/
 
-static bool XPC_WN_TearOff_Enumerate(JSContext* cx, HandleObject obj) {
+static MC::Tainted<bool> XPC_WN_TearOff_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -1258,7 +1329,7 @@ static bool XPC_WN_TearOff_Enumerate(JSContext* cx, HandleObject obj) {
   for (uint16_t k = 0; k < member_count; k++) {
     jsid name = iface->GetMemberAt(k)->GetName();
     JS_MarkCrossZoneId(cx, name);
-    if (!xpc_ForcePropertyResolve(cx, obj, name)) {
+    if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
       return false;
     }
   }
@@ -1266,8 +1337,10 @@ static bool XPC_WN_TearOff_Enumerate(JSContext* cx, HandleObject obj) {
   return true;
 }
 
-static bool XPC_WN_TearOff_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                                   bool* resolvedp) {
+static MC::Tainted<bool> XPC_WN_TearOff_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
+                                   MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -1285,7 +1358,8 @@ static bool XPC_WN_TearOff_Resolve(JSContext* cx, HandleObject obj, HandleId id,
       resolvedp);
 }
 
-static void XPC_WN_TearOff_Finalize(JS::GCContext* gcx, JSObject* obj) {
+static void XPC_WN_TearOff_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_obj) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
   XPCWrappedNativeTearOff* p = XPCWrappedNativeTearOff::Get(obj);
   if (!p) {
     return;
@@ -1293,7 +1367,10 @@ static void XPC_WN_TearOff_Finalize(JS::GCContext* gcx, JSObject* obj) {
   p->JSObjectFinalized();
 }
 
-static size_t XPC_WN_TearOff_ObjectMoved(JSObject* obj, JSObject* old) {
+static MC::Tainted<size_t> XPC_WN_TearOff_ObjectMoved(MC::Tainted<JSObject*> t_obj, MC::Tainted<JSObject*> t_old) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
+  JSObject* old = t_old.UNSAFE_unverified();
+
   XPCWrappedNativeTearOff* p = XPCWrappedNativeTearOff::Get(obj);
   if (!p) {
     return 0;
@@ -1306,18 +1383,18 @@ const JSClass* XPC_WN_Tearoff_JSClass() {
   static const JSClassOps XPC_WN_Tearoff_JSClassOps = {
       XPC_WN_OnlyIWrite_AddPropertyStubCb().UNSAFE_get(),  // addProperty
       XPC_WN_CannotDeletePropertyStubCb().UNSAFE_get(),    // delProperty
-      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Enumerate).UNSAFE_get(),           // enumerate
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_TearOff_Enumerate).UNSAFE_get(),           // enumerate
       nullptr,                            // newEnumerate
-      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Resolve).UNSAFE_get(),             // resolve
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_TearOff_Resolve).UNSAFE_get(),             // resolve
       nullptr,                            // mayResolve
-      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_Finalize).UNSAFE_get(),            // finalize
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_TearOff_Finalize).UNSAFE_get(),            // finalize
       nullptr,                            // call
       nullptr,                            // construct
       nullptr,                            // trace
   };
 
   static const js::ClassExtension XPC_WN_Tearoff_JSClassExtension = {
-      MC::Sandbox::RegisterCallback(XPC_WN_TearOff_ObjectMoved).UNSAFE_get(),  // objectMovedOp
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_TearOff_ObjectMoved).UNSAFE_get(),  // objectMovedOp
   };
 
   static const JSClass inner_ = {

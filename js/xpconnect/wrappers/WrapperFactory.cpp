@@ -273,7 +273,7 @@ void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObjec
   XPCWrappedNative* wn = XPCWrappedNative::Get(obj);
 
   MC::SandboxStack<JSAutoRealm> ar(cx, obj);
-  XPCCallContext ccx(MC_UNSAFE(cx), obj);
+  XPCCallContext ccx(cx, obj);
   MC::RootedObject wrapScope(cx, scope);
 
   if (ccx.GetScriptable() && ccx.GetScriptable()->WantPreCreate()) {

@@ -17,13 +17,17 @@ using namespace JS;
 
 namespace XPCNativeWrapper {
 
-static inline bool ThrowException(nsresult ex, JSContext* cx) {
+static inline bool ThrowException(nsresult ex, MCContext* cx) {
   XPCThrower::Throw(ex, cx);
 
   return false;
 }
 
-static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> UnwrapNW(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   if (args.length() != 1) {
     return ThrowException(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx);
@@ -36,13 +40,17 @@ static bool UnwrapNW(JSContext* cx, unsigned argc, Value* vp) {
     return true;
   }
 
-  bool ok = xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), &v);
+  bool ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
   NS_ENSURE_TRUE(ok, false);
   args.rval().set(v);
   return true;
 }
 
-static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> XrayWrapperConstructor(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() == 0) {
     return ThrowException(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx);
@@ -61,21 +69,22 @@ static bool XrayWrapperConstructor(JSContext* cx, unsigned argc, Value* vp) {
   return JS_WrapValue(cx, args.rval());
 }
 // static
-bool AttachNewConstructorObject(JSContext* aCx,
+bool AttachNewConstructorObject(JSContext* tCx,
                                 JS::HandleObject aGlobalObject) {
+  MCContext* aCx = JS_SanitizeContext(tCx);
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobalObject);
 
-  static auto XrayWrapperConstructorCb = MC::Sandbox::RegisterCallback(XrayWrapperConstructor);
+  static auto XrayWrapperConstructorCb = MC::Sandbox::RegisterTaintedCallback(XrayWrapperConstructor);
   JSFunction* xpcnativewrapper = JS_DefineFunction(
-      aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructorCb.UNSAFE_get(), 1,
+      aCx, aGlobalObject, "XPCNativeWrapper", XrayWrapperConstructorCb, 1,
       JSPROP_READONLY | JSPROP_PERMANENT | JSFUN_CONSTRUCTOR);
   if (!xpcnativewrapper) {
     return false;
   }
   MC::RootedObject obj(aCx, JS_GetFunctionObject(xpcnativewrapper));
 
-  static auto UnwrapNWCb = MC::Sandbox::RegisterCallback(UnwrapNW);
-  return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNWCb.UNSAFE_get(), 1,
+  static auto UnwrapNWCb = MC::Sandbox::RegisterTaintedCallback(UnwrapNW);
+  return JS_DefineFunction(aCx, obj, "unwrap", UnwrapNWCb, 1,
                            JSPROP_READONLY | JSPROP_PERMANENT) != nullptr;
 }
 

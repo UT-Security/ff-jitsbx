@@ -16,7 +16,7 @@ class xpcJSWeakReference final : public xpcIJSWeakReference {
 
  public:
   xpcJSWeakReference();
-  nsresult Init(JSContext* cx, const JS::Value& object);
+  nsresult Init(MCContext* cx, const JS::Value& object);
 
   NS_DECL_ISUPPORTS
   NS_DECL_XPCIJSWEAKREFERENCE

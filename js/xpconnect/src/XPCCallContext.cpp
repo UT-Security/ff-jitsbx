@@ -7,9 +7,9 @@
 /* Call context. */
 
 #include "xpcprivate.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
-#include "js/Wrapper.h"
+#include "monkeycage/Wrapper.h"
 #include "nsContentUtils.h"
 
 using namespace mozilla;
@@ -21,7 +21,7 @@ static inline bool IsTearoffClass(const JSClass* clazz) {
 }
 
 XPCCallContext::XPCCallContext(
-    JSContext* cx, HandleObject obj /* = nullptr               */,
+    MCContext* cx, HandleObject obj /* = nullptr               */,
     HandleObject funobj /* = nullptr               */,
     HandleId name /* = JSID_VOID             */, unsigned argc /* = NO_ARGS */,
     Value* argv /* = nullptr */, Value* rval /* = nullptr               */)
@@ -38,7 +38,7 @@ XPCCallContext::XPCCallContext(
       mArgv(nullptr),
       mRetVal(nullptr) {
   MOZ_ASSERT(cx);
-  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
 
   if (!mXPC) {
     return;
@@ -62,9 +62,9 @@ XPCCallContext::XPCCallContext(
   mTearOff = nullptr;
 
   JSObject* unwrapped =
-      js::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+      mc::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
   if (!unwrapped) {
-    JS_ReportErrorASCII(mJSContext,
+    JS_ReportErrorASCII(MC_UNSAFE(mJSContext),
                         "Permission denied to call method on |this|");
     mState = INIT_FAILED;
     return;
@@ -179,7 +179,7 @@ nsresult XPCCallContext::CanCallNow() {
   }
 
   if (!mTearOff) {
-    mTearOff = mWrapper->FindTearOff(mJSContext, mInterface, false, &rv);
+    mTearOff = mWrapper->FindTearOff(MC_UNSAFE(mJSContext), mInterface, false, &rv);
     if (!mTearOff || mTearOff->GetInterface() != mInterface) {
       mTearOff = nullptr;
       return NS_FAILED(rv) ? rv : NS_ERROR_UNEXPECTED;

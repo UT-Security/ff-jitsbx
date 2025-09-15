@@ -136,6 +136,20 @@ inline bool JS_IdToValue(MCContext* cx, jsid id,
   return JS_IdToValue(cx->cx_, id, vp);
 }
 
+namespace JS {
+
+inline bool ToPrimitive(MCContext* cx, JS::HandleObject obj, JSType hint,
+                        JS::MutableHandleValue vp) {
+  return ToPrimitive(cx->cx_, obj, hint, vp);
+}
+
+inline bool GetFirstArgumentAsTypeHint(MCContext* cx, CallArgs args,
+                                       MC::Tainted<JSType*> result) {
+  return GetFirstArgumentAsTypeHint(cx->cx_, args,
+                                    result.INTERNAL_unverified_safe());
+}
+}  // namespace JS
+
 inline bool JS_LinkConstructorAndPrototype(MCContext* cx,
                                            JS::Handle<JSObject*> ctor,
                                            JS::Handle<JSObject*> proto) {
@@ -185,9 +199,32 @@ inline bool JS_SetPrototype(MCContext* cx, JS::HandleObject obj,
   return JS_SetPrototype(cx->cx_, obj, proto);
 }
 
+inline bool JS_IsExtensible(MCContext* cx, JS::HandleObject obj,
+                            MC::Tainted<bool*> extensible) {
+  return JS_IsExtensible(cx->cx_, obj, extensible.INTERNAL_unverified_safe());
+}
+
+inline bool JS_PreventExtensions(MCContext* cx, JS::HandleObject obj,
+                                 MC::Tainted<JS::ObjectOpResult*> result) {
+  return JS_PreventExtensions(cx->cx_, obj, *result.INTERNAL_unverified_safe());
+}
+
+inline bool JS_SetImmutablePrototype(MCContext* cx, JS::HandleObject obj,
+                                     MC::Tainted<bool*> succeeded) {
+  return JS_SetImmutablePrototype(cx->cx_, obj,
+                                  succeeded.INTERNAL_unverified_safe());
+}
+
 inline bool JS_AssignObject(MCContext* cx, JS::HandleObject target,
                             JS::HandleObject src) {
   return JS_AssignObject(cx->cx_, target, src);
+}
+
+inline JSFunction* JS_NewFunction(MCContext* cx,
+                                  MC::SandboxCallback<JSNative> call,
+                                  unsigned nargs, unsigned flags,
+                                  const char* name) {
+  return JS_NewFunction(cx->cx_, call.UNSAFE_get(), nargs, flags, name);
 }
 
 namespace JS {
