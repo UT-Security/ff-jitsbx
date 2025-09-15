@@ -236,14 +236,14 @@ NS_IMETHODIMP ExtensionEventListener::CallListener(
       case APIObjectType::NONE:
         if (NS_WARN_IF(!apiObjectDescriptor.isNullOrUndefined())) {
           JS_ReportErrorASCII(
-              aCx,
+              MC_UNSAFE(aCx),
               "Unexpected non-null apiObjectDescriptor on apiObjectType=NONE");
           return NS_ERROR_UNEXPECTED;
         }
         break;
       case APIObjectType::RUNTIME_PORT:
         if (NS_WARN_IF(apiObjectDescriptor.isNullOrUndefined())) {
-          JS_ReportErrorASCII(aCx,
+          JS_ReportErrorASCII(MC_UNSAFE(aCx),
                               "Unexpected null apiObjectDescriptor on "
                               "apiObjectType=RUNTIME_PORT");
           return NS_ERROR_UNEXPECTED;

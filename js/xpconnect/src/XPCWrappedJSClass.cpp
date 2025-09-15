@@ -7,10 +7,10 @@
 /* Sharable code and data for wrapper around JSObjects. */
 
 #include "xpcprivate.h"
-#include "js/CallAndConstruct.h"  // JS_CallFunctionValue
+#include "monkeycage/CallAndConstruct.h"  // JS_CallFunctionValue
 #include "js/Object.h"            // JS::GetClass
 #include "js/Printf.h"
-#include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_HasPropertyById, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_HasPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "nsArrayEnumerator.h"
 #include "nsINamed.h"
 #include "nsIScriptError.h"
@@ -52,7 +52,7 @@ bool AutoScriptEvaluate::StartEvaluating(HandleObject scope) {
   // http://bugzilla.mozilla.org/show_bug.cgi?id=88130 but presumably could
   // show up in any situation where a script calls into a wrapped js component
   // on the same context, while the context has a nonzero exception state.
-  mState.emplace(mJSContext);
+  mState->emplace(mJSContext);
 
   return true;
 }
@@ -61,7 +61,7 @@ AutoScriptEvaluate::~AutoScriptEvaluate() {
   if (!mJSContext || !mEvaluated) {
     return;
   }
-  mState->restore();
+  mState->ptr()->restore();
 }
 
 // It turns out that some errors may be not worth reporting. So, this
@@ -109,7 +109,7 @@ const nsXPTInterfaceInfo* nsXPCWrappedJS::GetInterfaceInfo(REFNSIID aIID) {
 }
 
 // static
-JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(JSContext* cx,
+JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(MCContext* cx,
                                                        JSObject* jsobjArg,
                                                        HandleObject scope,
                                                        REFNSIID aIID) {
@@ -157,7 +157,7 @@ JSObject* nsXPCWrappedJS::CallQueryInterfaceOnJSObject(JSContext* cx,
     return nullptr;
   }
 
-  if (!xpc::ID2JSValue(cx, aIID, &arg)) {
+  if (!xpc::ID2JSValue(MC_UNSAFE(cx), aIID, &arg)) {
     return nullptr;
   }
 
@@ -278,7 +278,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
 
   AutoEntryScript aes(nativeGlobal, "XPCWrappedJS QueryInterface",
                       /* aIsMainThread = */ true);
-  XPCCallContext ccx(aes.cx());
+  XPCCallContext ccx(aes.mcx());
   if (!ccx.IsValid()) {
     *aInstancePtr = nullptr;
     return NS_NOINTERFACE;
@@ -289,7 +289,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // well-defined realm, so enter the realm of the global that we grabbed back
   // when we started pointing to our JSObject*.
   MC::RootedObject objScope(RootingCx(), GetJSObjectGlobal());
-  MC::SandboxStack<JSAutoRealm> ar(aes.cx(), objScope);
+  MC::SandboxStack<JSAutoRealm> ar(aes.mcx(), objScope);
 
   // We support nsISupportsWeakReference iff the root wrapped JSObject
   // claims to support it in its QueryInterface implementation.
@@ -314,12 +314,12 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // have a QueryInterface method, assume it is a JS iterator, and wrap it into
   // an equivalent nsISimpleEnumerator.
   if (aIID.Equals(NS_GET_IID(nsISimpleEnumerator))) {
-    bool found;
+    MC::SandboxStack<bool> found;
     XPCJSContext* xpccx = ccx.GetContext();
-    if (JS_HasPropertyById(aes.cx(), obj,
+    if (JS_HasPropertyById(aes.mcx(), obj,
                            xpccx->GetStringID(xpccx->IDX_QUERY_INTERFACE),
-                           &found) &&
-        !found) {
+                           found) &&
+        !*found.UNSAFE_unverified()) {
       nsresult rv;
       nsCOMPtr<nsIJSEnumerator> jsEnum;
       if (!XPCConvert::JSObject2NativeInterface(
@@ -351,7 +351,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   if (info && info->IsFunction()) {
     RefPtr<nsXPCWrappedJS> wrapper;
     nsresult rv =
-        nsXPCWrappedJS::GetNewOrUsed(ccx, obj, aIID, getter_AddRefs(wrapper));
+        nsXPCWrappedJS::GetNewOrUsed(MC_UNSAFE(ccx), obj, aIID, getter_AddRefs(wrapper));
 
     // Do the same thing we do for the "check for any existing wrapper" case
     // above.
@@ -380,7 +380,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
     // get a new (or used) nsXPCWrappedJS.
     RefPtr<nsXPCWrappedJS> wrapper;
     nsresult rv =
-        nsXPCWrappedJS::GetNewOrUsed(ccx, jsobj, aIID, getter_AddRefs(wrapper));
+        nsXPCWrappedJS::GetNewOrUsed(MC_UNSAFE(ccx), jsobj, aIID, getter_AddRefs(wrapper));
     if (NS_SUCCEEDED(rv) && wrapper) {
       // We need to go through the QueryInterface logic to make
       // this return the right thing for the various 'special'
@@ -393,7 +393,7 @@ nsresult nsXPCWrappedJS::DelegatedQueryInterface(REFNSIID aIID,
   // If we're asked to QI to nsINamed, we pretend that this is possible. We'll
   // try to return a name that makes sense for the wrapped JS value.
   if (aIID.Equals(NS_GET_IID(nsINamed))) {
-    nsCString name = GetFunctionName(ccx, obj);
+    nsCString name = GetFunctionName(MC_UNSAFE(ccx), obj);
     RefPtr<WrappedJSNamed> named = new WrappedJSNamed(name);
     *aInstancePtr = named.forget().take();
     return NS_OK;
@@ -410,7 +410,7 @@ JSObject* nsXPCWrappedJS::GetRootJSObject(JSContext* cx, JSObject* aJSObjArg) {
   MC::RootedObject aJSObj(cx, aJSObjArg);
   MC::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   JSObject* result =
-      CallQueryInterfaceOnJSObject(cx, aJSObj, global, NS_GET_IID(nsISupports));
+      CallQueryInterfaceOnJSObject(JS_SanitizeContext(cx), aJSObj, global, NS_GET_IID(nsISupports));
   if (!result) {
     result = aJSObj;
   }
@@ -537,8 +537,8 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
                                            const char* aPropertyName,
                                            const char* anInterfaceName,
                                            Exception* aSyntheticException) {
-  JSContext* cx = ccx.GetJSContext();
-  MOZ_ASSERT(cx == aes.cx());
+  MCContext* cx = ccx.GetJSContext();
+  MOZ_ASSERT(cx == aes.mcx());
   RefPtr<Exception> xpc_exception = aSyntheticException;
   /* this one would be set by our error reporter */
 
@@ -554,7 +554,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
   /* JS might throw an exception whether the reporter was called or not */
   if (is_js_exception) {
     if (!xpc_exception) {
-      XPCConvert::JSValToXPCException(cx, &js_exception, anInterfaceName,
+      XPCConvert::JSValToXPCException(MC_UNSAFE(cx), &js_exception, anInterfaceName,
                                       aPropertyName,
                                       getter_AddRefs(xpc_exception));
     }
@@ -619,7 +619,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
         fputs(line, stdout);
         fputs(preamble, stdout);
         nsCString text;
-        xpc_exception->ToString(cx, text);
+        xpc_exception->ToString(MC_UNSAFE(cx), text);
         if (!text.IsEmpty()) {
           fputs(text.get(), stdout);
           fputs("\n", stdout);
@@ -642,7 +642,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
           scriptError = do_CreateInstance(XPC_SCRIPT_ERROR_CONTRACTID);
           if (nullptr != scriptError) {
             nsCString newMessage;
-            xpc_exception->ToString(cx, newMessage);
+            xpc_exception->ToString(MC_UNSAFE(cx), newMessage);
             // try to get filename, lineno from the first
             // stack frame location.
             int32_t lineNumber = 0;
@@ -651,21 +651,21 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             nsCOMPtr<nsIStackFrame> location = xpc_exception->GetLocation();
             if (location) {
               // Get line number.
-              lineNumber = location->GetLineNumber(cx);
+              lineNumber = location->GetLineNumber(MC_UNSAFE(cx));
 
               // get a filename.
-              location->GetFilename(cx, sourceName);
+              location->GetFilename(MC_UNSAFE(cx), sourceName);
             }
 
             nsresult rv = scriptError->InitWithWindowID(
                 NS_ConvertUTF8toUTF16(newMessage), sourceName, u""_ns,
                 lineNumber, 0, 0, "XPConnect JavaScript",
-                nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx));
+                nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(MC_UNSAFE(cx)));
             if (NS_FAILED(rv)) {
               scriptError = nullptr;
             }
 
-            rv = scriptError->InitSourceId(location->GetSourceId(cx));
+            rv = scriptError->InitSourceId(location->GetSourceId(MC_UNSAFE(cx)));
             if (NS_FAILED(rv)) {
               scriptError = nullptr;
             }
@@ -729,12 +729,12 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
 
   AutoEntryScript aes(nativeGlobal, "XPCWrappedJS method call",
                       /* aIsMainThread = */ true);
-  XPCCallContext ccx(aes.cx());
+  XPCCallContext ccx(aes.mcx());
   if (!ccx.IsValid()) {
     return retval;
   }
 
-  JSContext* cx = ccx.GetJSContext();
+  MCContext* cx = ccx.GetJSContext();
 
   if (!cx) {
     return NS_ERROR_FAILURE;
@@ -750,7 +750,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
   const nsXPTInterfaceInfo* interfaceInfo = GetInfo();
   MC::RootedId id(cx);
   const char* name = info->NameOrDescription();
-  if (!info->GetId(cx, id.get())) {
+  if (!info->GetId(MC_UNSAFE(cx), id.get())) {
     return NS_ERROR_FAILURE;
   }
 
@@ -761,7 +761,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
         "IDL methods marked with [optional_argc] may not "
         "be implemented in JS";
     // Throw and warn for good measure.
-    JS_ReportErrorASCII(cx, "%s", str);
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "%s", str);
     NS_WARNING(str);
     return CheckForException(ccx, aes, obj, name, interfaceInfo->Name());
   }
@@ -868,14 +868,14 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
           !GetArraySizeFromParam(info, type, nativeParams, &array_count))
         goto pre_call_clean_up;
 
-      if (!XPCConvert::NativeData2JS(cx, &val, pv, type, &param_iid,
+      if (!XPCConvert::NativeData2JS(MC_UNSAFE(cx), &val, pv, type, &param_iid,
                                      array_count, nullptr))
         goto pre_call_clean_up;
     }
 
     if (param.IsOut()) {
       // create an 'out' object
-      MC::RootedObject out_obj(cx, NewOutObject(cx));
+      MC::RootedObject out_obj(cx, NewOutObject(MC_UNSAFE(cx)));
       if (!out_obj) {
         retval = NS_ERROR_OUT_OF_MEMORY;
         goto pre_call_clean_up;
@@ -991,7 +991,7 @@ pre_call_clean_up:
     }
 
     MOZ_ASSERT(param.IsIndirect(), "outparams are always indirect");
-    if (!XPCConvert::JSData2Native(cx, nativeParams[i].val.p, val, type,
+    if (!XPCConvert::JSData2Native(MC_UNSAFE(cx), nativeParams[i].val.p, val, type,
                                    &param_iid, 0, nullptr))
       break;
   }
@@ -1029,7 +1029,7 @@ pre_call_clean_up:
         break;
 
       MOZ_ASSERT(param.IsIndirect(), "outparams are always indirect");
-      if (!XPCConvert::JSData2Native(cx, nativeParams[i].val.p, val, type,
+      if (!XPCConvert::JSData2Native(MC_UNSAFE(cx), nativeParams[i].val.p, val, type,
                                      &param_iid, array_count, nullptr))
         break;
     }

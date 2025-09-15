@@ -29,7 +29,7 @@ inline XPCJSContext* XPCCallContext::GetContext() const {
   return mXPCJSContext;
 }
 
-inline JSContext* XPCCallContext::GetJSContext() const {
+inline MCContext* XPCCallContext::GetJSContext() const {
   CHECK_STATE(HAVE_CONTEXT);
   return mJSContext;
 }

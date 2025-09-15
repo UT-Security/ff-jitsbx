@@ -157,6 +157,18 @@ private:
     //TODO(abhishek): check that `val` is a pointer within the sandbox.
     data = val;
   }
+
+  template<typename T_Dummy = void>
+  operator bool() const {
+    if_constexpr_named(cond1, std::is_pointer_v<T>) {
+      return get_raw_value() != nullptr;
+    } else {
+      auto unknownCase = !(cond1);
+      mc_detail_static_fail_because(
+          unknownCase,
+          "Implicit conversion to bool permitted only for pointers");
+    }
+  }
 };
 
 template<typename T, typename MC_Sbx>

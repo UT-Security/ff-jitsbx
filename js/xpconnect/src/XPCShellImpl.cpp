@@ -7,15 +7,15 @@
 #include "nsXULAppAPI.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"             // JS::NewArrayObject
-#include "js/CallAndConstruct.h"  // JS_CallFunctionValue
-#include "js/CharacterEncoding.h"
-#include "js/CompilationAndEvaluation.h"  // JS::Evaluate
-#include "js/ContextOptions.h"
+#include "monkeycage/Array.h"             // JS::NewArrayObject
+#include "monkeycage/CallAndConstruct.h"  // JS_CallFunctionValue
+#include "monkeycage/CharacterEncoding.h"
+#include "monkeycage/CompilationAndEvaluation.h"  // JS::Evaluate
+#include "monkeycage/ContextOptions.h"
 #include "js/Printf.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunctions, JS_DefineProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunctions, JS_DefineProperty
 #include "js/PropertySpec.h"
-#include "js/SourceText.h"  // JS::SourceText
+#include "monkeycage/SourceText.h"  // JS::SourceText
 #include "mozilla/ChaosMode.h"
 #include "mozilla/dom/AutoEntryScript.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -600,12 +600,12 @@ static bool RegisterAppManifest(JSContext* cx, unsigned argc, Value* vp) {
   nsresult rv = nsXPConnect::XPConnect()->WrapJS(cx, arg1, NS_GET_IID(nsIFile),
                                                  getter_AddRefs(file));
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, cx);
+    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
     return false;
   }
   rv = XRE_AddManifestLocation(NS_APP_LOCATION, file);
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, cx);
+    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
     return false;
   }
   return true;
@@ -651,7 +651,7 @@ static bool RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp) {
   }
   nsresult rv = xpcTestRegisterComponents();
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, cx);
+    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
     return false;
   }
   return true;

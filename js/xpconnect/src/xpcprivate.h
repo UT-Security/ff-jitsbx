@@ -646,7 +646,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
  public:
   enum : unsigned { NO_ARGS = (unsigned)-1 };
 
-  explicit XPCCallContext(JSContext* cx, JS::HandleObject obj = nullptr,
+  explicit XPCCallContext(MCContext* cx, JS::HandleObject obj = nullptr,
                           JS::HandleObject funobj = nullptr,
                           JS::HandleId id = MC::VoidHandlePropertyKey(),
                           unsigned argc = NO_ARGS, JS::Value* argv = nullptr,
@@ -657,7 +657,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
   inline bool IsValid() const;
 
   inline XPCJSContext* GetContext() const;
-  inline JSContext* GetJSContext() const;
+  inline MCContext* GetJSContext() const;
   inline bool GetContextPopRequired() const;
   inline XPCCallContext* GetPrevCallContext() const;
 
@@ -696,7 +696,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
 
   void SystemIsBeingShutDown();
 
-  operator JSContext*() const { return GetJSContext(); }
+  operator MCContext*() const { return GetJSContext(); }
 
  private:
   // no copy ctor or assignment allowed
@@ -728,7 +728,7 @@ class MOZ_STACK_CLASS XPCCallContext final {
   nsCOMPtr<nsIXPConnect> mXPC;
 
   XPCJSContext* mXPCJSContext;
-  JSContext* mJSContext;
+  MCContext* mJSContext;
 
   // ctor does not necessarily init the following. BEWARE!
 
@@ -769,9 +769,9 @@ extern const JSClass* XPC_WN_Proto_JSClass();
 extern const JSClass* XPC_WN_Tearoff_JSClass();
 extern const JSClass* XPC_WN_NoHelper_Proto_JSClass();
 
-extern bool XPC_WN_CallMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+extern MC::Tainted<bool> XPC_WN_CallMethod(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 
-extern bool XPC_WN_GetterSetter(JSContext* cx, unsigned argc, JS::Value* vp);
+extern MC::Tainted<bool> XPC_WN_GetterSetter(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 
 /***************************************************************************/
 // XPCWrappedNativeScope is one-to-one with a JS compartment.
@@ -1681,7 +1681,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
 
   static JSObject* GetRootJSObject(JSContext* cx, JSObject* aJSObj);
 
-  static JSObject* CallQueryInterfaceOnJSObject(JSContext* cx, JSObject* jsobj,
+  static JSObject* CallQueryInterfaceOnJSObject(MCContext* cx, JSObject* jsobj,
                                                 JS::HandleObject scope,
                                                 REFNSIID aIID);
 
@@ -1863,7 +1863,7 @@ class nsXPCException;
 
 class XPCThrower {
  public:
-  static void Throw(nsresult rv, JSContext* cx);
+  static void Throw(nsresult rv, MCContext* cx);
   static void Throw(nsresult rv, XPCCallContext& ccx);
   static void ThrowBadResult(nsresult rv, nsresult result, XPCCallContext& ccx);
   static void ThrowBadParam(nsresult rv, unsigned paramNum,
@@ -1874,7 +1874,7 @@ class XPCThrower {
     return old;
   }
 
-  static bool CheckForPendingException(nsresult result, JSContext* cx);
+  static bool CheckForPendingException(nsresult result, MCContext* cx);
 
  private:
   static void Verbosify(XPCCallContext& ccx, char** psz, bool own);
@@ -1937,7 +1937,7 @@ class MOZ_RAII AutoScriptEvaluate {
    * Saves the JSContext as well as initializing our state
    * @param cx The JSContext, this can be null, we don't do anything then
    */
-  explicit AutoScriptEvaluate(JSContext* cx)
+  explicit AutoScriptEvaluate(MCContext* cx)
       : mJSContext(cx), mEvaluated(false) {}
 
   /**
@@ -1954,8 +1954,8 @@ class MOZ_RAII AutoScriptEvaluate {
   ~AutoScriptEvaluate();
 
  private:
-  JSContext* mJSContext;
-  mozilla::Maybe<JS::AutoSaveExceptionState> mState;
+  MCContext* mJSContext;
+  MC::SandboxStack<mozilla::Maybe<JS::AutoSaveExceptionState>> mState;
   bool mEvaluated;
   MC::SandboxStack<mozilla::Maybe<JSAutoRealm>> mAutoRealm;
 

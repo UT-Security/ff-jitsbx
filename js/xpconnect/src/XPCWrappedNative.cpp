@@ -10,13 +10,13 @@
 #include "XPCMaps.h"
 #include "nsWrapperCacheInlines.h"
 #include "XPCLog.h"
-#include "js/Array.h"                   // JS::GetArrayLength, JS::IsArrayObject
-#include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength, JS_IsTypedArrayObject
+#include "monkeycage/Array.h"                   // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/experimental/TypedData.h"  // JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate, JS::SetReservedSlot
 #include "js/Printf.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
-#include "jsfriendapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
+#include "mcfriendapi.h"
 #include "monkeycage/Value.h"
 #include "AccessCheck.h"
 #include "WrapperFactory.h"
@@ -1135,7 +1135,7 @@ bool CallMethodHelper::Call() {
   using Flags = js::ProfilingStackFrame::Flags;
   if (mVTableIndex == 0) {
     AUTO_PROFILER_LABEL_DYNAMIC_FAST(mIFaceInfo->Name(), "QueryInterface", DOM,
-                                     mCallContext.GetJSContext(),
+                                     MC_UNSAFE(mCallContext.GetJSContext()),
                                      uint32_t(Flags::STRING_TEMPLATE_METHOD) |
                                          uint32_t(Flags::RELEVANT_FOR_JS));
 
@@ -1158,7 +1158,7 @@ bool CallMethodHelper::Call() {
   }
   AUTO_PROFILER_LABEL_DYNAMIC_FAST(
       mIFaceInfo->Name(), mMethodInfo->NameOrDescription(), DOM,
-      mCallContext.GetJSContext(),
+      MC_UNSAFE(mCallContext.GetJSContext()),
       uint32_t(templateFlag) | uint32_t(Flags::RELEVANT_FOR_JS));
 
   if (!InitializeDispatchParams()) {
@@ -1328,7 +1328,7 @@ bool CallMethodHelper::GatherAndConvertResults() {
       return false;
 
     nsresult err;
-    if (!XPCConvert::NativeData2JS(mCallContext, &v, &dp->val, type, &param_iid,
+    if (!XPCConvert::NativeData2JS(MC_UNSAFE(mCallContext), &v, &dp->val, type, &param_iid,
                                    array_count, &err)) {
       ThrowBadParam(err, i, mCallContext);
       return false;
@@ -1368,7 +1368,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
   }
 
   MC::RootedValue iidarg(mCallContext, mArgv[0]);
-  Maybe<nsID> iid = xpc::JSValue2ID(mCallContext, iidarg);
+  Maybe<nsID> iid = xpc::JSValue2ID(MC_UNSAFE(mCallContext), iidarg);
   if (!iid) {
     ThrowBadParam(NS_ERROR_XPC_BAD_CONVERT_JS, 0, mCallContext);
     return false;
@@ -1384,7 +1384,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
 
   MC::RootedValue v(mCallContext, NullValue());
   nsresult err;
-  bool success = XPCConvert::NativeData2JS(mCallContext, &v, &qiresult,
+  bool success = XPCConvert::NativeData2JS(MC_UNSAFE(mCallContext), &v, &qiresult,
                                            {nsXPTType::T_INTERFACE_IS},
                                            iid.ptr(), 0, &err);
   NS_IF_RELEASE(qiresult);
@@ -1441,7 +1441,7 @@ bool CallMethodHelper::InitializeDispatchParams() {
     if (i == mJSContextIndex) {
       // Fill in the JSContext argument
       dp.type = nsXPTType::T_VOID;
-      dp.val.p = mCallContext;
+      dp.val.p = MC_UNSAFE(mCallContext);
     } else if (i == mOptArgcIndex) {
       // Fill in the optional_argc argument
       dp.type = nsXPTType::T_U8;
@@ -1547,7 +1547,7 @@ bool CallMethodHelper::ConvertIndependentParam(uint8_t i) {
   }
 
   nsresult err;
-  if (!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type, &param_iid,
+  if (!XPCConvert::JSData2Native(MC_UNSAFE(mCallContext), &dp->val, src, type, &param_iid,
                                  0, &err)) {
     ThrowBadParam(err, i, mCallContext);
     return false;
@@ -1612,7 +1612,7 @@ bool CallMethodHelper::ConvertDependentParam(uint8_t i) {
 
   nsresult err;
 
-  if (!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type, &param_iid,
+  if (!XPCConvert::JSData2Native(MC_UNSAFE(mCallContext), &dp->val, src, type, &param_iid,
                                  array_count, &err)) {
     ThrowBadParam(err, i, mCallContext);
     return false;

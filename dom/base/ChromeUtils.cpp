@@ -387,7 +387,7 @@ void ChromeUtils::ShallowClone(GlobalObject& aGlobal,
     }
 
     if (mc::IsScriptedProxy(obj)) {
-      JS_ReportErrorASCII(cx, "Shallow cloning a proxy object is not allowed");
+      JS_ReportErrorASCII(MC_UNSAFE(cx), "Shallow cloning a proxy object is not allowed");
       return;
     }
 

@@ -19,11 +19,11 @@
 #include "mcfriendapi.h"
 #include "monkeycage/Array.h"  // JS::IsArrayObject
 #include "monkeycage/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionName, JS_CallFunctionValue
-#include "js/CharacterEncoding.h"
+#include "monkeycage/CharacterEncoding.h"
 #include "monkeycage/ContextOptions.h"
 #include "js/friend/WindowProxy.h"  // js::ToWindowProxyIfWindow
 #include "js/Object.h"              // JS::GetClass, JS::GetCompartment
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_Enumerate, JS_GetProperty, JS_GetPropertyById, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "js/SavedFrameAPI.h"
 #include "js/StructuredClone.h"
 #include "monkeycage/Conversions.h"
@@ -71,7 +71,7 @@ using mozilla::dom::Exception;
 // stuff used by all
 
 nsresult xpc::ThrowAndFail(nsresult errNum, JSContext* cx, bool* retval) {
-  XPCThrower::Throw(errNum, cx);
+  XPCThrower::Throw(errNum, JS_SanitizeContext(cx));
   *retval = false;
   return NS_OK;
 }
@@ -986,7 +986,7 @@ class nsXPCComponents_Constructor final : public nsIXPCComponents_Constructor,
 
  private:
   virtual ~nsXPCComponents_Constructor();
-  static bool InnerConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
+  static MC::Tainted<bool> InnerConstructor(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
   static MC::SandboxCallback<JSNative> InnerConstructorCb();
   static nsresult CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
                                   JSContext* cx, HandleObject obj,
@@ -1056,8 +1056,12 @@ NS_IMPL_ISUPPORTS(nsXPCComponents_Constructor, nsIXPCComponents_Constructor,
 #include "xpc_map_end.h" /* This will #undef the above */
 
 // static
-bool nsXPCComponents_Constructor::InnerConstructor(JSContext* cx, unsigned argc,
-                                                   JS::Value* vp) {
+MC::Tainted<bool> nsXPCComponents_Constructor::InnerConstructor(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                                   MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   MC::RootedObject callee(cx, &args.callee());
 
@@ -1114,7 +1118,7 @@ bool nsXPCComponents_Constructor::InnerConstructor(JSContext* cx, unsigned argc,
 }
 
 MC::SandboxCallback<JSNative> nsXPCComponents_Constructor::InnerConstructorCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(InnerConstructor);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(InnerConstructor);
   return inner_;
 }
 
@@ -1644,8 +1648,9 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
 NS_IMETHODIMP
 nsXPCComponents_Utils::GetWeakReference(HandleValue object, JSContext* MC_UNSAN(cx),
                                         xpcIJSWeakReference** _retval) {
+  MC_SANITIZE(cx);
   RefPtr<xpcJSWeakReference> ref = new xpcJSWeakReference();
-  nsresult rv = ref->Init(MC_UNSAN(cx), object);
+  nsresult rv = ref->Init(cx, object);
   NS_ENSURE_SUCCESS(rv, rv);
   ref.forget(_retval);
   return NS_OK;
@@ -1845,7 +1850,7 @@ nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
     return rv;
   }
   if (!asyncStack.isObject()) {
-    JS_ReportErrorASCII(cx, "Must use a native JavaScript stack frame");
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "Must use a native JavaScript stack frame");
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -2160,7 +2165,7 @@ nsXPCComponents_Utils::BlockScriptForGlobal(HandleValue globalArg,
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
   if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
-    JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }
   Scriptability::Get(global).Block();
@@ -2176,7 +2181,7 @@ nsXPCComponents_Utils::UnblockScriptForGlobal(HandleValue globalArg,
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
   if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
-    JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }
   Scriptability::Get(global).Unblock();

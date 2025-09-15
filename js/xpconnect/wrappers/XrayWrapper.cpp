@@ -556,7 +556,7 @@ bool JSXrayTraits::resolveOwnProperty(
           return true;
         }
         JS_ReportErrorASCII(
-            cx,
+            MC_UNSAFE(cx),
             "Accessing TypedArray data over Xrays is slow, and forbidden "
             "in order to encourage performant code. To copy TypedArrays "
             "across origin boundaries, consider using "
@@ -799,7 +799,7 @@ bool JSXrayTraits::defineProperty(
   if (isObjectOrArray && isInstance) {
     MC::RootedObject target(cx, getTargetObject(wrapper));
     if (desc.isAccessorDescriptor()) {
-      JS_ReportErrorASCII(cx,
+      JS_ReportErrorASCII(MC_UNSAFE(cx),
                           "Not allowed to define accessor property on [Object] "
                           "or [Array] XrayWrapper");
       return false;
@@ -807,20 +807,20 @@ bool JSXrayTraits::defineProperty(
     if (desc.value().isObject() &&
         !AccessCheck::subsumes(target,
                                js::UncheckedUnwrap(&desc.value().toObject()))) {
-      JS_ReportErrorASCII(cx,
+      JS_ReportErrorASCII(MC_UNSAFE(cx),
                           "Not allowed to define cross-origin object as "
                           "property on [Object] or [Array] XrayWrapper");
       return false;
     }
     if (existingDesc.isSome()) {
       if (existingDesc->isAccessorDescriptor()) {
-        JS_ReportErrorASCII(cx,
+        JS_ReportErrorASCII(MC_UNSAFE(cx),
                             "Not allowed to overwrite accessor property on "
                             "[Object] or [Array] XrayWrapper");
         return false;
       }
       if (existingHolder != wrapper) {
-        JS_ReportErrorASCII(cx,
+        JS_ReportErrorASCII(MC_UNSAFE(cx),
                             "Not allowed to shadow non-own Xray-resolved "
                             "property on [Object] or [Array] XrayWrapper");
         return false;
@@ -1589,13 +1589,14 @@ static bool wrappedJSObject_getter(JSContext* cx_UNSAFE, unsigned argc, Value* v
   MCContext* cx = JS_SanitizeContext(cx_UNSAFE);
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.thisv().isObject()) {
-    JS_ReportErrorASCII(cx, "This value not an object");
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "This value not an object");
     return false;
   }
   MC::RootedObject wrapper(cx, &args.thisv().toObject());
   if (!mc::IsWrapper(wrapper) || !WrapperFactory::IsXrayWrapper(wrapper) ||
       !WrapperFactory::AllowWaiver(wrapper)) {
-    JS_ReportErrorASCII(cx, "Unexpected object");
+
+    JS_ReportErrorASCII(MC_UNSAFE(cx), "Unexpected object");
     return false;
   }
 

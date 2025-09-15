@@ -33,6 +33,14 @@ public:
   constexpr void emplace(Args&&... aArgs) {
    data.emplace(std::forward<Args>(aArgs)...);
   }
+
+  constexpr Tainted<T*, MC_Sbx> ptr() {
+    Tainted<T*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data.ptr());
+    return ret;
+  }
+
+  constexpr Tainted<T*, MC_Sbx> operator->() { return ptr(); }
 };
 }
 }

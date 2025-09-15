@@ -9,11 +9,12 @@
  */
 
 #include "AccessCheck.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "monkeycage/Array.h"             // JS::GetArrayLength, JS::IsArrayObject
 #include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::IsCallable
-#include "js/CharacterEncoding.h"
-#include "js/CompilationAndEvaluation.h"
+#include "monkeycage/CharacterEncoding.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/Conversions.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
@@ -214,7 +215,11 @@ static bool SandboxDebug(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 }
 
-static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxImport(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   if (args.length() < 1 || args[0].isPrimitive()) {
@@ -263,7 +268,7 @@ static bool SandboxImport(JSContext* cx, unsigned argc, Value* vp) {
   // unbound and should still work and act on the original sandbox.
 
   MC::RootedObject thisObject(cx);
-  if (!args.computeThis(cx, &thisObject)) {
+  if (!args.computeThis(MC_UNSAFE(cx), &thisObject)) {
     return false;
   }
 
@@ -552,7 +557,7 @@ static const JSFunctionSpec* SandboxFunctions() {
       JS_FN("debug", MC::Sandbox::RegisterCallback(SandboxDebug).UNSAFE_get(),
             1, 0),
       JS_FN("importFunction",
-            MC::Sandbox::RegisterCallback(SandboxImport).UNSAFE_get(), 1, 0),
+            MC::Sandbox::RegisterTaintedCallback(SandboxImport).UNSAFE_get(), 1, 0),
       JS_FS_END};
 
   return inner_;

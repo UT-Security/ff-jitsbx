@@ -8,7 +8,7 @@
 
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
-#include "js/CharacterEncoding.h"
+#include "monkeycage/CharacterEncoding.h"
 #include "js/Printf.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
@@ -21,7 +21,7 @@ using namespace mozilla::dom;
 bool XPCThrower::sVerbose = true;
 
 // static
-void XPCThrower::Throw(nsresult rv, JSContext* cx) {
+void XPCThrower::Throw(nsresult rv, MCContext* cx) {
   const char* format;
   if (JS_IsExceptionPending(cx)) {
     return;
@@ -29,13 +29,13 @@ void XPCThrower::Throw(nsresult rv, JSContext* cx) {
   if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format)) {
     format = "";
   }
-  dom::Throw(cx, rv, nsDependentCString(format));
+  dom::Throw(MC_UNSAFE(cx), rv, nsDependentCString(format));
 }
 
 namespace xpc {
 
 bool Throw(JSContext* cx, nsresult rv) {
-  XPCThrower::Throw(rv, cx);
+  XPCThrower::Throw(rv, JS_SanitizeContext(cx));
   return false;
 }
 
@@ -47,7 +47,7 @@ bool Throw(JSContext* cx, nsresult rv) {
  * should be the current call context.
  */
 // static
-bool XPCThrower::CheckForPendingException(nsresult result, JSContext* cx) {
+bool XPCThrower::CheckForPendingException(nsresult result, MCContext* cx) {
   RefPtr<Exception> e = XPCJSContext::Get()->GetPendingException();
   if (!e) {
     return false;
@@ -58,7 +58,7 @@ bool XPCThrower::CheckForPendingException(nsresult result, JSContext* cx) {
     return false;
   }
 
-  ThrowExceptionObject(cx, e);
+  ThrowExceptionObject(MC_UNSAFE(cx), e);
   return true;
 }
 
@@ -82,7 +82,7 @@ void XPCThrower::Throw(nsresult rv, XPCCallContext& ccx) {
     Verbosify(ccx, &sz, false);
   }
 
-  dom::Throw(ccx, rv, nsDependentCString(sz));
+  dom::Throw(MC_UNSAFE(ccx), rv, nsDependentCString(sz));
 
   if (sz && sz != format) {
     js_free(sz);
@@ -129,7 +129,7 @@ void XPCThrower::ThrowBadResult(nsresult rv, nsresult result,
     Verbosify(ccx, &sz, true);
   }
 
-  dom::Throw(ccx, result, nsDependentCString(sz));
+  dom::Throw(MC_UNSAFE(ccx), result, nsDependentCString(sz));
 
   if (sz) {
     js_free(sz);
@@ -153,7 +153,7 @@ void XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum,
     Verbosify(ccx, &sz, true);
   }
 
-  dom::Throw(ccx, rv, nsDependentCString(sz));
+  dom::Throw(MC_UNSAFE(ccx), rv, nsDependentCString(sz));
 
   if (sz) {
     js_free(sz);

@@ -14,35 +14,36 @@
 #include "mozilla/dom/DOMJSClass.h"
 #include "monkeycage/Sandbox.h"
 
-bool XPC_WN_MaybeResolvingPropertyStub(JSContext* cx, JS::HandleObject obj,
+MC::Tainted<bool> XPC_WN_MaybeResolvingPropertyStub(MC::Tainted<JSContext*> cx, JS::HandleObject obj,
                                        JS::HandleId id, JS::HandleValue v);
 MC::SandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb();
 
-bool XPC_WN_CannotModifyPropertyStub(JSContext* cx, JS::HandleObject obj,
+MC::Tainted<bool> XPC_WN_CannotModifyPropertyStub(MC::Tainted<JSContext*> cx, JS::HandleObject obj,
                                      JS::HandleId id, JS::HandleValue v);
 MC::SandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb();
 
-bool XPC_WN_MaybeResolvingDeletePropertyStub(JSContext* cx,
+MC::Tainted<bool> XPC_WN_MaybeResolvingDeletePropertyStub(MC::Tainted<JSContext*> cx,
                                              JS::HandleObject obj,
                                              JS::HandleId id,
                                              JS::ObjectOpResult& result);
 MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubCb();
 
-bool XPC_WN_CannotDeletePropertyStub(JSContext* cx, JS::HandleObject obj,
+MC::Tainted<bool> XPC_WN_CannotDeletePropertyStub(MC::Tainted<JSContext*> cx, JS::HandleObject obj,
                                      JS::HandleId id,
                                      JS::ObjectOpResult& result);
 MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb();
 
-bool XPC_WN_Shared_Enumerate(JSContext* cx, JS::HandleObject obj);
+MC::Tainted<bool> XPC_WN_Shared_Enumerate(MC::Tainted<JSContext*> cx, JS::HandleObject obj);
 MC::SandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb();
 
-bool XPC_WN_NewEnumerate(JSContext* cx, JS::HandleObject obj,
+MC::Tainted<bool> XPC_WN_NewEnumerate(MC::Tainted<JSContext*> cx, JS::HandleObject obj,
                          JS::MutableHandleIdVector properties,
                          bool enumerableOnly);
 MC::SandboxCallback<JSNewEnumerateOp> XPC_WN_NewEnumerateCb();
 
-bool XPC_WN_Helper_Resolve(JSContext* cx, JS::HandleObject obj, JS::HandleId id,
-                           bool* resolvedp);
+MC::Tainted<bool> XPC_WN_Helper_Resolve(MC::Tainted<JSContext*> cx,
+                                        JS::HandleObject obj, JS::HandleId id,
+                                        MC::Tainted<bool*> resolvedp);
 MC::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb();
 
 void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj);
@@ -51,10 +52,10 @@ MC::SandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb();
 void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj);
 MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb();
 
-bool XPC_WN_Helper_Call(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::Tainted<bool> XPC_WN_Helper_Call(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 MC::SandboxCallback<JSNative> XPC_WN_Helper_CallCb();
 
-bool XPC_WN_Helper_Construct(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::Tainted<bool> XPC_WN_Helper_Construct(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 MC::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb();
 
 void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj);
