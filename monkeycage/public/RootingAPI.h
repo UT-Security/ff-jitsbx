@@ -11,6 +11,8 @@
 
 #ifdef JS_SANDBOX
 
+#include "monkeycage/unsafe/SandboxImpl.h"
+
 namespace MC {
 
 template <typename T>
@@ -179,22 +181,32 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
  public:
   using ElementType = T;
 
+#ifdef JS_SANDBOX_NOOP
+ private:
+  T stack_mem;
+
+ public:
   template <typename RootingContext,
             typename = std::enable_if_t<std::is_copy_constructible_v<T>,
                                         RootingContext>>
-  explicit Rooted(const RootingContext& cx) : detail::Rooted<T>() {
+  explicit Rooted(const RootingContext& cx)
+      : detail::Rooted<T>(&stack_mem), stack_mem(JS::SafelyInitialized<T>::create()) {
     registerWithRootLists(rootLists(cx));
   }
 
   template <typename RootingContext, typename S>
-  Rooted(const RootingContext& cx, S&& initial) : detail::Rooted<T>(std::forward<S>(initial)) {
+  Rooted(const RootingContext& cx, S&& initial)
+      : detail::Rooted<T>(&stack_mem), stack_mem(std::forward<S>(initial)) {
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(stack_mem));
     registerWithRootLists(rootLists(cx));
   }
 
   template <
       typename RootingContext, typename... CtorArgs,
       typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
-  explicit Rooted(const RootingContext& cx, CtorArgs... args) : detail::Rooted<T>(std::forward<CtorArgs>(args)...) {
+  explicit Rooted(const RootingContext& cx, CtorArgs... args)
+      : detail::Rooted<T>(&stack_mem), stack_mem(std::forward<CtorArgs>(args)...) {
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(stack_mem));
     registerWithRootLists(rootLists(cx));
   }
 
@@ -202,28 +214,72 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
     MOZ_ASSERT(*this->stack == this);
     *this->stack = this->prev;
   }
+#elif defined(JS_SANDBOX_LFI)
 
+  template <typename RootingContext,
+            typename = std::enable_if_t<std::is_copy_constructible_v<T>,
+                                        RootingContext>>
+  explicit Rooted(const RootingContext& cx)
+      : detail::Rooted<T>(nullptr) {
+    void* memory = monkeycage_stackpush(sizeof(T));
+    MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
+    this->ptr = (T*)memory;
+    new (memory) T(JS::SafelyInitialized<T>::create());
+    registerWithRootLists(rootLists(cx));
+  }
+
+  template <typename RootingContext, typename S>
+  Rooted(const RootingContext& cx, S&& initial)
+      : detail::Rooted<T>(nullptr) {
+    void* memory = monkeycage_stackpush(sizeof(T));
+    MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
+    this->ptr = (T*)memory;
+    new (memory) T(std::forward<S>(initial));
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(*this->ptr));
+    registerWithRootLists(rootLists(cx));
+  }
+
+  template <
+      typename RootingContext, typename... CtorArgs,
+      typename = std::enable_if_t<detail::IsTraceable_v<T>, RootingContext>>
+  explicit Rooted(const RootingContext& cx, CtorArgs... args)
+      : detail::Rooted<T>(nullptr) {
+    void* memory = monkeycage_stackpush(sizeof(T));
+    MOZ_ASSERT(memory, "Failed to allocate sandbox stack for Rooted");
+    this->ptr = (T*)memory;
+    new (memory) T(std::forward<CtorArgs>(args)...);
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(*this->ptr));
+    registerWithRootLists(rootLists(cx));
+  }
+
+  ~Rooted() {
+    MOZ_ASSERT(*this->stack == this);
+    *this->stack = this->prev;
+    this->ptr->~T();
+    monkeycage_stackpop(sizeof(T), (void*)this->ptr);
+  }
+#endif
   /*
    * This method is public for Rooted so that Codegen.py can use a Rooted
    * interchangeably with a MutableHandleValue.
    */
   void set(const T& value) {
-    this->ptr = value;
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(this->ptr));
+    *this->ptr = value;
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(*this->ptr));
   }
   void set(T&& value) {
-    this->ptr = std::move(value);
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(this->ptr));
+    *this->ptr = std::move(value);
+    MOZ_ASSERT(JS::GCPolicy<T>::isValid(*this->ptr));
   }
 
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(Rooted, T);
 
-  T& get() { return this->ptr; }
-  const T& get() const { return this->ptr; }
+  T& get() { return *this->ptr; }
+  const T& get() const { return *this->ptr; }
 
-  T* address() { return &this->ptr; }
-  const T* address() const { return &this->ptr; }
+  T* address() { return this->ptr; }
+  const T* address() const { return this->ptr; }
 
  private:
   Rooted(const Rooted&) = delete;
