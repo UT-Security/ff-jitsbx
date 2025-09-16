@@ -108,25 +108,13 @@ using RootedTraits =
 template <typename T>
 class MOZ_RAII Rooted : public RootedTraits<T>::StackBase {
  public:
-  explicit Rooted()
-      : ptr(JS::SafelyInitialized<T>::create()) {}
+  explicit Rooted(T* p) : ptr(p) {}
 
-  template <typename S>
-  explicit Rooted(S&& initial) : ptr(std::forward<S>(initial)) {
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
-  }
-
-  template <
-      typename... CtorArgs>
-  explicit Rooted(CtorArgs... args): ptr(std::forward<CtorArgs>(args)...) {
-    MOZ_ASSERT(JS::GCPolicy<T>::isValid(ptr));
-  }
-
-  T* addr() { return &ptr; }
-  const T* addr() const { return &ptr; }
+  T* addr() { return ptr; }
+  const T* addr() const { return ptr; }
 
  protected:
-  T ptr;
+  T* ptr;
 } JS_HAZ_ROOTED;
 
 template <typename T>
