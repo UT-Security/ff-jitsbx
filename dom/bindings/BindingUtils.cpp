@@ -1797,7 +1797,7 @@ static bool ResolvePrototypeOrConstructor(
     }
 
     if (resolveOwnProperty) {
-      if (!resolveOwnProperty(cx, wrapper, obj, id, desc)) {
+      if (!resolveOwnProperty(JS_SanitizeContext(cx), wrapper, obj, id, desc)) {
         return false;
       }
 
@@ -2091,7 +2091,7 @@ bool XrayOwnPropertyKeys(MCContext* cx, JS::Handle<JSObject*> wrapper,
     // FIXME https://bugzilla.mozilla.org/show_bug.cgi?id=1071189
     //       Should do something about XBL properties too.
     if (enumerateOwnProperties &&
-        !enumerateOwnProperties(MC_UNSAFE(cx), wrapper, obj, props)) {
+        !enumerateOwnProperties(cx, wrapper, obj, props)) {
       return false;
     }
   }
@@ -2128,19 +2128,19 @@ bool XrayDeleteNamedProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
 
 namespace binding_detail {
 
-bool ResolveOwnProperty(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool ResolveOwnProperty(MCContext* cx, JS::Handle<JSObject*> wrapper,
                         JS::Handle<JSObject*> obj, JS::Handle<jsid> id,
                         JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
   //TODO(abhishekcs): unsafe assumptions being made here
-  return mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(JS_SanitizeContext(cx), wrapper, id,
+  return mc::GetProxyHandler(obj)->getOwnPropertyDescriptor(cx, wrapper, id,
                                                             desc);
 }
 
-bool EnumerateOwnProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool EnumerateOwnProperties(MCContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::Handle<JSObject*> obj,
                             JS::MutableHandleVector<jsid> props) {
   //TODO(abhishekcs): unsafe assumptions being made here
-  return mc::GetProxyHandler(obj)->ownPropertyKeys(JS_SanitizeContext(cx), wrapper, props);
+  return mc::GetProxyHandler(obj)->ownPropertyKeys(cx, wrapper, props);
 }
 
 }  // namespace binding_detail
@@ -2323,7 +2323,7 @@ void UpdateReflectorGlobal(JSContext* aCx, JS::Handle<JSObject*> aObjArg,
   MOZ_ASSERT(JS_IsGlobalObject(oldGlobal));
 
   MC::Rooted<JSObject*> newGlobal(aCx,
-                                  domClass->mGetAssociatedGlobal(aCx, aObj));
+                                  domClass->mGetAssociatedGlobal(JS_SanitizeContext(aCx), aObj));
   MOZ_ASSERT(JS_IsGlobalObject(newGlobal));
 
   MC::SandboxStack<JSAutoRealm> oldAr(aCx, oldGlobal);
@@ -2865,8 +2865,10 @@ void FinalizeGlobal(JS::GCContext* aGcx, JSObject* aObj) {
   mozilla::dom::DestroyProtoAndIfaceCache(aObj);
 }
 
-bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
-                   JS::Handle<jsid> aId, bool* aResolvedp) {
+MC::Tainted<bool> ResolveGlobal(MC::Tainted<JSContext*> t_aCx, JS::Handle<JSObject*> aObj,
+                   JS::Handle<jsid> aId, MC::Tainted<bool*> aResolvedp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   MOZ_ASSERT(JS_IsGlobalObject(aObj),
              "Should have a global here, since we plan to resolve standard "
              "classes!");
@@ -2875,7 +2877,7 @@ bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
 }
 
 MC::SandboxCallback<JSResolveOp> ResolveGlobalCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(ResolveGlobal);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(ResolveGlobal);
   return inner_;
 }
 

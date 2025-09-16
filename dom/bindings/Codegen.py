@@ -663,7 +663,7 @@ class CGDOMJSClass(CGThing):
             classFlags += " | JSCLASS_SKIP_NURSERY_FINALIZE"
 
         if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
-            hookCallbacks.append(CGMonkeycageStaticCallback(RESOLVE_HOOK_NAME, "JSResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticTaintedCallback(RESOLVE_HOOK_NAME, "JSResolveOp"))
             hookCallbacks.append(CGMonkeycageStaticCallback(MAY_RESOLVE_HOOK_NAME, "JSMayResolveOp"))
             hookCallbacks.append(CGMonkeycageStaticCallback(NEW_ENUMERATE_HOOK_NAME, "JSNewEnumerateOp"))
             
@@ -680,7 +680,7 @@ class CGDOMJSClass(CGThing):
             newEnumerateHook = "nullptr"
 
         if wantsAddProperty(self.descriptor):
-            hookCallbacks.append(CGMonkeycageStaticCallback(ADDPROPERTY_HOOK_NAME, "JSAddPropertyOp"))
+            hookCallbacks.append(CGMonkeycageStaticTaintedCallback(ADDPROPERTY_HOOK_NAME, "JSAddPropertyOp"))
         hookCallbacks.append(CGMonkeycageStaticCallback(FINALIZE_HOOK_NAME, "JSFinalizeOp"))
 
         return CGList(hookCallbacks).define() + fill(
@@ -2016,6 +2016,32 @@ class CGMonkeycageStaticCallback(CGThing):
             functionName=self.name
         )
 
+class CGMonkeycageStaticTaintedCallback(CGThing):
+    """
+    Class for codegen of static function that registers and manages
+    a callback function with the sandbox.  
+    """
+
+    def __init__(self,
+                 name,
+                 type,
+    ):
+        CGThing.__init__(self)
+        self.name = name
+        self.type = type
+
+    def define(self):
+        return fill(
+            """
+            static auto ${functionName}Cb() {
+                static auto inner_ = MC::Sandbox::RegisterTaintedCallback(${functionName});
+                return inner_;
+            }
+            """,
+            returnType=self.type,
+            functionName=self.name
+        )
+
 class CGAbstractStaticMethod(CGAbstractMethod):
     """
     Abstract base class for codegen of implementation-only (no
@@ -2064,13 +2090,13 @@ class CGAddPropertyHook(CGAbstractClassHook):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("JS::Handle<JS::Value>", "val"),
         ]
         CGAbstractClassHook.__init__(
-            self, descriptor, ADDPROPERTY_HOOK_NAME, "bool", args
+            self, descriptor, ADDPROPERTY_HOOK_NAME, "MC::Tainted<bool>", args
         )
 
     def generate_code(self):
@@ -4688,7 +4714,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
               MOZ_ASSERT(!aCache->GetWrapperMaybeDead());
             }
 
-            MC::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(aCx, aObject->GetParentObject()));
+            MC::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(JS_SanitizeContext(aCx), aObject->GetParentObject()));
             if (!global) {
               return false;
             }
@@ -5399,7 +5425,7 @@ class CastableObjectUnwrapper:
             """
             {
               // Our JSContext should be in the right global to do unwrapping in.
-              nsresult rv = UnwrapObject<${protoID}, ${type}>(${mutableSource}, ${target}, cx);
+              nsresult rv = UnwrapObject<${protoID}, ${type}>(${mutableSource}, ${target}, MC_UNSAFE(cx));
               if (NS_FAILED(rv)) {
                 $*{codeOnFailure}
               }
@@ -10813,12 +10839,12 @@ class CGResolveHook(CGAbstractClassHook):
         assert descriptor.interface.getExtendedAttribute("NeedResolve")
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "t_cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::Handle<jsid>", "id"),
-            Argument("bool*", "resolvedp"),
+            Argument("MC::Tainted<bool*>", "resolvedp"),
         ]
-        CGAbstractClassHook.__init__(self, descriptor, RESOLVE_HOOK_NAME, "bool", args)
+        CGAbstractClassHook.__init__(self, descriptor, RESOLVE_HOOK_NAME, "MC::Tainted<bool>", args)
 
     def generate_code(self):
         return dedent(
@@ -10851,17 +10877,24 @@ class CGResolveHook(CGAbstractClassHook):
             # Resolve standard classes
             prefix = dedent(
                 """
-                if (!ResolveGlobal(cx, obj, id, resolvedp)) {
+                MCContext* cx = t_cx.copy_and_verify_address(
+                  [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+                if (!ResolveGlobal(t_cx, obj, id, resolvedp).UNSAFE_unverified()) {
                   return false;
                 }
-                if (*resolvedp) {
+                if (*resolvedp.UNSAFE_unverified()) {
                   return true;
                 }
 
                 """
             )
         else:
-            prefix = ""
+            prefix = dedent(
+                """
+                MCContext* cx = t_cx.copy_and_verify_address(
+                  [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+                """
+            )
         return prefix + CGAbstractClassHook.definition_body(self)
 
 
@@ -10922,7 +10955,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
             dedent(
                 """
             FastErrorResult rv;
-            self->GetOwnPropertyNames(cx, properties, enumerableOnly, rv);
+            self->GetOwnPropertyNames(JS_SanitizeContext(cx), properties, enumerableOnly, rv);
             if (rv.MaybeSetPendingException(cx)) {
               return false;
             }
@@ -13990,7 +14023,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "wrapper"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::Handle<jsid>", "id"),
@@ -14047,7 +14080,7 @@ class CGEnumerateOwnPropertiesViaGetOwnPropertyNames(CGAbstractBindingMethod):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "wrapper"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::MutableHandleVector<jsid>", "props"),
@@ -14068,7 +14101,7 @@ class CGEnumerateOwnPropertiesViaGetOwnPropertyNames(CGAbstractBindingMethod):
             FastErrorResult rv;
             // This wants all own props, not just enumerable ones.
             self->GetOwnPropertyNames(cx, props, false, rv);
-            if (rv.MaybeSetPendingException(cx)) {
+            if (rv.MaybeSetPendingException(MC_UNSAFE(cx))) {
               return false;
             }
             return true;
@@ -19865,7 +19898,7 @@ class CGExampleClass(CGBindingImplClass):
             classImpl += fill(
                 """
                 ${returnType}
-                ${nativeType}::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto${reflectorArg})
+                ${nativeType}::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto${reflectorArg})
                 {
                   return ${ifaceName}_Binding::Wrap(aCx, this, aGivenProto${reflectorPassArg});
                 }

@@ -15,7 +15,7 @@
 
 #include <utility>
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
@@ -35,17 +35,17 @@ class MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS BindingCallContext {
   // support one.  See Errors.msg and the documentation for
   // ErrorResult::MaybeSetPendingException for details on he context arg.
   BindingCallContext(JSContext* aCx, const char* aMethodDescription)
-      : mCx(aCx), mDescription(aMethodDescription) {}
+      : BindingCallContext(aCx ? JS_SanitizeContext(aCx) : nullptr, aMethodDescription) {}
 
 #ifdef JS_SANDBOX
   BindingCallContext(MCContext* aCx, const char* aMethodDescription)
-      : BindingCallContext(MC_UNSAFE(aCx), aMethodDescription) {}
+      : mCx(aCx), mDescription(aMethodDescription) {}
 #endif
 
   ~BindingCallContext() = default;
 
   // Allow passing a BindingCallContext as a JSContext*, as needed.
-  operator JSContext*() const { return mCx; }
+  operator JSContext*() const { return mCx ? MC_UNSAFE(mCx) : nullptr; }
 
   // Allow testing a BindingCallContext for falsiness, just like a
   // JSContext* could be tested.
@@ -58,11 +58,11 @@ class MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS BindingCallContext {
                   "We plan to add a context; it better be expected!");
     MOZ_ASSERT(mCx);
     return dom::ThrowErrorMessage<errorNumber>(
-        mCx, mDescription, std::forward<Ts>(aMessageArgs)...);
+        MC_UNSAFE(mCx), mDescription, std::forward<Ts>(aMessageArgs)...);
   }
 
  private:
-  JSContext* const mCx;
+  MCContext* const mCx;
   const char* const mDescription;
 };
 

@@ -25,7 +25,7 @@
 #include "ErrorList.h"
 #include "Units.h"
 #include "js/Id.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
