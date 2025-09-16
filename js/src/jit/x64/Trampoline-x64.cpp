@@ -11,6 +11,7 @@
 #include "jit/JitRuntime.h"
 #include "jit/PerfSpewer.h"
 #include "jit/VMFunctions.h"
+#include "jit/x64/Assembler-x64.h"
 #include "jit/x64/SharedICRegisters-x64.h"
 #include "vm/JitActivation.h"  // js::jit::JitActivation
 #include "vm/JSContext.h"
@@ -216,6 +217,9 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   CodeLabel returnLabel;
   Label oomReturnLabel;
+#ifdef JS_SANDBOX_CET
+  Label callSiteCET, stagerCET;
+#endif
   {
     // Handle Interpreter -> Baseline OSR.
     AllocatableGeneralRegisterSet regs(GeneralRegisterSet::All());
@@ -234,19 +238,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     // Push return address
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
-#ifdef JS_SANDBOX_CET
-    Label temp;
-    Register scratch2 = regs.takeAny();
-    // masm.breakpoint();
-    // Fake call
-    masm.call(&temp);
-    masm.bind(&temp);
-    // Overwrite saved value in shadow stack
-    masm.readShadowStack(scratch2);
-    masm.writeShadowStack(scratch, Operand(scratch2, 0));
-    // Pop fake retaddr
-    masm.pop(scratch2);
-#endif
 
     // Frame prologue.
     masm.push(rbp);
@@ -306,7 +297,12 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&skipProfilingInstrumentation);
     }
 
+#ifdef JS_SANDBOX_CET
+    // Jump to stager code
+    masm.jump(&callSiteCET);
+#else
     masm.jump(reg_code);
+#endif
 
     // OOM: frame epilogue, load error value, discard return address and return.
     masm.bind(&error);
@@ -326,6 +322,19 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Call function.
   masm.callJitNoProfiler(reg_code);
+
+  // Jump over this code in non-OSR case
+  masm.jump(&oomReturnLabel);
+#ifdef JS_SANDBOX_CET
+  // Stager code: pop instruction pointer and jump to reg_code
+  masm.bind(&stagerCET);
+  masm.pop(SandboxScratchReg);
+  masm.jump(reg_code);
+
+  // Call site: make sure shadow stack gets correct rip
+  masm.bind(&callSiteCET);
+  masm.call(&stagerCET);
+#endif
 
   {
     // Interpreter -> Baseline OSR will return here.
