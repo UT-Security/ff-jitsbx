@@ -2130,7 +2130,7 @@ Document* nsObjectLoadingContent::GetContentDocument(
 }
 
 bool nsObjectLoadingContent::DoResolve(
-    JSContext* aCx, JS::Handle<JSObject*> aObject, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aObject, JS::Handle<jsid> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) {
   return true;
 }
@@ -2142,7 +2142,7 @@ bool nsObjectLoadingContent::MayResolve(jsid aId) {
 }
 
 void nsObjectLoadingContent::GetOwnPropertyNames(
-    JSContext* aCx, JS::MutableHandleVector<jsid> /* unused */,
+    MCContext* aCx, JS::MutableHandleVector<jsid> /* unused */,
     bool /* unused */, ErrorResult& aRv) {}
 
 void nsObjectLoadingContent::MaybeFireErrorEvent() {

@@ -604,7 +604,7 @@ MC::Tainted<bool> XPC_WN_Shared_Enumerate(MC::Tainted<JSContext*> t_cx, HandleOb
         continue;
 
       JS_MarkCrossZoneId(cx, name);
-      if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
+      if (!xpc_ForcePropertyResolve(cx, obj, name)) {
         return false;
       }
     }
@@ -1197,7 +1197,7 @@ static MC::Tainted<bool> XPC_WN_Proto_Enumerate(MC::Tainted<JSContext*> t_cx, Ha
     for (uint16_t k = 0; k < member_count; k++) {
       jsid name = iface->GetMemberAt(k)->GetName();
       JS_MarkCrossZoneId(cx, name);
-      if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
+      if (!xpc_ForcePropertyResolve(cx, obj, name)) {
         return false;
       }
     }
@@ -1329,7 +1329,7 @@ static MC::Tainted<bool> XPC_WN_TearOff_Enumerate(MC::Tainted<JSContext*> t_cx, 
   for (uint16_t k = 0; k < member_count; k++) {
     jsid name = iface->GetMemberAt(k)->GetName();
     JS_MarkCrossZoneId(cx, name);
-    if (!xpc_ForcePropertyResolve(MC_UNSAFE(cx), obj, name)) {
+    if (!xpc_ForcePropertyResolve(cx, obj, name)) {
       return false;
     }
   }

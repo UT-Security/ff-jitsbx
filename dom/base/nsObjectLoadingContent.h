@@ -113,7 +113,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
 
   // Helper for WebIDL NeedResolve
   bool DoResolve(
-      JSContext* aCx, JS::Handle<JSObject*> aObject, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aObject, JS::Handle<jsid> aId,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc);
   // The return value is whether DoResolve might end up resolving the given
   // id.  If in doubt, return true.
@@ -122,7 +122,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent,
   static bool IsSuccessfulRequest(nsIRequest*, nsresult* aStatus);
 
   // Helper for WebIDL enumeration
-  void GetOwnPropertyNames(JSContext* aCx,
+  void GetOwnPropertyNames(MCContext* aCx,
                            JS::MutableHandleVector<jsid> /* unused */,
                            bool /* unused */, mozilla::ErrorResult& aRv);
 

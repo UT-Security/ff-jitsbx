@@ -419,13 +419,13 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   static bool CachesEnabled(JSContext* aCx, JSObject*);
 
   bool DoResolve(
-      JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc);
   // The return value is whether DoResolve might end up resolving the given id.
   // If in doubt, return true.
   static bool MayResolve(jsid aId);
 
-  void GetOwnPropertyNames(JSContext* aCx, JS::MutableHandleVector<jsid> aNames,
+  void GetOwnPropertyNames(MCContext* aCx, JS::MutableHandleVector<jsid> aNames,
                            bool aEnumerableOnly, mozilla::ErrorResult& aRv);
 
   nsPIDOMWindowOuter* GetInProcessScriptableTop() override;

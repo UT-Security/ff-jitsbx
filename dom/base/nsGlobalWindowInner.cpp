@@ -26,17 +26,17 @@
 #include "WindowDestroyedEvent.h"
 #include "WindowNamedPropertiesHandler.h"
 #include "js/ComparisonOperators.h"
-#include "js/CompileOptions.h"
+#include "monkeycage/CompileOptions.h"
 #include "monkeycage/friend/PerformanceHint.h"
 #include "js/Id.h"
 #include "js/loader/LoadedScript.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
 #include "js/PropertyDescriptor.h"
-#include "js/RealmOptions.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RealmOptions.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "js/Value.h"
-#include "js/Warnings.h"
+#include "monkeycage/Warnings.h"
 #include "js/shadow/String.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
@@ -3158,7 +3158,7 @@ static const JSClass XULControllersShimClass = {"XULControllers", 0};
 #endif
 
 bool nsGlobalWindowInner::DoResolve(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) {
   // Note: Keep this in sync with MayResolve.
 
@@ -3168,7 +3168,7 @@ bool nsGlobalWindowInner::DoResolve(
   }
 
   bool found;
-  if (!WebIDLGlobalNameHash::DefineIfEnabled(aCx, aObj, aId, aDesc, &found)) {
+  if (!WebIDLGlobalNameHash::DefineIfEnabled(MC_UNSAFE(aCx), aObj, aId, aDesc, &found)) {
     return false;
   }
 
@@ -3181,7 +3181,7 @@ bool nsGlobalWindowInner::DoResolve(
   // that have constants.
   if (StaticPrefs::dom_use_components_shim() &&
       aId == XPCJSRuntime::Get()->GetStringID(XPCJSContext::IDX_COMPONENTS)) {
-    return ResolveComponentsShim(aCx, aObj, aDesc);
+    return ResolveComponentsShim(MC_UNSAFE(aCx), aObj, aDesc);
   }
 
   // We also support a "window.controllers" thing; apparently some
@@ -3247,7 +3247,7 @@ bool nsGlobalWindowInner::MayResolve(jsid aId) {
 }
 
 void nsGlobalWindowInner::GetOwnPropertyNames(
-    JSContext* aCx, JS::MutableHandleVector<jsid> aNames, bool aEnumerableOnly,
+    MCContext* aCx, JS::MutableHandleVector<jsid> aNames, bool aEnumerableOnly,
     ErrorResult& aRv) {
   if (aEnumerableOnly) {
     // The names we would return from here get defined on the window via one of
@@ -3280,8 +3280,8 @@ void nsGlobalWindowInner::GetOwnPropertyNames(
       js::IsObjectInContextCompartment(wrapper, aCx)
           ? WebIDLGlobalNameHash::UnresolvedNamesOnly
           : WebIDLGlobalNameHash::AllNames;
-  if (!WebIDLGlobalNameHash::GetNames(aCx, wrapper, nameType, aNames)) {
-    aRv.NoteJSContextException(aCx);
+  if (!WebIDLGlobalNameHash::GetNames(MC_UNSAFE(aCx), wrapper, nameType, aNames)) {
+    aRv.NoteJSContextException(MC_UNSAFE(aCx));
   }
 }
 

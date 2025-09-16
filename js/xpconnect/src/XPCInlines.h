@@ -325,11 +325,11 @@ inline void XPCWrappedNative::SweepTearOffs() {
 
 /***************************************************************************/
 
-inline bool xpc_ForcePropertyResolve(JSContext* cx, JS::HandleObject obj,
+inline bool xpc_ForcePropertyResolve(MCContext* cx, JS::HandleObject obj,
                                      jsid idArg) {
   MC::RootedId id(cx, idArg);
-  bool dummy;
-  return JS_HasPropertyById(cx, obj, id, &dummy);
+  MC::SandboxStack<bool> dummy;
+  return JS_HasPropertyById(cx, obj, id, dummy);
 }
 
 inline jsid GetJSIDByIndex(MCContext* cx, unsigned index) {

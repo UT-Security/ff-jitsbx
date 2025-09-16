@@ -73,11 +73,11 @@ inline bool IsSecureContextOrObjectIsFromSecureContext(JSContext* aCx,
 }
 
 typedef bool (*ResolveOwnProperty)(
-    JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<JSObject*> obj,
     JS::Handle<jsid> id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc);
 
-typedef bool (*EnumerateOwnProperties)(JSContext* cx,
+typedef bool (*EnumerateOwnProperties)(MCContext* cx,
                                        JS::Handle<JSObject*> wrapper,
                                        JS::Handle<JSObject*> obj,
                                        JS::MutableHandleVector<jsid> props);
@@ -481,7 +481,7 @@ inline bool IsInterfacePrototype(DOMObjectType type) {
   return type == eInterfacePrototype || type == eGlobalInterfacePrototype;
 }
 
-typedef JSObject* (*AssociatedGlobalGetter)(JSContext* aCx,
+typedef JSObject* (*AssociatedGlobalGetter)(MCContext* aCx,
                                             JS::Handle<JSObject*> aObj);
 
 typedef JSObject* (*ProtoGetter)(JSContext* aCx);

@@ -17,6 +17,11 @@ inline JS::UniqueChars JS_EncodeStringToLatin1(MCContext* cx, JSString* str) {
   return JS_EncodeStringToLatin1(cx->cx_, str);
 }
 
+inline JS::UniqueChars JS_EncodeStringToUTF8(MCContext* cx,
+                                             JS::Handle<JSString*> str) {
+  return JS_EncodeStringToUTF8(cx->cx_, str);
+}
+
 #endif
 
 #endif

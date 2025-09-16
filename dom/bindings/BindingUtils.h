@@ -9,13 +9,13 @@
 
 #include <type_traits>
 
-#include "js/CharacterEncoding.h"
-#include "js/Conversions.h"
+#include "monkeycage/CharacterEncoding.h"
+#include "monkeycage/Conversions.h"
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "js/MemoryFunctions.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
-#include "js/RealmOptions.h"
+#include "monkeycage/RealmOptions.h"
 #include "monkeycage/GCVector.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/SandboxStack.h"
@@ -1695,15 +1695,15 @@ static inline JSObject* FindAssociatedGlobal(
 // Finding of the associated global for an object, when we don't want to
 // explicitly pass in things like the nsWrapperCache for it.
 template <typename T>
-static inline JSObject* FindAssociatedGlobal(JSContext* cx, const T& p) {
-  return FindAssociatedGlobal(cx, GetParentPointer(p), GetWrapperCache(p),
+static inline JSObject* FindAssociatedGlobal(MCContext* cx, const T& p) {
+  return FindAssociatedGlobal(MC_UNSAFE(cx), GetParentPointer(p), GetWrapperCache(p),
                               GetReflectionScope(p));
 }
 
 // Specialization for the case of nsIGlobalObject, since in that case
 // we can just get the JSObject* directly.
 template <>
-inline JSObject* FindAssociatedGlobal(JSContext* cx,
+inline JSObject* FindAssociatedGlobal(MCContext* cx,
                                       nsIGlobalObject* const& p) {
   if (!p) {
     return JS::CurrentGlobalOrNull(cx);
@@ -1724,7 +1724,7 @@ inline JSObject* FindAssociatedGlobal(JSContext* cx,
 template <typename T,
           bool hasAssociatedGlobal = NativeHasMember<T>::GetParentObject>
 struct FindAssociatedGlobalForNative {
-  static JSObject* Get(JSContext* cx, JS::Handle<JSObject*> obj) {
+  static JSObject* Get(MCContext* cx, JS::Handle<JSObject*> obj) {
     MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
     T* native = UnwrapDOMObject<T>(obj);
     return FindAssociatedGlobal(cx, native->GetParentObject());
@@ -1733,7 +1733,7 @@ struct FindAssociatedGlobalForNative {
 
 template <typename T>
 struct FindAssociatedGlobalForNative<T, false> {
-  static JSObject* Get(JSContext* cx, JS::Handle<JSObject*> obj) {
+  static JSObject* Get(MCContext* cx, JS::Handle<JSObject*> obj) {
     MOZ_CRASH();
     return nullptr;
   }
@@ -2381,10 +2381,10 @@ namespace binding_detail {
 // Default implementations of the NativePropertyHooks' mResolveOwnProperty and
 // mEnumerateOwnProperties for WebIDL bindings implemented as proxies.
 bool ResolveOwnProperty(
-    JSContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> wrapper, JS::Handle<JSObject*> obj,
     JS::Handle<jsid> id,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc);
-bool EnumerateOwnProperties(JSContext* cx, JS::Handle<JSObject*> wrapper,
+bool EnumerateOwnProperties(MCContext* cx, JS::Handle<JSObject*> wrapper,
                             JS::Handle<JSObject*> obj,
                             JS::MutableHandleVector<jsid> props);
 
@@ -2893,8 +2893,8 @@ class GetCCParticipant<T, true> {
 
 void FinalizeGlobal(JS::GCContext* aGcx, JSObject* aObj);
 
-bool ResolveGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
-                   JS::Handle<jsid> aId, bool* aResolvedp);
+MC::Tainted<bool> ResolveGlobal(MC::Tainted<JSContext*> aCx, JS::Handle<JSObject*> aObj,
+                   JS::Handle<jsid> aId, MC::Tainted<bool*> aResolvedp);
 MC::SandboxCallback<JSResolveOp> ResolveGlobalCb();
 
 bool MayResolveGlobal(const JSAtomState& aNames, jsid aId, JSObject* aMaybeObj);
