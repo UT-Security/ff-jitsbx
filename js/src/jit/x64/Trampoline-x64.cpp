@@ -218,7 +218,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
   CodeLabel returnLabel;
   Label oomReturnLabel;
 #ifdef JS_SANDBOX_CET
-  Label callSiteCET, stagerCET;
+  Label callSiteCET;
 #endif
   {
     // Handle Interpreter -> Baseline OSR.
@@ -235,9 +235,16 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
     Register numStackValues = regs.takeAny();
     masm.movq(numStackValuesAddr, numStackValues);
 
+#ifdef JS_SANDBOX_CET
+    // Do a call instead of a jump
+    masm.call(&callSiteCET);
+    masm.jump(&oomReturnLabel);
+    masm.bind(&callSiteCET);
+#else
     // Push return address
     masm.mov(&returnLabel, scratch);
     masm.push(scratch);
+#endif
 
     // Frame prologue.
     masm.push(rbp);
@@ -297,12 +304,7 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
       masm.bind(&skipProfilingInstrumentation);
     }
 
-#ifdef JS_SANDBOX_CET
-    // Jump to stager code
-    masm.jump(&callSiteCET);
-#else
     masm.jump(reg_code);
-#endif
 
     // OOM: frame epilogue, load error value, discard return address and return.
     masm.bind(&error);
@@ -322,19 +324,6 @@ void JitRuntime::generateEnterJIT(JSContext* cx, MacroAssembler& masm) {
 
   // Call function.
   masm.callJitNoProfiler(reg_code);
-
-  // Jump over this code in non-OSR case
-  masm.jump(&oomReturnLabel);
-#ifdef JS_SANDBOX_CET
-  // Stager code: pop instruction pointer and jump to reg_code
-  masm.bind(&stagerCET);
-  masm.pop(SandboxScratchReg);
-  masm.jump(reg_code);
-
-  // Call site: make sure shadow stack gets correct rip
-  masm.bind(&callSiteCET);
-  masm.call(&stagerCET);
-#endif
 
   {
     // Interpreter -> Baseline OSR will return here.
@@ -462,6 +451,8 @@ void JitRuntime::generateInvalidator(MacroAssembler& masm, Label* bailoutTail) {
 
   // Pop the machine state and the dead frame.
   masm.moveToStackPtr(FramePointer);
+
+  // TODO(JS_SANDBOX_CET): how can this be compatible with CET?
 
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
   masm.jmp(bailoutTail);
@@ -667,6 +658,8 @@ static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
 
   // Remove both the bailout frame and the topmost Ion frame's stack.
   masm.moveToStackPtr(FramePointer);
+
+  // TODO(JS_SANDBOX_CET): how can this be compatible with CET?
 
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
   masm.jmp(bailoutTail);
