@@ -560,7 +560,7 @@ void ChromeUtils::Import(const GlobalObject& aGlobal,
 
   MC::Rooted<JSObject*> global(cx);
   MC::Rooted<JSObject*> exports(cx);
-  nsresult rv = moduleloader->Import(MC_UNSAFE(cx), aResourceURI, &global, &exports);
+  nsresult rv = moduleloader->Import(cx, aResourceURI, &global, &exports);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -622,7 +622,7 @@ void ChromeUtils::ImportESModule(
 
   MC::Rooted<JSObject*> moduleNamespace(cx);
   nsresult rv =
-      moduleloader->ImportESModule(MC_UNSAFE(cx), registryLocation, &moduleNamespace);
+      moduleloader->ImportESModule(cx, registryLocation, &moduleNamespace);
   if (NS_FAILED(rv)) {
     aRv.Throw(rv);
     return;
@@ -647,7 +647,7 @@ static const size_t PARAM_INDEX_TARGET = 0;
 static const size_t PARAM_INDEX_LAMBDA = 1;
 static const size_t PARAMS_COUNT = 2;
 
-static bool ExtractArgs(JSContext* aCx, JS::CallArgs& aArgs,
+static bool ExtractArgs(MCContext* aCx, JS::CallArgs& aArgs,
                         JS::MutableHandle<JSObject*> aCallee,
                         JS::MutableHandle<JSObject*> aThisObj,
                         JS::MutableHandle<jsid> aId) {
@@ -655,7 +655,7 @@ static bool ExtractArgs(JSContext* aCx, JS::CallArgs& aArgs,
 
   JS::Handle<JS::Value> thisv = aArgs.thisv();
   if (!thisv.isObject()) {
-    JS_ReportErrorASCII(aCx, "Invalid target object");
+    JS_ReportErrorASCII(MC_UNSAFE(aCx), "Invalid target object");
     return false;
   }
 
@@ -667,7 +667,11 @@ static bool ExtractArgs(JSContext* aCx, JS::CallArgs& aArgs,
   return true;
 }
 
-static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static MC::Tainted<bool> JSLazyGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  JS::Value* aVp = t_aVp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
 
   MC::Rooted<JSObject*> callee(aCx);
@@ -716,7 +720,7 @@ static bool JSLazyGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return true;
 }
 
-static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
+static bool DefineLazyGetter(MCContext* aCx, JS::Handle<JSObject*> aTarget,
                              JS::Handle<JS::Value> aName,
                              JS::Handle<JSObject*> aLambda) {
   MC::Rooted<jsid> id(aCx);
@@ -724,10 +728,10 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
     return false;
   }
 
-  static auto JSLazyGetterCb = MC::Sandbox::RegisterCallback(JSLazyGetter);
+  static auto JSLazyGetterCb = MC::Sandbox::RegisterTaintedCallback(JSLazyGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSLazyGetterCb.UNSAFE_get(), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSLazyGetterCb, 0, 0, id)));
   if (!getter) {
     JS_ReportOutOfMemory(aCx);
     return false;
@@ -754,7 +758,7 @@ static bool DefineLazyGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
 
 enum class ModuleType { JSM, ESM };
 
-static bool ModuleGetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
+static bool ModuleGetterImpl(MCContext* aCx, unsigned aArgc, JS::Value* aVp,
                              ModuleType aType) {
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
 
@@ -823,15 +827,21 @@ static bool ModuleGetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp,
   return true;
 }
 
-static bool JSModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static MC::Tainted<bool> JSModuleGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::JSM);
 }
 
-static bool ESModuleGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static MC::Tainted<bool> ESModuleGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::ESM);
 }
 
-static bool ModuleSetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static bool ModuleSetterImpl(MCContext* aCx, unsigned aArgc, JS::Value* aVp) {
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
 
   MC::Rooted<JSObject*> callee(aCx);
@@ -844,36 +854,42 @@ static bool ModuleSetterImpl(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
   return JS_DefinePropertyById(aCx, thisObj, id, args.get(0), JSPROP_ENUMERATE);
 }
 
-static bool JSModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static MC::Tainted<bool> JSModuleSetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
 
-static bool ESModuleSetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+static MC::Tainted<bool> ESModuleSetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
 
-static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
+static bool DefineJSModuleGetter(MCContext* aCx, JS::Handle<JSObject*> aTarget,
                                  const nsAString& aId,
                                  const nsAString& aResourceURI) {
   MC::Rooted<JS::Value> uri(aCx);
   MC::Rooted<JS::Value> idValue(aCx);
   MC::Rooted<jsid> id(aCx);
-  if (!xpc::NonVoidStringToJsval(aCx, aResourceURI, &uri) ||
-      !xpc::NonVoidStringToJsval(aCx, aId, &idValue) ||
+  if (!xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), aResourceURI, &uri) ||
+      !xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), aId, &idValue) ||
       !JS_ValueToId(aCx, idValue, &id)) {
     return false;
   }
   idValue = js::IdToValue(id);
 
-  static auto JSModuleGetterCb = MC::Sandbox::RegisterCallback(JSModuleGetter);
+  static auto JSModuleGetterCb = MC::Sandbox::RegisterTaintedCallback(JSModuleGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleGetterCb.UNSAFE_get(), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleGetterCb, 0, 0, id)));
 
-  static auto JSModuleSetterCb = MC::Sandbox::RegisterCallback(JSModuleSetter);
+  static auto JSModuleSetterCb = MC::Sandbox::RegisterTaintedCallback(JSModuleSetter);
   MC::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(
-               js::NewFunctionByIdWithReserved(aCx, JSModuleSetterCb.UNSAFE_get(), 0, 0, id)));
+               js::NewFunctionByIdWithReserved(aCx, JSModuleSetterCb, 0, 0, id)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -889,20 +905,20 @@ static bool DefineJSModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
                                JSPROP_ENUMERATE);
 }
 
-static bool DefineESModuleGetter(JSContext* aCx, JS::Handle<JSObject*> aTarget,
+static bool DefineESModuleGetter(MCContext* aCx, JS::Handle<JSObject*> aTarget,
                                  JS::Handle<JS::PropertyKey> aId,
                                  JS::Handle<JS::Value> aResourceURI) {
   MC::Rooted<JS::Value> idVal(aCx, JS::StringValue(aId.toString()));
 
-  static auto ESModuleGetterCb = MC::Sandbox::RegisterCallback(ESModuleGetter);
+  static auto ESModuleGetterCb = MC::Sandbox::RegisterTaintedCallback(ESModuleGetter);
   MC::Rooted<JSObject*> getter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleGetterCb.UNSAFE_get(), 0, 0, aId)));
+               aCx, ESModuleGetterCb, 0, 0, aId)));
 
-  static auto ESModuleSetterCb = MC::Sandbox::RegisterCallback(ESModuleSetter);
+  static auto ESModuleSetterCb = MC::Sandbox::RegisterTaintedCallback(ESModuleSetter);
   MC::Rooted<JSObject*> setter(
       aCx, JS_GetFunctionObject(js::NewFunctionByIdWithReserved(
-               aCx, ESModuleSetterCb.UNSAFE_get(), 0, 0, aId)));
+               aCx, ESModuleSetterCb, 0, 0, aId)));
 
   if (!getter || !setter) {
     JS_ReportOutOfMemory(aCx);
@@ -927,7 +943,7 @@ void ChromeUtils::DefineLazyGetter(const GlobalObject& aGlobal,
                                    JS::Handle<JSObject*> aLambda,
                                    ErrorResult& aRv) {
   MCContext* cx = aGlobal.Context();
-  if (!lazy_getter::DefineLazyGetter(MC_UNSAFE(cx), aTarget, aName, aLambda)) {
+  if (!lazy_getter::DefineLazyGetter(cx, aTarget, aName, aLambda)) {
     aRv.NoteJSContextException(MC_UNSAFE(cx));
     return;
   }
@@ -939,7 +955,7 @@ void ChromeUtils::DefineModuleGetter(const GlobalObject& global,
                                      const nsAString& id,
                                      const nsAString& resourceURI,
                                      ErrorResult& aRv) {
-  if (!lazy_getter::DefineJSModuleGetter(MC_UNSAFE(global.Context()), target, id,
+  if (!lazy_getter::DefineJSModuleGetter(global.Context(), target, id,
                                          resourceURI)) {
     aRv.NoteJSContextException(MC_UNSAFE(global.Context()));
   }
@@ -973,7 +989,7 @@ void ChromeUtils::DefineESModuleGetters(const GlobalObject& global,
       return;
     }
 
-    if (!lazy_getter::DefineESModuleGetter(MC_UNSAFE(cx), target, prop, resourceURIVal)) {
+    if (!lazy_getter::DefineESModuleGetter(cx, target, prop, resourceURIVal)) {
       aRv.NoteJSContextException(MC_UNSAFE(cx));
       return;
     }

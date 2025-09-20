@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_JSActorManager_h
 #define mozilla_dom_JSActorManager_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/dom/JSActor.h"
 #include "nsRefPtrHashtable.h"
 #include "nsString.h"
@@ -31,7 +31,7 @@ class JSActorManager : public nsISupports {
    *
    * Will set an error on |aRv| if the actor fails to be constructed.
    */
-  already_AddRefed<JSActor> GetActor(JSContext* aCx, const nsACString& aName,
+  already_AddRefed<JSActor> GetActor(MCContext* aCx, const nsACString& aName,
                                      ErrorResult& aRv);
 
   /**

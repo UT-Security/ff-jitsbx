@@ -318,6 +318,7 @@ if CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 EXPORTS.monkeycage += [
 	"../public/Sandbox.h",
 	"../public/SandboxCallback.h",
+	"../public/SandboxHeap.h",
 	"../public/SandboxHelpers.h",
 	"../public/SandboxStack.h",
 	"../public/SandboxTraits.h",

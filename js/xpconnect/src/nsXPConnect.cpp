@@ -524,7 +524,7 @@ bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
       return UnexpectedFailure(false);
     }
 
-    if (!mozJSModuleLoader::Get()->DefineJSServices(aJSContext, aGlobal)) {
+    if (!mozJSModuleLoader::Get()->DefineJSServices(JS_SanitizeContext(aJSContext), aGlobal)) {
       return UnexpectedFailure(false);
     }
   }

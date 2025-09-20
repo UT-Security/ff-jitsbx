@@ -43,6 +43,8 @@
 #include "monkeycage/WrapperCallbacks.h"
 
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxHeap.h"
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/Tainted.h"
 
 inline bool JS_ValueToObject(MCContext* cx, JS::HandleValue v,

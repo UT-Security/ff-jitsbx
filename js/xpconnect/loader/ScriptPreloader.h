@@ -27,12 +27,12 @@
 #include "nsIThread.h"
 #include "nsITimer.h"
 
-#include "js/CompileOptions.h"  // JS::DecodeOptions
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/CompileOptions.h"  // JS::DecodeOptions
+#include "monkeycage/experimental/JSStencil.h"
 #include "js/GCAnnotations.h"  // for JS_HAZ_NON_GC_POINTER
-#include "js/RootingAPI.h"     // for Handle, Heap
-#include "js/Transcoding.h"  // for TranscodeBuffer, TranscodeRange, TranscodeSources
-#include "js/TypeDecls.h"  // for HandleObject, HandleScript
+#include "monkeycage/RootingAPI.h"     // for Handle, Heap
+#include "monkeycage/Transcoding.h"  // for TranscodeBuffer, TranscodeRange, TranscodeSources
+#include "monkeycage/TypeDecls.h"  // for HandleObject, HandleScript
 
 #include <prio.h>
 
@@ -103,15 +103,15 @@ class ScriptPreloader : public nsIObserver,
 
   // Fill some options that should be consistent across all scripts stored
   // into preloader cache.
-  static void FillCompileOptionsForCachedStencil(JS::CompileOptions& options);
-  static void FillDecodeOptionsForCachedStencil(JS::DecodeOptions& options);
+  static void FillCompileOptionsForCachedStencil(MC::Tainted<JS::CompileOptions*> options);
+  static void FillDecodeOptionsForCachedStencil(MC::Tainted<JS::DecodeOptions*> options);
 
   bool OnWritingThread() const override { return NS_IsMainThread(); }
 
   // Retrieves the stencil with the given cache key from the cache.
   // Returns null if the stencil is not cached.
   already_AddRefed<JS::Stencil> GetCachedStencil(
-      JSContext* cx, const JS::DecodeOptions& options, const nsCString& path);
+      MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, const nsCString& path);
 
   // Notes the execution of a script with the given URL and cache key.
   // Depending on the stage of startup, the script may be serialized and
@@ -140,7 +140,7 @@ class ScriptPreloader : public nsIObserver,
  private:
   Result<Ok, nsresult> InitCacheInternal(JS::Handle<JSObject*> scope = nullptr);
   already_AddRefed<JS::Stencil> GetCachedStencilInternal(
-      JSContext* cx, const JS::DecodeOptions& options, const nsCString& path);
+      MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, const nsCString& path);
 
  public:
   static ProcessType CurrentProcessType() {
@@ -260,7 +260,7 @@ class ScriptPreloader : public nsIObserver,
 
     // Encodes this script into XDR data, and stores the result in mXDRData.
     // Returns true on success, false on failure.
-    bool XDREncode(JSContext* cx);
+    bool XDREncode(MCContext* cx);
 
     // Encodes or decodes this script, in the storage format required by the
     // script cache file.
@@ -275,12 +275,12 @@ class ScriptPreloader : public nsIObserver,
 
     // Returns the XDR data generated for this script during this session. See
     // mXDRData.
-    JS::TranscodeBuffer& Buffer() {
+    MC::Tainted<JS::TranscodeBuffer*> Buffer() {
       MOZ_ASSERT(HasBuffer());
-      return mXDRData.ref<JS::TranscodeBuffer>();
+      return mXDRData.ref<MC::SandboxHeap<JS::TranscodeBuffer>>();
     }
 
-    bool HasBuffer() { return mXDRData.constructed<JS::TranscodeBuffer>(); }
+    bool HasBuffer() { return mXDRData.constructed<MC::SandboxHeap<JS::TranscodeBuffer>>(); }
 
     // Returns the read-only XDR data for this script. See mXDRRange.
     const JS::TranscodeRange& Range() {
@@ -299,8 +299,8 @@ class ScriptPreloader : public nsIObserver,
 
     bool HasArray() { return mXDRData.constructed<nsTArray<uint8_t>>(); }
 
-    already_AddRefed<JS::Stencil> GetStencil(JSContext* cx,
-                                             const JS::DecodeOptions& options);
+    already_AddRefed<JS::Stencil> GetStencil(MCContext* cx,
+                                             MC::Tainted<JS::DecodeOptions*> options);
 
     size_t HeapSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) {
       auto size = mallocSizeOf(this);
@@ -308,7 +308,7 @@ class ScriptPreloader : public nsIObserver,
       if (HasArray()) {
         size += Array().ShallowSizeOfExcludingThis(mallocSizeOf);
       } else if (HasBuffer()) {
-        size += Buffer().sizeOfExcludingThis(mallocSizeOf);
+        size += Buffer()->sizeOfExcludingThis(mallocSizeOf);
       }
 
       if (mStencil) {
@@ -371,7 +371,7 @@ class ScriptPreloader : public nsIObserver,
     // The format is JS::TranscodeBuffer if the script was XDR'd as part
     // of this process, or nsTArray<> if the script was transfered by IPC
     // from a child process.
-    MaybeOneOf<JS::TranscodeBuffer, nsTArray<uint8_t>> mXDRData;
+    MaybeOneOf<MC::SandboxHeap<JS::TranscodeBuffer>, nsTArray<uint8_t>> mXDRData;
   } JS_HAZ_NON_GC_POINTER;
 
   template <ScriptStatus status>
@@ -451,7 +451,7 @@ class ScriptPreloader : public nsIObserver,
   // Waits for the given cached script to finish compiling off-thread, or
   // decodes it synchronously on the main thread, as appropriate.
   already_AddRefed<JS::Stencil> WaitForCachedStencil(
-      JSContext* cx, const JS::DecodeOptions& options, CachedStencil* script);
+      MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, CachedStencil* script);
 
   void DecodeNextBatch(size_t chunkSize, JS::Handle<JSObject*> scope = nullptr);
 

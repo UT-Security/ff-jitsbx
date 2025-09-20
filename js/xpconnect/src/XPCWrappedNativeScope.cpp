@@ -174,7 +174,7 @@ bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
 
 bool XPCWrappedNativeScope::AttachJSServices(JSContext* aCx) {
   MC::RootedObject global(aCx, CurrentGlobalOrNull(aCx));
-  return mozJSModuleLoader::Get()->DefineJSServices(aCx, global);
+  return mozJSModuleLoader::Get()->DefineJSServices(JS_SanitizeContext(aCx), global);
 }
 
 bool XPCWrappedNativeScope::XBLScopeStateMatches(nsIPrincipal* aPrincipal) {

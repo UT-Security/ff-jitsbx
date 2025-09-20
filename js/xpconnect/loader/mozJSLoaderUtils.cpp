@@ -6,11 +6,11 @@
 
 #include "mozilla/scache/StartupCache.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/CompileOptions.h"
-#include "js/Transcoding.h"
-#include "js/experimental/JSStencil.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Transcoding.h"
+#include "monkeycage/experimental/JSStencil.h"
 
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Span.h"
@@ -19,7 +19,7 @@ using namespace JS;
 using namespace mozilla::scache;
 using mozilla::UniquePtr;
 
-static nsresult HandleTranscodeResult(JSContext* cx,
+static nsresult HandleTranscodeResult(MCContext* cx,
                                       JS::TranscodeResult result) {
   if (result == JS::TranscodeResult::Ok) {
     return NS_OK;
@@ -35,10 +35,10 @@ static nsresult HandleTranscodeResult(JSContext* cx,
 }
 
 nsresult ReadCachedStencil(StartupCache* cache, nsACString& cachePath,
-                           JSContext* cx, const JS::DecodeOptions& options,
+                           MCContext* cx, MC::Tainted<JS::DecodeOptions*> options,
                            JS::Stencil** stencilOut) {
-  MOZ_ASSERT(options.borrowBuffer);
-  MOZ_ASSERT(!options.usePinnedBytecode);
+  MOZ_ASSERT(options->getBorrowBuffer());
+  MOZ_ASSERT(!options->getUsePinnedBytecode());
 
   const char* buf;
   uint32_t len;
@@ -54,21 +54,22 @@ nsresult ReadCachedStencil(StartupCache* cache, nsACString& cachePath,
 }
 
 nsresult WriteCachedStencil(StartupCache* cache, nsACString& cachePath,
-                            JSContext* cx, JS::Stencil* stencil) {
-  JS::TranscodeBuffer buffer;
+                            MCContext* cx, JS::Stencil* stencil) {
+  MC::SandboxStack<JS::TranscodeBuffer> buffer;
   JS::TranscodeResult code = JS::EncodeStencil(cx, stencil, buffer);
   if (code != JS::TranscodeResult::Ok) {
     return HandleTranscodeResult(cx, code);
   }
 
-  size_t size = buffer.length();
+  size_t size = buffer->length().UNSAFE_unverified();
   if (size > UINT32_MAX) {
     return NS_ERROR_FAILURE;
   }
 
+
   // Move the vector buffer into a unique pointer buffer.
   mozilla::UniqueFreePtr<char[]> buf(
-      reinterpret_cast<char*>(buffer.extractOrCopyRawBuffer()));
+      reinterpret_cast<char*>(buffer->copyRawBuffer()));
   nsresult rv = cache->PutBuffer(PromiseFlatCString(cachePath).get(),
                                  std::move(buf), size);
   return rv;

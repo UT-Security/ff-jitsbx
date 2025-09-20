@@ -82,7 +82,7 @@ NS_IMETHODIMP JSProcessActorProtocol::Observe(nsISupports* aSubject,
   // Ensure our actor is present.
   AutoJSAPI jsapi;
   jsapi.Init();
-  RefPtr<JSActor> actor = manager->GetActor(jsapi.cx(), mName, IgnoreErrors());
+  RefPtr<JSActor> actor = manager->GetActor(jsapi.mcx(), mName, IgnoreErrors());
   if (!actor || NS_WARN_IF(!actor->GetWrapperPreserveColor())) {
     return NS_OK;
   }

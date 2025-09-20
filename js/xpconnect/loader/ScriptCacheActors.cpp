@@ -39,7 +39,7 @@ void ScriptCacheChild::SendScriptsAndFinalize(
 
   nsTArray<ScriptData> dataArray;
   for (auto& script : IterHash(scripts, matcher)) {
-    if (!script->mSize && !script->XDREncode(jsapi.cx())) {
+    if (!script->mSize && !script->XDREncode(jsapi.mcx())) {
       continue;
     }
 
@@ -50,8 +50,8 @@ void ScriptCacheChild::SendScriptsAndFinalize(
     data->loadTime() = script->mLoadTime;
 
     if (script->HasBuffer()) {
-      auto& xdrData = script->Buffer();
-      data->xdrData().AppendElements(xdrData.begin(), xdrData.length());
+      auto xdrData = script->Buffer();
+      data->xdrData().AppendElements(xdrData->begin().UNSAFE_unverified(), xdrData->length().UNSAFE_unverified());
       script->FreeData();
     }
   }

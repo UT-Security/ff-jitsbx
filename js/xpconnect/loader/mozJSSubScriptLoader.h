@@ -7,8 +7,8 @@
 #include "nsCOMPtr.h"
 #include "mozIJSSubScriptLoader.h"
 
-#include "js/experimental/JSStencil.h"
-#include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/CompileOptions.h"  // JS::ReadOnlyCompileOptions
 
 class nsIPrincipal;
 class nsIURI;
@@ -34,8 +34,8 @@ class mozJSSubScriptLoader : public mozIJSSubScriptLoader {
  private:
   virtual ~mozJSSubScriptLoader();
 
-  bool ReadStencil(JS::Stencil** stencilOut, nsIURI* uri, JSContext* cx,
-                   const JS::ReadOnlyCompileOptions& options,
+  bool ReadStencil(JS::Stencil** stencilOut, nsIURI* uri, MCContext* cx,
+                   MC::Tainted<JS::CompileOptions*> options,
                    nsIIOService* serv, bool useCompilationScope);
 
   nsresult ReadScriptAsync(nsIURI* uri, JS::HandleObject targetObj,
@@ -45,6 +45,6 @@ class mozJSSubScriptLoader : public mozIJSSubScriptLoader {
 
   nsresult DoLoadSubScriptWithOptions(const nsAString& url,
                                       LoadSubScriptOptions& options,
-                                      JSContext* cx,
+                                      MCContext* cx,
                                       JS::MutableHandleValue retval);
 };

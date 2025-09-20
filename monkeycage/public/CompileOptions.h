@@ -36,12 +36,26 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
     data.borrowBuffer = b;
   }
 
+  void setUsePinnedBytecode(bool b) {
+    data.usePinnedBytecode = b;
+  }
+
+  
+
   void setAllocateInstantiationStorage(bool b) {
     data.allocateInstantiationStorage = b;
   }
 
   bool getNoScriptRval() {
     return data.noScriptRval;
+  }
+
+  void setTopLevelAwait(bool b) {
+    data.topLevelAwait = b;
+  }
+
+  void setDeoptimizeModuleGlobalVars(bool b) {
+    data.deoptimizeModuleGlobalVars = b;
   }
   
   TaintedVolatile<JS::CompileOptions, MC_Sbx>& setFile(const char* f) {
@@ -144,6 +158,16 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
   JS::DelazificationOption eagerDelazificationStrategy() const {
     return data.eagerDelazificationStrategy();
   }
+  
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setForceStrictMode() {
+    data.setForceStrictMode();
+    return *this;
+  }
+
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setModule() {
+    data.setModule();
+    return *this;
+  }
 };
 
 
@@ -166,6 +190,11 @@ class TaintedVolatile<JS::InstantiateOptions, MC_Sbx> {
   bool getDeferDebugMetadata() {
     return data.deferDebugMetadata;
   }
+#ifdef DEBUG
+  void assertDefault() const {
+    data.assertDefault();
+  }
+#endif
 };
 
 template <typename MC_Sbx>
@@ -185,6 +214,14 @@ class TaintedVolatile<JS::DecodeOptions, MC_Sbx> {
 
   void setBorrowBuffer(bool b) {
     data.borrowBuffer = b;
+  }
+
+  bool getBorrowBuffer() {
+    return data.borrowBuffer;
+  }
+
+  bool getUsePinnedBytecode() {
+    return data.usePinnedBytecode;
   }
 };
 

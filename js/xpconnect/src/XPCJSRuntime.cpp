@@ -3206,8 +3206,8 @@ JSObject* XPCJSRuntime::LoaderGlobal() {
     dom::AutoJSAPI jsapi;
     jsapi.Init();
 
-    mLoaderGlobal = loader->GetSharedGlobal(jsapi.cx());
-    MOZ_RELEASE_ASSERT(!JS_IsExceptionPending(jsapi.cx()));
+    mLoaderGlobal = loader->GetSharedGlobal(jsapi.mcx());
+    MOZ_RELEASE_ASSERT(!JS_IsExceptionPending(jsapi.mcx()));
   }
   return mLoaderGlobal;
 }

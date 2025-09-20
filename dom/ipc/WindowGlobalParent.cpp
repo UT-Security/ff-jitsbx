@@ -570,7 +570,7 @@ void WindowGlobalParent::NotifyContentBlockingEvent(
 
 already_AddRefed<JSWindowActorParent> WindowGlobalParent::GetActor(
     JSContext* aCx, const nsACString& aName, ErrorResult& aRv) {
-  return JSActorManager::GetActor(aCx, aName, aRv)
+  return JSActorManager::GetActor(JS_SanitizeContext(aCx), aName, aRv)
       .downcast<JSWindowActorParent>();
 }
 

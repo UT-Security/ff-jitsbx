@@ -35,6 +35,18 @@ public:
   Tainted<bool, MC_Sbx> append(const U* aBegin, size_t aLength) {
     return Tainted<bool, MC_Sbx>(data.append(aBegin, aLength));
   }
+
+  T* copyRawBuffer() {
+    return data.copyRawBuffer();
+  }
+
+  size_t sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    return data.sizeOfIncludingThis(aMallocSizeOf);
+  }
+  
+  size_t sizeOfExcludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {
+    return data.sizeOfExcludingThis(aMallocSizeOf);
+  }
 };
           
 }

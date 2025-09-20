@@ -14,14 +14,14 @@
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/ScopeExit.h"
 #include "mozJSModuleLoader.h"
-#include "jsapi.h"
-#include "js/CallAndConstruct.h"    // JS::Construct
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "mcapi.h"
+#include "monkeycage/CallAndConstruct.h"    // JS::Construct
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "nsContentUtils.h"
 
 namespace mozilla::dom {
 
-already_AddRefed<JSActor> JSActorManager::GetActor(JSContext* aCx,
+already_AddRefed<JSActor> JSActorManager::GetActor(MCContext* aCx,
                                                    const nsACString& aName,
                                                    ErrorResult& aRv) {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
@@ -146,7 +146,7 @@ void JSActorManager::ReceiveRawMessage(
   // We're going to be running JS. Enter the privileged junk realm so we can set
   // up our JS state correctly.
   AutoEntryScript aes(xpc::PrivilegedJunkScope(), "JSActor message handler");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   // Ensure any errors reported to `error` are set on the scope, so they're
   // reported.
@@ -156,11 +156,11 @@ void JSActorManager::ReceiveRawMessage(
 
   // If an async stack was provided, set up our async stack state.
   MC::Rooted<JSObject*> stack(cx);
-  Maybe<JS::AutoSetAsyncStackForNewCalls> stackSetter;
+  MC::SandboxStack<Maybe<JS::AutoSetAsyncStackForNewCalls>> stackSetter;
   {
     MC::Rooted<JS::Value> stackVal(cx);
     if (aStack) {
-      aStack->Read(cx, &stackVal, error);
+      aStack->Read(MC_UNSAFE(cx), &stackVal, error);
       if (error.Failed()) {
         error.SuppressException();
         JS_ClearPendingException(cx);
@@ -175,7 +175,7 @@ void JSActorManager::ReceiveRawMessage(
         error.ThrowDataError("Actor async stack must be a SavedFrame object");
         return;
       }
-      stackSetter.emplace(cx, stack, "JSActor query");
+      stackSetter->emplace(cx, stack, "JSActor query");
     }
   }
 
@@ -186,7 +186,7 @@ void JSActorManager::ReceiveRawMessage(
 
   MC::Rooted<JS::Value> data(cx);
   if (aData) {
-    aData->Read(cx, &data, error);
+    aData->Read(MC_UNSAFE(cx), &data, error);
     if (error.Failed()) {
       CHILD_DIAGNOSTIC_ASSERT(CycleCollectedJSRuntime::Get()->OOMReported(),
                               "Should not receive non-decodable data");

@@ -222,7 +222,7 @@ bool ModuleEnvironmentProxyHandler::ownPropertyKeys(
   return true;
 }
 
-JSObject* CreateModuleEnvironmentProxy(JSContext* aCx,
+JSObject* CreateModuleEnvironmentProxy(MCContext* aCx,
                                        JS::Handle<JSObject*> aModuleObj) {
   js::ProxyOptions options;
   options.setLazyProto(true);

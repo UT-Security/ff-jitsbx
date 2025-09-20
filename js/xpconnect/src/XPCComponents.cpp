@@ -1566,13 +1566,14 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::Import(const nsACString& registryLocation,
                               HandleValue targetObj, JSContext* MC_UNSAN(cx),
                               uint8_t optionalArgc, MutableHandleValue retval) {
+  MC_SANITIZE(cx);
   RefPtr moduleloader = mozJSModuleLoader::Get();
   MOZ_ASSERT(moduleloader);
 
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING("nsXPCComponents_Utils::Import", OTHER,
                                         registryLocation);
 
-  return moduleloader->ImportInto(registryLocation, targetObj, MC_UNSAN(cx), optionalArgc,
+  return moduleloader->ImportInto(registryLocation, targetObj, cx, optionalArgc,
                                   retval);
 }
 

@@ -98,7 +98,7 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::RootedScript script(cx);
   nsresult rv =
       mozJSModuleLoader::LoadSingleModuleScript(this, cx, aRequest, &script);
@@ -112,7 +112,7 @@ nsresult ComponentModuleLoader::StartFetch(ModuleLoadRequest* aRequest) {
     nsresult rv2 = aRequest->mURI->GetSpec(uri);
     NS_ENSURE_SUCCESS(rv2, rv2);
 
-    JS_ReportErrorUTF8(cx, "Failed to load %s", PromiseFlatCString(uri).get());
+    JS_ReportErrorUTF8(MC_UNSAFE(cx), "Failed to load %s", PromiseFlatCString(uri).get());
 
     // Remember the error for MaybeReportLoadError.
     if (!mLoadException.initialized()) {

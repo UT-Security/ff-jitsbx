@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_JSActor_h
 #define mozilla_dom_JSActor_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "ipc/EnumSerializer.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/PromiseNativeHandler.h"
@@ -106,6 +106,22 @@ class JSActor : public nsISupports, public nsWrapperCache {
                     JS::Handle<JS::Value> aData, ErrorResult& aRv);
   void ReceiveQueryReply(JSContext* aCx, const JSActorMessageMeta& aMetadata,
                          JS::Handle<JS::Value> aData, ErrorResult& aRv);
+
+  //TODO(JS_SANDBOX): Make these the default overloads
+  inline void ReceiveMessage(MCContext* aCx,
+                             const JSActorMessageMeta& aMetadata,
+                             JS::Handle<JS::Value> aData, ErrorResult& aRv) {
+    return ReceiveMessage(MC_UNSAFE(aCx), aMetadata, aData, aRv);
+  }
+  inline void ReceiveQuery(MCContext* aCx, const JSActorMessageMeta& aMetadata,
+                           JS::Handle<JS::Value> aData, ErrorResult& aRv) {
+    return ReceiveQuery(MC_UNSAFE(aCx), aMetadata, aData, aRv);
+  }
+  inline void ReceiveQueryReply(MCContext* aCx,
+                                const JSActorMessageMeta& aMetadata,
+                                JS::Handle<JS::Value> aData, ErrorResult& aRv) {
+    return ReceiveQueryReply(MC_UNSAFE(aCx), aMetadata, aData, aRv);
+  }
 
   // Call the actual `ReceiveMessage` method, and get the return value.
   void CallReceiveMessage(JSContext* aCx, const JSActorMessageMeta& aMetadata,
