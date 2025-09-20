@@ -4657,11 +4657,12 @@ NS_IMETHODIMP ContentChild::GetChildID(uint64_t* aOut) {
 
 NS_IMETHODIMP ContentChild::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
                                      JSProcessActorChild** retval) {
+  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorChild> actor =
-      JSActorManager::GetActor(MC_UNSAN(aCx), aName, error)
+      JSActorManager::GetActor(aCx, aName, error)
           .downcast<JSProcessActorChild>();
-  if (error.MaybeSetPendingException(MC_UNSAN(aCx))) {
+  if (error.MaybeSetPendingException(aCx)) {
     return NS_ERROR_FAILURE;
   }
   actor.forget(retval);

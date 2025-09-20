@@ -625,7 +625,7 @@ void ScriptPreloader::PrepareCacheWriteInternal() {
   }
 
   AutoSafeJSAPI jsapi;
-  MC::SandboxStack<JSAutoRealm> ar(jsapi.cx(), xpc::PrivilegedJunkScope());
+  MC::SandboxStack<JSAutoRealm> ar(jsapi.mcx(), xpc::PrivilegedJunkScope());
   bool found = false;
   for (auto& script : IterHash(mScripts, Match<ScriptStatus::Saved>())) {
     // Don't write any scripts that are also in the child cache. They'll be
@@ -645,7 +645,7 @@ void ScriptPreloader::PrepareCacheWriteInternal() {
       found = true;
     }
 
-    if (!script->mSize && !script->XDREncode(jsapi.cx())) {
+    if (!script->mSize && !script->XDREncode(jsapi.mcx())) {
       script.Remove();
     }
   }
@@ -913,31 +913,31 @@ void ScriptPreloader::NoteStencil(const nsCString& url,
 
 /* static */
 void ScriptPreloader::FillCompileOptionsForCachedStencil(
-    JS::CompileOptions& options) {
+    MC::Tainted<JS::CompileOptions*> options) {
   // Users of the cache do not require return values, so inform the JS parser in
   // order for it to generate simpler bytecode.
-  options.setNoScriptRval(true);
+  options->setNoScriptRval(true);
 
   // The ScriptPreloader trades off having bytecode available but not source
   // text. This means the JS syntax-only parser is not used. If `toString` is
   // called on functions in these scripts, the source-hook will fetch it over,
   // so using `toString` of functions should be avoided in chrome js.
-  options.setSourceIsLazy(true);
+  options->setSourceIsLazy(true);
 }
 
 /* static */
 void ScriptPreloader::FillDecodeOptionsForCachedStencil(
-    JS::DecodeOptions& options) {
+    MC::Tainted<JS::DecodeOptions*> options) {
   // ScriptPreloader's XDR buffer is alive during the Stencil is alive.
   // The decoded stencil can borrow from it.
   //
   // NOTE: The XDR buffer is alive during the entire browser lifetime only
   //       when it's mmapped.
-  options.borrowBuffer = true;
+  options->setBorrowBuffer(true);
 }
 
 already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencil(
-    JSContext* cx, const JS::DecodeOptions& options, const nsCString& path) {
+    MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, const nsCString& path) {
   MOZ_RELEASE_ASSERT(
       !(XRE_IsContentProcess() && !mCacheInitialized),
       "ScriptPreloader must be initialized before getting cached "
@@ -963,7 +963,7 @@ already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencil(
 }
 
 already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencilInternal(
-    JSContext* cx, const JS::DecodeOptions& options, const nsCString& path) {
+    MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, const nsCString& path) {
   auto* cachedScript = mScripts.Get(path);
   if (cachedScript) {
     return WaitForCachedStencil(cx, options, cachedScript);
@@ -972,7 +972,7 @@ already_AddRefed<JS::Stencil> ScriptPreloader::GetCachedStencilInternal(
 }
 
 already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
-    JSContext* cx, const JS::DecodeOptions& options, CachedStencil* script) {
+    MCContext* cx, MC::Tainted<JS::DecodeOptions*> options, CachedStencil* script) {
   // Always check for finished operations so that we can move on to decoding the
   // next batch as soon as possible after the pending batch is ready. If we wait
   // until we hit an unfinished script, we wind up having at most one batch of
@@ -1085,7 +1085,7 @@ void ScriptPreloader::FinishOffThreadDecode(JS::OffThreadToken* token) {
   });
 
   AutoSafeJSAPI jsapi;
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::SandboxStack<JSAutoRealm> ar(cx, xpc::CompilationScope());
   Vector<RefPtr<JS::Stencil>> stencils;
@@ -1158,24 +1158,24 @@ void ScriptPreloader::DecodeNextBatch(size_t chunkSize,
   }
 
   AutoSafeJSAPI jsapi;
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::SandboxStack<JSAutoRealm> ar(cx, scope ? scope : xpc::CompilationScope());
 
-  JS::CompileOptions options(cx);
+  MC::SandboxStack<JS::CompileOptions> options(cx);
   FillCompileOptionsForCachedStencil(options);
 
   // All XDR buffers are mmapped and live longer than JS runtime.
   // The bytecode can be borrowed from the buffer.
-  options.borrowBuffer = true;
-  options.usePinnedBytecode = true;
+  options->setBorrowBuffer(true);
+  options->setUsePinnedBytecode(true);
 
-  JS::DecodeOptions decodeOptions(options);
+  MC::SandboxStack<JS::DecodeOptions> decodeOptions(*options);
 
   static auto OffThreadDecodeCallbackCb =
       MC::Sandbox::RegisterCallback(OffThreadDecodeCallback);
   if (!JS::CanDecodeOffThread(cx, decodeOptions, size) ||
       !JS::DecodeMultiStencilsOffThread(cx, decodeOptions, mParsingSources,
-                                        OffThreadDecodeCallbackCb.UNSAFE_get(),
+                                        OffThreadDecodeCallbackCb,
                                         static_cast<void*>(this))) {
     // If we fail here, we don't move on to process the next batch, so make
     // sure we don't have any other scripts left to process.
@@ -1211,14 +1211,14 @@ ScriptPreloader::CachedStencil::CachedStencil(ScriptPreloader& cache,
   mProcessTypes = {};
 }
 
-bool ScriptPreloader::CachedStencil::XDREncode(JSContext* cx) {
+bool ScriptPreloader::CachedStencil::XDREncode(MCContext* cx) {
   auto cleanup = MakeScopeExit([&]() { MaybeDropStencil(); });
 
-  mXDRData.construct<JS::TranscodeBuffer>();
+  mXDRData.construct<MC::SandboxHeap<JS::TranscodeBuffer>>();
 
   JS::TranscodeResult code = JS::EncodeStencil(cx, mStencil, Buffer());
   if (code == JS::TranscodeResult::Ok) {
-    mXDRRange.emplace(Buffer().begin(), Buffer().length());
+    mXDRRange.emplace(Buffer()->begin().UNSAFE_unverified(), Buffer()->length().UNSAFE_unverified());
     mSize = Range().length();
     return true;
   }
@@ -1228,7 +1228,7 @@ bool ScriptPreloader::CachedStencil::XDREncode(JSContext* cx) {
 }
 
 already_AddRefed<JS::Stencil> ScriptPreloader::CachedStencil::GetStencil(
-    JSContext* cx, const JS::DecodeOptions& options) {
+    MCContext* cx, MC::Tainted<JS::DecodeOptions*> options) {
   MOZ_ASSERT(mReadyToExecute);
   if (mStencil) {
     return do_AddRef(mStencil);

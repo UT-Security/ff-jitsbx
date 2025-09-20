@@ -86,8 +86,8 @@ namespace JS {
 
 // Serialize the Stencil into the transcode buffer.
 inline TranscodeResult EncodeStencil(MCContext* cx, Stencil* stencil,
-                                     TranscodeBuffer& buffer) {
-  return EncodeStencil(cx->cx_, stencil, buffer);
+                                     MC::Tainted<TranscodeBuffer*> buffer) {
+  return EncodeStencil(cx->cx_, stencil, *buffer.INTERNAL_unverified_safe());
 }
 
 // Deserialize data and create a new Stencil.

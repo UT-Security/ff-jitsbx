@@ -145,11 +145,12 @@ NS_IMETHODIMP InProcessParent::GetRemoteType(nsACString& aRemoteType) {
 NS_IMETHODIMP
 InProcessParent::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
                           JSProcessActorParent** aActor) {
+  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorParent> actor =
-      JSActorManager::GetActor(MC_UNSAN(aCx), aName, error)
+      JSActorManager::GetActor(aCx, aName, error)
           .downcast<JSProcessActorParent>();
-  if (error.MaybeSetPendingException(MC_UNSAN(aCx))) {
+  if (error.MaybeSetPendingException(aCx)) {
     return NS_ERROR_FAILURE;
   }
   actor.forget(aActor);
@@ -207,11 +208,12 @@ InProcessChild::GetChildID(uint64_t* aChildID) {
 NS_IMETHODIMP
 InProcessChild::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
                          JSProcessActorChild** aActor) {
+  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorChild> actor =
-      JSActorManager::GetActor(MC_UNSAN(aCx), aName, error)
+      JSActorManager::GetActor(aCx, aName, error)
           .downcast<JSProcessActorChild>();
-  if (error.MaybeSetPendingException(MC_UNSAN(aCx))) {
+  if (error.MaybeSetPendingException(aCx)) {
     return NS_ERROR_FAILURE;
   }
   actor.forget(aActor);

@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include "jspubtd.h"
 #include "nsString.h"
-#include "jsapi.h"
+#include "mcapi.h"
 
 class nsIStackFrame;
 class nsPIDOMWindowInner;
@@ -27,12 +27,20 @@ class Exception;
 // message for the nsresult in question will be used.
 bool Throw(JSContext* cx, nsresult rv, const nsACString& message = ""_ns);
 
+//TODO(JS_SANDBOX)
+inline bool Throw(MCContext* cx, nsresult rv, const nsACString& message = ""_ns) {
+ return Throw(MC_UNSAFE(cx), rv, message);
+}
+
 // Create, throw and report an exception to a given window.
 void ThrowAndReport(nsPIDOMWindowInner* aWindow, nsresult aRv);
 
 // Both signatures of ThrowExceptionObject guarantee that an exception is set on
 // aCx before they return.
 void ThrowExceptionObject(JSContext* aCx, Exception* aException);
+inline void ThrowExceptionObject(MCContext* aCx, Exception* aException) {
+  return ThrowExceptionObject(MC_UNSAFE(aCx), aException);
+}
 
 // Create an exception object for the given nsresult and message. If we're
 // throwing a DOMException and aMessage is empty, the default message for the

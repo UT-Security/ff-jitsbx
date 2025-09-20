@@ -7,6 +7,8 @@
  * Structures and functions for transcoding compiled scripts and functions to
  * and from memory.
  */
+#ifndef mc_Transcoding_h
+#define mc_Transcoding_h
 
 #include "js/Transcoding.h"
 
@@ -27,4 +29,5 @@ inline bool FinishIncrementalEncoding(MCContext* cx, Handle<JSObject*> module,
 }
 }
 
+#endif
 #endif

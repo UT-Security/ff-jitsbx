@@ -21,7 +21,7 @@ namespace loader {
 // `Cu.import` return value.
 //
 // This will eventually be removed once ESM-ification finishes.
-JSObject* CreateModuleEnvironmentProxy(JSContext* aCx,
+JSObject* CreateModuleEnvironmentProxy(MCContext* aCx,
                                        JS::Handle<JSObject*> aModuleObj);
 
 }  // namespace loader

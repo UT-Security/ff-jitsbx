@@ -37,7 +37,7 @@ class MOZ_STACK_CLASS nsQueryJSActor final : public nsCOMPtr_helper {
     jsapi.Init();
 
     RefPtr<mozilla::dom::JSActor> actor =
-        mManager->GetActor(jsapi.cx(), mActorName, mozilla::IgnoreErrors());
+        mManager->GetActor(jsapi.mcx(), mActorName, mozilla::IgnoreErrors());
     if (!actor) {
       return NS_ERROR_NO_INTERFACE;
     }

@@ -9,8 +9,8 @@
 
 #include "nsString.h"
 
-#include "js/experimental/JSStencil.h"
-#include "js/CompileOptions.h"  // JS::DecodeOptions
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/CompileOptions.h"  // JS::DecodeOptions
 
 namespace mozilla {
 namespace scache {
@@ -19,12 +19,12 @@ class StartupCache;
 }  // namespace mozilla
 
 nsresult ReadCachedStencil(mozilla::scache::StartupCache* cache,
-                           nsACString& cachePath, JSContext* cx,
-                           const JS::DecodeOptions& options,
+                           nsACString& cachePath, MCContext* cx,
+                           MC::Tainted<JS::DecodeOptions*> options,
                            JS::Stencil** stencilOut);
 
 nsresult WriteCachedStencil(mozilla::scache::StartupCache* cache,
-                            nsACString& cachePath, JSContext* cx,
+                            nsACString& cachePath, MCContext* cx,
                             JS::Stencil* stencil);
 
 #endif /* mozJSLoaderUtils_h */

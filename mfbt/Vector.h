@@ -839,6 +839,22 @@ class MOZ_NON_PARAM Vector final : private AllocPolicy {
    */
   [[nodiscard]] T* extractOrCopyRawBuffer();
 
+
+  /**
+   * Return this vector's elements buffer. The caller now owns the
+   * buffer and is responsible for deallocating it consistent with this vector's
+   * AllocPolicy.
+   *
+   * This vector is cleared, as if by clearAndFree(), when this method
+   * succeeds. This method fails and returns nullptr only if new elements buffer
+   * allocation fails.
+   *
+   * N.B. Only the range [0, length()) of the returned buffer is constructed.
+   * If any of these elements are uninitialized (as growByUninitialized
+   * enables), behavior is undefined.
+   */
+  [[nodiscard]] T* copyRawBuffer();
+
   /**
    * Transfer ownership of an array of objects into the vector.  The caller
    * must have allocated the array in accordance with this vector's
@@ -1555,6 +1571,26 @@ inline T* Vector<T, N, AP>::extractOrCopyRawBuffer() {
     return ret;
   }
 
+  MOZ_REENTRANCY_GUARD_ET_AL;
+
+  T* copy = this->template pod_malloc<T>(mLength);
+  if (!copy) {
+    return nullptr;
+  }
+
+  Impl::moveConstruct(copy, beginNoCheck(), endNoCheck());
+  Impl::destroy(beginNoCheck(), endNoCheck());
+  mBegin = inlineStorage();
+  mLength = 0;
+  mTail.mCapacity = kInlineCapacity;
+#ifdef DEBUG
+  mTail.mReserved = 0;
+#endif
+  return copy;
+}
+
+template <typename T, size_t N, class AP>
+inline T* Vector<T, N, AP>::copyRawBuffer() {
   MOZ_REENTRANCY_GUARD_ET_AL;
 
   T* copy = this->template pod_malloc<T>(mLength);

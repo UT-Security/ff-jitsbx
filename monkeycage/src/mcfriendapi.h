@@ -17,6 +17,10 @@
 
 #include "js/PropertyDescriptor.h"
 
+inline JSObject* JS_FindCompilationScope(MCContext* cx, JS::HandleObject obj) {
+  return JS_FindCompilationScope(cx->cx_, obj);
+}
+
 inline bool JS_NondeterministicGetWeakMapKeys(MCContext* cx,
                                               JS::HandleObject obj,
                                               JS::MutableHandleObject ret) {
@@ -322,7 +326,13 @@ inline void AssertSameCompartment(MCContext* cx, JSObject* obj) {
 inline void AssertSameCompartment(MCContext* cx, JS::HandleValue v) {
   return AssertSameCompartment(cx->cx_, v);
 }
+
+inline bool ExecuteInFrameScriptEnvironment(MCContext* cx, JS::HandleObject obj,
+                                            JS::HandleScript script,
+                                            JS::MutableHandleObject scope) {
+  return ExecuteInFrameScriptEnvironment(cx->cx_, obj, script, scope);
 }
+}  // namespace js
 
 #else
 

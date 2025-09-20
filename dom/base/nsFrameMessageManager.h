@@ -11,9 +11,9 @@
 #include <string.h>
 #include <utility>
 #include "ErrorList.h"
-#include "js/experimental/JSStencil.h"
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"

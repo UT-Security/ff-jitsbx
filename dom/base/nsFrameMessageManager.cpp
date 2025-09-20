@@ -18,21 +18,21 @@
 #include "mozilla/Unused.h"
 #include "base/process_util.h"
 #include "chrome/common/ipc_channel.h"
-#include "js/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
-#include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/CallAndConstruct.h"  // JS::IsCallable, JS_CallFunctionValue
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "js/GCVector.h"
 #include "js/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
-#include "js/RootingAPI.h"
-#include "js/SourceText.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/SourceText.h"
 #include "js/StructuredClone.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ClearOnShutdown.h"
@@ -1176,9 +1176,9 @@ void nsMessageManagerScriptExecutor::Shutdown() {
   }
 }
 
-static void FillCompileOptionsForCachedStencil(JS::CompileOptions& aOptions) {
+static void FillCompileOptionsForCachedStencil(MC::Tainted<JS::CompileOptions*> aOptions) {
   ScriptPreloader::FillCompileOptionsForCachedStencil(aOptions);
-  aOptions.setNonSyntacticScope(true);
+  aOptions->setNonSyntacticScope(true);
 }
 
 void nsMessageManagerScriptExecutor::LoadScriptInternal(
@@ -1201,11 +1201,11 @@ void nsMessageManagerScriptExecutor::LoadScriptInternal(
   }
 
   AutoEntryScript aes(aMessageManager, "message manager script load");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   if (stencil) {
-    JS::CompileOptions options(cx);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
     FillCompileOptionsForCachedStencil(options);
-    JS::InstantiateOptions instantiateOptions(options);
+    MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*options);
     MC::Rooted<JSScript*> script(
         cx, JS::InstantiateGlobalStencil(cx, instantiateOptions, stencil));
 
@@ -1272,7 +1272,7 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
   if (!jsapi.Init(isRunOnce ? aMessageManager : xpc::CompilationScope())) {
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RefPtr<JS::Stencil> stencil;
   if (useScriptPreloader) {
@@ -1280,7 +1280,7 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
     rv = scache::PathifyURI(CACHE_PREFIX("script"), uri, cachePath);
     NS_ENSURE_SUCCESS(rv, nullptr);
 
-    JS::DecodeOptions decodeOptions;
+    MC::SandboxStack<JS::DecodeOptions> decodeOptions;
     ScriptPreloader::FillDecodeOptionsForCachedStencil(decodeOptions);
     stencil = ScriptPreloader::GetChildSingleton().GetCachedStencil(
         cx, decodeOptions, cachePath);
@@ -1319,18 +1319,18 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
       return nullptr;
     }
 
-    JS::CompileOptions options(cx);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
     FillCompileOptionsForCachedStencil(options);
-    options.setFileAndLine(url.get(), 1);
+    options->setFileAndLine(url.get(), 1);
 
     // If we are not encoding to the ScriptPreloader cache, we can now relax the
     // compile options and use the JS syntax-parser for lower latency.
     if (!useScriptPreloader || !ScriptPreloader::GetChildSingleton().Active()) {
-      options.setSourceIsLazy(false);
+      options->setSourceIsLazy(false);
     }
 
-    JS::SourceText<Utf8Unit> srcBuf;
-    if (!srcBuf.init(cx, dataStringBuf, dataStringLength,
+    MC::SandboxStack<JS::SourceText<Utf8Unit>> srcBuf;
+    if (!srcBuf->init(cx, dataStringBuf, dataStringLength,
                      JS::SourceOwnership::TakeOwnership)) {
       return nullptr;
     }
@@ -1348,8 +1348,8 @@ nsMessageManagerScriptExecutor::TryCacheLoadAndCompileScript(
 
 #ifdef DEBUG
     // The above shouldn't touch any options for instantiation.
-    JS::InstantiateOptions instantiateOptions(options);
-    instantiateOptions.assertDefault();
+    MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*options);
+    instantiateOptions->assertDefault();
 #endif
   }
 

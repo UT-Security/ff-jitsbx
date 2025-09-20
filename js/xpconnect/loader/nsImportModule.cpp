@@ -13,14 +13,14 @@
 #include "nsPrintfCString.h"
 #include "xpcpublic.h"
 #include "xpcprivate.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 
 using mozilla::dom::AutoJSAPI;
 
 namespace mozilla {
 namespace loader {
 
-static void AnnotateCrashReportWithJSException(JSContext* aCx,
+static void AnnotateCrashReportWithJSException(MCContext* aCx,
                                                const char* aURI) {
   MC::RootedValue exn(aCx);
   if (JS_GetPendingException(aCx, &exn)) {
@@ -33,7 +33,7 @@ static void AnnotateCrashReportWithJSException(JSContext* aCx,
     uint32_t line;
     uint32_t column;
     nsAutoString msg;
-    nsContentUtils::ExtractErrorValues(aCx, exn, file, &line, &column, msg);
+    nsContentUtils::ExtractErrorValues(MC_UNSAFE(aCx), exn, file, &line, &column, msg);
 
     nsPrintfCString errorString("Failed to load module \"%s\": %s:%u:%u: %s",
                                 aURI, file.get(), line, column,
@@ -48,7 +48,7 @@ nsresult ImportModule(const char* aURI, const char* aExportName,
                       const nsIID& aIID, void** aResult, bool aInfallible) {
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::RootedObject global(cx);
   MC::RootedObject exports(cx);
@@ -74,14 +74,14 @@ nsresult ImportModule(const char* aURI, const char* aExportName,
     exports.set(&namedExport.toObject());
   }
 
-  return nsXPConnect::XPConnect()->WrapJS(cx, exports, aIID, aResult);
+  return nsXPConnect::XPConnect()->WrapJS(MC_UNSAFE(cx), exports, aIID, aResult);
 }
 
 nsresult ImportESModule(const char* aURI, const char* aExportName,
                         const nsIID& aIID, void** aResult, bool aInfallible) {
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::RootedObject moduleNamespace(cx);
   nsresult rv = mozJSModuleLoader::Get()->ImportESModule(
@@ -106,7 +106,7 @@ nsresult ImportESModule(const char* aURI, const char* aExportName,
     moduleNamespace.set(&namedExport.toObject());
   }
 
-  return nsXPConnect::XPConnect()->WrapJS(cx, moduleNamespace, aIID, aResult);
+  return nsXPConnect::XPConnect()->WrapJS(MC_UNSAFE(cx), moduleNamespace, aIID, aResult);
 }
 
 }  // namespace loader

@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozJSSubScriptLoader.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "mozJSModuleLoader.h"
 #include "mozJSLoaderUtils.h"
 
@@ -19,10 +19,10 @@
 #include "mcapi.h"
 #include "mcfriendapi.h"
 #include "xpcprivate.h"                   // xpc::OptionsBase
-#include "js/CompilationAndEvaluation.h"  // JS::Compile
-#include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::DecodeOptions
-#include "js/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
-#include "js/SourceText.h"             // JS::Source{Ownership,Text}
+#include "monkeycage/CompilationAndEvaluation.h"  // JS::Compile
+#include "monkeycage/CompileOptions.h"  // JS::ReadOnlyCompileOptions, JS::DecodeOptions
+#include "monkeycage/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::IsJSMEnvironment
+#include "monkeycage/SourceText.h"             // JS::Source{Ownership,Text}
 #include "monkeycage/tainted/Maybe.h"
 #include "monkeycage/Wrapper.h"
 
@@ -85,7 +85,7 @@ NS_IMPL_ISUPPORTS(mozJSSubScriptLoader, mozIJSSubScriptLoader)
 #define JSSUB_CACHE_PREFIX(aScopeType, aCompilationTarget) \
   "jssubloader/" aScopeType "/" aCompilationTarget
 
-static void SubscriptCachePath(JSContext* cx, nsIURI* uri,
+static void SubscriptCachePath(MCContext* cx, nsIURI* uri,
                                JS::HandleObject targetObj,
                                nsACString& cachePath) {
   // StartupCache must distinguish between non-syntactic vs global when
@@ -97,16 +97,16 @@ static void SubscriptCachePath(JSContext* cx, nsIURI* uri,
   }
 }
 
-static void ReportError(JSContext* cx, const nsACString& msg) {
+static void ReportError(MCContext* cx, const nsACString& msg) {
   NS_ConvertUTF8toUTF16 ucMsg(msg);
 
   MC::RootedValue exn(cx);
-  if (xpc::NonVoidStringToJsval(cx, ucMsg, &exn)) {
+  if (xpc::NonVoidStringToJsval(MC_UNSAFE(cx), ucMsg, &exn)) {
     JS_SetPendingException(cx, exn);
   }
 }
 
-static void ReportError(JSContext* cx, const char* origMsg, nsIURI* uri) {
+static void ReportError(MCContext* cx, const char* origMsg, nsIURI* uri) {
   if (!uri) {
     ReportError(cx, nsDependentCString(origMsg));
     return;
@@ -124,13 +124,13 @@ static void ReportError(JSContext* cx, const char* origMsg, nsIURI* uri) {
   ReportError(cx, msg);
 }
 
-static bool EvalStencil(JSContext* cx, HandleObject targetObj,
+static bool EvalStencil(MCContext* cx, HandleObject targetObj,
                         HandleObject loadScope, MutableHandleValue retval,
                         nsIURI* uri, bool storeIntoStartupCache,
                         bool storeIntoPreloadCache, JS::Stencil* stencil) {
   MOZ_ASSERT(!mc::IsWrapper(targetObj));
 
-  JS::InstantiateOptions options;
+  MC::SandboxStack<JS::InstantiateOptions> options;
   MC::RootedScript script(cx,
                           JS::InstantiateGlobalStencil(cx, options, stencil));
   if (!script) {
@@ -205,8 +205,8 @@ static bool EvalStencil(JSContext* cx, HandleObject targetObj,
 }
 
 bool mozJSSubScriptLoader::ReadStencil(
-    JS::Stencil** stencilOut, nsIURI* uri, JSContext* cx,
-    const JS::ReadOnlyCompileOptions& options, nsIIOService* serv,
+    JS::Stencil** stencilOut, nsIURI* uri, MCContext* cx,
+    MC::Tainted<JS::CompileOptions*> options, nsIIOService* serv,
     bool useCompilationScope) {
   // We create a channel and call SetContentType, to avoid expensive MIME type
   // lookups (bug 632490).
@@ -268,8 +268,8 @@ bool mozJSSubScriptLoader::ReadStencil(
     ar->emplace(cx, xpc::CompilationScope());
   }
 
-  JS::SourceText<Utf8Unit> srcBuf;
-  if (!srcBuf.init(cx, buf.get(), len, JS::SourceOwnership::Borrowed)) {
+  MC::SandboxStack<JS::SourceText<Utf8Unit>> srcBuf;
+  if (!srcBuf->init(cx, buf.get(), len, JS::SourceOwnership::Borrowed)) {
     return false;
   }
 
@@ -293,9 +293,10 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url, HandleValue target,
    *   returns: Whatever jsval the script pointed to by the url returns.
    * Should ONLY (O N L Y !) be called from JavaScript code.
    */
+  MC_SANITIZE(cx);
   LoadSubScriptOptions options(MC_UNSAN(cx));
   options.target = target.isObject() ? &target.toObject() : nullptr;
-  return DoLoadSubScriptWithOptions(url, options, MC_UNSAN(cx), retval);
+  return DoLoadSubScriptWithOptions(url, options, cx, retval);
 }
 
 NS_IMETHODIMP
@@ -306,17 +307,18 @@ mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString& url,
   if (!optionsVal.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
+  MC_SANITIZE(cx);
 
   LoadSubScriptOptions options(MC_UNSAN(cx), &optionsVal.toObject());
   if (!options.Parse()) {
     return NS_ERROR_INVALID_ARG;
   }
 
-  return DoLoadSubScriptWithOptions(url, options, MC_UNSAN(cx), retval);
+  return DoLoadSubScriptWithOptions(url, options, cx, retval);
 }
 
 nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
-    const nsAString& url, LoadSubScriptOptions& options, JSContext* cx,
+    const nsAString& url, LoadSubScriptOptions& options, MCContext* cx,
     MutableHandleValue retval) {
   nsresult rv = NS_OK;
   MC::RootedObject targetObj(cx);
@@ -422,7 +424,7 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
   nsAutoCString cachePath;
   SubscriptCachePath(cx, uri, targetObj, cachePath);
 
-  JS::DecodeOptions decodeOptions;
+  MC::SandboxStack<JS::DecodeOptions> decodeOptions;
   ScriptPreloader::FillDecodeOptionsForCachedStencil(decodeOptions);
 
   RefPtr<JS::Stencil> stencil;
@@ -446,13 +448,13 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
     // Store into startup cache only when the script isn't come from any cache.
     storeIntoStartupCache = cache;
 
-    JS::CompileOptions compileOptions(cx);
+    MC::SandboxStack<JS::CompileOptions> compileOptions(cx);
     ScriptPreloader::FillCompileOptionsForCachedStencil(compileOptions);
-    compileOptions.setFileAndLine(uriStr.get(), 1);
-    compileOptions.setNonSyntacticScope(!JS_IsGlobalObject(targetObj));
+    compileOptions->setFileAndLine(uriStr.get(), 1);
+    compileOptions->setNonSyntacticScope(!JS_IsGlobalObject(targetObj));
 
     if (options.wantReturnValue) {
-      compileOptions.setNoScriptRval(false);
+      compileOptions->setNoScriptRval(false);
     }
 
     if (!ReadStencil(getter_AddRefs(stencil), uri, cx, compileOptions, serv,
@@ -462,8 +464,8 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
 
 #ifdef DEBUG
     // The above shouldn't touch any options for instantiation.
-    JS::InstantiateOptions instantiateOptions(compileOptions);
-    instantiateOptions.assertDefault();
+    MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*compileOptions);
+    instantiateOptions->assertDefault();
 #endif
   }
 

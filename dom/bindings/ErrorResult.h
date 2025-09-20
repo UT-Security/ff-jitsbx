@@ -402,6 +402,11 @@ class TErrorResult {
   // If nothing was thrown, this becomes an uncatchable exception.
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
   NoteJSContextException(JSContext* aCx);
+  //TODO(JS_SANDBOX): make this primary overload
+  inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
+  NoteJSContextException(MCContext* aCx) {
+    return NoteJSContextException(MC_UNSAFE(aCx));
+  }
 
   // Check whether the TErrorResult says to just throw whatever is on
   // the JSContext already.
@@ -575,13 +580,28 @@ class TErrorResult {
   // failure result.  See documentation of MaybeSetPendingException for the
   // "context" argument.
   void SetPendingException(JSContext* cx, const char* context);
+  inline void SetPendingException(MCContext* cx, const char* context) {
+    SetPendingException(MC_UNSAFE(cx), context);
+  }
 
   // Methods for setting various specific kinds of pending exceptions.  See
   // documentation of MaybeSetPendingException for the "context" argument.
   void SetPendingExceptionWithMessage(JSContext* cx, const char* context);
+  inline void SetPendingExceptionWithMessage(MCContext* cx, const char* context) {
+    SetPendingExceptionWithMessage(MC_UNSAFE(cx), context);
+  }
   void SetPendingJSException(JSContext* cx);
+  inline void SetPendingJSException(MCContext* cx) {
+    SetPendingJSException(MC_UNSAFE(cx));
+  }
   void SetPendingDOMException(JSContext* cx, const char* context);
+  inline void SetPendingDOMException(MCContext* cx, const char* context) {
+    SetPendingDOMException(MC_UNSAFE(cx), context);
+  }
   void SetPendingGenericErrorException(JSContext* cx);
+  inline void SetPendingGenericErrorException(MCContext* cx) {
+    return SetPendingGenericErrorException(MC_UNSAFE(cx));
+  }
 
   MOZ_ALWAYS_INLINE void AssertReportedOrSuppressed() {
     MOZ_ASSERT(!Failed());

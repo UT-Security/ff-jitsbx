@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <utility>
 #include "js/StructuredClone.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"

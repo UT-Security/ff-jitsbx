@@ -4,10 +4,10 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "ctypes.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "js/experimental/CTypes.h"  // JS::CTypesCallbacks, JS::InitCTypesClass, JS::SetCTypesCallbacks
 #include "js/MemoryFunctions.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "nsString.h"
 #include "nsNativeCharsetUtils.h"
 #include "mozJSModuleLoader.h"
@@ -70,7 +70,7 @@ Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
              const JS::CallArgs& args, bool* _retval) {
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
   MC::Rooted<JSObject*> targetObj(cx);
-  loader->FindTargetObject(cx, &targetObj);
+  loader->FindTargetObject(JS_SanitizeContext(cx), &targetObj);
 
   *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);
   return NS_OK;

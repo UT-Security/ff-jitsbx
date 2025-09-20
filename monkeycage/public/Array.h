@@ -30,9 +30,19 @@ inline bool IsArrayObject(MCContext* cx, Handle<Value> value,
  return IsArrayObject(cx->cx_, value, isArray);
 }
 
+inline bool IsArrayObject(MCContext* cx, Handle<Value> value,
+                          MC::Tainted<bool*> isArray) {
+  return IsArrayObject(cx->cx_, value, isArray.INTERNAL_unverified_safe());
+}
+
 inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
                                         bool* isArray) {
  return IsArrayObject(cx->cx_, obj, isArray);
+}
+
+inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
+                          MC::Tainted<bool*> isArray) {
+  return IsArrayObject(cx->cx_, obj, isArray.INTERNAL_unverified_safe());
 }
 
 inline bool GetArrayLength(MCContext* cx, Handle<JSObject*> obj,

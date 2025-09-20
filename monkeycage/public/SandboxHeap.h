@@ -4,79 +4,36 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#ifndef mc_SandboxStack_h
-#define mc_SandboxStack_h
+#ifndef mc_SandboxHeap_h
+#define mc_SandboxHeap_h
 
-#include "monkeycage/unsafe/SandboxImpl.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/SandboxHelpers.h"
 #include "monkeycage/SandboxTraits.h"
 #include "monkeycage/Tainted.h"
 
+#include "js/Utility.h"
+
 namespace MC {
 namespace detail {
-#if defined(JS_SANDBOX_NOOP)
+
 template <typename T>
-class SandboxStackPtr {
- private:
-  T inner_;
-
- public:
-  SandboxStackPtr() = default;
-
-  template <typename... Args>
-  SandboxStackPtr(Args&&... args) : inner_(std::forward<Args>(args)...) {}
-
-  // TODO(abhishek): do we need to do anything special for
-  // copy/move-constructor?
-  inline T* addr() const { return const_cast<T*>(&inner_); }
-
-  inline T* operator->() const { return addr(); }
-};
-#elif defined(JS_SANDBOX_DYLIB)
-template <typename T>
-class SandboxStackPtr {
-private:
-  T inner_;
-
-public:
-  SandboxStackPtr() = default;
-
-  template <typename... Args>
-  SandboxStackPtr(Args&&... args) : inner_(std::forward<Args>(args)...) {}
-
-  //TODO(abhishek): do we need to do anything special for copy/move-constructor?
-  inline T* addr() const {
-    return const_cast<T*>(&inner_);
-  }
-
-  inline T* operator->() const {
-    return addr();
-  }
-};
-#elif defined(JS_SANDBOX_LFI)
-template <typename T>
-class SandboxStackPtr {
+class SandboxHeapPtr {
 private:
   T* inner_;
 
 public:
-  SandboxStackPtr() : inner_(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
-    inner_ = memory ? new (memory) T() : nullptr;
+  SandboxHeapPtr() {
+    inner_ = js_new<T>();
   }
 
   template <typename... Args>
-  SandboxStackPtr(Args&&... args) : inner_(nullptr) {
-    void* memory = monkeycage_stackpush(sizeof(T));
-    inner_ = memory ? new (memory) T(std::forward<Args>(args)...) : nullptr;
+  SandboxHeapPtr(Args&&... args) {
+    inner_ = js_new<T>(std::forward<Args>(args)...);
   }
 
-  ~SandboxStackPtr() {
-    if (inner_) {
-      inner_->~T();
-      monkeycage_stackpop(sizeof(T), (void*)inner_);
-    }
+  ~SandboxHeapPtr() {
+    js_delete(inner_);
   }
 
   //TODO(abhishek): do we need to do anything special for copy/move-constructor?
@@ -88,34 +45,11 @@ public:
     return addr();
   }
 };
-#else
-template <typename T>
-class SandboxStackPtr {
-private:
-  T inner_;
-
-public:
-  SandboxStackPtr() = default;
-
-  template <typename... Args>
-  SandboxStackPtr(Args&&... args) : inner_(std::forward<Args>(args)...) {}
-
-  //TODO(abhishek): do we need to do anything special for copy/move-constructor?
-
-  inline T* addr() const {
-    return const_cast<T*>(&inner_);
-  }
-
-  inline T* operator->() const {
-    return addr();
-  }
-};
-#endif
 
 template <typename T, typename MC_Sbx>
-class Tainted<SandboxStackPtr<T>, MC_Sbx> {
+class Tainted<SandboxHeapPtr<T>, MC_Sbx> {
 private:
-  SandboxStackPtr<T> data_;
+  SandboxHeapPtr<T> data_;
 
   template <typename T_Arg>
   static inline mc_remove_wrapper_t<T_Arg> ConstructorConvertArg(T_Arg&& arg) {
@@ -174,7 +108,7 @@ public:
 }
 
 template <typename T>
-using SandboxStack = Tainted<MC::detail::SandboxStackPtr<T>>;
+using SandboxHeap = Tainted<MC::detail::SandboxHeapPtr<T>>;
 
 }
 
