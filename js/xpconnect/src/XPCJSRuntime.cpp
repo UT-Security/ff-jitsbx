@@ -2785,7 +2785,7 @@ class XPCJSSourceHook : public mc::SourceHook {
     nsresult rv =
         ReadSourceFromFilename(MC_UNSAFE(cx), filename, twoByteSource, utf8Source, length);
     if (NS_FAILED(rv)) {
-      xpc::Throw(MC_UNSAFE(cx), rv);
+      xpc::Throw(cx, rv);
       return false;
     }
 

@@ -47,7 +47,7 @@ using namespace mozilla::dom;
 
 class MOZ_STACK_CLASS LoadSubScriptOptions : public OptionsBase {
  public:
-  explicit LoadSubScriptOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit LoadSubScriptOptions(MCContext* cx = xpc_GetSafeJSContext(),
                                 JSObject* options = nullptr)
       : OptionsBase(cx, options),
         target(cx),
@@ -294,7 +294,7 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url, HandleValue target,
    * Should ONLY (O N L Y !) be called from JavaScript code.
    */
   MC_SANITIZE(cx);
-  LoadSubScriptOptions options(MC_UNSAN(cx));
+  LoadSubScriptOptions options(cx);
   options.target = target.isObject() ? &target.toObject() : nullptr;
   return DoLoadSubScriptWithOptions(url, options, cx, retval);
 }
@@ -309,7 +309,7 @@ mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString& url,
   }
   MC_SANITIZE(cx);
 
-  LoadSubScriptOptions options(MC_UNSAN(cx), &optionsVal.toObject());
+  LoadSubScriptOptions options(cx, &optionsVal.toObject());
   if (!options.Parse()) {
     return NS_ERROR_INVALID_ARG;
   }

@@ -367,7 +367,9 @@ JSObject* CopyingStructuredCloneReadCallback(
     }
   }
 
-  return StructuredCloneHolder::ReadFullySerializableObjects(aCx, aReader,
+  MC::Tainted<JSStructuredCloneReader*> tReader{nullptr};
+  tReader.assign_raw_pointer(aReader);
+  return StructuredCloneHolder::ReadFullySerializableObjects(JS_SanitizeContext(aCx), tReader,
                                                              aTag);
 }
 

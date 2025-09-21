@@ -2160,8 +2160,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(XPCVariant, XPCVARIANT_IID)
 /***************************************************************************/
 // Utilities
 
-inline JSContext* xpc_GetSafeJSContext() {
-  return MC_UNSAFE(XPCJSContext::Get()->Context());
+inline MCContext* xpc_GetSafeJSContext() {
+  return XPCJSContext::Get()->Context();
 }
 
 namespace xpc {
@@ -2176,7 +2176,7 @@ MC::SandboxCallback<JSNative> BtoaCb();
 // Helper function that creates a JSFunction that wraps a native function that
 // forwards the call to the original 'callable'.
 class FunctionForwarderOptions;
-bool NewFunctionForwarder(JSContext* cx, JS::HandleId id,
+bool NewFunctionForwarder(MCContext* cx, JS::HandleId id,
                           JS::HandleObject callable,
                           FunctionForwarderOptions& options,
                           JS::MutableHandleValue vp);
@@ -2186,7 +2186,7 @@ nsresult ThrowAndFail(nsresult errNum, JSContext* cx, bool* retval);
 
 struct GlobalProperties {
   GlobalProperties() { mozilla::PodZero(this); }
-  bool Parse(JSContext* cx, JS::HandleObject obj);
+  bool Parse(MCContext* cx, JS::HandleObject obj);
   bool DefineInXPCComponents(JSContext* cx, JS::HandleObject obj);
   bool DefineInSandbox(JSContext* cx, JS::HandleObject obj);
 
@@ -2253,7 +2253,7 @@ bool IsSandbox(JSObject* obj);
 
 class MOZ_STACK_CLASS OptionsBase {
  public:
-  explicit OptionsBase(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit OptionsBase(MCContext* cx = xpc_GetSafeJSContext(),
                        JSObject* options = nullptr)
       : mCx(cx), mObject(cx, options) {}
 
@@ -2270,13 +2270,13 @@ class MOZ_STACK_CLASS OptionsBase {
   bool ParseId(const char* name, JS::MutableHandleId id);
   bool ParseUInt32(const char* name, uint32_t* prop);
 
-  JSContext* mCx;
+  MCContext* mCx;
   MC::RootedObject mObject;
 };
 
 class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
  public:
-  explicit SandboxOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit SandboxOptions(MCContext* cx = xpc_GetSafeJSContext(),
                           JSObject* options = nullptr)
       : OptionsBase(cx, options),
         wantXrays(true),
@@ -2323,7 +2323,7 @@ class MOZ_STACK_CLASS SandboxOptions : public OptionsBase {
 
 class MOZ_STACK_CLASS CreateObjectInOptions : public OptionsBase {
  public:
-  explicit CreateObjectInOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit CreateObjectInOptions(MCContext* cx = xpc_GetSafeJSContext(),
                                  JSObject* options = nullptr)
       : OptionsBase(cx, options), defineAs(cx, JS::PropertyKey::Void()) {}
 
@@ -2334,7 +2334,7 @@ class MOZ_STACK_CLASS CreateObjectInOptions : public OptionsBase {
 
 class MOZ_STACK_CLASS ExportFunctionOptions : public OptionsBase {
  public:
-  explicit ExportFunctionOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit ExportFunctionOptions(MCContext* cx = xpc_GetSafeJSContext(),
                                  JSObject* options = nullptr)
       : OptionsBase(cx, options),
         defineAs(cx, JS::PropertyKey::Void()),
@@ -2352,11 +2352,11 @@ class MOZ_STACK_CLASS ExportFunctionOptions : public OptionsBase {
 
 class MOZ_STACK_CLASS FunctionForwarderOptions : public OptionsBase {
  public:
-  explicit FunctionForwarderOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit FunctionForwarderOptions(MCContext* cx = xpc_GetSafeJSContext(),
                                     JSObject* options = nullptr)
       : OptionsBase(cx, options), allowCrossOriginArguments(false) {}
 
-  JSObject* ToJSObject(JSContext* cx) {
+  JSObject* ToJSObject(MCContext* cx) {
     MC::RootedObject obj(cx, JS_NewObjectWithGivenProto(cx, nullptr, nullptr));
     if (!obj) {
       return nullptr;
@@ -2382,7 +2382,7 @@ class MOZ_STACK_CLASS FunctionForwarderOptions : public OptionsBase {
 
 class MOZ_STACK_CLASS StackScopedCloneOptions : public OptionsBase {
  public:
-  explicit StackScopedCloneOptions(JSContext* cx = xpc_GetSafeJSContext(),
+  explicit StackScopedCloneOptions(MCContext* cx = xpc_GetSafeJSContext(),
                                    JSObject* options = nullptr)
       : OptionsBase(cx, options),
         wrapReflectors(false),

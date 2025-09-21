@@ -29,7 +29,7 @@ class PrecompiledScript : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_WRAPPERCACHE_CLASS(PrecompiledScript)
 
   explicit PrecompiledScript(nsISupports* aParent, RefPtr<JS::Stencil> aStencil,
-                             JS::ReadOnlyCompileOptions& aOptions);
+                             MC::Tainted<JS::ReadOnlyCompileOptions*> aOptions);
 
   void ExecuteInGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
                        const ExecuteInGlobalOptions& aOptions,

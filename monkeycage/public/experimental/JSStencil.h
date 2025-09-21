@@ -37,6 +37,20 @@ inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
                                       *srcBuf.UNSAFE_unverified());
 }
 
+inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
+    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
+    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
+  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
+                                      *srcBuf.UNSAFE_unverified());
+}
+
+inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
+    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
+    MC::Tainted<SourceText<char16_t>*> srcBuf) {
+  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
+                                      *srcBuf.UNSAFE_unverified());
+}
+
 inline already_AddRefed<Stencil> CompileModuleScriptToStencil(
     MCContext* cx, MC::Tainted<CompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
@@ -125,6 +139,26 @@ inline OffThreadToken* CompileToStencilOffThread(
 
 inline OffThreadToken* CompileToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
+    MC::SandboxCallback<OffThreadCompileCallback> callback,
+    void* callbackData) {
+  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+                                   *srcBuf.INTERNAL_unverified_safe(),
+                                   callback.UNSAFE_get(), callbackData);
+}
+
+inline OffThreadToken* CompileToStencilOffThread(
+    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
+    MC::Tainted<SourceText<char16_t>*> srcBuf,
+    MC::SandboxCallback<OffThreadCompileCallback> callback,
+    void* callbackData) {
+  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+                                   *srcBuf.INTERNAL_unverified_safe(),
+                                   callback.UNSAFE_get(), callbackData);
+}
+
+inline OffThreadToken* CompileToStencilOffThread(
+    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {

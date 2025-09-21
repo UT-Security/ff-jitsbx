@@ -18,6 +18,47 @@ namespace MC {
 namespace detail {
 
 template <typename MC_Sbx>
+class TaintedVolatile<JS::ReadOnlyCompileOptions, MC_Sbx> {
+  private:
+    JS::ReadOnlyCompileOptions data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  const char* filename() const { return data.filename(); }
+
+  bool noScriptRval() const { return data.noScriptRval; }
+};
+
+
+template <typename MC_Sbx>
+class TaintedVolatile<JS::OwningCompileOptions, MC_Sbx> {
+  private:
+    JS::OwningCompileOptions data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  bool copy(MCContext* cx, MC::Tainted<JS::CompileOptions*> rhs) {
+    return data.copy(cx->cx_, *rhs.INTERNAL_unverified_safe());
+  }
+};
+  
+template <typename MC_Sbx>
 class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
  private:
   JS::CompileOptions data;
@@ -39,8 +80,6 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
   void setUsePinnedBytecode(bool b) {
     data.usePinnedBytecode = b;
   }
-
-  
 
   void setAllocateInstantiationStorage(bool b) {
     data.allocateInstantiationStorage = b;
@@ -149,6 +188,11 @@ class TaintedVolatile<JS::CompileOptions, MC_Sbx> {
     return *this;
   }
   
+  TaintedVolatile<JS::CompileOptions, MC_Sbx>& setForceFullParse() {
+    data.setForceFullParse();
+    return *this;
+  }
+ 
   TaintedVolatile<JS::CompileOptions, MC_Sbx>& setEagerDelazificationStrategy(
       JS::DelazificationOption strategy) {
     data.setEagerDelazificationStrategy(strategy);

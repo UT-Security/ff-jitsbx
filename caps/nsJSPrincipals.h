@@ -9,6 +9,7 @@
 
 #include "monkeycage/Principals.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 #include "nsIPrincipal.h"
 
 struct JSContext;
@@ -30,16 +31,16 @@ class nsJSPrincipals : public nsIPrincipal, public MCPrincipals {
   static MC::Sandbox::Callback<JSDestroyPrincipalsOp> DestroyCb();
 
   /* JSReadPrincipalsOp for nsJSPrincipals */
-  static bool ReadPrincipals(JSContext* aCx, JSStructuredCloneReader* aReader,
-                             JSPrincipals** aOutPrincipals);
+  static MC::Tainted<bool> ReadPrincipals(MC::Tainted<JSContext*> aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
+                             MC::Tainted<JSPrincipals**> aOutPrincipals);
   static MC::Sandbox::Callback<JSReadPrincipalsOp> ReadPrincipalsCb();
 
-  static bool ReadKnownPrincipalType(JSContext* aCx,
-                                     JSStructuredCloneReader* aReader,
+  static bool ReadKnownPrincipalType(MCContext* aCx,
+                                     MC::Tainted<JSStructuredCloneReader*> aReader,
                                      uint32_t aTag,
-                                     JSPrincipals** aOutPrincipals);
+                                     MC::Tainted<JSPrincipals**> aOutPrincipals);
 
-  static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader,
+  static bool ReadPrincipalInfo(MC::Tainted<JSStructuredCloneReader*> aReader,
                                 mozilla::ipc::PrincipalInfo& aInfo);
 
   /* For write() implementations of off-main-thread JSPrincipals. */

@@ -346,14 +346,14 @@ static bool ID_GetNumber(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
   if (!id) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   char buf[NSID_LENGTH];
   id->ToProvidedString(buf);
   JSString* jsnum = JS_NewStringCopyZ(aCx, buf);
   if (!jsnum) {
-    return Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
   }
 
   args.rval().setString(jsnum);
@@ -369,7 +369,7 @@ static bool ID_Equals(JSContext* aCx, unsigned aArgc, Value* aVp) {
   Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
   Maybe<nsID> id2 = JSValue2ID(aCx, args[0]);
   if (!id || !id2) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   args.rval().setBoolean(id->Equals(*id2));
@@ -466,7 +466,7 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
   if (!id) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   bool hasInstance = false;
@@ -474,7 +474,7 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
     MC::RootedObject target(aCx, &args[0].toObject());
     nsresult rv = HasInstance(aCx, target, id.ptr(), &hasInstance);
     if (NS_FAILED(rv)) {
-      return Throw(aCx, rv);
+      return Throw(JS_SanitizeContext(aCx), rv);
     }
   }
   args.rval().setBoolean(hasInstance);
@@ -488,7 +488,7 @@ static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), sIID_Class()));
   if (!obj) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   const nsXPTInterfaceInfo* info = GetInterfaceInfo(obj);
@@ -496,7 +496,7 @@ static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   // Name property is the name of the interface this nsIID was created from.
   JSString* name = JS_NewStringCopyZ(aCx, info->Name());
   if (!name) {
-    return Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
   }
 
   args.rval().setString(name);
@@ -580,7 +580,7 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   // and it allows us to avoid a duplicate hashtable lookup.
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
   JS::UniqueChars contractID = JS_EncodeStringToLatin1(
       aCx, JS::GetReservedSlot(obj, kCID_ContractSlot).toString());
@@ -589,7 +589,7 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   Maybe<nsIID> iid = args.length() >= 1 ? JSValue2ID(aCx, args[0])
                                         : Some(NS_GET_IID(nsISupports));
   if (!iid) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   // Invoke CreateInstance or GetService with our ContractID.
@@ -598,19 +598,19 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   if (aGetService) {
     rv = CallGetService(contractID.get(), *iid, getter_AddRefs(result));
     if (NS_FAILED(rv) || !result) {
-      return Throw(aCx, NS_ERROR_XPC_GS_RETURNED_FAILURE);
+      return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_GS_RETURNED_FAILURE);
     }
   } else {
     rv = CallCreateInstance(contractID.get(), *iid, getter_AddRefs(result));
     if (NS_FAILED(rv) || !result) {
-      return Throw(aCx, NS_ERROR_XPC_CI_RETURNED_FAILURE);
+      return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_CI_RETURNED_FAILURE);
     }
   }
 
   // Wrap the created object and return it.
   rv = nsContentUtils::WrapNative(aCx, result, iid.ptr(), args.rval());
   if (NS_FAILED(rv) || args.rval().isPrimitive()) {
-    return Throw(aCx, NS_ERROR_XPC_CANT_CREATE_WN);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_CANT_CREATE_WN);
   }
   return true;
 }
@@ -629,7 +629,7 @@ static bool CID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
-    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   // Return the string stored in our reserved ContractID slot.

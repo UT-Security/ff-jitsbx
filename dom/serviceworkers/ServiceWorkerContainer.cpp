@@ -870,7 +870,7 @@ Result<Ok, bool> ServiceWorkerContainer::FillInMessageEventInit(
   aInit.mData = messageData;
 
   if (!aMessage.mClonedData.TakeTransferredPortsAsSequence(aInit.mPorts)) {
-    xpc::Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
+    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
     return Err(false);
   }
 

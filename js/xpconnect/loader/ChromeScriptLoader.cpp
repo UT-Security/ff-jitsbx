@@ -17,7 +17,7 @@
 #include "monkeycage/CompilationAndEvaluation.h"
 #include "monkeycage/experimental/JSStencil.h"  // JS::CompileGlobalScriptToStencil, JS::InstantiateGlobalStencil, JS::OffThreadCompileToStencil
 #include "monkeycage/SourceText.h"
-#include "js/Utility.h"
+#include "monkeycage/Utility.h"
 
 #include "mozilla/Attributes.h"
 #include "mozilla/SchedulerGroup.h"
@@ -43,7 +43,7 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
   NS_DECL_NSIINCREMENTALSTREAMLOADEROBSERVER
   NS_DECL_NSIRUNNABLE
 
-  AsyncScriptCompiler(JSContext* aCx, nsIGlobalObject* aGlobal,
+  AsyncScriptCompiler(MCContext* aCx, nsIGlobalObject* aGlobal,
                       const nsACString& aURL, Promise* aPromise)
       : mozilla::Runnable("AsyncScriptCompiler"),
         mOptions(aCx),
@@ -53,7 +53,7 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
         mToken(nullptr),
         mScriptLength(0) {}
 
-  [[nodiscard]] nsresult Start(JSContext* aCx,
+  [[nodiscard]] nsresult Start(MCContext* aCx,
                                const CompileScriptOptionsDictionary& aOptions,
                                nsIPrincipal* aPrincipal);
 
@@ -67,14 +67,14 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
   }
 
  private:
-  void Reject(JSContext* aCx);
-  void Reject(JSContext* aCx, const char* aMxg);
+  void Reject(MCContext* aCx);
+  void Reject(MCContext* aCx, const char* aMxg);
 
-  bool StartCompile(JSContext* aCx);
-  void FinishCompile(JSContext* aCx);
-  void Finish(JSContext* aCx, RefPtr<JS::Stencil> aStencil);
+  bool StartCompile(MCContext* aCx);
+  void FinishCompile(MCContext* aCx);
+  void Finish(MCContext* aCx, RefPtr<JS::Stencil> aStencil);
 
-  OwningCompileOptions mOptions;
+  MC::SandboxHeap<OwningCompileOptions> mOptions;
   nsCString mURL;
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
   RefPtr<Promise> mPromise;
@@ -90,18 +90,18 @@ NS_IMPL_ADDREF_INHERITED(AsyncScriptCompiler, Runnable)
 NS_IMPL_RELEASE_INHERITED(AsyncScriptCompiler, Runnable)
 
 nsresult AsyncScriptCompiler::Start(
-    JSContext* aCx, const CompileScriptOptionsDictionary& aOptions,
+    MCContext* aCx, const CompileScriptOptionsDictionary& aOptions,
     nsIPrincipal* aPrincipal) {
   mCharset = aOptions.mCharset;
 
-  CompileOptions options(aCx);
-  options.setFile(mURL.get()).setNoScriptRval(!aOptions.mHasReturnValue);
+  MC::SandboxStack<CompileOptions> options(aCx);
+  options->setFile(mURL.get()).setNoScriptRval(!aOptions.mHasReturnValue);
 
   if (!aOptions.mLazilyParse) {
-    options.setForceFullParse();
+    options->setForceFullParse();
   }
 
-  if (NS_WARN_IF(!mOptions.copy(aCx, options))) {
+  if (NS_WARN_IF(!mOptions->copy(aCx, options))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
@@ -136,9 +136,9 @@ static void OffThreadScriptLoaderCallback(JS::OffThreadToken* aToken,
   SchedulerGroup::Dispatch(TaskCategory::Other, scriptCompiler.forget());
 }
 
-bool AsyncScriptCompiler::StartCompile(JSContext* aCx) {
-  JS::SourceText<Utf8Unit> srcBuf;
-  if (!srcBuf.init(aCx, std::move(mScriptText), mScriptLength)) {
+bool AsyncScriptCompiler::StartCompile(MCContext* aCx) {
+  MC::SandboxStack<JS::SourceText<Utf8Unit>> srcBuf;
+  if (!srcBuf->init(aCx, std::move(mScriptText), mScriptLength)) {
     return false;
   }
 
@@ -146,7 +146,7 @@ bool AsyncScriptCompiler::StartCompile(JSContext* aCx) {
     static auto OffThreadScriptLoaderCallbackCb =
         MC::Sandbox::RegisterCallback(OffThreadScriptLoaderCallback);
     if (!JS::CompileToStencilOffThread(
-            aCx, mOptions, srcBuf, OffThreadScriptLoaderCallbackCb.UNSAFE_get(),
+            aCx, mOptions, srcBuf, OffThreadScriptLoaderCallbackCb,
             static_cast<void*>(this))) {
       return false;
     }
@@ -169,10 +169,10 @@ NS_IMETHODIMP
 AsyncScriptCompiler::Run() {
   AutoJSAPI jsapi;
   if (jsapi.Init(mGlobalObject)) {
-    FinishCompile(jsapi.cx());
+    FinishCompile(jsapi.mcx());
   } else {
     jsapi.Init();
-    JS::CancelOffThreadToken(jsapi.cx(), mToken);
+    JS::CancelOffThreadToken(jsapi.mcx(), mToken);
 
     mPromise->MaybeReject(NS_ERROR_FAILURE);
   }
@@ -180,7 +180,7 @@ AsyncScriptCompiler::Run() {
   return NS_OK;
 }
 
-void AsyncScriptCompiler::FinishCompile(JSContext* aCx) {
+void AsyncScriptCompiler::FinishCompile(MCContext* aCx) {
   RefPtr<JS::Stencil> stencil = JS::FinishOffThreadStencil(aCx, mToken);
   if (stencil) {
     Finish(aCx, stencil);
@@ -189,14 +189,14 @@ void AsyncScriptCompiler::FinishCompile(JSContext* aCx) {
   }
 }
 
-void AsyncScriptCompiler::Finish(JSContext* aCx, RefPtr<JS::Stencil> aStencil) {
+void AsyncScriptCompiler::Finish(MCContext* aCx, RefPtr<JS::Stencil> aStencil) {
   RefPtr<PrecompiledScript> result =
       new PrecompiledScript(mGlobalObject, aStencil, mOptions);
 
   mPromise->MaybeResolve(result);
 }
 
-void AsyncScriptCompiler::Reject(JSContext* aCx) {
+void AsyncScriptCompiler::Reject(MCContext* aCx) {
   MC::RootedValue value(aCx, JS::UndefinedValue());
   if (JS_GetPendingException(aCx, &value)) {
     JS_ClearPendingException(aCx);
@@ -204,14 +204,14 @@ void AsyncScriptCompiler::Reject(JSContext* aCx) {
   mPromise->MaybeReject(value);
 }
 
-void AsyncScriptCompiler::Reject(JSContext* aCx, const char* aMsg) {
+void AsyncScriptCompiler::Reject(MCContext* aCx, const char* aMsg) {
   nsAutoString msg;
   msg.AppendASCII(aMsg);
   msg.AppendLiteral(": ");
   AppendUTF8toUTF16(mURL, msg);
 
   MC::RootedValue exn(aCx);
-  if (xpc::NonVoidStringToJsval(aCx, msg, &exn)) {
+  if (xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), msg, &exn)) {
     JS_SetPendingException(aCx, exn);
   }
 
@@ -237,7 +237,7 @@ AsyncScriptCompiler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
     return NS_OK;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   if (NS_FAILED(aStatus)) {
     Reject(cx, "Unable to load script");
@@ -275,9 +275,9 @@ already_AddRefed<Promise> ChromeUtils::CompileScript(
 
   NS_ConvertUTF16toUTF8 url(aURL);
   RefPtr<AsyncScriptCompiler> compiler =
-      new AsyncScriptCompiler(MC_UNSAFE(aGlobal.Context()), global, url, promise);
+      new AsyncScriptCompiler(aGlobal.Context(), global, url, promise);
 
-  nsresult rv = compiler->Start(MC_UNSAFE(aGlobal.Context()), aOptions,
+  nsresult rv = compiler->Start(aGlobal.Context(), aOptions,
                                 aGlobal.GetSubjectPrincipal());
   if (NS_FAILED(rv)) {
     promise->MaybeReject(rv);
@@ -288,16 +288,16 @@ already_AddRefed<Promise> ChromeUtils::CompileScript(
 
 PrecompiledScript::PrecompiledScript(nsISupports* aParent,
                                      RefPtr<JS::Stencil> aStencil,
-                                     JS::ReadOnlyCompileOptions& aOptions)
+                                     MC::Tainted<JS::ReadOnlyCompileOptions*> aOptions)
     : mParent(aParent),
       mStencil(aStencil),
-      mURL(aOptions.filename()),
-      mHasReturnValue(!aOptions.noScriptRval) {
+      mURL(aOptions->filename()),
+      mHasReturnValue(!aOptions->noScriptRval()) {
   MOZ_ASSERT(aParent);
   MOZ_ASSERT(aStencil);
 #ifdef DEBUG
-  JS::InstantiateOptions options(aOptions);
-  options.assertDefault();
+  MC::SandboxStack<JS::InstantiateOptions> options(*aOptions);
+  options->assertDefault();
 #endif
 };
 
@@ -313,10 +313,10 @@ void PrecompiledScript::ExecuteInGlobal(JSContext* aCx, HandleObject aGlobal,
     // innerWindowID. It helps these exceptions to appear in the page's web
     // console.
     AutoEntryScript aes(targetObj, "pre-compiled-script execution");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
 
     // See assertion in constructor.
-    JS::InstantiateOptions options;
+    MC::SandboxStack<JS::InstantiateOptions> options;
     MC::Rooted<JSScript*> script(
         cx, JS::InstantiateGlobalStencil(cx, options, mStencil));
     if (!script) {

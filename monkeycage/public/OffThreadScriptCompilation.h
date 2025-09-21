@@ -27,6 +27,13 @@ inline bool CanCompileOffThread(MCContext* cx,
                              length);
 }
 
+inline bool CanCompileOffThread(MCContext* cx,
+                                MC::Tainted<OwningCompileOptions*> options,
+                                size_t length) {
+  return CanCompileOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
+                             length);
+}
+
 inline bool CanDecodeOffThread(MCContext* cx,
                                MC::Tainted<DecodeOptions*> options,
                                size_t length) {

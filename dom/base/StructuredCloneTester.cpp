@@ -6,7 +6,7 @@
 
 #include "StructuredCloneTester.h"
 
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/StructuredCloneTesterBinding.h"
@@ -65,7 +65,7 @@ StructuredCloneTester::ReadStructuredClone(JSContext* aCx,
 
   // "Fail" deserialization
   if (!sct->Deserializable()) {
-    xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
+    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
     return nullptr;
   }
 
@@ -75,7 +75,7 @@ StructuredCloneTester::ReadStructuredClone(JSContext* aCx,
 bool StructuredCloneTester::WriteStructuredClone(
     JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
   if (!Serializable()) {
-    return xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
+    return xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
   }
   return JS_WriteUint32Pair(aWriter, static_cast<uint32_t>(Serializable()),
                             static_cast<uint32_t>(Deserializable()));

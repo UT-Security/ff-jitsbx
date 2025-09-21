@@ -1638,7 +1638,7 @@ nsXPCComponents_Utils::ImportGlobalProperties(HandleValue aPropertyList,
     return NS_ERROR_INVALID_ARG;
   }
 
-  if (!options.Parse(MC_UNSAN(cx), propertyList) ||
+  if (!options.Parse(cx, propertyList) ||
       !options.DefineInXPCComponents(MC_UNSAN(cx), global)) {
     return NS_ERROR_FAILURE;
   }
@@ -1851,7 +1851,7 @@ nsXPCComponents_Utils::CallFunctionWithAsyncStack(HandleValue function,
     return rv;
   }
   if (!asyncStack.isObject()) {
-    JS_ReportErrorASCII(MC_UNSAFE(cx), "Must use a native JavaScript stack frame");
+    JS_ReportErrorASCII(cx, "Must use a native JavaScript stack frame");
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1920,7 +1920,8 @@ NS_IMETHODIMP
 nsXPCComponents_Utils::ExportFunction(HandleValue vfunction, HandleValue vscope,
                                       HandleValue voptions, JSContext* MC_UNSAN(cx),
                                       MutableHandleValue rval) {
-  if (!xpc::ExportFunction(MC_UNSAN(cx), vfunction, vscope, voptions, rval)) {
+  MC_SANITIZE(cx);
+  if (!xpc::ExportFunction(cx, vfunction, vscope, voptions, rval)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1932,7 +1933,7 @@ nsXPCComponents_Utils::CreateObjectIn(HandleValue vobj, HandleValue voptions,
   MC_SANITIZE(cx);
   MC::RootedObject optionsObject(
       cx, voptions.isObject() ? &voptions.toObject() : nullptr);
-  CreateObjectInOptions options(MC_UNSAN(cx), optionsObject);
+  CreateObjectInOptions options(cx, optionsObject);
   if (voptions.isObject() && !options.Parse()) {
     return NS_ERROR_FAILURE;
   }
@@ -1982,7 +1983,7 @@ nsXPCComponents_Utils::MakeObjectPropsNormal(HandleValue vobj, JSContext* MC_UNS
     }
 
     FunctionForwarderOptions forwarderOptions;
-    if (!NewFunctionForwarder(MC_UNSAN(cx), id, propobj, forwarderOptions, &v) ||
+    if (!NewFunctionForwarder(cx, id, propobj, forwarderOptions, &v) ||
         !JS_SetPropertyById(cx, obj, id, v))
       return NS_ERROR_FAILURE;
   }
@@ -2166,7 +2167,7 @@ nsXPCComponents_Utils::BlockScriptForGlobal(HandleValue globalArg,
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
   if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
-    JS_ReportErrorASCII(MC_UNSAFE(cx), "Script may not be disabled for system globals");
+    JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }
   Scriptability::Get(global).Block();
@@ -2182,7 +2183,7 @@ nsXPCComponents_Utils::UnblockScriptForGlobal(HandleValue globalArg,
                                           /* stopAtWindowProxy = */ false));
   NS_ENSURE_TRUE(JS_IsGlobalObject(global), NS_ERROR_INVALID_ARG);
   if (xpc::GetObjectPrincipal(global)->IsSystemPrincipal()) {
-    JS_ReportErrorASCII(MC_UNSAFE(cx), "Script may not be disabled for system globals");
+    JS_ReportErrorASCII(cx, "Script may not be disabled for system globals");
     return NS_ERROR_FAILURE;
   }
   Scriptability::Get(global).Unblock();
@@ -2352,7 +2353,7 @@ bool xpc::CloneInto(JSContext* aCx, HandleValue aValue, HandleValue aScope,
 
   MC::RootedObject optionsObject(
       aCx, aOptions.isObject() ? &aOptions.toObject() : nullptr);
-  StackScopedCloneOptions options(aCx, optionsObject);
+  StackScopedCloneOptions options(JS_SanitizeContext(aCx), optionsObject);
   if (aOptions.isObject() && !options.Parse()) {
     return false;
   }
