@@ -163,7 +163,10 @@ already_AddRefed<nsIXPCComponents_utils_Sandbox> xpc::NewSandboxConstructor() {
   return sbConstructor.forget();
 }
 
-static bool SandboxDump(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxDump(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   if (!nsJSUtils::DumpEnabled()) {
     return true;
   }
@@ -207,7 +210,7 @@ static bool SandboxDump(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool SandboxDebug(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxDebug(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<Value*> vp) {
 #ifdef DEBUG
   return SandboxDump(cx, argc, vp);
 #else
@@ -307,7 +310,7 @@ static bool SandboxCreateRTCIdentityProvider(JSContext* cx,
 }
 #endif
 
-static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
+static bool SandboxFetch(MCContext* cx, JS::HandleObject scope,
                          const CallArgs& args) {
   if (args.length() < 1) {
     JS_ReportErrorASCII(cx, "fetch requires at least 1 argument");
@@ -328,7 +331,7 @@ static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
   if (!global) {
     return false;
   }
-  dom::CallerType callerType = nsContentUtils::IsSystemCaller(cx)
+  dom::CallerType callerType = nsContentUtils::IsSystemCaller(MC_UNSAFE(cx))
                                    ? dom::CallerType::System
                                    : dom::CallerType::NonSystem;
   ErrorResult rv;
@@ -342,20 +345,23 @@ static bool SandboxFetch(JSContext* cx, JS::HandleObject scope,
   return true;
 }
 
-static bool SandboxFetchPromise(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxFetchPromise(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   MC::RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
   if (SandboxFetch(cx, scope, args)) {
     return true;
   }
-  return ConvertExceptionToPromise(cx, args.rval());
+  return ConvertExceptionToPromise(MC_UNSAFE(cx), args.rval());
 }
 
 bool xpc::SandboxCreateFetch(JSContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
   static auto SandboxFetchPromiseCb =
-      MC::Sandbox::RegisterCallback(SandboxFetchPromise);
+      MC::Sandbox::RegisterTaintedCallback(SandboxFetchPromise);
   return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb.UNSAFE_get(),
                            2, 0) &&
          dom::Request_Binding::GetConstructorObject(cx) &&
@@ -374,16 +380,20 @@ static bool SandboxCreateStorage(JSContext* cx, JS::HandleObject obj) {
   return JS_DefineProperty(cx, obj, "storage", wrapped, JSPROP_ENUMERATE);
 }
 
-static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxStructuredClone(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
-  if (!args.requireAtLeast(cx, "structuredClone", 1)) {
+  if (!args.requireAtLeast(MC_UNSAFE(cx), "structuredClone", 1)) {
     return false;
   }
 
   RootedDictionary<dom::StructuredSerializeOptions> options(cx);
   BindingCallContext callCx(cx, "structuredClone");
-  if (!options.Init(cx, args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
+  if (!options.Init(MC_UNSAFE(cx), args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }
@@ -396,7 +406,7 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 
   MC::Rooted<JS::Value> result(cx);
   ErrorResult rv;
-  nsContentUtils::StructuredClone(cx, global, args[0], options, &result, rv);
+  nsContentUtils::StructuredClone(MC_UNSAFE(cx), global, args[0], options, &result, rv);
   if (rv.MaybeSetPendingException(cx)) {
     return false;
   }
@@ -410,12 +420,15 @@ static bool SandboxStructuredClone(JSContext* cx, unsigned argc, Value* vp) {
 bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
-  static auto SandboxStructuredCloneCb = MC::Sandbox::RegisterCallback(SandboxStructuredClone);
+  static auto SandboxStructuredCloneCb = MC::Sandbox::RegisterTaintedCallback(SandboxStructuredClone);
   return JS_DefineFunction(cx, obj, "structuredClone", SandboxStructuredCloneCb.UNSAFE_get(),
                            1, 0);
 }
 
-static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxIsProxy(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 1) {
     JS_ReportErrorASCII(cx, "Function requires at least 1 argument");
@@ -446,7 +459,10 @@ static bool SandboxIsProxy(JSContext* cx, unsigned argc, Value* vp) {
  *                         object targetScope,
  *                         [optional] object options)
  */
-static bool SandboxExportFunction(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxExportFunction(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 2) {
     JS_ReportErrorASCII(cx, "Function requires at least 2 arguments");
@@ -457,7 +473,10 @@ static bool SandboxExportFunction(JSContext* cx, unsigned argc, Value* vp) {
   return ExportFunction(cx, args[0], args[1], options, args.rval());
 }
 
-static bool SandboxCreateObjectIn(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxCreateObjectIn(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 1) {
     JS_ReportErrorASCII(cx, "Function requires at least 1 argument");
@@ -480,10 +499,13 @@ static bool SandboxCreateObjectIn(JSContext* cx, unsigned argc, Value* vp) {
     return false;
   }
 
-  return xpc::CreateObjectIn(cx, args[0], options, args.rval());
+  return xpc::CreateObjectIn(MC_UNSAFE(cx), args[0], options, args.rval());
 }
 
-static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SandboxCloneInto(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 2) {
     JS_ReportErrorASCII(cx, "Function requires at least 2 arguments");
@@ -491,7 +513,7 @@ static bool SandboxCloneInto(JSContext* cx, unsigned argc, Value* vp) {
   }
 
   MC::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
-  return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
+  return xpc::CloneInto(MC_UNSAFE(cx), args[0], args[1], options, args.rval());
 }
 
 static void sandbox_finalize(JS::GCContext* gcx, JSObject* obj) {
@@ -552,9 +574,9 @@ static const JSClass* SandboxClass() {
 
 static const JSFunctionSpec* SandboxFunctions() {
   static const JSFunctionSpec inner_[] = {
-      JS_FN("dump", MC::Sandbox::RegisterCallback(SandboxDump).UNSAFE_get(), 1,
+      JS_FN("dump", MC::Sandbox::RegisterTaintedCallback(SandboxDump).UNSAFE_get(), 1,
             0),
-      JS_FN("debug", MC::Sandbox::RegisterCallback(SandboxDebug).UNSAFE_get(),
+      JS_FN("debug", MC::Sandbox::RegisterTaintedCallback(SandboxDebug).UNSAFE_get(),
             1, 0),
       JS_FN("importFunction",
             MC::Sandbox::RegisterTaintedCallback(SandboxImport).UNSAFE_get(), 1, 0),
@@ -910,11 +932,11 @@ bool SandboxProxyHandler::enumerate(MCContext* cx, JS::Handle<JSObject*> proxy,
   return BaseProxyHandler::enumerate(cx, proxy, props);
 }
 
-bool xpc::GlobalProperties::Parse(JSContext* cx, JS::HandleObject obj) {
-  uint32_t length;
-  bool ok = JS::GetArrayLength(cx, obj, &length);
+bool xpc::GlobalProperties::Parse(MCContext* cx, JS::HandleObject obj) {
+  MC::SandboxStack<uint32_t> length;
+  bool ok = JS::GetArrayLength(cx, obj, length);
   NS_ENSURE_TRUE(ok, false);
-  for (uint32_t i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); i++) {
     MC::RootedValue nameValue(cx);
     ok = JS_GetElement(cx, obj, i, &nameValue);
     NS_ENSURE_TRUE(ok, false);
@@ -1497,13 +1519,13 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
     }
 
     static auto SandboxExportFunctionCb =
-        MC::Sandbox::RegisterCallback(SandboxExportFunction);
+        MC::Sandbox::RegisterTaintedCallback(SandboxExportFunction);
     static auto SandboxCreateObjectInCb =
-        MC::Sandbox::RegisterCallback(SandboxCreateObjectIn);
+        MC::Sandbox::RegisterTaintedCallback(SandboxCreateObjectIn);
     static auto SandboxCloneIntoCb =
-        MC::Sandbox::RegisterCallback(SandboxCloneInto);
+        MC::Sandbox::RegisterTaintedCallback(SandboxCloneInto);
     static auto SandboxIsProxyCb =
-        MC::Sandbox::RegisterCallback(SandboxIsProxy);
+        MC::Sandbox::RegisterTaintedCallback(SandboxIsProxy);
 
     if (options.wantExportHelpers &&
         (!JS_DefineFunction(cx, sandbox, "exportFunction",
@@ -1762,15 +1784,15 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
  */
 bool OptionsBase::ParseValue(const char* name, MutableHandleValue prop,
                              bool* aFound) {
-  bool found;
-  bool ok = JS_HasProperty(mCx, mObject, name, &found);
+  MC::SandboxStack<bool> found;
+  bool ok = JS_HasProperty(mCx, mObject, name, found);
   NS_ENSURE_TRUE(ok, false);
 
   if (aFound) {
-    *aFound = found;
+    *aFound = *found.UNSAFE_unverified();
   }
 
-  if (!found) {
+  if (!*found.UNSAFE_unverified()) {
     return true;
   }
 
@@ -1923,10 +1945,13 @@ bool OptionsBase::ParseUInt32(const char* name, uint32_t* prop) {
     return true;
   }
 
-  if (!JS::ToUint32(mCx, value, prop)) {
+  MC::SandboxStack<uint32_t> propVal;
+  if (!JS::ToUint32(mCx, value, propVal)) {
     JS_ReportErrorASCII(mCx, "Expected a uint32_t value for property %s", name);
     return false;
   }
+
+  *prop = *propVal.UNSAFE_unverified();
 
   return true;
 }
@@ -2053,7 +2078,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
   MC::RootedObject optionsObject(cx,
                              calledWithOptions ? &args[1].toObject() : nullptr);
 
-  SandboxOptions options(cx, optionsObject);
+  SandboxOptions options(JS_SanitizeContext(cx), optionsObject);
   if (calledWithOptions && !options.Parse()) {
     return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
   }

@@ -9,6 +9,7 @@
 #include <new>
 #include "ErrorList.h"
 #include "MainThreadUtils.h"
+#include "StructuredCloneHolder.h"
 #include "js/CallArgs.h"
 #include "monkeycage/Value.h"
 #include "js/WasmModule.h"
@@ -87,15 +88,19 @@ namespace mozilla::dom {
 
 namespace {
 
-JSObject* StructuredCloneCallbacksRead(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+MC::Tainted<JSObject*> StructuredCloneCallbacksRead(
+    MC::Tainted<JSContext*> t_aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aIndex,
-    void* aClosure) {
+    MC::AppPointer<void*> aClosure) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
-  return holder->CustomReadHandler(aCx, aReader, aCloneDataPolicy, aTag,
-                                   aIndex);
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(holder->CustomReadHandler(aCx, aReader, aCloneDataPolicy, aTag,
+                                   aIndex));
+  return ret;
 }
 
 bool StructuredCloneCallbacksWrite(JSContext* aCx,
@@ -223,7 +228,7 @@ void AssertTagValues() {
 
 const JSStructuredCloneCallbacks* StructuredCloneHolder::sCallbacks() {
   static const JSStructuredCloneCallbacks inner_ = {
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksRead).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksRead).UNSAFE_get(),
     MC::Sandbox::RegisterCallback(StructuredCloneCallbacksWrite).UNSAFE_get(),
     MC::Sandbox::RegisterCallback(StructuredCloneCallbacksError).UNSAFE_get(),
     MC::Sandbox::RegisterCallback(StructuredCloneCallbacksReadTransfer).UNSAFE_get(),
@@ -432,10 +437,10 @@ void StructuredCloneHolder::ReadFromBuffer(
 
 /* static */
 JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
-    JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag) {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag) {
   AssertTagValues();
 
-  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(MC_UNSAFE(aCx));
   if (!global) {
     return nullptr;
   }
@@ -443,14 +448,14 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
   WebIDLDeserializer deserializer =
       LookupDeserializer(StructuredCloneTags(aTag));
   if (deserializer) {
-    return deserializer(aCx, global, aReader);
+    return deserializer(MC_UNSAFE(aCx), global, aReader.UNSAFE_unverified());
   }
 
   if (aTag == SCTAG_DOM_NULL_PRINCIPAL || aTag == SCTAG_DOM_SYSTEM_PRINCIPAL ||
       aTag == SCTAG_DOM_CONTENT_PRINCIPAL ||
       aTag == SCTAG_DOM_EXPANDED_PRINCIPAL) {
-    JSPrincipals* prin;
-    if (!nsJSPrincipals::ReadKnownPrincipalType(aCx, aReader, aTag, &prin)) {
+    MC::SandboxStack<JSPrincipals*> prin;
+    if (!nsJSPrincipals::ReadKnownPrincipalType(aCx, aReader, aTag, prin)) {
       return nullptr;
     }
 
@@ -460,10 +465,10 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
       // the casting between JSPrincipals* and nsIPrincipal* we can't use
       // getter_AddRefs above and have to already_AddRefed here.
       nsCOMPtr<nsIPrincipal> principal =
-          already_AddRefed<nsIPrincipal>(nsJSPrincipals::get(prin));
+          already_AddRefed<nsIPrincipal>(nsJSPrincipals::get(*prin.UNSAFE_unverified()));
 
       nsresult rv = nsContentUtils::WrapNative(
-          aCx, principal, &NS_GET_IID(nsIPrincipal), &result);
+          MC_UNSAFE(aCx), principal, &NS_GET_IID(nsIPrincipal), &result);
       if (NS_FAILED(rv)) {
         xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
         return nullptr;
@@ -487,7 +492,7 @@ bool StructuredCloneHolder::WriteFullySerializableObjects(
   // unwrap here.
   MC::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(aObj));
   if (!obj) {
-    return xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
+    return xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
   }
 
   const DOMJSClass* domClass = GetDOMClass(obj);
@@ -993,11 +998,14 @@ bool WriteInputStream(JSStructuredCloneWriter* aWriter,
 }  // anonymous namespace
 
 JSObject* StructuredCloneHolder::CustomReadHandler(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* t_aCx, MC::Tainted<JSStructuredCloneReader*> t_aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
     uint32_t aIndex) {
   MOZ_ASSERT(mSupportsCloning);
 
+  JSContext* aCx = MC_UNSAFE(t_aCx);
+  JSStructuredCloneReader* aReader = t_aReader.UNSAFE_unverified();
+  
   if (aTag == SCTAG_DOM_BLOB) {
     return ReadBlob(aCx, aIndex, this);
   }
@@ -1059,7 +1067,7 @@ JSObject* StructuredCloneHolder::CustomReadHandler(
     }
   }
 
-  return ReadFullySerializableObjects(aCx, aReader, aTag);
+  return ReadFullySerializableObjects(t_aCx, t_aReader, aTag);
 }
 
 bool StructuredCloneHolder::CustomWriteHandler(

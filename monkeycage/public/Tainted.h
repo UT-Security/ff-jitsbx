@@ -169,6 +169,20 @@ private:
           "Implicit conversion to bool permitted only for pointers");
     }
   }
+
+  template<typename T2, typename = std::enable_if_t<std::is_pointer_v<T> && std::is_convertible_v<T, const T2*>, T>>
+  inline operator Tainted<const T2*, MC_Sbx>() const {
+    Tainted<const T2*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data);
+    return ret;
+  }
+  
+  template<typename T2, typename = std::enable_if_t<std::is_pointer_v<T> && std::is_convertible_v<T, T2*>, T>>
+  inline operator Tainted<T2*, MC_Sbx>() const {
+    Tainted<T2*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(data);
+    return ret;
+  }
 };
 
 template<typename T, typename MC_Sbx>

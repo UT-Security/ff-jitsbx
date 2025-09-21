@@ -51,7 +51,9 @@ bool ConstructHandleMetadata(JSContext* aCx, nsIGlobalObject* aGlobal,
   }
 
   mozilla::ipc::PrincipalInfo storageKey;
-  if (!nsJSPrincipals::ReadPrincipalInfo(aReader, storageKey)) {
+  MC::Tainted<JSStructuredCloneReader*> tReader{nullptr};
+  tReader.assign_raw_pointer(aReader);
+  if (!nsJSPrincipals::ReadPrincipalInfo(tReader, storageKey)) {
     return false;
   }
 

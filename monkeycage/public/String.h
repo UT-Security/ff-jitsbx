@@ -64,6 +64,13 @@ inline JSString* JS_NewUCStringCopyZ(MCContext* cx,
   return JS_NewUCStringCopyZ(cx->cx_, s);
 }
 
+template <size_t N>
+inline bool JS_StringEqualsLiteral(MCContext* cx, JSString* str,
+                                          const char (&asciiBytes)[N],
+                                          MC::Tainted<bool*> match) {
+  return JS_StringEqualsLiteral(cx->cx_, str, asciiBytes, match.INTERNAL_unverified_safe());
+}
+
 inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
     JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
     size_t* length) {
@@ -74,6 +81,10 @@ inline const char16_t* JS_GetTwoByteStringCharsAndLength(
     JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
     size_t* length) {
   return JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length);
+}
+
+inline JSLinearString* JS_EnsureLinearString(MCContext* cx, JSString* str) {
+  return JS_EnsureLinearString(cx->cx_, str);
 }
 
 namespace JS {

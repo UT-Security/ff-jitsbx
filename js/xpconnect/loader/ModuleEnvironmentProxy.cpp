@@ -110,8 +110,8 @@ struct ModuleEnvironmentProxyHandler : public mc::BaseProxyHandler {
     return &js::GetProxyPrivate(aProxy).toObject();
   }
 
-  static bool equalsNamespace(JSContext* aCx, JS::Handle<JS::PropertyKey> aId,
-                              bool* aMatch) {
+  static bool equalsNamespace(MCContext* aCx, JS::Handle<JS::PropertyKey> aId,
+                              MC::Tainted<bool*> aMatch) {
     if (!aId.isString()) {
       *aMatch = false;
       return true;
@@ -135,11 +135,11 @@ bool ModuleEnvironmentProxyHandler::getOwnPropertyDescriptor(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) const {
-  bool isNamespace;
-  if (!equalsNamespace(MC_UNSAFE(aCx), aId, &isNamespace)) {
+  MC::SandboxStack<bool> isNamespace;
+  if (!equalsNamespace(aCx, aId, isNamespace)) {
     return false;
   }
-  if (isNamespace) {
+  if (*isNamespace.UNSAFE_unverified()) {
     aDesc.reset();
     return true;
   }
@@ -166,11 +166,11 @@ bool ModuleEnvironmentProxyHandler::has(MCContext* aCx,
                                         JS::Handle<JSObject*> aProxy,
                                         JS::Handle<JS::PropertyKey> aId,
                                         MC::Tainted<bool*> aBp) const {
-  bool isNamespace;
-  if (!equalsNamespace(MC_UNSAFE(aCx), aId, &isNamespace)) {
+  MC::SandboxStack<bool> isNamespace;
+  if (!equalsNamespace(aCx, aId, isNamespace)) {
     return false;
   }
-  if (isNamespace) {
+  if (*isNamespace.UNSAFE_unverified()) {
     *aBp = false;
     return true;
   }
@@ -183,11 +183,11 @@ bool ModuleEnvironmentProxyHandler::get(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::Handle<JS::Value> aReceiver, JS::Handle<JS::PropertyKey> aId,
     JS::MutableHandle<JS::Value> aVp) const {
-  bool isNamespace;
-  if (!equalsNamespace(MC_UNSAFE(aCx), aId, &isNamespace)) {
+  MC::SandboxStack<bool> isNamespace;
+  if (!equalsNamespace(aCx, aId, isNamespace)) {
     return false;
   }
-  if (isNamespace) {
+  if (*isNamespace.UNSAFE_unverified()) {
     aVp.setUndefined();
     return true;
   }
@@ -206,11 +206,11 @@ bool ModuleEnvironmentProxyHandler::ownPropertyKeys(
   }
 
   for (size_t i = 0; i < ids.length(); i++) {
-    bool isNamespace;
-    if (!equalsNamespace(MC_UNSAFE(aCx), ids[i], &isNamespace)) {
+    MC::SandboxStack<bool> isNamespace;
+    if (!equalsNamespace(aCx, ids[i], isNamespace)) {
       return false;
     }
-    if (isNamespace) {
+    if (*isNamespace.UNSAFE_unverified()) {
       continue;
     }
     if (!aProps.append(ids[i])) {

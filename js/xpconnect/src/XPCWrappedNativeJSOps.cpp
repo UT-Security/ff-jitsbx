@@ -251,7 +251,7 @@ static MC::Tainted<bool> XPC_WN_DoubleWrappedGetter(MC::Tainted<JSContext*> t_cx
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        MC_UNSAFE(cx),
+        cx,
         "xpconnect double wrapped getter called on incompatible non-object");
     return false;
   }
@@ -276,7 +276,7 @@ static MC::Tainted<bool> XPC_WN_DoubleWrappedGetter(MC::Tainted<JSContext*> t_cx
   // It is a double wrapped object. This should really never appear in
   // content these days, but addons still do it - see bug 965921.
   if (MOZ_UNLIKELY(!nsContentUtils::IsSystemCaller(MC_UNSAFE(cx)))) {
-    JS_ReportErrorASCII(MC_UNSAFE(cx),
+    JS_ReportErrorASCII(cx,
                         "Attempt to use .wrappedJSObject in untrusted code");
     return false;
   }
@@ -800,7 +800,7 @@ MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubC
   /* It's very important for "unwrapped" to be rooted here.  */         \
   MC::RootedObject unwrapped(cx, mc::CheckedUnwrapDynamic(obj, cx, false)); \
   if (!unwrapped) {                                                     \
-    JS_ReportErrorASCII(MC_UNSAFE(cx), "Permission denied to operate on object."); \
+    JS_ReportErrorASCII(cx, "Permission denied to operate on object."); \
     return false;                                                       \
   }                                                                     \
   if (!IsWrappedNativeReflector(unwrapped)) {                           \
@@ -879,7 +879,7 @@ static MC::Tainted<bool> XPC_WN_Helper_HasInstance(MC::Tainted<JSContext*> t_cx,
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        MC_UNSAFE(cx), "WrappedNative[Symbol.hasInstance]: unexpected this value");
+        cx, "WrappedNative[Symbol.hasInstance]: unexpected this value");
     return false;
   }
 
@@ -1121,7 +1121,7 @@ MC::Tainted<bool> XPC_WN_GetterSetter(MC::Tainted<JSContext*> t_cx, unsigned arg
 
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(
-        MC_UNSAFE(cx), "xpconnect getter/setter called on incompatible non-object");
+        cx, "xpconnect getter/setter called on incompatible non-object");
     return false;
   }
   MC::RootedObject obj(cx, &args.thisv().toObject());

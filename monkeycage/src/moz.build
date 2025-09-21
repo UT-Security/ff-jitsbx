@@ -380,6 +380,7 @@ EXPORTS.monkeycage += [
 	"../public/Stack.h",
 	"../public/StreamConsumer.h",
 	"../public/String.h",
+	"../public/StructuredClone.h",
 	"../public/Symbol.h",
 	"../public/TracingAPI.h",
 	"../public/Transcoding.h",

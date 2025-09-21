@@ -64,7 +64,7 @@ XPCCallContext::XPCCallContext(
   JSObject* unwrapped =
       mc::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
   if (!unwrapped) {
-    JS_ReportErrorASCII(MC_UNSAFE(mJSContext),
+    JS_ReportErrorASCII(mJSContext,
                         "Permission denied to call method on |this|");
     mState = INIT_FAILED;
     return;

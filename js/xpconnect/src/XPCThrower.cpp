@@ -34,8 +34,8 @@ void XPCThrower::Throw(nsresult rv, MCContext* cx) {
 
 namespace xpc {
 
-bool Throw(JSContext* cx, nsresult rv) {
-  XPCThrower::Throw(rv, JS_SanitizeContext(cx));
+bool Throw(MCContext* cx, nsresult rv) {
+  XPCThrower::Throw(rv, cx);
   return false;
 }
 

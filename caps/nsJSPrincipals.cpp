@@ -100,9 +100,12 @@ JS_PUBLIC_API void JSPrincipals::dump() {
 #endif
 
 /* static */
-bool nsJSPrincipals::ReadPrincipals(JSContext* aCx,
-                                    JSStructuredCloneReader* aReader,
-                                    JSPrincipals** aOutPrincipals) {
+MC::Tainted<bool> nsJSPrincipals::ReadPrincipals(MC::Tainted<JSContext*> t_aCx,
+                                    MC::Tainted<JSStructuredCloneReader*> aReader,
+                                    MC::Tainted<JSPrincipals**> aOutPrincipals) {
+  MCContext* aCx = t_aCx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  
   uint32_t tag;
   uint32_t unused;
   if (!JS_ReadUint32Pair(aReader, &tag, &unused)) {
@@ -120,11 +123,11 @@ bool nsJSPrincipals::ReadPrincipals(JSContext* aCx,
 }
 
 MC::Sandbox::Callback<JSReadPrincipalsOp> nsJSPrincipals::ReadPrincipalsCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(ReadPrincipals);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(ReadPrincipals);
   return inner_;
 }
 
-static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader,
+static bool ReadPrincipalInfo(MC::Tainted<JSStructuredCloneReader*> aReader,
                               OriginAttributes& aAttrs, nsACString& aSpec,
                               nsACString& aOriginNoSuffix,
                               nsACString& aBaseDomain) {
@@ -202,7 +205,7 @@ static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader,
   return true;
 }
 
-static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader, uint32_t aTag,
+static bool ReadPrincipalInfo(MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
                               PrincipalInfo& aInfo) {
   if (aTag == SCTAG_DOM_SYSTEM_PRINCIPAL) {
     aInfo = SystemPrincipalInfo();
@@ -271,7 +274,7 @@ static bool ReadPrincipalInfo(JSStructuredCloneReader* aReader, uint32_t aTag,
 }
 
 /* static */
-bool nsJSPrincipals::ReadPrincipalInfo(JSStructuredCloneReader* aReader,
+bool nsJSPrincipals::ReadPrincipalInfo(MC::Tainted<JSStructuredCloneReader*> aReader,
                                        PrincipalInfo& aInfo) {
   uint32_t tag, unused;
   if (!JS_ReadUint32Pair(aReader, &tag, &unused)) {
@@ -281,10 +284,10 @@ bool nsJSPrincipals::ReadPrincipalInfo(JSStructuredCloneReader* aReader,
 }
 
 /* static */
-bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
-                                            JSStructuredCloneReader* aReader,
+bool nsJSPrincipals::ReadKnownPrincipalType(MCContext* aCx,
+                                            MC::Tainted<JSStructuredCloneReader*> aReader,
                                             uint32_t aTag,
-                                            JSPrincipals** aOutPrincipals) {
+                                            MC::Tainted<JSPrincipals**> aOutPrincipals) {
   MOZ_ASSERT(aTag == SCTAG_DOM_NULL_PRINCIPAL ||
              aTag == SCTAG_DOM_SYSTEM_PRINCIPAL ||
              aTag == SCTAG_DOM_CONTENT_PRINCIPAL ||
@@ -303,7 +306,7 @@ bool nsJSPrincipals::ReadKnownPrincipalType(JSContext* aCx,
 
   nsCOMPtr<nsIPrincipal> principal = principalOrErr.unwrap();
 
-  *aOutPrincipals = get(principal.forget().take())->inner_;
+  *aOutPrincipals.UNSAFE_unverified() = get(principal.forget().take())->inner_;
   return true;
 }
 
@@ -369,7 +372,7 @@ bool nsJSPrincipals::WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
 bool nsJSPrincipals::write(JSContext* aCx, JSStructuredCloneWriter* aWriter) {
   PrincipalInfo info;
   if (NS_WARN_IF(NS_FAILED(PrincipalToPrincipalInfo(this, &info)))) {
-    xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
+    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
     return false;
   }
 

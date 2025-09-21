@@ -9,8 +9,8 @@
 #include "mozilla/dom/ConsoleBinding.h"
 #include "ConsoleCommon.h"
 
-#include "js/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_GetElement
 #include "monkeycage/Value.h"
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BlobImpl.h"
@@ -268,7 +268,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   }
 
  protected:
-  JSObject* CustomReadHandler(JSContext* aCx, JSStructuredCloneReader* aReader,
+  JSObject* CustomReadHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                               const JS::CloneDataPolicy& aCloneDataPolicy,
                               uint32_t aTag, uint32_t aIndex) override {
     AssertIsOnMainThread();
@@ -281,7 +281,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
         nsCOMPtr<nsIGlobalObject> global = mClonedData.mGlobal;
         RefPtr<Blob> blob =
             Blob::Create(global, mClonedData.mBlobs.ElementAt(aIndex));
-        if (!ToJSValue(aCx, blob, &val)) {
+        if (!ToJSValue(MC_UNSAFE(aCx), blob, &val)) {
           return nullptr;
         }
       }

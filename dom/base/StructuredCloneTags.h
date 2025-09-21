@@ -7,7 +7,7 @@
 #ifndef StructuredCloneTags_h__
 #define StructuredCloneTags_h__
 
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 
 namespace mozilla::dom {
 

@@ -8,7 +8,7 @@
 #define mozilla_dom_PromiseWorkerProxy_h
 
 #include <cstdint>
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Mutex.h"
 #include "mozilla/RefPtr.h"
@@ -167,7 +167,7 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
 
   // StructuredCloneHolderBase
 
-  JSObject* CustomReadHandler(JSContext* aCx, JSStructuredCloneReader* aReader,
+  JSObject* CustomReadHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                               const JS::CloneDataPolicy& aCloneDataPolicy,
                               uint32_t aTag, uint32_t aIndex) override;
 

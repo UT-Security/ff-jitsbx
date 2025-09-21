@@ -279,8 +279,8 @@ inline bool JS_GetPropertyById(MCContext* cx, JS::Handle<JSObject*> obj,
 }
 
 inline bool JS_GetProperty(MCContext* cx, JS::Handle<JSObject*> obj,
-                           const char* name, MC::MutableHandle<JS::Value> vp) {
-  return JS_GetProperty(cx->cx_, obj, name, vp.MC_INTERNAL_SAFE_get());
+                           const char* name, JS::MutableHandle<JS::Value> vp) {
+  return JS_GetProperty(cx->cx_, obj, name, vp);
 }
 
 inline bool JS_GetUCProperty(MCContext* cx, JS::Handle<JSObject*> obj,

@@ -173,7 +173,11 @@ static bool TryToMJS(const nsACString& aLocation, nsAutoCString& aOut) {
   return false;
 }
 
-static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Dump(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
+  
   if (!nsJSUtils::DumpEnabled()) {
     return true;
   }
@@ -213,7 +217,7 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Debug(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Debug(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<Value*> vp) {
 #ifdef DEBUG
   return Dump(cx, argc, vp);
 #else
@@ -223,8 +227,8 @@ static bool Debug(JSContext* cx, unsigned argc, Value* vp) {
 
 static const JSFunctionSpec* gGlobalFun() {
   static const JSFunctionSpec inner_[] = {
-      JS_FN("dump", MC::Sandbox::RegisterCallback(Dump).UNSAFE_get(), 1, 0),
-      JS_FN("debug", MC::Sandbox::RegisterCallback(Debug).UNSAFE_get(), 1, 0),
+      JS_FN("dump", MC::Sandbox::RegisterTaintedCallback(Dump).UNSAFE_get(), 1, 0),
+      JS_FN("debug", MC::Sandbox::RegisterTaintedCallback(Debug).UNSAFE_get(), 1, 0),
       JS_FN("atob", AtobCb().UNSAFE_get(), 1, 0),
       JS_FN("btoa", BtoaCb().UNSAFE_get(), 1, 0), JS_FS_END};
   return inner_;

@@ -761,7 +761,7 @@ nsXPCWrappedJS::CallMethod(uint16_t methodIndex, const nsXPTMethodInfo* info,
         "IDL methods marked with [optional_argc] may not "
         "be implemented in JS";
     // Throw and warn for good measure.
-    JS_ReportErrorASCII(MC_UNSAFE(cx), "%s", str);
+    JS_ReportErrorASCII(cx, "%s", str);
     NS_WARNING(str);
     return CheckForException(ccx, aes, obj, name, interfaceInfo->Name());
   }

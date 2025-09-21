@@ -303,6 +303,9 @@ class TErrorResult {
   // When this function returns, JS_IsExceptionPending(cx) will definitely be
   // false.
   void StealExceptionFromJSContext(JSContext* cx);
+  void StealExceptionFromJSContext(MCContext* cx) {
+    return StealExceptionFromJSContext(MC_UNSAFE(cx));
+  }
 
   template <dom::ErrNum errorNumber, typename... Ts>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG

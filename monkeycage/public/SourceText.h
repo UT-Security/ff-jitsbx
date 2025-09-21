@@ -54,6 +54,11 @@ public:
     return data.init(cx->cx_, chars, charsLength, ownership);
   }
 
+  inline bool init(MCContext* cx,
+                          js::UniquePtr<Unit[], JS::FreePolicy> chars,
+                          size_t dataLength) {
+    return data.init(cx->cx_, std::move(chars), dataLength);
+  }
   
   const typename JS::SourceText<Unit>::CharT* get() const { return data.get(); }
 };

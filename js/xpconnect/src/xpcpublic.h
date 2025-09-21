@@ -480,7 +480,7 @@ void ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats& rtStats,
 /**
  * Throws an exception on cx and returns false.
  */
-bool Throw(JSContext* cx, nsresult rv);
+bool Throw(MCContext* cx, nsresult rv);
 
 /**
  * Returns the nsISupports native behind a given reflector (either DOM or

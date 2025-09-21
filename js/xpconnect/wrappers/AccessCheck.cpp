@@ -107,7 +107,7 @@ bool AccessCheck::checkPassToPrivilegedCode(MCContext* cx, HandleObject wrapper,
   }
 
   // Badness.
-  JS_ReportErrorASCII(MC_UNSAFE(cx),
+  JS_ReportErrorASCII(cx,
                       "Permission denied to pass object to privileged code");
   return false;
 }

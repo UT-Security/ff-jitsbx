@@ -54,7 +54,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
 
   ~StackScopedCloneData() { Clear(); }
 
-  JSObject* CustomReadHandler(JSContext* aCx, JSStructuredCloneReader* aReader,
+  JSObject* CustomReadHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                               const JS::CloneDataPolicy& aCloneDataPolicy,
                               uint32_t aTag, uint32_t aData) override {
     if (aTag == SCTAG_REFLECTOR) {
@@ -67,7 +67,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
 
       MC::RootedObject reflector(aCx, mReflectors[idx]);
       MOZ_ASSERT(reflector, "No object pointer?");
-      MOZ_ASSERT(IsReflector(reflector, aCx),
+      MOZ_ASSERT(IsReflector(reflector, MC_UNSAFE(aCx)),
                  "Object pointer must be a reflector!");
 
       if (!JS_WrapObject(aCx, &reflector)) {
@@ -104,7 +104,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
         return nullptr;
       }
 
-      nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
+      nsIGlobalObject* global = xpc::CurrentNativeGlobal(MC_UNSAFE(aCx));
       MOZ_ASSERT(global);
 
       // RefPtr<File> needs to go out of scope before toObjectOrNull() is called
@@ -117,7 +117,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
           return nullptr;
         }
 
-        if (!ToJSValue(aCx, blob, &val)) {
+        if (!ToJSValue(MC_UNSAFE(aCx), blob, &val)) {
           return nullptr;
         }
       }
@@ -230,7 +230,7 @@ bool StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
 
 // Note - This function mirrors the logic of CheckPassToChrome in
 // ChromeObjectWrapper.cpp.
-static bool CheckSameOriginArg(JSContext* cx, FunctionForwarderOptions& options,
+static bool CheckSameOriginArg(MCContext* cx, FunctionForwarderOptions& options,
                                HandleValue v) {
   // Consumers can explicitly opt out of this security check. This is used in
   // the web console to allow the utility functions to accept cross-origin
@@ -273,11 +273,11 @@ static bool CheckSameOriginArg(JSContext* cx, FunctionForwarderOptions& options,
 // Sanitize the exception on cx (which comes from calling unwrappedFun), if the
 // current Realm of cx shouldn't have access to it.  unwrappedFun is generally
 // _not_ in the current Realm of cx here.
-static void MaybeSanitizeException(JSContext* cx,
+static void MaybeSanitizeException(MCContext* cx,
                                    JS::Handle<JSObject*> unwrappedFun) {
   // Ensure that we are not propagating more-privileged exceptions
   // to less-privileged code.
-  nsIPrincipal* callerPrincipal = nsContentUtils::SubjectPrincipal(cx);
+  nsIPrincipal* callerPrincipal = nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx));
 
   // No need to sanitize uncatchable exceptions, just return.
   if (!JS_IsExceptionPending(cx)) {
@@ -289,22 +289,22 @@ static void MaybeSanitizeException(JSContext* cx,
   {  // Scope for JSAutoRealm
     MC::SandboxStack<JSAutoRealm> ar(cx, unwrappedFun);
 
-    JS::ExceptionStack exnStack(cx);
+    MC::SandboxStack<JS::ExceptionStack> exnStack(cx);
 
     // If JS::GetPendingExceptionStack returns false, we somehow failed to wrap
     // the exception into our compartment. It seems fine to treat this as an
     // uncatchable exception by returning without setting any exception on the
     // JS context.
-    if (!JS::GetPendingExceptionStack(cx, &exnStack)) {
+    if (!JS::GetPendingExceptionStack(cx, exnStack)) {
       JS_ClearPendingException(cx);
       return;
     }
 
     // Let through non-objects as-is, because some APIs rely on
     // that and accidental exceptions are never non-objects.
-    if (!exnStack.exception().isObject() ||
+    if (!exnStack.UNSAFE_unverified()->exception().isObject() ||
         callerPrincipal->Subsumes(nsContentUtils::ObjectPrincipal(
-            js::UncheckedUnwrap(&exnStack.exception().toObject())))) {
+            js::UncheckedUnwrap(&exnStack.UNSAFE_unverified()->exception().toObject())))) {
       // Just leave exn as-is.
       return;
     }
@@ -331,7 +331,10 @@ static void MaybeSanitizeException(JSContext* cx,
   Unused << rv.MaybeSetPendingException(cx);
 }
 
-static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> FunctionForwarder(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(
+      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // Grab the options from the reserved slot.
@@ -349,7 +352,7 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
   MC::RootedValue thisVal(cx, NullValue());
   if (!args.isConstructing()) {
     MC::RootedObject thisObject(cx);
-    if (!args.computeThis(cx, &thisObject)) {
+    if (!args.computeThis(MC_UNSAFE(cx), &thisObject)) {
       return false;
     }
     thisVal.setObject(*thisObject);
@@ -400,12 +403,12 @@ static bool FunctionForwarder(JSContext* cx, unsigned argc, Value* vp) {
   return JS_WrapValue(cx, args.rval());
 }
 
-bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
+bool NewFunctionForwarder(MCContext* cx, HandleId idArg, HandleObject callable,
                           FunctionForwarderOptions& options,
                           MutableHandleValue vp) {
   MC::RootedId id(cx, idArg);
   if (id.isVoid()) {
-    id = GetJSIDByIndex(JS_SanitizeContext(cx), XPCJSContext::IDX_EMPTYSTRING);
+    id = GetJSIDByIndex(cx, XPCJSContext::IDX_EMPTYSTRING);
   }
 
   // If our callable is a (possibly wrapped) function, we can give
@@ -421,9 +424,9 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
   // We have no way of knowing whether the underlying function wants to be a
   // constructor or not, so we just mark all forwarders as constructors, and
   // let the underlying function throw for construct calls if it wants.
-  static auto FunctionForwarderCb = MC::Sandbox::RegisterCallback(FunctionForwarder);
+  static auto FunctionForwarderCb = MC::Sandbox::RegisterTaintedCallback(FunctionForwarder);
   JSFunction* fun = js::NewFunctionByIdWithReserved(
-      cx, FunctionForwarderCb.UNSAFE_get(), nargs, JSFUN_CONSTRUCTOR, id);
+      cx, FunctionForwarderCb, nargs, JSFUN_CONSTRUCTOR, id);
   if (!fun) {
     return false;
   }
@@ -444,7 +447,7 @@ bool NewFunctionForwarder(JSContext* cx, HandleId idArg, HandleObject callable,
   return true;
 }
 
-bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
+bool ExportFunction(MCContext* cx, HandleValue vfunction, HandleValue vscope,
                     HandleValue voptions, MutableHandleValue rval) {
   bool hasOptions = !voptions.isUndefined();
   if (!vscope.isObject() || !vfunction.isObject() ||
@@ -465,7 +468,7 @@ bool ExportFunction(JSContext* cx, HandleValue vfunction, HandleValue vscope,
   // * We must subsume the scope we are exporting to.
   // * We must subsume the function being exported, because the function
   //   forwarder manually circumvents security wrapper CALL restrictions.
-  targetScope = js::CheckedUnwrapDynamic(targetScope, cx);
+  targetScope = mc::CheckedUnwrapDynamic(targetScope, cx);
   // For the function we can just CheckedUnwrapStatic, because if it's
   // not callable we're going to fail out anyway.
   funObj = js::CheckedUnwrapStatic(funObj);

@@ -10,7 +10,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/TypeDecls.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -70,7 +70,7 @@ class StructuredCloneHolderBase {
   // Read more documentation in js/public/StructuredClone.h.
 
   virtual JSObject* CustomReadHandler(
-      JSContext* aCx, JSStructuredCloneReader* aReader,
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
       const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
       uint32_t aIndex) = 0;
 
@@ -272,7 +272,7 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
   // JS engine itself doesn't clone.
 
   virtual JSObject* CustomReadHandler(
-      JSContext* aCx, JSStructuredCloneReader* aReader,
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
       const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
       uint32_t aIndex) override;
 
@@ -307,7 +307,7 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
   // serialize objects such as ImageData, CryptoKey, RTCCertificate, etc.
 
   static JSObject* ReadFullySerializableObjects(
-      JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag);
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag);
 
   static bool WriteFullySerializableObjects(JSContext* aCx,
                                             JSStructuredCloneWriter* aWriter,
