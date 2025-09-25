@@ -41,7 +41,7 @@ nsresult XPCWrappedJSIterator::HasMoreElements(bool* aRetVal) {
     JSContext* cx = jsapi.cx();
 
     MC::RootedValue val(cx);
-    MOZ_TRY(mEnum->Next(cx, &val));
+    MOZ_TRY(mEnum->Next(jsapi.mcx(), &val));
 
     RootedDictionary<IteratorResult> result(cx);
     if (!result.Init(cx, val)) {

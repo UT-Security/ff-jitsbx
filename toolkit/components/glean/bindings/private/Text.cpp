@@ -50,9 +50,8 @@ GleanText::Set(const nsACString& aValue) {
 }
 
 NS_IMETHODIMP
-GleanText::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
+GleanText::TestGetValue(const nsACString& aStorageName, MCContext* aCx,
                         JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mText.TestGetValue(aStorageName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

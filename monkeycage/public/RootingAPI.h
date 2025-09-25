@@ -287,6 +287,10 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
 
 }  // namespace MC
 
+namespace JS {
+
+}
+
 
 namespace MC {
 

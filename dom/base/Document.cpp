@@ -13512,7 +13512,7 @@ nsresult Document::GetStateObject(JS::MutableHandle<JS::Value> aState) {
       }
       MC::Rooted<JS::Value> value(jsapi.cx());
       nsresult rv =
-          mStateObjectContainer->DeserializeToJsval(jsapi.cx(), &value);
+          mStateObjectContainer->DeserializeToJsval(jsapi.mcx(), &value);
       NS_ENSURE_SUCCESS(rv, rv);
 
       mCachedStateObject = value;

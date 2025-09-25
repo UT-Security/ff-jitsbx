@@ -329,7 +329,7 @@ NS_IMETHODIMP
 nsSiteSecurityService::ResetState(nsIURI* aURI,
                                   JS::Handle<JS::Value> aOriginAttributes,
                                   nsISiteSecurityService::ResetStateBy aScope,
-                                  JSContext* MC_UNSAN(aCx), uint8_t aArgc) {
+                                  MCContext* aCx, uint8_t aArgc) {
   if (!aURI) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -338,7 +338,7 @@ nsSiteSecurityService::ResetState(nsIURI* aURI,
   if (aArgc > 0) {
     // OriginAttributes were passed in.
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -432,12 +432,12 @@ NS_IMETHODIMP
 nsSiteSecurityService::ProcessHeaderScriptable(
     nsIURI* aSourceURI, const nsACString& aHeader,
     JS::Handle<JS::Value> aOriginAttributes, uint64_t* aMaxAge,
-    bool* aIncludeSubdomains, uint32_t* aFailureResult, JSContext* MC_UNSAN(aCx),
+    bool* aIncludeSubdomains, uint32_t* aFailureResult, MCContext* aCx,
     uint8_t aArgc) {
   OriginAttributes originAttributes;
   if (aArgc > 0) {
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -638,12 +638,12 @@ nsresult nsSiteSecurityService::ProcessSTSHeader(
 
 NS_IMETHODIMP
 nsSiteSecurityService::IsSecureURIScriptable(
-    nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx),
+    nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
     uint8_t aArgc, bool* aResult) {
   OriginAttributes originAttributes;
   if (aArgc > 0) {
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }

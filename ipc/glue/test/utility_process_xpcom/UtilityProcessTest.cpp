@@ -57,11 +57,10 @@ static SandboxingKind FindUtilityProcessWithActor(UtilityActorName aActorName) {
 
 NS_IMETHODIMP
 UtilityProcessTest::StartProcess(const nsTArray<nsCString>& aActorsToRegister,
-                                 JSContext* MC_UNSAN(aCx),
+                                 MCContext* aCx,
                                  mozilla::dom::Promise** aOutPromise) {
   NS_ENSURE_ARG(aOutPromise);
   *aOutPromise = nullptr;
-  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;

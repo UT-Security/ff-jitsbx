@@ -224,7 +224,7 @@ void Exception::GetName(nsAString& aName) {
 
 void Exception::GetFilename(JSContext* aCx, nsAString& aFilename) {
   if (mLocation) {
-    mLocation->GetFilename(aCx, aFilename);
+    mLocation->GetFilename(JS_SanitizeContext(aCx), aFilename);
     return;
   }
 
@@ -241,7 +241,7 @@ void Exception::ToString(JSContext* aCx, nsACString& _retval) {
 
   if (mLocation) {
     // we need to free this if it does not fail
-    mLocation->ToString(aCx, location);
+    mLocation->ToString(JS_SanitizeContext(aCx), location);
   }
 
   if (location.IsEmpty()) {
@@ -278,7 +278,7 @@ uint32_t Exception::Result() const { return (uint32_t)mResult; }
 
 uint32_t Exception::SourceId(JSContext* aCx) const {
   if (mLocation) {
-    return mLocation->GetSourceId(aCx);
+    return mLocation->GetSourceId(JS_SanitizeContext(aCx));
   }
 
   return 0;
@@ -286,7 +286,7 @@ uint32_t Exception::SourceId(JSContext* aCx) const {
 
 uint32_t Exception::LineNumber(JSContext* aCx) const {
   if (mLocation) {
-    return mLocation->GetLineNumber(aCx);
+    return mLocation->GetLineNumber(JS_SanitizeContext(aCx));
   }
 
   return 0;
@@ -303,7 +303,7 @@ nsISupports* Exception::GetData() const { return mData; }
 
 void Exception::GetStack(JSContext* aCx, nsAString& aStack) const {
   if (mLocation) {
-    mLocation->GetFormattedStack(aCx, aStack);
+    mLocation->GetFormattedStack(JS_SanitizeContext(aCx), aStack);
   }
 }
 

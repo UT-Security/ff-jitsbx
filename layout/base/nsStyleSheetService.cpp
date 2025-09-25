@@ -266,10 +266,9 @@ nsStyleSheetService::PreloadSheet(nsIURI* aSheetURI, uint32_t aSheetType,
 
 NS_IMETHODIMP
 nsStyleSheetService::PreloadSheetAsync(nsIURI* aSheetURI, uint32_t aSheetType,
-                                       JSContext* MC_UNSAN(aCx),
+                                       MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aRval) {
   NS_ENSURE_ARG_POINTER(aSheetURI);
-  MC_SANITIZE(aCx);
 
   css::SheetParsingMode parsingMode;
   nsresult rv = GetParsingMode(aSheetType, &parsingMode);
@@ -287,7 +286,7 @@ nsStyleSheetService::PreloadSheetAsync(nsIURI* aSheetURI, uint32_t aSheetType,
   auto sheet = MakeRefPtr<PreloadedStyleSheet>(aSheetURI, parsingMode);
   sheet->PreloadAsync(WrapNotNull(promise));
 
-  if (!ToJSValue(MC_UNSAN(aCx), promise, aRval)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), promise, aRval)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;

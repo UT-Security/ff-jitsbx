@@ -478,10 +478,9 @@ EditorSpellCheck::CheckCurrentWord(const nsAString& aSuggestedWord,
 
 NS_IMETHODIMP
 EditorSpellCheck::Suggest(const nsAString& aSuggestedWord, uint32_t aCount,
-                          JSContext* MC_UNSAN(aCx), Promise** aPromise) {
+                          MCContext* aCx, Promise** aPromise) {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
-  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;
@@ -587,11 +586,10 @@ EditorSpellCheck::GetCurrentDictionaries(nsTArray<nsCString>& aDictionaries) {
 
 NS_IMETHODIMP
 EditorSpellCheck::SetCurrentDictionaries(
-    const nsTArray<nsCString>& aDictionaries, JSContext* MC_UNSAN(aCx),
+    const nsTArray<nsCString>& aDictionaries, MCContext* aCx,
     Promise** aPromise) {
   NS_ENSURE_TRUE(mSpellChecker, NS_ERROR_NOT_INITIALIZED);
 
-  MC_SANITIZE(aCx);
   RefPtr<EditorSpellCheck> kungFuDeathGrip = this;
 
   // The purpose of mUpdateDictionaryRunning is to avoid doing all of this if

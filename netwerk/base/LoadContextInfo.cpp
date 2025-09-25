@@ -40,8 +40,8 @@ OriginAttributes const* LoadContextInfo::OriginAttributesPtr() {
 }
 
 NS_IMETHODIMP LoadContextInfo::GetOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aVal) {
-  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aVal))) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aVal) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aVal))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -77,10 +77,10 @@ NS_IMETHODIMP LoadContextInfoFactory::GetAnonymous(
 }
 
 NS_IMETHODIMP LoadContextInfoFactory::Custom(
-    bool aAnonymous, JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(cx),
+    bool aAnonymous, JS::Handle<JS::Value> aOriginAttributes, MCContext* cx,
     nsILoadContextInfo** _retval) {
   OriginAttributes attrs;
-  bool status = attrs.Init(MC_UNSAN(cx), aOriginAttributes);
+  bool status = attrs.Init(MC_UNSAFE(cx), aOriginAttributes);
   NS_ENSURE_TRUE(status, NS_ERROR_FAILURE);
 
   nsCOMPtr<nsILoadContextInfo> info = GetLoadContextInfo(aAnonymous, attrs);

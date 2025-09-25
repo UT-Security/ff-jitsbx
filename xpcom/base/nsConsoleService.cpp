@@ -400,9 +400,8 @@ nsresult nsConsoleService::LogMessageWithMode(
 // See nsIConsoleService.idl for more info about this method
 NS_IMETHODIMP
 nsConsoleService::CallFunctionAndLogException(
-    JS::Handle<JS::Value> targetGlobal, JS::HandleValue function, JSContext* MC_UNSAN(cx),
+    JS::Handle<JS::Value> targetGlobal, JS::HandleValue function, MCContext* cx,
     JS::MutableHandleValue retval) {
-  MC_SANITIZE(cx);
   if (!targetGlobal.isObject() || !function.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }

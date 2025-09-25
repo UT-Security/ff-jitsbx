@@ -281,7 +281,7 @@ bool mozJSSubScriptLoader::ReadStencil(
 
 NS_IMETHODIMP
 mozJSSubScriptLoader::LoadSubScript(const nsAString& url, HandleValue target,
-                                    JSContext* MC_UNSAN(cx), MutableHandleValue retval) {
+                                    MCContext* cx, MutableHandleValue retval) {
   /*
    * Loads a local url, referring to UTF-8-encoded data, and evals it into the
    * current cx.  Synchronous. ChromeUtils.compileScript() should be used for
@@ -293,7 +293,6 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url, HandleValue target,
    *   returns: Whatever jsval the script pointed to by the url returns.
    * Should ONLY (O N L Y !) be called from JavaScript code.
    */
-  MC_SANITIZE(cx);
   LoadSubScriptOptions options(cx);
   options.target = target.isObject() ? &target.toObject() : nullptr;
   return DoLoadSubScriptWithOptions(url, options, cx, retval);
@@ -302,12 +301,11 @@ mozJSSubScriptLoader::LoadSubScript(const nsAString& url, HandleValue target,
 NS_IMETHODIMP
 mozJSSubScriptLoader::LoadSubScriptWithOptions(const nsAString& url,
                                                HandleValue optionsVal,
-                                               JSContext* MC_UNSAN(cx),
+                                               MCContext* cx,
                                                MutableHandleValue retval) {
   if (!optionsVal.isObject()) {
     return NS_ERROR_INVALID_ARG;
   }
-  MC_SANITIZE(cx);
 
   LoadSubScriptOptions options(cx, &optionsVal.toObject());
   if (!options.Parse()) {

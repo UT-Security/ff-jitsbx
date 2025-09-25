@@ -201,11 +201,11 @@ static nsresult GetPrincipalDomainOrigin(nsIPrincipal* aPrincipal,
   return aPrincipal->GetOriginNoSuffix(aOrigin);
 }
 
-inline void SetPendingExceptionASCII(JSContext* cx, const char* aMsg) {
+inline void SetPendingExceptionASCII(MCContext* cx, const char* aMsg) {
   JS_ReportErrorASCII(cx, "%s", aMsg);
 }
 
-inline void SetPendingException(JSContext* cx, const char16_t* aMsg) {
+inline void SetPendingException(MCContext* cx, const char16_t* aMsg) {
   NS_ConvertUTF16toUTF8 msg(aMsg);
   JS_ReportErrorUTF8(cx, "%s", msg.get());
 }
@@ -587,9 +587,9 @@ nsScriptSecurityManager::CheckSameOriginURI(nsIURI* aSourceURI,
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CheckLoadURIFromScript(JSContext* cx, nsIURI* aURI) {
+nsScriptSecurityManager::CheckLoadURIFromScript(MCContext* cx, nsIURI* aURI) {
   // Get principal of currently executing script.
-  MOZ_ASSERT(cx == MC_UNSAFE(nsContentUtils::GetCurrentJSContext()));
+  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal();
   nsresult rv = CheckLoadURIWithPrincipal(
       // Passing 0 for the window ID here is OK, because we will report a
@@ -1256,7 +1256,7 @@ nsScriptSecurityManager::CheckLoadURIStrWithPrincipal(
 NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIWithPrincipalFromJS(
     nsIPrincipal* aPrincipal, nsIURI* aTargetURI, uint32_t aFlags,
-    uint64_t aInnerWindowID, JSContext* MC_UNSAN(aCx)) {
+    uint64_t aInnerWindowID, MCContext* aCx) {
   MOZ_ASSERT(aPrincipal,
              "CheckLoadURIWithPrincipalFromJS must have a principal");
   NS_ENSURE_ARG_POINTER(aPrincipal);
@@ -1279,7 +1279,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipalFromJS(
 
     message.Append(" denied");
 
-    dom::Throw(MC_UNSAN(aCx), rv, message);
+    dom::Throw(MC_UNSAFE(aCx), rv, message);
   }
 
   return rv;
@@ -1288,11 +1288,11 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipalFromJS(
 NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIStrWithPrincipalFromJS(
     nsIPrincipal* aPrincipal, const nsACString& aTargetURIStr, uint32_t aFlags,
-    JSContext* MC_UNSAN(aCx)) {
+    MCContext* aCx) {
   nsCOMPtr<nsIURI> targetURI;
   MOZ_TRY(NS_NewURI(getter_AddRefs(targetURI), aTargetURIStr));
 
-  return CheckLoadURIWithPrincipalFromJS(aPrincipal, targetURI, aFlags, 0, MC_UNSAN(aCx));
+  return CheckLoadURIWithPrincipalFromJS(aPrincipal, targetURI, aFlags, 0, aCx);
 }
 
 NS_IMETHODIMP
@@ -1322,10 +1322,10 @@ nsScriptSecurityManager::GetSystemPrincipal(nsIPrincipal** result) {
 
 NS_IMETHODIMP
 nsScriptSecurityManager::CreateContentPrincipal(
-    nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx),
+    nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
     nsIPrincipal** aPrincipal) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   nsCOMPtr<nsIPrincipal> prin =
@@ -1387,10 +1387,10 @@ nsScriptSecurityManager::JSONToPrincipal(const nsACString& aJSON,
 
 NS_IMETHODIMP
 nsScriptSecurityManager::CreateNullPrincipal(
-    JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx),
+    JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
     nsIPrincipal** aPrincipal) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   nsCOMPtr<nsIPrincipal> prin = NullPrincipal::Create(attrs);
@@ -1423,13 +1423,13 @@ nsScriptSecurityManager::GetDocShellContentPrincipal(
 NS_IMETHODIMP
 nsScriptSecurityManager::PrincipalWithOA(
     nsIPrincipal* aPrincipal, JS::Handle<JS::Value> aOriginAttributes,
-    JSContext* MC_UNSAN(aCx), nsIPrincipal** aReturnPrincipal) {
+    MCContext* aCx, nsIPrincipal** aReturnPrincipal) {
   if (!aPrincipal) {
     return NS_OK;
   }
   if (aPrincipal->GetIsContentPrincipal()) {
     OriginAttributes attrs;
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
     auto* contentPrincipal = static_cast<ContentPrincipal*>(aPrincipal);
@@ -1449,7 +1449,7 @@ nsScriptSecurityManager::PrincipalWithOA(
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CanCreateWrapper(JSContext* cx, const nsIID& aIID,
+nsScriptSecurityManager::CanCreateWrapper(MCContext* cx, const nsIID& aIID,
                                           nsISupports* aObj,
                                           nsIClassInfo* aClassInfo) {
   // XXX Special case for Exception ?
@@ -1502,7 +1502,7 @@ nsScriptSecurityManager::CanCreateWrapper(JSContext* cx, const nsIID& aIID,
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CanCreateInstance(JSContext* cx, const nsCID& aCID) {
+nsScriptSecurityManager::CanCreateInstance(MCContext* cx, const nsCID& aCID) {
   if (nsContentUtils::IsCallerChrome()) {
     return NS_OK;
   }
@@ -1517,7 +1517,7 @@ nsScriptSecurityManager::CanCreateInstance(JSContext* cx, const nsCID& aCID) {
 }
 
 NS_IMETHODIMP
-nsScriptSecurityManager::CanGetService(JSContext* cx, const nsCID& aCID) {
+nsScriptSecurityManager::CanGetService(MCContext* cx, const nsCID& aCID) {
   if (nsContentUtils::IsCallerChrome()) {
     return NS_OK;
   }

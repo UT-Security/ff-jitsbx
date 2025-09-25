@@ -81,6 +81,18 @@ inline bool CreateError(
   return CreateError(cx->cx_, type, stack, fileName, lineNumber, columnNumber, report, message, cause, rval);
 }
 
+inline bool CreateError(MCContext* cx, JSExnType type, HandleObject stack,
+                        HandleString fileName,
+                        MC::Tainted<uint32_t*> lineNumber,
+                        MC::Tainted<uint32_t*> columnNumber,
+                        JSErrorReport* report, HandleString message,
+                        Handle<mozilla::Maybe<Value>> cause,
+                        MutableHandleValue rval) {
+  return CreateError(
+      cx->cx_, type, stack, fileName, *lineNumber.INTERNAL_unverified_safe(),
+      *columnNumber.INTERNAL_unverified_safe(), report, message, cause, rval);
+}
+
 } /* namespace JS */
 #endif
 

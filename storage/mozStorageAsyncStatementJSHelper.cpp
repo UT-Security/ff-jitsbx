@@ -15,8 +15,8 @@
 
 #include "mozStorageAsyncStatementParams.h"
 
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 
 #include "xpc_make_class.h"
 
@@ -95,7 +95,7 @@ NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
 AsyncStatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper,
-                                JSContext* aCtx, JSObject* aScopeObj, jsid aId,
+                                MCContext* aCtx, JSObject* aScopeObj, jsid aId,
                                 bool* resolvedp, bool* _retval) {
   if (!aId.isString()) return NS_OK;
 
@@ -116,7 +116,7 @@ AsyncStatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper,
 
   if (::JS_LinearStringEqualsLiteral(id.toLinearString(), "params")) {
     MC::Rooted<JS::Value> val(aCtx);
-    nsresult rv = getParams(stmt, aCtx, scope, val.address());
+    nsresult rv = getParams(stmt, MC_UNSAFE(aCtx), scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *resolvedp = true;

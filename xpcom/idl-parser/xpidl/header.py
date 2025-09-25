@@ -101,7 +101,7 @@ def attributeParamlist(a, getter, return_param=True):
             % (a.realtype.nativeType(getter and "out" or "in"), attributeParamName(a))
         ]
     if a.implicit_jscontext:
-        l.insert(0, "JSContext* cx")
+        l.insert(0, "MCContext* cx")
 
     return ", ".join(l)
 
@@ -168,7 +168,7 @@ def paramlistAsNative(m, empty="void", return_param=True):
     l = [paramAsNative(p) for p in m.params]
 
     if m.implicit_jscontext:
-        l.append("JSContext* cx")
+        l.append("MCContext* cx")
 
     if m.optional_argc:
         l.append("uint8_t _argc")

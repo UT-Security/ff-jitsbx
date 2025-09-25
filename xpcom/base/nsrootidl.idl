@@ -20,6 +20,8 @@ typedef int64_t PRTime;
 
 struct JSContext;
 
+struct MCContext;
+
 /*
  * Forward declaration of mozilla::dom::Promise
  */

@@ -2133,14 +2133,13 @@ History::SetURITitle(nsIURI* aURI, const nsAString& aTitle) {
 
 NS_IMETHODIMP
 History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
-                      mozIVisitInfoCallback* aCallback, JSContext* MC_UNSAN(aCtx)) {
+                      mozIVisitInfoCallback* aCallback, MCContext* aCtx) {
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   NS_ENSURE_TRUE(!aPlaceInfos.isPrimitive(), NS_ERROR_INVALID_ARG);
-  MC_SANITIZE(aCtx);
 
   uint32_t infosLength;
   MC::Rooted<JSObject*> infos(aCtx);
-  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, MC_UNSAN(aCtx), &infos, &infosLength);
+  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, MC_UNSAFE(aCtx), &infos, &infosLength);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t initialUpdatedCount = 0;
@@ -2148,14 +2147,14 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
   nsTArray<VisitData> visitData;
   for (uint32_t i = 0; i < infosLength; i++) {
     MC::Rooted<JSObject*> info(aCtx);
-    nsresult rv = GetJSObjectFromArray(MC_UNSAN(aCtx), infos, i, &info);
+    nsresult rv = GetJSObjectFromArray(MC_UNSAFE(aCtx), infos, i, &info);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIURI> uri = GetURIFromJSObject(MC_UNSAN(aCtx), info, "uri");
+    nsCOMPtr<nsIURI> uri = GetURIFromJSObject(MC_UNSAFE(aCtx), info, "uri");
     nsCString guid;
     {
       nsString fatGUID;
-      GetStringFromJSObject(MC_UNSAN(aCtx), info, "guid", fatGUID);
+      GetStringFromJSObject(MC_UNSAFE(aCtx), info, "guid", fatGUID);
       if (fatGUID.IsVoid()) {
         guid.SetIsVoid(true);
       } else {
@@ -2177,7 +2176,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     NS_ENSURE_ARG(guid.IsVoid() || isValidGUID);
 
     nsString title;
-    GetStringFromJSObject(MC_UNSAN(aCtx), info, "title", title);
+    GetStringFromJSObject(MC_UNSAFE(aCtx), info, "title", title);
 
     MC::Rooted<JSObject*> visits(aCtx, nullptr);
     {
@@ -2207,7 +2206,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     visitData.SetCapacity(visitData.Length() + visitsLength);
     for (uint32_t j = 0; j < visitsLength; j++) {
       MC::Rooted<JSObject*> visit(aCtx);
-      rv = GetJSObjectFromArray(MC_UNSAN(aCtx), visits, j, &visit);
+      rv = GetJSObjectFromArray(MC_UNSAFE(aCtx), visits, j, &visit);
       NS_ENSURE_SUCCESS(rv, rv);
 
       VisitData& data = *visitData.AppendElement(VisitData(uri));
@@ -2220,7 +2219,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
       data.guid = guid;
 
       // We must have a date and a transaction type!
-      rv = GetIntFromJSObject(MC_UNSAN(aCtx), visit, "visitDate", &data.visitTime);
+      rv = GetIntFromJSObject(MC_UNSAFE(aCtx), visit, "visitDate", &data.visitTime);
       NS_ENSURE_SUCCESS(rv, rv);
       // visitDate should be in microseconds. It's easy to do the wrong thing
       // and pass milliseconds to updatePlaces, so we lazily check for that.
@@ -2236,7 +2235,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
         return NS_ERROR_INVALID_ARG;
       }
       uint32_t transitionType = 0;
-      rv = GetIntFromJSObject(MC_UNSAN(aCtx), visit, "transitionType", &transitionType);
+      rv = GetIntFromJSObject(MC_UNSAFE(aCtx), visit, "transitionType", &transitionType);
       NS_ENSURE_SUCCESS(rv, rv);
       NS_ENSURE_ARG_RANGE(transitionType, nsINavHistoryService::TRANSITION_LINK,
                           nsINavHistoryService::TRANSITION_RELOAD);
@@ -2254,7 +2253,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
 
       // The referrer is optional.
       nsCOMPtr<nsIURI> referrer =
-          GetURIFromJSObject(MC_UNSAN(aCtx), visit, "referrerURI");
+          GetURIFromJSObject(MC_UNSAFE(aCtx), visit, "referrerURI");
       if (referrer) {
         (void)referrer->GetSpec(data.referrerSpec);
       }

@@ -12,7 +12,7 @@ interface mozIDOMWindowProxy;
 interface nsIAppShell;
 interface nsIRemoteTab;
 
-[ptr] native JSContext(JSContext);
+[ptr] native MCContext(MCContext);
 
 %{C++
 #include "js/TypeDecls.h"

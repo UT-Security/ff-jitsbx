@@ -2319,9 +2319,9 @@ nsHttpHandler::SpeculativeConnect(nsIURI* aURI, nsIPrincipal* aPrincipal,
 
 NS_IMETHODIMP nsHttpHandler::SpeculativeConnectWithOriginAttributes(
     nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes,
-    nsIInterfaceRequestor* aCallbacks, bool aAnonymous, JSContext* MC_UNSAN(aCx)) {
+    nsIInterfaceRequestor* aCallbacks, bool aAnonymous, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -2427,13 +2427,11 @@ nsHttpHandler::EnsureHSTSDataReadyNative(
 }
 
 NS_IMETHODIMP
-nsHttpHandler::EnsureHSTSDataReady(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
-  if (NS_WARN_IF(!MC_UNSAN(aCx))) {
+nsHttpHandler::EnsureHSTSDataReady(MCContext* aCx, Promise** aPromise) {
+  if (NS_WARN_IF(!aCx)) {
     return NS_ERROR_FAILURE;
   }
 
-  MC_SANITIZE(aCx);
-  
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_FAILURE;

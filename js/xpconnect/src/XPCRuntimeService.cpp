@@ -63,13 +63,13 @@ void BackstagePass::SetGlobalObject(JSObject* global) {
 }
 
 NS_IMETHODIMP
-BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
                        JSObject* objArg, jsid idArg, bool* resolvedp,
                        bool* _retval) {
   MC::RootedObject obj(cx, objArg);
   MC::RootedId id(cx, idArg);
   *_retval =
-      WebIDLGlobalNameHash::ResolveForSystemGlobal(cx, obj, id, resolvedp);
+      WebIDLGlobalNameHash::ResolveForSystemGlobal(MC_UNSAFE(cx), obj, id, resolvedp);
   if (!*_retval) {
     return NS_ERROR_FAILURE;
   }
@@ -80,25 +80,25 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
 
   XPCJSContext* xpccx = XPCJSContext::Get();
   if (id == xpccx->GetStringID(XPCJSContext::IDX_FETCH)) {
-    *_retval = xpc::SandboxCreateFetch(cx, obj);
+    *_retval = xpc::SandboxCreateFetch(MC_UNSAFE(cx), obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_CRYPTO)) {
-    *_retval = xpc::SandboxCreateCrypto(cx, obj);
+    *_retval = xpc::SandboxCreateCrypto(MC_UNSAFE(cx), obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_INDEXEDDB)) {
-    *_retval = IndexedDatabaseManager::DefineIndexedDB(cx, obj);
+    *_retval = IndexedDatabaseManager::DefineIndexedDB(MC_UNSAFE(cx), obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_STRUCTUREDCLONE)) {
-    *_retval = xpc::SandboxCreateStructuredClone(cx, obj);
+    *_retval = xpc::SandboxCreateStructuredClone(MC_UNSAFE(cx), obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
@@ -109,7 +109,7 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
 }
 
 NS_IMETHODIMP
-BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
+BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
                             JSObject* objArg,
                             JS::MutableHandleIdVector properties,
                             bool enumerableOnly, bool* _retval) {
@@ -124,7 +124,7 @@ BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, JSContext* cx,
     return NS_ERROR_FAILURE;
   }
 
-  *_retval = WebIDLGlobalNameHash::NewEnumerateSystemGlobal(cx, obj, properties,
+  *_retval = WebIDLGlobalNameHash::NewEnumerateSystemGlobal(MC_UNSAFE(cx), obj, properties,
                                                             enumerableOnly);
   return *_retval ? NS_OK : NS_ERROR_FAILURE;
 }
@@ -183,7 +183,7 @@ BackstagePass::Finalize(nsIXPConnectWrappedNative* wrapper, JS::GCContext* gcx,
 }
 
 NS_IMETHODIMP
-BackstagePass::PreCreate(nsISupports* nativeObj, JSContext* cx,
+BackstagePass::PreCreate(nsISupports* nativeObj, MCContext* cx,
                          JSObject* globalObj, JSObject** parentObj) {
   // We do the same trick here as for WindowSH. Return the js global
   // as parent, so XPConenct can find the right scope and the wrapper

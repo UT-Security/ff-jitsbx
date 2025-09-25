@@ -124,8 +124,8 @@ nsCertOverride::GetHostPort(/*out*/ nsACString& aHostPort) {
 
 NS_IMETHODIMP
 nsCertOverride::GetOriginAttributes(
-    JSContext* MC_UNSAN(aCtx), /*out*/ JS::MutableHandle<JS::Value> aValue) {
-  if (ToJSValue(MC_UNSAN(aCtx), mOriginAttributes, aValue)) {
+    MCContext* aCtx, /*out*/ JS::MutableHandle<JS::Value> aValue) {
+  if (ToJSValue(MC_UNSAFE(aCtx), mOriginAttributes, aValue)) {
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -421,9 +421,9 @@ NS_IMETHODIMP
 nsCertOverrideService::RememberValidityOverrideScriptable(
     const nsACString& aHostName, int32_t aPort,
     JS::Handle<JS::Value> aOriginAttributes, nsIX509Cert* aCert,
-    bool aTemporary, JSContext* MC_UNSAN(aCx)) {
+    bool aTemporary, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -496,9 +496,9 @@ NS_IMETHODIMP
 nsCertOverrideService::HasMatchingOverrideScriptable(
     const nsACString& aHostName, int32_t aPort,
     JS::Handle<JS::Value> aOriginAttributes, nsIX509Cert* aCert,
-    bool* aIsTemporary, JSContext* MC_UNSAN(aCx), bool* aRetval) {
+    bool* aIsTemporary, MCContext* aCx, bool* aRetval) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -575,9 +575,9 @@ nsCertOverrideService::ClearValidityOverride(
 NS_IMETHODIMP
 nsCertOverrideService::ClearValidityOverrideScriptable(
     const nsACString& aHostName, int32_t aPort,
-    JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx)) {
+    JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

@@ -12,6 +12,8 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/SandboxStack.h"
+#include "monkeycage/Tainted.h"
 
 inline void JS_SetNativeStackQuota(
     MCContext* cx, JS::NativeStackSize systemCodeStackSize,
@@ -25,9 +27,17 @@ namespace JS {
 inline bool CaptureCurrentStack(
     MCContext* cx, MutableHandleObject stackp,
     StackCapture&& capture = StackCapture(AllFrames())) {
-  return CaptureCurrentStack(cx->cx_, stackp, std::forward<StackCapture&&>(capture));
+    MC::SandboxStack<StackCapture> captureSbx(std::forward<StackCapture&&>(capture));
+  return CaptureCurrentStack(cx->cx_, stackp, captureSbx.UNSAFE_unverified());
 }
 
+inline bool BuildStackString(
+    MCContext* cx, JSPrincipals* principals, HandleObject stack,
+    MutableHandleString stringp, size_t indent = 0,
+    js::StackFormat stackFormat = js::StackFormat::Default) {
+  return BuildStackString(cx->cx_, principals, stack, stringp, indent,
+                          stackFormat);
+}
 }
 
 #endif

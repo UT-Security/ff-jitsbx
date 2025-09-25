@@ -2082,9 +2082,9 @@ nsIOService::SpeculativeConnect(nsIURI* aURI, nsIPrincipal* aPrincipal,
 
 NS_IMETHODIMP nsIOService::SpeculativeConnectWithOriginAttributes(
     nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes,
-    nsIInterfaceRequestor* aCallbacks, bool aAnonymous, JSContext* MC_UNSAN(aCx)) {
+    nsIInterfaceRequestor* aCallbacks, bool aAnonymous, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

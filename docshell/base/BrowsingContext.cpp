@@ -1707,10 +1707,10 @@ NS_IMETHODIMP BrowsingContext::SetUseTrackingProtection(
 }
 
 NS_IMETHODIMP BrowsingContext::GetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aVal) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aVal) {
   AssertOriginAttributesMatchPrivateBrowsing();
 
-  bool ok = ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aVal);
+  bool ok = ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aVal);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }

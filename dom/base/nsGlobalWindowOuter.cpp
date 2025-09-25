@@ -7197,7 +7197,7 @@ nsresult nsGlobalWindowOuter::SecurityCheckURL(const char* aURL,
   }
 
   if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckLoadURIFromScript(
-          cx, uri))) {
+          JS_SanitizeContext(static_cast<JSContext*>(cx)), uri))) {
     return NS_ERROR_FAILURE;
   }
 

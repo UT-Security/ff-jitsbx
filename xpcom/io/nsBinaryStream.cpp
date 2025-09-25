@@ -804,12 +804,11 @@ nsBinaryInputStream::ReadByteArray(uint32_t aLength,
 NS_IMETHODIMP
 nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
                                      JS::Handle<JS::Value> aBuffer,
-                                     JSContext* MC_UNSAN(aCx), uint64_t* aReadLength) {
+                                     MCContext* aCx, uint64_t* aReadLength) {
   if (!aBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
 
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> buffer(aCx, &aBuffer.toObject());
   if (!JS::IsArrayBufferObject(buffer)) {
     return NS_ERROR_FAILURE;

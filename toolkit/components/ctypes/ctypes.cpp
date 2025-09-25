@@ -66,13 +66,13 @@ static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
 }
 
 NS_IMETHODIMP
-Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
+Module::Call(nsIXPConnectWrappedNative* wrapper, MCContext* cx, JSObject* obj,
              const JS::CallArgs& args, bool* _retval) {
   mozJSModuleLoader* loader = mozJSModuleLoader::Get();
   MC::Rooted<JSObject*> targetObj(cx);
-  loader->FindTargetObject(JS_SanitizeContext(cx), &targetObj);
+  loader->FindTargetObject(cx, &targetObj);
 
-  *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);
+  *_retval = InitCTypesClassAndSetCallbacks(MC_UNSAFE(cx), targetObj);
   return NS_OK;
 }
 

@@ -274,7 +274,7 @@ void nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
   // The "replace" argument tells the docshell to whether to add a new
   // history entry or modify the current one.
 
-  aRv = docShell->AddState(aData, aTitle, aUrl, aReplace, aCx);
+  aRv = docShell->AddState(aData, aTitle, aUrl, aReplace, JS_SanitizeContext(aCx));
 }
 
 already_AddRefed<ChildSHistory> nsHistory::GetSessionHistory() const {

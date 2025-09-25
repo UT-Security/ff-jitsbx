@@ -1365,8 +1365,8 @@ LoadInfo::GetTargetBrowsingContext(dom::BrowsingContext** aResult) {
 
 NS_IMETHODIMP
 LoadInfo::GetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
-  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aOriginAttributes))) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aOriginAttributes))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1391,9 +1391,9 @@ LoadInfo::ResetPrincipalToInheritToNullPrincipal() {
 
 NS_IMETHODIMP
 LoadInfo::SetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
+    MCContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1632,8 +1632,8 @@ LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
 
 NS_IMETHODIMP
 LoadInfo::GetRedirectChainIncludingInternalRedirects(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(MC_UNSAN(aCx), aChain, mRedirectChainIncludingInternalRedirects);
+    MCContext* aCx, JS::MutableHandle<JS::Value> aChain) {
+  return GetRedirects(MC_UNSAFE(aCx), aChain, mRedirectChainIncludingInternalRedirects);
 }
 
 const RedirectHistoryArray&
@@ -1642,9 +1642,9 @@ LoadInfo::RedirectChainIncludingInternalRedirects() {
 }
 
 NS_IMETHODIMP
-LoadInfo::GetRedirectChain(JSContext* MC_UNSAN(aCx),
+LoadInfo::GetRedirectChain(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(MC_UNSAN(aCx), aChain, mRedirectChain);
+  return GetRedirects(MC_UNSAFE(aCx), aChain, mRedirectChain);
 }
 
 const RedirectHistoryArray& LoadInfo::RedirectChain() { return mRedirectChain; }

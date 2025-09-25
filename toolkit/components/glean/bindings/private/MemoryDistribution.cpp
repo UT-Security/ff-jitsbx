@@ -61,9 +61,8 @@ GleanMemoryDistribution::Accumulate(uint64_t aSample) {
 
 NS_IMETHODIMP
 GleanMemoryDistribution::TestGetValue(const nsACString& aPingName,
-                                      JSContext* MC_UNSAN(aCx),
+                                      MCContext* aCx,
                                       JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mMemoryDist.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

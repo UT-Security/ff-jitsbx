@@ -869,9 +869,9 @@ class nsHttpsHandler : public nsIHttpProtocolHandler,
   NS_IMETHOD SpeculativeConnectWithOriginAttributes(
       nsIURI* aURI, JS::Handle<JS::Value> originAttributes,
       nsIInterfaceRequestor* aCallbacks, bool aAnonymous,
-      JSContext* MC_UNSAN(cx)) override {
+      MCContext* cx) override {
     return gHttpHandler->SpeculativeConnectWithOriginAttributes(
-        aURI, originAttributes, aCallbacks, aAnonymous, MC_UNSAN(cx));
+        aURI, originAttributes, aCallbacks, aAnonymous, cx);
   }
 
   NS_IMETHOD_(void)

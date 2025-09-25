@@ -46,7 +46,7 @@ interface nsIURI;
 
 webidl WebExtensionPolicy;
 
-[ptr] native JSContext(JSContext);
+[ptr] native MCContext(MCContext);
 [ptr] native JSPrincipals(JSPrincipals);
 [ref] native PrincipalArray(const nsTArray<nsCOMPtr<nsIPrincipal>>);
 [ref] native const_OriginAttributes(const mozilla::OriginAttributes);

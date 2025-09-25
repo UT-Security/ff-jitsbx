@@ -284,7 +284,7 @@ void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObjec
     // being accessed across compartments. We would really prefer to
     // replace the above code with a test that says "do you only have one
     // wrapper?"
-    nsresult rv = wn->GetScriptable()->PreCreate(wn->Native(), MC_UNSAFE(cx), scope,
+    nsresult rv = wn->GetScriptable()->PreCreate(wn->Native(), cx, scope,
                                                  wrapScope.address());
     if (NS_FAILED(rv)) {
       retObj.set(waive ? WaiveXray(cx, obj) : obj);

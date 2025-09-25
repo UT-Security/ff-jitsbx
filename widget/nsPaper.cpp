@@ -57,8 +57,7 @@ nsPaper::GetHeight(double* aHeight) {
 }
 
 NS_IMETHODIMP
-nsPaper::GetUnwriteableMargin(JSContext* MC_UNSAN(aCx), Promise** aPromise) {
-  MC_SANITIZE(aCx);
+nsPaper::GetUnwriteableMargin(MCContext* aCx, Promise** aPromise) {
   if (RefPtr<Promise> existing = mMarginPromise) {
     existing.forget(aPromise);
     return NS_OK;

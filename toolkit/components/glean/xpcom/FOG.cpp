@@ -144,18 +144,17 @@ FOG::SendPing(const nsACString& aPingName) {
 NS_IMETHODIMP
 FOG::SetExperimentActive(const nsACString& aExperimentId,
                          const nsACString& aBranch, JS::HandleValue aExtra,
-                         JSContext* MC_UNSAN(aCx)) {
+                         MCContext* aCx) {
 #ifdef MOZ_GLEAN_ANDROID
   NS_WARNING("Don't set experiments from Gecko in Android. Ignoring.");
   return NS_OK;
 #else
   MOZ_ASSERT(XRE_IsParentProcess());
-  MC_SANITIZE(aCx);
   nsTArray<nsCString> extraKeys;
   nsTArray<nsCString> extraValues;
   if (!aExtra.isNullOrUndefined()) {
     MC::RootedObject obj(aCx, &aExtra.toObject());
-    MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(MC_UNSAN(aCx)));
+    MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
     if (!JS_Enumerate(aCx, obj, &keys)) {
       LogToBrowserConsole(nsIScriptError::warningFlag,
                           u"Failed to enumerate experiment extras object."_ns);
@@ -164,7 +163,7 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
 
     for (size_t i = 0, n = keys.length(); i < n; i++) {
       nsAutoJSCString jsKey;
-      if (!jsKey.init(MC_UNSAN(aCx), keys[i])) {
+      if (!jsKey.init(MC_UNSAFE(aCx), keys[i])) {
         LogToBrowserConsole(
             nsIScriptError::warningFlag,
             u"Extra dictionary should only contain string keys."_ns);
@@ -186,7 +185,7 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
         return NS_OK;
       }
 
-      if (!jsValue.init(MC_UNSAN(aCx), value)) {
+      if (!jsValue.init(MC_UNSAFE(aCx), value)) {
         LogToBrowserConsole(nsIScriptError::warningFlag,
                             u"Can't extract experiment extra property"_ns);
         return NS_OK;
@@ -215,7 +214,7 @@ FOG::SetExperimentInactive(const nsACString& aExperimentId) {
 }
 
 NS_IMETHODIMP
-FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* MC_UNSAN(aCx),
+FOG::TestGetExperimentData(const nsACString& aExperimentId, MCContext* aCx,
                            JS::MutableHandleValue aResult) {
 #ifdef MOZ_GLEAN_ANDROID
   NS_WARNING("Don't test experiments from Gecko in Android. Throwing.");
@@ -223,7 +222,6 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* MC_UNSAN(
   return NS_ERROR_FAILURE;
 #else
   MOZ_ASSERT(XRE_IsParentProcess());
-  MC_SANITIZE(aCx);
   if (!glean::impl::fog_test_is_experiment_active(&aExperimentId)) {
     aResult.set(JS::UndefinedValue());
     return NS_OK;
@@ -246,7 +244,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* MC_UNSAN(
   }
 
   MC::RootedValue jsBranchStr(aCx);
-  if (!dom::ToJSValue(MC_UNSAN(aCx), branch, &jsBranchStr) ||
+  if (!dom::ToJSValue(MC_UNSAFE(aCx), branch, &jsBranchStr) ||
       !JS_DefineProperty(aCx, jsExperimentDataObj, "branch", jsBranchStr,
                          JSPROP_ENUMERATE)) {
     NS_WARNING("Failed to define branch for experiment data object.");
@@ -262,7 +260,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, JSContext* MC_UNSAN(
 
   for (unsigned int i = 0; i < extraKeys.Length(); i++) {
     MC::RootedValue jsValueStr(aCx);
-    if (!dom::ToJSValue(MC_UNSAN(aCx), extraValues[i], &jsValueStr) ||
+    if (!dom::ToJSValue(MC_UNSAFE(aCx), extraValues[i], &jsValueStr) ||
         !JS_DefineProperty(aCx, jsExtraObj, extraKeys[i].Data(), jsValueStr,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define extra property for experiment data object.");
@@ -288,11 +286,10 @@ FOG::SetMetricsFeatureConfig(const nsACString& aJsonConfig) {
 }
 
 NS_IMETHODIMP
-FOG::TestFlushAllChildren(JSContext* MC_UNSAN(aCx), mozilla::dom::Promise** aOutPromise) {
+FOG::TestFlushAllChildren(MCContext* aCx, mozilla::dom::Promise** aOutPromise) {
   MOZ_ASSERT(XRE_IsParentProcess());
   NS_ENSURE_ARG(aOutPromise);
   *aOutPromise = nullptr;
-  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -337,12 +334,11 @@ FOG::TestResetFOG(const nsACString& aDataPathOverride,
 }
 
 NS_IMETHODIMP
-FOG::TestTriggerMetrics(uint32_t aProcessType, JSContext* MC_UNSAN(aCx),
+FOG::TestTriggerMetrics(uint32_t aProcessType, MCContext* aCx,
                         mozilla::dom::Promise** aOutPromise) {
   MOZ_ASSERT(XRE_IsParentProcess());
   NS_ENSURE_ARG(aOutPromise);
   *aOutPromise = nullptr;
-  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;

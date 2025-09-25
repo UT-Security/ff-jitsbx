@@ -1943,7 +1943,7 @@ void Notification::GetData(JSContext* aCx,
     }
 
     MC::Rooted<JS::Value> data(aCx);
-    rv = container->DeserializeToJsval(aCx, &data);
+    rv = container->DeserializeToJsval(JS_SanitizeContext(aCx), &data);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aRetval.setNull();
       return;
@@ -1969,7 +1969,7 @@ void Notification::InitFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aData,
   }
   RefPtr<nsStructuredCloneContainer> dataObjectContainer =
       new nsStructuredCloneContainer();
-  aRv = dataObjectContainer->InitFromJSVal(aData, aCx);
+  aRv = dataObjectContainer->InitFromJSVal(aData, JS_SanitizeContext(aCx));
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }

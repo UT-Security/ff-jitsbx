@@ -123,6 +123,10 @@ inline JSProtoKey JS_IdToProtoKey(MCContext* cx, JS::HandleId id) {
   return JS_IdToProtoKey(cx->cx_, id);
 }
 
+inline bool JS_InitReflectParse(MCContext* cx, JS::HandleObject global) {
+  return JS_InitReflectParse(cx->cx_, global);
+}
+
 inline bool JS_ValueToId(MCContext* cx, JS::HandleValue v,
                          JS::MutableHandleId idp) {
   return JS_ValueToId(cx->cx_, v, idp);

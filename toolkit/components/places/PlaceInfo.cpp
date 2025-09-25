@@ -76,7 +76,7 @@ PlaceInfo::GetFrecency(int64_t* _frecency) {
 }
 
 NS_IMETHODIMP
-PlaceInfo::GetVisits(JSContext* MC_UNSAN(aContext),
+PlaceInfo::GetVisits(MCContext* aContext,
                      JS::MutableHandle<JS::Value> _visits) {
   // If the visits data was not provided, return null rather
   // than an empty array to distinguish this case from the case
@@ -85,8 +85,6 @@ PlaceInfo::GetVisits(JSContext* MC_UNSAN(aContext),
     _visits.setNull();
     return NS_OK;
   }
-
-  MC_SANITIZE(aContext);
 
   // TODO bug 625913 when we use this in situations that have more than one
   // visit here, we will likely want to make this cache the value.
@@ -100,7 +98,7 @@ PlaceInfo::GetVisits(JSContext* MC_UNSAN(aContext),
 
   for (VisitsArray::size_type idx = 0; idx < mVisits.Length(); idx++) {
     MC::Rooted<JSObject*> jsobj(aContext);
-    nsresult rv = xpc->WrapNative(MC_UNSAN(aContext), global, mVisits[idx],
+    nsresult rv = xpc->WrapNative(MC_UNSAFE(aContext), global, mVisits[idx],
                                   NS_GET_IID(mozIVisitInfo), jsobj.address());
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_STATE(jsobj);

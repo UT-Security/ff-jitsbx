@@ -316,9 +316,9 @@ class BlobURLsReporter final : public nsIMemoryReporter {
 
     while (frame) {
       nsString fileNameUTF16;
-      frame->GetFilename(cx, fileNameUTF16);
+      frame->GetFilename(JS_SanitizeContext(cx), fileNameUTF16);
 
-      int32_t lineNumber = frame->GetLineNumber(cx);
+      int32_t lineNumber = frame->GetLineNumber(JS_SanitizeContext(cx));
 
       if (!fileNameUTF16.IsEmpty()) {
         NS_ConvertUTF16toUTF8 fileName(fileNameUTF16);
@@ -345,7 +345,7 @@ class BlobURLsReporter final : public nsIMemoryReporter {
         stack += ")/";
       }
 
-      frame = frame->GetCaller(cx);
+      frame = frame->GetCaller(JS_SanitizeContext(cx));
     }
   }
 

@@ -280,7 +280,7 @@ class nsDocShell final : public nsDocLoader,
   NS_IMETHOD GetUseRemoteSubframes(bool*) override;
   NS_IMETHOD SetRemoteSubframes(bool) override;
   NS_IMETHOD GetScriptableOriginAttributes(
-      JSContext*, JS::MutableHandle<JS::Value>) override;
+      MCContext*, JS::MutableHandle<JS::Value>) override;
   NS_IMETHOD_(void)
   GetOriginAttributes(mozilla::OriginAttributes& aAttrs) override;
 

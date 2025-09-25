@@ -22,14 +22,14 @@ class nsPrinterListBase : public nsIPrinterList {
   NS_IMETHOD GetSystemDefaultPrinterName(nsAString& aName) final {
     return SystemDefaultPrinterName(aName);
   }
-  NS_IMETHOD GetPrinters(JSContext*, Promise**) final;
-  NS_IMETHOD GetPrinterByName(const nsAString& aPrinterName, JSContext* aCx,
+  NS_IMETHOD GetPrinters(MCContext*, Promise**) final;
+  NS_IMETHOD GetPrinterByName(const nsAString& aPrinterName, MCContext* aCx,
                               Promise** aResult) final;
   NS_IMETHOD GetPrinterBySystemName(const nsAString& aPrinterName,
-                                    JSContext* aCx, Promise** aResult) final;
+                                    MCContext* aCx, Promise** aResult) final;
   NS_IMETHOD GetNamedOrDefaultPrinter(const nsAString& aPrinterName,
-                                      JSContext* aCx, Promise** aResult) final;
-  NS_IMETHOD GetFallbackPaperList(JSContext*, Promise**) final;
+                                      MCContext* aCx, Promise** aResult) final;
+  NS_IMETHOD GetFallbackPaperList(MCContext*, Promise**) final;
 
   struct PrinterInfo {
     // Both windows and CUPS: The name of the printer.

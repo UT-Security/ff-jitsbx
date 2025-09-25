@@ -221,10 +221,10 @@ nsUDPMessage::GetOutputStream(nsIOutputStream** aOutputStream) {
 }
 
 NS_IMETHODIMP
-nsUDPMessage::GetRawData(JSContext* MC_UNSAN(cx), JS::MutableHandle<JS::Value> aRawData) {
+nsUDPMessage::GetRawData(MCContext* cx, JS::MutableHandle<JS::Value> aRawData) {
   if (!mJsobj) {
     mJsobj =
-        dom::Uint8Array::Create(MC_UNSAN(cx), nullptr, mData.Length(), mData.Elements());
+        dom::Uint8Array::Create(MC_UNSAFE(cx), nullptr, mData.Length(), mData.Elements());
     HoldJSObjects(this);
   }
   aRawData.setObject(*mJsobj);
@@ -373,7 +373,7 @@ UDPMessageProxy::GetData(nsACString& aData) {
 FallibleTArray<uint8_t>& UDPMessageProxy::GetDataAsTArray() { return mData; }
 
 NS_IMETHODIMP
-UDPMessageProxy::GetRawData(JSContext* MC_UNSAN(cx),
+UDPMessageProxy::GetRawData(MCContext* cx,
                             JS::MutableHandle<JS::Value> aRawData) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

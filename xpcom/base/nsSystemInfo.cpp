@@ -1395,7 +1395,7 @@ RefPtr<nsISerialEventTarget> nsSystemInfo::GetBackgroundTarget() {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetOsInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
+nsSystemInfo::GetOsInfo(MCContext* aCx, Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
   if (!XRE_IsParentProcess()) {
@@ -1453,14 +1453,13 @@ nsSystemInfo::GetOsInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetDiskInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
+nsSystemInfo::GetDiskInfo(MCContext* aCx, Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
   }
 #ifdef XP_WIN
-  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
@@ -1540,7 +1539,7 @@ nsSystemInfo::GetDiskInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
 NS_IMPL_ISUPPORTS_INHERITED(nsSystemInfo, nsHashPropertyBag, nsISystemInfo)
 
 NS_IMETHODIMP
-nsSystemInfo::GetCountryCode(JSContext* MC_UNSAN(aCx), Promise** aResult) {
+nsSystemInfo::GetCountryCode(MCContext* aCx, Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
 
@@ -1606,7 +1605,7 @@ nsSystemInfo::GetCountryCode(JSContext* MC_UNSAN(aCx), Promise** aResult) {
 }
 
 NS_IMETHODIMP
-nsSystemInfo::GetProcessInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
+nsSystemInfo::GetProcessInfo(MCContext* aCx, Promise** aResult) {
   NS_ENSURE_ARG_POINTER(aResult);
   *aResult = nullptr;
 
@@ -1614,7 +1613,6 @@ nsSystemInfo::GetProcessInfo(JSContext* MC_UNSAN(aCx), Promise** aResult) {
     return NS_ERROR_FAILURE;
   }
 
-  MC_SANITIZE(aCx);
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!global)) {
     return NS_ERROR_FAILURE;
