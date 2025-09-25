@@ -256,7 +256,7 @@ namespace danger {
 MCContext* GetJSContext() { return CycleCollectedJSContext::Get()->Context(); }
 }  // namespace danger
 
-JS::RootingContext* RootingCx() {
+MC::RootingContext* RootingCx() {
   return CycleCollectedJSContext::Get()->RootingCx();
 }
 
@@ -537,7 +537,7 @@ void AutoJSAPI::ReportException() {
       xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
                       isChrome, innerWindowID);
       if (inner && jsReport.report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
-        JS::RootingContext* rcx = JS::RootingContext::get(cx());
+        MC::RootingContext* rcx = MC::RootingContext::get(mcx());
         DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.exception(),
                                  exnStack.stack());
       } else {

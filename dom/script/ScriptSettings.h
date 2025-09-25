@@ -128,7 +128,7 @@ MCContext* GetJSContext();
 
 }  // namespace danger
 
-JS::RootingContext* RootingCx();
+MC::RootingContext* RootingCx();
 
 class ScriptSettingsStack;
 class ScriptSettingsStackEntry {

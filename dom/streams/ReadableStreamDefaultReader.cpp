@@ -89,7 +89,7 @@ bool ReadableStreamReaderGenericInitialize(ReadableStreamGenericReader* aReader,
     case ReadableStream::ReaderState::Errored: {
       // Step 5.1 Implicit
       // Step 5.2
-      JS::RootingContext* rcx = RootingCx();
+      MC::RootingContext* rcx = RootingCx();
       MC::Rooted<JS::Value> rootedError(rcx, aStream->StoredError());
       aReader->ClosedPromise()->MaybeReject(rootedError);
 

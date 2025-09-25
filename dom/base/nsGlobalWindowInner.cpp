@@ -4312,7 +4312,7 @@ void nsGlobalWindowInner::ReportError(JSContext* aCx,
   xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
                   isChrome, WindowID());
 
-  JS::RootingContext* rcx = JS::RootingContext::get(aCx);
+  MC::RootingContext* rcx = MC::RootingContext::get(JS_SanitizeContext(aCx));
   DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack.exception(),
                            exnStack.stack());
 }

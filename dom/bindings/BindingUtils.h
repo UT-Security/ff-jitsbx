@@ -2558,13 +2558,13 @@ void ConstructJSImplementation(const char* aContractId,
 
 // XXX Avoid pulling in the whole ScriptSettings.h, however there should be a
 // unique declaration of this function somewhere else.
-JS::RootingContext* RootingCx();
+MC::RootingContext* RootingCx();
 
 template <typename T>
 already_AddRefed<T> ConstructJSImplementation(const char* aContractId,
                                               nsIGlobalObject* aGlobal,
                                               ErrorResult& aRv) {
-  JS::RootingContext* cx = RootingCx();
+  MC::RootingContext* cx = RootingCx();
   MC::Rooted<JSObject*> jsImplObj(cx);
   ConstructJSImplementation(aContractId, aGlobal, &jsImplObj, aRv);
   if (aRv.Failed()) {

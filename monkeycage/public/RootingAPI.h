@@ -78,7 +78,6 @@ struct MCContext;
 struct MCRuntime;
 
 extern MCContext* JS_SanitizeContext(JSContext*);
-extern MCContext* JS_SanitizeContext(JS::RootingContext*);
 
 namespace MC {
 
@@ -99,6 +98,8 @@ class RootingContext {
   friend class CustomAutoRooter;
 
  public:
+  JSContext* cx_; 
+  
   RootingContext() {
     for (auto& listHead : stackRoots_) {
       listHead = nullptr;
@@ -120,8 +121,6 @@ class RootingContext {
 class CustomAutoRooter {
 public:
   //TODO(abhishek): remove these two overloads.
- CustomAutoRooter(JS::RootingContext* cx)
-     : CustomAutoRooter(JS_SanitizeContext(cx)) {}
  CustomAutoRooter(JSContext* cx)
      : CustomAutoRooter(JS_SanitizeContext(cx)) {}
  CustomAutoRooter(MCContext* cx)
@@ -171,10 +170,6 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
 
   //TODO(abhishek): remove this overload.
   inline RootedListHeads& rootLists(JSContext* cx) {
-    return rootLists(JS_SanitizeContext(cx));
-  }
-
-  inline RootedListHeads& rootLists(JS::RootingContext* cx) {
     return rootLists(JS_SanitizeContext(cx));
   }
 
@@ -287,10 +282,24 @@ class MOZ_RAII Rooted : public detail::Rooted<T>,
 
 }  // namespace MC
 
-namespace JS {
+namespace js {
 
+inline JS::Realm* GetContextRealm(const MCContext* cx) {
+  return GetContextRealm(MC::RootingContext::get(cx)->cx_);
 }
 
+inline JS::Compartment* GetContextCompartment(const MCContext* cx) {
+  return GetContextCompartment(MC::RootingContext::get(cx)->cx_);
+}
+
+inline JS::Zone* GetContextZone(const MCContext* cx) {
+  return GetContextZone(MC::RootingContext::get(cx)->cx_);
+}
+
+inline ProfilingStack* GetContextProfilingStackIfEnabled(MCContext* cx) {
+  return GetContextProfilingStackIfEnabled(MC::RootingContext::get(cx)->cx_);
+}
+}  // namespace js
 
 namespace MC {
 
@@ -319,10 +328,6 @@ class PersistentRooted : public detail::PersistentRooted<T>,
   }
 
   inline void registerWithRootLists(JSContext* cx) {
-    registerWithRootLists(JS_SanitizeContext(cx));
-  }
-
-  inline void registerWithRootLists(JS::RootingContext* cx) {
     registerWithRootLists(JS_SanitizeContext(cx));
   }
  public:

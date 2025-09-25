@@ -228,7 +228,7 @@ void ChromeUtils::AddProfilerMarker(
       // binding from DOM to PROFILER so that this function doesn't appear in
       // the marker stack.
       MCContext* cx = aGlobal.Context();
-      ProfilingStack* stack = js::GetContextProfilingStackIfEnabled(MC_UNSAFE(cx));
+      ProfilingStack* stack = js::GetContextProfilingStackIfEnabled(cx);
       if (MOZ_LIKELY(stack)) {
         uint32_t sp = stack->stackPointer;
         if (MOZ_LIKELY(sp > 0)) {
@@ -668,8 +668,7 @@ static bool ExtractArgs(MCContext* aCx, JS::CallArgs& aArgs,
 }
 
 static MC::Tainted<bool> JSLazyGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* aVp = t_aVp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(aArgc, aVp);
@@ -828,15 +827,13 @@ static bool ModuleGetterImpl(MCContext* aCx, unsigned aArgc, JS::Value* aVp,
 }
 
 static MC::Tainted<bool> JSModuleGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::JSM);
 }
 
 static MC::Tainted<bool> ESModuleGetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleGetterImpl(aCx, aArgc, aVp, ModuleType::ESM);
 }
@@ -855,15 +852,13 @@ static bool ModuleSetterImpl(MCContext* aCx, unsigned aArgc, JS::Value* aVp) {
 }
 
 static MC::Tainted<bool> JSModuleSetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }
 
 static MC::Tainted<bool> ESModuleSetter(MC::Tainted<JSContext*> t_aCx, unsigned aArgc, MC::Tainted<JS::Value*> t_aVp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* aVp = t_aVp.UNSAFE_unverified();
   return ModuleSetterImpl(aCx, aArgc, aVp);
 }

@@ -1512,7 +1512,7 @@ void ClearXrayExpandoSlots(JSObject* target, size_t slotIndex) {
   MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_NEXT);
   MOZ_ASSERT(slotIndex != JSSLOT_EXPANDO_EXCLUSIVE_WRAPPER_HOLDER);
   MOZ_ASSERT(GetXrayTraits(target) == &DOMXrayTraits::singleton);
-  RootingContext* rootingCx = RootingCx();
+  MC::RootingContext* rootingCx = RootingCx();
   MC::RootedObject rootedTarget(rootingCx, target);
   MC::RootedObject head(rootingCx,
                     DOMXrayTraits::singleton.getExpandoChain(rootedTarget));

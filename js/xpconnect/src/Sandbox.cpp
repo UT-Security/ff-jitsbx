@@ -164,8 +164,7 @@ already_AddRefed<nsIXPCComponents_utils_Sandbox> xpc::NewSandboxConstructor() {
 }
 
 static MC::Tainted<bool> SandboxDump(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   if (!nsJSUtils::DumpEnabled()) {
     return true;
@@ -219,8 +218,7 @@ static MC::Tainted<bool> SandboxDebug(MC::Tainted<JSContext*> cx, unsigned argc,
 }
 
 static MC::Tainted<bool> SandboxImport(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -346,8 +344,7 @@ static bool SandboxFetch(MCContext* cx, JS::HandleObject scope,
 }
 
 static MC::Tainted<bool> SandboxFetchPromise(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   MC::RootedObject scope(cx, JS::CurrentGlobalOrNull(cx));
@@ -381,8 +378,7 @@ static bool SandboxCreateStorage(JSContext* cx, JS::HandleObject obj) {
 }
 
 static MC::Tainted<bool> SandboxStructuredClone(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -426,8 +422,7 @@ bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
 }
 
 static MC::Tainted<bool> SandboxIsProxy(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 1) {
@@ -460,8 +455,7 @@ static MC::Tainted<bool> SandboxIsProxy(MC::Tainted<JSContext*> t_cx, unsigned a
  *                         [optional] object options)
  */
 static MC::Tainted<bool> SandboxExportFunction(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 2) {
@@ -474,8 +468,7 @@ static MC::Tainted<bool> SandboxExportFunction(MC::Tainted<JSContext*> t_cx, uns
 }
 
 static MC::Tainted<bool> SandboxCreateObjectIn(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 1) {
@@ -503,8 +496,7 @@ static MC::Tainted<bool> SandboxCreateObjectIn(MC::Tainted<JSContext*> t_cx, uns
 }
 
 static MC::Tainted<bool> SandboxCloneInto(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
   if (args.length() < 2) {

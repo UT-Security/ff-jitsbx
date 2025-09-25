@@ -449,8 +449,7 @@ NS_IMPL_ISUPPORTS(nsScriptSecurityManager, nsIScriptSecurityManager)
 
 MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     MC::Tainted<JSContext*> tcx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCode) {
-  MCContext* cx = tcx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
 
   MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
 

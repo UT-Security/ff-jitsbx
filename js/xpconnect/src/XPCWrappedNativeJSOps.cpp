@@ -72,8 +72,7 @@ static bool ToStringGuts(XPCCallContext& ccx) {
 /***************************************************************************/
 
 static MC::Tainted<bool> XPC_WN_Shared_ToString(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -93,8 +92,7 @@ static MC::Tainted<bool> XPC_WN_Shared_ToString(MC::Tainted<JSContext*> t_cx, un
 }
 
 static MC::Tainted<bool> XPC_WN_Shared_ToSource(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -109,8 +107,7 @@ static MC::Tainted<bool> XPC_WN_Shared_ToSource(MC::Tainted<JSContext*> t_cx, un
 }
 
 static MC::Tainted<bool> XPC_WN_Shared_toPrimitive(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -243,8 +240,7 @@ static JSObject* GetDoubleWrappedJSObject(XPCCallContext& ccx,
 
 static MC::Tainted<bool> XPC_WN_DoubleWrappedGetter(MC::Tainted<JSContext*> t_cx, unsigned argc,
                                        MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -528,8 +524,7 @@ static bool DefinePropertyIfFound(
 
 static MC::Tainted<bool> XPC_WN_OnlyIWrite_AddPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                               HandleId id, HandleValue v) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   XPCCallContext ccx(cx, obj, nullptr, id);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -550,8 +545,7 @@ static auto XPC_WN_OnlyIWrite_AddPropertyStubCb() {
 
 MC::Tainted<bool> XPC_WN_CannotModifyPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                      HandleId id, HandleValue v) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
@@ -562,8 +556,7 @@ MC::SandboxCallback<JSAddPropertyOp> XPC_WN_CannotModifyPropertyStubCb() {
 
 MC::Tainted<bool> XPC_WN_CannotDeletePropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                      HandleId id, ObjectOpResult& result) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   return Throw(NS_ERROR_XPC_CANT_MODIFY_PROP_ON_WN, cx);
 }
 
@@ -573,8 +566,7 @@ MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_CannotDeletePropertyStubCb() {
 }
 
 MC::Tainted<bool> XPC_WN_Shared_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -690,8 +682,7 @@ MC::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb() {
 
 static MC::Tainted<bool> XPC_WN_NoHelper_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                     HandleId id, MC::Tainted<bool*> resolvedp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   XPCCallContext ccx(cx, obj, nullptr, id);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -756,8 +747,7 @@ const JSClass* XPC_WN_NoHelper_JSClass() {
 
 MC::Tainted<bool> XPC_WN_MaybeResolvingPropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                        HandleId id, HandleValue v) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -777,8 +767,7 @@ MC::SandboxCallback<JSAddPropertyOp> XPC_WN_MaybeResolvingPropertyStubCb() {
 MC::Tainted<bool> XPC_WN_MaybeResolvingDeletePropertyStub(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                                              HandleId id,
                                              ObjectOpResult& result) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -816,8 +805,7 @@ MC::SandboxCallback<JSDeletePropertyOp> XPC_WN_MaybeResolvingDeletePropertyStubC
   return retval;
 
 MC::Tainted<bool> XPC_WN_Helper_Call(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -841,8 +829,7 @@ MC::SandboxCallback<JSNative> XPC_WN_Helper_CallCb() {
 }
 
 MC::Tainted<bool> XPC_WN_Helper_Construct(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -868,8 +855,7 @@ MC::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb() {
 }
 
 static MC::Tainted<bool> XPC_WN_Helper_HasInstance(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -921,8 +907,7 @@ class MOZ_RAII AutoSetResolvingWrapper {
 
 MC::Tainted<bool> XPC_WN_Helper_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
                            MC::Tainted<bool*> resolvedp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   nsresult rv = NS_OK;
   bool retval = true;
@@ -1006,8 +991,7 @@ MC::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb() {
 MC::Tainted<bool> XPC_WN_NewEnumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                          MutableHandleIdVector properties,
                          bool enumerableOnly) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
@@ -1079,8 +1063,7 @@ MOZ_ALWAYS_INLINE JSObject* FixUpThisIfBroken(JSObject* obj, JSObject* funobj) {
 }
 
 MC::Tainted<bool> XPC_WN_CallMethod(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -1110,8 +1093,7 @@ MC::Tainted<bool> XPC_WN_CallMethod(MC::Tainted<JSContext*> t_cx, unsigned argc,
 }
 
 MC::Tainted<bool> XPC_WN_GetterSetter(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -1169,8 +1151,7 @@ XPCWrappedNativeTearOff* XPCWrappedNativeTearOff::Get(JSObject* obj) {
 }
 
 static MC::Tainted<bool> XPC_WN_Proto_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
   XPCWrappedNativeProto* self = XPCWrappedNativeProto::Get(obj);
@@ -1231,8 +1212,7 @@ static MC::Tainted<bool> XPC_WN_OnlyIWrite_Proto_AddPropertyStub(MC::Tainted<JSC
                                                     HandleObject obj,
                                                     HandleId id,
                                                     HandleValue v) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
@@ -1256,8 +1236,7 @@ static MC::Tainted<bool> XPC_WN_OnlyIWrite_Proto_AddPropertyStub(MC::Tainted<JSC
 
 static MC::Tainted<bool> XPC_WN_Proto_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
                                  MC::Tainted<bool*> resolvedp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
 
   MOZ_ASSERT(JS::GetClass(obj) == XPC_WN_Proto_JSClass(), "bad proto");
 
@@ -1312,8 +1291,7 @@ const JSClass* XPC_WN_Proto_JSClass() {
 /***************************************************************************/
 
 static MC::Tainted<bool> XPC_WN_TearOff_Enumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
@@ -1339,8 +1317,7 @@ static MC::Tainted<bool> XPC_WN_TearOff_Enumerate(MC::Tainted<JSContext*> t_cx, 
 
 static MC::Tainted<bool> XPC_WN_TearOff_Resolve(MC::Tainted<JSContext*> t_cx, HandleObject obj, HandleId id,
                                    MC::Tainted<bool*> resolvedp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   XPCCallContext ccx(cx, obj);
   XPCWrappedNative* wrapper = ccx.GetWrapper();
   THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);

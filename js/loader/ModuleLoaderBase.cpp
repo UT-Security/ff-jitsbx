@@ -120,8 +120,7 @@ void ModuleLoaderBase::EnsureModuleHooksInitialized() {
 MC::Tainted<JSObject*> ModuleLoaderBase::HostResolveImportedModule(
     MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aModuleRequest) {
-  MCContext* aCx = tCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   MC::Rooted<JSObject*> module(aCx);
 
   {
@@ -173,8 +172,7 @@ MC::Tainted<JSObject*> ModuleLoaderBase::HostResolveImportedModule(
 MC::Tainted<bool> ModuleLoaderBase::ImportMetaResolve(MC::Tainted<JSContext*> tcx, unsigned argc,
                                          MC::Tainted<Value*> tvp) {
   
-  MCContext* cx = tcx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = tvp.UNSAFE_unverified();
   
   CallArgs args = CallArgsFromVp(argc, vp);
@@ -256,8 +254,7 @@ JSString* ModuleLoaderBase::ImportMetaResolveImpl(
 MC::Tainted<bool> ModuleLoaderBase::HostPopulateImportMeta(
     MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aMetaObject) {
-  MCContext* aCx = tCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   RefPtr<ModuleScript> script =
       static_cast<ModuleScript*>(aReferencingPrivate.toPrivate());
   MOZ_ASSERT(script->IsModuleScript());
@@ -306,8 +303,7 @@ MC::Tainted<bool> ModuleLoaderBase::HostPopulateImportMeta(
 MC::Tainted<bool> ModuleLoaderBase::HostImportModuleDynamically(
     MC::Tainted<JSContext*> tCx, JS::Handle<JS::Value> aReferencingPrivate,
     JS::Handle<JSObject*> aModuleRequest, JS::Handle<JSObject*> aPromise) {
-  MCContext* aCx = tCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   MOZ_DIAGNOSTIC_ASSERT(aModuleRequest);
   MOZ_DIAGNOSTIC_ASSERT(aPromise);
 

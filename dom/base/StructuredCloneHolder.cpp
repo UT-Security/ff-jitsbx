@@ -92,8 +92,7 @@ MC::Tainted<JSObject*> StructuredCloneCallbacksRead(
     MC::Tainted<JSContext*> t_aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aIndex,
     MC::AppPointer<void*> aClosure) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
       static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
