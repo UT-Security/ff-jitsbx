@@ -31,13 +31,13 @@ class nsPrinterBase : public nsIPrinter {
   using MarginDouble = mozilla::gfx::MarginDouble;
   using PrintSettingsInitializer = mozilla::PrintSettingsInitializer;
 
-  NS_IMETHOD CopyFromWithValidation(nsIPrintSettings*, JSContext*,
+  NS_IMETHOD CopyFromWithValidation(nsIPrintSettings*, MCContext*,
                                     Promise**) override;
-  NS_IMETHOD GetSupportsDuplex(JSContext*, Promise**) final;
-  NS_IMETHOD GetSupportsColor(JSContext*, Promise**) final;
-  NS_IMETHOD GetSupportsMonochrome(JSContext*, Promise**) final;
-  NS_IMETHOD GetSupportsCollation(JSContext*, Promise**) final;
-  NS_IMETHOD GetPrinterInfo(JSContext*, Promise**) final;
+  NS_IMETHOD GetSupportsDuplex(MCContext*, Promise**) final;
+  NS_IMETHOD GetSupportsColor(MCContext*, Promise**) final;
+  NS_IMETHOD GetSupportsMonochrome(MCContext*, Promise**) final;
+  NS_IMETHOD GetSupportsCollation(MCContext*, Promise**) final;
+  NS_IMETHOD GetPrinterInfo(MCContext*, Promise**) final;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(nsPrinterBase)

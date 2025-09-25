@@ -88,6 +88,6 @@ nsresult nsOpenURIInFrameParams::GetOpenerBrowser(
 
 NS_IMETHODIMP
 nsOpenURIInFrameParams::GetOpenerOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aValue) {
-  return mOpenWindowInfo->GetScriptableOriginAttributes(MC_UNSAN(aCx), aValue);
+    MCContext* aCx, JS::MutableHandle<JS::Value> aValue) {
+  return mOpenWindowInfo->GetScriptableOriginAttributes(aCx, aValue);
 }

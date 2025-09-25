@@ -1420,25 +1420,25 @@ SessionHistoryEntry::GetBfcacheID(uint64_t* aBfcacheID) {
 }
 
 NS_IMETHODIMP
-SessionHistoryEntry::GetWireframe(JSContext* MC_UNSAN(aCx),
+SessionHistoryEntry::GetWireframe(MCContext* aCx,
                                   JS::MutableHandle<JS::Value> aOut) {
   if (mWireframe.isNothing()) {
     aOut.set(JS::NullValue());
-  } else if (NS_WARN_IF(!mWireframe->ToObjectInternal(MC_UNSAN(aCx), aOut))) {
+  } else if (NS_WARN_IF(!mWireframe->ToObjectInternal(MC_UNSAFE(aCx), aOut))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-SessionHistoryEntry::SetWireframe(JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aArg) {
+SessionHistoryEntry::SetWireframe(MCContext* aCx, JS::Handle<JS::Value> aArg) {
   if (aArg.isNullOrUndefined()) {
     mWireframe = Nothing();
     return NS_OK;
   }
 
   Wireframe wireframe;
-  if (aArg.isObject() && wireframe.Init(MC_UNSAN(aCx), aArg)) {
+  if (aArg.isObject() && wireframe.Init(MC_UNSAFE(aCx), aArg)) {
     mWireframe = Some(std::move(wireframe));
     return NS_OK;
   }

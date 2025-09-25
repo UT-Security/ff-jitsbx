@@ -285,13 +285,12 @@ imgTools::~imgTools() { /* destructor code */
 NS_IMETHODIMP
 imgTools::DecodeImageFromArrayBuffer(JS::Handle<JS::Value> aArrayBuffer,
                                      const nsACString& aMimeType,
-                                     JSContext* MC_UNSAN(aCx),
+                                     MCContext* aCx,
                                      imgIContainer** aContainer) {
   if (!aArrayBuffer.isObject()) {
     return NS_ERROR_FAILURE;
   }
 
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx,
                             JS::UnwrapArrayBuffer(&aArrayBuffer.toObject()));
   if (!obj) {

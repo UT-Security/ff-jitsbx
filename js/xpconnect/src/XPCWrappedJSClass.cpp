@@ -651,10 +651,10 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
             nsCOMPtr<nsIStackFrame> location = xpc_exception->GetLocation();
             if (location) {
               // Get line number.
-              lineNumber = location->GetLineNumber(MC_UNSAFE(cx));
+              lineNumber = location->GetLineNumber(cx);
 
               // get a filename.
-              location->GetFilename(MC_UNSAFE(cx), sourceName);
+              location->GetFilename(cx, sourceName);
             }
 
             nsresult rv = scriptError->InitWithWindowID(
@@ -665,7 +665,7 @@ nsresult nsXPCWrappedJS::CheckForException(XPCCallContext& ccx,
               scriptError = nullptr;
             }
 
-            rv = scriptError->InitSourceId(location->GetSourceId(MC_UNSAFE(cx)));
+            rv = scriptError->InitSourceId(location->GetSourceId(cx));
             if (NS_FAILED(rv)) {
               scriptError = nullptr;
             }

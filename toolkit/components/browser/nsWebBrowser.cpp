@@ -486,10 +486,10 @@ nsresult nsWebBrowser::LoadURI(nsIURI* aURI,
 NS_IMETHODIMP
 nsWebBrowser::LoadURIFromScript(nsIURI* aURI,
                                 JS::Handle<JS::Value> aLoadURIOptions,
-                                JSContext* MC_UNSAN(aCx)) {
+                                MCContext* aCx) {
   // generate dictionary for loadURIOptions and forward call
   dom::LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAN(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return LoadURI(aURI, loadURIOptions);
@@ -511,10 +511,10 @@ nsresult nsWebBrowser::FixupAndLoadURIString(
 NS_IMETHODIMP
 nsWebBrowser::FixupAndLoadURIStringFromScript(
     const nsAString& aURI, JS::Handle<JS::Value> aLoadURIOptions,
-    JSContext* MC_UNSAN(aCx)) {
+    MCContext* aCx) {
   // generate dictionary for loadURIOptions and forward call
   dom::LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAN(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return FixupAndLoadURIString(aURI, loadURIOptions);

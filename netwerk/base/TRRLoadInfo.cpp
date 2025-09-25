@@ -379,7 +379,7 @@ TRRLoadInfo::GetTargetBrowsingContext(dom::BrowsingContext** aResult) {
 
 NS_IMETHODIMP
 TRRLoadInfo::GetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -390,7 +390,7 @@ TRRLoadInfo::ResetPrincipalToInheritToNullPrincipal() {
 
 NS_IMETHODIMP
 TRRLoadInfo::SetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
+    MCContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -424,7 +424,7 @@ TRRLoadInfo::AppendRedirectHistoryEntry(nsIChannel* aChannelToDeriveFrom,
 
 NS_IMETHODIMP
 TRRLoadInfo::GetRedirectChainIncludingInternalRedirects(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aChain) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aChain) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -434,7 +434,7 @@ TRRLoadInfo::RedirectChainIncludingInternalRedirects() {
 }
 
 NS_IMETHODIMP
-TRRLoadInfo::GetRedirectChain(JSContext* MC_UNSAN(aCx),
+TRRLoadInfo::GetRedirectChain(MCContext* aCx,
                               JS::MutableHandle<JS::Value> aChain) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

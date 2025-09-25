@@ -233,16 +233,16 @@ void BackgroundUnlock(RefPtr<Promise>& aPromise, RefPtr<OSKeyStore> self) {
 }
 
 NS_IMETHODIMP
-OSKeyStore::AsyncUnlock(JSContext* MC_UNSAN(aCx), Promise** promiseOut) {
+OSKeyStore::AsyncUnlock(MCContext* aCx, Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -272,16 +272,16 @@ void BackgroundLock(RefPtr<Promise>& aPromise, RefPtr<OSKeyStore> self) {
 }
 
 NS_IMETHODIMP
-OSKeyStore::AsyncLock(JSContext* MC_UNSAN(aCx), Promise** promiseOut) {
+OSKeyStore::AsyncLock(MCContext* aCx, Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -319,17 +319,17 @@ void BackgroundGenerateSecret(const nsACString& aLabel,
 }
 
 NS_IMETHODIMP
-OSKeyStore::AsyncGenerateSecret(const nsACString& aLabel, JSContext* MC_UNSAN(aCx),
+OSKeyStore::AsyncGenerateSecret(const nsACString& aLabel, MCContext* aCx,
                                 Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -364,17 +364,17 @@ void BackgroundSecretAvailable(const nsACString& aLabel,
 }
 
 NS_IMETHODIMP
-OSKeyStore::AsyncSecretAvailable(const nsACString& aLabel, JSContext* MC_UNSAN(aCx),
+OSKeyStore::AsyncSecretAvailable(const nsACString& aLabel, MCContext* aCx,
                                  Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -411,16 +411,16 @@ void BackgroundRecoverSecret(const nsACString& aLabel,
 NS_IMETHODIMP
 OSKeyStore::AsyncRecoverSecret(const nsACString& aLabel,
                                const nsACString& aRecoveryPhrase,
-                               JSContext* MC_UNSAN(aCx), Promise** promiseOut) {
+                               MCContext* aCx, Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -454,17 +454,17 @@ void BackgroundDeleteSecret(const nsACString& aLabel, RefPtr<Promise>& aPromise,
 }
 
 NS_IMETHODIMP
-OSKeyStore::AsyncDeleteSecret(const nsACString& aLabel, JSContext* MC_UNSAN(aCx),
+OSKeyStore::AsyncDeleteSecret(const nsACString& aLabel, MCContext* aCx,
                               Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -504,17 +504,17 @@ static void BackgroundEncryptBytes(const nsACString& aLabel,
 
 NS_IMETHODIMP
 OSKeyStore::AsyncEncryptBytes(const nsACString& aLabel,
-                              const nsTArray<uint8_t>& inBytes, JSContext* MC_UNSAN(aCx),
+                              const nsTArray<uint8_t>& inBytes, MCContext* aCx,
                               Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -564,16 +564,16 @@ void BackgroundDecryptBytes(const nsACString& aLabel,
 NS_IMETHODIMP
 OSKeyStore::AsyncDecryptBytes(const nsACString& aLabel,
                               const nsACString& aEncryptedBase64Text,
-                              JSContext* MC_UNSAN(aCx), Promise** promiseOut) {
+                              MCContext* aCx, Promise** promiseOut) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!NS_IsMainThread()) {
     return NS_ERROR_NOT_SAME_THREAD;
   }
 
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAN(aCx), promiseHandle);
+  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }

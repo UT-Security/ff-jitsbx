@@ -4744,10 +4744,11 @@ JS_PUBLIC_API void JS::SetShadowRealmGlobalCreationCallback(
   cx->runtime()->shadowRealmGlobalCreationCallback = callback;
 }
 
-JS::FirstSubsumedFrame::FirstSubsumedFrame(
-    JSContext* cx, bool ignoreSelfHostedFrames /* = true */)
-    : JS::FirstSubsumedFrame(cx, cx->realm()->principals(),
-                             ignoreSelfHostedFrames) {}
+JS_PUBLIC_API bool JS::CaptureCurrentStack(JSContext* cx,
+                                           JS::MutableHandleObject stackp,
+                                           JS::StackCapture* capture) {
+  return JS::CaptureCurrentStack(cx, stackp, std::move(*capture));
+}
 
 JS_PUBLIC_API bool JS::CaptureCurrentStack(
     JSContext* cx, JS::MutableHandleObject stackp,

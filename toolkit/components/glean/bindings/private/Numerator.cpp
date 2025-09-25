@@ -55,9 +55,8 @@ GleanNumerator::AddToNumerator(int32_t aAmount) {
 }
 
 NS_IMETHODIMP
-GleanNumerator::TestGetValue(const nsACString& aPingName, JSContext* MC_UNSAN(aCx),
+GleanNumerator::TestGetValue(const nsACString& aPingName, MCContext* aCx,
                              JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mNumerator.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

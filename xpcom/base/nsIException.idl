@@ -8,7 +8,7 @@
  */
 #include "nsISupports.idl"
 
-[ptr] native JSContext(JSContext);
+[ptr] native MCContext(MCContext);
 native StackFrameRef(already_AddRefed<nsIStackFrame>);
 
 [scriptable, builtinclass, uuid(28bfb2a2-5ea6-4738-918b-049dc4d51f0b)]
@@ -49,25 +49,25 @@ interface nsIStackFrame : nsISupports
 
     // Infallible things to be called from C++.
     [notxpcom, nostdcall]
-    void getFilename(in JSContext aCx, out AString aFilename);
+    void getFilename(in MCContext aCx, out AString aFilename);
     [notxpcom, nostdcall]
-    void getName(in JSContext aCx, out AString aName);
+    void getName(in MCContext aCx, out AString aName);
     [notxpcom, nostdcall]
-    int32_t getSourceId(in JSContext aCx);
+    int32_t getSourceId(in MCContext aCx);
     [notxpcom, nostdcall]
-    int32_t getLineNumber(in JSContext aCx);
+    int32_t getLineNumber(in MCContext aCx);
     [notxpcom, nostdcall]
-    int32_t getColumnNumber(in JSContext aCx);
+    int32_t getColumnNumber(in MCContext aCx);
     [notxpcom, nostdcall]
-    void getAsyncCause(in JSContext aCx, out AString aAsyncCause);
+    void getAsyncCause(in MCContext aCx, out AString aAsyncCause);
     [notxpcom, nostdcall]
-    StackFrameRef getAsyncCaller(in JSContext aCx);
+    StackFrameRef getAsyncCaller(in MCContext aCx);
     [notxpcom, nostdcall]
-    StackFrameRef getCaller(in JSContext aCx);
+    StackFrameRef getCaller(in MCContext aCx);
     [notxpcom, nostdcall]
-    void getFormattedStack(in JSContext aCx, out AString aFormattedStack);
+    void getFormattedStack(in MCContext aCx, out AString aFormattedStack);
     [notxpcom, nostdcall, binaryname(ToString)]
-    void toStringInfallible(in JSContext aCx, out AUTF8String aString);
+    void toStringInfallible(in MCContext aCx, out AUTF8String aString);
 };
 
 // This interface only exists because of all the JS consumers doing

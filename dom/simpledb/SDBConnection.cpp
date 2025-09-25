@@ -352,10 +352,9 @@ SDBConnection::Read(uint64_t aSize, nsISDBRequest** _retval) {
 }
 
 NS_IMETHODIMP
-SDBConnection::Write(JS::Handle<JS::Value> aValue, JSContext* MC_UNSAN(aCx),
+SDBConnection::Write(JS::Handle<JS::Value> aValue, MCContext* aCx,
                      nsISDBRequest** _retval) {
   AssertIsOnOwningThread();
-  MC_SANITIZE(aCx);
   nsresult rv = CheckState();
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
@@ -368,7 +367,7 @@ SDBConnection::Write(JS::Handle<JS::Value> aValue, JSContext* MC_UNSAN(aCx),
   MC::Rooted<JS::Value> value(aCx, aValue);
 
   nsCString data;
-  rv = GetWriteData(MC_UNSAN(aCx), value, data);
+  rv = GetWriteData(MC_UNSAFE(aCx), value, data);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

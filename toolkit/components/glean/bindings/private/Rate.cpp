@@ -68,9 +68,8 @@ GleanRate::AddToDenominator(int32_t aAmount) {
 }
 
 NS_IMETHODIMP
-GleanRate::TestGetValue(const nsACString& aPingName, JSContext* MC_UNSAN(aCx),
+GleanRate::TestGetValue(const nsACString& aPingName, MCContext* aCx,
                         JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mRate.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

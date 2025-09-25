@@ -354,7 +354,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
     MC::RootedObject plannedParent(cx, parent);
-    nsresult rv = scrWrapper->PreCreate(identity, cx, parent, parent.address());
+    nsresult rv = scrWrapper->PreCreate(identity, JS_SanitizeContext(cx), parent, parent.address());
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -985,7 +985,7 @@ nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
   }
 
   if (NS_FAILED(nsXPConnect::SecurityManager()->CanCreateWrapper(
-          cx, *iid, identity, GetClassInfo()))) {
+          JS_SanitizeContext(cx), *iid, identity, GetClassInfo()))) {
     // the security manager vetoed. It should have set an exception.
     aTearOff->SetInterface(nullptr);
     return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
@@ -1441,7 +1441,7 @@ bool CallMethodHelper::InitializeDispatchParams() {
     if (i == mJSContextIndex) {
       // Fill in the JSContext argument
       dp.type = nsXPTType::T_VOID;
-      dp.val.p = MC_UNSAFE(mCallContext);
+      dp.val.p = mCallContext;
     } else if (i == mOptArgcIndex) {
       // Fill in the optional_argc argument
       dp.type = nsXPTType::T_U8;

@@ -45,13 +45,13 @@ nsStructuredCloneContainer::~nsStructuredCloneContainer() = default;
 
 NS_IMETHODIMP
 nsStructuredCloneContainer::InitFromJSVal(JS::Handle<JS::Value> aData,
-                                          JSContext* MC_UNSAN(aCx)) {
+                                          MCContext* aCx) {
   if (DataLength()) {
     return NS_ERROR_FAILURE;
   }
 
   ErrorResult rv;
-  Write(MC_UNSAN(aCx), aData, rv);
+  Write(MC_UNSAFE(aCx), aData, rv);
   if (NS_WARN_IF(rv.Failed())) {
     // XXX propagate the error message as well.
     // We cannot StealNSResult because we threw a DOM exception.
@@ -85,13 +85,12 @@ nsStructuredCloneContainer::InitFromBase64(const nsAString& aData,
 }
 
 nsresult nsStructuredCloneContainer::DeserializeToJsval(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aValue) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aValue) {
   aValue.setNull();
-  MC_SANITIZE(aCx);
   MC::Rooted<JS::Value> jsStateObj(aCx);
 
   ErrorResult rv;
-  Read(MC_UNSAN(aCx), &jsStateObj, rv);
+  Read(MC_UNSAFE(aCx), &jsStateObj, rv);
   if (NS_WARN_IF(rv.Failed())) {
     // XXX propagate the error message as well.
     // We cannot StealNSResult because we threw a DOM exception.

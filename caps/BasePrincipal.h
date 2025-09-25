@@ -141,7 +141,7 @@ class BasePrincipal : public nsJSPrincipals {
   NS_IMETHOD IsL10nAllowed(nsIURI* aURI, bool* aResult) override;
   NS_IMETHOD GetAboutModuleFlags(uint32_t* flags) override;
   NS_IMETHOD GetIsAddonOrExpandedAddonPrincipal(bool* aResult) override;
-  NS_IMETHOD GetOriginAttributes(JSContext* aCx,
+  NS_IMETHOD GetOriginAttributes(MCContext* aCx,
                                  JS::MutableHandle<JS::Value> aVal) final;
   NS_IMETHOD GetAsciiSpec(nsACString& aSpec) override;
   NS_IMETHOD GetSpec(nsACString& aSpec) override;

@@ -137,7 +137,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
   if (!jsapi.Init(sandbox)) {
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   nsAutoCString script(js_buffer, length);
   MC::Rooted<JS::Value> v(cx);
@@ -163,7 +163,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
     }
   }
   nsresult rv =
-      xpc->EvalInSandboxObject(convertedScript, filename, cx, sandbox, &v);
+      xpc->EvalInSandboxObject(convertedScript, filename, MC_UNSAFE(cx), sandbox, &v);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

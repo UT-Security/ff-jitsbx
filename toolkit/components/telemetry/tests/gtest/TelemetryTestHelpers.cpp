@@ -268,7 +268,7 @@ void GetEventSnapshot(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   MC::Rooted<JS::Value> eventSnapshot(aCx);
   nsresult rv;
   rv = telemetry->SnapshotEvents(1 /* PRERELEASE_CHANNELS */, false /* clear */,
-                                 0 /* eventLimit */, aCx, 1 /* argc */,
+                                 0 /* eventLimit */, JS_SanitizeContext(aCx), 1 /* argc */,
                                  &eventSnapshot);
   ASSERT_EQ(rv, NS_OK) << "Snapshotting events must not fail.";
   ASSERT_TRUE(eventSnapshot.isObject())
@@ -295,10 +295,10 @@ void GetScalarsSnapshot(bool aKeyed, JSContext* aCx,
 
   if (aKeyed) {
     rv = telemetry->GetSnapshotForKeyedScalars(
-        "main"_ns, false, false /* filter */, aCx, &scalarsSnapshot);
+        "main"_ns, false, false /* filter */, JS_SanitizeContext(aCx), &scalarsSnapshot);
   } else {
     rv = telemetry->GetSnapshotForScalars("main"_ns, false, false /* filter */,
-                                          aCx, &scalarsSnapshot);
+                                          JS_SanitizeContext(aCx), &scalarsSnapshot);
   }
 
   // Validate the snapshot.
@@ -321,8 +321,8 @@ void GetAndClearHistogram(JSContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
                           const nsACString& name, bool is_keyed) {
   MC::Rooted<JS::Value> testHistogram(cx);
   nsresult rv =
-      is_keyed ? mTelemetry->GetKeyedHistogramById(name, cx, &testHistogram)
-               : mTelemetry->GetHistogramById(name, cx, &testHistogram);
+      is_keyed ? mTelemetry->GetKeyedHistogramById(name, JS_SanitizeContext(cx), &testHistogram)
+               : mTelemetry->GetHistogramById(name, JS_SanitizeContext(cx), &testHistogram);
 
   ASSERT_EQ(rv, NS_OK) << "Cannot fetch histogram";
 
@@ -358,9 +358,9 @@ void GetSnapshots(JSContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
   MC::Rooted<JS::Value> snapshots(cx);
   nsresult rv = is_keyed
                     ? mTelemetry->GetSnapshotForKeyedHistograms(
-                          "main"_ns, false, false /* filter */, cx, &snapshots)
+                          "main"_ns, false, false /* filter */, JS_SanitizeContext(cx), &snapshots)
                     : mTelemetry->GetSnapshotForHistograms(
-                          "main"_ns, false, false /* filter */, cx, &snapshots);
+                          "main"_ns, false, false /* filter */, JS_SanitizeContext(cx), &snapshots);
 
   MC::Rooted<JS::Value> snapshot(cx);
   GetProperty(cx, "parent", snapshots, &snapshot);

@@ -1109,12 +1109,12 @@ nsDNSService::AsyncResolve(const nsACString& aHostname,
                            nsIDNSAdditionalInfo* aInfo,
                            nsIDNSListener* listener, nsIEventTarget* target_,
                            JS::Handle<JS::Value> aOriginAttributes,
-                           JSContext* MC_UNSAN(aCx), uint8_t aArgc,
+                           MCContext* aCx, uint8_t aArgc,
                            nsICancelable** result) {
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -1148,11 +1148,11 @@ nsDNSService::CancelAsyncResolve(const nsACString& aHostname,
                                  nsIDNSAdditionalInfo* aInfo,
                                  nsIDNSListener* aListener, nsresult aReason,
                                  JS::Handle<JS::Value> aOriginAttributes,
-                                 JSContext* MC_UNSAN(aCx), uint8_t aArgc) {
+                                 MCContext* aCx, uint8_t aArgc) {
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -1174,12 +1174,12 @@ nsDNSService::CancelAsyncResolveNative(
 NS_IMETHODIMP
 nsDNSService::Resolve(const nsACString& aHostname,
                       nsIDNSService::DNSFlags flags,
-                      JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx),
+                      JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
                       uint8_t aArgc, nsIDNSRecord** result) {
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }

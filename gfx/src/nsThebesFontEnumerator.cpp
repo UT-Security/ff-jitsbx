@@ -133,16 +133,15 @@ class EnumerateFontsTask final : public Runnable {
 
 NS_IMETHODIMP
 nsThebesFontEnumerator::EnumerateAllFontsAsync(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aRval) {
-  return EnumerateFontsAsync(nullptr, nullptr, MC_UNSAN(aCx), aRval);
+    MCContext* aCx, JS::MutableHandle<JS::Value> aRval) {
+  return EnumerateFontsAsync(nullptr, nullptr, aCx, aRval);
 }
 
 NS_IMETHODIMP
 nsThebesFontEnumerator::EnumerateFontsAsync(
-    const char* aLangGroup, const char* aGeneric, JSContext* MC_UNSAN(aCx),
+    const char* aLangGroup, const char* aGeneric, MCContext* aCx,
     JS::MutableHandle<JS::Value> aRval) {
   MOZ_ASSERT(NS_IsMainThread());
-  MC_SANITIZE(aCx);
   
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
   NS_ENSURE_TRUE(global, NS_ERROR_UNEXPECTED);
@@ -181,7 +180,7 @@ nsThebesFontEnumerator::EnumerateFontsAsync(
       langGroupAtom, generic, std::move(enumerateFontsPromise), target);
   thread->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
 
-  if (!ToJSValue(MC_UNSAN(aCx), promise, aRval)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), promise, aRval)) {
     return NS_ERROR_FAILURE;
   }
 

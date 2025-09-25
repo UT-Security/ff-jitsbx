@@ -39,12 +39,12 @@ PaymentMethodData::GetSupportedMethods(nsAString& aSupportedMethods) {
 }
 
 NS_IMETHODIMP
-PaymentMethodData::GetData(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aData) {
+PaymentMethodData::GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aData) {
   if (mData.IsEmpty()) {
     aData.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mData, MC_UNSAN(aCx), aData);
+  nsresult rv = DeserializeToJSValue(mData, MC_UNSAFE(aCx), aData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -205,13 +205,13 @@ PaymentDetailsModifier::GetAdditionalDisplayItems(
 }
 
 NS_IMETHODIMP
-PaymentDetailsModifier::GetData(JSContext* MC_UNSAN(aCx),
+PaymentDetailsModifier::GetData(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aData) {
   if (mData.IsEmpty()) {
     aData.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mData, MC_UNSAN(aCx), aData);
+  nsresult rv = DeserializeToJSValue(mData, MC_UNSAFE(aCx), aData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -415,35 +415,35 @@ PaymentDetails::GetError(nsAString& aError) {
 }
 
 NS_IMETHODIMP
-PaymentDetails::GetShippingAddressErrors(JSContext* MC_UNSAN(aCx),
+PaymentDetails::GetShippingAddressErrors(MCContext* aCx,
                                          JS::MutableHandle<JS::Value> aErrors) {
   AddressErrors errors;
   errors.Init(mShippingAddressErrors);
-  if (!ToJSValue(MC_UNSAN(aCx), errors, aErrors)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), errors, aErrors)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PaymentDetails::GetPayerErrors(JSContext* MC_UNSAN(aCx),
+PaymentDetails::GetPayerErrors(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aErrors) {
   PayerErrors errors;
   errors.Init(mPayerErrors);
-  if (!ToJSValue(MC_UNSAN(aCx), errors, aErrors)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), errors, aErrors)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
 }
 
 NS_IMETHODIMP
-PaymentDetails::GetPaymentMethodErrors(JSContext* MC_UNSAN(aCx),
+PaymentDetails::GetPaymentMethodErrors(MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aErrors) {
   if (mPaymentMethodErrors.IsEmpty()) {
     aErrors.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mPaymentMethodErrors, MC_UNSAN(aCx), aErrors);
+  nsresult rv = DeserializeToJSValue(mPaymentMethodErrors, MC_UNSAFE(aCx), aErrors);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

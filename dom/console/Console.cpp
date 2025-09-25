@@ -1226,16 +1226,16 @@ void StackFrameToStackEntry(JSContext* aCx, nsIStackFrame* aStackFrame,
                             ConsoleStackEntry& aStackEntry) {
   MOZ_ASSERT(aStackFrame);
 
-  aStackFrame->GetFilename(aCx, aStackEntry.mFilename);
+  aStackFrame->GetFilename(JS_SanitizeContext(aCx), aStackEntry.mFilename);
 
-  aStackEntry.mSourceId = aStackFrame->GetSourceId(aCx);
-  aStackEntry.mLineNumber = aStackFrame->GetLineNumber(aCx);
-  aStackEntry.mColumnNumber = aStackFrame->GetColumnNumber(aCx);
+  aStackEntry.mSourceId = aStackFrame->GetSourceId(JS_SanitizeContext(aCx));
+  aStackEntry.mLineNumber = aStackFrame->GetLineNumber(JS_SanitizeContext(aCx));
+  aStackEntry.mColumnNumber = aStackFrame->GetColumnNumber(JS_SanitizeContext(aCx));
 
-  aStackFrame->GetName(aCx, aStackEntry.mFunctionName);
+  aStackFrame->GetName(JS_SanitizeContext(aCx), aStackEntry.mFunctionName);
 
   nsString cause;
-  aStackFrame->GetAsyncCause(aCx, cause);
+  aStackFrame->GetAsyncCause(JS_SanitizeContext(aCx), cause);
   if (!cause.IsEmpty()) {
     aStackEntry.mAsyncCause.Construct(cause);
   }
@@ -1249,10 +1249,10 @@ void ReifyStack(JSContext* aCx, nsIStackFrame* aStack,
     ConsoleStackEntry& data = *aRefiedStack.AppendElement();
     StackFrameToStackEntry(aCx, stack, data);
 
-    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(aCx);
+    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(JS_SanitizeContext(aCx));
 
     if (!caller) {
-      caller = stack->GetAsyncCaller(aCx);
+      caller = stack->GetAsyncCaller(JS_SanitizeContext(aCx));
     }
     stack.swap(caller);
   }
@@ -1339,7 +1339,8 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
   JS::StackCapture captureMode =
       ShouldIncludeStackTrace(aMethodName)
           ? JS::StackCapture(JS::MaxFrames(DEFAULT_MAX_STACKTRACE_DEPTH))
-          : JS::StackCapture(JS::FirstSubsumedFrame(aCx));
+          : JS::StackCapture(JS::FirstSubsumedFrame(
+                aCx, JS::GetRealmPrincipals(js::GetContextRealm(aCx))));
   nsCOMPtr<nsIStackFrame> stack = CreateStack(aCx, std::move(captureMode));
 
   if (stack) {
@@ -2792,24 +2793,24 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
 
   while (stack) {
     nsAutoString filename;
-    stack->GetFilename(aCx, filename);
+    stack->GetFilename(JS_SanitizeContext(aCx), filename);
 
     message.Append(filename);
     message.AppendLiteral(" ");
 
-    message.AppendInt(stack->GetLineNumber(aCx));
+    message.AppendInt(stack->GetLineNumber(JS_SanitizeContext(aCx)));
     message.AppendLiteral(" ");
 
     nsAutoString functionName;
-    stack->GetName(aCx, functionName);
+    stack->GetName(JS_SanitizeContext(aCx), functionName);
 
     message.Append(functionName);
     message.AppendLiteral("\n");
 
-    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(aCx);
+    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(JS_SanitizeContext(aCx));
 
     if (!caller) {
-      caller = stack->GetAsyncCaller(aCx);
+      caller = stack->GetAsyncCaller(JS_SanitizeContext(aCx));
     }
 
     stack.swap(caller);

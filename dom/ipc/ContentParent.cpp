@@ -8084,9 +8084,8 @@ IPCResult ContentParent::RecvRawMessage(
   return IPC_OK();
 }
 
-NS_IMETHODIMP ContentParent::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
+NS_IMETHODIMP ContentParent::GetActor(const nsACString& aName, MCContext* aCx,
                                       JSProcessActorParent** retval) {
-  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorParent> actor =
       JSActorManager::GetActor(aCx, aName, error)

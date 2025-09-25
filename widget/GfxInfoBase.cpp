@@ -1470,10 +1470,10 @@ static void InitCollectors() {
   if (!sCollectors) sCollectors = new nsTArray<GfxInfoCollectorBase*>;
 }
 
-nsresult GfxInfoBase::GetInfo(JSContext* MC_UNSAN(aCx),
+nsresult GfxInfoBase::GetInfo(MCContext* aCx,
                               JS::MutableHandle<JS::Value> aResult) {
   InitCollectors();
-  InfoObject obj(MC_UNSAN(aCx));
+  InfoObject obj(MC_UNSAFE(aCx));
 
   for (uint32_t i = 0; i < sCollectors->Length(); i++) {
     (*sCollectors)[i]->GetInfo(obj);
@@ -1580,11 +1580,10 @@ nsresult GfxInfoBase::FindMonitors(JSContext* aCx,
 }
 
 NS_IMETHODIMP
-GfxInfoBase::GetMonitors(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
+GfxInfoBase::GetMonitors(MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
 
-  nsresult rv = FindMonitors(MC_UNSAN(aCx), array);
+  nsresult rv = FindMonitors(MC_UNSAFE(aCx), array);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1615,9 +1614,8 @@ static inline bool AppendJSElement(JSContext* aCx, JS::Handle<JSObject*> aObj,
   return JS_SetElement(aCx, aObj, index, aValue);
 }
 
-nsresult GfxInfoBase::GetFeatures(JSContext* MC_UNSAN(aCx),
+nsresult GfxInfoBase::GetFeatures(MCContext* aCx,
                                   JS::MutableHandle<JS::Value> aOut) {
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
   if (!obj) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1629,20 +1627,19 @@ nsresult GfxInfoBase::GetFeatures(JSContext* MC_UNSAN(aCx),
           ? gfxPlatform::GetPlatform()->GetCompositorBackend()
           : layers::LayersBackend::LAYERS_NONE;
   const char* backendName = layers::GetLayersBackendName(backend);
-  SetJSPropertyString(MC_UNSAN(aCx), obj, "compositor", backendName);
+  SetJSPropertyString(MC_UNSAFE(aCx), obj, "compositor", backendName);
 
   // If graphics isn't initialized yet, just stop now.
   if (!gfxPlatform::Initialized()) {
     return NS_OK;
   }
 
-  DescribeFeatures(MC_UNSAN(aCx), obj);
+  DescribeFeatures(MC_UNSAFE(aCx), obj);
   return NS_OK;
 }
 
-nsresult GfxInfoBase::GetFeatureLog(JSContext* MC_UNSAN(aCx),
+nsresult GfxInfoBase::GetFeatureLog(MCContext* aCx,
                                     JS::MutableHandle<JS::Value> aOut) {
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> containerObj(aCx, JS_NewPlainObject(aCx));
   if (!containerObj) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1661,22 +1658,22 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* MC_UNSAN(aCx),
     if (!obj) {
       return;
     }
-    if (!SetJSPropertyString(MC_UNSAN(aCx), obj, "name", aName) ||
-        !SetJSPropertyString(MC_UNSAN(aCx), obj, "description", aDescription) ||
-        !SetJSPropertyString(MC_UNSAN(aCx), obj, "status",
+    if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "name", aName) ||
+        !SetJSPropertyString(MC_UNSAFE(aCx), obj, "description", aDescription) ||
+        !SetJSPropertyString(MC_UNSAFE(aCx), obj, "status",
                              FeatureStatusToString(aFeature.GetValue()))) {
       return;
     }
 
     MC::Rooted<JS::Value> log(aCx);
-    if (!BuildFeatureStateLog(MC_UNSAN(aCx), aFeature, &log)) {
+    if (!BuildFeatureStateLog(MC_UNSAFE(aCx), aFeature, &log)) {
       return;
     }
     if (!JS_SetProperty(aCx, obj, "log", log)) {
       return;
     }
 
-    if (!AppendJSElement(MC_UNSAN(aCx), featureArray, obj)) {
+    if (!AppendJSElement(MC_UNSAFE(aCx), featureArray, obj)) {
       return;
     }
   });
@@ -1694,12 +1691,12 @@ nsresult GfxInfoBase::GetFeatureLog(JSContext* MC_UNSAN(aCx),
           return;
         }
 
-        if (!SetJSPropertyString(MC_UNSAN(aCx), obj, "name", aName) ||
-            !SetJSPropertyString(MC_UNSAN(aCx), obj, "message", aMessage)) {
+        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "name", aName) ||
+            !SetJSPropertyString(MC_UNSAFE(aCx), obj, "message", aMessage)) {
           return;
         }
 
-        if (!AppendJSElement(MC_UNSAN(aCx), fallbackArray, obj)) {
+        if (!AppendJSElement(MC_UNSAFE(aCx), fallbackArray, obj)) {
           return;
         }
       });
@@ -1801,9 +1798,8 @@ bool GfxInfoBase::InitFeatureObject(JSContext* aCx,
   return true;
 }
 
-nsresult GfxInfoBase::GetActiveCrashGuards(JSContext* MC_UNSAN(aCx),
+nsresult GfxInfoBase::GetActiveCrashGuards(MCContext* aCx,
                                            JS::MutableHandle<JS::Value> aOut) {
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
   if (!array) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1816,13 +1812,13 @@ nsresult GfxInfoBase::GetActiveCrashGuards(JSContext* MC_UNSAN(aCx),
         if (!obj) {
           return;
         }
-        if (!SetJSPropertyString(MC_UNSAN(aCx), obj, "type", aName)) {
+        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "type", aName)) {
           return;
         }
-        if (!SetJSPropertyString(MC_UNSAN(aCx), obj, "prefName", aPrefName)) {
+        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "prefName", aPrefName)) {
           return;
         }
-        if (!AppendJSElement(MC_UNSAN(aCx), array, obj)) {
+        if (!AppendJSElement(MC_UNSAFE(aCx), array, obj)) {
           return;
         }
       });

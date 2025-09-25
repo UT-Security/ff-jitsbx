@@ -39,8 +39,7 @@ nsresult JSEnumerator::Iterator(nsIJSEnumerator** aResult) {
   return NS_OK;
 }
 
-nsresult JSEnumerator::Next(JSContext* MC_UNSAN(aCx), JS::MutableHandleValue aResult) {
-  MC_SANITIZE(aCx);
+nsresult JSEnumerator::Next(MCContext* aCx, JS::MutableHandleValue aResult) {
   RootedDictionary<IteratorResult> result(aCx);
 
   nsCOMPtr<nsISupports> elem;
@@ -50,11 +49,11 @@ nsresult JSEnumerator::Next(JSContext* MC_UNSAN(aCx), JS::MutableHandleValue aRe
     result.mDone = false;
 
     MC::RootedValue value(aCx);
-    MOZ_TRY(nsContentUtils::WrapNative(MC_UNSAN(aCx), elem, &mIID, &value));
+    MOZ_TRY(nsContentUtils::WrapNative(MC_UNSAFE(aCx), elem, &mIID, &value));
     result.mValue = value;
   }
 
-  if (!ToJSValue(MC_UNSAN(aCx), result, aResult)) {
+  if (!ToJSValue(MC_UNSAFE(aCx), result, aResult)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;

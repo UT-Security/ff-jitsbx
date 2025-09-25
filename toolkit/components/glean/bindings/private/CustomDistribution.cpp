@@ -79,9 +79,8 @@ GleanCustomDistribution::AccumulateSamples(const nsTArray<int64_t>& aSamples) {
 
 NS_IMETHODIMP
 GleanCustomDistribution::TestGetValue(const nsACString& aPingName,
-                                      JSContext* MC_UNSAN(aCx),
+                                      MCContext* aCx,
                                       JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mCustomDist.TestGetValue(aPingName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

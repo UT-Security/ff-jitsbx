@@ -453,9 +453,9 @@ WebSocketChannelChild::AsyncOpen(nsIURI* aURI, const nsACString& aOrigin,
                                  JS::Handle<JS::Value> aOriginAttributes,
                                  uint64_t aInnerWindowID,
                                  nsIWebSocketListener* aListener,
-                                 nsISupports* aContext, JSContext* MC_UNSAN(aCx)) {
+                                 nsISupports* aContext, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return AsyncOpenNative(aURI, aOrigin, attrs, aInnerWindowID, aListener,

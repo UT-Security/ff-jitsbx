@@ -122,12 +122,6 @@ struct JS_PUBLIC_API FirstSubsumedFrame {
   JSPrincipals* principals;
   bool ignoreSelfHosted;
 
-  /**
-   * Use the cx's current compartment's principals.
-   */
-  explicit FirstSubsumedFrame(JSContext* cx,
-                              bool ignoreSelfHostedFrames = true);
-
   explicit FirstSubsumedFrame(JSContext* ctx, JSPrincipals* p,
                               bool ignoreSelfHostedFrames = true)
       : cx(ctx), principals(p), ignoreSelfHosted(ignoreSelfHostedFrames) {
@@ -179,6 +173,10 @@ using StackCapture = mozilla::Variant<AllFrames, MaxFrames, FirstSubsumedFrame>;
  *     |JS::FirstSubsumedFrame::ignoreSelfHosted| flag. Do not capture any async
  *     stack.
  */
+extern JS_PUBLIC_API bool CaptureCurrentStack(
+    JSContext* cx, MutableHandleObject stackp,
+    StackCapture* capture);
+
 extern JS_PUBLIC_API bool CaptureCurrentStack(
     JSContext* cx, MutableHandleObject stackp,
     StackCapture&& capture = StackCapture(AllFrames()));

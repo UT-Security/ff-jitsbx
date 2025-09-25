@@ -123,9 +123,9 @@ nsClientAuthRememberService::ClearRememberedDecisions() {
 NS_IMETHODIMP
 nsClientAuthRememberService::DeleteDecisionsByHost(
     const nsACString& aHostName, JS::Handle<JS::Value> aOriginAttributes,
-    JSContext* MC_UNSAN(aCx)) {
+    MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   DataStorageType storageType = GetDataStorageType(attrs);
@@ -154,9 +154,9 @@ nsClientAuthRememberService::DeleteDecisionsByHost(
 NS_IMETHODIMP
 nsClientAuthRememberService::RememberDecisionScriptable(
     const nsACString& aHostName, JS::Handle<JS::Value> aOriginAttributes,
-    nsIX509Cert* aClientCert, JSContext* MC_UNSAN(aCx)) {
+    nsIX509Cert* aClientCert, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return RememberDecision(aHostName, attrs, aClientCert);
@@ -313,9 +313,9 @@ nsClientAuthRememberService::HasRememberedDecision(
 NS_IMETHODIMP
 nsClientAuthRememberService::HasRememberedDecisionScriptable(
     const nsACString& aHostName, JS::Handle<JS::Value> aOriginAttributes,
-    nsACString& aCertDBKey, JSContext* MC_UNSAN(aCx), bool* aRetVal) {
+    nsACString& aCertDBKey, MCContext* aCx, bool* aRetVal) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return HasRememberedDecision(aHostName, attrs, aCertDBKey, aRetVal);

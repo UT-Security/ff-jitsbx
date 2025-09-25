@@ -243,15 +243,15 @@ nsresult Http2StreamTunnel::SetOriginAttributes(
 
 NS_IMETHODIMP
 Http2StreamTunnel::GetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOriginAttributes) {
-  return mSocketTransport->GetScriptableOriginAttributes(MC_UNSAN(aCx),
+    MCContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
+  return mSocketTransport->GetScriptableOriginAttributes(aCx,
                                                          aOriginAttributes);
 }
 
 NS_IMETHODIMP
 Http2StreamTunnel::SetScriptableOriginAttributes(
-    JSContext* MC_UNSAN(aCx), JS::Handle<JS::Value> aOriginAttributes) {
-  return mSocketTransport->SetScriptableOriginAttributes(MC_UNSAN(aCx),
+    MCContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
+  return mSocketTransport->SetScriptableOriginAttributes(aCx,
                                                          aOriginAttributes);
 }
 

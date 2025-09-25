@@ -16,9 +16,9 @@
 #include "mozStorageStatementRow.h"
 #include "mozStorageStatementParams.h"
 
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineProperty, JS_DefinePropertyById
-#include "js/Value.h"
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineProperty, JS_DefinePropertyById
+#include "monkeycage/Value.h"
 
 #include "xpc_make_class.h"
 
@@ -188,7 +188,7 @@ NS_INTERFACE_MAP_END
 #include "xpc_map_end.h"
 
 NS_IMETHODIMP
-StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
+StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, MCContext* aCtx,
                            JSObject* aScopeObj, jsid aId, bool* aResolvedp,
                            bool* _retval) {
   if (!aId.isString()) return NS_OK;
@@ -209,7 +209,8 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
 
   JSLinearString* str = id.toLinearString();
   if (::JS_LinearStringEqualsLiteral(str, "step")) {
-    *_retval = ::JS_DefineFunction(aCtx, scope, "step", stepFunc, 0,
+    static auto stepFuncCb = MC::Sandbox::RegisterCallback(stepFunc);
+    *_retval = ::JS_DefineFunction(aCtx, scope, "step", stepFuncCb, 0,
                                    JSPROP_RESOLVING) != nullptr;
     *aResolvedp = true;
     return NS_OK;
@@ -218,7 +219,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
   MC::Rooted<JS::Value> val(aCtx);
 
   if (::JS_LinearStringEqualsLiteral(str, "row")) {
-    nsresult rv = getRow(stmt, aCtx, scope, val.address());
+    nsresult rv = getRow(stmt, MC_UNSAFE(aCtx), scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *aResolvedp = true;
@@ -226,7 +227,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, JSContext* aCtx,
   }
 
   if (::JS_LinearStringEqualsLiteral(str, "params")) {
-    nsresult rv = getParams(stmt, aCtx, scope, val.address());
+    nsresult rv = getParams(stmt, MC_UNSAFE(aCtx), scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *aResolvedp = true;

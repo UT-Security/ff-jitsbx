@@ -101,9 +101,8 @@ GleanDatetime::Set(PRTime aValue, uint8_t aOptionalArgc) {
 }
 
 NS_IMETHODIMP
-GleanDatetime::TestGetValue(const nsACString& aStorageName, JSContext* MC_UNSAN(aCx),
+GleanDatetime::TestGetValue(const nsACString& aStorageName, MCContext* aCx,
                             JS::MutableHandle<JS::Value> aResult) {
-  MC_SANITIZE(aCx);
   auto result = mDatetime.TestGetValue(aStorageName);
   if (result.isErr()) {
     aResult.set(JS::UndefinedValue());

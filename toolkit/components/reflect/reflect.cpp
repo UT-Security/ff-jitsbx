@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "reflect.h"
-#include "jsapi.h"
+#include "mcapi.h"
 
 #include "nsString.h"
 #include "xpc_make_class.h"
@@ -23,7 +23,7 @@ Module::~Module() = default;
 #include "xpc_map_end.h"
 
 NS_IMETHODIMP
-Module::Call(nsIXPConnectWrappedNative* wrapper, JSContext* cx, JSObject* obj,
+Module::Call(nsIXPConnectWrappedNative* wrapper, MCContext* cx, JSObject* obj,
              const JS::CallArgs& args, bool* _retval) {
   MC::Rooted<JSObject*> global(cx, JS::GetScriptedCallerGlobal(cx));
   if (!global) return NS_ERROR_NOT_AVAILABLE;

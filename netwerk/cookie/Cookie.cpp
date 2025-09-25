@@ -207,8 +207,8 @@ NS_IMETHODIMP Cookie::GetSchemeMap(nsICookie::schemeType* aSchemeMap) {
 }
 
 NS_IMETHODIMP
-Cookie::GetOriginAttributes(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aVal) {
-  if (NS_WARN_IF(!ToJSValue(MC_UNSAN(aCx), mOriginAttributes, aVal))) {
+Cookie::GetOriginAttributes(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) {
+  if (NS_WARN_IF(!ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aVal))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;

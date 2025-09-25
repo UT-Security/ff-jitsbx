@@ -1564,18 +1564,18 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
 
 NS_IMETHODIMP
 nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative* wrapper,
-                                    JSContext* cx, JSObject* objArg,
+                                    MCContext* cx, JSObject* objArg,
                                     const CallArgs& args, bool* _retval) {
   MC::RootedObject obj(cx, objArg);
-  return CallOrConstruct(wrapper, cx, obj, args, _retval);
+  return CallOrConstruct(wrapper, MC_UNSAFE(cx), obj, args, _retval);
 }
 
 NS_IMETHODIMP
 nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative* wrapper,
-                                         JSContext* cx, JSObject* objArg,
+                                         MCContext* cx, JSObject* objArg,
                                          const CallArgs& args, bool* _retval) {
   MC::RootedObject obj(cx, objArg);
-  return CallOrConstruct(wrapper, cx, obj, args, _retval);
+  return CallOrConstruct(wrapper, MC_UNSAFE(cx), obj, args, _retval);
 }
 
 /*
@@ -2047,8 +2047,8 @@ static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
   // Append the caller's location information.
   if (frame) {
     nsString location;
-    frame->GetFilename(cx, location);
-    int32_t lineNumber = frame->GetLineNumber(cx);
+    frame->GetFilename(JS_SanitizeContext(cx), location);
+    int32_t lineNumber = frame->GetLineNumber(JS_SanitizeContext(cx));
 
     sandboxName.AppendLiteral(" (from: ");
     sandboxName.Append(NS_ConvertUTF16toUTF8(location));

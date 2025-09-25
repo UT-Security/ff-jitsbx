@@ -122,7 +122,7 @@ class MockGfxInfo final : public nsIGfxInfo {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
 
-  NS_IMETHOD GetMonitors(JSContext* cx,
+  NS_IMETHOD GetMonitors(MCContext* cx,
                          JS::MutableHandle<JS::Value> _retval) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
@@ -131,16 +131,16 @@ class MockGfxInfo final : public nsIGfxInfo {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
   NS_IMETHOD_(void) LogFailure(const nsACString& failure) override {}
-  NS_IMETHOD GetInfo(JSContext*, JS::MutableHandle<JS::Value>) override {
+  NS_IMETHOD GetInfo(MCContext*, JS::MutableHandle<JS::Value>) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  NS_IMETHOD GetFeatures(JSContext*, JS::MutableHandle<JS::Value>) override {
+  NS_IMETHOD GetFeatures(MCContext*, JS::MutableHandle<JS::Value>) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  NS_IMETHOD GetFeatureLog(JSContext*, JS::MutableHandle<JS::Value>) override {
+  NS_IMETHOD GetFeatureLog(MCContext*, JS::MutableHandle<JS::Value>) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }
-  NS_IMETHOD GetActiveCrashGuards(JSContext*,
+  NS_IMETHOD GetActiveCrashGuards(MCContext*,
                                   JS::MutableHandle<JS::Value>) override {
     return NS_ERROR_NOT_IMPLEMENTED;
   }

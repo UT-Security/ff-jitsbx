@@ -800,10 +800,10 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
                    bool aIsSecure, bool aIsHttpOnly, bool aIsSession,
                    int64_t aExpiry, JS::Handle<JS::Value> aOriginAttributes,
                    int32_t aSameSite, nsICookie::schemeType aSchemeMap,
-                   JSContext* MC_UNSAN(aCx)) {
+                   MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -883,10 +883,10 @@ nsresult CookieService::Remove(const nsACString& aHost,
 NS_IMETHODIMP
 CookieService::Remove(const nsACString& aHost, const nsACString& aName,
                       const nsACString& aPath,
-                      JS::Handle<JS::Value> aOriginAttributes, JSContext* MC_UNSAN(aCx)) {
+                      JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -2139,12 +2139,12 @@ NS_IMETHODIMP
 CookieService::CookieExists(const nsACString& aHost, const nsACString& aPath,
                             const nsACString& aName,
                             JS::Handle<JS::Value> aOriginAttributes,
-                            JSContext* MC_UNSAN(aCx), bool* aFoundCookie) {
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
+                            MCContext* aCx, bool* aFoundCookie) {
+  NS_ENSURE_ARG_POINTER(MC_UNSAFE(aCx));
   NS_ENSURE_ARG_POINTER(aFoundCookie);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return CookieExistsNative(aHost, aPath, aName, &attrs, aFoundCookie);
@@ -2228,7 +2228,7 @@ CookieService::CountCookiesFromHost(const nsACString& aHost,
 NS_IMETHODIMP
 CookieService::GetCookiesFromHost(const nsACString& aHost,
                                   JS::Handle<JS::Value> aOriginAttributes,
-                                  JSContext* MC_UNSAN(aCx),
+                                  MCContext* aCx,
                                   nsTArray<RefPtr<nsICookie>>& aResult) {
   // first, normalize the hostname, and fail if it contains illegal characters.
   nsAutoCString host(aHost);
@@ -2240,7 +2240,7 @@ CookieService::GetCookiesFromHost(const nsACString& aHost,
   NS_ENSURE_SUCCESS(rv, rv);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -2408,9 +2408,8 @@ class RemoveAllSinceRunnable : public Runnable {
 }  // namespace
 
 NS_IMETHODIMP
-CookieService::RemoveAllSince(int64_t aSinceWhen, JSContext* MC_UNSAN(aCx),
+CookieService::RemoveAllSince(int64_t aSinceWhen, MCContext* aCx,
                               Promise** aRetVal) {
-  MC_SANITIZE(aCx);
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;

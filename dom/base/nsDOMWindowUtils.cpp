@@ -2543,7 +2543,7 @@ nsDOMWindowUtils::SendContentCommandEvent(const nsAString& aType,
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetClassName(JS::Handle<JS::Value> aObject, JSContext* MC_UNSAN(aCx),
+nsDOMWindowUtils::GetClassName(JS::Handle<JS::Value> aObject, MCContext* aCx,
                                char** aName) {
   // Our argument must be a non-null object.
   if (aObject.isPrimitive()) {
@@ -3401,14 +3401,13 @@ nsDOMWindowUtils::ResetDialogAbuseState() {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* MC_UNSAN(aCx),
+nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, MCContext* aCx,
                             int64_t* _retval) {
   if (aFile.isPrimitive()) {
     *_retval = -1;
     return NS_OK;
   }
 
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
 
   Blob* blob = nullptr;
@@ -3422,14 +3421,13 @@ nsDOMWindowUtils::GetFileId(JS::Handle<JS::Value> aFile, JSContext* MC_UNSAN(aCx
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetFilePath(JS::Handle<JS::Value> aFile, JSContext* MC_UNSAN(aCx),
+nsDOMWindowUtils::GetFilePath(JS::Handle<JS::Value> aFile, MCContext* aCx,
                               nsAString& _retval) {
   if (aFile.isPrimitive()) {
     _retval.Truncate();
     return NS_OK;
   }
 
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, aFile.toObjectOrNull());
 
   File* file = nullptr;
@@ -3491,47 +3489,47 @@ nsDOMWindowUtils::FlushPendingFileDeletions() {
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::StartPCCountProfiling(JSContext* MC_UNSAN(cx)) {
-  JS::StartPCCountProfiling(MC_UNSAN(cx));
+nsDOMWindowUtils::StartPCCountProfiling(MCContext* cx) {
+  JS::StartPCCountProfiling(MC_UNSAFE(cx));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::StopPCCountProfiling(JSContext* MC_UNSAN(cx)) {
-  JS::StopPCCountProfiling(MC_UNSAN(cx));
+nsDOMWindowUtils::StopPCCountProfiling(MCContext* cx) {
+  JS::StopPCCountProfiling(MC_UNSAFE(cx));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::PurgePCCounts(JSContext* MC_UNSAN(cx)) {
-  JS::PurgePCCounts(MC_UNSAN(cx));
+nsDOMWindowUtils::PurgePCCounts(MCContext* cx) {
+  JS::PurgePCCounts(MC_UNSAFE(cx));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetPCCountScriptCount(JSContext* MC_UNSAN(cx), int32_t* result) {
-  *result = JS::GetPCCountScriptCount(MC_UNSAN(cx));
+nsDOMWindowUtils::GetPCCountScriptCount(MCContext* cx, int32_t* result) {
+  *result = JS::GetPCCountScriptCount(MC_UNSAFE(cx));
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetPCCountScriptSummary(int32_t script, JSContext* MC_UNSAN(cx),
+nsDOMWindowUtils::GetPCCountScriptSummary(int32_t script, MCContext* cx,
                                           nsAString& result) {
-  JSString* text = JS::GetPCCountScriptSummary(MC_UNSAN(cx), script);
+  JSString* text = JS::GetPCCountScriptSummary(MC_UNSAFE(cx), script);
   if (!text) return NS_ERROR_FAILURE;
 
-  if (!AssignJSString(MC_UNSAN(cx), result, text)) return NS_ERROR_FAILURE;
+  if (!AssignJSString(MC_UNSAFE(cx), result, text)) return NS_ERROR_FAILURE;
 
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsDOMWindowUtils::GetPCCountScriptContents(int32_t script, JSContext* MC_UNSAN(cx),
+nsDOMWindowUtils::GetPCCountScriptContents(int32_t script, MCContext* cx,
                                            nsAString& result) {
-  JSString* text = JS::GetPCCountScriptContents(MC_UNSAN(cx), script);
+  JSString* text = JS::GetPCCountScriptContents(MC_UNSAFE(cx), script);
   if (!text) return NS_ERROR_FAILURE;
 
-  if (!AssignJSString(MC_UNSAN(cx), result, text)) return NS_ERROR_FAILURE;
+  if (!AssignJSString(MC_UNSAFE(cx), result, text)) return NS_ERROR_FAILURE;
 
   return NS_OK;
 }
@@ -4107,14 +4105,14 @@ nsDOMWindowUtils::IsKeyboardEventUserActivity(Event* aEvent, bool* aResult) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetContentAPZTestData(
-    JSContext* MC_UNSAN(aContext), JS::MutableHandle<JS::Value> aOutContentTestData) {
+    MCContext* aContext, JS::MutableHandle<JS::Value> aOutContentTestData) {
   if (nsIWidget* widget = GetWidget()) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
       return NS_OK;
     }
     if (WebRenderLayerManager* wr = renderer->AsWebRender()) {
-      if (!wr->GetAPZTestData().ToJS(aOutContentTestData, MC_UNSAN(aContext))) {
+      if (!wr->GetAPZTestData().ToJS(aOutContentTestData, MC_UNSAFE(aContext))) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -4125,7 +4123,7 @@ nsDOMWindowUtils::GetContentAPZTestData(
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetCompositorAPZTestData(
-    JSContext* MC_UNSAN(aContext), JS::MutableHandle<JS::Value> aOutCompositorTestData) {
+    MCContext* aContext, JS::MutableHandle<JS::Value> aOutCompositorTestData) {
   if (nsIWidget* widget = GetWidget()) {
     WindowRenderer* renderer = widget->GetWindowRenderer();
     if (!renderer) {
@@ -4140,7 +4138,7 @@ nsDOMWindowUtils::GetCompositorAPZTestData(
         return NS_ERROR_FAILURE;
       }
     }
-    if (!compositorSideData.ToJS(aOutCompositorTestData, MC_UNSAN(aContext))) {
+    if (!compositorSideData.ToJS(aOutCompositorTestData, MC_UNSAFE(aContext))) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -4201,7 +4199,7 @@ nsDOMWindowUtils::SetResizeMargin(int32_t aResizeMargin) {
 
 NS_IMETHODIMP
 nsDOMWindowUtils::GetFrameUniformityTestData(
-    JSContext* MC_UNSAN(aContext), JS::MutableHandle<JS::Value> aOutFrameUniformity) {
+    MCContext* aContext, JS::MutableHandle<JS::Value> aOutFrameUniformity) {
   nsIWidget* widget = GetWidget();
   if (!widget) {
     return NS_ERROR_NOT_AVAILABLE;
@@ -4214,7 +4212,7 @@ nsDOMWindowUtils::GetFrameUniformityTestData(
 
   FrameUniformityData outData;
   renderer->GetFrameUniformity(&outData);
-  outData.ToJS(aOutFrameUniformity, MC_UNSAN(aContext));
+  outData.ToJS(aOutFrameUniformity, MC_UNSAFE(aContext));
   return NS_OK;
 }
 

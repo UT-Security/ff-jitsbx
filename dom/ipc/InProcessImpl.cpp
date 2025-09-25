@@ -143,9 +143,8 @@ NS_IMETHODIMP InProcessParent::GetRemoteType(nsACString& aRemoteType) {
 }
 
 NS_IMETHODIMP
-InProcessParent::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
+InProcessParent::GetActor(const nsACString& aName, MCContext* aCx,
                           JSProcessActorParent** aActor) {
-  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorParent> actor =
       JSActorManager::GetActor(aCx, aName, error)
@@ -206,9 +205,8 @@ InProcessChild::GetChildID(uint64_t* aChildID) {
 }
 
 NS_IMETHODIMP
-InProcessChild::GetActor(const nsACString& aName, JSContext* MC_UNSAN(aCx),
+InProcessChild::GetActor(const nsACString& aName, MCContext* aCx,
                          JSProcessActorChild** aActor) {
-  MC_SANITIZE(aCx);
   ErrorResult error;
   RefPtr<JSProcessActorChild> actor =
       JSActorManager::GetActor(aCx, aName, error)

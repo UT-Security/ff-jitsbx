@@ -62,9 +62,8 @@ nsHangDetails::GetRemoteType(nsACString& aName) {
 }
 
 NS_IMETHODIMP
-nsHangDetails::GetAnnotations(JSContext* MC_UNSAN(aCx),
+nsHangDetails::GetAnnotations(MCContext* aCx,
                               JS::MutableHandle<JS::Value> aVal) {
-  MC_SANITIZE(aCx);
   // We create an Array with ["key", "value"] string pair entries for each item
   // in our annotations object.
   auto& annotations = mDetails.annotations();
@@ -133,8 +132,7 @@ nsresult StringFrame(JSContext* aCx, MC::RootedObject& aTarget, size_t aIndex,
 }  // anonymous namespace
 
 NS_IMETHODIMP
-nsHangDetails::GetStack(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aStack) {
-  MC_SANITIZE(aCx);
+nsHangDetails::GetStack(MCContext* aCx, JS::MutableHandle<JS::Value> aStack) {
   auto& stack = mDetails.stack();
   uint32_t length = stack.stack().Length();
   MC::Rooted<JSObject*> ret(aCx, JS::NewArrayObject(aCx, length));
@@ -146,7 +144,7 @@ nsHangDetails::GetStack(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> a
     auto& entry = stack.stack()[i];
     switch (entry.type()) {
       case HangEntry::TnsCString: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, entry.get_nsCString().get());
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, entry.get_nsCString().get());
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -173,7 +171,7 @@ nsHangDetails::GetStack(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> a
         // We know this offset is safe because of the previous checks.
         const int8_t* start = stack.strbuffer().Elements() + offset;
         nsresult rv =
-            StringFrame(MC_UNSAN(aCx), ret, i, reinterpret_cast<const char*>(start));
+            StringFrame(MC_UNSAFE(aCx), ret, i, reinterpret_cast<const char*>(start));
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -202,32 +200,32 @@ nsHangDetails::GetStack(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> a
       }
       case HangEntry::THangEntryProgCounter: {
         // Don't bother recording fixed program counters to JS
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(unresolved)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(unresolved)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryContent: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(content script)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(content script)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryJit: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(jit frame)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(jit frame)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryWasm: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(wasm)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(wasm)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryChromeScript: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(chrome script)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(chrome script)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntrySuppressed: {
-        nsresult rv = StringFrame(MC_UNSAN(aCx), ret, i, "(profiling suppressed)");
+        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(profiling suppressed)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -241,8 +239,7 @@ nsHangDetails::GetStack(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> a
 }
 
 NS_IMETHODIMP
-nsHangDetails::GetModules(JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aVal) {
-  MC_SANITIZE(aCx);
+nsHangDetails::GetModules(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) {
   auto& modules = mDetails.stack().modules();
   size_t length = modules.Length();
   MC::Rooted<JSObject*> retObj(aCx, JS::NewArrayObject(aCx, length));

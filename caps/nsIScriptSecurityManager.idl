@@ -22,7 +22,7 @@ class DomainPolicyClone;
 }
 %}
 
-[ptr] native JSContextPtr(JSContext);
+[ptr] native MCContextPtr(MCContext);
 [ptr] native JSObjectPtr(JSObject);
 [ptr] native DomainPolicyClonePtr(mozilla::dom::DomainPolicyClone);
 
@@ -36,15 +36,15 @@ interface nsIScriptSecurityManager : nsISupports
      * interface is responsible for setting a JS exception into the JSContext
      * if that is appropriate.
      */
-    [noscript] void canCreateWrapper(in JSContextPtr aJSContext,
+    [noscript] void canCreateWrapper(in MCContextPtr aJSContext,
                                      in nsIIDRef aIID,
                                      in nsISupports aObj,
                                      in nsIClassInfo aClassInfo);
 
-    [noscript] void canCreateInstance(in JSContextPtr aJSContext,
+    [noscript] void canCreateInstance(in MCContextPtr aJSContext,
                                       in nsCIDRef aCID);
 
-    [noscript] void canGetService(in JSContextPtr aJSContext,
+    [noscript] void canGetService(in MCContextPtr aJSContext,
                                   in nsCIDRef aCID);
 
     /**
@@ -56,7 +56,7 @@ interface nsIScriptSecurityManager : nsISupports
      * @param cx the JSContext of the script causing the load
      * @param uri the URI that is being loaded
      */
-    [noscript] void checkLoadURIFromScript(in JSContextPtr cx, in nsIURI uri);
+    [noscript] void checkLoadURIFromScript(in MCContextPtr cx, in nsIURI uri);
 
     /**
      * Default CheckLoadURI permissions

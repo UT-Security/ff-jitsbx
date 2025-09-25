@@ -820,9 +820,8 @@ nsAppStartup::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 NS_IMETHODIMP
-nsAppStartup::GetStartupInfo(JSContext* MC_UNSAN(aCx),
+nsAppStartup::GetStartupInfo(MCContext* aCx,
                              JS::MutableHandle<JS::Value> aRetval) {
-  MC_SANITIZE(aCx);
   MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
   aRetval.setObject(*obj);

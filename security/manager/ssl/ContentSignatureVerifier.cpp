@@ -74,9 +74,8 @@ NS_IMETHODIMP
 ContentSignatureVerifier::AsyncVerifyContentSignature(
     const nsACString& aData, const nsACString& aCSHeader,
     const nsACString& aCertChain, const nsACString& aHostname,
-    AppTrustedRoot aTrustedRoot, JSContext* MC_UNSAN(aCx), Promise** aPromise) {
-  NS_ENSURE_ARG_POINTER(MC_UNSAN(aCx));
-  MC_SANITIZE(aCx);
+    AppTrustedRoot aTrustedRoot, MCContext* aCx, Promise** aPromise) {
+  NS_ENSURE_ARG_POINTER(aCx);
 
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {

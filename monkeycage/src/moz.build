@@ -374,6 +374,7 @@ EXPORTS.monkeycage += [
 	"../public/RealmIterators.h",
 	"../public/RealmOptions.h",
 	"../public/RootingAPI.h",
+	"../public/SavedFrameAPI.h",
 	"../public/ScriptPrivate.h",
 	"../public/ShadowRealmCallbacks.h",
 	"../public/SourceText.h",

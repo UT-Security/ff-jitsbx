@@ -2258,14 +2258,14 @@ nsDocShell::GetRecordProfileTimelineMarkers(bool* aValue) {
 }
 
 nsresult nsDocShell::PopProfileTimelineMarkers(
-    JSContext* MC_UNSAN(aCx), JS::MutableHandle<JS::Value> aOut) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aOut) {
   nsTArray<dom::ProfileTimelineMarker> store;
-  SequenceRooter<dom::ProfileTimelineMarker> rooter(MC_UNSAN(aCx), &store);
+  SequenceRooter<dom::ProfileTimelineMarker> rooter(MC_UNSAFE(aCx), &store);
 
-  TimelineConsumers::PopMarkers(this, MC_UNSAN(aCx), store);
+  TimelineConsumers::PopMarkers(this, MC_UNSAFE(aCx), store);
 
-  if (!ToJSValue(MC_UNSAN(aCx), store, aOut)) {
-    JS_ClearPendingException(MC_UNSAN(aCx));
+  if (!ToJSValue(MC_UNSAFE(aCx), store, aOut)) {
+    JS_ClearPendingException(aCx);
     return NS_ERROR_UNEXPECTED;
   }
 
@@ -3340,10 +3340,10 @@ nsresult nsDocShell::LoadURI(nsIURI* aURI,
 NS_IMETHODIMP
 nsDocShell::LoadURIFromScript(nsIURI* aURI,
                               JS::Handle<JS::Value> aLoadURIOptions,
-                              JSContext* MC_UNSAN(aCx)) {
+                              MCContext* aCx) {
   // generate dictionary for aLoadURIOptions and forward call
   LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAN(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return LoadURI(aURI, loadURIOptions);
@@ -3401,10 +3401,10 @@ nsresult nsDocShell::FixupAndLoadURIString(
 NS_IMETHODIMP
 nsDocShell::FixupAndLoadURIStringFromScript(
     const nsAString& aURIString, JS::Handle<JS::Value> aLoadURIOptions,
-    JSContext* MC_UNSAN(aCx)) {
+    MCContext* aCx) {
   // generate dictionary for aLoadURIOptions and forward call
   LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAN(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return FixupAndLoadURIString(aURIString, loadURIOptions);
@@ -11202,7 +11202,7 @@ bool nsDocShell::CollectWireframe() {
 
 NS_IMETHODIMP
 nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
-                     const nsAString& aURL, bool aReplace, JSContext* MC_UNSAN(aCx)) {
+                     const nsAString& aURL, bool aReplace, MCContext* aCx) {
   MOZ_LOG(gSHLog, LogLevel::Debug,
           ("nsDocShell[%p]: AddState(..., %s, %s, %d)", this,
            NS_ConvertUTF16toUTF8(aTitle).get(),
@@ -11284,7 +11284,7 @@ nsDocShell::AddState(JS::Handle<JS::Value> aData, const nsAString& aTitle,
     nsCOMPtr<nsIPrincipal> origPrincipal = origDocument->NodePrincipal();
 
     scContainer = new nsStructuredCloneContainer();
-    rv = scContainer->InitFromJSVal(aData, MC_UNSAN(aCx));
+    rv = scContainer->InitFromJSVal(aData, aCx);
     NS_ENSURE_SUCCESS(rv, rv);
 
     RefPtr<Document> newDocument = GetDocument();
@@ -13252,16 +13252,16 @@ NS_IMETHODIMP nsDocShell::GetIsTopLevelContentDocShell(
 
 // Implements nsILoadContext.originAttributes
 NS_IMETHODIMP
-nsDocShell::GetScriptableOriginAttributes(JSContext* MC_UNSAN(aCx),
+nsDocShell::GetScriptableOriginAttributes(MCContext* aCx,
                                           JS::MutableHandle<JS::Value> aVal) {
-  return mBrowsingContext->GetScriptableOriginAttributes(MC_UNSAN(aCx), aVal);
+  return mBrowsingContext->GetScriptableOriginAttributes(aCx, aVal);
 }
 
 // Implements nsIDocShell.GetOriginAttributes()
 NS_IMETHODIMP
-nsDocShell::GetOriginAttributes(JSContext* MC_UNSAN(aCx),
+nsDocShell::GetOriginAttributes(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aVal) {
-  return mBrowsingContext->GetScriptableOriginAttributes(MC_UNSAN(aCx), aVal);
+  return mBrowsingContext->GetScriptableOriginAttributes(aCx, aVal);
 }
 
 bool nsDocShell::ServiceWorkerAllowedToControlWindow(nsIPrincipal* aPrincipal,
@@ -13379,9 +13379,9 @@ nsDocShell::ResumeRedirectedLoad(uint64_t aIdentifier, int32_t aHistoryIndex) {
 
 NS_IMETHODIMP
 nsDocShell::SetOriginAttributes(JS::Handle<JS::Value> aOriginAttributes,
-                                JSContext* MC_UNSAN(aCx)) {
+                                MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAN(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

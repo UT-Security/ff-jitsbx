@@ -831,7 +831,7 @@ MC::Tainted<bool> XPC_WN_Helper_Call(MC::Tainted<JSContext*> t_cx, unsigned argc
   }
 
   PRE_HELPER_STUB
-  Call(wrapper, MC_UNSAFE(cx), obj, args, &retval);
+  Call(wrapper, cx, obj, args, &retval);
   POST_HELPER_STUB
 }
 
@@ -858,7 +858,7 @@ MC::Tainted<bool> XPC_WN_Helper_Construct(MC::Tainted<JSContext*> t_cx, unsigned
   }
 
   PRE_HELPER_STUB
-  Construct(wrapper, MC_UNSAFE(cx), obj, args, &retval);
+  Construct(wrapper, cx, obj, args, &retval);
   POST_HELPER_STUB
 }
 
@@ -888,7 +888,7 @@ static MC::Tainted<bool> XPC_WN_Helper_HasInstance(MC::Tainted<JSContext*> t_cx,
 
   bool retval2;
   PRE_HELPER_STUB
-  HasInstance(wrapper, MC_UNSAFE(cx), obj, val, &retval2, &retval);
+  HasInstance(wrapper, cx, obj, val, &retval2, &retval);
   args.rval().setBoolean(retval2);
   POST_HELPER_STUB
 }
@@ -959,7 +959,7 @@ MC::Tainted<bool> XPC_WN_Helper_Resolve(MC::Tainted<JSContext*> t_cx, HandleObje
     if (scr->AllowPropModsDuringResolve()) {
       asrw.emplace(ccx, wrapper);
     }
-    rv = scr->Resolve(wrapper, MC_UNSAFE(cx), obj, id, &resolved, &retval);
+    rv = scr->Resolve(wrapper, cx, obj, id, &resolved, &retval);
   }
 
   old = ccx.SetResolveName(old);
@@ -1024,7 +1024,7 @@ MC::Tainted<bool> XPC_WN_NewEnumerate(MC::Tainted<JSContext*> t_cx, HandleObject
 
   bool retval = true;
   nsresult rv =
-      scr->NewEnumerate(wrapper, MC_UNSAFE(cx), obj, properties, enumerableOnly, &retval);
+      scr->NewEnumerate(wrapper, cx, obj, properties, enumerableOnly, &retval);
   if (NS_FAILED(rv)) {
     return Throw(rv, cx);
   }
