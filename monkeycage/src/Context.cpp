@@ -131,7 +131,6 @@ MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime) {
   rt->rt_ = jsrt;
 
   cx->cx_ = jscx;
-  cx->rcx_ = JS::RootingContext::get(jscx);
   cx->data_ = nullptr;
   cx->rt_ = rt;
 
@@ -150,11 +149,4 @@ MCContext* JS_SanitizeContext(JSContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
   return MCContext::mcx_;
 }
-
-MCContext* JS_SanitizeContext(JS::RootingContext* rcx) {
-  MOZ_RELEASE_ASSERT(MCContext::mcx_);
-  MOZ_RELEASE_ASSERT(MCContext::mcx_->rcx_ == rcx);
-  return MCContext::mcx_;
-}
-
 #endif

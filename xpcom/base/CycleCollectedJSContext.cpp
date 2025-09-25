@@ -322,9 +322,7 @@ void CycleCollectedJSContext::PromiseRejectionTrackerCallback(
     MC::Tainted<JSContext*> tCx, bool aMutedErrors, JS::HandleObject aPromise,
     JS::PromiseRejectionHandlingState state, MC::AppPointer<void*> aData) {
   CycleCollectedJSContext* self = static_cast<CycleCollectedJSContext*>(aData.UNSAFE_unverified());
-  MCContext* aCx = tCx.copy_and_verify_address([](uintptr_t val) {
-    return JS_SanitizeContext((JSContext*)val);
-  });
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
 
   MOZ_ASSERT(aCx == self->Context());
   MOZ_ASSERT(Get() == self);
@@ -746,7 +744,7 @@ NS_IMETHODIMP CycleCollectedJSContext::NotifyUnhandledRejections::Run() {
       continue;
     }
 
-    JS::RootingContext* cx = cccx->RootingCx();
+    MC::RootingContext* cx = cccx->RootingCx();
     MC::RootedObject promiseObj(cx, promise->PromiseObj());
     MOZ_ASSERT(JS::IsPromiseObject(promiseObj));
 
@@ -863,7 +861,7 @@ void FinalizationRegistryCleanup::DoCleanup() {
     return;
   }
 
-  JS::RootingContext* cx = mContext->RootingCx();
+  MC::RootingContext* cx = mContext->RootingCx();
 
   MC::Rooted<CallbackVector> callbacks(cx);
   std::swap(callbacks.get(), mCallbacks.get());

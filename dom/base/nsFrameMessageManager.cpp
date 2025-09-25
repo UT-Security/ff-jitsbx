@@ -662,7 +662,7 @@ void nsFrameMessageManager::ReceiveMessage(
         continue;
       }
 
-      JS::RootingContext* rcx = RootingCx();
+      MC::RootingContext* rcx = RootingCx();
       MC::Rooted<JSObject*> object(rcx);
       MC::Rooted<JSObject*> objectGlobal(rcx);
 

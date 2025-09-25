@@ -332,8 +332,7 @@ static void MaybeSanitizeException(MCContext* cx,
 }
 
 static MC::Tainted<bool> FunctionForwarder(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
   CallArgs args = CallArgsFromVp(argc, vp);
 

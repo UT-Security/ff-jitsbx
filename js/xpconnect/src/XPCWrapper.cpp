@@ -24,8 +24,7 @@ static inline bool ThrowException(nsresult ex, MCContext* cx) {
 }
 
 static MC::Tainted<bool> UnwrapNW(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
@@ -47,8 +46,7 @@ static MC::Tainted<bool> UnwrapNW(MC::Tainted<JSContext*> t_cx, unsigned argc, M
 }
 
 static MC::Tainted<bool> XrayWrapperConstructor(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = CallArgsFromVp(argc, vp);

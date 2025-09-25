@@ -186,9 +186,9 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
     return mJSContext;
   }
 
-  JS::RootingContext* RootingCx() const {
+  MC::RootingContext* RootingCx() const {
     MOZ_ASSERT(mJSContext);
-    return JS::RootingContext::get(MC_UNSAFE(mJSContext));
+    return MC::RootingContext::get(mJSContext);
   }
 
   void SetTargetedMicroTaskRecursionDepth(uint32_t aDepth) {

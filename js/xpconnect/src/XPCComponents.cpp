@@ -1058,8 +1058,7 @@ NS_IMPL_ISUPPORTS(nsXPCComponents_Constructor, nsIXPCComponents_Constructor,
 // static
 MC::Tainted<bool> nsXPCComponents_Constructor::InnerConstructor(MC::Tainted<JSContext*> t_cx, unsigned argc,
                                                    MC::Tainted<JS::Value*> t_vp) {
-  MCContext* cx = t_cx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   Value* vp = t_vp.UNSAFE_unverified();
 
   CallArgs args = CallArgsFromVp(argc, vp);

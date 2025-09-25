@@ -234,9 +234,7 @@ void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObjec
                                         HandleObject objArg,
                                         HandleObject objectPassedToWrap,
                                         MutableHandleObject retObj) {
-  MCContext* cx = tcx.copy_and_verify_address([](uintptr_t val) {
-    return JS_SanitizeContext((JSContext*)val);
-  });
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   // The JS engine calls ToWindowProxyIfWindow and deals with dead wrappers.
   MOZ_ASSERT(!js::IsWindow(objArg));
   MOZ_ASSERT(!JS_IsDeadWrapper(objArg));
@@ -475,8 +473,7 @@ MC::Tainted<JSObject*> WrapperFactory::Rewrap(MC::Tainted<JSContext*> tcx, Handl
              "wrapped object passed to rewrap");
   MOZ_ASSERT(!js::IsWindow(obj));
   MOZ_ASSERT(dom::IsJSAPIActive());
-  MCContext* cx = tcx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
 
   // Compute the information we need to select the right wrapper.
   JS::Realm* origin = js::GetNonCCWObjectRealm(obj);

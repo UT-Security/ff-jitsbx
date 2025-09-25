@@ -103,8 +103,7 @@ JS_PUBLIC_API void JSPrincipals::dump() {
 MC::Tainted<bool> nsJSPrincipals::ReadPrincipals(MC::Tainted<JSContext*> t_aCx,
                                     MC::Tainted<JSStructuredCloneReader*> aReader,
                                     MC::Tainted<JSPrincipals**> aOutPrincipals) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   
   uint32_t tag;
   uint32_t unused;

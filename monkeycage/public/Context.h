@@ -29,8 +29,6 @@ struct MCRuntime {
 };
 
 struct MCContext : MC::RootingContext {
-  JSContext* cx_;
-  JS::RootingContext* rcx_;
   void* data_;
 
   MCRuntime* rt_;
@@ -54,9 +52,11 @@ extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nu
 
 extern MCContext* JS_SanitizeContext(JSContext* cx);
 
-extern MCContext* JS_SanitizeContext(JS::RootingContext* rcx);
-
-inline MCContext* MC_Sanitize(JSContext* cx) { return JS_SanitizeContext(cx); }
+inline MCContext* MC_VerifyContext(uintptr_t cx) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT((uintptr_t)MCContext::mcx_->cx_ == cx);
+  return MCContext::mcx_;
+}
 
 inline void JS_DestroyContext(MCContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_, "Attempt to delete MCContext in non-allocating thread");
@@ -89,21 +89,6 @@ inline MCRuntime* JS_GetRuntime(MCContext* cx) {
 inline void JS_SetFutexCanWait(MCContext* cx) {
   return JS_SetFutexCanWait(cx->cx_);
 }
-
-namespace js {
-
-inline JS::Realm* GetContextRealm(const MCContext* cx) {
-  return GetContextRealm(cx->cx_);
-}
-
-inline JS::Compartment* GetContextCompartment(const MCContext* cx) {
-  return GetContextCompartment(cx->cx_);
-}
-
-inline JS::Zone* GetContextZone(const MCContext* cx) {
-  return GetContextZone(cx->cx_);
-}
-}  // namespace js
 
 namespace JS {
 

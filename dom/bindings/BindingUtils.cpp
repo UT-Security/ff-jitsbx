@@ -2867,8 +2867,7 @@ void FinalizeGlobal(JS::GCContext* aGcx, JSObject* aObj) {
 
 MC::Tainted<bool> ResolveGlobal(MC::Tainted<JSContext*> t_aCx, JS::Handle<JSObject*> aObj,
                    JS::Handle<jsid> aId, MC::Tainted<bool*> aResolvedp) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(
-      [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
+  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
   MOZ_ASSERT(JS_IsGlobalObject(aObj),
              "Should have a global here, since we plan to resolve standard "
              "classes!");

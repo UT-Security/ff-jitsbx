@@ -213,7 +213,7 @@ void FindExceptionStackForConsoleReport(
     return;
   }
 
-  JS::RootingContext* rcx = RootingCx();
+  MC::RootingContext* rcx = RootingCx();
   MC::Rooted<JSObject*> exceptionObject(rcx, &exceptionValue.toObject());
   if (JSObject* excStack = JS::ExceptionStackOrNull(exceptionObject)) {
     // At this point we know exceptionObject is a possibly-wrapped
@@ -372,7 +372,7 @@ bool NS_HandleScriptError(nsIScriptGlobalObject* aScriptGlobal,
 
 class ScriptErrorEvent : public Runnable {
  public:
-  ScriptErrorEvent(nsPIDOMWindowInner* aWindow, JS::RootingContext* aRootingCx,
+  ScriptErrorEvent(nsPIDOMWindowInner* aWindow, MC::RootingContext* aRootingCx,
                    xpc::ErrorReport* aReport, JS::Handle<JS::Value> aError,
                    JS::Handle<JSObject*> aErrorStack)
       : mozilla::Runnable("ScriptErrorEvent"),
@@ -389,7 +389,7 @@ class ScriptErrorEvent : public Runnable {
     MOZ_ASSERT(NS_IsMainThread());
     // First, notify the DOM that we have a script error, but only if
     // our window is still the current inner.
-    JS::RootingContext* rootingCx = RootingCx();
+    MC::RootingContext* rootingCx = RootingCx();
     if (win->IsCurrentInnerWindow() && win->GetDocShell() &&
         !sHandlingScriptError) {
       AutoRestore<bool> recursionGuard(sHandlingScriptError);
@@ -451,7 +451,7 @@ bool ScriptErrorEvent::sHandlingScriptError = false;
 namespace xpc {
 
 void DispatchScriptErrorEvent(nsPIDOMWindowInner* win,
-                              JS::RootingContext* rootingCx,
+                              MC::RootingContext* rootingCx,
                               xpc::ErrorReport* xpcReport,
                               JS::Handle<JS::Value> exception,
                               JS::Handle<JSObject*> exceptionStack) {
