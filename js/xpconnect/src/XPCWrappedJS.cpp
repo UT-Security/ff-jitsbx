@@ -470,10 +470,10 @@ void XPCJSRuntime::RemoveWrappedJS(nsXPCWrappedJS* wrapper) {
 }
 
 #ifdef DEBUG
-static JS::CompartmentIterResult NotHasWrapperAssertionCallback(
-    JSContext* cx, void* data, JS::Compartment* comp) {
-  auto wrapper = static_cast<nsXPCWrappedJS*>(data);
-  auto xpcComp = xpc::CompartmentPrivate::Get(comp);
+static MC::Tainted<JS::CompartmentIterResult> NotHasWrapperAssertionCallback(
+    MC::Tainted<JSContext*> cx, MC::AppPointer<void*> data, MC::Tainted<JS::Compartment*> comp) {
+  auto wrapper = static_cast<nsXPCWrappedJS*>(data.UNSAFE_unverified());
+  auto xpcComp = xpc::CompartmentPrivate::Get(comp.UNSAFE_unverified());
   MOZ_ASSERT_IF(xpcComp, !xpcComp->GetWrappedJSMap()->HasWrapper(wrapper));
   return JS::CompartmentIterResult::KeepGoing;
 }
@@ -486,7 +486,7 @@ void XPCJSRuntime::AssertInvalidWrappedJSNotInTable(
     MOZ_ASSERT(!GetMultiCompartmentWrappedJSMap()->HasWrapper(wrapper));
     if (!mGCIsRunning) {
       MCContext* cx = XPCJSContext::Get()->Context();
-      static auto NotHasWrapperAssertionCallbackCb = MC::Sandbox::RegisterCallback(NotHasWrapperAssertionCallback);
+      static auto NotHasWrapperAssertionCallbackCb = MC::Sandbox::RegisterTaintedCallback(NotHasWrapperAssertionCallback);
       JS_IterateCompartments(cx, wrapper, NotHasWrapperAssertionCallbackCb);
     }
   }

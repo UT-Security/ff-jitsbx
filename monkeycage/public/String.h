@@ -110,7 +110,7 @@ MOZ_ALWAYS_INLINE bool IsExternalString(
   }
 
   *callbacks = static_cast<const MCExternalStringCallbacks*>(
-      static_cast<const sandbox::JSExternalStringCallbacks*>(callbacks_)
+      static_cast<const ::sandbox::JSExternalStringCallbacks*>(callbacks_)
           ->getExternalStringCallbacks());
   return ret;
 }

@@ -8,8 +8,8 @@
 #define mozilla_dom_ScriptLoadContext_h
 
 #include "js/AllocPolicy.h"
-#include "js/RootingAPI.h"
-#include "js/SourceText.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/SourceText.h"
 #include "js/TypeDecls.h"
 #include "js/loader/LoadContextBase.h"
 #include "js/loader/ScriptKind.h"
@@ -95,7 +95,7 @@ class ScriptLoadContext : public JS::loader::LoadContextBase,
 
   bool CompileStarted() const;
 
-  JS::OffThreadToken** OffThreadTokenPtr() {
+  MC::Tainted<JS::OffThreadToken*>* OffThreadTokenPtr() {
     return mOffThreadToken ? &mOffThreadToken : nullptr;
   }
 
@@ -172,7 +172,7 @@ class ScriptLoadContext : public JS::loader::LoadContextBase,
 
   // Off-thread parsing token. Set at the start of off-thread parsing and
   // cleared when the result of the parse is used.
-  JS::OffThreadToken* mOffThreadToken;
+  MC::Tainted<JS::OffThreadToken*> mOffThreadToken;
 
   // Runnable that is dispatched to the main thread when off-thread compilation
   // completes.

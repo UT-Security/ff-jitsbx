@@ -326,6 +326,7 @@ EXPORTS.monkeycage += [
 ]
 
 EXPORTS.monkeycage.tainted += [
+	"../public/tainted/Atomics.h",
 	"../public/tainted/Maybe.h",
 	"../public/tainted/MaybeOneOf.h",
 ]
@@ -342,6 +343,7 @@ EXPORTS.monkeycage += [
 	"../public/ArrayBuffer.h",
 	"../public/BuildId.h",
 	"../public/CallAndConstruct.h",
+	"../public/CallNonGenericMethod.h",
 	"../public/CharacterEncoding.h",
 	"../public/Class.h",
 	"../public/CompilationAndEvaluation.h",

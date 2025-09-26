@@ -189,11 +189,11 @@ static void PACLogErrorOrWarning(const nsAString& aKind,
   PACLogToConsole(formattedMessage);
 }
 
-static void PACWarningReporter(JSContext* aCx, JSErrorReport* aReport) {
+static void PACWarningReporter(MC::Tainted<JSContext*> aCx, MC::Tainted<JSErrorReport*> aReport) {
   MOZ_ASSERT(aReport);
-  MOZ_ASSERT(aReport->isWarning());
+  MOZ_ASSERT(aReport.UNSAFE_unverified()->isWarning());
 
-  PACLogErrorOrWarning(u"Warning"_ns, aReport);
+  PACLogErrorOrWarning(u"Warning"_ns, aReport.UNSAFE_unverified());
 }
 
 class MOZ_STACK_CLASS AutoPACErrorReporter {
@@ -450,7 +450,7 @@ class JSContextWrapper {
      */
     JS_SetNativeStackQuota(mContext, 128 * sizeof(size_t) * 1024);
 
-    static auto PACWarningReporterCb = MC::Sandbox::RegisterCallback(PACWarningReporter);
+    static auto PACWarningReporterCb = MC::Sandbox::RegisterTaintedCallback(PACWarningReporter);
     JS::SetWarningReporter(mContext, PACWarningReporterCb);
 
     // When available, set the self-hosted shared memory to be read, so that

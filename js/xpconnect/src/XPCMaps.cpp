@@ -18,7 +18,7 @@ using namespace mozilla;
 /***************************************************************************/
 // implement JSObject2WrappedJSMap...
 
-void JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(JSTracer* trc) {
+void JSObject2WrappedJSMap::UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc) {
   // Check all wrappers and update their JSObject pointer if it has been
   // moved. Release any wrappers whose weakly held JSObject has died.
 

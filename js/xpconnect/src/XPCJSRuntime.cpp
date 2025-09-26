@@ -682,22 +682,22 @@ void NukeAllWrappersForRealm(
 
 }  // namespace xpc
 
-static void CompartmentDestroyedCallback(JS::GCContext* gcx,
-                                         JS::Compartment* compartment) {
+static void CompartmentDestroyedCallback(MC::Tainted<JS::GCContext*> gcx,
+                                         MC::Tainted<JS::Compartment*> compartment) {
   // NB - This callback may be called in JS_DestroyContext, which happens
   // after the XPCJSRuntime has been torn down.
 
   // Get the current compartment private into a UniquePtr (which will do the
   // cleanup for us), and null out the private (which may already be null).
   mozilla::UniquePtr<CompartmentPrivate> priv(
-      CompartmentPrivate::Get(compartment));
-  JS_SetCompartmentPrivate(compartment, nullptr);
+      CompartmentPrivate::Get(compartment.UNSAFE_unverified()));
+  JS_SetCompartmentPrivate(compartment.UNSAFE_unverified(), nullptr);
 }
 
-static size_t CompartmentSizeOfIncludingThisCallback(
-    MallocSizeOf mallocSizeOf, JS::Compartment* compartment) {
-  CompartmentPrivate* priv = CompartmentPrivate::Get(compartment);
-  return priv ? priv->SizeOfIncludingThis(mallocSizeOf) : 0;
+static MC::Tainted<size_t> CompartmentSizeOfIncludingThisCallback(
+    MC::Tainted<MallocSizeOf> mallocSizeOf, MC::Tainted<JS::Compartment*> compartment) {
+  CompartmentPrivate* priv = CompartmentPrivate::Get(compartment.UNSAFE_unverified());
+  return priv ? priv->SizeOfIncludingThis(mallocSizeOf.UNSAFE_unverified()) : 0;
 }
 
 /*
@@ -715,7 +715,7 @@ bool XPCJSRuntime::UsefulToMergeZones() const {
   return false;
 }
 
-void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc) {
+void XPCJSRuntime::TraceNativeBlackRoots(MC::Tainted<JSTracer*> trc) {
   if (CycleCollectedJSContext* ccx = GetContext()) {
     const auto* cx = static_cast<const XPCJSContext*>(ccx);
     if (AutoMarkingPtr* roots = cx->mAutoRoots) {
@@ -724,13 +724,13 @@ void XPCJSRuntime::TraceNativeBlackRoots(JSTracer* trc) {
   }
 
   if (mIID2NativeInterfaceMap) {
-    mIID2NativeInterfaceMap->Trace(trc);
+    mIID2NativeInterfaceMap->Trace(trc.UNSAFE_unverified());
   }
 
   dom::TraceBlackJS(trc);
 }
 
-void XPCJSRuntime::TraceAdditionalNativeGrayRoots(JSTracer* trc) {
+void XPCJSRuntime::TraceAdditionalNativeGrayRoots(MC::Tainted<JSTracer*> trc) {
   XPCWrappedNativeScope::TraceWrappedNativesInAllScopes(this, trc);
 }
 
@@ -842,8 +842,8 @@ void XPCJSRuntime::CustomGCCallback(JSGCStatus status) {
 }
 
 /* static */
-void XPCJSRuntime::FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
-                                    void* data) {
+void XPCJSRuntime::FinalizeCallback(MC::Tainted<JS::GCContext*> gcx, JSFinalizeStatus status,
+                                    MC::AppPointer<void*> data) {
   XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
   if (!self) {
     return;
@@ -939,16 +939,16 @@ void XPCJSRuntime::FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
 }
 
 static MC::Sandbox::Callback<JSFinalizeCallback> FinalizeCallbackCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPCJSRuntime::FinalizeCallback);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPCJSRuntime::FinalizeCallback);
   return inner_;
 }
 
 /* static */
-void XPCJSRuntime::WeakPointerZonesCallback(JSTracer* trc, void* data) {
+void XPCJSRuntime::WeakPointerZonesCallback(MC::Tainted<JSTracer*> trc, MC::AppPointer<void*> data) {
   // Called before each sweeping slice -- after processing any final marking
   // triggered by barriers -- to clear out any references to things that are
   // about to be finalized and update any pointers to moved GC things.
-  XPCJSRuntime* self = static_cast<XPCJSRuntime*>(data);
+  XPCJSRuntime* self = static_cast<XPCJSRuntime*>(data.UNSAFE_unverified());
 
   // This callback is always called from within the GC so set the mGCIsRunning
   // flag to prevent AssertInvalidWrappedJSNotInTable from trying to call back
@@ -959,23 +959,23 @@ void XPCJSRuntime::WeakPointerZonesCallback(JSTracer* trc, void* data) {
   self->mGCIsRunning = true;
 
   self->mWrappedJSMap->UpdateWeakPointersAfterGC(trc);
-  self->mUAWidgetScopeMap.traceWeak(trc);
+  self->mUAWidgetScopeMap.traceWeak(trc.UNSAFE_unverified());
 }
 
 /* static */
-void XPCJSRuntime::WeakPointerCompartmentCallback(JSTracer* trc,
-                                                  JS::Compartment* comp,
-                                                  void* data) {
+void XPCJSRuntime::WeakPointerCompartmentCallback(MC::Tainted<JSTracer*> trc,
+                                                  MC::Tainted<JS::Compartment*> comp,
+                                                  MC::AppPointer<void*> data) {
   // Called immediately after the ZoneGroup weak pointer callback, but only
   // once for each compartment that is being swept.
-  CompartmentPrivate* xpcComp = CompartmentPrivate::Get(comp);
+  CompartmentPrivate* xpcComp = CompartmentPrivate::Get(comp.UNSAFE_unverified());
   if (xpcComp) {
     xpcComp->UpdateWeakPointersAfterGC(trc);
   }
 }
 
-void CompartmentPrivate::UpdateWeakPointersAfterGC(JSTracer* trc) {
-  mRemoteProxies.traceWeak(trc);
+void CompartmentPrivate::UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc) {
+  mRemoteProxies.traceWeak(trc.UNSAFE_unverified());
   mWrappedJSMap->UpdateWeakPointersAfterGC(trc);
   mScope->UpdateWeakPointersAfterGC(trc);
 }
@@ -2072,10 +2072,13 @@ class JSMainRuntimeRealmsReporter final : public nsIMemoryReporter {
     js::Vector<nsCString, 0, js::SystemAllocPolicy> paths;
   };
 
-  static void RealmCallback(JSContext* cx, void* vdata, Realm* realm,
+  static void RealmCallback(MC::Tainted<JSContext*> cx,
+                            MC::AppPointer<void*> vdata,
+                            MC::Tainted<Realm*> t_realm,
                             const JS::AutoRequireNoGC& nogc) {
+    Realm* realm = t_realm.UNSAFE_unverified();
     // silently ignore OOM errors
-    Data* data = static_cast<Data*>(vdata);
+    Data* data = static_cast<Data*>(vdata.UNSAFE_unverified());
     nsCString path;
     GetRealmName(realm, path, &data->anonymizeID, /* replaceSlashes = */ true);
     path.Insert(js::IsSystemRealm(realm) ? "js-main-runtime-realms/system/"_ns
@@ -2093,7 +2096,7 @@ class JSMainRuntimeRealmsReporter final : public nsIMemoryReporter {
 
     Data d;
     d.anonymizeID = anonymize ? 1 : 0;
-    static auto RealmCallbackCb = MC::Sandbox::RegisterCallback(RealmCallback);
+    static auto RealmCallbackCb = MC::Sandbox::RegisterTaintedCallback(RealmCallback);
     JS::IterateRealms(XPCJSContext::Get()->Context(), &d, RealmCallbackCb);
 
     for (auto& path : d.paths) {
@@ -2603,41 +2606,41 @@ static void AccumulateTelemetryCallback(JSMetric id, uint32_t sample) {
   // clang-format on
 }
 
-static void SetUseCounterCallback(JSObject* obj, JSUseCounter counter) {
+static void SetUseCounterCallback(MC::Tainted<JSObject*> obj, JSUseCounter counter) {
   switch (counter) {
     case JSUseCounter::ASMJS:
-      SetUseCounter(obj, eUseCounter_custom_JS_asmjs);
+      SetUseCounter(obj.UNSAFE_unverified(), eUseCounter_custom_JS_asmjs);
       break;
     case JSUseCounter::WASM:
-      SetUseCounter(obj, eUseCounter_custom_JS_wasm);
+      SetUseCounter(obj.UNSAFE_unverified(), eUseCounter_custom_JS_wasm);
       break;
     default:
       MOZ_ASSERT_UNREACHABLE("Unexpected JSUseCounter id");
   }
 }
 
-static void GetRealmNameCallback(JSContext* cx, Realm* realm, char* buf,
+static void GetRealmNameCallback(MC::Tainted<JSContext*> cx, MC::Tainted<Realm*> realm, MC::Tainted<char*> buf,
                                  size_t bufsize,
                                  const JS::AutoRequireNoGC& nogc) {
   nsCString name;
   // This is called via the JSAPI and isn't involved in memory reporting, so
   // we don't need to anonymize realm names.
   int anonymizeID = 0;
-  GetRealmName(realm, name, &anonymizeID, /* replaceSlashes = */ false);
+  GetRealmName(realm.UNSAFE_unverified(), name, &anonymizeID, /* replaceSlashes = */ false);
   if (name.Length() >= bufsize) {
     name.Truncate(bufsize - 1);
   }
-  memcpy(buf, name.get(), name.Length() + 1);
+  memcpy(buf.UNSAFE_unverified(), name.get(), name.Length() + 1);
 }
 
-static void DestroyRealm(JS::GCContext* gcx, JS::Realm* realm) {
+static void DestroyRealm(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JS::Realm*> realm) {
   // Get the current compartment private into an AutoPtr (which will do the
   // cleanup for us), and null out the private field.
-  mozilla::UniquePtr<RealmPrivate> priv(RealmPrivate::Get(realm));
-  JS::SetRealmPrivate(realm, nullptr);
+  mozilla::UniquePtr<RealmPrivate> priv(RealmPrivate::Get(realm.UNSAFE_unverified()));
+  JS::SetRealmPrivate(realm.UNSAFE_unverified(), nullptr);
 }
 
-static bool PreserveWrapper(JSContext* cx, JS::Handle<JSObject*> obj) {
+static MC::Tainted<bool> PreserveWrapper(MC::Tainted<JSContext*> cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(cx);
   MOZ_ASSERT(obj);
   MOZ_ASSERT(mozilla::dom::IsDOMObject(obj));
@@ -2894,18 +2897,18 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
   // the GC's allocator.
   JS_SetGCParameter(cx, JSGC_MAX_BYTES, 0xffffffff);
 
-  static auto CompartmentDestroyedCallbackCb = MC::Sandbox::RegisterCallback(CompartmentDestroyedCallback);
+  static auto CompartmentDestroyedCallbackCb = MC::Sandbox::RegisterTaintedCallback(CompartmentDestroyedCallback);
   JS_SetDestroyCompartmentCallback(cx, CompartmentDestroyedCallbackCb);
 
   static auto CompartmentSizeOfIncludingThisCallbackCb =
-      MC::Sandbox::RegisterCallback(CompartmentSizeOfIncludingThisCallback);
+      MC::Sandbox::RegisterTaintedCallback(CompartmentSizeOfIncludingThisCallback);
   JS_SetSizeOfIncludingThisCompartmentCallback(
       cx, CompartmentSizeOfIncludingThisCallbackCb);
 
-  static auto DestroyRealmCb = MC::Sandbox::RegisterCallback(DestroyRealm);
+  static auto DestroyRealmCb = MC::Sandbox::RegisterTaintedCallback(DestroyRealm);
   JS::SetDestroyRealmCallback(cx, DestroyRealmCb);
 
-  static auto GetRealmNameCallbackCb = MC::Sandbox::RegisterCallback(GetRealmNameCallback);
+  static auto GetRealmNameCallbackCb = MC::Sandbox::RegisterTaintedCallback(GetRealmNameCallback);
   JS::SetRealmNameCallback(cx, GetRealmNameCallbackCb);
   
   static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
@@ -2917,32 +2920,33 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
     
   JS_AddFinalizeCallback(cx, FinalizeCallbackCb(), nullptr);
 
-  static auto WeakPointerZonesCallbackCb = MC::Sandbox::RegisterCallback(WeakPointerZonesCallback);
+  static auto WeakPointerZonesCallbackCb = MC::Sandbox::RegisterTaintedCallback(WeakPointerZonesCallback);
   JS_AddWeakPointerZonesCallback(cx, WeakPointerZonesCallbackCb, this);
 
-  static auto WeakPointerCompartmentCallbackCb = MC::Sandbox::RegisterCallback(WeakPointerCompartmentCallback);
+  static auto WeakPointerCompartmentCallbackCb = MC::Sandbox::RegisterTaintedCallback(WeakPointerCompartmentCallback);
   JS_AddWeakPointerCompartmentCallback(cx, WeakPointerCompartmentCallbackCb,
                                        this);
   JS_SetWrapObjectCallbacks(cx, WrapObjectCallbacks());
   if (XRE_IsE10sParentProcess()) {
-    static auto ValidateScriptFilenameCb = MC::Sandbox::RegisterCallback(
+    static auto ValidateScriptFilenameCb = MC::Sandbox::RegisterTaintedCallback(
         nsContentSecurityUtils::ValidateScriptFilename);
     JS::SetFilenameValidationCallback(ValidateScriptFilenameCb);
   }
 
-  static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(
-      static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
+  static auto PreserveWrapperCb = MC::Sandbox::RegisterTaintedCallback(
+      static_cast<MC::Tainted<bool> (*)(
+          MC::Tainted<JSContext*>, JS::Handle<JSObject*>)>(PreserveWrapper));
   js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb,
                                   HasReleasedWrapperCb());
 
   JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
 
   static auto AccumulateTelemetryCallbackCb =
-      MC::Sandbox::RegisterCallback(AccumulateTelemetryCallback);
+      MC::Sandbox::RegisterTaintedCallback(AccumulateTelemetryCallback);
   JS_SetAccumulateTelemetryCallback(cx, AccumulateTelemetryCallbackCb);
 
   static auto SetUseCounterCallbackCb =
-      MC::Sandbox::RegisterCallback(SetUseCounterCallback);
+      MC::Sandbox::RegisterTaintedCallback(SetUseCounterCallback);
   JS_SetSetUseCounterCallback(cx, SetUseCounterCallbackCb);
 
   js::SetWindowProxyClass(cx, OuterWindowProxyClass());
@@ -2952,7 +2956,6 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
       OnLargeAllocationFailureCallback);
 
   // The WasmAltDataType is build by the JS engine from the build id.
-  //static auto GetBuildIdCb = MC::Sandbox::RegisterCallback(GetBuildId);
   static auto GetBuildIdCb = MC::Sandbox::RegisterTaintedCallback(GetBuildIdT);
   JS::SetProcessBuildIdOp(GetBuildIdCb);
   FetchUtil::InitWasmAltDataType();

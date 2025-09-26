@@ -7,8 +7,10 @@
 #define TelemetryCommon_h__
 
 #include "PLDHashTable.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+//TODO(JS_SANDBOX): Remove include
+#include "monkeycage/Context.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/TypedEnumBits.h"
 #include "mozilla/TelemetryProcessEnums.h"
 #include "nsHashtablesFwd.h"
@@ -173,6 +175,9 @@ bool IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
  * @returns a JavaScript string.
  */
 JSString* ToJSString(JSContext* cx, const nsACString& aStr);
+inline JSString* ToJSString(MCContext* cx, const nsACString& aStr) {
+ return ToJSString(MC_UNSAFE(cx), aStr);
+}
 
 /**
  * Convert the given UTF16 string to a JavaScript string.
@@ -182,6 +187,9 @@ JSString* ToJSString(JSContext* cx, const nsACString& aStr);
  * @returns a JavaScript string.
  */
 JSString* ToJSString(JSContext* cx, const nsAString& aStr);
+inline JSString* ToJSString(MCContext* cx, const nsAString& aStr) {
+ return ToJSString(MC_UNSAFE(cx), aStr);
+}
 
 /**
  * Get an identifier for the currently-running product.

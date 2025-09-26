@@ -7,7 +7,7 @@
 #ifndef nsCCUncollectableMarker_h_
 #define nsCCUncollectableMarker_h_
 
-#include "js/TracingAPI.h"
+#include "monkeycage/TracingAPI.h"
 #include "mozilla/Attributes.h"
 #include "nsIObserver.h"
 
@@ -40,7 +40,7 @@ class nsCCUncollectableMarker final : public nsIObserver {
 };
 
 namespace mozilla::dom {
-void TraceBlackJS(JSTracer* aTrc);
+void TraceBlackJS(MC::Tainted<JSTracer*> aTrc);
 }  // namespace mozilla::dom
 
 #endif

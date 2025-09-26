@@ -508,7 +508,8 @@ static MC::Tainted<bool> SandboxCloneInto(MC::Tainted<JSContext*> t_cx, unsigned
   return xpc::CloneInto(MC_UNSAFE(cx), args[0], args[1], options, args.rval());
 }
 
-static void sandbox_finalize(JS::GCContext* gcx, JSObject* obj) {
+static void sandbox_finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_obj) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
   SandboxPrivate* priv = SandboxPrivate::GetPrivate(obj);
   if (!priv) {
     // priv can be null if CreateSandboxObject fails in the middle.
@@ -520,7 +521,9 @@ static void sandbox_finalize(JS::GCContext* gcx, JSObject* obj) {
   DeferredFinalize(static_cast<nsIScriptObjectPrincipal*>(priv));
 }
 
-static size_t sandbox_moved(JSObject* obj, JSObject* old) {
+static MC::Tainted<size_t> sandbox_moved(MC::Tainted<JSObject*> t_obj, MC::Tainted<JSObject*> t_old) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
+  JSObject* old = t_old.UNSAFE_unverified();
   // Note that this hook can be called before the private pointer is set. In
   // this case the SandboxPrivate will not exist yet, so there is nothing to
   // do.
@@ -543,14 +546,14 @@ static const JSClass* SandboxClass() {
       MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)),  // newEnumerate
       MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),         // resolve
       MC::Sandbox::Address(JS_MayResolveStandardClass),      // mayResolve
-      MC::Sandbox::RegisterCallback(sandbox_finalize).UNSAFE_get(),   // finalize
+      MC::Sandbox::RegisterTaintedCallback(sandbox_finalize).UNSAFE_get(),   // finalize
       nullptr,                         // call
       nullptr,                         // construct
       MC::Sandbox::Address(JS_GlobalObjectTraceHook),        // trace
   };
 
   static const js::ClassExtension ext_ = {
-      MC::Sandbox::RegisterCallback(sandbox_moved).UNSAFE_get(),  // objectMovedOp
+      MC::Sandbox::RegisterTaintedCallback(sandbox_moved).UNSAFE_get(),  // objectMovedOp
   };
 
   static const JSClass inner_ = {

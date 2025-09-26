@@ -314,6 +314,10 @@ inline void TraceWeakMaps(mc::WeakMapTracer* trc) {
   return TraceWeakMaps(trc->inner_);
 }
 
+inline void TraceGrayWrapperTargets(MC::Tainted<JSTracer*> trc, JS::Zone* zone) {
+  return TraceGrayWrapperTargets(trc.INTERNAL_unverified_safe(), zone);
+}
+
 inline bool ShouldIgnorePropertyDefinition(MCContext* cx, JSProtoKey key,
                                            jsid id) {
   return ShouldIgnorePropertyDefinition(cx->cx_, key, id);

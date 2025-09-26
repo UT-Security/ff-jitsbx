@@ -1453,7 +1453,7 @@ class OffThreadCompilationCompleteRunnable : public Runnable {
   nsMainThreadPtrHandle<ScriptLoadRequest> mRequest;
   nsMainThreadPtrHandle<ScriptLoader> mLoader;
   nsCOMPtr<nsISerialEventTarget> mEventTarget;
-  JS::OffThreadToken* mToken;
+  MC::Tainted<JS::OffThreadToken*> mToken;
   TimeStamp mStartTime;
   TimeStamp mStopTime;
 
@@ -1474,7 +1474,7 @@ class OffThreadCompilationCompleteRunnable : public Runnable {
   void RecordStartTime() { mStartTime = TimeStamp::Now(); }
   void RecordStopTime() { mStopTime = TimeStamp::Now(); }
 
-  void SetToken(JS::OffThreadToken* aToken) {
+  void SetToken(MC::Tainted<JS::OffThreadToken*> aToken) {
     MOZ_ASSERT(aToken && !mToken);
     mToken = aToken;
   }
@@ -1553,7 +1553,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
 
   runnable->RecordStartTime();
 
-  JS::OffThreadToken* token = nullptr;
+  MC::Tainted<JS::OffThreadToken*> token{nullptr};
   rv = StartOffThreadCompilation(cx, aRequest, options, runnable, &token);
   NS_ENSURE_SUCCESS(rv, rv);
   MOZ_ASSERT(token);
@@ -1584,15 +1584,15 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
   return NS_OK;
 }
 
-static inline nsresult CompileResultForToken(void* aToken) {
+static inline nsresult CompileResultForToken(MC::Tainted<JS::OffThreadToken*> aToken) {
   return aToken ? NS_OK : NS_ERROR_OUT_OF_MEMORY;
 }
 
 nsresult ScriptLoader::StartOffThreadCompilation(
     MCContext* aCx, ScriptLoadRequest* aRequest, MC::Tainted<JS::CompileOptions*> aOptions,
-    Runnable* aRunnable, JS::OffThreadToken** aTokenOut) {
+    Runnable* aRunnable, MC::Tainted<JS::OffThreadToken*>* aTokenOut) {
   static const auto callback =
-      MC::Sandbox::RegisterCallback(OffThreadCompilationCompleteCallback);
+      MC::Sandbox::RegisterTaintedCallback(OffThreadCompilationCompleteCallback);
 
   if (aRequest->IsBytecode()) {
     MC::SandboxStack<JS::DecodeOptions> decodeOptions(*aOptions);
@@ -1664,9 +1664,9 @@ nsresult ScriptLoader::StartOffThreadCompilation(
 }
 
 void ScriptLoader::OffThreadCompilationCompleteCallback(
-    JS::OffThreadToken* aToken, void* aCallbackData) {
+    MC::Tainted<JS::OffThreadToken*> aToken, MC::AppPointer<void*> aCallbackData) {
   RefPtr<OffThreadCompilationCompleteRunnable> aRunnable =
-      static_cast<OffThreadCompilationCompleteRunnable*>(aCallbackData);
+      static_cast<OffThreadCompilationCompleteRunnable*>(aCallbackData.UNSAFE_unverified());
 
   LogRunnable::Run run(aRunnable);
 
@@ -1682,7 +1682,7 @@ OffThreadCompilationCompleteRunnable::Run() {
 
   RefPtr<ScriptLoadContext> context = mRequest->GetScriptLoadContext();
   MOZ_ASSERT_IF(context->mRunnable, context->mRunnable == this);
-  MOZ_ASSERT_IF(context->mOffThreadToken, context->mOffThreadToken == mToken);
+  MOZ_ASSERT_IF(context->mOffThreadToken, context->mOffThreadToken.UNSAFE_unverified() == mToken.UNSAFE_unverified());
 
   // Clear the pointer to the runnable. The final reference will be released
   // when this method returns.

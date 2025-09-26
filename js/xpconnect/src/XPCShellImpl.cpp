@@ -672,8 +672,8 @@ static const JSFunctionSpec glob_functions[] = {
 #endif
     JS_FN("options",         Options,        0,0),
     JS_FN("sendCommand",     SendCommand,    1,0),
-    JS_FN("atob",            xpc::Atob,      1,0),
-    JS_FN("btoa",            xpc::Btoa,      1,0),
+    JS_FN("atob",            xpc::AtobCb().UNSAFE_get(),      1,0),
+    JS_FN("btoa",            xpc::BtoaCb().UNSAFE_get(),      1,0),
     JS_FN("setInterruptCallback", SetInterruptCallback, 1,0),
     JS_FN("simulateNoScriptActivity", SimulateNoScriptActivity, 1,0),
     JS_FN("registerAppManifest", RegisterAppManifest, 1, 0),

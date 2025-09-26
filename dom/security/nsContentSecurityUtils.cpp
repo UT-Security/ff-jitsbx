@@ -1325,8 +1325,11 @@ void nsContentSecurityUtils::AssertAboutPageHasCSP(Document* aDocument) {
 #endif
 
 /* static */
-bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
-                                                    const char* aFilename) {
+MC::Tainted<bool> nsContentSecurityUtils::ValidateScriptFilename(MC::Tainted<JSContext*> tcx,
+                                                    MC::Tainted<const char*> tFilename) {
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
+  const char* aFilename = tFilename.UNSAFE_unverified();
+  
   // If the pref is permissive, allow everything
   if (StaticPrefs::security_allow_parent_unrestricted_js_loads()) {
     return true;
@@ -1414,7 +1417,7 @@ bool nsContentSecurityUtils::ValidateScriptFilename(JSContext* cx,
       }
     }
   } else if (!NS_IsMainThread()) {
-    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
+    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
     if (workerPrivate && workerPrivate->IsPrivilegedAddonGlobal()) {
       MOZ_LOG(sCSMLog, LogLevel::Debug,
               ("Allowing a javascript load of %s because the web extension "

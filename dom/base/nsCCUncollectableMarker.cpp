@@ -425,7 +425,9 @@ nsresult nsCCUncollectableMarker::Observe(nsISupports* aSubject,
   return NS_OK;
 }
 
-void mozilla::dom::TraceBlackJS(JSTracer* aTrc) {
+void mozilla::dom::TraceBlackJS(MC::Tainted<JSTracer*> t_aTrc) {
+  JSTracer* aTrc = t_aTrc.UNSAFE_unverified();
+  
   if (!nsCCUncollectableMarker::sGeneration) {
     return;
   }

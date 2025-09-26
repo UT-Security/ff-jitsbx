@@ -46,10 +46,10 @@ MC::Tainted<bool> XPC_WN_Helper_Resolve(MC::Tainted<JSContext*> cx,
                                         MC::Tainted<bool*> resolvedp);
 MC::SandboxCallback<JSResolveOp> XPC_WN_Helper_ResolveCb();
 
-void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj);
+void XPC_WN_Helper_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj);
 MC::SandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb();
 
-void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj);
+void XPC_WN_NoHelper_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj);
 MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb();
 
 MC::Tainted<bool> XPC_WN_Helper_Call(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
@@ -58,7 +58,7 @@ MC::SandboxCallback<JSNative> XPC_WN_Helper_CallCb();
 MC::Tainted<bool> XPC_WN_Helper_Construct(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 MC::SandboxCallback<JSNative> XPC_WN_Helper_ConstructCb();
 
-void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj);
+void XPCWrappedNative_Trace(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj);
 MC::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb();
 
 extern const js::ClassExtension* XPC_WN_JSClassExtension();

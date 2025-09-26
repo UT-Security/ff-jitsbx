@@ -17,23 +17,23 @@ using namespace JS;
 
 namespace xpc {
 
-static bool Services_NewEnumerate(JSContext* cx, HandleObject obj,
+static MC::Tainted<bool> Services_NewEnumerate(MC::Tainted<JSContext*> cx, HandleObject obj,
                                   MutableHandleIdVector properties,
                                   bool enumerableOnly);
-static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                             bool* resolvedp);
-static bool Services_MayResolve(const JSAtomState& names, jsid id,
-                                JSObject* maybeObj);
+static MC::Tainted<bool> Services_Resolve(MC::Tainted<JSContext*> cx, HandleObject obj, HandleId id,
+                             MC::Tainted<bool*> resolvedp);
+static MC::Tainted<bool> Services_MayResolve(const JSAtomState& names, jsid id,
+                                MC::Tainted<JSObject*> maybeObj);
 
 static const JSClass* sServices_Class() {
   static const JSClassOps sServices_ClassOps = {
       nullptr,  // addProperty
       nullptr,  // delProperty
       nullptr,  // enumerate
-      MC::Sandbox::RegisterCallback(Services_NewEnumerate)
+      MC::Sandbox::RegisterTaintedCallback(Services_NewEnumerate)
           .UNSAFE_get(),  // newEnumerate
-      MC::Sandbox::RegisterCallback(Services_Resolve).UNSAFE_get(),  // resolve
-      MC::Sandbox::RegisterCallback(Services_MayResolve)
+      MC::Sandbox::RegisterTaintedCallback(Services_Resolve).UNSAFE_get(),  // resolve
+      MC::Sandbox::RegisterTaintedCallback(Services_MayResolve)
           .UNSAFE_get(),  // mayResolve
       nullptr,            // finalize
       nullptr,            // call
@@ -49,9 +49,10 @@ JSObject* NewJSServices(JSContext* cx) {
   return JS_NewObject(cx, sServices_Class());
 }
 
-static bool Services_NewEnumerate(JSContext* cx, HandleObject obj,
+static MC::Tainted<bool> Services_NewEnumerate(MC::Tainted<JSContext*> tcx, HandleObject obj,
                                   MutableHandleIdVector properties,
                                   bool enumerableOnly) {
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   auto services = xpcom::StaticComponents::GetJSServices();
 
   if (!properties.reserve(services.Length())) {
@@ -138,8 +139,9 @@ static JSObject* GetService(JSContext* cx, const xpcom::JSServiceEntry& service,
   return obj;
 }
 
-static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                             bool* resolvedp) {
+static MC::Tainted<bool> Services_Resolve(MC::Tainted<JSContext*> tcx, HandleObject obj, HandleId id,
+                             MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   *resolvedp = false;
   JSLinearString* name = GetNameIfLatin1(id);
   if (!name) {
@@ -155,7 +157,7 @@ static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
     ErrorResult rv;
     MC::RootedValue val(cx);
 
-    val.setObjectOrNull(GetService(cx, *service, rv));
+    val.setObjectOrNull(GetService(MC_UNSAFE(cx), *service, rv));
     if (rv.MaybeSetPendingException(cx)) {
       return false;
     }
@@ -165,11 +167,11 @@ static bool Services_Resolve(JSContext* cx, HandleObject obj, HandleId id,
   return true;
 }
 
-static bool Services_MayResolve(const JSAtomState& names, jsid id,
-                                JSObject* maybeObj) {
+static MC::Tainted<bool> Services_MayResolve(const JSAtomState& names, jsid id,
+                                MC::Tainted<JSObject*> maybeObj) {
   if (JSLinearString* name = GetNameIfLatin1(id)) {
     nsAutoJSLinearCString nameStr(name);
-    return xpcom::JSServiceEntry::Lookup(nameStr);
+    return !!xpcom::JSServiceEntry::Lookup(nameStr);
   }
   return false;
 }
