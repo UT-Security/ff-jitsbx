@@ -426,7 +426,7 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
   if (JS::IsCCTraceKind(aThing.kind())) {
     if (MOZ_UNLIKELY(mCb.WantDebugInfo())) {
       char buffer[200];
-      getCallbackTracer()->context().getEdgeName(name, buffer, sizeof(buffer));
+      context().getEdgeName(name, buffer, sizeof(buffer));
       mCb.NoteNextEdgeName(buffer);
     }
     mCb.NoteJSChild(aThing);
@@ -434,12 +434,12 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
   }
 
   // Allow re-use of this tracer inside trace callback.
-  JS::AutoClearTracingContext actc(getCallbackTracer());
+  JS::AutoClearTracingContext actc(getCallbackTracer().UNSAFE_unverified());
 
   if (aThing.is<js::Shape>()) {
     // The maximum depth of traversal when tracing a Shape is unbounded, due to
     // the parent pointers on the shape.
-    JS_TraceShapeCycleCollectorChildren(getCallbackTracer(), aThing);
+    JS_TraceShapeCycleCollectorChildren(getCallbackTracer().UNSAFE_unverified(), aThing);
   } else {
     JS::TraceChildren(getCallbackTracer(), aThing);
   }
@@ -470,11 +470,11 @@ void TraversalTracer::onChild(JS::GCCellPtr aThing, const char* name) {
 // CycleCollectedJSRuntime. It should never be used directly.
 static const JSZoneParticipant sJSZoneCycleCollectorGlobal;
 
-static void JSObjectsTenuredCb(JSContext* aContext, void* aData) {
-  static_cast<CycleCollectedJSRuntime*>(aData)->JSObjectsTenured();
+static void JSObjectsTenuredCb(MC::Tainted<JSContext*> aContext, MC::AppPointer<void*> aData) {
+  static_cast<CycleCollectedJSRuntime*>(aData.UNSAFE_unverified())->JSObjectsTenured();
 }
 
-static void MozCrashWarningReporter(JSContext*, JSErrorReport*) {
+static void MozCrashWarningReporter(MC::Tainted<JSContext*>, MC::Tainted<JSErrorReport*>) {
   MOZ_CRASH("Why is someone touching JSAPI without an AutoJSAPI?");
 }
 
@@ -663,12 +663,13 @@ size_t JSHolderMap::SizeOfExcludingThis(MallocSizeOf aMallocSizeOf) const {
   return n;
 }
 
-static bool InitializeShadowRealm(JSContext* aCx,
+static MC::Tainted<bool> InitializeShadowRealm(MC::Tainted<JSContext*> tCx,
                                   JS::Handle<JSObject*> aGlobal) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   MOZ_ASSERT(StaticPrefs::javascript_options_experimental_shadow_realms());
 
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
-  return dom::RegisterShadowRealmBindings(aCx, aGlobal);
+  return dom::RegisterShadowRealmBindings(MC_UNSAFE(aCx), aGlobal);
 }
 
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
@@ -696,15 +697,15 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
   }
 #endif
 
-  static auto TraceBlackJSCb = MC::Sandbox::RegisterCallback(TraceBlackJS);
+  static auto TraceBlackJSCb = MC::Sandbox::RegisterTaintedCallback(TraceBlackJS);
   if (!JS_AddExtraGCRootsTracer(aCx, TraceBlackJSCb, this)) {
     MOZ_CRASH("JS_AddExtraGCRootsTracer failed");
   }
 
-  static auto TraceGrayJSCb = MC::Sandbox::RegisterCallback(TraceGrayJS);
+  static auto TraceGrayJSCb = MC::Sandbox::RegisterTaintedCallback(TraceGrayJS);
   JS_SetGrayGCRootsTracer(aCx, TraceGrayJSCb, this);
 
-  static auto GCCallbackCb = MC::Sandbox::RegisterCallback(GCCallback);
+  static auto GCCallbackCb = MC::Sandbox::RegisterTaintedCallback(GCCallback);
   JS_SetGCCallback(aCx, GCCallbackCb, this);
 
   static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
@@ -724,28 +725,28 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
         JS::SetGCNurseryCollectionCallback(aCx, GCNurseryCollectionCallbackCb);
   }
 
-  static auto JSObjectsTenuredCbCb = MC::Sandbox::RegisterCallback(JSObjectsTenuredCb);
+  static auto JSObjectsTenuredCbCb = MC::Sandbox::RegisterTaintedCallback(JSObjectsTenuredCb);
   JS_SetObjectsTenuredCallback(aCx, JSObjectsTenuredCbCb, this);
 
-  static auto OutOfMemoryCallbackCb = MC::Sandbox::RegisterCallback(OutOfMemoryCallback);
+  static auto OutOfMemoryCallbackCb = MC::Sandbox::RegisterTaintedCallback(OutOfMemoryCallback);
   JS::SetOutOfMemoryCallback(aCx, OutOfMemoryCallbackCb, this);
   
-  static auto BeforeWaitCallbackCb = MC::Sandbox::RegisterCallback(BeforeWaitCallback);
-  static auto AfterWaitCallbackCb = MC::Sandbox::RegisterCallback(AfterWaitCallback);
+  static auto BeforeWaitCallbackCb = MC::Sandbox::RegisterTaintedCallback(BeforeWaitCallback);
+  static auto AfterWaitCallbackCb = MC::Sandbox::RegisterTaintedCallback(AfterWaitCallback);
   JS::SetWaitCallback(mJSRuntime, BeforeWaitCallbackCb, AfterWaitCallbackCb,
                                           sizeof(dom::AutoYieldJSThreadExecution));
 
-  static auto MozCrashWarningReporterCb = MC::Sandbox::RegisterCallback(MozCrashWarningReporter);
+  static auto MozCrashWarningReporterCb = MC::Sandbox::RegisterTaintedCallback(MozCrashWarningReporter);
   JS::SetWarningReporter(aCx, MozCrashWarningReporterCb);
 
-  static auto InitializeShadowRealmCb = MC::Sandbox::RegisterCallback(InitializeShadowRealm);
+  static auto InitializeShadowRealmCb = MC::Sandbox::RegisterTaintedCallback(InitializeShadowRealm);
   JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealmCb);
 
   static auto NewShadowRealmGlobalCb = MC::Sandbox::RegisterCallback(dom::NewShadowRealmGlobal);
   JS::SetShadowRealmGlobalCreationCallback(aCx, NewShadowRealmGlobalCb);
 
   static auto AnnotateOOMAllocationSizeCb =
-      MC::Sandbox::RegisterCallback(CrashReporter::AnnotateOOMAllocationSize);
+      MC::Sandbox::RegisterTaintedCallback(CrashReporter::AnnotateOOMAllocationSize);
   mc::setAnnotateOOMAllocationSizeCallback(AnnotateOOMAllocationSizeCb);
 
   static auto DOMcallbacks = mc::DOMCallbacks{MC::Sandbox::RegisterCallback(InstanceClassHasProtoAtDepth)};
@@ -761,7 +762,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
   JS_SetErrorInterceptorCallback(mJSRuntime, &mErrorInterceptor);
 #endif  // MOZ_JS_DEV_ERROR_INTERCEPTOR
 
-  static auto OnZoneDestroyedCb = MC::Sandbox::RegisterCallback(OnZoneDestroyed);
+  static auto OnZoneDestroyedCb = MC::Sandbox::RegisterTaintedCallback(OnZoneDestroyed);
   JS_SetDestroyZoneCallback(aCx, OnZoneDestroyedCb);
 }
 
@@ -790,8 +791,8 @@ void CycleCollectedJSRuntime::Shutdown(MCContext* cx) {
   // remain are flagged as leaks.
 #ifdef NS_BUILD_REFCNT_LOGGING
   JSLeakTracer tracer(Runtime());
-  TraceNativeBlackRoots(tracer.getCallbackTracer());
-  TraceAllNativeGrayRoots(tracer.getCallbackTracer());
+  TraceNativeBlackRoots(tracer);
+  TraceAllNativeGrayRoots(tracer);
 #endif
 
 #ifdef DEBUG
@@ -977,7 +978,7 @@ void CycleCollectedJSRuntime::TraverseZone(
    * unnecessary loop edges to the graph (bug 842137).
    */
   TraversalTracer trc(mJSRuntime, aCb);
-  js::TraceGrayWrapperTargets(trc.getCallbackTracer(), aZone);
+  js::TraceGrayWrapperTargets(trc, aZone);
 
   /*
    * To find C++ children of things in the zone, we scan every JS Object in
@@ -1024,17 +1025,17 @@ void CycleCollectedJSRuntime::TraverseNativeRoots(
 }
 
 /* static */
-void CycleCollectedJSRuntime::TraceBlackJS(JSTracer* aTracer, void* aData) {
-  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+void CycleCollectedJSRuntime::TraceBlackJS(MC::Tainted<JSTracer*> aTracer, MC::AppPointer<void*> aData) {
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData.UNSAFE_unverified());
 
   self->TraceNativeBlackRoots(aTracer);
 }
 
 /* static */
-bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
+MC::Tainted<bool> CycleCollectedJSRuntime::TraceGrayJS(MC::Tainted<JSTracer*> aTracer,
                                           js::SliceBudget& budget,
-                                          void* aData) {
-  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+                                          MC::AppPointer<void*> aData) {
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData.UNSAFE_unverified());
 
   // Mark these roots as gray so the CC can walk them later.
 
@@ -1042,7 +1043,7 @@ bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
 
   // Only trace holders in collecting zones when marking, except if we are
   // collecting the atoms zone since any holder may point into that zone.
-  if (aTracer->isMarkingTracer() &&
+  if (aTracer.UNSAFE_unverified()->isMarkingTracer() &&
       !JS::AtomsZoneIsCollecting(self->Runtime())) {
     which = JSHolderMap::HoldersRequiredForGrayMarking;
   }
@@ -1051,11 +1052,11 @@ bool CycleCollectedJSRuntime::TraceGrayJS(JSTracer* aTracer,
 }
 
 /* static */
-void CycleCollectedJSRuntime::GCCallback(JSContext* uContext,
+void CycleCollectedJSRuntime::GCCallback(MC::Tainted<JSContext*> tContext,
                                          JSGCStatus aStatus,
-                                         JS::GCReason aReason, void* aData) {
-  MCContext* aContext = JS_SanitizeContext(uContext);
-  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+                                         JS::GCReason aReason, MC::AppPointer<void*> aData) {
+  MCContext* aContext = tContext.copy_and_verify_address(MC_VerifyContext);
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData.UNSAFE_unverified());
 
   MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
   MOZ_ASSERT(CycleCollectedJSContext::Get()->Runtime() == self);
@@ -1262,29 +1263,33 @@ void CycleCollectedJSRuntime::GCNurseryCollectionCallback(
 }
 
 /* static */
-void CycleCollectedJSRuntime::OutOfMemoryCallback(JSContext* aContext,
-                                                  void* aData) {
-  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData);
+void CycleCollectedJSRuntime::OutOfMemoryCallback(MC::Tainted<JSContext*> tContext,
+                                                  MC::AppPointer<void*> aData) {
+  MCContext* aContext = tContext.copy_and_verify_address(MC_VerifyContext);
+  CycleCollectedJSRuntime* self = static_cast<CycleCollectedJSRuntime*>(aData.UNSAFE_unverified());
 
-  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
+  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
   MOZ_ASSERT(CycleCollectedJSContext::Get()->Runtime() == self);
 
   self->OnOutOfMemory();
 }
 
 /* static */
-void* CycleCollectedJSRuntime::BeforeWaitCallback(uint8_t* aMemory) {
+MC::Tainted<void*> CycleCollectedJSRuntime::BeforeWaitCallback(MC::Tainted<uint8_t*> aMemory) {
   MOZ_ASSERT(aMemory);
 
   // aMemory is stack allocated memory to contain our RAII object. This allows
   // for us to avoid allocations on the heap during this callback.
-  return new (aMemory) dom::AutoYieldJSThreadExecution;
+  dom::AutoYieldJSThreadExecution* ptr = new (aMemory.UNSAFE_unverified()) dom::AutoYieldJSThreadExecution;
+  MC::Tainted<void*> ret{nullptr};
+  ret.assign_raw_pointer(static_cast<void*>(ptr));
+  return ret;
 }
 
 /* static */
-void CycleCollectedJSRuntime::AfterWaitCallback(void* aCookie) {
-  MOZ_ASSERT(aCookie);
-  static_cast<dom::AutoYieldJSThreadExecution*>(aCookie)
+void CycleCollectedJSRuntime::AfterWaitCallback(MC::AppPointer<void*> aCookie) {
+  MOZ_ASSERT(aCookie.UNSAFE_unverified());
+  static_cast<dom::AutoYieldJSThreadExecution*>(aCookie.UNSAFE_unverified())
       ->~AutoYieldJSThreadExecution();
 }
 
@@ -1454,7 +1459,7 @@ static inline bool ShouldCheckSingleZoneHolders() {
 }
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
+void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(MC::Tainted<JSTracer*> aTracer) {
   MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
   js::SliceBudget budget = js::SliceBudget::unlimited();
   MOZ_ALWAYS_TRUE(
@@ -1463,7 +1468,7 @@ void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(JSTracer* aTracer) {
 #endif
 
 bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
-    JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
+    MC::Tainted<JSTracer*> aTracer, JSHolderMap::WhichHolders aWhich,
     js::SliceBudget& aBudget) {
   if (!mHolderIter) {
     // NB: This is here just to preserve the existing XPConnect order. I doubt
@@ -1486,7 +1491,7 @@ bool CycleCollectedJSRuntime::TraceNativeGrayRoots(
   return finished;
 }
 
-bool CycleCollectedJSRuntime::TraceJSHolders(JSTracer* aTracer,
+bool CycleCollectedJSRuntime::TraceJSHolders(MC::Tainted<JSTracer*> aTracer,
                                              JSHolderMap::Iter& aIter,
                                              js::SliceBudget& aBudget) {
   bool checkSingleZoneHolders = ShouldCheckSingleZoneHolders();
@@ -1503,7 +1508,7 @@ bool CycleCollectedJSRuntime::TraceJSHolders(JSTracer* aTracer,
     Unused << checkSingleZoneHolders;
 #endif
 
-    tracer->Trace(holder, JsGcTracer(), aTracer);
+    tracer->Trace(holder, JsGcTracer(), aTracer.UNSAFE_unverified());
 
     aIter.Next();
     aBudget.step();
@@ -1938,13 +1943,13 @@ void CycleCollectedJSRuntime::PrepareWaitingZonesForGC() {
 }
 
 /* static */
-void CycleCollectedJSRuntime::OnZoneDestroyed(JS::GCContext* aGcx,
-                                              JS::Zone* aZone) {
+void CycleCollectedJSRuntime::OnZoneDestroyed(MC::Tainted<JS::GCContext*> aGcx,
+                                              MC::Tainted<JS::Zone*> aZone) {
   // Remove the zone from the set of zones waiting for GC, if present. This can
   // happen if a zone is added to the set during an incremental GC in which it
   // is later destroyed.
   CycleCollectedJSRuntime* runtime = Get();
-  runtime->mZonesWaitingForGC.Remove(aZone);
+  runtime->mZonesWaitingForGC.Remove(aZone.UNSAFE_unverified());
 }
 
 void CycleCollectedJSRuntime::EnvironmentPreparer::invoke(

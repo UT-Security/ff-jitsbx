@@ -1644,7 +1644,7 @@ static constexpr uint32_t HistogramObjectDataSlot = 0;
 static constexpr uint32_t HistogramObjectSlotCount =
     HistogramObjectDataSlot + 1;
 
-void internal_JSHistogram_finalize(JS::GCContext*, JSObject*);
+void internal_JSHistogram_finalize(MC::Tainted<JS::GCContext*>, MC::Tainted<JSObject*>);
 
 static const JSClass* sJSHistogramClass() {
   static const JSClassOps sJSHistogramClassOps = {
@@ -1654,7 +1654,7 @@ static const JSClass* sJSHistogramClass() {
       nullptr, /* newEnumerate */
       nullptr, /* resolve */
       nullptr, /* mayResolve */
-      MC::Sandbox::RegisterCallback(internal_JSHistogram_finalize).UNSAFE_get()};
+      MC::Sandbox::RegisterTaintedCallback(internal_JSHistogram_finalize).UNSAFE_get()};
 
   static const JSClass inner_ = {
       "JSHistogram", /* name */
@@ -1813,7 +1813,9 @@ static JSHistogramData* GetJSHistogramData(JSObject* obj) {
       obj, HistogramObjectDataSlot);
 }
 
-bool internal_JSHistogram_Add(JSContext* cx, unsigned argc, JS::Value* vp) {
+MC::Tainted<bool> internal_JSHistogram_Add(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
@@ -1834,7 +1836,7 @@ bool internal_JSHistogram_Add(JSContext* cx, unsigned argc, JS::Value* vp) {
   args.rval().setUndefined();
 
   nsTArray<uint32_t> values;
-  if (!internal_JSHistogram_GetValueArray(cx, args, type, id, false, values)) {
+  if (!internal_JSHistogram_GetValueArray(MC_UNSAFE(cx), args, type, id, false, values)) {
     // Either GetValueArray or CoerceValue utility function will have printed a
     // meaningful error message, so we simply return true
     return true;
@@ -1849,7 +1851,11 @@ bool internal_JSHistogram_Add(JSContext* cx, unsigned argc, JS::Value* vp) {
   return true;
 }
 
-bool internal_JSHistogram_Name(JSContext* cx, unsigned argc, JS::Value* vp) {
+MC::Tainted<bool> internal_JSHistogram_Name(MC::Tainted<JSContext*> t_cx,
+                                            unsigned argc,
+                                            MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
@@ -1876,7 +1882,7 @@ bool internal_JSHistogram_Name(JSContext* cx, unsigned argc, JS::Value* vp) {
  * The first and only argument needs to be an object with a "store" property.
  * If no arguments are given it defaults to "main".
  */
-nsresult internal_JS_StoreFromObjectArgument(JSContext* cx,
+nsresult internal_JS_StoreFromObjectArgument(MCContext* cx,
                                              const JS::CallArgs& args,
                                              nsAutoString& aStoreName) {
   if (args.length() == 0) {
@@ -1911,8 +1917,10 @@ nsresult internal_JS_StoreFromObjectArgument(JSContext* cx,
   return NS_OK;
 }
 
-bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
-                                   JS::Value* vp) {
+MC::Tainted<bool> internal_JSHistogram_Snapshot(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                   MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!XRE_IsParentProcess()) {
@@ -1967,7 +1975,7 @@ bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
   }
 
   if (NS_FAILED(internal_ReflectHistogramAndSamples(
-          cx, snapshot, gHistogramInfos[id], dataSnapshot))) {
+          MC_UNSAFE(cx), snapshot, gHistogramInfos[id], dataSnapshot))) {
     return false;
   }
 
@@ -1975,7 +1983,11 @@ bool internal_JSHistogram_Snapshot(JSContext* cx, unsigned argc,
   return true;
 }
 
-bool internal_JSHistogram_Clear(JSContext* cx, unsigned argc, JS::Value* vp) {
+MC::Tainted<bool> internal_JSHistogram_Clear(MC::Tainted<JSContext*> t_cx,
+                                             unsigned argc,
+                                             MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   if (!XRE_IsParentProcess()) {
     JS_ReportErrorASCII(cx,
                         "Histograms can only be cleared in the parent process");
@@ -2024,10 +2036,14 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
     return NS_ERROR_FAILURE;
   }
 
-  static auto internal_JSHistogram_AddCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Add);
-  static auto internal_JSHistogram_NameCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Name);
-  static auto internal_JSHistogram_SnapshotCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Snapshot);
-  static auto internal_JSHistogram_ClearCb = MC::Sandbox::RegisterCallback(internal_JSHistogram_Clear);
+  static auto internal_JSHistogram_AddCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSHistogram_Add);
+  static auto internal_JSHistogram_NameCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSHistogram_Name);
+  static auto internal_JSHistogram_SnapshotCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSHistogram_Snapshot);
+  static auto internal_JSHistogram_ClearCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSHistogram_Clear);
 
   // The 3 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
@@ -2047,7 +2063,8 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
   return NS_OK;
 }
 
-void internal_JSHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
+void internal_JSHistogram_finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_obj) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
   if (!obj || JS::GetClass(obj) != sJSHistogramClass()) {
     MOZ_ASSERT_UNREACHABLE("Should have the right JS class.");
     return;
@@ -2079,7 +2096,7 @@ void internal_JSHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
 
 namespace {
 
-void internal_JSKeyedHistogram_finalize(JS::GCContext*, JSObject*);
+void internal_JSKeyedHistogram_finalize(MC::Tainted<JS::GCContext*>, MC::Tainted<JSObject*>);
 
 static const JSClass* sJSKeyedHistogramClass() {
   static const JSClassOps sJSKeyedHistogramClassOps = {
@@ -2089,7 +2106,7 @@ static const JSClass* sJSKeyedHistogramClass() {
       nullptr, /* newEnumerate */
       nullptr, /* resolve */
       nullptr, /* mayResolve */
-      MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_finalize)
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_finalize)
           .UNSAFE_get()};
 
   static const JSClass inner_ = {
@@ -2107,8 +2124,11 @@ static JSHistogramData* GetJSKeyedHistogramData(JSObject* obj) {
       obj, HistogramObjectDataSlot);
 }
 
-bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
-                                        JS::Value* vp) {
+MC::Tainted<bool> internal_JSKeyedHistogram_Snapshot(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                        MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+
   if (!XRE_IsParentProcess()) {
     JS_ReportErrorASCII(
         cx, "Keyed histograms can only be snapshotted in the parent process");
@@ -2156,7 +2176,7 @@ bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
     return false;
   }
 
-  rv = keyed->GetJSSnapshot(cx, snapshot, NS_ConvertUTF16toUTF8(storeName),
+  rv = keyed->GetJSSnapshot(MC_UNSAFE(cx), snapshot, NS_ConvertUTF16toUTF8(storeName),
                             false);
 
   // If the store is not available, we return nothing and don't fail
@@ -2174,8 +2194,11 @@ bool internal_JSKeyedHistogram_Snapshot(JSContext* cx, unsigned argc,
   return true;
 }
 
-bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
-                                   JS::Value* vp) {
+MC::Tainted<bool> internal_JSKeyedHistogram_Add(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                   MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+  
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
@@ -2219,7 +2242,7 @@ bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
   const uint32_t type = gHistogramInfos[id].histogramType;
 
   nsTArray<uint32_t> values;
-  if (!internal_JSHistogram_GetValueArray(cx, args, type, id, true, values)) {
+  if (!internal_JSHistogram_GetValueArray(MC_UNSAFE(cx), args, type, id, true, values)) {
     // Either GetValueArray or CoerceValue utility function will have printed a
     // meaningful error message so we simple return true
     return true;
@@ -2234,8 +2257,10 @@ bool internal_JSKeyedHistogram_Add(JSContext* cx, unsigned argc,
   return true;
 }
 
-bool internal_JSKeyedHistogram_Name(JSContext* cx, unsigned argc,
-                                    JS::Value* vp) {
+MC::Tainted<bool> internal_JSKeyedHistogram_Name(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                    MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
@@ -2257,8 +2282,10 @@ bool internal_JSKeyedHistogram_Name(JSContext* cx, unsigned argc,
   return true;
 }
 
-bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
-                                    JS::Value* vp) {
+MC::Tainted<bool> internal_JSKeyedHistogram_Keys(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                    MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (!args.thisv().isObject() ||
@@ -2323,8 +2350,10 @@ bool internal_JSKeyedHistogram_Keys(JSContext* cx, unsigned argc,
   return true;
 }
 
-bool internal_JSKeyedHistogram_Clear(JSContext* cx, unsigned argc,
-                                     JS::Value* vp) {
+MC::Tainted<bool> internal_JSKeyedHistogram_Clear(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                     MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   if (!XRE_IsParentProcess()) {
     JS_ReportErrorASCII(
         cx, "Keyed histograms can only be cleared in the parent process");
@@ -2382,12 +2411,17 @@ nsresult internal_WrapAndReturnKeyedHistogram(
   MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, sJSKeyedHistogramClass()));
   if (!obj) return NS_ERROR_FAILURE;
 
-  static auto internal_JSKeyedHistogram_AddCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Add);
-  static auto internal_JSKeyedHistogram_NameCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Name);
-  static auto internal_JSKeyedHistogram_SnapshotCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Snapshot);
-  static auto internal_JSKeyedHistogram_KeysCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Keys);
-  static auto internal_JSKeyedHistogram_ClearCb = MC::Sandbox::RegisterCallback(internal_JSKeyedHistogram_Clear);
-  
+  static auto internal_JSKeyedHistogram_AddCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_Add);
+  static auto internal_JSKeyedHistogram_NameCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_Name);
+  static auto internal_JSKeyedHistogram_SnapshotCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_Snapshot);
+  static auto internal_JSKeyedHistogram_KeysCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_Keys);
+  static auto internal_JSKeyedHistogram_ClearCb =
+      MC::Sandbox::RegisterTaintedCallback(internal_JSKeyedHistogram_Clear);
+
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
   if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb.UNSAFE_get(), 2,
@@ -2410,7 +2444,9 @@ nsresult internal_WrapAndReturnKeyedHistogram(
   return NS_OK;
 }
 
-void internal_JSKeyedHistogram_finalize(JS::GCContext* gcx, JSObject* obj) {
+void internal_JSKeyedHistogram_finalize(MC::Tainted<JS::GCContext*> gcx,
+                                        MC::Tainted<JSObject*> t_obj) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
   if (!obj || JS::GetClass(obj) != sJSKeyedHistogramClass()) {
     MOZ_ASSERT_UNREACHABLE("Should have the right JS class.");
     return;

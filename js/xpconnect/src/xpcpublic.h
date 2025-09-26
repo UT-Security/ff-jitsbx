@@ -160,7 +160,7 @@ bool IsXrayWrapper(JSObject* obj);
 // compartment with the argument.
 JSObject* XrayAwareCalleeGlobal(JSObject* fun);
 
-void TraceXPCGlobal(JSTracer* trc, JSObject* obj);
+void TraceXPCGlobal(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj);
 MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCb();
 
 /**

@@ -10,8 +10,8 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Attributes.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
-#include "js/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctionById, JS_DefineProperty, JS_DefinePropertyById
-#include "js/Symbol.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctionById, JS_DefineProperty, JS_DefinePropertyById
+#include "monkeycage/Symbol.h"
 #include "monkeycage/Wrapper.h"
 #include "nsContentUtils.h"
 
@@ -32,8 +32,8 @@ namespace xpc {
  * value stored in each slot. Getter code extracts this data, and combines them
  * back into the nsID value.
  */
-static bool ID_Equals(JSContext* aCx, unsigned aArgc, Value* aVp);
-static bool ID_GetNumber(JSContext* aCx, unsigned aArgc, Value* aVp);
+static MC::Tainted<bool> ID_Equals(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
+static MC::Tainted<bool> ID_GetNumber(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
 
 // Generic ID objects contain 4 reserved slots, each containing a uint32_t with
 // 1/4 of the representation of the nsID value. This allows us to avoid an extra
@@ -49,16 +49,16 @@ static const JSClass sID_Class = {
  * 'instanceof', exposes constant properties defined on the class, and exposes
  * the interface name as the 'name' and 'toString()' values.
  */
-static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp);
-static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp);
+static MC::Tainted<bool> IID_HasInstance(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
+static MC::Tainted<bool> IID_GetName(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
 
-static bool IID_NewEnumerate(JSContext* cx, HandleObject obj,
+static MC::Tainted<bool> IID_NewEnumerate(MC::Tainted<JSContext*> cx, HandleObject obj,
                              MutableHandleIdVector properties,
                              bool enumerableOnly);
-static bool IID_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                        bool* resolvedp);
-static bool IID_MayResolve(const JSAtomState& names, jsid id,
-                           JSObject* maybeObj);
+static MC::Tainted<bool> IID_Resolve(MC::Tainted<JSContext*> cx, HandleObject obj, HandleId id,
+                        MC::Tainted<bool*> resolvedp);
+static MC::Tainted<bool> IID_MayResolve(const JSAtomState& names, jsid id,
+                           MC::Tainted<JSObject*> maybeObj);
 
 // Interface ID objects use a single reserved slot containing a pointer to the
 // nsXPTInterfaceInfo object for the interface in question.
@@ -69,9 +69,9 @@ static const JSClass* sIID_Class() {
       nullptr,           // addProperty
       nullptr,           // delProperty
       nullptr,           // enumerate
-      MC::Sandbox::RegisterCallback(IID_NewEnumerate).UNSAFE_get(),  // newEnumerate
-      MC::Sandbox::RegisterCallback(IID_Resolve).UNSAFE_get(),       // resolve
-      MC::Sandbox::RegisterCallback(IID_MayResolve).UNSAFE_get(),    // mayResolve
+      MC::Sandbox::RegisterTaintedCallback(IID_NewEnumerate).UNSAFE_get(),  // newEnumerate
+      MC::Sandbox::RegisterTaintedCallback(IID_Resolve).UNSAFE_get(),       // resolve
+      MC::Sandbox::RegisterTaintedCallback(IID_MayResolve).UNSAFE_get(),    // mayResolve
       nullptr,           // finalize
       nullptr,           // call
       nullptr,           // construct
@@ -91,9 +91,9 @@ static const JSClass* sIID_Class() {
  * expose 'getService' and 'createInstance' methods, and expose the contractID
  * string as '.name' and '.toString()'.
  */
-static bool CID_CreateInstance(JSContext* aCx, unsigned aArgc, Value* aVp);
-static bool CID_GetService(JSContext* aCx, unsigned aArgc, Value* aVp);
-static bool CID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp);
+static MC::Tainted<bool> CID_CreateInstance(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
+static MC::Tainted<bool> CID_GetService(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
+static MC::Tainted<bool> CID_GetName(MC::Tainted<JSContext*> aCx, unsigned aArgc, MC::Tainted<Value*> aVp);
 
 // ContractID objects use a single reserved slot, containing the ContractID. The
 // nsCID value for this object is looked up when the object is being unwrapped.
@@ -128,13 +128,19 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
         JSPROP_READONLY | JSPROP_ENUMERATE | JSPROP_PERMANENT;
     const uint32_t kNoEnum = JSPROP_READONLY | JSPROP_PERMANENT;
 
-    static auto ID_EqualsCb = MC::Sandbox::RegisterCallback(ID_Equals);
-    static auto ID_GetNumberCb = MC::Sandbox::RegisterCallback(ID_GetNumber);
-    static auto IID_HasInstanceCb = MC::Sandbox::RegisterCallback(IID_HasInstance);
-    static auto IID_GetNameCb = MC::Sandbox::RegisterCallback(IID_GetName);
-    static auto CID_CreateInstanceCb = MC::Sandbox::RegisterCallback(CID_CreateInstance);
-    static auto CID_GetServiceCb = MC::Sandbox::RegisterCallback(CID_GetService);
-    static auto CID_GetNameCb = MC::Sandbox::RegisterCallback(CID_GetName);
+    static auto ID_EqualsCb = MC::Sandbox::RegisterTaintedCallback(ID_Equals);
+    static auto ID_GetNumberCb =
+        MC::Sandbox::RegisterTaintedCallback(ID_GetNumber);
+    static auto IID_HasInstanceCb =
+        MC::Sandbox::RegisterTaintedCallback(IID_HasInstance);
+    static auto IID_GetNameCb =
+        MC::Sandbox::RegisterTaintedCallback(IID_GetName);
+    static auto CID_CreateInstanceCb =
+        MC::Sandbox::RegisterTaintedCallback(CID_CreateInstance);
+    static auto CID_GetServiceCb =
+        MC::Sandbox::RegisterTaintedCallback(CID_GetService);
+    static auto CID_GetNameCb =
+        MC::Sandbox::RegisterTaintedCallback(CID_GetName);
 
     bool ok =
         idProto && iidProto && cidProto &&
@@ -341,35 +347,41 @@ bool ContractID2JSValue(JSContext* aCx, JSString* aContract,
 
 // NOTE: This method is used both for 'get ID.prototype.number' and
 // 'ID.prototype.toString'.
-static bool ID_GetNumber(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> ID_GetNumber(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
+  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
   if (!id) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   char buf[NSID_LENGTH];
   id->ToProvidedString(buf);
   JSString* jsnum = JS_NewStringCopyZ(aCx, buf);
   if (!jsnum) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
+    return Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
   }
 
   args.rval().setString(jsnum);
   return true;
 }
 
-static bool ID_Equals(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> ID_Equals(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(aArgc, aVp);
-  if (!args.requireAtLeast(aCx, "nsID.equals", 1)) {
+  if (!args.requireAtLeast(MC_UNSAFE(aCx), "nsID.equals", 1)) {
     return false;
   }
 
-  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
-  Maybe<nsID> id2 = JSValue2ID(aCx, args[0]);
+  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
+  Maybe<nsID> id2 = JSValue2ID(MC_UNSAFE(aCx), args[0]);
   if (!id || !id2) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   args.rval().setBoolean(id->Equals(*id2));
@@ -458,23 +470,26 @@ nsresult HasInstance(JSContext* cx, HandleObject objArg, const nsID* iid,
   return NS_OK;
 }
 
-static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> IID_HasInstance(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(aArgc, aVp);
-  if (!args.requireAtLeast(aCx, "nsIID[Symbol.hasInstance]", 1)) {
+  if (!args.requireAtLeast(MC_UNSAFE(aCx), "nsIID[Symbol.hasInstance]", 1)) {
     return false;
   }
 
-  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
+  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
   if (!id) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   bool hasInstance = false;
   if (args[0].isObject()) {
     MC::RootedObject target(aCx, &args[0].toObject());
-    nsresult rv = HasInstance(aCx, target, id.ptr(), &hasInstance);
+    nsresult rv = HasInstance(MC_UNSAFE(aCx), target, id.ptr(), &hasInstance);
     if (NS_FAILED(rv)) {
-      return Throw(JS_SanitizeContext(aCx), rv);
+      return Throw(aCx, rv);
     }
   }
   args.rval().setBoolean(hasInstance);
@@ -483,12 +498,15 @@ static bool IID_HasInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
 
 // NOTE: This method is used both for 'get IID.prototype.name' and
 // 'IID.prototype.toString'.
-static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> IID_GetName(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), sIID_Class()));
   if (!obj) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   const nsXPTInterfaceInfo* info = GetInterfaceInfo(obj);
@@ -496,16 +514,17 @@ static bool IID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
   // Name property is the name of the interface this nsIID was created from.
   JSString* name = JS_NewStringCopyZ(aCx, info->Name());
   if (!name) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
+    return Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
   }
 
   args.rval().setString(name);
   return true;
 }
 
-static bool IID_NewEnumerate(JSContext* cx, HandleObject obj,
+static MC::Tainted<bool> IID_NewEnumerate(MC::Tainted<JSContext*> t_cx, HandleObject obj,
                              MutableHandleIdVector properties,
                              bool enumerableOnly) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   const nsXPTInterfaceInfo* info = GetInterfaceInfo(obj);
 
   if (!properties.reserve(info->ConstantCount())) {
@@ -526,8 +545,9 @@ static bool IID_NewEnumerate(JSContext* cx, HandleObject obj,
   return true;
 }
 
-static bool IID_Resolve(JSContext* cx, HandleObject obj, HandleId id,
-                        bool* resolvedp) {
+static MC::Tainted<bool> IID_Resolve(MC::Tainted<JSContext*> tcx, HandleObject obj, HandleId id,
+                        MC::Tainted<bool*> resolvedp) {
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   *resolvedp = false;
   if (!id.isString()) {
     return true;
@@ -548,8 +568,8 @@ static bool IID_Resolve(JSContext* cx, HandleObject obj, HandleId id,
   return true;
 }
 
-static bool IID_MayResolve(const JSAtomState& names, jsid id,
-                           JSObject* maybeObj) {
+static MC::Tainted<bool> IID_MayResolve(const JSAtomState& names, jsid id,
+                           MC::Tainted<JSObject*> maybeObj) {
   if (!id.isString()) {
     return false;
   }
@@ -561,7 +581,8 @@ static bool IID_MayResolve(const JSAtomState& names, jsid id,
   }
 
   JSLinearString* name = id.toLinearString();
-  const nsXPTInterfaceInfo* info = GetInterfaceInfo(maybeObj);
+  const nsXPTInterfaceInfo* info =
+      GetInterfaceInfo(maybeObj.UNSAFE_unverified());
   for (uint16_t i = 0; i < info->ConstantCount(); ++i) {
     if (JS_LinearStringEqualsAscii(name, info->Constant(i).Name())) {
       return true;
@@ -571,7 +592,7 @@ static bool IID_MayResolve(const JSAtomState& names, jsid id,
 }
 
 // Common code for CID_CreateInstance and CID_GetService
-static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
+static bool CIGSHelper(MCContext* aCx, unsigned aArgc, Value* aVp,
                        bool aGetService) {
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
@@ -580,16 +601,16 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   // and it allows us to avoid a duplicate hashtable lookup.
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
   JS::UniqueChars contractID = JS_EncodeStringToLatin1(
       aCx, JS::GetReservedSlot(obj, kCID_ContractSlot).toString());
 
   // Extract the IID from the first argument, if passed. Default: nsISupports.
-  Maybe<nsIID> iid = args.length() >= 1 ? JSValue2ID(aCx, args[0])
+  Maybe<nsIID> iid = args.length() >= 1 ? JSValue2ID(MC_UNSAFE(aCx), args[0])
                                         : Some(NS_GET_IID(nsISupports));
   if (!iid) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   // Invoke CreateInstance or GetService with our ContractID.
@@ -598,38 +619,45 @@ static bool CIGSHelper(JSContext* aCx, unsigned aArgc, Value* aVp,
   if (aGetService) {
     rv = CallGetService(contractID.get(), *iid, getter_AddRefs(result));
     if (NS_FAILED(rv) || !result) {
-      return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_GS_RETURNED_FAILURE);
+      return Throw(aCx, NS_ERROR_XPC_GS_RETURNED_FAILURE);
     }
   } else {
     rv = CallCreateInstance(contractID.get(), *iid, getter_AddRefs(result));
     if (NS_FAILED(rv) || !result) {
-      return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_CI_RETURNED_FAILURE);
+      return Throw(aCx, NS_ERROR_XPC_CI_RETURNED_FAILURE);
     }
   }
 
   // Wrap the created object and return it.
-  rv = nsContentUtils::WrapNative(aCx, result, iid.ptr(), args.rval());
+  rv = nsContentUtils::WrapNative(MC_UNSAFE(aCx), result, iid.ptr(), args.rval());
   if (NS_FAILED(rv) || args.rval().isPrimitive()) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_CANT_CREATE_WN);
+    return Throw(aCx, NS_ERROR_XPC_CANT_CREATE_WN);
   }
   return true;
 }
 
-static bool CID_CreateInstance(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> CID_CreateInstance(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
   return CIGSHelper(aCx, aArgc, aVp, /* aGetService = */ false);
 }
 
-static bool CID_GetService(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> CID_GetService(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
   return CIGSHelper(aCx, aArgc, aVp, /* aGetService = */ true);
 }
 
 // NOTE: This method is used both for 'get CID.prototype.name' and
 // 'CID.prototype.toString'.
-static bool CID_GetName(JSContext* aCx, unsigned aArgc, Value* aVp) {
+static MC::Tainted<bool> CID_GetName(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  Value* aVp = tVp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(aArgc, aVp);
   MC::RootedObject obj(aCx, GetIDObject(args.thisv(), &sCID_Class));
   if (!obj) {
-    return Throw(JS_SanitizeContext(aCx), NS_ERROR_XPC_BAD_CONVERT_JS);
+    return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
 
   // Return the string stored in our reserved ContractID slot.

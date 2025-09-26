@@ -98,7 +98,10 @@ class SendResponseCallback final : public nsISupports {
     }
   }
 
-  static bool Call(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+  static MC::Tainted<bool> Call(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<JS::Value*> tVp) {
+    MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+    JS::Value* aVp = tVp.UNSAFE_unverified();
+    
     JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
     MC::Rooted<JSObject*> callee(aCx, &args.callee());
 
@@ -433,7 +436,7 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
   // Create callback argument and append it to the call arguments.
   MC::Rooted<JSObject*> sendResponseObj(aCx);
 
-  static auto SendResponseCallbackCallCb = MC::Sandbox::RegisterCallback(SendResponseCallback::Call);
+  static auto SendResponseCallbackCallCb = MC::Sandbox::RegisterTaintedCallback(SendResponseCallback::Call);
 
   switch (mCallbackArgType) {
     case CallbackType::CALLBACK_NONE:

@@ -6,7 +6,7 @@
 
 #include "nsString.h"
 #include "mcapi.h"
-#include "js/CallNonGenericMethod.h"
+#include "monkeycage/CallNonGenericMethod.h"
 #include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
@@ -90,7 +90,9 @@ already_AddRefed<FinalizationEvent> ExtractFinalizationEvent(
  * Unless method Forget() has been called, the finalizer displays an error
  * message.
  */
-void Finalize(JS::GCContext* gcx, JSObject* objSelf) {
+void Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_objSelf) {
+  JSObject* objSelf = t_objSelf.UNSAFE_unverified();
+  
   RefPtr<FinalizationEvent> event = ExtractFinalizationEvent(objSelf);
   if (event == nullptr || gShuttingDown) {
     // NB: event will be null if Forget() has been called
@@ -115,7 +117,7 @@ static const JSClass* sWitnessClass() {
       nullptr /* newEnumerate */,
       nullptr /* resolve */,
       nullptr /* mayResolve */,
-      MC::Sandbox::RegisterCallback(Finalize).UNSAFE_get() /* finalize */
+      MC::Sandbox::RegisterTaintedCallback(Finalize).UNSAFE_get() /* finalize */
   };
 
   static const JSClass inner_ = {
@@ -156,14 +158,16 @@ bool ForgetImpl(JSContext* cx, const JS::CallArgs& args) {
   return true;
 }
 
-bool Forget(JSContext* cx, unsigned argc, JS::Value* vp) {
+MC::Tainted<bool> Forget(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   return JS::CallNonGenericMethod<IsWitness, ForgetImpl>(cx, args);
 }
 
 static const JSFunctionSpec* sWitnessClassFunctions() {
   static const JSFunctionSpec inner_[] = {
-      JS_FN("forget", MC::Sandbox::RegisterCallback(Forget).UNSAFE_get(), 0,
+      JS_FN("forget", MC::Sandbox::RegisterTaintedCallback(Forget).UNSAFE_get(), 0,
             JSPROP_READONLY | JSPROP_PERMANENT),
       JS_FS_END};
 

@@ -15,7 +15,7 @@
 #include "XPCWrapper.h"
 #include "mcfriendapi.h"
 #include "monkeycage/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
-#include "js/CompileOptions.h"     // JS::ReadOnlyCompileOptions
+#include "monkeycage/CompileOptions.h"     // JS::ReadOnlyCompileOptions
 #include "js/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
 #include "monkeycage/Value.h"
@@ -146,14 +146,22 @@ nsXPConnect::~nsXPConnect() {
   gOnceAliveNowDead = true;
 }
 
+static void MC_LogCtor(MC::AppPointer<void*> aPtr, MC::Tainted<const char*> aTypeName, uint32_t instanceSize) {
+  NS_LogCtor(aPtr.UNSAFE_unverified(), aTypeName.UNSAFE_unverified(), instanceSize);
+}
+
+static void MC_LogDtor(MC::AppPointer<void*> aPtr, MC::Tainted<const char*> aTypeName, uint32_t instanceSize) {
+  NS_LogDtor(aPtr.UNSAFE_unverified(), aTypeName.UNSAFE_unverified(), instanceSize);
+}
+
 // static
 void nsXPConnect::InitStatics() {
 #ifdef NS_BUILD_REFCNT_LOGGING
   // These functions are used for reporting leaks, so we register them as early
   // as possible to avoid missing any classes' creations.
-  static auto NS_LogCtorCb = MC::Sandbox::RegisterCallback(NS_LogCtor);
-  static auto NS_LogDtorCb = MC::Sandbox::RegisterCallback(NS_LogDtor);
-  JS::SetLogCtorDtorFunctions(NS_LogCtorCb, NS_LogDtorCb);
+  static auto MC_LogCtorCb = MC::Sandbox::RegisterTaintedCallback(MC_LogCtor);
+  static auto MC_LogDtorCb = MC::Sandbox::RegisterTaintedCallback(MC_LogDtor);
+  JS::SetLogCtorDtorFunctions(MC_LogCtorCb, MC_LogDtorCb);
 #endif
   ReadOnlyPage::Init();
 
@@ -414,21 +422,22 @@ static inline T UnexpectedFailure(T rv) {
   return rv;
 }
 
-void xpc::TraceXPCGlobal(JSTracer* trc, JSObject* obj) {
+void xpc::TraceXPCGlobal(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> t_obj) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
   if (JS::GetClass(obj)->flags & JSCLASS_DOM_GLOBAL) {
-    mozilla::dom::TraceProtoAndIfaceCache(trc, obj);
+    mozilla::dom::TraceProtoAndIfaceCache(trc.UNSAFE_unverified(), obj);
   }
 
   // We might be called from a GC during the creation of a global, before we've
   // been able to set up the compartment private.
   if (xpc::CompartmentPrivate* priv = xpc::CompartmentPrivate::Get(obj)) {
     MOZ_ASSERT(priv->GetScope());
-    priv->GetScope()->TraceInside(trc);
+    priv->GetScope()->TraceInside(trc.UNSAFE_unverified());
   }
 }
 
 MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(TraceXPCGlobal);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(TraceXPCGlobal);
   return inner_;
 }
 
@@ -469,7 +478,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
       // unless that flag is set.
       if (!((const JSClass*)clasp)->isWrappedNative()) {
         VerifyTraceProtoAndIfaceCacheCalledTracer trc(cx);
-        TraceChildren(trc.getCallbackTracer(), GCCellPtr(global.get()));
+        TraceChildren(static_cast<MC::Tainted<JS::CallbackTracer*>>(trc), GCCellPtr(global.get()));
         MOZ_ASSERT(trc.ok,
                    "Trace hook on global needs to call TraceXPCGlobal for "
                    "XPConnect compartments.");
@@ -1045,31 +1054,37 @@ MOZ_EXPORT void DumpCompleteHeap() {
 
 namespace xpc {
 
-bool Atob(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> Atob(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.length()) {
     return true;
   }
 
-  return xpc::Base64Decode(cx, args[0], args.rval());
+  return xpc::Base64Decode(MC_UNSAFE(cx), args[0], args.rval());
 }
 
 MC::SandboxCallback<JSNative> AtobCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(Atob);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(Atob);
   return inner_;
 }
 
-bool Btoa(JSContext* cx, unsigned argc, Value* vp) {
+MC::Tainted<bool> Btoa(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.length()) {
     return true;
   }
 
-  return xpc::Base64Encode(cx, args[0], args.rval());
+  return xpc::Base64Encode(MC_UNSAFE(cx), args[0], args.rval());
 }
 
 MC::SandboxCallback<JSNative> BtoaCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(Btoa);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(Btoa);
   return inner_;
 }
 

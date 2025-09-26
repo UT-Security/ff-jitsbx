@@ -144,9 +144,8 @@ private:
   }
 
   template <typename T_Arg,
-            typename = std::enable_if_t<
-                std::is_fundamental_v<std::remove_reference_t<T_Arg>> &&
-                    std::is_fundamental_v<T>, T>>
+            MC_ENABLE_IF(is_fundamental_or_enum_v<T>&& is_fundamental_or_enum_v<
+                         std::remove_reference_t<T_Arg>>)>
   Tainted(T_Arg&& arg) : data(std::forward<T_Arg>(arg)) {}
 
   template<typename T_Rhs>

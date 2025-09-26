@@ -57,7 +57,7 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
                                const CompileScriptOptionsDictionary& aOptions,
                                nsIPrincipal* aPrincipal);
 
-  inline void SetToken(JS::OffThreadToken* aToken) { mToken = aToken; }
+  inline void SetToken(MC::Tainted<JS::OffThreadToken*> aToken) { mToken = aToken; }
 
  protected:
   virtual ~AsyncScriptCompiler() {
@@ -79,7 +79,7 @@ class AsyncScriptCompiler final : public nsIIncrementalStreamLoaderObserver,
   nsCOMPtr<nsIGlobalObject> mGlobalObject;
   RefPtr<Promise> mPromise;
   nsString mCharset;
-  JS::OffThreadToken* mToken;
+  MC::Tainted<JS::OffThreadToken*> mToken;
   UniquePtr<Utf8Unit[], JS::FreePolicy> mScriptText;
   size_t mScriptLength;
 };
@@ -126,10 +126,10 @@ nsresult AsyncScriptCompiler::Start(
   return channel->AsyncOpen(loader);
 }
 
-static void OffThreadScriptLoaderCallback(JS::OffThreadToken* aToken,
-                                          void* aCallbackData) {
+static void OffThreadScriptLoaderCallback(MC::Tainted<JS::OffThreadToken*> aToken,
+                                          MC::AppPointer<void*> aCallbackData) {
   RefPtr<AsyncScriptCompiler> scriptCompiler =
-      dont_AddRef(static_cast<AsyncScriptCompiler*>(aCallbackData));
+      dont_AddRef(static_cast<AsyncScriptCompiler*>(aCallbackData.UNSAFE_unverified()));
 
   scriptCompiler->SetToken(aToken);
 
@@ -144,7 +144,7 @@ bool AsyncScriptCompiler::StartCompile(MCContext* aCx) {
 
   if (JS::CanCompileOffThread(aCx, mOptions, mScriptLength)) {
     static auto OffThreadScriptLoaderCallbackCb =
-        MC::Sandbox::RegisterCallback(OffThreadScriptLoaderCallback);
+        MC::Sandbox::RegisterTaintedCallback(OffThreadScriptLoaderCallback);
     if (!JS::CompileToStencilOffThread(
             aCx, mOptions, srcBuf, OffThreadScriptLoaderCallbackCb,
             static_cast<void*>(this))) {

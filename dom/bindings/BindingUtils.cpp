@@ -3536,8 +3536,8 @@ bool ConvertExceptionToPromise(JSContext* cx,
 }
 
 /* static */
-void CreateGlobalOptionsWithXPConnect::TraceGlobal(JSTracer* aTrc,
-                                                   JSObject* aObj) {
+void CreateGlobalOptionsWithXPConnect::TraceGlobal(MC::Tainted<JSTracer*> aTrc,
+                                                   MC::Tainted<JSObject*> aObj) {
   xpc::TraceXPCGlobal(aTrc, aObj);
 }
 

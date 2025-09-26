@@ -591,10 +591,10 @@ class ScriptLoader final : public JS::loader::ScriptLoaderInterface {
                                      ScriptLoadRequest* aRequest,
                                      MC::Tainted<JS::CompileOptions*> aOptions,
                                      Runnable* aRunnable,
-                                     JS::OffThreadToken** aTokenOut);
+                                     MC::Tainted<JS::OffThreadToken*>* aTokenOut);
 
-  static void OffThreadCompilationCompleteCallback(JS::OffThreadToken* aToken,
-                                                   void* aCallbackData);
+  static void OffThreadCompilationCompleteCallback(MC::Tainted<JS::OffThreadToken*> aToken,
+                                                   MC::AppPointer<void*> aCallbackData);
 
   nsresult ProcessRequest(ScriptLoadRequest* aRequest);
   nsresult CompileOffThreadOrProcessRequest(ScriptLoadRequest* aRequest);

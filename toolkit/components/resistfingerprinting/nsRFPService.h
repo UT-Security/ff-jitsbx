@@ -17,6 +17,8 @@
 #include "nsISupports.h"
 #include "nsStringFwd.h"
 
+#include "monkeycage/Tainted.h"
+
 // Defines regarding spoofed values of Navigator object. These spoofed values
 // are returned when 'privacy.resistFingerprinting' is true.
 // We decided to give different spoofed values according to the platform. The
@@ -182,8 +184,8 @@ class nsRFPService final : public nsIObserver {
                                                  RTPCallerType aRTPCallerType);
 
   // Used by the JS Engine, as it doesn't know about the TimerPrecisionType enum
-  static double ReduceTimePrecisionAsUSecsWrapper(
-      double aTime, bool aShouldResistFingerprinting, JSContext* aCx);
+  static MC::Tainted<double> ReduceTimePrecisionAsUSecsWrapper(
+      double aTime, bool aShouldResistFingerprinting, MC::Tainted<JSContext*> aCx);
 
   // Public only for testing purposes
   static double ReduceTimePrecisionImpl(double aTime, TimeScale aTimeScale,

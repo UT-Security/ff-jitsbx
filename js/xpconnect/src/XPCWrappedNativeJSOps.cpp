@@ -613,8 +613,10 @@ MC::SandboxCallback<JSEnumerateOp> XPC_WN_Shared_EnumerateCb() {
 
 enum WNHelperType { WN_NOHELPER, WN_HELPER };
 
-static void WrappedNativeFinalize(JS::GCContext* gcx, JSObject* obj,
+static void WrappedNativeFinalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_obj,
                                   WNHelperType helperType) {
+  JSObject* obj = t_obj.UNSAFE_unverified();
+  
   const JSClass* clazz = JS::GetClass(obj);
   if (clazz->flags & JSCLASS_DOM_GLOBAL) {
     mozilla::dom::DestroyProtoAndIfaceCache(obj);
@@ -625,27 +627,27 @@ static void WrappedNativeFinalize(JS::GCContext* gcx, JSObject* obj,
   }
 
   if (helperType == WN_HELPER) {
-    wrapper->GetScriptable()->Finalize(wrapper, gcx, obj);
+    wrapper->GetScriptable()->Finalize(wrapper, gcx.UNSAFE_unverified(), obj);
   }
   wrapper->FlatJSObjectFinalized();
 }
 
-static size_t WrappedNativeObjectMoved(JSObject* obj, JSObject* old) {
-  XPCWrappedNative* wrapper = JS::GetObjectISupports<XPCWrappedNative>(obj);
+static MC::Tainted<size_t> WrappedNativeObjectMoved(MC::Tainted<JSObject*> obj, MC::Tainted<JSObject*> old) {
+  XPCWrappedNative* wrapper = JS::GetObjectISupports<XPCWrappedNative>(obj.UNSAFE_unverified());
   if (!wrapper) {
     return 0;
   }
 
-  wrapper->FlatJSObjectMoved(obj, old);
+  wrapper->FlatJSObjectMoved(obj.UNSAFE_unverified(), old.UNSAFE_unverified());
   return 0;
 }
 
-void XPC_WN_NoHelper_Finalize(JS::GCContext* gcx, JSObject* obj) {
+void XPC_WN_NoHelper_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj) {
   WrappedNativeFinalize(gcx, obj, WN_NOHELPER);
 }
 
 MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_NoHelper_Finalize);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_NoHelper_Finalize);
   return inner_;
 }
 
@@ -658,25 +660,26 @@ MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb() {
  */
 
 /* static */
-void XPCWrappedNative::Trace(JSTracer* trc, JSObject* obj) {
-  const JSClass* clazz = JS::GetClass(obj);
+void XPCWrappedNative::Trace(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj) {
+  const JSClass* clazz = JS::GetClass(obj.UNSAFE_unverified());
   if (clazz->flags & JSCLASS_DOM_GLOBAL) {
-    mozilla::dom::TraceProtoAndIfaceCache(trc, obj);
+    mozilla::dom::TraceProtoAndIfaceCache(trc.UNSAFE_unverified(),
+                                          obj.UNSAFE_unverified());
   }
   MOZ_ASSERT(clazz->isWrappedNative());
 
-  XPCWrappedNative* wrapper = XPCWrappedNative::Get(obj);
+  XPCWrappedNative* wrapper = XPCWrappedNative::Get(obj.UNSAFE_unverified());
   if (wrapper && wrapper->IsValid()) {
     wrapper->TraceInside(trc);
   }
 }
 
-void XPCWrappedNative_Trace(JSTracer* trc, JSObject* obj) {
+void XPCWrappedNative_Trace(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj) {
   XPCWrappedNative::Trace(trc, obj);
 }
 
 MC::SandboxCallback<JSTraceOp> XPCWrappedNative_TraceCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPCWrappedNative_Trace);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPCWrappedNative_Trace);
   return inner_;
 }
 
@@ -723,7 +726,7 @@ static const JSClassOps* XPC_WN_NoHelper_JSClassOps() {
 
 const js::ClassExtension* XPC_WN_JSClassExtension() {
   static const js::ClassExtension inner_ = {
-    MC::Sandbox::RegisterCallback(WrappedNativeObjectMoved).UNSAFE_get(),  // objectMovedOp
+    MC::Sandbox::RegisterTaintedCallback(WrappedNativeObjectMoved).UNSAFE_get(),  // objectMovedOp
   };
 
   return &inner_;
@@ -879,12 +882,12 @@ static MC::Tainted<bool> XPC_WN_Helper_HasInstance(MC::Tainted<JSContext*> t_cx,
   POST_HELPER_STUB
 }
 
-void XPC_WN_Helper_Finalize(JS::GCContext* gcx, JSObject* obj) {
+void XPC_WN_Helper_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj) {
   WrappedNativeFinalize(gcx, obj, WN_HELPER);
 }
 
 MC::SandboxCallback<JSFinalizeOp> XPC_WN_Helper_FinalizeCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(XPC_WN_Helper_Finalize);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(XPC_WN_Helper_Finalize);
   return inner_;
 }
 
@@ -1187,22 +1190,22 @@ static MC::Tainted<bool> XPC_WN_Proto_Enumerate(MC::Tainted<JSContext*> t_cx, Ha
   return true;
 }
 
-static void XPC_WN_Proto_Finalize(JS::GCContext* gcx, JSObject* obj) {
+static void XPC_WN_Proto_Finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj) {
   // This can be null if xpc shutdown has already happened
-  XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj);
+  XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj.UNSAFE_unverified());
   if (p) {
-    p->JSProtoObjectFinalized(gcx, obj);
+    p->JSProtoObjectFinalized(gcx.UNSAFE_unverified(), obj.UNSAFE_unverified());
   }
 }
 
-static size_t XPC_WN_Proto_ObjectMoved(JSObject* obj, JSObject* old) {
+static MC::Tainted<size_t> XPC_WN_Proto_ObjectMoved(MC::Tainted<JSObject*> obj, MC::Tainted<JSObject*> old) {
   // This can be null if xpc shutdown has already happened
-  XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj);
+  XPCWrappedNativeProto* p = XPCWrappedNativeProto::Get(obj.UNSAFE_unverified());
   if (!p) {
     return 0;
   }
 
-  p->JSProtoObjectMoved(obj, old);
+  p->JSProtoObjectMoved(obj.UNSAFE_unverified(), old.UNSAFE_unverified());
   return 0;
 }
 
@@ -1266,14 +1269,14 @@ const JSClass* XPC_WN_Proto_JSClass() {
       nullptr,                                  // newEnumerate
       MC::Sandbox::RegisterTaintedCallback(XPC_WN_Proto_Resolve).UNSAFE_get(),                     // resolve
       nullptr,                                  // mayResolve
-      MC::Sandbox::RegisterCallback(XPC_WN_Proto_Finalize).UNSAFE_get(),                    // finalize
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_Proto_Finalize).UNSAFE_get(),                    // finalize
       nullptr,                                  // call
       nullptr,                                  // construct
       nullptr,                                  // trace
   };
 
   static const js::ClassExtension XPC_WN_Proto_ClassExtension = {
-      MC::Sandbox::RegisterCallback(XPC_WN_Proto_ObjectMoved).UNSAFE_get(),  // objectMovedOp
+      MC::Sandbox::RegisterTaintedCallback(XPC_WN_Proto_ObjectMoved).UNSAFE_get(),  // objectMovedOp
   };
 
   static const JSClass inner_ = {

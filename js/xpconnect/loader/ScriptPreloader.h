@@ -6,7 +6,7 @@
 #ifndef ScriptPreloader_h
 #define ScriptPreloader_h
 
-#include "mozilla/Atomics.h"
+#include "monkeycage/tainted/Atomics.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EnumSet.h"
 #include "mozilla/LinkedList.h"
@@ -455,8 +455,8 @@ class ScriptPreloader : public nsIObserver,
 
   void DecodeNextBatch(size_t chunkSize, JS::Handle<JSObject*> scope = nullptr);
 
-  static void OffThreadDecodeCallback(JS::OffThreadToken* token, void* context);
-  void FinishOffThreadDecode(JS::OffThreadToken* token);
+  static void OffThreadDecodeCallback(MC::Tainted<JS::OffThreadToken*> token, MC::AppPointer<void*> context);
+  void FinishOffThreadDecode(MC::Tainted<JS::OffThreadToken*> token);
   void DoFinishOffThreadDecode();
 
   already_AddRefed<nsIAsyncShutdownClient> GetShutdownBarrier();
@@ -501,7 +501,7 @@ class ScriptPreloader : public nsIObserver,
   Vector<CachedStencil*> mParsingScripts;
 
   // The token for the completed off-thread decode task.
-  Atomic<JS::OffThreadToken*, ReleaseAcquire> mToken{nullptr};
+  Atomic<MC::Tainted<JS::OffThreadToken*>, ReleaseAcquire> mToken{nullptr};
 
   // True if a runnable has been dispatched to the main thread to finish an
   // off-thread decode operation. Access only while 'mMonitor' is held.

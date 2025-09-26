@@ -246,7 +246,7 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope() {
 
 // static
 void XPCWrappedNativeScope::TraceWrappedNativesInAllScopes(XPCJSRuntime* xpcrt,
-                                                           JSTracer* trc) {
+                                                           MC::Tainted<JSTracer*> trc) {
   // Do JS::TraceEdge for all wrapped natives with external references, as
   // well as any DOM expando objects.
   //
@@ -273,7 +273,7 @@ void XPCWrappedNativeScope::SuspectAllWrappers(
   }
 }
 
-void XPCWrappedNativeScope::UpdateWeakPointersAfterGC(JSTracer* trc) {
+void XPCWrappedNativeScope::UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc) {
   // Sweep waivers.
   if (mWaiverWrapperMap) {
     mWaiverWrapperMap->UpdateWeakPointers(trc);
@@ -471,11 +471,11 @@ void XPCWrappedNativeScope::AddSizeOfAllScopesIncludingThis(
   }
 }
 
-static void AddSizeOfIncludingThisCallback(JSContext*, void* aData,
-                                           JS::Realm* aRealm,
+static void AddSizeOfIncludingThisCallback(MC::Tainted<JSContext*>, MC::AppPointer<void*> aData,
+                                           MC::Tainted<JS::Realm*> aRealm,
                                            const JS::AutoRequireNoGC& nogc) {
-  auto* scopeSizeInfo = static_cast<XPCWrappedNativeScope::ScopeSizeInfo*>(aData);
-  JSObject* global = GetRealmGlobalOrNull(aRealm);
+  auto* scopeSizeInfo = static_cast<XPCWrappedNativeScope::ScopeSizeInfo*>(aData.UNSAFE_unverified());
+  JSObject* global = GetRealmGlobalOrNull(aRealm.UNSAFE_unverified());
   if (global && dom::HasProtoAndIfaceCache(global)) {
     dom::ProtoAndIfaceCache* cache = dom::GetProtoAndIfaceCache(global);
     scopeSizeInfo->mProtoAndIfaceCacheSize +=
@@ -491,7 +491,7 @@ void XPCWrappedNativeScope::AddSizeOfIncludingThis(
   scopeSizeInfo->mScopeAndMapSize +=
       mWrappedNativeProtoMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
 
-  static auto realmCb = MC::Sandbox::RegisterCallback(AddSizeOfIncludingThisCallback);
+  static auto realmCb = MC::Sandbox::RegisterTaintedCallback(AddSizeOfIncludingThisCallback);
   IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo,
                              realmCb.UNSAFE_get());
 

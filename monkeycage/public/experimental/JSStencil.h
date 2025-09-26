@@ -127,109 +127,128 @@ inline bool StartIncrementalEncoding(MCContext* cx, RefPtr<Stencil>&& stencil) {
 
 namespace JS {
 
-inline OffThreadToken* CompileToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                    *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData);
+                                   callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* CompileToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                    *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData);
+                                   callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* CompileToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                    *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData);
+                                   callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* CompileToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                    *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData);
+                                   callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* CompileModuleToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                          *srcBuf.INTERNAL_unverified_safe(),
-                                         callback.UNSAFE_get(), callbackData);
+                                         callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* CompileModuleToStencilOffThread(
+inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
     MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
                                          *srcBuf.INTERNAL_unverified_safe(),
-                                         callback.UNSAFE_get(), callbackData);
+                                         callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* DecodeStencilOffThread(
+inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
     MCContext* cx, MC::Tainted<DecodeOptions*> options,
     const TranscodeBuffer& buffer, size_t cursor,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
                                 buffer, cursor, callback.UNSAFE_get(),
-                                callbackData);
+                                callbackData));
+  return ret;
 }
 
-inline OffThreadToken* DecodeStencilOffThread(
+inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
     MCContext* cx, MC::Tainted<DecodeOptions*> options,
     const TranscodeRange& range,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
-                                range, callback.UNSAFE_get(), callbackData);
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
+                                range, callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
-inline OffThreadToken* DecodeMultiStencilsOffThread(
+inline MC::Tainted<OffThreadToken*> DecodeMultiStencilsOffThread(
     MCContext* cx, MC::Tainted<DecodeOptions*> options,
     TranscodeSources& sources,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
-  return DecodeMultiStencilsOffThread(
+  MC::Tainted<OffThreadToken*> ret{nullptr};
+  ret.assign_raw_pointer(DecodeMultiStencilsOffThread(
       cx->cx_, *options.INTERNAL_unverified_safe(), sources,
-      callback.UNSAFE_get(), callbackData);
+      callback.UNSAFE_get(), callbackData));
+  return ret;
 }
 
 inline already_AddRefed<Stencil> FinishOffThreadStencil(
-    MCContext* cx, OffThreadToken* token,
+    MCContext* cx, MC::Tainted<OffThreadToken*> token,
     InstantiationStorage* storage = nullptr) {
-  return FinishOffThreadStencil(cx->cx_, token, storage);
+  return FinishOffThreadStencil(cx->cx_, token.INTERNAL_unverified_safe(),
+                                storage);
 }
 
 inline bool FinishDecodeMultiStencilsOffThread(
-    MCContext* cx, OffThreadToken* token,
+    MCContext* cx, MC::Tainted<OffThreadToken*> token,
     mozilla::Vector<RefPtr<Stencil>>* stencils) {
-  return FinishDecodeMultiStencilsOffThread(cx->cx_, token, stencils);
+  return FinishDecodeMultiStencilsOffThread(cx->cx_, token.INTERNAL_unverified_safe(), stencils);
 }
 
-inline void CancelOffThreadToken(MCContext* cx, OffThreadToken* token) {
-  return CancelOffThreadToken(cx->cx_, token);
+inline void CancelOffThreadToken(MCContext* cx, MC::Tainted<OffThreadToken*> token) {
+  return CancelOffThreadToken(cx->cx_, token.INTERNAL_unverified_safe());
 }
 }  // namespace JS
 #endif

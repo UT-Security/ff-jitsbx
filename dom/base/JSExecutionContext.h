@@ -130,7 +130,7 @@ class MOZ_STACK_CLASS JSExecutionContext final {
   // After getting a notification that an off-thread compile/decode finished,
   // this function will take the result of the parser and move it to the main
   // thread.
-  [[nodiscard]] nsresult JoinOffThread(JS::OffThreadToken** aOffThreadToken);
+  [[nodiscard]] nsresult JoinOffThread(MC::Tainted<JS::OffThreadToken*>* aOffThreadToken);
 
   // Compile a script contained in a SourceText.
   nsresult Compile(MC::Tainted<JS::SourceText<char16_t>*> aSrcBuf);

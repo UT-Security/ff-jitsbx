@@ -18,6 +18,7 @@ extern arena_id_t GetStringBufferArena();
 #ifdef JS_SANDBOX
 
 #include "monkeycage/SandboxCallback.h"
+#include "monkeycage/Tainted.h"
 
 namespace mc {
 inline void setAnnotateOOMAllocationSizeCallback(
@@ -28,6 +29,23 @@ inline void setAnnotateOOMAllocationSizeCallback(
       callback.UNSAFE_get());
 }
 }  // namespace mc
+
+
+template <class T>
+static inline void mc_free(MC::Tainted<T*> p) {
+    if (p) {
+        js_free(p.INTERNAL_unverified_safe());
+    }
+}
+
+template <class T, typename... Args>
+static inline MC::Tainted<T*> MOZ_HEAP_ALLOCATOR mc_new(Args&&... args) {
+    MC::Tainted<T*> ret{nullptr};
+    T* ptr = js_new<T>(std::forward<Args>(args)...);
+    ret.assign_raw_pointer(ptr);
+    return ret;
+}
+
 #else
 namespace mc {
   

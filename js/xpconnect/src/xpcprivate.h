@@ -333,7 +333,7 @@ class XPCJSContext final : public mozilla::CycleCollectedJSContext,
     return oldValue;
   }
 
-  static bool InterruptCallback(JSContext* cx);
+  static MC::Tainted<bool> InterruptCallback(MC::Tainted<JSContext*> cx);
 
   // Mapping of often used strings to jsid atoms that live 'forever'.
   //
@@ -502,8 +502,8 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   }
 
   virtual bool UsefulToMergeZones() const override;
-  void TraceNativeBlackRoots(JSTracer* trc) override;
-  void TraceAdditionalNativeGrayRoots(JSTracer* aTracer) override;
+  void TraceNativeBlackRoots(MC::Tainted<JSTracer*> trc) override;
+  void TraceAdditionalNativeGrayRoots(MC::Tainted<JSTracer*> aTracer) override;
   void TraverseAdditionalNativeRoots(
       nsCycleCollectionNoteRootCallback& cb) override;
   void UnmarkSkippableJSHolders();
@@ -520,11 +520,11 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   static void GCSliceCallback(JSContext* cx, JS::GCProgress progress,
                               const JS::GCDescription& desc);
   static void DoCycleCollectionCallback(JSContext* cx);
-  static void FinalizeCallback(JS::GCContext* gcx, JSFinalizeStatus status,
-                               void* data);
-  static void WeakPointerZonesCallback(JSTracer* trc, void* data);
-  static void WeakPointerCompartmentCallback(JSTracer* trc,
-                                             JS::Compartment* comp, void* data);
+  static void FinalizeCallback(MC::Tainted<JS::GCContext*> gcx, JSFinalizeStatus status,
+                               MC::AppPointer<void*> data);
+  static void WeakPointerZonesCallback(MC::Tainted<JSTracer*> trc, MC::AppPointer<void*> data);
+  static void WeakPointerCompartmentCallback(MC::Tainted<JSTracer*> trc,
+                                             MC::Tainted<JS::Compartment*> comp, MC::AppPointer<void*> data);
 
   inline void AddSubjectToFinalizationWJS(nsXPCWrappedJS* wrappedJS);
 
@@ -808,7 +808,7 @@ class XPCWrappedNativeScope final
   static void SystemIsBeingShutDown();
 
   static void TraceWrappedNativesInAllScopes(XPCJSRuntime* xpcrt,
-                                             JSTracer* trc);
+                                             MC::Tainted<JSTracer*> trc);
 
   void TraceInside(JSTracer* trc) {
     if (mXrayExpandos.initialized()) {
@@ -823,7 +823,7 @@ class XPCWrappedNativeScope final
 
   static void SweepAllWrappedNativeTearOffs();
 
-  void UpdateWeakPointersAfterGC(JSTracer* trc);
+  void UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc);
 
   static void DebugDumpAllScopes(int16_t depth);
 
@@ -1221,17 +1221,17 @@ class XPCWrappedNativeProto final {
 
   void DebugDump(int16_t depth);
 
-  void TraceSelf(JSTracer* trc) {
+  void TraceSelf(MC::Tainted<JSTracer*> trc) {
     if (mJSProtoObject) {
       TraceEdge(trc, &mJSProtoObject, "XPCWrappedNativeProto::mJSProtoObject");
     }
   }
 
-  void TraceJS(JSTracer* trc) { TraceSelf(trc); }
+  void TraceJS(MC::Tainted<JSTracer*> trc) { TraceSelf(trc); }
 
   // NOP. This is just here to make the AutoMarkingPtr code compile.
   void Mark() const {}
-  inline void AutoTrace(JSTracer* trc) {}
+  inline void AutoTrace(MC::Tainted<JSTracer*> trc) {}
 
   ~XPCWrappedNativeProto();
 
@@ -1292,8 +1292,8 @@ class XPCWrappedNativeTearOff final {
   ~XPCWrappedNativeTearOff();
 
   // NOP. This is just here to make the AutoMarkingPtr code compile.
-  inline void TraceJS(JSTracer* trc) {}
-  inline void AutoTrace(JSTracer* trc) {}
+  inline void TraceJS(MC::Tainted<JSTracer*> trc) {}
+  inline void AutoTrace(MC::Tainted<JSTracer*> trc) {}
 
   void Mark() { mJSObject.setFlags(1); }
   void Unmark() { mJSObject.unsetFlags(1); }
@@ -1462,20 +1462,22 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
 
   void Mark() const {}
 
-  inline void TraceInside(JSTracer* trc) {
+  inline void TraceInside(MC::Tainted<JSTracer*> trc) {
     if (HasProto()) {
       GetProto()->TraceSelf(trc);
     }
 
     JSObject* obj = mFlatJSObject.unbarrieredGetPtr();
     if (obj && JS_IsGlobalObject(obj)) {
-      xpc::TraceXPCGlobal(trc, obj);
+      MC::Tainted<JSObject*> t_obj{nullptr};
+      t_obj.assign_raw_pointer(obj);
+      xpc::TraceXPCGlobal(trc, t_obj);
     }
   }
 
-  void TraceJS(JSTracer* trc) { TraceInside(trc); }
+  void TraceJS(MC::Tainted<JSTracer*> trc) { TraceInside(trc); }
 
-  void TraceSelf(JSTracer* trc) {
+  void TraceSelf(MC::Tainted<JSTracer*> trc) {
     // If this got called, we're being kept alive by someone who really
     // needs us alive and whole.  Do not let our mFlatJSObject go away.
     // This is the only time we should be tracing our mFlatJSObject,
@@ -1483,9 +1485,9 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
     JS::TraceEdge(trc, &mFlatJSObject, "XPCWrappedNative::mFlatJSObject");
   }
 
-  static void Trace(JSTracer* trc, JSObject* obj);
+  static void Trace(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj);
 
-  void AutoTrace(JSTracer* trc) { TraceSelf(trc); }
+  void AutoTrace(MC::Tainted<JSTracer*> trc) { TraceSelf(trc); }
 
   inline void SweepTearOffs();
 
@@ -1632,7 +1634,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
   // XPCWrappedJS.cpp for more details.
   bool IsSubjectToFinalization() const { return IsValid() && mRefCnt == 1; }
 
-  void UpdateObjectPointerAfterGC(JSTracer* trc) {
+  void UpdateObjectPointerAfterGC(MC::Tainted<JSTracer*> trc) {
     MOZ_ASSERT(IsRootWrapper());
     JS_UpdateWeakPointerAfterGC(trc, &mJSObj);
   }
@@ -2012,7 +2014,7 @@ class AutoMarkingPtr {
     }
   }
 
-  void TraceJSAll(JSTracer* trc) {
+  void TraceJSAll(MC::Tainted<JSTracer*> trc) {
     for (AutoMarkingPtr* cur = this; cur; cur = cur->mNext) {
       cur->TraceJS(trc);
     }
@@ -2025,7 +2027,7 @@ class AutoMarkingPtr {
   }
 
  protected:
-  virtual void TraceJS(JSTracer* trc) = 0;
+  virtual void TraceJS(MC::Tainted<JSTracer*> trc) = 0;
   virtual void MarkAfterJSFinalize() = 0;
 
  private:
@@ -2050,7 +2052,7 @@ class TypedAutoMarkingPtr : public AutoMarkingPtr {
   }
 
  protected:
-  virtual void TraceJS(JSTracer* trc) override {
+  virtual void TraceJS(MC::Tainted<JSTracer*> trc) override {
     if (mPtr) {
       mPtr->TraceJS(trc);
       mPtr->AutoTrace(trc);
@@ -2167,10 +2169,10 @@ inline MCContext* xpc_GetSafeJSContext() {
 namespace xpc {
 
 // JSNatives to expose atob and btoa in various non-DOM XPConnect scopes.
-bool Atob(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::Tainted<bool> Atob(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 MC::SandboxCallback<JSNative> AtobCb();
 
-bool Btoa(JSContext* cx, unsigned argc, JS::Value* vp);
+MC::Tainted<bool> Btoa(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 MC::SandboxCallback<JSNative> BtoaCb();
 
 // Helper function that creates a JSFunction that wraps a native function that
@@ -2618,7 +2620,7 @@ class CompartmentPrivate {
   bool wasShutdown;
 
   JSObject2WrappedJSMap* GetWrappedJSMap() const { return mWrappedJSMap.get(); }
-  void UpdateWeakPointersAfterGC(JSTracer* trc);
+  void UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc);
 
   void SystemIsBeingShutDown();
 

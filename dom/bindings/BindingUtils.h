@@ -2906,8 +2906,8 @@ bool EnumerateGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
 MC::SandboxCallback<JSNewEnumerateOp> EnumerateGlobalCb();
 
 struct CreateGlobalOptionsGeneric {
-  static void TraceGlobal(JSTracer* aTrc, JSObject* aObj) {
-    mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj);
+  static void TraceGlobal(MC::Tainted<JSTracer*> aTrc, MC::Tainted<JSObject*> aObj) {
+    mozilla::dom::TraceProtoAndIfaceCache(aTrc.UNSAFE_unverified(), aObj.UNSAFE_unverified());
   }
   static bool PostCreateGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
     MOZ_ALWAYS_TRUE(TryPreserveWrapper(aGlobal));
@@ -2917,7 +2917,7 @@ struct CreateGlobalOptionsGeneric {
 };
 
 struct CreateGlobalOptionsWithXPConnect {
-  static void TraceGlobal(JSTracer* aTrc, JSObject* aObj);
+  static void TraceGlobal(MC::Tainted<JSTracer*> aTrc, MC::Tainted<JSObject*> aObj);
   static bool PostCreateGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
 };
 
@@ -2959,7 +2959,7 @@ bool CreateGlobal(JSContext* aCx, T* aNative, nsWrapperCache* aCache,
                   const JSClass* aClass, MC::Tainted<JS::RealmOptions*> aOptions,
                   JSPrincipals* aPrincipal, bool aInitStandardClasses,
                   JS::MutableHandle<JSObject*> aGlobal) {
-  static auto TraceGlobalCb = MC::Sandbox::RegisterCallback(CreateGlobalOptions<T>::TraceGlobal);
+  static auto TraceGlobalCb = MC::Sandbox::RegisterTaintedCallback(CreateGlobalOptions<T>::TraceGlobal);
   aOptions->creationOptions()
       ->setTrace(TraceGlobalCb)
       .setProfilerRealmID(GetWindowID(aNative));

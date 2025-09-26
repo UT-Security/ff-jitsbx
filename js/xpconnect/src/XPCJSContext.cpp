@@ -585,7 +585,8 @@ static const double sChromeSlowScriptTelemetryCutoff(10.0);
 static bool sTelemetryEventEnabled(false);
 
 // static
-bool XPCJSContext::InterruptCallback(JSContext* cx) {
+MC::Tainted<bool> XPCJSContext::InterruptCallback(MC::Tainted<JSContext*> tcx) {
+  MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
   XPCJSContext* self = XPCJSContext::Get();
 
   // Now is a good time to turn on profiling if it's pending.
@@ -631,7 +632,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
 
   nsString addonId;
   const char* prefName;
-  auto principal = BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(cx));
+  auto principal = BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx)));
   bool chrome = principal->Is<SystemPrincipal>();
   if (chrome) {
     prefName = PREF_MAX_SCRIPT_RUN_TIME_CHROME;
@@ -717,7 +718,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
     // If this is a sandbox associated with a DOMWindow via a
     // sandboxPrototype, use that DOMWindow. This supports WebExtension
     // content scripts.
-    win = SandboxWindowOrNull(global, cx);
+    win = SandboxWindowOrNull(global, MC_UNSAFE(cx));
   }
 
   if (!win) {
@@ -743,7 +744,7 @@ bool XPCJSContext::InterruptCallback(JSContext* cx) {
 
   // Show the prompt to the user, and kill if requested.
   nsGlobalWindowInner::SlowScriptResponse response = win->ShowSlowScriptDialog(
-      cx, addonId, self->mSlowScriptActualWait.ToMilliseconds());
+      MC_UNSAFE(cx), addonId, self->mSlowScriptActualWait.ToMilliseconds());
   if (response == nsGlobalWindowInner::KillSlowScript) {
     if (Preferences::GetBool("dom.global_stop_script", true)) {
       xpc::Scriptability::Get(global).Block();
@@ -1187,7 +1188,7 @@ static void DispatchOffThreadTask(JS::DispatchReason) {
   TaskController::Get()->AddTask(MakeAndAddRef<HelperThreadTaskHandler>());
 }
 
-static bool CreateSelfHostedSharedMemory(JSContext* aCx,
+static MC::Tainted<bool> CreateSelfHostedSharedMemory(MC::Tainted<JSContext*> aCx,
                                          JS::SelfHostedCache aBuf) {
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
   MOZ_RELEASE_ASSERT(shm.Content().IsEmpty());
@@ -1201,7 +1202,7 @@ nsresult XPCJSContext::Initialize() {
   if (StaticPrefs::javascript_options_external_thread_pool_DoNotUseDirectly()) {
     size_t threadCount = TaskController::GetPoolThreadCount();
     size_t stackSize = TaskController::GetThreadStackSize();
-    static auto DispatchOffThreadTaskCb = MC::Sandbox::RegisterCallback(DispatchOffThreadTask);
+    static auto DispatchOffThreadTaskCb = MC::Sandbox::RegisterTaintedCallback(DispatchOffThreadTask);
     SetHelperThreadTaskCallback(DispatchOffThreadTaskCb.UNSAFE_get(), threadCount, stackSize);
   }
 
@@ -1351,7 +1352,7 @@ nsresult XPCJSContext::Initialize() {
 
   PROFILER_SET_JS_CONTEXT(MC_UNSAFE(cx));
 
-  static auto InterruptCallbackCb = MC::Sandbox::RegisterCallback(InterruptCallback);
+  static auto InterruptCallbackCb = MC::Sandbox::RegisterTaintedCallback(InterruptCallback);
   JS_AddInterruptCallback(cx, InterruptCallbackCb);
 
   Runtime()->Initialize(Context());
@@ -1381,7 +1382,7 @@ nsresult XPCJSContext::Initialize() {
   if (XRE_IsParentProcess() && sSelfHostedUseSharedMemory) {
     // Only the Parent process has permissions to write to the self-hosted
     // shared memory.
-    writer = MC::Sandbox::RegisterCallback(CreateSelfHostedSharedMemory);
+    writer = MC::Sandbox::RegisterTaintedCallback(CreateSelfHostedSharedMemory);
   }
 
   if (!JS::InitSelfHostedCode(cx, selfHostedContent, writer)) {

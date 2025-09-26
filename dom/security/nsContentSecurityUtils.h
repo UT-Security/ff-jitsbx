@@ -84,7 +84,7 @@ class nsContentSecurityUtils {
   static void AssertAboutPageHasCSP(mozilla::dom::Document* aDocument);
 #endif
 
-  static bool ValidateScriptFilename(JSContext* cx, const char* aFilename);
+  static MC::Tainted<bool> ValidateScriptFilename(MC::Tainted<JSContext*> cx, MC::Tainted<const char*> aFilename);
   // Helper Function to Post a message to the corresponding JS-Console
   static void LogMessageToConsole(nsIHttpChannel* aChannel, const char* aMsg);
 };

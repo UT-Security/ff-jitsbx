@@ -228,7 +228,7 @@ class CycleCollectedJSRuntime {
 
   virtual void TraverseAdditionalNativeRoots(
       nsCycleCollectionNoteRootCallback& aCb) {}
-  virtual void TraceAdditionalNativeGrayRoots(JSTracer* aTracer) {}
+  virtual void TraceAdditionalNativeGrayRoots(MC::Tainted<JSTracer*> aTracer) {}
 
   virtual void CustomGCCallback(JSGCStatus aStatus) {}
   virtual void CustomOutOfMemoryCallback() {}
@@ -268,36 +268,36 @@ class CycleCollectedJSRuntime {
 
   void TraverseNativeRoots(nsCycleCollectionNoteRootCallback& aCb);
 
-  static void TraceBlackJS(JSTracer* aTracer, void* aData);
+  static void TraceBlackJS(MC::Tainted<JSTracer*> aTracer, MC::AppPointer<void*> aData);
 
   // Trace gray JS roots until budget is exceeded and return whether we
   // finished.
-  static bool TraceGrayJS(JSTracer* aTracer, js::SliceBudget& budget,
-                          void* aData);
+  static MC::Tainted<bool> TraceGrayJS(MC::Tainted<JSTracer*> aTracer, js::SliceBudget& budget,
+                          MC::AppPointer<void*> aData);
 
-  static void GCCallback(JSContext* aContext, JSGCStatus aStatus,
-                         JS::GCReason aReason, void* aData);
+  static void GCCallback(MC::Tainted<JSContext*> aContext, JSGCStatus aStatus,
+                         JS::GCReason aReason, MC::AppPointer<void*> aData);
   static void GCSliceCallback(JSContext* aContext, JS::GCProgress aProgress,
                               const JS::GCDescription& aDesc);
   static void GCNurseryCollectionCallback(JSContext* aContext,
                                           JS::GCNurseryProgress aProgress,
                                           JS::GCReason aReason);
-  static void OutOfMemoryCallback(JSContext* aContext, void* aData);
+  static void OutOfMemoryCallback(MC::Tainted<JSContext*> aContext, MC::AppPointer<void*> aData);
 
-  static bool ContextCallback(JSContext* aCx, unsigned aOperation, void* aData);
+  static MC::Tainted<bool> ContextCallback(MC::Tainted<JSContext*> aCx, unsigned aOperation, MC::AppPointer<void*> aData);
 
-  static void* BeforeWaitCallback(uint8_t* aMemory);
-  static void AfterWaitCallback(void* aCookie);
+  static MC::Tainted<void*> BeforeWaitCallback(MC::Tainted<uint8_t*> aMemory);
+  static void AfterWaitCallback(MC::AppPointer<void*> aCookie);
 
-  virtual void TraceNativeBlackRoots(JSTracer* aTracer){};
+  virtual void TraceNativeBlackRoots(MC::Tainted<JSTracer*> aTracer){};
 
 #ifdef NS_BUILD_REFCNT_LOGGING
-  void TraceAllNativeGrayRoots(JSTracer* aTracer);
+  void TraceAllNativeGrayRoots(MC::Tainted<JSTracer*> aTracer);
 #endif
 
-  bool TraceNativeGrayRoots(JSTracer* aTracer, JSHolderMap::WhichHolders aWhich,
+  bool TraceNativeGrayRoots(MC::Tainted<JSTracer*> aTracer, JSHolderMap::WhichHolders aWhich,
                             js::SliceBudget& aBudget);
-  bool TraceJSHolders(JSTracer* aTracer, JSHolderMap::Iter& aIter,
+  bool TraceJSHolders(MC::Tainted<JSTracer*> aTracer, JSHolderMap::Iter& aIter,
                       js::SliceBudget& aBudget);
 
  public:
@@ -419,7 +419,7 @@ class CycleCollectedJSRuntime {
     mZonesWaitingForGC.Insert(aZone);
   }
 
-  static void OnZoneDestroyed(JS::GCContext* aGcx, JS::Zone* aZone);
+  static void OnZoneDestroyed(MC::Tainted<JS::GCContext*> aGcx, MC::Tainted<JS::Zone*> aZone);
 
   // Prepare any zones for GC that have been passed to AddZoneWaitingForGC()
   // since the last GC or since the last call to PrepareWaitingZonesForGC(),

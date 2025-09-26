@@ -16,7 +16,7 @@
 
 #include "mcapi.h"
 #include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::Construct, JS::IsCallable
-#include "js/experimental/TypedData.h"  // JS_GetTypedArrayLength
+#include "monkeycage/experimental/TypedData.h"  // JS_GetTypedArrayLength
 #include "js/friend/WindowProxy.h"      // js::IsWindowProxy
 #include "js/friend/XrayJitInfo.h"      // JS::XrayJitInfo
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
@@ -1176,6 +1176,13 @@ XrayTraits* GetXrayTraits(JSObject* obj) {
 // these compartments cache expandos on the wrapper's holder, as there is only
 // one such wrapper which can create or access the expando. This allows for
 // faster access to the expando, including through JIT inline caches.
+static inline MC::Tainted<bool> CompartmentHasExclusiveExpandosCb(
+    MC::Tainted<JSObject*> obj) {
+  JS::Compartment* comp = JS::GetCompartment(obj.UNSAFE_unverified());
+  CompartmentPrivate* priv = CompartmentPrivate::Get(comp);
+  return priv && priv->hasExclusiveExpandos;
+}
+
 static inline bool CompartmentHasExclusiveExpandos(JSObject* obj) {
   JS::Compartment* comp = JS::GetCompartment(obj);
   CompartmentPrivate* priv = CompartmentPrivate::Get(comp);
@@ -1202,9 +1209,9 @@ static nsIPrincipal* GetExpandoObjectPrincipal(JSObject* expandoObject) {
   return static_cast<nsIPrincipal*>(v.toPrivate());
 }
 
-static void ExpandoObjectFinalize(JS::GCContext* gcx, JSObject* obj) {
+static void ExpandoObjectFinalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> obj) {
   // Release the principal.
-  nsIPrincipal* principal = GetExpandoObjectPrincipal(obj);
+  nsIPrincipal* principal = GetExpandoObjectPrincipal(obj.UNSAFE_unverified());
   NS_RELEASE(principal);
 }
 
@@ -1216,7 +1223,7 @@ const JSClassOps* XrayExpandoObjectClassOps() {
       nullptr,  // newEnumerate
       nullptr,  // resolve
       nullptr,  // mayResolve
-      MC::Sandbox::RegisterCallback(ExpandoObjectFinalize)
+      MC::Sandbox::RegisterTaintedCallback(ExpandoObjectFinalize)
           .UNSAFE_get(),  // finalize
       nullptr,            // call
       nullptr,            // construct
@@ -1585,8 +1592,10 @@ static bool IsWindow(MCContext* cx, JSObject* wrapper) {
   return !!AsWindow(cx, wrapper);
 }
 
-static bool wrappedJSObject_getter(JSContext* cx_UNSAFE, unsigned argc, Value* vp) {
-  MCContext* cx = JS_SanitizeContext(cx_UNSAFE);
+static MC::Tainted<bool> wrappedJSObject_getter(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(cx, "This value not an object");
@@ -1670,7 +1679,7 @@ bool XrayTraits::resolveOwnProperty(
       return false;
     }
     static auto wrappedJSObject_getterCb =
-        MC::Sandbox::RegisterCallback(wrappedJSObject_getter);
+        MC::Sandbox::RegisterTaintedCallback(wrappedJSObject_getter);
     if (!*found.UNSAFE_unverified() && !JS_DefinePropertyById(cx, holder, id,
                                          wrappedJSObject_getterCb,
                                          nullptr, JSPROP_ENUMERATE)) {
@@ -2335,16 +2344,16 @@ template class PermissiveXrayOpaque;
  * This callback is used by the JS engine to test if a proxy handler is for a
  * cross compartment xray with no security requirements.
  */
-static bool IsCrossCompartmentXrayCallback(
-    const js::BaseProxyHandler* handler) {
-  return handler == MC_UNSAFE(PermissiveXrayDOM::getSingleton());
+static MC::Tainted<bool> IsCrossCompartmentXrayCallback(
+    MC::Tainted<const js::BaseProxyHandler*> handler) {
+  return handler.UNSAFE_unverified() == MC_UNSAFE(PermissiveXrayDOM::getSingleton());
 }
 
 JS::XrayJitInfo* gXrayJitInfo() {
   static JS::XrayJitInfo inner_ = {
-      MC::Sandbox::RegisterCallback(IsCrossCompartmentXrayCallback)
+      MC::Sandbox::RegisterTaintedCallback(IsCrossCompartmentXrayCallback)
           .UNSAFE_get(),
-      MC::Sandbox::RegisterCallback(CompartmentHasExclusiveExpandos)
+      MC::Sandbox::RegisterTaintedCallback(CompartmentHasExclusiveExpandosCb)
           .UNSAFE_get(),
       JSSLOT_XRAY_HOLDER, XrayTraits::HOLDER_SLOT_EXPANDO,
       JSSLOT_EXPANDO_PROTOTYPE};

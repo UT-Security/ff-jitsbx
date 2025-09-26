@@ -217,7 +217,7 @@ void nsRFPService::UpdateRFPPref() {
   bool resistFingerprinting = nsContentUtils::ShouldResistFingerprinting();
 
   static auto ReduceTimePrecisionAsUSecsWrapperCb =
-      MC::Sandbox::RegisterCallback(
+      MC::Sandbox::RegisterTaintedCallback(
           nsRFPService::ReduceTimePrecisionAsUSecsWrapper);
   JS::SetReduceMicrosecondTimePrecisionCallback(
       ReduceTimePrecisionAsUSecsWrapperCb);
@@ -766,9 +766,10 @@ double nsRFPService::ReduceTimePrecisionAsSecsRFPOnly(
 }
 
 /* static */
-double nsRFPService::ReduceTimePrecisionAsUSecsWrapper(
-    double aTime, bool aShouldResistFingerprinting, JSContext* aCx) {
-  MOZ_ASSERT(aCx);
+MC::Tainted<double> nsRFPService::ReduceTimePrecisionAsUSecsWrapper(
+    double aTime, bool aShouldResistFingerprinting, MC::Tainted<JSContext*> tCx) {
+  MOZ_ASSERT(tCx);
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
 
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
   MOZ_ASSERT(global);

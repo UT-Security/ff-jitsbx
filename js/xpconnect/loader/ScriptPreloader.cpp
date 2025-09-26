@@ -28,8 +28,8 @@
 #include "mozilla/scache/StartupCache.h"
 
 #include "crc32c.h"
-#include "js/CompileOptions.h"  // JS::ReadOnlyCompileOptions
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/CompileOptions.h"  // JS::ReadOnlyCompileOptions
+#include "monkeycage/experimental/JSStencil.h"
 #include "js/Transcoding.h"
 #include "MainThreadUtils.h"
 #include "nsDebug.h"
@@ -977,7 +977,7 @@ already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
   // next batch as soon as possible after the pending batch is ready. If we wait
   // until we hit an unfinished script, we wind up having at most one batch of
   // buffered scripts, and occasionally under-running that buffer.
-  if (JS::OffThreadToken* token = mToken.exchange(nullptr)) {
+  if (MC::Tainted<JS::OffThreadToken*> token = mToken.exchange(nullptr)) {
     FinishOffThreadDecode(token);
   }
 
@@ -998,7 +998,7 @@ already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
 
       // Process script batches until our target is found.
       while (!script->mReadyToExecute) {
-        if (JS::OffThreadToken* token = mToken.exchange(nullptr)) {
+        if (MC::Tainted<JS::OffThreadToken*> token = mToken.exchange(nullptr)) {
           MonitorAutoUnlock mau(mMonitor);
           FinishOffThreadDecode(token);
         } else {
@@ -1019,9 +1019,9 @@ already_AddRefed<JS::Stencil> ScriptPreloader::WaitForCachedStencil(
 }
 
 /* static */
-void ScriptPreloader::OffThreadDecodeCallback(JS::OffThreadToken* token,
-                                              void* context) {
-  auto cache = static_cast<ScriptPreloader*>(context);
+void ScriptPreloader::OffThreadDecodeCallback(MC::Tainted<JS::OffThreadToken*> token,
+                                              MC::AppPointer<void*> context) {
+  auto cache = static_cast<ScriptPreloader*>(context.UNSAFE_unverified());
 
   // Make the token available to main-thread asynchronously. The lock below is
   // used for Wait/Notify machinery and isn't needed to update the token itself.
@@ -1051,7 +1051,7 @@ void ScriptPreloader::FinishPendingParses(MonitorAutoLock& aMal) {
 
   // Process any pending decodes that are in flight.
   while (!mParsingScripts.empty()) {
-    if (JS::OffThreadToken* token = mToken.exchange(nullptr)) {
+    if (MC::Tainted<JS::OffThreadToken*> token = mToken.exchange(nullptr)) {
       MonitorAutoUnlock mau(mMonitor);
       FinishOffThreadDecode(token);
     } else {
@@ -1068,12 +1068,12 @@ void ScriptPreloader::DoFinishOffThreadDecode() {
     mFinishDecodeRunnablePending = false;
   }
 
-  if (JS::OffThreadToken* token = mToken.exchange(nullptr)) {
+  if (MC::Tainted<JS::OffThreadToken*> token = mToken.exchange(nullptr)) {
     FinishOffThreadDecode(token);
   }
 }
 
-void ScriptPreloader::FinishOffThreadDecode(JS::OffThreadToken* token) {
+void ScriptPreloader::FinishOffThreadDecode(MC::Tainted<JS::OffThreadToken*> token) {
   mMonitor.AssertNotCurrentThreadOwns();
   MOZ_ASSERT(token);
 
@@ -1172,7 +1172,7 @@ void ScriptPreloader::DecodeNextBatch(size_t chunkSize,
   MC::SandboxStack<JS::DecodeOptions> decodeOptions(*options);
 
   static auto OffThreadDecodeCallbackCb =
-      MC::Sandbox::RegisterCallback(OffThreadDecodeCallback);
+      MC::Sandbox::RegisterTaintedCallback(OffThreadDecodeCallback);
   if (!JS::CanDecodeOffThread(cx, decodeOptions, size) ||
       !JS::DecodeMultiStencilsOffThread(cx, decodeOptions, mParsingSources,
                                         OffThreadDecodeCallbackCb,

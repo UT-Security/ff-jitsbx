@@ -88,7 +88,7 @@ JSExecutionContext::JSExecutionContext(
 }
 
 nsresult JSExecutionContext::JoinOffThread(
-    JS::OffThreadToken** aOffThreadToken) {
+    MC::Tainted<JS::OffThreadToken*>* aOffThreadToken) {
   if (mSkip) {
     return mRv;
   }

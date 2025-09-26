@@ -223,6 +223,17 @@ inline void JS_RemoveWeakPointerCompartmentCallback(
     return JS_RemoveWeakPointerCompartmentCallback(cx->cx_, cb.UNSAFE_get());
 }
 
+inline bool JS_UpdateWeakPointerAfterGC(MC::Tainted<JSTracer*> trc,
+                                        JS::Heap<JSObject*>* objp) {
+  return JS_UpdateWeakPointerAfterGC(trc.INTERNAL_unverified_safe(), objp);
+}
+
+inline bool JS_UpdateWeakPointerAfterGCUnbarriered(MC::Tainted<JSTracer*> trc,
+                                                   JSObject** objp) {
+  return JS_UpdateWeakPointerAfterGCUnbarriered(trc.INTERNAL_unverified_safe(),
+                                                objp);
+}
+
 inline void JS_SetGCParameter(MCContext* cx, JSGCParamKey key, uint32_t value) {
   return JS_SetGCParameter(cx->cx_, key, value);
 }
