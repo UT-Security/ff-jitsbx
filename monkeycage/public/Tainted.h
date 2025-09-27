@@ -106,6 +106,9 @@ private:
   
   template<typename U1, typename U2>
   friend class TaintedVolatile;
+
+  template<typename U1, typename U2, typename U_Sbx>
+  friend inline Tainted<U1, U_Sbx> tainted_reinterpret_cast(const Tainted<U2, U_Sbx>& rhs) noexcept;
   
   using T_ClassBase = TaintedBase<Tainted, T, MC_Sbx>;
 
@@ -277,6 +280,18 @@ class AppPointer {
     return verifier(data_);
   }
 };
+
+template <typename T_Lhs, typename T_Rhs, typename MC_Sbx>
+inline Tainted<T_Lhs, MC_Sbx> tainted_reinterpret_cast(
+    const Tainted<T_Rhs, MC_Sbx>& rhs) noexcept {
+  static_assert(std::is_pointer_v<T_Lhs> && std::is_pointer_v<T_Rhs>,
+                "tainted_reinterpret_cast on incompatible types");
+
+  Tainted<T_Rhs, MC_Sbx> taintedVal = rhs;
+  auto raw = reinterpret_cast<T_Lhs>(taintedVal.INTERNAL_unverified_safe());
+  auto ret = Tainted<T_Lhs, MC_Sbx>::internal_factory(raw);
+  return ret;
+}
 
 }  // namespace detail
 

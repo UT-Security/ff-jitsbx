@@ -321,12 +321,39 @@ inline bool JS_IsIdentifier(MCContext* cx, JS::HandleString str,
   return JS_IsIdentifier(cx->cx_, str, isIdentifier);
 }
 
+namespace MC {
+namespace detail {
+
+template <typename MC_Sbx>
+class TaintedVolatile<JS::AutoFilename, MC_Sbx> {
+ private:
+  JS::AutoFilename data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  const char* get() const { return data.get(); }
+};
+
+}  // namespace detail
+}  // namespace MC
+
 namespace JS {
 
 inline bool DescribeScriptedCaller(
-    MCContext* cx, AutoFilename* filename = nullptr, unsigned* lineno = nullptr,
-    unsigned* column = nullptr) {
-  return DescribeScriptedCaller(cx->cx_, filename, lineno, column);
+    MCContext* cx, MC::Tainted<AutoFilename*> filename = nullptr,
+    MC::Tainted<unsigned*> lineno = nullptr,
+    MC::Tainted<unsigned*> column = nullptr) {
+  return DescribeScriptedCaller(cx->cx_, filename.INTERNAL_unverified_safe(),
+                                lineno.INTERNAL_unverified_safe(),
+                                column.INTERNAL_unverified_safe());
 }
 
 inline JSObject* GetScriptedCallerGlobal(MCContext* cx) {

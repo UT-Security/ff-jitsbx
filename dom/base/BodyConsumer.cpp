@@ -6,6 +6,9 @@
 
 #include "BodyConsumer.h"
 
+//TODO(JS_SANDBOX): remove this include
+#include "monkeycage/MemoryFunctions.h"
+
 #include "mozilla/dom/BlobBinding.h"
 #include "mozilla/dom/BlobImpl.h"
 #include "mozilla/dom/BlobURLProtocolHandler.h"
@@ -702,10 +705,9 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
-      free(aResult);
-      aResult = static_cast<uint8_t*>(JS_malloc(cx, aResultLength));
+      MC::Tainted<void*> aBuffer = JS_malloc(jsapi.mcx(), aResultLength);
       MC::Rooted<JSObject*> arrayBuffer(cx);
-      BodyUtil::ConsumeArrayBuffer(cx, &arrayBuffer, aResultLength, aResult,
+      BodyUtil::ConsumeArrayBuffer(jsapi.mcx(), &arrayBuffer, aResultLength, aBuffer,
                                    error);
 
       if (!error.Failed()) {
@@ -714,6 +716,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
 
         localPromise->MaybeResolve(val);
         // ArrayBuffer takes over ownership.
+        free(aResult);
         aResult = nullptr;
       }
       break;
@@ -744,7 +747,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
           localPromise->MaybeResolve(decoded);
         } else {
           MC::Rooted<JS::Value> json(cx);
-          BodyUtil::ConsumeJson(cx, &json, decoded, error);
+          BodyUtil::ConsumeJson(jsapi.mcx(), &json, decoded, error);
           if (!error.Failed()) {
             localPromise->MaybeResolve(json);
           }

@@ -20,8 +20,8 @@
 #include "nsStringStream.h"
 #include "nsURLHelper.h"
 
-#include "js/ArrayBuffer.h"  // JS::NewArrayBufferWithContents
-#include "js/JSON.h"
+#include "monkeycage/ArrayBuffer.h"  // JS::NewArrayBufferWithContents
+#include "monkeycage/JSON.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/FetchUtil.h"
@@ -351,13 +351,12 @@ class MOZ_STACK_CLASS FormDataParser {
 }  // namespace
 
 // static
-void BodyUtil::ConsumeArrayBuffer(JSContext* aCx,
+void BodyUtil::ConsumeArrayBuffer(MCContext* aCx,
                                   JS::MutableHandle<JSObject*> aValue,
-                                  uint32_t aInputLength, uint8_t* aInput,
+                                  uint32_t aInputLength, MC::Tainted<void*> aInput,
                                   ErrorResult& aRv) {
   MC::Rooted<JSObject*> arrayBuffer(aCx);
-  arrayBuffer = JS::NewArrayBufferWithContents(aCx, aInputLength,
-                                               reinterpret_cast<void*>(aInput));
+  arrayBuffer = JS::NewArrayBufferWithContents(aCx, aInputLength, aInput);
   if (!arrayBuffer) {
     JS_ClearPendingException(aCx);
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -448,7 +447,7 @@ nsresult BodyUtil::ConsumeText(uint32_t aInputLength, uint8_t* aInput,
 }
 
 // static
-void BodyUtil::ConsumeJson(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+void BodyUtil::ConsumeJson(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                            const nsString& aStr, ErrorResult& aRv) {
   aRv.MightThrowJSException();
 

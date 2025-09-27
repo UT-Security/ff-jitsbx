@@ -372,6 +372,9 @@ class TErrorResult {
   // will wrap it into whatever compartment they're working in, as needed.
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
   ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn);
+  inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG ThrowJSException(MCContext* cx, JS::Handle<JS::Value> exn) {
+    return ThrowJSException(MC_UNSAFE(cx), exn);
+  }
   bool IsJSException() const {
     return ErrorCode() == NS_ERROR_INTERNAL_ERRORRESULT_JS_EXCEPTION;
   }

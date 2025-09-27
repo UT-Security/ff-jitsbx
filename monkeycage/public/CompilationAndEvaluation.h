@@ -62,6 +62,26 @@ inline JSScript* Compile(MCContext* cx, MC::Tainted<CompileOptions*> options,
   return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
 }
 
+inline JSFunction* CompileFunction(
+    MCContext* cx, HandleObjectVector envChain,
+    MC::Tainted<const ReadOnlyCompileOptions*> options, const char* name,
+    unsigned nargs, const char* const* argnames,
+    MC::Tainted<SourceText<char16_t>*> srcBuf) {
+  return CompileFunction(cx->cx_, envChain, *options.INTERNAL_unverified_safe(),
+                         name, nargs, argnames,
+                         *srcBuf.INTERNAL_unverified_safe());
+}
+
+inline JSFunction* CompileFunction(
+    MCContext* cx, HandleObjectVector envChain,
+    MC::Tainted<const ReadOnlyCompileOptions*> options, const char* name,
+    unsigned nargs, const char* const* argnames,
+    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
+  return CompileFunction(cx->cx_, envChain, *options.INTERNAL_unverified_safe(),
+                         name, nargs, argnames,
+                         *srcBuf.INTERNAL_unverified_safe());
+}
+
 inline void ExposeScriptToDebugger(MCContext* cx, Handle<JSScript*> script) {
   return ExposeScriptToDebugger(cx->cx_, script);
 }

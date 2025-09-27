@@ -16,16 +16,16 @@
 #include <utility>
 #include "MainThreadUtils.h"
 #include "js/ComparisonOperators.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
-#include "js/Date.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Date.h"
 #include "js/GCVector.h"
 #include "js/HeapAPI.h"
-#include "js/Modules.h"
-#include "js/RootingAPI.h"
-#include "js/SourceText.h"
-#include "js/TypeDecls.h"
-#include "jsfriendapi.h"
+#include "monkeycage/Modules.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/TypeDecls.h"
+#include "mcfriendapi.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/Element.h"
@@ -68,6 +68,36 @@ bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsAString& aFilename,
   return aFilename.Assign(NS_ConvertUTF8toUTF16(filename.get()), fallible);
 }
 
+bool nsJSUtils::GetCallingLocation(MCContext* aContext, nsACString& aFilename,
+                                   uint32_t* aLineno, uint32_t* aColumn) {
+  MC::SandboxStack<JS::AutoFilename> filename;
+  MC::SandboxStack<uint32_t> tLineno;
+  MC::SandboxStack<uint32_t> tColumn;
+  if (!JS::DescribeScriptedCaller(aContext, filename, tLineno, tColumn)) {
+    return false;
+  }
+
+  if (aLineno) *aLineno = *tLineno.UNSAFE_unverified();
+  if (aColumn) *aColumn = *tColumn.UNSAFE_unverified();
+
+  return aFilename.Assign(filename->get(), fallible);
+}
+
+bool nsJSUtils::GetCallingLocation(MCContext* aContext, nsAString& aFilename,
+                                   uint32_t* aLineno, uint32_t* aColumn) {
+  MC::SandboxStack<JS::AutoFilename> filename;
+  MC::SandboxStack<uint32_t> tLineno;
+  MC::SandboxStack<uint32_t> tColumn;
+  if (!JS::DescribeScriptedCaller(aContext, filename, tLineno, tColumn)) {
+    return false;
+  }
+
+  if (aLineno) *aLineno = *tLineno.UNSAFE_unverified();
+  if (aColumn) *aColumn = *tColumn.UNSAFE_unverified();
+
+  return aFilename.Assign(NS_ConvertUTF8toUTF16(filename->get()), fallible);
+}
+
 uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext) {
   if (!aContext) return 0;
 
@@ -76,10 +106,11 @@ uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext) {
 }
 
 nsresult nsJSUtils::UpdateFunctionDebugMetadata(
-    AutoJSAPI& jsapi, JS::Handle<JSObject*> aFun, JS::CompileOptions& aOptions,
+    AutoJSAPI& jsapi, JS::Handle<JSObject*> aFun,
+    MC::Tainted<JS::CompileOptions*> aOptions,
     JS::Handle<JSString*> aElementAttributeName,
     JS::Handle<JS::Value> aPrivateValue) {
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSFunction*> fun(cx, JS_GetObjectFunction(aFun));
   if (!fun) {
@@ -91,7 +122,7 @@ nsresult nsJSUtils::UpdateFunctionDebugMetadata(
     return NS_OK;
   }
 
-  JS::InstantiateOptions instantiateOptions(aOptions);
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*aOptions);
   if (!JS::UpdateDebugMetadata(cx, script, instantiateOptions, aPrivateValue,
                                aElementAttributeName, nullptr, nullptr)) {
     return NS_ERROR_FAILURE;
@@ -101,12 +132,12 @@ nsresult nsJSUtils::UpdateFunctionDebugMetadata(
 
 nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
                                     JS::HandleVector<JSObject*> aScopeChain,
-                                    JS::CompileOptions& aOptions,
+                                    MC::Tainted<JS::CompileOptions*> aOptions,
                                     const nsACString& aName, uint32_t aArgCount,
                                     const char** aArgArray,
                                     const nsAString& aBody,
                                     JSObject** aFunctionObject) {
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MOZ_ASSERT(js::GetContextRealm(cx));
   MOZ_ASSERT_IF(aScopeChain.length() != 0,
                 js::IsObjectInContextCompartment(aScopeChain[0], cx));
@@ -119,14 +150,14 @@ nsresult nsJSUtils::CompileFunction(AutoJSAPI& jsapi,
   // Compile.
   const nsPromiseFlatString& flatBody = PromiseFlatString(aBody);
 
-  JS::SourceText<char16_t> source;
-  if (!source.init(cx, flatBody.get(), flatBody.Length(),
+  MC::SandboxStack<JS::SourceText<char16_t>> source;
+  if (!source->init(cx, flatBody.get(), flatBody.Length(),
                    JS::SourceOwnership::Borrowed)) {
     return NS_ERROR_FAILURE;
   }
 
   MC::Rooted<JSFunction*> fun(
-      cx, JS::CompileFunction(cx, aScopeChain, aOptions,
+      cx, JS::CompileFunction(jsapi.mcx(), aScopeChain, aOptions,
                               PromiseFlatCString(aName).get(), aArgCount,
                               aArgArray, source));
   if (!fun) {
@@ -210,7 +241,7 @@ bool nsTAutoJSString<T>::init(const JS::Value& v) {
   // Note: it's okay to use danger::GetJSContext here instead of AutoJSAPI,
   // because the init() call below is careful not to run script (for instance,
   // it only calls JS::ToString for non-object values).
-  JSContext* cx = MC_UNSAFE(danger::GetJSContext());
+  MCContext* cx = danger::GetJSContext();
   if (!init(cx, v)) {
     JS_ClearPendingException(cx);
     return false;

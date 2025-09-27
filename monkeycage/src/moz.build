@@ -364,6 +364,7 @@ EXPORTS.monkeycage += [
 	"../public/JSON.h",
 	"../public/LocaleSensitive.h",
 	"../public/MemoryCallbacks.h",
+	"../public/MemoryFunctions.h",
 	"../public/MemoryMetrics.h",
 	"../public/Modules.h",
 	"../public/OffThreadScriptCompilation.h",

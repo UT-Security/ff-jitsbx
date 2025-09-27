@@ -658,8 +658,9 @@ static bool RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp) {
 }
 #endif
 
-static const JSFunctionSpec glob_functions[] = {
-    // clang-format off
+static const JSFunctionSpec* glob_functions() {
+  static const JSFunctionSpec inner_[] = {
+      // clang-format off
     JS_FN("print",           Print,          0,0),
     JS_FN("readline",        ReadLine,       1,0),
     JS_FN("load",            Load,           1,0),
@@ -684,8 +685,11 @@ static const JSFunctionSpec glob_functions[] = {
     JS_FN("registerXPCTestComponents", RegisterXPCTestComponents, 0, 0),
 #endif
     JS_FS_END
-    // clang-format on
-};
+      // clang-format on
+  };
+
+  return inner_;
+}
 
 /***************************************************************************/
 
@@ -1363,7 +1367,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
         return 1;
       }
 
-      if (!JS_DefineFunctions(cx, glob, glob_functions)) {
+      if (!JS_DefineFunctions(cx, glob, glob_functions())) {
         return 1;
       }
 

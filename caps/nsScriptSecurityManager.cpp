@@ -531,12 +531,12 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
   }
 
   if (reportViolation) {
-    JS::AutoFilename scriptFilename;
+    MC::SandboxStack<JS::AutoFilename> scriptFilename;
     nsAutoString fileName;
-    unsigned lineNum = 0;
-    unsigned columnNum = 0;
-    if (JS::DescribeScriptedCaller(cx, &scriptFilename, &lineNum, &columnNum)) {
-      if (const char* file = scriptFilename.get()) {
+    MC::SandboxStack<unsigned> lineNum = 0;
+    MC::SandboxStack<unsigned> columnNum = 0;
+    if (JS::DescribeScriptedCaller(cx, scriptFilename, lineNum, columnNum)) {
+      if (const char* file = scriptFilename->get()) {
         CopyUTF8toUTF16(nsDependentCString(file), fileName);
       }
     } else {
@@ -555,8 +555,9 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
             : nsIContentSecurityPolicy::VIOLATION_TYPE_WASM_EVAL;
     csp->LogViolationDetails(violationType,
                              nullptr,  // triggering element
-                             cspEventListener, fileName, scriptSample, lineNum,
-                             columnNum, u""_ns, u""_ns);
+                             cspEventListener, fileName, scriptSample,
+                             *lineNum.UNSAFE_unverified(),
+                             *columnNum.UNSAFE_unverified(), u""_ns, u""_ns);
   }
 
   return MC::Tainted<bool>(evalOK);

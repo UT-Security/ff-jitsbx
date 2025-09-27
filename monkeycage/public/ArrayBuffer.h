@@ -17,6 +17,16 @@
 
 namespace JS {
 
+inline JSObject* NewArrayBuffer(MCContext* cx, size_t nbytes) {
+  return NewArrayBuffer(cx->cx_, nbytes);
+}
+
+inline JSObject* NewArrayBufferWithContents(MCContext* cx, size_t nbytes,
+                                            MC::Tainted<void*> contents) {
+  return NewArrayBufferWithContents(cx->cx_, nbytes,
+                                    contents.UNSAFE_unverified());
+}
+
 inline JSObject* CopyArrayBuffer(
     MCContext* cx, JS::Handle<JSObject*> maybeArrayBuffer) {
  return CopyArrayBuffer(cx->cx_, maybeArrayBuffer);

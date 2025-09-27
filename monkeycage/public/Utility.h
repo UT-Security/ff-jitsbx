@@ -30,12 +30,18 @@ inline void setAnnotateOOMAllocationSizeCallback(
 }
 }  // namespace mc
 
+static inline MC::Tainted<void*> mc_malloc(size_t bytes) {
+  MC::Tainted<void*> ret{nullptr};
+  void* ptr = js_malloc(bytes);
+  ret.assign_raw_pointer(ptr);
+  return ret;
+}
 
 template <class T>
 static inline void mc_free(MC::Tainted<T*> p) {
-    if (p) {
-        js_free(p.INTERNAL_unverified_safe());
-    }
+  if (p) {
+    js_free(p.INTERNAL_unverified_safe());
+  }
 }
 
 template <class T, typename... Args>

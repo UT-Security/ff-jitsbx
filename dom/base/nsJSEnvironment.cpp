@@ -1997,9 +1997,9 @@ class JSDispatchableRunnable final : public Runnable {
   JS::Dispatchable* mDispatchable;
 };
 
-static bool DispatchToEventLoop(void* closure,
-                                JS::Dispatchable* aDispatchable) {
-  MOZ_ASSERT(!closure);
+static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> closure,
+                                MC::Tainted<JS::Dispatchable*> aDispatchable) {
+  MOZ_ASSERT(!closure.UNSAFE_unverified());
 
   // This callback may execute either on the main thread or a random JS-internal
   // helper thread. This callback can be called during shutdown so we cannot
@@ -2011,15 +2011,15 @@ static bool DispatchToEventLoop(void* closure,
     return false;
   }
 
-  RefPtr<JSDispatchableRunnable> r = new JSDispatchableRunnable(aDispatchable);
+  RefPtr<JSDispatchableRunnable> r = new JSDispatchableRunnable(aDispatchable.UNSAFE_unverified());
   MOZ_ALWAYS_SUCCEEDS(mainTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
   return true;
 }
 
-static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
+static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> aCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
-                          JS::StreamConsumer* aConsumer) {
-  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer,
+                          MC::Tainted<JS::StreamConsumer*> aConsumer) {
+  return FetchUtil::StreamResponseToJS(aCx.UNSAFE_unverified(), aObj, aMimeType, aConsumer.UNSAFE_unverified(),
                                        nullptr);
 }
 
@@ -2049,10 +2049,10 @@ void nsJSContext::EnsureStatics() {
   static auto CreateGCSliceBudgetCb = MC::Sandbox::RegisterCallback(CreateGCSliceBudget);
   JS::SetCreateGCSliceBudgetCallback(jsapi.mcx(), CreateGCSliceBudgetCb);
 
-  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterTaintedCallback(DispatchToEventLoop);
   JS::InitDispatchToEventLoop(jsapi.mcx(), DispatchToEventLoopCb, nullptr);
 
-  static auto ConsumeStreamCb = MC::Sandbox::RegisterCallback(ConsumeStream);
+  static auto ConsumeStreamCb = MC::Sandbox::RegisterTaintedCallback(ConsumeStream);
   JS::InitConsumeStreamCallback(jsapi.mcx(), ConsumeStreamCb,
                                 FetchUtil::ReportJSStreamErrorCb());
 

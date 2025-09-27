@@ -1164,9 +1164,9 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   RefPtr<JS::loader::EventScript> eventScript =
       new JS::loader::EventScript(fetchOptions, uri);
 
-  JS::CompileOptions options(cx);
+  MC::SandboxStack<JS::CompileOptions> options(cx);
   // Use line 0 to make the function body starts from line 1.
-  options.setIntroductionType("eventHandler")
+  options->setIntroductionType("eventHandler")
       .setFileAndLine(url.get(), 0)
       .setDeferDebugMetadata(true);
 
