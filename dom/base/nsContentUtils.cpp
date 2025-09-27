@@ -10788,9 +10788,9 @@ nsresult nsContentUtils::AnonymizeURI(nsIURI* aURI, nsCString& aAnonymizedURI) {
   return exposableURI->GetSpec(aAnonymizedURI);
 }
 
-static bool JSONCreator(const char16_t* aBuf, uint32_t aLen, void* aData) {
-  nsAString* result = static_cast<nsAString*>(aData);
-  result->Append(aBuf, aLen);
+static MC::Tainted<bool> JSONCreator(MC::Tainted<const char16_t*> aBuf, uint32_t aLen, MC::AppPointer<void*> aData) {
+  nsAString* result = static_cast<nsAString*>(aData.UNSAFE_unverified());
+  result->Append(aBuf.UNSAFE_unverified(), aLen);
   return true;
 }
 
@@ -10799,7 +10799,7 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
                                    nsAString& aOutStr, JSONBehavior aBehavior) {
   MOZ_ASSERT(aCx);
 
-  static auto JSONCreatorCb = MC::Sandbox::RegisterCallback(JSONCreator);
+  static auto JSONCreatorCb = MC::Sandbox::RegisterTaintedCallback(JSONCreator);
   
   switch (aBehavior) {
     case UndefinedIsNullStringLiteral: {

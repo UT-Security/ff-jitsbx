@@ -157,7 +157,7 @@ PushData::Json(MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
     return rv;
   }
   ErrorResult error;
-  BodyUtil::ConsumeJson(MC_UNSAFE(aCx), aResult, mDecodedText, error);
+  BodyUtil::ConsumeJson(aCx, aResult, mDecodedText, error);
   return error.StealNSResult();
 }
 

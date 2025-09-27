@@ -349,8 +349,8 @@ nsresult mozJSSubScriptLoader::DoLoadSubScriptWithOptions(
   nsAutoCString scheme;
 
   // Figure out who's calling us
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(cx, &filename)) {
+  MC::SandboxStack<JS::AutoFilename> filename;
+  if (!JS::DescribeScriptedCaller(cx, filename)) {
     // No scripted frame means we don't know who's calling, bail.
     return NS_ERROR_FAILURE;
   }

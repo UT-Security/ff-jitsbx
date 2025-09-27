@@ -594,11 +594,11 @@ MC::Tainted<bool> XPCJSContext::InterruptCallback(MC::Tainted<JSContext*> tcx) {
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     nsDependentCString filename("unknown file");
-    JS::AutoFilename scriptFilename;
+    MC::SandboxStack<JS::AutoFilename> scriptFilename;
     // Computing the line number can be very expensive (see bug 1330231 for
     // example), so don't request it here.
-    if (JS::DescribeScriptedCaller(cx, &scriptFilename)) {
-      if (const char* file = scriptFilename.get()) {
+    if (JS::DescribeScriptedCaller(cx, scriptFilename)) {
+      if (const char* file = scriptFilename->get()) {
         filename.Assign(file, strlen(file));
       }
       PROFILER_MARKER_TEXT("JS::InterruptCallback", JS, {}, filename);

@@ -20,6 +20,9 @@
 #include "nsProxyRelease.h"
 #include "nsContentUtils.h"
 
+//TODO(JS_SANDBOX): remove
+#include "monkeycage/Utility.h"
+
 class nsIInterceptedChannel;
 
 namespace mozilla::dom {
@@ -226,6 +229,7 @@ class PushMessageData final : public nsISupports, public nsWrapperCache {
 
   nsresult EnsureDecodedText();
   uint8_t* GetContentsCopy();
+  MC::Tainted<void*> GetContentsTaintedCopy();
 };
 
 class PushEvent final : public ExtendableEvent {

@@ -544,7 +544,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc);
 
   // The actual "print" method we use for the PDFJS case.
-  static bool PDFJSPrintMethod(JSContext* cx, unsigned argc, JS::Value* vp);
+  static MC::Tainted<bool> PDFJSPrintMethod(MC::Tainted<JSContext*> cx, unsigned argc, MC::Tainted<JS::Value*> vp);
 
   // Helper method to get the pre-PDF-viewer-messing-with-it principal from an
   // inner window.  Will return null if this is not a PDF-viewer inner or if the
@@ -1151,9 +1151,10 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
     return false;
   }
 
-  static auto PDFJSPrintMethodCb = MC::Sandbox::RegisterCallback(PDFJSPrintMethod);
-  JSFunction* fun =
-      js::NewFunctionWithReserved(cx, PDFJSPrintMethodCb.UNSAFE_get(), 0, 0, "print");
+  static auto PDFJSPrintMethodCb =
+      MC::Sandbox::RegisterTaintedCallback(PDFJSPrintMethod);
+  JSFunction* fun = js::NewFunctionWithReserved(
+      cx, PDFJSPrintMethodCb.UNSAFE_get(), 0, 0, "print");
   if (!fun) {
     return false;
   }
@@ -1172,8 +1173,11 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
 }
 
 // static
-bool nsOuterWindowProxy::PDFJSPrintMethod(JSContext* cx, unsigned argc,
-                                          JS::Value* vp) {
+MC::Tainted<bool> nsOuterWindowProxy::PDFJSPrintMethod(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                          MC::Tainted<JS::Value*> t_vp) {
+  JSContext* cx = t_cx.UNSAFE_unverified();
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   MC::Rooted<JSObject*> realCallee(
@@ -1952,9 +1956,9 @@ struct MOZ_STACK_CLASS CompartmentFinderState {
   JS::Compartment* compartment;
 };
 
-static JS::CompartmentIterResult FindSameOriginCompartment(
-    JSContext* aCx, void* aData, JS::Compartment* aCompartment) {
-  auto* data = static_cast<CompartmentFinderState*>(aData);
+static MC::Tainted<JS::CompartmentIterResult> FindSameOriginCompartment(
+    MC::Tainted<JSContext*> aCx, MC::AppPointer<void*> aData, MC::Tainted<JS::Compartment*> aCompartment) {
+  auto* data = static_cast<CompartmentFinderState*>(aData.UNSAFE_unverified());
   MOZ_ASSERT(!data->compartment, "Why are we getting called?");
 
   // If this compartment is not safe to share across globals, don't do
@@ -1962,18 +1966,18 @@ static JS::CompartmentIterResult FindSameOriginCompartment(
   // CompartmentPrivate from such a compartment, because it may be in
   // the middle of being collected and its CompartmentPrivate may no
   // longer be valid.
-  if (!js::IsSharableCompartment(aCompartment)) {
+  if (!js::IsSharableCompartment(aCompartment.UNSAFE_unverified())) {
     return JS::CompartmentIterResult::KeepGoing;
   }
 
-  auto* compartmentPrivate = xpc::CompartmentPrivate::Get(aCompartment);
+  auto* compartmentPrivate = xpc::CompartmentPrivate::Get(aCompartment.UNSAFE_unverified());
   if (!compartmentPrivate->CanShareCompartmentWith(data->principal)) {
     // Can't reuse this one, keep going.
     return JS::CompartmentIterResult::KeepGoing;
   }
 
   // We have a winner!
-  data->compartment = aCompartment;
+  data->compartment = aCompartment.UNSAFE_unverified();
   return JS::CompartmentIterResult::Stop;
 }
 
@@ -2010,8 +2014,10 @@ static void SelectZone(
     // Now try to find an existing compartment that's same-origin
     // with our principal.
     CompartmentFinderState data(aPrincipal);
-    static auto FindSameOriginCompartmentCb = MC::Sandbox::RegisterCallback(FindSameOriginCompartment);
-    JS_IterateCompartmentsInZone(aCx, zone, &data, FindSameOriginCompartmentCb.UNSAFE_get());
+    static auto FindSameOriginCompartmentCb =
+        MC::Sandbox::RegisterTaintedCallback(FindSameOriginCompartment);
+    JS_IterateCompartmentsInZone(aCx, zone, &data,
+                                 FindSameOriginCompartmentCb.UNSAFE_get());
     if (data.compartment) {
       aOptions->setExistingCompartment(data.compartment);
       return;

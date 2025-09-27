@@ -28,9 +28,9 @@ class BodyUtil final {
    * The array buffer takes ownership of |aInput|, which must be allocated
    * by |malloc|.
    */
-  static void ConsumeArrayBuffer(JSContext* aCx,
+  static void ConsumeArrayBuffer(MCContext* aCx,
                                  JS::MutableHandle<JSObject*> aValue,
-                                 uint32_t aInputLength, uint8_t* aInput,
+                                 uint32_t aInputLength, MC::Tainted<void*> aInput,
                                  ErrorResult& aRv);
 
   /**
@@ -62,7 +62,7 @@ class BodyUtil final {
    * Parses a UTF-8 encoded |aStr| as JSON, assigning the result to |aValue|.
    * Sets |aRv| to a syntax error if |aStr| contains invalid data.
    */
-  static void ConsumeJson(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  static void ConsumeJson(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                           const nsString& aStr, ErrorResult& aRv);
 };
 

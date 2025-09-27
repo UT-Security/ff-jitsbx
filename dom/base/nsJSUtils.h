@@ -17,8 +17,8 @@
 #include "mozilla/Assertions.h"
 
 #include "mcapi.h"
-#include "js/CompileOptions.h"
-#include "js/Conversions.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/Conversions.h"
 #include "monkeycage/SourceText.h"
 #include "monkeycage/String.h"  // JS::{,Lossy}CopyLinearStringChars, JS::CopyStringChars, JS::Get{,Linear}StringLength, JS::MaxStringLength, JS::StringHasLatin1Chars
 #include "nsString.h"
@@ -47,6 +47,13 @@ class nsJSUtils {
                                  uint32_t* aLineno = nullptr,
                                  uint32_t* aColumn = nullptr);
 
+  static bool GetCallingLocation(MCContext* aContext, nsACString& aFilename,
+                                 uint32_t* aLineno = nullptr,
+                                 uint32_t* aColumn = nullptr);
+  static bool GetCallingLocation(MCContext* aContext, nsAString& aFilename,
+                                 uint32_t* aLineno = nullptr,
+                                 uint32_t* aColumn = nullptr);
+
   /**
    * Retrieve the inner window ID based on the given JSContext.
    *
@@ -59,7 +66,7 @@ class nsJSUtils {
 
   static nsresult CompileFunction(mozilla::dom::AutoJSAPI& jsapi,
                                   JS::HandleVector<JSObject*> aScopeChain,
-                                  JS::CompileOptions& aOptions,
+                                  MC::Tainted<JS::CompileOptions*> aOptions,
                                   const nsACString& aName, uint32_t aArgCount,
                                   const char** aArgArray,
                                   const nsAString& aBody,
@@ -67,7 +74,7 @@ class nsJSUtils {
 
   static nsresult UpdateFunctionDebugMetadata(
       mozilla::dom::AutoJSAPI& jsapi, JS::Handle<JSObject*> aFun,
-      JS::CompileOptions& aOptions, JS::Handle<JSString*> aElementAttributeName,
+      MC::Tainted<JS::CompileOptions*> aOptions, JS::Handle<JSString*> aElementAttributeName,
       JS::Handle<JS::Value> aPrivateValue);
 
   static bool IsScriptable(JS::Handle<JSObject*> aEvaluationGlobal);

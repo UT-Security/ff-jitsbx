@@ -1079,7 +1079,7 @@ void PushMessageData::Json(JSContext* cx, JS::MutableHandle<JS::Value> aRetval,
     aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
     return;
   }
-  BodyUtil::ConsumeJson(cx, aRetval, mDecodedText, aRv);
+  BodyUtil::ConsumeJson(JS_SanitizeContext(cx), aRetval, mDecodedText, aRv);
 }
 
 void PushMessageData::Text(nsAString& aData) {
@@ -1091,9 +1091,9 @@ void PushMessageData::Text(nsAString& aData) {
 void PushMessageData::ArrayBuffer(JSContext* cx,
                                   JS::MutableHandle<JSObject*> aRetval,
                                   ErrorResult& aRv) {
-  uint8_t* data = GetContentsCopy();
+  MC::Tainted<void*> data = GetContentsTaintedCopy();
   if (data) {
-    BodyUtil::ConsumeArrayBuffer(cx, aRetval, mBytes.Length(), data, aRv);
+    BodyUtil::ConsumeArrayBuffer(JS_SanitizeContext(cx), aRetval, mBytes.Length(), data, aRv);
   }
 }
 
@@ -1131,6 +1131,16 @@ uint8_t* PushMessageData::GetContentsCopy() {
   }
   memcpy(data, mBytes.Elements(), length);
   return reinterpret_cast<uint8_t*>(data);
+}
+
+MC::Tainted<void*> PushMessageData::GetContentsTaintedCopy() {
+  uint32_t length = mBytes.Length();
+  MC::Tainted<void*> data = mc_malloc(length);
+  if (!data) {
+    return nullptr;
+  }
+  memcpy(data.UNSAFE_unverified(), mBytes.Elements(), length);
+  return data;
 }
 
 PushEvent::PushEvent(EventTarget* aOwner) : ExtendableEvent(aOwner) {}
