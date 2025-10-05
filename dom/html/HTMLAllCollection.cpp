@@ -187,7 +187,7 @@ void HTMLAllCollection::GetSupportedNames(nsTArray<nsString>& aNames) {
   }
 }
 
-JSObject* HTMLAllCollection::WrapObject(JSContext* aCx,
+JSObject* HTMLAllCollection::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLAllCollection_Binding::Wrap(aCx, this, aGivenProto);
 }

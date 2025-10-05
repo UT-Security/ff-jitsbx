@@ -9,15 +9,15 @@
 #include <algorithm>
 #include <cstdint>
 #include <stdint.h>          // for UINT32_MAX, uintptr_t
-#include "js/Array.h"        // JS::NewArrayObject
-#include "js/ArrayBuffer.h"  // JS::{IsArrayBufferObject,NewArrayBuffer{,WithContents},GetArrayBufferLengthAndData}
-#include "js/Date.h"
-#include "js/experimental/TypedData.h"  // JS_IsArrayBufferViewObject, JS_GetObjectAsArrayBufferView
-#include "js/MemoryFunctions.h"
-#include "js/Object.h"              // JS::GetBuiltinClass
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
-#include "js/Value.h"
-#include "jsfriendapi.h"
+#include "monkeycage/Array.h"        // JS::NewArrayObject
+#include "monkeycage/ArrayBuffer.h"  // JS::{IsArrayBufferObject,NewArrayBuffer{,WithContents},GetArrayBufferLengthAndData}
+#include "monkeycage/Date.h"
+#include "monkeycage/experimental/TypedData.h"  // JS_IsArrayBufferViewObject, JS_GetObjectAsArrayBufferView
+#include "monkeycage/MemoryFunctions.h"
+#include "monkeycage/Object.h"              // JS::GetBuiltinClass
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
+#include "monkeycage/Value.h"
+#include "mcfriendapi.h"
 #include "mozilla/Casting.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/EndianUtils.h"
@@ -43,13 +43,15 @@ namespace {
 // https://w3c.github.io/IndexedDB/#convert-value-to-key
 template <typename ArrayConversionPolicy>
 IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
-    JSContext* const aCx, JS::Handle<JSObject*> aObject,
+    MCContext* const aCx, JS::Handle<JSObject*> aObject,
     ArrayConversionPolicy&& aPolicy) {
   // 1. Let `len` be ? ToLength( ? Get(`input`, "length")).
-  uint32_t len;
-  if (!JS::GetArrayLength(aCx, aObject, &len)) {
+  MC::SandboxStack<uint32_t> t_len;
+  if (!JS::GetArrayLength(aCx, aObject, t_len)) {
     return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
   }
+
+  uint32_t len = *t_len.UNSAFE_unverified();
 
   // 2. Add `input` to `seen`.
   aPolicy.AddToSeenSet(aCx, aObject);
@@ -68,13 +70,13 @@ IDBResult<Ok, IDBSpecialValue::Invalid> ConvertArrayValueToKey(
     }
 
     // 1. Let `hop` be ? HasOwnProperty(`input`, `index`).
-    bool hop;
-    if (!JS_HasOwnPropertyById(aCx, aObject, indexId, &hop)) {
+    MC::SandboxStack<bool> hop;
+    if (!JS_HasOwnPropertyById(aCx, aObject, indexId, hop)) {
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
 
     // 2. If `hop` is false, return invalid.
-    if (!hop) {
+    if (!*hop.UNSAFE_unverified()) {
       return Err(IDBError(SpecialValues::Invalid));
     }
 
@@ -332,7 +334,7 @@ class MOZ_STACK_CLASS Key::ArrayValueEncoder final {
         mTypeOffset(aTypeOffset),
         mRecursionDepth(aRecursionDepth) {}
 
-  void AddToSeenSet(JSContext* const aCx, JS::Handle<JSObject*>) {
+  void AddToSeenSet(MCContext* const aCx, JS::Handle<JSObject*>) {
     ++mRecursionDepth;
   }
 
@@ -348,7 +350,7 @@ class MOZ_STACK_CLASS Key::ArrayValueEncoder final {
   }
 
   IDBResult<Ok, IDBSpecialValue::Invalid> ConvertSubkey(
-      JSContext* const aCx, JS::Handle<JS::Value> aEntry,
+      MCContext* const aCx, JS::Handle<JS::Value> aEntry,
       const uint32_t aIndex) {
     auto result =
         mKey.EncodeJSValInternal(aCx, aEntry, mTypeOffset, mRecursionDepth);
@@ -367,7 +369,7 @@ class MOZ_STACK_CLASS Key::ArrayValueEncoder final {
 // Implements the following algorithm:
 // https://w3c.github.io/IndexedDB/#convert-a-value-to-a-key
 IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSValInternal(
-    JSContext* const aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset,
+    MCContext* const aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset,
     const uint16_t aRecursionDepth) {
   static_assert(eMaxType * kMaxArrayCollapse < 256, "Unable to encode jsvals.");
 
@@ -409,28 +411,28 @@ IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSValInternal(
   if (aVal.isObject()) {
     MC::Rooted<JSObject*> object(aCx, &aVal.toObject());
 
-    js::ESClass builtinClass;
-    if (!JS::GetBuiltinClass(aCx, object, &builtinClass)) {
+    MC::SandboxStack<js::ESClass> builtinClass;
+    if (!JS::GetBuiltinClass(aCx, object, builtinClass)) {
       IDB_REPORT_INTERNAL_ERR();
       return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
     }
 
     // If `input` is a Date (has a [[DateValue]] internal slot)
-    if (builtinClass == js::ESClass::Date) {
+    if (*builtinClass.UNSAFE_unverified() == js::ESClass::Date) {
       // 1. Let `ms` be the value of `input`’s [[DateValue]] internal slot.
-      double ms;
-      if (!js::DateGetMsecSinceEpoch(aCx, object, &ms)) {
+      MC::SandboxStack<double> ms;
+      if (!js::DateGetMsecSinceEpoch(aCx, object, ms)) {
         IDB_REPORT_INTERNAL_ERR();
         return Err(IDBException(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR));
       }
 
       // 2. If `ms` is NaN then return invalid.
-      if (std::isnan(ms)) {
+      if (std::isnan(*ms.UNSAFE_unverified())) {
         return Err(IDBError(SpecialValues::Invalid));
       }
 
       // 3. Otherwise, return a new key with type `date` and value `ms`.
-      return EncodeNumber(ms, eDate + aTypeOffset);
+      return EncodeNumber(*ms.UNSAFE_unverified(), eDate + aTypeOffset);
     }
 
     // If `input` is a buffer source type
@@ -440,7 +442,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSValInternal(
     }
 
     // If IsArray(`input`)
-    if (builtinClass == js::ESClass::Array) {
+    if (*builtinClass.UNSAFE_unverified() == js::ESClass::Array) {
       return ConvertArrayValueToKey(
           aCx, object, ArrayValueEncoder{*this, aTypeOffset, aRecursionDepth});
     }
@@ -453,7 +455,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSValInternal(
 
 // static
 nsresult Key::DecodeJSValInternal(const EncodedDataType*& aPos,
-                                  const EncodedDataType* aEnd, JSContext* aCx,
+                                  const EncodedDataType* aEnd, MCContext* aCx,
                                   uint8_t aTypeOffset,
                                   JS::MutableHandle<JS::Value> aVal,
                                   uint16_t aRecursionDepth) {
@@ -540,7 +542,7 @@ nsresult Key::DecodeJSValInternal(const EncodedDataType*& aPos,
 #define THREE_BYTE_SHIFT 6
 
 IDBResult<Ok, IDBSpecialValue::Invalid> Key::EncodeJSVal(
-    JSContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset) {
+    MCContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset) {
   return EncodeJSValInternal(aCx, aVal, aTypeOffset, 0);
 }
 
@@ -679,7 +681,7 @@ Result<Ok, nsresult> Key::EncodeLocaleString(const nsAString& aString,
 
 // static
 nsresult Key::DecodeJSVal(const EncodedDataType*& aPos,
-                          const EncodedDataType* aEnd, JSContext* aCx,
+                          const EncodedDataType* aEnd, MCContext* aCx,
                           JS::MutableHandle<JS::Value> aVal) {
   return DecodeJSValInternal(aPos, aEnd, aCx, 0, aVal, 0);
 }
@@ -850,12 +852,12 @@ Result<Ok, nsresult> Key::EncodeBinary(JSObject* aObject, bool aIsViewObject,
 
 // static
 JSObject* Key::DecodeBinary(const EncodedDataType*& aPos,
-                            const EncodedDataType* aEnd, JSContext* aCx) {
+                            const EncodedDataType* aEnd, MCContext* aCx) {
   MC::Rooted<JSObject*> rv(aCx);
   DecodeStringy<eBinary, uint8_t>(
       aPos, aEnd,
       [&rv, aCx](uint8_t** out, uint32_t decodedSize) {
-        *out = static_cast<uint8_t*>(JS_malloc(aCx, decodedSize));
+        *out = static_cast<uint8_t*>(JS_malloc(MC_UNSAFE(aCx), decodedSize));
         if (NS_WARN_IF(!*out)) {
           rv = nullptr;
           return false;
@@ -892,7 +894,7 @@ nsresult Key::SetFromValueArray(mozIStorageValueArray* aValues,
 }
 
 IDBResult<Ok, IDBSpecialValue::Invalid> Key::SetFromJSVal(
-    JSContext* aCx, JS::Handle<JS::Value> aVal) {
+    MCContext* aCx, JS::Handle<JS::Value> aVal) {
   mBuffer.Truncate();
 
   if (aVal.isNull() || aVal.isUndefined()) {
@@ -909,7 +911,7 @@ IDBResult<Ok, IDBSpecialValue::Invalid> Key::SetFromJSVal(
   return Ok();
 }
 
-nsresult Key::ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) const {
+nsresult Key::ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) const {
   if (IsUnset()) {
     aVal.setUndefined();
     return NS_OK;
@@ -926,7 +928,7 @@ nsresult Key::ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) const {
   return NS_OK;
 }
 
-nsresult Key::ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aVal) const {
+nsresult Key::ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aVal) const {
   MC::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {
@@ -936,7 +938,7 @@ nsresult Key::ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aVal) const {
 }
 
 IDBResult<Ok, IDBSpecialValue::Invalid> Key::AppendItem(
-    JSContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal) {
+    MCContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal) {
   auto result = EncodeJSVal(aCx, aVal, aFirstOfArray ? eMaxType : 0);
   if (result.isErr()) {
     Unset();

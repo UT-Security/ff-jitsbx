@@ -31,7 +31,7 @@ class UniFFIPointer final : public nsISupports, public nsWrapperCache {
 
   UniFFIPointer(void* aPtr, const uniffi::UniFFIPointerType* aType);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() { return nullptr; }
 

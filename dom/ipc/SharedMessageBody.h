@@ -83,11 +83,11 @@ class SharedMessageBody final {
     KeepRefMessageBody,
   };
 
-  void Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
             RefMessageBodyService* aRefMessageBodyService,
             ReadMethod aReadMethod, ErrorResult& aRv);
 
-  void Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
              JS::Handle<JS::Value> aTransfers, nsID& aPortID,
              RefMessageBodyService* aRefMessageBodyService, ErrorResult& aRv);
 

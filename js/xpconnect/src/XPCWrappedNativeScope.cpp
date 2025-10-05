@@ -17,7 +17,7 @@
 #include "mozilla/Preferences.h"
 #include "XPCMaps.h"
 #include "mozilla/Unused.h"
-#include "js/Object.h"              // JS::GetCompartment
+#include "monkeycage/Object.h"              // JS::GetCompartment
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById
 #include "monkeycage/RealmIterators.h"
 #include "mozJSModuleLoader.h"
@@ -96,7 +96,7 @@ XPCWrappedNativeScope::XPCWrappedNativeScope(JS::Compartment* aCompartment,
   mAllowContentXBLScope = !RemoteXULForbidsXBLScope(aFirstGlobal);
 }
 
-bool XPCWrappedNativeScope::GetComponentsJSObject(JSContext* cx,
+bool XPCWrappedNativeScope::GetComponentsJSObject(MCContext* cx,
                                                   JS::MutableHandleObject obj) {
   if (!mComponents) {
     bool system = AccessCheck::isChrome(mCompartment);
@@ -120,7 +120,7 @@ bool XPCWrappedNativeScope::GetComponentsJSObject(JSContext* cx,
   return true;
 }
 
-static bool DefineSubcomponentProperty(JSContext* aCx, HandleObject aGlobal,
+static bool DefineSubcomponentProperty(MCContext* aCx, HandleObject aGlobal,
                                        nsISupports* aSubcomponent,
                                        const nsID* aIID,
                                        unsigned int aStringIndex) {
@@ -136,7 +136,7 @@ static bool DefineSubcomponentProperty(JSContext* aCx, HandleObject aGlobal,
   return JS_DefinePropertyById(aCx, aGlobal, id, subcompVal, 0);
 }
 
-bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
+bool XPCWrappedNativeScope::AttachComponentsObject(MCContext* aCx) {
   MC::RootedObject components(aCx);
   if (!GetComponentsJSObject(aCx, &components)) {
     return false;
@@ -172,9 +172,9 @@ bool XPCWrappedNativeScope::AttachComponentsObject(JSContext* aCx) {
   return true;
 }
 
-bool XPCWrappedNativeScope::AttachJSServices(JSContext* aCx) {
+bool XPCWrappedNativeScope::AttachJSServices(MCContext* aCx) {
   MC::RootedObject global(aCx, CurrentGlobalOrNull(aCx));
-  return mozJSModuleLoader::Get()->DefineJSServices(JS_SanitizeContext(aCx), global);
+  return mozJSModuleLoader::Get()->DefineJSServices(aCx, global);
 }
 
 bool XPCWrappedNativeScope::XBLScopeStateMatches(nsIPrincipal* aPrincipal) {
@@ -190,7 +190,7 @@ bool XPCWrappedNativeScope::AllowContentXBLScope(Realm* aRealm) {
 }
 
 namespace xpc {
-JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
+JSObject* GetUAWidgetScope(MCContext* cx, JSObject* contentScopeArg) {
   MC::RootedObject contentScope(cx, contentScopeArg);
   MC::SandboxStack<JSAutoRealm> ar(cx, contentScope);
   nsIPrincipal* principal = GetObjectPrincipal(contentScope);
@@ -202,7 +202,7 @@ JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScopeArg) {
   return GetUAWidgetScope(cx, principal);
 }
 
-JSObject* GetUAWidgetScope(JSContext* cx, nsIPrincipal* principal) {
+JSObject* GetUAWidgetScope(MCContext* cx, nsIPrincipal* principal) {
   MC::RootedObject scope(cx, XPCJSRuntime::Get()->GetUAWidgetScope(cx, principal));
   NS_ENSURE_TRUE(scope, nullptr);  // See bug 858642.
 
@@ -465,7 +465,7 @@ void XPCWrappedNativeScope::DebugDump(int16_t depth) {
 }
 
 void XPCWrappedNativeScope::AddSizeOfAllScopesIncludingThis(
-    JSContext* cx, ScopeSizeInfo* scopeSizeInfo) {
+    MCContext* cx, ScopeSizeInfo* scopeSizeInfo) {
   for (XPCWrappedNativeScope* cur : AllScopes()) {
     cur->AddSizeOfIncludingThis(cx, scopeSizeInfo);
   }
@@ -484,7 +484,7 @@ static void AddSizeOfIncludingThisCallback(MC::Tainted<JSContext*>, MC::AppPoint
 }
 
 void XPCWrappedNativeScope::AddSizeOfIncludingThis(
-    JSContext* cx, ScopeSizeInfo* scopeSizeInfo) {
+    MCContext* cx, ScopeSizeInfo* scopeSizeInfo) {
   scopeSizeInfo->mScopeAndMapSize += scopeSizeInfo->mMallocSizeOf(this);
   scopeSizeInfo->mScopeAndMapSize +=
       mWrappedNativeMap->SizeOfIncludingThis(scopeSizeInfo->mMallocSizeOf);
@@ -493,7 +493,7 @@ void XPCWrappedNativeScope::AddSizeOfIncludingThis(
 
   static auto realmCb = MC::Sandbox::RegisterTaintedCallback(AddSizeOfIncludingThisCallback);
   IterateRealmsInCompartment(cx, Compartment(), scopeSizeInfo,
-                             realmCb.UNSAFE_get());
+                             realmCb);
 
   // There are other XPCWrappedNativeScope members that could be measured;
   // the above ones have been seen by DMD to be worth measuring.  More stuff

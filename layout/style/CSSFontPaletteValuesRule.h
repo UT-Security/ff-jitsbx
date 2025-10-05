@@ -46,7 +46,7 @@ class CSSFontPaletteValuesRule final : public css::Rule {
   void List(FILE* out = stdout, int32_t aIndent = 0) const final;
 #endif
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  private:
   ~CSSFontPaletteValuesRule() = default;

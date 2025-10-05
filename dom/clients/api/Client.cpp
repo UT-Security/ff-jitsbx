@@ -60,7 +60,7 @@ StorageAccess Client::GetStorageAccess() const {
   return state.GetStorageAccess();
 }
 
-JSObject* Client::WrapObject(JSContext* aCx,
+JSObject* Client::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   if (mData->info().type() == ClientType::Window) {
     return WindowClient_Binding::Wrap(aCx, this, aGivenProto);
@@ -82,7 +82,7 @@ ClientType Client::Type() const { return mData->info().type(); }
 
 FrameType Client::GetFrameType() const { return mData->info().frameType(); }
 
-void Client::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void Client::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                          const Sequence<JSObject*>& aTransferable,
                          ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
@@ -108,7 +108,7 @@ void Client::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   mHandle->PostMessage(data, workerPrivate->GetServiceWorkerDescriptor());
 }
 
-void Client::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void Client::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                          const StructuredSerializeOptions& aOptions,
                          ErrorResult& aRv) {
   PostMessage(aCx, aMessage, aOptions.mTransfer, aRv);

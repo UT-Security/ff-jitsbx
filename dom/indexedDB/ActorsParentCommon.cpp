@@ -129,7 +129,7 @@ class SandboxHolder final {
   NS_INLINE_DECL_REFCOUNTING(SandboxHolder)
 
  private:
-  friend JSObject* mozilla::dom::indexedDB::GetSandbox(JSContext* aCx);
+  friend JSObject* mozilla::dom::indexedDB::GetSandbox(MCContext* aCx);
 
   ~SandboxHolder() = default;
 
@@ -145,7 +145,7 @@ class SandboxHolder final {
     return sHolder;
   }
 
-  JSObject* GetSandboxInternal(JSContext* aCx) {
+  JSObject* GetSandboxInternal(MCContext* aCx) {
     if (!mSandbox) {
       nsIXPConnect* const xpc = nsContentUtils::XPConnect();
       MOZ_ASSERT(xpc, "This should never be null!");
@@ -561,7 +561,7 @@ bool IndexDataValue::operator<(const IndexDataValue& aOther) const {
   return mIndexId < aOther.mIndexId;
 }
 
-JSObject* GetSandbox(JSContext* aCx) {
+JSObject* GetSandbox(MCContext* aCx) {
   SandboxHolder* holder = SandboxHolder::GetOrCreate();
   return holder->GetSandboxInternal(aCx);
 }

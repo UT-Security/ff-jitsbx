@@ -32,12 +32,12 @@ Crypto::Crypto(nsIGlobalObject* aParent) : mParent(aParent) {}
 Crypto::~Crypto() = default;
 
 /* virtual */
-JSObject* Crypto::WrapObject(JSContext* aCx,
+JSObject* Crypto::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   return Crypto_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void Crypto::GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
+void Crypto::GetRandomValues(MCContext* aCx, const ArrayBufferView& aArray,
                              JS::MutableHandle<JSObject*> aRetval,
                              ErrorResult& aRv) {
   MC::Rooted<JSObject*> view(aCx, aArray.Obj());

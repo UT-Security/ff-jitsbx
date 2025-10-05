@@ -66,12 +66,12 @@ class FileReader final : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(FileReader,
                                                          DOMEventTargetHelper)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL
   static already_AddRefed<FileReader> Constructor(const GlobalObject& aGlobal);
-  void ReadAsArrayBuffer(JSContext* aCx, Blob& aBlob, ErrorResult& aRv) {
+  void ReadAsArrayBuffer(MCContext* aCx, Blob& aBlob, ErrorResult& aRv) {
     ReadFileContent(aBlob, u""_ns, FILE_AS_ARRAYBUFFER, aRv);
   }
 
@@ -94,7 +94,7 @@ class FileReader final : public DOMEventTargetHelper,
 
   DOMException* GetError() const { return mError; }
 
-  void GetResult(JSContext* aCx, Nullable<OwningStringOrArrayBuffer>& aResult);
+  void GetResult(MCContext* aCx, Nullable<OwningStringOrArrayBuffer>& aResult);
 
   IMPL_EVENT_HANDLER(loadstart)
   IMPL_EVENT_HANDLER(progress)

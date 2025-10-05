@@ -49,7 +49,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // https://wicg.github.io/compression/#compress-and-enqueue-a-chunk
 
@@ -78,7 +78,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // https://wicg.github.io/compression/#decompress-flush-and-enqueue
 
@@ -96,7 +96,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
   // All data errors throw TypeError by step 2: If this results in an error,
   // then throw a TypeError.
   MOZ_CAN_RUN_SCRIPT void DecompressAndEnqueue(
-      JSContext* aCx, Span<const uint8_t> aInput, ZLibFlush aFlush,
+      MCContext* aCx, Span<const uint8_t> aInput, ZLibFlush aFlush,
       TransformStreamDefaultController& aController, ErrorResult& aRv) {
     MOZ_ASSERT_IF(aFlush == ZLibFlush::Yes, !aInput.Length());
 
@@ -108,7 +108,7 @@ class DecompressionStreamAlgorithms : public TransformerAlgorithmsWrapper {
     do {
       static uint16_t kBufferSize = 16384;
       UniquePtr<uint8_t> buffer(
-          static_cast<uint8_t*>(JS_malloc(aCx, kBufferSize)));
+          static_cast<uint8_t*>(JS_malloc(aCx, kBufferSize).UNSAFE_unverified()));
       if (!buffer) {
         aRv.ThrowTypeError("Out of memory");
         return;
@@ -256,7 +256,7 @@ DecompressionStream::DecompressionStream(nsISupports* aGlobal,
 
 DecompressionStream::~DecompressionStream() = default;
 
-JSObject* DecompressionStream::WrapObject(JSContext* aCx,
+JSObject* DecompressionStream::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return DecompressionStream_Binding::Wrap(aCx, this, aGivenProto);
 }

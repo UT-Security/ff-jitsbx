@@ -1601,7 +1601,7 @@ void HTMLSelectElement::SetPreviewValue(const nsAString& aValue) {
   }
 }
 
-JSObject* HTMLSelectElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSelectElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLSelectElement_Binding::Wrap(aCx, this, aGivenProto);
 }

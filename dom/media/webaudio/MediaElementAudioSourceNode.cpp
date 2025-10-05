@@ -68,7 +68,7 @@ MediaElementAudioSourceNode::Create(
 }
 
 JSObject* MediaElementAudioSourceNode::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return MediaElementAudioSourceNode_Binding::Wrap(aCx, this, aGivenProto);
 }
 

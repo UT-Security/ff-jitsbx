@@ -49,19 +49,19 @@ already_AddRefed<CustomEvent> CustomEvent::Constructor(
   RefPtr<CustomEvent> e = new CustomEvent(t, nullptr, nullptr);
   bool trusted = e->Init(t);
   MC::Rooted<JS::Value> detail(aGlobal.Context(), aParam.mDetail);
-  e->InitCustomEvent(MC_UNSAFE(aGlobal.Context()), aType, aParam.mBubbles,
+  e->InitCustomEvent(aGlobal.Context(), aType, aParam.mBubbles,
                      aParam.mCancelable, detail);
   e->SetTrusted(trusted);
   e->SetComposed(aParam.mComposed);
   return e.forget();
 }
 
-JSObject* CustomEvent::WrapObjectInternal(JSContext* aCx,
+JSObject* CustomEvent::WrapObjectInternal(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::CustomEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void CustomEvent::InitCustomEvent(JSContext* aCx, const nsAString& aType,
+void CustomEvent::InitCustomEvent(MCContext* aCx, const nsAString& aType,
                                   bool aCanBubble, bool aCancelable,
                                   JS::Handle<JS::Value> aDetail) {
   NS_ENSURE_TRUE_VOID(!mEvent->mFlags.mIsBeingDispatched);
@@ -70,7 +70,7 @@ void CustomEvent::InitCustomEvent(JSContext* aCx, const nsAString& aType,
   mDetail = aDetail;
 }
 
-void CustomEvent::GetDetail(JSContext* aCx,
+void CustomEvent::GetDetail(MCContext* aCx,
                             JS::MutableHandle<JS::Value> aRetval) {
   aRetval.set(mDetail);
 }

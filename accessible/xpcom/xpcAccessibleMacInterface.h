@@ -45,7 +45,7 @@ class xpcAccessibleMacInterface : public xpcAccessibleMacNSObjectWrapper,
 
   // Convert an NSObject (which can be anything, string, number, array, etc.)
   // into a properly typed js value populated in the aResult handle.
-  static nsresult NSObjectToJsValue(id aObj, JSContext* aCx,
+  static nsresult NSObjectToJsValue(id aObj, MCContext* aCx,
                                     JS::MutableHandleValue aResult);
 
  protected:
@@ -58,19 +58,19 @@ class xpcAccessibleMacInterface : public xpcAccessibleMacNSObjectWrapper,
 
   // Convert a js value to an NSObject. This is called recursively for arrays.
   // If the conversion fails, aResult is set to an error and nil is returned.
-  id JsValueToNSObject(JS::HandleValue aValue, JSContext* aCx,
+  id JsValueToNSObject(JS::HandleValue aValue, MCContext* aCx,
                        nsresult* aResult);
 
   // Convert a js value to an NSValue NSObject. This is called
   // by JsValueToNSObject when encountering a JS object with
   // a "value" and "valueType" property.
-  id JsValueToNSValue(JS::HandleObject aObject, JSContext* aCx,
+  id JsValueToNSValue(JS::HandleObject aObject, MCContext* aCx,
                       nsresult* aResult);
 
   // Convert a js value to a specified NSObject. This is called
   // by JsValueToNSObject when encountering a JS object with
   // a "object" and "objcetType" property.
-  id JsValueToSpecifiedNSObject(JS::HandleObject aObject, JSContext* aCx,
+  id JsValueToSpecifiedNSObject(JS::HandleObject aObject, MCContext* aCx,
                                 nsresult* aResult);
 
  private:

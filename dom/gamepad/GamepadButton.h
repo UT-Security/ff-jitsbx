@@ -23,7 +23,7 @@ class GamepadButton : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void SetPressed(bool aPressed) { mPressed = aPressed; }

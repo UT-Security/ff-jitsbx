@@ -6,9 +6,9 @@
 
 #include "TelemetryIOInterposeObserver.h"
 #include "core/TelemetryCommon.h"
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineUCProperty
-#include "js/PropertyDescriptor.h"  // JSPROP_ENUMERATE, JSPROP_READONLY
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineUCProperty
+#include "monkeycage/PropertyDescriptor.h"  // JSPROP_ENUMERATE, JSPROP_READONLY
 #include "monkeycage/ValueArray.h"
 #include "nsIFile.h"
 
@@ -105,7 +105,7 @@ void TelemetryIOInterposeObserver::Observe(Observation& aOb) {
 }
 
 bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
-                                                    JSContext* cx,
+                                                    MCContext* cx,
                                                     JS::Handle<JSObject*> obj) {
   MC::RootedValueArray<NUM_STAGES> stages(cx);
 
@@ -151,7 +151,7 @@ bool TelemetryIOInterposeObserver::ReflectFileStats(FileIOEntryType* entry,
 }
 
 bool TelemetryIOInterposeObserver::ReflectIntoJS(
-    JSContext* cx, JS::Handle<JSObject*> rootObj) {
+    MCContext* cx, JS::Handle<JSObject*> rootObj) {
   return mFileStats.ReflectIntoJS(ReflectFileStats, cx, rootObj);
 }
 

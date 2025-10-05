@@ -24,7 +24,7 @@ class XULCommandEvent : public UIEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(XULCommandEvent, UIEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return XULCommandEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

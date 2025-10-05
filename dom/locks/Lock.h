@@ -42,7 +42,7 @@ class Lock final : public PromiseNativeHandler, public nsWrapperCache {
  public:
   nsIGlobalObject* GetParentObject() const { return mOwner; };
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetName(nsString& aRetVal) const;
@@ -52,9 +52,9 @@ class Lock final : public PromiseNativeHandler, public nsWrapperCache {
   Promise& GetWaitingPromise();
 
   // PromiseNativeHandler
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
  private:

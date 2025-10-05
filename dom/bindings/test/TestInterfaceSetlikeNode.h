@@ -27,10 +27,10 @@ class TestInterfaceSetlikeNode final : public nsISupports,
  public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(TestInterfaceSetlikeNode)
-  explicit TestInterfaceSetlikeNode(JSContext* aCx,
+  explicit TestInterfaceSetlikeNode(MCContext* aCx,
                                     nsPIDOMWindowInner* aParent);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceSetlikeNode> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);

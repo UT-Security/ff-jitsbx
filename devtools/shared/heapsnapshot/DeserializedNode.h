@@ -10,6 +10,8 @@
 
 #include "js/UbiNode.h"
 #include "js/UniquePtr.h"
+//TODO(JS_SANDBOX)
+#include "monkeycage/Context.h"
 #include "mozilla/HashFunctions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Vector.h"

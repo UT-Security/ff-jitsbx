@@ -40,12 +40,12 @@ StatementParams::StatementParams(nsPIDOMWindowInner* aWindow,
   (void)mStatement->GetParameterCount(&mParamCount);
 }
 
-JSObject* StatementParams::WrapObject(JSContext* aCx,
+JSObject* StatementParams::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return dom::MozStorageStatementParams_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void StatementParams::NamedGetter(JSContext* aCx, const nsAString& aName,
+void StatementParams::NamedGetter(MCContext* aCx, const nsAString& aName,
                                   bool& aFound,
                                   JS::MutableHandle<JS::Value> aResult,
                                   mozilla::ErrorResult& aRv) {
@@ -58,7 +58,7 @@ void StatementParams::NamedGetter(JSContext* aCx, const nsAString& aName,
   aFound = false;
 }
 
-void StatementParams::NamedSetter(JSContext* aCx, const nsAString& aName,
+void StatementParams::NamedSetter(MCContext* aCx, const nsAString& aName,
                                   JS::Handle<JS::Value> aValue,
                                   mozilla::ErrorResult& aRv) {
   if (!mStatement) {
@@ -97,7 +97,7 @@ void StatementParams::GetSupportedNames(nsTArray<nsString>& aNames) {
   }
 }
 
-void StatementParams::IndexedGetter(JSContext* aCx, uint32_t aIndex,
+void StatementParams::IndexedGetter(MCContext* aCx, uint32_t aIndex,
                                     bool& aFound,
                                     JS::MutableHandle<JS::Value> aResult,
                                     mozilla::ErrorResult& aRv) {
@@ -110,7 +110,7 @@ void StatementParams::IndexedGetter(JSContext* aCx, uint32_t aIndex,
   aFound = false;
 }
 
-void StatementParams::IndexedSetter(JSContext* aCx, uint32_t aIndex,
+void StatementParams::IndexedSetter(MCContext* aCx, uint32_t aIndex,
                                     JS::Handle<JS::Value> aValue,
                                     mozilla::ErrorResult& aRv) {
   if (!mStatement) {

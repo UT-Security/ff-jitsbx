@@ -26,11 +26,11 @@ class WebTransportIncomingStreamsAlgorithms
       WebTransportIncomingStreamsAlgorithms, UnderlyingSourceAlgorithmsWrapper)
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
   // We call EnqueueNative, which is MOZ_CAN_RUN_SCRIPT but won't in this case
-  MOZ_CAN_RUN_SCRIPT_BOUNDARY void BuildStream(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT_BOUNDARY void BuildStream(MCContext* aCx,
                                                ErrorResult& aRv);
 
   void NotifyIncomingStream();

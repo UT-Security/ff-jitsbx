@@ -30,7 +30,7 @@ class HTMLDataElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLDataElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

@@ -55,7 +55,7 @@ class File final : public Blob {
 
   // WebIDL methods
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // File constructor

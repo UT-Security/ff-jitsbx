@@ -21,7 +21,7 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedTransformList,
                                                mElement)
 
 JSObject* DOMSVGAnimatedTransformList::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedTransformList_Binding::Wrap(aCx, this, aGivenProto);
 }
 

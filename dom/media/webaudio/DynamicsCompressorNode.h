@@ -30,7 +30,7 @@ class DynamicsCompressorNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   AudioParam* Threshold() const { return mThreshold; }

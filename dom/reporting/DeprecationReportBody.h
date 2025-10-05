@@ -21,7 +21,7 @@ class DeprecationReportBody final : public ReportBody {
                         const Nullable<uint32_t>& aLineNumber,
                         const Nullable<uint32_t>& aColumnNumber);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetId(nsAString& aId) const;

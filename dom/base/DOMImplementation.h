@@ -38,7 +38,7 @@ class DOMImplementation final : public nsISupports, public nsWrapperCache {
 
   Document* GetParentObject() const { return mOwner; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasFeature() { return true; }

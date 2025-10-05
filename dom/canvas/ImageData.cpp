@@ -7,10 +7,10 @@
 #include "mozilla/dom/ImageData.h"
 
 #include "ErrorList.h"
-#include "js/StructuredClone.h"
-#include "js/Value.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/Value.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
@@ -59,7 +59,7 @@ already_AddRefed<ImageData> ImageData::Constructor(const GlobalObject& aGlobal,
     return nullptr;
   }
   js::AssertSameCompartment(aGlobal.Context(), aGlobal.Get());
-  JSObject* data = Uint8ClampedArray::Create(MC_UNSAFE(aGlobal.Context()), length.value());
+  JSObject* data = Uint8ClampedArray::Create(aGlobal.Context(), length.value());
   if (!data) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return nullptr;
@@ -103,15 +103,15 @@ void ImageData::DropData() {
   }
 }
 
-bool ImageData::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+bool ImageData::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                            JS::MutableHandle<JSObject*> aReflector) {
   return ImageData_Binding::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
 // static
 already_AddRefed<ImageData> ImageData::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   // Read the information out of the stream.
   uint32_t width, height;
   MC::Rooted<JS::Value> dataArray(aCx);
@@ -126,8 +126,8 @@ already_AddRefed<ImageData> ImageData::ReadStructuredClone(
   return imageData.forget();
 }
 
-bool ImageData::WriteStructuredClone(JSContext* aCx,
-                                     JSStructuredCloneWriter* aWriter) const {
+bool ImageData::WriteStructuredClone(MCContext* aCx,
+                                     MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   MC::Rooted<JS::Value> arrayValue(aCx, JS::ObjectValue(*GetDataObject()));
   if (!JS_WrapValue(aCx, &arrayValue)) {
     return false;

@@ -71,7 +71,7 @@ struct IndexDataValue final {
   bool operator<(const IndexDataValue& aOther) const;
 };
 
-JSObject* GetSandbox(JSContext* aCx);
+JSObject* GetSandbox(MCContext* aCx);
 
 // The success value of the Result is a a pair of a pointer to the compressed
 // index data values buffer and its size. The function does not return a

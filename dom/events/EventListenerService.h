@@ -58,7 +58,7 @@ class EventListenerInfo final : public nsIEventListenerInfo {
  protected:
   virtual ~EventListenerInfo();
 
-  bool GetJSVal(JSContext* aCx, Maybe<JSAutoRealm>& aAr,
+  bool GetJSVal(MCContext* aCx, MC::Tainted<Maybe<JSAutoRealm>*> aAr,
                 JS::MutableHandle<JS::Value> aJSVal);
 
   RefPtr<EventListenerManager> mListenerManager;

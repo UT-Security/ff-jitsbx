@@ -43,7 +43,7 @@ class ServiceWorker final : public DOMEventTargetHelper {
   static already_AddRefed<ServiceWorker> Create(
       nsIGlobalObject* aOwner, const ServiceWorkerDescriptor& aDescriptor);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   ServiceWorkerState State() const;
@@ -54,10 +54,10 @@ class ServiceWorker final : public DOMEventTargetHelper {
 
   void GetScriptURL(nsString& aURL) const;
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const StructuredSerializeOptions& aOptions,
                    ErrorResult& aRv);
 

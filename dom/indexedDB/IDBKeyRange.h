@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_idbkeyrange_h__
 #define mozilla_dom_idbkeyrange_h__
 
-#include "js/RootingAPI.h"
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IndexedDatabaseManager.h"
 #include "mozilla/dom/indexedDB/Key.h"
@@ -51,7 +51,7 @@ class IDBKeyRange : public nsISupports {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(IDBKeyRange)
 
   // aCx is allowed to be null, but only if aVal.isUndefined().
-  static void FromJSVal(JSContext* aCx, JS::Handle<JS::Value> aVal,
+  static void FromJSVal(MCContext* aCx, JS::Handle<JS::Value> aVal,
                         RefPtr<IDBKeyRange>* aKeyRange, ErrorResult& aRv);
 
   [[nodiscard]] static RefPtr<IDBKeyRange> FromSerialized(
@@ -88,7 +88,7 @@ class IDBKeyRange : public nsISupports {
 
   indexedDB::Key& Upper() { return mIsOnly ? mLower : mUpper; }
 
-  bool Includes(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  bool Includes(MCContext* aCx, JS::Handle<JS::Value> aValue,
                 ErrorResult& aRv) const;
 
   bool IsOnly() const { return mIsOnly; }
@@ -96,15 +96,15 @@ class IDBKeyRange : public nsISupports {
   void DropJSObjects();
 
   // WebIDL
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
   nsISupports* GetParentObject() const { return mGlobal; }
 
-  void GetLower(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetLower(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 ErrorResult& aRv);
 
-  void GetUpper(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetUpper(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 ErrorResult& aRv);
 
   bool LowerOpen() const { return mLowerOpen; }
@@ -133,7 +133,7 @@ class IDBLocaleAwareKeyRange final : public IDBKeyRange {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(IDBLocaleAwareKeyRange, IDBKeyRange)
 
   // WebIDL
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 };
 

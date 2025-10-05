@@ -28,7 +28,7 @@ nsIGlobalObject* WebTransportBidirectionalStream::GetParentObject() const {
 }
 
 JSObject* WebTransportBidirectionalStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WebTransportBidirectionalStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 

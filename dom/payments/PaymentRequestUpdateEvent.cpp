@@ -49,7 +49,7 @@ PaymentRequestUpdateEvent::PaymentRequestUpdateEvent(EventTarget* aOwner)
   MOZ_ASSERT(aOwner);
 }
 
-void PaymentRequestUpdateEvent::ResolvedCallback(JSContext* aCx,
+void PaymentRequestUpdateEvent::ResolvedCallback(MCContext* aCx,
                                                  JS::Handle<JS::Value> aValue,
                                                  ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -93,7 +93,7 @@ void PaymentRequestUpdateEvent::ResolvedCallback(JSContext* aCx,
   mRequest->SetUpdating(false);
 }
 
-void PaymentRequestUpdateEvent::RejectedCallback(JSContext* aCx,
+void PaymentRequestUpdateEvent::RejectedCallback(MCContext* aCx,
                                                  JS::Handle<JS::Value> aValue,
                                                  ErrorResult& aRv) {
   MOZ_ASSERT(mRequest);
@@ -154,7 +154,7 @@ void PaymentRequestUpdateEvent::SetRequest(PaymentRequest* aRequest) {
 PaymentRequestUpdateEvent::~PaymentRequestUpdateEvent() = default;
 
 JSObject* PaymentRequestUpdateEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PaymentRequestUpdateEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

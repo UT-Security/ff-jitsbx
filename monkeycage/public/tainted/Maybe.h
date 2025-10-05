@@ -34,6 +34,8 @@ public:
    data.emplace(std::forward<Args>(aArgs)...);
   }
 
+  constexpr void reset() { data.reset(); }
+
   constexpr Tainted<T*, MC_Sbx> ptr() {
     Tainted<T*, MC_Sbx> ret{nullptr};
     ret.assign_raw_pointer(data.ptr());

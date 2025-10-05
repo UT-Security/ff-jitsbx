@@ -31,6 +31,16 @@ inline bool CaptureCurrentStack(
   return CaptureCurrentStack(cx->cx_, stackp, captureSbx.UNSAFE_unverified());
 }
 
+inline bool IsAsyncStackCaptureEnabledForRealm(MCContext* cx) {
+    return IsAsyncStackCaptureEnabledForRealm(cx->cx_);
+}
+
+inline bool CopyAsyncStack(MCContext* cx, HandleObject asyncStack,
+                           HandleString asyncCause, MutableHandleObject stackp,
+                           const mozilla::Maybe<size_t>& maxFrameCount) {
+  return CopyAsyncStack(cx->cx_, asyncStack, asyncCause, stackp, maxFrameCount);
+}
+
 inline bool BuildStackString(
     MCContext* cx, JSPrincipals* principals, HandleObject stack,
     MutableHandleString stringp, size_t indent = 0,

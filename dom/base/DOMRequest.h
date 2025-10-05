@@ -40,7 +40,7 @@ class DOMRequest : public DOMEventTargetHelper {
   // WrapperCache
   nsPIDOMWindowInner* GetParentObject() const { return GetOwner(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
@@ -48,7 +48,7 @@ class DOMRequest : public DOMEventTargetHelper {
     return mDone ? DOMRequestReadyState::Done : DOMRequestReadyState::Pending;
   }
 
-  void GetResult(JSContext*, JS::MutableHandle<JS::Value> aRetval) const {
+  void GetResult(MCContext*, JS::MutableHandle<JS::Value> aRetval) const {
     NS_ASSERTION(mDone || mResult.isUndefined(),
                  "Result should be undefined when pending");
     aRetval.set(mResult);
@@ -62,7 +62,7 @@ class DOMRequest : public DOMEventTargetHelper {
   IMPL_EVENT_HANDLER(success)
   IMPL_EVENT_HANDLER(error)
 
-  void Then(JSContext* aCx, AnyCallback* aResolveCallback,
+  void Then(MCContext* aCx, AnyCallback* aResolveCallback,
             AnyCallback* aRejectCallback, JS::MutableHandle<JS::Value> aRetval,
             mozilla::ErrorResult& aRv);
 

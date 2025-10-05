@@ -20,7 +20,7 @@ HTMLMenuElement::~HTMLMenuElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLMenuElement)
 
-JSObject* HTMLMenuElement::WrapNode(JSContext* aCx,
+JSObject* HTMLMenuElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLMenuElement_Binding::Wrap(aCx, this, aGivenProto);
 }

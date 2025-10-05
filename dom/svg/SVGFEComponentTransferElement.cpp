@@ -20,7 +20,7 @@ using namespace mozilla::gfx;
 namespace mozilla::dom {
 
 JSObject* SVGFEComponentTransferElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGFEComponentTransferElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

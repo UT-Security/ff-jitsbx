@@ -351,7 +351,7 @@ void IndexedDatabaseManager::Destroy() {
 }
 
 // static
-bool IndexedDatabaseManager::ResolveSandboxBinding(JSContext* aCx) {
+bool IndexedDatabaseManager::ResolveSandboxBinding(MCContext* aCx) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(
       JS::GetClass(JS::CurrentGlobalOrNull(aCx))->flags & JSCLASS_DOM_GLOBAL,
@@ -382,7 +382,7 @@ bool IndexedDatabaseManager::ResolveSandboxBinding(JSContext* aCx) {
 }
 
 // static
-bool IndexedDatabaseManager::DefineIndexedDB(JSContext* aCx,
+bool IndexedDatabaseManager::DefineIndexedDB(MCContext* aCx,
                                              JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL,

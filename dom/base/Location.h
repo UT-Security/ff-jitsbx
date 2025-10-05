@@ -101,7 +101,7 @@ class Location final : public nsISupports,
 
   nsPIDOMWindowInner* GetParentObject() const { return mInnerWindow; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // Non WebIDL methods:

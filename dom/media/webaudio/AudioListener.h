@@ -56,7 +56,7 @@ class AudioListener final : public nsWrapperCache {
 
   AudioContext* GetParentObject() const { return mContext; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void SetPosition(double aX, double aY, double aZ);

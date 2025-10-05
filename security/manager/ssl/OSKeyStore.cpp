@@ -205,7 +205,7 @@ OSKeyStore::GetIsNSSKeyStore(bool* aNSSKeyStore) {
 // Async interfaces that return promises because the key store implementation
 // might block, e.g. asking for a password.
 
-nsresult GetPromise(JSContext* aCx, /* out */ RefPtr<Promise>& aPromise) {
+nsresult GetPromise(MCContext* aCx, /* out */ RefPtr<Promise>& aPromise) {
   nsIGlobalObject* globalObject = xpc::CurrentNativeGlobal(aCx);
   if (NS_WARN_IF(!globalObject)) {
     return NS_ERROR_UNEXPECTED;
@@ -242,7 +242,7 @@ OSKeyStore::AsyncUnlock(MCContext* aCx, Promise** promiseOut) {
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -281,7 +281,7 @@ OSKeyStore::AsyncLock(MCContext* aCx, Promise** promiseOut) {
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -329,7 +329,7 @@ OSKeyStore::AsyncGenerateSecret(const nsACString& aLabel, MCContext* aCx,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -374,7 +374,7 @@ OSKeyStore::AsyncSecretAvailable(const nsACString& aLabel, MCContext* aCx,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -420,7 +420,7 @@ OSKeyStore::AsyncRecoverSecret(const nsACString& aLabel,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -464,7 +464,7 @@ OSKeyStore::AsyncDeleteSecret(const nsACString& aLabel, MCContext* aCx,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -514,7 +514,7 @@ OSKeyStore::AsyncEncryptBytes(const nsACString& aLabel,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -573,7 +573,7 @@ OSKeyStore::AsyncDecryptBytes(const nsACString& aLabel,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }

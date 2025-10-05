@@ -85,7 +85,7 @@ UniFFIPointer::UniFFIPointer(void* aPtr, const UniFFIPointerType* aType) {
   mType = aType;
 }
 
-JSObject* UniFFIPointer::WrapObject(JSContext* aCx,
+JSObject* UniFFIPointer::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::UniFFIPointer_Binding::Wrap(aCx, this, aGivenProto);
 }

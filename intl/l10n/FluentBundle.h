@@ -44,7 +44,7 @@ class FluentPattern : public nsWrapperCache {
   FluentPattern(nsISupports* aParent, const nsACString& aId);
   FluentPattern(nsISupports* aParent, const nsACString& aId,
                 const nsACString& aAttrName);
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() const { return mParent; }
 
@@ -68,7 +68,7 @@ class FluentBundle final : public nsWrapperCache {
       const dom::GlobalObject& aGlobal,
       const dom::UTF8StringOrUTF8StringSequence& aLocales,
       const dom::FluentBundleOptions& aOptions, ErrorResult& aRv);
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
   nsISupports* GetParentObject() const { return mParent; }
 
   void GetLocales(nsTArray<nsCString>& aLocales);
@@ -78,7 +78,7 @@ class FluentBundle final : public nsWrapperCache {
   bool HasMessage(const nsACString& aId);
   void GetMessage(const nsACString& aId,
                   dom::Nullable<dom::FluentMessage>& aRetVal);
-  void FormatPattern(JSContext* aCx, const FluentPattern& aPattern,
+  void FormatPattern(MCContext* aCx, const FluentPattern& aPattern,
                      const dom::Nullable<L10nArgs>& aArgs,
                      const dom::Optional<JS::Handle<JSObject*>>& aErrors,
                      nsACString& aRetVal, ErrorResult& aRv);

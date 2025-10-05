@@ -113,7 +113,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsBaseContentList)
 NS_IMPL_ADDREF_INHERITED(nsSimpleContentList, nsBaseContentList)
 NS_IMPL_RELEASE_INHERITED(nsSimpleContentList, nsBaseContentList)
 
-JSObject* nsSimpleContentList::WrapObject(JSContext* cx,
+JSObject* nsSimpleContentList::WrapObject(MCContext* cx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return NodeList_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -127,7 +127,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsBaseContentList)
 NS_IMPL_ADDREF_INHERITED(nsEmptyContentList, nsBaseContentList)
 NS_IMPL_RELEASE_INHERITED(nsEmptyContentList, nsBaseContentList)
 
-JSObject* nsEmptyContentList::WrapObject(JSContext* cx,
+JSObject* nsEmptyContentList::WrapObject(MCContext* cx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return HTMLCollection_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -460,7 +460,7 @@ nsContentList::~nsContentList() {
   }
 }
 
-JSObject* nsContentList::WrapObject(JSContext* cx,
+JSObject* nsContentList::WrapObject(MCContext* cx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLCollection_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -1062,7 +1062,7 @@ void nsContentList::AssertInSync() {
 // nsCachableElementsByNameNodeList
 
 JSObject* nsCachableElementsByNameNodeList::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return NodeList_Binding::Wrap(cx, this, aGivenProto);
 }
 
@@ -1084,14 +1084,14 @@ void nsCachableElementsByNameNodeList::AttributeChanged(
 // nsCacheableFuncStringHTMLCollection
 
 JSObject* nsCacheableFuncStringHTMLCollection::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return HTMLCollection_Binding::Wrap(cx, this, aGivenProto);
 }
 
 //-----------------------------------------------------
 // nsLabelsNodeList
 
-JSObject* nsLabelsNodeList::WrapObject(JSContext* cx,
+JSObject* nsLabelsNodeList::WrapObject(MCContext* cx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return NodeList_Binding::Wrap(cx, this, aGivenProto);
 }

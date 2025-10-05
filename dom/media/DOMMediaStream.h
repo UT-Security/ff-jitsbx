@@ -102,7 +102,7 @@ class DOMMediaStream : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DOMMediaStream, DOMEventTargetHelper)
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_DOMMEDIASTREAM_IID)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

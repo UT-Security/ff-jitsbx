@@ -159,7 +159,7 @@ GeolocationPosition::~GeolocationPosition() = default;
 
 nsISupports* GeolocationPosition::GetParentObject() const { return mParent; }
 
-JSObject* GeolocationPosition::WrapObject(JSContext* aCx,
+JSObject* GeolocationPosition::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return GeolocationPosition_Binding::Wrap(aCx, this, aGivenProto);
 }

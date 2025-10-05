@@ -47,7 +47,7 @@ class BackstagePass final : public nsIGlobalObject,
   JSObject* GetGlobalJSObject() override;
   JSObject* GetGlobalJSObjectPreserveColor() const override;
 
-  ModuleLoaderBase* GetModuleLoader(JSContext* aCx) override {
+  ModuleLoaderBase* GetModuleLoader(MCContext* aCx) override {
     return mModuleLoader;
   }
 

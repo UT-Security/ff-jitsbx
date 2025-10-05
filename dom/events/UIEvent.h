@@ -39,7 +39,7 @@ class UIEvent : public Event {
                                                const UIEventInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return UIEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

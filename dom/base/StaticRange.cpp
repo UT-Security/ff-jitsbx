@@ -126,7 +126,7 @@ already_AddRefed<StaticRange> StaticRange::Constructor(
                 init.mEndOffset, aRv);
 }
 
-JSObject* StaticRange::WrapObject(JSContext* aCx,
+JSObject* StaticRange::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return StaticRange_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -25,13 +25,13 @@ FontFaceSetIterator::~FontFaceSetIterator() {
   MOZ_COUNT_DTOR(FontFaceSetIterator);
 }
 
-bool FontFaceSetIterator::WrapObject(JSContext* aCx,
+bool FontFaceSetIterator::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto,
                                      JS::MutableHandle<JSObject*> aReflector) {
   return FontFaceSetIterator_Binding::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
-void FontFaceSetIterator::Next(JSContext* aCx,
+void FontFaceSetIterator::Next(MCContext* aCx,
                                FontFaceSetIteratorResult& aResult,
                                ErrorResult& aRv) {
   if (!mFontFaceSet) {

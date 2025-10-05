@@ -48,26 +48,6 @@
 using namespace mozilla;
 using namespace mozilla::dom;
 
-bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsACString& aFilename,
-                                   uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, aColumn)) {
-    return false;
-  }
-
-  return aFilename.Assign(filename.get(), fallible);
-}
-
-bool nsJSUtils::GetCallingLocation(JSContext* aContext, nsAString& aFilename,
-                                   uint32_t* aLineno, uint32_t* aColumn) {
-  JS::AutoFilename filename;
-  if (!JS::DescribeScriptedCaller(aContext, &filename, aLineno, aColumn)) {
-    return false;
-  }
-
-  return aFilename.Assign(NS_ConvertUTF8toUTF16(filename.get()), fallible);
-}
-
 bool nsJSUtils::GetCallingLocation(MCContext* aContext, nsACString& aFilename,
                                    uint32_t* aLineno, uint32_t* aColumn) {
   MC::SandboxStack<JS::AutoFilename> filename;
@@ -98,7 +78,7 @@ bool nsJSUtils::GetCallingLocation(MCContext* aContext, nsAString& aFilename,
   return aFilename.Assign(NS_ConvertUTF8toUTF16(filename->get()), fallible);
 }
 
-uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext) {
+uint64_t nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(MCContext* aContext) {
   if (!aContext) return 0;
 
   nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(aContext);
@@ -173,7 +153,7 @@ bool nsJSUtils::IsScriptable(JS::Handle<JSObject*> aEvaluationGlobal) {
   return xpc::Scriptability::AllowedIfExists(aEvaluationGlobal);
 }
 
-static bool AddScopeChainItem(JSContext* aCx, nsINode* aNode,
+static bool AddScopeChainItem(MCContext* aCx, nsINode* aNode,
                               JS::MutableHandleVector<JSObject*> aScopeChain) {
   MC::Rooted<JS::Value> val(aCx);
   if (!GetOrCreateDOMReflector(aCx, aNode, &val)) {
@@ -189,7 +169,7 @@ static bool AddScopeChainItem(JSContext* aCx, nsINode* aNode,
 
 /* static */
 bool nsJSUtils::GetScopeChainForElement(
-    JSContext* aCx, Element* aElement,
+    MCContext* aCx, Element* aElement,
     JS::MutableHandleVector<JSObject*> aScopeChain) {
   for (nsINode* cur = aElement; cur; cur = cur->GetScopeChainParent()) {
     if (!AddScopeChainItem(aCx, cur, aScopeChain)) {
@@ -217,7 +197,7 @@ bool nsJSUtils::DumpEnabled() {
 #endif
 }
 
-JSObject* nsJSUtils::MoveBufferAsUint8Array(JSContext* aCx, size_t aSize,
+JSObject* nsJSUtils::MoveBufferAsUint8Array(MCContext* aCx, size_t aSize,
                                             UniquePtr<uint8_t>& aBuffer) {
   MC::Rooted<JSObject*> arrayBuffer(
       aCx, JS::NewArrayBufferWithContents(aCx, aSize, aBuffer.get()));

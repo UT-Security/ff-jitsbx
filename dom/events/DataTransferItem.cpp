@@ -59,7 +59,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DataTransferItem)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* DataTransferItem::WrapObject(JSContext* aCx,
+JSObject* DataTransferItem::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return DataTransferItem_Binding::Wrap(aCx, this, aGivenProto);
 }

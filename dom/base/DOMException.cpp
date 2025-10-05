@@ -18,8 +18,8 @@
 #include "mozilla/dom/DOMExceptionBinding.h"
 #include "mozilla/ErrorResult.h"
 
-#include "js/TypeDecls.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/StructuredClone.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -222,16 +222,16 @@ void Exception::GetName(nsAString& aName) {
   }
 }
 
-void Exception::GetFilename(JSContext* aCx, nsAString& aFilename) {
+void Exception::GetFilename(MCContext* aCx, nsAString& aFilename) {
   if (mLocation) {
-    mLocation->GetFilename(JS_SanitizeContext(aCx), aFilename);
+    mLocation->GetFilename(aCx, aFilename);
     return;
   }
 
   aFilename.Truncate();
 }
 
-void Exception::ToString(JSContext* aCx, nsACString& _retval) {
+void Exception::ToString(MCContext* aCx, nsACString& _retval) {
   static const char defaultMsg[] = "<no message>";
   static const char defaultLocation[] = "<unknown>";
   static const char format[] = "[Exception... \"%s\"  nsresult: \"0x%" PRIx32
@@ -241,7 +241,7 @@ void Exception::ToString(JSContext* aCx, nsACString& _retval) {
 
   if (mLocation) {
     // we need to free this if it does not fail
-    mLocation->ToString(JS_SanitizeContext(aCx), location);
+    mLocation->ToString(aCx, location);
   }
 
   if (location.IsEmpty()) {
@@ -265,7 +265,7 @@ void Exception::ToString(JSContext* aCx, nsACString& _retval) {
                        location.get(), data);
 }
 
-JSObject* Exception::WrapObject(JSContext* cx,
+JSObject* Exception::WrapObject(MCContext* cx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Exception_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -276,17 +276,17 @@ void Exception::GetMessageMoz(nsString& retval) {
 
 uint32_t Exception::Result() const { return (uint32_t)mResult; }
 
-uint32_t Exception::SourceId(JSContext* aCx) const {
+uint32_t Exception::SourceId(MCContext* aCx) const {
   if (mLocation) {
-    return mLocation->GetSourceId(JS_SanitizeContext(aCx));
+    return mLocation->GetSourceId(aCx);
   }
 
   return 0;
 }
 
-uint32_t Exception::LineNumber(JSContext* aCx) const {
+uint32_t Exception::LineNumber(MCContext* aCx) const {
   if (mLocation) {
-    return mLocation->GetLineNumber(JS_SanitizeContext(aCx));
+    return mLocation->GetLineNumber(aCx);
   }
 
   return 0;
@@ -301,13 +301,13 @@ already_AddRefed<nsIStackFrame> Exception::GetLocation() const {
 
 nsISupports* Exception::GetData() const { return mData; }
 
-void Exception::GetStack(JSContext* aCx, nsAString& aStack) const {
+void Exception::GetStack(MCContext* aCx, nsAString& aStack) const {
   if (mLocation) {
-    mLocation->GetFormattedStack(JS_SanitizeContext(aCx), aStack);
+    mLocation->GetFormattedStack(aCx, aStack);
   }
 }
 
-void Exception::Stringify(JSContext* aCx, nsString& retval) {
+void Exception::Stringify(MCContext* aCx, nsString& retval) {
   nsCString str;
   ToString(aCx, str);
   CopyUTF8toUTF16(str, retval);
@@ -321,7 +321,7 @@ DOMException::DOMException(nsresult aRv, nsCString&& aMessage,
                            nsCString&& aName, uint16_t aCode)
     : Exception(std::move(aMessage), aRv, std::move(aName)), mCode(aCode) {}
 
-void DOMException::ToString(JSContext* aCx, nsACString& aReturn) {
+void DOMException::ToString(MCContext* aCx, nsACString& aReturn) {
   aReturn.Truncate();
 
   static const char defaultMsg[] = "<no message>";
@@ -369,7 +369,7 @@ already_AddRefed<DOMException> DOMException::Constructor(
   return retval.forget();
 }
 
-JSObject* DOMException::WrapObject(JSContext* aCx,
+JSObject* DOMException::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return DOMException_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -395,18 +395,19 @@ already_AddRefed<DOMException> DOMException::Create(
   return inst.forget();
 }
 
-static bool ReadAsCString(JSContext* aCx, JSStructuredCloneReader* aReader,
+static bool ReadAsCString(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                           nsCString& aString) {
   MC::Rooted<JSString*> jsMessage(aCx);
   if (!JS_ReadString(aReader, &jsMessage)) {
     return false;
+    
   }
   return AssignJSString(aCx, aString, jsMessage);
 }
 
 already_AddRefed<DOMException> DOMException::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t reserved;
   nsresult rv;
   nsCString message;
@@ -424,7 +425,7 @@ already_AddRefed<DOMException> DOMException::ReadStructuredClone(
 }
 
 bool DOMException::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   MC::Rooted<JS::Value> messageValue(aCx);
   MC::Rooted<JS::Value> nameValue(aCx);
   if (!NonVoidByteStringToJsval(aCx, mMessage, &messageValue) ||

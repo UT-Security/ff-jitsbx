@@ -20,7 +20,7 @@ class FetchObserver final : public DOMEventTargetHelper, public AbortFollower {
 
   FetchObserver(nsIGlobalObject* aGlobal, AbortSignalImpl* aSignalImpl);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   FetchState State() const;

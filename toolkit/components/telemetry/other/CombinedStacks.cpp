@@ -7,9 +7,9 @@
 #include "CombinedStacks.h"
 
 #include "mcapi.h"
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
-#include "js/String.h"
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
+#include "monkeycage/String.h"
 
 namespace mozilla::Telemetry {
 
@@ -155,7 +155,7 @@ void CombinedStacks::Clear() {
   mModules.clear();
 }
 
-JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks) {
+JSObject* CreateJSStackObject(MCContext* cx, const CombinedStacks& stacks) {
   MC::Rooted<JSObject*> ret(cx, JS_NewPlainObject(cx));
   if (!ret) {
     return nullptr;

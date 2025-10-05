@@ -26,7 +26,7 @@ nsresult xpcJSWeakReference::Init(MCContext* cx, const JS::Value& object) {
   XPCCallContext ccx(cx);
 
   // See if the object is a wrapped native that supports weak references.
-  nsCOMPtr<nsISupports> supports = xpc::ReflectorToISupportsDynamic(obj, MC_UNSAFE(cx));
+  nsCOMPtr<nsISupports> supports = xpc::ReflectorToISupportsDynamic(obj, cx);
   nsCOMPtr<nsISupportsWeakReference> supportsWeakRef =
       do_QueryInterface(supports);
   if (supportsWeakRef) {
@@ -40,7 +40,7 @@ nsresult xpcJSWeakReference::Init(MCContext* cx, const JS::Value& object) {
 
   // See if object is a wrapped JSObject.
   RefPtr<nsXPCWrappedJS> wrapped;
-  nsresult rv = nsXPCWrappedJS::GetNewOrUsed(MC_UNSAFE(cx), obj, NS_GET_IID(nsISupports),
+  nsresult rv = nsXPCWrappedJS::GetNewOrUsed(cx, obj, NS_GET_IID(nsISupports),
                                              getter_AddRefs(wrapped));
   if (!wrapped) {
     NS_ERROR("can't get nsISupportsWeakReference wrapper for obj");
@@ -67,7 +67,7 @@ xpcJSWeakReference::Get(MCContext* aCx, MutableHandleValue aRetval) {
   if (!wrappedObj) {
     // We have a generic XPCOM object that supports weak references here.
     // Wrap it and pass it out.
-    return nsContentUtils::WrapNative(MC_UNSAFE(aCx), supports, &NS_GET_IID(nsISupports),
+    return nsContentUtils::WrapNative(aCx, supports, &NS_GET_IID(nsISupports),
                                       aRetval);
   }
 

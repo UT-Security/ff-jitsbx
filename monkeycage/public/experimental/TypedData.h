@@ -19,6 +19,25 @@
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Tainted.h"
 
+
+#define DECLARE_TYPED_ARRAY_CREATION_API(ExternalType, NativeType, Name)     \
+    inline JSObject* JS_New##Name##Array(MCContext* cx, size_t nelements) {  \
+      return JS_New##Name##Array(cx->cx_, nelements);                        \
+    }                                                                        \
+    inline JSObject* JS_New##Name##ArrayFromArray(                           \
+        MCContext* cx, JS::Handle<JSObject*> array) {                        \
+      return JS_New##Name##ArrayFromArray(cx->cx_, array);                   \
+    }                                                                        \
+    inline JSObject* JS_New##Name##ArrayWithBuffer(                          \
+        MCContext* cx, JS::Handle<JSObject*> arrayBuffer, size_t byteOffset, \
+        int64_t length) {                                                    \
+      return JS_New##Name##ArrayWithBuffer(cx->cx_, arrayBuffer, byteOffset, \
+                                           length);                          \
+    }
+
+JS_FOR_EACH_TYPED_ARRAY(DECLARE_TYPED_ARRAY_CREATION_API)
+#undef DECLARE_TYPED_ARRAY_CREATION_API
+
 #ifdef DEBUG
 inline void* JS_GetArrayBufferViewData(
     JSObject* obj, MC::Tainted<bool*> isSharedMemory,
@@ -34,6 +53,20 @@ inline void* JS_GetArrayBufferViewData(JSObject* obj,
                                    nogc);
 }
 #endif
+
+inline JSObject* JS_GetArrayBufferViewBuffer(
+    MCContext* cx, JS::Handle<JSObject*> obj, MC::Tainted<bool*> isSharedMemory) {
+    return JS_GetArrayBufferViewBuffer(cx->cx_, obj, isSharedMemory.INTERNAL_unverified_safe());
+}
+
+inline JSObject* JS_NewDataView(MCContext* cx,
+                                       JS::Handle<JSObject*> buffer,
+                                       size_t byteOffset, size_t byteLength) {
+    return JS_NewDataView(cx->cx_, buffer, byteOffset, byteLength);    
+}
+
+
+
 
 #ifdef DEBUG
 #  define JS_DEFINE_DATA_ACCESSOR(ExternalType, NativeType, Name)  \

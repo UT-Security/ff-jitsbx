@@ -28,7 +28,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(EventCallbackDebuggerNotification)
 NS_INTERFACE_MAP_END_INHERITING(CallbackDebuggerNotification)
 
 JSObject* EventCallbackDebuggerNotification::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return EventCallbackDebuggerNotification_Binding::Wrap(aCx, this,
                                                          aGivenProto);
 }

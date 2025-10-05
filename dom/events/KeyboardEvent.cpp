@@ -331,7 +331,7 @@ void KeyboardEvent::InitWithKeyboardEventInit(EventTarget* aOwner,
 }
 
 // static
-bool KeyboardEvent::IsInitKeyEventAvailable(JSContext* aCx, JSObject*) {
+bool KeyboardEvent::IsInitKeyEventAvailable(MCContext* aCx, JSObject*) {
   if (StaticPrefs::dom_keyboardevent_init_key_event_enabled()) {
     return true;
   }

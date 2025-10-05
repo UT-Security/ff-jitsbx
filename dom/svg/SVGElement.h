@@ -344,7 +344,7 @@ class SVGElement : public SVGElementBase  // nsIContent
   }
 
  protected:
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
   // We define BeforeSetAttr here and mark it final to ensure it is NOT used
   // by SVG elements.

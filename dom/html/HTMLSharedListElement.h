@@ -51,7 +51,7 @@ class HTMLSharedListElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLSharedListElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

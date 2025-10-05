@@ -29,7 +29,7 @@ class PerformancePaintTiming final : public PerformanceEntry {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PerformancePaintTiming,
                                            PerformanceEntry)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp StartTime() const override;

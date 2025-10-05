@@ -1509,7 +1509,7 @@ void MediaRecorder::RequestData(ErrorResult& aResult) {
   // 2. return undefined.
 }
 
-JSObject* MediaRecorder::WrapObject(JSContext* aCx,
+JSObject* MediaRecorder::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return MediaRecorder_Binding::Wrap(aCx, this, aGivenProto);
 }

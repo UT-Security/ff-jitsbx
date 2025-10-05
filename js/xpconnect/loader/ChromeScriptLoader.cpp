@@ -211,7 +211,7 @@ void AsyncScriptCompiler::Reject(MCContext* aCx, const char* aMsg) {
   AppendUTF8toUTF16(mURL, msg);
 
   MC::RootedValue exn(aCx);
-  if (xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), msg, &exn)) {
+  if (xpc::NonVoidStringToJsval(aCx, msg, &exn)) {
     JS_SetPendingException(aCx, exn);
   }
 
@@ -301,7 +301,7 @@ PrecompiledScript::PrecompiledScript(nsISupports* aParent,
 #endif
 };
 
-void PrecompiledScript::ExecuteInGlobal(JSContext* aCx, HandleObject aGlobal,
+void PrecompiledScript::ExecuteInGlobal(MCContext* aCx, HandleObject aGlobal,
                                         const ExecuteInGlobalOptions& aOptions,
                                         MutableHandleValue aRval,
                                         ErrorResult& aRv) {
@@ -345,7 +345,7 @@ void PrecompiledScript::GetUrl(nsAString& aUrl) { CopyUTF8toUTF16(mURL, aUrl); }
 
 bool PrecompiledScript::HasReturnValue() { return mHasReturnValue; }
 
-JSObject* PrecompiledScript::WrapObject(JSContext* aCx,
+JSObject* PrecompiledScript::WrapObject(MCContext* aCx,
                                         HandleObject aGivenProto) {
   return PrecompiledScript_Binding::Wrap(aCx, this, aGivenProto);
 }

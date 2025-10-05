@@ -17,7 +17,7 @@
 
 namespace mozilla::webgpu {
 
-bool AdapterInfo::WrapObject(JSContext* const cx,
+bool AdapterInfo::WrapObject(MCContext* const cx,
                              JS::Handle<JSObject*> givenProto,
                              JS::MutableHandle<JSObject*> reflector) {
   return dom::GPUAdapterInfo_Binding::Wrap(cx, this, givenProto, reflector);

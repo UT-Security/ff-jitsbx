@@ -19,11 +19,11 @@ class GleanPings final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(GleanPings)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() { return nullptr; }
 
-  static bool DefineGleanPings(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  static bool DefineGleanPings(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
   already_AddRefed<GleanPing> NamedGetter(const nsAString& aName, bool& aFound);
   bool NameIsEnumerable(const nsAString& aName);

@@ -27,7 +27,7 @@ namespace extensions {
 
 class ExtensionEventManager;
 
-bool IsInAutomation(JSContext* aCx, JSObject* aGlobal);
+bool IsInAutomation(MCContext* aCx, JSObject* aGlobal);
 
 class ExtensionTest final : public nsISupports,
                             public nsWrapperCache,
@@ -45,40 +45,40 @@ class ExtensionTest final : public nsISupports,
   nsString GetAPINamespace() const override { return u"test"_ns; }
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
-  static bool IsAllowed(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAllowed(MCContext* aCx, JSObject* aGlobal);
 
   nsIGlobalObject* GetParentObject() const;
 
-  void CallWebExtMethodAssertEq(JSContext* aCx, const nsAString& aApiMethod,
+  void CallWebExtMethodAssertEq(MCContext* aCx, const nsAString& aApiMethod,
                                 const dom::Sequence<JS::Value>& aArgs,
                                 ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT bool AssertMatchInternal(
-      JSContext* aCx, const JS::HandleValue aActualValue,
+      MCContext* aCx, const JS::HandleValue aActualValue,
       const JS::HandleValue aExpectedMatchValue, const nsAString& aMessagePre,
       const nsAString& aMessage,
       UniquePtr<dom::SerializedStackHolder> aSerializedCallerStack,
       ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void AssertThrows(JSContext* aCx, dom::Function& aFunction,
+  MOZ_CAN_RUN_SCRIPT void AssertThrows(MCContext* aCx, dom::Function& aFunction,
                                        const JS::HandleValue aExpectedError,
                                        const nsAString& aMessage,
                                        ErrorResult& aRv);
-  MOZ_CAN_RUN_SCRIPT void AssertThrows(JSContext* aCx, dom::Function& aFunction,
+  MOZ_CAN_RUN_SCRIPT void AssertThrows(MCContext* aCx, dom::Function& aFunction,
                                        const JS::HandleValue aExpectedError,
                                        ErrorResult& aRv);
 
   void AssertRejects(
-      JSContext* aCx, dom::Promise& aPromise,
+      MCContext* aCx, dom::Promise& aPromise,
       const JS::HandleValue aExpectedError, const nsAString& aMessage,
       const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
       JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);
   void AssertRejects(
-      JSContext* aCx, dom::Promise& aPromise,
+      MCContext* aCx, dom::Promise& aPromise,
       const JS::HandleValue aExpectedError,
       const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
       JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);

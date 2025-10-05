@@ -141,7 +141,7 @@ class DoubleBufferQueueImpl
       RefPtr<DomPromiseListener> listener = new DomPromiseListener(
           [global = nsCOMPtr<nsIGlobalObject>(aGlobal),
            manager = RefPtr<FileSystemManager>(aManager), newPage, aResult,
-           this](JSContext* aCx, JS::Handle<JS::Value> aValue) mutable {
+           this](MCContext* aCx, JS::Handle<JS::Value> aValue) mutable {
             MOZ_ASSERT(0u == mWithinPageIndex);
             MOZ_ASSERT(newPage->Length() <= PageSize);
 

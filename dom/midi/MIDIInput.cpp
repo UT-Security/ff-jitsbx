@@ -33,7 +33,7 @@ RefPtr<MIDIInput> MIDIInput::Create(nsPIDOMWindowInner* aWindow,
   return port;
 }
 
-JSObject* MIDIInput::WrapObject(JSContext* aCx,
+JSObject* MIDIInput::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return MIDIInput_Binding::Wrap(aCx, this, aGivenProto);
 }

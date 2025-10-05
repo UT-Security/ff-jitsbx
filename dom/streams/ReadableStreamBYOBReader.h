@@ -45,7 +45,7 @@ class ReadableStreamBYOBReader final : public ReadableStreamGenericReader,
   }
   ReadableStreamBYOBReader* AsBYOB() override { return this; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<ReadableStreamBYOBReader> Constructor(
@@ -72,15 +72,15 @@ already_AddRefed<ReadableStreamBYOBReader> AcquireReadableStreamBYOBReader(
     ReadableStream* aStream, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableStreamBYOBReaderRead(
-    JSContext* aCx, ReadableStreamBYOBReader* aReader,
+    MCContext* aCx, ReadableStreamBYOBReader* aReader,
     JS::Handle<JSObject*> aView, ReadIntoRequest* aReadIntoRequest,
     ErrorResult& aRv);
 
 void ReadableStreamBYOBReaderErrorReadIntoRequests(
-    JSContext* aCx, ReadableStreamBYOBReader* aReader,
+    MCContext* aCx, ReadableStreamBYOBReader* aReader,
     JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
-void ReadableStreamBYOBReaderRelease(JSContext* aCx,
+void ReadableStreamBYOBReaderRelease(MCContext* aCx,
                                      ReadableStreamBYOBReader* aReader,
                                      ErrorResult& aRv);
 

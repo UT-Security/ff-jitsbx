@@ -1761,7 +1761,7 @@ already_AddRefed<nsINodeList> nsGenericHTMLElement::Labels() {
 }
 
 // static
-bool nsGenericHTMLElement::LegacyTouchAPIEnabled(JSContext* aCx,
+bool nsGenericHTMLElement::LegacyTouchAPIEnabled(MCContext* aCx,
                                                  JSObject* aGlobal) {
   return TouchEvent::LegacyAPIEnabled(aCx, aGlobal);
 }

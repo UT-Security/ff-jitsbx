@@ -33,7 +33,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
       const GlobalObject& aGlobal, const nsAString& ignored, ErrorResult& aRv) {
     // Pretend like someone passed null, so we can pick up the default values
     MozXMLHttpRequestParameters params;
-    if (!params.Init(MC_UNSAFE(aGlobal.Context()), MC::NullHandleValue())) {
+    if (!params.Init(aGlobal.Context(), MC::NullHandleValue())) {
       aRv.Throw(NS_ERROR_UNEXPECTED);
       return nullptr;
     }
@@ -96,7 +96,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
   virtual void SetResponseType(XMLHttpRequestResponseType aType,
                                ErrorResult& aRv) = 0;
 
-  virtual void GetResponse(JSContext* aCx,
+  virtual void GetResponse(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aResponse,
                            ErrorResult& aRv) = 0;
 
@@ -112,7 +112,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
   virtual nsIChannel* GetChannel() const = 0;
 
   // We need a GetInterface callable from JS for chrome JS
-  virtual void GetInterface(JSContext* aCx, JS::Handle<JS::Value> aIID,
+  virtual void GetInterface(MCContext* aCx, JS::Handle<JS::Value> aIID,
                             JS::MutableHandle<JS::Value> aRetval,
                             ErrorResult& aRv) = 0;
 
@@ -125,7 +125,7 @@ class XMLHttpRequest : public XMLHttpRequestEventTarget {
 
   virtual bool MozSystem() const = 0;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::XMLHttpRequest_Binding::Wrap(aCx, this, aGivenProto);
   }

@@ -15,8 +15,8 @@
 #include "nsString.h"
 #include "nsJSPrincipals.h"
 #include "nsContentUtils.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 
 struct JSPrincipals;
 
@@ -28,7 +28,7 @@ class XPCShellEnvironment {
   static XPCShellEnvironment* CreateEnvironment();
   ~XPCShellEnvironment();
 
-  void ProcessFile(JSContext* cx, const char* filename, FILE* file,
+  void ProcessFile(MCContext* cx, const char* filename, FILE* file,
                    bool forceTTY);
   bool EvaluateString(const nsAString& aString, nsString* aResult = nullptr);
 
@@ -46,7 +46,7 @@ class XPCShellEnvironment {
   bool Init();
 
  private:
-  JS::PersistentRooted<JSObject*> mGlobalHolder;
+  MC::PersistentRooted<JSObject*> mGlobalHolder;
 
   bool mQuitting;
 };

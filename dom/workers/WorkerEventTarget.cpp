@@ -35,7 +35,7 @@ class WrappedControlRunnable final : public WorkerControlRunnable {
     // Silence bad assertions, this can be dispatched from any thread.
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mInner->Run();
     return true;
   }

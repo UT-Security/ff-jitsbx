@@ -45,7 +45,7 @@ SVGEnumMapping SVGSVGElement::sZoomAndPanMap[] = {
 SVGElement::EnumInfo SVGSVGElement::sEnumInfo[1] = {
     {nsGkAtoms::zoomAndPan, sZoomAndPanMap, SVG_ZOOMANDPAN_MAGNIFY}};
 
-JSObject* SVGSVGElement::WrapNode(JSContext* aCx,
+JSObject* SVGSVGElement::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return SVGSVGElement_Binding::Wrap(aCx, this, aGivenProto);
 }

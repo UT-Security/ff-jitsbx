@@ -99,7 +99,7 @@ class ArrayBufferBuilder {
   uint32_t Length();
   uint32_t Capacity();
 
-  JSObject* TakeArrayBuffer(JSContext* aCx);
+  JSObject* TakeArrayBuffer(MCContext* aCx);
 
   // Memory mapping to starting position of file(aFile) in the zip
   // package(aJarFile).
@@ -381,7 +381,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
     mResponseType = aType;
   }
 
-  virtual void GetResponse(JSContext* aCx,
+  virtual void GetResponse(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aResponse,
                            ErrorResult& aRv) override;
 
@@ -420,7 +420,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   virtual nsIChannel* GetChannel() const override { return mChannel; }
 
   // We need a GetInterface callable from JS for chrome JS
-  virtual void GetInterface(JSContext* aCx, JS::Handle<JS::Value> aIID,
+  virtual void GetInterface(MCContext* aCx, JS::Handle<JS::Value> aIID,
                             JS::MutableHandle<JS::Value> aRetval,
                             ErrorResult& aRv) override;
 
@@ -460,7 +460,7 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
                                    const char* fromRawSegment,
                                    uint32_t toOffset, uint32_t count,
                                    uint32_t* writeCount);
-  nsresult CreateResponseParsedJSON(JSContext* aCx);
+  nsresult CreateResponseParsedJSON(MCContext* aCx);
   // Change the state of the object with this. The broadcast argument
   // determines if the onreadystatechange listener should be called.
   nsresult ChangeState(uint16_t aState, bool aBroadcast = true);

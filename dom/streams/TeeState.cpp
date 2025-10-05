@@ -57,7 +57,7 @@ already_AddRefed<TeeState> TeeState::Create(ReadableStream* aStream,
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee
 // Pull Algorithm Steps:
-void TeeState::PullCallback(JSContext* aCx, nsIGlobalObject* aGlobal,
+void TeeState::PullCallback(MCContext* aCx, nsIGlobalObject* aGlobal,
                             ErrorResult& aRv) {
   // Step 13.1: If reading is true,
   if (Reading()) {

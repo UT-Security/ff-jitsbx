@@ -53,7 +53,7 @@ bool IsValidKeyPathString(const nsAString& aKeyPath) {
 enum KeyExtractionOptions { DoNotCreateProperties, CreateProperties };
 
 nsresult GetJSValFromKeyPathString(
-    JSContext* aCx, const JS::Value& aValue, const nsAString& aKeyPathString,
+    MCContext* aCx, const JS::Value& aValue, const nsAString& aKeyPathString,
     JS::Value* aKeyJSVal, KeyExtractionOptions aOptions,
     KeyPath::ExtractOrCreateKeyCallback aCallback, void* aClosure) {
   NS_ASSERTION(aCx, "Null pointer!");
@@ -240,13 +240,13 @@ nsresult GetJSValFromKeyPathString(
   if (targetObject) {
     // If this fails, we lose, and the web page sees a magical property
     // appear on the object :-(
-    JS::ObjectOpResult succeeded;
+    MC::SandboxStack<JS::ObjectOpResult> succeeded;
     if (!JS_DeleteUCProperty(aCx, targetObject, targetObjectPropName.get(),
                              targetObjectPropName.Length(), succeeded)) {
       IDB_REPORT_INTERNAL_ERR();
       return NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR;
     }
-    QM_TRY(OkIf(succeeded.ok()), NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
+    QM_TRY(OkIf(succeeded->ok()), NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR,
            IDB_REPORT_INTERNAL_ERR_LAMBDA);
   }
 
@@ -329,7 +329,7 @@ bool KeyPath::AppendStringWithValidation(const nsAString& aString) {
   return false;
 }
 
-nsresult KeyPath::ExtractKey(JSContext* aCx, const JS::Value& aValue,
+nsresult KeyPath::ExtractKey(MCContext* aCx, const JS::Value& aValue,
                              Key& aKey) const {
   uint32_t len = mStrings.Length();
   MC::Rooted<JS::Value> value(aCx);
@@ -359,7 +359,7 @@ nsresult KeyPath::ExtractKey(JSContext* aCx, const JS::Value& aValue,
   return NS_OK;
 }
 
-nsresult KeyPath::ExtractKeyAsJSVal(JSContext* aCx, const JS::Value& aValue,
+nsresult KeyPath::ExtractKeyAsJSVal(MCContext* aCx, const JS::Value& aValue,
                                     JS::Value* aOutVal) const {
   NS_ASSERTION(IsValid(), "This doesn't make sense!");
 
@@ -393,7 +393,7 @@ nsresult KeyPath::ExtractKeyAsJSVal(JSContext* aCx, const JS::Value& aValue,
   return NS_OK;
 }
 
-nsresult KeyPath::ExtractOrCreateKey(JSContext* aCx, const JS::Value& aValue,
+nsresult KeyPath::ExtractOrCreateKey(MCContext* aCx, const JS::Value& aValue,
                                      Key& aKey,
                                      ExtractOrCreateKeyCallback aCallback,
                                      void* aClosure) const {
@@ -484,7 +484,7 @@ KeyPath KeyPath::DeserializeFromString(const nsAString& aString) {
   return keyPath;
 }
 
-nsresult KeyPath::ToJSVal(JSContext* aCx,
+nsresult KeyPath::ToJSVal(MCContext* aCx,
                           JS::MutableHandle<JS::Value> aValue) const {
   if (IsArray()) {
     uint32_t len = mStrings.Length();
@@ -525,7 +525,7 @@ nsresult KeyPath::ToJSVal(JSContext* aCx,
   return NS_OK;
 }
 
-nsresult KeyPath::ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aValue) const {
+nsresult KeyPath::ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aValue) const {
   MC::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {

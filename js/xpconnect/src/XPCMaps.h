@@ -54,7 +54,7 @@ class JSObject2WrappedJSMap {
   }
 #endif
 
-  inline nsXPCWrappedJS* Add(JSContext* cx, nsXPCWrappedJS* wrapper) {
+  inline nsXPCWrappedJS* Add(MCContext* cx, nsXPCWrappedJS* wrapper) {
     MOZ_ASSERT(wrapper, "bad param");
     JSObject* obj = wrapper->GetJSObjectPreserveColor();
     Map::AddPtr p = mTable.lookupForAdd(obj);
@@ -355,7 +355,7 @@ class JSObject2JSObjectMap {
   }
 
   /* Note: If the entry already exists, return the old value. */
-  inline JSObject* Add(JSContext* cx, JSObject* key, JSObject* value) {
+  inline JSObject* Add(MCContext* cx, JSObject* key, JSObject* value) {
     MOZ_ASSERT(key, "bad param");
     Map::AddPtr p = mTable.lookupForAdd(key);
     if (p) {

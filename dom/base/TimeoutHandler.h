@@ -38,7 +38,7 @@ class TimeoutHandler : public nsISupports {
 
  protected:
   TimeoutHandler() : mFileName(""), mLineNo(0), mColumn(0) {}
-  explicit TimeoutHandler(JSContext* aCx);
+  explicit TimeoutHandler(MCContext* aCx);
 
   virtual ~TimeoutHandler() = default;
 
@@ -59,7 +59,7 @@ class ScriptTimeoutHandler : public TimeoutHandler {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_CLASS(ScriptTimeoutHandler)
 
-  ScriptTimeoutHandler(JSContext* aCx, nsIGlobalObject* aGlobal,
+  ScriptTimeoutHandler(MCContext* aCx, nsIGlobalObject* aGlobal,
                        const nsAString& aExpression);
 
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* /* unused */) override {
@@ -81,7 +81,7 @@ class CallbackTimeoutHandler final : public TimeoutHandler {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(CallbackTimeoutHandler)
 
-  CallbackTimeoutHandler(JSContext* aCx, nsIGlobalObject* aGlobal,
+  CallbackTimeoutHandler(MCContext* aCx, nsIGlobalObject* aGlobal,
                          Function* aFunction,
                          nsTArray<JS::Heap<JS::Value>>&& aArguments);
 

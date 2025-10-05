@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(ForeignObject)
 
 namespace mozilla::dom {
 
-JSObject* SVGForeignObjectElement::WrapNode(JSContext* aCx,
+JSObject* SVGForeignObjectElement::WrapNode(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return SVGForeignObjectElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -21,7 +21,7 @@ class AudioParamMap final : public nsWrapperCache {
 
   AudioWorkletNode* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:

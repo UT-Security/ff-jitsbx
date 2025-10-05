@@ -114,7 +114,7 @@ class HTMLSourceElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLSourceElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   bool ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,

@@ -27,7 +27,7 @@ CanvasRenderingContextHelper::CanvasRenderingContextHelper()
     : mCurrentContextType(CanvasContextType::NoContext) {}
 
 void CanvasRenderingContextHelper::ToBlob(
-    JSContext* aCx, nsIGlobalObject* aGlobal, BlobCallback& aCallback,
+    MCContext* aCx, nsIGlobalObject* aGlobal, BlobCallback& aCallback,
     const nsAString& aType, JS::Handle<JS::Value> aParams, bool aUsePlaceholder,
     ErrorResult& aRv) {
   // Encoder callback when encoding is complete.
@@ -76,7 +76,7 @@ void CanvasRenderingContextHelper::ToBlob(
 }
 
 void CanvasRenderingContextHelper::ToBlob(
-    JSContext* aCx, EncodeCompleteCallback* aCallback, const nsAString& aType,
+    MCContext* aCx, EncodeCompleteCallback* aCallback, const nsAString& aType,
     JS::Handle<JS::Value> aParams, bool aUsePlaceholder, ErrorResult& aRv) {
   nsAutoString type;
   nsContentUtils::ASCIIToLower(aType, type);
@@ -185,7 +185,7 @@ CanvasRenderingContextHelper::CreateContextHelper(
 }
 
 already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetOrCreateContext(
-    JSContext* aCx, const nsAString& aContextId,
+    MCContext* aCx, const nsAString& aContextId,
     JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv) {
   CanvasContextType contextType;
   if (!CanvasUtils::GetCanvasContextType(aContextId, &contextType))
@@ -195,7 +195,7 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetOrCreateContext(
 }
 
 already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetOrCreateContext(
-    JSContext* aCx, CanvasContextType aContextType,
+    MCContext* aCx, CanvasContextType aContextType,
     JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv) {
   if (!mCurrentContext) {
     // This canvas doesn't have a context yet.
@@ -255,7 +255,7 @@ already_AddRefed<nsISupports> CanvasRenderingContextHelper::GetOrCreateContext(
 }
 
 nsresult CanvasRenderingContextHelper::UpdateContext(
-    JSContext* aCx, JS::Handle<JS::Value> aNewContextOptions,
+    MCContext* aCx, JS::Handle<JS::Value> aNewContextOptions,
     ErrorResult& aRvForDictionaryInit) {
   if (!mCurrentContext) return NS_OK;
 
@@ -281,7 +281,7 @@ nsresult CanvasRenderingContextHelper::UpdateContext(
 }
 
 nsresult CanvasRenderingContextHelper::ParseParams(
-    JSContext* aCx, const nsAString& aType, const JS::Value& aEncoderOptions,
+    MCContext* aCx, const nsAString& aType, const JS::Value& aEncoderOptions,
     nsAString& outParams, bool* const outUsingCustomParseOptions) {
   // Quality parameter is only valid for the image/jpeg and image/webp MIME
   // types.

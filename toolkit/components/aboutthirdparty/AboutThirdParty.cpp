@@ -823,7 +823,7 @@ NS_IMETHODIMP AboutThirdParty::GetIsDynamicBlocklistDisabled(
 
 NS_IMETHODIMP AboutThirdParty::UpdateBlocklist(const nsAString& aLeafName,
                                                bool aNewBlockStatus,
-                                               JSContext* aCx,
+                                               MCContext* aCx,
                                                dom::Promise** aResult) {
 #if defined(MOZ_LAUNCHER_PROCESS)
   MOZ_ASSERT(NS_IsMainThread());
@@ -900,7 +900,7 @@ RefPtr<BackgroundThreadPromise> AboutThirdParty::CollectSystemInfoAsync() {
 }
 
 NS_IMETHODIMP
-AboutThirdParty::CollectSystemInfo(JSContext* aCx, dom::Promise** aResult) {
+AboutThirdParty::CollectSystemInfo(MCContext* aCx, dom::Promise** aResult) {
   MOZ_ASSERT(NS_IsMainThread());
 
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);

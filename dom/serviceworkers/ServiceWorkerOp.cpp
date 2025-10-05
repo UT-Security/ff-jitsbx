@@ -9,8 +9,8 @@
 #include <utility>
 
 #include "ServiceWorkerOpPromise.h"
-#include "js/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
-#include "jsapi.h"
+#include "monkeycage/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
+#include "mcapi.h"
 
 #include "nsCOMPtr.h"
 #include "nsContentUtils.h"
@@ -116,12 +116,12 @@ class ExtendableEventKeepAliveHandler final
   /**
    * PromiseNativeHandler interface
    */
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     RemovePromise(Resolved);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     RemovePromise(Rejected);
   }
@@ -228,7 +228,7 @@ class ExtendableEventKeepAliveHandler final
 NS_IMPL_ISUPPORTS0(ExtendableEventKeepAliveHandler)
 
 nsresult DispatchExtendableEventOnWorkerScope(
-    JSContext* aCx, WorkerGlobalScope* aWorkerScope, ExtendableEvent* aEvent,
+    MCContext* aCx, WorkerGlobalScope* aWorkerScope, ExtendableEvent* aEvent,
     RefPtr<ExtendableEventCallback> aCallback) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWorkerScope);
@@ -287,7 +287,7 @@ class ServiceWorkerOp::ServiceWorkerOpRunnable : public WorkerDebuggeeRunnable {
  private:
   ~ServiceWorkerOpRunnable() = default;
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -473,7 +473,7 @@ class CheckScriptEvaluationOp final : public ServiceWorkerOp {
  private:
   ~CheckScriptEvaluationOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -499,7 +499,7 @@ class TerminateServiceWorkerOp final : public ServiceWorkerOp {
  private:
   ~TerminateServiceWorkerOp() = default;
 
-  bool Exec(JSContext*, WorkerPrivate*) override {
+  bool Exec(MCContext*, WorkerPrivate*) override {
     MOZ_ASSERT_UNREACHABLE(
         "Worker termination should be handled in "
         "`ServiceWorkerOp::MaybeStart()`");
@@ -531,7 +531,7 @@ class UpdateServiceWorkerStateOp final : public ServiceWorkerOp {
    private:
     ~UpdateStateOpRunnable() = default;
 
-    bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
       MOZ_ASSERT(aWorkerPrivate);
       aWorkerPrivate->AssertIsOnWorkerThread();
       MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -567,7 +567,7 @@ class UpdateServiceWorkerStateOp final : public ServiceWorkerOp {
     return new UpdateStateOpRunnable(this, aWorkerPrivate);
   }
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -603,7 +603,7 @@ class LifeCycleEventOp final : public ExtendableEventOp {
  private:
   ~LifeCycleEventOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -649,7 +649,7 @@ class PushEventOp final : public ExtendableEventOp {
  private:
   ~PushEventOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -765,7 +765,7 @@ class PushSubscriptionChangeEventOp final : public ExtendableEventOp {
  private:
   ~PushSubscriptionChangeEventOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -874,7 +874,7 @@ class NotificationEventOp : public ExtendableEventOp,
   }
 
   // ExtendableEventOp interface
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -968,7 +968,7 @@ class MessageEventOp final : public ExtendableEventOp {
  private:
   ~MessageEventOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
@@ -1089,7 +1089,7 @@ class MOZ_STACK_CLASS FetchEventOp::AutoCancel {
   }
 
   // This function steals the error message from a ErrorResult.
-  void SetCancelErrorResult(JSContext* aCx, ErrorResult& aRv) {
+  void SetCancelErrorResult(MCContext* aCx, ErrorResult& aRv) {
     MOZ_DIAGNOSTIC_ASSERT(aRv.Failed());
     MOZ_DIAGNOSTIC_ASSERT(!JS_IsExceptionPending(aCx));
 
@@ -1101,14 +1101,14 @@ class MOZ_STACK_CLASS FetchEventOp::AutoCancel {
     MOZ_ASSERT(!aRv.Failed());
 
     // Let's take the pending exception.
-    JS::ExceptionStack exnStack(aCx);
-    if (!JS::StealPendingExceptionStack(aCx, &exnStack)) {
+    MC::SandboxStack<JS::ExceptionStack> exnStack(aCx);
+    if (!JS::StealPendingExceptionStack(aCx, exnStack)) {
       return;
     }
 
     // Converting the exception in a JS::ErrorReportBuilder.
-    JS::ErrorReportBuilder report(aCx);
-    if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    MC::SandboxStack<JS::ErrorReportBuilder> report(aCx);
+    if (!report->init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(aCx);
       return;
     }
@@ -1118,7 +1118,7 @@ class MOZ_STACK_CLASS FetchEventOp::AutoCancel {
     MOZ_ASSERT(mParams.Length() == 1);
 
     // Let's store the error message here.
-    mMessageName.Assign(report.toStringResult().c_str());
+    mMessageName.Assign(report->toStringResult().c_str());
     mParams.Clear();
   }
 
@@ -1280,7 +1280,7 @@ void FetchEventOp::MaybeFinished() {
   }
 }
 
-bool FetchEventOp::Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+bool FetchEventOp::Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());
   MOZ_ASSERT(!mRespondWithPromiseHolder.IsEmpty());
@@ -1346,7 +1346,7 @@ void FetchEventOp::GetRequestURL(nsAString& aOutRequestURL) {
   CopyUTF8toUTF16(urls.LastElement(), aOutRequestURL);
 }
 
-void FetchEventOp::ResolvedCallback(JSContext* aCx,
+void FetchEventOp::ResolvedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
@@ -1517,7 +1517,7 @@ void FetchEventOp::ResolvedCallback(JSContext* aCx,
       __func__);
 }
 
-void FetchEventOp::RejectedCallback(JSContext* aCx,
+void FetchEventOp::RejectedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   MOZ_ASSERT(IsCurrentThreadRunningWorker());
@@ -1555,7 +1555,7 @@ void FetchEventOp::RejectedCallback(JSContext* aCx,
       __func__);
 }
 
-nsresult FetchEventOp::DispatchFetchEvent(JSContext* aCx,
+nsresult FetchEventOp::DispatchFetchEvent(MCContext* aCx,
                                           WorkerPrivate* aWorkerPrivate) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWorkerPrivate);
@@ -1824,7 +1824,7 @@ class ExtensionAPIEventOp final : public ServiceWorkerOp {
  private:
   ~ExtensionAPIEventOp() = default;
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(aWorkerPrivate->IsServiceWorker());

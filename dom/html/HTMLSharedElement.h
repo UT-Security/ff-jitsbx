@@ -119,7 +119,7 @@ class HTMLSharedElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLSharedElement();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,
                     const nsAttrValue* aValue, const nsAttrValue* aOldValue,

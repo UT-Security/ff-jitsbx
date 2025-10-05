@@ -51,7 +51,7 @@ GeneralResponseData::InitData(JS::Handle<JS::Value> aValue, MCContext* aCx) {
   if (aValue.isNullOrUndefined()) {
     return NS_ERROR_FAILURE;
   }
-  nsresult rv = SerializeFromJSVal(MC_UNSAFE(aCx), aValue, mData);
+  nsresult rv = SerializeFromJSVal(aCx, aValue, mData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -386,7 +386,7 @@ GeneralMethodChangeDetails::InitData(JS::Handle<JS::Value> aDetails,
   if (aDetails.isNullOrUndefined()) {
     return NS_ERROR_FAILURE;
   }
-  nsresult rv = SerializeFromJSVal(MC_UNSAFE(aCx), aDetails, mDetails);
+  nsresult rv = SerializeFromJSVal(aCx, aDetails, mDetails);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

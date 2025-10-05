@@ -168,7 +168,7 @@ class WorkerRunnable : public nsIRunnable, public nsICancelableRunnable {
   // Immediately after WorkerRun returns, the caller will assert that either it
   // returns false or there is no exception pending on aCx.  Then it will report
   // any pending exceptions on aCx.
-  virtual bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) = 0;
+  virtual bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) = 0;
 
   // By default asserts that Run() (and WorkerRun()) were called on the correct
   // thread.  Also sends an asynchronous message to the ParentThread if the
@@ -178,7 +178,7 @@ class WorkerRunnable : public nsIRunnable, public nsICancelableRunnable {
   // still in the same compartment.  PostRun implementations must NOT leave an
   // exception on the JSContext and must not run script, because the incoming
   // JSContext may be in the null compartment.
-  virtual void PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  virtual void PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                        bool aRunResult);
 
   virtual bool DispatchInternal();
@@ -449,7 +449,7 @@ class MainThreadStopSyncLoopRunnable : public WorkerSyncRunnable {
   virtual void PostDispatch(WorkerPrivate* aWorkerPrivate,
                             bool aDispatchResult) override;
 
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override;
 
   bool DispatchInternal() final;

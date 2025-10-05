@@ -26,7 +26,7 @@ class SVGFEDistantLightElement final : public SVGFEDistantLightElementBase {
   explicit SVGFEDistantLightElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEDistantLightElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

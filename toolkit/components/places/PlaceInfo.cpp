@@ -98,7 +98,7 @@ PlaceInfo::GetVisits(MCContext* aContext,
 
   for (VisitsArray::size_type idx = 0; idx < mVisits.Length(); idx++) {
     MC::Rooted<JSObject*> jsobj(aContext);
-    nsresult rv = xpc->WrapNative(MC_UNSAFE(aContext), global, mVisits[idx],
+    nsresult rv = xpc->WrapNative(aContext, global, mVisits[idx],
                                   NS_GET_IID(mozIVisitInfo), jsobj.address());
     NS_ENSURE_SUCCESS(rv, rv);
     NS_ENSURE_STATE(jsobj);

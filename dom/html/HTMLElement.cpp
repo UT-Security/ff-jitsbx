@@ -34,7 +34,7 @@ NS_IMPL_RELEASE_INHERITED(HTMLElement, nsGenericHTMLFormElement)
 
 NS_IMPL_ELEMENT_CLONE(HTMLElement)
 
-JSObject* HTMLElement::WrapNode(JSContext* aCx,
+JSObject* HTMLElement::WrapNode(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLElement_Binding::Wrap(aCx, this, aGivenProto);
 }

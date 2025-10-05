@@ -25,7 +25,7 @@ class SVGFETileElement final : public SVGFETileElementBase {
   explicit SVGFETileElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFETileElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   bool SubregionIsUnionOfRegions() override { return false; }

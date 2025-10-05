@@ -33,7 +33,7 @@ static void AnnotateCrashReportWithJSException(MCContext* aCx,
     uint32_t line;
     uint32_t column;
     nsAutoString msg;
-    nsContentUtils::ExtractErrorValues(MC_UNSAFE(aCx), exn, file, &line, &column, msg);
+    nsContentUtils::ExtractErrorValues(aCx, exn, file, &line, &column, msg);
 
     nsPrintfCString errorString("Failed to load module \"%s\": %s:%u:%u: %s",
                                 aURI, file.get(), line, column,
@@ -74,7 +74,7 @@ nsresult ImportModule(const char* aURI, const char* aExportName,
     exports.set(&namedExport.toObject());
   }
 
-  return nsXPConnect::XPConnect()->WrapJS(MC_UNSAFE(cx), exports, aIID, aResult);
+  return nsXPConnect::XPConnect()->WrapJS(cx, exports, aIID, aResult);
 }
 
 nsresult ImportESModule(const char* aURI, const char* aExportName,
@@ -106,7 +106,7 @@ nsresult ImportESModule(const char* aURI, const char* aExportName,
     moduleNamespace.set(&namedExport.toObject());
   }
 
-  return nsXPConnect::XPConnect()->WrapJS(MC_UNSAFE(cx), moduleNamespace, aIID, aResult);
+  return nsXPConnect::XPConnect()->WrapJS(cx, moduleNamespace, aIID, aResult);
 }
 
 }  // namespace loader

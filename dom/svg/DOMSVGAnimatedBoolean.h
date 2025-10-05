@@ -23,7 +23,7 @@ class DOMSVGAnimatedBoolean final : public nsWrapperCache {
 
   // WebIDL
   SVGElement* GetParentObject() const { return mSVGElement; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   bool BaseVal() const { return mVal->GetBaseValue(); }
   void SetBaseVal(bool aValue) { mVal->SetBaseValue(aValue, mSVGElement); }

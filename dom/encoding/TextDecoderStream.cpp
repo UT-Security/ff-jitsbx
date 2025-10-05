@@ -41,7 +41,7 @@ TextDecoderStream::TextDecoderStream(nsISupports* aGlobal,
 
 TextDecoderStream::~TextDecoderStream() = default;
 
-JSObject* TextDecoderStream::WrapObject(JSContext* aCx,
+JSObject* TextDecoderStream::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return TextDecoderStream_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -49,7 +49,7 @@ JSObject* TextDecoderStream::WrapObject(JSContext* aCx,
 // TODO: This does not allow shared array buffers, just as the non-stream
 // TextDecoder/Encoder don't. (Bug 1561594)
 Span<const uint8_t> ExtractSpanFromBufferSource(
-    JSContext* aCx, JS::Handle<JS::Value> aBufferSource, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aBufferSource, ErrorResult& aRv) {
   RootedUnion<OwningArrayBufferViewOrArrayBuffer> bufferSource(aCx);
   if (!bufferSource.Init(aCx, aBufferSource)) {
     aRv.MightThrowJSException();
@@ -82,7 +82,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
   // mozilla::Decoder, and this is mainly about calling it properly.
   // https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk
   MOZ_CAN_RUN_SCRIPT void DecodeSpanAndEnqueue(
-      JSContext* aCx, Span<const uint8_t> aInput, bool aFlush,
+      MCContext* aCx, Span<const uint8_t> aInput, bool aFlush,
       TransformStreamDefaultController& aController, ErrorResult& aRv) {
     CheckedInt<nsAString::size_type> needed =
         mDecoderStream->Decoder()->MaxUTF16BufferLength(aInput.Length());
@@ -132,7 +132,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // Step 1. Let bufferSource be the result of converting chunk to an
     // [AllowShared] BufferSource.
@@ -157,7 +157,7 @@ class TextDecoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // https://encoding.spec.whatwg.org/#flush-and-enqueue
     // (The flush and enqueue algorithm is basically a subset of decode and

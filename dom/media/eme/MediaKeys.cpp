@@ -216,7 +216,7 @@ void MediaKeys::Shutdown() {
 
 nsPIDOMWindowInner* MediaKeys::GetParentObject() const { return mParent; }
 
-JSObject* MediaKeys::WrapObject(JSContext* aCx,
+JSObject* MediaKeys::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return MediaKeys_Binding::Wrap(aCx, this, aGivenProto);
 }

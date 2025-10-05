@@ -37,7 +37,7 @@ class Response final : public FetchBody<Response>, public nsWrapperCache {
 
   Response(const Response& aOther) = delete;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return Response_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -106,7 +106,7 @@ class Response final : public FetchBody<Response>, public nsWrapperCache {
                                              ErrorResult& aRv);
 
   static already_AddRefed<Response> CreateFromJson(const GlobalObject&,
-                                                   JSContext*,
+                                                   MCContext*,
                                                    JS::Handle<JS::Value>,
                                                    const ResponseInit&,
                                                    ErrorResult&);
@@ -118,9 +118,9 @@ class Response final : public FetchBody<Response>, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mOwner; }
 
-  already_AddRefed<Response> Clone(JSContext* aCx, ErrorResult& aRv);
+  already_AddRefed<Response> Clone(MCContext* aCx, ErrorResult& aRv);
 
-  already_AddRefed<Response> CloneUnfiltered(JSContext* aCx, ErrorResult& aRv);
+  already_AddRefed<Response> CloneUnfiltered(MCContext* aCx, ErrorResult& aRv);
 
   void SetBody(nsIInputStream* aBody, int64_t aBodySize);
 

@@ -163,7 +163,7 @@ void ServiceWorkerContainer::RevokeActor(ServiceWorkerContainerChild* aActor) {
 }
 
 JSObject* ServiceWorkerContainer::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ServiceWorkerContainer_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -781,7 +781,7 @@ void ServiceWorkerContainer::DispatchMessage(RefPtr<ReceivedMessage> aMessage) {
   // Either way, a global object is supposed to be present. If it's
   // not, we'd fail to initialize the JS API and exit.
   RunWithJSContext([this, message = std::move(aMessage)](
-                       JSContext* const aCx, nsIGlobalObject* const aGlobal) {
+                       MCContext* const aCx, nsIGlobalObject* const aGlobal) {
     ErrorResult result;
     bool deserializationFailed = false;
     RootedDictionary<MessageEventInit> init(aCx);
@@ -838,7 +838,7 @@ nsresult FillInOriginNoSuffix(const ServiceWorkerDescriptor& aServiceWorker,
 }  // namespace
 
 Result<Ok, bool> ServiceWorkerContainer::FillInMessageEventInit(
-    JSContext* const aCx, nsIGlobalObject* const aGlobal,
+    MCContext* const aCx, nsIGlobalObject* const aGlobal,
     ReceivedMessage& aMessage, MessageEventInit& aInit, ErrorResult& aRv) {
   // Determining the source and origin should preceed attempting deserialization
   // because on a "messageerror" event (i.e. when deserialization fails), the
@@ -870,7 +870,7 @@ Result<Ok, bool> ServiceWorkerContainer::FillInMessageEventInit(
   aInit.mData = messageData;
 
   if (!aMessage.mClonedData.TakeTransferredPortsAsSequence(aInit.mPorts)) {
-    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_OUT_OF_MEMORY);
+    xpc::Throw(aCx, NS_ERROR_OUT_OF_MEMORY);
     return Err(false);
   }
 

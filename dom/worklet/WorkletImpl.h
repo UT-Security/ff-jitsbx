@@ -57,7 +57,7 @@ class WorkletImpl {
 
   // Methods for parent thread only:
 
-  virtual JSObject* WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
+  virtual JSObject* WrapWorklet(MCContext* aCx, dom::Worklet* aWorklet,
                                 JS::Handle<JSObject*> aGivenProto);
 
   virtual nsresult SendControlMessage(already_AddRefed<nsIRunnable> aRunnable);

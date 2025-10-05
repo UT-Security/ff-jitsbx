@@ -60,7 +60,7 @@ class XRSession final : public DOMEventTargetHelper, public nsARefreshObserver {
       const nsTArray<XRReferenceSpaceType>& aEnabledReferenceSpaceTypes);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Attributes
@@ -68,7 +68,7 @@ class XRSession final : public DOMEventTargetHelper, public nsARefreshObserver {
   XRRenderState* RenderState();
   XRInputSourceArray* InputSources();
   Nullable<float> GetFrameRate();
-  void GetSupportedFrameRates(JSContext* aJSContext,
+  void GetSupportedFrameRates(MCContext* aJSContext,
                               JS::MutableHandle<JSObject*> aRetval);
 
   // WebIDL Methods

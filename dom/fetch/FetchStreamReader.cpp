@@ -53,7 +53,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(FetchStreamReader)
 NS_INTERFACE_MAP_END
 
 /* static */
-nsresult FetchStreamReader::Create(JSContext* aCx, nsIGlobalObject* aGlobal,
+nsresult FetchStreamReader::Create(MCContext* aCx, nsIGlobalObject* aGlobal,
                                    FetchStreamReader** aStreamReader,
                                    nsIInputStream** aInputStream) {
   MOZ_ASSERT(aCx);
@@ -124,7 +124,7 @@ FetchStreamReader::~FetchStreamReader() {
 // we're at the destructor, it's far too late to cancel anything.  And if the
 // WorkerRef is being notified, the global is going away, so there's also
 // no need to do further JS work.
-void FetchStreamReader::CloseAndRelease(JSContext* aCx, nsresult aStatus) {
+void FetchStreamReader::CloseAndRelease(MCContext* aCx, nsresult aStatus) {
   NS_ASSERT_OWNINGTHREAD(FetchStreamReader);
 
   if (mStreamClosed) {
@@ -179,7 +179,7 @@ void FetchStreamReader::CloseAndRelease(JSContext* aCx, nsresult aStatus) {
 }
 
 // https://fetch.spec.whatwg.org/#body-incrementally-read
-void FetchStreamReader::StartConsuming(JSContext* aCx, ReadableStream* aStream,
+void FetchStreamReader::StartConsuming(MCContext* aCx, ReadableStream* aStream,
                                        ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(!mReader);
   MOZ_DIAGNOSTIC_ASSERT(aStream);
@@ -210,18 +210,18 @@ struct FetchReadRequest : public ReadRequest {
       : mFetchStreamReader(aReader) {}
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     mFetchStreamReader->ChunkSteps(aCx, aChunk, aRv);
   }
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void CloseSteps(JSContext* aCx, ErrorResult& aRv) override {
+  void CloseSteps(MCContext* aCx, ErrorResult& aRv) override {
     mFetchStreamReader->CloseSteps(aCx, aRv);
   }
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv) override {
     mFetchStreamReader->ErrorSteps(aCx, aError, aRv);
   }
@@ -258,7 +258,7 @@ FetchStreamReader::OnOutputStreamReady(nsIAsyncOutputStream* aStream) {
   return NS_OK;
 }
 
-bool FetchStreamReader::Process(JSContext* aCx) {
+bool FetchStreamReader::Process(MCContext* aCx) {
   NS_ASSERT_OWNINGTHREAD(FetchStreamReader);
   MOZ_ASSERT(mReader);
 
@@ -311,7 +311,7 @@ bool FetchStreamReader::Process(JSContext* aCx) {
   return true;
 }
 
-void FetchStreamReader::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+void FetchStreamReader::ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                    ErrorResult& aRv) {
   // This roughly implements the chunk steps from
   // https://fetch.spec.whatwg.org/#incrementally-read-loop.
@@ -347,12 +347,12 @@ void FetchStreamReader::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
   }
 }
 
-void FetchStreamReader::CloseSteps(JSContext* aCx, ErrorResult& aRv) {
+void FetchStreamReader::CloseSteps(MCContext* aCx, ErrorResult& aRv) {
   mHasOutstandingReadRequest = false;
   CloseAndRelease(aCx, NS_BASE_STREAM_CLOSED);
 }
 
-void FetchStreamReader::ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+void FetchStreamReader::ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                                    ErrorResult& aRv) {
   mHasOutstandingReadRequest = false;
   ReportErrorToConsole(aCx, aError);
@@ -395,7 +395,7 @@ nsresult FetchStreamReader::WriteBuffer() {
   return NS_OK;
 }
 
-void FetchStreamReader::ReportErrorToConsole(JSContext* aCx,
+void FetchStreamReader::ReportErrorToConsole(MCContext* aCx,
                                              JS::Handle<JS::Value> aValue) {
   nsCString sourceSpec;
   uint32_t line = 0;

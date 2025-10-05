@@ -95,7 +95,7 @@ class nsScreen : public mozilla::DOMEventTargetHelper {
     return nullptr;
   }
 
-  static bool MediaCapabilitiesEnabled(JSContext* aCx, JSObject* aGlobal) {
+  static bool MediaCapabilitiesEnabled(MCContext* aCx, JSObject* aGlobal) {
     return mozilla::StaticPrefs::media_media_capabilities_screen_enabled();
   }
 
@@ -115,7 +115,7 @@ class nsScreen : public mozilla::DOMEventTargetHelper {
                           ErrorResult& aRv);
   void MozUnlockOrientation();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   mozilla::dom::ScreenOrientation* Orientation() const;

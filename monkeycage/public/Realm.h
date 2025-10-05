@@ -30,6 +30,10 @@ inline void SetRealmNameCallback(
   return SetRealmNameCallback(cx->cx_, callback.UNSAFE_get());
 }
 
+inline bool InitRealmStandardClasses(MCContext* cx) {
+  return InitRealmStandardClasses(cx->cx_);
+}
+
 inline JSObject* GetRealmObjectPrototype(MCContext* cx) {
   return GetRealmObjectPrototype(cx->cx_);
 }

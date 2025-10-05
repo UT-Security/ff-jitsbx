@@ -8,7 +8,7 @@
 #define mozilla_dom_idbobjectstore_h__
 
 #include "IDBCursor.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/dom/IDBCursorBinding.h"
 #include "mozilla/dom/IDBIndexBinding.h"
 #include "mozilla/UniquePtr.h"
@@ -83,7 +83,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
     bool mCloned;
 
    public:
-    ValueWrapper(JSContext* aCx, JS::Handle<JS::Value> aValue)
+    ValueWrapper(MCContext* aCx, JS::Handle<JS::Value> aValue)
         : mValue(aCx, aValue), mCloned(false) {
       MOZ_COUNT_CTOR(IDBObjectStore::ValueWrapper);
     }
@@ -92,7 +92,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
     const MC::Rooted<JS::Value>& Value() const { return mValue; }
 
-    bool Clone(JSContext* aCx);
+    bool Clone(MCContext* aCx);
   };
 
   [[nodiscard]] static RefPtr<IDBObjectStore> Create(
@@ -100,14 +100,14 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
   static void AppendIndexUpdateInfo(int64_t aIndexID, const KeyPath& aKeyPath,
                                     bool aMultiEntry, const nsCString& aLocale,
-                                    JSContext* aCx, JS::Handle<JS::Value> aVal,
+                                    MCContext* aCx, JS::Handle<JS::Value> aVal,
                                     nsTArray<IndexUpdateInfo>* aUpdateInfoArray,
                                     ErrorResult* aRv);
 
   static void ClearCloneReadInfo(
       indexedDB::StructuredCloneReadInfoChild& aReadInfo);
 
-  static bool DeserializeValue(JSContext* aCx,
+  static bool DeserializeValue(MCContext* aCx,
                                StructuredCloneReadInfoChild&& aCloneReadInfo,
                                JS::MutableHandle<JS::Value> aValue);
 
@@ -145,7 +145,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
   void SetName(const nsAString& aName, ErrorResult& aRv);
 
-  void GetKeyPath(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetKeyPath(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                   ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<DOMStringList> IndexNames();
@@ -174,29 +174,29 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
     return AsRefPtr(mTransaction.clonePtr());
   }
 
-  [[nodiscard]] RefPtr<IDBRequest> Add(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Add(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Put(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Put(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Delete(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Delete(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Get(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Get(MCContext* aCx,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetKey(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetKey(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Clear(JSContext* aCx, ErrorResult& aRv);
+  [[nodiscard]] RefPtr<IDBRequest> Clear(MCContext* aCx, ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBIndex> CreateIndex(
       const nsAString& aName, const StringOrStringSequence& aKeyPath,
@@ -207,30 +207,30 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
   void DeleteIndex(const nsAString& aName, ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Count(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Count(MCContext* aCx,
                                          JS::Handle<JS::Value> aKey,
                                          ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetAll(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetAll(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           const Optional<uint32_t>& aLimit,
                                           ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetAllKeys(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetAllKeys(MCContext* aCx,
                                               JS::Handle<JS::Value> aKey,
                                               const Optional<uint32_t>& aLimit,
                                               ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(MCContext* aCx,
                                               JS::Handle<JS::Value> aRange,
                                               IDBCursorDirection aDirection,
                                               ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(MCContext* aCx,
                                               IDBCursorDirection aDirection,
                                               ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> OpenKeyCursor(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> OpenKeyCursor(MCContext* aCx,
                                                  JS::Handle<JS::Value> aRange,
                                                  IDBCursorDirection aDirection,
                                                  ErrorResult& aRv);
@@ -251,7 +251,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(IDBObjectStore)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -260,33 +260,33 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
 
   ~IDBObjectStore();
 
-  void GetAddInfo(JSContext* aCx, ValueWrapper& aValueWrapper,
+  void GetAddInfo(MCContext* aCx, ValueWrapper& aValueWrapper,
                   JS::Handle<JS::Value> aKeyVal,
                   StructuredCloneWriteInfo& aCloneWriteInfo, Key& aKey,
                   nsTArray<IndexUpdateInfo>& aUpdateInfoArray,
                   ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> AddOrPut(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> AddOrPut(MCContext* aCx,
                                             ValueWrapper& aValueWrapper,
                                             JS::Handle<JS::Value> aKey,
                                             bool aOverwrite, bool aFromCursor,
                                             ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> DeleteInternal(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> DeleteInternal(MCContext* aCx,
                                                   JS::Handle<JS::Value> aKey,
                                                   bool aFromCursor,
                                                   ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetInternal(bool aKeyOnly, JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetInternal(bool aKeyOnly, MCContext* aCx,
                                                JS::Handle<JS::Value> aKey,
                                                ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBRequest> GetAllInternal(
-      bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aKey,
+      bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aKey,
       const Optional<uint32_t>& aLimit, ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBRequest> OpenCursorInternal(
-      bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aRange,
+      bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aRange,
       IDBCursorDirection aDirection, ErrorResult& aRv);
 };
 

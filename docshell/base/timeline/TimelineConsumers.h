@@ -95,7 +95,7 @@ class TimelineConsumers {
   static void AddMarkerForAllObservedDocShells(
       UniquePtr<AbstractTimelineMarker>& aMarker);
 
-  static void PopMarkers(nsDocShell* aDocShell, JSContext* aCx,
+  static void PopMarkers(nsDocShell* aDocShell, MCContext* aCx,
                          nsTArray<dom::ProfileTimelineMarker>& aStore);
 
  private:

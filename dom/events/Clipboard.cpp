@@ -369,7 +369,7 @@ class BlobTextHandler final : public PromiseNativeHandler {
     mHolder.Reject(rv, __func__);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     AssertIsOnMainThread();
 
@@ -386,7 +386,7 @@ class BlobTextHandler final : public PromiseNativeHandler {
     mHolder.Resolve(std::move(native), __func__);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     Reject();
   }
@@ -777,7 +777,7 @@ void Clipboard::OnUserReactedToPasteMenuPopup(const bool aAllowed) {
   mReadRequests.Clear();
 }
 
-JSObject* Clipboard::WrapObject(JSContext* aCx,
+JSObject* Clipboard::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Clipboard_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -786,7 +786,7 @@ JSObject* Clipboard::WrapObject(JSContext* aCx,
 LogModule* Clipboard::GetClipboardLog() { return gClipboardLog; }
 
 /* static */
-bool Clipboard::ReadTextEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool Clipboard::ReadTextEnabled(MCContext* aCx, JSObject* aGlobal) {
   nsIPrincipal* prin = nsContentUtils::SubjectPrincipal(aCx);
   return IsReadTextExposedToContent() ||
          prin->GetIsAddonOrExpandedAddonPrincipal() ||

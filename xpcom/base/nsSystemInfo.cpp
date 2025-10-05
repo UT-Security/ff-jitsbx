@@ -1275,7 +1275,7 @@ void nsSystemInfo::SetUint64Property(const nsAString& aPropertyName,
 
 #ifdef XP_WIN
 
-static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
+static bool GetJSObjForDiskInfo(MCContext* aCx, JS::Handle<JSObject*> aParent,
                                 const FolderDiskInfo& info,
                                 const char* propName) {
   MC::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
@@ -1316,7 +1316,7 @@ static bool GetJSObjForDiskInfo(JSContext* aCx, JS::Handle<JSObject*> aParent,
   return JS_SetProperty(aCx, aParent, propName, val);
 }
 
-JSObject* GetJSObjForOSInfo(JSContext* aCx, const OSInfo& info) {
+JSObject* GetJSObjForOSInfo(MCContext* aCx, const OSInfo& info) {
   MC::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
 
   MC::Rooted<JS::Value> valInstallYear(aCx, JS::Int32Value(info.installYear));
@@ -1334,7 +1334,7 @@ JSObject* GetJSObjForOSInfo(JSContext* aCx, const OSInfo& info) {
 
 #endif
 
-JSObject* GetJSObjForProcessInfo(JSContext* aCx, const ProcessInfo& info) {
+JSObject* GetJSObjForProcessInfo(MCContext* aCx, const ProcessInfo& info) {
   MC::Rooted<JSObject*> jsInfo(aCx, JS_NewPlainObject(aCx));
 
 #if defined(XP_WIN)
@@ -1437,7 +1437,7 @@ nsSystemInfo::GetOsInfo(MCContext* aCx, Promise** aResult) {
           capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         MC::Rooted<JS::Value> val(
             cx, JS::ObjectValue(*GetJSObjForOSInfo(cx, info)));
         capturedPromise->MaybeResolve(val);
@@ -1510,7 +1510,7 @@ nsSystemInfo::GetDiskInfo(MCContext* aCx, Promise** aResult) {
           capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         MC::Rooted<JSObject*> jsInfo(cx, JS_NewPlainObject(cx));
         // Store data in the rv:
         bool succeededSettingAllObjects =
@@ -1587,7 +1587,7 @@ nsSystemInfo::GetCountryCode(MCContext* aCx, Promise** aResult) {
           capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         MC::Rooted<JSString*> jsCountryCode(
             cx, JS_NewUCStringCopyZ(cx, countryCode.get()));
 
@@ -1647,7 +1647,7 @@ nsSystemInfo::GetProcessInfo(MCContext* aCx, Promise** aResult) {
           capturedPromise->MaybeReject(NS_ERROR_UNEXPECTED);
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         MC::Rooted<JS::Value> val(
             cx, JS::ObjectValue(*GetJSObjForProcessInfo(cx, info)));
         capturedPromise->MaybeResolve(val);

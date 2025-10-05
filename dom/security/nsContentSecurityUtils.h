@@ -35,7 +35,7 @@ class nsContentSecurityUtils {
   static bool IsConsideredSameOriginForUIR(nsIPrincipal* aTriggeringPrincipal,
                                            nsIPrincipal* aResultPrincipal);
 
-  static bool IsEvalAllowed(JSContext* cx, bool aIsSystemPrincipal,
+  static bool IsEvalAllowed(MCContext* cx, bool aIsSystemPrincipal,
                             const nsAString& aScript);
   static void NotifyEvalUsage(bool aIsSystemPrincipal,
                               NS_ConvertUTF8toUTF16& aFileNameA,

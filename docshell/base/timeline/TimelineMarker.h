@@ -24,7 +24,7 @@ class TimelineMarker : public AbstractTimelineMarker {
                  MarkerTracingType aTracingType,
                  MarkerStackRequest aStackRequest = MarkerStackRequest::STACK);
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override;
   virtual JSObject* GetStack() override;
 

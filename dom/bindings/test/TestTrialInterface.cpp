@@ -11,7 +11,7 @@ namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(TestTrialInterface)
 
-JSObject* TestTrialInterface::WrapObject(JSContext* aCx,
+JSObject* TestTrialInterface::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return TestTrialInterface_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -46,7 +46,7 @@ class HTMLSummaryElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLSummaryElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

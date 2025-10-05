@@ -120,7 +120,7 @@ class ExtensionPolicyService final : public nsIAddonPolicyService,
       extensions::WebExtensionContentScript& aScript);
 
   RefPtr<dom::Promise> ExecuteContentScripts(
-      JSContext* aCx, nsPIDOMWindowInner* aWindow,
+      MCContext* aCx, nsPIDOMWindowInner* aWindow,
       const nsTArray<RefPtr<extensions::WebExtensionContentScript>>& aScripts);
 
   void UpdateRestrictedDomains();

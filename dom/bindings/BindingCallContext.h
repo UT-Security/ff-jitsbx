@@ -34,18 +34,13 @@ class MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS BindingCallContext {
   // argument corresponds to the "context" string used for DOM error codes that
   // support one.  See Errors.msg and the documentation for
   // ErrorResult::MaybeSetPendingException for details on he context arg.
-  BindingCallContext(JSContext* aCx, const char* aMethodDescription)
-      : BindingCallContext(aCx ? JS_SanitizeContext(aCx) : nullptr, aMethodDescription) {}
-
-#ifdef JS_SANDBOX
   BindingCallContext(MCContext* aCx, const char* aMethodDescription)
       : mCx(aCx), mDescription(aMethodDescription) {}
-#endif
 
   ~BindingCallContext() = default;
 
-  // Allow passing a BindingCallContext as a JSContext*, as needed.
-  operator JSContext*() const { return mCx ? MC_UNSAFE(mCx) : nullptr; }
+  // Allow passing a BindingCallContext as a MCContext*, as needed.
+  operator MCContext*() const { return mCx ? mCx : nullptr; }
 
   // Allow testing a BindingCallContext for falsiness, just like a
   // JSContext* could be tested.
@@ -58,7 +53,7 @@ class MOZ_NON_TEMPORARY_CLASS MOZ_STACK_CLASS BindingCallContext {
                   "We plan to add a context; it better be expected!");
     MOZ_ASSERT(mCx);
     return dom::ThrowErrorMessage<errorNumber>(
-        MC_UNSAFE(mCx), mDescription, std::forward<Ts>(aMessageArgs)...);
+        mCx, mDescription, std::forward<Ts>(aMessageArgs)...);
   }
 
  private:

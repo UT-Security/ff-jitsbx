@@ -68,7 +68,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMSVGNumberList)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* DOMSVGNumberList::WrapObject(JSContext* cx,
+JSObject* DOMSVGNumberList::WrapObject(MCContext* cx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGNumberList_Binding::Wrap(cx, this, aGivenProto);
 }

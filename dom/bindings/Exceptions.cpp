@@ -31,7 +31,7 @@ namespace mozilla::dom {
 // synthesize and throw a new exception value for NS_ERROR_UNEXPECTED.  The
 // incoming value must be in the compartment of aCx.  This function guarantees
 // that an exception is pending on aCx when it returns.
-static void ThrowExceptionValueIfSafe(JSContext* aCx,
+static void ThrowExceptionValueIfSafe(MCContext* aCx,
                                       JS::Handle<JS::Value> exnVal,
                                       Exception* aOriginalException) {
   MOZ_ASSERT(aOriginalException);
@@ -48,7 +48,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
 
   // aCx's current Realm is where we're throwing, so using it in the
   // CheckedUnwrapDynamic check makes sense.
-  if (js::CheckedUnwrapDynamic(exnObj, aCx)) {
+  if (mc::CheckedUnwrapDynamic(exnObj, aCx)) {
     // This is an object we're allowed to work with, so just go ahead and throw
     // it.
     JS_SetPendingException(aCx, exnVal);
@@ -71,7 +71,7 @@ static void ThrowExceptionValueIfSafe(JSContext* aCx,
   JS_SetPendingException(aCx, syntheticVal);
 }
 
-void ThrowExceptionObject(JSContext* aCx, Exception* aException) {
+void ThrowExceptionObject(MCContext* aCx, Exception* aException) {
   MC::Rooted<JS::Value> thrown(aCx);
 
   // If we stored the original thrown JS value in the exception
@@ -108,7 +108,7 @@ void ThrowExceptionObject(JSContext* aCx, Exception* aException) {
   ThrowExceptionValueIfSafe(aCx, thrown, aException);
 }
 
-bool Throw(JSContext* aCx, nsresult aRv, const nsACString& aMessage) {
+bool Throw(MCContext* aCx, nsresult aRv, const nsACString& aMessage) {
   if (aRv == NS_ERROR_UNCATCHABLE_EXCEPTION) {
     // Nuke any existing exception on aCx, to make sure we're uncatchable.
     JS_ClearPendingException(aCx);
@@ -183,7 +183,7 @@ already_AddRefed<Exception> CreateException(nsresult aRv,
 
 already_AddRefed<nsIStackFrame> GetCurrentJSStack(int32_t aMaxDepth) {
   // is there a current context available?
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
 
   if (!cx || !js::GetContextRealm(cx)) {
     return nullptr;
@@ -738,7 +738,7 @@ void JSStackFrame::ToString(MCContext* aCx, nsACString& _retval) {
                        NS_ConvertUTF16toUTF8(funname).get(), lineno);
 }
 
-already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
+already_AddRefed<nsIStackFrame> CreateStack(MCContext* aCx,
                                             JS::StackCapture&& aCaptureMode) {
   MC::Rooted<JSObject*> stack(aCx);
   if (!JS::CaptureCurrentStack(aCx, &stack, std::move(aCaptureMode))) {
@@ -748,7 +748,7 @@ already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
   return CreateStack(aCx, stack);
 }
 
-already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
+already_AddRefed<nsIStackFrame> CreateStack(MCContext* aCx,
                                             JS::Handle<JSObject*> aStack) {
   if (aStack) {
     return MakeAndAddRef<JSStackFrame>(aStack);

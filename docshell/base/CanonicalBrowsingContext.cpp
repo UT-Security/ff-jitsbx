@@ -1246,7 +1246,7 @@ Maybe<int32_t> CanonicalBrowsingContext::HistoryGo(
 }
 
 JSObject* CanonicalBrowsingContext::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CanonicalBrowsingContext_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -2055,7 +2055,7 @@ CanonicalBrowsingContext::ChangeRemoteness(
     if (blocker && blocker->State() != Promise::PromiseState::Resolved) {
       change->mWaitingForPrepareToChange = true;
       RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-          [change](JSContext* aCx, JS::Handle<JS::Value> aValue) {
+          [change](MCContext* aCx, JS::Handle<JS::Value> aValue) {
             change->mWaitingForPrepareToChange = false;
             change->MaybeFinish();
           },

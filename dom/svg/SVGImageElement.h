@@ -33,7 +33,7 @@ class SVGImageElement final : public SVGImageElementBase,
   explicit SVGImageElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   virtual ~SVGImageElement();
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
   friend nsresult(::NS_NewSVGImageElement(
       nsIContent** aResult,

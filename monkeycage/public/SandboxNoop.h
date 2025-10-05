@@ -10,7 +10,6 @@
 #include <stdlib.h>
 
 #include "monkeycage/unsafe/lib.h"
-#include "monkeycage/SandboxCallback.h"
 
 namespace MC {
 namespace detail {
@@ -53,6 +52,8 @@ class SandboxNoop {
     return monkeycage_invoked_cb();
   }
 };
+
+using SandboxImpl = SandboxNoop;
 
 }  // namespace detail
 }  // namespace MC

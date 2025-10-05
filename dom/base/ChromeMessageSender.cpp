@@ -9,7 +9,7 @@
 
 namespace mozilla::dom {
 
-JSObject* ChromeMessageSender::WrapObject(JSContext* aCx,
+JSObject* ChromeMessageSender::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(nsContentUtils::IsSystemCaller(aCx));
 

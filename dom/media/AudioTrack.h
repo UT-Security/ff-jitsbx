@@ -23,7 +23,7 @@ class AudioTrack : public MediaTrack {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioTrack, MediaTrack)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   AudioTrack* AsAudioTrack() override { return this; }

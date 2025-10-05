@@ -114,7 +114,7 @@ class GetSubscriptionResultRunnable final : public WorkerRunnable {
         mAuthSecret(std::move(aAuthSecret)),
         mAppServerKey(std::move(aAppServerKey)) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     RefPtr<Promise> promise = mProxy->WorkerPromise();
     if (NS_SUCCEEDED(mStatus)) {
       if (mEndpoint.IsEmpty()) {
@@ -301,7 +301,7 @@ class PermissionResultRunnable final : public WorkerRunnable {
     AssertIsOnMainThread();
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -386,7 +386,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushManager)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* PushManager::WrapObject(JSContext* aCx,
+JSObject* PushManager::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return PushManager_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -401,7 +401,7 @@ already_AddRefed<PushManager> PushManager::Constructor(GlobalObject& aGlobal,
   }
 
   RefPtr<PushManagerImpl> impl =
-      PushManagerImpl::Constructor(aGlobal, MC_UNSAFE(aGlobal.Context()), aScope, aRv);
+      PushManagerImpl::Constructor(aGlobal, aGlobal.Context(), aScope, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -412,7 +412,7 @@ already_AddRefed<PushManager> PushManager::Constructor(GlobalObject& aGlobal,
   return ret.forget();
 }
 
-bool PushManager::IsEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool PushManager::IsEnabled(MCContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_push_enabled() && ServiceWorkerVisible(aCx, aGlobal);
 }
 

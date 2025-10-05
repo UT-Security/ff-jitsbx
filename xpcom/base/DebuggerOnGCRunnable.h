@@ -9,7 +9,7 @@
 
 #include <utility>
 
-#include "js/GCAPI.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/UniquePtr.h"
 #include "nsThreadUtils.h"
 

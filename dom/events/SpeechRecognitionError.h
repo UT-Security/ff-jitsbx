@@ -23,7 +23,7 @@ class SpeechRecognitionError : public Event {
       const SpeechRecognitionErrorInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::SpeechRecognitionError_Binding::Wrap(aCx, this,
                                                               aGivenProto);
   }

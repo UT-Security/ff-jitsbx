@@ -51,7 +51,7 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
       WorkerPrivate* aWorkerPrivate, nsIGlobalObject* aGlobal,
       const ServiceWorkerRegistrationDescriptor& aDescriptor);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void DisconnectFromOwner() override;
@@ -79,11 +79,11 @@ class ServiceWorkerRegistration final : public DOMEventTargetHelper {
 
   already_AddRefed<Promise> Unregister(ErrorResult& aRv);
 
-  already_AddRefed<PushManager> GetPushManager(JSContext* aCx,
+  already_AddRefed<PushManager> GetPushManager(MCContext* aCx,
                                                ErrorResult& aRv);
 
   already_AddRefed<Promise> ShowNotification(
-      JSContext* aCx, const nsAString& aTitle,
+      MCContext* aCx, const nsAString& aTitle,
       const NotificationOptions& aOptions, ErrorResult& aRv);
 
   already_AddRefed<Promise> GetNotifications(

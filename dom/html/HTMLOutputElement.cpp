@@ -146,7 +146,7 @@ void HTMLOutputElement::ContentRemoved(nsIContent* aChild,
   DescendantsChanged();
 }
 
-JSObject* HTMLOutputElement::WrapNode(JSContext* aCx,
+JSObject* HTMLOutputElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLOutputElement_Binding::Wrap(aCx, this, aGivenProto);
 }

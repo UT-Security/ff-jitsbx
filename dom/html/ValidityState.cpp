@@ -23,7 +23,7 @@ NS_INTERFACE_MAP_END
 ValidityState::ValidityState(nsIConstraintValidation* aConstraintValidation)
     : mConstraintValidation(aConstraintValidation) {}
 
-JSObject* ValidityState::WrapObject(JSContext* aCx,
+JSObject* ValidityState::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return ValidityState_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -368,7 +368,7 @@ already_AddRefed<Promise> GamepadServiceTest::NewTouch(
   return p.forget();
 }
 
-JSObject* GamepadServiceTest::WrapObject(JSContext* aCx,
+JSObject* GamepadServiceTest::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return GamepadServiceTest_Binding::Wrap(aCx, this, aGivenProto);
 }

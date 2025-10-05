@@ -253,7 +253,7 @@ nsresult HTMLEmbedElement::CopyInnerTo(HTMLEmbedElement* aDest) {
   return rv;
 }
 
-JSObject* HTMLEmbedElement::WrapNode(JSContext* aCx,
+JSObject* HTMLEmbedElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLEmbedElement_Binding::Wrap(aCx, this, aGivenProto);
 }

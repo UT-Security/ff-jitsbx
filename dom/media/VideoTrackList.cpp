@@ -9,7 +9,7 @@
 
 namespace mozilla::dom {
 
-JSObject* VideoTrackList::WrapObject(JSContext* aCx,
+JSObject* VideoTrackList::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return VideoTrackList_Binding::Wrap(aCx, this, aGivenProto);
 }

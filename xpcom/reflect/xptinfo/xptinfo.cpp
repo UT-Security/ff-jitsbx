@@ -90,7 +90,7 @@ const char* nsXPTMethodInfo::SymbolDescription() const {
   }
 }
 
-bool nsXPTMethodInfo::GetId(JSContext* aCx, jsid& aId) const {
+bool nsXPTMethodInfo::GetId(MCContext* aCx, jsid& aId) const {
   if (IsSymbol()) {
     aId = JS::PropertyKey::Symbol(GetSymbol(aCx));
     return true;

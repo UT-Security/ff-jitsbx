@@ -22,7 +22,7 @@ class External : public nsWrapperCache {
   explicit External(nsISupports* aParent) : mParent(aParent) {}
 
   nsISupports* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   void AddSearchProvider() {}
   void IsSearchProviderInstalled() {}

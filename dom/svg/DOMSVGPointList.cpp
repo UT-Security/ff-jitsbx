@@ -95,7 +95,7 @@ void DOMSVGPointList::RemoveFromTearoffTable() {
 
 DOMSVGPointList::~DOMSVGPointList() { RemoveFromTearoffTable(); }
 
-JSObject* DOMSVGPointList::WrapObject(JSContext* cx,
+JSObject* DOMSVGPointList::WrapObject(MCContext* cx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGPointList_Binding::Wrap(cx, this, aGivenProto);
 }

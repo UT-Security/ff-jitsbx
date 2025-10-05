@@ -32,7 +32,7 @@ already_AddRefed<SpeechGrammar> SpeechGrammar::Constructor(
 
 nsISupports* SpeechGrammar::GetParentObject() const { return mParent; }
 
-JSObject* SpeechGrammar::WrapObject(JSContext* aCx,
+JSObject* SpeechGrammar::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return SpeechGrammar_Binding::Wrap(aCx, this, aGivenProto);
 }

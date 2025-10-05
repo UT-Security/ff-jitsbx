@@ -68,7 +68,7 @@ class VRMockDisplay final : public DOMEventTargetHelper {
                const Nullable<Float32Array>& aAngularVelocity,
                const Nullable<Float32Array>& aAngularAcceleration,
                ErrorResult& aRv);
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -118,7 +118,7 @@ class VRMockController : public DOMEventTargetHelper {
                const Nullable<Float32Array>& aAngularAcceleration,
                ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -163,7 +163,7 @@ class VRServiceTest final : public DOMEventTargetHelper {
   void AddCommand(uint64_t aCommand);
   static already_AddRefed<VRServiceTest> CreateTestService(
       nsPIDOMWindowInner* aWindow);
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   gfx::VRSystemState& SystemState();
 

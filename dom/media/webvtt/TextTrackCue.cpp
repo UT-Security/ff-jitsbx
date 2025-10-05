@@ -142,7 +142,7 @@ void TextTrackCue::SetTrackElement(HTMLTrackElement* aTrackElement) {
   mTrackElement = aTrackElement;
 }
 
-JSObject* TextTrackCue::WrapObject(JSContext* aCx,
+JSObject* TextTrackCue::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return VTTCue_Binding::Wrap(aCx, this, aGivenProto);
 }

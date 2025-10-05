@@ -55,7 +55,7 @@ class MOZ_STACK_CLASS AutoChildOpArgs final {
 
   void Add(const InternalRequest& aRequest, BodyAction aBodyAction,
            SchemeAction aSchemeAction, ErrorResult& aRv);
-  void Add(JSContext* aCx, const InternalRequest& aRequest,
+  void Add(MCContext* aCx, const InternalRequest& aRequest,
            BodyAction aBodyAction, SchemeAction aSchemeAction,
            Response& aResponse, ErrorResult& aRv);
 

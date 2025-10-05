@@ -747,7 +747,7 @@ void ToastNotification::SignalComNotificationHandled(
 
 NS_IMETHODIMP
 ToastNotification::HandleWindowsTag(const nsAString& aWindowsTag,
-                                    JSContext* aCx, dom::Promise** aPromise) {
+                                    MCContext* aCx, dom::Promise** aPromise) {
   NS_ENSURE_TRUE(mAumid.isSome(), NS_ERROR_UNEXPECTED);
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_NOT_SAME_THREAD);
 

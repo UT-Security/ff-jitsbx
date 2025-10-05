@@ -13,7 +13,7 @@ namespace mozilla::dom {
 
 using namespace SVGViewElement_Binding;
 
-JSObject* SVGViewElement::WrapNode(JSContext* aCx,
+JSObject* SVGViewElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGViewElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -68,7 +68,7 @@ class ServiceWorkerOp : public RemoteWorkerChild::Op {
   // the ServiceWorkerOp was executed successfully (and false if it did fail).
   // Content throwing an exception during event dispatch is still considered
   // success.
-  virtual bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) = 0;
+  virtual bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) = 0;
 
   // Override to reject any additional MozPromises that subclasses may contain.
   virtual void RejectAll(nsresult aStatus);
@@ -127,7 +127,7 @@ class FetchEventOp final : public ExtendableEventOp,
 
   ~FetchEventOp();
 
-  bool Exec(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool Exec(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 
   void RejectAll(nsresult aStatus) override;
 
@@ -137,10 +137,10 @@ class FetchEventOp final : public ExtendableEventOp,
    * `{Resolved,Reject}Callback()` are use to handle the
    * `FetchEvent::RespondWith()` promise.
    */
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   void MaybeFinished();
@@ -155,7 +155,7 @@ class FetchEventOp final : public ExtendableEventOp,
   void GetRequestURL(nsAString& aOutRequestURL);
 
   // A failure code means that the dispatch failed.
-  nsresult DispatchFetchEvent(JSContext* aCx, WorkerPrivate* aWorkerPrivate);
+  nsresult DispatchFetchEvent(MCContext* aCx, WorkerPrivate* aWorkerPrivate);
 
   // Worker Launcher thread only. Used for `AsyncLog().`
   RefPtr<FetchEventOpProxyChild> mActor;

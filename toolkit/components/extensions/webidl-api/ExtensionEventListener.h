@@ -52,7 +52,7 @@ class ExtensionEventListener final : public mozIExtensionEventListener {
       dom::Function* aCallback, CleanupCallback&& aCleanupCallback,
       ErrorResult& aRv);
 
-  static bool IsPromise(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  static bool IsPromise(MCContext* aCx, JS::Handle<JS::Value> aValue) {
     if (!aValue.isObject()) {
       return false;
     }
@@ -99,7 +99,7 @@ class ExtensionEventListener final : public mozIExtensionEventListener {
   };
 
   static UniquePtr<dom::StructuredCloneHolder> SerializeCallArguments(
-      const nsTArray<JS::Value>& aArgs, JSContext* aCx, ErrorResult& aRv);
+      const nsTArray<JS::Value>& aArgs, MCContext* aCx, ErrorResult& aRv);
 
   ~ExtensionEventListener() { Cleanup(); };
 
@@ -151,7 +151,7 @@ class ExtensionListenerCallWorkerRunnable : public dom::WorkerRunnable {
   }
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  bool WorkerRun(JSContext* aCx, dom::WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(MCContext* aCx, dom::WorkerPrivate* aWorkerPrivate) override;
 
   bool IsCallResultCancelled() { return mIsCallResultCancelled; }
 
@@ -174,7 +174,7 @@ class ExtensionListenerCallWorkerRunnable : public dom::WorkerRunnable {
     }
   }
 
-  void DeserializeCallArguments(JSContext* aCx, dom::Sequence<JS::Value>& aArg,
+  void DeserializeCallArguments(MCContext* aCx, dom::Sequence<JS::Value>& aArg,
                                 ErrorResult& aRv);
 
   RefPtr<ExtensionEventListener> mListener;
@@ -202,9 +202,9 @@ class ExtensionListenerCallPromiseResultHandler
       dom::ThreadSafeWorkerRef* aWorkerRef);
 
   // PromiseNativeHandler
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   enum class PromiseCallbackType { Resolve, Reject };
@@ -217,7 +217,7 @@ class ExtensionListenerCallPromiseResultHandler
 
   ~ExtensionListenerCallPromiseResultHandler() = default;
 
-  void WorkerRunCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void WorkerRunCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                          PromiseCallbackType aCallbackType);
 
   // Set and accessed only on the owning worker thread.

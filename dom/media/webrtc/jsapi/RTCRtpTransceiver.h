@@ -86,7 +86,7 @@ class RTCRtpTransceiver : public nsISupports, public nsWrapperCache {
   bool ConduitHasPluginID(uint64_t aPluginID);
 
   // for webidl
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsPIDOMWindowInner* GetParentObject() const;
   RTCRtpReceiver* Receiver() const { return mReceiver; }

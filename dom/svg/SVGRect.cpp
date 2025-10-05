@@ -29,7 +29,7 @@ SVGRect::SVGRect(SVGSVGElement* aSVGElement)
   mRect = gfx::Rect(0, 0, 0, 0);
 }
 
-JSObject* SVGRect::WrapObject(JSContext* aCx,
+JSObject* SVGRect::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(mParent);
   return SVGRect_Binding::Wrap(aCx, this, aGivenProto);

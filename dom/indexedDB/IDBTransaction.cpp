@@ -195,7 +195,7 @@ SafeRefPtr<IDBTransaction> IDBTransaction::CreateVersionChange(
 
 // static
 SafeRefPtr<IDBTransaction> IDBTransaction::Create(
-    JSContext* const aCx, IDBDatabase* const aDatabase,
+    MCContext* const aCx, IDBDatabase* const aDatabase,
     const nsTArray<nsString>& aObjectStoreNames, const Mode aMode) {
   MOZ_ASSERT(aDatabase);
   aDatabase->AssertIsOnOwningThread();
@@ -957,7 +957,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(IDBTransaction,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mDeletedObjectStores)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-JSObject* IDBTransaction::WrapObject(JSContext* const aCx,
+JSObject* IDBTransaction::WrapObject(MCContext* const aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnOwningThread();
 

@@ -20,7 +20,7 @@ class DOMSVGAnimatedInteger : public nsWrapperCache {
 
   SVGElement* GetParentObject() const { return mSVGElement; }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   virtual int32_t BaseVal() = 0;
   virtual void SetBaseVal(int32_t aBaseVal) = 0;

@@ -17,7 +17,7 @@ void CSSPropertyRule::SetRawAfterClone(RefPtr<StylePropertyRule> aRaw) {
 }
 
 /* virtual */
-JSObject* CSSPropertyRule::WrapObject(JSContext* aCx,
+JSObject* CSSPropertyRule::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return CSSPropertyRule_Binding::Wrap(aCx, this, aGivenProto);
 }

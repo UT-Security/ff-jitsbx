@@ -155,7 +155,7 @@ class AudioContext final : public DOMEventTargetHelper,
 
   void OnWindowDestroy();  // idempotent
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   using DOMEventTargetHelper::DispatchTrustedEvent;

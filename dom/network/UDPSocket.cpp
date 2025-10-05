@@ -131,7 +131,7 @@ UDPSocket::UDPSocket(nsPIDOMWindowInner* aOwner,
 
 UDPSocket::~UDPSocket() { CloseWithReason(NS_OK); }
 
-JSObject* UDPSocket::WrapObject(JSContext* aCx,
+JSObject* UDPSocket::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return UDPSocket_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -577,7 +577,7 @@ nsresult UDPSocket::DispatchReceivedData(const nsACString& aRemoteAddress,
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Copy packet data to ArrayBuffer
   MC::Rooted<JSObject*> arrayBuf(

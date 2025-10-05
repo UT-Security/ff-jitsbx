@@ -129,7 +129,7 @@ class IDBTransaction final
       int64_t aNextIndexId);
 
   [[nodiscard]] static SafeRefPtr<IDBTransaction> Create(
-      JSContext* aCx, IDBDatabase* aDatabase,
+      MCContext* aCx, IDBDatabase* aDatabase,
       const nsTArray<nsString>& aObjectStoreNames, Mode aMode);
 
   static Maybe<IDBTransaction&> MaybeCurrent();
@@ -291,7 +291,7 @@ class IDBTransaction final
   void CommitIfNotStarted();
 
   // nsWrapperCache
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Methods bound via WebIDL.

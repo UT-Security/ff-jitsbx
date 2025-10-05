@@ -26,6 +26,22 @@ inline bool JS_Stringify(MCContext* cx, JS::MutableHandle<JS::Value> value,
                       data);
 }
 
+namespace JS {
+
+inline bool ToJSONMaybeSafely(MCContext* cx, JS::Handle<JSObject*> input,
+                              MC::SandboxCallback<JSONWriteCallback> callback,
+                              void* data) {
+  return ToJSONMaybeSafely(cx->cx_, input, callback.UNSAFE_get(), data);
+}
+
+inline bool ToJSON(MCContext* cx, Handle<Value> value,
+                   Handle<JSObject*> replacer, Handle<Value> space,
+                   MC::SandboxCallback<JSONWriteCallback> callback,
+                   void* data) {
+  return ToJSON(cx->cx_, value, replacer, space, callback.UNSAFE_get(), data);
+}
+}  // namespace JS
+
 inline bool JS_ParseJSON(MCContext* cx, const char16_t* chars, uint32_t len,
                          JS::MutableHandle<JS::Value> vp) {
   return JS_ParseJSON(cx->cx_, chars, len, vp);

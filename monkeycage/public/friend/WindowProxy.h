@@ -19,6 +19,10 @@ inline void SetWindowProxyClass(MCContext* cx, const JSClass* clasp) {
   return SetWindowProxyClass(cx->cx_, clasp);
 }
 
+inline void SetWindowProxy(MCContext* cx, JS::Handle<JSObject*> global,
+                           JS::Handle<JSObject*> windowProxy) {
+  return SetWindowProxy(cx->cx_, global, windowProxy);
+}
 }  // namespace js
 
 #endif

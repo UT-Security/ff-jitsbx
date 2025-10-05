@@ -23,7 +23,7 @@ namespace mozilla::dom {
 
 class DOMSVGAnimatedLength;
 
-JSObject* SVGRectElement::WrapNode(JSContext* aCx,
+JSObject* SVGRectElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGRectElement_Binding::Wrap(aCx, this, aGivenProto);
 }

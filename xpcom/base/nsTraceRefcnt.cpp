@@ -174,7 +174,7 @@ struct SerialNumberRecord {
       return;
     }
 
-    JSContext* cx = nsContentUtils::GetCurrentJSContext();
+    MCContext* cx = nsContentUtils::GetCurrentJSContext();
     if (!cx) {
       return;
     }

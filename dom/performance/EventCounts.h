@@ -20,7 +20,7 @@ class EventCounts final : public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:

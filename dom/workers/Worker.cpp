@@ -41,7 +41,7 @@ already_AddRefed<Worker> Worker::Constructor(const GlobalObject& aGlobal,
   }
 
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
-      MC_UNSAFE(cx), aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
+      cx, aScriptURL, false /* aIsChromeWorker */, WorkerKindDedicated,
       aOptions.mCredentials, aOptions.mType, aOptions.mName, VoidCString(),
       nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -62,7 +62,7 @@ Worker::Worker(nsIGlobalObject* aGlobalObject,
 
 Worker::~Worker() { Terminate(); }
 
-JSObject* Worker::WrapObject(JSContext* aCx,
+JSObject* Worker::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   MC::Rooted<JSObject*> wrapper(aCx,
                                 Worker_Binding::Wrap(aCx, this, aGivenProto));
@@ -78,7 +78,7 @@ JSObject* Worker::WrapObject(JSContext* aCx,
   return wrapper;
 }
 
-void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void Worker::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                          const Sequence<JSObject*>& aTransferable,
                          ErrorResult& aRv) {
   NS_ASSERT_OWNINGTHREAD(Worker);
@@ -171,7 +171,7 @@ void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   Unused << NS_WARN_IF(!runnable->Dispatch());
 }
 
-void Worker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void Worker::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                          const StructuredSerializeOptions& aOptions,
                          ErrorResult& aRv) {
   PostMessage(aCx, aMessage, aOptions.mTransfer, aRv);

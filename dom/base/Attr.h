@@ -76,7 +76,7 @@ class Attr final : public nsINode {
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_WRAPPERCACHE_CLASS(Attr)
 
   // WebIDL
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   void GetName(nsAString& aName);

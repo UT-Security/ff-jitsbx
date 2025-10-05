@@ -224,15 +224,15 @@ class Navigator final : public nsISupports, public nsWrapperCache {
   AddonManager* GetMozAddonManager(ErrorResult& aRv);
 
   // WebIDL helper methods
-  static bool HasUserMediaSupport(JSContext* /* unused */,
+  static bool HasUserMediaSupport(MCContext* /* unused */,
                                   JSObject* /* unused */);
-  static bool HasShareSupport(JSContext* /* unused */, JSObject* /* unused */);
+  static bool HasShareSupport(MCContext* /* unused */, JSObject* /* unused */);
 
-  static bool HasMidiSupport(JSContext* /* unused */, JSObject* /* unused */);
+  static bool HasMidiSupport(MCContext* /* unused */, JSObject* /* unused */);
 
   nsPIDOMWindowInner* GetParentObject() const { return GetWindow(); }
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // GetWindowFromGlobal returns the inner window for this global, if

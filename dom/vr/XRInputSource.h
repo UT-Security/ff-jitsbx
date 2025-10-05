@@ -33,7 +33,7 @@ class XRInputSource final : public nsWrapperCache {
 
   // WebIDL Boilerplate
   nsISupports* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members

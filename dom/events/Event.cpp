@@ -213,11 +213,11 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(Event)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mOwner)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-JSObject* Event::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Event::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WrapObjectInternal(aCx, aGivenProto);
 }
 
-JSObject* Event::WrapObjectInternal(JSContext* aCx,
+JSObject* Event::WrapObjectInternal(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return Event_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -400,7 +400,7 @@ void Event::PreventDefault() {
   PreventDefaultInternal(true);
 }
 
-void Event::PreventDefault(JSContext* aCx, CallerType aCallerType) {
+void Event::PreventDefault(MCContext* aCx, CallerType aCallerType) {
   // Note that at handling default action, another event may be dispatched.
   // Then, JS in content mey be call preventDefault()
   // even in the event is in system event group.  Therefore, don't refer
@@ -871,7 +871,7 @@ void Event::GetWidgetEventType(WidgetEvent* aEvent, nsAString& aType) {
   aType.Truncate();
 }
 
-bool Event::IsDragExitEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool Event::IsDragExitEnabled(MCContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_event_dragexit_enabled() ||
          nsContentUtils::IsSystemCaller(aCx);
 }

@@ -39,13 +39,13 @@ ExtensionBrowserSettingsColorManagement::
 }
 
 /* static */
-bool ExtensionBrowserSettingsColorManagement::IsAllowed(JSContext* aCx,
+bool ExtensionBrowserSettingsColorManagement::IsAllowed(MCContext* aCx,
                                                         JSObject* aGlobal) {
   return true;
 }
 
 JSObject* ExtensionBrowserSettingsColorManagement::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionBrowserSettingsColorManagement_Binding::Wrap(
       aCx, this, aGivenProto);
 }

@@ -36,7 +36,7 @@ WebTransportIncomingStreamsAlgorithms::
 
 already_AddRefed<Promise>
 WebTransportIncomingStreamsAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    MCContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#pullbidirectionalstream and
   // https://w3c.github.io/webtransport/#pullunidirectionalstream
 
@@ -68,7 +68,7 @@ WebTransportIncomingStreamsAlgorithms::PullCallbackImpl(
          mUnidirectional == StreamType::Unidirectional ? "Uni" : "Bi"));
     Result<RefPtr<Promise>, nsresult> returnResult =
         promise->ThenWithCycleCollectedArgs(
-            [](JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
                RefPtr<WebTransportIncomingStreamsAlgorithms> self,
                RefPtr<Promise> aPromise) -> already_AddRefed<Promise> {
               self->BuildStream(aCx, aRv);
@@ -89,7 +89,7 @@ WebTransportIncomingStreamsAlgorithms::PullCallbackImpl(
 }
 
 // Note: fallible
-void WebTransportIncomingStreamsAlgorithms::BuildStream(JSContext* aCx,
+void WebTransportIncomingStreamsAlgorithms::BuildStream(MCContext* aCx,
                                                         ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#pullbidirectionalstream and
   // https://w3c.github.io/webtransport/#pullunidirectionalstream

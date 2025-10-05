@@ -75,7 +75,7 @@ void DOMSVGLengthList::IndexedSetter(uint32_t index, DOMSVGLength& newValue,
   Unused << ignored;
 }
 
-JSObject* DOMSVGLengthList::WrapObject(JSContext* cx,
+JSObject* DOMSVGLengthList::WrapObject(MCContext* cx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGLengthList_Binding::Wrap(cx, this, aGivenProto);
 }

@@ -7,11 +7,11 @@
 #include "ExtensionEventManager.h"
 #include "ExtensionAPICallFunctionNoReturn.h"
 
-#include "js/Equality.h"            // JS::StrictlyEqual
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/Equality.h"            // JS::StrictlyEqual
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "mozilla/dom/ExtensionTestBinding.h"
 #include "nsIGlobalObject.h"
-#include "js/RegExp.h"
+#include "monkeycage/RegExp.h"
 #include "monkeycage/Value.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "prenv.h"
@@ -19,7 +19,7 @@
 namespace mozilla {
 namespace extensions {
 
-bool IsInAutomation(JSContext* aCx, JSObject* aGlobal) {
+bool IsInAutomation(MCContext* aCx, JSObject* aGlobal) {
   return NS_IsMainThread()
              ? xpc::IsInAutomation()
              : dom::WorkerGlobalScope::IsInAutomation(aCx, aGlobal);
@@ -45,7 +45,7 @@ ExtensionTest::ExtensionTest(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionTest::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionTest::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   // Allow browser.test API namespace while running in xpcshell tests.
   if (PR_GetEnv("XPCSHELL_TEST_PROFILE_DIR")) {
     return true;
@@ -54,7 +54,7 @@ bool ExtensionTest::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
   return IsInAutomation(aCx, aGlobal);
 }
 
-JSObject* ExtensionTest::WrapObject(JSContext* aCx,
+JSObject* ExtensionTest::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionTest_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -62,7 +62,7 @@ JSObject* ExtensionTest::WrapObject(JSContext* aCx,
 nsIGlobalObject* ExtensionTest::GetParentObject() const { return mGlobal; }
 
 void ExtensionTest::CallWebExtMethodAssertEq(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   uint32_t argsCount = aArgs.Length();
 
@@ -73,8 +73,8 @@ void ExtensionTest::CallWebExtMethodAssertEq(
   MC::Rooted<JS::Value> messageVal(
       aCx, argsCount > 2 ? aArgs[2] : JS::UndefinedValue());
 
-  bool isEqual;
-  if (NS_WARN_IF(!JS::StrictlyEqual(aCx, actualVal, expectedVal, &isEqual))) {
+  MC::SandboxStack<bool> isEqual;
+  if (NS_WARN_IF(!JS::StrictlyEqual(aCx, actualVal, expectedVal, isEqual))) {
     ThrowUnexpectedError(aCx, aRv);
     return;
   }
@@ -94,7 +94,7 @@ void ExtensionTest::CallWebExtMethodAssertEq(
     return;
   }
 
-  if (!isEqual && actual.Equals(expected)) {
+  if (!*isEqual.UNSAFE_unverified() && actual.Equals(expected)) {
     actual.AppendLiteral(" (different)");
   }
 
@@ -117,7 +117,7 @@ void ExtensionTest::CallWebExtMethodAssertEq(
 }
 
 MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
-    JSContext* aCx, const JS::HandleValue aActualValue,
+    MCContext* aCx, const JS::HandleValue aActualValue,
     const JS::HandleValue aExpectedMatchValue, const nsAString& aMessagePre,
     const nsAString& aMessage,
     UniquePtr<dom::SerializedStackHolder> aSerializedCallerStack,
@@ -130,26 +130,26 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   nsAutoJSString actualString;
   NS_ENSURE_TRUE(actualString.init(aCx, actualToString), false);
 
-  bool matched = false;
+  MC::SandboxStack<bool> matched = false;
 
   if (aExpectedMatchValue.isObject()) {
     MC::Rooted<JSObject*> expectedMatchObj(aCx,
                                            &aExpectedMatchValue.toObject());
 
-    bool isRegexp;
-    NS_ENSURE_TRUE(JS::ObjectIsRegExp(aCx, expectedMatchObj, &isRegexp), false);
+    MC::SandboxStack<bool> isRegexp;
+    NS_ENSURE_TRUE(JS::ObjectIsRegExp(aCx, expectedMatchObj, isRegexp), false);
 
-    if (isRegexp) {
+    if (*isRegexp.UNSAFE_unverified()) {
       // Expected value is a regexp, test if the stringified actual value does
       // match.
       nsString input(actualString);
-      size_t index = 0;
+      MC::SandboxStack<size_t> index = 0;
       MC::Rooted<JS::Value> rxResult(aCx);
       NS_ENSURE_TRUE(JS::ExecuteRegExpNoStatics(
                          aCx, expectedMatchObj, input.BeginWriting(),
-                         actualString.Length(), &index, true, &rxResult),
+                         actualString.Length(), index, true, &rxResult),
                      false);
-      matched = !rxResult.isNull();
+      *matched = !rxResult.isNull();
     } else if (JS::IsCallable(expectedMatchObj) &&
                !JS::IsConstructor(expectedMatchObj)) {
       // Expected value is a matcher function, execute it with the value as a
@@ -168,19 +168,19 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
       if (!JS::Call(aCx, MC::UndefinedHandleValue(), expectedMatchObj,
                     JS::HandleValueArray(aActualValue), &retval)) {
         aRv.StealExceptionFromJSContext(aCx);
-        matched = false;
+        *matched = false;
       } else {
-        matched = JS::ToBoolean(retval);
+        *matched = JS::ToBoolean(retval);
       }
     } else if (JS::IsConstructor(expectedMatchObj)) {
       // Expected value is a constructor, test if the actual value is an
       // instanceof the expected constructor.
       NS_ENSURE_TRUE(
-          JS_HasInstance(aCx, expectedMatchObj, aActualValue, &matched), false);
+          JS_HasInstance(aCx, expectedMatchObj, aActualValue, matched), false);
     } else {
       // Fallback to strict equal for any other js object type we don't expect.
       NS_ENSURE_TRUE(
-          JS::StrictlyEqual(aCx, aActualValue, aExpectedMatchValue, &matched),
+          JS::StrictlyEqual(aCx, aActualValue, aExpectedMatchValue, matched),
           false);
     }
   } else if (aExpectedMatchValue.isString()) {
@@ -211,7 +211,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
         // exception to re-raise it to the caller, but continue to still report
         // the assertion as failed to the WebExtensions internals.
         aRv.StealExceptionFromJSContext(aCx);
-        matched = false;
+        *matched = false;
       }
 
       if (messageVal.isString()) {
@@ -219,11 +219,11 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
         NS_ENSURE_TRUE(actualString.init(aCx, actualToString), false);
       }
     }
-    matched = expectedString.Equals(actualString);
+    *matched = expectedString.Equals(actualString);
   } else {
     // Fallback to strict equal for any other js value type we don't expect.
     NS_ENSURE_TRUE(
-        JS::StrictlyEqual(aCx, aActualValue, aExpectedMatchValue, &matched),
+        JS::StrictlyEqual(aCx, aActualValue, aExpectedMatchValue, matched),
         false);
   }
 
@@ -250,7 +250,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
   dom::Sequence<JS::Value> assertTrueArgs;
   MC::Rooted<JS::Value> arg0(aCx);
   MC::Rooted<JS::Value> arg1(aCx);
-  NS_ENSURE_FALSE(!dom::ToJSValue(aCx, matched, &arg0) ||
+  NS_ENSURE_FALSE(!dom::ToJSValue(aCx, *matched.UNSAFE_unverified(), &arg0) ||
                       !dom::ToJSValue(aCx, message, &arg1) ||
                       !assertTrueArgs.AppendElement(arg0, fallible) ||
                       !assertTrueArgs.AppendElement(arg1, fallible),
@@ -267,7 +267,7 @@ MOZ_CAN_RUN_SCRIPT bool ExtensionTest::AssertMatchInternal(
 }
 
 MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
-    JSContext* aCx, dom::Function& aFunction,
+    MCContext* aCx, dom::Function& aFunction,
     const JS::HandleValue aExpectedError, const nsAString& aMessage,
     ErrorResult& aRv) {
   // Call the function that is expected to throw, then get the pending exception
@@ -334,7 +334,7 @@ MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
 }
 
 MOZ_CAN_RUN_SCRIPT void ExtensionTest::AssertThrows(
-    JSContext* aCx, dom::Function& aFunction,
+    MCContext* aCx, dom::Function& aFunction,
     const JS::HandleValue aExpectedError, ErrorResult& aRv) {
   AssertThrows(aCx, aFunction, aExpectedError, EmptyString(), aRv);
 }
@@ -362,7 +362,7 @@ class AssertRejectsHandler final : public dom::PromiseNativeHandler {
     aPromise->AppendNativeHandler(handler);
   }
 
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
     nsAutoJSString expectedErrorSource;
@@ -405,7 +405,7 @@ class AssertRejectsHandler final : public dom::PromiseNativeHandler {
     mOutPromise->MaybeResolve(JS::UndefinedValue());
   }
 
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
     MC::Rooted<JS::Value> expectedMatchRooted(aCx, mExpectedMatchValue);
@@ -484,7 +484,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AssertRejectsHandler)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 void ExtensionTest::AssertRejects(
-    JSContext* aCx, dom::Promise& aPromise,
+    MCContext* aCx, dom::Promise& aPromise,
     const JS::HandleValue aExpectedError, const nsAString& aMessage,
     const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {
@@ -516,7 +516,7 @@ void ExtensionTest::AssertRejects(
 }
 
 void ExtensionTest::AssertRejects(
-    JSContext* aCx, dom::Promise& aPromise,
+    MCContext* aCx, dom::Promise& aPromise,
     const JS::HandleValue aExpectedError,
     const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {

@@ -37,7 +37,7 @@ PointerEvent::PointerEvent(EventTarget* aOwner, nsPresContext* aPresContext,
   mDetail = 0;
 }
 
-JSObject* PointerEvent::WrapObjectInternal(JSContext* aCx,
+JSObject* PointerEvent::WrapObjectInternal(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return PointerEvent_Binding::Wrap(aCx, this, aGivenProto);
 }

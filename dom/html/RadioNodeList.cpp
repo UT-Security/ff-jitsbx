@@ -15,7 +15,7 @@
 namespace mozilla::dom {
 
 /* virtual */
-JSObject* RadioNodeList::WrapObject(JSContext* aCx,
+JSObject* RadioNodeList::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return RadioNodeList_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -91,7 +91,7 @@ already_AddRefed<TCPServerSocket> LegacyMozTCPSocket::Listen(
                                       aRv);
 }
 
-bool LegacyMozTCPSocket::WrapObject(JSContext* aCx,
+bool LegacyMozTCPSocket::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto,
                                     JS::MutableHandle<JSObject*> aReflector) {
   return LegacyMozTCPSocket_Binding::Wrap(aCx, this, aGivenProto, aReflector);
@@ -536,7 +536,7 @@ TCPSocket::FireDataArrayEvent(const nsAString& aType,
   if (NS_WARN_IF(!api.Init(GetOwnerGlobal()))) {
     return NS_ERROR_FAILURE;
   }
-  JSContext* cx = api.cx();
+  MCContext* cx = api.mcx();
   MC::Rooted<JS::Value> val(cx);
 
   bool ok = IPC::DeserializeArrayBuffer(cx, buffer, &val);
@@ -553,7 +553,7 @@ TCPSocket::FireDataStringEvent(const nsAString& aType,
   if (NS_WARN_IF(!api.Init(GetOwnerGlobal()))) {
     return NS_ERROR_FAILURE;
   }
-  JSContext* cx = api.cx();
+  MCContext* cx = api.mcx();
   MC::Rooted<JS::Value> val(cx);
 
   bool ok = ToJSValue(cx, NS_ConvertASCIItoUTF16(aString), &val);
@@ -563,7 +563,7 @@ TCPSocket::FireDataStringEvent(const nsAString& aType,
   return NS_ERROR_FAILURE;
 }
 
-nsresult TCPSocket::FireDataEvent(JSContext* aCx, const nsAString& aType,
+nsresult TCPSocket::FireDataEvent(MCContext* aCx, const nsAString& aType,
                                   JS::Handle<JS::Value> aData) {
   MOZ_ASSERT(!mSocketBridgeParent);
 
@@ -578,7 +578,7 @@ nsresult TCPSocket::FireDataEvent(JSContext* aCx, const nsAString& aType,
   return NS_OK;
 }
 
-JSObject* TCPSocket::WrapObject(JSContext* aCx,
+JSObject* TCPSocket::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return TCPSocket_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1047,7 +1047,7 @@ TCPSocket::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aStream,
     if (!api.Init(GetOwnerGlobal())) {
       return NS_ERROR_FAILURE;
     }
-    JSContext* cx = api.cx();
+    MCContext* cx = api.mcx();
 
     MC::Rooted<JS::Value> value(cx);
     if (!ToJSValue(cx, TypedArrayCreator<ArrayBuffer>(buffer), &value)) {
@@ -1070,7 +1070,7 @@ TCPSocket::OnDataAvailable(nsIRequest* aRequest, nsIInputStream* aStream,
   if (!api.Init(GetOwnerGlobal())) {
     return NS_ERROR_FAILURE;
   }
-  JSContext* cx = api.cx();
+  MCContext* cx = api.mcx();
 
   MC::Rooted<JS::Value> value(cx);
   if (!ToJSValue(cx, NS_ConvertASCIItoUTF16(data), &value)) {
@@ -1151,7 +1151,7 @@ TCPSocket::Observe(nsISupports* aSubject, const char* aTopic,
 }
 
 /* static */
-bool TCPSocket::ShouldTCPSocketExist(JSContext* aCx, JSObject* aGlobal) {
+bool TCPSocket::ShouldTCPSocketExist(MCContext* aCx, JSObject* aGlobal) {
   MC::Rooted<JSObject*> global(aCx, aGlobal);
   return nsContentUtils::ObjectPrincipal(global)->IsSystemPrincipal();
 }

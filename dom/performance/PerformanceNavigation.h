@@ -32,7 +32,7 @@ class PerformanceNavigation final : public nsWrapperCache {
 
   Performance* GetParentObject() const { return mPerformance; }
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // PerformanceNavigation WebIDL methods

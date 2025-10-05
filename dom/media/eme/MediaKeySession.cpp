@@ -95,7 +95,7 @@ void MediaKeySession::GetSessionId(nsString& aSessionId) const {
 
 const nsString& MediaKeySession::GetSessionId() const { return mSessionId; }
 
-JSObject* MediaKeySession::WrapObject(JSContext* aCx,
+JSObject* MediaKeySession::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return MediaKeySession_Binding::Wrap(aCx, this, aGivenProto);
 }

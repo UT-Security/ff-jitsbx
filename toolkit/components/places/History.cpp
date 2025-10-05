@@ -211,7 +211,7 @@ namespace {
  * @param [out] _arrayLength
  *        _array's length.
  */
-nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, JSContext* aCtx,
+nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, MCContext* aCtx,
                                JS::MutableHandle<JSObject*> _array,
                                uint32_t* _arrayLength) {
   if (aValue.isObjectOrNull()) {
@@ -247,7 +247,7 @@ nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, JSContext* aCtx,
  *        The JS value to convert.
  * @return the nsIURI object, or null if aValue is not a nsIURI object.
  */
-already_AddRefed<nsIURI> GetJSValueAsURI(JSContext* aCtx,
+already_AddRefed<nsIURI> GetJSValueAsURI(MCContext* aCtx,
                                          const JS::Value& aValue) {
   if (!aValue.isPrimitive()) {
     nsCOMPtr<nsIXPConnect> xpc = nsIXPConnect::XPConnect();
@@ -274,7 +274,7 @@ already_AddRefed<nsIURI> GetJSValueAsURI(JSContext* aCtx,
  *        The name of the property to get the URI from.
  * @return the URI if it exists.
  */
-already_AddRefed<nsIURI> GetURIFromJSObject(JSContext* aCtx,
+already_AddRefed<nsIURI> GetURIFromJSObject(MCContext* aCtx,
                                             JS::Handle<JSObject*> aObject,
                                             const char* aProperty) {
   MC::Rooted<JS::Value> uriVal(aCtx);
@@ -292,7 +292,7 @@ already_AddRefed<nsIURI> GetURIFromJSObject(JSContext* aCtx,
  * @param _string
  *        The string to populate with the value, or set it to void.
  */
-void GetJSValueAsString(JSContext* aCtx, const JS::Value& aValue,
+void GetJSValueAsString(MCContext* aCtx, const JS::Value& aValue,
                         nsString& _string) {
   if (aValue.isUndefined() || !(aValue.isNull() || aValue.isString())) {
     _string.SetIsVoid(true);
@@ -322,7 +322,7 @@ void GetJSValueAsString(JSContext* aCtx, const JS::Value& aValue,
  * @param _string
  *        The string to populate with the value, or set it to void.
  */
-void GetStringFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
+void GetStringFromJSObject(MCContext* aCtx, JS::Handle<JSObject*> aObject,
                            const char* aProperty, nsString& _string) {
   MC::Rooted<JS::Value> val(aCtx);
   bool rc = JS_GetProperty(aCtx, aObject, aProperty, &val);
@@ -346,7 +346,7 @@ void GetStringFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
  *        The integer to populate with the value on success.
  */
 template <typename IntType>
-nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
+nsresult GetIntFromJSObject(MCContext* aCtx, JS::Handle<JSObject*> aObject,
                             const char* aProperty, IntType* _int) {
   MC::Rooted<JS::Value> value(aCtx);
   bool rc = JS_GetProperty(aCtx, aObject, aProperty, &value);
@@ -357,12 +357,12 @@ nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
   NS_ENSURE_ARG(value.isPrimitive());
   NS_ENSURE_ARG(value.isNumber());
 
-  double num;
-  rc = JS::ToNumber(aCtx, value, &num);
+  MC::SandboxStack<double> num;
+  rc = JS::ToNumber(aCtx, value, num);
   NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
-  NS_ENSURE_ARG(IntType(num) == num);
+  NS_ENSURE_ARG(IntType(*num.UNSAFE_unverified()) == *num.UNSAFE_unverified());
 
-  *_int = IntType(num);
+  *_int = IntType(*num.UNSAFE_unverified());
   return NS_OK;
 }
 
@@ -380,7 +380,7 @@ nsresult GetIntFromJSObject(JSContext* aCtx, JS::Handle<JSObject*> aObject,
  * @param objOut
  *        Set to the JSObject pointer on success.
  */
-nsresult GetJSObjectFromArray(JSContext* aCtx, JS::Handle<JSObject*> aArray,
+nsresult GetJSObjectFromArray(MCContext* aCtx, JS::Handle<JSObject*> aArray,
                               uint32_t aIndex,
                               JS::MutableHandle<JSObject*> objOut) {
   MC::Rooted<JS::Value> value(aCtx);
@@ -2139,7 +2139,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
 
   uint32_t infosLength;
   MC::Rooted<JSObject*> infos(aCtx);
-  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, MC_UNSAFE(aCtx), &infos, &infosLength);
+  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, aCtx, &infos, &infosLength);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t initialUpdatedCount = 0;
@@ -2147,14 +2147,14 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
   nsTArray<VisitData> visitData;
   for (uint32_t i = 0; i < infosLength; i++) {
     MC::Rooted<JSObject*> info(aCtx);
-    nsresult rv = GetJSObjectFromArray(MC_UNSAFE(aCtx), infos, i, &info);
+    nsresult rv = GetJSObjectFromArray(aCtx, infos, i, &info);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsCOMPtr<nsIURI> uri = GetURIFromJSObject(MC_UNSAFE(aCtx), info, "uri");
+    nsCOMPtr<nsIURI> uri = GetURIFromJSObject(aCtx, info, "uri");
     nsCString guid;
     {
       nsString fatGUID;
-      GetStringFromJSObject(MC_UNSAFE(aCtx), info, "guid", fatGUID);
+      GetStringFromJSObject(aCtx, info, "guid", fatGUID);
       if (fatGUID.IsVoid()) {
         guid.SetIsVoid(true);
       } else {
@@ -2176,7 +2176,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     NS_ENSURE_ARG(guid.IsVoid() || isValidGUID);
 
     nsString title;
-    GetStringFromJSObject(MC_UNSAFE(aCtx), info, "title", title);
+    GetStringFromJSObject(aCtx, info, "title", title);
 
     MC::Rooted<JSObject*> visits(aCtx, nullptr);
     {
@@ -2206,7 +2206,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
     visitData.SetCapacity(visitData.Length() + visitsLength);
     for (uint32_t j = 0; j < visitsLength; j++) {
       MC::Rooted<JSObject*> visit(aCtx);
-      rv = GetJSObjectFromArray(MC_UNSAFE(aCtx), visits, j, &visit);
+      rv = GetJSObjectFromArray(aCtx, visits, j, &visit);
       NS_ENSURE_SUCCESS(rv, rv);
 
       VisitData& data = *visitData.AppendElement(VisitData(uri));
@@ -2219,7 +2219,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
       data.guid = guid;
 
       // We must have a date and a transaction type!
-      rv = GetIntFromJSObject(MC_UNSAFE(aCtx), visit, "visitDate", &data.visitTime);
+      rv = GetIntFromJSObject(aCtx, visit, "visitDate", &data.visitTime);
       NS_ENSURE_SUCCESS(rv, rv);
       // visitDate should be in microseconds. It's easy to do the wrong thing
       // and pass milliseconds to updatePlaces, so we lazily check for that.
@@ -2235,7 +2235,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
         return NS_ERROR_INVALID_ARG;
       }
       uint32_t transitionType = 0;
-      rv = GetIntFromJSObject(MC_UNSAFE(aCtx), visit, "transitionType", &transitionType);
+      rv = GetIntFromJSObject(aCtx, visit, "transitionType", &transitionType);
       NS_ENSURE_SUCCESS(rv, rv);
       NS_ENSURE_ARG_RANGE(transitionType, nsINavHistoryService::TRANSITION_LINK,
                           nsINavHistoryService::TRANSITION_RELOAD);
@@ -2253,7 +2253,7 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
 
       // The referrer is optional.
       nsCOMPtr<nsIURI> referrer =
-          GetURIFromJSObject(MC_UNSAFE(aCtx), visit, "referrerURI");
+          GetURIFromJSObject(aCtx, visit, "referrerURI");
       if (referrer) {
         (void)referrer->GetSpec(data.referrerSpec);
       }

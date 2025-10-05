@@ -19,7 +19,7 @@ MediaKeyError::~MediaKeyError() = default;
 
 uint32_t MediaKeyError::SystemCode() const { return mSystemCode; }
 
-JSObject* MediaKeyError::WrapObjectInternal(JSContext* aCx,
+JSObject* MediaKeyError::WrapObjectInternal(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return MediaKeyError_Binding::Wrap(aCx, this, aGivenProto);
 }

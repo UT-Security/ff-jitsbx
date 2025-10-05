@@ -98,7 +98,7 @@ class CheckerboardReportService : public nsWrapperCache {
    * Check if the given page is allowed to access this object via the WebIDL
    * bindings. It only returns true if the page is about:checkerboard.
    */
-  static bool IsEnabled(JSContext* aCtx, JSObject* aGlobal);
+  static bool IsEnabled(MCContext* aCtx, JSObject* aGlobal);
 
   /*
    * Other standard WebIDL binding glue.
@@ -109,7 +109,7 @@ class CheckerboardReportService : public nsWrapperCache {
 
   explicit CheckerboardReportService(nsISupports* aSupports);
 
-  JSObject* WrapObject(JSContext* aCtx,
+  JSObject* WrapObject(MCContext* aCtx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject();

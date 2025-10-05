@@ -86,7 +86,7 @@ MerchantValidationEvent::MerchantValidationEvent(EventTarget* aOwner)
   MOZ_ASSERT(aOwner);
 }
 
-void MerchantValidationEvent::ResolvedCallback(JSContext* aCx,
+void MerchantValidationEvent::ResolvedCallback(MCContext* aCx,
                                                JS::Handle<JS::Value> aValue,
                                                ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -112,7 +112,7 @@ void MerchantValidationEvent::ResolvedCallback(JSContext* aCx,
   mRequest->SetUpdating(false);
 }
 
-void MerchantValidationEvent::RejectedCallback(JSContext* aCx,
+void MerchantValidationEvent::RejectedCallback(MCContext* aCx,
                                                JS::Handle<JS::Value> aValue,
                                                ErrorResult& aRv) {
   MOZ_ASSERT(mRequest);
@@ -183,7 +183,7 @@ void MerchantValidationEvent::SetMethodName(const nsAString& aMethodName) {
 MerchantValidationEvent::~MerchantValidationEvent() = default;
 
 JSObject* MerchantValidationEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return MerchantValidationEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -100,7 +100,7 @@ class TeardownRunnableOnWorker final : public WorkerControlRunnable,
       : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount),
         TeardownRunnable(aActor) {}
 
-  bool WorkerRun(JSContext*, WorkerPrivate*) override {
+  bool WorkerRun(MCContext*, WorkerPrivate*) override {
     RunInternal();
     return true;
   }
@@ -112,7 +112,7 @@ class TeardownRunnableOnWorker final : public WorkerControlRunnable,
 
   bool PreRun(WorkerPrivate* aWorkerPrivate) override { return true; }
 
-  void PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                bool aRunResult) override {}
 };
 
@@ -135,7 +135,7 @@ BroadcastChannel::~BroadcastChannel() {
   MOZ_ASSERT(!mWorkerRef);
 }
 
-JSObject* BroadcastChannel::WrapObject(JSContext* aCx,
+JSObject* BroadcastChannel::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return BroadcastChannel_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -195,7 +195,7 @@ already_AddRefed<BroadcastChannel> BroadcastChannel::Constructor(
       cjs = doc->CookieJarSettings();
     }
   } else {
-    JSContext* cx = MC_UNSAFE(aGlobal.Context());
+    MCContext* cx = aGlobal.Context();
 
     WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
     MOZ_ASSERT(workerPrivate);
@@ -265,7 +265,7 @@ already_AddRefed<BroadcastChannel> BroadcastChannel::Constructor(
   return bc.forget();
 }
 
-void BroadcastChannel::PostMessage(JSContext* aCx,
+void BroadcastChannel::PostMessage(MCContext* aCx,
                                    JS::Handle<JS::Value> aMessage,
                                    ErrorResult& aRv) {
   if (mState != StateActive) {
@@ -383,7 +383,7 @@ void BroadcastChannel::MessageReceived(const MessageData& aData) {
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RefPtr<SharedMessageBody> data = SharedMessageBody::FromMessageToSharedChild(
       aData, StructuredCloneHolder::TransferringNotSupported);
@@ -424,7 +424,7 @@ void BroadcastChannel::MessageDelivered(const nsID& aMessageID,
   mRefMessageBodyService->SetMaxCount(aMessageID, aOtherBCs);
 }
 
-void BroadcastChannel::DispatchError(JSContext* aCx) {
+void BroadcastChannel::DispatchError(MCContext* aCx) {
   RootedDictionary<MessageEventInit> init(aCx);
   init.mBubbles = false;
   init.mCancelable = false;

@@ -63,7 +63,7 @@ DocumentTimeline::~DocumentTimeline() {
   }
 }
 
-JSObject* DocumentTimeline::WrapObject(JSContext* aCx,
+JSObject* DocumentTimeline::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return DocumentTimeline_Binding::Wrap(aCx, this, aGivenProto);
 }

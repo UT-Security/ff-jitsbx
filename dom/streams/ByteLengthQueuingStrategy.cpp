@@ -10,8 +10,8 @@
 #include "nsCOMPtr.h"
 #include "nsISupports.h"
 
-#include "js/TypeDecls.h"
-#include "js/PropertyAndElement.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/PropertyAndElement.h"
 
 namespace mozilla::dom {
 
@@ -34,12 +34,14 @@ ByteLengthQueuingStrategy::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* ByteLengthQueuingStrategy::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ByteLengthQueuingStrategy_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-static bool ByteLengthQueuingStrategySize(JSContext* cx, unsigned argc,
-                                          JS::Value* vp) {
+static MC::Tainted<bool> ByteLengthQueuingStrategySize(MC::Tainted<JSContext*> t_cx, unsigned argc,
+                                          MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
   // https://streams.spec.whatwg.org/#blqs-internal-slots
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
@@ -72,15 +74,17 @@ already_AddRefed<Function> ByteLengthQueuingStrategy::GetSize(
     aRv.ThrowUnknownError("Internal error");
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 1. Let steps be the following steps, given chunk
   // Note: See ByteLengthQueuingStrategySize instead.
 
   // Step 2. Let F be !CreateBuiltinFunction(steps, 1, "size", « »,
   // globalObject’s relevant Realm).
+  static auto ByteLengthQueuingStrategySizeCb =
+      MC::Sandbox::RegisterTaintedCallback(ByteLengthQueuingStrategySize);
   MC::Rooted<JSFunction*> sizeFunction(
-      cx, JS_NewFunction(cx, ByteLengthQueuingStrategySize, 1, 0, "size"));
+      cx, JS_NewFunction(cx, ByteLengthQueuingStrategySizeCb, 1, 0, "size"));
   if (!sizeFunction) {
     aRv.StealExceptionFromJSContext(cx);
     return nullptr;

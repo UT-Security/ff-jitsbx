@@ -125,9 +125,9 @@ class IndexedDatabaseManager final {
 
   static const nsCString& GetLocale();
 
-  static bool ResolveSandboxBinding(JSContext* aCx);
+  static bool ResolveSandboxBinding(MCContext* aCx);
 
-  static bool DefineIndexedDB(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  static bool DefineIndexedDB(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
  private:
   IndexedDatabaseManager();

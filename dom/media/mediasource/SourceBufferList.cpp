@@ -168,7 +168,7 @@ TimeUnit SourceBufferList::HighestEndTime() {
   return highestEndTime;
 }
 
-JSObject* SourceBufferList::WrapObject(JSContext* aCx,
+JSObject* SourceBufferList::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SourceBufferList_Binding::Wrap(aCx, this, aGivenProto);
 }

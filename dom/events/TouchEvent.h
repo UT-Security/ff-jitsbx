@@ -33,12 +33,12 @@ class TouchList final : public nsISupports, public nsWrapperCache {
 
   void Append(Touch* aPoint) { mPoints.AppendElement(aPoint); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  static bool PrefEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool PrefEnabled(MCContext* aCx, JSObject* aGlobal);
 
   uint32_t Length() const { return mPoints.Length(); }
   Touch* Item(uint32_t aIndex) const { return mPoints.SafeElementAt(aIndex); }
@@ -68,7 +68,7 @@ class TouchEvent : public UIEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(TouchEvent, UIEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return TouchEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 
@@ -93,9 +93,9 @@ class TouchEvent : public UIEvent {
                       bool aMetaKey, TouchList* aTouches,
                       TouchList* aTargetTouches, TouchList* aChangedTouches);
 
-  static bool PrefEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool PrefEnabled(MCContext* aCx, JSObject* aGlobal);
   static bool PrefEnabled(nsIDocShell* aDocShell);
-  static bool LegacyAPIEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool LegacyAPIEnabled(MCContext* aCx, JSObject* aGlobal);
   static bool LegacyAPIEnabled(nsIDocShell* aDocShell, bool aCallerIsSystem);
 
   static already_AddRefed<TouchEvent> Constructor(const GlobalObject& aGlobal,

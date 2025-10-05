@@ -59,17 +59,25 @@ public:
     size_t index;
     T_Cb<T_Ret, T_Args...> sbx_callback = MC_Sbx::RegisterCallback(app_callback, (void*)app_callback, &index);
     callback_index_to_app_func[index] = (void*)app_callback;
-    return Callback<T_Cb<T_Ret, T_Args...>>(app_callback, sbx_callback);
+    return Callback<T_Cb<T_Ret, T_Args...>>(nullptr, sbx_callback);
   }
 
-  template<typename T_Ret, typename... T_Args>
-  static Callback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(T_Cb<T_Ret, T_Args...> sbx_callback) {    
+  template <typename T_Ret, typename... T_Args>
+  static Callback<T_Cb<T_Ret, T_Args...>> RetrieveCallback(
+      T_Cb<T_Ret, T_Args...> sbx_callback) {
+    using T_Func_Ret =
+        std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, MC_Sbx>>;
+    using T_Func = T_Func_Ret (*)(mc_tainted_callback_arg_t<T_Args, MC_Sbx>...);
     std::unique_lock<std::shared_mutex> guard(callback_mutex);
     size_t index;
-    T_Cb<T_Ret, T_Args...> app_callback = MC_Sbx::RetrieveCallback(sbx_callback, &index);
-    if (index == MC_Sbx::MAX_CALLBACKS || callback_index_to_app_func[index] != (void*)app_callback) {
+
+    MC_Sbx::RetrieveCallback(sbx_callback, &index);
+    if (index == MC_Sbx::MAX_CALLBACKS) {
       return Callback<T_Cb<T_Ret, T_Args...>>(nullptr);
     }
+
+    auto app_callback =
+        reinterpret_cast<T_Func>(callback_index_to_app_func[index]);
     return Callback<T_Cb<T_Ret, T_Args...>>(app_callback, sbx_callback);
   }
 
@@ -140,7 +148,7 @@ public:
       T_Cb_no_wrap<T_Ret, T_Args...> sbx_callback =
           MC_Sbx::RegisterCallback(callback_interceptor, (void*)app_callback, &index);
       callback_index_to_app_func[index] = (void*)app_callback;
-      return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(nullptr, sbx_callback);
+      return Callback<T_Cb_no_wrap<T_Ret, T_Args...>>(app_callback, sbx_callback);
     }
   }
 };

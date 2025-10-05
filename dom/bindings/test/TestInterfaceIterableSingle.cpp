@@ -46,7 +46,7 @@ TestInterfaceIterableSingle::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceIterableSingle::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceIterableSingle_Binding::Wrap(aCx, this, aGivenProto);
 }
 

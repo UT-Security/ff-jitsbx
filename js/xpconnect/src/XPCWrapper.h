@@ -7,11 +7,12 @@
 #ifndef XPC_WRAPPER_H
 #define XPC_WRAPPER_H 1
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
+struct MCContext;
 
 namespace XPCNativeWrapper {
 
-bool AttachNewConstructorObject(JSContext* aCx, JS::HandleObject aGlobalObject);
+bool AttachNewConstructorObject(MCContext* aCx, JS::HandleObject aGlobalObject);
 
 }  // namespace XPCNativeWrapper
 

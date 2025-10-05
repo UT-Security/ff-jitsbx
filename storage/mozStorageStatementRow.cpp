@@ -11,10 +11,10 @@
 #include "mozStorageStatementRow.h"
 #include "mozStorageStatement.h"
 
-#include "jsapi.h"
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement
-#include "js/Value.h"
+#include "mcapi.h"
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement
+#include "monkeycage/Value.h"
 
 #include "xpc_make_class.h"
 
@@ -38,12 +38,12 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(StatementRow)
 StatementRow::StatementRow(nsPIDOMWindowInner* aWindow, Statement* aStatement)
     : mWindow(aWindow), mStatement(aStatement) {}
 
-JSObject* StatementRow::WrapObject(JSContext* aCx,
+JSObject* StatementRow::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::MozStorageStatementRow_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void StatementRow::NamedGetter(JSContext* aCx, const nsAString& aName,
+void StatementRow::NamedGetter(MCContext* aCx, const nsAString& aName,
                                bool& aFound,
                                JS::MutableHandle<JS::Value> aResult,
                                mozilla::ErrorResult& aRv) {

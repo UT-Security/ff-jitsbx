@@ -116,7 +116,7 @@ class ImageBitmapShutdownObserver final : public nsIObserver {
         : MainThreadWorkerControlRunnable(GetCurrentThreadWorkerPrivate()),
           mImageBitmap(aImageBitmap) {}
 
-    bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
       if (mImageBitmap) {
         mImageBitmap->OnShutdown();
         mImageBitmap = nullptr;
@@ -649,7 +649,7 @@ ImageBitmap::~ImageBitmap() {
   }
 }
 
-JSObject* ImageBitmap::WrapObject(JSContext* aCx,
+JSObject* ImageBitmap::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return ImageBitmap_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1406,7 +1406,7 @@ class FulfillImageBitmapPromiseWorkerTask final
       : WorkerSameThreadRunnable(GetCurrentThreadWorkerPrivate()),
         FulfillImageBitmapPromise(aPromise, aImageBitmap) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     DoFulfillImageBitmapPromise();
     return true;
   }
@@ -1535,7 +1535,7 @@ class CreateImageBitmapFromBlobRunnable : public WorkerRunnable {
         mImage(aImage),
         mStatus(aStatus) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mTask->MimeTypeAndDecodeAndCropBlobCompletedOwningThread(mImage, mStatus);
     return true;
   }
@@ -1670,7 +1670,7 @@ already_AddRefed<Promise> ImageBitmap::Create(
 
 /*static*/
 JSObject* ImageBitmap::ReadStructuredClone(
-    JSContext* aCx, JSStructuredCloneReader* aReader, nsIGlobalObject* aParent,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, nsIGlobalObject* aParent,
     const nsTArray<RefPtr<DataSourceSurface>>& aClonedSurfaces,
     uint32_t aIndex) {
   MOZ_ASSERT(aCx);
@@ -1736,7 +1736,7 @@ JSObject* ImageBitmap::ReadStructuredClone(
 
 /*static*/
 void ImageBitmap::WriteStructuredClone(
-    JSStructuredCloneWriter* aWriter,
+    MC::Tainted<JSStructuredCloneWriter*> aWriter,
     nsTArray<RefPtr<DataSourceSurface>>& aClonedSurfaces,
     ImageBitmap* aImageBitmap, ErrorResult& aRv) {
   MOZ_ASSERT(aWriter);

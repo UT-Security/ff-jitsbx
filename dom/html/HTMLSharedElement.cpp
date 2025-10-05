@@ -202,7 +202,7 @@ void HTMLSharedElement::UnbindFromTree(bool aNullParent) {
   }
 }
 
-JSObject* HTMLSharedElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSharedElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   if (mNodeInfo->Equals(nsGkAtoms::param)) {
     return HTMLParamElement_Binding::Wrap(aCx, this, aGivenProto);

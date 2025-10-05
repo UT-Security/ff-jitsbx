@@ -32,7 +32,7 @@ class Request final : public FetchBody<Request>, public nsWrapperCache {
   Request(nsIGlobalObject* aOwner, SafeRefPtr<InternalRequest> aRequest,
           AbortSignal* aSignal);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return Request_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -106,7 +106,7 @@ class Request final : public FetchBody<Request>, public nsWrapperCache {
                                          ErrorResult& rv);
 
   static SafeRefPtr<Request> Constructor(nsIGlobalObject* aGlobal,
-                                         JSContext* aCx,
+                                         MCContext* aCx,
                                          const RequestOrUSVString& aInput,
                                          const RequestInit& aInit,
                                          ErrorResult& rv);

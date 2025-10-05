@@ -52,7 +52,7 @@ Worklet::Worklet(nsPIDOMWindowInner* aWindow, RefPtr<WorkletImpl> aImpl,
 
 Worklet::~Worklet() { mImpl->NotifyWorkletFinished(); }
 
-JSObject* Worklet::WrapObject(JSContext* aCx,
+JSObject* Worklet::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return mImpl->WrapWorklet(aCx, this, aGivenProto);
 }
@@ -89,7 +89,7 @@ static bool LoadLocalizedStrings(nsTArray<nsString>& aStrings) {
   return true;
 }
 
-already_AddRefed<Promise> Worklet::AddModule(JSContext* aCx,
+already_AddRefed<Promise> Worklet::AddModule(MCContext* aCx,
                                              const nsAString& aModuleURL,
                                              const WorkletOptions& aOptions,
                                              CallerType aCallerType,

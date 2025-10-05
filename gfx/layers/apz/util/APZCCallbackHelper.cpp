@@ -886,7 +886,7 @@ void APZCCallbackHelper::NotifyScaleGestureComplete(
           return;
         }
 
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         MC::Rooted<JS::Value> detail(cx, JS::Float32Value(aScale));
         RefPtr<dom::CustomEvent> event =
             NS_NewDOMCustomEvent(doc, nullptr, nullptr);

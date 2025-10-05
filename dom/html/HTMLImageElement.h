@@ -352,7 +352,7 @@ class HTMLImageElement final : public nsGenericHTMLElement,
       Element* aSourceElement);
 
   MOZ_CAN_RUN_SCRIPT CSSIntPoint GetXY();
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
   void UpdateFormOwner();
 

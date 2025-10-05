@@ -56,7 +56,7 @@ class HTMLMetaElement final : public nsGenericHTMLElement {
     SetHTMLAttr(nsGkAtoms::media, aMedia, aRv);
   }
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
   virtual ~HTMLMetaElement();

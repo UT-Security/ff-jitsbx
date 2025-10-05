@@ -18,7 +18,7 @@ namespace mozilla::dom {
 
 HTMLFontElement::~HTMLFontElement() = default;
 
-JSObject* HTMLFontElement::WrapNode(JSContext* aCx,
+JSObject* HTMLFontElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLFontElement_Binding::Wrap(aCx, this, aGivenProto);
 }

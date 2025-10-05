@@ -24,7 +24,7 @@ class FileSystemFileEntry final : public FileSystemEntry {
                       FileSystemDirectoryEntry* aParentEntry,
                       FileSystem* aFileSystem);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual bool IsFile() const override { return true; }

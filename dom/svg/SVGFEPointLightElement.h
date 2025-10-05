@@ -26,7 +26,7 @@ class SVGFEPointLightElement final : public SVGFEPointLightElementBase {
   explicit SVGFEPointLightElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEPointLightElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   mozilla::gfx::LightType ComputeLightAttributes(

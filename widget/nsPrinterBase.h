@@ -82,7 +82,7 @@ class nsPrinterBase : public nsIPrinter {
 
   // Resolves an async attribute via a background task.
   template <typename T, typename... Args>
-  nsresult AsyncPromiseAttributeGetter(JSContext*, Promise**, AsyncAttribute,
+  nsresult AsyncPromiseAttributeGetter(MCContext*, Promise**, AsyncAttribute,
                                        BackgroundTask<T, Args...>,
                                        Args... aArgs);
 

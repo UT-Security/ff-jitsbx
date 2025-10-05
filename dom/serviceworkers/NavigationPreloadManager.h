@@ -28,7 +28,7 @@ class NavigationPreloadManager final : public nsISupports,
 
   static bool IsValidHeader(const nsACString& aHeader);
 
-  static bool IsEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool IsEnabled(MCContext* aCx, JSObject* aGlobal);
 
   explicit NavigationPreloadManager(
       RefPtr<ServiceWorkerRegistration>& aServiceWorkerRegistration);
@@ -38,7 +38,7 @@ class NavigationPreloadManager final : public nsISupports,
     return mServiceWorkerRegistration->GetParentObject();
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIdl implementation

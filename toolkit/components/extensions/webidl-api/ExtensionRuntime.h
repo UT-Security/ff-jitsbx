@@ -43,11 +43,11 @@ class ExtensionRuntime final : public nsISupports,
   nsString GetAPINamespace() const override { return u"runtime"_ns; }
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
-  static bool IsAllowed(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAllowed(MCContext* aCx, JSObject* aGlobal);
 
   nsIGlobalObject* GetParentObject() const;
 
@@ -59,7 +59,7 @@ class ExtensionRuntime final : public nsISupports,
   ExtensionEventManager* OnMessage();
   ExtensionEventManager* OnMessageExternal();
 
-  void GetLastError(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  void GetLastError(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
   void GetId(dom::DOMString& aRetval);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

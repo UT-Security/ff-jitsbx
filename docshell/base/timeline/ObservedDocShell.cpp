@@ -52,7 +52,7 @@ void ObservedDocShell::ClearMarkers() {
 }
 
 void ObservedDocShell::PopMarkers(
-    JSContext* aCx, nsTArray<dom::ProfileTimelineMarker>& aStore) {
+    MCContext* aCx, nsTArray<dom::ProfileTimelineMarker>& aStore) {
   MOZ_ASSERT(NS_IsMainThread());
 
   MOZ_RELEASE_ASSERT(!mPopping);

@@ -60,7 +60,7 @@ class MediaRecorder final : public DOMEventTargetHelper,
   static nsTArray<RefPtr<Session>> GetSessions();
 
   // nsWrapperCache
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   NS_DECL_ISUPPORTS_INHERITED

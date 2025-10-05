@@ -295,13 +295,13 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
     // Set up an Extension and register it so we can test against it.
     mozilla::dom::AutoJSAPI jsAPI;
     ASSERT_TRUE(jsAPI.Init(xpc::PrivilegedJunkScope()));
-    JSContext* cx = jsAPI.cx();
+    MCContext* cx = jsAPI.mcx();
 
     mozilla::dom::GlobalObject go(cx, xpc::PrivilegedJunkScope());
     auto* wEI = new mozilla::extensions::WebExtensionInit();
 
     MC::Rooted<JSObject*> func(
-        cx, (JSObject*)JS_NewFunction(cx, (JSNative)1, 0, 0, "customMethodA"));
+        cx, (JSObject*)JS_NewFunction(MC_UNSAFE(cx), (JSNative)1, 0, 0, "customMethodA"));
     MC::Rooted<JSObject*> tempGlobalRoot(cx, JS::CurrentGlobalOrNull(cx));
     wEI->mLocalizeCallback = new mozilla::dom::WebExtensionLocalizeCallback(
         cx, func, tempGlobalRoot, nullptr);
@@ -344,13 +344,13 @@ TEST(FilenameEvalParser, WebExtensionPathParser)
     // Set up an Extension and register it so we can test against it.
     mozilla::dom::AutoJSAPI jsAPI;
     ASSERT_TRUE(jsAPI.Init(xpc::PrivilegedJunkScope()));
-    JSContext* cx = jsAPI.cx();
+    MCContext* cx = jsAPI.mcx();
 
     mozilla::dom::GlobalObject go(cx, xpc::PrivilegedJunkScope());
     auto wEI = new mozilla::extensions::WebExtensionInit();
 
     MC::Rooted<JSObject*> func(
-        cx, (JSObject*)JS_NewFunction(cx, (JSNative)1, 0, 0, "customMethodA"));
+        cx, (JSObject*)JS_NewFunction(MC_UNSAFE(cx), (JSNative)1, 0, 0, "customMethodA"));
     MC::Rooted<JSObject*> tempGlobalRoot(cx, JS::CurrentGlobalOrNull(cx));
     wEI->mLocalizeCallback = new mozilla::dom::WebExtensionLocalizeCallback(
         cx, func, tempGlobalRoot, NULL);

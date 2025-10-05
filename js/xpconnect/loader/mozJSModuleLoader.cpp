@@ -614,7 +614,7 @@ void mozJSModuleLoader::CreateLoaderGlobal(MCContext* aCx,
   mIsInitializingLoaderGlobal = true;
 #endif
   nsresult rv = xpc::InitClassesWithNewWrappedGlobal(
-      MC_UNSAFE(aCx), static_cast<nsIGlobalObject*>(backstagePass),
+      aCx, static_cast<nsIGlobalObject*>(backstagePass),
       nsContentUtils::GetSystemPrincipal(), xpc::DONT_FIRE_ONNEWGLOBALHOOK,
       options, &global);
 #ifdef DEBUG
@@ -766,7 +766,7 @@ JSObject* mozJSModuleLoader::PrepareObjectForLocation(MCContext* aCx,
       MC::RootedObject locationObj(aCx);
 
       nsresult rv = nsXPConnect::XPConnect()->WrapNative(
-          MC_UNSAFE(aCx), thisObj, aModuleFile, NS_GET_IID(nsIFile),
+          aCx, thisObj, aModuleFile, NS_GET_IID(nsIFile),
           locationObj.address());
       NS_ENSURE_SUCCESS(rv, nullptr);
       NS_ENSURE_TRUE(locationObj, nullptr);
@@ -1263,7 +1263,7 @@ void mozJSModuleLoader::RecordImportStack(MCContext* aCx,
   }
 
   mImportStacks.InsertOrUpdate(
-      aLocation, xpc_PrintJSStack(MC_UNSAFE(aCx), false, false, false).get());
+      aLocation, xpc_PrintJSStack(aCx, false, false, false).get());
 }
 
 void mozJSModuleLoader::RecordImportStack(
@@ -1280,7 +1280,7 @@ void mozJSModuleLoader::RecordImportStack(
 
   auto recordJSStackOnly = [&]() {
     mImportStacks.InsertOrUpdate(
-        location, xpc_PrintJSStack(MC_UNSAFE(aCx), false, false, false).get());
+        location, xpc_PrintJSStack(aCx, false, false, false).get());
   };
 
   if (aRequest->IsTopLevel()) {
@@ -1584,9 +1584,9 @@ nsresult mozJSModuleLoader::Import(MCContext* aCx, const nsACString& aLocation,
         if (exception.isObject()) {
           MC::Rooted<JSObject*> exceptionObj(aCx, &exception.toObject());
           MC::SandboxStack<JSAutoRealm> ar(aCx, exceptionObj);
-          JSErrorReport* report = JS_ErrorFromException(aCx, exceptionObj);
+          MC::Tainted<JSErrorReport*> report = JS_ErrorFromException(aCx, exceptionObj);
           if (report) {
-            switch (report->errorNumber) {
+            switch (report->errorNumber()) {
               case JSMSG_IMPORT_DECL_AT_TOP_LEVEL:
               case JSMSG_EXPORT_DECL_AT_TOP_LEVEL:
                 // If the exception is related to module syntax, it's most
@@ -1594,7 +1594,7 @@ nsresult mozJSModuleLoader::Import(MCContext* aCx, const nsACString& aLocation,
                 // Provide better error message.
                 isModuleSyntaxError = true;
 
-                JS_ReportErrorUTF8(MC_UNSAFE(aCx),
+                JS_ReportErrorUTF8(aCx,
                                    "ChromeUtils.import is called against "
                                    "an ES module script (%s).  Please use "
                                    "ChromeUtils.importESModule instead "
@@ -1885,7 +1885,7 @@ nsresult mozJSModuleLoader::Unload(const nsACString& aLocation) {
 }
 
 bool mozJSModuleLoader::CreateJSServices(MCContext* aCx) {
-  JSObject* services = NewJSServices(MC_UNSAFE(aCx));
+  JSObject* services = NewJSServices(aCx);
   if (!services) {
     return false;
   }

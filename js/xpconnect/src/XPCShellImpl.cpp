@@ -152,7 +152,10 @@ static bool compileOnly = false;
 static JSPrincipals* gJSPrincipals = nullptr;
 static nsAutoString* gWorkingDirectory = nullptr;
 
-static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> GetLocationProperty(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   if (!args.thisv().isObject()) {
     JS_ReportErrorASCII(cx, "Unexpected this value for GetLocationProperty");
@@ -162,9 +165,9 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
   // XXX: your platform should really implement this
   return false;
 #else
-  JS::AutoFilename filename;
-  if (JS::DescribeScriptedCaller(cx, &filename) && filename.get()) {
-    NS_ConvertUTF8toUTF16 filenameString(filename.get());
+  MC::SandboxStack<JS::AutoFilename> filename;
+  if (JS::DescribeScriptedCaller(cx, filename) && filename->get()) {
+    NS_ConvertUTF8toUTF16 filenameString(filename->get());
 
 #  if defined(XP_WIN)
     // replace forward slashes with backslashes,
@@ -212,7 +215,7 @@ static bool GetLocationProperty(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 }
 
-static bool GetLine(JSContext* cx, char* bufp, FILE* file, const char* prompt) {
+static bool GetLine(MCContext* cx, char* bufp, FILE* file, const char* prompt) {
   fputs(prompt, gOutFile);
   fflush(gOutFile);
 
@@ -228,7 +231,10 @@ static bool GetLine(JSContext* cx, char* bufp, FILE* file, const char* prompt) {
   }
 }
 
-static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> ReadLine(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   // While 4096 might be quite arbitrary, this is something to be fixed in
@@ -273,7 +279,10 @@ static bool ReadLine(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Print(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Print(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().setUndefined();
 
@@ -311,7 +320,10 @@ static bool Print(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Dump(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
   args.rval().setUndefined();
 
@@ -346,11 +358,14 @@ static bool Dump(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Load(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Load(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   MC::RootedObject thisObject(cx);
-  if (!args.computeThis(cx, &thisObject)) {
+  if (!args.computeThis(MC_UNSAFE(cx), &thisObject)) {
     return false;
   }
   if (!JS_IsGlobalObject(thisObject)) {
@@ -368,8 +383,8 @@ static bool Load(JSContext* cx, unsigned argc, Value* vp) {
     if (!filename) {
       return false;
     }
-    JS::CompileOptions options(cx);
-    options.setIsRunOnce(true).setSkipFilenameValidation(true);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
+    options->setIsRunOnce(true).setSkipFilenameValidation(true);
     MC::Rooted<JSScript*> script(
         cx, JS::CompileUtf8Path(cx, options, filename.get()));
     if (!script) {
@@ -386,35 +401,47 @@ static bool Load(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Quit(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Quit(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   gExitCode = 0;
-  if (!ToInt32(cx, args.get(0), &gExitCode)) {
+  MC::SandboxStack<int32_t> tExitCode;
+  if (!ToInt32(cx, args.get(0), tExitCode)) {
     return false;
   }
+
+  gExitCode = *tExitCode.UNSAFE_unverified();
 
   gQuitting = true;
   //    exit(0);
   return false;
 }
 
-static bool DumpXPC(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> DumpXPC(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
-  uint16_t depth = 2;
+  MC::SandboxStack<uint16_t> depth = 2;
   if (args.length() > 0) {
-    if (!JS::ToUint16(cx, args[0], &depth)) {
+    if (!JS::ToUint16(cx, args[0], depth)) {
       return false;
     }
   }
 
-  nsXPConnect::XPConnect()->DebugDump(int16_t(depth));
+  nsXPConnect::XPConnect()->DebugDump(int16_t(*depth.UNSAFE_unverified()));
   args.rval().setUndefined();
   return true;
 }
 
-static bool GC(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> GC(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   JS_GC(cx);
@@ -424,20 +451,26 @@ static bool GC(JSContext* cx, unsigned argc, Value* vp) {
 }
 
 #ifdef JS_GC_ZEAL
-static bool GCZeal(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> GCZeal(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
-  uint32_t zeal;
-  if (!ToUint32(cx, args.get(0), &zeal)) {
+  MC::SandboxStack<uint32_t> zeal;
+  if (!ToUint32(cx, args.get(0), zeal)) {
     return false;
   }
 
-  JS_SetGCZeal(cx, uint8_t(zeal), JS_DEFAULT_ZEAL_FREQ);
+  JS_SetGCZeal(cx, uint8_t(*zeal.UNSAFE_unverified()), JS_DEFAULT_ZEAL_FREQ);
   args.rval().setUndefined();
   return true;
 }
 #endif
 
-static bool SendCommand(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SendCommand(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   CallArgs args = CallArgsFromVp(argc, vp);
 
   if (args.length() == 0) {
@@ -466,7 +499,10 @@ static bool SendCommand(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool Options(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> Options(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(argc, vp);
   ContextOptions oldContextOptions = ContextOptionsRef(cx);
 
@@ -513,9 +549,11 @@ static bool Options(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static PersistentRootedValue* sScriptedInterruptCallback = nullptr;
+static MC::PersistentRooted<Value>* sScriptedInterruptCallback = nullptr;
 
-static bool XPCShellInterruptCallback(JSContext* cx) {
+static MC::Tainted<bool> XPCShellInterruptCallback(MC::Tainted<JSContext*> t_cx) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+
   MOZ_ASSERT(sScriptedInterruptCallback->initialized());
   MC::RootedValue callback(cx, *sScriptedInterruptCallback);
 
@@ -539,7 +577,10 @@ static bool XPCShellInterruptCallback(JSContext* cx) {
   return rv.toBoolean();
 }
 
-static bool SetInterruptCallback(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SetInterruptCallback(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   MOZ_ASSERT(sScriptedInterruptCallback->initialized());
 
   // Sanity-check args.
@@ -566,7 +607,10 @@ static bool SetInterruptCallback(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool SimulateNoScriptActivity(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> SimulateNoScriptActivity(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   // Sanity-check args.
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   if (args.length() != 1 || !args[0].isInt32() || args[0].toInt32() < 0) {
@@ -583,7 +627,10 @@ static bool SimulateNoScriptActivity(JSContext* cx, unsigned argc, Value* vp) {
   return true;
 }
 
-static bool RegisterAppManifest(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> RegisterAppManifest(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   if (args.length() != 1) {
     JS_ReportErrorASCII(cx, "Wrong number of arguments");
@@ -600,19 +647,21 @@ static bool RegisterAppManifest(JSContext* cx, unsigned argc, Value* vp) {
   nsresult rv = nsXPConnect::XPConnect()->WrapJS(cx, arg1, NS_GET_IID(nsIFile),
                                                  getter_AddRefs(file));
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
+    XPCThrower::Throw(rv, cx);
     return false;
   }
   rv = XRE_AddManifestLocation(NS_APP_LOCATION, file);
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
+    XPCThrower::Throw(rv, cx);
     return false;
   }
   return true;
 }
 
 #ifdef ANDROID
-static bool ChangeTestShellDir(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> ChangeTestShellDir(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
   // This method should only be used by testing/xpcshell/head.js to change to
   // the correct directory on Android Remote XPCShell tests.
   //
@@ -643,7 +692,10 @@ static bool ChangeTestShellDir(JSContext* cx, unsigned argc, Value* vp) {
 #endif
 
 #ifdef ENABLE_TESTS
-static bool RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp) {
+static MC::Tainted<bool> RegisterXPCTestComponents(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
   if (args.length() != 0) {
     JS_ReportErrorASCII(cx, "Wrong number of arguments");
@@ -651,7 +703,7 @@ static bool RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp) {
   }
   nsresult rv = xpcTestRegisterComponents();
   if (NS_FAILED(rv)) {
-    XPCThrower::Throw(rv, JS_SanitizeContext(cx));
+    XPCThrower::Throw(rv, cx);
     return false;
   }
   return true;
@@ -661,28 +713,28 @@ static bool RegisterXPCTestComponents(JSContext* cx, unsigned argc, Value* vp) {
 static const JSFunctionSpec* glob_functions() {
   static const JSFunctionSpec inner_[] = {
       // clang-format off
-    JS_FN("print",           Print,          0,0),
-    JS_FN("readline",        ReadLine,       1,0),
-    JS_FN("load",            Load,           1,0),
-    JS_FN("quit",            Quit,           0,0),
-    JS_FN("dumpXPC",         DumpXPC,        1,0),
-    JS_FN("dump",            Dump,           1,0),
-    JS_FN("gc",              GC,             0,0),
+    JS_FN("print",           MC::Sandbox::RegisterTaintedCallback(Print).UNSAFE_get(),          0,0),
+    JS_FN("readline",        MC::Sandbox::RegisterTaintedCallback(ReadLine).UNSAFE_get(),       1,0),
+    JS_FN("load",            MC::Sandbox::RegisterTaintedCallback(Load).UNSAFE_get(),           1,0),
+    JS_FN("quit",            MC::Sandbox::RegisterTaintedCallback(Quit).UNSAFE_get(),           0,0),
+    JS_FN("dumpXPC",         MC::Sandbox::RegisterTaintedCallback(DumpXPC).UNSAFE_get(),        1,0),
+    JS_FN("dump",            MC::Sandbox::RegisterTaintedCallback(Dump).UNSAFE_get(),           1,0),
+    JS_FN("gc",              MC::Sandbox::RegisterTaintedCallback(GC).UNSAFE_get(),             0,0),
 #ifdef JS_GC_ZEAL
-    JS_FN("gczeal",          GCZeal,         1,0),
+    JS_FN("gczeal",          MC::Sandbox::RegisterTaintedCallback(GCZeal).UNSAFE_get(),         1,0),
 #endif
-    JS_FN("options",         Options,        0,0),
-    JS_FN("sendCommand",     SendCommand,    1,0),
+    JS_FN("options",         MC::Sandbox::RegisterTaintedCallback(Options).UNSAFE_get(),        0,0),
+    JS_FN("sendCommand",     MC::Sandbox::RegisterTaintedCallback(SendCommand).UNSAFE_get(),    1,0),
     JS_FN("atob",            xpc::AtobCb().UNSAFE_get(),      1,0),
     JS_FN("btoa",            xpc::BtoaCb().UNSAFE_get(),      1,0),
-    JS_FN("setInterruptCallback", SetInterruptCallback, 1,0),
-    JS_FN("simulateNoScriptActivity", SimulateNoScriptActivity, 1,0),
-    JS_FN("registerAppManifest", RegisterAppManifest, 1, 0),
+    JS_FN("setInterruptCallback", MC::Sandbox::RegisterTaintedCallback(SetInterruptCallback).UNSAFE_get(), 1,0),
+    JS_FN("simulateNoScriptActivity", MC::Sandbox::RegisterTaintedCallback(SimulateNoScriptActivity).UNSAFE_get(), 1,0),
+    JS_FN("registerAppManifest", MC::Sandbox::RegisterTaintedCallback(RegisterAppManifest).UNSAFE_get(), 1, 0),
 #ifdef ANDROID
-    JS_FN("changeTestShellDir", ChangeTestShellDir, 1,0),
+    JS_FN("changeTestShellDir", MC::Sandbox::RegisterTaintedCallback(ChangeTestShellDir).UNSAFE_get(), 1,0),
 #endif
 #ifdef ENABLE_TESTS
-    JS_FN("registerXPCTestComponents", RegisterXPCTestComponents, 0, 0),
+    JS_FN("registerXPCTestComponents", MC::Sandbox::RegisterTaintedCallback(RegisterXPCTestComponents).UNSAFE_get(), 0, 0),
 #endif
     JS_FS_END
       // clang-format on
@@ -717,14 +769,14 @@ static const JSErrorFormatString* my_GetErrorMessage(
 
 static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
                             int startline) {
-  JSContext* cx = jsapi.cx();
-  JS::CompileOptions options(cx);
-  options.setFileAndLine("typein", startline)
+  MCContext* cx = jsapi.cx();
+  MC::SandboxStack<JS::CompileOptions> options(cx);
+  options->setFileAndLine("typein", startline)
       .setIsRunOnce(true)
       .setSkipFilenameValidation(true);
 
-  JS::SourceText<mozilla::Utf8Unit> srcBuf;
-  if (!srcBuf.init(cx, buffer, strlen(buffer), JS::SourceOwnership::Borrowed)) {
+  MC::SandboxStack<JS::SourceText<mozilla::Utf8Unit>> srcBuf;
+  if (!srcBuf->init(cx, buffer, strlen(buffer), JS::SourceOwnership::Borrowed)) {
     return false;
   }
 
@@ -761,7 +813,7 @@ static bool ProcessUtf8Line(AutoJSAPI& jsapi, const char* buffer,
 
 static bool ProcessFile(AutoJSAPI& jsapi, const char* filename, FILE* file,
                         bool forceTTY) {
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.cx();
   MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   MOZ_ASSERT(global);
 
@@ -784,15 +836,15 @@ static bool ProcessFile(AutoJSAPI& jsapi, const char* filename, FILE* file,
     }
     ungetc(ch, file);
 
-    JS::UniqueChars filenameUtf8 = JS::EncodeNarrowToUtf8(jsapi.cx(), filename);
+    JS::UniqueChars filenameUtf8 = JS::EncodeNarrowToUtf8(cx, filename);
     if (!filenameUtf8) {
       return false;
     }
 
     MC::RootedScript script(cx);
     MC::RootedValue unused(cx);
-    JS::CompileOptions options(cx);
-    options.setFileAndLine(filenameUtf8.get(), 1)
+    MC::SandboxStack<JS::CompileOptions> options(cx);
+    options->setFileAndLine(filenameUtf8.get(), 1)
         .setIsRunOnce(true)
         .setNoScriptRval(true)
         .setSkipFilenameValidation(true);
@@ -849,7 +901,8 @@ static bool Process(AutoJSAPI& jsapi, const char* filename, bool forceTTY) {
        * Use Latin1 variant here because the encoding of the return value
        * of strerror function can be non-UTF-8.
        */
-      JS_ReportErrorNumberLatin1(jsapi.cx(), my_GetErrorMessage, nullptr,
+      static auto my_GetErrorMessageCb = MC::Sandbox::RegisterCallback(my_GetErrorMessage);
+      JS_ReportErrorNumberLatin1(jsapi.cx(), my_GetErrorMessageCb.UNSAFE_get(), nullptr,
                                  JSSMSG_CANT_OPEN, filename, strerror(errno));
       gExitCode = EXITCODE_FILE_NOT_FOUND;
       return false;
@@ -879,7 +932,7 @@ static bool printUsageAndSetExitCode() {
 
 static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
                         XPCShellDirProvider* aDirProvider) {
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.cx();
   const char rcfilename[] = "xpcshell.js";
   FILE* rcfile;
   int rootPosition;
@@ -987,12 +1040,12 @@ static bool ProcessArgs(AutoJSAPI& jsapi, char** argv, int argc,
           return printUsageAndSetExitCode();
         }
 
-        JS::CompileOptions opts(cx);
-        opts.setSkipFilenameValidation(true);
-        opts.setFileAndLine("-e", 1);
+        MC::SandboxStack<JS::CompileOptions> opts(cx);
+        opts->setSkipFilenameValidation(true);
+        opts->setFileAndLine("-e", 1);
 
-        JS::SourceText<mozilla::Utf8Unit> srcBuf;
-        if (srcBuf.init(cx, argv[i], strlen(argv[i]),
+        MC::SandboxStack<JS::SourceText<mozilla::Utf8Unit>> srcBuf;
+        if (srcBuf->init(cx, argv[i], strlen(argv[i]),
                         JS::SourceOwnership::Borrowed)) {
           JS::Evaluate(cx, opts, srcBuf, &rval);
         }
@@ -1059,7 +1112,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
                      const XREShellData* aShellData) {
   MOZ_ASSERT(aShellData);
 
-  JSContext* cx;
+  MCContext* cx;
   int result = 0;
   nsresult rv;
 
@@ -1251,10 +1304,12 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
     // Override the default XPConnect interrupt callback. We could store the
     // old one and restore it before shutting down, but there's not really a
     // reason to bother.
-    sScriptedInterruptCallback = new PersistentRootedValue;
+    sScriptedInterruptCallback = new MC::PersistentRooted<Value>;
     sScriptedInterruptCallback->init(cx, UndefinedValue());
 
-    JS_AddInterruptCallback(cx, XPCShellInterruptCallback);
+    static auto XPCShellInterruptCallbackCb =
+        MC::Sandbox::RegisterTaintedCallback(XPCShellInterruptCallback);
+    JS_AddInterruptCallback(cx, XPCShellInterruptCallbackCb);
 
     argc--;
     argv++;
@@ -1290,7 +1345,7 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
         scb,
         "We are assuming that nsScriptSecurityManager::Init() has been run");
     shellSecurityCallbacks = *scb;
-    JS_SetSecurityCallbacks(cx, &shellSecurityCallbacks);
+    JS_SetSecurityCallbacks(MC_UNSAFE(cx), &shellSecurityCallbacks);
 
     auto backstagePass = MakeRefPtr<BackstagePass>();
 
@@ -1376,7 +1431,9 @@ int XRE_XPCShellMain(int argc, char** argv, char** envp,
         gWorkingDirectory = &workingDirectory;
       }
 
-      JS_DefineProperty(cx, glob, "__LOCATION__", GetLocationProperty, nullptr,
+      static auto GetLocationPropertyCb =
+          MC::Sandbox::RegisterTaintedCallback(GetLocationProperty);
+      JS_DefineProperty(cx, glob, "__LOCATION__", GetLocationPropertyCb, nullptr,
                         0);
 
       {

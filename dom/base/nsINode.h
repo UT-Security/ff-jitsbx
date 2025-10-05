@@ -462,7 +462,7 @@ class nsINode : public mozilla::dom::EventTarget {
   inline mozilla::dom::DocumentFragment* AsDocumentFragment();
   inline const mozilla::dom::DocumentFragment* AsDocumentFragment() const;
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) final;
 
   /**
    * Hook for constructing JS::ubi::Concrete specializations for memory
@@ -474,7 +474,7 @@ class nsINode : public mozilla::dom::EventTarget {
    * returns true if we are in priviliged code or
    * layout.css.getBoxQuads.enabled == true.
    */
-  static bool HasBoxQuadsSupport(JSContext* aCx, JSObject* /* unused */);
+  static bool HasBoxQuadsSupport(MCContext* aCx, JSObject* /* unused */);
 
  protected:
   /**
@@ -486,7 +486,7 @@ class nsINode : public mozilla::dom::EventTarget {
    * used) and should just be passed directly on to the DOM binding's Wrap
    * function.
    */
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) = 0;
 
  public:

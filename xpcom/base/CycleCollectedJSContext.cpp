@@ -166,7 +166,7 @@ nsresult CycleCollectedJSContext::Initialize(MCRuntime* aParentRuntime,
 }
 
 /* static */
-CycleCollectedJSContext* CycleCollectedJSContext::GetFor(JSContext* aCx) {
+CycleCollectedJSContext* CycleCollectedJSContext::GetFor(MCContext* aCx) {
   // Cast from void* matching JS_SetContextPrivate.
   auto atomCache = static_cast<PerThreadAtomCache*>(JS_GetContextPrivate(aCx));
   // Down cast.

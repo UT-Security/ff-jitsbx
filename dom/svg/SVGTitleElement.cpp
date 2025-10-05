@@ -13,7 +13,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Title)
 
 namespace mozilla::dom {
 
-JSObject* SVGTitleElement::WrapNode(JSContext* aCx,
+JSObject* SVGTitleElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return SVGTitleElement_Binding::Wrap(aCx, this, aGivenProto);
 }

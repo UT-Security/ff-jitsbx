@@ -38,7 +38,7 @@ void InfoObject::DefineProperty(const char* name, const char* value) {
   DefineProperty(name, string);
 }
 
-InfoObject::InfoObject(JSContext* aCx) : mCx(aCx), mObj(aCx), mOk(true) {
+InfoObject::InfoObject(MCContext* aCx) : mCx(aCx), mObj(aCx), mOk(true) {
   mObj = JS_NewPlainObject(aCx);
   if (!mObj) mOk = false;
 }

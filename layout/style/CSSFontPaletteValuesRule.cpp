@@ -67,7 +67,7 @@ bool CSSFontPaletteValuesRule::IsCCLeaf() const { return Rule::IsCCLeaf(); }
 
 /* virtual */
 JSObject* CSSFontPaletteValuesRule::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CSSFontPaletteValuesRule_Binding::Wrap(aCx, this, aGivenProto);
 }
 

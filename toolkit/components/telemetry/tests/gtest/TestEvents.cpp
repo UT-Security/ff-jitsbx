@@ -5,8 +5,8 @@
 
 #include "core/TelemetryEvent.h"
 #include "gtest/gtest.h"
-#include "js/Array.h"               // JS::GetArrayLength
-#include "js/PropertyAndElement.h"  // JS_GetElement, JS_GetProperty
+#include "monkeycage/Array.h"               // JS::GetArrayLength
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement, JS_GetProperty
 #include "mozilla/Maybe.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
@@ -78,7 +78,7 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
   << "Test event with truncated value and extra must be present.";
 
   // Ensure that the truncations happened appropriately.
-  JSContext* aCx = cx.GetJSContext();
+  MCContext* aCx = cx.GetJSContext();
   MC::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
   MC::Rooted<JS::Value> eventRecord(aCx);
   ASSERT_TRUE(JS_GetElement(aCx, arrayObj, 2, &eventRecord))

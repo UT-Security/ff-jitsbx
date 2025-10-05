@@ -139,36 +139,36 @@ class IDBFactory final : public nsISupports, public nsWrapperCache {
 
   bool IsChrome() const;
 
-  [[nodiscard]] RefPtr<IDBOpenDBRequest> Open(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBOpenDBRequest> Open(MCContext* aCx,
                                               const nsAString& aName,
                                               uint64_t aVersion,
                                               CallerType aCallerType,
                                               ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBOpenDBRequest> Open(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBOpenDBRequest> Open(MCContext* aCx,
                                               const nsAString& aName,
                                               const IDBOpenDBOptions& aOptions,
                                               CallerType aCallerType,
                                               ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBOpenDBRequest> DeleteDatabase(
-      JSContext* aCx, const nsAString& aName, const IDBOpenDBOptions& aOptions,
+      MCContext* aCx, const nsAString& aName, const IDBOpenDBOptions& aOptions,
       CallerType aCallerType, ErrorResult& aRv);
 
-  int16_t Cmp(JSContext* aCx, JS::Handle<JS::Value> aFirst,
+  int16_t Cmp(MCContext* aCx, JS::Handle<JS::Value> aFirst,
               JS::Handle<JS::Value> aSecond, ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBOpenDBRequest> OpenForPrincipal(
-      JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+      MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
       uint64_t aVersion, SystemCallerGuarantee, ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBOpenDBRequest> OpenForPrincipal(
-      JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+      MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
       const IDBOpenDBOptions& aOptions, SystemCallerGuarantee,
       ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBOpenDBRequest> DeleteForPrincipal(
-      JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+      MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
       const IDBOpenDBOptions& aOptions, SystemCallerGuarantee,
       ErrorResult& aRv);
 
@@ -178,7 +178,7 @@ class IDBFactory final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(IDBFactory)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -195,7 +195,7 @@ class IDBFactory final : public nsISupports, public nsWrapperCache {
                                            nsCOMPtr<nsIPrincipal>* aPrincipal);
 
   [[nodiscard]] RefPtr<IDBOpenDBRequest> OpenInternal(
-      JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+      MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
       const Optional<uint64_t>& aVersion, bool aDeleting,
       CallerType aCallerType, ErrorResult& aRv);
 

@@ -25,9 +25,9 @@
 #include "mozilla/UseCounter.h"
 #include "nsContentUtils.h"
 #include "nsHTMLTags.h"
-#include "jsapi.h"
-#include "js/ForOfIterator.h"       // JS::ForOfIterator
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetUCProperty
+#include "mcapi.h"
+#include "monkeycage/ForOfIterator.h"       // JS::ForOfIterator
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetUCProperty
 #include "xpcprivate.h"
 #include "nsGlobalWindow.h"
 #include "nsNameSpaceManager.h"
@@ -498,7 +498,7 @@ CustomElementDefinition* CustomElementRegistry::LookupCustomElementDefinition(
 }
 
 CustomElementDefinition* CustomElementRegistry::LookupCustomElementDefinition(
-    JSContext* aCx, JSObject* aConstructor) const {
+    MCContext* aCx, JSObject* aConstructor) const {
   // We're looking up things that tested true for JS::IsConstructor,
   // so doing a CheckedUnwrapStatic is fine here.
   MC::Rooted<JSObject*> constructor(aCx, js::CheckedUnwrapStatic(aConstructor));
@@ -688,7 +688,7 @@ void CustomElementRegistry::UpgradeCandidates(
   }
 }
 
-JSObject* CustomElementRegistry::WrapObject(JSContext* aCx,
+JSObject* CustomElementRegistry::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return CustomElementRegistry_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -700,7 +700,7 @@ DocGroup* CustomElementRegistry::GetDocGroup() const {
 }
 
 int32_t CustomElementRegistry::InferNamespace(
-    JSContext* aCx, JS::Handle<JSObject*> constructor) {
+    MCContext* aCx, JS::Handle<JSObject*> constructor) {
   MC::Rooted<JSObject*> XULConstructor(
       aCx, XULElement_Binding::GetConstructorObject(aCx));
 
@@ -717,7 +717,7 @@ int32_t CustomElementRegistry::InferNamespace(
 }
 
 bool CustomElementRegistry::JSObjectToAtomArray(
-    JSContext* aCx, JS::Handle<JSObject*> aConstructor, const nsString& aName,
+    MCContext* aCx, JS::Handle<JSObject*> aConstructor, const nsString& aName,
     nsTArray<RefPtr<nsAtom>>& aArray, ErrorResult& aRv) {
   MC::Rooted<JS::Value> iterable(aCx, JS::UndefinedValue());
   if (!JS_GetUCProperty(aCx, aConstructor, aName.get(), aName.Length(),
@@ -733,13 +733,13 @@ bool CustomElementRegistry::JSObjectToAtomArray(
       return false;
     }
 
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(iterable, JS::ForOfIterator::AllowNonIterable)) {
+    MC::SandboxStack<JS::ForOfIterator> iter(aCx);
+    if (!iter->init(iterable, JS::ForOfIterator::AllowNonIterable)) {
       aRv.NoteJSContextException(aCx);
       return false;
     }
 
-    if (!iter.valueIsIterable()) {
+    if (!iter->valueIsIterable()) {
       aRv.ThrowTypeError<MSG_CONVERSION_ERROR>(NS_ConvertUTF16toUTF8(aName),
                                                "sequence");
       return false;
@@ -747,12 +747,12 @@ bool CustomElementRegistry::JSObjectToAtomArray(
 
     MC::Rooted<JS::Value> attribute(aCx);
     while (true) {
-      bool done;
-      if (!iter.next(&attribute, &done)) {
+      MC::SandboxStack<bool> done;
+      if (!iter->next(&attribute, done)) {
         aRv.NoteJSContextException(aCx);
         return false;
       }
-      if (done) {
+      if (*done.UNSAFE_unverified()) {
         break;
       }
 
@@ -774,7 +774,7 @@ bool CustomElementRegistry::JSObjectToAtomArray(
 
 // https://html.spec.whatwg.org/commit-snapshots/b48bb2238269d90ea4f455a52cdf29505aff3df0/#dom-customelementregistry-define
 void CustomElementRegistry::Define(
-    JSContext* aCx, const nsAString& aName,
+    MCContext* aCx, const nsAString& aName,
     CustomElementConstructor& aFunctionConstructor,
     const ElementDefinitionOptions& aOptions, ErrorResult& aRv) {
   MC::Rooted<JSObject*> constructor(aCx, aFunctionConstructor.CallableOrNull());
@@ -786,7 +786,7 @@ void CustomElementRegistry::Define(
   // In any case, aCx represents the global we want to be using for the unwrap
   // here.
   MC::Rooted<JSObject*> constructorUnwrapped(
-      aCx, js::CheckedUnwrapDynamic(constructor, aCx));
+      aCx, mc::CheckedUnwrapDynamic(constructor, aCx));
   if (!constructorUnwrapped) {
     // If the caller's compartment does not have permission to access the
     // unwrapped constructor then throw.
@@ -1366,7 +1366,7 @@ already_AddRefed<nsISupports> CustomElementRegistry::CallGetCustomInterface(
   }
 
   // Grab our JSContext.
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Convert our IID to a JSValue to call our callback.
   MC::Rooted<JS::Value> jsiid(cx);
@@ -1543,7 +1543,7 @@ void CustomElementReactionsStack::InvokeReactions(ElementQueue* aElementQueue,
         ErrorResult rv;
         reaction->Invoke(MOZ_KnownLive(element), rv);
         if (aes) {
-          JSContext* cx = aes->cx();
+          MCContext* cx = aes->mcx();
           if (rv.MaybeSetPendingException(cx)) {
             aes->ReportException();
           }

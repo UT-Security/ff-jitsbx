@@ -224,7 +224,7 @@ NS_IMETHODIMP
 nsUDPMessage::GetRawData(MCContext* cx, JS::MutableHandle<JS::Value> aRawData) {
   if (!mJsobj) {
     mJsobj =
-        dom::Uint8Array::Create(MC_UNSAFE(cx), nullptr, mData.Length(), mData.Elements());
+        dom::Uint8Array::Create(cx, nullptr, mData.Length(), mData.Elements());
     HoldJSObjects(this);
   }
   aRawData.setObject(*mJsobj);

@@ -147,7 +147,7 @@ class DOMProxyHandler : public BaseDOMProxyHandler {
    * Ensure that the given proxy (obj) has an expando object, and return it.
    * Returns null on failure.
    */
-  static JSObject* EnsureExpandoObject(JSContext* cx,
+  static JSObject* EnsureExpandoObject(MCContext* cx,
                                        JS::Handle<JSObject*> obj);
 
   static const char family;

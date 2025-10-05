@@ -22,7 +22,7 @@ class MutationEvent : public Event {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(MutationEvent, Event)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return MutationEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

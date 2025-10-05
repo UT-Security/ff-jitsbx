@@ -16,9 +16,9 @@
 #include <stdint.h>
 #include "nsID.h"
 #include "mozilla/Assertions.h"
-#include "jsapi.h"
-#include "js/Symbol.h"
-#include "js/Value.h"
+#include "mcapi.h"
+#include "monkeycage/Symbol.h"
+#include "monkeycage/Value.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
@@ -462,7 +462,7 @@ struct nsXPTMethodInfo {
     return JS::SymbolCode(mName);
   }
 
-  JS::Symbol* GetSymbol(JSContext* aCx) const {
+  JS::Symbol* GetSymbol(MCContext* aCx) const {
     return JS::GetWellKnownSymbol(aCx, GetSymbolCode());
   }
 
@@ -475,7 +475,7 @@ struct nsXPTMethodInfo {
     return Name();
   }
 
-  bool GetId(JSContext* aCx, jsid& aId) const;
+  bool GetId(MCContext* aCx, jsid& aId) const;
 
   /////////////////////////////////////////////
   // nsXPTMethodInfo backwards compatibility //
@@ -551,11 +551,11 @@ static_assert(sizeof(nsXPTConstantInfo) == 8, "wrong size");
  */
 struct nsXPTDOMObjectInfo {
   nsresult Unwrap(JS::Handle<JS::Value> aHandle, void** aObj,
-                  JSContext* aCx) const {
+                  MCContext* aCx) const {
     return mUnwrap(aHandle, aObj, aCx);
   }
 
-  bool Wrap(JSContext* aCx, void* aObj,
+  bool Wrap(MCContext* aCx, void* aObj,
             JS::MutableHandle<JS::Value> aHandle) const {
     return mWrap(aCx, aObj, aHandle);
   }
@@ -567,8 +567,8 @@ struct nsXPTDOMObjectInfo {
   ////////////////////////////////////////////////////////////////
 
   nsresult (*mUnwrap)(JS::Handle<JS::Value> aHandle, void** aObj,
-                      JSContext* aCx);
-  bool (*mWrap)(JSContext* aCx, void* aObj,
+                      MCContext* aCx);
+  bool (*mWrap)(MCContext* aCx, void* aObj,
                 JS::MutableHandle<JS::Value> aHandle);
   void (*mCleanup)(void* aObj);
 };

@@ -127,7 +127,7 @@ class ScaffoldingCallHandler {
     auto callResult = CallScaffoldingFunc(aScaffoldingFunc,
                                           std::move(convertResult.unwrap()));
 
-    ReturnResult(MC_UNSAFE(aGlobal.Context()), callResult, aReturnValue, aFuncName);
+    ReturnResult(aGlobal.Context(), callResult, aReturnValue, aFuncName);
   }
 
  private:
@@ -211,7 +211,7 @@ class ScaffoldingCallHandler {
   //
   // This should be called on the main thread
   static void ReturnResult(
-      JSContext* aContext, CallResult& aCallResult,
+      MCContext* aContext, CallResult& aCallResult,
       dom::RootedDictionary<dom::UniFFIScaffoldingCallResult>& aReturnValue,
       const nsLiteralCString& aFuncName) {
     switch (aCallResult.mCallStatus.code) {

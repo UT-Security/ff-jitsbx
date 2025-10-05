@@ -9,11 +9,12 @@
 
 #include <utility>
 
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "js/ArrayBufferMaybeShared.h"
-#include "js/experimental/TypedData.h"  // js::Unwrap(Ui|I)nt(8|16|32)Array, js::Get(Ui|I)nt(8|16|32)ArrayLengthAndData, js::UnwrapUint8ClampedArray, js::GetUint8ClampedArrayLengthAndData, js::UnwrapFloat(32|64)Array, js::GetFloat(32|64)ArrayLengthAndData, JS_GetArrayBufferViewType
+#include "monkeycage/experimental/TypedData.h"  // js::Unwrap(Ui|I)nt(8|16|32)Array, js::Get(Ui|I)nt(8|16|32)ArrayLengthAndData, js::UnwrapUint8ClampedArray, js::GetUint8ClampedArrayLengthAndData, js::UnwrapFloat(32|64)Array, js::GetFloat(32|64)ArrayLengthAndData, JS_GetArrayBufferViewType
 #include "monkeycage/GCAPI.h"                   // MC::AutoCheckCannotGC
 #include "monkeycage/RootingAPI.h"              // JS::Rooted
+#include "monkeycage/tainted/Maybe.h"
 #include "js/ScalarType.h"              // JS::Scalar::Type
 #include "js/SharedArrayBuffer.h"
 #include "mozilla/Attributes.h"
@@ -169,24 +170,24 @@ struct TypedArray : public TypedArray_base<ArrayT> {
 
   TypedArray(TypedArray&& aOther) = default;
 
-  static inline JSObject* Create(JSContext* cx, nsWrapperCache* creator,
+  static inline JSObject* Create(MCContext* cx, nsWrapperCache* creator,
                                  uint32_t length,
                                  const element_type* data = nullptr) {
     MC::Rooted<JSObject*> creatorWrapper(cx);
-    Maybe<JSAutoRealm> ar;
+    MC::SandboxStack<Maybe<JSAutoRealm>> ar;
     if (creator && (creatorWrapper = creator->GetWrapperPreserveColor())) {
-      ar.emplace(cx, creatorWrapper);
+      ar->emplace(cx, creatorWrapper);
     }
 
     return CreateCommon(cx, length, data);
   }
 
-  static inline JSObject* Create(JSContext* cx, uint32_t length,
+  static inline JSObject* Create(MCContext* cx, uint32_t length,
                                  const element_type* data = nullptr) {
     return CreateCommon(cx, length, data);
   }
 
-  static inline JSObject* Create(JSContext* cx, nsWrapperCache* creator,
+  static inline JSObject* Create(MCContext* cx, nsWrapperCache* creator,
                                  Span<const element_type> data) {
     // Span<> uses size_t as a length, and we use uint32_t instead.
     if (MOZ_UNLIKELY(data.Length() > UINT32_MAX)) {
@@ -196,7 +197,7 @@ struct TypedArray : public TypedArray_base<ArrayT> {
     return Create(cx, creator, data.Length(), data.Elements());
   }
 
-  static inline JSObject* Create(JSContext* cx, Span<const element_type> data) {
+  static inline JSObject* Create(MCContext* cx, Span<const element_type> data) {
     // Span<> uses size_t as a length, and we use uint32_t instead.
     if (MOZ_UNLIKELY(data.Length() > UINT32_MAX)) {
       JS_ReportOutOfMemory(cx);
@@ -206,9 +207,9 @@ struct TypedArray : public TypedArray_base<ArrayT> {
   }
 
  private:
-  static inline JSObject* CreateCommon(JSContext* cx, uint32_t length,
+  static inline JSObject* CreateCommon(MCContext* cx, uint32_t length,
                                        const element_type* data) {
-    auto array = ArrayT::create(cx, length);
+    auto array = ArrayT::create(MC_UNSAFE(cx), length);
     if (!array) {
       return nullptr;
     }
@@ -286,7 +287,7 @@ class TypedArrayCreator {
  public:
   explicit TypedArrayCreator(const ArrayType& aArray) : mArray(aArray) {}
 
-  JSObject* Create(JSContext* aCx) const {
+  JSObject* Create(MCContext* aCx) const {
     return TypedArrayType::Create(aCx, mArray.Length(), mArray.Elements());
   }
 

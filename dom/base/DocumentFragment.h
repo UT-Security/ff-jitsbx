@@ -58,7 +58,7 @@ class DocumentFragment : public FragmentOrElement {
 
   NS_IMPL_FROMNODE_HELPER(DocumentFragment, IsDocumentFragment());
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   nsresult BindToTree(BindContext&, nsINode& aParent) override {

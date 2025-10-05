@@ -358,7 +358,7 @@ nsresult HTMLOptionElement::CopyInnerTo(Element* aDest) {
   return NS_OK;
 }
 
-JSObject* HTMLOptionElement::WrapNode(JSContext* aCx,
+JSObject* HTMLOptionElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLOptionElement_Binding::Wrap(aCx, this, aGivenProto);
 }

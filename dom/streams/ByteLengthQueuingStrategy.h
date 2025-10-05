@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_ByteLengthQueuingStrategy_h
 #define mozilla_dom_ByteLengthQueuingStrategy_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BaseQueuingStrategy.h"
@@ -35,7 +35,7 @@ class ByteLengthQueuingStrategy final : public BaseQueuingStrategy,
   ~ByteLengthQueuingStrategy() override = default;
 
  public:
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<ByteLengthQueuingStrategy> Constructor(

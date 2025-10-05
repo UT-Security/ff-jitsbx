@@ -21,13 +21,13 @@ class GamepadTouch final : public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(GamepadTouch)
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   uint32_t TouchId() const { return mTouchState.touchId; }
   uint32_t SurfaceId() const { return mTouchState.surfaceId; }
-  void GetPosition(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetPosition(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                    ErrorResult& aRv);
-  void GetSurfaceDimensions(JSContext* aCx,
+  void GetSurfaceDimensions(MCContext* aCx,
                             JS::MutableHandle<JSObject*> aRetval,
                             ErrorResult& aRv);
   void SetTouchState(const GamepadTouchState& aTouch);

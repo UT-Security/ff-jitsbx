@@ -48,7 +48,7 @@ CachePromiseHandler::CachePromiseHandler(
   MOZ_ASSERT(mLoader);
 }
 
-void CachePromiseHandler::ResolvedCallback(JSContext* aCx,
+void CachePromiseHandler::ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) {
   AssertIsOnMainThread();
@@ -71,7 +71,7 @@ void CachePromiseHandler::ResolvedCallback(JSContext* aCx,
   }
 }
 
-void CachePromiseHandler::RejectedCallback(JSContext* aCx,
+void CachePromiseHandler::RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) {
   AssertIsOnMainThread();
@@ -112,7 +112,7 @@ nsresult CacheCreator::CreateCacheStorage(nsIPrincipal* aPrincipal) {
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -183,14 +183,14 @@ void CacheCreator::FailLoaders(nsresult aRv) {
   mLoaders.Clear();
 }
 
-void CacheCreator::RejectedCallback(JSContext* aCx,
+void CacheCreator::RejectedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   AssertIsOnMainThread();
   FailLoaders(NS_ERROR_FAILURE);
 }
 
-void CacheCreator::ResolvedCallback(JSContext* aCx,
+void CacheCreator::ResolvedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   AssertIsOnMainThread();
@@ -334,7 +334,7 @@ void CacheLoadHandler::Load(Cache* aCache) {
   promise->AppendNativeHandler(this);
 }
 
-void CacheLoadHandler::RejectedCallback(JSContext* aCx,
+void CacheLoadHandler::RejectedCallback(MCContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         ErrorResult& aRv) {
   AssertIsOnMainThread();
@@ -345,7 +345,7 @@ void CacheLoadHandler::RejectedCallback(JSContext* aCx,
   Fail(NS_ERROR_FAILURE);
 }
 
-void CacheLoadHandler::ResolvedCallback(JSContext* aCx,
+void CacheLoadHandler::ResolvedCallback(MCContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         ErrorResult& aRv) {
   AssertIsOnMainThread();

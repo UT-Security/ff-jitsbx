@@ -27,7 +27,7 @@ class OSFileConstantsService final : public nsIOSFileConstantsService,
 
   static already_AddRefed<OSFileConstantsService> GetOrCreate();
 
-  bool DefineOSFileConstants(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  bool DefineOSFileConstants(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
  private:
   nsresult InitOSFileConstants();

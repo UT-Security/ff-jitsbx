@@ -25,7 +25,7 @@ class VideoPlaybackQuality final : public nsWrapperCache {
 
   HTMLMediaElement* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp CreationTime() const { return mCreationTime; }

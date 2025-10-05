@@ -143,7 +143,7 @@ StartFetchRunnable::Run() {
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   nsresult rv = mHandlerRef->StartFetch(cx, mURI, mReferrer);
   if (NS_FAILED(rv)) {
     mHandlerRef->HandleFetchFailed(mURI);
@@ -256,7 +256,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 // static
 already_AddRefed<Promise> WorkletFetchHandler::AddModule(
-    Worklet* aWorklet, JSContext* aCx, const nsAString& aModuleURL,
+    Worklet* aWorklet, MCContext* aCx, const nsAString& aModuleURL,
     const WorkletOptions& aOptions, ErrorResult& aRv) {
   MOZ_ASSERT(aWorklet);
   MOZ_ASSERT(NS_IsMainThread());
@@ -369,7 +369,7 @@ void WorkletFetchHandler::ExecutionSucceeded() {
   ResolvePromises();
 }
 
-void WorkletFetchHandler::AddPromise(JSContext* aCx, Promise* aPromise) {
+void WorkletFetchHandler::AddPromise(MCContext* aCx, Promise* aPromise) {
   MOZ_ASSERT(aPromise);
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -444,7 +444,7 @@ void WorkletFetchHandler::ResolvePromises() {
   mWorklet = nullptr;
 }
 
-nsresult WorkletFetchHandler::StartFetch(JSContext* aCx, nsIURI* aURI,
+nsresult WorkletFetchHandler::StartFetch(MCContext* aCx, nsIURI* aURI,
                                          nsIURI* aReferrer) {
   nsAutoCString spec;
   nsresult res = aURI->GetSpec(spec);
@@ -522,7 +522,7 @@ NS_IMPL_ISUPPORTS(WorkletScriptHandler, nsIStreamLoaderObserver)
 WorkletScriptHandler::WorkletScriptHandler(Worklet* aWorklet, nsIURI* aURI)
     : mWorklet(aWorklet), mURI(aURI) {}
 
-void WorkletScriptHandler::ResolvedCallback(JSContext* aCx,
+void WorkletScriptHandler::ResolvedCallback(MCContext* aCx,
                                             JS::Handle<JS::Value> aValue,
                                             ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -614,7 +614,7 @@ NS_IMETHODIMP WorkletScriptHandler::OnStreamComplete(nsIStreamLoader* aLoader,
   return NS_OK;
 }
 
-void WorkletScriptHandler::RejectedCallback(JSContext* aCx,
+void WorkletScriptHandler::RejectedCallback(MCContext* aCx,
                                             JS::Handle<JS::Value> aValue,
                                             ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());

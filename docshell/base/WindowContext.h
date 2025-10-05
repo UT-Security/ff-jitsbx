@@ -159,7 +159,7 @@ class WindowContext : public nsISupports, public nsWrapperCache {
   WindowGlobalParent* Canonical();
 
   nsIGlobalObject* GetParentObject() const;
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void Discard();

@@ -31,7 +31,7 @@ class nsMimeTypeArray final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(nsMimeTypeArray)
 
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // MimeTypeArray WebIDL methods
@@ -75,7 +75,7 @@ class nsMimeType final : public nsWrapperCache {
 
   nsPluginElement* GetParentObject() const { return mPluginElement; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // MimeType WebIDL methods

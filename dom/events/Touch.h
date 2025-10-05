@@ -25,7 +25,7 @@ class Touch final : public nsISupports,
                     public nsWrapperCache,
                     public WidgetPointerHelper {
  public:
-  static bool PrefEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool PrefEnabled(MCContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<Touch> Constructor(const GlobalObject& aGlobal,
                                              const TouchInit& aParam);
@@ -54,7 +54,7 @@ class Touch final : public nsISupports,
   // Update this touch's touch area to be the same as aTouch
   void SetSameAs(const Touch* aTouch);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const;

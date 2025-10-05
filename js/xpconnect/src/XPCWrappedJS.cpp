@@ -334,7 +334,7 @@ JSObject* nsIXPConnectWrappedJS::GetJSObjectGlobal() {
 }
 
 // static
-nsresult nsXPCWrappedJS::GetNewOrUsed(JSContext* cx, JS::HandleObject jsObj,
+nsresult nsXPCWrappedJS::GetNewOrUsed(MCContext* cx, JS::HandleObject jsObj,
                                       REFNSIID aIID,
                                       nsXPCWrappedJS** wrapperResult) {
   // Do a release-mode assert against accessing nsXPCWrappedJS off-main-thread.
@@ -400,7 +400,7 @@ nsresult nsXPCWrappedJS::GetNewOrUsed(JSContext* cx, JS::HandleObject jsObj,
   return NS_OK;
 }
 
-nsXPCWrappedJS::nsXPCWrappedJS(JSContext* cx, JSObject* aJSObj,
+nsXPCWrappedJS::nsXPCWrappedJS(MCContext* cx, JSObject* aJSObj,
                                const nsXPTInterfaceInfo* aInfo,
                                nsXPCWrappedJS* root, nsresult* rv)
     : mJSObj(aJSObj), mInfo(aInfo), mRoot(root ? root : this), mNext(nullptr) {

@@ -16,7 +16,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEMergeElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEMergeElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEMergeElement_Binding::Wrap(aCx, this, aGivenProto);
 }

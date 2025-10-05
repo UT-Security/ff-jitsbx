@@ -7,9 +7,13 @@
 #ifndef mc_SandboxCallback_h
 #define mc_SandboxCallback_h
 
+#if defined(JS_SANDBOX)
+
+#include "monkeycage/unsafe/SandboxImpl.h"
+#include "monkeycage/SandboxTraits.h"
+
 namespace MC {
 namespace detail {
-#if defined(JS_SANDBOX_NOOP)
 
 template<typename MC_Sbx>
 class Sandbox;
@@ -19,91 +23,34 @@ class SandboxCallback;
 
 template <typename T_Ret, typename... T_Args>
 class SandboxCallback<T_Ret(*)(T_Args...)> {
-  using T_Cb = T_Ret (*)(T_Args...);
-  T_Cb app_fn_;
-  T_Cb sbx_fn_;
+  using T_Sbx_Cb = T_Ret (*)(T_Args...);
+  using T_App_Cb_Ret = std::conditional_t<std::is_void_v<T_Ret>, void, Tainted<T_Ret, SandboxImpl>>;
+  using T_App_Cb = T_App_Cb_Ret (*)(mc_tainted_callback_arg_t<T_Args, SandboxImpl>...);
+  
+  T_App_Cb app_fn_;
+  T_Sbx_Cb sbx_fn_;
 
-  template<typename MC_Sbx>
+  template<typename T_Sbx>
   friend class Sandbox;
 
  public:
-  explicit SandboxCallback(T_Cb app_fn, T_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
+  explicit SandboxCallback(T_App_Cb app_fn, T_Sbx_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
 
   SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
 
-  T_Cb UNSAFE_get() const { return sbx_fn_; }
+  T_Sbx_Cb UNSAFE_get() const { return sbx_fn_; }
 
   operator bool() const { return app_fn_ == nullptr ? false : true; }
 
-  template <typename... Args>
-  T_Ret operator()(Args&&... args) {
+  template<typename... Args>
+  T_App_Cb_Ret operator()(Args&&... args) {
     return app_fn_(std::forward<Args>(args)...);
   }
 };
-#elif defined(JS_SANDBOX_DYLIB)
-
-class SandboxDylib;
+}
 
 template <typename T>
-class SandboxCallback;
-
-template <typename T_Ret, typename... T_Args>
-class SandboxCallback<T_Ret(*)(T_Args...)> {
-  using T_Cb = T_Ret (*)(T_Args...);
-  
-  T_Cb app_fn_;
-  T_Cb sbx_fn_;
-
-  friend class SandboxDylib;
-  explicit SandboxCallback(T_Cb app_fn, T_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
-
- public:
-  SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
-
-  T_Cb UNSAFE_get() const { return sbx_fn_; }
-
-  operator bool() const { return app_fn_ == nullptr ? false : true; }
-
-  template <typename... Args>
-  T_Ret operator()(Args&&... args) {
-    return app_fn_(std::forward<Args>(args)...);
-  }
-};
-#elif defined(JS_SANDBOX_LFI)
-
-class SandboxLFI;
-
-template <typename T>
-class SandboxCallback;
-
-template <typename T_Ret, typename... T_Args>
-class SandboxCallback<T_Ret(*)(T_Args...)> {
-  using T_Cb = T_Ret (*)(T_Args...);
-  
-  T_Cb app_fn_;
-  T_Cb sbx_fn_;
-
- public:
-  explicit SandboxCallback(T_Cb app_fn, T_Cb sbx_fn) : app_fn_(app_fn), sbx_fn_(sbx_fn) {}
-  
-  SandboxCallback(const std::nullptr_t& arg) : app_fn_(arg), sbx_fn_(arg) {}
-
-  T_Cb UNSAFE_get() const { return sbx_fn_; }
-
-  operator bool() const { return app_fn_ == nullptr ? false : true; }
-
-  template <typename... Args>
-  T_Ret operator()(Args&&... args) {
-    return app_fn_(std::forward<Args>(args)...);
-  }
-};
-
-#else
-template <typename T>
-using SandboxCallback = T;
+using SandboxCallback = detail::SandboxCallback<T>;
+}
 #endif
-}
-template <typename T>
-using SandboxCallback = MC::detail::SandboxCallback<T>;
-}
 #endif

@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 RTCDtlsTransport::RTCDtlsTransport(nsPIDOMWindowInner* aWindow)
     : DOMEventTargetHelper(aWindow), mState(RTCDtlsTransportState::New) {}
 
-JSObject* RTCDtlsTransport::WrapObject(JSContext* aCx,
+JSObject* RTCDtlsTransport::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return RTCDtlsTransport_Binding::Wrap(aCx, this, aGivenProto);
 }

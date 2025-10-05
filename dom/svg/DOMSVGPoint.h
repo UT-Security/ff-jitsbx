@@ -141,7 +141,7 @@ class DOMSVGPoint final : public nsWrapperCache {
    */
   bool AttrIsAnimating() const;
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMSVGPoint* Copy() { return new DOMSVGPoint(InternalItem()); }

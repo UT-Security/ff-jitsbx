@@ -247,7 +247,7 @@ already_AddRefed<DataTransfer> DataTransfer::Constructor(
   return transfer.forget();
 }
 
-JSObject* DataTransfer::WrapObject(JSContext* aCx,
+JSObject* DataTransfer::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return DataTransfer_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -547,7 +547,7 @@ nsresult DataTransfer::GetDataAtInternal(const nsAString& aFormat,
   return NS_OK;
 }
 
-void DataTransfer::MozGetDataAt(JSContext* aCx, const nsAString& aFormat,
+void DataTransfer::MozGetDataAt(MCContext* aCx, const nsAString& aFormat,
                                 uint32_t aIndex,
                                 JS::MutableHandle<JS::Value> aRetval,
                                 mozilla::ErrorResult& aRv) {
@@ -737,7 +737,7 @@ nsresult DataTransfer::SetDataAtInternal(const nsAString& aFormat,
   return SetDataWithPrincipal(aFormat, aData, aIndex, aSubjectPrincipal);
 }
 
-void DataTransfer::MozSetDataAt(JSContext* aCx, const nsAString& aFormat,
+void DataTransfer::MozSetDataAt(MCContext* aCx, const nsAString& aFormat,
                                 JS::Handle<JS::Value> aData, uint32_t aIndex,
                                 ErrorResult& aRv) {
   nsCOMPtr<nsIVariant> data;

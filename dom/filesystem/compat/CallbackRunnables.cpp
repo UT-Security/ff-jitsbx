@@ -159,7 +159,7 @@ void GetEntryHelper::Run() {
   promise->AppendNativeHandler(this);
 }
 
-void GetEntryHelper::ResolvedCallback(JSContext* aCx,
+void GetEntryHelper::ResolvedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   if (NS_WARN_IF(!aValue.isObject())) {
@@ -225,7 +225,7 @@ void GetEntryHelper::ContinueRunning(JSObject* aObj) {
   Run();
 }
 
-void GetEntryHelper::RejectedCallback(JSContext* aCx,
+void GetEntryHelper::RejectedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   Error(NS_ERROR_DOM_NOT_FOUND_ERR);

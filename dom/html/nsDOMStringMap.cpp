@@ -62,7 +62,7 @@ DocGroup* nsDOMStringMap::GetDocGroup() const {
 }
 
 /* virtual */
-JSObject* nsDOMStringMap::WrapObject(JSContext* cx,
+JSObject* nsDOMStringMap::WrapObject(MCContext* cx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return DOMStringMap_Binding::Wrap(cx, this, aGivenProto);
 }

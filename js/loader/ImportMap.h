@@ -10,7 +10,7 @@
 #include <functional>
 #include <map>
 
-#include "monkeycage/SourceText.h"
+#include "js/SourceText.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Logging.h"
 #include "mozilla/RefPtr.h"
@@ -19,7 +19,7 @@
 #include "nsTArray.h"
 #include "ResolveResult.h"
 
-struct JSContext;
+struct MCContext;
 class nsIScriptElement;
 class nsIURI;
 
@@ -73,7 +73,7 @@ class ImportMap {
    * https://html.spec.whatwg.org/multipage/webappapis.html#parse-an-import-map-string
    */
   static mozilla::UniquePtr<ImportMap> ParseString(
-      JSContext* aCx, JS::SourceText<char16_t>& aInput, nsIURI* aBaseURL,
+      MCContext* aCx, JS::SourceText<char16_t>& aInput, nsIURI* aBaseURL,
       const ReportWarningHelper& aWarning);
 
   /**

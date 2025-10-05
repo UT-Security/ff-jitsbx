@@ -14,7 +14,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEPointLightElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEPointLightElement::WrapNode(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SVGFEPointLightElement_Binding::Wrap(aCx, this, aGivenProto);
 }

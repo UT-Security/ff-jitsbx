@@ -147,7 +147,7 @@ class TestPromiseListener : public PromiseNativeHandler,
 
   // PromiseNativeHandler implementation
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aError) override {
     mozilla::ScopeExit flagAsDone([isDone = mIsDone, timer = mTimer] {
       timer->Cancel();
@@ -157,7 +157,7 @@ class TestPromiseListener : public PromiseNativeHandler,
     mOnSuccess();
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aError) override {
     mozilla::ScopeExit flagAsDone([isDone = mIsDone, timer = mTimer] {
       timer->Cancel();

@@ -391,7 +391,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // to it and the value of aOuter will be set to the object that used to be the
   // remote proxy and is now an OuterWindowProxy.
   void CleanUpDanglingRemoteOuterWindowProxies(
-      JSContext* aCx, JS::MutableHandle<JSObject*> aOuter);
+      MCContext* aCx, JS::MutableHandle<JSObject*> aOuter);
 
   // Get the embedder element for this BrowsingContext if the embedder is
   // in-process, or null if it's not.
@@ -587,7 +587,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   void SetUseTrackingProtectionWebIDL(bool aUseTrackingProtection,
                                       ErrorResult& aRv);
   bool UseTrackingProtectionWebIDL() { return UseTrackingProtection(); }
-  void GetOriginAttributes(JSContext* aCx, JS::MutableHandle<JS::Value> aVal,
+  void GetOriginAttributes(MCContext* aCx, JS::MutableHandle<JS::Value> aVal,
                            ErrorResult& aError);
 
   bool InRDMPane() const { return GetInRDMPane(); }
@@ -692,7 +692,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
                                        WindowGlobalChild& aRequestingWindow);
 
   nsISupports* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Return the window proxy object that corresponds to this browsing context.
@@ -716,7 +716,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   WindowProxyHolder Window();
   BrowsingContext* GetBrowsingContext() { return this; };
   BrowsingContext* Self() { return this; }
-  void Location(JSContext* aCx, JS::MutableHandle<JSObject*> aLocation,
+  void Location(MCContext* aCx, JS::MutableHandle<JSObject*> aLocation,
                 ErrorResult& aError);
   void Close(CallerType aCallerType, ErrorResult& aError);
   bool GetClosed(ErrorResult&) { return GetClosed(); }
@@ -725,14 +725,14 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   WindowProxyHolder GetFrames(ErrorResult& aError);
   int32_t Length() const { return Children().Length(); }
   Nullable<WindowProxyHolder> GetTop(ErrorResult& aError);
-  void GetOpener(JSContext* aCx, JS::MutableHandle<JS::Value> aOpener,
+  void GetOpener(MCContext* aCx, JS::MutableHandle<JS::Value> aOpener,
                  ErrorResult& aError) const;
   Nullable<WindowProxyHolder> GetParent(ErrorResult& aError);
-  void PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMoz(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                       const nsAString& aTargetOrigin,
                       const Sequence<JSObject*>& aTransfer,
                       nsIPrincipal& aSubjectPrincipal, ErrorResult& aError);
-  void PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMoz(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                       const WindowPostMessageOptions& aOptions,
                       nsIPrincipal& aSubjectPrincipal, ErrorResult& aError);
 
@@ -747,12 +747,12 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   }
   void SetCustomPlatform(const nsAString& aPlatform, ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx);
+  JSObject* WrapObject(MCContext* aCx);
 
-  static JSObject* ReadStructuredClone(JSContext* aCx,
-                                       JSStructuredCloneReader* aReader,
+  static JSObject* ReadStructuredClone(MCContext* aCx,
+                                       MC::Tainted<JSStructuredCloneReader*> aReader,
                                        StructuredCloneHolder* aHolder);
-  bool WriteStructuredClone(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool WriteStructuredClone(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                             StructuredCloneHolder* aHolder);
 
   void StartDelayedAutoplayMediaComponents();
@@ -826,7 +826,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   const OriginAttributes& OriginAttributesRef() { return mOriginAttributes; }
   nsresult SetOriginAttributes(const OriginAttributes& aAttrs);
 
-  void GetHistoryID(JSContext* aCx, JS::MutableHandle<JS::Value> aVal,
+  void GetHistoryID(MCContext* aCx, JS::MutableHandle<JS::Value> aVal,
                     ErrorResult& aError);
 
   // This should only be called on the top browsing context.
@@ -1421,7 +1421,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
  * transplanted onto it. Therefore it should be used as the value in the remote
  * proxy map.
  */
-extern bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
+extern bool GetRemoteOuterWindowProxy(MCContext* aCx, BrowsingContext* aContext,
                                       JS::Handle<JSObject*> aTransplantTo,
                                       JS::MutableHandle<JSObject*> aRetVal);
 

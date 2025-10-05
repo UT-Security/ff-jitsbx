@@ -180,7 +180,7 @@ already_AddRefed<BindGroup> Device::CreateBindGroup(
 }
 
 MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION already_AddRefed<ShaderModule>
-Device::CreateShaderModule(JSContext* aCx,
+Device::CreateShaderModule(MCContext* aCx,
                            const dom::GPUShaderModuleDescriptor& aDesc) {
   Unused << aCx;
 

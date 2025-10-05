@@ -35,7 +35,7 @@ class PlacesBookmarkAddition final : public PlacesBookmark {
     return event.forget();
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return PlacesBookmarkAddition_Binding::Wrap(aCx, this, aGivenProto);
   }

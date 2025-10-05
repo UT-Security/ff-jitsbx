@@ -84,7 +84,7 @@ FontFace::~FontFace() {
 
 void FontFace::Destroy() { mImpl->Destroy(); }
 
-JSObject* FontFace::WrapObject(JSContext* aCx,
+JSObject* FontFace::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return FontFace_Binding::Wrap(aCx, this, aGivenProto);
 }

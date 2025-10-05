@@ -83,7 +83,7 @@ class StaticRange final : public AbstractRange {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(StaticRange,
                                                          AbstractRange)
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   /**
    * SetStartAndEnd() works similar to call both SetStart() and SetEnd().

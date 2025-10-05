@@ -515,7 +515,7 @@ void OpenWhenReady(
 
   Unused << aPromise->ThenWithCycleCollectedArgs(
       [channel, aCallback](
-          JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+          MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
           nsIStreamListener* aListener) -> already_AddRefed<Promise> {
         nsresult rv = aCallback(aListener, channel);
         if (NS_FAILED(rv)) {

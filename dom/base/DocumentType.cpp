@@ -35,7 +35,7 @@ already_AddRefed<mozilla::dom::DocumentType> NS_NewDOMDocumentType(
 
 namespace mozilla::dom {
 
-JSObject* DocumentType::WrapNode(JSContext* cx,
+JSObject* DocumentType::WrapNode(MCContext* cx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return DocumentType_Binding::Wrap(cx, this, aGivenProto);
 }

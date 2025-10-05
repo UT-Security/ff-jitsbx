@@ -646,7 +646,7 @@ static void GetPropertyBagFromEvent(Event* aEvent,
   AutoJSAPI jsapi;
   if (!jsapi.Init(customEvent->GetParentObject())) return;
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> detail(cx);
   customEvent->GetDetail(cx, &detail);
   if (!detail.isObject()) return;

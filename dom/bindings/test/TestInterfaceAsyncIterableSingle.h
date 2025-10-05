@@ -35,7 +35,7 @@ class TestInterfaceAsyncIterableSingle : public nsISupports,
   explicit TestInterfaceAsyncIterableSingle(nsPIDOMWindowInner* aParent,
                                             bool aFailToInit = false);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceAsyncIterableSingle> Constructor(
       const GlobalObject& aGlobal,

@@ -19,7 +19,7 @@
 #include "nsJSEnvironment.h"
 #include "MainThreadUtils.h"
 #include "StructuredCloneTags.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "monkeycage/Value.h"
 
 using namespace mozilla::ipc;
@@ -97,13 +97,13 @@ bool StructuredCloneData::Copy(const StructuredCloneData& aData) {
   return true;
 }
 
-void StructuredCloneData::Read(JSContext* aCx,
+void StructuredCloneData::Read(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aValue,
                                ErrorResult& aRv) {
   Read(aCx, aValue, JS::CloneDataPolicy(), aRv);
 }
 
-void StructuredCloneData::Read(JSContext* aCx,
+void StructuredCloneData::Read(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aValue,
                                const JS::CloneDataPolicy& aCloneDataPolicy,
                                ErrorResult& aRv) {
@@ -115,12 +115,12 @@ void StructuredCloneData::Read(JSContext* aCx,
   ReadFromBuffer(global, aCx, Data(), aValue, aCloneDataPolicy, aRv);
 }
 
-void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void StructuredCloneData::Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) {
   Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy(), aRv);
 }
 
-void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void StructuredCloneData::Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 JS::Handle<JS::Value> aTransfer,
                                 const JS::CloneDataPolicy& aCloneDataPolicy,
                                 ErrorResult& aRv) {
@@ -131,8 +131,8 @@ void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
     return;
   }
 
-  JSStructuredCloneData data(mBuffer->scope());
-  mBuffer->giveTo(&data);
+  MC::SandboxHeap<JSStructuredCloneData> data(mBuffer->scope());
+  mBuffer->giveTo(data);
   mBuffer = nullptr;
   mSharedData = new SharedJSAllocatedData(std::move(data));
   mInitialized = true;
@@ -141,11 +141,11 @@ void StructuredCloneData::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
 bool StructuredCloneData::BuildClonedMessageData(
     ClonedMessageData& aClonedData) {
   SerializedStructuredCloneBuffer& buffer = aClonedData.data();
-  auto iter = Data().Start();
-  size_t size = Data().Size();
-  bool success;
-  buffer.data = Data().Borrow(iter, size, &success);
-  if (NS_WARN_IF(!success)) {
+  auto iter = Data()->Start();
+  size_t size = Data()->Size();
+  MC::SandboxStack<bool> success;
+  buffer.data = Data()->Borrow(iter, size, success);
+  if (NS_WARN_IF(!*success.UNSAFE_unverified())) {
     return false;
   }
   if (SupportsTransferring()) {
@@ -223,7 +223,7 @@ struct MemoryTraits<StealMemory> {
   static void ProvideBuffer(ClonedMessageData& aClonedData,
                             StructuredCloneData& aData) {
     SerializedStructuredCloneBuffer& buffer = aClonedData.data();
-    aData.StealExternalData(buffer.data);
+    aData.StealExternalData(std::move(buffer.data));
   }
 };
 
@@ -283,13 +283,13 @@ void StructuredCloneData::StealFromClonedMessageData(
 }
 
 void StructuredCloneData::WriteIPCParams(IPC::MessageWriter* aWriter) const {
-  WriteParam(aWriter, Data());
+  WriteParam(aWriter, *Data().UNSAFE_unverified());
 }
 
 bool StructuredCloneData::ReadIPCParams(IPC::MessageReader* aReader) {
   MOZ_ASSERT(!mInitialized);
-  JSStructuredCloneData data(JS::StructuredCloneScope::DifferentProcess);
-  if (!ReadParam(aReader, &data)) {
+  MC::SandboxHeap<JSStructuredCloneData> data(JS::StructuredCloneScope::DifferentProcess);
+  if (!ReadParam(aReader, data.UNSAFE_unverified())) {
     return false;
   }
   mSharedData = new SharedJSAllocatedData(std::move(data));
@@ -307,7 +307,7 @@ bool StructuredCloneData::CopyExternalData(const char* aData,
   return true;
 }
 
-bool StructuredCloneData::CopyExternalData(const JSStructuredCloneData& aData) {
+bool StructuredCloneData::CopyExternalData(MC::Tainted<const JSStructuredCloneData*> aData) {
   MOZ_ASSERT(!mInitialized);
   mSharedData = SharedJSAllocatedData::CreateFromExternalData(aData);
   NS_ENSURE_TRUE(mSharedData, false);
@@ -315,7 +315,7 @@ bool StructuredCloneData::CopyExternalData(const JSStructuredCloneData& aData) {
   return true;
 }
 
-bool StructuredCloneData::StealExternalData(JSStructuredCloneData& aData) {
+bool StructuredCloneData::StealExternalData(MC::SandboxHeap<JSStructuredCloneData>&& aData) {
   MOZ_ASSERT(!mInitialized);
   mSharedData = new SharedJSAllocatedData(std::move(aData));
   mInitialized = true;

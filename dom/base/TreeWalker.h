@@ -47,7 +47,7 @@ class TreeWalker final : public nsISupports, public nsTraversal {
   already_AddRefed<nsINode> PreviousNode(ErrorResult& aResult);
   already_AddRefed<nsINode> NextNode(ErrorResult& aResult);
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
  private:

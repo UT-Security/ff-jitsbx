@@ -17,7 +17,7 @@ class PlacesBookmark : public PlacesEvent {
   explicit PlacesBookmark(PlacesEventType aEventType)
       : PlacesEvent(aEventType) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return PlacesBookmark_Binding::Wrap(aCx, this, aGivenProto);
   }

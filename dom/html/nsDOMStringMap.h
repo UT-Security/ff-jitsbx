@@ -40,7 +40,7 @@ class nsDOMStringMap : public nsStubMutationObserver, public nsWrapperCache {
   explicit nsDOMStringMap(mozilla::dom::Element* aElement);
 
   // WebIDL API
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
   void NamedGetter(const nsAString& aProp, bool& found,
                    mozilla::dom::DOMString& aResult) const;

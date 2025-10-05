@@ -15,7 +15,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEDropShadowElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEDropShadowElement::WrapNode(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SVGFEDropShadowElement_Binding::Wrap(aCx, this, aGivenProto);
 }

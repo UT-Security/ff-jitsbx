@@ -145,7 +145,7 @@ void AccessCheck::reportCrossOriginDenial(MCContext* cx, JS::HandleId id,
     MC::RootedValue idVal(cx, js::IdToValue(id));
     nsAutoJSString propName;
     MC::RootedString idStr(cx, JS_ValueToSource(cx, idVal));
-    if (!idStr || !propName.init(MC_UNSAFE(cx), idStr)) {
+    if (!idStr || !propName.init(cx, idStr)) {
       return;
     }
     message = "Permission denied to "_ns + accessType + " property "_ns +

@@ -20,7 +20,7 @@ TEST(ThenWithCycleCollectedArgsJS, Empty)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
       std::make_tuple(), std::make_tuple());
 }
 
@@ -31,7 +31,7 @@ TEST(ThenWithCycleCollectedArgsJS, nsCOMPtr)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
         return nullptr;
       },
       std::make_tuple(global), std::make_tuple());
@@ -44,7 +44,7 @@ TEST(ThenWithCycleCollectedArgsJS, RefPtr)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
         return nullptr;
       },
       std::make_tuple(promise), std::make_tuple());
@@ -57,7 +57,7 @@ TEST(ThenWithCycleCollectedArgsJS, RefPtrAndJSHandle)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
+      [](MCContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
          JS::Handle<JS::Value>) { return nullptr; },
       std::make_tuple(promise), std::make_tuple(JS::UndefinedHandleValue));
 }
@@ -66,13 +66,13 @@ TEST(ThenWithCycleCollectedArgsJS, Mixed)
 {
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(cx);
   MC::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
          Promise*, JS::Handle<JS::Value>,
          JS::Handle<JSObject*>) { return nullptr; },
       std::make_tuple(global, promise),
@@ -86,8 +86,8 @@ TEST(ThenCatchWithCycleCollectedArgsJS, Empty)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&) { return nullptr; },
       std::make_tuple(), std::make_tuple());
 }
 
@@ -98,10 +98,10 @@ TEST(ThenCatchWithCycleCollectedArgsJS, nsCOMPtr)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
         return nullptr;
       },
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*) {
         return nullptr;
       },
       std::make_tuple(global), std::make_tuple());
@@ -114,10 +114,10 @@ TEST(ThenCatchWithCycleCollectedArgsJS, RefPtr)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
         return nullptr;
       },
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, Promise*) {
         return nullptr;
       },
       std::make_tuple(promise), std::make_tuple());
@@ -130,9 +130,9 @@ TEST(ThenCatchWithCycleCollectedArgsJS, RefPtrAndJSHandle)
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
+      [](MCContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
          JS::Handle<JS::Value>) { return nullptr; },
-      [](JSContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
+      [](MCContext*, JS::Handle<JS::Value> v, ErrorResult&, Promise*,
          JS::Handle<JS::Value>) { return nullptr; },
       std::make_tuple(promise), std::make_tuple(JS::UndefinedHandleValue));
 }
@@ -141,16 +141,16 @@ TEST(ThenCatchWithCycleCollectedArgsJS, Mixed)
 {
   AutoJSAPI jsapi;
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(cx);
   MC::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
 
   RefPtr<Promise> promise = Promise::Create(global, IgnoreErrors());
   auto result = promise->ThenCatchWithCycleCollectedArgsJS(
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
          Promise*, JS::Handle<JS::Value>,
          JS::Handle<JSObject*>) { return nullptr; },
-      [](JSContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
+      [](MCContext*, JS::Handle<JS::Value>, ErrorResult&, nsIGlobalObject*,
          Promise*, JS::Handle<JS::Value>,
          JS::Handle<JSObject*>) { return nullptr; },
       std::make_tuple(global, promise),

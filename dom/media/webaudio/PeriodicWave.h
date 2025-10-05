@@ -34,7 +34,7 @@ class PeriodicWave final : public nsWrapperCache {
 
   AudioContext* GetParentObject() const { return mContext; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t DataLength() const { return mCoefficients.mDuration; }

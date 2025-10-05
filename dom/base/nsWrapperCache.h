@@ -12,8 +12,8 @@
 #include "mozilla/ServoUtils.h"
 #include "mozilla/RustCell.h"
 #include "js/HeapAPI.h"
-#include "js/TracingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TracingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "nsISupports.h"
 #include "nsISupportsUtils.h"
 #include <type_traits>
@@ -204,7 +204,7 @@ class JS_HAZ_ROOTED nsWrapperCache {
    * Wrap the object corresponding to this wrapper cache. If non-null is
    * returned, the object has already been stored in the wrapper cache.
    */
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) = 0;
 
   /**

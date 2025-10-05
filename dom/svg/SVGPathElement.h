@@ -27,7 +27,7 @@ class SVGPathElement final : public SVGPathElementBase {
   friend nsresult(::NS_NewSVGPathElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
   explicit SVGPathElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
   void GetAsSimplePath(SimplePath* aSimplePath) override;

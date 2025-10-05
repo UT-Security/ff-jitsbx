@@ -24,7 +24,7 @@ class SVGSymbolElement final : public SVGSymbolElementBase {
   explicit SVGSymbolElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   ~SVGSymbolElement() = default;
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   // interfaces:

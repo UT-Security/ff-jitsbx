@@ -22,7 +22,7 @@ ParentProcessMessageManager::~ParentProcessMessageManager() {
 }
 
 JSObject* ParentProcessMessageManager::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(nsContentUtils::IsSystemCaller(aCx));
 
   return ParentProcessMessageManager_Binding::Wrap(aCx, this, aGivenProto);

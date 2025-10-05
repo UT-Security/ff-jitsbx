@@ -386,7 +386,7 @@ bool IDBFactory::IsChrome() const {
   return mPrincipalInfo->type() == PrincipalInfo::TSystemPrincipalInfo;
 }
 
-RefPtr<IDBOpenDBRequest> IDBFactory::Open(JSContext* aCx,
+RefPtr<IDBOpenDBRequest> IDBFactory::Open(MCContext* aCx,
                                           const nsAString& aName,
                                           uint64_t aVersion,
                                           CallerType aCallerType,
@@ -397,7 +397,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::Open(JSContext* aCx,
                       /* aDeleting */ false, aCallerType, aRv);
 }
 
-RefPtr<IDBOpenDBRequest> IDBFactory::Open(JSContext* aCx,
+RefPtr<IDBOpenDBRequest> IDBFactory::Open(MCContext* aCx,
                                           const nsAString& aName,
                                           const IDBOpenDBOptions& aOptions,
                                           CallerType aCallerType,
@@ -419,14 +419,14 @@ RefPtr<IDBOpenDBRequest> IDBFactory::Open(JSContext* aCx,
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::DeleteDatabase(
-    JSContext* aCx, const nsAString& aName, const IDBOpenDBOptions& aOptions,
+    MCContext* aCx, const nsAString& aName, const IDBOpenDBOptions& aOptions,
     CallerType aCallerType, ErrorResult& aRv) {
   return OpenInternal(aCx,
                       /* aPrincipal */ nullptr, aName, Optional<uint64_t>(),
                       /* aDeleting */ true, aCallerType, aRv);
 }
 
-int16_t IDBFactory::Cmp(JSContext* aCx, JS::Handle<JS::Value> aFirst,
+int16_t IDBFactory::Cmp(MCContext* aCx, JS::Handle<JS::Value> aFirst,
                         JS::Handle<JS::Value> aSecond, ErrorResult& aRv) {
   Key first, second;
   auto result = first.SetFromJSVal(aCx, aFirst);
@@ -452,7 +452,7 @@ int16_t IDBFactory::Cmp(JSContext* aCx, JS::Handle<JS::Value> aFirst,
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::OpenForPrincipal(
-    JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+    MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
     uint64_t aVersion, SystemCallerGuarantee aGuarantee, ErrorResult& aRv) {
   MOZ_ASSERT(aPrincipal);
   if (!NS_IsMainThread()) {
@@ -466,7 +466,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenForPrincipal(
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::OpenForPrincipal(
-    JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+    MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
     const IDBOpenDBOptions& aOptions, SystemCallerGuarantee aGuarantee,
     ErrorResult& aRv) {
   MOZ_ASSERT(aPrincipal);
@@ -481,7 +481,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::OpenForPrincipal(
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::DeleteForPrincipal(
-    JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+    MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
     const IDBOpenDBOptions& aOptions, SystemCallerGuarantee aGuarantee,
     ErrorResult& aRv) {
   MOZ_ASSERT(aPrincipal);
@@ -496,7 +496,7 @@ RefPtr<IDBOpenDBRequest> IDBFactory::DeleteForPrincipal(
 }
 
 RefPtr<IDBOpenDBRequest> IDBFactory::OpenInternal(
-    JSContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
+    MCContext* aCx, nsIPrincipal* aPrincipal, const nsAString& aName,
     const Optional<uint64_t>& aVersion, bool aDeleting, CallerType aCallerType,
     ErrorResult& aRv) {
   if (NS_WARN_IF(!mGlobal)) {
@@ -772,7 +772,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(IDBFactory)
   NS_IMPL_CYCLE_COLLECTION_TRACE_PRESERVED_WRAPPER
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-JSObject* IDBFactory::WrapObject(JSContext* aCx,
+JSObject* IDBFactory::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return IDBFactory_Binding::Wrap(aCx, this, aGivenProto);
 }

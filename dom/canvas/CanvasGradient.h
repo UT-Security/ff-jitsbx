@@ -34,7 +34,7 @@ class CanvasGradient : public nsWrapperCache {
   // WebIDL
   void AddColorStop(float offset, const nsACString& colorstr, ErrorResult& rv);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return CanvasGradient_Binding::Wrap(aCx, this, aGivenProto);
   }

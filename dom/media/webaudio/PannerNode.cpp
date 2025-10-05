@@ -392,7 +392,7 @@ size_t PannerNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* PannerNode::WrapObject(JSContext* aCx,
+JSObject* PannerNode::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return PannerNode_Binding::Wrap(aCx, this, aGivenProto);
 }

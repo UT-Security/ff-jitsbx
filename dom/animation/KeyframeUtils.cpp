@@ -9,9 +9,9 @@
 #include <algorithm>  // For std::stable_sort, std::min
 #include <utility>
 
-#include "jsapi.h"             // For most JSAPI
-#include "js/ForOfIterator.h"  // For JS::ForOfIterator
-#include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById
+#include "mcapi.h"             // For most JSAPI
+#include "monkeycage/ForOfIterator.h"  // For JS::ForOfIterator
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate, JS_GetProperty, JS_GetPropertyById
 #include "mozilla/ComputedStyle.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/RangedArray.h"
@@ -138,25 +138,25 @@ class ComputedOffsetComparator {
 // ------------------------------------------------------------------
 
 static void GetKeyframeListFromKeyframeSequence(
-    JSContext* aCx, dom::Document* aDocument, JS::ForOfIterator& aIterator,
+    MCContext* aCx, dom::Document* aDocument, MC::Tainted<JS::ForOfIterator*> aIterator,
     nsTArray<Keyframe>& aResult, const char* aContext, ErrorResult& aRv);
 
-static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
-                                    JS::ForOfIterator& aIterator,
+static bool ConvertKeyframeSequence(MCContext* aCx, dom::Document* aDocument,
+                                    MC::Tainted<JS::ForOfIterator*> aIterator,
                                     const char* aContext,
                                     nsTArray<Keyframe>& aResult);
 
-static bool GetPropertyValuesPairs(JSContext* aCx,
+static bool GetPropertyValuesPairs(MCContext* aCx,
                                    JS::Handle<JSObject*> aObject,
                                    ListAllowance aAllowLists,
                                    nsTArray<PropertyValuesPair>& aResult);
 
-static bool AppendStringOrStringSequenceToArray(JSContext* aCx,
+static bool AppendStringOrStringSequenceToArray(MCContext* aCx,
                                                 JS::Handle<JS::Value> aValue,
                                                 ListAllowance aAllowLists,
                                                 nsTArray<nsCString>& aValues);
 
-static bool AppendValueAsString(JSContext* aCx, nsTArray<nsCString>& aValues,
+static bool AppendValueAsString(MCContext* aCx, nsTArray<nsCString>& aValues,
                                 JS::Handle<JS::Value> aValue);
 
 static Maybe<PropertyValuePair> MakePropertyValuePair(
@@ -179,7 +179,7 @@ static void BuildSegmentsFromValueEntries(
     nsTArray<AnimationProperty>& aResult);
 
 static void GetKeyframeListFromPropertyIndexedKeyframe(
-    JSContext* aCx, dom::Document* aDocument, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, dom::Document* aDocument, JS::Handle<JS::Value> aValue,
     nsTArray<Keyframe>& aResult, ErrorResult& aRv);
 
 static bool HasImplicitKeyframeValues(const nsTArray<Keyframe>& aKeyframes,
@@ -195,7 +195,7 @@ static void DistributeRange(const Range<Keyframe>& aRange);
 
 /* static */
 nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
-    JSContext* aCx, dom::Document* aDocument, JS::Handle<JSObject*> aFrames,
+    MCContext* aCx, dom::Document* aDocument, JS::Handle<JSObject*> aFrames,
     const char* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(!aRv.Failed());
 
@@ -210,13 +210,13 @@ nsTArray<Keyframe> KeyframeUtils::GetKeyframesFromObject(
   // sequence of keyframes first, and if that fails due to not being iterable,
   // we try to convert it to a property-indexed keyframe.
   MC::Rooted<JS::Value> objectValue(aCx, JS::ObjectValue(*aFrames));
-  JS::ForOfIterator iter(aCx);
-  if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
+  MC::SandboxStack<JS::ForOfIterator> iter(aCx);
+  if (!iter->init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
     aRv.Throw(NS_ERROR_FAILURE);
     return keyframes;
   }
 
-  if (iter.valueIsIterable()) {
+  if (iter->valueIsIterable()) {
     GetKeyframeListFromKeyframeSequence(aCx, aDocument, iter, keyframes,
                                         aContext, aRv);
   } else {
@@ -349,7 +349,7 @@ bool KeyframeUtils::IsAnimatableProperty(nsCSSPropertyID aProperty) {
  * @param aRv Out param to store any errors thrown by this function.
  */
 static void GetKeyframeListFromKeyframeSequence(
-    JSContext* aCx, dom::Document* aDocument, JS::ForOfIterator& aIterator,
+    MCContext* aCx, dom::Document* aDocument, MC::Tainted<JS::ForOfIterator*> aIterator,
     nsTArray<Keyframe>& aResult, const char* aContext, ErrorResult& aRv) {
   MOZ_ASSERT(!aRv.Failed());
   MOZ_ASSERT(aResult.IsEmpty());
@@ -382,8 +382,8 @@ static void GetKeyframeListFromKeyframeSequence(
  * IDL sequence<Keyframe> and stores the resulting Keyframe objects in
  * aResult.
  */
-static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
-                                    JS::ForOfIterator& aIterator,
+static bool ConvertKeyframeSequence(MCContext* aCx, dom::Document* aDocument,
+                                    MC::Tainted<JS::ForOfIterator*> aIterator,
                                     const char* aContext,
                                     nsTArray<Keyframe>& aResult) {
   MC::Rooted<JS::Value> value(aCx);
@@ -393,11 +393,11 @@ static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
   IgnoredErrorResult parseEasingResult;
 
   for (;;) {
-    bool done;
-    if (!aIterator.next(&value, &done)) {
+    MC::SandboxStack<bool> done;
+    if (!aIterator->next(&value, done)) {
       return false;
     }
-    if (done) {
+    if (*done.UNSAFE_unverified()) {
       break;
     }
     // Each value found when iterating the object must be an object
@@ -500,7 +500,7 @@ static bool ConvertKeyframeSequence(JSContext* aCx, dom::Document* aDocument,
  * @return false on failure or JS exception thrown while interacting
  *   with aObject; true otherwise.
  */
-static bool GetPropertyValuesPairs(JSContext* aCx,
+static bool GetPropertyValuesPairs(MCContext* aCx,
                                    JS::Handle<JSObject*> aObject,
                                    ListAllowance aAllowLists,
                                    nsTArray<PropertyValuesPair>& aResult) {
@@ -512,7 +512,7 @@ static bool GetPropertyValuesPairs(JSContext* aCx,
   // We don't compare the jsids that we encounter with those for
   // the explicit dictionary members, since we know that none
   // of the CSS property IDL names clash with them.
-  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, aObject, &ids)) {
     return false;
   }
@@ -573,26 +573,26 @@ static bool GetPropertyValuesPairs(JSContext* aCx,
  * to (DOMString or sequence<DOMString>) if aAllowLists is aAllow.
  * The resulting strings are appended to aValues.
  */
-static bool AppendStringOrStringSequenceToArray(JSContext* aCx,
+static bool AppendStringOrStringSequenceToArray(MCContext* aCx,
                                                 JS::Handle<JS::Value> aValue,
                                                 ListAllowance aAllowLists,
                                                 nsTArray<nsCString>& aValues) {
   if (aAllowLists == ListAllowance::eAllow && aValue.isObject()) {
     // The value is an object, and we want to allow lists; convert
     // aValue to (DOMString or sequence<DOMString>).
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(aValue, JS::ForOfIterator::AllowNonIterable)) {
+    MC::SandboxStack<JS::ForOfIterator> iter(aCx);
+    if (!iter->init(aValue, JS::ForOfIterator::AllowNonIterable)) {
       return false;
     }
-    if (iter.valueIsIterable()) {
+    if (iter->valueIsIterable()) {
       // If the object is iterable, convert it to sequence<DOMString>.
       MC::Rooted<JS::Value> element(aCx);
       for (;;) {
-        bool done;
-        if (!iter.next(&element, &done)) {
+        MC::SandboxStack<bool> done;
+        if (!iter->next(&element, done)) {
           return false;
         }
-        if (done) {
+        if (*done.UNSAFE_unverified()) {
           break;
         }
         if (!AppendValueAsString(aCx, aValues, element)) {
@@ -615,7 +615,7 @@ static bool AppendStringOrStringSequenceToArray(JSContext* aCx,
 /**
  * Converts aValue to DOMString and appends it to aValues.
  */
-static bool AppendValueAsString(JSContext* aCx, nsTArray<nsCString>& aValues,
+static bool AppendValueAsString(MCContext* aCx, nsTArray<nsCString>& aValues,
                                 JS::Handle<JS::Value> aValue) {
   return ConvertJSValueToString(aCx, aValue, dom::eStringify, dom::eStringify,
                                 *aValues.AppendElement());
@@ -975,7 +975,7 @@ static void BuildSegmentsFromValueEntries(
  * @param aRv Out param to store any errors thrown by this function.
  */
 static void GetKeyframeListFromPropertyIndexedKeyframe(
-    JSContext* aCx, dom::Document* aDocument, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, dom::Document* aDocument, JS::Handle<JS::Value> aValue,
     nsTArray<Keyframe>& aResult, ErrorResult& aRv) {
   MOZ_ASSERT(aValue.isObject());
   MOZ_ASSERT(aResult.IsEmpty());

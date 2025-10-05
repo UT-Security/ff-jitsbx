@@ -28,7 +28,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(LockManager)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* LockManager::WrapObject(JSContext* aCx,
+JSObject* LockManager::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return LockManager_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -103,7 +103,7 @@ static bool ValidateRequestArguments(const nsAString& name,
         return false;
       }
 
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
       MC::Rooted<JS::Value> reason(cx);
       options.mSignal.Value().GetReason(cx, &reason);
       aRv.MightThrowJSException();

@@ -14,9 +14,9 @@
 #include "WorkerRunnable.h"
 #include "WorkerScope.h"
 #include "js/ComparisonOperators.h"
-#include "js/UniquePtr.h"
+#include "monkeycage/UniquePtr.h"
 #include "js/friend/ErrorMessages.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "monkeycage/Value.h"
 #include "mozilla/ArrayAlgorithm.h"
 #include "mozilla/ArrayIterator.h"
@@ -80,7 +80,7 @@ class ReportErrorRunnable final : public WorkerDebuggeeRunnable {
     // an error, so don't call base class PostDispatch.
   }
 
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override {
     uint64_t innerWindowId;
     bool fireAtScope = true;
@@ -175,7 +175,7 @@ class ReportGenericErrorRunnable final : public WorkerDebuggeeRunnable {
     // an error, so don't call base class PostDispatch.
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     // Once a window has frozen its workers, their
     // mMainThreadDebuggeeEventTargets should be paused, and their
     // WorkerDebuggeeRunnables should not be being executed. The same goes for
@@ -239,23 +239,23 @@ void WorkerErrorNote::AssignErrorNote(JSErrorNotes::Note* aNote) {
 WorkerErrorReport::WorkerErrorReport()
     : mIsWarning(false), mExnType(JSEXN_ERR), mMutedError(false) {}
 
-void WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport) {
-  WorkerErrorBase::AssignErrorBase(aReport);
+void WorkerErrorReport::AssignErrorReport(MC::Tainted<JSErrorReport*> aReport) {
+  WorkerErrorBase::AssignErrorBase(aReport.UNSAFE_unverified());
   xpc::ErrorReport::ErrorReportToMessageString(aReport, mMessage);
 
   mLine.Assign(aReport->linebuf(), aReport->linebufLength());
   mIsWarning = aReport->isWarning();
-  MOZ_ASSERT(aReport->exnType >= JSEXN_FIRST && aReport->exnType < JSEXN_LIMIT);
-  mExnType = JSExnType(aReport->exnType);
-  mMutedError = aReport->isMuted;
+  MOZ_ASSERT(aReport->exnType() >= JSEXN_FIRST && aReport->exnType() < JSEXN_LIMIT);
+  mExnType = JSExnType(aReport->exnType());
+  mMutedError = aReport->isMuted();
 
-  if (aReport->notes) {
-    if (!mNotes.SetLength(aReport->notes->length(), fallible)) {
+  if (aReport->notes()) {
+    if (!mNotes.SetLength(aReport->notes()->length(), fallible)) {
       return;
     }
 
     size_t i = 0;
-    for (auto&& note : *aReport->notes) {
+    for (auto&& note : *aReport->notes()) {
       mNotes.ElementAt(i).AssignErrorNote(note.get());
       i++;
     }
@@ -267,7 +267,7 @@ void WorkerErrorReport::AssignErrorReport(JSErrorReport* aReport) {
 // (if any).
 /* static */
 void WorkerErrorReport::ReportError(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
+    MCContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
     DOMEventTargetHelper* aTarget, UniquePtr<WorkerErrorReport> aReport,
     uint64_t aInnerWindowId, JS::Handle<JS::Value> aException) {
   if (aWorkerPrivate) {
@@ -389,7 +389,7 @@ void WorkerErrorReport::ReportError(
 }
 
 /* static */
-void WorkerErrorReport::LogErrorToConsole(JSContext* aCx,
+void WorkerErrorReport::LogErrorToConsole(MCContext* aCx,
                                           WorkerErrorReport& aReport,
                                           uint64_t aInnerWindowId) {
   MC::Rooted<JSObject*> stack(aCx, aReport.ReadStack(aCx));

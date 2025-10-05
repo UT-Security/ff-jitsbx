@@ -47,9 +47,9 @@ ArrayBufferInputStream::SetData(JS::Handle<JS::Value> aBuffer,
   mBufferLength = bufferLength;
 
   MC::AutoCheckCannotGC nogc;
-  bool isShared;
+  MC::SandboxStack<bool> isShared;
   char* src =
-      (char*)JS::GetArrayBufferData(arrayBuffer, &isShared, nogc) + offset;
+      (char*)JS::GetArrayBufferData(arrayBuffer, isShared, nogc).UNSAFE_unverified() + offset;
   memcpy(&mArrayBuffer[0], src, mBufferLength);
   return NS_OK;
 }

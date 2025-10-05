@@ -195,7 +195,7 @@ class HTMLAnchorElement final : public nsGenericHTMLElement,
  protected:
   virtual ~HTMLAnchorElement();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
   RefPtr<nsDOMTokenList> mRelList;
 };
 

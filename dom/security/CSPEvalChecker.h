@@ -9,7 +9,7 @@
 
 #include "nsString.h"
 
-struct JSContext;
+struct MCContext;
 class nsGlobalWindowInner;
 
 namespace mozilla::dom {
@@ -18,11 +18,11 @@ class WorkerPrivate;
 
 class CSPEvalChecker final {
  public:
-  static nsresult CheckForWindow(JSContext* aCx, nsGlobalWindowInner* aWindow,
+  static nsresult CheckForWindow(MCContext* aCx, nsGlobalWindowInner* aWindow,
                                  const nsAString& aExpression,
                                  bool* aAllowEval);
 
-  static nsresult CheckForWorker(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  static nsresult CheckForWorker(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                                  const nsAString& aExpression,
                                  bool* aAllowEval);
 };

@@ -187,7 +187,7 @@ Maybe<LinkStyle::SheetInfo> HTMLStyleElement::GetStyleSheetInfo() {
   });
 }
 
-JSObject* HTMLStyleElement::WrapNode(JSContext* aCx,
+JSObject* HTMLStyleElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLStyleElement_Binding::Wrap(aCx, this, aGivenProto);
 }

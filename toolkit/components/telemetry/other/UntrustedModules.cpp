@@ -162,7 +162,7 @@ void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   UntrustedModulesDataSerializer serializer(cx, kMaxModulesArrayLen, mFlags);
   if (!serializer) {
     aPromise->MaybeReject(NS_ERROR_FAILURE);
@@ -265,7 +265,7 @@ void MultiGetUntrustedModulesData::Serialize(RefPtr<dom::Promise>&& aPromise) {
   aPromise->MaybeResolve(jsval);
 }
 
-nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
+nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, MCContext* cx,
                                       dom::Promise** aPromise) {
   // Create a promise using global context.
   nsIGlobalObject* global = xpc::CurrentNativeGlobal(cx);

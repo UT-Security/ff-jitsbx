@@ -8,8 +8,8 @@
 #include "mozilla/browser/NimbusFeatureManifest.h"
 #include "mozilla/Telemetry.h"
 #include "mozilla/dom/ScriptSettings.h"
-#include "jsapi.h"
-#include "js/JSON.h"
+#include "mcapi.h"
+#include "monkeycage/JSON.h"
 #include "nsJSUtils.h"
 
 namespace mozilla {
@@ -147,7 +147,7 @@ nsresult NimbusFeatures::GetExperimentSlug(const nsACString& aFeatureId,
   if (!jsapi.Init(xpc::PrivilegedJunkScope())) {
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> json(cx, JS::NullValue());
   if (JS_ParseJSON(cx, prefValue.BeginReading(), prefValue.Length(), &json) &&
       json.isObject()) {

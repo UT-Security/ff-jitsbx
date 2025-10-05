@@ -56,7 +56,7 @@ MediaKeySystemAccess::MediaKeySystemAccess(
 
 MediaKeySystemAccess::~MediaKeySystemAccess() = default;
 
-JSObject* MediaKeySystemAccess::WrapObject(JSContext* aCx,
+JSObject* MediaKeySystemAccess::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return MediaKeySystemAccess_Binding::Wrap(aCx, this, aGivenProto);
 }

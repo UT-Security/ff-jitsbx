@@ -55,7 +55,7 @@ class TimeRanges final : public nsISupports, public nsWrapperCache {
   // Mutate this TimeRange to be the intersection of this and aOtherRanges.
   void Intersection(const TimeRanges* aOtherRanges);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const;

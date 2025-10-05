@@ -188,7 +188,7 @@ class XMLHttpRequestWorker final : public XMLHttpRequest {
   virtual void SetResponseType(XMLHttpRequestResponseType aResponseType,
                                ErrorResult& aRv) override;
 
-  virtual void GetResponse(JSContext* /* unused */,
+  virtual void GetResponse(MCContext* /* unused */,
                            JS::MutableHandle<JS::Value> aResponse,
                            ErrorResult& aRv) override;
 
@@ -199,7 +199,7 @@ class XMLHttpRequestWorker final : public XMLHttpRequest {
     MOZ_CRASH("This method should not be called.");
   }
 
-  virtual void GetInterface(JSContext* aCx, JS::Handle<JS::Value> aIID,
+  virtual void GetInterface(MCContext* aCx, JS::Handle<JS::Value> aIID,
                             JS::MutableHandle<JS::Value> aRetval,
                             ErrorResult& aRv) override {
     aRv.Throw(NS_ERROR_FAILURE);
@@ -242,7 +242,7 @@ class XMLHttpRequestWorker final : public XMLHttpRequest {
                                    const nsAString& aEventType,
                                    bool aUploadTarget, ErrorResult& aRv);
 
-  void Send(JSContext* aCx, JS::Handle<JSObject*> aBody, ErrorResult& aRv);
+  void Send(MCContext* aCx, JS::Handle<JSObject*> aBody, ErrorResult& aRv);
 
   void SendInternal(const BodyExtractorBase* aBody, ErrorResult& aRv);
 

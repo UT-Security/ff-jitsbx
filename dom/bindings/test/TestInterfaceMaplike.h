@@ -29,7 +29,7 @@ class TestInterfaceMaplike final : public nsISupports, public nsWrapperCache {
 
   explicit TestInterfaceMaplike(nsPIDOMWindowInner* aParent);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceMaplike> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);

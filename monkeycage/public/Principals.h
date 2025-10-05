@@ -16,13 +16,17 @@
 #include "js/Utility.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/Tainted.h"
 
 struct MCPrincipals {
   JSPrincipals* inner_;
 private:
-  static bool writeCb(void* p, JSContext* cx, JSStructuredCloneWriter* writer) {
+  static bool writeCb(void* p, JSContext* cx, JSStructuredCloneWriter* writer_) {
     auto principals = static_cast<MCPrincipals*>(p);
-    return principals->write(cx, writer);
+    MCContext* mcx = MC_SanitizeContext(cx);
+    MC::Tainted<JSStructuredCloneWriter*> writer{nullptr};
+    writer.assign_raw_pointer(writer_);
+    return principals->write(mcx, writer);
   }
 
   static bool isSystemOrAddonPrincipalCb(void* p) {
@@ -64,7 +68,7 @@ public:
     return inner_->refcount;
   }
 
-  virtual bool write(JSContext* cx, JSStructuredCloneWriter* writer) = 0;
+  virtual bool write(MCContext* cx, MC::Tainted<JSStructuredCloneWriter*> writer) = 0;
 
   virtual bool isSystemOrAddonPrincipal() = 0; 
 };
@@ -80,8 +84,15 @@ public:
   const JSSecurityCallbacks* UNSAFE_get() const { return &inner_; }
 };
 
-inline void JS_SetSecurityCallbacks(
-    MCContext* cx, const MCSecurityCallbacks* callbacks) {
+//TODO(JS_SANDBOX): this should take MCPrincipals*
+//extern JS_PUBLIC_API void JS_HoldPrincipals(JSPrincipals* principals);
+
+inline void JS_DropPrincipals(MCContext* cx, JSPrincipals* principals) {
+  return JS_DropPrincipals(cx->cx_, principals);  
+}
+
+inline void JS_SetSecurityCallbacks(MCContext* cx,
+                                    const MCSecurityCallbacks* callbacks) {
   JS_SetSecurityCallbacks(cx->cx_, callbacks->UNSAFE_get());
 }
 

@@ -26,7 +26,7 @@ class CallbackDebuggerNotification : public DebuggerNotification {
         mPhase(aPhase) {}
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   already_AddRefed<DebuggerNotification> CloneInto(

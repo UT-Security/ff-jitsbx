@@ -43,7 +43,7 @@ void AnimationUtils::LogAsyncAnimationFailure(nsCString& aMessage,
 
 /* static */
 Document* AnimationUtils::GetCurrentRealmDocument(MCContext* aCx) {
-  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(MC_UNSAFE(aCx));
+  nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(aCx);
   if (!win) {
     return nullptr;
   }

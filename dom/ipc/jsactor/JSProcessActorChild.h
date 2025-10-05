@@ -21,7 +21,7 @@ class JSProcessActorChild final : public JSActor {
   explicit JSProcessActorChild(nsISupports* aGlobal = nullptr)
       : JSActor(aGlobal) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<JSProcessActorChild> Constructor(

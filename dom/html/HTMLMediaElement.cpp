@@ -3392,7 +3392,7 @@ void HTMLMediaElement::SetVolume(double aVolume, ErrorResult& aRv) {
   PauseIfShouldNotBePlaying();
 }
 
-void HTMLMediaElement::MozGetMetadata(JSContext* aCx,
+void HTMLMediaElement::MozGetMetadata(MCContext* aCx,
                                       JS::MutableHandle<JSObject*> aResult,
                                       ErrorResult& aRv) {
   if (mReadyState < HAVE_METADATA) {
@@ -7517,7 +7517,7 @@ void HTMLMediaElement::MarkAsTainted() {
   }
 }
 
-bool HasDebuggerOrTabsPrivilege(JSContext* aCx, JSObject* aObj) {
+bool HasDebuggerOrTabsPrivilege(MCContext* aCx, JSObject* aObj) {
   return nsContentUtils::CallerHasPermission(aCx, nsGkAtoms::debugger) ||
          nsContentUtils::CallerHasPermission(aCx, nsGkAtoms::tabs);
 }

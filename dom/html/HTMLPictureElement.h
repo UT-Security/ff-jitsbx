@@ -30,7 +30,7 @@ class HTMLPictureElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLPictureElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 };
 

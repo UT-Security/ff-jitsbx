@@ -40,7 +40,7 @@ class URL final : public URLSearchParamsObserver, public nsWrapperCache {
   // WebIDL methods
   nsISupports* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<URL> Constructor(const GlobalObject& aGlobal,

@@ -67,7 +67,7 @@ class DOMParser final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mOwner; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::DOMParser_Binding::Wrap(aCx, this, aGivenProto);
   }

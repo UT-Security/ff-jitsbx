@@ -374,7 +374,7 @@ ModuleLoaderBase* ModuleLoaderBase::GetCurrentModuleLoader(MCContext* aCx) {
     return nullptr;
   }
 
-  ModuleLoaderBase* loader = global->GetModuleLoader(MC_UNSAFE(aCx));
+  ModuleLoaderBase* loader = global->GetModuleLoader(aCx);
   if (!loader) {
     return nullptr;
   }
@@ -1208,7 +1208,7 @@ nsresult ModuleLoaderBase::EvaluateModule(ModuleLoadRequest* aRequest) {
   mozilla::dom::AutoEntryScript aes(mGlobalObject, "EvaluateModule",
                                     NS_IsMainThread());
 
-  return EvaluateModuleInContext(JS_SanitizeContext(aes.cx()), aRequest,
+  return EvaluateModuleInContext(aes.cx(), aRequest,
                                  JS::ReportModuleErrorsAsync);
 }
 
@@ -1216,7 +1216,7 @@ nsresult ModuleLoaderBase::EvaluateModuleInContext(
     MCContext* aCx, ModuleLoadRequest* aRequest,
     JS::ModuleErrorBehaviour errorBehaviour) {
   MOZ_ASSERT(aRequest->mLoader == this);
-  MOZ_ASSERT(mGlobalObject->GetModuleLoader(MC_UNSAFE(aCx)) == this);
+  MOZ_ASSERT(mGlobalObject->GetModuleLoader(aCx) == this);
 
   AUTO_PROFILER_LABEL("ModuleLoaderBase::EvaluateModule", JS);
 

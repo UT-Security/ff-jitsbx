@@ -19,7 +19,7 @@ class MediaKeyError final : public Event {
   MediaKeyError(EventTarget* aOwner, uint32_t aSystemCode);
   ~MediaKeyError();
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t SystemCode() const;

@@ -50,7 +50,7 @@ MediaKeyMessageEvent* MediaKeyMessageEvent::AsMediaKeyMessageEvent() {
 }
 
 JSObject* MediaKeyMessageEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return MediaKeyMessageEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -76,7 +76,7 @@ already_AddRefed<MediaKeyMessageEvent> MediaKeyMessageEvent::Constructor(
                                aEventInitDict.mMessage.Obj());
   e->mMessage = JS::CopyArrayBuffer(aGlobal.Context(), buffer);
   if (!e->mMessage) {
-    aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
+    aRv.NoteJSContextException(aGlobal.Context());
     return nullptr;
   }
   e->mMessageType = aEventInitDict.mMessageType;
@@ -85,7 +85,7 @@ already_AddRefed<MediaKeyMessageEvent> MediaKeyMessageEvent::Constructor(
   return e.forget();
 }
 
-void MediaKeyMessageEvent::GetMessage(JSContext* cx,
+void MediaKeyMessageEvent::GetMessage(MCContext* cx,
                                       JS::MutableHandle<JSObject*> aMessage,
                                       ErrorResult& aRv) {
   if (!mMessage) {

@@ -87,7 +87,7 @@ already_AddRefed<PerformanceObserver> PerformanceObserver::Constructor(
     return observer.forget();
   }
 
-  JSContext* cx = MC_UNSAFE(aGlobal.Context());
+  MCContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
   MOZ_ASSERT(workerPrivate);
 
@@ -96,7 +96,7 @@ already_AddRefed<PerformanceObserver> PerformanceObserver::Constructor(
   return observer.forget();
 }
 
-JSObject* PerformanceObserver::WrapObject(JSContext* aCx,
+JSObject* PerformanceObserver::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return PerformanceObserver_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -332,7 +332,7 @@ void PerformanceObserver::GetSupportedEntryTypes(
     validTypes.AppendElement(name);
   }
 
-  if (!ToJSValue(MC_UNSAFE(aGlobal.Context()), validTypes, &val)) {
+  if (!ToJSValue(aGlobal.Context(), validTypes, &val)) {
     /*
      * If this conversion fails, we don't set a result.
      * The spec does not allow us to throw an exception.

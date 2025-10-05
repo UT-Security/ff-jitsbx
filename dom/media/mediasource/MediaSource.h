@@ -97,7 +97,7 @@ class MediaSource final : public DOMEventTargetHelper,
 
   nsPIDOMWindowInner* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Attach this MediaSource to Decoder aDecoder.  Returns false if already

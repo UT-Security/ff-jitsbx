@@ -22,7 +22,7 @@ class MouseEvent : public UIEvent {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(MouseEvent, UIEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return MouseEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

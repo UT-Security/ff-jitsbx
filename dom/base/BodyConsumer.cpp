@@ -85,7 +85,7 @@ class ContinueConsumeBodyRunnable final : public MainThreadWorkerRunnable {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mBodyConsumer->ContinueConsumeBody(mStatus, mLength, mResult);
     return true;
   }
@@ -105,7 +105,7 @@ class AbortConsumeBodyControlRunnable final
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mBodyConsumer->ContinueConsumeBody(NS_BINDING_ABORTED, 0, nullptr,
                                        true /* shutting down */);
     return true;
@@ -169,7 +169,7 @@ class ContinueConsumeBlobBodyRunnable final : public MainThreadWorkerRunnable {
     MOZ_ASSERT(mBlobImpl);
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mBodyConsumer->ContinueConsumeBlobBody(mBlobImpl);
     return true;
   }
@@ -189,7 +189,7 @@ class AbortConsumeBlobBodyControlRunnable final
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mBodyConsumer->ContinueConsumeBlobBody(nullptr, true /* shutting down */);
     return true;
   }
@@ -409,7 +409,7 @@ class FileCreationHandler final : public PromiseNativeHandler {
     aPromise->AppendNativeHandler(handler);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     AssertIsOnMainThread();
 
@@ -427,7 +427,7 @@ class FileCreationHandler final : public PromiseNativeHandler {
     mConsumer->OnBlobResult(blob->Impl(), mWorkerRef);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     AssertIsOnMainThread();
 
@@ -700,14 +700,14 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   ErrorResult error;
 
   switch (mConsumeType) {
     case CONSUME_ARRAYBUFFER: {
-      MC::Tainted<void*> aBuffer = JS_malloc(jsapi.mcx(), aResultLength);
+      MC::Tainted<void*> aBuffer = JS_malloc(cx, aResultLength);
       MC::Rooted<JSObject*> arrayBuffer(cx);
-      BodyUtil::ConsumeArrayBuffer(jsapi.mcx(), &arrayBuffer, aResultLength, aBuffer,
+      BodyUtil::ConsumeArrayBuffer(cx, &arrayBuffer, aResultLength, aBuffer,
                                    error);
 
       if (!error.Failed()) {
@@ -747,7 +747,7 @@ void BodyConsumer::ContinueConsumeBody(nsresult aStatus, uint32_t aResultLength,
           localPromise->MaybeResolve(decoded);
         } else {
           MC::Rooted<JS::Value> json(cx);
-          BodyUtil::ConsumeJson(jsapi.mcx(), &json, decoded, error);
+          BodyUtil::ConsumeJson(cx, &json, decoded, error);
           if (!error.Failed()) {
             localPromise->MaybeResolve(json);
           }

@@ -9,12 +9,12 @@
 
 #include "js/GCAnnotations.h"
 #include "js/Id.h"
-#include "js/RootingAPI.h"
-#include "js/String.h"
-#include "jsapi.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/String.h"
+#include "mcapi.h"
 
 class JSString;
-struct JSContext;
+struct MCContext;
 
 namespace mozilla::dom {
 /*
@@ -27,7 +27,7 @@ class PinnedStringId {
  public:
   constexpr PinnedStringId() : id(JS::PropertyKey::Void()) {}
 
-  bool init(JSContext* cx, const char* string) {
+  bool init(MCContext* cx, const char* string) {
     JSString* str = JS_AtomizeAndPinString(cx, string);
     if (!str) {
       return false;

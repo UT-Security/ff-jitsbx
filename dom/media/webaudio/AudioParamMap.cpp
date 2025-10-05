@@ -13,7 +13,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(AudioParamMap, mParent)
 
 AudioParamMap::AudioParamMap(AudioWorkletNode* aParent) : mParent(aParent) {}
 
-JSObject* AudioParamMap::WrapObject(JSContext* aCx,
+JSObject* AudioParamMap::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return AudioParamMap_Binding::Wrap(aCx, this, aGivenProto);
 }

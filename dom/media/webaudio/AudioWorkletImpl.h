@@ -25,7 +25,7 @@ class AudioWorkletImpl final : public WorkletImpl {
   static already_AddRefed<dom::Worklet> CreateWorklet(
       dom::AudioContext* aContext, ErrorResult& aRv);
 
-  JSObject* WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
+  JSObject* WrapWorklet(MCContext* aCx, dom::Worklet* aWorklet,
                         JS::Handle<JSObject*> aGivenProto) override;
 
   nsresult SendControlMessage(already_AddRefed<nsIRunnable> aRunnable) override;

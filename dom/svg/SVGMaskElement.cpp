@@ -19,7 +19,7 @@ namespace mozilla::dom {
 
 using namespace SVGUnitTypes_Binding;
 
-JSObject* SVGMaskElement::WrapNode(JSContext* aCx,
+JSObject* SVGMaskElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGMaskElement_Binding::Wrap(aCx, this, aGivenProto);
 }

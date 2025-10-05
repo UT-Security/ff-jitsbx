@@ -20,7 +20,7 @@ class DOMSVGAnimatedString final : public nsWrapperCache {
   DOMSVGAnimatedString(SVGAnimatedClassOrString* aVal, SVGElement* aSVGElement)
       : mVal(aVal), mSVGElement(aSVGElement) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

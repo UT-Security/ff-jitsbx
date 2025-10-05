@@ -34,7 +34,7 @@ nsISupports* PlacesWeakCallbackWrapper::GetParentObject() const {
 }
 
 JSObject* PlacesWeakCallbackWrapper::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PlacesWeakCallbackWrapper_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -9,14 +9,14 @@
 
 DEF_TEST(DoesCrossCompartmentBoundaries, {
   // Create a new global to get a new compartment.
-  JS::RealmOptions options;
+  MC::SandboxStack<JS::RealmOptions> options;
   MC::Rooted<JSObject*> newGlobal(
       cx, JS_NewGlobalObject(cx, getGlobalClass(), nullptr,
                              JS::FireOnNewGlobalHook, options));
   ASSERT_TRUE(newGlobal);
   JS::Compartment* newCompartment = nullptr;
   {
-    JSAutoRealm ar(cx, newGlobal);
+    MC::SandboxStack<JSAutoRealm> ar(cx, newGlobal);
     ASSERT_TRUE(JS::InitRealmStandardClasses(cx));
     newCompartment = js::GetContextCompartment(cx);
   }
@@ -59,9 +59,9 @@ DEF_TEST(DoesCrossCompartmentBoundaries, {
   // don't belong to a specific compartment.
   ExpectWriteNode(writer, nodeD);
 
-  JS::AutoCheckCannotGC noGC(cx);
+  MC::AutoCheckCannotGC noGC(cx);
 
   ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&nodeA), writer,
                              /* wantNames = */ false, &targetCompartments,
-                             noGC));
+                             *noGC.UNSAFE_unverified()));
 });

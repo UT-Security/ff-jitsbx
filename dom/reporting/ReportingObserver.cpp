@@ -59,7 +59,7 @@ ReportingObserver::ReportingObserver(nsIGlobalObject* aGlobal,
 
 ReportingObserver::~ReportingObserver() { Disconnect(); }
 
-JSObject* ReportingObserver::WrapObject(JSContext* aCx,
+JSObject* ReportingObserver::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return ReportingObserver_Binding::Wrap(aCx, this, aGivenProto);
 }

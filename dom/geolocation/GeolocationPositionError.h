@@ -30,7 +30,7 @@ class GeolocationPositionError final : public nsWrapperCache {
 
   nsWrapperCache* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   int16_t Code() const { return mCode; }

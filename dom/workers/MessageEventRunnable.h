@@ -23,13 +23,13 @@ class MessageEventRunnable final : public WorkerDebuggeeRunnable,
   MessageEventRunnable(WorkerPrivate* aWorkerPrivate,
                        TargetAndBusyBehavior aBehavior);
 
-  bool DispatchDOMEvent(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  bool DispatchDOMEvent(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                         DOMEventTargetHelper* aTarget, bool aIsMainThread);
 
  private:
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 
-  void DispatchError(JSContext* aCx, DOMEventTargetHelper* aTarget);
+  void DispatchError(MCContext* aCx, DOMEventTargetHelper* aTarget);
 };
 
 }  // namespace dom

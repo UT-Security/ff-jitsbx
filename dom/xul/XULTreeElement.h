@@ -119,7 +119,7 @@ class XULTreeElement final : public nsXULElement {
 
   virtual ~XULTreeElement() = default;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

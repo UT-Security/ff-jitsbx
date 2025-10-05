@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_END
 
 DOMStringList::~DOMStringList() = default;
 
-JSObject* DOMStringList::WrapObject(JSContext* aCx,
+JSObject* DOMStringList::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return DOMStringList_Binding::Wrap(aCx, this, aGivenProto);
 }

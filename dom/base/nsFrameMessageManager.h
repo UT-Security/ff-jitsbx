@@ -131,7 +131,7 @@ class nsFrameMessageManager : public nsIMessageSender {
                                  mozilla::ErrorResult& aError);
 
   // MessageSender
-  void SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void SendAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                         JS::Handle<JS::Value> aObj,
                         JS::Handle<JS::Value> aTransfers,
                         mozilla::ErrorResult& aError) {
@@ -143,12 +143,12 @@ class nsFrameMessageManager : public nsIMessageSender {
                      mozilla::ErrorResult& aError) const;
 
   // SyncMessageSender
-  void SendSyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void SendSyncMessage(MCContext* aCx, const nsAString& aMessageName,
                        JS::Handle<JS::Value> aObj, nsTArray<JS::Value>& aResult,
                        mozilla::ErrorResult& aError);
 
   // GlobalProcessScriptLoader
-  void GetInitialProcessData(JSContext* aCx,
+  void GetInitialProcessData(MCContext* aCx,
                              JS::MutableHandle<JS::Value> aInitialProcessData,
                              mozilla::ErrorResult& aError);
 
@@ -175,7 +175,7 @@ class nsFrameMessageManager : public nsIMessageSender {
 
   mozilla::dom::ipc::MessageManagerCallback* GetCallback() { return mCallback; }
 
-  nsresult DispatchAsyncMessageInternal(JSContext* aCx,
+  nsresult DispatchAsyncMessageInternal(MCContext* aCx,
                                         const nsAString& aMessage,
                                         StructuredCloneData& aData);
   bool IsGlobal() { return mGlobal; }
@@ -197,7 +197,7 @@ class nsFrameMessageManager : public nsIMessageSender {
     sChildProcessManager = aManager;
   }
 
-  static bool GetParamsForMessage(JSContext* aCx, const JS::Value& aValue,
+  static bool GetParamsForMessage(MCContext* aCx, const JS::Value& aValue,
                                   const JS::Value& aTransfer,
                                   StructuredCloneData& aData);
 
@@ -213,7 +213,7 @@ class nsFrameMessageManager : public nsIMessageSender {
   }
   virtual void ClearParentManager(bool aRemove) {}
 
-  void DispatchAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void DispatchAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                             JS::Handle<JS::Value> aObj,
                             JS::Handle<JS::Value> aTransfers,
                             mozilla::ErrorResult& aError);
@@ -227,7 +227,7 @@ class nsFrameMessageManager : public nsIMessageSender {
   void LoadScript(const nsAString& aURL, bool aAllowDelayedLoad,
                   bool aRunInGlobalScope, mozilla::ErrorResult& aError);
   void RemoveDelayedScript(const nsAString& aURL);
-  void GetDelayedScripts(JSContext* aCx, nsTArray<nsTArray<JS::Value>>& aList,
+  void GetDelayedScripts(MCContext* aCx, nsTArray<nsTArray<JS::Value>>& aList,
                          mozilla::ErrorResult& aError);
 
   // We keep the message listeners as arrays in a hastable indexed by the

@@ -106,7 +106,7 @@ class HTMLTrackElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLTrackElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
   void OnChannelRedirect(nsIChannel* aChannel, nsIChannel* aNewChannel,
                          uint32_t aFlags);

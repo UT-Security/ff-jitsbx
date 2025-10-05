@@ -85,7 +85,7 @@ void MediaSession::SetMediaSessionDocStatus(SessionDocStatus aState) {
 
 nsPIDOMWindowInner* MediaSession::GetParentObject() const { return mParent; }
 
-JSObject* MediaSession::WrapObject(JSContext* aCx,
+JSObject* MediaSession::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return MediaSession_Binding::Wrap(aCx, this, aGivenProto);
 }

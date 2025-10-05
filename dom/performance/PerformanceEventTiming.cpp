@@ -55,7 +55,7 @@ PerformanceEventTiming::PerformanceEventTiming(
       mMessage(aEventTimingEntry.mMessage) {}
 
 JSObject* PerformanceEventTiming::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return PerformanceEventTiming_Binding::Wrap(cx, this, aGivenProto);
 }
 

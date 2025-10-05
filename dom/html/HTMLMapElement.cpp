@@ -36,7 +36,7 @@ nsIHTMLCollection* HTMLMapElement::Areas() {
   return mAreas;
 }
 
-JSObject* HTMLMapElement::WrapNode(JSContext* aCx,
+JSObject* HTMLMapElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return HTMLMapElement_Binding::Wrap(aCx, this, aGivenProto);
 }

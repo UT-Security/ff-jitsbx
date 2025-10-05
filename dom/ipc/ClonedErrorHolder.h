@@ -8,8 +8,8 @@
 #define mozilla_dom_ClonedErrorHolder_h
 
 #include "nsISupportsImpl.h"
-#include "js/ErrorReport.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/ErrorReport.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/Attributes.h"
@@ -31,7 +31,7 @@ class ClonedErrorHolder final {
       ErrorResult& aRv);
 
   static already_AddRefed<ClonedErrorHolder> Create(
-      JSContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv);
 
   enum class Type : uint8_t {
     Uninitialized,
@@ -41,38 +41,38 @@ class ClonedErrorHolder final {
     Max_,
   };
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
-  bool WriteStructuredClone(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool WriteStructuredClone(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                             StructuredCloneHolder* aHolder);
 
   // Reads the structured clone data for the ClonedErrorHolder and returns the
   // wrapped object (either a JS Error or an Exception/DOMException object)
   // directly. Never returns an actual ClonedErrorHolder object.
-  static JSObject* ReadStructuredClone(JSContext* aCx,
-                                       JSStructuredCloneReader* aReader,
+  static JSObject* ReadStructuredClone(MCContext* aCx,
+                                       MC::Tainted<JSStructuredCloneReader*> aReader,
                                        StructuredCloneHolder* aHolder);
 
  private:
   ClonedErrorHolder();
   ~ClonedErrorHolder() = default;
 
-  void Init(JSContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv);
+  void Init(MCContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv);
 
-  bool Init(JSContext* aCx, JSStructuredCloneReader* aReader);
+  bool Init(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader);
 
   // Creates a new JS Error or Exception/DOMException object based on the
   // values stored in the holder. Returns false and sets an exception on aCx
   // if it fails.
-  bool ToErrorValue(JSContext* aCx, JS::MutableHandle<JS::Value> aResult);
+  bool ToErrorValue(MCContext* aCx, JS::MutableHandle<JS::Value> aResult);
 
   class Holder final : public StructuredCloneHolder {
    public:
     using StructuredCloneHolder::StructuredCloneHolder;
 
-    bool ReadStructuredCloneInternal(JSContext* aCx,
-                                     JSStructuredCloneReader* aReader);
+    bool ReadStructuredCloneInternal(MCContext* aCx,
+                                     MC::Tainted<JSStructuredCloneReader*> aReader);
   };
 
   // Only a subset of the following fields are used, depending on the mType of

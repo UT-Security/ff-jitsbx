@@ -4217,7 +4217,7 @@ static void InitCustomEvent(CustomEvent* aEvent, const nsAString& aType,
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> detail(cx);
   if (!ToJSValue(cx, aDetail, &detail)) {
     jsapi.ClearException();

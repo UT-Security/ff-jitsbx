@@ -81,7 +81,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   nsIGlobalObject* GetParentObject() const { return GetOwnerGlobal(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<OffscreenCanvas> Constructor(
@@ -95,7 +95,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
   void SetWidth(uint32_t aWidth, ErrorResult& aRv);
   void SetHeight(uint32_t aHeight, ErrorResult& aRv);
 
-  void GetContext(JSContext* aCx, const OffscreenRenderingContextId& aContextId,
+  void GetContext(MCContext* aCx, const OffscreenRenderingContextId& aContextId,
                   JS::Handle<JS::Value> aContextOptions,
                   Nullable<OwningOffscreenRenderingContext>& aResult,
                   ErrorResult& aRv);
@@ -105,7 +105,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
   already_AddRefed<Promise> ConvertToBlob(const ImageEncodeOptions& aOptions,
                                           ErrorResult& aRv);
 
-  already_AddRefed<Promise> ToBlob(JSContext* aCx, const nsAString& aType,
+  already_AddRefed<Promise> ToBlob(MCContext* aCx, const nsAString& aType,
                                    JS::Handle<JS::Value> aParams,
                                    ErrorResult& aRv);
 
@@ -123,7 +123,7 @@ class OffscreenCanvas final : public DOMEventTargetHelper,
 
   // Return true on main-thread, and return gfx.offscreencanvas.enabled
   // on worker thread.
-  static bool PrefEnabledOnWorkerThread(JSContext* aCx, JSObject* aObj);
+  static bool PrefEnabledOnWorkerThread(MCContext* aCx, JSObject* aObj);
 
   OffscreenCanvasCloneData* ToCloneData();
 

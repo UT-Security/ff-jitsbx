@@ -20,7 +20,7 @@ class EventTimelineMarker : public TimelineMarker {
         mType(aType),
         mPhase(aPhase) {}
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

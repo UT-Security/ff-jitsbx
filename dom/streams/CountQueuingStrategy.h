@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_CountQueuingStrategy_h
 #define mozilla_dom_CountQueuingStrategy_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BaseQueuingStrategy.h"
@@ -34,7 +34,7 @@ class CountQueuingStrategy final : public BaseQueuingStrategy,
   ~CountQueuingStrategy() override = default;
 
  public:
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<CountQueuingStrategy> Constructor(

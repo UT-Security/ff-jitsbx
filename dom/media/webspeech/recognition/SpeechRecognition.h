@@ -63,10 +63,10 @@ class SpeechRecognition final : public DOMEventTargetHelper,
 
   NS_DECL_NSIOBSERVER
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool IsAuthorized(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAuthorized(MCContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<SpeechRecognition> Constructor(
       const GlobalObject& aGlobal, ErrorResult& aRv);

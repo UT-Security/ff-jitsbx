@@ -77,7 +77,7 @@ CanvasContext::~CanvasContext() {
 
 void CanvasContext::Cleanup() { Unconfigure(); }
 
-JSObject* CanvasContext::WrapObject(JSContext* aCx,
+JSObject* CanvasContext::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::GPUCanvasContext_Binding::Wrap(aCx, this, aGivenProto);
 }

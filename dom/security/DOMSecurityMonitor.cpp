@@ -37,7 +37,7 @@ void DOMSecurityMonitor::AuditParsingOfHTMLXMLFragments(
   nsAutoString filename;
   uint32_t lineNum = 0;
   uint32_t columnNum = 0;
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx ||
       !nsJSUtils::GetCallingLocation(cx, filename, &lineNum, &columnNum)) {
     return;

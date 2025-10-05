@@ -28,10 +28,10 @@ class MOZ_STACK_CLASS InfoObject {
  private:
   // We need to ensure that this object lives on the stack so that GC sees it
   // properly
-  explicit InfoObject(JSContext* aCx);
+  explicit InfoObject(MCContext* aCx);
   InfoObject(InfoObject&);
 
-  JSContext* mCx;
+  MCContext* mCx;
   MC::Rooted<JSObject*> mObj;
   bool mOk;
 };

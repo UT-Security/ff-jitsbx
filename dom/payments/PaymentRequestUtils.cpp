@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/JSON.h"
+#include "monkeycage/JSON.h"
 #include "nsContentUtils.h"
 #include "nsArrayUtils.h"
 #include "nsTString.h"
@@ -12,14 +12,14 @@
 
 namespace mozilla::dom {
 
-nsresult SerializeFromJSObject(JSContext* aCx, JS::Handle<JSObject*> aObject,
+nsresult SerializeFromJSObject(MCContext* aCx, JS::Handle<JSObject*> aObject,
                                nsAString& aSerializedObject) {
   MOZ_ASSERT(aCx);
   MC::Rooted<JS::Value> value(aCx, JS::ObjectValue(*aObject));
   return SerializeFromJSVal(aCx, value, aSerializedObject);
 }
 
-nsresult SerializeFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aValue,
+nsresult SerializeFromJSVal(MCContext* aCx, JS::Handle<JS::Value> aValue,
                             nsAString& aSerializedValue) {
   aSerializedValue.Truncate();
   NS_ENSURE_TRUE(nsContentUtils::StringifyJSON(aCx, aValue, aSerializedValue,
@@ -30,7 +30,7 @@ nsresult SerializeFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aValue,
 }
 
 nsresult DeserializeToJSObject(const nsAString& aSerializedObject,
-                               JSContext* aCx,
+                               MCContext* aCx,
                                JS::MutableHandle<JSObject*> aObject) {
   MOZ_ASSERT(aCx);
   MC::Rooted<JS::Value> value(aCx);
@@ -47,7 +47,7 @@ nsresult DeserializeToJSObject(const nsAString& aSerializedObject,
 }
 
 nsresult DeserializeToJSValue(const nsAString& aSerializedObject,
-                              JSContext* aCx,
+                              MCContext* aCx,
                               JS::MutableHandle<JS::Value> aValue) {
   MOZ_ASSERT(aCx);
   if (!JS_ParseJSON(aCx, aSerializedObject.BeginReading(),

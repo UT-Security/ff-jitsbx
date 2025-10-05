@@ -54,7 +54,7 @@ class TableRowsCollection final : public nsIHTMLCollection,
   // nsWrapperCache
   using nsWrapperCache::GetWrapperPreserveColor;
   using nsWrapperCache::PreserveWrapper;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -190,7 +190,7 @@ void TableRowsCollection::CleanUp() {
   mParent = nullptr;
 }
 
-JSObject* TableRowsCollection::WrapObject(JSContext* aCx,
+JSObject* TableRowsCollection::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return HTMLCollection_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -513,7 +513,7 @@ HTMLTableElement::~HTMLTableElement() {
   ReleaseInheritedAttributes();
 }
 
-JSObject* HTMLTableElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTableElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -9,8 +9,8 @@
 #include <limits>
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "mcapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/Maybe.h"
 #include "mozilla/Services.h"
 #include "mozilla/StaticMutex.h"
@@ -557,7 +557,7 @@ void RegisterEvents(const StaticMutexAutoLock& lock, const nsACString& category,
 
 namespace {
 
-nsresult SerializeEventsArray(const EventRecordArray& events, JSContext* cx,
+nsresult SerializeEventsArray(const EventRecordArray& events, MCContext* cx,
                               JS::MutableHandle<JSObject*> result,
                               unsigned int dataset) {
   // We serialize the events to a JS array.
@@ -766,7 +766,7 @@ nsresult TelemetryEvent::RecordEvent(const nsACString& aCategory,
                                      const nsACString& aObject,
                                      JS::Handle<JS::Value> aValue,
                                      JS::Handle<JS::Value> aExtra,
-                                     JSContext* cx, uint8_t optional_argc) {
+                                     MCContext* cx, uint8_t optional_argc) {
   // Check value argument.
   if ((optional_argc > 0) && !aValue.isNull() && !aValue.isString()) {
     LogToBrowserConsole(nsIScriptError::warningFlag,
@@ -812,7 +812,7 @@ nsresult TelemetryEvent::RecordEvent(const nsACString& aCategory,
   ExtraArray extra;
   if (aExtra.isObject()) {
     MC::Rooted<JSObject*> obj(cx, &aExtra.toObject());
-    MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(cx));
+    MC::Rooted<JS::IdVector> ids(cx, JS::IdVector(MC_UNSAFE(cx)));
     if (!JS_Enumerate(cx, obj, &ids)) {
       LogToBrowserConsole(nsIScriptError::warningFlag,
                           u"Failed to enumerate object."_ns);
@@ -988,7 +988,7 @@ void TelemetryEvent::RecordEventNative(
   }
 }
 
-static bool GetArrayPropertyValues(JSContext* cx, JS::Handle<JSObject*> obj,
+static bool GetArrayPropertyValues(MCContext* cx, JS::Handle<JSObject*> obj,
                                    const char* property,
                                    nsTArray<nsCString>* results) {
   MC::Rooted<JS::Value> value(cx);
@@ -1037,7 +1037,7 @@ static bool GetArrayPropertyValues(JSContext* cx, JS::Handle<JSObject*> obj,
 
 nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
                                         JS::Handle<JS::Value> aEventData,
-                                        bool aBuiltin, JSContext* cx) {
+                                        bool aBuiltin, MCContext* cx) {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Events can only be registered in the parent process");
 
@@ -1057,7 +1057,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
   }
 
   MC::Rooted<JSObject*> obj(cx, &aEventData.toObject());
-  MC::Rooted<JS::IdVector> eventPropertyIds(cx, JS::IdVector(cx));
+  MC::Rooted<JS::IdVector> eventPropertyIds(cx, JS::IdVector(MC_UNSAFE(cx)));
   if (!JS_Enumerate(cx, obj, &eventPropertyIds)) {
     mozilla::Telemetry::AccumulateCategorical(
         LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
@@ -1117,9 +1117,9 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // extra_keys is optional.
-    bool hasProperty = false;
-    if (JS_HasProperty(cx, eventObj, "extra_keys", &hasProperty) &&
-        hasProperty) {
+    MC::SandboxStack<bool> hasProperty = false;
+    if (JS_HasProperty(cx, eventObj, "extra_keys", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       if (!GetArrayPropertyValues(cx, eventObj, "extra_keys", &extra_keys)) {
         mozilla::Telemetry::AccumulateCategorical(
             LABELS_TELEMETRY_EVENT_REGISTRATION_ERROR::Other);
@@ -1128,7 +1128,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // expired is optional.
-    if (JS_HasProperty(cx, eventObj, "expired", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "expired", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       MC::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "expired", &temp) ||
           !temp.isBoolean()) {
@@ -1141,8 +1141,8 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
     }
 
     // record_on_release is optional.
-    if (JS_HasProperty(cx, eventObj, "record_on_release", &hasProperty) &&
-        hasProperty) {
+    if (JS_HasProperty(cx, eventObj, "record_on_release", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       MC::Rooted<JS::Value> temp(cx);
       if (!JS_GetProperty(cx, eventObj, "record_on_release", &temp) ||
           !temp.isBoolean()) {
@@ -1219,7 +1219,7 @@ nsresult TelemetryEvent::RegisterEvents(const nsACString& aCategory,
 }
 
 nsresult TelemetryEvent::CreateSnapshots(uint32_t aDataset, bool aClear,
-                                         uint32_t aEventLimit, JSContext* cx,
+                                         uint32_t aEventLimit, MCContext* cx,
                                          uint8_t optional_argc,
                                          JS::MutableHandle<JS::Value> aResult) {
   if (!XRE_IsParentProcess()) {

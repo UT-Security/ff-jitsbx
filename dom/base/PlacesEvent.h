@@ -28,7 +28,7 @@ class PlacesEvent : public nsWrapperCache {
 
   nsISupports* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   PlacesEventType Type() const { return mType; }

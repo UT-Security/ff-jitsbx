@@ -62,53 +62,53 @@ class ExtensionAPIBase {
   // WebExtensionStub methods shared between multiple API namespaces.
 
   virtual void CallWebExtMethodNotImplementedNoReturn(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv);
 
   virtual void CallWebExtMethodNotImplementedAsync(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs,
       const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
       JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);
 
   virtual void CallWebExtMethodNotImplemented(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs,
       JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv);
 
-  virtual void CallWebExtMethodNoReturn(JSContext* aCx,
+  virtual void CallWebExtMethodNoReturn(MCContext* aCx,
                                         const nsAString& aApiMethod,
                                         const dom::Sequence<JS::Value>& aArgs,
                                         ErrorResult& aRv);
-  virtual void CallWebExtMethod(JSContext* aCx, const nsAString& aApiMethod,
+  virtual void CallWebExtMethod(MCContext* aCx, const nsAString& aApiMethod,
                                 const dom::Sequence<JS::Value>& aArgs,
                                 JS::MutableHandle<JS::Value> aRetVal,
                                 ErrorResult& aRv);
 
   virtual void CallWebExtMethodReturnsString(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs, nsAString& aRetVal,
       ErrorResult& aRv);
 
   virtual already_AddRefed<ExtensionPort> CallWebExtMethodReturnsPort(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv);
 
   virtual void CallWebExtMethodAsync(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs,
       const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
   virtual void CallWebExtMethodAsyncAmbiguous(
-      JSContext* aCx, const nsAString& aApiMethod,
+      MCContext* aCx, const nsAString& aApiMethod,
       const dom::Sequence<JS::Value>& aArgs,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
   virtual void GetWebExtPropertyAsString(const nsString& aPropertyName,
                                          dom::DOMString& aRetval);
 
-  virtual void GetWebExtPropertyAsJSValue(JSContext* aCx,
+  virtual void GetWebExtPropertyAsJSValue(MCContext* aCx,
                                           const nsAString& aPropertyName,
                                           JS::MutableHandle<JS::Value> aRetval);
 
@@ -136,7 +136,7 @@ class ExtensionAPIBase {
   RefPtr<ExtensionAPIAddRemoveListener> SendRemoveListener(
       const nsAString& aEventName);
 
-  static void ThrowUnexpectedError(JSContext* aCx, ErrorResult& aRv);
+  static void ThrowUnexpectedError(MCContext* aCx, ErrorResult& aRv);
 
  protected:
   virtual nsIGlobalObject* GetGlobalObject() const = 0;
@@ -146,7 +146,7 @@ class ExtensionAPIBase {
   virtual nsString GetAPIObjectId() const = 0;
 
  private:
-  void CallWebExtMethodAsyncInternal(JSContext* aCx,
+  void CallWebExtMethodAsyncInternal(MCContext* aCx,
                                      const nsAString& aApiMethod,
                                      const dom::Sequence<JS::Value>& aArgs,
                                      const RefPtr<dom::Function>& aCallback,
@@ -169,10 +169,10 @@ class ChromeCompatCallbackHandler final : public dom::PromiseNativeHandler {
                      dom::Promise* aPromise,
                      const RefPtr<dom::Function>& aCallback);
 
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override;
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override;
 
@@ -186,7 +186,7 @@ class ChromeCompatCallbackHandler final : public dom::PromiseNativeHandler {
 
   ~ChromeCompatCallbackHandler() = default;
 
-  void ReportUncheckedLastError(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  void ReportUncheckedLastError(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   RefPtr<dom::Function> mCallback;
   RefPtr<ExtensionBrowser> mExtensionBrowser;

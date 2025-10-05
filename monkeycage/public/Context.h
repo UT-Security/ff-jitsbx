@@ -52,6 +52,12 @@ extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nu
 
 extern MCContext* JS_SanitizeContext(JSContext* cx);
 
+inline MCContext* MC_SanitizeContext(JSContext* cx) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
+  return MCContext::mcx_;
+}
+
 inline MCContext* MC_VerifyContext(uintptr_t cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);
   MOZ_RELEASE_ASSERT((uintptr_t)MCContext::mcx_->cx_ == cx);

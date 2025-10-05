@@ -33,7 +33,7 @@ class HTMLTemplateElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLTemplateElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   RefPtr<DocumentFragment> mContent;

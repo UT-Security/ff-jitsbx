@@ -69,7 +69,7 @@ class HTMLSlotElement final : public nsGenericHTMLElement {
 
  protected:
   virtual ~HTMLSlotElement();
-  JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   nsTArray<RefPtr<nsINode>> mAssignedNodes;
   nsTArray<nsINode*> mManuallyAssignedNodes;

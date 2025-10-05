@@ -85,7 +85,7 @@ nsTextNode::~nsTextNode() = default;
 // a new CC participant, to make QIing to the CC interfaces faster.
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(nsTextNode, CharacterData)
 
-JSObject* nsTextNode::WrapNode(JSContext* aCx,
+JSObject* nsTextNode::WrapNode(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return Text_Binding::Wrap(aCx, this, aGivenProto);
 }

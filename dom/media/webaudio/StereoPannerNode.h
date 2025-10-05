@@ -31,7 +31,7 @@ class StereoPannerNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual void SetChannelCount(uint32_t aChannelCount,

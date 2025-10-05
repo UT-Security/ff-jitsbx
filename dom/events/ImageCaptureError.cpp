@@ -25,7 +25,7 @@ ImageCaptureError::~ImageCaptureError() = default;
 
 nsISupports* ImageCaptureError::GetParentObject() const { return mParent; }
 
-JSObject* ImageCaptureError::WrapObject(JSContext* aCx,
+JSObject* ImageCaptureError::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return ImageCaptureError_Binding::Wrap(aCx, this, aGivenProto);
 }

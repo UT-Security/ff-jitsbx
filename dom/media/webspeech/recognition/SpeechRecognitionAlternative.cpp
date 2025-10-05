@@ -27,7 +27,7 @@ SpeechRecognitionAlternative::SpeechRecognitionAlternative(
 SpeechRecognitionAlternative::~SpeechRecognitionAlternative() = default;
 
 JSObject* SpeechRecognitionAlternative::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SpeechRecognitionAlternative_Binding::Wrap(aCx, this, aGivenProto);
 }
 

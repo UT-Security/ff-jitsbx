@@ -119,7 +119,7 @@ class HTMLOptionElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLOptionElement();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   /**
    * Get the select content element that contains this option, this

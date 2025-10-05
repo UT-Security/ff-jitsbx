@@ -44,7 +44,7 @@ class HTMLLinkElement final : public nsGenericHTMLElement,
 
   // nsINode
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIContent

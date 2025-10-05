@@ -34,12 +34,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Glean)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* Glean::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Glean::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::GleanImpl_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
-bool Glean::DefineGlean(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
+bool Glean::DefineGlean(MCContext* aCx, JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL,
              "Passed object is not a global object!");

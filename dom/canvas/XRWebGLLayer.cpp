@@ -161,7 +161,7 @@ already_AddRefed<XRWebGLLayer> XRWebGLLayer::Constructor(
   return obj.forget();
 }
 
-JSObject* XRWebGLLayer::WrapObject(JSContext* aCx,
+JSObject* XRWebGLLayer::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return XRWebGLLayer_Binding::Wrap(aCx, this, aGivenProto);
 }

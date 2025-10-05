@@ -29,7 +29,7 @@ NS_IMPL_RELEASE_INHERITED(VideoTrack, MediaTrack)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(VideoTrack)
 NS_INTERFACE_MAP_END_INHERITING(MediaTrack)
 
-JSObject* VideoTrack::WrapObject(JSContext* aCx,
+JSObject* VideoTrack::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return VideoTrack_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -25,7 +25,7 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(
     DOMSVGAnimatedPreserveAspectRatio, mSVGElement)
 
 JSObject* DOMSVGAnimatedPreserveAspectRatio::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedPreserveAspectRatio_Binding::Wrap(aCx, this, aGivenProto);
 }
 

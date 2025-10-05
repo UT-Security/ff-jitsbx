@@ -23,7 +23,7 @@ namespace {
  *  Following Convert* functions are used for convert PaymentRequest structs
  *  to transferable structs for IPC.
  */
-void ConvertMethodData(JSContext* aCx, const PaymentMethodData& aMethodData,
+void ConvertMethodData(MCContext* aCx, const PaymentMethodData& aMethodData,
                        IPCPaymentMethodData& aIPCMethodData, ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
   // Convert JSObject to a serialized string
@@ -53,7 +53,7 @@ void ConvertItem(const PaymentItem& aItem, IPCPaymentItem& aIPCItem) {
   aIPCItem = IPCPaymentItem(aItem.mLabel, amount, aItem.mPending);
 }
 
-void ConvertModifier(JSContext* aCx, const PaymentDetailsModifier& aModifier,
+void ConvertModifier(MCContext* aCx, const PaymentDetailsModifier& aModifier,
                      IPCPaymentDetailsModifier& aIPCModifier,
                      ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -94,7 +94,7 @@ void ConvertShippingOption(const PaymentShippingOption& aOption,
                                         aOption.mSelected);
 }
 
-void ConvertDetailsBase(JSContext* aCx, const PaymentDetailsBase& aDetails,
+void ConvertDetailsBase(MCContext* aCx, const PaymentDetailsBase& aDetails,
                         nsTArray<IPCPaymentItem>& aDisplayItems,
                         nsTArray<IPCPaymentShippingOption>& aShippingOptions,
                         nsTArray<IPCPaymentDetailsModifier>& aModifiers,
@@ -127,7 +127,7 @@ void ConvertDetailsBase(JSContext* aCx, const PaymentDetailsBase& aDetails,
   }
 }
 
-void ConvertDetailsInit(JSContext* aCx, const PaymentDetailsInit& aDetails,
+void ConvertDetailsInit(MCContext* aCx, const PaymentDetailsInit& aDetails,
                         IPCPaymentDetails& aIPCDetails, bool aRequestShipping,
                         ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -159,7 +159,7 @@ void ConvertDetailsInit(JSContext* aCx, const PaymentDetailsInit& aDetails,
                         u""_ns);  // paymentMethodErrors
 }
 
-void ConvertDetailsUpdate(JSContext* aCx, const PaymentDetailsUpdate& aDetails,
+void ConvertDetailsUpdate(MCContext* aCx, const PaymentDetailsUpdate& aDetails,
                           IPCPaymentDetails& aIPCDetails, bool aRequestShipping,
                           ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -429,7 +429,7 @@ void GetSelectedShippingOption(const PaymentDetailsBase& aDetails,
 }
 
 void PaymentRequestManager::CreatePayment(
-    JSContext* aCx, nsPIDOMWindowInner* aWindow,
+    MCContext* aCx, nsPIDOMWindowInner* aWindow,
     nsIPrincipal* aTopLevelPrincipal,
     const Sequence<PaymentMethodData>& aMethodData,
     const PaymentDetailsInit& aDetails, const PaymentOptions& aOptions,
@@ -557,7 +557,7 @@ void PaymentRequestManager::CompletePayment(PaymentRequest* aRequest,
   }
 }
 
-void PaymentRequestManager::UpdatePayment(JSContext* aCx,
+void PaymentRequestManager::UpdatePayment(MCContext* aCx,
                                           PaymentRequest* aRequest,
                                           const PaymentDetailsUpdate& aDetails,
                                           bool aRequestShipping,
@@ -595,7 +595,7 @@ nsresult PaymentRequestManager::ClosePayment(PaymentRequest* aRequest) {
   return SendRequestPayment(aRequest, action, false);
 }
 
-void PaymentRequestManager::RetryPayment(JSContext* aCx,
+void PaymentRequestManager::RetryPayment(MCContext* aCx,
                                          PaymentRequest* aRequest,
                                          const PaymentValidationErrors& aErrors,
                                          ErrorResult& aRv) {

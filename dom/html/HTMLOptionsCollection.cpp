@@ -76,7 +76,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(HTMLOptionsCollection)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(HTMLOptionsCollection)
 
-JSObject* HTMLOptionsCollection::WrapObject(JSContext* aCx,
+JSObject* HTMLOptionsCollection::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return HTMLOptionsCollection_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -653,7 +653,7 @@ class MOZ_STACK_CLASS CompartmentRemoteProxyTransplantCallback
 };
 
 void BrowsingContext::CleanUpDanglingRemoteOuterWindowProxies(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aOuter) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aOuter) {
   if (!mDanglingRemoteOuterProxies) {
     return;
   }
@@ -1439,13 +1439,13 @@ nsISupports* BrowsingContext::GetParentObject() const {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-JSObject* BrowsingContext::WrapObject(JSContext* aCx,
+JSObject* BrowsingContext::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return BrowsingContext_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool BrowsingContext::WriteStructuredClone(JSContext* aCx,
-                                           JSStructuredCloneWriter* aWriter,
+bool BrowsingContext::WriteStructuredClone(MCContext* aCx,
+                                           MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                            StructuredCloneHolder* aHolder) {
   MOZ_DIAGNOSTIC_ASSERT(mEverAttached);
   return (JS_WriteUint32Pair(aWriter, SCTAG_DOM_BROWSING_CONTEXT, 0) &&
@@ -1453,8 +1453,8 @@ bool BrowsingContext::WriteStructuredClone(JSContext* aCx,
 }
 
 /* static */
-JSObject* BrowsingContext::ReadStructuredClone(JSContext* aCx,
-                                               JSStructuredCloneReader* aReader,
+JSObject* BrowsingContext::ReadStructuredClone(MCContext* aCx,
+                                               MC::Tainted<JSStructuredCloneReader*> aReader,
                                                StructuredCloneHolder* aHolder) {
   uint32_t idLow = 0;
   uint32_t idHigh = 0;
@@ -1552,7 +1552,7 @@ void BrowsingContext::SetUseTrackingProtectionWebIDL(
   SetForceEnableTrackingProtection(aUseTrackingProtection, aRv);
 }
 
-void BrowsingContext::GetOriginAttributes(JSContext* aCx,
+void BrowsingContext::GetOriginAttributes(MCContext* aCx,
                                           JS::MutableHandle<JS::Value> aVal,
                                           ErrorResult& aError) {
   AssertOriginAttributesMatchPrivateBrowsing();
@@ -1710,7 +1710,7 @@ NS_IMETHODIMP BrowsingContext::GetScriptableOriginAttributes(
     MCContext* aCx, JS::MutableHandle<JS::Value> aVal) {
   AssertOriginAttributesMatchPrivateBrowsing();
 
-  bool ok = ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aVal);
+  bool ok = ToJSValue(aCx, mOriginAttributes, aVal);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }
@@ -1891,7 +1891,7 @@ const JSClass* RemoteLocationProxy::Base::sClass() {
   return &inner_;
 }
 
-void BrowsingContext::Location(JSContext* aCx,
+void BrowsingContext::Location(MCContext* aCx,
                                JS::MutableHandle<JSObject*> aLocation,
                                ErrorResult& aError) {
   aError.MightThrowJSException();
@@ -2341,7 +2341,7 @@ Nullable<WindowProxyHolder> BrowsingContext::GetTop(ErrorResult& aError) {
   return WindowProxyHolder(Top());
 }
 
-void BrowsingContext::GetOpener(JSContext* aCx,
+void BrowsingContext::GetOpener(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aOpener,
                                 ErrorResult& aError) const {
   RefPtr<BrowsingContext> opener = GetOpener();
@@ -2368,7 +2368,7 @@ Nullable<WindowProxyHolder> BrowsingContext::GetParent(ErrorResult& aError) {
   return WindowProxyHolder(this);
 }
 
-void BrowsingContext::PostMessageMoz(JSContext* aCx,
+void BrowsingContext::PostMessageMoz(MCContext* aCx,
                                      JS::Handle<JS::Value> aMessage,
                                      const nsAString& aTargetOrigin,
                                      const Sequence<JSObject*>& aTransfer,
@@ -2482,7 +2482,7 @@ void BrowsingContext::PostMessageMoz(JSContext* aCx,
   }
 }
 
-void BrowsingContext::PostMessageMoz(JSContext* aCx,
+void BrowsingContext::PostMessageMoz(MCContext* aCx,
                                      JS::Handle<JS::Value> aMessage,
                                      const WindowPostMessageOptions& aOptions,
                                      nsIPrincipal& aSubjectPrincipal,
@@ -3415,7 +3415,7 @@ bool BrowsingContext::GetOffsetPath(nsTArray<uint32_t>& aPath) const {
   return true;
 }
 
-void BrowsingContext::GetHistoryID(JSContext* aCx,
+void BrowsingContext::GetHistoryID(MCContext* aCx,
                                    JS::MutableHandle<JS::Value> aVal,
                                    ErrorResult& aError) {
   if (!xpc::ID2JSValue(aCx, GetHistoryID(), aVal)) {

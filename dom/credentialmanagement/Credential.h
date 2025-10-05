@@ -28,7 +28,7 @@ class Credential : public nsISupports, public nsWrapperCache {
  public:
   nsISupports* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetId(nsAString& aId) const;

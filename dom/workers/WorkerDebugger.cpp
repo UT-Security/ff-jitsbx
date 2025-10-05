@@ -41,7 +41,7 @@ class DebuggerMessageEventRunnable : public WorkerDebuggerRunnable {
       : WorkerDebuggerRunnable(aWorkerPrivate), mMessage(aMessage) {}
 
  private:
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override {
     WorkerDebuggerGlobalScope* globalScope =
         aWorkerPrivate->DebuggerGlobalScope();
@@ -79,7 +79,7 @@ class CompileDebuggerScriptRunnable final : public WorkerDebuggerRunnable {
         mDocumentEncoding(aDocumentEncoding) {}
 
  private:
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
 

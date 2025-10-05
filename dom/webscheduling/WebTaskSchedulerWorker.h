@@ -23,7 +23,7 @@ class WebTaskWorkerRunnable : public WorkerSameThreadRunnable {
                         WebTaskSchedulerWorker* aSchedulerWorker);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 
  private:
   ~WebTaskWorkerRunnable() = default;

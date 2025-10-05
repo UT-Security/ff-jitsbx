@@ -7,7 +7,7 @@
 #include "nsString.h"
 #include "mcapi.h"
 #include "monkeycage/CallNonGenericMethod.h"
-#include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
+#include "monkeycage/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions
 #include "js/PropertySpec.h"
 #include "nsIThread.h"
@@ -140,7 +140,8 @@ bool IsWitness(JS::Handle<JS::Value> v) {
  *  Neutralize the witness. Once this method is called, the witness will
  *  never report any error.
  */
-bool ForgetImpl(JSContext* cx, const JS::CallArgs& args) {
+bool ForgetImpl(JSContext* cx_, const JS::CallArgs& args) {
+  MCContext* cx = MC_SanitizeContext(cx_);
   if (args.length() != 0) {
     JS_ReportErrorASCII(cx, "forget() takes no arguments");
     return false;

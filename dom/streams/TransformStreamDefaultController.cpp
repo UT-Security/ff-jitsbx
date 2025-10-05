@@ -55,7 +55,7 @@ TransformStreamDefaultController::~TransformStreamDefaultController() {
 }
 
 JSObject* TransformStreamDefaultController::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TransformStreamDefaultController_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -82,7 +82,7 @@ static bool ReadableStreamDefaultControllerHasBackpressure(
   return !ReadableStreamDefaultControllerShouldCallPull(aController);
 }
 
-void TransformStreamDefaultController::Enqueue(JSContext* aCx,
+void TransformStreamDefaultController::Enqueue(MCContext* aCx,
                                                JS::Handle<JS::Value> aChunk,
                                                ErrorResult& aRv) {
   // Step 1: Perform ? TransformStreamDefaultControllerEnqueue(this, chunk).
@@ -147,7 +147,7 @@ void TransformStreamDefaultController::Enqueue(JSContext* aCx,
 }
 
 // https://streams.spec.whatwg.org/#ts-default-controller-error
-void TransformStreamDefaultController::Error(JSContext* aCx,
+void TransformStreamDefaultController::Error(MCContext* aCx,
                                              JS::Handle<JS::Value> aError,
                                              ErrorResult& aRv) {
   // Step 1: Perform ? TransformStreamDefaultControllerError(this, e).
@@ -165,7 +165,7 @@ void TransformStreamDefaultController::Error(JSContext* aCx,
 
 // https://streams.spec.whatwg.org/#ts-default-controller-terminate
 
-void TransformStreamDefaultController::Terminate(JSContext* aCx,
+void TransformStreamDefaultController::Terminate(MCContext* aCx,
                                                  ErrorResult& aRv) {
   // Step 1: Perform ? TransformStreamDefaultControllerTerminate(this).
 
@@ -198,7 +198,7 @@ namespace streams_abstract {
 
 // https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller
 void SetUpTransformStreamDefaultController(
-    JSContext* aCx, TransformStream& aStream,
+    MCContext* aCx, TransformStream& aStream,
     TransformStreamDefaultController& aController,
     TransformerAlgorithmsBase& aTransformerAlgorithms) {
   // Step 1. Assert: stream implements TransformStream.
@@ -218,7 +218,7 @@ void SetUpTransformStreamDefaultController(
 
 // https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer
 void SetUpTransformStreamDefaultControllerFromTransformer(
-    JSContext* aCx, TransformStream& aStream,
+    MCContext* aCx, TransformStream& aStream,
     JS::Handle<JSObject*> aTransformer, Transformer& aTransformerDict) {
   // Step 1. Let controller be a new TransformStreamDefaultController.
   auto controller =

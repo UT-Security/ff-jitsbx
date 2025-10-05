@@ -24,7 +24,7 @@ namespace mozilla::dom {
 
 HTMLTableCellElement::~HTMLTableCellElement() = default;
 
-JSObject* HTMLTableCellElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTableCellElement::WrapNode(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableCellElement_Binding::Wrap(aCx, this, aGivenProto);
 }

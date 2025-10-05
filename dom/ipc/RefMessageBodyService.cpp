@@ -145,7 +145,7 @@ RefMessageBody::RefMessageBody(const nsID& aPortID,
 
 RefMessageBody::~RefMessageBody() = default;
 
-void RefMessageBody::Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+void RefMessageBody::Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                           const JS::CloneDataPolicy& aCloneDataPolicy,
                           ErrorResult& aRv) {
   MutexAutoLock lock(mMutex);

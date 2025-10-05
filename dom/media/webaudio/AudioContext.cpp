@@ -243,7 +243,7 @@ AudioContext::~AudioContext() {
   MOZ_ASSERT(!mSetPageAwakeRequest, "forgot to revoke for page awake?");
 }
 
-JSObject* AudioContext::WrapObject(JSContext* aCx,
+JSObject* AudioContext::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   if (mIsOffline) {
     return OfflineAudioContext_Binding::Wrap(aCx, this, aGivenProto);
@@ -642,7 +642,7 @@ already_AddRefed<Promise> AudioContext::DecodeAudioData(
     ErrorResult& aRv) {
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // CheckedUnwrapStatic is OK, since we know we have an ArrayBuffer.
   MC::Rooted<JSObject*> obj(cx, js::CheckedUnwrapStatic(aBuffer.Obj()));

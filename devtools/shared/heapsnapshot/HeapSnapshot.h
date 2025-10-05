@@ -7,6 +7,7 @@
 #define mozilla_devtools_HeapSnapshot__
 
 #include "js/HashTable.h"
+#include "monkeycage/GCAPI.h"
 #include "mozilla/devtools/DeserializedNode.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Nullable.h"
@@ -41,11 +42,11 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
   friend struct DeserializedStackFrame;
   friend class JS::ubi::Concrete<JS::ubi::DeserializedNode>;
 
-  explicit HeapSnapshot(JSContext* cx, nsISupports* aParent)
+  explicit HeapSnapshot(MCContext* cx, nsISupports* aParent)
       : timestamp(Nothing()),
         rootId(0),
-        nodes(cx),
-        frames(cx),
+        nodes(MC_UNSAFE(cx)),
+        frames(MC_UNSAFE(cx)),
         mParent(aParent) {
     MOZ_ASSERT(aParent);
   };
@@ -53,7 +54,7 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
   // Initialize this HeapSnapshot from the given buffer that contains a
   // serialized core dump. Do NOT take ownership of the buffer, only borrow it
   // for the duration of the call. Return false on failure.
-  bool init(JSContext* cx, const uint8_t* buffer, uint32_t size);
+  bool init(MCContext* cx, const uint8_t* buffer, uint32_t size);
 
   using NodeIdSet = js::HashSet<NodeId>;
 
@@ -107,7 +108,7 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
   // Create a `HeapSnapshot` from the given buffer that contains a serialized
   // core dump. Do NOT take ownership of the buffer, only borrow it for the
   // duration of the call.
-  static already_AddRefed<HeapSnapshot> Create(JSContext* cx,
+  static already_AddRefed<HeapSnapshot> Create(MCContext* cx,
                                                dom::GlobalObject& global,
                                                const uint8_t* buffer,
                                                uint32_t size, ErrorResult& rv);
@@ -124,7 +125,7 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   const char16_t* borrowUniqueString(const char16_t* duplicateString,
@@ -144,16 +145,16 @@ class HeapSnapshot final : public nsISupports, public nsWrapperCache {
     return Some(JS::ubi::Node(const_cast<DeserializedNode*>(&*p)));
   }
 
-  void TakeCensus(JSContext* cx, JS::Handle<JSObject*> options,
+  void TakeCensus(MCContext* cx, JS::Handle<JSObject*> options,
                   JS::MutableHandle<JS::Value> rval, ErrorResult& rv);
 
-  void DescribeNode(JSContext* cx, JS::Handle<JSObject*> breakdown,
+  void DescribeNode(MCContext* cx, JS::Handle<JSObject*> breakdown,
                     uint64_t nodeId, JS::MutableHandle<JS::Value> rval,
                     ErrorResult& rv);
 
   already_AddRefed<DominatorTree> ComputeDominatorTree(ErrorResult& rv);
 
-  void ComputeShortestPaths(JSContext* cx, uint64_t start,
+  void ComputeShortestPaths(MCContext* cx, uint64_t start,
                             const dom::Sequence<uint64_t>& targets,
                             uint64_t maxNumPaths,
                             JS::MutableHandle<JSObject*> results,
@@ -192,12 +193,12 @@ class CoreDumpWriter {
 // If `wantNames` is true, capture edge names. If `zones` is non-null, only
 // capture the sub-graph within the zone set, otherwise capture the whole heap
 // graph. Returns false on failure.
-bool WriteHeapGraph(JSContext* cx, const JS::ubi::Node& node,
+bool WriteHeapGraph(MCContext* cx, const JS::ubi::Node& node,
                     CoreDumpWriter& writer, bool wantNames,
                     JS::CompartmentSet* compartments,
                     JS::AutoCheckCannotGC& noGC, uint32_t& outNodeCount,
                     uint32_t& outEdgeCount);
-inline bool WriteHeapGraph(JSContext* cx, const JS::ubi::Node& node,
+inline bool WriteHeapGraph(MCContext* cx, const JS::ubi::Node& node,
                            CoreDumpWriter& writer, bool wantNames,
                            JS::CompartmentSet* compartments,
                            JS::AutoCheckCannotGC& noGC) {

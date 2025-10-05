@@ -32,13 +32,13 @@ ExtensionAlarms::ExtensionAlarms(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionAlarms::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionAlarms::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   // TODO(Bug 1725478): this API visibility should be gated by the "alarms"
   // permission.
   return true;
 }
 
-JSObject* ExtensionAlarms::WrapObject(JSContext* aCx,
+JSObject* ExtensionAlarms::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionAlarms_Binding::Wrap(aCx, this, aGivenProto);
 }

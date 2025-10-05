@@ -215,7 +215,7 @@ size_t DelayNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* DelayNode::WrapObject(JSContext* aCx,
+JSObject* DelayNode::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return DelayNode_Binding::Wrap(aCx, this, aGivenProto);
 }

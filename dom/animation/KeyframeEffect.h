@@ -117,7 +117,7 @@ class KeyframeEffect : public AnimationEffect {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(KeyframeEffect,
                                                          AnimationEffect)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   KeyframeEffect* AsKeyframeEffect() override { return this; }
@@ -168,7 +168,7 @@ class KeyframeEffect : public AnimationEffect {
   }
   void SetPseudoElement(const nsAString& aPseudoElement, ErrorResult& aRv);
 
-  void GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
+  void GetKeyframes(MCContext* aCx, nsTArray<JSObject*>& aResult,
                     ErrorResult& aRv) const;
   void GetProperties(nsTArray<AnimationPropertyDetails>& aProperties,
                      ErrorResult& aRv) const;
@@ -187,7 +187,7 @@ class KeyframeEffect : public AnimationEffect {
   void NotifyAnimationTimingUpdated(PostRestyleMode aPostRestyle);
   void RequestRestyle(EffectCompositor::RestyleType aRestyleType);
   void SetAnimation(Animation* aAnimation) override;
-  virtual void SetKeyframes(JSContext* aContext,
+  virtual void SetKeyframes(MCContext* aContext,
                             JS::Handle<JSObject*> aKeyframes, ErrorResult& aRv);
   void SetKeyframes(nsTArray<Keyframe>&& aKeyframes,
                     const ComputedStyle* aStyle,

@@ -191,7 +191,7 @@ Nullable<uint8_t> TestFunctions::GetEnforcedNullableOctet() const {
 
 void TestFunctions::SetArrayBufferView(const ArrayBufferView& aBuffer) {}
 
-void TestFunctions::GetArrayBufferView(JSContext* aCx,
+void TestFunctions::GetArrayBufferView(MCContext* aCx,
                                        JS::Handle<JSObject*> aObj,
                                        JS::MutableHandle<JSObject*> aRetval,
                                        ErrorResult& aError) {
@@ -202,7 +202,7 @@ void TestFunctions::SetAllowSharedArrayBufferView(
     const ArrayBufferView& aBuffer) {}
 
 void TestFunctions::GetAllowSharedArrayBufferView(
-    JSContext* aCx, JS::Handle<JSObject*> aObj,
+    MCContext* aCx, JS::Handle<JSObject*> aObj,
     JS::MutableHandle<JSObject*> aRetval, ErrorResult& aError) {
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
@@ -210,7 +210,7 @@ void TestFunctions::GetAllowSharedArrayBufferView(
 void TestFunctions::SetSequenceOfArrayBufferView(
     const Sequence<ArrayBufferView>& aBuffers) {}
 
-void TestFunctions::GetSequenceOfArrayBufferView(JSContext* aCx,
+void TestFunctions::GetSequenceOfArrayBufferView(MCContext* aCx,
                                                  JS::Handle<JSObject*> aObj,
                                                  nsTArray<JSObject*>& aRetval,
                                                  ErrorResult& aError) {
@@ -221,14 +221,14 @@ void TestFunctions::SetSequenceOfAllowSharedArrayBufferView(
     const Sequence<ArrayBufferView>& aBuffers) {}
 
 void TestFunctions::GetSequenceOfAllowSharedArrayBufferView(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, nsTArray<JSObject*>& aRetval,
+    MCContext* aCx, JS::Handle<JSObject*> aObj, nsTArray<JSObject*>& aRetval,
     ErrorResult& aError) {
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
 
 void TestFunctions::SetArrayBuffer(const ArrayBuffer& aBuffer) {}
 
-void TestFunctions::GetArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObj,
+void TestFunctions::GetArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                    JS::MutableHandle<JSObject*> aRetval,
                                    ErrorResult& aError) {
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
@@ -237,7 +237,7 @@ void TestFunctions::GetArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObj,
 void TestFunctions::SetAllowSharedArrayBuffer(const ArrayBuffer& aBuffer) {}
 
 void TestFunctions::GetAllowSharedArrayBuffer(
-    JSContext* aCx, JS::Handle<JSObject*> aObj,
+    MCContext* aCx, JS::Handle<JSObject*> aObj,
     JS::MutableHandle<JSObject*> aRetval, ErrorResult& aError) {
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
@@ -245,7 +245,7 @@ void TestFunctions::GetAllowSharedArrayBuffer(
 void TestFunctions::SetSequenceOfArrayBuffer(
     const Sequence<ArrayBuffer>& aBuffers) {}
 
-void TestFunctions::GetSequenceOfArrayBuffer(JSContext* aCx,
+void TestFunctions::GetSequenceOfArrayBuffer(MCContext* aCx,
                                              JS::Handle<JSObject*> aObj,
                                              nsTArray<JSObject*>& aRetval,
                                              ErrorResult& aError) {
@@ -256,7 +256,7 @@ void TestFunctions::SetSequenceOfAllowSharedArrayBuffer(
     const Sequence<ArrayBuffer>& aBuffers) {}
 
 void TestFunctions::GetSequenceOfAllowSharedArrayBuffer(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, nsTArray<JSObject*>& aRetval,
+    MCContext* aCx, JS::Handle<JSObject*> aObj, nsTArray<JSObject*>& aRetval,
     ErrorResult& aError) {
   aError.Throw(NS_ERROR_NOT_IMPLEMENTED);
 }
@@ -280,7 +280,7 @@ void TestFunctions::TestUnionOfBuffferSource(
 void TestFunctions::TestUnionOfAllowSharedBuffferSource(
     const MaybeSharedArrayBufferOrMaybeSharedArrayBufferView& aUnion) {}
 
-bool TestFunctions::ObjectFromAboutBlank(JSContext* aCx, JSObject* aObj) {
+bool TestFunctions::ObjectFromAboutBlank(MCContext* aCx, JSObject* aObj) {
   // We purposefully don't use WindowOrNull here, because we want to
   // demonstrate the incorrect behavior we get, not just fail some asserts.
   RefPtr<nsGlobalWindowInner> win;
@@ -306,7 +306,7 @@ TestFunctions::WrapperCachedNonISupportsObject() {
   return mWrapperCachedNonISupportsTestInterface;
 }
 
-bool TestFunctions::WrapObject(JSContext* aCx,
+bool TestFunctions::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto,
                                JS::MutableHandle<JSObject*> aWrapper) {
   return TestFunctions_Binding::Wrap(aCx, this, aGivenProto, aWrapper);

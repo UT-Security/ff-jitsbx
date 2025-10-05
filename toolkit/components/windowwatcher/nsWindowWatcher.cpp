@@ -836,7 +836,7 @@ nsresult nsWindowWatcher::OpenWindowInternal(
   // It's just designed to preserve old semantics during a mass-conversion
   // patch.
   // Bug 1498605 verify usages of systemPrincipal here
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   nsCOMPtr<nsIPrincipal> subjectPrincipal =
       cx ? nsContentUtils::SubjectPrincipal()
          : nsContentUtils::GetSystemPrincipal();

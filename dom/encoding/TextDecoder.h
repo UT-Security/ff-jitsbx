@@ -77,7 +77,7 @@ class TextDecoder final : public NonRefcountedDOMObject,
 
   MOZ_COUNTED_DTOR(TextDecoder)
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return TextDecoder_Binding::Wrap(aCx, this, aGivenProto, aReflector);
   }

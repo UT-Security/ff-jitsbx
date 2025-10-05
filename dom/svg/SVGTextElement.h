@@ -19,7 +19,7 @@ using SVGTextElementBase = SVGTextPositioningElement;
 class SVGTextElement final : public SVGTextElementBase {
  protected:
   explicit SVGTextElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
   friend nsresult(::NS_NewSVGTextElement(
       nsIContent** aResult,

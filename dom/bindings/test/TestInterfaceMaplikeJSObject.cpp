@@ -43,7 +43,7 @@ TestInterfaceMaplikeJSObject::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceMaplikeJSObject::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceMaplikeJSObject_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -51,7 +51,7 @@ nsPIDOMWindowInner* TestInterfaceMaplikeJSObject::GetParentObject() const {
   return mParent;
 }
 
-void TestInterfaceMaplikeJSObject::SetInternal(JSContext* aCx,
+void TestInterfaceMaplikeJSObject::SetInternal(MCContext* aCx,
                                                const nsAString& aKey,
                                                JS::Handle<JSObject*> aObject) {
   ErrorResult rv;
@@ -77,7 +77,7 @@ bool TestInterfaceMaplikeJSObject::HasInternal(const nsAString& aKey) {
 }
 
 void TestInterfaceMaplikeJSObject::GetInternal(
-    JSContext* aCx, const nsAString& aKey, JS::MutableHandle<JSObject*> aRetVal,
+    MCContext* aCx, const nsAString& aKey, JS::MutableHandle<JSObject*> aRetVal,
     ErrorResult& aRv) {
   TestInterfaceMaplikeJSObject_Binding::MaplikeHelpers::Get(this, aCx, aKey,
                                                             aRetVal, aRv);

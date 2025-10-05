@@ -295,7 +295,7 @@ void FormData::SetNameDirectoryPair(FormDataTuple* aData,
 }
 
 /* virtual */
-JSObject* FormData::WrapObject(JSContext* aCx,
+JSObject* FormData::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return FormData_Binding::Wrap(aCx, this, aGivenProto);
 }

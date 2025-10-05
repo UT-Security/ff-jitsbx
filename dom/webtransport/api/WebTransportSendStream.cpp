@@ -32,7 +32,7 @@ WebTransportSendStream::WebTransportSendStream(nsIGlobalObject* aGlobal,
 }
 
 JSObject* WebTransportSendStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WebTransportSendStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -46,7 +46,7 @@ already_AddRefed<WebTransportSendStream> WebTransportSendStream::Create(
   if (!jsapi.Init(aGlobal)) {
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   auto stream = MakeRefPtr<WebTransportSendStream>(aGlobal, aWebTransport);
 

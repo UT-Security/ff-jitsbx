@@ -204,7 +204,7 @@ void NodeIterator::ContentRemoved(nsIContent* aChild,
                                      aPreviousSibling);
 }
 
-bool NodeIterator::WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto,
+bool NodeIterator::WrapObject(MCContext* cx, JS::Handle<JSObject*> aGivenProto,
                               JS::MutableHandle<JSObject*> aReflector) {
   return NodeIterator_Binding::Wrap(cx, this, aGivenProto, aReflector);
 }

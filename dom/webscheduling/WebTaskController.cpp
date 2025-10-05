@@ -63,7 +63,7 @@ already_AddRefed<WebTaskController> WebTaskController::Constructor(
   return webTaskController.forget();
 }
 
-JSObject* WebTaskController::WrapObject(JSContext* aCx,
+JSObject* WebTaskController::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return TaskController_Binding::Wrap(aCx, this, aGivenProto);
 }

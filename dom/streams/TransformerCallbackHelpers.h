@@ -21,11 +21,11 @@ class TransformerAlgorithmsBase : public nsISupports {
   NS_DECL_CYCLE_COLLECTION_CLASS(TransformerAlgorithmsBase)
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> TransformCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       TransformStreamDefaultController& aController, ErrorResult& aRv) = 0;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> FlushCallback(
-      JSContext* aCx, TransformStreamDefaultController& aController,
+      MCContext* aCx, TransformStreamDefaultController& aController,
       ErrorResult& aRv) = 0;
 
  protected:
@@ -59,11 +59,11 @@ class TransformerAlgorithms final : public TransformerAlgorithmsBase {
   };
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> TransformCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       TransformStreamDefaultController& aController, ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> FlushCallback(
-      JSContext* aCx, TransformStreamDefaultController& aController,
+      MCContext* aCx, TransformStreamDefaultController& aController,
       ErrorResult& aRv) override;
 
  protected:
@@ -80,11 +80,11 @@ class TransformerAlgorithms final : public TransformerAlgorithmsBase {
 // https://streams.spec.whatwg.org/#transformstream-set-up
 class TransformerAlgorithmsWrapper : public TransformerAlgorithmsBase {
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> TransformCallback(
-      JSContext*, JS::Handle<JS::Value> aChunk,
+      MCContext*, JS::Handle<JS::Value> aChunk,
       TransformStreamDefaultController& aController, ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> FlushCallback(
-      JSContext*, TransformStreamDefaultController& aController,
+      MCContext*, TransformStreamDefaultController& aController,
       ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT virtual void TransformCallbackImpl(

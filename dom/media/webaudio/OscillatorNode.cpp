@@ -428,7 +428,7 @@ size_t OscillatorNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* OscillatorNode::WrapObject(JSContext* aCx,
+JSObject* OscillatorNode::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return OscillatorNode_Binding::Wrap(aCx, this, aGivenProto);
 }

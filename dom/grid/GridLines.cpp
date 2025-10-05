@@ -28,7 +28,7 @@ GridLines::GridLines(GridDimension* aParent) : mParent(aParent) {
 
 GridLines::~GridLines() = default;
 
-JSObject* GridLines::WrapObject(JSContext* aCx,
+JSObject* GridLines::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return GridLines_Binding::Wrap(aCx, this, aGivenProto);
 }

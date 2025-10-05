@@ -18,7 +18,7 @@ namespace mozilla::dom {
 
 HTMLTableCaptionElement::~HTMLTableCaptionElement() = default;
 
-JSObject* HTMLTableCaptionElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTableCaptionElement::WrapNode(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableCaptionElement_Binding::Wrap(aCx, this, aGivenProto);
 }

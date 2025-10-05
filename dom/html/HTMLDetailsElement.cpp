@@ -129,7 +129,7 @@ void HTMLDetailsElement::AsyncEventRunning(AsyncEventDispatcher* aEvent) {
   }
 }
 
-JSObject* HTMLDetailsElement::WrapNode(JSContext* aCx,
+JSObject* HTMLDetailsElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return HTMLDetailsElement_Binding::Wrap(aCx, this, aGivenProto);
 }

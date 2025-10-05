@@ -35,7 +35,7 @@ class SVGAElement final : public SVGAElementBase,
   friend nsresult(::NS_NewSVGAElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   NS_DECL_ISUPPORTS_INHERITED

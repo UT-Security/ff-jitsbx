@@ -34,7 +34,7 @@ MESSAGEMANAGER_FUZZER_BLACKLIST=<path> (optional)
 
 class MessageManagerFuzzer {
  public:
-  static void TryMutate(JSContext* aCx, const nsAString& aMessageName,
+  static void TryMutate(MCContext* aCx, const nsAString& aMessageName,
                         ipc::StructuredCloneData* aData,
                         const JS::Value& aTransfer);
 
@@ -42,17 +42,17 @@ class MessageManagerFuzzer {
   static void ReadFile(const char* path, nsTArray<nsCString>& aArray);
   static nsCString GetFuzzValueFromFile();
   static bool IsMessageNameBlacklisted(const nsAString& aMessageName);
-  static bool Mutate(JSContext* aCx, const nsAString& aMessageName,
+  static bool Mutate(MCContext* aCx, const nsAString& aMessageName,
                      ipc::StructuredCloneData* aData,
                      const JS::Value& aTransfer);
-  static void Mutate(JSContext* aCx, JS::Rooted<JS::Value>& aMutation);
-  static void MutateObject(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  static void Mutate(MCContext* aCx, JS::Rooted<JS::Value>& aMutation);
+  static void MutateObject(MCContext* aCx, JS::Handle<JS::Value> aValue,
                            unsigned short int aRecursionCounter);
-  static bool MutateValue(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  static bool MutateValue(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           JS::MutableHandle<JS::Value> aOutMutationValue,
                           unsigned short int aRecursionCounter);
   static unsigned int DefaultMutationProbability();
-  static nsAutoString ReadJSON(JSContext* aCx, const JS::Value& aJSON);
+  static nsAutoString ReadJSON(MCContext* aCx, const JS::Value& aJSON);
   static bool IsEnabled();
   static bool IsLoggingEnabled();
 };

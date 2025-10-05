@@ -92,13 +92,13 @@ class PaymentRequest final : public DOMEventTargetHelper,
                                                          DOMEventTargetHelper)
   NS_DECL_NSIDOCUMENTACTIVITY
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<PaymentRequest> CreatePaymentRequest(
       nsPIDOMWindowInner* aWindow, ErrorResult& aRv);
 
-  static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
+  static bool PrefEnabled(MCContext* aCx, JSObject* aObj);
 
   // Parameter validation methods
   static void IsValidStandardizedPMI(const nsAString& aIdentifier,
@@ -107,7 +107,7 @@ class PaymentRequest final : public DOMEventTargetHelper,
   static void IsValidPaymentMethodIdentifier(const nsAString& aIdentifier,
                                              ErrorResult& aRv);
 
-  static void IsValidMethodData(JSContext* aCx,
+  static void IsValidMethodData(MCContext* aCx,
                                 const Sequence<PaymentMethodData>& aMethodData,
                                 ErrorResult& aRv);
 
@@ -157,7 +157,7 @@ class PaymentRequest final : public DOMEventTargetHelper,
   already_AddRefed<Promise> Abort(ErrorResult& aRv);
   void RespondAbortPayment(bool aResult);
 
-  void RetryPayment(JSContext* aCx, const PaymentValidationErrors& aErrors,
+  void RetryPayment(MCContext* aCx, const PaymentValidationErrors& aErrors,
                     ErrorResult& aRv);
 
   void GetId(nsAString& aRetVal) const;
@@ -188,7 +188,7 @@ class PaymentRequest final : public DOMEventTargetHelper,
   void SetOptions(const PaymentOptions& aOptions);
   nsresult UpdateShippingOption(const nsAString& aShippingOption);
 
-  void UpdatePayment(JSContext* aCx, const PaymentDetailsUpdate& aDetails,
+  void UpdatePayment(MCContext* aCx, const PaymentDetailsUpdate& aDetails,
                      ErrorResult& aRv);
   void AbortUpdate(ErrorResult& aReason);
 
@@ -200,9 +200,9 @@ class PaymentRequest final : public DOMEventTargetHelper,
   nsresult UpdatePaymentMethod(const nsAString& aMethodName,
                                const ChangeDetails& aMethodDetails);
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   bool InFullyActiveDocument();

@@ -34,7 +34,7 @@ class ClientWebGLExtensionBase : public nsWrapperCache {
 
 // To be used for implementations of ClientWebGLExtensionBase
 #define DEFINE_WEBGL_EXTENSION_GOOP(_WebGLBindingType, _Extension)             \
-  JSObject* Client##_Extension::WrapObject(JSContext* cx,                      \
+  JSObject* Client##_Extension::WrapObject(MCContext* cx,                      \
                                            JS::Handle<JSObject*> givenProto) { \
     return dom::_WebGLBindingType##_Binding::Wrap(cx, this, givenProto);       \
   }                                                                            \
@@ -46,7 +46,7 @@ class ClientWebGLExtensionBase : public nsWrapperCache {
 #define DECLARE_SIMPLE_WEBGL_EXTENSION(_Extension)                           \
   class Client##_Extension : public ClientWebGLExtensionBase {               \
    public:                                                                   \
-    virtual JSObject* WrapObject(JSContext* cx,                              \
+    virtual JSObject* WrapObject(MCContext* cx,                              \
                                  JS::Handle<JSObject*> givenProto) override; \
     explicit Client##_Extension(ClientWebGLContext&);                        \
   };
@@ -56,7 +56,7 @@ class ClientWebGLExtensionBase : public nsWrapperCache {
 class ClientWebGLExtensionCompressedTextureASTC
     : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionCompressedTextureASTC(ClientWebGLContext&);
 
@@ -91,7 +91,7 @@ DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionDebugRendererInfo)
 
 class ClientWebGLExtensionDebugShaders : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionDebugShaders(ClientWebGLContext&);
 
@@ -115,7 +115,7 @@ DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionFragDepth)
 
 class ClientWebGLExtensionLoseContext : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionLoseContext(ClientWebGLContext&);
 
@@ -137,7 +137,7 @@ class ClientWebGLExtensionLoseContext : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionProvokingVertex : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionProvokingVertex(ClientWebGLContext&);
 
@@ -174,7 +174,7 @@ DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionColorBufferHalfFloat)
 
 class ClientWebGLExtensionDrawBuffers : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionDrawBuffers(ClientWebGLContext&);
 
@@ -189,7 +189,7 @@ class ClientWebGLExtensionDrawBuffers : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionVertexArray : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionVertexArray(ClientWebGLContext&);
 
@@ -225,7 +225,7 @@ class ClientWebGLExtensionVertexArray : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionInstancedArrays : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionInstancedArrays(ClientWebGLContext&);
 
@@ -258,7 +258,7 @@ DECLARE_SIMPLE_WEBGL_EXTENSION(WebGLExtensionBlendMinMax)
 
 class ClientWebGLExtensionDisjointTimerQuery : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionDisjointTimerQuery(ClientWebGLContext&);
 
@@ -304,7 +304,7 @@ class ClientWebGLExtensionDisjointTimerQuery : public ClientWebGLExtensionBase {
     }
     mContext->QueryCounter(query, target);
   }
-  void GetQueryEXT(JSContext* cx, GLenum target, GLenum pname,
+  void GetQueryEXT(MCContext* cx, GLenum target, GLenum pname,
                    JS::MutableHandle<JS::Value> retval) const {
     if (MOZ_UNLIKELY(!mContext)) {
       AutoJsWarning("getQueryEXT: Extension is `invalidated`.");
@@ -312,7 +312,7 @@ class ClientWebGLExtensionDisjointTimerQuery : public ClientWebGLExtensionBase {
     }
     mContext->GetQuery(cx, target, pname, retval);
   }
-  void GetQueryObjectEXT(JSContext* cx, WebGLQueryJS& query, GLenum pname,
+  void GetQueryObjectEXT(MCContext* cx, WebGLQueryJS& query, GLenum pname,
                          JS::MutableHandle<JS::Value> retval) const {
     if (MOZ_UNLIKELY(!mContext)) {
       AutoJsWarning("getQueryObjectEXT: Extension is `invalidated`.");
@@ -324,7 +324,7 @@ class ClientWebGLExtensionDisjointTimerQuery : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionExplicitPresent : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionExplicitPresent(ClientWebGLContext&);
 
@@ -339,11 +339,11 @@ class ClientWebGLExtensionExplicitPresent : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionMOZDebug : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionMOZDebug(ClientWebGLContext&);
 
-  void GetParameter(JSContext* cx, GLenum pname,
+  void GetParameter(MCContext* cx, GLenum pname,
                     JS::MutableHandle<JS::Value> retval,
                     ErrorResult& er) const {
     if (MOZ_UNLIKELY(!mContext)) {
@@ -356,7 +356,7 @@ class ClientWebGLExtensionMOZDebug : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionMultiview : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionMultiview(ClientWebGLContext&);
 
@@ -378,7 +378,7 @@ class ClientWebGLExtensionMultiview : public ClientWebGLExtensionBase {
 
 class ClientWebGLExtensionDrawBuffersIndexed : public ClientWebGLExtensionBase {
  public:
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) override;
   explicit ClientWebGLExtensionDrawBuffersIndexed(ClientWebGLContext&);
 

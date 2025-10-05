@@ -36,7 +36,7 @@ VRDisplayEvent::VRDisplayEvent(mozilla::dom::EventTarget* aOwner)
 VRDisplay* VRDisplayEvent::Display() { return mDisplay; }
 
 JSObject* VRDisplayEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return VRDisplayEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

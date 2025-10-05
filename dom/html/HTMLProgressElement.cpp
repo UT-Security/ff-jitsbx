@@ -80,7 +80,7 @@ double HTMLProgressElement::Position() const {
   return Value() / Max();
 }
 
-JSObject* HTMLProgressElement::WrapNode(JSContext* aCx,
+JSObject* HTMLProgressElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLProgressElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -7,7 +7,8 @@
 #ifndef mozilla_dom_WebIDLGlobalNameHash_h__
 #define mozilla_dom_WebIDLGlobalNameHash_h__
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Tainted.h"
 #include "nsTArray.h"
 #include "mozilla/dom/BindingDeclarations.h"
 
@@ -25,7 +26,7 @@ struct WebIDLNameTableEntry {
   // Check whether a constructor should be enabled for the given object.
   // Note that the object should NOT be an Xray, since Xrays will end up
   // defining constructors on the underlying object.
-  using ConstructorEnabled = bool (*)(JSContext* cx, JS::Handle<JSObject*> obj);
+  using ConstructorEnabled = bool (*)(MCContext* cx, JS::Handle<JSObject*> obj);
 
   BindingNamesOffset mNameOffset;
   uint16_t mNameLength;
@@ -42,7 +43,7 @@ class WebIDLGlobalNameHash {
   // Returns false if something failed. aFound is set to true if the name is in
   // the hash, whether it's enabled or not.
   static bool DefineIfEnabled(
-      JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
+      MCContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc,
       bool* aFound);
 
@@ -57,18 +58,18 @@ class WebIDLGlobalNameHash {
     UnresolvedNamesOnly
   };
   // Returns false if an exception has been thrown on aCx.
-  static bool GetNames(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  static bool GetNames(MCContext* aCx, JS::Handle<JSObject*> aObj,
                        NameType aNameType,
                        JS::MutableHandleVector<jsid> aNames);
 
   // Helpers for resolving & enumerating names on the system global.
   // NOTE: These are distinct as it currently lacks a ProtoAndIfaceCache, and is
   // an XPCOM global.
-  static bool ResolveForSystemGlobal(JSContext* aCx, JS::Handle<JSObject*> aObj,
-                                     JS::Handle<jsid> aId, bool* aResolvedp);
+  static bool ResolveForSystemGlobal(MCContext* aCx, JS::Handle<JSObject*> aObj,
+                                     JS::Handle<jsid> aId, MC::Tainted<bool*> aResolvedp);
 
   static bool NewEnumerateSystemGlobal(
-      JSContext* aCx, JS::Handle<JSObject*> aObj,
+      MCContext* aCx, JS::Handle<JSObject*> aObj,
       JS::MutableHandleVector<jsid> aProperties, bool aEnumerableOnly);
 
  private:

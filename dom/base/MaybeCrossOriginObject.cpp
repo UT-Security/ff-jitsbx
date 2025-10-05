@@ -45,7 +45,7 @@ bool MaybeCrossOriginObjectMixins::IsPlatformObjectSameOrigin(MCContext* cx,
              "WindowProxy not same-Realm as Window?");
 
   BasePrincipal* subjectPrincipal =
-      BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx)));
+      BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(cx));
   BasePrincipal* objectPrincipal =
       BasePrincipal::Cast(nsContentUtils::ObjectPrincipal(obj));
 
@@ -292,7 +292,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
   MC::Rooted<JS::Value> holderVal(cx);
   {  // Scope for working with the map
     MC::SandboxStack<JSAutoRealm> ar(cx, map);
-    if (!MaybeWrapObject(MC_UNSAFE(cx), &key)) {
+    if (!MaybeWrapObject(cx, &key)) {
       return false;
     }
 
@@ -337,7 +337,7 @@ bool MaybeCrossOriginObjectMixins::EnsureHolder(
     MC::SandboxStack<JSAutoRealm> ar(cx, map);
 
     // Key is already in the right Realm, but we need to wrap the value.
-    if (!MaybeWrapValue(MC_UNSAFE(cx), &holderVal)) {
+    if (!MaybeWrapValue(cx, &holderVal)) {
       return false;
     }
 
@@ -373,7 +373,7 @@ bool MaybeCrossOriginObject<Base>::getPrototype(
     }
   }
 
-  return MaybeWrapObject(MC_UNSAFE(cx), protop);
+  return MaybeWrapObject(cx, protop);
 }
 
 template <typename Base>
@@ -388,7 +388,7 @@ bool MaybeCrossOriginObject<Base>::setPrototype(
   // want to enter the Realm of "proxy" to do that, in case we're not
   // same-origin with it here.
   MC::Rooted<JSObject*> wrappedProxy(cx, proxy);
-  if (!MaybeWrapObject(MC_UNSAFE(cx), &wrappedProxy)) {
+  if (!MaybeWrapObject(cx, &wrappedProxy)) {
     return false;
   }
 
@@ -467,7 +467,7 @@ bool MaybeCrossOriginObject<Base>::enumerate(
   // current compartment just to be safe; it doesn't affect behavior as far as
   // CrossOriginObjectWrapper and MaybeCrossOriginObject are concerned.
   MC::Rooted<JSObject*> self(cx, proxy);
-  if (!MaybeWrapObject(MC_UNSAFE(cx), &self)) {
+  if (!MaybeWrapObject(cx, &self)) {
     return false;
   }
 

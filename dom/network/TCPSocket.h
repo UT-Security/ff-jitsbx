@@ -56,7 +56,7 @@ class LegacyMozTCPSocket : public nsISupports {
                                    const SocketOptions& aOptions,
                                    ErrorResult& aRv);
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
  private:
@@ -88,10 +88,10 @@ class TCPSocket final : public DOMEventTargetHelper,
   NS_DECL_NSITCPSOCKETCALLBACK
   NS_DECL_NSIPROTOCOLPROXYCALLBACK
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool ShouldTCPSocketExist(JSContext* aCx, JSObject* aGlobal);
+  static bool ShouldTCPSocketExist(MCContext* aCx, JSObject* aGlobal);
 
   nsISocketTransport* GetTransport() const { return mTransport.get(); }
 
@@ -174,7 +174,7 @@ class TCPSocket final : public DOMEventTargetHelper,
   nsresult MaybeReportErrorAndCloseIfOpen(nsresult status);
 
   // Helper for FireDataStringEvent/FireDataArrayEvent.
-  nsresult FireDataEvent(JSContext* aCx, const nsAString& aType,
+  nsresult FireDataEvent(MCContext* aCx, const nsAString& aType,
                          JS::Handle<JS::Value> aData);
   // Helper for Close/CloseImmediately
   void CloseHelper(bool waitForUnsentData);

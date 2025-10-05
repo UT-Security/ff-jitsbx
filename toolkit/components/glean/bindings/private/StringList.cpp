@@ -82,7 +82,7 @@ GleanStringList::TestGetValue(const nsACString& aStorageName, MCContext* aCx,
   if (optresult.isNothing()) {
     aResult.set(JS::UndefinedValue());
   } else {
-    if (!dom::ToJSValue(MC_UNSAFE(aCx), optresult.ref(), aResult)) {
+    if (!dom::ToJSValue(aCx, optresult.ref(), aResult)) {
       return NS_ERROR_FAILURE;
     }
   }

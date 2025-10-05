@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_ReadableStreamBYOBRequest_h
 #define mozilla_dom_ReadableStreamBYOBRequest_h
 
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
@@ -38,15 +38,15 @@ class ReadableStreamBYOBRequest final : public nsISupports,
  public:
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetView(JSContext* cx, JS::MutableHandle<JSObject*> aRetVal) const;
+  void GetView(MCContext* cx, JS::MutableHandle<JSObject*> aRetVal) const;
 
-  MOZ_CAN_RUN_SCRIPT void Respond(JSContext* aCx, uint64_t bytesWritten,
+  MOZ_CAN_RUN_SCRIPT void Respond(MCContext* aCx, uint64_t bytesWritten,
                                   ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void RespondWithNewView(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RespondWithNewView(MCContext* aCx,
                                              const ArrayBufferView& view,
                                              ErrorResult& aRv);
 

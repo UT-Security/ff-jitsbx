@@ -44,7 +44,7 @@ class SVGUseElement final : public SVGUseElementBase,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGUseElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   virtual ~SVGUseElement();
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   NS_IMPL_FROMNODE_WITH_TAG(SVGUseElement, kNameSpaceID_SVG, use)

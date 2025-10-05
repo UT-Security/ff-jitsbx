@@ -186,7 +186,7 @@ class PeerConnectionImpl final
     std::string extensionname;
   };
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsPIDOMWindowInner* GetParentObject() const;
 
@@ -433,11 +433,11 @@ class PeerConnectionImpl final
     void Call(ErrorResult& aError);
     dom::Promise* GetPromise() { return mPromise; }
     MOZ_CAN_RUN_SCRIPT
-    void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
 
     MOZ_CAN_RUN_SCRIPT
-    void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
 
    protected:

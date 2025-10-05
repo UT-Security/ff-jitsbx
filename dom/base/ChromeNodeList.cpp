@@ -31,7 +31,7 @@ already_AddRefed<ChromeNodeList> ChromeNodeList::Constructor(
   return list.forget();
 }
 
-JSObject* ChromeNodeList::WrapObject(JSContext* aCx,
+JSObject* ChromeNodeList::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return ChromeNodeList_Binding::Wrap(aCx, this, aGivenProto);
 }

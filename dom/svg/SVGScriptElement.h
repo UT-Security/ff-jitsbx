@@ -30,7 +30,7 @@ class SVGScriptElement final : public SVGScriptElementBase,
   SVGScriptElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                    FromParser aFromParser);
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

@@ -165,7 +165,7 @@ class IDBDatabase final : public DOMEventTargetHelper {
 
   // This will be called from the DOM.
   [[nodiscard]] RefPtr<IDBTransaction> Transaction(
-      JSContext* aCx, const StringOrStringSequence& aStoreNames,
+      MCContext* aCx, const StringOrStringSequence& aStoreNames,
       IDBTransactionMode aMode, ErrorResult& aRv);
 
   IMPL_EVENT_HANDLER(abort)
@@ -202,7 +202,7 @@ class IDBDatabase final : public DOMEventTargetHelper {
   virtual void LastRelease() override;
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:

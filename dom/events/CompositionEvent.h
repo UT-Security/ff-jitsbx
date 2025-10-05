@@ -30,7 +30,7 @@ class CompositionEvent : public UIEvent {
       const CompositionEventInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return CompositionEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

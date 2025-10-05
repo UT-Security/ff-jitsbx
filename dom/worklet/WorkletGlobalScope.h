@@ -50,10 +50,10 @@ class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return nullptr; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual bool WrapGlobalObject(JSContext* aCx,
+  virtual bool WrapGlobalObject(MCContext* aCx,
                                 JS::MutableHandle<JSObject*> aReflector) = 0;
 
   JSObject* GetGlobalJSObject() override { return GetWrapper(); }
@@ -61,7 +61,7 @@ class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
     return GetWrapperPreserveColor();
   }
 
-  already_AddRefed<Console> GetConsole(JSContext* aCx, ErrorResult& aRv);
+  already_AddRefed<Console> GetConsole(MCContext* aCx, ErrorResult& aRv);
 
   WorkletImpl* Impl() const { return mImpl.get(); }
 
@@ -76,7 +76,7 @@ class WorkletGlobalScope : public nsIGlobalObject, public nsWrapperCache {
   void InitModuleLoader(loader::WorkletModuleLoader* aModuleLoader);
 
   JS::loader::ModuleLoaderBase* GetModuleLoader(
-      JSContext* aCx = nullptr) override;
+      MCContext* aCx = nullptr) override;
 
   OriginTrials Trials() const override;
   Maybe<nsID> GetAgentClusterId() const override;

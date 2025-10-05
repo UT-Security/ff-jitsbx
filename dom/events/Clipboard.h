@@ -51,9 +51,9 @@ class Clipboard : public DOMEventTargetHelper {
   // way to request the required permission for web content. If the clipboard
   // API testing pref is enabled, ReadText is enabled for web content for
   // testing purposes.
-  static bool ReadTextEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool ReadTextEnabled(MCContext* aCx, JSObject* aGlobal);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:

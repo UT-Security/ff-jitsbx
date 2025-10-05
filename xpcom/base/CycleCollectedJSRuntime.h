@@ -277,9 +277,9 @@ class CycleCollectedJSRuntime {
 
   static void GCCallback(MC::Tainted<JSContext*> aContext, JSGCStatus aStatus,
                          JS::GCReason aReason, MC::AppPointer<void*> aData);
-  static void GCSliceCallback(JSContext* aContext, JS::GCProgress aProgress,
+  static void GCSliceCallback(MC::Tainted<JSContext*> aContext, JS::GCProgress aProgress,
                               const JS::GCDescription& aDesc);
-  static void GCNurseryCollectionCallback(JSContext* aContext,
+  static void GCNurseryCollectionCallback(MC::Tainted<JSContext*> aContext,
                                           JS::GCNurseryProgress aProgress,
                                           JS::GCReason aReason);
   static void OutOfMemoryCallback(MC::Tainted<JSContext*> aContext, MC::AppPointer<void*> aData);

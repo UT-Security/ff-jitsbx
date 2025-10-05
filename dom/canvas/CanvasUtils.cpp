@@ -50,7 +50,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::CanvasUtils {
 
-bool IsImageExtractionAllowed(dom::Document* aDocument, JSContext* aCx,
+bool IsImageExtractionAllowed(dom::Document* aDocument, MCContext* aCx,
                               Maybe<nsIPrincipal*> aPrincipal) {
   if (NS_WARN_IF(!aDocument)) {
     return false;
@@ -127,9 +127,9 @@ bool IsImageExtractionAllowed(dom::Document* aDocument, JSContext* aCx,
   }
 
   // Don't show canvas prompt for PDF.js
-  JS::AutoFilename scriptFile;
-  if (JS::DescribeScriptedCaller(aCx, &scriptFile) && scriptFile.get() &&
-      strcmp(scriptFile.get(), "resource://pdf.js/build/pdf.js") == 0) {
+  MC::SandboxStack<JS::AutoFilename> scriptFile;
+  if (JS::DescribeScriptedCaller(aCx, scriptFile) && scriptFile->get() &&
+      strcmp(scriptFile->get(), "resource://pdf.js/build/pdf.js") == 0) {
     return true;
   }
 
@@ -438,7 +438,7 @@ bool CoerceDouble(const JS::Value& v, double* d) {
   return true;
 }
 
-bool HasDrawWindowPrivilege(JSContext* aCx, JSObject* /* unused */) {
+bool HasDrawWindowPrivilege(MCContext* aCx, JSObject* /* unused */) {
   return nsContentUtils::CallerHasPermission(aCx,
                                              nsGkAtoms::all_urlsPermission);
 }

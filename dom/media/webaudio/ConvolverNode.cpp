@@ -342,7 +342,7 @@ ConvolverNode::ConvolverNode(AudioContext* aContext)
 
 /* static */
 already_AddRefed<ConvolverNode> ConvolverNode::Create(
-    JSContext* aCx, AudioContext& aAudioContext,
+    MCContext* aCx, AudioContext& aAudioContext,
     const ConvolverOptions& aOptions, ErrorResult& aRv) {
   RefPtr<ConvolverNode> audioNode = new ConvolverNode(&aAudioContext);
 
@@ -379,12 +379,12 @@ size_t ConvolverNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* ConvolverNode::WrapObject(JSContext* aCx,
+JSObject* ConvolverNode::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return ConvolverNode_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void ConvolverNode::SetBuffer(JSContext* aCx, AudioBuffer* aBuffer,
+void ConvolverNode::SetBuffer(MCContext* aCx, AudioBuffer* aBuffer,
                               ErrorResult& aRv) {
   if (aBuffer) {
     switch (aBuffer->NumberOfChannels()) {

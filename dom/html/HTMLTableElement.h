@@ -176,7 +176,7 @@ class HTMLTableElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLTableElement();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   nsIContent* GetChild(nsAtom* aTag) const {
     for (nsIContent* cur = nsINode::GetFirstChild(); cur;

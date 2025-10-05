@@ -27,7 +27,7 @@ class KeyboardEvent : public UIEvent {
       const KeyboardEventInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return KeyboardEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 
@@ -68,7 +68,7 @@ class KeyboardEvent : public UIEvent {
                       nsGlobalWindowInner* aView, bool aCtrlKey, bool aAltKey,
                       bool aShiftKey, bool aMetaKey, uint32_t aKeyCode,
                       uint32_t aCharCode);
-  static bool IsInitKeyEventAvailable(JSContext*, JSObject*);
+  static bool IsInitKeyEventAvailable(MCContext*, JSObject*);
 
   void InitKeyboardEventJS(const nsAString& aType, bool aCanBubble,
                            bool aCancelable, nsGlobalWindowInner* aView,

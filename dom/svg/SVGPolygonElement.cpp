@@ -15,7 +15,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Polygon)
 
 namespace mozilla::dom {
 
-JSObject* SVGPolygonElement::WrapNode(JSContext* aCx,
+JSObject* SVGPolygonElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGPolygonElement_Binding::Wrap(aCx, this, aGivenProto);
 }

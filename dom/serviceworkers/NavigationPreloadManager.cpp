@@ -31,7 +31,7 @@ bool NavigationPreloadManager::IsValidHeader(const nsACString& aHeader) {
   return NS_IsReasonableHTTPHeaderValue(aHeader);
 }
 
-bool NavigationPreloadManager::IsEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool NavigationPreloadManager::IsEnabled(MCContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_serviceWorkers_navigationPreload_enabled() &&
          ServiceWorkerVisible(aCx, aGlobal);
 }
@@ -41,7 +41,7 @@ NavigationPreloadManager::NavigationPreloadManager(
     : mServiceWorkerRegistration(aServiceWorkerRegistration) {}
 
 JSObject* NavigationPreloadManager::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return NavigationPreloadManager_Binding::Wrap(aCx, this, aGivenProto);
 }
 

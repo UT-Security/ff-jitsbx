@@ -49,7 +49,7 @@ class Headers final : public nsISupports, public nsWrapperCache {
 
   explicit Headers(const Headers& aOther) = delete;
 
-  static bool PrefEnabled(JSContext* cx, JSObject* obj);
+  static bool PrefEnabled(MCContext* cx, JSObject* obj);
 
   static already_AddRefed<Headers> Constructor(
       const GlobalObject& aGlobal,
@@ -116,7 +116,7 @@ class Headers final : public nsISupports, public nsWrapperCache {
     mInternalHeaders->SetGuard(aGuard, aRv);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() const { return mOwner; }
 

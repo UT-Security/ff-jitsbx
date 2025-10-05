@@ -129,7 +129,7 @@ class ScrollTimeline : public AnimationTimeline {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ScrollTimeline, AnimationTimeline)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     // FIXME: Bug 1676794: Implement ScrollTimeline interface.
     return nullptr;

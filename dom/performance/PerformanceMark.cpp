@@ -30,12 +30,12 @@ already_AddRefed<PerformanceMark> PerformanceMark::Constructor(
     const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv) {
   const nsCOMPtr<nsIGlobalObject> global =
       do_QueryInterface(aGlobal.GetAsSupports());
-  return PerformanceMark::Constructor(MC_UNSAFE(aGlobal.Context()), global, aMarkName,
+  return PerformanceMark::Constructor(aGlobal.Context(), global, aMarkName,
                                       aMarkOptions, aRv);
 }
 
 already_AddRefed<PerformanceMark> PerformanceMark::Constructor(
-    JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aMarkName,
+    MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aMarkName,
     const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv) {
   RefPtr<Performance> performance = Performance::Get(aCx, aGlobal);
   if (!performance) {
@@ -104,12 +104,12 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(PerformanceMark,
                                                PerformanceEntry)
 
-JSObject* PerformanceMark::WrapObject(JSContext* aCx,
+JSObject* PerformanceMark::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return PerformanceMark_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void PerformanceMark::GetDetail(JSContext* aCx,
+void PerformanceMark::GetDetail(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aRetval) {
   // Return a copy so that this method always returns the value it is set to
   // (i.e. it'll return the same value even if the caller assigns to it). Note

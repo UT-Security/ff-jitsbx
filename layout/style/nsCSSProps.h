@@ -119,7 +119,7 @@ class nsCSSProps {
   /**
    * Returns true if the backdrop-filter pref and the gfx blocklist are enabled.
    */
-  static bool IsBackdropFilterAvailable(JSContext*, JSObject*) {
+  static bool IsBackdropFilterAvailable(MCContext*, JSObject*) {
     return IsEnabled(eCSSProperty_backdrop_filter, EnabledState::ForAllContent);
   }
 

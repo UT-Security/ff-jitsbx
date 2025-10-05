@@ -24,7 +24,7 @@ namespace mozilla::dom {
 class CallbackFunction : public CallbackObject {
  public:
   // See CallbackObject for an explanation of the arguments.
-  explicit CallbackFunction(JSContext* aCx, JS::Handle<JSObject*> aCallable,
+  explicit CallbackFunction(MCContext* aCx, JS::Handle<JSObject*> aCallable,
                             JS::Handle<JSObject*> aCallableGlobal,
                             nsIGlobalObject* aIncumbentGlobal)
       : CallbackObject(aCx, aCallable, aCallableGlobal, aIncumbentGlobal) {}

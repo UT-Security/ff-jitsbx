@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Text)
 
 namespace mozilla::dom {
 
-JSObject* SVGTextElement::WrapNode(JSContext* aCx,
+JSObject* SVGTextElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGTextElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -32,19 +32,19 @@ class XPathExpression final : public NonRefcountedDOMObject {
                   txResultRecycler* aRecycler, Document* aDocument);
   ~XPathExpression();
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return XPathExpression_Binding::Wrap(aCx, this, aGivenProto, aReflector);
   }
 
-  already_AddRefed<XPathResult> Evaluate(JSContext* aCx, nsINode& aContextNode,
+  already_AddRefed<XPathResult> Evaluate(MCContext* aCx, nsINode& aContextNode,
                                          uint16_t aType,
                                          JS::Handle<JSObject*> aInResult,
                                          ErrorResult& aRv) {
     return EvaluateWithContext(aCx, aContextNode, 1, 1, aType, aInResult, aRv);
   }
   already_AddRefed<XPathResult> EvaluateWithContext(
-      JSContext* aCx, nsINode& aContextNode, uint32_t aContextPosition,
+      MCContext* aCx, nsINode& aContextNode, uint32_t aContextPosition,
       uint32_t aContextSize, uint16_t aType, JS::Handle<JSObject*> aInResult,
       ErrorResult& aRv);
   already_AddRefed<XPathResult> Evaluate(nsINode& aContextNode, uint16_t aType,

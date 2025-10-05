@@ -16,7 +16,7 @@
 
 namespace mozilla::dom {
 
-bool ToJSValue(JSContext* aCx, const nsAString& aArgument,
+bool ToJSValue(MCContext* aCx, const nsAString& aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -36,18 +36,18 @@ bool ToJSValue(JSContext* aCx, const nsAString& aArgument,
   return true;
 }
 
-bool ToJSValue(JSContext* aCx, const nsACString& aArgument,
+bool ToJSValue(MCContext* aCx, const nsACString& aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   return UTF8StringToJsval(aCx, aArgument, aValue);
 }
 
-bool ToJSValue(JSContext* aCx, nsresult aArgument,
+bool ToJSValue(MCContext* aCx, nsresult aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   RefPtr<Exception> exception = CreateException(aArgument);
   return ToJSValue(aCx, exception, aValue);
 }
 
-bool ToJSValue(JSContext* aCx, ErrorResult&& aArgument,
+bool ToJSValue(MCContext* aCx, ErrorResult&& aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   MOZ_ASSERT(aArgument.Failed());
   MOZ_ASSERT(
@@ -59,13 +59,13 @@ bool ToJSValue(JSContext* aCx, ErrorResult&& aArgument,
   return true;
 }
 
-bool ToJSValue(JSContext* aCx, Promise& aArgument,
+bool ToJSValue(MCContext* aCx, Promise& aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   aValue.setObject(*aArgument.PromiseObj());
   return MaybeWrapObjectValue(aCx, aValue);
 }
 
-bool ToJSValue(JSContext* aCx, const WindowProxyHolder& aArgument,
+bool ToJSValue(MCContext* aCx, const WindowProxyHolder& aArgument,
                JS::MutableHandle<JS::Value> aValue) {
   BrowsingContext* bc = aArgument.get();
   if (!bc) {

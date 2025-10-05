@@ -3958,6 +3958,12 @@ void JSAutoStructuredCloneBuffer::adopt(
                      OwnTransferablePolicy::OwnsTransferablesIfAny);
 }
 
+void JSAutoStructuredCloneBuffer::adopt(
+    JSStructuredCloneData* data, uint32_t version,
+    const JSStructuredCloneCallbacks* callbacks, void* closure) {
+  adopt(std::move(*data), version, callbacks, closure);
+}
+
 void JSAutoStructuredCloneBuffer::giveTo(JSStructuredCloneData* data) {
   *data = std::move(data_);
   version_ = 0;

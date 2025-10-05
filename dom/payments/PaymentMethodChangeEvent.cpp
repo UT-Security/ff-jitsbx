@@ -84,7 +84,7 @@ void PaymentMethodChangeEvent::SetMethodName(const nsAString& aMethodName) {
 }
 
 void PaymentMethodChangeEvent::GetMethodDetails(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aRetVal) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aRetVal) {
   MOZ_ASSERT(aCx);
 
   if (mMethodDetails) {
@@ -158,7 +158,7 @@ PaymentMethodChangeEvent::~PaymentMethodChangeEvent() {
 }
 
 JSObject* PaymentMethodChangeEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PaymentMethodChangeEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

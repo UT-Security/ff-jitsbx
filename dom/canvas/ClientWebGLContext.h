@@ -68,7 +68,7 @@ class WebGLActiveInfoJS final : public RefCounted<WebGLActiveInfoJS> {
 
   void GetName(nsString& retval) const { CopyUTF8toUTF16(mInfo.name, retval); }
 
-  bool WrapObject(JSContext*, JS::Handle<JSObject*>,
+  bool WrapObject(MCContext*, JS::Handle<JSObject*>,
                   JS::MutableHandle<JSObject*>);
 };
 
@@ -89,7 +89,7 @@ class WebGLShaderPrecisionFormatJS final
   GLint RangeMax() const { return mInfo.rangeMax; }
   GLint Precision() const { return mInfo.precision; }
 
-  bool WrapObject(JSContext*, JS::Handle<JSObject*>,
+  bool WrapObject(MCContext*, JS::Handle<JSObject*>,
                   JS::MutableHandle<JSObject*>);
 };
 
@@ -281,7 +281,7 @@ class WebGLBufferJS final : public nsWrapperCache, public webgl::ObjectJS {
   ~WebGLBufferJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -329,7 +329,7 @@ class WebGLFramebufferJS final : public nsWrapperCache, public webgl::ObjectJS {
     return ret;
   }
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -385,7 +385,7 @@ class WebGLProgramJS final : public nsWrapperCache, public webgl::ObjectJS {
   bool IsDeleted() const override { return !mKeepAliveWeak.lock(); }
   GLenum ErrorOnDeleted() const override { return LOCAL_GL_INVALID_VALUE; }
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -410,7 +410,7 @@ class WebGLQueryJS final : public nsWrapperCache,
   ~WebGLQueryJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -431,7 +431,7 @@ class WebGLRenderbufferJS final : public nsWrapperCache,
   ~WebGLRenderbufferJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -449,7 +449,7 @@ class WebGLSamplerJS final : public nsWrapperCache, public webgl::ObjectJS {
   ~WebGLSamplerJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -484,7 +484,7 @@ class WebGLShaderJS final : public nsWrapperCache, public webgl::ObjectJS {
   bool IsDeleted() const override { return !mKeepAliveWeak.lock(); }
   GLenum ErrorOnDeleted() const override { return LOCAL_GL_INVALID_VALUE; }
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -510,7 +510,7 @@ class WebGLSyncJS final : public nsWrapperCache,
   ~WebGLSyncJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -531,7 +531,7 @@ class WebGLTextureJS final : public nsWrapperCache, public webgl::ObjectJS {
   ~WebGLTextureJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -556,7 +556,7 @@ class WebGLTransformFeedbackJS final : public nsWrapperCache,
   ~WebGLTransformFeedbackJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -587,7 +587,7 @@ class WebGLUniformLocationJS final : public nsWrapperCache,
   ~WebGLUniformLocationJS() = default;
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 // -
@@ -609,7 +609,7 @@ class WebGLVertexArrayJS final : public nsWrapperCache, public webgl::ObjectJS {
   ~WebGLVertexArrayJS();
 
  public:
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 };
 
 ////////////////////////////////////
@@ -721,7 +721,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(ClientWebGLContext)
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> givenProto) override {
     if (mIsWebGL2) {
       return dom::WebGL2RenderingContext_Binding::Wrap(cx, this, givenProto);
@@ -953,7 +953,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
     return mInitialOptions.ref();
   }
   NS_IMETHOD
-  SetContextOptions(JSContext* cx, JS::Handle<JS::Value> options,
+  SetContextOptions(MCContext* cx, JS::Handle<JS::Value> options,
                     ErrorResult& aRvForDictionaryInit) override;
   NS_IMETHOD
   SetDimensions(int32_t width, int32_t height) override;
@@ -1116,22 +1116,22 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   Maybe<std::string> GetString(GLenum pname);
 
  public:
-  void GetParameter(JSContext* cx, GLenum pname,
+  void GetParameter(MCContext* cx, GLenum pname,
                     JS::MutableHandle<JS::Value> retval, ErrorResult& rv,
                     bool debug = false);
 
-  void GetBufferParameter(JSContext* cx, GLenum target, GLenum pname,
+  void GetBufferParameter(MCContext* cx, GLenum target, GLenum pname,
                           JS::MutableHandle<JS::Value> retval) const;
 
-  void GetFramebufferAttachmentParameter(JSContext* cx, GLenum target,
+  void GetFramebufferAttachmentParameter(MCContext* cx, GLenum target,
                                          GLenum attachment, GLenum pname,
                                          JS::MutableHandle<JS::Value> retval,
                                          ErrorResult& rv) const;
 
-  void GetRenderbufferParameter(JSContext* cx, GLenum target, GLenum pname,
+  void GetRenderbufferParameter(MCContext* cx, GLenum target, GLenum pname,
                                 JS::MutableHandle<JS::Value> retval) const;
 
-  void GetIndexedParameter(JSContext* cx, GLenum target, GLuint index,
+  void GetIndexedParameter(MCContext* cx, GLenum target, GLuint index,
                            JS::MutableHandle<JS::Value> retval,
                            ErrorResult& rv) const;
 
@@ -1218,18 +1218,18 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   void GetActiveUniformBlockName(const WebGLProgramJS&,
                                  GLuint uniformBlockIndex,
                                  nsAString& retval) const;
-  void GetActiveUniformBlockParameter(JSContext* cx, const WebGLProgramJS&,
+  void GetActiveUniformBlockParameter(MCContext* cx, const WebGLProgramJS&,
                                       GLuint uniformBlockIndex, GLenum pname,
                                       JS::MutableHandle<JS::Value> retval,
                                       ErrorResult& rv);
-  void GetActiveUniforms(JSContext*, const WebGLProgramJS&,
+  void GetActiveUniforms(MCContext*, const WebGLProgramJS&,
                          const dom::Sequence<GLuint>& uniformIndices,
                          GLenum pname,
                          JS::MutableHandle<JS::Value> retval) const;
   GLint GetAttribLocation(const WebGLProgramJS&, const nsAString& name) const;
   GLint GetFragDataLocation(const WebGLProgramJS&, const nsAString& name) const;
   void GetProgramInfoLog(const WebGLProgramJS& prog, nsAString& retval) const;
-  void GetProgramParameter(JSContext*, const WebGLProgramJS&, GLenum pname,
+  void GetProgramParameter(MCContext*, const WebGLProgramJS&, GLenum pname,
                            JS::MutableHandle<JS::Value> retval) const;
   already_AddRefed<WebGLActiveInfoJS> GetTransformFeedbackVarying(
       const WebGLProgramJS&, GLuint index);
@@ -1242,7 +1242,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   // WebGLUniformLocationJS
   already_AddRefed<WebGLUniformLocationJS> GetUniformLocation(
       const WebGLProgramJS&, const nsAString& name) const;
-  void GetUniform(JSContext*, const WebGLProgramJS&,
+  void GetUniform(MCContext*, const WebGLProgramJS&,
                   const WebGLUniformLocationJS&,
                   JS::MutableHandle<JS::Value> retval);
 
@@ -1255,7 +1255,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
  public:
   void CompileShader(WebGLShaderJS&) const;
   void GetShaderInfoLog(const WebGLShaderJS&, nsAString& retval) const;
-  void GetShaderParameter(JSContext*, const WebGLShaderJS&, GLenum pname,
+  void GetShaderParameter(MCContext*, const WebGLShaderJS&, GLenum pname,
                           JS::MutableHandle<JS::Value> retval) const;
   void GetShaderSource(const WebGLShaderJS&, nsAString& retval) const;
   void GetTranslatedShaderSource(const WebGLShaderJS& shader,
@@ -1522,7 +1522,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   void ReadBuffer(GLenum mode);
 
   // ----------------------- Renderbuffer objects -----------------------
-  void GetInternalformatParameter(JSContext* cx, GLenum target,
+  void GetInternalformatParameter(MCContext* cx, GLenum target,
                                   GLenum internalformat, GLenum pname,
                                   JS::MutableHandle<JS::Value> retval,
                                   ErrorResult& rv);
@@ -1546,7 +1546,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
 
   void GenerateMipmap(GLenum texTarget) const;
 
-  void GetTexParameter(JSContext* cx, GLenum texTarget, GLenum pname,
+  void GetTexParameter(MCContext* cx, GLenum texTarget, GLenum pname,
                        JS::MutableHandle<JS::Value> retval) const;
 
   void TexParameterf(GLenum texTarget, GLenum pname, GLfloat param);
@@ -1828,7 +1828,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   Maybe<double> GetVertexAttribPriv(GLuint index, GLenum pname);
 
  public:
-  void GetVertexAttrib(JSContext* cx, GLuint index, GLenum pname,
+  void GetVertexAttrib(MCContext* cx, GLuint index, GLenum pname,
                        JS::MutableHandle<JS::Value> retval, ErrorResult& rv);
 
  private:
@@ -2115,9 +2115,9 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   // --------------------------------- GL Query
   // ---------------------------------
  public:
-  void GetQuery(JSContext*, GLenum target, GLenum pname,
+  void GetQuery(MCContext*, GLenum target, GLenum pname,
                 JS::MutableHandle<JS::Value> retval) const;
-  void GetQueryParameter(JSContext*, WebGLQueryJS&, GLenum pname,
+  void GetQueryParameter(MCContext*, WebGLQueryJS&, GLenum pname,
                          JS::MutableHandle<JS::Value> retval) const;
   void BeginQuery(GLenum target, WebGLQueryJS&);
   void EndQuery(GLenum target);
@@ -2125,7 +2125,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
 
   // -------------------------------- Sampler -------------------------------
 
-  void GetSamplerParameter(JSContext*, const WebGLSamplerJS&, GLenum pname,
+  void GetSamplerParameter(MCContext*, const WebGLSamplerJS&, GLenum pname,
                            JS::MutableHandle<JS::Value> retval) const;
 
   void BindSampler(GLuint unit, WebGLSamplerJS*);
@@ -2135,7 +2135,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   // ------------------------------- GL Sync ---------------------------------
 
   GLenum ClientWaitSync(WebGLSyncJS&, GLbitfield flags, GLuint64 timeout) const;
-  void GetSyncParameter(JSContext*, WebGLSyncJS&, GLenum pname,
+  void GetSyncParameter(MCContext*, WebGLSyncJS&, GLenum pname,
                         JS::MutableHandle<JS::Value> retval) const;
   void WaitSync(const WebGLSyncJS&, GLbitfield flags, GLint64 timeout) const;
 
@@ -2159,7 +2159,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   bool IsSupported(WebGLExtensionID, dom::CallerType callerType =
                                          dom::CallerType::NonSystem) const;
 
-  void GetExtension(JSContext* cx, const nsAString& name,
+  void GetExtension(MCContext* cx, const nsAString& name,
                     JS::MutableHandle<JSObject*> retval,
                     dom::CallerType callerType, ErrorResult& rv);
 
@@ -2185,7 +2185,7 @@ class ClientWebGLContext final : public nsICanvasRenderingContextInternal,
   void GetSupportedProfilesASTC(
       dom::Nullable<nsTArray<nsString>>& retval) const;
 
-  void MOZDebugGetParameter(JSContext* cx, GLenum pname,
+  void MOZDebugGetParameter(MCContext* cx, GLenum pname,
                             JS::MutableHandle<JS::Value> retval,
                             ErrorResult& rv) {
     GetParameter(cx, pname, retval, rv, true);

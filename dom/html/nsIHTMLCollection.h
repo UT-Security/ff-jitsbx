@@ -72,7 +72,7 @@ class nsIHTMLCollection : public nsISupports {
   void PreserveWrapper(nsISupports* aScriptObjectHolder) {
     PreserveWrapperInternal(aScriptObjectHolder);
   }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) = 0;
 
  protected:

@@ -139,12 +139,12 @@ class MozDocumentMatcher : public nsISupports, public nsWrapperCache {
 
   Nullable<uint64_t> GetFrameID() const { return mFrameID; }
 
-  void GetOriginAttributesPatterns(JSContext* aCx,
+  void GetOriginAttributesPatterns(MCContext* aCx,
                                    JS::MutableHandle<JS::Value> aVal,
                                    ErrorResult& aError) const;
 
   WebExtensionPolicy* GetParentObject() const { return mExtension; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -191,7 +191,7 @@ class WebExtensionContentScript final : public MozDocumentMatcher {
     aPaths.AppendElements(mJsPaths);
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

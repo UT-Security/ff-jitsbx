@@ -47,7 +47,7 @@ class SVGElement;
   }                                                                           \
   float* PtrToMemberArgs() override { return mArgs; }                         \
                                                                               \
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto)     \
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto)     \
       override {                                                              \
     return dom::SVGPathSeg##segName##_Binding::Wrap(aCx, this, aGivenProto);  \
   }
@@ -152,7 +152,7 @@ class DOMSVGPathSeg : public nsWrapperCache {
   void GetPathSegTypeAsLetter(nsAString& aPathSegTypeAsLetter) {
     aPathSegTypeAsLetter = SVGPathSegUtils::GetPathSegTypeAsLetter(Type());
   }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override = 0;
 
  protected:

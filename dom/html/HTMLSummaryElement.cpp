@@ -110,7 +110,7 @@ HTMLDetailsElement* HTMLSummaryElement::GetDetails() const {
   return HTMLDetailsElement::FromNodeOrNull(GetContainingShadowHost());
 }
 
-JSObject* HTMLSummaryElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSummaryElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return HTMLElement_Binding::Wrap(aCx, this, aGivenProto);
 }

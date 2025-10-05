@@ -139,7 +139,7 @@ void ResolveOrReject(Promise& aPromise, nsPrinterBase& aPrinter,
 
 template <typename T, typename... Args>
 nsresult nsPrinterBase::AsyncPromiseAttributeGetter(
-    JSContext* aCx, Promise** aResultPromise, AsyncAttribute aAttribute,
+    MCContext* aCx, Promise** aResultPromise, AsyncAttribute aAttribute,
     BackgroundTask<T, Args...> aBackgroundTask, Args... aArgs) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -179,35 +179,35 @@ NS_IMETHODIMP nsPrinterBase::CopyFromWithValidation(
 
 NS_IMETHODIMP nsPrinterBase::GetSupportsDuplex(MCContext* aCx,
                                                Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(MC_UNSAFE(aCx), aResultPromise,
+  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
                                      AsyncAttribute::SupportsDuplex,
                                      &nsPrinterBase::SupportsDuplex);
 }
 
 NS_IMETHODIMP nsPrinterBase::GetSupportsColor(MCContext* aCx,
                                               Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(MC_UNSAFE(aCx), aResultPromise,
+  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
                                      AsyncAttribute::SupportsColor,
                                      &nsPrinterBase::SupportsColor);
 }
 
 NS_IMETHODIMP nsPrinterBase::GetSupportsMonochrome(MCContext* aCx,
                                                    Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(MC_UNSAFE(aCx), aResultPromise,
+  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
                                      AsyncAttribute::SupportsMonochrome,
                                      &nsPrinterBase::SupportsMonochrome);
 }
 
 NS_IMETHODIMP nsPrinterBase::GetSupportsCollation(MCContext* aCx,
                                                   Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(MC_UNSAFE(aCx), aResultPromise,
+  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
                                      AsyncAttribute::SupportsCollation,
                                      &nsPrinterBase::SupportsCollation);
 }
 
 NS_IMETHODIMP nsPrinterBase::GetPrinterInfo(MCContext* aCx,
                                             Promise** aResultPromise) {
-  return AsyncPromiseAttributeGetter(MC_UNSAFE(aCx), aResultPromise,
+  return AsyncPromiseAttributeGetter(aCx, aResultPromise,
                                      AsyncAttribute::PrinterInfo,
                                      &nsPrinterBase::CreatePrinterInfo);
 }

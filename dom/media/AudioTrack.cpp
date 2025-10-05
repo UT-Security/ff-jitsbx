@@ -29,7 +29,7 @@ NS_IMPL_RELEASE_INHERITED(AudioTrack, MediaTrack)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(AudioTrack)
 NS_INTERFACE_MAP_END_INHERITING(MediaTrack)
 
-JSObject* AudioTrack::WrapObject(JSContext* aCx,
+JSObject* AudioTrack::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return AudioTrack_Binding::Wrap(aCx, this, aGivenProto);
 }

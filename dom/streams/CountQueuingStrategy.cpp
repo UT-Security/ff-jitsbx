@@ -41,14 +41,16 @@ nsIGlobalObject* BaseQueuingStrategy::GetParentObject() const {
   return mGlobal;
 }
 
-JSObject* CountQueuingStrategy::WrapObject(JSContext* aCx,
+JSObject* CountQueuingStrategy::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return CountQueuingStrategy_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // https://streams.spec.whatwg.org/#count-queuing-strategy-size-function
-static bool CountQueuingStrategySize(JSContext* aCx, unsigned aArgc,
-                                     JS::Value* aVp) {
+static MC::Tainted<bool> CountQueuingStrategySize(MC::Tainted<JSContext*> tCx, unsigned aArgc,
+                                     MC::Tainted<JS::Value*> tVp) {
+  JS::Value* aVp = tVp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   // Step 1.1. Return 1.
@@ -74,7 +76,7 @@ already_AddRefed<Function> CountQueuingStrategy::GetSize(ErrorResult& aRv) {
     aRv.ThrowUnknownError("Internal error");
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 1. Let steps be the following steps:
   // Note: See CountQueuingStrategySize instead.
@@ -82,8 +84,10 @@ already_AddRefed<Function> CountQueuingStrategy::GetSize(ErrorResult& aRv) {
   // Step 2. Let F be
   // ! CreateBuiltinFunction(steps, 0, "size", « »,
   //                         globalObject’s relevant Realm).
+  auto CountQueuingStrategySizeCb =
+      MC::Sandbox::RegisterTaintedCallback(CountQueuingStrategySize);
   MC::Rooted<JSFunction*> sizeFunction(
-      cx, JS_NewFunction(cx, CountQueuingStrategySize, 0, 0, "size"));
+      cx, JS_NewFunction(cx, CountQueuingStrategySizeCb, 0, 0, "size"));
   if (!sizeFunction) {
     aRv.StealExceptionFromJSContext(cx);
     return nullptr;

@@ -61,7 +61,7 @@ UniquePtr<dom::ExtensionPortDescriptor> ExtensionPort::ToPortDescriptor(
   }
 
   dom::AutoEntryScript aes(&aDescriptorValue.toObject(), __func__);
-  JSContext* acx = aes.cx();
+  MCContext* acx = aes.mcx();
   auto portDescriptor = MakeUnique<dom::ExtensionPortDescriptor>();
   if (!portDescriptor->Init(acx, aDescriptorValue, __func__)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -94,7 +94,7 @@ nsString ExtensionPort::GetAPIObjectId() const {
   return mPortDescriptor->mPortId;
 }
 
-JSObject* ExtensionPort::WrapObject(JSContext* aCx,
+JSObject* ExtensionPort::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionPort_Binding::Wrap(aCx, this, aGivenProto);
 }

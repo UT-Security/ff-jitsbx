@@ -73,7 +73,7 @@ OffscreenCanvas::~OffscreenCanvas() {
                          mExpandedReader.forget());
 }
 
-JSObject* OffscreenCanvas::WrapObject(JSContext* aCx,
+JSObject* OffscreenCanvas::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return OffscreenCanvas_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -148,7 +148,7 @@ void OffscreenCanvas::SetHeight(uint32_t aHeight, ErrorResult& aRv) {
 }
 
 void OffscreenCanvas::GetContext(
-    JSContext* aCx, const OffscreenRenderingContextId& aContextId,
+    MCContext* aCx, const OffscreenRenderingContextId& aContextId,
     JS::Handle<JS::Value> aContextOptions,
     Nullable<OwningOffscreenRenderingContext>& aResult, ErrorResult& aRv) {
   if (mNeutered) {
@@ -449,7 +449,7 @@ already_AddRefed<Promise> OffscreenCanvas::ConvertToBlob(
   return promise.forget();
 }
 
-already_AddRefed<Promise> OffscreenCanvas::ToBlob(JSContext* aCx,
+already_AddRefed<Promise> OffscreenCanvas::ToBlob(MCContext* aCx,
                                                   const nsAString& aType,
                                                   JS::Handle<JS::Value> aParams,
                                                   ErrorResult& aRv) {
@@ -544,7 +544,7 @@ already_AddRefed<OffscreenCanvas> OffscreenCanvas::CreateFromCloneData(
 }
 
 /* static */
-bool OffscreenCanvas::PrefEnabledOnWorkerThread(JSContext* aCx,
+bool OffscreenCanvas::PrefEnabledOnWorkerThread(MCContext* aCx,
                                                 JSObject* aObj) {
   return NS_IsMainThread() || StaticPrefs::gfx_offscreencanvas_enabled();
 }

@@ -86,7 +86,7 @@ void WorkerNavigator::Invalidate() {
   mLocks = nullptr;
 }
 
-JSObject* WorkerNavigator::WrapObject(JSContext* aCx,
+JSObject* WorkerNavigator::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return WorkerNavigator_Binding::Wrap(aCx, this, aGivenProto);
 }

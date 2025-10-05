@@ -48,7 +48,7 @@ Flex::Flex(Element* aParent, nsFlexContainerFrame* aFrame) : mParent(aParent) {
   mCrossAxisDirection = containerInfo->mCrossAxisDirection;
 }
 
-JSObject* Flex::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Flex::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Flex_Binding::Wrap(aCx, this, aGivenProto);
 }
 

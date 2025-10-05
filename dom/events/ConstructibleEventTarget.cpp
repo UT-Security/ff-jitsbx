@@ -10,7 +10,7 @@
 namespace mozilla::dom {
 
 JSObject* ConstructibleEventTarget::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return EventTarget_Binding::Wrap(cx, this, aGivenProto);
 }
 

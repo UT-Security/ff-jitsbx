@@ -29,7 +29,7 @@ class SpeechRecognitionResult final : public nsISupports,
 
   nsISupports* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t Length() const;

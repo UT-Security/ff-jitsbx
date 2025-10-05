@@ -60,8 +60,8 @@ void ResolveOrReject(dom::Promise& aPromise, nsPrinterListBase& aList,
 
 NS_IMETHODIMP nsPrinterListBase::GetPrinters(MCContext* aCx,
                                              Promise** aResult) {
-  EnsureCommonPaperInfo(MC_UNSAFE(aCx));
-  return mozilla::AsyncPromiseAttributeGetter(*this, mPrintersPromise, MC_UNSAFE(aCx),
+  EnsureCommonPaperInfo(aCx);
+  return mozilla::AsyncPromiseAttributeGetter(*this, mPrintersPromise, aCx,
                                               aResult, "Printers"_ns,
                                               &nsPrinterListBase::Printers);
 }
@@ -69,25 +69,25 @@ NS_IMETHODIMP nsPrinterListBase::GetPrinters(MCContext* aCx,
 NS_IMETHODIMP nsPrinterListBase::GetPrinterByName(const nsAString& aPrinterName,
                                                   MCContext* aCx,
                                                   Promise** aResult) {
-  EnsureCommonPaperInfo(MC_UNSAFE(aCx));
-  return PrintBackgroundTaskPromise(*this, MC_UNSAFE(aCx), aResult, "PrinterByName"_ns,
+  EnsureCommonPaperInfo(aCx);
+  return PrintBackgroundTaskPromise(*this, aCx, aResult, "PrinterByName"_ns,
                                     &nsPrinterListBase::PrinterByName,
                                     nsString{aPrinterName});
 }
 
 NS_IMETHODIMP nsPrinterListBase::GetPrinterBySystemName(
     const nsAString& aPrinterName, MCContext* aCx, Promise** aResult) {
-  EnsureCommonPaperInfo(MC_UNSAFE(aCx));
+  EnsureCommonPaperInfo(aCx);
   return PrintBackgroundTaskPromise(
-      *this, MC_UNSAFE(aCx), aResult, "PrinterBySystemName"_ns,
+      *this, aCx, aResult, "PrinterBySystemName"_ns,
       &nsPrinterListBase::PrinterBySystemName, nsString{aPrinterName});
 }
 
 NS_IMETHODIMP nsPrinterListBase::GetNamedOrDefaultPrinter(
     const nsAString& aPrinterName, MCContext* aCx, Promise** aResult) {
-  EnsureCommonPaperInfo(MC_UNSAFE(aCx));
+  EnsureCommonPaperInfo(aCx);
   return PrintBackgroundTaskPromise(
-      *this, MC_UNSAFE(aCx), aResult, "NamedOrDefaultPrinter"_ns,
+      *this, aCx, aResult, "NamedOrDefaultPrinter"_ns,
       &nsPrinterListBase::NamedOrDefaultPrinter, nsString{aPrinterName});
 }
 
@@ -116,7 +116,7 @@ NS_IMETHODIMP nsPrinterListBase::GetFallbackPaperList(MCContext* aCx,
     return rv.StealNSResult();
   }
 
-  EnsureCommonPaperInfo(MC_UNSAFE(aCx));
+  EnsureCommonPaperInfo(aCx);
   nsTArray<RefPtr<nsPaper>> papers;
   papers.SetCapacity(nsPaper::kNumCommonPaperSizes);
   for (const auto& info : *mCommonPaperInfo) {
@@ -128,7 +128,7 @@ NS_IMETHODIMP nsPrinterListBase::GetFallbackPaperList(MCContext* aCx,
   return NS_OK;
 }
 
-void nsPrinterListBase::EnsureCommonPaperInfo(JSContext* aCx) {
+void nsPrinterListBase::EnsureCommonPaperInfo(MCContext* aCx) {
   MOZ_DIAGNOSTIC_ASSERT(NS_IsMainThread());
   if (mCommonPaperInfo) {
     return;

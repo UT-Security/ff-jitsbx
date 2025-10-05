@@ -25,7 +25,7 @@ class RadioNodeList final : public nsSimpleContentList {
  public:
   explicit RadioNodeList(HTMLFormElement* aForm) : nsSimpleContentList(aForm) {}
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
   void GetValue(nsString& retval, CallerType aCallerType);
   void SetValue(const nsAString& value, CallerType aCallerType);

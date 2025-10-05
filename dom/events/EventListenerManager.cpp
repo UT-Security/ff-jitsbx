@@ -963,11 +963,11 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
 
     // Perform CSP check
     nsCOMPtr<nsIContentSecurityPolicy> csp = doc->GetCsp();
-    unsigned lineNum = 0;
-    unsigned columnNum = 0;
+    MC::SandboxStack<unsigned> lineNum = 0;
+    MC::SandboxStack<unsigned> columnNum = 0;
 
-    JSContext* cx = nsContentUtils::GetCurrentJSContext();
-    if (cx && !JS::DescribeScriptedCaller(cx, nullptr, &lineNum, &columnNum)) {
+    MCContext* cx = nsContentUtils::GetCurrentJSContext();
+    if (cx && !JS::DescribeScriptedCaller(cx, nullptr, lineNum, columnNum)) {
       JS_ClearPendingException(cx);
     }
 
@@ -980,7 +980,7 @@ nsresult EventListenerManager::SetEventHandler(nsAtom* aName,
           true,    // aParserCreated (true because attribute event handler)
           aElement,
           nullptr,  // nsICSPEventListener
-          aBody, lineNum, columnNum, &allowsInlineScript);
+          aBody, *lineNum.UNSAFE_unverified(), *columnNum.UNSAFE_unverified(), &allowsInlineScript);
       NS_ENSURE_SUCCESS(rv, rv);
 
       // return early if CSP wants us to block inline scripts
@@ -1051,7 +1051,7 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
   if (NS_WARN_IF(!jsapi.Init(global))) {
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RefPtr<nsAtom> typeAtom = aListener->mTypeAtom;
   nsAtom* attrName = typeAtom;
@@ -1187,19 +1187,19 @@ nsresult EventListenerManager::CompileEventHandlerInternal(
 
   if (jsEventHandler->EventName() == nsGkAtoms::onerror && win) {
     RefPtr<OnErrorEventHandlerNonNull> handlerCallback =
-        new OnErrorEventHandlerNonNull(static_cast<JSContext*>(nullptr),
+        new OnErrorEventHandlerNonNull(static_cast<MCContext*>(nullptr),
                                        handler, handlerGlobal,
                                        /* aIncumbentGlobal = */ nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   } else if (jsEventHandler->EventName() == nsGkAtoms::onbeforeunload && win) {
     RefPtr<OnBeforeUnloadEventHandlerNonNull> handlerCallback =
-        new OnBeforeUnloadEventHandlerNonNull(static_cast<JSContext*>(nullptr),
+        new OnBeforeUnloadEventHandlerNonNull(static_cast<MCContext*>(nullptr),
                                               handler, handlerGlobal,
                                               /* aIncumbentGlobal = */ nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   } else {
     RefPtr<EventHandlerNonNull> handlerCallback = new EventHandlerNonNull(
-        static_cast<JSContext*>(nullptr), handler, handlerGlobal,
+        static_cast<MCContext*>(nullptr), handler, handlerGlobal,
         /* aIncumbentGlobal = */ nullptr);
     jsEventHandler->SetHandler(handlerCallback);
   }

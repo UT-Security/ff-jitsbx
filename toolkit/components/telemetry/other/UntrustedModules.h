@@ -22,7 +22,7 @@ namespace Telemetry {
  *               (See "Flags for getUntrustedModuleLoadEvents"
  *                in nsITelemetry.idl)
  */
-nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, JSContext* cx,
+nsresult GetUntrustedModuleLoadEvents(uint32_t aFlags, MCContext* cx,
                                       dom::Promise** aPromise);
 
 }  // namespace Telemetry

@@ -50,21 +50,21 @@ class ReadableStreamDefaultController final : public ReadableStreamController,
   ReadableStreamDefaultController* AsDefault() override { return this; }
   ReadableByteStreamController* AsByte() override { return nullptr; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   Nullable<double> GetDesiredSize();
 
-  MOZ_CAN_RUN_SCRIPT void Close(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Close(MCContext* aCx, ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void Enqueue(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  MOZ_CAN_RUN_SCRIPT void Enqueue(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                   ErrorResult& aRv);
 
-  void Error(JSContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv);
+  void Error(MCContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelSteps(
-      JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) override;
-  MOZ_CAN_RUN_SCRIPT void PullSteps(JSContext* aCx, ReadRequest* aReadRequest,
+      MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) override;
+  MOZ_CAN_RUN_SCRIPT void PullSteps(MCContext* aCx, ReadRequest* aReadRequest,
                                     ErrorResult& aRv) override;
 
   void ReleaseSteps() override;
@@ -116,32 +116,32 @@ class ReadableStreamDefaultController final : public ReadableStreamController,
 namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT void SetUpReadableStreamDefaultController(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     ReadableStreamDefaultController* aController,
     UnderlyingSourceAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void
 SetupReadableStreamDefaultControllerFromUnderlyingSource(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     JS::Handle<JSObject*> aUnderlyingSource,
     UnderlyingSource& aUnderlyingSourceDict, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableStreamDefaultControllerEnqueue(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableStreamDefaultControllerClose(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableStreamDefaultReaderRead(
-    JSContext* aCx, ReadableStreamGenericReader* reader, ReadRequest* aRequest,
+    MCContext* aCx, ReadableStreamGenericReader* reader, ReadRequest* aRequest,
     ErrorResult& aRv);
 
 void ReadableStreamDefaultControllerError(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
 Nullable<double> ReadableStreamDefaultControllerGetDesiredSize(

@@ -42,8 +42,8 @@
 #include "xpcpublic.h"
 
 #include "mcapi.h"
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "js/PropertySpec.h"
 #include "js/SliceBudget.h"
 #include "monkeycage/Wrapper.h"
@@ -609,7 +609,7 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
   if (NS_WARN_IF(!jsapi.Init(GetGlobalObject()))) {
     return NS_ERROR_FAILURE;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::RootedVector<JS::Value> args(cx);
 
@@ -635,7 +635,7 @@ nsresult nsJSContext::SetProperty(JS::Handle<JSObject*> aTarget,
 }
 
 nsresult nsJSContext::ConvertSupportsTojsvals(
-    JSContext* aCx, nsISupports* aArgs, JS::Handle<JSObject*> aScope,
+    MCContext* aCx, nsISupports* aArgs, JS::Handle<JSObject*> aScope,
     JS::MutableHandleVector<JS::Value> aArgsOut) {
   nsresult rv = NS_OK;
 
@@ -723,7 +723,7 @@ nsresult nsJSContext::ConvertSupportsTojsvals(
 }
 
 // This really should go into xpconnect somewhere...
-nsresult nsJSContext::AddSupportsPrimitiveTojsvals(JSContext* aCx,
+nsresult nsJSContext::AddSupportsPrimitiveTojsvals(MCContext* aCx,
                                                    nsISupports* aArg,
                                                    JS::Value* aArgv) {
   MOZ_ASSERT(aArg, "Empty arg");
@@ -931,7 +931,7 @@ void NS_JProfStartProfiling();
 void NS_JProfStopProfiling();
 void NS_JProfClearCircular();
 
-static bool JProfStartProfilingJS(JSContext* cx, unsigned argc, JS::Value* vp) {
+static bool JProfStartProfilingJS(MCContext* cx, unsigned argc, JS::Value* vp) {
   NS_JProfStartProfiling();
   return true;
 }
@@ -970,7 +970,7 @@ void NS_JProfStartProfiling() {
   printf("Could not start jprof-profiling since JPROF_FLAGS was not set.\n");
 }
 
-static bool JProfStopProfilingJS(JSContext* cx, unsigned argc, JS::Value* vp) {
+static bool JProfStopProfilingJS(MCContext* cx, unsigned argc, JS::Value* vp) {
   NS_JProfStopProfiling();
   return true;
 }
@@ -980,7 +980,7 @@ void NS_JProfStopProfiling() {
   // printf("Stopped jprof profiling.\n");
 }
 
-static bool JProfClearCircularJS(JSContext* cx, unsigned argc, JS::Value* vp) {
+static bool JProfClearCircularJS(MCContext* cx, unsigned argc, JS::Value* vp) {
   NS_JProfClearCircular();
   return true;
 }
@@ -990,7 +990,7 @@ void NS_JProfClearCircular() {
   // printf("cleared jprof buffer\n");
 }
 
-static bool JProfSaveCircularJS(JSContext* cx, unsigned argc, JS::Value* vp) {
+static bool JProfSaveCircularJS(MCContext* cx, unsigned argc, JS::Value* vp) {
   // Not ideal...
   NS_JProfStopProfiling();
   NS_JProfStartProfiling();
@@ -1008,7 +1008,7 @@ static const JSFunctionSpec JProfFunctions[] = {
 nsresult nsJSContext::InitClasses(JS::Handle<JSObject*> aGlobalObj) {
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::SandboxStack<JSAutoRealm> ar(cx, aGlobalObj);
 
 #ifdef MOZ_JPROF
@@ -1754,9 +1754,10 @@ void nsJSContext::MaybePokeCC() {
   sScheduler.MaybePokeCC(TimeStamp::Now(), nsCycleCollector_suspectedCount());
 }
 
-static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
+static void DOMGCSliceCallback(MC::Tainted<JSContext*> tCx, JS::GCProgress aProgress,
                                const JS::GCDescription& aDesc) {
   NS_ASSERTION(NS_IsMainThread(), "GCs must run on the main thread");
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
 
   static TimeStamp sCurrentGCStartTime;
 
@@ -1773,7 +1774,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
 
       if (StaticPrefs::javascript_options_mem_log()) {
         nsString gcstats;
-        gcstats.Adopt(aDesc.formatSummaryMessage(aCx));
+        gcstats.Adopt(aDesc.formatSummaryMessage(MC_UNSAFE(aCx)));
         nsAutoString prefix;
         nsTextFormatter::ssprintf(prefix, u"GC(T+%.1f)[%s-%i] ",
                                   delta.ToSeconds(),
@@ -1833,8 +1834,8 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
       break;
 
     case JS::GC_SLICE_END:
-      sScheduler.NoteGCSliceEnd(aDesc.lastSliceStart(aCx),
-                                aDesc.lastSliceEnd(aCx));
+      sScheduler.NoteGCSliceEnd(aDesc.lastSliceStart(MC_UNSAFE(aCx)),
+                                aDesc.lastSliceEnd(MC_UNSAFE(aCx)));
 
       if (sShuttingDown) {
         sScheduler.KillGCRunner();
@@ -1853,7 +1854,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
 
       if (StaticPrefs::javascript_options_mem_log()) {
         nsString gcstats;
-        gcstats.Adopt(aDesc.formatSliceMessage(aCx));
+        gcstats.Adopt(aDesc.formatSliceMessage(MC_UNSAFE(aCx)));
         nsAutoString prefix;
         nsTextFormatter::ssprintf(prefix, u"[%s-%i] ",
                                   ProcessNameForCollectorLog(), getpid());
@@ -1872,7 +1873,7 @@ static void DOMGCSliceCallback(JSContext* aCx, JS::GCProgress aProgress,
   }
 
   if (sPrevGCSliceCallback) {
-    (sPrevGCSliceCallback)(aCx, aProgress, aDesc);
+    (sPrevGCSliceCallback)(tCx, aProgress, aDesc);
   }
 }
 
@@ -1987,7 +1988,7 @@ class JSDispatchableRunnable final : public Runnable {
         sShuttingDown ? JS::Dispatchable::ShuttingDown
                       : JS::Dispatchable::NotShuttingDown;
 
-    mDispatchable->run(jsapi.cx(), maybeShuttingDown);
+    mDispatchable->run(MC_UNSAFE(jsapi.cx()), maybeShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
     return NS_OK;
@@ -2016,10 +2017,11 @@ static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> closure,
   return true;
 }
 
-static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> aCx, JS::Handle<JSObject*> aObj,
+static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> tCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
                           MC::Tainted<JS::StreamConsumer*> aConsumer) {
-  return FetchUtil::StreamResponseToJS(aCx.UNSAFE_unverified(), aObj, aMimeType, aConsumer.UNSAFE_unverified(),
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer.UNSAFE_unverified(),
                                        nullptr);
 }
 
@@ -2043,7 +2045,7 @@ void nsJSContext::EnsureStatics() {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  static auto DOMGCSliceCallbackCb = MC::Sandbox::RegisterCallback(DOMGCSliceCallback);
+  static auto DOMGCSliceCallbackCb = MC::Sandbox::RegisterTaintedCallback(DOMGCSliceCallback);
   sPrevGCSliceCallback = JS::SetGCSliceCallback(jsapi.mcx(), DOMGCSliceCallbackCb);
 
   static auto CreateGCSliceBudgetCb = MC::Sandbox::RegisterCallback(CreateGCSliceBudget);
@@ -2204,13 +2206,13 @@ void mozilla::dom::ShutdownJSEnvironment() {
 AsyncErrorReporter::AsyncErrorReporter(xpc::ErrorReport* aReport)
     : Runnable("dom::AsyncErrorReporter"), mReport(aReport) {}
 
-void AsyncErrorReporter::SerializeStack(JSContext* aCx,
+void AsyncErrorReporter::SerializeStack(MCContext* aCx,
                                         JS::Handle<JSObject*> aStack) {
   mStackHolder = MakeUnique<SerializedStackHolder>();
   mStackHolder->SerializeMainThreadOrWorkletStack(aCx, aStack);
 }
 
-void AsyncErrorReporter::SetException(JSContext* aCx,
+void AsyncErrorReporter::SetException(MCContext* aCx,
                                       JS::Handle<JS::Value> aException) {
   MOZ_ASSERT(NS_IsMainThread());
   mException.init(aCx, aException);
@@ -2227,7 +2229,7 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
   // it has entered.
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   MOZ_ASSERT(ok, "Problem with system global?");
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> stack(cx);
   MC::Rooted<JSObject*> stackGlobal(cx);
   if (mStackHolder) {
@@ -2258,7 +2260,7 @@ NS_IMETHODIMP AsyncErrorReporter::Run() {
 // on-the-fly.
 class nsJSArgArray final : public nsIJSArgArray {
  public:
-  nsJSArgArray(JSContext* aContext, uint32_t argc, const JS::Value* argv,
+  nsJSArgArray(MCContext* aContext, uint32_t argc, const JS::Value* argv,
                nsresult* prv);
 
   // nsISupports
@@ -2276,12 +2278,12 @@ class nsJSArgArray final : public nsIJSArgArray {
 
  protected:
   ~nsJSArgArray();
-  JSContext* mContext;
+  MCContext* mContext;
   JS::Heap<JS::Value>* mArgv;
   uint32_t mArgc;
 };
 
-nsJSArgArray::nsJSArgArray(JSContext* aContext, uint32_t argc,
+nsJSArgArray::nsJSArgArray(MCContext* aContext, uint32_t argc,
                            const JS::Value* argv, nsresult* prv)
     : mContext(aContext), mArgv(nullptr), mArgc(argc) {
   // copy the array - we don't know its lifetime, and ours is tied to xpcom
@@ -2389,7 +2391,7 @@ NS_IMETHODIMP nsJSArgArray::EnumerateImpl(const nsID& aEntryIID,
 }
 
 // The factory function
-nsresult NS_CreateJSArgv(JSContext* aContext, uint32_t argc,
+nsresult NS_CreateJSArgv(MCContext* aContext, uint32_t argc,
                          const JS::Value* argv, nsIJSArgArray** aArray) {
   nsresult rv;
   nsCOMPtr<nsIJSArgArray> ret = new nsJSArgArray(aContext, argc, argv, &rv);

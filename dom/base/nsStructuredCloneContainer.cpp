@@ -9,9 +9,9 @@
 #include <cstddef>
 #include <utility>
 #include "ErrorList.h"
-#include "js/RootingAPI.h"
-#include "js/StructuredClone.h"
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
@@ -51,7 +51,7 @@ nsStructuredCloneContainer::InitFromJSVal(JS::Handle<JS::Value> aData,
   }
 
   ErrorResult rv;
-  Write(MC_UNSAFE(aCx), aData, rv);
+  Write(aCx, aData, rv);
   if (NS_WARN_IF(rv.Failed())) {
     // XXX propagate the error message as well.
     // We cannot StealNSResult because we threw a DOM exception.
@@ -90,7 +90,7 @@ nsresult nsStructuredCloneContainer::DeserializeToJsval(
   MC::Rooted<JS::Value> jsStateObj(aCx);
 
   ErrorResult rv;
-  Read(MC_UNSAFE(aCx), &jsStateObj, rv);
+  Read(aCx, &jsStateObj, rv);
   if (NS_WARN_IF(rv.Failed())) {
     // XXX propagate the error message as well.
     // We cannot StealNSResult because we threw a DOM exception.
@@ -114,8 +114,8 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString& aOut) {
     return NS_ERROR_FAILURE;
   }
 
-  auto iter = Data().Start();
-  size_t size = Data().Size();
+  auto iter = Data()->Start();
+  size_t size = Data()->Size();
   CheckedInt<nsAutoCString::size_type> sizeCheck(size);
   if (!sizeCheck.isValid()) {
     return NS_ERROR_FAILURE;
@@ -126,7 +126,7 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString& aOut) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  DebugOnly<bool> res = Data().ReadBytes(iter, binaryData.BeginWriting(), size);
+  DebugOnly<bool> res = Data()->ReadBytes(iter, binaryData.BeginWriting(), size);
   MOZ_ASSERT(res);
 
   nsresult rv = Base64Encode(binaryData, aOut);

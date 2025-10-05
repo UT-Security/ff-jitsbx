@@ -1230,7 +1230,7 @@ bool Geolocation::RegisterRequestWithPrompt(nsGeolocationRequest* request) {
   return true;
 }
 
-JSObject* Geolocation::WrapObject(JSContext* aCtx,
+JSObject* Geolocation::WrapObject(MCContext* aCtx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return Geolocation_Binding::Wrap(aCtx, this, aGivenProto);
 }

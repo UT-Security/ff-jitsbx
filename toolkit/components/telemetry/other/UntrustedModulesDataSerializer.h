@@ -23,7 +23,7 @@ class MOZ_RAII UntrustedModulesDataSerializer final {
   using IndexMap = nsTHashMap<nsStringHashKey, uint32_t>;
 
   nsresult mCtorResult;
-  JSContext* mCx;
+  MCContext* mCx;
   MC::Rooted<JSObject*> mMainObj;
   MC::Rooted<JSObject*> mModulesArray;
   MC::Rooted<JSObject*> mBlockedModulesArray;
@@ -39,7 +39,7 @@ class MOZ_RAII UntrustedModulesDataSerializer final {
   const uint32_t mFlags;
 
   static bool SerializeEvent(
-      JSContext* aCx, JS::MutableHandle<JS::Value> aElement,
+      MCContext* aCx, JS::MutableHandle<JS::Value> aElement,
       const ProcessedModuleLoadEventContainer& aEventContainer,
       const IndexMap& aModuleIndices);
   nsresult GetPerProcObject(const UntrustedModulesData& aData,
@@ -49,7 +49,7 @@ class MOZ_RAII UntrustedModulesDataSerializer final {
   nsresult AddSingleData(const UntrustedModulesData& aData);
 
  public:
-  UntrustedModulesDataSerializer(JSContext* aCx, uint32_t aMaxModulesArrayLen,
+  UntrustedModulesDataSerializer(MCContext* aCx, uint32_t aMaxModulesArrayLen,
                                  uint32_t aFlags = 0);
   explicit operator bool() const;
 

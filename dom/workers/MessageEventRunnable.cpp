@@ -22,7 +22,7 @@ MessageEventRunnable::MessageEventRunnable(WorkerPrivate* aWorkerPrivate,
       StructuredCloneHolder(CloningSupported, TransferringSupported,
                             StructuredCloneScope::SameProcess) {}
 
-bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
+bool MessageEventRunnable::DispatchDOMEvent(MCContext* aCx,
                                             WorkerPrivate* aWorkerPrivate,
                                             DOMEventTargetHelper* aTarget,
                                             bool aIsMainThread) {
@@ -106,7 +106,7 @@ bool MessageEventRunnable::DispatchDOMEvent(JSContext* aCx,
   return true;
 }
 
-bool MessageEventRunnable::WorkerRun(JSContext* aCx,
+bool MessageEventRunnable::WorkerRun(MCContext* aCx,
                                      WorkerPrivate* aWorkerPrivate) {
   if (mBehavior == ParentThreadUnchangedBusyCount) {
     // Don't fire this event if the JS object has been disconnected from the
@@ -140,7 +140,7 @@ bool MessageEventRunnable::WorkerRun(JSContext* aCx,
                           false);
 }
 
-void MessageEventRunnable::DispatchError(JSContext* aCx,
+void MessageEventRunnable::DispatchError(MCContext* aCx,
                                          DOMEventTargetHelper* aTarget) {
   RootedDictionary<MessageEventInit> init(aCx);
   init.mBubbles = false;

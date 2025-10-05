@@ -694,6 +694,11 @@ class JS_PUBLIC_API JSAutoStructuredCloneBuffer {
              const JSStructuredCloneCallbacks* callbacks = nullptr,
              void* closure = nullptr);
 
+  void adopt(JSStructuredCloneData* data,
+             uint32_t version = JS_STRUCTURED_CLONE_VERSION,
+             const JSStructuredCloneCallbacks* callbacks = nullptr,
+             void* closure = nullptr);
+
   /**
    * Release ownership of the buffer and assign it and ownership of it to
    * `data`.

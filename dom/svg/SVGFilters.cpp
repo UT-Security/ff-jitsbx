@@ -293,7 +293,7 @@ SVGComponentTransferFunctionElement::GetNumberInfo() {
 }
 
 /* virtual */
-JSObject* SVGFEFuncRElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEFuncRElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFuncRElement_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -307,7 +307,7 @@ namespace mozilla::dom {
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEFuncRElement)
 
 /* virtual */
-JSObject* SVGFEFuncGElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEFuncGElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFuncGElement_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -321,7 +321,7 @@ namespace mozilla::dom {
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEFuncGElement)
 
 /* virtual */
-JSObject* SVGFEFuncBElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEFuncBElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFuncBElement_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -335,7 +335,7 @@ namespace mozilla::dom {
 NS_IMPL_ELEMENT_CLONE_WITH_INIT(SVGFEFuncBElement)
 
 /* virtual */
-JSObject* SVGFEFuncAElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEFuncAElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFuncAElement_Binding::Wrap(aCx, this, aGivenProto);
 }

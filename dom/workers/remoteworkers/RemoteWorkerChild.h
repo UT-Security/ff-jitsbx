@@ -66,7 +66,7 @@ class RemoteWorkerChild final : public PRemoteWorkerChild {
 
   void FlushReportsOnMainThread(nsIConsoleReportCollector* aReporter);
 
-  void AddPortIdentifier(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void AddPortIdentifier(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                          UniqueMessagePortId& aPortIdentifier);
 
   RefPtr<GenericNonExclusivePromise> GetTerminationPromise();

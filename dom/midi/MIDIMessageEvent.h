@@ -39,7 +39,7 @@ class MIDIMessageEvent final : public Event {
  public:
   virtual MIDIMessageEvent* AsMIDIMessageEvent();
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<MIDIMessageEvent> Constructor(
       EventTarget* aOwner, const class TimeStamp& aReceivedTime,
       const nsTArray<uint8_t>& aData);
@@ -49,7 +49,7 @@ class MIDIMessageEvent final : public Event {
       const MIDIMessageEventInit& aEventInitDict, ErrorResult& aRv);
 
   // Getter for message data
-  void GetData(JSContext* cx, JS::MutableHandle<JSObject*> aData,
+  void GetData(MCContext* cx, JS::MutableHandle<JSObject*> aData,
                ErrorResult& aRv);
 
  private:

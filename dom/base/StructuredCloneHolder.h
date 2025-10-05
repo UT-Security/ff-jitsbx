@@ -16,7 +16,7 @@
 #include "mozilla/Attributes.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/RefPtr.h"
-#include "mozilla/UniquePtr.h"
+#include "monkeycage/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -74,10 +74,10 @@ class StructuredCloneHolderBase {
       const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
       uint32_t aIndex) = 0;
 
-  virtual bool CustomWriteHandler(JSContext* aCx,
-                                  JSStructuredCloneWriter* aWriter,
+  virtual bool CustomWriteHandler(MCContext* aCx,
+                                  MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                   JS::Handle<JSObject*> aObj,
-                                  bool* aSameProcessScopeRequired) = 0;
+                                  MC::Tainted<bool*> aSameProcessScopeRequired) = 0;
 
   // This method has to be called when this object is not needed anymore.
   // It will free memory and the buffer. This has to be called because
@@ -89,49 +89,49 @@ class StructuredCloneHolderBase {
   // allowed. Otherwise only arrayBuffers will be transferred.
 
   virtual bool CustomReadTransferHandler(
-      JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
-      void* aContent, uint64_t aExtraData,
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
+      MC::AppPointer<void*> aContent, uint64_t aExtraData,
       JS::MutableHandle<JSObject*> aReturnObject);
 
-  virtual bool CustomWriteTransferHandler(JSContext* aCx,
+  virtual bool CustomWriteTransferHandler(MCContext* aCx,
                                           JS::Handle<JSObject*> aObj,
                                           // Output:
-                                          uint32_t* aTag,
-                                          JS::TransferableOwnership* aOwnership,
-                                          void** aContent,
-                                          uint64_t* aExtraData);
+                                          MC::Tainted<uint32_t*> aTag,
+                                          MC::Tainted<JS::TransferableOwnership*> aOwnership,
+                                          MC::Tainted<void**> aContent,
+                                          MC::Tainted<uint64_t*> aExtraData);
 
   virtual void CustomFreeTransferHandler(uint32_t aTag,
                                          JS::TransferableOwnership aOwnership,
-                                         void* aContent, uint64_t aExtraData);
+                                         MC::AppPointer<void*> aContent, uint64_t aExtraData);
 
-  virtual bool CustomCanTransferHandler(JSContext* aCx,
+  virtual bool CustomCanTransferHandler(MCContext* aCx,
                                         JS::Handle<JSObject*> aObj,
-                                        bool* aSameProcessScopeRequired);
+                                        MC::Tainted<bool*> aSameProcessScopeRequired);
 
   // These methods are what you should use to read/write data.
 
   // Execute the serialization of aValue using the Structured Clone Algorithm.
   // The data can read back using Read().
-  bool Write(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  bool Write(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   // Like Write() but it supports the transferring of objects and handling
   // of cloning policy.
-  bool Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  bool Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
              JS::Handle<JS::Value> aTransfer,
              const JS::CloneDataPolicy& aCloneDataPolicy);
 
   // If Write() has been called, this method retrieves data and stores it into
   // aValue.
-  bool Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue);
+  bool Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue);
 
   // Like Read() but it supports handling of clone policy.
-  bool Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  bool Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
             const JS::CloneDataPolicy& aCloneDataPolicy);
 
   bool HasData() const { return !!mBuffer; }
 
-  JSStructuredCloneData& BufferData() const {
+  MC::Tainted<JSStructuredCloneData*> BufferData() const {
     MOZ_ASSERT(mBuffer, "Write() has never been called.");
     return mBuffer->data();
   }
@@ -149,7 +149,7 @@ class StructuredCloneHolderBase {
   }
 
  protected:
-  UniquePtr<JSAutoStructuredCloneBuffer> mBuffer;
+  mc::UniquePtr<JSAutoStructuredCloneBuffer> mBuffer;
 
   StructuredCloneScope mStructuredCloneScope;
 
@@ -191,18 +191,18 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
 
   // Normally you should just use Write() and Read().
 
-  virtual void Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                      ErrorResult& aRv);
 
-  virtual void Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                      JS::Handle<JS::Value> aTransfer,
                      const JS::CloneDataPolicy& aCloneDataPolicy,
                      ErrorResult& aRv);
 
-  void Read(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Read(nsIGlobalObject* aGlobal, MCContext* aCx,
             JS::MutableHandle<JS::Value> aValue, ErrorResult& aRv);
 
-  void Read(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Read(nsIGlobalObject* aGlobal, MCContext* aCx,
             JS::MutableHandle<JS::Value> aValue,
             const JS::CloneDataPolicy& aCloneDataPolicy, ErrorResult& aRv);
 
@@ -276,31 +276,31 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
       const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
       uint32_t aIndex) override;
 
-  virtual bool CustomWriteHandler(JSContext* aCx,
-                                  JSStructuredCloneWriter* aWriter,
-                                  JS::Handle<JSObject*> aObj,
-                                  bool* aSameProcessScopeRequired) override;
+  virtual bool CustomWriteHandler(
+      MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
+      JS::Handle<JSObject*> aObj,
+      MC::Tainted<bool*> aSameProcessScopeRequired) override;
 
   virtual bool CustomReadTransferHandler(
-      JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
-      void* aContent, uint64_t aExtraData,
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
+      MC::AppPointer<void*> aContent, uint64_t aExtraData,
       JS::MutableHandle<JSObject*> aReturnObject) override;
 
-  virtual bool CustomWriteTransferHandler(JSContext* aCx,
+  virtual bool CustomWriteTransferHandler(MCContext* aCx,
                                           JS::Handle<JSObject*> aObj,
-                                          uint32_t* aTag,
-                                          JS::TransferableOwnership* aOwnership,
-                                          void** aContent,
-                                          uint64_t* aExtraData) override;
+                                          MC::Tainted<uint32_t*> aTag,
+                                          MC::Tainted<JS::TransferableOwnership*> aOwnership,
+                                          MC::Tainted<void**> aContent,
+                                          MC::Tainted<uint64_t*> aExtraData) override;
 
   virtual void CustomFreeTransferHandler(uint32_t aTag,
                                          JS::TransferableOwnership aOwnership,
-                                         void* aContent,
+                                         MC::AppPointer<void*> aContent,
                                          uint64_t aExtraData) override;
 
   virtual bool CustomCanTransferHandler(
-      JSContext* aCx, JS::Handle<JSObject*> aObj,
-      bool* aSameProcessScopeRequired) override;
+      MCContext* aCx, JS::Handle<JSObject*> aObj,
+      MC::Tainted<bool*> aSameProcessScopeRequired) override;
 
   // These 2 static methods are useful to read/write fully serializable objects.
   // They can be used by custom StructuredCloneHolderBase classes to
@@ -309,16 +309,16 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
   static JSObject* ReadFullySerializableObjects(
       MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag);
 
-  static bool WriteFullySerializableObjects(JSContext* aCx,
-                                            JSStructuredCloneWriter* aWriter,
+  static bool WriteFullySerializableObjects(MCContext* aCx,
+                                            MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                             JS::Handle<JSObject*> aObj);
 
   // Helper functions for reading and writing strings.
-  static bool ReadString(JSStructuredCloneReader* aReader, nsString& aString);
-  static bool WriteString(JSStructuredCloneWriter* aWriter,
+  static bool ReadString(MC::Tainted<JSStructuredCloneReader*> aReader, nsString& aString);
+  static bool WriteString(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                           const nsAString& aString);
-  static bool ReadCString(JSStructuredCloneReader* aReader, nsCString& aString);
-  static bool WriteCString(JSStructuredCloneWriter* aWriter,
+  static bool ReadCString(MC::Tainted<JSStructuredCloneReader*> aReader, nsCString& aString);
+  static bool WriteCString(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                            const nsACString& aString);
 
   static const JSStructuredCloneCallbacks* sCallbacks();
@@ -327,20 +327,20 @@ class StructuredCloneHolder : public StructuredCloneHolderBase {
   // If you receive a buffer from IPC, you can use this method to retrieve a
   // JS::Value. It can happen that you want to pre-populate the array of Blobs
   // and/or the PortIdentifiers.
-  void ReadFromBuffer(nsIGlobalObject* aGlobal, JSContext* aCx,
-                      JSStructuredCloneData& aBuffer,
+  void ReadFromBuffer(nsIGlobalObject* aGlobal, MCContext* aCx,
+                      MC::Tainted<JSStructuredCloneData*> aBuffer,
                       JS::MutableHandle<JS::Value> aValue,
                       const JS::CloneDataPolicy& aCloneDataPolicy,
                       ErrorResult& aRv);
 
-  void ReadFromBuffer(nsIGlobalObject* aGlobal, JSContext* aCx,
-                      JSStructuredCloneData& aBuffer,
+  void ReadFromBuffer(nsIGlobalObject* aGlobal, MCContext* aCx,
+                      MC::Tainted<JSStructuredCloneData*> aBuffer,
                       uint32_t aAlgorithmVersion,
                       JS::MutableHandle<JS::Value> aValue,
                       const JS::CloneDataPolicy& aCloneDataPolicy,
                       ErrorResult& aRv);
 
-  void SameProcessScopeRequired(bool* aSameProcessScopeRequired);
+  void SameProcessScopeRequired(MC::Tainted<bool*> aSameProcessScopeRequired);
 
   already_AddRefed<MessagePort> ReceiveMessagePort(uint64_t aIndex);
 

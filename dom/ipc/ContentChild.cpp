@@ -529,7 +529,7 @@ ConsoleListener::Observe(nsIConsoleMessage* aMessage) {
     {
       AutoJSAPI jsapi;
       jsapi.Init();
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
 
       MC::Rooted<JS::Value> stack(cx);
       rv = scriptError->GetStack(&stack);

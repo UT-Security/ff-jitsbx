@@ -11,10 +11,10 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Preferences.h"
-#include "js/CharacterEncoding.h"
+#include "monkeycage/CharacterEncoding.h"
 #include "monkeycage/Class.h"
 #include "monkeycage/Id.h"
-#include "js/Object.h"  // JS::GetClass
+#include "monkeycage/Object.h"  // JS::GetClass
 #include "js/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
 #include "monkeycage/Symbol.h"
@@ -271,7 +271,7 @@ static MC::Tainted<bool> XPC_WN_DoubleWrappedGetter(MC::Tainted<JSContext*> t_cx
 
   // It is a double wrapped object. This should really never appear in
   // content these days, but addons still do it - see bug 965921.
-  if (MOZ_UNLIKELY(!nsContentUtils::IsSystemCaller(MC_UNSAFE(cx)))) {
+  if (MOZ_UNLIKELY(!nsContentUtils::IsSystemCaller(cx))) {
     JS_ReportErrorASCII(cx,
                         "Attempt to use .wrappedJSObject in untrusted code");
     return false;
@@ -373,13 +373,13 @@ static bool DefinePropertyIfFound(
           break;
         }
 
-        iface2 = XPCNativeInterface::GetNewOrUsed(MC_UNSAFE(ccx), name.get());
+        iface2 = XPCNativeInterface::GetNewOrUsed(ccx, name.get());
         if (!iface2) {
           break;
         }
 
         to =
-            wrapperToReflectInterfaceNames->FindTearOff(MC_UNSAFE(ccx), iface2, true, &rv);
+            wrapperToReflectInterfaceNames->FindTearOff(ccx, iface2, true, &rv);
         if (!to) {
           break;
         }
@@ -447,7 +447,7 @@ static bool DefinePropertyIfFound(
   if (!member) {
     if (wrapperToReflectInterfaceNames) {
       XPCWrappedNativeTearOff* to =
-          wrapperToReflectInterfaceNames->FindTearOff(MC_UNSAFE(ccx), iface, true);
+          wrapperToReflectInterfaceNames->FindTearOff(ccx, iface, true);
 
       if (!to) {
         return false;

@@ -25,17 +25,12 @@ class StatementRow final : public nsISupports, public nsWrapperCache {
 
   explicit StatementRow(nsPIDOMWindowInner* aWindow, Statement* aStatement);
 
-  inline void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
-                          JS::MutableHandle<JS::Value> aResult,
-                          mozilla::ErrorResult& aRv) {
-    return NamedGetter(MC_UNSAFE(aCx), aName, aFound, aResult, aRv);
-  }
-  void NamedGetter(JSContext* aCx, const nsAString& aName, bool& aFound,
+  void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JS::Value> aResult,
                    mozilla::ErrorResult& aRv);
   void GetSupportedNames(nsTArray<nsString>& aNames);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }

@@ -180,7 +180,7 @@ nsThebesFontEnumerator::EnumerateFontsAsync(
       langGroupAtom, generic, std::move(enumerateFontsPromise), target);
   thread->Dispatch(runnable.forget(), NS_DISPATCH_NORMAL);
 
-  if (!ToJSValue(MC_UNSAFE(aCx), promise, aRval)) {
+  if (!ToJSValue(aCx, promise, aRval)) {
     return NS_ERROR_FAILURE;
   }
 

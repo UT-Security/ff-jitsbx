@@ -54,7 +54,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(XRSystem, DOMEventTargetHelper)
 
-JSObject* XRSystem::WrapObject(JSContext* aCx,
+JSObject* XRSystem::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return XRSystem_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -122,7 +122,7 @@ already_AddRefed<Promise> XRSystem::IsSessionSupported(XRSessionMode aMode,
 }
 
 already_AddRefed<Promise> XRSystem::RequestSession(
-    JSContext* aCx, XRSessionMode aMode, const XRSessionInit& aOptions,
+    MCContext* aCx, XRSessionMode aMode, const XRSessionInit& aOptions,
     CallerType aCallerType, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = GetParentObject();
   NS_ENSURE_TRUE(global, nullptr);

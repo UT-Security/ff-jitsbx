@@ -27,13 +27,13 @@ class WorkletFetchHandler final : public nsISupports {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WorkletFetchHandler)
 
-  static already_AddRefed<Promise> AddModule(Worklet* aWorklet, JSContext* aCx,
+  static already_AddRefed<Promise> AddModule(Worklet* aWorklet, MCContext* aCx,
                                              const nsAString& aModuleURL,
                                              const WorkletOptions& aOptions,
                                              ErrorResult& aRv);
 
   // Load a module script on main thread.
-  nsresult StartFetch(JSContext* aCx, nsIURI* aURI, nsIURI* aReferrer);
+  nsresult StartFetch(MCContext* aCx, nsIURI* aURI, nsIURI* aReferrer);
 
   void ExecutionFailed();
   void ExecutionFailed(JS::Handle<JS::Value> aError);
@@ -48,7 +48,7 @@ class WorkletFetchHandler final : public nsISupports {
 
   ~WorkletFetchHandler();
 
-  void AddPromise(JSContext* aCx, Promise* aPromise);
+  void AddPromise(MCContext* aCx, Promise* aPromise);
 
   void RejectPromises(nsresult aResult);
   void RejectPromises(JS::Handle<JS::Value> aValue);
@@ -94,7 +94,7 @@ class WorkletScriptHandler final : public PromiseNativeHandler,
 
   WorkletScriptHandler(Worklet* aWorklet, nsIURI* aURI);
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   NS_IMETHOD
@@ -102,7 +102,7 @@ class WorkletScriptHandler final : public PromiseNativeHandler,
                    nsresult aStatus, uint32_t aStringLen,
                    const uint8_t* aString) override;
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   void HandleFailure(nsresult aResult);

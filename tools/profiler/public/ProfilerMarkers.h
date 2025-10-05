@@ -74,15 +74,9 @@ inline mozilla::MarkerInnerWindowId MarkerInnerWindowIdFromDocShell(
 // function. If there is a computed inner window ID, `window`, or `Document`
 // available in the call site, please use them. Use this function as a last
 // resort.
-inline mozilla::MarkerInnerWindowId MarkerInnerWindowIdFromJSContext(
-    JSContext* aContext) {
-  return mozilla::MarkerInnerWindowId(
-      nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(aContext));
-}
-
 inline mozilla::MarkerInnerWindowId MarkerInnerWindowIdFromJSContext(MCContext* aContext) {
   return mozilla::MarkerInnerWindowId(
-      nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(MC_UNSAFE(aContext)));
+      nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(aContext));
 }
 
 // Bring category names from Base Profiler into the geckoprofiler::category

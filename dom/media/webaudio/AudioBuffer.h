@@ -72,7 +72,7 @@ class AudioBuffer final : public nsWrapperCache {
     return parentObject;
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   float SampleRate() const { return mSampleRate; }
@@ -89,13 +89,13 @@ class AudioBuffer final : public nsWrapperCache {
    * If mSharedChannels is non-null, copies its contents to
    * new Float32Arrays in mJSChannels. Returns a Float32Array.
    */
-  void GetChannelData(JSContext* aJSContext, uint32_t aChannel,
+  void GetChannelData(MCContext* aJSContext, uint32_t aChannel,
                       JS::MutableHandle<JSObject*> aRetval, ErrorResult& aRv);
 
   void CopyFromChannel(const Float32Array& aDestination,
                        uint32_t aChannelNumber, uint32_t aBufferOffset,
                        ErrorResult& aRv);
-  void CopyToChannel(JSContext* aJSContext, const Float32Array& aSource,
+  void CopyToChannel(MCContext* aJSContext, const Float32Array& aSource,
                      uint32_t aChannelNumber, uint32_t aBufferOffset,
                      ErrorResult& aRv);
 
@@ -103,7 +103,7 @@ class AudioBuffer final : public nsWrapperCache {
    * Returns a reference to an AudioChunk containing the sample data.
    * The AudioChunk can have a null buffer if there is no data.
    */
-  const AudioChunk& GetThreadSharedChannelsForRate(JSContext* aContext);
+  const AudioChunk& GetThreadSharedChannelsForRate(MCContext* aContext);
 
  protected:
   AudioBuffer(nsPIDOMWindowInner* aWindow, uint32_t aNumberOfChannels,
@@ -113,10 +113,10 @@ class AudioBuffer final : public nsWrapperCache {
   void SetSharedChannels(
       already_AddRefed<ThreadSharedFloatArrayBufferList> aBuffer);
 
-  bool RestoreJSChannelData(JSContext* aJSContext);
+  bool RestoreJSChannelData(MCContext* aJSContext);
 
   already_AddRefed<ThreadSharedFloatArrayBufferList>
-  StealJSArrayDataIntoSharedChannels(JSContext* aJSContext);
+  StealJSArrayDataIntoSharedChannels(MCContext* aJSContext);
 
   void ClearJSChannels();
 

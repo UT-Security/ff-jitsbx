@@ -43,12 +43,12 @@ class ServiceWorkerContainer final : public DOMEventTargetHelper {
     StartMessages();
   }
 
-  static bool IsEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool IsEnabled(MCContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<ServiceWorkerContainer> Create(
       nsIGlobalObject* aGlobal);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   already_AddRefed<Promise> Register(const nsAString& aScriptURL,
@@ -112,7 +112,7 @@ class ServiceWorkerContainer final : public DOMEventTargetHelper {
 
   // When it fails, returning boolean means whether it's because deserailization
   // failed or not.
-  static Result<Ok, bool> FillInMessageEventInit(JSContext* aCx,
+  static Result<Ok, bool> FillInMessageEventInit(MCContext* aCx,
                                                  nsIGlobalObject* aGlobal,
                                                  ReceivedMessage& aMessage,
                                                  MessageEventInit& aInit,

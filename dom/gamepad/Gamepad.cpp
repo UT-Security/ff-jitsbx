@@ -180,7 +180,7 @@ already_AddRefed<Gamepad> Gamepad::Clone(nsISupports* aParent) {
 }
 
 /* virtual */
-JSObject* Gamepad::WrapObject(JSContext* aCx,
+JSObject* Gamepad::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return Gamepad_Binding::Wrap(aCx, this, aGivenProto);
 }

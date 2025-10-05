@@ -18,7 +18,7 @@
 #include "gfxTypes.h"  // for gfxAlphaType
 #include "nsCycleCollectionParticipant.h"
 
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -83,7 +83,7 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
 
   nsCOMPtr<nsIGlobalObject> GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t Width() const { return mPictureRect.Width(); }
@@ -125,13 +125,13 @@ class ImageBitmap final : public nsISupports, public nsWrapperCache {
                                           ErrorResult& aRv);
 
   static JSObject* ReadStructuredClone(
-      JSContext* aCx, JSStructuredCloneReader* aReader,
+      MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
       nsIGlobalObject* aParent,
       const nsTArray<RefPtr<gfx::DataSourceSurface>>& aClonedSurfaces,
       uint32_t aIndex);
 
   static void WriteStructuredClone(
-      JSStructuredCloneWriter* aWriter,
+      MC::Tainted<JSStructuredCloneWriter*> aWriter,
       nsTArray<RefPtr<gfx::DataSourceSurface>>& aClonedSurfaces,
       ImageBitmap* aImageBitmap, ErrorResult& aRv);
 

@@ -52,7 +52,7 @@ class SVGComponentTransferFunctionElement
                          ComponentTransferAttributes& aAttributes);
 
   // WebIDL
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override = 0;
   already_AddRefed<DOMSVGAnimatedEnumeration> Type();
   already_AddRefed<DOMSVGAnimatedNumberList> TableValues();
@@ -106,7 +106,7 @@ class SVGFEFuncRElement : public SVGComponentTransferFunctionElement {
 
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 
@@ -132,7 +132,7 @@ class SVGFEFuncGElement : public SVGComponentTransferFunctionElement {
 
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 
@@ -158,7 +158,7 @@ class SVGFEFuncBElement : public SVGComponentTransferFunctionElement {
 
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 
@@ -184,7 +184,7 @@ class SVGFEFuncAElement : public SVGComponentTransferFunctionElement {
 
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

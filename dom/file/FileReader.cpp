@@ -9,7 +9,7 @@
 #include "nsIGlobalObject.h"
 #include "nsITimer.h"
 
-#include "js/ArrayBuffer.h"  // JS::NewArrayBufferWithContents
+#include "monkeycage/ArrayBuffer.h"  // JS::NewArrayBufferWithContents
 #include "mozilla/Base64.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/DOMException.h"
@@ -151,7 +151,7 @@ already_AddRefed<FileReader> FileReader::Constructor(
   RefPtr<WeakWorkerRef> workerRef;
 
   if (!NS_IsMainThread()) {
-    JSContext* cx = MC_UNSAFE(aGlobal.Context());
+    MCContext* cx = aGlobal.Context();
     WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
     workerRef = WeakWorkerRef::Create(workerPrivate);
@@ -169,7 +169,7 @@ FileReader::GetInterface(const nsIID& aIID, void** aResult) {
   return QueryInterface(aIID, aResult);
 }
 
-void FileReader::GetResult(JSContext* aCx,
+void FileReader::GetResult(MCContext* aCx,
                            Nullable<OwningStringOrArrayBuffer>& aResult) {
   MC::Rooted<JS::Value> result(aCx);
 
@@ -199,7 +199,7 @@ void FileReader::OnLoadEndArrayBuffer() {
 
   RootResultArrayBuffer();
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   mResultArrayBuffer = JS::NewArrayBufferWithContents(cx, mDataLen, mFileData);
   if (mResultArrayBuffer) {
@@ -222,14 +222,14 @@ void FileReader::OnLoadEndArrayBuffer() {
   JS_ClearPendingException(jsapi.cx());
 
   MC::Rooted<JSObject*> exceptionObject(cx, &exceptionValue.toObject());
-  JSErrorReport* er = JS_ErrorFromException(cx, exceptionObject);
+  MC::Tainted<JSErrorReport*> er = JS_ErrorFromException(cx, exceptionObject);
   if (!er || er->message()) {
     FreeDataAndDispatchError(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 
   nsAutoString errorName;
-  JSLinearString* name = js::GetErrorTypeName(cx, er->exnType);
+  JSLinearString* name = js::GetErrorTypeName(cx, er->exnType());
   if (name) {
     AssignJSLinearString(errorName, name);
   }
@@ -495,7 +495,7 @@ nsresult FileReader::GetAsDataURL(Blob* aBlob, const char* aFileData,
 }
 
 /* virtual */
-JSObject* FileReader::WrapObject(JSContext* aCx,
+JSObject* FileReader::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return FileReader_Binding::Wrap(aCx, this, aGivenProto);
 }

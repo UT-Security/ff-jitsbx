@@ -15,7 +15,8 @@
 
 #include "js/ProfilingCategory.h"
 #include "js/ProfilingStack.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/Context.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/Attributes.h"
@@ -27,7 +28,7 @@
 
 #include <stdint.h>
 
-struct JSContext;
+struct MCContext;
 
 // Insert an RAII object in this scope to enter a label stack frame. Any
 // samples collected in this scope will contain this label in their stack.
@@ -199,6 +200,12 @@ class MOZ_RAII AutoProfilerLabel {
                     const char* aDynamicString,
                     JS::ProfilingCategoryPair aCategoryPair, uint32_t aFlags) {}
 
+  AutoProfilerLabel(MCContext* aJSContext, const char* aLabel,
+                    const char* aDynamicString,
+                    JS::ProfilingCategoryPair aCategoryPair, uint32_t aFlags)
+      : AutoProfilerLabel(MC_UNSAFE(aJSContext), aLabel, aDynamicString,
+                          aCategoryPair, aFlags) {}
+
   ~AutoProfilerLabel() {}
 };
 
@@ -234,6 +241,12 @@ class MOZ_RAII AutoProfilerLabel {
     Push(js::GetContextProfilingStackIfEnabled(aJSContext), aLabel,
          aDynamicString, aCategoryPair, aFlags);
   }
+
+  AutoProfilerLabel(MCContext* aJSContext, const char* aLabel,
+                    const char* aDynamicString,
+                    JS::ProfilingCategoryPair aCategoryPair, uint32_t aFlags)
+      : AutoProfilerLabel(MC_UNSAFE(aJSContext), aLabel, aDynamicString,
+                          aCategoryPair, aFlags) {}
 
   void Push(ProfilingStack* aProfilingStack, const char* aLabel,
             const char* aDynamicString, JS::ProfilingCategoryPair aCategoryPair,

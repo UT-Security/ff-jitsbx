@@ -38,7 +38,7 @@ class FontFaceSet final : public DOMEventTargetHelper {
 
   static bool IsEnabled();
 
-  static bool IsEnabled(JSContext* aCx, JSObject* aObj) { return IsEnabled(); }
+  static bool IsEnabled(MCContext* aCx, JSObject* aObj) { return IsEnabled(); }
 
   static already_AddRefed<FontFaceSet> CreateForDocument(
       dom::Document* aDocument);
@@ -46,7 +46,7 @@ class FontFaceSet final : public DOMEventTargetHelper {
   static already_AddRefed<FontFaceSet> CreateForWorker(
       nsIGlobalObject* aParent, WorkerPrivate* aWorkerPrivate);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool UpdateRules(const nsTArray<nsFontFaceRuleContainer>& aRules);
@@ -73,7 +73,7 @@ class FontFaceSet final : public DOMEventTargetHelper {
   IMPL_EVENT_HANDLER(loading)
   IMPL_EVENT_HANDLER(loadingdone)
   IMPL_EVENT_HANDLER(loadingerror)
-  already_AddRefed<dom::Promise> Load(JSContext* aCx, const nsACString& aFont,
+  already_AddRefed<dom::Promise> Load(MCContext* aCx, const nsACString& aFont,
                                       const nsAString& aText, ErrorResult& aRv);
   bool Check(const nsACString& aFont, const nsAString& aText, ErrorResult& aRv);
   dom::Promise* GetReady(ErrorResult& aRv);
@@ -91,7 +91,7 @@ class FontFaceSet final : public DOMEventTargetHelper {
   already_AddRefed<dom::FontFaceSetIterator> Entries();
   already_AddRefed<dom::FontFaceSetIterator> Values();
   MOZ_CAN_RUN_SCRIPT
-  void ForEach(JSContext* aCx, FontFaceSetForEachCallback& aCallback,
+  void ForEach(MCContext* aCx, FontFaceSetForEachCallback& aCallback,
                JS::Handle<JS::Value> aThisArg, ErrorResult& aRv);
 
   /**

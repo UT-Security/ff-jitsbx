@@ -64,7 +64,7 @@ already_AddRefed<Comment> Comment::Constructor(const GlobalObject& aGlobal,
   return window->GetDoc()->CreateComment(aData);
 }
 
-JSObject* Comment::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Comment::WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Comment_Binding::Wrap(aCx, this, aGivenProto);
 }
 

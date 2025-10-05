@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include <utility>
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/dom/CryptoBuffer.h"
 #include "mozilla/dom/KeyAlgorithmBinding.h"
 #include "mozilla/dom/TypedArray.h"
@@ -19,7 +19,7 @@
 #include "pkcs11t.h"
 
 class JSObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -35,7 +35,7 @@ struct RsaHashedKeyAlgorithmStorage {
   uint16_t mModulusLength;
   CryptoBuffer mPublicExponent;
 
-  bool ToKeyAlgorithm(JSContext* aCx, RsaHashedKeyAlgorithm& aRsa) const {
+  bool ToKeyAlgorithm(MCContext* aCx, RsaHashedKeyAlgorithm& aRsa) const {
     MC::Rooted<JSObject*> exponent(aCx, mPublicExponent.ToUint8Array(aCx));
     if (!exponent) {
       return false;
@@ -71,8 +71,8 @@ struct KeyAlgorithmProxy {
   EcKeyAlgorithm mEc;
 
   // Structured clone
-  bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
-  bool ReadStructuredClone(JSStructuredCloneReader* aReader);
+  bool WriteStructuredClone(MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
+  bool ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader);
 
   // Extract various forms of derived information
   CK_MECHANISM_TYPE Mechanism() const;

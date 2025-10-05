@@ -25,7 +25,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GleanLabeled)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* GleanLabeled::WrapObject(JSContext* aCx,
+JSObject* GleanLabeled::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::GleanLabeled_Binding::Wrap(aCx, this, aGivenProto);
 }

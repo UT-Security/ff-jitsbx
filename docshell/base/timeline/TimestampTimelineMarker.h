@@ -18,7 +18,7 @@ class TimestampTimelineMarker : public TimelineMarker {
       : TimelineMarker("TimeStamp", MarkerTracingType::TIMESTAMP),
         mCause(aCause) {}
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

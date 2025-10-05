@@ -74,7 +74,7 @@ nsMapRuleToAttributesFunc HTMLPreElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-JSObject* HTMLPreElement::WrapNode(JSContext* aCx,
+JSObject* HTMLPreElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return HTMLPreElement_Binding::Wrap(aCx, this, aGivenProto);
 }

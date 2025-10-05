@@ -42,7 +42,7 @@ class TextEncoderStream final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   mozilla::Decoder* Decoder() { return mDecoder.get(); }

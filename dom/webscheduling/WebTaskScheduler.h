@@ -108,7 +108,7 @@ class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   WebTask* GetNextTask() const;
@@ -145,7 +145,7 @@ class WebTaskScheduler : public nsWrapperCache, public SupportsWeakPtr {
 
 class DelayedWebTaskHandler final : public TimeoutHandler {
  public:
-  DelayedWebTaskHandler(JSContext* aCx, WebTaskScheduler* aScheduler,
+  DelayedWebTaskHandler(MCContext* aCx, WebTaskScheduler* aScheduler,
                         WebTask* aTask)
       : TimeoutHandler(aCx), mScheduler(aScheduler), mWebTask(aTask) {}
 

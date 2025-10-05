@@ -249,7 +249,7 @@ class nsRange final : public mozilla::dom::AbstractRange,
                                   mozilla::ErrorResult& aError,
                                   nsIContent* aContainer);
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) final;
   DocGroup* GetDocGroup() const;
 

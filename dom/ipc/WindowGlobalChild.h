@@ -94,7 +94,7 @@ class WindowGlobalChild final : public WindowGlobalActor,
   already_AddRefed<BrowserChild> GetBrowserChild();
 
   // Get a JS actor object by name.
-  already_AddRefed<JSWindowActorChild> GetActor(JSContext* aCx,
+  already_AddRefed<JSWindowActorChild> GetActor(MCContext* aCx,
                                                 const nsACString& aName,
                                                 ErrorResult& aRv);
   already_AddRefed<JSWindowActorChild> GetExistingActor(
@@ -141,7 +141,7 @@ class WindowGlobalChild final : public WindowGlobalActor,
       const nsAString& aName, bool aUseEntryGlobalForAccessCheck = true);
 
   nsISupports* GetParentObject();
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   dom::FeaturePolicy* GetContainerFeaturePolicy() const {

@@ -37,7 +37,7 @@ class DocumentObserver final : public nsISupports, public nsWrapperCache {
   void NotifyMatch(MozDocumentMatcher& aMatcher, nsILoadInfo* aLoadInfo);
 
   nsISupports* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

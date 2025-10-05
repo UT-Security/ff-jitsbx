@@ -21,7 +21,7 @@
 namespace IPC {
 
 // Defined in TCPSocketChild.cpp
-extern bool DeserializeArrayBuffer(JSContext* aCx,
+extern bool DeserializeArrayBuffer(MCContext* aCx,
                                    const nsTArray<uint8_t>& aBuffer,
                                    JS::MutableHandle<JS::Value> aVal);
 

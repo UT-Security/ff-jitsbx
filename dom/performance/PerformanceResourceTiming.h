@@ -45,7 +45,7 @@ class PerformanceResourceTiming : public PerformanceEntry {
       UniquePtr<PerformanceTimingData>&& aPerformanceTimingData,
       Performance* aPerformance, const nsAString& aName);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual DOMHighResTimeStamp StartTime() const override;

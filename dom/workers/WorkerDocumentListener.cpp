@@ -57,7 +57,7 @@ void WorkerDocumentListener::OnVisible(bool aVisible) {
     VisibleRunnable(WorkerPrivate* aWorkerPrivate, bool aVisible)
         : WorkerRunnable(aWorkerPrivate), mVisible(aVisible) {}
 
-    bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+    bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
       WorkerGlobalScope* scope = aWorkerPrivate->GlobalScope();
       MOZ_ASSERT(scope);
       scope->OnDocumentVisible(mVisible);

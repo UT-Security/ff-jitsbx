@@ -42,7 +42,7 @@ class XULTextElement final : public nsXULElement {
 
  protected:
   virtual ~XULTextElement() = default;
-  JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 };
 
 }  // namespace mozilla::dom

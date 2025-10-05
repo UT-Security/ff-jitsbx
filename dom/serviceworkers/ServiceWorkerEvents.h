@@ -38,7 +38,7 @@ class ServiceWorker;
 class ServiceWorkerRegistrationInfo;
 
 // Defined in ServiceWorker.cpp
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aObj);
+bool ServiceWorkerVisible(MCContext* aCx, JSObject* aObj);
 
 class CancelChannelRunnable final : public Runnable {
   nsMainThreadPtrHandle<nsIInterceptedChannel> mChannel;
@@ -108,7 +108,7 @@ class ExtendableEvent : public Event {
   void SetKeepAliveHandler(ExtensionsHandler* aExtensionsHandler);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::ExtendableEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 
@@ -130,7 +130,7 @@ class ExtendableEvent : public Event {
     return Constructor(target, aType, aOptions);
   }
 
-  void WaitUntil(JSContext* aCx, Promise& aPromise, ErrorResult& aRv);
+  void WaitUntil(MCContext* aCx, Promise& aPromise, ErrorResult& aRv);
 
   virtual ExtendableEvent* AsExtendableEvent() override { return this; }
 };
@@ -159,7 +159,7 @@ class FetchEvent final : public ExtendableEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(FetchEvent, ExtendableEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return FetchEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 
@@ -192,12 +192,12 @@ class FetchEvent final : public ExtendableEvent {
 
   Promise* PreloadResponse() const { return mPreloadResponse; }
 
-  void RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv);
+  void RespondWith(MCContext* aCx, Promise& aArg, ErrorResult& aRv);
 
   // Pull in the Event version of PreventDefault so we don't get
   // shadowing warnings.
   using Event::PreventDefault;
-  void PreventDefault(JSContext* aCx, CallerType aCallerType) override;
+  void PreventDefault(MCContext* aCx, CallerType aCallerType) override;
 
   void ReportCanceled();
 };
@@ -207,15 +207,15 @@ class PushMessageData final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(PushMessageData)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const { return mOwner; }
 
-  void Json(JSContext* cx, JS::MutableHandle<JS::Value> aRetval,
+  void Json(MCContext* cx, JS::MutableHandle<JS::Value> aRetval,
             ErrorResult& aRv);
   void Text(nsAString& aData);
-  void ArrayBuffer(JSContext* cx, JS::MutableHandle<JSObject*> aRetval,
+  void ArrayBuffer(MCContext* cx, JS::MutableHandle<JSObject*> aRetval,
                    ErrorResult& aRv);
   already_AddRefed<mozilla::dom::Blob> Blob(ErrorResult& aRv);
 
@@ -244,7 +244,7 @@ class PushEvent final : public ExtendableEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PushEvent, ExtendableEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<PushEvent> Constructor(
       mozilla::dom::EventTarget* aOwner, const nsAString& aType,
@@ -280,7 +280,7 @@ class ExtendableMessageEvent final : public ExtendableEvent {
                                                          ExtendableEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::ExtendableMessageEvent_Binding::Wrap(aCx, this,
                                                               aGivenProto);
   }
@@ -293,7 +293,7 @@ class ExtendableMessageEvent final : public ExtendableEvent {
       const GlobalObject& aGlobal, const nsAString& aType,
       const ExtendableMessageEventInit& aOptions);
 
-  void GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData,
+  void GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aData,
                ErrorResult& aRv);
 
   void GetSource(

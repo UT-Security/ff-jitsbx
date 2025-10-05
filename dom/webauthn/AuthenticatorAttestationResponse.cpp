@@ -46,12 +46,12 @@ AuthenticatorAttestationResponse::~AuthenticatorAttestationResponse() {
 }
 
 JSObject* AuthenticatorAttestationResponse::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return AuthenticatorAttestationResponse_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 void AuthenticatorAttestationResponse::GetAttestationObject(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
   if (!mAttestationObjectCachedObj) {
     mAttestationObjectCachedObj = mAttestationObject.ToArrayBuffer(aCx);
     if (!mAttestationObjectCachedObj) {

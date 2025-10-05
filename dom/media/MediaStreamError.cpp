@@ -93,7 +93,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamError)
   NS_INTERFACE_MAP_ENTRY(MediaStreamError)
 NS_INTERFACE_MAP_END
 
-JSObject* MediaStreamError::WrapObject(JSContext* aCx,
+JSObject* MediaStreamError::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return MediaStreamError_Binding::Wrap(aCx, this, aGivenProto);
 }

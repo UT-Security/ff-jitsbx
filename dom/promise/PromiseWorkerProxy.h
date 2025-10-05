@@ -102,7 +102,7 @@ class WorkerPrivate;
 //      Promise and resolve/reject it. Then call CleanUp().
 //
 //        bool
-//        WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override
+//        WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override
 //        {
 //          aWorkerPrivate->AssertIsOnWorkerThread();
 //          RefPtr<Promise> promise = mProxy->WorkerPromise();
@@ -123,12 +123,12 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   NS_DECL_THREADSAFE_ISUPPORTS
 
  public:
-  typedef JSObject* (*ReadCallbackOp)(JSContext* aCx,
-                                      JSStructuredCloneReader* aReader,
+  typedef JSObject* (*ReadCallbackOp)(MCContext* aCx,
+                                      MC::Tainted<JSStructuredCloneReader*> aReader,
                                       const PromiseWorkerProxy* aProxy,
                                       uint32_t aTag, uint32_t aData);
-  typedef bool (*WriteCallbackOp)(JSContext* aCx,
-                                  JSStructuredCloneWriter* aWorker,
+  typedef bool (*WriteCallbackOp)(MCContext* aCx,
+                                  MC::Tainted<JSStructuredCloneWriter*> aWorker,
                                   PromiseWorkerProxy* aProxy,
                                   JS::Handle<JSObject*> aObj);
 
@@ -171,15 +171,15 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
                               const JS::CloneDataPolicy& aCloneDataPolicy,
                               uint32_t aTag, uint32_t aIndex) override;
 
-  bool CustomWriteHandler(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool CustomWriteHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                           JS::Handle<JSObject*> aObj,
-                          bool* aSameProcessScopeRequired) override;
+                          MC::Tainted<bool*> aSameProcessScopeRequired) override;
 
  protected:
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
  private:
@@ -190,9 +190,9 @@ class PromiseWorkerProxy : public PromiseNativeHandler,
   virtual ~PromiseWorkerProxy();
 
   // Function pointer for calling Promise::{ResolveInternal,RejectInternal}.
-  typedef void (Promise::*RunCallbackFunc)(JSContext*, JS::Handle<JS::Value>);
+  typedef void (Promise::*RunCallbackFunc)(MCContext*, JS::Handle<JS::Value>);
 
-  void RunCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RunCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                    RunCallbackFunc aFunc);
 
   // Any thread with appropriate checks.

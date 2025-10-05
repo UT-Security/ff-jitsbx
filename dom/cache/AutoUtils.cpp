@@ -245,7 +245,7 @@ bool MatchInPutList(const InternalRequest& aRequest,
 
 }  // namespace
 
-void AutoChildOpArgs::Add(JSContext* aCx, const InternalRequest& aRequest,
+void AutoChildOpArgs::Add(MCContext* aCx, const InternalRequest& aRequest,
                           BodyAction aBodyAction, SchemeAction aSchemeAction,
                           Response& aResponse, ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(!mSent);

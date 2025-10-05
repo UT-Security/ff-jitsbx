@@ -61,7 +61,7 @@ class HTMLHeadingElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLHeadingElement();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
  private:
   static void MapAttributesIntoRule(const nsMappedAttributes* aAttributes,

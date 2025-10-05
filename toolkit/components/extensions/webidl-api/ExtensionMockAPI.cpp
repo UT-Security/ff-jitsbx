@@ -34,11 +34,11 @@ ExtensionMockAPI::ExtensionMockAPI(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionMockAPI::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionMockAPI::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* ExtensionMockAPI::WrapObject(JSContext* aCx,
+JSObject* ExtensionMockAPI::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionMockAPI_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -46,7 +46,7 @@ JSObject* ExtensionMockAPI::WrapObject(JSContext* aCx,
 nsIGlobalObject* ExtensionMockAPI::GetParentObject() const { return mGlobal; }
 
 void ExtensionMockAPI::GetPropertyAsErrorObject(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
   ExtensionAPIBase::GetWebExtPropertyAsJSValue(aCx, u"propertyAsErrorObject"_ns,
                                                aRetval);
 }

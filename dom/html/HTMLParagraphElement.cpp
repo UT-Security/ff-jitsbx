@@ -53,7 +53,7 @@ nsMapRuleToAttributesFunc HTMLParagraphElement::GetAttributeMappingFunction()
   return &MapAttributesIntoRule;
 }
 
-JSObject* HTMLParagraphElement::WrapNode(JSContext* aCx,
+JSObject* HTMLParagraphElement::WrapNode(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return HTMLParagraphElement_Binding::Wrap(aCx, this, aGivenProto);
 }

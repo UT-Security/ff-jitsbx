@@ -42,7 +42,7 @@ class CSSKeyframeRule final : public css::Rule {
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const final;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  private:
   virtual ~CSSKeyframeRule();

@@ -41,7 +41,7 @@ SpeechSynthesisUtterance::SpeechSynthesisUtterance(
 SpeechSynthesisUtterance::~SpeechSynthesisUtterance() = default;
 
 JSObject* SpeechSynthesisUtterance::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SpeechSynthesisUtterance_Binding::Wrap(aCx, this, aGivenProto);
 }
 

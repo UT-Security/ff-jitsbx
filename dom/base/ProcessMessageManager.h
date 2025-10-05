@@ -24,7 +24,7 @@ class ProcessMessageManager final : public MessageSender {
       ParentProcessMessageManager* aParentManager,
       MessageManagerFlags aFlags = MessageManagerFlags::MM_NONE);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // ProcessScriptLoader
@@ -35,7 +35,7 @@ class ProcessMessageManager final : public MessageSender {
   void RemoveDelayedProcessScript(const nsAString& aURL) {
     RemoveDelayedScript(aURL);
   }
-  void GetDelayedProcessScripts(JSContext* aCx,
+  void GetDelayedProcessScripts(MCContext* aCx,
                                 nsTArray<nsTArray<JS::Value>>& aScripts,
                                 mozilla::ErrorResult& aError) {
     GetDelayedScripts(aCx, aScripts, aError);

@@ -15,7 +15,7 @@
 #include "MainThreadUtils.h"
 #include "cert.h"
 #include "cryptohi.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "keyhi.h"
@@ -79,7 +79,7 @@ const size_t RTCCertificateMinRsaSize = 1024;
 
 class GenerateRTCCertificateTask : public GenerateAsymmetricKeyTask {
  public:
-  GenerateRTCCertificateTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  GenerateRTCCertificateTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                              const ObjectOrString& aAlgorithm,
                              const Sequence<nsString>& aKeyUsages,
                              PRTime aExpires)
@@ -261,7 +261,7 @@ class GenerateRTCCertificateTask : public GenerateAsymmetricKeyTask {
   }
 };
 
-static PRTime ReadExpires(JSContext* aCx, const ObjectOrString& aOptions,
+static PRTime ReadExpires(MCContext* aCx, const ObjectOrString& aOptions,
                           ErrorResult& aRv) {
   // This conversion might fail, but we don't really care; use the default.
   // If this isn't an object, or it doesn't coerce into the right type,
@@ -301,12 +301,12 @@ already_AddRefed<Promise> RTCCertificate::GenerateCertificate(
     return nullptr;
   }
 
-  PRTime expires = ReadExpires(MC_UNSAFE(aGlobal.Context()), aOptions, aRv);
+  PRTime expires = ReadExpires(aGlobal.Context(), aOptions, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
   RefPtr<WebCryptoTask> task = new GenerateRTCCertificateTask(
-      global, MC_UNSAFE(aGlobal.Context()), aOptions, usages, expires);
+      global, aGlobal.Context(), aOptions, usages, expires);
   task->DispatchWithPromise(p);
   return p.forget();
 }
@@ -339,12 +339,12 @@ RefPtr<DtlsIdentity> RTCCertificate::CreateDtlsIdentity() const {
   return id;
 }
 
-JSObject* RTCCertificate::WrapObject(JSContext* aCx,
+JSObject* RTCCertificate::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return RTCCertificate_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool RTCCertificate::WritePrivateKey(JSStructuredCloneWriter* aWriter) const {
+bool RTCCertificate::WritePrivateKey(MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   JsonWebKey jwk;
   nsresult rv = CryptoKey::PrivateKeyToJwk(mPrivateKey.get(), jwk);
   if (NS_FAILED(rv)) {
@@ -357,7 +357,7 @@ bool RTCCertificate::WritePrivateKey(JSStructuredCloneWriter* aWriter) const {
   return StructuredCloneHolder::WriteString(aWriter, json);
 }
 
-bool RTCCertificate::WriteCertificate(JSStructuredCloneWriter* aWriter) const {
+bool RTCCertificate::WriteCertificate(MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   UniqueCERTCertificateList certs(CERT_CertListFromCert(mCertificate.get()));
   if (!certs || certs->len <= 0) {
     return false;
@@ -369,7 +369,7 @@ bool RTCCertificate::WriteCertificate(JSStructuredCloneWriter* aWriter) const {
 }
 
 bool RTCCertificate::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   if (!mPrivateKey || !mCertificate) {
     return false;
   }
@@ -380,7 +380,7 @@ bool RTCCertificate::WriteStructuredClone(
          WritePrivateKey(aWriter) && WriteCertificate(aWriter);
 }
 
-bool RTCCertificate::ReadPrivateKey(JSStructuredCloneReader* aReader) {
+bool RTCCertificate::ReadPrivateKey(MC::Tainted<JSStructuredCloneReader*> aReader) {
   nsString json;
   if (!StructuredCloneHolder::ReadString(aReader, json)) {
     return false;
@@ -393,7 +393,7 @@ bool RTCCertificate::ReadPrivateKey(JSStructuredCloneReader* aReader) {
   return !!mPrivateKey;
 }
 
-bool RTCCertificate::ReadCertificate(JSStructuredCloneReader* aReader) {
+bool RTCCertificate::ReadCertificate(MC::Tainted<JSStructuredCloneReader*> aReader) {
   CryptoBuffer cert;
   if (!ReadBuffer(aReader, cert) || cert.Length() == 0) {
     return false;
@@ -408,8 +408,8 @@ bool RTCCertificate::ReadCertificate(JSStructuredCloneReader* aReader) {
 
 // static
 already_AddRefed<RTCCertificate> RTCCertificate::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   if (!NS_IsMainThread()) {
     // These objects are mainthread-only.
     return nullptr;

@@ -607,7 +607,7 @@ AudioBufferSourceNode::AudioBufferSourceNode(AudioContext* aContext)
 
 /* static */
 already_AddRefed<AudioBufferSourceNode> AudioBufferSourceNode::Create(
-    JSContext* aCx, AudioContext& aAudioContext,
+    MCContext* aCx, AudioContext& aAudioContext,
     const AudioBufferSourceOptions& aOptions) {
   RefPtr<AudioBufferSourceNode> audioNode =
       new AudioBufferSourceNode(&aAudioContext);
@@ -650,7 +650,7 @@ size_t AudioBufferSourceNode::SizeOfIncludingThis(
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* AudioBufferSourceNode::WrapObject(JSContext* aCx,
+JSObject* AudioBufferSourceNode::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return AudioBufferSourceNode_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -710,7 +710,7 @@ void AudioBufferSourceNode::Start(double aWhen, ErrorResult& aRv) {
   Start(aWhen, 0 /* offset */, Optional<double>(), aRv);
 }
 
-void AudioBufferSourceNode::SendBufferParameterToTrack(JSContext* aCx) {
+void AudioBufferSourceNode::SendBufferParameterToTrack(MCContext* aCx) {
   AudioNodeTrack* ns = mTrack;
   if (!ns) {
     return;

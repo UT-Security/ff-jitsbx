@@ -8,8 +8,8 @@
 
 #include "mozilla/HoldDropJSObjects.h"
 
-#include "jsfriendapi.h"
-#include "js/Modules.h"  // JS::{Get,Set}ModulePrivate
+#include "mcfriendapi.h"
+#include "monkeycage/Modules.h"  // JS::{Get,Set}ModulePrivate
 
 namespace JS::loader {
 

@@ -47,7 +47,7 @@ void TextTrackList::GetShowingCues(nsTArray<RefPtr<TextTrackCue>>& aCues) {
   }
 }
 
-JSObject* TextTrackList::WrapObject(JSContext* aCx,
+JSObject* TextTrackList::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return TextTrackList_Binding::Wrap(aCx, this, aGivenProto);
 }

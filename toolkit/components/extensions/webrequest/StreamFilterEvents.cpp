@@ -45,7 +45,7 @@ already_AddRefed<StreamFilterDataEvent> StreamFilterDataEvent::Constructor(
 }
 
 JSObject* StreamFilterDataEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::StreamFilterDataEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

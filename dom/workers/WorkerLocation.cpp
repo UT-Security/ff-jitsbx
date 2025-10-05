@@ -28,7 +28,7 @@ already_AddRefed<WorkerLocation> WorkerLocation::Create(
   return location.forget();
 }
 
-JSObject* WorkerLocation::WrapObject(JSContext* aCx,
+JSObject* WorkerLocation::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return WorkerLocation_Binding::Wrap(aCx, this, aGivenProto);
 }

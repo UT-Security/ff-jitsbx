@@ -28,11 +28,11 @@ class PromiseNativeThenHandlerBase : public PromiseNativeHandler {
   virtual bool HasResolvedCallback() = 0;
   virtual bool HasRejectedCallback() = 0;
 
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override;
 
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override;
 
@@ -40,9 +40,9 @@ class PromiseNativeThenHandlerBase : public PromiseNativeHandler {
   virtual ~PromiseNativeThenHandlerBase() = default;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> CallResolveCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> CallRejectCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
 
   virtual void Traverse(nsCycleCollectionTraversalCallback&) = 0;
   virtual void Unlink() = 0;
@@ -181,11 +181,11 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
   bool HasRejectedCallback() override { return mOnReject.isSome(); }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CallResolveCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
     return CallCallback(aCx, *mOnResolve, aValue, aRv);
   }
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CallRejectCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
     return CallCallback(aCx, *mOnReject, aValue, aRv);
   }
 
@@ -200,7 +200,7 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
 
   template <typename TCallback, size_t... Indices, size_t... JSIndices>
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CallCallback(
-      JSContext* aCx, const TCallback& aHandler, JS::Handle<JS::Value> aValue,
+      MCContext* aCx, const TCallback& aHandler, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv, std::index_sequence<Indices...>,
       std::index_sequence<JSIndices...>) {
     return aHandler(aCx, aValue, aRv, ArgType(std::get<Indices>(mArgs))...,
@@ -209,7 +209,7 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
 
   template <typename TCallback>
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CallCallback(
-      JSContext* aCx, const TCallback& aHandler, JS::Handle<JS::Value> aValue,
+      MCContext* aCx, const TCallback& aHandler, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv) {
     return CallCallback(aCx, aHandler, aValue, aRv,
                         std::index_sequence_for<Args...>{},
@@ -314,14 +314,14 @@ void Promise::AddCallbacksWithCycleCollectedArgs(ResolveCallback&& aOnResolve,
                                                  RejectCallback&& aOnReject,
                                                  Args&&... aArgs) {
   auto onResolve =
-      [aOnResolve](JSContext* aCx, JS::Handle<JS::Value> value,
+      [aOnResolve](MCContext* aCx, JS::Handle<JS::Value> value,
                    ErrorResult& aRv,
                    StorageType<Args>&&... aArgs) -> already_AddRefed<Promise> {
     aOnResolve(aCx, value, aRv, aArgs...);
     return nullptr;
   };
   auto onReject =
-      [aOnReject](JSContext* aCx, JS::Handle<JS::Value> value, ErrorResult& aRv,
+      [aOnReject](MCContext* aCx, JS::Handle<JS::Value> value, ErrorResult& aRv,
                   StorageType<Args>&&... aArgs) -> already_AddRefed<Promise> {
     aOnReject(aCx, value, aRv, aArgs...);
     return nullptr;

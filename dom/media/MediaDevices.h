@@ -52,7 +52,7 @@ class MediaDevices final : public DOMEventTargetHelper {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(MediaDevices, DOMEventTargetHelper)
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // No code needed, as MediaTrackSupportedConstraints members default to true.

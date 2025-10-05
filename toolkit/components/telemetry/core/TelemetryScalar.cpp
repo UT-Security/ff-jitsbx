@@ -8,8 +8,8 @@
 
 #include "geckoview/streaming/GeckoViewStreamingTelemetry.h"
 #include "ipc/TelemetryIPCAccumulator.h"
-#include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasProperty
 #include "mozilla/dom/ContentParent.h"
 #include "mozilla/JSONWriter.h"
 #include "mozilla/Preferences.h"
@@ -2507,7 +2507,7 @@ void TelemetryScalar::SetCanRecordExtended(bool b) {
  * errors, a warning level message is printed in the browser console.
  */
 nsresult TelemetryScalar::Add(const nsACString& aName,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+                              JS::Handle<JS::Value> aVal, MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -2543,7 +2543,7 @@ nsresult TelemetryScalar::Add(const nsACString& aName,
  * errors, a warning level message is printed in the browser console.
  */
 nsresult TelemetryScalar::Add(const nsACString& aName, const nsAString& aKey,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+                              JS::Handle<JS::Value> aVal, MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -2669,7 +2669,7 @@ void TelemetryScalar::Add(mozilla::Telemetry::ScalarID aId,
  * errors, a warning level message is printed in the browser console.
  */
 nsresult TelemetryScalar::Set(const nsACString& aName,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+                              JS::Handle<JS::Value> aVal, MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -2705,7 +2705,7 @@ nsresult TelemetryScalar::Set(const nsACString& aName,
  * errors, a warning level message is printed in the browser console.
  */
 nsresult TelemetryScalar::Set(const nsACString& aName, const nsAString& aKey,
-                              JS::Handle<JS::Value> aVal, JSContext* aCx) {
+                              JS::Handle<JS::Value> aVal, MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -2969,7 +2969,7 @@ void TelemetryScalar::Set(mozilla::Telemetry::ScalarID aId,
  */
 nsresult TelemetryScalar::SetMaximum(const nsACString& aName,
                                      JS::Handle<JS::Value> aVal,
-                                     JSContext* aCx) {
+                                     MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -3007,7 +3007,7 @@ nsresult TelemetryScalar::SetMaximum(const nsACString& aName,
 nsresult TelemetryScalar::SetMaximum(const nsACString& aName,
                                      const nsAString& aKey,
                                      JS::Handle<JS::Value> aVal,
-                                     JSContext* aCx) {
+                                     MCContext* aCx) {
   // Unpack the aVal to nsIVariant. This uses the JS context.
   nsCOMPtr<nsIVariant> unpackedVal;
   nsresult rv = nsContentUtils::XPConnect()->JSToVariant(
@@ -3126,7 +3126,7 @@ void TelemetryScalar::SetMaximum(mozilla::Telemetry::ScalarID aId,
 }
 
 nsresult TelemetryScalar::CreateSnapshots(unsigned int aDataset,
-                                          bool aClearScalars, JSContext* aCx,
+                                          bool aClearScalars, MCContext* aCx,
                                           uint8_t optional_argc,
                                           JS::MutableHandle<JS::Value> aResult,
                                           bool aFilterTest,
@@ -3205,7 +3205,7 @@ nsresult TelemetryScalar::CreateSnapshots(unsigned int aDataset,
 }
 
 nsresult TelemetryScalar::CreateKeyedSnapshots(
-    unsigned int aDataset, bool aClearScalars, JSContext* aCx,
+    unsigned int aDataset, bool aClearScalars, MCContext* aCx,
     uint8_t optional_argc, JS::MutableHandle<JS::Value> aResult,
     bool aFilterTest, const nsACString& aStoreName) {
   MOZ_ASSERT(
@@ -3303,7 +3303,7 @@ nsresult TelemetryScalar::CreateKeyedSnapshots(
 
 nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
                                           JS::Handle<JS::Value> aScalarData,
-                                          bool aBuiltin, JSContext* cx) {
+                                          bool aBuiltin, MCContext* cx) {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Dynamic scalars should only be created in the parent process.");
 
@@ -3320,7 +3320,7 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
   }
 
   MC::Rooted<JSObject*> obj(cx, &aScalarData.toObject());
-  MC::Rooted<JS::IdVector> scalarPropertyIds(cx, JS::IdVector(cx));
+  MC::Rooted<JS::IdVector> scalarPropertyIds(cx, JS::IdVector(MC_UNSAFE(cx)));
   if (!JS_Enumerate(cx, obj, &scalarPropertyIds)) {
     return NS_ERROR_FAILURE;
   }
@@ -3364,10 +3364,10 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
     uint32_t kind = static_cast<uint32_t>(value.toInt32());
 
     // Get the optional scalar's recording policy (default to false).
-    bool hasProperty = false;
+    MC::SandboxStack<bool> hasProperty = false;
     bool recordOnRelease = false;
-    if (JS_HasProperty(cx, scalarDef, "record_on_release", &hasProperty) &&
-        hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "record_on_release", hasProperty) &&
+        *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "record_on_release", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'record_on_release' for scalar %s.",
@@ -3379,7 +3379,7 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the optional scalar's keyed (default to false).
     bool keyed = false;
-    if (JS_HasProperty(cx, scalarDef, "keyed", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "keyed", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "keyed", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'keyed' for scalar %s.",
@@ -3391,7 +3391,7 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the optional scalar's expired state (default to false).
     bool expired = false;
-    if (JS_HasProperty(cx, scalarDef, "expired", &hasProperty) && hasProperty) {
+    if (JS_HasProperty(cx, scalarDef, "expired", hasProperty) && *hasProperty.UNSAFE_unverified()) {
       if (!JS_GetProperty(cx, scalarDef, "expired", &value) ||
           !value.isBoolean()) {
         JS_ReportErrorASCII(cx, "Invalid 'expired' for scalar %s.",
@@ -3403,25 +3403,25 @@ nsresult TelemetryScalar::RegisterScalars(const nsACString& aCategoryName,
 
     // Get the scalar's optional stores list (default to ["main"]).
     nsTArray<nsCString> stores;
-    if (JS_HasProperty(cx, scalarDef, "stores", &hasProperty) && hasProperty) {
-      bool isArray = false;
+    if (JS_HasProperty(cx, scalarDef, "stores", hasProperty) && *hasProperty.UNSAFE_unverified()) {
+      MC::SandboxStack<bool> isArray = false;
       if (!JS_GetProperty(cx, scalarDef, "stores", &value) ||
-          !JS::IsArrayObject(cx, value, &isArray) || !isArray) {
+          !JS::IsArrayObject(cx, value, isArray) || !*isArray.UNSAFE_unverified()) {
         JS_ReportErrorASCII(cx, "Invalid 'stores' for scalar %s.",
                             PromiseFlatCString(fullName).get());
         return NS_ERROR_FAILURE;
       }
 
       MC::Rooted<JSObject*> arrayObj(cx, &value.toObject());
-      uint32_t storesLength = 0;
-      if (!JS::GetArrayLength(cx, arrayObj, &storesLength)) {
+      MC::SandboxStack<uint32_t> storesLength = 0;
+      if (!JS::GetArrayLength(cx, arrayObj, storesLength)) {
         JS_ReportErrorASCII(cx,
                             "Can't get 'stores' array length for scalar %s.",
                             PromiseFlatCString(fullName).get());
         return NS_ERROR_FAILURE;
       }
 
-      for (uint32_t i = 0; i < storesLength; ++i) {
+      for (uint32_t i = 0; i < *storesLength.UNSAFE_unverified(); ++i) {
         MC::Rooted<JS::Value> elt(cx);
         if (!JS_GetElement(cx, arrayObj, i, &elt)) {
           JS_ReportErrorASCII(
@@ -3879,7 +3879,7 @@ nsresult TelemetryScalar::SerializeKeyedScalars(mozilla::JSONWriter& aWriter) {
  *          failure reason otherwise.
  */
 nsresult TelemetryScalar::DeserializePersistedScalars(
-    JSContext* aCx, JS::Handle<JS::Value> aData) {
+    MCContext* aCx, JS::Handle<JS::Value> aData) {
   MOZ_ASSERT(XRE_IsParentProcess(), "Only load scalars in the parent process");
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
@@ -3896,7 +3896,7 @@ nsresult TelemetryScalar::DeserializePersistedScalars(
   // wrappers. We can't hold the scalars mutex while handling JS stuff.
   // Build a <scalar name, value> map.
   MC::Rooted<JSObject*> scalarDataObj(aCx, &aData.toObject());
-  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, scalarDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -3947,7 +3947,7 @@ nsresult TelemetryScalar::DeserializePersistedScalars(
 
     // Iterate through each scalar.
     MC::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    MC::Rooted<JS::IdVector> scalars(aCx, JS::IdVector(aCx));
+    MC::Rooted<JS::IdVector> scalars(aCx, JS::IdVector(MC_UNSAFE(aCx)));
     if (!JS_Enumerate(aCx, processDataObj, &scalars)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -4021,7 +4021,7 @@ nsresult TelemetryScalar::DeserializePersistedScalars(
  *          failure reason otherwise.
  */
 nsresult TelemetryScalar::DeserializePersistedKeyedScalars(
-    JSContext* aCx, JS::Handle<JS::Value> aData) {
+    MCContext* aCx, JS::Handle<JS::Value> aData) {
   MOZ_ASSERT(XRE_IsParentProcess(), "Only load scalars in the parent process");
   if (!XRE_IsParentProcess()) {
     return NS_ERROR_FAILURE;
@@ -4039,7 +4039,7 @@ nsresult TelemetryScalar::DeserializePersistedKeyedScalars(
   // wrappers. We can't hold the scalars mutex while handling JS stuff.
   // Build a <scalar name, value> map.
   MC::Rooted<JSObject*> scalarDataObj(aCx, &aData.toObject());
-  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, scalarDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -4088,7 +4088,7 @@ nsresult TelemetryScalar::DeserializePersistedKeyedScalars(
 
     // Iterate through each keyed scalar.
     MC::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    MC::Rooted<JS::IdVector> keyedScalars(aCx, JS::IdVector(aCx));
+    MC::Rooted<JS::IdVector> keyedScalars(aCx, JS::IdVector(MC_UNSAFE(aCx)));
     if (!JS_Enumerate(aCx, processDataObj, &keyedScalars)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -4121,7 +4121,7 @@ nsresult TelemetryScalar::DeserializePersistedKeyedScalars(
       // Get the keys in the keyed scalar.
       MC::Rooted<JSObject*> keyedScalarDataObj(aCx,
                                                &keyedScalarData.toObject());
-      MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+      MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
       if (!JS_Enumerate(aCx, keyedScalarDataObj, &keys)) {
         JS_ClearPendingException(aCx);
         continue;

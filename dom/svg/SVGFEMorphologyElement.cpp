@@ -16,7 +16,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEMorphologyElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEMorphologyElement::WrapNode(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SVGFEMorphologyElement_Binding::Wrap(aCx, this, aGivenProto);
 }

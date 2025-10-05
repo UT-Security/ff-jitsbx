@@ -426,7 +426,7 @@ nsConsoleService::CallFunctionAndLogException(
   if (!jsapi.Init(global)) {
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* ccx = jsapi.cx();
+  MCContext* ccx = jsapi.mcx();
 
   // AutoJSAPI picks `targetGlobal` as execution compartment
   // whereas we expect to run `function` from the callsites compartment.

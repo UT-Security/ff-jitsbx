@@ -35,7 +35,7 @@ DOMQuad::DOMQuad(nsISupports* aParent) : mParent(aParent) {}
 
 DOMQuad::~DOMQuad() = default;
 
-JSObject* DOMQuad::WrapObject(JSContext* aCx,
+JSObject* DOMQuad::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return DOMQuad_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -126,8 +126,8 @@ already_AddRefed<DOMRectReadOnly> DOMQuad::GetBounds() const {
 }
 
 // https://drafts.fxtf.org/geometry/#structured-serialization
-bool DOMQuad::WriteStructuredClone(JSContext* aCx,
-                                   JSStructuredCloneWriter* aWriter) const {
+bool DOMQuad::WriteStructuredClone(MCContext* aCx,
+                                   MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   for (const auto& point : mPoints) {
     if (!point->WriteStructuredClone(aCx, aWriter)) {
       return false;
@@ -138,8 +138,8 @@ bool DOMQuad::WriteStructuredClone(JSContext* aCx,
 
 // static
 already_AddRefed<DOMQuad> DOMQuad::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<DOMQuad> quad = new DOMQuad(aGlobal);
   for (auto& point : quad->mPoints) {
     point = DOMPoint::ReadStructuredClone(aCx, aGlobal, aReader);

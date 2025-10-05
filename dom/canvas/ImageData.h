@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include <utility>
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/TypedArray.h"
@@ -18,7 +18,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -60,20 +60,20 @@ class ImageData final : public nsISupports {
 
   uint32_t Width() const { return mWidth; }
   uint32_t Height() const { return mHeight; }
-  void GetData(JSContext* cx, JS::MutableHandle<JSObject*> aData) const {
+  void GetData(MCContext* cx, JS::MutableHandle<JSObject*> aData) const {
     aData.set(GetDataObject());
   }
   JSObject* GetDataObject() const { return mData; }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
   //[Serializable] implementation
   static already_AddRefed<ImageData> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
  private:
   void HoldData();

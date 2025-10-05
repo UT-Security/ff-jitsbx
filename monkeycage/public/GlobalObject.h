@@ -19,14 +19,14 @@ inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
                                     MCPrincipals* principals,
                                     JS::OnNewGlobalHookOption hookOption,
                                     const MC::Tainted<JS::RealmOptions*> options) {
-  return JS_NewGlobalObject(cx->cx_, clasp, principals->inner_, hookOption, *options.UNSAFE_unverified());
+  return JS_NewGlobalObject(cx->cx_, clasp, principals ? principals->inner_ : nullptr, hookOption, *options.UNSAFE_unverified());
 }
 
-inline JSObject* JS_NewGlobalObject(JSContext* cx, const JSClass* clasp,
-                                    MCPrincipals* principals,
+inline JSObject* JS_NewGlobalObject(MCContext* cx, const JSClass* clasp,
+                                    JSPrincipals* principals,
                                     JS::OnNewGlobalHookOption hookOption,
-                                    const MC::Tainted<JS::RealmOptions*> options) {
-  return JS_NewGlobalObject(cx, clasp, principals->inner_, hookOption, *options.UNSAFE_unverified());
+                                    const MC::Tainted<JS::RealmOptions*> options, void* /* internal */) {
+  return JS_NewGlobalObject(cx->cx_, clasp, principals, hookOption, *options.UNSAFE_unverified());
 }
 
 inline void JS_FireOnNewGlobalObject(MCContext* cx, JS::HandleObject global) {

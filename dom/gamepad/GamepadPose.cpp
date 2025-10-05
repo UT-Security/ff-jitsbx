@@ -25,7 +25,7 @@ GamepadPose::GamepadPose(nsISupports* aParent) : Pose(aParent) {
 GamepadPose::~GamepadPose() { mozilla::DropJSObjects(this); }
 
 /* virtual */
-JSObject* GamepadPose::WrapObject(JSContext* aJSContext,
+JSObject* GamepadPose::WrapObject(MCContext* aJSContext,
                                   JS::Handle<JSObject*> aGivenProto) {
   return GamepadPose_Binding::Wrap(aJSContext, this, aGivenProto);
 }
@@ -39,7 +39,7 @@ bool GamepadPose::HasPosition() const {
          bool(mPoseState.flags & GamepadCapabilityFlags::Cap_PositionEmulated);
 }
 
-void GamepadPose::GetPosition(JSContext* aJSContext,
+void GamepadPose::GetPosition(MCContext* aJSContext,
                               JS::MutableHandle<JSObject*> aRetval,
                               ErrorResult& aRv) {
   const bool valid =
@@ -50,7 +50,7 @@ void GamepadPose::GetPosition(JSContext* aJSContext,
                   valid ? mPoseState.position : nullptr, 3, aRv);
 }
 
-void GamepadPose::GetLinearVelocity(JSContext* aJSContext,
+void GamepadPose::GetLinearVelocity(MCContext* aJSContext,
                                     JS::MutableHandle<JSObject*> aRetval,
                                     ErrorResult& aRv) {
   const bool valid =
@@ -61,7 +61,7 @@ void GamepadPose::GetLinearVelocity(JSContext* aJSContext,
                   valid ? mPoseState.linearVelocity : nullptr, 3, aRv);
 }
 
-void GamepadPose::GetLinearAcceleration(JSContext* aJSContext,
+void GamepadPose::GetLinearAcceleration(MCContext* aJSContext,
                                         JS::MutableHandle<JSObject*> aRetval,
                                         ErrorResult& aRv) {
   const bool valid =
@@ -71,7 +71,7 @@ void GamepadPose::GetLinearAcceleration(JSContext* aJSContext,
                   valid ? mPoseState.linearAcceleration : nullptr, 3, aRv);
 }
 
-void GamepadPose::GetOrientation(JSContext* aJSContext,
+void GamepadPose::GetOrientation(MCContext* aJSContext,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) {
   const bool valid =
@@ -81,7 +81,7 @@ void GamepadPose::GetOrientation(JSContext* aJSContext,
                   valid ? mPoseState.orientation : nullptr, 4, aRv);
 }
 
-void GamepadPose::GetAngularVelocity(JSContext* aJSContext,
+void GamepadPose::GetAngularVelocity(MCContext* aJSContext,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv) {
   const bool valid =
@@ -91,7 +91,7 @@ void GamepadPose::GetAngularVelocity(JSContext* aJSContext,
                   valid ? mPoseState.angularVelocity : nullptr, 3, aRv);
 }
 
-void GamepadPose::GetAngularAcceleration(JSContext* aJSContext,
+void GamepadPose::GetAngularAcceleration(MCContext* aJSContext,
                                          JS::MutableHandle<JSObject*> aRetval,
                                          ErrorResult& aRv) {
   const bool valid =

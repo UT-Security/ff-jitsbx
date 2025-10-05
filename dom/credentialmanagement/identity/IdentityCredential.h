@@ -60,7 +60,7 @@ class IdentityCredential final : public Credential {
   ~IdentityCredential() override;
 
  public:
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // This builds a value from an IPC-friendly version. This type is returned

@@ -39,7 +39,7 @@ class BarProp : public nsISupports, public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   virtual bool GetVisible(CallerType aCallerType, ErrorResult& aRv) = 0;
   virtual void SetVisible(bool aVisible, CallerType aCallerType,

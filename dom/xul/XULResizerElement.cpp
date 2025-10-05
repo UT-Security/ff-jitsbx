@@ -51,7 +51,7 @@ static bool GetEventPoint(const WidgetGUIEvent* aEvent,
   return true;
 }
 
-JSObject* XULResizerElement::WrapNode(JSContext* aCx,
+JSObject* XULResizerElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return XULResizerElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -54,7 +54,7 @@ class OwnedRustBuffer final {
   // Moves the buffer out of this `OwnedArrayBuffer` into a JS ArrayBuffer.
   // This transfers ownership into the JS engine.  After this call the buffer
   // will no longer be valid.
-  JSObject* IntoArrayBuffer(JSContext* cx);
+  JSObject* IntoArrayBuffer(MCContext* cx);
 
   // Is this RustBuffer pointing to valid data?
   bool IsValid() const { return mBuf.data != nullptr; }

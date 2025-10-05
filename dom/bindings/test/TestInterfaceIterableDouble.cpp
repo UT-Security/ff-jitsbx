@@ -46,7 +46,7 @@ TestInterfaceIterableDouble::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceIterableDouble::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceIterableDouble_Binding::Wrap(aCx, this, aGivenProto);
 }
 

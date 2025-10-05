@@ -26,7 +26,7 @@ MediaKeyStatusMap::MediaKeyStatusMap(nsPIDOMWindowInner* aParent)
 
 MediaKeyStatusMap::~MediaKeyStatusMap() = default;
 
-JSObject* MediaKeyStatusMap::WrapObject(JSContext* aCx,
+JSObject* MediaKeyStatusMap::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return MediaKeyStatusMap_Binding::Wrap(aCx, this, aGivenProto);
 }

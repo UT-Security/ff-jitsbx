@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(TSpan)
 
 namespace mozilla::dom {
 
-JSObject* SVGTSpanElement::WrapNode(JSContext* aCx,
+JSObject* SVGTSpanElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return SVGTSpanElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -75,7 +75,7 @@ const char* GetExtensionName(const WebGLExtensionID ext) {
 // ----------------------------
 // ClientWebGLContext
 
-void ClientWebGLContext::GetExtension(JSContext* cx, const nsAString& wideName,
+void ClientWebGLContext::GetExtension(MCContext* cx, const nsAString& wideName,
                                       JS::MutableHandle<JSObject*> retval,
                                       dom::CallerType callerType,
                                       ErrorResult& rv) {

@@ -11,9 +11,9 @@
 #include <cstdint>
 #include "ErrorList.h"
 #include "mcapi.h"
-#include "js/ErrorReport.h"
+#include "monkeycage/ErrorReport.h"
 #include "monkeycage/GCAPI.h"
-#include "js/Object.h"
+#include "monkeycage/Object.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/String.h"
 #include "monkeycage/TypeDecls.h"
@@ -48,7 +48,7 @@ class nsIGlobalObject;
 class nsIHandleReportCallback;
 class nsIPrincipal;
 class nsPIDOMWindowInner;
-struct JSContext;
+struct MCContext;
 struct nsID;
 struct nsXPTInterfaceInfo;
 
@@ -130,9 +130,9 @@ bool MightBeWebContentCompartment(JS::Compartment* compartment);
 
 void SetCompartmentChangedDocumentDomain(JS::Compartment* compartment);
 
-JSObject* GetUAWidgetScope(JSContext* cx, nsIPrincipal* principal);
+JSObject* GetUAWidgetScope(MCContext* cx, nsIPrincipal* principal);
 
-JSObject* GetUAWidgetScope(JSContext* cx, JSObject* contentScope);
+JSObject* GetUAWidgetScope(MCContext* cx, JSObject* contentScope);
 
 // Returns whether XBL scopes have been explicitly disabled for code running
 // in this compartment. See the comment around mAllowContentXBLScope.
@@ -149,7 +149,7 @@ bool IsWebExtensionContentScriptSandbox(JSObject* obj);
 // is needed to properly answer without exposing information unnecessarily
 // from behind security wrappers.  There will be no exceptions thrown on this
 // JSContext.
-bool IsReflector(JSObject* obj, JSContext* cx);
+bool IsReflector(JSObject* obj, MCContext* cx);
 
 bool IsXrayWrapper(JSObject* obj);
 
@@ -179,7 +179,7 @@ MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> TraceXPCGlobalCb();
  * @param aOptions JSAPI-specific options for the new compartment.
  */
 nsresult InitClassesWithNewWrappedGlobal(
-    JSContext* aJSContext, nsISupports* aCOMObj, nsIPrincipal* aPrincipal,
+    MCContext* aJSContext, nsISupports* aCOMObj, nsIPrincipal* aPrincipal,
     uint32_t aFlags, MC::Tainted<JS::RealmOptions*> aOptions,
     JS::MutableHandle<JSObject*> aNewGlobal);
 
@@ -209,7 +209,7 @@ static_assert(JSCLASS_GLOBAL_APPLICATION_SLOTS > 0,
 
 #define XPCONNECT_GLOBAL_FLAGS XPCONNECT_GLOBAL_FLAGS_WITH_EXTRA_SLOTS(0)
 
-inline JSObject* xpc_FastGetCachedWrapper(JSContext* cx, nsWrapperCache* cache,
+inline JSObject* xpc_FastGetCachedWrapper(MCContext* cx, nsWrapperCache* cache,
                                           JS::MutableHandle<JS::Value> vp) {
   if (cache) {
     JSObject* wrapper = cache->GetWrapper();
@@ -233,7 +233,7 @@ extern bool xpc_DumpJSStack(bool showArgs, bool showLocals, bool showThisProps);
 
 // Return a newly-allocated string containing a representation of the
 // current JS stack. Defined in XPCDebug.cpp.
-extern JS::UniqueChars xpc_PrintJSStack(JSContext* cx, bool showArgs,
+extern JS::UniqueChars xpc_PrintJSStack(MCContext* cx, bool showArgs,
                                         bool showLocals, bool showThisProps);
 
 // readable string conversions, static methods and members only
@@ -242,14 +242,14 @@ class XPCStringConvert {
   // If the string shares the readable's buffer, that buffer will
   // get assigned to *sharedBuffer.  Otherwise null will be
   // assigned.
-  static bool ReadableToJSVal(JSContext* cx, const nsAString& readable,
+  static bool ReadableToJSVal(MCContext* cx, const nsAString& readable,
                               nsStringBuffer** sharedBuffer,
                               JS::MutableHandle<JS::Value> vp);
 
   // Convert the given stringbuffer/length pair to a jsval
   static MOZ_ALWAYS_INLINE bool StringBufferToJSVal(
-      JSContext* cx, nsStringBuffer* buf, uint32_t length,
-      JS::MutableHandle<JS::Value> rval, bool* sharedBuffer) {
+      MCContext* cx, nsStringBuffer* buf, uint32_t length,
+      JS::MutableHandle<JS::Value> rval, MC::Tainted<bool*> sharedBuffer) {
     JSString* str = JS_NewMaybeExternalString(
         cx, static_cast<char16_t*>(buf->Data()), length,
         sDOMStringExternalString(), sharedBuffer);
@@ -260,13 +260,13 @@ class XPCStringConvert {
     return true;
   }
 
-  static inline bool StringLiteralToJSVal(JSContext* cx,
+  static inline bool StringLiteralToJSVal(MCContext* cx,
                                           const char16_t* literal,
                                           uint32_t length,
                                           JS::MutableHandle<JS::Value> rval) {
-    bool ignored;
+    MC::SandboxStack<bool> ignored;
     JSString* str = JS_NewMaybeExternalString(
-        cx, literal, length, sLiteralExternalString(), &ignored);
+        cx, literal, length, sLiteralExternalString(), ignored);
     if (!str) {
       return false;
     }
@@ -274,16 +274,16 @@ class XPCStringConvert {
     return true;
   }
 
-  static inline bool DynamicAtomToJSVal(JSContext* cx, nsDynamicAtom* atom,
+  static inline bool DynamicAtomToJSVal(MCContext* cx, nsDynamicAtom* atom,
                                         JS::MutableHandle<JS::Value> rval) {
-    bool sharedAtom;
+    MC::SandboxStack<bool> sharedAtom;
     JSString* str =
         JS_NewMaybeExternalString(cx, atom->GetUTF16String(), atom->GetLength(),
-                                  sDynamicAtomExternalString(), &sharedAtom);
+                                  sDynamicAtomExternalString(), sharedAtom);
     if (!str) {
       return false;
     }
-    if (sharedAtom) {
+    if (*sharedAtom.UNSAFE_unverified()) {
       // We only have non-owning atoms in DOMString for now.
       // nsDynamicAtom::AddRef is always-inline and defined in a
       // translation unit we can't get to here.  So we need to go through
@@ -340,9 +340,9 @@ class XPCStringConvert {
 namespace xpc {
 
 // If these functions return false, then an exception will be set on cx.
-bool Base64Encode(JSContext* cx, JS::Handle<JS::Value> val,
+bool Base64Encode(MCContext* cx, JS::Handle<JS::Value> val,
                   JS::MutableHandle<JS::Value> out);
-bool Base64Decode(JSContext* cx, JS::Handle<JS::Value> val,
+bool Base64Decode(MCContext* cx, JS::Handle<JS::Value> val,
                   JS::MutableHandle<JS::Value> out);
 
 /**
@@ -350,9 +350,9 @@ bool Base64Decode(JSContext* cx, JS::Handle<JS::Value> val,
  * Note, the ownership of the string buffer may be moved from str to rval.
  * If that happens, str will point to an empty string after this call.
  */
-bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
+bool NonVoidStringToJsval(MCContext* cx, nsAString& str,
                           JS::MutableHandle<JS::Value> rval);
-inline bool StringToJsval(JSContext* cx, nsAString& str,
+inline bool StringToJsval(MCContext* cx, nsAString& str,
                           JS::MutableHandle<JS::Value> rval) {
   // From the T_ASTRING case in XPCConvert::NativeData2JS.
   if (str.IsVoid()) {
@@ -362,7 +362,7 @@ inline bool StringToJsval(JSContext* cx, nsAString& str,
   return NonVoidStringToJsval(cx, str, rval);
 }
 
-inline bool NonVoidStringToJsval(JSContext* cx, const nsAString& str,
+inline bool NonVoidStringToJsval(MCContext* cx, const nsAString& str,
                                  JS::MutableHandle<JS::Value> rval) {
   nsString mutableCopy;
   if (!mutableCopy.Assign(str, mozilla::fallible)) {
@@ -372,7 +372,7 @@ inline bool NonVoidStringToJsval(JSContext* cx, const nsAString& str,
   return NonVoidStringToJsval(cx, mutableCopy, rval);
 }
 
-inline bool StringToJsval(JSContext* cx, const nsAString& str,
+inline bool StringToJsval(MCContext* cx, const nsAString& str,
                           JS::MutableHandle<JS::Value> rval) {
   nsString mutableCopy;
   if (!mutableCopy.Assign(str, mozilla::fallible)) {
@@ -385,7 +385,7 @@ inline bool StringToJsval(JSContext* cx, const nsAString& str,
 /**
  * As above, but for mozilla::dom::DOMString.
  */
-inline bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
+inline bool NonVoidStringToJsval(MCContext* cx, mozilla::dom::DOMString& str,
                                  JS::MutableHandle<JS::Value> rval) {
   if (str.IsEmpty()) {
     rval.set(JS_GetEmptyStringValue(cx));
@@ -395,12 +395,12 @@ inline bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
   if (str.HasStringBuffer()) {
     uint32_t length = str.StringBufferLength();
     nsStringBuffer* buf = str.StringBuffer();
-    bool shared;
+    MC::SandboxStack<bool> shared;
     if (!XPCStringConvert::StringBufferToJSVal(cx, buf, length, rval,
-                                               &shared)) {
+                                               shared)) {
       return false;
     }
-    if (shared) {
+    if (*shared.UNSAFE_unverified()) {
       // JS now needs to hold a reference to the buffer
       str.RelinquishBufferOwnership();
     }
@@ -421,7 +421,7 @@ inline bool NonVoidStringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 }
 
 MOZ_ALWAYS_INLINE
-bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
+bool StringToJsval(MCContext* cx, mozilla::dom::DOMString& str,
                    JS::MutableHandle<JS::Value> rval) {
   if (str.IsNull()) {
     rval.setNull();
@@ -432,7 +432,7 @@ bool StringToJsval(JSContext* cx, mozilla::dom::DOMString& str,
 
 mozilla::BasePrincipal* GetRealmPrincipal(JS::Realm* realm);
 
-void NukeAllWrappersForRealm(JSContext* cx, JS::Realm* realm,
+void NukeAllWrappersForRealm(MCContext* cx, JS::Realm* realm,
                              js::NukeReferencesToWindow nukeReferencesToWindow =
                                  js::NukeWindowReferences);
 
@@ -501,7 +501,7 @@ already_AddRefed<nsISupports> ReflectorToISupportsStatic(JSObject* reflector);
  * which do dynamic security checks.
  */
 already_AddRefed<nsISupports> ReflectorToISupportsDynamic(JSObject* reflector,
-                                                          JSContext* cx);
+                                                          MCContext* cx);
 
 /**
  * Singleton scopes for stuff that really doesn't fit anywhere else.
@@ -539,8 +539,6 @@ nsIGlobalObject* NativeGlobal(JSObject* obj);
  * Returns the nsIGlobalObject corresponding to |cx|'s JS global. Must not be
  * called when |cx| is not in a Realm.
  */
-nsIGlobalObject* CurrentNativeGlobal(JSContext* cx);
-
 nsIGlobalObject* CurrentNativeGlobal(MCContext* cx);
 
 /**
@@ -561,13 +559,13 @@ nsGlobalWindowInner* WindowGlobalOrNull(JSObject* aObj);
  * sandboxPrototype, then return that DOMWindow.
  * |aCx| is used for checked unwrapping of the Window.
  */
-nsGlobalWindowInner* SandboxWindowOrNull(JSObject* aObj, JSContext* aCx);
+nsGlobalWindowInner* SandboxWindowOrNull(JSObject* aObj, MCContext* aCx);
 
 /**
  * If |cx| is in a realm whose global is a window, returns the associated
  * nsGlobalWindow. Otherwise, returns null.
  */
-nsGlobalWindowInner* CurrentWindowOrNull(JSContext* cx);
+nsGlobalWindowInner* CurrentWindowOrNull(MCContext* cx);
 
 class MOZ_RAII AutoScriptActivity {
   bool mActive;
@@ -634,9 +632,9 @@ class ErrorReport : public ErrorBase {
         mIsMuted(false),
         mIsPromiseRejection(false) {}
 
-  void Init(JSErrorReport* aReport, const char* aToStringResult, bool aIsChrome,
+  void Init(MC::Tainted<JSErrorReport*> aReport, const char* aToStringResult, bool aIsChrome,
             uint64_t aWindowID);
-  void Init(JSContext* aCx, mozilla::dom::Exception* aException, bool aIsChrome,
+  void Init(MCContext* aCx, mozilla::dom::Exception* aException, bool aIsChrome,
             uint64_t aWindowID);
 
   // Log the error report to the console.  Which console will depend on the
@@ -655,7 +653,7 @@ class ErrorReport : public ErrorBase {
   // Produce an error event message string from the given JSErrorReport.  Note
   // that this may produce an empty string if aReport doesn't have a
   // message attached.
-  static void ErrorReportToMessageString(JSErrorReport* aReport,
+  static void ErrorReportToMessageString(MC::Tainted<JSErrorReport*> aReport,
                                          nsAString& aString);
 
   // Log the error report to the stderr.
@@ -699,9 +697,9 @@ void FindExceptionStackForConsoleReport(
 // This function makes reasonable efforts to make this name both mostly
 // human-readable and unique. However, there are no guarantees of either
 // property.
-extern void GetCurrentRealmName(JSContext*, nsCString& name);
+extern void GetCurrentRealmName(MCContext*, nsCString& name);
 
-nsCString GetFunctionName(JSContext* cx, JS::Handle<JSObject*> obj);
+nsCString GetFunctionName(MCContext* cx, JS::Handle<JSObject*> obj);
 
 void AddGCCallback(xpcGCCallback cb);
 void RemoveGCCallback(xpcGCCallback cb);
@@ -754,12 +752,12 @@ void InitializeJSContext();
  *
  * Returns 'Nothing()' if 'aVal' does is not one of the supported ID types.
  */
-mozilla::Maybe<nsID> JSValue2ID(JSContext* aCx, JS::Handle<JS::Value> aVal);
+mozilla::Maybe<nsID> JSValue2ID(MCContext* aCx, JS::Handle<JS::Value> aVal);
 
 /**
  * Reflect an ID into JS
  */
-bool ID2JSValue(JSContext* aCx, const nsID& aId,
+bool ID2JSValue(MCContext* aCx, const nsID& aId,
                 JS::MutableHandle<JS::Value> aVal);
 
 /**
@@ -770,7 +768,7 @@ bool ID2JSValue(JSContext* aCx, const nsID& aId,
  *
  * Use 'xpc::JSValue2ID' to unwrap JS::Values created with this function.
  */
-bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
+bool IfaceID2JSValue(MCContext* aCx, const nsXPTInterfaceInfo& aInfo,
                      JS::MutableHandle<JS::Value> aVal);
 
 /**
@@ -781,7 +779,7 @@ bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
  *
  * Use 'xpc::JSValue2ID' to unwrap JS::Values created with this function.
  */
-bool ContractID2JSValue(JSContext* aCx, JSString* aContract,
+bool ContractID2JSValue(MCContext* aCx, JSString* aContract,
                         JS::MutableHandle<JS::Value> aVal);
 
 class JSStackFrameBase {
@@ -813,18 +811,18 @@ namespace dom {
  * nodes via the content document, since they should use the special
  * create-and-insert apis instead.
  */
-bool IsNotUAWidget(JSContext* cx, JSObject* /* unused */);
+bool IsNotUAWidget(MCContext* cx, JSObject* /* unused */);
 
 /**
  * A test for whether WebIDL methods that should only be visible to
  * chrome, XBL scopes, or UA Widget scopes.
  */
-bool IsChromeOrUAWidget(JSContext* cx, JSObject* /* unused */);
+bool IsChromeOrUAWidget(MCContext* cx, JSObject* /* unused */);
 
 /**
  * Same as IsChromeOrUAWidget but can be used in worker threads as well.
  */
-bool ThreadSafeIsChromeOrUAWidget(JSContext* cx, JSObject* obj);
+bool ThreadSafeIsChromeOrUAWidget(MCContext* cx, JSObject* obj);
 
 }  // namespace dom
 

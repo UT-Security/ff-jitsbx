@@ -29,7 +29,7 @@ class StyleSheetList final : public nsStubMutationObserver,
 
   explicit StyleSheetList(DocumentOrShadowRoot& aScope);
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   nsINode* GetParentObject() const {
     return mDocumentOrShadowRoot ? &mDocumentOrShadowRoot->AsNode() : nullptr;

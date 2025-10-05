@@ -31,7 +31,7 @@ void WebTransportDatagramDuplexStream::Init(ErrorResult& aError) {
   // https://w3c.github.io/webtransport/#webtransport-constructor
   // We are only called synchronously from JS creating a WebTransport object
   AutoEntryScript aes(mGlobal, "WebTransportDatagrams");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   mIncomingAlgorithms = new IncomingDatagramStreamAlgorithms(this);
   nsCOMPtr<nsIGlobalObject> global(mGlobal);
@@ -137,7 +137,7 @@ nsIGlobalObject* WebTransportDatagramDuplexStream::GetParentObject() const {
 }
 
 JSObject* WebTransportDatagramDuplexStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WebTransportDatagramDuplexStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -162,7 +162,7 @@ IncomingDatagramStreamAlgorithms::IncomingDatagramStreamAlgorithms(
 IncomingDatagramStreamAlgorithms::~IncomingDatagramStreamAlgorithms() = default;
 
 already_AddRefed<Promise> IncomingDatagramStreamAlgorithms::PullCallbackImpl(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    MCContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#datagram-duplex-stream-procedures
 
   RefPtr<Promise> promise =
@@ -188,7 +188,7 @@ already_AddRefed<Promise> IncomingDatagramStreamAlgorithms::PullCallbackImpl(
     LOG(("Datagrams Pull waiting for a datagram"));
     Result<RefPtr<Promise>, nsresult> returnResult =
         promise->ThenWithCycleCollectedArgs(
-            [](JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
                RefPtr<IncomingDatagramStreamAlgorithms> self,
                RefPtr<Promise> aPromise)
                 MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION -> already_AddRefed<Promise> {
@@ -213,7 +213,7 @@ already_AddRefed<Promise> IncomingDatagramStreamAlgorithms::PullCallbackImpl(
 }
 
 // Note: fallible
-void IncomingDatagramStreamAlgorithms::ReturnDatagram(JSContext* aCx,
+void IncomingDatagramStreamAlgorithms::ReturnDatagram(MCContext* aCx,
                                                       ErrorResult& aRv) {
   // https://w3c.github.io/webtransport/#datagram-duplex-stream-procedures
   // Pull and Receive
@@ -261,7 +261,7 @@ NS_IMPL_RELEASE_INHERITED(OutgoingDatagramStreamAlgorithms,
                           UnderlyingSinkAlgorithmsWrapper)
 
 already_AddRefed<Promise> OutgoingDatagramStreamAlgorithms::WriteCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, JS::Handle<JS::Value> aChunk,
     WritableStreamDefaultController& aController, ErrorResult& aError) {
   // https://w3c.github.io/webtransport/#writedatagrams
   // Step 1. Let timestamp be a timestamp representing now.

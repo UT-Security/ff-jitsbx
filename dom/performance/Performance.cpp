@@ -76,7 +76,7 @@ already_AddRefed<Performance> Performance::CreateForWorker(
 }
 
 /* static */
-already_AddRefed<Performance> Performance::Get(JSContext* aCx,
+already_AddRefed<Performance> Performance::Get(MCContext* aCx,
                                                nsIGlobalObject* aGlobal) {
   RefPtr<Performance> performance;
   nsCOMPtr<nsPIDOMWindowInner> window = do_QueryInterface(aGlobal);
@@ -152,7 +152,7 @@ DOMHighResTimeStamp Performance::TimeOrigin() {
                                                   mRTPCallerType);
 }
 
-JSObject* Performance::WrapObject(JSContext* aCx,
+JSObject* Performance::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return Performance_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -323,7 +323,7 @@ struct UserTimingMarker {
 };
 
 already_AddRefed<PerformanceMark> Performance::Mark(
-    JSContext* aCx, const nsAString& aName,
+    MCContext* aCx, const nsAString& aName,
     const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> parent = GetParentObject();
   if (!parent || parent->IsDying() || !parent->HasJSGlobal()) {
@@ -637,7 +637,7 @@ void Performance::MaybeEmitExternalProfilerMarker(
 }
 
 already_AddRefed<PerformanceMeasure> Performance::Measure(
-    JSContext* aCx, const nsAString& aName,
+    MCContext* aCx, const nsAString& aName,
     const StringOrPerformanceMeasureOptions& aStartOrMeasureOptions,
     const Optional<nsAString>& aEndMark, ErrorResult& aRv) {
   if (!GetParentObject()) {

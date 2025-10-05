@@ -62,7 +62,7 @@ namespace {
 // Step 17.2.1.2 and 17.2.2 of
 // https://fetch.spec.whatwg.org/#concept-http-network-fetch
 // If stream is readable, then error stream with ...
-void AbortStream(JSContext* aCx, ReadableStream* aReadableStream,
+void AbortStream(MCContext* aCx, ReadableStream* aReadableStream,
                  ErrorResult& aRv, JS::Handle<JS::Value> aReasonDetails) {
   if (aReadableStream->State() != ReadableStream::ReaderState::Readable) {
     return;
@@ -493,7 +493,7 @@ already_AddRefed<Promise> FetchRequest(nsIGlobalObject* aGlobal,
     return nullptr;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> jsGlobal(cx, aGlobal->GetGlobalJSObject());
   GlobalObject global(cx, jsGlobal);
 
@@ -799,7 +799,7 @@ class WorkerFetchResponseRunnable final : public MainThreadWorkerRunnable {
     MOZ_ASSERT(mResolver);
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -844,7 +844,7 @@ class WorkerDataAvailableRunnable final : public MainThreadWorkerRunnable {
                               WorkerFetchResolver* aResolver)
       : MainThreadWorkerRunnable(aWorkerPrivate), mResolver(aResolver) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -886,7 +886,7 @@ class WorkerFetchResponseEndRunnable final : public MainThreadWorkerRunnable,
         WorkerFetchResponseEndBase(aResolver),
         mReason(aReason) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     if (mResolver->IsShutdown(aWorkerPrivate)) {
       return true;
     }
@@ -921,7 +921,7 @@ class WorkerFetchResponseEndControlRunnable final
       : MainThreadWorkerControlRunnable(aWorkerPrivate),
         WorkerFetchResponseEndBase(aResolver) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     WorkerRunInternal(aWorkerPrivate);
     return true;
   }
@@ -1240,7 +1240,7 @@ template bool FetchBody<Request>::BodyUsed() const;
 template bool FetchBody<Response>::BodyUsed() const;
 
 template <class Derived>
-void FetchBody<Derived>::SetBodyUsed(JSContext* aCx, ErrorResult& aRv) {
+void FetchBody<Derived>::SetBodyUsed(MCContext* aCx, ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(mOwner->EventTargetFor(TaskCategory::Other)->IsOnCurrentThread());
 
@@ -1270,14 +1270,14 @@ void FetchBody<Derived>::SetBodyUsed(JSContext* aCx, ErrorResult& aRv) {
   }
 }
 
-template void FetchBody<Request>::SetBodyUsed(JSContext* aCx, ErrorResult& aRv);
+template void FetchBody<Request>::SetBodyUsed(MCContext* aCx, ErrorResult& aRv);
 
-template void FetchBody<Response>::SetBodyUsed(JSContext* aCx,
+template void FetchBody<Response>::SetBodyUsed(MCContext* aCx,
                                                ErrorResult& aRv);
 
 template <class Derived>
 already_AddRefed<Promise> FetchBody<Derived>::ConsumeBody(
-    JSContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv) {
+    MCContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv) {
   aRv.MightThrowJSException();
 
   RefPtr<AbortSignalImpl> signalImpl =
@@ -1365,13 +1365,13 @@ already_AddRefed<Promise> FetchBody<Derived>::ConsumeBody(
 }
 
 template already_AddRefed<Promise> FetchBody<Request>::ConsumeBody(
-    JSContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
+    MCContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
 
 template already_AddRefed<Promise> FetchBody<Response>::ConsumeBody(
-    JSContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
+    MCContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
 
 template already_AddRefed<Promise> FetchBody<EmptyBody>::ConsumeBody(
-    JSContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
+    MCContext* aCx, BodyConsumer::ConsumeType aType, ErrorResult& aRv);
 
 template <class Derived>
 void FetchBody<Derived>::GetMimeType(nsACString& aMimeType,
@@ -1422,7 +1422,7 @@ template const nsAString& FetchBody<Response>::BodyLocalPath() const;
 template const nsAString& FetchBody<EmptyBody>::BodyLocalPath() const;
 
 template <class Derived>
-void FetchBody<Derived>::SetReadableStreamBody(JSContext* aCx,
+void FetchBody<Derived>::SetReadableStreamBody(MCContext* aCx,
                                                ReadableStream* aBody) {
   MOZ_ASSERT(!mReadableStreamBody);
   MOZ_ASSERT(aBody);
@@ -1446,14 +1446,14 @@ void FetchBody<Derived>::SetReadableStreamBody(JSContext* aCx,
   }
 }
 
-template void FetchBody<Request>::SetReadableStreamBody(JSContext* aCx,
+template void FetchBody<Request>::SetReadableStreamBody(MCContext* aCx,
                                                         ReadableStream* aBody);
 
-template void FetchBody<Response>::SetReadableStreamBody(JSContext* aCx,
+template void FetchBody<Response>::SetReadableStreamBody(MCContext* aCx,
                                                          ReadableStream* aBody);
 
 template <class Derived>
-already_AddRefed<ReadableStream> FetchBody<Derived>::GetBody(JSContext* aCx,
+already_AddRefed<ReadableStream> FetchBody<Derived>::GetBody(MCContext* aCx,
                                                              ErrorResult& aRv) {
   if (mReadableStreamBody) {
     return do_AddRef(mReadableStreamBody);
@@ -1507,13 +1507,13 @@ already_AddRefed<ReadableStream> FetchBody<Derived>::GetBody(JSContext* aCx,
 }
 
 template already_AddRefed<ReadableStream> FetchBody<Request>::GetBody(
-    JSContext* aCx, ErrorResult& aRv);
+    MCContext* aCx, ErrorResult& aRv);
 
 template already_AddRefed<ReadableStream> FetchBody<Response>::GetBody(
-    JSContext* aCx, ErrorResult& aRv);
+    MCContext* aCx, ErrorResult& aRv);
 
 template <class Derived>
-void FetchBody<Derived>::LockStream(JSContext* aCx, ReadableStream* aStream,
+void FetchBody<Derived>::LockStream(MCContext* aCx, ReadableStream* aStream,
                                     ErrorResult& aRv) {
   // This is native stream, creating a reader will not execute any JS code.
   RefPtr<ReadableStreamDefaultReader> reader = aStream->GetReader(aRv);
@@ -1522,17 +1522,17 @@ void FetchBody<Derived>::LockStream(JSContext* aCx, ReadableStream* aStream,
   }
 }
 
-template void FetchBody<Request>::LockStream(JSContext* aCx,
+template void FetchBody<Request>::LockStream(MCContext* aCx,
                                              ReadableStream* aStream,
                                              ErrorResult& aRv);
 
-template void FetchBody<Response>::LockStream(JSContext* aCx,
+template void FetchBody<Response>::LockStream(MCContext* aCx,
                                               ReadableStream* aStream,
                                               ErrorResult& aRv);
 
 template <class Derived>
 void FetchBody<Derived>::MaybeTeeReadableStreamBody(
-    JSContext* aCx, ReadableStream** aBodyOut,
+    MCContext* aCx, ReadableStream** aBodyOut,
     FetchStreamReader** aStreamReader, nsIInputStream** aInputStream,
     ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(aStreamReader);
@@ -1571,12 +1571,12 @@ void FetchBody<Derived>::MaybeTeeReadableStreamBody(
 }
 
 template void FetchBody<Request>::MaybeTeeReadableStreamBody(
-    JSContext* aCx, ReadableStream** aBodyOut,
+    MCContext* aCx, ReadableStream** aBodyOut,
     FetchStreamReader** aStreamReader, nsIInputStream** aInputStream,
     ErrorResult& aRv);
 
 template void FetchBody<Response>::MaybeTeeReadableStreamBody(
-    JSContext* aCx, ReadableStream** aBodyOut,
+    MCContext* aCx, ReadableStream** aBodyOut,
     FetchStreamReader** aStreamReader, nsIInputStream** aInputStream,
     ErrorResult& aRv);
 
@@ -1591,7 +1591,7 @@ void FetchBody<Derived>::RunAbortAlgorithm() {
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RefPtr<ReadableStream> body(mReadableStreamBody);
   IgnoredErrorResult result;

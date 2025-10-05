@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Symbol)
 
 namespace mozilla::dom {
 
-JSObject* SVGSymbolElement::WrapNode(JSContext* aCx,
+JSObject* SVGSymbolElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGSymbolElement_Binding::Wrap(aCx, this, aGivenProto);
 }

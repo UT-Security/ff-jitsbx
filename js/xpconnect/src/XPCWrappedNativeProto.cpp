@@ -7,7 +7,7 @@
 /* Shared proto object for XPCWrappedNative. */
 
 #include "xpcprivate.h"
-#include "js/Object.h"  // JS::SetReservedSlot
+#include "monkeycage/Object.h"  // JS::SetReservedSlot
 #include "pratom.h"
 #include "XPCMaps.h"
 
@@ -51,7 +51,7 @@ XPCWrappedNativeProto::~XPCWrappedNativeProto() {
   DeferredFinalize(mClassInfo.forget().take());
 }
 
-bool XPCWrappedNativeProto::Init(JSContext* cx, nsIXPCScriptable* scriptable) {
+bool XPCWrappedNativeProto::Init(MCContext* cx, nsIXPCScriptable* scriptable) {
   mScriptable = scriptable;
 
   MC::RootedObject proto(cx, JS::GetRealmObjectPrototype(cx));
@@ -99,7 +99,7 @@ void XPCWrappedNativeProto::SystemIsBeingShutDown() {
 
 // static
 XPCWrappedNativeProto* XPCWrappedNativeProto::GetNewOrUsed(
-    JSContext* cx, XPCWrappedNativeScope* scope, nsIClassInfo* classInfo,
+    MCContext* cx, XPCWrappedNativeScope* scope, nsIClassInfo* classInfo,
     nsIXPCScriptable* scriptable) {
   MOZ_ASSERT(scope, "bad param");
   MOZ_ASSERT(classInfo, "bad param");

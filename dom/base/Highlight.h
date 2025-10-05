@@ -86,7 +86,7 @@ class Highlight final : public nsISupports, public nsWrapperCache {
   // WebIDL interface
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static MOZ_CAN_RUN_SCRIPT_BOUNDARY already_AddRefed<Highlight> Constructor(

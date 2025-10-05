@@ -33,6 +33,15 @@ inline JSString* JS_NewStringCopyZ(MCContext* cx, const char* s) {
   return JS_NewStringCopyZ(cx->cx_, s);
 }
 
+inline JSString* JS_NewStringCopyUTF8Z(
+    MCContext* cx, const JS::ConstUTF8CharsZ s) {
+  return JS_NewStringCopyUTF8Z(cx->cx_, s);
+}
+
+inline JSString* JS_NewStringCopyUTF8N(MCContext* cx,
+                                                     const JS::UTF8Chars s) {
+  return JS_NewStringCopyUTF8N(cx->cx_, s);
+}
 
 inline JSString* JS_AtomizeStringN(MCContext* cx, const char* s,
                                                  size_t length) {
@@ -54,6 +63,23 @@ inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
   return JS_AtomizeAndPinString(cx->cx_, s);
 }
 
+inline JSString* JS_NewLatin1String(
+    MCContext* cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy> chars,
+    size_t length) {
+  return JS_NewLatin1String(cx->cx_, std::move(chars), length);
+}
+
+inline JSString* JS_NewUCString(MCContext* cx, JS::UniqueTwoByteChars chars,
+                                size_t length) {
+  return JS_NewUCString(cx->cx_, std::move(chars), length);
+}
+
+inline JSString* JS_NewUCStringDontDeflate(MCContext* cx,
+                                           JS::UniqueTwoByteChars chars,
+                                           size_t length) {
+  return JS_NewUCStringDontDeflate(cx->cx_, std::move(chars), length);
+}
+
 inline JSString* JS_NewUCStringCopyN(MCContext* cx, const char16_t* s,
                                      size_t n) {
   return JS_NewUCStringCopyN(cx->cx_, s, n);
@@ -64,27 +90,134 @@ inline JSString* JS_NewUCStringCopyZ(MCContext* cx,
   return JS_NewUCStringCopyZ(cx->cx_, s);
 }
 
+inline JSString* JS_AtomizeUCStringN(MCContext* cx, const char16_t* s,
+                                     size_t length) {
+  return JS_AtomizeUCStringN(cx->cx_, s, length);
+}
+
+inline JSString* JS_AtomizeUCString(MCContext* cx, const char16_t* s) {
+  return JS_AtomizeUCString(cx->cx_, s);
+}
+
+inline bool JS_CompareStrings(MCContext* cx, JSString* str1,
+                                            JSString* str2, MC::Tainted<int32_t*> result) {
+  return JS_CompareStrings(cx->cx_, str1, str2, result.INTERNAL_unverified_safe());
+}
+
+inline bool JS_StringEqualsAscii(MCContext* cx, JSString* str,
+                                 const char* asciiBytes,
+                                 MC::Tainted<bool*> match) {
+  return JS_StringEqualsAscii(cx->cx_, str, asciiBytes,
+                              match.INTERNAL_unverified_safe());
+}
+
+inline bool JS_StringEqualsAscii(MCContext* cx, JSString* str,
+                                 const char* asciiBytes, size_t length,
+                                 MC::Tainted<bool*> match) {
+  return JS_StringEqualsAscii(cx->cx_, str, asciiBytes, length,
+                              match.INTERNAL_unverified_safe());
+}
+
 template <size_t N>
 inline bool JS_StringEqualsLiteral(MCContext* cx, JSString* str,
-                                          const char (&asciiBytes)[N],
-                                          MC::Tainted<bool*> match) {
+                                   const char (&asciiBytes)[N],
+                                   MC::Tainted<bool*> match) {
   return JS_StringEqualsLiteral(cx->cx_, str, asciiBytes, match.INTERNAL_unverified_safe());
 }
 
 inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
-    JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
-    size_t* length) {
-  return JS_GetLatin1StringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length);
+    MCContext* cx, MC::Tainted<const JS::AutoCheckCannotGC*> nogc,
+    JSString* str, MC::Tainted<size_t*> length) {
+  return JS_GetLatin1StringCharsAndLength(cx->cx_, *nogc.UNSAFE_unverified(),
+                                          str,
+                                          length.INTERNAL_unverified_safe());
 }
 
 inline const char16_t* JS_GetTwoByteStringCharsAndLength(
-    JSContext* cx, const MC::Tainted<JS::AutoCheckCannotGC*> nogc, JSString* str,
-    size_t* length) {
-  return JS_GetTwoByteStringCharsAndLength(cx, *nogc.UNSAFE_unverified(), str, length);
+    MCContext* cx, MC::Tainted<const JS::AutoCheckCannotGC*> nogc,
+    JSString* str, MC::Tainted<size_t*> length) {
+  return JS_GetTwoByteStringCharsAndLength(cx->cx_, *nogc.UNSAFE_unverified(), str,
+                                           length.INTERNAL_unverified_safe());
+}
+
+inline bool JS_GetStringCharAt(MCContext* cx, JSString* str, size_t index,
+                               MC::Tainted<char16_t*> res) {
+  return JS_GetStringCharAt(cx->cx_, str, index,
+                            res.INTERNAL_unverified_safe());
+}
+
+static inline bool JS_CopyStringCharsWithSbxCopy(MCContext* cx,
+                                          mozilla::Range<char16_t> dest,
+                                          JSString* str) {
+  char16_t* sbx_buffer = (char16_t*)js_malloc(dest.length() * sizeof(char16_t));
+  if (!sbx_buffer) return false;
+
+  bool ret = JS_CopyStringChars(
+      cx->cx_,
+      mozilla::Range<char16_t>{sbx_buffer, dest.length()},
+      str);
+
+  if (!ret) {
+    js_free(sbx_buffer);
+    return false;
+  }
+
+  memcpy(dest.begin().get(), sbx_buffer, dest.length() * sizeof(char16_t));
+  js_free(sbx_buffer);
+  return true;
 }
 
 inline JSLinearString* JS_EnsureLinearString(MCContext* cx, JSString* str) {
   return JS_EnsureLinearString(cx->cx_, str);
+}
+
+inline size_t JS_GetStringEncodingLength(MCContext* cx, JSString* str) {
+  return JS_GetStringEncodingLength(cx->cx_, str);
+}
+
+static inline bool JS_EncodeStringToBufferWithSbxCopy(MCContext* cx, JSString* str,
+                                               char* buffer, size_t length) {
+  char* sbx_buffer = (char*)js_malloc(length);
+  if (!sbx_buffer) return false;
+
+  bool ret = JS_EncodeStringToBuffer(cx->cx_, str, sbx_buffer, length);
+
+  if(!ret) {
+    js_free(sbx_buffer);
+    return false;
+  }
+
+  memcpy(buffer, sbx_buffer, length);
+  js_free(sbx_buffer);
+  return true;
+}
+
+inline bool JS_EncodeStringToUTF8BufferPartial(MCContext* cx, JSString* str,
+                                               mozilla::Span<char> buffer,
+                                               MC::Tainted<size_t*> read,
+                                               MC::Tainted<size_t*> written) {
+  return JS_EncodeStringToUTF8BufferPartial(cx->cx_, str, buffer,
+                                            read.INTERNAL_unverified_safe(),
+                                            written.INTERNAL_unverified_safe());
+}
+
+static inline bool JS_EncodeStringToUTF8BufferPartialWithSbxCopy(MCContext* cx, JSString* str,
+                                               mozilla::Span<char> buffer,
+                                               MC::Tainted<size_t*> read,
+                                               MC::Tainted<size_t*> written) {
+  char* sbx_buffer = (char*)js_malloc(buffer.LengthBytes());
+  if (!sbx_buffer) return false;
+
+  bool ret = JS_EncodeStringToUTF8BufferPartial(cx->cx_, str, mozilla::Span<char>{sbx_buffer, buffer.Length()},
+                                            read.INTERNAL_unverified_safe(),
+                                            written.INTERNAL_unverified_safe());
+  if (!ret) {
+    js_free(sbx_buffer);
+  }
+
+  memcpy(buffer.Elements(), sbx_buffer, buffer.LengthBytes());
+  js_free(sbx_buffer);
+  return ret;
 }
 
 namespace JS {
@@ -113,6 +246,11 @@ MOZ_ALWAYS_INLINE bool IsExternalString(
       static_cast<const ::sandbox::JSExternalStringCallbacks*>(callbacks_)
           ->getExternalStringCallbacks());
   return ret;
+}
+
+inline bool CopyStringChars(MCContext* cx, char16_t* dest, JSString* s,
+                            size_t len, size_t start = 0) {
+  return CopyStringChars(cx->cx_, dest, s, len, start);
 }
 }
 #endif

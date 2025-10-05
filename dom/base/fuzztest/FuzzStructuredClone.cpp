@@ -40,7 +40,7 @@ static int FuzzingRunDomSC(const uint8_t* data, size_t size) {
   AutoJSAPI jsapi;
   MOZ_RELEASE_ASSERT(jsapi.Init(global));
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   auto gcGuard = mozilla::MakeScopeExit([&] {
     JS::PrepareForFullGC(cx);
     JS::NonIncrementalGC(cx, JS::GCOptions::Normal, JS::GCReason::API);

@@ -55,7 +55,7 @@ nsPIDOMWindowInner* nsPluginArray::GetParentObject() const {
   return mWindow;
 }
 
-JSObject* nsPluginArray::WrapObject(JSContext* aCx,
+JSObject* nsPluginArray::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return PluginArray_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -125,7 +125,7 @@ nsPluginElement::nsPluginElement(nsPluginArray* aPluginArray,
 
 nsPluginArray* nsPluginElement::GetParentObject() const { return mPluginArray; }
 
-JSObject* nsPluginElement::WrapObject(JSContext* aCx,
+JSObject* nsPluginElement::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return Plugin_Binding::Wrap(aCx, this, aGivenProto);
 }

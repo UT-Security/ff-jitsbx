@@ -62,7 +62,7 @@ class nsWindowRoot final : public nsPIWindowRoot {
 
   nsIGlobalObject* GetParentObject();
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(nsWindowRoot)
 

@@ -81,7 +81,7 @@ class txMozillaXSLTProcessor final : public nsIDocumentTransformer,
   NS_DECL_NSIMUTATIONOBSERVER_NODEWILLBEDESTROYED
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

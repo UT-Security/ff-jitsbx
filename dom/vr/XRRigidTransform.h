@@ -37,13 +37,13 @@ class XRRigidTransform final : public nsWrapperCache {
   void Update(const gfx::Matrix4x4Double& aTransform);
   // WebIDL Boilerplate
   nsISupports* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members
   DOMPoint* Position();
   DOMPoint* Orientation();
-  void GetMatrix(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetMatrix(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                  ErrorResult& aRv);
   already_AddRefed<XRRigidTransform> Inverse();
 

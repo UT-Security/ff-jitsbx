@@ -29,7 +29,7 @@ class TextTrackList final : public DOMEventTargetHelper {
   TextTrackList(nsPIDOMWindowInner* aOwnerWindow,
                 TextTrackManager* aTextTrackManager);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t Length() const { return mTextTracks.Length(); }

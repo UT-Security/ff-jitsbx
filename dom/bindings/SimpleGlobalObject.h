@@ -68,7 +68,7 @@ class SimpleGlobalObject : public nsIGlobalObject, public nsWrapperCache {
 
   OriginTrials Trials() const override { return {}; }
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override {
     MOZ_CRASH("SimpleGlobalObject doesn't use DOM bindings!");
   }

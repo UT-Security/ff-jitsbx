@@ -26,7 +26,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEImageElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEImageElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEImageElement_Binding::Wrap(aCx, this, aGivenProto);
 }

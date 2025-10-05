@@ -12,7 +12,7 @@ namespace mozilla::dom {
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(WrapperCachedNonISupportsTestInterface)
 
 JSObject* WrapperCachedNonISupportsTestInterface::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WrapperCachedNonISupportsTestInterface_Binding::Wrap(aCx, this,
                                                               aGivenProto);
 }

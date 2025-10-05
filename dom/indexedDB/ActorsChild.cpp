@@ -192,7 +192,7 @@ void DispatchSuccessEvent(const NotNull<RefPtr<IDBRequest>>& aRequest,
 template <class T>
 std::enable_if_t<std::is_same_v<T, IDBDatabase> || std::is_same_v<T, IDBCursor>,
                  nsresult>
-GetResult(JSContext* aCx, T* aDOMObject, JS::MutableHandle<JS::Value> aResult) {
+GetResult(MCContext* aCx, T* aDOMObject, JS::MutableHandle<JS::Value> aResult) {
   if (!aDOMObject) {
     aResult.setNull();
     return NS_OK;
@@ -207,19 +207,19 @@ GetResult(JSContext* aCx, T* aDOMObject, JS::MutableHandle<JS::Value> aResult) {
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, const JS::Handle<JS::Value>* aValue,
+nsresult GetResult(MCContext* aCx, const JS::Handle<JS::Value>* aValue,
                    JS::MutableHandle<JS::Value> aResult) {
   aResult.set(*aValue);
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, const uint64_t* aValue,
+nsresult GetResult(MCContext* aCx, const uint64_t* aValue,
                    JS::MutableHandle<JS::Value> aResult) {
   aResult.set(JS::NumberValue(*aValue));
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, StructuredCloneReadInfoChild&& aCloneInfo,
+nsresult GetResult(MCContext* aCx, StructuredCloneReadInfoChild&& aCloneInfo,
                    JS::MutableHandle<JS::Value> aResult) {
   const bool ok =
       IDBObjectStore::DeserializeValue(aCx, std::move(aCloneInfo), aResult);
@@ -231,12 +231,12 @@ nsresult GetResult(JSContext* aCx, StructuredCloneReadInfoChild&& aCloneInfo,
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, StructuredCloneReadInfoChild* aCloneInfo,
+nsresult GetResult(MCContext* aCx, StructuredCloneReadInfoChild* aCloneInfo,
                    JS::MutableHandle<JS::Value> aResult) {
   return GetResult(aCx, std::move(*aCloneInfo), aResult);
 }
 
-nsresult GetResult(JSContext* aCx,
+nsresult GetResult(MCContext* aCx,
                    nsTArray<StructuredCloneReadInfoChild>* aCloneInfos,
                    JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
@@ -275,7 +275,7 @@ nsresult GetResult(JSContext* aCx,
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, const Key* aKey,
+nsresult GetResult(MCContext* aCx, const Key* aKey,
                    JS::MutableHandle<JS::Value> aResult) {
   const nsresult rv = aKey->ToJSVal(aCx, aResult);
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -284,7 +284,7 @@ nsresult GetResult(JSContext* aCx, const Key* aKey,
   return NS_OK;
 }
 
-nsresult GetResult(JSContext* aCx, const nsTArray<Key>* aKeys,
+nsresult GetResult(MCContext* aCx, const nsTArray<Key>* aKeys,
                    JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
   if (NS_WARN_IF(!array)) {
@@ -411,7 +411,7 @@ StructuredCloneReadInfoChild DeserializeStructuredCloneReadInfo(
     PreprocessInfoAccessor preprocessInfoAccessor) {
   // XXX Make this a class invariant of SerializedStructuredCloneReadInfo.
   MOZ_ASSERT_IF(aSerialized.hasPreprocessInfo(),
-                0 == aSerialized.data().data.Size());
+                0 == aSerialized.data().data->Size());
   return {aSerialized.hasPreprocessInfo() ? preprocessInfoAccessor()
                                           : std::move(aSerialized.data().data),
           DeserializeStructuredCloneFiles(aDatabase, aSerialized.files(),
@@ -523,7 +523,7 @@ void SetResultAndDispatchSuccessEvent(
   MOZ_ASSERT(aEvent);
 
   aRequest->SetResult(
-      [&aPtr](JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
+      [&aPtr](MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
         MOZ_ASSERT(aCx);
         return detail::GetResult(aCx, &aPtr, aResult);
       });

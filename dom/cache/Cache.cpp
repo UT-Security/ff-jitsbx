@@ -6,8 +6,8 @@
 
 #include "mozilla/dom/cache/Cache.h"
 
-#include "js/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Array.h"               // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/Headers.h"
 #include "mozilla/dom/InternalResponse.h"
 #include "mozilla/dom/Promise.h"
@@ -114,7 +114,7 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
     MOZ_DIAGNOSTIC_ASSERT(mPromise);
   }
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     NS_ASSERT_OWNINGTHREAD(FetchHandler);
 
@@ -136,10 +136,10 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
 
     MC::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
-    uint32_t length;
-    QM_TRY(OkIf(JS::GetArrayLength(aCx, obj, &length)), QM_VOID, failOnErr);
+    MC::SandboxStack<uint32_t> length;
+    QM_TRY(OkIf(JS::GetArrayLength(aCx, obj, length)), QM_VOID, failOnErr);
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> value(aCx);
 
       QM_TRY(OkIf(JS_GetElement(aCx, obj, i, &value)), QM_VOID, failOnErr);
@@ -190,7 +190,7 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
     mPromise->MaybeResolve(put);
   }
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     NS_ASSERT_OWNINGTHREAD(FetchHandler);
     Fail();
@@ -228,7 +228,7 @@ Cache::Cache(nsIGlobalObject* aGlobal, CacheChild* aActor, Namespace aNamespace)
   mActor->SetListener(this);
 }
 
-already_AddRefed<Promise> Cache::Match(JSContext* aCx,
+already_AddRefed<Promise> Cache::Match(MCContext* aCx,
                                        const RequestOrUSVString& aRequest,
                                        const CacheQueryOptions& aOptions,
                                        ErrorResult& aRv) {
@@ -260,7 +260,7 @@ already_AddRefed<Promise> Cache::Match(JSContext* aCx,
 }
 
 already_AddRefed<Promise> Cache::MatchAll(
-    JSContext* aCx, const Optional<RequestOrUSVString>& aRequest,
+    MCContext* aCx, const Optional<RequestOrUSVString>& aRequest,
     const CacheQueryOptions& aOptions, ErrorResult& aRv) {
   if (NS_WARN_IF(!mActor)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -291,7 +291,7 @@ already_AddRefed<Promise> Cache::MatchAll(
   return ExecuteOp(args, aRv);
 }
 
-already_AddRefed<Promise> Cache::Add(JSContext* aContext,
+already_AddRefed<Promise> Cache::Add(MCContext* aContext,
                                      const RequestOrUSVString& aRequest,
                                      CallerType aCallerType, ErrorResult& aRv) {
   if (NS_WARN_IF(!mActor)) {
@@ -327,7 +327,7 @@ already_AddRefed<Promise> Cache::Add(JSContext* aContext,
 }
 
 already_AddRefed<Promise> Cache::AddAll(
-    JSContext* aContext, const Sequence<OwningRequestOrUSVString>& aRequestList,
+    MCContext* aContext, const Sequence<OwningRequestOrUSVString>& aRequestList,
     CallerType aCallerType, ErrorResult& aRv) {
   if (NS_WARN_IF(!mActor)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -373,7 +373,7 @@ already_AddRefed<Promise> Cache::AddAll(
   return AddAll(global, std::move(requestList), aCallerType, aRv);
 }
 
-already_AddRefed<Promise> Cache::Put(JSContext* aCx,
+already_AddRefed<Promise> Cache::Put(MCContext* aCx,
                                      const RequestOrUSVString& aRequest,
                                      Response& aResponse, ErrorResult& aRv) {
   if (NS_WARN_IF(!mActor)) {
@@ -418,7 +418,7 @@ already_AddRefed<Promise> Cache::Put(JSContext* aCx,
   return ExecuteOp(args, aRv);
 }
 
-already_AddRefed<Promise> Cache::Delete(JSContext* aCx,
+already_AddRefed<Promise> Cache::Delete(MCContext* aCx,
                                         const RequestOrUSVString& aRequest,
                                         const CacheQueryOptions& aOptions,
                                         ErrorResult& aRv) {
@@ -449,7 +449,7 @@ already_AddRefed<Promise> Cache::Delete(JSContext* aCx,
 }
 
 already_AddRefed<Promise> Cache::Keys(
-    JSContext* aCx, const Optional<RequestOrUSVString>& aRequest,
+    MCContext* aCx, const Optional<RequestOrUSVString>& aRequest,
     const CacheQueryOptions& aOptions, ErrorResult& aRv) {
   if (NS_WARN_IF(!mActor)) {
     aRv.Throw(NS_ERROR_UNEXPECTED);
@@ -482,7 +482,7 @@ already_AddRefed<Promise> Cache::Keys(
 
 nsISupports* Cache::GetParentObject() const { return mGlobal; }
 
-JSObject* Cache::WrapObject(JSContext* aContext,
+JSObject* Cache::WrapObject(MCContext* aContext,
                             JS::Handle<JSObject*> aGivenProto) {
   return Cache_Binding::Wrap(aContext, this, aGivenProto);
 }
@@ -575,7 +575,7 @@ already_AddRefed<Promise> Cache::AddAll(
                        std::move(aRequestList), promise);
 
   RefPtr<Promise> fetchPromise =
-      Promise::All(MC_UNSAFE(aGlobal.Context()), fetchList, aRv);
+      Promise::All(aGlobal.Context(), fetchList, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -585,7 +585,7 @@ already_AddRefed<Promise> Cache::AddAll(
 }
 
 already_AddRefed<Promise> Cache::PutAll(
-    JSContext* aCx, const nsTArray<SafeRefPtr<Request>>& aRequestList,
+    MCContext* aCx, const nsTArray<SafeRefPtr<Request>>& aRequestList,
     const nsTArray<RefPtr<Response>>& aResponseList, ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(aRequestList.Length() == aResponseList.Length());
 

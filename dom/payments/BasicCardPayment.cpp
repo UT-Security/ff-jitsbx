@@ -36,7 +36,7 @@ bool BasicCardService::IsBasicCardPayment(const nsAString& aSupportedMethods) {
   return aSupportedMethods.Equals(u"basic-card"_ns);
 }
 
-bool BasicCardService::IsValidBasicCardRequest(JSContext* aCx, JSObject* aData,
+bool BasicCardService::IsValidBasicCardRequest(MCContext* aCx, JSObject* aData,
                                                nsAString& aErrorMsg) {
   if (!aData) {
     return true;
@@ -103,7 +103,7 @@ bool BasicCardService::IsValidExpiryYear(const nsAString& aExpiryYear) {
   return true;
 }
 
-void BasicCardService::CheckForValidBasicCardErrors(JSContext* aCx,
+void BasicCardService::CheckForValidBasicCardErrors(MCContext* aCx,
                                                     JSObject* aData,
                                                     ErrorResult& aRv) {
   MOZ_ASSERT(aData, "Don't pass null data");

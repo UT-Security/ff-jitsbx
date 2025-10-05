@@ -36,7 +36,7 @@ nsXULElement* NS_NewXULPopupElement(
   return new (nim) XULPopupElement(nodeInfo.forget());
 }
 
-JSObject* XULPopupElement::WrapNode(JSContext* aCx,
+JSObject* XULPopupElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return XULPopupElement_Binding::Wrap(aCx, this, aGivenProto);
 }

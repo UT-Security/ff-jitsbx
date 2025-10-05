@@ -162,7 +162,7 @@ void FeaturePolicy::ResetDeclaredPolicy() {
   mAttributeEnabledFeatureNames.Clear();
 }
 
-JSObject* FeaturePolicy::WrapObject(JSContext* aCx,
+JSObject* FeaturePolicy::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return FeaturePolicy_Binding::Wrap(aCx, this, aGivenProto);
 }

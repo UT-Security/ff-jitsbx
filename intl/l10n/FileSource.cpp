@@ -71,7 +71,7 @@ already_AddRefed<L10nFileSource> L10nFileSource::CreateMock(
   return MakeAndAddRef<L10nFileSource>(std::move(raw), global);
 }
 
-JSObject* L10nFileSource::WrapObject(JSContext* aCx,
+JSObject* L10nFileSource::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return L10nFileSource_Binding::Wrap(aCx, this, aGivenProto);
 }

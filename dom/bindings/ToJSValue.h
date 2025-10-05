@@ -43,11 +43,11 @@ class TypedArrayCreator;
 // JSContext.
 
 // Accept strings.
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const nsAString& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const nsAString& aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Treats the input as UTF-8, and throws otherwise.
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const nsACString& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const nsACString& aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Accept booleans.  But be careful here: if we just have a function that takes
@@ -57,7 +57,7 @@ class TypedArrayCreator;
 // is actually boolean
 template <typename T>
 [[nodiscard]] std::enable_if_t<std::is_same<T, bool>::value, bool> ToJSValue(
-    JSContext* aCx, T aArgument, JS::MutableHandle<JS::Value> aValue) {
+    MCContext* aCx, T aArgument, JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
@@ -66,7 +66,7 @@ template <typename T>
 }
 
 // Accept integer types
-inline bool ToJSValue(JSContext* aCx, int32_t aArgument,
+inline bool ToJSValue(MCContext* aCx, int32_t aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -75,7 +75,7 @@ inline bool ToJSValue(JSContext* aCx, int32_t aArgument,
   return true;
 }
 
-inline bool ToJSValue(JSContext* aCx, uint32_t aArgument,
+inline bool ToJSValue(MCContext* aCx, uint32_t aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -84,7 +84,7 @@ inline bool ToJSValue(JSContext* aCx, uint32_t aArgument,
   return true;
 }
 
-inline bool ToJSValue(JSContext* aCx, int64_t aArgument,
+inline bool ToJSValue(MCContext* aCx, int64_t aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -93,7 +93,7 @@ inline bool ToJSValue(JSContext* aCx, int64_t aArgument,
   return true;
 }
 
-inline bool ToJSValue(JSContext* aCx, uint64_t aArgument,
+inline bool ToJSValue(MCContext* aCx, uint64_t aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -103,7 +103,7 @@ inline bool ToJSValue(JSContext* aCx, uint64_t aArgument,
 }
 
 // accept floating point types
-inline bool ToJSValue(JSContext* aCx, float aArgument,
+inline bool ToJSValue(MCContext* aCx, float aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -112,7 +112,7 @@ inline bool ToJSValue(JSContext* aCx, float aArgument,
   return true;
 }
 
-inline bool ToJSValue(JSContext* aCx, double aArgument,
+inline bool ToJSValue(MCContext* aCx, double aArgument,
                       JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -122,7 +122,7 @@ inline bool ToJSValue(JSContext* aCx, double aArgument,
 }
 
 // Accept CallbackObjects
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx, CallbackObject& aArgument,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx, CallbackObject& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -136,7 +136,7 @@ inline bool ToJSValue(JSContext* aCx, double aArgument,
 // DOM objects).
 template <class T>
 [[nodiscard]] std::enable_if_t<std::is_base_of<nsWrapperCache, T>::value, bool>
-ToJSValue(JSContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
+ToJSValue(MCContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
@@ -150,7 +150,7 @@ namespace binding_detail {
 template <class T>
 [[nodiscard]] std::enable_if_t<
     std::is_base_of<NonRefcountedDOMObject, T>::value, bool>
-ToJSValueFromPointerHelper(JSContext* aCx, T* aArgument,
+ToJSValueFromPointerHelper(MCContext* aCx, T* aArgument,
                            JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -178,7 +178,7 @@ ToJSValueFromPointerHelper(JSContext* aCx, T* aArgument,
 template <class T>
 [[nodiscard]] std::enable_if_t<
     std::is_base_of<NonRefcountedDOMObject, T>::value, bool>
-ToJSValue(JSContext* aCx, UniquePtr<T>&& aArgument,
+ToJSValue(MCContext* aCx, UniquePtr<T>&& aArgument,
           JS::MutableHandle<JS::Value> aValue) {
   if (!binding_detail::ToJSValueFromPointerHelper(aCx, aArgument.get(),
                                                   aValue)) {
@@ -195,7 +195,7 @@ template <typename T>
 [[nodiscard]]
 typename std::enable_if<std::is_base_of<AllTypedArraysBase, T>::value,
                         bool>::type
-ToJSValue(JSContext* aCx, const TypedArrayCreator<T>& aArgument,
+ToJSValue(MCContext* aCx, const TypedArrayCreator<T>& aArgument,
           JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -241,7 +241,7 @@ template <class T>
                                    !std::is_base_of<CallbackObject, T>::value &&
                                    std::is_base_of<nsISupports, T>::value,
                                bool>
-ToJSValue(JSContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
+ToJSValue(MCContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
 
@@ -252,30 +252,30 @@ ToJSValue(JSContext* aCx, T& aArgument, JS::MutableHandle<JS::Value> aValue) {
   return XPCOMObjectToJsval(aCx, scope, helper, &iid, true, aValue);
 }
 
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const WindowProxyHolder& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const WindowProxyHolder& aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Accept nsRefPtr/nsCOMPtr
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const nsCOMPtr<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const nsCOMPtr<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, *aArgument.get(), aValue);
 }
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const RefPtr<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const RefPtr<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, *aArgument.get(), aValue);
 }
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const NonNull<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const NonNull<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, *aArgument.get(), aValue);
 }
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const OwningNonNull<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const OwningNonNull<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, *aArgument.get(), aValue);
 }
@@ -283,18 +283,18 @@ template <typename T>
 // Accept WebIDL dictionaries
 template <class T>
 [[nodiscard]] std::enable_if_t<std::is_base_of<DictionaryBase, T>::value, bool>
-ToJSValue(JSContext* aCx, const T& aArgument,
+ToJSValue(MCContext* aCx, const T& aArgument,
           JS::MutableHandle<JS::Value> aValue) {
   return aArgument.ToObjectInternal(aCx, aValue);
 }
 
 // Accept existing JS values (which may not be same-compartment with us
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx, const JS::Value& aArgument,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx, const JS::Value& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
   return MaybeWrapValue(aCx, aValue);
 }
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx,
                                     JS::Handle<JS::Value> aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
@@ -303,7 +303,7 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 
 // Accept existing JS values on the Heap (which may not be same-compartment with
 // us
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx,
                                     const JS::Heap<JS::Value>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
@@ -311,7 +311,7 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 }
 
 // Accept existing rooted JS values (which may not be same-compartment with us
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx,
                                     const MC::Rooted<JS::Value>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
@@ -320,7 +320,7 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 
 // Accept existing rooted JS objects (which may not be same-compartment with
 // us).
-[[nodiscard]] inline bool ToJSValue(JSContext* aCx,
+[[nodiscard]] inline bool ToJSValue(MCContext* aCx,
                                     const MC::Rooted<JSObject*>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.setObjectOrNull(aArgument);
@@ -329,20 +329,20 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 
 // Accept nsresult, for use in rejections, and create an XPCOM
 // exception object representing that nsresult.
-[[nodiscard]] bool ToJSValue(JSContext* aCx, nsresult aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, nsresult aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Accept ErrorResult, for use in rejections, and create an exception
 // representing the failure.  Note, the ErrorResult must indicate a failure
 // with aArgument.Failure() returning true.
-[[nodiscard]] bool ToJSValue(JSContext* aCx, ErrorResult&& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, ErrorResult&& aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Accept owning WebIDL unions.
 template <typename T>
 [[nodiscard]] std::enable_if_t<std::is_base_of<AllOwningUnionBase, T>::value,
                                bool>
-ToJSValue(JSContext* aCx, const T& aArgument,
+ToJSValue(MCContext* aCx, const T& aArgument,
           JS::MutableHandle<JS::Value> aValue) {
   MC::Rooted<JSObject*> global(aCx, JS::CurrentGlobalOrNull(aCx));
   return aArgument.ToJSVal(aCx, global, aValue);
@@ -351,40 +351,40 @@ ToJSValue(JSContext* aCx, const T& aArgument,
 // Accept pointers to other things we accept
 template <typename T>
 [[nodiscard]] std::enable_if_t<std::is_pointer<T>::value, bool> ToJSValue(
-    JSContext* aCx, T aArgument, JS::MutableHandle<JS::Value> aValue) {
+    MCContext* aCx, T aArgument, JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, *aArgument, aValue);
 }
 
 // Accept Promise objects, which need special handling.
-[[nodiscard]] bool ToJSValue(JSContext* aCx, Promise& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, Promise& aArgument,
                              JS::MutableHandle<JS::Value> aValue);
 
 // Accept arrays (and nested arrays) of other things we accept
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, T* aArguments, size_t aLength,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, T* aArguments, size_t aLength,
                              JS::MutableHandle<JS::Value> aValue);
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const nsTArray<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const nsTArray<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, aArgument.Elements(), aArgument.Length(), aValue);
 }
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const FallibleTArray<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const FallibleTArray<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, aArgument.Elements(), aArgument.Length(), aValue);
 }
 
 template <typename T, int N>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const T (&aArgument)[N],
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const T (&aArgument)[N],
                              JS::MutableHandle<JS::Value> aValue) {
   return ToJSValue(aCx, aArgument, N, aValue);
 }
 
 // Accept arrays of other things we accept
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, T* aArguments, size_t aLength,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, T* aArguments, size_t aLength,
                              JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
   MOZ_ASSERT(JS::CurrentGlobalOrNull(aCx));
@@ -408,7 +408,7 @@ template <typename T>
 
 // Accept tuple of other things we accept. The result will be a JS array object.
 template <typename... Elements>
-[[nodiscard]] bool ToJSValue(JSContext* aCx,
+[[nodiscard]] bool ToJSValue(MCContext* aCx,
                              const std::tuple<Elements...>& aArguments,
                              JS::MutableHandle<JS::Value> aValue) {
   // Make sure we're called in a compartment
@@ -439,7 +439,7 @@ template <typename... Elements>
 // Accept records of other things we accept. N.B. This assumes that
 // keys are either UTF-8 or UTF-16-ish. See Bug 1706058.
 template <typename K, typename V>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const Record<K, V>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const Record<K, V>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   MC::Rooted<JSObject*> recordObj(aCx, JS_NewPlainObject(aCx));
   if (!recordObj) {
@@ -471,7 +471,7 @@ template <typename K, typename V>
 }
 
 template <typename T>
-[[nodiscard]] bool ToJSValue(JSContext* aCx, const Nullable<T>& aArgument,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, const Nullable<T>& aArgument,
                              JS::MutableHandle<JS::Value> aValue) {
   if (aArgument.IsNull()) {
     aValue.setNull();

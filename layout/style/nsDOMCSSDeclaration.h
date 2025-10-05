@@ -122,7 +122,7 @@ class nsDOMCSSDeclaration : public nsICSSDeclaration {
   virtual void IndexedGetter(uint32_t aIndex, bool& aFound,
                              nsACString& aPropName) override;
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   // Information needed to parse a declaration for Servo side.
   // Put this in public so other Servo parsing functions can reuse this.

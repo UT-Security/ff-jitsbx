@@ -9,9 +9,9 @@
 #include "CanvasRenderingContextHelper.h"
 #include "mozilla/CheckedInt.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "jsapi.h"
-#include "js/Array.h"               // JS::GetArrayLength
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "mcapi.h"
+#include "monkeycage/Array.h"               // JS::GetArrayLength
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/FloatingPoint.h"
 
 class nsIPrincipal;
@@ -54,13 +54,13 @@ void DoDrawImageSecurityCheck(dom::OffscreenCanvas* aOffscreenCanvas,
                               bool CORSUsed);
 
 // Check if the context is chrome or has the permission to drawWindow
-bool HasDrawWindowPrivilege(JSContext* aCx, JSObject* aObj);
+bool HasDrawWindowPrivilege(MCContext* aCx, JSObject* aObj);
 
 // Check if the context has permission to use OffscreenCanvas.
-bool IsOffscreenCanvasEnabled(JSContext* aCx, JSObject* aObj);
+bool IsOffscreenCanvasEnabled(MCContext* aCx, JSObject* aObj);
 
 // Check site-specific permission and display prompt if appropriate.
-bool IsImageExtractionAllowed(dom::Document* aDocument, JSContext* aCx,
+bool IsImageExtractionAllowed(dom::Document* aDocument, MCContext* aCx,
                               Maybe<nsIPrincipal*> aPrincipal);
 
 // Make a double out of |v|, treating undefined values as 0.0 (for
@@ -122,7 +122,7 @@ inline bool FloatValidate(double f1, double f2, double f3, double f4, double f5,
 #undef VALIDATE
 
 template <typename T>
-nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
+nsresult JSValToDashArray(MCContext* cx, const JS::Value& patternArray,
                           nsTArray<T>& dashes) {
   // The cap is pretty arbitrary.  16k should be enough for
   // anybody...
@@ -130,17 +130,17 @@ nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
 
   if (!patternArray.isPrimitive()) {
     MC::Rooted<JSObject*> obj(cx, patternArray.toObjectOrNull());
-    uint32_t length;
-    if (!JS::GetArrayLength(cx, obj, &length)) {
+    MC::SandboxStack<uint32_t> length;
+    if (!JS::GetArrayLength(cx, obj, length)) {
       // Not an array-like thing
       return NS_ERROR_INVALID_ARG;
-    } else if (length > MAX_NUM_DASHES) {
+    } else if (*length.UNSAFE_unverified() > MAX_NUM_DASHES) {
       // Too many dashes in the pattern
       return NS_ERROR_ILLEGAL_VALUE;
     }
 
     bool haveNonzeroElement = false;
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> elt(cx);
       double d;
       if (!JS_GetElement(cx, obj, i, &elt)) {
@@ -171,7 +171,7 @@ nsresult JSValToDashArray(JSContext* cx, const JS::Value& patternArray,
 }
 
 template <typename T>
-void DashArrayToJSVal(nsTArray<T>& dashes, JSContext* cx,
+void DashArrayToJSVal(nsTArray<T>& dashes, MCContext* cx,
                       JS::MutableHandle<JS::Value> retval,
                       mozilla::ErrorResult& rv) {
   if (dashes.IsEmpty()) {

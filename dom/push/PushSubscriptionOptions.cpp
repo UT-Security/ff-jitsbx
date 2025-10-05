@@ -44,12 +44,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushSubscriptionOptions)
 NS_INTERFACE_MAP_END
 
 JSObject* PushSubscriptionOptions::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PushSubscriptionOptions_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 void PushSubscriptionOptions::GetApplicationServerKey(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aKey, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aKey, ErrorResult& aRv) {
   if (!mRawAppServerKey.IsEmpty() && !mAppServerKey) {
     MC::Rooted<JSObject*> appServerKey(aCx);
     PushUtil::CopyArrayToArrayBuffer(aCx, mRawAppServerKey, &appServerKey, aRv);

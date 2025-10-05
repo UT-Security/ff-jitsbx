@@ -7,7 +7,7 @@
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 
-#include "js/Debug.h"
+#include "monkeycage/Debug.h"
 #include "monkeycage/Wrapper.h"
 
 #include "mozilla/Atomics.h"
@@ -139,7 +139,7 @@ bool Promise::MaybePropagateUserInputEventHandling() {
 
 // static
 already_AddRefed<Promise> Promise::Resolve(
-    nsIGlobalObject* aGlobal, JSContext* aCx, JS::Handle<JS::Value> aValue,
+    nsIGlobalObject* aGlobal, MCContext* aCx, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv, PropagateUserInteraction aPropagateUserInteraction) {
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal->GetGlobalJSObject());
   MC::Rooted<JSObject*> p(aCx, JS::CallOriginalPromiseResolve(aCx, aValue));
@@ -153,7 +153,7 @@ already_AddRefed<Promise> Promise::Resolve(
 
 // static
 already_AddRefed<Promise> Promise::Reject(nsIGlobalObject* aGlobal,
-                                          JSContext* aCx,
+                                          MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal->GetGlobalJSObject());
@@ -171,7 +171,7 @@ already_AddRefed<Promise> Promise::Reject(nsIGlobalObject* aGlobal,
 
 // static
 already_AddRefed<Promise> Promise::All(
-    JSContext* aCx, const nsTArray<RefPtr<Promise>>& aPromiseList,
+    MCContext* aCx, const nsTArray<RefPtr<Promise>>& aPromiseList,
     ErrorResult& aRv, PropagateUserInteraction aPropagateUserInteraction) {
   MC::Rooted<JSObject*> globalObj(aCx, JS::CurrentGlobalOrNull(aCx));
   if (!globalObj) {
@@ -215,7 +215,7 @@ already_AddRefed<Promise> Promise::All(
   return CreateFromExisting(global, result, aPropagateUserInteraction);
 }
 
-void Promise::Then(JSContext* aCx,
+void Promise::Then(MCContext* aCx,
                    // aCalleeGlobal may not be in the compartment of aCx, when
                    // called over Xrays.
                    JS::Handle<JSObject*> aCalleeGlobal,
@@ -288,7 +288,7 @@ static void SettlePromise(Promise* aSettlingPromise, Promise* aCallbackPromise,
 }
 
 void PromiseNativeThenHandlerBase::ResolvedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   if (!HasResolvedCallback()) {
     mPromise->MaybeResolve(aValue);
     return;
@@ -298,7 +298,7 @@ void PromiseNativeThenHandlerBase::ResolvedCallback(
 }
 
 void PromiseNativeThenHandlerBase::RejectedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   if (!HasRejectedCallback()) {
     mPromise->MaybeReject(aValue);
     return;
@@ -332,7 +332,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(PromiseNativeThenHandlerBase)
 
 Result<RefPtr<Promise>, nsresult> Promise::ThenWithoutCycleCollection(
     const std::function<already_AddRefed<Promise>(
-        JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv)>&
+        MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv)>&
         aCallback) {
   return ThenWithCycleCollectedArgs(aCallback);
 }
@@ -344,7 +344,7 @@ void Promise::CreateWrapper(
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   mPromiseObj = JS::NewPromiseObject(cx, nullptr);
   if (!mPromiseObj) {
     JS_ClearPendingException(cx);
@@ -356,7 +356,7 @@ void Promise::CreateWrapper(
   }
 }
 
-void Promise::MaybeResolve(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+void Promise::MaybeResolve(MCContext* aCx, JS::Handle<JS::Value> aValue) {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
   MC::Rooted<JSObject*> p(aCx, PromiseObj());
@@ -366,7 +366,7 @@ void Promise::MaybeResolve(JSContext* aCx, JS::Handle<JS::Value> aValue) {
   }
 }
 
-void Promise::MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+void Promise::MaybeReject(MCContext* aCx, JS::Handle<JS::Value> aValue) {
   NS_ASSERT_OWNINGTHREAD(Promise);
 
   MC::Rooted<JSObject*> p(aCx, PromiseObj());
@@ -382,8 +382,11 @@ void Promise::MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue) {
 enum class NativeHandlerTask : int32_t { Resolve, Reject };
 
 MOZ_CAN_RUN_SCRIPT
-static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
-                                  JS::Value* aVp) {
+static MC::Tainted<bool> NativeHandlerCallback(MC::Tainted<JSContext*> tCx, unsigned aArgc,
+                                  MC::Tainted<JS::Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* aVp = tVp.UNSAFE_unverified();
+  
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
 
   JS::Value v =
@@ -412,13 +415,13 @@ static bool NativeHandlerCallback(JSContext* aCx, unsigned aArgc,
   return !rv.MaybeSetPendingException(aCx);
 }
 
-static JSObject* CreateNativeHandlerFunction(JSContext* aCx,
+static JSObject* CreateNativeHandlerFunction(MCContext* aCx,
                                              JS::Handle<JSObject*> aHolder,
                                              NativeHandlerTask aTask) {
   static auto NativeHandlerCallbackCb =
-      MC::Sandbox::RegisterCallback(NativeHandlerCallback);
+      MC::Sandbox::RegisterTaintedCallback(NativeHandlerCallback);
   JSFunction* func =
-      js::NewFunctionWithReserved(aCx, NativeHandlerCallbackCb.UNSAFE_get(),
+      js::NewFunctionWithReserved(aCx, NativeHandlerCallbackCb,
                                   /* nargs = */ 1,
                                   /* flags = */ 0, nullptr);
   if (!func) {
@@ -459,7 +462,7 @@ class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromResolve);
@@ -479,7 +482,7 @@ class PromiseNativeHandlerShim final : public PromiseNativeHandler {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
 #ifdef MOZ_DIAGNOSTIC_ASSERT_ENABLED
     MOZ_DIAGNOSTIC_ASSERT(mState != ClearedFromResolve);
@@ -498,7 +501,7 @@ class PromiseNativeHandlerShim final : public PromiseNativeHandler {
 #endif
   }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aWrapper) {
     return PromiseNativeHandler_Binding::Wrap(aCx, this, aGivenProto, aWrapper);
   }
@@ -544,7 +547,7 @@ void Promise::AppendNativeHandler(PromiseNativeHandler* aRunnable) {
   RefPtr<PromiseNativeHandlerShim> shim =
       new PromiseNativeHandlerShim(aRunnable);
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> handlerWrapper(cx);
   // Note: PromiseNativeHandler is NOT wrappercached.  So we can't use
   // ToJSValue here, because it will try to do XPConnect wrapping on it, sadly.
@@ -578,7 +581,7 @@ void Promise::AppendNativeHandler(PromiseNativeHandler* aRunnable) {
   }
 }
 
-void Promise::HandleException(JSContext* aCx) {
+void Promise::HandleException(MCContext* aCx) {
   MC::Rooted<JS::Value> exn(aCx);
   if (JS_GetPendingException(aCx, &exn)) {
     JS_ClearPendingException(aCx);
@@ -589,7 +592,7 @@ void Promise::HandleException(JSContext* aCx) {
 
 // static
 already_AddRefed<Promise> Promise::RejectWithExceptionFromContext(
-    nsIGlobalObject* aGlobal, JSContext* aCx, ErrorResult& aError) {
+    nsIGlobalObject* aGlobal, MCContext* aCx, ErrorResult& aError) {
   MC::Rooted<JS::Value> exn(aCx);
   if (!JS_GetPendingException(aCx, &exn)) {
     // This is very important: if there is no pending exception here but we're
@@ -652,7 +655,7 @@ void Promise::MaybeRejectWithUndefined() {
   MaybeSomething(MC::UndefinedHandleValue(), &Promise::MaybeReject);
 }
 
-void Promise::ReportRejectedPromise(JSContext* aCx,
+void Promise::ReportRejectedPromise(MCContext* aCx,
                                     JS::Handle<JSObject*> aPromise) {
   MOZ_ASSERT(!mc::IsWrapper(aPromise));
 
@@ -698,14 +701,14 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
   // cross-origin objects as "uncaught exception: Object".
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
   {
-    Maybe<JSAutoRealm> ar;
+    MC::SandboxStack<Maybe<JSAutoRealm>> ar;
     MC::Rooted<JS::Value> unwrapped(aCx, result);
     if (unwrapped.isObject()) {
       unwrapped.setObject(*js::UncheckedUnwrap(&unwrapped.toObject()));
-      ar.emplace(aCx, &unwrapped.toObject());
+      ar->emplace(aCx, &unwrapped.toObject());
     }
 
-    JS::ErrorReportBuilder report(aCx);
+    MC::SandboxStack<JS::ErrorReportBuilder> report(aCx);
     RefPtr<Exception> exn;
     if (unwrapped.isObject() &&
         (NS_SUCCEEDED(UNWRAP_OBJECT(DOMException, &unwrapped, exn)) ||
@@ -713,13 +716,13 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
       xpcReport->Init(aCx, exn, isChrome, innerWindowID);
     } else {
       // Use the resolution site as the exception stack
-      JS::ExceptionStack exnStack(aCx, unwrapped, resolutionSite);
-      if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+      MC::SandboxStack<JS::ExceptionStack> exnStack(aCx, unwrapped, resolutionSite);
+      if (!report->init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
         JS_ClearPendingException(aCx);
         return;
       }
 
-      xpcReport->Init(report.report(), report.toStringResult().c_str(),
+      xpcReport->Init(report->report(), report->toStringResult().c_str(),
                       isChrome, innerWindowID);
     }
   }
@@ -743,11 +746,11 @@ void Promise::ReportRejectedPromise(JSContext* aCx,
   }
 }
 
-void Promise::MaybeResolveWithClone(JSContext* aCx,
+void Promise::MaybeResolveWithClone(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue) {
   MC::Rooted<JSObject*> sourceScope(aCx, JS::CurrentGlobalOrNull(aCx));
   AutoEntryScript aes(GetParentObject(), "Promise resolution");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MC::Rooted<JS::Value> value(cx, aValue);
 
   xpc::StackScopedCloneOptions options;
@@ -759,11 +762,11 @@ void Promise::MaybeResolveWithClone(JSContext* aCx,
   MaybeResolve(aCx, value);
 }
 
-void Promise::MaybeRejectWithClone(JSContext* aCx,
+void Promise::MaybeRejectWithClone(MCContext* aCx,
                                    JS::Handle<JS::Value> aValue) {
   MC::Rooted<JSObject*> sourceScope(aCx, JS::CurrentGlobalOrNull(aCx));
   AutoEntryScript aes(GetParentObject(), "Promise rejection");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MC::Rooted<JS::Value> value(cx, aValue);
 
   xpc::StackScopedCloneOptions options;
@@ -789,7 +792,7 @@ class PromiseWorkerProxyRunnable : public WorkerRunnable {
     MOZ_ASSERT(mPromiseWorkerProxy);
   }
 
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
@@ -896,7 +899,7 @@ Promise* PromiseWorkerProxy::WorkerPromise() const {
   return mWorkerPromise;
 }
 
-void PromiseWorkerProxy::RunCallback(JSContext* aCx,
+void PromiseWorkerProxy::RunCallback(MCContext* aCx,
                                      JS::Handle<JS::Value> aValue,
                                      RunCallbackFunc aFunc) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -920,13 +923,13 @@ void PromiseWorkerProxy::RunCallback(JSContext* aCx,
   runnable->Dispatch();
 }
 
-void PromiseWorkerProxy::ResolvedCallback(JSContext* aCx,
+void PromiseWorkerProxy::ResolvedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   RunCallback(aCx, aValue, &Promise::MaybeResolve);
 }
 
-void PromiseWorkerProxy::RejectedCallback(JSContext* aCx,
+void PromiseWorkerProxy::RejectedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   RunCallback(aCx, aValue, &Promise::MaybeReject);
@@ -967,13 +970,13 @@ JSObject* PromiseWorkerProxy::CustomReadHandler(
     return nullptr;
   }
 
-  return mCallbacks->Read(MC_UNSAFE(aCx), aReader.UNSAFE_unverified(), this, aTag, aIndex);
+  return mCallbacks->Read(aCx, aReader, this, aTag, aIndex);
 }
 
-bool PromiseWorkerProxy::CustomWriteHandler(JSContext* aCx,
-                                            JSStructuredCloneWriter* aWriter,
+bool PromiseWorkerProxy::CustomWriteHandler(MCContext* aCx,
+                                            MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                             JS::Handle<JSObject*> aObj,
-                                            bool* aSameProcessScopeRequired) {
+                                            MC::Tainted<bool*> aSameProcessScopeRequired) {
   if (NS_WARN_IF(!mCallbacks)) {
     return false;
   }
@@ -1013,7 +1016,7 @@ bool Promise::SetSettledPromiseIsHandled() {
   }
   AutoAllowLegacyScriptExecution exemption;
   AutoEntryScript aes(mGlobal, "Set settled promise handled");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MC::Rooted<JSObject*> promiseObj(cx, mPromiseObj);
   return JS::SetSettledPromiseIsHandled(cx, promiseObj);
 }
@@ -1025,7 +1028,7 @@ bool Promise::SetAnyPromiseIsHandled() {
   }
   AutoAllowLegacyScriptExecution exemption;
   AutoEntryScript aes(mGlobal, "Set any promise handled");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MC::Rooted<JSObject*> promiseObj(cx, mPromiseObj);
   return JS::SetAnyPromiseIsHandled(cx, promiseObj);
 }
@@ -1095,7 +1098,7 @@ void DomPromise_Release(mozilla::dom::Promise* aPromise) {
     MOZ_ASSERT(aVariant);                                                 \
     mozilla::dom::AutoEntryScript aes(aPromise->GetGlobalObject(),        \
                                       "Promise resolution or rejection"); \
-    JSContext* cx = aes.cx();                                             \
+    MCContext* cx = aes.mcx();                                            \
                                                                           \
     MC::Rooted<JS::Value> val(cx);                                        \
     nsresult rv = NS_OK;                                                  \

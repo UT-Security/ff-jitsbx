@@ -40,11 +40,11 @@ class {{ webidl_name }} final : public nsISupports,
   nsString GetAPINamespace() const override { return u"{{ api_namespace }}"_ns; }
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
-  static bool IsAllowed(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAllowed(MCContext* aCx, JSObject* aGlobal);
 
   nsIGlobalObject* GetParentObject() const;
 
@@ -52,7 +52,7 @@ class {{ webidl_name }} final : public nsISupports,
   // ExtensionEventManager* OnEVENTNAME();
 
   // TODO: add methods for the property getters if any.
-  // void GetPROP_NAME(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  // void GetPROP_NAME(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS({{ webidl_name }})

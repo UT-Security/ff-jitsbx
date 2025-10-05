@@ -10,10 +10,10 @@
 #include <cstdint>
 #include <new>
 #include "ErrorList.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "js/Equality.h"
-#include "js/StructuredClone.h"
-#include "js/Value.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Casting.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/FloatingPoint.h"
@@ -45,7 +45,7 @@ static const double radPerDegree = 2.0 * M_PI / 360.0;
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(DOMMatrixReadOnly, mParent)
 
-JSObject* DOMMatrixReadOnly::WrapObject(JSContext* aCx,
+JSObject* DOMMatrixReadOnly::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return DOMMatrixReadOnly_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -264,8 +264,8 @@ already_AddRefed<DOMMatrixReadOnly> DOMMatrixReadOnly::Constructor(
 }
 
 already_AddRefed<DOMMatrixReadOnly> DOMMatrixReadOnly::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint8_t is2D;
 
   if (!JS_ReadBytes(aReader, &is2D, 1)) {
@@ -479,7 +479,7 @@ void GetDataFromMatrix(const DOMMatrixReadOnly* aMatrix, T* aData) {
   aData[15] = static_cast<T>(aMatrix->M44());
 }
 
-void DOMMatrixReadOnly::ToFloat32Array(JSContext* aCx,
+void DOMMatrixReadOnly::ToFloat32Array(MCContext* aCx,
                                        JS::MutableHandle<JSObject*> aResult,
                                        ErrorResult& aRv) const {
   AutoTArray<float, 16> arr;
@@ -493,7 +493,7 @@ void DOMMatrixReadOnly::ToFloat32Array(JSContext* aCx,
   aResult.set(&value.toObject());
 }
 
-void DOMMatrixReadOnly::ToFloat64Array(JSContext* aCx,
+void DOMMatrixReadOnly::ToFloat64Array(MCContext* aCx,
                                        JS::MutableHandle<JSObject*> aResult,
                                        ErrorResult& aRv) const {
   AutoTArray<double, 16> arr;
@@ -554,7 +554,7 @@ void DOMMatrixReadOnly::Stringify(nsAString& aResult, ErrorResult& aRv) {
 
 // https://drafts.fxtf.org/geometry/#structured-serialization
 bool DOMMatrixReadOnly::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   const uint8_t is2D = Is2D();
 
   if (!JS_WriteBytes(aWriter, &is2D, 1)) {
@@ -589,7 +589,7 @@ bool DOMMatrixReadOnly::WriteStructuredClone(
 }
 
 bool DOMMatrixReadOnly::ReadStructuredCloneElements(
-    JSStructuredCloneReader* aReader, DOMMatrixReadOnly* matrix) {
+    MC::Tainted<JSStructuredCloneReader*> aReader, DOMMatrixReadOnly* matrix) {
   if (matrix->Is2D() == 1) {
     JS_ReadDouble(aReader, &(matrix->mMatrix2D->_11));
     JS_ReadDouble(aReader, &(matrix->mMatrix2D->_12));
@@ -736,8 +736,8 @@ static void SetDataInMatrix(DOMMatrixReadOnly* aMatrix, const T* aData,
 }
 
 already_AddRefed<DOMMatrix> DOMMatrix::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint8_t is2D;
 
   if (!JS_ReadBytes(aReader, &is2D, 1)) {
@@ -1019,7 +1019,7 @@ DOMMatrix* DOMMatrix::SetMatrixValue(const nsACString& aTransformList,
   return this;
 }
 
-JSObject* DOMMatrix::WrapObject(JSContext* aCx,
+JSObject* DOMMatrix::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return DOMMatrix_Binding::Wrap(aCx, this, aGivenProto);
 }

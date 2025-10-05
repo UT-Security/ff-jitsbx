@@ -33,7 +33,7 @@ class PlacesBookmarkRemoved final : public PlacesBookmark {
     return event.forget();
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return PlacesBookmarkRemoved_Binding::Wrap(aCx, this, aGivenProto);
   }

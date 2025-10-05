@@ -22,7 +22,7 @@ BarProp::~BarProp() = default;
 
 nsPIDOMWindowInner* BarProp::GetParentObject() const { return mDOMWindow; }
 
-JSObject* BarProp::WrapObject(JSContext* aCx,
+JSObject* BarProp::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return BarProp_Binding::Wrap(aCx, this, aGivenProto);
 }

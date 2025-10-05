@@ -22,7 +22,7 @@
 #include "js/loader/ModuleLoaderBase.h"
 
 #include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 
 class SandboxPrivate : public nsIGlobalObject,
                        public nsIScriptObjectPrincipal,
@@ -82,12 +82,12 @@ class SandboxPrivate : public nsIGlobalObject,
 
   void ForgetGlobalObject(JSObject* obj) { ClearWrapper(obj); }
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override {
     MOZ_CRASH("SandboxPrivate doesn't use DOM bindings!");
   }
 
-  JS::loader::ModuleLoaderBase* GetModuleLoader(JSContext* aCx) override;
+  JS::loader::ModuleLoaderBase* GetModuleLoader(MCContext* aCx) override;
 
   mozilla::Result<mozilla::ipc::PrincipalInfo, nsresult> GetStorageKey()
       override;

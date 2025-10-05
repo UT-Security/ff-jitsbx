@@ -52,7 +52,7 @@ class nsTreeColumn final : public nsISupports, public nsWrapperCache {
 
   // WebIDL
   nsIContent* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   mozilla::dom::Element* Element();
@@ -161,7 +161,7 @@ class nsTreeColumns final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(nsTreeColumns)
 
   nsIContent* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

@@ -9,7 +9,7 @@
 
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetReservedSlot
 #include "monkeycage/Wrapper.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -65,7 +65,7 @@ namespace mozilla::dom {
  * call it in this header, and BindingUtils.h includes us (i.e. we'd have a
  * circular dependency between headers if it lived there).
  */
-inline bool IsSecureContextOrObjectIsFromSecureContext(JSContext* aCx,
+inline bool IsSecureContextOrObjectIsFromSecureContext(MCContext* aCx,
                                                        JSObject* aObj) {
   MOZ_ASSERT(!mc::IsWrapper(aObj));
   return JS::GetIsSecureContext(js::GetContextRealm(aCx)) ||
@@ -90,7 +90,7 @@ typedef bool (*DeleteNamedProperty)(MCContext* cx,
 
 // Returns true if the given global is of a type whose bit is set in
 // aNonExposedGlobals.
-bool IsNonExposedGlobal(JSContext* aCx, JSObject* aGlobal,
+bool IsNonExposedGlobal(MCContext* aCx, JSObject* aGlobal,
                         uint32_t aNonExposedGlobals);
 
 struct ConstantSpec {
@@ -98,7 +98,7 @@ struct ConstantSpec {
   JS::Value value;
 };
 
-typedef bool (*PropertyEnabled)(JSContext* cx, JSObject* global);
+typedef bool (*PropertyEnabled)(MCContext* cx, JSObject* global);
 
 namespace GlobalNames {
 // The names of our possible globals.  These are the names of the actual
@@ -117,7 +117,7 @@ static constexpr uint32_t kCount = 8;
 }  // namespace GlobalNames
 
 struct PrefableDisablers {
-  inline bool isEnabled(JSContext* cx, JS::Handle<JSObject*> obj) const {
+  inline bool isEnabled(MCContext* cx, JS::Handle<JSObject*> obj) const {
     if (nonExposedGlobals &&
         IsNonExposedGlobal(cx, JS::GetNonCCWObjectGlobal(obj),
                            nonExposedGlobals)) {
@@ -166,7 +166,7 @@ struct PrefableDisablers {
 
 template <typename T>
 struct Prefable {
-  inline bool isEnabled(JSContext* cx, JS::Handle<JSObject*> obj) const {
+  inline bool isEnabled(MCContext* cx, JS::Handle<JSObject*> obj) const {
     MOZ_ASSERT(!mc::IsWrapper(obj));
     if (MOZ_LIKELY(!disablers)) {
       return true;
@@ -484,7 +484,7 @@ inline bool IsInterfacePrototype(DOMObjectType type) {
 typedef JSObject* (*AssociatedGlobalGetter)(MCContext* aCx,
                                             JS::Handle<JSObject*> aObj);
 
-typedef JSObject* (*ProtoGetter)(JSContext* aCx);
+typedef JSObject* (*ProtoGetter)(MCContext* aCx);
 
 /**
  * Returns a handle to the relevant WebIDL prototype object for the current
@@ -493,7 +493,7 @@ typedef JSObject* (*ProtoGetter)(JSContext* aCx);
  * does, since the global traces its array of WebIDL prototypes and
  * constructors.
  */
-typedef JS::Handle<JSObject*> (*ProtoHandleGetter)(JSContext* aCx);
+typedef JS::Handle<JSObject*> (*ProtoHandleGetter)(MCContext* aCx);
 
 /**
  * Serializes a WebIDL object for structured cloning.  aObj may not be in the
@@ -501,16 +501,16 @@ typedef JS::Handle<JSObject*> (*ProtoHandleGetter)(JSContext* aCx);
  * wrapper.  aObj is expected to be an object of the DOMJSClass that we got the
  * serializer from.
  */
-typedef bool (*WebIDLSerializer)(JSContext* aCx,
-                                 JSStructuredCloneWriter* aWriter,
+typedef MC::Tainted<bool> (*WebIDLSerializer)(MCContext* aCx,
+                                 MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                  JS::Handle<JSObject*> aObj);
 
 /**
  * Deserializes a WebIDL object from a structured clone serialization.
  */
-typedef JSObject* (*WebIDLDeserializer)(JSContext* aCx,
+typedef MC::Tainted<JSObject*> (*WebIDLDeserializer)(MCContext* aCx,
                                         nsIGlobalObject* aGlobal,
-                                        JSStructuredCloneReader* aReader);
+                                        MC::Tainted<JSStructuredCloneReader*> aReader);
 
 typedef nsWrapperCache* (*WrapperCacheGetter)(JS::Handle<JSObject*> aObj);
 

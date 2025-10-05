@@ -133,7 +133,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ServiceWorker)
   NS_INTERFACE_MAP_ENTRY(ServiceWorker)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-JSObject* ServiceWorker::WrapObject(JSContext* aCx,
+JSObject* ServiceWorker::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -167,7 +167,7 @@ void ServiceWorker::GetScriptURL(nsString& aURL) const {
   CopyUTF8toUTF16(mDescriptor.ScriptURL(), aURL);
 }
 
-void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void ServiceWorker::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                                 const Sequence<JSObject*>& aTransferable,
                                 ErrorResult& aRv) {
   // Step 6.1 of
@@ -258,7 +258,7 @@ void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
       ClientInfoAndState(clientInfo.ref().ToIPC(), clientState.ref().ToIPC()));
 }
 
-void ServiceWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void ServiceWorker::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                                 const StructuredSerializeOptions& aOptions,
                                 ErrorResult& aRv) {
   PostMessage(aCx, aMessage, aOptions.mTransfer, aRv);

@@ -927,7 +927,7 @@ class MediaTrackGraphImpl : public MediaTrackGraph,
    * the thread is about to exit.  Read under mMonitor on the main thread to
    * interrupt running JS for forced shutdown.
    **/
-  JSContext* mJSContext MOZ_GUARDED_BY(mMonitor) = nullptr;
+  MCContext* mJSContext MOZ_GUARDED_BY(mMonitor) = nullptr;
 
   // Main thread only
 

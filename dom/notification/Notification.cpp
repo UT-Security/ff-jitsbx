@@ -247,7 +247,7 @@ class ReleaseNotificationControlRunnable final
       : MainThreadWorkerControlRunnable(aNotification->mWorkerPrivate),
         mNotification(aNotification) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mNotification->ReleaseObject();
     return true;
   }
@@ -318,7 +318,7 @@ class NotificationWorkerRunnable : public MainThreadWorkerRunnable {
   explicit NotificationWorkerRunnable(WorkerPrivate* aWorkerPrivate)
       : MainThreadWorkerRunnable(aWorkerPrivate) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     aWorkerPrivate->ModifyBusyCountFromWorker(true);
     // WorkerScope might start dying at the moment. And WorkerRunInternal()
@@ -332,7 +332,7 @@ class NotificationWorkerRunnable : public MainThreadWorkerRunnable {
     return true;
   }
 
-  void PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                bool aRunResult) override {
     aWorkerPrivate->ModifyBusyCountFromWorker(false);
   }
@@ -367,7 +367,7 @@ class ReleaseNotificationRunnable final : public NotificationWorkerRunnable {
       : NotificationWorkerRunnable(aNotification->mWorkerPrivate),
         mNotification(aNotification) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     aWorkerPrivate->ModifyBusyCountFromWorker(true);
     // ReleaseNotificationRunnable is only used in StrongWorkerRef's shutdown
@@ -695,7 +695,7 @@ NotificationTask::Run() {
 }
 
 // static
-bool Notification::PrefEnabled(JSContext* aCx, JSObject* aObj) {
+bool Notification::PrefEnabled(MCContext* aCx, JSObject* aObj) {
   if (!NS_IsMainThread()) {
     WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(aCx);
     if (!workerPrivate) {
@@ -799,7 +799,7 @@ already_AddRefed<Notification> Notification::Constructor(
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
   RefPtr<Notification> notification =
-      CreateAndShow(MC_UNSAFE(aGlobal.Context()), global, aTitle, aOptions, u""_ns, aRv);
+      CreateAndShow(aGlobal.Context(), global, aTitle, aOptions, u""_ns, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
   }
@@ -1463,7 +1463,7 @@ void Notification::ShowInternal() {
 }
 
 /* static */
-bool Notification::RequestPermissionEnabledForScope(JSContext* aCx,
+bool Notification::RequestPermissionEnabledForScope(MCContext* aCx,
                                                     JSObject* /* unused */) {
   // requestPermission() is not allowed on workers. The calling page should ask
   // for permission on the worker's behalf. This is to prevent 'which window
@@ -1868,7 +1868,7 @@ already_AddRefed<Promise> Notification::WorkerGet(
   return p.forget();
 }
 
-JSObject* Notification::WrapObject(JSContext* aCx,
+JSObject* Notification::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::Notification_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1930,7 +1930,7 @@ void Notification::GetVibrate(nsTArray<uint32_t>& aRetval) const {
   aRetval = mVibrate.Clone();
 }
 
-void Notification::GetData(JSContext* aCx,
+void Notification::GetData(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aRetval) {
   if (mData.isNull() && !mDataAsBase64.IsEmpty()) {
     nsresult rv;
@@ -1943,7 +1943,7 @@ void Notification::GetData(JSContext* aCx,
     }
 
     MC::Rooted<JS::Value> data(aCx);
-    rv = container->DeserializeToJsval(JS_SanitizeContext(aCx), &data);
+    rv = container->DeserializeToJsval(aCx, &data);
     if (NS_WARN_IF(NS_FAILED(rv))) {
       aRetval.setNull();
       return;
@@ -1962,14 +1962,14 @@ void Notification::GetData(JSContext* aCx,
   aRetval.set(mData);
 }
 
-void Notification::InitFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aData,
+void Notification::InitFromJSVal(MCContext* aCx, JS::Handle<JS::Value> aData,
                                  ErrorResult& aRv) {
   if (!mDataAsBase64.IsEmpty() || aData.isNull()) {
     return;
   }
   RefPtr<nsStructuredCloneContainer> dataObjectContainer =
       new nsStructuredCloneContainer();
-  aRv = dataObjectContainer->InitFromJSVal(aData, JS_SanitizeContext(aCx));
+  aRv = dataObjectContainer->InitFromJSVal(aData, aCx);
   if (NS_WARN_IF(aRv.Failed())) {
     return;
   }
@@ -2152,7 +2152,7 @@ class CheckLoadRunnable final : public WorkerMainThreadRunnable {
 
 /* static */
 already_AddRefed<Promise> Notification::ShowPersistentNotification(
-    JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aScope,
+    MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aScope,
     const nsAString& aTitle, const NotificationOptions& aOptions,
     const ServiceWorkerRegistrationDescriptor& aDescriptor, ErrorResult& aRv) {
   MOZ_ASSERT(aGlobal);
@@ -2242,7 +2242,7 @@ already_AddRefed<Promise> Notification::ShowPersistentNotification(
 
 /* static */
 already_AddRefed<Notification> Notification::CreateAndShow(
-    JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
+    MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
     const NotificationOptions& aOptions, const nsAString& aScope,
     ErrorResult& aRv) {
   MOZ_ASSERT(aGlobal);

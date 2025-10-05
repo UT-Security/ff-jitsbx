@@ -647,7 +647,7 @@ DOMTimeMilliSec PerformanceTiming::ResponseEnd() {
   return static_cast<int64_t>(mTimingData->ResponseEndHighRes(mPerformance));
 }
 
-JSObject* PerformanceTiming::WrapObject(JSContext* cx,
+JSObject* PerformanceTiming::WrapObject(MCContext* cx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return PerformanceTiming_Binding::Wrap(cx, this, aGivenProto);
 }

@@ -365,7 +365,7 @@ HTMLCanvasPrintState::HTMLCanvasPrintState(
 HTMLCanvasPrintState::~HTMLCanvasPrintState() = default;
 
 /* virtual */
-JSObject* HTMLCanvasPrintState::WrapObject(JSContext* aCx,
+JSObject* HTMLCanvasPrintState::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return MozCanvasPrintState_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -514,7 +514,7 @@ NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(HTMLCanvasElement,
 NS_IMPL_ELEMENT_CLONE(HTMLCanvasElement)
 
 /* virtual */
-JSObject* HTMLCanvasElement::WrapNode(JSContext* aCx,
+JSObject* HTMLCanvasElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLCanvasElement_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -727,7 +727,7 @@ bool HTMLCanvasElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
                                               aMaybeScriptedPrincipal, aResult);
 }
 
-void HTMLCanvasElement::ToDataURL(JSContext* aCx, const nsAString& aType,
+void HTMLCanvasElement::ToDataURL(MCContext* aCx, const nsAString& aType,
                                   JS::Handle<JS::Value> aParams,
                                   nsAString& aDataURL,
                                   nsIPrincipal& aSubjectPrincipal,
@@ -853,7 +853,7 @@ already_AddRefed<CanvasCaptureMediaStream> HTMLCanvasElement::CaptureStream(
   return stream.forget();
 }
 
-nsresult HTMLCanvasElement::ExtractData(JSContext* aCx,
+nsresult HTMLCanvasElement::ExtractData(MCContext* aCx,
                                         nsIPrincipal& aSubjectPrincipal,
                                         nsAString& aType,
                                         const nsAString& aOptions,
@@ -866,7 +866,7 @@ nsresult HTMLCanvasElement::ExtractData(JSContext* aCx,
                                    mCurrentContext, mCanvasRenderer, aStream);
 }
 
-nsresult HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
+nsresult HTMLCanvasElement::ToDataURLImpl(MCContext* aCx,
                                           nsIPrincipal& aSubjectPrincipal,
                                           const nsAString& aMimeType,
                                           const JS::Value& aEncoderOptions,
@@ -913,7 +913,7 @@ nsresult HTMLCanvasElement::ToDataURLImpl(JSContext* aCx,
                                  aDataURL.Length());
 }
 
-void HTMLCanvasElement::ToBlob(JSContext* aCx, BlobCallback& aCallback,
+void HTMLCanvasElement::ToBlob(MCContext* aCx, BlobCallback& aCallback,
                                const nsAString& aType,
                                JS::Handle<JS::Value> aParams,
                                nsIPrincipal& aSubjectPrincipal,
@@ -1002,7 +1002,7 @@ nsresult HTMLCanvasElement::GetContext(const nsAString& aContextId,
 }
 
 already_AddRefed<nsISupports> HTMLCanvasElement::GetContext(
-    JSContext* aCx, const nsAString& aContextId,
+    MCContext* aCx, const nsAString& aContextId,
     JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv) {
   if (mOffscreenCanvas) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);

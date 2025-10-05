@@ -35,7 +35,7 @@ RefPtr<MIDIOutput> MIDIOutput::Create(nsPIDOMWindowInner* aWindow,
   return port;
 }
 
-JSObject* MIDIOutput::WrapObject(JSContext* aCx,
+JSObject* MIDIOutput::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return MIDIOutput_Binding::Wrap(aCx, this, aGivenProto);
 }

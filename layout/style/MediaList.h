@@ -39,7 +39,7 @@ class MediaList final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<MediaList> Clone();
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
   nsISupports* GetParentObject() const;
 
   void GetText(nsACString&) const;

@@ -57,7 +57,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_ELEMENT_CLONE(HTMLTemplateElement)
 
-JSObject* HTMLTemplateElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTemplateElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLTemplateElement_Binding::Wrap(aCx, this, aGivenProto);
 }

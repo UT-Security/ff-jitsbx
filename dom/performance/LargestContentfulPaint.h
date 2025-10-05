@@ -34,7 +34,7 @@ class LargestContentfulPaint final : public PerformanceEntry {
                          DOMHighResTimeStamp aLoadTime, unsigned long aSize,
                          nsIURI* aURI, Element* aElement);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp RenderTime() const;

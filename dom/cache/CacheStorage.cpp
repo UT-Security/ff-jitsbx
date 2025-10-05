@@ -225,7 +225,7 @@ already_AddRefed<CacheStorage> CacheStorage::CreateOnWorker(
 }
 
 // static
-bool CacheStorage::DefineCaches(JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
+bool CacheStorage::DefineCaches(MCContext* aCx, JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_DIAGNOSTIC_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL,
                         "Passed object is not a global object!");
@@ -297,7 +297,7 @@ CacheStorage::CacheStorage(nsresult aFailureResult)
 }
 
 already_AddRefed<Promise> CacheStorage::Match(
-    JSContext* aCx, const RequestOrUSVString& aRequest,
+    MCContext* aCx, const RequestOrUSVString& aRequest,
     const MultiCacheQueryOptions& aOptions, ErrorResult& aRv) {
   NS_ASSERT_OWNINGTHREAD(CacheStorage);
 
@@ -494,7 +494,7 @@ already_AddRefed<CacheStorage> CacheStorage::Constructor(
 
 nsISupports* CacheStorage::GetParentObject() const { return mGlobal; }
 
-JSObject* CacheStorage::WrapObject(JSContext* aContext,
+JSObject* CacheStorage::WrapObject(MCContext* aContext,
                                    JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::CacheStorage_Binding::Wrap(aContext, this, aGivenProto);
 }

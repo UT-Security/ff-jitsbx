@@ -54,7 +54,7 @@ class ImageCapture final : public DOMEventTargetHelper {
   MediaStreamTrack* GetVideoStreamTrack() const;
 
   // nsWrapperCache member
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return ImageCapture_Binding::Wrap(aCx, this, aGivenProto);
   }

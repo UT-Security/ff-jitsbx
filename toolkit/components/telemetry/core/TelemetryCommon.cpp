@@ -7,7 +7,7 @@
 #include "TelemetryCommon.h"
 
 #include <cstring>
-#include "js/String.h"
+#include "monkeycage/String.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/StaticPrefs_toolkit.h"
 #include "nsComponentManagerUtils.h"
@@ -183,12 +183,12 @@ bool IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
   return true;
 }
 
-JSString* ToJSString(JSContext* cx, const nsACString& aStr) {
+JSString* ToJSString(MCContext* cx, const nsACString& aStr) {
   const NS_ConvertUTF8toUTF16 wide(aStr);
   return JS_NewUCStringCopyN(cx, wide.Data(), wide.Length());
 }
 
-JSString* ToJSString(JSContext* cx, const nsAString& aStr) {
+JSString* ToJSString(MCContext* cx, const nsAString& aStr) {
   return JS_NewUCStringCopyN(cx, aStr.Data(), aStr.Length());
 }
 

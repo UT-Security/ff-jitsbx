@@ -98,7 +98,7 @@ class AbstractRange : public nsISupports,
   }
 
   nsINode* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasEqualBoundaries(const AbstractRange& aOther) const {

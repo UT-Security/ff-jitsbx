@@ -31,10 +31,10 @@ class IncomingDatagramStreamAlgorithms
                                            UnderlyingSourceAlgorithmsWrapper)
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
-  MOZ_CAN_RUN_SCRIPT void ReturnDatagram(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void ReturnDatagram(MCContext* aCx, ErrorResult& aRv);
 
   void NotifyDatagramAvailable();
 
@@ -72,7 +72,7 @@ class OutgoingDatagramStreamAlgorithms final
   // Streams algorithms
 
   already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController,
       ErrorResult& aError) override;
 
@@ -110,7 +110,7 @@ class WebTransportDatagramDuplexStream final : public nsISupports,
   // WebIDL Boilerplate
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface

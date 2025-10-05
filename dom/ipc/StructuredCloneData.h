@@ -8,6 +8,7 @@
 #define mozilla_dom_ipc_StructuredCloneData_h
 
 #include <algorithm>
+#include "monkeycage/SandboxHeap.h"
 #include "mozilla/RefPtr.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "nsISupportsImpl.h"
@@ -47,22 +48,22 @@ namespace ipc {
  */
 class SharedJSAllocatedData final {
  public:
-  explicit SharedJSAllocatedData(JSStructuredCloneData&& aData)
+  explicit SharedJSAllocatedData(MC::SandboxHeap<JSStructuredCloneData>&& aData)
       : mData(std::move(aData)) {}
 
   static already_AddRefed<SharedJSAllocatedData> CreateFromExternalData(
       const char* aData, size_t aDataLength) {
-    JSStructuredCloneData buf(JS::StructuredCloneScope::DifferentProcess);
-    NS_ENSURE_TRUE(buf.AppendBytes(aData, aDataLength), nullptr);
+    MC::SandboxHeap<JSStructuredCloneData> buf(JS::StructuredCloneScope::DifferentProcess);
+    NS_ENSURE_TRUE(buf->AppendBytes(aData, aDataLength), nullptr);
     RefPtr<SharedJSAllocatedData> sharedData =
         new SharedJSAllocatedData(std::move(buf));
     return sharedData.forget();
   }
 
   static already_AddRefed<SharedJSAllocatedData> CreateFromExternalData(
-      const JSStructuredCloneData& aData) {
-    JSStructuredCloneData buf(aData.scope());
-    NS_ENSURE_TRUE(buf.Append(aData), nullptr);
+      MC::Tainted<const JSStructuredCloneData*> aData) {
+    MC::SandboxHeap<JSStructuredCloneData> buf(aData->scope());
+    NS_ENSURE_TRUE(buf->Append(aData), nullptr);
     RefPtr<SharedJSAllocatedData> sharedData =
         new SharedJSAllocatedData(std::move(buf));
     return sharedData.forget();
@@ -70,13 +71,13 @@ class SharedJSAllocatedData final {
 
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(SharedJSAllocatedData)
 
-  JSStructuredCloneData& Data() { return mData; }
-  size_t DataLength() const { return mData.Size(); }
+  MC::Tainted<JSStructuredCloneData*> Data() { return mData; }
+  size_t DataLength() const { return mData->Size(); }
 
  private:
   ~SharedJSAllocatedData() = default;
 
-  JSStructuredCloneData mData;
+  MC::SandboxHeap<JSStructuredCloneData> mData;
 };
 
 /**
@@ -173,20 +174,20 @@ class StructuredCloneData : public StructuredCloneHolder {
 
   bool Copy(const StructuredCloneData& aData);
 
-  void Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
             ErrorResult& aRv);
 
-  void Read(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void Read(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
             const JS::CloneDataPolicy& aCloneDataPolicy, ErrorResult& aRv);
 
   // Write with no transfer objects and with the default CloneDataPolicy.  With
   // a default CloneDataPolicy, read and write will not be considered as part of
   // the same agent cluster and shared memory objects will not be supported.
-  void Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
              ErrorResult& aRv) override;
 
   // The most generic Write method, with tansfers and CloneDataPolicy.
-  void Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
              JS::Handle<JS::Value> aTransfers,
              const JS::CloneDataPolicy& aCloneDataPolicy,
              ErrorResult& aRv) override;
@@ -207,12 +208,12 @@ class StructuredCloneData : public StructuredCloneHolder {
   // Initialize this instance, borrowing the contents of the given
   // JSStructuredCloneData.  You are responsible for ensuring that this
   // StructuredCloneData instance is destroyed before aData is destroyed.
-  bool UseExternalData(const JSStructuredCloneData& aData) {
-    auto iter = aData.Start();
-    bool success = false;
-    mExternalData = aData.Borrow(iter, aData.Size(), &success);
+  bool UseExternalData(MC::Tainted<const JSStructuredCloneData*> aData) {
+    auto iter = aData->Start();
+    MC::SandboxStack<bool> success = false;
+    mExternalData = aData->Borrow(iter, aData->Size(), success);
     mInitialized = true;
-    return success;
+    return *success.UNSAFE_unverified();
   }
 
   // Initialize this instance by copying the given data that probably came from
@@ -221,26 +222,26 @@ class StructuredCloneData : public StructuredCloneHolder {
   // Initialize this instance by copying the contents of an existing
   // JSStructuredCloneData.  Use when this StructuredCloneData instance may
   // outlive aData.
-  bool CopyExternalData(const JSStructuredCloneData& aData);
+  bool CopyExternalData(MC::Tainted<const JSStructuredCloneData*> aData);
 
   // Initialize this instance by stealing the contents of aData via Move
   // constructor, clearing the original aData as a side-effect.  This is only
   // safe if aData owns the underlying buffers.  This is the case for instances
   // provided by IPC to Recv calls.
-  bool StealExternalData(JSStructuredCloneData& aData);
+  bool StealExternalData(MC::SandboxHeap<JSStructuredCloneData>&& aData);
 
-  JSStructuredCloneData& Data() {
-    return mSharedData ? mSharedData->Data() : mExternalData;
+  MC::Tainted<JSStructuredCloneData*> Data() {
+    return mSharedData ? mSharedData->Data() : static_cast<MC::Tainted<JSStructuredCloneData*>>(mExternalData);
   }
 
-  const JSStructuredCloneData& Data() const {
-    return mSharedData ? mSharedData->Data() : mExternalData;
+  MC::Tainted<const JSStructuredCloneData*> Data() const {
+    return mSharedData ? mSharedData->Data() : static_cast<MC::Tainted<const JSStructuredCloneData*>>(mExternalData);
   }
 
-  void InitScope(JS::StructuredCloneScope aScope) { Data().initScope(aScope); }
+  void InitScope(JS::StructuredCloneScope aScope) { Data()->initScope(aScope); }
 
   size_t DataLength() const {
-    return mSharedData ? mSharedData->DataLength() : mExternalData.Size();
+    return mSharedData ? mSharedData->DataLength() : mExternalData->Size();
   }
 
   SharedJSAllocatedData* SharedData() const { return mSharedData; }
@@ -255,7 +256,7 @@ class StructuredCloneData : public StructuredCloneHolder {
   already_AddRefed<SharedJSAllocatedData> TakeSharedData();
 
  private:
-  JSStructuredCloneData mExternalData;
+  MC::SandboxHeap<JSStructuredCloneData> mExternalData;
   RefPtr<SharedJSAllocatedData> mSharedData;
 
   bool mInitialized;

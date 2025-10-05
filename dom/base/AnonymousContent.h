@@ -37,7 +37,7 @@ class AnonymousContent final {
   Element& ContentNode() { return *mContentNode; }
 
   Element* GetElementById(const nsAString& aElementId);
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
   // WebIDL methods
@@ -64,7 +64,7 @@ class AnonymousContent final {
                                                  ErrorResult& aRv);
 
   already_AddRefed<Animation> SetAnimationForElement(
-      JSContext* aContext, const nsAString& aElementId,
+      MCContext* aContext, const nsAString& aElementId,
       JS::Handle<JSObject*> aKeyframes,
       const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
       ErrorResult& aError);

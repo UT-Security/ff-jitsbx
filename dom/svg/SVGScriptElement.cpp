@@ -16,7 +16,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT_CHECK_PARSER(Script)
 
 namespace mozilla::dom {
 
-JSObject* SVGScriptElement::WrapNode(JSContext* aCx,
+JSObject* SVGScriptElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGScriptElement_Binding::Wrap(aCx, this, aGivenProto);
 }

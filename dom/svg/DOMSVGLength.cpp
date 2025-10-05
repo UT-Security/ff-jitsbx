@@ -372,7 +372,7 @@ void DOMSVGLength::ConvertToSpecifiedUnits(uint16_t aUnit, ErrorResult& aRv) {
   aRv.Throw(NS_ERROR_FAILURE);
 }
 
-JSObject* DOMSVGLength::WrapObject(JSContext* aCx,
+JSObject* DOMSVGLength::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGLength_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -115,7 +115,7 @@ void ShadowRoot::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
       ShadowRootAuthorStylesMallocEnclosingSizeOf, mServoStyles.get());
 }
 
-JSObject* ShadowRoot::WrapNode(JSContext* aCx,
+JSObject* ShadowRoot::WrapNode(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::ShadowRoot_Binding::Wrap(aCx, this, aGivenProto);
 }

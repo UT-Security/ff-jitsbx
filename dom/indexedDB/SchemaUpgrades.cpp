@@ -2743,14 +2743,14 @@ class DeserializeUpgradeValueHelper final : public Runnable {
 
   nsresult DispatchAndWait(nsAString& aFileIds) {
     // We don't need to go to the main-thread and use the sandbox.
-    if (!mCloneReadInfo.Data().Size()) {
+    if (!mCloneReadInfo.Data()->Size()) {
       PopulateFileIds(aFileIds);
       return NS_OK;
     }
 
     // The operation will continue on the main-thread.
 
-    MOZ_ASSERT(!(mCloneReadInfo.Data().Size() % sizeof(uint64_t)));
+    MOZ_ASSERT(!(mCloneReadInfo.Data()->Size() % sizeof(uint64_t)));
 
     MonitorAutoLock lock(mMonitor);
 
@@ -2777,7 +2777,7 @@ class DeserializeUpgradeValueHelper final : public Runnable {
 
     AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::Rooted<JSObject*> global(cx, GetSandbox(cx));
     if (NS_WARN_IF(!global)) {
@@ -2799,10 +2799,10 @@ class DeserializeUpgradeValueHelper final : public Runnable {
   }
 
  private:
-  nsresult DeserializeUpgradeValue(JSContext* aCx,
+  nsresult DeserializeUpgradeValue(MCContext* aCx,
                                    JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        MC::Sandbox::RegisterCallback(
+        MC::Sandbox::RegisterTaintedCallback(
             StructuredCloneReadCallback<StructuredCloneReadInfoParent>)
             .UNSAFE_get(),
         nullptr,

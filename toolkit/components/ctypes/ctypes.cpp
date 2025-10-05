@@ -6,7 +6,7 @@
 #include "ctypes.h"
 #include "mcapi.h"
 #include "js/experimental/CTypes.h"  // JS::CTypesCallbacks, JS::InitCTypesClass, JS::SetCTypesCallbacks
-#include "js/MemoryFunctions.h"
+#include "monkeycage/MemoryFunctions.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "nsString.h"
 #include "nsNativeCharsetUtils.h"
@@ -15,26 +15,30 @@
 
 namespace mozilla::ctypes {
 
-static char* UnicodeToNative(JSContext* cx, const char16_t* source,
+static MC::Tainted<char*> UnicodeToNative(MC::Tainted<JSContext*> t_cx, MC::Tainted<const char16_t*> source,
                              size_t slen) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   nsAutoCString native;
-  nsDependentSubstring unicode(source, slen);
+  nsDependentSubstring unicode(source.UNSAFE_unverified(), slen);
   nsresult rv = NS_CopyUnicodeToNative(unicode, native);
   if (NS_FAILED(rv)) {
     JS_ReportErrorASCII(cx, "could not convert string to native charset");
     return nullptr;
   }
 
-  char* result = static_cast<char*>(JS_malloc(cx, native.Length() + 1));
+  MC::Tainted<char*> result = MC::detail::tainted_static_cast<char*>(JS_malloc(cx, native.Length() + 1));
   if (!result) {
     return nullptr;
   }
 
-  memcpy(result, native.get(), native.Length() + 1);
+  memcpy(result.UNSAFE_unverified(), native.get(), native.Length() + 1);
   return result;
 }
 
-static JS::CTypesCallbacks sCallbacks = {UnicodeToNative};
+static JS::CTypesCallbacks* sCallbacks() {
+  static JS::CTypesCallbacks inner_ = {MC::Sandbox::RegisterTaintedCallback(UnicodeToNative).UNSAFE_get()};
+  return &inner_;
+}
 
 NS_IMPL_ISUPPORTS(Module, nsIXPCScriptable)
 
@@ -47,10 +51,10 @@ Module::~Module() = default;
 #define XPC_MAP_FLAGS XPC_SCRIPTABLE_WANT_CALL
 #include "xpc_map_end.h"
 
-static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
+static bool InitCTypesClassAndSetCallbacks(MCContext* cx,
                                            JS::Handle<JSObject*> global) {
   // Init the ctypes object.
-  if (!JS::InitCTypesClass(cx, global)) {
+  if (!JS::InitCTypesClass(MC_UNSAFE(cx), global)) {
     return false;
   }
 
@@ -60,7 +64,7 @@ static bool InitCTypesClassAndSetCallbacks(JSContext* cx,
     return false;
   }
 
-  JS::SetCTypesCallbacks(ctypes.toObjectOrNull(), &sCallbacks);
+  JS::SetCTypesCallbacks(ctypes.toObjectOrNull(), sCallbacks());
 
   return true;
 }
@@ -72,7 +76,7 @@ Module::Call(nsIXPConnectWrappedNative* wrapper, MCContext* cx, JSObject* obj,
   MC::Rooted<JSObject*> targetObj(cx);
   loader->FindTargetObject(cx, &targetObj);
 
-  *_retval = InitCTypesClassAndSetCallbacks(MC_UNSAFE(cx), targetObj);
+  *_retval = InitCTypesClassAndSetCallbacks(cx, targetObj);
   return NS_OK;
 }
 

@@ -1483,7 +1483,7 @@ class Element : public FragmentOrElement {
   already_AddRefed<DOMMatrixReadOnly> GetTransformToViewport();
 
   already_AddRefed<Animation> Animate(
-      JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
+      MCContext* aContext, JS::Handle<JSObject*> aKeyframes,
       const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
       ErrorResult& aError);
 

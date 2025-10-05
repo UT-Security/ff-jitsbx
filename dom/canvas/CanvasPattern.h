@@ -35,7 +35,7 @@ class CanvasPattern final : public nsWrapperCache {
                 nsIPrincipal* principalForSecurityCheck, bool forceWriteOnly,
                 bool CORSUsed);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return CanvasPattern_Binding::Wrap(aCx, this, aGivenProto);
   }

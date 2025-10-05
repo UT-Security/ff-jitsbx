@@ -101,7 +101,7 @@ nsresult HTMLAudioElement::SetAcceptHeader(nsIHttpChannel* aChannel) {
   return aChannel->SetRequestHeader("Accept"_ns, value, false);
 }
 
-JSObject* HTMLAudioElement::WrapNode(JSContext* aCx,
+JSObject* HTMLAudioElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLAudioElement_Binding::Wrap(aCx, this, aGivenProto);
 }

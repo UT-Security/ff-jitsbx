@@ -15,7 +15,7 @@ namespace mozilla::dom {
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedLength,
                                                mSVGElement)
 
-JSObject* DOMSVGAnimatedLength::WrapObject(JSContext* aCx,
+JSObject* DOMSVGAnimatedLength::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedLength_Binding::Wrap(aCx, this, aGivenProto);
 }

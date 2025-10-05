@@ -20,7 +20,7 @@ NS_INTERFACE_MAP_END_INHERITING(JSActor)
 NS_IMPL_ADDREF_INHERITED(JSProcessActorChild, JSActor)
 NS_IMPL_RELEASE_INHERITED(JSProcessActorChild, JSActor)
 
-JSObject* JSProcessActorChild::WrapObject(JSContext* aCx,
+JSObject* JSProcessActorChild::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return JSProcessActorChild_Binding::Wrap(aCx, this, aGivenProto);
 }

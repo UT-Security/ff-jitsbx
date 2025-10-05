@@ -123,7 +123,7 @@
 #include "nsXULControllers.h"
 
 // input type=date
-#include "js/Date.h"
+#include "monkeycage/Date.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT_CHECK_PARSER(Input)
 
@@ -1695,7 +1695,7 @@ void HTMLInputElement::SetValue(Decimal aValue, CallerType aCallerType) {
   SetValue(value, aCallerType, IgnoreErrors());
 }
 
-void HTMLInputElement::GetValueAsDate(JSContext* aCx,
+void HTMLInputElement::GetValueAsDate(MCContext* aCx,
                                       JS::MutableHandle<JSObject*> aObject,
                                       ErrorResult& aRv) {
   aObject.set(nullptr);
@@ -1782,7 +1782,7 @@ void HTMLInputElement::GetValueAsDate(JSContext* aCx,
   aRv.Throw(NS_ERROR_UNEXPECTED);
 }
 
-void HTMLInputElement::SetValueAsDate(JSContext* aCx,
+void HTMLInputElement::SetValueAsDate(MCContext* aCx,
                                       JS::Handle<JSObject*> aObj,
                                       ErrorResult& aRv) {
   if (!IsDateTimeInputType(mType)) {
@@ -1791,43 +1791,43 @@ void HTMLInputElement::SetValueAsDate(JSContext* aCx,
   }
 
   if (aObj) {
-    bool isDate;
-    if (!JS::ObjectIsDate(aCx, aObj, &isDate)) {
+    MC::SandboxStack<bool> isDate;
+    if (!JS::ObjectIsDate(aCx, aObj, isDate)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
-    if (!isDate) {
+    if (!*isDate.UNSAFE_unverified()) {
       aRv.ThrowTypeError("Value being assigned is not a date.");
       return;
     }
   }
 
-  double milliseconds;
+  MC::SandboxStack<double> milliseconds;
   if (aObj) {
-    if (!js::DateGetMsecSinceEpoch(aCx, aObj, &milliseconds)) {
+    if (!js::DateGetMsecSinceEpoch(aCx, aObj, milliseconds)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
   } else {
-    milliseconds = UnspecifiedNaN<double>();
+    *milliseconds = UnspecifiedNaN<double>();
   }
 
   // At this point we know we're not a file input, so we can just pass "not
   // system" as the caller type, since the caller type only matters in the file
   // input case.
-  if (std::isnan(milliseconds)) {
+  if (std::isnan(*milliseconds.UNSAFE_unverified())) {
     SetValue(u""_ns, CallerType::NonSystem, aRv);
     return;
   }
 
   if (mType != FormControlType::InputMonth) {
-    SetValue(Decimal::fromDouble(milliseconds), CallerType::NonSystem);
+    SetValue(Decimal::fromDouble(*milliseconds.UNSAFE_unverified()), CallerType::NonSystem);
     return;
   }
 
   // type=month expects the value to be number of months.
-  double year = JS::YearFromTime(milliseconds);
-  double month = JS::MonthFromTime(milliseconds);
+  double year = JS::YearFromTime(*milliseconds.UNSAFE_unverified());
+  double month = JS::MonthFromTime(*milliseconds.UNSAFE_unverified());
 
   if (std::isnan(year) || std::isnan(month)) {
     SetValue(u""_ns, CallerType::NonSystem, aRv);
@@ -7130,7 +7130,7 @@ void HTMLInputElement::UpdateHasRange() {
 
 void HTMLInputElement::PickerClosed() { mPickerRunning = false; }
 
-JSObject* HTMLInputElement::WrapNode(JSContext* aCx,
+JSObject* HTMLInputElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLInputElement_Binding::Wrap(aCx, this, aGivenProto);
 }

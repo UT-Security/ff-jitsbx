@@ -55,7 +55,7 @@ class MessageManagerGlobal {
   }
 
   // MessageSender
-  void SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void SendAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                         JS::Handle<JS::Value> aObj,
                         JS::Handle<JS::Value> aTransfers, ErrorResult& aError) {
     if (!mMessageManager) {
@@ -83,7 +83,7 @@ class MessageManagerGlobal {
   }
 
   // SyncMessageSender
-  void SendSyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void SendSyncMessage(MCContext* aCx, const nsAString& aMessageName,
                        JS::Handle<JS::Value> aObj, nsTArray<JS::Value>& aResult,
                        ErrorResult& aError) {
     if (!mMessageManager) {

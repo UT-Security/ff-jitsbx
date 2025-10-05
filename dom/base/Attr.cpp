@@ -210,7 +210,7 @@ void Attr::Initialize() { sInitialized = true; }
 
 void Attr::Shutdown() { sInitialized = false; }
 
-JSObject* Attr::WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Attr::WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Attr_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -184,7 +184,7 @@ nsMapRuleToAttributesFunc HTMLHRElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-JSObject* HTMLHRElement::WrapNode(JSContext* aCx,
+JSObject* HTMLHRElement::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return HTMLHRElement_Binding::Wrap(aCx, this, aGivenProto);
 }

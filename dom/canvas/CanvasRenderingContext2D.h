@@ -85,7 +85,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
  public:
   explicit CanvasRenderingContext2D(layers::LayersBackend aCompositorBackend);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   HTMLCanvasElement* GetCanvas() const {
@@ -223,25 +223,25 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   bool DrawCustomFocusRing(mozilla::dom::Element& aElement);
   void Clip(const CanvasWindingRule& aWinding);
   void Clip(const CanvasPath& aPath, const CanvasWindingRule& aWinding);
-  bool IsPointInPath(JSContext* aCx, double aX, double aY,
+  bool IsPointInPath(MCContext* aCx, double aX, double aY,
                      const CanvasWindingRule& aWinding,
                      nsIPrincipal& aSubjectPrincipal);
-  bool IsPointInPath(JSContext* aCx, double aX, double aY,
+  bool IsPointInPath(MCContext* aCx, double aX, double aY,
                      const CanvasWindingRule& aWinding,
                      Maybe<nsIPrincipal*> aSubjectPrincipal);
-  bool IsPointInPath(JSContext* aCx, const CanvasPath& aPath, double aX,
+  bool IsPointInPath(MCContext* aCx, const CanvasPath& aPath, double aX,
                      double aY, const CanvasWindingRule& aWinding,
                      nsIPrincipal&);
-  bool IsPointInPath(JSContext* aCx, const CanvasPath& aPath, double aX,
+  bool IsPointInPath(MCContext* aCx, const CanvasPath& aPath, double aX,
                      double aY, const CanvasWindingRule& aWinding,
                      Maybe<nsIPrincipal*>);
-  bool IsPointInStroke(JSContext* aCx, double aX, double aY,
+  bool IsPointInStroke(MCContext* aCx, double aX, double aY,
                        nsIPrincipal& aSubjectPrincipal);
-  bool IsPointInStroke(JSContext* aCx, double aX, double aY,
+  bool IsPointInStroke(MCContext* aCx, double aX, double aY,
                        Maybe<nsIPrincipal*> aSubjectPrincipal);
-  bool IsPointInStroke(JSContext* aCx, const CanvasPath& aPath, double aX,
+  bool IsPointInStroke(MCContext* aCx, const CanvasPath& aPath, double aX,
                        double aY, nsIPrincipal&);
-  bool IsPointInStroke(JSContext* aCx, const CanvasPath& aPath, double aX,
+  bool IsPointInStroke(MCContext* aCx, const CanvasPath& aPath, double aX,
                        double aY, Maybe<nsIPrincipal*>);
   void FillText(const nsAString& aText, double aX, double aY,
                 const Optional<double>& aMaxWidth,
@@ -269,16 +269,16 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     DrawImage(aImage, aSx, aSy, aSw, aSh, aDx, aDy, aDw, aDh, 6, aError);
   }
 
-  already_AddRefed<ImageData> CreateImageData(JSContext*, int32_t aSw,
+  already_AddRefed<ImageData> CreateImageData(MCContext*, int32_t aSw,
                                               int32_t aSh, ErrorResult&);
-  already_AddRefed<ImageData> CreateImageData(JSContext*, ImageData&,
+  already_AddRefed<ImageData> CreateImageData(MCContext*, ImageData&,
                                               ErrorResult&);
-  already_AddRefed<ImageData> GetImageData(JSContext*, int32_t aSx, int32_t aSy,
+  already_AddRefed<ImageData> GetImageData(MCContext*, int32_t aSx, int32_t aSy,
                                            int32_t aSw, int32_t aSh,
                                            nsIPrincipal& aSubjectPrincipal,
                                            ErrorResult&);
   already_AddRefed<ImageData> GetImageData(
-      JSContext*, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
+      MCContext*, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
       Maybe<nsIPrincipal*> aSubjectPrincipal, ErrorResult&);
   void PutImageData(ImageData&, int32_t aDx, int32_t aDy, ErrorResult&);
   void PutImageData(ImageData&, int32_t aDx, int32_t aDy, int32_t aDirtyX,
@@ -473,7 +473,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
     Redraw(ToRect(aR));
     return NS_OK;
   }
-  NS_IMETHOD SetContextOptions(JSContext* aCx, JS::Handle<JS::Value> aOptions,
+  NS_IMETHOD SetContextOptions(MCContext* aCx, JS::Handle<JS::Value> aOptions,
                                ErrorResult& aRvForDictionaryInit) override;
 
   /**
@@ -545,7 +545,7 @@ class CanvasRenderingContext2D : public nsICanvasRenderingContextInternal,
   already_AddRefed<const ComputedStyle> ResolveStyleForProperty(
       nsCSSPropertyID aProperty, const nsACString& aValue);
 
-  nsresult GetImageDataArray(JSContext* aCx, int32_t aX, int32_t aY,
+  nsresult GetImageDataArray(MCContext* aCx, int32_t aX, int32_t aY,
                              uint32_t aWidth, uint32_t aHeight,
                              Maybe<nsIPrincipal*> aSubjectPrincipal,
                              JSObject** aRetval);

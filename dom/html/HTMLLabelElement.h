@@ -58,7 +58,7 @@ class HTMLLabelElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLLabelElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   nsGenericHTMLElement* GetFirstLabelableDescendant() const;

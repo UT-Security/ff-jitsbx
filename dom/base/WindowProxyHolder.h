@@ -68,7 +68,7 @@ inline void ImplCycleCollectionUnlink(WindowProxyHolder& aProxy) {
   aProxy.mBrowsingContext = nullptr;
 }
 
-extern bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
+extern bool GetRemoteOuterWindowProxy(MCContext* aCx, BrowsingContext* aContext,
                                       JS::Handle<JSObject*> aTransplantTo,
                                       JS::MutableHandle<JSObject*> aValue);
 

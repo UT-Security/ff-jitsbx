@@ -48,7 +48,7 @@ nsDOMDataChannel::~nsDOMDataChannel() {
 }
 
 /* virtual */
-JSObject* nsDOMDataChannel::WrapObject(JSContext* aCx,
+JSObject* nsDOMDataChannel::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return RTCDataChannel_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -293,7 +293,7 @@ nsresult nsDOMDataChannel::DoOnMessageAvailable(const nsACString& aData,
   if (NS_WARN_IF(!jsapi.Init(GetOwner()))) {
     return NS_ERROR_FAILURE;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JS::Value> jsData(cx);
 

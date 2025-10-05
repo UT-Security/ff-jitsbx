@@ -100,7 +100,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
 
   // CreateWritableStream
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<WritableStream> CreateAbstract(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
+      MCContext* aCx, nsIGlobalObject* aGlobal,
       UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
       QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
 
@@ -110,26 +110,26 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   }
 
   // WritableStreamDealWithRejection
-  MOZ_CAN_RUN_SCRIPT void DealWithRejection(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void DealWithRejection(MCContext* aCx,
                                             JS::Handle<JS::Value> aError,
                                             ErrorResult& aRv);
 
   // WritableStreamFinishErroring
-  MOZ_CAN_RUN_SCRIPT void FinishErroring(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void FinishErroring(MCContext* aCx, ErrorResult& aRv);
 
   // WritableStreamFinishInFlightClose
   void FinishInFlightClose();
 
   // WritableStreamFinishInFlightCloseWithError
   MOZ_CAN_RUN_SCRIPT void FinishInFlightCloseWithError(
-      JSContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
   // WritableStreamFinishInFlightWrite
   void FinishInFlightWrite();
 
   // WritableStreamFinishInFlightWriteWithError
   MOZ_CAN_RUN_SCRIPT void FinishInFlightWriteWithError(
-      JSContext* aCX, JS::Handle<JS::Value> aError, ErrorResult& aR);
+      MCContext* aCX, JS::Handle<JS::Value> aError, ErrorResult& aR);
 
   // WritableStreamHasOperationMarkedInFlight
   bool HasOperationMarkedInFlight() const {
@@ -146,7 +146,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   void RejectCloseAndClosedPromiseIfNeeded();
 
   // WritableStreamStartErroring
-  MOZ_CAN_RUN_SCRIPT void StartErroring(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void StartErroring(MCContext* aCx,
                                         JS::Handle<JS::Value> aReason,
                                         ErrorResult& aRv);
 
@@ -155,14 +155,14 @@ class WritableStream : public nsISupports, public nsWrapperCache {
 
   // [Transferable]
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-steps
-  MOZ_CAN_RUN_SCRIPT bool Transfer(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT bool Transfer(MCContext* aCx,
                                    UniqueMessagePortId& aPortId);
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-receiving-steps
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<WritableStream>
-  ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
+  ReceiveTransferImpl(MCContext* aCx, nsIGlobalObject* aGlobal,
                       MessagePort& aPort);
   MOZ_CAN_RUN_SCRIPT static bool ReceiveTransfer(
-      JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
+      MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
       JS::MutableHandle<JSObject*> aReturnObject);
 
   // Public functions to implement other specs
@@ -171,7 +171,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   // https://streams.spec.whatwg.org/#writablestream-set-up
  protected:
   // Sets up the WritableStream. Intended for subclasses.
-  void SetUpNative(JSContext* aCx, UnderlyingSinkAlgorithmsWrapper& aAlgorithms,
+  void SetUpNative(MCContext* aCx, UnderlyingSinkAlgorithmsWrapper& aAlgorithms,
                    Maybe<double> aHighWaterMark,
                    QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
 
@@ -179,7 +179,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   // Creates and sets up a WritableStream. Use SetUpNative for this purpose in
   // subclasses.
   static already_AddRefed<WritableStream> CreateNative(
-      JSContext* aCx, nsIGlobalObject& aGlobal,
+      MCContext* aCx, nsIGlobalObject& aGlobal,
       UnderlyingSinkAlgorithmsWrapper& aAlgorithms,
       Maybe<double> aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
       ErrorResult& aRv);
@@ -188,7 +188,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   // initialized via the above set up algorithm:
 
   // https://streams.spec.whatwg.org/#writablestream-error
-  MOZ_CAN_RUN_SCRIPT void ErrorNative(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ErrorNative(MCContext* aCx,
                                       JS::Handle<JS::Value> aError,
                                       ErrorResult& aRv);
 
@@ -196,7 +196,7 @@ class WritableStream : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // IDL methods
@@ -210,9 +210,9 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   bool Locked() const { return !!mWriter; }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Abort(
-      JSContext* cx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
+      MCContext* cx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Close(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Close(MCContext* aCx,
                                                      ErrorResult& aRv);
 
   already_AddRefed<WritableStreamDefaultWriter> GetWriter(ErrorResult& aRv);
@@ -250,11 +250,11 @@ inline bool IsWritableStreamLocked(WritableStream* aStream) {
 }
 
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamAbort(
-    JSContext* aCx, WritableStream* aStream, JS::Handle<JS::Value> aReason,
+    MCContext* aCx, WritableStream* aStream, JS::Handle<JS::Value> aReason,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamClose(
-    JSContext* aCx, WritableStream* aStream, ErrorResult& aRv);
+    MCContext* aCx, WritableStream* aStream, ErrorResult& aRv);
 
 already_AddRefed<Promise> WritableStreamAddWriteRequest(
     WritableStream* aStream);

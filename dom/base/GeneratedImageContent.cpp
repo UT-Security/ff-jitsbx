@@ -35,7 +35,7 @@ GeneratedImageContent::CreateForListStyleImage(Document& aDocument) {
   return Create(aDocument, uint32_t(-1));
 }
 
-JSObject* GeneratedImageContent::WrapNode(JSContext* aCx,
+JSObject* GeneratedImageContent::WrapNode(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLElement_Binding::Wrap(aCx, this, aGivenProto);
 }

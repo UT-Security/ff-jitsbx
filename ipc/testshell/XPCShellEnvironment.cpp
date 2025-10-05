@@ -12,12 +12,12 @@
 #endif
 
 #include "mcapi.h"
-#include "js/CharacterEncoding.h"
-#include "js/CompilationAndEvaluation.h"  // JS::Compile{,Utf8File}
-#include "js/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperty, JS_GetProperty
+#include "monkeycage/CharacterEncoding.h"
+#include "monkeycage/CompilationAndEvaluation.h"  // JS::Compile{,Utf8File}
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperty, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "monkeycage/RealmOptions.h"
-#include "js/SourceText.h"  // JS::Source{Ownership,Text}
+#include "monkeycage/SourceText.h"  // JS::Source{Ownership,Text}
 
 #include "xpcpublic.h"
 
@@ -52,8 +52,8 @@ inline XPCShellEnvironment* Environment(JS::Handle<JSObject*> global) {
   if (!jsapi.Init(global)) {
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
-  Rooted<Value> v(cx);
+  MCContext* cx = jsapi.cx();
+  MC::Rooted<Value> v(cx);
   if (!JS_GetProperty(cx, global, "__XPCShellEnvironment", &v) ||
       !v.get().isDouble()) {
     return nullptr;
@@ -235,7 +235,7 @@ typedef enum JSShellErrNum {
 
 } /* anonymous namespace */
 
-void XPCShellEnvironment::ProcessFile(JSContext* cx, const char* filename,
+void XPCShellEnvironment::ProcessFile(MCContext* cx, const char* filename,
                                       FILE* file, bool forceTTY) {
   XPCShellEnvironment* env = this;
 
@@ -265,8 +265,8 @@ void XPCShellEnvironment::ProcessFile(JSContext* cx, const char* filename,
     }
     ungetc(ch, file);
 
-    JS::CompileOptions options(cx);
-    options.setFileAndLine(filename, 1);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
+    options->setFileAndLine(filename, 1);
 
     MC::Rooted<JSScript*> script(cx, JS::CompileUtf8File(cx, options, file));
     if (script) {
@@ -303,19 +303,19 @@ void XPCShellEnvironment::ProcessFile(JSContext* cx, const char* filename,
     /* Clear any pending exception from previous failed compiles.  */
     JS_ClearPendingException(cx);
 
-    JS::CompileOptions options(cx);
-    options.setFileAndLine("typein", startline);
+    MC::SandboxStack<JS::CompileOptions> options(cx);
+    options->setFileAndLine("typein", startline);
 
-    JS::SourceText<mozilla::Utf8Unit> srcBuf;
+    MC::SandboxStack<JS::SourceText<mozilla::Utf8Unit>> srcBuf;
     MC::Rooted<JSScript*> script(cx);
 
-    if (srcBuf.init(cx, buffer, strlen(buffer),
+    if (srcBuf->init(cx, buffer, strlen(buffer),
                     JS::SourceOwnership::Borrowed) &&
         (script = JS::Compile(cx, options, srcBuf))) {
       ok = JS_ExecuteScript(cx, script, &result);
       if (ok && !result.isUndefined()) {
         /* Suppress warnings from JS::ToString(). */
-        JS::AutoSuppressWarningReporter suppressWarnings(cx);
+        JS::AutoSuppressWarningReporter suppressWarnings(MC_UNSAFE(cx));
         str = JS::ToString(cx, result);
         JS::UniqueChars bytes;
         if (str) bytes = JS_EncodeStringToLatin1(cx, str);
@@ -402,7 +402,7 @@ bool XPCShellEnvironment::Init() {
     NS_ERROR("Failed to get global JSObject!");
     return false;
   }
-  MC::SandboxStack<JSAutoRealm> ar(cx, globalObj);
+  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), globalObj);
 
   backstagePass->SetGlobalObject(globalObj);
 
@@ -430,13 +430,13 @@ bool XPCShellEnvironment::EvaluateString(const nsAString& aString,
                                          nsString* aResult) {
   AutoEntryScript aes(GetGlobalObject(),
                       "ipc XPCShellEnvironment::EvaluateString");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.cx();
 
-  JS::CompileOptions options(cx);
-  options.setFileAndLine("typein", 0);
+  MC::SandboxStack<JS::CompileOptions> options(cx);
+  options->setFileAndLine("typein", 0);
 
-  JS::SourceText<char16_t> srcBuf;
-  if (!srcBuf.init(cx, aString.BeginReading(), aString.Length(),
+  MC::SandboxStack<JS::SourceText<char16_t>> srcBuf;
+  if (!srcBuf->init(cx, aString.BeginReading(), aString.Length(),
                    JS::SourceOwnership::Borrowed)) {
     return false;
   }
@@ -454,7 +454,7 @@ bool XPCShellEnvironment::EvaluateString(const nsAString& aString,
   bool ok = JS_ExecuteScript(cx, script, &result);
   if (ok && !result.isUndefined()) {
     /* Suppress warnings from JS::ToString(). */
-    JS::AutoSuppressWarningReporter suppressWarnings(cx);
+    JS::AutoSuppressWarningReporter suppressWarnings(MC_UNSAFE(cx));
     JSString* str = JS::ToString(cx, result);
     nsAutoJSString autoStr;
     if (str) autoStr.init(cx, str);

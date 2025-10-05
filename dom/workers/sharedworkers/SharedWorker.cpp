@@ -122,7 +122,7 @@ already_AddRefed<SharedWorker> SharedWorker::Constructor(
 
   WorkerLoadInfo loadInfo;
   aRv = WorkerPrivate::GetLoadInfo(
-      MC_UNSAFE(cx), window, nullptr, aScriptURL, workerType, credentials, false,
+      cx, window, nullptr, aScriptURL, workerType, credentials, false,
       WorkerPrivate::OverrideLoadGroup, WorkerKindShared, &loadInfo);
   if (NS_WARN_IF(aRv.Failed())) {
     return nullptr;
@@ -354,7 +354,7 @@ void SharedWorker::Resume() {
   }
 }
 
-void SharedWorker::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void SharedWorker::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                                const Sequence<JSObject*>& aTransferable,
                                ErrorResult& aRv) {
   AssertIsOnMainThread();
@@ -385,7 +385,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(SharedWorker,
   NS_IMPL_CYCLE_COLLECTION_UNLINK(mFrozenEvents)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-JSObject* SharedWorker::WrapObject(JSContext* aCx,
+JSObject* SharedWorker::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnMainThread();
 

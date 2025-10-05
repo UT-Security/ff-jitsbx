@@ -97,7 +97,7 @@ Grid::Grid(nsISupports* aParent, nsGridContainerFrame* aFrame)
 
 Grid::~Grid() = default;
 
-JSObject* Grid::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Grid::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Grid_Binding::Wrap(aCx, this, aGivenProto);
 }
 

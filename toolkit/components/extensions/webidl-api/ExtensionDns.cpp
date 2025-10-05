@@ -28,9 +28,9 @@ ExtensionDns::ExtensionDns(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionDns::IsAllowed(JSContext* aCx, JSObject* aGlobal) { return true; }
+bool ExtensionDns::IsAllowed(MCContext* aCx, JSObject* aGlobal) { return true; }
 
-JSObject* ExtensionDns::WrapObject(JSContext* aCx,
+JSObject* ExtensionDns::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionDns_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -4100,7 +4100,7 @@ void Selection::SetHighlightName(const nsAtom* aHighlightName) {
   mHighlightName = aHighlightName;
 }
 
-JSObject* Selection::WrapObject(JSContext* aCx,
+JSObject* Selection::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::Selection_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -27,7 +27,7 @@ class MIDIInput final : public MIDIPort {
                                   const bool aSysexEnabled);
   ~MIDIInput() = default;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   IMPL_EVENT_HANDLER(midimessage);

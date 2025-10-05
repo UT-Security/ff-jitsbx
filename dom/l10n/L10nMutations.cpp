@@ -199,13 +199,13 @@ class L10nMutationFinalizationHandler final : public PromiseNativeHandler {
     }
   }
 
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
     Settled();
   }
 
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) override {
     nsTArray<nsCString> errors{

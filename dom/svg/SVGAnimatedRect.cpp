@@ -30,7 +30,7 @@ already_AddRefed<SVGRect> SVGAnimatedRect::GetAnimVal() {
   return mVal->ToDOMAnimVal(mSVGElement);
 }
 
-JSObject* SVGAnimatedRect::WrapObject(JSContext* aCx,
+JSObject* SVGAnimatedRect::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedRect_Binding::Wrap(aCx, this, aGivenProto);
 }

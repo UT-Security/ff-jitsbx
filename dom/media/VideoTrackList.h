@@ -19,7 +19,7 @@ class VideoTrackList : public MediaTrackList {
   VideoTrackList(nsIGlobalObject* aOwnerObject, HTMLMediaElement* aMediaElement)
       : MediaTrackList(aOwnerObject, aMediaElement), mSelectedIndex(-1) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   VideoTrack* operator[](uint32_t aIndex);

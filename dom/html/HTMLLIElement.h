@@ -43,7 +43,7 @@ class HTMLLIElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLLIElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

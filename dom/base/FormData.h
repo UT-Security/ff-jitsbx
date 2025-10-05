@@ -61,7 +61,7 @@ class FormData final : public nsISupports,
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(FormData)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

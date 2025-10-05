@@ -15,7 +15,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEBlendElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEBlendElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEBlendElement_Binding::Wrap(aCx, this, aGivenProto);
 }

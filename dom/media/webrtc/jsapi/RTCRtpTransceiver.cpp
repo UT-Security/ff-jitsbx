@@ -599,7 +599,7 @@ bool RTCRtpTransceiver::CanSendDTMF() const {
   return false;
 }
 
-JSObject* RTCRtpTransceiver::WrapObject(JSContext* aCx,
+JSObject* RTCRtpTransceiver::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return dom::RTCRtpTransceiver_Binding::Wrap(aCx, this, aGivenProto);
 }

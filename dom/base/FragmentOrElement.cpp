@@ -401,7 +401,7 @@ NS_INTERFACE_TABLE_HEAD(nsAttrChildContentList)
 NS_INTERFACE_MAP_END
 
 JSObject* nsAttrChildContentList::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* cx, JS::Handle<JSObject*> aGivenProto) {
   return NodeList_Binding::Wrap(cx, this, aGivenProto);
 }
 

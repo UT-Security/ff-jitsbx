@@ -31,7 +31,7 @@ AbortSignalImpl::AbortSignalImpl(bool aAborted, JS::Handle<JS::Value> aReason)
 
 bool AbortSignalImpl::Aborted() const { return mAborted; }
 
-void AbortSignalImpl::GetReason(JSContext* aCx,
+void AbortSignalImpl::GetReason(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aReason) {
   if (!mAborted) {
     return;
@@ -77,7 +77,7 @@ void AbortSignalImpl::Unlink(AbortSignalImpl* aSignal) {
   aSignal->UnlinkFollowers();
 }
 
-void AbortSignalImpl::MaybeAssignAbortError(JSContext* aCx) {
+void AbortSignalImpl::MaybeAssignAbortError(MCContext* aCx) {
   MOZ_ASSERT(mAborted);
   if (!mReason.isUndefined()) {
     return;
@@ -134,7 +134,7 @@ AbortSignal::AbortSignal(nsIGlobalObject* aGlobalObject, bool aAborted,
   mozilla::HoldJSObjects(this);
 }
 
-JSObject* AbortSignal::WrapObject(JSContext* aCx,
+JSObject* AbortSignal::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return AbortSignal_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -149,7 +149,7 @@ already_AddRefed<AbortSignal> AbortSignal::Abort(
 
 class AbortSignalTimeoutHandler final : public TimeoutHandler {
  public:
-  AbortSignalTimeoutHandler(JSContext* aCx, AbortSignal* aSignal)
+  AbortSignalTimeoutHandler(MCContext* aCx, AbortSignal* aSignal)
       : TimeoutHandler(aCx), mSignal(aSignal) {}
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -210,8 +210,8 @@ static void SetTimeoutForGlobal(GlobalObject& aGlobal, TimeoutHandler& aHandler,
     }
   } else {
     WorkerPrivate* workerPrivate =
-        GetWorkerPrivateFromContext(MC_UNSAFE(aGlobal.Context()));
-    workerPrivate->SetTimeout(MC_UNSAFE(aGlobal.Context()), &aHandler, timeout,
+        GetWorkerPrivateFromContext(aGlobal.Context());
+    workerPrivate->SetTimeout(aGlobal.Context(), &aHandler, timeout,
                               /* aIsInterval */ false,
                               Timeout::Reason::eAbortSignalTimeout, aRv);
     if (aRv.Failed()) {
@@ -234,7 +234,7 @@ already_AddRefed<AbortSignal> AbortSignal::Timeout(GlobalObject& aGlobal,
   // Step 3. Run steps after a timeout given global, "AbortSignal-timeout",
   // milliseconds, and the following step: ...
   RefPtr<TimeoutHandler> handler =
-      new AbortSignalTimeoutHandler(MC_UNSAFE(aGlobal.Context()), signal);
+      new AbortSignalTimeoutHandler(aGlobal.Context(), signal);
 
   // Note: We only supports int32_t range intervals
   int32_t timeout =
@@ -252,7 +252,7 @@ already_AddRefed<AbortSignal> AbortSignal::Timeout(GlobalObject& aGlobal,
 }
 
 // https://dom.spec.whatwg.org/#dom-abortsignal-throwifaborted
-void AbortSignal::ThrowIfAborted(JSContext* aCx, ErrorResult& aRv) {
+void AbortSignal::ThrowIfAborted(MCContext* aCx, ErrorResult& aRv) {
   aRv.MightThrowJSException();
 
   if (Aborted()) {

@@ -25,18 +25,18 @@ struct ReadIntoRequest : public nsISupports,
   NS_DECL_CYCLE_COLLECTION_CLASS(ReadIntoRequest)
 
   // An algorithm taking a chunk, called when a chunk is available for reading
-  virtual void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  virtual void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                           ErrorResult& aRv) = 0;
 
   // An algorithm taking a chunk or undefined, called when no chunks are
   // available because the stream is closed
   MOZ_CAN_RUN_SCRIPT
-  virtual void CloseSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  virtual void CloseSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                           ErrorResult& aRv) = 0;
 
   // An algorithm taking a JavaScript value, called when no chunks are available
   // because the stream is errored
-  virtual void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+  virtual void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                           ErrorResult& aRv) = 0;
 
  protected:

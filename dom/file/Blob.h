@@ -101,7 +101,7 @@ class Blob : public nsSupportsWeakReference, public nsWrapperCache {
       const GlobalObject& aGlobal, const Optional<Sequence<BlobPart>>& aData,
       const BlobPropertyBag& aBag, ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint64_t GetSize(ErrorResult& aRv);
@@ -120,7 +120,7 @@ class Blob : public nsSupportsWeakReference, public nsWrapperCache {
   nsresult GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
                        nsACString& aContentType, nsACString& aCharset) const;
 
-  already_AddRefed<ReadableStream> Stream(JSContext* aCx,
+  already_AddRefed<ReadableStream> Stream(MCContext* aCx,
                                           ErrorResult& aRv) const;
   already_AddRefed<Promise> Text(ErrorResult& aRv) const;
   already_AddRefed<Promise> ArrayBuffer(ErrorResult& aRv) const;

@@ -29,7 +29,7 @@ namespace mozilla::dom {
 
 IdentityCredential::~IdentityCredential() = default;
 
-JSObject* IdentityCredential::WrapObject(JSContext* aCx,
+JSObject* IdentityCredential::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return IdentityCredential_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -367,7 +367,7 @@ IdentityCredential::CheckRootManifest(nsIPrincipal* aPrincipal,
   nsCOMPtr<nsIGlobalObject> global;
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -431,7 +431,7 @@ IdentityCredential::FetchInternalManifest(
   nsCOMPtr<nsIGlobalObject> global;
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   nsresult rv = xpc->CreateSandbox(cx, nullPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -509,7 +509,7 @@ IdentityCredential::FetchAccountList(
   nsCOMPtr<nsIGlobalObject> global;
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, expandedPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -581,7 +581,7 @@ RefPtr<IdentityCredential::GetTokenPromise> IdentityCredential::FetchToken(
   nsCOMPtr<nsIGlobalObject> global;
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -683,7 +683,7 @@ IdentityCredential::FetchMetadata(nsIPrincipal* aPrincipal,
   nsCOMPtr<nsIGlobalObject> global;
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> sandbox(cx);
   rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
   if (NS_WARN_IF(NS_FAILED(rv))) {
@@ -783,7 +783,7 @@ IdentityCredential::PromptUserToSelectProvider(
                                       getter_AddRefs(showPromptPromise));
 
   RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-      [aProviders, aManifests, resultPromise](JSContext* aCx,
+      [aProviders, aManifests, resultPromise](MCContext* aCx,
                                               JS::Handle<JS::Value> aValue) {
         int32_t result = aValue.toInt32();
         if (result < 0 || (uint32_t)result > aProviders.Length() ||
@@ -866,7 +866,7 @@ IdentityCredential::PromptUserToSelectAccount(
                                          getter_AddRefs(showPromptPromise));
 
   RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-      [aAccounts, resultPromise, aManifest](JSContext* aCx,
+      [aAccounts, resultPromise, aManifest](MCContext* aCx,
                                             JS::Handle<JS::Value> aValue) {
         int32_t result = aValue.toInt32();
         if (!aAccounts.mAccounts.WasPassed() || result < 0 ||
@@ -983,7 +983,7 @@ IdentityCredential::PromptUserWithPolicy(
                 new GenericPromise::Private(__func__);
             RefPtr<DomPromiseListener> listener = new DomPromiseListener(
                 [aAccount, argumentPrincipal, idpPrincipal, resultPromise,
-                 icStorageService](JSContext* aCx,
+                 icStorageService](MCContext* aCx,
                                    JS::Handle<JS::Value> aValue) {
                   bool isBool = aValue.isBoolean();
                   if (!isBool) {

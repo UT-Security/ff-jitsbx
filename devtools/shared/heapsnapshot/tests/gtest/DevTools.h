@@ -29,7 +29,7 @@ using namespace testing;
 // GTest fixture class that all of our tests derive from.
 struct DevTools : public ::testing::Test {
   bool _initialized;
-  JSContext* cx;
+  MCContext* cx;
   JS::Compartment* compartment;
   JS::Zone* zone;
   MC::PersistentRooted<JSObject*> global;
@@ -52,9 +52,9 @@ struct DevTools : public ::testing::Test {
     _initialized = true;
   }
 
-  JSContext* getContext() { return MC_UNSAFE(CycleCollectedJSContext::Get()->Context()); }
+  MCContext* getContext() { return CycleCollectedJSContext::Get()->Context(); }
 
-  static void reportError(JSContext* cx, const char* message,
+  static void reportError(MCContext* cx, const char* message,
                           JSErrorReport* report) {
     fprintf(stderr, "%s:%u:%s\n",
             report->filename ? report->filename : "<no filename>",
@@ -69,7 +69,7 @@ struct DevTools : public ::testing::Test {
 
   JSObject* createGlobal() {
     /* Create the global object. */
-    JS::RealmOptions options;
+    MC::SandboxStack<JS::RealmOptions> options;
     return JS_NewGlobalObject(cx, getGlobalClass(), nullptr,
                               JS::FireOnNewGlobalHook, options);
   }
@@ -152,7 +152,7 @@ namespace testing {
 
 // Ensure that given node has the expected number of edges.
 MATCHER_P2(EdgesLength, cx, expectedLength, "") {
-  auto edges = arg.edges(cx);
+  auto edges = arg.edges(MC_UNSAFE(cx));
   if (!edges) return false;
 
   int actualLength = 0;
@@ -164,7 +164,7 @@ MATCHER_P2(EdgesLength, cx, expectedLength, "") {
 
 // Get the nth edge and match it with the given matcher.
 MATCHER_P3(Edge, cx, n, matcher, "") {
-  auto edges = arg.edges(cx);
+  auto edges = arg.edges(MC_UNSAFE(cx));
   if (!edges) return false;
 
   int i = 0;

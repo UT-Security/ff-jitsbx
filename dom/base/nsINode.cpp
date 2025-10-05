@@ -11,9 +11,9 @@
 #include "nsINode.h"
 
 #include "AccessCheck.h"
-#include "jsapi.h"
-#include "js/ForOfIterator.h"  // JS::ForOfIterator
-#include "js/JSON.h"           // JS_ParseJSON
+#include "mcapi.h"
+#include "monkeycage/ForOfIterator.h"  // JS::ForOfIterator
+#include "monkeycage/JSON.h"           // JS_ParseJSON
 #include "mozAutoDocUpdate.h"
 #include "mozilla/AsyncEventDispatcher.h"
 #include "mozilla/CORSMode.h"
@@ -1549,7 +1549,7 @@ static nsresult UpdateGlobalsInSubtree(nsIContent* aRoot) {
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   ErrorResult rv;
   MC::Rooted<JSObject*> reflector(cx);
@@ -3103,7 +3103,7 @@ Element* nsINode::GetElementById(const nsAString& aId) {
   return nullptr;
 }
 
-JSObject* nsINode::WrapObject(JSContext* aCx,
+JSObject* nsINode::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   // Make sure one of these is true
   // (1) our owner document has a script handling object,
@@ -3158,7 +3158,7 @@ Element* nsINode::GetParentElementCrossingShadowRoot() const {
   return nullptr;
 }
 
-bool nsINode::HasBoxQuadsSupport(JSContext* aCx, JSObject* /* unused */) {
+bool nsINode::HasBoxQuadsSupport(MCContext* aCx, JSObject* /* unused */) {
   return xpc::AccessCheck::isChrome(js::GetContextCompartment(aCx)) ||
          StaticPrefs::layout_css_getBoxQuads_enabled();
 }
@@ -3443,7 +3443,7 @@ already_AddRefed<nsINode> nsINode::CloneAndAdopt(
       MC::Rooted<JSObject*> wrapper(cx);
       if ((wrapper = aNode->GetWrapper())) {
         MOZ_ASSERT(IsDOMObject(wrapper));
-        MC::SandboxStack<JSAutoRealm> ar(cx, wrapper);
+        MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), wrapper);
         UpdateReflectorGlobal(cx, wrapper, aError);
         if (aError.Failed()) {
           if (wasRegistered) {

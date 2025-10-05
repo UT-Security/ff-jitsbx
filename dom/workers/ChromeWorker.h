@@ -17,9 +17,9 @@ class ChromeWorker final : public Worker {
       const GlobalObject& aGlobal, const nsAString& aScriptURL,
       const WorkerOptions& aOptions, ErrorResult& aRv);
 
-  static bool WorkerAvailable(JSContext* aCx, JSObject* /* unused */);
+  static bool WorkerAvailable(MCContext* aCx, JSObject* /* unused */);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:

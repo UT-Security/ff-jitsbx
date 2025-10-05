@@ -50,7 +50,7 @@ class MediaSession final : public nsIDocumentActivity, public nsWrapperCache {
   // WebIDL methods
   nsPIDOMWindowInner* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   MediaMetadata* GetMetadata() const;

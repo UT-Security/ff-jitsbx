@@ -49,7 +49,7 @@ class ScreenOrientation final : public DOMEventTargetHelper {
   OrientationType GetType(CallerType aCallerType, ErrorResult& aRv) const;
   uint16_t GetAngle(CallerType aCallerType, ErrorResult& aRv) const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static void UpdateActiveOrientationLock(hal::ScreenOrientation aOrientation);

@@ -7,11 +7,11 @@
 #ifndef mozilla_dom_workers_chromeworkerscope_h__
 #define mozilla_dom_workers_chromeworkerscope_h__
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 
 namespace mozilla::dom {
 
-bool DefineChromeWorkerFunctions(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+bool DefineChromeWorkerFunctions(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
 }  // namespace mozilla::dom
 

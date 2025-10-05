@@ -10,7 +10,7 @@
 #include "ClientWebGLExtensions.h"
 #include "gfxCrashReporterUtils.h"
 #include "HostWebGLContext.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement
 #include "js/ScalarType.h"          // js::Scalar::Type
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/ToJSValue.h"
@@ -219,7 +219,7 @@ void AutoJsWarning(const std::string& utf8) {
     return;
   }
 
-  JSContext* cx = dom::GetCurrentWorkerThreadJSContext();
+  MCContext* cx = dom::GetCurrentWorkerThreadJSContext();
   if (NS_WARN_IF(!cx)) {
     return;
   }
@@ -940,7 +940,7 @@ void ClientWebGLContext::OnMemoryPressure() {
 }
 
 NS_IMETHODIMP
-ClientWebGLContext::SetContextOptions(JSContext* cx,
+ClientWebGLContext::SetContextOptions(MCContext* cx,
                                       JS::Handle<JS::Value> options,
                                       ErrorResult& aRvForDictionaryInit) {
   if (mInitialOptions && options.isNullOrUndefined()) return NS_OK;
@@ -1873,7 +1873,7 @@ bool ClientWebGLContext::IsEnabled(GLenum cap) const {
 }
 
 void ClientWebGLContext::GetInternalformatParameter(
-    JSContext* cx, GLenum target, GLenum internalformat, GLenum pname,
+    MCContext* cx, GLenum target, GLenum internalformat, GLenum pname,
     JS::MutableHandle<JS::Value> retval, ErrorResult& rv) {
   const FuncScope funcScope(*this, "getInternalformatParameter");
   retval.set(JS::NullValue());
@@ -1907,7 +1907,7 @@ void ClientWebGLContext::GetInternalformatParameter(
   retval.setObjectOrNull(obj);
 }
 
-static JS::Value StringValue(JSContext* cx, const std::string& str,
+static JS::Value StringValue(MCContext* cx, const std::string& str,
                              ErrorResult& er) {
   JSString* jsStr = JS_NewStringCopyN(cx, str.data(), str.size());
   if (!jsStr) {
@@ -1919,7 +1919,7 @@ static JS::Value StringValue(JSContext* cx, const std::string& str,
 }
 
 template <typename T>
-bool ToJSValueOrNull(JSContext* const cx, const RefPtr<T>& ptr,
+bool ToJSValueOrNull(MCContext* const cx, const RefPtr<T>& ptr,
                      JS::MutableHandle<JS::Value> retval) {
   if (!ptr) {
     retval.set(JS::NullValue());
@@ -1929,7 +1929,7 @@ bool ToJSValueOrNull(JSContext* const cx, const RefPtr<T>& ptr,
 }
 
 template <typename T, typename U, typename S>
-static JS::Value CreateAs(JSContext* cx, nsWrapperCache* creator, const S& src,
+static JS::Value CreateAs(MCContext* cx, nsWrapperCache* creator, const S& src,
                           ErrorResult& rv) {
   const auto obj =
       T::Create(cx, creator, src.size(), reinterpret_cast<U>(src.data()));
@@ -1940,7 +1940,7 @@ static JS::Value CreateAs(JSContext* cx, nsWrapperCache* creator, const S& src,
 }
 
 template <typename T, typename S>
-static JS::Value Create(JSContext* cx, nsWrapperCache* creator, const S& src,
+static JS::Value Create(MCContext* cx, nsWrapperCache* creator, const S& src,
                         ErrorResult& rv) {
   return CreateAs<T, decltype(&src[0]), S>(cx, creator, src, rv);
 }
@@ -1981,7 +1981,7 @@ Maybe<std::string> ClientWebGLContext::GetString(const GLenum pname) {
   return ret;
 }
 
-void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
+void ClientWebGLContext::GetParameter(MCContext* cx, GLenum pname,
                                       JS::MutableHandle<JS::Value> retval,
                                       ErrorResult& rv, const bool debug) {
   retval.set(JS::NullValue());
@@ -2421,7 +2421,7 @@ void ClientWebGLContext::GetParameter(JSContext* cx, GLenum pname,
 }
 
 void ClientWebGLContext::GetBufferParameter(
-    JSContext* cx, GLenum target, GLenum pname,
+    MCContext* cx, GLenum target, GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   if (IsContextLost()) return;
@@ -2459,7 +2459,7 @@ bool IsFramebufferTarget(const bool isWebgl2, const GLenum target) {
 }
 
 void ClientWebGLContext::GetFramebufferAttachmentParameter(
-    JSContext* const cx, const GLenum target, const GLenum attachment,
+    MCContext* const cx, const GLenum target, const GLenum attachment,
     const GLenum pname, JS::MutableHandle<JS::Value> retval,
     ErrorResult& rv) const {
   retval.set(JS::NullValue());
@@ -2541,7 +2541,7 @@ void ClientWebGLContext::GetFramebufferAttachmentParameter(
 }
 
 void ClientWebGLContext::GetRenderbufferParameter(
-    JSContext* cx, GLenum target, GLenum pname,
+    MCContext* cx, GLenum target, GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getRenderbufferParameter");
@@ -2574,7 +2574,7 @@ void ClientWebGLContext::GetRenderbufferParameter(
 }
 
 void ClientWebGLContext::GetIndexedParameter(
-    JSContext* cx, GLenum target, GLuint index,
+    MCContext* cx, GLenum target, GLuint index,
     JS::MutableHandle<JS::Value> retval, ErrorResult& rv) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getIndexedParameter");
@@ -2640,7 +2640,7 @@ void ClientWebGLContext::GetIndexedParameter(
   }
 }
 
-void ClientWebGLContext::GetUniform(JSContext* const cx,
+void ClientWebGLContext::GetUniform(MCContext* const cx,
                                     const WebGLProgramJS& prog,
                                     const WebGLUniformLocationJS& loc,
                                     JS::MutableHandle<JS::Value> retval) {
@@ -3929,7 +3929,7 @@ void ClientWebGLContext::GenerateMipmap(GLenum texTarget) const {
 }
 
 void ClientWebGLContext::GetTexParameter(
-    JSContext* cx, GLenum texTarget, GLenum pname,
+    MCContext* cx, GLenum texTarget, GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getTexParameter");
@@ -4655,7 +4655,7 @@ Maybe<double> ClientWebGLContext::GetVertexAttribPriv(const GLuint index,
   return ret;
 }
 
-void ClientWebGLContext::GetVertexAttrib(JSContext* cx, GLuint index,
+void ClientWebGLContext::GetVertexAttrib(MCContext* cx, GLuint index,
                                          GLenum pname,
                                          JS::MutableHandle<JS::Value> retval,
                                          ErrorResult& rv) {
@@ -5145,7 +5145,7 @@ static inline GLenum QuerySlotTarget(const GLenum specificTarget) {
   return specificTarget;
 }
 
-void ClientWebGLContext::GetQuery(JSContext* cx, GLenum specificTarget,
+void ClientWebGLContext::GetQuery(MCContext* cx, GLenum specificTarget,
                                   GLenum pname,
                                   JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
@@ -5193,7 +5193,7 @@ void ClientWebGLContext::GetQuery(JSContext* cx, GLenum specificTarget,
 }
 
 void ClientWebGLContext::GetQueryParameter(
-    JSContext*, WebGLQueryJS& query, const GLenum pname,
+    MCContext*, WebGLQueryJS& query, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getQueryParameter");
@@ -5326,7 +5326,7 @@ void ClientWebGLContext::QueryCounter(WebGLQueryJS& query,
 
 // -------------------------------- Sampler -------------------------------
 void ClientWebGLContext::GetSamplerParameter(
-    JSContext* cx, const WebGLSamplerJS& sampler, const GLenum pname,
+    MCContext* cx, const WebGLSamplerJS& sampler, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getSamplerParameter");
@@ -5395,7 +5395,7 @@ void ClientWebGLContext::SamplerParameterf(WebGLSamplerJS& sampler,
 // ------------------------------- GL Sync ---------------------------------
 
 void ClientWebGLContext::GetSyncParameter(
-    JSContext* const cx, WebGLSyncJS& sync, const GLenum pname,
+    MCContext* const cx, WebGLSyncJS& sync, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getSyncParameter");
@@ -5989,7 +5989,7 @@ void ClientWebGLContext::GetActiveUniformBlockName(const WebGLProgramJS& prog,
 }
 
 void ClientWebGLContext::GetActiveUniformBlockParameter(
-    JSContext* const cx, const WebGLProgramJS& prog, const GLuint index,
+    MCContext* const cx, const WebGLProgramJS& prog, const GLuint index,
     const GLenum pname, JS::MutableHandle<JS::Value> retval, ErrorResult& rv) {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getActiveUniformBlockParameter");
@@ -6040,7 +6040,7 @@ void ClientWebGLContext::GetActiveUniformBlockParameter(
 }
 
 void ClientWebGLContext::GetActiveUniforms(
-    JSContext* const cx, const WebGLProgramJS& prog,
+    MCContext* const cx, const WebGLProgramJS& prog,
     const dom::Sequence<GLuint>& uniformIndices, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
@@ -6343,7 +6343,7 @@ void ClientWebGLContext::GetProgramInfoLog(const WebGLProgramJS& prog,
 }
 
 void ClientWebGLContext::GetProgramParameter(
-    JSContext* const js, const WebGLProgramJS& prog, const GLenum pname,
+    MCContext* const js, const WebGLProgramJS& prog, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getProgramParameter");
@@ -6427,7 +6427,7 @@ void ClientWebGLContext::GetShaderInfoLog(const WebGLShaderJS& shader,
 }
 
 void ClientWebGLContext::GetShaderParameter(
-    JSContext* const cx, const WebGLShaderJS& shader, const GLenum pname,
+    MCContext* const cx, const WebGLShaderJS& shader, const GLenum pname,
     JS::MutableHandle<JS::Value> retval) const {
   retval.set(JS::NullValue());
   const FuncScope funcScope(*this, "getShaderParameter");
@@ -6632,7 +6632,7 @@ WebGLVertexArrayJS::WebGLVertexArrayJS(const ClientWebGLContext& webgl)
 // -
 
 #define _(WebGLType)                                                      \
-  JSObject* WebGLType##JS::WrapObject(JSContext* const cx,                \
+  JSObject* WebGLType##JS::WrapObject(MCContext* const cx,                \
                                       JS::Handle<JSObject*> givenProto) { \
     return dom::WebGLType##_Binding::Wrap(cx, this, givenProto);          \
   }
@@ -6652,19 +6652,19 @@ _(WebGLUniformLocation)
 
 #undef _
 
-JSObject* WebGLVertexArrayJS::WrapObject(JSContext* const cx,
+JSObject* WebGLVertexArrayJS::WrapObject(MCContext* const cx,
                                          JS::Handle<JSObject*> givenProto) {
   return dom::WebGLVertexArrayObject_Binding::Wrap(cx, this, givenProto);
 }
 
-bool WebGLActiveInfoJS::WrapObject(JSContext* const cx,
+bool WebGLActiveInfoJS::WrapObject(MCContext* const cx,
                                    JS::Handle<JSObject*> givenProto,
                                    JS::MutableHandle<JSObject*> reflector) {
   return dom::WebGLActiveInfo_Binding::Wrap(cx, this, givenProto, reflector);
 }
 
 bool WebGLShaderPrecisionFormatJS::WrapObject(
-    JSContext* const cx, JS::Handle<JSObject*> givenProto,
+    MCContext* const cx, JS::Handle<JSObject*> givenProto,
     JS::MutableHandle<JSObject*> reflector) {
   return dom::WebGLShaderPrecisionFormat_Binding::Wrap(cx, this, givenProto,
                                                        reflector);

@@ -71,12 +71,12 @@ WritableStreamDefaultController::~WritableStreamDefaultController() {
 }
 
 JSObject* WritableStreamDefaultController::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WritableStreamDefaultController_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // https://streams.spec.whatwg.org/#ws-default-controller-error
-void WritableStreamDefaultController::Error(JSContext* aCx,
+void WritableStreamDefaultController::Error(MCContext* aCx,
                                             JS::Handle<JS::Value> aError,
                                             ErrorResult& aRv) {
   // Step 1. Let state be this.[[stream]].[[state]].
@@ -91,7 +91,7 @@ void WritableStreamDefaultController::Error(JSContext* aCx,
 
 // https://streams.spec.whatwg.org/#ws-default-controller-private-abort
 already_AddRefed<Promise> WritableStreamDefaultController::AbortSteps(
-    JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1. Let result be the result of performing this.[[abortAlgorithm]],
   // passing reason.
   RefPtr<UnderlyingSinkAlgorithmsBase> algorithms = mAlgorithms;
@@ -124,12 +124,12 @@ namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT static void
 WritableStreamDefaultControllerAdvanceQueueIfNeeded(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv);
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller
 void SetUpWritableStreamDefaultController(
-    JSContext* aCx, WritableStream* aStream,
+    MCContext* aCx, WritableStream* aStream,
     WritableStreamDefaultController* aController,
     UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
@@ -190,7 +190,7 @@ void SetUpWritableStreamDefaultController(
 
   // Step 17/18.
   startPromise->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             // Step 17. Upon fulfillment of startPromise,
@@ -206,7 +206,7 @@ void SetUpWritableStreamDefaultController(
             WritableStreamDefaultControllerAdvanceQueueIfNeeded(
                 aCx, MOZ_KnownLive(aController), aRv);
           },
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             RefPtr<WritableStream> stream = aController->Stream();
@@ -225,7 +225,7 @@ void SetUpWritableStreamDefaultController(
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 void SetUpWritableStreamDefaultControllerFromUnderlyingSink(
-    JSContext* aCx, WritableStream* aStream,
+    MCContext* aCx, WritableStream* aStream,
     JS::Handle<JSObject*> aUnderlyingSink, UnderlyingSink& aUnderlyingSinkDict,
     double aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
     ErrorResult& aRv) {
@@ -244,7 +244,7 @@ void SetUpWritableStreamDefaultControllerFromUnderlyingSink(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-close
 MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1. Let stream be controller.[[stream]].
   RefPtr<WritableStream> stream = aController->Stream();
@@ -274,14 +274,14 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
 
   // Step 7 + 8.
   sinkClosePromise->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController) {
         RefPtr<WritableStream> stream = aController->Stream();
         // Step 7. Upon fulfillment of sinkClosePromise,
         // Step 7.1. Perform ! WritableStreamFinishInFlightClose(stream).
         stream->FinishInFlightClose();
       },
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             RefPtr<WritableStream> stream = aController->Stream();
@@ -295,7 +295,7 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessClose(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-process-write
 MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1. Let stream be controller.[[stream]].
   RefPtr<WritableStream> stream = aController->Stream();
@@ -315,7 +315,7 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
 
   // Step 4 + 5:
   sinkWritePromise->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             RefPtr<WritableStream> stream = aController->Stream();
@@ -351,7 +351,7 @@ MOZ_CAN_RUN_SCRIPT static void WritableStreamDefaultControllerProcessWrite(
             WritableStreamDefaultControllerAdvanceQueueIfNeeded(
                 aCx, MOZ_KnownLive(aController), aRv);
           },
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          WritableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             RefPtr<WritableStream> stream = aController->Stream();
@@ -377,7 +377,7 @@ constexpr JSWhyMagic CLOSE_SENTINEL = JS_GENERIC_MAGIC;
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-advance-queue-if-needed
 static void WritableStreamDefaultControllerAdvanceQueueIfNeeded(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1. Let stream be controller.[[stream]].
   RefPtr<WritableStream> stream = aController->Stream();
@@ -431,7 +431,7 @@ static void WritableStreamDefaultControllerAdvanceQueueIfNeeded(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-close
 void WritableStreamDefaultControllerClose(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1. Perform ! EnqueueValueWithSize(controller, close sentinel, 0).
   MC::Rooted<JS::Value> aCloseSentinel(aCx, JS::MagicValue(CLOSE_SENTINEL));
@@ -445,7 +445,7 @@ void WritableStreamDefaultControllerClose(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-write
 void WritableStreamDefaultControllerWrite(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, double chunkSize, ErrorResult& aRv) {
   // Step 1. Let enqueueResult be EnqueueValueWithSize(controller, chunk,
   // chunkSize).
@@ -490,7 +490,7 @@ void WritableStreamDefaultControllerWrite(
 }
 
 void WritableStreamDefaultControllerError(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   // Step 1. Let stream be controller.[[stream]].
   RefPtr<WritableStream> stream = aController->Stream();
@@ -508,7 +508,7 @@ void WritableStreamDefaultControllerError(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-error-if-needed
 void WritableStreamDefaultControllerErrorIfNeeded(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   // Step 1. If controller.[[stream]].[[state]] is "writable", perform
   // !WritableStreamDefaultControllerError(controller, error).
@@ -519,7 +519,7 @@ void WritableStreamDefaultControllerErrorIfNeeded(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-controller-get-chunk-size
 double WritableStreamDefaultControllerGetChunkSize(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1. Let returnValue be the result of performing
   // controller.[[strategySizeAlgorithm]], passing in chunk, and interpreting

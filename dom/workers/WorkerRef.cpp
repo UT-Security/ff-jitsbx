@@ -30,7 +30,7 @@ class ReleaseRefControlRunnable final : public WorkerControlRunnable {
   void PostDispatch(WorkerPrivate* aWorkerPrivate,
                     bool aDispatchResult) override {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mRef = nullptr;
     return true;
   }

@@ -10,12 +10,12 @@
 
 #include "xpcprivate.h"
 
-#include "jsfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "mcfriendapi.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
-#include "js/friend/WindowProxy.h"  // js::ToWindowIfWindowProxy
-#include "js/PropertyAndElement.h"  // JS_GetElement
-#include "js/Wrapper.h"
+#include "monkeycage/friend/WindowProxy.h"  // js::ToWindowIfWindowProxy
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Wrapper.h"
 #include "mozilla/HoldDropJSObjects.h"
 
 using namespace JS;
@@ -34,7 +34,7 @@ NS_IMPL_CI_INTERFACE_GETTER(XPCVariant, XPCVariant, nsIVariant)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(XPCVariant)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(XPCVariant)
 
-XPCVariant::XPCVariant(JSContext* cx, const Value& aJSVal) : mJSVal(aJSVal) {
+XPCVariant::XPCVariant(MCContext* cx, const Value& aJSVal) : mJSVal(aJSVal) {
   if (!mJSVal.isPrimitive()) {
     // XXXbholley - The innerization here was from bug 638026. Blake says
     // the basic problem was that we were storing the C++ inner but the JS
@@ -49,7 +49,7 @@ XPCVariant::XPCVariant(JSContext* cx, const Value& aJSVal) : mJSVal(aJSVal) {
     mJSVal = JS::ObjectValue(*obj);
 
     JSObject* unwrapped =
-        js::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+        mc::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
     mReturnRawObject = !(unwrapped && IsWrappedNativeReflector(unwrapped));
   } else {
     mReturnRawObject = false;
@@ -77,7 +77,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(XPCVariant)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 // static
-already_AddRefed<XPCVariant> XPCVariant::newVariant(JSContext* cx,
+already_AddRefed<XPCVariant> XPCVariant::newVariant(MCContext* cx,
                                                     const Value& aJSVal) {
   RefPtr<XPCVariant> variant = new XPCVariant(cx, aJSVal);
   if (!variant->InitializeData(cx)) {
@@ -121,7 +121,7 @@ class XPCArrayHomogenizer {
   static const Type StateTable[tTypeCount][tTypeCount - 1];
 
  public:
-  static bool GetTypeForArray(JSContext* cx, HandleObject array,
+  static bool GetTypeForArray(MCContext* cx, HandleObject array,
                               uint32_t length, nsXPTType* resultType,
                               nsID* resultID);
 };
@@ -144,7 +144,7 @@ const XPCArrayHomogenizer::Type
         /* tUnk  */ {tNull, tInt, tDbl, tBool, tStr, tID, tVar, tISup}};
 
 // static
-bool XPCArrayHomogenizer::GetTypeForArray(JSContext* cx, HandleObject array,
+bool XPCArrayHomogenizer::GetTypeForArray(MCContext* cx, HandleObject array,
                                           uint32_t length,
                                           nsXPTType* resultType,
                                           nsID* resultID) {
@@ -243,9 +243,9 @@ bool XPCArrayHomogenizer::GetTypeForArray(JSContext* cx, HandleObject array,
   return true;
 }
 
-bool XPCVariant::InitializeData(JSContext* cx) {
-  js::AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.check(cx)) {
+bool XPCVariant::InitializeData(MCContext* cx) {
+  js::AutoCheckRecursionLimit recursion(MC_UNSAFE(cx));
+  if (!recursion.check(MC_UNSAFE(cx))) {
     return false;
   }
 
@@ -285,7 +285,7 @@ bool XPCVariant::InitializeData(JSContext* cx) {
     mData.AllocateWStringWithSize(length);
 
     mozilla::Range<char16_t> destChars(mData.u.wstr.mWStringValue, length);
-    if (!JS_CopyStringChars(cx, destChars, str)) {
+    if (!JS_CopyStringCharsWithSbxCopy(cx, destChars, str)) {
       return false;
     }
 
@@ -362,7 +362,7 @@ XPCVariant::GetAsJSVal(MutableHandleValue result) {
 }
 
 // static
-bool XPCVariant::VariantDataToJS(JSContext* cx, nsIVariant* variant,
+bool XPCVariant::VariantDataToJS(MCContext* cx, nsIVariant* variant,
                                  nsresult* pErr, MutableHandleValue pJSVal) {
   // Get the type early because we might need to spoof it below.
   uint16_t type = variant->GetDataType();

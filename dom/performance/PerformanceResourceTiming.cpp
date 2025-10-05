@@ -72,7 +72,7 @@ DOMHighResTimeStamp PerformanceResourceTiming::StartTime() const {
 }
 
 JSObject* PerformanceResourceTiming::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PerformanceResourceTiming_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -25,7 +25,7 @@ class XRBoundedReferenceSpace final : public XRReferenceSpace {
                                    XRNativeOrigin* aNativeOrigin);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members

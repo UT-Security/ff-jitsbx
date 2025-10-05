@@ -22,7 +22,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaDeviceInfo)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* MediaDeviceInfo::WrapObject(JSContext* aCx,
+JSObject* MediaDeviceInfo::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return MediaDeviceInfo_Binding::Wrap(aCx, this, aGivenProto);
 }

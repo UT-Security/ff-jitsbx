@@ -132,7 +132,7 @@ HTMLFormElement* HTMLLegendElement::GetForm() const {
   return fieldsetControl ? fieldsetControl->GetForm() : nullptr;
 }
 
-JSObject* HTMLLegendElement::WrapNode(JSContext* aCx,
+JSObject* HTMLLegendElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLLegendElement_Binding::Wrap(aCx, this, aGivenProto);
 }

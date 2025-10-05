@@ -34,11 +34,11 @@ ExtensionSetting::ExtensionSetting(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionSetting::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionSetting::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* ExtensionSetting::WrapObject(JSContext* aCx,
+JSObject* ExtensionSetting::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionSetting_Binding::Wrap(aCx, this, aGivenProto);
 }

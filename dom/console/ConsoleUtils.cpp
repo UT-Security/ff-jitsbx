@@ -68,7 +68,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   AutoJSAPI jsapi;
   jsapi.Init();
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   ConsoleCommon::ClearException ce(cx);
   MC::Rooted<JSObject*> global(cx, GetOrCreateSandbox(cx));
@@ -142,7 +142,7 @@ void ConsoleUtils::ReportForServiceWorkerScopeInternal(
   storage->RecordEvent(u"ServiceWorker"_ns, eventValue);
 }
 
-JSObject* ConsoleUtils::GetOrCreateSandbox(JSContext* aCx) {
+JSObject* ConsoleUtils::GetOrCreateSandbox(MCContext* aCx) {
   AssertIsOnMainThread();
 
   if (!mSandbox) {

@@ -35,7 +35,7 @@ Lock::Lock(nsIGlobalObject* aGlobal,
   MOZ_ASSERT(aReleasedPromise);
 }
 
-JSObject* Lock::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Lock::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Lock_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -48,7 +48,7 @@ Promise& Lock::GetWaitingPromise() {
   return *mWaitingPromise;
 }
 
-void Lock::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void Lock::ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                             ErrorResult& aRv) {
   if (mLockRequestChild) {
     locks::PLockRequestChild::Send__delete__(mLockRequestChild, false);
@@ -57,7 +57,7 @@ void Lock::ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
   mReleasedPromise->MaybeResolve(aValue);
 }
 
-void Lock::RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void Lock::RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                             ErrorResult& aRv) {
   if (mLockRequestChild) {
     locks::PLockRequestChild::Send__delete__(mLockRequestChild, false);

@@ -20,7 +20,7 @@ class ParentProcessMessageManager final : public MessageBroadcaster {
  public:
   ParentProcessMessageManager();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // ProcessScriptLoader
@@ -31,7 +31,7 @@ class ParentProcessMessageManager final : public MessageBroadcaster {
   void RemoveDelayedProcessScript(const nsAString& aURL) {
     RemoveDelayedScript(aURL);
   }
-  void GetDelayedProcessScripts(JSContext* aCx,
+  void GetDelayedProcessScripts(MCContext* aCx,
                                 nsTArray<nsTArray<JS::Value>>& aScripts,
                                 mozilla::ErrorResult& aError) {
     GetDelayedScripts(aCx, aScripts, aError);

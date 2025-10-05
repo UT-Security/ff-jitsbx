@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Animate)
 
 namespace mozilla::dom {
 
-JSObject* SVGAnimateElement::WrapNode(JSContext* aCx,
+JSObject* SVGAnimateElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimateElement_Binding::Wrap(aCx, this, aGivenProto);
 }

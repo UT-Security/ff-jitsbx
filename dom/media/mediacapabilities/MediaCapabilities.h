@@ -57,10 +57,10 @@ class MediaCapabilities final : public nsISupports, public nsWrapperCache {
   explicit MediaCapabilities(nsIGlobalObject* aParent);
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool Enabled(JSContext* aCx, JSObject* aGlobal);
+  static bool Enabled(MCContext* aCx, JSObject* aGlobal);
 
  private:
   virtual ~MediaCapabilities() = default;
@@ -88,7 +88,7 @@ class MediaCapabilitiesInfo final : public NonRefcountedDOMObject {
         mSmooth(aSmooth),
         mPowerEfficient(aPowerEfficient) {}
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
  private:

@@ -122,7 +122,7 @@ NS_IMPL_ISUPPORTS_CI(GleanTimingDistribution, nsIGleanTimingDistribution)
 NS_IMETHODIMP
 GleanTimingDistribution::Start(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aResult) {
-  if (!dom::ToJSValue(MC_UNSAFE(aCx), mTimingDist.Start(), aResult)) {
+  if (!dom::ToJSValue(aCx, mTimingDist.Start(), aResult)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;

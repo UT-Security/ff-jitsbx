@@ -17,7 +17,7 @@ using namespace mozilla::gfx;
 namespace mozilla::dom {
 
 JSObject* SVGFEDisplacementMapElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGFEDisplacementMapElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

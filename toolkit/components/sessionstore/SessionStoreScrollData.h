@@ -37,7 +37,7 @@ class SessionStoreScrollData final : public nsISupports,
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(SessionStoreScrollData)
   nsISupports* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetScroll(nsACString& aScroll) const;
@@ -46,7 +46,7 @@ class SessionStoreScrollData final : public nsISupports,
 
   void GetChildren(Nullable<ChildrenArray>& aChildren) const;
 
-  void ToJSON(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval);
+  void ToJSON(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval);
 
   void Update(const CollectedType& aUpdate);
 

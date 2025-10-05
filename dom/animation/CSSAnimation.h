@@ -49,7 +49,7 @@ class CSSAnimation final : public Animation {
                "animation-name should not be 'none'");
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   CSSAnimation* AsCSSAnimation() override { return this; }
@@ -215,7 +215,7 @@ class CSSAnimationKeyframeEffect : public KeyframeEffect {
   void GetComputedTimingAsDict(ComputedEffectTiming& aRetVal) const override;
   void UpdateTiming(const OptionalEffectTiming& aTiming,
                     ErrorResult& aRv) override;
-  void SetKeyframes(JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
+  void SetKeyframes(MCContext* aContext, JS::Handle<JSObject*> aKeyframes,
                     ErrorResult& aRv) override;
   void SetComposite(const CompositeOperation& aComposite) override;
 

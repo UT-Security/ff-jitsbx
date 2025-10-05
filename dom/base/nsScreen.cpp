@@ -203,7 +203,7 @@ bool nsScreen::MozLockOrientation(const Sequence<nsString>& aOrientations,
 void nsScreen::MozUnlockOrientation() {}
 
 /* virtual */
-JSObject* nsScreen::WrapObject(JSContext* aCx,
+JSObject* nsScreen::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return Screen_Binding::Wrap(aCx, this, aGivenProto);
 }

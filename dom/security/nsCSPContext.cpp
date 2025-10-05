@@ -215,7 +215,7 @@ bool nsCSPContext::permitsInternal(
         uint32_t lineNumber = 0;
         uint32_t columnNumber = 0;
         nsAutoString spec;
-        JSContext* cx = nsContentUtils::GetCurrentJSContext();
+        MCContext* cx = nsContentUtils::GetCurrentJSContext();
         if (cx) {
           nsJSUtils::GetCallingLocation(cx, spec, &lineNumber, &columnNumber);
           // If GetCallingLocation fails linenumber & columnNumber are set to 0
@@ -558,7 +558,7 @@ void nsCSPContext::reportInlineViolation(
   uint32_t lineNumber;
   uint32_t columnNumber;
 
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx || !nsJSUtils::GetCallingLocation(cx, sourceFile, &lineNumber,
                                             &columnNumber)) {
     // use selfURI as the sourceFile
@@ -729,7 +729,7 @@ nsCSPContext::GetAllowsNavigateTo(nsIURI* aURI, bool aIsFormSubmission,
       uint32_t lineNumber = 0;
       uint32_t columnNumber = 0;
       nsAutoCString spec;
-      JSContext* cx = nsContentUtils::GetCurrentJSContext();
+      MCContext* cx = nsContentUtils::GetCurrentJSContext();
       if (cx) {
         nsJSUtils::GetCallingLocation(cx, spec, &lineNumber, &columnNumber);
         // If GetCallingLocation fails linenumber & columnNumber are set to 0

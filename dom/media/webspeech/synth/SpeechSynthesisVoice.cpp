@@ -24,7 +24,7 @@ SpeechSynthesisVoice::SpeechSynthesisVoice(nsISupports* aParent,
 
 SpeechSynthesisVoice::~SpeechSynthesisVoice() = default;
 
-JSObject* SpeechSynthesisVoice::WrapObject(JSContext* aCx,
+JSObject* SpeechSynthesisVoice::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SpeechSynthesisVoice_Binding::Wrap(aCx, this, aGivenProto);
 }

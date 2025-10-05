@@ -69,7 +69,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GetUserMediaRequest)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* GetUserMediaRequest::WrapObject(JSContext* aCx,
+JSObject* GetUserMediaRequest::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return GetUserMediaRequest_Binding::Wrap(aCx, this, aGivenProto);
 }

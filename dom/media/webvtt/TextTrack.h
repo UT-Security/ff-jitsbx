@@ -52,7 +52,7 @@ class TextTrack final : public DOMEventTargetHelper {
 
   void SetDefaultSettings();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   TextTrackKind Kind() const { return mKind; }

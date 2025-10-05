@@ -18,7 +18,7 @@ XRBoundedReferenceSpace::XRBoundedReferenceSpace(nsIGlobalObject* aParent,
                        XRReferenceSpaceType::Bounded_floor) {}
 
 JSObject* XRBoundedReferenceSpace::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return XRBoundedReferenceSpace_Binding::Wrap(aCx, this, aGivenProto);
 }
 

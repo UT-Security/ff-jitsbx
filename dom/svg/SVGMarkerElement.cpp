@@ -28,7 +28,7 @@ namespace mozilla::dom {
 
 using namespace SVGAngle_Binding;
 
-JSObject* SVGMarkerElement::WrapNode(JSContext* aCx,
+JSObject* SVGMarkerElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGMarkerElement_Binding::Wrap(aCx, this, aGivenProto);
 }

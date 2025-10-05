@@ -55,7 +55,7 @@ class Storage : public nsISupports, public nsWrapperCache {
   bool IsSessionScopedOrLess() const { return mSessionScopedOrLess; }
 
   // WebIDL
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }

@@ -113,7 +113,7 @@ nsHangDetails::GetAnnotations(MCContext* aCx,
 
 namespace {
 
-nsresult StringFrame(JSContext* aCx, MC::RootedObject& aTarget, size_t aIndex,
+nsresult StringFrame(MCContext* aCx, MC::RootedObject& aTarget, size_t aIndex,
                      const char* aString) {
   JSString* jsString = JS_NewStringCopyZ(aCx, aString);
   if (!jsString) {
@@ -144,7 +144,7 @@ nsHangDetails::GetStack(MCContext* aCx, JS::MutableHandle<JS::Value> aStack) {
     auto& entry = stack.stack()[i];
     switch (entry.type()) {
       case HangEntry::TnsCString: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, entry.get_nsCString().get());
+        nsresult rv = StringFrame(aCx, ret, i, entry.get_nsCString().get());
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -171,7 +171,7 @@ nsHangDetails::GetStack(MCContext* aCx, JS::MutableHandle<JS::Value> aStack) {
         // We know this offset is safe because of the previous checks.
         const int8_t* start = stack.strbuffer().Elements() + offset;
         nsresult rv =
-            StringFrame(MC_UNSAFE(aCx), ret, i, reinterpret_cast<const char*>(start));
+            StringFrame(aCx, ret, i, reinterpret_cast<const char*>(start));
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
@@ -200,32 +200,32 @@ nsHangDetails::GetStack(MCContext* aCx, JS::MutableHandle<JS::Value> aStack) {
       }
       case HangEntry::THangEntryProgCounter: {
         // Don't bother recording fixed program counters to JS
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(unresolved)");
+        nsresult rv = StringFrame(aCx, ret, i, "(unresolved)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryContent: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(content script)");
+        nsresult rv = StringFrame(aCx, ret, i, "(content script)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryJit: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(jit frame)");
+        nsresult rv = StringFrame(aCx, ret, i, "(jit frame)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryWasm: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(wasm)");
+        nsresult rv = StringFrame(aCx, ret, i, "(wasm)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntryChromeScript: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(chrome script)");
+        nsresult rv = StringFrame(aCx, ret, i, "(chrome script)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }
       case HangEntry::THangEntrySuppressed: {
-        nsresult rv = StringFrame(MC_UNSAFE(aCx), ret, i, "(profiling suppressed)");
+        nsresult rv = StringFrame(aCx, ret, i, "(profiling suppressed)");
         NS_ENSURE_SUCCESS(rv, rv);
         break;
       }

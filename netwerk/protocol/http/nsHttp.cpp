@@ -806,7 +806,7 @@ Maybe<nsCString> CallingScriptLocationString() {
     return Nothing();
   }
 
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return Nothing();
   }

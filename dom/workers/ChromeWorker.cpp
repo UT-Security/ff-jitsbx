@@ -31,7 +31,7 @@ already_AddRefed<ChromeWorker> ChromeWorker::Constructor(
   MCContext* cx = aGlobal.Context();
 
   RefPtr<WorkerPrivate> workerPrivate = WorkerPrivate::Constructor(
-      MC_UNSAFE(cx), aScriptURL, true /* aIsChromeWorker */, WorkerKindDedicated,
+      cx, aScriptURL, true /* aIsChromeWorker */, WorkerKindDedicated,
       RequestCredentials::Omit, aOptions.mType, aOptions.mName, VoidCString(),
       nullptr /*aLoadInfo */, aRv);
   if (NS_WARN_IF(aRv.Failed())) {
@@ -47,7 +47,7 @@ already_AddRefed<ChromeWorker> ChromeWorker::Constructor(
 }
 
 /* static */
-bool ChromeWorker::WorkerAvailable(JSContext* aCx, JSObject* /* unused */) {
+bool ChromeWorker::WorkerAvailable(MCContext* aCx, JSObject* /* unused */) {
   // Chrome is always allowed to use workers, and content is never
   // allowed to use ChromeWorker, so all we have to check is the
   // caller.  However, chrome workers apparently might not have a
@@ -65,7 +65,7 @@ ChromeWorker::ChromeWorker(nsIGlobalObject* aGlobalObject,
 
 ChromeWorker::~ChromeWorker() = default;
 
-JSObject* ChromeWorker::WrapObject(JSContext* aCx,
+JSObject* ChromeWorker::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   MC::Rooted<JSObject*> wrapper(
       aCx, ChromeWorker_Binding::Wrap(aCx, this, aGivenProto));

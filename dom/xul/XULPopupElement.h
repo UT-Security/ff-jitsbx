@@ -108,7 +108,7 @@ class XULPopupElement : public XULMenuParentElement {
  protected:
   virtual ~XULPopupElement() = default;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

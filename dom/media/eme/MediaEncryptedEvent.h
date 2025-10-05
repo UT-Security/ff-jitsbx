@@ -33,7 +33,7 @@ class MediaEncryptedEvent final : public Event {
   JS::Heap<JSObject*> mInitData;
 
  public:
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<MediaEncryptedEvent> Constructor(EventTarget* aOwner);
@@ -48,7 +48,7 @@ class MediaEncryptedEvent final : public Event {
 
   void GetInitDataType(nsString& aRetVal) const;
 
-  void GetInitData(JSContext* cx, JS::MutableHandle<JSObject*> aData,
+  void GetInitData(MCContext* cx, JS::MutableHandle<JSObject*> aData,
                    ErrorResult& aRv);
 
  private:

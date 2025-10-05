@@ -43,7 +43,7 @@ class DOMIntersectionObserverEntry final : public nsISupports,
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return IntersectionObserverEntry_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -127,7 +127,7 @@ class DOMIntersectionObserver final : public nsISupports,
       const GlobalObject&, dom::IntersectionCallback&,
       const IntersectionObserverInit&, ErrorResult&);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return IntersectionObserver_Binding::Wrap(aCx, this, aGivenProto);
   }

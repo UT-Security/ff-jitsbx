@@ -25,4 +25,4 @@ AutoJSContextWithGlobal::AutoJSContextWithGlobal(JSObject* aGlobalObject)
   MOZ_ALWAYS_TRUE(mJsAPI.Init(globalObject));
 }
 
-JSContext* AutoJSContextWithGlobal::GetJSContext() const { return mJsAPI.cx(); }
+MCContext* AutoJSContextWithGlobal::GetJSContext() const { return mJsAPI.cx(); }

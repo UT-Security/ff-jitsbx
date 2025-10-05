@@ -242,6 +242,30 @@ class TaintedVolatile<JS::InstantiateOptions, MC_Sbx> {
 };
 
 template <typename MC_Sbx>
+class TaintedVolatile<const JS::DecodeOptions, MC_Sbx> {
+ private:
+  const JS::DecodeOptions data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  bool getBorrowBuffer() {
+    return data.borrowBuffer;
+  }
+
+  bool getUsePinnedBytecode() {
+    return data.usePinnedBytecode;
+  }
+};
+
+template <typename MC_Sbx>
 class TaintedVolatile<JS::DecodeOptions, MC_Sbx> {
  private:
   JS::DecodeOptions data;

@@ -40,7 +40,7 @@ class DOMLocalization : public intl::Localization {
       const dom::Optional<dom::Sequence<nsCString>>& aLocales,
       ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasPendingMutations() const;
 
@@ -56,12 +56,12 @@ class DOMLocalization : public intl::Localization {
   void PauseObserving();
   void ResumeObserving();
 
-  void SetAttributes(JSContext* aCx, Element& aElement, const nsAString& aId,
+  void SetAttributes(MCContext* aCx, Element& aElement, const nsAString& aId,
                      const Optional<JS::Handle<JSObject*>>& aArgs,
                      ErrorResult& aRv);
   void GetAttributes(Element& aElement, L10nIdArgs& aResult, ErrorResult& aRv);
 
-  void SetArgs(JSContext* aCx, Element& aElement,
+  void SetArgs(MCContext* aCx, Element& aElement,
                const Optional<JS::Handle<JSObject*>>& aArgs, ErrorResult& aRv);
 
   already_AddRefed<Promise> TranslateFragment(nsINode& aNode, ErrorResult& aRv);

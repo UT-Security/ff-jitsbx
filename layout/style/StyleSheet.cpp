@@ -1110,7 +1110,7 @@ dom::MediaList* StyleSheet::Media() {
 
 // nsWrapperCache
 
-JSObject* StyleSheet::WrapObject(JSContext* aCx,
+JSObject* StyleSheet::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return dom::CSSStyleSheet_Binding::Wrap(aCx, this, aGivenProto);
 }

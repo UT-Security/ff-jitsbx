@@ -21,11 +21,11 @@ class FontFaceSetIterator final {
   NS_DECL_CYCLE_COLLECTION_NATIVE_CLASS(FontFaceSetIterator)
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(FontFaceSetIterator)
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
   // WebIDL
-  void Next(JSContext* aCx, FontFaceSetIteratorResult& aResult,
+  void Next(MCContext* aCx, FontFaceSetIteratorResult& aResult,
             ErrorResult& aRv);
 
  private:

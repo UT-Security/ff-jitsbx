@@ -113,7 +113,7 @@ class DOMSVGTransform final : public nsWrapperCache {
 
   // WebIDL
   DOMSVGTransformList* GetParentObject() const { return mList; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   uint16_t Type() const;
   dom::SVGMatrix* GetMatrix();

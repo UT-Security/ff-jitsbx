@@ -1476,7 +1476,7 @@ void ServiceWorkerManager::LocalizeAndReportToAllClients(
 }
 
 void ServiceWorkerManager::HandleError(
-    JSContext* aCx, nsIPrincipal* aPrincipal, const nsCString& aScope,
+    MCContext* aCx, nsIPrincipal* aPrincipal, const nsCString& aScope,
     const nsString& aWorkerURL, const nsString& aMessage,
     const nsString& aFilename, const nsString& aLine, uint32_t aLineNumber,
     uint32_t aColumnNumber, uint32_t aFlags, JSExnType aExnType) {

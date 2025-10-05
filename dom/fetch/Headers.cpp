@@ -77,7 +77,7 @@ already_AddRefed<Headers> Headers::Create(
   return headers.forget();
 }
 
-JSObject* Headers::WrapObject(JSContext* aCx,
+JSObject* Headers::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::Headers_Binding::Wrap(aCx, this, aGivenProto);
 }

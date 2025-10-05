@@ -48,10 +48,10 @@ class BindingCallContext;
 // so we can use std::is_base_of to detect dictionary template arguments.
 struct DictionaryBase {
  protected:
-  bool ParseJSON(JSContext* aCx, const nsAString& aJSON,
+  bool ParseJSON(MCContext* aCx, const nsAString& aJSON,
                  JS::MutableHandle<JS::Value> aVal);
 
-  bool StringifyToJSON(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  bool StringifyToJSON(MCContext* aCx, JS::Handle<JSObject*> aObj,
                        nsAString& aJSON) const;
 
   // Struct used as a way to force a dictionary constructor to not init the
@@ -120,12 +120,7 @@ enum class CallerType : uint32_t;
 
 class MOZ_STACK_CLASS GlobalObject {
  public:
-#ifdef JS_SANDBOX
   GlobalObject(MCContext* aCx, JSObject* aObject);
-  GlobalObject(JSContext* aCx, JSObject* aObject) : GlobalObject(JS_SanitizeContext(aCx), aObject) {}
-#else
-  GlobalObject(JSContext* aCx, JSObject* aObject);
-#endif
 
   JSObject* Get() const { return mGlobalJSObject; }
 
@@ -229,12 +224,12 @@ class Optional<JS::Handle<T>>
   MOZ_ALLOW_TEMPORARY Optional()
       : Optional_base<JS::Handle<T>, MC::Rooted<T>>() {}
 
-  explicit Optional(JSContext* cx)
+  explicit Optional(MCContext* cx)
       : Optional_base<JS::Handle<T>, MC::Rooted<T>>() {
     this->Construct(cx);
   }
 
-  Optional(JSContext* cx, const T& aValue)
+  Optional(MCContext* cx, const T& aValue)
       : Optional_base<JS::Handle<T>, MC::Rooted<T>>(cx, aValue) {}
 
   // Override the const Value() to return the right thing so we're not
@@ -539,12 +534,12 @@ class SystemCallerGuarantee {
 };
 
 class ProtoAndIfaceCache;
-typedef void (*CreateInterfaceObjectsMethod)(JSContext* aCx,
+typedef void (*CreateInterfaceObjectsMethod)(MCContext* aCx,
                                              JS::Handle<JSObject*> aGlobal,
                                              ProtoAndIfaceCache& aCache,
                                              bool aDefineOnGlobal);
 JS::Handle<JSObject*> GetPerInterfaceObjectHandle(
-    JSContext* aCx, size_t aSlotId, CreateInterfaceObjectsMethod aCreator,
+    MCContext* aCx, size_t aSlotId, CreateInterfaceObjectsMethod aCreator,
     bool aDefineOnGlobal);
 
 }  // namespace dom

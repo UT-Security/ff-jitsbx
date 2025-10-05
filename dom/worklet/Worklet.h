@@ -40,10 +40,10 @@ class Worklet final : public nsISupports, public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<Promise> AddModule(JSContext* aCx,
+  already_AddRefed<Promise> AddModule(MCContext* aCx,
                                       const nsAString& aModuleURL,
                                       const WorkletOptions& aOptions,
                                       CallerType aCallerType, ErrorResult& aRv);

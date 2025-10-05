@@ -31,7 +31,7 @@ class GainNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   AudioParam* Gain() const { return mGain; }

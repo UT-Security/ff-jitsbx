@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DebuggerNotification)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* DebuggerNotification::WrapObject(JSContext* aCx,
+JSObject* DebuggerNotification::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return DebuggerNotification_Binding::Wrap(aCx, this, aGivenProto);
 }

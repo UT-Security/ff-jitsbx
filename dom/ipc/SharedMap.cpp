@@ -52,7 +52,7 @@ bool SharedMap::Has(const nsACString& aName) {
   return mEntries.Contains(aName);
 }
 
-void SharedMap::Get(JSContext* aCx, const nsACString& aName,
+void SharedMap::Get(MCContext* aCx, const nsACString& aName,
                     JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) {
   auto res = MaybeRebuild();
   if (res.isErr()) {
@@ -69,7 +69,7 @@ void SharedMap::Get(JSContext* aCx, const nsACString& aName,
   entry->Read(aCx, aRetVal, aRv);
 }
 
-void SharedMap::Entry::Read(JSContext* aCx,
+void SharedMap::Entry::Read(MCContext* aCx,
                             JS::MutableHandle<JS::Value> aRetVal,
                             ErrorResult& aRv) {
   if (mData.is<StructuredCloneData>()) {
@@ -120,7 +120,7 @@ void SharedMap::Update(const FileDescriptor& aMapFile, size_t aMapSize,
   mBlobImpls = std::move(aBlobs);
 
   AutoEntryScript aes(GetParentObject(), "SharedMap change event");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   RootedDictionary<MozSharedMapChangeEventInit> init(cx);
   if (!init.mChangedKeys.SetCapacity(aChangedKeys.Length(), fallible)) {
@@ -157,7 +157,7 @@ const nsString SharedMap::GetKeyAtIndex(uint32_t aIndex) const {
   return NS_ConvertUTF8toUTF16(EntryArray()[aIndex]->Name());
 }
 
-bool SharedMap::GetValueAtIndex(JSContext* aCx, uint32_t aIndex,
+bool SharedMap::GetValueAtIndex(MCContext* aCx, uint32_t aIndex,
                                 JS::MutableHandle<JS::Value> aResult) const {
   ErrorResult rv;
   EntryArray()[aIndex]->Read(aCx, aResult, rv);
@@ -170,7 +170,7 @@ bool SharedMap::GetValueAtIndex(JSContext* aCx, uint32_t aIndex,
 void SharedMap::Entry::TakeData(StructuredCloneData&& aHolder) {
   mData = AsVariant(std::move(aHolder));
 
-  mSize = Holder().Data().Size();
+  mSize = Holder().Data()->Size();
   mBlobCount = Holder().BlobImpls().Length();
 }
 
@@ -178,7 +178,7 @@ void SharedMap::Entry::ExtractData(char* aDestPtr, uint32_t aNewOffset,
                                    uint16_t aNewBlobOffset) {
   if (mData.is<StructuredCloneData>()) {
     char* ptr = aDestPtr;
-    Holder().Data().ForEachDataChunk([&](const char* aData, size_t aSize) {
+    Holder().Data()->ForEachDataChunk([&](const char* aData, size_t aSize) {
       memcpy(ptr, aData, aSize);
       ptr += aSize;
       return true;
@@ -385,7 +385,7 @@ void WritableSharedMap::Delete(const nsACString& aName) {
   }
 }
 
-void WritableSharedMap::Set(JSContext* aCx, const nsACString& aName,
+void WritableSharedMap::Set(MCContext* aCx, const nsACString& aName,
                             JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   StructuredCloneData holder;
 
@@ -428,12 +428,12 @@ nsresult WritableSharedMap::KeyChanged(const nsACString& aName) {
   return NS_OK;
 }
 
-JSObject* SharedMap::WrapObject(JSContext* aCx,
+JSObject* SharedMap::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return MozSharedMap_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-JSObject* WritableSharedMap::WrapObject(JSContext* aCx,
+JSObject* WritableSharedMap::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return MozWritableSharedMap_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -21,11 +21,11 @@ class Glean final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Glean)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() { return nullptr; }
 
-  static bool DefineGlean(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  static bool DefineGlean(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
   already_AddRefed<Category> NamedGetter(const nsAString& aName, bool& aFound);
   bool NameIsEnumerable(const nsAString& aName);

@@ -324,7 +324,7 @@ class XHRUnpinRunnable final : public MainThreadWorkerControlRunnable {
  private:
   ~XHRUnpinRunnable() = default;
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     if (mXMLHttpRequestPrivate->SendInProgress()) {
       mXMLHttpRequestPrivate->Unpin();
     }
@@ -383,7 +383,7 @@ class LoadStartDetectionRunnable final : public Runnable,
    private:
     ~ProxyCompleteRunnable() = default;
 
-    virtual bool WorkerRun(JSContext* aCx,
+    virtual bool WorkerRun(MCContext* aCx,
                            WorkerPrivate* aWorkerPrivate) override {
       if (mChannelId != mProxy->mOuterChannelId) {
         // Threads raced, this event is now obsolete.
@@ -500,7 +500,7 @@ class EventRunnable final : public MainThreadProxyRunnable {
   ~EventRunnable() = default;
 
   bool PreDispatch(WorkerPrivate* /* unused */) final;
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 };
 
 class SyncTeardownRunnable final : public WorkerThreadProxySyncRunnable {
@@ -908,7 +908,7 @@ Proxy::HandleEvent(Event* aEvent) {
     if (!junkScope || !jsapi.Init(junkScope)) {
       return NS_ERROR_FAILURE;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::Rooted<JS::Value> value(cx);
     if (!GetOrCreateDOMReflectorNoWrap(cx, mXHR, &value)) {
@@ -1004,7 +1004,7 @@ bool EventRunnable::PreDispatch(WorkerPrivate* /* unused */) {
   AutoJSAPI jsapi;
   DebugOnly<bool> ok = jsapi.Init(xpc::NativeGlobal(mScopeObj));
   MOZ_ASSERT(ok);
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   // Now keep the mScopeObj alive for the duration
   MC::Rooted<JSObject*> scopeObj(cx, mScopeObj);
   // And reset mScopeObj now, before we have a chance to run its destructor on
@@ -1064,7 +1064,7 @@ bool EventRunnable::PreDispatch(WorkerPrivate* /* unused */) {
   return true;
 }
 
-bool EventRunnable::WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+bool EventRunnable::WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
   if (mEventStreamId != mProxy->mOuterEventStreamId) {
     // Threads raced, this event is now obsolete.
     return true;
@@ -1406,7 +1406,7 @@ already_AddRefed<XMLHttpRequest> XMLHttpRequestWorker::Construct(
     const GlobalObject& aGlobal, const MozXMLHttpRequestParameters& aParams,
     ErrorResult& aRv) {
   MCContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
   MOZ_ASSERT(workerPrivate);
 
   nsCOMPtr<nsIGlobalObject> global = do_QueryInterface(aGlobal.GetAsSupports());
@@ -1740,7 +1740,7 @@ void XMLHttpRequestWorker::Open(const nsACString& aMethod,
 
   UniquePtr<SerializedStackHolder> stack;
   if (mWorkerPrivate->IsWatchedByDevTools()) {
-    if (JSContext* cx = nsContentUtils::GetCurrentJSContext()) {
+    if (MCContext* cx = nsContentUtils::GetCurrentJSContext()) {
       stack = GetCurrentStackForNetMonitor(cx);
     }
   }
@@ -2107,7 +2107,7 @@ void XMLHttpRequestWorker::SetResponseType(
   mResponseType = runnable->ResponseType();
 }
 
-void XMLHttpRequestWorker::GetResponse(JSContext* aCx,
+void XMLHttpRequestWorker::GetResponse(MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aResponse,
                                        ErrorResult& aRv) {
   if (NS_FAILED(mResponseData->mResponseResult)) {

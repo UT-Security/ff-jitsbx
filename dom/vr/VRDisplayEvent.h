@@ -48,7 +48,7 @@ class VRDisplayEvent final : public Event {
 
  public:
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<VRDisplayEvent> Constructor(
       mozilla::dom::EventTarget* aOwner, const nsAString& aType,

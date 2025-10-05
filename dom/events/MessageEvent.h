@@ -43,12 +43,12 @@ class MessageEvent final : public Event {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(MessageEvent, Event)
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   MessageEvent* AsMessageEvent() override { return this; }
 
-  void GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData,
+  void GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aData,
                ErrorResult& aRv);
   void GetOrigin(nsAString&) const;
   void GetLastEventId(nsAString&) const;
@@ -66,7 +66,7 @@ class MessageEvent final : public Event {
       const MessageEventInit& aEventInit);
 
   void InitMessageEvent(
-      JSContext* aCx, const nsAString& aType, bool aCanBubble, bool aCancelable,
+      MCContext* aCx, const nsAString& aType, bool aCanBubble, bool aCancelable,
       JS::Handle<JS::Value> aData, const nsAString& aOrigin,
       const nsAString& aLastEventId,
       const Nullable<WindowProxyOrMessagePortOrServiceWorker>& aSource,
@@ -77,7 +77,7 @@ class MessageEvent final : public Event {
   }
 
   void InitMessageEvent(
-      JSContext* aCx, const nsAString& aType, mozilla::CanBubble,
+      MCContext* aCx, const nsAString& aType, mozilla::CanBubble,
       mozilla::Cancelable, JS::Handle<JS::Value> aData,
       const nsAString& aOrigin, const nsAString& aLastEventId,
       const Nullable<WindowProxyOrMessagePortOrServiceWorker>& aSource,

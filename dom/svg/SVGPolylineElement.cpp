@@ -14,7 +14,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Polyline)
 
 namespace mozilla::dom {
 
-JSObject* SVGPolylineElement::WrapNode(JSContext* aCx,
+JSObject* SVGPolylineElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGPolylineElement_Binding::Wrap(aCx, this, aGivenProto);
 }

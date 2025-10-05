@@ -108,7 +108,7 @@ class PostMessageRunnable final : public CancelableRunnable {
       return;
     }
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     IgnoredErrorResult rv;
     MC::Rooted<JS::Value> value(cx);
@@ -294,12 +294,12 @@ void MessagePort::Initialize(const nsID& aUUID, const nsID& aDestinationUUID,
   }
 }
 
-JSObject* MessagePort::WrapObject(JSContext* aCx,
+JSObject* MessagePort::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return MessagePort_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void MessagePort::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                               const Sequence<JSObject*>& aTransferable,
                               ErrorResult& aRv) {
   // We *must* clone the data here, or the JS::Value could be modified
@@ -405,7 +405,7 @@ void MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
   mActor->SendPostMessages(messages);
 }
 
-void MessagePort::PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+void MessagePort::PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                               const StructuredSerializeOptions& aOptions,
                               ErrorResult& aRv) {
   PostMessage(aCx, aMessage, aOptions.mTransfer, aRv);

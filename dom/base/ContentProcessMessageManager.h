@@ -55,7 +55,7 @@ class ContentProcessMessageManager : public nsIMessageSender,
 
   void MarkForCC();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   JSObject* GetOrCreateWrapper();
@@ -66,7 +66,7 @@ class ContentProcessMessageManager : public nsIMessageSender,
   using MessageManagerGlobal::RemoveWeakMessageListener;
 
   // ContentProcessMessageManager
-  void GetInitialProcessData(JSContext* aCx,
+  void GetInitialProcessData(MCContext* aCx,
                              JS::MutableHandle<JS::Value> aInitialProcessData,
                              ErrorResult& aError) {
     if (!mMessageManager) {

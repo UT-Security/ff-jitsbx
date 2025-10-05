@@ -19,7 +19,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGEllipseElement::WrapNode(JSContext* aCx,
+JSObject* SVGEllipseElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGEllipseElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -52,7 +52,7 @@ class HTMLElement final : public nsGenericHTMLFormElement {
  protected:
   virtual ~HTMLElement() = default;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   // Element

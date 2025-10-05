@@ -777,7 +777,7 @@ TestShellParent* GetOrCreateTestShellParent() {
 
 }  // namespace
 
-bool XRE_SendTestShellCommand(JSContext* aCx, JSString* aCommand,
+bool XRE_SendTestShellCommand(MCContext* aCx, JSString* aCommand,
                               JS::Value* aCallback) {
   MC::Rooted<JSString*> cmd(aCx, aCommand);
   TestShellParent* tsp = GetOrCreateTestShellParent();

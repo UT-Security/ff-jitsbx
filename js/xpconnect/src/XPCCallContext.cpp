@@ -38,7 +38,7 @@ XPCCallContext::XPCCallContext(
       mArgv(nullptr),
       mRetVal(nullptr) {
   MOZ_ASSERT(cx);
-  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
 
   if (!mXPC) {
     return;
@@ -179,7 +179,7 @@ nsresult XPCCallContext::CanCallNow() {
   }
 
   if (!mTearOff) {
-    mTearOff = mWrapper->FindTearOff(MC_UNSAFE(mJSContext), mInterface, false, &rv);
+    mTearOff = mWrapper->FindTearOff(mJSContext, mInterface, false, &rv);
     if (!mTearOff || mTearOff->GetInterface() != mInterface) {
       mTearOff = nullptr;
       return NS_FAILED(rv) ? rv : NS_ERROR_UNEXPECTED;

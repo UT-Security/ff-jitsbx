@@ -13,7 +13,13 @@
 
 #include "monkeycage/Context.h"
 
-namespace JS { 
+namespace JS {
+
+inline bool CollectRuntimeStats(MCContext* cx, RuntimeStats* rtStats,
+                                ObjectPrivateVisitor* opv, bool anonymize) {
+  return CollectRuntimeStats(cx->cx_, rtStats, opv, anonymize);
+}
+
 inline size_t SystemCompartmentCount(MCContext* cx) {
   return SystemCompartmentCount(cx->cx_);
 }
@@ -31,7 +37,14 @@ inline size_t UserRealmCount(MCContext* cx) {
 inline size_t PeakSizeOfTemporary(const MCContext* cx) {
   return PeakSizeOfTemporary(cx->cx_);
 }
+
+inline bool AddSizeOfTab(MCContext* cx, JS::HandleObject obj,
+                         mozilla::MallocSizeOf mallocSizeOf,
+                         ObjectPrivateVisitor* opv, TabSizes* sizes) {
+  return AddSizeOfTab(cx->cx_, obj, mallocSizeOf, opv, sizes);  
 }
+
+}  // namespace JS
 #endif
 
 #endif

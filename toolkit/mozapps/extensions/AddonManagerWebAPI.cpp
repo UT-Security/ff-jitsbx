@@ -82,7 +82,7 @@ bool AddonManagerWebAPI::IsValidSite(nsIURI* uri) {
 }
 
 #ifndef ANDROID
-bool AddonManagerWebAPI::IsAPIEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool AddonManagerWebAPI::IsAPIEnabled(MCContext* aCx, JSObject* aGlobal) {
   MOZ_DIAGNOSTIC_ASSERT(JS_IsGlobalObject(aGlobal));
   nsCOMPtr<nsPIDOMWindowInner> win = xpc::WindowOrNull(aGlobal);
   if (!win) {
@@ -153,7 +153,7 @@ bool AddonManagerWebAPI::IsAPIEnabled(JSContext* aCx, JSObject* aGlobal) {
   return false;
 }
 #else   // We don't support mozAddonManager on Android
-bool AddonManagerWebAPI::IsAPIEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool AddonManagerWebAPI::IsAPIEnabled(MCContext* aCx, JSObject* aGlobal) {
   return false;
 }
 #endif  // ifndef ANDROID

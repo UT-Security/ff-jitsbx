@@ -45,7 +45,7 @@ static void SandboxLogJSStack(void) {
   // If we got a stack, we must have a current JSContext.  This is icky.  :(
   // Would be better if GetCurrentJSStack() handed out the JSContext it ended up
   // using or something.
-  MCContext* cx = frame ? JS_SanitizeContext(nsContentUtils::GetCurrentJSContext()) : nullptr;
+  MCContext* cx = frame ? nsContentUtils::GetCurrentJSContext() : nullptr;
   for (int i = 0; frame != nullptr; ++i) {
     nsAutoString fileName, funName;
     int32_t lineNumber;

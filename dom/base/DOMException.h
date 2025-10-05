@@ -14,7 +14,7 @@
 #endif
 
 #include <stdint.h>
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "jspubtd.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -58,7 +58,7 @@ class Exception : public nsIException, public nsWrapperCache {
   const nsCString& GetMessageMoz() const { return mMessage; }
   nsresult GetResult() const { return mResult; }
   // DOMException wants different ToString behavior, so allow it to override.
-  virtual void ToString(JSContext* aCx, nsACString& aReturn);
+  virtual void ToString(MCContext* aCx, nsACString& aReturn);
 
   // Cruft used by XPConnect for exceptions originating in JS implemented
   // components.
@@ -66,7 +66,7 @@ class Exception : public nsIException, public nsWrapperCache {
   void StowJSVal(JS::Value& aVp);
 
   // WebIDL API
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return nullptr; }
@@ -86,11 +86,11 @@ class Exception : public nsIException, public nsWrapperCache {
     CreateErrorMessage(name, aRetVal);
   }
 
-  void GetFilename(JSContext* aCx, nsAString& aFilename);
+  void GetFilename(MCContext* aCx, nsAString& aFilename);
 
-  uint32_t SourceId(JSContext* aCx) const;
+  uint32_t SourceId(MCContext* aCx) const;
 
-  uint32_t LineNumber(JSContext* aCx) const;
+  uint32_t LineNumber(MCContext* aCx) const;
 
   uint32_t ColumnNumber() const;
 
@@ -98,9 +98,9 @@ class Exception : public nsIException, public nsWrapperCache {
 
   nsISupports* GetData() const;
 
-  void GetStack(JSContext* aCx, nsAString& aStack) const;
+  void GetStack(MCContext* aCx, nsAString& aStack) const;
 
-  void Stringify(JSContext* aCx, nsString& retval);
+  void Stringify(MCContext* aCx, nsString& retval);
 
   Exception(const nsACString& aMessage, nsresult aResult,
             const nsACString& aName, nsIStackFrame* aLocation,
@@ -148,7 +148,7 @@ class DOMException : public Exception {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(DOMException, Exception)
 
   // nsWrapperCache overrides
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMException> Constructor(
@@ -161,7 +161,7 @@ class DOMException : public Exception {
   void GetName(nsString& retval);
 
   // Exception overrides
-  void ToString(JSContext* aCx, nsACString& aReturn) override;
+  void ToString(MCContext* aCx, nsACString& aReturn) override;
 
   virtual void GetErrorMessage(nsAString& aRetVal) override {
     // See the comment in Exception::GetErrorMessage.
@@ -176,10 +176,10 @@ class DOMException : public Exception {
                                                const nsACString& aMessage);
 
   static already_AddRefed<DOMException> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
  protected:
   virtual ~DOMException() = default;

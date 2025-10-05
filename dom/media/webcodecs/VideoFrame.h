@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_VideoFrame_h
 #define mozilla_dom_VideoFrame_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/NotNull.h"
@@ -102,7 +102,7 @@ class VideoFrame final : public nsISupports, public nsWrapperCache {
  public:
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<VideoFrame> Constructor(
@@ -167,11 +167,11 @@ class VideoFrame final : public nsISupports, public nsWrapperCache {
   void Close();
 
   // [Serializable] implementations: {Read, Write}StructuredClone
-  static JSObject* ReadStructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
-                                       JSStructuredCloneReader* aReader,
+  static JSObject* ReadStructuredClone(MCContext* aCx, nsIGlobalObject* aGlobal,
+                                       MC::Tainted<JSStructuredCloneReader*> aReader,
                                        const VideoFrameSerializedData& aData);
 
-  bool WriteStructuredClone(JSStructuredCloneWriter* aWriter,
+  bool WriteStructuredClone(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                             StructuredCloneHolder* aHolder) const;
 
   // [Transferable] implementations: Transfer, FromTransferred

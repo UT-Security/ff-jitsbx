@@ -17,7 +17,7 @@ namespace mozilla::dom {
 using namespace mozilla::css;
 
 /* virtual */
-JSObject* CSSMozDocumentRule::WrapObject(JSContext* aCx,
+JSObject* CSSMozDocumentRule::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return CSSMozDocumentRule_Binding::Wrap(aCx, this, aGivenProto);
 }

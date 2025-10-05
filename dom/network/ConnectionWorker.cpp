@@ -129,7 +129,7 @@ class NotifyRunnable : public WorkerRunnable {
     MOZ_ASSERT(NS_IsMainThread());
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     mProxy->Update(mConnectionType, mIsWifi, mDHCPGateway);
     return true;

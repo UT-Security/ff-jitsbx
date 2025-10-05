@@ -61,7 +61,7 @@ class GeneratedImageContent final : public nsGenericHTMLElement {
   }
 
  protected:
-  JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  private:
   virtual ~GeneratedImageContent() = default;

@@ -2214,7 +2214,7 @@ void HTMLFormElement::RemoveElementFromPastNamesMap(Element* aElement) {
   }
 }
 
-JSObject* HTMLFormElement::WrapNode(JSContext* aCx,
+JSObject* HTMLFormElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLFormElement_Binding::Wrap(aCx, this, aGivenProto);
 }

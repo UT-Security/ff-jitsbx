@@ -48,7 +48,7 @@ class HTMLTitleElement final : public nsGenericHTMLElement,
  protected:
   virtual ~HTMLTitleElement();
 
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) final;
 
  private:
   void SendTitleChangeEvent(bool aBound);

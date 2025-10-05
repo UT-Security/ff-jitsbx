@@ -10,9 +10,9 @@
 
 #include "ServiceWorker.h"
 #include "ServiceWorkerManager.h"
-#include "js/Conversions.h"
-#include "js/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
-#include "js/TypeDecls.h"
+#include "monkeycage/Conversions.h"
+#include "monkeycage/Exception.h"  // JS::ExceptionStack, JS::StealPendingExceptionStack
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/HoldDropJSObjects.h"
@@ -431,10 +431,10 @@ class RespondWithHandler final : public PromiseNativeHandler {
         mRequestWasHandled(false) {
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   void CancelRequest(nsresult aStatus);
@@ -493,7 +493,7 @@ class MOZ_STACK_CLASS AutoCancel {
   }
 
   // This function steals the error message from a ErrorResult.
-  void SetCancelErrorResult(JSContext* aCx, ErrorResult& aRv) {
+  void SetCancelErrorResult(MCContext* aCx, ErrorResult& aRv) {
     MOZ_DIAGNOSTIC_ASSERT(aRv.Failed());
     MOZ_DIAGNOSTIC_ASSERT(!JS_IsExceptionPending(aCx));
 
@@ -505,14 +505,14 @@ class MOZ_STACK_CLASS AutoCancel {
     MOZ_ASSERT(!aRv.Failed());
 
     // Let's take the pending exception.
-    JS::ExceptionStack exnStack(aCx);
-    if (!JS::StealPendingExceptionStack(aCx, &exnStack)) {
+    MC::SandboxStack<JS::ExceptionStack> exnStack(aCx);
+    if (!JS::StealPendingExceptionStack(aCx, exnStack)) {
       return;
     }
 
     // Converting the exception in a JS::ErrorReportBuilder.
-    JS::ErrorReportBuilder report(aCx);
-    if (!report.init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+    MC::SandboxStack<JS::ErrorReportBuilder> report(aCx);
+    if (!report->init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
       JS_ClearPendingException(aCx);
       return;
     }
@@ -522,7 +522,7 @@ class MOZ_STACK_CLASS AutoCancel {
     MOZ_ASSERT(mParams.Length() == 1);
 
     // Let's store the error message here.
-    mMessageName.Assign(report.toStringResult().c_str());
+    mMessageName.Assign(report->toStringResult().c_str());
     mParams.Clear();
   }
 
@@ -561,7 +561,7 @@ class MOZ_STACK_CLASS AutoCancel {
 
 NS_IMPL_ISUPPORTS0(RespondWithHandler)
 
-void RespondWithHandler::ResolvedCallback(JSContext* aCx,
+void RespondWithHandler::ResolvedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   AutoCancel autoCancel(this, mRequestURL);
@@ -727,7 +727,7 @@ void RespondWithHandler::ResolvedCallback(JSContext* aCx,
   mRequestWasHandled = true;
 }
 
-void RespondWithHandler::RejectedCallback(JSContext* aCx,
+void RespondWithHandler::RejectedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   nsCString sourceSpec = mRespondWithScriptSpec;
@@ -760,7 +760,7 @@ void RespondWithHandler::CancelRequest(nsresult aStatus) {
 
 }  // namespace
 
-void FetchEvent::RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv) {
+void FetchEvent::RespondWith(MCContext* aCx, Promise& aArg, ErrorResult& aRv) {
   if (!GetDispatchFlag() || mWaitToRespond) {
     aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
     return;
@@ -801,7 +801,7 @@ void FetchEvent::RespondWith(JSContext* aCx, Promise& aArg, ErrorResult& aRv) {
   }
 }
 
-void FetchEvent::PreventDefault(JSContext* aCx, CallerType aCallerType) {
+void FetchEvent::PreventDefault(MCContext* aCx, CallerType aCallerType) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aCallerType != CallerType::System,
              "Since when do we support system-principal service workers?");
@@ -861,7 +861,7 @@ class WaitUntilHandler final : public PromiseNativeHandler {
  public:
   NS_DECL_THREADSAFE_ISUPPORTS
 
-  WaitUntilHandler(WorkerPrivate* aWorkerPrivate, JSContext* aCx)
+  WaitUntilHandler(WorkerPrivate* aWorkerPrivate, MCContext* aCx)
       : mWorkerPrivate(aWorkerPrivate),
         mScope(mWorkerPrivate->ServiceWorkerScope()),
         mLine(0),
@@ -873,12 +873,12 @@ class WaitUntilHandler final : public PromiseNativeHandler {
     nsJSUtils::GetCallingLocation(aCx, mSourceSpec, &mLine, &mColumn);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValu,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValu,
                         ErrorResult& aRve) override {
     // do nothing, we are only here to report errors
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     mWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -982,7 +982,7 @@ void ExtendableEvent::SetKeepAliveHandler(
   mExtensionsHandler->SetExtendableEvent(this);
 }
 
-void ExtendableEvent::WaitUntil(JSContext* aCx, Promise& aPromise,
+void ExtendableEvent::WaitUntil(MCContext* aCx, Promise& aPromise,
                                 ErrorResult& aRv) {
   MOZ_ASSERT(!NS_IsMainThread());
 
@@ -1068,18 +1068,18 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushMessageData)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* PushMessageData::WrapObject(JSContext* aCx,
+JSObject* PushMessageData::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::PushMessageData_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void PushMessageData::Json(JSContext* cx, JS::MutableHandle<JS::Value> aRetval,
+void PushMessageData::Json(MCContext* cx, JS::MutableHandle<JS::Value> aRetval,
                            ErrorResult& aRv) {
   if (NS_FAILED(EnsureDecodedText())) {
     aRv.Throw(NS_ERROR_DOM_UNKNOWN_ERR);
     return;
   }
-  BodyUtil::ConsumeJson(JS_SanitizeContext(cx), aRetval, mDecodedText, aRv);
+  BodyUtil::ConsumeJson(cx, aRetval, mDecodedText, aRv);
 }
 
 void PushMessageData::Text(nsAString& aData) {
@@ -1088,12 +1088,12 @@ void PushMessageData::Text(nsAString& aData) {
   }
 }
 
-void PushMessageData::ArrayBuffer(JSContext* cx,
+void PushMessageData::ArrayBuffer(MCContext* cx,
                                   JS::MutableHandle<JSObject*> aRetval,
                                   ErrorResult& aRv) {
   MC::Tainted<void*> data = GetContentsTaintedCopy();
   if (data) {
-    BodyUtil::ConsumeArrayBuffer(JS_SanitizeContext(cx), aRetval, mBytes.Length(), data, aRv);
+    BodyUtil::ConsumeArrayBuffer(cx, aRetval, mBytes.Length(), data, aRv);
   }
 }
 
@@ -1173,7 +1173,7 @@ NS_INTERFACE_MAP_END_INHERITING(ExtendableEvent)
 
 NS_IMPL_CYCLE_COLLECTION_INHERITED(PushEvent, ExtendableEvent, mData)
 
-JSObject* PushEvent::WrapObjectInternal(JSContext* aCx,
+JSObject* PushEvent::WrapObjectInternal(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::PushEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1185,7 +1185,7 @@ ExtendableMessageEvent::ExtendableMessageEvent(EventTarget* aOwner)
 
 ExtendableMessageEvent::~ExtendableMessageEvent() { DropJSObjects(this); }
 
-void ExtendableMessageEvent::GetData(JSContext* aCx,
+void ExtendableMessageEvent::GetData(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aData,
                                      ErrorResult& aRv) {
   aData.set(mData);

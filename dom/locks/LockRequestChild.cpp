@@ -103,7 +103,7 @@ void LockRequestChild::RunAbortAlgorithm() {
           !jsapi.Init(static_cast<AbortSignal*>(Signal())->GetOwnerGlobal()))) {
     mRequest.mPromise->MaybeRejectWithAbortError("The lock request is aborted");
   } else {
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JS::Value> reason(cx);
     Signal()->GetReason(cx, &reason);
     mRequest.mPromise->MaybeReject(reason);

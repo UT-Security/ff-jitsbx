@@ -74,46 +74,46 @@ class PipeToPump final : public AbortFollower {
         mPreventAbort(aPreventAbort),
         mPreventCancel(aPreventCancel) {}
 
-  MOZ_CAN_RUN_SCRIPT void Start(JSContext* aCx, AbortSignal* aSignal);
+  MOZ_CAN_RUN_SCRIPT void Start(MCContext* aCx, AbortSignal* aSignal);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void RunAbortAlgorithm() override;
 
  private:
   ~PipeToPump() override = default;
 
-  MOZ_CAN_RUN_SCRIPT void PerformAbortAlgorithm(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void PerformAbortAlgorithm(MCContext* aCx,
                                                 AbortSignalImpl* aSignal);
 
-  MOZ_CAN_RUN_SCRIPT bool SourceOrDestErroredOrClosed(JSContext* aCx);
+  MOZ_CAN_RUN_SCRIPT bool SourceOrDestErroredOrClosed(MCContext* aCx);
 
   using ShutdownAction = already_AddRefed<Promise> (*)(
-      JSContext*, PipeToPump*, JS::Handle<mozilla::Maybe<JS::Value>>,
+      MCContext*, PipeToPump*, JS::Handle<mozilla::Maybe<JS::Value>>,
       ErrorResult&);
 
   MOZ_CAN_RUN_SCRIPT void ShutdownWithAction(
-      JSContext* aCx, ShutdownAction aAction,
+      MCContext* aCx, ShutdownAction aAction,
       JS::Handle<mozilla::Maybe<JS::Value>> aError);
   MOZ_CAN_RUN_SCRIPT void ShutdownWithActionAfterFinishedWrite(
-      JSContext* aCx, ShutdownAction aAction,
+      MCContext* aCx, ShutdownAction aAction,
       JS::Handle<mozilla::Maybe<JS::Value>> aError);
 
   MOZ_CAN_RUN_SCRIPT void Shutdown(
-      JSContext* aCx, JS::Handle<mozilla::Maybe<JS::Value>> aError);
+      MCContext* aCx, JS::Handle<mozilla::Maybe<JS::Value>> aError);
 
-  void Finalize(JSContext* aCx, JS::Handle<mozilla::Maybe<JS::Value>> aError);
+  void Finalize(MCContext* aCx, JS::Handle<mozilla::Maybe<JS::Value>> aError);
 
-  MOZ_CAN_RUN_SCRIPT void OnReadFulfilled(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void OnReadFulfilled(MCContext* aCx,
                                           JS::Handle<JS::Value> aChunk,
                                           ErrorResult& aRv);
-  MOZ_CAN_RUN_SCRIPT void OnWriterReady(JSContext* aCx, JS::Handle<JS::Value>);
-  MOZ_CAN_RUN_SCRIPT void Read(JSContext* aCx);
+  MOZ_CAN_RUN_SCRIPT void OnWriterReady(MCContext* aCx, JS::Handle<JS::Value>);
+  MOZ_CAN_RUN_SCRIPT void Read(MCContext* aCx);
 
-  MOZ_CAN_RUN_SCRIPT void OnSourceClosed(JSContext* aCx, JS::Handle<JS::Value>);
+  MOZ_CAN_RUN_SCRIPT void OnSourceClosed(MCContext* aCx, JS::Handle<JS::Value>);
   MOZ_CAN_RUN_SCRIPT void OnSourceErrored(
-      JSContext* aCx, JS::Handle<JS::Value> aSourceStoredError);
+      MCContext* aCx, JS::Handle<JS::Value> aSourceStoredError);
 
-  MOZ_CAN_RUN_SCRIPT void OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>);
-  MOZ_CAN_RUN_SCRIPT void OnDestErrored(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void OnDestClosed(MCContext* aCx, JS::Handle<JS::Value>);
+  MOZ_CAN_RUN_SCRIPT void OnDestErrored(MCContext* aCx,
                                         JS::Handle<JS::Value> aDestStoredError);
 
   RefPtr<Promise> mPromise;
@@ -134,7 +134,7 @@ class PipeToPump final : public AbortFollower {
 class PipeToPumpHandler final : public PromiseNativeHandler {
   virtual ~PipeToPumpHandler() = default;
 
-  using FunPtr = void (PipeToPump::*)(JSContext*, JS::Handle<JS::Value>);
+  using FunPtr = void (PipeToPump::*)(MCContext*, JS::Handle<JS::Value>);
 
   RefPtr<PipeToPump> mPipeToPump;
   FunPtr mResolved;
@@ -148,14 +148,14 @@ class PipeToPumpHandler final : public PromiseNativeHandler {
                              FunPtr aRejected)
       : mPipeToPump(aPipeToPump), mResolved(aResolved), mRejected(aRejected) {}
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult&) override {
     if (mResolved) {
       (mPipeToPump->*mResolved)(aCx, aValue);
     }
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aReason,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aReason,
                         ErrorResult&) override {
     if (mRejected) {
       (mPipeToPump->*mRejected)(aCx, aReason);
@@ -177,13 +177,13 @@ void PipeToPump::RunAbortAlgorithm() {
         "Failed to initialize AutoJSAPI in PipeToPump::RunAbortAlgorithm");
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RefPtr<AbortSignalImpl> signal = Signal();
   PerformAbortAlgorithm(cx, signal);
 }
 
-void PipeToPump::PerformAbortAlgorithm(JSContext* aCx,
+void PipeToPump::PerformAbortAlgorithm(MCContext* aCx,
                                        AbortSignalImpl* aSignal) {
   MOZ_ASSERT(aSignal->Aborted());
 
@@ -195,7 +195,7 @@ void PipeToPump::PerformAbortAlgorithm(JSContext* aCx,
   MC::Rooted<JS::Value> error(aCx);
   aSignal->GetReason(aCx, &error);
 
-  auto action = [](JSContext* aCx, PipeToPump* aPipeToPump,
+  auto action = [](MCContext* aCx, PipeToPump* aPipeToPump,
                    JS::Handle<mozilla::Maybe<JS::Value>> aError,
                    ErrorResult& aRv) MOZ_CAN_RUN_SCRIPT {
     MC::Rooted<JS::Value> error(aCx, *aError);
@@ -251,7 +251,7 @@ void PipeToPump::PerformAbortAlgorithm(JSContext* aCx,
   ShutdownWithAction(aCx, action, someError);
 }
 
-bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
+bool PipeToPump::SourceOrDestErroredOrClosed(MCContext* aCx) {
   // (Constraint) Error and close states must be propagated:
   // the following conditions must be applied in order.
   RefPtr<ReadableStream> source = mReader->GetStream();
@@ -294,7 +294,7 @@ bool PipeToPump::SourceOrDestErroredOrClosed(JSContext* aCx) {
 
 // https://streams.spec.whatwg.org/#readable-stream-pipe-to
 // Steps 14-15.
-void PipeToPump::Start(JSContext* aCx, AbortSignal* aSignal) {
+void PipeToPump::Start(MCContext* aCx, AbortSignal* aSignal) {
   // Step 14. If signal is not undefined,
   if (aSignal) {
     // Step 14.1. Let abortAlgorithm be the following steps:
@@ -353,7 +353,7 @@ class WriteFinishedPromiseHandler final : public PromiseNativeHandler {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(WriteFinishedPromiseHandler)
 
   explicit WriteFinishedPromiseHandler(
-      JSContext* aCx, PipeToPump* aPipeToPump,
+      MCContext* aCx, PipeToPump* aPipeToPump,
       PipeToPump::ShutdownAction aAction,
       JS::Handle<mozilla::Maybe<JS::Value>> aError)
       : mPipeToPump(aPipeToPump), mAction(aAction) {
@@ -364,7 +364,7 @@ class WriteFinishedPromiseHandler final : public PromiseNativeHandler {
     mozilla::HoldJSObjects(this);
   }
 
-  MOZ_CAN_RUN_SCRIPT void WriteFinished(JSContext* aCx) {
+  MOZ_CAN_RUN_SCRIPT void WriteFinished(MCContext* aCx) {
     RefPtr<PipeToPump> pipeToPump = mPipeToPump;  // XXX known-live?
     MC::Rooted<Maybe<JS::Value>> error(aCx);
     if (mHasError) {
@@ -373,13 +373,13 @@ class WriteFinishedPromiseHandler final : public PromiseNativeHandler {
     pipeToPump->ShutdownWithActionAfterFinishedWrite(aCx, mAction, error);
   }
 
-  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ResolvedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult&) override {
     WriteFinished(aCx);
   }
 
-  MOZ_CAN_RUN_SCRIPT void RejectedCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void RejectedCallback(MCContext* aCx,
                                            JS::Handle<JS::Value> aReason,
                                            ErrorResult&) override {
     WriteFinished(aCx);
@@ -398,7 +398,7 @@ NS_INTERFACE_MAP_END
 // Shutdown with an action: if any of the above requirements ask to shutdown
 // with an action action, optionally with an error originalError, then:
 void PipeToPump::ShutdownWithAction(
-    JSContext* aCx, ShutdownAction aAction,
+    MCContext* aCx, ShutdownAction aAction,
     JS::Handle<mozilla::Maybe<JS::Value>> aError) {
   // Step 1. If shuttingDown is true, abort these substeps.
   if (mShuttingDown) {
@@ -447,7 +447,7 @@ class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
       ShutdownActionFinishedPromiseHandler)
 
   explicit ShutdownActionFinishedPromiseHandler(
-      JSContext* aCx, PipeToPump* aPipeToPump,
+      MCContext* aCx, PipeToPump* aPipeToPump,
       JS::Handle<mozilla::Maybe<JS::Value>> aError)
       : mPipeToPump(aPipeToPump) {
     mHasError = aError.isSome();
@@ -457,7 +457,7 @@ class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
     mozilla::HoldJSObjects(this);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult&) override {
     // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action
     // Step 5. Upon fulfillment of p, finalize, passing along originalError if
@@ -469,7 +469,7 @@ class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
     mPipeToPump->Finalize(aCx, error);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aReason,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aReason,
                         ErrorResult&) override {
     // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action
     // Step 6. Upon rejection of p with reason newError, finalize with
@@ -490,7 +490,7 @@ NS_INTERFACE_MAP_END
 // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown-with-action
 // Continuation after Step 3. triggered a promise resolution.
 void PipeToPump::ShutdownWithActionAfterFinishedWrite(
-    JSContext* aCx, ShutdownAction aAction,
+    MCContext* aCx, ShutdownAction aAction,
     JS::Handle<mozilla::Maybe<JS::Value>> aError) {
   if (!aAction) {
     // Used to implement shutdown without action. Finalize immediately.
@@ -526,7 +526,7 @@ void PipeToPump::ShutdownWithActionAfterFinishedWrite(
 // https://streams.spec.whatwg.org/#rs-pipeTo-shutdown
 // Shutdown: if any of the above requirements or steps ask to shutdown,
 // optionally with an error error, then:
-void PipeToPump::Shutdown(JSContext* aCx,
+void PipeToPump::Shutdown(MCContext* aCx,
                           JS::Handle<mozilla::Maybe<JS::Value>> aError) {
   // Note: We implement "shutdown" in terms of "shutdown with action".
   // We can observe that when passing along an action that always succeeds
@@ -538,7 +538,7 @@ void PipeToPump::Shutdown(JSContext* aCx,
 // https://streams.spec.whatwg.org/#rs-pipeTo-finalize
 // Finalize: both forms of shutdown will eventually ask to finalize,
 // optionally with an error error, which means to perform the following steps:
-void PipeToPump::Finalize(JSContext* aCx,
+void PipeToPump::Finalize(MCContext* aCx,
                           JS::Handle<mozilla::Maybe<JS::Value>> aError) {
   IgnoredErrorResult rv;
   // Step 1. Perform ! WritableStreamDefaultWriterRelease(writer).
@@ -576,7 +576,7 @@ void PipeToPump::Finalize(JSContext* aCx,
   Unfollow();
 }
 
-void PipeToPump::OnReadFulfilled(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+void PipeToPump::OnReadFulfilled(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                  ErrorResult& aRv) {
   // (Constraint) Shutdown must stop activity:
   // if shuttingDown becomes true, the user agent must not initiate further
@@ -611,7 +611,7 @@ void PipeToPump::OnReadFulfilled(JSContext* aCx, JS::Handle<JS::Value> aChunk,
       Promise::CreateInfallible(mWriter->GetParentObject());
   promise->MaybeResolveWithUndefined();
   auto result = promise->ThenWithCycleCollectedArgsJS(
-      [](JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
          const RefPtr<PipeToPump>& aSelf,
          const RefPtr<WritableStreamDefaultWriter>& aWriter,
          JS::Handle<JS::Value> aChunk)
@@ -635,7 +635,7 @@ void PipeToPump::OnReadFulfilled(JSContext* aCx, JS::Handle<JS::Value> aChunk,
       new PipeToPumpHandler(this, nullptr, &PipeToPump::OnDestErrored));
 }
 
-void PipeToPump::OnWriterReady(JSContext* aCx, JS::Handle<JS::Value>) {
+void PipeToPump::OnWriterReady(MCContext* aCx, JS::Handle<JS::Value>) {
   // Writer is ready again (i.e. backpressure was resolved), so read.
   Read(aCx);
 }
@@ -650,7 +650,7 @@ struct PipeToReadRequest : public ReadRequest {
   explicit PipeToReadRequest(PipeToPump* aPipeToPump)
       : mPipeToPump(aPipeToPump) {}
 
-  MOZ_CAN_RUN_SCRIPT void ChunkSteps(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void ChunkSteps(MCContext* aCx,
                                      JS::Handle<JS::Value> aChunk,
                                      ErrorResult& aRv) override {
     RefPtr<PipeToPump> pipeToPump = mPipeToPump;  // XXX known live?
@@ -659,8 +659,8 @@ struct PipeToReadRequest : public ReadRequest {
 
   // The reader's closed promise handlers will already call OnSourceClosed/
   // OnSourceErrored, so these steps can just be ignored.
-  void CloseSteps(JSContext* aCx, ErrorResult& aRv) override {}
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void CloseSteps(MCContext* aCx, ErrorResult& aRv) override {}
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv) override {}
 
  protected:
@@ -675,7 +675,7 @@ NS_IMPL_RELEASE_INHERITED(PipeToReadRequest, ReadRequest)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PipeToReadRequest)
 NS_INTERFACE_MAP_END_INHERITING(ReadRequest)
 
-void PipeToPump::Read(JSContext* aCx) {
+void PipeToPump::Read(MCContext* aCx) {
 #ifdef DEBUG
   mReadChunk = true;
 #endif
@@ -736,13 +736,13 @@ void PipeToPump::Read(JSContext* aCx) {
 
 // Step 3. Closing must be propagated forward: if source.[[state]] is or
 // becomes "closed", then
-void PipeToPump::OnSourceClosed(JSContext* aCx, JS::Handle<JS::Value>) {
+void PipeToPump::OnSourceClosed(MCContext* aCx, JS::Handle<JS::Value>) {
   // Step 3.1. If preventClose is false, shutdown with an action of
   // ! WritableStreamDefaultWriterCloseWithErrorPropagation(writer).
   if (!mPreventClose) {
     ShutdownWithAction(
         aCx,
-        [](JSContext* aCx, PipeToPump* aPipeToPump,
+        [](MCContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
               RefPtr<WritableStreamDefaultWriter> writer = aPipeToPump->mWriter;
@@ -758,7 +758,7 @@ void PipeToPump::OnSourceClosed(JSContext* aCx, JS::Handle<JS::Value>) {
 
 // Step 1. Errors must be propagated forward: if source.[[state]] is or
 // becomes "errored", then
-void PipeToPump::OnSourceErrored(JSContext* aCx,
+void PipeToPump::OnSourceErrored(MCContext* aCx,
                                  JS::Handle<JS::Value> aSourceStoredError) {
   // If |source| becomes errored not during a pending read, it's clear we must
   // react immediately.
@@ -801,7 +801,7 @@ void PipeToPump::OnSourceErrored(JSContext* aCx,
   if (!mPreventAbort) {
     ShutdownWithAction(
         aCx,
-        [](JSContext* aCx, PipeToPump* aPipeToPump,
+        [](MCContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
               MC::Rooted<JS::Value> error(aCx, *aError);
@@ -818,7 +818,7 @@ void PipeToPump::OnSourceErrored(JSContext* aCx,
 // Step 4. Closing must be propagated backward:
 // if ! WritableStreamCloseQueuedOrInFlight(dest) is true
 // or dest.[[state]] is "closed", then
-void PipeToPump::OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>) {
+void PipeToPump::OnDestClosed(MCContext* aCx, JS::Handle<JS::Value>) {
   // Step 4.1. Assert: no chunks have been read or written.
   // Note: No reading automatically implies no writing.
   // In a perfect world OnDestClosed would only be called before we start
@@ -846,7 +846,7 @@ void PipeToPump::OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>) {
   if (!mPreventCancel) {
     ShutdownWithAction(
         aCx,
-        [](JSContext* aCx, PipeToPump* aPipeToPump,
+        [](MCContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
               MC::Rooted<JS::Value> error(aCx, *aError);
@@ -862,7 +862,7 @@ void PipeToPump::OnDestClosed(JSContext* aCx, JS::Handle<JS::Value>) {
 
 // Step 2. Errors must be propagated backward: if dest.[[state]] is or becomes
 // "errored", then
-void PipeToPump::OnDestErrored(JSContext* aCx,
+void PipeToPump::OnDestErrored(MCContext* aCx,
                                JS::Handle<JS::Value> aDestStoredError) {
   // Step 2.1. If preventCancel is false, shutdown with an action of
   // ! ReadableStreamCancel(source, dest.[[storedError]])
@@ -871,7 +871,7 @@ void PipeToPump::OnDestErrored(JSContext* aCx,
   if (!mPreventCancel) {
     ShutdownWithAction(
         aCx,
-        [](JSContext* aCx, PipeToPump* aPipeToPump,
+        [](MCContext* aCx, PipeToPump* aPipeToPump,
            JS::Handle<mozilla::Maybe<JS::Value>> aError, ErrorResult& aRv)
             MOZ_CAN_RUN_SCRIPT {
               MC::Rooted<JS::Value> error(aCx, *aError);
@@ -931,7 +931,7 @@ already_AddRefed<Promise> ReadableStreamPipeTo(
     aRv.ThrowUnknownError("Internal error");
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 8. If source.[[controller]] implements ReadableByteStreamController,
   //         let reader be either !AcquireReadableStreamBYOBReader(source) or

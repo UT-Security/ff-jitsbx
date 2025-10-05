@@ -276,13 +276,13 @@ class CustomElementReactionsStack {
    *                               current recursion.
    */
   MOZ_CAN_RUN_SCRIPT
-  void LeaveCEReactions(JSContext* aCx, bool aWasElementQueuePushed) {
+  void LeaveCEReactions(MCContext* aCx, bool aWasElementQueuePushed) {
     MOZ_ASSERT(mRecursionDepth);
 
     if (mIsElementQueuePushedForCurrentRecursionDepth) {
-      Maybe<JS::AutoSaveExceptionState> ases;
+      MC::SandboxStack<Maybe<JS::AutoSaveExceptionState>> ases;
       if (aCx) {
-        ases.emplace(aCx);
+        ases->emplace(aCx);
       }
       PopAndInvokeElementQueue();
     }
@@ -401,7 +401,7 @@ class CustomElementRegistry final : public nsISupports, public nsWrapperCache {
                                                          nsAtom* aTypeAtom);
 
   CustomElementDefinition* LookupCustomElementDefinition(
-      JSContext* aCx, JSObject* aConstructor) const;
+      MCContext* aCx, JSObject* aConstructor) const;
 
   static void EnqueueLifecycleCallback(ElementCallbackType aType,
                                        Element* aCustomElement,
@@ -480,7 +480,7 @@ class CustomElementRegistry final : public nsISupports, public nsWrapperCache {
  private:
   ~CustomElementRegistry();
 
-  bool JSObjectToAtomArray(JSContext* aCx, JS::Handle<JSObject*> aConstructor,
+  bool JSObjectToAtomArray(MCContext* aCx, JS::Handle<JSObject*> aConstructor,
                            const nsString& aName,
                            nsTArray<RefPtr<nsAtom>>& aArray, ErrorResult& aRv);
 
@@ -534,17 +534,17 @@ class CustomElementRegistry final : public nsISupports, public nsWrapperCache {
   bool mIsCustomDefinitionRunning;
 
  private:
-  int32_t InferNamespace(JSContext* aCx, JS::Handle<JSObject*> constructor);
+  int32_t InferNamespace(MCContext* aCx, JS::Handle<JSObject*> constructor);
 
  public:
   nsISupports* GetParentObject() const;
 
   DocGroup* GetDocGroup() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  void Define(JSContext* aCx, const nsAString& aName,
+  void Define(MCContext* aCx, const nsAString& aName,
               CustomElementConstructor& aFunctionConstructor,
               const ElementDefinitionOptions& aOptions, ErrorResult& aRv);
 
@@ -568,7 +568,7 @@ class MOZ_RAII AutoCEReaction final {
   // JSContext is allowed to be a nullptr if we are guaranteeing that we're
   // not doing something that might throw but not finish reporting a JS
   // exception during the lifetime of the AutoCEReaction.
-  AutoCEReaction(CustomElementReactionsStack* aReactionsStack, JSContext* aCx)
+  AutoCEReaction(CustomElementReactionsStack* aReactionsStack, MCContext* aCx)
       : mReactionsStack(aReactionsStack), mCx(aCx) {
     mIsElementQueuePushedForPreviousRecursionDepth =
         mReactionsStack->EnterCEReactions();
@@ -582,7 +582,7 @@ class MOZ_RAII AutoCEReaction final {
 
  private:
   const RefPtr<CustomElementReactionsStack> mReactionsStack;
-  JSContext* mCx;
+  MCContext* mCx;
   bool mIsElementQueuePushedForPreviousRecursionDepth;
 };
 

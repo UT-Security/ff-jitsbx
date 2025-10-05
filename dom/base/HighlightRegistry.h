@@ -94,7 +94,7 @@ class HighlightRegistry final : public nsISupports, public nsWrapperCache {
 
   Document* GetParentObject() const { return mDocument; };
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   /**

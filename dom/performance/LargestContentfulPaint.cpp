@@ -48,7 +48,7 @@ LargestContentfulPaint::LargestContentfulPaint(Performance* aPerformance,
 }
 
 JSObject* LargestContentfulPaint::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return LargestContentfulPaint_Binding::Wrap(aCx, this, aGivenProto);
 }
 

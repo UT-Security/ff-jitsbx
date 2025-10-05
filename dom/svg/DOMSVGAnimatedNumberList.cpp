@@ -29,7 +29,7 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedNumberList,
                                                mElement)
 
 JSObject* DOMSVGAnimatedNumberList::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGAnimatedNumberList_Binding::Wrap(aCx, this,
                                                            aGivenProto);
 }

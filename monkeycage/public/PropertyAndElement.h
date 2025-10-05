@@ -13,6 +13,7 @@
 
 #ifdef JS_SANDBOX
 
+#include "js/PropertyDescriptor.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/SandboxCallback.h"

@@ -21,7 +21,7 @@ class WebTransportError final : public DOMException {
         mStreamErrorCode(aCode),
         mSource(aSource) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<WebTransportError> Constructor(

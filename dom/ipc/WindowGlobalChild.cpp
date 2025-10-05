@@ -582,8 +582,8 @@ const nsACString& WindowGlobalChild::GetRemoteType() {
 }
 
 already_AddRefed<JSWindowActorChild> WindowGlobalChild::GetActor(
-    JSContext* aCx, const nsACString& aName, ErrorResult& aRv) {
-  return JSActorManager::GetActor(JS_SanitizeContext(aCx), aName, aRv)
+    MCContext* aCx, const nsACString& aName, ErrorResult& aRv) {
+  return JSActorManager::GetActor(aCx, aName, aRv)
       .downcast<JSWindowActorChild>();
 }
 
@@ -815,7 +815,7 @@ void WindowGlobalChild::BlockBFCacheFor(BFCacheStatus aStatus) {
 
 WindowGlobalChild::~WindowGlobalChild() = default;
 
-JSObject* WindowGlobalChild::WrapObject(JSContext* aCx,
+JSObject* WindowGlobalChild::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return WindowGlobalChild_Binding::Wrap(aCx, this, aGivenProto);
 }

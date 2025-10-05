@@ -26,7 +26,7 @@ class AsyncStatementJSHelper : public nsIXPCScriptable {
   NS_DECL_NSIXPCSCRIPTABLE
 
  private:
-  nsresult getParams(AsyncStatement*, JSContext*, JSObject*, JS::Value*);
+  nsresult getParams(AsyncStatement*, MCContext*, JSObject*, JS::Value*);
 };
 
 /**

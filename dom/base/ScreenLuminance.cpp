@@ -11,7 +11,7 @@ namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(ScreenLuminance, mScreen)
 
-JSObject* ScreenLuminance::WrapObject(JSContext* aCx,
+JSObject* ScreenLuminance::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return ScreenLuminance_Binding::Wrap(aCx, this, aGivenProto);
 }

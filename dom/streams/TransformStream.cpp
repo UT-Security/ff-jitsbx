@@ -82,7 +82,7 @@ already_AddRefed<TransformStream> TransformStream::CreateGeneric(
   // readableSizeAlgorithm).
   RefPtr<TransformStream> stream =
       new TransformStream(global, nullptr, nullptr);
-  stream->Initialize(MC_UNSAFE(aGlobal.Context()), startPromise, writableHighWaterMark,
+  stream->Initialize(aGlobal.Context(), startPromise, writableHighWaterMark,
                      writableSizeAlgorithm, readableHighWaterMark,
                      readableSizeAlgorithm, aRv);
   if (aRv.Failed()) {
@@ -94,7 +94,7 @@ already_AddRefed<TransformStream> TransformStream::CreateGeneric(
 
   // Step 10. Perform ! SetUpTransformStreamDefaultController(stream,
   // controller, transformAlgorithmWrapper, flushAlgorithmWrapper).
-  SetUpTransformStreamDefaultController(MC_UNSAFE(aGlobal.Context()), *stream, *controller,
+  SetUpTransformStreamDefaultController(aGlobal.Context(), *stream, *controller,
                                         aAlgorithms);
 
   return stream.forget();
@@ -113,7 +113,7 @@ TransformStream::TransformStream(nsIGlobalObject* aGlobal,
 
 TransformStream::~TransformStream() { mozilla::DropJSObjects(this); }
 
-JSObject* TransformStream::WrapObject(JSContext* aCx,
+JSObject* TransformStream::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return TransformStream_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -121,7 +121,7 @@ JSObject* TransformStream::WrapObject(JSContext* aCx,
 namespace streams_abstract {
 
 // https://streams.spec.whatwg.org/#transform-stream-error-writable-and-unblock-write
-void TransformStreamErrorWritableAndUnblockWrite(JSContext* aCx,
+void TransformStreamErrorWritableAndUnblockWrite(MCContext* aCx,
                                                  TransformStream* aStream,
                                                  JS::Handle<JS::Value> aError,
                                                  ErrorResult& aRv) {
@@ -147,7 +147,7 @@ void TransformStreamErrorWritableAndUnblockWrite(JSContext* aCx,
 }
 
 // https://streams.spec.whatwg.org/#transform-stream-error
-void TransformStreamError(JSContext* aCx, TransformStream* aStream,
+void TransformStreamError(MCContext* aCx, TransformStream* aStream,
                           JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   // Step 1: Perform !
   // ReadableStreamDefaultControllerError(stream.[[readable]].[[controller]],
@@ -167,7 +167,7 @@ void TransformStreamError(JSContext* aCx, TransformStream* aStream,
 // https://streams.spec.whatwg.org/#transform-stream-default-controller-perform-transform
 MOZ_CAN_RUN_SCRIPT static already_AddRefed<Promise>
 TransformStreamDefaultControllerPerformTransform(
-    JSContext* aCx, TransformStreamDefaultController* aController,
+    MCContext* aCx, TransformStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1: Let transformPromise be the result of performing
   // controller.[[transformAlgorithm]], passing chunk.
@@ -181,7 +181,7 @@ TransformStreamDefaultControllerPerformTransform(
   // Step 2: Return the result of reacting to transformPromise with the
   // following rejection steps given the argument r:
   auto result = transformPromise->CatchWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv,
          const RefPtr<TransformStreamDefaultController>& aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA -> already_AddRefed<Promise> {
             // Step 2.1: Perform ! TransformStreamError(controller.[[stream]],
@@ -219,7 +219,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
                                           TransformStream* aStream)
       : mStartPromise(aStartPromise), mStream(aStream) {}
 
-  void StartCallback(JSContext* aCx,
+  void StartCallback(MCContext* aCx,
                      WritableStreamDefaultController& aController,
                      JS::MutableHandle<JS::Value> aRetVal,
                      ErrorResult& aRv) override {
@@ -229,7 +229,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) override {
     // Step 2. Let writeAlgorithm be the following steps, taking a chunk
     // argument:
@@ -259,7 +259,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
       // Step 3.3: Return the result of reacting to backpressureChangePromise
       // with the following fulfillment steps:
       auto result = backpressureChangePromise->ThenWithCycleCollectedArgsJS(
-          [](JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
+          [](MCContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
              const RefPtr<TransformStream>& aStream,
              const RefPtr<TransformStreamDefaultController>& aController,
              JS::Handle<JS::Value> aChunk)
@@ -305,7 +305,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> AbortCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override {
     // Step 3. Let abortAlgorithm be the following steps, taking a reason
     // argument:
@@ -329,7 +329,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CloseCallback(
-      JSContext* aCx, ErrorResult& aRv) override {
+      MCContext* aCx, ErrorResult& aRv) override {
     // Step 4. Let closeAlgorithm be the following steps:
     // Step 4.1. Return ! TransformStreamDefaultSinkCloseAlgorithm(stream).
 
@@ -358,7 +358,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
     // Step 5: Return the result of reacting to flushPromise:
     Result<RefPtr<Promise>, nsresult> result =
         flushPromise->ThenCatchWithCycleCollectedArgs(
-            [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
                const RefPtr<ReadableStream>& aReadable,
                const RefPtr<TransformStream>& aStream)
                 MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA
@@ -383,7 +383,7 @@ class TransformStreamUnderlyingSinkAlgorithms final
                       aRv);
                   return nullptr;
                 },
-            [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
                const RefPtr<ReadableStream>& aReadable,
                const RefPtr<TransformStream>& aStream)
                 MOZ_CAN_RUN_SCRIPT_BOUNDARY_LAMBDA
@@ -443,7 +443,7 @@ class TransformStreamUnderlyingSourceAlgorithms final
                                             TransformStream* aStream)
       : mStartPromise(aStartPromise), mStream(aStream) {}
 
-  void StartCallback(JSContext* aCx, ReadableStreamController& aController,
+  void StartCallback(MCContext* aCx, ReadableStreamController& aController,
                      JS::MutableHandle<JS::Value> aRetVal,
                      ErrorResult& aRv) override {
     // Step 1. Let startAlgorithm be an algorithm that returns startPromise.
@@ -451,7 +451,7 @@ class TransformStreamUnderlyingSourceAlgorithms final
     aRetVal.setObject(*mStartPromise->PromiseObj());
   }
 
-  already_AddRefed<Promise> PullCallback(JSContext* aCx,
+  already_AddRefed<Promise> PullCallback(MCContext* aCx,
                                          ReadableStreamController& aController,
                                          ErrorResult& aRv) override {
     // Step 6. Let pullAlgorithm be the following steps:
@@ -474,7 +474,7 @@ class TransformStreamUnderlyingSourceAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override {
     // Step 7. Let cancelAlgorithm be the following steps, taking a reason
     // argument:
@@ -532,7 +532,7 @@ void TransformStream::SetBackpressure(bool aBackpressure) {
 }
 
 // https://streams.spec.whatwg.org/#initialize-transform-stream
-void TransformStream::Initialize(JSContext* aCx, Promise* aStartPromise,
+void TransformStream::Initialize(MCContext* aCx, Promise* aStartPromise,
                                  double aWritableHighWaterMark,
                                  QueuingStrategySize* aWritableSizeAlgorithm,
                                  double aReadableHighWaterMark,
@@ -602,11 +602,11 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   if (transformerObj) {
     MC::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*transformerObj));
-    dom::BindingCallContext callCx(MC_UNSAFE(aGlobal.Context()),
+    dom::BindingCallContext callCx(aGlobal.Context(),
                                    "TransformStream.constructor");
     aRv.MightThrowJSException();
     if (!transformerDict.Init(callCx, objValue)) {
-      aRv.StealExceptionFromJSContext(MC_UNSAFE(aGlobal.Context()));
+      aRv.StealExceptionFromJSContext(aGlobal.Context());
       return nullptr;
     }
   }
@@ -668,7 +668,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   // readableSizeAlgorithm).
   RefPtr<TransformStream> transformStream = new TransformStream(global);
   transformStream->Initialize(
-      MC_UNSAFE(aGlobal.Context()), startPromise, writableHighWaterMark,
+      aGlobal.Context(), startPromise, writableHighWaterMark,
       writableSizeAlgorithm, readableHighWaterMark, readableSizeAlgorithm, aRv);
   if (aRv.Failed()) {
     return nullptr;
@@ -678,7 +678,7 @@ already_AddRefed<TransformStream> TransformStream::Constructor(
   // SetUpTransformStreamDefaultControllerFromTransformer(this, transformer,
   // transformerDict).
   SetUpTransformStreamDefaultControllerFromTransformer(
-      MC_UNSAFE(aGlobal.Context()), *transformStream, transformerObj, transformerDict);
+      aGlobal.Context(), *transformStream, transformerObj, transformerDict);
 
   // Step 12. If transformerDict["start"] exists, then resolve startPromise with
   // the result of invoking transformerDict["start"] with argument list «

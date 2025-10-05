@@ -152,7 +152,7 @@ void HTMLTrackElement::OnChannelRedirect(nsIChannel* aChannel,
   mChannel = aNewChannel;
 }
 
-JSObject* HTMLTrackElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTrackElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLTrackElement_Binding::Wrap(aCx, this, aGivenProto);
 }

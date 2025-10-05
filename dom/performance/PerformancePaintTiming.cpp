@@ -31,7 +31,7 @@ PerformancePaintTiming::PerformancePaintTiming(Performance* aPerformance,
 PerformancePaintTiming::~PerformancePaintTiming() = default;
 
 JSObject* PerformancePaintTiming::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PerformancePaintTiming_Binding::Wrap(aCx, this, aGivenProto);
 }
 

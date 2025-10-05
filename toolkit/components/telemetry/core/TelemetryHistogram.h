@@ -84,24 +84,24 @@ void AccumulateChildKeyed(
  */
 nsresult GetAllStores(mozilla::Telemetry::Common::StringHashSet& set);
 
-nsresult GetCategoricalHistogramLabels(JSContext* aCx,
+nsresult GetCategoricalHistogramLabels(MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aResult);
 
-nsresult GetHistogramById(const nsACString& name, JSContext* cx,
+nsresult GetHistogramById(const nsACString& name, MCContext* cx,
                           JS::MutableHandle<JS::Value> ret);
 
-nsresult GetKeyedHistogramById(const nsACString& name, JSContext* cx,
+nsresult GetKeyedHistogramById(const nsACString& name, MCContext* cx,
                                JS::MutableHandle<JS::Value> ret);
 
 const char* GetHistogramName(mozilla::Telemetry::HistogramID id);
 
-nsresult CreateHistogramSnapshots(JSContext* aCx,
+nsresult CreateHistogramSnapshots(MCContext* aCx,
                                   JS::MutableHandle<JS::Value> aResult,
                                   const nsACString& aStore,
                                   unsigned int aDataset, bool aClearSubsession,
                                   bool aFilterTest = false);
 
-nsresult GetKeyedHistogramSnapshots(JSContext* aCx,
+nsresult GetKeyedHistogramSnapshots(MCContext* aCx,
                                     JS::MutableHandle<JS::Value> aResult,
                                     const nsACString& aStore,
                                     unsigned int aDataset,
@@ -115,8 +115,8 @@ size_t GetHistogramSizesOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf);
 // on the disk and vice-versa.
 nsresult SerializeHistograms(mozilla::JSONWriter& aWriter);
 nsresult SerializeKeyedHistograms(mozilla::JSONWriter& aWriter);
-nsresult DeserializeHistograms(JSContext* aCx, JS::Handle<JS::Value> aData);
-nsresult DeserializeKeyedHistograms(JSContext* aCx,
+nsresult DeserializeHistograms(MCContext* aCx, JS::Handle<JS::Value> aData);
+nsresult DeserializeKeyedHistograms(MCContext* aCx,
                                     JS::Handle<JS::Value> aData);
 
 }  // namespace TelemetryHistogram

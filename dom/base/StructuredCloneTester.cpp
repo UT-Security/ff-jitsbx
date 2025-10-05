@@ -49,9 +49,9 @@ bool StructuredCloneTester::Deserializable() const { return mDeserializable; }
 
 /* static */
 already_AddRefed<StructuredCloneTester>
-StructuredCloneTester::ReadStructuredClone(JSContext* aCx,
+StructuredCloneTester::ReadStructuredClone(MCContext* aCx,
                                            nsIGlobalObject* aGlobal,
-                                           JSStructuredCloneReader* aReader) {
+                                           MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t serializable = 0;
   uint32_t deserializable = 0;
 
@@ -65,7 +65,7 @@ StructuredCloneTester::ReadStructuredClone(JSContext* aCx,
 
   // "Fail" deserialization
   if (!sct->Deserializable()) {
-    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
+    xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
     return nullptr;
   }
 
@@ -73,9 +73,9 @@ StructuredCloneTester::ReadStructuredClone(JSContext* aCx,
 }
 
 bool StructuredCloneTester::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   if (!Serializable()) {
-    return xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
+    return xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
   }
   return JS_WriteUint32Pair(aWriter, static_cast<uint32_t>(Serializable()),
                             static_cast<uint32_t>(Deserializable()));
@@ -83,7 +83,7 @@ bool StructuredCloneTester::WriteStructuredClone(
 
 nsISupports* StructuredCloneTester::GetParentObject() const { return mParent; }
 
-JSObject* StructuredCloneTester::WrapObject(JSContext* aCx,
+JSObject* StructuredCloneTester::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return StructuredCloneTester_Binding::Wrap(aCx, this, aGivenProto);
 }

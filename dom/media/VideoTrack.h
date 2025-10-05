@@ -24,7 +24,7 @@ class VideoTrack : public MediaTrack {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(VideoTrack, MediaTrack)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   VideoTrack* AsVideoTrack() override { return this; }

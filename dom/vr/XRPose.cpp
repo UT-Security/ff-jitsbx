@@ -24,7 +24,7 @@ XRPose::XRPose(nsISupports* aParent, XRRigidTransform* aTransform,
       mTransform(aTransform),
       mEmulatedPosition(aEmulatedPosition) {}
 
-JSObject* XRPose::WrapObject(JSContext* aCx,
+JSObject* XRPose::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   return XRPose_Binding::Wrap(aCx, this, aGivenProto);
 }

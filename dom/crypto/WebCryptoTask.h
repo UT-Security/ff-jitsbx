@@ -63,30 +63,30 @@ class WebCryptoTask : public CancelableRunnable {
 
  protected:
   static WebCryptoTask* CreateEncryptDecryptTask(
-      JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+      MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
       const CryptoOperationData& aData, bool aEncrypt);
 
   static WebCryptoTask* CreateSignVerifyTask(
-      JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+      MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
       const CryptoOperationData& aSignature, const CryptoOperationData& aData,
       bool aSign);
 
  public:
-  static WebCryptoTask* CreateEncryptTask(JSContext* aCx,
+  static WebCryptoTask* CreateEncryptTask(MCContext* aCx,
                                           const ObjectOrString& aAlgorithm,
                                           CryptoKey& aKey,
                                           const CryptoOperationData& aData) {
     return CreateEncryptDecryptTask(aCx, aAlgorithm, aKey, aData, true);
   }
 
-  static WebCryptoTask* CreateDecryptTask(JSContext* aCx,
+  static WebCryptoTask* CreateDecryptTask(MCContext* aCx,
                                           const ObjectOrString& aAlgorithm,
                                           CryptoKey& aKey,
                                           const CryptoOperationData& aData) {
     return CreateEncryptDecryptTask(aCx, aAlgorithm, aKey, aData, false);
   }
 
-  static WebCryptoTask* CreateSignTask(JSContext* aCx,
+  static WebCryptoTask* CreateSignTask(MCContext* aCx,
                                        const ObjectOrString& aAlgorithm,
                                        CryptoKey& aKey,
                                        const CryptoOperationData& aData) {
@@ -95,7 +95,7 @@ class WebCryptoTask : public CancelableRunnable {
     return CreateSignVerifyTask(aCx, aAlgorithm, aKey, dummy, aData, true);
   }
 
-  static WebCryptoTask* CreateVerifyTask(JSContext* aCx,
+  static WebCryptoTask* CreateVerifyTask(MCContext* aCx,
                                          const ObjectOrString& aAlgorithm,
                                          CryptoKey& aKey,
                                          const CryptoOperationData& aSignature,
@@ -104,37 +104,37 @@ class WebCryptoTask : public CancelableRunnable {
                                 false);
   }
 
-  static WebCryptoTask* CreateDigestTask(JSContext* aCx,
+  static WebCryptoTask* CreateDigestTask(MCContext* aCx,
                                          const ObjectOrString& aAlgorithm,
                                          const CryptoOperationData& aData);
 
   static WebCryptoTask* CreateImportKeyTask(
-      nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+      nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
       JS::Handle<JSObject*> aKeyData, const ObjectOrString& aAlgorithm,
       bool aExtractable, const Sequence<nsString>& aKeyUsages);
   static WebCryptoTask* CreateExportKeyTask(const nsAString& aFormat,
                                             CryptoKey& aKey);
   static WebCryptoTask* CreateGenerateKeyTask(
-      nsIGlobalObject* aGlobal, JSContext* aCx,
+      nsIGlobalObject* aGlobal, MCContext* aCx,
       const ObjectOrString& aAlgorithm, bool aExtractable,
       const Sequence<nsString>& aKeyUsages);
 
   static WebCryptoTask* CreateDeriveKeyTask(
-      nsIGlobalObject* aGlobal, JSContext* aCx,
+      nsIGlobalObject* aGlobal, MCContext* aCx,
       const ObjectOrString& aAlgorithm, CryptoKey& aBaseKey,
       const ObjectOrString& aDerivedKeyType, bool extractable,
       const Sequence<nsString>& aKeyUsages);
-  static WebCryptoTask* CreateDeriveBitsTask(JSContext* aCx,
+  static WebCryptoTask* CreateDeriveBitsTask(MCContext* aCx,
                                              const ObjectOrString& aAlgorithm,
                                              CryptoKey& aKey, uint32_t aLength);
 
-  static WebCryptoTask* CreateWrapKeyTask(JSContext* aCx,
+  static WebCryptoTask* CreateWrapKeyTask(MCContext* aCx,
                                           const nsAString& aFormat,
                                           CryptoKey& aKey,
                                           CryptoKey& aWrappingKey,
                                           const ObjectOrString& aWrapAlgorithm);
   static WebCryptoTask* CreateUnwrapKeyTask(
-      nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+      nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
       const ArrayBufferViewOrArrayBuffer& aWrappedKey,
       CryptoKey& aUnwrappingKey, const ObjectOrString& aUnwrapAlgorithm,
       const ObjectOrString& aUnwrappedKeyAlgorithm, bool aExtractable,
@@ -178,7 +178,7 @@ class WebCryptoTask : public CancelableRunnable {
 // XXX This class is declared here (unlike others) to enable reuse by WebRTC.
 class GenerateAsymmetricKeyTask : public WebCryptoTask {
  public:
-  GenerateAsymmetricKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  GenerateAsymmetricKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                             const ObjectOrString& aAlgorithm, bool aExtractable,
                             const Sequence<nsString>& aKeyUsages);
 

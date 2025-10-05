@@ -164,7 +164,7 @@ void ChromeUtils::Base64URLDecode(GlobalObject& aGlobal,
 
   MC::Rooted<JSObject*> buffer(
       aGlobal.Context(),
-      ArrayBuffer::Create(MC_UNSAFE(aGlobal.Context()), data.Length(), data.Elements()));
+      ArrayBuffer::Create(aGlobal.Context(), data.Length(), data.Elements()));
   if (NS_WARN_IF(!buffer)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -267,7 +267,7 @@ void ChromeUtils::AddProfilerMarker(
       }
     } else {
       MCContext* cx = aGlobal.Context();
-      WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+      WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
       if (workerPrivate) {
         performance = workerPrivate->GlobalScope()->GetPerformance();
       }
@@ -869,8 +869,8 @@ static bool DefineJSModuleGetter(MCContext* aCx, JS::Handle<JSObject*> aTarget,
   MC::Rooted<JS::Value> uri(aCx);
   MC::Rooted<JS::Value> idValue(aCx);
   MC::Rooted<jsid> id(aCx);
-  if (!xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), aResourceURI, &uri) ||
-      !xpc::NonVoidStringToJsval(MC_UNSAFE(aCx), aId, &idValue) ||
+  if (!xpc::NonVoidStringToJsval(aCx, aResourceURI, &uri) ||
+      !xpc::NonVoidStringToJsval(aCx, aId, &idValue) ||
       !JS_ValueToId(aCx, idValue, &id)) {
     return false;
   }
@@ -1619,7 +1619,7 @@ void ChromeUtils::CreateError(const GlobalObject& aGlobal,
     MC::Rooted<JSString*> message(cx);
     {
       MC::Rooted<JS::Value> msgVal(cx);
-      if (!xpc::NonVoidStringToJsval(MC_UNSAFE(cx), aMessage, &msgVal)) {
+      if (!xpc::NonVoidStringToJsval(cx, aMessage, &msgVal)) {
         return;
       }
       message = msgVal.toString();

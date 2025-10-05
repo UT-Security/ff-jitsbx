@@ -39,19 +39,19 @@ class UnderlyingSourceAlgorithmsBase : public nsISupports {
   NS_DECL_CYCLE_COLLECTION_CLASS(UnderlyingSourceAlgorithmsBase)
 
   MOZ_CAN_RUN_SCRIPT virtual void StartCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) = 0;
 
   // A promise-returning algorithm that pulls data from the underlying byte
   // source
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) = 0;
 
   // A promise-returning algorithm, taking one argument (the cancel reason),
   // which communicates a requested cancelation to the underlying byte source
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) = 0;
 
   // Implement this when you need to release underlying resources immediately
@@ -99,17 +99,17 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
     mozilla::HoldJSObjects(this);
   };
 
-  MOZ_CAN_RUN_SCRIPT void StartCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void StartCallback(MCContext* aCx,
                                         ReadableStreamController& aController,
                                         JS::MutableHandle<JS::Value> aRetVal,
                                         ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override;
 
   bool IsNative() override { return false; }
@@ -136,25 +136,25 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
 // `EnqueueNative()` etc. without direct controller access.
 class UnderlyingSourceAlgorithmsWrapper
     : public UnderlyingSourceAlgorithmsBase {
-  void StartCallback(JSContext*, ReadableStreamController&,
+  void StartCallback(MCContext*, ReadableStreamController&,
                      JS::MutableHandle<JS::Value> aRetVal, ErrorResult&) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+      MCContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
     // pullAlgorithm is optional, return null by default
     return nullptr;
   }
 
   virtual already_AddRefed<Promise> CancelCallbackImpl(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) {
     // cancelAlgorithm is optional, return null by default
     return nullptr;
@@ -177,7 +177,7 @@ class InputStreamHolder final : public nsIInputStreamCallback {
   InputStreamHolder(InputToReadableStreamAlgorithms* aCallback,
                     nsIAsyncInputStream* aInput);
 
-  void Init(JSContext* aCx);
+  void Init(MCContext* aCx);
 
   // Used by Worker shutdown
   void Shutdown();
@@ -213,7 +213,7 @@ class InputToReadableStreamAlgorithms final
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(InputToReadableStreamAlgorithms,
                                            UnderlyingSourceAlgorithmsWrapper)
 
-  InputToReadableStreamAlgorithms(JSContext* aCx, nsIAsyncInputStream* aInput,
+  InputToReadableStreamAlgorithms(MCContext* aCx, nsIAsyncInputStream* aInput,
                                   ReadableStream* aStream)
       : mOwningEventTarget(GetCurrentSerialEventTarget()),
         mInput(new InputStreamHolder(this, aInput)),
@@ -224,7 +224,7 @@ class InputToReadableStreamAlgorithms final
   // Streams algorithms
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override;
@@ -237,16 +237,16 @@ class InputToReadableStreamAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void CloseAndReleaseObjects(
-      JSContext* aCx, ReadableStream* aStream);
+      MCContext* aCx, ReadableStream* aStream);
 
-  void WriteIntoReadRequestBuffer(JSContext* aCx, ReadableStream* aStream,
+  void WriteIntoReadRequestBuffer(MCContext* aCx, ReadableStream* aStream,
                                   JS::Handle<JSObject*> aBuffer,
                                   uint32_t aLength, uint32_t* aByteWritten);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY void EnqueueChunkWithSizeIntoStream(
-      JSContext* aCx, ReadableStream* aStream, uint64_t aAvailableData,
+      MCContext* aCx, ReadableStream* aStream, uint64_t aAvailableData,
       ErrorResult& aRv);
-  void ErrorPropagation(JSContext* aCx, ReadableStream* aStream,
+  void ErrorPropagation(MCContext* aCx, ReadableStream* aStream,
                         nsresult aError);
 
   // Common methods
@@ -276,7 +276,7 @@ class NonAsyncInputToReadableStreamAlgorithms
       : mInput(&aInput) {}
 
   already_AddRefed<Promise> PullCallbackImpl(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override {

@@ -53,13 +53,13 @@ nsresult JSStringEnumerator::Next(MCContext* aCx,
     result.mDone = false;
 
     if (!ToJSValue(
-            MC_UNSAFE(aCx), elem,
+            aCx, elem,
             JS::MutableHandleValue::fromMarkedLocation(&result.mValue))) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
   }
 
-  if (!ToJSValue(MC_UNSAFE(aCx), result, aResult)) {
+  if (!ToJSValue(aCx, result, aResult)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;

@@ -92,7 +92,7 @@ already_AddRefed<ChannelMergerNode> ChannelMergerNode::Create(
   return audioNode.forget();
 }
 
-JSObject* ChannelMergerNode::WrapObject(JSContext* aCx,
+JSObject* ChannelMergerNode::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return ChannelMergerNode_Binding::Wrap(aCx, this, aGivenProto);
 }

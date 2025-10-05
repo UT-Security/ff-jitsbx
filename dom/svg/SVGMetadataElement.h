@@ -25,7 +25,7 @@ class SVGMetadataElement final : public SVGMetadataElementBase {
   explicit SVGMetadataElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
   nsresult Init();
 

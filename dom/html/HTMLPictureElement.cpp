@@ -71,7 +71,7 @@ void HTMLPictureElement::InsertChildBefore(nsIContent* aKid,
   }
 }
 
-JSObject* HTMLPictureElement::WrapNode(JSContext* aCx,
+JSObject* HTMLPictureElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return HTMLPictureElement_Binding::Wrap(aCx, this, aGivenProto);
 }

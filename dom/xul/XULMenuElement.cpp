@@ -16,7 +16,7 @@
 
 namespace mozilla::dom {
 
-JSObject* XULMenuElement::WrapNode(JSContext* aCx,
+JSObject* XULMenuElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return XULMenuElement_Binding::Wrap(aCx, this, aGivenProto);
 }

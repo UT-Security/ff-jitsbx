@@ -54,7 +54,7 @@ class PerformanceNavigationTiming final : public PerformanceResourceTiming {
 
   DOMHighResTimeStamp StartTime() const override { return 0; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp UnloadEventStart() const;
@@ -82,7 +82,7 @@ class PerformanceNavigationTiming final : public PerformanceResourceTiming {
    * For use with the WebIDL Func attribute to determine whether
    * window.PerformanceNavigationTiming is exposed.
    */
-  static bool Enabled(JSContext* aCx, JSObject* aGlobal);
+  static bool Enabled(MCContext* aCx, JSObject* aGlobal);
 
  private:
   ~PerformanceNavigationTiming() = default;

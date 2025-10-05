@@ -23,7 +23,7 @@
 #include "sslt.h"
 
 class JSObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -57,7 +57,7 @@ class RTCCertificate final : public nsISupports, public nsWrapperCache {
                  PRTime aExpires);
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL expires attribute.  Note: JS dates are milliseconds since epoch;
@@ -69,21 +69,21 @@ class RTCCertificate final : public nsISupports, public nsWrapperCache {
   const UniqueCERTCertificate& Certificate() const { return mCertificate; }
 
   // Structured clone methods
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
   static already_AddRefed<RTCCertificate> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  private:
   ~RTCCertificate() = default;
   void operator=(const RTCCertificate&) = delete;
   RTCCertificate(const RTCCertificate&) = delete;
 
-  bool ReadCertificate(JSStructuredCloneReader* aReader);
-  bool ReadPrivateKey(JSStructuredCloneReader* aReader);
-  bool WriteCertificate(JSStructuredCloneWriter* aWriter) const;
-  bool WritePrivateKey(JSStructuredCloneWriter* aWriter) const;
+  bool ReadCertificate(MC::Tainted<JSStructuredCloneReader*> aReader);
+  bool ReadPrivateKey(MC::Tainted<JSStructuredCloneReader*> aReader);
+  bool WriteCertificate(MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
+  bool WritePrivateKey(MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   RefPtr<nsIGlobalObject> mGlobal;
   UniqueSECKEYPrivateKey mPrivateKey;

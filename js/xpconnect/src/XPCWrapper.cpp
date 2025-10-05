@@ -67,9 +67,8 @@ static MC::Tainted<bool> XrayWrapperConstructor(MC::Tainted<JSContext*> t_cx, un
   return JS_WrapValue(cx, args.rval());
 }
 // static
-bool AttachNewConstructorObject(JSContext* tCx,
+bool AttachNewConstructorObject(MCContext* aCx,
                                 JS::HandleObject aGlobalObject) {
-  MCContext* aCx = JS_SanitizeContext(tCx);
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobalObject);
 
   static auto XrayWrapperConstructorCb = MC::Sandbox::RegisterTaintedCallback(XrayWrapperConstructor);

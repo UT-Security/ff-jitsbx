@@ -57,9 +57,9 @@ class AutoHashtable : public nsTHashtable<EntryType> {
  public:
   explicit AutoHashtable(
       uint32_t initLength = PLDHashTable::kDefaultInitialLength);
-  typedef bool (*ReflectEntryFunc)(EntryType* entry, JSContext* cx,
+  typedef bool (*ReflectEntryFunc)(EntryType* entry, MCContext* cx,
                                    JS::Handle<JSObject*> obj);
-  bool ReflectIntoJS(ReflectEntryFunc entryFunc, JSContext* cx,
+  bool ReflectIntoJS(ReflectEntryFunc entryFunc, MCContext* cx,
                      JS::Handle<JSObject*> obj);
 };
 
@@ -73,7 +73,7 @@ AutoHashtable<EntryType>::AutoHashtable(uint32_t initLength)
  */
 template <typename EntryType>
 bool AutoHashtable<EntryType>::ReflectIntoJS(ReflectEntryFunc entryFunc,
-                                             JSContext* cx,
+                                             MCContext* cx,
                                              JS::Handle<JSObject*> obj) {
   for (auto iter = this->Iter(); !iter.Done(); iter.Next()) {
     if (!entryFunc(iter.Get(), cx, obj)) {
@@ -174,10 +174,7 @@ bool IsValidIdentifierString(const nsACString& aStr, const size_t aMaxLength,
  * @param aStr The UTF8 string.
  * @returns a JavaScript string.
  */
-JSString* ToJSString(JSContext* cx, const nsACString& aStr);
-inline JSString* ToJSString(MCContext* cx, const nsACString& aStr) {
- return ToJSString(MC_UNSAFE(cx), aStr);
-}
+JSString* ToJSString(MCContext* cx, const nsACString& aStr);
 
 /**
  * Convert the given UTF16 string to a JavaScript string.
@@ -186,10 +183,7 @@ inline JSString* ToJSString(MCContext* cx, const nsACString& aStr) {
  * @param aStr The UTF16 string.
  * @returns a JavaScript string.
  */
-JSString* ToJSString(JSContext* cx, const nsAString& aStr);
-inline JSString* ToJSString(MCContext* cx, const nsAString& aStr) {
- return ToJSString(MC_UNSAFE(cx), aStr);
-}
+JSString* ToJSString(MCContext* cx, const nsAString& aStr);
 
 /**
  * Get an identifier for the currently-running product.

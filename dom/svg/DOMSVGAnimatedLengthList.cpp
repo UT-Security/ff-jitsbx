@@ -29,7 +29,7 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedLengthList,
                                                mElement)
 
 JSObject* DOMSVGAnimatedLengthList::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::SVGAnimatedLengthList_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -28,7 +28,7 @@ XRViewerPose::XRViewerPose(nsISupports* aParent, XRRigidTransform* aTransform,
                            const nsTArray<RefPtr<XRView>>& aViews)
     : XRPose(aParent, aTransform, aEmulatedPosition), mViews(aViews.Clone()) {}
 
-JSObject* XRViewerPose::WrapObject(JSContext* aCx,
+JSObject* XRViewerPose::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return XRViewerPose_Binding::Wrap(aCx, this, aGivenProto);
 }

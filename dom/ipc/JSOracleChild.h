@@ -41,7 +41,7 @@ struct JSContextHolder {
         "JSValidatorGlobal", JSCLASS_GLOBAL_FLAGS, MC::DefaultGlobalClassOps()};
 
     MC::Rooted<JSObject*> global(
-        MC_UNSAFE(mCx), JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
+        mCx, JS_NewGlobalObject(mCx, &jsValidatorGlobalClass, nullptr,
                                 JS::FireOnNewGlobalHook, MC::SandboxStack<JS::RealmOptions>()));
 
     if (!global) {
@@ -49,7 +49,7 @@ struct JSContextHolder {
       return;
     }
 
-    mGlobal.init(MC_UNSAFE(mCx), global);
+    mGlobal.init(mCx, global);
   }
 
   ~JSContextHolder() {

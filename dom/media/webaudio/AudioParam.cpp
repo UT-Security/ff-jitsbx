@@ -39,7 +39,7 @@ AudioParam::AudioParam(AudioNode* aNode, uint32_t aIndex,
 
 AudioParam::~AudioParam() { DisconnectFromGraphAndDestroyTrack(); }
 
-JSObject* AudioParam::WrapObject(JSContext* aCx,
+JSObject* AudioParam::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return AudioParam_Binding::Wrap(aCx, this, aGivenProto);
 }

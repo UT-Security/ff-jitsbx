@@ -21,7 +21,7 @@ WebTaskSchedulerWorker::WebTaskSchedulerWorker(WorkerPrivate* aWorkerPrivate)
     : WebTaskScheduler(aWorkerPrivate->GlobalScope()),
       mWorkerPrivate(aWorkerPrivate) {}
 
-bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
+bool WebTaskWorkerRunnable::WorkerRun(MCContext* aCx,
                                       WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -36,7 +36,7 @@ bool WebTaskWorkerRunnable::WorkerRun(JSContext* aCx,
 
 nsresult WebTaskSchedulerWorker::SetTimeoutForDelayedTask(WebTask* aTask,
                                                           uint64_t aDelay) {
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return NS_ERROR_UNEXPECTED;
   }

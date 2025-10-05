@@ -32,7 +32,7 @@ FluentBundleIterator::FluentBundleIterator(
     nsIGlobalObject* aGlobal, UniquePtr<ffi::GeckoFluentBundleIterator> aRaw)
     : mGlobal(aGlobal), mRaw(std::move(aRaw)) {}
 
-JSObject* FluentBundleIterator::WrapObject(JSContext* aCx,
+JSObject* FluentBundleIterator::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return FluentBundleIterator_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -62,7 +62,7 @@ FluentBundleAsyncIterator::FluentBundleAsyncIterator(
     : mGlobal(aGlobal), mRaw(std::move(aRaw)) {}
 
 JSObject* FluentBundleAsyncIterator::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FluentBundleAsyncIterator_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -129,7 +129,7 @@ already_AddRefed<L10nRegistry> L10nRegistry::GetInstance(
       global, dont_AddRef(ffi::l10nregistry_instance_get()));
 }
 
-JSObject* L10nRegistry::WrapObject(JSContext* aCx,
+JSObject* L10nRegistry::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return L10nRegistry_Binding::Wrap(aCx, this, aGivenProto);
 }

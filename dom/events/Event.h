@@ -90,9 +90,9 @@ class Event : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
-  virtual JSObject* WrapObjectInternal(JSContext* aCx,
+  virtual JSObject* WrapObjectInternal(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto);
 
 #define GENERATED_EVENT(EventClass_) \
@@ -228,7 +228,7 @@ class Event : public nsISupports, public nsWrapperCache {
   // call of this method always sets Event.defaultPrevented true for web
   // contents.  If default action handler calls this, web applications see wrong
   // defaultPrevented value.
-  virtual void PreventDefault(JSContext* aCx, CallerType aCallerType);
+  virtual void PreventDefault(MCContext* aCx, CallerType aCallerType);
 
   // You MUST NOT call DefaultPrevented(CallerType) from C++ code.  This may
   // return false even if PreventDefault() has been called.
@@ -311,7 +311,7 @@ class Event : public nsISupports, public nsWrapperCache {
     return mEvent->IsHandledInRemoteProcess();
   }
 
-  static bool IsDragExitEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool IsDragExitEnabled(MCContext* aCx, JSObject* aGlobal);
 
  protected:
   // Internal helper functions

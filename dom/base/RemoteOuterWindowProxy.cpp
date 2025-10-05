@@ -73,7 +73,7 @@ const JSClass* RemoteOuterWindowProxy::Base::sClass() {
   return &inner_;
 }
 
-bool GetRemoteOuterWindowProxy(JSContext* aCx, BrowsingContext* aContext,
+bool GetRemoteOuterWindowProxy(MCContext* aCx, BrowsingContext* aContext,
                                JS::Handle<JSObject*> aTransplantTo,
                                JS::MutableHandle<JSObject*> aRetVal) {
   MOZ_ASSERT(!aContext->GetDocShell(),
@@ -89,7 +89,7 @@ BrowsingContext* GetBrowsingContext(JSObject* aProxy) {
       RemoteObjectProxyBase::GetNative(aProxy));
 }
 
-static bool WrapResult(JSContext* aCx, JS::Handle<JSObject*> aProxy,
+static bool WrapResult(MCContext* aCx, JS::Handle<JSObject*> aProxy,
                        BrowsingContext* aResult, JS::PropertyAttributes attrs,
                        JS::MutableHandle<Maybe<JS::PropertyDescriptor>> aDesc) {
   MC::Rooted<JS::Value> v(aCx);
@@ -109,7 +109,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
   if (IsArrayIndex(index)) {
     Span<RefPtr<BrowsingContext>> children = bc->Children();
     if (index < children.Length()) {
-      return WrapResult(MC_UNSAFE(aCx), aProxy, children[index],
+      return WrapResult(aCx, aProxy, children[index],
                         {JS::PropertyAttribute::Configurable,
                          JS::PropertyAttribute::Enumerable},
                         aDesc);
@@ -136,7 +136,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
 
     for (BrowsingContext* child : bc->Children()) {
       if (child->NameEquals(str)) {
-        return WrapResult(MC_UNSAFE(aCx), aProxy, child,
+        return WrapResult(aCx, aProxy, child,
                           {JS::PropertyAttribute::Configurable}, aDesc);
       }
     }
@@ -145,7 +145,7 @@ bool RemoteOuterWindowProxy::getOwnPropertyDescriptor(
   return CrossOriginPropertyFallback(aCx, aProxy, aId, aDesc);
 }
 
-bool AppendIndexedPropertyNames(JSContext* aCx, BrowsingContext* aContext,
+bool AppendIndexedPropertyNames(MCContext* aCx, BrowsingContext* aContext,
                                 JS::MutableHandleVector<jsid> aIndexedProps) {
   int32_t length = aContext->Children().Length();
   if (!aIndexedProps.reserve(aIndexedProps.length() + length)) {
@@ -165,7 +165,7 @@ bool RemoteOuterWindowProxy::ownPropertyKeys(
 
   // https://html.spec.whatwg.org/multipage/window-object.html#windowproxy-ownpropertykeys:crossoriginownpropertykeys-(-o-)
   // step 3 to 5
-  if (!AppendIndexedPropertyNames(MC_UNSAFE(aCx), bc, aProps)) {
+  if (!AppendIndexedPropertyNames(aCx, bc, aProps)) {
     return false;
   }
 
@@ -177,7 +177,7 @@ bool RemoteOuterWindowProxy::ownPropertyKeys(
 bool RemoteOuterWindowProxy::getOwnEnumerablePropertyKeys(
     MCContext* aCx, JS::Handle<JSObject*> aProxy,
     JS::MutableHandleVector<jsid> aProps) const {
-  return AppendIndexedPropertyNames(MC_UNSAFE(aCx), GetBrowsingContext(aProxy), aProps);
+  return AppendIndexedPropertyNames(aCx, GetBrowsingContext(aProxy), aProps);
 }
 
 }  // namespace mozilla::dom

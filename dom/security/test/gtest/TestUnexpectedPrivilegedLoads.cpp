@@ -6,9 +6,9 @@
 
 #include "core/TelemetryEvent.h"
 #include "gtest/gtest.h"
-#include "js/Array.h"               // JS::GetArrayLength
-#include "js/PropertyAndElement.h"  // JS_GetElement, JS_GetProperty
-#include "js/TypeDecls.h"
+#include "monkeycage/Array.h"               // JS::GetArrayLength
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement, JS_GetProperty
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
@@ -209,7 +209,7 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
     << "Test event with value and extra must be present.";
 
     // Convert eventsSnapshot into array/object
-    JSContext* aCx = cx.GetJSContext();
+    MCContext* aCx = cx.GetJSContext();
     MC::Rooted<JSObject*> arrayObj(aCx, &eventsSnapshot.toObject());
 
     MC::Rooted<JS::Value> eventRecord(aCx);
@@ -220,10 +220,10 @@ TEST_F(TelemetryTestFixture, UnexpectedPrivilegedLoadsTelemetryTest) {
     << "eventRecord should not be undefined";
 
     MC::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
-    uint32_t recordLength;
-    ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, &recordLength))
+    MC::SandboxStack<uint32_t> recordLength;
+    ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, recordLength))
     << "Event record array must have length.";
-    ASSERT_TRUE(recordLength == 6)
+    ASSERT_TRUE(*recordLength.UNSAFE_unverified() == 6)
     << "Event record must have 6 elements.";
 
     MC::Rooted<JS::Value> str(aCx);

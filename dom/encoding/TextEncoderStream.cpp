@@ -6,8 +6,8 @@
 
 #include "mozilla/dom/TextEncoderStream.h"
 
-#include "js/ArrayBuffer.h"
-#include "js/experimental/TypedData.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/experimental/TypedData.h"
 #include "nsIGlobalObject.h"
 #include "mozilla/Encoding.h"
 #include "mozilla/dom/BindingUtils.h"
@@ -41,7 +41,7 @@ TextEncoderStream::TextEncoderStream(nsISupports* aGlobal,
 
 TextEncoderStream::~TextEncoderStream() = default;
 
-JSObject* TextEncoderStream::WrapObject(JSContext* aCx,
+JSObject* TextEncoderStream::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return TextEncoderStream_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -49,7 +49,7 @@ JSObject* TextEncoderStream::WrapObject(JSContext* aCx,
 // Note that the most of the encoding algorithm is implemented in
 // mozilla::Decoder (see the comment in EncodeNative()), and this is mainly
 // about calling it properly.
-static void EncodeNative(JSContext* aCx, mozilla::Decoder* aDecoder,
+static void EncodeNative(MCContext* aCx, mozilla::Decoder* aDecoder,
                          Span<const char16_t> aInput, const bool aFlush,
                          JS::MutableHandle<JSObject*> aOutputArrayBufferView,
                          ErrorResult& aRv) {
@@ -69,7 +69,7 @@ static void EncodeNative(JSContext* aCx, mozilla::Decoder* aDecoder,
   }
 
   UniquePtr<uint8_t> buffer(
-      static_cast<uint8_t*>(JS_malloc(aCx, needed.value())));
+      static_cast<uint8_t*>(JS_malloc(MC_UNSAFE(aCx), needed.value())));
   if (!buffer) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -125,7 +125,7 @@ class TextEncoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
   // The common part of encode-and-enqueue and encode-and-flush.
   // https://encoding.spec.whatwg.org/#decode-and-enqueue-a-chunk
   MOZ_CAN_RUN_SCRIPT void EncodeAndEnqueue(
-      JSContext* aCx, const nsAString& aInput,
+      MCContext* aCx, const nsAString& aInput,
       TransformStreamDefaultController& aController, bool aFlush,
       ErrorResult& aRv) {
     MC::Rooted<JSObject*> outView(aCx);
@@ -153,7 +153,7 @@ class TextEncoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // https://encoding.spec.whatwg.org/#encode-and-enqueue-a-chunk
 
@@ -181,7 +181,7 @@ class TextEncoderStreamAlgorithms : public TransformerAlgorithmsWrapper {
       aRv.ThrowUnknownError("Internal error");
       return;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     // The spec manually manages pending high surrogate here, but let's call the
     // encoder as it's managed there.

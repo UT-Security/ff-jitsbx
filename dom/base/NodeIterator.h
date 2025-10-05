@@ -43,7 +43,7 @@ class NodeIterator final : public nsStubMutationObserver, public nsTraversal {
   }
   void Detach();
 
-  bool WrapObject(JSContext* cx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* cx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
  private:

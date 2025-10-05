@@ -33,7 +33,7 @@ class HTMLMenuElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLMenuElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 };
 

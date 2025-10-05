@@ -1986,7 +1986,7 @@ nsresult GfxInfo::GetFeatureStatusImpl(
       aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, aFailureId, &os);
 }
 
-void GfxInfo::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
+void GfxInfo::DescribeFeatures(MCContext* aCx, JS::Handle<JSObject*> aObj) {
   // Add the platform neutral features
   GfxInfoBase::DescribeFeatures(aCx, aObj);
 

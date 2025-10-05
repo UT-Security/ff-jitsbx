@@ -24,7 +24,7 @@ class SVGDescElement final : public SVGDescElementBase {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGDescElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

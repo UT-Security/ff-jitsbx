@@ -20,13 +20,13 @@
 #include "XULTextElement.h"
 #include "XULTooltipElement.h"
 #include "XULTreeElement.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/CompileOptions.h"
-#include "js/experimental/JSStencil.h"
-#include "js/OffThreadScriptCompilation.h"
-#include "js/SourceText.h"
-#include "js/Transcoding.h"
-#include "js/Utility.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/Transcoding.h"
+#include "monkeycage/Utility.h"
 #include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ArrayIterator.h"
@@ -1153,7 +1153,7 @@ bool nsXULElement::IsEventAttributeNameInternal(nsAtom* aName) {
   return nsContentUtils::IsEventAttributeName(aName, EventNameType_XUL);
 }
 
-JSObject* nsXULElement::WrapNode(JSContext* aCx,
+JSObject* nsXULElement::WrapNode(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return dom::XULElement_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1530,9 +1530,9 @@ nsXULPrototypeScript::nsXULPrototypeScript(uint32_t aLineNo)
       mSrcLoadWaiters(nullptr),
       mStencil(nullptr) {}
 
-static nsresult WriteStencil(nsIObjectOutputStream* aStream, JSContext* aCx,
+static nsresult WriteStencil(nsIObjectOutputStream* aStream, MCContext* aCx,
                              JS::Stencil* aStencil) {
-  JS::TranscodeBuffer buffer;
+  MC::SandboxStack<JS::TranscodeBuffer> buffer;
   JS::TranscodeResult code;
   code = JS::EncodeStencil(aCx, aStencil, buffer);
 
@@ -1546,21 +1546,21 @@ static nsresult WriteStencil(nsIObjectOutputStream* aStream, JSContext* aCx,
     return NS_ERROR_FAILURE;
   }
 
-  size_t size = buffer.length();
+  size_t size = buffer->length().UNSAFE_unverified();
   if (size > UINT32_MAX) {
     return NS_ERROR_FAILURE;
   }
   nsresult rv = aStream->Write32(size);
   if (NS_SUCCEEDED(rv)) {
     // Ideally we could just pass "buffer" here.  See bug 1566574.
-    rv = aStream->WriteBytes(Span(buffer.begin(), size));
+    rv = aStream->WriteBytes(Span(buffer->begin().UNSAFE_unverified(), size));
   }
 
   return rv;
 }
 
-static nsresult ReadStencil(nsIObjectInputStream* aStream, JSContext* aCx,
-                            const JS::DecodeOptions& aOptions,
+static nsresult ReadStencil(nsIObjectInputStream* aStream, MCContext* aCx,
+                            MC::Tainted<const JS::DecodeOptions*> aOptions,
                             JS::Stencil** aStencilOut) {
   // We don't serialize mutedError-ness of scripts, which is fine as long as
   // we only serialize system and XUL-y things. We can detect this by checking
@@ -1585,7 +1585,7 @@ static nsresult ReadStencil(nsIObjectInputStream* aStream, JSContext* aCx,
   }
 
   // The decoded stencil shouldn't borrow from the XDR buffer.
-  MOZ_ASSERT(!aOptions.borrowBuffer);
+  MOZ_ASSERT(!aOptions->getBorrowBuffer());
   auto cleanupData = MakeScopeExit([&]() { free(data); });
 
   JS::TranscodeRange range(reinterpret_cast<uint8_t*>(data), size);
@@ -1610,11 +1610,11 @@ static nsresult ReadStencil(nsIObjectInputStream* aStream, JSContext* aCx,
   return rv;
 }
 
-void nsXULPrototypeScript::FillCompileOptions(JS::CompileOptions& options) {
+void nsXULPrototypeScript::FillCompileOptions(MC::Tainted<JS::CompileOptions*> options) {
   // If the script was inline, tell the JS parser to save source for
   // Function.prototype.toSource(). If it's out of line, we retrieve the
   // source from the files on demand.
-  options.setSourceIsLazy(mOutOfLine);
+  options->setSourceIsLazy(mOutOfLine);
 }
 
 nsresult nsXULPrototypeScript::Serialize(
@@ -1636,7 +1636,7 @@ nsresult nsXULPrototypeScript::Serialize(
   rv = aStream->Write32(mLineNo);
   if (NS_FAILED(rv)) return rv;
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MOZ_ASSERT(xpc::CompilationScope() == JS::CurrentGlobalOrNull(cx));
 
   return WriteStencil(aStream, cx, mStencil);
@@ -1696,9 +1696,9 @@ nsresult nsXULPrototypeScript::Deserialize(
   if (!jsapi.Init(xpc::CompilationScope())) {
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
-  JS::DecodeOptions options;
+  MC::SandboxStack<JS::DecodeOptions> options;
   RefPtr<JS::Stencil> newStencil;
   rv = ReadStencil(aStream, cx, options, getter_AddRefs(newStencil));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1783,11 +1783,11 @@ class NotifyOffThreadScriptCompletedRunnable : public Runnable {
   static bool sSetupClearOnShutdown;
 
   nsIOffThreadScriptReceiver* mReceiver;
-  JS::OffThreadToken* mToken;
+  MC::Tainted<JS::OffThreadToken*> mToken;
 
  public:
   NotifyOffThreadScriptCompletedRunnable(nsIOffThreadScriptReceiver* aReceiver,
-                                         JS::OffThreadToken* aToken)
+                                         MC::Tainted<JS::OffThreadToken*> aToken)
       : mozilla::Runnable("NotifyOffThreadScriptCompletedRunnable"),
         mReceiver(aReceiver),
         mToken(aToken) {}
@@ -1823,7 +1823,7 @@ NotifyOffThreadScriptCompletedRunnable::Run() {
       // happen.
       return NS_ERROR_UNEXPECTED;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     stencil = JS::FinishOffThreadStencil(cx, mToken);
   }
 
@@ -1842,12 +1842,12 @@ NotifyOffThreadScriptCompletedRunnable::Run() {
                                            stencil ? NS_OK : NS_ERROR_FAILURE);
 }
 
-static void OffThreadScriptReceiverCallback(JS::OffThreadToken* aToken,
-                                            void* aCallbackData) {
+static void OffThreadScriptReceiverCallback(MC::Tainted<JS::OffThreadToken*> aToken,
+                                            MC::AppPointer<void*> aCallbackData) {
   // Be careful not to adjust the refcount on the receiver, as this callback
   // may be invoked off the main thread.
   nsIOffThreadScriptReceiver* aReceiver =
-      static_cast<nsIOffThreadScriptReceiver*>(aCallbackData);
+      static_cast<nsIOffThreadScriptReceiver*>(aCallbackData.UNSAFE_unverified());
   RefPtr<NotifyOffThreadScriptCompletedRunnable> notify =
       new NotifyOffThreadScriptCompletedRunnable(aReceiver, aToken);
   NS_DispatchToMainThread(notify);
@@ -1869,10 +1869,10 @@ nsresult nsXULPrototypeScript::Compile(
 
     return NS_ERROR_UNEXPECTED;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
-  JS::SourceText<Unit> srcBuf;
-  if (NS_WARN_IF(!srcBuf.init(cx, aText, aTextLength, aOwnership))) {
+  MC::SandboxStack<JS::SourceText<Unit>> srcBuf;
+  if (NS_WARN_IF(!srcBuf->init(cx, aText, aTextLength, aOwnership))) {
     return NS_ERROR_FAILURE;
   }
 
@@ -1883,17 +1883,17 @@ nsresult nsXULPrototypeScript::Compile(
   }
 
   // Ok, compile it to create a prototype script object!
-  JS::CompileOptions options(cx);
+  MC::SandboxStack<JS::CompileOptions> options(cx);
   FillCompileOptions(options);
-  options.setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
+  options->setIntroductionType(mOutOfLine ? "srcScript" : "inlineScript")
       .setFileAndLine(urlspec.get(), mOutOfLine ? 1 : aLineNo);
 
   MC::Rooted<JSObject*> scope(cx, JS::CurrentGlobalOrNull(cx));
 
   if (aOffThreadReceiver && JS::CanCompileOffThread(cx, options, aTextLength)) {
-    static auto OffThreadScriptReceiverCallbackCb = MC::Sandbox::RegisterCallback(OffThreadScriptReceiverCallback);
+    static auto OffThreadScriptReceiverCallbackCb = MC::Sandbox::RegisterTaintedCallback(OffThreadScriptReceiverCallback);
     if (!JS::CompileToStencilOffThread(
-            cx, options, srcBuf, OffThreadScriptReceiverCallbackCb.UNSAFE_get(),
+            cx, options, srcBuf, OffThreadScriptReceiverCallbackCb,
             static_cast<void*>(aOffThreadReceiver))) {
       JS_ClearPendingException(cx);
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1920,12 +1920,12 @@ template nsresult nsXULPrototypeScript::Compile<Utf8Unit>(
     nsIOffThreadScriptReceiver* aOffThreadReceiver);
 
 nsresult nsXULPrototypeScript::InstantiateScript(
-    JSContext* aCx, JS::MutableHandle<JSScript*> aScript) {
+    MCContext* aCx, JS::MutableHandle<JSScript*> aScript) {
   MOZ_ASSERT(mStencil);
 
-  JS::CompileOptions options(aCx);
+  MC::SandboxStack<JS::CompileOptions> options(aCx);
   FillCompileOptions(options);
-  JS::InstantiateOptions instantiateOptions(options);
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*options);
   aScript.set(JS::InstantiateGlobalStencil(aCx, instantiateOptions, mStencil));
   if (!aScript) {
     JS_ClearPendingException(aCx);

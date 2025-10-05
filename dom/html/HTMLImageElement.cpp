@@ -782,7 +782,7 @@ CORSMode HTMLImageElement::GetCORSMode() {
   return AttrValueToCORSMode(GetParsedAttr(nsGkAtoms::crossorigin));
 }
 
-JSObject* HTMLImageElement::WrapNode(JSContext* aCx,
+JSObject* HTMLImageElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLImageElement_Binding::Wrap(aCx, this, aGivenProto);
 }

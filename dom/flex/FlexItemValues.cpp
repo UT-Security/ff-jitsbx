@@ -70,7 +70,7 @@ FlexItemValues::FlexItemValues(FlexLineValues* aParent,
   mClampState = aItem->mClampState;
 }
 
-JSObject* FlexItemValues::WrapObject(JSContext* aCx,
+JSObject* FlexItemValues::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return FlexItemValues_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -229,7 +229,7 @@ class TabCapturedHandler final : public PromiseNativeHandler {
     aPromise->AppendNativeHandler(handler);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MOZ_ASSERT(NS_IsMainThread());
     if (NS_WARN_IF(!aValue.isObject())) {
@@ -253,7 +253,7 @@ class TabCapturedHandler final : public PromiseNativeHandler {
     mHolder.Resolve(std::move(data), __func__);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MOZ_ASSERT(NS_IsMainThread());
     mHolder.Reject(aRv.StealNSResult(), __func__);

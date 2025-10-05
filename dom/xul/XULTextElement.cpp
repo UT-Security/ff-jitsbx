@@ -41,7 +41,7 @@ nsChangeHint XULTextElement::GetAttributeChangeHint(const nsAtom* aAttribute,
   return nsXULElement::GetAttributeChangeHint(aAttribute, aModType);
 }
 
-JSObject* XULTextElement::WrapNode(JSContext* aCx,
+JSObject* XULTextElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return XULTextElement_Binding::Wrap(aCx, this, aGivenProto);
 }

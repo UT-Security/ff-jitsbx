@@ -346,7 +346,7 @@ nsIGlobalObject* nsWindowRoot::GetParentObject() {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-JSObject* nsWindowRoot::WrapObject(JSContext* aCx,
+JSObject* nsWindowRoot::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::WindowRoot_Binding::Wrap(aCx, this, aGivenProto);
 }

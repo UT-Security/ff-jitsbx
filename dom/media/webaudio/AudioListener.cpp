@@ -52,7 +52,7 @@ AudioListener::AudioListener(AudioContext* aContext)
   MOZ_ASSERT(aContext);
 }
 
-JSObject* AudioListener::WrapObject(JSContext* aCx,
+JSObject* AudioListener::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return AudioListener_Binding::Wrap(aCx, this, aGivenProto);
 }

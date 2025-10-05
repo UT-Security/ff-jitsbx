@@ -31,7 +31,7 @@ MessageChannel::MessageChannel(nsIGlobalObject* aGlobal) : mGlobal(aGlobal) {
 
 MessageChannel::~MessageChannel() = default;
 
-JSObject* MessageChannel::WrapObject(JSContext* aCx,
+JSObject* MessageChannel::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return MessageChannel_Binding::Wrap(aCx, this, aGivenProto);
 }

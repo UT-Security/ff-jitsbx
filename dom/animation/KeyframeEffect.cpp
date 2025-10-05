@@ -105,7 +105,7 @@ KeyframeEffect::KeyframeEffect(Document* aDocument,
       mProperties(aOther.mProperties.Clone()),
       mBaseValues(aOther.mBaseValues.Clone()) {}
 
-JSObject* KeyframeEffect::WrapObject(JSContext* aCx,
+JSObject* KeyframeEffect::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return KeyframeEffect_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -232,7 +232,7 @@ static bool KeyframesEqualIgnoringComputedOffsets(
 }
 
 // https://drafts.csswg.org/web-animations/#dom-keyframeeffect-setkeyframes
-void KeyframeEffect::SetKeyframes(JSContext* aContext,
+void KeyframeEffect::SetKeyframes(MCContext* aContext,
                                   JS::Handle<JSObject*> aKeyframes,
                                   ErrorResult& aRv) {
   nsTArray<Keyframe> keyframes = KeyframeUtils::GetKeyframesFromObject(
@@ -863,7 +863,7 @@ already_AddRefed<KeyframeEffect> KeyframeEffect::ConstructKeyframeEffect(
       doc, OwningAnimationTarget(aTarget, effectOptions.mPseudoType),
       std::move(timingParams), effectOptions);
 
-  effect->SetKeyframes(MC_UNSAFE(aGlobal.Context()), aKeyframes, aRv);
+  effect->SetKeyframes(aGlobal.Context(), aKeyframes, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -1231,7 +1231,7 @@ void KeyframeEffect::GetProperties(
   }
 }
 
-void KeyframeEffect::GetKeyframes(JSContext* aCx, nsTArray<JSObject*>& aResult,
+void KeyframeEffect::GetKeyframes(MCContext* aCx, nsTArray<JSObject*>& aResult,
                                   ErrorResult& aRv) const {
   MOZ_ASSERT(aResult.IsEmpty());
   MOZ_ASSERT(!aRv.Failed());

@@ -32,7 +32,7 @@ class HTMLMapElement final : public nsGenericHTMLElement {
   }
   nsIHTMLCollection* Areas();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
   ~HTMLMapElement() = default;

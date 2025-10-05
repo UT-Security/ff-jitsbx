@@ -61,7 +61,7 @@ class AdapterInfo final : public dom::NonRefcountedDOMObject {
   void GetWgpuDriverInfo(nsString&) const;
   void GetWgpuBackend(nsString&) const;
 
-  bool WrapObject(JSContext*, JS::Handle<JSObject*>,
+  bool WrapObject(MCContext*, JS::Handle<JSObject*>,
                   JS::MutableHandle<JSObject*>);
 };
 

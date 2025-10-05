@@ -40,7 +40,7 @@ FileList::FileList(nsISupports* aParent) : mParent(aParent) {}
 
 FileList::~FileList() = default;
 
-JSObject* FileList::WrapObject(JSContext* aCx,
+JSObject* FileList::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::FileList_Binding::Wrap(aCx, this, aGivenProto);
 }

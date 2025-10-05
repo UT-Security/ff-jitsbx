@@ -109,7 +109,7 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   DataTransfer(nsISupports* aParent, EventMessage aEventMessage,
                const nsAString& aString);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return mParent; }
@@ -243,11 +243,11 @@ class DataTransfer final : public nsISupports, public nsWrapperCache {
   void MozClearDataAt(const nsAString& aFormat, uint32_t aIndex,
                       mozilla::ErrorResult& aRv);
 
-  void MozSetDataAt(JSContext* aCx, const nsAString& aFormat,
+  void MozSetDataAt(MCContext* aCx, const nsAString& aFormat,
                     JS::Handle<JS::Value> aData, uint32_t aIndex,
                     mozilla::ErrorResult& aRv);
 
-  void MozGetDataAt(JSContext* aCx, const nsAString& aFormat, uint32_t aIndex,
+  void MozGetDataAt(MCContext* aCx, const nsAString& aFormat, uint32_t aIndex,
                     JS::MutableHandle<JS::Value> aRetval,
                     mozilla::ErrorResult& aRv);
 

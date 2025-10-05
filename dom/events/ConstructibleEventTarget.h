@@ -21,7 +21,7 @@ class ConstructibleEventTarget : public DOMEventTargetHelper {
   explicit ConstructibleEventTarget(nsIGlobalObject* aGlobalObject)
       : DOMEventTargetHelper(aGlobalObject) {}
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 };
 

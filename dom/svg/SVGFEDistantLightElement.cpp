@@ -15,7 +15,7 @@ using namespace mozilla::gfx;
 namespace mozilla::dom {
 
 JSObject* SVGFEDistantLightElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGFEDistantLightElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

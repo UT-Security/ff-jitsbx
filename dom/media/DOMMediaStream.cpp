@@ -148,7 +148,7 @@ void DOMMediaStream::Destroy() {
   mTrackListeners.Clear();
 }
 
-JSObject* DOMMediaStream::WrapObject(JSContext* aCx,
+JSObject* DOMMediaStream::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return dom::MediaStream_Binding::Wrap(aCx, this, aGivenProto);
 }

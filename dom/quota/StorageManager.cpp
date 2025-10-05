@@ -131,7 +131,7 @@ class RequestResolver::FinishWorkerRunnable final : public WorkerRunnable {
     MOZ_ASSERT(aResolver);
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override;
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override;
 };
 
 class EstimateWorkerMainThreadRunnable final : public WorkerMainThreadRunnable {
@@ -588,7 +588,7 @@ RequestResolver::OnComplete(nsIQuotaRequest* aRequest) {
 }
 
 bool RequestResolver::FinishWorkerRunnable::WorkerRun(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+    MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
@@ -771,7 +771,7 @@ already_AddRefed<FileSystemManager> StorageManager::GetFileSystemManager() {
 
 // WebIDL Boilerplate
 
-JSObject* StorageManager::WrapObject(JSContext* aCx,
+JSObject* StorageManager::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return StorageManager_Binding::Wrap(aCx, this, aGivenProto);
 }

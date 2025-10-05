@@ -29,10 +29,10 @@
 #endif
 
 #include "FramingChecker.h"
-#include "js/Array.h"  // JS::GetArrayLength
-#include "js/ContextOptions.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement
-#include "js/RegExp.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength
+#include "monkeycage/ContextOptions.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/RegExp.h"
 #include "js/RegExpFlags.h"           // JS::RegExpFlags
 #include "js/friend/ErrorMessages.h"  // JSMSG_UNSAFE_FILENAME
 #include "mozilla/ExtensionPolicyService.h"
@@ -141,7 +141,7 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
   mozilla::dom::AutoJSAPI jsapi;
   jsapi.Init();
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   mozilla::AutoDisableJSInterruptCallback disabler(cx);
 
   // We can use the junk scope here, because we're just using it for regexp
@@ -158,9 +158,9 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
 
   MC::Rooted<JS::Value> regexResult(cx, JS::NullValue());
 
-  size_t index = 0;
+  MC::SandboxStack<size_t> index{0};
   if (!JS::ExecuteRegExpNoStatics(cx, regexp, aString.BeginReading(),
-                                  aString.Length(), &index, aOnlyMatch,
+                                  aString.Length(), index, aOnlyMatch,
                                   &regexResult)) {
     return NS_ERROR_FAILURE;
   }
@@ -181,14 +181,14 @@ nsresult RegexEval(const nsAString& aPattern, const nsAString& aString,
   }
 
   // Now we know we have a result, and we need to extract it so we can read it.
-  uint32_t length;
+  MC::SandboxStack<uint32_t> length;
   MC::Rooted<JSObject*> regexResultObj(cx, &regexResult.toObject());
-  if (!JS::GetArrayLength(cx, regexResultObj, &length)) {
+  if (!JS::GetArrayLength(cx, regexResultObj, length)) {
     return NS_ERROR_NOT_AVAILABLE;
   }
-  MOZ_LOG(sCSMLog, LogLevel::Verbose, ("Regex Matched %i strings", length));
+  MOZ_LOG(sCSMLog, LogLevel::Verbose, ("Regex Matched %i strings", *length.UNSAFE_unverified()));
 
-  for (uint32_t i = 0; i < length; i++) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); i++) {
     MC::Rooted<JS::Value> element(cx);
     if (!JS_GetElement(cx, regexResultObj, i, &element)) {
       return NS_ERROR_NO_CONTENT;
@@ -589,7 +589,7 @@ class EvalUsageNotificationRunnable final : public Runnable {
 };
 
 /* static */
-bool nsContentSecurityUtils::IsEvalAllowed(JSContext* cx,
+bool nsContentSecurityUtils::IsEvalAllowed(MCContext* cx,
                                            bool aIsSystemPrincipal,
                                            const nsAString& aScript) {
   // This allowlist contains files that are permanently allowed to use
@@ -1417,7 +1417,7 @@ MC::Tainted<bool> nsContentSecurityUtils::ValidateScriptFilename(MC::Tainted<JSC
       }
     }
   } else if (!NS_IsMainThread()) {
-    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+    WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
     if (workerPrivate && workerPrivate->IsPrivilegedAddonGlobal()) {
       MOZ_LOG(sCSMLog, LogLevel::Debug,
               ("Allowing a javascript load of %s because the web extension "

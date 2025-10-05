@@ -19,7 +19,7 @@ class AudioBufferSourceNode final : public AudioScheduledSourceNode,
                                     public MainThreadMediaTrackListener {
  public:
   static already_AddRefed<AudioBufferSourceNode> Create(
-      JSContext* aCx, AudioContext& aAudioContext,
+      MCContext* aCx, AudioContext& aAudioContext,
       const AudioBufferSourceOptions& aOptions);
 
   void DestroyMediaTrack() override;
@@ -33,10 +33,10 @@ class AudioBufferSourceNode final : public AudioScheduledSourceNode,
   static already_AddRefed<AudioBufferSourceNode> Constructor(
       const GlobalObject& aGlobal, AudioContext& aAudioContext,
       const AudioBufferSourceOptions& aOptions) {
-    return Create(MC_UNSAFE(aGlobal.Context()), aAudioContext, aOptions);
+    return Create(aGlobal.Context(), aAudioContext, aOptions);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void Start(double aWhen, double aOffset, const Optional<double>& aDuration,
@@ -45,8 +45,8 @@ class AudioBufferSourceNode final : public AudioScheduledSourceNode,
   void Start(double aWhen, ErrorResult& aRv) override;
   void Stop(double aWhen, ErrorResult& aRv) override;
 
-  AudioBuffer* GetBuffer(JSContext* aCx) const { return mBuffer; }
-  void SetBuffer(JSContext* aCx, AudioBuffer* aBuffer, ErrorResult& aRv) {
+  AudioBuffer* GetBuffer(MCContext* aCx) const { return mBuffer; }
+  void SetBuffer(MCContext* aCx, AudioBuffer* aBuffer, ErrorResult& aRv) {
     if (aBuffer && mBufferSet) {
       aRv.ThrowInvalidStateError(
           "Cannot set the buffer attribute of an AudioBufferSourceNode "
@@ -109,7 +109,7 @@ class AudioBufferSourceNode final : public AudioScheduledSourceNode,
   };
 
   void SendLoopParametersToTrack();
-  void SendBufferParameterToTrack(JSContext* aCx);
+  void SendBufferParameterToTrack(MCContext* aCx);
   void SendOffsetAndDurationParametersToTrack(AudioNodeTrack* aTrack);
 
   double mLoopStart;

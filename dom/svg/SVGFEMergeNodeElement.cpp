@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(FEMergeNode)
 
 namespace mozilla::dom {
 
-JSObject* SVGFEMergeNodeElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEMergeNodeElement::WrapNode(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return SVGFEMergeNodeElement_Binding::Wrap(aCx, this, aGivenProto);
 }

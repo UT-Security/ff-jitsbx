@@ -30,7 +30,7 @@ MediaMetadata::MediaMetadata(nsIGlobalObject* aParent, const nsString& aTitle,
 
 nsIGlobalObject* MediaMetadata::GetParentObject() const { return mParent; }
 
-JSObject* MediaMetadata::WrapObject(JSContext* aCx,
+JSObject* MediaMetadata::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return MediaMetadata_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -62,7 +62,7 @@ void MediaMetadata::GetAlbum(nsString& aRetVal) const { aRetVal = mAlbum; }
 
 void MediaMetadata::SetAlbum(const nsAString& aAlbum) { mAlbum = aAlbum; }
 
-void MediaMetadata::GetArtwork(JSContext* aCx, nsTArray<JSObject*>& aRetVal,
+void MediaMetadata::GetArtwork(MCContext* aCx, nsTArray<JSObject*>& aRetVal,
                                ErrorResult& aRv) const {
   // Convert the MediaImages to JS Objects
   if (!aRetVal.SetCapacity(mArtwork.Length(), fallible)) {
@@ -87,7 +87,7 @@ void MediaMetadata::GetArtwork(JSContext* aCx, nsTArray<JSObject*>& aRetVal,
   }
 }
 
-void MediaMetadata::SetArtwork(JSContext* aCx,
+void MediaMetadata::SetArtwork(MCContext* aCx,
                                const Sequence<JSObject*>& aArtwork,
                                ErrorResult& aRv) {
   // Convert the JS Objects to MediaImages

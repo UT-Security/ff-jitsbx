@@ -15,7 +15,7 @@ HTMLDataListElement::~HTMLDataListElement() {
   MOZ_ASSERT(HasFlag(ELEMENT_IS_DATALIST_OR_HAS_DATALIST_ANCESTOR));
 }
 
-JSObject* HTMLDataListElement::WrapNode(JSContext* aCx,
+JSObject* HTMLDataListElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLDataListElement_Binding::Wrap(aCx, this, aGivenProto);
 }

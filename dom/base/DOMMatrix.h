@@ -9,7 +9,7 @@
 
 #include <cstring>
 #include <utility>
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/UniquePtr.h"
@@ -23,7 +23,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -70,7 +70,7 @@ class DOMMatrixReadOnly : public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(DOMMatrixReadOnly)
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMMatrixReadOnly> FromMatrix(
@@ -99,8 +99,8 @@ class DOMMatrixReadOnly : public nsWrapperCache {
       ErrorResult& aRv);
 
   static already_AddRefed<DOMMatrixReadOnly> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
   // clang-format off
 #define GetMatrixMember(entry2D, entry3D, default) \
@@ -221,14 +221,14 @@ class DOMMatrixReadOnly : public nsWrapperCache {
   bool Is2D() const;
   bool IsIdentity() const;
   already_AddRefed<DOMPoint> TransformPoint(const DOMPointInit& aPoint) const;
-  void ToFloat32Array(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+  void ToFloat32Array(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
                       ErrorResult& aRv) const;
-  void ToFloat64Array(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+  void ToFloat64Array(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
                       ErrorResult& aRv) const;
   void Stringify(nsAString& aResult, ErrorResult& aRv);
 
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
   const gfx::MatrixDouble* GetInternal2D() const {
     if (Is2D()) {
       return mMatrix2D.get();
@@ -262,7 +262,7 @@ class DOMMatrixReadOnly : public nsWrapperCache {
     }
   }
 
-  static bool ReadStructuredCloneElements(JSStructuredCloneReader* aReader,
+  static bool ReadStructuredCloneElements(MC::Tainted<JSStructuredCloneReader*> aReader,
                                           DOMMatrixReadOnly* matrix);
 
  private:
@@ -306,10 +306,10 @@ class DOMMatrix : public DOMMatrixReadOnly {
       ErrorResult& aRv);
 
   static already_AddRefed<DOMMatrix> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   DOMMatrix* MultiplySelf(const DOMMatrixInit& aOther, ErrorResult& aRv);

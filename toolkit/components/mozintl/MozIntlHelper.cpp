@@ -18,7 +18,7 @@ MozIntlHelper::MozIntlHelper() = default;
 
 MozIntlHelper::~MozIntlHelper() = default;
 
-static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
+static nsresult AddFunctions(MCContext* cx, JS::Handle<JS::Value> val,
                              const JSFunctionSpec* funcs) {
   if (!val.isObject()) {
     return NS_ERROR_INVALID_ARG;
@@ -26,7 +26,7 @@ static nsresult AddFunctions(JSContext* cx, JS::Handle<JS::Value> val,
 
   // We might be adding functions to a Window.
   MC::Rooted<JSObject*> realIntlObj(
-      cx, js::CheckedUnwrapDynamic(&val.toObject(), cx));
+      cx, mc::CheckedUnwrapDynamic(&val.toObject(), cx));
   if (!realIntlObj) {
     return NS_ERROR_INVALID_ARG;
   }
@@ -46,7 +46,7 @@ MozIntlHelper::AddGetCalendarInfo(JS::Handle<JS::Value> val, MCContext* cx) {
       JS_SELF_HOSTED_FN("getCalendarInfo", "Intl_getCalendarInfo", 1, 0),
       JS_FS_END};
 
-  return AddFunctions(MC_UNSAFE(cx), val, funcs);
+  return AddFunctions(cx, val, funcs);
 }
 
 NS_IMETHODIMP

@@ -15,8 +15,8 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "js/Conversions.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/Conversions.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/dom/BindingCallContext.h"
@@ -70,7 +70,7 @@ struct DisallowedConversion {
   typedef int intermediateType;
 
  private:
-  static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
     MOZ_CRASH("This should never be instantiated!");
   }
@@ -107,9 +107,12 @@ struct PrimitiveConversionTraits_smallInt {
   // corresponding unsigned type.
   typedef int32_t jstype;
   typedef int32_t intermediateType;
-  static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToInt32(cx, v, retval);
+    MC::SandboxStack<jstype> sbx_retval;
+    bool ok = JS::ToInt32(cx, v, sbx_retval);
+    if (ok) *retval = *sbx_retval.UNSAFE_unverified();
+    return ok;
   }
 };
 template <>
@@ -139,9 +142,12 @@ template <>
 struct PrimitiveConversionTraits<int64_t, eDefault> {
   typedef int64_t jstype;
   typedef int64_t intermediateType;
-  static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToInt64(cx, v, retval);
+    MC::SandboxStack<jstype> sbx_retval;
+    bool ok = JS::ToInt64(cx, v, sbx_retval);
+    if (ok) *retval = *sbx_retval.UNSAFE_unverified();
+    return ok;
   }
 };
 
@@ -149,9 +155,12 @@ template <>
 struct PrimitiveConversionTraits<uint64_t, eDefault> {
   typedef uint64_t jstype;
   typedef uint64_t intermediateType;
-  static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToUint64(cx, v, retval);
+    MC::SandboxStack<jstype> sbx_retval;
+    bool ok = JS::ToUint64(cx, v, sbx_retval);
+    if (ok) *retval = *sbx_retval.UNSAFE_unverified();
+    return ok;
   }
 };
 
@@ -182,12 +191,12 @@ struct PrimitiveConversionTraits_ToCheckedIntHelper {
 
   static inline bool converter(U cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    double intermediate;
-    if (!JS::ToNumber(cx, v, &intermediate)) {
+    MC::SandboxStack<double> intermediate;
+    if (!JS::ToNumber(cx, v, intermediate)) {
       return false;
     }
 
-    return Enforce(cx, sourceDescription, intermediate, retval);
+    return Enforce(cx, sourceDescription, *intermediate.UNSAFE_unverified(), retval);
   }
 };
 
@@ -223,7 +232,7 @@ struct PrimitiveConversionTraits<T, eEnforceRange>
 };
 
 template <typename T>
-inline bool PrimitiveConversionTraits_Clamp(JSContext* cx,
+inline bool PrimitiveConversionTraits_Clamp(MCContext* cx,
                                             const char* sourceDescription,
                                             const double& d, T* retval) {
   static_assert(std::numeric_limits<T>::is_integer,
@@ -271,7 +280,7 @@ inline bool PrimitiveConversionTraits_Clamp(JSContext* cx,
 template <typename T>
 struct PrimitiveConversionTraits<T, eClamp>
     : public PrimitiveConversionTraits_ToCheckedIntHelper<
-          T, JSContext*, PrimitiveConversionTraits_Clamp<T> > {};
+          T, MCContext*, PrimitiveConversionTraits_Clamp<T> > {};
 
 template <ConversionBehavior B>
 struct PrimitiveConversionTraits<bool, B> : public DisallowedConversion<bool> {
@@ -281,7 +290,7 @@ template <>
 struct PrimitiveConversionTraits<bool, eDefault> {
   typedef bool jstype;
   typedef bool intermediateType;
-  static inline bool converter(JSContext* /* unused */, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* /* unused */, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
     *retval = JS::ToBoolean(v);
     return true;
@@ -299,9 +308,12 @@ struct PrimitiveConversionTraits<double, B>
 struct PrimitiveConversionTraits_float {
   typedef double jstype;
   typedef double intermediateType;
-  static inline bool converter(JSContext* cx, JS::Handle<JS::Value> v,
+  static inline bool converter(MCContext* cx, JS::Handle<JS::Value> v,
                                const char* sourceDescription, jstype* retval) {
-    return JS::ToNumber(cx, v, retval);
+    MC::SandboxStack<jstype> sbx_retval;
+    bool ok = JS::ToNumber(cx, v, sbx_retval);
+    if (ok) *retval = *sbx_retval.UNSAFE_unverified();
+    return ok;
   }
 };
 

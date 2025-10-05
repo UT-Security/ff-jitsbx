@@ -94,7 +94,7 @@ Directory::~Directory() = default;
 
 nsIGlobalObject* Directory::GetParentObject() const { return mGlobal; }
 
-JSObject* Directory::WrapObject(JSContext* aCx,
+JSObject* Directory::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Directory_Binding::Wrap(aCx, this, aGivenProto);
 }

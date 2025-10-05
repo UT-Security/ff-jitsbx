@@ -32,10 +32,10 @@ class WaveShaperNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetCurve(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval);
+  void GetCurve(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval);
   void SetCurve(const Nullable<Float32Array>& aData, ErrorResult& aRv);
 
   OverSampleType Oversample() const { return mType; }

@@ -21,7 +21,7 @@ using namespace SVGTextPathElement_Binding;
 
 class DOMSVGAnimatedLength;
 
-JSObject* SVGTextPathElement::WrapNode(JSContext* aCx,
+JSObject* SVGTextPathElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGTextPathElement_Binding::Wrap(aCx, this, aGivenProto);
 }

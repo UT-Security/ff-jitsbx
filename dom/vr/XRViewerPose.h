@@ -29,7 +29,7 @@ class XRViewerPose final : public XRPose {
   RefPtr<XRView>& GetEye(int32_t aIndex);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members

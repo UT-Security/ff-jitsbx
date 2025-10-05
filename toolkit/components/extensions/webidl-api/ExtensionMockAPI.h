@@ -37,15 +37,15 @@ class ExtensionMockAPI final : public nsISupports,
                    ExtensionBrowser* aExtensionBrowser);
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
-  static bool IsAllowed(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAllowed(MCContext* aCx, JSObject* aGlobal);
 
   nsIGlobalObject* GetParentObject() const;
 
-  void GetPropertyAsErrorObject(JSContext* aCx,
+  void GetPropertyAsErrorObject(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aRetval);
   void GetPropertyAsString(DOMString& aRetval);
 

@@ -38,7 +38,7 @@ Instance::~Instance() { Cleanup(); }
 
 void Instance::Cleanup() {}
 
-JSObject* Instance::WrapObject(JSContext* cx,
+JSObject* Instance::WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> givenProto) {
   return dom::GPU_Binding::Wrap(cx, this, givenProto);
 }

@@ -33,7 +33,7 @@ class CSSLayerBlockRule final : public css::GroupRule {
   void GetName(nsACString&) const;
 
   size_t SizeOfIncludingThis(MallocSizeOf) const override;
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 
  private:
   ~CSSLayerBlockRule() = default;

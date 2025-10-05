@@ -9,10 +9,9 @@
 #ifndef mcapi_h
 #define mcapi_h
 
-#include "jsapi.h"
-
 #ifdef JS_SANDBOX
 
+#include "monkeycage/CallAndConstruct.h"
 #include "monkeycage/Class.h"
 #include "monkeycage/Context.h"
 #include "monkeycage/Debug.h"
@@ -25,6 +24,7 @@
 #include "monkeycage/Interrupt.h"
 #include "monkeycage/MemoryCallbacks.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_Enumerate
+#include "monkeycage/PropertyDescriptor.h"
 #include "monkeycage/Realm.h"
 #include "monkeycage/RealmIterators.h"
 #include "monkeycage/RealmOptions.h"
@@ -33,6 +33,7 @@
 #include "monkeycage/Stack.h"
 #include "monkeycage/StreamConsumer.h"
 #include "monkeycage/String.h"
+#include "monkeycage/TelemetryTimers.h"
 #include "monkeycage/TracingAPI.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/UniquePtr.h"
@@ -46,6 +47,12 @@
 #include "monkeycage/SandboxHeap.h"
 #include "monkeycage/SandboxStack.h"
 #include "monkeycage/Tainted.h"
+
+#endif
+
+#include "jsapi.h"
+
+#ifdef JS_SANDBOX
 
 inline bool JS_ValueToObject(MCContext* cx, JS::HandleValue v,
                              JS::MutableHandleObject objp) {
@@ -127,6 +134,10 @@ inline bool JS_InitReflectParse(MCContext* cx, JS::HandleObject global) {
   return JS_InitReflectParse(cx->cx_, global);
 }
 
+inline bool JS_DefineProfilingFunctions(MCContext* cx, JS::HandleObject obj) {
+  return JS_DefineProfilingFunctions(cx->cx_, obj);
+}
+
 inline bool JS_ValueToId(MCContext* cx, JS::HandleValue v,
                          JS::MutableHandleId idp) {
   return JS_ValueToId(cx->cx_, v, idp);
@@ -168,8 +179,16 @@ inline bool JS_InstanceOf(MCContext* cx, JS::Handle<JSObject*> obj,
 }
 
 inline bool JS_HasInstance(MCContext* cx, JS::Handle<JSObject*> obj,
-                           JS::Handle<JS::Value> v, bool* bp) {
-  return JS_HasInstance(cx->cx_, obj, v, bp);
+                           JS::Handle<JS::Value> v, MC::Tainted<bool*> bp) {
+  return JS_HasInstance(cx->cx_, obj, v, bp.INTERNAL_unverified_safe());
+}
+
+namespace JS {
+
+inline bool OrdinaryHasInstance(MCContext* cx, HandleObject objArg,
+                                HandleValue v, MC::Tainted<bool*> bp) {
+  return OrdinaryHasInstance(cx->cx_, objArg, v, bp.INTERNAL_unverified_safe());
+}
 }
 
 inline JSObject* JS_GetConstructor(MCContext* cx, JS::Handle<JSObject*> proto) {
@@ -189,15 +208,23 @@ inline JSObject* JS_NewPlainObject(MCContext* cx) {
   return JS_NewPlainObject(cx->cx_);
 }
 
+inline bool JS_DeepFreezeObject(MCContext* cx, JS::Handle<JSObject*> obj) {
+  return JS_DeepFreezeObject(cx->cx_, obj);
+}
+
+inline bool JS_FreezeObject(MCContext* cx, JS::Handle<JSObject*> obj) {
+  return JS_FreezeObject(cx->cx_, obj);
+}
+
 inline bool JS_GetPrototype(MCContext* cx, JS::HandleObject obj,
                             JS::MutableHandleObject result) {
   return JS_GetPrototype(cx->cx_, obj, result);
 }
 
 inline bool JS_GetPrototypeIfOrdinary(MCContext* cx, JS::HandleObject obj,
-                                      bool* isOrdinary,
+                                      MC::Tainted<bool*> isOrdinary,
                                       JS::MutableHandleObject result) {
-  return JS_GetPrototypeIfOrdinary(cx->cx_, obj, isOrdinary, result);
+  return JS_GetPrototypeIfOrdinary(cx->cx_, obj, isOrdinary.INTERNAL_unverified_safe(), result);
 }
 
 inline bool JS_SetPrototype(MCContext* cx, JS::HandleObject obj,
@@ -256,6 +283,10 @@ inline bool JS_GetFunctionLength(MCContext* cx, JS::HandleFunction fun,
   return JS_GetFunctionLength(cx->cx_, fun, length);
 }
 
+inline bool JS_IsNativeFunction(JSObject* funobj, MC::SandboxCallback<JSNative> call) {
+  return JS_IsNativeFunction(funobj, call.UNSAFE_get());
+}
+
 inline unsigned JS_GetScriptBaseLineNumber(MCContext* cx, JSScript* script) {
   return JS_GetScriptBaseLineNumber(cx->cx_, script);
 }
@@ -280,6 +311,10 @@ inline bool PropertySpecNameToPermanentId(MCContext* cx,
   return PropertySpecNameToPermanentId(cx->cx_, name, idp);
 }
 } /* namespace JS */
+
+inline void JS_AbortIfWrongThread(MCContext* cx) {
+  return JS_AbortIfWrongThread(cx->cx_);
+}
 
 inline JSObject* JS_NewObjectForConstructor(MCContext* cx, const JSClass* clasp,
                                             const JS::CallArgs& args) {
@@ -317,8 +352,8 @@ inline bool JS_CharsToId(MCContext* cx, JS::TwoByteChars chars,
   return JS_CharsToId(cx->cx_, chars, id);
 }
 inline bool JS_IsIdentifier(MCContext* cx, JS::HandleString str,
-                            bool* isIdentifier) {
-  return JS_IsIdentifier(cx->cx_, str, isIdentifier);
+                            MC::Tainted<bool*> isIdentifier) {
+  return JS_IsIdentifier(cx->cx_, str, isIdentifier.INTERNAL_unverified_safe());
 }
 
 namespace MC {

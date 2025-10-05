@@ -8,7 +8,7 @@
 
 namespace mozilla::dom {
 
-JSObject* WebTransportError::WrapObject(JSContext* aCx,
+JSObject* WebTransportError::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return WebTransportError_Binding::Wrap(aCx, this, aGivenProto);
 }

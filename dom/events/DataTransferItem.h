@@ -48,7 +48,7 @@ class DataTransferItem final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<DataTransferItem> Clone(DataTransfer* aDataTransfer) const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void GetAsString(FunctionStringCallback* aCallback,

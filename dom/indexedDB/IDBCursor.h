@@ -115,32 +115,32 @@ class IDBCursor : public nsISupports, public nsWrapperCache {
 
   RefPtr<IDBRequest> Request() const;
 
-  virtual void GetKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  virtual void GetKey(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                       ErrorResult& aRv) = 0;
 
-  virtual void GetPrimaryKey(JSContext* aCx,
+  virtual void GetPrimaryKey(MCContext* aCx,
                              JS::MutableHandle<JS::Value> aResult,
                              ErrorResult& aRv) = 0;
 
   // XXX: We could move this to a sub-class, since this is only present on
   // IDBCursorWithValue.
-  virtual void GetValue(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  virtual void GetValue(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                         ErrorResult& aRv) = 0;
 
-  virtual void Continue(JSContext* aCx, JS::Handle<JS::Value> aKey,
+  virtual void Continue(MCContext* aCx, JS::Handle<JS::Value> aKey,
                         ErrorResult& aRv) = 0;
 
-  virtual void ContinuePrimaryKey(JSContext* aCx, JS::Handle<JS::Value> aKey,
+  virtual void ContinuePrimaryKey(MCContext* aCx, JS::Handle<JS::Value> aKey,
                                   JS::Handle<JS::Value> aPrimaryKey,
                                   ErrorResult& aRv) = 0;
 
   virtual void Advance(uint32_t aCount, ErrorResult& aRv) = 0;
 
-  [[nodiscard]] virtual RefPtr<IDBRequest> Update(JSContext* aCx,
+  [[nodiscard]] virtual RefPtr<IDBRequest> Update(MCContext* aCx,
                                                   JS::Handle<JS::Value> aValue,
                                                   ErrorResult& aRv) = 0;
 
-  [[nodiscard]] virtual RefPtr<IDBRequest> Delete(JSContext* aCx,
+  [[nodiscard]] virtual RefPtr<IDBRequest> Delete(MCContext* aCx,
                                                   ErrorResult& aRv) = 0;
 
   void ClearBackgroundActor() {
@@ -178,33 +178,33 @@ class IDBTypedCursor : public IDBCursor {
 
   void GetSource(OwningIDBObjectStoreOrIDBIndex& aSource) const final;
 
-  void GetKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetKey(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
               ErrorResult& aRv) final;
 
-  void GetPrimaryKey(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetPrimaryKey(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                      ErrorResult& aRv) final;
 
-  void GetValue(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetValue(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 ErrorResult& aRv) final;
 
-  void Continue(JSContext* aCx, JS::Handle<JS::Value> aKey,
+  void Continue(MCContext* aCx, JS::Handle<JS::Value> aKey,
                 ErrorResult& aRv) final;
 
-  void ContinuePrimaryKey(JSContext* aCx, JS::Handle<JS::Value> aKey,
+  void ContinuePrimaryKey(MCContext* aCx, JS::Handle<JS::Value> aKey,
                           JS::Handle<JS::Value> aPrimaryKey,
                           ErrorResult& aRv) final;
 
   void Advance(uint32_t aCount, ErrorResult& aRv) final;
 
-  [[nodiscard]] RefPtr<IDBRequest> Update(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Update(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) final;
 
-  [[nodiscard]] RefPtr<IDBRequest> Delete(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Delete(MCContext* aCx,
                                           ErrorResult& aRv) final;
 
   // nsWrapperCache
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   void InvalidateCachedResponses() final;
 

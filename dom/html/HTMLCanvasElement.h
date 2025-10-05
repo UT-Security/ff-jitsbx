@@ -141,14 +141,14 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   void SetWidth(uint32_t aWidth, ErrorResult& aRv);
 
   already_AddRefed<nsISupports> GetContext(
-      JSContext* aCx, const nsAString& aContextId,
+      MCContext* aCx, const nsAString& aContextId,
       JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv);
 
-  void ToDataURL(JSContext* aCx, const nsAString& aType,
+  void ToDataURL(MCContext* aCx, const nsAString& aType,
                  JS::Handle<JS::Value> aParams, nsAString& aDataURL,
                  nsIPrincipal& aSubjectPrincipal, ErrorResult& aRv);
 
-  void ToBlob(JSContext* aCx, BlobCallback& aCallback, const nsAString& aType,
+  void ToBlob(MCContext* aCx, BlobCallback& aCallback, const nsAString& aType,
               JS::Handle<JS::Value> aParams, nsIPrincipal& aSubjectPrincipal,
               ErrorResult& aRv);
 
@@ -309,7 +309,7 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   virtual ~HTMLCanvasElement();
   void Destroy();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   virtual nsIntSize GetWidthHeight() override;
@@ -317,10 +317,10 @@ class HTMLCanvasElement final : public nsGenericHTMLElement,
   virtual already_AddRefed<nsICanvasRenderingContextInternal> CreateContext(
       CanvasContextType aContextType) override;
 
-  nsresult ExtractData(JSContext* aCx, nsIPrincipal& aSubjectPrincipal,
+  nsresult ExtractData(MCContext* aCx, nsIPrincipal& aSubjectPrincipal,
                        nsAString& aType, const nsAString& aOptions,
                        nsIInputStream** aStream);
-  nsresult ToDataURLImpl(JSContext* aCx, nsIPrincipal& aSubjectPrincipal,
+  nsresult ToDataURLImpl(MCContext* aCx, nsIPrincipal& aSubjectPrincipal,
                          const nsAString& aMimeType,
                          const JS::Value& aEncoderOptions, nsAString& aDataURL);
   MOZ_CAN_RUN_SCRIPT void CallPrintCallback();
@@ -415,7 +415,7 @@ class HTMLCanvasPrintState final : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(HTMLCanvasPrintState)
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(HTMLCanvasPrintState)
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   HTMLCanvasElement* GetParentObject() { return mCanvas; }

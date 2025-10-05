@@ -218,7 +218,7 @@ size_t DynamicsCompressorNode::SizeOfIncludingThis(
 }
 
 JSObject* DynamicsCompressorNode::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return DynamicsCompressorNode_Binding::Wrap(aCx, this, aGivenProto);
 }
 

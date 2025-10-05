@@ -11,7 +11,6 @@
 #include <type_traits>
 
 #include "monkeycage/unsafe/lib.h"
-#include "monkeycage/SandboxCallback.h"
 
 namespace MC {
 namespace detail {
@@ -89,6 +88,9 @@ class SandboxLFI {
 
   static size_t InvokedCallback() { return monkeycage_invoked_cb(); }
 };
+
+using SandboxImpl = SandboxLFI;
+
 }  // namespace detail
 }  // namespace MC
 

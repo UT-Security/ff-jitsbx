@@ -228,7 +228,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
   // Get the CycleCollectedJSContext for a JSContext.
   // Returns null only if Initialize() has not completed on or during
   // destruction of the CycleCollectedJSContext.
-  static CycleCollectedJSContext* GetFor(JSContext* aCx);
+  static CycleCollectedJSContext* GetFor(MCContext* aCx);
 
   // Get the current thread's CycleCollectedJSContext.  Returns null if there
   // isn't one.
@@ -281,7 +281,7 @@ class CycleCollectedJSContext : dom::PerThreadAtomCache, private MC::JobQueue {
   virtual bool IsSystemCaller() const = 0;
 
   // Unused on main thread.  Used by AutoJSAPI on Worker and Worklet threads.
-  virtual void ReportError(JSErrorReport* aReport,
+  virtual void ReportError(MC::Tainted<JSErrorReport*> aReport,
                            JS::ConstUTF8CharsZ aToStringResult) {
     MOZ_ASSERT_UNREACHABLE("Not supported");
   }

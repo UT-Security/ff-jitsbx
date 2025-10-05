@@ -841,14 +841,14 @@ nsBinaryInputStream::ReadArrayBuffer(uint64_t aLength,
     // Copy data into actual buffer.
 
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
+    MC::SandboxStack<bool> isShared;
     if (bufferLength != JS::GetArrayBufferByteLength(buffer)) {
       return NS_ERROR_FAILURE;
     }
 
     char* data = reinterpret_cast<char*>(
-        JS::GetArrayBufferData(buffer, &isShared, nogc));
-    MOZ_ASSERT(!isShared);  // Implied by JS::GetArrayBufferData()
+        JS::GetArrayBufferData(buffer, isShared, nogc).UNSAFE_unverified());
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());  // Implied by JS::GetArrayBufferData()
     if (!data) {
       return NS_ERROR_FAILURE;
     }

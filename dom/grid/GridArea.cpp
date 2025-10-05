@@ -31,7 +31,7 @@ GridArea::GridArea(Grid* aParent, nsAtom* aName, GridDeclaration aType,
 
 GridArea::~GridArea() = default;
 
-JSObject* GridArea::WrapObject(JSContext* aCx,
+JSObject* GridArea::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return GridArea_Binding::Wrap(aCx, this, aGivenProto);
 }

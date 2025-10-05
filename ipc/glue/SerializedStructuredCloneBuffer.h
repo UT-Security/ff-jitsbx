@@ -15,7 +15,7 @@
 #include "chrome/common/ipc_message.h"
 #include "chrome/common/ipc_message_utils.h"
 #include "js/AllocPolicy.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/BufferList.h"
 #include "mozilla/Vector.h"
@@ -54,7 +54,7 @@ struct SerializedStructuredCloneBuffer final {
     return false;
   }
 
-  JSStructuredCloneData data{JS::StructuredCloneScope::Unassigned};
+  MC::SandboxHeap<JSStructuredCloneData> data{JS::StructuredCloneScope::Unassigned};
 };
 
 }  // namespace mozilla
@@ -74,11 +74,11 @@ struct ParamTraits<mozilla::SerializedStructuredCloneBuffer> {
   typedef mozilla::SerializedStructuredCloneBuffer paramType;
 
   static void Write(MessageWriter* aWriter, const paramType& aParam) {
-    WriteParam(aWriter, aParam.data);
+    WriteParam(aWriter, *aParam.data.UNSAFE_unverified());
   }
 
   static bool Read(MessageReader* aReader, paramType* aResult) {
-    return ReadParam(aReader, &aResult->data);
+    return ReadParam(aReader, aResult->data.UNSAFE_unverified());
   }
 };
 

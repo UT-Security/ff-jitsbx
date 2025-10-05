@@ -33,10 +33,10 @@ class PerformanceMark final : public PerformanceEntry {
       const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv);
 
   static already_AddRefed<PerformanceMark> Constructor(
-      JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aMarkName,
+      MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aMarkName,
       const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual DOMHighResTimeStamp StartTime() const override { return mStartTime; }
@@ -47,7 +47,7 @@ class PerformanceMark final : public PerformanceEntry {
     return mUnclampedStartTime;
   }
 
-  void GetDetail(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  void GetDetail(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
   size_t SizeOfIncludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const override;

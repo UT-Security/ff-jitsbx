@@ -57,7 +57,7 @@ class ProcessingInstruction : public CharacterData {
    */
   bool GetAttrValue(nsAtom* aName, nsAString& aValue);
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 };
 
 }  // namespace dom

@@ -124,7 +124,7 @@ void CredentialsContainer::EnsureWebAuthnManager() {
   }
 }
 
-JSObject* CredentialsContainer::WrapObject(JSContext* aCx,
+JSObject* CredentialsContainer::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return CredentialsContainer_Binding::Wrap(aCx, this, aGivenProto);
 }

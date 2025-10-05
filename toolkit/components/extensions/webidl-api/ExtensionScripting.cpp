@@ -29,11 +29,11 @@ ExtensionScripting::ExtensionScripting(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionScripting::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionScripting::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* ExtensionScripting::WrapObject(JSContext* aCx,
+JSObject* ExtensionScripting::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionScripting_Binding::Wrap(aCx, this, aGivenProto);
 }

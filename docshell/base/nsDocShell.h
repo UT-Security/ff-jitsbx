@@ -553,7 +553,7 @@ class nsDocShell final : public nsDocLoader,
   friend void mozilla::TimelineConsumers::AddMarkerForDocShell(
       nsDocShell*, UniquePtr<AbstractTimelineMarker>&&);
   friend void mozilla::TimelineConsumers::PopMarkers(
-      nsDocShell*, JSContext*, nsTArray<dom::ProfileTimelineMarker>&);
+      nsDocShell*, MCContext*, nsTArray<dom::ProfileTimelineMarker>&);
 
   nsDocShell(mozilla::dom::BrowsingContext* aBrowsingContext,
              uint64_t aContentWindowID);

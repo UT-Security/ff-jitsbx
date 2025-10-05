@@ -6,9 +6,9 @@
 
 #include "ErrorList.h"
 #include "ReadableStreamPipeTo.h"
-#include "js/RootingAPI.h"
-#include "js/String.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/String.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/dom/DOMExceptionBinding.h"
@@ -32,7 +32,7 @@ namespace mozilla::dom {
 
 using namespace streams_abstract;
 
-static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
+static void PackAndPostMessage(MCContext* aCx, MessagePort* aPort,
                                const nsAString& aType,
                                JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   MC::Rooted<JSObject*> obj(aCx,
@@ -73,7 +73,7 @@ static void PackAndPostMessage(JSContext* aCx, MessagePort* aPort,
 }
 
 // https://streams.spec.whatwg.org/#abstract-opdef-crossrealmtransformsenderror
-static void CrossRealmTransformSendError(JSContext* aCx, MessagePort* aPort,
+static void CrossRealmTransformSendError(MCContext* aCx, MessagePort* aPort,
                                          JS::Handle<JS::Value> aError) {
   // Step 1: Perform PackAndPostMessage(port, "error", error), discarding the
   // result.
@@ -97,7 +97,7 @@ class SetUpTransformWritableMessageEventListener final
     if (!jsapi.Init(mController->GetParentObject())) {
       return NS_OK;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MessageEvent* messageEvent = aEvent->AsMessageEvent();
     if (NS_WARN_IF(!messageEvent || !messageEvent->IsTrusted())) {
       return NS_OK;
@@ -140,23 +140,23 @@ class SetUpTransformWritableMessageEventListener final
     }
 
     // Step 6: If type is "pull",
-    bool equals = false;
-    if (!JS_StringEqualsLiteral(cx, type.toString(), "pull", &equals)) {
+    MC::SandboxStack<bool> equals = false;
+    if (!JS_StringEqualsLiteral(cx, type.toString(), "pull", equals)) {
       JS_ClearPendingException(cx);
       return NS_OK;
     }
-    if (equals) {
+    if (*equals.UNSAFE_unverified()) {
       // Step 6.1: If backpressurePromise is not undefined,
       MaybeResolveAndClearBackpressurePromise();
       return NS_OK;  // implicit
     }
 
     // Step 7: If type is "error",
-    if (!JS_StringEqualsLiteral(cx, type.toString(), "error", &equals)) {
+    if (!JS_StringEqualsLiteral(cx, type.toString(), "error", equals)) {
       JS_ClearPendingException(cx);
       return NS_OK;
     }
-    if (equals) {
+    if (*equals.UNSAFE_unverified()) {
       // Step 7.1: Perform !
       // WritableStreamDefaultControllerErrorIfNeeded(controller, value).
       WritableStreamDefaultControllerErrorIfNeeded(cx, mController, value, rv);
@@ -237,7 +237,7 @@ class SetUpTransformWritableMessageErrorEventListener final
     if (!jsapi.Init(mPort->GetParentObject())) {
       return NS_OK;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JS::Value> error(cx);
     if (!ToJSValue(cx, *exception, &error)) {
       return NS_OK;
@@ -280,7 +280,7 @@ NS_INTERFACE_MAP_END
 
 // https://streams.spec.whatwg.org/#abstract-opdef-packandpostmessagehandlingerror
 static bool PackAndPostMessageHandlingError(
-    JSContext* aCx, mozilla::dom::MessagePort* aPort, const nsAString& aType,
+    MCContext* aCx, mozilla::dom::MessagePort* aPort, const nsAString& aType,
     JS::Handle<JS::Value> aValue, JS::MutableHandle<JS::Value> aError) {
   // Step 1: Let result be PackAndPostMessage(port, type, value).
   ErrorResult rv;
@@ -310,7 +310,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
       SetUpTransformWritableMessageEventListener* aListener, MessagePort* aPort)
       : mListener(aListener), mPort(aPort) {}
 
-  void StartCallback(JSContext* aCx,
+  void StartCallback(MCContext* aCx,
                      WritableStreamDefaultController& aController,
                      JS::MutableHandle<JS::Value> aRetVal,
                      ErrorResult& aRv) override {
@@ -319,7 +319,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
   }
 
   already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) override {
     // Step 1: If backpressurePromise is undefined, set backpressurePromise to a
     // promise resolved with undefined.
@@ -333,7 +333,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
     // following fulfillment steps:
     auto result =
         mListener->BackpressurePromise()->ThenWithCycleCollectedArgsJS(
-            [](JSContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value>, ErrorResult& aRv,
                SetUpTransformWritableMessageEventListener* aListener,
                MessagePort* aPort,
                JS::Handle<JS::Value> aChunk) -> already_AddRefed<Promise> {
@@ -369,7 +369,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
     return result.unwrap().forget();
   }
 
-  already_AddRefed<Promise> CloseCallback(JSContext* aCx,
+  already_AddRefed<Promise> CloseCallback(MCContext* aCx,
                                           ErrorResult& aRv) override {
     // Step 1: Perform ! PackAndPostMessage(port, "close", undefined).
     PackAndPostMessage(aCx, mPort, u"close"_ns, MC::UndefinedHandleValue(), aRv);
@@ -388,7 +388,7 @@ class CrossRealmWritableUnderlyingSinkAlgorithms final
   }
 
   already_AddRefed<Promise> AbortCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override {
     // Step 1: Let result be PackAndPostMessageHandlingError(port, "error",
     // reason).
@@ -440,7 +440,7 @@ MOZ_CAN_RUN_SCRIPT static void SetUpCrossRealmTransformWritable(
   if (!jsapi.Init(aWritable->GetParentObject())) {
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 1: Perform ! InitializeWritableStream(stream).
   // (Done by the constructor)
@@ -503,7 +503,7 @@ class SetUpTransformReadableMessageEventListener final
     if (!jsapi.Init(mPort->GetParentObject())) {
       return NS_OK;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MessageEvent* messageEvent = aEvent->AsMessageEvent();
     if (NS_WARN_IF(!messageEvent || !messageEvent->IsTrusted())) {
       return NS_OK;
@@ -546,12 +546,12 @@ class SetUpTransformReadableMessageEventListener final
     }
 
     // Step 6: If type is "chunk",
-    bool equals = false;
-    if (!JS_StringEqualsLiteral(cx, type.toString(), "chunk", &equals)) {
+    MC::SandboxStack<bool> equals = false;
+    if (!JS_StringEqualsLiteral(cx, type.toString(), "chunk", equals)) {
       JS_ClearPendingException(cx);
       return NS_OK;
     }
-    if (equals) {
+    if (*equals.UNSAFE_unverified()) {
       // Step 6.1: Perform ! ReadableStreamDefaultControllerEnqueue(controller,
       // value).
       ReadableStreamDefaultControllerEnqueue(cx, mController, value,
@@ -561,11 +561,11 @@ class SetUpTransformReadableMessageEventListener final
     }
 
     // Step 7: Otherwise, if type is "close",
-    if (!JS_StringEqualsLiteral(cx, type.toString(), "close", &equals)) {
+    if (!JS_StringEqualsLiteral(cx, type.toString(), "close", equals)) {
       JS_ClearPendingException(cx);
       return NS_OK;
     }
-    if (equals) {
+    if (*equals.UNSAFE_unverified()) {
       // Step 7.1: Perform ! ReadableStreamDefaultControllerClose(controller).
       ReadableStreamDefaultControllerClose(cx, mController, IgnoreErrors());
       // Step 7.2: Disentangle port.
@@ -576,11 +576,11 @@ class SetUpTransformReadableMessageEventListener final
     }
 
     // Step 8: Otherwise, if type is "error",
-    if (!JS_StringEqualsLiteral(cx, type.toString(), "error", &equals)) {
+    if (!JS_StringEqualsLiteral(cx, type.toString(), "error", equals)) {
       JS_ClearPendingException(cx);
       return NS_OK;
     }
-    if (equals) {
+    if (*equals.UNSAFE_unverified()) {
       // Step 8.1: Perform ! ReadableStreamDefaultControllerError(controller,
       // value).
       ReadableStreamDefaultControllerError(cx, mController, value,
@@ -646,7 +646,7 @@ class SetUpTransformReadableMessageErrorEventListener final
     if (!jsapi.Init(mPort->GetParentObject())) {
       return NS_OK;
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JS::Value> error(cx);
     if (!ToJSValue(cx, *exception, &error)) {
       return NS_OK;
@@ -697,14 +697,14 @@ class CrossRealmReadableUnderlyingSourceAlgorithms final
   explicit CrossRealmReadableUnderlyingSourceAlgorithms(MessagePort* aPort)
       : mPort(aPort) {}
 
-  void StartCallback(JSContext* aCx, ReadableStreamController& aController,
+  void StartCallback(MCContext* aCx, ReadableStreamController& aController,
                      JS::MutableHandle<JS::Value> aRetVal,
                      ErrorResult& aRv) override {
     // Step 6. Let startAlgorithm be an algorithm that returns undefined.
     aRetVal.setUndefined();
   }
 
-  already_AddRefed<Promise> PullCallback(JSContext* aCx,
+  already_AddRefed<Promise> PullCallback(MCContext* aCx,
                                          ReadableStreamController& aController,
                                          ErrorResult& aRv) override {
     // Step 7: Let pullAlgorithm be the following steps:
@@ -720,7 +720,7 @@ class CrossRealmReadableUnderlyingSourceAlgorithms final
   }
 
   already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override {
     // Step 8: Let cancelAlgorithm be the following steps, taking a reason
     // argument:
@@ -773,7 +773,7 @@ MOZ_CAN_RUN_SCRIPT static void SetUpCrossRealmTransformReadable(
   if (!jsapi.Init(aReadable->GetParentObject())) {
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 1: Perform ! InitializeReadableStream(stream).
   // (This is implicitly done by the constructor)
@@ -812,7 +812,7 @@ MOZ_CAN_RUN_SCRIPT static void SetUpCrossRealmTransformReadable(
 }
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-steps
-bool ReadableStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId) {
+bool ReadableStream::Transfer(MCContext* aCx, UniqueMessagePortId& aPortId) {
   // Step 1: If ! IsReadableStreamLocked(value) is true, throw a
   // "DataCloneError" DOMException.
   // (Implemented in StructuredCloneHolder::CustomCanTransferHandler, but double
@@ -867,7 +867,7 @@ bool ReadableStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId) {
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps
 MOZ_CAN_RUN_SCRIPT already_AddRefed<ReadableStream>
-ReadableStream::ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
+ReadableStream::ReceiveTransferImpl(MCContext* aCx, nsIGlobalObject* aGlobal,
                                     MessagePort& aPort) {
   // Step 1: Let deserializedRecord be
   // ! StructuredDeserializeWithTransfer(dataHolder.[[port]], the current
@@ -886,7 +886,7 @@ ReadableStream::ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
 }
 
 bool ReadableStream::ReceiveTransfer(
-    JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
+    MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
     JS::MutableHandle<JSObject*> aReturnObject) {
   RefPtr<ReadableStream> readable =
       ReadableStream::ReceiveTransferImpl(aCx, aGlobal, aPort);
@@ -905,7 +905,7 @@ bool ReadableStream::ReceiveTransfer(
 }
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-steps①
-bool WritableStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId) {
+bool WritableStream::Transfer(MCContext* aCx, UniqueMessagePortId& aPortId) {
   // Step 1: If ! IsWritableStreamLocked(value) is true, throw a
   // "DataCloneError" DOMException.
   // (Implemented in StructuredCloneHolder::CustomCanTransferHandler, but double
@@ -960,7 +960,7 @@ bool WritableStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId) {
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps①
 MOZ_CAN_RUN_SCRIPT already_AddRefed<WritableStream>
-WritableStream::ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
+WritableStream::ReceiveTransferImpl(MCContext* aCx, nsIGlobalObject* aGlobal,
                                     MessagePort& aPort) {
   // Step 1: Let deserializedRecord be !
   // StructuredDeserializeWithTransfer(dataHolder.[[port]], the current Realm).
@@ -979,7 +979,7 @@ WritableStream::ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps①
 bool WritableStream::ReceiveTransfer(
-    JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
+    MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
     JS::MutableHandle<JSObject*> aReturnObject) {
   RefPtr<WritableStream> writable =
       WritableStream::ReceiveTransferImpl(aCx, aGlobal, aPort);
@@ -998,7 +998,7 @@ bool WritableStream::ReceiveTransfer(
 }
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-steps②
-bool TransformStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId1,
+bool TransformStream::Transfer(MCContext* aCx, UniqueMessagePortId& aPortId1,
                                UniqueMessagePortId& aPortId2) {
   // Step 1: Let readable be value.[[readable]].
   // Step 2: Let writable be value.[[writable]].
@@ -1029,7 +1029,7 @@ bool TransformStream::Transfer(JSContext* aCx, UniqueMessagePortId& aPortId1,
 
 // https://streams.spec.whatwg.org/#ref-for-transfer-receiving-steps②
 bool TransformStream::ReceiveTransfer(
-    JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort1,
+    MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort1,
     MessagePort& aPort2, JS::MutableHandle<JSObject*> aReturnObject) {
   // Step 1: Let readableRecord be !
   // StructuredDeserializeWithTransfer(dataHolder.[[readable]], the current

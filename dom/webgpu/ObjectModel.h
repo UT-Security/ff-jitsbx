@@ -58,7 +58,7 @@ class ObjectBase : public nsWrapperCache {
 }  // namespace mozilla::webgpu
 
 #define GPU_DECL_JS_WRAP(T)                                             \
-  JSObject* WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) \
+  JSObject* WrapObject(MCContext* cx, JS::Handle<JSObject*> givenProto) \
       override;
 
 #define GPU_DECL_CYCLE_COLLECTION(T)                    \
@@ -66,7 +66,7 @@ class ObjectBase : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(T)
 
 #define GPU_IMPL_JS_WRAP(T)                                                  \
-  JSObject* T::WrapObject(JSContext* cx, JS::Handle<JSObject*> givenProto) { \
+  JSObject* T::WrapObject(MCContext* cx, JS::Handle<JSObject*> givenProto) { \
     return dom::GPU##T##_Binding::Wrap(cx, this, givenProto);                \
   }
 

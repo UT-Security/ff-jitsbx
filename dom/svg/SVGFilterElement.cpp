@@ -20,7 +20,7 @@ namespace mozilla::dom {
 
 using namespace SVGUnitTypes_Binding;
 
-JSObject* SVGFilterElement::WrapNode(JSContext* aCx,
+JSObject* SVGFilterElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGFilterElement_Binding::Wrap(aCx, this, aGivenProto);
 }

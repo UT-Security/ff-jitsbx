@@ -40,7 +40,7 @@ class MediaKeySystemAccess final : public nsISupports, public nsWrapperCache {
  public:
   nsPIDOMWindowInner* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetKeySystem(nsString& aRetVal) const;

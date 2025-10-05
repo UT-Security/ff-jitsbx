@@ -18,7 +18,7 @@ HTMLDivElement::~HTMLDivElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLDivElement)
 
-JSObject* HTMLDivElement::WrapNode(JSContext* aCx,
+JSObject* HTMLDivElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLDivElement_Binding::Wrap(aCx, this, aGivenProto);
 }

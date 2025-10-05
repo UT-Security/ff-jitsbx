@@ -800,7 +800,7 @@ ScreenOrientation::DispatchChangeEventAndResolvePromise() {
       });
 }
 
-JSObject* ScreenOrientation::WrapObject(JSContext* aCx,
+JSObject* ScreenOrientation::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return ScreenOrientation_Binding::Wrap(aCx, this, aGivenProto);
 }

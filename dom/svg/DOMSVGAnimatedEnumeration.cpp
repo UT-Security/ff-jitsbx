@@ -14,7 +14,7 @@ NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedEnumeration,
                                                mSVGElement)
 
 JSObject* DOMSVGAnimatedEnumeration::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedEnumeration_Binding::Wrap(aCx, this, aGivenProto);
 }
 

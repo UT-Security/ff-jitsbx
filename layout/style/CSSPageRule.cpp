@@ -190,7 +190,7 @@ void CSSPageRule::SetSelectorText(const nsACString& aSelectorText) {
 
 nsICSSDeclaration* CSSPageRule::Style() { return &mDecls; }
 
-JSObject* CSSPageRule::WrapObject(JSContext* aCx,
+JSObject* CSSPageRule::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return CSSPageRule_Binding::Wrap(aCx, this, aGivenProto);
 }

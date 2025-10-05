@@ -22,7 +22,7 @@ class PlacesRanking final : public PlacesEvent {
     return event.forget();
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return PlacesRanking_Binding::Wrap(aCx, this, aGivenProto);
   }

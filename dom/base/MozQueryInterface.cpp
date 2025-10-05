@@ -39,14 +39,14 @@ MozQueryInterface* ChromeUtils::GenerateQI(
     iface = aInterfaces[idx];
 
     // Handle ID objects
-    if (Maybe<nsID> id = xpc::JSValue2ID(MC_UNSAFE(cx), iface)) {
+    if (Maybe<nsID> id = xpc::JSValue2ID(cx, iface)) {
       ifaces.AppendElement(*id);
       continue;
     }
 
     // Accept string valued names
     if (iface.isString()) {
-      JS::UniqueChars name = JS_EncodeStringToLatin1(MC_UNSAFE(cx), iface.toString());
+      JS::UniqueChars name = JS_EncodeStringToLatin1(cx, iface.toString());
 
       const nsXPTInterfaceInfo* iinfo = nsXPTInterfaceInfo::ByName(name.get());
       if (iinfo) {
@@ -71,7 +71,7 @@ bool MozQueryInterface::QueriesTo(const nsIID& aIID) const {
   return mInterfaces.ContainsSorted(aIID, CompareIIDs);
 }
 
-void MozQueryInterface::LegacyCall(JSContext* cx, JS::Handle<JS::Value> thisv,
+void MozQueryInterface::LegacyCall(MCContext* cx, JS::Handle<JS::Value> thisv,
                                    JS::Handle<JS::Value> aIID,
                                    JS::MutableHandle<JS::Value> aResult,
                                    ErrorResult& aRv) const {
@@ -83,7 +83,7 @@ void MozQueryInterface::LegacyCall(JSContext* cx, JS::Handle<JS::Value> thisv,
   }
 }
 
-bool MozQueryInterface::WrapObject(JSContext* aCx,
+bool MozQueryInterface::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto,
                                    JS::MutableHandle<JSObject*> aReflector) {
   return MozQueryInterface_Binding::Wrap(aCx, this, aGivenProto, aReflector);

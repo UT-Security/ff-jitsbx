@@ -116,7 +116,7 @@ static nsresult FillVectorFromStringArray(Vector<const char*>& aVector,
 // resolved when the function's GenericPromise gets resolved.
 template <typename PromiseReturningFunction>
 static nsresult RunFunctionAndConvertPromise(
-    JSContext* aCx, Promise** aPromise,
+    MCContext* aCx, Promise** aPromise,
     PromiseReturningFunction&& aPromiseReturningFunction) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -168,7 +168,7 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
     return rv;
   }
 
-  return RunFunctionAndConvertPromise(MC_UNSAFE(aCxn), aPromise, [&]() {
+  return RunFunctionAndConvertPromise(aCxn, aPromise, [&]() {
     return profiler_start(PowerOfTwo32(aEntries), aInterval, features,
                           filterStringVector.begin(),
                           filterStringVector.length(), aActiveTabID, duration);
@@ -178,7 +178,7 @@ nsProfiler::StartProfiler(uint32_t aEntries, double aInterval,
 NS_IMETHODIMP
 nsProfiler::StopProfiler(MCContext* aCx, Promise** aPromise) {
   ResetGathering(NS_ERROR_DOM_ABORT_ERR);
-  return RunFunctionAndConvertPromise(MC_UNSAFE(aCx), aPromise,
+  return RunFunctionAndConvertPromise(aCx, aPromise,
                                       []() { return profiler_stop(); });
 }
 
@@ -190,13 +190,13 @@ nsProfiler::IsPaused(bool* aIsPaused) {
 
 NS_IMETHODIMP
 nsProfiler::Pause(MCContext* aCx, Promise** aPromise) {
-  return RunFunctionAndConvertPromise(MC_UNSAFE(aCx), aPromise,
+  return RunFunctionAndConvertPromise(aCx, aPromise,
                                       []() { return profiler_pause(); });
 }
 
 NS_IMETHODIMP
 nsProfiler::Resume(MCContext* aCx, Promise** aPromise) {
-  return RunFunctionAndConvertPromise(MC_UNSAFE(aCx), aPromise,
+  return RunFunctionAndConvertPromise(aCx, aPromise,
                                       []() { return profiler_resume(); });
 }
 
@@ -209,13 +209,13 @@ nsProfiler::IsSamplingPaused(bool* aIsSamplingPaused) {
 NS_IMETHODIMP
 nsProfiler::PauseSampling(MCContext* aCx, Promise** aPromise) {
   return RunFunctionAndConvertPromise(
-      MC_UNSAFE(aCx), aPromise, []() { return profiler_pause_sampling(); });
+      aCx, aPromise, []() { return profiler_pause_sampling(); });
 }
 
 NS_IMETHODIMP
 nsProfiler::ResumeSampling(MCContext* aCx, Promise** aPromise) {
   return RunFunctionAndConvertPromise(
-      MC_UNSAFE(aCx), aPromise, []() { return profiler_resume_sampling(); });
+      aCx, aPromise, []() { return profiler_resume_sampling(); });
 }
 
 NS_IMETHODIMP
@@ -415,7 +415,7 @@ nsProfiler::GetProfileDataAsync(double aSinceTime, MCContext* aCx,
               return;
             }
 
-            JSContext* cx = jsapi.cx();
+            MCContext* cx = jsapi.cx();
 
             // Now parse the JSON so that we resolve with a JS Object.
             MC::Rooted<JS::Value> val(cx);
@@ -481,7 +481,7 @@ nsProfiler::GetProfileDataAsArrayBuffer(double aSinceTime, MCContext* aCx,
               return;
             }
 
-            JSContext* cx = jsapi.cx();
+            MCContext* cx = jsapi.cx();
             JSObject* typedArray = dom::ArrayBuffer::Create(
                 cx, aResult.mProfile.Length(),
                 reinterpret_cast<const uint8_t*>(aResult.mProfile.Data()));
@@ -584,7 +584,7 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
               return;
             }
 
-            JSContext* cx = jsapi.cx();
+            MCContext* cx = jsapi.cx();
             // Get the profile typedArray.
             JSObject* typedArray = dom::ArrayBuffer::Create(
                 cx, outBuff.Length(), outBuff.Elements());
@@ -597,7 +597,7 @@ nsProfiler::GetProfileDataAsGzippedArrayBuffer(double aSinceTime,
             // Get the additional information object.
             MC::Rooted<JS::Value> additionalInfoVal(cx);
             if (aResult.mAdditionalInformation.isSome()) {
-              aResult.mAdditionalInformation->ToJSValue(cx, &additionalInfoVal);
+              aResult.mAdditionalInformation->ToJSValue(MC_UNSAFE(cx), &additionalInfoVal);
             } else {
               additionalInfoVal.setUndefined();
             }
@@ -707,7 +707,7 @@ nsProfiler::GetSymbolTable(const nsACString& aDebugPath,
               return;
             }
 
-            JSContext* cx = jsapi.cx();
+            MCContext* cx = jsapi.cx();
 
             MC::Rooted<JSObject*> addrsArray(
                 cx, dom::Uint32Array::Create(cx, aSymbolTable.mAddrs.Length(),

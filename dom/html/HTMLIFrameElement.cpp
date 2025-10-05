@@ -209,7 +209,7 @@ uint32_t HTMLIFrameElement::GetSandboxFlags() const {
   return nsContentUtils::ParseSandboxAttributeToFlags(sandboxAttr);
 }
 
-JSObject* HTMLIFrameElement::WrapNode(JSContext* aCx,
+JSObject* HTMLIFrameElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLIFrameElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -38,7 +38,7 @@ class ProcessCount final {
 
 namespace {
 
-nsresult Request(JSContext* cx, Promise** aPromise, RequestType requestType) {
+nsresult Request(MCContext* cx, Promise** aPromise, RequestType requestType) {
   MOZ_ASSERT(XRE_IsParentProcess());
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -91,6 +91,6 @@ nsresult Request(JSContext* cx, Promise** aPromise, RequestType requestType) {
 
 }  // anonymous namespace
 
-NS_IMETHODIMP nsCodeCoverage::FlushCounters(JSContext* cx, Promise** aPromise) {
+NS_IMETHODIMP nsCodeCoverage::FlushCounters(MCContext* cx, Promise** aPromise) {
   return Request(cx, aPromise, RequestType::Flush);
 }

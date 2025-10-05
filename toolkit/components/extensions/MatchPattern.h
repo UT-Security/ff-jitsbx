@@ -248,7 +248,7 @@ class MatchPattern final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -261,7 +261,7 @@ class MatchPattern final : public nsISupports, public nsWrapperCache {
                         already_AddRefed<MatchPatternCore> aCore)
       : mParent(aParent), mCore(std::move(aCore)) {}
 
-  void Init(JSContext* aCx, const nsAString& aPattern, bool aIgnorePath,
+  void Init(MCContext* aCx, const nsAString& aPattern, bool aIgnorePath,
             bool aRestrictSchemes, ErrorResult& aRv);
 
   nsCOMPtr<nsISupports> mParent;
@@ -369,7 +369,7 @@ class MatchPatternSet final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

@@ -7,7 +7,7 @@
 #include "mozilla/dom/CallbackObject.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/BindingUtils.h"
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 #include "nsIScriptGlobalObject.h"
 #include "nsIScriptContext.h"
 #include "nsPIDOMWindow.h"
@@ -17,8 +17,8 @@
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "WorkerScope.h"
-#include "jsapi.h"
-#include "js/ContextOptions.h"
+#include "mcapi.h"
+#include "monkeycage/ContextOptions.h"
 #include "nsJSPrincipals.h"
 
 namespace mozilla::dom {
@@ -95,7 +95,7 @@ void CallbackObject::Trace(JSTracer* aTracer) {
                 "CallbackObject.mIncumbentJSGlobal");
 }
 
-void CallbackObject::FinishSlowJSInitIfMoreThanOneOwner(JSContext* aCx) {
+void CallbackObject::FinishSlowJSInitIfMoreThanOneOwner(MCContext* aCx) {
   MOZ_ASSERT(mRefCnt.get() > 0);
   if (mRefCnt.get() > 1) {
     mozilla::HoldJSObjects(this);
@@ -119,7 +119,7 @@ void CallbackObject::FinishSlowJSInitIfMoreThanOneOwner(JSContext* aCx) {
   }
 }
 
-JSObject* CallbackObject::Callback(JSContext* aCx) {
+JSObject* CallbackObject::Callback(MCContext* aCx) {
   JSObject* callback = CallbackOrNull();
   if (!callback) {
     callback = JS_NewDeadWrapper(aCx);
@@ -145,7 +145,7 @@ void CallbackObject::GetDescription(nsACString& aOutString) {
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> rootedCallback(cx, unwrappedCallback);
   MC::SandboxStack<JSAutoRealm> ar(cx, rootedCallback);
@@ -286,7 +286,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
     mAutoIncumbentScript.emplace(incumbent);
   }
 
-  JSContext* cx = mAutoEntryScript->cx();
+  MCContext* cx = mAutoEntryScript->cx();
 
   // Unmark the callable (by invoking CallbackOrNull() and not the
   // CallbackPreserveColor() variant), and stick it in a Rooted before it can
@@ -300,7 +300,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
 
   mAsyncStack.emplace(cx, aCallback->GetCreationStack());
   if (*mAsyncStack) {
-    mAsyncStackSetter.emplace(cx, *mAsyncStack, aExecutionReason);
+    mAsyncStackSetter->emplace(cx, *mAsyncStack, aExecutionReason);
   }
 
   // Enter the realm of our callback, so we can actually work with it.
@@ -308,7 +308,7 @@ CallbackObject::CallSetup::CallSetup(CallbackObject* aCallback,
   // Note that if the callback is a wrapper, this will not be the same
   // realm that we ended up in with mAutoEntryScript above, because the
   // entry point is based off of the unwrapped callback (realCallback).
-  mAr.emplace(cx, *mRootedCallableGlobal);
+  mAr->emplace(cx, *mRootedCallableGlobal);
 
   // And now we're ready to go.
   mCx = cx;
@@ -345,7 +345,7 @@ CallbackObject::CallSetup::~CallSetup() {
   // so we end up reporting them while in the realm of our entry point,
   // not whatever cross-compartment wrappper mCallback might be.
   // Be careful: the JSAutoRealm might not have been constructed at all!
-  mAr.reset();
+  mAr->reset();
 
   // Now, if we have a JSContext, report any pending errors on it, unless we
   // were told to re-throw them.
@@ -405,7 +405,7 @@ already_AddRefed<nsISupports> CallbackObjectHolderBase::ToXPCOMCallback(
   // reporting errors to its global's onerror handlers.
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> callback(cx, aCallback->CallbackOrNull());
   if (!callback) {

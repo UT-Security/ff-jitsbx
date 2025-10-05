@@ -37,11 +37,11 @@ ExtensionProxy::ExtensionProxy(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionProxy::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionProxy::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* ExtensionProxy::WrapObject(JSContext* aCx,
+JSObject* ExtensionProxy::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionProxy_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -38,7 +38,7 @@ nsresult CheckInternal(nsIContentSecurityPolicy* aCSP,
 
   // This is the non-CSP check for gating eval() use in the SystemPrincipal
 #if !defined(ANDROID)
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!nsContentSecurityUtils::IsEvalAllowed(
           cx, aSubjectPrincipal->IsSystemPrincipal(), aExpression)) {
     *aAllowed = false;
@@ -107,7 +107,7 @@ class WorkerCSPCheckRunnable final : public WorkerMainThreadRunnable {
 }  // namespace
 
 /* static */
-nsresult CSPEvalChecker::CheckForWindow(JSContext* aCx,
+nsresult CSPEvalChecker::CheckForWindow(MCContext* aCx,
                                         nsGlobalWindowInner* aWindow,
                                         const nsAString& aExpression,
                                         bool* aAllowEval) {
@@ -151,7 +151,7 @@ nsresult CSPEvalChecker::CheckForWindow(JSContext* aCx,
 }
 
 /* static */
-nsresult CSPEvalChecker::CheckForWorker(JSContext* aCx,
+nsresult CSPEvalChecker::CheckForWorker(MCContext* aCx,
                                         WorkerPrivate* aWorkerPrivate,
                                         const nsAString& aExpression,
                                         bool* aAllowEval) {

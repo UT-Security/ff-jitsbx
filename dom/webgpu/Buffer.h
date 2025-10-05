@@ -52,11 +52,11 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   already_AddRefed<dom::Promise> MapAsync(uint32_t aMode, uint64_t aOffset,
                                           const dom::Optional<uint64_t>& aSize,
                                           ErrorResult& aRv);
-  void GetMappedRange(JSContext* aCx, uint64_t aOffset,
+  void GetMappedRange(MCContext* aCx, uint64_t aOffset,
                       const dom::Optional<uint64_t>& aSize,
                       MC::Rooted<JSObject*>* aObject, ErrorResult& aRv);
-  void Unmap(JSContext* aCx, ErrorResult& aRv);
-  void Destroy(JSContext* aCx, ErrorResult& aRv);
+  void Unmap(MCContext* aCx, ErrorResult& aRv);
+  void Destroy(MCContext* aCx, ErrorResult& aRv);
 
   const RawId mId;
 
@@ -70,7 +70,7 @@ class Buffer final : public ObjectBase, public ChildOf<Device> {
   virtual ~Buffer();
   Device& GetDevice() { return *mParent; }
   void Drop();
-  void UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv);
+  void UnmapArrayBuffers(MCContext* aCx, ErrorResult& aRv);
   void RejectMapRequest(dom::Promise* aPromise, nsACString& message);
   void AbortMapRequest();
   void SetMapped(BufferAddress aOffset, BufferAddress aSize, bool aWritable);

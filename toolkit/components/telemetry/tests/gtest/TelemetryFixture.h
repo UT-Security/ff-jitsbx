@@ -29,11 +29,11 @@ class TelemetryTestFixture : public ::testing::Test {
 class MOZ_RAII AutoJSContextWithGlobal {
  public:
   explicit AutoJSContextWithGlobal(JSObject* aGlobalObject);
-  JSContext* GetJSContext() const;
+  MCContext* GetJSContext() const;
 
  protected:
   mozilla::dom::AutoJSAPI mJsAPI;
-  JSContext* mCx;
+  MCContext* mCx;
 };
 
 #endif  // TelemetryFixture_h_

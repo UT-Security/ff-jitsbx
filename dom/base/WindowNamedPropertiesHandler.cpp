@@ -97,16 +97,16 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
     return true;
   }
 
-  bool hasOnPrototype;
-  if (!HasPropertyOnPrototype(MC_UNSAFE(aCx), aProxy, aId, &hasOnPrototype)) {
+  MC::SandboxStack<bool> hasOnPrototype;
+  if (!HasPropertyOnPrototype(aCx, aProxy, aId, hasOnPrototype)) {
     return false;
   }
-  if (hasOnPrototype) {
+  if (*hasOnPrototype.UNSAFE_unverified()) {
     return true;
   }
 
   nsAutoJSString str;
-  if (!str.init(MC_UNSAFE(aCx), aId)) {
+  if (!str.init(aCx, aId)) {
     return false;
   }
 
@@ -123,7 +123,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
       // global scope is still allowed, since |var| only looks up |own|
       // properties. But unqualified shadowing will fail, per-spec.
       MC::Rooted<JS::Value> v(aCx);
-      if (!ToJSValue(MC_UNSAFE(aCx), WindowProxyHolder(std::move(child)), &v)) {
+      if (!ToJSValue(aCx, WindowProxyHolder(std::move(child)), &v)) {
         return false;
       }
       aDesc.set(mozilla::Some(
@@ -143,7 +143,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   MC::Rooted<JS::Value> v(aCx);
   Element* element = document->GetElementById(str);
   if (element) {
-    if (!ToJSValue(MC_UNSAFE(aCx), element, &v)) {
+    if (!ToJSValue(aCx, element, &v)) {
       return false;
     }
     aDesc.set(mozilla::Some(
@@ -153,7 +153,7 @@ bool WindowNamedPropertiesHandler::getOwnPropDescriptor(
   }
 
   ErrorResult rv;
-  bool found = document->ResolveName(MC_UNSAFE(aCx), str, &v, rv);
+  bool found = document->ResolveName(aCx, str, &v, rv);
   if (rv.MaybeSetPendingException(aCx)) {
     return false;
   }
@@ -199,7 +199,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
       }
     }
   }
-  if (!AppendNamedPropertyIds(MC_UNSAFE(aCx), aProxy, names, false, aProps)) {
+  if (!AppendNamedPropertyIds(aCx, aProxy, names, false, aProps)) {
     return false;
   }
 
@@ -219,7 +219,7 @@ bool WindowNamedPropertiesHandler::ownPropNames(
   document->GetSupportedNames(names);
 
   MC::RootedVector<jsid> docProps(aCx);
-  if (!AppendNamedPropertyIds(MC_UNSAFE(aCx), aProxy, names, false, &docProps)) {
+  if (!AppendNamedPropertyIds(aCx, aProxy, names, false, &docProps)) {
     return false;
   }
 
@@ -256,7 +256,7 @@ static const DOMIfaceAndProtoJSClass* WindowNamedPropertiesClass() {
 }
 
 // static
-JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
+JSObject* WindowNamedPropertiesHandler::Create(MCContext* aCx,
                                                JS::Handle<JSObject*> aProto) {
   js::ProxyOptions options;
   options.setClass(&WindowNamedPropertiesClass()->mBase);
@@ -268,11 +268,11 @@ JSObject* WindowNamedPropertiesHandler::Create(JSContext* aCx,
     return nullptr;
   }
 
-  bool succeeded;
-  if (!JS_SetImmutablePrototype(aCx, gsp, &succeeded)) {
+  MC::SandboxStack<bool> succeeded;
+  if (!JS_SetImmutablePrototype(aCx, gsp, succeeded)) {
     return nullptr;
   }
-  MOZ_ASSERT(succeeded,
+  MOZ_ASSERT(*succeeded.UNSAFE_unverified(),
              "errors making the [[Prototype]] of the named properties object "
              "immutable should have been JSAPI failures, not !succeeded");
 

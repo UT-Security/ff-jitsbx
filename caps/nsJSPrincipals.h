@@ -12,7 +12,7 @@
 #include "monkeycage/Tainted.h"
 #include "nsIPrincipal.h"
 
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -44,10 +44,10 @@ class nsJSPrincipals : public nsIPrincipal, public MCPrincipals {
                                 mozilla::ipc::PrincipalInfo& aInfo);
 
   /* For write() implementations of off-main-thread JSPrincipals. */
-  static bool WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
+  static bool WritePrincipalInfo(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                  const mozilla::ipc::PrincipalInfo& aInfo);
 
-  bool write(JSContext* aCx, JSStructuredCloneWriter* aWriter) final;
+  bool write(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) final;
 
   bool isSystemOrAddonPrincipal() final;
 

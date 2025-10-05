@@ -4,7 +4,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "gtest/gtest.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "MediaData.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/gtest/MozAssertions.h"
@@ -874,15 +874,15 @@ TEST_F(MP4MetadataTelemetryFixture, Telemetry) {
                                           multipleCodecsHistogram, &values);
         // False count.
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 0, values, &value);
-        uint32_t uValue = 0;
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<0>(aExpectedMultipleCodecCounts), uValue)
+        MC::SandboxStack<uint32_t> uValue = 0;
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<0>(aExpectedMultipleCodecCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of false multiple codecs after parsing "
             << aFileName;
         // True count.
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 1, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<1>(aExpectedMultipleCodecCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<1>(aExpectedMultipleCodecCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of true multiple codecs after parsing "
             << aFileName;
 
@@ -899,14 +899,14 @@ TEST_F(MP4MetadataTelemetryFixture, Telemetry) {
                                           multipleCryptoHistogram, &values);
         // False count.
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 0, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<0>(aExpectedMultipleCryptoCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<0>(aExpectedMultipleCryptoCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of false multiple cryptos after parsing "
             << aFileName;
         // True count.
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 1, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<1>(aExpectedMultipleCryptoCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<1>(aExpectedMultipleCryptoCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of true multiple cryptos after parsing "
             << aFileName;
 
@@ -922,33 +922,33 @@ TEST_F(MP4MetadataTelemetryFixture, Telemetry) {
                                           numSamplesHistogram, &values);
 
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 0, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<0>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<0>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 0 sample entry descriptions after parsing "
             << aFileName;
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 1, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<1>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<1>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 1 sample entry descriptions after parsing "
             << aFileName;
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 2, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<2>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<2>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 2 sample entry descriptions after parsing "
             << aFileName;
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 3, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<3>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<3>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 3 sample entry descriptions after parsing "
             << aFileName;
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 4, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<4>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<4>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 4 sample entry descriptions after parsing "
             << aFileName;
         TelemetryTestHelpers::GetElement(cx.GetJSContext(), 5, values, &value);
-        JS::ToUint32(cx.GetJSContext(), value, &uValue);
-        EXPECT_EQ(std::get<5>(aExpectedSampleDescriptionEntryCounts), uValue)
+        JS::ToUint32(cx.GetJSContext(), value, uValue);
+        EXPECT_EQ(std::get<5>(aExpectedSampleDescriptionEntryCounts), *uValue.UNSAFE_unverified())
             << "Unexpected number of 5 sample entry descriptions after parsing "
             << aFileName;
       };

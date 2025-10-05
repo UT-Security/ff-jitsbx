@@ -61,7 +61,7 @@ class BindingStyleRule : public css::Rule {
   virtual void SetSelectorText(const nsACString& aSelectorText) = 0;
   virtual nsICSSDeclaration* Style() = 0;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 };
 

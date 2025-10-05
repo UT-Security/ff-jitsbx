@@ -125,7 +125,7 @@ nsCertOverride::GetHostPort(/*out*/ nsACString& aHostPort) {
 NS_IMETHODIMP
 nsCertOverride::GetOriginAttributes(
     MCContext* aCtx, /*out*/ JS::MutableHandle<JS::Value> aValue) {
-  if (ToJSValue(MC_UNSAFE(aCtx), mOriginAttributes, aValue)) {
+  if (ToJSValue(aCtx, mOriginAttributes, aValue)) {
     return NS_OK;
   }
   return NS_ERROR_FAILURE;
@@ -423,7 +423,7 @@ nsCertOverrideService::RememberValidityOverrideScriptable(
     JS::Handle<JS::Value> aOriginAttributes, nsIX509Cert* aCert,
     bool aTemporary, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -498,7 +498,7 @@ nsCertOverrideService::HasMatchingOverrideScriptable(
     JS::Handle<JS::Value> aOriginAttributes, nsIX509Cert* aCert,
     bool* aIsTemporary, MCContext* aCx, bool* aRetval) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -577,7 +577,7 @@ nsCertOverrideService::ClearValidityOverrideScriptable(
     const nsACString& aHostName, int32_t aPort,
     JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

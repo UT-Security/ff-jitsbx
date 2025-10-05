@@ -118,7 +118,7 @@ void VRDisplay::UpdateVRDisplays(nsTArray<RefPtr<VRDisplay>>& aDisplays,
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(VRFieldOfView, mParent)
 
-JSObject* VRFieldOfView::WrapObject(JSContext* aCx,
+JSObject* VRFieldOfView::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return VRFieldOfView_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -142,7 +142,7 @@ VREyeParameters::~VREyeParameters() { mozilla::DropJSObjects(this); }
 
 VRFieldOfView* VREyeParameters::FieldOfView() { return mFOV; }
 
-void VREyeParameters::GetOffset(JSContext* aCx,
+void VREyeParameters::GetOffset(MCContext* aCx,
                                 JS::MutableHandle<JSObject*> aRetval,
                                 ErrorResult& aRv) {
   if (!mOffset) {
@@ -157,7 +157,7 @@ void VREyeParameters::GetOffset(JSContext* aCx,
   aRetval.set(mOffset);
 }
 
-JSObject* VREyeParameters::WrapObject(JSContext* aCx,
+JSObject* VREyeParameters::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return VREyeParameters_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -174,7 +174,7 @@ VRStageParameters::VRStageParameters(
 
 VRStageParameters::~VRStageParameters() { mozilla::DropJSObjects(this); }
 
-JSObject* VRStageParameters::WrapObject(JSContext* aCx,
+JSObject* VRStageParameters::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return VRStageParameters_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -198,7 +198,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(VRStageParameters)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
 void VRStageParameters::GetSittingToStandingTransform(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aRetval, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aRetval, ErrorResult& aRv) {
   if (!mSittingToStandingTransformArray) {
     // Lazily create the Float32Array
     mSittingToStandingTransformArray = dom::Float32Array::Create(
@@ -213,7 +213,7 @@ void VRStageParameters::GetSittingToStandingTransform(
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(VRDisplayCapabilities, mParent)
 
-JSObject* VRDisplayCapabilities::WrapObject(JSContext* aCx,
+JSObject* VRDisplayCapabilities::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return VRDisplayCapabilities_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -232,7 +232,7 @@ VRPose::VRPose(nsISupports* aParent) : Pose(aParent) {
 
 VRPose::~VRPose() { mozilla::DropJSObjects(this); }
 
-void VRPose::GetPosition(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+void VRPose::GetPosition(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                          ErrorResult& aRv) {
   const bool valid =
       bool(mVRState.flags & gfx::VRDisplayCapabilityFlags::Cap_Position) ||
@@ -242,7 +242,7 @@ void VRPose::GetPosition(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                   valid ? mVRState.pose.position : nullptr, 3, aRv);
 }
 
-void VRPose::GetLinearVelocity(JSContext* aCx,
+void VRPose::GetLinearVelocity(MCContext* aCx,
                                JS::MutableHandle<JSObject*> aRetval,
                                ErrorResult& aRv) {
   const bool valid =
@@ -253,7 +253,7 @@ void VRPose::GetLinearVelocity(JSContext* aCx,
                   valid ? mVRState.pose.linearVelocity : nullptr, 3, aRv);
 }
 
-void VRPose::GetLinearAcceleration(JSContext* aCx,
+void VRPose::GetLinearAcceleration(MCContext* aCx,
                                    JS::MutableHandle<JSObject*> aRetval,
                                    ErrorResult& aRv) {
   const bool valid = bool(
@@ -262,7 +262,7 @@ void VRPose::GetLinearAcceleration(JSContext* aCx,
                   valid ? mVRState.pose.linearAcceleration : nullptr, 3, aRv);
 }
 
-void VRPose::GetOrientation(JSContext* aCx,
+void VRPose::GetOrientation(MCContext* aCx,
                             JS::MutableHandle<JSObject*> aRetval,
                             ErrorResult& aRv) {
   const bool valid =
@@ -271,7 +271,7 @@ void VRPose::GetOrientation(JSContext* aCx,
                   valid ? mVRState.pose.orientation : nullptr, 4, aRv);
 }
 
-void VRPose::GetAngularVelocity(JSContext* aCx,
+void VRPose::GetAngularVelocity(MCContext* aCx,
                                 JS::MutableHandle<JSObject*> aRetval,
                                 ErrorResult& aRv) {
   const bool valid =
@@ -280,7 +280,7 @@ void VRPose::GetAngularVelocity(JSContext* aCx,
                   valid ? mVRState.pose.angularVelocity : nullptr, 3, aRv);
 }
 
-void VRPose::GetAngularAcceleration(JSContext* aCx,
+void VRPose::GetAngularAcceleration(MCContext* aCx,
                                     JS::MutableHandle<JSObject*> aRetval,
                                     ErrorResult& aRv) {
   const bool valid = bool(
@@ -291,13 +291,13 @@ void VRPose::GetAngularAcceleration(JSContext* aCx,
 
 void VRPose::Update(const gfx::VRHMDSensorState& aState) { mVRState = aState; }
 
-JSObject* VRPose::WrapObject(JSContext* aCx,
+JSObject* VRPose::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   return VRPose_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 /* virtual */
-JSObject* VRDisplay::WrapObject(JSContext* aCx,
+JSObject* VRDisplay::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return VRDisplay_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -680,7 +680,7 @@ already_AddRefed<VRFrameData> VRFrameData::Constructor(
   return obj.forget();
 }
 
-JSObject* VRFrameData::WrapObject(JSContext* aCx,
+JSObject* VRFrameData::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return VRFrameData_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -692,28 +692,28 @@ double VRFrameData::Timestamp() const {
   return mFrameInfo.mVRState.timestamp * 1000.0f;
 }
 
-void VRFrameData::GetLeftProjectionMatrix(JSContext* aCx,
+void VRFrameData::GetLeftProjectionMatrix(MCContext* aCx,
                                           JS::MutableHandle<JSObject*> aRetval,
                                           ErrorResult& aRv) {
   Pose::SetFloat32Array(aCx, this, aRetval, mLeftProjectionMatrix,
                         mFrameInfo.mLeftProjection.components, 16, aRv);
 }
 
-void VRFrameData::GetLeftViewMatrix(JSContext* aCx,
+void VRFrameData::GetLeftViewMatrix(MCContext* aCx,
                                     JS::MutableHandle<JSObject*> aRetval,
                                     ErrorResult& aRv) {
   Pose::SetFloat32Array(aCx, this, aRetval, mLeftViewMatrix,
                         mFrameInfo.mLeftView.components, 16, aRv);
 }
 
-void VRFrameData::GetRightProjectionMatrix(JSContext* aCx,
+void VRFrameData::GetRightProjectionMatrix(MCContext* aCx,
                                            JS::MutableHandle<JSObject*> aRetval,
                                            ErrorResult& aRv) {
   Pose::SetFloat32Array(aCx, this, aRetval, mRightProjectionMatrix,
                         mFrameInfo.mRightProjection.components, 16, aRv);
 }
 
-void VRFrameData::GetRightViewMatrix(JSContext* aCx,
+void VRFrameData::GetRightViewMatrix(MCContext* aCx,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv) {
   Pose::SetFloat32Array(aCx, this, aRetval, mRightViewMatrix,

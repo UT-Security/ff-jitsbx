@@ -25,7 +25,7 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
 
   nsresult Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const override;
 
-  static bool IsDialogEnabled(JSContext* aCx, JS::Handle<JSObject*> aObj);
+  static bool IsDialogEnabled(MCContext* aCx, JS::Handle<JSObject*> aObj);
 
   bool Open() const { return GetBoolAttr(nsGkAtoms::open); }
   void SetOpen(bool aOpen, ErrorResult& aError) {
@@ -53,7 +53,7 @@ class HTMLDialogElement final : public nsGenericHTMLElement {
 
  protected:
   virtual ~HTMLDialogElement();
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  private:

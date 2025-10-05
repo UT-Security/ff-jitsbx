@@ -39,7 +39,7 @@ class AbstractTimelineMarker {
   virtual UniquePtr<AbstractTimelineMarker> Clone();
   virtual bool Equals(const AbstractTimelineMarker& aOther);
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) = 0;
   virtual JSObject* GetStack() = 0;
 

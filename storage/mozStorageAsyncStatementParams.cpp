@@ -39,13 +39,13 @@ AsyncStatementParams::AsyncStatementParams(nsPIDOMWindowInner* aWindow,
   NS_ASSERTION(mStatement != nullptr, "mStatement is null");
 }
 
-JSObject* AsyncStatementParams::WrapObject(JSContext* aCx,
+JSObject* AsyncStatementParams::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return dom::MozStorageAsyncStatementParams_Binding::Wrap(aCx, this,
                                                            aGivenProto);
 }
 
-void AsyncStatementParams::NamedGetter(JSContext* aCx, const nsAString& aName,
+void AsyncStatementParams::NamedGetter(MCContext* aCx, const nsAString& aName,
                                        bool& aFound,
                                        JS::MutableHandle<JS::Value> aResult,
                                        mozilla::ErrorResult& aRv) {
@@ -58,7 +58,7 @@ void AsyncStatementParams::NamedGetter(JSContext* aCx, const nsAString& aName,
   aFound = false;
 }
 
-void AsyncStatementParams::NamedSetter(JSContext* aCx, const nsAString& aName,
+void AsyncStatementParams::NamedSetter(MCContext* aCx, const nsAString& aName,
                                        JS::Handle<JS::Value> aValue,
                                        mozilla::ErrorResult& aRv) {
   if (!mStatement) {
@@ -82,7 +82,7 @@ void AsyncStatementParams::GetSupportedNames(nsTArray<nsString>& aNames) {
   // AsyncStatementParams.
 }
 
-void AsyncStatementParams::IndexedGetter(JSContext* aCx, uint32_t aIndex,
+void AsyncStatementParams::IndexedGetter(MCContext* aCx, uint32_t aIndex,
                                          bool& aFound,
                                          JS::MutableHandle<JS::Value> aResult,
                                          mozilla::ErrorResult& aRv) {
@@ -95,7 +95,7 @@ void AsyncStatementParams::IndexedGetter(JSContext* aCx, uint32_t aIndex,
   aFound = false;
 }
 
-void AsyncStatementParams::IndexedSetter(JSContext* aCx, uint32_t aIndex,
+void AsyncStatementParams::IndexedSetter(MCContext* aCx, uint32_t aIndex,
                                          JS::Handle<JS::Value> aValue,
                                          mozilla::ErrorResult& aRv) {
   if (!mStatement) {

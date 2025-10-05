@@ -23,14 +23,14 @@ class PerformanceMeasure final : public PerformanceEntry {
                      DOMHighResTimeStamp aEndTime,
                      const JS::Handle<JS::Value>& aDetail);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual DOMHighResTimeStamp StartTime() const override { return mStartTime; }
 
   virtual DOMHighResTimeStamp Duration() const override { return mDuration; }
 
-  void GetDetail(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  void GetDetail(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
   size_t SizeOfIncludingThis(
       mozilla::MallocSizeOf aMallocSizeOf) const override;

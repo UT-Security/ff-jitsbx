@@ -25,7 +25,7 @@ DomPromiseListener::~DomPromiseListener() {
   }
 }
 
-void DomPromiseListener::ResolvedCallback(JSContext* aCx,
+void DomPromiseListener::ResolvedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   if (mResolve) {
@@ -35,7 +35,7 @@ void DomPromiseListener::ResolvedCallback(JSContext* aCx,
   Clear();
 }
 
-void DomPromiseListener::RejectedCallback(JSContext* aCx,
+void DomPromiseListener::RejectedCallback(MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv) {
   if (mReject) {

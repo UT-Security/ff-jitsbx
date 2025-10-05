@@ -91,7 +91,7 @@ class MediaStreamError final : public nsISupports,
   NS_DECLARE_STATIC_IID_ACCESSOR(
       MOZILLA_DOM_MEDIASTREAMERROR_IMPLEMENTATION_IID)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsPIDOMWindowInner* GetParentObject() const { return mParent; }

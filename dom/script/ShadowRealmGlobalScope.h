@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_ShadowRealmGlobalScope_h
 #define mozilla_dom_ShadowRealmGlobalScope_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/OriginTrials.h"
@@ -47,13 +47,13 @@ class ShadowRealmGlobalScope : public nsIGlobalObject, public nsWrapperCache {
     return GetWrapperPreserveColor();
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     MOZ_CRASH("Shouldn't be here");
     return nullptr;
   }
 
-  JS::loader::ModuleLoaderBase* GetModuleLoader(JSContext* aCx) override;
+  JS::loader::ModuleLoaderBase* GetModuleLoader(MCContext* aCx) override;
 
   bool ShouldResistFingerprinting(
       RFPTarget aTarget = RFPTarget::Unknown) const override {
@@ -75,8 +75,8 @@ class ShadowRealmGlobalScope : public nsIGlobalObject, public nsWrapperCache {
 NS_DEFINE_STATIC_IID_ACCESSOR(ShadowRealmGlobalScope,
                               SHADOWREALMGLOBALSCOPE_IID)
 
-JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions,
-                               JSPrincipals* aPrincipals,
+MC::Tainted<JSObject*> NewShadowRealmGlobal(MC::Tainted<JSContext*> aCx, JS::RealmOptions& aOptions,
+                               MC::Tainted<JSPrincipals*> aPrincipals,
                                JS::Handle<JSObject*> aGlobalObj);
 
 bool IsShadowRealmGlobal(JSObject* aObject);
