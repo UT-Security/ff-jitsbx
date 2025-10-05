@@ -69,7 +69,7 @@ class XULFrameElement final : public nsXULElement, public nsFrameLoaderOwner {
  protected:
   virtual ~XULFrameElement() = default;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   void LoadSrc();

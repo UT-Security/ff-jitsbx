@@ -26,7 +26,7 @@ class TaskSignal : public AbortSignal {
 
   TaskPriority Priority() const { return mPriority; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return TaskSignal_Binding::Wrap(aCx, this, aGivenProto);
   }

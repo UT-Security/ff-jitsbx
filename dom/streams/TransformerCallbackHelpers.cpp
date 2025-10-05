@@ -29,7 +29,7 @@ NS_INTERFACE_MAP_END_INHERITING(TransformerAlgorithmsBase)
 
 // https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer
 already_AddRefed<Promise> TransformerAlgorithms::TransformCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, JS::Handle<JS::Value> aChunk,
     TransformStreamDefaultController& aController, ErrorResult& aRv) {
   if (!mTransformCallback) {
     // Step 2.1. Let result be
@@ -67,7 +67,7 @@ already_AddRefed<Promise> TransformerAlgorithms::TransformCallback(
 
 // https://streams.spec.whatwg.org/#set-up-transform-stream-default-controller-from-transformer
 already_AddRefed<Promise> TransformerAlgorithms::FlushCallback(
-    JSContext* aCx, TransformStreamDefaultController& aController,
+    MCContext* aCx, TransformStreamDefaultController& aController,
     ErrorResult& aRv) {
   if (!mFlushCallback) {
     // Step 3. Let flushAlgorithm be an algorithm which returns a promise
@@ -86,7 +86,7 @@ already_AddRefed<Promise> TransformerAlgorithms::FlushCallback(
 }
 
 already_AddRefed<Promise> TransformerAlgorithmsWrapper::TransformCallback(
-    JSContext*, JS::Handle<JS::Value> aChunk,
+    MCContext*, JS::Handle<JS::Value> aChunk,
     TransformStreamDefaultController& aController, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = aController.GetParentObject();
   return PromisifyAlgorithm(
@@ -99,7 +99,7 @@ already_AddRefed<Promise> TransformerAlgorithmsWrapper::TransformCallback(
 }
 
 already_AddRefed<Promise> TransformerAlgorithmsWrapper::FlushCallback(
-    JSContext*, TransformStreamDefaultController& aController,
+    MCContext*, TransformStreamDefaultController& aController,
     ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = aController.GetParentObject();
   return PromisifyAlgorithm(

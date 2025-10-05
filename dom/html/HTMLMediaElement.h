@@ -717,7 +717,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 
   bool MozAudioCaptured() const { return mAudioCaptured; }
 
-  void MozGetMetadata(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+  void MozGetMetadata(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
                       ErrorResult& aRv);
 
   double MozFragmentEnd();
@@ -1932,7 +1932,7 @@ class HTMLMediaElement : public nsGenericHTMLElement,
 };
 
 // Check if the context is chrome or has the debugger or tabs permission
-bool HasDebuggerOrTabsPrivilege(JSContext* aCx, JSObject* aObj);
+bool HasDebuggerOrTabsPrivilege(MCContext* aCx, JSObject* aObj);
 
 }  // namespace mozilla::dom
 

@@ -104,7 +104,7 @@ class HTMLFieldSetElement final : public nsGenericHTMLFormControlElement,
  protected:
   virtual ~HTMLFieldSetElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

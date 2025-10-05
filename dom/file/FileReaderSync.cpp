@@ -43,13 +43,13 @@ already_AddRefed<FileReaderSync> FileReaderSync::Constructor(
   return frs.forget();
 }
 
-bool FileReaderSync::WrapObject(JSContext* aCx,
+bool FileReaderSync::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto,
                                 JS::MutableHandle<JSObject*> aReflector) {
   return FileReaderSync_Binding::Wrap(aCx, this, aGivenProto, aReflector);
 }
 
-void FileReaderSync::ReadAsArrayBuffer(JSContext* aCx,
+void FileReaderSync::ReadAsArrayBuffer(MCContext* aCx,
                                        JS::Handle<JSObject*> aScopeObj,
                                        Blob& aBlob,
                                        JS::MutableHandle<JSObject*> aRetval,
@@ -322,7 +322,7 @@ class ReadReadyRunnable final : public WorkerSyncRunnable {
                     nsIEventTarget* aSyncLoopTarget)
       : WorkerSyncRunnable(aWorkerPrivate, aSyncLoopTarget) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     MOZ_ASSERT(mSyncLoopTarget);
 

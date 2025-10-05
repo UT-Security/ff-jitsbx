@@ -102,7 +102,7 @@ class BrowserChildMessageManager : public ContentFrameMessageManager,
 
   void MarkForCC();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   virtual Nullable<WindowProxyHolder> GetContent(ErrorResult& aError) override;
@@ -211,7 +211,7 @@ class BrowserChild final : public nsMessageManagerScriptExecutor,
 
   FORWARD_SHMEM_ALLOCATOR_TO(PBrowserChild)
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
     return mBrowserChildMessageManager->WrapObject(aCx, aGivenProto);
   }
 

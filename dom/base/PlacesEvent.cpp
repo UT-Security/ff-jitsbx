@@ -29,7 +29,7 @@ already_AddRefed<PlacesEvent> PlacesEvent::Constructor(
 
 nsISupports* PlacesEvent::GetParentObject() const { return nullptr; }
 
-JSObject* PlacesEvent::WrapObject(JSContext* aCx,
+JSObject* PlacesEvent::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return PlacesEvent_Binding::Wrap(aCx, this, aGivenProto);
 }

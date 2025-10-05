@@ -6,7 +6,7 @@
 
 /* High level class and public functions implementation. */
 
-#include "js/Transcoding.h"
+#include "monkeycage/Transcoding.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Base64.h"
 #include "mozilla/Likely.h"
@@ -16,7 +16,7 @@
 #include "mcfriendapi.h"
 #include "monkeycage/AllocationLogging.h"  // JS::SetLogCtorDtorFunctions
 #include "monkeycage/CompileOptions.h"     // JS::ReadOnlyCompileOptions
-#include "js/Object.h"             // JS::GetClass
+#include "monkeycage/Object.h"             // JS::GetClass
 #include "js/ProfilingStack.h"
 #include "monkeycage/Value.h"
 #include "GeckoProfiler.h"
@@ -214,9 +214,9 @@ void xpc::ErrorNote::Init(JSErrorNotes::Note* aNote) {
   ErrorNoteToMessageString(aNote, mErrorMsg);
 }
 
-void xpc::ErrorReport::Init(JSErrorReport* aReport, const char* aToStringResult,
+void xpc::ErrorReport::Init(MC::Tainted<JSErrorReport*> aReport, const char* aToStringResult,
                             bool aIsChrome, uint64_t aWindowID) {
-  xpc::ErrorBase::Init(aReport);
+  xpc::ErrorBase::Init(aReport.UNSAFE_unverified());
   mCategory = aIsChrome ? "chrome javascript"_ns : "content javascript"_ns;
   mWindowID = aWindowID;
 
@@ -232,29 +232,29 @@ void xpc::ErrorReport::Init(JSErrorReport* aReport, const char* aToStringResult,
 
   mSourceLine.Assign(aReport->linebuf(), aReport->linebufLength());
 
-  if (aReport->errorMessageName) {
-    mErrorMsgName.AssignASCII(aReport->errorMessageName);
+  if (aReport->errorMessageName()) {
+    mErrorMsgName.AssignASCII(aReport->errorMessageName());
   } else {
     mErrorMsgName.Truncate();
   }
 
   mIsWarning = aReport->isWarning();
-  mIsMuted = aReport->isMuted;
+  mIsMuted = aReport->isMuted();
 
-  if (aReport->notes) {
-    if (!mNotes.SetLength(aReport->notes->length(), fallible)) {
+  if (aReport->notes()) {
+    if (!mNotes.SetLength(aReport->notes()->length(), fallible)) {
       return;
     }
 
     size_t i = 0;
-    for (auto&& note : *aReport->notes) {
+    for (auto&& note : *aReport->notes()) {
       mNotes.ElementAt(i).Init(note.get());
       i++;
     }
   }
 }
 
-void xpc::ErrorReport::Init(JSContext* aCx, mozilla::dom::Exception* aException,
+void xpc::ErrorReport::Init(MCContext* aCx, mozilla::dom::Exception* aException,
                             bool aIsChrome, uint64_t aWindowID) {
   mCategory = aIsChrome ? "chrome javascript"_ns : "content javascript"_ns;
   mWindowID = aWindowID;
@@ -383,14 +383,14 @@ void xpc::ErrorNote::ErrorNoteToMessageString(JSErrorNotes::Note* aNote,
 }
 
 /* static */
-void xpc::ErrorReport::ErrorReportToMessageString(JSErrorReport* aReport,
+void xpc::ErrorReport::ErrorReportToMessageString(MC::Tainted<JSErrorReport*> aReport,
                                                   nsAString& aString) {
   aString.Truncate();
   if (aReport->message()) {
     // Don't prefix warnings with an often misleading name like "Error: ".
     if (!aReport->isWarning()) {
       JSLinearString* name = js::GetErrorTypeName(
-          CycleCollectedJSContext::Get()->Context(), aReport->exnType);
+          CycleCollectedJSContext::Get()->Context(), aReport->exnType());
       if (name) {
         AssignJSLinearString(aString, name);
         aString.AppendLiteral(": ");
@@ -443,7 +443,7 @@ MC::SandboxCallback<void (*)(JSTracer*, JSObject*)> xpc::TraceXPCGlobalCb() {
 
 namespace xpc {
 
-JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
+JSObject* CreateGlobalObject(MCContext* cx, const JSClass* clasp,
                              nsIPrincipal* principal,
                              MC::Tainted<JS::RealmOptions*> aOptions) {
   MOZ_ASSERT(NS_IsMainThread(), "using a principal off the main thread?");
@@ -477,7 +477,7 @@ JSObject* CreateGlobalObject(JSContext* cx, const JSClass* clasp,
       // classes because xpc::TraceXPCGlobal won't call TraceProtoAndIfaceCache
       // unless that flag is set.
       if (!((const JSClass*)clasp)->isWrappedNative()) {
-        VerifyTraceProtoAndIfaceCacheCalledTracer trc(cx);
+        VerifyTraceProtoAndIfaceCacheCalledTracer trc(MC_UNSAFE(cx));
         TraceChildren(static_cast<MC::Tainted<JS::CallbackTracer*>>(trc), GCCellPtr(global.get()));
         MOZ_ASSERT(trc.ok,
                    "Trace hook on global needs to call TraceXPCGlobal for "
@@ -517,7 +517,7 @@ void InitGlobalObjectOptions(MC::Tainted<JS::RealmOptions*> aOptions,
   }
 }
 
-bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
+bool InitGlobalObject(MCContext* aJSContext, JS::Handle<JSObject*> aGlobal,
                       uint32_t aFlags) {
   // Immediately enter the global's realm so that everything we create
   // ends up there.
@@ -533,7 +533,7 @@ bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
       return UnexpectedFailure(false);
     }
 
-    if (!mozJSModuleLoader::Get()->DefineJSServices(JS_SanitizeContext(aJSContext), aGlobal)) {
+    if (!mozJSModuleLoader::Get()->DefineJSServices(aJSContext, aGlobal)) {
       return UnexpectedFailure(false);
     }
   }
@@ -545,7 +545,7 @@ bool InitGlobalObject(JSContext* aJSContext, JS::Handle<JSObject*> aGlobal,
   return true;
 }
 
-nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
+nsresult InitClassesWithNewWrappedGlobal(MCContext* aJSContext,
                                          nsISupports* aCOMObj,
                                          nsIPrincipal* aPrincipal,
                                          uint32_t aFlags,
@@ -600,7 +600,7 @@ nsresult InitClassesWithNewWrappedGlobal(JSContext* aJSContext,
   return NS_OK;
 }
 
-nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
+nsCString GetFunctionName(MCContext* cx, HandleObject obj) {
   MC::RootedObject inner(cx, js::UncheckedUnwrap(obj));
   MC::SandboxStack<JSAutoRealm> ar(cx, inner);
 
@@ -610,7 +610,7 @@ nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
     // function property (for things like nsITimerCallback). In this case,
     // return the name of that function property.
 
-    MC::Rooted<IdVector> idArray(cx, IdVector(cx));
+    MC::Rooted<IdVector> idArray(cx, IdVector(MC_UNSAFE(cx)));
     if (!JS_Enumerate(cx, inner, &idArray)) {
       JS_ClearPendingException(cx);
       return nsCString("error");
@@ -665,7 +665,7 @@ nsCString GetFunctionName(JSContext* cx, HandleObject obj) {
 
 }  // namespace xpc
 
-static nsresult NativeInterface2JSObject(JSContext* aCx, HandleObject aScope,
+static nsresult NativeInterface2JSObject(MCContext* aCx, HandleObject aScope,
                                          nsISupports* aCOMObj,
                                          nsWrapperCache* aCache,
                                          const nsIID* aIID, bool aAllowWrapping,
@@ -686,7 +686,7 @@ static nsresult NativeInterface2JSObject(JSContext* aCx, HandleObject aScope,
   return NS_OK;
 }
 
-nsresult nsIXPConnect::WrapNative(JSContext* aJSContext, JSObject* aScopeArg,
+nsresult nsIXPConnect::WrapNative(MCContext* aJSContext, JSObject* aScopeArg,
                                   nsISupports* aCOMObj, const nsIID& aIID,
                                   JSObject** aRetVal) {
   MOZ_ASSERT(aJSContext, "bad param");
@@ -709,7 +709,7 @@ nsresult nsIXPConnect::WrapNative(JSContext* aJSContext, JSObject* aScopeArg,
   return NS_OK;
 }
 
-nsresult nsIXPConnect::WrapNativeToJSVal(JSContext* aJSContext,
+nsresult nsIXPConnect::WrapNativeToJSVal(MCContext* aJSContext,
                                          JSObject* aScopeArg,
                                          nsISupports* aCOMObj,
                                          nsWrapperCache* aCache,
@@ -724,7 +724,7 @@ nsresult nsIXPConnect::WrapNativeToJSVal(JSContext* aJSContext,
                                   aAllowWrapping, aVal);
 }
 
-nsresult nsIXPConnect::WrapJS(JSContext* aJSContext, JSObject* aJSObjArg,
+nsresult nsIXPConnect::WrapJS(MCContext* aJSContext, JSObject* aJSObjArg,
                               const nsIID& aIID, void** result) {
   MOZ_ASSERT(aJSContext, "bad param");
   MOZ_ASSERT(aJSObjArg, "bad param");
@@ -741,7 +741,7 @@ nsresult nsIXPConnect::WrapJS(JSContext* aJSContext, JSObject* aJSObjArg,
   return NS_OK;
 }
 
-nsresult nsIXPConnect::JSValToVariant(JSContext* cx, HandleValue aJSVal,
+nsresult nsIXPConnect::JSValToVariant(MCContext* cx, HandleValue aJSVal,
                                       nsIVariant** aResult) {
   MOZ_ASSERT(aResult, "bad param");
 
@@ -753,7 +753,7 @@ nsresult nsIXPConnect::JSValToVariant(JSContext* cx, HandleValue aJSVal,
 }
 
 nsresult nsIXPConnect::WrapJSAggregatedToNative(nsISupports* aOuter,
-                                                JSContext* aJSContext,
+                                                MCContext* aJSContext,
                                                 JSObject* aJSObjArg,
                                                 const nsIID& aIID,
                                                 void** result) {
@@ -773,14 +773,14 @@ nsresult nsIXPConnect::WrapJSAggregatedToNative(nsISupports* aOuter,
 }
 
 nsresult nsIXPConnect::GetWrappedNativeOfJSObject(
-    JSContext* aJSContext, JSObject* aJSObjArg,
+    MCContext* aJSContext, JSObject* aJSObjArg,
     nsIXPConnectWrappedNative** _retval) {
   MOZ_ASSERT(aJSContext, "bad param");
   MOZ_ASSERT(aJSObjArg, "bad param");
   MOZ_ASSERT(_retval, "bad param");
 
   MC::RootedObject aJSObj(aJSContext, aJSObjArg);
-  aJSObj = js::CheckedUnwrapDynamic(aJSObj, aJSContext,
+  aJSObj = mc::CheckedUnwrapDynamic(aJSObj, aJSContext,
                                     /* stopAtWindowProxy = */ false);
   if (!aJSObj || !IsWrappedNativeReflector(aJSObj)) {
     *_retval = nullptr;
@@ -822,14 +822,14 @@ already_AddRefed<nsISupports> xpc::ReflectorToISupportsStatic(
 }
 
 already_AddRefed<nsISupports> xpc::ReflectorToISupportsDynamic(
-    JSObject* reflector, JSContext* cx) {
+    JSObject* reflector, MCContext* cx) {
   // Unwrap security wrappers, if allowed.
   return ReflectorToISupports(
-      js::CheckedUnwrapDynamic(reflector, cx,
+      mc::CheckedUnwrapDynamic(reflector, cx,
                                /* stopAtWindowProxy = */ false));
 }
 
-nsresult nsIXPConnect::CreateSandbox(JSContext* cx, nsIPrincipal* principal,
+nsresult nsIXPConnect::CreateSandbox(MCContext* cx, nsIPrincipal* principal,
                                      JSObject** _retval) {
   *_retval = nullptr;
 
@@ -847,7 +847,7 @@ nsresult nsIXPConnect::CreateSandbox(JSContext* cx, nsIPrincipal* principal,
 }
 
 nsresult nsIXPConnect::EvalInSandboxObject(const nsAString& source,
-                                           const char* filename, JSContext* cx,
+                                           const char* filename, MCContext* cx,
                                            JSObject* sandboxArg,
                                            MutableHandleValue rval) {
   if (!sandboxArg) {
@@ -921,7 +921,7 @@ nsresult nsIXPConnect::DebugDumpJSStack(bool showArgs, bool showLocals,
   return NS_OK;
 }
 
-nsresult nsIXPConnect::VariantToJS(JSContext* ctx, JSObject* scopeArg,
+nsresult nsIXPConnect::VariantToJS(MCContext* ctx, JSObject* scopeArg,
                                    nsIVariant* value,
                                    MutableHandleValue _retval) {
   MOZ_ASSERT(ctx, "bad param");
@@ -942,7 +942,7 @@ nsresult nsIXPConnect::VariantToJS(JSContext* ctx, JSObject* scopeArg,
   return NS_OK;
 }
 
-nsresult nsIXPConnect::JSToVariant(JSContext* ctx, HandleValue value,
+nsresult nsIXPConnect::JSToVariant(MCContext* ctx, HandleValue value,
                                    nsIVariant** _retval) {
   MOZ_ASSERT(ctx, "bad param");
   MOZ_ASSERT(_retval, "bad param");
@@ -958,7 +958,7 @@ nsresult nsIXPConnect::JSToVariant(JSContext* ctx, HandleValue value,
 
 namespace xpc {
 
-bool Base64Encode(JSContext* cx, HandleValue val, MutableHandleValue out) {
+bool Base64Encode(MCContext* cx, HandleValue val, MutableHandleValue out) {
   MOZ_ASSERT(cx);
 
   nsAutoCString encodedString;
@@ -982,7 +982,7 @@ bool Base64Encode(JSContext* cx, HandleValue val, MutableHandleValue out) {
   return true;
 }
 
-bool Base64Decode(JSContext* cx, HandleValue val, MutableHandleValue out) {
+bool Base64Decode(MCContext* cx, HandleValue val, MutableHandleValue out) {
   MOZ_ASSERT(cx);
 
   nsAutoCString encodedString;
@@ -1063,7 +1063,7 @@ MC::Tainted<bool> Atob(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<
     return true;
   }
 
-  return xpc::Base64Decode(MC_UNSAFE(cx), args[0], args.rval());
+  return xpc::Base64Decode(cx, args[0], args.rval());
 }
 
 MC::SandboxCallback<JSNative> AtobCb() {
@@ -1080,7 +1080,7 @@ MC::Tainted<bool> Btoa(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<
     return true;
   }
 
-  return xpc::Base64Encode(MC_UNSAFE(cx), args[0], args.rval());
+  return xpc::Base64Encode(cx, args[0], args.rval());
 }
 
 MC::SandboxCallback<JSNative> BtoaCb() {
@@ -1095,7 +1095,7 @@ bool IsXrayWrapper(JSObject* obj) { return WrapperFactory::IsXrayWrapper(obj); }
 namespace mozilla {
 namespace dom {
 
-bool IsChromeOrUAWidget(JSContext* cx, JSObject* /* unused */) {
+bool IsChromeOrUAWidget(MCContext* cx, JSObject* /* unused */) {
   MOZ_ASSERT(NS_IsMainThread());
   JS::Realm* realm = JS::GetCurrentRealmOrNull(cx);
   MOZ_ASSERT(realm);
@@ -1104,7 +1104,7 @@ bool IsChromeOrUAWidget(JSContext* cx, JSObject* /* unused */) {
   return AccessCheck::isChrome(c) || IsUAWidgetCompartment(c);
 }
 
-bool IsNotUAWidget(JSContext* cx, JSObject* /* unused */) {
+bool IsNotUAWidget(MCContext* cx, JSObject* /* unused */) {
   MOZ_ASSERT(NS_IsMainThread());
   JS::Realm* realm = JS::GetCurrentRealmOrNull(cx);
   MOZ_ASSERT(realm);
@@ -1115,7 +1115,7 @@ bool IsNotUAWidget(JSContext* cx, JSObject* /* unused */) {
 
 extern bool IsCurrentThreadRunningChromeWorker();
 
-bool ThreadSafeIsChromeOrUAWidget(JSContext* cx, JSObject* obj) {
+bool ThreadSafeIsChromeOrUAWidget(MCContext* cx, JSObject* obj) {
   if (NS_IsMainThread()) {
     return IsChromeOrUAWidget(cx, obj);
   }

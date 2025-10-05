@@ -33,7 +33,7 @@ static bool IsServiceWorkersTestingEnabledInWindow(JSObject* const aGlobal) {
   return false;
 }
 
-static bool IsInPrivateBrowsing(JSContext* const aCx) {
+static bool IsInPrivateBrowsing(MCContext* const aCx) {
   if (const nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx)) {
     if (const nsCOMPtr<nsIPrincipal> principal = global->PrincipalOrNull()) {
       return principal->GetPrivateBrowsingId() > 0;
@@ -42,7 +42,7 @@ static bool IsInPrivateBrowsing(JSContext* const aCx) {
   return false;
 }
 
-bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool ServiceWorkersEnabled(MCContext* aCx, JSObject* aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!StaticPrefs::dom_serviceWorkers_enabled()) {
@@ -74,7 +74,7 @@ bool ServiceWorkersEnabled(JSContext* aCx, JSObject* aGlobal) {
          IsServiceWorkersTestingEnabledInWindow(global);
 }
 
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aGlobal) {
+bool ServiceWorkerVisible(MCContext* aCx, JSObject* aGlobal) {
   if (NS_IsMainThread()) {
     // We want to expose ServiceWorker interface only when
     // navigator.serviceWorker is available. Currently it may not be available

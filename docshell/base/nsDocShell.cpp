@@ -2260,11 +2260,11 @@ nsDocShell::GetRecordProfileTimelineMarkers(bool* aValue) {
 nsresult nsDocShell::PopProfileTimelineMarkers(
     MCContext* aCx, JS::MutableHandle<JS::Value> aOut) {
   nsTArray<dom::ProfileTimelineMarker> store;
-  SequenceRooter<dom::ProfileTimelineMarker> rooter(MC_UNSAFE(aCx), &store);
+  SequenceRooter<dom::ProfileTimelineMarker> rooter(aCx, &store);
 
-  TimelineConsumers::PopMarkers(this, MC_UNSAFE(aCx), store);
+  TimelineConsumers::PopMarkers(this, aCx, store);
 
-  if (!ToJSValue(MC_UNSAFE(aCx), store, aOut)) {
+  if (!ToJSValue(aCx, store, aOut)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_UNEXPECTED;
   }
@@ -3343,7 +3343,7 @@ nsDocShell::LoadURIFromScript(nsIURI* aURI,
                               MCContext* aCx) {
   // generate dictionary for aLoadURIOptions and forward call
   LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(aCx, aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return LoadURI(aURI, loadURIOptions);
@@ -3404,7 +3404,7 @@ nsDocShell::FixupAndLoadURIStringFromScript(
     MCContext* aCx) {
   // generate dictionary for aLoadURIOptions and forward call
   LoadURIOptions loadURIOptions;
-  if (!loadURIOptions.Init(MC_UNSAFE(aCx), aLoadURIOptions)) {
+  if (!loadURIOptions.Init(aCx, aLoadURIOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   return FixupAndLoadURIString(aURIString, loadURIOptions);
@@ -13381,7 +13381,7 @@ NS_IMETHODIMP
 nsDocShell::SetOriginAttributes(JS::Handle<JS::Value> aOriginAttributes,
                                 MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

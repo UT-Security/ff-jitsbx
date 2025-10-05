@@ -23,7 +23,7 @@ class PaymentMethodChangeEvent final : public PaymentRequestUpdateEvent {
   explicit PaymentMethodChangeEvent(EventTarget* aOwner);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<PaymentMethodChangeEvent> Constructor(
       EventTarget* aOwner, const nsAString& aType,
@@ -38,7 +38,7 @@ class PaymentMethodChangeEvent final : public PaymentRequestUpdateEvent {
   void GetMethodName(nsAString& aMethodName);
   void SetMethodName(const nsAString& aMethodName);
 
-  void GetMethodDetails(JSContext* cx, JS::MutableHandle<JSObject*> retval);
+  void GetMethodDetails(MCContext* cx, JS::MutableHandle<JSObject*> retval);
   void SetMethodDetails(const ChangeDetails& aMethodDetails);
 
  protected:

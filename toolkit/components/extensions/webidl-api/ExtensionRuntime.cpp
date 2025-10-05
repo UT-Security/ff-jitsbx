@@ -43,18 +43,18 @@ ExtensionRuntime::ExtensionRuntime(nsIGlobalObject* aGlobal,
 }
 
 /* static */
-bool ExtensionRuntime::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionRuntime::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* ExtensionRuntime::WrapObject(JSContext* aCx,
+JSObject* ExtensionRuntime::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionRuntime_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 nsIGlobalObject* ExtensionRuntime::GetParentObject() const { return mGlobal; }
 
-void ExtensionRuntime::GetLastError(JSContext* aCx,
+void ExtensionRuntime::GetLastError(MCContext* aCx,
                                     JS::MutableHandle<JS::Value> aRetval) {
   mExtensionBrowser->GetLastError(aRetval);
 }

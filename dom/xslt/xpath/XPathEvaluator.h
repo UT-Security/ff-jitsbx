@@ -34,7 +34,7 @@ class XPathEvaluator final : public NonRefcountedDOMObject {
   ~XPathEvaluator();
 
   // WebIDL API
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
   Document* GetParentObject() {
     nsCOMPtr<Document> doc = do_QueryReferent(mDocument);
@@ -51,7 +51,7 @@ class XPathEvaluator final : public NonRefcountedDOMObject {
                                     Document* aDocument, ErrorResult& aRv);
   nsINode* CreateNSResolver(nsINode& aNodeResolver) { return &aNodeResolver; }
   already_AddRefed<XPathResult> Evaluate(
-      JSContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
+      MCContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
       XPathNSResolver* aResolver, uint16_t aType, JS::Handle<JSObject*> aResult,
       ErrorResult& rv);
 

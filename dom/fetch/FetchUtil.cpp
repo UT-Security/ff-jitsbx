@@ -667,13 +667,13 @@ void FetchUtil::InitWasmAltDataType() {
   type.Append(buildId->begin().UNSAFE_unverified(), buildId->length().UNSAFE_unverified());
 }
 
-static bool ThrowException(JSContext* aCx, unsigned errorNumber) {
+static bool ThrowException(MCContext* aCx, unsigned errorNumber) {
   JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr, errorNumber);
   return false;
 }
 
 // static
-bool FetchUtil::StreamResponseToJS(JSContext* aCx, JS::Handle<JSObject*> aObj,
+bool FetchUtil::StreamResponseToJS(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                    JS::MimeType aMimeType,
                                    JS::StreamConsumer* aConsumer,
                                    WorkerPrivate* aMaybeWorker) {
@@ -798,7 +798,8 @@ bool FetchUtil::StreamResponseToJS(JSContext* aCx, JS::Handle<JSObject*> aObj,
 }
 
 // static
-void FetchUtil::ReportJSStreamError(JSContext* aCx, size_t aErrorCode) {
+void FetchUtil::ReportJSStreamError(MC::Tainted<JSContext*> tCx, size_t aErrorCode) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   // For now, convert *all* errors into AbortError.
 
   RefPtr<DOMException> e = DOMException::Create(NS_ERROR_DOM_ABORT_ERR);
@@ -812,7 +813,7 @@ void FetchUtil::ReportJSStreamError(JSContext* aCx, size_t aErrorCode) {
 }
 
 MC::SandboxCallback<JS::ReportStreamErrorCallback> FetchUtil::ReportJSStreamErrorCb() {
-  static auto inner_ = MC::Sandbox::RegisterCallback(ReportJSStreamError);
+  static auto inner_ = MC::Sandbox::RegisterTaintedCallback(ReportJSStreamError);
   return inner_;
 }
 

@@ -97,7 +97,7 @@ Touch::Touch(const Touch& aOther)
 Touch::~Touch() = default;
 
 // static
-bool Touch::PrefEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool Touch::PrefEnabled(MCContext* aCx, JSObject* aGlobal) {
   return TouchEvent::PrefEnabled(aCx, aGlobal);
 }
 
@@ -216,7 +216,7 @@ void Touch::SetSameAs(const Touch* aTouch) {
   mRadius.y = aTouch->mRadius.y;
 }
 
-JSObject* Touch::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Touch::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Touch_Binding::Wrap(aCx, this, aGivenProto);
 }
 

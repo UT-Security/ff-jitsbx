@@ -111,7 +111,7 @@ RTCRtpSender::RTCRtpSender(nsPIDOMWindowInner* aWindow, PeerConnectionImpl* aPc,
 
 RTCRtpSender::~RTCRtpSender() = default;
 
-JSObject* RTCRtpSender::WrapObject(JSContext* aCx,
+JSObject* RTCRtpSender::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return RTCRtpSender_Binding::Wrap(aCx, this, aGivenProto);
 }

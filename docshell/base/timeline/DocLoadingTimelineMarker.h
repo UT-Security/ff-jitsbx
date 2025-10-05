@@ -18,7 +18,7 @@ class DocLoadingTimelineMarker : public TimelineMarker {
       : TimelineMarker(aName, MarkerTracingType::TIMESTAMP),
         mUnixTime(PR_Now()) {}
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
     aMarker.mUnixTime.Construct(mUnixTime);

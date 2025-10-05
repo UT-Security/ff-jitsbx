@@ -117,7 +117,7 @@ class RemoteObjectProxyBase : public mc::BaseProxyHandler,
    * case. aNewObjectCreated can be true even if aProxy is null, if something
    * failed after creating the object.
    */
-  void GetOrCreateProxyObject(JSContext* aCx, void* aNative,
+  void GetOrCreateProxyObject(MCContext* aCx, void* aNative,
                               const JSClass* aClasp,
                               JS::Handle<JSObject*> aTransplantTo,
                               JS::MutableHandle<JSObject*> aProxy,
@@ -151,7 +151,7 @@ class RemoteObjectProxy : public RemoteObjectProxyBase {
     RefPtr<Native> self(dont_AddRef(native));
   }
 
-  void GetProxyObject(JSContext* aCx, Native* aNative,
+  void GetProxyObject(MCContext* aCx, Native* aNative,
                       JS::Handle<JSObject*> aTransplantTo,
                       JS::MutableHandle<JSObject*> aProxy) const {
     bool objectCreated = false;

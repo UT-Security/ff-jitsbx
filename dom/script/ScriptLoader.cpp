@@ -271,7 +271,7 @@ void ScriptLoader::SetGlobalObject(nsIGlobalObject* aGlobalObject) {
   }
 
   MOZ_ASSERT(mModuleLoader->GetGlobalObject() == aGlobalObject);
-  MOZ_ASSERT(aGlobalObject->GetModuleLoader(MC_UNSAFE(dom::danger::GetJSContext())) ==
+  MOZ_ASSERT(aGlobalObject->GetModuleLoader(dom::danger::GetJSContext()) ==
              mModuleLoader);
 }
 
@@ -2371,7 +2371,7 @@ nsresult ScriptLoader::EvaluateScript(nsIGlobalObject* aGlobalObject,
                                       ScriptLoadRequest* aRequest) {
   nsAutoMicroTask mt;
   AutoEntryScript aes(aGlobalObject, "EvaluateScript", true);
-  MCContext* cx = JS_SanitizeContext(aes.cx());
+  MCContext* cx = aes.mcx();
 
   nsAutoCString profilerLabelString;
   aRequest->GetScriptLoadContext()->GetProfilerLabel(profilerLabelString);
@@ -2544,7 +2544,7 @@ void ScriptLoader::EncodeBytecode() {
     request = mBytecodeEncodingQueue.StealFirst();
     MOZ_ASSERT(!IsWebExtensionRequest(request),
                "Bytecode for web extension content scrips is not cached");
-    EncodeRequestBytecode(JS_SanitizeContext(aes.cx()), request);
+    EncodeRequestBytecode(aes.mcx(), request);
     request->mScriptBytecode.clearAndFree();
     request->DropBytecodeCacheReferences();
   }

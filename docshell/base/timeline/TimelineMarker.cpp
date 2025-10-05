@@ -27,7 +27,7 @@ TimelineMarker::TimelineMarker(const char* aName, const TimeStamp& aTime,
   CaptureStackIfNecessary(aTracingType, aStackRequest);
 }
 
-void TimelineMarker::AddDetails(JSContext* aCx,
+void TimelineMarker::AddDetails(MCContext* aCx,
                                 dom::ProfileTimelineMarker& aMarker) {
   if (GetTracingType() == MarkerTracingType::START) {
     aMarker.mProcessType.Construct(GetProcessType());
@@ -43,7 +43,7 @@ JSObject* TimelineMarker::GetStack() {
 }
 
 void TimelineMarker::CaptureStack() {
-  JSContext* ctx = nsContentUtils::GetCurrentJSContext();
+  MCContext* ctx = nsContentUtils::GetCurrentJSContext();
   if (ctx) {
     MC::Rooted<JSObject*> stack(ctx);
     if (JS::CaptureCurrentStack(ctx, &stack)) {

@@ -49,7 +49,7 @@ class ChannelSplitterNode final : public AudioNode {
     }
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t NumberOfOutputs() const override { return mOutputCount; }

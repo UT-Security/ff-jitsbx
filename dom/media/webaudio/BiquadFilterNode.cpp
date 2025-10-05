@@ -289,7 +289,7 @@ size_t BiquadFilterNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* BiquadFilterNode::WrapObject(JSContext* aCx,
+JSObject* BiquadFilterNode::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return BiquadFilterNode_Binding::Wrap(aCx, this, aGivenProto);
 }

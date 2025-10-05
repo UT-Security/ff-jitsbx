@@ -49,12 +49,12 @@ MessageEvent::MessageEvent(EventTarget* aOwner, nsPresContext* aPresContext,
 
 MessageEvent::~MessageEvent() { DropJSObjects(this); }
 
-JSObject* MessageEvent::WrapObjectInternal(JSContext* aCx,
+JSObject* MessageEvent::WrapObjectInternal(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::MessageEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void MessageEvent::GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aData,
+void MessageEvent::GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aData,
                            ErrorResult& aRv) {
   aData.set(mData);
   if (!JS_WrapValue(aCx, aData)) {
@@ -123,7 +123,7 @@ already_AddRefed<MessageEvent> MessageEvent::Constructor(
 }
 
 void MessageEvent::InitMessageEvent(
-    JSContext* aCx, const nsAString& aType, mozilla::CanBubble aCanBubble,
+    MCContext* aCx, const nsAString& aType, mozilla::CanBubble aCanBubble,
     mozilla::Cancelable aCancelable, JS::Handle<JS::Value> aData,
     const nsAString& aOrigin, const nsAString& aLastEventId,
     const Nullable<WindowProxyOrMessagePortOrServiceWorker>& aSource,

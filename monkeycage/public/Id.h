@@ -24,6 +24,18 @@ namespace JS {
 inline PropertyKey GetWellKnownSymbolKey(MCContext* cx, SymbolCode which) {
  return GetWellKnownSymbolKey(cx->cx_, which);
 }
+
+inline bool ToGetterId(
+    MCContext* cx, JS::Handle<JS::PropertyKey> id,
+    JS::MutableHandle<JS::PropertyKey> getterId) {
+ return ToGetterId(cx->cx_, id, getterId);
+}
+
+inline bool ToSetterId(
+    MCContext* cx, JS::Handle<JS::PropertyKey> id,
+    JS::MutableHandle<JS::PropertyKey> setterId) {
+ return ToSetterId(cx->cx_, id, setterId);
+}
 }
 
 #endif

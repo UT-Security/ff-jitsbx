@@ -16,7 +16,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEOffsetElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEOffsetElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGFEOffsetElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -13,7 +13,7 @@ namespace mozilla::dom {
 
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedAngle, mSVGElement)
 
-JSObject* DOMSVGAnimatedAngle::WrapObject(JSContext* aCx,
+JSObject* DOMSVGAnimatedAngle::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedAngle_Binding::Wrap(aCx, this, aGivenProto);
 }

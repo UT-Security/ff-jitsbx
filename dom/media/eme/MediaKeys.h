@@ -67,7 +67,7 @@ class MediaKeys final : public nsIObserver,
 
   nsPIDOMWindowInner* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsresult Bind(HTMLMediaElement* aElement);

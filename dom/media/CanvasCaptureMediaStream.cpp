@@ -161,7 +161,7 @@ CanvasCaptureMediaStream::CanvasCaptureMediaStream(nsPIDOMWindowInner* aWindow,
 CanvasCaptureMediaStream::~CanvasCaptureMediaStream() = default;
 
 JSObject* CanvasCaptureMediaStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::CanvasCaptureMediaStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 

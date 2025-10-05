@@ -69,7 +69,7 @@ class AbstractOSKeyStore {
     }                                                \
   }
 
-nsresult GetPromise(JSContext* aCx,
+nsresult GetPromise(MCContext* aCx,
                     /* out */ RefPtr<mozilla::dom::Promise>& aPromise);
 
 class OSKeyStore final : public nsIOSKeyStore {

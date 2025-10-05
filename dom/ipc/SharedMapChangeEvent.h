@@ -18,7 +18,7 @@ class SharedMapChangeEvent final : public Event {
  public:
   NS_INLINE_DECL_REFCOUNTING_INHERITED(SharedMapChangeEvent, Event)
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return MozSharedMapChangeEvent_Binding::Wrap(aCx, this, aGivenProto);
   }

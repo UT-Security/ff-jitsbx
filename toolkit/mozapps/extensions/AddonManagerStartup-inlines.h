@@ -8,10 +8,10 @@
 
 #include <utility>
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
-#include "js/Exception.h"
-#include "js/PropertyAndElement.h"  // JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
-#include "jsapi.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Exception.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
+#include "mcapi.h"
 #include "mozilla/Maybe.h"
 #include "nsJSUtils.h"
 
@@ -39,13 +39,13 @@ class MOZ_STACK_CLASS BaseIter {
   void* Context() const { return mContext; }
 
  protected:
-  BaseIter(JSContext* cx, JS::Handle<JSObject*> object, void* context = nullptr)
+  BaseIter(MCContext* cx, JS::Handle<JSObject*> object, void* context = nullptr)
       : mCx(cx), mObject(object), mContext(context) {}
 
   const SelfType& Self() const { return *static_cast<const SelfType*>(this); }
   SelfType& Self() { return *static_cast<SelfType*>(this); }
 
-  JSContext* mCx;
+  MCContext* mCx;
 
   JS::Handle<JSObject*> mObject;
 
@@ -112,9 +112,9 @@ class MOZ_STACK_CLASS PropertyIter
   friend class BaseIterElem<PropertyIterElem, PropertyIter>;
 
  public:
-  PropertyIter(JSContext* cx, JS::Handle<JSObject*> object,
+  PropertyIter(MCContext* cx, JS::Handle<JSObject*> object,
                void* context = nullptr)
-      : BaseIter(cx, object, context), mIds(cx, JS::IdVector(cx)) {
+      : BaseIter(cx, object, context), mIds(cx, JS::IdVector(MC_UNSAFE(cx))) {
     if (!JS_Enumerate(cx, object, &mIds)) {
       JS_ClearPendingException(cx);
     }
@@ -165,7 +165,7 @@ class MOZ_STACK_CLASS PropertyIterElem
     return mName.ref();
   }
 
-  JSContext* Cx() { return mIter.mCx; }
+  MCContext* Cx() { return mIter.mCx; }
 
  protected:
   bool GetValue(JS::MutableHandle<JS::Value> value) {
@@ -188,7 +188,7 @@ class MOZ_STACK_CLASS ArrayIter : public BaseIter<ArrayIter, ArrayIterElem> {
   friend class BaseIterElem<ArrayIterElem, ArrayIter>;
 
  public:
-  ArrayIter(JSContext* cx, JS::Handle<JSObject*> object)
+  ArrayIter(MCContext* cx, JS::Handle<JSObject*> object)
       : BaseIter(cx, object), mLength(0) {
     bool isArray;
     if (!JS::IsArrayObject(cx, object, &isArray) || !isArray) {

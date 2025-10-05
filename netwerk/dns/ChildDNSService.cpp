@@ -196,7 +196,7 @@ ChildDNSService::AsyncResolve(const nsACString& hostname,
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -234,7 +234,7 @@ ChildDNSService::CancelAsyncResolve(const nsACString& aHostname,
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }

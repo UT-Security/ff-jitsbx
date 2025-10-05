@@ -48,7 +48,7 @@ class TextTrackCue final : public DOMEventTargetHelper {
                const nsAString& aText, HTMLTrackElement* aTrackElement,
                ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   TextTrack* GetTrack() const { return mTrack; }

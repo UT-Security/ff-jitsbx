@@ -6,8 +6,8 @@
 
 #include "ServiceWorkerScriptCache.h"
 
-#include "js/Array.h"               // JS::GetArrayLength
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Array.h"               // JS::GetArrayLength
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/TaskQueue.h"
 #include "mozilla/Unused.h"
 #include "mozilla/dom/CacheBinding.h"
@@ -45,7 +45,7 @@ namespace mozilla::dom::serviceWorkerScriptCache {
 
 namespace {
 
-already_AddRefed<CacheStorage> CreateCacheStorage(JSContext* aCx,
+already_AddRefed<CacheStorage> CreateCacheStorage(MCContext* aCx,
                                                   nsIPrincipal* aPrincipal,
                                                   ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -208,10 +208,10 @@ class CompareCache final : public PromiseNativeHandler,
 
   void Abort();
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
   const nsString& Buffer() const {
@@ -224,7 +224,7 @@ class CompareCache final : public PromiseNativeHandler,
  private:
   ~CompareCache() { MOZ_ASSERT(NS_IsMainThread()); }
 
-  void ManageValueResult(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  void ManageValueResult(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   RefPtr<CompareNetwork> mCN;
   nsCOMPtr<nsIInputStreamPump> mPump;
@@ -263,10 +263,10 @@ class CompareManager final : public PromiseNativeHandler {
   nsresult Initialize(nsIPrincipal* aPrincipal, const nsAString& aURL,
                       const nsAString& aCacheName);
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
   CacheStorage* CacheStorage_() {
@@ -344,7 +344,7 @@ class CompareManager final : public PromiseNativeHandler {
     return NS_OK;
   }
 
-  void ManageOldCache(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  void ManageOldCache(MCContext* aCx, JS::Handle<JS::Value> aValue) {
     MOZ_DIAGNOSTIC_ASSERT(mState == WaitingForExistingOpen);
 
     // RAII Cleanup when fails.
@@ -378,7 +378,7 @@ class CompareManager final : public PromiseNativeHandler {
     guard.release();
   }
 
-  void ManageOldKeys(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  void ManageOldKeys(MCContext* aCx, JS::Handle<JS::Value> aValue) {
     MOZ_DIAGNOSTIC_ASSERT(mState == WaitingForExistingKeys);
 
     // RAII Cleanup when fails.
@@ -394,8 +394,8 @@ class CompareManager final : public PromiseNativeHandler {
       return;
     }
 
-    uint32_t len = 0;
-    if (!JS::GetArrayLength(aCx, obj, &len)) {
+    MC::SandboxStack<uint32_t> len{0};
+    if (!JS::GetArrayLength(aCx, obj, len)) {
       return;
     }
 
@@ -408,7 +408,7 @@ class CompareManager final : public PromiseNativeHandler {
     AutoTArray<nsString, 8> urlList;
 
     // Extract the list of URLs in the old cache.
-    for (uint32_t i = 0; i < len; ++i) {
+    for (uint32_t i = 0; i < *len.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> val(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &val)) ||
           NS_WARN_IF(!val.isObject())) {
@@ -464,7 +464,7 @@ class CompareManager final : public PromiseNativeHandler {
     guard.release();
   }
 
-  void ManageNewCache(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  void ManageNewCache(MCContext* aCx, JS::Handle<JS::Value> aValue) {
     MOZ_DIAGNOSTIC_ASSERT(mState == WaitingForOpen);
 
     // RAII Cleanup when fails.
@@ -528,7 +528,7 @@ class CompareManager final : public PromiseNativeHandler {
     cacheOpenPromise->AppendNativeHandler(this);
   }
 
-  nsresult WriteToCache(JSContext* aCx, Cache* aCache, CompareNetwork* aCN) {
+  nsresult WriteToCache(MCContext* aCx, Cache* aCache, CompareNetwork* aCN) {
     MOZ_ASSERT(NS_IsMainThread());
     MOZ_ASSERT(aCache);
     MOZ_ASSERT(aCN);
@@ -1192,7 +1192,7 @@ CompareCache::OnStreamComplete(nsIStreamLoader* aLoader, nsISupports* aContext,
   return NS_OK;
 }
 
-void CompareCache::ResolvedCallback(JSContext* aCx,
+void CompareCache::ResolvedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1208,7 +1208,7 @@ void CompareCache::ResolvedCallback(JSContext* aCx,
   }
 }
 
-void CompareCache::RejectedCallback(JSContext* aCx,
+void CompareCache::RejectedCallback(MCContext* aCx,
                                     JS::Handle<JS::Value> aValue,
                                     ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1219,7 +1219,7 @@ void CompareCache::RejectedCallback(JSContext* aCx,
   }
 }
 
-void CompareCache::ManageValueResult(JSContext* aCx,
+void CompareCache::ManageValueResult(MCContext* aCx,
                                      JS::Handle<JS::Value> aValue) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -1347,7 +1347,7 @@ nsresult CompareManager::Initialize(nsIPrincipal* aPrincipal,
 // 3. Retrieve the Cache object of the NewCache for the newly created SW.
 // 4. Put the value in the cache.
 // For this reason we have mState to know what callback we are handling.
-void CompareManager::ResolvedCallback(JSContext* aCx,
+void CompareManager::ResolvedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -1378,7 +1378,7 @@ void CompareManager::ResolvedCallback(JSContext* aCx,
   }
 }
 
-void CompareManager::RejectedCallback(JSContext* aCx,
+void CompareManager::RejectedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   MOZ_ASSERT(NS_IsMainThread());

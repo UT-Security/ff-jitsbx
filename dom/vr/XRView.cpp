@@ -28,7 +28,7 @@ XRView::XRView(nsISupports* aParent, const XREye& aEye)
 
 XRView::~XRView() { mozilla::DropJSObjects(this); }
 
-JSObject* XRView::WrapObject(JSContext* aCx,
+JSObject* XRView::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   return XRView_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -50,7 +50,7 @@ void XRView::Update(const gfx::PointDouble3D& aPosition,
 
 XREye XRView::Eye() const { return mEye; }
 
-void XRView::GetProjectionMatrix(JSContext* aCx,
+void XRView::GetProjectionMatrix(MCContext* aCx,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) {
   if (!mJSProjectionMatrix || mProjectionNeedsUpdate) {

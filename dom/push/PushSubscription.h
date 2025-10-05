@@ -41,14 +41,14 @@ class PushSubscription final : public nsISupports, public nsWrapperCache {
                    nsTArray<uint8_t>&& aAuthSecret,
                    nsTArray<uint8_t>&& aAppServerKey);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
   void GetEndpoint(nsAString& aEndpoint) const { aEndpoint = mEndpoint; }
 
-  void GetKey(JSContext* cx, PushEncryptionKeyName aType,
+  void GetKey(MCContext* cx, PushEncryptionKeyName aType,
               JS::MutableHandle<JSObject*> aKey, ErrorResult& aRv);
 
   Nullable<EpochTimeStamp> GetExpirationTime() { return mExpirationTime; };

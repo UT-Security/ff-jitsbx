@@ -278,7 +278,7 @@ already_AddRefed<PeerConnectionImpl> PeerConnectionImpl::Constructor(
   return pc.forget();
 }
 
-JSObject* PeerConnectionImpl::WrapObject(JSContext* aCx,
+JSObject* PeerConnectionImpl::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return PeerConnectionImpl_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1233,7 +1233,7 @@ void PeerConnectionImpl::Operation::Call(ErrorResult& aError) {
 }
 
 void PeerConnectionImpl::Operation::ResolvedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   // If connection.[[IsClosed]] is true, abort these steps.
   // (the spec wants p to never settle in this event)
   if (!mPc->IsClosed()) {
@@ -1249,7 +1249,7 @@ void PeerConnectionImpl::Operation::ResolvedCallback(
 }
 
 void PeerConnectionImpl::Operation::RejectedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   // If connection.[[IsClosed]] is true, abort these steps.
   // (the spec wants p to never settle in this event)
   if (!mPc->IsClosed()) {

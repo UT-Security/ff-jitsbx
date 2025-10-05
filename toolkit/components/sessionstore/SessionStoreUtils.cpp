@@ -160,7 +160,7 @@ SessionStoreUtils::AddDynamicFrameFilteredListener(
   MC::Rooted<JSObject*> obj(cx, &aListener.toObject());
   MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
   RefPtr<EventListener> listener =
-      new EventListener(MC_UNSAFE(cx), obj, global, GetIncumbentGlobal());
+      new EventListener(cx, obj, global, GetIncumbentGlobal());
 
   nsCOMPtr<nsIDOMEventListener> filter(new DynamicFrameEventFilter(listener));
   if (aMozSystemGroup) {
@@ -276,7 +276,7 @@ void SessionStoreUtils::RestoreDocShellCapabilities(
   }
 }
 
-static void CollectCurrentScrollPosition(JSContext* aCx, Document& aDocument,
+static void CollectCurrentScrollPosition(MCContext* aCx, Document& aDocument,
                                          Nullable<CollectedData>& aRetVal) {
   PresShell* presShell = aDocument.GetPresShell();
   if (!presShell) {
@@ -402,7 +402,7 @@ AppendEntryToCollectedData(nsINode* aNode, const nsAString& aId,
 static void AppendValueToCollectedData(nsINode* aNode, const nsAString& aId,
                                        const bool& aValue,
                                        uint16_t& aGeneratedCount,
-                                       JSContext* aCx,
+                                       MCContext* aCx,
                                        Nullable<CollectedData>& aRetVal) {
   Record<nsString, OwningStringOrBooleanOrObject>::EntryType* entry =
       AppendEntryToCollectedData(aNode, aId, aGeneratedCount, aRetVal);
@@ -423,7 +423,7 @@ static void AppendValueToCollectedData(nsINode* aNode, const nsAString& aId,
 static void AppendValueToCollectedData(
     nsINode* aNode, const nsAString& aId,
     const CollectedNonMultipleSelectValue& aValue, uint16_t& aGeneratedCount,
-    JSContext* aCx, Nullable<CollectedData>& aRetVal) {
+    MCContext* aCx, Nullable<CollectedData>& aRetVal) {
   MC::Rooted<JS::Value> jsval(aCx);
   if (!ToJSValue(aCx, aValue, &jsval)) {
     JS_ClearPendingException(aCx);
@@ -439,7 +439,7 @@ static void AppendValueToCollectedData(Document& aDocument, nsINode* aNode,
                                        const nsAString& aId,
                                        const nsString& aValue,
                                        uint16_t& aGeneratedCount,
-                                       JSContext* aCx,
+                                       MCContext* aCx,
                                        Nullable<CollectedData>& aRetVal) {
   if (!aId.IsEmpty()) {
     // We want to avoid saving data for about:sessionrestore as a string.
@@ -471,7 +471,7 @@ static void AppendValueToCollectedData(nsINode* aNode, const nsAString& aId,
                                        const nsAString& aValueType,
                                        nsTArray<nsString>& aValue,
                                        uint16_t& aGeneratedCount,
-                                       JSContext* aCx,
+                                       MCContext* aCx,
                                        Nullable<CollectedData>& aRetVal) {
   MC::Rooted<JS::Value> jsval(aCx);
   if (aValueType.EqualsLiteral("file")) {
@@ -937,7 +937,7 @@ void SessionStoreUtils::CollectFromSelectElement(Document& aDocument,
   }
 }
 
-static void CollectCurrentFormData(JSContext* aCx, Document& aDocument,
+static void CollectCurrentFormData(MCContext* aCx, Document& aDocument,
                                    Nullable<CollectedData>& aRetVal) {
   uint16_t generatedCount = 0;
   /* textarea element */
@@ -1065,7 +1065,7 @@ static void SetElementAsMultiSelect(HTMLSelectElement* aElement,
 }
 
 MOZ_CAN_RUN_SCRIPT
-static void SetElementAsObject(JSContext* aCx, Element* aElement,
+static void SetElementAsObject(MCContext* aCx, Element* aElement,
                                JS::Handle<JS::Value> aObject) {
   RefPtr<HTMLInputElement> input = HTMLInputElement::FromNode(aElement);
   if (input) {
@@ -1126,7 +1126,7 @@ static void SetElementAsObject(JSContext* aCx, Element* aElement,
 }
 
 MOZ_CAN_RUN_SCRIPT
-static void SetSessionData(JSContext* aCx, Element* aElement,
+static void SetSessionData(MCContext* aCx, Element* aElement,
                            JS::MutableHandle<JS::Value> aObject) {
   nsAutoString data;
   if (nsContentUtils::StringifyJSON(aCx, aObject, data,
@@ -1238,13 +1238,13 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
               url.EqualsLiteral("about:welcomeback")) {
             MC::Rooted<JS::Value> object(
                 cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
-            SetSessionData(MC_UNSAFE(cx), node, &object);
+            SetSessionData(cx, node, &object);
             continue;
           }
         }
         MC::Rooted<JS::Value> object(
             cx, JS::ObjectValue(*entry.mValue.GetAsObject()));
-        SetElementAsObject(MC_UNSAFE(cx), node, object);
+        SetElementAsObject(cx, node, object);
       }
     }
   }
@@ -1262,7 +1262,7 @@ bool SessionStoreUtils::RestoreFormData(const GlobalObject& aGlobal,
       } else {
         MC::Rooted<JS::Value> object(
             aGlobal.Context(), JS::ObjectValue(*entry.mValue.GetAsObject()));
-        SetElementAsObject(MC_UNSAFE(aGlobal.Context()), node, object);
+        SetElementAsObject(aGlobal.Context(), node, object);
       }
     }
   }
@@ -1334,14 +1334,14 @@ void SessionStoreUtils::RestoreFormData(
   }
 }
 
-typedef void (*CollectorFunc)(JSContext* aCx, Document& aDocument,
+typedef void (*CollectorFunc)(MCContext* aCx, Document& aDocument,
                               Nullable<CollectedData>& aRetVal);
 
 /**
  * A function that will recursively call |CollectorFunc| to collect data for all
  * non-dynamic frames in the current frame/docShell tree.
  */
-static void CollectFrameTreeData(JSContext* aCx,
+static void CollectFrameTreeData(MCContext* aCx,
                                  BrowsingContext* aBrowsingContext,
                                  Nullable<CollectedData>& aRetVal,
                                  CollectorFunc aFunc) {
@@ -1394,14 +1394,14 @@ static void CollectFrameTreeData(JSContext* aCx,
 /* static */ void SessionStoreUtils::CollectScrollPosition(
     const GlobalObject& aGlobal, WindowProxyHolder& aWindow,
     Nullable<CollectedData>& aRetVal) {
-  CollectFrameTreeData(MC_UNSAFE(aGlobal.Context()), aWindow.get(), aRetVal,
+  CollectFrameTreeData(aGlobal.Context(), aWindow.get(), aRetVal,
                        CollectCurrentScrollPosition);
 }
 
 /* static */ void SessionStoreUtils::CollectFormData(
     const GlobalObject& aGlobal, WindowProxyHolder& aWindow,
     Nullable<CollectedData>& aRetVal) {
-  CollectFrameTreeData(MC_UNSAFE(aGlobal.Context()), aWindow.get(), aRetVal,
+  CollectFrameTreeData(aGlobal.Context(), aWindow.get(), aRetVal,
                        CollectCurrentFormData);
 }
 
@@ -1588,7 +1588,7 @@ void SessionStoreUtils::RestoreSessionStorageFromParent(
 
 /* static */
 nsresult SessionStoreUtils::ConstructFormDataValues(
-    JSContext* aCx, const nsTArray<sessionstore::FormEntry>& aValues,
+    MCContext* aCx, const nsTArray<sessionstore::FormEntry>& aValues,
     nsTArray<Record<nsString, OwningStringOrBooleanOrObject>::EntryType>&
         aEntries,
     bool aParseSessionData) {
@@ -1709,7 +1709,7 @@ nsresult SessionStoreUtils::ConstructSessionStorageValues(
 }
 
 /* static */
-bool SessionStoreUtils::CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
+bool SessionStoreUtils::CopyProperty(MCContext* aCx, JS::Handle<JSObject*> aDst,
                                      JS::Handle<JSObject*> aSrc,
                                      const nsAString& aName) {
   MC::Rooted<JS::PropertyKey> name(aCx);
@@ -1720,8 +1720,8 @@ bool SessionStoreUtils::CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
     return false;
   }
 
-  bool found = false;
-  if (!JS_HasPropertyById(aCx, aSrc, name, &found) || !found) {
+  MC::SandboxStack<bool> found = false;
+  if (!JS_HasPropertyById(aCx, aSrc, name, found) || !*found.UNSAFE_unverified()) {
     return true;
   }
 

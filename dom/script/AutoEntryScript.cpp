@@ -10,7 +10,7 @@
 #include <utility>
 #include "js/ProfilingCategory.h"
 #include "js/ProfilingStack.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Span.h"
@@ -68,7 +68,7 @@ AutoEntryScript::AutoEntryScript(nsIGlobalObject* aGlobalObject,
       // This relies on us having a cx() because the AutoJSAPI constructor
       // already ran.
       ,
-      mCallerOverride(cx()),
+      mCallerOverride(MC_UNSAFE(cx())),
       mAutoProfilerLabel(
           "", aReason, JS::ProfilingCategoryPair::JS,
           uint32_t(js::ProfilingStackFrame::Flags::RELEVANT_FOR_JS)),
@@ -95,13 +95,15 @@ AutoEntryScript::AutoEntryScript(JSObject* aObject, const char* aReason,
 
 AutoEntryScript::~AutoEntryScript() = default;
 
-AutoEntryScript::DocshellEntryMonitor::DocshellEntryMonitor(JSContext* aCx,
+AutoEntryScript::DocshellEntryMonitor::DocshellEntryMonitor(MCContext* aCx,
                                                             const char* aReason)
-    : JS::dbg::AutoEntryMonitor(aCx), mReason(aReason) {}
+    : JS::dbg::AutoEntryMonitor(MC_UNSAFE(aCx)), mReason(aReason) {}
 
 void AutoEntryScript::DocshellEntryMonitor::Entry(
-    JSContext* aCx, JSFunction* aFunction, JSScript* aScript,
+    JSContext* uCx, JSFunction* aFunction, JSScript* aScript,
     JS::Handle<JS::Value> aAsyncStack, const char* aAsyncCause) {
+  MCContext* aCx = JS_SanitizeContext(uCx);
+  
   MC::Rooted<JSFunction*> rootedFunction(aCx);
   if (aFunction) {
     rootedFunction = aFunction;
@@ -148,7 +150,8 @@ void AutoEntryScript::DocshellEntryMonitor::Entry(
   }
 }
 
-void AutoEntryScript::DocshellEntryMonitor::Exit(JSContext* aCx) {
+void AutoEntryScript::DocshellEntryMonitor::Exit(JSContext* uCx) {
+  MCContext* aCx = JS_SanitizeContext(uCx);
   nsCOMPtr<nsPIDOMWindowInner> window = xpc::CurrentWindowOrNull(aCx);
   // Not really worth checking GetRecordProfileTimelineMarkers here.
   if (window && window->GetDocShell()) {

@@ -173,7 +173,7 @@ void HTMLSourceElement::UnbindFromTree(bool aNullParent) {
   nsGenericHTMLElement::UnbindFromTree(aNullParent);
 }
 
-JSObject* HTMLSourceElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSourceElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLSourceElement_Binding::Wrap(aCx, this, aGivenProto);
 }

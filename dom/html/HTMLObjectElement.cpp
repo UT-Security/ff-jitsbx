@@ -299,7 +299,7 @@ nsresult HTMLObjectElement::CopyInnerTo(Element* aDest) {
   return rv;
 }
 
-JSObject* HTMLObjectElement::WrapNode(JSContext* aCx,
+JSObject* HTMLObjectElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLObjectElement_Binding::Wrap(aCx, this, aGivenProto);
 }

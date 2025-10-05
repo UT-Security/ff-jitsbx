@@ -156,7 +156,7 @@ already_AddRefed<RTCStatsReport> RTCStatsReport::Constructor(
   return report.forget();
 }
 
-JSObject* RTCStatsReport::WrapObject(JSContext* aCx,
+JSObject* RTCStatsReport::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return RTCStatsReport_Binding::Wrap(aCx, this, aGivenProto);
 }

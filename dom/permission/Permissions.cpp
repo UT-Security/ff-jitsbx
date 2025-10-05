@@ -33,7 +33,7 @@ Permissions::Permissions(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {}
 
 Permissions::~Permissions() = default;
 
-JSObject* Permissions::WrapObject(JSContext* aCx,
+JSObject* Permissions::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return Permissions_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -41,7 +41,7 @@ JSObject* Permissions::WrapObject(JSContext* aCx,
 namespace {
 
 already_AddRefed<PermissionStatus> CreatePermissionStatus(
-    JSContext* aCx, JS::Handle<JSObject*> aPermission,
+    MCContext* aCx, JS::Handle<JSObject*> aPermission,
     nsPIDOMWindowInner* aWindow, ErrorResult& aRv) {
   PermissionDescriptor permission;
   MC::Rooted<JS::Value> value(aCx, JS::ObjectOrNullValue(aPermission));
@@ -76,7 +76,7 @@ already_AddRefed<PermissionStatus> CreatePermissionStatus(
 
 }  // namespace
 
-already_AddRefed<Promise> Permissions::Query(JSContext* aCx,
+already_AddRefed<Promise> Permissions::Query(MCContext* aCx,
                                              JS::Handle<JSObject*> aPermission,
                                              ErrorResult& aRv) {
   if (!mWindow || !mWindow->IsFullyActive()) {
@@ -115,7 +115,7 @@ nsresult Permissions::RemovePermission(nsIPrincipal* aPrincipal,
   return permMgr->RemoveFromPrincipal(aPrincipal, aPermissionType);
 }
 
-already_AddRefed<Promise> Permissions::Revoke(JSContext* aCx,
+already_AddRefed<Promise> Permissions::Revoke(MCContext* aCx,
                                               JS::Handle<JSObject*> aPermission,
                                               ErrorResult& aRv) {
   if (!mWindow) {

@@ -29,7 +29,7 @@ class TestingDeprecatedInterface final : public nsISupports,
   static already_AddRefed<TestingDeprecatedInterface> Constructor(
       const GlobalObject& aGlobal);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }

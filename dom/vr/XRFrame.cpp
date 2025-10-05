@@ -22,7 +22,7 @@ XRFrame::XRFrame(nsISupports* aParent, XRSession* aXRSession)
       mActive(false),
       mAnimationFrame(false) {}
 
-JSObject* XRFrame::WrapObject(JSContext* aCx,
+JSObject* XRFrame::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return XRFrame_Binding::Wrap(aCx, this, aGivenProto);
 }

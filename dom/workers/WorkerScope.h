@@ -103,11 +103,11 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
                         UniquePtr<ClientSource> aClientSource,
                         bool aShouldResistFingerprinting);
 
-  virtual bool WrapGlobalObject(JSContext* aCx,
+  virtual bool WrapGlobalObject(MCContext* aCx,
                                 JS::MutableHandle<JSObject*> aReflector) = 0;
 
   // EventTarget implementation
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) final {
     MOZ_CRASH("WrapObject not supported; use WrapGlobalObject.");
   }
@@ -144,7 +144,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void ReportError(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ReportError(MCContext* aCx, JS::Handle<JS::Value> aError,
                    CallerType aCallerType, ErrorResult& aRv);
 
   // atob, btoa, and dump are declared (separately) by both WorkerGlobalScope
@@ -166,7 +166,7 @@ class WorkerGlobalScopeBase : public DOMEventTargetHelper,
   // The nullptr here is not used, but is required to make the override method
   // have the same signature as other GetModuleLoader methods on globals.
   JS::loader::ModuleLoaderBase* GetModuleLoader(
-      JSContext* aCx = nullptr) override {
+      MCContext* aCx = nullptr) override {
     return mModuleLoader;
   };
 
@@ -260,7 +260,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   FontFaceSet* GetFonts(ErrorResult&);
   FontFaceSet* GetFonts() final { return GetFonts(IgnoreErrors()); }
 
-  void ImportScripts(JSContext* aCx, const Sequence<nsString>& aScriptURLs,
+  void ImportScripts(MCContext* aCx, const Sequence<nsString>& aScriptURLs,
                      ErrorResult& aRv);
 
   OnErrorEventHandlerNonNull* GetOnerror();
@@ -279,9 +279,9 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
   Performance* GetPerformanceIfExists() const { return mPerformance; }
 
-  static bool IsInAutomation(JSContext* aCx, JSObject*);
+  static bool IsInAutomation(MCContext* aCx, JSObject*);
 
-  void GetJSTestingFunctions(JSContext* aCx,
+  void GetJSTestingFunctions(MCContext* aCx,
                              JS::MutableHandle<JSObject*> aFunctions,
                              ErrorResult& aRv);
 
@@ -294,11 +294,11 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   bool CrossOriginIsolated() const final;
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, Function& aHandler, int32_t aTimeout,
+  int32_t SetTimeout(MCContext* aCx, Function& aHandler, int32_t aTimeout,
                      const Sequence<JS::Value>& aArguments, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetTimeout(MCContext* aCx, const nsAString& aHandler,
                      int32_t aTimeout, const Sequence<JS::Value>&,
                      ErrorResult& aRv);
 
@@ -306,10 +306,10 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, Function& aHandler, int32_t aTimeout,
+  int32_t SetInterval(MCContext* aCx, Function& aHandler, int32_t aTimeout,
                       const Sequence<JS::Value>& aArguments, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetInterval(MCContext* aCx, const nsAString& aHandler,
                       int32_t aTimeout, const Sequence<JS::Value>&,
                       ErrorResult& aRv);
 
@@ -324,7 +324,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
       const ImageBitmapSource& aImage, int32_t aSx, int32_t aSy, int32_t aSw,
       int32_t aSh, const ImageBitmapOptions& aOptions, ErrorResult& aRv);
 
-  void StructuredClone(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void StructuredClone(MCContext* aCx, JS::Handle<JS::Value> aValue,
                        const StructuredSerializeOptions& aOptions,
                        JS::MutableHandle<JS::Value> aRetval,
                        ErrorResult& aError);
@@ -335,7 +335,7 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
   bool IsSecureContext() const;
 
-  already_AddRefed<IDBFactory> GetIndexedDB(JSContext* aCx,
+  already_AddRefed<IDBFactory> GetIndexedDB(MCContext* aCx,
                                             ErrorResult& aErrorResult);
 
   already_AddRefed<cache::CacheStorage> GetCaches(ErrorResult& aRv);
@@ -361,13 +361,13 @@ class WorkerGlobalScope : public WorkerGlobalScopeBase {
 
  private:
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, Function& aHandler,
+  int32_t SetTimeoutOrInterval(MCContext* aCx, Function& aHandler,
                                int32_t aTimeout,
                                const Sequence<JS::Value>& aArguments,
                                bool aIsInterval, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetTimeoutOrInterval(MCContext* aCx, const nsAString& aHandler,
                                int32_t aTimeout, bool aIsInterval,
                                ErrorResult& aRv);
 
@@ -396,13 +396,13 @@ class DedicatedWorkerGlobalScope final
                              const nsString& aName,
                              bool aShouldResistFingerprinting);
 
-  bool WrapGlobalObject(JSContext* aCx,
+  bool WrapGlobalObject(MCContext* aCx,
                         JS::MutableHandle<JSObject*> aReflector) override;
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const StructuredSerializeOptions& aOptions,
                    ErrorResult& aRv);
 
@@ -441,7 +441,7 @@ class SharedWorkerGlobalScope final
                           const nsString& aName,
                           bool aShouldResistFingerprinting);
 
-  bool WrapGlobalObject(JSContext* aCx,
+  bool WrapGlobalObject(MCContext* aCx,
                         JS::MutableHandle<JSObject*> aReflector) override;
 
   void Close();
@@ -463,7 +463,7 @@ class ServiceWorkerGlobalScope final : public WorkerGlobalScope {
       const ServiceWorkerRegistrationDescriptor& aRegistrationDescriptor,
       bool aShouldResistFingerprinting);
 
-  bool WrapGlobalObject(JSContext* aCx,
+  bool WrapGlobalObject(MCContext* aCx,
                         JS::MutableHandle<JSObject*> aReflector) override;
 
   already_AddRefed<Clients> GetClients();
@@ -507,21 +507,21 @@ class WorkerDebuggerGlobalScope final : public WorkerGlobalScopeBase {
  public:
   using WorkerGlobalScopeBase::WorkerGlobalScopeBase;
 
-  bool WrapGlobalObject(JSContext* aCx,
+  bool WrapGlobalObject(MCContext* aCx,
                         JS::MutableHandle<JSObject*> aReflector) override;
 
   void Control(const ServiceWorkerDescriptor& aServiceWorker) override {
     MOZ_CRASH("Can't control debugger workers.");
   }
 
-  void GetGlobal(JSContext* aCx, JS::MutableHandle<JSObject*> aGlobal,
+  void GetGlobal(MCContext* aCx, JS::MutableHandle<JSObject*> aGlobal,
                  ErrorResult& aRv);
 
-  void CreateSandbox(JSContext* aCx, const nsAString& aName,
+  void CreateSandbox(MCContext* aCx, const nsAString& aName,
                      JS::Handle<JSObject*> aPrototype,
                      JS::MutableHandle<JSObject*> aResult, ErrorResult& aRv);
 
-  void LoadSubScript(JSContext* aCx, const nsAString& aUrl,
+  void LoadSubScript(MCContext* aCx, const nsAString& aUrl,
                      const Optional<JS::Handle<JSObject*>>& aSandbox,
                      ErrorResult& aRv);
 
@@ -533,17 +533,17 @@ class WorkerDebuggerGlobalScope final : public WorkerGlobalScopeBase {
 
   void SetImmediate(Function& aHandler, ErrorResult& aRv);
 
-  void ReportError(JSContext* aCx, const nsAString& aMessage);
+  void ReportError(MCContext* aCx, const nsAString& aMessage);
 
-  void RetrieveConsoleEvents(JSContext* aCx, nsTArray<JS::Value>& aEvents,
+  void RetrieveConsoleEvents(MCContext* aCx, nsTArray<JS::Value>& aEvents,
                              ErrorResult& aRv);
 
-  void ClearConsoleEvents(JSContext* aCx, ErrorResult& aRv);
+  void ClearConsoleEvents(MCContext* aCx, ErrorResult& aRv);
 
-  void SetConsoleEventHandler(JSContext* aCx, AnyCallback* aHandler,
+  void SetConsoleEventHandler(MCContext* aCx, AnyCallback* aHandler,
                               ErrorResult& aRv);
 
-  void Dump(JSContext* aCx, const Optional<nsAString>& aString) const;
+  void Dump(MCContext* aCx, const Optional<nsAString>& aString) const;
 
   IMPL_EVENT_HANDLER(message)
   IMPL_EVENT_HANDLER(messageerror)

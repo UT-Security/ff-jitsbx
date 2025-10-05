@@ -27,7 +27,7 @@ DeprecationReportBody::DeprecationReportBody(
 
 DeprecationReportBody::~DeprecationReportBody() = default;
 
-JSObject* DeprecationReportBody::WrapObject(JSContext* aCx,
+JSObject* DeprecationReportBody::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return DeprecationReportBody_Binding::Wrap(aCx, this, aGivenProto);
 }

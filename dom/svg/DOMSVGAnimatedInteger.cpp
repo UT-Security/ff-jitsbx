@@ -13,7 +13,7 @@ namespace mozilla::dom {
 NS_SVG_VAL_IMPL_CYCLE_COLLECTION_WRAPPERCACHED(DOMSVGAnimatedInteger,
                                                mSVGElement)
 
-JSObject* DOMSVGAnimatedInteger::WrapObject(JSContext* aCx,
+JSObject* DOMSVGAnimatedInteger::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimatedInteger_Binding::Wrap(aCx, this, aGivenProto);
 }

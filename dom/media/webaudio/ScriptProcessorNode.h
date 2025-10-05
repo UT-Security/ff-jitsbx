@@ -31,7 +31,7 @@ class ScriptProcessorNode final : public AudioNode {
   using EventTarget::EventListenerRemoved;
   void EventListenerRemoved(nsAtom* aType) override;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   AudioNode* Connect(AudioNode& aDestination, uint32_t aOutput, uint32_t aInput,

@@ -35,8 +35,8 @@
 #include "imgIContainer.h"
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
-#include "js/Value.h"
-#include "jsapi.h"
+#include "monkeycage/Value.h"
+#include "mcapi.h"
 #include "mozAutoDocUpdate.h"
 #include "mozIDOMWindow.h"
 #include "mozIThirdPartyUtil.h"
@@ -695,7 +695,7 @@ class SimpleHTMLCollection final : public nsSimpleContentList,
       nsISupports* aScriptObjectHolder) override {
     nsWrapperCache::PreserveWrapper(aScriptObjectHolder);
   }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return HTMLCollection_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -1515,7 +1515,7 @@ static bool IsAboutErrorPage(nsGlobalWindowInner* aWin, const char* aSpec) {
 }
 #endif
 
-bool Document::CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject) {
+bool Document::CallerIsTrustedAboutNetError(MCContext* aCx, JSObject* aObject) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
 #ifdef ANDROID
   // GeckoView uses data URLs for error pages, so for now just check for any
@@ -1526,7 +1526,7 @@ bool Document::CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject) {
 #endif
 }
 
-bool Document::CallerIsTrustedAboutHttpsOnlyError(JSContext* aCx,
+bool Document::CallerIsTrustedAboutHttpsOnlyError(MCContext* aCx,
                                                   JSObject* aObject) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
 #ifdef ANDROID
@@ -1667,7 +1667,7 @@ void Document::GetNetErrorInfo(NetErrorInfo& aInfo, ErrorResult& aRv) {
   aInfo.mErrorCodeString.Assign(errorCodeString);
 }
 
-bool Document::CallerIsTrustedAboutCertError(JSContext* aCx,
+bool Document::CallerIsTrustedAboutCertError(MCContext* aCx,
                                              JSObject* aObject) {
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObject);
 #ifdef ANDROID
@@ -1679,7 +1679,7 @@ bool Document::CallerIsTrustedAboutCertError(JSContext* aCx,
 #endif
 }
 
-bool Document::CallerCanAccessPrivilegeSSA(JSContext* aCx, JSObject* aObject) {
+bool Document::CallerCanAccessPrivilegeSSA(MCContext* aCx, JSObject* aObject) {
   RefPtr<BasePrincipal> principal =
       BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(aCx));
 
@@ -2267,7 +2267,7 @@ void Document::AccumulateJSTelemetry(
 
   AutoJSContext cx;
   JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
-  MC::SandboxStack<JSAutoRealm> ar(cx, globalObject);
+  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), globalObject);
   JS::JSTimers timers = JS::GetJSTimers(cx);
 
   if (!timers.executionTime.IsZero()) {
@@ -3426,7 +3426,7 @@ bool Document::IsSynthesized() {
 }
 
 // static
-bool Document::IsCallerChromeOrAddon(JSContext* aCx, JSObject* aObject) {
+bool Document::IsCallerChromeOrAddon(MCContext* aCx, JSObject* aObject) {
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
   return principal && (principal->IsSystemPrincipal() ||
                        principal->GetIsAddonOrExpandedAddonPrincipal());
@@ -4323,14 +4323,14 @@ void Document::NoteScriptTrackingStatus(const nsACString& aURL,
   }
 }
 
-bool Document::IsScriptTracking(JSContext* aCx) const {
-  JS::AutoFilename filename;
-  uint32_t line = 0;
-  uint32_t column = 0;
-  if (!JS::DescribeScriptedCaller(aCx, &filename, &line, &column)) {
+bool Document::IsScriptTracking(MCContext* aCx) const {
+  MC::SandboxStack<JS::AutoFilename> filename;
+  MC::SandboxStack<uint32_t> line = 0;
+  MC::SandboxStack<uint32_t> column = 0;
+  if (!JS::DescribeScriptedCaller(aCx, filename, line, column)) {
     return false;
   }
-  return mTrackingScripts.Contains(nsDependentCString(filename.get()));
+  return mTrackingScripts.Contains(nsDependentCString(filename->get()));
 }
 
 void Document::GetContentType(nsAString& aContentType) {
@@ -4374,7 +4374,7 @@ bool Document::HasPendingL10nMutations() const {
   return mDocumentL10n && mDocumentL10n->HasPendingMutations();
 }
 
-bool Document::DocumentSupportsL10n(JSContext* aCx, JSObject* aObject) {
+bool Document::DocumentSupportsL10n(MCContext* aCx, JSObject* aObject) {
   MC::Rooted<JSObject*> object(aCx, aObject);
   nsCOMPtr<nsIPrincipal> callerPrincipal =
       nsContentUtils::SubjectPrincipal(aCx);
@@ -4501,7 +4501,7 @@ bool Document::AllowsL10n() const {
   return allowed;
 }
 
-bool Document::IsWebAnimationsEnabled(JSContext* aCx, JSObject* /*unused*/) {
+bool Document::IsWebAnimationsEnabled(MCContext* aCx, JSObject* /*unused*/) {
   MOZ_ASSERT(NS_IsMainThread());
 
   return nsContentUtils::IsSystemCaller(aCx) ||
@@ -4515,7 +4515,7 @@ bool Document::IsWebAnimationsEnabled(CallerType aCallerType) {
          StaticPrefs::dom_animations_api_core_enabled();
 }
 
-bool Document::IsWebAnimationsGetAnimationsEnabled(JSContext* aCx,
+bool Document::IsWebAnimationsGetAnimationsEnabled(MCContext* aCx,
                                                    JSObject* /*unused*/
 ) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -4524,7 +4524,7 @@ bool Document::IsWebAnimationsGetAnimationsEnabled(JSContext* aCx,
          StaticPrefs::dom_animations_api_getAnimations_enabled();
 }
 
-bool Document::AreWebAnimationsImplicitKeyframesEnabled(JSContext* aCx,
+bool Document::AreWebAnimationsImplicitKeyframesEnabled(MCContext* aCx,
                                                         JSObject* /*unused*/
 ) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -4533,7 +4533,7 @@ bool Document::AreWebAnimationsImplicitKeyframesEnabled(JSContext* aCx,
          StaticPrefs::dom_animations_api_implicit_keyframes_enabled();
 }
 
-bool Document::AreWebAnimationsTimelinesEnabled(JSContext* aCx,
+bool Document::AreWebAnimationsTimelinesEnabled(MCContext* aCx,
                                                 JSObject* /*unused*/
 ) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -10262,7 +10262,7 @@ nsINode* Document::AdoptNode(nsINode& aAdoptedNode, ErrorResult& rv) {
       // false, and documents should always insist on being wrapped in an
       // canonical scope. But we try to pass something sane anyway.
       JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
-      MC::SandboxStack<JSAutoRealm> ar(cx, globalObject);
+      MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), globalObject);
       MC::Rooted<JS::Value> v(cx);
       rv = nsContentUtils::WrapNative(cx, ToSupports(this), this, &v,
                                       /* aAllowWrapping = */ false);
@@ -13866,14 +13866,14 @@ class UnblockParsingPromiseHandler final : public PromiseNativeHandler {
     }
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MaybeUnblockParser();
 
     mPromise->MaybeResolve(aValue);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MaybeUnblockParser();
 
@@ -15893,7 +15893,7 @@ nsINode* Document::CreateNSResolver(nsINode& aNodeResolver) {
 }
 
 already_AddRefed<XPathResult> Document::Evaluate(
-    JSContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
+    MCContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
     XPathNSResolver* aResolver, uint16_t aType, JS::Handle<JSObject*> aResult,
     ErrorResult& rv) {
   return XPathEvaluator()->Evaluate(aCx, aExpression, aContextNode, aResolver,

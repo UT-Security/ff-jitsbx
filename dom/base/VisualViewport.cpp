@@ -35,7 +35,7 @@ VisualViewport::~VisualViewport() {
 }
 
 /* virtual */
-JSObject* VisualViewport::WrapObject(JSContext* aCx,
+JSObject* VisualViewport::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return VisualViewport_Binding::Wrap(aCx, this, aGivenProto);
 }

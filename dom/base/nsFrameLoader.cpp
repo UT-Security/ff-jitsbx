@@ -3686,7 +3686,7 @@ ProcessMessageManager* nsFrameLoader::GetProcessMessageManager() const {
   return nullptr;
 };
 
-JSObject* nsFrameLoader::WrapObject(JSContext* cx,
+JSObject* nsFrameLoader::WrapObject(MCContext* cx,
                                     JS::Handle<JSObject*> aGivenProto) {
   MC::Rooted<JSObject*> result(cx);
   FrameLoader_Binding::Wrap(cx, this, this, aGivenProto, &result);

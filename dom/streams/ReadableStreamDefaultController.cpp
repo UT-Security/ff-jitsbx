@@ -95,7 +95,7 @@ ReadableStreamDefaultController::~ReadableStreamDefaultController() {
 }
 
 JSObject* ReadableStreamDefaultController::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ReadableStreamDefaultController_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -207,7 +207,7 @@ void ReadableStreamDefaultControllerClearAlgorithms(
 
 // https://streams.spec.whatwg.org/#readable-stream-default-controller-close
 void ReadableStreamDefaultControllerClose(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1.
   if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(aController)) {
@@ -233,7 +233,7 @@ void ReadableStreamDefaultControllerClose(
 }  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#rs-default-controller-close
-void ReadableStreamDefaultController::Close(JSContext* aCx, ErrorResult& aRv) {
+void ReadableStreamDefaultController::Close(MCContext* aCx, ErrorResult& aRv) {
   // Step 1.
   if (!ReadableStreamDefaultControllerCanCloseOrEnqueueAndThrow(
           this, CloseOrEnqueue::Close, aRv)) {
@@ -247,12 +247,12 @@ void ReadableStreamDefaultController::Close(JSContext* aCx, ErrorResult& aRv) {
 namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT static void ReadableStreamDefaultControllerCallPullIfNeeded(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     ErrorResult& aRv);
 
 // https://streams.spec.whatwg.org/#readable-stream-default-controller-enqueue
 void ReadableStreamDefaultControllerEnqueue(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1.
   if (!ReadableStreamDefaultControllerCanCloseOrEnqueue(aController)) {
@@ -344,7 +344,7 @@ void ReadableStreamDefaultControllerEnqueue(
 }  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#rs-default-controller-close
-void ReadableStreamDefaultController::Enqueue(JSContext* aCx,
+void ReadableStreamDefaultController::Enqueue(MCContext* aCx,
                                               JS::Handle<JS::Value> aChunk,
                                               ErrorResult& aRv) {
   // Step 1.
@@ -357,7 +357,7 @@ void ReadableStreamDefaultController::Enqueue(JSContext* aCx,
   ReadableStreamDefaultControllerEnqueue(aCx, this, aChunk, aRv);
 }
 
-void ReadableStreamDefaultController::Error(JSContext* aCx,
+void ReadableStreamDefaultController::Error(MCContext* aCx,
                                             JS::Handle<JS::Value> aError,
                                             ErrorResult& aRv) {
   ReadableStreamDefaultControllerError(aCx, this, aError, aRv);
@@ -400,7 +400,7 @@ bool ReadableStreamDefaultControllerShouldCallPull(
 
 // https://streams.spec.whatwg.org/#readable-stream-default-controller-error
 void ReadableStreamDefaultControllerError(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   // Step 1.
   ReadableStream* stream = aController->Stream();
@@ -422,7 +422,7 @@ void ReadableStreamDefaultControllerError(
 
 // https://streams.spec.whatwg.org/#readable-stream-default-controller-call-pull-if-needed
 static void ReadableStreamDefaultControllerCallPullIfNeeded(
-    JSContext* aCx, ReadableStreamDefaultController* aController,
+    MCContext* aCx, ReadableStreamDefaultController* aController,
     ErrorResult& aRv) {
   // Step 1.
   bool shouldPull = ReadableStreamDefaultControllerShouldCallPull(aController);
@@ -457,7 +457,7 @@ static void ReadableStreamDefaultControllerCallPullIfNeeded(
 
   // Step 7 + 8:
   pullPromise->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          ReadableStreamDefaultController* mController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             // Step 7.1
@@ -473,7 +473,7 @@ static void ReadableStreamDefaultControllerCallPullIfNeeded(
                   aCx, MOZ_KnownLive(mController), aRv);
             }
           },
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          ReadableStreamDefaultController* mController) {
         // Step 8.1
         ReadableStreamDefaultControllerError(aCx, mController, aValue, aRv);
@@ -483,7 +483,7 @@ static void ReadableStreamDefaultControllerCallPullIfNeeded(
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller
 void SetUpReadableStreamDefaultController(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     ReadableStreamDefaultController* aController,
     UnderlyingSourceAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
@@ -529,7 +529,7 @@ void SetUpReadableStreamDefaultController(
 
   // Step 11 & 12:
   startPromise->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          ReadableStreamDefaultController* aController)
           MOZ_CAN_RUN_SCRIPT_BOUNDARY {
             MOZ_ASSERT(aController);
@@ -548,7 +548,7 @@ void SetUpReadableStreamDefaultController(
                 aCx, MOZ_KnownLive(aController), aRv);
           },
 
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          ReadableStreamDefaultController* aController) {
         // Step 12.1
         ReadableStreamDefaultControllerError(aCx, aController, aValue, aRv);
@@ -558,7 +558,7 @@ void SetUpReadableStreamDefaultController(
 
 // https://streams.spec.whatwg.org/#set-up-readable-stream-default-controller-from-underlying-source
 void SetupReadableStreamDefaultControllerFromUnderlyingSource(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     JS::Handle<JSObject*> aUnderlyingSource,
     UnderlyingSource& aUnderlyingSourceDict, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv) {
@@ -580,7 +580,7 @@ void SetupReadableStreamDefaultControllerFromUnderlyingSource(
 
 // https://streams.spec.whatwg.org/#rs-default-controller-private-cancel
 already_AddRefed<Promise> ReadableStreamDefaultController::CancelSteps(
-    JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1.
   ResetQueue(this);
 
@@ -600,7 +600,7 @@ already_AddRefed<Promise> ReadableStreamDefaultController::CancelSteps(
 }
 
 // https://streams.spec.whatwg.org/#rs-default-controller-private-pull
-void ReadableStreamDefaultController::PullSteps(JSContext* aCx,
+void ReadableStreamDefaultController::PullSteps(MCContext* aCx,
                                                 ReadRequest* aReadRequest,
                                                 ErrorResult& aRv) {
   // Step 1.

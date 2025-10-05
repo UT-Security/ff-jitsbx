@@ -29,7 +29,7 @@ RTCSctpTransport::RTCSctpTransport(nsPIDOMWindowInner* aWindow,
       mMaxMessageSize(aMaxMessageSize),
       mMaxChannels(aMaxChannels) {}
 
-JSObject* RTCSctpTransport::WrapObject(JSContext* aCx,
+JSObject* RTCSctpTransport::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return RTCSctpTransport_Binding::Wrap(aCx, this, aGivenProto);
 }

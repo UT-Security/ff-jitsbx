@@ -20,7 +20,7 @@ HTMLSpanElement::~HTMLSpanElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLSpanElement)
 
-JSObject* HTMLSpanElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSpanElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLSpanElement_Binding::Wrap(aCx, this, aGivenProto);
 }

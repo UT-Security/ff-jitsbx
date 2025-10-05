@@ -36,7 +36,7 @@ class DebuggerNotification : public nsISupports, public nsWrapperCache {
 
   DebuggerNotificationType Type() const { return mType; }
 
-  void GetGlobal(JSContext* aCx, JS::MutableHandle<JSObject*> aResult) {
+  void GetGlobal(MCContext* aCx, JS::MutableHandle<JSObject*> aResult) {
     aResult.set(mDebuggeeGlobal->GetGlobalJSObject());
   }
 
@@ -44,7 +44,7 @@ class DebuggerNotification : public nsISupports, public nsWrapperCache {
       nsIGlobalObject* aNewOwner) const;
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

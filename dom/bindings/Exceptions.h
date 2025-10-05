@@ -25,22 +25,14 @@ class Exception;
 
 // If we're throwing a DOMException and message is empty, the default
 // message for the nsresult in question will be used.
-bool Throw(JSContext* cx, nsresult rv, const nsACString& message = ""_ns);
-
-//TODO(JS_SANDBOX)
-inline bool Throw(MCContext* cx, nsresult rv, const nsACString& message = ""_ns) {
- return Throw(MC_UNSAFE(cx), rv, message);
-}
+bool Throw(MCContext* cx, nsresult rv, const nsACString& message = ""_ns);
 
 // Create, throw and report an exception to a given window.
 void ThrowAndReport(nsPIDOMWindowInner* aWindow, nsresult aRv);
 
 // Both signatures of ThrowExceptionObject guarantee that an exception is set on
 // aCx before they return.
-void ThrowExceptionObject(JSContext* aCx, Exception* aException);
-inline void ThrowExceptionObject(MCContext* aCx, Exception* aException) {
-  return ThrowExceptionObject(MC_UNSAFE(aCx), aException);
-}
+void ThrowExceptionObject(MCContext* aCx, Exception* aException);
 
 // Create an exception object for the given nsresult and message. If we're
 // throwing a DOMException and aMessage is empty, the default message for the
@@ -58,12 +50,12 @@ already_AddRefed<nsIStackFrame> GetCurrentJSStack(int32_t aMaxDepth = -1);
 // Internal stuff not intended to be widely used.
 namespace exceptions {
 
-already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
+already_AddRefed<nsIStackFrame> CreateStack(MCContext* aCx,
                                             JS::StackCapture&& aCaptureMode);
 
 // Like the above, but creates a JSStackFrame wrapper for an existing
 // JS::SavedFrame object, passed as aStack.
-already_AddRefed<nsIStackFrame> CreateStack(JSContext* aCx,
+already_AddRefed<nsIStackFrame> CreateStack(MCContext* aCx,
                                             JS::Handle<JSObject*> aStack);
 
 }  // namespace exceptions

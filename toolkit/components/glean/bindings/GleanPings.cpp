@@ -26,13 +26,13 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(GleanPings)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* GleanPings::WrapObject(JSContext* aCx,
+JSObject* GleanPings::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return dom::GleanPingsImpl_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
-bool GleanPings::DefineGleanPings(JSContext* aCx,
+bool GleanPings::DefineGleanPings(MCContext* aCx,
                                   JS::Handle<JSObject*> aGlobal) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(JS::GetClass(aGlobal)->flags & JSCLASS_DOM_GLOBAL,

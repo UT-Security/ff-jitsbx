@@ -13,7 +13,7 @@
 
 class nsIPrincipal;
 class nsGlobalWindowInner;
-struct JSContext;
+struct MCContext;
 class JSObject;
 
 namespace mozilla {
@@ -43,7 +43,7 @@ class OriginTrials final {
   bool IsEnabled(OriginTrial aTrial) const;
 
   // Checks whether a given origin trial is enabled for a given call.
-  static bool IsEnabled(JSContext*, JSObject*, OriginTrial);
+  static bool IsEnabled(MCContext*, JSObject*, OriginTrial);
 
   // Computes the currently-applying trials for our global.
   static OriginTrials FromWindow(const nsGlobalWindowInner*);

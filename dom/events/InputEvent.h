@@ -30,7 +30,7 @@ class InputEvent : public UIEvent {
                                                   const InputEventInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return InputEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

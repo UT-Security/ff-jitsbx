@@ -215,7 +215,7 @@ void StreamFilter::FireEvent(const nsAString& aType) {
 
 void StreamFilter::FireDataEvent(const nsTArray<uint8_t>& aData) {
   AutoEntryScript aes(mParent, "StreamFilter data event");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   RootedDictionary<StreamFilterDataEventInit> init(cx);
   init.mBubbles = false;
@@ -249,12 +249,12 @@ void StreamFilter::FireErrorEvent(const nsAString& aError) {
  *****************************************************************************/
 
 /* static */
-bool StreamFilter::IsAllowedInContext(JSContext* aCx, JSObject* /* unused */) {
+bool StreamFilter::IsAllowedInContext(MCContext* aCx, JSObject* /* unused */) {
   return nsContentUtils::CallerHasPermission(aCx,
                                              nsGkAtoms::webRequestBlocking);
 }
 
-JSObject* StreamFilter::WrapObject(JSContext* aCx,
+JSObject* StreamFilter::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return StreamFilter_Binding::Wrap(aCx, this, aGivenProto);
 }

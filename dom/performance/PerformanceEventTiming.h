@@ -36,7 +36,7 @@ class PerformanceEventTiming final
     return eventTiming.forget();
   }
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   DOMHighResTimeStamp ProcessingStart() const {

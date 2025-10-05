@@ -43,7 +43,7 @@ void BatteryManager::Init() {
 
 void BatteryManager::Shutdown() { hal::UnregisterBatteryObserver(this); }
 
-JSObject* BatteryManager::WrapObject(JSContext* aCx,
+JSObject* BatteryManager::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return BatteryManager_Binding::Wrap(aCx, this, aGivenProto);
 }

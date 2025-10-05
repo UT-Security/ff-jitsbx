@@ -29,7 +29,7 @@ void XPCThrower::Throw(nsresult rv, MCContext* cx) {
   if (!nsXPCException::NameAndFormatForNSResult(rv, nullptr, &format)) {
     format = "";
   }
-  dom::Throw(MC_UNSAFE(cx), rv, nsDependentCString(format));
+  dom::Throw(cx, rv, nsDependentCString(format));
 }
 
 namespace xpc {
@@ -58,7 +58,7 @@ bool XPCThrower::CheckForPendingException(nsresult result, MCContext* cx) {
     return false;
   }
 
-  ThrowExceptionObject(MC_UNSAFE(cx), e);
+  ThrowExceptionObject(cx, e);
   return true;
 }
 
@@ -82,7 +82,7 @@ void XPCThrower::Throw(nsresult rv, XPCCallContext& ccx) {
     Verbosify(ccx, &sz, false);
   }
 
-  dom::Throw(MC_UNSAFE(ccx), rv, nsDependentCString(sz));
+  dom::Throw(ccx, rv, nsDependentCString(sz));
 
   if (sz && sz != format) {
     js_free(sz);
@@ -129,7 +129,7 @@ void XPCThrower::ThrowBadResult(nsresult rv, nsresult result,
     Verbosify(ccx, &sz, true);
   }
 
-  dom::Throw(MC_UNSAFE(ccx), result, nsDependentCString(sz));
+  dom::Throw(ccx, result, nsDependentCString(sz));
 
   if (sz) {
     js_free(sz);
@@ -153,7 +153,7 @@ void XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum,
     Verbosify(ccx, &sz, true);
   }
 
-  dom::Throw(MC_UNSAFE(ccx), rv, nsDependentCString(sz));
+  dom::Throw(ccx, rv, nsDependentCString(sz));
 
   if (sz) {
     js_free(sz);

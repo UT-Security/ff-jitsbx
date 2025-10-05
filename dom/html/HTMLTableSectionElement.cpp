@@ -20,7 +20,7 @@ namespace mozilla::dom {
 
 HTMLTableSectionElement::~HTMLTableSectionElement() = default;
 
-JSObject* HTMLTableSectionElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTableSectionElement::WrapNode(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableSectionElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -22,7 +22,7 @@ namespace mozilla::dom {
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(XULTreeElement, nsXULElement)
 NS_IMPL_CYCLE_COLLECTION_INHERITED(XULTreeElement, nsXULElement, mView)
 
-JSObject* XULTreeElement::WrapNode(JSContext* aCx,
+JSObject* XULTreeElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return XULTreeElement_Binding::Wrap(aCx, this, aGivenProto);
 }

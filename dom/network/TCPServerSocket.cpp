@@ -166,7 +166,7 @@ void TCPServerSocket::SetServerBridgeParent(
   mServerBridgeParent = aBridgeParent;
 }
 
-JSObject* TCPServerSocket::WrapObject(JSContext* aCx,
+JSObject* TCPServerSocket::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return TCPServerSocket_Binding::Wrap(aCx, this, aGivenProto);
 }

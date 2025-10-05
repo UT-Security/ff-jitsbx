@@ -41,7 +41,7 @@ class SVGMarkerElement final : public SVGMarkerElementBase {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGMarkerElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   // SVGSVGElement methods:

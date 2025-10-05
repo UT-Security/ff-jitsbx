@@ -25,7 +25,7 @@ class SVGFEFloodElement final : public SVGFEFloodElementBase {
   explicit SVGFEFloodElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEFloodElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   bool SubregionIsUnionOfRegions() override { return false; }

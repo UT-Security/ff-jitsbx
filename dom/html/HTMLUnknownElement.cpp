@@ -16,7 +16,7 @@ namespace mozilla::dom {
 NS_IMPL_ISUPPORTS_INHERITED(HTMLUnknownElement, nsGenericHTMLElement,
                             HTMLUnknownElement)
 
-JSObject* HTMLUnknownElement::WrapNode(JSContext* aCx,
+JSObject* HTMLUnknownElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return HTMLUnknownElement_Binding::Wrap(aCx, this, aGivenProto);
 }

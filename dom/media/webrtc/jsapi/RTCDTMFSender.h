@@ -46,7 +46,7 @@ class RTCDTMFSender : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(RTCDTMFSender, DOMEventTargetHelper)
 
   // webidl
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   void SetPayloadType(int32_t aPayloadType, int32_t aPayloadFrequency);
   void InsertDTMF(const nsAString& aTones, uint32_t aDuration,

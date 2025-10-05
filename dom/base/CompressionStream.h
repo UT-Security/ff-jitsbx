@@ -36,7 +36,7 @@ class CompressionStream final : public nsISupports, public nsWrapperCache {
  public:
   nsISupports* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // TODO: Mark as MOZ_CAN_RUN_SCRIPT when IDL constructors can be (bug 1749042)

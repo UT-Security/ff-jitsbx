@@ -57,7 +57,7 @@ class InspectorFontFace final : public NonRefcountedDOMObject {
 
   void GetRanges(nsTArray<RefPtr<nsRange>>& aResult);
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return InspectorFontFace_Binding::Wrap(aCx, this, aGivenProto, aReflector);
   }

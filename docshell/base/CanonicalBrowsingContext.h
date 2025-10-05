@@ -179,7 +179,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
                            bool aRequireUserInteraction, bool aUserActivation,
                            Maybe<ContentParentId> aContentId);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Dispatches a wheel zoom change to the embedder element.

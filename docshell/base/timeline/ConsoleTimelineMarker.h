@@ -33,7 +33,7 @@ class ConsoleTimelineMarker : public TimelineMarker {
     return mCause == static_cast<const ConsoleTimelineMarker*>(&aOther)->mCause;
   }
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

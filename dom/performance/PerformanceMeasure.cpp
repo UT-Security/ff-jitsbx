@@ -42,12 +42,12 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_END
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(PerformanceMeasure,
                                                PerformanceEntry)
 
-JSObject* PerformanceMeasure::WrapObject(JSContext* aCx,
+JSObject* PerformanceMeasure::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return PerformanceMeasure_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void PerformanceMeasure::GetDetail(JSContext* aCx,
+void PerformanceMeasure::GetDetail(MCContext* aCx,
                                    JS::MutableHandle<JS::Value> aRetval) {
   // Return a copy so that this method always returns the value it is set to
   // (i.e. it'll return the same value even if the caller assigns to it). Note

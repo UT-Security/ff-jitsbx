@@ -130,7 +130,7 @@ XRInputSource::~XRInputSource() {
   mGamepad = nullptr;
 }
 
-JSObject* XRInputSource::WrapObject(JSContext* aCx,
+JSObject* XRInputSource::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return XRInputSource_Binding::Wrap(aCx, this, aGivenProto);
 }

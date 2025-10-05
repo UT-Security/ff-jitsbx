@@ -149,7 +149,7 @@ gfx::VRDisplayClient* XRSession::GetDisplayClient() const {
   return mDisplayClient;
 }
 
-JSObject* XRSession::WrapObject(JSContext* aCx,
+JSObject* XRSession::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return XRSession_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -234,7 +234,7 @@ XRInputSourceArray* XRSession::InputSources() { return mInputSources; }
 
 Nullable<float> XRSession::GetFrameRate() { return {}; }
 
-void XRSession::GetSupportedFrameRates(JSContext*,
+void XRSession::GetSupportedFrameRates(MCContext*,
                                        JS::MutableHandle<JSObject*> aRetVal) {
   aRetVal.set(nullptr);
 }

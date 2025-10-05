@@ -27,7 +27,7 @@ class CSSFontFaceRuleDecl final : public nsICSSDeclaration {
 
   void GetPropertyValue(nsCSSFontDesc aFontDescID, nsACString& aResult) const;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  protected:
   // For accessing the constructor.
@@ -74,7 +74,7 @@ class CSSFontFaceRule final : public css::Rule {
   // Methods of mozilla::css::Rule
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const final;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
 #ifdef DEBUG
   void List(FILE* out = stdout, int32_t aIndent = 0) const final;

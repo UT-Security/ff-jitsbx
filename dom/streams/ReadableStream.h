@@ -68,12 +68,12 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
  public:
   // Abstract algorithms
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<ReadableStream> CreateAbstract(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
+      MCContext* aCx, nsIGlobalObject* aGlobal,
       UnderlyingSourceAlgorithmsBase* aAlgorithms,
       mozilla::Maybe<double> aHighWaterMark,
       QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<ReadableStream> CreateByteAbstract(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
+      MCContext* aCx, nsIGlobalObject* aGlobal,
       UnderlyingSourceAlgorithmsBase* aAlgorithms, ErrorResult& aRv);
 
   // Slot Getter/Setters:
@@ -116,14 +116,14 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
 
   // [Transferable]
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-steps
-  MOZ_CAN_RUN_SCRIPT bool Transfer(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT bool Transfer(MCContext* aCx,
                                    UniqueMessagePortId& aPortId);
   MOZ_CAN_RUN_SCRIPT static already_AddRefed<ReadableStream>
-  ReceiveTransferImpl(JSContext* aCx, nsIGlobalObject* aGlobal,
+  ReceiveTransferImpl(MCContext* aCx, nsIGlobalObject* aGlobal,
                       MessagePort& aPort);
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-receiving-steps
   MOZ_CAN_RUN_SCRIPT static bool ReceiveTransfer(
-      JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
+      MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort,
       JS::MutableHandle<JSObject*> aReturnObject);
 
   // Public functions to implement other specs
@@ -131,7 +131,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
 
   // https://streams.spec.whatwg.org/#readablestream-set-up
   static already_AddRefed<ReadableStream> CreateNative(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
+      MCContext* aCx, nsIGlobalObject* aGlobal,
       UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
       mozilla::Maybe<double> aHighWaterMark,
       QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
@@ -141,7 +141,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
  protected:
   // Sets up the ReadableStream with byte reading support. Intended for
   // subclasses.
-  void SetUpByteNative(JSContext* aCx,
+  void SetUpByteNative(MCContext* aCx,
                        UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
                        mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv);
 
@@ -149,7 +149,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   // Creates and sets up a ReadableStream with byte reading support. Use
   // SetUpByteNative for this purpose in subclasses.
   static already_AddRefed<ReadableStream> CreateByteNative(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
+      MCContext* aCx, nsIGlobalObject* aGlobal,
       UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
       mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv);
 
@@ -158,14 +158,14 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   // algorithms (not, e.g., on web-developer-created instances):
 
   // https://streams.spec.whatwg.org/#readablestream-close
-  MOZ_CAN_RUN_SCRIPT void CloseNative(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void CloseNative(MCContext* aCx, ErrorResult& aRv);
 
   // https://streams.spec.whatwg.org/#readablestream-error
-  void ErrorNative(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorNative(MCContext* aCx, JS::Handle<JS::Value> aError,
                    ErrorResult& aRv);
 
   // https://streams.spec.whatwg.org/#readablestream-enqueue
-  MOZ_CAN_RUN_SCRIPT void EnqueueNative(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void EnqueueNative(MCContext* aCx,
                                         JS::Handle<JS::Value> aChunk,
                                         ErrorResult& aRv);
 
@@ -182,7 +182,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // IDL methods
@@ -196,7 +196,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   bool Locked() const;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Cancel(
-      JSContext* cx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
+      MCContext* cx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
 
   void GetReader(const ReadableStreamGetReaderOptions& aOptions,
                  OwningReadableStreamReader& resultReader, ErrorResult& aRv);
@@ -209,7 +209,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
       WritableStream& aDestination, const StreamPipeOptions& aOptions,
       ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void Tee(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void Tee(MCContext* aCx,
                               nsTArray<RefPtr<ReadableStream>>& aResult,
                               ErrorResult& aRv);
 
@@ -229,7 +229,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> GetNextIterationResult(
       Iterator* aIterator, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> IteratorReturn(
-      JSContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
+      MCContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv);
 
   // Internal Slots:
@@ -249,15 +249,15 @@ bool IsReadableStreamLocked(ReadableStream* aStream);
 
 double ReadableStreamGetNumReadRequests(ReadableStream* aStream);
 
-void ReadableStreamError(JSContext* aCx, ReadableStream* aStream,
+void ReadableStreamError(MCContext* aCx, ReadableStream* aStream,
                          JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
-MOZ_CAN_RUN_SCRIPT void ReadableStreamClose(JSContext* aCx,
+MOZ_CAN_RUN_SCRIPT void ReadableStreamClose(MCContext* aCx,
                                             ReadableStream* aStream,
                                             ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableStreamFulfillReadRequest(
-    JSContext* aCx, ReadableStream* aStream, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, ReadableStream* aStream, JS::Handle<JS::Value> aChunk,
     bool done, ErrorResult& aRv);
 
 void ReadableStreamAddReadRequest(ReadableStream* aStream,
@@ -266,7 +266,7 @@ void ReadableStreamAddReadIntoRequest(ReadableStream* aStream,
                                       ReadIntoRequest* aReadIntoRequest);
 
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> ReadableStreamCancel(
-    JSContext* aCx, ReadableStream* aStream, JS::Handle<JS::Value> aError,
+    MCContext* aCx, ReadableStream* aStream, JS::Handle<JS::Value> aError,
     ErrorResult& aRv);
 
 already_AddRefed<ReadableStreamDefaultReader>

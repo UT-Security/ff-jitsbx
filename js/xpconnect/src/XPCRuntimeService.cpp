@@ -68,8 +68,10 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
                        bool* _retval) {
   MC::RootedObject obj(cx, objArg);
   MC::RootedId id(cx, idArg);
+  MC::Tainted<bool*> t_resolvedp;
+  t_resolvedp.assign_raw_pointer(resolvedp);
   *_retval =
-      WebIDLGlobalNameHash::ResolveForSystemGlobal(MC_UNSAFE(cx), obj, id, resolvedp);
+      WebIDLGlobalNameHash::ResolveForSystemGlobal(cx, obj, id, t_resolvedp);
   if (!*_retval) {
     return NS_ERROR_FAILURE;
   }
@@ -80,25 +82,25 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
 
   XPCJSContext* xpccx = XPCJSContext::Get();
   if (id == xpccx->GetStringID(XPCJSContext::IDX_FETCH)) {
-    *_retval = xpc::SandboxCreateFetch(MC_UNSAFE(cx), obj);
+    *_retval = xpc::SandboxCreateFetch(cx, obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_CRYPTO)) {
-    *_retval = xpc::SandboxCreateCrypto(MC_UNSAFE(cx), obj);
+    *_retval = xpc::SandboxCreateCrypto(cx, obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_INDEXEDDB)) {
-    *_retval = IndexedDatabaseManager::DefineIndexedDB(MC_UNSAFE(cx), obj);
+    *_retval = IndexedDatabaseManager::DefineIndexedDB(cx, obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
     *resolvedp = true;
   } else if (id == xpccx->GetStringID(XPCJSContext::IDX_STRUCTUREDCLONE)) {
-    *_retval = xpc::SandboxCreateStructuredClone(MC_UNSAFE(cx), obj);
+    *_retval = xpc::SandboxCreateStructuredClone(cx, obj);
     if (!*_retval) {
       return NS_ERROR_FAILURE;
     }
@@ -124,7 +126,7 @@ BackstagePass::NewEnumerate(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
     return NS_ERROR_FAILURE;
   }
 
-  *_retval = WebIDLGlobalNameHash::NewEnumerateSystemGlobal(MC_UNSAFE(cx), obj, properties,
+  *_retval = WebIDLGlobalNameHash::NewEnumerateSystemGlobal(cx, obj, properties,
                                                             enumerableOnly);
   return *_retval ? NS_OK : NS_ERROR_FAILURE;
 }

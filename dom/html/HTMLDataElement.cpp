@@ -20,7 +20,7 @@ HTMLDataElement::~HTMLDataElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLDataElement)
 
-JSObject* HTMLDataElement::WrapNode(JSContext* aCx,
+JSObject* HTMLDataElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLDataElement_Binding::Wrap(aCx, this, aGivenProto);
 }

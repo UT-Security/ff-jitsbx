@@ -30,7 +30,7 @@ class IIRFilterNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetFrequencyResponse(const Float32Array& aFrequencyHz,

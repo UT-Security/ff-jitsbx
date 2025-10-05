@@ -48,7 +48,7 @@ NS_IMPL_ADDREF_INHERITED(DOMRequest, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(DOMRequest, DOMEventTargetHelper)
 
 /* virtual */
-JSObject* DOMRequest::WrapObject(JSContext* aCx,
+JSObject* DOMRequest::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return DOMRequest_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -133,7 +133,7 @@ void DOMRequest::FireEvent(const nsAString& aType, bool aBubble,
 
 void DOMRequest::RootResultVal() { mozilla::HoldJSObjects(this); }
 
-void DOMRequest::Then(JSContext* aCx, AnyCallback* aResolveCallback,
+void DOMRequest::Then(MCContext* aCx, AnyCallback* aResolveCallback,
                       AnyCallback* aRejectCallback,
                       JS::MutableHandle<JS::Value> aRetval,
                       mozilla::ErrorResult& aRv) {

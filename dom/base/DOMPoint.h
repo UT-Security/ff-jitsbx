@@ -7,7 +7,7 @@
 #ifndef MOZILLA_DOMPOINT_H_
 #define MOZILLA_DOMPOINT_H_
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "nsCOMPtr.h"
@@ -17,7 +17,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -54,22 +54,22 @@ class DOMPointReadOnly : public nsWrapperCache {
                                              ErrorResult& aRv);
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   static already_AddRefed<DOMPointReadOnly> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  protected:
   virtual ~DOMPointReadOnly() = default;
 
   // Shared implementation of ReadStructuredClone for DOMPoint and
   // DOMPointReadOnly.
-  bool ReadStructuredClone(JSStructuredCloneReader* aReader);
+  bool ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader);
 
   nsCOMPtr<nsISupports> mParent;
   double mX, mY, mZ, mW;
@@ -87,12 +87,12 @@ class DOMPoint final : public DOMPointReadOnly {
                                                 double aX, double aY, double aZ,
                                                 double aW);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMPoint> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
   using DOMPointReadOnly::ReadStructuredClone;
 
   void SetX(double aX) { mX = aX; }

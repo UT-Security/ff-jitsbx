@@ -22,7 +22,7 @@ class WorkerCSPEventRunnable final : public MainThreadWorkerRunnable {
       : MainThreadWorkerRunnable(aWorkerPrivate), mJSON(aJSON) {}
 
  private:
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
     SecurityPolicyViolationEventInit violationEventInit;
     if (NS_WARN_IF(!violationEventInit.Init(mJSON))) {
       return true;

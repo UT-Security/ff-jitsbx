@@ -83,7 +83,7 @@ ServiceWorkerRegistration::ServiceWorkerRegistration(
 ServiceWorkerRegistration::~ServiceWorkerRegistration() { Shutdown(); }
 
 JSObject* ServiceWorkerRegistration::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ServiceWorkerRegistration_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -349,7 +349,7 @@ already_AddRefed<Promise> ServiceWorkerRegistration::Unregister(
 }
 
 already_AddRefed<PushManager> ServiceWorkerRegistration::GetPushManager(
-    JSContext* aCx, ErrorResult& aRv) {
+    MCContext* aCx, ErrorResult& aRv) {
   if (!mPushManager) {
     nsCOMPtr<nsIGlobalObject> globalObject = GetParentObject();
 
@@ -371,7 +371,7 @@ already_AddRefed<PushManager> ServiceWorkerRegistration::GetPushManager(
 }
 
 already_AddRefed<Promise> ServiceWorkerRegistration::ShowNotification(
-    JSContext* aCx, const nsAString& aTitle,
+    MCContext* aCx, const nsAString& aTitle,
     const NotificationOptions& aOptions, ErrorResult& aRv) {
   nsIGlobalObject* global = GetParentObject();
   if (!global) {

@@ -137,15 +137,15 @@ class Key {
   // A key return value is indicated by returning `true` whereas `false` means
   // either invalid (if `aRv.Failed()` is `false`) or an exception (otherwise).
   IDBResult<Ok, IDBSpecialValue::Invalid> SetFromJSVal(
-      JSContext* aCx, JS::Handle<JS::Value> aVal);
+      MCContext* aCx, JS::Handle<JS::Value> aVal);
 
-  nsresult ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aVal) const;
+  nsresult ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) const;
 
-  nsresult ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aVal) const;
+  nsresult ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aVal) const;
 
   // See SetFromJSVal() for the meaning of values returned by this function.
   IDBResult<Ok, IDBSpecialValue::Invalid> AppendItem(
-      JSContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal);
+      MCContext* aCx, bool aFirstOfArray, JS::Handle<JS::Value> aVal);
 
   Result<Key, nsresult> ToLocaleAwareKey(const nsCString& aLocale) const;
 
@@ -201,7 +201,7 @@ class Key {
 
   // Encoding functions. These append the encoded value to the end of mBuffer
   IDBResult<Ok, IDBSpecialValue::Invalid> EncodeJSVal(
-      JSContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset);
+      MCContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset);
 
   Result<Ok, nsresult> EncodeString(const nsAString& aString,
                                     uint8_t aTypeOffset);
@@ -224,7 +224,7 @@ class Key {
   // Decoding functions. aPos points into mBuffer and is adjusted to point
   // past the consumed value. (Note: this may be beyond aEnd).
   static nsresult DecodeJSVal(const EncodedDataType*& aPos,
-                              const EncodedDataType* aEnd, JSContext* aCx,
+                              const EncodedDataType* aEnd, MCContext* aCx,
                               JS::MutableHandle<JS::Value> aVal);
 
   static nsAutoString DecodeString(const EncodedDataType*& aPos,
@@ -234,7 +234,7 @@ class Key {
                              const EncodedDataType* aEnd);
 
   static JSObject* DecodeBinary(const EncodedDataType*& aPos,
-                                const EncodedDataType* aEnd, JSContext* aCx);
+                                const EncodedDataType* aEnd, MCContext* aCx);
 
   // Returns the size of the decoded data for stringy (string or binary),
   // excluding a null terminator.
@@ -262,12 +262,12 @@ class Key {
                             const AcquireEmpty& acquireEmpty);
 
   IDBResult<Ok, IDBSpecialValue::Invalid> EncodeJSValInternal(
-      JSContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset,
+      MCContext* aCx, JS::Handle<JS::Value> aVal, uint8_t aTypeOffset,
       uint16_t aRecursionDepth);
 
   static nsresult DecodeJSValInternal(const EncodedDataType*& aPos,
                                       const EncodedDataType* aEnd,
-                                      JSContext* aCx, uint8_t aTypeOffset,
+                                      MCContext* aCx, uint8_t aTypeOffset,
                                       JS::MutableHandle<JS::Value> aVal,
                                       uint16_t aRecursionDepth);
 

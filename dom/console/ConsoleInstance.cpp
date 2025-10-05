@@ -42,7 +42,7 @@ ConsoleUtils::Level WebIDLevelToConsoleUtilsLevel(ConsoleLevel aLevel) {
 
 }  // namespace
 
-ConsoleInstance::ConsoleInstance(JSContext* aCx,
+ConsoleInstance::ConsoleInstance(MCContext* aCx,
                                  const ConsoleInstanceOptions& aOptions)
     : mConsole(new Console(aCx, nullptr, 0, 0)) {
   mConsole->mConsoleID = aOptions.mConsoleID;
@@ -80,13 +80,13 @@ ConsoleInstance::ConsoleInstance(JSContext* aCx,
 
 ConsoleInstance::~ConsoleInstance() = default;
 
-JSObject* ConsoleInstance::WrapObject(JSContext* aCx,
+JSObject* ConsoleInstance::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return ConsoleInstance_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 #define METHOD(name, string)                                     \
-  void ConsoleInstance::name(JSContext* aCx,                     \
+  void ConsoleInstance::name(MCContext* aCx,                     \
                              const Sequence<JS::Value>& aData) { \
     RefPtr<Console> console(mConsole);                           \
     console->MethodInternal(aCx, Console::Method##name,          \
@@ -108,32 +108,32 @@ METHOD(GroupCollapsed, u"groupCollapsed")
 
 #undef METHOD
 
-void ConsoleInstance::GroupEnd(JSContext* aCx) {
+void ConsoleInstance::GroupEnd(MCContext* aCx) {
   const Sequence<JS::Value> data;
   RefPtr<Console> console(mConsole);
   console->MethodInternal(aCx, Console::MethodGroupEnd, u"groupEnd"_ns, data);
 }
 
-void ConsoleInstance::Time(JSContext* aCx, const nsAString& aLabel) {
+void ConsoleInstance::Time(MCContext* aCx, const nsAString& aLabel) {
   RefPtr<Console> console(mConsole);
   console->StringMethodInternal(aCx, aLabel, Sequence<JS::Value>(),
                                 Console::MethodTime, u"time"_ns);
 }
 
-void ConsoleInstance::TimeLog(JSContext* aCx, const nsAString& aLabel,
+void ConsoleInstance::TimeLog(MCContext* aCx, const nsAString& aLabel,
                               const Sequence<JS::Value>& aData) {
   RefPtr<Console> console(mConsole);
   console->StringMethodInternal(aCx, aLabel, aData, Console::MethodTimeLog,
                                 u"timeLog"_ns);
 }
 
-void ConsoleInstance::TimeEnd(JSContext* aCx, const nsAString& aLabel) {
+void ConsoleInstance::TimeEnd(MCContext* aCx, const nsAString& aLabel) {
   RefPtr<Console> console(mConsole);
   console->StringMethodInternal(aCx, aLabel, Sequence<JS::Value>(),
                                 Console::MethodTimeEnd, u"timeEnd"_ns);
 }
 
-void ConsoleInstance::TimeStamp(JSContext* aCx,
+void ConsoleInstance::TimeStamp(MCContext* aCx,
                                 const JS::Handle<JS::Value> aData) {
   ConsoleCommon::ClearException ce(aCx);
 
@@ -148,21 +148,21 @@ void ConsoleInstance::TimeStamp(JSContext* aCx,
   console->MethodInternal(aCx, Console::MethodTimeStamp, u"timeStamp"_ns, data);
 }
 
-void ConsoleInstance::Profile(JSContext* aCx,
+void ConsoleInstance::Profile(MCContext* aCx,
                               const Sequence<JS::Value>& aData) {
   RefPtr<Console> console(mConsole);
   console->ProfileMethodInternal(aCx, Console::MethodProfile, u"profile"_ns,
                                  aData);
 }
 
-void ConsoleInstance::ProfileEnd(JSContext* aCx,
+void ConsoleInstance::ProfileEnd(MCContext* aCx,
                                  const Sequence<JS::Value>& aData) {
   RefPtr<Console> console(mConsole);
   console->ProfileMethodInternal(aCx, Console::MethodProfileEnd,
                                  u"profileEnd"_ns, aData);
 }
 
-void ConsoleInstance::Assert(JSContext* aCx, bool aCondition,
+void ConsoleInstance::Assert(MCContext* aCx, bool aCondition,
                              const Sequence<JS::Value>& aData) {
   if (!aCondition) {
     RefPtr<Console> console(mConsole);
@@ -170,19 +170,19 @@ void ConsoleInstance::Assert(JSContext* aCx, bool aCondition,
   }
 }
 
-void ConsoleInstance::Count(JSContext* aCx, const nsAString& aLabel) {
+void ConsoleInstance::Count(MCContext* aCx, const nsAString& aLabel) {
   RefPtr<Console> console(mConsole);
   console->StringMethodInternal(aCx, aLabel, Sequence<JS::Value>(),
                                 Console::MethodCount, u"count"_ns);
 }
 
-void ConsoleInstance::CountReset(JSContext* aCx, const nsAString& aLabel) {
+void ConsoleInstance::CountReset(MCContext* aCx, const nsAString& aLabel) {
   RefPtr<Console> console(mConsole);
   console->StringMethodInternal(aCx, aLabel, Sequence<JS::Value>(),
                                 Console::MethodCountReset, u"countReset"_ns);
 }
 
-void ConsoleInstance::Clear(JSContext* aCx) {
+void ConsoleInstance::Clear(MCContext* aCx) {
   const Sequence<JS::Value> data;
   RefPtr<Console> console(mConsole);
   console->MethodInternal(aCx, Console::MethodClear, u"clear"_ns, data);

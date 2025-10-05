@@ -33,7 +33,7 @@ class FileSystemFileHandle final : public FileSystemHandle {
                                            FileSystemHandle)
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL interface
@@ -48,8 +48,8 @@ class FileSystemFileHandle final : public FileSystemHandle {
 
   // [Serializable]
   static already_AddRefed<FileSystemFileHandle> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  private:
   ~FileSystemFileHandle() = default;

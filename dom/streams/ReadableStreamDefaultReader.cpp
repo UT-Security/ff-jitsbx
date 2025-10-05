@@ -56,7 +56,7 @@ ReadableStreamDefaultReader::~ReadableStreamDefaultReader() {
 }
 
 JSObject* ReadableStreamDefaultReader::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ReadableStreamDefaultReader_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -135,7 +135,7 @@ ReadableStreamDefaultReader::Constructor(const GlobalObject& aGlobal,
   return reader.forget();
 }
 
-void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+void Read_ReadRequest::ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                   ErrorResult& aRv) {
   // https://streams.spec.whatwg.org/#default-reader-read Step 3.
   // chunk steps, given chunk:
@@ -163,7 +163,7 @@ void Read_ReadRequest::ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
   mPromise->MaybeResolve(value);
 }
 
-void Read_ReadRequest::CloseSteps(JSContext* aCx, ErrorResult& aRv) {
+void Read_ReadRequest::CloseSteps(MCContext* aCx, ErrorResult& aRv) {
   // https://streams.spec.whatwg.org/#default-reader-read Step 3.
   // close steps:
   //  Step 1. Resolve promise with «[ "value" → undefined, "done" → true ]».
@@ -180,7 +180,7 @@ void Read_ReadRequest::CloseSteps(JSContext* aCx, ErrorResult& aRv) {
   mPromise->MaybeResolve(value);
 }
 
-void Read_ReadRequest::ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+void Read_ReadRequest::ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                                   ErrorResult& aRv) {
   // https://streams.spec.whatwg.org/#default-reader-read Step 3.
   // error steps:
@@ -205,7 +205,7 @@ NS_INTERFACE_MAP_END_INHERITING(ReadRequest)
 
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-default-reader-read
-void ReadableStreamDefaultReaderRead(JSContext* aCx,
+void ReadableStreamDefaultReaderRead(MCContext* aCx,
                                      ReadableStreamGenericReader* aReader,
                                      ReadRequest* aRequest, ErrorResult& aRv) {
   // Step 1.
@@ -258,7 +258,7 @@ already_AddRefed<Promise> ReadableStreamDefaultReader::Read(ErrorResult& aRv) {
 
   // Step 4.
   AutoEntryScript aes(mGlobal, "ReadableStreamDefaultReader::Read");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   ReadableStreamDefaultReaderRead(cx, this, request, aRv);
   if (aRv.Failed()) {
@@ -311,7 +311,7 @@ void ReadableStreamReaderGenericRelease(ReadableStreamGenericReader* aReader,
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreadererrorreadrequests
 void ReadableStreamDefaultReaderErrorReadRequests(
-    JSContext* aCx, ReadableStreamDefaultReader* aReader,
+    MCContext* aCx, ReadableStreamDefaultReader* aReader,
     JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   // Step 1. Let readRequests be reader.[[readRequests]].
   LinkedList<RefPtr<ReadRequest>> readRequests =
@@ -332,7 +332,7 @@ void ReadableStreamDefaultReaderErrorReadRequests(
 }
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaultreaderrelease
-void ReadableStreamDefaultReaderRelease(JSContext* aCx,
+void ReadableStreamDefaultReaderRelease(MCContext* aCx,
                                         ReadableStreamDefaultReader* aReader,
                                         ErrorResult& aRv) {
   // Step 1. Perform ! ReadableStreamReaderGenericRelease(reader).
@@ -364,7 +364,7 @@ void ReadableStreamDefaultReader::ReleaseLock(ErrorResult& aRv) {
   if (!jsapi.Init(mGlobal)) {
     return aRv.ThrowUnknownError("Internal error");
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 2. Perform ! ReadableStreamDefaultReaderRelease(this).
   RefPtr<ReadableStreamDefaultReader> thisRefPtr = this;
@@ -380,7 +380,7 @@ already_AddRefed<Promise> ReadableStreamGenericReader::Closed() const {
 // https://streams.spec.whatwg.org/#readable-stream-reader-generic-cancel
 MOZ_CAN_RUN_SCRIPT
 static already_AddRefed<Promise> ReadableStreamGenericReaderCancel(
-    JSContext* aCx, ReadableStreamGenericReader* aReader,
+    MCContext* aCx, ReadableStreamGenericReader* aReader,
     JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1 (Strong ref for below call).
   RefPtr<ReadableStream> stream = aReader->GetStream();
@@ -393,7 +393,7 @@ static already_AddRefed<Promise> ReadableStreamGenericReaderCancel(
 }
 
 already_AddRefed<Promise> ReadableStreamGenericReader::Cancel(
-    JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1. If this.[[stream]] is undefined,
   // return a promise rejected with a TypeError exception.
   if (!mStream) {
@@ -431,7 +431,7 @@ void SetUpReadableStreamDefaultReader(ReadableStreamDefaultReader* aReader,
 // To read a chunk from a ReadableStreamDefaultReader reader, given a read
 // request readRequest, perform ! ReadableStreamDefaultReaderRead(reader,
 // readRequest).
-void ReadableStreamDefaultReader::ReadChunk(JSContext* aCx,
+void ReadableStreamDefaultReader::ReadChunk(MCContext* aCx,
                                             ReadRequest& aRequest,
                                             ErrorResult& aRv) {
   ReadableStreamDefaultReaderRead(aCx, this, &aRequest, aRv);

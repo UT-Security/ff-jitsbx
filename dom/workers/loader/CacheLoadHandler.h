@@ -88,10 +88,10 @@ class CacheLoadHandler final : public PromiseNativeHandler,
 
   void Load(Cache* aCache);
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
  private:
@@ -144,10 +144,10 @@ class CacheCreator final : public PromiseNativeHandler {
     mLoaders.AppendElement(std::move(aLoader));
   }
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
   // Try to load from cache with aPrincipal used for cache access.
@@ -200,10 +200,10 @@ class CachePromiseHandler final : public PromiseNativeHandler {
   CachePromiseHandler(WorkerScriptLoader* aLoader,
                       ThreadSafeRequestHandle* aRequestHandle);
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
  private:

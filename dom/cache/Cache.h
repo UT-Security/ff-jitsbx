@@ -45,34 +45,34 @@ class Cache final : public nsISupports,
   Cache(nsIGlobalObject* aGlobal, CacheChild* aActor, Namespace aNamespace);
 
   // webidl interface methods
-  already_AddRefed<Promise> Match(JSContext* aCx,
+  already_AddRefed<Promise> Match(MCContext* aCx,
                                   const RequestOrUSVString& aRequest,
                                   const CacheQueryOptions& aOptions,
                                   ErrorResult& aRv);
   already_AddRefed<Promise> MatchAll(
-      JSContext* aCx, const Optional<RequestOrUSVString>& aRequest,
+      MCContext* aCx, const Optional<RequestOrUSVString>& aRequest,
       const CacheQueryOptions& aOptions, ErrorResult& aRv);
-  already_AddRefed<Promise> Add(JSContext* aContext,
+  already_AddRefed<Promise> Add(MCContext* aContext,
                                 const RequestOrUSVString& aRequest,
                                 CallerType aCallerType, ErrorResult& aRv);
   already_AddRefed<Promise> AddAll(
-      JSContext* aContext, const Sequence<OwningRequestOrUSVString>& aRequests,
+      MCContext* aContext, const Sequence<OwningRequestOrUSVString>& aRequests,
       CallerType aCallerType, ErrorResult& aRv);
-  already_AddRefed<Promise> Put(JSContext* aCx,
+  already_AddRefed<Promise> Put(MCContext* aCx,
                                 const RequestOrUSVString& aRequest,
                                 Response& aResponse, ErrorResult& aRv);
-  already_AddRefed<Promise> Delete(JSContext* aCx,
+  already_AddRefed<Promise> Delete(MCContext* aCx,
                                    const RequestOrUSVString& aRequest,
                                    const CacheQueryOptions& aOptions,
                                    ErrorResult& aRv);
-  already_AddRefed<Promise> Keys(JSContext* aCx,
+  already_AddRefed<Promise> Keys(MCContext* aCx,
                                  const Optional<RequestOrUSVString>& aRequest,
                                  const CacheQueryOptions& aParams,
                                  ErrorResult& aRv);
 
   // binding methods
   nsISupports* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aContext,
+  virtual JSObject* WrapObject(MCContext* aContext,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // Called when CacheChild actor is being destroyed
@@ -103,7 +103,7 @@ class Cache final : public nsISupports,
                                    CallerType aCallerType, ErrorResult& aRv);
 
   already_AddRefed<Promise> PutAll(
-      JSContext* aCx, const nsTArray<SafeRefPtr<Request>>& aRequestList,
+      MCContext* aCx, const nsTArray<SafeRefPtr<Request>>& aRequestList,
       const nsTArray<RefPtr<Response>>& aResponseList, ErrorResult& aRv);
 
   OpenMode GetOpenMode() const;

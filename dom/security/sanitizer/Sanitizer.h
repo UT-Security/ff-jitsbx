@@ -41,7 +41,7 @@ class Sanitizer final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<Sanitizer> New(nsIGlobalObject* aGlobal,

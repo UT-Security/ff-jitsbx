@@ -32,7 +32,7 @@ nsISupports* SessionStoreFormData::GetParentObject() const {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-JSObject* SessionStoreFormData::WrapObject(JSContext* aCx,
+JSObject* SessionStoreFormData::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return SessionStoreFormData_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -46,7 +46,7 @@ void SessionStoreFormData::GetUrl(nsACString& aUrl) const {
 }
 
 void SessionStoreFormData::GetId(
-    JSContext* aCx,
+    MCContext* aCx,
     Nullable<Record<nsString, OwningStringOrBooleanOrObject>>& aId) {
   if (mId.IsEmpty() ||
       NS_FAILED(SessionStoreUtils::ConstructFormDataValues(
@@ -60,7 +60,7 @@ void SessionStoreFormData::GetId(
 }
 
 void SessionStoreFormData::GetXpath(
-    JSContext* aCx,
+    MCContext* aCx,
     Nullable<Record<nsString, OwningStringOrBooleanOrObject>>& aXpath) {
   if (mXpath.IsEmpty() ||
       NS_FAILED(SessionStoreUtils::ConstructFormDataValues(
@@ -98,7 +98,7 @@ void SessionStoreFormData::GetChildren(
   }
 }
 
-void SessionStoreFormData::ToJSON(JSContext* aCx,
+void SessionStoreFormData::ToJSON(MCContext* aCx,
                                   JS::MutableHandle<JSObject*> aRetval) {
   MC::Rooted<JSObject*> self(aCx);
   {

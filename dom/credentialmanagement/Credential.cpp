@@ -24,7 +24,7 @@ Credential::Credential(nsPIDOMWindowInner* aParent) : mParent(aParent) {}
 
 Credential::~Credential() = default;
 
-JSObject* Credential::WrapObject(JSContext* aCx,
+JSObject* Credential::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return Credential_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -37,7 +37,7 @@ already_AddRefed<XRReferenceSpace> XRReferenceSpace::GetOffsetReferenceSpace(
   return offsetReferenceSpace.forget();
 }
 
-JSObject* XRReferenceSpace::WrapObject(JSContext* aCx,
+JSObject* XRReferenceSpace::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return XRReferenceSpace_Binding::Wrap(aCx, this, aGivenProto);
 }

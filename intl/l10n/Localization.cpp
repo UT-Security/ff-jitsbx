@@ -182,7 +182,7 @@ already_AddRefed<Localization> Localization::Constructor(
   return do_AddRef(new Localization(global, aIsSync, raw));
 }
 
-JSObject* Localization::WrapObject(JSContext* aCx,
+JSObject* Localization::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return Localization_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -458,9 +458,9 @@ class PromiseResolver final : public PromiseNativeHandler {
   NS_DECL_ISUPPORTS
 
   explicit PromiseResolver(Promise* aPromise) : mPromise(aPromise) {}
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
  protected:
@@ -476,13 +476,13 @@ NS_INTERFACE_MAP_END
 NS_IMPL_ADDREF(PromiseResolver)
 NS_IMPL_RELEASE(PromiseResolver)
 
-void PromiseResolver::ResolvedCallback(JSContext* aCx,
+void PromiseResolver::ResolvedCallback(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        ErrorResult& aRv) {
   mPromise->MaybeResolveWithClone(aCx, aValue);
 }
 
-void PromiseResolver::RejectedCallback(JSContext* aCx,
+void PromiseResolver::RejectedCallback(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        ErrorResult& aRv) {
   mPromise->MaybeRejectWithClone(aCx, aValue);

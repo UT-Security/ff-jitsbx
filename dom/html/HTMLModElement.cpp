@@ -20,7 +20,7 @@ HTMLModElement::~HTMLModElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLModElement)
 
-JSObject* HTMLModElement::WrapNode(JSContext* aCx,
+JSObject* HTMLModElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return HTMLModElement_Binding::Wrap(aCx, this, aGivenProto);
 }

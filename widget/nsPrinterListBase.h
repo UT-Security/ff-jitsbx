@@ -78,7 +78,7 @@ class nsPrinterListBase : public nsIPrinterList {
 
   // Constructs mCommonPaperInfo by localizing the sizes in
   // nsPaper::kCommonPaperSizes and creating corresponding PaperInfo.
-  void EnsureCommonPaperInfo(JSContext* aCx);
+  void EnsureCommonPaperInfo(MCContext* aCx);
 
   RefPtr<Promise> mPrintersPromise;
   // PaperInfo for our fallback sizes and common size localization.

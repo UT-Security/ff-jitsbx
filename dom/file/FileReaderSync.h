@@ -42,10 +42,10 @@ class FileReaderSync final {
   static already_AddRefed<FileReaderSync> Constructor(
       const GlobalObject& aGlobal);
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
-  void ReadAsArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aScopeObj,
+  void ReadAsArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aScopeObj,
                          Blob& aBlob, JS::MutableHandle<JSObject*> aRetval,
                          ErrorResult& aRv);
   void ReadAsBinaryString(Blob& aBlob, nsAString& aResult, ErrorResult& aRv);

@@ -32,7 +32,7 @@ class Promise;
 // We don't export TestCodeGenBinding.h, but it's right in our parent dir.
 #include "../TestCodeGenBinding.h"
 
-extern bool TestFuncControlledMember(JSContext*, JSObject*);
+extern bool TestFuncControlledMember(MCContext*, JSObject*);
 
 namespace mozilla {
 namespace dom {
@@ -76,7 +76,7 @@ class TestNonWrapperCacheInterface : public nsISupports {
  public:
   NS_DECL_ISUPPORTS
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 };
 
@@ -343,11 +343,11 @@ class TestInterface : public nsISupports, public nsWrapperCache {
 
   // Sequence types
   void GetReadonlySequence(nsTArray<int32_t>&);
-  void GetReadonlySequenceOfDictionaries(JSContext*, nsTArray<Dict>&);
-  void GetReadonlyNullableSequenceOfDictionaries(JSContext*,
+  void GetReadonlySequenceOfDictionaries(MCContext*, nsTArray<Dict>&);
+  void GetReadonlyNullableSequenceOfDictionaries(MCContext*,
                                                  Nullable<nsTArray<Dict>>&);
-  void GetReadonlyFrozenSequence(JSContext*, nsTArray<Dict>&);
-  void GetReadonlyFrozenNullableSequence(JSContext*, Nullable<nsTArray<Dict>>&);
+  void GetReadonlyFrozenSequence(MCContext*, nsTArray<Dict>&);
+  void GetReadonlyFrozenNullableSequence(MCContext*, Nullable<nsTArray<Dict>>&);
   void ReceiveSequence(nsTArray<int32_t>&);
   void ReceiveNullableSequence(Nullable<nsTArray<int32_t>>&);
   void ReceiveSequenceOfNullableInts(nsTArray<Nullable<int32_t>>&);
@@ -408,12 +408,12 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void ReceiveUTF8StringSequence(nsTArray<nsCString>&);
   void PassUTF8StringSequence(const Sequence<nsCString>&);
 
-  void ReceiveAnySequence(JSContext*, nsTArray<JS::Value>&);
-  void ReceiveNullableAnySequence(JSContext*, Nullable<nsTArray<JS::Value>>&);
-  void ReceiveAnySequenceSequence(JSContext*, nsTArray<nsTArray<JS::Value>>&);
+  void ReceiveAnySequence(MCContext*, nsTArray<JS::Value>&);
+  void ReceiveNullableAnySequence(MCContext*, Nullable<nsTArray<JS::Value>>&);
+  void ReceiveAnySequenceSequence(MCContext*, nsTArray<nsTArray<JS::Value>>&);
 
-  void ReceiveObjectSequence(JSContext*, nsTArray<JSObject*>&);
-  void ReceiveNullableObjectSequence(JSContext*, nsTArray<JSObject*>&);
+  void ReceiveObjectSequence(MCContext*, nsTArray<JSObject*>&);
+  void ReceiveNullableObjectSequence(MCContext*, nsTArray<JSObject*>&);
 
   void PassSequenceOfSequences(const Sequence<Sequence<int32_t>>&);
   void PassSequenceOfSequencesOfSequences(
@@ -459,7 +459,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void ReceiveNullableRecordOfNullableInts(
       Nullable<Record<nsString, Nullable<int32_t>>>&);
   void ReceiveRecordOfRecords(Record<nsString, Record<nsString, int32_t>>&);
-  void ReceiveAnyRecord(JSContext*, Record<nsString, JS::Value>&);
+  void ReceiveAnyRecord(MCContext*, Record<nsString, JS::Value>&);
 
   // Typed array types
   void PassArrayBuffer(const ArrayBuffer&);
@@ -486,9 +486,9 @@ class TestInterface : public nsISupports, public nsWrapperCache {
       const Record<nsString, Nullable<ArrayBuffer>>&);
   void PassVariadicTypedArray(const Sequence<Float32Array>&);
   void PassVariadicNullableTypedArray(const Sequence<Nullable<Float32Array>>&);
-  void ReceiveUint8Array(JSContext*, JS::MutableHandle<JSObject*>);
+  void ReceiveUint8Array(MCContext*, JS::MutableHandle<JSObject*>);
   void SetUint8ArrayAttr(const Uint8Array&);
-  void GetUint8ArrayAttr(JSContext*, JS::MutableHandle<JSObject*>);
+  void GetUint8ArrayAttr(MCContext*, JS::MutableHandle<JSObject*>);
 
   // DOMString types
   void PassString(const nsAString&);
@@ -533,12 +533,12 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void ReceiveUSVS(DOMString&);
 
   // JSString types
-  void PassJSString(JSContext*, JS::Handle<JSString*>);
-  void PassOptionalJSStringWithDefaultValue(JSContext*, JS::Handle<JSString*>);
-  void ReceiveJSString(JSContext*, JS::MutableHandle<JSString*>);
-  void GetReadonlyJSStringAttr(JSContext*, JS::MutableHandle<JSString*>);
-  void GetJsStringAttr(JSContext*, JS::MutableHandle<JSString*>);
-  void SetJsStringAttr(JSContext*, JS::Handle<JSString*>);
+  void PassJSString(MCContext*, JS::Handle<JSString*>);
+  void PassOptionalJSStringWithDefaultValue(MCContext*, JS::Handle<JSString*>);
+  void ReceiveJSString(MCContext*, JS::MutableHandle<JSString*>);
+  void GetReadonlyJSStringAttr(MCContext*, JS::MutableHandle<JSString*>);
+  void GetJsStringAttr(MCContext*, JS::MutableHandle<JSString*>);
+  void SetJsStringAttr(MCContext*, JS::Handle<JSString*>);
 
   // Enumerated types
   void PassEnum(TestEnum);
@@ -592,86 +592,86 @@ class TestInterface : public nsISupports, public nsWrapperCache {
       TestSequenceConstruction&);
 
   // Any types
-  void PassAny(JSContext*, JS::Handle<JS::Value>);
-  void PassVariadicAny(JSContext*, const Sequence<JS::Value>&);
-  void PassOptionalAny(JSContext*, JS::Handle<JS::Value>);
-  void PassAnyDefaultNull(JSContext*, JS::Handle<JS::Value>);
-  void PassSequenceOfAny(JSContext*, const Sequence<JS::Value>&);
-  void PassNullableSequenceOfAny(JSContext*,
+  void PassAny(MCContext*, JS::Handle<JS::Value>);
+  void PassVariadicAny(MCContext*, const Sequence<JS::Value>&);
+  void PassOptionalAny(MCContext*, JS::Handle<JS::Value>);
+  void PassAnyDefaultNull(MCContext*, JS::Handle<JS::Value>);
+  void PassSequenceOfAny(MCContext*, const Sequence<JS::Value>&);
+  void PassNullableSequenceOfAny(MCContext*,
                                  const Nullable<Sequence<JS::Value>>&);
-  void PassOptionalSequenceOfAny(JSContext*,
+  void PassOptionalSequenceOfAny(MCContext*,
                                  const Optional<Sequence<JS::Value>>&);
   void PassOptionalNullableSequenceOfAny(
-      JSContext*, const Optional<Nullable<Sequence<JS::Value>>>&);
+      MCContext*, const Optional<Nullable<Sequence<JS::Value>>>&);
   void PassOptionalSequenceOfAnyWithDefaultValue(
-      JSContext*, const Nullable<Sequence<JS::Value>>&);
-  void PassSequenceOfSequenceOfAny(JSContext*,
+      MCContext*, const Nullable<Sequence<JS::Value>>&);
+  void PassSequenceOfSequenceOfAny(MCContext*,
                                    const Sequence<Sequence<JS::Value>>&);
   void PassSequenceOfNullableSequenceOfAny(
-      JSContext*, const Sequence<Nullable<Sequence<JS::Value>>>&);
+      MCContext*, const Sequence<Nullable<Sequence<JS::Value>>>&);
   void PassNullableSequenceOfNullableSequenceOfAny(
-      JSContext*, const Nullable<Sequence<Nullable<Sequence<JS::Value>>>>&);
+      MCContext*, const Nullable<Sequence<Nullable<Sequence<JS::Value>>>>&);
   void PassOptionalNullableSequenceOfNullableSequenceOfAny(
-      JSContext*,
+      MCContext*,
       const Optional<Nullable<Sequence<Nullable<Sequence<JS::Value>>>>>&);
-  void PassRecordOfAny(JSContext*, const Record<nsString, JS::Value>&);
-  void PassNullableRecordOfAny(JSContext*,
+  void PassRecordOfAny(MCContext*, const Record<nsString, JS::Value>&);
+  void PassNullableRecordOfAny(MCContext*,
                                const Nullable<Record<nsString, JS::Value>>&);
-  void PassOptionalRecordOfAny(JSContext*,
+  void PassOptionalRecordOfAny(MCContext*,
                                const Optional<Record<nsString, JS::Value>>&);
   void PassOptionalNullableRecordOfAny(
-      JSContext*, const Optional<Nullable<Record<nsString, JS::Value>>>&);
+      MCContext*, const Optional<Nullable<Record<nsString, JS::Value>>>&);
   void PassOptionalRecordOfAnyWithDefaultValue(
-      JSContext*, const Nullable<Record<nsString, JS::Value>>&);
+      MCContext*, const Nullable<Record<nsString, JS::Value>>&);
   void PassRecordOfRecordOfAny(
-      JSContext*, const Record<nsString, Record<nsString, JS::Value>>&);
+      MCContext*, const Record<nsString, Record<nsString, JS::Value>>&);
   void PassRecordOfNullableRecordOfAny(
-      JSContext*,
+      MCContext*,
       const Record<nsString, Nullable<Record<nsString, JS::Value>>>&);
   void PassNullableRecordOfNullableRecordOfAny(
-      JSContext*,
+      MCContext*,
       const Nullable<Record<nsString, Nullable<Record<nsString, JS::Value>>>>&);
   void PassOptionalNullableRecordOfNullableRecordOfAny(
-      JSContext*,
+      MCContext*,
       const Optional<
           Nullable<Record<nsString, Nullable<Record<nsString, JS::Value>>>>>&);
   void PassOptionalNullableRecordOfNullableSequenceOfAny(
-      JSContext*,
+      MCContext*,
       const Optional<
           Nullable<Record<nsString, Nullable<Sequence<JS::Value>>>>>&);
   void PassOptionalNullableSequenceOfNullableRecordOfAny(
-      JSContext*,
+      MCContext*,
       const Optional<
           Nullable<Sequence<Nullable<Record<nsString, JS::Value>>>>>&);
-  void ReceiveAny(JSContext*, JS::MutableHandle<JS::Value>);
+  void ReceiveAny(MCContext*, JS::MutableHandle<JS::Value>);
 
   // object types
-  void PassObject(JSContext*, JS::Handle<JSObject*>);
-  void PassVariadicObject(JSContext*, const Sequence<JSObject*>&);
-  void PassNullableObject(JSContext*, JS::Handle<JSObject*>);
-  void PassVariadicNullableObject(JSContext*, const Sequence<JSObject*>&);
-  void PassOptionalObject(JSContext*, const Optional<JS::Handle<JSObject*>>&);
-  void PassOptionalNullableObject(JSContext*,
+  void PassObject(MCContext*, JS::Handle<JSObject*>);
+  void PassVariadicObject(MCContext*, const Sequence<JSObject*>&);
+  void PassNullableObject(MCContext*, JS::Handle<JSObject*>);
+  void PassVariadicNullableObject(MCContext*, const Sequence<JSObject*>&);
+  void PassOptionalObject(MCContext*, const Optional<JS::Handle<JSObject*>>&);
+  void PassOptionalNullableObject(MCContext*,
                                   const Optional<JS::Handle<JSObject*>>&);
-  void PassOptionalNullableObjectWithDefaultValue(JSContext*,
+  void PassOptionalNullableObjectWithDefaultValue(MCContext*,
                                                   JS::Handle<JSObject*>);
-  void PassSequenceOfObject(JSContext*, const Sequence<JSObject*>&);
-  void PassSequenceOfNullableObject(JSContext*, const Sequence<JSObject*>&);
-  void PassNullableSequenceOfObject(JSContext*,
+  void PassSequenceOfObject(MCContext*, const Sequence<JSObject*>&);
+  void PassSequenceOfNullableObject(MCContext*, const Sequence<JSObject*>&);
+  void PassNullableSequenceOfObject(MCContext*,
                                     const Nullable<Sequence<JSObject*>>&);
   void PassOptionalNullableSequenceOfNullableSequenceOfObject(
-      JSContext*,
+      MCContext*,
       const Optional<Nullable<Sequence<Nullable<Sequence<JSObject*>>>>>&);
   void PassOptionalNullableSequenceOfNullableSequenceOfNullableObject(
-      JSContext*,
+      MCContext*,
       const Optional<Nullable<Sequence<Nullable<Sequence<JSObject*>>>>>&);
-  void PassRecordOfObject(JSContext*, const Record<nsString, JSObject*>&);
-  void ReceiveObject(JSContext*, JS::MutableHandle<JSObject*>);
-  void ReceiveNullableObject(JSContext*, JS::MutableHandle<JSObject*>);
+  void PassRecordOfObject(MCContext*, const Record<nsString, JSObject*>&);
+  void ReceiveObject(MCContext*, JS::MutableHandle<JSObject*>);
+  void ReceiveNullableObject(MCContext*, JS::MutableHandle<JSObject*>);
 
   // Union types
-  void PassUnion(JSContext*, const ObjectOrLong& arg);
-  void PassUnionWithNullable(JSContext* cx, const ObjectOrNullOrLong& arg) {
+  void PassUnion(MCContext*, const ObjectOrLong& arg);
+  void PassUnionWithNullable(MCContext* cx, const ObjectOrNullOrLong& arg) {
     OwningObjectOrLong returnValue;
     if (arg.IsNull()) {
     } else if (arg.IsObject()) {
@@ -686,26 +686,26 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   }
 #ifdef DEBUG
   void PassUnion2(const LongOrBoolean& arg);
-  void PassUnion3(JSContext*, const ObjectOrLongOrBoolean& arg);
+  void PassUnion3(MCContext*, const ObjectOrLongOrBoolean& arg);
   void PassUnion4(const NodeOrLongOrBoolean& arg);
-  void PassUnion5(JSContext*, const ObjectOrBoolean& arg);
-  void PassUnion6(JSContext*, const ObjectOrString& arg);
-  void PassUnion7(JSContext*, const ObjectOrStringOrLong& arg);
-  void PassUnion8(JSContext*, const ObjectOrStringOrBoolean& arg);
-  void PassUnion9(JSContext*, const ObjectOrStringOrLongOrBoolean& arg);
+  void PassUnion5(MCContext*, const ObjectOrBoolean& arg);
+  void PassUnion6(MCContext*, const ObjectOrString& arg);
+  void PassUnion7(MCContext*, const ObjectOrStringOrLong& arg);
+  void PassUnion8(MCContext*, const ObjectOrStringOrBoolean& arg);
+  void PassUnion9(MCContext*, const ObjectOrStringOrLongOrBoolean& arg);
   void PassUnion10(const EventInitOrLong& arg);
-  void PassUnion11(JSContext*, const CustomEventInitOrLong& arg);
+  void PassUnion11(MCContext*, const CustomEventInitOrLong& arg);
   void PassUnion12(const EventInitOrLong& arg);
-  void PassUnion13(JSContext*, const ObjectOrLongOrNull& arg);
-  void PassUnion14(JSContext*, const ObjectOrLongOrNull& arg);
+  void PassUnion13(MCContext*, const ObjectOrLongOrNull& arg);
+  void PassUnion14(MCContext*, const ObjectOrLongOrNull& arg);
   void PassUnion15(const LongSequenceOrLong&);
   void PassUnion16(const Optional<LongSequenceOrLong>&);
   void PassUnion17(const LongSequenceOrNullOrLong&);
-  void PassUnion18(JSContext*, const ObjectSequenceOrLong&);
-  void PassUnion19(JSContext*, const Optional<ObjectSequenceOrLong>&);
-  void PassUnion20(JSContext*, const ObjectSequenceOrLong&);
+  void PassUnion18(MCContext*, const ObjectSequenceOrLong&);
+  void PassUnion19(MCContext*, const Optional<ObjectSequenceOrLong>&);
+  void PassUnion20(MCContext*, const ObjectSequenceOrLong&);
   void PassUnion21(const StringLongRecordOrLong&);
-  void PassUnion22(JSContext*, const StringObjectRecordOrLong&);
+  void PassUnion22(MCContext*, const StringObjectRecordOrLong&);
   void PassUnion23(const ImageDataSequenceOrLong&);
   void PassUnion24(const ImageDataOrNullSequenceOrLong&);
   void PassUnion25(const ImageDataSequenceSequenceOrLong&);
@@ -722,20 +722,20 @@ class TestInterface : public nsISupports, public nsWrapperCache {
       const StringSequenceOrStringStringRecord&);
   void PassUnionWithUSVS(const USVStringOrLong&);
 #endif
-  void PassNullableUnion(JSContext*, const Nullable<ObjectOrLong>&);
-  void PassOptionalUnion(JSContext*, const Optional<ObjectOrLong>&);
-  void PassOptionalNullableUnion(JSContext*,
+  void PassNullableUnion(MCContext*, const Nullable<ObjectOrLong>&);
+  void PassOptionalUnion(MCContext*, const Optional<ObjectOrLong>&);
+  void PassOptionalNullableUnion(MCContext*,
                                  const Optional<Nullable<ObjectOrLong>>&);
-  void PassOptionalNullableUnionWithDefaultValue(JSContext*,
+  void PassOptionalNullableUnionWithDefaultValue(MCContext*,
                                                  const Nullable<ObjectOrLong>&);
   // void PassUnionWithInterfaces(const TestInterfaceOrTestExternalInterface&
   // arg); void PassUnionWithInterfacesAndNullable(const
   // TestInterfaceOrNullOrTestExternalInterface& arg);
   void PassUnionWithArrayBuffer(const ArrayBufferOrLong&);
-  void PassUnionWithString(JSContext*, const StringOrObject&);
-  void PassUnionWithEnum(JSContext*, const SupportedTypeOrObject&);
-  // void PassUnionWithCallback(JSContext*, const TestCallbackOrLong&);
-  void PassUnionWithObject(JSContext*, const ObjectOrLong&);
+  void PassUnionWithString(MCContext*, const StringOrObject&);
+  void PassUnionWithEnum(MCContext*, const SupportedTypeOrObject&);
+  // void PassUnionWithCallback(MCContext*, const TestCallbackOrLong&);
+  void PassUnionWithObject(MCContext*, const ObjectOrLong&);
 
   void PassUnionWithDefaultValue1(const DoubleOrString& arg);
   void PassUnionWithDefaultValue2(const DoubleOrString& arg);
@@ -816,7 +816,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
 
   void PassSequenceOfUnions(
       const Sequence<OwningCanvasPatternOrCanvasGradient>&);
-  void PassSequenceOfUnions2(JSContext*, const Sequence<OwningObjectOrLong>&);
+  void PassSequenceOfUnions2(MCContext*, const Sequence<OwningObjectOrLong>&);
   void PassVariadicUnion(const Sequence<OwningCanvasPatternOrCanvasGradient>&);
 
   void PassSequenceOfNullableUnions(
@@ -825,7 +825,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
       const Sequence<Nullable<OwningCanvasPatternOrCanvasGradient>>&);
   void PassRecordOfUnions(
       const Record<nsString, OwningCanvasPatternOrCanvasGradient>&);
-  void PassRecordOfUnions2(JSContext*,
+  void PassRecordOfUnions2(MCContext*,
                            const Record<nsString, OwningObjectOrLong>&);
 
   void PassUnionWithSequenceOfUnions(
@@ -835,10 +835,10 @@ class TestInterface : public nsISupports, public nsWrapperCache {
           arg);
 
   void ReceiveUnion(OwningCanvasPatternOrCanvasGradient&);
-  void ReceiveUnion2(JSContext*, OwningObjectOrLong&);
+  void ReceiveUnion2(MCContext*, OwningObjectOrLong&);
   void ReceiveUnionContainingNull(OwningCanvasPatternOrNullOrCanvasGradient&);
   void ReceiveNullableUnion(Nullable<OwningCanvasPatternOrCanvasGradient>&);
-  void ReceiveNullableUnion2(JSContext*, Nullable<OwningObjectOrLong>&);
+  void ReceiveNullableUnion2(MCContext*, Nullable<OwningObjectOrLong>&);
   void ReceiveUnionWithUndefined(OwningUndefinedOrCanvasPattern&);
   void ReceiveUnionWithNullableUndefined(OwningUndefinedOrNullOrCanvasPattern&);
   void ReceiveUnionWithUndefinedAndNullable(
@@ -880,13 +880,13 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   // ObservableArray types
   void OnDeleteBooleanObservableArray(bool, uint32_t, ErrorResult&);
   void OnSetBooleanObservableArray(bool, uint32_t, ErrorResult&);
-  void OnDeleteObjectObservableArray(JSContext*, JS::Handle<JSObject*>,
+  void OnDeleteObjectObservableArray(MCContext*, JS::Handle<JSObject*>,
                                      uint32_t, ErrorResult&);
-  void OnSetObjectObservableArray(JSContext*, JS::Handle<JSObject*>, uint32_t,
+  void OnSetObjectObservableArray(MCContext*, JS::Handle<JSObject*>, uint32_t,
                                   ErrorResult&);
-  void OnDeleteAnyObservableArray(JSContext*, JS::Handle<JS::Value>, uint32_t,
+  void OnDeleteAnyObservableArray(MCContext*, JS::Handle<JS::Value>, uint32_t,
                                   ErrorResult&);
-  void OnSetAnyObservableArray(JSContext*, JS::Handle<JS::Value>, uint32_t,
+  void OnSetAnyObservableArray(MCContext*, JS::Handle<JS::Value>, uint32_t,
                                ErrorResult&);
   void OnDeleteInterfaceObservableArray(TestInterface*, uint32_t, ErrorResult&);
   void OnSetInterfaceObservableArray(TestInterface*, uint32_t, ErrorResult&);
@@ -903,27 +903,27 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void SetAttributeRenamedTo(int8_t);
 
   // Dictionary tests
-  void PassDictionary(JSContext*, const Dict&);
-  void PassDictionary2(JSContext*, const Dict&);
-  void GetReadonlyDictionary(JSContext*, Dict&);
-  void GetReadonlyNullableDictionary(JSContext*, Nullable<Dict>&);
-  void GetWritableDictionary(JSContext*, Dict&);
-  void SetWritableDictionary(JSContext*, const Dict&);
-  void GetReadonlyFrozenDictionary(JSContext*, Dict&);
-  void GetReadonlyFrozenNullableDictionary(JSContext*, Nullable<Dict>&);
-  void GetWritableFrozenDictionary(JSContext*, Dict&);
-  void SetWritableFrozenDictionary(JSContext*, const Dict&);
-  void ReceiveDictionary(JSContext*, Dict&);
-  void ReceiveNullableDictionary(JSContext*, Nullable<Dict>&);
+  void PassDictionary(MCContext*, const Dict&);
+  void PassDictionary2(MCContext*, const Dict&);
+  void GetReadonlyDictionary(MCContext*, Dict&);
+  void GetReadonlyNullableDictionary(MCContext*, Nullable<Dict>&);
+  void GetWritableDictionary(MCContext*, Dict&);
+  void SetWritableDictionary(MCContext*, const Dict&);
+  void GetReadonlyFrozenDictionary(MCContext*, Dict&);
+  void GetReadonlyFrozenNullableDictionary(MCContext*, Nullable<Dict>&);
+  void GetWritableFrozenDictionary(MCContext*, Dict&);
+  void SetWritableFrozenDictionary(MCContext*, const Dict&);
+  void ReceiveDictionary(MCContext*, Dict&);
+  void ReceiveNullableDictionary(MCContext*, Nullable<Dict>&);
   void PassOtherDictionary(const GrandparentDict&);
-  void PassSequenceOfDictionaries(JSContext*, const Sequence<Dict>&);
+  void PassSequenceOfDictionaries(MCContext*, const Sequence<Dict>&);
   void PassRecordOfDictionaries(const Record<nsString, GrandparentDict>&);
-  void PassDictionaryOrLong(JSContext*, const Dict&);
+  void PassDictionaryOrLong(MCContext*, const Dict&);
   void PassDictionaryOrLong(int32_t);
-  void PassDictContainingDict(JSContext*, const DictContainingDict&);
-  void PassDictContainingSequence(JSContext*, const DictContainingSequence&);
-  void ReceiveDictContainingSequence(JSContext*, DictContainingSequence&);
-  void PassVariadicDictionary(JSContext*, const Sequence<Dict>&);
+  void PassDictContainingDict(MCContext*, const DictContainingDict&);
+  void PassDictContainingSequence(MCContext*, const DictContainingSequence&);
+  void ReceiveDictContainingSequence(MCContext*, DictContainingSequence&);
+  void PassVariadicDictionary(MCContext*, const Sequence<Dict>&);
 
   // Typedefs
   void ExerciseTypedefInterfaces1(TestInterface&);
@@ -934,7 +934,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   int8_t DeprecatedAttribute();
   void SetDeprecatedAttribute(int8_t);
   int8_t DeprecatedMethod();
-  int8_t DeprecatedMethodWithContext(JSContext*, const JS::Value&);
+  int8_t DeprecatedMethodWithContext(MCContext*, const JS::Value&);
 
   // Static methods and attributes
   static void StaticMethod(const GlobalObject&, bool);
@@ -954,7 +954,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   bool Overload1(TestInterface&);
   TestInterface* Overload1(const nsAString&, TestInterface&);
   void Overload2(TestInterface&);
-  void Overload2(JSContext*, const Dict&);
+  void Overload2(MCContext*, const Dict&);
   void Overload2(bool);
   void Overload2(const nsAString&);
   void Overload3(TestInterface&);
@@ -975,7 +975,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void Overload9(const Nullable<int32_t>&);
   void Overload9(const nsAString&);
   void Overload10(const Nullable<int32_t>&);
-  void Overload10(JSContext*, JS::Handle<JSObject*>);
+  void Overload10(MCContext*, JS::Handle<JSObject*>);
   void Overload11(int32_t);
   void Overload11(const nsAString&);
   void Overload12(int32_t);
@@ -993,8 +993,8 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void Overload18(const Record<nsString, nsString>&);
   void Overload18(const Sequence<nsString>&);
   void Overload19(const Sequence<int32_t>&);
-  void Overload19(JSContext*, const Dict&);
-  void Overload20(JSContext*, const Dict&);
+  void Overload19(MCContext*, const Dict&);
+  void Overload20(MCContext*, const Dict&);
   void Overload20(const Sequence<int32_t>&);
 
   // Variadic handling
@@ -1052,8 +1052,8 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   TestInterface* PutForwardsAttr();
   TestInterface* PutForwardsAttr2();
   TestInterface* PutForwardsAttr3();
-  void GetToJSONShouldSkipThis(JSContext*, JS::MutableHandle<JS::Value>);
-  void SetToJSONShouldSkipThis(JSContext*, MC::Rooted<JS::Value>&);
+  void GetToJSONShouldSkipThis(MCContext*, JS::MutableHandle<JS::Value>);
+  void SetToJSONShouldSkipThis(MCContext*, MC::Rooted<JS::Value>&);
   TestParentInterface* ToJSONShouldSkipThis2();
   void SetToJSONShouldSkipThis2(TestParentInterface&);
   TestCallbackInterface* ToJSONShouldSkipThis3();
@@ -1087,7 +1087,7 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   bool CeReactionsAttr() const;
   void SetCeReactionsAttr(bool);
   int16_t LegacyCall(const JS::Value&, uint32_t, TestInterface&);
-  void PassArgsWithDefaults(JSContext*, const Optional<int32_t>&,
+  void PassArgsWithDefaults(MCContext*, const Optional<int32_t>&,
                             TestInterface*, const Dict&, double,
                             const Optional<float>&);
 
@@ -1121,17 +1121,17 @@ class TestInterface : public nsISupports, public nsWrapperCache {
 
   // Test AllowShared
   void SetAllowSharedArrayBufferViewTypedef(const ArrayBufferView&);
-  void GetAllowSharedArrayBufferViewTypedef(JSContext*,
+  void GetAllowSharedArrayBufferViewTypedef(MCContext*,
                                             JS::MutableHandle<JSObject*>);
   void SetAllowSharedArrayBufferView(const ArrayBufferView&);
-  void GetAllowSharedArrayBufferView(JSContext*, JS::MutableHandle<JSObject*>);
+  void GetAllowSharedArrayBufferView(MCContext*, JS::MutableHandle<JSObject*>);
   void SetAllowSharedNullableArrayBufferView(const Nullable<ArrayBufferView>&);
-  void GetAllowSharedNullableArrayBufferView(JSContext*,
+  void GetAllowSharedNullableArrayBufferView(MCContext*,
                                              JS::MutableHandle<JSObject*>);
   void SetAllowSharedArrayBuffer(const ArrayBuffer&);
-  void GetAllowSharedArrayBuffer(JSContext*, JS::MutableHandle<JSObject*>);
+  void GetAllowSharedArrayBuffer(MCContext*, JS::MutableHandle<JSObject*>);
   void SetAllowSharedNullableArrayBuffer(const Nullable<ArrayBuffer>&);
-  void GetAllowSharedNullableArrayBuffer(JSContext*,
+  void GetAllowSharedNullableArrayBuffer(MCContext*,
                                          JS::MutableHandle<JSObject*>);
 
   void PassAllowSharedArrayBufferViewTypedef(const ArrayBufferView&);
@@ -1234,31 +1234,31 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void PassNullableSequence(Nullable<Sequence<int32_t>>&) = delete;
   void PassOptionalNullableSequenceWithDefaultValue(
       Nullable<Sequence<int32_t>>&) = delete;
-  void PassSequenceOfAny(JSContext*, Sequence<JS::Value>&) = delete;
-  void PassNullableSequenceOfAny(JSContext*,
+  void PassSequenceOfAny(MCContext*, Sequence<JS::Value>&) = delete;
+  void PassNullableSequenceOfAny(MCContext*,
                                  Nullable<Sequence<JS::Value>>&) = delete;
-  void PassOptionalSequenceOfAny(JSContext*,
+  void PassOptionalSequenceOfAny(MCContext*,
                                  Optional<Sequence<JS::Value>>&) = delete;
   void PassOptionalNullableSequenceOfAny(
-      JSContext*, Optional<Nullable<Sequence<JS::Value>>>&) = delete;
+      MCContext*, Optional<Nullable<Sequence<JS::Value>>>&) = delete;
   void PassOptionalSequenceOfAnyWithDefaultValue(
-      JSContext*, Nullable<Sequence<JS::Value>>&) = delete;
-  void PassSequenceOfSequenceOfAny(JSContext*,
+      MCContext*, Nullable<Sequence<JS::Value>>&) = delete;
+  void PassSequenceOfSequenceOfAny(MCContext*,
                                    Sequence<Sequence<JS::Value>>&) = delete;
   void PassSequenceOfNullableSequenceOfAny(
-      JSContext*, Sequence<Nullable<Sequence<JS::Value>>>&) = delete;
+      MCContext*, Sequence<Nullable<Sequence<JS::Value>>>&) = delete;
   void PassNullableSequenceOfNullableSequenceOfAny(
-      JSContext*, Nullable<Sequence<Nullable<Sequence<JS::Value>>>>&) = delete;
+      MCContext*, Nullable<Sequence<Nullable<Sequence<JS::Value>>>>&) = delete;
   void PassOptionalNullableSequenceOfNullableSequenceOfAny(
-      JSContext*,
+      MCContext*,
       Optional<Nullable<Sequence<Nullable<Sequence<JS::Value>>>>>&) = delete;
-  void PassSequenceOfObject(JSContext*, Sequence<JSObject*>&) = delete;
-  void PassSequenceOfNullableObject(JSContext*, Sequence<JSObject*>&) = delete;
+  void PassSequenceOfObject(MCContext*, Sequence<JSObject*>&) = delete;
+  void PassSequenceOfNullableObject(MCContext*, Sequence<JSObject*>&) = delete;
   void PassOptionalNullableSequenceOfNullableSequenceOfObject(
-      JSContext*,
+      MCContext*,
       Optional<Nullable<Sequence<Nullable<Sequence<JSObject*>>>>>&) = delete;
   void PassOptionalNullableSequenceOfNullableSequenceOfNullableObject(
-      JSContext*,
+      MCContext*,
       Optional<Nullable<Sequence<Nullable<Sequence<JSObject*>>>>>&) = delete;
 
   // Enforce that only const things are passed for optional
@@ -1283,9 +1283,9 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void PassOptionalArrayBuffer(Optional<ArrayBuffer>&) = delete;
   void PassOptionalNullableArrayBuffer(Optional<ArrayBuffer*>&) = delete;
   void PassOptionalEnum(Optional<TestEnum>&) = delete;
-  void PassOptionalCallback(JSContext*,
+  void PassOptionalCallback(MCContext*,
                             Optional<OwningNonNull<TestCallback>>&) = delete;
-  void PassOptionalNullableCallback(JSContext*,
+  void PassOptionalNullableCallback(MCContext*,
                                     Optional<RefPtr<TestCallback>>&) = delete;
   void PassOptionalAny(Optional<JS::Handle<JS::Value>>&) = delete;
 
@@ -1317,30 +1317,30 @@ class TestInterface : public nsISupports, public nsWrapperCache {
   void PassVariadicUTF8String(Sequence<nsCString>&) = delete;
 
   // Make sure dictionary arguments are always const
-  void PassDictionary(JSContext*, Dict&) = delete;
+  void PassDictionary(MCContext*, Dict&) = delete;
   void PassOtherDictionary(GrandparentDict&) = delete;
-  void PassSequenceOfDictionaries(JSContext*, Sequence<Dict>&) = delete;
-  void PassDictionaryOrLong(JSContext*, Dict&) = delete;
-  void PassDictContainingDict(JSContext*, DictContainingDict&) = delete;
+  void PassSequenceOfDictionaries(MCContext*, Sequence<Dict>&) = delete;
+  void PassDictionaryOrLong(MCContext*, Dict&) = delete;
+  void PassDictContainingDict(MCContext*, DictContainingDict&) = delete;
   void PassDictContainingSequence(DictContainingSequence&) = delete;
 
   // Make sure various nullable things are always const
   void PassNullableEnum(Nullable<TestEnum>&) = delete;
 
   // Make sure unions are always const
-  void PassUnion(JSContext*, ObjectOrLong& arg) = delete;
-  void PassUnionWithNullable(JSContext*, ObjectOrNullOrLong& arg) = delete;
-  void PassNullableUnion(JSContext*, Nullable<ObjectOrLong>&) = delete;
-  void PassOptionalUnion(JSContext*, Optional<ObjectOrLong>&) = delete;
-  void PassOptionalNullableUnion(JSContext*,
+  void PassUnion(MCContext*, ObjectOrLong& arg) = delete;
+  void PassUnionWithNullable(MCContext*, ObjectOrNullOrLong& arg) = delete;
+  void PassNullableUnion(MCContext*, Nullable<ObjectOrLong>&) = delete;
+  void PassOptionalUnion(MCContext*, Optional<ObjectOrLong>&) = delete;
+  void PassOptionalNullableUnion(MCContext*,
                                  Optional<Nullable<ObjectOrLong>>&) = delete;
   void PassOptionalNullableUnionWithDefaultValue(
-      JSContext*, Nullable<ObjectOrLong>&) = delete;
+      MCContext*, Nullable<ObjectOrLong>&) = delete;
 
   // Make sure variadics are const as needed
-  void PassVariadicAny(JSContext*, Sequence<JS::Value>&) = delete;
-  void PassVariadicObject(JSContext*, Sequence<JSObject*>&) = delete;
-  void PassVariadicNullableObject(JSContext*, Sequence<JSObject*>&) = delete;
+  void PassVariadicAny(MCContext*, Sequence<JS::Value>&) = delete;
+  void PassVariadicObject(MCContext*, Sequence<JSObject*>&) = delete;
+  void PassVariadicNullableObject(MCContext*, Sequence<JSObject*>&) = delete;
 
   // Ensure NonNull does not leak in
   void PassSelf(NonNull<TestInterface>&) = delete;

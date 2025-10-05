@@ -29,7 +29,7 @@ class GeolocationCoordinates final : public nsISupports, public nsWrapperCache {
 
   GeolocationPosition* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   double Latitude() const;

@@ -55,7 +55,7 @@ FileSystemEntry::FileSystemEntry(nsIGlobalObject* aGlobal,
 
 FileSystemEntry::~FileSystemEntry() = default;
 
-JSObject* FileSystemEntry::WrapObject(JSContext* aCx,
+JSObject* FileSystemEntry::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return FileSystemEntry_Binding::Wrap(aCx, this, aGivenProto);
 }

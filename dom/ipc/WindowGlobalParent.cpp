@@ -569,8 +569,8 @@ void WindowGlobalParent::NotifyContentBlockingEvent(
 }
 
 already_AddRefed<JSWindowActorParent> WindowGlobalParent::GetActor(
-    JSContext* aCx, const nsACString& aName, ErrorResult& aRv) {
-  return JSActorManager::GetActor(JS_SanitizeContext(aCx), aName, aRv)
+    MCContext* aCx, const nsACString& aName, ErrorResult& aRv) {
+  return JSActorManager::GetActor(aCx, aName, aRv)
       .downcast<JSWindowActorParent>();
 }
 
@@ -614,12 +614,12 @@ class ShareHandler final : public PromiseNativeHandler {
   NS_DECL_ISUPPORTS
 
  public:
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     mResolver(NS_OK);
   }
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     if (NS_WARN_IF(!aValue.isObject())) {
       mResolver(NS_ERROR_FAILURE);
@@ -831,14 +831,14 @@ class CheckPermitUnloadRequest final : public PromiseNativeHandler,
     mState = State::REPLIED;
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MOZ_ASSERT(mState == State::PROMPTING);
 
     SendReply(JS::ToBoolean(aValue));
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     MOZ_ASSERT(mState == State::PROMPTING);
 
@@ -1480,7 +1480,7 @@ void WindowGlobalParent::ActorDestroy(ActorDestroyReason aWhy) {
 
 WindowGlobalParent::~WindowGlobalParent() = default;
 
-JSObject* WindowGlobalParent::WrapObject(JSContext* aCx,
+JSObject* WindowGlobalParent::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return WindowGlobalParent_Binding::Wrap(aCx, this, aGivenProto);
 }

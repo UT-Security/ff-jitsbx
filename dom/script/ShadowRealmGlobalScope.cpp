@@ -7,7 +7,7 @@
 #include "nsGlobalWindowInner.h"
 #include "nsIGlobalObject.h"
 #include "xpcpublic.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -33,9 +33,12 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ShadowRealmGlobalScope)
   NS_INTERFACE_MAP_ENTRY(ShadowRealmGlobalScope)
 NS_INTERFACE_MAP_END
 
-JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions_UNSAFE,
-                               JSPrincipals* aPrincipals,
+MC::Tainted<JSObject*> NewShadowRealmGlobal(MC::Tainted<JSContext*> tCx, JS::RealmOptions& aOptions_UNSAFE,
+                               MC::Tainted<JSPrincipals*> tPrincipals,
                                JS::Handle<JSObject*> aGlobalObj) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  JSPrincipals* aPrincipals = tPrincipals.UNSAFE_unverified(); 
+  
   MC::Tainted<JS::RealmOptions*> aOptions(nullptr);
   aOptions.assign_raw_pointer(&aOptions_UNSAFE);
   MC::Rooted<JSObject*> reflector(aCx);
@@ -53,7 +56,9 @@ JSObject* NewShadowRealmGlobal(JSContext* aCx, JS::RealmOptions& aOptions_UNSAFE
                                          aPrincipals, true, &reflector);
   }
 
-  return reflector;
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(reflector.get());
+  return ret;
 }
 
 static nsIGlobalObject* FindEnclosingNonShadowRealmGlobal(
@@ -78,7 +83,7 @@ static nsIGlobalObject* FindEnclosingNonShadowRealmGlobal(
   return global;
 }
 
-ModuleLoaderBase* ShadowRealmGlobalScope::GetModuleLoader(JSContext* aCx) {
+ModuleLoaderBase* ShadowRealmGlobalScope::GetModuleLoader(MCContext* aCx) {
   if (mModuleLoader) {
     return mModuleLoader;
   }

@@ -58,7 +58,7 @@ class MediaStreamTrackAudioSourceNode
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void DestroyMediaTrack() override;

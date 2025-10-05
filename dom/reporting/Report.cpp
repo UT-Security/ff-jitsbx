@@ -33,7 +33,7 @@ already_AddRefed<Report> Report::Clone() {
   return report.forget();
 }
 
-JSObject* Report::WrapObject(JSContext* aCx,
+JSObject* Report::WrapObject(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) {
   return Report_Binding::Wrap(aCx, this, aGivenProto);
 }

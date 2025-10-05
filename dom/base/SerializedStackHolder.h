@@ -24,25 +24,25 @@ class SerializedStackHolder {
   RefPtr<ThreadSafeWorkerRef> mWorkerRef;
 
   // Write aStack's data into mHolder.
-  void WriteStack(JSContext* aCx, JS::Handle<JSObject*> aStack);
+  void WriteStack(MCContext* aCx, JS::Handle<JSObject*> aStack);
 
  public:
   SerializedStackHolder();
 
   // Fill this holder with a main or worklet thread stack.
-  void SerializeMainThreadOrWorkletStack(JSContext* aCx,
+  void SerializeMainThreadOrWorkletStack(MCContext* aCx,
                                          JS::Handle<JSObject*> aStack);
 
   // Fill this holder with a worker thread stack.
-  void SerializeWorkerStack(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void SerializeWorkerStack(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                             JS::Handle<JSObject*> aStack);
 
   // Fill this holder with the current thread's current stack.
-  void SerializeCurrentStack(JSContext* aCx);
+  void SerializeCurrentStack(MCContext* aCx);
 
   // Read back a saved frame stack. This must be called on the main thread.
   // This returns null on failure, and does not leave an exception on aCx.
-  JSObject* ReadStack(JSContext* aCx);
+  JSObject* ReadStack(MCContext* aCx);
 };
 
 // Construct a stack for the current thread, which may be consumed by the net
@@ -52,10 +52,10 @@ class SerializedStackHolder {
 // associated window. The net monitor will only be active if the associated
 // Browsing Context or worker's WatchedByDevTools flag is set, so this should
 // be checked before creating the stack.
-UniquePtr<SerializedStackHolder> GetCurrentStackForNetMonitor(JSContext* aCx);
+UniquePtr<SerializedStackHolder> GetCurrentStackForNetMonitor(MCContext* aCx);
 
 // Construct a stack for the current thread.
-UniquePtr<SerializedStackHolder> GetCurrentStack(JSContext* aCx);
+UniquePtr<SerializedStackHolder> GetCurrentStack(MCContext* aCx);
 
 // If aStackHolder is non-null, this notifies the net monitor that aStackHolder
 // is the stack from which aChannel originates. This must be called on the main

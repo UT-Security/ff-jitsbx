@@ -27,7 +27,7 @@ GridTracks::GridTracks(GridDimension* aParent) : mParent(aParent) {
 
 GridTracks::~GridTracks() = default;
 
-JSObject* GridTracks::WrapObject(JSContext* aCx,
+JSObject* GridTracks::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return GridTracks_Binding::Wrap(aCx, this, aGivenProto);
 }

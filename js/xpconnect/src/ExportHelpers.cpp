@@ -24,7 +24,7 @@
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
 #include "nsJSUtils.h"
-#include "js/Object.h"  // JS::GetCompartment
+#include "monkeycage/Object.h"  // JS::GetCompartment
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -32,8 +32,8 @@ using namespace JS;
 
 namespace xpc {
 
-bool IsReflector(JSObject* obj, JSContext* cx) {
-  obj = js::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
+bool IsReflector(JSObject* obj, MCContext* cx) {
+  obj = mc::CheckedUnwrapDynamic(obj, cx, /* stopAtWindowProxy = */ false);
   if (!obj) {
     return false;
   }
@@ -49,7 +49,7 @@ enum StackScopedCloneTags : uint32_t {
 
 class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
  public:
-  StackScopedCloneData(JSContext* aCx, StackScopedCloneOptions* aOptions)
+  StackScopedCloneData(MCContext* aCx, StackScopedCloneOptions* aOptions)
       : mOptions(aOptions), mReflectors(aCx), mFunctions(aCx) {}
 
   ~StackScopedCloneData() { Clear(); }
@@ -67,7 +67,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
 
       MC::RootedObject reflector(aCx, mReflectors[idx]);
       MOZ_ASSERT(reflector, "No object pointer?");
-      MOZ_ASSERT(IsReflector(reflector, MC_UNSAFE(aCx)),
+      MOZ_ASSERT(IsReflector(reflector, aCx),
                  "Object pointer must be a reflector!");
 
       if (!JS_WrapObject(aCx, &reflector)) {
@@ -104,7 +104,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
         return nullptr;
       }
 
-      nsIGlobalObject* global = xpc::CurrentNativeGlobal(MC_UNSAFE(aCx));
+      nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
       MOZ_ASSERT(global);
 
       // RefPtr<File> needs to go out of scope before toObjectOrNull() is called
@@ -117,7 +117,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
           return nullptr;
         }
 
-        if (!ToJSValue(MC_UNSAFE(aCx), blob, &val)) {
+        if (!ToJSValue(aCx, blob, &val)) {
           return nullptr;
         }
       }
@@ -129,9 +129,9 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
     return nullptr;
   }
 
-  bool CustomWriteHandler(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool CustomWriteHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                           JS::Handle<JSObject*> aObj,
-                          bool* aSameProcessScopeRequired) override {
+                          MC::Tainted<bool*> aSameProcessScopeRequired) override {
     {
       MC::Rooted<JSObject*> obj(aCx, aObj);
       Blob* blob = nullptr;
@@ -201,7 +201,7 @@ class MOZ_STACK_CLASS StackScopedCloneData : public StructuredCloneHolderBase {
  * to clone to, and that |val| may not be same-compartment with cx. When the
  * function returns, |val| is set to the result of the clone.
  */
-bool StackScopedClone(JSContext* cx, StackScopedCloneOptions& options,
+bool StackScopedClone(MCContext* cx, StackScopedCloneOptions& options,
                       HandleObject sourceScope, MutableHandleValue val) {
   StackScopedCloneData data(cx, &options);
   {
@@ -277,7 +277,7 @@ static void MaybeSanitizeException(MCContext* cx,
                                    JS::Handle<JSObject*> unwrappedFun) {
   // Ensure that we are not propagating more-privileged exceptions
   // to less-privileged code.
-  nsIPrincipal* callerPrincipal = nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx));
+  nsIPrincipal* callerPrincipal = nsContentUtils::SubjectPrincipal(cx);
 
   // No need to sanitize uncatchable exceptions, just return.
   if (!JS_IsExceptionPending(cx)) {
@@ -552,7 +552,7 @@ bool ExportFunction(MCContext* cx, HandleValue vfunction, HandleValue vscope,
   return true;
 }
 
-bool CreateObjectIn(JSContext* cx, HandleValue vobj,
+bool CreateObjectIn(MCContext* cx, HandleValue vobj,
                     CreateObjectInOptions& options, MutableHandleValue rval) {
   if (!vobj.isObject()) {
     JS_ReportErrorASCII(cx, "Expected an object as the target scope");
@@ -560,7 +560,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
   }
 
   // cx represents the caller Realm.
-  MC::RootedObject scope(cx, js::CheckedUnwrapDynamic(&vobj.toObject(), cx));
+  MC::RootedObject scope(cx, mc::CheckedUnwrapDynamic(&vobj.toObject(), cx));
   if (!scope) {
     JS_ReportErrorASCII(
         cx, "Permission denied to create object in the target scope");
@@ -592,7 +592,7 @@ bool CreateObjectIn(JSContext* cx, HandleValue vobj,
   }
 
   rval.setObject(*obj);
-  if (!WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), rval)) {
+  if (!WrapperFactory::WaiveXrayAndWrap(cx, rval)) {
     return false;
   }
 

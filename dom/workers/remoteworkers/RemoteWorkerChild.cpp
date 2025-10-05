@@ -115,7 +115,7 @@ class MessagePortIdentifierRunnable final : public WorkerRunnable {
         mPortIdentifier(aPortIdentifier) {}
 
  private:
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mActor->AddPortIdentifier(aCx, aWorkerPrivate, mPortIdentifier);
     return true;
   }
@@ -903,7 +903,7 @@ class RemoteWorkerChild::SharedWorkerOp : public RemoteWorkerChild::Op {
 };
 
 void RemoteWorkerChild::AddPortIdentifier(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+    MCContext* aCx, WorkerPrivate* aWorkerPrivate,
     UniqueMessagePortId& aPortIdentifier) {
   if (NS_WARN_IF(!aWorkerPrivate->ConnectMessagePort(aCx, aPortIdentifier))) {
     ErrorPropagationDispatch(NS_ERROR_FAILURE);

@@ -94,7 +94,7 @@ class WindowGlobalParent final : public WindowContext,
   already_AddRefed<WindowGlobalChild> GetChildActor();
 
   // Get a JS actor object by name.
-  already_AddRefed<JSWindowActorParent> GetActor(JSContext* aCx,
+  already_AddRefed<JSWindowActorParent> GetActor(MCContext* aCx,
                                                  const nsACString& aName,
                                                  ErrorResult& aRv);
   already_AddRefed<JSWindowActorParent> GetExistingActor(
@@ -170,7 +170,7 @@ class WindowGlobalParent final : public WindowContext,
   void Init() final;
 
   nsIGlobalObject* GetParentObject();
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void NotifyContentBlockingEvent(

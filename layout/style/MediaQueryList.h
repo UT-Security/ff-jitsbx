@@ -45,7 +45,7 @@ class MediaQueryList final : public DOMEventTargetHelper,
   [[nodiscard]] bool MediaFeatureValuesChanged();
   void FireChangeEvent();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods

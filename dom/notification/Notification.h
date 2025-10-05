@@ -105,7 +105,7 @@ class Notification : public DOMEventTargetHelper,
                                                          DOMEventTargetHelper)
   NS_DECL_NSIOBSERVER
 
-  static bool PrefEnabled(JSContext* aCx, JSObject* aObj);
+  static bool PrefEnabled(MCContext* aCx, JSObject* aObj);
 
   static already_AddRefed<Notification> Constructor(
       const GlobalObject& aGlobal, const nsAString& aTitle,
@@ -145,7 +145,7 @@ class Notification : public DOMEventTargetHelper,
 
   bool IsStored() { return mIsStored; }
 
-  static bool RequestPermissionEnabledForScope(JSContext* aCx,
+  static bool RequestPermissionEnabledForScope(MCContext* aCx,
                                                JSObject* /* unused */);
 
   static already_AddRefed<Promise> RequestPermission(
@@ -172,7 +172,7 @@ class Notification : public DOMEventTargetHelper,
   // Note that aCx may not be in the compartment of aGlobal, but aOptions will
   // have its JS things in the compartment of aCx.
   static already_AddRefed<Promise> ShowPersistentNotification(
-      JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aScope,
+      MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aScope,
       const nsAString& aTitle, const NotificationOptions& aOptions,
       const ServiceWorkerRegistrationDescriptor& aDescriptor, ErrorResult& aRv);
 
@@ -180,7 +180,7 @@ class Notification : public DOMEventTargetHelper,
 
   nsPIDOMWindowInner* GetParentObject() { return GetOwner(); }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool RequireInteraction() const;
@@ -189,9 +189,9 @@ class Notification : public DOMEventTargetHelper,
 
   void GetVibrate(nsTArray<uint32_t>& aRetval) const;
 
-  void GetData(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  void GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
-  void InitFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aData,
+  void InitFromJSVal(MCContext* aCx, JS::Handle<JS::Value> aData,
                      ErrorResult& aRv);
 
   void InitFromBase64(const nsAString& aData, ErrorResult& aRv);
@@ -333,7 +333,7 @@ class Notification : public DOMEventTargetHelper,
   // Note that aCx may not be in the compartment of aGlobal, but aOptions will
   // have its JS things in the compartment of aCx.
   static already_AddRefed<Notification> CreateAndShow(
-      JSContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
+      MCContext* aCx, nsIGlobalObject* aGlobal, const nsAString& aTitle,
       const NotificationOptions& aOptions, const nsAString& aScope,
       ErrorResult& aRv);
 

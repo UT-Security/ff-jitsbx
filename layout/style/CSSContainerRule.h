@@ -37,7 +37,7 @@ class CSSContainerRule final : public css::ConditionRule {
 
   size_t SizeOfIncludingThis(MallocSizeOf) const override;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   Element* QueryContainerFor(const Element&) const;

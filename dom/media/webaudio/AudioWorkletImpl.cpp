@@ -50,7 +50,7 @@ AudioWorkletImpl::AudioWorkletImpl(nsPIDOMWindowInner* aWindow,
 
 AudioWorkletImpl::~AudioWorkletImpl() = default;
 
-JSObject* AudioWorkletImpl::WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
+JSObject* AudioWorkletImpl::WrapWorklet(MCContext* aCx, dom::Worklet* aWorklet,
                                         JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
   return dom::AudioWorklet_Binding::Wrap(aCx, aWorklet, aGivenProto);

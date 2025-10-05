@@ -33,7 +33,7 @@ nsIGlobalObject* FileSystemDirectoryIterator::GetParentObject() const {
 }
 
 JSObject* FileSystemDirectoryIterator::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemDirectoryIterator_Binding::Wrap(aCx, this, aGivenProto);
 }
 

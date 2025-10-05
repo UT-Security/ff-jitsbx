@@ -393,7 +393,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
   JS::ExpandoAndGeneration mExpandoAndGeneration;
 
  protected:
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   void PostPasswordEvent();
   void PostPossibleUsernameEvent();

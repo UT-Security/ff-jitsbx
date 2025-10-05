@@ -22,7 +22,7 @@ class ErrorResult;
 
 namespace dom {
 
-bool ServiceWorkerVisible(JSContext* aCx, JSObject* aGlobal);
+bool ServiceWorkerVisible(MCContext* aCx, JSObject* aGlobal);
 
 class PushSubscriptionOptions final : public nsISupports,
                                       public nsWrapperCache {
@@ -35,10 +35,10 @@ class PushSubscriptionOptions final : public nsISupports,
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetApplicationServerKey(JSContext* aCx,
+  void GetApplicationServerKey(MCContext* aCx,
                                JS::MutableHandle<JSObject*> aKey,
                                ErrorResult& aRv);
 

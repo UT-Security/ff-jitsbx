@@ -50,12 +50,12 @@ PublicKeyCredential::PublicKeyCredential(nsPIDOMWindowInner* aParent)
 
 PublicKeyCredential::~PublicKeyCredential() { mozilla::DropJSObjects(this); }
 
-JSObject* PublicKeyCredential::WrapObject(JSContext* aCx,
+JSObject* PublicKeyCredential::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return PublicKeyCredential_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void PublicKeyCredential::GetRawId(JSContext* aCx,
+void PublicKeyCredential::GetRawId(MCContext* aCx,
                                    JS::MutableHandle<JSObject*> aValue,
                                    ErrorResult& aRv) {
   if (!mRawIdCachedObj) {

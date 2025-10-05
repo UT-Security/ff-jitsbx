@@ -32,7 +32,7 @@ Pose::~Pose() { mozilla::DropJSObjects(this); }
 
 nsISupports* Pose::GetParentObject() const { return mParent; }
 
-void Pose::SetFloat32Array(JSContext* aJSContext, nsWrapperCache* creator,
+void Pose::SetFloat32Array(MCContext* aJSContext, nsWrapperCache* creator,
                            JS::MutableHandle<JSObject*> aRetVal,
                            JS::Heap<JSObject*>& aObj, float* aVal,
                            uint32_t aValLength, ErrorResult& aRv) {

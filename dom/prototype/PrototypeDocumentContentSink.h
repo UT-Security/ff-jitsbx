@@ -21,7 +21,7 @@
 #include "nsIScriptContext.h"
 #include "nsICSSLoaderObserver.h"
 #include "mozilla/Logging.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "mozilla/RefPtr.h"
 
 class nsIURI;

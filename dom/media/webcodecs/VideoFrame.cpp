@@ -13,7 +13,7 @@
 
 #include "ImageContainer.h"
 #include "VideoColorSpace.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/Result.h"
 #include "mozilla/ResultVariant.h"
@@ -1233,7 +1233,7 @@ nsIGlobalObject* VideoFrame::GetParentObject() const {
   return mParent.get();
 }
 
-JSObject* VideoFrame::WrapObject(JSContext* aCx,
+JSObject* VideoFrame::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnOwningThread();
 
@@ -1831,7 +1831,7 @@ void VideoFrame::Close() {
 // https://w3c.github.io/webcodecs/#ref-for-deserialization-steps%E2%91%A0
 /* static */
 JSObject* VideoFrame::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal, JSStructuredCloneReader* aReader,
+    MCContext* aCx, nsIGlobalObject* aGlobal, MC::Tainted<JSStructuredCloneReader*> aReader,
     const VideoFrameSerializedData& aData) {
   if (!IsSameOrigin(aGlobal, aData.mPrincipalURI.get())) {
     return nullptr;
@@ -1856,7 +1856,7 @@ JSObject* VideoFrame::ReadStructuredClone(
 }
 
 // https://w3c.github.io/webcodecs/#ref-for-serialization-steps%E2%91%A0
-bool VideoFrame::WriteStructuredClone(JSStructuredCloneWriter* aWriter,
+bool VideoFrame::WriteStructuredClone(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                       StructuredCloneHolder* aHolder) const {
   AssertIsOnOwningThread();
 

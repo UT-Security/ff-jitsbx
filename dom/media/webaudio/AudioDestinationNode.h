@@ -32,7 +32,7 @@ class AudioDestinationNode final : public AudioNode,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioDestinationNode, AudioNode)
   NS_DECL_NSIAUDIOCHANNELAGENTCALLBACK
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t NumberOfOutputs() const final { return 0; }

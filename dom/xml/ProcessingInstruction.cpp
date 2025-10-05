@@ -64,7 +64,7 @@ StyleSheet* ProcessingInstruction::GetSheetForBindings() const {
   return nullptr;
 }
 
-JSObject* ProcessingInstruction::WrapNode(JSContext* aCx,
+JSObject* ProcessingInstruction::WrapNode(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return ProcessingInstruction_Binding::Wrap(aCx, this, aGivenProto);
 }

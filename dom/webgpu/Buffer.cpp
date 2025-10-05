@@ -11,7 +11,7 @@
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/ipc/Shmem.h"
 #include "ipc/WebGPUChild.h"
-#include "js/ArrayBuffer.h"
+#include "monkeycage/ArrayBuffer.h"
 #include "monkeycage/RootingAPI.h"
 #include "nsContentUtils.h"
 #include "nsWrapperCache.h"
@@ -220,7 +220,7 @@ static void ExternalBufferFreeCallback(void* aContents, void* aUserData) {
   delete shm;
 }
 
-void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
+void Buffer::GetMappedRange(MCContext* aCx, uint64_t aOffset,
                             const dom::Optional<uint64_t>& aSize,
                             MC::Rooted<JSObject*>* aObject, ErrorResult& aRv) {
   if (!mMapped) {
@@ -248,7 +248,7 @@ void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
   std::shared_ptr<ipc::WritableSharedMemoryMapping>* userData =
       new std::shared_ptr<ipc::WritableSharedMemoryMapping>(mShmem);
   auto* const arrayBuffer = JS::NewExternalArrayBuffer(
-      aCx, size, span.data(), &ExternalBufferFreeCallback, userData);
+      MC_UNSAFE(aCx), size, span.data(), &ExternalBufferFreeCallback, userData);
 
   if (!arrayBuffer) {
     aRv.NoteJSContextException(aCx);
@@ -259,7 +259,7 @@ void Buffer::GetMappedRange(JSContext* aCx, uint64_t aOffset,
   mMapped->mArrayBuffers.AppendElement(*aObject);
 }
 
-void Buffer::UnmapArrayBuffers(JSContext* aCx, ErrorResult& aRv) {
+void Buffer::UnmapArrayBuffers(MCContext* aCx, ErrorResult& aRv) {
   MOZ_ASSERT(mMapped);
 
   bool detachedArrayBuffers = true;
@@ -295,7 +295,7 @@ void Buffer::AbortMapRequest() {
   mMapRequest = nullptr;
 }
 
-void Buffer::Unmap(JSContext* aCx, ErrorResult& aRv) {
+void Buffer::Unmap(MCContext* aCx, ErrorResult& aRv) {
   if (!mMapped) {
     return;
   }
@@ -320,7 +320,7 @@ void Buffer::Unmap(JSContext* aCx, ErrorResult& aRv) {
   mMapped.reset();
 }
 
-void Buffer::Destroy(JSContext* aCx, ErrorResult& aRv) {
+void Buffer::Destroy(MCContext* aCx, ErrorResult& aRv) {
   if (mMapped) {
     Unmap(aCx, aRv);
   }

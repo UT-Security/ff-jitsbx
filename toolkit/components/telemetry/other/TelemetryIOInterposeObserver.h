@@ -59,7 +59,7 @@ class TelemetryIOInterposeObserver : public IOInterposeObserver {
   /**
    * Reflect recorded file IO statistics into Javascript
    */
-  bool ReflectIntoJS(JSContext* cx, JS::Handle<JSObject*> rootObj);
+  bool ReflectIntoJS(MCContext* cx, JS::Handle<JSObject*> rootObj);
 
   /**
    * Adds a path for inclusion in main thread I/O report.
@@ -106,7 +106,7 @@ class TelemetryIOInterposeObserver : public IOInterposeObserver {
    * filename as key containing array:
    * [totalTime, creates, reads, writes, fsyncs, stats]
    */
-  static bool ReflectFileStats(FileIOEntryType* entry, JSContext* cx,
+  static bool ReflectFileStats(FileIOEntryType* entry, MCContext* cx,
                                JS::Handle<JSObject*> obj);
 };
 

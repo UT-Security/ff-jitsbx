@@ -28,7 +28,7 @@ class DOMSVGAnimatedLength final : public nsWrapperCache {
 
   // WebIDL
   SVGElement* GetParentObject() { return mSVGElement; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   already_AddRefed<DOMSVGLength> BaseVal();
   already_AddRefed<DOMSVGLength> AnimVal();

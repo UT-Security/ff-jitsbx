@@ -35,7 +35,7 @@ WebTransportReceiveStream::WebTransportReceiveStream(nsIGlobalObject* aGlobal,
 // WebIDL Boilerplate
 
 JSObject* WebTransportReceiveStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WebTransportReceiveStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -47,7 +47,7 @@ already_AddRefed<WebTransportReceiveStream> WebTransportReceiveStream::Create(
   if (!jsapi.Init(aGlobal)) {
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   auto stream = MakeRefPtr<WebTransportReceiveStream>(aGlobal, aWebTransport);
 

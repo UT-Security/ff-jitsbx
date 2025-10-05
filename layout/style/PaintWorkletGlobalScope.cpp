@@ -20,7 +20,7 @@ PaintWorkletImpl* PaintWorkletGlobalScope::Impl() const {
 }
 
 bool PaintWorkletGlobalScope::WrapGlobalObject(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
   MC::SandboxStack<JS::RealmOptions> options;
 
   // TODO(bug 1834744)

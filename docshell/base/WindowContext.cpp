@@ -575,7 +575,7 @@ WindowContext::~WindowContext() {
   }
 }
 
-JSObject* WindowContext::WrapObject(JSContext* cx,
+JSObject* WindowContext::WrapObject(MCContext* cx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return WindowContext_Binding::Wrap(cx, this, aGivenProto);
 }

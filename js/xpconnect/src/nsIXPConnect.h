@@ -12,8 +12,8 @@
 #include "nsISupports.h"
 
 #include "jspubtd.h"
-#include "js/CompileOptions.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/CompileOptions.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "xptinfo.h"
 #include "nsCOMPtr.h"
@@ -165,7 +165,7 @@ class nsIXPConnect : public nsISupports {
    *       NS_ERROR_XPC_BAD_CONVERT_NATIVE
    *       NS_ERROR_FAILURE
    */
-  nsresult WrapNative(JSContext* aJSContext, JSObject* aScopeArg,
+  nsresult WrapNative(MCContext* aJSContext, JSObject* aScopeArg,
                       nsISupports* aCOMObj, const nsIID& aIID,
                       JSObject** aRetVal);
 
@@ -182,7 +182,7 @@ class nsIXPConnect : public nsISupports {
    * is required to push it if the top of the context stack is not equal to
    * aJSContext.
    */
-  nsresult WrapNativeToJSVal(JSContext* aJSContext, JSObject* aScopeArg,
+  nsresult WrapNativeToJSVal(MCContext* aJSContext, JSObject* aScopeArg,
                              nsISupports* aCOMObj, nsWrapperCache* aCache,
                              const nsIID* aIID, bool aAllowWrapping,
                              JS::MutableHandle<JS::Value> aVal);
@@ -210,20 +210,20 @@ class nsIXPConnect : public nsISupports {
    *       NS_ERROR_XPC_BAD_CONVERT_JS
    *       NS_ERROR_FAILURE
    */
-  nsresult WrapJS(JSContext* aJSContext, JSObject* aJSObj, const nsIID& aIID,
+  nsresult WrapJS(MCContext* aJSContext, JSObject* aJSObj, const nsIID& aIID,
                   void** result);
 
   /**
    * Wraps the given jsval in a nsIVariant and returns the new variant.
    */
-  nsresult JSValToVariant(JSContext* cx, JS::Handle<JS::Value> aJSVal,
+  nsresult JSValToVariant(MCContext* cx, JS::Handle<JS::Value> aJSVal,
                           nsIVariant** aResult);
 
   /**
    * This only succeeds if the JSObject is a nsIXPConnectWrappedNative.
    * A new wrapper is *never* constructed.
    */
-  nsresult GetWrappedNativeOfJSObject(JSContext* aJSContext, JSObject* aJSObj,
+  nsresult GetWrappedNativeOfJSObject(MCContext* aJSContext, JSObject* aJSObj,
                                       nsIXPConnectWrappedNative** _retval);
 
   nsresult DebugDump(int16_t depth);
@@ -244,15 +244,15 @@ class nsIXPConnect : public nsISupports {
    *       NS_ERROR_XPC_BAD_CONVERT_JS
    *       NS_ERROR_FAILURE
    */
-  nsresult WrapJSAggregatedToNative(nsISupports* aOuter, JSContext* aJSContext,
+  nsresult WrapJSAggregatedToNative(nsISupports* aOuter, MCContext* aJSContext,
                                     JSObject* aJSObj, const nsIID& aIID,
                                     void** result);
 
   // Methods added since mozilla 0.6....
 
-  nsresult VariantToJS(JSContext* ctx, JSObject* scope, nsIVariant* value,
+  nsresult VariantToJS(MCContext* ctx, JSObject* scope, nsIVariant* value,
                        JS::MutableHandle<JS::Value> _retval);
-  nsresult JSToVariant(JSContext* ctx, JS::Handle<JS::Value> value,
+  nsresult JSToVariant(MCContext* ctx, JS::Handle<JS::Value> value,
                        nsIVariant** _retval);
 
   /**
@@ -263,7 +263,7 @@ class nsIXPConnect : public nsISupports {
    * @param principal The principal (or NULL to use the null principal)
    *                  to use when evaluating code in this sandbox.
    */
-  nsresult CreateSandbox(JSContext* cx, nsIPrincipal* principal,
+  nsresult CreateSandbox(MCContext* cx, nsIPrincipal* principal,
                          JSObject** _retval);
 
   /**
@@ -282,7 +282,7 @@ class nsIXPConnect : public nsISupports {
    *         to this method.
    */
   nsresult EvalInSandboxObject(const nsAString& source, const char* filename,
-                               JSContext* cx, JSObject* sandboxArg,
+                               MCContext* cx, JSObject* sandboxArg,
                                JS::MutableHandle<JS::Value> rval);
 };
 

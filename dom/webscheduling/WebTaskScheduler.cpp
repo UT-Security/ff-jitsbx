@@ -67,7 +67,7 @@ void WebTask::RunAbortAlgorithm() {
     if (!jsapi.Init(mPromise->GetGlobalObject())) {
       mPromise->MaybeReject(NS_ERROR_UNEXPECTED);
     } else {
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
       MC::Rooted<JS::Value> reason(cx);
       Signal()->GetReason(cx, &reason);
       mPromise->MaybeReject(reason);
@@ -150,7 +150,7 @@ WebTaskScheduler::WebTaskScheduler(nsIGlobalObject* aParent)
   MOZ_ASSERT(aParent);
 }
 
-JSObject* WebTaskScheduler::WrapObject(JSContext* cx,
+JSObject* WebTaskScheduler::WrapObject(MCContext* cx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return Scheduler_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -187,7 +187,7 @@ already_AddRefed<Promise> WebTaskScheduler::PostTask(
         return promise.forget();
       }
 
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
       MC::Rooted<JS::Value> reason(cx);
       signalValue.GetReason(cx, &reason);
       promise->MaybeReject(reason);

@@ -12,11 +12,11 @@
 #include "mozilla/IntegerRange.h"
 #include "mozilla/Unused.h"
 
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
-#include "js/ArrayBuffer.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement, JS_SetElement
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement, JS_SetElement
 #include "monkeycage/RootingAPI.h"
-#include "js/String.h"
+#include "monkeycage/String.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 
@@ -106,32 +106,32 @@ static JSObject* ExpectArrayBufferObject(const JS::Value& aValue) {
   return &object;
 }
 
-static JSObject* ExpectArrayObject(JSContext* const aContext,
+static JSObject* ExpectArrayObject(MCContext* const aContext,
                                    JS::Handle<JS::Value> aValue) {
   EXPECT_TRUE(aValue.isObject());
-  bool rv;
-  EXPECT_TRUE(JS::IsArrayObject(aContext, aValue, &rv));
-  EXPECT_TRUE(rv);
+  MC::SandboxStack<bool> rv;
+  EXPECT_TRUE(JS::IsArrayObject(aContext, aValue, rv));
+  EXPECT_TRUE(*rv.UNSAFE_unverified());
   return &aValue.toObject();
 }
 
 static void CheckArrayBuffer(const nsCString& aExpected,
                              const JS::Value& aActual) {
   auto obj = ExpectArrayBufferObject(aActual);
-  size_t length;
-  bool isSharedMemory;
-  uint8_t* data;
-  JS::GetArrayBufferLengthAndData(obj, &length, &isSharedMemory, &data);
+  MC::SandboxStack<size_t> length;
+  MC::SandboxStack<bool> isSharedMemory;
+  MC::SandboxStack<uint8_t*> data;
+  JS::GetArrayBufferLengthAndData(obj, length, isSharedMemory, data);
 
-  EXPECT_EQ(aExpected.Length(), length);
-  EXPECT_EQ(0, memcmp(aExpected.get(), data, length));
+  EXPECT_EQ(aExpected.Length(), *length.UNSAFE_unverified());
+  EXPECT_EQ(0, memcmp(aExpected.get(), *data.UNSAFE_unverified(), *length.UNSAFE_unverified()));
 }
 
-static void CheckString(JSContext* const aContext, const nsString& aExpected,
+static void CheckString(MCContext* const aContext, const nsString& aExpected,
                         JS::Handle<JS::Value> aActual) {
   EXPECT_TRUE(aActual.isString());
   int32_t rv;
-  EXPECT_TRUE(JS_CompareStrings(aContext,
+  EXPECT_TRUE(JS_CompareStrings(MC_UNSAFE(aContext),
                                 JS_NewUCStringCopyZ(aContext, aExpected.get()),
                                 aActual.toString(), &rv));
   EXPECT_EQ(0, rv);
@@ -149,12 +149,12 @@ struct AutoTestJSContext {
     mContext = mJsAPI.cx();
   }
 
-  operator JSContext*() const { return mContext; }
+  operator MCContext*() const { return mContext; }
 
  private:
   Rooted<JSObject*> mGlobalObject;
   mozilla::dom::AutoJSAPI mJsAPI;
-  JSContext* mContext;
+  MCContext* mContext;
 };
 
 // The following classes serve as base classes for the parametrized tests below.
@@ -236,10 +236,10 @@ INSTANTIATE_TEST_SUITE_P(DOM_IndexedDB_Key, TestWithParam_LiteralString,
                                            u"\u7fff"_ns, u"\u8000"_ns,
                                            u"\uffff"_ns));
 
-static JS::Value CreateArrayBufferValue(JSContext* const aContext,
+static JS::Value CreateArrayBufferValue(MCContext* const aContext,
                                         const size_t aSize, char* const aData) {
   Rooted<JSObject*> arrayBuffer{
-      aContext, JS::NewArrayBufferWithContents(aContext, aSize, aData)};
+      aContext, JS::NewArrayBufferWithContents(MC_UNSAFE(aContext), aSize, aData)};
   EXPECT_TRUE(arrayBuffer);
   return JS::ObjectValue(*arrayBuffer);
 }
@@ -266,7 +266,7 @@ TEST(DOM_IndexedDB_Key, SetFromJSVal_ZeroLengthArrayBuffer)
 }
 
 template <typename CheckElement>
-static void CheckArray(JSContext* const context,
+static void CheckArray(MCContext* const context,
                        JS::Handle<JS::Value> arrayValue,
                        const size_t expectedLength,
                        const CheckElement& checkElement) {
@@ -277,7 +277,7 @@ static void CheckArray(JSContext* const context,
   EXPECT_TRUE(JS::GetArrayLength(context, actualArray, &actualLength));
   EXPECT_EQ(expectedLength, actualLength);
   for (size_t i = 0; i < expectedLength; ++i) {
-    Rooted<JS::Value> element(static_cast<JSContext*>(context));
+    Rooted<JS::Value> element(static_cast<MCContext*>(context));
     EXPECT_TRUE(JS_GetElement(context, actualArray, i, &element));
 
     checkElement(i, element);
@@ -285,7 +285,7 @@ static void CheckArray(JSContext* const context,
 }
 
 static JS::Value CreateArrayBufferArray(
-    JSContext* const context, const std::vector<nsCString>& elements) {
+    MCContext* const context, const std::vector<nsCString>& elements) {
   Rooted<JSObject*> arrayObject(context,
                                 JS::NewArrayObject(context, elements.size()));
   EXPECT_TRUE(arrayObject);
@@ -330,14 +330,14 @@ INSTANTIATE_TEST_SUITE_P(
     testing::Values(std::vector<nsCString>{}, std::vector<nsCString>{""_ns},
                     std::vector<nsCString>{""_ns, BufferAsCString(element2)}));
 
-static JS::Value CreateStringValue(JSContext* const context,
+static JS::Value CreateStringValue(MCContext* const context,
                                    const nsString& string) {
   JSString* str = JS_NewUCStringCopyZ(context, string.get());
   EXPECT_TRUE(str);
   return JS::StringValue(str);
 }
 
-static JS::Value CreateStringArray(JSContext* const context,
+static JS::Value CreateStringArray(MCContext* const context,
                                    const std::vector<nsString>& elements) {
   Rooted<JSObject*> array(context,
                           JS::NewArrayObject(context, elements.size()));

@@ -11,8 +11,8 @@
 #include "mozilla/ipc/PTestShellParent.h"
 #include "mozilla/ipc/PTestShellCommandParent.h"
 
-#include "js/RootingAPI.h"
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Value.h"
 #include "nsString.h"
 
 namespace mozilla {
@@ -41,7 +41,7 @@ class TestShellCommandParent : public PTestShellCommandParent {
  public:
   TestShellCommandParent() = default;
 
-  bool SetCallback(JSContext* aCx, const JS::Value& aCallback);
+  bool SetCallback(MCContext* aCx, const JS::Value& aCallback);
 
   bool RunCallback(const nsAString& aResponse);
 
@@ -60,7 +60,7 @@ class TestShellCommandParent : public PTestShellCommandParent {
   }
 
  private:
-  JS::PersistentRooted<JS::Value> mCallback;
+  MC::PersistentRooted<JS::Value> mCallback;
 };
 
 } /* namespace ipc */

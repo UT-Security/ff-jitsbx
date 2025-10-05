@@ -106,7 +106,7 @@ class GfxInfoBase : public nsIGfxInfo,
   // Convenience to get the application version
   static const nsCString& GetApplicationVersion();
 
-  virtual nsresult FindMonitors(JSContext* cx, JS::Handle<JSObject*> array);
+  virtual nsresult FindMonitors(MCContext* cx, JS::Handle<JSObject*> array);
 
   static void SetFeatureStatus(
       nsTArray<mozilla::gfx::GfxInfoFeatureStatus>&& aFS);
@@ -125,7 +125,7 @@ class GfxInfoBase : public nsIGfxInfo,
   // (while subclasses check for more specific ones).
   virtual const nsTArray<GfxDriverInfo>& GetGfxDriverInfo() = 0;
 
-  virtual void DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> obj);
+  virtual void DescribeFeatures(MCContext* aCx, JS::Handle<JSObject*> obj);
 
   virtual bool DoesWindowProtocolMatch(
       const nsAString& aBlocklistWindowProtocol,
@@ -137,7 +137,7 @@ class GfxInfoBase : public nsIGfxInfo,
   virtual bool DoesDriverVendorMatch(const nsAString& aBlocklistVendor,
                                      const nsAString& aDriverVendor);
 
-  bool InitFeatureObject(JSContext* aCx, JS::Handle<JSObject*> aContainer,
+  bool InitFeatureObject(MCContext* aCx, JS::Handle<JSObject*> aContainer,
                          const char* aName,
                          mozilla::gfx::FeatureState& aFeatureState,
                          JS::MutableHandle<JSObject*> aOutObj);
@@ -160,7 +160,7 @@ class GfxInfoBase : public nsIGfxInfo,
 
   void EvaluateDownloadedBlocklist(nsTArray<GfxDriverInfo>& aDriverInfo);
 
-  bool BuildFeatureStateLog(JSContext* aCx, const gfx::FeatureState& aFeature,
+  bool BuildFeatureStateLog(MCContext* aCx, const gfx::FeatureState& aFeature,
                             JS::MutableHandle<JS::Value> aOut);
 
   Mutex mMutex MOZ_UNANNOTATED;

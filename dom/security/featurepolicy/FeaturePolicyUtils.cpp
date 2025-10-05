@@ -210,7 +210,7 @@ void FeaturePolicyUtils::ReportViolation(Document* aDocument,
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return;
   }
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (NS_WARN_IF(!cx)) {
     return;
   }

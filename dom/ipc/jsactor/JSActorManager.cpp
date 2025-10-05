@@ -160,7 +160,7 @@ void JSActorManager::ReceiveRawMessage(
   {
     MC::Rooted<JS::Value> stackVal(cx);
     if (aStack) {
-      aStack->Read(MC_UNSAFE(cx), &stackVal, error);
+      aStack->Read(cx, &stackVal, error);
       if (error.Failed()) {
         error.SuppressException();
         JS_ClearPendingException(cx);
@@ -186,7 +186,7 @@ void JSActorManager::ReceiveRawMessage(
 
   MC::Rooted<JS::Value> data(cx);
   if (aData) {
-    aData->Read(MC_UNSAFE(cx), &data, error);
+    aData->Read(cx, &data, error);
     if (error.Failed()) {
       CHILD_DIAGNOSTIC_ASSERT(CycleCollectedJSRuntime::Get()->OOMReported(),
                               "Should not receive non-decodable data");

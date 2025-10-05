@@ -36,7 +36,7 @@ class PositionStateEvent : public Event {
  public:
   PositionStateEvent* AsPositionStateEvent() override;
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<PositionStateEvent> Constructor(

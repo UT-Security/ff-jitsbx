@@ -35,13 +35,13 @@ class MozQueryInterface final : public NonRefcountedDOMObject {
 
   bool QueriesTo(const nsIID& aIID) const;
 
-  void LegacyCall(JSContext* cx, JS::Handle<JS::Value> thisv,
+  void LegacyCall(MCContext* cx, JS::Handle<JS::Value> thisv,
                   JS::Handle<JS::Value> aIID,
                   JS::MutableHandle<JS::Value> aResult, ErrorResult& aRv) const;
 
   nsISupports* GetParentObject() const { return nullptr; }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector);
 
  private:

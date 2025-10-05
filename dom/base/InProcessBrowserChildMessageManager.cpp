@@ -164,7 +164,7 @@ NS_IMPL_RELEASE_INHERITED(InProcessBrowserChildMessageManager,
                           DOMEventTargetHelper)
 
 JSObject* InProcessBrowserChildMessageManager::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ContentFrameMessageManager_Binding::Wrap(aCx, this, aGivenProto);
 }
 

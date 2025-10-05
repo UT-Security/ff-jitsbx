@@ -300,7 +300,7 @@ class IOUtils final {
                                                    ErrorResult& aError);
 
   // Allow conversion of |InternalFileInfo| with |ToJSValue|.
-  friend bool ToJSValue(JSContext* aCx,
+  friend bool ToJSValue(MCContext* aCx,
                         const InternalFileInfo& aInternalFileInfo,
                         JS::MutableHandle<JS::Value> aValue);
 
@@ -867,7 +867,7 @@ class IOUtils::JsBuffer final {
    *
    * @returns A JSString with the contents of |aBuffer|.
    */
-  static JSString* IntoString(JSContext* aCx, JsBuffer aBuffer);
+  static JSString* IntoString(MCContext* aCx, JsBuffer aBuffer);
 
   /**
    * Consume the JsBuffer and convert it into a Uint8Array.
@@ -880,9 +880,9 @@ class IOUtils::JsBuffer final {
    *
    * @returns A JSBuffer
    */
-  static JSObject* IntoUint8Array(JSContext* aCx, JsBuffer aBuffer);
+  static JSObject* IntoUint8Array(MCContext* aCx, JsBuffer aBuffer);
 
-  friend bool ToJSValue(JSContext* aCx, JsBuffer&& aBuffer,
+  friend bool ToJSValue(MCContext* aCx, JsBuffer&& aBuffer,
                         JS::MutableHandle<JS::Value> aValue);
 
  private:
@@ -904,7 +904,7 @@ class SyncReadFile : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   int64_t Size() const { return mSize; }

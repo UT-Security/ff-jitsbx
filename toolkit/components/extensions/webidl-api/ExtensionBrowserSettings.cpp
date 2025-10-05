@@ -80,12 +80,12 @@ ExtensionBrowserSettings::ExtensionBrowserSettings(
 }
 
 /* static */
-bool ExtensionBrowserSettings::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionBrowserSettings::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
 JSObject* ExtensionBrowserSettings::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionBrowserSettings_Binding::Wrap(aCx, this, aGivenProto);
 }
 

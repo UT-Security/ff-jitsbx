@@ -39,7 +39,7 @@ class PerformanceWorker final : public Performance {
 
   DOMHighResTimeStamp CreationTime() const override;
 
-  virtual void GetMozMemory(JSContext* aCx,
+  virtual void GetMozMemory(MCContext* aCx,
                             JS::MutableHandle<JSObject*> aObj) override {
     MOZ_CRASH("This should not be called on workers.");
   }

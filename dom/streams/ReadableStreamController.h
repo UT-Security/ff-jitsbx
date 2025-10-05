@@ -34,11 +34,11 @@ class ReadableStreamController : public nsISupports {
   virtual ReadableByteStreamController* AsByte() = 0;
 
   MOZ_CAN_RUN_SCRIPT
-  virtual already_AddRefed<Promise> CancelSteps(JSContext* aCx,
+  virtual already_AddRefed<Promise> CancelSteps(MCContext* aCx,
                                                 JS::Handle<JS::Value> aReason,
                                                 ErrorResult& aRv) = 0;
   MOZ_CAN_RUN_SCRIPT
-  virtual void PullSteps(JSContext* aCx, ReadRequest* aReadRequest,
+  virtual void PullSteps(MCContext* aCx, ReadRequest* aReadRequest,
                          ErrorResult& aRv) = 0;
 
   // No JS implementable UnderlyingSource callback exists for this.

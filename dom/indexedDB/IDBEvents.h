@@ -78,7 +78,7 @@ class IDBVersionChangeEvent final : public Event {
   NS_DECL_ISUPPORTS_INHERITED
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
  private:
   IDBVersionChangeEvent(EventTarget* aOwner, uint64_t aOldVersion)

@@ -51,7 +51,7 @@ TestInterfaceAsyncIterableDoubleUnion::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceAsyncIterableDoubleUnion::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceAsyncIterableDoubleUnion_Binding::Wrap(aCx, this,
                                                              aGivenProto);
 }

@@ -31,11 +31,11 @@
 #include "js/Id.h"
 #include "js/loader/LoadedScript.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_GetProperty
-#include "js/PropertyDescriptor.h"
+#include "monkeycage/PropertyDescriptor.h"
 #include "monkeycage/RealmOptions.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "monkeycage/Warnings.h"
 #include "js/shadow/String.h"
 #include "mcapi.h"
@@ -763,7 +763,7 @@ void nsGlobalWindowInner::ExecuteIdleRequest(TimeStamp aDeadline) {
 
 class IdleRequestTimeoutHandler final : public TimeoutHandler {
  public:
-  IdleRequestTimeoutHandler(JSContext* aCx, IdleRequest* aIdleRequest,
+  IdleRequestTimeoutHandler(MCContext* aCx, IdleRequest* aIdleRequest,
                             nsPIDOMWindowInner* aWindow)
       : TimeoutHandler(aCx), mIdleRequest(aIdleRequest), mWindow(aWindow) {}
 
@@ -794,7 +794,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(IdleRequestTimeoutHandler)
 NS_INTERFACE_MAP_END
 
 uint32_t nsGlobalWindowInner::RequestIdleCallback(
-    JSContext* aCx, IdleRequestCallback& aCallback,
+    MCContext* aCx, IdleRequestCallback& aCallback,
     const IdleRequestOptions& aOptions, ErrorResult& aError) {
   AssertIsOnMainThread();
 
@@ -1764,7 +1764,7 @@ void nsGlobalWindowInner::UpdatePermissions() {
   Unused << txn.Commit(windowContext);
 }
 
-void nsGlobalWindowInner::InitDocumentDependentState(JSContext* aCx) {
+void nsGlobalWindowInner::InitDocumentDependentState(MCContext* aCx) {
   MOZ_ASSERT(mDoc);
 
   if (MOZ_LOG_TEST(gDOMLeakPRLogInner, LogLevel::Debug)) {
@@ -2986,7 +2986,7 @@ nsPIDOMWindowOuter* nsGlobalWindowInner::GetInProcessScriptableTop() {
   FORWARD_TO_OUTER(GetInProcessScriptableTop, (), nullptr);
 }
 
-void nsGlobalWindowInner::GetContent(JSContext* aCx,
+void nsGlobalWindowInner::GetContent(MCContext* aCx,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
@@ -3084,7 +3084,7 @@ const InterfaceShimEntry kInterfaceShimMap[] = {
     {"nsIDOMXPathResult", "XPathResult"}};
 
 bool nsGlobalWindowInner::ResolveComponentsShim(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal,
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc) {
   // Keep track of how often this happens.
   Telemetry::Accumulate(Telemetry::COMPONENTS_SHIM_ACCESSED_BY_CONTENT, true);
@@ -3168,7 +3168,7 @@ bool nsGlobalWindowInner::DoResolve(
   }
 
   bool found;
-  if (!WebIDLGlobalNameHash::DefineIfEnabled(MC_UNSAFE(aCx), aObj, aId, aDesc, &found)) {
+  if (!WebIDLGlobalNameHash::DefineIfEnabled(aCx, aObj, aId, aDesc, &found)) {
     return false;
   }
 
@@ -3181,7 +3181,7 @@ bool nsGlobalWindowInner::DoResolve(
   // that have constants.
   if (StaticPrefs::dom_use_components_shim() &&
       aId == XPCJSRuntime::Get()->GetStringID(XPCJSContext::IDX_COMPONENTS)) {
-    return ResolveComponentsShim(MC_UNSAFE(aCx), aObj, aDesc);
+    return ResolveComponentsShim(aCx, aObj, aDesc);
   }
 
   // We also support a "window.controllers" thing; apparently some
@@ -3280,13 +3280,13 @@ void nsGlobalWindowInner::GetOwnPropertyNames(
       js::IsObjectInContextCompartment(wrapper, aCx)
           ? WebIDLGlobalNameHash::UnresolvedNamesOnly
           : WebIDLGlobalNameHash::AllNames;
-  if (!WebIDLGlobalNameHash::GetNames(MC_UNSAFE(aCx), wrapper, nameType, aNames)) {
-    aRv.NoteJSContextException(MC_UNSAFE(aCx));
+  if (!WebIDLGlobalNameHash::GetNames(aCx, wrapper, nameType, aNames)) {
+    aRv.NoteJSContextException(aCx);
   }
 }
 
 /* static */
-bool nsGlobalWindowInner::IsPrivilegedChromeWindow(JSContext*, JSObject* aObj) {
+bool nsGlobalWindowInner::IsPrivilegedChromeWindow(MCContext*, JSObject* aObj) {
   // For now, have to deal with XPConnect objects here.
   nsGlobalWindowInner* win = xpc::WindowOrNull(aObj);
   return win && win->IsChromeWindow() &&
@@ -3295,7 +3295,7 @@ bool nsGlobalWindowInner::IsPrivilegedChromeWindow(JSContext*, JSObject* aObj) {
 }
 
 /* static */
-bool nsGlobalWindowInner::IsRequestIdleCallbackEnabled(JSContext* aCx,
+bool nsGlobalWindowInner::IsRequestIdleCallbackEnabled(MCContext* aCx,
                                                        JSObject*) {
   // The requestIdleCallback should always be enabled for system code.
   return StaticPrefs::dom_requestIdleCallback_enabled() ||
@@ -3303,18 +3303,18 @@ bool nsGlobalWindowInner::IsRequestIdleCallbackEnabled(JSContext* aCx,
 }
 
 /* static */
-bool nsGlobalWindowInner::DeviceSensorsEnabled(JSContext*, JSObject*) {
+bool nsGlobalWindowInner::DeviceSensorsEnabled(MCContext*, JSObject*) {
   return Preferences::GetBool("device.sensors.enabled");
 }
 
 /* static */
-bool nsGlobalWindowInner::ContentPropertyEnabled(JSContext* aCx, JSObject*) {
+bool nsGlobalWindowInner::ContentPropertyEnabled(MCContext* aCx, JSObject*) {
   return StaticPrefs::dom_window_content_untrusted_enabled() ||
          nsContentUtils::IsSystemCaller(aCx);
 }
 
 /* static */
-bool nsGlobalWindowInner::CachesEnabled(JSContext* aCx, JSObject*) {
+bool nsGlobalWindowInner::CachesEnabled(MCContext* aCx, JSObject*) {
   if (!StaticPrefs::dom_caches_enabled()) {
     return false;
   }
@@ -3349,7 +3349,7 @@ Nullable<WindowProxyHolder> nsGlobalWindowInner::GetOpenerWindow(
   FORWARD_TO_OUTER_OR_THROW(GetOpenerWindowOuter, (), aError, nullptr);
 }
 
-void nsGlobalWindowInner::GetOpener(JSContext* aCx,
+void nsGlobalWindowInner::GetOpener(MCContext* aCx,
                                     JS::MutableHandle<JS::Value> aRetval,
                                     ErrorResult& aError) {
   Nullable<WindowProxyHolder> opener = GetOpenerWindow(aError);
@@ -3363,7 +3363,7 @@ void nsGlobalWindowInner::GetOpener(JSContext* aCx,
   }
 }
 
-void nsGlobalWindowInner::SetOpener(JSContext* aCx,
+void nsGlobalWindowInner::SetOpener(MCContext* aCx,
                                     JS::Handle<JS::Value> aOpener,
                                     ErrorResult& aError) {
   if (aOpener.isNull()) {
@@ -3417,7 +3417,7 @@ double nsGlobalWindowInner::GetInnerWidth(CallerType aCallerType,
   FORWARD_TO_OUTER_OR_THROW(GetInnerWidthOuter, (aError), aError, 0);
 }
 
-void nsGlobalWindowInner::GetInnerWidth(JSContext* aCx,
+void nsGlobalWindowInner::GetInnerWidth(MCContext* aCx,
                                         JS::MutableHandle<JS::Value> aValue,
                                         CallerType aCallerType,
                                         ErrorResult& aError) {
@@ -3440,7 +3440,7 @@ void nsGlobalWindowInner::SetInnerWidth(double aInnerWidth,
                             (aInnerWidth, aCallerType, aError), aError, );
 }
 
-void nsGlobalWindowInner::SetInnerWidth(JSContext* aCx,
+void nsGlobalWindowInner::SetInnerWidth(MCContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         CallerType aCallerType,
                                         ErrorResult& aError) {
@@ -3457,7 +3457,7 @@ double nsGlobalWindowInner::GetInnerHeight(CallerType aCallerType,
   FORWARD_TO_OUTER_OR_THROW(GetInnerHeightOuter, (aError), aError, 0);
 }
 
-void nsGlobalWindowInner::GetInnerHeight(JSContext* aCx,
+void nsGlobalWindowInner::GetInnerHeight(MCContext* aCx,
                                          JS::MutableHandle<JS::Value> aValue,
                                          CallerType aCallerType,
                                          ErrorResult& aError) {
@@ -3480,7 +3480,7 @@ void nsGlobalWindowInner::SetInnerHeight(double aInnerHeight,
                             (aInnerHeight, aCallerType, aError), aError, );
 }
 
-void nsGlobalWindowInner::SetInnerHeight(JSContext* aCx,
+void nsGlobalWindowInner::SetInnerHeight(MCContext* aCx,
                                          JS::Handle<JS::Value> aValue,
                                          CallerType aCallerType,
                                          ErrorResult& aError) {
@@ -3494,7 +3494,7 @@ int32_t nsGlobalWindowInner::GetOuterWidth(CallerType aCallerType,
                             0);
 }
 
-void nsGlobalWindowInner::GetOuterWidth(JSContext* aCx,
+void nsGlobalWindowInner::GetOuterWidth(MCContext* aCx,
                                         JS::MutableHandle<JS::Value> aValue,
                                         CallerType aCallerType,
                                         ErrorResult& aError) {
@@ -3508,7 +3508,7 @@ int32_t nsGlobalWindowInner::GetOuterHeight(CallerType aCallerType,
                             0);
 }
 
-void nsGlobalWindowInner::GetOuterHeight(JSContext* aCx,
+void nsGlobalWindowInner::GetOuterHeight(MCContext* aCx,
                                          JS::MutableHandle<JS::Value> aValue,
                                          CallerType aCallerType,
                                          ErrorResult& aError) {
@@ -3523,7 +3523,7 @@ void nsGlobalWindowInner::SetOuterWidth(int32_t aOuterWidth,
                             (aOuterWidth, aCallerType, aError), aError, );
 }
 
-void nsGlobalWindowInner::SetOuterWidth(JSContext* aCx,
+void nsGlobalWindowInner::SetOuterWidth(MCContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         CallerType aCallerType,
                                         ErrorResult& aError) {
@@ -3538,7 +3538,7 @@ void nsGlobalWindowInner::SetOuterHeight(int32_t aOuterHeight,
                             (aOuterHeight, aCallerType, aError), aError, );
 }
 
-void nsGlobalWindowInner::SetOuterHeight(JSContext* aCx,
+void nsGlobalWindowInner::SetOuterHeight(MCContext* aCx,
                                          JS::Handle<JS::Value> aValue,
                                          CallerType aCallerType,
                                          ErrorResult& aError) {
@@ -3559,7 +3559,7 @@ int32_t nsGlobalWindowInner::GetScreenX(CallerType aCallerType,
   FORWARD_TO_OUTER_OR_THROW(GetScreenXOuter, (aCallerType, aError), aError, 0);
 }
 
-void nsGlobalWindowInner::GetScreenX(JSContext* aCx,
+void nsGlobalWindowInner::GetScreenX(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aValue,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
@@ -3683,7 +3683,7 @@ void nsGlobalWindowInner::SetScreenX(int32_t aScreenX, CallerType aCallerType,
                             aError, );
 }
 
-void nsGlobalWindowInner::SetScreenX(JSContext* aCx,
+void nsGlobalWindowInner::SetScreenX(MCContext* aCx,
                                      JS::Handle<JS::Value> aValue,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
@@ -3696,7 +3696,7 @@ int32_t nsGlobalWindowInner::GetScreenY(CallerType aCallerType,
   FORWARD_TO_OUTER_OR_THROW(GetScreenYOuter, (aCallerType, aError), aError, 0);
 }
 
-void nsGlobalWindowInner::GetScreenY(JSContext* aCx,
+void nsGlobalWindowInner::GetScreenY(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aValue,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
@@ -3710,7 +3710,7 @@ void nsGlobalWindowInner::SetScreenY(int32_t aScreenY, CallerType aCallerType,
                             aError, );
 }
 
-void nsGlobalWindowInner::SetScreenY(JSContext* aCx,
+void nsGlobalWindowInner::SetScreenY(MCContext* aCx,
                                      JS::Handle<JS::Value> aValue,
                                      CallerType aCallerType,
                                      ErrorResult& aError) {
@@ -4138,7 +4138,7 @@ Nullable<WindowProxyHolder> nsGlobalWindowInner::Open(const nsAString& aUrl,
 }
 
 Nullable<WindowProxyHolder> nsGlobalWindowInner::OpenDialog(
-    JSContext* aCx, const nsAString& aUrl, const nsAString& aName,
+    MCContext* aCx, const nsAString& aUrl, const nsAString& aName,
     const nsAString& aOptions, const Sequence<JS::Value>& aExtraArgument,
     ErrorResult& aError) {
   FORWARD_TO_OUTER_OR_THROW(
@@ -4150,7 +4150,7 @@ WindowProxyHolder nsGlobalWindowInner::GetFrames(ErrorResult& aError) {
   FORWARD_TO_OUTER_OR_THROW(GetFramesOuter, (), aError, Window());
 }
 
-void nsGlobalWindowInner::PostMessageMoz(JSContext* aCx,
+void nsGlobalWindowInner::PostMessageMoz(MCContext* aCx,
                                          JS::Handle<JS::Value> aMessage,
                                          const nsAString& aTargetOrigin,
                                          JS::Handle<JS::Value> aTransfer,
@@ -4162,7 +4162,7 @@ void nsGlobalWindowInner::PostMessageMoz(JSContext* aCx,
       aError, );
 }
 
-void nsGlobalWindowInner::PostMessageMoz(JSContext* aCx,
+void nsGlobalWindowInner::PostMessageMoz(MCContext* aCx,
                                          JS::Handle<JS::Value> aMessage,
                                          const nsAString& aTargetOrigin,
                                          const Sequence<JSObject*>& aTransfer,
@@ -4181,7 +4181,7 @@ void nsGlobalWindowInner::PostMessageMoz(JSContext* aCx,
 }
 
 void nsGlobalWindowInner::PostMessageMoz(
-    JSContext* aCx, JS::Handle<JS::Value> aMessage,
+    MCContext* aCx, JS::Handle<JS::Value> aMessage,
     const WindowPostMessageOptions& aOptions, nsIPrincipal& aSubjectPrincipal,
     ErrorResult& aRv) {
   MC::Rooted<JS::Value> transferArray(aCx, JS::UndefinedValue());
@@ -4293,7 +4293,7 @@ void nsGlobalWindowInner::GetOrigin(nsAString& aOrigin) {
 }
 
 // See also AutoJSAPI::ReportException
-void nsGlobalWindowInner::ReportError(JSContext* aCx,
+void nsGlobalWindowInner::ReportError(MCContext* aCx,
                                       JS::Handle<JS::Value> aError,
                                       CallerType aCallerType,
                                       ErrorResult& aRv) {
@@ -4301,20 +4301,20 @@ void nsGlobalWindowInner::ReportError(JSContext* aCx,
     return aRv.Throw(NS_ERROR_XPC_SECURITY_MANAGER_VETO);
   }
 
-  JS::ErrorReportBuilder jsReport(aCx);
-  JS::ExceptionStack exnStack(aCx, aError, nullptr);
-  if (!jsReport.init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
+  MC::SandboxStack<JS::ErrorReportBuilder> jsReport(aCx);
+  MC::SandboxStack<JS::ExceptionStack> exnStack(aCx, aError, nullptr);
+  if (!jsReport->init(aCx, exnStack, JS::ErrorReportBuilder::NoSideEffects)) {
     return aRv.NoteJSContextException(aCx);
   }
 
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
   bool isChrome = aCallerType == CallerType::System;
-  xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
+  xpcReport->Init(jsReport->report(), jsReport->toStringResult().c_str(),
                   isChrome, WindowID());
 
-  MC::RootingContext* rcx = MC::RootingContext::get(JS_SanitizeContext(aCx));
-  DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack.exception(),
-                           exnStack.stack());
+  MC::RootingContext* rcx = MC::RootingContext::get(aCx);
+  DispatchScriptErrorEvent(this, rcx, xpcReport, exnStack->exception(),
+                           exnStack->stack());
 }
 
 void nsGlobalWindowInner::Atob(const nsAString& aAsciiBase64String,
@@ -4704,7 +4704,7 @@ nsresult nsGlobalWindowInner::DispatchSyncPopState() {
   bool result = jsapi.Init(this);
   NS_ENSURE_TRUE(result, NS_ERROR_FAILURE);
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Get the document's pending state object -- it contains the data we're
   // going to send along with the popstate event.  The object is serialized
@@ -5082,7 +5082,7 @@ Storage* nsGlobalWindowInner::GetLocalStorage(ErrorResult& aError) {
   return mLocalStorage;
 }
 
-IDBFactory* nsGlobalWindowInner::GetIndexedDB(JSContext* aCx,
+IDBFactory* nsGlobalWindowInner::GetIndexedDB(MCContext* aCx,
                                               ErrorResult& aError) {
   if (!mIndexedDB) {
     // This may keep mIndexedDB null without setting an error.
@@ -5113,7 +5113,7 @@ nsGlobalWindowInner::GetInterface(const nsIID& aIID, void** aSink) {
   return rv;
 }
 
-void nsGlobalWindowInner::GetInterface(JSContext* aCx,
+void nsGlobalWindowInner::GetInterface(MCContext* aCx,
                                        JS::Handle<JS::Value> aIID,
                                        JS::MutableHandle<JS::Value> aRetval,
                                        ErrorResult& aError) {
@@ -5156,7 +5156,7 @@ void nsGlobalWindowInner::FireOfflineStatusEventIfChanged() {
 }
 
 nsGlobalWindowInner::SlowScriptResponse
-nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
+nsGlobalWindowInner::ShowSlowScriptDialog(MCContext* aCx,
                                           const nsString& aAddonId,
                                           const double aDuration) {
   nsresult rv;
@@ -5179,16 +5179,18 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
   }
 
   // Check if we should offer the option to debug
-  JS::AutoFilename filename;
-  unsigned lineno;
+  MC::SandboxStack<JS::AutoFilename> filename;
+  MC::SandboxStack<unsigned> lineno;
   // Computing the line number can be very expensive (see bug 1330231 for
   // example), and we don't use the line number anywhere except than in the
   // parent process, so we avoid computing it elsewhere.  This gives us most of
   // the wins we are interested in, since the source of the slowness here is
   // minified scripts which is more common in Web content that is loaded in the
   // content process.
-  unsigned* linenop = XRE_IsParentProcess() ? &lineno : nullptr;
-  bool hasFrame = JS::DescribeScriptedCaller(aCx, &filename, linenop);
+  MC::Tainted<unsigned*> linenop =
+      XRE_IsParentProcess() ? static_cast<MC::Tainted<unsigned*>>(lineno)
+                            : MC::Tainted<unsigned*>(nullptr);
+  bool hasFrame = JS::DescribeScriptedCaller(aCx, filename, linenop);
 
   // Record the slow script event if we haven't done so already for this inner
   // window (which represents a particular page to the user).
@@ -5207,7 +5209,7 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
     nsCOMPtr<nsIBrowserChild> child =
         docShell ? docShell->GetBrowserChild() : nullptr;
     action =
-        monitor->NotifySlowScript(child, filename.get(), aAddonId, aDuration);
+        monitor->NotifySlowScript(child, filename->get(), aAddonId, aDuration);
     if (action == ProcessHangMonitor::Terminate) {
       return KillSlowScript;
     }
@@ -5307,12 +5309,12 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
   }
 
   // Append file and line number information, if available
-  if (filename.get()) {
+  if (filename->get()) {
     nsAutoString scriptLocation;
     // We want to drop the middle part of too-long locations.  We'll
     // define "too-long" as longer than 60 UTF-16 code units.  Just
     // have to be a bit careful about unpaired surrogates.
-    NS_ConvertUTF8toUTF16 filenameUTF16(filename.get());
+    NS_ConvertUTF8toUTF16 filenameUTF16(filename->get());
     if (filenameUTF16.Length() > 60) {
       // XXXbz Do we need to insert any bidi overrides here?
       size_t cutStart = 30;
@@ -5343,7 +5345,7 @@ nsGlobalWindowInner::ShowSlowScriptDialog(JSContext* aCx,
       msg.AppendLiteral("\n\n");
       msg.Append(scriptLocation);
       msg.Append(':');
-      msg.AppendInt(lineno);
+      msg.AppendInt(*lineno.UNSAFE_unverified());
     }
   }
 
@@ -6191,10 +6193,10 @@ class WindowScriptTimeoutHandler final : public ScriptTimeoutHandler {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(WindowScriptTimeoutHandler,
                                            ScriptTimeoutHandler)
 
-  WindowScriptTimeoutHandler(JSContext* aCx, nsIGlobalObject* aGlobal,
+  WindowScriptTimeoutHandler(MCContext* aCx, nsIGlobalObject* aGlobal,
                              const nsAString& aExpression)
       : ScriptTimeoutHandler(aCx, aGlobal, aExpression),
-        mInitiatingScript(ScriptLoader::GetActiveScript(JS_SanitizeContext(aCx))) {}
+        mInitiatingScript(ScriptLoader::GetActiveScript(aCx)) {}
 
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* aExecutionReason) override;
 
@@ -6226,7 +6228,7 @@ bool WindowScriptTimeoutHandler::Call(const char* aExecutionReason) {
   options->setIntroductionType("domTimer");
   MC::Rooted<JSObject*> global(aes.cx(), mGlobal->GetGlobalJSObject());
   {
-    JSExecutionContext exec(JS_SanitizeContext(aes.cx()), global, options);
+    JSExecutionContext exec(aes.cx(), global, options);
     nsresult rv = exec.Compile(mExpr);
 
     MC::Rooted<JSScript*> script(aes.cx(), exec.MaybeGetScript());
@@ -6258,7 +6260,7 @@ nsGlobalWindowInner* nsGlobalWindowInner::InnerForSetTimeoutOrInterval(
   return HasActiveDocument() ? currentInner : nullptr;
 }
 
-int32_t nsGlobalWindowInner::SetTimeout(JSContext* aCx, Function& aFunction,
+int32_t nsGlobalWindowInner::SetTimeout(MCContext* aCx, Function& aFunction,
                                         int32_t aTimeout,
                                         const Sequence<JS::Value>& aArguments,
                                         ErrorResult& aError) {
@@ -6266,7 +6268,7 @@ int32_t nsGlobalWindowInner::SetTimeout(JSContext* aCx, Function& aFunction,
                               aError);
 }
 
-int32_t nsGlobalWindowInner::SetTimeout(JSContext* aCx,
+int32_t nsGlobalWindowInner::SetTimeout(MCContext* aCx,
                                         const nsAString& aHandler,
                                         int32_t aTimeout,
                                         const Sequence<JS::Value>& /* unused */,
@@ -6274,7 +6276,7 @@ int32_t nsGlobalWindowInner::SetTimeout(JSContext* aCx,
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, false, aError);
 }
 
-int32_t nsGlobalWindowInner::SetInterval(JSContext* aCx, Function& aFunction,
+int32_t nsGlobalWindowInner::SetInterval(MCContext* aCx, Function& aFunction,
                                          const int32_t aTimeout,
                                          const Sequence<JS::Value>& aArguments,
                                          ErrorResult& aError) {
@@ -6283,13 +6285,13 @@ int32_t nsGlobalWindowInner::SetInterval(JSContext* aCx, Function& aFunction,
 }
 
 int32_t nsGlobalWindowInner::SetInterval(
-    JSContext* aCx, const nsAString& aHandler, const int32_t aTimeout,
+    MCContext* aCx, const nsAString& aHandler, const int32_t aTimeout,
     const Sequence<JS::Value>& /* unused */, ErrorResult& aError) {
   return SetTimeoutOrInterval(aCx, aHandler, aTimeout, true, aError);
 }
 
 int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
-    JSContext* aCx, Function& aFunction, int32_t aTimeout,
+    MCContext* aCx, Function& aFunction, int32_t aTimeout,
     const Sequence<JS::Value>& aArguments, bool aIsInterval,
     ErrorResult& aError) {
   nsGlobalWindowInner* inner = InnerForSetTimeoutOrInterval(aError);
@@ -6330,7 +6332,7 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
   return result;
 }
 
-int32_t nsGlobalWindowInner::SetTimeoutOrInterval(JSContext* aCx,
+int32_t nsGlobalWindowInner::SetTimeoutOrInterval(MCContext* aCx,
                                                   const nsAString& aHandler,
                                                   int32_t aTimeout,
                                                   bool aIsInterval,
@@ -7426,7 +7428,7 @@ int16_t nsGlobalWindowInner::Orientation(CallerType aCallerType) {
   return angle <= 180 ? angle : angle - 360;
 }
 
-already_AddRefed<Console> nsGlobalWindowInner::GetConsole(JSContext* aCx,
+already_AddRefed<Console> nsGlobalWindowInner::GetConsole(MCContext* aCx,
                                                           ErrorResult& aRv) {
   if (!mConsole) {
     mConsole = Console::Create(aCx, this, aRv);
@@ -7466,7 +7468,7 @@ void nsGlobalWindowInner::GetSidebar(OwningExternalOrWindowProxy& aResult) {
   }
 }
 
-void nsGlobalWindowInner::ClearDocumentDependentSlots(JSContext* aCx) {
+void nsGlobalWindowInner::ClearDocumentDependentSlots(MCContext* aCx) {
   // If JSAPI OOMs here, there is basically nothing we can do to recover safely.
   if (!Window_Binding::ClearCachedDocumentValue(aCx, this) ||
       !Window_Binding::ClearCachedPerformanceValue(aCx, this)) {
@@ -7476,11 +7478,11 @@ void nsGlobalWindowInner::ClearDocumentDependentSlots(JSContext* aCx) {
 
 /* static */
 JSObject* nsGlobalWindowInner::CreateNamedPropertiesObject(
-    JSContext* aCx, JS::Handle<JSObject*> aProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aProto) {
   return WindowNamedPropertiesHandler::Create(aCx, aProto);
 }
 
-void nsGlobalWindowInner::RedefineProperty(JSContext* aCx,
+void nsGlobalWindowInner::RedefineProperty(MCContext* aCx,
                                            const char* aPropName,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aError) {
@@ -7498,7 +7500,7 @@ void nsGlobalWindowInner::RedefineProperty(JSContext* aCx,
 
 template <typename T>
 void nsGlobalWindowInner::GetReplaceableWindowCoord(
-    JSContext* aCx, nsGlobalWindowInner::WindowCoordGetter<T> aGetter,
+    MCContext* aCx, nsGlobalWindowInner::WindowCoordGetter<T> aGetter,
     JS::MutableHandle<JS::Value> aRetval, CallerType aCallerType,
     ErrorResult& aError) {
   T coord = (this->*aGetter)(aCallerType, aError);
@@ -7509,7 +7511,7 @@ void nsGlobalWindowInner::GetReplaceableWindowCoord(
 
 template <typename T>
 void nsGlobalWindowInner::SetReplaceableWindowCoord(
-    JSContext* aCx, nsGlobalWindowInner::WindowCoordSetter<T> aSetter,
+    MCContext* aCx, nsGlobalWindowInner::WindowCoordSetter<T> aSetter,
     JS::Handle<JS::Value> aValue, const char* aPropName, CallerType aCallerType,
     ErrorResult& aError) {
   /*
@@ -7565,7 +7567,7 @@ already_AddRefed<Promise> nsGlobalWindowInner::CreateImageBitmap(
 
 // https://html.spec.whatwg.org/#structured-cloning
 void nsGlobalWindowInner::StructuredClone(
-    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, JS::Handle<JS::Value> aValue,
     const StructuredSerializeOptions& aOptions,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aError) {
   nsContentUtils::StructuredClone(aCx, this, aValue, aOptions, aRetval, aError);
@@ -7774,7 +7776,7 @@ already_AddRefed<nsGlobalWindowInner> nsGlobalWindowInner::Create(
 }
 
 JS::loader::ModuleLoaderBase* nsGlobalWindowInner::GetModuleLoader(
-    JSContext* aCx) {
+    MCContext* aCx) {
   Document* document = GetDocument();
   if (!document) {
     return nullptr;

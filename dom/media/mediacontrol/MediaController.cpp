@@ -38,7 +38,7 @@ nsISupports* MediaController::GetParentObject() const {
   return bc;
 }
 
-JSObject* MediaController::WrapObject(JSContext* aCx,
+JSObject* MediaController::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return MediaController_Binding::Wrap(aCx, this, aGivenProto);
 }

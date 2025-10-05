@@ -25,37 +25,25 @@ class StatementParams final : public nsISupports, public nsWrapperCache {
 
   explicit StatementParams(nsPIDOMWindowInner* aWindow, Statement* aStatement);
 
-  inline void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
-                          JS::MutableHandle<JS::Value> aResult,
-                          mozilla::ErrorResult& aRv) {
-    return NamedGetter(MC_UNSAFE(aCx), aName, aFound, aResult, aRv);
-  }
-
-  void NamedGetter(JSContext* aCx, const nsAString& aName, bool& aFound,
+  void NamedGetter(MCContext* aCx, const nsAString& aName, bool& aFound,
                    JS::MutableHandle<JS::Value> aResult,
                    mozilla::ErrorResult& aRv);
 
-  void NamedSetter(JSContext* aCx, const nsAString& aName,
+  void NamedSetter(MCContext* aCx, const nsAString& aName,
                    JS::Handle<JS::Value> aValue, mozilla::ErrorResult& aRv);
 
   uint32_t Length() const { return mParamCount; }
 
-  inline void IndexedGetter(MCContext* aCx, uint32_t aIndex, bool& aFound,
-                            JS::MutableHandle<JS::Value> aResult,
-                            mozilla::ErrorResult& aRv) {
-    return IndexedGetter(MC_UNSAFE(aCx), aIndex, aFound, aResult, aRv);
-  }
-
-  void IndexedGetter(JSContext* aCx, uint32_t aIndex, bool& aFound,
+  void IndexedGetter(MCContext* aCx, uint32_t aIndex, bool& aFound,
                      JS::MutableHandle<JS::Value> aResult,
                      mozilla::ErrorResult& aRv);
 
-  void IndexedSetter(JSContext* aCx, uint32_t aIndex,
+  void IndexedSetter(MCContext* aCx, uint32_t aIndex,
                      JS::Handle<JS::Value> aValue, mozilla::ErrorResult& aRv);
 
   void GetSupportedNames(nsTArray<nsString>& aNames);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }

@@ -115,7 +115,7 @@ template void nsRange::DoSetRange(const RawRangeBoundary& aStartBoundary,
                                   const RawRangeBoundary& aEndBoundary,
                                   nsINode* aRootNode, bool aNotInsertedYet);
 
-JSObject* nsRange::WrapObject(JSContext* aCx,
+JSObject* nsRange::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return Range_Binding::Wrap(aCx, this, aGivenProto);
 }

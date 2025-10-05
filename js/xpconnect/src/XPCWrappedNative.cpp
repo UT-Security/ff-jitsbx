@@ -12,8 +12,8 @@
 #include "XPCLog.h"
 #include "monkeycage/Array.h"                   // JS::GetArrayLength, JS::IsArrayObject
 #include "monkeycage/experimental/TypedData.h"  // JS_GetTypedArrayLength, JS_IsTypedArrayObject
-#include "js/MemoryFunctions.h"
-#include "js/Object.h"  // JS::GetPrivate, JS::SetPrivate, JS::SetReservedSlot
+#include "monkeycage/MemoryFunctions.h"
+#include "monkeycage/Object.h"  // JS::GetPrivate, JS::SetPrivate, JS::SetReservedSlot
 #include "js/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "mcfriendapi.h"
@@ -137,7 +137,7 @@ static void DEBUG_CheckClassInfoClaims(XPCWrappedNative* wrapper);
 #endif
 
 /***************************************************************************/
-static nsresult FinishCreate(JSContext* cx, XPCWrappedNativeScope* Scope,
+static nsresult FinishCreate(MCContext* cx, XPCWrappedNativeScope* Scope,
                              XPCNativeInterface* Interface,
                              nsWrapperCache* cache, XPCWrappedNative* inWrapper,
                              XPCWrappedNative** resultWrapper);
@@ -152,7 +152,7 @@ static nsresult FinishCreate(JSContext* cx, XPCWrappedNativeScope* Scope,
 // very early on that we have an XPCWrappedNativeScope and corresponding global
 // JS object, which are the very things we need to create here. So we special-
 // case the logic and do some things in a different order.
-nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
+nsresult XPCWrappedNative::WrapNewGlobal(MCContext* cx,
                                          xpcObjectHelper& nativeHelper,
                                          nsIPrincipal* principal,
                                          bool initStandardClasses,
@@ -273,7 +273,7 @@ nsresult XPCWrappedNative::WrapNewGlobal(JSContext* cx,
 }
 
 // static
-nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
+nsresult XPCWrappedNative::GetNewOrUsed(MCContext* cx, xpcObjectHelper& helper,
                                         XPCWrappedNativeScope* Scope,
                                         XPCNativeInterface* Interface,
                                         XPCWrappedNative** resultWrapper) {
@@ -354,7 +354,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
 
   if (scrWrapper && scrWrapper->WantPreCreate()) {
     MC::RootedObject plannedParent(cx, parent);
-    nsresult rv = scrWrapper->PreCreate(identity, JS_SanitizeContext(cx), parent, parent.address());
+    nsresult rv = scrWrapper->PreCreate(identity, cx, parent, parent.address());
     if (NS_FAILED(rv)) {
       return rv;
     }
@@ -366,7 +366,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
     MOZ_ASSERT(JS_IsGlobalObject(parent),
                "Non-global being used to parent XPCWrappedNative?");
 
-    ar->emplace(static_cast<JSContext*>(cx), parent);
+    ar->emplace(cx, parent);
 
     if (parent != plannedParent) {
       XPCWrappedNativeScope* betterScope = ObjectScope(parent);
@@ -397,7 +397,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
       return NS_OK;
     }
   } else {
-    ar->emplace(static_cast<JSContext*>(cx), parent);
+    ar->emplace(cx, parent);
   }
 
   AutoMarkingWrappedNativeProtoPtr proto(cx);
@@ -452,7 +452,7 @@ nsresult XPCWrappedNative::GetNewOrUsed(JSContext* cx, xpcObjectHelper& helper,
   return FinishCreate(cx, Scope, Interface, cache, wrapper, resultWrapper);
 }
 
-static nsresult FinishCreate(JSContext* cx, XPCWrappedNativeScope* Scope,
+static nsresult FinishCreate(MCContext* cx, XPCWrappedNativeScope* Scope,
                              XPCNativeInterface* Interface,
                              nsWrapperCache* cache, XPCWrappedNative* inWrapper,
                              XPCWrappedNative** resultWrapper) {
@@ -625,7 +625,7 @@ void XPCWrappedNative::GatherScriptable(nsISupports* aObj,
   scrWrapper.forget(aScrWrapper);
 }
 
-bool XPCWrappedNative::Init(JSContext* cx, nsIXPCScriptable* aScriptable) {
+bool XPCWrappedNative::Init(MCContext* cx, nsIXPCScriptable* aScriptable) {
   // Setup our scriptable...
   MOZ_ASSERT(!mScriptable);
   mScriptable = aScriptable;
@@ -661,7 +661,7 @@ bool XPCWrappedNative::Init(JSContext* cx, nsIXPCScriptable* aScriptable) {
   return FinishInit(cx);
 }
 
-bool XPCWrappedNative::FinishInit(JSContext* cx) {
+bool XPCWrappedNative::FinishInit(MCContext* cx) {
   // This reference will be released when mFlatJSObject is finalized.
   // Since this reference will push the refcount to 2 it will also root
   // mFlatJSObject;
@@ -838,7 +838,7 @@ void XPCWrappedNative::SystemIsBeingShutDown() {
 
 /***************************************************************************/
 
-bool XPCWrappedNative::ExtendSet(JSContext* aCx,
+bool XPCWrappedNative::ExtendSet(MCContext* aCx,
                                  XPCNativeInterface* aInterface) {
   if (!mSet->HasInterface(aInterface)) {
     XPCNativeSetKey key(mSet, aInterface);
@@ -853,7 +853,7 @@ bool XPCWrappedNative::ExtendSet(JSContext* aCx,
 }
 
 XPCWrappedNativeTearOff* XPCWrappedNative::FindTearOff(
-    JSContext* cx, XPCNativeInterface* aInterface,
+    MCContext* cx, XPCNativeInterface* aInterface,
     bool needJSObject /* = false */, nsresult* pError /* = nullptr */) {
   nsresult rv = NS_OK;
   XPCWrappedNativeTearOff* to;
@@ -911,13 +911,13 @@ XPCWrappedNativeTearOff* XPCWrappedNative::FindTearOff(
   return to;
 }
 
-XPCWrappedNativeTearOff* XPCWrappedNative::FindTearOff(JSContext* cx,
+XPCWrappedNativeTearOff* XPCWrappedNative::FindTearOff(MCContext* cx,
                                                        const nsIID& iid) {
   RefPtr<XPCNativeInterface> iface = XPCNativeInterface::GetNewOrUsed(cx, &iid);
   return iface ? FindTearOff(cx, iface) : nullptr;
 }
 
-nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
+nsresult XPCWrappedNative::InitTearOff(MCContext* cx,
                                        XPCWrappedNativeTearOff* aTearOff,
                                        XPCNativeInterface* aInterface,
                                        bool needJSObject) {
@@ -985,7 +985,7 @@ nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
   }
 
   if (NS_FAILED(nsXPConnect::SecurityManager()->CanCreateWrapper(
-          JS_SanitizeContext(cx), *iid, identity, GetClassInfo()))) {
+          cx, *iid, identity, GetClassInfo()))) {
     // the security manager vetoed. It should have set an exception.
     aTearOff->SetInterface(nullptr);
     return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
@@ -1011,7 +1011,7 @@ nsresult XPCWrappedNative::InitTearOff(JSContext* cx,
   return NS_OK;
 }
 
-bool XPCWrappedNative::InitTearOffJSObject(JSContext* cx,
+bool XPCWrappedNative::InitTearOffJSObject(MCContext* cx,
                                            XPCWrappedNativeTearOff* to) {
   JSObject* obj = JS_NewObject(cx, XPC_WN_Tearoff_JSClass());
   if (!obj) {
@@ -1328,7 +1328,7 @@ bool CallMethodHelper::GatherAndConvertResults() {
       return false;
 
     nsresult err;
-    if (!XPCConvert::NativeData2JS(MC_UNSAFE(mCallContext), &v, &dp->val, type, &param_iid,
+    if (!XPCConvert::NativeData2JS(mCallContext, &v, &dp->val, type, &param_iid,
                                    array_count, &err)) {
       ThrowBadParam(err, i, mCallContext);
       return false;
@@ -1368,7 +1368,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
   }
 
   MC::RootedValue iidarg(mCallContext, mArgv[0]);
-  Maybe<nsID> iid = xpc::JSValue2ID(MC_UNSAFE(mCallContext), iidarg);
+  Maybe<nsID> iid = xpc::JSValue2ID(mCallContext, iidarg);
   if (!iid) {
     ThrowBadParam(NS_ERROR_XPC_BAD_CONVERT_JS, 0, mCallContext);
     return false;
@@ -1384,7 +1384,7 @@ bool CallMethodHelper::QueryInterfaceFastPath() {
 
   MC::RootedValue v(mCallContext, NullValue());
   nsresult err;
-  bool success = XPCConvert::NativeData2JS(MC_UNSAFE(mCallContext), &v, &qiresult,
+  bool success = XPCConvert::NativeData2JS(mCallContext, &v, &qiresult,
                                            {nsXPTType::T_INTERFACE_IS},
                                            iid.ptr(), 0, &err);
   NS_IF_RELEASE(qiresult);
@@ -1547,7 +1547,7 @@ bool CallMethodHelper::ConvertIndependentParam(uint8_t i) {
   }
 
   nsresult err;
-  if (!XPCConvert::JSData2Native(MC_UNSAFE(mCallContext), &dp->val, src, type, &param_iid,
+  if (!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type, &param_iid,
                                  0, &err)) {
     ThrowBadParam(err, i, mCallContext);
     return false;
@@ -1612,7 +1612,7 @@ bool CallMethodHelper::ConvertDependentParam(uint8_t i) {
 
   nsresult err;
 
-  if (!XPCConvert::JSData2Native(MC_UNSAFE(mCallContext), &dp->val, src, type, &param_iid,
+  if (!XPCConvert::JSData2Native(mCallContext, &dp->val, src, type, &param_iid,
                                  array_count, &err)) {
     ThrowBadParam(err, i, mCallContext);
     return false;

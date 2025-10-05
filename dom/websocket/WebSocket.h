@@ -59,12 +59,12 @@ class WebSocket final : public DOMEventTargetHelper {
   GetDebuggerNotificationType() const override;
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  public:  // static helpers:
   // Determine if preferences allow WebSocket
-  static bool PrefEnabled(JSContext* aCx = nullptr,
+  static bool PrefEnabled(MCContext* aCx = nullptr,
                           JSObject* aGlobal = nullptr);
 
  public:  // WebIDL interface:

@@ -25,7 +25,7 @@ SpeechRecognitionResult::SpeechRecognitionResult(SpeechRecognition* aParent)
 SpeechRecognitionResult::~SpeechRecognitionResult() = default;
 
 JSObject* SpeechRecognitionResult::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SpeechRecognitionResult_Binding::Wrap(aCx, this, aGivenProto);
 }
 

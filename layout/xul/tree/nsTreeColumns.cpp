@@ -209,7 +209,7 @@ void nsTreeColumn::Invalidate(ErrorResult& aRv) {
 nsIContent* nsTreeColumn::GetParentObject() const { return mContent; }
 
 /* virtual */
-JSObject* nsTreeColumn::WrapObject(JSContext* aCx,
+JSObject* nsTreeColumn::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::TreeColumn_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -260,7 +260,7 @@ nsIContent* nsTreeColumns::GetParentObject() const {
 }
 
 /* virtual */
-JSObject* nsTreeColumns::WrapObject(JSContext* aCx,
+JSObject* nsTreeColumns::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::TreeColumns_Binding::Wrap(aCx, this, aGivenProto);
 }

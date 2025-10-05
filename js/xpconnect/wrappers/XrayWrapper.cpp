@@ -248,7 +248,7 @@ bool ReportWrapperDenial(MCContext* cx, HandleId id, WrapperDenialType type,
 
   // Compute the current window id if any.
   uint64_t windowId = 0;
-  if (nsGlobalWindowInner* win = CurrentWindowOrNull(MC_UNSAFE(cx))) {
+  if (nsGlobalWindowInner* win = CurrentWindowOrNull(cx)) {
     windowId = win->WindowID();
   }
 
@@ -1711,7 +1711,7 @@ bool DOMXrayTraits::resolveOwnProperty(
       Nullable<WindowProxyHolder> subframe = win->IndexedGetter(index);
       if (!subframe.IsNull()) {
         MC::Rooted<Value> value(cx);
-        if (MOZ_UNLIKELY(!WrapObject(MC_UNSAFE(cx), subframe.Value(), &value))) {
+        if (MOZ_UNLIKELY(!WrapObject(cx, subframe.Value(), &value))) {
           // It's gone?
           return xpc::Throw(cx, NS_ERROR_FAILURE);
         }
@@ -1731,7 +1731,7 @@ bool DOMXrayTraits::resolveOwnProperty(
   }
 
   bool cacheOnHolder;
-  if (!XrayResolveOwnProperty(MC_UNSAFE(cx), wrapper, target, id, desc, cacheOnHolder)) {
+  if (!XrayResolveOwnProperty(cx, wrapper, target, id, desc, cacheOnHolder)) {
     return false;
   }
 
@@ -1814,7 +1814,11 @@ bool DOMXrayTraits::call(MCContext* cx, HandleObject wrapper,
   // and do that for everything.
   if (MC::SandboxCallback<JSNative> call = MC::Sandbox::RetrieveCallback(clasp->getCall())) {
     // call it on the Xray compartment
-    return call(MC_UNSAFE(cx), args.length(), args.base());
+    MC::Tainted<JSContext*> t_cx{nullptr};
+    t_cx.assign_raw_pointer(MC_UNSAFE(cx));
+    MC::Tainted<JS::Value*> t_base{nullptr};
+    t_base.assign_raw_pointer(args.base());
+    return call(t_cx, args.length(), t_base).UNSAFE_unverified();
   }
 
   MC::RootedValue v(cx, ObjectValue(*wrapper));
@@ -1831,7 +1835,11 @@ bool DOMXrayTraits::construct(MCContext* cx, HandleObject wrapper,
   // See comments in DOMXrayTraits::call() explaining what's going on here.
   if (clasp->flags & JSCLASS_IS_DOMIFACEANDPROTOJSCLASS) {
     if (MC::SandboxCallback<JSNative> construct = MC::Sandbox::RetrieveCallback(clasp->getConstruct())) {
-      if (!construct(MC_UNSAFE(cx), args.length(), args.base())) {
+      MC::Tainted<JSContext*> t_cx{nullptr};
+      t_cx.assign_raw_pointer(MC_UNSAFE(cx));
+      MC::Tainted<JS::Value*> t_base{nullptr};
+      t_base.assign_raw_pointer(args.base());
+      if (!construct(t_cx, args.length(), t_base).UNSAFE_unverified()) {
         return false;
       }
     } else {

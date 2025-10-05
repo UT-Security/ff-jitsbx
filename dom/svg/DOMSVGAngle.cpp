@@ -19,7 +19,7 @@ DOMSVGAngle::DOMSVGAngle(SVGSVGElement* aSVGElement)
   mVal->Init();
 }
 
-JSObject* DOMSVGAngle::WrapObject(JSContext* aCx,
+JSObject* DOMSVGAngle::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return SVGAngle_Binding::Wrap(aCx, this, aGivenProto);
 }

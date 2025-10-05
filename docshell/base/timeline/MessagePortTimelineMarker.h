@@ -28,7 +28,7 @@ class MessagePortTimelineMarker : public TimelineMarker {
     return UniquePtr<AbstractTimelineMarker>(clone);
   }
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

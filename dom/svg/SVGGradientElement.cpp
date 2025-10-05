@@ -87,7 +87,7 @@ already_AddRefed<DOMSVGAnimatedString> SVGGradientElement::Href() {
 //---------------------Linear Gradients------------------------
 
 JSObject* SVGLinearGradientElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGLinearGradientElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -151,7 +151,7 @@ SVGElement::LengthAttributesInfo SVGLinearGradientElement::GetLengthInfo() {
 //-------------------------- Radial Gradients ----------------------------
 
 JSObject* SVGRadialGradientElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGRadialGradientElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

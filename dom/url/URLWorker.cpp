@@ -101,7 +101,7 @@ class IsValidURLRunnable : public WorkerMainThreadRunnable {
 void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
                                 nsAString& aResult, mozilla::ErrorResult& aRv) {
   MCContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
   RefPtr<BlobImpl> blobImpl = aBlob.Impl();
   MOZ_ASSERT(blobImpl);
@@ -124,7 +124,7 @@ void URLWorker::CreateObjectURL(const GlobalObject& aGlobal, Blob& aBlob,
 void URLWorker::RevokeObjectURL(const GlobalObject& aGlobal,
                                 const nsAString& aUrl, ErrorResult& aRv) {
   MCContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
   RefPtr<RevokeURLRunnable> runnable =
       new RevokeURLRunnable(workerPrivate, aUrl);
@@ -144,7 +144,7 @@ void URLWorker::RevokeObjectURL(const GlobalObject& aGlobal,
 bool URLWorker::IsValidObjectURL(const GlobalObject& aGlobal,
                                  const nsAString& aUrl, ErrorResult& aRv) {
   MCContext* cx = aGlobal.Context();
-  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+  WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
 
   RefPtr<IsValidURLRunnable> runnable =
       new IsValidURLRunnable(workerPrivate, aUrl);

@@ -143,7 +143,7 @@ class RTCStatsReport final : public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -178,7 +178,7 @@ class RTCStatsReport final : public nsWrapperCache {
     // Cargo-culted from dom::Promise; converts aValue to a JSObject
     AutoEntryScript aes(mParent->AsGlobal()->GetGlobalJSObject(),
                         "RTCStatsReport::SetRTCStats");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
     MC::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aValue), &val)) {
       return NS_ERROR_FAILURE;

@@ -23,7 +23,7 @@ nsIGlobalObject* GetGlobal() {
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   MOZ_ASSERT(ok);
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   mozilla::dom::GlobalObject globalObject(cx, JS::CurrentGlobalOrNull(cx));
   nsCOMPtr<nsIGlobalObject> global =
       do_QueryInterface(globalObject.GetAsSupports());
@@ -37,7 +37,7 @@ nsresult GetAsString(const RefPtr<Promise>& aPromise, nsAString& aString) {
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
   MOZ_ASSERT(ok);
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> promiseObj(cx, aPromise->PromiseObj());
   MC::Rooted<JS::Value> vp(cx, JS::GetPromiseResult(promiseObj));

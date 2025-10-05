@@ -321,7 +321,7 @@ already_AddRefed<nsINode> TreeWalker::NextSiblingInternal(
   }
 }
 
-bool TreeWalker::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+bool TreeWalker::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                             JS::MutableHandle<JSObject*> aReflector) {
   return TreeWalker_Binding::Wrap(aCx, this, aGivenProto, aReflector);
 }

@@ -8,9 +8,9 @@
 #define DOM_SCRIPT_AUTOENTRYSCRIPT_H_
 
 #include "MainThreadUtils.h"
-#include "js/Debug.h"
-#include "js/TypeDecls.h"
-#include "jsapi.h"
+#include "monkeycage/Debug.h"
+#include "monkeycage/TypeDecls.h"
+#include "mcapi.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/ProfilerLabels.h"
@@ -70,7 +70,7 @@ class MOZ_STACK_CLASS AutoEntryScript : public AutoJSAPI {
   // A subclass of AutoEntryMonitor that notifies the docshell.
   class DocshellEntryMonitor final : public JS::dbg::AutoEntryMonitor {
    public:
-    DocshellEntryMonitor(JSContext* aCx, const char* aReason);
+    DocshellEntryMonitor(MCContext* aCx, const char* aReason);
 
     // Please note that |aAsyncCause| here is owned by the caller, and its
     // lifetime must outlive the lifetime of the DocshellEntryMonitor object.

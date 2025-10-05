@@ -29,7 +29,7 @@ class TextEncoder final : public NonRefcountedDOMObject {
 
   virtual ~TextEncoder() = default;
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return TextEncoder_Binding::Wrap(aCx, this, aGivenProto, aReflector);
   }
@@ -52,11 +52,11 @@ class TextEncoder final : public NonRefcountedDOMObject {
    * @return JSObject* The Uint8Array wrapped in a JS object.  Returned via
    *                   the aRetval out param.
    */
-  void Encode(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void Encode(MCContext* aCx, JS::Handle<JSObject*> aObj,
               const nsACString& aUtf8String,
               JS::MutableHandle<JSObject*> aRetval, OOMReporter& aRv);
 
-  void EncodeInto(JSContext* aCx, JS::Handle<JSString*> aSrc,
+  void EncodeInto(MCContext* aCx, JS::Handle<JSString*> aSrc,
                   const Uint8Array& aDst, TextEncoderEncodeIntoResult& aResult,
                   OOMReporter& aError);
 };

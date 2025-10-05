@@ -33,7 +33,7 @@ class CSSSupportsRule : public css::ConditionRule {
   void GetConditionText(nsACString& aConditionText) final;
 
   size_t SizeOfIncludingThis(MallocSizeOf) const override;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:

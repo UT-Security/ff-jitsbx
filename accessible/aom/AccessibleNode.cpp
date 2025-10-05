@@ -23,7 +23,7 @@ using namespace mozilla;
 using namespace mozilla::a11y;
 using namespace mozilla::dom;
 
-bool AccessibleNode::IsAOMEnabled(JSContext* aCx, JSObject* /*unused*/) {
+bool AccessibleNode::IsAOMEnabled(MCContext* aCx, JSObject* /*unused*/) {
   return nsContentUtils::IsSystemCaller(aCx) ||
          StaticPrefs::accessibility_AOM_enabled();
 }
@@ -61,7 +61,7 @@ AccessibleNode::AccessibleNode(nsINode* aNode)
 AccessibleNode::~AccessibleNode() {}
 
 /* virtual */
-JSObject* AccessibleNode::WrapObject(JSContext* aCx,
+JSObject* AccessibleNode::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return AccessibleNode_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -152,7 +152,7 @@ bool AccessibleNode::Has(const Sequence<nsString>& aAttributes) {
   return true;
 }
 
-void AccessibleNode::Get(JSContext* aCX, const nsAString& aAttribute,
+void AccessibleNode::Get(MCContext* aCX, const nsAString& aAttribute,
                          JS::MutableHandle<JS::Value> aValue,
                          ErrorResult& aRv) {
   if (!mIntl) {

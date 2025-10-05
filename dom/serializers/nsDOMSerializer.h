@@ -33,7 +33,7 @@ class nsDOMSerializer final : public mozilla::dom::NonRefcountedDOMObject {
   void SerializeToStream(nsINode& aRoot, nsIOutputStream* aStream,
                          const nsAString& aCharset, mozilla::ErrorResult& aRv);
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return mozilla::dom::XMLSerializer_Binding::Wrap(aCx, this, aGivenProto,
                                                      aReflector);

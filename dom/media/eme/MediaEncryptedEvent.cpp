@@ -42,7 +42,7 @@ MediaEncryptedEvent::MediaEncryptedEvent(EventTarget* aOwner)
 MediaEncryptedEvent::~MediaEncryptedEvent() { mozilla::DropJSObjects(this); }
 
 JSObject* MediaEncryptedEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return MediaEncryptedEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -78,7 +78,7 @@ already_AddRefed<MediaEncryptedEvent> MediaEncryptedEvent::Constructor(
                                  aEventInitDict.mInitData.Value().Obj());
     e->mInitData = JS::CopyArrayBuffer(aGlobal.Context(), buffer);
     if (!e->mInitData) {
-      aRv.NoteJSContextException(MC_UNSAFE(aGlobal.Context()));
+      aRv.NoteJSContextException(aGlobal.Context());
       return nullptr;
     }
   }
@@ -90,7 +90,7 @@ void MediaEncryptedEvent::GetInitDataType(nsString& aRetVal) const {
   aRetVal = mInitDataType;
 }
 
-void MediaEncryptedEvent::GetInitData(JSContext* cx,
+void MediaEncryptedEvent::GetInitData(MCContext* cx,
                                       JS::MutableHandle<JSObject*> aData,
                                       ErrorResult& aRv) {
   if (mRawInitData.Length()) {

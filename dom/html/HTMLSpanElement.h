@@ -21,7 +21,7 @@ class HTMLSpanElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLSpanElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 };
 

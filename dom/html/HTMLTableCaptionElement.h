@@ -37,7 +37,7 @@ class HTMLTableCaptionElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLTableCaptionElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

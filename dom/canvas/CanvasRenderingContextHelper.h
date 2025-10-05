@@ -43,20 +43,20 @@ class CanvasRenderingContextHelper {
   virtual bool GetOpaqueAttr() = 0;
 
  protected:
-  virtual nsresult UpdateContext(JSContext* aCx,
+  virtual nsresult UpdateContext(MCContext* aCx,
                                  JS::Handle<JS::Value> aNewContextOptions,
                                  ErrorResult& aRvForDictionaryInit);
 
-  virtual nsresult ParseParams(JSContext* aCx, const nsAString& aType,
+  virtual nsresult ParseParams(MCContext* aCx, const nsAString& aType,
                                const JS::Value& aEncoderOptions,
                                nsAString& outParams,
                                bool* const outCustomParseOptions);
 
-  void ToBlob(JSContext* aCx, nsIGlobalObject* global, BlobCallback& aCallback,
+  void ToBlob(MCContext* aCx, nsIGlobalObject* global, BlobCallback& aCallback,
               const nsAString& aType, JS::Handle<JS::Value> aParams,
               bool aUsePlaceholder, ErrorResult& aRv);
 
-  void ToBlob(JSContext* aCx, EncodeCompleteCallback* aCallback,
+  void ToBlob(MCContext* aCx, EncodeCompleteCallback* aCallback,
               const nsAString& aType, JS::Handle<JS::Value> aParams,
               bool aUsePlaceholder, ErrorResult& aRv);
 
@@ -65,11 +65,11 @@ class CanvasRenderingContextHelper {
               bool aUsePlaceholder, ErrorResult& aRv);
 
   already_AddRefed<nsISupports> GetOrCreateContext(
-      JSContext* aCx, const nsAString& aContextId,
+      MCContext* aCx, const nsAString& aContextId,
       JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv);
 
   already_AddRefed<nsISupports> GetOrCreateContext(
-      JSContext* aCx, CanvasContextType aContextType,
+      MCContext* aCx, CanvasContextType aContextType,
       JS::Handle<JS::Value> aContextOptions, ErrorResult& aRv);
 
   virtual already_AddRefed<nsICanvasRenderingContextInternal> CreateContext(

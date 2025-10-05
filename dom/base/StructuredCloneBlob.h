@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_StructuredCloneBlob_h
 #define mozilla_dom_StructuredCloneBlob_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/RefPtr.h"
@@ -33,10 +33,10 @@ class StructuredCloneBlob final : public nsIMemoryReporter {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIMEMORYREPORTER
 
-  static JSObject* ReadStructuredClone(JSContext* aCx,
-                                       JSStructuredCloneReader* aReader,
+  static JSObject* ReadStructuredClone(MCContext* aCx,
+                                       MC::Tainted<JSStructuredCloneReader*> aReader,
                                        StructuredCloneHolder* aHolder);
-  bool WriteStructuredClone(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool WriteStructuredClone(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                             StructuredCloneHolder* aHolder);
 
   static already_AddRefed<StructuredCloneBlob> Constructor(
@@ -44,14 +44,14 @@ class StructuredCloneBlob final : public nsIMemoryReporter {
       const nsACString& aAnonymizedName, JS::Handle<JS::Value> aValue,
       JS::Handle<JSObject*> aTargetGlobal, ErrorResult& aRv);
 
-  void Deserialize(JSContext* aCx, JS::Handle<JSObject*> aTargetScope,
+  void Deserialize(MCContext* aCx, JS::Handle<JSObject*> aTargetScope,
                    bool aKeepData, JS::MutableHandle<JS::Value> aResult,
                    ErrorResult& aRv);
 
   nsISupports* GetParentObject() const { return nullptr; }
   JSObject* GetWrapper() const { return nullptr; }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aResult);
 
  protected:
@@ -64,11 +64,11 @@ class StructuredCloneBlob final : public nsIMemoryReporter {
    public:
     using StructuredCloneHolder::StructuredCloneHolder;
 
-    bool ReadStructuredCloneInternal(JSContext* aCx,
-                                     JSStructuredCloneReader* aReader,
+    bool ReadStructuredCloneInternal(MCContext* aCx,
+                                     MC::Tainted<JSStructuredCloneReader*> aReader,
                                      StructuredCloneHolder* aHolder);
 
-    bool WriteStructuredClone(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+    bool WriteStructuredClone(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                               StructuredCloneHolder* aHolder);
   };
 

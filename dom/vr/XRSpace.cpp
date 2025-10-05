@@ -32,7 +32,7 @@ XRSpace::XRSpace(nsIGlobalObject* aParent, XRSession* aSession,
       mOriginOffsetPosition(0.0f, 0.0f, 0.0f),
       mOriginOffsetOrientation(0.0f, 0.0f, 0.0f, 1.0f) {}
 
-JSObject* XRSpace::WrapObject(JSContext* aCx,
+JSObject* XRSpace::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return XRSpace_Binding::Wrap(aCx, this, aGivenProto);
 }

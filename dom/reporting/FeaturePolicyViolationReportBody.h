@@ -22,7 +22,7 @@ class FeaturePolicyViolationReportBody final : public ReportBody {
                                    const Nullable<int32_t>& aColumnNumber,
                                    const nsAString& aDisposition);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetFeatureId(nsAString& aFeatureId) const;

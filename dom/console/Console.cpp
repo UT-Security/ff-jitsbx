@@ -85,17 +85,17 @@ struct ConsoleStructuredCloneData {
   nsTArray<RefPtr<BlobImpl>> mBlobs;
 };
 
-static void ComposeAndStoreGroupName(JSContext* aCx,
+static void ComposeAndStoreGroupName(MCContext* aCx,
                                      const Sequence<JS::Value>& aData,
                                      nsAString& aName,
                                      nsTArray<nsString>* aGroupStack);
 static bool UnstoreGroupName(nsAString& aName, nsTArray<nsString>* aGroupStack);
 
-static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
+static bool ProcessArguments(MCContext* aCx, const Sequence<JS::Value>& aData,
                              Sequence<JS::Value>& aSequence,
                              Sequence<nsString>& aStyles);
 
-static JS::Value CreateCounterOrResetCounterValue(JSContext* aCx,
+static JS::Value CreateCounterOrResetCounterValue(MCContext* aCx,
                                                   const nsAString& aCountLabel,
                                                   uint32_t aCountValue);
 
@@ -236,9 +236,9 @@ class ConsoleCallData final {
 class MainThreadConsoleData final {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(MainThreadConsoleData);
 
-  JSObject* GetOrCreateSandbox(JSContext* aCx, nsIPrincipal* aPrincipal);
+  JSObject* GetOrCreateSandbox(MCContext* aCx, nsIPrincipal* aPrincipal);
   // This method must receive aCx and aArguments in the same JS::Compartment.
-  void ProcessCallData(JSContext* aCx, ConsoleCallData* aData,
+  void ProcessCallData(MCContext* aCx, ConsoleCallData* aData,
                        const Sequence<JS::Value>& aArguments);
 
  private:
@@ -281,7 +281,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
         nsCOMPtr<nsIGlobalObject> global = mClonedData.mGlobal;
         RefPtr<Blob> blob =
             Blob::Create(global, mClonedData.mBlobs.ElementAt(aIndex));
-        if (!ToJSValue(MC_UNSAFE(aCx), blob, &val)) {
+        if (!ToJSValue(aCx, blob, &val)) {
           return nullptr;
         }
       }
@@ -293,9 +293,9 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     return nullptr;
   }
 
-  bool CustomWriteHandler(JSContext* aCx, JSStructuredCloneWriter* aWriter,
+  bool CustomWriteHandler(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
                           JS::Handle<JSObject*> aObj,
-                          bool* aSameProcessScopeRequired) override {
+                          MC::Tainted<bool*> aSameProcessScopeRequired) override {
     RefPtr<Blob> blob;
     if (NS_SUCCEEDED(UNWRAP_OBJECT(Blob, aObj, blob))) {
       if (NS_WARN_IF(!JS_WriteUint32Pair(aWriter, CONSOLE_TAG_BLOB,
@@ -325,7 +325,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   }
 
   // Helper method for CallData
-  void ProcessCallData(JSContext* aCx, MainThreadConsoleData* aConsoleData,
+  void ProcessCallData(MCContext* aCx, MainThreadConsoleData* aConsoleData,
                        ConsoleCallData* aCallData) {
     AssertIsOnMainThread();
 
@@ -340,15 +340,15 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
 
     MC::Rooted<JSObject*> argumentsObj(aCx, &argumentsValue.toObject());
 
-    uint32_t length;
-    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
+    MC::SandboxStack<uint32_t> length;
+    if (!JS::GetArrayLength(aCx, argumentsObj, length)) {
       return;
     }
 
     Sequence<JS::Value> values;
     SequenceRooter<JS::Value> arguments(aCx, &values);
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
@@ -360,13 +360,13 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       }
     }
 
-    MOZ_ASSERT(values.Length() == length);
+    MOZ_ASSERT(values.Length() == *length.UNSAFE_unverified());
 
     aConsoleData->ProcessCallData(aCx, aCallData, values);
   }
 
   // Generic
-  bool WriteArguments(JSContext* aCx, const Sequence<JS::Value>& aArguments) {
+  bool WriteArguments(MCContext* aCx, const Sequence<JS::Value>& aArguments) {
     ConsoleCommon::ClearException ce(aCx);
 
     MC::Rooted<JSObject*> arguments(
@@ -389,7 +389,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
   }
 
   // Helper method for Profile calls
-  void ProcessProfileData(JSContext* aCx, Console::MethodName aMethodName,
+  void ProcessProfileData(MCContext* aCx, Console::MethodName aMethodName,
                           const nsAString& aAction) {
     AssertIsOnMainThread();
 
@@ -409,14 +409,14 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
       return;
     }
 
-    uint32_t length;
-    if (!JS::GetArrayLength(aCx, argumentsObj, &length)) {
+    MC::SandboxStack<uint32_t> length;
+    if (!JS::GetArrayLength(aCx, argumentsObj, length)) {
       return;
     }
 
     Sequence<JS::Value> arguments;
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> value(aCx);
 
       if (!JS_GetElement(aCx, argumentsObj, i, &value)) {
@@ -431,7 +431,7 @@ class ConsoleRunnable : public StructuredCloneHolderBase {
     Console::ProfileMethodMainthread(aCx, aAction, arguments);
   }
 
-  bool WriteData(JSContext* aCx, JS::Handle<JS::Value> aValue) {
+  bool WriteData(MCContext* aCx, JS::Handle<JS::Value> aValue) {
     // We use structuredClone to send the JSValue to the main-thread, in order
     // to store it into the Console API Service. The consumer will be the
     // console panel in the devtools and, because of this, we want to allow the
@@ -477,7 +477,7 @@ class ConsoleWorkletRunnable : public Runnable, public ConsoleRunnable {
 class ConsoleCallDataWorkletRunnable final : public ConsoleWorkletRunnable {
  public:
   static already_AddRefed<ConsoleCallDataWorkletRunnable> Create(
-      JSContext* aCx, Console* aConsole, ConsoleCallData* aConsoleData,
+      MCContext* aCx, Console* aConsole, ConsoleCallData* aConsoleData,
       const Sequence<JS::Value>& aArguments) {
     WorkletThread::AssertIsOnWorkletThread();
 
@@ -508,7 +508,7 @@ class ConsoleCallDataWorkletRunnable final : public ConsoleWorkletRunnable {
     AssertIsOnMainThread();
     AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     JSObject* sandbox =
         mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
@@ -542,7 +542,7 @@ class ConsoleWorkerRunnable : public WorkerProxyToMainThreadRunnable,
 
   ~ConsoleWorkerRunnable() override = default;
 
-  bool Dispatch(JSContext* aCx, const Sequence<JS::Value>& aArguments) {
+  bool Dispatch(MCContext* aCx, const Sequence<JS::Value>& aArguments) {
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(workerPrivate);
 
@@ -615,7 +615,7 @@ class ConsoleWorkerRunnable : public WorkerProxyToMainThreadRunnable,
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::Rooted<JSObject*> global(
         cx, mConsoleData->GetOrCreateSandbox(cx, wp->GetPrincipal()));
@@ -643,7 +643,7 @@ class ConsoleWorkerRunnable : public WorkerProxyToMainThreadRunnable,
   }
 
   // This method is called in the main-thread.
-  virtual void RunConsole(JSContext* aCx, nsIGlobalObject* aGlobal,
+  virtual void RunConsole(MCContext* aCx, nsIGlobalObject* aGlobal,
                           WorkerPrivate* aWorkerPrivate,
                           nsPIDOMWindowOuter* aOuterWindow,
                           nsPIDOMWindowInner* aInnerWindow) = 0;
@@ -666,7 +666,7 @@ class ConsoleCallDataWorkerRunnable final : public ConsoleWorkerRunnable {
  private:
   ~ConsoleCallDataWorkerRunnable() override = default;
 
-  void RunConsole(JSContext* aCx, nsIGlobalObject* aGlobal,
+  void RunConsole(MCContext* aCx, nsIGlobalObject* aGlobal,
                   WorkerPrivate* aWorkerPrivate,
                   nsPIDOMWindowOuter* aOuterWindow,
                   nsPIDOMWindowInner* aInnerWindow) override {
@@ -715,7 +715,7 @@ class ConsoleCallDataWorkerRunnable final : public ConsoleWorkerRunnable {
 class ConsoleProfileWorkletRunnable final : public ConsoleWorkletRunnable {
  public:
   static already_AddRefed<ConsoleProfileWorkletRunnable> Create(
-      JSContext* aCx, Console* aConsole, Console::MethodName aName,
+      MCContext* aCx, Console* aConsole, Console::MethodName aName,
       const nsAString& aAction, const Sequence<JS::Value>& aArguments) {
     WorkletThread::AssertIsOnWorkletThread();
 
@@ -741,7 +741,7 @@ class ConsoleProfileWorkletRunnable final : public ConsoleWorkletRunnable {
 
     AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     JSObject* sandbox =
         mConsoleData->GetOrCreateSandbox(cx, mWorkletImpl->Principal());
@@ -777,7 +777,7 @@ class ConsoleProfileWorkerRunnable final : public ConsoleWorkerRunnable {
   }
 
  private:
-  void RunConsole(JSContext* aCx, nsIGlobalObject* aGlobal,
+  void RunConsole(MCContext* aCx, nsIGlobalObject* aGlobal,
                   WorkerPrivate* aWorkerPrivate,
                   nsPIDOMWindowOuter* aOuterWindow,
                   nsPIDOMWindowInner* aInnerWindow) override {
@@ -827,7 +827,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Console)
 NS_INTERFACE_MAP_END
 
 /* static */
-already_AddRefed<Console> Console::Create(JSContext* aCx,
+already_AddRefed<Console> Console::Create(MCContext* aCx,
                                           nsPIDOMWindowInner* aWindow,
                                           ErrorResult& aRv) {
   MOZ_ASSERT_IF(NS_IsMainThread(), aWindow);
@@ -858,7 +858,7 @@ already_AddRefed<Console> Console::Create(JSContext* aCx,
 }
 
 /* static */
-already_AddRefed<Console> Console::CreateForWorklet(JSContext* aCx,
+already_AddRefed<Console> Console::CreateForWorklet(MCContext* aCx,
                                                     nsIGlobalObject* aGlobal,
                                                     uint64_t aOuterWindowID,
                                                     uint64_t aInnerWindowID,
@@ -875,7 +875,7 @@ already_AddRefed<Console> Console::CreateForWorklet(JSContext* aCx,
   return console.forget();
 }
 
-Console::Console(JSContext* aCx, nsIGlobalObject* aGlobal,
+Console::Console(MCContext* aCx, nsIGlobalObject* aGlobal,
                  uint64_t aOuterWindowID, uint64_t aInnerWindowID)
     : mGlobal(aGlobal),
       mOuterID(aOuterWindowID),
@@ -1048,11 +1048,11 @@ void Console::StringMethod(const GlobalObject& aGlobal, const nsAString& aLabel,
     return;
   }
 
-  console->StringMethodInternal(MC_UNSAFE(aGlobal.Context()), aLabel, aData, aMethodName,
+  console->StringMethodInternal(aGlobal.Context(), aLabel, aData, aMethodName,
                                 aMethodString);
 }
 
-void Console::StringMethodInternal(JSContext* aCx, const nsAString& aLabel,
+void Console::StringMethodInternal(MCContext* aCx, const nsAString& aLabel,
                                    const Sequence<JS::Value>& aData,
                                    MethodName aMethodName,
                                    const nsAString& aMethodString) {
@@ -1082,7 +1082,7 @@ void Console::StringMethodInternal(JSContext* aCx, const nsAString& aLabel,
 /* static */
 void Console::TimeStamp(const GlobalObject& aGlobal,
                         const JS::Handle<JS::Value> aData) {
-  JSContext* cx = MC_UNSAFE(aGlobal.Context());
+  MCContext* cx = aGlobal.Context();
 
   ConsoleCommon::ClearException ce(cx);
 
@@ -1117,11 +1117,11 @@ void Console::ProfileMethod(const GlobalObject& aGlobal, MethodName aName,
     return;
   }
 
-  JSContext* cx = MC_UNSAFE(aGlobal.Context());
+  MCContext* cx = aGlobal.Context();
   console->ProfileMethodInternal(cx, aName, aAction, aData);
 }
 
-void Console::ProfileMethodInternal(JSContext* aCx, MethodName aMethodName,
+void Console::ProfileMethodInternal(MCContext* aCx, MethodName aMethodName,
                                     const nsAString& aAction,
                                     const Sequence<JS::Value>& aData) {
   if (!ShouldProceed(aMethodName)) {
@@ -1155,7 +1155,7 @@ void Console::ProfileMethodInternal(JSContext* aCx, MethodName aMethodName,
 }
 
 // static
-void Console::ProfileMethodMainthread(JSContext* aCx, const nsAString& aAction,
+void Console::ProfileMethodMainthread(MCContext* aCx, const nsAString& aAction,
                                       const Sequence<JS::Value>& aData) {
   MOZ_ASSERT(NS_IsMainThread());
   ConsoleCommon::ClearException ce(aCx);
@@ -1222,26 +1222,26 @@ void Console::CountReset(const GlobalObject& aGlobal, const nsAString& aLabel) {
 
 namespace {
 
-void StackFrameToStackEntry(JSContext* aCx, nsIStackFrame* aStackFrame,
+void StackFrameToStackEntry(MCContext* aCx, nsIStackFrame* aStackFrame,
                             ConsoleStackEntry& aStackEntry) {
   MOZ_ASSERT(aStackFrame);
 
-  aStackFrame->GetFilename(JS_SanitizeContext(aCx), aStackEntry.mFilename);
+  aStackFrame->GetFilename(aCx, aStackEntry.mFilename);
 
-  aStackEntry.mSourceId = aStackFrame->GetSourceId(JS_SanitizeContext(aCx));
-  aStackEntry.mLineNumber = aStackFrame->GetLineNumber(JS_SanitizeContext(aCx));
-  aStackEntry.mColumnNumber = aStackFrame->GetColumnNumber(JS_SanitizeContext(aCx));
+  aStackEntry.mSourceId = aStackFrame->GetSourceId(aCx);
+  aStackEntry.mLineNumber = aStackFrame->GetLineNumber(aCx);
+  aStackEntry.mColumnNumber = aStackFrame->GetColumnNumber(aCx);
 
-  aStackFrame->GetName(JS_SanitizeContext(aCx), aStackEntry.mFunctionName);
+  aStackFrame->GetName(aCx, aStackEntry.mFunctionName);
 
   nsString cause;
-  aStackFrame->GetAsyncCause(JS_SanitizeContext(aCx), cause);
+  aStackFrame->GetAsyncCause(aCx, cause);
   if (!cause.IsEmpty()) {
     aStackEntry.mAsyncCause.Construct(cause);
   }
 }
 
-void ReifyStack(JSContext* aCx, nsIStackFrame* aStack,
+void ReifyStack(MCContext* aCx, nsIStackFrame* aStack,
                 nsTArray<ConsoleStackEntry>& aRefiedStack) {
   nsCOMPtr<nsIStackFrame> stack(aStack);
 
@@ -1249,10 +1249,10 @@ void ReifyStack(JSContext* aCx, nsIStackFrame* aStack,
     ConsoleStackEntry& data = *aRefiedStack.AppendElement();
     StackFrameToStackEntry(aCx, stack, data);
 
-    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(JS_SanitizeContext(aCx));
+    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(aCx);
 
     if (!caller) {
-      caller = stack->GetAsyncCaller(JS_SanitizeContext(aCx));
+      caller = stack->GetAsyncCaller(aCx);
     }
     stack.swap(caller);
   }
@@ -1270,10 +1270,10 @@ void Console::Method(const GlobalObject& aGlobal, MethodName aMethodName,
     return;
   }
 
-  console->MethodInternal(MC_UNSAFE(aGlobal.Context()), aMethodName, aMethodString, aData);
+  console->MethodInternal(aGlobal.Context(), aMethodName, aMethodString, aData);
 }
 
-void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
+void Console::MethodInternal(MCContext* aCx, MethodName aMethodName,
                              const nsAString& aMethodString,
                              const Sequence<JS::Value>& aData) {
   if (!ShouldProceed(aMethodName)) {
@@ -1340,7 +1340,7 @@ void Console::MethodInternal(JSContext* aCx, MethodName aMethodName,
       ShouldIncludeStackTrace(aMethodName)
           ? JS::StackCapture(JS::MaxFrames(DEFAULT_MAX_STACKTRACE_DEPTH))
           : JS::StackCapture(JS::FirstSubsumedFrame(
-                aCx, JS::GetRealmPrincipals(js::GetContextRealm(aCx))));
+                MC_UNSAFE(aCx), JS::GetRealmPrincipals(js::GetContextRealm(aCx))));
   nsCOMPtr<nsIStackFrame> stack = CreateStack(aCx, std::move(captureMode));
 
   if (stack) {
@@ -1471,7 +1471,10 @@ MainThreadConsoleData* Console::GetOrCreateMainThreadData() {
 // reified the stack yet, or an UndefinedValue() otherwise.
 enum { SLOT_STACKOBJ, SLOT_RAW_STACK };
 
-bool LazyStackGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
+MC::Tainted<bool> LazyStackGetter(MC::Tainted<JSContext*> tCx, unsigned aArgc, MC::Tainted<JS::Value*> tVp) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* aVp = tVp.UNSAFE_unverified();
+  
   JS::CallArgs args = CallArgsFromVp(aArgc, aVp);
   MC::Rooted<JSObject*> callee(aCx, &args.callee());
 
@@ -1501,7 +1504,7 @@ bool LazyStackGetter(JSContext* aCx, unsigned aArgc, JS::Value* aVp) {
 }
 
 void MainThreadConsoleData::ProcessCallData(
-    JSContext* aCx, ConsoleCallData* aData,
+    MCContext* aCx, ConsoleCallData* aData,
     const Sequence<JS::Value>& aArguments) {
   AssertIsOnMainThread();
   MOZ_ASSERT(aData);
@@ -1557,7 +1560,7 @@ void MainThreadConsoleData::ProcessCallData(
 
 /* static */
 bool Console::PopulateConsoleNotificationInTheTargetScope(
-    JSContext* aCx, const Sequence<JS::Value>& aArguments,
+    MCContext* aCx, const Sequence<JS::Value>& aArguments,
     JS::Handle<JSObject*> aTargetScope,
     JS::MutableHandle<JS::Value> aEventValue, ConsoleCallData* aData,
     nsTArray<nsString>* aGroupStack) {
@@ -1704,9 +1707,9 @@ bool Console::PopulateConsoleNotificationInTheTargetScope(
         return false;
       }
     } else {
-      static auto LazyStackGetterCb = MC::Sandbox::RegisterCallback(LazyStackGetter);
+      static auto LazyStackGetterCb = MC::Sandbox::RegisterTaintedCallback(LazyStackGetter);
       JSFunction* fun =
-          js::NewFunctionWithReserved(aCx, LazyStackGetterCb.UNSAFE_get(), 0, 0, "stacktrace");
+          js::NewFunctionWithReserved(aCx, LazyStackGetterCb, 0, 0, "stacktrace");
       if (NS_WARN_IF(!fun)) {
         return false;
       }
@@ -1740,7 +1743,7 @@ namespace {
 
 // Helper method for ProcessArguments. Flushes output, if non-empty, to
 // aSequence.
-bool FlushOutput(JSContext* aCx, Sequence<JS::Value>& aSequence,
+bool FlushOutput(MCContext* aCx, Sequence<JS::Value>& aSequence,
                  nsString& aOutput) {
   if (!aOutput.IsEmpty()) {
     MC::Rooted<JSString*> str(
@@ -1794,7 +1797,7 @@ static void MakeFormatString(nsCString& aFormat, int32_t aInteger,
 // finds based the format string. The index of the styles matches the indexes
 // of elements that need the custom styling from aSequence. For elements with
 // no custom styling the array is padded with null elements.
-static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
+static bool ProcessArguments(MCContext* aCx, const Sequence<JS::Value>& aData,
                              Sequence<JS::Value>& aSequence,
                              Sequence<nsString>& aStyles) {
   // This method processes the arguments as format strings (%d, %i, %s...)
@@ -1998,14 +2001,14 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
             break;
           }
 
-          int32_t v;
-          if (NS_WARN_IF(!JS::ToInt32(aCx, value, &v))) {
+          MC::SandboxStack<int32_t> v;
+          if (NS_WARN_IF(!JS::ToInt32(aCx, value, v))) {
             return false;
           }
 
           nsCString format;
           MakeFormatString(format, integer, mantissa, 'd');
-          output.AppendPrintf(format.get(), v);
+          output.AppendPrintf(format.get(), *v.UNSAFE_unverified());
         }
         break;
 
@@ -2013,18 +2016,18 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
         if (index < aData.Length()) {
           MC::Rooted<JS::Value> value(aCx, aData[index++]);
 
-          double v;
-          if (NS_WARN_IF(!JS::ToNumber(aCx, value, &v))) {
+          MC::SandboxStack<double> v;
+          if (NS_WARN_IF(!JS::ToNumber(aCx, value, v))) {
             return false;
           }
 
           // nspr returns "nan", but we want to expose it as "NaN"
-          if (std::isnan(v)) {
-            output.AppendFloat(v);
+          if (std::isnan(*v.UNSAFE_unverified())) {
+            output.AppendFloat(*v.UNSAFE_unverified());
           } else {
             nsCString format;
             MakeFormatString(format, integer, mantissa, 'f');
-            output.AppendPrintf(format.get(), v);
+            output.AppendPrintf(format.get(), *v.UNSAFE_unverified());
           }
         }
         break;
@@ -2056,7 +2059,7 @@ static bool ProcessArguments(JSContext* aCx, const Sequence<JS::Value>& aData,
 
 // Stringify and Concat all the JS::Value in a single string using ' ' as
 // separator. The new group name will be stored in aGroupStack array.
-static void ComposeAndStoreGroupName(JSContext* aCx,
+static void ComposeAndStoreGroupName(MCContext* aCx,
                                      const Sequence<JS::Value>& aData,
                                      nsAString& aName,
                                      nsTArray<nsString>* aGroupStack) {
@@ -2091,7 +2094,7 @@ static bool UnstoreGroupName(nsAString& aName,
   return true;
 }
 
-Console::TimerStatus Console::StartTimer(JSContext* aCx, const JS::Value& aName,
+Console::TimerStatus Console::StartTimer(MCContext* aCx, const JS::Value& aName,
                                          DOMHighResTimeStamp aTimestamp,
                                          nsAString& aTimerLabel,
                                          DOMHighResTimeStamp* aTimerValue) {
@@ -2132,7 +2135,7 @@ Console::TimerStatus Console::StartTimer(JSContext* aCx, const JS::Value& aName,
 }
 
 /* static */
-JS::Value Console::CreateStartTimerValue(JSContext* aCx,
+JS::Value Console::CreateStartTimerValue(MCContext* aCx,
                                          const nsAString& aTimerLabel,
                                          TimerStatus aTimerStatus) {
   MOZ_ASSERT(aTimerStatus != eTimerUnknown);
@@ -2153,7 +2156,7 @@ JS::Value Console::CreateStartTimerValue(JSContext* aCx,
   return value;
 }
 
-Console::TimerStatus Console::LogTimer(JSContext* aCx, const JS::Value& aName,
+Console::TimerStatus Console::LogTimer(MCContext* aCx, const JS::Value& aName,
                                        DOMHighResTimeStamp aTimestamp,
                                        nsAString& aTimerLabel,
                                        double* aTimerDuration,
@@ -2195,7 +2198,7 @@ Console::TimerStatus Console::LogTimer(JSContext* aCx, const JS::Value& aName,
 }
 
 /* static */
-JS::Value Console::CreateLogOrEndTimerValue(JSContext* aCx,
+JS::Value Console::CreateLogOrEndTimerValue(MCContext* aCx,
                                             const nsAString& aLabel,
                                             double aDuration,
                                             TimerStatus aStatus) {
@@ -2216,7 +2219,7 @@ JS::Value Console::CreateLogOrEndTimerValue(JSContext* aCx,
 }
 
 /* static */
-JS::Value Console::CreateTimerError(JSContext* aCx, const nsAString& aLabel,
+JS::Value Console::CreateTimerError(MCContext* aCx, const nsAString& aLabel,
                                     TimerStatus aStatus) {
   MOZ_ASSERT(aStatus != eTimerUnknown && aStatus != eTimerDone);
 
@@ -2254,7 +2257,7 @@ JS::Value Console::CreateTimerError(JSContext* aCx, const nsAString& aLabel,
   return value;
 }
 
-uint32_t Console::IncreaseCounter(JSContext* aCx,
+uint32_t Console::IncreaseCounter(MCContext* aCx,
                                   const Sequence<JS::Value>& aArguments,
                                   nsAString& aCountLabel) {
   AssertIsOnOwningThread();
@@ -2291,7 +2294,7 @@ uint32_t Console::IncreaseCounter(JSContext* aCx,
       });
 }
 
-uint32_t Console::ResetCounter(JSContext* aCx,
+uint32_t Console::ResetCounter(MCContext* aCx,
                                const Sequence<JS::Value>& aArguments,
                                nsAString& aCountLabel) {
   AssertIsOnOwningThread();
@@ -2328,7 +2331,7 @@ uint32_t Console::ResetCounter(JSContext* aCx,
 // * aCountLabel - this label must be what IncreaseCounter received as
 //                 aTimerLabel.
 // * aCountValue - the return value of IncreaseCounter.
-static JS::Value CreateCounterOrResetCounterValue(JSContext* aCx,
+static JS::Value CreateCounterOrResetCounterValue(MCContext* aCx,
                                                   const nsAString& aCountLabel,
                                                   uint32_t aCountValue) {
   ConsoleCommon::ClearException ce(aCx);
@@ -2371,7 +2374,7 @@ bool Console::ShouldIncludeStackTrace(MethodName aMethodName) {
   }
 }
 
-JSObject* MainThreadConsoleData::GetOrCreateSandbox(JSContext* aCx,
+JSObject* MainThreadConsoleData::GetOrCreateSandbox(MCContext* aCx,
                                                     nsIPrincipal* aPrincipal) {
   AssertIsOnMainThread();
 
@@ -2391,7 +2394,7 @@ JSObject* MainThreadConsoleData::GetOrCreateSandbox(JSContext* aCx,
   return mSandbox->GetJSObject();
 }
 
-bool Console::StoreCallData(JSContext* aCx, ConsoleCallData* aCallData,
+bool Console::StoreCallData(MCContext* aCx, ConsoleCallData* aCallData,
                             const Sequence<JS::Value>& aArguments) {
   AssertIsOnOwningThread();
 
@@ -2435,7 +2438,7 @@ void Console::UnstoreCallData(ConsoleCallData* aCallData) {
   mArgumentStorage.erase(&mArgumentStorage[index]);
 }
 
-void Console::NotifyHandler(JSContext* aCx,
+void Console::NotifyHandler(MCContext* aCx,
                             const Sequence<JS::Value>& aArguments,
                             ConsoleCallData* aCallData) {
   AssertIsOnOwningThread();
@@ -2468,7 +2471,7 @@ void Console::NotifyHandler(JSContext* aCx,
   notifier->Call(value, &ignored);
 }
 
-void Console::RetrieveConsoleEvents(JSContext* aCx,
+void Console::RetrieveConsoleEvents(MCContext* aCx,
                                     nsTArray<JS::Value>& aEvents,
                                     ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -2552,7 +2555,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
 
     // we are probably running a chrome script.
     if (!innerWindow) {
-      RefPtr<Console> console = new Console(MC_UNSAFE(aGlobal.Context()), nullptr, 0, 0);
+      RefPtr<Console> console = new Console(aGlobal.Context(), nullptr, 0, 0);
       console->Initialize(aRv);
       if (NS_WARN_IF(aRv.Failed())) {
         return nullptr;
@@ -2562,7 +2565,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
     }
 
     nsGlobalWindowInner* window = nsGlobalWindowInner::Cast(innerWindow);
-    return window->GetConsole(MC_UNSAFE(aGlobal.Context()), aRv);
+    return window->GetConsole(aGlobal.Context(), aRv);
   }
 
   // Worklet
@@ -2570,13 +2573,13 @@ already_AddRefed<Console> Console::GetConsoleInternal(
       do_QueryInterface(aGlobal.GetAsSupports());
   if (workletScope) {
     WorkletThread::AssertIsOnWorkletThread();
-    return workletScope->GetConsole(MC_UNSAFE(aGlobal.Context()), aRv);
+    return workletScope->GetConsole(aGlobal.Context(), aRv);
   }
 
   // Workers
   MOZ_ASSERT(!NS_IsMainThread());
 
-  JSContext* cx = MC_UNSAFE(aGlobal.Context());
+  MCContext* cx = aGlobal.Context();
   WorkerPrivate* workerPrivate = GetWorkerPrivateFromContext(cx);
   MOZ_ASSERT(workerPrivate);
 
@@ -2603,7 +2606,7 @@ already_AddRefed<Console> Console::GetConsoleInternal(
   return debuggerScope->GetConsole(aRv);
 }
 
-bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
+bool Console::MonotonicTimer(MCContext* aCx, MethodName aMethodName,
                              const Sequence<JS::Value>& aData,
                              DOMHighResTimeStamp* aTimeStamp) {
   if (nsCOMPtr<nsPIDOMWindowInner> innerWindow = do_QueryInterface(mGlobal)) {
@@ -2682,7 +2685,7 @@ bool Console::MonotonicTimer(JSContext* aCx, MethodName aMethodName,
 already_AddRefed<ConsoleInstance> Console::CreateInstance(
     const GlobalObject& aGlobal, const ConsoleInstanceOptions& aOptions) {
   RefPtr<ConsoleInstance> console =
-      new ConsoleInstance(MC_UNSAFE(aGlobal.Context()), aOptions);
+      new ConsoleInstance(aGlobal.Context(), aOptions);
   return console.forget();
 }
 
@@ -2737,7 +2740,7 @@ void Console::StringifyElement(Element* aElement, nsAString& aOut) {
   aOut.AppendLiteral(">");
 }
 
-void Console::MaybeExecuteDumpFunction(JSContext* aCx,
+void Console::MaybeExecuteDumpFunction(MCContext* aCx,
                                        const nsAString& aMethodName,
                                        const Sequence<JS::Value>& aData,
                                        nsIStackFrame* aStack) {
@@ -2793,24 +2796,24 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
 
   while (stack) {
     nsAutoString filename;
-    stack->GetFilename(JS_SanitizeContext(aCx), filename);
+    stack->GetFilename(aCx, filename);
 
     message.Append(filename);
     message.AppendLiteral(" ");
 
-    message.AppendInt(stack->GetLineNumber(JS_SanitizeContext(aCx)));
+    message.AppendInt(stack->GetLineNumber(aCx));
     message.AppendLiteral(" ");
 
     nsAutoString functionName;
-    stack->GetName(JS_SanitizeContext(aCx), functionName);
+    stack->GetName(aCx, functionName);
 
     message.Append(functionName);
     message.AppendLiteral("\n");
 
-    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(JS_SanitizeContext(aCx));
+    nsCOMPtr<nsIStackFrame> caller = stack->GetCaller(aCx);
 
     if (!caller) {
-      caller = stack->GetAsyncCaller(JS_SanitizeContext(aCx));
+      caller = stack->GetAsyncCaller(aCx);
     }
 
     stack.swap(caller);
@@ -2819,7 +2822,7 @@ void Console::MaybeExecuteDumpFunction(JSContext* aCx,
   ExecuteDumpFunction(message);
 }
 
-void Console::MaybeExecuteDumpFunctionForTime(JSContext* aCx,
+void Console::MaybeExecuteDumpFunctionForTime(MCContext* aCx,
                                               MethodName aMethodName,
                                               const nsAString& aMethodString,
                                               uint64_t aMonotonicTimer,
@@ -3011,7 +3014,7 @@ uint32_t Console::InternalLogLevelToInteger(MethodName aName) const {
   }
 }
 
-bool Console::ArgumentData::Initialize(JSContext* aCx,
+bool Console::ArgumentData::Initialize(MCContext* aCx,
                                        const Sequence<JS::Value>& aArguments) {
   mGlobal = JS::CurrentGlobalOrNull(aCx);
 

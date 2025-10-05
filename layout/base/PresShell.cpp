@@ -6339,7 +6339,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
   AUTO_PROFILER_LABEL_DYNAMIC_NSCSTRING_RELEVANT_FOR_JS(
       "Paint", GRAPHICS, Substring(url, std::min(size_t(128), url.Length())));
 
-  Maybe<js::AutoAssertNoContentJS> nojs;
+  MC::SandboxStack<Maybe<js::AutoAssertNoContentJS>> nojs;
 
   // On Android, Flash can call into content JS during painting, so we can't
   // assert there. However, we don't rely on this assertion on Android because
@@ -6348,7 +6348,7 @@ void PresShell::PaintInternal(nsView* aViewToPaint, PaintInternalFlags aFlags) {
   if (!(aFlags & PaintInternalFlags::PaintComposite)) {
     // We need to allow content JS when the flag is set since we may trigger
     // MozAfterPaint events in content in those cases.
-    nojs.emplace(MC_UNSAFE(dom::danger::GetJSContext()));
+    nojs->emplace(dom::danger::GetJSContext());
   }
 #endif
 

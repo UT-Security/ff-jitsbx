@@ -10,8 +10,8 @@
 #include "mozilla/dom/PrecompiledScriptBinding.h"
 #include "mozilla/RefPtr.h"
 
-#include "js/experimental/JSStencil.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/experimental/JSStencil.h"
+#include "monkeycage/TypeDecls.h"
 
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
@@ -31,7 +31,7 @@ class PrecompiledScript : public nsISupports, public nsWrapperCache {
   explicit PrecompiledScript(nsISupports* aParent, RefPtr<JS::Stencil> aStencil,
                              MC::Tainted<JS::ReadOnlyCompileOptions*> aOptions);
 
-  void ExecuteInGlobal(JSContext* aCx, JS::Handle<JSObject*> aGlobal,
+  void ExecuteInGlobal(MCContext* aCx, JS::Handle<JSObject*> aGlobal,
                        const ExecuteInGlobalOptions& aOptions,
                        JS::MutableHandle<JS::Value> aRval, ErrorResult& aRv);
 
@@ -41,7 +41,7 @@ class PrecompiledScript : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

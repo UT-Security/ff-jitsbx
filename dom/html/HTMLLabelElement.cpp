@@ -26,7 +26,7 @@ namespace mozilla::dom {
 
 HTMLLabelElement::~HTMLLabelElement() = default;
 
-JSObject* HTMLLabelElement::WrapNode(JSContext* aCx,
+JSObject* HTMLLabelElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLLabelElement_Binding::Wrap(aCx, this, aGivenProto);
 }

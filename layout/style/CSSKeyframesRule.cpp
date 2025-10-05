@@ -349,7 +349,7 @@ size_t CSSKeyframesRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
 }
 
 /* virtual */
-JSObject* CSSKeyframesRule::WrapObject(JSContext* aCx,
+JSObject* CSSKeyframesRule::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return CSSKeyframesRule_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -4,7 +4,8 @@
  */
 
 #include "gtest/gtest.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
+#include "monkeycage/SandboxStack.h"
 #include "mozilla/Telemetry.h"
 #include "TelemetryFixture.h"
 #include "TelemetryTestHelpers.h"
@@ -42,9 +43,9 @@ TEST_F(TelemetryTestFixture, AccumulateCountHistogram) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -78,9 +79,9 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCountHistogram) {
   GetProperty(cx.GetJSContext(), "sum", expectedKeyData, &sum);
 
   // Check that the sum stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected sum";
 }
 
@@ -120,9 +121,9 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram) {
   << "Cannot find the expected key in the histogram data";
   MC::Rooted<JS::Value> sum(cx.GetJSContext());
   GetProperty(cx.GetJSContext(), "sum", expectedKeyData, &sum);
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, 0U)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), 0U)
       << "The histogram is not returning expected sum for 'testkey'";
 
   // Do the same for the "CommonKey" property.
@@ -130,8 +131,8 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram) {
   ASSERT_TRUE(!expectedKeyData.isUndefined())
   << "Cannot find the expected key in the histogram data";
   GetProperty(cx.GetJSContext(), "sum", expectedKeyData, &sum);
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, 1U)
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), 1U)
       << "The histogram is not returning expected sum for 'CommonKey'";
 
   GetProperty(cx.GetJSContext(), "not-allowed", histogram, &expectedKeyData);
@@ -190,9 +191,9 @@ TEST_F(TelemetryTestFixture, AccumulateCategoricalHistogram) {
              values, &value);
 
   // Check that the value stored in the histogram matches with |kExpectedValue|
-  uint32_t uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
+  MC::SandboxStack<uint32_t> uValue = 0;
+  JS::ToUint32(cx.GetJSContext(), value, uValue);
+  ASSERT_EQ(*uValue.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -244,9 +245,9 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCategoricalHistogram) {
       sampleValues, &sampleValue);
   // Check that the value stored in the histogram matches with
   // |kSampleExpectedValue|
-  uint32_t uSampleValue = 0;
-  JS::ToUint32(cx.GetJSContext(), sampleValue, &uSampleValue);
-  ASSERT_EQ(uSampleValue, kSampleExpectedValue)
+  MC::SandboxStack<uint32_t> uSampleValue = 0;
+  JS::ToUint32(cx.GetJSContext(), sampleValue, uSampleValue);
+  ASSERT_EQ(*uSampleValue.UNSAFE_unverified(), kSampleExpectedValue)
       << "The sample histogram is not returning expected value";
 
   // Check that the other-sample histogram contains the values we expect
@@ -265,9 +266,9 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCategoricalHistogram) {
       otherValues, &otherValue);
   // Check that the value stored in the histogram matches with
   // |kOtherSampleExpectedValue|
-  uint32_t uOtherValue = 0;
-  JS::ToUint32(cx.GetJSContext(), otherValue, &uOtherValue);
-  ASSERT_EQ(uOtherValue, kOtherSampleExpectedValue)
+  MC::SandboxStack<uint32_t> uOtherValue = 0;
+  JS::ToUint32(cx.GetJSContext(), otherValue, uOtherValue);
+  ASSERT_EQ(*uOtherValue.UNSAFE_unverified(), kOtherSampleExpectedValue)
       << "The other-sample histogram is not returning expected value";
 }
 
@@ -297,9 +298,9 @@ TEST_F(TelemetryTestFixture, AccumulateCountHistogram_MultipleSamples) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that sum matches with aValue
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedSum)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedSum)
       << "This histogram is not returning expected value";
 }
 
@@ -335,9 +336,9 @@ TEST_F(TelemetryTestFixture, AccumulateLinearHistogram_MultipleSamples) {
   GetElement(cx.GetJSContext(), index, values, &count);
 
   // Check that this count matches with nSamples
-  uint32_t uCount = 0;
-  JS::ToUint32(cx.GetJSContext(), count, &uCount);
-  ASSERT_EQ(uCount, kExpectedCount)
+  MC::SandboxStack<uint32_t> uCount = 0;
+  JS::ToUint32(cx.GetJSContext(), count, uCount);
+  ASSERT_EQ(*uCount.UNSAFE_unverified(), kExpectedCount)
       << "The histogram did not accumulate the correct number of values";
 }
 
@@ -377,19 +378,19 @@ TEST_F(TelemetryTestFixture, AccumulateLinearHistogram_DifferentSamples) {
   GetElement(cx.GetJSContext(), lastIndex, values, &countLast);
 
   // Check that the values match
-  uint32_t uCountFirst = 0;
-  uint32_t uCountLast = 0;
-  JS::ToUint32(cx.GetJSContext(), countFirst, &uCountFirst);
-  JS::ToUint32(cx.GetJSContext(), countLast, &uCountLast);
+  MC::SandboxStack<uint32_t> uCountFirst = 0;
+  MC::SandboxStack<uint32_t> uCountLast = 0;
+  JS::ToUint32(cx.GetJSContext(), countFirst, uCountFirst);
+  JS::ToUint32(cx.GetJSContext(), countLast, uCountLast);
 
   const uint32_t kExpectedCountFirst = 2;
   // We expect 2147483646 to be in the last bucket, as well the two samples
   // above 2^31 (prior to bug 1438335, values between INT_MAX and UINT32_MAX
   // would end up as 0s)
   const uint32_t kExpectedCountLast = 3;
-  ASSERT_EQ(uCountFirst, kExpectedCountFirst)
+  ASSERT_EQ(*uCountFirst.UNSAFE_unverified(), kExpectedCountFirst)
       << "The first bucket did not accumulate the correct number of values";
-  ASSERT_EQ(uCountLast, kExpectedCountLast)
+  ASSERT_EQ(*uCountLast.UNSAFE_unverified(), kExpectedCountLast)
       << "The last bucket did not accumulate the correct number of values";
 
   // We accumulated two values that had to be clamped. We expect the count in
@@ -434,9 +435,9 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedCountHistogram_MultipleSamples) {
   GetProperty(cx.GetJSContext(), "sum", expectedKeyData, &sum);
 
   // Check that the sum stored in the histogram matches with |kExpectedSum|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedSum)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedSum)
       << "The histogram is not returning expected sum";
 }
 
@@ -483,17 +484,17 @@ TEST_F(TelemetryTestFixture, TestKeyedLinearHistogram_MultipleSamples) {
   GetElement(cx.GetJSContext(), lastIndex, values, &countLast);
 
   // Check that the values match.
-  uint32_t uCountFirst = 0;
-  uint32_t uCountLast = 0;
-  JS::ToUint32(cx.GetJSContext(), countFirst, &uCountFirst);
-  JS::ToUint32(cx.GetJSContext(), countLast, &uCountLast);
+  MC::SandboxStack<uint32_t> uCountFirst = 0;
+  MC::SandboxStack<uint32_t> uCountLast = 0;
+  JS::ToUint32(cx.GetJSContext(), countFirst, uCountFirst);
+  JS::ToUint32(cx.GetJSContext(), countLast, uCountLast);
 
   const uint32_t kExpectedCountFirst = 2;
   const uint32_t kExpectedCountLast = 2;
-  ASSERT_EQ(uCountFirst, kExpectedCountFirst)
+  ASSERT_EQ(*uCountFirst.UNSAFE_unverified(), kExpectedCountFirst)
       << "The first bucket did not accumulate the correct number of values for "
          "key 'testkey'";
-  ASSERT_EQ(uCountLast, kExpectedCountLast)
+  ASSERT_EQ(*uCountLast.UNSAFE_unverified(), kExpectedCountLast)
       << "The last bucket did not accumulate the correct number of values for "
          "key 'testkey'";
 
@@ -555,24 +556,24 @@ TEST_F(TelemetryTestFixture, TestKeyedKeysHistogram_MultipleSamples) {
   GetElement(cx.GetJSContext(), trueIndex, values, &countTrue);
   GetElement(cx.GetJSContext(), otherIndex, values, &countOther);
 
-  uint32_t uCountFalse = 0;
-  uint32_t uCountTrue = 0;
-  uint32_t uCountOther = 0;
-  JS::ToUint32(cx.GetJSContext(), countFalse, &uCountFalse);
-  JS::ToUint32(cx.GetJSContext(), countTrue, &uCountTrue);
-  JS::ToUint32(cx.GetJSContext(), countOther, &uCountOther);
+  MC::SandboxStack<uint32_t> uCountFalse = 0;
+  MC::SandboxStack<uint32_t> uCountTrue = 0;
+  MC::SandboxStack<uint32_t> uCountOther = 0;
+  JS::ToUint32(cx.GetJSContext(), countFalse, uCountFalse);
+  JS::ToUint32(cx.GetJSContext(), countTrue, uCountTrue);
+  JS::ToUint32(cx.GetJSContext(), countOther, uCountOther);
 
   const uint32_t kExpectedCountFalse = 2;
   const uint32_t kExpectedCountTrue = 3;
   const uint32_t kExpectedCountOther = 0;
 
-  ASSERT_EQ(uCountFalse, kExpectedCountFalse)
+  ASSERT_EQ(*uCountFalse.UNSAFE_unverified(), kExpectedCountFalse)
       << "The histogram did not accumulate the correct number of 'false' "
          "booleans for key 'testkey'";
-  ASSERT_EQ(uCountTrue, kExpectedCountTrue)
+  ASSERT_EQ(*uCountTrue.UNSAFE_unverified(), kExpectedCountTrue)
       << "The histogram did not accumulate the correct number of 'true' "
          "booleans for key 'testkey'";
-  ASSERT_EQ(uCountOther, kExpectedCountOther)
+  ASSERT_EQ(*uCountOther.UNSAFE_unverified(), kExpectedCountOther)
       << "The histogram did not accumulate the correct number of undefined "
          "values for key 'testkey'";
 
@@ -642,9 +643,9 @@ TEST_F(TelemetryTestFixture,
              values, &value);
 
   // Check that the value stored in the histogram matches with |kExpectedValue|
-  uint32_t uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
+  MC::SandboxStack<uint32_t> uValue = 0;
+  JS::ToUint32(cx.GetJSContext(), value, uValue);
+  ASSERT_EQ(*uValue.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 
   // Now we check for no accumulation when a bad label is present in the array.
@@ -677,9 +678,9 @@ TEST_F(TelemetryTestFixture,
              values, &value);
 
   // Check that the value stored in the histogram matches with |kExpectedValue|
-  uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
+  *uValue = 0;
+  JS::ToUint32(cx.GetJSContext(), value, uValue);
+  ASSERT_EQ(*uValue.UNSAFE_unverified(), kExpectedValue)
       << "The histogram accumulated data when it should not have";
 }
 
@@ -723,9 +724,9 @@ TEST_F(TelemetryTestFixture,
              values, &value);
 
   // Check that the value stored in the histogram matches with |kExpectedValue|
-  uint32_t uValue = 0;
-  JS::ToUint32(cx.GetJSContext(), value, &uValue);
-  ASSERT_EQ(uValue, kExpectedValue)
+  MC::SandboxStack<uint32_t> uValue = 0;
+  JS::ToUint32(cx.GetJSContext(), value, uValue);
+  ASSERT_EQ(*uValue.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -776,9 +777,9 @@ TEST_F(TelemetryTestFixture,
 
   // Check that the value stored in the histogram matches with
   // |kExpectedCommonLabel|
-  uint32_t uCommonLabelValue = 0;
-  JS::ToUint32(cx.GetJSContext(), commonLabelValue, &uCommonLabelValue);
-  ASSERT_EQ(uCommonLabelValue, kExpectedCommonLabel)
+  MC::SandboxStack<uint32_t> uCommonLabelValue = 0;
+  JS::ToUint32(cx.GetJSContext(), commonLabelValue, uCommonLabelValue);
+  ASSERT_EQ(*uCommonLabelValue.UNSAFE_unverified(), kExpectedCommonLabel)
       << "The sampleKey histogram did not accumulate the correct number of "
          "CommonLabel samples";
 
@@ -791,9 +792,9 @@ TEST_F(TelemetryTestFixture,
              sampleKeyValues, &label2Value);
 
   // Check that the value stored in the histogram matches with |kExpectedLabel2|
-  uint32_t uLabel2Value = 0;
-  JS::ToUint32(cx.GetJSContext(), label2Value, &uLabel2Value);
-  ASSERT_EQ(uLabel2Value, kExpectedLabel2)
+  MC::SandboxStack<uint32_t> uLabel2Value = 0;
+  JS::ToUint32(cx.GetJSContext(), label2Value, uLabel2Value);
+  ASSERT_EQ(*uLabel2Value.UNSAFE_unverified(), kExpectedLabel2)
       << "The sampleKey histogram did not accumulate the correct number of "
          "Label2 samples";
 }
@@ -835,9 +836,9 @@ TEST_F(TelemetryTestFixture, AccumulateTimeDelta) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -884,8 +885,8 @@ TEST_F(TelemetryTestFixture, AccumulateKeyedTimeDelta) {
   GetProperty(cx.GetJSContext(), "sum", expectedKeyData, &sum);
 
   // Check that the sum stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected sum";
 }

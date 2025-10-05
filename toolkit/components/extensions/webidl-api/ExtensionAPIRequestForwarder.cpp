@@ -7,8 +7,8 @@
 #include "ExtensionEventListener.h"
 #include "ExtensionAPIBase.h"
 
-#include "js/Promise.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Promise.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/Client.h"
 #include "mozilla/ClearOnShutdown.h"
 #include "mozilla/dom/ClonedErrorHolder.h"
@@ -32,7 +32,7 @@ namespace extensions {
 // ExtensionAPIRequestForwarder
 
 // static
-void ExtensionAPIRequestForwarder::ThrowUnexpectedError(JSContext* aCx,
+void ExtensionAPIRequestForwarder::ThrowUnexpectedError(MCContext* aCx,
                                                         ErrorResult& aRv) {
   aRv.MightThrowJSException();
   JS_ReportErrorASCII(aCx, "An unexpected error occurred");
@@ -52,7 +52,7 @@ ExtensionAPIRequestForwarder::ExtensionAPIRequestForwarder(
 
 // static
 nsresult ExtensionAPIRequestForwarder::JSArrayToSequence(
-    JSContext* aCx, JS::Handle<JS::Value> aJSValue,
+    MCContext* aCx, JS::Handle<JS::Value> aJSValue,
     dom::Sequence<JS::Value>& aResult) {
   bool isArray;
   MC::Rooted<JSObject*> obj(aCx, aJSValue.toObjectOrNull());
@@ -105,7 +105,7 @@ void ExtensionAPIRequestForwarder::SetSerializedCallerStack(
   mStackHolder = Some(std::move(aCallerStack));
 }
 
-void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, MCContext* aCx,
                                        const dom::Sequence<JS::Value>& aArgs,
                                        ExtensionEventListener* aListener,
                                        JS::MutableHandle<JS::Value> aRetVal,
@@ -197,21 +197,21 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
   aRetVal.set(resultValue);
 }
 
-void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, MCContext* aCx,
                                        const dom::Sequence<JS::Value>& aArgs,
                                        JS::MutableHandle<JS::Value> aRetVal,
                                        ErrorResult& aRv) {
   Run(aGlobal, aCx, aArgs, nullptr, aRetVal, aRv);
 }
 
-void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, MCContext* aCx,
                                        const dom::Sequence<JS::Value>& aArgs,
                                        ErrorResult& aRv) {
   MC::Rooted<JS::Value> ignoredRetval(aCx);
   Run(aGlobal, aCx, aArgs, nullptr, &ignoredRetval, aRv);
 }
 
-void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, MCContext* aCx,
                                        const dom::Sequence<JS::Value>& aArgs,
                                        ExtensionEventListener* aListener,
                                        ErrorResult& aRv) {
@@ -221,7 +221,7 @@ void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
 }
 
 void ExtensionAPIRequestForwarder::Run(
-    nsIGlobalObject* aGlobal, JSContext* aCx,
+    nsIGlobalObject* aGlobal, MCContext* aCx,
     const dom::Sequence<JS::Value>& aArgs,
     const RefPtr<dom::Promise>& aPromiseRetval, ErrorResult& aRv) {
   MOZ_ASSERT(aPromiseRetval);
@@ -233,7 +233,7 @@ void ExtensionAPIRequestForwarder::Run(
   aPromiseRetval->MaybeResolve(promisedRetval);
 }
 
-void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+void ExtensionAPIRequestForwarder::Run(nsIGlobalObject* aGlobal, MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aRetVal,
                                        ErrorResult& aRv) {
   Run(aGlobal, aCx, {}, aRetVal, aRv);
@@ -244,7 +244,7 @@ namespace {
 // Custom PromiseWorkerProxy callback to deserialize error objects
 // from ClonedErrorHolder structured clone data.
 JSObject* ExtensionAPIRequestStructuredCloneRead(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const dom::PromiseWorkerProxy* aProxy, uint32_t aTag, uint32_t aData) {
   // Deserialize ClonedErrorHolder that may have been structured cloned
   // as a result of a resolved/rejected promise.
@@ -257,8 +257,8 @@ JSObject* ExtensionAPIRequestStructuredCloneRead(
 
 // Custom PromiseWorkerProxy callback to serialize error objects into
 // ClonedErrorHolder structured clone data.
-bool ExtensionAPIRequestStructuredCloneWrite(JSContext* aCx,
-                                             JSStructuredCloneWriter* aWriter,
+bool ExtensionAPIRequestStructuredCloneWrite(MCContext* aCx,
+                                             MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                              dom::PromiseWorkerProxy* aProxy,
                                              JS::Handle<JSObject*> aObj) {
   // Try to serialize the object as a CloneErrorHolder, if it fails then
@@ -286,7 +286,7 @@ RequestWorkerRunnable::RequestWorkerRunnable(
   mOuterRequest = aOuterAPIRequest;
 }
 
-void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, JSContext* aCx,
+void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, MCContext* aCx,
                                  const dom::Sequence<JS::Value>& aArgs,
                                  ExtensionEventListener* aListener,
                                  ErrorResult& aRv) {
@@ -320,7 +320,7 @@ void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, JSContext* aCx,
   mEventListener = aListener;
 }
 
-void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, JSContext* aCx,
+void RequestWorkerRunnable::Init(nsIGlobalObject* aGlobal, MCContext* aCx,
                                  const dom::Sequence<JS::Value>& aArgs,
                                  const RefPtr<dom::Promise>& aPromiseRetval,
                                  ErrorResult& aRv) {
@@ -356,14 +356,14 @@ void RequestWorkerRunnable::SetSerializedCallerStack(
   mStackHolder = Some(std::move(aCallerStack));
 }
 
-void RequestWorkerRunnable::SerializeCallerStack(JSContext* aCx) {
+void RequestWorkerRunnable::SerializeCallerStack(MCContext* aCx) {
   MOZ_ASSERT(dom::IsCurrentThreadRunningWorker());
   MOZ_ASSERT(mStackHolder.isNothing());
   mStackHolder = Some(dom::GetCurrentStack(aCx));
 }
 
 void RequestWorkerRunnable::DeserializeCallerStack(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mStackHolder.isSome()) {
     MC::Rooted<JSObject*> savedFrame(aCx, mStackHolder->get()->ReadStack(aCx));
@@ -373,7 +373,7 @@ void RequestWorkerRunnable::DeserializeCallerStack(
   }
 }
 
-void RequestWorkerRunnable::SerializeArgs(JSContext* aCx,
+void RequestWorkerRunnable::SerializeArgs(MCContext* aCx,
                                           const dom::Sequence<JS::Value>& aArgs,
                                           ErrorResult& aRv) {
   MOZ_ASSERT(dom::IsCurrentThreadRunningWorker());
@@ -393,7 +393,7 @@ void RequestWorkerRunnable::SerializeArgs(JSContext* aCx,
 }
 
 nsresult RequestWorkerRunnable::DeserializeArgs(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aArgs) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aArgs) {
   MOZ_ASSERT(NS_IsMainThread());
   if (mArgsHolder.isSome() && mArgsHolder->get()->HasData()) {
     IgnoredErrorResult rv;
@@ -426,7 +426,7 @@ bool RequestWorkerRunnable::MainThreadRun() {
 }
 
 already_AddRefed<ExtensionAPIRequest> RequestWorkerRunnable::CreateAPIRequest(
-    JSContext* aCx) {
+    MCContext* aCx) {
   MC::Rooted<JS::Value> callArgs(aCx);
   MC::Rooted<JS::Value> callerStackValue(aCx);
 
@@ -455,7 +455,7 @@ RequestWorkerRunnable::GetWebExtensionPolicy() {
 }
 
 bool RequestWorkerRunnable::HandleAPIRequest(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
 
   RefPtr<WebExtensionPolicy> policy = GetWebExtensionPolicy();
@@ -542,7 +542,7 @@ bool RequestWorkerRunnable::HandleAPIRequest(
 }
 
 bool RequestWorkerRunnable::ProcessHandlerResult(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (mOuterRequest->GetRequestType() == APIRequestType::CALL_FUNCTION_ASYNC) {
@@ -597,7 +597,7 @@ bool RequestWorkerRunnable::ProcessHandlerResult(
   return false;
 }
 
-void RequestWorkerRunnable::ReadResult(JSContext* aCx,
+void RequestWorkerRunnable::ReadResult(MCContext* aCx,
                                        JS::MutableHandle<JS::Value> aResult,
                                        ErrorResult& aRv) {
   MOZ_ASSERT(mWorkerPrivate->IsOnCurrentThread());

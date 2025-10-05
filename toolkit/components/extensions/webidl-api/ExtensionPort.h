@@ -41,7 +41,7 @@ class ExtensionPort final : public nsISupports,
       JS::Handle<JS::Value> aDescriptorValue, ErrorResult& aRv);
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const;
@@ -50,10 +50,10 @@ class ExtensionPort final : public nsISupports,
   ExtensionEventManager* OnMessage();
 
   void GetName(nsAString& aString);
-  void GetError(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+  void GetError(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
     GetWebExtPropertyAsJSValue(aCx, u"error"_ns, aRetval);
   }
-  void GetSender(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+  void GetSender(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
     GetWebExtPropertyAsJSValue(aCx, u"sender"_ns, aRetval);
   };
 

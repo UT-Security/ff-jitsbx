@@ -12,7 +12,7 @@
 
 #include <cstdint>
 #include <cstring>
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/CryptoBuffer.h"
@@ -131,7 +131,7 @@ const SECItem SEC_OID_DATA_EC_DH = {
 
 namespace mozilla::dom {
 
-inline bool ReadBuffer(JSStructuredCloneReader* aReader,
+inline bool ReadBuffer(MC::Tainted<JSStructuredCloneReader*> aReader,
                        CryptoBuffer& aBuffer) {
   uint32_t length, zero;
   bool ret = JS_ReadUint32Pair(aReader, &length, &zero);
@@ -148,7 +148,7 @@ inline bool ReadBuffer(JSStructuredCloneReader* aReader,
   return ret;
 }
 
-inline bool WriteBuffer(JSStructuredCloneWriter* aWriter,
+inline bool WriteBuffer(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                         const uint8_t* aBuffer, size_t aLength) {
   bool ret = JS_WriteUint32Pair(aWriter, aLength, 0);
   if (ret && aLength > 0) {
@@ -157,7 +157,7 @@ inline bool WriteBuffer(JSStructuredCloneWriter* aWriter,
   return ret;
 }
 
-inline bool WriteBuffer(JSStructuredCloneWriter* aWriter,
+inline bool WriteBuffer(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                         const CryptoBuffer& aBuffer) {
   return WriteBuffer(aWriter, aBuffer.Elements(), aBuffer.Length());
 }

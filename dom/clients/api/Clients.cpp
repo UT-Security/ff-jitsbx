@@ -41,7 +41,7 @@ Clients::Clients(nsIGlobalObject* aGlobal) : mGlobal(aGlobal) {
   MOZ_DIAGNOSTIC_ASSERT(mGlobal);
 }
 
-JSObject* Clients::WrapObject(JSContext* aCx,
+JSObject* Clients::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return Clients_Binding::Wrap(aCx, this, aGivenProto);
 }

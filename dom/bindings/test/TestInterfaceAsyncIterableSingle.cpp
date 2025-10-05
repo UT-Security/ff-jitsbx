@@ -46,7 +46,7 @@ TestInterfaceAsyncIterableSingle::Constructor(
 }
 
 JSObject* TestInterfaceAsyncIterableSingle::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceAsyncIterableSingle_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -89,11 +89,11 @@ TestInterfaceAsyncIterableSingle::GetNextIterationResult(
   if (aData.mBlockingPromisesIndex < aData.mBlockingPromises.Length()) {
     aData.mBlockingPromises[aData.mBlockingPromisesIndex]
         ->AddCallbacksWithCycleCollectedArgs(
-            [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
                nsIRunnable* aCallResolvePromise) {
               NS_DispatchToMainThread(aCallResolvePromise);
             },
-            [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+            [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
                nsIRunnable* aCallResolvePromise) {},
             std::move(callResolvePromise));
     ++aData.mBlockingPromisesIndex;

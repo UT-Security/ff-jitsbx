@@ -101,7 +101,7 @@ static void ReportError(MCContext* cx, const nsACString& msg) {
   NS_ConvertUTF8toUTF16 ucMsg(msg);
 
   MC::RootedValue exn(cx);
-  if (xpc::NonVoidStringToJsval(MC_UNSAFE(cx), ucMsg, &exn)) {
+  if (xpc::NonVoidStringToJsval(cx, ucMsg, &exn)) {
     JS_SetPendingException(cx, exn);
   }
 }

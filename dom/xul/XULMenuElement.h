@@ -29,7 +29,7 @@ class XULMenuElement final : public XULButtonElement {
 
  private:
   virtual ~XULMenuElement() = default;
-  JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 };
 
 }  // namespace mozilla::dom

@@ -312,13 +312,13 @@ class BlobURLsReporter final : public nsIMemoryReporter {
     // If we got a frame, we better have a current JSContext.  This is cheating
     // a bit; ideally we'd have our caller pass in a JSContext, or have
     // GetCurrentJSStack() hand out the JSContext it found.
-    JSContext* cx = frame ? nsContentUtils::GetCurrentJSContext() : nullptr;
+    MCContext* cx = frame ? nsContentUtils::GetCurrentJSContext() : nullptr;
 
     while (frame) {
       nsString fileNameUTF16;
-      frame->GetFilename(JS_SanitizeContext(cx), fileNameUTF16);
+      frame->GetFilename(cx, fileNameUTF16);
 
-      int32_t lineNumber = frame->GetLineNumber(JS_SanitizeContext(cx));
+      int32_t lineNumber = frame->GetLineNumber(cx);
 
       if (!fileNameUTF16.IsEmpty()) {
         NS_ConvertUTF16toUTF8 fileName(fileNameUTF16);
@@ -345,7 +345,7 @@ class BlobURLsReporter final : public nsIMemoryReporter {
         stack += ")/";
       }
 
-      frame = frame->GetCaller(JS_SanitizeContext(cx));
+      frame = frame->GetCaller(cx);
     }
   }
 

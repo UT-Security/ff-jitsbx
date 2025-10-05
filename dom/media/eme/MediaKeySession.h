@@ -53,7 +53,7 @@ class MediaKeySession final : public DOMEventTargetHelper,
 
   void SetSessionId(const nsAString& aSessionId);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Mark this as resultNotAddRefed to return raw pointers

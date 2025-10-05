@@ -236,7 +236,7 @@ class GleanLabeled final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(GleanLabeled)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() { return nullptr; }
 

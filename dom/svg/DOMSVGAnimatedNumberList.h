@@ -90,7 +90,7 @@ class DOMSVGAnimatedNumberList final : public nsWrapperCache {
 
   // WebIDL
   dom::SVGElement* GetParentObject() const { return mElement; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   // These aren't weak refs because mBaseVal and mAnimVal are weak
   already_AddRefed<DOMSVGNumberList> BaseVal();

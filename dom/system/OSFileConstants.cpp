@@ -746,7 +746,7 @@ static const dom::ConstantSpec gWinProperties[] = {
  * If the field does not exist, create it. If it exists but is not an
  * object, throw a JS error.
  */
-JSObject* GetOrCreateObjectProperty(JSContext* cx,
+JSObject* GetOrCreateObjectProperty(MCContext* cx,
                                     JS::Handle<JSObject*> aObject,
                                     const char* aProperty) {
   MC::Rooted<JS::Value> val(cx);
@@ -771,7 +771,7 @@ JSObject* GetOrCreateObjectProperty(JSContext* cx,
  *
  * If the nsString is void (i.e. IsVoid is true), do nothing.
  */
-bool SetStringProperty(JSContext* cx, JS::Handle<JSObject*> aObject,
+bool SetStringProperty(MCContext* cx, JS::Handle<JSObject*> aObject,
                        const char* aProperty, const nsString aValue) {
   if (aValue.IsVoid()) {
     return true;
@@ -789,7 +789,7 @@ bool SetStringProperty(JSContext* cx, JS::Handle<JSObject*> aObject,
  * all its constants.
  */
 bool OSFileConstantsService::DefineOSFileConstants(
-    JSContext* aCx, JS::Handle<JSObject*> aGlobal) {
+    MCContext* aCx, JS::Handle<JSObject*> aGlobal) {
   if (!mInitialized) {
     JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
                               JSMSG_CANT_OPEN, "OSFileConstants",
@@ -812,7 +812,7 @@ bool OSFileConstantsService::DefineOSFileConstants(
   if (!(objLibc = GetOrCreateObjectProperty(aCx, objConstants, "libc"))) {
     return false;
   }
-  if (!dom::DefineConstants(JS_SanitizeContext(aCx), objLibc, gLibcProperties)) {
+  if (!dom::DefineConstants(aCx, objLibc, gLibcProperties)) {
     return false;
   }
 
@@ -888,7 +888,7 @@ OSFileConstantsService::Init(MCContext* aCx) {
   MC::Rooted<JSObject*> targetObj(aCx);
   loader->FindTargetObject(aCx, &targetObj);
 
-  if (!DefineOSFileConstants(MC_UNSAFE(aCx), targetObj)) {
+  if (!DefineOSFileConstants(aCx, targetObj)) {
     return NS_ERROR_FAILURE;
   }
 

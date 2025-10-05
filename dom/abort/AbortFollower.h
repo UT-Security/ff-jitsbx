@@ -51,7 +51,7 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
   bool Aborted() const;
 
   // Web IDL Layer
-  void GetReason(JSContext* aCx, JS::MutableHandle<JS::Value> aReason);
+  void GetReason(MCContext* aCx, JS::MutableHandle<JS::Value> aReason);
   // Helper for other DOM code
   JS::Value RawReason() const;
 
@@ -72,7 +72,7 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
  private:
   friend class AbortFollower;
 
-  void MaybeAssignAbortError(JSContext* aCx);
+  void MaybeAssignAbortError(MCContext* aCx);
 
   void UnlinkFollowers();
 

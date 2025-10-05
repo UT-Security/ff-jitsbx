@@ -53,7 +53,7 @@ class DOMSVGStringList final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(DOMSVGStringList)
 
   dom::SVGElement* GetParentObject() const { return mElement; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t NumberOfItems() const;

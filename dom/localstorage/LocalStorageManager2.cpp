@@ -154,7 +154,7 @@ class SimpleRequestResolver final : public LSSimpleRequestChildCallback {
   void OnResponse(const LSSimpleRequestResponse& aResponse) override;
 };
 
-nsresult CreatePromise(JSContext* aContext, Promise** aPromise) {
+nsresult CreatePromise(MCContext* aContext, Promise** aPromise) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aContext);
 
@@ -320,7 +320,7 @@ LocalStorageManager2::Preload(nsIPrincipal* aPrincipal, MCContext* aContext,
   RefPtr<Promise> promise;
 
   if (aContext) {
-    rv = CreatePromise(MC_UNSAFE(aContext), getter_AddRefs(promise));
+    rv = CreatePromise(aContext, getter_AddRefs(promise));
     if (NS_WARN_IF(NS_FAILED(rv))) {
       return rv;
     }
@@ -364,7 +364,7 @@ LocalStorageManager2::IsPreloaded(nsIPrincipal* aPrincipal, MCContext* aContext,
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = CreatePromise(MC_UNSAFE(aContext), getter_AddRefs(promise));
+  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -395,7 +395,7 @@ LocalStorageManager2::GetState(nsIPrincipal* aPrincipal, MCContext* aContext,
   MOZ_ASSERT(_retval);
 
   RefPtr<Promise> promise;
-  nsresult rv = CreatePromise(MC_UNSAFE(aContext), getter_AddRefs(promise));
+  nsresult rv = CreatePromise(aContext, getter_AddRefs(promise));
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -598,7 +598,7 @@ void SimpleRequestResolver::HandleResponse(bool aResponse) {
   mPromise->MaybeResolve(aResponse);
 }
 
-[[nodiscard]] static bool ToJSValue(JSContext* aCx,
+[[nodiscard]] static bool ToJSValue(MCContext* aCx,
                                     const nsTArray<LSItemInfo>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));

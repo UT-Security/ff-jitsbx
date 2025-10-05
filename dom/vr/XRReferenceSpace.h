@@ -26,7 +26,7 @@ class XRReferenceSpace : public XRSpace {
                             XRReferenceSpaceType aType);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members

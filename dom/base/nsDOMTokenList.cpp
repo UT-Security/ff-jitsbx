@@ -360,7 +360,7 @@ DocGroup* nsDOMTokenList::GetDocGroup() const {
   return mElement ? mElement->OwnerDoc()->GetDocGroup() : nullptr;
 }
 
-JSObject* nsDOMTokenList::WrapObject(JSContext* cx,
+JSObject* nsDOMTokenList::WrapObject(MCContext* cx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return DOMTokenList_Binding::Wrap(cx, this, aGivenProto);
 }

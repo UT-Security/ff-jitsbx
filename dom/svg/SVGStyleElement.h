@@ -30,7 +30,7 @@ class SVGStyleElement final : public SVGStyleElementBase,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   ~SVGStyleElement() = default;
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

@@ -29,7 +29,7 @@ class CSSPropertyRule final : public css::Rule {
   StylePropertyRule* Raw() const { return mRawRule; }
   void SetRawAfterClone(RefPtr<StylePropertyRule> aRaw);
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
 #ifdef DEBUG
   void List(FILE* out = stdout, int32_t aIndent = 0) const final;

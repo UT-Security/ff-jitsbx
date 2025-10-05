@@ -18,7 +18,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGCircleElement::WrapNode(JSContext* aCx,
+JSObject* SVGCircleElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGCircleElement_Binding::Wrap(aCx, this, aGivenProto);
 }

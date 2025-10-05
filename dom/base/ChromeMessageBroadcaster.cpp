@@ -12,7 +12,7 @@
 namespace mozilla::dom {
 
 JSObject* ChromeMessageBroadcaster::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(nsContentUtils::IsSystemCaller(aCx));
 
   return ChromeMessageBroadcaster_Binding::Wrap(aCx, this, aGivenProto);

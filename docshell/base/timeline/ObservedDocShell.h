@@ -46,7 +46,7 @@ class ObservedDocShell : public MarkersStorage {
   void AddMarker(UniquePtr<AbstractTimelineMarker>&& aMarker) override;
   void AddOTMTMarker(UniquePtr<AbstractTimelineMarker>&& aMarker) override;
   void ClearMarkers() override;
-  void PopMarkers(JSContext* aCx,
+  void PopMarkers(MCContext* aCx,
                   nsTArray<dom::ProfileTimelineMarker>& aStore) override;
 };
 

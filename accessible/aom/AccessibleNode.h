@@ -103,7 +103,7 @@ class AccessibleNode : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS;
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(AccessibleNode);
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
   dom::ParentObject GetParentObject() const;
 
   void GetComputedRole(nsAString& aRole);
@@ -113,10 +113,10 @@ class AccessibleNode : public nsISupports, public nsWrapperCache {
 
   bool Is(const Sequence<nsString>& aFlavors);
   bool Has(const Sequence<nsString>& aAttributes);
-  void Get(JSContext* cx, const nsAString& aAttribute,
+  void Get(MCContext* cx, const nsAString& aAttribute,
            JS::MutableHandle<JS::Value> aValue, ErrorResult& aRv);
 
-  static bool IsAOMEnabled(JSContext*, JSObject*);
+  static bool IsAOMEnabled(MCContext*, JSObject*);
 
   ANODE_STRING_PROPS(Autocomplete, Checked, Current, HasPopUp, Invalid,
                      KeyShortcuts, Label, Live, Orientation, Placeholder,

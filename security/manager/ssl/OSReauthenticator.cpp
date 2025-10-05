@@ -493,7 +493,7 @@ OSReauthenticator::AsyncReauthenticateUser(const nsAString& aMessageText,
   NS_ENSURE_ARG_POINTER(aCx);
 
   RefPtr<Promise> promiseHandle;
-  nsresult rv = GetPromise(MC_UNSAFE(aCx), promiseHandle);
+  nsresult rv = GetPromise(aCx, promiseHandle);
   if (NS_FAILED(rv)) {
     return rv;
   }

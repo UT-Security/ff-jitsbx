@@ -27,8 +27,8 @@
 #ifndef mozilla_dom_IterableIterator_h
 #define mozilla_dom_IterableIterator_h
 
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "nsISupports.h"
 #include "mozilla/AlreadyAddRefed.h"
@@ -53,10 +53,10 @@ static const JSWhyMagic END_OF_ITERATION = JS_GENERIC_MAGIC;
 
 namespace iterator_utils {
 
-void DictReturn(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+void DictReturn(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
                 bool aDone, JS::Handle<JS::Value> aValue, ErrorResult& aRv);
 
-void KeyAndValueReturn(JSContext* aCx, JS::Handle<JS::Value> aKey,
+void KeyAndValueReturn(MCContext* aCx, JS::Handle<JS::Value> aKey,
                        JS::Handle<JS::Value> aValue,
                        JS::MutableHandle<JSObject*> aResult, ErrorResult& aRv);
 
@@ -93,13 +93,13 @@ class IterableIteratorBase {
 // Helper for Get[Key,Value]AtIndex(uint32_t) methods, which accept an index and
 // return a type supported by ToJSValue.
 template <typename T, typename U>
-bool CallIterableGetter(JSContext* aCx, U (T::*aMethod)(uint32_t), T* aInst,
+bool CallIterableGetter(MCContext* aCx, U (T::*aMethod)(uint32_t), T* aInst,
                         uint32_t aIndex, JS::MutableHandle<JS::Value> aResult) {
   return ToJSValue(aCx, (aInst->*aMethod)(aIndex), aResult);
 }
 
 template <typename T, typename U>
-bool CallIterableGetter(JSContext* aCx, U (T::*aMethod)(uint32_t) const,
+bool CallIterableGetter(MCContext* aCx, U (T::*aMethod)(uint32_t) const,
                         const T* aInst, uint32_t aIndex,
                         JS::MutableHandle<JS::Value> aResult) {
   return ToJSValue(aCx, (aInst->*aMethod)(aIndex), aResult);
@@ -109,8 +109,8 @@ bool CallIterableGetter(JSContext* aCx, U (T::*aMethod)(uint32_t) const,
 // methods, which accept a JS context, index, and mutable result value handle,
 // and return true on success or false on failure.
 template <typename T>
-bool CallIterableGetter(JSContext* aCx,
-                        bool (T::*aMethod)(JSContext*, uint32_t,
+bool CallIterableGetter(MCContext* aCx,
+                        bool (T::*aMethod)(MCContext*, uint32_t,
                                            JS::MutableHandle<JS::Value>),
                         T* aInst, uint32_t aIndex,
                         JS::MutableHandle<JS::Value> aResult) {
@@ -118,8 +118,8 @@ bool CallIterableGetter(JSContext* aCx,
 }
 
 template <typename T>
-bool CallIterableGetter(JSContext* aCx,
-                        bool (T::*aMethod)(JSContext*, uint32_t,
+bool CallIterableGetter(MCContext* aCx,
+                        bool (T::*aMethod)(MCContext*, uint32_t,
                                            JS::MutableHandle<JS::Value>) const,
                         const T* aInst, uint32_t aIndex,
                         JS::MutableHandle<JS::Value> aResult) {
@@ -134,19 +134,19 @@ class IterableIterator : public IterableIteratorBase {
     MOZ_ASSERT(mIterableObj);
   }
 
-  bool GetKeyAtIndex(JSContext* aCx, uint32_t aIndex,
+  bool GetKeyAtIndex(MCContext* aCx, uint32_t aIndex,
                      JS::MutableHandle<JS::Value> aResult) {
     return CallIterableGetter(aCx, &T::GetKeyAtIndex, mIterableObj.get(),
                               aIndex, aResult);
   }
 
-  bool GetValueAtIndex(JSContext* aCx, uint32_t aIndex,
+  bool GetValueAtIndex(MCContext* aCx, uint32_t aIndex,
                        JS::MutableHandle<JS::Value> aResult) {
     return CallIterableGetter(aCx, &T::GetValueAtIndex, mIterableObj.get(),
                               aIndex, aResult);
   }
 
-  void Next(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+  void Next(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
             ErrorResult& aRv) {
     MC::Rooted<JS::Value> value(aCx, JS::UndefinedValue());
     if (mIndex >= this->mIterableObj->GetIterableLength()) {
@@ -316,7 +316,7 @@ namespace binding_detail {
 
 template <typename T>
 using IterableIteratorWrapFunc =
-    bool (*)(JSContext* aCx, IterableIterator<T>* aObject,
+    bool (*)(MCContext* aCx, IterableIterator<T>* aObject,
              JS::MutableHandle<JSObject*> aReflector);
 
 template <typename T, IterableIteratorWrapFunc<T> WrapFunc>
@@ -324,7 +324,7 @@ class WrappableIterableIterator final : public IterableIterator<T> {
  public:
   using IterableIterator<T>::IterableIterator;
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aObj) {
     MOZ_ASSERT(!aGivenProto);
     return (*WrapFunc)(aCx, this, aObj);
@@ -334,29 +334,29 @@ class WrappableIterableIterator final : public IterableIterator<T> {
 class AsyncIterableNextImpl {
  protected:
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Next(
-      JSContext* aCx, AsyncIterableIteratorBase* aObject,
+      MCContext* aCx, AsyncIterableIteratorBase* aObject,
       nsISupports* aGlobalObject, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> GetNextResult(
       ErrorResult& aRv) = 0;
 
  private:
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> NextSteps(
-      JSContext* aCx, AsyncIterableIteratorBase* aObject,
+      MCContext* aCx, AsyncIterableIteratorBase* aObject,
       nsIGlobalObject* aGlobalObject, ErrorResult& aRv);
 };
 
 class AsyncIterableReturnImpl {
  protected:
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Return(
-      JSContext* aCx, AsyncIterableIteratorBase* aObject,
+      MCContext* aCx, AsyncIterableIteratorBase* aObject,
       nsISupports* aGlobalObject, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> GetReturnPromise(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) = 0;
 
  private:
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> ReturnSteps(
-      JSContext* aCx, AsyncIterableIteratorBase* aObject,
+      MCContext* aCx, AsyncIterableIteratorBase* aObject,
       nsIGlobalObject* aGlobalObject, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv);
 };
@@ -367,7 +367,7 @@ class AsyncIterableIteratorNoReturn : public AsyncIterableIterator<T>,
  public:
   using AsyncIterableIterator<T>::AsyncIterableIterator;
 
-  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Next(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Next(MCContext* aCx,
                                                     ErrorResult& aRv) {
     nsCOMPtr<nsISupports> parentObject = this->mIterableObj->GetParentObject();
     return AsyncIterableNextImpl::Next(aCx, this, parentObject, aRv);
@@ -387,7 +387,7 @@ class AsyncIterableIteratorWithReturn : public AsyncIterableIteratorNoReturn<T>,
                                         public AsyncIterableReturnImpl {
  public:
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Return(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
     nsCOMPtr<nsISupports> parentObject = this->mIterableObj->GetParentObject();
     return AsyncIterableReturnImpl::Return(aCx, this, parentObject, aValue,
                                            aRv);
@@ -397,7 +397,7 @@ class AsyncIterableIteratorWithReturn : public AsyncIterableIteratorNoReturn<T>,
   using AsyncIterableIteratorNoReturn<T>::AsyncIterableIteratorNoReturn;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> GetReturnPromise(
-      JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
+      MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) override {
     RefPtr<T> iterableObj(this->mIterableObj);
     return iterableObj->IteratorReturn(
         aCx, static_cast<AsyncIterableIterator<T>*>(this), aValue, aRv);
@@ -411,7 +411,7 @@ using AsyncIterableIteratorNative =
 
 template <typename T, bool NeedReturnMethod>
 using AsyncIterableIteratorWrapFunc = bool (*)(
-    JSContext* aCx, AsyncIterableIteratorNative<T, NeedReturnMethod>* aObject,
+    MCContext* aCx, AsyncIterableIteratorNative<T, NeedReturnMethod>* aObject,
     JS::MutableHandle<JSObject*> aReflector);
 
 template <typename T, bool NeedReturnMethod,
@@ -421,7 +421,7 @@ class WrappableAsyncIterableIterator final : public Base {
  public:
   using Base::Base;
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aObj) {
     MOZ_ASSERT(!aGivenProto);
     return (*WrapFunc)(aCx, this, aObj);

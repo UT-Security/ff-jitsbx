@@ -34,7 +34,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED(XULFrameElement, nsXULElement,
                                              nsFrameLoaderOwner)
 
-JSObject* XULFrameElement::WrapNode(JSContext* aCx,
+JSObject* XULFrameElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return XULFrameElement_Binding::Wrap(aCx, this, aGivenProto);
 }

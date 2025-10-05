@@ -34,7 +34,7 @@ FetchObserver::FetchObserver(nsIGlobalObject* aGlobal,
   }
 }
 
-JSObject* FetchObserver::WrapObject(JSContext* aCx,
+JSObject* FetchObserver::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return FetchObserver_Binding::Wrap(aCx, this, aGivenProto);
 }

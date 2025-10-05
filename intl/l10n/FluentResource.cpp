@@ -36,7 +36,7 @@ already_AddRefed<FluentResource> FluentResource::Constructor(
   return res.forget();
 }
 
-JSObject* FluentResource::WrapObject(JSContext* aCx,
+JSObject* FluentResource::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return FluentResource_Binding::Wrap(aCx, this, aGivenProto);
 }

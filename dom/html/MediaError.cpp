@@ -77,7 +77,7 @@ void MediaError::GetMessage(nsAString& aResult) const {
   CopyUTF8toUTF16(mMessage, aResult);
 }
 
-JSObject* MediaError::WrapObject(JSContext* aCx,
+JSObject* MediaError::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return MediaError_Binding::Wrap(aCx, this, aGivenProto);
 }

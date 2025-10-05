@@ -72,7 +72,7 @@ NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 NS_IMPL_ADDREF_INHERITED(PaymentRequest, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(PaymentRequest, DOMEventTargetHelper)
 
-bool PaymentRequest::PrefEnabled(JSContext* aCx, JSObject* aObj) {
+bool PaymentRequest::PrefEnabled(MCContext* aCx, JSObject* aObj) {
 #if defined(NIGHTLY_BUILD)
   if (!XRE_IsContentProcess()) {
     return false;
@@ -314,7 +314,7 @@ void PaymentRequest::IsValidPaymentMethodIdentifier(
 }
 
 void PaymentRequest::IsValidMethodData(
-    JSContext* aCx, const Sequence<PaymentMethodData>& aMethodData,
+    MCContext* aCx, const Sequence<PaymentMethodData>& aMethodData,
     ErrorResult& aRv) {
   if (!aMethodData.Length()) {
     aRv.ThrowTypeError("At least one payment method is required.");
@@ -626,7 +626,7 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
   nsCOMPtr<nsIPrincipal> topLevelPrincipal = topSameProcessDoc->NodePrincipal();
 
   // Check payment methods and details
-  IsValidMethodData(MC_UNSAFE(aGlobal.Context()), aMethodData, aRv);
+  IsValidMethodData(aGlobal.Context(), aMethodData, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -642,7 +642,7 @@ already_AddRefed<PaymentRequest> PaymentRequest::Constructor(
 
   // Create PaymentRequest and set its |mId|
   RefPtr<PaymentRequest> request;
-  manager->CreatePayment(MC_UNSAFE(aGlobal.Context()), window, topLevelPrincipal,
+  manager->CreatePayment(aGlobal.Context(), window, topLevelPrincipal,
                          aMethodData, aDetails, aOptions,
                          getter_AddRefs(request), aRv);
   if (aRv.Failed()) {
@@ -900,7 +900,7 @@ void PaymentRequest::RespondAbortPayment(bool aSuccess) {
   }
 }
 
-void PaymentRequest::UpdatePayment(JSContext* aCx,
+void PaymentRequest::UpdatePayment(MCContext* aCx,
                                    const PaymentDetailsUpdate& aDetails,
                                    ErrorResult& aRv) {
   MOZ_ASSERT(aCx);
@@ -952,7 +952,7 @@ void PaymentRequest::AbortUpdate(ErrorResult& aReason) {
   mUpdateError = std::move(aReason);
 }
 
-void PaymentRequest::RetryPayment(JSContext* aCx,
+void PaymentRequest::RetryPayment(MCContext* aCx,
                                   const PaymentValidationErrors& aErrors,
                                   ErrorResult& aRv) {
   if (mState == eInteractive) {
@@ -1112,7 +1112,7 @@ void PaymentRequest::SetOptions(const PaymentOptions& aOptions) {
   mOptions = aOptions;
 }
 
-void PaymentRequest::ResolvedCallback(JSContext* aCx,
+void PaymentRequest::ResolvedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   if (!InFullyActiveDocument()) {
@@ -1148,7 +1148,7 @@ void PaymentRequest::ResolvedCallback(JSContext* aCx,
   }
 }
 
-void PaymentRequest::RejectedCallback(JSContext* aCx,
+void PaymentRequest::RejectedCallback(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue,
                                       ErrorResult& aRv) {
   if (!InFullyActiveDocument()) {
@@ -1254,7 +1254,7 @@ PaymentRequest::~PaymentRequest() {
   UnregisterActivityObserver();
 }
 
-JSObject* PaymentRequest::WrapObject(JSContext* aCx,
+JSObject* PaymentRequest::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return PaymentRequest_Binding::Wrap(aCx, this, aGivenProto);
 }

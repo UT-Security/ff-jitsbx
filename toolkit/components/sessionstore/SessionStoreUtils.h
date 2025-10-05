@@ -129,7 +129,7 @@ class SessionStoreUtils {
       const Record<nsCString, Record<nsString, nsString>>& aSessionStorage);
 
   static nsresult ConstructFormDataValues(
-      JSContext* aCx, const nsTArray<sessionstore::FormEntry>& aValues,
+      MCContext* aCx, const nsTArray<sessionstore::FormEntry>& aValues,
       nsTArray<Record<nsString, OwningStringOrBooleanOrObject>::EntryType>&
           aEntries,
       bool aParseSessionData = false);
@@ -139,11 +139,11 @@ class SessionStoreUtils {
       const nsTArray<SSCacheCopy>& aValues,
       Record<nsCString, Record<nsString, nsString>>& aStorage);
 
-  static bool CopyProperty(JSContext* aCx, JS::Handle<JSObject*> aDst,
+  static bool CopyProperty(MCContext* aCx, JS::Handle<JSObject*> aDst,
                            JS::Handle<JSObject*> aSrc, const nsAString& aName);
 
   template <typename T>
-  static bool CopyChildren(JSContext* aCx, JS::Handle<JSObject*> aDst,
+  static bool CopyChildren(MCContext* aCx, JS::Handle<JSObject*> aDst,
                            const nsTArray<RefPtr<T>>& aChildren) {
     if (!aChildren.IsEmpty()) {
       MC::Rooted<JSObject*> children(

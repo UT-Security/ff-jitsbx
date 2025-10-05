@@ -59,12 +59,12 @@
 #include <utility>
 
 #include "monkeycage/Debug.h"
-#include "js/RealmOptions.h"
+#include "monkeycage/RealmOptions.h"
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
 #include "monkeycage/GCAPI.h"
 #include "js/HeapAPI.h"
 #include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Warnings.h"            // JS::SetWarningReporter
 #include "monkeycage/ShadowRealmCallbacks.h"
 #include "js/SliceBudget.h"
@@ -669,7 +669,7 @@ static MC::Tainted<bool> InitializeShadowRealm(MC::Tainted<JSContext*> tCx,
   MOZ_ASSERT(StaticPrefs::javascript_options_experimental_shadow_realms());
 
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
-  return dom::RegisterShadowRealmBindings(MC_UNSAFE(aCx), aGlobal);
+  return dom::RegisterShadowRealmBindings(aCx, aGlobal);
 }
 
 CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
@@ -708,7 +708,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
   static auto GCCallbackCb = MC::Sandbox::RegisterTaintedCallback(GCCallback);
   JS_SetGCCallback(aCx, GCCallbackCb, this);
 
-  static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
+  static auto GCSliceCallbackCb = MC::Sandbox::RegisterTaintedCallback(GCSliceCallback);
   mPrevGCSliceCallback = JS::SetGCSliceCallback(aCx, GCSliceCallbackCb);
 
   if (NS_IsMainThread()) {
@@ -720,7 +720,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
     // main thread, since the UI for this tracing data only displays data
     // relevant to the main-thread.
     static auto GCNurseryCollectionCallbackCb =
-        MC::Sandbox::RegisterCallback(GCNurseryCollectionCallback);
+        MC::Sandbox::RegisterTaintedCallback(GCNurseryCollectionCallback);
     mPrevGCNurseryCollectionCallback =
         JS::SetGCNurseryCollectionCallback(aCx, GCNurseryCollectionCallbackCb);
   }
@@ -742,14 +742,14 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
   static auto InitializeShadowRealmCb = MC::Sandbox::RegisterTaintedCallback(InitializeShadowRealm);
   JS::SetShadowRealmInitializeGlobalCallback(aCx, InitializeShadowRealmCb);
 
-  static auto NewShadowRealmGlobalCb = MC::Sandbox::RegisterCallback(dom::NewShadowRealmGlobal);
+  static auto NewShadowRealmGlobalCb = MC::Sandbox::RegisterTaintedCallback(dom::NewShadowRealmGlobal);
   JS::SetShadowRealmGlobalCreationCallback(aCx, NewShadowRealmGlobalCb);
 
   static auto AnnotateOOMAllocationSizeCb =
       MC::Sandbox::RegisterTaintedCallback(CrashReporter::AnnotateOOMAllocationSize);
   mc::setAnnotateOOMAllocationSizeCallback(AnnotateOOMAllocationSizeCb);
 
-  static auto DOMcallbacks = mc::DOMCallbacks{MC::Sandbox::RegisterCallback(InstanceClassHasProtoAtDepth)};
+  static auto DOMcallbacks = mc::DOMCallbacks{MC::Sandbox::RegisterTaintedCallback(InstanceClassHasProtoAtDepth)};
   js::SetDOMCallbacks(aCx, &DOMcallbacks);
 
   //TODO(abhishek): EnvironmentPreparer is a class with virtual methods
@@ -1065,11 +1065,12 @@ void CycleCollectedJSRuntime::GCCallback(MC::Tainted<JSContext*> tContext,
 }
 
 /* static */
-void CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
+void CycleCollectedJSRuntime::GCSliceCallback(MC::Tainted<JSContext*> tContext,
                                               JS::GCProgress aProgress,
                                               const JS::GCDescription& aDesc) {
+  MCContext* aContext = tContext.copy_and_verify_address(MC_VerifyContext);
   CycleCollectedJSRuntime* self = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
+  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
 
   if (profiler_thread_is_being_profiled_for_markers()) {
     if (aProgress == JS::GC_CYCLE_END) {
@@ -1102,11 +1103,11 @@ void CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
       };
 
       profiler_add_marker("GCMajor", baseprofiler::category::GCCC,
-                          MarkerTiming::Interval(aDesc.startTime(aContext),
-                                                 aDesc.endTime(aContext)),
+                          MarkerTiming::Interval(aDesc.startTime(MC_UNSAFE(aContext)),
+                                                 aDesc.endTime(MC_UNSAFE(aContext))),
                           GCMajorMarker{},
                           ProfilerString8View::WrapNullTerminatedString(
-                              aDesc.formatJSONProfiler(aContext).get()));
+                              aDesc.formatJSONProfiler(MC_UNSAFE(aContext)).get()));
     } else if (aProgress == JS::GC_SLICE_END) {
       struct GCSliceMarker {
         static constexpr mozilla::Span<const char> MarkerTypeName() {
@@ -1136,26 +1137,26 @@ void CycleCollectedJSRuntime::GCSliceCallback(JSContext* aContext,
       };
 
       profiler_add_marker("GCSlice", baseprofiler::category::GCCC,
-                          MarkerTiming::Interval(aDesc.lastSliceStart(aContext),
-                                                 aDesc.lastSliceEnd(aContext)),
+                          MarkerTiming::Interval(aDesc.lastSliceStart(MC_UNSAFE(aContext)),
+                                                 aDesc.lastSliceEnd(MC_UNSAFE(aContext))),
                           GCSliceMarker{},
                           ProfilerString8View::WrapNullTerminatedString(
-                              aDesc.sliceToJSONProfiler(aContext).get()));
+                              aDesc.sliceToJSONProfiler(MC_UNSAFE(aContext)).get()));
     }
   }
 
   if (aProgress == JS::GC_CYCLE_END &&
-      JS::dbg::FireOnGarbageCollectionHookRequired(aContext)) {
+      JS::dbg::FireOnGarbageCollectionHookRequired(MC_UNSAFE(aContext))) {
     JS::GCReason reason = aDesc.reason_;
     Unused << NS_WARN_IF(
-        NS_FAILED(DebuggerOnGCRunnable::Enqueue(aContext, aDesc)) &&
+        NS_FAILED(DebuggerOnGCRunnable::Enqueue(MC_UNSAFE(aContext), aDesc)) &&
         reason != JS::GCReason::SHUTDOWN_CC &&
         reason != JS::GCReason::DESTROY_RUNTIME &&
         reason != JS::GCReason::XPCONNECT_SHUTDOWN);
   }
 
   if (self->mPrevGCSliceCallback) {
-    self->mPrevGCSliceCallback(aContext, aProgress, aDesc);
+    self->mPrevGCSliceCallback(tContext, aProgress, aDesc);
   }
 }
 
@@ -1180,7 +1181,7 @@ class MinorGCMarker : public TimelineMarker {
             MarkerStackRequest::NO_STACK),
         mReason(aReason) {}
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 
@@ -1199,10 +1200,11 @@ class MinorGCMarker : public TimelineMarker {
 
 /* static */
 void CycleCollectedJSRuntime::GCNurseryCollectionCallback(
-    JSContext* aContext, JS::GCNurseryProgress aProgress,
+    MC::Tainted<JSContext*> tContext, JS::GCNurseryProgress aProgress,
     JS::GCReason aReason) {
+  MCContext* aContext = tContext.copy_and_verify_address(MC_VerifyContext);
   CycleCollectedJSRuntime* self = CycleCollectedJSRuntime::Get();
-  MOZ_ASSERT(MC_UNSAFE(CycleCollectedJSContext::Get()->Context()) == aContext);
+  MOZ_ASSERT(CycleCollectedJSContext::Get()->Context() == aContext);
   MOZ_ASSERT(NS_IsMainThread());
 
   if (!TimelineConsumers::IsEmpty()) {
@@ -1254,11 +1256,11 @@ void CycleCollectedJSRuntime::GCNurseryCollectionCallback(
         MarkerTiming::Interval(self->mLatestNurseryCollectionStart, now),
         GCMinorMarker{},
         ProfilerString8View::WrapNullTerminatedString(
-            JS::MinorGcToJSON(aContext).get()));
+            JS::MinorGcToJSON(MC_UNSAFE(aContext)).get()));
   }
 
   if (self->mPrevGCNurseryCollectionCallback) {
-    self->mPrevGCNurseryCollectionCallback(aContext, aProgress, aReason);
+    self->mPrevGCNurseryCollectionCallback(tContext, aProgress, aReason);
   }
 }
 
@@ -1964,7 +1966,7 @@ void CycleCollectedJSRuntime::EnvironmentPreparer::invoke(
 
   MOZ_ASSERT(!JS_IsExceptionPending(aes.cx()));
 
-  DebugOnly<bool> ok = closure(aes.cx());
+  DebugOnly<bool> ok = closure(MC_UNSAFE(aes.cx()));
 
   MOZ_ASSERT_IF(ok, !JS_IsExceptionPending(aes.cx()));
 

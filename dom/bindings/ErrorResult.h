@@ -90,11 +90,11 @@ JSExnType constexpr ErrorExceptionType[] = {
 uint16_t GetErrorArgCount(const ErrNum aErrorNumber);
 
 namespace binding_detail {
-void ThrowErrorMessage(JSContext* aCx, const unsigned aErrorNumber, ...);
+void ThrowErrorMessage(MCContext* aCx, const unsigned aErrorNumber, ...);
 }  // namespace binding_detail
 
 template <ErrNum errorNumber, typename... Ts>
-inline bool ThrowErrorMessage(JSContext* aCx, Ts&&... aArgs) {
+inline bool ThrowErrorMessage(MCContext* aCx, Ts&&... aArgs) {
 #if defined(DEBUG) && (defined(__clang__) || defined(__GNUC__))
   static_assert(ErrorFormatNumArgs[errorNumber] == sizeof...(aArgs),
                 "Pass in the right number of arguments");
@@ -279,10 +279,6 @@ class TErrorResult {
   // to the message string.  The passed-in string must be ASCII.
   [[nodiscard]] bool MaybeSetPendingException(
       MCContext* cx, const char* description = nullptr) {
-    return MaybeSetPendingException(MC_UNSAFE(cx), description);
-  }
-  [[nodiscard]] bool MaybeSetPendingException(
-      JSContext* cx, const char* description = nullptr) {
     WouldReportJSException();
     if (!Failed()) {
       return false;
@@ -302,10 +298,7 @@ class TErrorResult {
   //
   // When this function returns, JS_IsExceptionPending(cx) will definitely be
   // false.
-  void StealExceptionFromJSContext(JSContext* cx);
-  void StealExceptionFromJSContext(MCContext* cx) {
-    return StealExceptionFromJSContext(MC_UNSAFE(cx));
-  }
+  void StealExceptionFromJSContext(MCContext* cx);
 
   template <dom::ErrNum errorNumber, typename... Ts>
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
@@ -371,10 +364,7 @@ class TErrorResult {
   // not have to be in the compartment of cx.  If someone later uses it, they
   // will wrap it into whatever compartment they're working in, as needed.
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  ThrowJSException(JSContext* cx, JS::Handle<JS::Value> exn);
-  inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG ThrowJSException(MCContext* cx, JS::Handle<JS::Value> exn) {
-    return ThrowJSException(MC_UNSAFE(cx), exn);
-  }
+  ThrowJSException(MCContext* cx, JS::Handle<JS::Value> exn);
   bool IsJSException() const {
     return ErrorCode() == NS_ERROR_INTERNAL_ERRORRESULT_JS_EXCEPTION;
   }
@@ -407,12 +397,7 @@ class TErrorResult {
   // thrown on the JSContext already and we should not mess with it.
   // If nothing was thrown, this becomes an uncatchable exception.
   void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  NoteJSContextException(JSContext* aCx);
-  //TODO(JS_SANDBOX): make this primary overload
-  inline void MOZ_MUST_RETURN_FROM_CALLER_IF_THIS_IS_ARG
-  NoteJSContextException(MCContext* aCx) {
-    return NoteJSContextException(MC_UNSAFE(aCx));
-  }
+  NoteJSContextException(MCContext* aCx);
 
   // Check whether the TErrorResult says to just throw whatever is on
   // the JSContext already.
@@ -585,29 +570,14 @@ class TErrorResult {
   // Implementation of MaybeSetPendingException for the case when we're a
   // failure result.  See documentation of MaybeSetPendingException for the
   // "context" argument.
-  void SetPendingException(JSContext* cx, const char* context);
-  inline void SetPendingException(MCContext* cx, const char* context) {
-    SetPendingException(MC_UNSAFE(cx), context);
-  }
+  void SetPendingException(MCContext* cx, const char* context);
 
   // Methods for setting various specific kinds of pending exceptions.  See
   // documentation of MaybeSetPendingException for the "context" argument.
-  void SetPendingExceptionWithMessage(JSContext* cx, const char* context);
-  inline void SetPendingExceptionWithMessage(MCContext* cx, const char* context) {
-    SetPendingExceptionWithMessage(MC_UNSAFE(cx), context);
-  }
-  void SetPendingJSException(JSContext* cx);
-  inline void SetPendingJSException(MCContext* cx) {
-    SetPendingJSException(MC_UNSAFE(cx));
-  }
-  void SetPendingDOMException(JSContext* cx, const char* context);
-  inline void SetPendingDOMException(MCContext* cx, const char* context) {
-    SetPendingDOMException(MC_UNSAFE(cx), context);
-  }
-  void SetPendingGenericErrorException(JSContext* cx);
-  inline void SetPendingGenericErrorException(MCContext* cx) {
-    return SetPendingGenericErrorException(MC_UNSAFE(cx));
-  }
+  void SetPendingExceptionWithMessage(MCContext* cx, const char* context);
+  void SetPendingJSException(MCContext* cx);
+  void SetPendingDOMException(MCContext* cx, const char* context);
+  void SetPendingGenericErrorException(MCContext* cx);
 
   MOZ_ALWAYS_INLINE void AssertReportedOrSuppressed() {
     MOZ_ASSERT(!Failed());

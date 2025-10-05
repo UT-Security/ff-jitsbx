@@ -30,17 +30,17 @@ class FetchStreamReader final : public nsIOutputStreamCallback {
 
   // This creates a nsIInputStream able to retrieve data from the ReadableStream
   // object. The reading starts when StartConsuming() is called.
-  static nsresult Create(JSContext* aCx, nsIGlobalObject* aGlobal,
+  static nsresult Create(MCContext* aCx, nsIGlobalObject* aGlobal,
                          FetchStreamReader** aStreamReader,
                          nsIInputStream** aInputStream);
 
   MOZ_CAN_RUN_SCRIPT
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT
-  void CloseSteps(JSContext* aCx, ErrorResult& aRv);
+  void CloseSteps(MCContext* aCx, ErrorResult& aRv);
   MOZ_CAN_RUN_SCRIPT
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv);
 
   // Idempotently close the output stream and null out all state. If aCx is
@@ -52,9 +52,9 @@ class FetchStreamReader final : public nsIOutputStreamCallback {
   // we figure out how to handle some more tricky annotation cases (for
   // example, the destructor of this class. Tracking under Bug 1750656)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void CloseAndRelease(JSContext* aCx, nsresult aStatus);
+  void CloseAndRelease(MCContext* aCx, nsresult aStatus);
 
-  void StartConsuming(JSContext* aCx, ReadableStream* aStream,
+  void StartConsuming(MCContext* aCx, ReadableStream* aStream,
                       ErrorResult& aRv);
 
  private:
@@ -67,9 +67,9 @@ class FetchStreamReader final : public nsIOutputStreamCallback {
   // written, and AsyncWait callbacks or FetchReadRequest calls have been set up
   // to write more data in the future, and `false` otherwise.
   MOZ_CAN_RUN_SCRIPT
-  bool Process(JSContext* aCx);
+  bool Process(MCContext* aCx);
 
-  void ReportErrorToConsole(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  void ReportErrorToConsole(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
   nsCOMPtr<nsIEventTarget> mOwningEventTarget;

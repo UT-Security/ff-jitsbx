@@ -34,7 +34,7 @@ class AuthenticatorResponse : public nsISupports, public nsWrapperCache {
 
   void GetFormat(nsString& aRetVal) const;
 
-  void GetClientDataJSON(JSContext* aCx, JS::MutableHandle<JSObject*> aValue,
+  void GetClientDataJSON(MCContext* aCx, JS::MutableHandle<JSObject*> aValue,
                          ErrorResult& aRv);
 
   nsresult SetClientDataJSON(CryptoBuffer& aBuffer);

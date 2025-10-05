@@ -29,7 +29,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(URL)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* URL::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* URL::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return URL_Binding::Wrap(aCx, this, aGivenProto);
 }
 

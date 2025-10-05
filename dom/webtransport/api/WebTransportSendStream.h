@@ -30,7 +30,7 @@ class WebTransportSendStream final : public WritableStream {
       mozilla::ipc::DataPipeSender* sender, ErrorResult& aRv);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface

@@ -17,7 +17,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Switch)
 
 namespace mozilla::dom {
 
-JSObject* SVGSwitchElement::WrapNode(JSContext* aCx,
+JSObject* SVGSwitchElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return SVGSwitchElement_Binding::Wrap(aCx, this, aGivenProto);
 }

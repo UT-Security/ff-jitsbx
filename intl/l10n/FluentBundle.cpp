@@ -59,7 +59,7 @@ FluentPattern::FluentPattern(nsISupports* aParent, const nsACString& aId,
   MOZ_COUNT_CTOR(FluentPattern);
 }
 
-JSObject* FluentPattern::WrapObject(JSContext* aCx,
+JSObject* FluentPattern::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return FluentPattern_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -115,7 +115,7 @@ already_AddRefed<FluentBundle> FluentBundle::Constructor(
   return do_AddRef(new FluentBundle(global, std::move(raw)));
 }
 
-JSObject* FluentBundle::WrapObject(JSContext* aCx,
+JSObject* FluentBundle::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return FluentBundle_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -165,7 +165,7 @@ void FluentBundle::GetMessage(const nsACString& aId,
   }
 }
 
-bool extendJSArrayWithErrors(JSContext* aCx, JS::Handle<JSObject*> aErrors,
+bool extendJSArrayWithErrors(MCContext* aCx, JS::Handle<JSObject*> aErrors,
                              nsTArray<nsCString>& aInput) {
   uint32_t length;
   if (NS_WARN_IF(!JS::GetArrayLength(aCx, aErrors, &length))) {
@@ -204,7 +204,7 @@ void FluentBundle::ConvertArgs(const L10nArgs& aArgs,
   }
 }
 
-void FluentBundle::FormatPattern(JSContext* aCx, const FluentPattern& aPattern,
+void FluentBundle::FormatPattern(MCContext* aCx, const FluentPattern& aPattern,
                                  const Nullable<L10nArgs>& aArgs,
                                  const Optional<JS::Handle<JSObject*>>& aErrors,
                                  nsACString& aRetVal, ErrorResult& aRv) {

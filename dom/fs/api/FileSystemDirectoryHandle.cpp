@@ -8,8 +8,8 @@
 
 #include "FileSystemDirectoryIteratorFactory.h"
 #include "fs/FileSystemRequestHandler.h"
-#include "js/StructuredClone.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/FileSystemDirectoryHandleBinding.h"
 #include "mozilla/dom/FileSystemHandleBinding.h"
@@ -41,7 +41,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(FileSystemDirectoryHandle, FileSystemHandle)
 // WebIDL Boilerplate
 
 JSObject* FileSystemDirectoryHandle::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemDirectoryHandle_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -151,8 +151,8 @@ already_AddRefed<Promise> FileSystemDirectoryHandle::Resolve(
 // static
 already_AddRefed<FileSystemDirectoryHandle>
 FileSystemDirectoryHandle::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t kind = static_cast<uint32_t>(FileSystemHandleKind::EndGuard_);
 
   if (!JS_ReadBytes(aReader, reinterpret_cast<void*>(&kind),

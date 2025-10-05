@@ -22,7 +22,7 @@ class MessageLoop;
 class nsIDirectoryServiceProvider;
 class nsIFile;
 class nsISupports;
-struct JSContext;
+struct MCContext;
 struct XREChildData;
 struct XREShellData;
 
@@ -347,7 +347,7 @@ void XRE_ShutdownChildProcess();
 
 MessageLoop* XRE_GetIOMessageLoop();
 
-bool XRE_SendTestShellCommand(JSContext* aCx, JSString* aCommand,
+bool XRE_SendTestShellCommand(MCContext* aCx, JSString* aCommand,
                               JS::Value* aCallback);
 bool XRE_ShutdownTestShell();
 

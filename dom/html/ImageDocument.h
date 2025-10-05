@@ -55,7 +55,7 @@ class ImageDocument final : public MediaDocument,
   void DefaultCheckOverflowing();
 
   // WebIDL API
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   bool ImageIsOverflowing() const {
     return ImageIsOverflowingHorizontally() || ImageIsOverflowingVertically();

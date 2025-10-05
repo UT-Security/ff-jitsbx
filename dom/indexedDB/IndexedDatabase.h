@@ -8,7 +8,7 @@
 #define mozilla_dom_indexeddatabase_h__
 
 #include "DatabaseFileInfoFwd.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/InitializedOnce.h"
 #include "mozilla/Variant.h"
 #include "nsCOMPtr.h"
@@ -112,14 +112,14 @@ struct StructuredCloneFileParent : StructuredCloneFileBase {
 
 struct StructuredCloneReadInfoBase {
   // In IndexedDatabaseInlines.h
-  explicit StructuredCloneReadInfoBase(JSStructuredCloneData&& aData)
+  explicit StructuredCloneReadInfoBase(MC::SandboxHeap<JSStructuredCloneData>&& aData)
       : mData{std::move(aData)} {}
 
-  const JSStructuredCloneData& Data() const { return mData; }
-  JSStructuredCloneData ReleaseData() { return std::move(mData); }
+  MC::Tainted<const JSStructuredCloneData*> Data() const { return mData; }
+  MC::SandboxHeap<JSStructuredCloneData> ReleaseData() { return std::move(mData); }
 
  private:
-  JSStructuredCloneData mData;
+  MC::SandboxHeap<JSStructuredCloneData> mData;
 };
 
 template <typename StructuredCloneFileT>
@@ -133,7 +133,7 @@ struct StructuredCloneReadInfo : StructuredCloneReadInfoBase {
   StructuredCloneReadInfo();
 
   // In IndexedDatabaseInlines.h
-  StructuredCloneReadInfo(JSStructuredCloneData&& aData,
+  StructuredCloneReadInfo(MC::SandboxHeap<JSStructuredCloneData>&& aData,
                           nsTArray<StructuredCloneFile> aFiles);
 
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -177,7 +177,7 @@ struct StructuredCloneReadInfo : StructuredCloneReadInfoBase {
 
 struct StructuredCloneReadInfoChild
     : StructuredCloneReadInfo<StructuredCloneFileChild> {
-  inline StructuredCloneReadInfoChild(JSStructuredCloneData&& aData,
+  inline StructuredCloneReadInfoChild(MC::SandboxHeap<JSStructuredCloneData>&& aData,
                                       nsTArray<StructuredCloneFileChild> aFiles,
                                       IDBDatabase* aDatabase);
 
@@ -191,7 +191,7 @@ struct StructuredCloneReadInfoChild
 // analysis, it could be placed in ActorsParent.cpp otherwise.
 struct StructuredCloneReadInfoParent
     : StructuredCloneReadInfo<StructuredCloneFileParent> {
-  StructuredCloneReadInfoParent(JSStructuredCloneData&& aData,
+  StructuredCloneReadInfoParent(MC::SandboxHeap<JSStructuredCloneData>&& aData,
                                 nsTArray<StructuredCloneFileParent> aFiles,
                                 bool aHasPreprocessInfo)
       : StructuredCloneReadInfo{std::move(aData), std::move(aFiles)},
@@ -205,15 +205,15 @@ struct StructuredCloneReadInfoParent
 
 template <typename StructuredCloneReadInfo>
 JSObject* CommonStructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
     StructuredCloneReadInfo* aCloneReadInfo, IDBDatabase* aDatabase);
 
 template <typename StructuredCloneReadInfoType>
-JSObject* StructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+MC::Tainted<JSObject*> StructuredCloneReadCallback(
+    MC::Tainted<JSContext*> aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
-    void* aClosure);
+    MC::AppPointer<void*> aClosure);
 
 }  // namespace indexedDB
 }  // namespace mozilla::dom

@@ -4,7 +4,7 @@
  */
 
 #include "gtest/gtest.h"
-#include "js/Conversions.h"
+#include "monkeycage/Conversions.h"
 #include "mozilla/Telemetry.h"
 #include "TelemetryFixture.h"
 #include "TelemetryTestHelpers.h"
@@ -50,9 +50,9 @@ TEST_F(TelemetryTestFixture, AutoCounter) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -86,9 +86,9 @@ TEST_F(TelemetryTestFixture, AutoCounterUnderflow) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 42;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 42;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is supposed to return 0 when an underflow occurs.";
 }
 
@@ -129,9 +129,9 @@ TEST_F(TelemetryTestFixture, RuntimeAutoCounter) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 0;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 0;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is not returning expected value";
 }
 
@@ -166,8 +166,8 @@ TEST_F(TelemetryTestFixture, RuntimeAutoCounterUnderflow) {
   GetProperty(cx.GetJSContext(), "sum", histogram, &sum);
 
   // Check that the "sum" stored in the histogram matches with |kExpectedValue|
-  uint32_t uSum = 42;
-  JS::ToUint32(cx.GetJSContext(), sum, &uSum);
-  ASSERT_EQ(uSum, kExpectedValue)
+  MC::SandboxStack<uint32_t> uSum = 42;
+  JS::ToUint32(cx.GetJSContext(), sum, uSum);
+  ASSERT_EQ(*uSum.UNSAFE_unverified(), kExpectedValue)
       << "The histogram is supposed to return 0 when an underflow occurs.";
 }

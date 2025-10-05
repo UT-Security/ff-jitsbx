@@ -9,7 +9,7 @@
 
 #include "mcapi.h"
 #include "monkeycage/RootingAPI.h"
-#include "js/TracingAPI.h"
+#include "monkeycage/TracingAPI.h"
 
 namespace mozilla::dom {
 
@@ -42,7 +42,7 @@ struct SpiderMonkeyInterfaceObjectStorage {
 
   inline bool inited() const { return !!mImplObj; }
 
-  inline bool WrapIntoNewCompartment(JSContext* cx) {
+  inline bool WrapIntoNewCompartment(MCContext* cx) {
     return JS_WrapObject(
         cx, JS::MutableHandle<JSObject*>::fromMarkedLocation(&mWrappedObj));
   }

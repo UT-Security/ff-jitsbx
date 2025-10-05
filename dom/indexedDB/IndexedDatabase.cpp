@@ -13,7 +13,7 @@
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/WorkerScope.h"
 #include "MainThreadUtils.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nsIFile.h"
 #include "nsIGlobalObject.h"
 #include "nsQueryObject.h"
@@ -55,7 +55,7 @@ struct MOZ_STACK_CLASS WasmModuleData final {
   MOZ_COUNTED_DTOR(WasmModuleData)
 };
 
-bool StructuredCloneReadString(JSStructuredCloneReader* aReader,
+bool StructuredCloneReadString(MC::Tainted<JSStructuredCloneReader*> aReader,
                                nsCString& aString) {
   uint32_t length;
   if (!JS_ReadBytes(aReader, &length, sizeof(uint32_t))) {
@@ -78,7 +78,7 @@ bool StructuredCloneReadString(JSStructuredCloneReader* aReader,
   return true;
 }
 
-bool ReadFileHandle(JSStructuredCloneReader* aReader,
+bool ReadFileHandle(MC::Tainted<JSStructuredCloneReader*> aReader,
                     MutableFileData* aRetval) {
   static_assert(SCTAG_DOM_MUTABLEFILE == 0xFFFF8004, "Update me!");
   MOZ_ASSERT(aReader && aRetval);
@@ -98,7 +98,7 @@ bool ReadFileHandle(JSStructuredCloneReader* aReader,
   return true;
 }
 
-bool ReadBlobOrFile(JSStructuredCloneReader* aReader, uint32_t aTag,
+bool ReadBlobOrFile(MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
                     BlobOrFileData* aRetval) {
   static_assert(SCTAG_DOM_BLOB == 0xffff8001 &&
                     SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE == 0xffff8002 &&
@@ -158,7 +158,7 @@ bool ReadBlobOrFile(JSStructuredCloneReader* aReader, uint32_t aTag,
   return true;
 }
 
-bool ReadWasmModule(JSStructuredCloneReader* aReader, WasmModuleData* aRetval) {
+bool ReadWasmModule(MC::Tainted<JSStructuredCloneReader*> aReader, WasmModuleData* aRetval) {
   static_assert(SCTAG_DOM_WASM_MODULE == 0xFFFF8006, "Update me!");
   MOZ_ASSERT(aReader && aRetval);
 
@@ -179,7 +179,7 @@ class ValueDeserializationHelper;
 
 class ValueDeserializationHelperBase {
  public:
-  static bool CreateAndWrapWasmModule(JSContext* aCx,
+  static bool CreateAndWrapWasmModule(MCContext* aCx,
                                       const StructuredCloneFileBase& aFile,
                                       const WasmModuleData& aData,
                                       JS::MutableHandle<JSObject*> aResult) {
@@ -200,7 +200,7 @@ class ValueDeserializationHelperBase {
   }
 
   template <typename StructuredCloneFile>
-  static bool CreateAndWrapBlobOrFile(JSContext* aCx, IDBDatabase* aDatabase,
+  static bool CreateAndWrapBlobOrFile(MCContext* aCx, IDBDatabase* aDatabase,
                                       const StructuredCloneFile& aFile,
                                       const BlobOrFileData& aData,
                                       JS::MutableHandle<JSObject*> aResult) {
@@ -256,7 +256,7 @@ template <>
 class ValueDeserializationHelper<StructuredCloneFileParent>
     : public ValueDeserializationHelperBase {
  public:
-  static bool CreateAndWrapMutableFile(JSContext* aCx,
+  static bool CreateAndWrapMutableFile(MCContext* aCx,
                                        StructuredCloneFileParent& aFile,
                                        const MutableFileData& aData,
                                        JS::MutableHandle<JSObject*> aResult) {
@@ -279,7 +279,7 @@ class ValueDeserializationHelper<StructuredCloneFileParent>
     return true;
   }
 
-  static RefPtr<Blob> GetBlob(JSContext* aCx, IDBDatabase* aDatabase,
+  static RefPtr<Blob> GetBlob(MCContext* aCx, IDBDatabase* aDatabase,
                               const StructuredCloneFileParent& aFile) {
     // This is chrome code, so there is no parent, but still we want to set a
     // correct parent for the new File object.
@@ -325,7 +325,7 @@ template <>
 class ValueDeserializationHelper<StructuredCloneFileChild>
     : public ValueDeserializationHelperBase {
  public:
-  static bool CreateAndWrapMutableFile(JSContext* aCx,
+  static bool CreateAndWrapMutableFile(MCContext* aCx,
                                        StructuredCloneFileChild& aFile,
                                        const MutableFileData& aData,
                                        JS::MutableHandle<JSObject*> aResult) {
@@ -335,7 +335,7 @@ class ValueDeserializationHelper<StructuredCloneFileChild>
     return false;
   }
 
-  static RefPtr<Blob> GetBlob(JSContext* aCx, IDBDatabase* aDatabase,
+  static RefPtr<Blob> GetBlob(MCContext* aCx, IDBDatabase* aDatabase,
                               const StructuredCloneFileChild& aFile) {
     if (aFile.HasBlob()) {
       return aFile.BlobPtr();
@@ -349,7 +349,7 @@ class ValueDeserializationHelper<StructuredCloneFileChild>
 
 template <typename StructuredCloneReadInfo>
 JSObject* CommonStructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
     StructuredCloneReadInfo* aCloneReadInfo, IDBDatabase* aDatabase) {
   // We need to statically assert that our tag values are what we expect
@@ -432,19 +432,17 @@ JSObject* CommonStructuredCloneReadCallback(
     return result;
   }
 
-  MC::Tainted<JSStructuredCloneReader*> tReader{nullptr};
-  tReader.assign_raw_pointer(aReader);
-  return StructuredCloneHolder::ReadFullySerializableObjects(JS_SanitizeContext(aCx), tReader,
+  return StructuredCloneHolder::ReadFullySerializableObjects(aCx, aReader,
                                                              aTag);
 }
 
 template JSObject* CommonStructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
     StructuredCloneReadInfoChild* aCloneReadInfo, IDBDatabase* aDatabase);
 
 template JSObject* CommonStructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
     StructuredCloneReadInfoParent* aCloneReadInfo, IDBDatabase* aDatabase);
 }  // namespace mozilla::dom::indexedDB

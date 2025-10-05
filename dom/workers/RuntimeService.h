@@ -11,7 +11,7 @@
 
 #include "nsIObserver.h"
 
-#include "js/ContextOptions.h"
+#include "monkeycage/ContextOptions.h"
 #include "MainThreadUtils.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/SafeRefPtr.h"

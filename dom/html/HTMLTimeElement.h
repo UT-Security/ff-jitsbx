@@ -31,7 +31,7 @@ class HTMLTimeElement final : public nsGenericHTMLElement {
   virtual nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
 
  protected:
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 };
 

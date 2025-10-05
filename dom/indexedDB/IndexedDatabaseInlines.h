@@ -88,7 +88,7 @@ inline StructuredCloneReadInfo<StructuredCloneFile>::StructuredCloneReadInfo()
 
 template <typename StructuredCloneFile>
 inline StructuredCloneReadInfo<StructuredCloneFile>::StructuredCloneReadInfo(
-    JSStructuredCloneData&& aData, nsTArray<StructuredCloneFile> aFiles)
+    MC::SandboxHeap<JSStructuredCloneData>&& aData, nsTArray<StructuredCloneFile> aFiles)
     : StructuredCloneReadInfoBase{std::move(aData)}, mFiles{std::move(aFiles)} {
   MOZ_COUNT_CTOR(StructuredCloneReadInfo);
 }
@@ -112,7 +112,7 @@ inline StructuredCloneReadInfo<
 
 template <typename StructuredCloneFile>
 inline size_t StructuredCloneReadInfo<StructuredCloneFile>::Size() const {
-  size_t size = Data().Size();
+  size_t size = Data()->Size();
 
   for (uint32_t i = 0, count = mFiles.Length(); i < count; ++i) {
     // We don't want to calculate the size of files and so on, because are
@@ -124,7 +124,7 @@ inline size_t StructuredCloneReadInfo<StructuredCloneFile>::Size() const {
 }
 
 inline StructuredCloneReadInfoChild::StructuredCloneReadInfoChild(
-    JSStructuredCloneData&& aData, nsTArray<StructuredCloneFileChild> aFiles,
+    MC::SandboxHeap<JSStructuredCloneData>&& aData, nsTArray<StructuredCloneFileChild> aFiles,
     IDBDatabase* aDatabase)
     : StructuredCloneReadInfo{std::move(aData), std::move(aFiles)},
       mDatabase{aDatabase} {}
@@ -148,25 +148,28 @@ RefPtr<DOMStringList> CreateSortedDOMStringList(const nsTArray<E>& aArray,
 }
 
 template <typename StructuredCloneReadInfoType>
-JSObject* StructuredCloneReadCallback(
-    JSContext* const aCx, JSStructuredCloneReader* const aReader,
-    const JS::CloneDataPolicy& aCloneDataPolicy, const uint32_t aTag,
-    const uint32_t aData, void* const aClosure) {
+MC::Tainted<JSObject*> StructuredCloneReadCallback(
+    MC::Tainted<JSContext*> tCx, MC::Tainted<JSStructuredCloneReader*> aReader,
+    const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
+    uint32_t aData, MC::AppPointer<void*> aClosure) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   auto* const database = [aClosure]() -> IDBDatabase* {
     if constexpr (std::is_same_v<StructuredCloneReadInfoType,
                                  StructuredCloneReadInfoChild>) {
-      return static_cast<StructuredCloneReadInfoChild*>(aClosure)->Database();
+      return static_cast<StructuredCloneReadInfoChild*>(aClosure.UNSAFE_unverified())->Database();
     }
     Unused << aClosure;
     return nullptr;
   }();
-  return CommonStructuredCloneReadCallback(
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(CommonStructuredCloneReadCallback(
       aCx, aReader, aCloneDataPolicy, aTag, aData,
-      static_cast<StructuredCloneReadInfoType*>(aClosure), database);
+      static_cast<StructuredCloneReadInfoType*>(aClosure.UNSAFE_unverified()), database));
+  return ret;
 }
 
 template <typename T>
-bool WrapAsJSObject(JSContext* const aCx, T& aBaseObject,
+bool WrapAsJSObject(MCContext* const aCx, T& aBaseObject,
                     JS::MutableHandle<JSObject*> aResult) {
   MC::Rooted<JS::Value> wrappedValue(aCx);
   if (!ToJSValue(aCx, aBaseObject, &wrappedValue)) {

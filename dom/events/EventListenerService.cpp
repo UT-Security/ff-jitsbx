@@ -10,7 +10,7 @@
 #include "mozilla/EventListenerManager.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "mozilla/JSEventHandler.h"
-#include "mozilla/Maybe.h"
+#include "monkeycage/tainted/Maybe.h"
 #include "mozilla/dom/Document.h"
 #include "mozilla/dom/EventListenerBinding.h"
 #include "mozilla/dom/ScriptSettings.h"
@@ -151,8 +151,8 @@ EventListenerInfo::SetEnabled(bool aEnabled) {
 NS_IMETHODIMP
 EventListenerInfo::GetListenerObject(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aObject) {
-  Maybe<JSAutoRealm> ar;
-  GetJSVal(MC_UNSAFE(aCx), ar, aObject);
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
+  GetJSVal(aCx, ar, aObject);
   return NS_OK;
 }
 
@@ -162,11 +162,11 @@ EventListenerInfo::GetListenerObject(MCContext* aCx,
 
 NS_IMPL_ISUPPORTS(EventListenerService, nsIEventListenerService)
 
-bool EventListenerInfo::GetJSVal(JSContext* aCx, Maybe<JSAutoRealm>& aAr,
+bool EventListenerInfo::GetJSVal(MCContext* aCx, MC::Tainted<Maybe<JSAutoRealm>*> aAr,
                                  JS::MutableHandle<JS::Value> aJSVal) {
   if (mScriptedListener) {
     aJSVal.setObject(*mScriptedListener);
-    aAr.emplace(aCx, mScriptedListenerGlobal);
+    aAr->emplace(aCx, mScriptedListenerGlobal);
     return true;
   }
 
@@ -179,7 +179,7 @@ EventListenerInfo::ToSource(nsAString& aResult) {
   aResult.SetIsVoid(true);
 
   AutoSafeJSContext cx;
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
   MC::Rooted<JS::Value> v(cx);
   if (GetJSVal(cx, ar, &v)) {
     JSString* str = JS_ValueToSource(cx, v);
@@ -245,7 +245,7 @@ EventListenerService::HasListenersFor(EventTarget* aEventTarget,
 }
 
 static already_AddRefed<EventListener> ToEventListener(
-    JSContext* aCx, JS::Handle<JS::Value> aValue) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue) {
   if (NS_WARN_IF(!aValue.isObject())) {
     return nullptr;
   }
@@ -266,7 +266,7 @@ EventListenerService::AddSystemEventListener(EventTarget* aTarget,
 
   NS_ENSURE_TRUE(aTarget, NS_ERROR_UNEXPECTED);
 
-  RefPtr<EventListener> listener = ToEventListener(MC_UNSAFE(aCx), aListener);
+  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -290,7 +290,7 @@ EventListenerService::RemoveSystemEventListener(EventTarget* aTarget,
 
   NS_ENSURE_TRUE(aTarget, NS_ERROR_UNEXPECTED);
 
-  RefPtr<EventListener> listener = ToEventListener(MC_UNSAFE(aCx), aListener);
+  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -311,7 +311,7 @@ EventListenerService::AddListenerForAllEvents(
     bool aWantsUntrusted, bool aSystemEventGroup, MCContext* aCx) {
   NS_ENSURE_STATE(aTarget);
 
-  RefPtr<EventListener> listener = ToEventListener(MC_UNSAFE(aCx), aListener);
+  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }
@@ -329,7 +329,7 @@ EventListenerService::RemoveListenerForAllEvents(
     bool aSystemEventGroup, MCContext* aCx) {
   NS_ENSURE_STATE(aTarget);
 
-  RefPtr<EventListener> listener = ToEventListener(MC_UNSAFE(aCx), aListener);
+  RefPtr<EventListener> listener = ToEventListener(aCx, aListener);
   if (!listener) {
     return NS_ERROR_UNEXPECTED;
   }

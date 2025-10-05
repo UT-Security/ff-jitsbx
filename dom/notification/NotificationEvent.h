@@ -27,7 +27,7 @@ class NotificationEvent final : public ExtendableEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(NotificationEvent, ExtendableEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return NotificationEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

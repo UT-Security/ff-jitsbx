@@ -59,7 +59,7 @@ class nsTextNode : public mozilla::dom::Text {
  protected:
   virtual ~nsTextNode();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 };
 

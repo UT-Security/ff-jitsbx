@@ -17,7 +17,7 @@ class FocusEvent : public UIEvent {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(FocusEvent, UIEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return FocusEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

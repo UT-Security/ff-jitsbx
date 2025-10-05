@@ -17,8 +17,8 @@
 #include "XPCMaps.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mcfriendapi.h"
-#include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
-#include "js/Object.h"              // JS::GetPrivate, JS::GetCompartment
+#include "monkeycage/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy
+#include "monkeycage/Object.h"              // JS::GetPrivate, JS::GetCompartment
 #include "monkeycage/SandboxStack.h"
 #include "monkeycage/Wrapper.h"
 #include "mozilla/Likely.h"
@@ -115,7 +115,7 @@ JSObject* WrapperFactory::CreateXrayWaiver(MCContext* cx, HandleObject obj,
   if (!scope->mWaiverWrapperMap) {
     scope->mWaiverWrapperMap = mozilla::MakeUnique<JSObject2JSObjectMap>();
   }
-  if (!scope->mWaiverWrapperMap->Add(MC_UNSAFE(cx), obj, waiver)) {
+  if (!scope->mWaiverWrapperMap->Add(cx, obj, waiver)) {
     return nullptr;
   }
   return waiver;
@@ -221,7 +221,7 @@ static bool MaybeWrapWindowProxy(MCContext* cx, HandleObject origObj,
   } else {
     // If bc is not in process, then use a remote window proxy, whether or not
     // obj is one already.
-    if (!dom::GetRemoteOuterWindowProxy(MC_UNSAFE(cx), bc, origObj, retObj)) {
+    if (!dom::GetRemoteOuterWindowProxy(cx, bc, origObj, retObj)) {
       MOZ_CRASH("GetRemoteOuterWindowProxy failed");
     }
   }
@@ -309,7 +309,7 @@ void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObjec
   // so we don't have to.
   MC::RootedValue v(cx);
   nsresult rv = nsXPConnect::XPConnect()->WrapNativeToJSVal(
-      MC_UNSAFE(cx), wrapScope, wn->Native(), nullptr, &NS_GET_IID(nsISupports), false,
+      cx, wrapScope, wn->Native(), nullptr, &NS_GET_IID(nsISupports), false,
       &v);
   if (NS_FAILED(rv)) {
     return;
@@ -330,7 +330,7 @@ void WrapperFactory::PrepareForWrapping(MC::Tainted<JSContext*> tcx, HandleObjec
   // to do this cleverly in the common case to avoid too much overhead.
   XPCWrappedNative* newwn = XPCWrappedNative::Get(obj);
   RefPtr<XPCNativeSet> unionSet =
-      XPCNativeSet::GetNewOrUsed(MC_UNSAFE(cx), newwn->GetSet(), wn->GetSet(), false);
+      XPCNativeSet::GetNewOrUsed(cx, newwn->GetSet(), wn->GetSet(), false);
   if (!unionSet) {
     return;
   }

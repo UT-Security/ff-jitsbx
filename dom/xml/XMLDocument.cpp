@@ -326,7 +326,7 @@ nsresult XMLDocument::Clone(dom::NodeInfo* aNodeInfo, nsINode** aResult) const {
   return NS_OK;
 }
 
-JSObject* XMLDocument::WrapNode(JSContext* aCx,
+JSObject* XMLDocument::WrapNode(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   if (mIsPlainDocument) {
     return Document_Binding::Wrap(aCx, this, aGivenProto);

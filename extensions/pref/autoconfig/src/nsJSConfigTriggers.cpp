@@ -66,7 +66,7 @@ nsresult CentralizedAdminPrefManagerInit(bool aSandboxEnabled) {
   autoconfigSb.init(cx, js::UncheckedUnwrap(sandbox));
 
   // Define gSandbox on system sandbox.
-  MC::SandboxStack<JSAutoRealm> ar(cx, autoconfigSystemSb);
+  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), autoconfigSystemSb);
 
   MC::Rooted<JS::Value> value(cx, JS::ObjectValue(*sandbox));
 
@@ -163,7 +163,7 @@ nsresult EvaluateAdminConfigScript(JS::Handle<JSObject*> sandbox,
     }
   }
   nsresult rv =
-      xpc->EvalInSandboxObject(convertedScript, filename, MC_UNSAFE(cx), sandbox, &v);
+      xpc->EvalInSandboxObject(convertedScript, filename, cx, sandbox, &v);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

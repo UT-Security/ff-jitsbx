@@ -1898,13 +1898,13 @@ void Navigator::OnNavigation() {
   }
 }
 
-JSObject* Navigator::WrapObject(JSContext* cx,
+JSObject* Navigator::WrapObject(MCContext* cx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Navigator_Binding::Wrap(cx, this, aGivenProto);
 }
 
 /* static */
-bool Navigator::HasUserMediaSupport(JSContext* cx, JSObject* obj) {
+bool Navigator::HasUserMediaSupport(MCContext* cx, JSObject* obj) {
   // Make enabling peerconnection enable getUserMedia() as well.
   // Emulate [SecureContext] unless media.devices.insecure.enabled=true
   return (StaticPrefs::media_navigator_enabled() ||
@@ -1914,7 +1914,7 @@ bool Navigator::HasUserMediaSupport(JSContext* cx, JSObject* obj) {
 }
 
 /* static */
-bool Navigator::HasShareSupport(JSContext* cx, JSObject* obj) {
+bool Navigator::HasShareSupport(MCContext* cx, JSObject* obj) {
   if (!StaticPrefs::dom_webshare_enabled()) {
     return false;
   }
@@ -1927,7 +1927,7 @@ bool Navigator::HasShareSupport(JSContext* cx, JSObject* obj) {
 }
 
 /* static */
-bool Navigator::HasMidiSupport(JSContext* cx, JSObject* obj) {
+bool Navigator::HasMidiSupport(MCContext* cx, JSObject* obj) {
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(cx);
 
   // Enable on secure contexts but exclude file schemes.

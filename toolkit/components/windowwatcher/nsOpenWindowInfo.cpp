@@ -39,7 +39,7 @@ NS_IMETHODIMP nsOpenWindowInfo::GetForceNoOpener(bool* aForceNoOpener) {
 
 NS_IMETHODIMP nsOpenWindowInfo::GetScriptableOriginAttributes(
     MCContext* aCx, JS::MutableHandle<JS::Value> aAttrs) {
-  bool ok = ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aAttrs);
+  bool ok = ToJSValue(aCx, mOriginAttributes, aAttrs);
   NS_ENSURE_TRUE(ok, NS_ERROR_FAILURE);
   return NS_OK;
 }

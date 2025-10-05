@@ -157,7 +157,7 @@ class HTMLAreaElement final : public nsGenericHTMLElement,
  protected:
   virtual ~HTMLAreaElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   virtual void AfterSetAttr(int32_t aNamespaceID, nsAtom* aName,

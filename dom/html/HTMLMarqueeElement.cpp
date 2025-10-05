@@ -40,7 +40,7 @@ bool HTMLMarqueeElement::IsEventAttributeNameInternal(nsAtom* aName) {
       aName, EventNameType_HTML | EventNameType_HTMLMarqueeOnly);
 }
 
-JSObject* HTMLMarqueeElement::WrapNode(JSContext* aCx,
+JSObject* HTMLMarqueeElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return dom::HTMLMarqueeElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -33,13 +33,13 @@ class CustomEvent final : public Event {
       const CustomEventInit& aParam);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   CustomEvent* AsCustomEvent() override { return this; }
 
-  void GetDetail(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  void GetDetail(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
-  void InitCustomEvent(JSContext* aCx, const nsAString& aType, bool aCanBubble,
+  void InitCustomEvent(MCContext* aCx, const nsAString& aType, bool aCanBubble,
                        bool aCancelable, JS::Handle<JS::Value> aDetail);
 };
 

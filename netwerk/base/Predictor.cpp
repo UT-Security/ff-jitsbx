@@ -468,7 +468,7 @@ Predictor::Predict(nsIURI* targetURI, nsIURI* sourceURI,
                    nsINetworkPredictorVerifier* verifier, MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!originAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), originAttributes)) {
+  if (!originAttributes.isObject() || !attrs.Init(aCx, originAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1219,7 +1219,7 @@ Predictor::Learn(nsIURI* targetURI, nsIURI* sourceURI,
                  JS::Handle<JS::Value> originAttributes, MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!originAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), originAttributes)) {
+  if (!originAttributes.isObject() || !attrs.Init(aCx, originAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

@@ -11,7 +11,7 @@ namespace mozilla::dom {
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(TestInterfaceLength)
 
-JSObject* TestInterfaceLength::WrapObject(JSContext* aCx,
+JSObject* TestInterfaceLength::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceLength_Binding::Wrap(aCx, this, aGivenProto);
 }

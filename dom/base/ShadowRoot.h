@@ -192,7 +192,7 @@ class ShadowRoot final : public DocumentFragment,
 
   mozilla::ServoStyleRuleMap& ServoStyleRuleMap();
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) final;
 
   void NodeInfoChanged(Document* aOldDoc) override;
 

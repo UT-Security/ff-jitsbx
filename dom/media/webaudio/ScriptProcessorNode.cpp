@@ -403,7 +403,7 @@ class ScriptProcessorNodeEngine final : public AudioNodeEngine {
         if (NS_WARN_IF(!jsapi.Init(aNode->GetOwner()))) {
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         uint32_t inputChannelCount = aNode->ChannelCount();
 
         // Create the input buffer
@@ -516,7 +516,7 @@ void ScriptProcessorNode::EventListenerRemoved(nsAtom* aType) {
   }
 }
 
-JSObject* ScriptProcessorNode::WrapObject(JSContext* aCx,
+JSObject* ScriptProcessorNode::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return ScriptProcessorNode_Binding::Wrap(aCx, this, aGivenProto);
 }

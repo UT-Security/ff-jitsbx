@@ -32,7 +32,7 @@
 #include "monkeycage/Stack.h"
 #include "monkeycage/String.h"
 #include "monkeycage/ValueArray.h"
-#include "js/Utility.h"
+#include "monkeycage/Utility.h"
 #include "monkeycage/Warnings.h"  // JS::SetWarningReporter
 #include "prnetdb.h"
 #include "nsITimer.h"
@@ -176,7 +176,7 @@ static void PACLogToConsole(nsString& aMessage) {
 
 // Javascript errors and warnings are logged to the main error console
 static void PACLogErrorOrWarning(const nsAString& aKind,
-                                 JSErrorReport* aReport) {
+                                 MC::Tainted<JSErrorReport*> aReport) {
   nsString formattedMessage(u"PAC Execution "_ns);
   formattedMessage += aKind;
   formattedMessage += u": "_ns;
@@ -191,9 +191,9 @@ static void PACLogErrorOrWarning(const nsAString& aKind,
 
 static void PACWarningReporter(MC::Tainted<JSContext*> aCx, MC::Tainted<JSErrorReport*> aReport) {
   MOZ_ASSERT(aReport);
-  MOZ_ASSERT(aReport.UNSAFE_unverified()->isWarning());
+  MOZ_ASSERT(aReport->isWarning());
 
-  PACLogErrorOrWarning(u"Warning"_ns, aReport.UNSAFE_unverified());
+  PACLogErrorOrWarning(u"Warning"_ns, aReport);
 }
 
 class MOZ_STACK_CLASS AutoPACErrorReporter {
@@ -308,7 +308,10 @@ static bool PACResolveToString(const nsACString& aHostName,
 }
 
 // dnsResolve(host) javascript implementation
-static bool PACDnsResolve(JSContext* cx, unsigned int argc, JS::Value* vp) {
+static MC::Tainted<bool> PACDnsResolve(MC::Tainted<JSContext*> t_cx, unsigned int argc, MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+  
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
   if (NS_IsMainThread()) {
@@ -316,7 +319,7 @@ static bool PACDnsResolve(JSContext* cx, unsigned int argc, JS::Value* vp) {
     return false;
   }
 
-  if (!args.requireAtLeast(cx, "dnsResolve", 1)) return false;
+  if (!args.requireAtLeast(MC_UNSAFE(cx), "dnsResolve", 1)) return false;
 
   // Previously we didn't check the type of the argument, so just converted it
   // to string. A badly written PAC file oculd pass null or undefined here
@@ -349,7 +352,10 @@ static bool PACDnsResolve(JSContext* cx, unsigned int argc, JS::Value* vp) {
 }
 
 // myIpAddress() javascript implementation
-static bool PACMyIpAddress(JSContext* cx, unsigned int argc, JS::Value* vp) {
+static MC::Tainted<bool> PACMyIpAddress(MC::Tainted<JSContext*> t_cx, unsigned int argc, MC::Tainted<JS::Value*> t_vp) {
+  //MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
 
   if (NS_IsMainThread()) {
@@ -366,10 +372,13 @@ static bool PACMyIpAddress(JSContext* cx, unsigned int argc, JS::Value* vp) {
 }
 
 // proxyAlert(msg) javascript implementation
-static bool PACProxyAlert(JSContext* cx, unsigned int argc, JS::Value* vp) {
+static MC::Tainted<bool> PACProxyAlert(MC::Tainted<JSContext*> t_cx, unsigned int argc, MC::Tainted<JS::Value*> t_vp) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+  JS::Value* vp = t_vp.UNSAFE_unverified();
+
   JS::CallArgs args = CallArgsFromVp(argc, vp);
 
-  if (!args.requireAtLeast(cx, "alert", 1)) return false;
+  if (!args.requireAtLeast(MC_UNSAFE(cx), "alert", 1)) return false;
 
   MC::Rooted<JSString*> arg1(cx, JS::ToString(cx, args[0]));
   if (!arg1) return false;
@@ -386,13 +395,24 @@ static bool PACProxyAlert(JSContext* cx, unsigned int argc, JS::Value* vp) {
   return true;
 }
 
-static const JSFunctionSpec PACGlobalFunctions[] = {
-    JS_FN("dnsResolve", PACDnsResolve, 1, 0),
+static const JSFunctionSpec* PACGlobalFunctions() {
+  static const JSFunctionSpec inner_[] = {
+      JS_FN("dnsResolve",
+            MC::Sandbox::RegisterTaintedCallback(PACDnsResolve).UNSAFE_get(), 1,
+            0),
 
-    // a global "var pacUseMultihomedDNS = true;" will change behavior
-    // of myIpAddress to actively use DNS
-    JS_FN("myIpAddress", PACMyIpAddress, 0, 0),
-    JS_FN("alert", PACProxyAlert, 1, 0), JS_FS_END};
+      // a global "var pacUseMultihomedDNS = true;" will change behavior
+      // of myIpAddress to actively use DNS
+      JS_FN("myIpAddress",
+            MC::Sandbox::RegisterTaintedCallback(PACMyIpAddress).UNSAFE_get(),
+            0, 0),
+      JS_FN("alert",
+            MC::Sandbox::RegisterTaintedCallback(PACProxyAlert).UNSAFE_get(), 1,
+            0),
+      JS_FS_END};
+
+  return inner_;
+}
 
 // JSContextWrapper is a c++ object that manages the context for the JS engine
 // used on the PAC thread. It is initialized and destroyed on the PAC thread.
@@ -477,7 +497,7 @@ class JSContextWrapper {
 
     MC::SandboxStack<JSAutoRealm> ar(mContext, global);
     AutoPACErrorReporter aper(mContext);
-    if (!JS_DefineFunctions(mContext, global, PACGlobalFunctions)) {
+    if (!JS_DefineFunctions(mContext, global, PACGlobalFunctions())) {
       return NS_ERROR_FAILURE;
     }
 
@@ -699,7 +719,7 @@ nsresult ProxyAutoConfig::GetProxyForURI(const nsACString& aTestURI,
 
     if (ok && rval.isString()) {
       nsAutoJSString pacString;
-      if (pacString.init(MC_UNSAFE(cx), rval.toString())) {
+      if (pacString.init(cx, rval.toString())) {
         CopyUTF16toUTF8(pacString, result);
         rv = NS_OK;
       }

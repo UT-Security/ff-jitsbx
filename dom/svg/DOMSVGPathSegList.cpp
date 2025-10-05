@@ -76,7 +76,7 @@ void DOMSVGPathSegList::RemoveFromTearoffTable() {
 
 DOMSVGPathSegList::~DOMSVGPathSegList() { RemoveFromTearoffTable(); }
 
-JSObject* DOMSVGPathSegList::WrapObject(JSContext* cx,
+JSObject* DOMSVGPathSegList::WrapObject(MCContext* cx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::SVGPathSegList_Binding::Wrap(cx, this, aGivenProto);
 }

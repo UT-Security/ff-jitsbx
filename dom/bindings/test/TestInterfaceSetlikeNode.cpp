@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TestInterfaceSetlikeNode)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-TestInterfaceSetlikeNode::TestInterfaceSetlikeNode(JSContext* aCx,
+TestInterfaceSetlikeNode::TestInterfaceSetlikeNode(MCContext* aCx,
                                                    nsPIDOMWindowInner* aParent)
     : mParent(aParent) {}
 
@@ -42,7 +42,7 @@ TestInterfaceSetlikeNode::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceSetlikeNode::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceSetlikeNode_Binding::Wrap(aCx, this, aGivenProto);
 }
 

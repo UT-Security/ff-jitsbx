@@ -65,7 +65,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, MCContext* aCx) {
 
   for (size_t i = 0, n = ids.length(); i < n; i++) {
     nsAutoJSCString jsKey;
-    if (!jsKey.init(MC_UNSAFE(aCx), ids[i])) {
+    if (!jsKey.init(aCx, ids[i])) {
       LogToBrowserConsole(
           nsIScriptError::warningFlag,
           u"Extra dictionary should only contain string keys. Event will not be recorded."_ns);
@@ -86,7 +86,7 @@ GleanEvent::Record(JS::Handle<JS::Value> aExtra, MCContext* aCx) {
     nsAutoJSCString jsValue;
     if (value.isString() || (value.isInt32() && value.toInt32() >= 0) ||
         value.isBoolean()) {
-      if (!jsValue.init(MC_UNSAFE(aCx), value)) {
+      if (!jsValue.init(aCx, value)) {
         LogToBrowserConsole(
             nsIScriptError::warningFlag,
             u"Can't extract extra property. Event will not be recorded."_ns);
@@ -161,14 +161,14 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, MCContext* aCx,
     }
 
     MC::Rooted<JS::Value> catStr(aCx);
-    if (!dom::ToJSValue(MC_UNSAFE(aCx), value->mCategory, &catStr) ||
+    if (!dom::ToJSValue(aCx, value->mCategory, &catStr) ||
         !JS_DefineProperty(aCx, eventObj, "category", catStr,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define category for event object.");
       return NS_ERROR_FAILURE;
     }
     MC::Rooted<JS::Value> nameStr(aCx);
-    if (!dom::ToJSValue(MC_UNSAFE(aCx), value->mName, &nameStr) ||
+    if (!dom::ToJSValue(aCx, value->mName, &nameStr) ||
         !JS_DefineProperty(aCx, eventObj, "name", nameStr, JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define name for event object.");
       return NS_ERROR_FAILURE;
@@ -185,7 +185,7 @@ GleanEvent::TestGetValue(const nsACString& aStorageName, MCContext* aCx,
       auto key = std::get<0>(pair);
       auto val = std::get<1>(pair);
       MC::Rooted<JS::Value> valStr(aCx);
-      if (!dom::ToJSValue(MC_UNSAFE(aCx), val, &valStr) ||
+      if (!dom::ToJSValue(aCx, val, &valStr) ||
           !JS_DefineProperty(aCx, extraObj, key.Data(), valStr,
                              JSPROP_ENUMERATE)) {
         NS_WARNING("Failed to define extra property for event object.");

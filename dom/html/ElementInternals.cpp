@@ -53,7 +53,7 @@ ElementInternals::ElementInternals(HTMLElement* aTarget)
 
 nsISupports* ElementInternals::GetParentObject() { return ToSupports(mTarget); }
 
-JSObject* ElementInternals::WrapObject(JSContext* aCx,
+JSObject* ElementInternals::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return ElementInternals_Binding::Wrap(aCx, this, aGivenProto);
 }

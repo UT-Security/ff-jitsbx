@@ -35,8 +35,8 @@ class CryptoBuffer : public FallibleTArray<uint8_t> {
   nsresult FromJwkBase64(const nsString& aBase64);
   nsresult ToJwkBase64(nsString& aBase64) const;
   bool ToSECItem(PLArenaPool* aArena, SECItem* aItem) const;
-  JSObject* ToUint8Array(JSContext* aCx) const;
-  JSObject* ToArrayBuffer(JSContext* aCx) const;
+  JSObject* ToUint8Array(MCContext* aCx) const;
+  JSObject* ToArrayBuffer(MCContext* aCx) const;
   bool ToNewUnsignedBuffer(uint8_t** aBuf, uint32_t* aBufLen) const;
 
   bool GetBigIntValue(unsigned long& aRetVal);

@@ -21,7 +21,7 @@ using namespace mozilla;
 // Gtests.
 namespace TelemetryTestHelpers {
 
-void CheckUintScalar(const char* aName, JSContext* aCx,
+void CheckUintScalar(const char* aName, MCContext* aCx,
                      JS::Handle<JS::Value> aSnapshot, uint32_t expectedValue) {
   // Validate the value of the test scalar.
   MC::Rooted<JS::Value> value(aCx);
@@ -38,7 +38,7 @@ void CheckUintScalar(const char* aName, JSContext* aCx,
       << "The scalar value must match the expected value.";
 }
 
-void CheckBoolScalar(const char* aName, JSContext* aCx,
+void CheckBoolScalar(const char* aName, MCContext* aCx,
                      JS::Handle<JS::Value> aSnapshot, bool expectedValue) {
   // Validate the value of the test scalar.
   MC::Rooted<JS::Value> value(aCx);
@@ -51,7 +51,7 @@ void CheckBoolScalar(const char* aName, JSContext* aCx,
       << "The scalar value must match the expected value.";
 }
 
-void CheckStringScalar(const char* aName, JSContext* aCx,
+void CheckStringScalar(const char* aName, MCContext* aCx,
                        JS::Handle<JS::Value> aSnapshot,
                        const char* expectedValue) {
   // Validate the value of the test scalar.
@@ -62,15 +62,15 @@ void CheckStringScalar(const char* aName, JSContext* aCx,
   ASSERT_TRUE(value.isString())
   << "The scalar value must be of the correct type.";
 
-  bool sameString;
+  MC::SandboxStack<bool> sameString;
   ASSERT_TRUE(
-      JS_StringEqualsAscii(aCx, value.toString(), expectedValue, &sameString))
+      JS_StringEqualsAscii(aCx, value.toString(), expectedValue, sameString))
   << "JS String comparison failed";
-  ASSERT_TRUE(sameString)
+  ASSERT_TRUE(*sameString.UNSAFE_unverified())
   << "The scalar value must match the expected string";
 }
 
-void CheckKeyedUintScalar(const char* aName, const char* aKey, JSContext* aCx,
+void CheckKeyedUintScalar(const char* aName, const char* aKey, MCContext* aCx,
                           JS::Handle<JS::Value> aSnapshot,
                           uint32_t expectedValue) {
   MC::Rooted<JS::Value> keyedScalar(aCx);
@@ -82,7 +82,7 @@ void CheckKeyedUintScalar(const char* aName, const char* aKey, JSContext* aCx,
   CheckUintScalar(aKey, aCx, keyedScalar, expectedValue);
 }
 
-void CheckKeyedBoolScalar(const char* aName, const char* aKey, JSContext* aCx,
+void CheckKeyedBoolScalar(const char* aName, const char* aKey, MCContext* aCx,
                           JS::Handle<JS::Value> aSnapshot, bool expectedValue) {
   MC::Rooted<JS::Value> keyedScalar(aCx);
   MC::Rooted<JSObject*> scalarObj(aCx, &aSnapshot.toObject());
@@ -93,7 +93,7 @@ void CheckKeyedBoolScalar(const char* aName, const char* aKey, JSContext* aCx,
   CheckBoolScalar(aKey, aCx, keyedScalar, expectedValue);
 }
 
-void CheckNumberOfProperties(const char* aName, JSContext* aCx,
+void CheckNumberOfProperties(const char* aName, MCContext* aCx,
                              JS::Handle<JS::Value> aSnapshot,
                              uint32_t expectedNumProperties) {
   MC::Rooted<JS::Value> keyedScalar(aCx);
@@ -103,7 +103,7 @@ void CheckNumberOfProperties(const char* aName, JSContext* aCx,
   << "The keyed scalar must be reported.";
 
   MC::Rooted<JSObject*> keyedScalarObj(aCx, &keyedScalar.toObject());
-  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> ids(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   ASSERT_TRUE(JS_Enumerate(aCx, keyedScalarObj, &ids))
   << "We must be able to get keyed scalar members.";
 
@@ -111,31 +111,31 @@ void CheckNumberOfProperties(const char* aName, JSContext* aCx,
       << "The scalar must report the expected number of properties.";
 }
 
-bool EventPresent(JSContext* aCx, const MC::RootedValue& aSnapshot,
+bool EventPresent(MCContext* aCx, const MC::RootedValue& aSnapshot,
                   const nsACString& aCategory, const nsACString& aMethod,
                   const nsACString& aObject) {
   EXPECT_FALSE(aSnapshot.isNullOrUndefined())
       << "Event snapshot must not be null/undefined.";
-  bool isArray = false;
-  EXPECT_TRUE(JS::IsArrayObject(aCx, aSnapshot, &isArray) && isArray)
+  MC::SandboxStack<bool> isArray = false;
+  EXPECT_TRUE(JS::IsArrayObject(aCx, aSnapshot, isArray) && *isArray.UNSAFE_unverified())
       << "The snapshot must be an array.";
   MC::Rooted<JSObject*> arrayObj(aCx, &aSnapshot.toObject());
-  uint32_t arrayLength = 0;
-  EXPECT_TRUE(JS::GetArrayLength(aCx, arrayObj, &arrayLength))
+  MC::SandboxStack<uint32_t> arrayLength = 0;
+  EXPECT_TRUE(JS::GetArrayLength(aCx, arrayObj, arrayLength))
       << "Array must have a length.";
-  EXPECT_TRUE(arrayLength > 0) << "Array must have at least one element.";
+  EXPECT_TRUE(*arrayLength.UNSAFE_unverified() > 0) << "Array must have at least one element.";
 
-  for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; ++arrayIdx) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); ++arrayIdx) {
     MC::Rooted<JS::Value> element(aCx);
     EXPECT_TRUE(JS_GetElement(aCx, arrayObj, arrayIdx, &element))
         << "Must be able to get element.";
-    EXPECT_TRUE(JS::IsArrayObject(aCx, element, &isArray) && isArray)
+    EXPECT_TRUE(JS::IsArrayObject(aCx, element, isArray) && *isArray.UNSAFE_unverified())
         << "Element must be an array.";
     MC::Rooted<JSObject*> eventArray(aCx, &element.toObject());
-    uint32_t eventLength;
-    EXPECT_TRUE(JS::GetArrayLength(aCx, eventArray, &eventLength))
+    MC::SandboxStack<uint32_t> eventLength;
+    EXPECT_TRUE(JS::GetArrayLength(aCx, eventArray, eventLength))
         << "Event array must have a length.";
-    EXPECT_TRUE(eventLength >= 4)
+    EXPECT_TRUE(*eventLength.UNSAFE_unverified() >= 4)
         << "Event array must have at least 4 elements (timestamp, category, "
            "method, object).";
 
@@ -176,7 +176,7 @@ bool EventPresent(JSContext* aCx, const MC::RootedValue& aSnapshot,
   return false;
 }
 
-nsTArray<nsString> EventValuesToArray(JSContext* aCx,
+nsTArray<nsString> EventValuesToArray(MCContext* aCx,
                                       const MC::RootedValue& aSnapshot,
                                       const nsAString& aCategory,
                                       const nsAString& aMethod,
@@ -191,32 +191,32 @@ nsTArray<nsString> EventValuesToArray(JSContext* aCx,
     return valueArray;
   }
 
-  bool isArray = false;
-  EXPECT_TRUE(JS::IsArrayObject(aCx, aSnapshot, &isArray) && isArray)
+  MC::SandboxStack<bool> isArray = false;
+  EXPECT_TRUE(JS::IsArrayObject(aCx, aSnapshot, isArray) && *isArray.UNSAFE_unverified())
       << "The snapshot must be an array.";
 
   MC::Rooted<JSObject*> arrayObj(aCx, &aSnapshot.toObject());
 
-  uint32_t arrayLength = 0;
-  EXPECT_TRUE(JS::GetArrayLength(aCx, arrayObj, &arrayLength))
+  MC::SandboxStack<uint32_t> arrayLength = 0;
+  EXPECT_TRUE(JS::GetArrayLength(aCx, arrayObj, arrayLength))
       << "Array must have a length.";
 
   MC::Rooted<JS::Value> jsVal(aCx);
   nsAutoJSString jsStr;
 
-  for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; ++arrayIdx) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); ++arrayIdx) {
     MC::Rooted<JS::Value> element(aCx);
     EXPECT_TRUE(JS_GetElement(aCx, arrayObj, arrayIdx, &element))
         << "Must be able to get element.";
 
-    EXPECT_TRUE(JS::IsArrayObject(aCx, element, &isArray) && isArray)
+    EXPECT_TRUE(JS::IsArrayObject(aCx, element, isArray) && *isArray.UNSAFE_unverified())
         << "Element must be an array.";
 
     MC::Rooted<JSObject*> eventArray(aCx, &element.toObject());
-    uint32_t eventLength;
-    EXPECT_TRUE(JS::GetArrayLength(aCx, eventArray, &eventLength))
+    MC::SandboxStack<uint32_t> eventLength;
+    EXPECT_TRUE(JS::GetArrayLength(aCx, eventArray, eventLength))
         << "Event array must have a length.";
-    EXPECT_TRUE(eventLength >= kIndexOfValueString)
+    EXPECT_TRUE(*eventLength.UNSAFE_unverified() >= kIndexOfValueString)
         << "Event array must have at least 4 elements (timestamp, category, "
            "method, object).";
 
@@ -260,7 +260,7 @@ nsTArray<nsString> EventValuesToArray(JSContext* aCx,
   return valueArray;
 }
 
-void GetEventSnapshot(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+void GetEventSnapshot(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                       ProcessID aProcessType) {
   nsCOMPtr<nsITelemetry> telemetry =
       do_GetService("@mozilla.org/base/telemetry;1");
@@ -268,7 +268,7 @@ void GetEventSnapshot(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   MC::Rooted<JS::Value> eventSnapshot(aCx);
   nsresult rv;
   rv = telemetry->SnapshotEvents(1 /* PRERELEASE_CHANNELS */, false /* clear */,
-                                 0 /* eventLimit */, JS_SanitizeContext(aCx), 1 /* argc */,
+                                 0 /* eventLimit */, aCx, 1 /* argc */,
                                  &eventSnapshot);
   ASSERT_EQ(rv, NS_OK) << "Snapshotting events must not fail.";
   ASSERT_TRUE(eventSnapshot.isObject())
@@ -283,7 +283,7 @@ void GetEventSnapshot(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   aResult.set(processEvents);
 }
 
-void GetScalarsSnapshot(bool aKeyed, JSContext* aCx,
+void GetScalarsSnapshot(bool aKeyed, MCContext* aCx,
                         JS::MutableHandle<JS::Value> aResult,
                         ProcessID aProcessType) {
   nsCOMPtr<nsITelemetry> telemetry =
@@ -295,10 +295,10 @@ void GetScalarsSnapshot(bool aKeyed, JSContext* aCx,
 
   if (aKeyed) {
     rv = telemetry->GetSnapshotForKeyedScalars(
-        "main"_ns, false, false /* filter */, JS_SanitizeContext(aCx), &scalarsSnapshot);
+        "main"_ns, false, false /* filter */, aCx, &scalarsSnapshot);
   } else {
     rv = telemetry->GetSnapshotForScalars("main"_ns, false, false /* filter */,
-                                          JS_SanitizeContext(aCx), &scalarsSnapshot);
+                                          aCx, &scalarsSnapshot);
   }
 
   // Validate the snapshot.
@@ -317,12 +317,12 @@ void GetScalarsSnapshot(bool aKeyed, JSContext* aCx,
   aResult.set(processScalars);
 }
 
-void GetAndClearHistogram(JSContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
+void GetAndClearHistogram(MCContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
                           const nsACString& name, bool is_keyed) {
   MC::Rooted<JS::Value> testHistogram(cx);
   nsresult rv =
-      is_keyed ? mTelemetry->GetKeyedHistogramById(name, JS_SanitizeContext(cx), &testHistogram)
-               : mTelemetry->GetHistogramById(name, JS_SanitizeContext(cx), &testHistogram);
+      is_keyed ? mTelemetry->GetKeyedHistogramById(name, cx, &testHistogram)
+               : mTelemetry->GetHistogramById(name, cx, &testHistogram);
 
   ASSERT_EQ(rv, NS_OK) << "Cannot fetch histogram";
 
@@ -334,7 +334,7 @@ void GetAndClearHistogram(JSContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
   << "Cannot clear histogram";
 }
 
-void GetProperty(JSContext* cx, const char* name, JS::Handle<JS::Value> valueIn,
+void GetProperty(MCContext* cx, const char* name, JS::Handle<JS::Value> valueIn,
                  JS::MutableHandle<JS::Value> valueOut) {
   MC::Rooted<JS::Value> property(cx);
   MC::Rooted<JSObject*> valueInObj(cx, &valueIn.toObject());
@@ -343,7 +343,7 @@ void GetProperty(JSContext* cx, const char* name, JS::Handle<JS::Value> valueIn,
   valueOut.set(property);
 }
 
-void GetElement(JSContext* cx, uint32_t index, JS::Handle<JS::Value> valueIn,
+void GetElement(MCContext* cx, uint32_t index, JS::Handle<JS::Value> valueIn,
                 JS::MutableHandle<JS::Value> valueOut) {
   MC::Rooted<JS::Value> element(cx);
   MC::Rooted<JSObject*> valueInObj(cx, &valueIn.toObject());
@@ -352,15 +352,15 @@ void GetElement(JSContext* cx, uint32_t index, JS::Handle<JS::Value> valueIn,
   valueOut.set(element);
 }
 
-void GetSnapshots(JSContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
+void GetSnapshots(MCContext* cx, nsCOMPtr<nsITelemetry> mTelemetry,
                   const char* name, JS::MutableHandle<JS::Value> valueOut,
                   bool is_keyed) {
   MC::Rooted<JS::Value> snapshots(cx);
   nsresult rv = is_keyed
                     ? mTelemetry->GetSnapshotForKeyedHistograms(
-                          "main"_ns, false, false /* filter */, JS_SanitizeContext(cx), &snapshots)
+                          "main"_ns, false, false /* filter */, cx, &snapshots)
                     : mTelemetry->GetSnapshotForHistograms(
-                          "main"_ns, false, false /* filter */, JS_SanitizeContext(cx), &snapshots);
+                          "main"_ns, false, false /* filter */, cx, &snapshots);
 
   MC::Rooted<JS::Value> snapshot(cx);
   GetProperty(cx, "parent", snapshots, &snapshot);

@@ -29,7 +29,7 @@ class MediaElementAudioSourceNode final : public MediaStreamAudioSourceNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   const char* NodeType() const override {

@@ -365,7 +365,7 @@ void HTMLSlotElement::RemoveManuallyAssignedNode(nsIContent& aNode) {
   RemoveAssignedNode(aNode);
 }
 
-JSObject* HTMLSlotElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSlotElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLSlotElement_Binding::Wrap(aCx, this, aGivenProto);
 }

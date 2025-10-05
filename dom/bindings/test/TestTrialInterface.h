@@ -31,7 +31,7 @@ class TestTrialInterface final : public nsWrapperCache {
 
  public:
   nsISupports* GetParentObject() const { return nullptr; }
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 };
 
 }  // namespace mozilla::dom

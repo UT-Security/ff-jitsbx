@@ -6,7 +6,7 @@
 
 #include "SerializedStackHolder.h"
 
-#include "js/SavedFrameAPI.h"
+#include "monkeycage/SavedFrameAPI.h"
 #include "mozilla/dom/WorkerPrivate.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/Services.h"
@@ -21,7 +21,7 @@ SerializedStackHolder::SerializedStackHolder()
               StructuredCloneHolder::TransferringNotSupported,
               StructuredCloneHolder::StructuredCloneScope::SameProcess) {}
 
-void SerializedStackHolder::WriteStack(JSContext* aCx,
+void SerializedStackHolder::WriteStack(MCContext* aCx,
                                        JS::Handle<JSObject*> aStack) {
   MC::Rooted<JS::Value> stackValue(aCx, JS::ObjectValue(*aStack));
   mHolder.Write(aCx, stackValue, IgnoreErrors());
@@ -31,12 +31,12 @@ void SerializedStackHolder::WriteStack(JSContext* aCx,
 }
 
 void SerializedStackHolder::SerializeMainThreadOrWorkletStack(
-    JSContext* aCx, JS::Handle<JSObject*> aStack) {
+    MCContext* aCx, JS::Handle<JSObject*> aStack) {
   MOZ_ASSERT(!IsCurrentThreadRunningWorker());
   WriteStack(aCx, aStack);
 }
 
-void SerializedStackHolder::SerializeWorkerStack(JSContext* aCx,
+void SerializedStackHolder::SerializeWorkerStack(MCContext* aCx,
                                                  WorkerPrivate* aWorkerPrivate,
                                                  JS::Handle<JSObject*> aStack) {
   MOZ_ASSERT(aWorkerPrivate->IsOnCurrentThread());
@@ -53,7 +53,7 @@ void SerializedStackHolder::SerializeWorkerStack(JSContext* aCx,
   WriteStack(aCx, aStack);
 }
 
-void SerializedStackHolder::SerializeCurrentStack(JSContext* aCx) {
+void SerializedStackHolder::SerializeCurrentStack(MCContext* aCx) {
   MC::Rooted<JSObject*> stack(aCx);
   if (JS::CurrentGlobalOrNull(aCx) && !JS::CaptureCurrentStack(aCx, &stack)) {
     JS_ClearPendingException(aCx);
@@ -70,7 +70,7 @@ void SerializedStackHolder::SerializeCurrentStack(JSContext* aCx) {
   }
 }
 
-JSObject* SerializedStackHolder::ReadStack(JSContext* aCx) {
+JSObject* SerializedStackHolder::ReadStack(MCContext* aCx) {
   MOZ_ASSERT(NS_IsMainThread());
   if (!mHolder.HasData()) {
     return nullptr;
@@ -83,14 +83,14 @@ JSObject* SerializedStackHolder::ReadStack(JSContext* aCx) {
   return stackValue.isObject() ? &stackValue.toObject() : nullptr;
 }
 
-UniquePtr<SerializedStackHolder> GetCurrentStackForNetMonitor(JSContext* aCx) {
+UniquePtr<SerializedStackHolder> GetCurrentStackForNetMonitor(MCContext* aCx) {
   MOZ_ASSERT_IF(!NS_IsMainThread(),
                 GetCurrentThreadWorkerPrivate()->IsWatchedByDevTools());
 
   return GetCurrentStack(aCx);
 }
 
-UniquePtr<SerializedStackHolder> GetCurrentStack(JSContext* aCx) {
+UniquePtr<SerializedStackHolder> GetCurrentStack(MCContext* aCx) {
   UniquePtr<SerializedStackHolder> stack = MakeUnique<SerializedStackHolder>();
   stack->SerializeCurrentStack(aCx);
   return stack;
@@ -117,7 +117,7 @@ void ConvertSerializedStackToJSON(UniquePtr<SerializedStackHolder> aStackHolder,
   // inspect all stack frames we find.
   AutoJSAPI jsapi;
   DebugOnly<bool> ok = jsapi.Init(xpc::PrivilegedJunkScope());
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> savedFrame(cx, aStackHolder->ReadStack(cx));
   if (!savedFrame) {

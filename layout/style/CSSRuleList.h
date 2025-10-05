@@ -19,7 +19,7 @@ class CSSRuleList : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(CSSRuleList)
 
   virtual StyleSheet* GetParentObject() = 0;
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   // WebIDL API
   css::Rule* Item(uint32_t aIndex) {

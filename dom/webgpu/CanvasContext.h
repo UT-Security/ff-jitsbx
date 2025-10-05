@@ -36,7 +36,7 @@ class CanvasContext final : public nsICanvasRenderingContextInternal,
 
   CanvasContext();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  public:  // nsICanvasRenderingContextInternal

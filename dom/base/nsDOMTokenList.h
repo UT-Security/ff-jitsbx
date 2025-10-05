@@ -46,7 +46,7 @@ class nsDOMTokenList : public nsISupports, public nsWrapperCache {
   nsDOMTokenList(Element* aElement, nsAtom* aAttrAtom,
                  const mozilla::dom::DOMTokenListSupportedTokenArray = nullptr);
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   Element* GetParentObject() { return mElement; }

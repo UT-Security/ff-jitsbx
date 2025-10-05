@@ -339,7 +339,7 @@ already_AddRefed<Promise> ExtensionPolicyService::ExecuteContentScript(
 }
 
 RefPtr<Promise> ExtensionPolicyService::ExecuteContentScripts(
-    JSContext* aCx, nsPIDOMWindowInner* aWindow,
+    MCContext* aCx, nsPIDOMWindowInner* aWindow,
     const nsTArray<RefPtr<WebExtensionContentScript>>& aScripts) {
   AutoTArray<RefPtr<Promise>, 8> promises;
 
@@ -425,7 +425,7 @@ nsresult ExtensionPolicyService::InjectContentScripts(
     MOZ_TRY(ExecuteContentScripts(jsapi.cx(), inner,
                                   GetScripts(RunAt::Document_start))
                 ->ThenWithCycleCollectedArgs(
-                    [](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                    [](MCContext* aCx, JS::Handle<JS::Value> aValue,
                        ErrorResult& aRv, ExtensionPolicyService* aSelf,
                        nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
                       return aSelf->ExecuteContentScripts(aCx, aInner, aScripts)
@@ -434,7 +434,7 @@ nsresult ExtensionPolicyService::InjectContentScripts(
                     this, inner, GetScripts(RunAt::Document_end))
                 .andThen([&](auto aPromise) {
                   return aPromise->ThenWithCycleCollectedArgs(
-                      [](JSContext* aCx, JS::Handle<JS::Value> aValue,
+                      [](MCContext* aCx, JS::Handle<JS::Value> aValue,
                          ErrorResult& aRv, ExtensionPolicyService* aSelf,
                          nsPIDOMWindowInner* aInner, Scripts&& aScripts) {
                         return aSelf

@@ -33,7 +33,7 @@ already_AddRefed<SpeechGrammarList> SpeechGrammarList::Constructor(
   return speechGrammarList.forget();
 }
 
-JSObject* SpeechGrammarList::WrapObject(JSContext* aCx,
+JSObject* SpeechGrammarList::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return SpeechGrammarList_Binding::Wrap(aCx, this, aGivenProto);
 }

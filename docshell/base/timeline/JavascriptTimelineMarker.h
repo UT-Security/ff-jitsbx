@@ -33,13 +33,13 @@ class JavascriptTimelineMarker : public TimelineMarker {
         mFileName(aFileName),
         mLineNumber(aLineNumber),
         mAsyncCause(aAsyncCause) {
-    JSContext* ctx = nsContentUtils::GetCurrentJSContext();
+    MCContext* ctx = nsContentUtils::GetCurrentJSContext();
     if (ctx) {
       mAsyncStack.init(ctx, aAsyncStack);
     }
   }
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

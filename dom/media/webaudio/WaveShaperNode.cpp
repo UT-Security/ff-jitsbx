@@ -315,7 +315,7 @@ already_AddRefed<WaveShaperNode> WaveShaperNode::Create(
   return audioNode.forget();
 }
 
-JSObject* WaveShaperNode::WrapObject(JSContext* aCx,
+JSObject* WaveShaperNode::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return WaveShaperNode_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -368,7 +368,7 @@ void WaveShaperNode::SendCurveToTrack() {
   ns->SetRawArrayData(std::move(copyCurve));
 }
 
-void WaveShaperNode::GetCurve(JSContext* aCx,
+void WaveShaperNode::GetCurve(MCContext* aCx,
                               JS::MutableHandle<JSObject*> aRetval) {
   // Let's return a null value if the list is empty.
   if (mCurve.IsEmpty()) {

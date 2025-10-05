@@ -32,7 +32,7 @@ RTCDTMFSender::RTCDTMFSender(nsPIDOMWindowInner* aWindow,
                              RTCRtpTransceiver* aTransceiver)
     : DOMEventTargetHelper(aWindow), mTransceiver(aTransceiver) {}
 
-JSObject* RTCDTMFSender::WrapObject(JSContext* aCx,
+JSObject* RTCDTMFSender::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return RTCDTMFSender_Binding::Wrap(aCx, this, aGivenProto);
 }

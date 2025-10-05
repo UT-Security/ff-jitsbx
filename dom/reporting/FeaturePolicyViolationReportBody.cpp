@@ -25,7 +25,7 @@ FeaturePolicyViolationReportBody::FeaturePolicyViolationReportBody(
 FeaturePolicyViolationReportBody::~FeaturePolicyViolationReportBody() = default;
 
 JSObject* FeaturePolicyViolationReportBody::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FeaturePolicyViolationReportBody_Binding::Wrap(aCx, this, aGivenProto);
 }
 

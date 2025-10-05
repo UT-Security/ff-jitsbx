@@ -147,7 +147,7 @@ bool CSSImportRule::IsCCLeaf() const {
 }
 
 /* virtual */
-JSObject* CSSImportRule::WrapObject(JSContext* aCx,
+JSObject* CSSImportRule::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return CSSImportRule_Binding::Wrap(aCx, this, aGivenProto);
 }

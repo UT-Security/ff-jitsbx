@@ -33,7 +33,7 @@ class ReadableStreamDefaultTeeSourceAlgorithms final
                                            TeeBranch aBranch)
       : mTeeState(aTeeState), mBranch(aBranch) {}
 
-  MOZ_CAN_RUN_SCRIPT void StartCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void StartCallback(MCContext* aCx,
                                         ReadableStreamController& aController,
                                         JS::MutableHandle<JS::Value> aRetVal,
                                         ErrorResult& aRv) override {
@@ -41,11 +41,11 @@ class ReadableStreamDefaultTeeSourceAlgorithms final
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override;
 
  protected:
@@ -69,12 +69,12 @@ struct ReadableStreamDefaultTeeReadRequest final : public ReadRequest {
   explicit ReadableStreamDefaultTeeReadRequest(TeeState* aTeeState)
       : mTeeState(aTeeState) {}
 
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override;
 
-  MOZ_CAN_RUN_SCRIPT void CloseSteps(JSContext* aCx, ErrorResult& aRv) override;
+  MOZ_CAN_RUN_SCRIPT void CloseSteps(MCContext* aCx, ErrorResult& aRv) override;
 
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv) override;
 
  protected:
@@ -83,7 +83,7 @@ struct ReadableStreamDefaultTeeReadRequest final : public ReadRequest {
 
 namespace streams_abstract {
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamTee(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     nsTArray<RefPtr<ReadableStream>>& aResult, ErrorResult& aRv);
 }
 

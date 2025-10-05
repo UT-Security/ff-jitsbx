@@ -64,38 +64,38 @@ class TestFunctions : public NonRefcountedDOMObject {
   Nullable<uint8_t> GetEnforcedNullableOctet() const;
 
   void SetArrayBufferView(const ArrayBufferView& aBuffer);
-  void GetArrayBufferView(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetArrayBufferView(MCContext* aCx, JS::Handle<JSObject*> aObj,
                           JS::MutableHandle<JSObject*> aRetval,
                           ErrorResult& aError);
   void SetAllowSharedArrayBufferView(const ArrayBufferView& aBuffer);
-  void GetAllowSharedArrayBufferView(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetAllowSharedArrayBufferView(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aError);
   void SetSequenceOfArrayBufferView(const Sequence<ArrayBufferView>& aBuffers);
-  void GetSequenceOfArrayBufferView(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetSequenceOfArrayBufferView(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                     nsTArray<JSObject*>& aRetval,
                                     ErrorResult& aError);
   void SetSequenceOfAllowSharedArrayBufferView(
       const Sequence<ArrayBufferView>& aBuffers);
-  void GetSequenceOfAllowSharedArrayBufferView(JSContext* aCx,
+  void GetSequenceOfAllowSharedArrayBufferView(MCContext* aCx,
                                                JS::Handle<JSObject*> aObj,
                                                nsTArray<JSObject*>& aRetval,
                                                ErrorResult& aError);
   void SetArrayBuffer(const ArrayBuffer& aBuffer);
-  void GetArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObj,
                       JS::MutableHandle<JSObject*> aRetval,
                       ErrorResult& aError);
   void SetAllowSharedArrayBuffer(const ArrayBuffer& aBuffer);
-  void GetAllowSharedArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetAllowSharedArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aError);
   void SetSequenceOfArrayBuffer(const Sequence<ArrayBuffer>& aBuffers);
-  void GetSequenceOfArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void GetSequenceOfArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                 nsTArray<JSObject*>& aRetval,
                                 ErrorResult& aError);
   void SetSequenceOfAllowSharedArrayBuffer(
       const Sequence<ArrayBuffer>& aBuffers);
-  void GetSequenceOfAllowSharedArrayBuffer(JSContext* aCx,
+  void GetSequenceOfAllowSharedArrayBuffer(MCContext* aCx,
                                            JS::Handle<JSObject*> aObj,
                                            nsTArray<JSObject*>& aRetval,
                                            ErrorResult& aError);
@@ -116,11 +116,11 @@ class TestFunctions : public NonRefcountedDOMObject {
     return true;
   }
 
-  static bool ObjectFromAboutBlank(JSContext* aCx, JSObject* aObj);
+  static bool ObjectFromAboutBlank(MCContext* aCx, JSObject* aObj);
 
   WrapperCachedNonISupportsTestInterface* WrapperCachedNonISupportsObject();
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aWrapper);
 
  private:

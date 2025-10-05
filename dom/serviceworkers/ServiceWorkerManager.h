@@ -209,7 +209,7 @@ class ServiceWorkerManager final : public nsIServiceWorkerManager,
 
   // Always consumes the error by reporting to consoles of all controlled
   // documents.
-  void HandleError(JSContext* aCx, nsIPrincipal* aPrincipal,
+  void HandleError(MCContext* aCx, nsIPrincipal* aPrincipal,
                    const nsCString& aScope, const nsString& aWorkerURL,
                    const nsString& aMessage, const nsString& aFilename,
                    const nsString& aLine, uint32_t aLineNumber,

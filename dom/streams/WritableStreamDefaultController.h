@@ -43,19 +43,19 @@ class WritableStreamDefaultController final : public nsISupports,
  public:
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods/properties
 
   AbortSignal* Signal() { return mSignal; }
 
-  MOZ_CAN_RUN_SCRIPT void Error(JSContext* aCx, JS::Handle<JS::Value> aError,
+  MOZ_CAN_RUN_SCRIPT void Error(MCContext* aCx, JS::Handle<JS::Value> aError,
                                 ErrorResult& aRv);
 
   // [[AbortSteps]]
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> AbortSteps(
-      JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
 
   // [[ErrorSteps]]
   virtual void ErrorSteps();
@@ -140,35 +140,35 @@ class WritableStreamDefaultController final : public nsISupports,
 namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT void SetUpWritableStreamDefaultController(
-    JSContext* aCx, WritableStream* aStream,
+    MCContext* aCx, WritableStream* aStream,
     WritableStreamDefaultController* aController,
     UnderlyingSinkAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     QueuingStrategySize* aSizeAlgorithm, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void SetUpWritableStreamDefaultControllerFromUnderlyingSink(
-    JSContext* aCx, WritableStream* aStream,
+    MCContext* aCx, WritableStream* aStream,
     JS::Handle<JSObject*> aUnderlyingSink, UnderlyingSink& aUnderlyingSinkDict,
     double aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void WritableStreamDefaultControllerClose(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void WritableStreamDefaultControllerWrite(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, double chunkSize, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void WritableStreamDefaultControllerError(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void WritableStreamDefaultControllerErrorIfNeeded(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT double WritableStreamDefaultControllerGetChunkSize(
-    JSContext* aCx, WritableStreamDefaultController* aController,
+    MCContext* aCx, WritableStreamDefaultController* aController,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
 
 }  // namespace streams_abstract

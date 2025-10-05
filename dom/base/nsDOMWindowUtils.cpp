@@ -3518,7 +3518,7 @@ nsDOMWindowUtils::GetPCCountScriptSummary(int32_t script, MCContext* cx,
   JSString* text = JS::GetPCCountScriptSummary(MC_UNSAFE(cx), script);
   if (!text) return NS_ERROR_FAILURE;
 
-  if (!AssignJSString(MC_UNSAFE(cx), result, text)) return NS_ERROR_FAILURE;
+  if (!AssignJSString(cx, result, text)) return NS_ERROR_FAILURE;
 
   return NS_OK;
 }
@@ -3529,7 +3529,7 @@ nsDOMWindowUtils::GetPCCountScriptContents(int32_t script, MCContext* cx,
   JSString* text = JS::GetPCCountScriptContents(MC_UNSAFE(cx), script);
   if (!text) return NS_ERROR_FAILURE;
 
-  if (!AssignJSString(MC_UNSAFE(cx), result, text)) return NS_ERROR_FAILURE;
+  if (!AssignJSString(cx, result, text)) return NS_ERROR_FAILURE;
 
   return NS_OK;
 }
@@ -4112,7 +4112,7 @@ nsDOMWindowUtils::GetContentAPZTestData(
       return NS_OK;
     }
     if (WebRenderLayerManager* wr = renderer->AsWebRender()) {
-      if (!wr->GetAPZTestData().ToJS(aOutContentTestData, MC_UNSAFE(aContext))) {
+      if (!wr->GetAPZTestData().ToJS(aOutContentTestData, aContext)) {
         return NS_ERROR_FAILURE;
       }
     }
@@ -4138,7 +4138,7 @@ nsDOMWindowUtils::GetCompositorAPZTestData(
         return NS_ERROR_FAILURE;
       }
     }
-    if (!compositorSideData.ToJS(aOutCompositorTestData, MC_UNSAFE(aContext))) {
+    if (!compositorSideData.ToJS(aOutCompositorTestData, aContext)) {
       return NS_ERROR_FAILURE;
     }
   }
@@ -4212,7 +4212,7 @@ nsDOMWindowUtils::GetFrameUniformityTestData(
 
   FrameUniformityData outData;
   renderer->GetFrameUniformity(&outData);
-  outData.ToJS(aOutFrameUniformity, MC_UNSAFE(aContext));
+  outData.ToJS(aOutFrameUniformity, aContext);
   return NS_OK;
 }
 

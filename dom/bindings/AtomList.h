@@ -7,14 +7,14 @@
 #ifndef mozilla_dom_AtomList_h
 #define mozilla_dom_AtomList_h
 
-#include "jsapi.h"
-#include "js/Context.h"
+#include "mcapi.h"
+#include "monkeycage/Context.h"
 #include "mozilla/dom/GeneratedAtomList.h"
 
 namespace mozilla::dom {
 
 template <class T>
-T* GetAtomCache(JSContext* aCx) {
+T* GetAtomCache(MCContext* aCx) {
   auto atomCache = static_cast<PerThreadAtomCache*>(JS_GetContextPrivate(aCx));
 
   return static_cast<T*>(atomCache);

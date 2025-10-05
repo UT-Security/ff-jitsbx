@@ -33,7 +33,7 @@ class MIDIOutput final : public MIDIPort {
                                    const bool aSysexEnabled);
   ~MIDIOutput() = default;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Send a message to an output port

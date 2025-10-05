@@ -6,10 +6,10 @@
 
 #include "ChromeWorkerScope.h"
 
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "js/experimental/CTypes.h"  // JS::InitCTypesClass, JS::CTypesCallbacks, JS::SetCTypesCallbacks
-#include "js/MemoryFunctions.h"
+#include "monkeycage/MemoryFunctions.h"
 
 #include "nsNativeCharsetUtils.h"
 #include "nsString.h"
@@ -44,13 +44,13 @@ char* UnicodeToNative(JSContext* aCx, const char16_t* aSource,
 
 }  // namespace
 
-bool DefineChromeWorkerFunctions(JSContext* aCx,
+bool DefineChromeWorkerFunctions(MCContext* aCx,
                                  JS::Handle<JSObject*> aGlobal) {
   // Currently ctypes is the only special property given to ChromeWorkers.
 #ifdef BUILD_CTYPES
   {
     MC::Rooted<JS::Value> ctypes(aCx);
-    if (!JS::InitCTypesClass(aCx, aGlobal) ||
+    if (!JS::InitCTypesClass(MC_UNSAFE(aCx), aGlobal) ||
         !JS_GetProperty(aCx, aGlobal, "ctypes", &ctypes)) {
       return false;
     }

@@ -47,7 +47,7 @@ class MediaMetadata final : public nsISupports,
   // WebIDL methods
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<MediaMetadata> Constructor(
@@ -66,10 +66,10 @@ class MediaMetadata final : public nsISupports,
 
   void SetAlbum(const nsAString& aAlbum);
 
-  void GetArtwork(JSContext* aCx, nsTArray<JSObject*>& aRetVal,
+  void GetArtwork(MCContext* aCx, nsTArray<JSObject*>& aRetVal,
                   ErrorResult& aRv) const;
 
-  void SetArtwork(JSContext* aCx, const Sequence<JSObject*>& aArtwork,
+  void SetArtwork(MCContext* aCx, const Sequence<JSObject*>& aArtwork,
                   ErrorResult& aRv);
 
   // This would expose MediaMetadataBase's members as public, so use this method

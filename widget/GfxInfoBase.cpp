@@ -1473,7 +1473,7 @@ static void InitCollectors() {
 nsresult GfxInfoBase::GetInfo(MCContext* aCx,
                               JS::MutableHandle<JS::Value> aResult) {
   InitCollectors();
-  InfoObject obj(MC_UNSAFE(aCx));
+  InfoObject obj(aCx);
 
   for (uint32_t i = 0; i < sCollectors->Length(); i++) {
     (*sCollectors)[i]->GetInfo(obj);
@@ -1528,7 +1528,7 @@ void GfxInfoBase::RemoveCollector(GfxInfoCollectorBase* collector) {
   }
 }
 
-static void AppendMonitor(JSContext* aCx, widget::Screen& aScreen,
+static void AppendMonitor(MCContext* aCx, widget::Screen& aScreen,
                           JS::Handle<JSObject*> aOutArray, int32_t aIndex) {
   MC::Rooted<JSObject*> obj(aCx, JS_NewPlainObject(aCx));
 
@@ -1562,7 +1562,7 @@ static void AppendMonitor(JSContext* aCx, widget::Screen& aScreen,
   JS_SetElement(aCx, aOutArray, aIndex, element);
 }
 
-nsresult GfxInfoBase::FindMonitors(JSContext* aCx,
+nsresult GfxInfoBase::FindMonitors(MCContext* aCx,
                                    JS::Handle<JSObject*> aOutArray) {
   int32_t index = 0;
   auto& sm = ScreenManager::GetSingleton();
@@ -1583,7 +1583,7 @@ NS_IMETHODIMP
 GfxInfoBase::GetMonitors(MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JSObject*> array(aCx, JS::NewArrayObject(aCx, 0));
 
-  nsresult rv = FindMonitors(MC_UNSAFE(aCx), array);
+  nsresult rv = FindMonitors(aCx, array);
   if (NS_FAILED(rv)) {
     return rv;
   }
@@ -1592,7 +1592,7 @@ GfxInfoBase::GetMonitors(MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
   return NS_OK;
 }
 
-static inline bool SetJSPropertyString(JSContext* aCx,
+static inline bool SetJSPropertyString(MCContext* aCx,
                                        JS::Handle<JSObject*> aObj,
                                        const char* aProp, const char* aString) {
   MC::Rooted<JSString*> str(aCx, JS_NewStringCopyZ(aCx, aString));
@@ -1605,7 +1605,7 @@ static inline bool SetJSPropertyString(JSContext* aCx,
 }
 
 template <typename T>
-static inline bool AppendJSElement(JSContext* aCx, JS::Handle<JSObject*> aObj,
+static inline bool AppendJSElement(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                    const T& aValue) {
   uint32_t index;
   if (!JS::GetArrayLength(aCx, aObj, &index)) {
@@ -1627,14 +1627,14 @@ nsresult GfxInfoBase::GetFeatures(MCContext* aCx,
           ? gfxPlatform::GetPlatform()->GetCompositorBackend()
           : layers::LayersBackend::LAYERS_NONE;
   const char* backendName = layers::GetLayersBackendName(backend);
-  SetJSPropertyString(MC_UNSAFE(aCx), obj, "compositor", backendName);
+  SetJSPropertyString(aCx, obj, "compositor", backendName);
 
   // If graphics isn't initialized yet, just stop now.
   if (!gfxPlatform::Initialized()) {
     return NS_OK;
   }
 
-  DescribeFeatures(MC_UNSAFE(aCx), obj);
+  DescribeFeatures(aCx, obj);
   return NS_OK;
 }
 
@@ -1658,22 +1658,22 @@ nsresult GfxInfoBase::GetFeatureLog(MCContext* aCx,
     if (!obj) {
       return;
     }
-    if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "name", aName) ||
-        !SetJSPropertyString(MC_UNSAFE(aCx), obj, "description", aDescription) ||
-        !SetJSPropertyString(MC_UNSAFE(aCx), obj, "status",
+    if (!SetJSPropertyString(aCx, obj, "name", aName) ||
+        !SetJSPropertyString(aCx, obj, "description", aDescription) ||
+        !SetJSPropertyString(aCx, obj, "status",
                              FeatureStatusToString(aFeature.GetValue()))) {
       return;
     }
 
     MC::Rooted<JS::Value> log(aCx);
-    if (!BuildFeatureStateLog(MC_UNSAFE(aCx), aFeature, &log)) {
+    if (!BuildFeatureStateLog(aCx, aFeature, &log)) {
       return;
     }
     if (!JS_SetProperty(aCx, obj, "log", log)) {
       return;
     }
 
-    if (!AppendJSElement(MC_UNSAFE(aCx), featureArray, obj)) {
+    if (!AppendJSElement(aCx, featureArray, obj)) {
       return;
     }
   });
@@ -1691,12 +1691,12 @@ nsresult GfxInfoBase::GetFeatureLog(MCContext* aCx,
           return;
         }
 
-        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "name", aName) ||
-            !SetJSPropertyString(MC_UNSAFE(aCx), obj, "message", aMessage)) {
+        if (!SetJSPropertyString(aCx, obj, "name", aName) ||
+            !SetJSPropertyString(aCx, obj, "message", aMessage)) {
           return;
         }
 
-        if (!AppendJSElement(MC_UNSAFE(aCx), fallbackArray, obj)) {
+        if (!AppendJSElement(aCx, fallbackArray, obj)) {
           return;
         }
       });
@@ -1712,7 +1712,7 @@ nsresult GfxInfoBase::GetFeatureLog(MCContext* aCx,
   return NS_OK;
 }
 
-bool GfxInfoBase::BuildFeatureStateLog(JSContext* aCx,
+bool GfxInfoBase::BuildFeatureStateLog(MCContext* aCx,
                                        const FeatureState& aFeature,
                                        JS::MutableHandle<JS::Value> aOut) {
   MC::Rooted<JSObject*> log(aCx, JS::NewArrayObject(aCx, 0));
@@ -1746,7 +1746,7 @@ bool GfxInfoBase::BuildFeatureStateLog(JSContext* aCx,
   return true;
 }
 
-void GfxInfoBase::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
+void GfxInfoBase::DescribeFeatures(MCContext* aCx, JS::Handle<JSObject*> aObj) {
   MC::Rooted<JSObject*> obj(aCx);
 
   gfx::FeatureState& hwCompositing =
@@ -1772,7 +1772,7 @@ void GfxInfoBase::DescribeFeatures(JSContext* aCx, JS::Handle<JSObject*> aObj) {
   InitFeatureObject(aCx, aObj, "omtp", omtp, &obj);
 }
 
-bool GfxInfoBase::InitFeatureObject(JSContext* aCx,
+bool GfxInfoBase::InitFeatureObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aContainer,
                                     const char* aName,
                                     mozilla::gfx::FeatureState& aFeatureState,
@@ -1812,13 +1812,13 @@ nsresult GfxInfoBase::GetActiveCrashGuards(MCContext* aCx,
         if (!obj) {
           return;
         }
-        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "type", aName)) {
+        if (!SetJSPropertyString(aCx, obj, "type", aName)) {
           return;
         }
-        if (!SetJSPropertyString(MC_UNSAFE(aCx), obj, "prefName", aPrefName)) {
+        if (!SetJSPropertyString(aCx, obj, "prefName", aPrefName)) {
           return;
         }
-        if (!AppendJSElement(MC_UNSAFE(aCx), array, obj)) {
+        if (!AppendJSElement(aCx, array, obj)) {
           return;
         }
       });

@@ -186,12 +186,12 @@ void SpeechRecognition::SetState(FSMState state) {
   SR_LOG("Transitioned to state %s", GetName(mCurrentState));
 }
 
-JSObject* SpeechRecognition::WrapObject(JSContext* aCx,
+JSObject* SpeechRecognition::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return SpeechRecognition_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-bool SpeechRecognition::IsAuthorized(JSContext* aCx, JSObject* aGlobal) {
+bool SpeechRecognition::IsAuthorized(MCContext* aCx, JSObject* aGlobal) {
   nsCOMPtr<nsIPrincipal> principal = nsContentUtils::ObjectPrincipal(aGlobal);
 
   nsresult rv;

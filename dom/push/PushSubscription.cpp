@@ -66,7 +66,7 @@ class UnsubscribeResultRunnable final : public WorkerRunnable {
     AssertIsOnMainThread();
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate);
     aWorkerPrivate->AssertIsOnWorkerThread();
 
@@ -214,7 +214,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(PushSubscription)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* PushSubscription::WrapObject(JSContext* aCx,
+JSObject* PushSubscription::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return PushSubscription_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -302,7 +302,7 @@ already_AddRefed<Promise> PushSubscription::Unsubscribe(ErrorResult& aRv) {
   return p.forget();
 }
 
-void PushSubscription::GetKey(JSContext* aCx, PushEncryptionKeyName aType,
+void PushSubscription::GetKey(MCContext* aCx, PushEncryptionKeyName aType,
                               JS::MutableHandle<JSObject*> aKey,
                               ErrorResult& aRv) {
   if (aType == PushEncryptionKeyName::P256dh) {

@@ -141,7 +141,7 @@ class ResizeObserver final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return ResizeObserver_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -244,7 +244,7 @@ class ResizeObserverEntry final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return ResizeObserverEntry_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -297,7 +297,7 @@ class ResizeObserverSize final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return ResizeObserverSize_Binding::Wrap(aCx, this, aGivenProto);
   }

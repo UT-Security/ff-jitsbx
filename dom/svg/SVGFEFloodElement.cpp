@@ -19,7 +19,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEFloodElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEFloodElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return SVGFEFloodElement_Binding::Wrap(aCx, this, aGivenProto);
 }

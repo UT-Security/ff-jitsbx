@@ -102,7 +102,7 @@ class CanvasCaptureMediaStream : public DOMMediaStream {
 
   nsresult Init(const dom::Optional<double>& aFPS, nsIPrincipal* aPrincipal);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL

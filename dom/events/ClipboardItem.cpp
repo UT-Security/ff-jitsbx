@@ -27,7 +27,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(ClipboardItem::ItemEntry)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(ClipboardItem::ItemEntry)
 
-void ClipboardItem::ItemEntry::ResolvedCallback(JSContext* aCx,
+void ClipboardItem::ItemEntry::ResolvedCallback(MCContext* aCx,
                                                 JS::Handle<JS::Value> aValue,
                                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mLoadingPromise.Exists());
@@ -42,7 +42,7 @@ void ClipboardItem::ItemEntry::ResolvedCallback(JSContext* aCx,
   MaybeResolvePendingPromises(std::move(clipboardData));
 }
 
-void ClipboardItem::ItemEntry::RejectedCallback(JSContext* aCx,
+void ClipboardItem::ItemEntry::RejectedCallback(MCContext* aCx,
                                                 JS::Handle<JS::Value> aValue,
                                                 ErrorResult& aRv) {
   MOZ_ASSERT(!mLoadingPromise.Exists());
@@ -323,7 +323,7 @@ already_AddRefed<Promise> ClipboardItem::GetType(const nsAString& aType,
   return p.forget();
 }
 
-JSObject* ClipboardItem::WrapObject(JSContext* aCx,
+JSObject* ClipboardItem::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::ClipboardItem_Binding::Wrap(aCx, this, aGivenProto);
 }

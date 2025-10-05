@@ -6,8 +6,8 @@
 
 #include "gtest/gtest.h"
 
-#include "jsapi.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "mcapi.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "nsContentUtils.h"
 #include "nsNetUtil.h"
 #include "mozilla/CycleCollectedJSContext.h"
@@ -75,7 +75,7 @@ TEST(DOM_Base_ContentUtils,
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
   mozilla::dom::AutoJSAPI jsAPI;
   ASSERT_TRUE(jsAPI.Init(globalObject));
-  JSContext* cx = jsAPI.cx();
+  MCContext* cx = jsAPI.mcx();
   nsAutoString serializedValue;
 
   ASSERT_TRUE(nsContentUtils::StringifyJSON(cx, JS::UndefinedHandleValue,
@@ -92,7 +92,7 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsNullStringLiteral)
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
   mozilla::dom::AutoJSAPI jsAPI;
   ASSERT_TRUE(jsAPI.Init(globalObject));
-  JSContext* cx = jsAPI.cx();
+  MCContext* cx = jsAPI.mcx();
   nsAutoString serializedValue;
 
   MC::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));
@@ -114,7 +114,7 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_EmptyValue_UndefinedIsVoidString)
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
   mozilla::dom::AutoJSAPI jsAPI;
   ASSERT_TRUE(jsAPI.Init(globalObject));
-  JSContext* cx = jsAPI.cx();
+  MCContext* cx = jsAPI.mcx();
   nsAutoString serializedValue;
 
   ASSERT_TRUE(nsContentUtils::StringifyJSON(
@@ -131,7 +131,7 @@ TEST(DOM_Base_ContentUtils, StringifyJSON_Object_UndefinedIsVoidString)
           mozilla::dom::SimpleGlobalObject::GlobalType::BindingDetail));
   mozilla::dom::AutoJSAPI jsAPI;
   ASSERT_TRUE(jsAPI.Init(globalObject));
-  JSContext* cx = jsAPI.cx();
+  MCContext* cx = jsAPI.mcx();
   nsAutoString serializedValue;
 
   MC::Rooted<JSObject*> jsObj(cx, JS_NewPlainObject(cx));

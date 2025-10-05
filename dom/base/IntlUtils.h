@@ -27,7 +27,7 @@ class IntlUtils final : public nsISupports, public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetDisplayNames(const Sequence<nsString>& aLocales,

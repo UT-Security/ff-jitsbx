@@ -31,14 +31,14 @@ class AbortController : public nsISupports, public nsWrapperCache {
 
   explicit AbortController(nsIGlobalObject* aGlobal);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const;
 
   AbortSignal* Signal();
 
-  void Abort(JSContext* aCx, JS::Handle<JS::Value> aReason);
+  void Abort(MCContext* aCx, JS::Handle<JS::Value> aReason);
 
  protected:
   virtual ~AbortController();

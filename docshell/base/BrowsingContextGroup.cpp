@@ -368,7 +368,7 @@ nsISupports* BrowsingContextGroup::GetParentObject() const {
   return xpc::NativeGlobal(xpc::PrivilegedJunkScope());
 }
 
-JSObject* BrowsingContextGroup::WrapObject(JSContext* aCx,
+JSObject* BrowsingContextGroup::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return BrowsingContextGroup_Binding::Wrap(aCx, this, aGivenProto);
 }

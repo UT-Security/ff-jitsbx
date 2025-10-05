@@ -86,7 +86,7 @@ class MediaController final : public DOMEventTargetHelper,
 
   // WebIDL methods
   nsISupports* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   void GetSupportedKeys(nsTArray<MediaControlKey>& aRetVal) const;
   void GetMetadata(MediaMetadataInit& aMetadata, ErrorResult& aRv);

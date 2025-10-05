@@ -118,7 +118,7 @@ nsCString MessageManagerFuzzer::GetFuzzValueFromFile() {
 }
 
 /* static */
-void MessageManagerFuzzer::MutateObject(JSContext* aCx,
+void MessageManagerFuzzer::MutateObject(MCContext* aCx,
                                         JS::Handle<JS::Value> aValue,
                                         unsigned short int aRecursionCounter) {
   MC::Rooted<JSObject*> object(aCx, &aValue.toObject());
@@ -155,7 +155,7 @@ void MessageManagerFuzzer::MutateObject(JSContext* aCx,
 
 /* static */
 bool MessageManagerFuzzer::MutateValue(
-    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, JS::Handle<JS::Value> aValue,
     JS::MutableHandle<JS::Value> aOutMutationValue,
     unsigned short int aRecursionCounter) {
   if (aValue.isInt32()) {
@@ -213,7 +213,7 @@ bool MessageManagerFuzzer::MutateValue(
 }
 
 /* static */
-bool MessageManagerFuzzer::Mutate(JSContext* aCx, const nsAString& aMessageName,
+bool MessageManagerFuzzer::Mutate(MCContext* aCx, const nsAString& aMessageName,
                                   ipc::StructuredCloneData* aData,
                                   const JS::Value& aTransfer) {
   MSGMGR_FUZZER_LOG("Message: %s in process: %d",
@@ -306,7 +306,7 @@ bool MessageManagerFuzzer::IsEnabled() {
 }
 
 /* static */
-void MessageManagerFuzzer::TryMutate(JSContext* aCx,
+void MessageManagerFuzzer::TryMutate(MCContext* aCx,
                                      const nsAString& aMessageName,
                                      ipc::StructuredCloneData* aData,
                                      const JS::Value& aTransfer) {

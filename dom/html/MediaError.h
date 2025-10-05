@@ -27,7 +27,7 @@ class MediaError final : public nsISupports, public nsWrapperCache {
 
   HTMLMediaElement* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t Code() const { return mCode; }

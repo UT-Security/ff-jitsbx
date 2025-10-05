@@ -26,7 +26,7 @@ class SVGFEComponentTransferElement final
   explicit SVGFEComponentTransferElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEComponentTransferElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

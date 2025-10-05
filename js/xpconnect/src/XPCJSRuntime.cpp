@@ -49,9 +49,9 @@
 #include "monkeycage/BuildId.h"  // JS::BuildIdCharVector, JS::SetProcessBuildIdOp
 #include "monkeycage/experimental/SourceHook.h"  // js::{,Set}SourceHook
 #include "monkeycage/GCAPI.h"
-#include "js/MemoryFunctions.h"
+#include "monkeycage/MemoryFunctions.h"
 #include "monkeycage/MemoryMetrics.h"
-#include "js/Object.h"  // JS::GetClass
+#include "monkeycage/Object.h"  // JS::GetClass
 #include "monkeycage/RealmIterators.h"
 #include "js/SliceBudget.h"
 #include "js/UbiNode.h"
@@ -633,7 +633,7 @@ nsGlobalWindowInner* WindowGlobalOrNull(JSObject* aObj) {
   return WindowOrNull(glob);
 }
 
-nsGlobalWindowInner* SandboxWindowOrNull(JSObject* aObj, JSContext* aCx) {
+nsGlobalWindowInner* SandboxWindowOrNull(JSObject* aObj, MCContext* aCx) {
   MOZ_ASSERT(aObj);
 
   if (!IsSandbox(aObj)) {
@@ -646,14 +646,14 @@ nsGlobalWindowInner* SandboxWindowOrNull(JSObject* aObj, JSContext* aCx) {
     return nullptr;
   }
 
-  proto = js::CheckedUnwrapDynamic(proto, aCx, /* stopAtWindowProxy = */ false);
+  proto = mc::CheckedUnwrapDynamic(proto, aCx, /* stopAtWindowProxy = */ false);
   if (!proto) {
     return nullptr;
   }
   return WindowOrNull(proto);
 }
 
-nsGlobalWindowInner* CurrentWindowOrNull(JSContext* cx) {
+nsGlobalWindowInner* CurrentWindowOrNull(MCContext* cx) {
   JSObject* glob = JS::CurrentGlobalOrNull(cx);
   return glob ? WindowOrNull(glob) : nullptr;
 }
@@ -666,7 +666,7 @@ nsGlobalWindowInner* CurrentWindowOrNull(JSContext* cx) {
 // Wrappers between web compartments must never be cut in web-observable
 // ways.
 void NukeAllWrappersForRealm(
-    JSContext* cx, JS::Realm* realm,
+    MCContext* cx, JS::Realm* realm,
     js::NukeReferencesToWindow nukeReferencesToWindow) {
   // We do the following:
   // * Nuke all wrappers into the realm.
@@ -785,7 +785,7 @@ void xpc_UnmarkSkippableJSHolders() {
 }
 
 /* static */
-void XPCJSRuntime::GCSliceCallback(JSContext* cx, JS::GCProgress progress,
+void XPCJSRuntime::GCSliceCallback(MC::Tainted<JSContext*> cx, JS::GCProgress progress,
                                    const JS::GCDescription& desc) {
   XPCJSRuntime* self = nsXPConnect::GetRuntimeInstance();
   if (!self) {
@@ -814,7 +814,7 @@ void XPCJSRuntime::GCSliceCallback(JSContext* cx, JS::GCProgress progress,
 }
 
 /* static */
-void XPCJSRuntime::DoCycleCollectionCallback(JSContext* cx) {
+void XPCJSRuntime::DoCycleCollectionCallback(MC::Tainted<JSContext*> cx) {
   // The GC has detected that a CC at this point would collect a tremendous
   // amount of garbage that is being revivified unnecessarily.
   //
@@ -1221,7 +1221,7 @@ static void GetRealmName(JS::Realm* realm, nsCString& name, int* anonymizeID,
   }
 }
 
-extern void xpc::GetCurrentRealmName(JSContext* cx, nsCString& name) {
+extern void xpc::GetCurrentRealmName(MCContext* cx, nsCString& name) {
   MC::RootedObject global(cx, JS::CurrentGlobalOrNull(cx));
   if (!global) {
     name.AssignLiteral("no global");
@@ -2282,7 +2282,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 
   XPCJSRuntimeStats rtStats(windowPaths, topWindowPaths, anonymize);
   OrphanReporter orphanReporter(XPCConvert::GetISupportsFromJSObject);
-  JSContext* cx = MC_UNSAFE(XPCJSContext::Get()->Context());
+  MCContext* cx = XPCJSContext::Get()->Context();
   if (!JS::CollectRuntimeStats(cx, &rtStats, &orphanReporter, anonymize)) {
     return;
   }
@@ -2571,7 +2571,7 @@ void JSReporter::CollectReports(WindowPaths* windowPaths,
 static nsresult JSSizeOfTab(JSObject* objArg, size_t* jsObjectsSize,
                             size_t* jsStringsSize, size_t* jsPrivateSize,
                             size_t* jsOtherSize) {
-  JSContext* cx = MC_UNSAFE(XPCJSContext::Get()->Context());
+  MCContext* cx = XPCJSContext::Get()->Context();
   MC::RootedObject obj(cx, objArg);
 
   TabSizes sizes;
@@ -2655,7 +2655,7 @@ static MC::Tainted<bool> PreserveWrapper(MC::Tainted<JSContext*> cx, JS::Handle<
   return true;
 }
 
-static nsresult ReadSourceFromFilename(JSContext* cx, const char* filename,
+static nsresult ReadSourceFromFilename(MCContext* cx, const char* filename,
                                        char16_t** twoByteSource,
                                        char** utf8Source, size_t* len) {
   MOZ_ASSERT(*len == 0);
@@ -2777,7 +2777,7 @@ class XPCJSSourceHook : public mc::SourceHook {
       *utf8Source = nullptr;
     }
 
-    if (!nsContentUtils::IsSystemCaller(MC_UNSAFE(cx))) {
+    if (!nsContentUtils::IsSystemCaller(cx)) {
       return true;
     }
 
@@ -2786,7 +2786,7 @@ class XPCJSSourceHook : public mc::SourceHook {
     }
 
     nsresult rv =
-        ReadSourceFromFilename(MC_UNSAFE(cx), filename, twoByteSource, utf8Source, length);
+        ReadSourceFromFilename(cx, filename, twoByteSource, utf8Source, length);
     if (NS_FAILED(rv)) {
       xpc::Throw(cx, rv);
       return false;
@@ -2911,10 +2911,10 @@ void XPCJSRuntime::Initialize(MCContext* cx) {
   static auto GetRealmNameCallbackCb = MC::Sandbox::RegisterTaintedCallback(GetRealmNameCallback);
   JS::SetRealmNameCallback(cx, GetRealmNameCallbackCb);
   
-  static auto GCSliceCallbackCb = MC::Sandbox::RegisterCallback(GCSliceCallback);
+  static auto GCSliceCallbackCb = MC::Sandbox::RegisterTaintedCallback(GCSliceCallback);
   mPrevGCSliceCallback = JS::SetGCSliceCallback(cx, GCSliceCallbackCb);
 
-  static auto DoCycleCollectionCallbackCb = MC::Sandbox::RegisterCallback(DoCycleCollectionCallback);
+  static auto DoCycleCollectionCallbackCb = MC::Sandbox::RegisterTaintedCallback(DoCycleCollectionCallback);
   mPrevDoCycleCollectionCallback =
       JS::SetDoCycleCollectionCallback(cx, DoCycleCollectionCallbackCb);
     
@@ -3119,11 +3119,11 @@ void XPCJSRuntime::RemoveGCCallback(xpcGCCallback cb) {
   }
 }
 
-JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
+JSObject* XPCJSRuntime::GetUAWidgetScope(MCContext* cx,
                                          nsIPrincipal* principal) {
   MOZ_ASSERT(!principal->IsSystemPrincipal(), "Running UA Widget in chrome");
 
-  RootedObject scope(cx);
+  MC::RootedObject scope(cx);
   do {
     RefPtr<BasePrincipal> key = BasePrincipal::Cast(principal);
     if (Principal2JSObjectMap::Ptr p = mUAWidgetScopeMap.lookup(key)) {
@@ -3144,7 +3144,7 @@ JSObject* XPCJSRuntime::GetUAWidgetScope(JSContext* cx,
         principalAsArray, principal->OriginAttributesRef());
 
     // Create the sandbox.
-    RootedValue v(cx);
+    MC::RootedValue v(cx);
     nsresult rv = CreateSandboxObject(
         cx, &v, static_cast<nsIExpandedPrincipal*>(ep), options);
     NS_ENSURE_SUCCESS(rv, nullptr);
@@ -3163,13 +3163,13 @@ JSObject* XPCJSRuntime::UnprivilegedJunkScope(const mozilla::fallible_t&) {
   if (!mUnprivilegedJunkScope) {
     dom::AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.cx();
 
     SandboxOptions options;
     options.sandboxName.AssignLiteral("XPConnect Junk Compartment");
     options.invisibleToDebugger = true;
 
-    RootedValue sandbox(cx);
+    MC::RootedValue sandbox(cx);
     nsresult rv = CreateSandboxObject(cx, &sandbox, nullptr, options);
     NS_ENSURE_SUCCESS(rv, nullptr);
 

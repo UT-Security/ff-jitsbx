@@ -633,7 +633,7 @@ void EventSourceImpl::Init(nsIPrincipal* aPrincipal, const nsAString& aURL,
     return;
   }
   // The conditional here is historical and not necessarily sane.
-  if (JSContext* cx = nsContentUtils::GetCurrentJSContext()) {
+  if (MCContext* cx = nsContentUtils::GetCurrentJSContext()) {
     nsJSUtils::GetCallingLocation(cx, mScriptFile, &mScriptLine,
                                   &mScriptColumn);
     mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
@@ -1510,7 +1510,7 @@ void EventSourceImpl::DispatchAllMessageEvents() {
     }
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   while (mMessagesToDispatch.GetSize() > 0) {
     UniquePtr<Message> message(mMessagesToDispatch.PopFront());
@@ -1829,12 +1829,12 @@ class WorkerRunnableDispatcher final : public WorkerRunnable {
         mEventSourceImpl(std::move(aImpl)),
         mEvent(std::move(aEvent)) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     return !NS_FAILED(mEvent->Run());
   }
 
-  void PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                bool aRunResult) override {
     // Ensure we drop the RefPtr on the worker thread
     // and to not keep us alive longer than needed.
@@ -2089,7 +2089,7 @@ already_AddRefed<EventSource> EventSource::Constructor(
 }
 
 // nsWrapperCache
-JSObject* EventSource::WrapObject(JSContext* aCx,
+JSObject* EventSource::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return EventSource_Binding::Wrap(aCx, this, aGivenProto);
 }

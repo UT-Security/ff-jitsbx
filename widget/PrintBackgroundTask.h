@@ -78,7 +78,7 @@ void SpawnPrintBackgroundTask(
 // background task finishes.
 template <typename T, typename Result, typename... Args>
 nsresult PrintBackgroundTaskPromise(
-    T& aReceiver, JSContext* aCx, dom::Promise** aResultPromise,
+    T& aReceiver, MCContext* aCx, dom::Promise** aResultPromise,
     const nsCString& aTelemetryKey,
     PrintBackgroundTask<T, Result, Args...> aTask, Args... aArgs) {
   ErrorResult rv;
@@ -99,7 +99,7 @@ nsresult PrintBackgroundTaskPromise(
 // promise as needed in aPromiseSlot.
 template <typename T, typename Result, typename... Args>
 nsresult AsyncPromiseAttributeGetter(
-    T& aReceiver, RefPtr<dom::Promise>& aPromiseSlot, JSContext* aCx,
+    T& aReceiver, RefPtr<dom::Promise>& aPromiseSlot, MCContext* aCx,
     dom::Promise** aResultPromise, const nsCString& aTelemetryKey,
     PrintBackgroundTask<T, Result, Args...> aTask, Args... aArgs) {
   if (RefPtr<dom::Promise> existing = aPromiseSlot) {

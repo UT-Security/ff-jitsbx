@@ -33,7 +33,7 @@ FileSystemDirectoryEntry::FileSystemDirectoryEntry(
 FileSystemDirectoryEntry::~FileSystemDirectoryEntry() = default;
 
 JSObject* FileSystemDirectoryEntry::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemDirectoryEntry_Binding::Wrap(aCx, this, aGivenProto);
 }
 

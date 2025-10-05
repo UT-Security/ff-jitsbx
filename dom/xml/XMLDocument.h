@@ -58,7 +58,7 @@ class XMLDocument : public Document {
  protected:
   virtual ~XMLDocument() = default;
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   friend nsresult(::NS_NewXMLDocument)(Document**, bool, bool);

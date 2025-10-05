@@ -125,7 +125,7 @@ class Geolocation final : public nsIGeolocationUpdate, public nsWrapperCache {
   nsresult Init(nsPIDOMWindowInner* aContentDom = nullptr);
 
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCtx,
+  virtual JSObject* WrapObject(MCContext* aCtx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   MOZ_CAN_RUN_SCRIPT

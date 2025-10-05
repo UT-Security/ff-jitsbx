@@ -12,7 +12,7 @@ namespace mozilla::dom {
 
 CDATASection::~CDATASection() = default;
 
-JSObject* CDATASection::WrapNode(JSContext* aCx,
+JSObject* CDATASection::WrapNode(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return CDATASection_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -40,7 +40,7 @@ JS::Value FrameTransitionDataToJSValue(const FrameTransitionData& aData) {
   {
     dom::AutoJSAPI jsapi;
     MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::Rooted<JSObject*> obj(cx, JS_NewPlainObject(cx));
     if (obj &&

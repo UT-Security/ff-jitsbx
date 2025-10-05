@@ -28,7 +28,7 @@ class ChannelMergerNode final : public AudioNode {
     return Create(aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   uint16_t NumberOfInputs() const override { return mInputCount; }

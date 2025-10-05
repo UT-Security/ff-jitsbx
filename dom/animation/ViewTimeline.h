@@ -37,7 +37,7 @@ class ViewTimeline final : public ScrollTimeline {
       Document* aDocument, const NonOwningAnimationTarget& aTarget,
       StyleScrollAxis aAxis, const StyleViewTimelineInset& aInset);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return nullptr;
   }

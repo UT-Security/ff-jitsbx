@@ -405,7 +405,7 @@ ElementState HTMLButtonElement::IntrinsicState() const {
   return state;
 }
 
-JSObject* HTMLButtonElement::WrapNode(JSContext* aCx,
+JSObject* HTMLButtonElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLButtonElement_Binding::Wrap(aCx, this, aGivenProto);
 }

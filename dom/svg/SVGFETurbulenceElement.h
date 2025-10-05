@@ -29,7 +29,7 @@ class SVGFETurbulenceElement final : public SVGFETurbulenceElementBase {
   explicit SVGFETurbulenceElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFETurbulenceElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

@@ -13,9 +13,9 @@
 #include "mozilla/dom/Exceptions.h"
 #include "mozilla/dom/StructuredCloneTags.h"
 #include "mozilla/dom/ToJSValue.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/StructuredClone.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/Value.h"
 #include "nsReadableUtils.h"
 #include "xpcpublic.h"
@@ -27,12 +27,12 @@ using namespace mozilla::dom;
 already_AddRefed<ClonedErrorHolder> ClonedErrorHolder::Constructor(
     const GlobalObject& aGlobal, JS::Handle<JSObject*> aError,
     ErrorResult& aRv) {
-  return Create(MC_UNSAFE(aGlobal.Context()), aError, aRv);
+  return Create(aGlobal.Context(), aError, aRv);
 }
 
 // static
 already_AddRefed<ClonedErrorHolder> ClonedErrorHolder::Create(
-    JSContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JSObject*> aError, ErrorResult& aRv) {
   RefPtr<ClonedErrorHolder> ceh = new ClonedErrorHolder();
   ceh->Init(aCx, aError, aRv);
   if (aRv.Failed()) {
@@ -47,17 +47,17 @@ ClonedErrorHolder::ClonedErrorHolder()
       mFilename(VoidCString()),
       mSourceLine(VoidCString()) {}
 
-void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
+void ClonedErrorHolder::Init(MCContext* aCx, JS::Handle<JSObject*> aError,
                              ErrorResult& aRv) {
   MC::Rooted<JSObject*> stack(aCx);
 
-  if (JSErrorReport* err = JS_ErrorFromException(aCx, aError)) {
+  if (MC::Tainted<JSErrorReport*> err = JS_ErrorFromException(aCx, aError)) {
     mType = Type::JSError;
     if (err->message()) {
       mMessage = err->message().c_str();
     }
-    if (err->filename) {
-      mFilename = err->filename;
+    if (err->filename()) {
+      mFilename = err->filename();
     }
     if (err->linebuf()) {
       AppendUTF16toUTF8(
@@ -65,10 +65,10 @@ void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
           mSourceLine);
       mTokenOffset = err->tokenOffset();
     }
-    mLineNumber = err->lineno;
-    mColumn = err->column;
-    mErrorNumber = err->errorNumber;
-    mExnType = JSExnType(err->exnType);
+    mLineNumber = err->lineno();
+    mColumn = err->column();
+    mErrorNumber = err->errorNumber();
+    mExnType = JSExnType(err->exnType());
 
     // Note: We don't save the souce ID here, since this object is cross-process
     // clonable, and the source ID won't be valid in other processes.
@@ -117,15 +117,15 @@ void ClonedErrorHolder::Init(JSContext* aCx, JS::Handle<JSObject*> aError,
     }
   }
 
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
   if (stack) {
-    ar.emplace(aCx, stack);
+    ar->emplace(aCx, stack);
   }
   MC::Rooted<JS::Value> stackValue(aCx, JS::ObjectOrNullValue(stack));
   mStack.Write(aCx, stackValue, aRv);
 }
 
-bool ClonedErrorHolder::WrapObject(JSContext* aCx,
+bool ClonedErrorHolder::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto,
                                    JS::MutableHandle<JSObject*> aReflector) {
   return ClonedErrorHolder_Binding::Wrap(aCx, this, aGivenProto, aReflector);
@@ -133,7 +133,7 @@ bool ClonedErrorHolder::WrapObject(JSContext* aCx,
 
 static constexpr uint32_t kVoidStringLength = ~0;
 
-static bool WriteStringPair(JSStructuredCloneWriter* aWriter,
+static bool WriteStringPair(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                             const nsACString& aString1,
                             const nsACString& aString2) {
   auto StringLength = [](const nsACString& aStr) -> uint32_t {
@@ -152,7 +152,7 @@ static bool WriteStringPair(JSStructuredCloneWriter* aWriter,
          JS_WriteBytes(aWriter, aString2.BeginReading(), aString2.Length());
 }
 
-static bool ReadStringPair(JSStructuredCloneReader* aReader,
+static bool ReadStringPair(MC::Tainted<JSStructuredCloneReader*> aReader,
                            nsACString& aString1, nsACString& aString2) {
   auto ReadString = [&](nsACString& aStr, uint32_t aLength) {
     if (aLength == kVoidStringLength) {
@@ -172,10 +172,10 @@ static bool ReadStringPair(JSStructuredCloneReader* aReader,
          ReadString(aString1, length1) && ReadString(aString2, length2);
 }
 
-bool ClonedErrorHolder::WriteStructuredClone(JSContext* aCx,
-                                             JSStructuredCloneWriter* aWriter,
+bool ClonedErrorHolder::WriteStructuredClone(MCContext* aCx,
+                                             MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                              StructuredCloneHolder* aHolder) {
-  auto& data = mStack.BufferData();
+  auto data = mStack.BufferData();
   return JS_WriteUint32Pair(aWriter, SCTAG_DOM_CLONED_ERROR_OBJECT, 0) &&
          WriteStringPair(aWriter, mName, mMessage) &&
          WriteStringPair(aWriter, mFilename, mSourceLine) &&
@@ -183,14 +183,14 @@ bool ClonedErrorHolder::WriteStructuredClone(JSContext* aCx,
          JS_WriteUint32Pair(aWriter, mTokenOffset, mErrorNumber) &&
          JS_WriteUint32Pair(aWriter, uint32_t(mType), uint32_t(mExnType)) &&
          JS_WriteUint32Pair(aWriter, mCode, uint32_t(mResult)) &&
-         JS_WriteUint32Pair(aWriter, data.Size(),
+         JS_WriteUint32Pair(aWriter, data->Size(),
                             JS_STRUCTURED_CLONE_VERSION) &&
-         data.ForEachDataChunk([&](const char* aData, size_t aSize) {
+         data->ForEachDataChunk([&](const char* aData, size_t aSize) {
            return JS_WriteBytes(aWriter, aData, aSize);
          });
 }
 
-bool ClonedErrorHolder::Init(JSContext* aCx, JSStructuredCloneReader* aReader) {
+bool ClonedErrorHolder::Init(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t type, exnType, result, code;
   if (!(ReadStringPair(aReader, mName, mMessage) &&
         ReadStringPair(aReader, mFilename, mSourceLine) &&
@@ -217,7 +217,7 @@ bool ClonedErrorHolder::Init(JSContext* aCx, JSStructuredCloneReader* aReader) {
 
 /* static */
 JSObject* ClonedErrorHolder::ReadStructuredClone(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     StructuredCloneHolder* aHolder) {
   // Keep the result object rooted across the call to ClonedErrorHolder::Release
   // to avoid a potential rooting hazard.
@@ -232,17 +232,17 @@ JSObject* ClonedErrorHolder::ReadStructuredClone(
 }
 
 static JS::UniqueTwoByteChars ToNullTerminatedJSStringBuffer(
-    JSContext* aCx, const nsString& aStr) {
+    MCContext* aCx, const nsString& aStr) {
   // Since nsString is null terminated, we can simply copy + 1 characters.
   size_t nbytes = (aStr.Length() + 1) * sizeof(char16_t);
-  JS::UniqueTwoByteChars buffer(static_cast<char16_t*>(JS_malloc(aCx, nbytes)));
+  JS::UniqueTwoByteChars buffer(static_cast<char16_t*>(JS_malloc(aCx, nbytes).UNSAFE_unverified()));
   if (buffer) {
     memcpy(buffer.get(), aStr.get(), nbytes);
   }
   return buffer;
 }
 
-static bool ToJSString(JSContext* aCx, const nsACString& aStr,
+static bool ToJSString(MCContext* aCx, const nsACString& aStr,
                        JS::MutableHandle<JSString*> aJSString) {
   if (aStr.IsVoid()) {
     aJSString.set(nullptr);
@@ -256,7 +256,7 @@ static bool ToJSString(JSContext* aCx, const nsACString& aStr,
   return false;
 }
 
-bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
+bool ClonedErrorHolder::ToErrorValue(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JS::Value> stackVal(aCx);
   MC::Rooted<JSObject*> stack(aCx);
@@ -308,7 +308,7 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
 
     if (!mSourceLine.IsVoid()) {
       MC::Rooted<JSObject*> errObj(aCx, &aResult.toObject());
-      if (JSErrorReport* err = JS_ErrorFromException(aCx, errObj)) {
+      if (MC::Tainted<JSErrorReport*> err = JS_ErrorFromException(aCx, errObj)) {
         NS_ConvertUTF8toUTF16 sourceLine(mSourceLine);
         // Because this string ends up being consumed as an nsDependentString
         // in nsXPCComponents_Utils::ReportError, this needs to be a null
@@ -345,7 +345,7 @@ bool ClonedErrorHolder::ToErrorValue(JSContext* aCx,
 }
 
 bool ClonedErrorHolder::Holder::ReadStructuredCloneInternal(
-    JSContext* aCx, JSStructuredCloneReader* aReader) {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t length;
   uint32_t version;
   if (!JS_ReadUint32Pair(aReader, &length, &version)) {
@@ -365,7 +365,7 @@ bool ClonedErrorHolder::Holder::ReadStructuredCloneInternal(
     length -= size;
   }
 
-  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+  mBuffer = mc::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
   mBuffer->adopt(std::move(data), version, StructuredCloneHolder::sCallbacks());
   return true;

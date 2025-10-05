@@ -91,37 +91,37 @@ class IDBIndex final : public nsISupports, public nsWrapperCache {
 
   void SetName(const nsAString& aName, ErrorResult& aRv);
 
-  void GetKeyPath(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetKeyPath(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                   ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> OpenCursor(MCContext* aCx,
                                               JS::Handle<JS::Value> aRange,
                                               IDBCursorDirection aDirection,
                                               ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> OpenKeyCursor(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> OpenKeyCursor(MCContext* aCx,
                                                  JS::Handle<JS::Value> aRange,
                                                  IDBCursorDirection aDirection,
                                                  ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Get(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Get(MCContext* aCx,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetKey(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetKey(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> Count(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> Count(MCContext* aCx,
                                          JS::Handle<JS::Value> aKey,
                                          ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetAll(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetAll(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           const Optional<uint32_t>& aLimit,
                                           ErrorResult& aRv);
 
-  [[nodiscard]] RefPtr<IDBRequest> GetAllKeys(JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetAllKeys(MCContext* aCx,
                                               JS::Handle<JS::Value> aKey,
                                               const Optional<uint32_t>& aLimit,
                                               ErrorResult& aRv);
@@ -145,7 +145,7 @@ class IDBIndex final : public nsISupports, public nsWrapperCache {
 #endif
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:
@@ -154,16 +154,16 @@ class IDBIndex final : public nsISupports, public nsWrapperCache {
 
   ~IDBIndex();
 
-  [[nodiscard]] RefPtr<IDBRequest> GetInternal(bool aKeyOnly, JSContext* aCx,
+  [[nodiscard]] RefPtr<IDBRequest> GetInternal(bool aKeyOnly, MCContext* aCx,
                                                JS::Handle<JS::Value> aKey,
                                                ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBRequest> GetAllInternal(
-      bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aKey,
+      bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aKey,
       const Optional<uint32_t>& aLimit, ErrorResult& aRv);
 
   [[nodiscard]] RefPtr<IDBRequest> OpenCursorInternal(
-      bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aRange,
+      bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aRange,
       IDBCursorDirection aDirection, ErrorResult& aRv);
 };
 

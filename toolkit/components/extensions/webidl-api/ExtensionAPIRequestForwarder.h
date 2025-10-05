@@ -42,11 +42,11 @@ class ExtensionAPIRequestForwarder {
   using APIRequestType = mozIExtensionAPIRequest::RequestType;
   using APIResultType = mozIExtensionAPIRequestResult::ResultType;
 
-  static nsresult JSArrayToSequence(JSContext* aCx,
+  static nsresult JSArrayToSequence(MCContext* aCx,
                                     JS::Handle<JS::Value> aJSValue,
                                     dom::Sequence<JS::Value>& aResult);
 
-  static void ThrowUnexpectedError(JSContext* aCx, ErrorResult& aRv);
+  static void ThrowUnexpectedError(MCContext* aCx, ErrorResult& aRv);
 
   static mozIExtensionAPIRequestHandler& APIRequestHandler();
 
@@ -64,27 +64,27 @@ class ExtensionAPIRequestForwarder {
     return &mRequestTarget;
   }
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv);
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            const dom::Sequence<JS::Value>& aArgs,
            ExtensionEventListener* aListener, ErrorResult& aRv);
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            const dom::Sequence<JS::Value>& aArgs,
            JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            const dom::Sequence<JS::Value>& aArgs,
            ExtensionEventListener* aListener,
            JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            const dom::Sequence<JS::Value>& aArgs,
            const RefPtr<dom::Promise>& aPromiseRetval, ErrorResult& aRv);
 
-  void Run(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Run(nsIGlobalObject* aGlobal, MCContext* aCx,
            JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv);
 
   void SetSerializedCallerStack(
@@ -95,7 +95,7 @@ class ExtensionAPIRequestForwarder {
 
  private:
   already_AddRefed<ExtensionAPIRequest> CreateAPIRequest(
-      nsIGlobalObject* aGlobal, JSContext* aCx,
+      nsIGlobalObject* aGlobal, MCContext* aCx,
       const dom::Sequence<JS::Value>& aArgs, ExtensionEventListener* aListener,
       ErrorResult& aRv);
 
@@ -136,7 +136,7 @@ class RequestWorkerRunnable : public dom::WorkerMainThreadRunnable {
    * (which do have an event callback callback and do not expect any return
    * value).
    */
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx,
             const dom::Sequence<JS::Value>& aArgs,
             ExtensionEventListener* aListener, ErrorResult& aRv);
 
@@ -144,7 +144,7 @@ class RequestWorkerRunnable : public dom::WorkerMainThreadRunnable {
    * Init a request runnable for CallFunctionNoReturn API requests (which do
    * do not expect any return value).
    */
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx,
             const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
     Init(aGlobal, aCx, aArgs, nullptr, aRv);
   }
@@ -153,13 +153,13 @@ class RequestWorkerRunnable : public dom::WorkerMainThreadRunnable {
    * Init a request runnable for CallAsyncFunction API requests (which do
    * expect a promise as return value).
    */
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx,
             const dom::Sequence<JS::Value>& aArgs,
             const RefPtr<dom::Promise>& aPromiseRetval, ErrorResult& aRv);
 
   bool MainThreadRun() override;
 
-  void ReadResult(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void ReadResult(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                   ErrorResult& aRv);
 
   Maybe<mozIExtensionAPIRequestResult::ResultType> GetResultType() {
@@ -167,20 +167,20 @@ class RequestWorkerRunnable : public dom::WorkerMainThreadRunnable {
   }
 
  protected:
-  virtual bool ProcessHandlerResult(JSContext* aCx,
+  virtual bool ProcessHandlerResult(MCContext* aCx,
                                     JS::MutableHandle<JS::Value> aRetval);
 
   already_AddRefed<WebExtensionPolicy> GetWebExtensionPolicy();
-  already_AddRefed<ExtensionAPIRequest> CreateAPIRequest(JSContext* aCx);
+  already_AddRefed<ExtensionAPIRequest> CreateAPIRequest(MCContext* aCx);
 
-  void SerializeCallerStack(JSContext* aCx);
-  void DeserializeCallerStack(JSContext* aCx,
+  void SerializeCallerStack(MCContext* aCx);
+  void DeserializeCallerStack(MCContext* aCx,
                               JS::MutableHandle<JS::Value> aRetval);
-  void SerializeArgs(JSContext* aCx, const dom::Sequence<JS::Value>& aArgs,
+  void SerializeArgs(MCContext* aCx, const dom::Sequence<JS::Value>& aArgs,
                      ErrorResult& aRv);
-  nsresult DeserializeArgs(JSContext* aCx, JS::MutableHandle<JS::Value> aArgs);
+  nsresult DeserializeArgs(MCContext* aCx, JS::MutableHandle<JS::Value> aArgs);
 
-  bool HandleAPIRequest(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval);
+  bool HandleAPIRequest(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval);
 
   Maybe<mozIExtensionAPIRequestResult::ResultType> mResultType;
   Maybe<UniquePtr<dom::StructuredCloneHolder>> mResultHolder;

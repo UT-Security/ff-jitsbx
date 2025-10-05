@@ -31,7 +31,7 @@ namespace mozilla::dom {
 
 HTMLBodyElement::~HTMLBodyElement() = default;
 
-JSObject* HTMLBodyElement::WrapNode(JSContext* aCx,
+JSObject* HTMLBodyElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLBodyElement_Binding::Wrap(aCx, this, aGivenProto);
 }

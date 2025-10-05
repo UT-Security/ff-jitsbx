@@ -50,7 +50,7 @@ class CSSKeyframesRule final : public css::Rule {
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const final;
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  private:
   CSSKeyframeList* EnsureRules();

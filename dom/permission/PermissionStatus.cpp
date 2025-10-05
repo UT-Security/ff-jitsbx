@@ -58,7 +58,7 @@ PermissionStatus::~PermissionStatus() {
   }
 }
 
-JSObject* PermissionStatus::WrapObject(JSContext* aCx,
+JSObject* PermissionStatus::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return PermissionStatus_Binding::Wrap(aCx, this, aGivenProto);
 }

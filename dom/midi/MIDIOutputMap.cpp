@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_END
 
 MIDIOutputMap::MIDIOutputMap(nsPIDOMWindowInner* aParent) : mParent(aParent) {}
 
-JSObject* MIDIOutputMap::WrapObject(JSContext* aCx,
+JSObject* MIDIOutputMap::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return MIDIOutputMap_Binding::Wrap(aCx, this, aGivenProto);
 }

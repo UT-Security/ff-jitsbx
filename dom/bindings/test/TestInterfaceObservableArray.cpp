@@ -67,7 +67,7 @@ TestInterfaceObservableArray::Constructor(
 }
 
 JSObject* TestInterfaceObservableArray::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceObservableArray_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -76,7 +76,7 @@ nsPIDOMWindowInner* TestInterfaceObservableArray::GetParentObject() const {
 }
 
 void TestInterfaceObservableArray::OnSetObservableArrayObject(
-    JSContext* aCx, JS::Handle<JSObject*> aValue, uint32_t aIndex,
+    MCContext* aCx, JS::Handle<JSObject*> aValue, uint32_t aIndex,
     ErrorResult& aRv) {
   if (mSetObjectCallback) {
     MOZ_KnownLive(mSetObjectCallback)
@@ -86,7 +86,7 @@ void TestInterfaceObservableArray::OnSetObservableArrayObject(
 }
 
 void TestInterfaceObservableArray::OnDeleteObservableArrayObject(
-    JSContext* aCx, JS::Handle<JSObject*> aValue, uint32_t aIndex,
+    MCContext* aCx, JS::Handle<JSObject*> aValue, uint32_t aIndex,
     ErrorResult& aRv) {
   if (mDeleteObjectCallback) {
     MOZ_KnownLive(mDeleteObjectCallback)
@@ -138,7 +138,7 @@ bool TestInterfaceObservableArray::BooleanElementAtInternal(uint32_t aIndex,
 }
 
 void TestInterfaceObservableArray::ObjectElementAtInternal(
-    JSContext* aCx, uint32_t aIndex, JS::MutableHandle<JSObject*> aValue,
+    MCContext* aCx, uint32_t aIndex, JS::MutableHandle<JSObject*> aValue,
     ErrorResult& aRv) {
   TestInterfaceObservableArray_Binding::ObservableArrayObjectHelpers::ElementAt(
       this, aCx, aIndex, aValue, aRv);
@@ -158,7 +158,7 @@ void TestInterfaceObservableArray::BooleanReplaceElementAtInternal(
 }
 
 void TestInterfaceObservableArray::ObjectReplaceElementAtInternal(
-    JSContext* aCx, uint32_t aIndex, JS::Handle<JSObject*> aValue,
+    MCContext* aCx, uint32_t aIndex, JS::Handle<JSObject*> aValue,
     ErrorResult& aRv) {
   TestInterfaceObservableArray_Binding::ObservableArrayObjectHelpers::
       ReplaceElementAt(this, aIndex, aValue, aRv);
@@ -177,7 +177,7 @@ void TestInterfaceObservableArray::BooleanAppendElementInternal(
 }
 
 void TestInterfaceObservableArray::ObjectAppendElementInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JSObject*> aValue, ErrorResult& aRv) {
   TestInterfaceObservableArray_Binding::ObservableArrayObjectHelpers::
       AppendElement(this, aValue, aRv);
 }

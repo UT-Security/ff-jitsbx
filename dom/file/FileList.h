@@ -36,7 +36,7 @@ class FileList final : public nsISupports, public nsWrapperCache {
 
   explicit FileList(nsISupports* aParent);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() { return mParent; }

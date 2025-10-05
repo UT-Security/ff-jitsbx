@@ -3919,14 +3919,15 @@ void MediaTrackGraphImpl::InterruptJS() {
   }
 }
 
-static bool InterruptCallback(JSContext* aCx) {
+static MC::Tainted<bool> InterruptCallback(MC::Tainted<JSContext*> tCx) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   // Interrupt future calls also.
   JS_RequestInterruptCallback(aCx);
   // Stop execution.
   return false;
 }
 
-void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
+void MediaTrackGraph::NotifyJSContext(MCContext* aCx) {
   MOZ_ASSERT(OnGraphThread());
   MOZ_ASSERT(aCx);
 
@@ -3937,8 +3938,8 @@ void MediaTrackGraph::NotifyJSContext(JSContext* aCx) {
     return;
   }
   static auto InterruptCallbackCb =
-      MC::Sandbox::RegisterCallback(InterruptCallback);
-  JS_AddInterruptCallback(aCx, InterruptCallbackCb.UNSAFE_get());
+      MC::Sandbox::RegisterTaintedCallback(InterruptCallback);
+  JS_AddInterruptCallback(aCx, InterruptCallbackCb);
   impl->mJSContext = aCx;
   if (impl->mInterruptJSCalled) {
     JS_RequestInterruptCallback(aCx);

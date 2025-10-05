@@ -36,7 +36,7 @@ class HTMLDivElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLDivElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

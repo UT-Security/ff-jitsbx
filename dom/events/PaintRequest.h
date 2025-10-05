@@ -24,7 +24,7 @@ class PaintRequest final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(PaintRequest)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   Event* GetParentObject() const { return mParent; }
@@ -48,7 +48,7 @@ class PaintRequestList final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(PaintRequestList)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() { return mParent; }
 

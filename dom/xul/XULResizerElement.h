@@ -25,7 +25,7 @@ class XULResizerElement final : public nsXULElement {
 
  private:
   virtual ~XULResizerElement() = default;
-  JSObject* WrapNode(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapNode(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   MOZ_CAN_RUN_SCRIPT
   void PostHandleEventInternal(EventChainPostVisitor&);

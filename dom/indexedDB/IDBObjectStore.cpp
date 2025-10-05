@@ -24,12 +24,12 @@
 #include "KeyPath.h"
 #include "ProfilerHelpers.h"
 #include "ReportInternalError.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
-#include "js/Class.h"
-#include "js/Date.h"
-#include "js/Object.h"  // JS::GetClass
-#include "js/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
-#include "js/StructuredClone.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject
+#include "monkeycage/Class.h"
+#include "monkeycage/Date.h"
+#include "monkeycage/Object.h"  // JS::GetClass
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/Value.h"
 #include "mozilla/EndianUtils.h"
 #include "mozilla/ErrorResult.h"
@@ -75,7 +75,7 @@ Result<IndexUpdateInfo, nsresult> MakeIndexUpdateInfo(
 }  // namespace
 
 struct IDBObjectStore::StructuredCloneWriteInfo {
-  JSAutoStructuredCloneBuffer mCloneBuffer;
+  MC::SandboxHeap<JSAutoStructuredCloneBuffer> mCloneBuffer;
   nsTArray<StructuredCloneFileChild> mFiles;
   IDBDatabase* mDatabase;
   uint64_t mOffsetToKeyProp;
@@ -133,7 +133,7 @@ struct MOZ_STACK_CLASS GetAddInfoClosure final {
 };
 
 MovingNotNull<RefPtr<IDBRequest>> GenerateRequest(
-    JSContext* aCx, IDBObjectStore* aObjectStore) {
+    MCContext* aCx, IDBObjectStore* aObjectStore) {
   MOZ_ASSERT(aObjectStore);
   aObjectStore->AssertIsOnOwningThread();
 
@@ -144,16 +144,18 @@ MovingNotNull<RefPtr<IDBRequest>> GenerateRequest(
                             std::move(transaction));
 }
 
-bool StructuredCloneWriteCallback(JSContext* aCx,
-                                  JSStructuredCloneWriter* aWriter,
+MC::Tainted<bool> StructuredCloneWriteCallback(MC::Tainted<JSContext*> tCx,
+                                  MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                   JS::Handle<JSObject*> aObj,
-                                  bool* aSameProcessRequired, void* aClosure) {
-  MOZ_ASSERT(aCx);
+                                  MC::Tainted<bool*> aSameProcessRequired, MC::AppPointer<void*> aClosure) {
+  MOZ_ASSERT(tCx);
   MOZ_ASSERT(aWriter);
-  MOZ_ASSERT(aClosure);
+  MOZ_ASSERT(aClosure.UNSAFE_unverified());
 
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
+  
   auto* const cloneWriteInfo =
-      static_cast<IDBObjectStore::StructuredCloneWriteInfo*>(aClosure);
+      static_cast<IDBObjectStore::StructuredCloneWriteInfo*>(aClosure.UNSAFE_unverified());
 
   if (JS::GetClass(aObj) == IDBObjectStore::DummyPropClass()) {
     MOZ_ASSERT(!cloneWriteInfo->mOffsetToKeyProp);
@@ -234,17 +236,19 @@ bool StructuredCloneWriteCallback(JSContext* aCx,
                                                               aObj);
 }
 
-bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
-                                         JSStructuredCloneWriter* aWriter,
+MC::Tainted<bool> CopyingStructuredCloneWriteCallback(MC::Tainted<JSContext*> tCx,
+                                         MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                          JS::Handle<JSObject*> aObj,
-                                         bool* aSameProcessRequired,
-                                         void* aClosure) {
-  MOZ_ASSERT(aCx);
+                                         MC::Tainted<bool*> aSameProcessRequired,
+                                         MC::AppPointer<void*> aClosure) {
+  MOZ_ASSERT(tCx);
   MOZ_ASSERT(aWriter);
-  MOZ_ASSERT(aClosure);
+  MOZ_ASSERT(aClosure.UNSAFE_unverified());
+
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
 
   auto* const cloneInfo =
-      static_cast<IDBObjectStore::StructuredCloneInfo*>(aClosure);
+      static_cast<IDBObjectStore::StructuredCloneInfo*>(aClosure.UNSAFE_unverified());
 
   // UNWRAP_OBJECT calls might mutate this.
   MC::Rooted<JSObject*> obj(aCx, aObj);
@@ -276,9 +280,9 @@ bool CopyingStructuredCloneWriteCallback(JSContext* aCx,
                                                               aObj);
 }
 
-nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
+nsresult GetAddInfoCallback(MCContext* aCx, void* aClosure) {
   static const JSStructuredCloneCallbacks kStructuredCloneCallbacks = {
-      nullptr /* read */,          MC::Sandbox::RegisterCallback(StructuredCloneWriteCallback).UNSAFE_get() /* write */,
+      nullptr /* read */,          MC::Sandbox::RegisterTaintedCallback(StructuredCloneWriteCallback).UNSAFE_get() /* write */,
       nullptr /* reportError */,   nullptr /* readTransfer */,
       nullptr /* writeTransfer */, nullptr /* freeTransfer */,
       nullptr /* canTransfer */,   nullptr /* sabCloned */
@@ -291,7 +295,7 @@ nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
 
   data->mCloneWriteInfo.mOffsetToKeyProp = 0;
 
-  if (!data->mCloneWriteInfo.mCloneBuffer.write(aCx, data->mValue,
+  if (!data->mCloneWriteInfo.mCloneBuffer->write(aCx, data->mValue,
                                                 &kStructuredCloneCallbacks,
                                                 &data->mCloneWriteInfo)) {
     return NS_ERROR_DOM_DATA_CLONE_ERR;
@@ -303,22 +307,23 @@ nsresult GetAddInfoCallback(JSContext* aCx, void* aClosure) {
 using indexedDB::WrapAsJSObject;
 
 template <typename T>
-JSObject* WrapAsJSObject(JSContext* const aCx, T& aBaseObject) {
+JSObject* WrapAsJSObject(MCContext* const aCx, T& aBaseObject) {
   MC::Rooted<JSObject*> result(aCx);
   const bool res = WrapAsJSObject(aCx, aBaseObject, &result);
   return res ? static_cast<JSObject*>(result) : nullptr;
 }
 
-JSObject* CopyingStructuredCloneReadCallback(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+MC::Tainted<JSObject*> CopyingStructuredCloneReadCallback(
+    MC::Tainted<JSContext*> tCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aData,
-    void* aClosure) {
+    MC::AppPointer<void*> aClosure) {
   MOZ_ASSERT(aTag != SCTAG_DOM_FILE_WITHOUT_LASTMODIFIEDDATE);
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
 
   if (aTag == SCTAG_DOM_BLOB || aTag == SCTAG_DOM_FILE ||
       aTag == SCTAG_DOM_MUTABLEFILE) {
     auto* const cloneInfo =
-        static_cast<IDBObjectStore::StructuredCloneInfo*>(aClosure);
+        static_cast<IDBObjectStore::StructuredCloneInfo*>(aClosure.UNSAFE_unverified());
 
     if (aData >= cloneInfo->mFiles.Length()) {
       MOZ_ASSERT(false, "Bad index value!");
@@ -327,12 +332,14 @@ JSObject* CopyingStructuredCloneReadCallback(
 
     StructuredCloneFileChild& file = cloneInfo->mFiles[aData];
 
+    MC::Tainted<JSObject*> ret;
     switch (static_cast<StructuredCloneTags>(aTag)) {
       case SCTAG_DOM_BLOB:
         MOZ_ASSERT(file.Type() == StructuredCloneFileBase::eBlob);
         MOZ_ASSERT(!file.Blob().IsFile());
 
-        return WrapAsJSObject(aCx, file.MutableBlob());
+        ret.assign_raw_pointer(WrapAsJSObject(aCx, file.MutableBlob()));
+        return ret;
 
       case SCTAG_DOM_FILE: {
         MOZ_ASSERT(file.Type() == StructuredCloneFileBase::eBlob);
@@ -353,7 +360,8 @@ JSObject* CopyingStructuredCloneReadCallback(
           }
         }
 
-        return result;
+        ret.assign_raw_pointer(result.get());
+        return ret;
       }
 
       case SCTAG_DOM_MUTABLEFILE:
@@ -367,10 +375,10 @@ JSObject* CopyingStructuredCloneReadCallback(
     }
   }
 
-  MC::Tainted<JSStructuredCloneReader*> tReader{nullptr};
-  tReader.assign_raw_pointer(aReader);
-  return StructuredCloneHolder::ReadFullySerializableObjects(JS_SanitizeContext(aCx), tReader,
-                                                             aTag);
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(StructuredCloneHolder::ReadFullySerializableObjects(aCx, aReader,
+                                                             aTag));
+  return ret;
 }
 
 }  // namespace
@@ -411,10 +419,10 @@ RefPtr<IDBObjectStore> IDBObjectStore::Create(
 // static
 void IDBObjectStore::AppendIndexUpdateInfo(
     const int64_t aIndexID, const KeyPath& aKeyPath, const bool aMultiEntry,
-    const nsCString& aLocale, JSContext* const aCx, JS::Handle<JS::Value> aVal,
+    const nsCString& aLocale, MCContext* const aCx, JS::Handle<JS::Value> aVal,
     nsTArray<IndexUpdateInfo>* const aUpdateInfoArray, ErrorResult* const aRv) {
   // This precondition holds when `aVal` is the result of a structured clone.
-  js::AutoAssertNoContentJS noContentJS(aCx);
+  MC::SandboxStack<js::AutoAssertNoContentJS> noContentJS(aCx);
 
   if (!aMultiEntry) {
     Key key;
@@ -443,22 +451,22 @@ void IDBObjectStore::AppendIndexUpdateInfo(
     return;
   }
 
-  bool isArray;
-  if (NS_WARN_IF(!JS::IsArrayObject(aCx, val, &isArray))) {
+  MC::SandboxStack<bool> isArray;
+  if (NS_WARN_IF(!JS::IsArrayObject(aCx, val, isArray))) {
     IDB_REPORT_INTERNAL_ERR();
     aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
     return;
   }
-  if (isArray) {
+  if (*isArray.UNSAFE_unverified()) {
     MC::Rooted<JSObject*> array(aCx, &val.toObject());
-    uint32_t arrayLength;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, array, &arrayLength))) {
+    MC::SandboxStack<uint32_t> arrayLength;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, array, arrayLength))) {
       IDB_REPORT_INTERNAL_ERR();
       aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
       return;
     }
 
-    for (uint32_t arrayIndex = 0; arrayIndex < arrayLength; arrayIndex++) {
+    for (uint32_t arrayIndex = 0; arrayIndex < *arrayLength.UNSAFE_unverified(); arrayIndex++) {
       MC::Rooted<JS::PropertyKey> indexId(aCx);
       if (NS_WARN_IF(!JS_IndexToId(aCx, arrayIndex, &indexId))) {
         IDB_REPORT_INTERNAL_ERR();
@@ -466,15 +474,15 @@ void IDBObjectStore::AppendIndexUpdateInfo(
         return;
       }
 
-      bool hasOwnProperty;
+      MC::SandboxStack<bool> hasOwnProperty;
       if (NS_WARN_IF(
-              !JS_HasOwnPropertyById(aCx, array, indexId, &hasOwnProperty))) {
+              !JS_HasOwnPropertyById(aCx, array, indexId, hasOwnProperty))) {
         IDB_REPORT_INTERNAL_ERR();
         aRv->Throw(NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
         return;
       }
 
-      if (!hasOwnProperty) {
+      if (!*hasOwnProperty.UNSAFE_unverified()) {
         continue;
       }
 
@@ -536,19 +544,19 @@ void IDBObjectStore::ClearCloneReadInfo(
 
 // static
 bool IDBObjectStore::DeserializeValue(
-    JSContext* aCx, StructuredCloneReadInfoChild&& aCloneReadInfo,
+    MCContext* aCx, StructuredCloneReadInfoChild&& aCloneReadInfo,
     JS::MutableHandle<JS::Value> aValue) {
   MOZ_ASSERT(aCx);
 
-  if (!aCloneReadInfo.Data().Size()) {
+  if (!aCloneReadInfo.Data()->Size()) {
     aValue.setUndefined();
     return true;
   }
 
-  MOZ_ASSERT(!(aCloneReadInfo.Data().Size() % sizeof(uint64_t)));
+  MOZ_ASSERT(!(aCloneReadInfo.Data()->Size() % sizeof(uint64_t)));
 
   static const JSStructuredCloneCallbacks callbacks = {
-      MC::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoChild>).UNSAFE_get(),
+      MC::Sandbox::RegisterTaintedCallback(StructuredCloneReadCallback<StructuredCloneReadInfoChild>).UNSAFE_get(),
       nullptr,
       nullptr,
       nullptr,
@@ -574,7 +582,7 @@ void IDBObjectStore::AssertIsOnOwningThread() const {
 
 #endif  // DEBUG
 
-void IDBObjectStore::GetAddInfo(JSContext* aCx, ValueWrapper& aValueWrapper,
+void IDBObjectStore::GetAddInfo(MCContext* aCx, ValueWrapper& aValueWrapper,
                                 JS::Handle<JS::Value> aKeyVal,
                                 StructuredCloneWriteInfo& aCloneWriteInfo,
                                 Key& aKey,
@@ -660,7 +668,7 @@ void IDBObjectStore::GetAddInfo(JSContext* aCx, ValueWrapper& aValueWrapper,
   }
 }
 
-RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::AddOrPut(MCContext* aCx,
                                             ValueWrapper& aValueWrapper,
                                             JS::Handle<JS::Value> aKey,
                                             bool aOverwrite, bool aFromCursor,
@@ -732,7 +740,7 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
                                updateInfo.localizedValue().GetBuffer().Length();
                       });
 
-  const size_t messageSize = cloneWriteInfo.mCloneBuffer.data().Size() +
+  const size_t messageSize = cloneWriteInfo.mCloneBuffer->data()->Size() +
                              key.GetBuffer().Length() + indexUpdateInfoSize;
 
   if (messageSize > kMaxMessageSize) {
@@ -746,8 +754,8 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
 
   ObjectStoreAddPutParams commonParams;
   commonParams.objectStoreId() = Id();
-  commonParams.cloneInfo().data().data =
-      std::move(cloneWriteInfo.mCloneBuffer.data());
+  *commonParams.cloneInfo().data().data.UNSAFE_unverified() =
+      std::move(*cloneWriteInfo.mCloneBuffer->data().UNSAFE_unverified());
   commonParams.cloneInfo().offsetToKeyProp() = cloneWriteInfo.mOffsetToKeyProp;
   commonParams.key() = key;
   commonParams.indexUpdateInfos() = std::move(updateInfos);
@@ -829,7 +837,7 @@ RefPtr<IDBRequest> IDBObjectStore::AddOrPut(JSContext* aCx,
 }
 
 RefPtr<IDBRequest> IDBObjectStore::GetAllInternal(
-    bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aKey,
+    bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aKey,
     const Optional<uint32_t>& aLimit, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -899,7 +907,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetAllInternal(
   return request;
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Add(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::Add(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv) {
@@ -910,7 +918,7 @@ RefPtr<IDBRequest> IDBObjectStore::Add(JSContext* aCx,
   return AddOrPut(aCx, valueWrapper, aKey, false, /* aFromCursor */ false, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Put(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::Put(MCContext* aCx,
                                        JS::Handle<JS::Value> aValue,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv) {
@@ -921,7 +929,7 @@ RefPtr<IDBRequest> IDBObjectStore::Put(JSContext* aCx,
   return AddOrPut(aCx, valueWrapper, aKey, true, /* aFromCursor */ false, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Delete(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::Delete(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -929,7 +937,7 @@ RefPtr<IDBRequest> IDBObjectStore::Delete(JSContext* aCx,
   return DeleteInternal(aCx, aKey, /* aFromCursor */ false, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Get(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::Get(MCContext* aCx,
                                        JS::Handle<JS::Value> aKey,
                                        ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -937,7 +945,7 @@ RefPtr<IDBRequest> IDBObjectStore::Get(JSContext* aCx,
   return GetInternal(/* aKeyOnly */ false, aCx, aKey, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::GetKey(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::GetKey(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -945,7 +953,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetKey(JSContext* aCx,
   return GetInternal(/* aKeyOnly */ true, aCx, aKey, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Clear(JSContext* aCx, ErrorResult& aRv) {
+RefPtr<IDBRequest> IDBObjectStore::Clear(MCContext* aCx, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
   if (mDeletedSpec) {
@@ -981,7 +989,7 @@ RefPtr<IDBRequest> IDBObjectStore::Clear(JSContext* aCx, ErrorResult& aRv) {
   return request;
 }
 
-RefPtr<IDBRequest> IDBObjectStore::GetAll(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::GetAll(MCContext* aCx,
                                           JS::Handle<JS::Value> aKey,
                                           const Optional<uint32_t>& aLimit,
                                           ErrorResult& aRv) {
@@ -990,7 +998,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetAll(JSContext* aCx,
   return GetAllInternal(/* aKeysOnly */ false, aCx, aKey, aLimit, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::GetAllKeys(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::GetAllKeys(MCContext* aCx,
                                               JS::Handle<JS::Value> aKey,
                                               const Optional<uint32_t>& aLimit,
                                               ErrorResult& aRv) {
@@ -999,7 +1007,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetAllKeys(JSContext* aCx,
   return GetAllInternal(/* aKeysOnly */ true, aCx, aKey, aLimit, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::OpenCursor(MCContext* aCx,
                                               JS::Handle<JS::Value> aRange,
                                               IDBCursorDirection aDirection,
                                               ErrorResult& aRv) {
@@ -1009,7 +1017,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
                             aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::OpenCursor(MCContext* aCx,
                                               IDBCursorDirection aDirection,
                                               ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -1018,7 +1026,7 @@ RefPtr<IDBRequest> IDBObjectStore::OpenCursor(JSContext* aCx,
                             MC::UndefinedHandleValue(), aDirection, aRv);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::OpenKeyCursor(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::OpenKeyCursor(MCContext* aCx,
                                                  JS::Handle<JS::Value> aRange,
                                                  IDBCursorDirection aDirection,
                                                  ErrorResult& aRv) {
@@ -1110,7 +1118,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(IDBObjectStore)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(IDBObjectStore)
 
-JSObject* IDBObjectStore::WrapObject(JSContext* aCx,
+JSObject* IDBObjectStore::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return IDBObjectStore_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -1119,7 +1127,7 @@ nsIGlobalObject* IDBObjectStore::GetParentObject() const {
   return mTransaction->GetParentObject();
 }
 
-void IDBObjectStore::GetKeyPath(JSContext* aCx,
+void IDBObjectStore::GetKeyPath(MCContext* aCx,
                                 JS::MutableHandle<JS::Value> aResult,
                                 ErrorResult& aRv) {
   if (!mCachedKeyPath.isUndefined()) {
@@ -1147,7 +1155,7 @@ RefPtr<DOMStringList> IDBObjectStore::IndexNames() {
       mSpec->indexes(), [](const auto& index) { return index.name(); });
 }
 
-RefPtr<IDBRequest> IDBObjectStore::GetInternal(bool aKeyOnly, JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::GetInternal(bool aKeyOnly, MCContext* aCx,
                                                JS::Handle<JS::Value> aKey,
                                                ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -1203,7 +1211,7 @@ RefPtr<IDBRequest> IDBObjectStore::GetInternal(bool aKeyOnly, JSContext* aCx,
   return request;
 }
 
-RefPtr<IDBRequest> IDBObjectStore::DeleteInternal(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::DeleteInternal(MCContext* aCx,
                                                   JS::Handle<JS::Value> aKey,
                                                   bool aFromCursor,
                                                   ErrorResult& aRv) {
@@ -1445,7 +1453,7 @@ void IDBObjectStore::DeleteIndex(const nsAString& aName, ErrorResult& aRv) {
   transaction->DeleteIndex(this, foundId);
 }
 
-RefPtr<IDBRequest> IDBObjectStore::Count(JSContext* aCx,
+RefPtr<IDBRequest> IDBObjectStore::Count(MCContext* aCx,
                                          JS::Handle<JS::Value> aKey,
                                          ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -1496,7 +1504,7 @@ RefPtr<IDBRequest> IDBObjectStore::Count(JSContext* aCx,
 }
 
 RefPtr<IDBRequest> IDBObjectStore::OpenCursorInternal(
-    bool aKeysOnly, JSContext* aCx, JS::Handle<JS::Value> aRange,
+    bool aKeysOnly, MCContext* aCx, JS::Handle<JS::Value> aRange,
     IDBCursorDirection aDirection, ErrorResult& aRv) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aCx);
@@ -1710,14 +1718,14 @@ bool IDBObjectStore::HasValidKeyPath() const {
   return GetKeyPath().IsValid();
 }
 
-bool IDBObjectStore::ValueWrapper::Clone(JSContext* aCx) {
+bool IDBObjectStore::ValueWrapper::Clone(MCContext* aCx) {
   if (mCloned) {
     return true;
   }
 
   static const JSStructuredCloneCallbacks callbacks = {
-      MC::Sandbox::RegisterCallback(CopyingStructuredCloneReadCallback).UNSAFE_get() /* read */,
-      MC::Sandbox::RegisterCallback(CopyingStructuredCloneWriteCallback).UNSAFE_get() /* write */,
+      MC::Sandbox::RegisterTaintedCallback(CopyingStructuredCloneReadCallback).UNSAFE_get() /* read */,
+      MC::Sandbox::RegisterTaintedCallback(CopyingStructuredCloneWriteCallback).UNSAFE_get() /* write */,
       nullptr /* reportError */,
       nullptr /* readTransfer */,
       nullptr /* writeTransfer */,

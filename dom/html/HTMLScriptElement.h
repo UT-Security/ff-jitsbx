@@ -137,7 +137,7 @@ class HTMLScriptElement final : public nsGenericHTMLElement,
 
   virtual bool GetAsyncState() override { return Async(); }
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIScriptElement

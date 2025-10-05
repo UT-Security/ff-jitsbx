@@ -144,7 +144,7 @@ static nsresult ConstructJSMOrESMComponent(const nsACString& aURI,
     return NS_ERROR_FAILURE;
   }
 
-  return nsContentUtils::XPConnect()->WrapJS(MC_UNSAFE(cx), inst, NS_GET_IID(nsISupports),
+  return nsContentUtils::XPConnect()->WrapJS(cx, inst, NS_GET_IID(nsISupports),
                                              (void**)aResult);
 }
 

@@ -48,12 +48,12 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
 
   // [Transferable]
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-steps
-  MOZ_CAN_RUN_SCRIPT bool Transfer(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT bool Transfer(MCContext* aCx,
                                    UniqueMessagePortId& aPortId1,
                                    UniqueMessagePortId& aPortId2);
   // https://html.spec.whatwg.org/multipage/structured-data.html#transfer-receiving-steps
   static MOZ_CAN_RUN_SCRIPT bool ReceiveTransfer(
-      JSContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort1,
+      MCContext* aCx, nsIGlobalObject* aGlobal, MessagePort& aPort1,
       MessagePort& aPort2, JS::MutableHandle<JSObject*> aReturnObject);
 
  protected:
@@ -64,14 +64,14 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
   ~TransformStream();
 
   MOZ_CAN_RUN_SCRIPT void Initialize(
-      JSContext* aCx, Promise* aStartPromise, double aWritableHighWaterMark,
+      MCContext* aCx, Promise* aStartPromise, double aWritableHighWaterMark,
       QueuingStrategySize* aWritableSizeAlgorithm,
       double aReadableHighWaterMark,
       QueuingStrategySize* aReadableSizeAlgorithm, ErrorResult& aRv);
 
  public:
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods
@@ -100,10 +100,10 @@ class TransformStream final : public nsISupports, public nsWrapperCache {
 namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT void TransformStreamErrorWritableAndUnblockWrite(
-    JSContext* aCx, TransformStream* aStream, JS::Handle<JS::Value> aError,
+    MCContext* aCx, TransformStream* aStream, JS::Handle<JS::Value> aError,
     ErrorResult& aRv);
 
-MOZ_CAN_RUN_SCRIPT void TransformStreamError(JSContext* aCx,
+MOZ_CAN_RUN_SCRIPT void TransformStreamError(MCContext* aCx,
                                              TransformStream* aStream,
                                              JS::Handle<JS::Value> aError,
                                              ErrorResult& aRv);

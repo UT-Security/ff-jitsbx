@@ -33,7 +33,7 @@ class nsPluginArray final : public nsSupportsWeakReference,
 
   explicit nsPluginArray(nsPIDOMWindowInner* aWindow);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsMimeTypeArray* MimeTypeArray() { return mMimeTypeArray; }
@@ -83,7 +83,7 @@ class nsPluginElement final : public nsISupports, public nsWrapperCache {
 
   nsPluginArray* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // Plugin WebIDL methods

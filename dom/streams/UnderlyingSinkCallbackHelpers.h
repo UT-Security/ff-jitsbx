@@ -32,18 +32,18 @@ class UnderlyingSinkAlgorithmsBase : public nsISupports {
   NS_DECL_CYCLE_COLLECTION_CLASS(UnderlyingSinkAlgorithmsBase)
 
   MOZ_CAN_RUN_SCRIPT virtual void StartCallback(
-      JSContext* aCx, WritableStreamDefaultController& aController,
+      MCContext* aCx, WritableStreamDefaultController& aController,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) = 0;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) = 0;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> CloseCallback(
-      JSContext* aCx, ErrorResult& aRv) = 0;
+      MCContext* aCx, ErrorResult& aRv) = 0;
 
   MOZ_CAN_RUN_SCRIPT virtual already_AddRefed<Promise> AbortCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) = 0;
 
   // Implement this when you need to release underlying resources immediately
@@ -89,18 +89,18 @@ class UnderlyingSinkAlgorithms final : public UnderlyingSinkAlgorithmsBase {
   };
 
   MOZ_CAN_RUN_SCRIPT void StartCallback(
-      JSContext* aCx, WritableStreamDefaultController& aController,
+      MCContext* aCx, WritableStreamDefaultController& aController,
       JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CloseCallback(
-      JSContext* aCx, ErrorResult& aRv) override;
+      MCContext* aCx, ErrorResult& aRv) override;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> AbortCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override;
 
  protected:
@@ -127,7 +127,7 @@ class UnderlyingSinkAlgorithms final : public UnderlyingSinkAlgorithmsBase {
 // `ErrorNative()` etc. without direct controller access.
 class UnderlyingSinkAlgorithmsWrapper : public UnderlyingSinkAlgorithmsBase {
  public:
-  void StartCallback(JSContext* aCx,
+  void StartCallback(MCContext* aCx,
                      WritableStreamDefaultController& aController,
                      JS::MutableHandle<JS::Value> aRetVal,
                      ErrorResult& aRv) final {
@@ -136,20 +136,20 @@ class UnderlyingSinkAlgorithmsWrapper : public UnderlyingSinkAlgorithmsBase {
   }
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CloseCallback(
-      JSContext* aCx, ErrorResult& aRv) final;
+      MCContext* aCx, ErrorResult& aRv) final;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> AbortCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) final;
 
-  virtual already_AddRefed<Promise> CloseCallbackImpl(JSContext* aCx,
+  virtual already_AddRefed<Promise> CloseCallbackImpl(MCContext* aCx,
                                                       ErrorResult& aRv) {
     // (closeAlgorithm is optional, give null by default)
     return nullptr;
   }
 
   virtual already_AddRefed<Promise> AbortCallbackImpl(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) {
     // (abortAlgorithm is optional, give null by default)
     return nullptr;
@@ -170,13 +170,13 @@ class WritableStreamToOutput final : public UnderlyingSinkAlgorithmsWrapper,
   // Streams algorithms
 
   already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) override;
 
   // No CloseCallbackImpl() since ReleaseObjects() will call Close()
 
   already_AddRefed<Promise> AbortCallbackImpl(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override;

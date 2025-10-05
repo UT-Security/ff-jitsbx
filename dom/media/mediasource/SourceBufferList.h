@@ -49,7 +49,7 @@ class SourceBufferList final : public DOMEventTargetHelper {
 
   MediaSource* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Append a SourceBuffer and fire "addsourcebuffer" at the list.

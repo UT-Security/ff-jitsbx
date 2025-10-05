@@ -35,7 +35,7 @@ class AudioWorkletNode : public AudioNode {
 
   MessagePort* Port() const { return mPort; };
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // AudioNode methods

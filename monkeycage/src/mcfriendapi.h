@@ -17,10 +17,6 @@
 
 #include "js/PropertyDescriptor.h"
 
-inline JSObject* JS_FindCompilationScope(MCContext* cx, JS::HandleObject obj) {
-  return JS_FindCompilationScope(cx->cx_, obj);
-}
-
 inline bool JS_NondeterministicGetWeakMapKeys(MCContext* cx,
                                               JS::HandleObject obj,
                                               JS::MutableHandleObject ret) {
@@ -198,6 +194,31 @@ inline void JS_SetGrayGCRootsTracer(
   return JS_SetGrayGCRootsTracer(cx->cx_, traceOp.UNSAFE_get(), data);
 }
 
+inline JSObject* JS_FindCompilationScope(MCContext* cx, JS::HandleObject obj) {
+  return JS_FindCompilationScope(cx->cx_, obj);
+}
+
+inline JSObject* JS_NewObjectWithoutMetadata(MCContext* cx,
+                                             const JSClass* clasp,
+                                             JS::Handle<JSObject*> proto) {
+  return JS_NewObjectWithoutMetadata(cx->cx_, clasp, proto);
+}
+
+inline JSObject* JS_NewDeadWrapper(
+    MCContext* cx, JSObject* origObject = nullptr) {
+  return JS_NewDeadWrapper(cx->cx_, origObject);
+}
+
+inline JSObject* JS_CloneObject(MCContext* cx, JS::HandleObject obj,
+                                JS::HandleObject proto) {
+  return JS_CloneObject(cx->cx_, obj, proto);
+}
+
+inline bool JS_InitializePropertiesFromCompatibleNativeObject(
+    MCContext* cx, JS::HandleObject dst, JS::HandleObject src) {
+  return JS_InitializePropertiesFromCompatibleNativeObject(cx->cx_, dst, src);
+}
+
 namespace mc {
 class CompartmentTransplantCallback {
  public:
@@ -264,19 +285,40 @@ struct SingleCompartment : public CompartmentFilter {
 namespace js {
 
 inline void RemapRemoteWindowProxies(
-    JSContext* cx, mc::CompartmentTransplantCallback* callback,
+    MCContext* cx, mc::CompartmentTransplantCallback* callback,
     JS::MutableHandleObject newTarget) {
-  return RemapRemoteWindowProxies(cx, callback->inner_, newTarget);  
+  return RemapRemoteWindowProxies(cx->cx_, callback->inner_, newTarget);  
 }
 
 inline bool NukeCrossCompartmentWrappers(
-    JSContext* cx, const mc::CompartmentFilter& sourceFilter, JS::Realm* target,
+    MCContext* cx, const mc::CompartmentFilter& sourceFilter, JS::Realm* target,
     NukeReferencesToWindow nukeReferencesToWindow,
     NukeReferencesFromTarget nukeReferencesFromTarget) {
-  return NukeCrossCompartmentWrappers(cx, *sourceFilter.inner_, target,
+  return NukeCrossCompartmentWrappers(cx->cx_, *sourceFilter.inner_, target,
                                       nukeReferencesToWindow,
                                       nukeReferencesFromTarget);
 }
+
+inline bool DateIsValid(MCContext* cx, JS::HandleObject obj,
+                                      MC::Tainted<bool*> isValid) {
+  return DateIsValid(cx->cx_, obj, isValid.INTERNAL_unverified_safe());
+}
+
+inline bool DateGetMsecSinceEpoch(MCContext * cx, JS::HandleObject obj,
+                                  MC::Tainted<double*> msecSinceEpoch) {
+  return DateGetMsecSinceEpoch(cx->cx_, obj,
+                               msecSinceEpoch.INTERNAL_unverified_safe());
+}
+
+}  // namespace js
+
+namespace js {
+
+/* Implemented in vm/StructuredClone.cpp. */
+inline uint64_t GetSCOffset(MC::Tainted<JSStructuredCloneWriter*> writer) {
+  return GetSCOffset(writer.INTERNAL_unverified_safe());
+}
+
 }  // namespace js
 
 namespace mc {

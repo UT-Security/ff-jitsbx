@@ -133,11 +133,11 @@ bool CryptoBuffer::ToSECItem(PLArenaPool* aArena, SECItem* aItem) const {
   return true;
 }
 
-JSObject* CryptoBuffer::ToUint8Array(JSContext* aCx) const {
+JSObject* CryptoBuffer::ToUint8Array(MCContext* aCx) const {
   return Uint8Array::Create(aCx, Length(), Elements());
 }
 
-JSObject* CryptoBuffer::ToArrayBuffer(JSContext* aCx) const {
+JSObject* CryptoBuffer::ToArrayBuffer(MCContext* aCx) const {
   return ArrayBuffer::Create(aCx, Length(), Elements());
 }
 

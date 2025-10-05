@@ -645,7 +645,7 @@ bool Location::CallerSubsumes(nsIPrincipal* aSubjectPrincipal) {
   return subsumes;
 }
 
-JSObject* Location::WrapObject(JSContext* aCx,
+JSObject* Location::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return Location_Binding::Wrap(aCx, this, aGivenProto);
 }

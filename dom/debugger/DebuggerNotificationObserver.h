@@ -31,12 +31,12 @@ class DebuggerNotificationObserver final : public nsISupports,
   nsIGlobalObject* GetParentObject() const { return mOwnerGlobal; }
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  bool Connect(JSContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal,
+  bool Connect(MCContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal,
                ErrorResult& aRv);
-  bool Disconnect(JSContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal,
+  bool Disconnect(MCContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal,
                   ErrorResult& aRv);
 
   bool AddListener(DebuggerNotificationCallback& aHandlerFn);

@@ -75,7 +75,7 @@ bool Storage::CanUseStorage(nsIPrincipal& aSubjectPrincipal) {
 }
 
 /* virtual */
-JSObject* Storage::WrapObject(JSContext* aCx,
+JSObject* Storage::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   return Storage_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -68,12 +68,12 @@
 
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength
-#include "js/Conversions.h"
+#include "monkeycage/Array.h"  // JS::GetArrayLength
+#include "monkeycage/Conversions.h"
 #include "monkeycage/experimental/TypedData.h"  // JS_NewUint8ClampedArray, JS_GetUint8ClampedArrayData
 #include "js/HeapAPI.h"
-#include "js/PropertyAndElement.h"  // JS_GetElement
-#include "js/Warnings.h"            // JS::WarnASCII
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Warnings.h"            // JS::WarnASCII
 
 #include "mozilla/Alignment.h"
 #include "mozilla/Assertions.h"
@@ -1088,7 +1088,7 @@ CanvasRenderingContext2D::~CanvasRenderingContext2D() {
 void CanvasRenderingContext2D::Initialize() { AddShutdownObserver(); }
 
 JSObject* CanvasRenderingContext2D::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return CanvasRenderingContext2D_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -1828,7 +1828,7 @@ void CanvasRenderingContext2D::UpdateIsOpaque() {
 }
 
 NS_IMETHODIMP
-CanvasRenderingContext2D::SetContextOptions(JSContext* aCx,
+CanvasRenderingContext2D::SetContextOptions(MCContext* aCx,
                                             JS::Handle<JS::Value> aOptions,
                                             ErrorResult& aRvForDictionaryInit) {
   if (aOptions.isNullOrUndefined()) {
@@ -4841,7 +4841,7 @@ double CanvasRenderingContext2D::LineDashOffset() const {
   return CurrentState().dashOffset;
 }
 
-bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx, double aX,
+bool CanvasRenderingContext2D::IsPointInPath(MCContext* aCx, double aX,
                                              double aY,
                                              const CanvasWindingRule& aWinding,
                                              nsIPrincipal& aSubjectPrincipal) {
@@ -4849,7 +4849,7 @@ bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx, double aX,
 }
 
 bool CanvasRenderingContext2D::IsPointInPath(
-    JSContext* aCx, double aX, double aY, const CanvasWindingRule& aWinding,
+    MCContext* aCx, double aX, double aY, const CanvasWindingRule& aWinding,
     Maybe<nsIPrincipal*> aSubjectPrincipal) {
   if (!FloatValidate(aX, aY)) {
     return false;
@@ -4879,7 +4879,7 @@ bool CanvasRenderingContext2D::IsPointInPath(
   return mPath->ContainsPoint(Point(aX, aY), mTarget->GetTransform());
 }
 
-bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
+bool CanvasRenderingContext2D::IsPointInPath(MCContext* aCx,
                                              const CanvasPath& aPath, double aX,
                                              double aY,
                                              const CanvasWindingRule& aWinding,
@@ -4887,7 +4887,7 @@ bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
   return IsPointInPath(aCx, aPath, aX, aY, aWinding, Some(&aSubjectPrincipal));
 }
 
-bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
+bool CanvasRenderingContext2D::IsPointInPath(MCContext* aCx,
                                              const CanvasPath& aPath, double aX,
                                              double aY,
                                              const CanvasWindingRule& aWinding,
@@ -4907,12 +4907,12 @@ bool CanvasRenderingContext2D::IsPointInPath(JSContext* aCx,
 }
 
 bool CanvasRenderingContext2D::IsPointInStroke(
-    JSContext* aCx, double aX, double aY, nsIPrincipal& aSubjectPrincipal) {
+    MCContext* aCx, double aX, double aY, nsIPrincipal& aSubjectPrincipal) {
   return IsPointInStroke(aCx, aX, aY, Some(&aSubjectPrincipal));
 }
 
 bool CanvasRenderingContext2D::IsPointInStroke(
-    JSContext* aCx, double aX, double aY,
+    MCContext* aCx, double aX, double aY,
     Maybe<nsIPrincipal*> aSubjectPrincipal) {
   if (!FloatValidate(aX, aY)) {
     return false;
@@ -4950,12 +4950,12 @@ bool CanvasRenderingContext2D::IsPointInStroke(
 }
 
 bool CanvasRenderingContext2D::IsPointInStroke(
-    JSContext* aCx, const CanvasPath& aPath, double aX, double aY,
+    MCContext* aCx, const CanvasPath& aPath, double aX, double aY,
     nsIPrincipal& aSubjectPrincipal) {
   return IsPointInStroke(aCx, aPath, aX, aY, Some(&aSubjectPrincipal));
 }
 
-bool CanvasRenderingContext2D::IsPointInStroke(JSContext* aCx,
+bool CanvasRenderingContext2D::IsPointInStroke(MCContext* aCx,
                                                const CanvasPath& aPath,
                                                double aX, double aY,
                                                Maybe<nsIPrincipal*>) {
@@ -5712,14 +5712,14 @@ void CanvasRenderingContext2D::DrawWindow(nsGlobalWindowInner& aWindow,
 //
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
-    JSContext* aCx, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
+    MCContext* aCx, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
     nsIPrincipal& aSubjectPrincipal, ErrorResult& aError) {
   return GetImageData(aCx, aSx, aSy, aSw, aSh, Some(&aSubjectPrincipal),
                       aError);
 }
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::GetImageData(
-    JSContext* aCx, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
+    MCContext* aCx, int32_t aSx, int32_t aSy, int32_t aSw, int32_t aSh,
     Maybe<nsIPrincipal*> aSubjectPrincipal, ErrorResult& aError) {
   if (!mCanvasElement && !mDocShell && !mOffscreenCanvas) {
     NS_ERROR("No canvas element and no docshell in GetImageData!!!");
@@ -5789,7 +5789,7 @@ static IntRect ClipImageDataTransfer(IntRect& aSrc, const IntPoint& aDestOffset,
 }
 
 nsresult CanvasRenderingContext2D::GetImageDataArray(
-    JSContext* aCx, int32_t aX, int32_t aY, uint32_t aWidth, uint32_t aHeight,
+    MCContext* aCx, int32_t aX, int32_t aY, uint32_t aWidth, uint32_t aHeight,
     Maybe<nsIPrincipal*> aSubjectPrincipal, JSObject** aRetval) {
   MOZ_ASSERT(aWidth && aHeight);
 
@@ -6094,7 +6094,7 @@ void CanvasRenderingContext2D::PutImageData_explicit(
 }
 
 static already_AddRefed<ImageData> CreateImageData(
-    JSContext* aCx, CanvasRenderingContext2D* aContext, uint32_t aW,
+    MCContext* aCx, CanvasRenderingContext2D* aContext, uint32_t aW,
     uint32_t aH, ErrorResult& aError) {
   if (aW == 0) aW = 1;
   if (aH == 0) aH = 1;
@@ -6119,7 +6119,7 @@ static already_AddRefed<ImageData> CreateImageData(
 }
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::CreateImageData(
-    JSContext* aCx, int32_t aSw, int32_t aSh, ErrorResult& aError) {
+    MCContext* aCx, int32_t aSw, int32_t aSh, ErrorResult& aError) {
   if (!aSw || !aSh) {
     aError.ThrowIndexSizeError("Invalid width or height");
     return nullptr;
@@ -6131,7 +6131,7 @@ already_AddRefed<ImageData> CanvasRenderingContext2D::CreateImageData(
 }
 
 already_AddRefed<ImageData> CanvasRenderingContext2D::CreateImageData(
-    JSContext* aCx, ImageData& aImagedata, ErrorResult& aError) {
+    MCContext* aCx, ImageData& aImagedata, ErrorResult& aError) {
   return dom::CreateImageData(aCx, this, aImagedata.Width(),
                               aImagedata.Height(), aError);
 }
@@ -6275,7 +6275,7 @@ CanvasPath::CanvasPath(nsISupports* aParent,
   }
 }
 
-JSObject* CanvasPath::WrapObject(JSContext* aCx,
+JSObject* CanvasPath::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return Path2D_Binding::Wrap(aCx, this, aGivenProto);
 }

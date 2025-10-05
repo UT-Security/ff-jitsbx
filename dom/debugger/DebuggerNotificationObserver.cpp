@@ -42,12 +42,12 @@ DebuggerNotificationObserver::DebuggerNotificationObserver(
     : mEventListenerCallbacks(), mOwnerGlobal(aOwnerGlobal) {}
 
 JSObject* DebuggerNotificationObserver::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return DebuggerNotificationObserver_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 static already_AddRefed<DebuggerNotificationManager> GetManager(
-    JSContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal) {
+    MCContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal) {
   // The debuggee global here is likely a debugger-compartment cross-compartment
   // wrapper for the debuggee global object, so we need to unwrap it to get
   // the real debuggee-compartment global object.
@@ -70,7 +70,7 @@ static already_AddRefed<DebuggerNotificationManager> GetManager(
 }
 
 bool DebuggerNotificationObserver::Connect(
-    JSContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal, ErrorResult& aRv) {
   RefPtr<DebuggerNotificationManager> manager(GetManager(aCx, aDebuggeeGlobal));
 
   if (!manager) {
@@ -82,7 +82,7 @@ bool DebuggerNotificationObserver::Connect(
 }
 
 bool DebuggerNotificationObserver::Disconnect(
-    JSContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JSObject*> aDebuggeeGlobal, ErrorResult& aRv) {
   RefPtr<DebuggerNotificationManager> manager(GetManager(aCx, aDebuggeeGlobal));
 
   if (!manager) {

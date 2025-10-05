@@ -30,7 +30,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGPathElement::WrapNode(JSContext* aCx,
+JSObject* SVGPathElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGPathElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -32,7 +32,7 @@ class AudioParam final : public nsWrapperCache, public AudioParamTimeline {
 
   AudioContext* GetParentObject() const { return mNode->Context(); }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   float Value() {

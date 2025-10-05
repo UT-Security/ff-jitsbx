@@ -43,12 +43,12 @@ class StreamFilterDataEvent : public dom::Event {
     return Constructor(target, aType, aParam);
   }
 
-  void GetData(JSContext* aCx, JS::MutableHandle<JSObject*> aResult) {
+  void GetData(MCContext* aCx, JS::MutableHandle<JSObject*> aResult) {
     aResult.set(mData);
   }
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
   virtual ~StreamFilterDataEvent() { mozilla::DropJSObjects(this); }

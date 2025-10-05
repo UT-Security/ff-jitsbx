@@ -133,7 +133,7 @@ bool DOMSVGNumber::IndexIsValid() {
 }
 #endif
 
-JSObject* DOMSVGNumber::WrapObject(JSContext* aCx,
+JSObject* DOMSVGNumber::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGNumber_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -126,7 +126,7 @@ struct TeeState : public nsISupports {
     SetReadAgainForBranch2(aValue);
   }
 
-  MOZ_CAN_RUN_SCRIPT void PullCallback(JSContext* aCx, nsIGlobalObject* aGlobal,
+  MOZ_CAN_RUN_SCRIPT void PullCallback(MCContext* aCx, nsIGlobalObject* aGlobal,
                                        ErrorResult& aRv);
 
  private:

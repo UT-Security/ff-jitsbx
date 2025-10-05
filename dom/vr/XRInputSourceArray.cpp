@@ -23,7 +23,7 @@ NS_INTERFACE_MAP_END
 XRInputSourceArray::XRInputSourceArray(nsISupports* aParent)
     : mParent(aParent) {}
 
-JSObject* XRInputSourceArray::WrapObject(JSContext* aCx,
+JSObject* XRInputSourceArray::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return XRInputSourceArray_Binding::Wrap(aCx, this, aGivenProto);
 }

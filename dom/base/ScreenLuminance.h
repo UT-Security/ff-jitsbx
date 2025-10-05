@@ -32,7 +32,7 @@ class ScreenLuminance final : public nsWrapperCache {
       : mScreen(aScreen), mMin(aMin), mMax(aMax), mMaxAverage(aMaxAverage) {}
 
   nsScreen* GetParentObject() const { return mScreen; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  private:

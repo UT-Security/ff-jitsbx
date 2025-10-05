@@ -37,7 +37,7 @@ class BroadcastChannel final : public DOMEventTargetHelper {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(BroadcastChannel,
                                            DOMEventTargetHelper)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<BroadcastChannel> Constructor(
@@ -45,7 +45,7 @@ class BroadcastChannel final : public DOMEventTargetHelper {
 
   void GetName(nsAString& aName) const { aName = mChannel; }
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    ErrorResult& aRv);
 
   void Close();
@@ -69,7 +69,7 @@ class BroadcastChannel final : public DOMEventTargetHelper {
 
   void DisconnectFromOwner() override;
 
-  void DispatchError(JSContext* aCx);
+  void DispatchError(MCContext* aCx);
 
   RefPtr<BroadcastChannelChild> mActor;
 

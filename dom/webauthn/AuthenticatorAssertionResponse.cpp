@@ -50,12 +50,12 @@ AuthenticatorAssertionResponse::~AuthenticatorAssertionResponse() {
 }
 
 JSObject* AuthenticatorAssertionResponse::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return AuthenticatorAssertionResponse_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 void AuthenticatorAssertionResponse::GetAuthenticatorData(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
   if (!mAuthenticatorDataCachedObj) {
     mAuthenticatorDataCachedObj = mAuthenticatorData.ToArrayBuffer(aCx);
     if (!mAuthenticatorDataCachedObj) {
@@ -75,7 +75,7 @@ nsresult AuthenticatorAssertionResponse::SetAuthenticatorData(
 }
 
 void AuthenticatorAssertionResponse::GetSignature(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
   if (!mSignatureCachedObj) {
     mSignatureCachedObj = mSignature.ToArrayBuffer(aCx);
     if (!mSignatureCachedObj) {
@@ -94,7 +94,7 @@ nsresult AuthenticatorAssertionResponse::SetSignature(CryptoBuffer& aBuffer) {
 }
 
 void AuthenticatorAssertionResponse::GetUserHandle(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
   // Per
   // https://w3c.github.io/webauthn/#ref-for-dom-authenticatorassertionresponse-userhandle%E2%91%A0
   // this should return null if the handle is unset.

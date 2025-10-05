@@ -417,7 +417,7 @@ bool HangMonitorChild::InterruptCallback() {
 
   // Only handle the interrupt for cancelling content JS if we have a
   // non-privileged script (i.e. not part of Gecko or an add-on).
-  MC::Rooted<JSObject*> global(MC_UNSAFE(mContext), JS::CurrentGlobalOrNull(mContext));
+  MC::Rooted<JSObject*> global(mContext, JS::CurrentGlobalOrNull(mContext));
   nsIPrincipal* principal = xpc::GetObjectPrincipal(global);
   if (principal && (principal->IsSystemPrincipal() ||
                     principal->GetIsAddonOrExpandedAddonPrincipal())) {
@@ -1114,7 +1114,7 @@ HangMonitoredProcess::GetChildID(uint64_t* aChildID) {
   return NS_OK;
 }
 
-static bool InterruptCallback(JSContext* cx) {
+static MC::Tainted<bool> InterruptCallback(MC::Tainted<JSContext*> tcx) {
   AssertIsOnMainThread();
   if (HangMonitorChild* child = HangMonitorChild::Get()) {
     return child->InterruptCallback();
@@ -1225,7 +1225,7 @@ void mozilla::CreateHangMonitorChild(
   ReleaseAssertIsOnMainThread();
 
   MCContext* cx = danger::GetJSContext();
-  static auto InterruptCallbackCb = MC::Sandbox::RegisterCallback(InterruptCallback);
+  static auto InterruptCallbackCb = MC::Sandbox::RegisterTaintedCallback(InterruptCallback);
   JS_AddInterruptCallback(cx, InterruptCallbackCb);
 
   ProcessHangMonitor* monitor = ProcessHangMonitor::GetOrCreate();

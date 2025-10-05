@@ -135,7 +135,7 @@ void HTMLMetaElement::CreateAndDispatchEvent(Document&,
                                             ChromeOnlyDispatch::eYes);
 }
 
-JSObject* HTMLMetaElement::WrapNode(JSContext* aCx,
+JSObject* HTMLMetaElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLMetaElement_Binding::Wrap(aCx, this, aGivenProto);
 }

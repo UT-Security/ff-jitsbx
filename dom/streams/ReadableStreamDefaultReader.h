@@ -33,12 +33,12 @@ struct Read_ReadRequest : public ReadRequest {
 
   explicit Read_ReadRequest(Promise* aPromise) : mPromise(aPromise) {}
 
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override;
 
-  void CloseSteps(JSContext* aCx, ErrorResult& aRv) override;
+  void CloseSteps(MCContext* aCx, ErrorResult& aRv) override;
 
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                   ErrorResult& aRv) override;
 
  protected:
@@ -78,12 +78,12 @@ class ReadableStreamDefaultReader final : public ReadableStreamGenericReader,
   // the calling specification.
 
   // https://streams.spec.whatwg.org/#readablestreamdefaultreader-read-a-chunk
-  MOZ_CAN_RUN_SCRIPT void ReadChunk(JSContext* aCx, ReadRequest& aRequest,
+  MOZ_CAN_RUN_SCRIPT void ReadChunk(MCContext* aCx, ReadRequest& aRequest,
                                     ErrorResult& aRv);
 
   // IDL layer functions
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // IDL methods
@@ -108,10 +108,10 @@ void SetUpReadableStreamDefaultReader(ReadableStreamDefaultReader* aReader,
                                       ErrorResult& aRv);
 
 void ReadableStreamDefaultReaderErrorReadRequests(
-    JSContext* aCx, ReadableStreamDefaultReader* aReader,
+    MCContext* aCx, ReadableStreamDefaultReader* aReader,
     JS::Handle<JS::Value> aError, ErrorResult& aRv);
 
-void ReadableStreamDefaultReaderRelease(JSContext* aCx,
+void ReadableStreamDefaultReaderRelease(MCContext* aCx,
                                         ReadableStreamDefaultReader* aReader,
                                         ErrorResult& aRv);
 

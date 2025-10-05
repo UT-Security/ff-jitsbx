@@ -24,7 +24,7 @@ class ConstantSourceNode final : public AudioScheduledSourceNode,
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(ConstantSourceNode,
                                            AudioScheduledSourceNode)
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<ConstantSourceNode> Constructor(

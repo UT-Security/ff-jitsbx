@@ -6,10 +6,10 @@
 
 #include "WebIDLGlobalNameHash.h"
 #include "js/Class.h"
-#include "js/GCAPI.h"
-#include "js/Id.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetReservedSlot
-#include "js/Wrapper.h"
+#include "monkeycage/GCAPI.h"
+#include "monkeycage/Id.h"
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetReservedSlot
+#include "monkeycage/Wrapper.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
@@ -30,7 +30,7 @@
 namespace mozilla::dom {
 
 static JSObject* FindNamedConstructorForXray(
-    JSContext* aCx, JS::Handle<jsid> aId, const WebIDLNameTableEntry* aEntry) {
+    MCContext* aCx, JS::Handle<jsid> aId, const WebIDLNameTableEntry* aEntry) {
   JSObject* interfaceObject =
       GetPerInterfaceObjectHandle(aCx, aEntry->mConstructorId, aEntry->mCreate,
                                   /* aDefineOnGlobal = */ false);
@@ -57,7 +57,7 @@ static JSObject* FindNamedConstructorForXray(
 
 /* static */
 bool WebIDLGlobalNameHash::DefineIfEnabled(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
+    MCContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
     JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc,
     bool* aFound) {
   MOZ_ASSERT(aId.isString(), "Check for string id before calling this!");
@@ -81,7 +81,7 @@ bool WebIDLGlobalNameHash::DefineIfEnabled(
   // our property-defining.
   MC::Rooted<JSObject*> global(
       aCx,
-      js::CheckedUnwrapDynamic(aObj, aCx, /* stopAtWindowProxy = */ false));
+      mc::CheckedUnwrapDynamic(aObj, aCx, /* stopAtWindowProxy = */ false));
   if (!global) {
     return Throw(aCx, NS_ERROR_DOM_SECURITY_ERR);
   }
@@ -178,7 +178,7 @@ bool WebIDLGlobalNameHash::MayResolve(jsid aId) {
 }
 
 /* static */
-bool WebIDLGlobalNameHash::GetNames(JSContext* aCx, JS::Handle<JSObject*> aObj,
+bool WebIDLGlobalNameHash::GetNames(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                     NameType aNameType,
                                     JS::MutableHandleVector<jsid> aNames) {
   // aObj is always a Window here, so GetProtoAndIfaceCache on it is safe.
@@ -202,21 +202,18 @@ bool WebIDLGlobalNameHash::GetNames(JSContext* aCx, JS::Handle<JSObject*> aObj,
 }
 
 /* static */
-bool WebIDLGlobalNameHash::ResolveForSystemGlobal(JSContext* aCx,
+bool WebIDLGlobalNameHash::ResolveForSystemGlobal(MCContext* aCx,
                                                   JS::Handle<JSObject*> aObj,
                                                   JS::Handle<jsid> aId,
-                                                  bool* aResolvedp) {
+                                                  MC::Tainted<bool*> aResolvedp) {
   MOZ_ASSERT(JS_IsGlobalObject(aObj));
 
   // First we try to resolve standard classes.
-  MC::SandboxStack<bool> resolved{*aResolvedp};
-  if (!JS_ResolveStandardClass(aCx, aObj, aId, resolved.UNSAFE_unverified())) {
+  if (!JS_ResolveStandardClass(aCx, aObj, aId, aResolvedp)) {
     return false;
   }
 
-  *aResolvedp = *resolved.UNSAFE_unverified();
-  
-  if (*aResolvedp) {
+  if (*aResolvedp.UNSAFE_unverified()) {
     return true;
   }
 
@@ -246,7 +243,7 @@ bool WebIDLGlobalNameHash::ResolveForSystemGlobal(JSContext* aCx,
 
 /* static */
 bool WebIDLGlobalNameHash::NewEnumerateSystemGlobal(
-    JSContext* aCx, JS::Handle<JSObject*> aObj,
+    MCContext* aCx, JS::Handle<JSObject*> aObj,
     JS::MutableHandleVector<jsid> aProperties, bool aEnumerableOnly) {
   MOZ_ASSERT(JS_IsGlobalObject(aObj));
 

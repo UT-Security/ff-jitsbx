@@ -31,7 +31,7 @@ class SVGFEImageElement final : public SVGFEImageElementBase,
   explicit SVGFEImageElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
   virtual ~SVGFEImageElement();
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

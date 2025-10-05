@@ -66,7 +66,7 @@ static void LimitStringLength(nsAString& aStr, size_t aMaxFieldLength) {
  *                         (see LimitStringLength())
  * @return true upon success
  */
-static bool AddLengthLimitedStringProp(JSContext* cx,
+static bool AddLengthLimitedStringProp(MCContext* cx,
                                        JS::Handle<JSObject*> aObj,
                                        const char* aName, const nsAString& aVal,
                                        size_t aMaxFieldLength = MAX_PATH) {
@@ -77,7 +77,7 @@ static bool AddLengthLimitedStringProp(JSContext* cx,
   return JS_DefineProperty(cx, aObj, aName, jsval, JSPROP_ENUMERATE);
 };
 
-static JSString* ModuleVersionToJSString(JSContext* aCx,
+static JSString* ModuleVersionToJSString(MCContext* aCx,
                                          const ModuleVersion& aVersion) {
   auto [major, minor, patch, build] = aVersion.AsTuple();
 
@@ -110,7 +110,7 @@ static JSString* ModuleVersionToJSString(JSContext* aCx,
  * @return true if aRet was successfully assigned to the new array object.
  */
 template <typename T, typename Converter, typename... Args>
-static bool ContainerToJSArray(JSContext* cx, JS::MutableHandle<JSObject*> aRet,
+static bool ContainerToJSArray(MCContext* cx, JS::MutableHandle<JSObject*> aRet,
                                const T& aContainer,
                                Converter&& aElementConverter, Args&&... aArgs) {
   MC::Rooted<JSObject*> arr(cx, JS::NewArrayObject(cx, 0));
@@ -134,7 +134,7 @@ static bool ContainerToJSArray(JSContext* cx, JS::MutableHandle<JSObject*> aRet,
   return true;
 }
 
-static bool SerializeModule(JSContext* aCx,
+static bool SerializeModule(MCContext* aCx,
                             JS::MutableHandle<JS::Value> aElement,
                             const RefPtr<ModuleRecord>& aModule,
                             uint32_t aFlags) {
@@ -225,7 +225,7 @@ static bool SerializeModule(JSContext* aCx,
 
 /* static */
 bool UntrustedModulesDataSerializer::SerializeEvent(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aElement,
+    MCContext* aCx, JS::MutableHandle<JS::Value> aElement,
     const ProcessedModuleLoadEventContainer& aEventContainer,
     const IndexMap& aModuleIndices) {
   MOZ_ASSERT(NS_IsMainThread());
@@ -505,7 +505,7 @@ nsresult UntrustedModulesDataSerializer::AddSingleData(
 }
 
 UntrustedModulesDataSerializer::UntrustedModulesDataSerializer(
-    JSContext* aCx, uint32_t aMaxModulesArrayLen, uint32_t aFlags)
+    MCContext* aCx, uint32_t aMaxModulesArrayLen, uint32_t aFlags)
     : mCtorResult(NS_ERROR_FAILURE),
       mCx(aCx),
       mMainObj(mCx, JS_NewPlainObject(mCx)),

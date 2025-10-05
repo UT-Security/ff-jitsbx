@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Metadata)
 
 namespace mozilla::dom {
 
-JSObject* SVGMetadataElement::WrapNode(JSContext* aCx,
+JSObject* SVGMetadataElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGMetadataElement_Binding::Wrap(aCx, this, aGivenProto);
 }

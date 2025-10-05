@@ -131,7 +131,7 @@ nsISupports* MediaQueryList::GetParentObject() const {
   return ToSupports(mDocument);
 }
 
-JSObject* MediaQueryList::WrapObject(JSContext* aCx,
+JSObject* MediaQueryList::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return MediaQueryList_Binding::Wrap(aCx, this, aGivenProto);
 }

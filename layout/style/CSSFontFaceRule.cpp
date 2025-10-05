@@ -139,7 +139,7 @@ nsISupports* CSSFontFaceRuleDecl::GetParentObject() const {
   return ContainingRule()->GetParentObject();
 }
 
-JSObject* CSSFontFaceRuleDecl::WrapObject(JSContext* cx,
+JSObject* CSSFontFaceRuleDecl::WrapObject(MCContext* cx,
                                           JS::Handle<JSObject*> aGivenProto) {
   // If this changes to use a different type, remove the 'concrete'
   // annotation from CSSStyleDeclaration.
@@ -219,7 +219,7 @@ size_t CSSFontFaceRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
 }
 
 /* virtual */
-JSObject* CSSFontFaceRule::WrapObject(JSContext* aCx,
+JSObject* CSSFontFaceRule::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return CSSFontFaceRule_Binding::Wrap(aCx, this, aGivenProto);
 }

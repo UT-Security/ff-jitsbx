@@ -76,11 +76,11 @@ class FileSystemWritableFileStream final : public WritableStream {
 
   void SetWorkerRef(RefPtr<StrongWorkerRef>&& aWorkerRef);
 
-  already_AddRefed<Promise> Write(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  already_AddRefed<Promise> Write(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                   ErrorResult& aError);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface

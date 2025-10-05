@@ -13,8 +13,8 @@
 #include <utility>
 #include "blapit.h"
 #include "certt.h"
-#include "js/StructuredClone.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/TypeDecls.h"
 #include "keyhi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/ErrorResult.h"
@@ -164,7 +164,7 @@ CryptoKey::CryptoKey(nsIGlobalObject* aGlobal)
       mPrivateKey(nullptr),
       mPublicKey(nullptr) {}
 
-JSObject* CryptoKey::WrapObject(JSContext* aCx,
+JSObject* CryptoKey::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return CryptoKey_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -186,7 +186,7 @@ void CryptoKey::GetType(nsString& aRetVal) const {
 
 bool CryptoKey::Extractable() const { return (mAttributes & EXTRACTABLE); }
 
-void CryptoKey::GetAlgorithm(JSContext* cx,
+void CryptoKey::GetAlgorithm(MCContext* cx,
                              JS::MutableHandle<JSObject*> aRetVal,
                              ErrorResult& aRv) const {
   bool converted = false;
@@ -1068,8 +1068,8 @@ bool CryptoKey::PublicKeyValid(SECKEYPublicKey* aPubKey) {
   return id != CK_INVALID_HANDLE;
 }
 
-bool CryptoKey::WriteStructuredClone(JSContext* aCX,
-                                     JSStructuredCloneWriter* aWriter) const {
+bool CryptoKey::WriteStructuredClone(MCContext* aCX,
+                                     MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   // Write in five pieces
   // 1. Attributes
   // 2. Symmetric key as raw (if present)
@@ -1097,8 +1097,8 @@ bool CryptoKey::WriteStructuredClone(JSContext* aCX,
 
 // static
 already_AddRefed<CryptoKey> CryptoKey::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   // Ensure that NSS is initialized.
   if (!EnsureNSSInitializedChromeOrContent()) {
     return nullptr;

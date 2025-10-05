@@ -17,7 +17,7 @@ using namespace mozilla::gfx;
 namespace mozilla::dom {
 
 JSObject* SVGFEDiffuseLightingElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGFEDiffuseLightingElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

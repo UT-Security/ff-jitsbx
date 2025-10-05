@@ -28,7 +28,7 @@ using JS::loader::ScriptKind;
 
 namespace mozilla::dom {
 
-JSObject* HTMLScriptElement::WrapNode(JSContext* aCx,
+JSObject* HTMLScriptElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLScriptElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -35,7 +35,7 @@ class SpeechSynthesis final : public DOMEventTargetHelper,
                                            DOMEventTargetHelper)
   NS_DECL_NSIOBSERVER
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   bool Pending() const;

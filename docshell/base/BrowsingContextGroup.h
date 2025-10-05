@@ -108,7 +108,7 @@ class BrowsingContextGroup final : public nsWrapperCache {
   uint64_t Id() { return mId; }
 
   nsISupports* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // Get or create a BrowsingContextGroup with the given ID.

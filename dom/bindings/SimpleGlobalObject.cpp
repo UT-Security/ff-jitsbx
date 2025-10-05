@@ -104,7 +104,7 @@ JSObject* SimpleGlobalObject::Create(GlobalType globalType,
   {  // Scope to ensure the AutoJSAPI destructor runs before we end up returning
     AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::SandboxStack<JS::RealmOptions> options;
     options->creationOptions()

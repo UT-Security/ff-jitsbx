@@ -60,7 +60,7 @@ class WindowNamedPropertiesHandler : public BaseDOMProxyHandler {
 
   // For Create, aProto is the parent of the interface prototype object of the
   // Window we're associated with.
-  static JSObject* Create(JSContext* aCx, JS::Handle<JSObject*> aProto);
+  static JSObject* Create(MCContext* aCx, JS::Handle<JSObject*> aProto);
 };
 
 }  // namespace mozilla::dom

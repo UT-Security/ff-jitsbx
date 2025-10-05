@@ -252,7 +252,7 @@ already_AddRefed<AudioBuffer> AudioBuffer::Create(
   return buffer.forget();
 }
 
-JSObject* AudioBuffer::WrapObject(JSContext* aCx,
+JSObject* AudioBuffer::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return AudioBuffer_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -271,7 +271,7 @@ static void CopyChannelDataToFloat(const AudioChunk& aChunk, uint32_t aChannel,
   }
 }
 
-bool AudioBuffer::RestoreJSChannelData(JSContext* aJSContext) {
+bool AudioBuffer::RestoreJSChannelData(MCContext* aJSContext) {
   nsPIDOMWindowInner* global = GetParentObject();
   if (!global || !global->AsGlobal()->HasJSGlobal()) {
     return false;
@@ -351,7 +351,7 @@ void AudioBuffer::CopyFromChannel(const Float32Array& aDestination,
   PodZero(aDestination.Data(), count);
 }
 
-void AudioBuffer::CopyToChannel(JSContext* aJSContext,
+void AudioBuffer::CopyToChannel(MCContext* aJSContext,
                                 const Float32Array& aSource,
                                 uint32_t aChannelNumber, uint32_t aBufferOffset,
                                 ErrorResult& aRv) {
@@ -384,7 +384,7 @@ void AudioBuffer::CopyToChannel(JSContext* aJSContext,
   PodMove(channelData + aBufferOffset, aSource.Data(), count);
 }
 
-void AudioBuffer::GetChannelData(JSContext* aJSContext, uint32_t aChannel,
+void AudioBuffer::GetChannelData(MCContext* aJSContext, uint32_t aChannel,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) {
   if (aChannel >= NumberOfChannels()) {
@@ -402,7 +402,7 @@ void AudioBuffer::GetChannelData(JSContext* aJSContext, uint32_t aChannel,
 }
 
 already_AddRefed<ThreadSharedFloatArrayBufferList>
-AudioBuffer::StealJSArrayDataIntoSharedChannels(JSContext* aJSContext) {
+AudioBuffer::StealJSArrayDataIntoSharedChannels(MCContext* aJSContext) {
   nsPIDOMWindowInner* global = GetParentObject();
   if (!global || !global->AsGlobal()->HasJSGlobal()) {
     return nullptr;
@@ -429,13 +429,13 @@ AudioBuffer::StealJSArrayDataIntoSharedChannels(JSContext* aJSContext) {
       new ThreadSharedFloatArrayBufferList(mJSChannels.Length());
   for (uint32_t i = 0; i < mJSChannels.Length(); ++i) {
     MC::Rooted<JSObject*> arrayBufferView(aJSContext, mJSChannels[i]);
-    bool isSharedMemory;
+    MC::SandboxStack<bool> isSharedMemory;
     MC::Rooted<JSObject*> arrayBuffer(
         aJSContext, JS_GetArrayBufferViewBuffer(aJSContext, arrayBufferView,
-                                                &isSharedMemory));
+                                                isSharedMemory));
     // The channel data arrays should all have originated in
     // RestoreJSChannelData, where they are created unshared.
-    MOZ_ASSERT(!isSharedMemory);
+    MOZ_ASSERT(!*isSharedMemory.UNSAFE_unverified());
     auto stolenData = arrayBuffer
                           ? static_cast<float*>(JS::StealArrayBufferContents(
                                 aJSContext, arrayBuffer))
@@ -456,7 +456,7 @@ AudioBuffer::StealJSArrayDataIntoSharedChannels(JSContext* aJSContext) {
 }
 
 const AudioChunk& AudioBuffer::GetThreadSharedChannelsForRate(
-    JSContext* aJSContext) {
+    MCContext* aJSContext) {
   if (mSharedChannels.IsNull()) {
     // mDuration is set in constructor
     RefPtr<ThreadSharedFloatArrayBufferList> buffer =

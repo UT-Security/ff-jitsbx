@@ -114,7 +114,7 @@ already_AddRefed<nsISupports> AnonymousContent::GetCanvasContext(
 }
 
 already_AddRefed<Animation> AnonymousContent::SetAnimationForElement(
-    JSContext* aContext, const nsAString& aElementId,
+    MCContext* aContext, const nsAString& aElementId,
     JS::Handle<JSObject*> aKeyframes,
     const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
     ErrorResult& aRv) {
@@ -169,7 +169,7 @@ Element* AnonymousContent::GetElementById(const nsAString& aElementId) {
   return nullptr;
 }
 
-bool AnonymousContent::WrapObject(JSContext* aCx,
+bool AnonymousContent::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto,
                                   JS::MutableHandle<JSObject*> aReflector) {
   return AnonymousContent_Binding::Wrap(aCx, this, aGivenProto, aReflector);

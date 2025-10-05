@@ -74,7 +74,7 @@ JSExecutionContext::JSExecutionContext(
       mScriptUsed(false)
 #endif
 {
-  MOZ_ASSERT(MC_UNSAFE(aCx) == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(aCx == nsContentUtils::GetCurrentJSContext());
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(CycleCollectedJSContext::Get() &&
              CycleCollectedJSContext::Get()->MicroTaskLevel());

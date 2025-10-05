@@ -36,7 +36,7 @@ class ConsoleUtils final {
 
   static ConsoleUtils* GetOrCreate();
 
-  JSObject* GetOrCreateSandbox(JSContext* aCx);
+  JSObject* GetOrCreateSandbox(MCContext* aCx);
 
   void ReportForServiceWorkerScopeInternal(const nsAString& aScope,
                                            const nsAString& aMessage,

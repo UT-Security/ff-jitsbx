@@ -410,7 +410,7 @@ class MediaStreamTrack : public DOMEventTargetHelper, public SupportsWeakPtr {
                                            DOMEventTargetHelper)
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   virtual AudioStreamTrack* AsAudioStreamTrack() { return nullptr; }

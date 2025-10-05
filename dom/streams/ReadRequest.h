@@ -25,12 +25,12 @@ struct ReadRequest : public nsISupports,
   NS_DECL_CYCLE_COLLECTION_CLASS(ReadRequest)
 
   // PipeToReadRequest::ChunkSteps can run script, for example.
-  MOZ_CAN_RUN_SCRIPT virtual void ChunkSteps(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT virtual void ChunkSteps(MCContext* aCx,
                                              JS::Handle<JS::Value> aChunk,
                                              ErrorResult& aRv) = 0;
-  MOZ_CAN_RUN_SCRIPT virtual void CloseSteps(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT virtual void CloseSteps(MCContext* aCx,
                                              ErrorResult& aRv) = 0;
-  virtual void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+  virtual void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                           ErrorResult& aRv) = 0;
 
  protected:

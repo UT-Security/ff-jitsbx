@@ -31,7 +31,7 @@ class PerformanceObserverEntryList final : public nsISupports,
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS

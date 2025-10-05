@@ -6,9 +6,9 @@
 
 #include "mozilla/dom/ByteStreamHelpers.h"
 #include "mozilla/dom/ReadableByteStreamController.h"
-#include "js/ArrayBuffer.h"
-#include "js/RootingAPI.h"
-#include "js/experimental/TypedData.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/experimental/TypedData.h"
 #include "mozilla/ErrorResult.h"
 
 namespace mozilla::dom {
@@ -16,7 +16,7 @@ namespace mozilla::dom {
 // https://streams.spec.whatwg.org/#transfer-array-buffer
 // As some parts of the specifcation want to use the abrupt completion value,
 // this function may leave a pending exception if it returns nullptr.
-JSObject* TransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject) {
+JSObject* TransferArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObject) {
   MOZ_ASSERT(JS::IsArrayBufferObject(aObject));
 
   // Step 1.
@@ -38,7 +38,7 @@ JSObject* TransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject) {
 }
 
 // https://streams.spec.whatwg.org/#can-transfer-array-buffer
-bool CanTransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject,
+bool CanTransferArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObject,
                             ErrorResult& aRv) {
   // Step 1. Assert: Type(O) is Object. (Implicit in types)
   // Step 2. Assert: O has an [[ArrayBufferData]] internal slot.
@@ -54,25 +54,25 @@ bool CanTransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject,
   // Step 5. Return true.
   // Note: WASM memories are the only buffers that would qualify
   // as having an undefined [[ArrayBufferDetachKey]],
-  bool hasDefinedArrayBufferDetachKey = false;
+  MC::SandboxStack<bool> hasDefinedArrayBufferDetachKey = false;
   if (!JS::HasDefinedArrayBufferDetachKey(aCx, aObject,
-                                          &hasDefinedArrayBufferDetachKey)) {
+                                          hasDefinedArrayBufferDetachKey)) {
     aRv.StealExceptionFromJSContext(aCx);
     return false;
   }
-  return !hasDefinedArrayBufferDetachKey;
+  return !*hasDefinedArrayBufferDetachKey.UNSAFE_unverified();
 }
 
 // https://streams.spec.whatwg.org/#abstract-opdef-cloneasuint8array
-JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject) {
+JSObject* CloneAsUint8Array(MCContext* aCx, JS::Handle<JSObject*> aObject) {
   // Step 1. Assert: Type(O) is Object. Implicit.
   // Step 2. Assert: O has an [[ViewedArrayBuffer]] internal slot.
   MOZ_ASSERT(JS_IsArrayBufferViewObject(aObject));
 
   // Step 3. Assert: !IsDetachedBuffer(O.[[ViewedArrayBuffer]]) is false.
-  bool isShared;
+  MC::SandboxStack<bool> isShared;
   MC::Rooted<JSObject*> viewedArrayBuffer(
-      aCx, JS_GetArrayBufferViewBuffer(aCx, aObject, &isShared));
+      aCx, JS_GetArrayBufferViewBuffer(aCx, aObject, isShared));
   if (!viewedArrayBuffer) {
     return nullptr;
   }

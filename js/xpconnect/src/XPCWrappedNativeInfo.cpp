@@ -123,7 +123,7 @@ XPCNativeInterface::~XPCNativeInterface() {
 
 // static
 already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetNewOrUsed(
-    JSContext* cx, const nsIID* iid) {
+    MCContext* cx, const nsIID* iid) {
   RefPtr<XPCNativeInterface> iface;
   XPCJSRuntime* rt = XPCJSRuntime::Get();
 
@@ -148,7 +148,7 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetNewOrUsed(
 
 // static
 already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetNewOrUsed(
-    JSContext* cx, const nsXPTInterfaceInfo* info) {
+    MCContext* cx, const nsXPTInterfaceInfo* info) {
   RefPtr<XPCNativeInterface> iface;
 
   XPCJSRuntime* rt = XPCJSRuntime::Get();
@@ -169,21 +169,21 @@ already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetNewOrUsed(
 
 // static
 already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetNewOrUsed(
-    JSContext* cx, const char* name) {
+    MCContext* cx, const char* name) {
   const nsXPTInterfaceInfo* info = nsXPTInterfaceInfo::ByName(name);
   return info ? GetNewOrUsed(cx, info) : nullptr;
 }
 
 // static
 already_AddRefed<XPCNativeInterface> XPCNativeInterface::GetISupports(
-    JSContext* cx) {
+    MCContext* cx) {
   // XXX We should optimize this to cache this common XPCNativeInterface.
   return GetNewOrUsed(cx, &NS_GET_IID(nsISupports));
 }
 
 // static
 already_AddRefed<XPCNativeInterface> XPCNativeInterface::NewInstance(
-    JSContext* cx, IID2NativeInterfaceMap* aMap,
+    MCContext* cx, IID2NativeInterfaceMap* aMap,
     const nsXPTInterfaceInfo* aInfo) {
   // XXX Investigate lazy init? This is a problem given the
   // 'placement new' scheme - we need to at least know how big to make
@@ -428,7 +428,7 @@ XPCNativeSet::~XPCNativeSet() {
 }
 
 // static
-already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(JSContext* cx,
+already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(MCContext* cx,
                                                           const nsIID* iid) {
   RefPtr<XPCNativeInterface> iface = XPCNativeInterface::GetNewOrUsed(cx, iid);
   if (!iface) {
@@ -464,7 +464,7 @@ already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(JSContext* cx,
 
 // static
 already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(
-    JSContext* cx, nsIClassInfo* classInfo) {
+    MCContext* cx, nsIClassInfo* classInfo) {
   XPCJSRuntime* xpcrt = XPCJSRuntime::Get();
   ClassInfo2NativeSetMap* map = xpcrt->GetClassInfo2NativeSetMap();
   if (!map) {
@@ -546,7 +546,7 @@ void XPCNativeSet::ClearCacheEntryForClassInfo(nsIClassInfo* classInfo) {
 
 // static
 already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(
-    JSContext* cx, XPCNativeSetKey* key) {
+    MCContext* cx, XPCNativeSetKey* key) {
   NativeSetMap* map = XPCJSRuntime::Get()->GetNativeSetMap();
   if (!map) {
     return nullptr;
@@ -578,7 +578,7 @@ already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(
 
 // static
 already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(
-    JSContext* cx, XPCNativeSet* firstSet, XPCNativeSet* secondSet,
+    MCContext* cx, XPCNativeSet* firstSet, XPCNativeSet* secondSet,
     bool preserveFirstSetOrder) {
   // Figure out how many interfaces we'll need in the new set.
   uint32_t uniqueCount = firstSet->mInterfaceCount;
@@ -627,7 +627,7 @@ already_AddRefed<XPCNativeSet> XPCNativeSet::GetNewOrUsed(
 
 // static
 already_AddRefed<XPCNativeSet> XPCNativeSet::NewInstance(
-    JSContext* cx, nsTArray<RefPtr<XPCNativeInterface>>&& array) {
+    MCContext* cx, nsTArray<RefPtr<XPCNativeInterface>>&& array) {
   if (array.Length() == 0) {
     return nullptr;
   }

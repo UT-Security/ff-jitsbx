@@ -38,25 +38,25 @@ void SetCanRecordExtended(bool b);
 
 // JS API Endpoints.
 nsresult Add(const nsACString& aName, JS::Handle<JS::Value> aVal,
-             JSContext* aCx);
+             MCContext* aCx);
 nsresult Set(const nsACString& aName, JS::Handle<JS::Value> aVal,
-             JSContext* aCx);
+             MCContext* aCx);
 nsresult SetMaximum(const nsACString& aName, JS::Handle<JS::Value> aVal,
-                    JSContext* aCx);
+                    MCContext* aCx);
 nsresult CreateSnapshots(unsigned int aDataset, bool aClearScalars,
-                         JSContext* aCx, uint8_t optional_argc,
+                         MCContext* aCx, uint8_t optional_argc,
                          JS::MutableHandle<JS::Value> aResult, bool aFilterTest,
                          const nsACString& aStoreName);
 
 // Keyed JS API Endpoints.
 nsresult Add(const nsACString& aName, const nsAString& aKey,
-             JS::Handle<JS::Value> aVal, JSContext* aCx);
+             JS::Handle<JS::Value> aVal, MCContext* aCx);
 nsresult Set(const nsACString& aName, const nsAString& aKey,
-             JS::Handle<JS::Value> aVal, JSContext* aCx);
+             JS::Handle<JS::Value> aVal, MCContext* aCx);
 nsresult SetMaximum(const nsACString& aName, const nsAString& aKey,
-                    JS::Handle<JS::Value> aVal, JSContext* aCx);
+                    JS::Handle<JS::Value> aVal, MCContext* aCx);
 nsresult CreateKeyedSnapshots(unsigned int aDataset, bool aClearScalars,
-                              JSContext* aCx, uint8_t optional_argc,
+                              MCContext* aCx, uint8_t optional_argc,
                               JS::MutableHandle<JS::Value> aResult,
                               bool aFilterTest, const nsACString& aStoreName);
 
@@ -78,7 +78,7 @@ void SetMaximum(mozilla::Telemetry::ScalarID aId, const nsAString& aKey,
 
 nsresult RegisterScalars(const nsACString& aCategoryName,
                          JS::Handle<JS::Value> aScalarData, bool aBuiltin,
-                         JSContext* cx);
+                         MCContext* cx);
 
 // Event Summary
 void SummarizeEvent(const nsCString& aUniqueEventName,
@@ -117,9 +117,9 @@ nsresult GetAllStores(mozilla::Telemetry::Common::StringHashSet& set);
 // on the disk and vice-versa.
 nsresult SerializeScalars(mozilla::JSONWriter& aWriter);
 nsresult SerializeKeyedScalars(mozilla::JSONWriter& aWriter);
-nsresult DeserializePersistedScalars(JSContext* aCx,
+nsresult DeserializePersistedScalars(MCContext* aCx,
                                      JS::Handle<JS::Value> aData);
-nsresult DeserializePersistedKeyedScalars(JSContext* aCx,
+nsresult DeserializePersistedKeyedScalars(MCContext* aCx,
                                           JS::Handle<JS::Value> aData);
 // Mark deserialization as in progress.
 // After this, all scalar operations are recorded into the pending operations

@@ -269,7 +269,7 @@ class Selection final : public nsSupportsWeakReference,
 
   nsresult StopAutoScrollTimer();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods

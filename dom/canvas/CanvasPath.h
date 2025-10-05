@@ -29,7 +29,7 @@ class CanvasPath final : public nsWrapperCache {
 
   nsISupports* GetParentObject() { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<CanvasPath> Constructor(const GlobalObject& aGlobal);

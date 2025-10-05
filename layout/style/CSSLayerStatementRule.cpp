@@ -60,7 +60,7 @@ size_t CSSLayerStatementRule::SizeOfIncludingThis(
   return aMallocSizeOf(this);
 }
 
-JSObject* CSSLayerStatementRule::WrapObject(JSContext* aCx,
+JSObject* CSSLayerStatementRule::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return CSSLayerStatementRule_Binding::Wrap(aCx, this, aGivenProto);
 }

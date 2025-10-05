@@ -34,18 +34,18 @@ class TestInterfaceObservableArray final : public nsISupports,
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(TestInterfaceObservableArray)
 
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceObservableArray> Constructor(
       const GlobalObject& aGlobal, const ObservableArrayCallbacks& aCallbacks,
       ErrorResult& rv);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void OnSetObservableArrayObject(JSContext* aCx, JS::Handle<JSObject*> aValue,
+  void OnSetObservableArrayObject(MCContext* aCx, JS::Handle<JSObject*> aValue,
                                   uint32_t aIndex, ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void OnDeleteObservableArrayObject(JSContext* aCx,
+  void OnDeleteObservableArrayObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aValue,
                                      uint32_t aIndex, ErrorResult& aRv);
 
@@ -66,7 +66,7 @@ class TestInterfaceObservableArray final : public nsISupports,
                                         uint32_t aIndex, ErrorResult& aRv);
 
   bool BooleanElementAtInternal(uint32_t aIndex, ErrorResult& aRv);
-  void ObjectElementAtInternal(JSContext* aCx, uint32_t aIndex,
+  void ObjectElementAtInternal(MCContext* aCx, uint32_t aIndex,
                                JS::MutableHandle<JSObject*> aValue,
                                ErrorResult& aRv);
   already_AddRefed<TestInterfaceObservableArray> InterfaceElementAtInternal(
@@ -74,7 +74,7 @@ class TestInterfaceObservableArray final : public nsISupports,
 
   void BooleanReplaceElementAtInternal(uint32_t aIndex, bool aValue,
                                        ErrorResult& aRv);
-  void ObjectReplaceElementAtInternal(JSContext* aCx, uint32_t aIndex,
+  void ObjectReplaceElementAtInternal(MCContext* aCx, uint32_t aIndex,
                                       JS::Handle<JSObject*> aValue,
                                       ErrorResult& aRv);
   void InterfaceReplaceElementAtInternal(uint32_t aIndex,
@@ -82,7 +82,7 @@ class TestInterfaceObservableArray final : public nsISupports,
                                          ErrorResult& aRv);
 
   void BooleanAppendElementInternal(bool aValue, ErrorResult& aRv);
-  void ObjectAppendElementInternal(JSContext* aCx, JS::Handle<JSObject*> aValue,
+  void ObjectAppendElementInternal(MCContext* aCx, JS::Handle<JSObject*> aValue,
                                    ErrorResult& aRv);
   void InterfaceAppendElementInternal(TestInterfaceObservableArray& aValue,
                                       ErrorResult& aRv);

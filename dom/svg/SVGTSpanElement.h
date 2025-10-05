@@ -23,7 +23,7 @@ class SVGTSpanElement final : public SVGTSpanElementBase {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGTSpanElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   // nsIContent interface

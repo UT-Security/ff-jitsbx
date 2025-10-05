@@ -10,7 +10,7 @@
 #include <cstdint>
 #include "ErrorList.h"
 #include "ScopedNSSTypes.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "keythi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
@@ -29,7 +29,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -104,13 +104,13 @@ class CryptoKey final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL methods
   void GetType(nsString& aRetVal) const;
   bool Extractable() const;
-  void GetAlgorithm(JSContext* cx, JS::MutableHandle<JSObject*> aRetVal,
+  void GetAlgorithm(MCContext* cx, JS::MutableHandle<JSObject*> aRetVal,
                     ErrorResult& aRv) const;
   void GetUsages(nsTArray<nsString>& aRetVal) const;
 
@@ -175,11 +175,11 @@ class CryptoKey final : public nsISupports, public nsWrapperCache {
   static bool PublicKeyValid(SECKEYPublicKey* aPubKey);
 
   // Structured clone methods use these to clone keys
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
   static already_AddRefed<CryptoKey> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  private:
   ~CryptoKey() = default;

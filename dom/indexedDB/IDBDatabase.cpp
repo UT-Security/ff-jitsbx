@@ -474,7 +474,7 @@ void IDBDatabase::DeleteObjectStore(const nsAString& aName, ErrorResult& aRv) {
 }
 
 RefPtr<IDBTransaction> IDBDatabase::Transaction(
-    JSContext* aCx, const StringOrStringSequence& aStoreNames,
+    MCContext* aCx, const StringOrStringSequence& aStoreNames,
     IDBTransactionMode aMode, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -911,7 +911,7 @@ void IDBDatabase::LastRelease() {
   }
 }
 
-JSObject* IDBDatabase::WrapObject(JSContext* aCx,
+JSObject* IDBDatabase::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return IDBDatabase_Binding::Wrap(aCx, this, aGivenProto);
 }

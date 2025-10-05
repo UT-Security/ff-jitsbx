@@ -217,7 +217,7 @@ class WorkerPrivate final
   NS_INLINE_DECL_REFCOUNTING(WorkerPrivate)
 
   static already_AddRefed<WorkerPrivate> Constructor(
-      JSContext* aCx, const nsAString& aScriptURL, bool aIsChromeWorker,
+      MCContext* aCx, const nsAString& aScriptURL, bool aIsChromeWorker,
       WorkerKind aWorkerKind, RequestCredentials aRequestCredentials,
       const WorkerType aWorkerType, const nsAString& aWorkerName,
       const nsACString& aServiceWorkerScope, WorkerLoadInfo* aLoadInfo,
@@ -228,7 +228,7 @@ class WorkerPrivate final
   enum LoadGroupBehavior { InheritLoadGroup, OverrideLoadGroup };
 
   static nsresult GetLoadInfo(
-      JSContext* aCx, nsPIDOMWindowInner* aWindow, WorkerPrivate* aParent,
+      MCContext* aCx, nsPIDOMWindowInner* aWindow, WorkerPrivate* aParent,
       const nsAString& aScriptURL, const enum WorkerType& aWorkerType,
       const RequestCredentials& aCredentials, bool aIsChromeWorker,
       LoadGroupBehavior aLoadGroupBehavior, WorkerKind aWorkerKind,
@@ -345,11 +345,11 @@ class WorkerPrivate final
   void RunLoopNeverRan();
 
   MOZ_CAN_RUN_SCRIPT
-  void DoRunLoop(JSContext* aCx);
+  void DoRunLoop(MCContext* aCx);
 
   void UnrootGlobalScopes();
 
-  bool InterruptCallback(JSContext* aCx);
+  bool InterruptCallback(MCContext* aCx);
 
   bool IsOnCurrentThread();
 
@@ -371,11 +371,11 @@ class WorkerPrivate final
 
   void RemoveChildWorker(WorkerPrivate& aChildWorker);
 
-  void PostMessageToParent(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageToParent(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                            const Sequence<JSObject*>& aTransferable,
                            ErrorResult& aRv);
 
-  void PostMessageToParentMessagePort(JSContext* aCx,
+  void PostMessageToParentMessagePort(MCContext* aCx,
                                       JS::Handle<JS::Value> aMessage,
                                       const Sequence<JSObject*>& aTransferable,
                                       ErrorResult& aRv);
@@ -393,30 +393,30 @@ class WorkerPrivate final
 
   bool NotifyInternal(WorkerStatus aStatus);
 
-  void ReportError(JSContext* aCx, JS::ConstUTF8CharsZ aToStringResult,
-                   JSErrorReport* aReport);
+  void ReportError(MCContext* aCx, JS::ConstUTF8CharsZ aToStringResult,
+                   MC::Tainted<JSErrorReport*> aReport);
 
   static void ReportErrorToConsole(const char* aMessage);
 
   static void ReportErrorToConsole(const char* aMessage,
                                    const nsTArray<nsString>& aParams);
 
-  int32_t SetTimeout(JSContext* aCx, TimeoutHandler* aHandler, int32_t aTimeout,
+  int32_t SetTimeout(MCContext* aCx, TimeoutHandler* aHandler, int32_t aTimeout,
                      bool aIsInterval, Timeout::Reason aReason,
                      ErrorResult& aRv);
 
   void ClearTimeout(int32_t aId, Timeout::Reason aReason);
 
-  MOZ_CAN_RUN_SCRIPT bool RunExpiredTimeouts(JSContext* aCx);
+  MOZ_CAN_RUN_SCRIPT bool RunExpiredTimeouts(MCContext* aCx);
 
-  bool RescheduleTimeoutTimer(JSContext* aCx);
+  bool RescheduleTimeoutTimer(MCContext* aCx);
 
-  void UpdateContextOptionsInternal(JSContext* aCx,
+  void UpdateContextOptionsInternal(MCContext* aCx,
                                     const JS::ContextOptions& aContextOptions);
 
   void UpdateLanguagesInternal(const nsTArray<nsString>& aLanguages);
 
-  void UpdateJSWorkerMemoryParameterInternal(JSContext* aCx, JSGCParamKey key,
+  void UpdateJSWorkerMemoryParameterInternal(MCContext* aCx, JSGCParamKey key,
                                              Maybe<uint32_t> aValue);
 
   enum WorkerRanOrNot { WorkerNeverRan = 0, WorkerRan };
@@ -426,13 +426,13 @@ class WorkerPrivate final
   bool CollectRuntimeStats(JS::RuntimeStats* aRtStats, bool aAnonymize);
 
 #ifdef JS_GC_ZEAL
-  void UpdateGCZealInternal(JSContext* aCx, uint8_t aGCZeal,
+  void UpdateGCZealInternal(MCContext* aCx, uint8_t aGCZeal,
                             uint32_t aFrequency);
 #endif
 
-  void SetLowMemoryStateInternal(JSContext* aCx, bool aState);
+  void SetLowMemoryStateInternal(MCContext* aCx, bool aState);
 
-  void GarbageCollectInternal(JSContext* aCx, bool aShrinking,
+  void GarbageCollectInternal(MCContext* aCx, bool aShrinking,
                               bool aCollectChildren);
 
   void CycleCollectInternal(bool aCollectChildren);
@@ -456,7 +456,7 @@ class WorkerPrivate final
     return mFetchHandlerWasAdded;
   }
 
-  JSContext* GetJSContext() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
+  MCContext* GetJSContext() const MOZ_NO_THREAD_SAFETY_ANALYSIS {
     // mJSContext is only modified on the worker thread, so workerthread code
     // can safely read it without a lock
     AssertIsOnWorkerThread();
@@ -509,15 +509,15 @@ class WorkerPrivate final
 
   void EndCTypesCallback();
 
-  bool ConnectMessagePort(JSContext* aCx, UniqueMessagePortId& aIdentifier);
+  bool ConnectMessagePort(MCContext* aCx, UniqueMessagePortId& aIdentifier);
 
-  WorkerGlobalScope* GetOrCreateGlobalScope(JSContext* aCx);
+  WorkerGlobalScope* GetOrCreateGlobalScope(MCContext* aCx);
 
-  WorkerDebuggerGlobalScope* CreateDebuggerGlobalScope(JSContext* aCx);
+  WorkerDebuggerGlobalScope* CreateDebuggerGlobalScope(MCContext* aCx);
 
-  bool RegisterBindings(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  bool RegisterBindings(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
-  bool RegisterDebuggerBindings(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  bool RegisterDebuggerBindings(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
   bool OnLine() const {
     auto data = mWorkerThreadAccessible.Access();
@@ -1337,7 +1337,7 @@ class WorkerPrivate final
 
   // Touched on multiple threads, protected with mMutex. Only modified on the
   // worker thread
-  JSContext* mJSContext MOZ_GUARDED_BY(mMutex);
+  MCContext* mJSContext MOZ_GUARDED_BY(mMutex);
   // mThread is only modified on the Worker thread, before calling DoRunLoop
   RefPtr<WorkerThread> mThread MOZ_GUARDED_BY(mMutex);
   // mPRThread is only modified on another thread in ScheduleWorker(), and is
@@ -1488,7 +1488,7 @@ class WorkerPrivate final
 
   class MOZ_RAII AutoPushEventLoopGlobal {
    public:
-    AutoPushEventLoopGlobal(WorkerPrivate* aWorkerPrivate, JSContext* aCx);
+    AutoPushEventLoopGlobal(WorkerPrivate* aWorkerPrivate, MCContext* aCx);
     ~AutoPushEventLoopGlobal();
 
    private:

@@ -28,8 +28,9 @@ namespace storage {
 ////////////////////////////////////////////////////////////////////////////////
 //// Global Functions
 
-static bool stepFunc(JSContext* aCtx, uint32_t argc, JS::Value* _vp) {
-  JS::CallArgs args = CallArgsFromVp(argc, _vp);
+static MC::Tainted<bool> stepFunc(MC::Tainted<JSContext*> tCtx, uint32_t argc, MC::Tainted<JS::Value*> _vp) {
+  MCContext* aCtx = tCtx.copy_and_verify_address(MC_VerifyContext);
+  JS::CallArgs args = CallArgsFromVp(argc, _vp.UNSAFE_unverified());
 
   nsCOMPtr<nsIXPConnect> xpc(nsIXPConnect::XPConnect());
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
@@ -80,7 +81,7 @@ static bool stepFunc(JSContext* aCtx, uint32_t argc, JS::Value* _vp) {
 ////////////////////////////////////////////////////////////////////////////////
 //// StatementJSHelper
 
-nsresult StatementJSHelper::getRow(Statement* aStatement, JSContext* aCtx,
+nsresult StatementJSHelper::getRow(Statement* aStatement, MCContext* aCtx,
                                    JSObject* aScopeObj, JS::Value* _row) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -123,7 +124,7 @@ nsresult StatementJSHelper::getRow(Statement* aStatement, JSContext* aCtx,
   return NS_OK;
 }
 
-nsresult StatementJSHelper::getParams(Statement* aStatement, JSContext* aCtx,
+nsresult StatementJSHelper::getParams(Statement* aStatement, MCContext* aCtx,
                                       JSObject* aScopeObj, JS::Value* _params) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -209,7 +210,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, MCContext* aCtx,
 
   JSLinearString* str = id.toLinearString();
   if (::JS_LinearStringEqualsLiteral(str, "step")) {
-    static auto stepFuncCb = MC::Sandbox::RegisterCallback(stepFunc);
+    static auto stepFuncCb = MC::Sandbox::RegisterTaintedCallback(stepFunc);
     *_retval = ::JS_DefineFunction(aCtx, scope, "step", stepFuncCb, 0,
                                    JSPROP_RESOLVING) != nullptr;
     *aResolvedp = true;
@@ -219,7 +220,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, MCContext* aCtx,
   MC::Rooted<JS::Value> val(aCtx);
 
   if (::JS_LinearStringEqualsLiteral(str, "row")) {
-    nsresult rv = getRow(stmt, MC_UNSAFE(aCtx), scope, val.address());
+    nsresult rv = getRow(stmt, aCtx, scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *aResolvedp = true;
@@ -227,7 +228,7 @@ StatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper, MCContext* aCtx,
   }
 
   if (::JS_LinearStringEqualsLiteral(str, "params")) {
-    nsresult rv = getParams(stmt, MC_UNSAFE(aCtx), scope, val.address());
+    nsresult rv = getParams(stmt, aCtx, scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *aResolvedp = true;

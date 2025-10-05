@@ -91,7 +91,7 @@ class DOMSVGAnimatedTransformList final : public nsWrapperCache {
 
   // WebIDL
   SVGElement* GetParentObject() const { return mElement; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   // These aren't weak refs because mBaseVal and mAnimVal are weak
   already_AddRefed<DOMSVGTransformList> BaseVal();

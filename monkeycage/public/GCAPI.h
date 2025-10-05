@@ -18,6 +18,7 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/SandboxStack.h"
+#include "monkeycage/Tainted.h"
 
 struct MCExternalStringCallbacks {
  public:
@@ -57,15 +58,18 @@ struct MCExternalStringCallbacks {
 };
 
 inline JSString* JS_NewExternalString(
-    JSContext* cx, const char16_t* chars, size_t length,
+    MCContext* cx, const char16_t* chars, size_t length,
     const MCExternalStringCallbacks* callbacks) {
-    return JS_NewExternalString(cx, chars, length, callbacks->inner_);
+  return JS_NewExternalString(cx->cx_, chars, length, callbacks->inner_);
 }
 
 inline JSString* JS_NewMaybeExternalString(
-    JSContext* cx, const char16_t* chars, size_t length,
-    const MCExternalStringCallbacks* callbacks, bool* allocatedExternal) {
-    return JS_NewMaybeExternalString(cx, chars, length, callbacks->inner_, allocatedExternal);
+    MCContext* cx, const char16_t* chars, size_t length,
+    const MCExternalStringCallbacks* callbacks,
+    MC::Tainted<bool*> allocatedExternal) {
+  return JS_NewMaybeExternalString(
+      cx->cx_, chars, length, callbacks->inner_,
+      allocatedExternal.INTERNAL_unverified_safe());
 }
 
 inline const MCExternalStringCallbacks* MC_GetExternalStringCallbacks(
@@ -113,6 +117,10 @@ inline bool IncrementalGCHasForegroundWork(MCContext* cx) {
 
 inline void FinishIncrementalGC(MCContext* cx, GCReason reason) {
     return FinishIncrementalGC(cx->cx_, reason);
+}
+
+inline void AbortIncrementalGC(MCContext* cx) {
+  return AbortIncrementalGC(cx->cx_);
 }
 
 inline MC::SandboxCallback<GCSliceCallback> SetGCSliceCallback(

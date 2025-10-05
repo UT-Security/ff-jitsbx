@@ -109,7 +109,7 @@ SVGElement::~SVGElement() {
   OwnerDoc()->UnscheduleSVGForPresAttrEvaluation(this);
 }
 
-JSObject* SVGElement::WrapNode(JSContext* aCx,
+JSObject* SVGElement::WrapNode(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return SVGElement_Binding::Wrap(aCx, this, aGivenProto);
 }

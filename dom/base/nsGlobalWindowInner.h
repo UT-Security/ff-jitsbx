@@ -143,13 +143,13 @@ class IDBFactory;
 }  // namespace mozilla
 
 extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
-    JSContext* aCx, nsGlobalWindowInner* aWindow,
+    MCContext* aCx, nsGlobalWindowInner* aWindow,
     mozilla::dom::Function& aFunction,
     const mozilla::dom::Sequence<JS::Value>& aArguments,
     mozilla::ErrorResult& aError);
 
 extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
-    JSContext* aCx, nsGlobalWindowInner* aWindow, const nsAString& aExpression,
+    MCContext* aCx, nsGlobalWindowInner* aWindow, const nsAString& aExpression,
     mozilla::ErrorResult& aError);
 
 extern const JSClass* OuterWindowProxyClass();
@@ -238,7 +238,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return GetWrapper();
   }
@@ -408,15 +408,15 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> IndexedGetter(
       uint32_t aIndex);
 
-  static bool IsPrivilegedChromeWindow(JSContext*, JSObject* aObj);
+  static bool IsPrivilegedChromeWindow(MCContext*, JSObject* aObj);
 
-  static bool IsRequestIdleCallbackEnabled(JSContext* aCx, JSObject*);
+  static bool IsRequestIdleCallbackEnabled(MCContext* aCx, JSObject*);
 
-  static bool DeviceSensorsEnabled(JSContext*, JSObject*);
+  static bool DeviceSensorsEnabled(MCContext*, JSObject*);
 
-  static bool ContentPropertyEnabled(JSContext* aCx, JSObject*);
+  static bool ContentPropertyEnabled(MCContext* aCx, JSObject*);
 
-  static bool CachesEnabled(JSContext* aCx, JSObject*);
+  static bool CachesEnabled(MCContext* aCx, JSObject*);
 
   bool DoResolve(
       MCContext* aCx, JS::Handle<JSObject*> aObj, JS::Handle<jsid> aId,
@@ -499,7 +499,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
     KillSlowScript,
     KillScriptGlobal
   };
-  SlowScriptResponse ShowSlowScriptDialog(JSContext* aCx,
+  SlowScriptResponse ShowSlowScriptDialog(MCContext* aCx,
                                           const nsString& aAddonId,
                                           const double aDuration);
 
@@ -594,7 +594,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   nsISupports* GetParentObject() { return nullptr; }
 
-  static JSObject* CreateNamedPropertiesObject(JSContext* aCx,
+  static JSObject* CreateNamedPropertiesObject(MCContext* aCx,
                                                JS::Handle<JSObject*> aProto);
 
   mozilla::dom::WindowProxyHolder Window();
@@ -637,9 +637,9 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
  public:
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> GetOpenerWindow(
       mozilla::ErrorResult& aError);
-  void GetOpener(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval,
+  void GetOpener(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval,
                  mozilla::ErrorResult& aError);
-  void SetOpener(JSContext* aCx, JS::Handle<JS::Value> aOpener,
+  void SetOpener(MCContext* aCx, JS::Handle<JS::Value> aOpener,
                  mozilla::ErrorResult& aError);
   void GetEvent(mozilla::dom::OwningEventOrUndefined& aRetval);
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> GetParent(
@@ -652,7 +652,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       mozilla::ErrorResult& aError);
   int16_t Orientation(mozilla::dom::CallerType aCallerType);
 
-  already_AddRefed<mozilla::dom::Console> GetConsole(JSContext* aCx,
+  already_AddRefed<mozilla::dom::Console> GetConsole(MCContext* aCx,
                                                      mozilla::ErrorResult& aRv);
 
   // https://w3c.github.io/webappsec-secure-contexts/#dom-window-issecurecontext
@@ -692,24 +692,24 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   MOZ_CAN_RUN_SCRIPT mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder>
   PrintPreview(nsIPrintSettings*, nsIWebProgressListener*, nsIDocShell*,
                mozilla::ErrorResult&);
-  void PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMoz(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                       const nsAString& aTargetOrigin,
                       const mozilla::dom::Sequence<JSObject*>& aTransfer,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
-  void PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMoz(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                       const mozilla::dom::WindowPostMessageOptions& aOptions,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, mozilla::dom::Function& aFunction,
+  int32_t SetTimeout(MCContext* aCx, mozilla::dom::Function& aFunction,
                      int32_t aTimeout,
                      const mozilla::dom::Sequence<JS::Value>& aArguments,
                      mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeout(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetTimeout(MCContext* aCx, const nsAString& aHandler,
                      int32_t aTimeout,
                      const mozilla::dom::Sequence<JS::Value>& /* unused */,
                      mozilla::ErrorResult& aError);
@@ -718,13 +718,13 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void ClearTimeout(int32_t aHandle);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, mozilla::dom::Function& aFunction,
+  int32_t SetInterval(MCContext* aCx, mozilla::dom::Function& aFunction,
                       const int32_t aTimeout,
                       const mozilla::dom::Sequence<JS::Value>& aArguments,
                       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetInterval(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetInterval(MCContext* aCx, const nsAString& aHandler,
                       const int32_t aTimeout,
                       const mozilla::dom::Sequence<JS::Value>& /* unused */,
                       mozilla::ErrorResult& aError);
@@ -734,7 +734,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void GetOrigin(nsAString& aOrigin);
 
   MOZ_CAN_RUN_SCRIPT
-  void ReportError(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ReportError(MCContext* aCx, JS::Handle<JS::Value> aError,
                    mozilla::dom::CallerType aCallerType,
                    mozilla::ErrorResult& aRv);
 
@@ -745,7 +745,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   mozilla::dom::Storage* GetSessionStorage(mozilla::ErrorResult& aError);
   mozilla::dom::Storage* GetLocalStorage(mozilla::ErrorResult& aError);
   mozilla::dom::Selection* GetSelection(mozilla::ErrorResult& aError);
-  mozilla::dom::IDBFactory* GetIndexedDB(JSContext* aCx,
+  mozilla::dom::IDBFactory* GetIndexedDB(MCContext* aCx,
                                          mozilla::ErrorResult& aError);
   already_AddRefed<nsICSSDeclaration> GetComputedStyle(
       mozilla::dom::Element& aElt, const nsAString& aPseudoElt,
@@ -778,16 +778,16 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void ScrollByPages(int32_t numPages,
                      const mozilla::dom::ScrollOptions& aOptions);
   void MozScrollSnap();
-  void GetInnerWidth(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetInnerWidth(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                      mozilla::dom::CallerType aCallerType,
                      mozilla::ErrorResult& aError);
-  void SetInnerWidth(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetInnerWidth(MCContext* aCx, JS::Handle<JS::Value> aValue,
                      mozilla::dom::CallerType aCallerType,
                      mozilla::ErrorResult& aError);
-  void GetInnerHeight(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetInnerHeight(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                       mozilla::dom::CallerType aCallerType,
                       mozilla::ErrorResult& aError);
-  void SetInnerHeight(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetInnerHeight(MCContext* aCx, JS::Handle<JS::Value> aValue,
                       mozilla::dom::CallerType aCallerType,
                       mozilla::ErrorResult& aError);
   double GetScrollX(mozilla::ErrorResult& aError);
@@ -812,28 +812,28 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
     return GetScreenY(aCallerType, aError);
   }
 
-  void GetScreenX(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetScreenX(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
-  void SetScreenX(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetScreenX(MCContext* aCx, JS::Handle<JS::Value> aValue,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
-  void GetScreenY(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetScreenY(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
-  void SetScreenY(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetScreenY(MCContext* aCx, JS::Handle<JS::Value> aValue,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
-  void GetOuterWidth(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetOuterWidth(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                      mozilla::dom::CallerType aCallerType,
                      mozilla::ErrorResult& aError);
-  void SetOuterWidth(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetOuterWidth(MCContext* aCx, JS::Handle<JS::Value> aValue,
                      mozilla::dom::CallerType aCallerType,
                      mozilla::ErrorResult& aError);
-  void GetOuterHeight(JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+  void GetOuterHeight(MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
                       mozilla::dom::CallerType aCallerType,
                       mozilla::ErrorResult& aError);
-  void SetOuterHeight(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void SetOuterHeight(MCContext* aCx, JS::Handle<JS::Value> aValue,
                       mozilla::dom::CallerType aCallerType,
                       mozilla::ErrorResult& aError);
 
@@ -844,7 +844,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   MOZ_CAN_RUN_SCRIPT
   void CancelAnimationFrame(int32_t aHandle, mozilla::ErrorResult& aError);
 
-  uint32_t RequestIdleCallback(JSContext* aCx,
+  uint32_t RequestIdleCallback(MCContext* aCx,
                                mozilla::dom::IdleRequestCallback& aCallback,
                                const mozilla::dom::IdleRequestOptions& aOptions,
                                mozilla::ErrorResult& aError);
@@ -892,14 +892,14 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   void SetDidFireDocElemInserted() { mDidFireDocElemInserted = true; }
 
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenDialog(
-      JSContext* aCx, const nsAString& aUrl, const nsAString& aName,
+      MCContext* aCx, const nsAString& aUrl, const nsAString& aName,
       const nsAString& aOptions,
       const mozilla::dom::Sequence<JS::Value>& aExtraArgument,
       mozilla::ErrorResult& aError);
   void UpdateCommands(const nsAString& anAction, mozilla::dom::Selection* aSel,
                       int16_t aReason);
 
-  void GetContent(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetContent(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                   mozilla::dom::CallerType aCallerType,
                   mozilla::ErrorResult& aError);
 
@@ -914,7 +914,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       const mozilla::dom::ImageBitmapOptions& aOptions,
       mozilla::ErrorResult& aRv);
 
-  void StructuredClone(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void StructuredClone(MCContext* aCx, JS::Handle<JS::Value> aValue,
                        const mozilla::dom::StructuredSerializeOptions& aOptions,
                        JS::MutableHandle<JS::Value> aRetval,
                        mozilla::ErrorResult& aError);
@@ -945,21 +945,21 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       mozilla::dom::PromiseDocumentFlushedCallback& aCallback,
       mozilla::ErrorResult& aError);
 
-  void GetReturnValueOuter(JSContext* aCx,
+  void GetReturnValueOuter(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aReturnValue,
                            nsIPrincipal& aSubjectPrincipal,
                            mozilla::ErrorResult& aError);
-  void GetReturnValue(JSContext* aCx, JS::MutableHandle<JS::Value> aReturnValue,
+  void GetReturnValue(MCContext* aCx, JS::MutableHandle<JS::Value> aReturnValue,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
-  void SetReturnValueOuter(JSContext* aCx, JS::Handle<JS::Value> aReturnValue,
+  void SetReturnValueOuter(MCContext* aCx, JS::Handle<JS::Value> aReturnValue,
                            nsIPrincipal& aSubjectPrincipal,
                            mozilla::ErrorResult& aError);
-  void SetReturnValue(JSContext* aCx, JS::Handle<JS::Value> aReturnValue,
+  void SetReturnValue(MCContext* aCx, JS::Handle<JS::Value> aReturnValue,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
 
-  void GetInterface(JSContext* aCx, JS::Handle<JS::Value> aIID,
+  void GetInterface(MCContext* aCx, JS::Handle<JS::Value> aIID,
                     JS::MutableHandle<JS::Value> aRetval,
                     mozilla::ErrorResult& aError);
 
@@ -1001,7 +1001,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // Redefine the property called aPropName on this window object to be a value
   // property with the value aValue, much like we would do for a [Replaceable]
   // property in IDL.
-  void RedefineProperty(JSContext* aCx, const char* aPropName,
+  void RedefineProperty(MCContext* aCx, const char* aPropName,
                         JS::Handle<JS::Value> aValue,
                         mozilla::ErrorResult& aError);
 
@@ -1015,13 +1015,13 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
       T, mozilla::dom::CallerType aCallerType, mozilla::ErrorResult&);
 
   template <typename T>
-  void GetReplaceableWindowCoord(JSContext* aCx, WindowCoordGetter<T> aGetter,
+  void GetReplaceableWindowCoord(MCContext* aCx, WindowCoordGetter<T> aGetter,
                                  JS::MutableHandle<JS::Value> aRetval,
                                  mozilla::dom::CallerType aCallerType,
                                  mozilla::ErrorResult& aError);
 
   template <typename T>
-  void SetReplaceableWindowCoord(JSContext* aCx, WindowCoordSetter<T> aSetter,
+  void SetReplaceableWindowCoord(MCContext* aCx, WindowCoordSetter<T> aSetter,
                                  JS::Handle<JS::Value> aValue,
                                  const char* aPropName,
                                  mozilla::dom::CallerType aCallerType,
@@ -1066,7 +1066,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // Initialize state that depends on the document.  By this point, mDoc should
   // be set correctly and have us set as its script global object.
-  void InitDocumentDependentState(JSContext* aCx);
+  void InitDocumentDependentState(MCContext* aCx);
 
   nsresult EnsureClientSource();
   nsresult ExecutionReady();
@@ -1134,12 +1134,12 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   // |interval| is in milliseconds.
   MOZ_CAN_RUN_SCRIPT
   int32_t SetTimeoutOrInterval(
-      JSContext* aCx, mozilla::dom::Function& aFunction, int32_t aTimeout,
+      MCContext* aCx, mozilla::dom::Function& aFunction, int32_t aTimeout,
       const mozilla::dom::Sequence<JS::Value>& aArguments, bool aIsInterval,
       mozilla::ErrorResult& aError);
 
   MOZ_CAN_RUN_SCRIPT
-  int32_t SetTimeoutOrInterval(JSContext* aCx, const nsAString& aHandler,
+  int32_t SetTimeoutOrInterval(MCContext* aCx, const nsAString& aHandler,
                                int32_t aTimeout, bool aIsInterval,
                                mozilla::ErrorResult& aError);
 
@@ -1205,7 +1205,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   virtual void UpdateParentTarget() override;
 
   // Clear the document-dependent slots on our JS wrapper.  Inner windows only.
-  void ClearDocumentDependentSlots(JSContext* aCx);
+  void ClearDocumentDependentSlots(MCContext* aCx);
 
   // Inner windows only.
   already_AddRefed<mozilla::dom::StorageEvent> CloneStorageEvent(
@@ -1220,7 +1220,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   nsGlobalWindowInner* InnerForSetTimeoutOrInterval(
       mozilla::ErrorResult& aError);
 
-  void PostMessageMoz(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMoz(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                       const nsAString& aTargetOrigin,
                       JS::Handle<JS::Value> aTransfer,
                       nsIPrincipal& aSubjectPrincipal,
@@ -1232,7 +1232,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
 
   // Helper for resolving the components shim.
   bool ResolveComponentsShim(
-      JSContext* aCx, JS::Handle<JSObject*> aObj,
+      MCContext* aCx, JS::Handle<JSObject*> aObj,
       JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> aDesc);
 
   // nsPIDOMWindow{Inner,Outer} should be able to see these helper methods.
@@ -1344,7 +1344,7 @@ class nsGlobalWindowInner final : public mozilla::dom::EventTarget,
   }
 
   virtual JS::loader::ModuleLoaderBase* GetModuleLoader(
-      JSContext* aCx) override;
+      MCContext* aCx) override;
 
  private:
   RefPtr<mozilla::dom::ContentMediaController> mContentMediaController;

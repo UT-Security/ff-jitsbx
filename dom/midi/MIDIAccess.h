@@ -57,7 +57,7 @@ class MIDIAccess final : public DOMEventTargetHelper,
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_INHERITED(MIDIAccess,
                                                          DOMEventTargetHelper)
  public:
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // Return map of MIDI Input Ports

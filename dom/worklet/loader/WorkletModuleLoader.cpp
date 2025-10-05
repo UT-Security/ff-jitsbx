@@ -118,9 +118,9 @@ nsresult WorkletModuleLoader::CompileFetchedModule(
     return NS_ERROR_FAILURE;
   }
 
-  JS::InstantiateOptions instantiateOptions(*aOptions.UNSAFE_unverified());
+  MC::SandboxStack<JS::InstantiateOptions> instantiateOptions(*aOptions);
   aModuleScript.set(
-      JS::InstantiateModuleStencil(MC_UNSAFE(aCx), instantiateOptions, stencil));
+      JS::InstantiateModuleStencil(aCx, instantiateOptions, stencil));
   return aModuleScript ? NS_OK : NS_ERROR_FAILURE;
 }
 
@@ -194,7 +194,7 @@ AddModuleThrowErrorRunnable::Run() {
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> error(cx);
   ErrorResult result;
   Read(global, cx, &error, result);
@@ -238,7 +238,7 @@ void WorkletModuleLoader::OnModuleLoadComplete(ModuleLoadRequest* aRequest) {
       return;
     }
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JS::Value> error(cx, aRequest->mModuleScript->ErrorToRethrow());
     RefPtr<AddModuleThrowErrorRunnable> runnable =
         new AddModuleThrowErrorRunnable(handlerRef);

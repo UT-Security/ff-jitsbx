@@ -33,7 +33,7 @@ class Report final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<Report> Clone();
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }

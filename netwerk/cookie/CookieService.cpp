@@ -803,7 +803,7 @@ CookieService::Add(const nsACString& aHost, const nsACString& aPath,
                    MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -886,7 +886,7 @@ CookieService::Remove(const nsACString& aHost, const nsACString& aName,
                       JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx) {
   OriginAttributes attrs;
 
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -2140,11 +2140,11 @@ CookieService::CookieExists(const nsACString& aHost, const nsACString& aPath,
                             const nsACString& aName,
                             JS::Handle<JS::Value> aOriginAttributes,
                             MCContext* aCx, bool* aFoundCookie) {
-  NS_ENSURE_ARG_POINTER(MC_UNSAFE(aCx));
+  NS_ENSURE_ARG_POINTER(aCx);
   NS_ENSURE_ARG_POINTER(aFoundCookie);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   return CookieExistsNative(aHost, aPath, aName, &attrs, aFoundCookie);
@@ -2240,7 +2240,7 @@ CookieService::GetCookiesFromHost(const nsACString& aHost,
   NS_ENSURE_SUCCESS(rv, rv);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

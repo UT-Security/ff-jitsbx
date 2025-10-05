@@ -18,7 +18,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(SVGMatrix, mTransform)
 
 DOMSVGTransform* SVGMatrix::GetParentObject() const { return mTransform; }
 
-JSObject* SVGMatrix::WrapObject(JSContext* aCx,
+JSObject* SVGMatrix::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return SVGMatrix_Binding::Wrap(aCx, this, aGivenProto);
 }

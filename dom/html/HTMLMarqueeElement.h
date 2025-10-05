@@ -117,7 +117,7 @@ class HTMLMarqueeElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLMarqueeElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  private:

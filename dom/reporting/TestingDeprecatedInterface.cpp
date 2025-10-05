@@ -37,7 +37,7 @@ TestingDeprecatedInterface::TestingDeprecatedInterface(nsIGlobalObject* aGlobal)
 TestingDeprecatedInterface::~TestingDeprecatedInterface() = default;
 
 JSObject* TestingDeprecatedInterface::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestingDeprecatedInterface_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -20,10 +20,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <utility>
-#include "js/Exception.h"
-#include "js/RootingAPI.h"
-#include "js/Wrapper.h"
-#include "jsapi.h"
+#include "monkeycage/Exception.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Wrapper.h"
+#include "mcapi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -46,7 +46,7 @@ class JSAutoRealm;
 class JSObject;
 class JSTracer;
 class nsCycleCollectionTraversalCallback;
-struct JSContext;
+struct MCContext;
 
 namespace JS {
 class AutoSetAsyncStackForNewCalls;
@@ -84,7 +84,7 @@ class CallbackObject : public nsISupports {
   // stack, which is later used as an async parent when the callback
   // is invoked.  aCx can be nullptr, in which case no stack is
   // captured.
-  explicit CallbackObject(JSContext* aCx, JS::Handle<JSObject*> aCallback,
+  explicit CallbackObject(MCContext* aCx, JS::Handle<JSObject*> aCallback,
                           JS::Handle<JSObject*> aCallbackGlobal,
                           nsIGlobalObject* aIncumbentGlobal) {
     if (aCx && JS::IsAsyncStackCaptureEnabledForRealm(aCx)) {
@@ -128,7 +128,7 @@ class CallbackObject : public nsISupports {
 
   // Like CallbackOrNull(), but will return a new dead proxy object in the
   // caller's realm if the callback is null.
-  JSObject* Callback(JSContext* aCx);
+  JSObject* Callback(MCContext* aCx);
 
   JSObject* GetCreationStack() const { return mCreationStack; }
 
@@ -292,7 +292,7 @@ class CallbackObject : public nsISupports {
   // switch to HoldJSObjects and do other slow JS-related init work we might do.
   // If we have more than one owner, this will HoldJSObjects and do said slow
   // init work; otherwise it will just forget all our JS references.
-  void FinishSlowJSInitIfMoreThanOneOwner(JSContext* aCx);
+  void FinishSlowJSInitIfMoreThanOneOwner(MCContext* aCx);
 
   // Struct used as a way to force a CallbackObject constructor to not call
   // HoldJSObjects. We're putting it here so that CallbackObject subclasses will
@@ -355,7 +355,7 @@ class CallbackObject : public nsISupports {
               bool aIsJSImplementedWebIDL = false);
     MOZ_CAN_RUN_SCRIPT ~CallSetup();
 
-    JSContext* GetContext() const { return mCx; }
+    MCContext* GetContext() const { return mCx; }
 
     // Safe to call this after the constructor has run without throwing on the
     // ErrorResult it was handed.
@@ -368,7 +368,7 @@ class CallbackObject : public nsISupports {
     bool ShouldRethrowException(JS::Handle<JS::Value> aException);
 
     // Members which can go away whenever
-    JSContext* mCx;
+    MCContext* mCx;
 
     // Caller's realm. This will only have a sensible value if
     // mExceptionHandling == eRethrowContentExceptions.
@@ -384,13 +384,13 @@ class CallbackObject : public nsISupports {
 
     // Members which are used to set the async stack.
     Maybe<MC::Rooted<JSObject*>> mAsyncStack;
-    Maybe<JS::AutoSetAsyncStackForNewCalls> mAsyncStackSetter;
+    MC::SandboxStack<Maybe<JS::AutoSetAsyncStackForNewCalls>> mAsyncStackSetter;
 
     // Can't construct a JSAutoRealm without a JSContext either.  Also,
     // Put mAr after mAutoEntryScript so that we exit the realm before we
     // pop the script settings stack. Though in practice we'll often manually
     // order those two things.
-    Maybe<JSAutoRealm> mAr;
+    MC::SandboxStack<Maybe<JSAutoRealm>> mAr;
 
     // Our BindingCallContext.  This is a Maybe so we can avoid constructing it
     // until after we have a JSContext to construct it with.
@@ -611,7 +611,7 @@ template <typename T>
 class MOZ_RAII MOZ_IS_SMARTPTR_TO_REFCOUNTED RootedCallback
     : public MC::Rooted<T> {
  public:
-  explicit RootedCallback(JSContext* cx) : MC::Rooted<T>(cx), mCx(cx) {}
+  explicit RootedCallback(MCContext* cx) : MC::Rooted<T>(cx), mCx(cx) {}
 
   // We need a way to make assignment from pointers (how we're normally used)
   // work.
@@ -627,7 +627,7 @@ class MOZ_RAII MOZ_IS_SMARTPTR_TO_REFCOUNTED RootedCallback
   // Codegen relies on being able to do CallbackOrNull() and Callback() on us.
   JSObject* CallbackOrNull() const { return this->get()->CallbackOrNull(); }
 
-  JSObject* Callback(JSContext* aCx) const {
+  JSObject* Callback(MCContext* aCx) const {
     return this->get()->Callback(aCx);
   }
 
@@ -655,7 +655,7 @@ class MOZ_RAII MOZ_IS_SMARTPTR_TO_REFCOUNTED RootedCallback
     return aOwningNonNull.isInitialized();
   }
 
-  JSContext* mCx;
+  MCContext* mCx;
 };
 
 }  // namespace dom

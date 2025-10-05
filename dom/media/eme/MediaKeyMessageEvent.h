@@ -38,7 +38,7 @@ class MediaKeyMessageEvent final : public Event {
  public:
   virtual MediaKeyMessageEvent* AsMediaKeyMessageEvent();
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<MediaKeyMessageEvent> Constructor(
@@ -51,7 +51,7 @@ class MediaKeyMessageEvent final : public Event {
 
   MediaKeyMessageType MessageType() const { return mMessageType; }
 
-  void GetMessage(JSContext* cx, JS::MutableHandle<JSObject*> aMessage,
+  void GetMessage(MCContext* cx, JS::MutableHandle<JSObject*> aMessage,
                   ErrorResult& aRv);
 
  private:

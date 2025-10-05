@@ -23,7 +23,7 @@ nsresult NS_NewXMLElement(
   return NS_OK;
 }
 
-JSObject* nsXMLElement::WrapNode(JSContext* aCx,
+JSObject* nsXMLElement::WrapNode(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return Element_Binding::Wrap(aCx, this, aGivenProto);
 }

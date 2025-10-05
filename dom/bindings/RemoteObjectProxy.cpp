@@ -127,7 +127,7 @@ const char* RemoteObjectProxyBase::className(
 }
 
 void RemoteObjectProxyBase::GetOrCreateProxyObject(
-    JSContext* aCx, void* aNative, const JSClass* aClasp,
+    MCContext* aCx, void* aNative, const JSClass* aClasp,
     JS::Handle<JSObject*> aTransplantTo, JS::MutableHandle<JSObject*> aProxy,
     bool& aNewObjectCreated) const {
   xpc::CompartmentPrivate* priv =
@@ -156,11 +156,11 @@ void RemoteObjectProxyBase::GetOrCreateProxyObject(
     return;
   }
 
-  bool success;
-  if (!JS_SetImmutablePrototype(aCx, obj, &success)) {
+  MC::SandboxStack<bool> success;
+  if (!JS_SetImmutablePrototype(aCx, obj, success)) {
     return;
   }
-  MOZ_ASSERT(success);
+  MOZ_ASSERT(*success.UNSAFE_unverified());
 
   aNewObjectCreated = true;
 

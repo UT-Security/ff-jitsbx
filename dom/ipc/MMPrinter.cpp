@@ -64,7 +64,7 @@ void MMPrinter::PrintImpl(char const* aLocation, const nsAString& aMsg,
   // scopes, we need to do this in a system scope, or attempting to deserialize
   // certain privileged objects will fail.
   MOZ_ALWAYS_TRUE(jsapi.Init(xpc::PrivilegedJunkScope()));
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   ipc::StructuredCloneData data;
   ipc::UnpackClonedMessageData(aData, data);

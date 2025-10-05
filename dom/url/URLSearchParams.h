@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include "ErrorList.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
@@ -24,7 +24,7 @@
 class JSObject;
 class nsIGlobalObject;
 class nsIInputStream;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -61,7 +61,7 @@ class URLSearchParams final : public nsISupports, public nsWrapperCache {
   // WebIDL methods
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<URLSearchParams> Constructor(
@@ -97,20 +97,20 @@ class URLSearchParams final : public nsISupports, public nsWrapperCache {
   void Stringify(nsString& aRetval) const { Serialize(aRetval); }
 
   static already_AddRefed<URLSearchParams> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   nsresult GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
                        nsACString& aContentTypeWithCharset,
                        nsACString& aCharset) const;
 
  private:
-  bool ReadStructuredClone(JSStructuredCloneReader* aReader);
+  bool ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader);
 
-  bool WriteStructuredClone(JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   void AppendInternal(const nsAString& aName, const nsAString& aValue);
 

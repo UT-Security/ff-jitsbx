@@ -61,7 +61,7 @@ class SVGSVGElement final : public SVGSVGElementBase {
  protected:
   SVGSVGElement(already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo,
                 FromParser aFromParser);
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   friend nsresult(::NS_NewSVGSVGElement(

@@ -2522,7 +2522,7 @@ nsSocketTransport::GetPort(int32_t* port) {
 NS_IMETHODIMP
 nsSocketTransport::GetScriptableOriginAttributes(
     MCContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
-  if (NS_WARN_IF(!ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aOriginAttributes))) {
+  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aOriginAttributes))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -2535,7 +2535,7 @@ nsSocketTransport::SetScriptableOriginAttributes(
   NS_ENSURE_FALSE(mFD.IsInitialized(), NS_ERROR_FAILURE);
 
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

@@ -114,7 +114,7 @@ struct APZTestDataToJSConverter {
 };
 
 bool APZTestData::ToJS(JS::MutableHandle<JS::Value> aOutValue,
-                       JSContext* aContext) const {
+                       MCContext* aContext) const {
   dom::APZTestData result;
   APZTestDataToJSConverter::ConvertAPZTestData(*this, result);
   return dom::ToJSValue(aContext, result, aOutValue);

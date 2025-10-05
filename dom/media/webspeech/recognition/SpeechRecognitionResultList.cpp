@@ -32,7 +32,7 @@ nsISupports* SpeechRecognitionResultList::GetParentObject() const {
 }
 
 JSObject* SpeechRecognitionResultList::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SpeechRecognitionResultList_Binding::Wrap(aCx, this, aGivenProto);
 }
 

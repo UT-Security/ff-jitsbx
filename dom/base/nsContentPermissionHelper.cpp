@@ -612,7 +612,7 @@ nsresult TranslateChoices(
       AutoJSAPI jsapi;
       jsapi.Init();
 
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
       MC::SandboxStack<JSAutoRealm> ar(cx, obj);
 
       MC::Rooted<JS::Value> val(cx);
@@ -842,7 +842,7 @@ mozilla::ipc::IPCResult RemotePermissionRequest::RecvNotifyResult(
       return IPC_OK();  // This is not an IPC error.
     }
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JSObject*> obj(cx);
     obj = JS_NewPlainObject(cx);
     for (uint32_t i = 0; i < aChoices.Length(); ++i) {

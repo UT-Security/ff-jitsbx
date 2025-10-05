@@ -57,7 +57,7 @@ class SharedWorker final : public DOMEventTargetHelper {
 
   IMPL_EVENT_HANDLER(error)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;
@@ -84,7 +84,7 @@ class SharedWorker final : public DOMEventTargetHelper {
   ~SharedWorker();
 
   // Only called by MessagePort.
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 };
 

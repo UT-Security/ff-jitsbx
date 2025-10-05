@@ -48,7 +48,7 @@ class TextDecoderStream final : public nsISupports,
 
   nsISupports* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   mozilla::Decoder* Decoder() { return mDecoder.get(); }
@@ -70,7 +70,7 @@ class TextDecoderStream final : public nsISupports,
 };
 
 Span<const uint8_t> ExtractSpanFromBufferSource(
-    JSContext* aCx, JS::Handle<JS::Value> aBufferSource, ErrorResult& aRv);
+    MCContext* aCx, JS::Handle<JS::Value> aBufferSource, ErrorResult& aRv);
 
 }  // namespace mozilla::dom
 

@@ -120,7 +120,7 @@ void TextTrack::SetDefaultSettings() {
   mDirty = false;
 }
 
-JSObject* TextTrack::WrapObject(JSContext* aCx,
+JSObject* TextTrack::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return TextTrack_Binding::Wrap(aCx, this, aGivenProto);
 }

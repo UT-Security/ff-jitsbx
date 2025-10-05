@@ -22,6 +22,27 @@ namespace MC {
 namespace detail {
 
 template <typename MC_Sbx>
+class TaintedVolatile<JS::ExceptionStack, MC_Sbx> {
+ private:
+  JS::ExceptionStack data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+  
+  JS::HandleValue exception() const { return data.exception(); }
+
+  // |stack| can be null.
+  JS::HandleObject stack() const { return data.stack(); }
+};
+
+template <typename MC_Sbx>
 class TaintedVolatile<JS::AutoSaveExceptionState, MC_Sbx> {
  private:
   JS::AutoSaveExceptionState data;
@@ -70,8 +91,8 @@ inline bool JS_IsThrowingOutOfMemory(MCContext* cx) {
   return JS_IsThrowingOutOfMemory(cx->cx_);
 }
 
-inline bool JS_GetPendingException(MCContext* cx, MC::MutableHandleValue vp) {
-  return JS_GetPendingException(cx->cx_, vp.MC_INTERNAL_SAFE_get());
+inline bool JS_GetPendingException(MCContext* cx, JS::MutableHandleValue vp) {
+  return JS_GetPendingException(cx->cx_, vp);
 }
 
 inline void JS_SetPendingException(
@@ -84,9 +105,11 @@ inline void JS_ClearPendingException(MCContext* cx) {
   JS_ClearPendingException(cx->cx_);
 }
 
-inline JSErrorReport* JS_ErrorFromException(MCContext* cx,
+inline MC::Tainted<JSErrorReport*> JS_ErrorFromException(MCContext* cx,
                                             JS::HandleObject obj) {
-  return JS_ErrorFromException(cx->cx_, obj);
+  MC::Tainted<JSErrorReport*> ret{nullptr};
+  ret.assign_raw_pointer(JS_ErrorFromException(cx->cx_, obj));
+  return ret;
 }
 #endif
 #endif

@@ -27,7 +27,7 @@ namespace storage {
 //// AsyncStatementJSHelper
 
 nsresult AsyncStatementJSHelper::getParams(AsyncStatement* aStatement,
-                                           JSContext* aCtx, JSObject* aScopeObj,
+                                           MCContext* aCtx, JSObject* aScopeObj,
                                            JS::Value* _params) {
   MOZ_ASSERT(NS_IsMainThread());
 
@@ -116,7 +116,7 @@ AsyncStatementJSHelper::Resolve(nsIXPConnectWrappedNative* aWrapper,
 
   if (::JS_LinearStringEqualsLiteral(id.toLinearString(), "params")) {
     MC::Rooted<JS::Value> val(aCtx);
-    nsresult rv = getParams(stmt, MC_UNSAFE(aCtx), scope, val.address());
+    nsresult rv = getParams(stmt, aCtx, scope, val.address());
     NS_ENSURE_SUCCESS(rv, rv);
     *_retval = ::JS_DefinePropertyById(aCtx, scope, id, val, JSPROP_RESOLVING);
     *resolvedp = true;

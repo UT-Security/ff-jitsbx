@@ -415,7 +415,7 @@ class StyleSheet final : public nsICSSLoaderObserver, public nsWrapperCache {
 
   // WebIDL miscellaneous bits
   inline dom::ParentObject GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   // Changes to sheets should be after a WillDirty call.
   void WillDirty();

@@ -64,7 +64,7 @@ class TextMetrics final : public NonRefcountedDOMObject {
 
   double IdeographicBaseline() const { return ideographicBaseline; }
 
-  bool WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+  bool WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
                   JS::MutableHandle<JSObject*> aReflector) {
     return TextMetrics_Binding::Wrap(aCx, this, aGivenProto, aReflector);
   }

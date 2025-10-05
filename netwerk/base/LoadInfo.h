@@ -245,7 +245,7 @@ class LoadInfo final : public nsILoadInfo {
       bool aHasInjectedCookieForCookieBannerHandling);
   LoadInfo(const LoadInfo& rhs);
 
-  NS_IMETHOD GetRedirects(JSContext* aCx,
+  NS_IMETHOD GetRedirects(MCContext* aCx,
                           JS::MutableHandle<JS::Value> aRedirects,
                           const RedirectHistoryArray& aArra);
 

@@ -76,14 +76,14 @@ class KeyPath {
   static Result<KeyPath, nsresult> Parse(
       const Nullable<OwningStringOrStringSequence>& aValue);
 
-  nsresult ExtractKey(JSContext* aCx, const JS::Value& aValue, Key& aKey) const;
+  nsresult ExtractKey(MCContext* aCx, const JS::Value& aValue, Key& aKey) const;
 
-  nsresult ExtractKeyAsJSVal(JSContext* aCx, const JS::Value& aValue,
+  nsresult ExtractKeyAsJSVal(MCContext* aCx, const JS::Value& aValue,
                              JS::Value* aOutVal) const;
 
-  using ExtractOrCreateKeyCallback = nsresult (*)(JSContext*, void*);
+  using ExtractOrCreateKeyCallback = nsresult (*)(MCContext*, void*);
 
-  nsresult ExtractOrCreateKey(JSContext* aCx, const JS::Value& aValue,
+  nsresult ExtractOrCreateKey(MCContext* aCx, const JS::Value& aValue,
                               Key& aKey, ExtractOrCreateKeyCallback aCallback,
                               void* aClosure) const;
 
@@ -104,8 +104,8 @@ class KeyPath {
   nsAutoString SerializeToString() const;
   static KeyPath DeserializeFromString(const nsAString& aString);
 
-  nsresult ToJSVal(JSContext* aCx, JS::MutableHandle<JS::Value> aValue) const;
-  nsresult ToJSVal(JSContext* aCx, JS::Heap<JS::Value>& aValue) const;
+  nsresult ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aValue) const;
+  nsresult ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aValue) const;
 
   bool IsAllowedForObjectStore(bool aAutoIncrement) const;
 

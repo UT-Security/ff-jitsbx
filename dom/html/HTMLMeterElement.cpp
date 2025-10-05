@@ -242,7 +242,7 @@ ElementState HTMLMeterElement::GetOptimumState() const {
   return ElementState::SUB_OPTIMUM;
 }
 
-JSObject* HTMLMeterElement::WrapNode(JSContext* aCx,
+JSObject* HTMLMeterElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLMeterElement_Binding::Wrap(aCx, this, aGivenProto);
 }

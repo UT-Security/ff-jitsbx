@@ -40,13 +40,6 @@ class Element;
 
 class nsJSUtils {
  public:
-  static bool GetCallingLocation(JSContext* aContext, nsACString& aFilename,
-                                 uint32_t* aLineno = nullptr,
-                                 uint32_t* aColumn = nullptr);
-  static bool GetCallingLocation(JSContext* aContext, nsAString& aFilename,
-                                 uint32_t* aLineno = nullptr,
-                                 uint32_t* aColumn = nullptr);
-
   static bool GetCallingLocation(MCContext* aContext, nsACString& aFilename,
                                  uint32_t* aLineno = nullptr,
                                  uint32_t* aColumn = nullptr);
@@ -62,7 +55,7 @@ class nsJSUtils {
    *
    * @returns uint64_t the inner window ID.
    */
-  static uint64_t GetCurrentlyRunningCodeInnerWindowID(JSContext* aContext);
+  static uint64_t GetCurrentlyRunningCodeInnerWindowID(MCContext* aContext);
 
   static nsresult CompileFunction(mozilla::dom::AutoJSAPI& jsapi,
                                   JS::HandleVector<JSObject*> aScopeChain,
@@ -82,7 +75,7 @@ class nsJSUtils {
   // Returns false if an exception got thrown on aCx.  Passing a null
   // aElement is allowed; that wil produce an empty aScopeChain.
   static bool GetScopeChainForElement(
-      JSContext* aCx, mozilla::dom::Element* aElement,
+      MCContext* aCx, mozilla::dom::Element* aElement,
       JS::MutableHandleVector<JSObject*> aScopeChain);
 
   static void ResetTimeZone();
@@ -94,7 +87,7 @@ class nsJSUtils {
   // Note that the buffer needs to be created by JS_malloc (or at least can be
   // freed by JS_free), as the resulting Uint8Array takes the ownership of the
   // buffer.
-  static JSObject* MoveBufferAsUint8Array(JSContext* aCx, size_t aSize,
+  static JSObject* MoveBufferAsUint8Array(MCContext* aCx, size_t aSize,
                                           mozilla::UniquePtr<uint8_t>& aBuffer);
 };
 
@@ -105,7 +98,7 @@ inline void AssignFromStringBuffer(nsStringBuffer* buffer, size_t len,
 
 template <typename T, typename std::enable_if_t<std::is_same<
                           typename T::char_type, char16_t>::value>* = nullptr>
-inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
+inline bool AssignJSString(MCContext* cx, T& dest, JSString* s) {
   size_t len = JS::GetStringLength(s);
   static_assert(JS::MaxStringLength < (1 << 30),
                 "Shouldn't overflow here or in SetCapacity");
@@ -140,7 +133,7 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 // Specialization for UTF8String.
 template <typename T, typename std::enable_if_t<std::is_same<
                           typename T::char_type, char>::value>* = nullptr>
-inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
+inline bool AssignJSString(MCContext* cx, T& dest, JSString* s) {
   using namespace mozilla;
   CheckedInt<size_t> bufLen(JS::GetStringLength(s));
   // From the contract for JS_EncodeStringToUTF8BufferPartial, to guarantee that
@@ -167,17 +160,17 @@ inline bool AssignJSString(JSContext* cx, T& dest, JSString* s) {
 
   auto handle = handleOrErr.unwrap();
 
-  size_t read;
-  size_t written;
+  MC::SandboxStack<size_t> read;
+  MC::SandboxStack<size_t> written;
 
-  auto maybe = JS_EncodeStringToUTF8BufferPartial(cx, s, handle.AsSpan(), &read, &written);
+  auto maybe = JS_EncodeStringToUTF8BufferPartialWithSbxCopy(cx, s, handle.AsSpan(), read, written);
   if (MOZ_UNLIKELY(!maybe)) {
     JS_ReportOutOfMemory(cx);
     return false;
   }
 
-  MOZ_ASSERT(read == JS::GetStringLength(s));
-  handle.Finish(written, kAllowShrinking);
+  MOZ_ASSERT(*read.UNSAFE_unverified() == JS::GetStringLength(s));
+  handle.Finish(*written.UNSAFE_unverified(), kAllowShrinking);
   return true;
 }
 
@@ -217,17 +210,11 @@ class nsTAutoJSString : public nsTAutoString<T> {
    */
   nsTAutoJSString() = default;
 
-  bool init(JSContext* aContext, JSString* str) {
+  bool init(MCContext* aContext, JSString* str) {
     return AssignJSString(aContext, *this, str);
   }
 
-#ifdef JS_SANDBOX
-  bool init(MCContext* aContext, JSString* str) {
-    return init(MC_UNSAFE(aContext), str);
-  }
-#endif
-
-  bool init(JSContext* aContext, const JS::Value& v) {
+  bool init(MCContext* aContext, const JS::Value& v) {
     if (v.isString()) {
       return init(aContext, v.toString());
     }
@@ -244,22 +231,10 @@ class nsTAutoJSString : public nsTAutoString<T> {
     return str && init(aContext, str);
   }
 
-#ifdef JS_SANDBOX
-  bool init(MCContext* aContext, const JS::Value& v) {
-    return init(MC_UNSAFE(aContext), v);
-  }
-#endif
-
-  bool init(JSContext* aContext, jsid id) {
+  bool init(MCContext* aContext, jsid id) {
     MC::Rooted<JS::Value> v(aContext);
     return JS_IdToValue(aContext, id, &v) && init(aContext, v);
   }
-
-#ifdef JS_SANDBOX
-  bool init(MCContext* aContext, jsid id) {
-    return init(MC_UNSAFE(aContext), id);
-  }
-#endif
 
   bool init(const JS::Value& v);
 

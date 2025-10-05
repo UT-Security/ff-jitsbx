@@ -11,7 +11,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(Stop)
 
 namespace mozilla::dom {
 
-JSObject* SVGStopElement::WrapNode(JSContext* aCx,
+JSObject* SVGStopElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGStopElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -32,7 +32,7 @@ class TestInterfaceIterableDouble final : public nsISupports,
 
   explicit TestInterfaceIterableDouble(nsPIDOMWindowInner* aParent);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceIterableDouble> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);

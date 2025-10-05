@@ -166,7 +166,7 @@ TimeRanges::index_type TimeRanges::Find(double aTime,
   return NoIndex;
 }
 
-JSObject* TimeRanges::WrapObject(JSContext* aCx,
+JSObject* TimeRanges::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return TimeRanges_Binding::Wrap(aCx, this, aGivenProto);
 }

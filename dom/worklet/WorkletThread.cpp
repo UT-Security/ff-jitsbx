@@ -44,27 +44,30 @@ const uint32_t kWorkletStackSize = 256 * sizeof(size_t) * 1024;
 
 // Helper functions
 
-bool PreserveWrapper(JSContext* aCx, JS::Handle<JSObject*> aObj) {
+MC::Tainted<bool> PreserveWrapper(MC::Tainted<JSContext*> aCx, JS::Handle<JSObject*> aObj) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aObj);
   MOZ_ASSERT(mozilla::dom::IsDOMObject(aObj));
   return mozilla::dom::TryPreserveWrapper(aObj);
 }
 
-JSObject* Wrap(JSContext* aCx, JS::Handle<JSObject*> aExisting,
+MC::Tainted<JSObject*> Wrap(MC::Tainted<JSContext*> tCx, JS::Handle<JSObject*> aExisting,
                JS::Handle<JSObject*> aObj) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   if (aExisting) {
     mc::Wrapper::Renew(aExisting, aObj,
                        mc::OpaqueCrossCompartmentWrapper::getSingleton());
   }
 
-  return mc::Wrapper::New(JS_SanitizeContext(aCx), aObj,
-                          mc::OpaqueCrossCompartmentWrapper::getSingleton());
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(mc::Wrapper::New(aCx, aObj,
+                          mc::OpaqueCrossCompartmentWrapper::getSingleton()));
+  return ret;
 }
 
 static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
   static const MCWrapObjectCallbacks inner_{
-    MC::Sandbox::RegisterCallback(Wrap),
+    MC::Sandbox::RegisterTaintedCallback(Wrap),
     MC::Sandbox::Callback<JSPreWrapCallback>{nullptr},
   };
 
@@ -146,9 +149,12 @@ class WorkletJSContext final : public CycleCollectedJSContext {
 
     MCContext* cx = Context();
 
-    static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb, HasReleasedWrapperCb());
-    
+    static auto PreserveWrapperCb = MC::Sandbox::RegisterTaintedCallback<
+        MC::Tainted<bool>, MC::Tainted<JSContext*>, JS::Handle<JSObject*>>(
+        PreserveWrapper);
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb,
+                                    HasReleasedWrapperCb());
+
     JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCb());
     JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
 
@@ -169,7 +175,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
     MOZ_ASSERT(cx);
 
 #ifdef DEBUG
-    MC::Rooted<JSObject*> global(MC_UNSAFE(cx), JS::CurrentGlobalOrNull(cx));
+    MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     MOZ_ASSERT(global);
 #endif
 
@@ -182,7 +188,7 @@ class WorkletJSContext final : public CycleCollectedJSContext {
     return false;
   }
 
-  void ReportError(JSErrorReport* aReport,
+  void ReportError(MC::Tainted<JSErrorReport*> aReport,
                    JS::ConstUTF8CharsZ aToStringResult) override;
 
   uint64_t GetCurrentWorkletWindowID() {
@@ -200,21 +206,21 @@ class WorkletJSContext final : public CycleCollectedJSContext {
   }
 };
 
-void WorkletJSContext::ReportError(JSErrorReport* aReport,
+void WorkletJSContext::ReportError(MC::Tainted<JSErrorReport*> aReport,
                                    JS::ConstUTF8CharsZ aToStringResult) {
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
   xpcReport->Init(aReport, aToStringResult.c_str(), IsSystemCaller(),
                   GetCurrentWorkletWindowID());
   RefPtr<AsyncErrorReporter> reporter = new AsyncErrorReporter(xpcReport);
 
-  JSContext* cx = MC_UNSAFE(Context());
+  MCContext* cx = Context();
   if (JS_IsExceptionPending(cx)) {
-    JS::ExceptionStack exnStack(cx);
-    if (JS::StealPendingExceptionStack(cx, &exnStack)) {
+    MC::SandboxStack<JS::ExceptionStack> exnStack(cx);
+    if (JS::StealPendingExceptionStack(cx, exnStack)) {
       MC::Rooted<JSObject*> stack(cx);
       MC::Rooted<JSObject*> stackGlobal(cx);
-      xpc::FindExceptionStackForConsoleReport(nullptr, exnStack.exception(),
-                                              exnStack.stack(), &stack,
+      xpc::FindExceptionStackForConsoleReport(nullptr, exnStack->exception(),
+                                              exnStack->stack(), &stack,
                                               &stackGlobal);
       if (stack) {
         reporter->SerializeStack(cx, stack);
@@ -328,14 +334,14 @@ WorkletThread::DelayedDispatch(already_AddRefed<nsIRunnable>, uint32_t aFlags) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-static bool DispatchToEventLoop(void* aClosure,
-                                JS::Dispatchable* aDispatchable) {
+static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> aClosure,
+                                MC::Tainted<JS::Dispatchable*> aDispatchable) {
   // This callback may execute either on the worklet thread or a random
   // JS-internal helper thread.
 
   // See comment at JS::InitDispatchToEventLoop() below for how we know the
   // thread is alive.
-  nsIThread* thread = static_cast<nsIThread*>(aClosure);
+  nsIThread* thread = static_cast<nsIThread*>(aClosure.UNSAFE_unverified());
 
   nsresult rv = thread->Dispatch(
       NS_NewRunnableFunction(
@@ -351,7 +357,7 @@ static bool DispatchToEventLoop(void* aClosure,
               return;
             }
 
-            aDispatchable->run(MC_UNSAFE(wjc->Context()),
+            aDispatchable.UNSAFE_unverified()->run(MC_UNSAFE(wjc->Context()),
                                JS::Dispatchable::NotShuttingDown);
           }),
       NS_DISPATCH_NORMAL);
@@ -388,7 +394,7 @@ void WorkletThread::EnsureCycleCollectedJSContext(
 
   // A thread lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
-  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterTaintedCallback(DispatchToEventLoop);
   JS::InitDispatchToEventLoop(context->Context(), DispatchToEventLoopCb,
                               NS_GetCurrentThread());
 

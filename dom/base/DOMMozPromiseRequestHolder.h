@@ -77,7 +77,7 @@ class DOMMozPromiseRequestHolder final : public DOMEventTargetHelper {
     DOMEventTargetHelper::DisconnectFromOwner();
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     // We are extending DETH to get notified when the global goes
     // away, but this object should never actually be exposed to

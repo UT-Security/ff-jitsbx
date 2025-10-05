@@ -30,7 +30,7 @@ GridTrack::GridTrack(GridTracks* aParent)
 
 GridTrack::~GridTrack() = default;
 
-JSObject* GridTrack::WrapObject(JSContext* aCx,
+JSObject* GridTrack::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return GridTrack_Binding::Wrap(aCx, this, aGivenProto);
 }

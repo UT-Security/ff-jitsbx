@@ -35,7 +35,7 @@ class DeviceLostInfo final : public nsWrapperCache {
   const nsAutoString mMessage;
 
  public:
-  void GetReason(JSContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
+  void GetReason(MCContext* aCx, JS::MutableHandle<JS::Value> aRetval) {
     if (!mReason || !dom::ToJSValue(aCx, mReason.value(), aRetval)) {
       aRetval.setUndefined();
     }

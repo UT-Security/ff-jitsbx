@@ -88,13 +88,13 @@ class MessagePort final : public DOMEventTargetHelper {
   // For IPC.
   static void ForceClose(const MessagePortIdentifier& aIdentifier);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const StructuredSerializeOptions& aOptions,
                    ErrorResult& aRv);
 

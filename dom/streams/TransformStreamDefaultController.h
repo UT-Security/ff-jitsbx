@@ -39,16 +39,16 @@ class TransformStreamDefaultController final : public nsISupports,
 
  public:
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   Nullable<double> GetDesiredSize() const;
 
-  MOZ_CAN_RUN_SCRIPT void Enqueue(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  MOZ_CAN_RUN_SCRIPT void Enqueue(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                   ErrorResult& aRv);
-  MOZ_CAN_RUN_SCRIPT void Error(JSContext* aCx, JS::Handle<JS::Value> aError,
+  MOZ_CAN_RUN_SCRIPT void Error(MCContext* aCx, JS::Handle<JS::Value> aError,
                                 ErrorResult& aRv);
-  MOZ_CAN_RUN_SCRIPT void Terminate(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Terminate(MCContext* aCx, ErrorResult& aRv);
 
  private:
   nsCOMPtr<nsIGlobalObject> mGlobal;
@@ -60,12 +60,12 @@ class TransformStreamDefaultController final : public nsISupports,
 
 namespace streams_abstract {
 void SetUpTransformStreamDefaultController(
-    JSContext* aCx, TransformStream& aStream,
+    MCContext* aCx, TransformStream& aStream,
     TransformStreamDefaultController& aController,
     TransformerAlgorithmsBase& aTransformerAlgorithms);
 
 void SetUpTransformStreamDefaultControllerFromTransformer(
-    JSContext* aCx, TransformStream& aStream,
+    MCContext* aCx, TransformStream& aStream,
     JS::Handle<JSObject*> aTransformer, Transformer& aTransformerDict);
 }  // namespace streams_abstract
 

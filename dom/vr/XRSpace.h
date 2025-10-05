@@ -27,7 +27,7 @@ class XRSpace : public DOMEventTargetHelper {
                    XRNativeOrigin* aNativeOrigin);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   XRSession* GetSession() const;

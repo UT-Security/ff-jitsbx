@@ -15,14 +15,14 @@
 #include "monkeycage/CharacterEncoding.h"
 #include "monkeycage/CompilationAndEvaluation.h"
 #include "monkeycage/Conversions.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctions, JS_DefineProperty, JS_GetElement, JS_GetProperty, JS_HasProperty, JS_SetProperty, JS_SetPropertyById
 #include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnPropertyDescriptorById, JS_GetPropertyDescriptorById
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/SourceText.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/Value.h"
 #include "nsContentUtils.h"
 #include "nsGlobalWindow.h"
@@ -153,7 +153,7 @@ class nsXPCComponents_utils_Sandbox : public nsIXPCComponents_utils_Sandbox,
   virtual ~nsXPCComponents_utils_Sandbox();
 
   static nsresult CallOrConstruct(nsIXPConnectWrappedNative* wrapper,
-                                  JSContext* cx, HandleObject obj,
+                                  MCContext* cx, HandleObject obj,
                                   const CallArgs& args, bool* _retval);
 };
 
@@ -281,7 +281,7 @@ static MC::Tainted<bool> SandboxImport(MC::Tainted<JSContext*> t_cx, unsigned ar
   return true;
 }
 
-bool xpc::SandboxCreateCrypto(JSContext* cx, JS::Handle<JSObject*> obj) {
+bool xpc::SandboxCreateCrypto(MCContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
   nsIGlobalObject* native = xpc::NativeGlobal(obj);
@@ -293,7 +293,7 @@ bool xpc::SandboxCreateCrypto(JSContext* cx, JS::Handle<JSObject*> obj) {
 }
 
 #ifdef MOZ_WEBRTC
-static bool SandboxCreateRTCIdentityProvider(JSContext* cx,
+static bool SandboxCreateRTCIdentityProvider(MCContext* cx,
                                              JS::HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
@@ -329,7 +329,7 @@ static bool SandboxFetch(MCContext* cx, JS::HandleObject scope,
   if (!global) {
     return false;
   }
-  dom::CallerType callerType = nsContentUtils::IsSystemCaller(MC_UNSAFE(cx))
+  dom::CallerType callerType = nsContentUtils::IsSystemCaller(cx)
                                    ? dom::CallerType::System
                                    : dom::CallerType::NonSystem;
   ErrorResult rv;
@@ -351,22 +351,22 @@ static MC::Tainted<bool> SandboxFetchPromise(MC::Tainted<JSContext*> t_cx, unsig
   if (SandboxFetch(cx, scope, args)) {
     return true;
   }
-  return ConvertExceptionToPromise(MC_UNSAFE(cx), args.rval());
+  return ConvertExceptionToPromise(cx, args.rval());
 }
 
-bool xpc::SandboxCreateFetch(JSContext* cx, JS::Handle<JSObject*> obj) {
+bool xpc::SandboxCreateFetch(MCContext* cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
   static auto SandboxFetchPromiseCb =
       MC::Sandbox::RegisterTaintedCallback(SandboxFetchPromise);
-  return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb.UNSAFE_get(),
+  return JS_DefineFunction(cx, obj, "fetch", SandboxFetchPromiseCb,
                            2, 0) &&
          dom::Request_Binding::GetConstructorObject(cx) &&
          dom::Response_Binding::GetConstructorObject(cx) &&
          dom::Headers_Binding::GetConstructorObject(cx);
 }
 
-static bool SandboxCreateStorage(JSContext* cx, JS::HandleObject obj) {
+static bool SandboxCreateStorage(MCContext* cx, JS::HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
   nsIGlobalObject* native = xpc::NativeGlobal(obj);
@@ -389,7 +389,7 @@ static MC::Tainted<bool> SandboxStructuredClone(MC::Tainted<JSContext*> t_cx, un
 
   RootedDictionary<dom::StructuredSerializeOptions> options(cx);
   BindingCallContext callCx(cx, "structuredClone");
-  if (!options.Init(MC_UNSAFE(cx), args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
+  if (!options.Init(cx, args.hasDefined(1) ? args[1] : MC::NullHandleValue(),
                     "Argument 2", false)) {
     return false;
   }
@@ -402,7 +402,7 @@ static MC::Tainted<bool> SandboxStructuredClone(MC::Tainted<JSContext*> t_cx, un
 
   MC::Rooted<JS::Value> result(cx);
   ErrorResult rv;
-  nsContentUtils::StructuredClone(MC_UNSAFE(cx), global, args[0], options, &result, rv);
+  nsContentUtils::StructuredClone(cx, global, args[0], options, &result, rv);
   if (rv.MaybeSetPendingException(cx)) {
     return false;
   }
@@ -413,11 +413,11 @@ static MC::Tainted<bool> SandboxStructuredClone(MC::Tainted<JSContext*> t_cx, un
   return true;
 }
 
-bool xpc::SandboxCreateStructuredClone(JSContext* cx, HandleObject obj) {
+bool xpc::SandboxCreateStructuredClone(MCContext* cx, HandleObject obj) {
   MOZ_ASSERT(JS_IsGlobalObject(obj));
 
   static auto SandboxStructuredCloneCb = MC::Sandbox::RegisterTaintedCallback(SandboxStructuredClone);
-  return JS_DefineFunction(cx, obj, "structuredClone", SandboxStructuredCloneCb.UNSAFE_get(),
+  return JS_DefineFunction(cx, obj, "structuredClone", SandboxStructuredCloneCb,
                            1, 0);
 }
 
@@ -492,7 +492,7 @@ static MC::Tainted<bool> SandboxCreateObjectIn(MC::Tainted<JSContext*> t_cx, uns
     return false;
   }
 
-  return xpc::CreateObjectIn(MC_UNSAFE(cx), args[0], options, args.rval());
+  return xpc::CreateObjectIn(cx, args[0], options, args.rval());
 }
 
 static MC::Tainted<bool> SandboxCloneInto(MC::Tainted<JSContext*> t_cx, unsigned argc, MC::Tainted<Value*> t_vp) {
@@ -505,7 +505,7 @@ static MC::Tainted<bool> SandboxCloneInto(MC::Tainted<JSContext*> t_cx, unsigned
   }
 
   MC::RootedValue options(cx, args.length() > 2 ? args[2] : UndefinedValue());
-  return xpc::CloneInto(MC_UNSAFE(cx), args[0], args[1], options, args.rval());
+  return xpc::CloneInto(cx, args[0], args[1], options, args.rval());
 }
 
 static void sandbox_finalize(MC::Tainted<JS::GCContext*> gcx, MC::Tainted<JSObject*> t_obj) {
@@ -638,7 +638,7 @@ class SandboxProxyHandler : public mc::Wrapper {
   // Implements the custom getPropertyDescriptor behavior. If the getOwn
   // argument is true we only look for "own" properties.
   bool getPropertyDescriptorImpl(
-      JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+      MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
       bool getOwn, JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) const;
 };
 
@@ -752,7 +752,7 @@ bool SandboxCallableProxyHandler::call(MCContext* cx,
  * Wrap a callable such that if we're called with oldThisObj as the
  * "this" we will instead call it with newThisObj as the this.
  */
-static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
+static JSObject* WrapCallable(MCContext* cx, HandleObject callable,
                               HandleObject sandboxProtoProxy) {
   MOZ_ASSERT(JS::IsCallable(callable));
   // Our proxy is wrapping the callable.  So we need to use the
@@ -776,7 +776,7 @@ static JSObject* WrapCallable(JSContext* cx, HandleObject callable,
   return obj;
 }
 
-bool WrapAccessorFunction(JSContext* cx, MutableHandleObject accessor,
+bool WrapAccessorFunction(MCContext* cx, MutableHandleObject accessor,
                           HandleObject sandboxProtoProxy) {
   if (!accessor) {
     return true;
@@ -799,7 +799,7 @@ static bool IsMaybeWrappedDOMConstructor(JSObject* obj) {
 }
 
 bool SandboxProxyHandler::getPropertyDescriptorImpl(
-    JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
+    MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     bool getOwn, MutableHandle<Maybe<PropertyDescriptor>> desc_) const {
   MC::RootedObject obj(cx, wrappedObject(proxy));
 
@@ -851,7 +851,7 @@ bool SandboxProxyHandler::getPropertyDescriptorImpl(
 bool SandboxProxyHandler::getOwnPropertyDescriptor(
     MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id,
     MutableHandle<Maybe<PropertyDescriptor>> desc) const {
-  return getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ true, desc);
+  return getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ true, desc);
 }
 
 /*
@@ -863,7 +863,7 @@ bool SandboxProxyHandler::has(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::Handle<jsid> id, MC::Tainted<bool*> bp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
   MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
-  if (!getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ false, &desc)) {
+  if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
 
@@ -881,7 +881,7 @@ bool SandboxProxyHandler::get(MCContext* cx, JS::Handle<JSObject*> proxy,
                               JS::MutableHandle<Value> vp) const {
   // This uses JS_GetPropertyDescriptorById for backward compatibility.
   MC::Rooted<Maybe<PropertyDescriptor>> desc(cx);
-  if (!getPropertyDescriptorImpl(MC_UNSAFE(cx), proxy, id, /* getOwn = */ false, &desc)) {
+  if (!getPropertyDescriptorImpl(cx, proxy, id, /* getOwn = */ false, &desc)) {
     return false;
   }
 
@@ -1054,7 +1054,7 @@ bool xpc::GlobalProperties::Parse(MCContext* cx, JS::HandleObject obj) {
   return true;
 }
 
-bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
+bool xpc::GlobalProperties::Define(MCContext* cx, JS::HandleObject obj) {
   MOZ_ASSERT(js::GetContextCompartment(cx) == JS::GetCompartment(obj));
   // Properties will be exposed to System automatically but not to Sandboxes
   // if |[Exposed=System]| is specified.
@@ -1191,9 +1191,9 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   if (ReadableStream && !dom::ReadableStream_Binding::GetConstructorObject(cx))
     return false;
 
-  if (atob && !JS_DefineFunction(cx, obj, "atob", AtobCb().UNSAFE_get(), 1, 0)) return false;
+  if (atob && !JS_DefineFunction(cx, obj, "atob", AtobCb(), 1, 0)) return false;
 
-  if (btoa && !JS_DefineFunction(cx, obj, "btoa", BtoaCb().UNSAFE_get(), 1, 0)) return false;
+  if (btoa && !JS_DefineFunction(cx, obj, "btoa", BtoaCb(), 1, 0)) return false;
 
   if (caches && !dom::cache::CacheStorage::DefineCaches(cx, obj)) {
     return false;
@@ -1233,7 +1233,7 @@ bool xpc::GlobalProperties::Define(JSContext* cx, JS::HandleObject obj) {
   return true;
 }
 
-bool xpc::GlobalProperties::DefineInXPCComponents(JSContext* cx,
+bool xpc::GlobalProperties::DefineInXPCComponents(MCContext* cx,
                                                   JS::HandleObject obj) {
   if (indexedDB && !IndexedDatabaseManager::DefineIndexedDB(cx, obj))
     return false;
@@ -1241,7 +1241,7 @@ bool xpc::GlobalProperties::DefineInXPCComponents(JSContext* cx,
   return Define(cx, obj);
 }
 
-bool xpc::GlobalProperties::DefineInSandbox(JSContext* cx,
+bool xpc::GlobalProperties::DefineInSandbox(MCContext* cx,
                                             JS::HandleObject obj) {
   MOZ_ASSERT(IsSandbox(obj));
   MOZ_ASSERT(js::GetContextCompartment(cx) == JS::GetCompartment(obj));
@@ -1327,7 +1327,7 @@ nsresult ApplyAddonContentScriptCSP(nsISupports* prinOrSop) {
   return NS_OK;
 }
 
-nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
+nsresult xpc::CreateSandboxObject(MCContext* cx, MutableHandleValue vp,
                                   nsISupports* prinOrSop,
                                   SandboxOptions& options) {
   // Create the sandbox global object
@@ -1467,7 +1467,7 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
         // is on the cx, so use that same realm for the CheckedUnwrapDynamic
         // call.
         JSObject* unwrappedProto =
-            js::CheckedUnwrapDynamic(options.proto, cx, false);
+            mc::CheckedUnwrapDynamic(options.proto, cx, false);
         if (!unwrappedProto) {
           JS_ReportErrorASCII(cx, "Sandbox must subsume sandboxPrototype");
           return NS_ERROR_INVALID_ARG;
@@ -1524,13 +1524,13 @@ nsresult xpc::CreateSandboxObject(JSContext* cx, MutableHandleValue vp,
 
     if (options.wantExportHelpers &&
         (!JS_DefineFunction(cx, sandbox, "exportFunction",
-                            SandboxExportFunctionCb.UNSAFE_get(), 3, 0) ||
+                            SandboxExportFunctionCb, 3, 0) ||
          !JS_DefineFunction(cx, sandbox, "createObjectIn",
-                            SandboxCreateObjectInCb.UNSAFE_get(), 2, 0) ||
+                            SandboxCreateObjectInCb, 2, 0) ||
          !JS_DefineFunction(cx, sandbox, "cloneInto",
-                            SandboxCloneIntoCb.UNSAFE_get(), 3, 0) ||
+                            SandboxCloneIntoCb, 3, 0) ||
          !JS_DefineFunction(cx, sandbox, "isProxy",
-                            SandboxIsProxyCb.UNSAFE_get(), 1, 0)))
+                            SandboxIsProxyCb, 1, 0)))
       return NS_ERROR_XPC_UNEXPECTED;
 
     if (!options.globalProperties.DefineInSandbox(cx, sandbox)) {
@@ -1562,7 +1562,7 @@ nsXPCComponents_utils_Sandbox::Call(nsIXPConnectWrappedNative* wrapper,
                                     MCContext* cx, JSObject* objArg,
                                     const CallArgs& args, bool* _retval) {
   MC::RootedObject obj(cx, objArg);
-  return CallOrConstruct(wrapper, MC_UNSAFE(cx), obj, args, _retval);
+  return CallOrConstruct(wrapper, cx, obj, args, _retval);
 }
 
 NS_IMETHODIMP
@@ -1570,14 +1570,14 @@ nsXPCComponents_utils_Sandbox::Construct(nsIXPConnectWrappedNative* wrapper,
                                          MCContext* cx, JSObject* objArg,
                                          const CallArgs& args, bool* _retval) {
   MC::RootedObject obj(cx, objArg);
-  return CallOrConstruct(wrapper, MC_UNSAFE(cx), obj, args, _retval);
+  return CallOrConstruct(wrapper, cx, obj, args, _retval);
 }
 
 /*
  * For sandbox constructor the first argument can be a URI string in which case
  * we use the related Content Principal for the sandbox.
  */
-bool ParsePrincipal(JSContext* cx, HandleString contentUrl,
+bool ParsePrincipal(MCContext* cx, HandleString contentUrl,
                     const OriginAttributes& aAttrs, nsIPrincipal** principal) {
   MOZ_ASSERT(principal);
   MOZ_ASSERT(contentUrl);
@@ -1608,7 +1608,7 @@ bool ParsePrincipal(JSContext* cx, HandleString contentUrl,
  * For sandbox constructor the first argument can be a principal object or
  * a script object principal (Document, Window).
  */
-static bool GetPrincipalOrSOP(JSContext* cx, HandleObject from,
+static bool GetPrincipalOrSOP(MCContext* cx, HandleObject from,
                               nsISupports** out) {
   MOZ_ASSERT(out);
   *out = nullptr;
@@ -1632,16 +1632,16 @@ static bool GetPrincipalOrSOP(JSContext* cx, HandleObject from,
  * The first parameter of the sandbox constructor might be an array of
  * principals, either in string format or actual objects (see GetPrincipalOrSOP)
  */
-static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
+static bool GetExpandedPrincipal(MCContext* cx, HandleObject arrayObj,
                                  const SandboxOptions& options,
                                  nsIExpandedPrincipal** out) {
   MOZ_ASSERT(out);
-  uint32_t length;
+  MC::SandboxStack<uint32_t> length;
 
-  if (!JS::GetArrayLength(cx, arrayObj, &length)) {
+  if (!JS::GetArrayLength(cx, arrayObj, length)) {
     return false;
   }
-  if (!length) {
+  if (!*length.UNSAFE_unverified()) {
     // We need a whitelist of principals or uri strings to create an
     // expanded principal, if we got an empty array or something else
     // report error.
@@ -1649,8 +1649,8 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
     return false;
   }
 
-  nsTArray<nsCOMPtr<nsIPrincipal>> allowedDomains(length);
-  allowedDomains.SetLength(length);
+  nsTArray<nsCOMPtr<nsIPrincipal>> allowedDomains(*length.UNSAFE_unverified());
+  allowedDomains.SetLength(*length.UNSAFE_unverified());
 
   // If an originAttributes option has been specified, we will use that as the
   // OriginAttribute of all of the string arguments passed to this function.
@@ -1683,7 +1683,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
   // expanded principal object.
 
   // First pass:
-  for (uint32_t i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
     MC::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
@@ -1743,7 +1743,7 @@ static bool GetExpandedPrincipal(JSContext* cx, HandleObject arrayObj,
   }
 
   // Second pass:
-  for (uint32_t i = 0; i < length; ++i) {
+  for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
     MC::RootedValue allowed(cx);
     if (!JS_GetElement(cx, arrayObj, i, &allowed)) {
       return false;
@@ -2019,7 +2019,7 @@ bool SandboxOptions::Parse() {
   return true;
 }
 
-static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
+static nsresult AssembleSandboxMemoryReporterName(MCContext* cx,
                                                   nsCString& sandboxName) {
   // Use a default name when the caller did not provide a sandboxName.
   if (sandboxName.IsEmpty()) {
@@ -2042,8 +2042,8 @@ static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
   // Append the caller's location information.
   if (frame) {
     nsString location;
-    frame->GetFilename(JS_SanitizeContext(cx), location);
-    int32_t lineNumber = frame->GetLineNumber(JS_SanitizeContext(cx));
+    frame->GetFilename(cx, location);
+    int32_t lineNumber = frame->GetLineNumber(cx);
 
     sandboxName.AppendLiteral(" (from: ");
     sandboxName.Append(NS_ConvertUTF16toUTF8(location));
@@ -2057,7 +2057,7 @@ static nsresult AssembleSandboxMemoryReporterName(JSContext* cx,
 
 // static
 nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
-    nsIXPConnectWrappedNative* wrapper, JSContext* cx, HandleObject obj,
+    nsIXPConnectWrappedNative* wrapper, MCContext* cx, HandleObject obj,
     const CallArgs& args, bool* _retval) {
   if (args.length() < 1) {
     return ThrowAndFail(NS_ERROR_XPC_NOT_ENOUGH_ARGS, cx, _retval);
@@ -2073,7 +2073,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
   MC::RootedObject optionsObject(cx,
                              calledWithOptions ? &args[1].toObject() : nullptr);
 
-  SandboxOptions options(JS_SanitizeContext(cx), optionsObject);
+  SandboxOptions options(cx, optionsObject);
   if (calledWithOptions && !options.Parse()) {
     return ThrowAndFail(NS_ERROR_INVALID_ARG, cx, _retval);
   }
@@ -2150,7 +2150,7 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
   return NS_OK;
 }
 
-nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
+nsresult xpc::EvalInSandbox(MCContext* cx, HandleObject sandboxArg,
                             const nsAString& source, const nsACString& filename,
                             int32_t lineNo, bool enforceFilenameRestrictions,
                             MutableHandleValue rval) {
@@ -2189,18 +2189,18 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
     // We're about to evaluate script, so make an AutoEntryScript.
     // This is clearly Gecko-specific and not in any spec.
     mozilla::dom::AutoEntryScript aes(priv, "XPConnect sandbox evaluation");
-    JSContext* sandcx = aes.cx();
+    MCContext* sandcx = aes.cx();
     MC::SandboxStack<JSAutoRealm> ar(sandcx, sandbox);
 
-    JS::CompileOptions options(sandcx);
-    options.setFileAndLine(filenameBuf.get(), lineNo);
-    options.setSkipFilenameValidation(!enforceFilenameRestrictions);
+    MC::SandboxStack<JS::CompileOptions> options(sandcx);
+    options->setFileAndLine(filenameBuf.get(), lineNo);
+    options->setSkipFilenameValidation(!enforceFilenameRestrictions);
     MOZ_ASSERT(JS_IsGlobalObject(sandbox));
 
     const nsPromiseFlatString& flat = PromiseFlatString(source);
 
-    JS::SourceText<char16_t> buffer;
-    ok = buffer.init(sandcx, flat.get(), flat.Length(),
+    MC::SandboxStack<JS::SourceText<char16_t>> buffer;
+    ok = buffer->init(sandcx, flat.get(), flat.Length(),
                      JS::SourceOwnership::Borrowed) &&
          JS::Evaluate(sandcx, options, buffer, &v);
 
@@ -2231,7 +2231,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
 
   // Transitively apply Xray waivers if |sb| was waived.
   if (waiveXray) {
-    ok = xpc::WrapperFactory::WaiveXrayAndWrap(JS_SanitizeContext(cx), &v);
+    ok = xpc::WrapperFactory::WaiveXrayAndWrap(cx, &v);
   } else {
     ok = JS_WrapValue(cx, &v);
   }
@@ -2242,7 +2242,7 @@ nsresult xpc::EvalInSandbox(JSContext* cx, HandleObject sandboxArg,
   return NS_OK;
 }
 
-nsresult xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox,
+nsresult xpc::GetSandboxMetadata(MCContext* cx, HandleObject sandbox,
                                  MutableHandleValue rval) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsSandbox(sandbox));
@@ -2262,7 +2262,7 @@ nsresult xpc::GetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   return NS_OK;
 }
 
-nsresult xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox,
+nsresult xpc::SetSandboxMetadata(MCContext* cx, HandleObject sandbox,
                                  HandleValue metadataArg) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(IsSandbox(sandbox));
@@ -2279,7 +2279,7 @@ nsresult xpc::SetSandboxMetadata(JSContext* cx, HandleObject sandbox,
   return NS_OK;
 }
 
-ModuleLoaderBase* SandboxPrivate::GetModuleLoader(JSContext* aCx) {
+ModuleLoaderBase* SandboxPrivate::GetModuleLoader(MCContext* aCx) {
   if (mModuleLoader) {
     return mModuleLoader;
   }

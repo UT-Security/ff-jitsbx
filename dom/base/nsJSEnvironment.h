@@ -137,11 +137,11 @@ class nsJSContext : public nsIScriptContext {
   virtual ~nsJSContext();
 
   // Helper to convert xpcom datatypes to jsvals.
-  nsresult ConvertSupportsTojsvals(JSContext* aCx, nsISupports* aArgs,
+  nsresult ConvertSupportsTojsvals(MCContext* aCx, nsISupports* aArgs,
                                    JS::Handle<JSObject*> aScope,
                                    JS::MutableHandleVector<JS::Value> aArgsOut);
 
-  nsresult AddSupportsPrimitiveTojsvals(JSContext* aCx, nsISupports* aArg,
+  nsresult AddSupportsPrimitiveTojsvals(MCContext* aCx, nsISupports* aArg,
                                         JS::Value* aArgv);
 
  private:
@@ -173,11 +173,11 @@ class AsyncErrorReporter final : public mozilla::Runnable {
   // SerializeStack is suitable for main or worklet thread use.
   // Stacks from worker threads are not supported.
   // See https://bugzilla.mozilla.org/show_bug.cgi?id=1578968
-  void SerializeStack(JSContext* aCx, JS::Handle<JSObject*> aStack);
+  void SerializeStack(MCContext* aCx, JS::Handle<JSObject*> aStack);
 
   // Set the exception value associated with this error report.
   // Should only be called from the main thread.
-  void SetException(JSContext* aCx, JS::Handle<JS::Value> aException);
+  void SetException(MCContext* aCx, JS::Handle<JS::Value> aException);
 
  protected:
   NS_IMETHOD Run() override;

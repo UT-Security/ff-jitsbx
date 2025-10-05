@@ -27,7 +27,7 @@ class TextTrackCueList final : public nsISupports, public nsWrapperCache {
   // TextTrackCueList WebIDL
   explicit TextTrackCueList(nsISupports* aParent);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return mParent; }

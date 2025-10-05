@@ -162,7 +162,7 @@ bool Highlight::Delete(AbstractRange& aRange, ErrorResult& aRv) {
   return false;
 }
 
-JSObject* Highlight::WrapObject(JSContext* aCx,
+JSObject* Highlight::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Highlight_Binding::Wrap(aCx, this, aGivenProto);
 }

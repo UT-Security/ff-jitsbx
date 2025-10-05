@@ -26,7 +26,7 @@ class TextClause final : public nsISupports, public nsWrapperCache {
   TextClause(nsPIDOMWindowInner* aWindow, const TextRange& aRange,
              const TextRange* targetRange);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   inline uint32_t StartOffset() const { return mStartOffset; }

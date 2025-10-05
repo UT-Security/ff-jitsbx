@@ -10,8 +10,8 @@
 #include "AudioNodeTrack.h"
 #include "AudioWorkletImpl.h"
 #include "mcapi.h"
-#include "js/ForOfIterator.h"
-#include "js/PropertyAndElement.h"  // JS_GetProperty
+#include "monkeycage/ForOfIterator.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/dom/AudioWorkletGlobalScopeBinding.h"
 #include "mozilla/dom/AudioWorkletProcessor.h"
@@ -42,7 +42,7 @@ AudioWorkletImpl* AudioWorkletGlobalScope::Impl() const {
 }
 
 bool AudioWorkletGlobalScope::WrapGlobalObject(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aReflector) {
   // |this| is being exposed to JS and content script will soon be running.
   // The graph needs a handle on the JSContext so it can interrupt JS.
   Impl()->DestinationTrack()->Graph()->NotifyJSContext(aCx);
@@ -66,7 +66,7 @@ bool AudioWorkletGlobalScope::WrapGlobalObject(
 }
 
 void AudioWorkletGlobalScope::RegisterProcessor(
-    JSContext* aCx, const nsAString& aName,
+    MCContext* aCx, const nsAString& aName,
     AudioWorkletProcessorConstructor& aProcessorCtor, ErrorResult& aRv) {
   TRACE_COMMENT("AudioWorkletGlobalScope::RegisterProcessor", "%s",
                 NS_ConvertUTF16toUTF8(aName).get());
@@ -159,12 +159,12 @@ void AudioWorkletGlobalScope::RegisterProcessor(
      *    sequence<AudioParamDescriptor>.
      */
     MC::Rooted<JS::Value> objectValue(aCx, descriptors);
-    JS::ForOfIterator iter(aCx);
-    if (!iter.init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
+    MC::SandboxStack<JS::ForOfIterator> iter(aCx);
+    if (!iter->init(objectValue, JS::ForOfIterator::AllowNonIterable)) {
       aRv.NoteJSContextException(aCx);
       return;
     }
-    if (!iter.valueIsIterable()) {
+    if (!iter->valueIsIterable()) {
       aRv.ThrowTypeError<MSG_CONVERSION_ERROR>(
           "AudioWorkletProcessor.parameterDescriptors", "sequence");
       return;
@@ -172,7 +172,7 @@ void AudioWorkletGlobalScope::RegisterProcessor(
     /*
      * 7.2 and 7.3 (and substeps)
      */
-    map = DescriptorsFromJS(aCx, &iter, aRv);
+    map = DescriptorsFromJS(aCx, iter, aRv);
     if (aRv.Failed()) {
       return;
     }
@@ -221,20 +221,20 @@ float AudioWorkletGlobalScope::SampleRate() const {
 }
 
 AudioParamDescriptorMap AudioWorkletGlobalScope::DescriptorsFromJS(
-    JSContext* aCx, JS::ForOfIterator* aIter, ErrorResult& aRv) {
+    MCContext* aCx, MC::Tainted<JS::ForOfIterator*> aIter, ErrorResult& aRv) {
   AudioParamDescriptorMap res;
   // To check for duplicates
   nsTHashSet<nsString> namesSet;
 
   MC::Rooted<JS::Value> nextValue(aCx);
-  bool done = false;
+  MC::SandboxStack<bool> done = false;
   size_t i = 0;
   while (true) {
-    if (!aIter->next(&nextValue, &done)) {
+    if (!aIter->next(&nextValue, done)) {
       aRv.NoteJSContextException(aCx);
       return AudioParamDescriptorMap();
     }
-    if (done) {
+    if (*done.UNSAFE_unverified()) {
       break;
     }
 
@@ -288,7 +288,7 @@ AudioParamDescriptorMap AudioWorkletGlobalScope::DescriptorsFromJS(
 }
 
 bool AudioWorkletGlobalScope::ConstructProcessor(
-    JSContext* aCx, const nsAString& aName,
+    MCContext* aCx, const nsAString& aName,
     NotNull<StructuredCloneHolder*> aSerializedOptions,
     UniqueMessagePortId& aPortIdentifier,
     JS::MutableHandle<JSObject*> aRetProcessor) {

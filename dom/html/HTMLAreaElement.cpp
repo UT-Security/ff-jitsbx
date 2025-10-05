@@ -120,7 +120,7 @@ void HTMLAreaElement::AddSizeOfExcludingThis(nsWindowSizes& aSizes,
   *aNodeSize += Link::SizeOfExcludingThis(aSizes.mState);
 }
 
-JSObject* HTMLAreaElement::WrapNode(JSContext* aCx,
+JSObject* HTMLAreaElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return HTMLAreaElement_Binding::Wrap(aCx, this, aGivenProto);
 }

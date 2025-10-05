@@ -33,7 +33,7 @@ class FileSystemEntry : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual bool IsFile() const { return false; }

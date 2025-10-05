@@ -6,7 +6,7 @@
 
 #include "sqlite3.h"
 
-#include "jsfriendapi.h"
+#include "mcfriendapi.h"
 
 #include "nsPrintfCString.h"
 #include "nsString.h"
@@ -113,7 +113,7 @@ void checkAndLogStatementPerformance(sqlite3_stmt* aStatement) {
   NS_WARNING(message.get());
 }
 
-nsIVariant* convertJSValToVariant(JSContext* aCtx, const JS::Value& aValue) {
+nsIVariant* convertJSValToVariant(MCContext* aCtx, const JS::Value& aValue) {
   if (aValue.isInt32()) return new IntegerVariant(aValue.toInt32());
 
   if (aValue.isDouble()) return new FloatVariant(aValue.toDouble());
@@ -131,14 +131,14 @@ nsIVariant* convertJSValToVariant(JSContext* aCtx, const JS::Value& aValue) {
   if (aValue.isObject()) {
     MC::Rooted<JSObject*> obj(aCtx, &aValue.toObject());
     // We only support Date instances, all others fail.
-    bool valid;
-    if (!js::DateIsValid(aCtx, obj, &valid) || !valid) return nullptr;
+    MC::SandboxStack<bool> valid;
+    if (!js::DateIsValid(aCtx, obj, valid) || !*valid.UNSAFE_unverified()) return nullptr;
 
-    double msecd;
-    if (!js::DateGetMsecSinceEpoch(aCtx, obj, &msecd)) return nullptr;
+    MC::SandboxStack<double> msecd;
+    if (!js::DateGetMsecSinceEpoch(aCtx, obj, msecd)) return nullptr;
 
-    msecd *= 1000.0;
-    int64_t msec = msecd;
+    *msecd.UNSAFE_unverified() *= 1000.0;
+    int64_t msec = *msecd.UNSAFE_unverified();
 
     return new IntegerVariant(msec);
   }

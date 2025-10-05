@@ -55,7 +55,7 @@ class DocumentType final : public CharacterData {
  protected:
   virtual ~DocumentType();
 
-  virtual JSObject* WrapNode(JSContext* cx,
+  virtual JSObject* WrapNode(MCContext* cx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   nsString mPublicId;

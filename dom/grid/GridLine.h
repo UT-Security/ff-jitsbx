@@ -32,7 +32,7 @@ class GridLine : public nsISupports, public nsWrapperCache {
   void GetNames(nsTArray<nsString>& aNames) const;
   const nsTArray<RefPtr<nsAtom>>& Names() const { return mNames; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   GridLines* GetParentObject() { return mParent; }
 

@@ -62,7 +62,7 @@ XRRigidTransform::~XRRigidTransform() { mozilla::DropJSObjects(this); }
   return obj.forget();
 }
 
-JSObject* XRRigidTransform::WrapObject(JSContext* aCx,
+JSObject* XRRigidTransform::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return XRRigidTransform_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -132,7 +132,7 @@ void XRRigidTransform::UpdateInternal() {
   }
 }
 
-void XRRigidTransform::GetMatrix(JSContext* aCx,
+void XRRigidTransform::GetMatrix(MCContext* aCx,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) {
   if (!mMatrixArray || mNeedsUpdate) {

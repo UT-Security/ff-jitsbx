@@ -316,7 +316,7 @@ ElementState HTMLFieldSetElement::IntrinsicState() const {
   return state;
 }
 
-JSObject* HTMLFieldSetElement::WrapNode(JSContext* aCx,
+JSObject* HTMLFieldSetElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLFieldSetElement_Binding::Wrap(aCx, this, aGivenProto);
 }

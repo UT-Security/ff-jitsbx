@@ -149,27 +149,27 @@ class FetchBody : public FetchBodyBase, public AbortFollower {
 
   bool BodyUsed() const;
 
-  already_AddRefed<Promise> ArrayBuffer(JSContext* aCx, ErrorResult& aRv) {
+  already_AddRefed<Promise> ArrayBuffer(MCContext* aCx, ErrorResult& aRv) {
     return ConsumeBody(aCx, BodyConsumer::CONSUME_ARRAYBUFFER, aRv);
   }
 
-  already_AddRefed<Promise> Blob(JSContext* aCx, ErrorResult& aRv) {
+  already_AddRefed<Promise> Blob(MCContext* aCx, ErrorResult& aRv) {
     return ConsumeBody(aCx, BodyConsumer::CONSUME_BLOB, aRv);
   }
 
-  already_AddRefed<Promise> FormData(JSContext* aCx, ErrorResult& aRv) {
+  already_AddRefed<Promise> FormData(MCContext* aCx, ErrorResult& aRv) {
     return ConsumeBody(aCx, BodyConsumer::CONSUME_FORMDATA, aRv);
   }
 
-  already_AddRefed<Promise> Json(JSContext* aCx, ErrorResult& aRv) {
+  already_AddRefed<Promise> Json(MCContext* aCx, ErrorResult& aRv) {
     return ConsumeBody(aCx, BodyConsumer::CONSUME_JSON, aRv);
   }
 
-  already_AddRefed<Promise> Text(JSContext* aCx, ErrorResult& aRv) {
+  already_AddRefed<Promise> Text(MCContext* aCx, ErrorResult& aRv) {
     return ConsumeBody(aCx, BodyConsumer::CONSUME_TEXT, aRv);
   }
 
-  already_AddRefed<ReadableStream> GetBody(JSContext* aCx, ErrorResult& aRv);
+  already_AddRefed<ReadableStream> GetBody(MCContext* aCx, ErrorResult& aRv);
   void GetMimeType(nsACString& aMimeType, nsACString& aMixedCaseMimeType);
 
   const nsACString& BodyBlobURISpec() const;
@@ -183,7 +183,7 @@ class FetchBody : public FetchBodyBase, public AbortFollower {
   // annotation while we work out how to correctly annotate this code.
   // Tracked in Bug 1750650.
   MOZ_CAN_RUN_SCRIPT_BOUNDARY
-  void MaybeTeeReadableStreamBody(JSContext* aCx, ReadableStream** aBodyOut,
+  void MaybeTeeReadableStreamBody(MCContext* aCx, ReadableStream** aBodyOut,
                                   FetchStreamReader** aStreamReader,
                                   nsIInputStream** aInputStream,
                                   ErrorResult& aRv);
@@ -210,7 +210,7 @@ class FetchBody : public FetchBodyBase, public AbortFollower {
   //
   // Exceptions generated when reading from the ReadableStream are directly sent
   // to the Console.
-  void SetBodyUsed(JSContext* aCx, ErrorResult& aRv);
+  void SetBodyUsed(MCContext* aCx, ErrorResult& aRv);
 
   virtual AbortSignalImpl* GetSignalImpl() const = 0;
 
@@ -219,7 +219,7 @@ class FetchBody : public FetchBodyBase, public AbortFollower {
   // AbortFollower
   void RunAbortAlgorithm() override;
 
-  already_AddRefed<Promise> ConsumeBody(JSContext* aCx,
+  already_AddRefed<Promise> ConsumeBody(MCContext* aCx,
                                         BodyConsumer::ConsumeType aType,
                                         ErrorResult& aRv);
 
@@ -234,14 +234,14 @@ class FetchBody : public FetchBodyBase, public AbortFollower {
 
   virtual ~FetchBody();
 
-  void SetReadableStreamBody(JSContext* aCx, ReadableStream* aBody);
+  void SetReadableStreamBody(MCContext* aCx, ReadableStream* aBody);
 
  private:
   Derived* DerivedClass() const {
     return static_cast<Derived*>(const_cast<FetchBody*>(this));
   }
 
-  void LockStream(JSContext* aCx, ReadableStream* aStream, ErrorResult& aRv);
+  void LockStream(MCContext* aCx, ReadableStream* aStream, ErrorResult& aRv);
 
   void AssertIsOnTargetThread() {
     MOZ_ASSERT(NS_IsMainThread() == !GetCurrentThreadWorkerPrivate());

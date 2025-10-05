@@ -27,7 +27,7 @@ class FluentResource : public nsWrapperCache {
   static already_AddRefed<FluentResource> Constructor(
       const dom::GlobalObject& aGlobal, const nsACString& aSource);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() const { return mParent; }
 

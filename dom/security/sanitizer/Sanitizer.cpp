@@ -25,7 +25,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Sanitizer)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* Sanitizer::WrapObject(JSContext* aCx,
+JSObject* Sanitizer::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return Sanitizer_Binding::Wrap(aCx, this, aGivenProto);
 }

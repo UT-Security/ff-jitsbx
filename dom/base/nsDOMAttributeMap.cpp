@@ -395,7 +395,7 @@ size_t nsDOMAttributeMap::SizeOfIncludingThis(
 }
 
 /* virtual */
-JSObject* nsDOMAttributeMap::WrapObject(JSContext* aCx,
+JSObject* nsDOMAttributeMap::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return NamedNodeMap_Binding::Wrap(aCx, this, aGivenProto);
 }

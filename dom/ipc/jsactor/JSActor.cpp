@@ -110,7 +110,7 @@ void JSActor::InvokeCallback(CallbackFunction callback) {
   MOZ_ASSERT(nsContentUtils::IsSafeToRunScript());
 
   AutoEntryScript aes(GetParentObject(), "JSActor destroy callback");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MozJSActorCallbacks callbacksHolder;
   MC::Rooted<JS::Value> val(cx, JS::ObjectOrNullValue(GetWrapper()));
   if (NS_WARN_IF(!callbacksHolder.Init(cx, val))) {
@@ -138,7 +138,7 @@ nsresult JSActor::QueryInterfaceActor(const nsIID& aIID, void** aPtr) {
 
   if (!mWrappedJS) {
     AutoEntryScript aes(GetParentObject(), "JSActor query interface");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
 
     MC::Rooted<JSObject*> self(cx, GetWrapper());
     MC::SandboxStack<JSAutoRealm> ar(cx, self);
@@ -172,7 +172,7 @@ void JSActor::ThrowStateErrorForGetter(const char* aName,
   }
 }
 
-static Maybe<ipc::StructuredCloneData> TryClone(JSContext* aCx,
+static Maybe<ipc::StructuredCloneData> TryClone(MCContext* aCx,
                                                 JS::Handle<JS::Value> aValue) {
   Maybe<ipc::StructuredCloneData> data{std::in_place};
 
@@ -188,12 +188,12 @@ static Maybe<ipc::StructuredCloneData> TryClone(JSContext* aCx,
 }
 
 static Maybe<ipc::StructuredCloneData> CloneJSStack(
-    JSContext* aCx, JS::Handle<JSObject*> aStack) {
+    MCContext* aCx, JS::Handle<JSObject*> aStack) {
   MC::Rooted<JS::Value> stackVal(aCx, JS::ObjectOrNullValue(aStack));
   return TryClone(aCx, stackVal);
 }
 
-static Maybe<ipc::StructuredCloneData> CaptureJSStack(JSContext* aCx) {
+static Maybe<ipc::StructuredCloneData> CaptureJSStack(MCContext* aCx) {
   MC::Rooted<JSObject*> stack(aCx, nullptr);
   if (JS::IsAsyncStackCaptureEnabledForRealm(aCx) &&
       !JS::CaptureCurrentStack(aCx, &stack)) {
@@ -203,7 +203,7 @@ static Maybe<ipc::StructuredCloneData> CaptureJSStack(JSContext* aCx) {
   return CloneJSStack(aCx, stack);
 }
 
-void JSActor::SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+void JSActor::SendAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                                JS::Handle<JS::Value> aObj, ErrorResult& aRv) {
   profiler_add_marker("SendAsyncMessage", geckoprofiler::category::IPC, {},
                       JSActorMessageMarker{}, mName, aMessageName);
@@ -224,7 +224,7 @@ void JSActor::SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
   SendRawMessage(meta, std::move(data), CaptureJSStack(aCx), aRv);
 }
 
-already_AddRefed<Promise> JSActor::SendQuery(JSContext* aCx,
+already_AddRefed<Promise> JSActor::SendQuery(MCContext* aCx,
                                              const nsAString& aMessageName,
                                              JS::Handle<JS::Value> aObj,
                                              ErrorResult& aRv) {
@@ -263,7 +263,7 @@ already_AddRefed<Promise> JSActor::SendQuery(JSContext* aCx,
   return promise.forget();
 }
 
-void JSActor::CallReceiveMessage(JSContext* aCx,
+void JSActor::CallReceiveMessage(MCContext* aCx,
                                  const JSActorMessageMeta& aMetadata,
                                  JS::Handle<JS::Value> aData,
                                  JS::MutableHandle<JS::Value> aRetVal,
@@ -289,7 +289,7 @@ void JSActor::CallReceiveMessage(JSContext* aCx,
   }
 }
 
-void JSActor::ReceiveMessage(JSContext* aCx,
+void JSActor::ReceiveMessage(MCContext* aCx,
                              const JSActorMessageMeta& aMetadata,
                              JS::Handle<JS::Value> aData, ErrorResult& aRv) {
   MOZ_ASSERT(aMetadata.kind() == JSActorMessageKind::Message);
@@ -300,7 +300,7 @@ void JSActor::ReceiveMessage(JSContext* aCx,
   CallReceiveMessage(aCx, aMetadata, aData, &retval, aRv);
 }
 
-void JSActor::ReceiveQuery(JSContext* aCx, const JSActorMessageMeta& aMetadata,
+void JSActor::ReceiveQuery(MCContext* aCx, const JSActorMessageMeta& aMetadata,
                            JS::Handle<JS::Value> aData, ErrorResult& aRv) {
   MOZ_ASSERT(aMetadata.kind() == JSActorMessageKind::Query);
   profiler_add_marker("ReceiveQuery", geckoprofiler::category::IPC, {},
@@ -334,7 +334,7 @@ void JSActor::ReceiveQuery(JSContext* aCx, const JSActorMessageMeta& aMetadata,
   error.SuppressException();
 }
 
-void JSActor::ReceiveQueryReply(JSContext* aCx,
+void JSActor::ReceiveQueryReply(MCContext* aCx,
                                 const JSActorMessageMeta& aMetadata,
                                 JS::Handle<JS::Value> aData, ErrorResult& aRv) {
   if (NS_WARN_IF(aMetadata.actorName() != mName)) {
@@ -392,7 +392,7 @@ JSActor::QueryHandler::QueryHandler(JSActor* aActor,
       mMessageName(aMetadata.messageName()),
       mQueryId(aMetadata.queryId()) {}
 
-void JSActor::QueryHandler::RejectedCallback(JSContext* aCx,
+void JSActor::QueryHandler::RejectedCallback(MCContext* aCx,
                                              JS::Handle<JS::Value> aValue,
                                              ErrorResult& aRv) {
   if (!mActor) {
@@ -435,7 +435,7 @@ void JSActor::QueryHandler::RejectedCallback(JSContext* aCx,
   SendReply(aCx, JSActorMessageKind::QueryReject, std::move(data));
 }
 
-void JSActor::QueryHandler::ResolvedCallback(JSContext* aCx,
+void JSActor::QueryHandler::ResolvedCallback(MCContext* aCx,
                                              JS::Handle<JS::Value> aValue,
                                              ErrorResult& aRv) {
   if (!mActor) {
@@ -471,7 +471,7 @@ void JSActor::QueryHandler::ResolvedCallback(JSContext* aCx,
   SendReply(aCx, JSActorMessageKind::QueryResolve, std::move(data));
 }
 
-void JSActor::QueryHandler::SendReply(JSContext* aCx, JSActorMessageKind aKind,
+void JSActor::QueryHandler::SendReply(MCContext* aCx, JSActorMessageKind aKind,
                                       Maybe<ipc::StructuredCloneData>&& aData) {
   MOZ_ASSERT(mActor);
   profiler_add_marker("SendQueryReply", geckoprofiler::category::IPC, {},

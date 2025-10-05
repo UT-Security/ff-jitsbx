@@ -97,7 +97,7 @@ already_AddRefed<File> File::CreateFromFile(nsIGlobalObject* aGlobal,
   return file.forget();
 }
 
-JSObject* File::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* File::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return File_Binding::Wrap(aCx, this, aGivenProto);
 }
 

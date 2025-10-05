@@ -45,7 +45,7 @@ class Performance : public DOMEventTargetHelper {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(Performance, DOMEventTargetHelper)
 
-  static bool IsObserverEnabled(JSContext* aCx, JSObject* aGlobal);
+  static bool IsObserverEnabled(MCContext* aCx, JSObject* aGlobal);
 
   static already_AddRefed<Performance> CreateForMainThread(
       nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal,
@@ -55,10 +55,10 @@ class Performance : public DOMEventTargetHelper {
       WorkerPrivate* aWorkerPrivate);
 
   // This will return nullptr if called outside of a Window or Worker.
-  static already_AddRefed<Performance> Get(JSContext* aCx,
+  static already_AddRefed<Performance> Get(MCContext* aCx,
                                            nsIGlobalObject* aGlobal);
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   virtual void GetEntries(nsTArray<RefPtr<PerformanceEntry>>& aRetval);
@@ -84,13 +84,13 @@ class Performance : public DOMEventTargetHelper {
   DOMHighResTimeStamp TimeOrigin();
 
   already_AddRefed<PerformanceMark> Mark(
-      JSContext* aCx, const nsAString& aName,
+      MCContext* aCx, const nsAString& aName,
       const PerformanceMarkOptions& aMarkOptions, ErrorResult& aRv);
 
   void ClearMarks(const Optional<nsAString>& aName);
 
   already_AddRefed<PerformanceMeasure> Measure(
-      JSContext* aCx, const nsAString& aName,
+      MCContext* aCx, const nsAString& aName,
       const StringOrPerformanceMeasureOptions& aStartOrMeasureOptions,
       const Optional<nsAString>& aEndMark, ErrorResult& aRv);
 
@@ -111,7 +111,7 @@ class Performance : public DOMEventTargetHelper {
 
   IMPL_EVENT_HANDLER(resourcetimingbufferfull)
 
-  virtual void GetMozMemory(JSContext* aCx,
+  virtual void GetMozMemory(MCContext* aCx,
                             JS::MutableHandle<JSObject*> aObj) = 0;
 
   virtual nsDOMNavigationTiming* GetDOMTiming() const = 0;

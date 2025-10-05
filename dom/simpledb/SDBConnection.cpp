@@ -45,7 +45,7 @@ using namespace mozilla::ipc;
 
 namespace {
 
-nsresult GetWriteData(JSContext* aCx, JS::Handle<JS::Value> aValue,
+nsresult GetWriteData(MCContext* aCx, JS::Handle<JS::Value> aValue,
                       nsCString& aData) {
   if (aValue.isObject()) {
     MC::Rooted<JSObject*> obj(aCx, &aValue.toObject());
@@ -367,7 +367,7 @@ SDBConnection::Write(JS::Handle<JS::Value> aValue, MCContext* aCx,
   MC::Rooted<JS::Value> value(aCx, aValue);
 
   nsCString data;
-  rv = GetWriteData(MC_UNSAFE(aCx), value, data);
+  rv = GetWriteData(aCx, value, data);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

@@ -26,7 +26,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
 namespace iterator_utils {
 
-void DictReturn(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+void DictReturn(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 bool aDone, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   RootedDictionary<IterableKeyOrValueResult> dict(aCx);
   dict.mDone = aDone;
@@ -39,7 +39,7 @@ void DictReturn(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   aResult.set(dictValue);
 }
 
-void DictReturn(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
+void DictReturn(MCContext* aCx, JS::MutableHandle<JSObject*> aResult,
                 bool aDone, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   MC::Rooted<JS::Value> dictValue(aCx);
   DictReturn(aCx, &dictValue, aDone, aValue, aRv);
@@ -49,7 +49,7 @@ void DictReturn(JSContext* aCx, JS::MutableHandle<JSObject*> aResult,
   aResult.set(&dictValue.toObject());
 }
 
-void KeyAndValueReturn(JSContext* aCx, JS::Handle<JS::Value> aKey,
+void KeyAndValueReturn(MCContext* aCx, JS::Handle<JS::Value> aKey,
                        JS::Handle<JS::Value> aValue,
                        JS::MutableHandle<JSObject*> aResult, ErrorResult& aRv) {
   RootedDictionary<IterableKeyAndValueResult> dict(aCx);
@@ -87,7 +87,7 @@ static already_AddRefed<Promise> PromiseOrErr(
 }
 
 already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
-    JSContext* aCx, AsyncIterableIteratorBase* aObject,
+    MCContext* aCx, AsyncIterableIteratorBase* aObject,
     nsIGlobalObject* aGlobalObject, ErrorResult& aRv) {
   // 2. If object’s is finished is true, then:
   if (aObject->mIsFinished) {
@@ -118,7 +118,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
   }
 
   // 5. Let fulfillSteps be the following steps, given next:
-  auto fulfillSteps = [](JSContext* aCx, JS::Handle<JS::Value> aNext,
+  auto fulfillSteps = [](MCContext* aCx, JS::Handle<JS::Value> aNext,
                          ErrorResult& aRv,
                          const RefPtr<AsyncIterableIteratorBase>& aObject,
                          const nsCOMPtr<nsIGlobalObject>& aGlobalObject)
@@ -160,7 +160,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
     return Promise::Resolve(aGlobalObject, aCx, dict, aRv);
   };
   // 7. Let rejectSteps be the following steps, given reason:
-  auto rejectSteps = [](JSContext* aCx, JS::Handle<JS::Value> aReason,
+  auto rejectSteps = [](MCContext* aCx, JS::Handle<JS::Value> aReason,
                         ErrorResult& aRv,
                         const RefPtr<AsyncIterableIteratorBase>& aObject,
                         const nsCOMPtr<nsIGlobalObject>& aGlobalObject) {
@@ -183,7 +183,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::NextSteps(
 }
 
 already_AddRefed<Promise> AsyncIterableNextImpl::Next(
-    JSContext* aCx, AsyncIterableIteratorBase* aObject,
+    MCContext* aCx, AsyncIterableIteratorBase* aObject,
     nsISupports* aGlobalObject, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(aGlobalObject);
 
@@ -198,7 +198,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::Next(
     // aObject is the same object as 'this', so it's fine to capture 'this'
     // without taking a strong reference, because we already take a strong
     // reference to it through aObject.
-    auto onSettled = [this](JSContext* aCx, JS::Handle<JS::Value> aValue,
+    auto onSettled = [this](MCContext* aCx, JS::Handle<JS::Value> aValue,
                             ErrorResult& aRv,
                             const RefPtr<AsyncIterableIteratorBase>& aObject,
                             const nsCOMPtr<nsIGlobalObject>& aGlobalObject)
@@ -230,7 +230,7 @@ already_AddRefed<Promise> AsyncIterableNextImpl::Next(
 }
 
 already_AddRefed<Promise> AsyncIterableReturnImpl::ReturnSteps(
-    JSContext* aCx, AsyncIterableIteratorBase* aObject,
+    MCContext* aCx, AsyncIterableIteratorBase* aObject,
     nsIGlobalObject* aGlobalObject, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv) {
   // 2. If object’s is finished is true, then:
@@ -265,7 +265,7 @@ already_AddRefed<Promise> AsyncIterableReturnImpl::ReturnSteps(
 }
 
 already_AddRefed<Promise> AsyncIterableReturnImpl::Return(
-    JSContext* aCx, AsyncIterableIteratorBase* aObject,
+    MCContext* aCx, AsyncIterableIteratorBase* aObject,
     nsISupports* aGlobalObject, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> globalObject = do_QueryInterface(aGlobalObject);
@@ -283,7 +283,7 @@ already_AddRefed<Promise> AsyncIterableReturnImpl::Return(
     // without taking a strong reference, because we already take a strong
     // reference to it through aObject.
     auto onSettled =
-        [this](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+        [this](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
                const RefPtr<AsyncIterableIteratorBase>& aObject,
                const nsCOMPtr<nsIGlobalObject>& aGlobalObject,
                JS::Handle<JS::Value> aVal) MOZ_CAN_RUN_SCRIPT_FOR_DEFINITION {
@@ -311,7 +311,7 @@ already_AddRefed<Promise> AsyncIterableReturnImpl::Return(
   }
 
   // 13. Let fulfillSteps be the following steps:
-  auto onFullFilled = [](JSContext* aCx, JS::Handle<JS::Value>,
+  auto onFullFilled = [](MCContext* aCx, JS::Handle<JS::Value>,
                          ErrorResult& aRv,
                          const nsCOMPtr<nsIGlobalObject>& aGlobalObject,
                          JS::Handle<JS::Value> aVal) {

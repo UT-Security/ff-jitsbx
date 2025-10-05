@@ -19,27 +19,27 @@ class GamepadPose final : public Pose {
   GamepadPose(nsISupports* aParent, const GamepadPoseState& aState);
   explicit GamepadPose(nsISupports* aParent);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasOrientation() const;
   bool HasPosition() const;
-  virtual void GetPosition(JSContext* aJSContext,
+  virtual void GetPosition(MCContext* aJSContext,
                            JS::MutableHandle<JSObject*> aRetval,
                            ErrorResult& aRv) override;
-  virtual void GetLinearVelocity(JSContext* aJSContext,
+  virtual void GetLinearVelocity(MCContext* aJSContext,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) override;
-  virtual void GetLinearAcceleration(JSContext* aJSContext,
+  virtual void GetLinearAcceleration(MCContext* aJSContext,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv) override;
-  virtual void GetOrientation(JSContext* aJSContext,
+  virtual void GetOrientation(MCContext* aJSContext,
                               JS::MutableHandle<JSObject*> aRetval,
                               ErrorResult& aRv) override;
-  virtual void GetAngularVelocity(JSContext* aJSContext,
+  virtual void GetAngularVelocity(MCContext* aJSContext,
                                   JS::MutableHandle<JSObject*> aRetval,
                                   ErrorResult& aRv) override;
-  virtual void GetAngularAcceleration(JSContext* aJSContext,
+  virtual void GetAngularAcceleration(MCContext* aJSContext,
                                       JS::MutableHandle<JSObject*> aRetval,
                                       ErrorResult& aRv) override;
   void SetPoseState(const GamepadPoseState& aPose);

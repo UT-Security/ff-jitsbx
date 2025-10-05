@@ -48,7 +48,7 @@ class Client final : public nsISupports, public nsWrapperCache {
   StorageAccess GetStorageAccess() const;
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
@@ -72,10 +72,10 @@ class Client final : public nsISupports, public nsWrapperCache {
 
   already_AddRefed<Promise> Navigate(const nsAString& aURL, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferrable, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const StructuredSerializeOptions& aOptions,
                    ErrorResult& aRv);
 

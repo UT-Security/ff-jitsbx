@@ -6,7 +6,7 @@
 
 #include "nsHistory.h"
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nsCOMPtr.h"
 #include "nsPIDOMWindow.h"
 #include "mozilla/dom/Document.h"
@@ -49,7 +49,7 @@ nsPIDOMWindowInner* nsHistory::GetParentObject() const {
   return win;
 }
 
-JSObject* nsHistory::WrapObject(JSContext* aCx,
+JSObject* nsHistory::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return History_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -99,7 +99,7 @@ void nsHistory::SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
       aMode == mozilla::dom::ScrollRestoration::Manual);
 }
 
-void nsHistory::GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+void nsHistory::GetState(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                          ErrorResult& aRv) const {
   nsCOMPtr<nsPIDOMWindowInner> win(do_QueryReferent(mInnerWindow));
   if (!win) {
@@ -222,19 +222,19 @@ void nsHistory::Forward(CallerType aCallerType, ErrorResult& aRv) {
   }
 }
 
-void nsHistory::PushState(JSContext* aCx, JS::Handle<JS::Value> aData,
+void nsHistory::PushState(MCContext* aCx, JS::Handle<JS::Value> aData,
                           const nsAString& aTitle, const nsAString& aUrl,
                           CallerType aCallerType, ErrorResult& aRv) {
   PushOrReplaceState(aCx, aData, aTitle, aUrl, aCallerType, aRv, false);
 }
 
-void nsHistory::ReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+void nsHistory::ReplaceState(MCContext* aCx, JS::Handle<JS::Value> aData,
                              const nsAString& aTitle, const nsAString& aUrl,
                              CallerType aCallerType, ErrorResult& aRv) {
   PushOrReplaceState(aCx, aData, aTitle, aUrl, aCallerType, aRv, true);
 }
 
-void nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+void nsHistory::PushOrReplaceState(MCContext* aCx, JS::Handle<JS::Value> aData,
                                    const nsAString& aTitle,
                                    const nsAString& aUrl,
                                    CallerType aCallerType, ErrorResult& aRv,
@@ -274,7 +274,7 @@ void nsHistory::PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
   // The "replace" argument tells the docshell to whether to add a new
   // history entry or modify the current one.
 
-  aRv = docShell->AddState(aData, aTitle, aUrl, aReplace, JS_SanitizeContext(aCx));
+  aRv = docShell->AddState(aData, aTitle, aUrl, aReplace, aCx);
 }
 
 already_AddRefed<ChildSHistory> nsHistory::GetSessionHistory() const {

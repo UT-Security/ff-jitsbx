@@ -25,25 +25,25 @@ class Pose : public nsWrapperCache {
 
   nsISupports* GetParentObject() const;
 
-  virtual void GetPosition(JSContext* aJSContext,
+  virtual void GetPosition(MCContext* aJSContext,
                            JS::MutableHandle<JSObject*> aRetval,
                            ErrorResult& aRv) = 0;
-  virtual void GetLinearVelocity(JSContext* aJSContext,
+  virtual void GetLinearVelocity(MCContext* aJSContext,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) = 0;
-  virtual void GetLinearAcceleration(JSContext* aJSContext,
+  virtual void GetLinearAcceleration(MCContext* aJSContext,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv) = 0;
-  virtual void GetOrientation(JSContext* aJSContext,
+  virtual void GetOrientation(MCContext* aJSContext,
                               JS::MutableHandle<JSObject*> aRetval,
                               ErrorResult& aRv) = 0;
-  virtual void GetAngularVelocity(JSContext* aJSContext,
+  virtual void GetAngularVelocity(MCContext* aJSContext,
                                   JS::MutableHandle<JSObject*> aRetval,
                                   ErrorResult& aRv) = 0;
-  virtual void GetAngularAcceleration(JSContext* aJSContext,
+  virtual void GetAngularAcceleration(MCContext* aJSContext,
                                       JS::MutableHandle<JSObject*> aRetval,
                                       ErrorResult& aRv) = 0;
-  static void SetFloat32Array(JSContext* aJSContext, nsWrapperCache* creator,
+  static void SetFloat32Array(MCContext* aJSContext, nsWrapperCache* creator,
                               JS::MutableHandle<JSObject*> aRetVal,
                               JS::Heap<JSObject*>& aObj, float* aVal,
                               uint32_t aValLength, ErrorResult& aRv);

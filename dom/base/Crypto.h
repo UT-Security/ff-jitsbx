@@ -29,7 +29,7 @@ class Crypto final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(Crypto)
 
-  void GetRandomValues(JSContext* aCx, const ArrayBufferView& aArray,
+  void GetRandomValues(MCContext* aCx, const ArrayBufferView& aArray,
                        JS::MutableHandle<JSObject*> aRetval, ErrorResult& aRv);
 
   void RandomUUID(nsACString& aRetVal);
@@ -38,7 +38,7 @@ class Crypto final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:

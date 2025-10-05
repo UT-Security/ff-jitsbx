@@ -21,7 +21,7 @@ class CommandEvent : public Event {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(CommandEvent, Event)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return CommandEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

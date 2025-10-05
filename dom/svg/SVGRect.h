@@ -50,7 +50,7 @@ class SVGRect final : public nsWrapperCache {
     MOZ_ASSERT(mParent);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   float X();

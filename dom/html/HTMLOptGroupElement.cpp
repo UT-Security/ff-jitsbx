@@ -107,7 +107,7 @@ void HTMLOptGroupElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
       aNameSpaceID, aName, aValue, aOldValue, aSubjectPrincipal, aNotify);
 }
 
-JSObject* HTMLOptGroupElement::WrapNode(JSContext* aCx,
+JSObject* HTMLOptGroupElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLOptGroupElement_Binding::Wrap(aCx, this, aGivenProto);
 }

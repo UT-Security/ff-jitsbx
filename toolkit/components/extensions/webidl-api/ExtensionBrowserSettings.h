@@ -43,11 +43,11 @@ class ExtensionBrowserSettings final : public nsISupports,
   nsString GetAPINamespace() const override { return u"browserSettings"_ns; }
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods
-  static bool IsAllowed(JSContext* aCx, JSObject* aGlobal);
+  static bool IsAllowed(MCContext* aCx, JSObject* aGlobal);
 
   nsIGlobalObject* GetParentObject() const;
 

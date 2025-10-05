@@ -220,7 +220,7 @@ static Result<nsCString, nsresult> ReadFileLZ4(nsIFile* file) {
   return DecodeLZ4(lz4, MAGIC_NUMBER);
 }
 
-static bool ParseJSON(JSContext* cx, nsACString& jsonData,
+static bool ParseJSON(MCContext* cx, nsACString& jsonData,
                       JS::MutableHandle<JS::Value> result) {
   NS_ConvertUTF8toUTF16 str(jsonData);
   jsonData.Truncate();
@@ -269,9 +269,9 @@ static Result<FileLocation, nsresult> GetFileLocation(nsIURI* uri) {
 
 class MOZ_STACK_CLASS WrapperBase {
  protected:
-  WrapperBase(JSContext* cx, JSObject* object) : mCx(cx), mObject(cx, object) {}
+  WrapperBase(MCContext* cx, JSObject* object) : mCx(cx), mObject(cx, object) {}
 
-  WrapperBase(JSContext* cx, const JS::Value& value) : mCx(cx), mObject(cx) {
+  WrapperBase(MCContext* cx, const JS::Value& value) : mCx(cx), mObject(cx) {
     if (value.isObject()) {
       mObject = &value.toObject();
     } else {
@@ -280,7 +280,7 @@ class MOZ_STACK_CLASS WrapperBase {
   }
 
  protected:
-  JSContext* mCx;
+  MCContext* mCx;
   MC::Rooted<JSObject*> mObject;
 
   bool GetBool(const char* name, bool defVal = false);
@@ -353,7 +353,7 @@ JSObject* WrapperBase::GetObject(const char* name) {
 
 class MOZ_STACK_CLASS InstallLocation : public WrapperBase {
  public:
-  InstallLocation(JSContext* cx, const JS::Value& value);
+  InstallLocation(MCContext* cx, const JS::Value& value);
 
   MOZ_IMPLICIT InstallLocation(PropertyIterElem& iter)
       : InstallLocation(iter.Cx(), iter.Value()) {}
@@ -385,7 +385,7 @@ class MOZ_STACK_CLASS InstallLocation : public WrapperBase {
 
 class MOZ_STACK_CLASS Addon : public WrapperBase {
  public:
-  Addon(JSContext* cx, InstallLocation& location, const nsAString& id,
+  Addon(MCContext* cx, InstallLocation& location, const nsAString& id,
         JSObject* object)
       : WrapperBase(cx, object), mId(id), mLocation(location) {}
 
@@ -477,7 +477,7 @@ Result<bool, nsresult> Addon::UpdateLastModifiedTime() {
   return lastModified != LastModifiedTime();
 }
 
-InstallLocation::InstallLocation(JSContext* cx, const JS::Value& value)
+InstallLocation::InstallLocation(MCContext* cx, const JS::Value& value)
     : WrapperBase(cx, value), mAddonsObj(cx), mAddonsIter() {
   mAddonsObj = GetObject("addons");
   if (!mAddonsObj) {
@@ -505,7 +505,7 @@ nsresult AddonManagerStartup::ReadStartupData(
     return res.unwrapErr();
   }
 
-  if (data.IsEmpty() || !ParseJSON(MC_UNSAFE(cx), data, locations)) {
+  if (data.IsEmpty() || !ParseJSON(cx, data, locations)) {
     return NS_OK;
   }
 
@@ -514,7 +514,7 @@ nsresult AddonManagerStartup::ReadStartupData(
   }
 
   MC::Rooted<JSObject*> locs(cx, &locations.toObject());
-  for (auto e1 : PropertyIter(MC_UNSAFE(cx), locs)) {
+  for (auto e1 : PropertyIter(cx, locs)) {
     InstallLocation loc(e1);
 
     bool shouldCheck = loc.ShouldCheckStartupModifications();
@@ -542,14 +542,14 @@ nsresult AddonManagerStartup::EncodeBlob(JS::Handle<JS::Value> value,
   StructuredCloneData holder;
 
   ErrorResult rv;
-  holder.Write(MC_UNSAFE(cx), value, rv);
+  holder.Write(cx, value, rv);
   if (rv.Failed()) {
     return rv.StealNSResult();
   }
 
   nsAutoCString scData;
 
-  holder.Data().ForEachDataChunk([&](const char* aData, size_t aSize) {
+  holder.Data()->ForEachDataChunk([&](const char* aData, size_t aSize) {
     scData.Append(nsDependentCSubstring(aData, aSize));
     return true;
   });
@@ -558,7 +558,7 @@ nsresult AddonManagerStartup::EncodeBlob(JS::Handle<JS::Value> value,
   MOZ_TRY_VAR(lz4, EncodeLZ4(scData, STRUCTURED_CLONE_MAGIC));
 
   MC::Rooted<JSObject*> obj(cx);
-  MOZ_TRY(nsContentUtils::CreateArrayBuffer(MC_UNSAFE(cx), lz4, &obj.get()));
+  MOZ_TRY(nsContentUtils::CreateArrayBuffer(cx, lz4, &obj.get()));
 
   result.set(JS::ObjectValue(*obj));
   return NS_OK;
@@ -579,12 +579,12 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
     MC::AutoCheckCannotGC nogc;
 
     auto obj = &value.toObject();
-    bool isShared;
+    MC::SandboxStack<bool> isShared;
 
     size_t len = JS::GetArrayBufferByteLength(obj);
     NS_ENSURE_TRUE(len <= INT32_MAX, NS_ERROR_INVALID_ARG);
     nsDependentCSubstring lz4(
-        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, &isShared, nogc)),
+        reinterpret_cast<char*>(JS::GetArrayBufferData(obj, isShared, nogc).UNSAFE_unverified()),
         uint32_t(len));
 
     MOZ_TRY_VAR(data, DecodeLZ4(lz4, STRUCTURED_CLONE_MAGIC));
@@ -594,7 +594,7 @@ nsresult AddonManagerStartup::DecodeBlob(JS::Handle<JS::Value> value,
   NS_ENSURE_TRUE(ok, NS_ERROR_OUT_OF_MEMORY);
 
   ErrorResult rv;
-  holder.Read(MC_UNSAFE(cx), result, rv);
+  holder.Read(cx, result, rv);
   return rv.StealNSResult();
   ;
 }
@@ -799,16 +799,16 @@ AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
   MC::Rooted<JS::Value> arrayVal(cx);
   MC::Rooted<JSObject*> array(cx);
 
-  for (auto elem : ArrayIter(MC_UNSAFE(cx), locs)) {
+  for (auto elem : ArrayIter(cx, locs)) {
     arrayVal = elem.Value();
     NS_ENSURE_TRUE(IsArray(arrayVal), NS_ERROR_INVALID_ARG);
 
     array = &arrayVal.toObject();
 
     AutoTArray<nsCString, 4> vals;
-    for (auto val : ArrayIter(MC_UNSAFE(cx), array)) {
+    for (auto val : ArrayIter(cx, array)) {
       nsAutoJSString str;
-      NS_ENSURE_TRUE(str.init(MC_UNSAFE(cx), val.Value()), NS_ERROR_OUT_OF_MEMORY);
+      NS_ENSURE_TRUE(str.init(cx, val.Value()), NS_ERROR_OUT_OF_MEMORY);
 
       vals.AppendElement(NS_ConvertUTF16toUTF8(str));
     }

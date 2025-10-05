@@ -26,7 +26,7 @@ SharedMessageBody::SharedMessageBody(
       mSupportsTransferring(aSupportsTransferring),
       mAgentClusterId(aAgentClusterId) {}
 
-void SharedMessageBody::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void SharedMessageBody::Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                               JS::Handle<JS::Value> aTransfers, nsID& aPortID,
                               RefMessageBodyService* aRefMessageBodyService,
                               ErrorResult& aRv) {
@@ -63,7 +63,7 @@ void SharedMessageBody::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
   mRefDataId.emplace(aRefMessageBodyService->Register(refData.forget(), aRv));
 }
 
-void SharedMessageBody::Read(JSContext* aCx,
+void SharedMessageBody::Read(MCContext* aCx,
                              JS::MutableHandle<JS::Value> aValue,
                              RefMessageBodyService* aRefMessageBodyService,
                              SharedMessageBody::ReadMethod aReadMethod,

@@ -23,7 +23,7 @@ namespace mozilla::dom {
 class CallbackInterface : public CallbackObject {
  public:
   // See CallbackObject for an explanation of the arguments.
-  explicit CallbackInterface(JSContext* aCx, JS::Handle<JSObject*> aCallback,
+  explicit CallbackInterface(MCContext* aCx, JS::Handle<JSObject*> aCallback,
                              JS::Handle<JSObject*> aCallbackGlobal,
                              nsIGlobalObject* aIncumbentGlobal)
       : CallbackObject(aCx, aCallback, aCallbackGlobal, aIncumbentGlobal) {}

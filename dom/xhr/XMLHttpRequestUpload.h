@@ -21,7 +21,7 @@ class XMLHttpRequestUpload final : public XMLHttpRequestEventTarget {
 
   NS_DECL_ISUPPORTS_INHERITED
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasListeners() {

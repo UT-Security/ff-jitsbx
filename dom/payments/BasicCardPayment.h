@@ -20,9 +20,9 @@ class BasicCardService final {
   static already_AddRefed<BasicCardService> GetService();
 
   bool IsBasicCardPayment(const nsAString& aSupportedMethods);
-  bool IsValidBasicCardRequest(JSContext* aCx, JSObject* aData,
+  bool IsValidBasicCardRequest(MCContext* aCx, JSObject* aData,
                                nsAString& aErrorMsg);
-  void CheckForValidBasicCardErrors(JSContext* aCx, JSObject* aData,
+  void CheckForValidBasicCardErrors(MCContext* aCx, JSObject* aData,
                                     ErrorResult& aRv);
   bool IsValidExpiryMonth(const nsAString& aExpiryMonth);
   bool IsValidExpiryYear(const nsAString& aExpiryYear);

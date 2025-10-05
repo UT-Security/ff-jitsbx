@@ -33,7 +33,7 @@ HTMLDialogElement::~HTMLDialogElement() = default;
 
 NS_IMPL_ELEMENT_CLONE(HTMLDialogElement)
 
-bool HTMLDialogElement::IsDialogEnabled(JSContext* aCx,
+bool HTMLDialogElement::IsDialogEnabled(MCContext* aCx,
                                         JS::Handle<JSObject*> aObj) {
   return StaticPrefs::dom_dialog_element_enabled() ||
          nsContentUtils::IsSystemCaller(aCx);
@@ -199,7 +199,7 @@ void HTMLDialogElement::RunCancelDialogSteps() {
   }
 }
 
-JSObject* HTMLDialogElement::WrapNode(JSContext* aCx,
+JSObject* HTMLDialogElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLDialogElement_Binding::Wrap(aCx, this, aGivenProto);
 }

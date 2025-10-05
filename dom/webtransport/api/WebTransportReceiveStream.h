@@ -30,7 +30,7 @@ class WebTransportReceiveStream final : public ReadableStream {
       mozilla::ipc::DataPipeReceiver* receiver, ErrorResult& aRv);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface

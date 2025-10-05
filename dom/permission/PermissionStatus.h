@@ -23,7 +23,7 @@ class PermissionStatus : public DOMEventTargetHelper {
                                                    PermissionName aName,
                                                    ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   PermissionState State() const { return mState; }

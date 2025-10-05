@@ -31,11 +31,11 @@ class MerchantValidationEvent : public Event, public PromiseNativeHandler {
   explicit MerchantValidationEvent(EventTarget* aOwner);
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override;
 
   static already_AddRefed<MerchantValidationEvent> Constructor(

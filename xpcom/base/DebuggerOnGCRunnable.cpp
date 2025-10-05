@@ -8,7 +8,7 @@
 
 #include <utility>
 
-#include "js/Debug.h"
+#include "monkeycage/Debug.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/dom/ScriptSettings.h"
 #include "mozilla/SchedulerGroup.h"
@@ -37,7 +37,7 @@ NS_IMETHODIMP
 DebuggerOnGCRunnable::Run() {
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  if (!JS::dbg::FireOnGarbageCollectionHook(jsapi.cx(), std::move(mGCData))) {
+  if (!JS::dbg::FireOnGarbageCollectionHook(MC_UNSAFE(jsapi.cx()), std::move(mGCData))) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;

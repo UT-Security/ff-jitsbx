@@ -8,7 +8,7 @@
 // would like.
 
 #include "DevTools.h"
-#include "js/SavedFrameAPI.h"
+#include "monkeycage/SavedFrameAPI.h"
 #include "monkeycage/TypeDecls.h"
 #include "mozilla/devtools/DeserializedNode.h"
 
@@ -46,23 +46,23 @@ DEF_TEST(DeserializedStackFrameUbiStackFrames, {
   EXPECT_EQ(JS::ubi::AtomOrTwoByteChars(source), ubiFrame.source());
   EXPECT_EQ(JS::ubi::AtomOrTwoByteChars(functionDisplayName),
             ubiFrame.functionDisplayName());
-  EXPECT_FALSE(ubiFrame.isSelfHosted(cx));
+  EXPECT_FALSE(ubiFrame.isSelfHosted(MC_UNSAFE(cx)));
   EXPECT_FALSE(ubiFrame.isSystem());
 
   MC::Rooted<JSObject*> savedFrame(cx);
-  EXPECT_TRUE(ubiFrame.constructSavedFrameStack(cx, &savedFrame));
+  EXPECT_TRUE(ubiFrame.constructSavedFrameStack(MC_UNSAFE(cx), &savedFrame));
 
   JSPrincipals* principals = JS::GetRealmPrincipals(js::GetContextRealm(cx));
 
-  uint32_t frameLine;
+  MC::SandboxStack<uint32_t> frameLine;
   ASSERT_EQ(JS::SavedFrameResult::Ok,
-            JS::GetSavedFrameLine(cx, principals, savedFrame, &frameLine));
-  EXPECT_EQ(line, frameLine);
+            JS::GetSavedFrameLine(cx, principals, savedFrame, frameLine));
+  EXPECT_EQ(line, *frameLine.UNSAFE_unverified());
 
-  uint32_t frameColumn;
+  MC::SandboxStack<uint32_t> frameColumn;
   ASSERT_EQ(JS::SavedFrameResult::Ok,
-            JS::GetSavedFrameColumn(cx, principals, savedFrame, &frameColumn));
-  EXPECT_EQ(column, frameColumn);
+            JS::GetSavedFrameColumn(cx, principals, savedFrame, frameColumn));
+  EXPECT_EQ(column, *frameColumn.UNSAFE_unverified());
 
   MC::Rooted<JSObject*> parent(cx);
   ASSERT_EQ(JS::SavedFrameResult::Ok,

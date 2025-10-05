@@ -229,7 +229,7 @@ void MIDIAccess::Notify(const MIDIPortList& aEvent) {
   mAccessPromise = nullptr;
 }
 
-JSObject* MIDIAccess::WrapObject(JSContext* aCx,
+JSObject* MIDIAccess::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return MIDIAccess_Binding::Wrap(aCx, this, aGivenProto);
 }

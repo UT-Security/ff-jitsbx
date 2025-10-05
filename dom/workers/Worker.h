@@ -33,7 +33,7 @@ class Worker : public DOMEventTargetHelper, public SupportsWeakPtr {
                                               const WorkerOptions& aOptions,
                                               ErrorResult& aRv);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   Maybe<EventCallbackDebuggerNotificationType> GetDebuggerNotificationType()
@@ -41,10 +41,10 @@ class Worker : public DOMEventTargetHelper, public SupportsWeakPtr {
     return Some(EventCallbackDebuggerNotificationType::Worker);
   }
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const Sequence<JSObject*>& aTransferable, ErrorResult& aRv);
 
-  void PostMessage(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessage(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                    const StructuredSerializeOptions& aOptions,
                    ErrorResult& aRv);
 

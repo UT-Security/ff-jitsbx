@@ -12,9 +12,9 @@
 #include "ipc/TelemetryIPCAccumulator.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
+#include "monkeycage/Array.h"  // JS::GetArrayLength, JS::IsArrayObject, JS::NewArrayObject
 #include "monkeycage/GCAPI.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetMaybePtrFromReservedSlot, JS::SetReservedSlot
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetMaybePtrFromReservedSlot, JS::SetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunction, JS_DefineProperty, JS_DefineUCProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById
 #include "mozilla/dom/ToJSValue.h"
 #include "mozilla/gfx/GPUProcessManager.h"
@@ -244,7 +244,7 @@ class KeyedHistogram {
   nsresult GetKeys(const StaticMutexAutoLock& aLock, const nsCString& store,
                    nsTArray<nsCString>& aKeys);
   // Note: unlike other methods, GetJSSnapshot is thread safe.
-  nsresult GetJSSnapshot(JSContext* cx, JS::Handle<JSObject*> obj,
+  nsresult GetJSSnapshot(MCContext* cx, JS::Handle<JSObject*> obj,
                          const nsACString& aStore, bool clearSubsession);
   nsresult GetSnapshot(const StaticMutexAutoLock& aLock,
                        const nsACString& aStore,
@@ -783,7 +783,7 @@ nsresult internal_GetHistogramAndSamples(const StaticMutexAutoLock& aLock,
  *   values - Map from bucket start to the bucket's count
  */
 nsresult internal_ReflectHistogramAndSamples(
-    JSContext* cx, JS::Handle<JSObject*> obj,
+    MCContext* cx, JS::Handle<JSObject*> obj,
     const HistogramInfo& aHistogramInfo,
     const HistogramSnapshotData& aSnapshot) {
   if (!(JS_DefineProperty(cx, obj, "bucket_count", aHistogramInfo.bucketCount,
@@ -1091,7 +1091,7 @@ namespace {
 
 nsresult internal_ReflectKeyedHistogram(
     const KeyedHistogramSnapshotData& aSnapshot, const HistogramInfo& info,
-    JSContext* aCx, JS::Handle<JSObject*> aObj) {
+    MCContext* aCx, JS::Handle<JSObject*> aObj) {
   for (const auto& entry : aSnapshot) {
     const HistogramSnapshotData& keyData = entry.GetData();
 
@@ -1348,7 +1348,7 @@ nsresult KeyedHistogram::GetKeys(const StaticMutexAutoLock& aLock,
   return NS_OK;
 }
 
-nsresult KeyedHistogram::GetJSSnapshot(JSContext* cx, JS::Handle<JSObject*> obj,
+nsresult KeyedHistogram::GetJSSnapshot(MCContext* cx, JS::Handle<JSObject*> obj,
                                        const nsACString& aStore,
                                        bool clearSubsession) {
   // Get a snapshot of the data.
@@ -1669,10 +1669,11 @@ struct JSHistogramData {
   HistogramID histogramId;
 };
 
-bool internal_JSHistogram_CoerceValue(JSContext* aCx,
+bool internal_JSHistogram_CoerceValue(MCContext* aCx,
                                       JS::Handle<JS::Value> aElement,
                                       HistogramID aId, uint32_t aHistogramType,
                                       uint32_t& aValue) {
+  MC::SandboxStack<uint32_t> tValue;
   if (aElement.isString()) {
     // Strings only allowed for categorical histograms
     if (aHistogramType != nsITelemetry::HISTOGRAM_CATEGORICAL) {
@@ -1713,18 +1714,20 @@ bool internal_JSHistogram_CoerceValue(JSContext* aCx,
     LogToBrowserConsole(nsIScriptError::errorFlag,
                         u"Clamped large numeric value"_ns);
 #endif
-  } else if (!JS::ToUint32(aCx, aElement, &aValue)) {
+  } else if (!JS::ToUint32(aCx, aElement, tValue)) {
     LogToBrowserConsole(nsIScriptError::errorFlag,
                         u"Failed to convert element to UInt32"_ns);
     return false;
   }
+
+  aValue = *tValue.UNSAFE_unverified();
 
   // If we're here then all type checks have passed and aValue contains the
   // coerced integer
   return true;
 }
 
-bool internal_JSHistogram_GetValueArray(JSContext* aCx, JS::CallArgs& args,
+bool internal_JSHistogram_GetValueArray(MCContext* aCx, JS::CallArgs& args,
                                         uint32_t aHistogramType,
                                         HistogramID aId, bool isKeyed,
                                         nsTArray<uint32_t>& aArray) {
@@ -1836,7 +1839,7 @@ MC::Tainted<bool> internal_JSHistogram_Add(MC::Tainted<JSContext*> t_cx, unsigne
   args.rval().setUndefined();
 
   nsTArray<uint32_t> values;
-  if (!internal_JSHistogram_GetValueArray(MC_UNSAFE(cx), args, type, id, false, values)) {
+  if (!internal_JSHistogram_GetValueArray(cx, args, type, id, false, values)) {
     // Either GetValueArray or CoerceValue utility function will have printed a
     // meaningful error message, so we simply return true
     return true;
@@ -1975,7 +1978,7 @@ MC::Tainted<bool> internal_JSHistogram_Snapshot(MC::Tainted<JSContext*> t_cx, un
   }
 
   if (NS_FAILED(internal_ReflectHistogramAndSamples(
-          MC_UNSAFE(cx), snapshot, gHistogramInfos[id], dataSnapshot))) {
+          cx, snapshot, gHistogramInfos[id], dataSnapshot))) {
     return false;
   }
 
@@ -2029,7 +2032,7 @@ MC::Tainted<bool> internal_JSHistogram_Clear(MC::Tainted<JSContext*> t_cx,
 
 // NOTE: Runs without protection from |gTelemetryHistogramMutex|.
 // See comment at the top of this section.
-nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
+nsresult internal_WrapAndReturnHistogram(HistogramID id, MCContext* cx,
                                          JS::MutableHandle<JS::Value> ret) {
   MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, sJSHistogramClass()));
   if (!obj) {
@@ -2047,11 +2050,11 @@ nsresult internal_WrapAndReturnHistogram(HistogramID id, JSContext* cx,
 
   // The 3 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_AddCb.UNSAFE_get(), 1, 0) &&
-        JS_DefineFunction(cx, obj, "name", internal_JSHistogram_NameCb.UNSAFE_get(), 1, 0) &&
-        JS_DefineFunction(cx, obj, "snapshot", internal_JSHistogram_SnapshotCb.UNSAFE_get(), 1,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSHistogram_AddCb, 1, 0) &&
+        JS_DefineFunction(cx, obj, "name", internal_JSHistogram_NameCb, 1, 0) &&
+        JS_DefineFunction(cx, obj, "snapshot", internal_JSHistogram_SnapshotCb, 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", internal_JSHistogram_ClearCb.UNSAFE_get(), 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSHistogram_ClearCb, 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }
@@ -2176,7 +2179,7 @@ MC::Tainted<bool> internal_JSKeyedHistogram_Snapshot(MC::Tainted<JSContext*> t_c
     return false;
   }
 
-  rv = keyed->GetJSSnapshot(MC_UNSAFE(cx), snapshot, NS_ConvertUTF16toUTF8(storeName),
+  rv = keyed->GetJSSnapshot(cx, snapshot, NS_ConvertUTF16toUTF8(storeName),
                             false);
 
   // If the store is not available, we return nothing and don't fail
@@ -2242,7 +2245,7 @@ MC::Tainted<bool> internal_JSKeyedHistogram_Add(MC::Tainted<JSContext*> t_cx, un
   const uint32_t type = gHistogramInfos[id].histogramType;
 
   nsTArray<uint32_t> values;
-  if (!internal_JSHistogram_GetValueArray(MC_UNSAFE(cx), args, type, id, true, values)) {
+  if (!internal_JSHistogram_GetValueArray(cx, args, type, id, true, values)) {
     // Either GetValueArray or CoerceValue utility function will have printed a
     // meaningful error message so we simple return true
     return true;
@@ -2407,7 +2410,7 @@ MC::Tainted<bool> internal_JSKeyedHistogram_Clear(MC::Tainted<JSContext*> t_cx, 
 // NOTE: Runs without protection from |gTelemetryHistogramMutex|.
 // See comment at the top of this section.
 nsresult internal_WrapAndReturnKeyedHistogram(
-    HistogramID id, JSContext* cx, JS::MutableHandle<JS::Value> ret) {
+    HistogramID id, MCContext* cx, JS::MutableHandle<JS::Value> ret) {
   MC::Rooted<JSObject*> obj(cx, JS_NewObject(cx, sJSKeyedHistogramClass()));
   if (!obj) return NS_ERROR_FAILURE;
 
@@ -2424,15 +2427,15 @@ nsresult internal_WrapAndReturnKeyedHistogram(
 
   // The 6 functions that are wrapped up here are eventually called
   // by the same thread that runs this function.
-  if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb.UNSAFE_get(), 2,
+  if (!(JS_DefineFunction(cx, obj, "add", internal_JSKeyedHistogram_AddCb, 2,
                           0) &&
-        JS_DefineFunction(cx, obj, "name", internal_JSKeyedHistogram_NameCb.UNSAFE_get(), 1,
+        JS_DefineFunction(cx, obj, "name", internal_JSKeyedHistogram_NameCb, 1,
                           0) &&
         JS_DefineFunction(cx, obj, "snapshot",
-                          internal_JSKeyedHistogram_SnapshotCb.UNSAFE_get(), 1, 0) &&
-        JS_DefineFunction(cx, obj, "keys", internal_JSKeyedHistogram_KeysCb.UNSAFE_get(), 1,
+                          internal_JSKeyedHistogram_SnapshotCb, 1, 0) &&
+        JS_DefineFunction(cx, obj, "keys", internal_JSKeyedHistogram_KeysCb, 1,
                           0) &&
-        JS_DefineFunction(cx, obj, "clear", internal_JSKeyedHistogram_ClearCb.UNSAFE_get(), 1,
+        JS_DefineFunction(cx, obj, "clear", internal_JSKeyedHistogram_ClearCb, 1,
                           0))) {
     return NS_ERROR_FAILURE;
   }
@@ -2845,7 +2848,7 @@ nsresult TelemetryHistogram::GetAllStores(StringHashSet& set) {
 }
 
 nsresult TelemetryHistogram::GetCategoricalHistogramLabels(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResult) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aResult) {
   MC::Rooted<JSObject*> root_obj(aCx, JS_NewPlainObject(aCx));
   if (!root_obj) {
     return NS_ERROR_FAILURE;
@@ -2884,7 +2887,7 @@ nsresult TelemetryHistogram::GetCategoricalHistogramLabels(
 }
 
 nsresult TelemetryHistogram::GetHistogramById(
-    const nsACString& name, JSContext* cx, JS::MutableHandle<JS::Value> ret) {
+    const nsACString& name, MCContext* cx, JS::MutableHandle<JS::Value> ret) {
   HistogramID id;
   {
     StaticMutexAutoLock locker(gTelemetryHistogramMutex);
@@ -2902,7 +2905,7 @@ nsresult TelemetryHistogram::GetHistogramById(
 }
 
 nsresult TelemetryHistogram::GetKeyedHistogramById(
-    const nsACString& name, JSContext* cx, JS::MutableHandle<JS::Value> ret) {
+    const nsACString& name, MCContext* cx, JS::MutableHandle<JS::Value> ret) {
   HistogramID id;
   {
     StaticMutexAutoLock locker(gTelemetryHistogramMutex);
@@ -2931,7 +2934,7 @@ const char* TelemetryHistogram::GetHistogramName(HistogramID id) {
 }
 
 nsresult TelemetryHistogram::CreateHistogramSnapshots(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+    MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
     const nsACString& aStore, unsigned int aDataset, bool aClearSubsession,
     bool aFilterTest) {
   if (!XRE_IsParentProcess()) {
@@ -2995,7 +2998,7 @@ nsresult TelemetryHistogram::CreateHistogramSnapshots(
 }
 
 nsresult TelemetryHistogram::GetKeyedHistogramSnapshots(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+    MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
     const nsACString& aStore, unsigned int aDataset, bool aClearSubsession,
     bool aFilterTest) {
   if (!XRE_IsParentProcess()) {
@@ -3171,7 +3174,7 @@ bool internal_CanRecordHistogram(const HistogramID id, ProcessID aProcessType) {
 }
 
 nsresult internal_ParseHistogramData(
-    JSContext* aCx, JS::Handle<JS::PropertyKey> aEntryId,
+    MCContext* aCx, JS::Handle<JS::PropertyKey> aEntryId,
     JS::Handle<JSObject*> aContainerObj, nsACString& aOutName,
     nsTArray<base::Histogram::Count>& aOutCountArray, int64_t& aOutSum) {
   // Get the histogram name.
@@ -3204,44 +3207,47 @@ nsresult internal_ParseHistogramData(
     return NS_ERROR_FAILURE;
   }
 
-  if (!JS::ToInt64(aCx, sumValue, &aOutSum)) {
+  MC::SandboxStack<int64_t> tOutSum;
+  if (!JS::ToInt64(aCx, sumValue, tOutSum)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
+
+  aOutSum = *tOutSum.UNSAFE_unverified();
 
   // Get the "counts" array.
   MC::Rooted<JS::Value> countsArray(aCx);
-  bool countsIsArray = false;
+  MC::SandboxStack<bool> countsIsArray = false;
   if (!JS_GetProperty(aCx, histogramObj, "counts", &countsArray) ||
-      !JS::IsArrayObject(aCx, countsArray, &countsIsArray)) {
+      !JS::IsArrayObject(aCx, countsArray, countsIsArray)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
 
-  if (!countsIsArray) {
+  if (!*countsIsArray.UNSAFE_unverified()) {
     // The "counts" property needs to be an array. If this is not the case,
     // skip this histogram.
     return NS_ERROR_FAILURE;
   }
 
   // Get the length of the array.
-  uint32_t countsLen = 0;
+  MC::SandboxStack<uint32_t> countsLen = 0;
   MC::Rooted<JSObject*> countsArrayObj(aCx, &countsArray.toObject());
-  if (!JS::GetArrayLength(aCx, countsArrayObj, &countsLen)) {
+  if (!JS::GetArrayLength(aCx, countsArrayObj, countsLen)) {
     JS_ClearPendingException(aCx);
     return NS_ERROR_FAILURE;
   }
 
   // Parse the "counts" in the array.
-  for (uint32_t arrayIdx = 0; arrayIdx < countsLen; arrayIdx++) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *countsLen.UNSAFE_unverified(); arrayIdx++) {
     MC::Rooted<JS::Value> elementValue(aCx);
-    int countAsInt = 0;
+    MC::SandboxStack<int> countAsInt = 0;
     if (!JS_GetElement(aCx, countsArrayObj, arrayIdx, &elementValue) ||
-        !JS::ToInt32(aCx, elementValue, &countAsInt)) {
+        !JS::ToInt32(aCx, elementValue, countAsInt)) {
       JS_ClearPendingException(aCx);
       return NS_ERROR_FAILURE;
     }
-    aOutCountArray.AppendElement(countAsInt);
+    aOutCountArray.AppendElement(*countAsInt.UNSAFE_unverified());
   }
 
   return NS_OK;
@@ -3356,7 +3362,7 @@ nsresult TelemetryHistogram::SerializeKeyedHistograms(
 }
 
 nsresult TelemetryHistogram::DeserializeHistograms(
-    JSContext* aCx, JS::Handle<JS::Value> aData) {
+    MCContext* aCx, JS::Handle<JS::Value> aData) {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Only load histograms in the parent process");
   if (!XRE_IsParentProcess()) {
@@ -3378,7 +3384,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
   // wrappers. We can't hold the histogram mutex while handling JS stuff.
   // Build a <histogram name, value> map.
   MC::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
-  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, histogramDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -3435,7 +3441,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
 
     // Iterate through each histogram.
     MC::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    MC::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
+    MC::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(MC_UNSAFE(aCx)));
     if (!JS_Enumerate(aCx, processDataObj, &histograms)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3531,7 +3537,7 @@ nsresult TelemetryHistogram::DeserializeHistograms(
 }
 
 nsresult TelemetryHistogram::DeserializeKeyedHistograms(
-    JSContext* aCx, JS::Handle<JS::Value> aData) {
+    MCContext* aCx, JS::Handle<JS::Value> aData) {
   MOZ_ASSERT(XRE_IsParentProcess(),
              "Only load keyed histograms in the parent process");
   if (!XRE_IsParentProcess()) {
@@ -3556,7 +3562,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
   // wrappers. We can't hold the histogram mutex while handling JS stuff.
   // Build a <histogram name, value> map.
   MC::Rooted<JSObject*> histogramDataObj(aCx, &aData.toObject());
-  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> processes(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, histogramDataObj, &processes)) {
     // We can't even enumerate the processes in the loaded data, so
     // there is nothing we could recover from the persistence file. Bail out.
@@ -3613,7 +3619,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
 
     // Iterate through each keyed histogram.
     MC::Rooted<JSObject*> processDataObj(aCx, &processData.toObject());
-    MC::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(aCx));
+    MC::Rooted<JS::IdVector> histograms(aCx, JS::IdVector(MC_UNSAFE(aCx)));
     if (!JS_Enumerate(aCx, processDataObj, &histograms)) {
       JS_ClearPendingException(aCx);
       continue;
@@ -3642,7 +3648,7 @@ nsresult TelemetryHistogram::DeserializeKeyedHistograms(
 
       // Iterate through each key in the histogram.
       MC::Rooted<JSObject*> keysDataObj(aCx, &histogramData.toObject());
-      MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+      MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
       if (!JS_Enumerate(aCx, keysDataObj, &keys)) {
         JS_ClearPendingException(aCx);
         continue;

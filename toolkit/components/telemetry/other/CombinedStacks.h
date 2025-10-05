@@ -12,7 +12,7 @@
 #include "ProcessedStack.h"
 
 class JSObject;
-struct JSContext;
+struct MCContext;
 
 namespace mozilla {
 namespace Telemetry {
@@ -64,7 +64,7 @@ class CombinedStacks {
 /**
  * Creates a JSON representation of given combined stacks object.
  */
-JSObject* CreateJSStackObject(JSContext* cx, const CombinedStacks& stacks);
+JSObject* CreateJSStackObject(MCContext* cx, const CombinedStacks& stacks);
 
 }  // namespace Telemetry
 }  // namespace mozilla

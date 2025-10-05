@@ -232,7 +232,7 @@ bool OriginTrials::IsEnabled(OriginTrial aTrial) const {
   return mEnabledTrials.contains(aTrial);
 }
 
-bool OriginTrials::IsEnabled(JSContext* aCx, JSObject* aObject,
+bool OriginTrials::IsEnabled(MCContext* aCx, JSObject* aObject,
                              OriginTrial aTrial) {
   if (nsContentUtils::ThreadsafeIsSystemCaller(aCx)) {
     return true;

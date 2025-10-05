@@ -32,7 +32,7 @@ class AudioWorkletProcessor final : public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   MessagePort* Port() const { return mPort; };

@@ -39,7 +39,7 @@ DOMImplementation::DOMImplementation(Document* aOwner,
 
 DOMImplementation::~DOMImplementation() = default;
 
-JSObject* DOMImplementation::WrapObject(JSContext* aCx,
+JSObject* DOMImplementation::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return DOMImplementation_Binding::Wrap(aCx, this, aGivenProto);
 }

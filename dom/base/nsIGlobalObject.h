@@ -261,7 +261,7 @@ class nsIGlobalObject : public nsISupports,
    * Get the module loader to use for this global, if any. By default this
    * returns null.
    */
-  virtual JS::loader::ModuleLoaderBase* GetModuleLoader(JSContext* aCx) {
+  virtual JS::loader::ModuleLoaderBase* GetModuleLoader(MCContext* aCx) {
     return nullptr;
   }
 

@@ -1114,7 +1114,7 @@ nsDNSService::AsyncResolve(const nsACString& aHostname,
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -1152,7 +1152,7 @@ nsDNSService::CancelAsyncResolve(const nsACString& aHostname,
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -1179,7 +1179,7 @@ nsDNSService::Resolve(const nsACString& aHostname,
   OriginAttributes attrs;
 
   if (aArgc == 1) {
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }

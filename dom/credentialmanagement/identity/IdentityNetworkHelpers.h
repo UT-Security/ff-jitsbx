@@ -40,7 +40,7 @@ RefPtr<TPromise> FetchJSONStructure(Request* aRequest) {
 
   // Handle the response
   RefPtr<DomPromiseListener> listener = new DomPromiseListener(
-      [resultPromise](JSContext* aCx, JS::Handle<JS::Value> aValue) {
+      [resultPromise](MCContext* aCx, JS::Handle<JS::Value> aValue) {
         // Get the Response object from the argument to the callback
         if (NS_WARN_IF(!aValue.isObject())) {
           resultPromise->Reject(NS_ERROR_FAILURE, __func__);
@@ -71,7 +71,7 @@ RefPtr<TPromise> FetchJSONStructure(Request* aRequest) {
 
         // Handle the parsed JSON from the Response body
         RefPtr<DomPromiseListener> jsonListener = new DomPromiseListener(
-            [resultPromise](JSContext* aCx, JS::Handle<JS::Value> aValue) {
+            [resultPromise](MCContext* aCx, JS::Handle<JS::Value> aValue) {
               // Parse the JSON into the correct type, validating fields and
               // types
               T result;

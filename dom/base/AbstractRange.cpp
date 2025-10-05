@@ -380,7 +380,7 @@ void AbstractRange::UpdateCommonAncestorIfNecessary() {
 
 nsINode* AbstractRange::GetParentObject() const { return mOwner; }
 
-JSObject* AbstractRange::WrapObject(JSContext* aCx,
+JSObject* AbstractRange::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   MOZ_CRASH("Must be overridden");
 }

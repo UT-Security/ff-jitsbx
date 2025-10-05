@@ -25,7 +25,7 @@ namespace mozilla {
 // NS_ReleaseOnMainThread.
 class JSObjectHolder final : public nsISupports {
  public:
-  JSObjectHolder(JSContext* aCx, JSObject* aObject) : mJSObject(aCx, aObject) {}
+  JSObjectHolder(MCContext* aCx, JSObject* aObject) : mJSObject(aCx, aObject) {}
 
   NS_DECL_ISUPPORTS
 

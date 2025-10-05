@@ -19,7 +19,7 @@ NS_IMPL_RELEASE_INHERITED(PerformanceNavigationTiming,
                           PerformanceResourceTiming)
 
 JSObject* PerformanceNavigationTiming::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PerformanceNavigationTiming_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -151,6 +151,6 @@ void PerformanceNavigationTiming::UpdatePropertiesFromHttpChannel(
   mTimingData->SetPropertiesFromHttpChannel(aHttpChannel, aChannel);
 }
 
-bool PerformanceNavigationTiming::Enabled(JSContext* aCx, JSObject* aGlobal) {
+bool PerformanceNavigationTiming::Enabled(MCContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::dom_enable_performance_navigation_timing();
 }

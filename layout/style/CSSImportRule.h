@@ -44,7 +44,7 @@ class CSSImportRule final : public css::Rule {
   // Clear the mSheet pointer on this rule and descendants.
   void DropSheetReference() final;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   const StyleLockedImportRule* Raw() const { return mRawRule.get(); }

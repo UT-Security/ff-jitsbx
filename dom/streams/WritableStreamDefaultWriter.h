@@ -48,7 +48,7 @@ class WritableStreamDefaultWriter final : public nsISupports,
  public:
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // IDL Methods
@@ -61,15 +61,15 @@ class WritableStreamDefaultWriter final : public nsISupports,
   Nullable<double> GetDesiredSize(ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Abort(
-      JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Close(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Close(MCContext* aCx,
                                                      ErrorResult& aRv);
 
-  void ReleaseLock(JSContext* aCx);
+  void ReleaseLock(MCContext* aCx);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Write(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
 
   // Internal Slots:
  private:
@@ -94,16 +94,16 @@ void WritableStreamDefaultWriterEnsureReadyPromiseRejected(
 Nullable<double> WritableStreamDefaultWriterGetDesiredSize(
     WritableStreamDefaultWriter* aWriter);
 
-void WritableStreamDefaultWriterRelease(JSContext* aCx,
+void WritableStreamDefaultWriterRelease(MCContext* aCx,
                                         WritableStreamDefaultWriter* aWriter);
 
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamDefaultWriterWrite(
-    JSContext* aCx, WritableStreamDefaultWriter* aWriter,
+    MCContext* aCx, WritableStreamDefaultWriter* aWriter,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise>
 WritableStreamDefaultWriterCloseWithErrorPropagation(
-    JSContext* aCx, WritableStreamDefaultWriter* aWriter, ErrorResult& aRv);
+    MCContext* aCx, WritableStreamDefaultWriter* aWriter, ErrorResult& aRv);
 
 }  // namespace streams_abstract
 

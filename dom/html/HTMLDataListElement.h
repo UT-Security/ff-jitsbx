@@ -44,7 +44,7 @@ class HTMLDataListElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLDataListElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   // <option>'s list inside the datalist element.

@@ -21,7 +21,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(MPath)
 
 namespace mozilla::dom {
 
-JSObject* SVGMPathElement::WrapNode(JSContext* aCx,
+JSObject* SVGMPathElement::WrapNode(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return SVGMPathElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -36,7 +36,7 @@ class CSSLayerStatementRule final : public css::Rule {
   void GetNameList(nsTArray<nsCString>&) const;
 
   size_t SizeOfIncludingThis(MallocSizeOf) const override;
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*>) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*>) override;
 
  private:
   ~CSSLayerStatementRule() = default;

@@ -447,11 +447,11 @@ class ScriptExecutorRunnable final : public MainThreadWorkerSyncRunnable {
 
   virtual bool PreRun(WorkerPrivate* aWorkerPrivate) override;
 
-  bool ProcessModuleScript(JSContext* aCx, WorkerPrivate* aWorkerPrivate);
+  bool ProcessModuleScript(MCContext* aCx, WorkerPrivate* aWorkerPrivate);
 
-  bool ProcessClassicScripts(JSContext* aCx, WorkerPrivate* aWorkerPrivate);
+  bool ProcessClassicScripts(MCContext* aCx, WorkerPrivate* aWorkerPrivate);
 
-  virtual bool WorkerRun(JSContext* aCx,
+  virtual bool WorkerRun(MCContext* aCx,
                          WorkerPrivate* aWorkerPrivate) override;
 
   nsresult Cancel() override;
@@ -1155,7 +1155,7 @@ bool WorkerScriptLoader::EvaluateScript(MCContext* aCx,
   MC::SandboxStack<ScriptLoadRequest::MaybeSourceText> maybeSource;
   rv = aRequest->GetScriptSource(aCx, maybeSource);
   if (NS_FAILED(rv)) {
-    mRv.StealExceptionFromJSContext(MC_UNSAFE(aCx));
+    mRv.StealExceptionFromJSContext(aCx);
     return false;
   }
 
@@ -1192,7 +1192,7 @@ bool WorkerScriptLoader::EvaluateScript(MCContext* aCx,
     return false;
   }
   if (!successfullyEvaluated) {
-    mRv.StealExceptionFromJSContext(MC_UNSAFE(aCx));
+    mRv.StealExceptionFromJSContext(aCx);
     return false;
   }
   // steal the loadContext so that the cycle is broken and cycle collector can
@@ -1227,7 +1227,7 @@ void WorkerScriptLoader::ShutdownScriptLoader(bool aResult, bool aMutedError) {
     //    sure...
     if (mRv.Failed()) {
       if (aMutedError && mRv.IsJSException()) {
-        LogExceptionToConsole(JS_SanitizeContext(mWorkerRef->Private()->GetJSContext()),
+        LogExceptionToConsole(mWorkerRef->Private()->GetJSContext(),
                               mWorkerRef->Private());
         mRv.Throw(NS_ERROR_DOM_NETWORK_ERR);
       }
@@ -1272,7 +1272,7 @@ void WorkerScriptLoader::LogExceptionToConsole(MCContext* aCx,
   MOZ_ASSERT(mRv.IsJSException());
 
   MC::Rooted<JS::Value> exn(aCx);
-  if (!ToJSValue(MC_UNSAFE(aCx), std::move(mRv), &exn)) {
+  if (!ToJSValue(aCx, std::move(mRv), &exn)) {
     return;
   }
 
@@ -1280,15 +1280,15 @@ void WorkerScriptLoader::LogExceptionToConsole(MCContext* aCx,
   MOZ_ASSERT(!JS_IsExceptionPending(aCx));
   MOZ_ASSERT(!mRv.Failed());
 
-  JS::ExceptionStack exnStack(MC_UNSAFE(aCx), exn, nullptr);
-  JS::ErrorReportBuilder report(MC_UNSAFE(aCx));
-  if (!report.init(MC_UNSAFE(aCx), exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  MC::SandboxStack<JS::ExceptionStack> exnStack(aCx, exn, nullptr);
+  MC::SandboxStack<JS::ErrorReportBuilder> report(aCx);
+  if (!report->init(aCx, exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
     JS_ClearPendingException(aCx);
     return;
   }
 
   RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
-  xpcReport->Init(report.report(), report.toStringResult().c_str(),
+  xpcReport->Init(report->report(), report->toStringResult().c_str(),
                   aWorkerPrivate->IsChromeWorker(), aWorkerPrivate->WindowID());
 
   RefPtr<AsyncErrorReporter> r = new AsyncErrorReporter(xpcReport);
@@ -1582,7 +1582,7 @@ bool ScriptExecutorRunnable::PreRun(WorkerPrivate* aWorkerPrivate) {
 }
 
 bool ScriptExecutorRunnable::ProcessModuleScript(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+    MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
   // We should only ever have one script when processing modules
   MOZ_ASSERT(mLoadedRequests.Length() == 1);
   RefPtr<ScriptLoadRequest> request;
@@ -1635,7 +1635,7 @@ bool ScriptExecutorRunnable::ProcessModuleScript(
 }
 
 bool ScriptExecutorRunnable::ProcessClassicScripts(
-    JSContext* aCx, WorkerPrivate* aWorkerPrivate) {
+    MCContext* aCx, WorkerPrivate* aWorkerPrivate) {
   // There is a possibility that we cleaned up while this task was waiting to
   // run. If this has happened, return and exit.
   {
@@ -1654,10 +1654,10 @@ bool ScriptExecutorRunnable::ProcessClassicScripts(
       mScriptLoader->MaybeMoveToLoadedList(request);
     }
   }
-  return mScriptLoader->ProcessPendingRequests(JS_SanitizeContext(aCx));
+  return mScriptLoader->ProcessPendingRequests(aCx);
 }
 
-bool ScriptExecutorRunnable::WorkerRun(JSContext* aCx,
+bool ScriptExecutorRunnable::WorkerRun(MCContext* aCx,
                                        WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
 

@@ -19,7 +19,7 @@ PerformanceNavigation::PerformanceNavigation(Performance* aPerformance)
 
 PerformanceNavigation::~PerformanceNavigation() = default;
 
-JSObject* PerformanceNavigation::WrapObject(JSContext* cx,
+JSObject* PerformanceNavigation::WrapObject(MCContext* cx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return PerformanceNavigation_Binding::Wrap(cx, this, aGivenProto);
 }

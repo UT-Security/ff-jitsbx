@@ -32,7 +32,7 @@ class FluentBundleAsyncIterator final : public nsWrapperCache {
       nsIGlobalObject* aGlobal,
       UniquePtr<ffi::GeckoFluentBundleAsyncIteratorWrapper> aRaw);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
@@ -54,7 +54,7 @@ class FluentBundleIterator final : public nsWrapperCache {
   FluentBundleIterator(nsIGlobalObject* aGlobal,
                        UniquePtr<ffi::GeckoFluentBundleIterator> aRaw);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
@@ -134,7 +134,7 @@ class L10nRegistry final : public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   const ffi::GeckoL10nRegistry* Raw() const { return mRaw; }

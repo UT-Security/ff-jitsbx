@@ -49,11 +49,11 @@ nsresult JSEnumerator::Next(MCContext* aCx, JS::MutableHandleValue aResult) {
     result.mDone = false;
 
     MC::RootedValue value(aCx);
-    MOZ_TRY(nsContentUtils::WrapNative(MC_UNSAFE(aCx), elem, &mIID, &value));
+    MOZ_TRY(nsContentUtils::WrapNative(aCx, elem, &mIID, &value));
     result.mValue = value;
   }
 
-  if (!ToJSValue(MC_UNSAFE(aCx), result, aResult)) {
+  if (!ToJSValue(aCx, result, aResult)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   return NS_OK;

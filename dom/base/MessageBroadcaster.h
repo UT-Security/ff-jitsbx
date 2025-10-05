@@ -26,7 +26,7 @@ class MessageBroadcaster : public MessageListenerManager {
     return nullptr;
   }
 
-  void BroadcastAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void BroadcastAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                              JS::Handle<JS::Value> aObj,
                              mozilla::ErrorResult& aError) {
     DispatchAsyncMessage(aCx, aMessageName, aObj, MC::UndefinedHandleValue(),

@@ -281,7 +281,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(ChildSHistory)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE(mBrowsingContext, mHistory)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-JSObject* ChildSHistory::WrapObject(JSContext* cx,
+JSObject* ChildSHistory::WrapObject(MCContext* cx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return ChildSHistory_Binding::Wrap(cx, this, aGivenProto);
 }

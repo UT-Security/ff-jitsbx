@@ -74,7 +74,7 @@ nsTArray<HeadersEntry> ToHeadersEntryList(InternalHeaders* aHeaders) {
 }  // namespace
 
 SafeRefPtr<InternalRequest> TypeUtils::ToInternalRequest(
-    JSContext* aCx, const RequestOrUSVString& aIn, BodyAction aBodyAction,
+    MCContext* aCx, const RequestOrUSVString& aIn, BodyAction aBodyAction,
     ErrorResult& aRv) {
   if (aIn.IsRequest()) {
     Request& request = aIn.GetAsRequest();
@@ -93,7 +93,7 @@ SafeRefPtr<InternalRequest> TypeUtils::ToInternalRequest(
 }
 
 SafeRefPtr<InternalRequest> TypeUtils::ToInternalRequest(
-    JSContext* aCx, const OwningRequestOrUSVString& aIn, BodyAction aBodyAction,
+    MCContext* aCx, const OwningRequestOrUSVString& aIn, BodyAction aBodyAction,
     ErrorResult& aRv) {
   if (aIn.IsRequest()) {
     Request& request = aIn.GetAsRequest();
@@ -201,7 +201,7 @@ void TypeUtils::ToCacheResponseWithoutBody(CacheResponse& aOut,
   aOut.paddingSize() = aIn.GetPaddingSize();
 }
 
-void TypeUtils::ToCacheResponse(JSContext* aCx, CacheResponse& aOut,
+void TypeUtils::ToCacheResponse(MCContext* aCx, CacheResponse& aOut,
                                 Response& aIn, ErrorResult& aRv) {
   if (aIn.BodyUsed()) {
     aRv.ThrowTypeError<MSG_FETCH_BODY_CONSUMED_ERROR>();
@@ -426,7 +426,7 @@ void TypeUtils::ProcessURL(nsACString& aUrl, bool* aSchemeValidOut,
   *aUrlQueryOut = Substring(aUrl, queryPos - 1, queryLen + 1);
 }
 
-void TypeUtils::CheckAndSetBodyUsed(JSContext* aCx, Request& aRequest,
+void TypeUtils::CheckAndSetBodyUsed(MCContext* aCx, Request& aRequest,
                                     BodyAction aBodyAction, ErrorResult& aRv) {
   if (aBodyAction == IgnoreBody) {
     return;
@@ -458,7 +458,7 @@ SafeRefPtr<InternalRequest> TypeUtils::ToInternalRequest(const nsAString& aIn,
     aRv.Throw(NS_ERROR_UNEXPECTED);
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   GlobalObject global(cx, GetGlobalObject()->GetGlobalJSObject());
   MOZ_DIAGNOSTIC_ASSERT(!global.Failed());
 

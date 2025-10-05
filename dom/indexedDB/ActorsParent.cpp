@@ -41,10 +41,8 @@
 #include "SchemaUpgrades.h"
 #include "chrome/common/ipc_channel.h"
 #include "ipc/IPCMessageUtils.h"
-#include "js/RootingAPI.h"
-#include "js/StructuredClone.h"
-#include "js/Value.h"
-#include "jsapi.h"
+#include "monkeycage/StructuredClone.h"
+#include "mcapi.h"
 #include "mozIStorageAsyncConnection.h"
 #include "mozIStorageConnection.h"
 #include "mozIStorageFunction.h"
@@ -3849,12 +3847,12 @@ void ObjectStoreAddOrPutRequestOp::StoredFileInfo::Serialize(
 
 class ObjectStoreAddOrPutRequestOp::SCInputStream final
     : public nsIInputStream {
-  const JSStructuredCloneData& mData;
+  MC::Tainted<const JSStructuredCloneData*> mData;
   JSStructuredCloneData::Iterator mIter;
 
  public:
-  explicit SCInputStream(const JSStructuredCloneData& aData)
-      : mData(aData), mIter(aData.Start()) {}
+  explicit SCInputStream(MC::Tainted<const JSStructuredCloneData*> aData)
+      : mData(aData), mIter(aData->Start()) {}
 
  private:
   virtual ~SCInputStream() = default;
@@ -6314,7 +6312,7 @@ struct ValuePopulateResponseHelper {
 
   template <typename Response>
   static size_t MaybeGetCloneInfoSize(const Response& aResponse) {
-    return aResponse.cloneInfo().data().data.Size();
+    return aResponse.cloneInfo().data().data->Size();
   }
 
  private:
@@ -6468,7 +6466,7 @@ class DeserializeIndexValueHelper final : public Runnable {
 
     // The operation will continue on the main-thread.
 
-    MOZ_ASSERT(!(mCloneReadInfo.Data().Size() % sizeof(uint64_t)));
+    MOZ_ASSERT(!(mCloneReadInfo.Data()->Size() % sizeof(uint64_t)));
 
     MonitorAutoLock lock(mMonitor);
 
@@ -6486,7 +6484,7 @@ class DeserializeIndexValueHelper final : public Runnable {
 
     AutoJSAPI jsapi;
     jsapi.Init();
-    JSContext* const cx = jsapi.cx();
+    MCContext* const cx = jsapi.mcx();
 
     MC::Rooted<JSObject*> global(cx, GetSandbox(cx));
 
@@ -6513,10 +6511,12 @@ class DeserializeIndexValueHelper final : public Runnable {
   }
 
  private:
-  nsresult DeserializeIndexValue(JSContext* aCx,
+  nsresult DeserializeIndexValue(MCContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue) {
     static const JSStructuredCloneCallbacks callbacks = {
-        MC::Sandbox::RegisterCallback(StructuredCloneReadCallback<StructuredCloneReadInfoParent>).UNSAFE_get(),
+        MC::Sandbox::RegisterTaintedCallback(
+            StructuredCloneReadCallback<StructuredCloneReadInfoParent>)
+            .UNSAFE_get(),
         nullptr,
         nullptr,
         nullptr,
@@ -10278,7 +10278,7 @@ bool TransactionBase::VerifyRequestParams(
     return false;
   }
 
-  if (NS_AUUF_OR_WARN_IF(!aParams.cloneInfo().data().data.Size())) {
+  if (NS_AUUF_OR_WARN_IF(!aParams.cloneInfo().data().data->Size())) {
     return false;
   }
 
@@ -10291,12 +10291,12 @@ bool TransactionBase::VerifyRequestParams(
       return false;
     }
 
-    if (NS_AUUF_OR_WARN_IF(cloneInfo.data().data.Size() < sizeof(uint64_t))) {
+    if (NS_AUUF_OR_WARN_IF(cloneInfo.data().data->Size() < sizeof(uint64_t))) {
       return false;
     }
 
     if (NS_AUUF_OR_WARN_IF(cloneInfo.offsetToKeyProp() >
-                           (cloneInfo.data().data.Size() - sizeof(uint64_t)))) {
+                           (cloneInfo.data().data->Size() - sizeof(uint64_t)))) {
       return false;
     }
   } else if (NS_AUUF_OR_WARN_IF(aParams.cloneInfo().offsetToKeyProp())) {
@@ -18420,7 +18420,7 @@ ObjectStoreAddOrPutRequestOp::ObjectStoreAddOrPutRequestOp(
   mObjectStoreMayHaveIndexes = mMetadata->HasLiveIndexes();
 
   mDataOverThreshold =
-      snappy::MaxCompressedLength(mParams.cloneInfo().data().data.Size()) >
+      snappy::MaxCompressedLength(mParams.cloneInfo().data().data->Size()) >
       IndexedDatabaseManager::DataThreshold();
 }
 
@@ -18608,8 +18608,8 @@ nsresult ObjectStoreAddOrPutRequestOp::DoDatabaseWork(
         stmt->BindInt64ByName(kStmtParamNameObjectStoreId, osid)));
 
     const SerializedStructuredCloneWriteInfo& cloneInfo = mParams.cloneInfo();
-    const JSStructuredCloneData& cloneData = cloneInfo.data().data;
-    const size_t cloneDataSize = cloneData.Size();
+    MC::Tainted<const JSStructuredCloneData*> cloneData = cloneInfo.data().data;
+    const size_t cloneDataSize = cloneData->Size();
 
     MOZ_ASSERT(!keyUnset || mMetadata->mCommonMetadata.autoIncrement(),
                "Should have key unless autoIncrement");
@@ -18661,10 +18661,10 @@ nsresult ObjectStoreAddOrPutRequestOp::DoDatabaseWork(
         char keyPropBuffer[keyPropSize];
         LittleEndian::writeUint64(keyPropBuffer, keyPropValue);
 
-        auto iter = cloneData.Start();
-        MOZ_ALWAYS_TRUE(cloneData.Advance(iter, cloneInfo.offsetToKeyProp()));
+        auto iter = cloneData->Start();
+        MOZ_ALWAYS_TRUE(cloneData->Advance(iter, cloneInfo.offsetToKeyProp()));
         MOZ_ALWAYS_TRUE(
-            cloneData.UpdateBytes(iter, keyPropBuffer, keyPropSize));
+            cloneData->UpdateBytes(iter, keyPropBuffer, keyPropSize));
       }
     }
 
@@ -18691,9 +18691,9 @@ nsresult ObjectStoreAddOrPutRequestOp::DoDatabaseWork(
              Err(NS_ERROR_OUT_OF_MEMORY));
 
       {
-        auto iter = cloneData.Start();
+        auto iter = cloneData->Start();
         MOZ_ALWAYS_TRUE(
-            cloneData.ReadBytes(iter, flatCloneData.Elements(), cloneDataSize));
+            cloneData->ReadBytes(iter, flatCloneData.Elements(), cloneDataSize));
       }
 
       // Compress the bytes before adding into the database.
@@ -18900,7 +18900,7 @@ ObjectStoreAddOrPutRequestOp::SCInputStream::ReadSegments(
     *_retval += count;
     aCount -= count;
 
-    if (NS_WARN_IF(!mData.Advance(mIter, count))) {
+    if (NS_WARN_IF(!mData->Advance(mIter, count))) {
       // InputStreams do not propagate errors to caller.
       return NS_OK;
     }

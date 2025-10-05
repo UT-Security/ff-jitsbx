@@ -47,7 +47,7 @@ FileSystem::FileSystem(nsIGlobalObject* aGlobal, const nsAString& aName)
 
 FileSystem::~FileSystem() = default;
 
-JSObject* FileSystem::WrapObject(JSContext* aCx,
+JSObject* FileSystem::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return FileSystem_Binding::Wrap(aCx, this, aGivenProto);
 }

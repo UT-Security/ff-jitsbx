@@ -36,8 +36,7 @@ namespace JS {
  * Return true iff the warning was successfully reported without reporting an
  * error (or being upgraded into one).
  */
-extern JS_PUBLIC_API bool WarnASCII(JSContext* cx, const char* format, ...)
-    MOZ_FORMAT_PRINTF(2, 3);
+extern JS_PUBLIC_API bool WarnASCII(JSContext* cx, const char* format, ...);
 
 /**
  * Report a warning represented by the sprintf-like conversion of Latin-1 format
@@ -46,8 +45,7 @@ extern JS_PUBLIC_API bool WarnASCII(JSContext* cx, const char* format, ...)
  * Return true iff the warning was successfully reported without reporting an
  * error (or being upgraded into one).
  */
-extern JS_PUBLIC_API bool WarnLatin1(JSContext* cx, const char* format, ...)
-    MOZ_FORMAT_PRINTF(2, 3);
+extern JS_PUBLIC_API bool WarnLatin1(JSContext* cx, const char* format, ...);
 
 /**
  * Report a warning represented by the sprintf-like conversion of UTF-8 format
@@ -56,8 +54,7 @@ extern JS_PUBLIC_API bool WarnLatin1(JSContext* cx, const char* format, ...)
  * Return true iff the warning was successfully reported without reporting an
  * error (or being upgraded into one).
  */
-extern JS_PUBLIC_API bool WarnUTF8(JSContext* cx, const char* format, ...)
-    MOZ_FORMAT_PRINTF(2, 3);
+extern JS_PUBLIC_API bool WarnUTF8(JSContext* cx, const char* format, ...);
 
 using WarningReporter = void (*)(JSContext* cx, JSErrorReport* report);
 

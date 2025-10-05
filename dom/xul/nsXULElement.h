@@ -15,10 +15,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "ErrorList.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/experimental/JSStencil.h"
 #include "monkeycage/RootingAPI.h"
-#include "js/SourceText.h"
-#include "js/TracingAPI.h"
+#include "monkeycage/SourceText.h"
+#include "monkeycage/TracingAPI.h"
 #include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
@@ -58,7 +58,7 @@ class nsIPrincipal;
 class nsIURI;
 class nsXULPrototypeDocument;
 class nsXULPrototypeNode;
-struct JSContext;
+struct MCContext;
 
 using nsPrototypeArray = nsTArray<RefPtr<nsXULPrototypeNode>>;
 
@@ -213,7 +213,7 @@ class nsXULPrototypeScript : public nsXULPrototypeNode {
  private:
   virtual ~nsXULPrototypeScript() = default;
 
-  void FillCompileOptions(JS::CompileOptions& options);
+  void FillCompileOptions(MC::Tainted<JS::CompileOptions*> options);
 
  public:
   virtual nsresult Serialize(
@@ -240,7 +240,7 @@ class nsXULPrototypeScript : public nsXULPrototypeNode {
 
   JS::Stencil* GetStencil() { return mStencil.get(); }
 
-  nsresult InstantiateScript(JSContext* aCx,
+  nsresult InstantiateScript(MCContext* aCx,
                              JS::MutableHandle<JSScript*> aScript);
 
   nsCOMPtr<nsIURI> mSrcURI;
@@ -526,7 +526,7 @@ class nsXULElement : public nsStyledElement {
       nsXULPrototypeElement* aPrototype, mozilla::dom::NodeInfo* aNodeInfo,
       bool aIsScriptable, bool aIsRoot);
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   bool IsEventStoppedFromAnonymousScrollbar(mozilla::EventMessage aMessage);
 

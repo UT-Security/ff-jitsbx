@@ -134,7 +134,7 @@ nsHTMLDocument::nsHTMLDocument()
 
 nsHTMLDocument::~nsHTMLDocument() = default;
 
-JSObject* nsHTMLDocument::WrapNode(JSContext* aCx,
+JSObject* nsHTMLDocument::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return HTMLDocument_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -552,7 +552,7 @@ void nsHTMLDocument::RemovedForm() { --mNumForms; }
 
 int32_t nsHTMLDocument::GetNumFormsSynchronous() const { return mNumForms; }
 
-bool nsHTMLDocument::ResolveName(JSContext* aCx, const nsAString& aName,
+bool nsHTMLDocument::ResolveName(MCContext* aCx, const nsAString& aName,
                                  JS::MutableHandle<JS::Value> aRetval,
                                  ErrorResult& aError) {
   IdentifierMapEntry* entry = mIdentifierMap.GetEntry(aName);

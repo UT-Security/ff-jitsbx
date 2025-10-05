@@ -281,11 +281,11 @@ class nsContentUtils {
 #endif
   static bool IsErrorPage(nsIURI* aURI);
 
-  static bool IsCallerChromeOrFuzzingEnabled(JSContext* aCx, JSObject*) {
+  static bool IsCallerChromeOrFuzzingEnabled(MCContext* aCx, JSObject*) {
     return ThreadsafeIsSystemCaller(aCx) || IsFuzzingEnabled();
   }
 
-  static bool IsCallerChromeOrElementTransformGettersEnabled(JSContext* aCx,
+  static bool IsCallerChromeOrElementTransformGettersEnabled(MCContext* aCx,
                                                              JSObject*);
 
   // The APIs for checking whether the caller is system (in the sense of system
@@ -300,11 +300,11 @@ class nsContentUtils {
   // replaced with [NeedsCallerType] annotations in bindings.
 
   // Check whether the caller is system if you know you're on the main thread.
-  static bool IsSystemCaller(JSContext* aCx);
+  static bool IsSystemCaller(MCContext* aCx);
 
   // Check whether the caller is system if you might be on a worker or worklet
   // thread.
-  static bool ThreadsafeIsSystemCaller(JSContext* aCx);
+  static bool ThreadsafeIsSystemCaller(MCContext* aCx);
 
   // In the traditional Gecko architecture, both C++ code and untrusted JS code
   // needed to rely on the same XPCOM method/getter/setter to get work done.
@@ -349,7 +349,7 @@ class nsContentUtils {
   }
 
   static bool LookupBindingMember(
-      JSContext* aCx, nsIContent* aContent, JS::Handle<jsid> aId,
+      MCContext* aCx, nsIContent* aContent, JS::Handle<jsid> aId,
       JS::MutableHandle<JS::PropertyDescriptor> aDesc);
 
   // Check whether we should avoid leaking distinguishing information to JS/CSS.
@@ -800,7 +800,7 @@ class nsContentUtils {
                                      const nsAtom* aPerm);
 
   // Check if the JS caller is chrome or an addon with the permission.
-  static bool CallerHasPermission(JSContext* aCx, const nsAtom* aPerm);
+  static bool CallerHasPermission(MCContext* aCx, const nsAtom* aPerm);
 
   /**
    * Returns the triggering principal which should be used for the given URL
@@ -852,7 +852,7 @@ class nsContentUtils {
 
   // Returns the subject principal from the JSContext. May only be called
   // from the main thread and assumes an existing compartment.
-  static nsIPrincipal* SubjectPrincipal(JSContext* aCx);
+  static nsIPrincipal* SubjectPrincipal(MCContext* aCx);
 
   // Returns the subject principal. Guaranteed to return non-null. May only
   // be called when nsContentUtils is initialized.
@@ -1300,14 +1300,14 @@ class nsContentUtils {
 
   static bool PrefetchPreloadEnabled(nsIDocShell* aDocShell);
 
-  static void ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  static void ExtractErrorValues(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                  nsAString& aSourceSpecOut, uint32_t* aLineOut,
                                  uint32_t* aColumnOut, nsString& aMessageOut);
 
   // Variant on `ExtractErrorValues` with a `nsACString`. This
   // method is provided for backwards compatibility. Prefer the
   // faster method above for your code.
-  static void ExtractErrorValues(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  static void ExtractErrorValues(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                  nsACString& aSourceSpecOut, uint32_t* aLineOut,
                                  uint32_t* aColumnOut, nsString& aMessageOut);
 
@@ -2209,7 +2209,7 @@ class nsContentUtils {
    */
   static bool IsInStableOrMetaStableState();
 
-  static JSContext* GetCurrentJSContext();
+  static MCContext* GetCurrentJSContext();
 
   /**
    * Case insensitive comparison between two atoms.
@@ -2296,7 +2296,7 @@ class nsContentUtils {
    */
   static bool CanAccessNativeAnon();
 
-  [[nodiscard]] static nsresult WrapNative(JSContext* cx, nsISupports* native,
+  [[nodiscard]] static nsresult WrapNative(MCContext* cx, nsISupports* native,
                                            const nsIID* aIID,
                                            JS::MutableHandle<JS::Value> vp,
                                            bool aAllowWrapping = true) {
@@ -2304,13 +2304,13 @@ class nsContentUtils {
   }
 
   // Same as the WrapNative above, but use this one if aIID is nsISupports' IID.
-  [[nodiscard]] static nsresult WrapNative(JSContext* cx, nsISupports* native,
+  [[nodiscard]] static nsresult WrapNative(MCContext* cx, nsISupports* native,
                                            JS::MutableHandle<JS::Value> vp,
                                            bool aAllowWrapping = true) {
     return WrapNative(cx, native, nullptr, nullptr, vp, aAllowWrapping);
   }
 
-  [[nodiscard]] static nsresult WrapNative(JSContext* cx, nsISupports* native,
+  [[nodiscard]] static nsresult WrapNative(MCContext* cx, nsISupports* native,
                                            nsWrapperCache* cache,
                                            JS::MutableHandle<JS::Value> vp,
                                            bool aAllowWrapping = true) {
@@ -2320,7 +2320,7 @@ class nsContentUtils {
   /**
    * Creates an arraybuffer from a binary string.
    */
-  static nsresult CreateArrayBuffer(JSContext* aCx, const nsACString& aData,
+  static nsresult CreateArrayBuffer(MCContext* aCx, const nsACString& aData,
                                     JSObject** aResult);
 
   static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
@@ -2527,7 +2527,7 @@ class nsContentUtils {
    * Same, but from WebIDL bindings. Checks whether the subject principal is for
    * the internal PDF viewer or system JS.
    */
-  static bool IsSystemOrPDFJS(JSContext*, JSObject*);
+  static bool IsSystemOrPDFJS(MCContext*, JSObject*);
 
   /**
    * Checks if internal SWF player is enabled.
@@ -3103,7 +3103,7 @@ class nsContentUtils {
       nsContentPolicyType& aContentPolicyType, uint64_t* aRequestContextID);
 
   static nsresult CreateJSValueFromSequenceOfObject(
-      JSContext* aCx, const mozilla::dom::Sequence<JSObject*>& aTransfer,
+      MCContext* aCx, const mozilla::dom::Sequence<JSObject*>& aTransfer,
       JS::MutableHandle<JS::Value> aValue);
 
   /**
@@ -3111,7 +3111,7 @@ class nsContentUtils {
    * https://html.spec.whatwg.org/#structured-cloning.
    */
   static void StructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal, JS::Handle<JS::Value> aValue,
+      MCContext* aCx, nsIGlobalObject* aGlobal, JS::Handle<JS::Value> aValue,
       const mozilla::dom::StructuredSerializeOptions& aOptions,
       JS::MutableHandle<JS::Value> aRetval, mozilla::ErrorResult& aError);
 
@@ -3279,7 +3279,7 @@ class nsContentUtils {
    *   nsAutoString serializedValue;
    *   nsContentUtils::StringifyJSON(cx, value, serializedValue, behavior);
    */
-  static bool StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  static bool StringifyJSON(MCContext* aCx, JS::Handle<JS::Value> aValue,
                             nsAString& aOutStr, JSONBehavior aBehavior);
 
   /**
@@ -3408,7 +3408,7 @@ class nsContentUtils {
   static bool CanCallerAccess(nsIPrincipal* aSubjectPrincipal,
                               nsIPrincipal* aPrincipal);
 
-  static nsresult WrapNative(JSContext* cx, nsISupports* native,
+  static nsresult WrapNative(MCContext* cx, nsISupports* native,
                              nsWrapperCache* cache, const nsIID* aIID,
                              JS::MutableHandle<JS::Value> vp,
                              bool aAllowWrapping);

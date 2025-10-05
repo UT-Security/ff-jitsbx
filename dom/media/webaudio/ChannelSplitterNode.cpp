@@ -97,7 +97,7 @@ already_AddRefed<ChannelSplitterNode> ChannelSplitterNode::Create(
   return audioNode.forget();
 }
 
-JSObject* ChannelSplitterNode::WrapObject(JSContext* aCx,
+JSObject* ChannelSplitterNode::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return ChannelSplitterNode_Binding::Wrap(aCx, this, aGivenProto);
 }

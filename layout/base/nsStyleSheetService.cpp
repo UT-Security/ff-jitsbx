@@ -286,7 +286,7 @@ nsStyleSheetService::PreloadSheetAsync(nsIURI* aSheetURI, uint32_t aSheetType,
   auto sheet = MakeRefPtr<PreloadedStyleSheet>(aSheetURI, parsingMode);
   sheet->PreloadAsync(WrapNotNull(promise));
 
-  if (!ToJSValue(MC_UNSAFE(aCx), promise, aRval)) {
+  if (!ToJSValue(aCx, promise, aRval)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;

@@ -78,10 +78,10 @@
 #include "nsJSUtils.h"
 #include "mcapi.h"
 #include "mcfriendapi.h"
-#include "js/CallAndConstruct.h"    // JS::Call
+#include "monkeycage/CallAndConstruct.h"    // JS::Call
 #include "js/friend/StackLimits.h"  // js::AutoCheckRecursionLimit
-#include "js/friend/WindowProxy.h"  // js::IsWindowProxy, js::SetWindowProxy
-#include "js/PropertyAndElement.h"  // JS_DefineObject, JS_GetProperty
+#include "monkeycage/friend/WindowProxy.h"  // js::IsWindowProxy, js::SetWindowProxy
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineObject, JS_GetProperty
 #include "js/PropertySpec.h"
 #include "monkeycage/Proxy.h"
 #include "monkeycage/RealmIterators.h"
@@ -514,13 +514,13 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
  protected:
   // False return value means we threw an exception.  True return value
   // but false "found" means we didn't have a subframe at that index.
-  bool GetSubframeWindow(JSContext* cx, JS::Handle<JSObject*> proxy,
+  bool GetSubframeWindow(MCContext* cx, JS::Handle<JSObject*> proxy,
                          JS::Handle<jsid> id, JS::MutableHandle<JS::Value> vp,
                          bool& found) const;
 
   // Returns a non-null window only if id is an index and we have a
   // window at that index.
-  Nullable<WindowProxyHolder> GetSubframeWindow(JSContext* cx,
+  Nullable<WindowProxyHolder> GetSubframeWindow(MCContext* cx,
                                                 JS::Handle<JSObject*> proxy,
                                                 JS::Handle<jsid> id) const;
 
@@ -540,7 +540,7 @@ class nsOuterWindowProxy : public MaybeCrossOriginObject<mc::Wrapper> {
   // Can return true without filling in aDesc, which corresponds to not exposing
   // a "print" method.
   static bool MaybeGetPDFJSPrintMethod(
-      JSContext* cx, JS::Handle<JSObject*> proxy,
+      MCContext* cx, JS::Handle<JSObject*> proxy,
       JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc);
 
   // The actual "print" method we use for the PDFJS case.
@@ -589,7 +589,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   // step 2, mostly.
   MC::Rooted<JS::Value> subframe(cx);
   bool found;
-  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id, &subframe, found)) {
+  if (!GetSubframeWindow(cx, proxy, id, &subframe, found)) {
     return false;
   }
   if (found) {
@@ -639,7 +639,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
 #if 0
       // See https://github.com/tc39/ecma262/issues/672 for more information.
       if (desc.isSome() &&
-          !IsNonConfigurableReadonlyPrimitiveGlobalProp(MC_UNSAFE(cx), id)) {
+          !IsNonConfigurableReadonlyPrimitiveGlobalProp(cx, id)) {
         (*desc).setConfigurable(true);
       }
 #endif
@@ -663,7 +663,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
   // check for named subframes, because in the same-origin case print() would
   // shadow those.
   if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_PRINT)) {
-    if (!MaybeGetPDFJSPrintMethod(MC_UNSAFE(cx), proxy, desc)) {
+    if (!MaybeGetPDFJSPrintMethod(cx, proxy, desc)) {
       return false;
     }
 
@@ -681,7 +681,7 @@ bool nsOuterWindowProxy::getOwnPropertyDescriptor(
     nsGlobalWindowOuter* win = GetOuterWindow(proxy);
     if (RefPtr<BrowsingContext> childDOMWin = win->GetChildWindow(name)) {
       MC::Rooted<JS::Value> childValue(cx);
-      if (!ToJSValue(MC_UNSAFE(cx), WindowProxyHolder(childDOMWin), &childValue)) {
+      if (!ToJSValue(cx, WindowProxyHolder(childDOMWin), &childValue)) {
         return false;
       }
       desc.set(Some(JS::PropertyDescriptor::Data(
@@ -816,7 +816,7 @@ bool nsOuterWindowProxy::ownPropertyKeys(
   if (inner) {
     nsCOMPtr<nsIPrincipal> targetPrincipal = GetNoPDFJSPrincipal(inner);
     if (targetPrincipal &&
-        nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx))->Equals(targetPrincipal)) {
+        nsContentUtils::SubjectPrincipal(cx)->Equals(targetPrincipal)) {
       MC::RootedVector<jsid> printProp(cx);
       if (!printProp.append(GetJSIDByIndex(cx, XPCJSContext::IDX_PRINT)) ||
           !js::AppendUnique(cx, props, printProp)) {
@@ -835,7 +835,7 @@ bool nsOuterWindowProxy::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
     return ReportCrossOriginDenial(cx, id, "delete"_ns);
   }
 
-  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
+  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
     // Fail (which means throw if strict, else return false).
     return result->failCantDeleteWindowElement();
   }
@@ -854,7 +854,7 @@ bool nsOuterWindowProxy::delete_(MCContext* cx, JS::Handle<JSObject*> proxy,
 }
 
 JSObject* nsOuterWindowProxy::getSameOriginPrototype(MCContext* cx) const {
-  return Window_Binding::GetProtoObjectHandle(MC_UNSAFE(cx));
+  return Window_Binding::GetProtoObjectHandle(cx);
 }
 
 bool nsOuterWindowProxy::has(MCContext* cx, JS::Handle<JSObject*> proxy,
@@ -869,7 +869,7 @@ bool nsOuterWindowProxy::has(MCContext* cx, JS::Handle<JSObject*> proxy,
     return hasOwn(cx, proxy, id, bp);
   }
 
-  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
+  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
     *bp = true;
     return true;
   }
@@ -902,7 +902,7 @@ bool nsOuterWindowProxy::hasOwn(MCContext* cx, JS::Handle<JSObject*> proxy,
     return mc::BaseProxyHandler::hasOwn(cx, proxy, id, bp);
   }
 
-  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id).IsNull()) {
+  if (!GetSubframeWindow(cx, proxy, id).IsNull()) {
     *bp = true;
     return true;
   }
@@ -921,7 +921,7 @@ bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
   if (id == GetJSIDByIndex(cx, XPCJSContext::IDX_WRAPPED_JSOBJECT) &&
       xpc::AccessCheck::isChrome(js::GetContextCompartment(cx))) {
     vp.set(JS::ObjectValue(*proxy));
-    return MaybeWrapValue(MC_UNSAFE(cx), vp);
+    return MaybeWrapValue(cx, vp);
   }
 
   if (!IsPlatformObjectSameOrigin(cx, proxy)) {
@@ -929,7 +929,7 @@ bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   bool found;
-  if (!GetSubframeWindow(MC_UNSAFE(cx), proxy, id, vp, found)) {
+  if (!GetSubframeWindow(cx, proxy, id, vp, found)) {
     return false;
   }
 
@@ -949,7 +949,7 @@ bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
     JS_MarkCrossZoneId(cx, id);
 
     MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-    if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
+    if (!MaybeWrapValue(cx, &wrappedReceiver)) {
       return false;
     }
 
@@ -960,7 +960,7 @@ bool nsOuterWindowProxy::get(MCContext* cx, JS::Handle<JSObject*> proxy,
   }
 
   // Make sure our return value is in the caller compartment.
-  return MaybeWrapValue(MC_UNSAFE(cx), vp);
+  return MaybeWrapValue(cx, vp);
 }
 
 bool nsOuterWindowProxy::set(MCContext* cx, JS::Handle<JSObject*> proxy,
@@ -980,11 +980,11 @@ bool nsOuterWindowProxy::set(MCContext* cx, JS::Handle<JSObject*> proxy,
   // Do the rest in the Realm of "proxy", since we're in the same-origin case.
   MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
   MC::Rooted<JS::Value> wrappedArg(cx, v);
-  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedArg)) {
+  if (!MaybeWrapValue(cx, &wrappedArg)) {
     return false;
   }
   MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
+  if (!MaybeWrapValue(cx, &wrappedReceiver)) {
     return false;
   }
 
@@ -1032,7 +1032,7 @@ bool nsOuterWindowProxy::getOwnEnumerablePropertyKeys(
   return js::AppendUnique(cx, props, innerProps);
 }
 
-bool nsOuterWindowProxy::GetSubframeWindow(JSContext* cx,
+bool nsOuterWindowProxy::GetSubframeWindow(MCContext* cx,
                                            JS::Handle<JSObject*> proxy,
                                            JS::Handle<jsid> id,
                                            JS::MutableHandle<JS::Value> vp,
@@ -1048,7 +1048,7 @@ bool nsOuterWindowProxy::GetSubframeWindow(JSContext* cx,
 }
 
 Nullable<WindowProxyHolder> nsOuterWindowProxy::GetSubframeWindow(
-    JSContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id) const {
+    MCContext* cx, JS::Handle<JSObject*> proxy, JS::Handle<jsid> id) const {
   uint32_t index = GetArrayIndexFromId(id);
   if (!IsArrayIndex(index)) {
     return nullptr;
@@ -1097,7 +1097,7 @@ enum { PDFJS_SLOT_CALLEE = 0 };
 
 // static
 bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
-    JSContext* cx, JS::Handle<JSObject*> proxy,
+    MCContext* cx, JS::Handle<JSObject*> proxy,
     JS::MutableHandle<Maybe<JS::PropertyDescriptor>> desc) {
   MOZ_ASSERT(proxy);
   MOZ_ASSERT(!desc.isSome());
@@ -1154,7 +1154,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
   static auto PDFJSPrintMethodCb =
       MC::Sandbox::RegisterTaintedCallback(PDFJSPrintMethod);
   JSFunction* fun = js::NewFunctionWithReserved(
-      cx, PDFJSPrintMethodCb.UNSAFE_get(), 0, 0, "print");
+      cx, PDFJSPrintMethodCb, 0, 0, "print");
   if (!fun) {
     return false;
   }
@@ -1175,7 +1175,7 @@ bool nsOuterWindowProxy::MaybeGetPDFJSPrintMethod(
 // static
 MC::Tainted<bool> nsOuterWindowProxy::PDFJSPrintMethod(MC::Tainted<JSContext*> t_cx, unsigned argc,
                                           MC::Tainted<JS::Value*> t_vp) {
-  JSContext* cx = t_cx.UNSAFE_unverified();
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   JS::Value* vp = t_vp.UNSAFE_unverified();
 
   JS::CallArgs args = CallArgsFromVp(argc, vp);
@@ -1295,7 +1295,7 @@ const nsChromeOuterWindowProxy* nsChromeOuterWindowProxy::singleton() {
   return &inner_;
 }
 
-static JSObject* NewOuterWindowProxy(JSContext* cx,
+static JSObject* NewOuterWindowProxy(MCContext* cx,
                                      JS::Handle<JSObject*> global,
                                      bool isChrome) {
   MOZ_ASSERT(JS_IsGlobalObject(global));
@@ -1305,7 +1305,7 @@ static JSObject* NewOuterWindowProxy(JSContext* cx,
   js::WrapperOptions options;
   options.setClass(OuterWindowProxyClass());
   JSObject* obj =
-      mc::Wrapper::New(JS_SanitizeContext(cx), global,
+      mc::Wrapper::New(cx, global,
                        isChrome ? nsChromeOuterWindowProxy::singleton()
                                 : nsOuterWindowProxy::singleton(),
                        options);
@@ -1929,7 +1929,7 @@ bool nsGlobalWindowOuter::ComputeIsSecureContext(Document* aDocument,
   return principal->GetIsOriginPotentiallyTrustworthy();
 }
 
-static bool InitializeLegacyNetscapeObject(JSContext* aCx,
+static bool InitializeLegacyNetscapeObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGlobal) {
   MC::SandboxStack<JSAutoRealm> ar(aCx, aGlobal);
 
@@ -1982,7 +1982,7 @@ static MC::Tainted<JS::CompartmentIterResult> FindSameOriginCompartment(
 }
 
 static void SelectZone(
-    JSContext* aCx, nsIPrincipal* aPrincipal, nsGlobalWindowInner* aNewInner,
+    MCContext* aCx, nsIPrincipal* aPrincipal, nsGlobalWindowInner* aNewInner,
     MC::Tainted<JS::RealmCreationOptions*> aOptions) {
   // Use the shared system compartment for chrome windows.
   if (aPrincipal->IsSystemPrincipal()) {
@@ -2017,7 +2017,7 @@ static void SelectZone(
     static auto FindSameOriginCompartmentCb =
         MC::Sandbox::RegisterTaintedCallback(FindSameOriginCompartment);
     JS_IterateCompartmentsInZone(aCx, zone, &data,
-                                 FindSameOriginCompartmentCb.UNSAFE_get());
+                                 FindSameOriginCompartmentCb);
     if (data.compartment) {
       aOptions->setExistingCompartment(data.compartment);
       return;
@@ -2037,7 +2037,7 @@ static void SelectZone(
  * to manage the lifetime of it.
  */
 static nsresult CreateNativeGlobalForInner(
-    JSContext* aCx, nsGlobalWindowInner* aNewInner, Document* aDocument,
+    MCContext* aCx, nsGlobalWindowInner* aNewInner, Document* aDocument,
     JS::MutableHandle<JSObject*> aGlobal, bool aIsSecureContext,
     bool aDefineSharedArrayBufferConstructor) {
   MOZ_ASSERT(aCx);
@@ -2135,14 +2135,14 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Check if we're anywhere near the stack limit before we reach the
   // transplanting code, since it has no good way to handle errors. This uses
   // the untrusted script limit, which is not strictly necessary since no
   // actual script should run.
-  js::AutoCheckRecursionLimit recursion(cx);
-  if (!recursion.checkConservativeDontReport(cx)) {
+  js::AutoCheckRecursionLimit recursion(MC_UNSAFE(cx));
+  if (!recursion.checkConservativeDontReport(MC_UNSAFE(cx))) {
     NS_WARNING("Overrecursion in SetNewDocument");
     return NS_ERROR_FAILURE;
   }
@@ -2343,7 +2343,7 @@ nsresult nsGlobalWindowOuter::SetNewDocument(Document* aDocument,
                                JS::PrivateValue(nullptr));
       js::SetProxyReservedSlot(obj, HOLDER_WEAKMAP_SLOT, JS::UndefinedValue());
 
-      outerObject = xpc::TransplantObjectNukingXrayWaiver(JS_SanitizeContext(cx), obj, outerObject);
+      outerObject = xpc::TransplantObjectNukingXrayWaiver(cx, obj, outerObject);
 
       if (!outerObject) {
         mBrowsingContext->ClearWindowProxy();
@@ -2563,7 +2563,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::SandboxStack<JSAutoRealm> ar(cx, localProxy);
 
@@ -2590,7 +2590,7 @@ void nsGlobalWindowOuter::PrepareForProcessChange(JSObject* aProxy) {
     MOZ_CRASH("PrepareForProcessChange GetRemoteOuterWindowProxy");
   }
 
-  if (!xpc::TransplantObjectNukingXrayWaiver(JS_SanitizeContext(cx), localProxy, remoteProxy)) {
+  if (!xpc::TransplantObjectNukingXrayWaiver(cx, localProxy, remoteProxy)) {
     MOZ_CRASH("PrepareForProcessChange TransplantObject");
   }
 }
@@ -3283,7 +3283,7 @@ nsGlobalWindowOuter::GetTopExcludingExtensionAccessibleContentFrames(
   return window.forget();
 }
 
-void nsGlobalWindowOuter::GetContentOuter(JSContext* aCx,
+void nsGlobalWindowOuter::GetContentOuter(MCContext* aCx,
                                           JS::MutableHandle<JSObject*> aRetval,
                                           CallerType aCallerType,
                                           ErrorResult& aError) {
@@ -4058,7 +4058,7 @@ bool nsGlobalWindowOuter::DispatchResizeEvent(const CSSIntSize& aSize) {
   // reporting errors to our onerror handlers.
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
   DOMWindowResizeEventDetail detail;
@@ -4672,7 +4672,7 @@ void nsGlobalWindowOuter::MacFullscreenMenubarOverlapChanged(
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::SandboxStack<JSAutoRealm> ar(cx, GetWrapperPreserveColor());
 
   MC::Rooted<JS::Value> detailValue(cx);
@@ -5754,7 +5754,7 @@ nsresult nsGlobalWindowOuter::OpenNoNavigate(const nsAString& aUrl,
 }
 
 Nullable<WindowProxyHolder> nsGlobalWindowOuter::OpenDialogOuter(
-    JSContext* aCx, const nsAString& aUrl, const nsAString& aName,
+    MCContext* aCx, const nsAString& aUrl, const nsAString& aName,
     const nsAString& aOptions, const Sequence<JS::Value>& aExtraArgument,
     ErrorResult& aError) {
   nsCOMPtr<nsIJSArgArray> argvArray;
@@ -5790,7 +5790,7 @@ WindowProxyHolder nsGlobalWindowOuter::GetFramesOuter() {
 
 /* static */
 bool nsGlobalWindowOuter::GatherPostMessageData(
-    JSContext* aCx, const nsAString& aTargetOrigin, BrowsingContext** aSource,
+    MCContext* aCx, const nsAString& aTargetOrigin, BrowsingContext** aSource,
     nsAString& aOrigin, nsIURI** aTargetOriginURI,
     nsIPrincipal** aCallerPrincipal, nsGlobalWindowInner** aCallerInnerWindow,
     nsIURI** aCallerURI, Maybe<nsID>* aCallerAgentClusterId,
@@ -5979,7 +5979,7 @@ bool nsGlobalWindowOuter::GetPrincipalForPostMessage(
   return true;
 }
 
-void nsGlobalWindowOuter::PostMessageMozOuter(JSContext* aCx,
+void nsGlobalWindowOuter::PostMessageMozOuter(MCContext* aCx,
                                               JS::Handle<JS::Value> aMessage,
                                               const nsAString& aTargetOrigin,
                                               JS::Handle<JS::Value> aTransfer,
@@ -7182,7 +7182,7 @@ nsresult nsGlobalWindowOuter::SecurityCheckURL(const char* aURL,
   }
   AutoJSContext cx;
   nsGlobalWindowInner* sourceWin = nsGlobalWindowInner::Cast(sourceWindow);
-  MC::SandboxStack<JSAutoRealm> ar(cx, sourceWin->GetGlobalJSObject());
+  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), sourceWin->GetGlobalJSObject());
 
   // Resolve the baseURI, which could be relative to the calling window.
   //
@@ -7203,7 +7203,7 @@ nsresult nsGlobalWindowOuter::SecurityCheckURL(const char* aURL,
   }
 
   if (NS_FAILED(nsContentUtils::GetSecurityManager()->CheckLoadURIFromScript(
-          JS_SanitizeContext(static_cast<JSContext*>(cx)), uri))) {
+          cx, uri))) {
     return NS_ERROR_FAILURE;
   }
 

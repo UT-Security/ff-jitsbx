@@ -77,7 +77,7 @@ OffscreenCanvasRenderingContext2D::~OffscreenCanvasRenderingContext2D() =
     default;
 
 JSObject* OffscreenCanvasRenderingContext2D::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return OffscreenCanvasRenderingContext2D_Binding::Wrap(aCx, this,
                                                          aGivenProto);
 }

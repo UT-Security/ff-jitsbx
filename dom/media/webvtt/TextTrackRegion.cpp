@@ -16,7 +16,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(TextTrackRegion)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* TextTrackRegion::WrapObject(JSContext* aCx,
+JSObject* TextTrackRegion::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return VTTRegion_Binding::Wrap(aCx, this, aGivenProto);
 }

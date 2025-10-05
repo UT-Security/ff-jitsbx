@@ -51,7 +51,7 @@ class VRFieldOfView final : public nsWrapperCache {
   double LeftDegrees() const { return mLeftDegrees; }
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -76,7 +76,7 @@ class VRDisplayCapabilities final : public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   bool HasPosition() const;
@@ -96,25 +96,25 @@ class VRPose final : public Pose {
   VRPose(nsISupports* aParent, const gfx::VRHMDSensorState& aState);
   explicit VRPose(nsISupports* aParent);
 
-  virtual void GetPosition(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  virtual void GetPosition(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                            ErrorResult& aRv) override;
-  virtual void GetLinearVelocity(JSContext* aCx,
+  virtual void GetLinearVelocity(MCContext* aCx,
                                  JS::MutableHandle<JSObject*> aRetval,
                                  ErrorResult& aRv) override;
-  virtual void GetLinearAcceleration(JSContext* aCx,
+  virtual void GetLinearAcceleration(MCContext* aCx,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv) override;
-  virtual void GetOrientation(JSContext* aCx,
+  virtual void GetOrientation(MCContext* aCx,
                               JS::MutableHandle<JSObject*> aRetval,
                               ErrorResult& aRv) override;
-  virtual void GetAngularVelocity(JSContext* aCx,
+  virtual void GetAngularVelocity(MCContext* aCx,
                                   JS::MutableHandle<JSObject*> aRetval,
                                   ErrorResult& aRv) override;
-  virtual void GetAngularAcceleration(JSContext* aCx,
+  virtual void GetAngularAcceleration(MCContext* aCx,
                                       JS::MutableHandle<JSObject*> aRetval,
                                       ErrorResult& aRv) override;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void Update(const gfx::VRHMDSensorState& aState);
@@ -162,22 +162,22 @@ class VRFrameData final : public nsWrapperCache {
 
   // WebIDL Members
   double Timestamp() const;
-  void GetLeftProjectionMatrix(JSContext* aCx,
+  void GetLeftProjectionMatrix(MCContext* aCx,
                                JS::MutableHandle<JSObject*> aRetval,
                                ErrorResult& aRv);
-  void GetLeftViewMatrix(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetLeftViewMatrix(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                          ErrorResult& aRv);
-  void GetRightProjectionMatrix(JSContext* aCx,
+  void GetRightProjectionMatrix(MCContext* aCx,
                                 JS::MutableHandle<JSObject*> aRetval,
                                 ErrorResult& aRv);
-  void GetRightViewMatrix(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetRightViewMatrix(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                           ErrorResult& aRv);
 
   VRPose* Pose();
 
   // WebIDL Boilerplate
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -192,7 +192,7 @@ class VRFrameData final : public nsWrapperCache {
   JS::Heap<JSObject*> mRightViewMatrix;
 
   void LazyCreateMatrix(JS::Heap<JSObject*>& aArray, gfx::Matrix4x4& aMat,
-                        JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+                        MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                         ErrorResult& aRv);
 };
 
@@ -205,14 +205,14 @@ class VRStageParameters final : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(VRStageParameters)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(VRStageParameters)
 
-  void GetSittingToStandingTransform(JSContext* aCx,
+  void GetSittingToStandingTransform(MCContext* aCx,
                                      JS::MutableHandle<JSObject*> aRetval,
                                      ErrorResult& aRv);
   float SizeX() const { return mSize.width; }
   float SizeZ() const { return mSize.height; }
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -234,7 +234,7 @@ class VREyeParameters final : public nsWrapperCache {
   NS_INLINE_DECL_CYCLE_COLLECTING_NATIVE_REFCOUNTING(VREyeParameters)
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_NATIVE_CLASS(VREyeParameters)
 
-  void GetOffset(JSContext* aCx, JS::MutableHandle<JSObject*> aRetVal,
+  void GetOffset(MCContext* aCx, JS::MutableHandle<JSObject*> aRetVal,
                  ErrorResult& aRv);
 
   VRFieldOfView* FieldOfView();
@@ -243,7 +243,7 @@ class VREyeParameters final : public nsWrapperCache {
   uint32_t RenderHeight() const { return mRenderSize.height; }
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -263,7 +263,7 @@ class VRDisplay final : public DOMEventTargetHelper, public nsIObserver {
   NS_DECL_NSIOBSERVER
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(VRDisplay, DOMEventTargetHelper)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t PresentingGroups() const;

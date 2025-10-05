@@ -105,7 +105,7 @@ PerformanceMainThread::~PerformanceMainThread() {
   mozilla::DropJSObjects(this);
 }
 
-void PerformanceMainThread::GetMozMemory(JSContext* aCx,
+void PerformanceMainThread::GetMozMemory(MCContext* aCx,
                                          JS::MutableHandle<JSObject*> aObj) {
   if (!mMozMemory) {
     MC::Rooted<JSObject*> mozMemoryObj(aCx, JS_NewPlainObject(aCx));

@@ -43,7 +43,7 @@ class PerformanceEntryAdder final : public WorkerControlRunnable {
         mStorage(aStorage),
         mData(std::move(aData)) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     mStorage->AddEntryOnWorker(std::move(mData));
     return true;
   }

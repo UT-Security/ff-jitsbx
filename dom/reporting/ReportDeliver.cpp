@@ -39,7 +39,7 @@ class ReportFetchHandler final : public PromiseNativeHandler {
       const nsTArray<ReportDeliver::ReportData>& aReportData)
       : mReports(aReportData.Clone()) {}
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     if (!gReportDeliver) {
       return;
@@ -77,7 +77,7 @@ class ReportFetchHandler final : public PromiseNativeHandler {
     }
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     if (gReportDeliver) {
       for (auto& report : mReports) {
@@ -122,7 +122,7 @@ void SendReports(nsTArray<ReportDeliver::ReportData>& aReports,
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JSObject*> sandbox(cx);
     nsresult rv = xpc->CreateSandbox(cx, aPrincipal, sandbox.address());
     if (NS_WARN_IF(NS_FAILED(rv))) {

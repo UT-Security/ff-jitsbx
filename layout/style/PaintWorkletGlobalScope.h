@@ -21,7 +21,7 @@ class PaintWorkletGlobalScope final : public WorkletGlobalScope {
  public:
   explicit PaintWorkletGlobalScope(PaintWorkletImpl* aImpl);
 
-  bool WrapGlobalObject(JSContext* aCx,
+  bool WrapGlobalObject(MCContext* aCx,
                         JS::MutableHandle<JSObject*> aReflector) override;
 
   void RegisterPaint(const nsAString& aType, VoidFunction& aProcessorCtor);

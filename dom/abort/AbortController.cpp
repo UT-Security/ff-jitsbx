@@ -45,7 +45,7 @@ AbortController::AbortController(nsIGlobalObject* aGlobal)
   mozilla::HoldJSObjects(this);
 }
 
-JSObject* AbortController::WrapObject(JSContext* aCx,
+JSObject* AbortController::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return AbortController_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -61,7 +61,7 @@ AbortSignal* AbortController::Signal() {
   return mSignal;
 }
 
-void AbortController::Abort(JSContext* aCx, JS::Handle<JS::Value> aReason) {
+void AbortController::Abort(MCContext* aCx, JS::Handle<JS::Value> aReason) {
   if (mAborted) {
     return;
   }

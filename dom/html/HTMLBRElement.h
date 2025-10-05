@@ -52,7 +52,7 @@ class HTMLBRElement final : public nsGenericHTMLElement {
     return GetHTMLAttr(nsGkAtoms::clear, aClear);
   }
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   bool IsPaddingForEmptyEditor() const {

@@ -94,7 +94,7 @@ class MathMLElement final : public MathMLElementBase,
  protected:
   virtual ~MathMLElement() = default;
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   void BeforeSetAttr(int32_t aNamespaceID, nsAtom* aName,
                      const nsAttrValue* aValue, bool aNotify) final;

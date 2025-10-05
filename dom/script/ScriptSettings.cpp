@@ -9,15 +9,15 @@
 #include <utility>
 #include "MainThreadUtils.h"
 #include "js/CharacterEncoding.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/Conversions.h"
-#include "js/ErrorReport.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/Conversions.h"
+#include "monkeycage/ErrorReport.h"
 #include "monkeycage/Exception.h"
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
-#include "js/Warnings.h"
+#include "monkeycage/Warnings.h"
 #include "monkeycage/Wrapper.h"
 #include "js/friend/ErrorMessages.h"
 #include "js/loader/LoadedScript.h"
@@ -200,7 +200,7 @@ nsIGlobalObject* GetIncumbentGlobal() {
   // manipulated the stack. If it's null, that means that there
   // must be no entry global on the stack, and therefore no incumbent
   // global either.
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     MOZ_ASSERT(ScriptSettingsStack::EntryGlobal() == nullptr);
     return nullptr;
@@ -220,7 +220,7 @@ nsIGlobalObject* GetIncumbentGlobal() {
 }
 
 nsIGlobalObject* GetCurrentGlobal() {
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return nullptr;
   }
@@ -285,7 +285,7 @@ AutoJSAPI::~AutoJSAPI() {
   ScriptSettingsStack::Pop(this);
 }
 
-void WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep);
+void WarningOnlyErrorReporter(MC::Tainted<JSContext*> aCx, MC::Tainted<JSErrorReport*> aRep);
 
 void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
                              MCContext* aCx, bool aIsMainThread) {
@@ -312,7 +312,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
   mOldWarningReporter.emplace(JS::GetWarningReporter(aCx));
 
   static auto WarningOnlyErrorReporterCb =
-      MC::Sandbox::RegisterCallback(WarningOnlyErrorReporter);
+      MC::Sandbox::RegisterTaintedCallback(WarningOnlyErrorReporter);
   JS::SetWarningReporter(aCx, WarningOnlyErrorReporterCb);
 
 #ifdef DEBUG
@@ -332,7 +332,7 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
       MC::SandboxStack<JSAutoRealm> ar(aCx, exnObj);
 
       nsAutoJSString stack, filename, name, message;
-      int32_t line;
+      MC::SandboxStack<int32_t> line;
 
       MC::Rooted<JS::Value> tmp(aCx);
       if (!JS_GetProperty(aCx, exnObj, "filename", &tmp)) {
@@ -344,39 +344,39 @@ void AutoJSAPI::InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
         }
       }
 
-      if (!filename.init(MC_UNSAFE(aCx), tmp)) {
+      if (!filename.init(aCx, tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "stack", &tmp) ||
-          !stack.init(MC_UNSAFE(aCx), tmp)) {
+          !stack.init(aCx, tmp)) {
         JS_ClearPendingException(aCx);
       }
 
-      if (!JS_GetProperty(aCx, exnObj, "name", &tmp) || !name.init(MC_UNSAFE(aCx), tmp)) {
+      if (!JS_GetProperty(aCx, exnObj, "name", &tmp) || !name.init(aCx, tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "message", &tmp) ||
-          !message.init(MC_UNSAFE(aCx), tmp)) {
+          !message.init(aCx, tmp)) {
         JS_ClearPendingException(aCx);
       }
 
       if (!JS_GetProperty(aCx, exnObj, "lineNumber", &tmp) ||
-          !JS::ToInt32(MC_UNSAFE(aCx), tmp, &line)) {
+          !JS::ToInt32(aCx, tmp, line)) {
         JS_ClearPendingException(aCx);
-        line = 0;
+        *line = 0;
       }
 
       printf_stderr("PREEXISTING EXCEPTION OBJECT: '%s: %s'\n%s:%d\n%s\n",
                     NS_ConvertUTF16toUTF8(name).get(),
                     NS_ConvertUTF16toUTF8(message).get(),
-                    NS_ConvertUTF16toUTF8(filename).get(), line,
+                    NS_ConvertUTF16toUTF8(filename).get(), *line.UNSAFE_unverified(),
                     NS_ConvertUTF16toUTF8(stack).get());
     } else {
       // It's a primitive... not much we can do other than stringify it.
       nsAutoJSString exnStr;
-      if (!exnStr.init(MC_UNSAFE(aCx), exn)) {
+      if (!exnStr.init(aCx, exn)) {
         JS_ClearPendingException(aCx);
       }
 
@@ -455,7 +455,8 @@ bool AutoJSAPI::Init(nsGlobalWindowInner* aWindow) {
 //
 // Eventually, SpiderMonkey will have a special-purpose callback for warnings
 // only.
-void WarningOnlyErrorReporter(JSContext* aCx, JSErrorReport* aRep) {
+void WarningOnlyErrorReporter(MC::Tainted<JSContext*> tCx, MC::Tainted<JSErrorReport*> aRep) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   MOZ_ASSERT(aRep->isWarning());
   if (!NS_IsMainThread()) {
     // Reporting a warning on workers is a bit complicated because we have to
@@ -510,10 +511,10 @@ void AutoJSAPI::ReportException() {
   }
   MOZ_ASSERT(JS_IsGlobalObject(errorGlobal));
   MC::SandboxStack<JSAutoRealm> ar(cx(), errorGlobal);
-  JS::ExceptionStack exnStack(cx());
-  JS::ErrorReportBuilder jsReport(cx());
-  if (StealExceptionAndStack(&exnStack) &&
-      jsReport.init(cx(), exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
+  MC::SandboxStack<JS::ExceptionStack> exnStack(cx());
+  MC::SandboxStack<JS::ErrorReportBuilder> jsReport(cx());
+  if (StealExceptionAndStack(exnStack) &&
+      jsReport->init(cx(), exnStack, JS::ErrorReportBuilder::WithSideEffects)) {
     if (mIsMainThread) {
       RefPtr<xpc::ErrorReport> xpcReport = new xpc::ErrorReport();
 
@@ -534,17 +535,17 @@ void AutoJSAPI::ReportException() {
 
       bool isChrome =
           nsContentUtils::ObjectPrincipal(errorGlobal)->IsSystemPrincipal();
-      xpcReport->Init(jsReport.report(), jsReport.toStringResult().c_str(),
+      xpcReport->Init(jsReport->report(), jsReport->toStringResult().c_str(),
                       isChrome, innerWindowID);
-      if (inner && jsReport.report()->errorNumber != JSMSG_OUT_OF_MEMORY) {
+      if (inner && jsReport->report()->errorNumber() != JSMSG_OUT_OF_MEMORY) {
         MC::RootingContext* rcx = MC::RootingContext::get(mcx());
-        DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack.exception(),
-                                 exnStack.stack());
+        DispatchScriptErrorEvent(inner, rcx, xpcReport, exnStack->exception(),
+                                 exnStack->stack());
       } else {
         MC::Rooted<JSObject*> stack(cx());
         MC::Rooted<JSObject*> stackGlobal(cx());
-        xpc::FindExceptionStackForConsoleReport(inner, exnStack.exception(),
-                                                exnStack.stack(), &stack,
+        xpc::FindExceptionStackForConsoleReport(inner, exnStack->exception(),
+                                                exnStack->stack(), &stack,
                                                 &stackGlobal);
         // This error is not associated with a specific window,
         // so omit the exception value to mitigate potential leaks.
@@ -563,7 +564,7 @@ void AutoJSAPI::ReportException() {
       // to get hold of it.  After we invoke ReportError, clear the exception on
       // cx(), just in case ReportError didn't.
       JS::SetPendingExceptionStack(cx(), exnStack);
-      ccjscx->ReportError(jsReport.report(), jsReport.toStringResult());
+      ccjscx->ReportError(jsReport->report(), jsReport->toStringResult());
       ClearException();
     }
   } else {
@@ -580,15 +581,15 @@ bool AutoJSAPI::PeekException(JS::MutableHandle<JS::Value> aVal) {
 }
 
 bool AutoJSAPI::StealException(JS::MutableHandle<JS::Value> aVal) {
-  JS::ExceptionStack exnStack(cx());
-  if (!StealExceptionAndStack(&exnStack)) {
+  MC::SandboxStack<JS::ExceptionStack> exnStack(cx());
+  if (!StealExceptionAndStack(exnStack)) {
     return false;
   }
-  aVal.set(exnStack.exception());
+  aVal.set(exnStack->exception());
   return true;
 }
 
-bool AutoJSAPI::StealExceptionAndStack(JS::ExceptionStack* aExnStack) {
+bool AutoJSAPI::StealExceptionAndStack(MC::Tainted<JS::ExceptionStack*> aExnStack) {
   MOZ_ASSERT_IF(mIsMainThread, IsStackTop());
   MOZ_ASSERT(HasException());
   MOZ_ASSERT(js::GetContextRealm(cx()));
@@ -604,7 +605,7 @@ bool AutoJSAPI::IsStackTop() const {
 
 AutoIncumbentScript::AutoIncumbentScript(nsIGlobalObject* aGlobalObject)
     : ScriptSettingsStackEntry(aGlobalObject, eIncumbentScript),
-      mCallerOverride(nsContentUtils::GetCurrentJSContext()) {
+      mCallerOverride(MC_UNSAFE(nsContentUtils::GetCurrentJSContext())) {
   ScriptSettingsStack::Push(this);
 }
 
@@ -636,14 +637,14 @@ AutoJSContext::AutoJSContext() : mCx(nullptr) {
   MOZ_ASSERT(NS_IsMainThread());
 
   if (dom::IsJSAPIActive()) {
-    mCx = MC_UNSAFE(dom::danger::GetJSContext());
+    mCx = dom::danger::GetJSContext();
   } else {
     mJSAPI.Init();
     mCx = mJSAPI.cx();
   }
 }
 
-AutoJSContext::operator JSContext*() const { return mCx; }
+AutoJSContext::operator MCContext*() const { return mCx; }
 
 AutoSafeJSContext::AutoSafeJSContext() : AutoJSAPI() {
   MOZ_ASSERT(NS_IsMainThread());

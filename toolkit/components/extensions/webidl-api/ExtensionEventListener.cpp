@@ -61,7 +61,7 @@ class SendResponseCallback final : public nsISupports {
     // Create a promise monitor that invalidates the sendResponse
     // callback if the promise has been already resolved or rejected.
     mPromiseListener = new dom::DomPromiseListener(
-        [self = RefPtr{this}](JSContext* aCx, JS::Handle<JS::Value> aValue) {
+        [self = RefPtr{this}](MCContext* aCx, JS::Handle<JS::Value> aValue) {
           self->Cleanup();
         },
         [self = RefPtr{this}](nsresult aError) { self->Cleanup(); });
@@ -194,7 +194,7 @@ already_AddRefed<ExtensionEventListener> ExtensionEventListener::Create(
 // static
 UniquePtr<dom::StructuredCloneHolder>
 ExtensionEventListener::SerializeCallArguments(const nsTArray<JS::Value>& aArgs,
-                                               JSContext* aCx,
+                                               MCContext* aCx,
                                                ErrorResult& aRv) {
   MC::Rooted<JS::Value> jsval(aCx);
   if (NS_WARN_IF(!dom::ToJSValue(aCx, aArgs, &jsval))) {
@@ -238,14 +238,14 @@ NS_IMETHODIMP ExtensionEventListener::CallListener(
       case APIObjectType::NONE:
         if (NS_WARN_IF(!apiObjectDescriptor.isNullOrUndefined())) {
           JS_ReportErrorASCII(
-              MC_UNSAFE(aCx),
+              aCx,
               "Unexpected non-null apiObjectDescriptor on apiObjectType=NONE");
           return NS_ERROR_UNEXPECTED;
         }
         break;
       case APIObjectType::RUNTIME_PORT:
         if (NS_WARN_IF(apiObjectDescriptor.isNullOrUndefined())) {
-          JS_ReportErrorASCII(MC_UNSAFE(aCx),
+          JS_ReportErrorASCII(aCx,
                               "Unexpected null apiObjectDescriptor on "
                               "apiObjectType=RUNTIME_PORT");
           return NS_ERROR_UNEXPECTED;
@@ -302,7 +302,7 @@ NS_IMETHODIMP ExtensionEventListener::CallListener(
   }
 
   UniquePtr<dom::StructuredCloneHolder> argsHolder =
-      SerializeCallArguments(args, MC_UNSAFE(aCx), rv);
+      SerializeCallArguments(args, aCx, rv);
   if (NS_WARN_IF(rv.Failed())) {
     return rv.StealNSResult();
   }
@@ -324,7 +324,7 @@ dom::WorkerPrivate* ExtensionEventListener::GetWorkerPrivate() const {
 // ExtensionListenerCallWorkerRunnable
 
 void ExtensionListenerCallWorkerRunnable::DeserializeCallArguments(
-    JSContext* aCx, dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
+    MCContext* aCx, dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   MC::Rooted<JS::Value> jsvalue(aCx);
 
   mArgsHolder->Read(xpc::CurrentNativeGlobal(aCx), aCx, &jsvalue, aRv);
@@ -340,7 +340,7 @@ void ExtensionListenerCallWorkerRunnable::DeserializeCallArguments(
 }
 
 bool ExtensionListenerCallWorkerRunnable::WorkerRun(
-    JSContext* aCx, dom::WorkerPrivate* aWorkerPrivate) {
+    MCContext* aCx, dom::WorkerPrivate* aWorkerPrivate) {
   MOZ_ASSERT(aWorkerPrivate);
   aWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(aWorkerPrivate == mWorkerPrivate);
@@ -443,7 +443,7 @@ bool ExtensionListenerCallWorkerRunnable::WorkerRun(
       break;
     case CallbackType::CALLBACK_SEND_RESPONSE: {
       MC::Rooted<JSFunction*> sendResponseFn(
-          aCx, js::NewFunctionWithReserved(aCx, SendResponseCallbackCallCb.UNSAFE_get(),
+          aCx, js::NewFunctionWithReserved(aCx, SendResponseCallbackCallCb,
                                            /* nargs */ 1, 0, "sendResponse"));
       sendResponseObj = JS_GetFunctionObject(sendResponseFn);
       MC::Rooted<JS::Value> sendResponseValue(
@@ -583,7 +583,7 @@ void ExtensionListenerCallPromiseResultHandler::Create(
 }
 
 void ExtensionListenerCallPromiseResultHandler::WorkerRunCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, JS::Handle<JS::Value> aValue,
     PromiseCallbackType aCallbackType) {
   MOZ_ASSERT(mWorkerRef);
   mWorkerRef->Private()->AssertIsOnWorkerThread();
@@ -655,7 +655,7 @@ void ExtensionListenerCallPromiseResultHandler::WorkerRunCallback(
     auto* global = promiseResult->GetGlobalObject();
     dom::AutoEntryScript aes(global,
                              "ExtensionListenerCallWorkerRunnable::WorkerRun");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
     MC::Rooted<JS::Value> jsvalue(cx);
     IgnoredErrorResult rv;
 
@@ -682,12 +682,12 @@ void ExtensionListenerCallPromiseResultHandler::WorkerRunCallback(
 }
 
 void ExtensionListenerCallPromiseResultHandler::ResolvedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   WorkerRunCallback(aCx, aValue, PromiseCallbackType::Resolve);
 }
 
 void ExtensionListenerCallPromiseResultHandler::RejectedCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   WorkerRunCallback(aCx, aValue, PromiseCallbackType::Reject);
 }
 

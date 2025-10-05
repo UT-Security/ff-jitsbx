@@ -70,14 +70,14 @@ ExtensionBrowser::ExtensionBrowser(nsIGlobalObject* aGlobal)
   MOZ_DIAGNOSTIC_ASSERT(mGlobal);
 }
 
-JSObject* ExtensionBrowser::WrapObject(JSContext* aCx,
+JSObject* ExtensionBrowser::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionBrowser_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 nsIGlobalObject* ExtensionBrowser::GetParentObject() const { return mGlobal; }
 
-bool ExtensionAPIAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool ExtensionAPIAllowed(MCContext* aCx, JSObject* aGlobal) {
 #ifdef MOZ_WEBEXT_WEBIDL_ENABLED
   // Only expose the Extension API bindings if:
   // - the context is related to a worker where the Extension API are allowed
@@ -314,7 +314,7 @@ bool ExtensionEventWakeupMap::HasListener(const nsAString& aAPINamespace,
 }
 
 nsresult ExtensionBrowser::TrackWakeupEventListener(
-    JSContext* aCx, const nsString& aAPINamespace, const nsString& aAPIName) {
+    MCContext* aCx, const nsString& aAPINamespace, const nsString& aAPIName) {
   auto* workerPrivate = mozilla::dom::GetWorkerPrivateFromContext(aCx);
   if (workerPrivate->WorkerScriptExecutedSuccessfully()) {
     // Ignore if the worker script has already executed all its synchronous
@@ -326,7 +326,7 @@ nsresult ExtensionBrowser::TrackWakeupEventListener(
 }
 
 nsresult ExtensionBrowser::UntrackWakeupEventListener(
-    JSContext* aCx, const nsString& aAPINamespace, const nsString& aAPIName) {
+    MCContext* aCx, const nsString& aAPINamespace, const nsString& aAPIName) {
   auto* workerPrivate = mozilla::dom::GetWorkerPrivateFromContext(aCx);
   if (workerPrivate->WorkerScriptExecutedSuccessfully()) {
     // Ignore if the worker script has already executed all its synchronous

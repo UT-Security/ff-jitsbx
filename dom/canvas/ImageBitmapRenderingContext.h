@@ -46,7 +46,7 @@ class ImageBitmapRenderingContext final
  public:
   ImageBitmapRenderingContext();
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // nsISupports interface + CC

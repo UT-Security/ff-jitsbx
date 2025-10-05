@@ -16,7 +16,7 @@ namespace mozilla::dom {
 
 using AnimationPhase = ComputedTiming::AnimationPhase;
 
-JSObject* CSSAnimation::WrapObject(JSContext* aCx,
+JSObject* CSSAnimation::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return dom::CSSAnimation_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -339,7 +339,7 @@ void CSSAnimationKeyframeEffect::UpdateTiming(
   }
 }
 
-void CSSAnimationKeyframeEffect::SetKeyframes(JSContext* aContext,
+void CSSAnimationKeyframeEffect::SetKeyframes(MCContext* aContext,
                                               JS::Handle<JSObject*> aKeyframes,
                                               ErrorResult& aRv) {
   KeyframeEffect::SetKeyframes(aContext, aKeyframes, aRv);

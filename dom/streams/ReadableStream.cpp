@@ -105,7 +105,7 @@ ReadableStream::~ReadableStream() {
   }
 }
 
-JSObject* ReadableStream::WrapObject(JSContext* aCx,
+JSObject* ReadableStream::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return ReadableStream_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -168,11 +168,11 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
   if (underlyingSourceObj) {
     MC::Rooted<JS::Value> objValue(aGlobal.Context(),
                                    JS::ObjectValue(*underlyingSourceObj));
-    dom::BindingCallContext callCx(MC_UNSAFE(aGlobal.Context()),
+    dom::BindingCallContext callCx(aGlobal.Context(),
                                    "ReadableStream.constructor");
     aRv.MightThrowJSException();
     if (!underlyingSourceDict.Init(callCx, objValue)) {
-      aRv.StealExceptionFromJSContext(MC_UNSAFE(aGlobal.Context()));
+      aRv.StealExceptionFromJSContext(aGlobal.Context());
       return nullptr;
     }
   }
@@ -200,7 +200,7 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
 
     // Step 4.3
     SetUpReadableByteStreamControllerFromUnderlyingSource(
-        MC_UNSAFE(aGlobal.Context()), readableStream, underlyingSourceObj,
+        aGlobal.Context(), readableStream, underlyingSourceObj,
         underlyingSourceDict, highWaterMark, aRv);
     if (aRv.Failed()) {
       return nullptr;
@@ -230,7 +230,7 @@ already_AddRefed<ReadableStream> ReadableStream::Constructor(
 
   // Step 5.4.
   SetupReadableStreamDefaultControllerFromUnderlyingSource(
-      MC_UNSAFE(aGlobal.Context()), readableStream, underlyingSourceObj,
+      aGlobal.Context(), readableStream, underlyingSourceObj,
       underlyingSourceDict, highWaterMark, sizeAlgorithm, aRv);
   if (aRv.Failed()) {
     return nullptr;
@@ -264,7 +264,7 @@ static void InitializeReadableStream(ReadableStream* aStream) {
 // https://streams.spec.whatwg.org/#create-readable-stream
 MOZ_CAN_RUN_SCRIPT
 already_AddRefed<ReadableStream> ReadableStream::CreateAbstract(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
+    MCContext* aCx, nsIGlobalObject* aGlobal,
     UnderlyingSourceAlgorithmsBase* aAlgorithms,
     mozilla::Maybe<double> aHighWaterMark, QueuingStrategySize* aSizeAlgorithm,
     ErrorResult& aRv) {
@@ -296,7 +296,7 @@ already_AddRefed<ReadableStream> ReadableStream::CreateAbstract(
 
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-close
-void ReadableStreamClose(JSContext* aCx, ReadableStream* aStream,
+void ReadableStreamClose(MCContext* aCx, ReadableStream* aStream,
                          ErrorResult& aRv) {
   // Step 1.
   MOZ_ASSERT(aStream->State() == ReadableStream::ReaderState::Readable);
@@ -343,7 +343,7 @@ void ReadableStreamClose(JSContext* aCx, ReadableStream* aStream,
 }
 
 // https://streams.spec.whatwg.org/#readable-stream-cancel
-already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
+already_AddRefed<Promise> ReadableStreamCancel(MCContext* aCx,
                                                ReadableStream* aStream,
                                                JS::Handle<JS::Value> aError,
                                                ErrorResult& aRv) {
@@ -411,7 +411,7 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
   // callback executes.
   Result<RefPtr<Promise>, nsresult> returnResult =
       sourceCancelPromise->ThenWithCycleCollectedArgs(
-          [](JSContext*, JS::Handle<JS::Value>, ErrorResult&,
+          [](MCContext*, JS::Handle<JS::Value>, ErrorResult&,
              RefPtr<Promise> newPromise) {
             newPromise->MaybeResolveWithUndefined();
             return newPromise.forget();
@@ -429,7 +429,7 @@ already_AddRefed<Promise> ReadableStreamCancel(JSContext* aCx,
 }  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#rs-cancel
-already_AddRefed<Promise> ReadableStream::Cancel(JSContext* aCx,
+already_AddRefed<Promise> ReadableStream::Cancel(MCContext* aCx,
                                                  JS::Handle<JS::Value> aReason,
                                                  ErrorResult& aRv) {
   // Step 1. If ! IsReadableStreamLocked(this) is true,
@@ -552,7 +552,7 @@ double ReadableStreamGetNumReadRequests(ReadableStream* aStream) {
 }
 
 // https://streams.spec.whatwg.org/#readable-stream-error
-void ReadableStreamError(JSContext* aCx, ReadableStream* aStream,
+void ReadableStreamError(MCContext* aCx, ReadableStream* aStream,
                          JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   // Step 1.
   MOZ_ASSERT(aStream->State() == ReadableStream::ReaderState::Readable);
@@ -603,7 +603,7 @@ void ReadableStreamError(JSContext* aCx, ReadableStream* aStream,
 }
 
 // https://streams.spec.whatwg.org/#rs-default-controller-close
-void ReadableStreamFulfillReadRequest(JSContext* aCx, ReadableStream* aStream,
+void ReadableStreamFulfillReadRequest(MCContext* aCx, ReadableStream* aStream,
                                       JS::Handle<JS::Value> aChunk, bool aDone,
                                       ErrorResult& aRv) {
   // Step 1.
@@ -647,7 +647,7 @@ void ReadableStreamAddReadRequest(ReadableStream* aStream,
 // Step 14, 15
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise>
 ReadableStreamDefaultTeeSourceAlgorithms::CancelCallback(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+    MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
   // Step 1.
   mTeeState->SetCanceled(mBranch, true);
@@ -698,7 +698,7 @@ ReadableStreamDefaultTeeSourceAlgorithms::CancelCallback(
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee
 MOZ_CAN_RUN_SCRIPT
-static void ReadableStreamDefaultTee(JSContext* aCx, ReadableStream* aStream,
+static void ReadableStreamDefaultTee(MCContext* aCx, ReadableStream* aStream,
                                      bool aCloneForBranch2,
                                      nsTArray<RefPtr<ReadableStream>>& aResult,
                                      ErrorResult& aRv) {
@@ -735,9 +735,9 @@ static void ReadableStreamDefaultTee(JSContext* aCx, ReadableStream* aStream,
 
   // Step 19.
   teeState->GetReader()->ClosedPromise()->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          TeeState* aTeeState) {},
-      [](JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv,
          TeeState* aTeeState) {
         // Step 19.1.
         ReadableStreamDefaultControllerError(
@@ -798,7 +798,7 @@ already_AddRefed<Promise> ReadableStream::PipeTo(
 
 // https://streams.spec.whatwg.org/#readable-stream-tee
 MOZ_CAN_RUN_SCRIPT
-static void ReadableStreamTee(JSContext* aCx, ReadableStream* aStream,
+static void ReadableStreamTee(MCContext* aCx, ReadableStream* aStream,
                               bool aCloneForBranch2,
                               nsTArray<RefPtr<ReadableStream>>& aResult,
                               ErrorResult& aRv) {
@@ -813,7 +813,7 @@ static void ReadableStreamTee(JSContext* aCx, ReadableStream* aStream,
   ReadableStreamDefaultTee(aCx, aStream, aCloneForBranch2, aResult, aRv);
 }
 
-void ReadableStream::Tee(JSContext* aCx,
+void ReadableStream::Tee(MCContext* aCx,
                          nsTArray<RefPtr<ReadableStream>>& aResult,
                          ErrorResult& aRv) {
   ReadableStreamTee(aCx, this, false, aResult, aRv);
@@ -863,14 +863,14 @@ struct IteratorReadRequest : public ReadRequest {
       : mPromise(aPromise), mReader(aReader) {}
 
   // chunk steps, given chunk
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     // Step 1. Resolve promise with chunk.
     mPromise->MaybeResolve(aChunk);
   }
 
   // close steps
-  void CloseSteps(JSContext* aCx, ErrorResult& aRv) override {
+  void CloseSteps(MCContext* aCx, ErrorResult& aRv) override {
     // Step 1. Perform ! ReadableStreamDefaultReaderRelease(reader).
     ReadableStreamDefaultReaderRelease(aCx, mReader, aRv);
     if (aRv.Failed()) {
@@ -883,7 +883,7 @@ struct IteratorReadRequest : public ReadRequest {
   }
 
   // error steps, given e
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv) override {
     // Step 1. Perform ! ReadableStreamDefaultReaderRelease(reader).
     ReadableStreamDefaultReaderRelease(aCx, mReader, aRv);
@@ -942,7 +942,7 @@ already_AddRefed<Promise> ReadableStream::GetNextIterationResult(
 
 // https://streams.spec.whatwg.org/#rs-asynciterator-prototype-return
 already_AddRefed<Promise> ReadableStream::IteratorReturn(
-    JSContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv) {
   // Step 1. Let reader be iterator’s reader.
   RefPtr<ReadableStreamDefaultReader> reader = aIterator->Data().mReader;
@@ -1011,7 +1011,7 @@ void ReadableStreamAddReadIntoRequest(ReadableStream* aStream,
 
 // https://streams.spec.whatwg.org/#abstract-opdef-createreadablebytestream
 already_AddRefed<ReadableStream> ReadableStream::CreateByteAbstract(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
+    MCContext* aCx, nsIGlobalObject* aGlobal,
     UnderlyingSourceAlgorithmsBase* aAlgorithms, ErrorResult& aRv) {
   // Step 1. Let stream be a new ReadableStream.
   RefPtr<ReadableStream> stream =
@@ -1043,7 +1043,7 @@ already_AddRefed<ReadableStream> ReadableStream::CreateByteAbstract(
 // SetUpReadableStreamDefaultController below) should not be able to run script
 // in this case.
 MOZ_CAN_RUN_SCRIPT_BOUNDARY already_AddRefed<ReadableStream>
-ReadableStream::CreateNative(JSContext* aCx, nsIGlobalObject* aGlobal,
+ReadableStream::CreateNative(MCContext* aCx, nsIGlobalObject* aGlobal,
                              UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
                              mozilla::Maybe<double> aHighWaterMark,
                              QueuingStrategySize* aSizeAlgorithm,
@@ -1085,7 +1085,7 @@ ReadableStream::CreateNative(JSContext* aCx, nsIGlobalObject* aGlobal,
 // SetUpReadableByteStreamController below) should not be able to run script in
 // this case.
 MOZ_CAN_RUN_SCRIPT_BOUNDARY void ReadableStream::SetUpByteNative(
-    JSContext* aCx, UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
+    MCContext* aCx, UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
     mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv) {
   // an optional number highWaterMark (default 0)
   double highWaterMark = aHighWaterMark.valueOr(0);
@@ -1111,7 +1111,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY void ReadableStream::SetUpByteNative(
 }
 
 already_AddRefed<ReadableStream> ReadableStream::CreateByteNative(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
+    MCContext* aCx, nsIGlobalObject* aGlobal,
     UnderlyingSourceAlgorithmsWrapper& aAlgorithms,
     mozilla::Maybe<double> aHighWaterMark, ErrorResult& aRv) {
   RefPtr<ReadableStream> stream =
@@ -1124,7 +1124,7 @@ already_AddRefed<ReadableStream> ReadableStream::CreateByteNative(
 }
 
 // https://streams.spec.whatwg.org/#readablestream-close
-void ReadableStream::CloseNative(JSContext* aCx, ErrorResult& aRv) {
+void ReadableStream::CloseNative(MCContext* aCx, ErrorResult& aRv) {
   MOZ_ASSERT(mController->GetAlgorithms()->IsNative());
 
   // Step 1: If stream.[[controller]] implements ReadableByteStreamController,
@@ -1153,7 +1153,7 @@ void ReadableStream::CloseNative(JSContext* aCx, ErrorResult& aRv) {
 }
 
 // https://streams.spec.whatwg.org/#readablestream-error
-void ReadableStream::ErrorNative(JSContext* aCx, JS::Handle<JS::Value> aError,
+void ReadableStream::ErrorNative(MCContext* aCx, JS::Handle<JS::Value> aError,
                                  ErrorResult& aRv) {
   // Step 1: If stream.[[controller]] implements ReadableByteStreamController,
   // then perform ! ReadableByteStreamControllerError(stream.[[controller]], e).
@@ -1168,7 +1168,7 @@ void ReadableStream::ErrorNative(JSContext* aCx, JS::Handle<JS::Value> aError,
 }
 
 // https://streams.spec.whatwg.org/#readablestream-current-byob-request-view
-static void CurrentBYOBRequestView(JSContext* aCx,
+static void CurrentBYOBRequestView(MCContext* aCx,
                                    ReadableByteStreamController& aController,
                                    JS::MutableHandle<JSObject*> aRetVal,
                                    ErrorResult& aRv) {
@@ -1188,18 +1188,18 @@ static void CurrentBYOBRequestView(JSContext* aCx,
   byobRequest->GetView(aCx, aRetVal);
 }
 
-static bool HasSameBufferView(JSContext* aCx, JS::Handle<JSObject*> aX,
+static bool HasSameBufferView(MCContext* aCx, JS::Handle<JSObject*> aX,
                               JS::Handle<JSObject*> aY, ErrorResult& aRv) {
-  bool isShared;
+  MC::SandboxStack<bool> isShared;
   MC::Rooted<JSObject*> viewedBufferX(
-      aCx, JS_GetArrayBufferViewBuffer(aCx, aX, &isShared));
+      aCx, JS_GetArrayBufferViewBuffer(aCx, aX, isShared));
   if (!viewedBufferX) {
     aRv.StealExceptionFromJSContext(aCx);
     return false;
   }
 
   MC::Rooted<JSObject*> viewedBufferY(
-      aCx, JS_GetArrayBufferViewBuffer(aCx, aY, &isShared));
+      aCx, JS_GetArrayBufferViewBuffer(aCx, aY, isShared));
   if (!viewedBufferY) {
     aRv.StealExceptionFromJSContext(aCx);
     return false;
@@ -1209,7 +1209,7 @@ static bool HasSameBufferView(JSContext* aCx, JS::Handle<JSObject*> aX,
 }
 
 // https://streams.spec.whatwg.org/#readablestream-enqueue
-void ReadableStream::EnqueueNative(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+void ReadableStream::EnqueueNative(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                                    ErrorResult& aRv) {
   MOZ_ASSERT(mController->GetAlgorithms()->IsNative());
 

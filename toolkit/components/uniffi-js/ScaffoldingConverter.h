@@ -121,7 +121,7 @@ class ScaffoldingConverter {
   //
   // This inputs an r-value reference since we may want to move data out of
   // this type.
-  static void IntoJs(JSContext* aContext, IntermediateType&& aValue,
+  static void IntoJs(MCContext* aContext, IntermediateType&& aValue,
                      dom::ScaffoldingType& aDest) {
     aDest.SetAsDouble() = aValue;
   }
@@ -153,7 +153,7 @@ class ScaffoldingConverter<RustBuffer> {
     return OwnedRustBuffer(aValue);
   }
 
-  static void IntoJs(JSContext* aContext, OwnedRustBuffer&& aValue,
+  static void IntoJs(MCContext* aContext, OwnedRustBuffer&& aValue,
                      dom::ScaffoldingType& aDest) {
     aDest.SetAsArrayBuffer().Init(aValue.IntoArrayBuffer(aContext));
   }
@@ -184,7 +184,7 @@ class ScaffoldingObjectConverter {
     return aValue;
   }
 
-  static void IntoJs(JSContext* aContext, void* aValue,
+  static void IntoJs(MCContext* aContext, void* aValue,
                      dom::ScaffoldingType& aDest) {
     aDest.SetAsUniFFIPointer() =
         dom::UniFFIPointer::Create(aValue, PointerType);

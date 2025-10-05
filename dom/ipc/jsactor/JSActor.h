@@ -50,10 +50,10 @@ class JSActor : public nsISupports, public nsWrapperCache {
   const nsCString& Name() const { return mName; }
   void GetName(nsCString& aName) { aName = Name(); }
 
-  void SendAsyncMessage(JSContext* aCx, const nsAString& aMessageName,
+  void SendAsyncMessage(MCContext* aCx, const nsAString& aMessageName,
                         JS::Handle<JS::Value> aObj, ErrorResult& aRv);
 
-  already_AddRefed<Promise> SendQuery(JSContext* aCx,
+  already_AddRefed<Promise> SendQuery(MCContext* aCx,
                                       const nsAString& aMessageName,
                                       JS::Handle<JS::Value> aObj,
                                       ErrorResult& aRv);
@@ -100,31 +100,15 @@ class JSActor : public nsISupports, public nsWrapperCache {
 
   // Called by JSActorManager when they receive raw message data destined for
   // this actor.
-  void ReceiveMessage(JSContext* aCx, const JSActorMessageMeta& aMetadata,
+  void ReceiveMessage(MCContext* aCx, const JSActorMessageMeta& aMetadata,
                       JS::Handle<JS::Value> aData, ErrorResult& aRv);
-  void ReceiveQuery(JSContext* aCx, const JSActorMessageMeta& aMetadata,
+  void ReceiveQuery(MCContext* aCx, const JSActorMessageMeta& aMetadata,
                     JS::Handle<JS::Value> aData, ErrorResult& aRv);
-  void ReceiveQueryReply(JSContext* aCx, const JSActorMessageMeta& aMetadata,
+  void ReceiveQueryReply(MCContext* aCx, const JSActorMessageMeta& aMetadata,
                          JS::Handle<JS::Value> aData, ErrorResult& aRv);
 
-  //TODO(JS_SANDBOX): Make these the default overloads
-  inline void ReceiveMessage(MCContext* aCx,
-                             const JSActorMessageMeta& aMetadata,
-                             JS::Handle<JS::Value> aData, ErrorResult& aRv) {
-    return ReceiveMessage(MC_UNSAFE(aCx), aMetadata, aData, aRv);
-  }
-  inline void ReceiveQuery(MCContext* aCx, const JSActorMessageMeta& aMetadata,
-                           JS::Handle<JS::Value> aData, ErrorResult& aRv) {
-    return ReceiveQuery(MC_UNSAFE(aCx), aMetadata, aData, aRv);
-  }
-  inline void ReceiveQueryReply(MCContext* aCx,
-                                const JSActorMessageMeta& aMetadata,
-                                JS::Handle<JS::Value> aData, ErrorResult& aRv) {
-    return ReceiveQueryReply(MC_UNSAFE(aCx), aMetadata, aData, aRv);
-  }
-
   // Call the actual `ReceiveMessage` method, and get the return value.
-  void CallReceiveMessage(JSContext* aCx, const JSActorMessageMeta& aMetadata,
+  void CallReceiveMessage(MCContext* aCx, const JSActorMessageMeta& aMetadata,
                           JS::Handle<JS::Value> aData,
                           JS::MutableHandle<JS::Value> aRetVal,
                           ErrorResult& aRv);
@@ -139,16 +123,16 @@ class JSActor : public nsISupports, public nsWrapperCache {
     QueryHandler(JSActor* aActor, const JSActorMessageMeta& aMetadata,
                  Promise* aPromise);
 
-    void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
 
-    void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
 
    private:
     ~QueryHandler() = default;
 
-    void SendReply(JSContext* aCx, JSActorMessageKind aKind,
+    void SendReply(MCContext* aCx, JSActorMessageKind aKind,
                    Maybe<ipc::StructuredCloneData>&& aData);
 
     RefPtr<JSActor> mActor;

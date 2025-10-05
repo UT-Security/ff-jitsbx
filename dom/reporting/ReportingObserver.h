@@ -43,7 +43,7 @@ class ReportingObserver final : public nsWrapperCache {
                     ReportingObserverCallback& aCallback,
                     const nsTArray<nsString>& aTypes, bool aBuffered);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   nsIGlobalObject* GetParentObject() const { return mGlobal; }

@@ -7,7 +7,7 @@
 #include "mozilla/dom/DOMPoint.h"
 
 #include <cstdint>
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/Casting.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/MacroForEach.h"
@@ -36,7 +36,7 @@ already_AddRefed<DOMPointReadOnly> DOMPointReadOnly::Constructor(
   return obj.forget();
 }
 
-JSObject* DOMPointReadOnly::WrapObject(JSContext* aCx,
+JSObject* DOMPointReadOnly::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return DOMPointReadOnly_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -59,7 +59,7 @@ already_AddRefed<DOMPoint> DOMPointReadOnly::MatrixTransform(
 
 // https://drafts.fxtf.org/geometry/#structured-serialization
 bool DOMPointReadOnly::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
 #define WriteDouble(d)                                                       \
   JS_WriteUint32Pair(aWriter, (BitwiseCast<uint64_t>(d) >> 32) & 0xffffffff, \
                      BitwiseCast<uint64_t>(d) & 0xffffffff)
@@ -72,8 +72,8 @@ bool DOMPointReadOnly::WriteStructuredClone(
 
 // static
 already_AddRefed<DOMPointReadOnly> DOMPointReadOnly::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<DOMPointReadOnly> retval = new DOMPointReadOnly(aGlobal);
   if (!retval->ReadStructuredClone(aReader)) {
     return nullptr;
@@ -82,7 +82,7 @@ already_AddRefed<DOMPointReadOnly> DOMPointReadOnly::ReadStructuredClone(
   ;
 }
 
-bool DOMPointReadOnly::ReadStructuredClone(JSStructuredCloneReader* aReader) {
+bool DOMPointReadOnly::ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t high;
   uint32_t low;
 
@@ -115,15 +115,15 @@ already_AddRefed<DOMPoint> DOMPoint::Constructor(const GlobalObject& aGlobal,
   return obj.forget();
 }
 
-JSObject* DOMPoint::WrapObject(JSContext* aCx,
+JSObject* DOMPoint::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return DOMPoint_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
 already_AddRefed<DOMPoint> DOMPoint::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<DOMPoint> retval = new DOMPoint(aGlobal);
   if (!retval->ReadStructuredClone(aReader)) {
     return nullptr;

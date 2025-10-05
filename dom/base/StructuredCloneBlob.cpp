@@ -10,8 +10,8 @@
 #include <cstdint>
 #include <new>
 #include <utility>
-#include "js/StructuredClone.h"
-#include "js/Value.h"
+#include "monkeycage/StructuredClone.h"
+#include "monkeycage/Value.h"
 #include "monkeycage/Wrapper.h"
 #include "mcapi.h"
 #include "mozilla/Assertions.h"
@@ -57,14 +57,14 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
         cx, mc::CheckedUnwrapDynamic(aTargetGlobal, cx));
     if (!targetGlobal) {
       js::ReportAccessDenied(cx);
-      aRv.NoteJSContextException(MC_UNSAFE(cx));
+      aRv.NoteJSContextException(cx);
       return nullptr;
     }
 
     ar->emplace(cx, targetGlobal);
 
     if (!JS_WrapValue(cx, &value)) {
-      aRv.NoteJSContextException(MC_UNSAFE(cx));
+      aRv.NoteJSContextException(cx);
       return nullptr;
     }
   } else if (value.isObject()) {
@@ -73,7 +73,7 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
                               mc::CheckedUnwrapDynamic(&value.toObject(), cx));
     if (!obj) {
       js::ReportAccessDenied(cx);
-      aRv.NoteJSContextException(MC_UNSAFE(cx));
+      aRv.NoteJSContextException(cx);
       return nullptr;
     }
 
@@ -81,7 +81,7 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
     value = JS::ObjectValue(*obj);
   }
 
-  holder->mHolder->Write(MC_UNSAFE(cx), value, aRv);
+  holder->mHolder->Write(cx, value, aRv);
   if (aRv.Failed()) {
     return nullptr;
   }
@@ -89,13 +89,13 @@ already_AddRefed<StructuredCloneBlob> StructuredCloneBlob::Constructor(
   return holder.forget();
 }
 
-void StructuredCloneBlob::Deserialize(JSContext* aCx,
+void StructuredCloneBlob::Deserialize(MCContext* aCx,
                                       JS::Handle<JSObject*> aTargetScope,
                                       bool aKeepData,
                                       JS::MutableHandle<JS::Value> aResult,
                                       ErrorResult& aRv) {
   // OK to unwrap if our caller (represented by aCx's Realm) can do it.
-  MC::Rooted<JSObject*> scope(aCx, js::CheckedUnwrapDynamic(aTargetScope, aCx));
+  MC::Rooted<JSObject*> scope(aCx, mc::CheckedUnwrapDynamic(aTargetScope, aCx));
   if (!scope) {
     js::ReportAccessDenied(aCx);
     aRv.NoteJSContextException(aCx);
@@ -128,7 +128,7 @@ void StructuredCloneBlob::Deserialize(JSContext* aCx,
 
 /* static */
 JSObject* StructuredCloneBlob::ReadStructuredClone(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     StructuredCloneHolder* aHolder) {
   MC::Rooted<JSObject*> obj(aCx);
   {
@@ -151,7 +151,7 @@ JSObject* StructuredCloneBlob::ReadStructuredClone(
 }
 
 bool StructuredCloneBlob::Holder::ReadStructuredCloneInternal(
-    JSContext* aCx, JSStructuredCloneReader* aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     StructuredCloneHolder* aHolder) {
   uint32_t length;
   uint32_t version;
@@ -186,15 +186,15 @@ bool StructuredCloneBlob::Holder::ReadStructuredCloneInternal(
     length -= size;
   }
 
-  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+  mBuffer = mc::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
   mBuffer->adopt(std::move(data), version, StructuredCloneHolder::sCallbacks());
 
   return true;
 }
 
-bool StructuredCloneBlob::WriteStructuredClone(JSContext* aCx,
-                                               JSStructuredCloneWriter* aWriter,
+bool StructuredCloneBlob::WriteStructuredClone(MCContext* aCx,
+                                               MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                                StructuredCloneHolder* aHolder) {
   if (mHolder.isNothing()) {
     return false;
@@ -210,10 +210,10 @@ bool StructuredCloneBlob::WriteStructuredClone(JSContext* aCx,
 }
 
 bool StructuredCloneBlob::Holder::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
     StructuredCloneHolder* aHolder) {
-  auto& data = mBuffer->data();
-  if (!JS_WriteUint32Pair(aWriter, data.Size(), JS_STRUCTURED_CLONE_VERSION) ||
+  auto data = mBuffer->data();
+  if (!JS_WriteUint32Pair(aWriter, data->Size(), JS_STRUCTURED_CLONE_VERSION) ||
       !JS_WriteUint32Pair(aWriter, aHolder->BlobImpls().Length(),
                           BlobImpls().Length())) {
     return false;
@@ -221,12 +221,12 @@ bool StructuredCloneBlob::Holder::WriteStructuredClone(
 
   aHolder->BlobImpls().AppendElements(BlobImpls());
 
-  return data.ForEachDataChunk([&](const char* aData, size_t aSize) {
+  return data->ForEachDataChunk([&](const char* aData, size_t aSize) {
     return JS_WriteBytes(aWriter, aData, aSize);
   });
 }
 
-bool StructuredCloneBlob::WrapObject(JSContext* aCx,
+bool StructuredCloneBlob::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto,
                                      JS::MutableHandle<JSObject*> aResult) {
   return StructuredCloneHolder_Binding::Wrap(aCx, this, aGivenProto, aResult);

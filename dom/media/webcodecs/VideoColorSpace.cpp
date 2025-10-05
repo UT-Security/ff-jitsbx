@@ -27,7 +27,7 @@ VideoColorSpace::VideoColorSpace(nsIGlobalObject* aParent,
 
 nsIGlobalObject* VideoColorSpace::GetParentObject() const { return mParent; }
 
-JSObject* VideoColorSpace::WrapObject(JSContext* aCx,
+JSObject* VideoColorSpace::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return VideoColorSpace_Binding::Wrap(aCx, this, aGivenProto);
 }

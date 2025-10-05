@@ -35,7 +35,7 @@ XRRenderState::XRRenderState(const XRRenderState& aOther)
       mOutputCanvas(aOther.mOutputCanvas),
       mCompositionDisabled(aOther.mCompositionDisabled) {}
 
-JSObject* XRRenderState::WrapObject(JSContext* aCx,
+JSObject* XRRenderState::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return XRRenderState_Binding::Wrap(aCx, this, aGivenProto);
 }

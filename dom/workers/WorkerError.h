@@ -9,7 +9,7 @@
 
 #include "mozilla/dom/SerializedStackHolder.h"
 #include "mozilla/dom/WorkerCommon.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "monkeycage/Value.h"
 
 namespace mozilla {
@@ -49,19 +49,19 @@ class WorkerErrorReport : public WorkerErrorBase, public SerializedStackHolder {
 
   WorkerErrorReport();
 
-  void AssignErrorReport(JSErrorReport* aReport);
+  void AssignErrorReport(MC::Tainted<JSErrorReport*> aReport);
 
   // aWorkerPrivate is the worker thread we're on (or the main thread, if null)
   // aTarget is the worker object that we are going to fire an error at
   // (if any).
   // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1743443)
   MOZ_CAN_RUN_SCRIPT_BOUNDARY static void ReportError(
-      JSContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
+      MCContext* aCx, WorkerPrivate* aWorkerPrivate, bool aFireAtScope,
       DOMEventTargetHelper* aTarget, UniquePtr<WorkerErrorReport> aReport,
       uint64_t aInnerWindowId,
       JS::Handle<JS::Value> aException = MC::NullHandleValue());
 
-  static void LogErrorToConsole(JSContext* aCx, WorkerErrorReport& aReport,
+  static void LogErrorToConsole(MCContext* aCx, WorkerErrorReport& aReport,
                                 uint64_t aInnerWindowId);
 
   static void LogErrorToConsole(const mozilla::dom::ErrorData& aReport,

@@ -36,7 +36,7 @@ FileSystemFileHandle::FileSystemFileHandle(
 
 // WebIDL Boilerplate
 
-JSObject* FileSystemFileHandle::WrapObject(JSContext* aCx,
+JSObject* FileSystemFileHandle::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return FileSystemFileHandle_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -96,9 +96,9 @@ already_AddRefed<Promise> FileSystemFileHandle::CreateSyncAccessHandle(
 
 // static
 already_AddRefed<FileSystemFileHandle>
-FileSystemFileHandle::ReadStructuredClone(JSContext* aCx,
+FileSystemFileHandle::ReadStructuredClone(MCContext* aCx,
                                           nsIGlobalObject* aGlobal,
-                                          JSStructuredCloneReader* aReader) {
+                                          MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t kind = static_cast<uint32_t>(FileSystemHandleKind::EndGuard_);
 
   if (!JS_ReadBytes(aReader, reinterpret_cast<void*>(&kind),

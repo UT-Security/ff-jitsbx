@@ -628,11 +628,11 @@ already_AddRefed<layers::KnowsCompositor> MediaCapabilities::GetCompositor() {
   return knows->GetForMedia().forget();
 }
 
-bool MediaCapabilities::Enabled(JSContext* aCx, JSObject* aGlobal) {
+bool MediaCapabilities::Enabled(MCContext* aCx, JSObject* aGlobal) {
   return StaticPrefs::media_media_capabilities_enabled();
 }
 
-JSObject* MediaCapabilities::WrapObject(JSContext* aCx,
+JSObject* MediaCapabilities::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return MediaCapabilities_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -649,7 +649,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(MediaCapabilities, mParent)
 
 // MediaCapabilitiesInfo
 bool MediaCapabilitiesInfo::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto,
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto,
     JS::MutableHandle<JSObject*> aReflector) {
   return MediaCapabilitiesInfo_Binding::Wrap(aCx, this, aGivenProto,
                                              aReflector);

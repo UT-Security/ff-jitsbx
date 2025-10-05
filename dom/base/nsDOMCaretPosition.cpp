@@ -41,7 +41,7 @@ already_AddRefed<DOMRect> nsDOMCaretPosition::GetClientRect() const {
   return rect.forget();
 }
 
-JSObject* nsDOMCaretPosition::WrapObject(JSContext* aCx,
+JSObject* nsDOMCaretPosition::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::CaretPosition_Binding::Wrap(aCx, this, aGivenProto);
 }

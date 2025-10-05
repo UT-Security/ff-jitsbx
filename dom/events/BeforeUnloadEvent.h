@@ -21,7 +21,7 @@ class BeforeUnloadEvent : public Event {
   virtual BeforeUnloadEvent* AsBeforeUnloadEvent() override { return this; }
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return BeforeUnloadEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

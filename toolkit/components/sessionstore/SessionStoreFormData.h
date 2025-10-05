@@ -38,16 +38,16 @@ class SessionStoreFormData final : public nsISupports,
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(SessionStoreFormData)
   nsISupports* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   void GetUrl(nsACString& aUrl) const;
 
-  void GetId(JSContext* aCx,
+  void GetId(MCContext* aCx,
              Nullable<Record<nsString, OwningStringOrBooleanOrObject>>& aId);
 
   void GetXpath(
-      JSContext* aCx,
+      MCContext* aCx,
       Nullable<Record<nsString, OwningStringOrBooleanOrObject>>& aXpath);
 
   void GetInnerHTML(nsAString& aInnerHTML);
@@ -56,7 +56,7 @@ class SessionStoreFormData final : public nsISupports,
 
   void GetChildren(Nullable<ChildrenArray>& aChildren) const;
 
-  void ToJSON(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval);
+  void ToJSON(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval);
 
   void Update(const CollectedType& aFormData);
 

@@ -50,7 +50,7 @@ class WorkerLocation final : public nsWrapperCache {
   static already_AddRefed<WorkerLocation> Create(
       WorkerPrivate::LocationInfo& aInfo);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return nullptr; }

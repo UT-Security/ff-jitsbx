@@ -19,7 +19,7 @@ class AudioTrackList : public MediaTrackList {
   AudioTrackList(nsIGlobalObject* aOwnerObject, HTMLMediaElement* aMediaElement)
       : MediaTrackList(aOwnerObject, aMediaElement) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   AudioTrack* operator[](uint32_t aIndex);

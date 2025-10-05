@@ -80,7 +80,7 @@ void IDBRequest::InitMembers() {
 
 // static
 MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
-    JSContext* aCx, IDBDatabase* aDatabase,
+    MCContext* aCx, IDBDatabase* aDatabase,
     SafeRefPtr<IDBTransaction> aTransaction) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aDatabase);
@@ -96,7 +96,7 @@ MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
 
 // static
 MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
-    JSContext* aCx, IDBObjectStore* aSourceAsObjectStore,
+    MCContext* aCx, IDBObjectStore* aSourceAsObjectStore,
     IDBDatabase* aDatabase, SafeRefPtr<IDBTransaction> aTransaction) {
   MOZ_ASSERT(aSourceAsObjectStore);
   aSourceAsObjectStore->AssertIsOnOwningThread();
@@ -111,7 +111,7 @@ MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
 
 // static
 MovingNotNull<RefPtr<IDBRequest>> IDBRequest::Create(
-    JSContext* aCx, IDBIndex* aSourceAsIndex, IDBDatabase* aDatabase,
+    MCContext* aCx, IDBIndex* aSourceAsIndex, IDBDatabase* aDatabase,
     SafeRefPtr<IDBTransaction> aTransaction) {
   MOZ_ASSERT(aSourceAsIndex);
   aSourceAsIndex->AssertIsOnOwningThread();
@@ -143,7 +143,7 @@ void IDBRequest::SetLoggingSerialNumber(uint64_t aLoggingSerialNumber) {
   mLoggingSerialNumber = aLoggingSerialNumber;
 }
 
-void IDBRequest::CaptureCaller(JSContext* aCx, nsAString& aFilename,
+void IDBRequest::CaptureCaller(MCContext* aCx, nsAString& aFilename,
                                uint32_t* aLineNo, uint32_t* aColumn) {
   MOZ_ASSERT(aFilename.IsEmpty());
   MOZ_ASSERT(aLineNo);
@@ -240,7 +240,7 @@ void IDBRequest::SetSource(IDBCursor* aSource) {
   mSourceAsCursor = aSource;
 }
 
-JSObject* IDBRequest::WrapObject(JSContext* aCx,
+JSObject* IDBRequest::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return IDBRequest_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -328,7 +328,7 @@ IDBOpenDBRequest::~IDBOpenDBRequest() {
 
 // static
 RefPtr<IDBOpenDBRequest> IDBOpenDBRequest::Create(
-    JSContext* aCx, SafeRefPtr<IDBFactory> aFactory, nsIGlobalObject* aGlobal) {
+    MCContext* aCx, SafeRefPtr<IDBFactory> aFactory, nsIGlobalObject* aGlobal) {
   MOZ_ASSERT(aFactory);
   aFactory->AssertIsOnOwningThread();
   MOZ_ASSERT(aGlobal);
@@ -435,7 +435,7 @@ NS_INTERFACE_MAP_END_INHERITING(IDBRequest)
 NS_IMPL_ADDREF_INHERITED(IDBOpenDBRequest, IDBRequest)
 NS_IMPL_RELEASE_INHERITED(IDBOpenDBRequest, IDBRequest)
 
-JSObject* IDBOpenDBRequest::WrapObject(JSContext* aCx,
+JSObject* IDBOpenDBRequest::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnOwningThread();
 

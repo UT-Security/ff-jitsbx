@@ -52,10 +52,10 @@ class CacheStorage final : public nsISupports,
       Namespace aNamespace, nsIGlobalObject* aGlobal,
       WorkerPrivate* aWorkerPrivate, ErrorResult& aRv);
 
-  static bool DefineCaches(JSContext* aCx, JS::Handle<JSObject*> aGlobal);
+  static bool DefineCaches(MCContext* aCx, JS::Handle<JSObject*> aGlobal);
 
   // webidl interface methods
-  already_AddRefed<Promise> Match(JSContext* aCx,
+  already_AddRefed<Promise> Match(MCContext* aCx,
                                   const RequestOrUSVString& aRequest,
                                   const MultiCacheQueryOptions& aOptions,
                                   ErrorResult& aRv);
@@ -71,7 +71,7 @@ class CacheStorage final : public nsISupports,
 
   // binding methods
   nsISupports* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aContext,
+  virtual JSObject* WrapObject(MCContext* aContext,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // Called when CacheStorageChild actor is being destroyed

@@ -46,7 +46,7 @@ class FileSystemHandle : public nsISupports, public nsWrapperCache {
   // WebIDL Boilerplate
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface
@@ -59,11 +59,11 @@ class FileSystemHandle : public nsISupports, public nsWrapperCache {
 
   // [Serializable] implementation
   static already_AddRefed<FileSystemHandle> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
-  virtual bool WriteStructuredClone(JSContext* aCx,
-                                    JSStructuredCloneWriter* aWriter) const;
+  virtual bool WriteStructuredClone(MCContext* aCx,
+                                    MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   already_AddRefed<Promise> Move(const nsAString& aName, ErrorResult& aError);
 
@@ -84,12 +84,12 @@ class FileSystemHandle : public nsISupports, public nsWrapperCache {
   virtual ~FileSystemHandle() = default;
 
   static already_AddRefed<FileSystemFileHandle> ConstructFileHandle(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
   static already_AddRefed<FileSystemDirectoryHandle> ConstructDirectoryHandle(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
 

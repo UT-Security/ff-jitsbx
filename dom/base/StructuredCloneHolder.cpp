@@ -89,10 +89,10 @@ namespace mozilla::dom {
 namespace {
 
 MC::Tainted<JSObject*> StructuredCloneCallbacksRead(
-    MC::Tainted<JSContext*> t_aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
+    MC::Tainted<JSContext*> tCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag, uint32_t aIndex,
     MC::AppPointer<void*> aClosure) {
-  MCContext* aCx = t_aCx.copy_and_verify_address(MC_VerifyContext);
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
       static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
@@ -102,36 +102,41 @@ MC::Tainted<JSObject*> StructuredCloneCallbacksRead(
   return ret;
 }
 
-bool StructuredCloneCallbacksWrite(JSContext* aCx,
-                                   JSStructuredCloneWriter* aWriter,
+MC::Tainted<bool> StructuredCloneCallbacksWrite(MC::Tainted<JSContext*> tCx,
+                                   MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                    JS::Handle<JSObject*> aObj,
-                                   bool* aSameProcessScopeRequired,
-                                   void* aClosure) {
+                                   MC::Tainted<bool*> aSameProcessScopeRequired,
+                                   MC::AppPointer<void*> aClosure) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
   return holder->CustomWriteHandler(aCx, aWriter, aObj,
                                     aSameProcessScopeRequired);
 }
 
-bool StructuredCloneCallbacksReadTransfer(
-    JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
-    void* aContent, uint64_t aExtraData, void* aClosure,
+MC::Tainted<bool> StructuredCloneCallbacksReadTransfer(
+    MC::Tainted<JSContext*> tCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
+    MC::AppPointer<void*> aContent, uint64_t aExtraData, MC::AppPointer<void*> aClosure,
     JS::MutableHandle<JSObject*> aReturnObject) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
   return holder->CustomReadTransferHandler(aCx, aReader, aTag, aContent,
                                            aExtraData, aReturnObject);
 }
 
-bool StructuredCloneCallbacksWriteTransfer(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, void* aClosure,
+MC::Tainted<bool> StructuredCloneCallbacksWriteTransfer(
+    MC::Tainted<JSContext*> tCx, JS::Handle<JSObject*> aObj,
+    MC::AppPointer<void*> aClosure,
     // Output:
-    uint32_t* aTag, JS::TransferableOwnership* aOwnership, void** aContent,
-    uint64_t* aExtraData) {
+    MC::Tainted<uint32_t*> aTag,
+    MC::Tainted<JS::TransferableOwnership*> aOwnership,
+    MC::Tainted<void**> aContent, MC::Tainted<uint64_t*> aExtraData) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
   return holder->CustomWriteTransferHandler(aCx, aObj, aTag, aOwnership,
                                             aContent, aExtraData);
@@ -139,28 +144,29 @@ bool StructuredCloneCallbacksWriteTransfer(
 
 void StructuredCloneCallbacksFreeTransfer(uint32_t aTag,
                                           JS::TransferableOwnership aOwnership,
-                                          void* aContent, uint64_t aExtraData,
-                                          void* aClosure) {
+                                          MC::AppPointer<void*> aContent, uint64_t aExtraData,
+                                          MC::AppPointer<void*> aClosure) {
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
   return holder->CustomFreeTransferHandler(aTag, aOwnership, aContent,
                                            aExtraData);
 }
 
-bool StructuredCloneCallbacksCanTransfer(JSContext* aCx,
+MC::Tainted<bool> StructuredCloneCallbacksCanTransfer(MC::Tainted<JSContext*> tCx,
                                          JS::Handle<JSObject*> aObject,
-                                         bool* aSameProcessScopeRequired,
-                                         void* aClosure) {
+                                         MC::Tainted<bool*> aSameProcessScopeRequired,
+                                         MC::AppPointer<void*> aClosure) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
   return holder->CustomCanTransferHandler(aCx, aObject,
                                           aSameProcessScopeRequired);
 }
 
-bool StructuredCloneCallbacksSharedArrayBuffer(JSContext* cx, bool aReceiving,
-                                               void* aClosure) {
+MC::Tainted<bool> StructuredCloneCallbacksSharedArrayBuffer(MC::Tainted<JSContext*> cx, bool aReceiving,
+                                               MC::AppPointer<void*> aClosure) {
   if (!StaticPrefs::dom_workers_serialized_sab_access()) {
     return true;
   }
@@ -191,13 +197,13 @@ bool StructuredCloneCallbacksSharedArrayBuffer(JSContext* cx, bool aReceiving,
   return true;
 }
 
-void StructuredCloneCallbacksError(JSContext* aCx, uint32_t aErrorId,
-                                   void* aClosure, const char* aErrorMessage) {
+void StructuredCloneCallbacksError(MC::Tainted<JSContext*> tCx, uint32_t aErrorId,
+                                   MC::AppPointer<void*> aClosure, MC::Tainted<const char*> aErrorMessage) {
   NS_WARNING("Failed to clone data.");
   StructuredCloneHolderBase* holder =
-      static_cast<StructuredCloneHolderBase*>(aClosure);
+      static_cast<StructuredCloneHolderBase*>(aClosure.UNSAFE_unverified());
   MOZ_ASSERT(holder);
-  return holder->SetErrorMessage(aErrorMessage);
+  return holder->SetErrorMessage(aErrorMessage.UNSAFE_unverified());
 }
 
 void AssertTagValues() {
@@ -228,13 +234,13 @@ void AssertTagValues() {
 const JSStructuredCloneCallbacks* StructuredCloneHolder::sCallbacks() {
   static const JSStructuredCloneCallbacks inner_ = {
     MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksRead).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksWrite).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksError).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksReadTransfer).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksWriteTransfer).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksFreeTransfer).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksCanTransfer).UNSAFE_get(),
-    MC::Sandbox::RegisterCallback(StructuredCloneCallbacksSharedArrayBuffer).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksWrite).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksError).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksReadTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksWriteTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksFreeTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksCanTransfer).UNSAFE_get(),
+    MC::Sandbox::RegisterTaintedCallback(StructuredCloneCallbacksSharedArrayBuffer).UNSAFE_get(),
   };
 
   return &inner_;
@@ -266,19 +272,19 @@ void StructuredCloneHolderBase::Clear() {
   mBuffer = nullptr;
 }
 
-bool StructuredCloneHolderBase::Write(JSContext* aCx,
+bool StructuredCloneHolderBase::Write(MCContext* aCx,
                                       JS::Handle<JS::Value> aValue) {
   return Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy());
 }
 
 bool StructuredCloneHolderBase::Write(
-    JSContext* aCx, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, JS::Handle<JS::Value> aValue,
     JS::Handle<JS::Value> aTransfer,
     const JS::CloneDataPolicy& aCloneDataPolicy) {
   MOZ_ASSERT(!mBuffer, "Double Write is not allowed");
   MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
 
-  mBuffer = MakeUnique<JSAutoStructuredCloneBuffer>(
+  mBuffer = mc::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
 
   if (!mBuffer->write(aCx, aValue, aTransfer, aCloneDataPolicy,
@@ -294,13 +300,13 @@ bool StructuredCloneHolderBase::Write(
   return true;
 }
 
-bool StructuredCloneHolderBase::Read(JSContext* aCx,
+bool StructuredCloneHolderBase::Read(MCContext* aCx,
                                      JS::MutableHandle<JS::Value> aValue) {
   return Read(aCx, aValue, JS::CloneDataPolicy());
 }
 
 bool StructuredCloneHolderBase::Read(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aValue,
+    MCContext* aCx, JS::MutableHandle<JS::Value> aValue,
     const JS::CloneDataPolicy& aCloneDataPolicy) {
   MOZ_ASSERT(mBuffer, "Read() without Write() is not allowed.");
   MOZ_ASSERT(!mClearCalled, "This method cannot be called after Clear.");
@@ -311,30 +317,30 @@ bool StructuredCloneHolderBase::Read(
 }
 
 bool StructuredCloneHolderBase::CustomReadTransferHandler(
-    JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
-    void* aContent, uint64_t aExtraData,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
+    MC::AppPointer<void*> aContent, uint64_t aExtraData,
     JS::MutableHandle<JSObject*> aReturnObject) {
   MOZ_CRASH("Nothing to read.");
   return false;
 }
 
 bool StructuredCloneHolderBase::CustomWriteTransferHandler(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, uint32_t* aTag,
-    JS::TransferableOwnership* aOwnership, void** aContent,
-    uint64_t* aExtraData) {
+    MCContext* aCx, JS::Handle<JSObject*> aObj, MC::Tainted<uint32_t*> aTag,
+    MC::Tainted<JS::TransferableOwnership*> aOwnership, MC::Tainted<void**> aContent,
+    MC::Tainted<uint64_t*> aExtraData) {
   // No transfers are supported by default.
   return false;
 }
 
 void StructuredCloneHolderBase::CustomFreeTransferHandler(
-    uint32_t aTag, JS::TransferableOwnership aOwnership, void* aContent,
+    uint32_t aTag, JS::TransferableOwnership aOwnership, MC::AppPointer<void*> aContent,
     uint64_t aExtraData) {
   MOZ_CRASH("Nothing to free.");
 }
 
 bool StructuredCloneHolderBase::CustomCanTransferHandler(
-    JSContext* aCx, JS::Handle<JSObject*> aObj,
-    bool* aSameProcessScopeRequired) {
+    MCContext* aCx, JS::Handle<JSObject*> aObj,
+    MC::Tainted<bool*> aSameProcessScopeRequired) {
   return false;
 }
 
@@ -359,12 +365,12 @@ StructuredCloneHolder::~StructuredCloneHolder() {
   MOZ_ASSERT(mTransferredPorts.IsEmpty());
 }
 
-void StructuredCloneHolder::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void StructuredCloneHolder::Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                   ErrorResult& aRv) {
   Write(aCx, aValue, MC::UndefinedHandleValue(), JS::CloneDataPolicy(), aRv);
 }
 
-void StructuredCloneHolder::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
+void StructuredCloneHolder::Write(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                   JS::Handle<JS::Value> aTransfer,
                                   const JS::CloneDataPolicy& aCloneDataPolicy,
                                   ErrorResult& aRv) {
@@ -375,13 +381,13 @@ void StructuredCloneHolder::Write(JSContext* aCx, JS::Handle<JS::Value> aValue,
   }
 }
 
-void StructuredCloneHolder::Read(nsIGlobalObject* aGlobal, JSContext* aCx,
+void StructuredCloneHolder::Read(nsIGlobalObject* aGlobal, MCContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue,
                                  ErrorResult& aRv) {
   return Read(aGlobal, aCx, aValue, JS::CloneDataPolicy(), aRv);
 }
 
-void StructuredCloneHolder::Read(nsIGlobalObject* aGlobal, JSContext* aCx,
+void StructuredCloneHolder::Read(nsIGlobalObject* aGlobal, MCContext* aCx,
                                  JS::MutableHandle<JS::Value> aValue,
                                  const JS::CloneDataPolicy& aCloneDataPolicy,
                                  ErrorResult& aRv) {
@@ -409,7 +415,7 @@ void StructuredCloneHolder::Read(nsIGlobalObject* aGlobal, JSContext* aCx,
 }
 
 void StructuredCloneHolder::ReadFromBuffer(
-    nsIGlobalObject* aGlobal, JSContext* aCx, JSStructuredCloneData& aBuffer,
+    nsIGlobalObject* aGlobal, MCContext* aCx, MC::Tainted<JSStructuredCloneData*> aBuffer,
     JS::MutableHandle<JS::Value> aValue,
     const JS::CloneDataPolicy& aCloneDataPolicy, ErrorResult& aRv) {
   ReadFromBuffer(aGlobal, aCx, aBuffer, JS_STRUCTURED_CLONE_VERSION, aValue,
@@ -417,7 +423,7 @@ void StructuredCloneHolder::ReadFromBuffer(
 }
 
 void StructuredCloneHolder::ReadFromBuffer(
-    nsIGlobalObject* aGlobal, JSContext* aCx, JSStructuredCloneData& aBuffer,
+    nsIGlobalObject* aGlobal, MCContext* aCx, MC::Tainted<JSStructuredCloneData*> aBuffer,
     uint32_t aAlgorithmVersion, JS::MutableHandle<JS::Value> aValue,
     const JS::CloneDataPolicy& aCloneDataPolicy, ErrorResult& aRv) {
   MOZ_ASSERT(!mBuffer, "ReadFromBuffer() must be called without a Write().");
@@ -439,7 +445,7 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
     MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag) {
   AssertTagValues();
 
-  nsIGlobalObject* global = xpc::CurrentNativeGlobal(MC_UNSAFE(aCx));
+  nsIGlobalObject* global = xpc::CurrentNativeGlobal(aCx);
   if (!global) {
     return nullptr;
   }
@@ -447,7 +453,7 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
   WebIDLDeserializer deserializer =
       LookupDeserializer(StructuredCloneTags(aTag));
   if (deserializer) {
-    return deserializer(MC_UNSAFE(aCx), global, aReader.UNSAFE_unverified());
+    return deserializer(aCx, global, aReader).UNSAFE_unverified();
   }
 
   if (aTag == SCTAG_DOM_NULL_PRINCIPAL || aTag == SCTAG_DOM_SYSTEM_PRINCIPAL ||
@@ -467,7 +473,7 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
           already_AddRefed<nsIPrincipal>(nsJSPrincipals::get(*prin.UNSAFE_unverified()));
 
       nsresult rv = nsContentUtils::WrapNative(
-          MC_UNSAFE(aCx), principal, &NS_GET_IID(nsIPrincipal), &result);
+          aCx, principal, &NS_GET_IID(nsIPrincipal), &result);
       if (NS_FAILED(rv)) {
         xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
         return nullptr;
@@ -483,7 +489,7 @@ JSObject* StructuredCloneHolder::ReadFullySerializableObjects(
 
 /* static */
 bool StructuredCloneHolder::WriteFullySerializableObjects(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
     JS::Handle<JSObject*> aObj) {
   AssertTagValues();
 
@@ -491,12 +497,12 @@ bool StructuredCloneHolder::WriteFullySerializableObjects(
   // unwrap here.
   MC::Rooted<JSObject*> obj(aCx, js::CheckedUnwrapStatic(aObj));
   if (!obj) {
-    return xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
+    return xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
   }
 
   const DOMJSClass* domClass = GetDOMClass(obj);
   if (domClass && domClass->mSerializer) {
-    return domClass->mSerializer(aCx, aWriter, obj);
+    return domClass->mSerializer(aCx, aWriter, obj).UNSAFE_unverified();
   }
 
   if (NS_IsMainThread() && xpc::IsReflector(obj, aCx)) {
@@ -519,7 +525,7 @@ bool StructuredCloneHolder::WriteFullySerializableObjects(
 }
 
 template <typename char_type>
-static bool ReadTString(JSStructuredCloneReader* aReader,
+static bool ReadTString(MC::Tainted<JSStructuredCloneReader*> aReader,
                         nsTString<char_type>& aString) {
   uint32_t length, zero;
   if (!JS_ReadUint32Pair(aReader, &length, &zero)) {
@@ -535,7 +541,7 @@ static bool ReadTString(JSStructuredCloneReader* aReader,
 }
 
 template <typename char_type>
-static bool WriteTString(JSStructuredCloneWriter* aWriter,
+static bool WriteTString(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                          const nsTSubstring<char_type>& aString) {
   size_t charSize = sizeof(char_type);
   return JS_WriteUint32Pair(aWriter, aString.Length(), 0) &&
@@ -544,32 +550,32 @@ static bool WriteTString(JSStructuredCloneWriter* aWriter,
 }
 
 /* static */
-bool StructuredCloneHolder::ReadString(JSStructuredCloneReader* aReader,
+bool StructuredCloneHolder::ReadString(MC::Tainted<JSStructuredCloneReader*> aReader,
                                        nsString& aString) {
   return ReadTString(aReader, aString);
 }
 
 /* static */
-bool StructuredCloneHolder::WriteString(JSStructuredCloneWriter* aWriter,
+bool StructuredCloneHolder::WriteString(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                         const nsAString& aString) {
   return WriteTString(aWriter, aString);
 }
 
 /* static */
-bool StructuredCloneHolder::ReadCString(JSStructuredCloneReader* aReader,
+bool StructuredCloneHolder::ReadCString(MC::Tainted<JSStructuredCloneReader*> aReader,
                                         nsCString& aString) {
   return ReadTString(aReader, aString);
 }
 
 /* static */
-bool StructuredCloneHolder::WriteCString(JSStructuredCloneWriter* aWriter,
+bool StructuredCloneHolder::WriteCString(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                          const nsACString& aString) {
   return WriteTString(aWriter, aString);
 }
 
 namespace {
 
-JSObject* ReadBlob(JSContext* aCx, uint32_t aIndex,
+JSObject* ReadBlob(MCContext* aCx, uint32_t aIndex,
                    StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aHolder);
 #ifdef FUZZING
@@ -600,7 +606,7 @@ JSObject* ReadBlob(JSContext* aCx, uint32_t aIndex,
   return &val.toObject();
 }
 
-bool WriteBlob(JSStructuredCloneWriter* aWriter, Blob* aBlob,
+bool WriteBlob(MC::Tainted<JSStructuredCloneWriter*> aWriter, Blob* aBlob,
                StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aWriter);
   MOZ_ASSERT(aBlob);
@@ -621,7 +627,7 @@ bool WriteBlob(JSStructuredCloneWriter* aWriter, Blob* aBlob,
 // A directory is serialized as:
 // - pair of ints: SCTAG_DOM_DIRECTORY, path length
 // - path as string
-bool WriteDirectory(JSStructuredCloneWriter* aWriter, Directory* aDirectory) {
+bool WriteDirectory(MC::Tainted<JSStructuredCloneWriter*> aWriter, Directory* aDirectory) {
   MOZ_ASSERT(aWriter);
   MOZ_ASSERT(aDirectory);
 
@@ -634,7 +640,7 @@ bool WriteDirectory(JSStructuredCloneWriter* aWriter, Directory* aDirectory) {
 }
 
 already_AddRefed<Directory> ReadDirectoryInternal(
-    JSStructuredCloneReader* aReader, uint32_t aPathLength,
+    MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aPathLength,
     StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aReader);
   MOZ_ASSERT(aHolder);
@@ -660,7 +666,7 @@ already_AddRefed<Directory> ReadDirectoryInternal(
   return directory.forget();
 }
 
-JSObject* ReadDirectory(JSContext* aCx, JSStructuredCloneReader* aReader,
+JSObject* ReadDirectory(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                         uint32_t aPathLength, StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aReader);
@@ -688,7 +694,7 @@ JSObject* ReadDirectory(JSContext* aCx, JSStructuredCloneReader* aReader,
 }
 
 // Read the WriteFileList for the format.
-JSObject* ReadFileList(JSContext* aCx, JSStructuredCloneReader* aReader,
+JSObject* ReadFileList(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                        uint32_t aCount, StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aReader);
@@ -737,7 +743,7 @@ JSObject* ReadFileList(JSContext* aCx, JSStructuredCloneReader* aReader,
 // The format of the FileList serialization is:
 // - pair of ints: SCTAG_DOM_FILELIST, Length of the FileList
 // - pair of ints: 0, The offset of the BlobImpl array
-bool WriteFileList(JSStructuredCloneWriter* aWriter, FileList* aFileList,
+bool WriteFileList(MC::Tainted<JSStructuredCloneWriter*> aWriter, FileList* aFileList,
                    StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aWriter);
   MOZ_ASSERT(aFileList);
@@ -763,7 +769,7 @@ bool WriteFileList(JSStructuredCloneWriter* aWriter, FileList* aFileList,
 }
 
 // Read the WriteFormData for the format.
-JSObject* ReadFormData(JSContext* aCx, JSStructuredCloneReader* aReader,
+JSObject* ReadFormData(MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
                        uint32_t aCount, StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aReader);
@@ -862,7 +868,7 @@ JSObject* ReadFormData(JSContext* aCx, JSStructuredCloneReader* aReader,
 //   - else:
 //     - pair of ints: 0, string length
 //     - value string
-bool WriteFormData(JSStructuredCloneWriter* aWriter, FormData* aFormData,
+bool WriteFormData(MC::Tainted<JSStructuredCloneWriter*> aWriter, FormData* aFormData,
                    StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aWriter);
   MOZ_ASSERT(aFormData);
@@ -873,11 +879,11 @@ bool WriteFormData(JSStructuredCloneWriter* aWriter, FormData* aFormData,
   }
 
   class MOZ_STACK_CLASS Closure final {
-    JSStructuredCloneWriter* mWriter;
+    MC::Tainted<JSStructuredCloneWriter*> mWriter;
     StructuredCloneHolder* mHolder;
 
    public:
-    Closure(JSStructuredCloneWriter* aWriter, StructuredCloneHolder* aHolder)
+    Closure(MC::Tainted<JSStructuredCloneWriter*> aWriter, StructuredCloneHolder* aHolder)
         : mWriter(aWriter), mHolder(aHolder) {}
 
     static bool Write(const nsString& aName,
@@ -920,7 +926,7 @@ bool WriteFormData(JSStructuredCloneWriter* aWriter, FormData* aFormData,
   return aFormData->ForEach(Closure::Write, &closure);
 }
 
-JSObject* ReadWasmModule(JSContext* aCx, uint32_t aIndex,
+JSObject* ReadWasmModule(MCContext* aCx, uint32_t aIndex,
                          StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aHolder);
   MOZ_ASSERT(aHolder->CloneScope() ==
@@ -932,10 +938,10 @@ JSObject* ReadWasmModule(JSContext* aCx, uint32_t aIndex,
 #endif
   MOZ_ASSERT(aIndex < aHolder->WasmModules().Length());
 
-  return aHolder->WasmModules()[aIndex]->createObject(aCx);
+  return aHolder->WasmModules()[aIndex]->createObject(MC_UNSAFE(aCx));
 }
 
-bool WriteWasmModule(JSStructuredCloneWriter* aWriter,
+bool WriteWasmModule(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                      JS::WasmModule* aWasmModule,
                      StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aWriter);
@@ -954,7 +960,7 @@ bool WriteWasmModule(JSStructuredCloneWriter* aWriter,
   return false;
 }
 
-JSObject* ReadInputStream(JSContext* aCx, uint32_t aIndex,
+JSObject* ReadInputStream(MCContext* aCx, uint32_t aIndex,
                           StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aHolder);
 #ifdef FUZZING
@@ -977,7 +983,7 @@ JSObject* ReadInputStream(JSContext* aCx, uint32_t aIndex,
   return &result.toObject();
 }
 
-bool WriteInputStream(JSStructuredCloneWriter* aWriter,
+bool WriteInputStream(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                       nsIInputStream* aInputStream,
                       StructuredCloneHolder* aHolder) {
   MOZ_ASSERT(aWriter);
@@ -997,14 +1003,11 @@ bool WriteInputStream(JSStructuredCloneWriter* aWriter,
 }  // anonymous namespace
 
 JSObject* StructuredCloneHolder::CustomReadHandler(
-    MCContext* t_aCx, MC::Tainted<JSStructuredCloneReader*> t_aReader,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader,
     const JS::CloneDataPolicy& aCloneDataPolicy, uint32_t aTag,
     uint32_t aIndex) {
   MOZ_ASSERT(mSupportsCloning);
 
-  JSContext* aCx = MC_UNSAFE(t_aCx);
-  JSStructuredCloneReader* aReader = t_aReader.UNSAFE_unverified();
-  
   if (aTag == SCTAG_DOM_BLOB) {
     return ReadBlob(aCx, aIndex, this);
   }
@@ -1066,12 +1069,12 @@ JSObject* StructuredCloneHolder::CustomReadHandler(
     }
   }
 
-  return ReadFullySerializableObjects(t_aCx, t_aReader, aTag);
+  return ReadFullySerializableObjects(aCx, aReader, aTag);
 }
 
 bool StructuredCloneHolder::CustomWriteHandler(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter,
-    JS::Handle<JSObject*> aObj, bool* aSameProcessScopeRequired) {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter,
+    JS::Handle<JSObject*> aObj, MC::Tainted<bool*> aSameProcessScopeRequired) {
   if (!mSupportsCloning) {
     return false;
   }
@@ -1205,8 +1208,8 @@ already_AddRefed<MessagePort> StructuredCloneHolder::ReceiveMessagePort(
 // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
 MOZ_CAN_RUN_SCRIPT_BOUNDARY bool
 StructuredCloneHolder::CustomReadTransferHandler(
-    JSContext* aCx, JSStructuredCloneReader* aReader, uint32_t aTag,
-    void* aContent, uint64_t aExtraData,
+    MCContext* aCx, MC::Tainted<JSStructuredCloneReader*> aReader, uint32_t aTag,
+    MC::AppPointer<void*> aContent, uint64_t aExtraData,
     JS::MutableHandle<JSObject*> aReturnObject) {
   MOZ_ASSERT(mSupportsTransferring);
 
@@ -1234,9 +1237,9 @@ StructuredCloneHolder::CustomReadTransferHandler(
 
   if (aTag == SCTAG_DOM_CANVAS &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    MOZ_ASSERT(aContent);
+    MOZ_ASSERT(aContent.UNSAFE_unverified());
     OffscreenCanvasCloneData* data =
-        static_cast<OffscreenCanvasCloneData*>(aContent);
+        static_cast<OffscreenCanvasCloneData*>(aContent.UNSAFE_unverified());
     RefPtr<OffscreenCanvas> canvas =
         OffscreenCanvas::CreateFromCloneData(mGlobal, data);
     delete data;
@@ -1253,8 +1256,8 @@ StructuredCloneHolder::CustomReadTransferHandler(
 
   if (aTag == SCTAG_DOM_IMAGEBITMAP &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    MOZ_ASSERT(aContent);
-    ImageBitmapCloneData* data = static_cast<ImageBitmapCloneData*>(aContent);
+    MOZ_ASSERT(aContent.UNSAFE_unverified());
+    ImageBitmapCloneData* data = static_cast<ImageBitmapCloneData*>(aContent.UNSAFE_unverified());
     RefPtr<ImageBitmap> bitmap =
         ImageBitmap::CreateFromCloneData(mGlobal, data);
     delete data;
@@ -1316,7 +1319,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
   if (StaticPrefs::dom_media_webcodecs_enabled() &&
       aTag == SCTAG_DOM_VIDEOFRAME &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    MOZ_ASSERT(aContent);
+    MOZ_ASSERT(aContent.UNSAFE_unverified());
 
     MC::Rooted<JSObject*> globalObj(aCx, mGlobal->GetGlobalJSObject());
     // aContent will be released in CustomFreeTransferHandler.
@@ -1325,7 +1328,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
     }
 
     VideoFrame::TransferredData* data =
-        static_cast<VideoFrame::TransferredData*>(aContent);
+        static_cast<VideoFrame::TransferredData*>(aContent.UNSAFE_unverified());
     nsCOMPtr<nsIGlobalObject> global = mGlobal;
     RefPtr<VideoFrame> frame = VideoFrame::FromTransferred(global.get(), data);
     // aContent will be released in CustomFreeTransferHandler if frame is null.
@@ -1333,7 +1336,7 @@ StructuredCloneHolder::CustomReadTransferHandler(
       return false;
     }
     delete data;
-    aContent = nullptr;
+    //aContent = nullptr;
 
     MC::Rooted<JS::Value> value(aCx);
     if (!GetOrCreateDOMReflector(aCx, frame, &value)) {
@@ -1350,9 +1353,9 @@ StructuredCloneHolder::CustomReadTransferHandler(
 // TODO: Convert this to MOZ_CAN_RUN_SCRIPT (bug 1415230)
 MOZ_CAN_RUN_SCRIPT_BOUNDARY bool
 StructuredCloneHolder::CustomWriteTransferHandler(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, uint32_t* aTag,
-    JS::TransferableOwnership* aOwnership, void** aContent,
-    uint64_t* aExtraData) {
+    MCContext* aCx, JS::Handle<JSObject*> aObj, MC::Tainted<uint32_t*> aTag,
+    MC::Tainted<JS::TransferableOwnership*> aOwnership, MC::Tainted<void**> aContent,
+    MC::Tainted<uint64_t*> aExtraData) {
   if (!mSupportsTransferring) {
     return false;
   }
@@ -1393,8 +1396,8 @@ StructuredCloneHolder::CustomWriteTransferHandler(
 
         *aExtraData = 0;
         *aTag = SCTAG_DOM_CANVAS;
-        *aContent = canvas->ToCloneData();
-        MOZ_ASSERT(*aContent);
+        *aContent.UNSAFE_unverified() = canvas->ToCloneData();
+        MOZ_ASSERT(*aContent.UNSAFE_unverified());
         *aOwnership = JS::SCTAG_TMO_CUSTOM;
         canvas->SetNeutered();
 
@@ -1415,8 +1418,8 @@ StructuredCloneHolder::CustomWriteTransferHandler(
           return false;
         }
 
-        *aContent = clonedBitmap.release();
-        MOZ_ASSERT(*aContent);
+        *aContent.UNSAFE_unverified() = clonedBitmap.release();
+        MOZ_ASSERT(*aContent.UNSAFE_unverified());
         *aOwnership = JS::SCTAG_TMO_CUSTOM;
 
         bitmap->Close();
@@ -1438,8 +1441,8 @@ StructuredCloneHolder::CustomWriteTransferHandler(
           if (!data) {
             return false;
           }
-          *aContent = data.release();
-          MOZ_ASSERT(*aContent);
+          *aContent.UNSAFE_unverified() = data.release();
+          MOZ_ASSERT(*aContent.UNSAFE_unverified());
           *aOwnership = JS::SCTAG_TMO_CUSTOM;
           return true;
         }
@@ -1513,12 +1516,12 @@ StructuredCloneHolder::CustomWriteTransferHandler(
 }
 
 void StructuredCloneHolder::CustomFreeTransferHandler(
-    uint32_t aTag, JS::TransferableOwnership aOwnership, void* aContent,
+    uint32_t aTag, JS::TransferableOwnership aOwnership, MC::AppPointer<void*> aContent,
     uint64_t aExtraData) {
   MOZ_ASSERT(mSupportsTransferring);
 
   if (aTag == SCTAG_DOM_MAP_MESSAGEPORT) {
-    MOZ_ASSERT(!aContent);
+    MOZ_ASSERT(!aContent.UNSAFE_unverified());
 #ifdef FUZZING
     if (aExtraData >= mPortIdentifiers.Length()) {
       return;
@@ -1531,23 +1534,23 @@ void StructuredCloneHolder::CustomFreeTransferHandler(
 
   if (aTag == SCTAG_DOM_CANVAS &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    MOZ_ASSERT(aContent);
+    MOZ_ASSERT(aContent.UNSAFE_unverified());
     OffscreenCanvasCloneData* data =
-        static_cast<OffscreenCanvasCloneData*>(aContent);
+        static_cast<OffscreenCanvasCloneData*>(aContent.UNSAFE_unverified());
     delete data;
     return;
   }
 
   if (aTag == SCTAG_DOM_IMAGEBITMAP &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    MOZ_ASSERT(aContent);
-    ImageBitmapCloneData* data = static_cast<ImageBitmapCloneData*>(aContent);
+    MOZ_ASSERT(aContent.UNSAFE_unverified());
+    ImageBitmapCloneData* data = static_cast<ImageBitmapCloneData*>(aContent.UNSAFE_unverified());
     delete data;
     return;
   }
 
   if (aTag == SCTAG_DOM_READABLESTREAM || aTag == SCTAG_DOM_WRITABLESTREAM) {
-    MOZ_ASSERT(!aContent);
+    MOZ_ASSERT(!aContent.UNSAFE_unverified());
 #ifdef FUZZING
     if (aExtraData >= mPortIdentifiers.Length()) {
       return;
@@ -1559,7 +1562,7 @@ void StructuredCloneHolder::CustomFreeTransferHandler(
   }
 
   if (aTag == SCTAG_DOM_TRANSFORMSTREAM) {
-    MOZ_ASSERT(!aContent);
+    MOZ_ASSERT(!aContent.UNSAFE_unverified());
 #ifdef FUZZING
     if (aExtraData + 1 >= mPortIdentifiers.Length()) {
       return;
@@ -1574,9 +1577,9 @@ void StructuredCloneHolder::CustomFreeTransferHandler(
   if (StaticPrefs::dom_media_webcodecs_enabled() &&
       aTag == SCTAG_DOM_VIDEOFRAME &&
       CloneScope() == StructuredCloneScope::SameProcess) {
-    if (aContent) {
+    if (aContent.UNSAFE_unverified()) {
       VideoFrame::TransferredData* data =
-          static_cast<VideoFrame::TransferredData*>(aContent);
+          static_cast<VideoFrame::TransferredData*>(aContent.UNSAFE_unverified());
       delete data;
     }
     return;
@@ -1584,8 +1587,8 @@ void StructuredCloneHolder::CustomFreeTransferHandler(
 }
 
 bool StructuredCloneHolder::CustomCanTransferHandler(
-    JSContext* aCx, JS::Handle<JSObject*> aObj,
-    bool* aSameProcessScopeRequired) {
+    MCContext* aCx, JS::Handle<JSObject*> aObj,
+    MC::Tainted<bool*> aSameProcessScopeRequired) {
   if (!mSupportsTransferring) {
     return false;
   }
@@ -1682,7 +1685,7 @@ bool StructuredCloneHolder::TakeTransferredPortsAsSequence(
 }
 
 void StructuredCloneHolder::SameProcessScopeRequired(
-    bool* aSameProcessScopeRequired) {
+    MC::Tainted<bool*> aSameProcessScopeRequired) {
   MOZ_ASSERT(aSameProcessScopeRequired);
   if (mStructuredCloneScope == StructuredCloneScope::UnknownDestination) {
     mStructuredCloneScope = StructuredCloneScope::SameProcess;

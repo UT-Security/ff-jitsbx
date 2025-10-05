@@ -9,11 +9,11 @@
 #include "AudioNodeEngine.h"
 #include "AudioParamMap.h"
 #include "AudioWorkletImpl.h"
-#include "js/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
-#include "js/CallAndConstruct.h"  // JS::Call, JS::IsCallable
-#include "js/Exception.h"
+#include "monkeycage/Array.h"  // JS::{Get,Set}ArrayLength, JS::NewArrayLength
+#include "monkeycage/CallAndConstruct.h"  // JS::Call, JS::IsCallable
+#include "monkeycage/Exception.h"
 #include "monkeycage/experimental/TypedData.h"  // JS_NewFloat32Array, JS_GetFloat32ArrayData, JS_GetTypedArrayLength, JS_GetArrayBufferViewBuffer
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_GetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_GetProperty
 #include "monkeycage/Value.h"
 #include "mozilla/dom/AudioWorkletNodeBinding.h"
 #include "mozilla/dom/AudioParamMapBinding.h"
@@ -129,8 +129,8 @@ class WorkletNodeEngine final : public AudioNodeEngine {
 
  private:
   size_t ParameterCount() { return mParamTimelines.Length(); }
-  void SendProcessorError(AudioNodeTrack* aTrack, JSContext* aCx);
-  bool CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
+  void SendProcessorError(AudioNodeTrack* aTrack, MCContext* aCx);
+  bool CallProcess(AudioNodeTrack* aTrack, MCContext* aCx,
                    JS::Handle<JS::Value> aCallable);
   void ProduceSilence(AudioNodeTrack* aTrack, Span<AudioBlock> aOutput);
   void SendErrorToMainThread(AudioNodeTrack* aTrack,
@@ -202,7 +202,7 @@ void WorkletNodeEngine::SendErrorToMainThread(
 }
 
 void WorkletNodeEngine::SendProcessorError(AudioNodeTrack* aTrack,
-                                           JSContext* aCx) {
+                                           MCContext* aCx) {
   // Note that once an exception is thrown, the processor will output silence
   // throughout its lifetime.
   ReleaseJSResources();
@@ -215,10 +215,10 @@ void WorkletNodeEngine::SendProcessorError(AudioNodeTrack* aTrack,
     return;
   }
 
-  JS::ExceptionStack exnStack(aCx);
-  if (JS::StealPendingExceptionStack(aCx, &exnStack)) {
-    JS::ErrorReportBuilder jsReport(aCx);
-    if (!jsReport.init(aCx, exnStack,
+  MC::SandboxStack<JS::ExceptionStack> exnStack(aCx);
+  if (JS::StealPendingExceptionStack(aCx, exnStack)) {
+    MC::SandboxStack<JS::ErrorReportBuilder> jsReport(aCx);
+    if (!jsReport->init(aCx, exnStack,
                        JS::ErrorReportBuilder::WithSideEffects)) {
       ProcessorErrorDetails details;
       details.mMessage.Assign(u"Unknown processor error");
@@ -231,14 +231,14 @@ void WorkletNodeEngine::SendProcessorError(AudioNodeTrack* aTrack,
 
     ProcessorErrorDetails details;
 
-    CopyUTF8toUTF16(mozilla::MakeStringSpan(jsReport.report()->filename),
+    CopyUTF8toUTF16(mozilla::MakeStringSpan(jsReport->report()->filename()),
                     details.mFilename);
 
-    xpc::ErrorReport::ErrorReportToMessageString(jsReport.report(),
+    xpc::ErrorReport::ErrorReportToMessageString(jsReport->report(),
                                                  details.mMessage);
-    details.mLineno = jsReport.report()->lineno;
-    details.mColno = jsReport.report()->column;
-    MOZ_ASSERT(!jsReport.report()->isMuted);
+    details.mLineno = jsReport->report()->lineno();
+    details.mColno = jsReport->report()->column();
+    MOZ_ASSERT(!jsReport->report()->isMuted());
 
     SendErrorToMainThread(aTrack, details);
 
@@ -268,7 +268,7 @@ void WorkletNodeEngine::ConstructProcessor(
     return;
   }
   mProcessorName = NS_ConvertUTF16toUTF8(aName);
-  JSContext* cx = api.cx();
+  MCContext* cx = api.mcx();
   mProcessor.init(cx);
   if (!global->ConstructProcessor(cx, aName, aSerializedOptions,
                                   aPortIdentifier, &mProcessor) ||
@@ -326,7 +326,7 @@ void WorkletNodeEngine::ConstructProcessor(
 // Type T should support the length() and operator[]() methods and the return
 // type of |operator[]() const| should support conversion to Handle<JSObject*>.
 template <typename T>
-static bool SetArrayElements(JSContext* aCx, const T& aElements,
+static bool SetArrayElements(MCContext* aCx, const T& aElements,
                              JS::Handle<JSObject*> aArray) {
   for (size_t i = 0; i < aElements.length(); ++i) {
     if (!JS_DefineElement(aCx, aArray, i, aElements[i], JSPROP_ENUMERATE)) {
@@ -338,14 +338,14 @@ static bool SetArrayElements(JSContext* aCx, const T& aElements,
 }
 
 template <typename T>
-static bool PrepareArray(JSContext* aCx, const T& aElements,
+static bool PrepareArray(MCContext* aCx, const T& aElements,
                          JS::MutableHandle<JSObject*> aArray) {
   size_t length = aElements.length();
   if (aArray) {
     // Attempt to reuse.
-    uint32_t oldLength;
-    if (JS::GetArrayLength(aCx, aArray, &oldLength) &&
-        (oldLength == length || JS::SetArrayLength(aCx, aArray, length)) &&
+    MC::SandboxStack<uint32_t> oldLength;
+    if (JS::GetArrayLength(aCx, aArray, oldLength) &&
+        (*oldLength.UNSAFE_unverified() == length || JS::SetArrayLength(aCx, aArray, length)) &&
         SetArrayElements(aCx, aElements, aArray)) {
       return true;
     }
@@ -367,7 +367,7 @@ enum class ArrayElementInit { None, Zero };
 // function after objects are modified by content.
 // See https://github.com/WebAudio/web-audio-api/issues/1934 and
 // https://github.com/WebAudio/web-audio-api/issues/1933
-static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
+static bool PrepareBufferArrays(MCContext* aCx, Span<const AudioBlock> aBlocks,
                                 WorkletNodeEngine::Ports* aPorts,
                                 ArrayElementInit aInit) {
   MOZ_ASSERT(aBlocks.Length() == aPorts->mPorts.length());
@@ -421,7 +421,7 @@ static bool PrepareBufferArrays(JSContext* aCx, Span<const AudioBlock> aBlocks,
 // potentially destroy the WorkletNodeEngine and its AudioNodeTrack, cannot
 // be triggered by script.  They are not run from an nsIThread event loop and
 // do not run until after ProcessBlocksOnPorts() has returned.
-bool WorkletNodeEngine::CallProcess(AudioNodeTrack* aTrack, JSContext* aCx,
+bool WorkletNodeEngine::CallProcess(AudioNodeTrack* aTrack, MCContext* aCx,
                                     JS::Handle<JS::Value> aCallable) {
   TRACE_COMMENT("AudioWorkletNodeEngine::CallProcess", mProcessorName.get());
 
@@ -509,7 +509,7 @@ void WorkletNodeEngine::ProcessBlocksOnPorts(AudioNodeTrack* aTrack,
   }
 
   AutoEntryScript aes(mGlobal, "Worklet Process");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   auto produceSilenceWithError = MakeScopeExit([this, aTrack, cx, &aOutput] {
     SendProcessorError(aTrack, cx);
     ProduceSilence(aTrack, aOutput);
@@ -752,7 +752,7 @@ already_AddRefed<AudioWorkletNode> AudioWorkletNode::Constructor(
   /**
    * 8. Convert options dictionary to optionsObject.
    */
-  JSContext* cx = MC_UNSAFE(aGlobal.Context());
+  MCContext* cx = aGlobal.Context();
   MC::Rooted<JS::Value> optionsVal(cx);
   if (NS_WARN_IF(!ToJSValue(cx, aOptions, &optionsVal))) {
     aRv.NoteJSContextException(cx);
@@ -880,7 +880,7 @@ void AudioWorkletNode::DispatchProcessorErrorEvent(
   }
 }
 
-JSObject* AudioWorkletNode::WrapObject(JSContext* aCx,
+JSObject* AudioWorkletNode::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return AudioWorkletNode_Binding::Wrap(aCx, this, aGivenProto);
 }

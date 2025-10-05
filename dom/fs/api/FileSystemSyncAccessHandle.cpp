@@ -301,7 +301,7 @@ nsIGlobalObject* FileSystemSyncAccessHandle::GetParentObject() const {
 }
 
 JSObject* FileSystemSyncAccessHandle::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemSyncAccessHandle_Binding::Wrap(aCx, this, aGivenProto);
 }
 

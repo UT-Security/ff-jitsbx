@@ -67,7 +67,7 @@ size_t CSSSupportsRule::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
 }
 
 /* virtual */
-JSObject* CSSSupportsRule::WrapObject(JSContext* aCx,
+JSObject* CSSSupportsRule::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return CSSSupportsRule_Binding::Wrap(aCx, this, aGivenProto);
 }

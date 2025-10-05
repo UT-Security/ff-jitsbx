@@ -33,7 +33,7 @@ class TestInterfaceAsyncIterableDoubleUnion final : public nsISupports,
 
   explicit TestInterfaceAsyncIterableDoubleUnion(nsPIDOMWindowInner* aParent);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceAsyncIterableDoubleUnion> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);

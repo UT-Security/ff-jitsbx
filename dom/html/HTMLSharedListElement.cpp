@@ -147,7 +147,7 @@ nsMapRuleToAttributesFunc HTMLSharedListElement::GetAttributeMappingFunction()
   return nsGenericHTMLElement::GetAttributeMappingFunction();
 }
 
-JSObject* HTMLSharedListElement::WrapNode(JSContext* aCx,
+JSObject* HTMLSharedListElement::WrapNode(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   if (mNodeInfo->Equals(nsGkAtoms::ol)) {
     return HTMLOListElement_Binding::Wrap(aCx, this, aGivenProto);

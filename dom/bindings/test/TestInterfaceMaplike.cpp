@@ -38,7 +38,7 @@ already_AddRefed<TestInterfaceMaplike> TestInterfaceMaplike::Constructor(
   return r.forget();
 }
 
-JSObject* TestInterfaceMaplike::WrapObject(JSContext* aCx,
+JSObject* TestInterfaceMaplike::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceMaplike_Binding::Wrap(aCx, this, aGivenProto);
 }

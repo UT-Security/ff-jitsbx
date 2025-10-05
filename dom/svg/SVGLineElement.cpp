@@ -15,7 +15,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGLineElement::WrapNode(JSContext* aCx,
+JSObject* SVGLineElement::WrapNode(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SVGLineElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -7,7 +7,7 @@
 #include "mozilla/dom/DOMRect.h"
 
 #include <cmath>
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/AppUnits.h"
 #include "mozilla/Casting.h"
 #include "mozilla/MacroForEach.h"
@@ -28,7 +28,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DOMRectReadOnly)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* DOMRectReadOnly::WrapObject(JSContext* aCx,
+JSObject* DOMRectReadOnly::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(mParent);
   return DOMRectReadOnly_Binding::Wrap(aCx, this, aGivenProto);
@@ -51,7 +51,7 @@ already_AddRefed<DOMRectReadOnly> DOMRectReadOnly::Constructor(
 
 // https://drafts.fxtf.org/geometry/#structured-serialization
 bool DOMRectReadOnly::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
 #define WriteDouble(d)                                                       \
   JS_WriteUint32Pair(aWriter, (BitwiseCast<uint64_t>(d) >> 32) & 0xffffffff, \
                      BitwiseCast<uint64_t>(d) & 0xffffffff)
@@ -64,8 +64,8 @@ bool DOMRectReadOnly::WriteStructuredClone(
 
 // static
 already_AddRefed<DOMRectReadOnly> DOMRectReadOnly::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<DOMRectReadOnly> retval = new DOMRectReadOnly(aGlobal);
   if (!retval->ReadStructuredClone(aReader)) {
     return nullptr;
@@ -73,7 +73,7 @@ already_AddRefed<DOMRectReadOnly> DOMRectReadOnly::ReadStructuredClone(
   return retval.forget();
 }
 
-bool DOMRectReadOnly::ReadStructuredClone(JSStructuredCloneReader* aReader) {
+bool DOMRectReadOnly::ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t high;
   uint32_t low;
 
@@ -95,7 +95,7 @@ bool DOMRectReadOnly::ReadStructuredClone(JSStructuredCloneReader* aReader) {
 
 // -----------------------------------------------------------------------------
 
-JSObject* DOMRect::WrapObject(JSContext* aCx,
+JSObject* DOMRect::WrapObject(MCContext* aCx,
                               JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(mParent);
   return DOMRect_Binding::Wrap(aCx, this, aGivenProto);
@@ -118,8 +118,8 @@ already_AddRefed<DOMRect> DOMRect::Constructor(const GlobalObject& aGlobal,
 
 // static
 already_AddRefed<DOMRect> DOMRect::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<DOMRect> retval = new DOMRect(aGlobal);
   if (!retval->ReadStructuredClone(aReader)) {
     return nullptr;
@@ -140,7 +140,7 @@ NS_INTERFACE_MAP_END
 NS_IMPL_CYCLE_COLLECTING_ADDREF(DOMRectList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(DOMRectList)
 
-JSObject* DOMRectList::WrapObject(JSContext* cx,
+JSObject* DOMRectList::WrapObject(MCContext* cx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return mozilla::dom::DOMRectList_Binding::Wrap(cx, this, aGivenProto);
 }

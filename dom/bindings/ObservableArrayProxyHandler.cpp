@@ -140,7 +140,7 @@ bool ObservableArrayProxyHandler::get(MCContext* aCx,
   }
 
   if (aId.get() == s_length_id) {
-    return ToJSValue(MC_UNSAFE(aCx), *length.UNSAFE_unverified(), aVp);
+    return ToJSValue(aCx, *length.UNSAFE_unverified(), aVp);
   }
   uint32_t index = GetArrayIndexFromId(aId);
   if (IsArrayIndex(index)) {

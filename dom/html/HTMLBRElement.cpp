@@ -69,7 +69,7 @@ nsMapRuleToAttributesFunc HTMLBRElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-JSObject* HTMLBRElement::WrapNode(JSContext* aCx,
+JSObject* HTMLBRElement::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return HTMLBRElement_Binding::Wrap(aCx, this, aGivenProto);
 }

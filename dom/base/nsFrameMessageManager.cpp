@@ -23,11 +23,11 @@
 #include "monkeycage/CompileOptions.h"
 #include "monkeycage/experimental/JSStencil.h"
 #include "js/GCVector.h"
-#include "js/JSON.h"
+#include "monkeycage/JSON.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_GetProperty
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/SourceText.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "monkeycage/TypeDecls.h"
 #include "monkeycage/Value.h"
 #include "monkeycage/Wrapper.h"
@@ -407,7 +407,7 @@ void nsFrameMessageManager::RemoveDelayedScript(const nsAString& aURL) {
 }
 
 void nsFrameMessageManager::GetDelayedScripts(
-    JSContext* aCx, nsTArray<nsTArray<JS::Value>>& aList, ErrorResult& aError) {
+    MCContext* aCx, nsTArray<nsTArray<JS::Value>>& aList, ErrorResult& aError) {
   // Frame message managers may return an incomplete list because scripts
   // that were loaded after it was connected are not added to the list.
   if (!IsGlobal() && !IsBroadcaster()) {
@@ -435,7 +435,7 @@ void nsFrameMessageManager::GetDelayedScripts(
 }
 
 /* static */
-bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
+bool nsFrameMessageManager::GetParamsForMessage(MCContext* aCx,
                                                 const JS::Value& aValue,
                                                 const JS::Value& aTransfer,
                                                 StructuredCloneData& aData) {
@@ -494,7 +494,7 @@ bool nsFrameMessageManager::GetParamsForMessage(JSContext* aCx,
 
 static bool sSendingSyncMessage = false;
 
-void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
+void nsFrameMessageManager::SendSyncMessage(MCContext* aCx,
                                             const nsAString& aMessageName,
                                             JS::Handle<JS::Value> aObj,
                                             nsTArray<JS::Value>& aResult,
@@ -570,7 +570,7 @@ void nsFrameMessageManager::SendSyncMessage(JSContext* aCx,
 }
 
 nsresult nsFrameMessageManager::DispatchAsyncMessageInternal(
-    JSContext* aCx, const nsAString& aMessage, StructuredCloneData& aData) {
+    MCContext* aCx, const nsAString& aMessage, StructuredCloneData& aData) {
   if (mIsBroadcaster) {
     uint32_t len = mChildManagers.Length();
     for (uint32_t i = 0; i < len; ++i) {
@@ -591,7 +591,7 @@ nsresult nsFrameMessageManager::DispatchAsyncMessageInternal(
 }
 
 void nsFrameMessageManager::DispatchAsyncMessage(
-    JSContext* aCx, const nsAString& aMessageName, JS::Handle<JS::Value> aObj,
+    MCContext* aCx, const nsAString& aMessageName, JS::Handle<JS::Value> aObj,
     JS::Handle<JS::Value> aTransfers, ErrorResult& aError) {
   StructuredCloneData data;
   if (!aObj.isUndefined() &&
@@ -688,7 +688,7 @@ void nsFrameMessageManager::ReceiveMessage(
 
       AutoEntryScript aes(js::UncheckedUnwrap(object),
                           "message manager handler");
-      JSContext* cx = aes.cx();
+      MCContext* cx = aes.mcx();
 
       // We passed the unwrapped object to AutoEntryScript so we now need to
       // enter the realm of the global object that represents the realm of our
@@ -905,7 +905,7 @@ void nsFrameMessageManager::SetInitialProcessData(
 }
 
 void nsFrameMessageManager::GetInitialProcessData(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aInitialProcessData,
+    MCContext* aCx, JS::MutableHandle<JS::Value> aInitialProcessData,
     ErrorResult& aError) {
   MOZ_ASSERT(mIsProcessManager);
   MOZ_ASSERT_IF(mChrome, IsBroadcaster());

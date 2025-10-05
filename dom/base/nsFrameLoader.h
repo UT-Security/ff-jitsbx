@@ -393,7 +393,7 @@ class nsFrameLoader final : public nsStubMutationObserver,
   RefPtr<mozilla::dom::InProcessBrowserChildMessageManager>
       mChildMessageManager;
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void SetWillChangeProcess();

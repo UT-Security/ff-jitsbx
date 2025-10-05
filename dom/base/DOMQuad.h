@@ -9,7 +9,7 @@
 
 #include <cstdint>
 #include "Units.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/RefPtr.h"
@@ -20,7 +20,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 
@@ -44,7 +44,7 @@ class DOMQuad final : public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_NATIVE_WRAPPERCACHE_CLASS(DOMQuad)
 
   nsISupports* GetParentObject() const { return mParent; }
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMQuad> FromRect(const GlobalObject& aGlobal,
@@ -69,12 +69,12 @@ class DOMQuad final : public nsWrapperCache {
 
   DOMPoint* Point(uint32_t aIndex) const { return mPoints[aIndex]; }
 
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   static already_AddRefed<DOMQuad> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  protected:
   void GetHorizontalMinMax(double* aX1, double* aX2) const;

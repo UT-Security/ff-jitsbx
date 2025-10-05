@@ -313,7 +313,7 @@ class WebExtensionPolicy final : public nsISupports, public nsWrapperCache {
 
   bool CanAccessWindow(const dom::WindowProxyHolder& aWindow) const;
 
-  void GetReadyPromise(JSContext* aCx,
+  void GetReadyPromise(MCContext* aCx,
                        JS::MutableHandle<JSObject*> aResult) const;
   dom::Promise* ReadyPromise() const { return mReadyPromise; }
 
@@ -365,7 +365,7 @@ class WebExtensionPolicy final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:

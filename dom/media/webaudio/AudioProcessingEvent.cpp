@@ -28,7 +28,7 @@ AudioProcessingEvent::AudioProcessingEvent(ScriptProcessorNode* aOwner,
 AudioProcessingEvent::~AudioProcessingEvent() = default;
 
 JSObject* AudioProcessingEvent::WrapObjectInternal(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return AudioProcessingEvent_Binding::Wrap(aCx, this, aGivenProto);
 }
 

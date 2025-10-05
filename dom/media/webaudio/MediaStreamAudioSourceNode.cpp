@@ -271,7 +271,7 @@ void MediaStreamAudioSourceNode::DestroyMediaTrack() {
 }
 
 JSObject* MediaStreamAudioSourceNode::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return MediaStreamAudioSourceNode_Binding::Wrap(aCx, this, aGivenProto);
 }
 

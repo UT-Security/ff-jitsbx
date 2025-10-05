@@ -83,12 +83,12 @@
 #include "nsStringBuffer.h"
 #include "nsIFileChannel.h"
 #include "mozilla/Telemetry.h"
-#include "js/ArrayBuffer.h"  // JS::{Create,Release}MappedArrayBufferContents,New{,Mapped}ArrayBufferWithContents
-#include "js/JSON.h"         // JS_ParseJSON
-#include "js/MemoryFunctions.h"
-#include "js/RootingAPI.h"  // JS::{{,Mutable}Handle,Rooted}
-#include "js/Value.h"       // JS::{,Undefined}Value
-#include "jsapi.h"          // JS_ClearPendingException
+#include "monkeycage/ArrayBuffer.h"  // JS::{Create,Release}MappedArrayBufferContents,New{,Mapped}ArrayBufferWithContents
+#include "monkeycage/JSON.h"         // JS_ParseJSON
+#include "monkeycage/MemoryFunctions.h"
+#include "monkeycage/RootingAPI.h"  // JS::{{,Mutable}Handle,Rooted}
+#include "monkeycage/Value.h"       // JS::{,Undefined}Value
+#include "mcapi.h"          // JS_ClearPendingException
 #include "GeckoProfiler.h"
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 #include "mozilla/Attributes.h"
@@ -610,7 +610,7 @@ void XMLHttpRequestMainThread::GetResponseText(
   mResponseText.CreateSnapshot(aSnapshot);
 }
 
-nsresult XMLHttpRequestMainThread::CreateResponseParsedJSON(JSContext* aCx) {
+nsresult XMLHttpRequestMainThread::CreateResponseParsedJSON(MCContext* aCx) {
   if (!aCx) {
     return NS_ERROR_FAILURE;
   }
@@ -657,7 +657,7 @@ void XMLHttpRequestMainThread::SetResponseType(
 }
 
 void XMLHttpRequestMainThread::GetResponse(
-    JSContext* aCx, JS::MutableHandle<JS::Value> aResponse, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JS::Value> aResponse, ErrorResult& aRv) {
   MOZ_DIAGNOSTIC_ASSERT(!mForWorker);
 
   switch (mResponseType) {
@@ -1684,7 +1684,7 @@ class FileCreationHandler final : public PromiseNativeHandler {
     aPromise->AppendNativeHandler(handler);
   }
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     if (NS_WARN_IF(!aValue.isObject())) {
       mXHR->LocalFileToBlobCompleted(nullptr);
@@ -1700,7 +1700,7 @@ class FileCreationHandler final : public PromiseNativeHandler {
     mXHR->LocalFileToBlobCompleted(blob->Impl());
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     mXHR->LocalFileToBlobCompleted(nullptr);
   }
@@ -2468,7 +2468,7 @@ void XMLHttpRequestMainThread::MaybeLowerChannelPriority() {
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   if (!doc->IsScriptTracking(cx)) {
     return;
@@ -3494,7 +3494,7 @@ XMLHttpRequestMainThread::GetInterface(const nsIID& aIID, void** aResult) {
 }
 
 void XMLHttpRequestMainThread::GetInterface(
-    JSContext* aCx, JS::Handle<JS::Value> aIID,
+    MCContext* aCx, JS::Handle<JS::Value> aIID,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {
   dom::GetInterface(aCx, this, aIID, aRetval, aRv);
 }
@@ -3901,12 +3901,12 @@ uint32_t ArrayBufferBuilder::Capacity() {
   return mCapacity;
 }
 
-JSObject* ArrayBufferBuilder::TakeArrayBuffer(JSContext* aCx) {
+JSObject* ArrayBufferBuilder::TakeArrayBuffer(MCContext* aCx) {
   MutexAutoLock lock(mMutex);
   MOZ_DIAGNOSTIC_ASSERT(!mNeutered);
 
   if (mMapPtr) {
-    JSObject* obj = JS::NewMappedArrayBufferWithContents(aCx, mLength, mMapPtr);
+    JSObject* obj = JS::NewMappedArrayBufferWithContents(MC_UNSAFE(aCx), mLength, mMapPtr);
     if (!obj) {
       JS::ReleaseMappedArrayBufferContents(mMapPtr, mLength);
     }
@@ -3927,7 +3927,7 @@ JSObject* ArrayBufferBuilder::TakeArrayBuffer(JSContext* aCx) {
     }
   }
 
-  JSObject* obj = JS::NewArrayBufferWithContents(aCx, mLength, mDataPtr);
+  JSObject* obj = JS::NewArrayBufferWithContents(MC_UNSAFE(aCx), mLength, mDataPtr);
   if (!obj) {
     return nullptr;
   }

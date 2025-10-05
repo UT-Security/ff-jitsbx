@@ -44,7 +44,7 @@ class PerformanceObserver final : public nsISupports, public nsWrapperCache {
   PerformanceObserver(WorkerPrivate* aWorkerPrivate,
                       PerformanceObserverCallback& aCb);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() const { return mOwner; }

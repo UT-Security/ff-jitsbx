@@ -19,7 +19,7 @@ struct ConvolverOptions;
 class ConvolverNode final : public AudioNode {
  public:
   static already_AddRefed<ConvolverNode> Create(
-      JSContext* aCx, AudioContext& aAudioContext,
+      MCContext* aCx, AudioContext& aAudioContext,
       const ConvolverOptions& aOptions, ErrorResult& aRv);
 
   NS_DECL_ISUPPORTS_INHERITED
@@ -28,15 +28,15 @@ class ConvolverNode final : public AudioNode {
   static already_AddRefed<ConvolverNode> Constructor(
       const GlobalObject& aGlobal, AudioContext& aAudioContext,
       const ConvolverOptions& aOptions, ErrorResult& aRv) {
-    return Create(MC_UNSAFE(aGlobal.Context()), aAudioContext, aOptions, aRv);
+    return Create(aGlobal.Context(), aAudioContext, aOptions, aRv);
   }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  AudioBuffer* GetBuffer(JSContext* aCx) const { return mBuffer; }
+  AudioBuffer* GetBuffer(MCContext* aCx) const { return mBuffer; }
 
-  void SetBuffer(JSContext* aCx, AudioBuffer* aBuffer, ErrorResult& aRv);
+  void SetBuffer(MCContext* aCx, AudioBuffer* aBuffer, ErrorResult& aRv);
 
   bool Normalize() const { return mNormalize; }
 

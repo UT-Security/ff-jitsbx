@@ -27,8 +27,8 @@ BroadcastChannelService* sInstance = nullptr;
 
 ClonedMessageData CloneClonedMessageData(const ClonedMessageData& aOther) {
   auto cloneData = SerializedStructuredCloneBuffer{};
-  cloneData.data.initScope(aOther.data().data.scope());
-  const bool res = cloneData.data.Append(aOther.data().data);
+  cloneData.data->initScope(aOther.data().data->scope());
+  const bool res = cloneData.data->Append(aOther.data().data);
   MOZ_RELEASE_ASSERT(res, "out of memory");
   return {std::move(cloneData), aOther.blobs(), aOther.inputStreams(),
           aOther.identifiers()};

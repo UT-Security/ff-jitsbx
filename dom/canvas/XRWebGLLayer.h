@@ -37,7 +37,7 @@ class XRWebGLLayer final : public nsWrapperCache {
       const Maybe<const webgl::OpaqueFramebufferOptions>& aOptions);
 
   // WebIDL Boilerplate
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsISupports* GetParentObject() const;
 

@@ -20,7 +20,7 @@ class DOMSVGAnimatedEnumeration : public nsWrapperCache {
 
   SVGElement* GetParentObject() const { return mSVGElement; }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
   virtual uint16_t BaseVal() = 0;
   virtual void SetBaseVal(uint16_t aBaseVal, ErrorResult& aRv) = 0;

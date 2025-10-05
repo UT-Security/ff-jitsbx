@@ -42,7 +42,7 @@ TestInterfaceMaplikeObject::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceMaplikeObject::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceMaplikeObject_Binding::Wrap(aCx, this, aGivenProto);
 }
 

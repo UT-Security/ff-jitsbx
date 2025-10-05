@@ -632,7 +632,7 @@ MC::Tainted<bool> XPCJSContext::InterruptCallback(MC::Tainted<JSContext*> tcx) {
 
   nsString addonId;
   const char* prefName;
-  auto principal = BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(MC_UNSAFE(cx)));
+  auto principal = BasePrincipal::Cast(nsContentUtils::SubjectPrincipal(cx));
   bool chrome = principal->Is<SystemPrincipal>();
   if (chrome) {
     prefName = PREF_MAX_SCRIPT_RUN_TIME_CHROME;
@@ -718,7 +718,7 @@ MC::Tainted<bool> XPCJSContext::InterruptCallback(MC::Tainted<JSContext*> tcx) {
     // If this is a sandbox associated with a DOMWindow via a
     // sandboxPrototype, use that DOMWindow. This supports WebExtension
     // content scripts.
-    win = SandboxWindowOrNull(global, MC_UNSAFE(cx));
+    win = SandboxWindowOrNull(global, cx);
   }
 
   if (!win) {
@@ -744,7 +744,7 @@ MC::Tainted<bool> XPCJSContext::InterruptCallback(MC::Tainted<JSContext*> tcx) {
 
   // Show the prompt to the user, and kill if requested.
   nsGlobalWindowInner::SlowScriptResponse response = win->ShowSlowScriptDialog(
-      MC_UNSAFE(cx), addonId, self->mSlowScriptActualWait.ToMilliseconds());
+      cx, addonId, self->mSlowScriptActualWait.ToMilliseconds());
   if (response == nsGlobalWindowInner::KillSlowScript) {
     if (Preferences::GetBool("dom.global_stop_script", true)) {
       xpc::Scriptability::Get(global).Block();
@@ -1499,5 +1499,5 @@ void XPCJSContext::AfterProcessTask(uint32_t aNewRecursionDepth) {
 void XPCJSContext::MaybePokeGC() { nsJSContext::MaybePokeGC(); }
 
 bool XPCJSContext::IsSystemCaller() const {
-  return nsContentUtils::IsSystemCaller(MC_UNSAFE(Context()));
+  return nsContentUtils::IsSystemCaller(Context());
 }

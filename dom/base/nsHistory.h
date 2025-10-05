@@ -35,7 +35,7 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
   explicit nsHistory(nsPIDOMWindowInner* aInnerWindow);
 
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   uint32_t GetLength(mozilla::ErrorResult& aRv) const;
@@ -43,17 +43,17 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
       mozilla::ErrorResult& aRv);
   void SetScrollRestoration(mozilla::dom::ScrollRestoration aMode,
                             mozilla::ErrorResult& aRv);
-  void GetState(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetState(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                 mozilla::ErrorResult& aRv) const;
   void Go(int32_t aDelta, nsIPrincipal& aSubjectPrincipal,
           mozilla::ErrorResult& aRv);
   void Back(mozilla::dom::CallerType aCallerType, mozilla::ErrorResult& aRv);
   void Forward(mozilla::dom::CallerType aCallerType, mozilla::ErrorResult& aRv);
-  void PushState(JSContext* aCx, JS::Handle<JS::Value> aData,
+  void PushState(MCContext* aCx, JS::Handle<JS::Value> aData,
                  const nsAString& aTitle, const nsAString& aUrl,
                  mozilla::dom::CallerType aCallerType,
                  mozilla::ErrorResult& aRv);
-  void ReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+  void ReplaceState(MCContext* aCx, JS::Handle<JS::Value> aData,
                     const nsAString& aTitle, const nsAString& aUrl,
                     mozilla::dom::CallerType aCallerType,
                     mozilla::ErrorResult& aRv);
@@ -61,7 +61,7 @@ class nsHistory final : public nsISupports, public nsWrapperCache {
  protected:
   virtual ~nsHistory();
 
-  void PushOrReplaceState(JSContext* aCx, JS::Handle<JS::Value> aData,
+  void PushOrReplaceState(MCContext* aCx, JS::Handle<JS::Value> aData,
                           const nsAString& aTitle, const nsAString& aUrl,
                           mozilla::dom::CallerType aCallerType,
                           mozilla::ErrorResult& aRv, bool aReplace);

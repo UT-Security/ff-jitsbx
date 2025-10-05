@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <new>
 #include <utility>
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/FloatingPoint.h"
@@ -24,7 +24,7 @@
 
 class JSObject;
 class nsIGlobalObject;
-struct JSContext;
+struct MCContext;
 struct JSStructuredCloneReader;
 struct JSStructuredCloneWriter;
 struct nsRect;
@@ -51,7 +51,7 @@ class DOMRectReadOnly : public nsISupports, public nsWrapperCache {
     return mParent;
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMRectReadOnly> FromRect(const GlobalObject& aGlobal,
@@ -83,17 +83,17 @@ class DOMRectReadOnly : public nsISupports, public nsWrapperCache {
     return NaNSafeMax(y, y + h);
   }
 
-  bool WriteStructuredClone(JSContext* aCx,
-                            JSStructuredCloneWriter* aWriter) const;
+  bool WriteStructuredClone(MCContext* aCx,
+                            MC::Tainted<JSStructuredCloneWriter*> aWriter) const;
 
   static already_AddRefed<DOMRectReadOnly> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
 
  protected:
   // Shared implementation of ReadStructuredClone for DOMRect and
   // DOMRectReadOnly.
-  bool ReadStructuredClone(JSStructuredCloneReader* aReader);
+  bool ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader);
 
   nsCOMPtr<nsISupports> mParent;
   double mX, mY, mWidth, mHeight;
@@ -114,12 +114,12 @@ class DOMRect final : public DOMRectReadOnly {
                                                double aX, double aY,
                                                double aWidth, double aHeight);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<DOMRect> ReadStructuredClone(
-      JSContext* aCx, nsIGlobalObject* aGlobal,
-      JSStructuredCloneReader* aReader);
+      MCContext* aCx, nsIGlobalObject* aGlobal,
+      MC::Tainted<JSStructuredCloneReader*> aReader);
   using DOMRectReadOnly::ReadStructuredClone;
 
   void SetRect(float aX, float aY, float aWidth, float aHeight) {
@@ -152,7 +152,7 @@ class DOMRectList final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(DOMRectList)
 
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   nsISupports* GetParentObject() { return mParent; }

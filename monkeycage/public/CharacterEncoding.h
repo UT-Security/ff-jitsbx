@@ -13,6 +13,14 @@
 
 #include "monkeycage/Context.h"
 
+namespace JS {
+
+inline JS::UniqueChars EncodeNarrowToUtf8(MCContext* cx, const char* chars) {
+  return EncodeNarrowToUtf8(cx->cx_, chars);
+}
+
+}
+
 inline JS::UniqueChars JS_EncodeStringToLatin1(MCContext* cx, JSString* str) {
   return JS_EncodeStringToLatin1(cx->cx_, str);
 }

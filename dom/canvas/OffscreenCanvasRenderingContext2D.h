@@ -31,7 +31,7 @@ class OffscreenCanvasRenderingContext2D final
 
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   OffscreenCanvas* Canvas() { return mOffscreenCanvas; }

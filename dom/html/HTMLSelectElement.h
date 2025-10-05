@@ -188,7 +188,7 @@ class HTMLSelectElement final : public nsGenericHTMLFormControlElementWithState,
   using nsINode::Remove;
 
   // nsINode
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIContent
   void GetEventTargetParent(EventChainPreVisitor& aVisitor) override;

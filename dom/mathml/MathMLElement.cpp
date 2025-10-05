@@ -735,7 +735,7 @@ void MathMLElement::AfterSetAttr(int32_t aNameSpaceID, nsAtom* aName,
                                          aSubjectPrincipal, aNotify);
 }
 
-JSObject* MathMLElement::WrapNode(JSContext* aCx,
+JSObject* MathMLElement::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return MathMLElement_Binding::Wrap(aCx, this, aGivenProto);
 }

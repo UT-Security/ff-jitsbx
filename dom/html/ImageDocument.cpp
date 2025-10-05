@@ -163,7 +163,7 @@ nsresult ImageDocument::Init() {
   return NS_OK;
 }
 
-JSObject* ImageDocument::WrapNode(JSContext* aCx,
+JSObject* ImageDocument::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return ImageDocument_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -117,7 +117,7 @@ xpcAccessibleMacInterface::PerformAction(const nsAString& aActionName) {
 }
 
 NS_IMETHODIMP
-xpcAccessibleMacInterface::GetAttributeValue(const nsAString& aAttributeName, JSContext* aCx,
+xpcAccessibleMacInterface::GetAttributeValue(const nsAString& aAttributeName, MCContext* aCx,
                                              JS::MutableHandleValue aResult) {
   NS_OBJC_BEGIN_TRY_BLOCK_RETURN
 
@@ -146,7 +146,7 @@ xpcAccessibleMacInterface::IsAttributeSettable(const nsAString& aAttributeName, 
 
 NS_IMETHODIMP
 xpcAccessibleMacInterface::SetAttributeValue(const nsAString& aAttributeName,
-                                             JS::HandleValue aAttributeValue, JSContext* aCx) {
+                                             JS::HandleValue aAttributeValue, MCContext* aCx) {
   nsresult rv = NS_OK;
   id obj = JsValueToNSObject(aAttributeValue, aCx, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -164,7 +164,7 @@ xpcAccessibleMacInterface::SetAttributeValue(const nsAString& aAttributeName,
 NS_IMETHODIMP
 xpcAccessibleMacInterface::GetParameterizedAttributeValue(const nsAString& aAttributeName,
                                                           JS::HandleValue aParameter,
-                                                          JSContext* aCx,
+                                                          MCContext* aCx,
                                                           JS::MutableHandleValue aResult) {
   nsresult rv = NS_OK;
   id paramObj = JsValueToNSObject(aParameter, aCx, &rv);
@@ -183,7 +183,7 @@ bool xpcAccessibleMacInterface::SupportsSelector(SEL aSelector) {
           [mNativeObject isAccessibilitySelectorAllowed:aSelector]);
 }
 
-nsresult xpcAccessibleMacInterface::NSObjectToJsValue(id aObj, JSContext* aCx,
+nsresult xpcAccessibleMacInterface::NSObjectToJsValue(id aObj, MCContext* aCx,
                                                       JS::MutableHandleValue aResult) {
   if (!aObj) {
     aResult.set(JS::NullValue());
@@ -303,7 +303,7 @@ nsresult xpcAccessibleMacInterface::NSObjectToJsValue(id aObj, JSContext* aCx,
   return NS_OK;
 }
 
-id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, JSContext* aCx,
+id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, MCContext* aCx,
                                                 nsresult* aResult) {
   *aResult = NS_OK;
   if (aValue.isInt32()) {
@@ -373,7 +373,7 @@ id xpcAccessibleMacInterface::JsValueToNSObject(JS::HandleValue aValue, JSContex
   return nil;
 }
 
-id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSContext* aCx,
+id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, MCContext* aCx,
                                                nsresult* aResult) {
   *aResult = NS_ERROR_FAILURE;
   MC::RootedValue valueTypeValue(aCx);
@@ -427,7 +427,7 @@ id xpcAccessibleMacInterface::JsValueToNSValue(JS::HandleObject aObject, JSConte
   return nil;
 }
 
-id xpcAccessibleMacInterface::JsValueToSpecifiedNSObject(JS::HandleObject aObject, JSContext* aCx,
+id xpcAccessibleMacInterface::JsValueToSpecifiedNSObject(JS::HandleObject aObject, MCContext* aCx,
                                                          nsresult* aResult) {
   *aResult = NS_ERROR_FAILURE;
   MC::RootedValue objectTypeValue(aCx);
@@ -515,7 +515,7 @@ xpcAccessibleMacEvent::GetMacIface(nsIAccessibleMacInterface** aMacIface) {
 }
 
 NS_IMETHODIMP
-xpcAccessibleMacEvent::GetData(JSContext* aCx, JS::MutableHandleValue aData) {
+xpcAccessibleMacEvent::GetData(MCContext* aCx, JS::MutableHandleValue aData) {
   return xpcAccessibleMacInterface::NSObjectToJsValue(mData, aCx, aData);
 }
 

@@ -1114,7 +1114,7 @@ class MediaTrackGraph {
    * NotifyJSContext() is called on the graph thread before content script
    * runs.
    */
-  void NotifyJSContext(JSContext* aCx);
+  void NotifyJSContext(MCContext* aCx);
 
   /**
    * Media graph thread only.

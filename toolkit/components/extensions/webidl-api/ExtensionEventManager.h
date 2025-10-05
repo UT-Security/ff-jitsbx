@@ -46,14 +46,14 @@ class ExtensionEventManager final : public nsISupports,
                         const nsAString& aObjectId = VoidString());
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsIGlobalObject* GetParentObject() const;
 
   bool HasListener(dom::Function& aCallback, ErrorResult& aRv) const;
   bool HasListeners(ErrorResult& aRv) const;
 
-  void AddListener(JSContext* aCx, dom::Function& aCallback,
+  void AddListener(MCContext* aCx, dom::Function& aCallback,
                    const dom::Optional<JS::Handle<JSObject*>>& aOptions,
                    ErrorResult& aRv);
   void RemoveListener(dom::Function& aCallback, ErrorResult& aRv);

@@ -91,7 +91,7 @@ size_t XPCStringConvert::DynamicAtomExternalString::sizeOfBuffer(
 
 // convert a readable to a JSString, copying string data
 // static
-bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
+bool XPCStringConvert::ReadableToJSVal(MCContext* cx, const nsAString& readable,
                                        nsStringBuffer** sharedBuffer,
                                        MutableHandleValue vp) {
   *sharedBuffer = nullptr;
@@ -104,11 +104,11 @@ bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
 
   nsStringBuffer* buf = nsStringBuffer::FromString(readable);
   if (buf) {
-    bool shared;
-    if (!StringBufferToJSVal(cx, buf, length, vp, &shared)) {
+    MC::SandboxStack<bool> shared;
+    if (!StringBufferToJSVal(cx, buf, length, vp, shared)) {
       return false;
     }
-    if (shared) {
+    if (*shared.UNSAFE_unverified()) {
       *sharedBuffer = buf;
     }
     return true;
@@ -125,7 +125,7 @@ bool XPCStringConvert::ReadableToJSVal(JSContext* cx, const nsAString& readable,
 
 namespace xpc {
 
-bool NonVoidStringToJsval(JSContext* cx, nsAString& str,
+bool NonVoidStringToJsval(MCContext* cx, nsAString& str,
                           MutableHandleValue rval) {
   nsStringBuffer* sharedBuffer;
   if (!XPCStringConvert::ReadableToJSVal(cx, str, &sharedBuffer, rval)) {

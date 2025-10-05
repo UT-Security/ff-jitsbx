@@ -54,7 +54,7 @@ XPathExpression::XPathExpression(UniquePtr<Expr>&& aExpression,
 XPathExpression::~XPathExpression() = default;
 
 already_AddRefed<XPathResult> XPathExpression::EvaluateWithContext(
-    JSContext* aCx, nsINode& aContextNode, uint32_t aContextPosition,
+    MCContext* aCx, nsINode& aContextNode, uint32_t aContextPosition,
     uint32_t aContextSize, uint16_t aType, JS::Handle<JSObject*> aInResult,
     ErrorResult& aRv) {
   RefPtr<XPathResult> inResult;

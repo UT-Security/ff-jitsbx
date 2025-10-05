@@ -34,7 +34,7 @@ AuthenticatorResponse::~AuthenticatorResponse() {
 nsISupports* AuthenticatorResponse::GetParentObject() const { return mParent; }
 
 void AuthenticatorResponse::GetClientDataJSON(
-    JSContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
+    MCContext* aCx, JS::MutableHandle<JSObject*> aValue, ErrorResult& aRv) {
   if (!mClientDataJSONCachedObj) {
     mClientDataJSONCachedObj = mClientDataJSON.ToArrayBuffer(aCx);
     if (!mClientDataJSONCachedObj) {

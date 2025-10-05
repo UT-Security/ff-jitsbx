@@ -17,7 +17,7 @@ namespace layers {
 using namespace gfx;
 
 bool FrameUniformityData::ToJS(JS::MutableHandle<JS::Value> aOutValue,
-                               JSContext* aContext) {
+                               MCContext* aContext) {
   dom::FrameUniformityResults results;
   dom::Sequence<dom::FrameUniformity>& layers =
       results.mLayerUniformities.Construct();

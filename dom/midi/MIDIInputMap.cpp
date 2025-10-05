@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_END
 
 MIDIInputMap::MIDIInputMap(nsPIDOMWindowInner* aParent) : mParent(aParent) {}
 
-JSObject* MIDIInputMap::WrapObject(JSContext* aCx,
+JSObject* MIDIInputMap::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return MIDIInputMap_Binding::Wrap(aCx, this, aGivenProto);
 }

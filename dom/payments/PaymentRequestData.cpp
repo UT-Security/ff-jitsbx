@@ -44,7 +44,7 @@ PaymentMethodData::GetData(MCContext* aCx, JS::MutableHandle<JS::Value> aData) {
     aData.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mData, MC_UNSAFE(aCx), aData);
+  nsresult rv = DeserializeToJSValue(mData, aCx, aData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -211,7 +211,7 @@ PaymentDetailsModifier::GetData(MCContext* aCx,
     aData.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mData, MC_UNSAFE(aCx), aData);
+  nsresult rv = DeserializeToJSValue(mData, aCx, aData);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }
@@ -419,7 +419,7 @@ PaymentDetails::GetShippingAddressErrors(MCContext* aCx,
                                          JS::MutableHandle<JS::Value> aErrors) {
   AddressErrors errors;
   errors.Init(mShippingAddressErrors);
-  if (!ToJSValue(MC_UNSAFE(aCx), errors, aErrors)) {
+  if (!ToJSValue(aCx, errors, aErrors)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -430,7 +430,7 @@ PaymentDetails::GetPayerErrors(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aErrors) {
   PayerErrors errors;
   errors.Init(mPayerErrors);
-  if (!ToJSValue(MC_UNSAFE(aCx), errors, aErrors)) {
+  if (!ToJSValue(aCx, errors, aErrors)) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -443,7 +443,7 @@ PaymentDetails::GetPaymentMethodErrors(MCContext* aCx,
     aErrors.set(JS::NullValue());
     return NS_OK;
   }
-  nsresult rv = DeserializeToJSValue(mPaymentMethodErrors, MC_UNSAFE(aCx), aErrors);
+  nsresult rv = DeserializeToJSValue(mPaymentMethodErrors, aCx, aErrors);
   if (NS_WARN_IF(NS_FAILED(rv))) {
     return rv;
   }

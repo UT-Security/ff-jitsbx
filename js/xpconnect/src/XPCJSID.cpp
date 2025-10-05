@@ -9,7 +9,7 @@
 #include "xpcprivate.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Attributes.h"
-#include "js/Object.h"              // JS::GetClass, JS::GetReservedSlot
+#include "monkeycage/Object.h"              // JS::GetClass, JS::GetReservedSlot
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunction, JS_DefineFunctionById, JS_DefineProperty, JS_DefinePropertyById
 #include "monkeycage/Symbol.h"
 #include "monkeycage/Wrapper.h"
@@ -105,7 +105,7 @@ static const JSClass sCID_Class = {
  * Ensure that the nsID prototype objects have been created for the current
  * global, and extract the prototype values.
  */
-static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
+static JSObject* GetIDPrototype(MCContext* aCx, const JSClass* aClass) {
   XPCWrappedNativeScope* scope = ObjectScope(CurrentGlobalOrNull(aCx));
   if (NS_WARN_IF(!scope)) {
     return nullptr;
@@ -145,29 +145,29 @@ static JSObject* GetIDPrototype(JSContext* aCx, const JSClass* aClass) {
     bool ok =
         idProto && iidProto && cidProto &&
         // Methods and properties on all ID Objects:
-        JS_DefineFunction(aCx, idProto, "equals", ID_EqualsCb.UNSAFE_get(), 1, kFlags) &&
-        JS_DefineProperty(aCx, idProto, "number", ID_GetNumberCb.UNSAFE_get(), nullptr,
+        JS_DefineFunction(aCx, idProto, "equals", ID_EqualsCb, 1, kFlags) &&
+        JS_DefineProperty(aCx, idProto, "number", ID_GetNumberCb, nullptr,
                           kFlags) &&
 
         // Methods for IfaceID objects, which also inherit ID properties:
-        JS_DefineFunctionById(aCx, iidProto, hasInstance, IID_HasInstanceCb.UNSAFE_get(), 1,
+        JS_DefineFunctionById(aCx, iidProto, hasInstance, IID_HasInstanceCb, 1,
                               kNoEnum) &&
-        JS_DefineProperty(aCx, iidProto, "name", IID_GetNameCb.UNSAFE_get(), nullptr,
+        JS_DefineProperty(aCx, iidProto, "name", IID_GetNameCb, nullptr,
                           kFlags) &&
 
         // Methods for ContractID objects, which also inherit ID properties:
-        JS_DefineFunction(aCx, cidProto, "createInstance", CID_CreateInstanceCb.UNSAFE_get(),
+        JS_DefineFunction(aCx, cidProto, "createInstance", CID_CreateInstanceCb,
                           1, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "getService", CID_GetServiceCb.UNSAFE_get(), 1,
+        JS_DefineFunction(aCx, cidProto, "getService", CID_GetServiceCb, 1,
                           kFlags) &&
-        JS_DefineProperty(aCx, cidProto, "name", CID_GetNameCb.UNSAFE_get(), nullptr,
+        JS_DefineProperty(aCx, cidProto, "name", CID_GetNameCb, nullptr,
                           kFlags) &&
 
         // ToString returns '.number' on generic IDs, while returning
         // '.name' on other ID types.
-        JS_DefineFunction(aCx, idProto, "toString", ID_GetNumberCb.UNSAFE_get(), 0, kFlags) &&
-        JS_DefineFunction(aCx, iidProto, "toString", IID_GetNameCb.UNSAFE_get(), 0, kFlags) &&
-        JS_DefineFunction(aCx, cidProto, "toString", CID_GetNameCb.UNSAFE_get(), 0, kFlags);
+        JS_DefineFunction(aCx, idProto, "toString", ID_GetNumberCb, 0, kFlags) &&
+        JS_DefineFunction(aCx, iidProto, "toString", IID_GetNameCb, 0, kFlags) &&
+        JS_DefineFunction(aCx, cidProto, "toString", CID_GetNameCb, 0, kFlags);
     if (!ok) {
       return nullptr;
     }
@@ -214,7 +214,7 @@ static const nsXPTInterfaceInfo* GetInterfaceInfo(JSObject* obj) {
  * and for ContractID objects, the ContractID's corresponding CID will be looked
  * up.
  */
-Maybe<nsID> JSValue2ID(JSContext* aCx, HandleValue aVal) {
+Maybe<nsID> JSValue2ID(MCContext* aCx, HandleValue aVal) {
   if (!aVal.isObject()) {
     return Nothing();
   }
@@ -269,7 +269,7 @@ Maybe<nsID> JSValue2ID(JSContext* aCx, HandleValue aVal) {
 /**
  * Public ID Object Constructor Methods
  */
-static JSObject* NewIDObjectHelper(JSContext* aCx, const JSClass* aClass) {
+static JSObject* NewIDObjectHelper(MCContext* aCx, const JSClass* aClass) {
   MC::RootedObject proto(aCx, GetIDPrototype(aCx, aClass));
   if (proto) {
     return JS_NewObjectWithGivenProto(aCx, aClass, proto);
@@ -277,7 +277,7 @@ static JSObject* NewIDObjectHelper(JSContext* aCx, const JSClass* aClass) {
   return nullptr;
 }
 
-bool ID2JSValue(JSContext* aCx, const nsID& aId, MutableHandleValue aVal) {
+bool ID2JSValue(MCContext* aCx, const nsID& aId, MutableHandleValue aVal) {
   MC::RootedObject obj(aCx, NewIDObjectHelper(aCx, &sID_Class));
   if (!obj) {
     return false;
@@ -296,7 +296,7 @@ bool ID2JSValue(JSContext* aCx, const nsID& aId, MutableHandleValue aVal) {
   return true;
 }
 
-bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
+bool IfaceID2JSValue(MCContext* aCx, const nsXPTInterfaceInfo& aInfo,
                      MutableHandleValue aVal) {
   MC::RootedObject obj(aCx, NewIDObjectHelper(aCx, sIID_Class()));
   if (!obj) {
@@ -309,7 +309,7 @@ bool IfaceID2JSValue(JSContext* aCx, const nsXPTInterfaceInfo& aInfo,
   return true;
 }
 
-bool ContractID2JSValue(JSContext* aCx, JSString* aContract,
+bool ContractID2JSValue(MCContext* aCx, JSString* aContract,
                         MutableHandleValue aVal) {
   MC::RootedString jsContract(aCx, aContract);
 
@@ -353,7 +353,7 @@ static MC::Tainted<bool> ID_GetNumber(MC::Tainted<JSContext*> tCx, unsigned aArg
 
   CallArgs args = CallArgsFromVp(aArgc, aVp);
 
-  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
+  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
   if (!id) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
@@ -378,8 +378,8 @@ static MC::Tainted<bool> ID_Equals(MC::Tainted<JSContext*> tCx, unsigned aArgc, 
     return false;
   }
 
-  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
-  Maybe<nsID> id2 = JSValue2ID(MC_UNSAFE(aCx), args[0]);
+  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
+  Maybe<nsID> id2 = JSValue2ID(aCx, args[0]);
   if (!id || !id2) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
@@ -407,7 +407,7 @@ static MC::Tainted<bool> ID_Equals(MC::Tainted<JSContext*> tCx, unsigned aArgc, 
  * This static method handles both complexities, returning either an XPCWN, a
  * DOM object, or null. The object may well be cross-compartment from |cx|.
  */
-static nsresult FindObjectForHasInstance(JSContext* cx, HandleObject objArg,
+static nsresult FindObjectForHasInstance(MCContext* cx, HandleObject objArg,
                                          MutableHandleObject target) {
   MC::RootedObject obj(cx, objArg), proto(cx);
   while (true) {
@@ -415,7 +415,7 @@ static nsresult FindObjectForHasInstance(JSContext* cx, HandleObject objArg,
     // here, because we might in fact be looking for a Window.  "cx" represents
     // our current global.
     JSObject* o =
-        mc::IsWrapper(obj) ? js::CheckedUnwrapDynamic(obj, cx, false) : obj;
+        mc::IsWrapper(obj) ? mc::CheckedUnwrapDynamic(obj, cx, false) : obj;
     if (o && (IsWrappedNativeReflector(o) || IsDOMObject(o))) {
       target.set(o);
       return NS_OK;
@@ -434,7 +434,7 @@ static nsresult FindObjectForHasInstance(JSContext* cx, HandleObject objArg,
   }
 }
 
-nsresult HasInstance(JSContext* cx, HandleObject objArg, const nsID* iid,
+nsresult HasInstance(MCContext* cx, HandleObject objArg, const nsID* iid,
                      bool* bp) {
   *bp = false;
 
@@ -479,7 +479,7 @@ static MC::Tainted<bool> IID_HasInstance(MC::Tainted<JSContext*> tCx, unsigned a
     return false;
   }
 
-  Maybe<nsID> id = JSValue2ID(MC_UNSAFE(aCx), args.thisv());
+  Maybe<nsID> id = JSValue2ID(aCx, args.thisv());
   if (!id) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
   }
@@ -487,7 +487,7 @@ static MC::Tainted<bool> IID_HasInstance(MC::Tainted<JSContext*> tCx, unsigned a
   bool hasInstance = false;
   if (args[0].isObject()) {
     MC::RootedObject target(aCx, &args[0].toObject());
-    nsresult rv = HasInstance(MC_UNSAFE(aCx), target, id.ptr(), &hasInstance);
+    nsresult rv = HasInstance(aCx, target, id.ptr(), &hasInstance);
     if (NS_FAILED(rv)) {
       return Throw(aCx, rv);
     }
@@ -607,7 +607,7 @@ static bool CIGSHelper(MCContext* aCx, unsigned aArgc, Value* aVp,
       aCx, JS::GetReservedSlot(obj, kCID_ContractSlot).toString());
 
   // Extract the IID from the first argument, if passed. Default: nsISupports.
-  Maybe<nsIID> iid = args.length() >= 1 ? JSValue2ID(MC_UNSAFE(aCx), args[0])
+  Maybe<nsIID> iid = args.length() >= 1 ? JSValue2ID(aCx, args[0])
                                         : Some(NS_GET_IID(nsISupports));
   if (!iid) {
     return Throw(aCx, NS_ERROR_XPC_BAD_CONVERT_JS);
@@ -629,7 +629,7 @@ static bool CIGSHelper(MCContext* aCx, unsigned aArgc, Value* aVp,
   }
 
   // Wrap the created object and return it.
-  rv = nsContentUtils::WrapNative(MC_UNSAFE(aCx), result, iid.ptr(), args.rval());
+  rv = nsContentUtils::WrapNative(aCx, result, iid.ptr(), args.rval());
   if (NS_FAILED(rv) || args.rval().isPrimitive()) {
     return Throw(aCx, NS_ERROR_XPC_CANT_CREATE_WN);
   }

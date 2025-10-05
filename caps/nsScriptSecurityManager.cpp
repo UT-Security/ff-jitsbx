@@ -451,7 +451,7 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     MC::Tainted<JSContext*> tcx, JS::RuntimeCode aKind, JS::Handle<JSString*> aCode) {
   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);
 
-  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
 
   nsCOMPtr<nsIPrincipal> subjectPrincipal = nsContentUtils::SubjectPrincipal();
 
@@ -466,18 +466,18 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     nsAutoJSString scriptSample;
     if (aKind == JS::RuntimeCode::JS &&
         NS_WARN_IF(!scriptSample.init(cx, aCode))) {
-      return MC::Tainted<bool>(false);
+      return false;
     }
 
     if (!nsContentSecurityUtils::IsEvalAllowed(
-            MC_UNSAFE(cx), subjectPrincipal->IsSystemPrincipal(), scriptSample)) {
-      return MC::Tainted<bool>(false);
+            cx, subjectPrincipal->IsSystemPrincipal(), scriptSample)) {
+      return false;
     }
   }
 
   // Get the window, if any, corresponding to the current global
   nsCOMPtr<nsIContentSecurityPolicy> csp;
-  if (nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(MC_UNSAFE(cx))) {
+  if (nsGlobalWindowInner* win = xpc::CurrentWindowOrNull(cx)) {
     csp = win->GetCsp();
   }
 
@@ -492,14 +492,14 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
     }
     // don't do anything unless there's a CSP
     if (!csp) {
-      return MC::Tainted<bool>(true);
+      return true;
     }
   }
 
   nsCOMPtr<nsICSPEventListener> cspEventListener;
   if (!NS_IsMainThread()) {
     WorkerPrivate* workerPrivate =
-        mozilla::dom::GetWorkerPrivateFromContext(MC_UNSAFE(cx));
+        mozilla::dom::GetWorkerPrivateFromContext(cx);
     if (workerPrivate) {
       cspEventListener = workerPrivate->CSPEventListener();
     }
@@ -560,7 +560,7 @@ MC::Tainted<bool> nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(
                              *columnNum.UNSAFE_unverified(), u""_ns, u""_ns);
   }
 
-  return MC::Tainted<bool>(evalOK);
+  return evalOK;
 }
 
 // static
@@ -589,7 +589,7 @@ nsScriptSecurityManager::CheckSameOriginURI(nsIURI* aSourceURI,
 NS_IMETHODIMP
 nsScriptSecurityManager::CheckLoadURIFromScript(MCContext* cx, nsIURI* aURI) {
   // Get principal of currently executing script.
-  MOZ_ASSERT(MC_UNSAFE(cx) == nsContentUtils::GetCurrentJSContext());
+  MOZ_ASSERT(cx == nsContentUtils::GetCurrentJSContext());
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal();
   nsresult rv = CheckLoadURIWithPrincipal(
       // Passing 0 for the window ID here is OK, because we will report a
@@ -1279,7 +1279,7 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipalFromJS(
 
     message.Append(" denied");
 
-    dom::Throw(MC_UNSAFE(aCx), rv, message);
+    dom::Throw(aCx, rv, message);
   }
 
   return rv;
@@ -1325,7 +1325,7 @@ nsScriptSecurityManager::CreateContentPrincipal(
     nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
     nsIPrincipal** aPrincipal) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   nsCOMPtr<nsIPrincipal> prin =
@@ -1390,7 +1390,7 @@ nsScriptSecurityManager::CreateNullPrincipal(
     JS::Handle<JS::Value> aOriginAttributes, MCContext* aCx,
     nsIPrincipal** aPrincipal) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
   nsCOMPtr<nsIPrincipal> prin = NullPrincipal::Create(attrs);
@@ -1429,7 +1429,7 @@ nsScriptSecurityManager::PrincipalWithOA(
   }
   if (aPrincipal->GetIsContentPrincipal()) {
     OriginAttributes attrs;
-    if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+    if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
     auto* contentPrincipal = static_cast<ContentPrincipal*>(aPrincipal);

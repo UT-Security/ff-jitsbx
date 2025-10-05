@@ -38,7 +38,7 @@ class PaymentRequestManager final {
    *  data to chrome process for internal payment creation, such that content
    *  process can ask specific task by sending requestId only.
    */
-  void CreatePayment(JSContext* aCx, nsPIDOMWindowInner* aWindow,
+  void CreatePayment(MCContext* aCx, nsPIDOMWindowInner* aWindow,
                      nsIPrincipal* aTopLevelPrincipal,
                      const Sequence<PaymentMethodData>& aMethodData,
                      const PaymentDetailsInit& aDetails,
@@ -51,11 +51,11 @@ class PaymentRequestManager final {
   void CompletePayment(PaymentRequest* aRequest,
                        const PaymentComplete& aComplete, ErrorResult& aRv,
                        bool aTimedOut = false);
-  void UpdatePayment(JSContext* aCx, PaymentRequest* aRequest,
+  void UpdatePayment(MCContext* aCx, PaymentRequest* aRequest,
                      const PaymentDetailsUpdate& aDetails,
                      bool aRequestShipping, ErrorResult& aRv);
   nsresult ClosePayment(PaymentRequest* aRequest);
-  void RetryPayment(JSContext* aCx, PaymentRequest* aRequest,
+  void RetryPayment(MCContext* aCx, PaymentRequest* aRequest,
                     const PaymentValidationErrors& aErrors, ErrorResult& aRv);
 
   nsresult RespondPayment(PaymentRequest* aRequest,

@@ -29,12 +29,12 @@ class XRView final : public nsWrapperCache {
               const gfx::Matrix4x4& aProjectionMatrix);
   // WebIDL Boilerplate
   nsISupports* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Members
   XREye Eye() const;
-  void GetProjectionMatrix(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetProjectionMatrix(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                            ErrorResult& aRv);
   already_AddRefed<XRRigidTransform> GetTransform(ErrorResult& aRv);
 

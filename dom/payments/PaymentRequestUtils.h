@@ -7,23 +7,23 @@
 #ifndef mozilla_dom_PaymentRequestUtils_h
 #define mozilla_dom_PaymentRequestUtils_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "nsTArray.h"
 
 namespace mozilla::dom {
 
-nsresult SerializeFromJSObject(JSContext* aCx, JS::Handle<JSObject*> aObject,
+nsresult SerializeFromJSObject(MCContext* aCx, JS::Handle<JSObject*> aObject,
                                nsAString& aSerializedObject);
 
-nsresult SerializeFromJSVal(JSContext* aCx, JS::Handle<JS::Value> aValue,
+nsresult SerializeFromJSVal(MCContext* aCx, JS::Handle<JS::Value> aValue,
                             nsAString& aSerializedValue);
 
 nsresult DeserializeToJSObject(const nsAString& aSerializedObject,
-                               JSContext* aCx,
+                               MCContext* aCx,
                                JS::MutableHandle<JSObject*> aObject);
 
 nsresult DeserializeToJSValue(const nsAString& aSerializedObject,
-                              JSContext* aCx,
+                              MCContext* aCx,
                               JS::MutableHandle<JS::Value> aValue);
 
 }  // namespace mozilla::dom

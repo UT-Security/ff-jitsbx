@@ -31,7 +31,7 @@ NS_INTERFACE_MAP_END_INHERITING(UnderlyingSinkAlgorithmsBase)
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 void UnderlyingSinkAlgorithms::StartCallback(
-    JSContext* aCx, WritableStreamDefaultController& aController,
+    MCContext* aCx, WritableStreamDefaultController& aController,
     JS::MutableHandle<JS::Value> aRetVal, ErrorResult& aRv) {
   if (!mStartCallback) {
     // Step 2: Let startAlgorithm be an algorithm that returns undefined.
@@ -51,7 +51,7 @@ void UnderlyingSinkAlgorithms::StartCallback(
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 already_AddRefed<Promise> UnderlyingSinkAlgorithms::WriteCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, JS::Handle<JS::Value> aChunk,
     WritableStreamDefaultController& aController, ErrorResult& aRv) {
   if (!mWriteCallback) {
     // Step 3: Let writeAlgorithm be an algorithm that returns a promise
@@ -72,7 +72,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::WriteCallback(
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 already_AddRefed<Promise> UnderlyingSinkAlgorithms::CloseCallback(
-    JSContext* aCx, ErrorResult& aRv) {
+    MCContext* aCx, ErrorResult& aRv) {
   if (!mCloseCallback) {
     // Step 4: Let closeAlgorithm be an algorithm that returns a promise
     // resolved with undefined.
@@ -92,7 +92,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::CloseCallback(
 
 // https://streams.spec.whatwg.org/#set-up-writable-stream-default-controller-from-underlying-sink
 already_AddRefed<Promise> UnderlyingSinkAlgorithms::AbortCallback(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+    MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
   if (!mAbortCallback) {
     // Step 5: Let abortAlgorithm be an algorithm that returns a promise
@@ -113,7 +113,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithms::AbortCallback(
 // https://streams.spec.whatwg.org/#writable-set-up
 // Step 2.1: Let closeAlgorithmWrapper be an algorithm that runs these steps:
 already_AddRefed<Promise> UnderlyingSinkAlgorithmsWrapper::CloseCallback(
-    JSContext* aCx, ErrorResult& aRv) {
+    MCContext* aCx, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
   return PromisifyAlgorithm(
       global, [&](ErrorResult& aRv) { return CloseCallbackImpl(aCx, aRv); },
@@ -123,7 +123,7 @@ already_AddRefed<Promise> UnderlyingSinkAlgorithmsWrapper::CloseCallback(
 // https://streams.spec.whatwg.org/#writable-set-up
 // Step 3.1: Let abortAlgorithmWrapper be an algorithm that runs these steps:
 already_AddRefed<Promise> UnderlyingSinkAlgorithmsWrapper::AbortCallback(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+    MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = xpc::CurrentNativeGlobal(aCx);
   return PromisifyAlgorithm(
@@ -183,7 +183,7 @@ WritableStreamToOutput::OnOutputStreamReady(nsIAsyncOutputStream* aStream) {
 }
 
 already_AddRefed<Promise> WritableStreamToOutput::WriteCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, JS::Handle<JS::Value> aChunk,
     WritableStreamDefaultController& aController, ErrorResult& aError) {
   ArrayBufferViewOrArrayBuffer data;
   if (!data.Init(aCx, aChunk)) {
@@ -250,7 +250,7 @@ already_AddRefed<Promise> WritableStreamToOutput::WriteCallback(
 }
 
 already_AddRefed<Promise> WritableStreamToOutput::AbortCallbackImpl(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+    MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
     ErrorResult& aRv) {
   // https://streams.spec.whatwg.org/#writablestream-set-up
   // Step 3. Let abortAlgorithmWrapper be an algorithm that runs these steps:

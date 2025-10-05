@@ -15,12 +15,12 @@ namespace mozilla::dom::ConsoleCommon {
 // This class is used to clear any exception at the end of this method.
 class MOZ_RAII ClearException {
  public:
-  explicit ClearException(JSContext* aCx) : mCx(aCx) {}
+  explicit ClearException(MCContext* aCx) : mCx(aCx) {}
 
   ~ClearException() { JS_ClearPendingException(mCx); }
 
  private:
-  JSContext* mCx;
+  MCContext* mCx;
 };
 
 }  // namespace mozilla::dom::ConsoleCommon

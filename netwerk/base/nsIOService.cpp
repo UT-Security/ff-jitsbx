@@ -2084,7 +2084,7 @@ NS_IMETHODIMP nsIOService::SpeculativeConnectWithOriginAttributes(
     nsIURI* aURI, JS::Handle<JS::Value> aOriginAttributes,
     nsIInterfaceRequestor* aCallbacks, bool aAnonymous, MCContext* aCx) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 

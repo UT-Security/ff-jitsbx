@@ -7,7 +7,7 @@
 #define ArrayBufferInputStream_h
 
 #include "nsIArrayBufferInputStream.h"
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Maybe.h"
 #include "mozilla/UniquePtr.h"
 #include "nsISupportsImpl.h"

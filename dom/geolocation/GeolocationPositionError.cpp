@@ -40,7 +40,7 @@ nsWrapperCache* GeolocationPositionError::GetParentObject() const {
 }
 
 JSObject* GeolocationPositionError::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return GeolocationPositionError_Binding::Wrap(aCx, this, aGivenProto);
 }
 

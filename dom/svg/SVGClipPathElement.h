@@ -29,7 +29,7 @@ class SVGClipPathElement final : public SVGClipPathElementBase {
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));
   explicit SVGClipPathElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;

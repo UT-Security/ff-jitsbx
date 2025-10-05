@@ -17,7 +17,7 @@ namespace mozilla::dom {
 
 using namespace SVGUnitTypes_Binding;
 
-JSObject* SVGClipPathElement::WrapNode(JSContext* aCx,
+JSObject* SVGClipPathElement::WrapNode(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGClipPathElement_Binding::Wrap(aCx, this, aGivenProto);
 }

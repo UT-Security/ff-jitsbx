@@ -449,7 +449,7 @@ already_AddRefed<MatchPattern> MatchPattern::Constructor(
   return pattern.forget();
 }
 
-JSObject* MatchPattern::WrapObject(JSContext* aCx,
+JSObject* MatchPattern::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return MatchPattern_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -590,7 +590,7 @@ void MatchPatternSet::GetPatterns(ArrayType& aPatterns) {
   aPatterns.AppendElements(*mPatternsCache);
 }
 
-JSObject* MatchPatternSet::WrapObject(JSContext* aCx,
+JSObject* MatchPatternSet::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return MatchPatternSet_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -695,7 +695,7 @@ already_AddRefed<MatchGlob> MatchGlob::Constructor(dom::GlobalObject& aGlobal,
   return glob.forget();
 }
 
-JSObject* MatchGlob::WrapObject(JSContext* aCx,
+JSObject* MatchGlob::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return MatchGlob_Binding::Wrap(aCx, this, aGivenProto);
 }

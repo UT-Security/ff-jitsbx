@@ -29,7 +29,7 @@ class nsAttrChildContentList : public nsINodeList {
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_WRAPPERCACHE_CLASS(nsAttrChildContentList)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // nsINodeList interface

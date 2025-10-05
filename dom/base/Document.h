@@ -2303,13 +2303,13 @@ class Document : public nsINode,
    * This function checks if the document that is trying to access
    * GetNetErrorInfo is a trusted about net error page or not.
    */
-  static bool CallerIsTrustedAboutNetError(JSContext* aCx, JSObject* aObject);
+  static bool CallerIsTrustedAboutNetError(MCContext* aCx, JSObject* aObject);
 
   /**
    * This function checks if the document that is trying to access
    * ReloadWithHttpsOnlyException is a trusted HTTPS only error page.
    */
-  static bool CallerIsTrustedAboutHttpsOnlyError(JSContext* aCx,
+  static bool CallerIsTrustedAboutHttpsOnlyError(MCContext* aCx,
                                                  JSObject* aObject);
 
   /**
@@ -2322,14 +2322,14 @@ class Document : public nsINode,
    * This function checks if the document that is trying to access
    * GetFailedCertSecurityInfo is a trusted cert error page or not.
    */
-  static bool CallerIsTrustedAboutCertError(JSContext* aCx, JSObject* aObject);
+  static bool CallerIsTrustedAboutCertError(MCContext* aCx, JSObject* aObject);
 
   /**
    * This function checks if the privilege storage access api is available for
    * the caller. We only allow privilege SSA to be called by system principal
    * and webcompat extension.
    */
-  static bool CallerCanAccessPrivilegeSSA(JSContext* aCx, JSObject* aObject);
+  static bool CallerCanAccessPrivilegeSSA(MCContext* aCx, JSObject* aObject);
 
   /**
    * Get the security info (i.e. certificate validity, errorCode, etc) for a
@@ -3530,17 +3530,17 @@ class Document : public nsINode,
 
   mozilla::dom::HTMLAllCollection* All();
 
-  static bool DocumentSupportsL10n(JSContext* aCx, JSObject* aObject);
-  static bool IsWebAnimationsEnabled(JSContext* aCx, JSObject* aObject);
+  static bool DocumentSupportsL10n(MCContext* aCx, JSObject* aObject);
+  static bool IsWebAnimationsEnabled(MCContext* aCx, JSObject* aObject);
   static bool IsWebAnimationsEnabled(CallerType aCallerType);
-  static bool IsWebAnimationsGetAnimationsEnabled(JSContext* aCx,
+  static bool IsWebAnimationsGetAnimationsEnabled(MCContext* aCx,
                                                   JSObject* aObject);
-  static bool AreWebAnimationsImplicitKeyframesEnabled(JSContext* aCx,
+  static bool AreWebAnimationsImplicitKeyframesEnabled(MCContext* aCx,
                                                        JSObject* aObject);
-  static bool AreWebAnimationsTimelinesEnabled(JSContext* aCx,
+  static bool AreWebAnimationsTimelinesEnabled(MCContext* aCx,
                                                JSObject* aObject);
   // Checks that the caller is either chrome or some addon.
-  static bool IsCallerChromeOrAddon(JSContext* aCx, JSObject* aObject);
+  static bool IsCallerChromeOrAddon(MCContext* aCx, JSObject* aObject);
 
   bool Hidden() const { return mVisibilityState != VisibilityState::Visible; }
   dom::VisibilityState VisibilityState() const { return mVisibilityState; }
@@ -3597,7 +3597,7 @@ class Document : public nsINode,
                                     ErrorResult& rv);
   nsINode* CreateNSResolver(nsINode& aNodeResolver);
   already_AddRefed<XPathResult> Evaluate(
-      JSContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
+      MCContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
       XPathNSResolver* aResolver, uint16_t aType, JS::Handle<JSObject*> aResult,
       ErrorResult& rv);
   // Touch event handlers already on nsINode
@@ -3877,7 +3877,7 @@ class Document : public nsINode,
   void NoteScriptTrackingStatus(const nsACString& aURL, bool isTracking);
   // The JSContext passed to this method represents the context that we want to
   // determine if it belongs to a tracker.
-  bool IsScriptTracking(JSContext* aCx) const;
+  bool IsScriptTracking(MCContext* aCx) const;
 
   // ResizeObserver usage.
   void AddResizeObserver(ResizeObserver&);

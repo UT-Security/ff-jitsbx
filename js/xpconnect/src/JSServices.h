@@ -9,9 +9,11 @@
 
 #include "jstypes.h"
 
+struct MCContext;
+
 namespace xpc {
 
-JSObject* NewJSServices(JSContext* cx);
+JSObject* NewJSServices(MCContext* cx);
 
 }
 

@@ -9,7 +9,7 @@
 #include "FileSystemDirectoryHandle.h"
 #include "FileSystemFileHandle.h"
 #include "fs/FileSystemRequestHandler.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/FileSystemHandleBinding.h"
 #include "mozilla/dom/FileSystemLog.h"
@@ -30,8 +30,8 @@ namespace mozilla::dom {
 
 namespace {
 
-bool ConstructHandleMetadata(JSContext* aCx, nsIGlobalObject* aGlobal,
-                             JSStructuredCloneReader* aReader,
+bool ConstructHandleMetadata(MCContext* aCx, nsIGlobalObject* aGlobal,
+                             MC::Tainted<JSStructuredCloneReader*> aReader,
                              const bool aDirectory,
                              fs::FileSystemEntryMetadata& aMetadata) {
   using namespace mozilla::dom::fs;
@@ -51,9 +51,7 @@ bool ConstructHandleMetadata(JSContext* aCx, nsIGlobalObject* aGlobal,
   }
 
   mozilla::ipc::PrincipalInfo storageKey;
-  MC::Tainted<JSStructuredCloneReader*> tReader{nullptr};
-  tReader.assign_raw_pointer(aReader);
-  if (!nsJSPrincipals::ReadPrincipalInfo(tReader, storageKey)) {
+  if (!nsJSPrincipals::ReadPrincipalInfo(aReader, storageKey)) {
     return false;
   }
 
@@ -108,7 +106,7 @@ FileSystemHandle::FileSystemHandle(
 
 nsIGlobalObject* FileSystemHandle::GetParentObject() const { return mGlobal; }
 
-JSObject* FileSystemHandle::WrapObject(JSContext* aCx,
+JSObject* FileSystemHandle::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return FileSystemHandle_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -187,7 +185,7 @@ already_AddRefed<Promise> FileSystemHandle::Move(const fs::EntryId& aParentId,
   // Other handles to this will be broken, and the spec is ok with this, but we
   // need to update our EntryId and name
   promise->AddCallbacksWithCycleCollectedArgs(
-      [name](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [name](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
              FileSystemHandle* aHandle) {
         // XXX Fix entryId!
         LOG(("Changing FileSystemHandle name from %s to %s",
@@ -195,7 +193,7 @@ already_AddRefed<Promise> FileSystemHandle::Move(const fs::EntryId& aParentId,
              NS_ConvertUTF16toUTF8(name).get()));
         aHandle->mMetadata.entryName() = name;
       },
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          FileSystemHandle* aHandle) {
         LOG(("reject of move for %s",
              NS_ConvertUTF16toUTF8(aHandle->mMetadata.entryName()).get()));
@@ -209,8 +207,8 @@ already_AddRefed<Promise> FileSystemHandle::Move(const fs::EntryId& aParentId,
 
 // static
 already_AddRefed<FileSystemHandle> FileSystemHandle::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   LOG_VERBOSE(("Reading File/DirectoryHandle"));
 
   uint32_t kind = static_cast<uint32_t>(FileSystemHandleKind::EndGuard_);
@@ -236,7 +234,7 @@ already_AddRefed<FileSystemHandle> FileSystemHandle::ReadStructuredClone(
 }
 
 bool FileSystemHandle::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   LOG_VERBOSE(("Writing File/DirectoryHandle"));
   MOZ_ASSERT(mMetadata.entryId().Length() == 32);
 
@@ -265,8 +263,8 @@ bool FileSystemHandle::WriteStructuredClone(
 
 // static
 already_AddRefed<FileSystemFileHandle> FileSystemHandle::ConstructFileHandle(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   LOG(("Reading FileHandle"));
 
   fs::FileSystemEntryMetadata metadata;
@@ -292,9 +290,9 @@ already_AddRefed<FileSystemFileHandle> FileSystemHandle::ConstructFileHandle(
 
 // static
 already_AddRefed<FileSystemDirectoryHandle>
-FileSystemHandle::ConstructDirectoryHandle(JSContext* aCx,
+FileSystemHandle::ConstructDirectoryHandle(MCContext* aCx,
                                            nsIGlobalObject* aGlobal,
-                                           JSStructuredCloneReader* aReader) {
+                                           MC::Tainted<JSStructuredCloneReader*> aReader) {
   LOG(("Reading DirectoryHandle"));
 
   fs::FileSystemEntryMetadata metadata;

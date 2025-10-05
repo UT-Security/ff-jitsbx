@@ -22,7 +22,7 @@ using namespace mozilla::dom;
 
 namespace {
 
-static nsCString FormatStackString(JSContext* cx, JSPrincipals* aPrincipals,
+static nsCString FormatStackString(MCContext* cx, JSPrincipals* aPrincipals,
                                    JS::Handle<JSObject*> aStack) {
   MC::Rooted<JSString*> formattedStack(cx);
   if (!JS::BuildStackString(cx, aPrincipals, aStack, &formattedStack)) {
@@ -139,7 +139,7 @@ nsScriptErrorWithStack::ToString(nsACString& /*UTF8*/ aResult) {
   JSPrincipals* principals =
       JS::GetRealmPrincipals(js::GetNonCCWObjectRealm(mStackGlobal));
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.cx();
   MC::Rooted<JSObject*> stack(cx, mStack);
   nsCString stackString = FormatStackString(cx, principals, stack);
   nsCString combined = message + "\n"_ns + stackString;

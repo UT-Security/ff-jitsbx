@@ -159,7 +159,7 @@ void WebTransport::NewDatagramReceived(nsTArray<uint8_t>&& aData,
 
 nsIGlobalObject* WebTransport::GetParentObject() const { return mGlobal; }
 
-JSObject* WebTransport::WrapObject(JSContext* aCx,
+JSObject* WebTransport::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return WebTransport_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -317,7 +317,7 @@ void WebTransport::Init(const GlobalObject& aGlobal, const nsAString& aURL,
   RefPtr<WebTransportIncomingStreamsAlgorithms> algorithm =
       mIncomingBidirectionalAlgorithm;
   mIncomingBidirectionalStreams = ReadableStream::CreateNative(
-      MC_UNSAFE(cx), global, *algorithm, Some(0.0), nullptr, aError);
+      cx, global, *algorithm, Some(0.0), nullptr, aError);
   if (aError.Failed()) {
     return;
   }
@@ -332,7 +332,7 @@ void WebTransport::Init(const GlobalObject& aGlobal, const nsAString& aURL,
 
   algorithm = mIncomingUnidirectionalAlgorithm;
   mIncomingUnidirectionalStreams = ReadableStream::CreateNative(
-      MC_UNSAFE(cx), global, *algorithm, Some(0.0), nullptr, aError);
+      cx, global, *algorithm, Some(0.0), nullptr, aError);
   if (aError.Failed()) {
     return;
   }
@@ -525,7 +525,7 @@ void WebTransport::PropagateError(Stream* aStream, WebTransportError* aError) {
     rv.ThrowUnknownError("Internal error");
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> errorValue(cx);
   bool ok = ToJSValue(cx, aError, &errorValue);
   if (!ok) {
@@ -822,7 +822,7 @@ void WebTransport::Cleanup(WebTransportError* aError,
     aRv.ThrowUnknownError("Internal error");
     return;
   }
-  JSContext* cx = jsapi.cx();
+MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> errorValue(cx);
   bool ok = ToJSValue(cx, aError, &errorValue);
   if (!ok) {

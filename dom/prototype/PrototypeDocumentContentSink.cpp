@@ -56,8 +56,8 @@
 #include "nsXULPrototypeCache.h"
 #include "nsXULElement.h"
 #include "mozilla/CycleCollectedJSContext.h"
-#include "js/CompilationAndEvaluation.h"
-#include "js/experimental/JSStencil.h"
+#include "monkeycage/CompilationAndEvaluation.h"
+#include "monkeycage/experimental/JSStencil.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -1017,7 +1017,7 @@ nsresult PrototypeDocumentContentSink::ExecuteScript(
   // We're about to run script via JS_ExecuteScript, so we need an
   // AutoEntryScript. This is Gecko specific and not in any spec.
   AutoEntryScript aes(scriptGlobalObject, "precompiled XUL <script> element");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
 
   MC::Rooted<JSScript*> scriptObject(cx);
   rv = aScript->InstantiateScript(cx, &scriptObject);

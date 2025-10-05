@@ -633,7 +633,7 @@ void nsPrintJob::FirePrintingErrorEvent(nsresult aPrintError) {
   if (!jsapi.Init(event->GetParentObject())) {
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JS::Value> detail(
       cx, JS::NumberValue(static_cast<double>(aPrintError)));

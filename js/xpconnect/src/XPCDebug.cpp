@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "xpcprivate.h"
-#include "js/friend/DumpFunctions.h"  // JS::FormatStackDump
+#include "monkeycage/friend/DumpFunctions.h"  // JS::FormatStackDump
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
 
@@ -33,7 +33,7 @@ static void DebugDump(const char* str) {
 }
 
 bool xpc_DumpJSStack(bool showArgs, bool showLocals, bool showThisProps) {
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     printf("there is no JSContext on the stack!\n");
   } else if (JS::UniqueChars buf =
@@ -43,9 +43,9 @@ bool xpc_DumpJSStack(bool showArgs, bool showLocals, bool showThisProps) {
   return true;
 }
 
-JS::UniqueChars xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
+JS::UniqueChars xpc_PrintJSStack(MCContext* cx, bool showArgs, bool showLocals,
                                  bool showThisProps) {
-  JS::AutoSaveExceptionState state(cx);
+  MC::SandboxStack<JS::AutoSaveExceptionState> state(cx);
 
   JS::UniqueChars buf =
       JS::FormatStackDump(cx, showArgs, showLocals, showThisProps);
@@ -53,6 +53,6 @@ JS::UniqueChars xpc_PrintJSStack(JSContext* cx, bool showArgs, bool showLocals,
     DebugDump("Failed to format JavaScript stack for dump");
   }
 
-  state.restore();
+  state->restore();
   return buf;
 }

@@ -41,7 +41,7 @@ bool PushUtil::CopyBufferSourceToArray(
 }
 
 /* static */
-void PushUtil::CopyArrayToArrayBuffer(JSContext* aCx,
+void PushUtil::CopyArrayToArrayBuffer(MCContext* aCx,
                                       const nsTArray<uint8_t>& aArray,
                                       JS::MutableHandle<JSObject*> aValue,
                                       ErrorResult& aRv) {

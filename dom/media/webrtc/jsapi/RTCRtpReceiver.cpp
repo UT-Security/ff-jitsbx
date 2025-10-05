@@ -142,7 +142,7 @@ RTCRtpReceiver::RTCRtpReceiver(
 
 RTCRtpReceiver::~RTCRtpReceiver() { MOZ_ASSERT(!mPipeline); }
 
-JSObject* RTCRtpReceiver::WrapObject(JSContext* aCx,
+JSObject* RTCRtpReceiver::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return RTCRtpReceiver_Binding::Wrap(aCx, this, aGivenProto);
 }

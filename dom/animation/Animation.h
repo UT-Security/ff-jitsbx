@@ -68,7 +68,7 @@ class Animation : public DOMEventTargetHelper,
    */
   NonOwningAnimationTarget GetTargetForAnimation() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   virtual CSSAnimation* AsCSSAnimation() { return nullptr; }

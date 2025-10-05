@@ -135,14 +135,14 @@ FontFaceSet::~FontFaceSet() {
   return set.forget();
 }
 
-JSObject* FontFaceSet::WrapObject(JSContext* aContext,
+JSObject* FontFaceSet::WrapObject(MCContext* aContext,
                                   JS::Handle<JSObject*> aGivenProto) {
   return FontFaceSet_Binding::Wrap(aContext, this, aGivenProto);
 }
 
 void FontFaceSet::Destroy() { mImpl->Destroy(); }
 
-already_AddRefed<Promise> FontFaceSet::Load(JSContext* aCx,
+already_AddRefed<Promise> FontFaceSet::Load(MCContext* aCx,
                                             const nsACString& aFont,
                                             const nsAString& aText,
                                             ErrorResult& aRv) {
@@ -348,7 +348,7 @@ already_AddRefed<FontFaceSetIterator> FontFaceSet::Values() {
   return it.forget();
 }
 
-void FontFaceSet::ForEach(JSContext* aCx, FontFaceSetForEachCallback& aCallback,
+void FontFaceSet::ForEach(MCContext* aCx, FontFaceSetForEachCallback& aCallback,
                           JS::Handle<JS::Value> aThisArg, ErrorResult& aRv) {
   MC::Rooted<JS::Value> thisArg(aCx, aThisArg);
   for (size_t i = 0; i < SizeIncludingNonAuthorOrigins(); i++) {

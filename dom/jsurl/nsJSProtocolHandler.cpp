@@ -292,7 +292,7 @@ nsresult nsJSThunk::EvaluateScript(
   // http://www.whatwg.org/specs/web-apps/current-work/#javascript-protocol
   mozilla::nsAutoMicroTask mt;
   AutoEntryScript aes(innerGlobal, "javascript: URI", true);
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.mcx();
   MC::Rooted<JSObject*> globalJSObject(cx, innerGlobal->GetGlobalJSObject());
   NS_ENSURE_TRUE(globalJSObject, NS_ERROR_UNEXPECTED);
 
@@ -324,7 +324,7 @@ nsresult nsJSThunk::EvaluateScript(
   options->setFileAndLine(mURL.get(), 1);
   options->setIntroductionType("javascriptURL");
   {
-    JSExecutionContext exec(JS_SanitizeContext(cx), globalJSObject, options);
+    JSExecutionContext exec(cx, globalJSObject, options);
     exec.SetCoerceToString(true);
     exec.Compile(NS_ConvertUTF8toUTF16(script));
     rv = exec.ExecScript(&v);

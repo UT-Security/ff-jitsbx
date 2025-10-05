@@ -63,13 +63,13 @@ class TypeUtils {
   // GetIPCManager().
   virtual mozilla::ipc::PBackgroundChild* GetIPCManager() = 0;
 
-  SafeRefPtr<InternalRequest> ToInternalRequest(JSContext* aCx,
+  SafeRefPtr<InternalRequest> ToInternalRequest(MCContext* aCx,
                                                 const RequestOrUSVString& aIn,
                                                 BodyAction aBodyAction,
                                                 ErrorResult& aRv);
 
   SafeRefPtr<InternalRequest> ToInternalRequest(
-      JSContext* aCx, const OwningRequestOrUSVString& aIn,
+      MCContext* aCx, const OwningRequestOrUSVString& aIn,
       BodyAction aBodyAction, ErrorResult& aRv);
 
   void ToCacheRequest(CacheRequest& aOut, const InternalRequest& aIn,
@@ -79,7 +79,7 @@ class TypeUtils {
   void ToCacheResponseWithoutBody(CacheResponse& aOut, InternalResponse& aIn,
                                   ErrorResult& aRv);
 
-  void ToCacheResponse(JSContext* aCx, CacheResponse& aOut, Response& aIn,
+  void ToCacheResponse(MCContext* aCx, CacheResponse& aOut, Response& aIn,
                        ErrorResult& aRv);
 
   void ToCacheQueryParams(CacheQueryParams& aOut, const CacheQueryOptions& aIn);
@@ -117,7 +117,7 @@ class TypeUtils {
                          nsACString* aUrlQueryOut, ErrorResult& aRv);
 
  private:
-  void CheckAndSetBodyUsed(JSContext* aCx, Request& aRequest,
+  void CheckAndSetBodyUsed(MCContext* aCx, Request& aRequest,
                            BodyAction aBodyAction, ErrorResult& aRv);
 
   SafeRefPtr<InternalRequest> ToInternalRequest(const nsAString& aIn,

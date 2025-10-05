@@ -48,7 +48,7 @@ class XPathResult final : public nsStubMutationObserver, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_CYCLE_COLLECTION_WRAPPERCACHE_CLASS(XPathResult)
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   nsINode* GetParentObject() const { return mParent; }
   uint16_t ResultType() const { return mResultType; }

@@ -33,7 +33,7 @@ class PushUtil final {
       const OwningArrayBufferViewOrArrayBuffer& aSource,
       nsTArray<uint8_t>& aArray);
 
-  static void CopyArrayToArrayBuffer(JSContext* aCx,
+  static void CopyArrayToArrayBuffer(MCContext* aCx,
                                      const nsTArray<uint8_t>& aArray,
                                      JS::MutableHandle<JSObject*> aValue,
                                      ErrorResult& aRv);

@@ -163,7 +163,7 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
 
     for (size_t i = 0, n = keys.length(); i < n; i++) {
       nsAutoJSCString jsKey;
-      if (!jsKey.init(MC_UNSAFE(aCx), keys[i])) {
+      if (!jsKey.init(aCx, keys[i])) {
         LogToBrowserConsole(
             nsIScriptError::warningFlag,
             u"Extra dictionary should only contain string keys."_ns);
@@ -185,7 +185,7 @@ FOG::SetExperimentActive(const nsACString& aExperimentId,
         return NS_OK;
       }
 
-      if (!jsValue.init(MC_UNSAFE(aCx), value)) {
+      if (!jsValue.init(aCx, value)) {
         LogToBrowserConsole(nsIScriptError::warningFlag,
                             u"Can't extract experiment extra property"_ns);
         return NS_OK;
@@ -244,7 +244,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, MCContext* aCx,
   }
 
   MC::RootedValue jsBranchStr(aCx);
-  if (!dom::ToJSValue(MC_UNSAFE(aCx), branch, &jsBranchStr) ||
+  if (!dom::ToJSValue(aCx, branch, &jsBranchStr) ||
       !JS_DefineProperty(aCx, jsExperimentDataObj, "branch", jsBranchStr,
                          JSPROP_ENUMERATE)) {
     NS_WARNING("Failed to define branch for experiment data object.");
@@ -260,7 +260,7 @@ FOG::TestGetExperimentData(const nsACString& aExperimentId, MCContext* aCx,
 
   for (unsigned int i = 0; i < extraKeys.Length(); i++) {
     MC::RootedValue jsValueStr(aCx);
-    if (!dom::ToJSValue(MC_UNSAFE(aCx), extraValues[i], &jsValueStr) ||
+    if (!dom::ToJSValue(aCx, extraValues[i], &jsValueStr) ||
         !JS_DefineProperty(aCx, jsExtraObj, extraKeys[i].Data(), jsValueStr,
                            JSPROP_ENUMERATE)) {
       NS_WARNING("Failed to define extra property for experiment data object.");

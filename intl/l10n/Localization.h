@@ -95,7 +95,7 @@ class Localization : public nsIObserver,
   static already_AddRefed<Localization> Create(
       const nsTArray<ffi::GeckoResourceId>& aResourceIds, bool aIsSync);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   nsIGlobalObject* GetParentObject() const { return mGlobal; }
 

@@ -22,7 +22,7 @@ class ClipboardEvent : public Event {
   NS_INLINE_DECL_REFCOUNTING_INHERITED(ClipboardEvent, Event)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return ClipboardEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

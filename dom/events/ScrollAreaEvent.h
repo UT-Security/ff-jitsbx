@@ -28,7 +28,7 @@ class ScrollAreaEvent : public UIEvent {
   bool Deserialize(IPC::MessageReader* aReader) override;
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override {
     return ScrollAreaEvent_Binding::Wrap(aCx, this, aGivenProto);
   }
 

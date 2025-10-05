@@ -46,7 +46,7 @@ bool HTMLFrameElement::ParseAttribute(int32_t aNamespaceID, nsAtom* aAttribute,
       aNamespaceID, aAttribute, aValue, aMaybeScriptedPrincipal, aResult);
 }
 
-JSObject* HTMLFrameElement::WrapNode(JSContext* aCx,
+JSObject* HTMLFrameElement::WrapNode(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return HTMLFrameElement_Binding::Wrap(aCx, this, aGivenProto);
 }

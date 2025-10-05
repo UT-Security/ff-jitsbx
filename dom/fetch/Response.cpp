@@ -277,7 +277,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
 
     const fetch::ResponseBodyInit& body = aBody.Value();
     if (body.IsReadableStream()) {
-      JSContext* cx = MC_UNSAFE(aGlobal.Context());
+      MCContext* cx = aGlobal.Context();
       aRv.MightThrowJSException();
 
       ReadableStream& readableStream = body.GetAsReadableStream();
@@ -297,7 +297,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
       } else {
         // If this is a JS-created ReadableStream, let's create a
         // FetchStreamReader.
-        aRv = FetchStreamReader::Create(MC_UNSAFE(aGlobal.Context()), global,
+        aRv = FetchStreamReader::Create(aGlobal.Context(), global,
                                         getter_AddRefs(r->mFetchStreamReader),
                                         getter_AddRefs(bodyStream));
         if (NS_WARN_IF(aRv.Failed())) {
@@ -340,7 +340,7 @@ already_AddRefed<Response> Response::Redirect(const GlobalObject& aGlobal,
 
 /* static */
 already_AddRefed<Response> Response::CreateFromJson(const GlobalObject& aGlobal,
-                                                    JSContext* aCx,
+                                                    MCContext* aCx,
                                                     JS::Handle<JS::Value> aData,
                                                     const ResponseInit& aInit,
                                                     ErrorResult& aRv) {
@@ -369,7 +369,7 @@ already_AddRefed<Response> Response::Constructor(
                                       aRv);
 }
 
-already_AddRefed<Response> Response::Clone(JSContext* aCx, ErrorResult& aRv) {
+already_AddRefed<Response> Response::Clone(MCContext* aCx, ErrorResult& aRv) {
   bool bodyUsed = BodyUsed();
 
   if (!bodyUsed && mReadableStreamBody) {
@@ -416,7 +416,7 @@ already_AddRefed<Response> Response::Clone(JSContext* aCx, ErrorResult& aRv) {
   return response.forget();
 }
 
-already_AddRefed<Response> Response::CloneUnfiltered(JSContext* aCx,
+already_AddRefed<Response> Response::CloneUnfiltered(MCContext* aCx,
                                                      ErrorResult& aRv) {
   if (BodyUsed()) {
     aRv.ThrowTypeError<MSG_FETCH_BODY_CONSUMED_ERROR>();

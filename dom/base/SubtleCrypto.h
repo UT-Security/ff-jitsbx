@@ -32,39 +32,39 @@ class SubtleCrypto final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<Promise> Encrypt(JSContext* cx,
+  already_AddRefed<Promise> Encrypt(MCContext* cx,
                                     const ObjectOrString& algorithm,
                                     CryptoKey& key,
                                     const CryptoOperationData& data,
                                     ErrorResult& aRv);
 
-  already_AddRefed<Promise> Decrypt(JSContext* cx,
+  already_AddRefed<Promise> Decrypt(MCContext* cx,
                                     const ObjectOrString& algorithm,
                                     CryptoKey& key,
                                     const CryptoOperationData& data,
                                     ErrorResult& aRv);
 
-  already_AddRefed<Promise> Sign(JSContext* cx, const ObjectOrString& algorithm,
+  already_AddRefed<Promise> Sign(MCContext* cx, const ObjectOrString& algorithm,
                                  CryptoKey& key,
                                  const CryptoOperationData& data,
                                  ErrorResult& aRv);
 
-  already_AddRefed<Promise> Verify(JSContext* cx,
+  already_AddRefed<Promise> Verify(MCContext* cx,
                                    const ObjectOrString& algorithm,
                                    CryptoKey& key,
                                    const CryptoOperationData& signature,
                                    const CryptoOperationData& data,
                                    ErrorResult& aRv);
 
-  already_AddRefed<Promise> Digest(JSContext* cx,
+  already_AddRefed<Promise> Digest(MCContext* cx,
                                    const ObjectOrString& aAlgorithm,
                                    const CryptoOperationData& aData,
                                    ErrorResult& aRv);
 
-  already_AddRefed<Promise> ImportKey(JSContext* cx, const nsAString& format,
+  already_AddRefed<Promise> ImportKey(MCContext* cx, const nsAString& format,
                                       JS::Handle<JSObject*> keyData,
                                       const ObjectOrString& algorithm,
                                       bool extractable,
@@ -74,29 +74,29 @@ class SubtleCrypto final : public nsISupports, public nsWrapperCache {
   already_AddRefed<Promise> ExportKey(const nsAString& format, CryptoKey& key,
                                       ErrorResult& aRv);
 
-  already_AddRefed<Promise> GenerateKey(JSContext* cx,
+  already_AddRefed<Promise> GenerateKey(MCContext* cx,
                                         const ObjectOrString& algorithm,
                                         bool extractable,
                                         const Sequence<nsString>& keyUsages,
                                         ErrorResult& aRv);
 
   already_AddRefed<Promise> DeriveKey(
-      JSContext* cx, const ObjectOrString& algorithm, CryptoKey& baseKey,
+      MCContext* cx, const ObjectOrString& algorithm, CryptoKey& baseKey,
       const ObjectOrString& derivedKeyType, bool extractable,
       const Sequence<nsString>& keyUsages, ErrorResult& aRv);
 
-  already_AddRefed<Promise> DeriveBits(JSContext* cx,
+  already_AddRefed<Promise> DeriveBits(MCContext* cx,
                                        const ObjectOrString& algorithm,
                                        CryptoKey& baseKey, uint32_t length,
                                        ErrorResult& aRv);
 
-  already_AddRefed<Promise> WrapKey(JSContext* cx, const nsAString& format,
+  already_AddRefed<Promise> WrapKey(MCContext* cx, const nsAString& format,
                                     CryptoKey& key, CryptoKey& wrappingKey,
                                     const ObjectOrString& wrapAlgorithm,
                                     ErrorResult& aRv);
 
   already_AddRefed<Promise> UnwrapKey(
-      JSContext* cx, const nsAString& format,
+      MCContext* cx, const nsAString& format,
       const ArrayBufferViewOrArrayBuffer& wrappedKey, CryptoKey& unwrappingKey,
       const ObjectOrString& unwrapAlgorithm,
       const ObjectOrString& unwrappedKeyAlgorithm, bool extractable,

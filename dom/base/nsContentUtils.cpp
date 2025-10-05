@@ -42,10 +42,10 @@
 #include "monkeycage/GCAPI.h"
 #include "monkeycage/Id.h"
 #include "monkeycage/JSON.h"
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_GetProperty
 #include "js/PropertyDescriptor.h"
-#include "js/Realm.h"
-#include "js/RegExp.h"
+#include "monkeycage/Realm.h"
+#include "monkeycage/RegExp.h"
 #include "js/RegExpFlags.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/TypeDecls.h"
@@ -2044,7 +2044,7 @@ bool nsContentUtils::PrincipalHasPermission(nsIPrincipal& aPrincipal,
 }
 
 // static
-bool nsContentUtils::CallerHasPermission(JSContext* aCx, const nsAtom* aPerm) {
+bool nsContentUtils::CallerHasPermission(MCContext* aCx, const nsAtom* aPerm) {
   return PrincipalHasPermission(*SubjectPrincipal(aCx), aPerm);
 }
 
@@ -2143,7 +2143,7 @@ bool nsContentUtils::IsFuzzingEnabled() {
 
 /* static */
 bool nsContentUtils::IsCallerChromeOrElementTransformGettersEnabled(
-    JSContext* aCx, JSObject*) {
+    MCContext* aCx, JSObject*) {
   return ThreadsafeIsSystemCaller(aCx) ||
          StaticPrefs::dom_element_transform_getters_enabled();
 }
@@ -2669,7 +2669,7 @@ bool nsContentUtils::ThreadsafeIsCallerChrome() {
 }
 
 bool nsContentUtils::IsCallerUAWidget() {
-  JSContext* cx = GetCurrentJSContext();
+  MCContext* cx = GetCurrentJSContext();
   if (!cx) {
     return false;
   }
@@ -2682,21 +2682,21 @@ bool nsContentUtils::IsCallerUAWidget() {
   return xpc::IsUAWidgetScope(realm);
 }
 
-bool nsContentUtils::IsSystemCaller(JSContext* aCx) {
+bool nsContentUtils::IsSystemCaller(MCContext* aCx) {
   // Note that SubjectPrincipal() assumes we are in a compartment here.
   return SubjectPrincipal(aCx) == sSystemPrincipal;
 }
 
-bool nsContentUtils::ThreadsafeIsSystemCaller(JSContext* aCx) {
+bool nsContentUtils::ThreadsafeIsSystemCaller(MCContext* aCx) {
   CycleCollectedJSContext* ccjscx = CycleCollectedJSContext::Get();
-  MOZ_ASSERT(ccjscx->Context() == JS_SanitizeContext(aCx));
+  MOZ_ASSERT(ccjscx->Context() == aCx);
 
   return ccjscx->IsSystemCaller();
 }
 
 // static
 bool nsContentUtils::LookupBindingMember(
-    JSContext* aCx, nsIContent* aContent, JS::Handle<jsid> aId,
+    MCContext* aCx, nsIContent* aContent, JS::Handle<jsid> aId,
     JS::MutableHandle<JS::PropertyDescriptor> aDesc) {
   return true;
 }
@@ -3515,7 +3515,7 @@ void nsContentUtils::GenerateStateKey(nsIContent* aContent, Document* aDocument,
 }
 
 // static
-nsIPrincipal* nsContentUtils::SubjectPrincipal(JSContext* aCx) {
+nsIPrincipal* nsContentUtils::SubjectPrincipal(MCContext* aCx) {
   MOZ_ASSERT(NS_IsMainThread());
 
   // As opposed to SubjectPrincipal(), we do in fact assume that
@@ -3532,7 +3532,7 @@ nsIPrincipal* nsContentUtils::SubjectPrincipal(JSContext* aCx) {
 nsIPrincipal* nsContentUtils::SubjectPrincipal() {
   MOZ_ASSERT(IsInitialized());
   MOZ_ASSERT(NS_IsMainThread());
-  JSContext* cx = GetCurrentJSContext();
+  MCContext* cx = GetCurrentJSContext();
   if (!cx) {
     MOZ_CRASH(
         "Accessing the Subject Principal without an AutoJSAPI on the stack is "
@@ -4494,7 +4494,7 @@ nsresult nsContentUtils::ReportToConsoleByWindowID(
 
   nsAutoString spec;
   if (!aLineNumber && aLocationMode == eUSE_CALLING_LOCATION) {
-    JSContext* cx = GetCurrentJSContext();
+    MCContext* cx = GetCurrentJSContext();
     if (cx) {
       nsJSUtils::GetCallingLocation(cx, spec, &aLineNumber, &aColumnNumber);
     }
@@ -6373,12 +6373,12 @@ bool nsContentUtils::URIIsLocalFile(nsIURI* aURI) {
 }
 
 /* static */
-JSContext* nsContentUtils::GetCurrentJSContext() {
+MCContext* nsContentUtils::GetCurrentJSContext() {
   MOZ_ASSERT(IsInitialized());
   if (!IsJSAPIActive()) {
     return nullptr;
   }
-  return MC_UNSAFE(danger::GetJSContext());
+  return danger::GetJSContext();
 }
 
 template <typename StringType, typename CharType>
@@ -6751,7 +6751,7 @@ nsresult nsContentUtils::DispatchXULCommand(nsIContent* aTarget, bool aTrusted,
 }
 
 // static
-nsresult nsContentUtils::WrapNative(JSContext* cx, nsISupports* native,
+nsresult nsContentUtils::WrapNative(MCContext* cx, nsISupports* native,
                                     nsWrapperCache* cache, const nsIID* aIID,
                                     JS::MutableHandle<JS::Value> vp,
                                     bool aAllowWrapping) {
@@ -6780,7 +6780,7 @@ nsresult nsContentUtils::WrapNative(JSContext* cx, nsISupports* native,
   return rv;
 }
 
-nsresult nsContentUtils::CreateArrayBuffer(JSContext* aCx,
+nsresult nsContentUtils::CreateArrayBuffer(MCContext* aCx,
                                            const nsACString& aData,
                                            JSObject** aResult) {
   if (!aCx) {
@@ -6796,10 +6796,10 @@ nsresult nsContentUtils::CreateArrayBuffer(JSContext* aCx,
   if (dataLen > 0) {
     NS_ASSERTION(JS::IsArrayBufferObject(*aResult), "What happened?");
     MC::AutoCheckCannotGC nogc;
-    bool isShared;
-    memcpy(JS::GetArrayBufferData(*aResult, &isShared, nogc),
+    MC::SandboxStack<bool> isShared;
+    memcpy(JS::GetArrayBufferData(*aResult, isShared, nogc).UNSAFE_unverified(),
            aData.BeginReading(), dataLen);
-    MOZ_ASSERT(!isShared);
+    MOZ_ASSERT(!*isShared.UNSAFE_unverified());
   }
 
   return NS_OK;
@@ -7100,7 +7100,7 @@ bool nsContentUtils::IsPDFJS(nsIPrincipal* aPrincipal) {
   return spec.EqualsLiteral("resource://pdf.js/web/viewer.html");
 }
 
-bool nsContentUtils::IsSystemOrPDFJS(JSContext* aCx, JSObject*) {
+bool nsContentUtils::IsSystemOrPDFJS(MCContext* aCx, JSObject*) {
   nsIPrincipal* principal = SubjectPrincipal(aCx);
   return principal && (principal->IsSystemPrincipal() || IsPDFJS(principal));
 }
@@ -7150,8 +7150,8 @@ nsContentUtils::FindInternalContentViewer(const nsACString& aType,
 static void ReportPatternCompileFailure(nsAString& aPattern,
                                         const Document* aDocument,
                                         JS::MutableHandle<JS::Value> error,
-                                        JSContext* cx) {
-  JS::AutoSaveExceptionState savedExc(cx);
+                                        MCContext* cx) {
+  MC::SandboxStack<JS::AutoSaveExceptionState> savedExc(cx);
   MC::Rooted<JSObject*> exnObj(cx, &error.toObject());
   MC::Rooted<JS::Value> messageVal(cx);
   if (!JS_GetProperty(cx, exnObj, "message", &messageVal)) {
@@ -7169,7 +7169,7 @@ static void ReportPatternCompileFailure(nsAString& aPattern,
   nsContentUtils::ReportToConsole(nsIScriptError::errorFlag, "DOM"_ns,
                                   aDocument, nsContentUtils::eDOM_PROPERTIES,
                                   "PatternAttributeCompileFailure", strings);
-  savedExc.drop();
+  savedExc->drop();
 }
 
 // static
@@ -7184,7 +7184,7 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
   // with the document's window (which may not exist anyway).
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   AutoDisableJSInterruptCallback disabler(cx);
 
   // We can use the junk scope here, because we're just using it for regexp
@@ -7220,10 +7220,10 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
 
   MC::Rooted<JS::Value> rval(cx, JS::NullValue());
   if (!aHasMultiple) {
-    size_t idx = 0;
+    MC::SandboxStack<size_t> idx = 0;
     if (!JS::ExecuteRegExpNoStatics(
             cx, re, static_cast<char16_t*>(aValue.BeginWriting()),
-            aValue.Length(), &idx, true, &rval)) {
+            aValue.Length(), idx, true, &rval)) {
       return Nothing();
     }
     return Some(!rval.isNull());
@@ -7232,10 +7232,10 @@ Maybe<bool> nsContentUtils::IsPatternMatching(nsAString& aValue,
   HTMLSplitOnSpacesTokenizer tokenizer(aValue, ',');
   while (tokenizer.hasMoreTokens()) {
     const nsAString& value = tokenizer.nextToken();
-    size_t idx = 0;
+    MC::SandboxStack<size_t> idx = 0;
     if (!JS::ExecuteRegExpNoStatics(
             cx, re, static_cast<const char16_t*>(value.BeginReading()),
-            value.Length(), &idx, true, &rval)) {
+            value.Length(), idx, true, &rval)) {
       return Nothing();
     }
     if (rval.isNull()) {
@@ -9720,7 +9720,7 @@ void nsContentUtils::TryToUpgradeElement(Element* aElement) {
 }
 
 MOZ_CAN_RUN_SCRIPT
-static void DoCustomElementCreate(Element** aElement, JSContext* aCx,
+static void DoCustomElementCreate(Element** aElement, MCContext* aCx,
                                   Document* aDoc, NodeInfo* aNodeInfo,
                                   CustomElementConstructor* aConstructor,
                                   ErrorResult& aRv) {
@@ -9862,7 +9862,7 @@ nsresult nsContentUtils::NewXULOrHTMLElement(
 
     AutoAllowLegacyScriptExecution exemption;
     AutoEntryScript aes(global, "create custom elements");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
     ErrorResult rv;
 
     // Step 5.
@@ -10212,7 +10212,7 @@ void nsContentUtils::GetContentPolicyTypeForUIImageLoading(
 
 /* static */
 nsresult nsContentUtils::CreateJSValueFromSequenceOfObject(
-    JSContext* aCx, const Sequence<JSObject*>& aTransfer,
+    MCContext* aCx, const Sequence<JSObject*>& aTransfer,
     JS::MutableHandle<JS::Value> aValue) {
   if (aTransfer.IsEmpty()) {
     return NS_OK;
@@ -10240,7 +10240,7 @@ nsresult nsContentUtils::CreateJSValueFromSequenceOfObject(
 }
 
 /* static */
-void nsContentUtils::StructuredClone(JSContext* aCx, nsIGlobalObject* aGlobal,
+void nsContentUtils::StructuredClone(MCContext* aCx, nsIGlobalObject* aGlobal,
                                      JS::Handle<JS::Value> aValue,
                                      const StructuredSerializeOptions& aOptions,
                                      JS::MutableHandle<JS::Value> aRetval,
@@ -10637,7 +10637,7 @@ bool nsContentUtils::IsOverridingWindowName(const nsAString& aName) {
 
 template <prototypes::ID PrototypeID, class NativeType, typename T>
 static Result<Ok, nsresult> ExtractExceptionValues(
-    JSContext* aCx, JS::Handle<JSObject*> aObj, nsAString& aSourceSpecOut,
+    MCContext* aCx, JS::Handle<JSObject*> aObj, nsAString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   AssertStaticUnwrapOK<PrototypeID>();
   RefPtr<T> exn;
@@ -10660,7 +10660,7 @@ static Result<Ok, nsresult> ExtractExceptionValues(
 
 /* static */
 void nsContentUtils::ExtractErrorValues(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, nsACString& aSourceSpecOut,
+    MCContext* aCx, JS::Handle<JS::Value> aValue, nsACString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   nsAutoString sourceSpec;
   ExtractErrorValues(aCx, aValue, sourceSpec, aLineOut, aColumnOut,
@@ -10670,7 +10670,7 @@ void nsContentUtils::ExtractErrorValues(
 
 /* static */
 void nsContentUtils::ExtractErrorValues(
-    JSContext* aCx, JS::Handle<JS::Value> aValue, nsAString& aSourceSpecOut,
+    MCContext* aCx, JS::Handle<JS::Value> aValue, nsAString& aSourceSpecOut,
     uint32_t* aLineOut, uint32_t* aColumnOut, nsString& aMessageOut) {
   MOZ_ASSERT(aLineOut);
   MOZ_ASSERT(aColumnOut);
@@ -10681,7 +10681,7 @@ void nsContentUtils::ExtractErrorValues(
     // Try to process as an Error object.  Use the file/line/column values
     // from the Error as they will be more specific to the root cause of
     // the problem.
-    JSErrorReport* err = obj ? JS_ErrorFromException(aCx, obj) : nullptr;
+    MC::Tainted<JSErrorReport*> err = obj ? JS_ErrorFromException(aCx, obj) : MC::Tainted<JSErrorReport*>(nullptr);
     if (err) {
       // Use xpc to extract the error message only.  We don't actually send
       // this report anywhere.
@@ -10795,7 +10795,7 @@ static MC::Tainted<bool> JSONCreator(MC::Tainted<const char16_t*> aBuf, uint32_t
 }
 
 /* static */
-bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
+bool nsContentUtils::StringifyJSON(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                    nsAString& aOutStr, JSONBehavior aBehavior) {
   MOZ_ASSERT(aCx);
 
@@ -10807,14 +10807,14 @@ bool nsContentUtils::StringifyJSON(JSContext* aCx, JS::Handle<JS::Value> aValue,
       MC::Rooted<JS::Value> value(aCx, aValue);
       nsAutoString serializedValue;
       NS_ENSURE_TRUE(JS_Stringify(aCx, &value, nullptr, MC::NullHandleValue(),
-                                  JSONCreatorCb.UNSAFE_get(), &serializedValue),
+                                  JSONCreatorCb, &serializedValue),
                      false);
       aOutStr = serializedValue;
       return true;
     }
     case UndefinedIsVoidString: {
       aOutStr.SetIsVoid(true);
-      return JS::ToJSON(aCx, aValue, nullptr, MC::NullHandleValue(), JSONCreatorCb.UNSAFE_get(),
+      return JS::ToJSON(aCx, aValue, nullptr, MC::NullHandleValue(), JSONCreatorCb,
                         &aOutStr);
     }
     default:
@@ -10862,7 +10862,7 @@ static nsGlobalWindowInner* GetInnerWindowForGlobal(nsIGlobalObject* aGlobal) {
   if (xpc::IsSandbox(scope)) {
     AutoJSAPI jsapi;
     MOZ_ALWAYS_TRUE(jsapi.Init(scope));
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     // Our current Realm on aCx is the sandbox.  Using that for unwrapping
     // makes sense: if the sandbox can unwrap the window, we can use it.
     return xpc::SandboxWindowOrNull(scope, cx);

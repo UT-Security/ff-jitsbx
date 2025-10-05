@@ -46,13 +46,13 @@ WorkletGlobalScope::WorkletGlobalScope(WorkletImpl* aImpl)
 
 WorkletGlobalScope::~WorkletGlobalScope() = default;
 
-JSObject* WorkletGlobalScope::WrapObject(JSContext* aCx,
+JSObject* WorkletGlobalScope::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   MOZ_CRASH("We should never get here!");
   return nullptr;
 }
 
-already_AddRefed<Console> WorkletGlobalScope::GetConsole(JSContext* aCx,
+already_AddRefed<Console> WorkletGlobalScope::GetConsole(MCContext* aCx,
                                                          ErrorResult& aRv) {
   if (!mConsole) {
     MOZ_ASSERT(Impl());
@@ -73,7 +73,7 @@ void WorkletGlobalScope::InitModuleLoader(WorkletModuleLoader* aModuleLoader) {
   mModuleLoader = aModuleLoader;
 }
 
-ModuleLoaderBase* WorkletGlobalScope::GetModuleLoader(JSContext* aCx) {
+ModuleLoaderBase* WorkletGlobalScope::GetModuleLoader(MCContext* aCx) {
   return mModuleLoader;
 };
 

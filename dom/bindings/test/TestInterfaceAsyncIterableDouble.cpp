@@ -46,7 +46,7 @@ TestInterfaceAsyncIterableDouble::Constructor(const GlobalObject& aGlobal,
 }
 
 JSObject* TestInterfaceAsyncIterableDouble::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceAsyncIterableDouble_Binding::Wrap(aCx, this, aGivenProto);
 }
 

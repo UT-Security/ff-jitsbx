@@ -56,7 +56,7 @@ TestInterfaceAsyncIterableSingleWithArgs::Constructor(
 }
 
 JSObject* TestInterfaceAsyncIterableSingleWithArgs::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return TestInterfaceAsyncIterableSingleWithArgs_Binding::Wrap(aCx, this,
                                                                 aGivenProto);
 }
@@ -95,7 +95,7 @@ TestInterfaceAsyncIterableSingleWithArgs::GetNextIterationResult(
 
 already_AddRefed<Promise>
 TestInterfaceAsyncIterableSingleWithArgs::IteratorReturn(
-    JSContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
+    MCContext* aCx, Iterator* aIterator, JS::Handle<JS::Value> aValue,
     ErrorResult& aRv) {
   ++mReturnCallCount;
 

@@ -4,8 +4,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/ForOfIterator.h"  // JS::ForOfIterator
-#include "js/JSON.h"           // JS_ParseJSON
+#include "monkeycage/ForOfIterator.h"  // JS::ForOfIterator
+#include "monkeycage/JSON.h"           // JS_ParseJSON
 #include "nsContentUtils.h"
 #include "nsIScriptError.h"
 #include "DOMLocalization.h"
@@ -87,7 +87,7 @@ already_AddRefed<DOMLocalization> DOMLocalization::Constructor(
   return nullptr;
 }
 
-JSObject* DOMLocalization::WrapObject(JSContext* aCx,
+JSObject* DOMLocalization::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return DOMLocalization_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -137,7 +137,7 @@ void DOMLocalization::PauseObserving() { mMutations->PauseObserving(); }
 void DOMLocalization::ResumeObserving() { mMutations->ResumeObserving(); }
 
 void DOMLocalization::SetAttributes(
-    JSContext* aCx, Element& aElement, const nsAString& aId,
+    MCContext* aCx, Element& aElement, const nsAString& aId,
     const Optional<JS::Handle<JSObject*>>& aArgs, ErrorResult& aRv) {
   if (aArgs.WasPassed() && aArgs.Value()) {
     nsAutoString data;
@@ -175,7 +175,7 @@ void DOMLocalization::GetAttributes(Element& aElement, L10nIdArgs& aResult,
   }
 }
 
-void DOMLocalization::SetArgs(JSContext* aCx, Element& aElement,
+void DOMLocalization::SetArgs(MCContext* aCx, Element& aElement,
                               const Optional<JS::Handle<JSObject*>>& aArgs,
                               ErrorResult& aRv) {
   if (aArgs.WasPassed() && aArgs.Value()) {
@@ -225,31 +225,31 @@ class ElementTranslationHandler : public PromiseNativeHandler {
     mReturnValuePromise = aReturnValuePromise;
   }
 
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     ErrorResult rv;
 
     nsTArray<Nullable<L10nMessage>> l10nData;
     if (aValue.isObject()) {
-      JS::ForOfIterator iter(aCx);
-      if (!iter.init(aValue, JS::ForOfIterator::AllowNonIterable)) {
+      MC::SandboxStack<JS::ForOfIterator> iter(aCx);
+      if (!iter->init(aValue, JS::ForOfIterator::AllowNonIterable)) {
         mReturnValuePromise->MaybeRejectWithUndefined();
         return;
       }
-      if (!iter.valueIsIterable()) {
+      if (!iter->valueIsIterable()) {
         mReturnValuePromise->MaybeRejectWithUndefined();
         return;
       }
 
       MC::Rooted<JS::Value> temp(aCx);
       while (true) {
-        bool done;
-        if (!iter.next(&temp, &done)) {
+        MC::SandboxStack<bool> done;
+        if (!iter->next(&temp, done)) {
           mReturnValuePromise->MaybeRejectWithUndefined();
           return;
         }
 
-        if (done) {
+        if (*done.UNSAFE_unverified()) {
           break;
         }
 
@@ -279,7 +279,7 @@ class ElementTranslationHandler : public PromiseNativeHandler {
     mReturnValuePromise->MaybeResolveWithUndefined();
   }
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     mReturnValuePromise->MaybeRejectWithClone(aCx, aValue);
   }
@@ -403,12 +403,12 @@ class L10nRootTranslationHandler final : public PromiseNativeHandler {
 
   explicit L10nRootTranslationHandler(Element* aRoot) : mRoot(aRoot) {}
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {
     DOMLocalization::SetRootInfo(mRoot);
   }
 
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override {}
 
  private:

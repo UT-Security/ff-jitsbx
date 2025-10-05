@@ -26,6 +26,11 @@ inline JSObject* NewDateObject(MCContext* cx, int year, int mon,
   return NewDateObject(cx->cx_, year, mon, mday, hour, min, sec);
 }
 
+inline bool ObjectIsDate(MCContext* cx, Handle<JSObject*> obj,
+                         MC::Tainted<bool*> isDate) {
+  return ObjectIsDate(cx->cx_, obj, isDate.INTERNAL_unverified_safe());
+}
+
 inline void SetReduceMicrosecondTimePrecisionCallback(
     MC::SandboxCallback<ReduceMicrosecondTimePrecisionCallback> callback) {
   return SetReduceMicrosecondTimePrecisionCallback(callback.UNSAFE_get());

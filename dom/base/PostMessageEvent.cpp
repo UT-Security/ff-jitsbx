@@ -57,7 +57,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP PostMessageEvent::Run() {
   // targetWindow.
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // The document URI is just used for the principal mismatch error message
   // below. Use a stack variable so mCallerURI is not held onto after
@@ -219,7 +219,7 @@ MOZ_CAN_RUN_SCRIPT_BOUNDARY NS_IMETHODIMP PostMessageEvent::Run() {
   return NS_OK;
 }
 
-void PostMessageEvent::DispatchError(JSContext* aCx,
+void PostMessageEvent::DispatchError(MCContext* aCx,
                                      nsGlobalWindowInner* aTargetWindow,
                                      mozilla::dom::EventTarget* aEventTarget) {
   RootedDictionary<MessageEventInit> init(aCx);

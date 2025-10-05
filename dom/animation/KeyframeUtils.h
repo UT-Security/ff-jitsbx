@@ -10,9 +10,9 @@
 #include "mozilla/KeyframeEffectParams.h"  // For CompositeOperation
 #include "nsCSSPropertyID.h"
 #include "nsTArrayForwardDeclare.h"  // For nsTArray
-#include "js/RootingAPI.h"           // For JS::Handle
+#include "monkeycage/RootingAPI.h"           // For JS::Handle
 
-struct JSContext;
+struct MCContext;
 class JSObject;
 
 namespace mozilla {
@@ -59,7 +59,7 @@ class KeyframeUtils {
    *   returned.
    */
   static nsTArray<Keyframe> GetKeyframesFromObject(
-      JSContext* aCx, dom::Document* aDocument, JS::Handle<JSObject*> aFrames,
+      MCContext* aCx, dom::Document* aDocument, JS::Handle<JSObject*> aFrames,
       const char* aContext, ErrorResult& aRv);
 
   /**

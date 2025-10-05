@@ -9,6 +9,8 @@
 
 #include "js/TypeDecls.h"
 
+struct MCContext;
+
 class nsPIDOMWindowInner;
 
 namespace mozilla::dom {
@@ -17,7 +19,7 @@ class WorkerPrivate;
 
 // All of these are implemented in RuntimeService.cpp
 
-WorkerPrivate* GetWorkerPrivateFromContext(JSContext* aCx);
+WorkerPrivate* GetWorkerPrivateFromContext(MCContext* aCx);
 
 WorkerPrivate* GetCurrentThreadWorkerPrivate();
 
@@ -25,7 +27,7 @@ bool IsCurrentThreadRunningWorker();
 
 bool IsCurrentThreadRunningChromeWorker();
 
-JSContext* GetCurrentWorkerThreadJSContext();
+MCContext* GetCurrentWorkerThreadJSContext();
 
 JSObject* GetCurrentThreadWorkerGlobal();
 

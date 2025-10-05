@@ -103,7 +103,7 @@ XPathExpression* XPathEvaluator::CreateExpression(const nsAString& aExpression,
   return new XPathExpression(std::move(expression), mRecycler, aDocument);
 }
 
-bool XPathEvaluator::WrapObject(JSContext* aCx,
+bool XPathEvaluator::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto,
                                 JS::MutableHandle<JSObject*> aReflector) {
   return dom::XPathEvaluator_Binding::Wrap(aCx, this, aGivenProto, aReflector);
@@ -115,7 +115,7 @@ XPathEvaluator* XPathEvaluator::Constructor(const GlobalObject& aGlobal) {
 }
 
 already_AddRefed<XPathResult> XPathEvaluator::Evaluate(
-    JSContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
+    MCContext* aCx, const nsAString& aExpression, nsINode& aContextNode,
     XPathNSResolver* aResolver, uint16_t aType, JS::Handle<JSObject*> aResult,
     ErrorResult& rv) {
   UniquePtr<XPathExpression> expression(

@@ -704,7 +704,7 @@ class nsGenericHTMLElement : public nsGenericHTMLElementBase {
 
   already_AddRefed<nsINodeList> Labels();
 
-  static bool LegacyTouchAPIEnabled(JSContext* aCx, JSObject* aObj);
+  static bool LegacyTouchAPIEnabled(MCContext* aCx, JSObject* aObj);
 
   static inline bool CanHaveName(nsAtom* aTag) {
     return aTag == nsGkAtoms::img || aTag == nsGkAtoms::form ||

@@ -33,13 +33,13 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(TouchList, mParent, mPoints)
 NS_IMPL_CYCLE_COLLECTING_ADDREF(TouchList)
 NS_IMPL_CYCLE_COLLECTING_RELEASE(TouchList)
 
-JSObject* TouchList::WrapObject(JSContext* aCx,
+JSObject* TouchList::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return TouchList_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // static
-bool TouchList::PrefEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool TouchList::PrefEnabled(MCContext* aCx, JSObject* aGlobal) {
   return TouchEvent::PrefEnabled(aCx, aGlobal);
 }
 
@@ -184,7 +184,7 @@ TouchList* TouchEvent::ChangedTouches() {
 }
 
 // static
-bool TouchEvent::PrefEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool TouchEvent::PrefEnabled(MCContext* aCx, JSObject* aGlobal) {
   nsIDocShell* docShell = nullptr;
   if (aGlobal) {
     nsGlobalWindowInner* win = xpc::WindowOrNull(aGlobal);
@@ -263,7 +263,7 @@ bool TouchEvent::PrefEnabled(nsIDocShell* aDocShell) {
 }
 
 // static
-bool TouchEvent::LegacyAPIEnabled(JSContext* aCx, JSObject* aGlobal) {
+bool TouchEvent::LegacyAPIEnabled(MCContext* aCx, JSObject* aGlobal) {
   nsIPrincipal* principal = nsContentUtils::SubjectPrincipal(aCx);
   bool isSystem = principal && principal->IsSystemPrincipal();
 

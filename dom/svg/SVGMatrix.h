@@ -68,7 +68,7 @@ class SVGMatrix final : public nsWrapperCache {
 
   // WebIDL
   DOMSVGTransform* GetParentObject() const;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   float A() const { return static_cast<float>(GetMatrix()._11); }

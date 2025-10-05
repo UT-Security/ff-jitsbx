@@ -36,7 +36,7 @@ StorageEvent::~StorageEvent() = default;
 
 StorageEvent* StorageEvent::AsStorageEvent() { return this; }
 
-JSObject* StorageEvent::WrapObjectInternal(JSContext* aCx,
+JSObject* StorageEvent::WrapObjectInternal(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return StorageEvent_Binding::Wrap(aCx, this, aGivenProto);
 }

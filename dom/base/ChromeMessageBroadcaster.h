@@ -26,7 +26,7 @@ class ChromeMessageBroadcaster final : public MessageBroadcaster {
       : ChromeMessageBroadcaster(aParentManager, MessageManagerFlags::MM_NONE) {
   }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   // FrameScriptLoader
@@ -37,7 +37,7 @@ class ChromeMessageBroadcaster final : public MessageBroadcaster {
   void RemoveDelayedFrameScript(const nsAString& aURL) {
     RemoveDelayedScript(aURL);
   }
-  void GetDelayedFrameScripts(JSContext* aCx,
+  void GetDelayedFrameScripts(MCContext* aCx,
                               nsTArray<nsTArray<JS::Value>>& aScripts,
                               mozilla::ErrorResult& aError) {
     GetDelayedScripts(aCx, aScripts, aError);

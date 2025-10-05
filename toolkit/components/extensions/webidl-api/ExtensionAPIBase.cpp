@@ -44,7 +44,7 @@ void ChromeCompatCallbackHandler::Create(
   aPromise->AppendNativeHandler(handler);
 }
 
-void ChromeCompatCallbackHandler::ResolvedCallback(JSContext* aCx,
+void ChromeCompatCallbackHandler::ResolvedCallback(MCContext* aCx,
                                                    JS::Handle<JS::Value> aValue,
                                                    ErrorResult& aRv) {
   MC::Rooted<JS::Value> retval(aCx);
@@ -52,7 +52,7 @@ void ChromeCompatCallbackHandler::ResolvedCallback(JSContext* aCx,
   MOZ_KnownLive(mCallback)->Call({aValue}, &retval, rv);
 }
 
-void ChromeCompatCallbackHandler::RejectedCallback(JSContext* aCx,
+void ChromeCompatCallbackHandler::RejectedCallback(MCContext* aCx,
                                                    JS::Handle<JS::Value> aValue,
                                                    ErrorResult& aRv) {
   MC::Rooted<JS::Value> retval(aCx);
@@ -68,7 +68,7 @@ void ChromeCompatCallbackHandler::RejectedCallback(JSContext* aCx,
 }
 
 void ChromeCompatCallbackHandler::ReportUncheckedLastError(
-    JSContext* aCx, JS::Handle<JS::Value> aValue) {
+    MCContext* aCx, JS::Handle<JS::Value> aValue) {
   nsCString sourceSpec;
   uint32_t line = 0;
   uint32_t column = 0;
@@ -96,13 +96,13 @@ void ChromeCompatCallbackHandler::ReportUncheckedLastError(
 // WebExtensionStub methods shared between multiple API namespaces.
 
 void ExtensionAPIBase::CallWebExtMethodNotImplementedNoReturn(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   aRv.ThrowNotSupportedError("Not implemented");
 }
 
 void ExtensionAPIBase::CallWebExtMethodNotImplementedAsync(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs,
     const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {
@@ -110,14 +110,14 @@ void ExtensionAPIBase::CallWebExtMethodNotImplementedAsync(
 }
 
 void ExtensionAPIBase::CallWebExtMethodNotImplemented(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, JS::MutableHandle<JS::Value> aRetval,
     ErrorResult& aRv) {
   CallWebExtMethodNotImplementedNoReturn(aCx, aApiMethod, aArgs, aRv);
 }
 
 void ExtensionAPIBase::CallWebExtMethodNoReturn(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   auto request = CallFunctionNoReturn(aApiMethod);
   request->Run(GetGlobalObject(), aCx, aArgs, aRv);
@@ -126,7 +126,7 @@ void ExtensionAPIBase::CallWebExtMethodNoReturn(
   }
 }
 
-void ExtensionAPIBase::CallWebExtMethod(JSContext* aCx,
+void ExtensionAPIBase::CallWebExtMethod(MCContext* aCx,
                                         const nsAString& aApiMethod,
                                         const dom::Sequence<JS::Value>& aArgs,
                                         JS::MutableHandle<JS::Value> aRetVal,
@@ -139,7 +139,7 @@ void ExtensionAPIBase::CallWebExtMethod(JSContext* aCx,
 }
 
 void ExtensionAPIBase::CallWebExtMethodReturnsString(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, nsAString& aRetVal,
     ErrorResult& aRv) {
   MC::Rooted<JS::Value> retval(aCx);
@@ -165,7 +165,7 @@ void ExtensionAPIBase::CallWebExtMethodReturnsString(
 }
 
 already_AddRefed<ExtensionPort> ExtensionAPIBase::CallWebExtMethodReturnsPort(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, ErrorResult& aRv) {
   MC::Rooted<JS::Value> apiResult(aCx);
   auto request = CallSyncFunction(aApiMethod);
@@ -188,7 +188,7 @@ already_AddRefed<ExtensionPort> ExtensionAPIBase::CallWebExtMethodReturnsPort(
 }
 
 void ExtensionAPIBase::CallWebExtMethodAsyncInternal(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs,
     const RefPtr<dom::Function>& aCallback,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {
@@ -222,7 +222,7 @@ void ExtensionAPIBase::CallWebExtMethodAsyncInternal(
 }
 
 void ExtensionAPIBase::CallWebExtMethodAsync(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs,
     const dom::Optional<OwningNonNull<dom::Function>>& aCallback,
     JS::MutableHandle<JS::Value> aRetval, ErrorResult& aRv) {
@@ -234,7 +234,7 @@ void ExtensionAPIBase::CallWebExtMethodAsync(
 }
 
 void ExtensionAPIBase::CallWebExtMethodAsyncAmbiguous(
-    JSContext* aCx, const nsAString& aApiMethod,
+    MCContext* aCx, const nsAString& aApiMethod,
     const dom::Sequence<JS::Value>& aArgs, JS::MutableHandle<JS::Value> aRetval,
     ErrorResult& aRv) {
   RefPtr<dom::Function> chromeCompatCb;
@@ -267,7 +267,7 @@ void ExtensionAPIBase::GetWebExtPropertyAsString(const nsString& aPropertyName,
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JS::Value> retval(cx);
 
   RefPtr<ExtensionAPIGetProperty> request = GetProperty(aPropertyName);
@@ -285,7 +285,7 @@ void ExtensionAPIBase::GetWebExtPropertyAsString(const nsString& aPropertyName,
 }
 
 void ExtensionAPIBase::GetWebExtPropertyAsJSValue(
-    JSContext* aCx, const nsAString& aPropertyName,
+    MCContext* aCx, const nsAString& aPropertyName,
     JS::MutableHandle<JS::Value> aRetval) {
   IgnoredErrorResult rv;
   RefPtr<ExtensionAPIGetProperty> request = GetProperty(aPropertyName);
@@ -356,7 +356,7 @@ RefPtr<ExtensionAPIAddRemoveListener> ExtensionAPIBase::SendRemoveListener(
 }
 
 // static
-void ExtensionAPIBase::ThrowUnexpectedError(JSContext* aCx, ErrorResult& aRv) {
+void ExtensionAPIBase::ThrowUnexpectedError(MCContext* aCx, ErrorResult& aRv) {
   ExtensionAPIRequestForwarder::ThrowUnexpectedError(aCx, aRv);
 }
 

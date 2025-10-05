@@ -29,7 +29,7 @@ using namespace mozilla::dom::indexedDB;
 
 namespace {
 
-MovingNotNull<RefPtr<IDBRequest>> GenerateRequest(JSContext* aCx,
+MovingNotNull<RefPtr<IDBRequest>> GenerateRequest(MCContext* aCx,
                                                   IDBIndex* aIndex) {
   MOZ_ASSERT(aIndex);
   aIndex->AssertIsOnOwningThread();
@@ -78,7 +78,7 @@ void IDBIndex::AssertIsOnOwningThread() const {
 
 #endif  // DEBUG
 
-RefPtr<IDBRequest> IDBIndex::OpenCursor(JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::OpenCursor(MCContext* aCx,
                                         JS::Handle<JS::Value> aRange,
                                         IDBCursorDirection aDirection,
                                         ErrorResult& aRv) {
@@ -88,7 +88,7 @@ RefPtr<IDBRequest> IDBIndex::OpenCursor(JSContext* aCx,
                             aRv);
 }
 
-RefPtr<IDBRequest> IDBIndex::OpenKeyCursor(JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::OpenKeyCursor(MCContext* aCx,
                                            JS::Handle<JS::Value> aRange,
                                            IDBCursorDirection aDirection,
                                            ErrorResult& aRv) {
@@ -97,21 +97,21 @@ RefPtr<IDBRequest> IDBIndex::OpenKeyCursor(JSContext* aCx,
   return OpenCursorInternal(/* aKeysOnly */ true, aCx, aRange, aDirection, aRv);
 }
 
-RefPtr<IDBRequest> IDBIndex::Get(JSContext* aCx, JS::Handle<JS::Value> aKey,
+RefPtr<IDBRequest> IDBIndex::Get(MCContext* aCx, JS::Handle<JS::Value> aKey,
                                  ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
   return GetInternal(/* aKeyOnly */ false, aCx, aKey, aRv);
 }
 
-RefPtr<IDBRequest> IDBIndex::GetKey(JSContext* aCx, JS::Handle<JS::Value> aKey,
+RefPtr<IDBRequest> IDBIndex::GetKey(MCContext* aCx, JS::Handle<JS::Value> aKey,
                                     ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
   return GetInternal(/* aKeyOnly */ true, aCx, aKey, aRv);
 }
 
-RefPtr<IDBRequest> IDBIndex::GetAll(JSContext* aCx, JS::Handle<JS::Value> aKey,
+RefPtr<IDBRequest> IDBIndex::GetAll(MCContext* aCx, JS::Handle<JS::Value> aKey,
                                     const Optional<uint32_t>& aLimit,
                                     ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -119,7 +119,7 @@ RefPtr<IDBRequest> IDBIndex::GetAll(JSContext* aCx, JS::Handle<JS::Value> aKey,
   return GetAllInternal(/* aKeysOnly */ false, aCx, aKey, aLimit, aRv);
 }
 
-RefPtr<IDBRequest> IDBIndex::GetAllKeys(JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::GetAllKeys(MCContext* aCx,
                                         JS::Handle<JS::Value> aKey,
                                         const Optional<uint32_t>& aLimit,
                                         ErrorResult& aRv) {
@@ -280,7 +280,7 @@ nsIGlobalObject* IDBIndex::GetParentObject() const {
   return mObjectStore->GetParentObject();
 }
 
-void IDBIndex::GetKeyPath(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+void IDBIndex::GetKeyPath(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                           ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -305,7 +305,7 @@ void IDBIndex::GetKeyPath(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
   aResult.set(mCachedKeyPath);
 }
 
-RefPtr<IDBRequest> IDBIndex::GetInternal(bool aKeyOnly, JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::GetInternal(bool aKeyOnly, MCContext* aCx,
                                          JS::Handle<JS::Value> aKey,
                                          ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -381,7 +381,7 @@ RefPtr<IDBRequest> IDBIndex::GetInternal(bool aKeyOnly, JSContext* aCx,
   return request;
 }
 
-RefPtr<IDBRequest> IDBIndex::GetAllInternal(bool aKeysOnly, JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::GetAllInternal(bool aKeysOnly, MCContext* aCx,
                                             JS::Handle<JS::Value> aKey,
                                             const Optional<uint32_t>& aLimit,
                                             ErrorResult& aRv) {
@@ -458,7 +458,7 @@ RefPtr<IDBRequest> IDBIndex::GetAllInternal(bool aKeysOnly, JSContext* aCx,
   return request;
 }
 
-RefPtr<IDBRequest> IDBIndex::OpenCursorInternal(bool aKeysOnly, JSContext* aCx,
+RefPtr<IDBRequest> IDBIndex::OpenCursorInternal(bool aKeysOnly, MCContext* aCx,
                                                 JS::Handle<JS::Value> aRange,
                                                 IDBCursorDirection aDirection,
                                                 ErrorResult& aRv) {
@@ -544,7 +544,7 @@ RefPtr<IDBRequest> IDBIndex::OpenCursorInternal(bool aKeysOnly, JSContext* aCx,
   return request;
 }
 
-RefPtr<IDBRequest> IDBIndex::Count(JSContext* aCx, JS::Handle<JS::Value> aKey,
+RefPtr<IDBRequest> IDBIndex::Count(MCContext* aCx, JS::Handle<JS::Value> aKey,
                                    ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -629,7 +629,7 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(IDBIndex)
   }
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-JSObject* IDBIndex::WrapObject(JSContext* aCx,
+JSObject* IDBIndex::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return IDBIndex_Binding::Wrap(aCx, this, aGivenProto);
 }

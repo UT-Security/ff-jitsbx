@@ -58,10 +58,10 @@ class StreamFilter : public DOMEventTargetHelper {
 
   nsISupports* GetParentObject() const { return mParent; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  static bool IsAllowedInContext(JSContext* aCx, JSObject* aObj);
+  static bool IsAllowedInContext(MCContext* aCx, JSObject* aObj);
 
  protected:
   virtual ~StreamFilter();

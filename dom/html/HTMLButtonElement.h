@@ -56,7 +56,7 @@ class HTMLButtonElement final : public nsGenericHTMLFormControlElementWithState,
 
   // nsINode
   nsresult Clone(dom::NodeInfo*, nsINode** aResult) const override;
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   // nsIContent
   nsresult BindToTree(BindContext&, nsINode& aParent) override;

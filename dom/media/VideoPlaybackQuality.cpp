@@ -26,7 +26,7 @@ HTMLMediaElement* VideoPlaybackQuality::GetParentObject() const {
   return mElement;
 }
 
-JSObject* VideoPlaybackQuality::WrapObject(JSContext* aCx,
+JSObject* VideoPlaybackQuality::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return VideoPlaybackQuality_Binding::Wrap(aCx, this, aGivenProto);
 }

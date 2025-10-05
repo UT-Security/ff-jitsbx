@@ -26,11 +26,11 @@ GamepadTouch::GamepadTouch(nsISupports* aParent)
 GamepadTouch::~GamepadTouch() { mozilla::DropJSObjects(this); }
 
 /* virtual */ JSObject* GamepadTouch::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return GamepadTouch_Binding::Wrap(aCx, this, aGivenProto);
 }
 
-void GamepadTouch::GetPosition(JSContext* aCx,
+void GamepadTouch::GetPosition(MCContext* aCx,
                                JS::MutableHandle<JSObject*> aRetval,
                                ErrorResult& aRv) {
   mPosition = Float32Array::Create(aCx, this, 2, mTouchState.position);
@@ -42,7 +42,7 @@ void GamepadTouch::GetPosition(JSContext* aCx,
   aRetval.set(mPosition);
 }
 
-void GamepadTouch::GetSurfaceDimensions(JSContext* aCx,
+void GamepadTouch::GetSurfaceDimensions(MCContext* aCx,
                                         JS::MutableHandle<JSObject*> aRetval,
                                         ErrorResult& aRv) {
   mSurfaceDimensions = Uint32Array::Create(aCx, this, 2,

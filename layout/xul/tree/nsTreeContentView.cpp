@@ -109,7 +109,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsTreeContentView)
   NS_WRAPPERCACHE_INTERFACE_MAP_ENTRY
 NS_INTERFACE_MAP_END
 
-JSObject* nsTreeContentView::WrapObject(JSContext* aCx,
+JSObject* nsTreeContentView::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return TreeContentView_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -62,7 +62,7 @@ WorkletImpl::WorkletImpl(nsPIDOMWindowInner* aWindow, nsIPrincipal* aPrincipal)
 
 WorkletImpl::~WorkletImpl() { MOZ_ASSERT(!mGlobalScope); }
 
-JSObject* WorkletImpl::WrapWorklet(JSContext* aCx, dom::Worklet* aWorklet,
+JSObject* WorkletImpl::WrapWorklet(MCContext* aCx, dom::Worklet* aWorklet,
                                    JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(NS_IsMainThread());
   return dom::Worklet_Binding::Wrap(aCx, aWorklet, aGivenProto);
@@ -80,7 +80,7 @@ dom::WorkletGlobalScope* WorkletImpl::GetGlobalScope() {
 
   dom::AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   mGlobalScope = ConstructGlobalScope();
 

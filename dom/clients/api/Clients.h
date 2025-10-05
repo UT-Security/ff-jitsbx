@@ -30,7 +30,7 @@ class Clients final : public nsISupports, public nsWrapperCache {
   explicit Clients(nsIGlobalObject* aGlobal);
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods

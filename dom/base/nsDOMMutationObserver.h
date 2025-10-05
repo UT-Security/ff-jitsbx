@@ -51,7 +51,7 @@ class nsDOMMutationRecord final : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::MutationRecord_Binding::Wrap(aCx, this, aGivenProto);
   }
@@ -430,7 +430,7 @@ class nsDOMMutationObserver final : public nsISupports, public nsWrapperCache {
       const mozilla::dom::GlobalObject&, mozilla::dom::MutationCallback&,
       mozilla::ErrorResult&);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override {
     return mozilla::dom::MutationObserver_Binding::Wrap(aCx, this, aGivenProto);
   }

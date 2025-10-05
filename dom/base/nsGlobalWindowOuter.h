@@ -129,13 +129,13 @@ class RemotePrintJobChild;
 }  // namespace mozilla
 
 extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
-    JSContext* aCx, nsGlobalWindowInner* aWindow,
+    MCContext* aCx, nsGlobalWindowInner* aWindow,
     mozilla::dom::Function& aFunction,
     const mozilla::dom::Sequence<JS::Value>& aArguments,
     mozilla::ErrorResult& aError);
 
 extern already_AddRefed<nsIScriptTimeoutHandler> NS_CreateJSTimeoutHandler(
-    JSContext* aCx, nsGlobalWindowInner* aWindow, const nsAString& aExpression,
+    MCContext* aCx, nsGlobalWindowInner* aWindow, const nsAString& aExpression,
     mozilla::ErrorResult& aError);
 
 extern const JSClass* OuterWindowProxyClass();
@@ -227,7 +227,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* cx,
+  virtual JSObject* WrapObject(MCContext* cx,
                                JS::Handle<JSObject*> aGivenProto) override {
     return EnsureInnerWindow() ? GetWrapper() : nullptr;
   }
@@ -641,7 +641,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
                  bool aShowDialog, mozilla::ErrorResult& aError);
 
   mozilla::dom::Nullable<mozilla::dom::WindowProxyHolder> OpenDialogOuter(
-      JSContext* aCx, const nsAString& aUrl, const nsAString& aName,
+      MCContext* aCx, const nsAString& aUrl, const nsAString& aName,
       const nsAString& aOptions,
       const mozilla::dom::Sequence<JS::Value>& aExtraArgument,
       mozilla::ErrorResult& aError);
@@ -653,7 +653,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
 
   already_AddRefed<mozilla::dom::BrowsingContext> GetContentInternal(
       mozilla::dom::CallerType aCallerType, mozilla::ErrorResult& aError);
-  void GetContentOuter(JSContext* aCx, JS::MutableHandle<JSObject*> aRetval,
+  void GetContentOuter(MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                        mozilla::dom::CallerType aCallerType,
                        mozilla::ErrorResult& aError);
 
@@ -663,17 +663,17 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   void SetBrowserDOMWindowOuter(nsIBrowserDOMWindow* aBrowserWindow);
   void SetCursorOuter(const nsACString& aCursor, mozilla::ErrorResult& aError);
 
-  void GetReturnValueOuter(JSContext* aCx,
+  void GetReturnValueOuter(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aReturnValue,
                            nsIPrincipal& aSubjectPrincipal,
                            mozilla::ErrorResult& aError);
-  void GetReturnValue(JSContext* aCx, JS::MutableHandle<JS::Value> aReturnValue,
+  void GetReturnValue(MCContext* aCx, JS::MutableHandle<JS::Value> aReturnValue,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
-  void SetReturnValueOuter(JSContext* aCx, JS::Handle<JS::Value> aReturnValue,
+  void SetReturnValueOuter(MCContext* aCx, JS::Handle<JS::Value> aReturnValue,
                            nsIPrincipal& aSubjectPrincipal,
                            mozilla::ErrorResult& aError);
-  void SetReturnValue(JSContext* aCx, JS::Handle<JS::Value> aReturnValue,
+  void SetReturnValue(MCContext* aCx, JS::Handle<JS::Value> aReturnValue,
                       nsIPrincipal& aSubjectPrincipal,
                       mozilla::ErrorResult& aError);
 
@@ -924,7 +924,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
   mozilla::CSSIntPoint GetScreenXY(mozilla::dom::CallerType aCallerType,
                                    mozilla::ErrorResult& aError);
 
-  void PostMessageMozOuter(JSContext* aCx, JS::Handle<JS::Value> aMessage,
+  void PostMessageMozOuter(MCContext* aCx, JS::Handle<JS::Value> aMessage,
                            const nsAString& aTargetOrigin,
                            JS::Handle<JS::Value> aTransfer,
                            nsIPrincipal& aSubjectPrincipal,
@@ -994,7 +994,7 @@ class nsGlobalWindowOuter final : public mozilla::dom::EventTarget,
    * @return Whether the postMessage call should continue or return now.
    */
   static bool GatherPostMessageData(
-      JSContext* aCx, const nsAString& aTargetOrigin,
+      MCContext* aCx, const nsAString& aTargetOrigin,
       mozilla::dom::BrowsingContext** aSource, nsAString& aOrigin,
       nsIURI** aTargetOriginURI, nsIPrincipal** aCallerPrincipal,
       nsGlobalWindowInner** aCallerInnerWindow, nsIURI** aCallerURI,

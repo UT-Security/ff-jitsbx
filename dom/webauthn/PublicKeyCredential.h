@@ -29,10 +29,10 @@ class PublicKeyCredential final : public Credential {
   ~PublicKeyCredential() override;
 
  public:
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetRawId(JSContext* aCx, JS::MutableHandle<JSObject*> aValue,
+  void GetRawId(MCContext* aCx, JS::MutableHandle<JSObject*> aValue,
                 ErrorResult& aRv);
 
   already_AddRefed<AuthenticatorResponse> Response() const;

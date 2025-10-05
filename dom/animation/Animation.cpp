@@ -45,7 +45,7 @@ NS_IMPL_RELEASE_INHERITED(Animation, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Animation)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-JSObject* Animation::WrapObject(JSContext* aCx,
+JSObject* Animation::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return dom::Animation_Binding::Wrap(aCx, this, aGivenProto);
 }

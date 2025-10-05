@@ -97,7 +97,7 @@ void DOMSVGStringList::RemoveFromTearoffTable() {
 DOMSVGStringList::~DOMSVGStringList() { RemoveFromTearoffTable(); }
 
 /* virtual */
-JSObject* DOMSVGStringList::WrapObject(JSContext* aCx,
+JSObject* DOMSVGStringList::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return SVGStringList_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_ByteStreamHelpers_h
 #define mozilla_dom_ByteStreamHelpers_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/ErrorResult.h"
 #include "UnderlyingSourceCallbackHelpers.h"
 
@@ -20,19 +20,19 @@ class BodyStreamHolder;
 //
 // As some parts of the specifcation want to use the abrupt completion value,
 // this function may leave a pending exception if it returns nullptr.
-JSObject* TransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject);
+JSObject* TransferArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObject);
 
-bool CanTransferArrayBuffer(JSContext* aCx, JS::Handle<JSObject*> aObject,
+bool CanTransferArrayBuffer(MCContext* aCx, JS::Handle<JSObject*> aObject,
                             ErrorResult& aRv);
 
 // If this returns null, it will leave a pending exception on aCx which
 // must be handled by the caller (in the spec this is always the case
 // currently).
-JSObject* CloneAsUint8Array(JSContext* aCx, JS::Handle<JSObject*> aObject);
+JSObject* CloneAsUint8Array(MCContext* aCx, JS::Handle<JSObject*> aObject);
 
 MOZ_CAN_RUN_SCRIPT void
 SetUpReadableByteStreamControllerFromBodyStreamUnderlyingSource(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     BodyStreamHolder* aUnderlyingSource, ErrorResult& aRv);
 
 }  // namespace mozilla::dom

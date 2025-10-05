@@ -35,7 +35,7 @@ class WrapperCachedNonISupportsTestInterface final : public nsWrapperCache {
  public:
   nsISupports* GetParentObject() const { return nullptr; }
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 };
 

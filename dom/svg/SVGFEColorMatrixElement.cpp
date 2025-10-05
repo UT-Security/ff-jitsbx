@@ -19,7 +19,7 @@ using namespace mozilla::gfx;
 
 namespace mozilla::dom {
 
-JSObject* SVGFEColorMatrixElement::WrapNode(JSContext* aCx,
+JSObject* SVGFEColorMatrixElement::WrapNode(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return SVGFEColorMatrixElement_Binding::Wrap(aCx, this, aGivenProto);
 }

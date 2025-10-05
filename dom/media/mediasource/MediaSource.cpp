@@ -674,7 +674,7 @@ already_AddRefed<Promise> MediaSource::MozDebugReaderData(ErrorResult& aRv) {
 
 nsPIDOMWindowInner* MediaSource::GetParentObject() const { return GetOwner(); }
 
-JSObject* MediaSource::WrapObject(JSContext* aCx,
+JSObject* MediaSource::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return MediaSource_Binding::Wrap(aCx, this, aGivenProto);
 }

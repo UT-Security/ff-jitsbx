@@ -235,7 +235,7 @@ void IDBTypedCursor<CursorType>::GetSource(
 }
 
 template <IDBCursor::Type CursorType>
-void IDBTypedCursor<CursorType>::GetKey(JSContext* const aCx,
+void IDBTypedCursor<CursorType>::GetKey(MCContext* const aCx,
                                         JS::MutableHandle<JS::Value> aResult,
                                         ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -265,7 +265,7 @@ void IDBTypedCursor<CursorType>::GetKey(JSContext* const aCx,
 
 template <IDBCursor::Type CursorType>
 void IDBTypedCursor<CursorType>::GetPrimaryKey(
-    JSContext* const aCx, JS::MutableHandle<JS::Value> aResult,
+    MCContext* const aCx, JS::MutableHandle<JS::Value> aResult,
     ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -296,7 +296,7 @@ void IDBTypedCursor<CursorType>::GetPrimaryKey(
 }
 
 template <IDBCursor::Type CursorType>
-void IDBTypedCursor<CursorType>::GetValue(JSContext* const aCx,
+void IDBTypedCursor<CursorType>::GetValue(MCContext* const aCx,
                                           JS::MutableHandle<JS::Value> aResult,
                                           ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -334,7 +334,7 @@ void IDBTypedCursor<CursorType>::GetValue(JSContext* const aCx,
 }
 
 template <IDBCursor::Type CursorType>
-void IDBTypedCursor<CursorType>::Continue(JSContext* const aCx,
+void IDBTypedCursor<CursorType>::Continue(MCContext* const aCx,
                                           JS::Handle<JS::Value> aKey,
                                           ErrorResult& aRv) {
   AssertIsOnOwningThread();
@@ -425,7 +425,7 @@ void IDBTypedCursor<CursorType>::Continue(JSContext* const aCx,
 
 template <IDBCursor::Type CursorType>
 void IDBTypedCursor<CursorType>::ContinuePrimaryKey(
-    JSContext* const aCx, JS::Handle<JS::Value> aKey,
+    MCContext* const aCx, JS::Handle<JS::Value> aKey,
     JS::Handle<JS::Value> aPrimaryKey, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -582,7 +582,7 @@ void IDBTypedCursor<CursorType>::Advance(const uint32_t aCount,
 
 template <IDBCursor::Type CursorType>
 RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Update(
-    JSContext* const aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
+    MCContext* const aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
   if (!mTransaction->IsActive()) {
@@ -691,7 +691,7 @@ RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Update(
 }
 
 template <IDBCursor::Type CursorType>
-RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Delete(JSContext* const aCx,
+RefPtr<IDBRequest> IDBTypedCursor<CursorType>::Delete(MCContext* const aCx,
                                                       ErrorResult& aRv) {
   AssertIsOnOwningThread();
 
@@ -842,7 +842,7 @@ NS_IMPL_CYCLE_COLLECTION_IDBCURSOR_SUBCLASS(IDBIndexKeyCursor)
 
 template <IDBCursor::Type CursorType>
 JSObject* IDBTypedCursor<CursorType>::WrapObject(
-    JSContext* const aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* const aCx, JS::Handle<JSObject*> aGivenProto) {
   AssertIsOnOwningThread();
 
   return IsKeyOnlyCursor

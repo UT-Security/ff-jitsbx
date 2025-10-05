@@ -11,8 +11,8 @@
 #include <type_traits>
 #include <utility>
 #include "ErrorList.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/ErrorResult.h"
@@ -80,10 +80,10 @@ class Promise : public SupportsWeakPtr {
           eDontPropagateUserInteraction);
 
   // Reports a rejected Promise by sending an error report.
-  static void ReportRejectedPromise(JSContext* aCx,
+  static void ReportRejectedPromise(MCContext* aCx,
                                     JS::Handle<JSObject*> aPromise);
 
-  using MaybeFunc = void (Promise::*)(JSContext*, JS::Handle<JS::Value>);
+  using MaybeFunc = void (Promise::*)(MCContext*, JS::Handle<JS::Value>);
 
   // Helpers for using Promise from C++.
   // Most DOM objects are handled already.  To add a new type T, add a
@@ -122,8 +122,8 @@ class Promise : public SupportsWeakPtr {
 
   void MaybeRejectWithUndefined();
 
-  void MaybeResolveWithClone(JSContext* aCx, JS::Handle<JS::Value> aValue);
-  void MaybeRejectWithClone(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  void MaybeResolveWithClone(MCContext* aCx, JS::Handle<JS::Value> aValue);
+  void MaybeRejectWithClone(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   // Facilities for rejecting with various spec-defined exception values.
 #define DOMEXCEPTION(name, err)                                   \
@@ -209,7 +209,7 @@ class Promise : public SupportsWeakPtr {
   // the promise resolve handler to be called as if we were handling user
   // input events in case we are currently handling user input events.
   static already_AddRefed<Promise> Resolve(
-      nsIGlobalObject* aGlobal, JSContext* aCx, JS::Handle<JS::Value> aValue,
+      nsIGlobalObject* aGlobal, MCContext* aCx, JS::Handle<JS::Value> aValue,
       ErrorResult& aRv,
       PropagateUserInteraction aPropagateUserInteraction =
           eDontPropagateUserInteraction);
@@ -218,7 +218,7 @@ class Promise : public SupportsWeakPtr {
   // compartment of aCx is ignored.  Errors are reported on the ErrorResult; if
   // aRv comes back !Failed(), this function MUST return a non-null value.
   static already_AddRefed<Promise> Reject(nsIGlobalObject* aGlobal,
-                                          JSContext* aCx,
+                                          MCContext* aCx,
                                           JS::Handle<JS::Value> aValue,
                                           ErrorResult& aRv);
 
@@ -231,7 +231,7 @@ class Promise : public SupportsWeakPtr {
       return nullptr;
     }
 
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
     MC::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aValue), &val)) {
       return Promise::RejectWithExceptionFromContext(aGlobal, cx, aError);
@@ -241,7 +241,7 @@ class Promise : public SupportsWeakPtr {
   }
 
   static already_AddRefed<Promise> RejectWithExceptionFromContext(
-      nsIGlobalObject* aGlobal, JSContext* aCx, ErrorResult& aError);
+      nsIGlobalObject* aGlobal, MCContext* aCx, ErrorResult& aError);
 
   // Do the equivalent of Promise.all in the current compartment of aCx.  Errors
   // are reported on the ErrorResult; if aRv comes back !Failed(), this function
@@ -250,12 +250,12 @@ class Promise : public SupportsWeakPtr {
   // the promise resolve handler to be called as if we were handling user
   // input events in case we are currently handling user input events.
   static already_AddRefed<Promise> All(
-      JSContext* aCx, const nsTArray<RefPtr<Promise>>& aPromiseList,
+      MCContext* aCx, const nsTArray<RefPtr<Promise>>& aPromiseList,
       ErrorResult& aRv,
       PropagateUserInteraction aPropagateUserInteraction =
           eDontPropagateUserInteraction);
 
-  void Then(JSContext* aCx,
+  void Then(MCContext* aCx,
             // aCalleeGlobal may not be in the compartment of aCx, when called
             // over Xrays.
             JS::Handle<JSObject*> aCalleeGlobal, AnyCallback* aResolveCallback,
@@ -266,7 +266,7 @@ class Promise : public SupportsWeakPtr {
   using IsHandlerCallback =
       std::is_same<already_AddRefed<Promise>,
                    decltype(std::declval<Callback>()(
-                       (JSContext*)(nullptr),
+                       (MCContext*)(nullptr),
                        std::declval<JS::Handle<JS::Value>>(),
                        std::declval<ErrorResult&>(), std::declval<Args>()...))>;
 
@@ -320,7 +320,7 @@ class Promise : public SupportsWeakPtr {
 
   Result<RefPtr<Promise>, nsresult> ThenWithoutCycleCollection(
       const std::function<already_AddRefed<Promise>(
-          JSContext*, JS::Handle<JS::Value>, ErrorResult& aRv)>& aCallback);
+          MCContext*, JS::Handle<JS::Value>, ErrorResult& aRv)>& aCallback);
 
   // Similar to ThenCatchWithCycleCollectedArgs but doesn't care with return
   // values of the callbacks and does not return a new promise.
@@ -408,8 +408,8 @@ class Promise : public SupportsWeakPtr {
                          eDontPropagateUserInteraction);
 
  private:
-  void MaybeResolve(JSContext* aCx, JS::Handle<JS::Value> aValue);
-  void MaybeReject(JSContext* aCx, JS::Handle<JS::Value> aValue);
+  void MaybeResolve(MCContext* aCx, JS::Handle<JS::Value> aValue);
+  void MaybeReject(MCContext* aCx, JS::Handle<JS::Value> aValue);
 
   template <typename T>
   void MaybeSomething(T&& aArgument, MaybeFunc aFunc) {
@@ -417,7 +417,7 @@ class Promise : public SupportsWeakPtr {
 
     AutoAllowLegacyScriptExecution exemption;
     AutoEntryScript aes(mGlobal, "Promise resolution or rejection");
-    JSContext* cx = aes.cx();
+    MCContext* cx = aes.mcx();
 
     MC::Rooted<JS::Value> val(cx);
     if (!ToJSValue(cx, std::forward<T>(aArgument), &val)) {
@@ -428,7 +428,7 @@ class Promise : public SupportsWeakPtr {
     (this->*aFunc)(cx, val);
   }
 
-  void HandleException(JSContext* aCx);
+  void HandleException(MCContext* aCx);
 
   bool MaybePropagateUserInputEventHandling();
 

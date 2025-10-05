@@ -30,18 +30,18 @@ class TestInterfaceMaplikeJSObject final : public nsISupports,
 
   explicit TestInterfaceMaplikeJSObject(nsPIDOMWindowInner* aParent);
   nsPIDOMWindowInner* GetParentObject() const;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceMaplikeJSObject> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);
 
   // External access for testing internal convenience functions.
-  void SetInternal(JSContext* aCx, const nsAString& aKey,
+  void SetInternal(MCContext* aCx, const nsAString& aKey,
                    JS::Handle<JSObject*> aObject);
   void ClearInternal();
   bool DeleteInternal(const nsAString& aKey);
   bool HasInternal(const nsAString& aKey);
-  void GetInternal(JSContext* aCx, const nsAString& aKey,
+  void GetInternal(MCContext* aCx, const nsAString& aKey,
                    JS::MutableHandle<JSObject*> aRetVal, ErrorResult& aRv);
 
  private:

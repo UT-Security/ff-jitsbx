@@ -17,7 +17,7 @@ namespace mozilla::dom {
 
 HTMLFrameSetElement::~HTMLFrameSetElement() = default;
 
-JSObject* HTMLFrameSetElement::WrapNode(JSContext* aCx,
+JSObject* HTMLFrameSetElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLFrameSetElement_Binding::Wrap(aCx, this, aGivenProto);
 }

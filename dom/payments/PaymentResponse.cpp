@@ -74,7 +74,7 @@ PaymentResponse::PaymentResponse(
 
 PaymentResponse::~PaymentResponse() = default;
 
-JSObject* PaymentResponse::WrapObject(JSContext* aCx,
+JSObject* PaymentResponse::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return PaymentResponse_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -87,7 +87,7 @@ void PaymentResponse::GetMethodName(nsString& aRetVal) const {
   aRetVal = mMethodName;
 }
 
-void PaymentResponse::GetDetails(JSContext* aCx,
+void PaymentResponse::GetDetails(MCContext* aCx,
                                  JS::MutableHandle<JSObject*> aRetVal) const {
   switch (mDetails.type()) {
     case ResponseData::GeneralResponse: {
@@ -223,7 +223,7 @@ void PaymentResponse::RespondComplete() {
 }
 
 already_AddRefed<Promise> PaymentResponse::Retry(
-    JSContext* aCx, const PaymentValidationErrors& aErrors, ErrorResult& aRv) {
+    MCContext* aCx, const PaymentValidationErrors& aErrors, ErrorResult& aRv) {
   MOZ_ASSERT(mRequest);
   if (!mRequest->InFullyActiveDocument()) {
     aRv.ThrowAbortError("The owner document is not fully active");
@@ -313,7 +313,7 @@ void PaymentResponse::RejectRetry(ErrorResult&& aRejectReason) {
 }
 
 void PaymentResponse::ConvertPaymentMethodErrors(
-    JSContext* aCx, const PaymentValidationErrors& aErrors,
+    MCContext* aCx, const PaymentValidationErrors& aErrors,
     ErrorResult& aRv) const {
   MOZ_ASSERT(aCx);
   if (!aErrors.mPaymentMethod.WasPassed()) {

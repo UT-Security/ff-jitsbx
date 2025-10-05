@@ -183,7 +183,7 @@ size_t ConstantSourceNode::SizeOfIncludingThis(
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* ConstantSourceNode::WrapObject(JSContext* aCx,
+JSObject* ConstantSourceNode::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return ConstantSourceNode_Binding::Wrap(aCx, this, aGivenProto);
 }

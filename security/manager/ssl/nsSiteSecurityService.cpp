@@ -338,7 +338,7 @@ nsSiteSecurityService::ResetState(nsIURI* aURI,
   if (aArgc > 0) {
     // OriginAttributes were passed in.
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+        !originAttributes.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -437,7 +437,7 @@ nsSiteSecurityService::ProcessHeaderScriptable(
   OriginAttributes originAttributes;
   if (aArgc > 0) {
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+        !originAttributes.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }
@@ -643,7 +643,7 @@ nsSiteSecurityService::IsSecureURIScriptable(
   OriginAttributes originAttributes;
   if (aArgc > 0) {
     if (!aOriginAttributes.isObject() ||
-        !originAttributes.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+        !originAttributes.Init(aCx, aOriginAttributes)) {
       return NS_ERROR_INVALID_ARG;
     }
   }

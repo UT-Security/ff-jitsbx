@@ -28,7 +28,7 @@ NS_INTERFACE_MAP_END
 PerformanceObserverEntryList::~PerformanceObserverEntryList() = default;
 
 JSObject* PerformanceObserverEntryList::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return PerformanceObserverEntryList_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -16,7 +16,7 @@ namespace mozilla::dom {
 // TimeoutHandler
 //-----------------------------------------------------------------------------
 
-TimeoutHandler::TimeoutHandler(JSContext* aCx) : TimeoutHandler() {
+TimeoutHandler::TimeoutHandler(MCContext* aCx) : TimeoutHandler() {
   nsJSUtils::GetCallingLocation(aCx, mFileName, &mLineNo, &mColumn);
 }
 
@@ -38,7 +38,7 @@ void TimeoutHandler::GetDescription(nsACString& aOutString) {
 // ScriptTimeoutHandler
 //-----------------------------------------------------------------------------
 
-ScriptTimeoutHandler::ScriptTimeoutHandler(JSContext* aCx,
+ScriptTimeoutHandler::ScriptTimeoutHandler(MCContext* aCx,
                                            nsIGlobalObject* aGlobal,
                                            const nsAString& aExpression)
     : TimeoutHandler(aCx), mGlobal(aGlobal), mExpr(aExpression) {}
@@ -96,7 +96,7 @@ void ScriptTimeoutHandler::GetDescription(nsACString& aOutString) {
 //-----------------------------------------------------------------------------
 
 CallbackTimeoutHandler::CallbackTimeoutHandler(
-    JSContext* aCx, nsIGlobalObject* aGlobal, Function* aFunction,
+    MCContext* aCx, nsIGlobalObject* aGlobal, Function* aFunction,
     nsTArray<JS::Heap<JS::Value>>&& aArguments)
     : TimeoutHandler(aCx), mGlobal(aGlobal), mFunction(aFunction) {
   mozilla::HoldJSObjects(this);

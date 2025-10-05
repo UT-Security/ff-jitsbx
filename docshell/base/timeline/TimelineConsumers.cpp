@@ -188,7 +188,7 @@ void TimelineConsumers::AddMarkerForAllObservedDocShells(
 }
 
 void TimelineConsumers::PopMarkers(
-    nsDocShell* aDocShell, JSContext* aCx,
+    nsDocShell* aDocShell, MCContext* aCx,
     nsTArray<dom::ProfileTimelineMarker>& aStore) {
   MOZ_ASSERT(NS_IsMainThread());
 

@@ -33,7 +33,7 @@ nsMimeTypeArray::nsMimeTypeArray(
 
 nsMimeTypeArray::~nsMimeTypeArray() = default;
 
-JSObject* nsMimeTypeArray::WrapObject(JSContext* aCx,
+JSObject* nsMimeTypeArray::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return MimeTypeArray_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -94,7 +94,7 @@ nsMimeType::nsMimeType(nsPluginElement* aPluginElement, const nsAString& aName)
 
 nsMimeType::~nsMimeType() = default;
 
-JSObject* nsMimeType::WrapObject(JSContext* aCx,
+JSObject* nsMimeType::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return MimeType_Binding::Wrap(aCx, this, aGivenProto);
 }

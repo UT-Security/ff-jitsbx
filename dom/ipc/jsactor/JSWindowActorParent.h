@@ -35,7 +35,7 @@ class JSWindowActorParent final : public JSActor {
   explicit JSWindowActorParent(nsISupports* aGlobal = nullptr)
       : JSActor(aGlobal) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<JSWindowActorParent> Constructor(

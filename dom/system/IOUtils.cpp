@@ -150,7 +150,7 @@ static nsCString FormatErrorMessage(nsresult aError,
 }
 
 [[nodiscard]] inline bool ToJSValue(
-    JSContext* aCx, const IOUtils::InternalFileInfo& aInternalFileInfo,
+    MCContext* aCx, const IOUtils::InternalFileInfo& aInternalFileInfo,
     JS::MutableHandle<JS::Value> aValue) {
   FileInfo info;
   info.mPath.Construct(aInternalFileInfo.mPath);
@@ -287,19 +287,19 @@ static bool AssertParentProcessWithCallerLocationImpl(GlobalObject& aGlobal,
   MOZ_ALWAYS_TRUE(global);
   MOZ_ALWAYS_TRUE(jsapi.Init(global));
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
-  JS::AutoFilename scriptFilename;
-  unsigned lineNo = 0;
-  unsigned colNo = 0;
+  MC::SandboxStack<JS::AutoFilename> scriptFilename;
+  MC::SandboxStack<unsigned> lineNo = 0;
+  MC::SandboxStack<unsigned> colNo = 0;
 
   NS_ENSURE_TRUE(
-      JS::DescribeScriptedCaller(cx, &scriptFilename, &lineNo, &colNo), false);
+      JS::DescribeScriptedCaller(cx, scriptFilename, lineNo, colNo), false);
 
-  NS_ENSURE_TRUE(scriptFilename.get(), false);
+  NS_ENSURE_TRUE(scriptFilename->get(), false);
 
-  reason.AppendPrintf(" Called from %s:%d:%d.", scriptFilename.get(), lineNo,
-                      colNo);
+  reason.AppendPrintf(" Called from %s:%d:%d.", scriptFilename->get(), *lineNo.UNSAFE_unverified(),
+                      *colNo.UNSAFE_unverified());
   return false;
 }
 
@@ -478,7 +478,7 @@ already_AddRefed<Promise> IOUtils::ReadJSON(GlobalObject& aGlobal,
                         "Could not initialize JS API");
                     return;
                   }
-                  JSContext* cx = jsapi.cx();
+                  MCContext* cx = jsapi.mcx();
 
                   MC::Rooted<JSString*> jsonStr(
                       cx,
@@ -574,9 +574,9 @@ already_AddRefed<Promise> IOUtils::WriteUTF8(GlobalObject& aGlobal,
       });
 }
 
-static bool AppendJsonAsUtf8(const char16_t* aData, uint32_t aLen, void* aStr) {
-  nsCString* str = static_cast<nsCString*>(aStr);
-  return AppendUTF16toUTF8(Span<const char16_t>(aData, aLen), *str, fallible);
+static MC::Tainted<bool> AppendJsonAsUtf8(MC::Tainted<const char16_t*> aData, uint32_t aLen, MC::AppPointer<void*> aStr) {
+  nsCString* str = static_cast<nsCString*>(aStr.UNSAFE_unverified());
+  return AppendUTF16toUTF8(Span<const char16_t>(aData.UNSAFE_unverified(), aLen), *str, fallible);
 }
 
 /* static */
@@ -608,7 +608,7 @@ already_AddRefed<Promise> IOUtils::WriteJSON(GlobalObject& aGlobal,
         nsCString utf8Str;
 
         static auto AppendJsonAsUtf8Cb =
-            MC::Sandbox::RegisterCallback(AppendJsonAsUtf8);
+            MC::Sandbox::RegisterTaintedCallback(AppendJsonAsUtf8);
         if (!JS_Stringify(cx, &rootedValue, nullptr, MC::NullHandleValue(),
                           AppendJsonAsUtf8Cb, &utf8Str)) {
           MC::Rooted<JS::Value> exn(cx, JS::UndefinedValue());
@@ -2670,7 +2670,7 @@ IOUtils::JsBuffer& IOUtils::JsBuffer::operator=(
 }
 
 /* static */
-JSString* IOUtils::JsBuffer::IntoString(JSContext* aCx, JsBuffer aBuffer) {
+JSString* IOUtils::JsBuffer::IntoString(MCContext* aCx, JsBuffer aBuffer) {
   MOZ_RELEASE_ASSERT(aBuffer.mBufferKind == IOUtils::BufferKind::String);
 
   if (!aBuffer.mCapacity) {
@@ -2696,7 +2696,7 @@ JSString* IOUtils::JsBuffer::IntoString(JSContext* aCx, JsBuffer aBuffer) {
 }
 
 /* static */
-JSObject* IOUtils::JsBuffer::IntoUint8Array(JSContext* aCx, JsBuffer aBuffer) {
+JSObject* IOUtils::JsBuffer::IntoUint8Array(MCContext* aCx, JsBuffer aBuffer) {
   MOZ_RELEASE_ASSERT(aBuffer.mBufferKind == IOUtils::BufferKind::Uint8Array);
 
   if (!aBuffer.mCapacity) {
@@ -2723,7 +2723,7 @@ JSObject* IOUtils::JsBuffer::IntoUint8Array(JSContext* aCx, JsBuffer aBuffer) {
   return JS_NewUint8ArrayWithBuffer(aCx, arrayBuffer, 0, aBuffer.mLength);
 }
 
-[[nodiscard]] bool ToJSValue(JSContext* aCx, IOUtils::JsBuffer&& aBuffer,
+[[nodiscard]] bool ToJSValue(MCContext* aCx, IOUtils::JsBuffer&& aBuffer,
                              JS::MutableHandle<JS::Value> aValue) {
   if (aBuffer.mBufferKind == IOUtils::BufferKind::String) {
     JSString* str = IOUtils::JsBuffer::IntoString(aCx, std::move(aBuffer));
@@ -2765,7 +2765,7 @@ SyncReadFile::SyncReadFile(nsISupports* aParent,
 
 SyncReadFile::~SyncReadFile() = default;
 
-JSObject* SyncReadFile::WrapObject(JSContext* aCx,
+JSObject* SyncReadFile::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SyncReadFile_Binding::Wrap(aCx, this, aGivenProto);
 }

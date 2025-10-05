@@ -276,7 +276,7 @@ BrowserHost::MaybeCancelContentJSExecutionFromScript(
     return NS_OK;
   }
   dom::CancelContentJSOptions cancelContentJSOptions;
-  if (!cancelContentJSOptions.Init(MC_UNSAFE(aCx), aCancelContentJSOptions)) {
+  if (!cancelContentJSOptions.Init(aCx, aCancelContentJSOptions)) {
     return NS_ERROR_INVALID_ARG;
   }
   if (StaticPrefs::dom_ipc_cancel_content_js_when_navigating()) {

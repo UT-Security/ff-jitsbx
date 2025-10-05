@@ -6,10 +6,11 @@
 
 #include "ImportMap.h"
 
-#include "js/Array.h"                 // IsArrayObject
-#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
-#include "js/JSON.h"                  // JS_ParseJSON
 #include "LoadedScript.h"
+#include "js/friend/ErrorMessages.h"  // js::GetErrorMessage, JSMSG_*
+#include "monkeycage/JSON.h"                  // JS_ParseJSON
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Array.h"                 // IsArrayObject
 #include "ModuleLoaderBase.h"  // ScriptLoaderInterface
 #include "nsContentUtils.h"
 #include "nsIScriptElement.h"
@@ -107,12 +108,12 @@ static void NormalizeSpecifierKey(const nsAString& aSpecifierKey,
 
 // https://html.spec.whatwg.org/multipage/webappapis.html#sorting-and-normalizing-a-module-specifier-map
 static UniquePtr<SpecifierMap> SortAndNormalizeSpecifierMap(
-    JSContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
+    MCContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
     const ReportWarningHelper& aWarning) {
   // Step 1. Let normalized be an empty ordered map.
   UniquePtr<SpecifierMap> normalized = MakeUnique<SpecifierMap>();
 
-  MC::Rooted<JS::IdVector> specifierKeys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> specifierKeys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, aOriginalMap, &specifierKeys)) {
     return nullptr;
   }
@@ -213,7 +214,7 @@ static UniquePtr<SpecifierMap> SortAndNormalizeSpecifierMap(
 // https://infra.spec.whatwg.org/#ordered-map
 //
 // If it is, *aIsMap will be set to true.
-static bool IsMapObject(JSContext* aCx, JS::HandleValue aMapVal, bool* aIsMap) {
+static bool IsMapObject(MCContext* aCx, JS::HandleValue aMapVal, bool* aIsMap) {
   MOZ_ASSERT(aIsMap);
 
   *aIsMap = false;
@@ -221,20 +222,20 @@ static bool IsMapObject(JSContext* aCx, JS::HandleValue aMapVal, bool* aIsMap) {
     return true;
   }
 
-  bool isArray;
-  if (!IsArrayObject(aCx, aMapVal, &isArray)) {
+  MC::SandboxStack<bool> isArray;
+  if (!IsArrayObject(aCx, aMapVal, isArray)) {
     return false;
   }
 
-  *aIsMap = !isArray;
+  *aIsMap = !*isArray.UNSAFE_unverified();
   return true;
 }
 
 // https://html.spec.whatwg.org/multipage/webappapis.html#sorting-and-normalizing-scopes
 static UniquePtr<ScopeMap> SortAndNormalizeScopes(
-    JSContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
+    MCContext* aCx, JS::HandleObject aOriginalMap, nsIURI* aBaseURL,
     const ReportWarningHelper& aWarning) {
-  MC::Rooted<JS::IdVector> scopeKeys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> scopeKeys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, aOriginalMap, &scopeKeys)) {
     return nullptr;
   }
@@ -261,7 +262,7 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
     }
     if (!isMap) {
       const char16_t* scope = scopePrefix.get();
-      JS_ReportErrorNumberUC(aCx, js::GetErrorMessage, nullptr,
+      JS_ReportErrorNumberUC(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                              JSMSG_IMPORT_MAPS_SCOPE_VALUE_NOT_A_MAP, scope);
       return nullptr;
     }
@@ -312,7 +313,7 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
 // https://html.spec.whatwg.org/multipage/webappapis.html#parse-an-import-map-string
 // static
 UniquePtr<ImportMap> ImportMap::ParseString(
-    JSContext* aCx, SourceText<char16_t>& aInput, nsIURI* aBaseURL,
+    MCContext* aCx, SourceText<char16_t>& aInput, nsIURI* aBaseURL,
     const ReportWarningHelper& aWarning) {
   // Step 1. Let parsed be the result of parsing JSON into Infra values given
   // input.
@@ -330,10 +331,10 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     }
     MOZ_ASSERT(exn.isObject());
     MC::Rooted<JSObject*> obj(aCx, &exn.toObject());
-    JSErrorReport* err = JS_ErrorFromException(aCx, obj);
-    if (err->exnType == JSEXN_SYNTAXERR) {
+    MC::Tainted<JSErrorReport*> err = JS_ErrorFromException(aCx, obj);
+    if (err->exnType() == JSEXN_SYNTAXERR) {
       JS_ClearPendingException(aCx);
-      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_PARSE_FAILED,
                                 err->message().c_str());
     }
@@ -348,7 +349,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     return nullptr;
   }
   if (!isMap) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_IMPORT_MAPS_NOT_A_MAP);
     return nullptr;
   }
@@ -375,7 +376,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
       return nullptr;
     }
     if (!isMap) {
-      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_IMPORTS_NOT_A_MAP);
       return nullptr;
     }
@@ -411,7 +412,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
       return nullptr;
     }
     if (!isMap) {
-      JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_SCOPES_NOT_A_MAP);
       return nullptr;
     }
@@ -429,7 +430,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
   // Step 7. If parsed’s keys contains any items besides "imports" or
   // "scopes", then the user agent should report a warning to the console
   // indicating that an invalid top-level key was present in the import map.
-  MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(aCx));
+  MC::Rooted<JS::IdVector> keys(aCx, JS::IdVector(MC_UNSAFE(aCx)));
   if (!JS_Enumerate(aCx, parsedObj, &keys)) {
     return nullptr;
   }

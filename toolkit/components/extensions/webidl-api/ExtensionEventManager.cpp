@@ -76,7 +76,7 @@ void ExtensionEventManager::ReleaseListeners() {
   mListeners.clear();
 }
 
-JSObject* ExtensionEventManager::WrapObject(JSContext* aCx,
+JSObject* ExtensionEventManager::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return dom::ExtensionEventManager_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -86,7 +86,7 @@ nsIGlobalObject* ExtensionEventManager::GetParentObject() const {
 }
 
 void ExtensionEventManager::AddListener(
-    JSContext* aCx, dom::Function& aCallback,
+    MCContext* aCx, dom::Function& aCallback,
     const dom::Optional<JS::Handle<JSObject*>>& aOptions, ErrorResult& aRv) {
   MC::Rooted<JSObject*> cb(aCx, aCallback.CallbackOrNull());
   if (cb == nullptr) {
@@ -128,7 +128,7 @@ void ExtensionEventManager::RemoveListener(dom::Function& aCallback,
     return;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
   MC::Rooted<JSObject*> cb(cx, aCallback.CallbackOrNull());
   const auto& ptr = mListeners.lookup(cb);
 

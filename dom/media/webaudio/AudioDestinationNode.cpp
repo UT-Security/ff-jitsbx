@@ -506,7 +506,7 @@ void AudioDestinationNode::OfflineShutdown() {
   mOfflineRenderingRef.Drop(this);
 }
 
-JSObject* AudioDestinationNode::WrapObject(JSContext* aCx,
+JSObject* AudioDestinationNode::WrapObject(MCContext* aCx,
                                            JS::Handle<JSObject*> aGivenProto) {
   return AudioDestinationNode_Binding::Wrap(aCx, this, aGivenProto);
 }

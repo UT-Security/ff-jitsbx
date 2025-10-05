@@ -25,7 +25,7 @@ class CSSTransition final : public Animation {
         mNeedsNewAnimationIndexWhenRun(false),
         mTransitionProperty(eCSSProperty_UNKNOWN) {}
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   CSSTransition* AsCSSTransition() override { return this; }

@@ -13,7 +13,7 @@
 #include <new>
 #include <type_traits>
 #include <utility>
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/ArrayIterator.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
@@ -52,7 +52,7 @@ URLSearchParams::URLSearchParams(nsISupports* aParent,
 
 URLSearchParams::~URLSearchParams() { DeleteAll(); }
 
-JSObject* URLSearchParams::WrapObject(JSContext* aCx,
+JSObject* URLSearchParams::WrapObject(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return URLSearchParams_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -172,7 +172,7 @@ void URLSearchParams::Sort(ErrorResult& aRv) {
 }
 
 bool URLSearchParams::WriteStructuredClone(
-    JSStructuredCloneWriter* aWriter) const {
+    MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   const uint32_t& nParams = mParams->Length();
   if (!JS_WriteUint32Pair(aWriter, nParams, 0)) {
     return false;
@@ -188,7 +188,7 @@ bool URLSearchParams::WriteStructuredClone(
   return true;
 }
 
-bool URLSearchParams::ReadStructuredClone(JSStructuredCloneReader* aReader) {
+bool URLSearchParams::ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader) {
   MOZ_ASSERT(aReader);
 
   DeleteAll();
@@ -210,14 +210,14 @@ bool URLSearchParams::ReadStructuredClone(JSStructuredCloneReader* aReader) {
 }
 
 bool URLSearchParams::WriteStructuredClone(
-    JSContext* aCx, JSStructuredCloneWriter* aWriter) const {
+    MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   return WriteStructuredClone(aWriter);
 }
 
 // static
 already_AddRefed<URLSearchParams> URLSearchParams::ReadStructuredClone(
-    JSContext* aCx, nsIGlobalObject* aGlobal,
-    JSStructuredCloneReader* aReader) {
+    MCContext* aCx, nsIGlobalObject* aGlobal,
+    MC::Tainted<JSStructuredCloneReader*> aReader) {
   RefPtr<URLSearchParams> params = new URLSearchParams(aGlobal);
   if (!params->ReadStructuredClone(aReader)) {
     return nullptr;

@@ -27,11 +27,11 @@ class PromiseNativeHandler : public nsISupports {
 
  public:
   MOZ_CAN_RUN_SCRIPT
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) = 0;
 
   MOZ_CAN_RUN_SCRIPT
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) = 0;
 };
 
@@ -42,7 +42,7 @@ class DomPromiseListener final : public PromiseNativeHandler {
 
  public:
   using CallbackTypeResolved =
-      std::function<void(JSContext*, JS::Handle<JS::Value>)>;
+      std::function<void(MCContext*, JS::Handle<JS::Value>)>;
   using CallbackTypeRejected = std::function<void(nsresult)>;
 
   DomPromiseListener(CallbackTypeResolved&& aResolve,
@@ -50,9 +50,9 @@ class DomPromiseListener final : public PromiseNativeHandler {
 
   void Clear();
 
-  void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
-  void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                         ErrorResult& aRv) override;
 
  private:

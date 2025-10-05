@@ -187,7 +187,7 @@ class nsICanvasRenderingContextInternal : public nsISupports,
   // Redraw the dirty rectangle of this canvas.
   NS_IMETHOD Redraw(const gfxRect& dirty) = 0;
 
-  NS_IMETHOD SetContextOptions(JSContext* cx, JS::Handle<JS::Value> options,
+  NS_IMETHOD SetContextOptions(MCContext* cx, JS::Handle<JS::Value> options,
                                mozilla::ErrorResult& aRvForDictionaryInit) {
     return NS_OK;
   }

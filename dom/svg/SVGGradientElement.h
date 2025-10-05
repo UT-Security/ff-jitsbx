@@ -38,7 +38,7 @@ class SVGGradientElement : public SVGGradientElementBase {
  protected:
   explicit SVGGradientElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override = 0;
 
  public:
@@ -87,7 +87,7 @@ class SVGLinearGradientElement final : public SVGLinearGradientElementBase {
  protected:
   explicit SVGLinearGradientElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  public:
@@ -120,7 +120,7 @@ class SVGRadialGradientElement final : public SVGRadialGradientElementBase {
  protected:
   explicit SVGRadialGradientElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  public:

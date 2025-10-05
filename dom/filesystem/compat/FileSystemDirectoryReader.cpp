@@ -7,8 +7,8 @@
 #include "FileSystemDirectoryReader.h"
 #include "CallbackRunnables.h"
 #include "FileSystemFileEntry.h"
-#include "js/Array.h"               // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_GetElement
+#include "monkeycage/Array.h"               // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_GetElement
 #include "mozilla/dom/FileBinding.h"
 #include "mozilla/dom/FileSystem.h"
 #include "mozilla/dom/FileSystemDirectoryReaderBinding.h"
@@ -40,7 +40,7 @@ class PromiseHandler final : public PromiseNativeHandler {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  virtual void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     if (NS_WARN_IF(!aValue.isObject())) {
       return;
@@ -48,17 +48,17 @@ class PromiseHandler final : public PromiseNativeHandler {
 
     MC::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 
-    uint32_t length;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, &length))) {
+    MC::SandboxStack<uint32_t> length;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, length))) {
       return;
     }
 
     Sequence<OwningNonNull<FileSystemEntry>> sequence;
-    if (NS_WARN_IF(!sequence.SetLength(length, fallible))) {
+    if (NS_WARN_IF(!sequence.SetLength(*length.UNSAFE_unverified(), fallible))) {
       return;
     }
 
-    for (uint32_t i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < *length.UNSAFE_unverified(); ++i) {
       MC::Rooted<JS::Value> value(aCx);
       if (NS_WARN_IF(!JS_GetElement(aCx, obj, i, &value))) {
         return;
@@ -93,7 +93,7 @@ class PromiseHandler final : public PromiseNativeHandler {
     mSuccessCallback->Call(sequence);
   }
 
-  virtual void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+  virtual void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                                 ErrorResult& aRv) override {
     if (mErrorCallback) {
       RefPtr<ErrorCallbackRunnable> runnable = new ErrorCallbackRunnable(
@@ -143,7 +143,7 @@ FileSystemDirectoryReader::FileSystemDirectoryReader(
 FileSystemDirectoryReader::~FileSystemDirectoryReader() = default;
 
 JSObject* FileSystemDirectoryReader::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemDirectoryReader_Binding::Wrap(aCx, this, aGivenProto);
 }
 

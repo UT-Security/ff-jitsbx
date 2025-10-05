@@ -52,7 +52,7 @@ class ReadableStreamGenericReader : public nsISupports {
   already_AddRefed<Promise> Closed() const;
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> Cancel(
-      JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
+      MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv);
 
  protected:
   virtual ~ReadableStreamGenericReader() = default;

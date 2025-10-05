@@ -183,7 +183,7 @@ void FontFaceSetWorkerImpl::DispatchToOwningThread(
                               std::function<void()>&& aFunc)
         : WorkerRunnable(aWorkerPrivate), mFunc(std::move(aFunc)) {}
 
-    bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+    bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
       mFunc();
       return true;
     }

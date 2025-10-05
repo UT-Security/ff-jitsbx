@@ -18,7 +18,7 @@ namespace mozilla::dom {
 
 JSWindowActorChild::~JSWindowActorChild() { MOZ_ASSERT(!mManager); }
 
-JSObject* JSWindowActorChild::WrapObject(JSContext* aCx,
+JSObject* JSWindowActorChild::WrapObject(MCContext* aCx,
                                          JS::Handle<JSObject*> aGivenProto) {
   return JSWindowActorChild_Binding::Wrap(aCx, this, aGivenProto);
 }

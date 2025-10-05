@@ -1424,7 +1424,7 @@ SessionHistoryEntry::GetWireframe(MCContext* aCx,
                                   JS::MutableHandle<JS::Value> aOut) {
   if (mWireframe.isNothing()) {
     aOut.set(JS::NullValue());
-  } else if (NS_WARN_IF(!mWireframe->ToObjectInternal(MC_UNSAFE(aCx), aOut))) {
+  } else if (NS_WARN_IF(!mWireframe->ToObjectInternal(aCx, aOut))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1438,7 +1438,7 @@ SessionHistoryEntry::SetWireframe(MCContext* aCx, JS::Handle<JS::Value> aArg) {
   }
 
   Wireframe wireframe;
-  if (aArg.isObject() && wireframe.Init(MC_UNSAFE(aCx), aArg)) {
+  if (aArg.isObject() && wireframe.Init(aCx, aArg)) {
     mWireframe = Some(std::move(wireframe));
     return NS_OK;
   }

@@ -47,7 +47,7 @@ FlexLineValues::FlexLineValues(Flex* aParent, const ComputedFlexLineInfo* aLine)
   }
 }
 
-JSObject* FlexLineValues::WrapObject(JSContext* aCx,
+JSObject* FlexLineValues::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return FlexLineValues_Binding::Wrap(aCx, this, aGivenProto);
 }

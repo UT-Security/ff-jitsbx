@@ -9,8 +9,8 @@
 
 #include <cstddef>
 #include "UnderlyingSourceCallbackHelpers.h"
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -57,25 +57,25 @@ class ReadableByteStreamController final : public ReadableStreamController,
   ReadableStreamDefaultController* AsDefault() override { return nullptr; }
   ReadableByteStreamController* AsByte() override { return this; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<ReadableStreamBYOBRequest> GetByobRequest(JSContext* aCx,
+  already_AddRefed<ReadableStreamBYOBRequest> GetByobRequest(MCContext* aCx,
                                                              ErrorResult& aRv);
 
   Nullable<double> GetDesiredSize() const;
 
-  MOZ_CAN_RUN_SCRIPT void Close(JSContext* aCx, ErrorResult& aRv);
+  MOZ_CAN_RUN_SCRIPT void Close(MCContext* aCx, ErrorResult& aRv);
 
-  MOZ_CAN_RUN_SCRIPT void Enqueue(JSContext* aCx, const ArrayBufferView& aChunk,
+  MOZ_CAN_RUN_SCRIPT void Enqueue(MCContext* aCx, const ArrayBufferView& aChunk,
                                   ErrorResult& aRv);
 
-  void Error(JSContext* aCx, JS::Handle<JS::Value> aErrorValue,
+  void Error(MCContext* aCx, JS::Handle<JS::Value> aErrorValue,
              ErrorResult& aRv);
 
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelSteps(
-      JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) override;
-  MOZ_CAN_RUN_SCRIPT void PullSteps(JSContext* aCx, ReadRequest* aReadRequest,
+      MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) override;
+  MOZ_CAN_RUN_SCRIPT void PullSteps(MCContext* aCx, ReadRequest* aReadRequest,
                                     ErrorResult& aRv) override;
   void ReleaseSteps() override;
 
@@ -312,19 +312,19 @@ struct PullIntoDescriptor final
 namespace streams_abstract {
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerRespond(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     uint64_t aBytesWritten, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerRespondInternal(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     uint64_t aBytesWritten, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerRespondWithNewView(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     JS::Handle<JSObject*> aView, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerPullInto(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     JS::Handle<JSObject*> aView, ReadIntoRequest* aReadIntoRequest,
     ErrorResult& aRv);
 
@@ -333,30 +333,30 @@ void ReadableByteStreamControllerError(
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerEnqueue(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     JS::Handle<JSObject*> aChunk, ErrorResult& aRv);
 
 already_AddRefed<ReadableStreamBYOBRequest>
 ReadableByteStreamControllerGetBYOBRequest(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerClose(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void SetUpReadableByteStreamController(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     ReadableByteStreamController* aController,
     UnderlyingSourceAlgorithmsBase* aAlgorithms, double aHighWaterMark,
     Maybe<uint64_t> aAutoAllocateChunkSize, ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void ReadableByteStreamControllerCallPullIfNeeded(
-    JSContext* aCx, ReadableByteStreamController* aController,
+    MCContext* aCx, ReadableByteStreamController* aController,
     ErrorResult& aRv);
 
 MOZ_CAN_RUN_SCRIPT void SetUpReadableByteStreamControllerFromUnderlyingSource(
-    JSContext* aCx, ReadableStream* aStream,
+    MCContext* aCx, ReadableStream* aStream,
     JS::Handle<JSObject*> aUnderlyingSource,
     UnderlyingSource& aUnderlyingSourceDict, double aHighWaterMark,
     ErrorResult& aRv);

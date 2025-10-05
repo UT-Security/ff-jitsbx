@@ -41,7 +41,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(HTMLAnchorElement, nsGenericHTMLElement,
 
 NS_IMPL_ELEMENT_CLONE(HTMLAnchorElement)
 
-JSObject* HTMLAnchorElement::WrapNode(JSContext* aCx,
+JSObject* HTMLAnchorElement::WrapNode(MCContext* aCx,
                                       JS::Handle<JSObject*> aGivenProto) {
   return HTMLAnchorElement_Binding::Wrap(aCx, this, aGivenProto);
 }

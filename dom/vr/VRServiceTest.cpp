@@ -46,7 +46,7 @@ VRMockDisplay::VRMockDisplay(VRServiceTest* aVRServiceTest)
     : DOMEventTargetHelper(aVRServiceTest->GetOwner()),
       mVRServiceTest(aVRServiceTest) {}
 
-JSObject* VRMockDisplay::WrapObject(JSContext* aCx,
+JSObject* VRMockDisplay::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return VRMockDisplay_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -350,7 +350,7 @@ VRMockController::VRMockController(VRServiceTest* aVRServiceTest,
   MOZ_ASSERT(aControllerIdx < kVRControllerMaxCount);
 }
 
-JSObject* VRMockController::WrapObject(JSContext* aCx,
+JSObject* VRMockController::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return VRMockController_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -542,7 +542,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(VRServiceTest, DOMEventTargetHelper,
 NS_IMPL_ISUPPORTS_CYCLE_COLLECTION_INHERITED_0(VRServiceTest,
                                                DOMEventTargetHelper)
 
-JSObject* VRServiceTest::WrapObject(JSContext* aCx,
+JSObject* VRServiceTest::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return VRServiceTest_Binding::Wrap(aCx, this, aGivenProto);
 }

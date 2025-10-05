@@ -5134,7 +5134,7 @@ mozilla::ipc::IPCResult ContentParent::RecvScriptErrorInternal(
     if (NS_WARN_IF(!jsapi.Init(xpc::PrivilegedJunkScope()))) {
       MOZ_CRASH();
     }
-    JSContext* cx = jsapi.cx();
+    MCContext* cx = jsapi.mcx();
 
     MC::Rooted<JS::Value> stack(cx);
     ErrorResult rv;

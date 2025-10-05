@@ -54,7 +54,7 @@ class HTMLDetailsElement final : public nsGenericHTMLElement {
   virtual ~HTMLDetailsElement();
   void SetupShadowTree();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   RefPtr<AsyncEventDispatcher> mToggleEventDispatcher;

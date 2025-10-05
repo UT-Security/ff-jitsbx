@@ -7,9 +7,9 @@
 #include "WorkerRunnable.h"
 
 #include "WorkerScope.h"
-#include "js/RootingAPI.h"
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "monkeycage/RootingAPI.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/AppShutdown.h"
 #include "mozilla/Assertions.h"
@@ -161,7 +161,7 @@ void WorkerRunnable::PostDispatch(WorkerPrivate* aWorkerPrivate,
 
 bool WorkerRunnable::PreRun(WorkerPrivate* aWorkerPrivate) { return true; }
 
-void WorkerRunnable::PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+void WorkerRunnable::PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                              bool aRunResult) {
   MOZ_ASSERT(aCx);
   MOZ_ASSERT(aWorkerPrivate);
@@ -316,7 +316,7 @@ WorkerRunnable::Run() {
   // this is OK as we won't be running script in these circumstances.
   Maybe<mozilla::dom::AutoJSAPI> maybeJSAPI;
   Maybe<mozilla::dom::AutoEntryScript> aes;
-  JSContext* cx;
+  MCContext* cx;
   AutoJSAPI* jsapi;
   if (globalObject) {
     aes.emplace(globalObject, "Worker runnable", isMainThread);
@@ -347,7 +347,7 @@ WorkerRunnable::Run() {
   // situation described above when globalObject is null.  Make sure to enter
   // the realm of the worker's reflector if there is one.  There might
   // not be one if we're just starting to compile the script for this worker.
-  Maybe<JSAutoRealm> ar;
+  MC::SandboxStack<Maybe<JSAutoRealm>> ar;
   if (!targetIsWorkerThread && mWorkerPrivate->IsDedicatedWorker() &&
       mWorkerPrivate->ParentEventTargetRef()->GetWrapper()) {
     JSObject* wrapper = mWorkerPrivate->ParentEventTargetRef()->GetWrapper();
@@ -370,7 +370,7 @@ WorkerRunnable::Run() {
                "Must either be in the null compartment or in our reflector "
                "compartment");
 
-    ar.emplace(cx, wrapper);
+    ar->emplace(cx, wrapper);
   }
 
   MOZ_ASSERT(!jsapi->HasException());
@@ -476,7 +476,7 @@ nsresult MainThreadStopSyncLoopRunnable::Cancel() {
   return rv;
 }
 
-bool MainThreadStopSyncLoopRunnable::WorkerRun(JSContext* aCx,
+bool MainThreadStopSyncLoopRunnable::WorkerRun(MCContext* aCx,
                                                WorkerPrivate* aWorkerPrivate) {
   aWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_ASSERT(mSyncLoopTarget);
@@ -684,7 +684,7 @@ void WorkerProxyToMainThreadRunnable::PostDispatchOnMainThread() {
       return MainThreadWorkerControlRunnable::Cancel();
     }
 
-    virtual bool WorkerRun(JSContext* aCx,
+    virtual bool WorkerRun(MCContext* aCx,
                            WorkerPrivate* aWorkerPrivate) override {
       MOZ_ASSERT(aWorkerPrivate);
       aWorkerPrivate->AssertIsOnWorkerThread();

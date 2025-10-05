@@ -5,8 +5,8 @@
 #include "TestShellParent.h"
 
 /* This must occur *after* TestShellParent.h to avoid typedefs conflicts. */
-#include "jsfriendapi.h"
-#include "js/CallAndConstruct.h"  // JS_CallFunctionValue
+#include "mcfriendapi.h"
+#include "monkeycage/CallAndConstruct.h"  // JS_CallFunctionValue
 
 #include "mozilla/dom/AutoEntryScript.h"
 
@@ -39,7 +39,7 @@ bool TestShellParent::CommandDone(TestShellCommandParent* command,
   return true;
 }
 
-bool TestShellCommandParent::SetCallback(JSContext* aCx,
+bool TestShellCommandParent::SetCallback(MCContext* aCx,
                                          const JS::Value& aCallback) {
   if (!mCallback.initialized()) {
     mCallback.init(aCx, aCallback);
@@ -59,7 +59,7 @@ bool TestShellCommandParent::RunCallback(const nsAString& aResponse) {
   // We're about to run script via JS_CallFunctionValue, so we need an
   // AutoEntryScript. This is just for testing and not in any spec.
   dom::AutoEntryScript aes(&mCallback.toObject(), "TestShellCommand");
-  JSContext* cx = aes.cx();
+  MCContext* cx = aes.cx();
   MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
   JSString* str =

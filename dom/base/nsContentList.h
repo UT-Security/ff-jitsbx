@@ -81,7 +81,7 @@ class nsBaseContentList : public nsINodeList {
 
   virtual int32_t IndexOf(nsIContent* aContent, bool aDoFlush);
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override = 0;
 
   void SetCapacity(uint32_t aCapacity) { mElements.SetCapacity(aCapacity); }
@@ -115,7 +115,7 @@ class nsSimpleContentList : public nsBaseContentList {
                                            nsBaseContentList)
 
   nsINode* GetParentObject() override { return mRoot; }
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -140,7 +140,7 @@ class nsEmptyContentList final : public nsBaseContentList,
 
   nsINode* GetParentObject() override { return mRoot; }
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   JSObject* GetWrapperPreserveColorInternal() override {
@@ -269,7 +269,7 @@ class nsContentList : public nsBaseContentList,
   // nsWrapperCache
   using nsWrapperCache::GetWrapperPreserveColor;
   using nsWrapperCache::PreserveWrapper;
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -589,7 +589,7 @@ class nsCachableElementsByNameNodeList
 
   NS_DECL_NSIMUTATIONOBSERVER_ATTRIBUTECHANGED
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
 #ifdef DEBUG
@@ -609,7 +609,7 @@ class nsCacheableFuncStringHTMLCollection
                                          aDataAllocator, aString,
                                          eHTMLCollection) {}
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
 #ifdef DEBUG
@@ -628,7 +628,7 @@ class nsLabelsNodeList final : public nsContentList {
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
-  JSObject* WrapObject(JSContext* cx,
+  JSObject* WrapObject(MCContext* cx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   /**

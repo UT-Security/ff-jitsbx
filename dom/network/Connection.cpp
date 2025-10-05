@@ -50,7 +50,7 @@ void Connection::Shutdown() {
   ShutdownInternal();
 }
 
-JSObject* Connection::WrapObject(JSContext* aCx,
+JSObject* Connection::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return NetworkInformation_Binding::Wrap(aCx, this, aGivenProto);
 }

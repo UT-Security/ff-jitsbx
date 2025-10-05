@@ -42,11 +42,11 @@ NS_IMPL_WEBEXT_EVENTMGR({{webidl_name}}, u"onEVENTNAME"_ns, OnEVENTNAME)
 }
 
 /* static */
-bool {{ webidl_name }}::IsAllowed(JSContext* aCx, JSObject* aGlobal) {
+bool {{ webidl_name }}::IsAllowed(MCContext* aCx, JSObject* aGlobal) {
   return true;
 }
 
-JSObject* {{ webidl_name }}::WrapObject(JSContext* aCx,
+JSObject* {{ webidl_name }}::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::{{ webidl_name }}_Binding::Wrap(aCx, this, aGivenProto);
 }

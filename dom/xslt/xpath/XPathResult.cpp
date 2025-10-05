@@ -66,7 +66,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(XPathResult)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* XPathResult::WrapObject(JSContext* aCx,
+JSObject* XPathResult::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return XPathResult_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -15,7 +15,7 @@
 
 using namespace mozilla::dom;
 
-bool WorkerPrivate::RegisterBindings(JSContext* aCx,
+bool WorkerPrivate::RegisterBindings(MCContext* aCx,
                                      JS::Handle<JSObject*> aGlobal) {
   // Init Web IDL bindings
   if (!RegisterWorkerBindings(aCx, aGlobal)) {
@@ -37,7 +37,7 @@ bool WorkerPrivate::RegisterBindings(JSContext* aCx,
   return true;
 }
 
-bool WorkerPrivate::RegisterDebuggerBindings(JSContext* aCx,
+bool WorkerPrivate::RegisterDebuggerBindings(MCContext* aCx,
                                              JS::Handle<JSObject*> aGlobal) {
   // Init Web IDL bindings
   if (!RegisterWorkerDebuggerBindings(aCx, aGlobal)) {

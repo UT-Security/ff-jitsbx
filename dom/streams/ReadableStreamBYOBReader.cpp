@@ -7,8 +7,8 @@
 #include "mozilla/dom/ReadableStreamBYOBReader.h"
 
 #include "ReadIntoRequest.h"
-#include "js/ArrayBuffer.h"
-#include "js/experimental/TypedData.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/experimental/TypedData.h"
 #include "mozilla/dom/ReadableStreamBYOBReader.h"
 #include "mozilla/dom/ReadableStream.h"
 #include "mozilla/dom/ReadableStreamBYOBReaderBinding.h"
@@ -40,7 +40,7 @@ ReadableStreamBYOBReader::ReadableStreamBYOBReader(nsISupports* aGlobal)
       mReadIntoRequests({}) {}
 
 JSObject* ReadableStreamBYOBReader::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ReadableStreamBYOBReader_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -95,7 +95,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
 
   explicit Read_ReadIntoRequest(Promise* aPromise) : mPromise(aPromise) {}
 
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     MOZ_ASSERT(aChunk.isObject());
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
@@ -118,7 +118,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
     mPromise->MaybeResolve(result);
   }
 
-  void CloseSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void CloseSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     MOZ_ASSERT(aChunk.isObject() || aChunk.isUndefined());
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
@@ -142,7 +142,7 @@ struct Read_ReadIntoRequest final : public ReadIntoRequest {
     mPromise->MaybeResolve(result);
   }
 
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                   ErrorResult& aRv) override {
     // https://streams.spec.whatwg.org/#byob-reader-read Step 6.
     //
@@ -172,7 +172,7 @@ NS_INTERFACE_MAP_END_INHERITING(ReadIntoRequest)
 
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#readable-stream-byob-reader-read
-void ReadableStreamBYOBReaderRead(JSContext* aCx,
+void ReadableStreamBYOBReaderRead(MCContext* aCx,
                                   ReadableStreamBYOBReader* aReader,
                                   JS::Handle<JSObject*> aView,
                                   ReadIntoRequest* aReadIntoRequest,
@@ -214,7 +214,7 @@ already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
     aRv.ThrowUnknownError("Internal error");
     return nullptr;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> view(cx, aArray.Obj());
 
@@ -228,9 +228,9 @@ already_AddRefed<Promise> ReadableStreamBYOBReader::Read(
 
   // Step 2. If view.[[ViewedArrayBuffer]].[[ArrayBufferByteLength]] is 0,
   // return a promise rejected with a TypeError exception.
-  bool isSharedMemory;
+  MC::SandboxStack<bool> isSharedMemory;
   MC::Rooted<JSObject*> viewedArrayBuffer(
-      cx, JS_GetArrayBufferViewBuffer(cx, view, &isSharedMemory));
+      cx, JS_GetArrayBufferViewBuffer(cx, view, isSharedMemory));
   if (!viewedArrayBuffer) {
     aRv.StealExceptionFromJSContext(cx);
     return nullptr;
@@ -277,7 +277,7 @@ namespace streams_abstract {
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreadererrorreadintorequests
 void ReadableStreamBYOBReaderErrorReadIntoRequests(
-    JSContext* aCx, ReadableStreamBYOBReader* aReader,
+    MCContext* aCx, ReadableStreamBYOBReader* aReader,
     JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   // Step 1. Let readIntoRequests be reader.[[readIntoRequests]].
   LinkedList<RefPtr<ReadIntoRequest>> readIntoRequests =
@@ -299,7 +299,7 @@ void ReadableStreamBYOBReaderErrorReadIntoRequests(
 }
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablestreambyobreaderrelease
-void ReadableStreamBYOBReaderRelease(JSContext* aCx,
+void ReadableStreamBYOBReaderRelease(MCContext* aCx,
                                      ReadableStreamBYOBReader* aReader,
                                      ErrorResult& aRv) {
   // Step 1. Perform ! ReadableStreamReaderGenericRelease(reader).
@@ -331,7 +331,7 @@ void ReadableStreamBYOBReader::ReleaseLock(ErrorResult& aRv) {
   if (!jsapi.Init(mGlobal)) {
     return aRv.ThrowUnknownError("Internal error");
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Step 2. Perform ! ReadableStreamBYOBReaderRelease(this).
   RefPtr<ReadableStreamBYOBReader> thisRefPtr = this;

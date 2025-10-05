@@ -3656,7 +3656,7 @@ already_AddRefed<DOMMatrixReadOnly> Element::GetTransformToViewport() {
 }
 
 already_AddRefed<Animation> Element::Animate(
-    JSContext* aContext, JS::Handle<JSObject*> aKeyframes,
+    MCContext* aContext, JS::Handle<JSObject*> aKeyframes,
     const UnrestrictedDoubleOrKeyframeAnimationOptions& aOptions,
     ErrorResult& aError) {
   nsCOMPtr<nsIGlobalObject> ownerGlobal = GetOwnerGlobal();

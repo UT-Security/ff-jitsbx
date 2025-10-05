@@ -174,7 +174,7 @@ NS_IMETHODIMP FuzzySocketControl::GetSecurityInfo(
 }
 
 NS_IMETHODIMP
-FuzzySocketControl::AsyncGetSecurityInfo(JSContext* aCx,
+FuzzySocketControl::AsyncGetSecurityInfo(MCContext* aCx,
                                          mozilla::dom::Promise** aPromise) {
   return NS_ERROR_NOT_IMPLEMENTED;
 }

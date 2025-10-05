@@ -106,7 +106,7 @@ inline TranscodeResult EncodeStencil(MCContext* cx, Stencil* stencil,
 
 // Deserialize data and create a new Stencil.
 inline TranscodeResult DecodeStencil(MCContext* cx,
-                                     MC::Tainted<DecodeOptions*> options,
+                                     MC::Tainted<const DecodeOptions*> options,
                                      const TranscodeRange& range,
                                      Stencil** stencilOut) {
   return DecodeStencil(cx->cx_, *options.INTERNAL_unverified_safe(), range,
@@ -200,7 +200,7 @@ inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
 }
 
 inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
-    MCContext* cx, MC::Tainted<DecodeOptions*> options,
+    MCContext* cx, MC::Tainted<const DecodeOptions*> options,
     const TranscodeBuffer& buffer, size_t cursor,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
@@ -212,7 +212,7 @@ inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
 }
 
 inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
-    MCContext* cx, MC::Tainted<DecodeOptions*> options,
+    MCContext* cx, MC::Tainted<const DecodeOptions*> options,
     const TranscodeRange& range,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
@@ -223,7 +223,7 @@ inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
 }
 
 inline MC::Tainted<OffThreadToken*> DecodeMultiStencilsOffThread(
-    MCContext* cx, MC::Tainted<DecodeOptions*> options,
+    MCContext* cx, MC::Tainted<const DecodeOptions*> options,
     TranscodeSources& sources,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {

@@ -120,16 +120,16 @@ enum TelemetryAlgorithm {
 
 class ClearException {
  public:
-  explicit ClearException(JSContext* aCx) : mCx(aCx) {}
+  explicit ClearException(MCContext* aCx) : mCx(aCx) {}
 
   ~ClearException() { JS_ClearPendingException(mCx); }
 
  private:
-  JSContext* mCx;
+  MCContext* mCx;
 };
 
 template <class OOS>
-static nsresult GetAlgorithmName(JSContext* aCx, const OOS& aAlgorithm,
+static nsresult GetAlgorithmName(MCContext* aCx, const OOS& aAlgorithm,
                                  nsString& aName) {
   ClearException ce(aCx);
 
@@ -157,7 +157,7 @@ static nsresult GetAlgorithmName(JSContext* aCx, const OOS& aAlgorithm,
 }
 
 template <class T, class OOS>
-static nsresult Coerce(JSContext* aCx, T& aTarget, const OOS& aAlgorithm) {
+static nsresult Coerce(MCContext* aCx, T& aTarget, const OOS& aAlgorithm) {
   ClearException ce(aCx);
 
   if (!aAlgorithm.IsObject()) {
@@ -186,7 +186,7 @@ inline size_t MapHashAlgorithmNameToBlockSize(const nsString& aName) {
   return 0;
 }
 
-inline nsresult GetKeyLengthForAlgorithm(JSContext* aCx,
+inline nsresult GetKeyLengthForAlgorithm(MCContext* aCx,
                                          const ObjectOrString& aAlgorithm,
                                          size_t& aLength) {
   aLength = 0;
@@ -451,7 +451,7 @@ class DeferredData {
 
 class AesTask : public ReturnArrayBufferViewTask, public DeferredData {
  public:
-  AesTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  AesTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
           bool aEncrypt)
       : mMechanism(CKM_INVALID_MECHANISM),
         mTagLength(0),
@@ -460,7 +460,7 @@ class AesTask : public ReturnArrayBufferViewTask, public DeferredData {
     Init(aCx, aAlgorithm, aKey, aEncrypt);
   }
 
-  AesTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  AesTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
           const CryptoOperationData& aData, bool aEncrypt)
       : mMechanism(CKM_INVALID_MECHANISM),
         mTagLength(0),
@@ -470,7 +470,7 @@ class AesTask : public ReturnArrayBufferViewTask, public DeferredData {
     SetData(aData);
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             bool aEncrypt) {
     nsString algName;
     mEarlyRv = GetAlgorithmName(aCx, aAlgorithm, algName);
@@ -662,20 +662,20 @@ class AesTask : public ReturnArrayBufferViewTask, public DeferredData {
 // but it is only exposed to wrapKey/unwrapKey, not encrypt/decrypt
 class AesKwTask : public ReturnArrayBufferViewTask, public DeferredData {
  public:
-  AesKwTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  AesKwTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             bool aEncrypt)
       : mMechanism(CKM_NSS_AES_KEY_WRAP), mEncrypt(aEncrypt) {
     Init(aCx, aAlgorithm, aKey, aEncrypt);
   }
 
-  AesKwTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  AesKwTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             const CryptoOperationData& aData, bool aEncrypt)
       : mMechanism(CKM_NSS_AES_KEY_WRAP), mEncrypt(aEncrypt) {
     Init(aCx, aAlgorithm, aKey, aEncrypt);
     SetData(aData);
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             bool aEncrypt) {
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_AES_KW);
 
@@ -786,7 +786,7 @@ class AesKwTask : public ReturnArrayBufferViewTask, public DeferredData {
 
 class RsaOaepTask : public ReturnArrayBufferViewTask, public DeferredData {
  public:
-  RsaOaepTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  RsaOaepTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
               bool aEncrypt)
       : mPrivKey(aKey.GetPrivateKey()),
         mPubKey(aKey.GetPublicKey()),
@@ -794,7 +794,7 @@ class RsaOaepTask : public ReturnArrayBufferViewTask, public DeferredData {
     Init(aCx, aAlgorithm, aKey, aEncrypt);
   }
 
-  RsaOaepTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  RsaOaepTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
               const CryptoOperationData& aData, bool aEncrypt)
       : mPrivKey(aKey.GetPrivateKey()),
         mPubKey(aKey.GetPublicKey()),
@@ -803,7 +803,7 @@ class RsaOaepTask : public ReturnArrayBufferViewTask, public DeferredData {
     SetData(aData);
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             bool aEncrypt) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_RSA_OAEP);
 
@@ -911,7 +911,7 @@ class RsaOaepTask : public ReturnArrayBufferViewTask, public DeferredData {
 
 class HmacTask : public WebCryptoTask {
  public:
-  HmacTask(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  HmacTask(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
            const CryptoOperationData& aSignature,
            const CryptoOperationData& aData, bool aSign)
       : mMechanism(aKey.Algorithm().Mechanism()), mSign(aSign) {
@@ -1030,7 +1030,7 @@ class HmacTask : public WebCryptoTask {
 
 class AsymmetricSignVerifyTask : public WebCryptoTask {
  public:
-  AsymmetricSignVerifyTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  AsymmetricSignVerifyTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                            CryptoKey& aKey,
                            const CryptoOperationData& aSignature,
                            const CryptoOperationData& aData, bool aSign)
@@ -1232,7 +1232,7 @@ class AsymmetricSignVerifyTask : public WebCryptoTask {
 
 class DigestTask : public ReturnArrayBufferViewTask {
  public:
-  DigestTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DigestTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
              const CryptoOperationData& aData) {
     ATTEMPT_BUFFER_INIT(mData, aData);
 
@@ -1284,7 +1284,7 @@ class DigestTask : public ReturnArrayBufferViewTask {
 
 class ImportKeyTask : public WebCryptoTask {
  public:
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
             const ObjectOrString& aAlgorithm, bool aExtractable,
             const Sequence<nsString>& aKeyUsages) {
     mFormat = aFormat;
@@ -1336,7 +1336,7 @@ class ImportKeyTask : public WebCryptoTask {
     return true;
   }
 
-  void SetKeyData(JSContext* aCx, JS::Handle<JSObject*> aKeyData) {
+  void SetKeyData(MCContext* aCx, JS::Handle<JSObject*> aKeyData) {
     mDataIsJwk = false;
 
     // Try ArrayBuffer
@@ -1426,14 +1426,14 @@ class ImportKeyTask : public WebCryptoTask {
 
 class ImportSymmetricKeyTask : public ImportKeyTask {
  public:
-  ImportSymmetricKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportSymmetricKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                          const nsAString& aFormat,
                          const ObjectOrString& aAlgorithm, bool aExtractable,
                          const Sequence<nsString>& aKeyUsages) {
     Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable, aKeyUsages);
   }
 
-  ImportSymmetricKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportSymmetricKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                          const nsAString& aFormat,
                          const JS::Handle<JSObject*> aKeyData,
                          const ObjectOrString& aAlgorithm, bool aExtractable,
@@ -1451,7 +1451,7 @@ class ImportSymmetricKeyTask : public ImportKeyTask {
     }
   }
 
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
             const ObjectOrString& aAlgorithm, bool aExtractable,
             const Sequence<nsString>& aKeyUsages) {
     ImportKeyTask::Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable,
@@ -1584,14 +1584,14 @@ class ImportSymmetricKeyTask : public ImportKeyTask {
 
 class ImportRsaKeyTask : public ImportKeyTask {
  public:
-  ImportRsaKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportRsaKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                    const nsAString& aFormat, const ObjectOrString& aAlgorithm,
                    bool aExtractable, const Sequence<nsString>& aKeyUsages)
       : mModulusLength(0) {
     Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable, aKeyUsages);
   }
 
-  ImportRsaKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportRsaKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                    const nsAString& aFormat, JS::Handle<JSObject*> aKeyData,
                    const ObjectOrString& aAlgorithm, bool aExtractable,
                    const Sequence<nsString>& aKeyUsages)
@@ -1609,7 +1609,7 @@ class ImportRsaKeyTask : public ImportKeyTask {
     }
   }
 
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
             const ObjectOrString& aAlgorithm, bool aExtractable,
             const Sequence<nsString>& aKeyUsages) {
     ImportKeyTask::Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable,
@@ -1749,13 +1749,13 @@ class ImportRsaKeyTask : public ImportKeyTask {
 
 class ImportEcKeyTask : public ImportKeyTask {
  public:
-  ImportEcKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportEcKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                   const nsAString& aFormat, const ObjectOrString& aAlgorithm,
                   bool aExtractable, const Sequence<nsString>& aKeyUsages) {
     Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable, aKeyUsages);
   }
 
-  ImportEcKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  ImportEcKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                   const nsAString& aFormat, JS::Handle<JSObject*> aKeyData,
                   const ObjectOrString& aAlgorithm, bool aExtractable,
                   const Sequence<nsString>& aKeyUsages) {
@@ -1768,7 +1768,7 @@ class ImportEcKeyTask : public ImportKeyTask {
     NS_ENSURE_SUCCESS_VOID(mEarlyRv);
   }
 
-  void Init(nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+  void Init(nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
             const ObjectOrString& aAlgorithm, bool aExtractable,
             const Sequence<nsString>& aKeyUsages) {
     ImportKeyTask::Init(aGlobal, aCx, aFormat, aAlgorithm, aExtractable,
@@ -2055,7 +2055,7 @@ class ExportKeyTask : public WebCryptoTask {
 
 class GenerateSymmetricKeyTask : public WebCryptoTask {
  public:
-  GenerateSymmetricKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  GenerateSymmetricKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                            const ObjectOrString& aAlgorithm, bool aExtractable,
                            const Sequence<nsString>& aKeyUsages) {
     // Create an empty key and set easy attributes
@@ -2170,7 +2170,7 @@ class GenerateSymmetricKeyTask : public WebCryptoTask {
 };
 
 GenerateAsymmetricKeyTask::GenerateAsymmetricKeyTask(
-    nsIGlobalObject* aGlobal, JSContext* aCx, const ObjectOrString& aAlgorithm,
+    nsIGlobalObject* aGlobal, MCContext* aCx, const ObjectOrString& aAlgorithm,
     bool aExtractable, const Sequence<nsString>& aKeyUsages)
     : mKeyPair(new CryptoKeyPair()),
       mMechanism(CKM_INVALID_MECHANISM),
@@ -2358,13 +2358,13 @@ void GenerateAsymmetricKeyTask::Cleanup() { mKeyPair = nullptr; }
 
 class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
  public:
-  DeriveHkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DeriveHkdfBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, uint32_t aLength)
       : mMechanism(CKM_INVALID_MECHANISM) {
     Init(aCx, aAlgorithm, aKey, aLength);
   }
 
-  DeriveHkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DeriveHkdfBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
       : mLengthInBits(0), mLengthInBytes(0), mMechanism(CKM_INVALID_MECHANISM) {
     size_t length;
@@ -2375,7 +2375,7 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
     }
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             uint32_t aLength) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_HKDF);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_HKDF);
@@ -2516,13 +2516,13 @@ class DeriveHkdfBitsTask : public ReturnArrayBufferViewTask {
 
 class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
  public:
-  DerivePbkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DerivePbkdfBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                       CryptoKey& aKey, uint32_t aLength)
       : mHashOidTag(SEC_OID_UNKNOWN) {
     Init(aCx, aAlgorithm, aKey, aLength);
   }
 
-  DerivePbkdfBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DerivePbkdfBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                       CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
       : mLength(0), mIterations(0), mHashOidTag(SEC_OID_UNKNOWN) {
     size_t length;
@@ -2533,7 +2533,7 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
     }
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
             uint32_t aLength) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_PBKDF2);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_PBKDF2);
@@ -2658,7 +2658,7 @@ class DerivePbkdfBitsTask : public ReturnArrayBufferViewTask {
 template <class DeriveBitsTask>
 class DeriveKeyTask : public DeriveBitsTask {
  public:
-  DeriveKeyTask(nsIGlobalObject* aGlobal, JSContext* aCx,
+  DeriveKeyTask(nsIGlobalObject* aGlobal, MCContext* aCx,
                 const ObjectOrString& aAlgorithm, CryptoKey& aBaseKey,
                 const ObjectOrString& aDerivedKeyType, bool aExtractable,
                 const Sequence<nsString>& aKeyUsages)
@@ -2686,13 +2686,13 @@ class DeriveKeyTask : public DeriveBitsTask {
 };
 class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
  public:
-  DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DeriveEcdhBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, uint32_t aLength)
       : mLength(aLength), mPrivKey(aKey.GetPrivateKey()) {
     Init(aCx, aAlgorithm, aKey);
   }
 
-  DeriveEcdhBitsTask(JSContext* aCx, const ObjectOrString& aAlgorithm,
+  DeriveEcdhBitsTask(MCContext* aCx, const ObjectOrString& aAlgorithm,
                      CryptoKey& aKey, const ObjectOrString& aTargetAlgorithm)
       : mPrivKey(aKey.GetPrivateKey()) {
     mEarlyRv = GetKeyLengthForAlgorithm(aCx, aTargetAlgorithm, mLength);
@@ -2701,7 +2701,7 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
     }
   }
 
-  void Init(JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey) {
+  void Init(MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey) {
     Telemetry::Accumulate(Telemetry::WEBCRYPTO_ALG, TA_ECDH);
     CHECK_KEY_ALGORITHM(aKey.Algorithm(), WEBCRYPTO_ALG_ECDH);
 
@@ -2788,7 +2788,7 @@ class DeriveEcdhBitsTask : public ReturnArrayBufferViewTask {
 template <class KeyEncryptTask>
 class WrapKeyTask : public ExportKeyTask {
  public:
-  WrapKeyTask(JSContext* aCx, const nsAString& aFormat, CryptoKey& aKey,
+  WrapKeyTask(MCContext* aCx, const nsAString& aFormat, CryptoKey& aKey,
               CryptoKey& aWrappingKey, const ObjectOrString& aWrapAlgorithm)
       : ExportKeyTask(aFormat, aKey) {
     if (NS_FAILED(mEarlyRv)) {
@@ -2829,7 +2829,7 @@ class WrapKeyTask : public ExportKeyTask {
 template <class KeyEncryptTask>
 class UnwrapKeyTask : public KeyEncryptTask {
  public:
-  UnwrapKeyTask(JSContext* aCx, const ArrayBufferViewOrArrayBuffer& aWrappedKey,
+  UnwrapKeyTask(MCContext* aCx, const ArrayBufferViewOrArrayBuffer& aWrappedKey,
                 CryptoKey& aUnwrappingKey,
                 const ObjectOrString& aUnwrapAlgorithm, ImportKeyTask* aTask)
       : KeyEncryptTask(aCx, aUnwrapAlgorithm, aUnwrappingKey, aWrappedKey,
@@ -2865,7 +2865,7 @@ class UnwrapKeyTask : public KeyEncryptTask {
 // for.  But none of these steps is especially time-consuming.
 
 WebCryptoTask* WebCryptoTask::CreateEncryptDecryptTask(
-    JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+    MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
     const CryptoOperationData& aData, bool aEncrypt) {
   TelemetryMethod method = (aEncrypt) ? TM_ENCRYPT : TM_DECRYPT;
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, method);
@@ -2896,7 +2896,7 @@ WebCryptoTask* WebCryptoTask::CreateEncryptDecryptTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateSignVerifyTask(
-    JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+    MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
     const CryptoOperationData& aSignature, const CryptoOperationData& aData,
     bool aSign) {
   TelemetryMethod method = (aSign) ? TM_SIGN : TM_VERIFY;
@@ -2929,7 +2929,7 @@ WebCryptoTask* WebCryptoTask::CreateSignVerifyTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateDigestTask(
-    JSContext* aCx, const ObjectOrString& aAlgorithm,
+    MCContext* aCx, const ObjectOrString& aAlgorithm,
     const CryptoOperationData& aData) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DIGEST);
 
@@ -2950,7 +2950,7 @@ WebCryptoTask* WebCryptoTask::CreateDigestTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateImportKeyTask(
-    nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+    nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
     JS::Handle<JSObject*> aKeyData, const ObjectOrString& aAlgorithm,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_IMPORTKEY);
@@ -3039,7 +3039,7 @@ WebCryptoTask* WebCryptoTask::CreateExportKeyTask(const nsAString& aFormat,
 }
 
 WebCryptoTask* WebCryptoTask::CreateGenerateKeyTask(
-    nsIGlobalObject* aGlobal, JSContext* aCx, const ObjectOrString& aAlgorithm,
+    nsIGlobalObject* aGlobal, MCContext* aCx, const ObjectOrString& aAlgorithm,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_GENERATEKEY);
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_EXTRACTABLE_GENERATE,
@@ -3075,7 +3075,7 @@ WebCryptoTask* WebCryptoTask::CreateGenerateKeyTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateDeriveKeyTask(
-    nsIGlobalObject* aGlobal, JSContext* aCx, const ObjectOrString& aAlgorithm,
+    nsIGlobalObject* aGlobal, MCContext* aCx, const ObjectOrString& aAlgorithm,
     CryptoKey& aBaseKey, const ObjectOrString& aDerivedKeyType,
     bool aExtractable, const Sequence<nsString>& aKeyUsages) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DERIVEKEY);
@@ -3118,7 +3118,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveKeyTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateDeriveBitsTask(
-    JSContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
+    MCContext* aCx, const ObjectOrString& aAlgorithm, CryptoKey& aKey,
     uint32_t aLength) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_DERIVEBITS);
 
@@ -3149,7 +3149,7 @@ WebCryptoTask* WebCryptoTask::CreateDeriveBitsTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateWrapKeyTask(
-    JSContext* aCx, const nsAString& aFormat, CryptoKey& aKey,
+    MCContext* aCx, const nsAString& aFormat, CryptoKey& aKey,
     CryptoKey& aWrappingKey, const ObjectOrString& aWrapAlgorithm) {
   Telemetry::Accumulate(Telemetry::WEBCRYPTO_METHOD, TM_WRAPKEY);
 
@@ -3194,7 +3194,7 @@ WebCryptoTask* WebCryptoTask::CreateWrapKeyTask(
 }
 
 WebCryptoTask* WebCryptoTask::CreateUnwrapKeyTask(
-    nsIGlobalObject* aGlobal, JSContext* aCx, const nsAString& aFormat,
+    nsIGlobalObject* aGlobal, MCContext* aCx, const nsAString& aFormat,
     const ArrayBufferViewOrArrayBuffer& aWrappedKey, CryptoKey& aUnwrappingKey,
     const ObjectOrString& aUnwrapAlgorithm,
     const ObjectOrString& aUnwrappedKeyAlgorithm, bool aExtractable,

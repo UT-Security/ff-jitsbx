@@ -58,7 +58,7 @@ DEFINE_WEBGL_EXTENSION_GOOP(WEBGL_provoking_vertex,
 // --------------
 
 JSObject* ClientWebGLExtensionDisjointTimerQuery::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::EXT_disjoint_timer_query_Binding::Wrap(cx, this, givenProto);
 }
 
@@ -81,7 +81,7 @@ void ClientWebGLContext::AddCompressedFormat(const GLenum format) {
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureASTC::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_astc_Binding::Wrap(cx, this, givenProto);
 }
 
@@ -126,7 +126,7 @@ ClientWebGLExtensionCompressedTextureASTC::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureBPTC::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::EXT_texture_compression_bptc_Binding::Wrap(cx, this, givenProto);
 }
 
@@ -144,7 +144,7 @@ ClientWebGLExtensionCompressedTextureBPTC::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureRGTC::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::EXT_texture_compression_rgtc_Binding::Wrap(cx, this, givenProto);
 }
 
@@ -162,7 +162,7 @@ ClientWebGLExtensionCompressedTextureRGTC::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureES3::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_etc_Binding::Wrap(cx, this, givenProto);
 }
 ClientWebGLExtensionCompressedTextureES3::
@@ -188,7 +188,7 @@ ClientWebGLExtensionCompressedTextureES3::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureETC1::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_etc1_Binding::Wrap(cx, this, givenProto);
 }
 ClientWebGLExtensionCompressedTextureETC1::
@@ -200,7 +200,7 @@ ClientWebGLExtensionCompressedTextureETC1::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTexturePVRTC::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_pvrtc_Binding::Wrap(cx, this,
                                                            givenProto);
 }
@@ -218,7 +218,7 @@ ClientWebGLExtensionCompressedTexturePVRTC::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureS3TC::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_s3tc_Binding::Wrap(cx, this, givenProto);
 }
 ClientWebGLExtensionCompressedTextureS3TC::
@@ -235,7 +235,7 @@ ClientWebGLExtensionCompressedTextureS3TC::
 // -
 
 JSObject* ClientWebGLExtensionCompressedTextureS3TC_SRGB::WrapObject(
-    JSContext* cx, JS::Handle<JSObject*> givenProto) {
+    MCContext* cx, JS::Handle<JSObject*> givenProto) {
   return dom::WEBGL_compressed_texture_s3tc_srgb_Binding::Wrap(cx, this,
                                                                givenProto);
 }

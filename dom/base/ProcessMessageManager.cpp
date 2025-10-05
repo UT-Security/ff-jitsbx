@@ -32,7 +32,7 @@ ProcessMessageManager::ProcessMessageManager(
   }
 }
 
-JSObject* ProcessMessageManager::WrapObject(JSContext* aCx,
+JSObject* ProcessMessageManager::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   MOZ_ASSERT(nsContentUtils::IsSystemCaller(aCx));
 

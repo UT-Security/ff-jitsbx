@@ -197,7 +197,7 @@ void ResolveOrReject(Promise& aPromise, nsPrinterWin& aPrinter,
 }  // namespace mozilla
 
 NS_IMETHODIMP nsPrinterWin::CopyFromWithValidation(
-    nsIPrintSettings* aSettingsToCopyFrom, JSContext* aCx,
+    nsIPrintSettings* aSettingsToCopyFrom, MCContext* aCx,
     Promise** aResultPromise) {
   MOZ_ASSERT(NS_IsMainThread());
   MOZ_ASSERT(aResultPromise);

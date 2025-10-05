@@ -124,7 +124,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(DominatorTree)
 NS_INTERFACE_MAP_END
 
 /* virtual */
-JSObject* DominatorTree::WrapObject(JSContext* aCx,
+JSObject* DominatorTree::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::DominatorTree_Binding::Wrap(aCx, this, aGivenProto);
 }

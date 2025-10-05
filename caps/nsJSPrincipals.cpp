@@ -309,7 +309,7 @@ bool nsJSPrincipals::ReadKnownPrincipalType(MCContext* aCx,
   return true;
 }
 
-static bool WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
+static bool WritePrincipalInfo(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                const OriginAttributes& aAttrs,
                                const nsCString& aSpec,
                                const nsCString& aOriginNoSuffix,
@@ -335,7 +335,7 @@ static bool WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
 }
 
 /* static */
-bool nsJSPrincipals::WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
+bool nsJSPrincipals::WritePrincipalInfo(MC::Tainted<JSStructuredCloneWriter*> aWriter,
                                         const PrincipalInfo& aInfo) {
   if (aInfo.type() == PrincipalInfo::TNullPrincipalInfo) {
     const NullPrincipalInfo& nullInfo = aInfo;
@@ -368,10 +368,10 @@ bool nsJSPrincipals::WritePrincipalInfo(JSStructuredCloneWriter* aWriter,
                               cInfo.originNoSuffix(), cInfo.baseDomain());
 }
 
-bool nsJSPrincipals::write(JSContext* aCx, JSStructuredCloneWriter* aWriter) {
+bool nsJSPrincipals::write(MCContext* aCx, MC::Tainted<JSStructuredCloneWriter*> aWriter) {
   PrincipalInfo info;
   if (NS_WARN_IF(NS_FAILED(PrincipalToPrincipalInfo(this, &info)))) {
-    xpc::Throw(JS_SanitizeContext(aCx), NS_ERROR_DOM_DATA_CLONE_ERR);
+    xpc::Throw(aCx, NS_ERROR_DOM_DATA_CLONE_ERR);
     return false;
   }
 

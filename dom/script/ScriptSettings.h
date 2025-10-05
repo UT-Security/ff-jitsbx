@@ -25,7 +25,7 @@ class nsIPrincipal;
 class nsPIDOMWindowInner;
 class nsGlobalWindowInner;
 class nsIScriptContext;
-struct JSContext;
+struct MCContext;
 
 namespace JS {
 class ExceptionStack;
@@ -238,10 +238,10 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
   [[nodiscard]] bool Init(nsGlobalWindowInner* aWindow);
   [[nodiscard]] bool Init(nsGlobalWindowInner* aWindow, MCContext* aCx);
 
-  JSContext* cx() const {
+  MCContext* cx() const {
     MOZ_ASSERT(mCx, "Must call Init before using an AutoJSAPI");
     MOZ_ASSERT(IsStackTop());
-    return MC_UNSAFE(mCx);
+    return mCx;
   }
 
   MCContext* mcx() const {
@@ -272,7 +272,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
 
   // As for StealException(), but uses the JS::ExceptionStack class to also
   // include the exception's stack, represented by SavedFrames.
-  [[nodiscard]] bool StealExceptionAndStack(JS::ExceptionStack* aExnStack);
+  [[nodiscard]] bool StealExceptionAndStack(MC::Tainted<JS::ExceptionStack*> aExnStack);
 
   // Peek the current exception from the JS engine, without stealing it.
   // Callers must ensure that HasException() is true, and that cx() is in a
@@ -297,7 +297,7 @@ class MOZ_STACK_CLASS AutoJSAPI : protected ScriptSettingsStackEntry {
 
   // Whether we're mainthread or not; set when we're initialized.
   bool mIsMainThread;
-  Maybe<JS::WarningReporter> mOldWarningReporter;
+  Maybe<MC::SandboxCallback<JS::WarningReporter>> mOldWarningReporter;
 
  private:
   void InitInternal(nsIGlobalObject* aGlobalObject, JSObject* aGlobal,
@@ -358,10 +358,10 @@ class AutoNoJSAPI : protected ScriptSettingsStackEntry,
 class MOZ_RAII AutoJSContext {
  public:
   explicit AutoJSContext();
-  operator JSContext*() const;
+  operator MCContext*() const;
 
  protected:
-  JSContext* mCx;
+  MCContext* mCx;
   dom::AutoJSAPI mJSAPI;
 };
 
@@ -375,7 +375,7 @@ class MOZ_RAII AutoJSContext {
 class MOZ_RAII AutoSafeJSContext : public dom::AutoJSAPI {
  public:
   explicit AutoSafeJSContext();
-  operator JSContext*() const { return cx(); }
+  operator MCContext*() const { return cx(); }
 
  private:
 };
@@ -405,13 +405,13 @@ class MOZ_RAII AutoSlowOperation {
  */
 class MOZ_RAII AutoDisableJSInterruptCallback {
  public:
-  explicit AutoDisableJSInterruptCallback(JSContext* aCx)
+  explicit AutoDisableJSInterruptCallback(MCContext* aCx)
       : mCx(aCx), mOld(JS_DisableInterruptCallback(aCx)) {}
 
   ~AutoDisableJSInterruptCallback() { JS_ResetInterruptCallback(mCx, mOld); }
 
  private:
-  JSContext* mCx;
+  MCContext* mCx;
   bool mOld;
 };
 

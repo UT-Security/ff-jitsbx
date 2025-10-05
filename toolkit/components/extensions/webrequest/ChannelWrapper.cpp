@@ -1241,7 +1241,7 @@ void ChannelWrapper::EventListenerRemoved(nsAtom* aType) {
  * Glue
  *****************************************************************************/
 
-JSObject* ChannelWrapper::WrapObject(JSContext* aCx,
+JSObject* ChannelWrapper::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return ChannelWrapper_Binding::Wrap(aCx, this, aGivenProto);
 }

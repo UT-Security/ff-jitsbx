@@ -27,7 +27,7 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(MediaList)
 
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE_0(MediaList)
 
-JSObject* MediaList::WrapObject(JSContext* aCx,
+JSObject* MediaList::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return MediaList_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -54,7 +54,7 @@ HighlightRegistry::~HighlightRegistry() {
   }
 }
 
-JSObject* HighlightRegistry::WrapObject(JSContext* aCx,
+JSObject* HighlightRegistry::WrapObject(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HighlightRegistry_Binding::Wrap(aCx, this, aGivenProto);
 }

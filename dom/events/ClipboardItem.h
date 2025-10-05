@@ -45,9 +45,9 @@ class ClipboardItem final : public nsWrapperCache {
     }
 
     // PromiseNativeHandler
-    void ResolvedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void ResolvedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
-    void RejectedCallback(JSContext* aCx, JS::Handle<JS::Value> aValue,
+    void RejectedCallback(MCContext* aCx, JS::Handle<JS::Value> aValue,
                           ErrorResult& aRv) override;
 
     const nsString& Type() const { return mType; }
@@ -114,7 +114,7 @@ class ClipboardItem final : public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return mOwner; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   const nsTArray<RefPtr<ItemEntry>>& Entries() const { return mItems; }

@@ -272,7 +272,7 @@ NS_IMPL_RELEASE_INHERITED(MediaStreamTrack, DOMEventTargetHelper)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(MediaStreamTrack)
 NS_INTERFACE_MAP_END_INHERITING(DOMEventTargetHelper)
 
-JSObject* MediaStreamTrack::WrapObject(JSContext* aCx,
+JSObject* MediaStreamTrack::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return MediaStreamTrack_Binding::Wrap(aCx, this, aGivenProto);
 }

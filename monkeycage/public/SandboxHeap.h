@@ -32,6 +32,11 @@ public:
     inner_ = js_new<T>(std::forward<Args>(args)...);
   }
 
+  SandboxHeapPtr(SandboxHeapPtr&& other) {
+    inner_ = other.inner_;
+    other.inner_ = nullptr;
+  }
+
   ~SandboxHeapPtr() {
     js_delete(inner_);
   }
@@ -43,6 +48,12 @@ public:
 
   inline T* operator->() const {
     return addr();
+  }
+
+  SandboxHeapPtr& operator=(SandboxHeapPtr&& aOther) {
+    inner_ = aOther.inner_;
+    aOther.inner_ = nullptr;
+    return *this;
   }
 };
 
@@ -80,6 +91,13 @@ public:
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
 
+  Tainted(Tainted&& other) : data_(std::move(other.data_)) {}  
+
+  Tainted& operator=(Tainted&& aOther) {
+    data_ = std::move(aOther.data_);
+    return *this;
+  }
+  
   template<typename T2, typename = std::enable_if_t<std::is_convertible_v<T*, const T2*>, T>>
   inline operator Tainted<const T2*, MC_Sbx>() const {
     Tainted<const T2*, MC_Sbx> ret{nullptr};

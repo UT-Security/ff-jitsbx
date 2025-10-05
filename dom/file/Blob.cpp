@@ -208,7 +208,7 @@ nsresult Blob::GetSendInfo(nsIInputStream** aBody, uint64_t* aContentLength,
   return mImpl->GetSendInfo(aBody, aContentLength, aContentType, aCharset);
 }
 
-JSObject* Blob::WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+JSObject* Blob::WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return Blob_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -301,7 +301,7 @@ already_AddRefed<Promise> Blob::ConsumeBody(
 // "The stream() method, when invoked, must return the result of calling get
 // stream on this."
 // And that's https://w3c.github.io/FileAPI/#blob-get-stream.
-already_AddRefed<ReadableStream> Blob::Stream(JSContext* aCx,
+already_AddRefed<ReadableStream> Blob::Stream(MCContext* aCx,
                                               ErrorResult& aRv) const {
   nsCOMPtr<nsIInputStream> stream;
   CreateInputStream(getter_AddRefs(stream), aRv);

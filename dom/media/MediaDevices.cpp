@@ -796,7 +796,7 @@ void MediaDevices::EventListenerAdded(nsAtom* aType) {
   SetupDeviceChangeListener();
 }
 
-JSObject* MediaDevices::WrapObject(JSContext* aCx,
+JSObject* MediaDevices::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return MediaDevices_Binding::Wrap(aCx, this, aGivenProto);
 }

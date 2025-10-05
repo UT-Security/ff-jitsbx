@@ -31,7 +31,7 @@ GeolocationPosition* GeolocationCoordinates::GetParentObject() const {
 }
 
 JSObject* GeolocationCoordinates::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return GeolocationCoordinates_Binding::Wrap(aCx, this, aGivenProto);
 }
 

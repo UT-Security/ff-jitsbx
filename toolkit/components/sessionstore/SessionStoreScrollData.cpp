@@ -47,7 +47,7 @@ nsISupports* SessionStoreScrollData::GetParentObject() const {
 }
 
 JSObject* SessionStoreScrollData::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SessionStoreScrollData_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -75,7 +75,7 @@ void SessionStoreScrollData::GetChildren(
   }
 }
 
-void SessionStoreScrollData::ToJSON(JSContext* aCx,
+void SessionStoreScrollData::ToJSON(MCContext* aCx,
                                     JS::MutableHandle<JSObject*> aRetval) {
   MC::Rooted<JSObject*> self(aCx);
   {

@@ -12,7 +12,7 @@ NS_IMPL_NS_NEW_SVG_ELEMENT(AnimateTransform)
 namespace mozilla::dom {
 
 JSObject* SVGAnimateTransformElement::WrapNode(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return SVGAnimateTransformElement_Binding::Wrap(aCx, this, aGivenProto);
 }
 

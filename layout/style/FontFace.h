@@ -46,7 +46,7 @@ class FontFace final : public nsISupports, public nsWrapperCache {
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(FontFace)
 
   nsIGlobalObject* GetParentObject() const { return mParent; }
-  JSObject* WrapObject(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapObject(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<FontFace> CreateForRule(
       nsIGlobalObject* aGlobal, FontFaceSet* aFontFaceSet,

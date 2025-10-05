@@ -1366,7 +1366,7 @@ LoadInfo::GetTargetBrowsingContext(dom::BrowsingContext** aResult) {
 NS_IMETHODIMP
 LoadInfo::GetScriptableOriginAttributes(
     MCContext* aCx, JS::MutableHandle<JS::Value> aOriginAttributes) {
-  if (NS_WARN_IF(!ToJSValue(MC_UNSAFE(aCx), mOriginAttributes, aOriginAttributes))) {
+  if (NS_WARN_IF(!ToJSValue(aCx, mOriginAttributes, aOriginAttributes))) {
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
@@ -1393,7 +1393,7 @@ NS_IMETHODIMP
 LoadInfo::SetScriptableOriginAttributes(
     MCContext* aCx, JS::Handle<JS::Value> aOriginAttributes) {
   OriginAttributes attrs;
-  if (!aOriginAttributes.isObject() || !attrs.Init(MC_UNSAFE(aCx), aOriginAttributes)) {
+  if (!aOriginAttributes.isObject() || !attrs.Init(aCx, aOriginAttributes)) {
     return NS_ERROR_INVALID_ARG;
   }
 
@@ -1603,7 +1603,7 @@ LoadInfo::AppendRedirectHistoryEntry(nsIChannel* aChannel,
 }
 
 NS_IMETHODIMP
-LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
+LoadInfo::GetRedirects(MCContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
                        const RedirectHistoryArray& aArray) {
   MC::Rooted<JSObject*> redirects(aCx,
                                   JS::NewArrayObject(aCx, aArray.Length()));
@@ -1633,7 +1633,7 @@ LoadInfo::GetRedirects(JSContext* aCx, JS::MutableHandle<JS::Value> aRedirects,
 NS_IMETHODIMP
 LoadInfo::GetRedirectChainIncludingInternalRedirects(
     MCContext* aCx, JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(MC_UNSAFE(aCx), aChain, mRedirectChainIncludingInternalRedirects);
+  return GetRedirects(aCx, aChain, mRedirectChainIncludingInternalRedirects);
 }
 
 const RedirectHistoryArray&
@@ -1644,7 +1644,7 @@ LoadInfo::RedirectChainIncludingInternalRedirects() {
 NS_IMETHODIMP
 LoadInfo::GetRedirectChain(MCContext* aCx,
                            JS::MutableHandle<JS::Value> aChain) {
-  return GetRedirects(MC_UNSAFE(aCx), aChain, mRedirectChain);
+  return GetRedirects(aCx, aChain, mRedirectChain);
 }
 
 const RedirectHistoryArray& LoadInfo::RedirectChain() { return mRedirectChain; }

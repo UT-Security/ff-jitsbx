@@ -72,7 +72,7 @@ EventCounts::EventCounts(nsISupports* aParent) : mParent(aParent) {
   }
 }
 
-JSObject* EventCounts::WrapObject(JSContext* aCx,
+JSObject* EventCounts::WrapObject(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return EventCounts_Binding::Wrap(aCx, this, aGivenProto);
 }

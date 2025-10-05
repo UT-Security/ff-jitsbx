@@ -31,7 +31,7 @@ GridDimension::GridDimension(Grid* aParent)
 
 GridDimension::~GridDimension() = default;
 
-JSObject* GridDimension::WrapObject(JSContext* aCx,
+JSObject* GridDimension::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return GridDimension_Binding::Wrap(aCx, this, aGivenProto);
 }

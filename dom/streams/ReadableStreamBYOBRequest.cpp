@@ -7,12 +7,12 @@
 #include "mozilla/dom/ReadableStreamBYOBRequest.h"
 
 #include "mozilla/dom/ByteStreamHelpers.h"
-#include "js/ArrayBuffer.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/dom/ReadableByteStreamController.h"
 #include "mozilla/dom/ReadableStream.h"
 #include "mozilla/dom/ReadableStreamBYOBRequestBinding.h"
-#include "js/experimental/TypedData.h"
+#include "monkeycage/experimental/TypedData.h"
 #include "mozilla/dom/ReadableStreamController.h"
 #include "nsCOMPtr.h"
 #include "nsIGlobalObject.h"
@@ -44,19 +44,19 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStreamBYOBRequest)
 NS_INTERFACE_MAP_END
 
 JSObject* ReadableStreamBYOBRequest::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ReadableStreamBYOBRequest_Binding::Wrap(aCx, this, aGivenProto);
 }
 
 // https://streams.spec.whatwg.org/#rs-byob-request-view
 void ReadableStreamBYOBRequest::GetView(
-    JSContext* cx, JS::MutableHandle<JSObject*> aRetVal) const {
+    MCContext* cx, JS::MutableHandle<JSObject*> aRetVal) const {
   // Step 1.
   aRetVal.set(mView);
 }
 
 // https://streams.spec.whatwg.org/#rs-byob-request-respond
-void ReadableStreamBYOBRequest::Respond(JSContext* aCx, uint64_t bytesWritten,
+void ReadableStreamBYOBRequest::Respond(MCContext* aCx, uint64_t bytesWritten,
                                         ErrorResult& aRv) {
   // Step 1.
   if (!mController) {
@@ -65,10 +65,10 @@ void ReadableStreamBYOBRequest::Respond(JSContext* aCx, uint64_t bytesWritten,
   }
 
   // Step 2.
-  bool isSharedMemory;
+  MC::SandboxStack<bool> isSharedMemory;
   MC::Rooted<JSObject*> view(aCx, mView);
   MC::Rooted<JSObject*> arrayBuffer(
-      aCx, JS_GetArrayBufferViewBuffer(aCx, view, &isSharedMemory));
+      aCx, JS_GetArrayBufferViewBuffer(aCx, view, isSharedMemory));
   if (!arrayBuffer) {
     aRv.StealExceptionFromJSContext(aCx);
     return;
@@ -91,7 +91,7 @@ void ReadableStreamBYOBRequest::Respond(JSContext* aCx, uint64_t bytesWritten,
 }
 
 // https://streams.spec.whatwg.org/#rs-byob-request-respond-with-new-view
-void ReadableStreamBYOBRequest::RespondWithNewView(JSContext* aCx,
+void ReadableStreamBYOBRequest::RespondWithNewView(MCContext* aCx,
                                                    const ArrayBufferView& view,
                                                    ErrorResult& aRv) {
   // Step 1.
@@ -101,10 +101,10 @@ void ReadableStreamBYOBRequest::RespondWithNewView(JSContext* aCx,
   }
 
   // Step 2.
-  bool isSharedMemory;
+  MC::SandboxStack<bool> isSharedMemory;
   MC::Rooted<JSObject*> rootedViewObj(aCx, view.Obj());
   MC::Rooted<JSObject*> viewedArrayBuffer(
-      aCx, JS_GetArrayBufferViewBuffer(aCx, rootedViewObj, &isSharedMemory));
+      aCx, JS_GetArrayBufferViewBuffer(aCx, rootedViewObj, isSharedMemory));
   if (!viewedArrayBuffer) {
     aRv.StealExceptionFromJSContext(aCx);
     return;

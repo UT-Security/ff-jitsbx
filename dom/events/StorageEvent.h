@@ -46,7 +46,7 @@ class StorageEvent : public Event {
   virtual StorageEvent* AsStorageEvent();
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<StorageEvent> Constructor(
       EventTarget* aOwner, const nsAString& aType,

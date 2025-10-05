@@ -21,7 +21,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(Category)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
 NS_INTERFACE_MAP_END
 
-JSObject* Category::WrapObject(JSContext* aCx,
+JSObject* Category::WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) {
   return dom::GleanCategory_Binding::Wrap(aCx, this, aGivenProto);
 }

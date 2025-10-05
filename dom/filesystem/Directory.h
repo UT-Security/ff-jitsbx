@@ -39,7 +39,7 @@ class Directory final : public nsISupports, public nsWrapperCache {
 
   nsIGlobalObject* GetParentObject() const;
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void GetName(nsAString& aRetval, ErrorResult& aRv);

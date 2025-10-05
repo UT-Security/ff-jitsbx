@@ -31,7 +31,7 @@ class MarkersStorage : public LinkedListElement<MarkersStorage> {
   virtual void AddMarker(UniquePtr<AbstractTimelineMarker>&& aMarker) = 0;
   virtual void AddOTMTMarker(UniquePtr<AbstractTimelineMarker>&& aMarker) = 0;
   virtual void ClearMarkers() = 0;
-  virtual void PopMarkers(JSContext* aCx,
+  virtual void PopMarkers(MCContext* aCx,
                           nsTArray<dom::ProfileTimelineMarker>& aStore) = 0;
 };
 

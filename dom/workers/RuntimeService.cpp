@@ -454,7 +454,8 @@ void LoadJSGCMemoryOptions(const char* aPrefName, void* /* aClosure */) {
   }
 }
 
-bool InterruptCallback(JSContext* aCx) {
+MC::Tainted<bool> InterruptCallback(MC::Tainted<JSContext*> tCx) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   MOZ_ASSERT(worker);
 
@@ -492,8 +493,9 @@ class LogViolationDetailsRunnable final : public WorkerMainThreadRunnable {
   ~LogViolationDetailsRunnable() = default;
 };
 
-bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
+MC::Tainted<bool> ContentSecurityPolicyAllows(MC::Tainted<JSContext*> tCx, JS::RuntimeCode aKind,
                                  JS::Handle<JSString*> aCode) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
@@ -523,20 +525,20 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
 
   if (reportViolation) {
     nsString fileName;
-    uint32_t lineNum = 0;
-    uint32_t columnNum = 0;
+    MC::SandboxStack<uint32_t> lineNum = 0;
+    MC::SandboxStack<uint32_t> columnNum = 0;
 
-    JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineNum, &columnNum) &&
-        file.get()) {
-      CopyUTF8toUTF16(MakeStringSpan(file.get()), fileName);
+    MC::SandboxStack<JS::AutoFilename> file;
+    if (JS::DescribeScriptedCaller(aCx, file, lineNum, columnNum) &&
+        file->get()) {
+      CopyUTF8toUTF16(MakeStringSpan(file->get()), fileName);
     } else {
       MOZ_ASSERT(!JS_IsExceptionPending(aCx));
     }
 
     RefPtr<LogViolationDetailsRunnable> runnable =
         new LogViolationDetailsRunnable(worker, violationType, fileName,
-                                        lineNum, columnNum, scriptSample);
+                                        *lineNum.UNSAFE_unverified(), *columnNum.UNSAFE_unverified(), scriptSample);
 
     ErrorResult rv;
     runnable->Dispatch(Killing, rv);
@@ -548,7 +550,8 @@ bool ContentSecurityPolicyAllows(JSContext* aCx, JS::RuntimeCode aKind,
   return evalOK;
 }
 
-void CTypesActivityCallback(JSContext* aCx, JS::CTypesActivityType aType) {
+void CTypesActivityCallback(MC::Tainted<JSContext*> tCx, JS::CTypesActivityType aType) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   worker->AssertIsOnWorkerThread();
 
@@ -612,7 +615,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
     MOZ_ASSERT(mDispatchable);
   }
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MOZ_ASSERT(aWorkerPrivate == mWorkerPrivate);
     MOZ_ASSERT(aCx == mWorkerPrivate->GetJSContext());
     MOZ_ASSERT(mDispatchable);
@@ -620,7 +623,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(mWorkerPrivate->GetJSContext(),
+    mDispatchable->run(MC_UNSAFE(mWorkerPrivate->GetJSContext()),
                        JS::Dispatchable::NotShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
@@ -637,7 +640,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(mWorkerPrivate->GetJSContext(),
+    mDispatchable->run(MC_UNSAFE(mWorkerPrivate->GetJSContext()),
                        JS::Dispatchable::ShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
@@ -645,25 +648,26 @@ class JSDispatchableRunnable final : public WorkerRunnable {
   }
 };
 
-static bool DispatchToEventLoop(void* aClosure,
-                                JS::Dispatchable* aDispatchable) {
+static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> aClosure,
+                                MC::Tainted<JS::Dispatchable*> aDispatchable) {
   // This callback may execute either on the worker thread or a random
   // JS-internal helper thread.
 
   // See comment at JS::InitDispatchToEventLoop() below for how we know the
   // WorkerPrivate is alive.
-  WorkerPrivate* workerPrivate = reinterpret_cast<WorkerPrivate*>(aClosure);
+  WorkerPrivate* workerPrivate = reinterpret_cast<WorkerPrivate*>(aClosure.UNSAFE_unverified());
 
   // Dispatch is expected to fail during shutdown for the reasons outlined in
   // the JSDispatchableRunnable comment above.
   RefPtr<JSDispatchableRunnable> r =
-      new JSDispatchableRunnable(workerPrivate, aDispatchable);
+      new JSDispatchableRunnable(workerPrivate, aDispatchable.UNSAFE_unverified());
   return r->Dispatch();
 }
 
-static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
+static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> tCx, JS::Handle<JSObject*> aObj,
                           JS::MimeType aMimeType,
-                          JS::StreamConsumer* aConsumer) {
+                          MC::Tainted<JS::StreamConsumer*> aConsumer) {
+  MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   if (!worker) {
     JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
@@ -671,11 +675,11 @@ static bool ConsumeStream(JSContext* aCx, JS::Handle<JSObject*> aObj,
     return false;
   }
 
-  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer, worker);
+  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer.UNSAFE_unverified(), worker);
 }
 
 bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
-                            JSContext* aWorkerCx) {
+                            MCContext* aWorkerCx) {
   aWorkerPrivate->AssertIsOnWorkerThread();
   NS_ASSERTION(!aWorkerPrivate->GetJSContext(), "Already has a context!");
 
@@ -697,37 +701,37 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
 
   // Security policy:
   static const JSSecurityCallbacks securityCallbacks = {
-      MC::Sandbox::RegisterCallback(ContentSecurityPolicyAllows).UNSAFE_get()};
-  JS_SetSecurityCallbacks(aWorkerCx, &securityCallbacks);
+      MC::Sandbox::RegisterTaintedCallback(ContentSecurityPolicyAllows).UNSAFE_get()};
+  JS_SetSecurityCallbacks(MC_UNSAFE(aWorkerCx), &securityCallbacks);
 
   // A WorkerPrivate lives strictly longer than its JSRuntime so we can safely
   // store a raw pointer as the callback's closure argument on the JSRuntime.
 
-  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterCallback(DispatchToEventLoop);
-  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCb.UNSAFE_get(),
+  static auto DispatchToEventLoopCb = MC::Sandbox::RegisterTaintedCallback(DispatchToEventLoop);
+  JS::InitDispatchToEventLoop(aWorkerCx, DispatchToEventLoopCb,
                               (void*)aWorkerPrivate);
 
-  static auto ConsumeStreamCb = MC::Sandbox::RegisterCallback(ConsumeStream);
-  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCb.UNSAFE_get(),
-                                FetchUtil::ReportJSStreamErrorCb().UNSAFE_get());
+  static auto ConsumeStreamCb = MC::Sandbox::RegisterTaintedCallback(ConsumeStream);
+  JS::InitConsumeStreamCallback(aWorkerCx, ConsumeStreamCb,
+                                FetchUtil::ReportJSStreamErrorCb());
 
   // When available, set the self-hosted shared memory to be read, so that we
   // can decode the self-hosted content instead of parsing it.
   auto& shm = xpc::SelfHostedShmem::GetSingleton();
   JS::SelfHostedCache selfHostedContent = shm.Content();
 
-  if (!JS::InitSelfHostedCode(aWorkerCx, selfHostedContent)) {
+  if (!JS::InitSelfHostedCode(MC_UNSAFE(aWorkerCx), selfHostedContent)) {
     NS_WARNING("Could not init self-hosted code!");
     return false;
   }
 
   static auto InterruptCallbackCb =
-      MC::Sandbox::RegisterCallback(InterruptCallback);
-  JS_AddInterruptCallback(aWorkerCx, InterruptCallbackCb.UNSAFE_get());
+      MC::Sandbox::RegisterTaintedCallback(InterruptCallback);
+  JS_AddInterruptCallback(aWorkerCx, InterruptCallbackCb);
 
   static auto CTypesActivityCallbackCb =
-      MC::Sandbox::RegisterCallback(CTypesActivityCallback);
-  JS::SetCTypesActivityCallback(aWorkerCx,
+      MC::Sandbox::RegisterTaintedCallback(CTypesActivityCallback);
+  JS::SetCTypesActivityCallback(MC_UNSAFE(aWorkerCx),
                                 CTypesActivityCallbackCb.UNSAFE_get());
 
 #ifdef JS_GC_ZEAL
@@ -737,7 +741,7 @@ bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,
   return true;
 }
 
-static bool PreserveWrapper(JSContext* cx, JS::Handle<JSObject*> obj) {
+static MC::Tainted<bool> PreserveWrapper(MC::Tainted<JSContext*> cx, JS::Handle<JSObject*> obj) {
   MOZ_ASSERT(cx);
   MOZ_ASSERT(obj);
   MOZ_ASSERT(mozilla::dom::IsDOMObject(obj));
@@ -749,8 +753,9 @@ static bool IsWorkerDebuggerGlobalOrSandbox(JS::Handle<JSObject*> aGlobal) {
   return IsWorkerDebuggerGlobal(aGlobal) || IsWorkerDebuggerSandbox(aGlobal);
 }
 
-JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
+MC::Tainted<JSObject*> Wrap(MC::Tainted<JSContext*> t_cx, JS::Handle<JSObject*> existing,
                JS::Handle<JSObject*> obj) {
+  MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
   MC::Rooted<JSObject*> targetGlobal(cx, JS::CurrentGlobalOrNull(cx));
 
   // Note: the JS engine unwraps CCWs before calling this callback.
@@ -767,12 +772,15 @@ JSObject* Wrap(JSContext* cx, JS::Handle<JSObject*> existing,
   if (existing) {
     mc::Wrapper::Renew(existing, obj, wrapper);
   }
-  return mc::Wrapper::New(JS_SanitizeContext(cx), obj, wrapper);
+
+  MC::Tainted<JSObject*> ret;
+  ret.assign_raw_pointer(mc::Wrapper::New(cx, obj, wrapper));
+  return ret;
 }
 
 static const MCWrapObjectCallbacks* WrapObjectCallbacks() {
   static const MCWrapObjectCallbacks inner_{
-    MC::Sandbox::RegisterCallback(Wrap),
+    MC::Sandbox::RegisterTaintedCallback(Wrap),
     MC::Sandbox::Callback<JSPreWrapCallback>{nullptr},
   };
 
@@ -897,9 +905,12 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
 
     MCContext* cx = Context();
 
-    static auto PreserveWrapperCb = MC::Sandbox::RegisterCallback(static_cast<js::PreserveWrapperCallback>(PreserveWrapper));
-    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb, HasReleasedWrapperCb());
-    
+    static auto PreserveWrapperCb = MC::Sandbox::RegisterTaintedCallback<
+        MC::Tainted<bool>, MC::Tainted<JSContext*>, JS::Handle<JSObject*>>(
+        PreserveWrapper);
+    js::SetPreserveWrapperCallbacks(cx, PreserveWrapperCb,
+                                    HasReleasedWrapperCb());
+
     JS_InitDestroyPrincipalsCallback(cx, nsJSPrincipals::DestroyCb());
     JS_InitReadPrincipalsCallback(cx, nsJSPrincipals::ReadPrincipalsCb());
 
@@ -923,7 +934,7 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     MCContext* cx = Context();
     NS_ASSERTION(cx, "This should never be null!");
 
-    MC::Rooted<JSObject*> global(MC_UNSAFE(cx), JS::CurrentGlobalOrNull(cx));
+    MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
     NS_ASSERTION(global, "This should never be null!");
 
     // On worker threads, if the current global is the worker global or
@@ -947,9 +958,9 @@ class WorkerJSContext final : public mozilla::CycleCollectedJSContext {
     return mWorkerPrivate->UsesSystemPrincipal();
   }
 
-  void ReportError(JSErrorReport* aReport,
+  void ReportError(MC::Tainted<JSErrorReport*> aReport,
                    JS::ConstUTF8CharsZ aToStringResult) override {
-    mWorkerPrivate->ReportError(MC_UNSAFE(Context()), aToStringResult, aReport);
+    mWorkerPrivate->ReportError(Context(), aToStringResult, aReport);
   }
 
   WorkerPrivate* GetWorkerPrivate() const { return mWorkerPrivate; }
@@ -1509,7 +1520,7 @@ class DumpCrashInfoRunnable : public WorkerControlRunnable {
       : WorkerControlRunnable(aWorkerPrivate, WorkerThreadUnchangedBusyCount),
         mMonitor("DumpCrashInfoRunnable::mMonitor") {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     MonitorAutoLock lock(mMonitor);
     if (!mHasMsg) {
       aWorkerPrivate->DumpCrashInformation(mMsg);
@@ -2150,7 +2161,7 @@ WorkerThreadPrimaryRunnable::Run() {
         return rv;
       }
 
-      JSContext* cx = MC_UNSAFE(context->Context());
+      MCContext* cx = context->Context();
 
       if (!InitJSContextForWorker(mWorkerPrivate, cx)) {
         return NS_ERROR_FAILURE;
@@ -2159,7 +2170,7 @@ WorkerThreadPrimaryRunnable::Run() {
       failureCleanup.release();
 
       {
-        PROFILER_SET_JS_CONTEXT(cx);
+        PROFILER_SET_JS_CONTEXT(MC_UNSAFE(cx));
 
         {
           // We're on the worker thread here, and WorkerPrivate's refcounting is
@@ -2350,7 +2361,7 @@ void PropagateStorageAccessPermissionGrantedToWorkers(
   }
 }
 
-WorkerPrivate* GetWorkerPrivateFromContext(JSContext* aCx) {
+WorkerPrivate* GetWorkerPrivateFromContext(MCContext* aCx) {
   MOZ_ASSERT(!NS_IsMainThread());
   MOZ_ASSERT(aCx);
 
@@ -2398,7 +2409,7 @@ bool IsCurrentThreadRunningChromeWorker() {
   return wp && wp->UsesSystemPrincipal();
 }
 
-JSContext* GetCurrentWorkerThreadJSContext() {
+MCContext* GetCurrentWorkerThreadJSContext() {
   WorkerPrivate* wp = GetCurrentThreadWorkerPrivate();
   if (!wp) {
     return nullptr;

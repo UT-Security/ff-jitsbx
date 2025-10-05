@@ -9,7 +9,7 @@
 
 namespace mozilla::dom {
 
-JSObject* AudioTrackList::WrapObject(JSContext* aCx,
+JSObject* AudioTrackList::WrapObject(MCContext* aCx,
                                      JS::Handle<JSObject*> aGivenProto) {
   return AudioTrackList_Binding::Wrap(aCx, this, aGivenProto);
 }

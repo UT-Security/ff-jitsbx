@@ -40,7 +40,7 @@ NS_INTERFACE_MAP_END_INHERITING(UnderlyingSourceAlgorithmsBase)
 
 already_AddRefed<Promise>
 ReadableStreamDefaultTeeSourceAlgorithms::PullCallback(
-    JSContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
+    MCContext* aCx, ReadableStreamController& aController, ErrorResult& aRv) {
   nsCOMPtr<nsIGlobalObject> global = aController.GetParentObject();
   mTeeState->PullCallback(aCx, global, aRv);
   if (!aRv.Failed()) {
@@ -68,7 +68,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(ReadableStreamDefaultTeeReadRequest)
 NS_INTERFACE_MAP_END_INHERITING(ReadRequest)
 
 void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1.
   class ReadableStreamDefaultTeeReadRequestChunkSteps
       : public MicroTaskRunnable {
@@ -77,7 +77,7 @@ void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
     MC::PersistentRooted<JS::Value> mChunk;
 
    public:
-    ReadableStreamDefaultTeeReadRequestChunkSteps(JSContext* aCx,
+    ReadableStreamDefaultTeeReadRequestChunkSteps(MCContext* aCx,
                                                   TeeState* aTeeState,
                                                   JS::Handle<JS::Value> aChunk)
         : mTeeState(aTeeState), mChunk(aCx, aChunk) {}
@@ -88,7 +88,7 @@ void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
       if (NS_WARN_IF(!jsapi.Init(mTeeState->GetStream()->GetParentObject()))) {
         return;
       }
-      JSContext* cx = jsapi.cx();
+      MCContext* cx = jsapi.mcx();
       // Step Numbering below is relative to Chunk steps Microtask:
       //
       // Step 1.
@@ -146,7 +146,7 @@ void ReadableStreamDefaultTeeReadRequest::ChunkSteps(
   CycleCollectedJSContext::Get()->DispatchToMicroTask(task.forget());
 }
 
-void ReadableStreamDefaultTeeReadRequest::CloseSteps(JSContext* aCx,
+void ReadableStreamDefaultTeeReadRequest::CloseSteps(MCContext* aCx,
                                                      ErrorResult& aRv) {
   // Step Numbering below is relative to 'close steps' of
   // https://streams.spec.whatwg.org/#abstract-opdef-readablestreamdefaulttee
@@ -181,14 +181,14 @@ void ReadableStreamDefaultTeeReadRequest::CloseSteps(JSContext* aCx,
 }
 
 void ReadableStreamDefaultTeeReadRequest::ErrorSteps(
-    JSContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aError, ErrorResult& aRv) {
   mTeeState->SetReading(false);
 }
 
-MOZ_CAN_RUN_SCRIPT void PullWithDefaultReader(JSContext* aCx,
+MOZ_CAN_RUN_SCRIPT void PullWithDefaultReader(MCContext* aCx,
                                               TeeState* aTeeState,
                                               ErrorResult& aRv);
-MOZ_CAN_RUN_SCRIPT void PullWithBYOBReader(JSContext* aCx, TeeState* aTeeState,
+MOZ_CAN_RUN_SCRIPT void PullWithBYOBReader(MCContext* aCx, TeeState* aTeeState,
                                            JS::Handle<JSObject*> aView,
                                            TeeBranch aForBranch,
                                            ErrorResult& aRv);
@@ -204,7 +204,7 @@ MOZ_CAN_RUN_SCRIPT void PullWithBYOBReader(JSContext* aCx, TeeState* aTeeState,
 // NativeByteStreamTeePullAlgorithm, which implements
 // UnderlyingSourcePullCallbackHelper is the version which provies the return
 // promise.
-MOZ_CAN_RUN_SCRIPT void ByteStreamTeePullAlgorithm(JSContext* aCx,
+MOZ_CAN_RUN_SCRIPT void ByteStreamTeePullAlgorithm(MCContext* aCx,
                                                    TeeBranch aForBranch,
                                                    TeeState* aTeeState,
                                                    ErrorResult& aRv) {
@@ -253,7 +253,7 @@ class ByteStreamTeeSourceAlgorithms final
   ByteStreamTeeSourceAlgorithms(TeeState* aTeeState, TeeBranch aBranch)
       : mTeeState(aTeeState), mBranch(aBranch) {}
 
-  MOZ_CAN_RUN_SCRIPT void StartCallback(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void StartCallback(MCContext* aCx,
                                         ReadableStreamController& aController,
                                         JS::MutableHandle<JS::Value> aRetVal,
                                         ErrorResult& aRv) override {
@@ -263,7 +263,7 @@ class ByteStreamTeeSourceAlgorithms final
 
   // Step 17, 18
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> PullCallback(
-      JSContext* aCx, ReadableStreamController& aController,
+      MCContext* aCx, ReadableStreamController& aController,
       ErrorResult& aRv) override {
     // Step 1 - 5
     ByteStreamTeePullAlgorithm(aCx, mBranch, MOZ_KnownLive(mTeeState), aRv);
@@ -275,7 +275,7 @@ class ByteStreamTeeSourceAlgorithms final
 
   // Step 19, 20
   MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> CancelCallback(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override {
     // Step 1.
     mTeeState->SetCanceled(mBranch, true);
@@ -352,7 +352,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
   explicit PullWithDefaultReaderReadRequest(TeeState* aTeeState)
       : mTeeState(aTeeState) {}
 
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
     // Step 15.2.1
@@ -361,7 +361,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
       MC::PersistentRooted<JSObject*> mChunk;
 
      public:
-      PullWithDefaultReaderChunkStepMicrotask(JSContext* aCx,
+      PullWithDefaultReaderChunkStepMicrotask(MCContext* aCx,
                                               TeeState* aTeeState,
                                               JS::Handle<JSObject*> aChunk)
           : mTeeState(aTeeState), mChunk(aCx, aChunk) {}
@@ -376,7 +376,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
                 !jsapi.Init(mTeeState->GetStream()->GetParentObject()))) {
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
 
         // Step 1. Set readAgainForBranch1 to false.
         mTeeState->SetReadAgainForBranch1(false);
@@ -503,7 +503,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
     CycleCollectedJSContext::Get()->DispatchToMicroTask(task.forget());
   }
 
-  MOZ_CAN_RUN_SCRIPT void CloseSteps(JSContext* aCx,
+  MOZ_CAN_RUN_SCRIPT void CloseSteps(MCContext* aCx,
                                      ErrorResult& aRv) override {
     // Step numbering below is relative to Step 15.2. 'close steps' of
     // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
@@ -558,7 +558,7 @@ struct PullWithDefaultReaderReadRequest final : public ReadRequest {
     }
   }
 
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> aError,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> aError,
                   ErrorResult& aRv) override {
     mTeeState->SetReading(false);
   }
@@ -579,7 +579,7 @@ void ForwardReaderError(TeeState* aTeeState,
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee:
 // Step 15.
-void PullWithDefaultReader(JSContext* aCx, TeeState* aTeeState,
+void PullWithDefaultReader(MCContext* aCx, TeeState* aTeeState,
                            ErrorResult& aRv) {
   RefPtr<ReadableStreamGenericReader> reader = aTeeState->GetReader();
 
@@ -627,7 +627,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
                                               TeeBranch aForBranch)
       : mTeeState(aTeeState), mForBranch(aForBranch) {}
 
-  void ChunkSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void ChunkSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
     // Step 16.4 chunk steps, Step 1.
@@ -637,7 +637,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
       const TeeBranch mForBranch;
 
      public:
-      PullWithBYOBReaderChunkMicrotask(JSContext* aCx, TeeState* aTeeState,
+      PullWithBYOBReaderChunkMicrotask(MCContext* aCx, TeeState* aTeeState,
                                        JS::Handle<JSObject*> aChunk,
                                        TeeBranch aForBranch)
           : mTeeState(aTeeState), mChunk(aCx, aChunk), mForBranch(aForBranch) {}
@@ -649,7 +649,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
                 !jsapi.Init(mTeeState->GetStream()->GetParentObject()))) {
           return;
         }
-        JSContext* cx = jsapi.cx();
+        MCContext* cx = jsapi.mcx();
         ErrorResult rv;
         // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
         //
@@ -787,7 +787,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
   }
 
   MOZ_CAN_RUN_SCRIPT
-  void CloseSteps(JSContext* aCx, JS::Handle<JS::Value> aChunk,
+  void CloseSteps(MCContext* aCx, JS::Handle<JS::Value> aChunk,
                   ErrorResult& aRv) override {
     // Step 1.
     mTeeState->SetReading(false);
@@ -861,7 +861,7 @@ class PullWithBYOBReader_ReadIntoRequest final : public ReadIntoRequest {
     }
   }
 
-  void ErrorSteps(JSContext* aCx, JS::Handle<JS::Value> e,
+  void ErrorSteps(MCContext* aCx, JS::Handle<JS::Value> e,
                   ErrorResult& aRv) override {
     // Step 1.
     mTeeState->SetReading(false);
@@ -878,7 +878,7 @@ NS_INTERFACE_MAP_END_INHERITING(ReadIntoRequest)
 
 // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
 // Step 16.
-void PullWithBYOBReader(JSContext* aCx, TeeState* aTeeState,
+void PullWithBYOBReader(MCContext* aCx, TeeState* aTeeState,
                         JS::Handle<JSObject*> aView, TeeBranch aForBranch,
                         ErrorResult& aRv) {
   // Step 16.1
@@ -922,9 +922,9 @@ void PullWithBYOBReader(JSContext* aCx, TeeState* aTeeState,
 void ForwardReaderError(TeeState* aTeeState,
                         ReadableStreamGenericReader* aThisReader) {
   aThisReader->ClosedPromise()->AddCallbacksWithCycleCollectedArgs(
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          TeeState* aTeeState, ReadableStreamGenericReader* aThisReader) {},
-      [](JSContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
+      [](MCContext* aCx, JS::Handle<JS::Value> aValue, ErrorResult& aRv,
          TeeState* aTeeState, ReadableStreamGenericReader* aReader) {
         // Step 14.1.1
         if (aTeeState->GetReader() != aReader) {
@@ -961,7 +961,7 @@ void ForwardReaderError(TeeState* aTeeState,
 
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#abstract-opdef-readablebytestreamtee
-void ReadableByteStreamTee(JSContext* aCx, ReadableStream* aStream,
+void ReadableByteStreamTee(MCContext* aCx, ReadableStream* aStream,
                            nsTArray<RefPtr<ReadableStream>>& aResult,
                            ErrorResult& aRv) {
   // Step 1. Implicit

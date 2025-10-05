@@ -28,17 +28,17 @@ class Permissions final : public nsISupports, public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const { return mWindow; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
-  already_AddRefed<Promise> Query(JSContext* aCx,
+  already_AddRefed<Promise> Query(MCContext* aCx,
                                   JS::Handle<JSObject*> aPermission,
                                   ErrorResult& aRv);
 
   static nsresult RemovePermission(nsIPrincipal* aPrincipal,
                                    const nsACString& aPermissionType);
 
-  already_AddRefed<Promise> Revoke(JSContext* aCx,
+  already_AddRefed<Promise> Revoke(MCContext* aCx,
                                    JS::Handle<JSObject*> aPermission,
                                    ErrorResult& aRv);
 

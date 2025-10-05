@@ -9,10 +9,10 @@
 #include <google/protobuf/io/gzip_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
 
-#include "js/Array.h"  // JS::NewArrayObject
-#include "js/Debug.h"
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
-#include "js/TypeDecls.h"
+#include "monkeycage/Array.h"  // JS::NewArrayObject
+#include "monkeycage/Debug.h"
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/TypeDecls.h"
 #include "js/UbiNodeBreadthFirst.h"
 #include "js/UbiNodeCensus.h"
 #include "js/UbiNodeDominatorTree.h"
@@ -34,9 +34,9 @@
 #include "mozilla/Telemetry.h"
 #include "mozilla/Unused.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
-#include "js/MapAndSet.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
+#include "monkeycage/MapAndSet.h"
 #include "js/Object.h"                // JS::GetCompartment
 #include "nsComponentManagerUtils.h"  // do_CreateInstance
 #include "nsCycleCollectionParticipant.h"
@@ -88,7 +88,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(HeapSnapshot)
 NS_INTERFACE_MAP_END
 
 /* virtual */
-JSObject* HeapSnapshot::WrapObject(JSContext* aCx,
+JSObject* HeapSnapshot::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return HeapSnapshot_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -96,7 +96,7 @@ JSObject* HeapSnapshot::WrapObject(JSContext* aCx,
 /*** Reading Heap Snapshots ***************************************************/
 
 /* static */
-already_AddRefed<HeapSnapshot> HeapSnapshot::Create(JSContext* cx,
+already_AddRefed<HeapSnapshot> HeapSnapshot::Create(MCContext* cx,
                                                     GlobalObject& global,
                                                     const uint8_t* buffer,
                                                     uint32_t size,
@@ -379,7 +379,7 @@ static bool readSizeOfNextMessage(ZeroCopyInputStream& stream,
   return codedStream.ReadVarint32(sizep) && *sizep > 0;
 }
 
-bool HeapSnapshot::init(JSContext* cx, const uint8_t* buffer, uint32_t size) {
+bool HeapSnapshot::init(MCContext* cx, const uint8_t* buffer, uint32_t size) {
   ArrayInputStream stream(buffer, size);
   GzipInputStream gzipStream(&stream);
   uint32_t sizeOfMessage = 0;
@@ -405,7 +405,7 @@ bool HeapSnapshot::init(JSContext* cx, const uint8_t* buffer, uint32_t size) {
   rootId = root.id();
 
   // The set of all node ids we've found edges pointing to.
-  NodeIdSet edgeReferents(cx);
+  NodeIdSet edgeReferents(MC_UNSAFE(cx));
 
   if (NS_WARN_IF(!saveNode(root, edgeReferents))) return false;
 
@@ -433,18 +433,18 @@ bool HeapSnapshot::init(JSContext* cx, const uint8_t* buffer, uint32_t size) {
 
 /*** Heap Snapshot Analyses ***************************************************/
 
-void HeapSnapshot::TakeCensus(JSContext* cx, JS::Handle<JSObject*> options,
+void HeapSnapshot::TakeCensus(MCContext* cx, JS::Handle<JSObject*> options,
                               JS::MutableHandle<JS::Value> rval,
                               ErrorResult& rv) {
-  JS::ubi::Census census(cx);
+  JS::ubi::Census census(MC_UNSAFE(cx));
 
   JS::ubi::CountTypePtr rootType;
-  if (NS_WARN_IF(!JS::ubi::ParseCensusOptions(cx, census, options, rootType))) {
+  if (NS_WARN_IF(!JS::ubi::ParseCensusOptions(MC_UNSAFE(cx), census, options, rootType))) {
     rv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
 
-  JS::ubi::RootedCount rootCount(cx, rootType->makeCount());
+  JS::ubi::RootedCount rootCount(MC_UNSAFE(cx), rootType->makeCount());
   if (NS_WARN_IF(!rootCount)) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -454,9 +454,9 @@ void HeapSnapshot::TakeCensus(JSContext* cx, JS::Handle<JSObject*> options,
                                  GetCurrentThreadDebuggerMallocSizeOf());
 
   {
-    JS::AutoCheckCannotGC nogc;
+    MC::AutoCheckCannotGC nogc;
 
-    JS::ubi::CensusTraversal traversal(cx, handler, nogc);
+    JS::ubi::CensusTraversal traversal(MC_UNSAFE(cx), handler, *nogc.UNSAFE_unverified());
 
     if (NS_WARN_IF(!traversal.addStart(getRoot()))) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -469,25 +469,25 @@ void HeapSnapshot::TakeCensus(JSContext* cx, JS::Handle<JSObject*> options,
     }
   }
 
-  if (NS_WARN_IF(!handler.report(cx, rval))) {
+  if (NS_WARN_IF(!handler.report(MC_UNSAFE(cx), rval))) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
 }
 
-void HeapSnapshot::DescribeNode(JSContext* cx, JS::Handle<JSObject*> breakdown,
+void HeapSnapshot::DescribeNode(MCContext* cx, JS::Handle<JSObject*> breakdown,
                                 uint64_t nodeId,
                                 JS::MutableHandle<JS::Value> rval,
                                 ErrorResult& rv) {
   MOZ_ASSERT(breakdown);
   MC::Rooted<JS::Value> breakdownVal(cx, JS::ObjectValue(*breakdown));
-  JS::ubi::CountTypePtr rootType = JS::ubi::ParseBreakdown(cx, breakdownVal);
+  JS::ubi::CountTypePtr rootType = JS::ubi::ParseBreakdown(MC_UNSAFE(cx), breakdownVal);
   if (NS_WARN_IF(!rootType)) {
     rv.Throw(NS_ERROR_UNEXPECTED);
     return;
   }
 
-  JS::ubi::RootedCount rootCount(cx, rootType->makeCount());
+  JS::ubi::RootedCount rootCount(MC_UNSAFE(cx), rootType->makeCount());
   if (NS_WARN_IF(!rootCount)) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
@@ -506,7 +506,7 @@ void HeapSnapshot::DescribeNode(JSContext* cx, JS::Handle<JSObject*> breakdown,
     return;
   }
 
-  if (NS_WARN_IF(!rootCount->report(cx, rval))) {
+  if (NS_WARN_IF(!rootCount->report(MC_UNSAFE(cx), rval))) {
     rv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return;
   }
@@ -520,8 +520,8 @@ already_AddRefed<DominatorTree> HeapSnapshot::ComputeDominatorTree(
     MOZ_ASSERT(ccjscx);
     auto cx = ccjscx->Context();
     MOZ_ASSERT(cx);
-    JS::AutoCheckCannotGC nogc(MC_UNSAFE(cx));
-    maybeTree = JS::ubi::DominatorTree::Create(MC_UNSAFE(cx), nogc, getRoot());
+    MC::AutoCheckCannotGC nogc(cx);
+    maybeTree = JS::ubi::DominatorTree::Create(MC_UNSAFE(cx), *nogc.UNSAFE_unverified(), getRoot());
   }
 
   if (NS_WARN_IF(maybeTree.isNothing())) {
@@ -532,7 +532,7 @@ already_AddRefed<DominatorTree> HeapSnapshot::ComputeDominatorTree(
   return MakeAndAddRef<DominatorTree>(std::move(*maybeTree), this, mParent);
 }
 
-void HeapSnapshot::ComputeShortestPaths(JSContext* cx, uint64_t start,
+void HeapSnapshot::ComputeShortestPaths(MCContext* cx, uint64_t start,
                                         const Sequence<uint64_t>& targets,
                                         uint64_t maxNumPaths,
                                         JS::MutableHandle<JSObject*> results,
@@ -577,9 +577,9 @@ void HeapSnapshot::ComputeShortestPaths(JSContext* cx, uint64_t start,
 
   Maybe<ShortestPaths> maybeShortestPaths;
   {
-    JS::AutoCheckCannotGC nogc(cx);
+    MC::AutoCheckCannotGC nogc(cx);
     maybeShortestPaths = ShortestPaths::Create(
-        cx, nogc, maxNumPaths, *startNode, std::move(targetsSet));
+        MC_UNSAFE(cx), *nogc.UNSAFE_unverified(), maxNumPaths, *startNode, std::move(targetsSet));
   }
 
   if (NS_WARN_IF(maybeShortestPaths.isNothing())) {
@@ -706,7 +706,7 @@ static bool AddGlobalsAsRoots(JS::HandleVector<JSObject*> globals,
 // forwarded from ubi::RootList::init(), to ensure that the caller does
 // not GC while the RootList is live and initialized.
 static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
-    JSContext* cx, ErrorResult& rv, const HeapSnapshotBoundaries& boundaries,
+    MCContext* cx, ErrorResult& rv, const HeapSnapshotBoundaries& boundaries,
     ubi::RootList& roots, CompartmentSet& compartments) {
   MOZ_ASSERT(!roots.initialized());
   MOZ_ASSERT(compartments.empty());
@@ -718,7 +718,7 @@ static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
 
     if (!boundaries.mRuntime.Value()) {
       rv.Throw(NS_ERROR_INVALID_ARG);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
 
     auto [ok, nogc] = roots.init();
@@ -731,36 +731,36 @@ static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
   if (boundaries.mDebugger.WasPassed()) {
     if (foundBoundaryProperty) {
       rv.Throw(NS_ERROR_INVALID_ARG);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
     foundBoundaryProperty = true;
 
     JSObject* dbgObj = boundaries.mDebugger.Value();
     if (!dbgObj || !dbg::IsDebugger(*dbgObj)) {
       rv.Throw(NS_ERROR_INVALID_ARG);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
 
     MC::RootedVector<JSObject*> globals(cx);
-    if (!dbg::GetDebuggeeGlobals(cx, *dbgObj, &globals) ||
+    if (!dbg::GetDebuggeeGlobals(MC_UNSAFE(cx), *dbgObj, &globals) ||
         !PopulateCompartmentsWithGlobals(compartments, globals) ||
         !roots.init(compartments).first || !AddGlobalsAsRoots(globals, roots)) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
   }
 
   if (boundaries.mGlobals.WasPassed()) {
     if (foundBoundaryProperty) {
       rv.Throw(NS_ERROR_INVALID_ARG);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
     foundBoundaryProperty = true;
 
     uint32_t length = boundaries.mGlobals.Value().Length();
     if (length == 0) {
       rv.Throw(NS_ERROR_INVALID_ARG);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
 
     MC::RootedVector<JSObject*> globals(cx);
@@ -768,21 +768,21 @@ static std::pair<bool, AutoCheckCannotGC> EstablishBoundaries(
       JSObject* global = boundaries.mGlobals.Value().ElementAt(i);
       if (!JS_IsGlobalObject(global)) {
         rv.Throw(NS_ERROR_INVALID_ARG);
-        return {false, AutoCheckCannotGC(cx)};
+        return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
       }
       if (!globals.append(global)) {
         rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-        return {false, AutoCheckCannotGC(cx)};
+        return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
       }
     }
 
     if (!PopulateCompartmentsWithGlobals(compartments, globals) ||
         !roots.init(compartments).first || !AddGlobalsAsRoots(globals, roots)) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
-      return {false, AutoCheckCannotGC(cx)};
+      return {false, AutoCheckCannotGC(MC_UNSAFE(cx))};
     }
   }
-  AutoCheckCannotGC nogc(cx);
+  AutoCheckCannotGC nogc(MC_UNSAFE(cx));
 
   if (!foundBoundaryProperty) {
     rv.Throw(NS_ERROR_INVALID_ARG);
@@ -1001,7 +1001,7 @@ class MOZ_STACK_CLASS StreamWriter : public CoreDumpWriter {
       js::HashMap<TwoByteString, uint64_t, TwoByteString::HashPolicy>;
   using OneByteStringMap = js::HashMap<const char*, uint64_t>;
 
-  JSContext* cx;
+  MCContext* cx;
   bool wantNames;
   // The set of |JS::ubi::StackFrame::identifier()|s that have already been
   // serialized and written to the core dump.
@@ -1102,7 +1102,7 @@ class MOZ_STACK_CLASS StreamWriter : public CoreDumpWriter {
     data->set_line(frame.line());
     data->set_column(frame.column());
     data->set_issystem(frame.isSystem());
-    data->set_isselfhosted(frame.isSelfHosted(cx));
+    data->set_isselfhosted(frame.isSelfHosted(MC_UNSAFE(cx)));
 
     auto dupeSource = TwoByteString::from(frame.source());
     if (!attachTwoByteString(
@@ -1139,14 +1139,14 @@ class MOZ_STACK_CLASS StreamWriter : public CoreDumpWriter {
   }
 
  public:
-  StreamWriter(JSContext* cx,
+  StreamWriter(MCContext* cx,
                ::google::protobuf::io::ZeroCopyOutputStream& stream,
                bool wantNames, JS::CompartmentSet* compartments)
       : cx(cx),
         wantNames(wantNames),
-        framesAlreadySerialized(cx),
-        twoByteStringsAlreadySerialized(cx),
-        oneByteStringsAlreadySerialized(cx),
+        framesAlreadySerialized(MC_UNSAFE(cx)),
+        twoByteStringsAlreadySerialized(MC_UNSAFE(cx)),
+        oneByteStringsAlreadySerialized(MC_UNSAFE(cx)),
         stream(stream),
         compartments(compartments) {}
 
@@ -1184,7 +1184,7 @@ class MOZ_STACK_CLASS StreamWriter : public CoreDumpWriter {
     protobufNode.set_size(ubiNode.size(mallocSizeOf));
 
     if (includeEdges) {
-      auto edges = ubiNode.edges(cx, wantNames);
+      auto edges = ubiNode.edges(MC_UNSAFE(cx), wantNames);
       if (NS_WARN_IF(!edges)) return false;
 
       for (; !edges->empty(); edges->popFront()) {
@@ -1315,7 +1315,7 @@ class MOZ_STACK_CLASS HeapSnapshotHandler {
   }
 };
 
-bool WriteHeapGraph(JSContext* cx, const JS::ubi::Node& node,
+bool WriteHeapGraph(MCContext* cx, const JS::ubi::Node& node,
                     CoreDumpWriter& writer, bool wantNames,
                     JS::CompartmentSet* compartments,
                     JS::AutoCheckCannotGC& noGC, uint32_t& outNodeCount,
@@ -1330,7 +1330,7 @@ bool WriteHeapGraph(JSContext* cx, const JS::ubi::Node& node,
   // core dump.
 
   HeapSnapshotHandler handler(writer, compartments);
-  HeapSnapshotHandler::Traversal traversal(cx, handler, noGC);
+  HeapSnapshotHandler::Traversal traversal(MC_UNSAFE(cx), handler, noGC);
   traversal.wantNames = wantNames;
 
   bool ok = traversal.addStartVisited(node) && traversal.traverse();
@@ -1481,10 +1481,10 @@ void ChromeUtils::SaveHeapSnapshotShared(
   ZeroCopyNSIOutputStream zeroCopyStream(outputStream);
   ::google::protobuf::io::GzipOutputStream gzipStream(&zeroCopyStream);
 
-  JSContext* cx = MC_UNSAFE(global.Context());
+  MCContext* cx = global.Context();
 
   {
-    ubi::RootList rootList(cx, wantNames);
+    ubi::RootList rootList(MC_UNSAFE(cx), wantNames);
     auto [ok, nogc] =
         EstablishBoundaries(cx, rv, boundaries, rootList, compartments);
     if (!ok) {
@@ -1566,7 +1566,7 @@ already_AddRefed<HeapSnapshot> ChromeUtils::ReadHeapSnapshot(
   if (rv.Failed()) return nullptr;
 
   RefPtr<HeapSnapshot> snapshot = HeapSnapshot::Create(
-      MC_UNSAFE(global.Context()), global, reinterpret_cast<const uint8_t*>(mm.address()),
+      global.Context(), global, reinterpret_cast<const uint8_t*>(mm.address()),
       mm.size(), rv);
 
   if (!rv.Failed())

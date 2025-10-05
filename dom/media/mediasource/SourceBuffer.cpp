@@ -485,7 +485,7 @@ SourceBuffer::~SourceBuffer() {
 
 MediaSource* SourceBuffer::GetParentObject() const { return mMediaSource; }
 
-JSObject* SourceBuffer::WrapObject(JSContext* aCx,
+JSObject* SourceBuffer::WrapObject(MCContext* aCx,
                                    JS::Handle<JSObject*> aGivenProto) {
   return SourceBuffer_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -15,7 +15,7 @@
 
 namespace mozilla::dom {
 
-JSObject* CSSTransition::WrapObject(JSContext* aCx,
+JSObject* CSSTransition::WrapObject(MCContext* aCx,
                                     JS::Handle<JSObject*> aGivenProto) {
   return dom::CSSTransition_Binding::Wrap(aCx, this, aGivenProto);
 }

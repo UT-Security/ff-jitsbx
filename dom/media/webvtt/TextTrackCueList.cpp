@@ -32,7 +32,7 @@ TextTrackCueList::TextTrackCueList(nsISupports* aParent) : mParent(aParent) {}
 
 TextTrackCueList::~TextTrackCueList() = default;
 
-JSObject* TextTrackCueList::WrapObject(JSContext* aCx,
+JSObject* TextTrackCueList::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return TextTrackCueList_Binding::Wrap(aCx, this, aGivenProto);
 }

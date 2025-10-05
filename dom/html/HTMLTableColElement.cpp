@@ -20,7 +20,7 @@ namespace mozilla::dom {
 
 HTMLTableColElement::~HTMLTableColElement() = default;
 
-JSObject* HTMLTableColElement::WrapNode(JSContext* aCx,
+JSObject* HTMLTableColElement::WrapNode(MCContext* aCx,
                                         JS::Handle<JSObject*> aGivenProto) {
   return HTMLTableColElement_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -101,14 +101,14 @@ class PaymentResponse final : public DOMEventTargetHelper,
                   const ResponseData& aDetails, const nsAString& aPayerName,
                   const nsAString& aPayerEmail, const nsAString& aPayerPhone);
 
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   void GetRequestId(nsString& aRetVal) const;
 
   void GetMethodName(nsString& aRetVal) const;
 
-  void GetDetails(JSContext* cx, JS::MutableHandle<JSObject*> aRetVal) const;
+  void GetDetails(MCContext* cx, JS::MutableHandle<JSObject*> aRetVal) const;
 
   already_AddRefed<PaymentAddress> GetShippingAddress() const;
 
@@ -132,7 +132,7 @@ class PaymentResponse final : public DOMEventTargetHelper,
                              const nsAString& aPayerEmail,
                              const nsAString& aPayerPhone);
 
-  already_AddRefed<Promise> Retry(JSContext* aCx,
+  already_AddRefed<Promise> Retry(MCContext* aCx,
                                   const PaymentValidationErrors& errorField,
                                   ErrorResult& aRv);
 
@@ -149,7 +149,7 @@ class PaymentResponse final : public DOMEventTargetHelper,
   void ValidatePaymentValidationErrors(const PaymentValidationErrors& aErrors,
                                        ErrorResult& aRv);
 
-  void ConvertPaymentMethodErrors(JSContext* aCx,
+  void ConvertPaymentMethodErrors(MCContext* aCx,
                                   const PaymentValidationErrors& aErrors,
                                   ErrorResult& aRv) const;
 

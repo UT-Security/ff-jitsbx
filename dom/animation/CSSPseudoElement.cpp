@@ -34,7 +34,7 @@ ParentObject CSSPseudoElement::GetParentObject() const {
   return mOriginatingElement->GetParentObject();
 }
 
-JSObject* CSSPseudoElement::WrapObject(JSContext* aCx,
+JSObject* CSSPseudoElement::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return CSSPseudoElement_Binding::Wrap(aCx, this, aGivenProto);
 }

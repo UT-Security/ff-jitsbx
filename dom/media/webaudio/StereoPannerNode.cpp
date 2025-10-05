@@ -189,7 +189,7 @@ size_t StereoPannerNode::SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) const {
   return aMallocSizeOf(this) + SizeOfExcludingThis(aMallocSizeOf);
 }
 
-JSObject* StereoPannerNode::WrapObject(JSContext* aCx,
+JSObject* StereoPannerNode::WrapObject(MCContext* aCx,
                                        JS::Handle<JSObject*> aGivenProto) {
   return StereoPannerNode_Binding::Wrap(aCx, this, aGivenProto);
 }

@@ -25,7 +25,7 @@ class SVGFEBlendElement final : public SVGFEBlendElementBase {
   explicit SVGFEBlendElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEBlendElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
 
  public:
   FilterPrimitiveDescription GetPrimitiveDescription(

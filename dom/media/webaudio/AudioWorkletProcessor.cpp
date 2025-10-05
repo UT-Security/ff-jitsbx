@@ -41,7 +41,7 @@ already_AddRefed<AudioWorkletProcessor> AudioWorkletProcessor::Constructor(
   return audioWorkletProcessor.forget();
 }
 
-JSObject* AudioWorkletProcessor::WrapObject(JSContext* aCx,
+JSObject* AudioWorkletProcessor::WrapObject(MCContext* aCx,
                                             JS::Handle<JSObject*> aGivenProto) {
   return AudioWorkletProcessor_Binding::Wrap(aCx, this, aGivenProto);
 }

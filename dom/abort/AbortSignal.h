@@ -35,7 +35,7 @@ class AbortSignal : public DOMEventTargetHelper,
   AbortSignal(nsIGlobalObject* aGlobalObject, bool aAborted,
               JS::Handle<JS::Value> aReason);
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   IMPL_EVENT_HANDLER(abort);
@@ -47,7 +47,7 @@ class AbortSignal : public DOMEventTargetHelper,
                                                uint64_t aMilliseconds,
                                                ErrorResult& aRv);
 
-  void ThrowIfAborted(JSContext* aCx, ErrorResult& aRv);
+  void ThrowIfAborted(MCContext* aCx, ErrorResult& aRv);
 
   // AbortSignalImpl
   void SignalAbort(JS::Handle<JS::Value> aReason) override;

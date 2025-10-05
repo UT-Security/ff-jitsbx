@@ -76,7 +76,7 @@ class HTMLTableRowElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLTableRowElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   HTMLTableSectionElement* GetSection() const;

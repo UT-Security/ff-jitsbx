@@ -202,7 +202,7 @@ NS_IMETHODIMP JumpListBuilder::GetMaxListItems(int16_t* aMaxItems) {
   return NS_OK;
 }
 
-NS_IMETHODIMP JumpListBuilder::InitListBuild(JSContext* aCx,
+NS_IMETHODIMP JumpListBuilder::InitListBuild(MCContext* aCx,
                                              Promise** aPromise) {
   ReentrantMonitorAutoEnter lock(mMonitor);
   if (!mJumpListMgr) {

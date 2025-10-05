@@ -306,7 +306,7 @@ class HTMLInputElement final : public TextControlElement,
   static void DestroyUploadLastDir();
 
   // If the valueAsDate attribute should be enabled in webIDL
-  static bool ValueAsDateEnabled(JSContext* cx, JSObject* obj);
+  static bool ValueAsDateEnabled(MCContext* cx, JSObject* obj);
 
   void MaybeLoadImage();
 
@@ -643,10 +643,10 @@ class HTMLInputElement final : public TextControlElement,
                 ErrorResult& aRv);
   void GetValue(nsAString& aValue, CallerType aCallerType);
 
-  void GetValueAsDate(JSContext* aCx, JS::MutableHandle<JSObject*> aObj,
+  void GetValueAsDate(MCContext* aCx, JS::MutableHandle<JSObject*> aObj,
                       ErrorResult& aRv);
 
-  void SetValueAsDate(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  void SetValueAsDate(MCContext* aCx, JS::Handle<JSObject*> aObj,
                       ErrorResult& aRv);
 
   double ValueAsNumber() const {
@@ -862,7 +862,7 @@ class HTMLInputElement final : public TextControlElement,
  protected:
   MOZ_CAN_RUN_SCRIPT_BOUNDARY virtual ~HTMLInputElement();
 
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
   // Pull IsSingleLineTextControl into our scope, otherwise it'd be hidden

@@ -45,7 +45,7 @@ static const JSClass* sServices_Class() {
   return &inner_;
 }
 
-JSObject* NewJSServices(JSContext* cx) {
+JSObject* NewJSServices(MCContext* cx) {
   return JS_NewObject(cx, sServices_Class());
 }
 
@@ -83,7 +83,7 @@ static JSLinearString* GetNameIfLatin1(jsid id) {
   return nullptr;
 }
 
-static bool GetServiceImpl(JSContext* cx, const xpcom::JSServiceEntry& service,
+static bool GetServiceImpl(MCContext* cx, const xpcom::JSServiceEntry& service,
                            JS::MutableHandleObject aObj, ErrorResult& aRv) {
   nsresult rv;
   nsCOMPtr<nsISupports> inst = service.Module().GetService(&rv);
@@ -130,7 +130,7 @@ static bool GetServiceImpl(JSContext* cx, const xpcom::JSServiceEntry& service,
   return true;
 }
 
-static JSObject* GetService(JSContext* cx, const xpcom::JSServiceEntry& service,
+static JSObject* GetService(MCContext* cx, const xpcom::JSServiceEntry& service,
                             ErrorResult& aRv) {
   MC::RootedObject obj(cx);
   if (!GetServiceImpl(cx, service, &obj, aRv)) {
@@ -157,7 +157,7 @@ static MC::Tainted<bool> Services_Resolve(MC::Tainted<JSContext*> tcx, HandleObj
     ErrorResult rv;
     MC::RootedValue val(cx);
 
-    val.setObjectOrNull(GetService(MC_UNSAFE(cx), *service, rv));
+    val.setObjectOrNull(GetService(cx, *service, rv));
     if (rv.MaybeSetPendingException(cx)) {
       return false;
     }

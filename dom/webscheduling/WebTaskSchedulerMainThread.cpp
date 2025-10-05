@@ -25,7 +25,7 @@ NS_IMETHODIMP WebTaskMainThreadRunnable::Run() {
 
 nsresult WebTaskSchedulerMainThread::SetTimeoutForDelayedTask(WebTask* aTask,
                                                               uint64_t aDelay) {
-  JSContext* cx = nsContentUtils::GetCurrentJSContext();
+  MCContext* cx = nsContentUtils::GetCurrentJSContext();
   if (!cx) {
     return NS_ERROR_UNEXPECTED;
   }

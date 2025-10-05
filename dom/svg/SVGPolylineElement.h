@@ -20,7 +20,7 @@ class SVGPolylineElement final : public SVGPolylineElementBase {
  protected:
   explicit SVGPolylineElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo);
-  JSObject* WrapNode(JSContext* cx, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext* cx, JS::Handle<JSObject*> aGivenProto) override;
   friend nsresult(::NS_NewSVGPolylineElement(
       nsIContent** aResult,
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo));

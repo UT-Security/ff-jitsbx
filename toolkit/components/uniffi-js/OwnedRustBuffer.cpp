@@ -78,11 +78,11 @@ RustBuffer OwnedRustBuffer::IntoRustBuffer() {
   return rv;
 }
 
-JSObject* OwnedRustBuffer::IntoArrayBuffer(JSContext* cx) {
+JSObject* OwnedRustBuffer::IntoArrayBuffer(MCContext* cx) {
   int32_t len = mBuf.len;
   void* data = mBuf.data;
   auto userData = MakeUnique<OwnedRustBuffer>(std::move(*this));
-  return JS::NewExternalArrayBuffer(cx, len, data, &ArrayBufferFreeFunc,
+  return JS::NewExternalArrayBuffer(MC_UNSAFE(cx), len, data, &ArrayBufferFreeFunc,
                                     userData.release());
 }
 

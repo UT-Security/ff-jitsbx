@@ -25,7 +25,7 @@ IntlUtils::IntlUtils(nsPIDOMWindowInner* aWindow) : mWindow(aWindow) {}
 
 IntlUtils::~IntlUtils() = default;
 
-JSObject* IntlUtils::WrapObject(JSContext* aCx,
+JSObject* IntlUtils::WrapObject(MCContext* aCx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return IntlUtils_Binding::Wrap(aCx, this, aGivenProto);
 }
@@ -52,7 +52,7 @@ void IntlUtils::GetDisplayNames(const Sequence<nsString>& aLocales,
     aError.Throw(NS_ERROR_FAILURE);
     return;
   }
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Prepare parameter for getDisplayNames().
   MC::Rooted<JS::Value> locales(cx);

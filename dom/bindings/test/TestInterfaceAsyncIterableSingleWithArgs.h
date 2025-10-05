@@ -24,7 +24,7 @@ class TestInterfaceAsyncIterableSingleWithArgs final
       TestInterfaceAsyncIterableSingle)
 
   using TestInterfaceAsyncIterableSingle::TestInterfaceAsyncIterableSingle;
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
   static already_AddRefed<TestInterfaceAsyncIterableSingleWithArgs> Constructor(
       const GlobalObject& aGlobal, ErrorResult& rv);
@@ -38,12 +38,12 @@ class TestInterfaceAsyncIterableSingleWithArgs final
 
   already_AddRefed<Promise> GetNextIterationResult(
       Iterator* aIterator, ErrorResult& aRv) MOZ_CAN_RUN_SCRIPT;
-  already_AddRefed<Promise> IteratorReturn(JSContext* aCx, Iterator* aIterator,
+  already_AddRefed<Promise> IteratorReturn(MCContext* aCx, Iterator* aIterator,
                                            JS::Handle<JS::Value> aValue,
                                            ErrorResult& aRv) MOZ_CAN_RUN_SCRIPT;
 
   uint32_t ReturnCallCount() { return mReturnCallCount; }
-  void GetReturnLastCalledWith(JSContext* aCx,
+  void GetReturnLastCalledWith(MCContext* aCx,
                                JS::MutableHandle<JS::Value> aReturnCalledWith) {
     aReturnCalledWith.set(mReturnLastCalledWith);
   }

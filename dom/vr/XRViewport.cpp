@@ -13,7 +13,7 @@ NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(XRViewport, mParent)
 XRViewport::XRViewport(nsISupports* aParent, const gfx::IntRect& aRect)
     : mParent(aParent), mRect(aRect) {}
 
-JSObject* XRViewport::WrapObject(JSContext* aCx,
+JSObject* XRViewport::WrapObject(MCContext* aCx,
                                  JS::Handle<JSObject*> aGivenProto) {
   return XRViewport_Binding::Wrap(aCx, this, aGivenProto);
 }

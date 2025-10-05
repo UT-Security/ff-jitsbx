@@ -6,7 +6,7 @@
 
 #include "mozilla/dom/KeyAlgorithmProxy.h"
 
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/StructuredCloneHolder.h"
 #include "mozilla/dom/WebCryptoCommon.h"
@@ -14,7 +14,7 @@
 namespace mozilla::dom {
 
 bool KeyAlgorithmProxy::WriteStructuredClone(
-    JSStructuredCloneWriter* aWriter) const {
+    MC::Tainted<JSStructuredCloneWriter*> aWriter) const {
   if (!StructuredCloneHolder::WriteString(aWriter, mName) ||
       !JS_WriteUint32Pair(aWriter, mType, KEY_ALGORITHM_SC_VERSION)) {
     return false;
@@ -38,7 +38,7 @@ bool KeyAlgorithmProxy::WriteStructuredClone(
   return false;
 }
 
-bool KeyAlgorithmProxy::ReadStructuredClone(JSStructuredCloneReader* aReader) {
+bool KeyAlgorithmProxy::ReadStructuredClone(MC::Tainted<JSStructuredCloneReader*> aReader) {
   uint32_t type, version, dummy;
   if (!StructuredCloneHolder::ReadString(aReader, mName) ||
       !JS_ReadUint32Pair(aReader, &type, &version)) {

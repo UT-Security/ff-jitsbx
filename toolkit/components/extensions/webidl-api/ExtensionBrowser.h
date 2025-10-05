@@ -33,7 +33,7 @@ class ExtensionRuntime;
 class ExtensionScripting;
 class ExtensionTest;
 
-bool ExtensionAPIAllowed(JSContext* aCx, JSObject* aGlobal);
+bool ExtensionAPIAllowed(MCContext* aCx, JSObject* aGlobal);
 
 void CreateAndDispatchInitWorkerContextRunnable();
 
@@ -78,10 +78,10 @@ class ExtensionBrowser final : public nsISupports, public nsWrapperCache {
 
   // Helpers used to keep track of the event listeners added during the
   // initial sync worker script execution.
-  nsresult TrackWakeupEventListener(JSContext* aCx,
+  nsresult TrackWakeupEventListener(MCContext* aCx,
                                     const nsString& aAPINamespace,
                                     const nsString& aAPIName);
-  nsresult UntrackWakeupEventListener(JSContext* aCx,
+  nsresult UntrackWakeupEventListener(MCContext* aCx,
                                       const nsString& aAPINamespace,
                                       const nsString& aAPIName);
   bool HasWakeupEventListener(const nsString& aAPINamespace,
@@ -101,7 +101,7 @@ class ExtensionBrowser final : public nsISupports, public nsWrapperCache {
   void ForgetReleasedPort(const nsAString& aPortId);
 
   // nsWrapperCache interface methods
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // DOM bindings methods

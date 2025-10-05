@@ -34,7 +34,7 @@ GamepadLightIndicator::~GamepadLightIndicator() {
 }
 
 /* virtual */ JSObject* GamepadLightIndicator::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return GamepadLightIndicator_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -76,7 +76,7 @@ class HTMLMeterElement final : public nsGenericHTMLElement {
  protected:
   virtual ~HTMLMeterElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
  private:

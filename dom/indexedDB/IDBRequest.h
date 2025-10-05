@@ -78,18 +78,18 @@ class IDBRequest : public DOMEventTargetHelper {
 
  public:
   [[nodiscard]] static MovingNotNull<RefPtr<IDBRequest>> Create(
-      JSContext* aCx, IDBDatabase* aDatabase,
+      MCContext* aCx, IDBDatabase* aDatabase,
       SafeRefPtr<IDBTransaction> aTransaction);
 
   [[nodiscard]] static MovingNotNull<RefPtr<IDBRequest>> Create(
-      JSContext* aCx, IDBObjectStore* aSource, IDBDatabase* aDatabase,
+      MCContext* aCx, IDBObjectStore* aSource, IDBDatabase* aDatabase,
       SafeRefPtr<IDBTransaction> aTransaction);
 
   [[nodiscard]] static MovingNotNull<RefPtr<IDBRequest>> Create(
-      JSContext* aCx, IDBIndex* aSource, IDBDatabase* aDatabase,
+      MCContext* aCx, IDBIndex* aSource, IDBDatabase* aDatabase,
       SafeRefPtr<IDBTransaction> aTransaction);
 
-  static void CaptureCaller(JSContext* aCx, nsAString& aFilename,
+  static void CaptureCaller(MCContext* aCx, nsAString& aFilename,
                             uint32_t* aLineNo, uint32_t* aColumn);
 
   static uint64_t NextSerialNumber();
@@ -128,7 +128,7 @@ class IDBRequest : public DOMEventTargetHelper {
       return;
     }
 
-    JSContext* cx = autoJS.cx();
+    MCContext* cx = autoJS.mcx();
 
     MC::Rooted<JS::Value> result(cx);
     nsresult rv = aCallback(cx, &result);
@@ -191,7 +191,7 @@ class IDBRequest : public DOMEventTargetHelper {
 
   void GetResult(JS::MutableHandle<JS::Value> aResult, ErrorResult& aRv) const;
 
-  void GetResult(JSContext* aCx, JS::MutableHandle<JS::Value> aResult,
+  void GetResult(MCContext* aCx, JS::MutableHandle<JS::Value> aResult,
                  ErrorResult& aRv) const {
     GetResult(aResult, aRv);
   }
@@ -235,7 +235,7 @@ class IDBRequest : public DOMEventTargetHelper {
                                                          DOMEventTargetHelper)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  protected:
@@ -258,7 +258,7 @@ class IDBOpenDBRequest final : public IDBRequest {
 
  public:
   [[nodiscard]] static RefPtr<IDBOpenDBRequest> Create(
-      JSContext* aCx, SafeRefPtr<IDBFactory> aFactory,
+      MCContext* aCx, SafeRefPtr<IDBFactory> aFactory,
       nsIGlobalObject* aGlobal);
 
   void SetTransaction(SafeRefPtr<IDBTransaction> aTransaction);
@@ -275,7 +275,7 @@ class IDBOpenDBRequest final : public IDBRequest {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(IDBOpenDBRequest, IDBRequest)
 
   // nsWrapperCache
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
  private:

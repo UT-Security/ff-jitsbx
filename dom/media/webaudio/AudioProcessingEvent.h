@@ -21,7 +21,7 @@ class AudioProcessingEvent final : public Event {
   NS_DECL_ISUPPORTS_INHERITED
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(AudioProcessingEvent, Event)
 
-  JSObject* WrapObjectInternal(JSContext* aCx,
+  JSObject* WrapObjectInternal(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
   using Event::InitEvent;

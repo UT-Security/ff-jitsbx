@@ -155,7 +155,7 @@ namespace dom {
 NS_IMPL_CYCLE_COLLECTION_WRAPPERCACHE(CheckerboardReportService, mParent)
 
 /*static*/
-bool CheckerboardReportService::IsEnabled(JSContext* aCtx, JSObject* aGlobal) {
+bool CheckerboardReportService::IsEnabled(MCContext* aCtx, JSObject* aGlobal) {
   // Only allow this in the parent process
   if (!XRE_IsParentProcess()) {
     return false;
@@ -177,7 +177,7 @@ CheckerboardReportService::CheckerboardReportService(nsISupports* aParent)
     : mParent(aParent) {}
 
 JSObject* CheckerboardReportService::WrapObject(
-    JSContext* aCtx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCtx, JS::Handle<JSObject*> aGivenProto) {
   return CheckerboardReportService_Binding::Wrap(aCtx, this, aGivenProto);
 }
 

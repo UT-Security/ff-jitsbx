@@ -633,14 +633,12 @@ class CGDOMJSClass(CGThing):
             if self.descriptor.operations["LegacyCaller"]
             else "nullptr"
         )
-        if callHook != "nullptr":
-            hookCallbacks.append(CGMonkeycageStaticCallback(LEGACYCALLER_HOOK_NAME, "JSNative"))
 
         objectMovedHook = (
             "%sCb().UNSAFE_get()" % OBJECT_MOVED_HOOK_NAME if self.descriptor.wrapperCache else "nullptr"
         )
         if objectMovedHook != "nullptr":
-            hookCallbacks.append(CGMonkeycageStaticCallback(OBJECT_MOVED_HOOK_NAME, "JSObjectMovedOp"))
+            hookCallbacks.append(CGMonkeycageStaticTaintedCallback(OBJECT_MOVED_HOOK_NAME, "JSObjectMovedOp"))
         
         slotCount = InstanceReservedSlots(self.descriptor)
         classFlags = "JSCLASS_IS_DOMJSCLASS | JSCLASS_FOREGROUND_FINALIZE | "
@@ -664,8 +662,8 @@ class CGDOMJSClass(CGThing):
 
         if self.descriptor.interface.getExtendedAttribute("NeedResolve"):
             hookCallbacks.append(CGMonkeycageStaticTaintedCallback(RESOLVE_HOOK_NAME, "JSResolveOp"))
-            hookCallbacks.append(CGMonkeycageStaticCallback(MAY_RESOLVE_HOOK_NAME, "JSMayResolveOp"))
-            hookCallbacks.append(CGMonkeycageStaticCallback(NEW_ENUMERATE_HOOK_NAME, "JSNewEnumerateOp"))
+            hookCallbacks.append(CGMonkeycageStaticTaintedCallback(MAY_RESOLVE_HOOK_NAME, "JSMayResolveOp"))
+            hookCallbacks.append(CGMonkeycageStaticTaintedCallback(NEW_ENUMERATE_HOOK_NAME, "JSNewEnumerateOp"))
             
             resolveHook = "%sCb().UNSAFE_get()" % RESOLVE_HOOK_NAME
             mayResolveHook = "%sCb().UNSAFE_get()" % MAY_RESOLVE_HOOK_NAME
@@ -980,7 +978,7 @@ class CGInterfaceObjectJSClass(CGThing):
             ret = ""
             classOpsPtr = "JS_NULL_CLASS_OPS"
         else:
-            constructorCb = CGMonkeycageStaticCallback(ctorname, "JSNative").define()
+            constructorCb = CGMonkeycageStaticTaintedCallback(ctorname, "JSNative").define()
             ret = constructorCb + "\n" + fill(
                 """
                 static const JSClassOps* sInterfaceObjectClassOps() {
@@ -1431,8 +1429,8 @@ class CGHeaders(CGWrapper):
                 if unrolled.nullable():
                     headerSet.add("mozilla/dom/Nullable.h")
                 elif unrolled.isSequence() or unrolled.isObservableArray():
-                    bindingHeaders.add("js/Array.h")
-                    bindingHeaders.add("js/ForOfIterator.h")
+                    bindingHeaders.add("monkeycage/Array.h")
+                    bindingHeaders.add("monkeycage/ForOfIterator.h")
                     if unrolled.isObservableArray():
                         bindingHeaders.add("mozilla/dom/ObservableArrayProxyHandler.h")
                 else:
@@ -1450,7 +1448,7 @@ class CGHeaders(CGWrapper):
                 bindingHeaders.add("mozilla/dom/ToJSValue.h")
             elif unrolled.isInterface():
                 if unrolled.isSpiderMonkeyInterface():
-                    bindingHeaders.add("jsfriendapi.h")
+                    bindingHeaders.add("mcfriendapi.h")
                     if jsImplementedDescriptors:
                         # Since we can't forward-declare typed array types
                         # (because they're typedefs), we have to go ahead and
@@ -1685,13 +1683,14 @@ def UnionTypes(unionTypes, config):
             unionStructs[name] = t
 
             def addHeadersForType(f):
+                headers.add("monkeycage/PropertyDescriptor.h")
                 if f.nullable():
                     headers.add("mozilla/dom/Nullable.h")
                 isSequence = f.isSequence()
                 if isSequence:
                     # Dealing with sequences requires for-of-compatible
                     # iteration.
-                    implheaders.add("js/ForOfIterator.h")
+                    implheaders.add("monkeycage/ForOfIterator.h")
                     # Sequences can always throw "not an object" exceptions.
                     implheaders.add("mozilla/dom/BindingCallContext.h")
                     if typeNeedsRooting(f):
@@ -1927,6 +1926,7 @@ class CGAbstractMethod(CGThing):
 
     def definition_prologue(self, fromDeclare):
         error_reporting_label = self.error_reporting_label()
+        tainted = False
         if error_reporting_label:
             # We're going to want a BindingCallContext.  Rename our JSContext*
             # arg accordingly.
@@ -1937,9 +1937,26 @@ class CGAbstractMethod(CGThing):
                     cxname = arg.name
                     self.args[i] = Argument(arg.argType, "cx_", arg.default)
                     break
+                if arg.argType == "MC::Tainted<JSContext*>":
+                    cxname = arg.name
+                    self.args[i] = Argument(arg.argType, "t_cx", arg.default)
+                    tainted = True
+                    break
                 i += 1
             if i == len(self.args):
-                raise TypeError("Must have a JSContext* to create a BindingCallContext")
+                raise TypeError("Must have a MCContext* to create a BindingCallContext")
+        else:
+            # We're going to want a BindingCallContext.  Rename our JSContext*
+            # arg accordingly.
+            i = 0
+            while i < len(self.args):
+                arg = self.args[i]
+                if arg.argType == "MC::Tainted<JSContext*>":
+                    cxname = arg.name
+                    self.args[i] = Argument(arg.argType, "t_cx", arg.default)
+                    tainted = True
+                    break
+                i += 1
 
         prologue = "%s%s%s(%s)\n{\n" % (
             self._template(),
@@ -1947,6 +1964,27 @@ class CGAbstractMethod(CGThing):
             self.name,
             self._argstring(fromDeclare),
         )
+
+        if tainted:
+            if error_reporting_label:
+                prologue += indent(
+                        """
+                MCContext* cx_ = t_cx.copy_and_verify_address(MC_VerifyContext);
+                (void)cx_;
+                    """
+                )
+            else:
+                prologue += indent(
+                    fill(
+                        """
+                MCContext* ${cxname} = t_cx.copy_and_verify_address(MC_VerifyContext);
+                (void)${cxname};
+                    """,
+                        cxname=cxname,
+                    )
+                )
+            
+        
         if error_reporting_label:
             prologue += indent(
                 fill(
@@ -1989,7 +2027,6 @@ class CGAbstractMethod(CGThing):
     def error_reporting_label(self):
         return None  # Override me!
 
-
 class CGMonkeycageStaticCallback(CGThing):
     """
     Class for codegen of static function that registers and manages
@@ -2025,19 +2062,35 @@ class CGMonkeycageStaticTaintedCallback(CGThing):
     def __init__(self,
                  name,
                  type,
+                 static=True
     ):
         CGThing.__init__(self)
         self.name = name
         self.type = type
+        self.static = static
+
+    def declare(self):
+        if self.static:
+            return ""
+
+        return fill(
+            """
+            MC::SandboxCallback<${returnType}> ${functionName}Cb();
+            """,
+            returnType=self.type,
+            functionName=self.name
+        )
+        
 
     def define(self):
         return fill(
             """
-            static auto ${functionName}Cb() {
+            ${maybeStatic}MC::SandboxCallback<${returnType}> ${functionName}Cb() {
                 static auto inner_ = MC::Sandbox::RegisterTaintedCallback(${functionName});
                 return inner_;
             }
             """,
+            maybeStatic="static " if self.static else "",
             returnType=self.type,
             functionName=self.name
         )
@@ -2077,10 +2130,13 @@ class CGAbstractClassHook(CGAbstractStaticMethod):
         )
 
     def definition_body(self):
-        return self.definition_body_prologue() + self.generate_code()
+        return self.unsafe_unverified_prologue() + self.definition_body_prologue() + self.generate_code()
 
     def generate_code(self):
         assert False  # Override me!
+
+    def unsafe_unverified_prologue(self):
+        return ""
 
 
 class CGAddPropertyHook(CGAbstractClassHook):
@@ -2205,7 +2261,7 @@ class CGClassFinalizeHook(CGAbstractClassHook):
 
     def generate_code(self):
         return finalizeHook(
-            self.descriptor, self.name, self.args[0].name, self.args[1].name
+            self.descriptor, self.name, "gcx", "obj"
         ).define()
 
 
@@ -2231,22 +2287,26 @@ class CGClassObjectMovedHook(CGAbstractClassHook):
     """
 
     def __init__(self, descriptor):
-        args = [Argument("JSObject*", "obj"), Argument("JSObject*", "old")]
+        args = [Argument("MC::Tainted<JSObject*>", "t_obj"), Argument("MC::Tainted<JSObject*>", "t_old")]
         CGAbstractClassHook.__init__(
-            self, descriptor, OBJECT_MOVED_HOOK_NAME, "size_t", args
+            self, descriptor, OBJECT_MOVED_HOOK_NAME, "MC::Tainted<size_t>", args
         )
 
     def generate_code(self):
         return objectMovedHook(
-            self.descriptor, self.name, self.args[0].name, self.args[1].name
+            self.descriptor, self.name, "obj", "old"
         )
 
+    def unsafe_unverified_prologue(self):
+        return """ JSObject* obj = t_obj.UNSAFE_unverified();
+            JSObject* old = t_old.UNSAFE_unverified(); 
+        """
 
-def JSNativeArguments():
+def JSTaintedNativeArguments():
     return [
-        Argument("JSContext*", "cx"),
+        Argument("MC::Tainted<JSContext*>", "cx"),
         Argument("unsigned", "argc"),
-        Argument("JS::Value*", "vp"),
+        Argument("MC::Tainted<JS::Value*>", "t_vp"),
     ]
 
 
@@ -2257,7 +2317,7 @@ class CGClassConstructor(CGAbstractStaticMethod):
 
     def __init__(self, descriptor, ctor, name=CONSTRUCT_HOOK_NAME):
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", JSNativeArguments()
+            self, descriptor, name, "MC::Tainted<bool>", JSTaintedNativeArguments()
         )
         self._ctor = ctor
 
@@ -2283,8 +2343,8 @@ class CGClassConstructor(CGAbstractStaticMethod):
             # compartment.
             return fill(
                 """
-                MCContext* mcx = JS_SanitizeContext(cx);
-                return HTMLConstructor(mcx, argc, vp,
+                JS::Value* vp = t_vp.UNSAFE_unverified();
+                return HTMLConstructor(cx, argc, vp,
                                        constructors::id::${name},
                                        prototypes::id::${name},
                                        CreateInterfaceObjects);
@@ -2305,7 +2365,7 @@ class CGClassConstructor(CGAbstractStaticMethod):
         )
         if len(rawConditions) > 0:
             notConditions = " ||\n".join("!" + cond for cond in rawConditions)
-            failedCheckAction = CGGeneric("return ThrowingConstructor(cx, argc, vp);\n")
+            failedCheckAction = CGGeneric("return ThrowingConstructor(t_cx, argc, t_vp);\n")
             conditionsCheck = (
                 CGIfWrapper(failedCheckAction, notConditions).define() + "\n"
             )
@@ -2316,16 +2376,16 @@ class CGClassConstructor(CGAbstractStaticMethod):
 
         preamble = fill(
             """
-            MCContext* mcx = JS_SanitizeContext(cx);
+            JS::Value* vp = t_vp.UNSAFE_unverified();
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
             MC::Rooted<JSObject*> obj(cx, &args.callee());
             $*{conditionsCheck}
             if (!args.isConstructing()) {
-              return ThrowConstructorWithoutNew(mcx, "${ctorName}");
+              return ThrowConstructorWithoutNew(cx, "${ctorName}");
             }
 
             MC::Rooted<JSObject*> desiredProto(cx);
-            if (!GetDesiredProto(mcx, args,
+            if (!GetDesiredProto(cx, args,
                                  prototypes::id::${name},
                                  CreateInterfaceObjects,
                                  &desiredProto)) {
@@ -3088,7 +3148,7 @@ class MethodDefiner(PropertyDefiner):
                     accessor = "StaticMethodPromiseWrapperCb().UNSAFE_get()"
                 else:
                     jitinfo = "nullptr"
-                    accessor = ("MC::Sandbox::RegisterCallback((JSNative)%s).UNSAFE_get()" % accessor) if accessor != "nullptr" else accessor
+                    accessor = ("MC::Sandbox::RegisterTaintedCallback((MC::Tainted<bool>(*)(MC::Tainted<JSContext*>, unsigned, MC::Tainted<JS::Value*>))%s).UNSAFE_get()" % accessor) if accessor != "nullptr" else accessor
 
         return (
             m["name"],
@@ -3184,7 +3244,7 @@ class AttrDefiner(PropertyDefiner):
                         "static Promise-returning "
                         "attribute %s.%s" % (descriptor.name, attr.identifier.name)
                     )
-                accessor = "MC::Sandbox::RegisterCallback(get_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
+                accessor = "MC::Sandbox::RegisterTaintedCallback(get_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.type.isPromise():
@@ -3237,7 +3297,7 @@ class AttrDefiner(PropertyDefiner):
             if crossOriginOnly and not attr.getExtendedAttribute("CrossOriginWritable"):
                 return "nullptr, nullptr"
             if static:
-                accessor = "MC::Sandbox::RegisterCallback(set_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
+                accessor = "MC::Sandbox::RegisterTaintedCallback(set_%s).UNSAFE_get()" % IDLToCIdentifier(attr.identifier.name)
                 jitinfo = "nullptr"
             else:
                 if attr.hasLegacyLenientThis():
@@ -3525,7 +3585,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
 
     def __init__(self, descriptor, toJSONMethod):
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MCContext*", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("%s*" % descriptor.nativeType, "self"),
             Argument("MC::Rooted<JSObject*>&", "result"),
@@ -3536,7 +3596,11 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
         self.toJSONMethod = toJSONMethod
 
     def definition_body(self):
-        ret = ""
+        ret = """MC::Tainted<JSContext*> t_cx;
+        t_cx.assign_raw_pointer(MC_UNSAFE(cx));
+        MC::AppPointer<void*> t_void_self{static_cast<void*>(self)};
+            
+        """
         interface = self.descriptor.interface
         toJSONCondition = PropertyDefiner.getControllingCondition(
             self.toJSONMethod, self.descriptor
@@ -3547,7 +3611,7 @@ class CGCollectJSONAttributesMethod(CGAbstractMethod):
                 getAndDefine = fill(
                     """
                     MC::Rooted<JS::Value> temp(cx);
-                    if (!get_${name}(cx, obj, self, JSJitGetterCallArgs(&temp))) {
+                    if (!get_${name}(t_cx, obj, t_void_self, JSJitGetterCallArgs(&temp)).UNSAFE_unverified()) {
                       return false;
                     }
                     if (!JS_DefineProperty(cx, result, "${name}", temp, JSPROP_ENUMERATE)) {
@@ -3620,7 +3684,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
         self, descriptor, properties, haveUnscopables, haveLegacyWindowAliases, static
     ):
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("JS::Handle<JSObject*>", "aGlobal"),
             Argument("ProtoAndIfaceCache&", "aProtoAndIfaceCache"),
             Argument("bool", "aDefineOnGlobal"),
@@ -3637,20 +3701,20 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
             self.descriptor
         )
         if protoHandleGetter is None:
-            parentProtoType = "Rooted"
+            parentProtoType = "MC::Rooted"
             getParentProto = "aCx, " + protoGetter
         else:
-            parentProtoType = "Handle"
+            parentProtoType = "JS::Handle"
             getParentProto = protoHandleGetter
         getParentProto = getParentProto + "(aCx)"
 
         (protoGetter, protoHandleGetter) = InterfaceObjectProtoGetter(self.descriptor)
         if protoHandleGetter is None:
             getConstructorProto = "aCx, " + protoGetter
-            constructorProtoType = "Rooted"
+            constructorProtoType = "MC::Rooted"
         else:
             getConstructorProto = protoHandleGetter
-            constructorProtoType = "Handle"
+            constructorProtoType = "JS::Handle"
         getConstructorProto += "(aCx)"
 
         needInterfaceObject = self.descriptor.interface.hasInterfaceObject()
@@ -3663,7 +3727,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         getParentProto = fill(
             """
-            JS::${type}<JSObject*> parentProto(${getParentProto});
+            ${type}<JSObject*> parentProto(${getParentProto});
             if (!parentProto) {
               return;
             }
@@ -3674,7 +3738,7 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         getConstructorProto = fill(
             """
-            JS::${type}<JSObject*> constructorProto(${getConstructorProto});
+            ${type}<JSObject*> constructorProto(${getConstructorProto});
             if (!constructorProto) {
               return;
             }
@@ -3745,10 +3809,9 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         call = fill(
             """
-            MCContext* mCx = JS_SanitizeContext(aCx);
             JS::Heap<JSObject*>* protoCache = ${protoCache};
             JS::Heap<JSObject*>* interfaceCache = ${interfaceCache};
-            dom::CreateInterfaceObjects(mCx, aGlobal, ${parentProto},
+            dom::CreateInterfaceObjects(aCx, aGlobal, ${parentProto},
                                         ${protoClass}, protoCache,
                                         ${constructorProto}, ${interfaceClass}, ${constructArgs}, ${isConstructorChromeOnly}, ${namedConstructors},
                                         interfaceCache,
@@ -3958,12 +4021,12 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
                 fill(
                     """
                 {
-                  bool succeeded;
-                  if (!JS_SetImmutablePrototype(aCx, proto, &succeeded)) {
+                  MC::SandboxStack<bool> succeeded;
+                  if (!JS_SetImmutablePrototype(aCx, proto, succeeded)) {
                     $*{failureCode}
                   }
 
-                  MOZ_ASSERT(succeeded,
+                  MOZ_ASSERT(*succeeded.UNSAFE_unverified(),
                              "making a fresh prototype object's [[Prototype]] "
                              "immutable can internally fail, but it should "
                              "never be unsuccessful");
@@ -4017,7 +4080,7 @@ class CGGetProtoObjectHandleMethod(CGAbstractMethod):
             descriptor,
             "GetProtoObjectHandle",
             "JS::Handle<JSObject*>",
-            [Argument("JSContext*", "aCx")],
+            [Argument("MCContext*", "aCx")],
             inline=True,
             static=static,
             signatureOnly=signatureOnly,
@@ -4048,7 +4111,7 @@ class CGGetProtoObjectMethod(CGAbstractMethod):
             descriptor,
             "GetProtoObject",
             "JSObject*",
-            [Argument("JSContext*", "aCx")],
+            [Argument("MCContext*", "aCx")],
         )
 
     def definition_body(self):
@@ -4067,7 +4130,7 @@ class CGGetConstructorObjectHandleMethod(CGAbstractMethod):
             "GetConstructorObjectHandle",
             "JS::Handle<JSObject*>",
             [
-                Argument("JSContext*", "aCx"),
+                Argument("MCContext*", "aCx"),
                 Argument("bool", "aDefineOnGlobal", "true"),
             ],
             inline=True,
@@ -4098,7 +4161,7 @@ class CGGetConstructorObjectMethod(CGAbstractMethod):
             descriptor,
             "GetConstructorObject",
             "JSObject*",
-            [Argument("JSContext*", "aCx")],
+            [Argument("MCContext*", "aCx")],
         )
 
     def definition_body(self):
@@ -4107,7 +4170,7 @@ class CGGetConstructorObjectMethod(CGAbstractMethod):
 
 class CGGetNamedPropertiesObjectMethod(CGAbstractStaticMethod):
     def __init__(self, descriptor):
-        args = [Argument("JSContext*", "aCx")]
+        args = [Argument("MCContext*", "aCx")]
         CGAbstractStaticMethod.__init__(
             self, descriptor, "GetNamedPropertiesObject", "JSObject*", args
         )
@@ -4225,7 +4288,7 @@ class CGConstructorEnabled(CGAbstractMethod):
             descriptor,
             "ConstructorEnabled",
             "bool",
-            [Argument("JSContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
+            [Argument("MCContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
         )
 
     def definition_body(self):
@@ -4298,11 +4361,11 @@ class CGSerializer(CGAbstractStaticMethod):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "aCx"),
-            Argument("JSStructuredCloneWriter*", "aWriter"),
+            Argument("MCContext*", "aCx"),
+            Argument("MC::Tainted<JSStructuredCloneWriter*>", "aWriter"),
             Argument("JS::Handle<JSObject*>", "aObj"),
         ]
-        CGAbstractStaticMethod.__init__(self, descriptor, "Serialize", "bool", args)
+        CGAbstractStaticMethod.__init__(self, descriptor, "Serialize", "MC::Tainted<bool>", args)
 
     def definition_body(self):
         return fill(
@@ -4326,11 +4389,11 @@ class CGDeserializer(CGAbstractMethod):
 
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("nsIGlobalObject*", "aGlobal"),
-            Argument("JSStructuredCloneReader*", "aReader"),
+            Argument("MC::Tainted<JSStructuredCloneReader*>", "aReader"),
         ]
-        CGAbstractMethod.__init__(self, descriptor, "Deserialize", "JSObject*", args)
+        CGAbstractMethod.__init__(self, descriptor, "Deserialize", "MC::Tainted<JSObject*>", args)
 
     def definition_body(self):
         # WrapObject has different signatures depending on whether
@@ -4364,7 +4427,9 @@ class CGDeserializer(CGAbstractMethod):
               }
               $*{wrapCall}
             }
-            return result;
+            MC::Tainted<JSObject*> t_result;
+            t_result.assign_raw_pointer(result.get());
+            return t_result;
             """,
             type=self.descriptor.nativeType,
             wrapCall=wrapCall,
@@ -4444,7 +4509,7 @@ def InitUnforgeablePropertiesOnHolder(
 
     defineUnforgeableAttrs = fill(
         """
-        if (!DefineLegacyUnforgeableAttributes(mCx, ${holderName}, %s())) {
+        if (!DefineLegacyUnforgeableAttributes(aCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4453,7 +4518,7 @@ def InitUnforgeablePropertiesOnHolder(
     )
     defineUnforgeableMethods = fill(
         """
-        if (!DefineLegacyUnforgeableMethods(mCx, ${holderName}, %s())) {
+        if (!DefineLegacyUnforgeableMethods(aCx, ${holderName}, %s())) {
           $*{failureCode}
         }
         """,
@@ -4668,7 +4733,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
     def __init__(self, descriptor):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
             Argument("nsWrapperCache*", "aCache"),
             Argument("JS::Handle<JSObject*>", "aGivenProto"),
@@ -4714,7 +4779,7 @@ class CGWrapWithCacheMethod(CGAbstractMethod):
               MOZ_ASSERT(!aCache->GetWrapperMaybeDead());
             }
 
-            MC::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(JS_SanitizeContext(aCx), aObject->GetParentObject()));
+            MC::Rooted<JSObject*> global(aCx, FindAssociatedGlobal(aCx, aObject->GetParentObject()));
             if (!global) {
               return false;
             }
@@ -4772,7 +4837,7 @@ class CGWrapMethod(CGAbstractMethod):
         # XXX can we wrap if we don't have an interface prototype object?
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("T*", "aObject"),
             Argument("JS::Handle<JSObject*>", "aGivenProto"),
         ]
@@ -4809,7 +4874,7 @@ class CGWrapNonWrapperCacheMethod(CGAbstractMethod):
             or descriptor.interface.isAsyncIteratorInterface()
         )
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
         ]
         if not self.noGivenProto:
@@ -4876,7 +4941,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
     def __init__(self, descriptor, properties):
         assert descriptor.interface.hasInterfacePrototypeObject()
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument(descriptor.nativeType + "*", "aObject"),
             Argument("nsWrapperCache*", "aCache"),
             Argument("MC::Tainted<JS::RealmOptions*>", "aOptions"),
@@ -4938,8 +5003,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
             // before doing anything with it.
             MC::SandboxStack<JSAutoRealm> ar(aCx, aReflector);
 
-            MCContext* mCx = JS_SanitizeContext(aCx);
-            if (!DefineProperties(mCx, aReflector, ${properties}, ${chromeProperties})) {
+            if (!DefineProperties(aCx, aReflector, ${properties}, ${chromeProperties})) {
               $*{failureCode}
             }
             $*{unforgeable}
@@ -4962,7 +5026,7 @@ class CGWrapGlobalMethod(CGAbstractMethod):
 class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
     def __init__(self, descriptor):
         args = [
-            Argument("JSContext*", "aCx"),
+            Argument("MCContext*", "aCx"),
             Argument("JS::Handle<JSObject*>", "aWrapper"),
             Argument(descriptor.nativeType + "*", "aObject"),
         ]
@@ -4971,7 +5035,7 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
         )
 
     def definition_body(self):
-        body = "MC::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
+        body = "MC::Tainted<JSContext*> t_cx;t_cx.assign_raw_pointer(MC_UNSAFE(aCx));\nMC::AppPointer<void*> t_void_self{static_cast<void*>(aObject)};\nMC::Rooted<JS::Value> temp(aCx);\n" "JSJitGetterCallArgs args(&temp);\n"
         for m in self.descriptor.interface.members:
             if m.isAttr() and m.getExtendedAttribute("StoreInSlot"):
                 # Skip doing this for the "window" and "self" attributes on the
@@ -4987,7 +5051,8 @@ class CGUpdateMemberSlotsMethod(CGAbstractStaticMethod):
 
                     static_assert(${slot} < JS::shadow::Object::MAX_FIXED_SLOTS,
                                   "Not enough fixed slots to fit '${interface}.${member}.  Ion's visitGetDOMMemberV/visitGetDOMMemberT assume StoreInSlot things are all in fixed slots.");
-                    if (!get_${member}(aCx, aWrapper, aObject, args)) {
+                    
+                    if (!get_${member}(t_cx, aWrapper, t_void_self, args).UNSAFE_unverified()) {
                       return false;
                     }
                     // Getter handled setting our reserved slots
@@ -5006,7 +5071,7 @@ class CGClearCachedValueMethod(CGAbstractMethod):
         self.member = member
         # If we're StoreInSlot, we'll need to call the getter
         if member.getExtendedAttribute("StoreInSlot"):
-            args = [Argument("JSContext*", "aCx")]
+            args = [Argument("MCContext*", "aCx")]
             returnType = "bool"
         else:
             args = []
@@ -5029,9 +5094,12 @@ class CGClearCachedValueMethod(CGAbstractMethod):
             regetMember = fill(
                 """
                 MC::Rooted<JS::Value> temp(aCx);
+                MC::Tainted<JSContext*> t_cx;
+                t_cx.assign_raw_pointer(MC_UNSAFE(aCx));
+                MC::AppPointer<void*> t_void_self{static_cast<void*>(aObject)};
                 JSJitGetterCallArgs args(&temp);
                 MC::SandboxStack<JSAutoRealm> ar(aCx, obj);
-                if (!get_${name}(aCx, obj, aObject, args)) {
+                if (!get_${name}(t_cx, obj, t_void_self, args).UNSAFE_unverified()) {
                   JS::SetReservedSlot(obj, ${slotIndex}, oldValue);
                   return false;
                 }
@@ -5425,7 +5493,7 @@ class CastableObjectUnwrapper:
             """
             {
               // Our JSContext should be in the right global to do unwrapping in.
-              nsresult rv = UnwrapObject<${protoID}, ${type}>(${mutableSource}, ${target}, MC_UNSAFE(cx));
+              nsresult rv = UnwrapObject<${protoID}, ${type}>(${mutableSource}, ${target}, cx);
               if (NS_FAILED(rv)) {
                 $*{codeOnFailure}
               }
@@ -6077,21 +6145,21 @@ def getJSToNativeConversionInfo(
         # NOTE: Keep this in sync with variadic conversions as needed
         templateBody = fill(
             """
-            JS::ForOfIterator iter${nestingLevel}(cx);
-            if (!iter${nestingLevel}.init($${val}, JS::ForOfIterator::AllowNonIterable)) {
+            MC::SandboxStack<JS::ForOfIterator> iter${nestingLevel}(static_cast<MCContext*>(cx));
+            if (!iter${nestingLevel}->init($${val}, JS::ForOfIterator::AllowNonIterable)) {
               $*{exceptionCode}
             }
-            if (!iter${nestingLevel}.valueIsIterable()) {
+            if (!iter${nestingLevel}->valueIsIterable()) {
               $*{notSequence}
             }
             ${sequenceType} &arr${nestingLevel} = ${arrayRef};
             MC::Rooted<JS::Value> temp${nestingLevel}(cx);
             while (true) {
-              bool done${nestingLevel};
-              if (!iter${nestingLevel}.next(&temp${nestingLevel}, &done${nestingLevel})) {
+              MC::SandboxStack<bool> done${nestingLevel};
+              if (!iter${nestingLevel}->next(&temp${nestingLevel}, done${nestingLevel})) {
                 $*{exceptionCode}
               }
-              if (done${nestingLevel}) {
+              if (*done${nestingLevel}.UNSAFE_unverified()) {
                 break;
               }
               ${elementType}* slotPtr${nestingLevel} = arr${nestingLevel}.AppendElement(${elementInitializer}mozilla::fallible);
@@ -6625,7 +6693,7 @@ def getJSToNativeConversionInfo(
 
               MC::Rooted<JSObject*> globalObj(cx);
               $*{getPromiseGlobal}
-              MC::SandboxStack<JSAutoRealm> ar(cx, globalObj);
+              MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), globalObj);
               GlobalObject promiseGlobal(cx, globalObj);
               if (promiseGlobal.Failed()) {
                 $*{exceptionCode}
@@ -7906,7 +7974,7 @@ def getWrapTemplateForType(
         else:
             tail = fill(
                 """
-                if (!${maybeWrap}(MC_UNSAFE(cx), $${jsvalHandle})) {
+                if (!${maybeWrap}(cx, $${jsvalHandle})) {
                   $*{exceptionCode}
                 }
                 $*{successCode}
@@ -8142,10 +8210,10 @@ def getWrapTemplateForType(
         if not descriptor.interface.isExternal():
             if descriptor.wrapperCache:
                 wrapMethod = "GetOrCreateDOMReflector"
-                wrapArgs = "MC_UNSAFE(cx), %s, ${jsvalHandle}" % result
+                wrapArgs = "cx, %s, ${jsvalHandle}" % result
             else:
                 wrapMethod = "WrapNewBindingNonWrapperCachedObject"
-                wrapArgs = "MC_UNSAFE(cx), ${obj}, %s, ${jsvalHandle}" % result
+                wrapArgs = "cx, ${obj}, %s, ${jsvalHandle}" % result
             if isConstructorRetval:
                 wrapArgs += ", desiredProto"
             wrap = "%s(%s)" % (wrapMethod, wrapArgs)
@@ -8157,7 +8225,7 @@ def getWrapTemplateForType(
                 getIID = "&NS_GET_IID(%s), " % descriptor.nativeType
             else:
                 getIID = ""
-            wrap = "WrapObject(MC_UNSAFE(cx), %s, %s${jsvalHandle})" % (result, getIID)
+            wrap = "WrapObject(cx, %s, %s${jsvalHandle})" % (result, getIID)
             failed = None
 
         wrappingCode += wrapAndSetPtr(wrap, failed)
@@ -8169,13 +8237,13 @@ def getWrapTemplateForType(
     if type.isDOMString() or type.isUSVString():
         if type.nullable():
             return (
-                wrapAndSetPtr("xpc::StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("xpc::StringToJsval(cx, %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "xpc::NonVoidStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
+                    "xpc::NonVoidStringToJsval(cx, %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8183,13 +8251,13 @@ def getWrapTemplateForType(
     if type.isByteString():
         if type.nullable():
             return (
-                wrapAndSetPtr("ByteStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("ByteStringToJsval(cx, %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "NonVoidByteStringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
+                    "NonVoidByteStringToJsval(cx, %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8197,13 +8265,13 @@ def getWrapTemplateForType(
     if type.isUTF8String():
         if type.nullable():
             return (
-                wrapAndSetPtr("UTF8StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result),
+                wrapAndSetPtr("UTF8StringToJsval(cx, %s, ${jsvalHandle})" % result),
                 False,
             )
         else:
             return (
                 wrapAndSetPtr(
-                    "NonVoidUTF8StringToJsval(MC_UNSAFE(cx), %s, ${jsvalHandle})" % result
+                    "NonVoidUTF8StringToJsval(cx, %s, ${jsvalHandle})" % result
                 ),
                 False,
             )
@@ -8215,7 +8283,7 @@ def getWrapTemplateForType(
             resultLoc = result
         conversion = fill(
             """
-            if (!ToJSValue(MC_UNSAFE(cx), ${result}, $${jsvalHandle})) {
+            if (!ToJSValue(cx, ${result}, $${jsvalHandle})) {
               $*{exceptionCode}
             }
             $*{successCode}
@@ -8235,7 +8303,7 @@ def getWrapTemplateForType(
         # Callbacks can store null if we nuked the compartments their
         # objects lived in.
         wrapCode = setObjectOrNull(
-            "GetCallbackFromCallbackObject(MC_UNSAFE(cx), %(result)s)", wrapAsType=type
+            "GetCallbackFromCallbackObject(cx, %(result)s)", wrapAsType=type
         )
         if type.nullable():
             wrapCode = (
@@ -8314,11 +8382,11 @@ def getWrapTemplateForType(
         return (setObject("*%s.Obj()" % result, wrapAsType=type), False)
 
     if type.isUnion():
-        return (wrapAndSetPtr("%s.ToJSVal(MC_UNSAFE(cx), ${obj}, ${jsvalHandle})" % result), False)
+        return (wrapAndSetPtr("%s.ToJSVal(cx, ${obj}, ${jsvalHandle})" % result), False)
 
     if type.isDictionary():
         return (
-            wrapAndSetPtr("%s.ToObjectInternal(MC_UNSAFE(cx), ${jsvalHandle})" % result),
+            wrapAndSetPtr("%s.ToObjectInternal(cx, ${jsvalHandle})" % result),
             False,
         )
 
@@ -9385,8 +9453,8 @@ class CGPerSignatureCall(CGThing):
                 # JSAPI types, present.  Effectively, we're emulating a
                 # CrossCompartmentWrapper, but working with the C++ types, not the
                 # original list of JS::Values.
-                cgThings.append(CGGeneric("Maybe<JSAutoRealm> ar;\n"))
-                xraySteps.append(CGGeneric("ar.emplace(cx, obj);\n"))
+                cgThings.append(CGGeneric("MC::SandboxStack<Maybe<JSAutoRealm>> ar;\n"))
+                xraySteps.append(CGGeneric("ar->emplace(static_cast<MCContext*>(cx), obj);\n"))
                 xraySteps.append(
                     CGGeneric(
                         dedent(
@@ -9413,7 +9481,7 @@ class CGPerSignatureCall(CGThing):
                 Maybe<AutoCEReaction> ceReaction;
                 DocGroup* docGroup = self->GetDocGroup();
                 if (docGroup) {
-                  ceReaction.emplace(docGroup->CustomElementReactionsStack(), MC_UNSAFE(cx));
+                  ceReaction.emplace(docGroup->CustomElementReactionsStack(), cx);
                 }
                 """
                     )
@@ -9776,14 +9844,14 @@ class CGPerSignatureCall(CGThing):
                 """
                 {
                   MC::Rooted<JSObject*> conversionScope(cx, ${conversionScope});
-                  MC::SandboxStack<JSAutoRealm> ar(cx, conversionScope);
+                  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), conversionScope);
                   do { // block we break out of when done wrapping
                     $*{wrapCode}
                   } while (false);
                   $*{postConversionSteps}
                 }
                 { // And now store things in the realm of our slotStorage.
-                  MC::SandboxStack<JSAutoRealm> ar(cx, slotStorage);
+                  MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), slotStorage);
                   $*{slotStorageSteps}
                 }
                 // And now make sure args.rval() is in the caller realm.
@@ -9923,7 +9991,7 @@ class CGMethodCall(CGThing):
             if requiredArgs > 0 and not method.isMaplikeOrSetlikeOrIterableMethod():
                 code = fill(
                     """
-                    if (!args.requireAtLeast(cx, "${methodName}", ${requiredArgs})) {
+                    if (!args.requireAtLeast(MC_UNSAFE(cx), "${methodName}", ${requiredArgs})) {
                       return false;
                     }
                     """,
@@ -10473,9 +10541,10 @@ class CGAbstractBindingMethod(CGAbstractStaticMethod):
         args,
         getThisObj,
         callArgs="JS::CallArgs args = JS::CallArgsFromVp(argc, vp);\n",
+        ret="MC::Tainted<bool>",
     ):
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", args, canRunScript=True
+            self, descriptor, name, ret, args, canRunScript=True
         )
 
         # This can't ever happen, because we only use this for class hooks.
@@ -10529,7 +10598,7 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
 
     def __init__(self, descriptor, name):
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", JSNativeArguments(), canRunScript=True
+            self, descriptor, name, "MC::Tainted<bool>", JSTaintedNativeArguments(), canRunScript=True
         )
 
     def definition_body(self):
@@ -10537,6 +10606,7 @@ class CGAbstractStaticBindingMethod(CGAbstractStaticMethod):
         # later use it to wrap return values.
         unwrap = dedent(
             """
+            JS::Value* vp = t_vp.UNSAFE_unverified();
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
             MC::Rooted<JSObject*> obj(cx, &args.callee());
 
@@ -10611,13 +10681,13 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
         self.method = method
         name = CppKeywords.checkMethodName(IDLToCIdentifier(method.identifier.name))
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("void*", "void_self"),
+            Argument("MC::AppPointer<void*>", "t_void_self"),
             Argument("const JSJitMethodCallArgs&", "args"),
         ]
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", args, canRunScript=True
+            self, descriptor, name, "MC::Tainted<bool>", args, canRunScript=True
         )
 
     def definition_body(self):
@@ -10625,7 +10695,7 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
         call = CGMethodCall(
             nativeName, self.method.isStatic(), self.descriptor, self.method
         ).define()
-        prefix = ""
+        prefix = """void* void_self = t_void_self.UNSAFE_unverified();\n"""
         if self.method.getExtendedAttribute("CrossOriginCallable"):
             for signature in self.method.signatures():
                 # non-undefined signatures would require us to deal with remote proxies for the
@@ -10638,6 +10708,7 @@ class CGSpecializedMethod(CGAbstractStaticMethod):
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
             prefix = fill(
                 """
+                void* void_self = t_void_self.UNSAFE_unverified();
                 // CrossOriginThisPolicy::UnwrapThisObject stores a ${nativeType}::RemoteProxy in void_self
                 // if obj is a proxy with a RemoteObjectProxy handler for the right type, or else it stores
                 // a ${nativeType}. If we get here from the JIT (without going through UnwrapThisObject) we
@@ -10737,13 +10808,13 @@ class CGMethodPromiseWrapper(CGAbstractStaticMethod):
         name = self.makeName(methodToWrap.name)
         args = list(methodToWrap.args)
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", args, canRunScript=True
+            self, descriptor, name, "MC::Tainted<bool>", args, canRunScript=True
         )
 
     def definition_body(self):
         return fill(
             """
-            bool ok = ${methodName}(${args});
+            bool ok = ${methodName}(${args}).UNSAFE_unverified();
             if (ok) {
               return true;
             }
@@ -10766,6 +10837,7 @@ class CGDefaultToJSONMethod(CGSpecializedMethod):
     def definition_body(self):
         ret = fill(
             """
+            void* void_self = t_void_self.UNSAFE_unverified();
             auto* self = static_cast<${nativeType}*>(void_self);
             MC::Rooted<JSObject*> result(cx, JS_NewPlainObject(cx));
             if (!result) {
@@ -10809,8 +10881,9 @@ class CGLegacyCallHook(CGAbstractBindingMethod):
             self,
             descriptor,
             LEGACYCALLER_HOOK_NAME,
-            JSNativeArguments(),
+            JSTaintedNativeArguments(),
             getThisObj="&args.callee()",
+            callArgs="JS::Value* vp = t_vp.UNSAFE_unverified();\nJS::CallArgs args = JS::CallArgsFromVp(argc, vp);\n"
         )
 
     def define(self):
@@ -10839,7 +10912,7 @@ class CGResolveHook(CGAbstractClassHook):
         assert descriptor.interface.getExtendedAttribute("NeedResolve")
 
         args = [
-            Argument("MC::Tainted<JSContext*>", "t_cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::Handle<jsid>", "id"),
             Argument("MC::Tainted<bool*>", "resolvedp"),
@@ -10877,8 +10950,6 @@ class CGResolveHook(CGAbstractClassHook):
             # Resolve standard classes
             prefix = dedent(
                 """
-                MCContext* cx = t_cx.copy_and_verify_address(
-                  [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
                 if (!ResolveGlobal(t_cx, obj, id, resolvedp).UNSAFE_unverified()) {
                   return false;
                 }
@@ -10889,12 +10960,7 @@ class CGResolveHook(CGAbstractClassHook):
                 """
             )
         else:
-            prefix = dedent(
-                """
-                MCContext* cx = t_cx.copy_and_verify_address(
-                  [](uintptr_t val) { return JS_SanitizeContext((JSContext*)val); });
-                """
-            )
+            prefix = ""
         return prefix + CGAbstractClassHook.definition_body(self)
 
 
@@ -10909,10 +10975,10 @@ class CGMayResolveHook(CGAbstractStaticMethod):
         args = [
             Argument("const JSAtomState&", "names"),
             Argument("jsid", "id"),
-            Argument("JSObject*", "maybeObj"),
+            Argument("MC::Tainted<JSObject*>", "maybeObj"),
         ]
         CGAbstractStaticMethod.__init__(
-            self, descriptor, MAY_RESOLVE_HOOK_NAME, "bool", args
+            self, descriptor, MAY_RESOLVE_HOOK_NAME, "MC::Tainted<bool>", args
         )
 
     def definition_body(self):
@@ -10920,7 +10986,7 @@ class CGMayResolveHook(CGAbstractStaticMethod):
             # Check whether this would resolve as a standard class.
             prefix = dedent(
                 """
-                if (MayResolveGlobal(names, id, maybeObj)) {
+                if (MayResolveGlobal(names, id, maybeObj).UNSAFE_unverified()) {
                   return true;
                 }
 
@@ -10940,7 +11006,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
         assert descriptor.interface.getExtendedAttribute("NeedResolve")
 
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
             Argument("JS::MutableHandleVector<jsid>", "properties"),
             Argument("bool", "enumerableOnly"),
@@ -10955,7 +11021,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
             dedent(
                 """
             FastErrorResult rv;
-            self->GetOwnPropertyNames(JS_SanitizeContext(cx), properties, enumerableOnly, rv);
+            self->GetOwnPropertyNames(cx, properties, enumerableOnly, rv);
             if (rv.MaybeSetPendingException(cx)) {
               return false;
             }
@@ -10969,7 +11035,7 @@ class CGEnumerateHook(CGAbstractBindingMethod):
             # Enumerate standard classes
             prefix = dedent(
                 """
-                if (!EnumerateGlobal(cx, obj, properties, enumerableOnly)) {
+                if (!EnumerateGlobal(t_cx, obj, properties, enumerableOnly).UNSAFE_unverified()) {
                   return false;
                 }
 
@@ -11131,9 +11197,9 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
         self.attr = attr
         name = "get_" + IDLToCIdentifier(attr.identifier.name)
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("void*", "void_self"),
+            Argument("MC::AppPointer<void*>", "t_void_self"),
             Argument("JSJitGetterCallArgs", "args"),
         ]
         # StoreInSlot attributes have their getters called from Wrap().  We
@@ -11144,7 +11210,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
             self,
             descriptor,
             name,
-            "bool",
+            "MC::Tainted<bool>",
             args,
             canRunScript=not attr.getExtendedAttribute("StoreInSlot"),
         )
@@ -11152,6 +11218,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
     def definition_body(self):
         prefix = fill(
             """
+            void* void_self = t_void_self.UNSAFE_unverified();
             auto* self = static_cast<${nativeType}*>(void_self);
             """,
             nativeType=self.descriptor.nativeType,
@@ -11195,6 +11262,7 @@ class CGSpecializedGetter(CGAbstractStaticMethod):
                 fill(
                     """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
+                    void* void_self = t_void_self.UNSAFE_unverified();                    
                     ${nativeType}::RemoteProxy* self = static_cast<${nativeType}::RemoteProxy*>(void_self);
                     $*{call}
                 }
@@ -11320,13 +11388,13 @@ class CGGetterPromiseWrapper(CGAbstractStaticMethod):
         name = self.makeName(getterToWrap.name)
         args = list(getterToWrap.args)
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", args, canRunScript=True
+            self, descriptor, name, "MC::Tainted<bool>", args, canRunScript=True
         )
 
     def definition_body(self):
         return fill(
             """
-            bool ok = ${getterName}(${args});
+            bool ok = ${getterName}(${args}).UNSAFE_unverified();
             if (ok) {
               return true;
             }
@@ -11384,20 +11452,20 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
         self.attr = attr
         name = "set_" + IDLToCIdentifier(attr.identifier.name)
         args = [
-            Argument("JSContext*", "cx"),
+            Argument("MC::Tainted<JSContext*>", "cx"),
             Argument("JS::Handle<JSObject*>", "obj"),
-            Argument("void*", "void_self"),
+            Argument("MC::AppPointer<void*>", "t_void_self"),
             Argument("JSJitSetterCallArgs", "args"),
         ]
         CGAbstractStaticMethod.__init__(
-            self, descriptor, name, "bool", args, canRunScript=True
+            self, descriptor, name, "MC::Tainted<bool>", args, canRunScript=True
         )
 
     def definition_body(self):
         nativeName = CGSpecializedSetter.makeNativeName(self.descriptor, self.attr)
         type = self.attr.type
         call = CGSetterCall(type, nativeName, self.descriptor, self.attr).define()
-        prefix = ""
+        prefix = """void* void_self = t_void_self.UNSAFE_unverified();\n"""
         if self.attr.getExtendedAttribute("CrossOriginWritable"):
             if type.isGeckoInterface() and not type.unroll().inner.isExternal():
                 # a setter taking a Gecko interface would require us to deal with remote
@@ -11409,7 +11477,7 @@ class CGSpecializedSetter(CGAbstractStaticMethod):
                     self.attr.identifier.name,
                 )
             prototypeID, _ = PrototypeIDAndDepth(self.descriptor)
-            prefix = fill(
+            prefix += fill(
                 """
                 if (IsRemoteObjectProxy(obj, ${prototypeID})) {
                     auto* self = static_cast<${nativeType}::RemoteProxy*>(void_self);
@@ -11482,7 +11550,7 @@ class CGStaticSetter(CGAbstractStaticBindingMethod):
         checkForArg = CGGeneric(
             fill(
                 """
-            if (!args.requireAtLeast(cx, "${name} setter", 1)) {
+            if (!args.requireAtLeast(MC_UNSAFE(cx), "${name} setter", 1)) {
               return false;
             }
             """,
@@ -11753,7 +11821,7 @@ class CGMemberJITInfo(CGThing):
             name = IDLToCIdentifier(self.member.identifier.name)
             if self.member.type.isPromise():
                 name = CGGetterPromiseWrapper.makeName(name)
-            getter = "MC::Sandbox::RegisterCallback((JSJitGetterOp)get_%s).UNSAFE_get()" % name
+            getter = "MC::Sandbox::RegisterTaintedCallback(get_%s).UNSAFE_get()" % name
             extendedAttrs = self.descriptor.getExtendedAttributes(
                 self.member, getter=True
             )
@@ -11820,7 +11888,7 @@ class CGMemberJITInfo(CGThing):
                 )
                 # Actually a JSJitSetterOp, but JSJitGetterOp is first in the
                 # union.
-                setter = "MC::Sandbox::RegisterCallback((JSJitGetterOp)set_%s).UNSAFE_get()" % IDLToCIdentifier(
+                setter = "(JSJitGetterOp)MC::Sandbox::RegisterTaintedCallback(set_%s).UNSAFE_get()" % IDLToCIdentifier(
                     self.member.identifier.name
                 )
                 # Setters are always fallible, since they have to do a typed unwrap.
@@ -11847,7 +11915,7 @@ class CGMemberJITInfo(CGThing):
             if self.member.returnsPromise():
                 name = CGMethodPromiseWrapper.makeName(name)
             # Actually a JSJitMethodOp, but JSJitGetterOp is first in the union.
-            method = "(JSJitGetterOp)(MC::Sandbox::RegisterCallback(%s).UNSAFE_get())" % name
+            method = "(JSJitGetterOp)(MC::Sandbox::RegisterTaintedCallback(%s).UNSAFE_get())" % name
 
             # Methods are infallible if they are infallible, have no arguments
             # to unwrap, and have a return type that's infallible to wrap up for
@@ -12199,7 +12267,7 @@ class CGEnumToJSValue(CGAbstractMethod):
             "ToJSValue",
             "bool",
             [
-                Argument("JSContext*", "aCx"),
+                Argument("MCContext*", "aCx"),
                 Argument(enumType, "aArgument"),
                 Argument("JS::MutableHandle<JS::Value>", "aValue"),
             ],
@@ -12509,7 +12577,7 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider, isMember=False
         if needCallContext:
             cxType = "BindingCallContext&"
         else:
-            cxType = "JSContext*"
+            cxType = "MCContext*"
         setters = [
             ClassMethod(
                 "TrySetTo" + name,
@@ -12540,7 +12608,7 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider, isMember=False
                     "TrySetTo" + name,
                     "bool",
                     [
-                        Argument("JSContext*", "cx_"),
+                        Argument("MCContext*", "cx_"),
                         Argument("JS::Handle<JS::Value>", "value"),
                         Argument("bool&", "tryNext"),
                         Argument("bool", "passedToJSImpl", default="false"),
@@ -12556,7 +12624,7 @@ def getUnionTypeTemplateVars(unionType, type, descriptorProvider, isMember=False
         "externalType": externalType,
         "setters": setters,
         "ctorArgs": ctorArgs,
-        "ctorArgList": [Argument("JSContext*", "cx")] if ctorNeedsCx else [],
+        "ctorArgList": [Argument("MCContext*", "cx")] if ctorNeedsCx else [],
     }
 
 
@@ -12834,7 +12902,7 @@ def getUnionInitMethods(type, isOwningUnion=False):
             "Init",
             "bool",
             [
-                Argument("JSContext*", "cx_"),
+                Argument("MCContext*", "cx_"),
                 Argument("JS::Handle<JS::Value>", "value"),
                 Argument("const char*", "sourceDescription", default='"Value"'),
                 Argument("bool", "passedToJSImpl", default="false"),
@@ -13214,7 +13282,7 @@ class CGUnionStruct(CGThing):
                     "ToJSVal",
                     "bool",
                     [
-                        Argument("JSContext*", "cx"),
+                        Argument("MCContext*", "cx"),
                         Argument("JS::Handle<JSObject*>", "scopeObj"),
                         Argument("JS::MutableHandle<JS::Value>", "rval"),
                     ],
@@ -14036,6 +14104,7 @@ class CGResolveOwnPropertyViaResolve(CGAbstractBindingMethod):
             args,
             getThisObj="",
             callArgs="",
+            ret="bool",
         )
 
     def generate_code(self):
@@ -14092,6 +14161,7 @@ class CGEnumerateOwnPropertiesViaGetOwnPropertyNames(CGAbstractBindingMethod):
             args,
             getThisObj="",
             callArgs="",
+            ret="bool",
         )
 
     def generate_code(self):
@@ -14101,7 +14171,7 @@ class CGEnumerateOwnPropertiesViaGetOwnPropertyNames(CGAbstractBindingMethod):
             FastErrorResult rv;
             // This wants all own props, not just enumerable ones.
             self->GetOwnPropertyNames(cx, props, false, rv);
-            if (rv.MaybeSetPendingException(MC_UNSAFE(cx))) {
+            if (rv.MaybeSetPendingException(cx)) {
               return false;
             }
             return true;
@@ -14430,7 +14500,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
                 """
                 $*{decls}
                 bool isSymbol;
-                if (!ConvertIdToString(MC_UNSAFE(cx), ${idName}, ${argName}, isSymbol)) {
+                if (!ConvertIdToString(cx, ${idName}, ${argName}, isSymbol)) {
                   return false;
                 }
                 if (!isSymbol) {
@@ -14452,7 +14522,7 @@ class CGProxyNamedOperation(CGProxySpecialOperation):
             $*{decls}
             MC::Rooted<JS::Value> nameVal(cx, ${value});
             if (!nameVal.isSymbol()) {
-              if (!ConvertJSValueToString(MC_UNSAFE(cx), nameVal, eStringify, eStringify,
+              if (!ConvertJSValueToString(cx, nameVal, eStringify, eStringify,
                                           ${argName})) {
                 return false;
               }
@@ -14859,11 +14929,11 @@ class CGDOMJSProxyHandler_getOwnPropDescriptor(ClassMethod):
 
             computeCondition = dedent(
                 """
-                bool hasOnProto;
-                if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
+                MC::SandboxStack<bool> hasOnProto;
+                if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                   return false;
                 }
-                callNamedGetter = !hasOnProto;
+                callNamedGetter = !*hasOnProto.UNSAFE_unverified();
                 """
             )
             if self.descriptor.interface.getExtendedAttribute("LegacyOverrideBuiltIns"):
@@ -14963,14 +15033,14 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
+                    BindingCallContext cx(cx_, "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = MC_UNSAFE(cx_);
+                    MCContext* cx = cx_;
                     """
                 )
             set += fill(
@@ -15015,14 +15085,14 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if error_label:
                 set += fill(
                     """
-                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
+                    BindingCallContext cx(cx_, "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 set += dedent(
                     """
-                    JSContext* cx = MC_UNSAFE(cx_);
+                    MCContext* cx = cx_;
                     """
                 )
             if self.descriptor.hasLegacyUnforgeableMembers:
@@ -15047,7 +15117,7 @@ class CGDOMJSProxyHandler_defineProperty(ClassMethod):
             if self.descriptor.supportsNamedProperties():
                 set += fill(
                     """
-                    JSContext* cx = MC_UNSAFE(cx_);
+                    MCContext* cx = cx_;
                     bool found = false;
                     $*{presenceChecker}
 
@@ -15257,11 +15327,11 @@ class CGDOMJSProxyHandler_delete(ClassMethod):
                 delete += dedent(
                     """
                     if (tryNamedDelete) {
-                      bool hasOnProto;
-                      if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
+                      MC::SandboxStack<bool> hasOnProto;
+                      if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                         return false;
                       }
-                      tryNamedDelete = !hasOnProto;
+                      tryNamedDelete = !*hasOnProto.UNSAFE_unverified();
                     }
                     """
                 )
@@ -15376,7 +15446,7 @@ class CGDOMJSProxyHandler_ownPropNames(ClassMethod):
                 """
                 nsTArray<nsString> names;
                 UnwrapProxy(proxy)->GetSupportedNames(names${callerType});
-                if (!AppendNamedPropertyIds(MC_UNSAFE(cx), proxy, names, ${shadow}, props)) {
+                if (!AppendNamedPropertyIds(cx, proxy, names, ${shadow}, props)) {
                   return false;
                 }
                 """,
@@ -15507,11 +15577,11 @@ class CGDOMJSProxyHandler_hasOwn(ClassMethod):
             ):
                 named = fill(
                     """
-                    bool hasOnProto;
-                    if (!HasPropertyOnPrototype(MC_UNSAFE(cx), proxy, id, &hasOnProto)) {
+                    MC::SandboxStack<bool> hasOnProto;
+                    if (!HasPropertyOnPrototype(cx, proxy, id, hasOnProto)) {
                       return false;
                     }
-                    if (!hasOnProto) {
+                    if (!*hasOnProto.UNSAFE_unverified()) {
                       $*{protoLacksProperty}
                       return true;
                     }
@@ -15595,8 +15665,8 @@ class CGDOMJSProxyHandler_get(ClassMethod):
 
         getOnPrototype = dedent(
             """
-            bool foundOnPrototype;
-            if (!GetPropertyOnPrototype(MC_UNSAFE(cx), proxy, ${receiver}, id, &foundOnPrototype, vp)) {
+            MC::SandboxStack<bool> foundOnPrototype;
+            if (!GetPropertyOnPrototype(cx, proxy, ${receiver}, id, foundOnPrototype, vp)) {
               return false;
             }
             """
@@ -15620,7 +15690,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                 { // Scope for the JSAutoRealm accessing expando and prototype.
                   MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
                   MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-                  if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
+                  if (!MaybeWrapValue(cx, &wrappedReceiver)) {
                     return false;
                   }
                   JS_MarkCrossZoneId(cx, id);
@@ -15628,14 +15698,14 @@ class CGDOMJSProxyHandler_get(ClassMethod):
                   $*{getUnforgeableOrExpando}
                   if (!*expandoHasProp.UNSAFE_unverified()) {
                     $*{getOnPrototype}
-                    if (!foundOnPrototype) {
+                    if (!*foundOnPrototype.UNSAFE_unverified()) {
                       MOZ_ASSERT(vp.isUndefined());
                       return true;
                     }
                   }
                 }
 
-                return MaybeWrapValue(MC_UNSAFE(cx), vp);
+                return MaybeWrapValue(cx, vp);
                 """,
                 missingPropUseCounters=missingPropUseCountersForDescriptor(
                     self.descriptor
@@ -15689,7 +15759,7 @@ class CGDOMJSProxyHandler_get(ClassMethod):
         getOnPrototype = fill(getOnPrototype, receiver="receiver") + dedent(
             """
 
-            if (foundOnPrototype) {
+            if (*foundOnPrototype.UNSAFE_unverified()) {
               return true;
             }
 
@@ -15776,14 +15846,14 @@ class CGDOMJSProxyHandler_setCustom(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
+                    BindingCallContext cx(cx_, "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = MC_UNSAFE(cx_);
+                    MCContext* cx = cx_;
                     """
                 )
             return fill(
@@ -15809,14 +15879,14 @@ class CGDOMJSProxyHandler_setCustom(ClassMethod):
             if error_label:
                 cxDecl = fill(
                     """
-                    BindingCallContext cx(MC_UNSAFE(cx_), "${error_label}");
+                    BindingCallContext cx(cx_, "${error_label}");
                     """,
                     error_label=error_label,
                 )
             else:
                 cxDecl = dedent(
                     """
-                    JSContext* cx = MC_UNSAFE(cx_);
+                    MCContext* cx = cx_;
                     """
                 )
             setIndexed = fill(
@@ -16040,9 +16110,9 @@ class CGDOMJSProxyHandler_call(ClassMethod):
     def getBody(self):
         return fill(
             """
-            return js::ForwardToNative(MC_UNSAFE(cx), ${legacyCaller}, args);
+            return js::ForwardToNative(cx, ${legacyCaller}, args);
             """,
-            legacyCaller=LEGACYCALLER_HOOK_NAME,
+            legacyCaller="%sCb()" % LEGACYCALLER_HOOK_NAME,
         )
 
 
@@ -16183,7 +16253,7 @@ class CGDOMJSProxyHandler_getSameOriginPrototype(ClassMethod):
     def getBody(self):
         return dedent(
             """
-            return GetProtoObjectHandle(MC_UNSAFE(cx));
+            return GetProtoObjectHandle(cx);
             """
         )
 
@@ -16254,12 +16324,12 @@ class CGDOMJSProxyHandler_set(ClassMethod):
             // Safe to enter the Realm of proxy now, since it's same-origin with us.
             MC::SandboxStack<JSAutoRealm> ar(cx, proxy);
             MC::Rooted<JS::Value> wrappedReceiver(cx, receiver);
-            if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedReceiver)) {
+            if (!MaybeWrapValue(cx, &wrappedReceiver)) {
               return false;
             }
 
             MC::Rooted<JS::Value> wrappedValue(cx, v);
-            if (!MaybeWrapValue(MC_UNSAFE(cx), &wrappedValue)) {
+            if (!MaybeWrapValue(cx, &wrappedValue)) {
               return false;
             }
 
@@ -16667,6 +16737,8 @@ class CGDescriptor(CGThing):
             cgThings.append(CGLegacyFactoryFunctions(descriptor))
 
         cgThings.append(CGLegacyCallHook(descriptor))
+        if descriptor.operations["LegacyCaller"]:
+            cgThings.append(CGMonkeycageStaticTaintedCallback(LEGACYCALLER_HOOK_NAME, "JSNative", static=False))
         if descriptor.interface.getExtendedAttribute("NeedResolve"):
             cgThings.append(CGResolveHook(descriptor))
             cgThings.append(CGMayResolveHook(descriptor))
@@ -16902,7 +16974,7 @@ def initIdsClassMethod(identifiers, atomCacheName):
     return ClassMethod(
         "InitIds",
         "bool",
-        [Argument("JSContext*", "cx"), Argument("%s*" % atomCacheName, "atomsCache")],
+        [Argument("MCContext*", "cx"), Argument("%s*" % atomCacheName, "atomsCache")],
         static=True,
         body=body,
         visibility="private",
@@ -17069,7 +17141,7 @@ class CGDictionary(CGThing):
             "Init",
             "bool",
             [
-                Argument("JSContext*", "cx_"),
+                Argument("MCContext*", "cx_"),
                 Argument("JS::Handle<JS::Value>", "val"),
                 Argument("const char*", "sourceDescription", default='"Value"'),
                 Argument("bool", "passedToJSImpl", default="false"),
@@ -17105,7 +17177,7 @@ class CGDictionary(CGThing):
         if haveMemberThatNeedsCx:
             body = dedent(
                 """
-                JSContext* cx = nullptr;
+                MCContext* cx = nullptr;
                 """
             )
         else:
@@ -17167,7 +17239,7 @@ class CGDictionary(CGThing):
                 if (!jsapi.Init(cleanGlobal)) {
                   return false;
                 }
-                JSContext* cx = jsapi.cx();
+                MCContext* cx = jsapi.mcx();
                 MC::Rooted<JS::Value> json(cx);
                 bool ok = ParseJSON(cx, aJSON, &json);
                 NS_ENSURE_TRUE(ok, false);
@@ -17185,7 +17257,7 @@ class CGDictionary(CGThing):
                 """
                 AutoJSAPI jsapi;
                 jsapi.Init();
-                JSContext *cx = jsapi.cx();
+                MCContext* cx = jsapi.mcx();
                 // It's safe to use UnprivilegedJunkScopeOrWorkerGlobal here
                 // because we'll only be creating objects, in ways that have no
                 // side-effects, followed by a call to JS::ToJSONMaybeSafely,
@@ -17257,7 +17329,7 @@ class CGDictionary(CGThing):
             "ToObjectInternal",
             "bool",
             [
-                Argument("JSContext*", "cx"),
+                Argument("MCContext*", "cx"),
                 Argument("JS::MutableHandle<JS::Value>", "rval"),
             ],
             const=True,
@@ -17958,7 +18030,7 @@ class CGRegisterWorkerBindings(CGAbstractMethod):
             None,
             "RegisterWorkerBindings",
             "bool",
-            [Argument("JSContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
+            [Argument("MCContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
         )
         self.config = config
 
@@ -17990,7 +18062,7 @@ class CGRegisterWorkerDebuggerBindings(CGAbstractMethod):
             None,
             "RegisterWorkerDebuggerBindings",
             "bool",
-            [Argument("JSContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
+            [Argument("MCContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
         )
         self.config = config
 
@@ -18022,7 +18094,7 @@ class CGRegisterWorkletBindings(CGAbstractMethod):
             None,
             "RegisterWorkletBindings",
             "bool",
-            [Argument("JSContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
+            [Argument("MCContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
         )
         self.config = config
 
@@ -18054,7 +18126,7 @@ class CGRegisterShadowRealmBindings(CGAbstractMethod):
             None,
             "RegisterShadowRealmBindings",
             "bool",
-            [Argument("JSContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
+            [Argument("MCContext*", "aCx"), Argument("JS::Handle<JSObject*>", "aObj")],
         )
         self.config = config
 
@@ -18579,7 +18651,7 @@ class CGBindingRoot(CGThing):
 
             return any(hasIteratorAlias(m) for m in desc.interface.members)
 
-        bindingHeaders["js/Symbol.h"] = any(
+        bindingHeaders["monkeycage/Symbol.h"] = any(
             descriptorHasIteratorAlias(d) for d in descriptors
         )
 
@@ -18604,7 +18676,7 @@ class CGBindingRoot(CGThing):
         bindingHeaders["monkeycage/Exception.h"] = True
 
         # JS::Map{Clear, Delete, Has, Get, Set}
-        bindingHeaders["js/MapAndSet.h"] = True
+        bindingHeaders["monkeycage/MapAndSet.h"] = True
 
         # JS_DefineElement, JS_DefineProperty, JS_DefinePropertyById,
         # JS_DefineUCProperty, JS_ForwardGetPropertyTo, JS_GetProperty,
@@ -19237,7 +19309,7 @@ class CGNativeMember(ClassMethod):
             self.passJSBitsAsNeeded,
             self.member.isStatic(),
         ):
-            args.insert(0, Argument("JSContext*", "cx"))
+            args.insert(0, Argument("MCContext*", "cx"))
             if needScopeObject(
                 returnType,
                 argList,
@@ -19647,7 +19719,7 @@ class CGBindingImplClass(CGClass):
 
         if descriptor.concrete:
             wrapArgs = [
-                Argument("JSContext*", "aCx"),
+                Argument("MCContext*", "aCx"),
                 Argument("JS::Handle<JSObject*>", "aGivenProto"),
             ]
             if not descriptor.wrapperCache:
@@ -20100,7 +20172,7 @@ class CGJSImplMethod(CGJSImplMember):
             # __Init().  The last argument is the prototype we're supposed to
             # use, and shouldn't get passed to __Init() either.
             assert args[0].argType == "const GlobalObject&"
-            assert args[1].argType == "JSContext*"
+            assert args[1].argType == "MCContext*"
             assert args[-1].argType == "JS::Handle<JSObject*>"
             assert args[-1].name == "aGivenProto"
             constructorArgs = [arg.name for arg in args[2:-1]]
@@ -20346,8 +20418,12 @@ class CGJSImplClass(CGBindingImplClass):
         self.methodDecls.append(
             ClassMethod(
                 "_Create",
-                "bool",
-                JSNativeArguments(),
+                "MC::Tainted<bool>",
+                [
+                    Argument("MC::Tainted<JSContext*>", "t_cx"),
+                    Argument("unsigned", "argc"),
+                    Argument("MC::Tainted<JS::Value*>", "t_vp"),
+                ],
                 static=True,
                 body=self.getCreateFromExistingBody(),
             )
@@ -20412,8 +20488,11 @@ class CGJSImplClass(CGBindingImplClass):
         # object...
         return fill(
             """
+            MCContext* cx = t_cx.copy_and_verify_address(MC_VerifyContext);
+            JS::Value* vp = t_vp.UNSAFE_unverified();
+
             JS::CallArgs args = JS::CallArgsFromVp(argc, vp);
-            if (!args.requireAtLeast(cx, "${ifaceName}._create", 2)) {
+            if (!args.requireAtLeast(MC_UNSAFE(cx), "${ifaceName}._create", 2)) {
               return false;
             }
             BindingCallContext callCx(cx, "${ifaceName}._create");
@@ -20525,7 +20604,7 @@ class CGCallback(CGClass):
         return [
             ClassConstructor(
                 [
-                    Argument("JSContext*", "aCx"),
+                    Argument("MCContext*", "aCx"),
                     Argument("JS::Handle<JSObject*>", "aCallback"),
                     Argument("JS::Handle<JSObject*>", "aCallbackGlobal"),
                     Argument("nsIGlobalObject*", "aIncumbentGlobal"),
@@ -20790,7 +20869,7 @@ class CGFastCallback(CGClass):
         holdMethod = ClassMethod(
             "FinishSlowJSInitIfMoreThanOneOwner",
             "void",
-            [Argument("JSContext*", "aCx")],
+            [Argument("MCContext*", "aCx")],
             inline=True,
             bodyInHeader=True,
             visibility="public",
@@ -21909,8 +21988,8 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
 
     def appendBoolResult(self):
         if self.helperImpl:
-            return ([CGGeneric("bool retVal;\n")], ["&retVal"], [])
-        return ([CGGeneric("bool result;\n")], ["&result"], [])
+            return ([CGGeneric("MC::SandboxStack<bool> tVal;\nbool retVal;\n")], ["tVal"], [CGGeneric("retVal = *tVal.UNSAFE_unverified();\n")])
+        return ([CGGeneric("MC::SandboxStack<bool> tVal;\nbool result;\n")], ["tVal"], [CGGeneric("result = *tVal.UNSAFE_unverified();\n")])
 
     def forEach(self):
         """
@@ -21930,7 +22009,7 @@ class CGMaplikeOrSetlikeMethodGenerator(CGThing):
                 dedent(
                     """
             // Create a wrapper function.
-            JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandler, 3, 0, nullptr);
+            JSFunction* func = js::NewFunctionWithReserved(cx, ForEachHandlerCb(), 3, 0, nullptr);
             if (!func) {
               return false;
             }
@@ -22119,7 +22198,7 @@ class CGHelperFunctionGenerator(CallbackMember):
                 """
                 AutoJSAPI jsapi;
                 jsapi.Init();
-                JSContext* cx = jsapi.cx();
+                MCContext* cx = jsapi.mcx();
                 // It's safe to use UnprivilegedJunkScopeOrWorkerGlobal here because
                 // all we want is to wrap into _some_ scope and then unwrap to find
                 // the reflector, and wrapping has no side-effects.
@@ -22629,7 +22708,7 @@ class CGObservableArrayProxyHandler_OnDeleteItem(
     def postCallback(self):
         return dedent(
             """
-            return !rv.MaybeSetPendingException(MC_UNSAFE(cx));
+            return !rv.MaybeSetPendingException(cx);
             """
         )
 
@@ -22694,7 +22773,7 @@ class CGObservableArrayProxyHandler_SetIndexedValue(
     def postCallback(self):
         return dedent(
             """
-            if (rv.MaybeSetPendingException(MC_UNSAFE(cx))) {
+            if (rv.MaybeSetPendingException(cx)) {
               return false;
             }
 
@@ -22789,7 +22868,7 @@ class CGObservableArraySetterGenerator(CGGeneric):
 
                 ${getBackingObject}
                 const ObservableArrayProxyHandler* handler = GetObservableArrayProxyHandler(backingObj);
-                if (!handler->SetLength(JS_SanitizeContext(cx), backingObj, 0)) {
+                if (!handler->SetLength(cx, backingObj, 0)) {
                   return false;
                 }
 
@@ -23888,7 +23967,7 @@ class CGEventMethod(CGNativeMember):
 
         self.args = list(self.originalArgs)
         if needCx(None, self.arguments(), [], considerTypes=True, static=True):
-            self.args.insert(0, Argument("JSContext*", "aCx"))
+            self.args.insert(0, Argument("MCContext*", "aCx"))
         if not self.isInit:
             self.args.insert(0, Argument("const GlobalObject&", "aGlobal"))
 
@@ -24029,7 +24108,7 @@ class CGEventMethod(CGNativeMember):
             arg1=self.args[1].name,
         )
         if needCx(None, self.arguments(), [], considerTypes=True, static=True):
-            self.args.insert(0, Argument("JSContext*", "aCx"))
+            self.args.insert(0, Argument("MCContext*", "aCx"))
         self.args.insert(0, Argument("const GlobalObject&", "aGlobal"))
         return constructorForNativeCaller + CGNativeMember.define(self, cgClass)
 

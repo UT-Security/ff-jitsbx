@@ -92,7 +92,7 @@ size_t CSSCounterStyleRule::SizeOfIncludingThis(
 }
 
 /* virtual */
-JSObject* CSSCounterStyleRule::WrapObject(JSContext* aCx,
+JSObject* CSSCounterStyleRule::WrapObject(MCContext* aCx,
                                           JS::Handle<JSObject*> aGivenProto) {
   return CSSCounterStyleRule_Binding::Wrap(aCx, this, aGivenProto);
 }

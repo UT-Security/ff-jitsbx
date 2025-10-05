@@ -27,7 +27,7 @@ class SVGFEOffsetElement final : public SVGFEOffsetElementBase {
   explicit SVGFEOffsetElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEOffsetElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

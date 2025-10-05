@@ -151,7 +151,7 @@ JSObject* DOMProxyHandler::GetAndClearExpandoObject(JSObject* obj) {
 }
 
 // static
-JSObject* DOMProxyHandler::EnsureExpandoObject(JSContext* cx,
+JSObject* DOMProxyHandler::EnsureExpandoObject(MCContext* cx,
                                                JS::Handle<JSObject*> obj) {
   CheckDOMProxy(obj);
 
@@ -221,7 +221,7 @@ bool DOMProxyHandler::defineProperty(MCContext* cx, JS::Handle<JSObject*> proxy,
     return result->succeed();
   }
 
-  MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(MC_UNSAFE(cx), proxy));
+  MC::Rooted<JSObject*> expando(cx, EnsureExpandoObject(cx, proxy));
   if (!expando) {
     return false;
   }

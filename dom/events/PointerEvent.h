@@ -28,7 +28,7 @@ class PointerEvent : public MouseEvent {
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(PointerEvent, MouseEvent)
 
   virtual JSObject* WrapObjectInternal(
-      JSContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
+      MCContext* aCx, JS::Handle<JSObject*> aGivenProto) override;
 
   static already_AddRefed<PointerEvent> Constructor(
       const GlobalObject& aGlobal, const nsAString& aType,

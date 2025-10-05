@@ -19,7 +19,7 @@ class RestyleTimelineMarker : public TimelineMarker {
     mIsAnimationOnly = aIsAnimationOnly;
   }
 
-  virtual void AddDetails(JSContext* aCx,
+  virtual void AddDetails(MCContext* aCx,
                           dom::ProfileTimelineMarker& aMarker) override {
     TimelineMarker::AddDetails(aCx, aMarker);
 

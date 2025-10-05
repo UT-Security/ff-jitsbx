@@ -103,7 +103,7 @@ void OffscreenCanvasDisplayHelper::FlushForDisplay() {
                         OffscreenCanvasDisplayHelper* aDisplayHelper)
         : WorkerRunnable(aWorkerPrivate), mDisplayHelper(aDisplayHelper) {}
 
-    bool WorkerRun(JSContext*, WorkerPrivate*) override {
+    bool WorkerRun(MCContext*, WorkerPrivate*) override {
       // The OffscreenCanvas can only be freed on the worker thread, so we
       // cannot be racing with an OffscreenCanvas::DestroyCanvas call and its
       // destructor. We just need to make sure we don't call into

@@ -94,7 +94,7 @@ nsMapRuleToAttributesFunc HTMLLIElement::GetAttributeMappingFunction() const {
   return &MapAttributesIntoRule;
 }
 
-JSObject* HTMLLIElement::WrapNode(JSContext* aCx,
+JSObject* HTMLLIElement::WrapNode(MCContext* aCx,
                                   JS::Handle<JSObject*> aGivenProto) {
   return HTMLLIElement_Binding::Wrap(aCx, this, aGivenProto);
 }

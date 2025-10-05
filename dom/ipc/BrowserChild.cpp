@@ -3791,7 +3791,7 @@ NS_IMPL_ADDREF_INHERITED(BrowserChildMessageManager, DOMEventTargetHelper)
 NS_IMPL_RELEASE_INHERITED(BrowserChildMessageManager, DOMEventTargetHelper)
 
 JSObject* BrowserChildMessageManager::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return ContentFrameMessageManager_Binding::Wrap(aCx, this, aGivenProto);
 }
 

@@ -25,7 +25,7 @@ class SVGFEMergeNodeElement final : public SVGFEMergeNodeElementBase {
   explicit SVGFEMergeNodeElement(
       already_AddRefed<mozilla::dom::NodeInfo>&& aNodeInfo)
       : SVGFEMergeNodeElementBase(std::move(aNodeInfo)) {}
-  JSObject* WrapNode(JSContext* aCx,
+  JSObject* WrapNode(MCContext* aCx,
                      JS::Handle<JSObject*> aGivenProto) override;
 
  public:

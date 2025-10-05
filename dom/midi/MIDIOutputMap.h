@@ -30,7 +30,7 @@ class MIDIOutputMap final : public nsISupports, public nsWrapperCache {
 
   nsPIDOMWindowInner* GetParentObject() const { return mParent; }
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
   bool Has(nsAString& aId) { return mPorts.Get(aId) != nullptr; }
   void Insert(nsAString& aId, RefPtr<MIDIPort> aPort) {

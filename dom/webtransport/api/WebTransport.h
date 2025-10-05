@@ -91,7 +91,7 @@ class WebTransport final : public nsISupports, public nsWrapperCache {
   // WebIDL Boilerplate
   nsIGlobalObject* GetParentObject() const;
 
-  JSObject* WrapObject(JSContext* aCx,
+  JSObject* WrapObject(MCContext* aCx,
                        JS::Handle<JSObject*> aGivenProto) override;
 
   // WebIDL Interface

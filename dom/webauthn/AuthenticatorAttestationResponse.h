@@ -29,10 +29,10 @@ class AuthenticatorAttestationResponse final : public AuthenticatorResponse {
   ~AuthenticatorAttestationResponse() override;
 
  public:
-  virtual JSObject* WrapObject(JSContext* aCx,
+  virtual JSObject* WrapObject(MCContext* aCx,
                                JS::Handle<JSObject*> aGivenProto) override;
 
-  void GetAttestationObject(JSContext* aCx, JS::MutableHandle<JSObject*> aValue,
+  void GetAttestationObject(MCContext* aCx, JS::MutableHandle<JSObject*> aValue,
                             ErrorResult& aRv);
 
   nsresult SetAttestationObject(CryptoBuffer& aBuffer);

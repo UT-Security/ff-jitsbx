@@ -137,7 +137,7 @@ class HTMLVideoElement final : public HTMLMediaElement {
  protected:
   virtual ~HTMLVideoElement();
 
-  virtual JSObject* WrapNode(JSContext* aCx,
+  virtual JSObject* WrapNode(MCContext* aCx,
                              JS::Handle<JSObject*> aGivenProto) override;
 
   /**

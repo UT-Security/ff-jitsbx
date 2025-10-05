@@ -15,11 +15,38 @@
 #include "monkeycage/Context.h"
 #include "monkeycage/Tainted.h"
 
-MC::Tainted<void*> JS_malloc(MCContext* cx, size_t nbytes) {
+static inline MC::Tainted<void*> JS_malloc(MCContext* cx, size_t nbytes) {
   MC::Tainted<void*> ret{nullptr};
   void* ptr = JS_malloc(cx->cx_, nbytes);
   ret.assign_raw_pointer(ptr);
   return ret;
+}
+
+static inline MC::Tainted<void*> JS_realloc(MCContext* cx, MC::Tainted<void*> p, size_t oldBytes,
+                                      size_t newBytes) {
+  MC::Tainted<void*> ret{nullptr};
+  void* ptr = JS_realloc(cx->cx_, p.INTERNAL_unverified_safe(), oldBytes, newBytes);
+  ret.assign_raw_pointer(ptr);
+  return ret;
+}
+
+static inline MC::Tainted<void*> JS_string_malloc(MCContext* cx, size_t nbytes) {
+  MC::Tainted<void*> ret{nullptr};
+  void* ptr = JS_string_malloc(cx->cx_, nbytes);
+  ret.assign_raw_pointer(ptr);
+  return ret;
+}
+
+static inline MC::Tainted<void*> JS_string_realloc(MCContext* cx, MC::Tainted<void*> p,
+                                             size_t oldBytes, size_t newBytes) {
+  MC::Tainted<void*> ret{nullptr};
+  void* ptr = JS_string_realloc(cx->cx_, p.INTERNAL_unverified_safe(), oldBytes, newBytes);
+  ret.assign_raw_pointer(ptr);
+  return ret;
+}
+
+static inline void JS_string_free(MCContext* cx, MC::Tainted<void*> p) {
+  JS_string_free(cx->cx_, p.INTERNAL_unverified_safe());  
 }
 
 #endif

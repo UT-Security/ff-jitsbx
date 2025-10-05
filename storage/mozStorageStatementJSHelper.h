@@ -23,8 +23,8 @@ class StatementJSHelper : public nsIXPCScriptable {
   NS_DECL_NSIXPCSCRIPTABLE
 
  private:
-  nsresult getRow(Statement*, JSContext*, JSObject*, JS::Value*);
-  nsresult getParams(Statement*, JSContext*, JSObject*, JS::Value*);
+  nsresult getRow(Statement*, MCContext*, JSObject*, JS::Value*);
+  nsresult getParams(Statement*, MCContext*, JSObject*, JS::Value*);
 };
 
 /**

@@ -59,14 +59,14 @@ class WritableFileStreamUnderlyingSinkAlgorithms final
       : mStream(&aStream) {}
 
   already_AddRefed<Promise> WriteCallback(
-      JSContext* aCx, JS::Handle<JS::Value> aChunk,
+      MCContext* aCx, JS::Handle<JS::Value> aChunk,
       WritableStreamDefaultController& aController, ErrorResult& aRv) override;
 
-  already_AddRefed<Promise> CloseCallbackImpl(JSContext* aCx,
+  already_AddRefed<Promise> CloseCallbackImpl(MCContext* aCx,
                                               ErrorResult& aRv) override;
 
   already_AddRefed<Promise> AbortCallbackImpl(
-      JSContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
+      MCContext* aCx, const Optional<JS::Handle<JS::Value>>& aReason,
       ErrorResult& aRv) override;
 
   void ReleaseObjects() override;
@@ -334,7 +334,7 @@ FileSystemWritableFileStream::Create(
             if (!jsapi.Init(aGlobal)) {
               return rejectAndReturn(NS_ERROR_FAILURE);
             }
-            JSContext* cx = jsapi.cx();
+            MCContext* cx = jsapi.mcx();
 
             // Step 5. Perform ! InitializeWritableStream(stream).
             // (Done by the constructor)
@@ -503,7 +503,7 @@ void FileSystemWritableFileStream::SetWorkerRef(
 }
 
 already_AddRefed<Promise> FileSystemWritableFileStream::Write(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aError) {
+    MCContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aError) {
   // https://fs.spec.whatwg.org/#create-a-new-filesystemwritablefilestream
   // Step 3. Let writeAlgorithm be an algorithm which takes a chunk argument
   // and returns the result of running the write a chunk algorithm with stream
@@ -613,7 +613,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Write(
 // WebIDL Boilerplate
 
 JSObject* FileSystemWritableFileStream::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return FileSystemWritableFileStream_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -636,7 +636,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Write(
     return nullptr;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   MC::Rooted<JSObject*> global(cx, JS::CurrentGlobalOrNull(cx));
 
@@ -672,7 +672,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Seek(
     return nullptr;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RootedDictionary<WriteParams> writeParams(cx);
   writeParams.mType = WriteCommandType::Seek;
@@ -710,7 +710,7 @@ already_AddRefed<Promise> FileSystemWritableFileStream::Truncate(
     return nullptr;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   RootedDictionary<WriteParams> writeParams(cx);
   writeParams.mType = WriteCommandType::Truncate;
@@ -891,7 +891,7 @@ NS_IMPL_CYCLE_COLLECTION_INHERITED(WritableFileStreamUnderlyingSinkAlgorithms,
 // https://fs.spec.whatwg.org/#create-a-new-filesystemwritablefilestream
 already_AddRefed<Promise>
 WritableFileStreamUnderlyingSinkAlgorithms::WriteCallback(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk,
+    MCContext* aCx, JS::Handle<JS::Value> aChunk,
     WritableStreamDefaultController& aController, ErrorResult& aRv) {
   return mStream->Write(aCx, aChunk, aRv);
 }
@@ -900,7 +900,7 @@ WritableFileStreamUnderlyingSinkAlgorithms::WriteCallback(
 // https://fs.spec.whatwg.org/#create-a-new-filesystemwritablefilestream
 already_AddRefed<Promise>
 WritableFileStreamUnderlyingSinkAlgorithms::CloseCallbackImpl(
-    JSContext* aCx, ErrorResult& aRv) {
+    MCContext* aCx, ErrorResult& aRv) {
   RefPtr<Promise> promise = Promise::Create(mStream->GetParentObject(), aRv);
   if (aRv.Failed()) {
     return nullptr;
@@ -930,7 +930,7 @@ WritableFileStreamUnderlyingSinkAlgorithms::CloseCallbackImpl(
 // https://fs.spec.whatwg.org/#create-a-new-filesystemwritablefilestream
 already_AddRefed<Promise>
 WritableFileStreamUnderlyingSinkAlgorithms::AbortCallbackImpl(
-    JSContext* aCx, const Optional<JS::Handle<JS::Value>>& /* aReason */,
+    MCContext* aCx, const Optional<JS::Handle<JS::Value>>& /* aReason */,
     ErrorResult& aRv) {
   // https://streams.spec.whatwg.org/#writablestream-set-up
   // Step 3. Let abortAlgorithmWrapper be an algorithm that runs these steps:

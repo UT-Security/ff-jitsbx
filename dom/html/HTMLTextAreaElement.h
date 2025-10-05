@@ -285,7 +285,7 @@ class HTMLTextAreaElement final : public TextControlElement,
   // get rid of the compiler warning
   using nsGenericHTMLFormControlElementWithState::IsSingleLineTextControl;
 
-  JSObject* WrapNode(JSContext*, JS::Handle<JSObject*> aGivenProto) override;
+  JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;
 
   nsCOMPtr<nsIControllers> mControllers;
   /** Whether or not the value has changed since its default value was given. */

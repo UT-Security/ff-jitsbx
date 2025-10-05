@@ -79,7 +79,7 @@ class nsDOMCaretPosition : public nsISupports, public nsWrapperCache {
 
   nsISupports* GetParentObject() const { return GetOffsetNode(); }
 
-  JSObject* WrapObject(JSContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
+  JSObject* WrapObject(MCContext* aCx, JS::Handle<JSObject*> aGivenProto) final;
 
  protected:
   virtual ~nsDOMCaretPosition();

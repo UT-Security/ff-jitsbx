@@ -64,7 +64,7 @@ class FetchUtil final {
    * given JSContext before returning false. If executing in a worker, the
    * WorkerPrivate must be given.
    */
-  static bool StreamResponseToJS(JSContext* aCx, JS::Handle<JSObject*> aObj,
+  static bool StreamResponseToJS(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                  JS::MimeType aMimeType,
                                  JS::StreamConsumer* aConsumer,
                                  WorkerPrivate* aMaybeWorker);
@@ -75,7 +75,7 @@ class FetchUtil final {
    * This method is passed by function pointer to the JS engine hence the
    * untyped 'size_t' instead of Gecko 'nsresult'.
    */
-  static void ReportJSStreamError(JSContext* aCx, size_t aErrorCode);
+  static void ReportJSStreamError(MC::Tainted<JSContext*> aCx, size_t aErrorCode);
   static MC::SandboxCallback<JS::ReportStreamErrorCallback> ReportJSStreamErrorCb();
 };
 

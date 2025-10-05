@@ -8,8 +8,8 @@
 #include "mozilla/dom/WebSocketBinding.h"
 #include "mozilla/net/WebSocketChannel.h"
 
-#include "jsapi.h"
-#include "jsfriendapi.h"
+#include "mcapi.h"
+#include "mcfriendapi.h"
 #include "mozilla/Atomics.h"
 #include "mozilla/BasePrincipal.h"
 #include "mozilla/DOMEventTargetHelper.h"
@@ -149,7 +149,7 @@ class WebSocketImpl final : public nsIInterfaceRequestor,
 
   bool IsTargetThread() const;
 
-  nsresult Init(JSContext* aCx, bool aIsSecure, nsIPrincipal* aPrincipal,
+  nsresult Init(MCContext* aCx, bool aIsSecure, nsIPrincipal* aPrincipal,
                 const Maybe<ClientInfo>& aClientInfo,
                 nsICSPEventListener* aCSPEventListener, bool aIsServerSide,
                 const nsAString& aURL, nsTArray<nsString>& aProtocolArray,
@@ -997,7 +997,7 @@ WebSocket::GetDebuggerNotificationType() const {
   return mozilla::Some(EventCallbackDebuggerNotificationType::Websocket);
 }
 
-JSObject* WebSocket::WrapObject(JSContext* cx,
+JSObject* WebSocket::WrapObject(MCContext* cx,
                                 JS::Handle<JSObject*> aGivenProto) {
   return WebSocket_Binding::Wrap(cx, this, aGivenProto);
 }
@@ -1040,12 +1040,12 @@ namespace {
 // This class is used to clear any exception.
 class MOZ_STACK_CLASS ClearException {
  public:
-  explicit ClearException(JSContext* aCx) : mCx(aCx) {}
+  explicit ClearException(MCContext* aCx) : mCx(aCx) {}
 
   ~ClearException() { JS_ClearPendingException(mCx); }
 
  private:
-  JSContext* mCx;
+  MCContext* mCx;
 };
 
 class WebSocketMainThreadRunnable : public WorkerMainThreadRunnable {
@@ -1353,7 +1353,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
       return nullptr;
     }
 
-    aRv = webSocketImpl->Init(MC_UNSAFE(aGlobal.Context()), isSecure, principal, Nothing(),
+    aRv = webSocketImpl->Init(aGlobal.Context(), isSecure, principal, Nothing(),
                               nullptr, !!aTransportProvider, aUrl,
                               protocolArray, ""_ns, 0, 0);
 
@@ -1372,17 +1372,18 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     MOZ_ASSERT(workerPrivate);
 
-    unsigned lineno, column;
-    JS::AutoFilename file;
-    if (!JS::DescribeScriptedCaller(MC_UNSAFE(aGlobal.Context()), &file, &lineno,
-                                    &column)) {
+    MC::SandboxStack<unsigned> lineno, column;
+    MC::SandboxStack<JS::AutoFilename> file;
+    if (!JS::DescribeScriptedCaller(aGlobal.Context(), file, lineno,
+                                    column)) {
       NS_WARNING("Failed to get line number and filename in workers.");
     }
 
     RefPtr<InitRunnable> runnable = new InitRunnable(
         workerPrivate, webSocketImpl,
         workerPrivate->GlobalScope()->GetClientInfo(), !!aTransportProvider,
-        aUrl, protocolArray, nsDependentCString(file.get()), lineno, column);
+        aUrl, protocolArray, nsDependentCString(file->get()),
+        *lineno.UNSAFE_unverified(), *column.UNSAFE_unverified());
     runnable->Dispatch(Canceling, aRv);
     if (NS_WARN_IF(aRv.Failed())) {
       return nullptr;
@@ -1467,7 +1468,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     if (ownerWindow) {
       BrowsingContext* browsingContext = ownerWindow->GetBrowsingContext();
       if (browsingContext && browsingContext->WatchedByDevTools()) {
-        stack = GetCurrentStackForNetMonitor(MC_UNSAFE(aGlobal.Context()));
+        stack = GetCurrentStackForNetMonitor(aGlobal.Context());
       }
 
       if (WindowContext* wc = ownerWindow->GetWindowContext()) {
@@ -1485,7 +1486,7 @@ already_AddRefed<WebSocket> WebSocket::ConstructorCommon(
     UniquePtr<SerializedStackHolder> stack;
     WorkerPrivate* workerPrivate = GetCurrentThreadWorkerPrivate();
     if (workerPrivate->IsWatchedByDevTools()) {
-      stack = GetCurrentStackForNetMonitor(MC_UNSAFE(aGlobal.Context()));
+      stack = GetCurrentStackForNetMonitor(aGlobal.Context());
     }
 
     RefPtr<AsyncOpenRunnable> runnable =
@@ -1564,7 +1565,7 @@ void WebSocket::DisconnectFromOwner() {
 // WebSocketImpl:: initialization
 //-----------------------------------------------------------------------------
 
-nsresult WebSocketImpl::Init(JSContext* aCx, bool aIsSecure,
+nsresult WebSocketImpl::Init(MCContext* aCx, bool aIsSecure,
                              nsIPrincipal* aPrincipal,
                              const Maybe<ClientInfo>& aClientInfo,
                              nsICSPEventListener* aCSPEventListener,
@@ -1609,12 +1610,12 @@ nsresult WebSocketImpl::Init(JSContext* aCx, bool aIsSecure,
   } else {
     MOZ_ASSERT(aCx);
 
-    unsigned lineno, column;
-    JS::AutoFilename file;
-    if (JS::DescribeScriptedCaller(aCx, &file, &lineno, &column)) {
-      mScriptFile = file.get();
-      mScriptLine = lineno;
-      mScriptColumn = column;
+    MC::SandboxStack<unsigned> lineno, column;
+    MC::SandboxStack<JS::AutoFilename> file;
+    if (JS::DescribeScriptedCaller(aCx, file, lineno, column)) {
+      mScriptFile = file->get();
+      mScriptLine = *lineno.UNSAFE_unverified();
+      mScriptColumn = *column.UNSAFE_unverified();
     }
   }
 
@@ -1963,7 +1964,7 @@ nsresult WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
     return NS_ERROR_FAILURE;
   }
 
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   nsresult rv = CheckCurrentGlobalCorrectness();
   if (NS_FAILED(rv)) {
@@ -2576,7 +2577,7 @@ class CancelRunnable final : public MainThreadWorkerRunnable {
   CancelRunnable(ThreadSafeWorkerRef* aWorkerRef, WebSocketImpl* aImpl)
       : MainThreadWorkerRunnable(aWorkerRef->Private()), mImpl(aImpl) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
     return !NS_FAILED(mImpl->CancelInternal());
   }
@@ -2729,7 +2730,7 @@ class WorkerRunnableDispatcher final : public WorkerRunnable {
         mWebSocketImpl(aImpl),
         mEvent(std::move(aEvent)) {}
 
-  bool WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate) override {
+  bool WorkerRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate) override {
     aWorkerPrivate->AssertIsOnWorkerThread();
 
     // No messages when disconnected.
@@ -2741,7 +2742,7 @@ class WorkerRunnableDispatcher final : public WorkerRunnable {
     return !NS_FAILED(mEvent->Run());
   }
 
-  void PostRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+  void PostRun(MCContext* aCx, WorkerPrivate* aWorkerPrivate,
                bool aRunResult) override {}
 
   bool PreDispatch(WorkerPrivate* aWorkerPrivate) override {

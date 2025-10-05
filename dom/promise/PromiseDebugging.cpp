@@ -248,7 +248,7 @@ void PromiseDebugging::FlushUncaughtRejectionsInternal() {
 
   AutoJSAPI jsapi;
   jsapi.Init();
-  JSContext* cx = jsapi.cx();
+  MCContext* cx = jsapi.mcx();
 
   // Notify observers of uncaught Promise.
   auto& observers = storage->mUncaughtRejectionObservers;

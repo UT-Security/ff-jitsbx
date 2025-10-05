@@ -69,7 +69,7 @@ void WritableStreamDefaultWriter::SetClosedPromise(Promise* aPromise) {
 }
 
 JSObject* WritableStreamDefaultWriter::WrapObject(
-    JSContext* aCx, JS::Handle<JSObject*> aGivenProto) {
+    MCContext* aCx, JS::Handle<JSObject*> aGivenProto) {
   return WritableStreamDefaultWriter_Binding::Wrap(aCx, this, aGivenProto);
 }
 
@@ -140,7 +140,7 @@ Nullable<double> WritableStreamDefaultWriter::GetDesiredSize(ErrorResult& aRv) {
 
 // https://streams.spec.whatwg.org/#writable-stream-default-writer-abort
 MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamDefaultWriterAbort(
-    JSContext* aCx, WritableStreamDefaultWriter* aWriter,
+    MCContext* aCx, WritableStreamDefaultWriter* aWriter,
     JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1. Let stream be writer.[[stream]].
   RefPtr<WritableStream> stream = aWriter->GetStream();
@@ -154,7 +154,7 @@ MOZ_CAN_RUN_SCRIPT already_AddRefed<Promise> WritableStreamDefaultWriterAbort(
 
 // https://streams.spec.whatwg.org/#default-writer-abort
 already_AddRefed<Promise> WritableStreamDefaultWriter::Abort(
-    JSContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aReason, ErrorResult& aRv) {
   // Step 1. If this.[[stream]] is undefined, return a promise rejected with a
   // TypeError exception.
   if (!mStream) {
@@ -169,7 +169,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriter::Abort(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-writer-close
 MOZ_CAN_RUN_SCRIPT static already_AddRefed<Promise>
-WritableStreamDefaultWriterClose(JSContext* aCx,
+WritableStreamDefaultWriterClose(MCContext* aCx,
                                  WritableStreamDefaultWriter* aWriter,
                                  ErrorResult& aRv) {
   // Step 1. Let stream be writer.[[stream]].
@@ -183,7 +183,7 @@ WritableStreamDefaultWriterClose(JSContext* aCx,
 }
 
 // https://streams.spec.whatwg.org/#default-writer-close
-already_AddRefed<Promise> WritableStreamDefaultWriter::Close(JSContext* aCx,
+already_AddRefed<Promise> WritableStreamDefaultWriter::Close(MCContext* aCx,
                                                              ErrorResult& aRv) {
   // Step 1. Let stream be this.[[stream]].
   RefPtr<WritableStream> stream = mStream;
@@ -209,7 +209,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriter::Close(JSContext* aCx,
 
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#writable-stream-default-writer-release
-void WritableStreamDefaultWriterRelease(JSContext* aCx,
+void WritableStreamDefaultWriterRelease(MCContext* aCx,
                                         WritableStreamDefaultWriter* aWriter) {
   // Step 1. Let stream be writer.[[stream]].
   RefPtr<WritableStream> stream = aWriter->GetStream();
@@ -249,7 +249,7 @@ void WritableStreamDefaultWriterRelease(JSContext* aCx,
 }  // namespace streams_abstract
 
 // https://streams.spec.whatwg.org/#default-writer-release-lock
-void WritableStreamDefaultWriter::ReleaseLock(JSContext* aCx) {
+void WritableStreamDefaultWriter::ReleaseLock(MCContext* aCx) {
   // Step 1. Let stream be this.[[stream]].
   RefPtr<WritableStream> stream = mStream;
 
@@ -269,7 +269,7 @@ void WritableStreamDefaultWriter::ReleaseLock(JSContext* aCx) {
 namespace streams_abstract {
 // https://streams.spec.whatwg.org/#writable-stream-default-writer-write
 already_AddRefed<Promise> WritableStreamDefaultWriterWrite(
-    JSContext* aCx, WritableStreamDefaultWriter* aWriter,
+    MCContext* aCx, WritableStreamDefaultWriter* aWriter,
     JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1. Let stream be writer.[[stream]].
   RefPtr<WritableStream> stream = aWriter->GetStream();
@@ -342,7 +342,7 @@ already_AddRefed<Promise> WritableStreamDefaultWriterWrite(
 
 // https://streams.spec.whatwg.org/#default-writer-write
 already_AddRefed<Promise> WritableStreamDefaultWriter::Write(
-    JSContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
+    MCContext* aCx, JS::Handle<JS::Value> aChunk, ErrorResult& aRv) {
   // Step 1. If this.[[stream]] is undefined, return a promise rejected with a
   // TypeError exception.
   if (!mStream) {
@@ -506,7 +506,7 @@ void WritableStreamDefaultWriterEnsureReadyPromiseRejected(
 
 // https://streams.spec.whatwg.org/#writable-stream-default-writer-close-with-error-propagation
 already_AddRefed<Promise> WritableStreamDefaultWriterCloseWithErrorPropagation(
-    JSContext* aCx, WritableStreamDefaultWriter* aWriter, ErrorResult& aRv) {
+    MCContext* aCx, WritableStreamDefaultWriter* aWriter, ErrorResult& aRv) {
   // Step 1. Let stream be writer.[[stream]].
   RefPtr<WritableStream> stream = aWriter->GetStream();
 

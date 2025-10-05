@@ -591,7 +591,7 @@ class BrowserParent final : public PBrowserParent,
   already_AddRefed<PFilePickerParent> AllocPFilePickerParent(
       const nsString& aTitle, const nsIFilePicker::Mode& aMode);
 
-  bool GetGlobalJSObject(JSContext* cx, JSObject** globalp);
+  bool GetGlobalJSObject(MCContext* cx, JSObject** globalp);
 
   void StartPersistence(CanonicalBrowsingContext* aContext,
                         nsIWebBrowserPersistDocumentReceiver* aRecv,
