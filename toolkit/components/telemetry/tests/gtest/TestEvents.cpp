@@ -84,10 +84,10 @@ TEST_F(TelemetryTestFixture, RecordEventNative) {
   ASSERT_TRUE(JS_GetElement(aCx, arrayObj, 2, &eventRecord))
   << "Must be able to get record.";
   MC::Rooted<JSObject*> recordArray(aCx, &eventRecord.toObject());
-  uint32_t recordLength;
-  ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, &recordLength))
+  MC::SandboxStack<uint32_t> recordLength;
+  ASSERT_TRUE(JS::GetArrayLength(aCx, recordArray, recordLength))
   << "Event record array must have length.";
-  ASSERT_TRUE(recordLength == 6)
+  ASSERT_TRUE(*recordLength.UNSAFE_unverified() == 6)
   << "Event record must have 6 elements.";
 
   MC::Rooted<JS::Value> str(aCx);

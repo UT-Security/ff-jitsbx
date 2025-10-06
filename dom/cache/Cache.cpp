@@ -130,9 +130,9 @@ class Cache::FetchHandler final : public PromiseNativeHandler {
 
     const auto failOnErr = [this](const auto) { Fail(); };
 
-    bool isArray;
-    QM_TRY(OkIf(JS::IsArrayObject(aCx, aValue, &isArray)), QM_VOID, failOnErr);
-    QM_TRY(OkIf(isArray), QM_VOID, failOnErr);
+    MC::SandboxStack<bool >isArray;
+    QM_TRY(OkIf(JS::IsArrayObject(aCx, aValue, isArray)), QM_VOID, failOnErr);
+    QM_TRY(OkIf(*isArray.UNSAFE_unverified()), QM_VOID, failOnErr);
 
     MC::Rooted<JSObject*> obj(aCx, &aValue.toObject());
 

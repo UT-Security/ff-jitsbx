@@ -1093,19 +1093,19 @@ static void SetElementAsObject(MCContext* aCx, Element* aElement,
     }
 
     // For Multiple Selects Element
-    bool isArray = false;
-    JS::IsArrayObject(aCx, aObject, &isArray);
-    if (!isArray) {
+    MC::SandboxStack<bool> isArray = false;
+    JS::IsArrayObject(aCx, aObject, isArray);
+    if (!*isArray.UNSAFE_unverified()) {
       return;
     }
     MC::Rooted<JSObject*> arrayObj(aCx, &aObject.toObject());
-    uint32_t arrayLength = 0;
-    if (!JS::GetArrayLength(aCx, arrayObj, &arrayLength)) {
+    MC::SandboxStack<uint32_t> arrayLength = 0;
+    if (!JS::GetArrayLength(aCx, arrayObj, arrayLength)) {
       JS_ClearPendingException(aCx);
       return;
     }
-    nsTArray<nsString> array(arrayLength);
-    for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
+    nsTArray<nsString> array(*arrayLength.UNSAFE_unverified());
+    for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); arrayIdx++) {
       MC::Rooted<JS::Value> element(aCx);
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
         JS_ClearPendingException(aCx);

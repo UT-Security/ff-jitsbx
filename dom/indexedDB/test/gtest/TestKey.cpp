@@ -273,9 +273,9 @@ static void CheckArray(MCContext* const context,
   Rooted<JSObject*> actualArray(context,
                                 ExpectArrayObject(context, arrayValue));
 
-  uint32_t actualLength;
-  EXPECT_TRUE(JS::GetArrayLength(context, actualArray, &actualLength));
-  EXPECT_EQ(expectedLength, actualLength);
+  MC::SandboxStack<uint32_t> actualLength;
+  EXPECT_TRUE(JS::GetArrayLength(context, actualArray, actualLength));
+  EXPECT_EQ(expectedLength, *actualLength.UNSAFE_unverified());
   for (size_t i = 0; i < expectedLength; ++i) {
     Rooted<JS::Value> element(static_cast<MCContext*>(context));
     EXPECT_TRUE(JS_GetElement(context, actualArray, i, &element));

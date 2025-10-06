@@ -146,7 +146,7 @@ JS_PUBLIC_API JS::OffThreadToken* JS::DecodeMultiStencilsOffThread(
 
 JS_PUBLIC_API bool JS::FinishDecodeMultiStencilsOffThread(
     JSContext* cx, JS::OffThreadToken* token,
-    mozilla::Vector<RefPtr<JS::Stencil>>* stencils) {
+    js::Vector<RefPtr<JS::Stencil>>* stencils) {
   MOZ_ASSERT(cx);
   MOZ_ASSERT(CurrentThreadCanAccessRuntime(cx->runtime()));
   return HelperThreadState().finishMultiStencilsDecodeTask(cx, token, stencils);

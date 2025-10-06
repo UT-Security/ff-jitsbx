@@ -95,7 +95,7 @@ inline JSObject* JS_TransplantObject(MCContext* cx, JS::HandleObject origobj,
 
 inline bool JS_ResolveStandardClass(MCContext* cx, JS::HandleObject obj,
                                     JS::HandleId id, MC::Tainted<bool*> resolved) {
-  return JS_ResolveStandardClass(cx->cx_, obj, id, resolved.UNSAFE_unverified());
+  return JS_ResolveStandardClass(cx->cx_, obj, id, resolved.INTERNAL_unverified_safe());
 }
 
 inline bool JS_EnumerateStandardClasses(MCContext* cx, JS::HandleObject obj) {
@@ -307,8 +307,8 @@ namespace JS {
 
 inline bool PropertySpecNameToPermanentId(MCContext* cx,
                                           JSPropertySpec::Name name,
-                                          jsid* idp) {
-  return PropertySpecNameToPermanentId(cx->cx_, name, idp);
+                                          MC::Tainted<jsid*> idp) {
+  return PropertySpecNameToPermanentId(cx->cx_, name, idp.INTERNAL_unverified_safe());
 }
 } /* namespace JS */
 
@@ -338,8 +338,8 @@ inline void JS_SetGlobalJitCompilerOption(MCContext* cx,
 
 inline bool JS_GetGlobalJitCompilerOption(MCContext* cx,
                                           JSJitCompilerOption opt,
-                                          uint32_t* valueOut) {
-  return JS_GetGlobalJitCompilerOption(cx->cx_, opt, valueOut);
+                                          MC::Tainted<uint32_t*> valueOut) {
+  return JS_GetGlobalJitCompilerOption(cx->cx_, opt, valueOut.INTERNAL_unverified_safe());
 }
 
 inline bool JS_IndexToId(MCContext* cx, uint32_t index,

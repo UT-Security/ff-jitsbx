@@ -1088,7 +1088,7 @@ void ScriptPreloader::FinishOffThreadDecode(MC::Tainted<JS::OffThreadToken*> tok
   MCContext* cx = jsapi.mcx();
 
   MC::SandboxStack<JSAutoRealm> ar(cx, xpc::CompilationScope());
-  Vector<RefPtr<JS::Stencil>> stencils;
+  MC::SandboxStack<js::Vector<RefPtr<JS::Stencil>>> stencils(cx);
 
   // If this fails, we still need to mark the scripts as finished. Any that
   // weren't successfully compiled in this operation (which should never
@@ -1097,13 +1097,13 @@ void ScriptPreloader::FinishOffThreadDecode(MC::Tainted<JS::OffThreadToken*> tok
   //
   // The exception from the off-thread decode operation will be reported when
   // we pop the AutoJSAPI off the stack.
-  Unused << JS::FinishDecodeMultiStencilsOffThread(cx, token, &stencils);
+  Unused << JS::FinishDecodeMultiStencilsOffThread(cx, token, stencils);
 
   unsigned i = 0;
   for (auto script : mParsingScripts) {
     LOG(Debug, "Finished off-thread decode of %s\n", script->mURL.get());
-    if (i < stencils.length()) {
-      script->mStencil = stencils[i++].forget();
+    if (i < stencils->length().UNSAFE_unverified()) {
+      script->mStencil = (*stencils.UNSAFE_unverified())[i++].forget();
     }
     script->mReadyToExecute = true;
   }

@@ -296,10 +296,12 @@ inline void FinalizeDeadNurseryObject(MCContext* cx, JSObject* obj) {
 
 #  ifdef JS_GC_ZEAL
 
-inline void JS_GetGCZealBits(MCContext* cx, uint32_t* zealBits,
-                                           uint32_t* frequency,
-                                           uint32_t* nextScheduled) {
-    return JS_GetGCZealBits(cx->cx_, zealBits, frequency, nextScheduled);
+inline void JS_GetGCZealBits(MCContext* cx, MC::Tainted<uint32_t*> zealBits,
+                                           MC::Tainted<uint32_t*> frequency,
+                                           MC::Tainted<uint32_t*> nextScheduled) {
+  return JS_GetGCZealBits(cx->cx_, zealBits.INTERNAL_unverified_safe(),
+                          frequency.INTERNAL_unverified_safe(),
+                          nextScheduled.INTERNAL_unverified_safe());
 }
 
 inline void JS_SetGCZeal(MCContext* cx, uint8_t zeal,

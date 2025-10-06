@@ -190,15 +190,18 @@ class MOZ_STACK_CLASS ArrayIter : public BaseIter<ArrayIter, ArrayIterElem> {
  public:
   ArrayIter(MCContext* cx, JS::Handle<JSObject*> object)
       : BaseIter(cx, object), mLength(0) {
-    bool isArray;
-    if (!JS::IsArrayObject(cx, object, &isArray) || !isArray) {
+    MC::SandboxStack<bool> isArray;
+    if (!JS::IsArrayObject(cx, object, isArray) || !*isArray.UNSAFE_unverified()) {
       JS_ClearPendingException(cx);
       return;
     }
 
-    if (!JS::GetArrayLength(cx, object, &mLength)) {
+    MC::SandboxStack<uint32_t> length;
+    if (!JS::GetArrayLength(cx, object, length)) {
       JS_ClearPendingException(cx);
     }
+
+    mLength = *length.UNSAFE_unverified();
   }
 
   uint32_t Length() const { return mLength; }

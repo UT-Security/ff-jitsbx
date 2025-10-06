@@ -1971,11 +1971,11 @@ bool SandboxOptions::ParseGlobalProperties() {
   }
 
   MC::RootedObject ctors(mCx, &value.toObject());
-  bool isArray;
-  if (!JS::IsArrayObject(mCx, ctors, &isArray)) {
+  MC::SandboxStack<bool> isArray;
+  if (!JS::IsArrayObject(mCx, ctors, isArray)) {
     return false;
   }
-  if (!isArray) {
+  if (!*isArray.UNSAFE_unverified()) {
     JS_ReportErrorASCII(mCx,
                         "Expected an array value for wantGlobalProperties");
     return false;
@@ -2099,10 +2099,10 @@ nsresult nsXPCComponents_utils_Sandbox::CallOrConstruct(
     prinOrSop = principal;
   } else if (args[0].isObject()) {
     MC::RootedObject obj(cx, &args[0].toObject());
-    bool isArray;
-    if (!JS::IsArrayObject(cx, obj, &isArray)) {
+    MC::SandboxStack<bool> isArray;
+    if (!JS::IsArrayObject(cx, obj, isArray)) {
       ok = false;
-    } else if (isArray) {
+    } else if (*isArray.UNSAFE_unverified()) {
       if (options.userContextId != 0) {
         // We don't support passing a userContextId with an array.
         ok = false;

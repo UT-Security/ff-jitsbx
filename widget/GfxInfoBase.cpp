@@ -1607,11 +1607,11 @@ static inline bool SetJSPropertyString(MCContext* aCx,
 template <typename T>
 static inline bool AppendJSElement(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                    const T& aValue) {
-  uint32_t index;
-  if (!JS::GetArrayLength(aCx, aObj, &index)) {
+  MC::SandboxStack<uint32_t> index;
+  if (!JS::GetArrayLength(aCx, aObj, index)) {
     return false;
   }
-  return JS_SetElement(aCx, aObj, index, aValue);
+  return JS_SetElement(aCx, aObj, *index.UNSAFE_unverified(), aValue);
 }
 
 nsresult GfxInfoBase::GetFeatures(MCContext* aCx,

@@ -1227,10 +1227,12 @@ bool CallMethodHelper::GetArraySizeFromParam(const nsXPTType& type,
     MOZ_ASSERT(mMethodInfo->Param(argnum).IsOptional());
     MC::RootedObject arrayOrNull(mCallContext, &maybeArray.toObject());
 
-    bool isArray;
+    MC::SandboxStack<bool> isArray;
     bool ok = false;
-    if (JS::IsArrayObject(mCallContext, maybeArray, &isArray) && isArray) {
-      ok = JS::GetArrayLength(mCallContext, arrayOrNull, lengthp);
+    if (JS::IsArrayObject(mCallContext, maybeArray, isArray) && *isArray.UNSAFE_unverified()) {
+      MC::SandboxStack<uint32_t> t_lengthp;
+      ok = JS::GetArrayLength(mCallContext, arrayOrNull, t_lengthp);
+      *lengthp = *t_lengthp.UNSAFE_unverified();
     } else if (JS_IsTypedArrayObject(&maybeArray.toObject())) {
       size_t len = JS_GetTypedArrayLength(&maybeArray.toObject());
       if (len <= UINT32_MAX) {

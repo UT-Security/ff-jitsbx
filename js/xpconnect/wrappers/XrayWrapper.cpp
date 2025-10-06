@@ -874,23 +874,23 @@ static bool AppendNamesFromFunctionAndPropertySpecs(
     const JSPropertySpec* ps, unsigned flags, MutableHandleIdVector props) {
   // Convert the method and property names to jsids and pass them to the caller.
   for (; fs && fs->name; ++fs) {
-    jsid id;
-    if (!PropertySpecNameToPermanentId(cx, fs->name, &id)) {
+    MC::SandboxStack<jsid> id;
+    if (!PropertySpecNameToPermanentId(cx, fs->name, id)) {
       return false;
     }
-    if (!js::ShouldIgnorePropertyDefinition(cx, key, id)) {
-      if (!MaybeAppend(id, flags, props)) {
+    if (!js::ShouldIgnorePropertyDefinition(cx, key, *id.UNSAFE_unverified())) {
+      if (!MaybeAppend(*id.UNSAFE_unverified(), flags, props)) {
         return false;
       }
     }
   }
   for (; ps && ps->name; ++ps) {
-    jsid id;
-    if (!PropertySpecNameToPermanentId(cx, ps->name, &id)) {
+    MC::SandboxStack<jsid> id;
+    if (!PropertySpecNameToPermanentId(cx, ps->name, id)) {
       return false;
     }
-    if (!js::ShouldIgnorePropertyDefinition(cx, key, id)) {
-      if (!MaybeAppend(id, flags, props)) {
+    if (!js::ShouldIgnorePropertyDefinition(cx, key, *id.UNSAFE_unverified())) {
+      if (!MaybeAppend(*id.UNSAFE_unverified(), flags, props)) {
         return false;
       }
     }

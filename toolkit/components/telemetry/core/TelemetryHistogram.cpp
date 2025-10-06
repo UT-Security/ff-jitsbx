@@ -1758,10 +1758,10 @@ bool internal_JSHistogram_GetValueArray(MCContext* aCx, JS::CallArgs& args,
   if (args[firstArgIndex].isObject() && !args[firstArgIndex].isString()) {
     MC::Rooted<JSObject*> arrayObj(aCx, &args[firstArgIndex].toObject());
 
-    bool isArray = false;
-    JS::IsArrayObject(aCx, arrayObj, &isArray);
+    MC::SandboxStack<bool> isArray = false;
+    JS::IsArrayObject(aCx, arrayObj, isArray);
 
-    if (!isArray) {
+    if (!*isArray.UNSAFE_unverified()) {
       LogToBrowserConsole(
           nsIScriptError::errorFlag,
           nsLiteralString(
@@ -1769,14 +1769,14 @@ bool internal_JSHistogram_GetValueArray(MCContext* aCx, JS::CallArgs& args,
       return false;
     }
 
-    uint32_t arrayLength = 0;
-    if (!JS::GetArrayLength(aCx, arrayObj, &arrayLength)) {
+    MC::SandboxStack<uint32_t> arrayLength = 0;
+    if (!JS::GetArrayLength(aCx, arrayObj, arrayLength)) {
       LogToBrowserConsole(nsIScriptError::errorFlag,
                           u"Failed while trying to get array length"_ns);
       return false;
     }
 
-    for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; arrayIdx++) {
+    for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); arrayIdx++) {
       MC::Rooted<JS::Value> element(aCx);
 
       if (!JS_GetElement(aCx, arrayObj, arrayIdx, &element)) {
