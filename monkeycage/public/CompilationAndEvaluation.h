@@ -46,36 +46,36 @@ inline bool JS_ExecuteScript(MCContext* cx, JS::HandleObjectVector envChain,
 namespace JS {
 
 inline bool Evaluate(MCContext* cx,
-                     MC::Tainted<CompileOptions*> options,
+                     MC::Tainted<const ReadOnlyCompileOptions*> options,
                      MC::Tainted<SourceText<char16_t>*> srcBuf,
                      MutableHandle<Value> rval) {
-  return Evaluate(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified(), rval);
+  return Evaluate(cx->cx_, *options.INTERNAL_unverified_safe(), *srcBuf.INTERNAL_unverified_safe(), rval);
 }
 
-inline bool Evaluate(MCContext* cx, MC::Tainted<CompileOptions*> options,
+inline bool Evaluate(MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
                      MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
                      MutableHandle<Value> rval) {
   return Evaluate(cx->cx_, *options.INTERNAL_unverified_safe(),
                   *srcBuf.INTERNAL_unverified_safe(), rval);
 }
 
-inline JSScript* Compile(MCContext* cx, MC::Tainted<CompileOptions*> options,
+inline JSScript* Compile(MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
                          MC::Tainted<SourceText<char16_t>*> srcBuf) {
-  return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
+  return Compile(cx->cx_, *options.INTERNAL_unverified_safe(), *srcBuf.INTERNAL_unverified_safe());
 }
 
-inline JSScript* Compile(MCContext* cx, MC::Tainted<CompileOptions*> options,
+inline JSScript* Compile(MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
                          MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
-  return Compile(cx->cx_, *options.UNSAFE_unverified(), *srcBuf.UNSAFE_unverified());
+  return Compile(cx->cx_, *options.INTERNAL_unverified_safe(), *srcBuf.INTERNAL_unverified_safe());
 }
 
 inline JSScript* CompileUtf8File(
-    MCContext* cx, MC::Tainted<const CompileOptions*> options, FILE* file) {
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options, FILE* file) {
   return CompileUtf8File(cx->cx_, *options.INTERNAL_unverified_safe(), file);
 }
 
 inline JSScript* CompileUtf8Path(MCContext* cx,
-                                 MC::Tainted<const CompileOptions*> options,
+                                 MC::Tainted<const ReadOnlyCompileOptions*> options,
                                  const char* filename) {
   return CompileUtf8Path(cx->cx_, *options.INTERNAL_unverified_safe(),
                          filename);
@@ -106,7 +106,7 @@ inline void ExposeScriptToDebugger(MCContext* cx, Handle<JSScript*> script) {
 }
 
 inline bool UpdateDebugMetadata(MCContext* cx, Handle<JSScript*> script,
-                                MC::Tainted<InstantiateOptions*> options,
+                                MC::Tainted<const InstantiateOptions*> options,
                                 HandleValue privateValue,
                                 HandleString elementAttributeName,
                                 HandleScript introScript,

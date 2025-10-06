@@ -2335,7 +2335,7 @@ GlobalHelperThreadState::finishStencilTask(JSContext* cx,
 
 bool GlobalHelperThreadState::finishMultiParseTask(
     JSContext* cx, ParseTaskKind kind, JS::OffThreadToken* token,
-    mozilla::Vector<RefPtr<JS::Stencil>>* stencils) {
+    js::Vector<RefPtr<JS::Stencil>>* stencils) {
   MOZ_ASSERT(stencils);
   Rooted<UniquePtr<ParseTask>> parseTask(cx, finishParseTaskCommon(cx, token));
   if (!parseTask) {
@@ -2368,7 +2368,7 @@ bool GlobalHelperThreadState::finishMultiParseTask(
 
 bool GlobalHelperThreadState::finishMultiStencilsDecodeTask(
     JSContext* cx, JS::OffThreadToken* token,
-    mozilla::Vector<RefPtr<JS::Stencil>>* stencils) {
+    js::Vector<RefPtr<JS::Stencil>>* stencils) {
   return finishMultiParseTask(cx, ParseTaskKind::MultiStencilsDecode, token,
                               stencils);
 }

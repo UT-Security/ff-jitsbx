@@ -24,45 +24,31 @@
 
 namespace JS {
 inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
+  return CompileGlobalScriptToStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
+                                      *srcBuf.INTERNAL_unverified_safe());
 }
 
 inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
-}
-
-inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
-    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
-}
-
-inline already_AddRefed<Stencil> CompileGlobalScriptToStencil(
-    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
-    MC::Tainted<SourceText<char16_t>*> srcBuf) {
-  return CompileGlobalScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
+  return CompileGlobalScriptToStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
+                                      *srcBuf.INTERNAL_unverified_safe());
 }
 
 inline already_AddRefed<Stencil> CompileModuleScriptToStencil(
-    MCContext* cx, MC::Tainted<CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf) {
-  return CompileModuleScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
+  return CompileModuleScriptToStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
+                                      *srcBuf.INTERNAL_unverified_safe());
 }
 
 inline already_AddRefed<Stencil> CompileModuleScriptToStencil(
-    MCContext* cx, MC::Tainted<CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf) {
-  return CompileModuleScriptToStencil(cx->cx_, *options.UNSAFE_unverified(),
-                                      *srcBuf.UNSAFE_unverified());
+  return CompileModuleScriptToStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
+                                      *srcBuf.INTERNAL_unverified_safe());
 }
 
 }  // namespace JS
@@ -75,7 +61,7 @@ namespace JS {
 
 // Instantiate the Stencil into current Realm and return the JSScript.
 inline JSScript* InstantiateGlobalStencil(
-    MCContext* cx, MC::Tainted<InstantiateOptions*> options, Stencil* stencil,
+    MCContext* cx, MC::Tainted<const InstantiateOptions*> options, Stencil* stencil,
     InstantiationStorage* storage = nullptr) {
   return InstantiateGlobalStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
                                   stencil, storage);
@@ -84,7 +70,7 @@ inline JSScript* InstantiateGlobalStencil(
 // Instantiate a module Stencil and return the associated object. Inside the
 // engine this is a js::ModuleObject.
 inline JSObject* InstantiateModuleStencil(
-    MCContext* cx, MC::Tainted<InstantiateOptions*> options, Stencil* stencil,
+    MCContext* cx, MC::Tainted<const InstantiateOptions*> options, Stencil* stencil,
     InstantiationStorage* storage = nullptr) {
   return InstantiateModuleStencil(cx->cx_, *options.INTERNAL_unverified_safe(),
                                   stencil, storage);
@@ -128,72 +114,48 @@ inline bool StartIncrementalEncoding(MCContext* cx, RefPtr<Stencil>&& stencil) {
 namespace JS {
 
 inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
                                    *srcBuf.INTERNAL_unverified_safe(),
                                    callback.UNSAFE_get(), callbackData));
   return ret;
 }
 
 inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
-                                   *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData));
-  return ret;
-}
-
-inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
-    MC::Tainted<SourceText<char16_t>*> srcBuf,
-    MC::SandboxCallback<OffThreadCompileCallback> callback,
-    void* callbackData) {
-  MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
-                                   *srcBuf.INTERNAL_unverified_safe(),
-                                   callback.UNSAFE_get(), callbackData));
-  return ret;
-}
-
-inline MC::Tainted<OffThreadToken*> CompileToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::OwningCompileOptions*> options,
-    MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
-    MC::SandboxCallback<OffThreadCompileCallback> callback,
-    void* callbackData) {
-  MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  ret.assign_raw_pointer(CompileToStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
                                    *srcBuf.INTERNAL_unverified_safe(),
                                    callback.UNSAFE_get(), callbackData));
   return ret;
 }
 
 inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<char16_t>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
                                          *srcBuf.INTERNAL_unverified_safe(),
                                          callback.UNSAFE_get(), callbackData));
   return ret;
 }
 
 inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
-    MCContext* cx, MC::Tainted<JS::CompileOptions*> options,
+    MCContext* cx, MC::Tainted<const ReadOnlyCompileOptions*> options,
     MC::Tainted<SourceText<mozilla::Utf8Unit>*> srcBuf,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
-  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.UNSAFE_unverified(),
+  ret.assign_raw_pointer(CompileModuleToStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
                                          *srcBuf.INTERNAL_unverified_safe(),
                                          callback.UNSAFE_get(), callbackData));
   return ret;
@@ -243,8 +205,8 @@ inline already_AddRefed<Stencil> FinishOffThreadStencil(
 
 inline bool FinishDecodeMultiStencilsOffThread(
     MCContext* cx, MC::Tainted<OffThreadToken*> token,
-    mozilla::Vector<RefPtr<Stencil>>* stencils) {
-  return FinishDecodeMultiStencilsOffThread(cx->cx_, token.INTERNAL_unverified_safe(), stencils);
+    MC::Tainted<js::Vector<RefPtr<Stencil>>*> stencils) {
+  return FinishDecodeMultiStencilsOffThread(cx->cx_, token.INTERNAL_unverified_safe(), stencils.INTERNAL_unverified_safe());
 }
 
 inline void CancelOffThreadToken(MCContext* cx, MC::Tainted<OffThreadToken*> token) {

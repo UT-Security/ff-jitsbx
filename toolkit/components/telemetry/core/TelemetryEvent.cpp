@@ -998,20 +998,20 @@ static bool GetArrayPropertyValues(MCContext* cx, JS::Handle<JSObject*> obj,
     return false;
   }
 
-  bool isArray = false;
-  if (!JS::IsArrayObject(cx, value, &isArray) || !isArray) {
+  MC::SandboxStack<bool> isArray = false;
+  if (!JS::IsArrayObject(cx, value, isArray) || !*isArray.UNSAFE_unverified()) {
     JS_ReportErrorASCII(cx, R"(Property "%s" for event should be an array)",
                         property);
     return false;
   }
 
   MC::Rooted<JSObject*> arrayObj(cx, &value.toObject());
-  uint32_t arrayLength;
-  if (!JS::GetArrayLength(cx, arrayObj, &arrayLength)) {
+  MC::SandboxStack<uint32_t> arrayLength;
+  if (!JS::GetArrayLength(cx, arrayObj, arrayLength)) {
     return false;
   }
 
-  for (uint32_t arrayIdx = 0; arrayIdx < arrayLength; ++arrayIdx) {
+  for (uint32_t arrayIdx = 0; arrayIdx < *arrayLength.UNSAFE_unverified(); ++arrayIdx) {
     MC::Rooted<JS::Value> element(cx);
     if (!JS_GetElement(cx, arrayObj, arrayIdx, &element)) {
       return false;

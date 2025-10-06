@@ -17,7 +17,6 @@
 #include "mozilla/EnumeratedArray.h"
 #include "mozilla/RefPtr.h"  // RefPtr
 #include "mozilla/TimeStamp.h"
-#include "mozilla/Vector.h"  // mozilla::Vector
 
 #include "ds/Fifo.h"
 #include "frontend/CompilationStencil.h"  // CompilationStencil, CompilationGCOutput
@@ -27,6 +26,7 @@
 #include "js/experimental/JSStencil.h"      // JS::InstantiationStorage
 #include "js/HelperThreadAPI.h"
 #include "js/TypeDecls.h"
+#include "js/Vector.h"  // js::Vector
 #include "threading/ConditionVariable.h"
 #include "vm/HelperThreads.h"
 #include "vm/HelperThreadTask.h"
@@ -403,7 +403,7 @@ class GlobalHelperThreadState {
 
   bool finishMultiParseTask(JSContext* cx, ParseTaskKind kind,
                             JS::OffThreadToken* token,
-                            mozilla::Vector<RefPtr<JS::Stencil>>* stencils);
+                            js::Vector<RefPtr<JS::Stencil>>* stencils);
 
  public:
   void cancelParseTask(JSRuntime* rt, JS::OffThreadToken* token);
@@ -416,7 +416,7 @@ class GlobalHelperThreadState {
       JS::InstantiationStorage* storage);
   bool finishMultiStencilsDecodeTask(
       JSContext* cx, JS::OffThreadToken* token,
-      mozilla::Vector<RefPtr<JS::Stencil>>* stencils);
+      js::Vector<RefPtr<JS::Stencil>>* stencils);
 
   bool hasActiveThreads(const AutoLockHelperThreadState&);
   bool canStartTasks(const AutoLockHelperThreadState& locked);

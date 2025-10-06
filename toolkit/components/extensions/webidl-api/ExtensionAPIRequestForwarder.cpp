@@ -54,20 +54,20 @@ ExtensionAPIRequestForwarder::ExtensionAPIRequestForwarder(
 nsresult ExtensionAPIRequestForwarder::JSArrayToSequence(
     MCContext* aCx, JS::Handle<JS::Value> aJSValue,
     dom::Sequence<JS::Value>& aResult) {
-  bool isArray;
+  MC::SandboxStack<bool> isArray;
   MC::Rooted<JSObject*> obj(aCx, aJSValue.toObjectOrNull());
 
-  if (NS_WARN_IF(!obj || !JS::IsArrayObject(aCx, obj, &isArray))) {
+  if (NS_WARN_IF(!obj || !JS::IsArrayObject(aCx, obj, isArray))) {
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (isArray) {
-    uint32_t len;
-    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, &len))) {
+  if (*isArray.UNSAFE_unverified()) {
+    MC::SandboxStack<uint32_t> len;
+    if (NS_WARN_IF(!JS::GetArrayLength(aCx, obj, len))) {
       return NS_ERROR_UNEXPECTED;
     }
 
-    for (uint32_t i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < *len.UNSAFE_unverified(); i++) {
       MC::Rooted<JS::Value> v(aCx);
       JS_GetElement(aCx, obj, i, &v);
       if (NS_WARN_IF(!aResult.AppendElement(v, fallible))) {

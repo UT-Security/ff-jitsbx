@@ -17,7 +17,6 @@
 #include "mozilla/MemoryReporting.h"  // mozilla::MallocSizeOf
 #include "mozilla/RefPtr.h"           // RefPtr, already_AddRefed
 #include "mozilla/Utf8.h"             // mozilla::Utf8Unit
-#include "mozilla/Vector.h"           // mozilla::Vector
 
 #include <stddef.h>  // size_t
 
@@ -27,6 +26,7 @@
 #include "js/OffThreadScriptCompilation.h"  // JS::OffThreadCompileCallback
 #include "js/SourceText.h"                  // JS::SourceText
 #include "js/Transcoding.h"  // JS::TranscodeSources, JS::TranscodeBuffer, JS::TranscodeRange
+#include "js/Vector.h"           // js::Vector
 
 struct JS_PUBLIC_API JSContext;
 class JS_PUBLIC_API JSTracer;
@@ -291,7 +291,7 @@ extern JS_PUBLIC_API already_AddRefed<Stencil> FinishOffThreadStencil(
 
 extern JS_PUBLIC_API bool FinishDecodeMultiStencilsOffThread(
     JSContext* cx, OffThreadToken* token,
-    mozilla::Vector<RefPtr<Stencil>>* stencils);
+    js::Vector<RefPtr<Stencil>>* stencils);
 
 // Cancel the off-thread task to compile/decode.
 extern JS_PUBLIC_API void CancelOffThreadToken(JSContext* cx,

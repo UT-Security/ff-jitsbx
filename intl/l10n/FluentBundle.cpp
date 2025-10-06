@@ -167,10 +167,12 @@ void FluentBundle::GetMessage(const nsACString& aId,
 
 bool extendJSArrayWithErrors(MCContext* aCx, JS::Handle<JSObject*> aErrors,
                              nsTArray<nsCString>& aInput) {
-  uint32_t length;
-  if (NS_WARN_IF(!JS::GetArrayLength(aCx, aErrors, &length))) {
+  MC::SandboxStack<uint32_t> t_length;
+  if (NS_WARN_IF(!JS::GetArrayLength(aCx, aErrors, t_length))) {
     return false;
   }
+
+  uint32_t length = *t_length.UNSAFE_unverified();
 
   for (auto& err : aInput) {
     MC::Rooted<JS::Value> jsval(aCx);

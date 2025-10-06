@@ -1325,12 +1325,12 @@ static bool InitPropertyInfos(MCContext* cx, const Prefable<SpecT>* pref,
     // in the "specs" array of the relevant Prefable.
     uint32_t specIndex = 0;
     do {
-      jsid id;
+      MC::SandboxStack<jsid> id;
       if (!JS::PropertySpecNameToPermanentId(cx, ToPropertySpecName(spec->name),
-                                             &id)) {
+                                             id)) {
         return false;
       }
-      infos->SetId(id);
+      infos->SetId(*id.UNSAFE_unverified());
       infos->type = type;
       infos->prefIndex = prefIndex;
       infos->specIndex = specIndex++;

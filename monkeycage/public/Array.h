@@ -26,18 +26,8 @@ inline JSObject* NewArrayObject(MCContext* cx, size_t length) {
 }
 
 inline bool IsArrayObject(MCContext* cx, Handle<Value> value,
-                                        bool* isArray) {
- return IsArrayObject(cx->cx_, value, isArray);
-}
-
-inline bool IsArrayObject(MCContext* cx, Handle<Value> value,
                           MC::Tainted<bool*> isArray) {
   return IsArrayObject(cx->cx_, value, isArray.INTERNAL_unverified_safe());
-}
-
-inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
-                                        bool* isArray) {
- return IsArrayObject(cx->cx_, obj, isArray);
 }
 
 inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
@@ -47,13 +37,7 @@ inline bool IsArrayObject(MCContext* cx, Handle<JSObject*> obj,
 
 inline bool GetArrayLength(MCContext* cx, Handle<JSObject*> obj,
                            MC::Tainted<uint32_t*> lengthp) {
-  return GetArrayLength(cx->cx_, obj, lengthp.UNSAFE_unverified());
-}
-
-//TODO(abhishek): REMOVE
-inline bool GetArrayLength(MCContext* cx, Handle<JSObject*> obj,
-                           uint32_t* lengthp) {
-  return GetArrayLength(cx->cx_, obj, lengthp);
+  return GetArrayLength(cx->cx_, obj, lengthp.INTERNAL_unverified_safe());
 }
 
 inline bool SetArrayLength(MCContext* cx, Handle<JSObject*> obj,

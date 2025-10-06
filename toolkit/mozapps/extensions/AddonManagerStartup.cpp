@@ -781,8 +781,8 @@ AddonManagerStartup::RegisterChrome(nsIURI* manifestURI,
                                     JS::Handle<JS::Value> locations,
                                     MCContext* cx, nsIJSRAIIHelper** result) {
   auto IsArray = [cx](JS::Handle<JS::Value> val) -> bool {
-    bool isArray;
-    return JS::IsArrayObject(cx, val, &isArray) && isArray;
+    MC::SandboxStack<bool> isArray;
+    return JS::IsArrayObject(cx, val, isArray) && *isArray.UNSAFE_unverified();
   };
 
   NS_ENSURE_ARG_POINTER(manifestURI);

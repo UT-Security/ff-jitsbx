@@ -26,11 +26,11 @@ inline void SetProcessBuildIdOp(MC::SandboxCallback<BuildIdOp> buildIdOp) {
 }
 
 inline bool GetOptimizedEncodingBuildId(MC::Tainted<BuildIdCharVector*> buildId) {
- return GetOptimizedEncodingBuildId(buildId.UNSAFE_unverified());
+ return GetOptimizedEncodingBuildId(buildId.INTERNAL_unverified_safe());
 }
 
 inline bool GetScriptTranscodingBuildId(MC::Tainted<BuildIdCharVector*> buildId) {
- return GetScriptTranscodingBuildId(buildId.UNSAFE_unverified());
+ return GetScriptTranscodingBuildId(buildId.INTERNAL_unverified_safe());
 }
 }
 

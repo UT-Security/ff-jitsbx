@@ -213,17 +213,17 @@ namespace {
  */
 nsresult GetJSArrayFromJSValue(JS::Handle<JS::Value> aValue, MCContext* aCtx,
                                JS::MutableHandle<JSObject*> _array,
-                               uint32_t* _arrayLength) {
+                               MC::Tainted<uint32_t*> _arrayLength) {
   if (aValue.isObjectOrNull()) {
     MC::Rooted<JSObject*> val(aCtx, aValue.toObjectOrNull());
-    bool isArray;
-    if (!JS::IsArrayObject(aCtx, val, &isArray)) {
+    MC::SandboxStack<bool> isArray;
+    if (!JS::IsArrayObject(aCtx, val, isArray)) {
       return NS_ERROR_UNEXPECTED;
     }
-    if (isArray) {
+    if (*isArray.UNSAFE_unverified()) {
       _array.set(val);
       (void)JS::GetArrayLength(aCtx, _array, _arrayLength);
-      NS_ENSURE_ARG(*_arrayLength > 0);
+      NS_ENSURE_ARG(*_arrayLength.UNSAFE_unverified() > 0);
       return NS_OK;
     }
   }
@@ -2137,15 +2137,15 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
   NS_ENSURE_TRUE(NS_IsMainThread(), NS_ERROR_UNEXPECTED);
   NS_ENSURE_TRUE(!aPlaceInfos.isPrimitive(), NS_ERROR_INVALID_ARG);
 
-  uint32_t infosLength;
+  MC::SandboxStack<uint32_t> infosLength;
   MC::Rooted<JSObject*> infos(aCtx);
-  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, aCtx, &infos, &infosLength);
+  nsresult rv = GetJSArrayFromJSValue(aPlaceInfos, aCtx, &infos, infosLength);
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint32_t initialUpdatedCount = 0;
 
   nsTArray<VisitData> visitData;
-  for (uint32_t i = 0; i < infosLength; i++) {
+  for (uint32_t i = 0; i < *infosLength.UNSAFE_unverified(); i++) {
     MC::Rooted<JSObject*> info(aCtx);
     nsresult rv = GetJSObjectFromArray(aCtx, infos, i, &info);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -2185,26 +2185,26 @@ History::UpdatePlaces(JS::Handle<JS::Value> aPlaceInfos,
       NS_ENSURE_TRUE(rc, NS_ERROR_UNEXPECTED);
       if (!visitsVal.isPrimitive()) {
         visits = visitsVal.toObjectOrNull();
-        bool isArray;
-        if (!JS::IsArrayObject(aCtx, visits, &isArray)) {
+        MC::SandboxStack<bool> isArray;
+        if (!JS::IsArrayObject(aCtx, visits, isArray)) {
           return NS_ERROR_UNEXPECTED;
         }
-        if (!isArray) {
+        if (!*isArray.UNSAFE_unverified()) {
           return NS_ERROR_INVALID_ARG;
         }
       }
     }
     NS_ENSURE_ARG(visits);
 
-    uint32_t visitsLength = 0;
+    MC::SandboxStack<uint32_t> visitsLength = 0;
     if (visits) {
-      (void)JS::GetArrayLength(aCtx, visits, &visitsLength);
+      (void)JS::GetArrayLength(aCtx, visits, visitsLength);
     }
-    NS_ENSURE_ARG(visitsLength > 0);
+    NS_ENSURE_ARG(*visitsLength.UNSAFE_unverified() > 0);
 
     // Check each visit, and build our array of VisitData objects.
-    visitData.SetCapacity(visitData.Length() + visitsLength);
-    for (uint32_t j = 0; j < visitsLength; j++) {
+    visitData.SetCapacity(visitData.Length() + *visitsLength.UNSAFE_unverified());
+    for (uint32_t j = 0; j < *visitsLength.UNSAFE_unverified(); j++) {
       MC::Rooted<JSObject*> visit(aCtx);
       rv = GetJSObjectFromArray(aCtx, visits, j, &visit);
       NS_ENSURE_SUCCESS(rv, rv);

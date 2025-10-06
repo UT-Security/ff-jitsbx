@@ -22999,13 +22999,13 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        MC::SandboxStack<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
-                        if (aIndex > length) {
+                        if (aIndex > *length.UNSAFE_unverified()) {
                           aRv.ThrowRangeError("Invalid index");
                           return${retval};
                         }
@@ -23021,9 +23021,9 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        MC::SandboxStack<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
@@ -23032,20 +23032,20 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                     )
                 )
             ]
-            return (setupCode, "JS_SetElement", ["length", "argv[0]"], [])
+            return (setupCode, "JS_SetElement", ["*length.UNSAFE_unverified()", "argv[0]"], [])
 
         def removelastelement(self):
             setupCode = [
                 CGGeneric(
                     fill(
                         """
-                        uint32_t length;
+                        MC::SandboxStack<uint32_t> length;
                         aRv.MightThrowJSException();
-                        if (!JS::GetArrayLength(cx, backingObj, &length)) {
+                        if (!JS::GetArrayLength(cx, backingObj, length)) {
                           aRv.StealExceptionFromJSContext(cx);
                           return${retval};
                         }
-                        if (length == 0) {
+                        if (*length.UNSAFE_unverified() == 0) {
                           aRv.Throw(NS_ERROR_NOT_AVAILABLE);
                           return${retval};
                         }
@@ -23054,14 +23054,14 @@ class CGObservableArrayHelperFunctionGenerator(CGHelperFunctionGenerator):
                     )
                 )
             ]
-            return (setupCode, "JS::SetArrayLength", ["length - 1"], [])
+            return (setupCode, "JS::SetArrayLength", ["*length.UNSAFE_unverified() - 1"], [])
 
         def length(self):
             return (
-                [CGGeneric("uint32_t retVal;\n")],
+                [CGGeneric("MC::SandboxStack<uint32_t> tVal;\nuint32_t retVal;\n")],
                 "JS::GetArrayLength",
-                ["&retVal"],
-                [],
+                ["tVal"],
+                [CGGeneric("retVal = *tVal.UNSAFE_unverified();\n")],
             )
 
         def define(self):

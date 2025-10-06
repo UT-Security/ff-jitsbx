@@ -102,8 +102,8 @@ inline void GetRequestedModuleSourcePos(MCContext* cx,
                                         MC::Tainted<uint32_t*> lineNumber,
                                         MC::Tainted<uint32_t*> columnNumber) {
   return GetRequestedModuleSourcePos(cx->cx_, moduleRecord, index,
-                                     lineNumber.UNSAFE_unverified(),
-                                     columnNumber.UNSAFE_unverified());
+                                     lineNumber.INTERNAL_unverified_safe(),
+                                     columnNumber.INTERNAL_unverified_safe());
 }
 
 inline JSObject* CreateModuleRequest(MCContext* cx,

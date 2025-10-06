@@ -189,14 +189,16 @@ public:
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
 
-  inline operator Tainted<const T*, MC_Sbx>() const {
-    Tainted<const T*, MC_Sbx> ret{nullptr};
+  template<typename T2, typename = std::enable_if_t<std::is_convertible_v<T*, const T2*>, T>>
+  inline operator Tainted<const T2*, MC_Sbx>() const {
+    Tainted<const T2*, MC_Sbx> ret{nullptr};
     ret.assign_raw_pointer(data_.addr());
     return ret;
   }
   
-  inline operator Tainted<T*, MC_Sbx>() const {
-    Tainted<T*, MC_Sbx> ret{nullptr};
+  template<typename T2, typename = std::enable_if_t<std::is_convertible_v<T*, T2*>, T>>
+  inline operator Tainted<T2*, MC_Sbx>() const {
+    Tainted<T2*, MC_Sbx> ret{nullptr};
     ret.assign_raw_pointer(data_.addr());
     return ret;
   }
