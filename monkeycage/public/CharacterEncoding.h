@@ -16,18 +16,21 @@
 namespace JS {
 
 inline JS::UniqueChars EncodeNarrowToUtf8(MCContext* cx, const char* chars) {
-  return EncodeNarrowToUtf8(cx->cx_, chars);
+  char* ret = EncodeNarrowToUtf8Unsafe(cx->cx_, chars);
+  return JS::UniqueChars(ret);
 }
 
 }
 
 inline JS::UniqueChars JS_EncodeStringToLatin1(MCContext* cx, JSString* str) {
-  return JS_EncodeStringToLatin1(cx->cx_, str);
+  char* ret = JS_EncodeStringToLatin1Unsafe(cx->cx_, str);
+  return JS::UniqueChars(ret);
 }
 
 inline JS::UniqueChars JS_EncodeStringToUTF8(MCContext* cx,
                                              JS::Handle<JSString*> str) {
-  return JS_EncodeStringToUTF8(cx->cx_, str);
+  char* ret = JS_EncodeStringToUTF8Unsafe(cx->cx_, str);
+  return JS::UniqueChars(ret);
 }
 
 #endif

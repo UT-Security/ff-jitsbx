@@ -596,6 +596,11 @@ bool JS::StringIsASCII(const char* s) {
 
 bool JS::StringIsASCII(Span<const char> s) { return IsAscii(s); }
 
+JS_PUBLIC_API char* JS::EncodeNarrowToUtf8Unsafe(JSContext* cx,
+                                                        const char* chars) {
+  return EncodeNarrowToUtf8(cx, chars).release();
+}
+
 JS_PUBLIC_API JS::UniqueChars JS::EncodeNarrowToUtf8(JSContext* cx,
                                                      const char* chars) {
   // Convert the narrow multibyte character string to a wide string and then

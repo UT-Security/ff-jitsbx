@@ -347,6 +347,9 @@ extern JS_PUBLIC_API bool StringIsASCII(mozilla::Span<const char> s);
  * NOTE: Should only be used when interacting with POSIX/OS functions and not
  *       for encoding ASCII/Latin-1/etc. strings to UTF-8.
  */
+extern JS_PUBLIC_API char* EncodeNarrowToUtf8Unsafe(JSContext* cx,
+                                                        const char* chars);
+
 extern JS_PUBLIC_API JS::UniqueChars EncodeNarrowToUtf8(JSContext* cx,
                                                         const char* chars);
 
@@ -394,6 +397,9 @@ inline void JS_free(JS::UTF8CharsZ& ptr) { js_free((void*)ptr.get()); }
  * contains any nulls.  Avoid using this function if possible, because it will
  * eventually be removed.
  */
+extern JS_PUBLIC_API char* JS_EncodeStringToLatin1Unsafe(JSContext* cx,
+                                                             JSString* str);
+
 extern JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToLatin1(JSContext* cx,
                                                              JSString* str);
 
@@ -414,6 +420,9 @@ extern JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToLatin1(JSContext* cx,
  * Avoid using this function if possible, because we'll remove it once we can
  * devise a better API for the task.
  */
+extern JS_PUBLIC_API char* JS_EncodeStringToUTF8Unsafe(
+    JSContext* cx, JS::Handle<JSString*> str);
+
 extern JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToUTF8(
     JSContext* cx, JS::Handle<JSString*> str);
 
