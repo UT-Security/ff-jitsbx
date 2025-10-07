@@ -35,26 +35,6 @@ class SandboxStackPtr {
 
   inline T* operator->() const { return addr(); }
 };
-
-class SandboxStackBytes {
-  private:
-    void* bytes_;
-    size_t len_;
-
-  public:
-    SandboxStackBytes(size_t len): len_(len) {
-      bytes_ = js_malloc(len);
-    }
-
-    ~SandboxStackBytes() {
-      if (bytes_) {
-        js_free(bytes_);
-      }
-    }
-  
-    void* begin() { return bytes_; }
-    size_t size() { return len_; }
-};
 #elif defined(JS_SANDBOX_DYLIB)
 template <typename T>
 class SandboxStackPtr {
@@ -109,27 +89,6 @@ public:
   inline T* operator->() const {
     return addr();
   }
-};
-
-
-class SandboxStackBytes {
-private:
-  void* bytes_;
-  size_t len_;
-
-public:
-  SandboxStackBytes(size_t len) : len_(len) {
-    void* bytes_ = monkeycage_stackpush(sizeof(T));
-  }
-
-  ~SandboxStackBytes() {
-    if (bytes_) {
-      monkeycage_stackpop(sizeof(T), bytes_);
-    }
-  }
-
-  void* begin() { return bytes_; }
-  size_t size() { return len_; }
 };
 #else
 template <typename T>
@@ -220,9 +179,6 @@ public:
 
 template <typename T>
 using SandboxStack = Tainted<MC::detail::SandboxStackPtr<T>>;
-
-using SandboxStackBytes = MC::detail::SandboxStackBytes;
-
 }
 
 #endif

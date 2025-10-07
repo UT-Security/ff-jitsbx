@@ -66,18 +66,18 @@ inline JSString* JS_AtomizeAndPinString(MCContext* cx, const char* s) {
 inline JSString* JS_NewLatin1String(
     MCContext* cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy> chars,
     size_t length) {
-  return JS_NewLatin1String(cx->cx_, std::move(chars), length);
+  return JS_NewLatin1StringUnsafe(cx->cx_, chars.release(), length);
 }
 
 inline JSString* JS_NewUCString(MCContext* cx, JS::UniqueTwoByteChars chars,
                                 size_t length) {
-  return JS_NewUCString(cx->cx_, std::move(chars), length);
+  return JS_NewUCStringUnsafe(cx->cx_, chars.release(), length);
 }
 
 inline JSString* JS_NewUCStringDontDeflate(MCContext* cx,
                                            JS::UniqueTwoByteChars chars,
                                            size_t length) {
-  return JS_NewUCStringDontDeflate(cx->cx_, std::move(chars), length);
+  return JS_NewUCStringDontDeflateUnsafe(cx->cx_, chars.release(), length);
 }
 
 inline JSString* JS_NewUCStringCopyN(MCContext* cx, const char16_t* s,

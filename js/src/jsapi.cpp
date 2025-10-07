@@ -3054,6 +3054,12 @@ JS_PUBLIC_API JSString* JS_AtomizeAndPinStringN(JSContext* cx, const char* s,
   return atom;
 }
 
+JS_PUBLIC_API JSString* JS_NewLatin1StringUnsafe(
+    JSContext* cx, JS::Latin1Char* chars,
+    size_t length) {
+  return JS_NewLatin1String(cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy>(chars), length);
+}
+
 JS_PUBLIC_API JSString* JS_NewLatin1String(
     JSContext* cx, js::UniquePtr<JS::Latin1Char[], JS::FreePolicy> chars,
     size_t length) {
@@ -3062,12 +3068,24 @@ JS_PUBLIC_API JSString* JS_NewLatin1String(
   return NewString<CanGC>(cx, std::move(chars), length);
 }
 
+JS_PUBLIC_API JSString* JS_NewUCStringUnsafe(JSContext* cx,
+                                                    char16_t* chars,
+                                                    size_t length) {
+  return JS_NewUCString(cx, JS::UniqueTwoByteChars(chars), length);  
+}
+
 JS_PUBLIC_API JSString* JS_NewUCString(JSContext* cx,
                                        JS::UniqueTwoByteChars chars,
                                        size_t length) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
   return NewString<CanGC>(cx, std::move(chars), length);
+}
+
+JS_PUBLIC_API JSString* JS_NewUCStringDontDeflateUnsafe(JSContext* cx,
+                                                               char16_t* chars,
+                                                               size_t length) {
+  return JS_NewUCStringDontDeflate(cx, JS::UniqueTwoByteChars(chars), length);  
 }
 
 JS_PUBLIC_API JSString* JS_NewUCStringDontDeflate(JSContext* cx,
@@ -3327,12 +3345,22 @@ JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToASCII(JSContext* cx,
   return js::EncodeAscii(cx, str);
 }
 
+JS_PUBLIC_API char* JS_EncodeStringToLatin1Unsafe(JSContext* cx,
+                                                  JSString* str) {
+  return JS_EncodeStringToLatin1(cx, str).release();
+}
+
 JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToLatin1(JSContext* cx,
                                                       JSString* str) {
   AssertHeapIsIdle();
   CHECK_THREAD(cx);
 
   return js::EncodeLatin1(cx, str);
+}
+
+JS_PUBLIC_API char* JS_EncodeStringToUTF8Unsafe(JSContext* cx,
+                                                    HandleString str) {
+  return JS_EncodeStringToUTF8(cx, str).release();
 }
 
 JS_PUBLIC_API JS::UniqueChars JS_EncodeStringToUTF8(JSContext* cx,
