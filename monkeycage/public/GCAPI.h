@@ -232,6 +232,11 @@ inline void JS_RemoveWeakPointerCompartmentCallback(
 }
 
 inline bool JS_UpdateWeakPointerAfterGC(MC::Tainted<JSTracer*> trc,
+                                        MC::Heap<JSObject*>* objp) {
+  return JS_UpdateWeakPointerAfterGC(trc.INTERNAL_unverified_safe(), objp->INTERNAL_unverified_safe());
+}
+
+inline bool JS_UpdateWeakPointerAfterGC(MC::Tainted<JSTracer*> trc,
                                         JS::Heap<JSObject*>* objp) {
   return JS_UpdateWeakPointerAfterGC(trc.INTERNAL_unverified_safe(), objp);
 }

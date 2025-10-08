@@ -98,11 +98,11 @@
 #include "xpcpublic.h"
 #include "js/HashTable.h"
 #include "monkeycage/Id.h"
-#include "js/GCHashTable.h"
-#include "js/Object.h"              // JS::GetClass, JS::GetCompartment
-#include "js/PropertyAndElement.h"  // JS_DefineProperty
+#include "monkeycage/GCHashTable.h"
+#include "monkeycage/Object.h"              // JS::GetClass, JS::GetCompartment
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Sandbox.h"
-#include "js/TracingAPI.h"
+#include "monkeycage/TracingAPI.h"
 #include "js/WeakMapPtr.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
@@ -586,12 +586,12 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   struct MapEntryGCPolicy {
     static bool traceWeak(JSTracer* trc,
                           RefPtr<mozilla::BasePrincipal>* /* unused */,
-                          JS::Heap<JSObject*>* value) {
-      return JS::GCPolicy<JS::Heap<JSObject*>>::traceWeak(trc, value);
+                          MC::Heap<JSObject*>* value) {
+      return JS::GCPolicy<MC::Heap<JSObject*>>::traceWeak(trc, value);
     }
   };
 
-  typedef JS::GCHashMap<RefPtr<mozilla::BasePrincipal>, JS::Heap<JSObject*>,
+  typedef JS::GCHashMap<RefPtr<mozilla::BasePrincipal>, MC::Heap<JSObject*>,
                         Hasher, js::SystemAllocPolicy, MapEntryGCPolicy>
       Principal2JSObjectMap;
 
@@ -810,9 +810,9 @@ class XPCWrappedNativeScope final
   static void TraceWrappedNativesInAllScopes(XPCJSRuntime* xpcrt,
                                              MC::Tainted<JSTracer*> trc);
 
-  void TraceInside(JSTracer* trc) {
+  void TraceInside(MC::Tainted<JSTracer*> trc) {
     if (mXrayExpandos.initialized()) {
-      mXrayExpandos.trace(trc);
+      mXrayExpandos.trace(trc.UNSAFE_unverified());
     }
     JS::TraceEdge(trc, &mIDProto, "XPCWrappedNativeScope::mIDProto");
     JS::TraceEdge(trc, &mIIDProto, "XPCWrappedNativeScope::mIIDProto");
@@ -868,9 +868,9 @@ class XPCWrappedNativeScope final
   bool AllowContentXBLScope(JS::Realm* aRealm);
 
   // ID Object prototype caches.
-  JS::Heap<JSObject*> mIDProto;
-  JS::Heap<JSObject*> mIIDProto;
-  JS::Heap<JSObject*> mCIDProto;
+  MC::Heap<JSObject*> mIDProto;
+  MC::Heap<JSObject*> mIIDProto;
+  MC::Heap<JSObject*> mCIDProto;
 
  protected:
   XPCWrappedNativeScope() = delete;
@@ -1223,7 +1223,7 @@ class XPCWrappedNativeProto final {
 
   void TraceSelf(MC::Tainted<JSTracer*> trc) {
     if (mJSProtoObject) {
-      TraceEdge(trc, &mJSProtoObject, "XPCWrappedNativeProto::mJSProtoObject");
+      JS::TraceEdge(trc, &mJSProtoObject, "XPCWrappedNativeProto::mJSProtoObject");
     }
   }
 
@@ -1253,7 +1253,7 @@ class XPCWrappedNativeProto final {
 
  private:
   XPCWrappedNativeScope* mScope;
-  JS::Heap<JSObject*> mJSProtoObject;
+  MC::Heap<JSObject*> mJSProtoObject;
   nsCOMPtr<nsIClassInfo> mClassInfo;
   RefPtr<XPCNativeSet> mSet;
   nsCOMPtr<nsIXPCScriptable> mScriptable;
@@ -1712,7 +1712,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
                                nsXPTCMiniVariant* nativeParams, bool inOutOnly,
                                uint8_t count);
 
-  JS::Heap<JSObject*> mJSObj;
+  MC::Heap<JSObject*> mJSObj;
   const nsXPTInterfaceInfo* const mInfo;
   nsXPCWrappedJS* mRoot;  // If mRoot != this, it is an owning pointer.
   nsXPCWrappedJS* mNext;
@@ -2153,7 +2153,7 @@ class XPCVariant : public nsIVariant {
   void Cleanup();
 
   nsDiscriminatedUnion mData;
-  JS::Heap<JS::Value> mJSVal;
+  MC::Heap<JS::Value> mJSVal;
   bool mReturnRawObject;
 };
 
@@ -2628,12 +2628,12 @@ class CompartmentPrivate {
 
   struct MapEntryGCPolicy {
     static bool traceWeak(JSTracer* trc, const void* /* unused */,
-                          JS::Heap<JSObject*>* value) {
-      return JS::GCPolicy<JS::Heap<JSObject*>>::traceWeak(trc, value);
+                          MC::Heap<JSObject*>* value) {
+      return JS::GCPolicy<MC::Heap<JSObject*>>::traceWeak(trc, value);
     }
   };
 
-  typedef JS::GCHashMap<const void*, JS::Heap<JSObject*>,
+  typedef JS::GCHashMap<const void*, MC::Heap<JSObject*>,
                         mozilla::PointerHasher<const void*>,
                         js::SystemAllocPolicy, MapEntryGCPolicy>
       RemoteProxyMap;

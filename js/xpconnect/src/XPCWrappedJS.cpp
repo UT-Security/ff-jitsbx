@@ -150,7 +150,7 @@ NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN(nsXPCWrappedJS)
   // See the comment at the top of this file for the explanation of
   // the weird tracing condition.
   if (!tmp->IsSubjectToFinalization()) {
-    NS_IMPL_CYCLE_COLLECTION_TRACE_JS_MEMBER_CALLBACK(mJSObj)
+    NS_IMPL_CYCLE_COLLECTION_TRACE_MC_MEMBER_CALLBACK(mJSObj)
   }
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 

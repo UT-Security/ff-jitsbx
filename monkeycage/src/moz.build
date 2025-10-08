@@ -358,6 +358,8 @@ EXPORTS.monkeycage += [
 	"../public/Exception.h",
 	"../public/ForOfIterator.h",
 	"../public/GCAPI.h",
+	"../public/GCHashTable.h",
+	"../public/GCPolicyAPI.h",
 	"../public/GCVector.h",
 	"../public/GlobalObject.h",
 	"../public/Id.h",
