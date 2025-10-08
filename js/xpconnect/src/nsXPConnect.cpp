@@ -432,7 +432,7 @@ void xpc::TraceXPCGlobal(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> t_ob
   // been able to set up the compartment private.
   if (xpc::CompartmentPrivate* priv = xpc::CompartmentPrivate::Get(obj)) {
     MOZ_ASSERT(priv->GetScope());
-    priv->GetScope()->TraceInside(trc.UNSAFE_unverified());
+    priv->GetScope()->TraceInside(trc);
   }
 }
 

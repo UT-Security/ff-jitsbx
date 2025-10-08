@@ -11,6 +11,7 @@
 
 #ifdef JS_SANDBOX
 
+#include "monkeycage/RootingAPI.h"
 #include "js/sandbox/TracingAPI.h"
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/Tainted.h"
@@ -75,6 +76,12 @@ template <typename T>
 inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::Heap<T>* thingp,
                       const char* name) {
   return TraceEdge(trc.INTERNAL_unverified_safe(), thingp, name);
+}
+
+template <typename T>
+inline void TraceEdge(MC::Tainted<JSTracer*> trc, MC::Heap<T>* thingp,
+                      const char* name) {
+  return TraceEdge(trc.INTERNAL_unverified_safe(), thingp->INTERNAL_unverified_safe(), name);
 }
 
 template <typename T>

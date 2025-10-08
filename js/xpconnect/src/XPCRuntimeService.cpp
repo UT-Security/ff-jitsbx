@@ -68,13 +68,14 @@ BackstagePass::Resolve(nsIXPConnectWrappedNative* wrapper, MCContext* cx,
                        bool* _retval) {
   MC::RootedObject obj(cx, objArg);
   MC::RootedId id(cx, idArg);
-  MC::Tainted<bool*> t_resolvedp;
-  t_resolvedp.assign_raw_pointer(resolvedp);
+  MC::SandboxStack<bool> t_resolvedp;
   *_retval =
       WebIDLGlobalNameHash::ResolveForSystemGlobal(cx, obj, id, t_resolvedp);
   if (!*_retval) {
     return NS_ERROR_FAILURE;
   }
+
+  *resolvedp = *t_resolvedp.UNSAFE_unverified();
 
   if (*resolvedp) {
     return NS_OK;
