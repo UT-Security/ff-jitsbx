@@ -12,8 +12,8 @@
 #include "ModuleLoaderBase.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/MozPromise.h"
-#include "js/RootingAPI.h"
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Value.h"
 #include "nsURIHashKey.h"
 #include "nsTHashtable.h"
 

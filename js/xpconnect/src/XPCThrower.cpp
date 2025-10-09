@@ -9,7 +9,7 @@
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 #include "monkeycage/CharacterEncoding.h"
-#include "js/Printf.h"
+#include "monkeycage/Printf.h"
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/DOMException.h"
 #include "mozilla/dom/Exceptions.h"
@@ -119,9 +119,9 @@ void XPCThrower::ThrowBadResult(nsresult rv, nsresult result,
 
   if (nsXPCException::NameAndFormatForNSResult(result, &name, nullptr) &&
       name) {
-    sz = JS_smprintf("%s 0x%x (%s)", format, (unsigned)result, name).release();
+    sz = MC_smprintf("%s 0x%x (%s)", format, (unsigned)result, name).release();
   } else {
-    sz = JS_smprintf("%s 0x%x", format, (unsigned)result).release();
+    sz = MC_smprintf("%s 0x%x", format, (unsigned)result).release();
   }
   NS_ENSURE_TRUE_VOID(sz);
 
@@ -146,7 +146,7 @@ void XPCThrower::ThrowBadParam(nsresult rv, unsigned paramNum,
     format = "";
   }
 
-  sz = JS_smprintf("%s arg %d", format, paramNum).release();
+  sz = MC_smprintf("%s arg %d", format, paramNum).release();
   NS_ENSURE_TRUE_VOID(sz);
 
   if (sz && sVerbose) {
@@ -176,7 +176,7 @@ void XPCThrower::Verbosify(XPCCallContext& ccx, char** psz, bool own) {
       name = "Unknown";
     }
     sz =
-        JS_smprintf("%s [%s.%s]", *psz, iface->GetNameString(), name).release();
+        MC_smprintf("%s [%s.%s]", *psz, iface->GetNameString(), name).release();
   }
 
   if (sz) {

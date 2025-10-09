@@ -12,8 +12,21 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Utility.h"
 
 namespace JS {
+
+inline size_t DeflateStringToUTF8BufferWithSbxCopy(JSLinearString* src,
+                                               mozilla::Span<char> dst) {
+  char* sbx_dst = (char*)js_malloc(dst.LengthBytes());
+  if (!sbx_dst) return false;
+
+  size_t written = DeflateStringToUTF8Buffer(src, mozilla::Span<char>{sbx_dst, dst.Length()});
+  memcpy(dst.Elements(), sbx_dst, dst.LengthBytes());
+  js_free(sbx_dst);
+
+  return written;
+}
 
 inline JS::UniqueChars EncodeNarrowToUtf8(MCContext* cx, const char* chars) {
   char* ret = EncodeNarrowToUtf8Unsafe(cx->cx_, chars);

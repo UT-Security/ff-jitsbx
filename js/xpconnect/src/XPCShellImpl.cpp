@@ -12,7 +12,7 @@
 #include "monkeycage/CharacterEncoding.h"
 #include "monkeycage/CompilationAndEvaluation.h"  // JS::Evaluate
 #include "monkeycage/ContextOptions.h"
-#include "js/Printf.h"
+#include "monkeycage/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineFunctions, JS_DefineProperty
 #include "js/PropertySpec.h"
 #include "monkeycage/SourceText.h"  // JS::SourceText
@@ -532,7 +532,7 @@ static MC::Tainted<bool> Options(MC::Tainted<JSContext*> t_cx, unsigned argc, MC
 
   UniqueChars names;
   if (names && oldContextOptions.strictMode()) {
-    names = JS_sprintf_append(std::move(names), "%s%s", names ? "," : "",
+    names = MC_sprintf_append(std::move(names), "%s%s", names ? "," : "",
                               "strict_mode");
     if (!names) {
       JS_ReportOutOfMemory(cx);

@@ -16,7 +16,7 @@
 #include "mozilla/Unused.h"
 #include "mozilla/Utf8.h"  // mozilla::Utf8Unit
 
-#include "js/OffThreadScriptCompilation.h"
+#include "monkeycage/OffThreadScriptCompilation.h"
 #include "monkeycage/SourceText.h"
 
 #include "ModuleLoadRequest.h"

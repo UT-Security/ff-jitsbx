@@ -586,12 +586,12 @@ class XPCJSRuntime final : public mozilla::CycleCollectedJSRuntime {
   struct MapEntryGCPolicy {
     static bool traceWeak(JSTracer* trc,
                           RefPtr<mozilla::BasePrincipal>* /* unused */,
-                          MC::Heap<JSObject*>* value) {
-      return JS::GCPolicy<MC::Heap<JSObject*>>::traceWeak(trc, value);
+                          JS::Heap<JSObject*>* value) {
+      return JS::GCPolicy<JS::Heap<JSObject*>>::traceWeak(trc, value);
     }
   };
 
-  typedef JS::GCHashMap<RefPtr<mozilla::BasePrincipal>, MC::Heap<JSObject*>,
+  typedef JS::GCHashMap<RefPtr<mozilla::BasePrincipal>, JS::Heap<JSObject*>,
                         Hasher, js::SystemAllocPolicy, MapEntryGCPolicy>
       Principal2JSObjectMap;
 
@@ -868,9 +868,9 @@ class XPCWrappedNativeScope final
   bool AllowContentXBLScope(JS::Realm* aRealm);
 
   // ID Object prototype caches.
-  MC::Heap<JSObject*> mIDProto;
-  MC::Heap<JSObject*> mIIDProto;
-  MC::Heap<JSObject*> mCIDProto;
+  JS::Heap<JSObject*> mIDProto;
+  JS::Heap<JSObject*> mIIDProto;
+  JS::Heap<JSObject*> mCIDProto;
 
  protected:
   XPCWrappedNativeScope() = delete;
@@ -1253,7 +1253,7 @@ class XPCWrappedNativeProto final {
 
  private:
   XPCWrappedNativeScope* mScope;
-  MC::Heap<JSObject*> mJSProtoObject;
+  JS::Heap<JSObject*> mJSProtoObject;
   nsCOMPtr<nsIClassInfo> mClassInfo;
   RefPtr<XPCNativeSet> mSet;
   nsCOMPtr<nsIXPCScriptable> mScriptable;
@@ -1712,7 +1712,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
                                nsXPTCMiniVariant* nativeParams, bool inOutOnly,
                                uint8_t count);
 
-  MC::Heap<JSObject*> mJSObj;
+  JS::Heap<JSObject*> mJSObj;
   const nsXPTInterfaceInfo* const mInfo;
   nsXPCWrappedJS* mRoot;  // If mRoot != this, it is an owning pointer.
   nsXPCWrappedJS* mNext;
@@ -2153,7 +2153,7 @@ class XPCVariant : public nsIVariant {
   void Cleanup();
 
   nsDiscriminatedUnion mData;
-  MC::Heap<JS::Value> mJSVal;
+  JS::Heap<JS::Value> mJSVal;
   bool mReturnRawObject;
 };
 
@@ -2628,12 +2628,12 @@ class CompartmentPrivate {
 
   struct MapEntryGCPolicy {
     static bool traceWeak(JSTracer* trc, const void* /* unused */,
-                          MC::Heap<JSObject*>* value) {
-      return JS::GCPolicy<MC::Heap<JSObject*>>::traceWeak(trc, value);
+                          JS::Heap<JSObject*>* value) {
+      return JS::GCPolicy<JS::Heap<JSObject*>>::traceWeak(trc, value);
     }
   };
 
-  typedef JS::GCHashMap<const void*, MC::Heap<JSObject*>,
+  typedef JS::GCHashMap<const void*, JS::Heap<JSObject*>,
                         mozilla::PointerHasher<const void*>,
                         js::SystemAllocPolicy, MapEntryGCPolicy>
       RemoteProxyMap;

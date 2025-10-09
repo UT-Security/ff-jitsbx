@@ -28,8 +28,8 @@
 #include "monkeycage/friend/JSMEnvironment.h"  // JS::ExecuteInJSMEnvironment, JS::GetJSMEnvironmentOfScriptedCaller, JS::NewJSMEnvironment
 #include "js/friend/ErrorMessages.h"   // JSMSG_*
 #include "js/loader/ModuleLoadRequest.h"
-#include "js/Object.h"  // JS::GetCompartment
-#include "js/Printf.h"
+#include "monkeycage/Object.h"  // JS::GetCompartment
+#include "monkeycage/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineFunctions, JS_DefineProperty, JS_Enumerate, JS_GetElement, JS_GetProperty, JS_GetPropertyById, JS_HasOwnProperty, JS_HasOwnPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "js/PropertySpec.h"
 #include "monkeycage/SourceText.h"  // JS::SourceText
@@ -258,13 +258,13 @@ static nsresult MOZ_FORMAT_PRINTF(2, 3)
   va_list ap;
   va_start(ap, format);
 
-  UniqueChars buf = JS_vsmprintf(format, ap);
+  UniqueChars buf = MC_vsmprintf(format, ap);
   if (!buf) {
     va_end(ap);
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  JS_ReportErrorUTF8(MC_UNSAFE(callerContext), "%s", buf.get());
+  JS_ReportErrorUTF8(callerContext, "%s", buf.get());
 
   va_end(ap);
   return NS_OK;
@@ -402,7 +402,7 @@ static nsresult ReportOnCallerUTF8(JSCLContextHelper& helper,
   nsCString location;
   MOZ_TRY(info.GetLocation(location));
 
-  UniqueChars buf = JS_smprintf(format, location.get(), args...);
+  UniqueChars buf = MC_smprintf(format, location.get(), args...);
   if (!buf) {
     return NS_ERROR_OUT_OF_MEMORY;
   }

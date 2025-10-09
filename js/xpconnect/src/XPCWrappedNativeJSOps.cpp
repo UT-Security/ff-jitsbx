@@ -15,7 +15,7 @@
 #include "monkeycage/Class.h"
 #include "monkeycage/Id.h"
 #include "monkeycage/Object.h"  // JS::GetClass
-#include "js/Printf.h"
+#include "monkeycage/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty, JS_DefinePropertyById, JS_GetProperty, JS_GetPropertyById
 #include "monkeycage/Symbol.h"
 
@@ -52,7 +52,7 @@ static bool ToStringGuts(XPCCallContext& ccx) {
   if (wrapper) {
     sz.reset(wrapper->ToString(ccx.GetTearOff()));
   } else {
-    sz = JS_smprintf("[xpconnect wrapped native prototype]");
+    sz = MC_smprintf("[xpconnect wrapped native prototype]");
   }
 
   if (!sz) {
