@@ -14,7 +14,7 @@
 #include "monkeycage/experimental/TypedData.h"  // JS_GetTypedArrayLength, JS_IsTypedArrayObject
 #include "monkeycage/MemoryFunctions.h"
 #include "monkeycage/Object.h"  // JS::GetPrivate, JS::SetPrivate, JS::SetReservedSlot
-#include "js/Printf.h"
+#include "monkeycage/Printf.h"
 #include "monkeycage/PropertyAndElement.h"  // JS_GetProperty, JS_GetPropertyById, JS_SetProperty, JS_SetPropertyById
 #include "mcfriendapi.h"
 #include "monkeycage/Value.h"
@@ -1737,11 +1737,11 @@ char* XPCWrappedNative::ToString(
 
   nsCOMPtr<nsIXPCScriptable> scr = GetScriptable();
   if (scr) {
-    name = JS_smprintf("%s", scr->GetJSClass()->name);
+    name = MC_smprintf("%s", scr->GetJSClass()->name);
   }
   if (to) {
     const char* fmt = name ? " (%s)" : "%s";
-    name = JS_sprintf_append(std::move(name), fmt,
+    name = MC_sprintf_append(std::move(name), fmt,
                              to->GetInterface()->GetNameString());
   } else if (!name) {
     XPCNativeSet* set = GetSet();
@@ -1754,17 +1754,17 @@ char* XPCWrappedNative::ToString(
     // The first interface is always nsISupports, so don't print it, unless
     // there are no others.
     if (count == 1) {
-      name = JS_sprintf_append(std::move(name), "nsISupports");
+      name = MC_sprintf_append(std::move(name), "nsISupports");
     } else if (count == 2) {
       name =
-          JS_sprintf_append(std::move(name), "%s", array[1]->GetNameString());
+          MC_sprintf_append(std::move(name), "%s", array[1]->GetNameString());
     } else {
       for (uint16_t i = 1; i < count; i++) {
         const char* fmt = (i == 1)           ? "(%s"
                           : (i == count - 1) ? ", %s)"
                                              : ", %s";
         name =
-            JS_sprintf_append(std::move(name), fmt, array[i]->GetNameString());
+            MC_sprintf_append(std::move(name), fmt, array[i]->GetNameString());
       }
     }
   }
@@ -1778,7 +1778,7 @@ char* XPCWrappedNative::ToString(
     fmt = "[object %s" FMT_ADDR FMT_STR(" (native") FMT_ADDR FMT_STR(")") "]";
   }
   sz =
-      JS_smprintf(fmt, name.get() PARAM_ADDR(this) PARAM_ADDR(mIdentity.get()));
+      MC_smprintf(fmt, name.get() PARAM_ADDR(this) PARAM_ADDR(mIdentity.get()));
 
   return sz.release();
 

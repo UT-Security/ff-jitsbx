@@ -79,12 +79,6 @@ inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::Heap<T>* thingp,
 }
 
 template <typename T>
-inline void TraceEdge(MC::Tainted<JSTracer*> trc, MC::Heap<T>* thingp,
-                      const char* name) {
-  return TraceEdge(trc.INTERNAL_unverified_safe(), thingp->INTERNAL_unverified_safe(), name);
-}
-
-template <typename T>
 inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::TenuredHeap<T>* thingp,
                       const char* name) {
   return TraceEdge(trc.INTERNAL_unverified_safe(), thingp, name);

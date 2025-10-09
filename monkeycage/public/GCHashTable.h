@@ -11,7 +11,7 @@
 
 #ifdef JS_SANDBOX
 
-#include "monkeycage/GCPolicyAPI.h"
+//#include "monkeycage/GCPolicyAPI.h"
 #include "monkeycage/RootingAPI.h"
 
 #endif

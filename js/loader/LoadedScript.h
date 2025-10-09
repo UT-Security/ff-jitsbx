@@ -9,7 +9,7 @@
 
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
-#include "jsapi.h"
+#include "mcapi.h"
 #include "ScriptLoadRequest.h"
 
 class nsIURI;
