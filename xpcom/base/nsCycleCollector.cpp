@@ -2527,6 +2527,15 @@ class SnowWhiteKiller : public TraceCallbacks {
     }
   }
 
+  virtual void Trace(MC::Heap<JS::Value>* aValue, const char* aName,
+                     void* aClosure) const override {
+    const JS::Value& val = aValue->unbarrieredGet();
+    if (val.isGCThing() && ValueIsGrayCCThing(val)) {
+      MOZ_ASSERT(!js::gc::IsInsideNursery(val.toGCThing()));
+      mCollector->GetJSPurpleBuffer()->mValues.InfallibleAppend(val);
+    }
+  }
+
   virtual void Trace(JS::Heap<jsid>* aId, const char* aName,
                      void* aClosure) const override {}
 
@@ -2538,6 +2547,11 @@ class SnowWhiteKiller : public TraceCallbacks {
   }
 
   virtual void Trace(JS::Heap<JSObject*>* aObject, const char* aName,
+                     void* aClosure) const override {
+    AppendJSObjectToPurpleBuffer(aObject->unbarrieredGet());
+  }
+
+  virtual void Trace(MC::Heap<JSObject*>* aObject, const char* aName,
                      void* aClosure) const override {
     AppendJSObjectToPurpleBuffer(aObject->unbarrieredGet());
   }

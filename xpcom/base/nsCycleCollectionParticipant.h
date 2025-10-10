@@ -143,6 +143,13 @@ template <typename T>
 class TenuredHeap;
 } /* namespace JS */
 
+namespace MC {
+template <class T>
+class Heap;
+//template <typename T>
+//class TenuredHeap;
+} /* namespace MC */
+
 /*
  * A struct defining pure virtual methods which are called when tracing cycle
  * collection paticipants.  The appropriate method is called depending on the
@@ -151,9 +158,13 @@ class TenuredHeap;
 struct TraceCallbacks {
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const = 0;
@@ -179,9 +190,13 @@ struct TraceCallbackFunc : public TraceCallbacks {
 
   virtual void Trace(JS::Heap<JS::Value>* aPtr, const char* aName,
                      void* aClosure) const override;
+  virtual void Trace(MC::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const override;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override;
+  virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const override;

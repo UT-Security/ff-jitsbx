@@ -1300,11 +1300,19 @@ struct JsGcTracer : public TraceCallbacks {
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
+  virtual void Trace(MC::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
+  virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
@@ -1388,6 +1396,13 @@ struct CheckZoneTracer : public TraceCallbacks {
       checkZone(JS::GetGCThingZone(value.toGCCellPtr()), aName);
     }
   }
+  virtual void Trace(MC::Heap<JS::Value>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::Value value = aPtr->unbarrieredGet();
+    if (value.isGCThing()) {
+      checkZone(JS::GetGCThingZone(value.toGCCellPtr()), aName);
+    }
+  }
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override {
     jsid id = aPtr->unbarrieredGet();
@@ -1396,6 +1411,13 @@ struct CheckZoneTracer : public TraceCallbacks {
     }
   }
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JSObject* obj = aPtr->unbarrieredGet();
+    if (obj) {
+      checkZone(js::GetObjectZoneFromAnyThread(obj), aName);
+    }
+  }
+  virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JSObject* obj = aPtr->unbarrieredGet();
     if (obj) {
@@ -1531,11 +1553,21 @@ struct ClearJSHolder : public TraceCallbacks {
     aPtr->setUndefined();
   }
 
+  virtual void Trace(MC::Heap<JS::Value>* aPtr, const char*,
+                     void*) const override {
+    aPtr->setUndefined();
+  }
+
   virtual void Trace(JS::Heap<jsid>* aPtr, const char*, void*) const override {
     *aPtr = JS::PropertyKey::Void();
   }
 
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char*,
+                     void*) const override {
+    *aPtr = nullptr;
+  }
+
+  virtual void Trace(MC::Heap<JSObject*>* aPtr, const char*,
                      void*) const override {
     *aPtr = nullptr;
   }
