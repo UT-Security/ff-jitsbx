@@ -6,8 +6,8 @@
 
 #include "gtest/gtest.h"
 
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Promise.h"
 #include "mozilla/dom/Promise-inl.h"
 #include "xpcpublic.h"
@@ -31,11 +31,19 @@ struct DummyCallbacks final : public TraceCallbacks {
     static_cast<TraceCounts*>(aClosure)->mValue++;
   }
 
+  void Trace(MC::Heap<JS::Value>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mValue++;
+  }
+
   void Trace(JS::Heap<jsid>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mId++;
   }
 
   void Trace(JS::Heap<JSObject*>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mObject++;
+  }
+
+  void Trace(MC::Heap<JSObject*>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mObject++;
   }
 

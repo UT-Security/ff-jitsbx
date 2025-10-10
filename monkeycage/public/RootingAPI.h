@@ -27,6 +27,121 @@ class PersistentRooted;
 namespace MC {
 
 template <typename T>
+class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
+  // Please note: this can actually also be used by nsXBLMaybeCompiled<T>, for
+  // legacy reasons.
+  static_assert(js::IsHeapConstructibleType<T>::value,
+                "Type T must be a public GC pointer type");
+
+ public:
+  using ElementType = T;
+
+  Heap() : ptr(JS::SafelyInitialized<T>::create()) {
+    // No barriers are required for initialization to the default value.
+    static_assert(sizeof(T) == sizeof(Heap<T>),
+                  "Heap<T> must be binary compatible with T.");
+  }
+  explicit Heap(const T& p) : ptr(p) {
+    postWriteBarrier(JS::SafelyInitialized<T>::create(), ptr);
+  }
+
+  /*
+   * For Heap, move semantics are equivalent to copy semantics. However, we want
+   * the copy constructor to be explicit, and an explicit move constructor
+   * breaks common usage of move semantics, so we need to define both, even
+   * though they are equivalent.
+   */
+  explicit Heap(const Heap<T>& other) : ptr(other.getWithoutExpose()) {
+    postWriteBarrier(JS::SafelyInitialized<T>::create(), ptr);
+  }
+  Heap(Heap<T>&& other) : ptr(other.getWithoutExpose()) {
+    postWriteBarrier(JS::SafelyInitialized<T>::create(), ptr);
+  }
+
+  Heap& operator=(Heap<T>&& other) {
+    set(other.getWithoutExpose());
+    other.set(JS::SafelyInitialized<T>::create());
+    return *this;
+  }
+
+  ~Heap() { postWriteBarrier(ptr, JS::SafelyInitialized<T>::create()); }
+
+  DECLARE_POINTER_CONSTREF_OPS(T);
+  DECLARE_POINTER_ASSIGN_OPS(Heap, T);
+
+  const T* address() const { return &ptr; }
+
+  void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(ptr); }
+
+  const T& get() const {
+    exposeToActiveJS();
+    return ptr;
+  }
+  const T& getWithoutExpose() const {
+    js::BarrierMethods<T>::readBarrier(ptr);
+    return ptr;
+  }
+  const T& unbarrieredGet() const { return ptr; }
+
+  void set(const T& newPtr) {
+    T tmp = ptr;
+    ptr = newPtr;
+    postWriteBarrier(tmp, ptr);
+  }
+
+  T* unsafeGet() { return &ptr; }
+
+  void unbarrieredSet(const T& newPtr) { ptr = newPtr; }
+
+  explicit operator bool() const {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+  }
+  explicit operator bool() {
+    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+  }
+
+ private:
+  void postWriteBarrier(const T& prev, const T& next) {
+    js::BarrierMethods<T>::postWriteBarrier(&ptr, prev, next);
+  }
+
+  T ptr;
+};
+
+}  // namespace MC
+
+namespace JS {
+namespace detail {
+
+template <typename T>
+struct DefineComparisonOps<MC::Heap<T>> : std::true_type {
+  static const T& get(const MC::Heap<T>& v) { return v.unbarrieredGet(); }
+};
+
+}  // namespace detail
+
+static MOZ_ALWAYS_INLINE bool ObjectIsTenured(const MC::Heap<JSObject*>& obj) {
+  return ObjectIsTenured(obj.unbarrieredGet());
+}
+
+static MOZ_ALWAYS_INLINE bool ObjectIsMarkedGray(
+    const MC::Heap<JSObject*>& obj) {
+  return ObjectIsMarkedGray(obj.unbarrieredGet());
+}
+
+#ifdef DEBUG
+inline void AssertObjectIsNotGray(const MC::Heap<JSObject*>& obj) {
+  AssertObjectIsNotGray(obj.unbarrieredGet());
+}
+#else
+inline void AssertObjectIsNotGray(const MC::Heap<JSObject*>& obj) {}
+#endif
+
+}  // namespace JS
+
+namespace MC {
+
+template <typename T>
 class MOZ_STACK_CLASS MutableHandle
     : public js::MutableHandleOperations<T, MutableHandle<T>> {
 
@@ -73,6 +188,49 @@ class MOZ_STACK_CLASS MutableHandle
   T* ptr;
 };
 }  // namespace MC
+
+namespace js {
+
+template <typename T>
+struct JS_PUBLIC_API StableCellHasher<MC::Heap<T>> {
+  using Key = MC::Heap<T>;
+  using Lookup = T;
+
+  static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_LFI
+    HashNumber* t_hashOut = monkeycage_stackpush(sizeof(HashNumber));
+#else
+    HashNumber* t_hashOut = hashOut;
+#endif
+    bool ret = StableCellHasher<T>::maybeGetHash(l, t_hashOut);
+#ifdef JS_SANDBOX_LFI
+    *hashOut = *t_hashOut;
+    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+#endif
+    return ret;
+  }
+  static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_LFI
+    HashNumber* t_hashOut = monkeycage_stackpush(sizeof(HashNumber));
+#else
+    HashNumber* t_hashOut = hashOut;
+#endif
+    bool ret = StableCellHasher<T>::ensureHash(l, t_hashOut);
+#ifdef JS_SANDBOX_LFI
+    *hashOut = *t_hashOut;
+    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+#endif
+    return ret;
+  }
+  static HashNumber hash(const Lookup& l) {
+    return StableCellHasher<T>::hash(l);
+  }
+  static bool match(const Key& k, const Lookup& l) {
+    return StableCellHasher<T>::match(k.unbarrieredGet(), l);
+  }
+};
+
+}
 
 struct MCContext;
 struct MCRuntime;

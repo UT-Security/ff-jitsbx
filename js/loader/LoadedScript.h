@@ -70,9 +70,9 @@ class EventScript final : public LoadedScript {
 // A single module script. May be used to satisfy multiple load requests.
 
 class ModuleScript final : public LoadedScript {
-  JS::Heap<JSObject*> mModuleRecord;
-  JS::Heap<JS::Value> mParseError;
-  JS::Heap<JS::Value> mErrorToRethrow;
+  MC::Heap<JSObject*> mModuleRecord;
+  MC::Heap<JS::Value> mParseError;
+  MC::Heap<JS::Value> mErrorToRethrow;
   bool mDebuggerDataInitialized;
 
   ~ModuleScript();

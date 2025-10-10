@@ -13,13 +13,6 @@
 #include "mcapi.h"
 #include "monkeycage/Sandbox.h"
 
-template <typename Base, typename T>
-inline void mc::TypedRootedGCThingBase<Base, T>::trace(JSTracer* trc,
-                                                   const char* name) {
-  auto* self = this->template derived<T>();
-  JS::TraceRoot(trc, self->addr(), name);
-}
-
 static inline void TraceExactStackRootTraceableList(JSTracer* trc,
                                                     mc::StackRootedBase* listHead,
                                                     const char* name) {
