@@ -1198,6 +1198,17 @@ typedef void (*JSSandboxClearPersistentRootsCallback)(void* data);
 
 extern JS_PUBLIC_API void JS_SetSandboxClearPersistentRootsCallback(
     JSContext* cx, JSSandboxClearPersistentRootsCallback cb, void* data);
+
+struct JSExternalStoreBufferCallbacks {
+ bool (*enable)(JSRuntime* rt);
+ void (*disable)(JSRuntime* rt);
+ void (*trace)(JSTracer* trc, JSRuntime* rt);
+ void (*clear)(JSRuntime* rt);
+ bool (*isEmpty)(JSRuntime* rt);
+};
+
+extern JS_PUBLIC_API void JS_SetExternalStoreBufferCallbacks(
+    JSContext* cx, JSExternalStoreBufferCallbacks cb);
 #endif
 
 extern JS_PUBLIC_API void JS_GC(JSContext* cx,

@@ -77,12 +77,12 @@ public:
   Tainted() = default;
   
   template <typename... Args>
-  Tainted(MCContext* cx, Args&&... args) : data_(MC_UNSAFE(cx), ConstructorConvertArg<Args>(std::forward<Args>(args))...) {
+  Tainted(MCContext* cx, Args&&... args) : data_(cx->cx_, ConstructorConvertArg<Args>(std::forward<Args>(args))...) {
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
   
   template <typename... Args>
-  Tainted(MCRuntime* rt, Args&&... args) : data_(MC_UNSAFE(rt), std::forward<Args>(args)...) {
+  Tainted(MCRuntime* rt, Args&&... args) : data_(rt->rt_, std::forward<Args>(args)...) {
     //TODO(abhishek): test that data_ is valid pointer within sandbox memory.
   }
   

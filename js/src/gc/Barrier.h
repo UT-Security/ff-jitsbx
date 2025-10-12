@@ -337,6 +337,9 @@ bool IsMarkedBlack(JSObject* obj);
 template <typename T, typename Enable = void>
 struct InternalBarrierMethods {};
 
+template <typename T, typename Enable = void>
+struct InternalSecureBarrierMethods {};
+
 template <typename T>
 struct InternalBarrierMethods<T*> {
   static_assert(std::is_base_of_v<gc::Cell, T>, "Expected a GC thing type");
@@ -355,6 +358,14 @@ struct InternalBarrierMethods<T*> {
   static void assertThingIsNotGray(T* v) { return T::assertThingIsNotGray(v); }
 #endif
 };
+
+template <>
+struct InternalSecureBarrierMethods<JSObject*> {
+  static void postBarrier(JSObject** vp, JSObject* prev, JSObject* next) {
+    gc::SecurePostWriteBarrier(vp, prev, next);
+  }
+};
+
 
 template <>
 struct InternalBarrierMethods<Value> {
@@ -401,6 +412,33 @@ struct InternalBarrierMethods<Value> {
     JS::AssertValueIsNotGray(v);
   }
 #endif
+};
+
+template <>
+struct InternalSecureBarrierMethods<Value> {
+  static MOZ_ALWAYS_INLINE void postBarrier(Value* vp, const Value& prev,
+                                            const Value& next) {
+    MOZ_ASSERT(!CurrentThreadIsIonCompiling());
+    MOZ_ASSERT(vp);
+
+    // If the target needs an entry, add it.
+    js::gc::StoreBuffer* sb;
+    if (next.isGCThing() && (sb = next.toGCThing()->storeBuffer())) {
+      // If we know that the prev has already inserted an entry, we can
+      // skip doing the lookup to add the new entry. Note that we cannot
+      // safely assert the presence of the entry because it may have been
+      // added via a different store buffer.
+      if (prev.isGCThing() && prev.toGCThing()->storeBuffer()) {
+        return;
+      }
+      sb->putSecureValue(vp);
+      return;
+    }
+    // Remove the prev entry if the new value does not need it.
+    if (prev.isGCThing() && (sb = prev.toGCThing()->storeBuffer())) {
+      sb->unputSecureValue(vp);
+    }
+  }
 };
 
 template <>

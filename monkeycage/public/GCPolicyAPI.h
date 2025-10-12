@@ -6,13 +6,14 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/RootingAPI.h"
+#include "monkeycage/TracingAPI.h"
 
 namespace JS {
 
 template <typename T>
 struct GCPolicy<MC::Heap<T>> {
   static void trace(JSTracer* trc, MC::Heap<T>* thingp, const char* name) {
-    TraceEdge(trc, thingp->INTERNAL_unverified_safe(), name);
+    TraceEdge(trc, thingp, name);
   }
   static bool traceWeak(JSTracer* trc, MC::Heap<T>* thingp) {
     return !*thingp ||

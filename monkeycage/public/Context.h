@@ -16,6 +16,7 @@
 #include "mozilla/Assertions.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/SandboxCallback.h"
+#include "monkeycage/StoreBuffer.h"
 
 struct MCRuntime {
   MCRuntime* parent_;
@@ -24,8 +25,18 @@ struct MCRuntime {
   mozilla::EnumeratedArray<JS::RootKind, JS::RootKind::Limit,
       mozilla::LinkedList<mc::PersistentRootedBase>> heapRoots;
 
+  mc::gc::StoreBuffer storeBuffer_;
+
+  MCRuntime();
+
   void tracePersistentRoots(JSTracer* trc);
   void finishPersistentRoots();
+
+  static MC::Tainted<bool> enableStoreBuffer(MC::Tainted<JSRuntime*> rt);
+  static void disableStoreBuffer(MC::Tainted<JSRuntime*> rt);
+  static void traceStoreBuffer(MC::Tainted<JSTracer*> trc, MC::Tainted<JSRuntime*> rt);
+  static void clearStoreBuffer(MC::Tainted<JSRuntime*> rt);
+  static MC::Tainted<bool> isEmptyStoreBuffer(MC::Tainted<JSRuntime*> rt);
 };
 
 struct MCContext : MC::RootingContext {
@@ -44,13 +55,10 @@ inline JSContext* MC_UNSAFE(JSContext* cx) {
   return cx;
 }
 
-inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
-  return rt->rt_;
-}
-
 extern MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime = nullptr);
 
 extern MCContext* JS_SanitizeContext(JSContext* cx);
+extern MCRuntime* JS_SanitizeRuntime(JSRuntime* rt);
 
 inline MCContext* MC_SanitizeContext(JSContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);
@@ -62,6 +70,12 @@ inline MCContext* MC_VerifyContext(uintptr_t cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);
   MOZ_RELEASE_ASSERT((uintptr_t)MCContext::mcx_->cx_ == cx);
   return MCContext::mcx_;
+}
+
+inline MCRuntime* MC_VerifyRuntime(uintptr_t rt) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT((uintptr_t)MCContext::mcx_->rt_->rt_ == rt);
+  return MCContext::mcx_->rt_;
 }
 
 inline void JS_DestroyContext(MCContext* cx) {
@@ -110,10 +124,6 @@ using MCContext = JSContext;
 
 inline JSContext* MC_UNSAFE(MCContext* cx) {
   return cx;
-}
-
-inline JSRuntime* MC_UNSAFE(MCRuntime* rt) {
-  return rt;
 }
 
 inline MCContext* MC_NewContext(uint32_t maxbytes, JSRuntime* parentRuntime = nullptr) { 

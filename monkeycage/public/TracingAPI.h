@@ -14,6 +14,7 @@
 #include "monkeycage/RootingAPI.h"
 #include "js/sandbox/TracingAPI.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/Tainted.h"
 #include "monkeycage/Utility.h"
 
@@ -34,16 +35,16 @@ class CallbackTracer {
   }
 
  public:
-  CallbackTracer(JSRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
+  CallbackTracer(MCRuntime* rt, JS::TracerKind kind = JS::TracerKind::Callback,
                  JS::TraceOptions options = JS::TraceOptions()) {
-    auto inner = mc_new<JS::sandbox::CallbackTracer>(op().UNSAFE_get(), this, rt,
+    auto inner = mc_new<JS::sandbox::CallbackTracer>(op().UNSAFE_get(), this, rt->rt_,
                                                  kind, options);
     inner_.assign_raw_pointer(
         static_cast<JS::CallbackTracer*>(inner.INTERNAL_unverified_safe()));
   }
-  CallbackTracer(JSContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
+  CallbackTracer(MCContext* cx, JS::TracerKind kind = JS::TracerKind::Callback,
                  JS::TraceOptions options = JS::TraceOptions()) {
-    auto inner = mc_new<JS::sandbox::CallbackTracer>(op().UNSAFE_get(), this, cx,
+    auto inner = mc_new<JS::sandbox::CallbackTracer>(op().UNSAFE_get(), this, cx->cx_,
                                                  kind, options);
     inner_.assign_raw_pointer(
         static_cast<JS::CallbackTracer*>(inner.INTERNAL_unverified_safe()));
@@ -81,7 +82,21 @@ inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::Heap<T>* thingp,
 template <typename T>
 inline void TraceEdge(JSTracer* trc, MC::Heap<T>* thingp,
                       const char* name) {
-  return TraceEdge(trc, reinterpret_cast<JS::Heap<T>*>(thingp), name);
+  MOZ_ASSERT(thingp);
+  if (*thingp) {
+    T* raw_thingp = thingp->unsafeGet();
+    MC::SandboxStack<T> sbx_thingp(*raw_thingp);
+    TraceSecureEdge(trc, sbx_thingp.UNSAFE_unverified(), name);
+    if (*sbx_thingp.UNSAFE_unverified() != *raw_thingp) {
+      *raw_thingp = *sbx_thingp.UNSAFE_unverified();
+    }
+  }
+}
+
+template <typename T>
+inline void TraceEdge(MC::Tainted<JSTracer*> trc, MC::Heap<T>* thingp,
+                      const char* name) {
+  return TraceEdge(trc.INTERNAL_unverified_safe(), thingp, name);
 }
 
 template <typename T>

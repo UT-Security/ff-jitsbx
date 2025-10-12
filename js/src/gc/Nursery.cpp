@@ -339,6 +339,9 @@ void js::Nursery::enable() {
 
   // This should always succeed after the first time it's called.
   MOZ_ALWAYS_TRUE(gc->storeBuffer().enable());
+#ifdef JS_SANDBOX
+  MOZ_ALWAYS_TRUE(gc->externalStoreBuffer().enable(runtime()));
+#endif
 }
 
 bool js::Nursery::initFirstChunk(AutoLockGCBgAlloc& lock) {
@@ -380,6 +383,9 @@ void js::Nursery::disable() {
   currentEnd_ = 0;
   position_ = 0;
   gc->storeBuffer().disable();
+#ifdef JS_SANDBOX
+  gc->externalStoreBuffer().disable(runtime());
+#endif
 
   if (gc->wasInitialized()) {
     // This assumes there is an atoms zone.
@@ -1154,6 +1160,9 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
     // to keep these entries as they may refer to tenured cells which may be
     // freed after this point.
     gc->storeBuffer().clear();
+#ifdef JS_SANDBOX
+    gc->externalStoreBuffer().clear(runtime());
+#endif
 
     MOZ_ASSERT(!pretenuringNursery.hasAllocatedSites());
   }
@@ -1460,6 +1469,9 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
 
   startProfile(ProfileKey::ClearStoreBuffer);
   gc->storeBuffer().clear();
+#ifdef JS_SANDBOX
+  gc->externalStoreBuffer().clear(runtime());
+#endif
   endProfile(ProfileKey::ClearStoreBuffer);
 
   // Purge the StringToAtomCache. This has to happen at the end because the
@@ -1498,6 +1510,10 @@ void js::Nursery::traceRoots(AutoGCSession& session, TenuringTracer& mover) {
     sb.traceWholeCells(mover);
     endProfile(ProfileKey::TraceWholeCells);
 
+#ifdef JS_SANDBOX
+    gc->externalStoreBuffer().trace(&mover, runtime());
+#endif
+    
     startProfile(ProfileKey::TraceValues);
     sb.traceValues(mover);
     endProfile(ProfileKey::TraceValues);

@@ -30,8 +30,8 @@
 /*************************/
 
 class JSObject2WrappedJSMap {
-  using Map = js::HashMap<JS::Heap<JSObject*>, nsXPCWrappedJS*,
-                          js::StableCellHasher<JS::Heap<JSObject*>>,
+  using Map = js::HashMap<MC::Heap<JSObject*>, nsXPCWrappedJS*,
+                          js::StableCellHasher<MC::Heap<JSObject*>>,
                           InfallibleAllocPolicy>;
 
  public:

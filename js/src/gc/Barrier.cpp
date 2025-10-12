@@ -82,6 +82,13 @@ JS_PUBLIC_API void JS::HeapObjectPostWriteBarrier(JSObject** objp,
   js::InternalBarrierMethods<JSObject*>::postBarrier(objp, prev, next);
 }
 
+/*JS_PUBLIC_API void JS::HeapSecureObjectPostWriteBarrier(JSObject** objp,
+                                                  JSObject* prev,
+                                                  JSObject* next) {
+  MOZ_ASSERT(objp);
+  js::InternalSecureBarrierMethods<JSObject*>::postBarrier(objp, prev, next);
+}*/
+
 JS_PUBLIC_API void JS::HeapStringPostWriteBarrier(JSString** strp,
                                                   JSString* prev,
                                                   JSString* next) {
@@ -102,6 +109,13 @@ JS_PUBLIC_API void JS::HeapValuePostWriteBarrier(JS::Value* valuep,
   MOZ_ASSERT(valuep);
   js::InternalBarrierMethods<JS::Value>::postBarrier(valuep, prev, next);
 }
+
+/*JS_PUBLIC_API void JS::HeapSecureValuePostWriteBarrier(JS::Value* valuep,
+                                                 const Value& prev,
+                                                 const Value& next) {
+  MOZ_ASSERT(valuep);
+  js::InternalSecureBarrierMethods<JS::Value>::postBarrier(valuep, prev, next);
+}*/
 
 // Combined pre- and post-write barriers, used by the rust Heap<T>
 // implementation.

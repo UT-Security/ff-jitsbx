@@ -1418,6 +1418,11 @@ void GCRuntime::setSandboxClearPersistentRootsCallback(JSSandboxClearPersistentR
   AssertHeapIsIdle();
   sandboxClearPersistentRootsCallback.ref() = {cb, data};
 }
+
+void GCRuntime::setExternalStoreBufferCallbacks(JSExternalStoreBufferCallbacks cb) {
+  AssertHeapIsIdle();
+  externalStoreBuffer_ = cb;
+}
 #endif
 
 void GCRuntime::setGCCallback(JSGCCallback callback, void* data) {
@@ -3513,7 +3518,12 @@ AutoDisableBarriers::~AutoDisableBarriers() {
 }
 
 static bool NeedToCollectNursery(GCRuntime* gc) {
+#ifdef JS_SANDBOX
+  return !gc->nursery().isEmpty() || !gc->storeBuffer().isEmpty() ||
+         !gc->externalStoreBuffer().isEmpty(gc->rt);
+#else
   return !gc->nursery().isEmpty() || !gc->storeBuffer().isEmpty();
+#endif
 }
 
 #ifdef DEBUG
@@ -3725,6 +3735,9 @@ void GCRuntime::incrementalSlice(SliceBudget& budget, JS::GCReason reason,
         }
 
         storeBuffer().checkEmpty();
+#ifdef JS_SANDBOX
+        MOZ_ASSERT(externalStoreBuffer().isEmpty(rt));
+#endif
         if (!startedCompacting) {
           beginCompactPhase();
         }

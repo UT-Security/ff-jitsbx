@@ -155,7 +155,7 @@ class IncrementalFinalizeRunnable : public DiscardableRunnable {
 struct NoteWeakMapChildrenTracer : public MC::CallbackTracer {
   NoteWeakMapChildrenTracer(MCRuntime* aRt,
                             nsCycleCollectionNoteRootCallback& aCb)
-      : MC::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback),
+      : MC::CallbackTracer(aRt, JS::TracerKind::Callback),
         mCb(aCb),
         mTracedAny(false),
         mMap(nullptr),
@@ -189,7 +189,7 @@ void NoteWeakMapChildrenTracer::onChild(JS::GCCellPtr aThing,
 
 struct NoteWeakMapsTracer : public mc::WeakMapTracer {
   NoteWeakMapsTracer(MCRuntime* aRt, nsCycleCollectionNoteRootCallback& aCccb)
-      : mc::WeakMapTracer(MC_UNSAFE(aRt)), mCb(aCccb), mChildTracer(aRt, aCccb) {}
+      : mc::WeakMapTracer(aRt), mCb(aCccb), mChildTracer(aRt, aCccb) {}
   void trace(JSObject* aMap, JS::GCCellPtr aKey, JS::GCCellPtr aValue) override;
   nsCycleCollectionNoteRootCallback& mCb;
   NoteWeakMapChildrenTracer mChildTracer;
@@ -286,7 +286,7 @@ static void ShouldWeakMappingEntryBeBlack(JSObject* aMap, JS::GCCellPtr aKey,
 
 struct FixWeakMappingGrayBitsTracer : public mc::WeakMapTracer {
   explicit FixWeakMappingGrayBitsTracer(MCRuntime* aRt)
-      : mc::WeakMapTracer(MC_UNSAFE(aRt)) {}
+      : mc::WeakMapTracer(aRt) {}
 
   void FixAll() {
     do {
@@ -317,7 +317,7 @@ struct FixWeakMappingGrayBitsTracer : public mc::WeakMapTracer {
 // Check whether weak maps are marked correctly according to the logic above.
 struct CheckWeakMappingGrayBitsTracer : public mc::WeakMapTracer {
   explicit CheckWeakMappingGrayBitsTracer(MCRuntime* aRt)
-      : mc::WeakMapTracer(MC_UNSAFE(aRt)), mFailed(false) {}
+      : mc::WeakMapTracer(aRt), mFailed(false) {}
 
   static bool Check(MCRuntime* aRt) {
     CheckWeakMappingGrayBitsTracer tracer(aRt);
@@ -396,7 +396,7 @@ JSZoneParticipant::TraverseNative(void* aPtr,
 
 struct TraversalTracer : public MC::CallbackTracer {
   TraversalTracer(MCRuntime* aRt, nsCycleCollectionTraversalCallback& aCb)
-      : MC::CallbackTracer(MC_UNSAFE(aRt), JS::TracerKind::Callback,
+      : MC::CallbackTracer(aRt, JS::TracerKind::Callback,
                            JS::TraceOptions(JS::WeakMapTraceAction::Skip,
                                             JS::WeakEdgeTraceAction::Trace)),
         mCb(aCb) {}
@@ -770,7 +770,7 @@ CycleCollectedJSRuntime::CycleCollectedJSRuntime(MCContext* aCx)
 class JSLeakTracer : public MC::CallbackTracer {
  public:
   explicit JSLeakTracer(MCRuntime* aRuntime)
-      : MC::CallbackTracer(MC_UNSAFE(aRuntime), JS::TracerKind::Callback,
+      : MC::CallbackTracer(aRuntime, JS::TracerKind::Callback,
                            JS::WeakMapTraceAction::TraceKeysAndValues) {}
 
  private:

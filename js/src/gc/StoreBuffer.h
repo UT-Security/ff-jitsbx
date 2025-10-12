@@ -294,6 +294,33 @@ class StoreBuffer {
   using StringPtrEdge = CellPtrEdge<JSString>;
   using BigIntPtrEdge = CellPtrEdge<JS::BigInt>;
 
+  template <typename T>
+  struct CellSecurePtrEdge {
+    T** edge = nullptr;
+
+    CellSecurePtrEdge() = default;
+    explicit CellSecurePtrEdge(T** v) : edge(v) {}
+    bool operator==(const CellSecurePtrEdge& other) const {
+      return edge == other.edge;
+    }
+    bool operator!=(const CellSecurePtrEdge& other) const {
+      return edge != other.edge;
+    }
+
+    bool maybeInRememberedSet(const Nursery& nursery) const {
+      MOZ_ASSERT(IsInsideNursery(*edge));
+      return !nursery.isInside(edge);
+    }
+
+    void trace(TenuringTracer& mover) const;
+
+    explicit operator bool() const { return edge != nullptr; }
+
+    using Hasher = PointerEdgeHasher<CellSecurePtrEdge<T>>;
+  };
+
+  using ObjectSecurePtrEdge = CellSecurePtrEdge<JSObject>;
+
   struct ValueEdge {
     JS::Value* edge;
 
@@ -317,6 +344,31 @@ class StoreBuffer {
     explicit operator bool() const { return edge != nullptr; }
 
     using Hasher = PointerEdgeHasher<ValueEdge>;
+  };
+
+  struct SecureValueEdge {
+    JS::Value* edge;
+
+    SecureValueEdge() : edge(nullptr) {}
+    explicit SecureValueEdge(JS::Value* v) : edge(v) {}
+    bool operator==(const SecureValueEdge& other) const { return edge == other.edge; }
+    bool operator!=(const SecureValueEdge& other) const { return edge != other.edge; }
+
+    Cell* deref() const {
+      return edge->isGCThing() ? static_cast<Cell*>(edge->toGCThing())
+                               : nullptr;
+    }
+
+    bool maybeInRememberedSet(const Nursery& nursery) const {
+      MOZ_ASSERT(IsInsideNursery(deref()));
+      return !nursery.isInside(edge);
+    }
+
+    void trace(TenuringTracer& mover) const;
+
+    explicit operator bool() const { return edge != nullptr; }
+
+    using Hasher = PointerEdgeHasher<SecureValueEdge>;
   };
 
   struct SlotsEdge {
@@ -431,9 +483,11 @@ class StoreBuffer {
   Mutex lock_ MOZ_UNANNOTATED;
 
   MonoTypeBuffer<ValueEdge> bufferVal;
+  MonoTypeBuffer<SecureValueEdge> bufferSecVal;
   MonoTypeBuffer<StringPtrEdge> bufStrCell;
   MonoTypeBuffer<BigIntPtrEdge> bufBigIntCell;
   MonoTypeBuffer<ObjectPtrEdge> bufObjCell;
+  MonoTypeBuffer<ObjectSecurePtrEdge> bufSecObjCell;
   MonoTypeBuffer<SlotsEdge> bufferSlot;
   WholeCellBuffer bufferWholeCell;
   GenericBuffer bufferGeneric;
@@ -479,6 +533,9 @@ class StoreBuffer {
   void putValue(JS::Value* vp) { put(bufferVal, ValueEdge(vp)); }
   void unputValue(JS::Value* vp) { unput(bufferVal, ValueEdge(vp)); }
 
+  void putSecureValue(JS::Value* vp) { put(bufferSecVal, SecureValueEdge(vp)); }
+  void unputSecureValue(JS::Value* vp) { unput(bufferSecVal, SecureValueEdge(vp)); }
+
   void putCell(JSString** strp) { put(bufStrCell, StringPtrEdge(strp)); }
   void unputCell(JSString** strp) { unput(bufStrCell, StringPtrEdge(strp)); }
 
@@ -487,6 +544,9 @@ class StoreBuffer {
 
   void putCell(JSObject** strp) { put(bufObjCell, ObjectPtrEdge(strp)); }
   void unputCell(JSObject** strp) { unput(bufObjCell, ObjectPtrEdge(strp)); }
+
+  void putSecureCell(JSObject** strp) { put(bufSecObjCell, ObjectSecurePtrEdge(strp)); }
+  void unputSecureCell(JSObject** strp) { unput(bufSecObjCell, ObjectSecurePtrEdge(strp)); }
 
   void putSlot(NativeObject* obj, int kind, uint32_t start, uint32_t count) {
     SlotsEdge edge(obj, kind, start, count);
@@ -512,12 +572,17 @@ class StoreBuffer {
   void setMayHavePointersToDeadCells() { mayHavePointersToDeadCells_ = true; }
 
   /* Methods to trace the source of all edges in the store buffer. */
-  void traceValues(TenuringTracer& mover) { bufferVal.trace(mover); }
+  void traceValues(TenuringTracer& mover) {
+    bufferSecVal.trace(mover);
+    bufferVal.trace(mover);
+  }
   void traceCells(TenuringTracer& mover) {
+    bufSecObjCell.trace(mover);
     bufStrCell.trace(mover);
     bufBigIntCell.trace(mover);
     bufObjCell.trace(mover);
   }
+
   void traceSlots(TenuringTracer& mover) { bufferSlot.trace(mover); }
   void traceWholeCells(TenuringTracer& mover) { bufferWholeCell.trace(mover); }
   void traceGenericEntries(JSTracer* trc) { bufferGeneric.trace(trc); }
@@ -647,6 +712,45 @@ MOZ_ALWAYS_INLINE void PostWriteBarrier(T** vp, T* prev, T* next) {
   if constexpr (!GCTypeIsTenured<T>()) {
     using BaseT = typename BaseGCType<T>::type;
     PostWriteBarrierImpl<BaseT>(vp, prev, next);
+    return;
+  }
+
+  MOZ_ASSERT_IF(next, !IsInsideNursery(next));
+}
+
+template <typename T>
+MOZ_ALWAYS_INLINE void SecurePostWriteBarrierImpl(void* cellp, T* prev, T* next) {
+  MOZ_ASSERT(cellp);
+
+  // If the target needs an entry, add it.
+  StoreBuffer* buffer;
+  if (next && (buffer = next->storeBuffer())) {
+    // If we know that the prev has already inserted an entry, we can skip
+    // doing the lookup to add the new entry. Note that we cannot safely
+    // assert the presence of the entry because it may have been added
+    // via a different store buffer.
+    if (prev && prev->storeBuffer()) {
+      return;
+    }
+    buffer->putSecureCell(static_cast<T**>(cellp));
+    return;
+  }
+
+  // Remove the prev entry if the new value does not need it. There will only
+  // be a prev entry if the prev value was in the nursery.
+  if (prev && (buffer = prev->storeBuffer())) {
+    buffer->unputSecureCell(static_cast<T**>(cellp));
+  }
+}
+
+template <typename T>
+MOZ_ALWAYS_INLINE void SecurePostWriteBarrier(T** vp, T* prev, T* next) {
+  static_assert(std::is_base_of_v<Cell, T>);
+  static_assert(!std::is_same_v<Cell, T> && !std::is_same_v<TenuredCell, T>);
+
+  if constexpr (!GCTypeIsTenured<T>()) {
+    using BaseT = typename BaseGCType<T>::type;
+    SecurePostWriteBarrierImpl<BaseT>(vp, prev, next);
     return;
   }
 

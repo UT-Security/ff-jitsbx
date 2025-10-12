@@ -594,6 +594,11 @@ MOZ_ALWAYS_INLINE bool CellHasStoreBuffer(const Cell* cell) {
   return GetCellChunkBase(cell)->storeBuffer;
 }
 
+
+MOZ_ALWAYS_INLINE JSRuntime* CellJSRuntime(const Cell* cell) {
+  return GetCellChunkBase(cell)->runtime;
+}
+
 } /* namespace detail */
 
 MOZ_ALWAYS_INLINE bool IsInsideNursery(const Cell* cell) {
