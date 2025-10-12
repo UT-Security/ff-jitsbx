@@ -358,6 +358,10 @@ class GCRuntime {
   Nursery& nursery() { return nursery_.ref(); }
   gc::StoreBuffer& storeBuffer() { return storeBuffer_.ref(); }
 
+#ifdef JS_SANDBOX
+  JSExternalStoreBufferCallbacks& externalStoreBuffer() { return externalStoreBuffer_.ref(); }
+#endif
+
   void minorGC(JS::GCReason reason,
                gcstats::PhaseKind phase = gcstats::PhaseKind::MINOR_GC)
       JS_HAZ_GC_CALL;
@@ -460,6 +464,8 @@ class GCRuntime {
   void setSandboxStackRootsTracer(JSTraceDataOp traceOp, void* data);
   void clearSandboxStackRootsTracer();
   void setSandboxClearPersistentRootsCallback(JSSandboxClearPersistentRootsCallback cb, void* data);
+
+  void setExternalStoreBufferCallbacks(JSExternalStoreBufferCallbacks cb);
 #endif
 
   void setGCCallback(JSGCCallback callback, void* data);
@@ -1335,6 +1341,8 @@ class GCRuntime {
   MainThreadOrGCTaskData<Callback<JSTraceDataOp>> sandboxStackRootTracer;
   MainThreadOrGCTaskData<Callback<JSSandboxClearPersistentRootsCallback>>
       sandboxClearPersistentRootsCallback;
+
+  MainThreadOrGCTaskData<JSExternalStoreBufferCallbacks> externalStoreBuffer_;
 #endif
 
   /* Always preserve JIT code during GCs, for testing. */

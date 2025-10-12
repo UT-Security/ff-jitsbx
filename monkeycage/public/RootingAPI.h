@@ -11,7 +11,17 @@
 
 #ifdef JS_SANDBOX
 
+#include "monkeycage/StoreBuffer.h"
 #include "monkeycage/unsafe/SandboxImpl.h"
+
+namespace mc {
+
+// The defaulted Enable parameter for the following two types is for restricting
+// specializations with std::enable_if.
+template <typename T, typename Enable = void>
+struct BarrierMethods {};
+
+}
 
 namespace MC {
 
@@ -71,14 +81,14 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
 
   const T* address() const { return &ptr; }
 
-  void exposeToActiveJS() const { js::BarrierMethods<T>::exposeToJS(ptr); }
+  void exposeToActiveJS() const { mc::BarrierMethods<T>::exposeToJS(ptr); }
 
   const T& get() const {
     exposeToActiveJS();
     return ptr;
   }
   const T& getWithoutExpose() const {
-    js::BarrierMethods<T>::readBarrier(ptr);
+    mc::BarrierMethods<T>::readBarrier(ptr);
     return ptr;
   }
   const T& unbarrieredGet() const { return ptr; }
@@ -94,15 +104,15 @@ class MOZ_NON_MEMMOVABLE Heap : public js::HeapOperations<T, Heap<T>> {
   void unbarrieredSet(const T& newPtr) { ptr = newPtr; }
 
   explicit operator bool() const {
-    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+    return bool(mc::BarrierMethods<T>::asGCThingOrNull(ptr));
   }
   explicit operator bool() {
-    return bool(js::BarrierMethods<T>::asGCThingOrNull(ptr));
+    return bool(mc::BarrierMethods<T>::asGCThingOrNull(ptr));
   }
 
  private:
   void postWriteBarrier(const T& prev, const T& next) {
-    js::BarrierMethods<T>::postWriteBarrier(&ptr, prev, next);
+    mc::BarrierMethods<T>::postWriteBarrier(&ptr, prev, next);
   }
 
   T ptr;
@@ -189,16 +199,103 @@ class MOZ_STACK_CLASS MutableHandle
 };
 }  // namespace MC
 
+namespace mc {
+namespace detail {
+
+// Default implementations for barrier methods on secure GC thing pointers.
+template <typename T>
+struct PtrBarrierMethodsBase {
+  static T* initial() { return nullptr; }
+  static js::gc::Cell* asGCThingOrNull(T* v) {
+    if (!v) {
+      return nullptr;
+    }
+    MOZ_ASSERT(uintptr_t(v) > 32);
+    return reinterpret_cast<js::gc::Cell*>(v);
+  }
+  static void exposeToJS(T* t) {
+    if (t) {
+      js::gc::ExposeGCThingToActiveJS(JS::GCCellPtr(t));
+    }
+  }
+  static void readBarrier(T* t) {
+    if (t) {
+      js::gc::IncrementalReadBarrier(JS::GCCellPtr(t));
+    }
+  }
+};
+
+}  // namespace detail
+
+template <typename T>
+struct BarrierMethods<T*> : public detail::PtrBarrierMethodsBase<T> {
+  static void postWriteBarrier(T** vp, T* prev, T* next) {
+    if (next) {
+      JS::AssertGCThingIsNotNurseryAllocable(
+          reinterpret_cast<js::gc::Cell*>(next));
+    }
+  }
+};
+
+template <>
+struct BarrierMethods<JSObject*>
+    : public detail::PtrBarrierMethodsBase<JSObject> {
+  static void postWriteBarrier(JSObject** vp, JSObject* prev, JSObject* next) {
+    MC::HeapPostWriteBarrier(vp, prev, next);
+  }
+  static void exposeToJS(JSObject* obj) {
+    if (obj) {
+      JS::ExposeObjectToActiveJS(obj);
+    }
+  }
+};
+
+
+template <>
+struct BarrierMethods<JSFunction*>
+    : public detail::PtrBarrierMethodsBase<JSFunction> {
+  static void postWriteBarrier(JSFunction** vp, JSFunction* prev,
+                               JSFunction* next) {
+    MC::HeapPostWriteBarrier(reinterpret_cast<JSObject**>(vp),
+                             reinterpret_cast<JSObject*>(prev),
+                             reinterpret_cast<JSObject*>(next));
+  }
+  static void exposeToJS(JSFunction* fun) {
+    if (fun) {
+      JS::ExposeObjectToActiveJS(reinterpret_cast<JSObject*>(fun));
+    }
+  }
+};
+
+template <>
+struct BarrierMethods<JSString*>
+    : public detail::PtrBarrierMethodsBase<JSString> {
+  static void postWriteBarrier(JSString** vp, JSString* prev, JSString* next) {
+    MC::HeapPostWriteBarrier(vp, prev, next);
+  }
+};
+
+template <>
+struct BarrierMethods<JS::BigInt*>
+    : public detail::PtrBarrierMethodsBase<JS::BigInt> {
+  static void postWriteBarrier(JS::BigInt** vp, JS::BigInt* prev,
+                               JS::BigInt* next) {
+    MC::HeapPostWriteBarrier(vp, prev, next);
+  }
+};
+
+}  // namespace mc
+
 namespace js {
 
 template <typename T>
-struct JS_PUBLIC_API StableCellHasher<MC::Heap<T>> {
-  using Key = MC::Heap<T>;
+struct JS_PUBLIC_API StableCellHasher<JS::Heap<T>> {
+  using Key = JS::Heap<T>;
   using Lookup = T;
 
   static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif
@@ -211,7 +308,46 @@ struct JS_PUBLIC_API StableCellHasher<MC::Heap<T>> {
   }
   static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
 #ifdef JS_SANDBOX_LFI
-    HashNumber* t_hashOut = monkeycage_stackpush(sizeof(HashNumber));
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+#else
+    HashNumber* t_hashOut = hashOut;
+#endif
+    bool ret = StableCellHasher<T>::ensureHash(l, t_hashOut);
+#ifdef JS_SANDBOX_LFI
+    *hashOut = *t_hashOut;
+    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+#endif
+    return ret;
+  }
+  static HashNumber hash(const Lookup& l) {
+    return StableCellHasher<T>::hash(l);
+  }
+  static bool match(const Key& k, const Lookup& l) {
+    return StableCellHasher<T>::match(k.unbarrieredGet(), l);
+  }
+};
+
+template <typename T>
+struct JS_PUBLIC_API StableCellHasher<MC::Heap<T>> {
+  using Key = MC::Heap<T>;
+  using Lookup = T;
+
+  static bool maybeGetHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_LFI
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
+#else
+    HashNumber* t_hashOut = hashOut;
+#endif
+    bool ret = StableCellHasher<T>::maybeGetHash(l, t_hashOut);
+#ifdef JS_SANDBOX_LFI
+    *hashOut = *t_hashOut;
+    monkeycage_stackpop(sizeof(HashNumber), (void*)t_hashOut);
+#endif
+    return ret;
+  }
+  static bool ensureHash(const Lookup& l, HashNumber* hashOut) {
+#ifdef JS_SANDBOX_LFI
+    HashNumber* t_hashOut = (HashNumber*)monkeycage_stackpush(sizeof(HashNumber));
 #else
     HashNumber* t_hashOut = hashOut;
 #endif

@@ -120,7 +120,12 @@ class TenuringTracer final : public JSTracer {
   size_t getTenuredSize() const;
   size_t getTenuredCells() const;
 
+  JSObject* tenureObject(JSObject* obj);
+  JSString* tenureString(JSString* str);
+  JS::BigInt* tenureBigInt(JS::BigInt* bi);
+  
   void traverse(JS::Value* thingp);
+  void traverseSecure(JS::Value* thingp);
 
   // The store buffers need to be able to call these directly.
   void traceObject(JSObject* src);

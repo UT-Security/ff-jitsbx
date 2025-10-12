@@ -1305,6 +1305,11 @@ JS_PUBLIC_API void JS_SetSandboxClearPersistentRootsCallback(
     JSContext* cx, JSSandboxClearPersistentRootsCallback cb, void* data) {
   return cx->runtime()->gc.setSandboxClearPersistentRootsCallback(cb, data);
 }
+
+JS_PUBLIC_API void JS_SetExternalStoreBufferCallbacks(
+    JSContext* cx, JSExternalStoreBufferCallbacks cb) {
+  return cx->runtime()->gc.setExternalStoreBufferCallbacks(cb);
+}
 #endif
 
 JS_PUBLIC_API JS::GCReason JS::WantEagerMinorGC(JSRuntime* rt) {

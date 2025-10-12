@@ -169,6 +169,46 @@ void TenuringTracer::traverse(JS::Value* thingp) {
   }
 }
 
+void TenuringTracer::traverseSecure(JS::Value* thingp) {
+  MOZ_ASSERT(!nursery().isInside(thingp));
+
+  Value value = *thingp;
+  CheckTracedThing(this, value);
+
+  // We only care about a few kinds of GC thing here and this generates much
+  // tighter code than using MapGCThingTyped.
+  Value post;
+  if (value.isObject()) {
+    JSObject* obj = &value.toObject();
+    onObjectEdge(&obj, "value");
+    post = JS::ObjectValue(*obj);
+  }
+#ifdef ENABLE_RECORD_TUPLE
+  else if (value.isExtendedPrimitive()) {
+    JSObject* obj = &value.toExtendedPrimitive();
+    onObjectEdge(&obj, "value");
+    post = JS::ExtendedPrimitiveValue(*obj);
+  }
+#endif
+  else if (value.isString()) {
+    JSString* str = value.toString();
+    onStringEdge(&str, "value");
+    post = JS::StringValue(str);
+  } else if (value.isBigInt()) {
+    JS::BigInt* bi = value.toBigInt();
+    onBigIntEdge(&bi, "value");
+    post = JS::BigIntValue(bi);
+  } else {
+    MOZ_ASSERT_IF(value.isGCThing(), !IsInsideNursery(value.toGCThing()));
+    return;
+  }
+
+  if (post != value) {
+    // TODO(JS_SANDBOX_SECURE_GC)
+    *thingp = post;
+  }
+}
+
 template <typename T>
 void js::gc::StoreBuffer::MonoTypeBuffer<T>::trace(TenuringTracer& mover) {
   mozilla::ReentrancyGuard g(*owner_);
@@ -185,11 +225,14 @@ namespace js {
 namespace gc {
 template void StoreBuffer::MonoTypeBuffer<StoreBuffer::ValueEdge>::trace(
     TenuringTracer&);
+template void StoreBuffer::MonoTypeBuffer<StoreBuffer::SecureValueEdge>::trace(
+    TenuringTracer&);
 template void StoreBuffer::MonoTypeBuffer<StoreBuffer::SlotsEdge>::trace(
     TenuringTracer&);
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::StringPtrEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::BigIntPtrEdge>;
 template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::ObjectPtrEdge>;
+template struct StoreBuffer::MonoTypeBuffer<StoreBuffer::ObjectSecurePtrEdge>;
 }  // namespace gc
 }  // namespace js
 
@@ -408,9 +451,43 @@ void js::gc::StoreBuffer::CellPtrEdge<T>::trace(TenuringTracer& mover) const {
   DispatchToOnEdge(&mover, edge, "CellPtrEdge");
 }
 
+template <typename T>
+void js::gc::StoreBuffer::CellSecurePtrEdge<T>::trace(TenuringTracer& mover) const {
+  static_assert(std::is_base_of_v<Cell, T>, "T must be a Cell type");
+  static_assert(!GCTypeIsTenured<T>(), "T must not be a tenured Cell type");
+
+  T* thing = *edge;
+  if (!thing) {
+    return;
+  }
+
+  MOZ_ASSERT(IsCellPointerValid(thing));
+  MOZ_ASSERT(thing->getTraceKind() == JS::MapTypeToTraceKind<T>::kind);
+
+  if (std::is_same_v<JSString, T>) {
+    // Nursery string deduplication requires all tenured string -> nursery
+    // string edges to be registered with the whole cell buffer in order to
+    // correctly set the non-deduplicatable bit.
+    MOZ_ASSERT(!mover.runtime()->gc.isPointerWithinTenuredCell(
+        edge, JS::TraceKind::String));
+  }
+
+  DispatchToOnEdge(&mover, &thing, "CellSecurePtrEdge");
+  if (*edge != thing) {
+    // TODO(JS_SANDBOX_SECURE_GC)
+    *edge = thing;
+  }
+}
+
 void js::gc::StoreBuffer::ValueEdge::trace(TenuringTracer& mover) const {
   if (deref()) {
     mover.traverse(edge);
+  }
+}
+
+void js::gc::StoreBuffer::SecureValueEdge::trace(TenuringTracer& mover) const {
+  if (deref()) {
+    mover.traverseSecure(edge);
   }
 }
 

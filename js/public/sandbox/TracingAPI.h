@@ -8,6 +8,7 @@
 #define js_sandbox_TracingAPI_h
 
 #include "js/TracingAPI.h"
+#include "js/sandbox/RootingAPI.h"
 
 namespace JS {
 namespace sandbox {
@@ -35,6 +36,14 @@ class JS_PUBLIC_API CallbackTracer : public JS::CallbackTracer {
   void onChild(JS::GCCellPtr thing, const char* name) override;
 };
 }  // namespace sandbox
+
+template <typename T>
+inline void TraceSecureEdge(JSTracer* trc, T* thingp,
+                            const char* name) {
+
+  js::gc::TraceExternalEdge(trc, thingp, name);
+}
+
 }  // namespace JS
 
 #endif

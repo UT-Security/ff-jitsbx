@@ -468,7 +468,7 @@ class ProtoAndIfaceCache {
   // speed, so we use a two-level lookup table.
 
   class ArrayCache
-      : public Array<JS::Heap<JSObject*>, kProtoAndIfaceCacheCount> {
+      : public Array<MC::Heap<JSObject*>, kProtoAndIfaceCacheCount> {
    public:
     bool HasEntryInSlot(size_t i) {
       // Do an explicit call to the Heap<…> bool conversion operator. Because
@@ -478,9 +478,9 @@ class ProtoAndIfaceCache {
       return bool((*this)[i]);
     }
 
-    JS::Heap<JSObject*>& EntrySlotOrCreate(size_t i) { return (*this)[i]; }
+    MC::Heap<JSObject*>& EntrySlotOrCreate(size_t i) { return (*this)[i]; }
 
-    JS::Heap<JSObject*>& EntrySlotMustExist(size_t i) { return (*this)[i]; }
+    MC::Heap<JSObject*>& EntrySlotMustExist(size_t i) { return (*this)[i]; }
 
     void Trace(JSTracer* aTracer) {
       for (size_t i = 0; i < ArrayLength(*this); ++i) {
@@ -518,7 +518,7 @@ class ProtoAndIfaceCache {
       return bool((*p)[leafIndex]);
     }
 
-    JS::Heap<JSObject*>& EntrySlotOrCreate(size_t i) {
+    MC::Heap<JSObject*>& EntrySlotOrCreate(size_t i) {
       MOZ_ASSERT(i < kProtoAndIfaceCacheCount);
       size_t pageIndex = i / kPageSize;
       size_t leafIndex = i % kPageSize;
@@ -530,7 +530,7 @@ class ProtoAndIfaceCache {
       return (*p)[leafIndex];
     }
 
-    JS::Heap<JSObject*>& EntrySlotMustExist(size_t i) {
+    MC::Heap<JSObject*>& EntrySlotMustExist(size_t i) {
       MOZ_ASSERT(i < kProtoAndIfaceCacheCount);
       size_t pageIndex = i / kPageSize;
       size_t leafIndex = i % kPageSize;
@@ -560,7 +560,7 @@ class ProtoAndIfaceCache {
 
    private:
     static const size_t kPageSize = 16;
-    typedef Array<JS::Heap<JSObject*>, kPageSize> Page;
+    typedef Array<MC::Heap<JSObject*>, kPageSize> Page;
     static const size_t kNPages =
         kProtoAndIfaceCacheCount / kPageSize +
         size_t(bool(kProtoAndIfaceCacheCount % kPageSize));
@@ -605,14 +605,14 @@ class ProtoAndIfaceCache {
 
   // Return a reference to slot i, creating it if necessary.  There
   // may not be an object in the returned slot.
-  JS::Heap<JSObject*>& EntrySlotOrCreate(size_t i) {
+  MC::Heap<JSObject*>& EntrySlotOrCreate(size_t i) {
     FORWARD_OPERATION(EntrySlotOrCreate, (i));
   }
 
   // Return a reference to slot i, which is guaranteed to already
   // exist.  There may not be an object in the slot, if prototype and
   // constructor initialization for one of our bindings failed.
-  JS::Heap<JSObject*>& EntrySlotMustExist(size_t i) {
+  MC::Heap<JSObject*>& EntrySlotMustExist(size_t i) {
     FORWARD_OPERATION(EntrySlotMustExist, (i));
   }
 
@@ -650,7 +650,7 @@ inline void AllocateProtoAndIfaceCache(JSObject* obj,
 struct VerifyTraceProtoAndIfaceCacheCalledTracer : public MC::CallbackTracer {
   bool ok;
 
-  explicit VerifyTraceProtoAndIfaceCacheCalledTracer(JSContext* cx)
+  explicit VerifyTraceProtoAndIfaceCacheCalledTracer(MCContext* cx)
       : MC::CallbackTracer(cx, JS::TracerKind::VerifyTraceProtoAndIface),
         ok(false) {}
 
@@ -778,11 +778,11 @@ struct LegacyFactoryFunction {
 void CreateInterfaceObjects(
     MCContext* cx, JS::Handle<JSObject*> global,
     JS::Handle<JSObject*> protoProto, const JSClass* protoClass,
-    JS::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
+    MC::Heap<JSObject*>* protoCache, JS::Handle<JSObject*> constructorProto,
     const JSClass* constructorClass, unsigned ctorNargs,
     bool isConstructorChromeOnly,
     const LegacyFactoryFunction* namedConstructors,
-    JS::Heap<JSObject*>* constructorCache, const NativeProperties* properties,
+    MC::Heap<JSObject*>* constructorCache, const NativeProperties* properties,
     const NativeProperties* chromeOnlyProperties, const char* name,
     bool defineOnGlobal, const char* const* unscopableNames, bool isGlobal,
     const char* const* legacyWindowAliases, bool isNamespace);

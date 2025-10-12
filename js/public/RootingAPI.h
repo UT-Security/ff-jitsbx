@@ -889,6 +889,7 @@ struct JS_PUBLIC_API StableCellHasher {
   // rekey any more when using this policy.
 };
 
+#if !defined(JS_SANDBOX_API)
 template <typename T>
 struct JS_PUBLIC_API StableCellHasher<JS::Heap<T>> {
   using Key = JS::Heap<T>;
@@ -907,6 +908,7 @@ struct JS_PUBLIC_API StableCellHasher<JS::Heap<T>> {
     return StableCellHasher<T>::match(k.unbarrieredGet(), l);
   }
 };
+#endif
 
 }  // namespace js
 

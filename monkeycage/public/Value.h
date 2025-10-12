@@ -10,6 +10,8 @@
 #define mc_Value_h
 
 #include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/StoreBuffer.h"
 
 namespace MC {
 const JS::HandleValue& NullHandleValue();
@@ -17,6 +19,27 @@ const JS::HandleValue& UndefinedHandleValue();
 const JS::HandleValue& TrueHandleValue();
 const JS::HandleValue& FalseHandleValue();
 const JS::Handle<mozilla::Maybe<JS::Value>>& NothingHandleValue();
+}
+
+namespace mc {
+
+template <>
+struct BarrierMethods<JS::Value> {
+  static js::gc::Cell* asGCThingOrNull(const JS::Value& v) {
+    return v.isGCThing() ? v.toGCThing() : nullptr;
+  }
+  static void postWriteBarrier(JS::Value* v, const JS::Value& prev,
+                               const JS::Value& next) {
+    MC::HeapValuePostWriteBarrier(v, prev, next);
+  }
+  static void exposeToJS(const JS::Value& v) { JS::ExposeValueToActiveJS(v); }
+  static void readBarrier(const JS::Value& v) {
+    if (v.isGCThing()) {
+      js::gc::IncrementalReadBarrier(v.toGCCellPtr());
+    }
+  }
+};
+
 }
 
 #endif

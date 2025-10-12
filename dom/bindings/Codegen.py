@@ -3809,8 +3809,8 @@ class CGCreateInterfaceObjectsMethod(CGAbstractMethod):
 
         call = fill(
             """
-            JS::Heap<JSObject*>* protoCache = ${protoCache};
-            JS::Heap<JSObject*>* interfaceCache = ${interfaceCache};
+            MC::Heap<JSObject*>* protoCache = ${protoCache};
+            MC::Heap<JSObject*>* interfaceCache = ${interfaceCache};
             dom::CreateInterfaceObjects(aCx, aGlobal, ${parentProto},
                                         ${protoClass}, protoCache,
                                         ${constructorProto}, ${interfaceClass}, ${constructArgs}, ${isConstructorChromeOnly}, ${namedConstructors},
@@ -4202,7 +4202,7 @@ class CGGetNamedPropertiesObjectMethod(CGAbstractStaticMethod):
             /* Check to see whether the named properties object has already been created */
             ProtoAndIfaceCache& protoAndIfaceCache = *GetProtoAndIfaceCache(global);
 
-            JS::Heap<JSObject*>& namedPropertiesObject = protoAndIfaceCache.EntrySlotOrCreate(namedpropertiesobjects::id::${ifaceName});
+            MC::Heap<JSObject*>& namedPropertiesObject = protoAndIfaceCache.EntrySlotOrCreate(namedpropertiesobjects::id::${ifaceName});
             if (!namedPropertiesObject) {
               $*{getParentProto}
               namedPropertiesObject = ${nativeType}::CreateNamedPropertiesObject(aCx, ${parentProto});
@@ -24368,7 +24368,7 @@ class CGEventClass(CGBindingImplClass):
             if type.nullable():
                 nativeType = CGTemplatedType("Nullable", nativeType)
         elif type.isJSString():
-            nativeType = CGGeneric("JS::Heap<JSString*>")
+            nativeType = CGGeneric("MC::Heap<JSString*>")
         elif type.isDOMString() or type.isUSVString():
             nativeType = CGGeneric("nsString")
         elif type.isByteString() or type.isUTF8String():
@@ -24388,9 +24388,9 @@ class CGEventClass(CGBindingImplClass):
                 CGGeneric("::".join(nativeType)), pre="RefPtr<", post=">"
             )
         elif type.isAny():
-            nativeType = CGGeneric("JS::Heap<JS::Value>")
+            nativeType = CGGeneric("MC::Heap<JS::Value>")
         elif type.isObject() or type.isSpiderMonkeyInterface():
-            nativeType = CGGeneric("JS::Heap<JSObject*>")
+            nativeType = CGGeneric("MC::Heap<JSObject*>")
         elif type.isUnion():
             nativeType = CGGeneric(CGUnionStruct.unionTypeDecl(type, True))
         elif type.isSequence():

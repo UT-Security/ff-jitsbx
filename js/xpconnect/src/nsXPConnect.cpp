@@ -477,7 +477,7 @@ JSObject* CreateGlobalObject(MCContext* cx, const JSClass* clasp,
       // classes because xpc::TraceXPCGlobal won't call TraceProtoAndIfaceCache
       // unless that flag is set.
       if (!((const JSClass*)clasp)->isWrappedNative()) {
-        VerifyTraceProtoAndIfaceCacheCalledTracer trc(MC_UNSAFE(cx));
+        VerifyTraceProtoAndIfaceCacheCalledTracer trc(cx);
         TraceChildren(static_cast<MC::Tainted<JS::CallbackTracer*>>(trc), GCCellPtr(global.get()));
         MOZ_ASSERT(trc.ok,
                    "Trace hook on global needs to call TraceXPCGlobal for "

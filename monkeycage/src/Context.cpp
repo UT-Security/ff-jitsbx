@@ -12,6 +12,7 @@
 #include "js/TracingAPI.h"
 #include "mcapi.h"
 #include "monkeycage/Sandbox.h"
+#include "monkeycage/StoreBuffer.h"
 
 static inline void TraceExactStackRootTraceableList(JSTracer* trc,
                                                     mc::StackRootedBase* listHead,
@@ -101,6 +102,34 @@ void MC::AddPersistentRoot(MCRuntime* rt, JS::RootKind kind, mc::PersistentRoote
   rt->heapRoots[kind].insertBack(root);
 }
 
+MC::Tainted<bool> MCRuntime::enableStoreBuffer(MC::Tainted<JSRuntime*> t_rt) {
+  MCRuntime* rt = t_rt.copy_and_verify_address(MC_VerifyRuntime);
+  return rt->storeBuffer_.enable();
+}
+
+void MCRuntime::disableStoreBuffer(MC::Tainted<JSRuntime*> t_rt) {
+  MCRuntime* rt = t_rt.copy_and_verify_address(MC_VerifyRuntime);
+  rt->storeBuffer_.disable();
+}
+
+void MCRuntime::traceStoreBuffer(MC::Tainted<JSTracer*> trc, MC::Tainted<JSRuntime*> t_rt) {
+  MCRuntime* rt = t_rt.copy_and_verify_address(MC_VerifyRuntime);
+  rt->storeBuffer_.traceValues(trc);
+  rt->storeBuffer_.traceCells(trc);
+}
+
+void MCRuntime::clearStoreBuffer(MC::Tainted<JSRuntime*> t_rt) {
+  MCRuntime* rt = t_rt.copy_and_verify_address(MC_VerifyRuntime);
+  rt->storeBuffer_.clear();
+}
+
+MC::Tainted<bool> MCRuntime::isEmptyStoreBuffer(MC::Tainted<JSRuntime*> t_rt) {
+  MCRuntime* rt = t_rt.copy_and_verify_address(MC_VerifyRuntime);
+  return rt->storeBuffer_.isEmpty();  
+}
+
+MCRuntime::MCRuntime() : storeBuffer_(this) {}
+
 MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime) { 
   MOZ_RELEASE_ASSERT(!MCContext::mcx_, "Attempt to create duplication MCContext in thread");
 
@@ -132,7 +161,21 @@ MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime) {
 
   static auto SandboxClearPersistentRootsCb = MC::Sandbox::RegisterCallback(SandboxClearPersistentRoots);
   JS_SetSandboxClearPersistentRootsCallback(jscx, SandboxClearPersistentRootsCb.UNSAFE_get(), jscx);
+
+  static auto StoreBufferEnableCb = MC::Sandbox::RegisterTaintedCallback(MCRuntime::enableStoreBuffer);
+  static auto StoreBufferDisableCb = MC::Sandbox::RegisterTaintedCallback(MCRuntime::disableStoreBuffer);
+  static auto StoreBufferTraceCb = MC::Sandbox::RegisterTaintedCallback(MCRuntime::traceStoreBuffer);
+  static auto StoreBufferClearCb = MC::Sandbox::RegisterTaintedCallback(MCRuntime::clearStoreBuffer);
+  static auto StoreBufferIsEmptyCb = MC::Sandbox::RegisterTaintedCallback(MCRuntime::isEmptyStoreBuffer);
+
+  static auto StoreBufferCb = JSExternalStoreBufferCallbacks{
+      StoreBufferEnableCb.UNSAFE_get(),  StoreBufferDisableCb.UNSAFE_get(),
+      StoreBufferTraceCb.UNSAFE_get(),   StoreBufferClearCb.UNSAFE_get(),
+      StoreBufferIsEmptyCb.UNSAFE_get(),
+  }; 
   
+  JS_SetExternalStoreBufferCallbacks(jscx, StoreBufferCb);
+
   MCContext::mcx_ = cx;
   return cx;
 }
@@ -141,5 +184,11 @@ MCContext* JS_SanitizeContext(JSContext* cx) {
   MOZ_RELEASE_ASSERT(MCContext::mcx_);
   MOZ_RELEASE_ASSERT(MCContext::mcx_->cx_ == cx);
   return MCContext::mcx_;
+}
+
+MCRuntime* JS_SanitizeRuntime(JSRuntime* rt) {
+  MOZ_RELEASE_ASSERT(MCContext::mcx_);
+  MOZ_RELEASE_ASSERT(MCContext::mcx_->rt_->rt_ == rt);
+  return MCContext::mcx_->rt_;
 }
 #endif

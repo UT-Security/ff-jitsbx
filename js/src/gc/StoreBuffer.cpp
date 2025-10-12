@@ -80,9 +80,11 @@ void StoreBuffer::GenericBuffer::trace(JSTracer* trc) {
 StoreBuffer::StoreBuffer(JSRuntime* rt, const Nursery& nursery)
     : lock_(mutexid::StoreBuffer),
       bufferVal(this, JS::GCReason::FULL_VALUE_BUFFER),
+      bufferSecVal(this, JS::GCReason::FULL_VALUE_BUFFER),
       bufStrCell(this, JS::GCReason::FULL_CELL_PTR_STR_BUFFER),
       bufBigIntCell(this, JS::GCReason::FULL_CELL_PTR_BIGINT_BUFFER),
       bufObjCell(this, JS::GCReason::FULL_CELL_PTR_OBJ_BUFFER),
+      bufSecObjCell(this, JS::GCReason::FULL_CELL_PTR_OBJ_BUFFER),
       bufferSlot(this, JS::GCReason::FULL_SLOT_BUFFER),
       bufferWholeCell(this),
       bufferGeneric(this),
@@ -105,7 +107,8 @@ bool StoreBuffer::isEmpty() const {
   return bufferVal.isEmpty() && bufStrCell.isEmpty() &&
          bufBigIntCell.isEmpty() && bufObjCell.isEmpty() &&
          bufferSlot.isEmpty() && bufferWholeCell.isEmpty() &&
-         bufferGeneric.isEmpty();
+         bufferGeneric.isEmpty() && bufferSecVal.isEmpty() &&
+         bufSecObjCell.isEmpty();
 }
 
 bool StoreBuffer::enable() {
@@ -150,6 +153,9 @@ void StoreBuffer::clear() {
   bufferSlot.clear();
   bufferWholeCell.clear();
   bufferGeneric.clear();
+
+  bufferSecVal.clear();
+  bufSecObjCell.clear();
 }
 
 void StoreBuffer::setAboutToOverflow(JS::GCReason reason) {
@@ -162,10 +168,12 @@ void StoreBuffer::setAboutToOverflow(JS::GCReason reason) {
 
 void StoreBuffer::addSizeOfExcludingThis(mozilla::MallocSizeOf mallocSizeOf,
                                          JS::GCSizes* sizes) {
-  sizes->storeBufferVals += bufferVal.sizeOfExcludingThis(mallocSizeOf);
+  sizes->storeBufferVals += bufferVal.sizeOfExcludingThis(mallocSizeOf) +
+                            bufferSecVal.sizeOfExcludingThis(mallocSizeOf);
   sizes->storeBufferCells += bufStrCell.sizeOfExcludingThis(mallocSizeOf) +
                              bufBigIntCell.sizeOfExcludingThis(mallocSizeOf) +
-                             bufObjCell.sizeOfExcludingThis(mallocSizeOf);
+                             bufObjCell.sizeOfExcludingThis(mallocSizeOf) +
+                             bufSecObjCell.sizeOfExcludingThis(mallocSizeOf);
   sizes->storeBufferSlots += bufferSlot.sizeOfExcludingThis(mallocSizeOf);
   sizes->storeBufferWholeCells +=
       bufferWholeCell.sizeOfExcludingThis(mallocSizeOf);

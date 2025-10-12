@@ -339,8 +339,8 @@ struct WeakMapTracer {
   }
 
  public:
-  explicit WeakMapTracer(JSRuntime* rt) {
-    inner_ = js_new<js::sandbox::WeakMapTracer>(op().UNSAFE_get(), this, rt);
+  explicit WeakMapTracer(MCRuntime* rt) {
+    inner_ = js_new<js::sandbox::WeakMapTracer>(op().UNSAFE_get(), this, rt->rt_);
   }
 
   ~WeakMapTracer() { js_free((void*)inner_); }

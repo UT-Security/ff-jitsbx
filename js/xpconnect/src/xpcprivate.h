@@ -868,9 +868,9 @@ class XPCWrappedNativeScope final
   bool AllowContentXBLScope(JS::Realm* aRealm);
 
   // ID Object prototype caches.
-  JS::Heap<JSObject*> mIDProto;
-  JS::Heap<JSObject*> mIIDProto;
-  JS::Heap<JSObject*> mCIDProto;
+  MC::Heap<JSObject*> mIDProto;
+  MC::Heap<JSObject*> mIIDProto;
+  MC::Heap<JSObject*> mCIDProto;
 
  protected:
   XPCWrappedNativeScope() = delete;
@@ -1253,7 +1253,7 @@ class XPCWrappedNativeProto final {
 
  private:
   XPCWrappedNativeScope* mScope;
-  JS::Heap<JSObject*> mJSProtoObject;
+  MC::Heap<JSObject*> mJSProtoObject;
   nsCOMPtr<nsIClassInfo> mClassInfo;
   RefPtr<XPCNativeSet> mSet;
   nsCOMPtr<nsIXPCScriptable> mScriptable;
@@ -1712,7 +1712,7 @@ class nsXPCWrappedJS final : protected nsAutoXPTCStub,
                                nsXPTCMiniVariant* nativeParams, bool inOutOnly,
                                uint8_t count);
 
-  JS::Heap<JSObject*> mJSObj;
+  MC::Heap<JSObject*> mJSObj;
   const nsXPTInterfaceInfo* const mInfo;
   nsXPCWrappedJS* mRoot;  // If mRoot != this, it is an owning pointer.
   nsXPCWrappedJS* mNext;
@@ -2153,7 +2153,7 @@ class XPCVariant : public nsIVariant {
   void Cleanup();
 
   nsDiscriminatedUnion mData;
-  JS::Heap<JS::Value> mJSVal;
+  MC::Heap<JS::Value> mJSVal;
   bool mReturnRawObject;
 };
 
