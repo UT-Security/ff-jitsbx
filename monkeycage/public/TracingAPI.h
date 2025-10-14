@@ -105,6 +105,11 @@ inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::TenuredHeap<T>* thingp,
   return TraceEdge(trc.INTERNAL_unverified_safe(), thingp, name);
 }
 
+template <typename T>
+inline void TraceRoot(MC::Tainted<JSTracer*> trc, T* edgep, const char* name) {
+  return TraceRoot(trc.INTERNAL_unverified_safe(), edgep, name);
+}
+
 inline void TraceChildren(MC::Tainted<JSTracer*> trc, GCCellPtr thing) {
   return TraceChildren(trc.INTERNAL_unverified_safe(), thing);
 }

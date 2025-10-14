@@ -120,22 +120,13 @@ class MOZ_RAII Rooted : public RootedTraits<T>::StackBase {
 template <typename T>
 class PersistentRooted : public RootedTraits<T>::PersistentBase {
  public:
-  explicit PersistentRooted() : ptr(JS::SafelyInitialized<T>::create()) {}
+  explicit PersistentRooted(T* p): ptr(p) {}
 
-  template <typename U>
-  explicit PersistentRooted(U&& initial) : ptr(std::forward<U>(initial)) {}
-
-  template <typename... CtorArgs>
-  explicit PersistentRooted(CtorArgs... args)
-      : ptr(std::forward<CtorArgs>(args)...) {}
-
-  PersistentRooted(const PersistentRooted& rhs) : ptr(rhs.ptr) {}
-
-  T* addr() { return &ptr; }
-  const T* addr() const { return &ptr; }
+  T* addr() { return ptr; }
+  const T* addr() const { return ptr; }
 
  protected:
-  T ptr;
+  T* ptr;
 } JS_HAZ_ROOTED;
 
 } /* namespace detail */

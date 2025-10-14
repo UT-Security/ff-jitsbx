@@ -1208,7 +1208,7 @@ struct JSExternalStoreBufferCallbacks {
 };
 
 extern JS_PUBLIC_API void JS_SetExternalStoreBufferCallbacks(
-    JSContext* cx, JSExternalStoreBufferCallbacks cb);
+    JSContext* cx, const JSExternalStoreBufferCallbacks* cb);
 #endif
 
 extern JS_PUBLIC_API void JS_GC(JSContext* cx,

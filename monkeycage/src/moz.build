@@ -421,6 +421,7 @@ EXPORTS.monkeycage.experimental += [
 ]
 
 EXPORTS.monkeycage.friend += [
+	"../public/friend/DOMProxy.h",
 	"../public/friend/DumpFunctions.h",
 	"../public/friend/JSMEnvironment.h",
 	"../public/friend/PerformanceHint.h",

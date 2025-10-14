@@ -340,7 +340,9 @@ void js::Nursery::enable() {
   // This should always succeed after the first time it's called.
   MOZ_ALWAYS_TRUE(gc->storeBuffer().enable());
 #ifdef JS_SANDBOX
-  MOZ_ALWAYS_TRUE(gc->externalStoreBuffer().enable(runtime()));
+  MOZ_ALWAYS_TRUE(gc->externalStoreBuffer().enable
+                      ? gc->externalStoreBuffer().enable(runtime())
+                      : true);
 #endif
 }
 
@@ -384,7 +386,8 @@ void js::Nursery::disable() {
   position_ = 0;
   gc->storeBuffer().disable();
 #ifdef JS_SANDBOX
-  gc->externalStoreBuffer().disable(runtime());
+  if (gc->externalStoreBuffer().disable)
+    gc->externalStoreBuffer().disable(runtime());
 #endif
 
   if (gc->wasInitialized()) {
@@ -1161,7 +1164,8 @@ void js::Nursery::collect(JS::GCOptions options, JS::GCReason reason) {
     // freed after this point.
     gc->storeBuffer().clear();
 #ifdef JS_SANDBOX
-    gc->externalStoreBuffer().clear(runtime());
+    if (gc->externalStoreBuffer().clear)
+      gc->externalStoreBuffer().clear(runtime());
 #endif
 
     MOZ_ASSERT(!pretenuringNursery.hasAllocatedSites());
@@ -1470,7 +1474,8 @@ js::Nursery::CollectionResult js::Nursery::doCollection(AutoGCSession& session,
   startProfile(ProfileKey::ClearStoreBuffer);
   gc->storeBuffer().clear();
 #ifdef JS_SANDBOX
-  gc->externalStoreBuffer().clear(runtime());
+  if (gc->externalStoreBuffer().clear)
+    gc->externalStoreBuffer().clear(runtime());
 #endif
   endProfile(ProfileKey::ClearStoreBuffer);
 
@@ -1511,9 +1516,10 @@ void js::Nursery::traceRoots(AutoGCSession& session, TenuringTracer& mover) {
     endProfile(ProfileKey::TraceWholeCells);
 
 #ifdef JS_SANDBOX
-    gc->externalStoreBuffer().trace(&mover, runtime());
+    if (gc->externalStoreBuffer().trace)
+      gc->externalStoreBuffer().trace(&mover, runtime());
 #endif
-    
+
     startProfile(ProfileKey::TraceValues);
     sb.traceValues(mover);
     endProfile(ProfileKey::TraceValues);

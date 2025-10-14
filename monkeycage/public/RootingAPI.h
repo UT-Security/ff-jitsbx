@@ -14,6 +14,8 @@
 #include "monkeycage/StoreBuffer.h"
 #include "monkeycage/unsafe/SandboxImpl.h"
 
+#include "js/Utility.h"
+
 namespace mc {
 
 // The defaulted Enable parameter for the following two types is for restricting
@@ -24,6 +26,21 @@ struct BarrierMethods {};
 }
 
 namespace MC {
+
+inline void HeapObjectPostWriteBarrier(JSObject** objp, JSObject* prev,
+                                       JSObject* next) {
+  return HeapPostWriteBarrier(objp, prev, next);
+}
+
+inline void HeapStringPostWriteBarrier(JSString** objp, JSString* prev,
+                                       JSString* next) {
+  return HeapPostWriteBarrier(objp, prev, next);
+}
+
+inline void HeapBigIntPostWriteBarrier(JS::BigInt** bip, JS::BigInt* prev,
+                                       JS::BigInt* next) {
+  return HeapPostWriteBarrier(bip, prev, next);
+}
 
 template <typename T>
 class MutableHandle;
@@ -241,7 +258,7 @@ template <>
 struct BarrierMethods<JSObject*>
     : public detail::PtrBarrierMethodsBase<JSObject> {
   static void postWriteBarrier(JSObject** vp, JSObject* prev, JSObject* next) {
-    MC::HeapPostWriteBarrier(vp, prev, next);
+    MC::HeapObjectPostWriteBarrier(vp, prev, next);
   }
   static void exposeToJS(JSObject* obj) {
     if (obj) {
@@ -256,7 +273,7 @@ struct BarrierMethods<JSFunction*>
     : public detail::PtrBarrierMethodsBase<JSFunction> {
   static void postWriteBarrier(JSFunction** vp, JSFunction* prev,
                                JSFunction* next) {
-    MC::HeapPostWriteBarrier(reinterpret_cast<JSObject**>(vp),
+    MC::HeapObjectPostWriteBarrier(reinterpret_cast<JSObject**>(vp),
                              reinterpret_cast<JSObject*>(prev),
                              reinterpret_cast<JSObject*>(next));
   }
@@ -271,7 +288,7 @@ template <>
 struct BarrierMethods<JSString*>
     : public detail::PtrBarrierMethodsBase<JSString> {
   static void postWriteBarrier(JSString** vp, JSString* prev, JSString* next) {
-    MC::HeapPostWriteBarrier(vp, prev, next);
+    MC::HeapStringPostWriteBarrier(vp, prev, next);
   }
 };
 
@@ -280,7 +297,7 @@ struct BarrierMethods<JS::BigInt*>
     : public detail::PtrBarrierMethodsBase<JS::BigInt> {
   static void postWriteBarrier(JS::BigInt** vp, JS::BigInt* prev,
                                JS::BigInt* next) {
-    MC::HeapPostWriteBarrier(vp, prev, next);
+    MC::HeapBigIntPostWriteBarrier(vp, prev, next);
   }
 };
 
@@ -627,13 +644,14 @@ class PersistentRooted : public detail::PersistentRooted<T>,
  public:
   using ElementType = T;
 
-  PersistentRooted() : detail::PersistentRooted<T>(JS::SafelyInitialized<T>::create()) {}
+  PersistentRooted() : detail::PersistentRooted<T>(nullptr) {}
 
   template <
       typename RootHolder,
       typename = std::enable_if_t<std::is_copy_constructible_v<T>, RootHolder>>
   explicit PersistentRooted(const RootHolder& cx)
-      : detail::PersistentRooted<T>(JS::SafelyInitialized<T>::create()) {
+      : detail::PersistentRooted<T>(nullptr) {
+    this->ptr = js_new<T>(JS::SafelyInitialized<T>::create());
     registerWithRootLists(cx);
   }
 
@@ -641,18 +659,20 @@ class PersistentRooted : public detail::PersistentRooted<T>,
       typename RootHolder, typename U,
       typename = std::enable_if_t<std::is_constructible_v<T, U>, RootHolder>>
   PersistentRooted(const RootHolder& cx, U&& initial)
-      : detail::PersistentRooted<T>(std::forward<U>(initial)) {
+      : detail::PersistentRooted<T>(nullptr) {
+    this->ptr = js_new<T>(std::forward<U>(initial));
     registerWithRootLists(cx);
   }
 
   template <typename RootHolder, typename... CtorArgs,
             typename = std::enable_if_t<detail::IsTraceable_v<T>, RootHolder>>
   explicit PersistentRooted(const RootHolder& cx, CtorArgs... args)
-      : detail::PersistentRooted<T>(std::forward<CtorArgs>(args)...) {
+      : detail::PersistentRooted<T>(nullptr) {
+    this->ptr = js_new<T>(std::forward<CtorArgs>(args)...);
     registerWithRootLists(cx);
   }
 
-  PersistentRooted(const PersistentRooted& rhs) : detail::PersistentRooted<T>(rhs) {
+  PersistentRooted(const PersistentRooted& rhs): detail::PersistentRooted<T>(nullptr) {
     /*
      * Copy construction takes advantage of the fact that the original
      * is already inserted, and simply adds itself to whatever list the
@@ -661,6 +681,7 @@ class PersistentRooted : public detail::PersistentRooted<T>,
      * This requires mutating rhs's links, but those should be 'mutable'
      * anyway. C++ doesn't let us declare mutable base classes.
      */
+    this->ptr = js_new<T>(*rhs.ptr);
     const_cast<PersistentRooted&>(rhs).setNext(this);
   }
 
@@ -669,17 +690,14 @@ class PersistentRooted : public detail::PersistentRooted<T>,
   void init(RootingContext* cx) { init(cx, JS::SafelyInitialized<T>::create()); }
   void init(MCContext* cx) { init(RootingContext::get(cx)); }
 
-  //TODO(abhishek): Remove this UNSAFE overload
-  void init(JSContext* cx) { init(JS_SanitizeContext(cx)); }
-
   template <typename U>
   void init(RootingContext* cx, U&& initial) {
-    this->ptr = std::forward<U>(initial);
+    this->ptr = js_new<T>(std::forward<U>(initial));
     registerWithRootLists(cx);
   }
   template <typename U>
   void init(MCContext* cx, U&& initial) {
-    this->ptr = std::forward<U>(initial);
+    this->ptr = js_new<T>(std::forward<U>(initial));
     registerWithRootLists(RootingContext::get(cx));
   }
   
@@ -692,6 +710,7 @@ class PersistentRooted : public detail::PersistentRooted<T>,
   void reset() {
     if (initialized()) {
       set(JS::SafelyInitialized<T>::create());
+      js_delete<T>(this->ptr);
       this->remove();
     }
   }
@@ -699,19 +718,19 @@ class PersistentRooted : public detail::PersistentRooted<T>,
   DECLARE_POINTER_CONSTREF_OPS(T);
   DECLARE_POINTER_ASSIGN_OPS(PersistentRooted, T);
 
-  T& get() { return this->ptr; }
-  const T& get() const { return this->ptr; }
+  T& get() { return *this->ptr; }
+  const T& get() const { return *this->ptr; }
 
   T* address() {
     MOZ_ASSERT(initialized());
-    return &this->ptr;
+    return this->ptr;
   }
-  const T* address() const { return &this->ptr; }
+  const T* address() const { return this->ptr; }
 
   template <typename U>
   void set(U&& value) {
     MOZ_ASSERT(initialized());
-    this->ptr = std::forward<U>(value);
+    *this->ptr = std::forward<U>(value);
   }
 } JS_HAZ_ROOTED;
 }
