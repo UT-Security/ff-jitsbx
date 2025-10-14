@@ -27,7 +27,7 @@ static inline void TraceStackRoots(JSTracer* trc,
   JS::TraceExactStackRootLists(trc, stackRoots);
 
   // RootedTraceable uses virtual dispatch.
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
 
   TraceExactStackRootTraceableList(trc, stackRoots[JS::RootKind::Traceable],
                                    "Traceable");
@@ -48,7 +48,7 @@ void MCRuntime::tracePersistentRoots(JSTracer* trc) {
   JS::TracePersistentRootedLists(trc, heapRoots);
 
   // RootedTraceable uses virtual dispatch.
-  JS::AutoSuppressGCAnalysis nogc;
+  MC::AutoSuppressGCAnalysis nogc;
 
   TracePersistentRootedTraceableList(
       trc, heapRoots[JS::RootKind::Traceable], "sandbox-persistent-traceable");
@@ -174,7 +174,7 @@ MCContext* MC_NewContext(uint32_t maxbytes, MCRuntime* parentRuntime) {
       StoreBufferIsEmptyCb.UNSAFE_get(),
   }; 
   
-  JS_SetExternalStoreBufferCallbacks(jscx, StoreBufferCb);
+  JS_SetExternalStoreBufferCallbacks(jscx, &StoreBufferCb);
 
   MCContext::mcx_ = cx;
   return cx;

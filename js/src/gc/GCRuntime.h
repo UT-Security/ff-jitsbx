@@ -465,7 +465,7 @@ class GCRuntime {
   void clearSandboxStackRootsTracer();
   void setSandboxClearPersistentRootsCallback(JSSandboxClearPersistentRootsCallback cb, void* data);
 
-  void setExternalStoreBufferCallbacks(JSExternalStoreBufferCallbacks cb);
+  void setExternalStoreBufferCallbacks(const JSExternalStoreBufferCallbacks* cb);
 #endif
 
   void setGCCallback(JSGCCallback callback, void* data);

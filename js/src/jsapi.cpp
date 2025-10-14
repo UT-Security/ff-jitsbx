@@ -1307,7 +1307,7 @@ JS_PUBLIC_API void JS_SetSandboxClearPersistentRootsCallback(
 }
 
 JS_PUBLIC_API void JS_SetExternalStoreBufferCallbacks(
-    JSContext* cx, JSExternalStoreBufferCallbacks cb) {
+    JSContext* cx, const JSExternalStoreBufferCallbacks* cb) {
   return cx->runtime()->gc.setExternalStoreBufferCallbacks(cb);
 }
 #endif
