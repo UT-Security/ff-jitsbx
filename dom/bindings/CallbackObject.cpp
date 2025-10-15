@@ -383,6 +383,14 @@ CallbackObject::CallSetup::~CallSetup() {
     }
   }
 
+  if (*mAsyncStack) {
+    mAsyncStackSetter->reset();
+  }
+  mAsyncStack.reset();
+
+  mRootedCallableGlobal.reset();
+  mRootedCallable.reset();
+
   mAutoIncumbentScript.reset();
   mAutoEntryScript.reset();
 

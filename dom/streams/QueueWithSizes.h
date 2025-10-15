@@ -8,8 +8,8 @@
 #define mozilla_dom_QueueWithSizes_h
 
 #include <cmath>
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/UniquePtr.h"
 #include "nsTArray.h"
@@ -23,7 +23,7 @@ struct ValueWithSize : LinkedListElement<ValueWithSize> {
   ValueWithSize(JS::Handle<JS::Value> aValue, double aSize)
       : mValue(aValue), mSize(aSize){};
 
-  JS::Heap<JS::Value> mValue;
+  MC::Heap<JS::Value> mValue;
   double mSize = 0.0f;
 };
 

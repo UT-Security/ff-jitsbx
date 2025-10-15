@@ -389,8 +389,8 @@ class Console final : public nsIObserver, public nsSupportsWeakReference {
     }
 
     NS_DECL_OWNINGTHREAD;
-    JS::Heap<JSObject*> mGlobal;
-    nsTArray<JS::Heap<JS::Value>> mArguments;
+    MC::Heap<JSObject*> mGlobal;
+    nsTArray<MC::Heap<JS::Value>> mArguments;
   };
 
   // Owning/CC thread only

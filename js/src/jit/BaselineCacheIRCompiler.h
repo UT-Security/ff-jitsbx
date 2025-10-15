@@ -94,7 +94,7 @@ class MOZ_RAII BaselineCacheIRCompiler : public CacheIRCompiler {
   void createThis(Register argcReg, Register calleeReg, Register scratch,
                   CallFlags flags, bool isBoundFunction);
   void storeThis(const ValueOperand& newThis, Register argcReg, CallFlags flags);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   void storeThis(const Value& newThis, Register argcReg, CallFlags flags, Register scratch);
 #else
   void storeThis(const Value& newThis, Register argcReg, CallFlags flags);

@@ -39,8 +39,9 @@ class AssemblerBundleBuffer {
   AssemblerBundleBuffer()
       : mode(BundleMode::Instruction),
         bundle_length(0),
-        in_bundle(false),
+        in_bundle(false)
 #ifdef DEBUG
+        ,
         frozen_bundle(false) 
 #endif
         {}

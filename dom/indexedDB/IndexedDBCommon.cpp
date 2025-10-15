@@ -15,7 +15,7 @@ namespace mozilla::dom::indexedDB {
 // caller preallocates it on the heap not immediately before calling for some
 // reason. Maybe this could be changed.
 nsresult SnappyUncompressStructuredCloneData(
-    nsIInputStream& aInputStream, JSStructuredCloneData& aStructuredCloneData) {
+    nsIInputStream& aInputStream, MC::Tainted<JSStructuredCloneData*> aStructuredCloneData) {
   const auto snappyInputStream =
       MakeRefPtr<SnappyUncompressInputStream>(&aInputStream);
 
@@ -28,7 +28,7 @@ nsresult SnappyUncompressStructuredCloneData(
       },
       [&aStructuredCloneData,
        &buffer](const uint32_t& numRead) -> Result<Ok, nsresult> {
-        QM_TRY(OkIf(aStructuredCloneData.AppendBytes(buffer, numRead)),
+        QM_TRY(OkIf(aStructuredCloneData->AppendBytes(buffer, numRead)),
                Err(NS_ERROR_OUT_OF_MEMORY));
 
         return Ok{};

@@ -12,11 +12,12 @@
 #ifdef JS_SANDBOX
 
 #include "monkeycage/Context.h"
+#include "monkeycage/Tainted.h"
 
 namespace JS {
 
-inline JSTimers GetJSTimers(MCContext* cx) {
-  return GetJSTimers(cx->cx_);
+inline void GetJSTimers(MCContext* cx, MC::Tainted<JSTimers*> timers) {
+  GetJSTimers(cx->cx_, timers.INTERNAL_unverified_safe());
 }
 
 }  // namespace JS

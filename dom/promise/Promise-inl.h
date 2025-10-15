@@ -77,7 +77,7 @@ struct StorageTypeHelper<T*, true, false> {
 
 template <typename T>
 struct StorageTypeHelper<JS::Handle<T>, false, false> {
-  using Type = JS::Heap<T>;
+  using Type = MC::Heap<T>;
 };
 
 template <template <typename> class SmartPtr, typename T>
@@ -193,7 +193,7 @@ class NativeThenHandler<ResolveCallback, RejectCallback, std::tuple<Args...>,
   // Handles. But we should not circumvent the read barrier, so call
   // exposeToActiveJS explicitly.
   template <typename T>
-  static JS::Handle<T> GetJSArgHandleForCall(JS::Heap<T>& aArg) {
+  static JS::Handle<T> GetJSArgHandleForCall(MC::Heap<T>& aArg) {
     aArg.exposeToActiveJS();
     return JS::Handle<T>::fromMarkedLocation(aArg.address());
   }

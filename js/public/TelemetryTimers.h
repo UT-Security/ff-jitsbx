@@ -27,6 +27,8 @@ struct JSTimers {
       baselineCompileTime;  // Total time spent in baseline compiler
 };
 
+extern JS_PUBLIC_API void GetJSTimers(JSContext* cx, JSTimers* timers);
+
 extern JS_PUBLIC_API JSTimers GetJSTimers(JSContext* cx);
 
 }  // namespace JS

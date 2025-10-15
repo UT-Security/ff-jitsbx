@@ -434,7 +434,7 @@ class Promise : public SupportsWeakPtr {
 
   RefPtr<nsIGlobalObject> mGlobal;
 
-  JS::Heap<JSObject*> mPromiseObj;
+  MC::Heap<JSObject*> mPromiseObj;
 };
 
 }  // namespace mozilla::dom

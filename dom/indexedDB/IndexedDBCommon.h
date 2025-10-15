@@ -8,6 +8,7 @@
 #define mozilla_dom_indexeddb_IndexedDBCommon_h
 
 #include "mozilla/dom/quota/QuotaCommon.h"
+#include "monkeycage/Tainted.h"
 
 class JSStructuredCloneData;
 class nsIInputStream;
@@ -17,7 +18,7 @@ namespace mozilla::dom::indexedDB {
 static constexpr uint32_t kFileCopyBufferSize = 32768;
 
 nsresult SnappyUncompressStructuredCloneData(
-    nsIInputStream& aInputStream, JSStructuredCloneData& aStructuredCloneData);
+    nsIInputStream& aInputStream, MC::Tainted<JSStructuredCloneData*> aStructuredCloneData);
 
 }  // namespace mozilla::dom::indexedDB
 

@@ -47,7 +47,7 @@ class AbortController : public nsISupports, public nsWrapperCache {
   RefPtr<AbortSignal> mSignal;
 
   bool mAborted;
-  JS::Heap<JS::Value> mReason;
+  MC::Heap<JS::Value> mReason;
 };
 
 }  // namespace dom

@@ -41,7 +41,7 @@ class PerformanceMeasure final : public PerformanceEntry {
   DOMHighResTimeStamp mDuration;
 
  private:
-  JS::Heap<JS::Value> mDetail;
+  MC::Heap<JS::Value> mDetail;
 };
 
 }  // namespace mozilla::dom

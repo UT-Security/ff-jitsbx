@@ -26,7 +26,7 @@ class Promise;
 
 class DOMRequest : public DOMEventTargetHelper {
  protected:
-  JS::Heap<JS::Value> mResult;
+  MC::Heap<JS::Value> mResult;
   RefPtr<DOMException> mError;
   RefPtr<Promise> mPromise;
   bool mDone;

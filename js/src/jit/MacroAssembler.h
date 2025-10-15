@@ -2202,7 +2202,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
   template <class T>
   inline void storeFloat32(FloatRegister src, const T& dest);
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   template <typename T>
   void storeUnboxedValue(const ConstantOrRegister& value, MIRType valueType,
                          const T& dest, Register scratch = ScratchReg) PER_ARCH;
@@ -4708,7 +4708,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
     }
   }
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   template <typename T>
   void storeTypedOrValue(TypedOrValueRegister src, const T& dest,
                          Register scratch = ScratchReg) {

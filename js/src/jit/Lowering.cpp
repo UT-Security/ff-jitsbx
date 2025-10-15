@@ -3866,7 +3866,7 @@ void LIRGenerator::visitStoreElement(MStoreElement* ins) {
 
     default: {
       const LAllocation value = useRegisterOrNonDoubleConstant(ins->value());
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
       LInstruction* lir = new (alloc()) LStoreElementT(elements, index, value, temp());
 #else
       LInstruction* lir = new (alloc()) LStoreElementT(elements, index, value);
@@ -3884,7 +3884,7 @@ void LIRGenerator::visitStoreHoleValueElement(MStoreHoleValueElement* ins) {
   MOZ_ASSERT(ins->elements()->type() == MIRType::Elements);
   MOZ_ASSERT(ins->index()->type() == MIRType::Int32);
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   auto* lir = new (alloc()) LStoreHoleValueElement(useRegister(ins->elements()),
                                                    useRegister(ins->index()), temp());
 #else
@@ -4015,7 +4015,7 @@ void LIRGenerator::visitInlineArgumentsSlice(MInlineArgumentsSlice* ins) {
   uint32_t numOperands =
       numActuals * BOX_PIECES + LInlineArgumentsSlice::NumNonArgumentOperands;
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   auto* lir = allocateVariadic<LInlineArgumentsSlice>(numOperands, temp(), temp());
 #else
   auto* lir = allocateVariadic<LInlineArgumentsSlice>(numOperands, temp());

@@ -97,7 +97,7 @@ void ScriptTimeoutHandler::GetDescription(nsACString& aOutString) {
 
 CallbackTimeoutHandler::CallbackTimeoutHandler(
     MCContext* aCx, nsIGlobalObject* aGlobal, Function* aFunction,
-    nsTArray<JS::Heap<JS::Value>>&& aArguments)
+    nsTArray<MC::Heap<JS::Value>>&& aArguments)
     : TimeoutHandler(aCx), mGlobal(aGlobal), mFunction(aFunction) {
   mozilla::HoldJSObjects(this);
   mArgs = std::move(aArguments);

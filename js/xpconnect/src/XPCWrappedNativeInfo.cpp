@@ -355,17 +355,17 @@ size_t XPCNativeInterface::SizeOfIncludingThis(MallocSizeOf mallocSizeOf) {
   return mallocSizeOf(this);
 }
 
-void XPCNativeInterface::Trace(JSTracer* trc) {
-  JS::TraceRoot(trc, &mName, "XPCNativeInterface::mName");
+void XPCNativeInterface::Trace(MC::Tainted<JSTracer*> trc) {
+  JS::TraceExternalRoot(trc, &mName, "XPCNativeInterface::mName");
 
   for (size_t i = 0; i < mMemberCount; i++) {
     JS::PropertyKey key = mMembers[i].GetName();
-    JS::TraceRoot(trc, &key, "XPCNativeInterface::mMembers");
+    JS::TraceExternalRoot(trc, &key, "XPCNativeInterface::mMembers");
     MOZ_ASSERT(mMembers[i].GetName() == key);
   }
 }
 
-void IID2NativeInterfaceMap::Trace(JSTracer* trc) {
+void IID2NativeInterfaceMap::Trace(MC::Tainted<JSTracer*> trc) {
   for (Map::Enum e(mMap); !e.empty(); e.popFront()) {
     XPCNativeInterface* iface = e.front().value();
     iface->Trace(trc);

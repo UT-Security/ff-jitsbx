@@ -40,7 +40,7 @@ class ImageData final : public nsISupports {
   const uint32_t mHeight;
 
  private:
-  JS::Heap<JSObject*> mData;
+  MC::Heap<JSObject*> mData;
 
  public:
   ImageData(uint32_t aWidth, uint32_t aHeight, JSObject& aData)

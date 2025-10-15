@@ -9,7 +9,7 @@
 
 #include <new>
 #include <utility>
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Result.h"
 #include "mozilla/ipc/IPCForwards.h"
 #include "nsISupports.h"
@@ -17,7 +17,7 @@
 #include "nsString.h"
 #include "nsTArray.h"
 
-namespace JS {
+namespace MC {
 template <class T>
 class Heap;
 }
@@ -105,7 +105,7 @@ class KeyPath {
   static KeyPath DeserializeFromString(const nsAString& aString);
 
   nsresult ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aValue) const;
-  nsresult ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aValue) const;
+  nsresult ToJSVal(MCContext* aCx, MC::Heap<JS::Value>& aValue) const;
 
   bool IsAllowedForObjectStore(bool aAutoIncrement) const;
 

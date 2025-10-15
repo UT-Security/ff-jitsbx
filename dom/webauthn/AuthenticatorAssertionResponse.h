@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_AuthenticatorAssertionResponse_h
 #define mozilla_dom_AuthenticatorAssertionResponse_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/AuthenticatorResponse.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -49,11 +49,11 @@ class AuthenticatorAssertionResponse final : public AuthenticatorResponse {
 
  private:
   CryptoBuffer mAuthenticatorData;
-  JS::Heap<JSObject*> mAuthenticatorDataCachedObj;
+  MC::Heap<JSObject*> mAuthenticatorDataCachedObj;
   CryptoBuffer mSignature;
-  JS::Heap<JSObject*> mSignatureCachedObj;
+  MC::Heap<JSObject*> mSignatureCachedObj;
   CryptoBuffer mUserHandle;
-  JS::Heap<JSObject*> mUserHandleCachedObj;
+  MC::Heap<JSObject*> mUserHandleCachedObj;
 };
 
 }  // namespace mozilla::dom

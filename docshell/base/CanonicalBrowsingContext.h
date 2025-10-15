@@ -350,7 +350,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
 
   bool IsReplaced() const { return mIsReplaced; }
 
-  const JS::Heap<JS::Value>& PermanentKey() { return mPermanentKey; }
+  const MC::Heap<JS::Value>& PermanentKey() { return mPermanentKey; }
   void ClearPermanentKey() { mPermanentKey.setNull(); }
   void MaybeSetPermanentKey(Element* aEmbedder);
 
@@ -586,7 +586,7 @@ class CanonicalBrowsingContext final : public BrowsingContext {
   // A Promise created when cloning documents for printing.
   RefPtr<GenericNonExclusivePromise> mClonePromise;
 
-  JS::Heap<JS::Value> mPermanentKey;
+  MC::Heap<JS::Value> mPermanentKey;
 
   uint32_t mPendingDiscards = 0;
 

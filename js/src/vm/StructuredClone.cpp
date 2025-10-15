@@ -1019,6 +1019,8 @@ bool SCOutput::writeChars(const Latin1Char* p, size_t nchars) {
 
 }  // namespace js
 
+void JSStructuredCloneData::MoveAssign(JSStructuredCloneData* other) { *this = std::move(*other); }
+
 JSStructuredCloneData::~JSStructuredCloneData() { discardTransferables(); }
 
 // If the buffer contains Transferables, free them. Note that custom

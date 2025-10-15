@@ -369,8 +369,8 @@ GetStructuredCloneReadInfoFromBlob(const uint8_t* aBlobData,
                                     uncompressedBuffer)),
          Err(NS_ERROR_FILE_CORRUPTED));
 
-  JSStructuredCloneData data(JS::StructuredCloneScope::DifferentProcess);
-  QM_TRY(OkIf(data.AppendBytes(uncompressedBuffer, uncompressed.Length())),
+  MC::SandboxHeap<JSStructuredCloneData> data(JS::StructuredCloneScope::DifferentProcess);
+  QM_TRY(OkIf(data->AppendBytes(uncompressedBuffer, uncompressed.Length())),
          Err(NS_ERROR_OUT_OF_MEMORY));
 
   nsTArray<StructuredCloneFileParent> files;
@@ -406,7 +406,7 @@ GetStructuredCloneReadInfoFromExternalBlob(
 
   if (StaticPrefs::dom_indexedDB_preprocessing()) {
     return StructuredCloneReadInfoParent{
-        JSStructuredCloneData{JS::StructuredCloneScope::DifferentProcess},
+        MC::SandboxHeap<JSStructuredCloneData>{JS::StructuredCloneScope::DifferentProcess},
         std::move(files), true};
   }
 
@@ -423,7 +423,7 @@ GetStructuredCloneReadInfoFromExternalBlob(
     maybeKey = aFileManager.MutableCipherKeyManagerRef().Get(fileKeyId);
   }
 
-  auto data = JSStructuredCloneData{JS::StructuredCloneScope::DifferentProcess};
+  auto data = MC::SandboxHeap<JSStructuredCloneData>{JS::StructuredCloneScope::DifferentProcess};
 
   {
     const nsCOMPtr<nsIFile> nativeFile = file.FileInfo().GetFileForFileInfo();

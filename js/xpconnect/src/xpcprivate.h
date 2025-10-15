@@ -1039,7 +1039,7 @@ class XPCNativeInterface final {
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf);
 
-  void Trace(JSTracer* trc);
+  void Trace(MC::Tainted<JSTracer*> trc);
 
  protected:
   static already_AddRefed<XPCNativeInterface> NewInstance(

@@ -9,7 +9,7 @@
 
 #include "IDBCursorType.h"
 #include "IndexedDatabase.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBCursorBinding.h"
 #include "mozilla/dom/IDBTransaction.h"
@@ -64,9 +64,9 @@ class IDBCursor : public nsISupports, public nsWrapperCache {
 
  protected:
   // These are cycle-collected!
-  JS::Heap<JS::Value> mCachedKey;
-  JS::Heap<JS::Value> mCachedPrimaryKey;
-  JS::Heap<JS::Value> mCachedValue;
+  MC::Heap<JS::Value> mCachedKey;
+  MC::Heap<JS::Value> mCachedPrimaryKey;
+  MC::Heap<JS::Value> mCachedValue;
 
   const Direction mDirection;
 

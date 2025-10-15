@@ -37,8 +37,8 @@ class GamepadTouch final : public nsWrapperCache {
   virtual ~GamepadTouch();
 
   nsCOMPtr<nsISupports> mParent;
-  JS::Heap<JSObject*> mPosition;
-  JS::Heap<JSObject*> mSurfaceDimensions;
+  MC::Heap<JSObject*> mPosition;
+  MC::Heap<JSObject*> mSurfaceDimensions;
   GamepadTouchState mTouchState;
 };
 

@@ -203,7 +203,7 @@ struct ReadableByteStreamQueueEntry
   //
   // This is traced by the list owner (see ReadableByteStreamController's
   // tracing code).
-  JS::Heap<JSObject*> mBuffer;
+  MC::Heap<JSObject*> mBuffer;
 
   // A nonnegative integer number giving the byte offset derived from the view
   // originally supplied by the underlying byte source
@@ -297,7 +297,7 @@ struct PullIntoDescriptor final
  private:
   // This is traced by the list owner (see ReadableByteStreamController's
   // tracing code).
-  JS::Heap<JSObject*> mBuffer;
+  MC::Heap<JSObject*> mBuffer;
   uint64_t mBufferByteLength = 0;
   uint64_t mByteOffset = 0;
   uint64_t mByteLength = 0;

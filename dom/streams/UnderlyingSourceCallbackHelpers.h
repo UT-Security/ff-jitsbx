@@ -120,7 +120,7 @@ class UnderlyingSourceAlgorithms final : public UnderlyingSourceAlgorithmsBase {
  private:
   // Virtually const, but are cycle collected
   nsCOMPtr<nsIGlobalObject> mGlobal;
-  JS::Heap<JSObject*> mUnderlyingSource;
+  MC::Heap<JSObject*> mUnderlyingSource;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourceStartCallback> mStartCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourcePullCallback> mPullCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSourceCancelCallback> mCancelCallback;

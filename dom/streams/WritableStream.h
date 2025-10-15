@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_WritableStream_h
 #define mozilla_dom_WritableStream_h
 
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -232,11 +232,11 @@ class WritableStream : public nsISupports, public nsWrapperCache {
   // The absence (i.e. undefined) of the [[pendingAbortRequest]]
   // is indicated by mPendingAbortRequestPromise = nullptr.
   RefPtr<Promise> mPendingAbortRequestPromise;
-  JS::Heap<JS::Value> mPendingAbortRequestReason;
+  MC::Heap<JS::Value> mPendingAbortRequestReason;
   bool mPendingAbortRequestWasAlreadyErroring = false;
 
   WriterState mState = WriterState::Writable;
-  JS::Heap<JS::Value> mStoredError;
+  MC::Heap<JS::Value> mStoredError;
   RefPtr<WritableStreamDefaultWriter> mWriter;
   nsTArray<RefPtr<Promise>> mWriteRequests;
 

@@ -364,7 +364,7 @@ class ScriptLoadRequest
   //
   // NOTE: This field is not used for ModuleLoadRequest.
   //       See ModuleLoadRequest::mIsMarkedForBytecodeEncoding.
-  JS::Heap<JSScript*> mScriptForBytecodeEncoding;
+  MC::Heap<JSScript*> mScriptForBytecodeEncoding;
 
   // Holds the Cache information, which is used to register the bytecode
   // on the cache entry, such that we can load it the next time.

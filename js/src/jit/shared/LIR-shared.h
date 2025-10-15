@@ -415,7 +415,7 @@ class LGetInlinedArgumentHole : public LVariadicInstruction<BOX_PIECES, 0> {
   }
 };
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 class LInlineArgumentsSlice : public LVariadicInstruction<1, 2> {
  public:
   LIR_HEADER(InlineArgumentsSlice)
@@ -2127,7 +2127,7 @@ class LStoreElementV : public LInstructionHelper<0, 2 + BOX_PIECES, 0> {
 // LStoreElementV, this instruction can store doubles and constants directly,
 // and does not store the type tag if the array is monomorphic and known to
 // be packed.
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 class LStoreElementT : public LInstructionHelper<0, 3, 1> {
  public:
   LIR_HEADER(StoreElementT)

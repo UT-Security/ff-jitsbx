@@ -344,7 +344,7 @@ class CodeGenerator final : public CodeGeneratorSpecific {
                                    Label* ifDoesntEmulateUndefined,
                                    Register scratch, OutOfLineTestObject* ool);
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   void emitStoreElementTyped(const LAllocation* value, MIRType valueType,
                              Register elements, const LAllocation* index, Register scratch);
 #else

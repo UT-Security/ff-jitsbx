@@ -46,7 +46,7 @@ class XRView final : public nsWrapperCache {
   gfx::PointDouble3D mPosition;
   gfx::QuaternionDouble mOrientation;
   gfx::Matrix4x4 mProjectionMatrix;
-  JS::Heap<JSObject*> mJSProjectionMatrix;
+  MC::Heap<JSObject*> mJSProjectionMatrix;
   bool mProjectionNeedsUpdate = true;
   RefPtr<XRRigidTransform> mTransform;
 };

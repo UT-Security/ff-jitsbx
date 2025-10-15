@@ -221,7 +221,7 @@ class JSStackFrame final : public nsIStackFrame, public xpc::JSStackFrameBase {
   // and clear out the stack pointer.
   void UnregisterAndClear();
 
-  JS::Heap<JSObject*> mStack;
+  MC::Heap<JSObject*> mStack;
   nsString mFormattedStack;
 
   nsCOMPtr<nsIStackFrame> mCaller;
@@ -359,7 +359,7 @@ static JSPrincipals* GetPrincipalsForStackGetter(MCContext* aCx,
 // @argument [out] aValue the value we got from the stack.
 template <typename ReturnType, typename GetterOutParamType>
 static void GetValueIfNotCached(
-    MCContext* aCx, const JS::Heap<JSObject*>& aStack,
+    MCContext* aCx, const MC::Heap<JSObject*>& aStack,
     JS::SavedFrameResult (*aPropGetter)(JSContext*, JSPrincipals*,
                                         JS::Handle<JSObject*>,
                                         GetterOutParamType,
@@ -463,21 +463,21 @@ int32_t JSStackFrame::GetSourceId(MCContext* aCx) {
     return 0;
   }
 
-  uint32_t id;
+  MC::SandboxStack<uint32_t> id;
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameSourceId,
-                      mSourceIdInitialized, &canCache, &useCachedValue, &id);
+                      mSourceIdInitialized, &canCache, &useCachedValue, id.UNSAFE_unverified());
 
   if (useCachedValue) {
     return mSourceId;
   }
 
   if (canCache) {
-    mSourceId = id;
+    mSourceId = *id.UNSAFE_unverified();
     mSourceIdInitialized = true;
   }
 
-  return id;
+  return *id.UNSAFE_unverified();
 }
 
 NS_IMETHODIMP
@@ -491,21 +491,21 @@ int32_t JSStackFrame::GetLineNumber(MCContext* aCx) {
     return 0;
   }
 
-  uint32_t line;
+  MC::SandboxStack<uint32_t> line;
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameLine, mLinenoInitialized,
-                      &canCache, &useCachedValue, &line);
+                      &canCache, &useCachedValue, line.UNSAFE_unverified());
 
   if (useCachedValue) {
     return mLineno;
   }
 
   if (canCache) {
-    mLineno = line;
+    mLineno = *line.UNSAFE_unverified();
     mLinenoInitialized = true;
   }
 
-  return line;
+  return *line.UNSAFE_unverified();
 }
 
 NS_IMETHODIMP
@@ -519,21 +519,21 @@ int32_t JSStackFrame::GetColumnNumber(MCContext* aCx) {
     return 0;
   }
 
-  uint32_t col;
+  MC::SandboxStack<uint32_t> col;
   bool canCache = false, useCachedValue = false;
   GetValueIfNotCached(aCx, mStack, JS::GetSavedFrameColumn, mColNoInitialized,
-                      &canCache, &useCachedValue, &col);
+                      &canCache, &useCachedValue, col.UNSAFE_unverified());
 
   if (useCachedValue) {
     return mColNo;
   }
 
   if (canCache) {
-    mColNo = col;
+    mColNo = *col.UNSAFE_unverified();
     mColNoInitialized = true;
   }
 
-  return col;
+  return *col.UNSAFE_unverified();
 }
 
 NS_IMETHODIMP

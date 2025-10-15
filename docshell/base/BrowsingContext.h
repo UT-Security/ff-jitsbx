@@ -1296,7 +1296,7 @@ class BrowsingContext : public nsILoadContext, public nsWrapperCache {
   // fine. The JSObject stored in here should be a proxy with a
   // nsOuterWindowProxy handler, which will update the pointer from its
   // objectMoved hook and clear it from its finalize hook.
-  JS::Heap<JSObject*> mWindowProxy;
+  MC::Heap<JSObject*> mWindowProxy;
   LocationProxy mLocation;
 
   // OriginAttributes for this BrowsingContext. May not be changed after this

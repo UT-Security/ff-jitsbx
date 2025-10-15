@@ -39,6 +39,10 @@ struct DummyCallbacks final : public TraceCallbacks {
     static_cast<TraceCounts*>(aClosure)->mId++;
   }
 
+  void Trace(MC::Heap<jsid>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mId++;
+  }
+
   void Trace(JS::Heap<JSObject*>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mObject++;
   }
@@ -61,11 +65,24 @@ struct DummyCallbacks final : public TraceCallbacks {
     static_cast<TraceCounts*>(aClosure)->mString++;
   }
 
+  void Trace(MC::Heap<JSString*>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mString++;
+  }
+
   void Trace(JS::Heap<JSScript*>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mScript++;
   }
 
+  void Trace(MC::Heap<JSScript*>*, const char*, void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mScript++;
+  }
+
   void Trace(JS::Heap<JSFunction*>*, const char*,
+             void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mFunction++;
+  }
+
+  void Trace(MC::Heap<JSFunction*>*, const char*,
              void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mFunction++;
   }

@@ -16,8 +16,8 @@
 #include "MainThreadUtils.h"
 #include "Units.h"
 #include "imgIRequest.h"
-#include "js/RootingAPI.h"
-#include "js/friend/DOMProxy.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/friend/DOMProxy.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
@@ -5128,7 +5128,7 @@ class Document : public nsINode,
   nsString mBaseTarget;
 
   nsCOMPtr<nsIStructuredCloneContainer> mStateObjectContainer;
-  JS::Heap<JS::Value> mCachedStateObject;
+  MC::Heap<JS::Value> mCachedStateObject;
 
   uint32_t mInSyncOperationCount;
 
@@ -5435,7 +5435,7 @@ class Document : public nsINode,
 
  public:
   // Needs to be public because the bindings code pokes at it.
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  MC::ExpandoAndGeneration mExpandoAndGeneration;
 
   bool HasPendingInitialTranslation();
 

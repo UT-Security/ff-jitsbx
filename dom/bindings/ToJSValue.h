@@ -304,7 +304,7 @@ ToJSValue(MCContext* aCx, const T& aArgument,
 // Accept existing JS values on the Heap (which may not be same-compartment with
 // us
 [[nodiscard]] inline bool ToJSValue(MCContext* aCx,
-                                    const JS::Heap<JS::Value>& aArgument,
+                                    const MC::Heap<JS::Value>& aArgument,
                                     JS::MutableHandle<JS::Value> aValue) {
   aValue.set(aArgument);
   return MaybeWrapValue(aCx, aValue);

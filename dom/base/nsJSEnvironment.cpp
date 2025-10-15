@@ -2279,7 +2279,7 @@ class nsJSArgArray final : public nsIJSArgArray {
  protected:
   ~nsJSArgArray();
   MCContext* mContext;
-  JS::Heap<JS::Value>* mArgv;
+  MC::Heap<JS::Value>* mArgv;
   uint32_t mArgc;
 };
 
@@ -2289,7 +2289,7 @@ nsJSArgArray::nsJSArgArray(MCContext* aContext, uint32_t argc,
   // copy the array - we don't know its lifetime, and ours is tied to xpcom
   // refcounting.
   if (argc) {
-    mArgv = new (fallible) JS::Heap<JS::Value>[argc];
+    mArgv = new (fallible) MC::Heap<JS::Value>[argc];
     if (!mArgv) {
       *prv = NS_ERROR_OUT_OF_MEMORY;
       return;

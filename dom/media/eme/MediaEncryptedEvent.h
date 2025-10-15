@@ -8,7 +8,7 @@
 #define mozilla_dom_MediaKeyNeededEvent_h__
 
 #include <cstdint>
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/dom/Event.h"
@@ -30,7 +30,7 @@ class MediaEncryptedEvent final : public Event {
   explicit MediaEncryptedEvent(EventTarget* aOwner);
 
   nsString mInitDataType;
-  JS::Heap<JSObject*> mInitData;
+  MC::Heap<JSObject*> mInitData;
 
  public:
   JSObject* WrapObjectInternal(MCContext* aCx,

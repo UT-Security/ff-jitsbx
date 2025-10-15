@@ -14,7 +14,7 @@
 #include "js/experimental/JitInfo.h"  // JSJitGetterOp, JSJitInfo
 #include "js/friend/WindowProxy.h"  // js::IsWindow, js::IsWindowProxy, js::ToWindowProxyIfWindow
 #include "monkeycage/MemoryFunctions.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetReservedSlot, JS::SetReservedSlot
 #include "monkeycage/RealmOptions.h"
 #include "monkeycage/RootingAPI.h"
 #include "monkeycage/GCVector.h"
@@ -482,7 +482,7 @@ class ProtoAndIfaceCache {
 
     MC::Heap<JSObject*>& EntrySlotMustExist(size_t i) { return (*this)[i]; }
 
-    void Trace(JSTracer* aTracer) {
+    void Trace(MC::Tainted<JSTracer*> aTracer) {
       for (size_t i = 0; i < ArrayLength(*this); ++i) {
         JS::TraceEdge(aTracer, &(*this)[i], "protoAndIfaceCache[i]");
       }
@@ -539,7 +539,7 @@ class ProtoAndIfaceCache {
       return (*p)[leafIndex];
     }
 
-    void Trace(JSTracer* trc) {
+    void Trace(MC::Tainted<JSTracer*> trc) {
       for (size_t i = 0; i < ArrayLength(mPages); ++i) {
         Page* p = mPages[i];
         if (p) {
@@ -616,7 +616,7 @@ class ProtoAndIfaceCache {
     FORWARD_OPERATION(EntrySlotMustExist, (i));
   }
 
-  void Trace(JSTracer* aTracer) { FORWARD_OPERATION(Trace, (aTracer)); }
+  void Trace(MC::Tainted<JSTracer*> aTracer) { FORWARD_OPERATION(Trace, (aTracer)); }
 
   size_t SizeOfIncludingThis(MallocSizeOf aMallocSizeOf) {
     size_t n = aMallocSizeOf(this);
@@ -661,15 +661,15 @@ struct VerifyTraceProtoAndIfaceCacheCalledTracer : public MC::CallbackTracer {
 };
 #endif
 
-inline void TraceProtoAndIfaceCache(JSTracer* trc, JSObject* obj) {
+inline void TraceProtoAndIfaceCache(MC::Tainted<JSTracer*> trc, JSObject* obj) {
   MOZ_ASSERT(JS::GetClass(obj)->flags & JSCLASS_DOM_GLOBAL);
 
 #ifdef DEBUG
-  if (trc->kind() == JS::TracerKind::VerifyTraceProtoAndIface) {
+  if (trc.UNSAFE_unverified()->kind() == JS::TracerKind::VerifyTraceProtoAndIface) {
     // We don't do anything here, we only want to verify that
     // TraceProtoAndIfaceCache was called.
     static_cast<VerifyTraceProtoAndIfaceCacheCalledTracer*>(
-        static_cast<JS::sandbox::CallbackTracer*>(trc)->getCallbackTracer())
+        static_cast<JS::sandbox::CallbackTracer*>(trc.UNSAFE_unverified())->getCallbackTracer())
         ->ok = true;
     return;
   }
@@ -1999,7 +1999,7 @@ class SequenceTracer<JSObject*, false, false, false> {
  public:
   static void TraceSequence(JSTracer* trc, JSObject** objp, JSObject** end) {
     for (; objp != end; ++objp) {
-      JS::TraceRoot(trc, objp, "sequence<object>");
+      JS::TraceExternalRoot(trc, objp, "sequence<object>");
     }
   }
 };
@@ -2012,7 +2012,7 @@ class SequenceTracer<JS::Value, false, false, false> {
  public:
   static void TraceSequence(JSTracer* trc, JS::Value* valp, JS::Value* end) {
     for (; valp != end; ++valp) {
-      JS::TraceRoot(trc, valp, "sequence<any>");
+      JS::TraceExternalRoot(trc, valp, "sequence<any>");
     }
   }
 };
@@ -2893,7 +2893,7 @@ MC::SandboxCallback<JSNewEnumerateOp> EnumerateGlobalCb();
 
 struct CreateGlobalOptionsGeneric {
   static void TraceGlobal(MC::Tainted<JSTracer*> aTrc, MC::Tainted<JSObject*> aObj) {
-    mozilla::dom::TraceProtoAndIfaceCache(aTrc.UNSAFE_unverified(), aObj.UNSAFE_unverified());
+    mozilla::dom::TraceProtoAndIfaceCache(aTrc, aObj.UNSAFE_unverified());
   }
   static bool PostCreateGlobal(MCContext* aCx, JS::Handle<JSObject*> aGlobal) {
     MOZ_ALWAYS_TRUE(TryPreserveWrapper(aGlobal));

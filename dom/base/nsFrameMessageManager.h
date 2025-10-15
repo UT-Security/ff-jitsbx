@@ -249,7 +249,7 @@ class nsFrameMessageManager : public nsIMessageSender {
   mozilla::UniquePtr<mozilla::dom::ipc::MessageManagerCallback> mOwnedCallback;
   nsTArray<nsString> mPendingScripts;
   nsTArray<bool> mPendingScriptsGlobalStates;
-  JS::Heap<JS::Value> mInitialProcessData;
+  MC::Heap<JS::Value> mInitialProcessData;
   RefPtr<mozilla::dom::ipc::WritableSharedMap> mSharedData;
 
   void LoadPendingScripts(nsFrameMessageManager* aManager,
@@ -338,7 +338,7 @@ class nsMessageManagerScriptExecutor {
   bool Init();
   void Trace(const TraceCallbacks& aCallbacks, void* aClosure);
   void Unlink();
-  AutoTArray<JS::Heap<JSObject*>, 2> mAnonymousGlobalScopes;
+  AutoTArray<MC::Heap<JSObject*>, 2> mAnonymousGlobalScopes;
 
   // Returns true if this is a process message manager. There should only be a
   // single process message manager per session, so instances of this type will

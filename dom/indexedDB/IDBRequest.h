@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_idbrequest_h__
 #define mozilla_dom_idbrequest_h__
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/EventForwards.h"
 #include "mozilla/dom/DOMException.h"
@@ -66,7 +66,7 @@ class IDBRequest : public DOMEventTargetHelper {
 
   SafeRefPtr<IDBTransaction> mTransaction;
 
-  JS::Heap<JS::Value> mResultVal;
+  MC::Heap<JS::Value> mResultVal;
   RefPtr<DOMException> mError;
 
   nsString mFilename;

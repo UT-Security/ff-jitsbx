@@ -20,9 +20,6 @@
 #include "nsProxyRelease.h"
 #include "nsContentUtils.h"
 
-//TODO(JS_SANDBOX): remove
-#include "monkeycage/Utility.h"
-
 class nsIInterceptedChannel;
 
 namespace mozilla::dom {
@@ -262,7 +259,7 @@ class PushEvent final : public ExtendableEvent {
 };
 
 class ExtendableMessageEvent final : public ExtendableEvent {
-  JS::Heap<JS::Value> mData;
+  MC::Heap<JS::Value> mData;
   nsString mOrigin;
   nsString mLastEventId;
   RefPtr<Client> mClient;

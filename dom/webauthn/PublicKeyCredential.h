@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_PublicKeyCredential_h
 #define mozilla_dom_PublicKeyCredential_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Credential.h"
@@ -57,7 +57,7 @@ class PublicKeyCredential final : public Credential {
 
  private:
   CryptoBuffer mRawId;
-  JS::Heap<JSObject*> mRawIdCachedObj;
+  MC::Heap<JSObject*> mRawIdCachedObj;
   RefPtr<AuthenticatorResponse> mResponse;
   AuthenticationExtensionsClientOutputs mClientExtensionOutputs;
 };

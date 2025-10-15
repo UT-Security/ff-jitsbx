@@ -132,18 +132,21 @@ struct TypedArray_base : public SpiderMonkeyInterfaceObjectStorage,
   inline void ComputeState() const {
     MOZ_ASSERT(inited());
     MOZ_ASSERT(!mComputed);
-    size_t length;
+    MC::SandboxStack<size_t> length;
+    MC::SandboxStack<bool> shared;
     MC::AutoCheckCannotGC nogc;
 #ifdef DEBUG
-    mData =
-        ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, *nogc.UNSAFE_unverified());
+    mData = ArrayT::fromObject(mImplObj).getLengthAndData(
+        length.UNSAFE_unverified(), shared.UNSAFE_unverified(),
+        *nogc.UNSAFE_unverified());
 #else
-    mData =
-        ArrayT::fromObject(mImplObj).getLengthAndData(&length, &mShared, nogc);
+    mData = ArrayT::fromObject(mImplObj).getLengthAndData(
+        length.UNSAFE_unverified(), shared.UNSAFE_unverified(), nogc);
 #endif
-    MOZ_RELEASE_ASSERT(length <= INT32_MAX,
+    MOZ_RELEASE_ASSERT(*length.UNSAFE_unverified() <= INT32_MAX,
                        "Bindings must have checked ArrayBuffer{View} length");
-    mLength = length;
+    mLength = *length.UNSAFE_unverified();
+    mShared = *shared.UNSAFE_unverified();
     mComputed = true;
   }
 
@@ -215,15 +218,19 @@ struct TypedArray : public TypedArray_base<ArrayT> {
     }
     if (data) {
       MC::AutoCheckCannotGC nogc;
-      bool isShared;
+      MC::SandboxStack<size_t> unusedlength;
+      MC::SandboxStack<bool> isShared;
 #ifdef DEBUG
-      element_type* buf = array.getData(&isShared, *nogc.UNSAFE_unverified());
+      element_type* buf = array.getLengthAndData(unusedlength.UNSAFE_unverified(),
+                                                 isShared.UNSAFE_unverified(),
+                                                 *nogc.UNSAFE_unverified());
 #else
-      element_type* buf = array.getData(&isShared, nogc);
+      element_type* buf = array.getLengthAndData(
+          unusedlength.UNSAFE_unverified(), isShared.UNSAFE_unverified(), nogc);
 #endif
       // Data will not be shared, until a construction protocol exists
       // for constructing shared data.
-      MOZ_ASSERT(!isShared);
+      MOZ_ASSERT(!*isShared.UNSAFE_unverified());
       memcpy(buf, data, length * sizeof(element_type));
     }
     return array.asObject();

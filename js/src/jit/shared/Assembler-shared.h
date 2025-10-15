@@ -270,14 +270,14 @@ struct PatchedAbsoluteAddress {
 struct Address {
   RegisterOrSP base;
   int32_t offset;
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   // Indicates that it's safe to clobber a r11 base register.
   bool clobberScratch;
   // Indicates that heap masks are already applied.
   bool sandboxed;
 #endif
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   Address(Register base, int32_t offset, bool clobberScratch = false, bool sandboxed = false)
       : base(RegisterOrSP(base)), offset(offset), clobberScratch(clobberScratch), sandboxed(sandboxed) {}
 #else
@@ -321,14 +321,14 @@ struct BaseIndex {
   Register index;
   Scale scale;
   int32_t offset;
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   // Indicates that it's safe to clobber a r11 base or index register.
   bool clobberScratch;
   // Indicates that heap masks are already applied.
   bool sandboxed;
 #endif
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   BaseIndex(Register base, Register index, Scale scale, int32_t offset = 0, bool clobberScratch = false, bool sandboxed = false)
       : base(RegisterOrSP(base)), index(index), scale(scale), offset(offset), clobberScratch(clobberScratch), sandboxed(sandboxed) {}
 #else

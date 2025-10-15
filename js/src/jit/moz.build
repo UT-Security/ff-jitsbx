@@ -269,7 +269,7 @@ GeneratedFile(
 
 # Generate jit/LIROpsGenerated.h from jit/LIR.h, jit/shared/LIR-shared.h, and
 # platform-specific LIR files.
-if CONFIG["JS_SANDBOX_HEAP"]:
+if CONFIG["JS_SANDBOX"]:
     GeneratedFile(
         "LIROpsGenerated.h",
         script="GenerateLIRFiles.py",

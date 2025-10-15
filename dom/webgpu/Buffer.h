@@ -32,7 +32,7 @@ struct MappedInfo {
   // True if mapping is requested for writing.
   bool mWritable = false;
   // Populated by `GetMappedRange`.
-  nsTArray<JS::Heap<JSObject*>> mArrayBuffers;
+  nsTArray<MC::Heap<JSObject*>> mArrayBuffers;
   BufferAddress mOffset;
   BufferAddress mSize;
   MappedInfo() = default;

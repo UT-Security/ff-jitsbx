@@ -109,7 +109,7 @@ class UnderlyingSinkAlgorithms final : public UnderlyingSinkAlgorithmsBase {
  private:
   // Virtually const, but are cycle collected
   nsCOMPtr<nsIGlobalObject> mGlobal;
-  JS::Heap<JSObject*> mUnderlyingSink;
+  MC::Heap<JSObject*> mUnderlyingSink;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkStartCallback> mStartCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkWriteCallback> mWriteCallback;
   MOZ_KNOWN_LIVE RefPtr<UnderlyingSinkCloseCallback> mCloseCallback;

@@ -624,7 +624,7 @@ int32_t WorkerGlobalScope::SetTimeoutOrInterval(
       this, aIsInterval ? DebuggerNotificationType::SetInterval
                         : DebuggerNotificationType::SetTimeout);
 
-  nsTArray<JS::Heap<JS::Value>> args;
+  nsTArray<MC::Heap<JS::Value>> args;
   if (!args.AppendElements(aArguments, fallible)) {
     aRv.Throw(NS_ERROR_OUT_OF_MEMORY);
     return 0;

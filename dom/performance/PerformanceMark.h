@@ -57,7 +57,7 @@ class PerformanceMark final : public PerformanceEntry {
   DOMHighResTimeStamp mStartTime;
 
  private:
-  JS::Heap<JS::Value> mDetail;
+  MC::Heap<JS::Value> mDetail;
   // This is used by the Gecko Profiler only to be able to add precise markers.
   // It's not exposed to JS
   DOMHighResTimeStamp mUnclampedStartTime;

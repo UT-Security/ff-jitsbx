@@ -65,7 +65,7 @@ class WorkletFetchHandler final : public nsISupports {
   RequestCredentials mCredentials;
 
   bool mHasError = false;
-  JS::Heap<JS::Value> mErrorToRethrow;
+  MC::Heap<JS::Value> mErrorToRethrow;
 };
 
 // A Runnable to call WorkletFetchHandler::StartFetch on the main thread.

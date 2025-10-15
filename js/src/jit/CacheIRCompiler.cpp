@@ -5416,7 +5416,7 @@ bool CacheIRCompiler::emitMathFunctionNumberResult(NumberOperandId inputId,
   return emitMathFunctionNumberResultShared(fun, scratch, output.valueReg());
 }
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 static void EmitStoreDenseElement(MacroAssembler& masm,
                                   const ConstantOrRegister& value,
                                   BaseObjectElementIndex target, Register scratch) {
@@ -5454,7 +5454,7 @@ bool CacheIRCompiler::emitStoreDenseElement(ObjOperandId objId,
   ConstantOrRegister val = allocator.useConstantOrRegister(masm, rhsId);
 
   AutoScratchRegister scratch(allocator, masm);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   AutoScratchRegister scratch2(allocator, masm);
 #endif
 
@@ -5478,7 +5478,7 @@ bool CacheIRCompiler::emitStoreDenseElement(ObjOperandId objId,
 
   // Perform the store.
   EmitPreBarrier(masm, element, MIRType::Value);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   EmitStoreDenseElement(masm, val, element, scratch2.get());
 #else
   EmitStoreDenseElement(masm, val, element);
@@ -5526,7 +5526,7 @@ bool CacheIRCompiler::emitStoreDenseElementHole(ObjOperandId objId,
   ConstantOrRegister val = allocator.useConstantOrRegister(masm, rhsId);
 
   AutoScratchRegister scratch(allocator, masm);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   AutoScratchRegister scratch2(allocator, masm);
 #endif
 
@@ -5614,7 +5614,7 @@ bool CacheIRCompiler::emitStoreDenseElementHole(ObjOperandId objId,
   EmitPreBarrier(masm, element, MIRType::Value);
 
   masm.bind(&storeSkipPreBarrier);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   EmitStoreDenseElement(masm, val, element, scratch2.get());
 #else
   EmitStoreDenseElement(masm, val, element);

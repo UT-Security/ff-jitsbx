@@ -306,7 +306,7 @@ class Notification : public DOMEventTargetHelper,
   const NotificationBehavior mBehavior;
 
   // It's null until GetData is first called
-  JS::Heap<JS::Value> mData;
+  MC::Heap<JS::Value> mData;
 
   nsString mAlertName;
   nsString mScope;

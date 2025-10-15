@@ -730,10 +730,10 @@ class XMLHttpRequestMainThread final : public XMLHttpRequest,
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
 
-  JS::Heap<JS::Value> mResultJSON;
+  MC::Heap<JS::Value> mResultJSON;
 
   RefPtr<ArrayBufferBuilder> mArrayBufferBuilder;
-  JS::Heap<JSObject*> mResultArrayBuffer;
+  MC::Heap<JSObject*> mResultArrayBuffer;
   bool mIsMappedArrayBuffer;
 
   void ResetResponse();

@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_idbindex_h__
 #define mozilla_dom_idbindex_h__
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBCursorBinding.h"
 #include "mozilla/UniquePtr.h"
@@ -39,7 +39,7 @@ class IDBIndex final : public nsISupports, public nsWrapperCache {
   // initialized in the constructor and never modified/cleared.
   RefPtr<IDBObjectStore> mObjectStore;
 
-  JS::Heap<JS::Value> mCachedKeyPath;
+  MC::Heap<JS::Value> mCachedKeyPath;
 
   // This normally points to the IndexMetadata owned by the parent IDBDatabase
   // object. However, if this index is part of a versionchange transaction and

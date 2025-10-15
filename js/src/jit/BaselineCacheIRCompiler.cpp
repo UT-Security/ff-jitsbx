@@ -3205,7 +3205,7 @@ void BaselineCacheIRCompiler::storeThis(const ValueOperand& newThis, Register ar
   }
 }
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 void BaselineCacheIRCompiler::storeThis(const Value& newThis, Register argcReg,
                                         CallFlags flags, Register scratch) {
   switch (flags.getArgFormat()) {
@@ -3268,7 +3268,7 @@ void BaselineCacheIRCompiler::createThis(Register argcReg, Register calleeReg,
   MOZ_ASSERT(flags.isConstructing());
 
   if (flags.needsUninitializedThis()) {
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
     storeThis(MagicValue(JS_UNINITIALIZED_LEXICAL), argcReg, flags, scratch);
 #else
     storeThis(MagicValue(JS_UNINITIALIZED_LEXICAL), argcReg, flags);

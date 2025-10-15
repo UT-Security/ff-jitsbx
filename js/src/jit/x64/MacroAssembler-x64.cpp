@@ -958,7 +958,7 @@ void MacroAssembler::branchTestValue(Condition cond, const ValueOperand& lhs,
 
 // ========================================================================
 // Memory access primitives.
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
 template <typename T>
 void MacroAssembler::storeUnboxedValue(const ConstantOrRegister& value,
                                        MIRType valueType, const T& dest,

@@ -11,6 +11,7 @@
 #include "monkeycage/SandboxHelpers.h"
 #include "monkeycage/SandboxTraits.h"
 #include "monkeycage/Tainted.h"
+#include "monkeycage/UniquePtr.h"
 
 #include "js/Utility.h"
 
@@ -23,23 +24,30 @@ private:
   T* inner_;
 
 public:
-  SandboxHeapPtr() {
+  SandboxHeapPtr() : inner_(nullptr) {
     inner_ = js_new<T>();
   }
 
   template <typename... Args>
-  SandboxHeapPtr(Args&&... args) {
+  SandboxHeapPtr(Args&&... args) : inner_(nullptr) {
     inner_ = js_new<T>(std::forward<Args>(args)...);
   }
 
-  SandboxHeapPtr(SandboxHeapPtr&& other) {
+  SandboxHeapPtr(SandboxHeapPtr&& other) : inner_(nullptr) {
     inner_ = other.inner_;
     other.inner_ = nullptr;
+  }
+  
+  SandboxHeapPtr(js::UniquePtr<T>&& other) : inner_(nullptr) {
+    inner_ = other.release();
   }
 
   ~SandboxHeapPtr() {
     js_delete(inner_);
   }
+  
+  SandboxHeapPtr(const SandboxHeapPtr& aOther) = delete;
+  void operator=(const SandboxHeapPtr& aOther) = delete;
 
   //TODO(abhishek): do we need to do anything special for copy/move-constructor?
   inline T* addr() const {
@@ -51,6 +59,7 @@ public:
   }
 
   SandboxHeapPtr& operator=(SandboxHeapPtr&& aOther) {
+    js_delete(inner_);
     inner_ = aOther.inner_;
     aOther.inner_ = nullptr;
     return *this;
@@ -93,11 +102,13 @@ public:
 
   Tainted(Tainted&& other) : data_(std::move(other.data_)) {}  
 
+  Tainted(mc::UniquePtr<T>&& other) : data_(std::move(other.INTERNAL_unverified_safe())) {}
+
   Tainted& operator=(Tainted&& aOther) {
     data_ = std::move(aOther.data_);
     return *this;
   }
-  
+
   template<typename T2, typename = std::enable_if_t<std::is_convertible_v<T*, const T2*>, T>>
   inline operator Tainted<const T2*, MC_Sbx>() const {
     Tainted<const T2*, MC_Sbx> ret{nullptr};
@@ -123,6 +134,9 @@ public:
   }
   
   inline auto UNSAFE_unverified() const { return data_.addr(); }
+  
+  Tainted(const Tainted& aOther) = delete;
+  void operator=(const Tainted& aOther) = delete;
 };
 
 }

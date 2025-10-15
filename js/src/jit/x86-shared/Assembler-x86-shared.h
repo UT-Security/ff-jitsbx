@@ -103,7 +103,7 @@ class Operand {
   // this field is smaller than the size of Register::Encoding.
   Register::Encoding index_ : 8;
   int32_t disp_;
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   bool sandboxed_ = false;
   bool clobberScratch_ = false;
 #endif
@@ -121,7 +121,7 @@ class Operand {
         scale_(TimesOne),
         index_(Registers::Invalid),
         disp_(0) {}
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   explicit Operand(const Address& address)
       : kind_(MEM_REG_DISP),
         base_(address.base.encoding()),
@@ -207,7 +207,7 @@ class Operand {
 
   Address toAddress() const {
     MOZ_ASSERT(kind() == MEM_REG_DISP);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
     return Address(Register::FromCode(base()), disp(), clobberScratch_, sandboxed_);
 #else
     return Address(Register::FromCode(base()), disp());
@@ -216,7 +216,7 @@ class Operand {
 
   BaseIndex toBaseIndex() const {
     MOZ_ASSERT(kind() == MEM_SCALE);
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
     return BaseIndex(Register::FromCode(base()), Register::FromCode(index()),
                      scale(), disp(), clobberScratch_, sandboxed_);
 #else
@@ -268,7 +268,7 @@ class Operand {
     }
   }
 
-#ifdef JS_SANDBOX_HEAP
+#ifdef JS_SANDBOX
   bool sandboxed() const { return sandboxed_; }
   bool clobberScratch() const { return clobberScratch_; }
 #endif
@@ -479,7 +479,7 @@ class AssemblerX86Shared : public AssemblerShared {
                    "Must allow ScratchReg to be clobbered");
         pauseBundleGroup();
 #ifdef DEBUG
-        beginBundleInstruction();
+        /*beginBundleInstruction();
         masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                      SandboxScratchReg.encoding());
         endAndBeginBundleInstruction();
@@ -501,7 +501,7 @@ class AssemblerX86Shared : public AssemblerShared {
         bind(&sandboxed);
         beginBundleInstruction();
         masm.pop_r(rcx.encoding());
-        endBundleInstruction();
+        endBundleInstruction();*/
 #endif
         beginBundleInstruction();
         masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
@@ -517,7 +517,7 @@ class AssemblerX86Shared : public AssemblerShared {
         }
         pauseBundleGroup();
 #ifdef DEBUG
-        beginBundleInstruction();
+        /*beginBundleInstruction();
         masm.push_r(op.base());
         endAndBeginBundleInstruction();
         if (op.base() == X86Encoding::rcx) {
@@ -560,7 +560,7 @@ class AssemblerX86Shared : public AssemblerShared {
           masm.pop_r(rcx.encoding());
         endAndBeginBundleInstruction();
         masm.pop_r(op.base());
-        endBundleInstruction();
+        endBundleInstruction();*/
 #endif
         beginBundleGroup();
         masm.andq_rr(SandboxMaskReg.encoding(), op.base());
@@ -571,6 +571,24 @@ class AssemblerX86Shared : public AssemblerShared {
     }
 #else
     return op;
+#endif
+  }
+
+  void sandboxStackPointer(Register dest) {
+#ifdef JS_SANDBOX_HEAP
+    if (dest == StackPointer) {
+#ifdef JS_SANDBOX_BUNDLE
+      MOZ_ASSERT(
+          inBundleGroup(),
+          "Expected to be in bundle when masking stack pointer modifications");
+#endif
+      pauseBundleGroup();
+#ifdef DEBUG
+#endif
+      beginBundleGroup();
+      masm.andq_rr(SandboxMaskReg.encoding(), StackPointer.encoding());
+      masm.orq_rr(SandboxBaseReg.encoding(), StackPointer.encoding());
+    }
 #endif
   }
 

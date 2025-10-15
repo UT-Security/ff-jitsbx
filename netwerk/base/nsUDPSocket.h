@@ -90,7 +90,7 @@ class nsUDPMessage : public nsIUDPMessage {
   NetAddr mAddr;
   nsCOMPtr<nsIOutputStream> mOutputStream;
   FallibleTArray<uint8_t> mData;
-  JS::Heap<JSObject*> mJsobj;
+  MC::Heap<JSObject*> mJsobj;
 };
 
 //-----------------------------------------------------------------------------

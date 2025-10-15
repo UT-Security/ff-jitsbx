@@ -7,7 +7,7 @@
 #ifndef CustomEvent_h__
 #define CustomEvent_h__
 
-#include "js/Value.h"
+#include "monkeycage/Value.h"
 #include "mozilla/dom/Event.h"
 
 namespace mozilla::dom {
@@ -18,7 +18,7 @@ class CustomEvent final : public Event {
  private:
   virtual ~CustomEvent();
 
-  JS::Heap<JS::Value> mDetail;
+  MC::Heap<JS::Value> mDetail;
 
  public:
   explicit CustomEvent(mozilla::dom::EventTarget* aOwner,
