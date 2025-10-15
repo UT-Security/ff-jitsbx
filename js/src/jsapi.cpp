@@ -3788,6 +3788,10 @@ JS_PUBLIC_API bool JS_SetDefaultLocale(JSRuntime* rt, const char* locale) {
   return rt->setDefaultLocale(locale);
 }
 
+JS_PUBLIC_API char* JS_GetDefaultLocaleUnsafe(JSContext* cx) {
+  return JS_GetDefaultLocale(cx).release();
+}
+
 JS_PUBLIC_API UniqueChars JS_GetDefaultLocale(JSContext* cx) {
   AssertHeapIsIdle();
   if (const char* locale = cx->runtime()->getDefaultLocale()) {
@@ -4849,6 +4853,10 @@ JS_PUBLIC_API void js::SetStackFormat(JSContext* cx, js::StackFormat format) {
 
 JS_PUBLIC_API js::StackFormat js::GetStackFormat(JSContext* cx) {
   return cx->runtime()->stackFormat();
+}
+
+JS_PUBLIC_API void JS::GetJSTimers(JSContext* cx, JS::JSTimers* timers) {
+  *timers = cx->realm()->timers;
 }
 
 JS_PUBLIC_API JS::JSTimers JS::GetJSTimers(JSContext* cx) {

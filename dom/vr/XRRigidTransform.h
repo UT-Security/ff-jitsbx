@@ -52,7 +52,7 @@ class XRRigidTransform final : public nsWrapperCache {
   virtual ~XRRigidTransform();
 
   nsCOMPtr<nsISupports> mParent;
-  JS::Heap<JSObject*> mMatrixArray;
+  MC::Heap<JSObject*> mMatrixArray;
   RefPtr<DOMPoint> mPosition;
   RefPtr<DOMPoint> mOrientation;
   RefPtr<XRRigidTransform> mInverse;

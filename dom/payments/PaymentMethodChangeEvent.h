@@ -46,7 +46,7 @@ class PaymentMethodChangeEvent final : public PaymentRequestUpdateEvent {
   ~PaymentMethodChangeEvent();
 
  private:
-  JS::Heap<JSObject*> mMethodDetails;
+  MC::Heap<JSObject*> mMethodDetails;
   ChangeDetails mInternalDetails;
   nsString mMethodName;
 };

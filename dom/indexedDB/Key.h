@@ -141,7 +141,7 @@ class Key {
 
   nsresult ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) const;
 
-  nsresult ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aVal) const;
+  nsresult ToJSVal(MCContext* aCx, MC::Heap<JS::Value>& aVal) const;
 
   // See SetFromJSVal() for the meaning of values returned by this function.
   IDBResult<Ok, IDBSpecialValue::Invalid> AppendItem(

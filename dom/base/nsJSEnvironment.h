@@ -147,7 +147,7 @@ class nsJSContext : public nsIScriptContext {
  private:
   void Destroy();
 
-  JS::Heap<JSObject*> mWindowProxy;
+  MC::Heap<JSObject*> mWindowProxy;
 
   bool mGCOnDestruction;
   bool mProcessingScriptTag;

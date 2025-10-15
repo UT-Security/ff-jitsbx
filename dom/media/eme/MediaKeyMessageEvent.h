@@ -13,7 +13,7 @@
 #include "nsCOMPtr.h"
 #include "mozilla/dom/Event.h"
 #include "mozilla/dom/TypedArray.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/dom/MediaKeyMessageEventBinding.h"
 
 namespace mozilla {
@@ -33,7 +33,7 @@ class MediaKeyMessageEvent final : public Event {
   explicit MediaKeyMessageEvent(EventTarget* aOwner);
 
   MediaKeyMessageType mMessageType;
-  JS::Heap<JSObject*> mMessage;
+  MC::Heap<JSObject*> mMessage;
 
  public:
   virtual MediaKeyMessageEvent* AsMediaKeyMessageEvent();

@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_AuthenticatorResponse_h
 #define mozilla_dom_AuthenticatorResponse_h
 
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -42,7 +42,7 @@ class AuthenticatorResponse : public nsISupports, public nsWrapperCache {
  private:
   nsCOMPtr<nsPIDOMWindowInner> mParent;
   CryptoBuffer mClientDataJSON;
-  JS::Heap<JSObject*> mClientDataJSONCachedObj;
+  MC::Heap<JSObject*> mClientDataJSONCachedObj;
 };
 
 }  // namespace mozilla::dom

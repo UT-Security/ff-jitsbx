@@ -167,7 +167,7 @@ class FileReader final : public DOMEventTargetHelper,
 
   nsString mResult;
 
-  JS::Heap<JSObject*> mResultArrayBuffer;
+  MC::Heap<JSObject*> mResultArrayBuffer;
 
   nsCOMPtr<nsITimer> mProgressNotifier;
   bool mProgressEventWasDelayed;

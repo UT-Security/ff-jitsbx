@@ -6,9 +6,9 @@
 
 #include "mozilla/dom/MediaKeyMessageEvent.h"
 #include "mozilla/dom/MediaKeyMessageEventBinding.h"
-#include "js/ArrayBuffer.h"
-#include "js/RootingAPI.h"
-#include "jsfriendapi.h"
+#include "monkeycage/ArrayBuffer.h"
+#include "monkeycage/RootingAPI.h"
+#include "mcfriendapi.h"
 #include "mozilla/dom/Nullable.h"
 #include "mozilla/dom/PrimitiveConversions.h"
 #include "mozilla/HoldDropJSObjects.h"

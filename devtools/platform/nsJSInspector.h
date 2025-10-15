@@ -9,8 +9,8 @@
 #include "nsIJSInspector.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
-#include "js/Value.h"
-#include "js/RootingAPI.h"
+#include "monkeycage/Value.h"
+#include "monkeycage/RootingAPI.h"
 
 namespace mozilla {
 namespace jsinspector {
@@ -27,8 +27,8 @@ class nsJSInspector final : public nsIJSInspector {
   ~nsJSInspector();
 
   uint32_t mNestedLoopLevel;
-  nsTArray<JS::Heap<JS::Value> > mRequestors;
-  JS::Heap<JS::Value> mLastRequestor;
+  nsTArray<MC::Heap<JS::Value> > mRequestors;
+  MC::Heap<JS::Value> mLastRequestor;
 };
 
 }  // namespace jsinspector

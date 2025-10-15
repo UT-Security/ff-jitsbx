@@ -116,7 +116,7 @@ class PerformanceMainThread final : public Performance,
   RefPtr<PerformanceTiming> mTiming;
   RefPtr<PerformanceNavigation> mNavigation;
   RefPtr<PerformancePaintTiming> mFCPTiming;
-  JS::Heap<JSObject*> mMozMemory;
+  MC::Heap<JSObject*> mMozMemory;
 
   nsTArray<RefPtr<PerformanceEventTiming>> mEventTimingEntries;
 

@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_AbortFollower_h
 #define mozilla_dom_AbortFollower_h
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "nsISupportsImpl.h"
 #include "nsTObserverArray.h"
 #include "mozilla/WeakPtr.h"
@@ -67,7 +67,7 @@ class AbortSignalImpl : public nsISupports, public SupportsWeakPtr {
 
   virtual ~AbortSignalImpl() { UnlinkFollowers(); }
 
-  JS::Heap<JS::Value> mReason;
+  MC::Heap<JS::Value> mReason;
 
  private:
   friend class AbortFollower;

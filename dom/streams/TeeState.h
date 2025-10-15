@@ -155,10 +155,10 @@ struct TeeState : public nsISupports {
   bool mCanceled2 = false;
 
   // Step 8.
-  JS::Heap<JS::Value> mReason1;
+  MC::Heap<JS::Value> mReason1;
 
   // Step 9.
-  JS::Heap<JS::Value> mReason2;
+  MC::Heap<JS::Value> mReason2;
 
   // Step 10.
   RefPtr<ReadableStream> mBranch1;

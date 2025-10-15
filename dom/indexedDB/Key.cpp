@@ -928,7 +928,7 @@ nsresult Key::ToJSVal(MCContext* aCx, JS::MutableHandle<JS::Value> aVal) const {
   return NS_OK;
 }
 
-nsresult Key::ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aVal) const {
+nsresult Key::ToJSVal(MCContext* aCx, MC::Heap<JS::Value>& aVal) const {
   MC::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {

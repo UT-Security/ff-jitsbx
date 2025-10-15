@@ -663,7 +663,7 @@ MC::SandboxCallback<JSFinalizeOp> XPC_WN_NoHelper_FinalizeCb() {
 void XPCWrappedNative::Trace(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> obj) {
   const JSClass* clazz = JS::GetClass(obj.UNSAFE_unverified());
   if (clazz->flags & JSCLASS_DOM_GLOBAL) {
-    mozilla::dom::TraceProtoAndIfaceCache(trc.UNSAFE_unverified(),
+    mozilla::dom::TraceProtoAndIfaceCache(trc,
                                           obj.UNSAFE_unverified());
   }
   MOZ_ASSERT(clazz->isWrappedNative());

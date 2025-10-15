@@ -38,6 +38,33 @@ inline bool ToSetterId(
 }
 }
 
+namespace mc {
+
+template <>
+struct BarrierMethods<jsid> {
+  static js::gc::Cell* asGCThingOrNull(jsid id) {
+    if (id.isGCThing()) {
+      return id.toGCThing();
+    }
+    return nullptr;
+  }
+  static void postWriteBarrier(jsid* idp, jsid prev, jsid next) {
+    MOZ_ASSERT_IF(next.isString(), !js::gc::IsInsideNursery(next.toString()));
+  }
+  static void exposeToJS(jsid id) {
+    if (id.isGCThing()) {
+      js::gc::ExposeGCThingToActiveJS(id.toGCCellPtr());
+    }
+  }
+  static void readBarrier(jsid id) {
+    if (id.isGCThing()) {
+      js::gc::IncrementalReadBarrier(id.toGCCellPtr());
+    }
+  }
+};
+
+}  // namespace mc
+
 #endif
 
 #endif

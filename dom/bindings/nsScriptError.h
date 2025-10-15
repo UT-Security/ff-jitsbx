@@ -11,8 +11,8 @@
 
 #include <stdint.h>
 
-#include "jsapi.h"
-#include "js/RootingAPI.h"
+#include "mcapi.h"
+#include "monkeycage/RootingAPI.h"
 
 #include "nsCOMArray.h"
 #include "nsCycleCollectionParticipant.h"
@@ -121,14 +121,14 @@ class nsScriptErrorWithStack : public nsScriptErrorBase {
   virtual ~nsScriptErrorWithStack();
 
   // The "exception" value.
-  JS::Heap<JS::Value> mException;
+  MC::Heap<JS::Value> mException;
   bool mHasException;
 
   // Complete stackframe where the error happened.
   // Must be a (possibly wrapped) SavedFrame object.
-  JS::Heap<JSObject*> mStack;
+  MC::Heap<JSObject*> mStack;
   // Global object that must be same-compartment with mStack.
-  JS::Heap<JSObject*> mStackGlobal;
+  MC::Heap<JSObject*> mStackGlobal;
 };
 
 // Creates either nsScriptErrorWithStack or nsScriptError,

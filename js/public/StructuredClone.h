@@ -487,8 +487,20 @@ class MOZ_NON_MEMMOVABLE JS_PUBLIC_API JSStructuredCloneData {
       : bufList_(std::move(buffers)),
         scope_(scope),
         ownTransferables_(ownership) {}
+
+  // Steal the raw data from a BufferList. In this case, we don't know the
+  // scope and none of the callback info is assigned yet.
+  JSStructuredCloneData(BufferList* buffers, JS::StructuredCloneScope scope,
+                        OwnTransferablePolicy ownership)
+      : bufList_(std::move(*buffers)),
+        scope_(scope),
+        ownTransferables_(ownership) {}
+
   JSStructuredCloneData(JSStructuredCloneData&& other) = default;
   JSStructuredCloneData& operator=(JSStructuredCloneData&& other) = default;
+
+  void MoveAssign(JSStructuredCloneData* other);
+  
   ~JSStructuredCloneData();
 
   void setCallbacks(const JSStructuredCloneCallbacks* callbacks, void* closure,
@@ -578,6 +590,10 @@ class MOZ_NON_MEMMOVABLE JS_PUBLIC_API JSStructuredCloneData {
     return JSStructuredCloneData(
         bufList_.Borrow<js::SystemAllocPolicy>(iter, size, success), scope(),
         IgnoreTransferablesIfAny);
+  }
+
+  const BufferList* BufList() const {
+    return &bufList_;
   }
 
   // Iterate over all contained data, one BufferList segment's worth at a

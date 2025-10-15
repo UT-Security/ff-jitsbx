@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_MessageEvent_h_
 #define mozilla_dom_MessageEvent_h_
 
-#include "js/RootingAPI.h"
-#include "js/Value.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/Value.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/BasicEvents.h"
@@ -87,7 +87,7 @@ class MessageEvent final : public Event {
   ~MessageEvent();
 
  private:
-  JS::Heap<JS::Value> mData;
+  MC::Heap<JS::Value> mData;
   nsString mOrigin;
   nsString mLastEventId;
   RefPtr<BrowsingContext> mWindowSource;

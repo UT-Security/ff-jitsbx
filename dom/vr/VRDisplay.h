@@ -186,12 +186,12 @@ class VRFrameData final : public nsWrapperCache {
 
   VRFrameInfo mFrameInfo;
   RefPtr<VRPose> mPose;
-  JS::Heap<JSObject*> mLeftProjectionMatrix;
-  JS::Heap<JSObject*> mLeftViewMatrix;
-  JS::Heap<JSObject*> mRightProjectionMatrix;
-  JS::Heap<JSObject*> mRightViewMatrix;
+  MC::Heap<JSObject*> mLeftProjectionMatrix;
+  MC::Heap<JSObject*> mLeftViewMatrix;
+  MC::Heap<JSObject*> mRightProjectionMatrix;
+  MC::Heap<JSObject*> mRightViewMatrix;
 
-  void LazyCreateMatrix(JS::Heap<JSObject*>& aArray, gfx::Matrix4x4& aMat,
+  void LazyCreateMatrix(MC::Heap<JSObject*>& aArray, gfx::Matrix4x4& aMat,
                         MCContext* aCx, JS::MutableHandle<JSObject*> aRetval,
                         ErrorResult& aRv);
 };
@@ -221,7 +221,7 @@ class VRStageParameters final : public nsWrapperCache {
   nsCOMPtr<nsISupports> mParent;
 
   gfx::Matrix4x4 mSittingToStandingTransform;
-  JS::Heap<JSObject*> mSittingToStandingTransformArray;
+  MC::Heap<JSObject*> mSittingToStandingTransformArray;
   gfx::Size mSize;
 };
 
@@ -253,7 +253,7 @@ class VREyeParameters final : public nsWrapperCache {
 
   gfx::Point3D mEyeTranslation;
   gfx::IntSize mRenderSize;
-  JS::Heap<JSObject*> mOffset;
+  MC::Heap<JSObject*> mOffset;
   RefPtr<VRFieldOfView> mFOV;
 };
 

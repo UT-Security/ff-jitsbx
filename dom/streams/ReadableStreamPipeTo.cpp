@@ -20,7 +20,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsISupportsImpl.h"
 
-#include "js/Exception.h"
+#include "monkeycage/Exception.h"
 #include "monkeycage/Value.h"
 
 namespace mozilla::dom {
@@ -344,7 +344,7 @@ class WriteFinishedPromiseHandler final : public PromiseNativeHandler {
   RefPtr<PipeToPump> mPipeToPump;
   PipeToPump::ShutdownAction mAction;
   bool mHasError;
-  JS::Heap<JS::Value> mError;
+  MC::Heap<JS::Value> mError;
 
   virtual ~WriteFinishedPromiseHandler() { mozilla::DropJSObjects(this); };
 
@@ -435,7 +435,7 @@ void PipeToPump::ShutdownWithAction(
 class ShutdownActionFinishedPromiseHandler final : public PromiseNativeHandler {
   RefPtr<PipeToPump> mPipeToPump;
   bool mHasError;
-  JS::Heap<JS::Value> mError;
+  MC::Heap<JS::Value> mError;
 
   virtual ~ShutdownActionFinishedPromiseHandler() {
     mozilla::DropJSObjects(this);

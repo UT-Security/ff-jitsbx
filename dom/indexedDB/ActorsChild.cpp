@@ -18,9 +18,9 @@
 #include "IndexedDatabase.h"
 #include "IndexedDatabaseInlines.h"
 #include "IndexedDBCommon.h"
-#include "js/Array.h"               // JS::NewArrayObject, JS::SetArrayLength
-#include "js/Date.h"                // JS::NewDateObject, JS::TimeClip
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
+#include "monkeycage/Array.h"               // JS::NewArrayObject, JS::SetArrayLength
+#include "monkeycage/Date.h"                // JS::NewDateObject, JS::TimeClip
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineProperty
 #include "monkeycage/Value.h"
 #include <mozIRemoteLazyInputStream.h>
 #include "mozilla/ArrayAlgorithm.h"
@@ -667,7 +667,7 @@ class BackgroundRequestChild::PreprocessHelper final
   const nsCOMPtr<nsIEventTarget> mOwningEventTarget;
   RefPtr<TaskQueue> mTaskQueue;
   nsCOMPtr<nsIInputStream> mStream;
-  UniquePtr<JSStructuredCloneData> mCloneData;
+  mc::UniquePtr<JSStructuredCloneData> mCloneData;
   BackgroundRequestChild* mActor;
   const uint32_t mCloneDataIndex;
   nsresult mResultCode;
@@ -1633,7 +1633,7 @@ void BackgroundRequestChild::MaybeSendContinue() {
 }
 
 void BackgroundRequestChild::OnPreprocessFinished(
-    uint32_t aCloneDataIndex, UniquePtr<JSStructuredCloneData> aCloneData) {
+    uint32_t aCloneDataIndex, mc::UniquePtr<JSStructuredCloneData> aCloneData) {
   AssertIsOnOwningThread();
   MOZ_ASSERT(aCloneDataIndex < mCloneInfos.Length());
   MOZ_ASSERT(aCloneData);
@@ -1668,7 +1668,7 @@ void BackgroundRequestChild::OnPreprocessFailed(uint32_t aCloneDataIndex,
   cloneInfo.mPreprocessHelper = nullptr;
 }
 
-UniquePtr<JSStructuredCloneData> BackgroundRequestChild::GetNextCloneData() {
+mc::UniquePtr<JSStructuredCloneData> BackgroundRequestChild::GetNextCloneData() {
   AssertIsOnOwningThread();
   MOZ_ASSERT(mCurrentCloneDataIndex < mCloneInfos.Length());
   MOZ_ASSERT(mCloneInfos[mCurrentCloneDataIndex].mCloneData);
@@ -1703,7 +1703,7 @@ void BackgroundRequestChild::HandleResponse(
 
   auto cloneReadInfo = DeserializeStructuredCloneReadInfo(
       std::move(aResponse), mTransaction->Database(),
-      [this] { return std::move(*GetNextCloneData()); });
+      [this] { return std::move(*GetNextCloneData().UNSAFE_unverified()); });
 
   SetResultAndDispatchSuccessEvent(mRequest, AcquireTransaction(),
                                    cloneReadInfo);
@@ -1733,7 +1733,7 @@ void BackgroundRequestChild::HandleResponse(
                      SerializedStructuredCloneReadInfo&& serializedCloneInfo) {
                    return DeserializeStructuredCloneReadInfo(
                        std::move(serializedCloneInfo), database,
-                       [this] { return std::move(*GetNextCloneData()); });
+                       [this] { return GetNextCloneData(); });
                  });
 
   SetResultAndDispatchSuccessEvent(mRequest, AcquireTransaction(),
@@ -1988,7 +1988,7 @@ nsresult BackgroundRequestChild::PreprocessHelper::Init(
 
   mStream = std::move(stream);
 
-  mCloneData = MakeUnique<JSStructuredCloneData>(
+  mCloneData = mc::MakeUnique<JSStructuredCloneData>(
       JS::StructuredCloneScope::DifferentProcessForIndexedDB);
 
   return NS_OK;
@@ -2068,7 +2068,7 @@ nsresult BackgroundRequestChild::PreprocessHelper::ProcessStream() {
   MOZ_ASSERT(internalInputStream);
 
   QM_TRY(MOZ_TO_RESULT(
-      SnappyUncompressStructuredCloneData(*internalInputStream, *mCloneData)));
+      SnappyUncompressStructuredCloneData(*internalInputStream, mCloneData)));
 
   mState = State::Finishing;
 

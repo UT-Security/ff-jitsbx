@@ -724,7 +724,7 @@ void XPCJSRuntime::TraceNativeBlackRoots(MC::Tainted<JSTracer*> trc) {
   }
 
   if (mIID2NativeInterfaceMap) {
-    mIID2NativeInterfaceMap->Trace(trc.UNSAFE_unverified());
+    mIID2NativeInterfaceMap->Trace(trc);
   }
 
   dom::TraceBlackJS(trc);

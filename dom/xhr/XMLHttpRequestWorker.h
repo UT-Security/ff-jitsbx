@@ -68,8 +68,8 @@ class XMLHttpRequestWorker final : public XMLHttpRequest {
 
   UniquePtr<ResponseData> mResponseData;
   RefPtr<Blob> mResponseBlob;
-  JS::Heap<JSObject*> mResponseArrayBufferValue;
-  JS::Heap<JS::Value> mResponseJSONValue;
+  MC::Heap<JSObject*> mResponseArrayBufferValue;
+  MC::Heap<JS::Value> mResponseJSONValue;
 
   uint32_t mTimeout;
 

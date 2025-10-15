@@ -83,7 +83,7 @@ class CallbackTimeoutHandler final : public TimeoutHandler {
 
   CallbackTimeoutHandler(MCContext* aCx, nsIGlobalObject* aGlobal,
                          Function* aFunction,
-                         nsTArray<JS::Heap<JS::Value>>&& aArguments);
+                         nsTArray<MC::Heap<JS::Value>>&& aArguments);
 
   MOZ_CAN_RUN_SCRIPT virtual bool Call(const char* aExecutionReason) override;
   virtual void MarkForCC() override;
@@ -96,7 +96,7 @@ class CallbackTimeoutHandler final : public TimeoutHandler {
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
   RefPtr<Function> mFunction;
-  nsTArray<JS::Heap<JS::Value>> mArgs;
+  nsTArray<MC::Heap<JS::Value>> mArgs;
 };
 
 }  // namespace mozilla::dom

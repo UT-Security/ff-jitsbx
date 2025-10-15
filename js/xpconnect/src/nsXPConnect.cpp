@@ -425,7 +425,7 @@ static inline T UnexpectedFailure(T rv) {
 void xpc::TraceXPCGlobal(MC::Tainted<JSTracer*> trc, MC::Tainted<JSObject*> t_obj) {
   JSObject* obj = t_obj.UNSAFE_unverified();
   if (JS::GetClass(obj)->flags & JSCLASS_DOM_GLOBAL) {
-    mozilla::dom::TraceProtoAndIfaceCache(trc.UNSAFE_unverified(), obj);
+    mozilla::dom::TraceProtoAndIfaceCache(trc, obj);
   }
 
   // We might be called from a GC during the creation of a global, before we've

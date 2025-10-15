@@ -6316,7 +6316,7 @@ int32_t nsGlobalWindowInner::SetTimeoutOrInterval(
     return 0;
   }
 
-  nsTArray<JS::Heap<JS::Value>> args;
+  nsTArray<MC::Heap<JS::Value>> args;
   if (!args.AppendElements(aArguments, fallible)) {
     aError.Throw(NS_ERROR_OUT_OF_MEMORY);
     return 0;

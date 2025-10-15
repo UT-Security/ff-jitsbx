@@ -1630,10 +1630,10 @@ nsresult CallMethodHelper::Invoke() {
   return NS_InvokeByIndex(mCallee, mVTableIndex, argc, argv);
 }
 
-static void TraceParam(JSTracer* aTrc, void* aVal, const nsXPTType& aType,
+static void TraceParam(MC::Tainted<JSTracer*> aTrc, void* aVal, const nsXPTType& aType,
                        uint32_t aArrayLen = 0) {
   if (aType.Tag() == nsXPTType::T_JSVAL) {
-    JS::TraceRoot(aTrc, (JS::Value*)aVal, "XPCWrappedNative::CallMethod param");
+    JS::TraceExternalRoot(aTrc, (JS::Value*)aVal, "XPCWrappedNative::CallMethod param");
   } else if (aType.Tag() == nsXPTType::T_ARRAY) {
     auto* array = (xpt::detail::UntypedTArray*)aVal;
     const nsXPTType& elty = aType.ArrayElementType();
@@ -1663,7 +1663,9 @@ void CallMethodHelper::trace(JSTracer* aTrc) {
       continue;
     }
 
-    TraceParam(aTrc, &param.val, param.type, arrayLen);
+    MC::Tainted<JSTracer*> tTrc;
+    tTrc.assign_raw_pointer(aTrc);
+    TraceParam(tTrc, &param.val, param.type, arrayLen);
   }
 }
 

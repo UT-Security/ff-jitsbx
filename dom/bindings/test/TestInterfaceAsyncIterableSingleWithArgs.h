@@ -51,7 +51,7 @@ class TestInterfaceAsyncIterableSingleWithArgs final
  private:
   ~TestInterfaceAsyncIterableSingleWithArgs() = default;
 
-  JS::Heap<JS::Value> mReturnLastCalledWith;
+  MC::Heap<JS::Value> mReturnLastCalledWith;
   uint32_t mReturnCallCount = 0;
 };
 

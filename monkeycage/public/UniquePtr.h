@@ -47,9 +47,17 @@ private:
 
   MOZ_IMPLICIT constexpr Tainted(decltype(nullptr)) : Tainted() {}
 
+  Tainted(Tainted&& aOther): ptr_(std::move(aOther.ptr_)) {}
+
   Tainted& operator=(Tainted&& aOther) {
     ptr_ = std::move(aOther.ptr_);
     return *this;
+  }
+
+  Tainted<T*, MC_Sbx> release() {
+    Tainted<T*, MC_Sbx> ret{nullptr};
+    ret.assign_raw_pointer(ptr_.release());
+    return ret;
   }
 
   inline operator Tainted<const T*, MC_Sbx>() const {
@@ -77,6 +85,8 @@ private:
   explicit operator bool() const { return ptr_.get() != nullptr; }
 
   inline auto UNSAFE_unverified() const { return ptr_.get(); }
+
+  inline auto INTERNAL_unverified_safe() { return std::move(ptr_); }
 
   Tainted(const Tainted& aOther) = delete;
   void operator=(const Tainted& aOther) = delete;

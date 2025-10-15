@@ -894,8 +894,8 @@ void FinalizationRegistryCleanup::DoCleanup() {
 }
 
 void FinalizationRegistryCleanup::Callback::trace(JSTracer* trc) {
-  JS::TraceRoot(trc, &mCallbackFunction, "mCallbackFunction");
-  JS::TraceRoot(trc, &mIncumbentGlobal, "mIncumbentGlobal");
+  JS::TraceExternalRoot(trc, &mCallbackFunction, "mCallbackFunction");
+  JS::TraceExternalRoot(trc, &mIncumbentGlobal, "mIncumbentGlobal");
 }
 
 }  // namespace mozilla

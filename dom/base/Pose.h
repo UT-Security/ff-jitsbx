@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_Pose_h
 #define mozilla_dom_Pose_h
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "nsCOMPtr.h"
 #include "nsWrapperCache.h"
 
@@ -45,7 +45,7 @@ class Pose : public nsWrapperCache {
                                       ErrorResult& aRv) = 0;
   static void SetFloat32Array(MCContext* aJSContext, nsWrapperCache* creator,
                               JS::MutableHandle<JSObject*> aRetVal,
-                              JS::Heap<JSObject*>& aObj, float* aVal,
+                              MC::Heap<JSObject*>& aObj, float* aVal,
                               uint32_t aValLength, ErrorResult& aRv);
 
  protected:
@@ -53,12 +53,12 @@ class Pose : public nsWrapperCache {
 
   nsCOMPtr<nsISupports> mParent;
 
-  JS::Heap<JSObject*> mPosition;
-  JS::Heap<JSObject*> mLinearVelocity;
-  JS::Heap<JSObject*> mLinearAcceleration;
-  JS::Heap<JSObject*> mOrientation;
-  JS::Heap<JSObject*> mAngularVelocity;
-  JS::Heap<JSObject*> mAngularAcceleration;
+  MC::Heap<JSObject*> mPosition;
+  MC::Heap<JSObject*> mLinearVelocity;
+  MC::Heap<JSObject*> mLinearAcceleration;
+  MC::Heap<JSObject*> mOrientation;
+  MC::Heap<JSObject*> mAngularVelocity;
+  MC::Heap<JSObject*> mAngularAcceleration;
 };
 
 }  // namespace dom

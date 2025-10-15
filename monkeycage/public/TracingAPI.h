@@ -110,6 +110,26 @@ inline void TraceRoot(MC::Tainted<JSTracer*> trc, T* edgep, const char* name) {
   return TraceRoot(trc.INTERNAL_unverified_safe(), edgep, name);
 }
 
+template <typename T>
+inline void TraceExternalRoot(MC::Tainted<JSTracer*> trc, T* edgep, const char* name) {
+  MOZ_ASSERT(edgep);
+  MC::SandboxStack<T> sbx_edgep(*edgep);
+  TraceRoot(trc.UNSAFE_unverified(), sbx_edgep.UNSAFE_unverified(), name);
+  if (*sbx_edgep.UNSAFE_unverified() != *edgep) {
+    *edgep = *sbx_edgep.UNSAFE_unverified();
+  }
+}
+
+template <typename T>
+inline void TraceExternalRoot(JSTracer* trc, T* edgep, const char* name) {
+  MOZ_ASSERT(edgep);
+  MC::SandboxStack<T> sbx_edgep(*edgep);
+  TraceRoot(trc, sbx_edgep.UNSAFE_unverified(), name);
+  if (*sbx_edgep.UNSAFE_unverified() != *edgep) {
+    *edgep = *sbx_edgep.UNSAFE_unverified();
+  }
+}
+
 inline void TraceChildren(MC::Tainted<JSTracer*> trc, GCCellPtr thing) {
   return TraceChildren(trc.INTERNAL_unverified_safe(), thing);
 }

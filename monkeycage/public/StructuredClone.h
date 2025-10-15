@@ -125,8 +125,12 @@ class TaintedVolatile<const JSStructuredCloneData, MC_Sbx> {
   MC::SandboxHeap<JSStructuredCloneData> Borrow(
       JSStructuredCloneData::Iterator& iter, size_t size,
       MC::Tainted<bool*> success) const {
+    MOZ_ASSERT(scope() == JS::StructuredCloneScope::DifferentProcess);
+    MC::SandboxStack<JSStructuredCloneData::BufferList> bufList_(
+        inner_.BufList()->Borrow<js::SystemAllocPolicy>(
+            iter, size, success.INTERNAL_unverified_safe()));
     return MC::SandboxHeap<JSStructuredCloneData>(
-        inner_.Borrow(iter, size, success.INTERNAL_unverified_safe()));
+        bufList_.UNSAFE_unverified(), scope(), IgnoreTransferablesIfAny);
   }
 
   template <typename FunctionToApply>
@@ -180,8 +184,12 @@ class TaintedVolatile<JSStructuredCloneData, MC_Sbx> {
   MC::SandboxHeap<JSStructuredCloneData> Borrow(
       JSStructuredCloneData::Iterator& iter, size_t size,
       MC::Tainted<bool*> success) const {
+    MOZ_ASSERT(scope() == JS::StructuredCloneScope::DifferentProcess);
+    MC::SandboxStack<JSStructuredCloneData::BufferList> bufList_(
+        inner_.BufList()->Borrow<js::SystemAllocPolicy>(
+            iter, size, success.INTERNAL_unverified_safe()));
     return MC::SandboxHeap<JSStructuredCloneData>(
-        inner_.Borrow(iter, size, success.INTERNAL_unverified_safe()));
+        bufList_.UNSAFE_unverified(), scope(), IgnoreTransferablesIfAny);
   }
 
   template <typename FunctionToApply>

@@ -8,7 +8,7 @@
 #define mozilla_dom_MIDIMessageEvent_h
 
 #include <cstdint>
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/AlreadyAddRefed.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/TimeStamp.h"
@@ -18,7 +18,7 @@
 #include "nsStringFwd.h"
 #include "nsTArray.h"
 
-struct JSContext;
+struct MCContext;
 namespace mozilla::dom {
 struct MIDIMessageEventInit;
 
@@ -34,7 +34,7 @@ class MIDIMessageEvent final : public Event {
  protected:
   explicit MIDIMessageEvent(mozilla::dom::EventTarget* aOwner);
 
-  JS::Heap<JSObject*> mData;
+  MC::Heap<JSObject*> mData;
 
  public:
   virtual MIDIMessageEvent* AsMIDIMessageEvent();

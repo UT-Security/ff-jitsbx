@@ -23,7 +23,7 @@
 #include "nsInterfaceHashtable.h"
 #include "nsRefPtrHashtable.h"
 #include "nsTHashMap.h"
-#include "js/friend/DOMProxy.h"  // JS::ExpandoAndGeneration
+#include "monkeycage/friend/DOMProxy.h"  // JS::ExpandoAndGeneration
 
 class nsIMutableArray;
 class nsIURI;
@@ -390,7 +390,7 @@ class HTMLFormElement final : public nsGenericHTMLElement,
       nsIContent* aForm);
 #endif
 
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  MC::ExpandoAndGeneration mExpandoAndGeneration;
 
  protected:
   JSObject* WrapNode(MCContext*, JS::Handle<JSObject*> aGivenProto) override;

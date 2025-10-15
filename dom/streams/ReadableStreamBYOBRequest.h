@@ -60,7 +60,7 @@ class ReadableStreamBYOBRequest final : public nsISupports,
   // Internal Slots
   nsCOMPtr<nsIGlobalObject> mGlobal;
   RefPtr<ReadableByteStreamController> mController;
-  JS::Heap<JSObject*> mView;
+  MC::Heap<JSObject*> mView;
 };
 
 }  // namespace mozilla::dom

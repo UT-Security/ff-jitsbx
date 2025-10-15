@@ -14,7 +14,7 @@
 #include "mozilla/StaticPtr.h"
 #include "mozilla/StaticMutex.h"
 #include "nsTArray.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/MemoryReporting.h"
 #include "mozilla/dom/TypedArray.h"
 #include "nsPIDOMWindow.h"
@@ -121,7 +121,7 @@ class AudioBuffer final : public nsWrapperCache {
   void ClearJSChannels();
 
   // Float32Arrays
-  AutoTArray<JS::Heap<JSObject*>, 2> mJSChannels;
+  AutoTArray<MC::Heap<JSObject*>, 2> mJSChannels;
   // mSharedChannels aggregates the data from mJSChannels. This is non-null
   // if and only if the mJSChannels' buffers are detached, but its mDuration
   // member keeps the buffer length regardless of whether the buffer is

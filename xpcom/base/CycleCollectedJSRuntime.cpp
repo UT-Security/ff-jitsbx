@@ -63,7 +63,7 @@
 #include "js/friend/DumpFunctions.h"  // js::DumpHeap
 #include "monkeycage/GCAPI.h"
 #include "js/HeapAPI.h"
-#include "js/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
+#include "monkeycage/Object.h"  // JS::GetClass, JS::GetCompartment, JS::GetPrivate
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Warnings.h"            // JS::SetWarningReporter
 #include "monkeycage/ShadowRealmCallbacks.h"
@@ -1308,6 +1308,10 @@ struct JsGcTracer : public TraceCallbacks {
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
+  virtual void Trace(MC::Heap<jsid>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
@@ -1328,11 +1332,23 @@ struct JsGcTracer : public TraceCallbacks {
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
+  virtual void Trace(MC::Heap<JSString*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
+  virtual void Trace(MC::Heap<JSScript*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
+  virtual void Trace(MC::Heap<JSFunction*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
@@ -1410,6 +1426,13 @@ struct CheckZoneTracer : public TraceCallbacks {
       MOZ_ASSERT(JS::IsAtomsZone(JS::GetTenuredGCThingZone(id.toGCCellPtr())));
     }
   }
+  virtual void Trace(MC::Heap<jsid>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    jsid id = aPtr->unbarrieredGet();
+    if (id.isGCThing()) {
+      MOZ_ASSERT(JS::IsAtomsZone(JS::GetTenuredGCThingZone(id.toGCCellPtr())));
+    }
+  }
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JSObject* obj = aPtr->unbarrieredGet();
@@ -1445,6 +1468,13 @@ struct CheckZoneTracer : public TraceCallbacks {
       checkZone(JS::GetStringZone(str), aName);
     }
   }
+  virtual void Trace(MC::Heap<JSString*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JSString* str = aPtr->unbarrieredGet();
+    if (str) {
+      checkZone(JS::GetStringZone(str), aName);
+    }
+  }
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JSScript* script = aPtr->unbarrieredGet();
@@ -1452,7 +1482,22 @@ struct CheckZoneTracer : public TraceCallbacks {
       checkZone(JS::GetTenuredGCThingZone(JS::GCCellPtr(script)), aName);
     }
   }
+  virtual void Trace(MC::Heap<JSScript*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JSScript* script = aPtr->unbarrieredGet();
+    if (script) {
+      checkZone(JS::GetTenuredGCThingZone(JS::GCCellPtr(script)), aName);
+    }
+  }
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JSFunction* fun = aPtr->unbarrieredGet();
+    if (fun) {
+      checkZone(js::GetObjectZoneFromAnyThread(JS_GetFunctionObject(fun)),
+                aName);
+    }
+  }
+  virtual void Trace(MC::Heap<JSFunction*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JSFunction* fun = aPtr->unbarrieredGet();
     if (fun) {
@@ -1562,6 +1607,10 @@ struct ClearJSHolder : public TraceCallbacks {
     *aPtr = JS::PropertyKey::Void();
   }
 
+  virtual void Trace(MC::Heap<jsid>* aPtr, const char*, void*) const override {
+    *aPtr = JS::PropertyKey::Void();
+  }
+
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char*,
                      void*) const override {
     *aPtr = nullptr;
@@ -1587,12 +1636,27 @@ struct ClearJSHolder : public TraceCallbacks {
     *aPtr = nullptr;
   }
 
+  virtual void Trace(MC::Heap<JSString*>* aPtr, const char*,
+                     void*) const override {
+    *aPtr = nullptr;
+  }
+
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char*,
                      void*) const override {
     *aPtr = nullptr;
   }
 
+  virtual void Trace(MC::Heap<JSScript*>* aPtr, const char*,
+                     void*) const override {
+    *aPtr = nullptr;
+  }
+
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char*,
+                     void*) const override {
+    *aPtr = nullptr;
+  }
+
+  virtual void Trace(MC::Heap<JSFunction*>* aPtr, const char*,
                      void*) const override {
     *aPtr = nullptr;
   }

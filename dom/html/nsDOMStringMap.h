@@ -12,8 +12,8 @@
 #include "nsTArray.h"
 #include "nsString.h"
 #include "nsWrapperCache.h"
-#include "js/friend/DOMProxy.h"  // JS::ExpandoAndGeneration
-#include "js/RootingAPI.h"       // JS::Handle
+#include "monkeycage/friend/DOMProxy.h"  // JS::ExpandoAndGeneration
+#include "monkeycage/RootingAPI.h"       // JS::Handle
 
 // XXX Avoid including this here by moving function bodies to the cpp file
 #include "mozilla/dom/Element.h"
@@ -49,7 +49,7 @@ class nsDOMStringMap : public nsStubMutationObserver, public nsWrapperCache {
   void NamedDeleter(const nsAString& aProp, bool& found);
   void GetSupportedNames(nsTArray<nsString>& aNames);
 
-  JS::ExpandoAndGeneration mExpandoAndGeneration;
+  MC::ExpandoAndGeneration mExpandoAndGeneration;
 
  private:
   virtual ~nsDOMStringMap();

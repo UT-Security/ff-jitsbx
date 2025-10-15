@@ -6,9 +6,9 @@
 
 #include "nsWrapperCacheInlines.h"
 
-#include "jsfriendapi.h"
-#include "js/Class.h"
-#include "js/Proxy.h"
+#include "mcfriendapi.h"
+#include "monkeycage/Class.h"
+#include "monkeycage/Proxy.h"
 #include "mozilla/CycleCollectedJSRuntime.h"
 #include "mozilla/HoldDropJSObjects.h"
 #include "nsCycleCollectionTraversalCallback.h"
@@ -29,7 +29,7 @@ void nsWrapperCache::HoldJSObjects(void* aScriptObjectHolder,
                                    JS::Zone* aWrapperZone) {
   cyclecollector::HoldJSObjectsImpl(aScriptObjectHolder, aTracer, aWrapperZone);
   if (mWrapper && !JS::ObjectIsTenured(mWrapper)) {
-    JS::HeapObjectPostWriteBarrier(&mWrapper, nullptr, mWrapper);
+    MC::HeapObjectPostWriteBarrier(&mWrapper, nullptr, mWrapper);
   }
 }
 
@@ -53,7 +53,7 @@ void nsWrapperCache::ReleaseWrapper(void* aScriptObjectHolder) {
   if (PreservingWrapper()) {
     SetPreservingWrapper(false);
     cyclecollector::DropJSObjectsImpl(aScriptObjectHolder);
-    JS::HeapObjectPostWriteBarrier(&mWrapper, mWrapper, nullptr);
+    MC::HeapObjectPostWriteBarrier(&mWrapper, mWrapper, nullptr);
   }
 }
 

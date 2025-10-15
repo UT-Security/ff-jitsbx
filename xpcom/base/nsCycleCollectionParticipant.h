@@ -9,7 +9,7 @@
 
 #include <type_traits>
 #include "js/HeapAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/TypeDecls.h"
 #include "mozilla/MacroForEach.h"
 #include "nsCycleCollectionNoteChild.h"
 #include "nsDebug.h"
@@ -162,6 +162,8 @@ struct TraceCallbacks {
                      void* aClosure) const = 0;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<jsid>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
@@ -172,9 +174,15 @@ struct TraceCallbacks {
                      void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<JSString*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<JSScript*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
+  virtual void Trace(MC::Heap<JSFunction*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
 };
 
@@ -194,6 +202,8 @@ struct TraceCallbackFunc : public TraceCallbacks {
                      void* aClosure) const override;
   virtual void Trace(JS::Heap<jsid>* aPtr, const char* aName,
                      void* aClosure) const override;
+  virtual void Trace(MC::Heap<jsid>* aPtr, const char* aName,
+                     void* aClosure) const override;
   virtual void Trace(JS::Heap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(MC::Heap<JSObject*>* aPtr, const char* aName,
@@ -204,9 +214,15 @@ struct TraceCallbackFunc : public TraceCallbacks {
                      void* aClosure) const override;
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const override;
+  virtual void Trace(MC::Heap<JSString*>* aPtr, const char* aName,
+                     void* aClosure) const override;
   virtual void Trace(JS::Heap<JSScript*>* aPtr, const char* aName,
                      void* aClosure) const override;
+  virtual void Trace(MC::Heap<JSScript*>* aPtr, const char* aName,
+                     void* aClosure) const override;
   virtual void Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
+                     void* aClosure) const override;
+  virtual void Trace(MC::Heap<JSFunction*>* aPtr, const char* aName,
                      void* aClosure) const override;
 
  private:
@@ -1058,6 +1074,15 @@ inline void ImplCycleCollectionUnlink(JS::Heap<T>& aField) {
 }
 template <typename T>
 inline void ImplCycleCollectionUnlink(JS::Heap<T*>& aField) {
+  aField = nullptr;
+}
+
+template <typename T>
+inline void ImplCycleCollectionUnlink(MC::Heap<T>& aField) {
+  aField.setNull();
+}
+template <typename T>
+inline void ImplCycleCollectionUnlink(MC::Heap<T*>& aField) {
   aField = nullptr;
 }
 

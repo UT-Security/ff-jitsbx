@@ -72,7 +72,7 @@ class TransformerAlgorithms final : public TransformerAlgorithmsBase {
  private:
   // Virtually const, but are cycle collected
   nsCOMPtr<nsIGlobalObject> mGlobal;
-  JS::Heap<JSObject*> mTransformer;
+  MC::Heap<JSObject*> mTransformer;
   MOZ_KNOWN_LIVE RefPtr<TransformerTransformCallback> mTransformCallback;
   MOZ_KNOWN_LIVE RefPtr<TransformerFlushCallback> mFlushCallback;
 };

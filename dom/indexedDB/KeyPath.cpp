@@ -10,9 +10,9 @@
 #include "IndexedDBCommon.h"
 #include "Key.h"
 #include "ReportInternalError.h"
-#include "js/Array.h"  // JS::NewArrayObject
-#include "js/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_DeleteUCProperty
-#include "js/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnUCPropertyDescriptor
+#include "monkeycage/Array.h"  // JS::NewArrayObject
+#include "monkeycage/PropertyAndElement.h"  // JS_DefineElement, JS_DefineUCProperty, JS_DeleteUCProperty
+#include "monkeycage/PropertyDescriptor.h"  // JS::PropertyDescriptor, JS_GetOwnUCPropertyDescriptor
 #include "mozilla/ResultExtensions.h"
 #include "mozilla/dom/BindingDeclarations.h"
 #include "mozilla/dom/Blob.h"
@@ -525,7 +525,7 @@ nsresult KeyPath::ToJSVal(MCContext* aCx,
   return NS_OK;
 }
 
-nsresult KeyPath::ToJSVal(MCContext* aCx, JS::Heap<JS::Value>& aValue) const {
+nsresult KeyPath::ToJSVal(MCContext* aCx, MC::Heap<JS::Value>& aValue) const {
   MC::Rooted<JS::Value> value(aCx);
   nsresult rv = ToJSVal(aCx, &value);
   if (NS_SUCCEEDED(rv)) {

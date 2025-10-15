@@ -43,6 +43,11 @@ template <class T>
 class Heap;
 } /* namespace JS */
 
+namespace MC {
+template <class T>
+class Heap;
+} /* namespace MC */
+
 class nsCycleCollectionTraversalCallback;
 class nsRegion;
 
@@ -827,6 +832,7 @@ struct MOZ_NEEDS_MEMMOVABLE_TYPE nsTArray_RelocationStrategy {
   };
 
 MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR_FOR_TEMPLATE(JS::Heap)
+MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR_FOR_TEMPLATE(MC::Heap)
 MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR_FOR_TEMPLATE(std::function)
 MOZ_DECLARE_RELOCATE_USING_MOVE_CONSTRUCTOR_FOR_TEMPLATE(mozilla::ipc::Endpoint)
 
@@ -874,6 +880,22 @@ struct nsTArray_TypedBase<JS::Heap<E>, Derived>
   operator const nsTArray<E>&() {
     static_assert(sizeof(E) == sizeof(JS::Heap<E>),
                   "JS::Heap<E> must be binary compatible with E.");
+    Derived* self = static_cast<Derived*>(this);
+    return *reinterpret_cast<nsTArray<E>*>(self);
+  }
+
+  operator const FallibleTArray<E>&() {
+    Derived* self = static_cast<Derived*>(this);
+    return *reinterpret_cast<FallibleTArray<E>*>(self);
+  }
+};
+
+template <class E, class Derived>
+struct nsTArray_TypedBase<MC::Heap<E>, Derived>
+    : public nsTArray_SafeElementAtHelper<MC::Heap<E>, Derived> {
+  operator const nsTArray<E>&() {
+    static_assert(sizeof(E) == sizeof(MC::Heap<E>),
+                  "MC::Heap<E> must be binary compatible with E.");
     Derived* self = static_cast<Derived*>(this);
     return *reinterpret_cast<nsTArray<E>*>(self);
   }

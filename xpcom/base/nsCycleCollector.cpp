@@ -2539,6 +2539,9 @@ class SnowWhiteKiller : public TraceCallbacks {
   virtual void Trace(JS::Heap<jsid>* aId, const char* aName,
                      void* aClosure) const override {}
 
+  virtual void Trace(MC::Heap<jsid>* aId, const char* aName,
+                     void* aClosure) const override {}
+
   void AppendJSObjectToPurpleBuffer(JSObject* obj) const {
     if (obj && JS::ObjectIsMarkedGray(obj)) {
       MOZ_ASSERT(JS::ObjectIsTenured(obj));
@@ -2569,10 +2572,19 @@ class SnowWhiteKiller : public TraceCallbacks {
   virtual void Trace(JS::Heap<JSString*>* aString, const char* aName,
                      void* aClosure) const override {}
 
+  virtual void Trace(MC::Heap<JSString*>* aString, const char* aName,
+                     void* aClosure) const override {}
+
   virtual void Trace(JS::Heap<JSScript*>* aScript, const char* aName,
                      void* aClosure) const override {}
 
+  virtual void Trace(MC::Heap<JSScript*>* aScript, const char* aName,
+                     void* aClosure) const override {}
+
   virtual void Trace(JS::Heap<JSFunction*>* aFunction, const char* aName,
+                     void* aClosure) const override {}
+
+  virtual void Trace(MC::Heap<JSFunction*>* aFunction, const char* aName,
                      void* aClosure) const override {}
 
  private:

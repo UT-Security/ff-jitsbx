@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_PushSubscriptionOptions_h
 #define mozilla_dom_PushSubscriptionOptions_h
 
-#include "js/RootingAPI.h"
-#include "js/TypeDecls.h"
+#include "monkeycage/RootingAPI.h"
+#include "monkeycage/TypeDecls.h"
 #include "nsCOMPtr.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsTArray.h"
@@ -47,7 +47,7 @@ class PushSubscriptionOptions final : public nsISupports,
 
   nsCOMPtr<nsIGlobalObject> mGlobal;
   nsTArray<uint8_t> mRawAppServerKey;
-  JS::Heap<JSObject*> mAppServerKey;
+  MC::Heap<JSObject*> mAppServerKey;
 };
 
 }  // namespace dom

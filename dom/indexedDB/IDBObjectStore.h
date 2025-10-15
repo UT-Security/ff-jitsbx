@@ -59,7 +59,7 @@ class IDBObjectStore final : public nsISupports, public nsWrapperCache {
   // TODO: This could be made const if Bug 1575173 is resolved. It is
   // initialized in the constructor and never modified/cleared.
   SafeRefPtr<IDBTransaction> mTransaction;
-  JS::Heap<JS::Value> mCachedKeyPath;
+  MC::Heap<JS::Value> mCachedKeyPath;
 
   // This normally points to the ObjectStoreSpec owned by the parent IDBDatabase
   // object. However, if this objectStore is part of a versionchange transaction

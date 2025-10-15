@@ -181,7 +181,7 @@ class IID2NativeInterfaceMap {
 
   size_t SizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf) const;
 
-  void Trace(JSTracer* trc);
+  void Trace(MC::Tainted<JSTracer*> trc);
 
  private:
   Map mMap;

@@ -36,8 +36,8 @@ class IDBKeyRange : public nsISupports {
   nsCOMPtr<nsISupports> mGlobal;
   indexedDB::Key mLower;
   indexedDB::Key mUpper;
-  JS::Heap<JS::Value> mCachedLowerVal;
-  JS::Heap<JS::Value> mCachedUpperVal;
+  MC::Heap<JS::Value> mCachedLowerVal;
+  MC::Heap<JS::Value> mCachedUpperVal;
 
   const bool mLowerOpen : 1;
   const bool mUpperOpen : 1;

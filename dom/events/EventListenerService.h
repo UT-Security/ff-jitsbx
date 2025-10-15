@@ -7,7 +7,7 @@
 #ifndef mozilla_EventListenerService_h_
 #define mozilla_EventListenerService_h_
 
-#include "jsapi.h"
+#include "mcapi.h"
 #include "mozilla/Attributes.h"
 #include "nsCycleCollectionParticipant.h"
 #include "EventListenerManager.h"
@@ -63,12 +63,12 @@ class EventListenerInfo final : public nsIEventListenerInfo {
 
   RefPtr<EventListenerManager> mListenerManager;
   nsString mType;
-  JS::Heap<JSObject*> mScriptedListener;  // May be null.
+  MC::Heap<JSObject*> mScriptedListener;  // May be null.
   // mScriptedListener may be a cross-compartment wrapper so we cannot use it
   // with JSAutoRealm because CCWs are not associated with a single realm. We
   // use this global instead (must be same-compartment with mScriptedListener
   // and must be non-null if mScriptedListener is non-null).
-  JS::Heap<JSObject*> mScriptedListenerGlobal;
+  MC::Heap<JSObject*> mScriptedListenerGlobal;
   bool mCapturing;
   bool mAllowsUntrusted;
   bool mInSystemEventGroup;

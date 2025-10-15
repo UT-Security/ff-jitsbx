@@ -22,7 +22,8 @@ inline bool JS_SetDefaultLocale(MCRuntime* rt, const char* locale) {
 }
 
 inline JS::UniqueChars JS_GetDefaultLocale(MCContext* cx) {
- return JS_GetDefaultLocale(cx->cx_);
+ char* ret = JS_GetDefaultLocaleUnsafe(cx->cx_);
+ return JS::UniqueChars(ret);
 }
 
 // TODO(abhishek): Ensure callback registration at type level

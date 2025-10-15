@@ -7,7 +7,7 @@
 #ifndef mozilla_dom_indexeddb_actorschild_h__
 #define mozilla_dom_indexeddb_actorschild_h__
 
-#include "js/RootingAPI.h"
+#include "monkeycage/RootingAPI.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/dom/IDBCursorType.h"
 #include "mozilla/dom/IDBTransaction.h"
@@ -21,7 +21,7 @@
 #include "mozilla/dom/indexedDB/PBackgroundIDBVersionChangeTransactionChild.h"
 #include "mozilla/dom/indexedDB/PBackgroundIndexedDBUtilsChild.h"
 #include "mozilla/InitializedOnce.h"
-#include "mozilla/UniquePtr.h"
+#include "monkeycage/UniquePtr.h"
 #include "nsCOMPtr.h"
 #include "nsTArray.h"
 
@@ -430,11 +430,11 @@ class BackgroundRequestChild final : public BackgroundRequestChildBase,
   void MaybeSendContinue();
 
   void OnPreprocessFinished(uint32_t aCloneDataIndex,
-                            UniquePtr<JSStructuredCloneData> aCloneData);
+                            mc::UniquePtr<JSStructuredCloneData> aCloneData);
 
   void OnPreprocessFailed(uint32_t aCloneDataIndex, nsresult aErrorCode);
 
-  UniquePtr<JSStructuredCloneData> GetNextCloneData();
+  mc::UniquePtr<JSStructuredCloneData> GetNextCloneData();
 
   void HandleResponse(nsresult aResponse);
 
@@ -472,7 +472,7 @@ class BackgroundRequestChild final : public BackgroundRequestChildBase,
 
 struct CloneInfo {
   RefPtr<BackgroundRequestChild::PreprocessHelper> mPreprocessHelper;
-  UniquePtr<JSStructuredCloneData> mCloneData;
+  mc::UniquePtr<JSStructuredCloneData> mCloneData;
 };
 
 class BackgroundCursorChildBase

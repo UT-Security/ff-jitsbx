@@ -5,7 +5,7 @@
  * You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 #include "mozilla/ipc/SerializedStructuredCloneBuffer.h"
-#include "js/StructuredClone.h"
+#include "monkeycage/StructuredClone.h"
 
 namespace IPC {
 
@@ -51,12 +51,12 @@ bool ParamTraits<JSStructuredCloneData>::Read(MessageReader* aReader,
   // can be revisited in the future if it turns out to be a noticable
   // performance regression. (bug 1783242)
 
-  mozilla::BufferList<js::SystemAllocPolicy> buffers(0, 0, 4096);
+  MC::SandboxStack<mozilla::BufferList<js::SystemAllocPolicy>> buffers(0, 0, 4096);
   MessageBufferReader bufReader(aReader, length);
   uint32_t read = 0;
   while (read < length) {
     size_t bufLen;
-    char* buf = buffers.AllocateBytes(length - read, &bufLen);
+    char* buf = buffers.UNSAFE_unverified()->AllocateBytes(length - read, &bufLen);
     if (!buf) {
       // Would be nice to allow actor to control behaviour here (bug 1784307)
       NS_ABORT_OOM(length - read);
@@ -70,9 +70,12 @@ bool ParamTraits<JSStructuredCloneData>::Read(MessageReader* aReader,
   }
 
   MOZ_ASSERT(read == length);
-  *aResult = JSStructuredCloneData(
-      std::move(buffers), JS::StructuredCloneScope::DifferentProcess,
+  MC::SandboxStack<JSStructuredCloneData> aOther(
+      buffers.UNSAFE_unverified(), JS::StructuredCloneScope::DifferentProcess,
       OwnTransferablePolicy::IgnoreTransferablesIfAny);
+
+  aResult->MoveAssign(aOther.UNSAFE_unverified());
+  
   return true;
 }
 

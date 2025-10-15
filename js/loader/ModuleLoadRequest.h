@@ -159,9 +159,9 @@ class ModuleLoadRequest final : public ScriptLoadRequest {
   RefPtr<VisitedURLSet> mVisitedSet;
 
   // For dynamic imports, the details to pass to FinishDynamicImport.
-  JS::Heap<JS::Value> mDynamicReferencingPrivate;
-  JS::Heap<JSString*> mDynamicSpecifier;
-  JS::Heap<JSObject*> mDynamicPromise;
+  MC::Heap<JS::Value> mDynamicReferencingPrivate;
+  MC::Heap<JSString*> mDynamicSpecifier;
+  MC::Heap<JSObject*> mDynamicPromise;
 };
 
 }  // namespace JS::loader

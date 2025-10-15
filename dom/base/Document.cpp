@@ -2268,44 +2268,46 @@ void Document::AccumulateJSTelemetry(
   AutoJSContext cx;
   JSObject* globalObject = GetScopeObject()->GetGlobalJSObject();
   MC::SandboxStack<JSAutoRealm> ar(static_cast<MCContext*>(cx), globalObject);
-  JS::JSTimers timers = JS::GetJSTimers(cx);
+  MC::SandboxStack<JS::JSTimers> timers;
+  
+  JS::GetJSTimers(cx, timers);
 
-  if (!timers.executionTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->executionTime.IsZero()) {
     Telemetry::Accumulate(
         Telemetry::JS_PAGELOAD_EXECUTION_MS,
-        ConvertToUnsignedFromDouble(timers.executionTime.ToMilliseconds()));
+        ConvertToUnsignedFromDouble(timers.UNSAFE_unverified()->executionTime.ToMilliseconds()));
     aEventTelemetryDataOut.jsExecTime = mozilla::Some(
-        static_cast<uint32_t>(timers.executionTime.ToMilliseconds()));
+        static_cast<uint32_t>(timers.UNSAFE_unverified()->executionTime.ToMilliseconds()));
   }
 
-  if (!timers.delazificationTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->delazificationTime.IsZero()) {
     Telemetry::Accumulate(Telemetry::JS_PAGELOAD_DELAZIFICATION_MS,
                           ConvertToUnsignedFromDouble(
-                              timers.delazificationTime.ToMilliseconds()));
+                              timers.UNSAFE_unverified()->delazificationTime.ToMilliseconds()));
   }
 
-  if (!timers.xdrEncodingTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->xdrEncodingTime.IsZero()) {
     Telemetry::Accumulate(
         Telemetry::JS_PAGELOAD_XDR_ENCODING_MS,
-        ConvertToUnsignedFromDouble(timers.xdrEncodingTime.ToMilliseconds()));
+        ConvertToUnsignedFromDouble(timers.UNSAFE_unverified()->xdrEncodingTime.ToMilliseconds()));
   }
 
-  if (!timers.baselineCompileTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->baselineCompileTime.IsZero()) {
     Telemetry::Accumulate(Telemetry::JS_PAGELOAD_BASELINE_COMPILE_MS,
                           ConvertToUnsignedFromDouble(
-                              timers.baselineCompileTime.ToMilliseconds()));
+                              timers.UNSAFE_unverified()->baselineCompileTime.ToMilliseconds()));
   }
 
-  if (!timers.gcTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->gcTime.IsZero()) {
     Telemetry::Accumulate(
         Telemetry::JS_PAGELOAD_GC_MS,
-        ConvertToUnsignedFromDouble(timers.gcTime.ToMilliseconds()));
+        ConvertToUnsignedFromDouble(timers.UNSAFE_unverified()->gcTime.ToMilliseconds()));
   }
 
-  if (!timers.protectTime.IsZero()) {
+  if (!timers.UNSAFE_unverified()->protectTime.IsZero()) {
     Telemetry::Accumulate(
         Telemetry::JS_PAGELOAD_PROTECT_MS,
-        ConvertToUnsignedFromDouble(timers.protectTime.ToMilliseconds()));
+        ConvertToUnsignedFromDouble(timers.UNSAFE_unverified()->protectTime.ToMilliseconds()));
   }
 }
 

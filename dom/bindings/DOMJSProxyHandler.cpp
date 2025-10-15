@@ -13,7 +13,7 @@
 #include "mozilla/dom/BindingUtils.h"
 
 #include "mcapi.h"
-#include "js/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
+#include "monkeycage/friend/DOMProxy.h"  // JS::DOMProxyShadowsResult, JS::ExpandoAndGeneration, JS::SetDOMProxyInformation
 #include "monkeycage/PropertyAndElement.h"  // JS_AlreadyHasOwnPropertyById, JS_DefineProperty, JS_DefinePropertyById, JS_DeleteProperty, JS_DeletePropertyById
 #include "js/Object.h"              // JS::GetCompartment
 
@@ -103,7 +103,7 @@ static inline void CheckExpandoObject(JSObject* proxy,
 }
 
 static inline void CheckExpandoAndGeneration(
-    JSObject* proxy, JS::ExpandoAndGeneration* expandoAndGeneration) {
+    JSObject* proxy, MC::ExpandoAndGeneration* expandoAndGeneration) {
 #ifdef DEBUG
   JS::Value value = expandoAndGeneration->expando;
   if (!value.isUndefined()) CheckExpandoObject(proxy, value);
@@ -137,7 +137,7 @@ JSObject* DOMProxyHandler::GetAndClearExpandoObject(JSObject* obj) {
     js::SetProxyPrivate(obj, UndefinedValue());
   } else {
     auto* expandoAndGeneration =
-        static_cast<JS::ExpandoAndGeneration*>(v.toPrivate());
+        static_cast<MC::ExpandoAndGeneration*>(v.toPrivate());
     v = expandoAndGeneration->expando;
     if (v.isUndefined()) {
       return nullptr;
@@ -161,10 +161,10 @@ JSObject* DOMProxyHandler::EnsureExpandoObject(MCContext* cx,
     return &v.toObject();
   }
 
-  JS::ExpandoAndGeneration* expandoAndGeneration = nullptr;
+  MC::ExpandoAndGeneration* expandoAndGeneration = nullptr;
   if (!v.isUndefined()) {
     expandoAndGeneration =
-        static_cast<JS::ExpandoAndGeneration*>(v.toPrivate());
+        static_cast<MC::ExpandoAndGeneration*>(v.toPrivate());
     CheckExpandoAndGeneration(obj, expandoAndGeneration);
     if (expandoAndGeneration->expando.isObject()) {
       return &expandoAndGeneration->expando.toObject();
@@ -314,7 +314,7 @@ JSObject* DOMProxyHandler::GetExpandoObject(JSObject* obj) {
   }
 
   auto* expandoAndGeneration =
-      static_cast<JS::ExpandoAndGeneration*>(v.toPrivate());
+      static_cast<MC::ExpandoAndGeneration*>(v.toPrivate());
   CheckExpandoAndGeneration(obj, expandoAndGeneration);
 
   v = expandoAndGeneration->expando;
@@ -333,7 +333,7 @@ void ShadowingDOMProxyHandler::trace(JSTracer* trc, JSObject* proxy) const {
   MOZ_ASSERT(!v.isUndefined());
 
   auto* expandoAndGeneration =
-      static_cast<JS::ExpandoAndGeneration*>(v.toPrivate());
+      static_cast<MC::ExpandoAndGeneration*>(v.toPrivate());
   JS::TraceEdge(trc, &expandoAndGeneration->expando,
                 "Shadowing DOM proxy expando");
 }

@@ -7,8 +7,8 @@
 #ifndef mozilla_dom_ReadableStream_h
 #define mozilla_dom_ReadableStream_h
 
-#include "js/TypeDecls.h"
-#include "js/Value.h"
+#include "monkeycage/TypeDecls.h"
+#include "monkeycage/Value.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/ErrorResult.h"
 #include "mozilla/dom/BindingDeclarations.h"
@@ -238,7 +238,7 @@ class ReadableStream : public nsISupports, public nsWrapperCache {
   bool mDisturbed = false;
   RefPtr<ReadableStreamGenericReader> mReader;
   ReaderState mState = ReaderState::Readable;
-  JS::Heap<JS::Value> mStoredError;
+  MC::Heap<JS::Value> mStoredError;
 
   HoldDropJSObjectsCaller mHoldDropCaller;
 };
