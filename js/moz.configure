@@ -395,6 +395,20 @@ set_config("JS_SANDBOX_CFI", js_sandbox_cfi)
 set_define("JS_SANDBOX_CFI", js_sandbox_cfi)
 
 option(
+    "--enable-js-sandbox-cfi-bundle-masks",
+    default=False,
+    help="{Enable|Disable} JS sandbox CFI Bundle Masks.",
+)
+
+@depends("--enable-js-sandbox-cfi-bundle-masks", js_sandbox_cfi)
+def js_sandbox_cfi_bundle_masks(js_sandbox_cfi_bundle_masks, js_sandbox_cfi):
+    if js_sandbox_cfi and js_sandbox_cfi_bundle_masks:
+        return True
+
+set_config("JS_SANDBOX_CFI_BUNDLE_MASKS", js_sandbox_cfi_bundle_masks)
+set_define("JS_SANDBOX_CFI_BUNDLE_MASKS", js_sandbox_cfi_bundle_masks)
+
+option(
     "--enable-js-sandbox-cfi-masks",
     default=False,
     help="{Enable|Disable} JS sandbox CFI Masks.",

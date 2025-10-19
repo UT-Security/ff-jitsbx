@@ -454,6 +454,7 @@ void wasm::ClearExitFP(MacroAssembler& masm, Register scratch) {
 
 static void GenerateCallablePrologue(MacroAssembler& masm, uint32_t* entry) {
   AutoCreatedBy acb(masm, "GenerateCallablePrologue");
+  masm.bundleAlignNop();
   masm.setFramePushed(0);
 
   // ProfilingFrameIterator needs to know the offsets of several key
@@ -674,6 +675,7 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
   // (Pending pools can be large.)
   masm.flushBuffer();
   masm.haltingAlign(CodeAlignment);
+  masm.bundleAlignNop();
 
   Label functionBody;
 
@@ -762,6 +764,7 @@ void wasm::GenerateFunctionPrologue(MacroAssembler& masm,
     masm.jump(Address(scratch, *tier1FuncIndex * sizeof(uintptr_t)));
   }
 
+  masm.bundleAlignNop();
   offsets->tierEntry = masm.currentOffset();
 
   MOZ_ASSERT(masm.framePushed() == 0);
@@ -840,6 +843,7 @@ void wasm::GenerateJitExitEpilogue(MacroAssembler& masm, unsigned framePushed,
 void wasm::GenerateJitEntryPrologue(MacroAssembler& masm,
                                     CallableOffsets* offsets) {
   masm.haltingAlign(CodeAlignment);
+  masm.bundleAlignNop();
 
   {
     // Push the return address.

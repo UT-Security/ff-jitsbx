@@ -4260,6 +4260,7 @@ bool BaseCompiler::emitDelegate() {
   // The landing pad begins at this point
   TryNoteVector& tryNotes = masm.tryNotes();
   TryNote& tryNote = tryNotes[controlItem().tryNoteIndex];
+  masm.bundleAlignNop();
   tryNote.setLandingPad(masm.currentOffset(), masm.framePushed());
 
   // Store the Instance that was left in InstanceReg by the exception
@@ -4347,6 +4348,7 @@ bool BaseCompiler::endTryCatch(ResultType type) {
   // The landing pad begins at this point
   TryNoteVector& tryNotes = masm.tryNotes();
   TryNote& tryNote = tryNotes[controlItem().tryNoteIndex];
+  masm.bundleAlignNop();
   tryNote.setLandingPad(masm.currentOffset(), masm.framePushed());
 
   // Store the Instance that was left in InstanceReg by the exception

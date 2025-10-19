@@ -233,6 +233,9 @@ function codegenTestMultiplatform_adhoc(module_text, export_name,
     if (options.instanceBox)
         options.instanceBox.value = ins;
     let output = wasmDis(ins.exports[export_name], {tier:"ion", asString:true});
+    if (genX64) {
+        output = output.trim().split('\n').filter(l => !l.includes("nop")).join('\n');
+    }
 
     // Check for success, print diagnostics
     let output_matches_expected = output.match(new RegExp(expected)) != null;

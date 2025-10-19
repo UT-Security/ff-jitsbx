@@ -6934,6 +6934,7 @@ bool CodeGenerator::generateBody() {
       masm.nopAlign(CodeAlignment);
     }
 
+    masm.bundleAlignNop();
     masm.bind(current->label());
 
     mozilla::Maybe<ScriptCountBlockState> blockCounts;
@@ -13692,12 +13693,15 @@ bool CodeGenerator::generateWasm(
     return false;
   }
 
+  masm.bundleAlignNop();
   masm.bind(&returnLabel_);
   wasm::GenerateFunctionEpilogue(masm, frameSize(), offsets);
 
   if (!generateOutOfLineCode()) {
     return false;
   }
+
+  masm.bundleAlignNop();
 
   masm.flush();
   if (masm.oom()) {
