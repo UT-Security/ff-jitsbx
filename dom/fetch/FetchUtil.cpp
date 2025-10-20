@@ -668,7 +668,7 @@ void FetchUtil::InitWasmAltDataType() {
 }
 
 static bool ThrowException(MCContext* aCx, unsigned errorNumber) {
-  JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr, errorNumber);
+  JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr, errorNumber);
   return false;
 }
 
@@ -698,7 +698,7 @@ bool FetchUtil::StreamResponseToJS(MCContext* aCx, JS::Handle<JSObject*> aObj,
   response->GetMimeType(mimeType, mixedCaseMimeType);
 
   if (!mimeType.EqualsASCII(requiredMimeType)) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_WASM_BAD_RESPONSE_MIME_TYPE, mimeType.get(),
                               requiredMimeType);
     return false;

@@ -31,6 +31,24 @@ public:
     return ret;
   }
 
+  Tainted<T*, MC_Sbx> begin() {
+    Tainted<T*, MC_Sbx> ret(nullptr);
+    ret.assign_raw_pointer(data.begin());
+    return ret;
+  }
+
+  bool empty() {
+    return data.empty();
+  }
+
+  bool resize(size_t aNewLength) {
+    return data.resize(aNewLength);
+  }
+
+  void clearAndFree() {
+    data.clearAndFree();
+  }
+
   template <typename U>
   Tainted<bool, MC_Sbx> append(const U* aBegin, size_t aLength) {
     return Tainted<bool, MC_Sbx>(data.append(aBegin, aLength));

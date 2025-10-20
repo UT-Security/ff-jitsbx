@@ -508,7 +508,7 @@ void ScriptLoader::RunScriptWhenSafe(ScriptLoadRequest* aRequest) {
 
 nsresult ScriptLoader::RestartLoad(ScriptLoadRequest* aRequest) {
   MOZ_ASSERT(aRequest->IsBytecode());
-  aRequest->mScriptBytecode.clearAndFree();
+  aRequest->mScriptBytecode->clearAndFree();
   TRACE_FOR_TEST(aRequest->GetScriptLoadContext()->GetScriptElement(),
                  "scriptloader_fallback");
 
@@ -1537,7 +1537,7 @@ nsresult ScriptLoader::AttemptOffThreadScriptCompile(
     MOZ_ASSERT(aRequest->IsBytecode());
 
     size_t length =
-        aRequest->mScriptBytecode.length() - aRequest->mBytecodeOffset;
+        aRequest->mScriptBytecode->length().UNSAFE_unverified() - aRequest->mBytecodeOffset;
     MC::SandboxStack<JS::DecodeOptions> decodeOptions(*options);
     if (!JS::CanDecodeOffThread(cx, decodeOptions, length)) {
       return NS_OK;
@@ -1894,7 +1894,7 @@ nsresult ScriptLoader::ProcessRequest(ScriptLoadRequest* aRequest) {
     // We received bytecode as input, thus we were decoding, and we will not be
     // encoding the bytecode once more. We can safely clear the content of this
     // buffer.
-    aRequest->mScriptBytecode.clearAndFree();
+    aRequest->mScriptBytecode->clearAndFree();
   }
 
   return rv;
@@ -2240,7 +2240,7 @@ nsresult ScriptLoader::CompileOrDecodeClassicScript(
                                 MarkerInnerWindowIdFromJSContext(aCx),
                                 profilerLabelString);
 
-      rv = aExec.Decode(aRequest->mScriptBytecode, aRequest->mBytecodeOffset);
+      rv = aExec.Decode(*aRequest->mScriptBytecode.UNSAFE_unverified(), aRequest->mBytecodeOffset);
     }
 
     // We do not expect to be saving anything when we already have some
@@ -2308,7 +2308,7 @@ nsresult ScriptLoader::MaybePrepareForBytecodeEncodingAfterExecute(
                    "scriptloader_encode");
     // NOTE: This assertion will fail once we start encoding more data after the
     //       first encode.
-    MOZ_ASSERT(aRequest->mBytecodeOffset == aRequest->mScriptBytecode.length());
+    MOZ_ASSERT(aRequest->mBytecodeOffset == aRequest->mScriptBytecode->length().UNSAFE_unverified());
     RegisterForBytecodeEncoding(aRequest);
     MOZ_ASSERT(IsAlreadyHandledForBytecodeEncodingPreparation(aRequest));
 
@@ -2545,7 +2545,7 @@ void ScriptLoader::EncodeBytecode() {
     MOZ_ASSERT(!IsWebExtensionRequest(request),
                "Bytecode for web extension content scrips is not cached");
     EncodeRequestBytecode(aes.mcx(), request);
-    request->mScriptBytecode.clearAndFree();
+    request->mScriptBytecode->clearAndFree();
     request->DropBytecodeCacheReferences();
   }
 }
@@ -2587,7 +2587,7 @@ void ScriptLoader::EncodeRequestBytecode(MCContext* aCx,
   Vector<uint8_t> compressedBytecode;
 #endif
   // TODO probably need to move this to a helper thread
-  if (!ScriptBytecodeCompress(aRequest->mScriptBytecode,
+  if (!ScriptBytecodeCompress(*aRequest->mScriptBytecode.UNSAFE_unverified(),
                               aRequest->mBytecodeOffset, compressedBytecode)) {
     return;
   }
@@ -2679,7 +2679,7 @@ void ScriptLoader::GiveUpBytecodeEncoding() {
       }
     }
 
-    request->mScriptBytecode.clearAndFree();
+    request->mScriptBytecode->clearAndFree();
     request->DropBytecodeCacheReferences();
   }
 }
@@ -2939,12 +2939,12 @@ nsresult ScriptLoader::OnStreamComplete(
       uint32_t sriLength = 0;
       rv = SaveSRIHash(aRequest, aSRIDataVerifier, &sriLength);
       MOZ_ASSERT_IF(NS_SUCCEEDED(rv),
-                    aRequest->mScriptBytecode.length() == sriLength);
+                    aRequest->mScriptBytecode->length().UNSAFE_unverified() == sriLength);
 
       aRequest->mBytecodeOffset = JS::AlignTranscodingBytecodeOffset(sriLength);
       if (aRequest->mBytecodeOffset != sriLength) {
         // We need extra padding after SRI hash.
-        if (!aRequest->mScriptBytecode.resize(aRequest->mBytecodeOffset)) {
+        if (!aRequest->mScriptBytecode->resize(aRequest->mBytecodeOffset)) {
           return NS_ERROR_OUT_OF_MEMORY;
         }
       }
@@ -3013,44 +3013,44 @@ nsresult ScriptLoader::SaveSRIHash(ScriptLoadRequest* aRequest,
                                    SRICheckDataVerifier* aSRIDataVerifier,
                                    uint32_t* sriLength) const {
   MOZ_ASSERT(aRequest->IsSource());
-  MOZ_ASSERT(aRequest->mScriptBytecode.empty());
+  MOZ_ASSERT(aRequest->mScriptBytecode->empty());
 
   uint32_t len;
 
   // If the integrity metadata does not correspond to a valid hash function,
   // IsComplete would be false.
   if (!aRequest->mIntegrity.IsEmpty() && aSRIDataVerifier->IsComplete()) {
-    MOZ_ASSERT(aRequest->mScriptBytecode.length() == 0);
+    MOZ_ASSERT(aRequest->mScriptBytecode->length().UNSAFE_unverified() == 0);
 
     // Encode the SRI computed hash.
     len = aSRIDataVerifier->DataSummaryLength();
 
-    if (!aRequest->mScriptBytecode.resize(len)) {
+    if (!aRequest->mScriptBytecode->resize(len)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
     DebugOnly<nsresult> res = aSRIDataVerifier->ExportDataSummary(
-        len, aRequest->mScriptBytecode.begin());
+        len, aRequest->mScriptBytecode->begin().UNSAFE_unverified());
     MOZ_ASSERT(NS_SUCCEEDED(res));
   } else {
-    MOZ_ASSERT(aRequest->mScriptBytecode.length() == 0);
+    MOZ_ASSERT(aRequest->mScriptBytecode->length().UNSAFE_unverified() == 0);
 
     // Encode a dummy SRI hash.
     len = SRICheckDataVerifier::EmptyDataSummaryLength();
 
-    if (!aRequest->mScriptBytecode.resize(len)) {
+    if (!aRequest->mScriptBytecode->resize(len)) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
     DebugOnly<nsresult> res = SRICheckDataVerifier::ExportEmptyDataSummary(
-        len, aRequest->mScriptBytecode.begin());
+        len, MC::detail::tainted_static_cast<uint8_t*>(aRequest->mScriptBytecode->begin()).UNSAFE_unverified());
     MOZ_ASSERT(NS_SUCCEEDED(res));
   }
 
   // Verify that the exported and predicted length correspond.
   DebugOnly<uint32_t> srilen{};
   MOZ_ASSERT(NS_SUCCEEDED(SRICheckDataVerifier::DataSummaryLength(
-      len, aRequest->mScriptBytecode.begin(), &srilen)));
+      len, aRequest->mScriptBytecode->begin().UNSAFE_unverified(), &srilen)));
   MOZ_ASSERT(srilen == len);
 
   *sriLength = len;

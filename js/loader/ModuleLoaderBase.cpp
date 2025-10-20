@@ -991,7 +991,7 @@ void ModuleLoaderBase::FinishDynamicImport(
     MOZ_ASSERT(!JS_IsExceptionPending(aCx));
     nsAutoCString url;
     aRequest->mURI->GetSpec(url);
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_DYNAMIC_IMPORT_FAILED, url.get());
   }
 

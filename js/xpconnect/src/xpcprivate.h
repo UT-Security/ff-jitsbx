@@ -103,7 +103,7 @@
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Sandbox.h"
 #include "monkeycage/TracingAPI.h"
-#include "js/WeakMapPtr.h"
+#include "monkeycage/WeakMapPtr.h"
 #include "nscore.h"
 #include "nsXPCOM.h"
 #include "nsCycleCollectionParticipant.h"
@@ -811,8 +811,8 @@ class XPCWrappedNativeScope final
                                              MC::Tainted<JSTracer*> trc);
 
   void TraceInside(MC::Tainted<JSTracer*> trc) {
-    if (mXrayExpandos.initialized()) {
-      mXrayExpandos.trace(trc.UNSAFE_unverified());
+    if (mXrayExpandos->initialized()) {
+      mXrayExpandos->trace(trc);
     }
     JS::TraceEdge(trc, &mIDProto, "XPCWrappedNativeScope::mIDProto");
     JS::TraceEdge(trc, &mIIDProto, "XPCWrappedNativeScope::mIIDProto");
@@ -854,7 +854,7 @@ class XPCWrappedNativeScope final
                         JS::HandleObject aFirstGlobal);
   virtual ~XPCWrappedNativeScope();
 
-  mozilla::UniquePtr<JSObject2JSObjectMap> mWaiverWrapperMap;
+  js::UniquePtr<JSObject2JSObjectMap> mWaiverWrapperMap;
 
   JS::Compartment* Compartment() const { return mCompartment; }
 
@@ -881,7 +881,7 @@ class XPCWrappedNativeScope final
   RefPtr<nsXPCComponents> mComponents;
   JS::Compartment* mCompartment;
 
-  JS::WeakMapPtr<JSObject*, JSObject*> mXrayExpandos;
+  MC::SandboxHeap<JS::WeakMapPtr<JSObject*, JSObject*>> mXrayExpandos;
 
   // For remote XUL domains, we run all XBL in the content scope for compat
   // reasons (though we sometimes pref this off for automation). We

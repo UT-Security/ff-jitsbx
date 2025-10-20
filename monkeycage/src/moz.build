@@ -409,6 +409,7 @@ EXPORTS.monkeycage += [
 	"../public/WaitCallbacks.h",
 	"../public/Warnings.h",
 	"../public/WeakMap.h",
+	"../public/WeakMapPtr.h",
 	"../public/Wrapper.h",
 	"../public/WrapperCallbacks.h",
 	"../public/Zone.h",
