@@ -53,7 +53,7 @@
 #include "monkeycage/MemoryMetrics.h"
 #include "monkeycage/Object.h"  // JS::GetClass
 #include "monkeycage/RealmIterators.h"
-#include "js/SliceBudget.h"
+#include "monkeycage/SliceBudget.h"
 #include "js/UbiNode.h"
 #include "js/UbiNodeUtils.h"
 #include "monkeycage/friend/UsageStatistics.h"  // JSMetric, JS_SetAccumulateTelemetryCallback
@@ -155,9 +155,9 @@ class AsyncFreeSnowWhite : public Runnable {
 
     TimeStamp start = TimeStamp::Now();
     // 2 ms budget, given that kICCSliceBudget is only 3 ms
-    js::SliceBudget budget = js::SliceBudget(js::TimeBudget(2));
+    MC::SandboxStack<js::SliceBudget> budget{js::TimeBudget(2)};
     bool hadSnowWhiteObjects =
-        nsCycleCollector_doDeferredDeletionWithBudget(budget);
+        nsCycleCollector_doDeferredDeletionWithBudget(*budget.UNSAFE_unverified());
     Telemetry::Accumulate(
         Telemetry::CYCLE_COLLECTOR_ASYNC_SNOW_WHITE_FREEING,
         uint32_t((TimeStamp::Now() - start).ToMilliseconds()));

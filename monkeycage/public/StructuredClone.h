@@ -47,12 +47,11 @@ class TaintedVolatile<JSAutoStructuredCloneBuffer, MC_Sbx> {
 
   JS::StructuredCloneScope scope() const { return inner_.scope(); }
 
-  void adopt(JSStructuredCloneData&& data,
+  void adopt(MC::Tainted<JSStructuredCloneData*> data,
              uint32_t version = JS_STRUCTURED_CLONE_VERSION,
              const JSStructuredCloneCallbacks* callbacks = nullptr,
              void* closure = nullptr) {
-    MC::SandboxStack<JSStructuredCloneData> sbx_data(std::move(data));
-    inner_.adopt(sbx_data.UNSAFE_unverified(), version, callbacks, closure);
+    inner_.adopt(data.INTERNAL_unverified_safe(), version, callbacks, closure);
   }
 
   void giveTo(MC::Tainted<JSStructuredCloneData*> data) { return inner_.giveTo(data.INTERNAL_unverified_safe()); }
@@ -181,6 +180,12 @@ class TaintedVolatile<JSStructuredCloneData, MC_Sbx> {
     return inner_.AppendBytes(data, size);
   }
   
+  MC::Tainted<char*> AllocateBytes(size_t maxSize, MC::Tainted<size_t*> size) {
+    MC::Tainted<char*> ret;
+    ret.assign_raw_pointer(inner_.AllocateBytes(maxSize, size.INTERNAL_unverified_safe()));
+    return ret;
+  }
+  
   MC::SandboxHeap<JSStructuredCloneData> Borrow(
       JSStructuredCloneData::Iterator& iter, size_t size,
       MC::Tainted<bool*> success) const {
@@ -241,6 +246,11 @@ inline bool JS_ReadUint32Pair(MC::Tainted<JSStructuredCloneReader*> r,
   *p2 = *t_p2.UNSAFE_unverified();
 
   return ret;
+}
+
+inline bool JS_ReadBytes(MC::Tainted<JSStructuredCloneReader*> r, MC::Tainted<void*> p,
+                         size_t len) {
+  return JS_ReadBytes(r.INTERNAL_unverified_safe(), p.INTERNAL_unverified_safe(), len);
 }
 
 inline bool JS_ReadBytes(MC::Tainted<JSStructuredCloneReader*> r, void* p,

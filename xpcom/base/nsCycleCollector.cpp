@@ -165,7 +165,7 @@
 
 #include <utility>
 
-#include "js/SliceBudget.h"
+#include "monkeycage/SliceBudget.h"
 #include "mozilla/Attributes.h"
 #include "mozilla/AutoGlobalTimelineMarker.h"
 #include "mozilla/Likely.h"

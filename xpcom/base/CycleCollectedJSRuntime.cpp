@@ -67,7 +67,7 @@
 #include "monkeycage/PropertyAndElement.h"  // JS_DefineProperty
 #include "monkeycage/Warnings.h"            // JS::SetWarningReporter
 #include "monkeycage/ShadowRealmCallbacks.h"
-#include "js/SliceBudget.h"
+#include "monkeycage/SliceBudget.h"
 #include "mcfriendapi.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/AutoRestore.h"
@@ -1530,9 +1530,9 @@ static inline bool ShouldCheckSingleZoneHolders() {
 #ifdef NS_BUILD_REFCNT_LOGGING
 void CycleCollectedJSRuntime::TraceAllNativeGrayRoots(MC::Tainted<JSTracer*> aTracer) {
   MOZ_RELEASE_ASSERT(mHolderIter.isNothing());
-  js::SliceBudget budget = js::SliceBudget::unlimited();
+  MC::SandboxStack<js::SliceBudget> budget{js::SliceBudget::unlimited()};
   MOZ_ALWAYS_TRUE(
-      TraceNativeGrayRoots(aTracer, JSHolderMap::AllHolders, budget));
+      TraceNativeGrayRoots(aTracer, JSHolderMap::AllHolders, *budget.UNSAFE_unverified()));
 }
 #endif
 

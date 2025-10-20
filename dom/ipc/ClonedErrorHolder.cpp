@@ -355,18 +355,18 @@ bool ClonedErrorHolder::Holder::ReadStructuredCloneInternal(
     return false;
   }
 
-  JSStructuredCloneData data(mStructuredCloneScope);
+  MC::SandboxStack<JSStructuredCloneData> data(mStructuredCloneScope);
+  MC::SandboxStack<size_t> size;
   while (length) {
-    size_t size;
-    char* buffer = data.AllocateBytes(length, &size);
-    if (!buffer || !JS_ReadBytes(aReader, buffer, size)) {
+    MC::Tainted<char*> buffer = data->AllocateBytes(length, size);
+    if (!buffer || !JS_ReadBytes(aReader, buffer, *size.UNSAFE_unverified())) {
       return false;
     }
-    length -= size;
+    length -= *size.UNSAFE_unverified();
   }
 
   mBuffer = mc::MakeUnique<JSAutoStructuredCloneBuffer>(
       mStructuredCloneScope, StructuredCloneHolder::sCallbacks(), this);
-  mBuffer->adopt(std::move(data), version, StructuredCloneHolder::sCallbacks());
+  mBuffer->adopt(data, version, StructuredCloneHolder::sCallbacks());
   return true;
 }

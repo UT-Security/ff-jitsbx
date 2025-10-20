@@ -14,15 +14,77 @@
 #include "monkeycage/Tainted.h"
 
 namespace MC {
-
 namespace detail {
 
+template <typename MC_Sbx>
+class Tainted<js::SliceBudget, MC_Sbx> {
+ private:
+  js::SliceBudget data;
 
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
 
+ public:
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
 
-}
+  Tainted(const TaintedVolatile<js::SliceBudget, MC_Sbx>& p) : data(p.INTERNAL_unverified_safe()) {}
+};
 
-}
+template <typename MC_Sbx>
+class TaintedVolatile<const js::SliceBudget, MC_Sbx> {
+ private:
+  const js::SliceBudget data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  bool isWorkBudget() const { return data.isWorkBudget(); }
+  bool isTimeBudget() const { return data.isTimeBudget(); }
+  bool isUnlimited() const { return data.isUnlimited(); }
+
+  int64_t timeBudget() const { return data.timeBudget(); }
+  int64_t workBudget() const { return data.workBudget(); }
+};
+
+template <typename MC_Sbx>
+class TaintedVolatile<js::SliceBudget, MC_Sbx> {
+ private:
+  js::SliceBudget data;
+
+  inline auto& get_raw_value_ref() noexcept { return data; }
+  inline auto& get_raw_value_ref() const noexcept { return data; }
+
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value_ref(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  TaintedVolatile<bool, MC_Sbx>& idle() {
+    return *Tainted<bool*, MC_Sbx>::internal_factory(&data.idle);
+  }
+  TaintedVolatile<bool, MC_Sbx>& extended() {
+    return *Tainted<bool*, MC_Sbx>::internal_factory(&data.extended);
+  }
+
+  bool isWorkBudget() const { return data.isWorkBudget(); }
+  bool isTimeBudget() const { return data.isTimeBudget(); }
+  bool isUnlimited() const { return data.isUnlimited(); }
+
+  int64_t timeBudget() const { return data.timeBudget(); }
+  int64_t workBudget() const { return data.workBudget(); }
+};
+}  // namespace detail
+
+}  // namespace MC
 
 #endif
 

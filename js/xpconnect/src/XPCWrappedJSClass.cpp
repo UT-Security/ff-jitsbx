@@ -928,7 +928,7 @@ pre_call_clean_up:
 
       if (nsXPCException::NameAndFormatForNSResult(code, nullptr, &msg) &&
           msg) {
-        sz = JS_smprintf(format, msg, name);
+        sz = MC_smprintf(format, msg, name);
       }
 
       XPCConvert::ConstructException(

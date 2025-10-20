@@ -213,6 +213,9 @@ extern JS_PUBLIC_API TranscodeResult DecodeStencil(JS::FrontendContext* fc,
 
 // Register an encoder on its script source, such that all functions can be
 // encoded as they are delazified.
+extern JS_PUBLIC_API bool StartIncrementalEncodingUnsafe(JSContext* cx,
+                                                   RefPtr<Stencil>* stencil);
+
 extern JS_PUBLIC_API bool StartIncrementalEncoding(JSContext* cx,
                                                    RefPtr<Stencil>&& stencil);
 

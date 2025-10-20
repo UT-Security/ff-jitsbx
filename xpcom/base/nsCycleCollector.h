@@ -15,6 +15,7 @@ struct already_AddRefed;
 
 #include <cstdint>
 #include "mozilla/Attributes.h"
+#include "monkeycage/Tainted.h"
 
 namespace js {
 class SliceBudget;

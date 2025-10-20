@@ -389,6 +389,7 @@ EXPORTS.monkeycage += [
 	"../public/SavedFrameAPI.h",
 	"../public/ScriptPrivate.h",
 	"../public/ShadowRealmCallbacks.h",
+	"../public/SliceBudget.h",
 	"../public/SourceText.h",
 	"../public/Stack.h",
 	"../public/StoreBuffer.h",
