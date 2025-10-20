@@ -108,6 +108,11 @@ JSScript* JS::Compile(JSContext* cx, const ReadOnlyCompileOptions& options,
   return CompileSourceBuffer(cx, options, srcBuf);
 }
 
+JS_PUBLIC_API bool JS::StartIncrementalEncodingUnsafe(JSContext* cx,
+                                                RefPtr<JS::Stencil>* stencil) {
+  return JS::StartIncrementalEncoding(cx, std::move(*stencil));
+}
+
 JS_PUBLIC_API bool JS::StartIncrementalEncoding(JSContext* cx,
                                                 RefPtr<JS::Stencil>&& stencil) {
   MOZ_ASSERT(cx);

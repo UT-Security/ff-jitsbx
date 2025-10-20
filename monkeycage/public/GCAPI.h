@@ -102,13 +102,13 @@ inline void NonIncrementalGC(MCContext* cx, JS::GCOptions options,
 inline void StartIncrementalGC(MCContext* cx,
                                              JS::GCOptions options,
                                              GCReason reason,
-                                             const js::SliceBudget& budget) {
-    return StartIncrementalGC(cx->cx_, options, reason, budget);
+                                             MC::Tainted<const js::SliceBudget*> budget) {
+    return StartIncrementalGC(cx->cx_, options, reason, *budget.INTERNAL_unverified_safe());
 }
 
 inline void IncrementalGCSlice(MCContext* cx, GCReason reason,
-                                             const js::SliceBudget& budget) {
-    return IncrementalGCSlice(cx->cx_, reason, budget);
+                                             MC::Tainted<const js::SliceBudget*> budget) {
+    return IncrementalGCSlice(cx->cx_, reason, *budget.INTERNAL_unverified_safe());
 }
 
 inline bool IncrementalGCHasForegroundWork(MCContext* cx) {
@@ -245,9 +245,20 @@ inline bool JS_UpdateWeakPointerAfterGC(MC::Tainted<JSTracer*> trc,
 }
 
 inline bool JS_UpdateWeakPointerAfterGCUnbarriered(MC::Tainted<JSTracer*> trc,
-                                                   JSObject** objp) {
+                                                   MC::Tainted<JSObject**> objp) {
   return JS_UpdateWeakPointerAfterGCUnbarriered(trc.INTERNAL_unverified_safe(),
-                                                objp);
+                                                objp.INTERNAL_unverified_safe());
+}
+
+inline bool JS_UpdateWeakPointerAfterGCUnbarriered(MC::Tainted<JSTracer*> trc,
+                                                   JSObject** objp) {
+    MOZ_ASSERT(objp);
+    MC::SandboxStack<JSObject*> sbx_objp(*objp);
+    bool ret = JS_UpdateWeakPointerAfterGCUnbarriered(trc, sbx_objp);
+    if (*sbx_objp.UNSAFE_unverified() != *objp) {
+        *objp = *sbx_objp.UNSAFE_unverified();
+    }
+    return ret;
 }
 
 inline void JS_SetGCParameter(MCContext* cx, JSGCParamKey key, uint32_t value) {

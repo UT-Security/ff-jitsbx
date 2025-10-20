@@ -16,6 +16,7 @@
 #include "monkeycage/SourceText.h"
 
 #include "monkeycage/SandboxCallback.h"
+#include "monkeycage/SandboxStack.h"
 #include "monkeycage/Tainted.h"
 
 // ************************************************************************
@@ -95,14 +96,19 @@ inline TranscodeResult DecodeStencil(MCContext* cx,
                                      MC::Tainted<const DecodeOptions*> options,
                                      const TranscodeRange& range,
                                      Stencil** stencilOut) {
-  return DecodeStencil(cx->cx_, *options.INTERNAL_unverified_safe(), range,
-                       stencilOut);
+  MOZ_ASSERT(stencilOut);
+  MC::SandboxStack<Stencil*> sbx_stencilOut{nullptr};
+  auto ret = DecodeStencil(cx->cx_, *options.INTERNAL_unverified_safe(), range,
+                       sbx_stencilOut.UNSAFE_unverified());
+  *stencilOut = *sbx_stencilOut.UNSAFE_unverified();
+  return ret;
 }
 
 // Register an encoder on its script source, such that all functions can be
 // encoded as they are delazified.
 inline bool StartIncrementalEncoding(MCContext* cx, RefPtr<Stencil>&& stencil) {
-  return StartIncrementalEncoding(cx->cx_, std::forward<RefPtr<Stencil>>(stencil));
+  MC::SandboxStack<RefPtr<Stencil>> sbx_stencil(std::forward<RefPtr<Stencil>>(stencil));
+  return StartIncrementalEncodingUnsafe(cx->cx_, sbx_stencil.UNSAFE_unverified());
 }
 
 }  // namespace JS

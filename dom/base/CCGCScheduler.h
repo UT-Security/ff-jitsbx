@@ -2,7 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#include "js/SliceBudget.h"
+#include "monkeycage/SliceBudget.h"
+#include "monkeycage/SandboxHeap.h"
 #include "mozilla/ArrayUtils.h"
 #include "mozilla/CycleCollectedJSContext.h"
 #include "mozilla/IdleTaskRunner.h"
@@ -180,11 +181,11 @@ class CCGCScheduler {
   void KillCCRunner();
   void KillAllTimersAndRunners();
 
-  js::SliceBudget CreateGCSliceBudget(mozilla::TimeDuration aDuration,
+  MC::SandboxHeap<js::SliceBudget> CreateGCSliceBudget(mozilla::TimeDuration aDuration,
                                       bool isIdle, bool isExtended) {
-    auto budget = js::SliceBudget(aDuration, &mInterruptRequested);
-    budget.idle = isIdle;
-    budget.extended = isExtended;
+    auto budget = MC::SandboxHeap<js::SliceBudget>(aDuration, mInterruptRequested.UNSAFE_unverified());
+    budget->idle() = isIdle;
+    budget->extended() = isExtended;
     return budget;
   }
 
@@ -346,13 +347,13 @@ class CCGCScheduler {
   // Return a budget along with a boolean saying whether to prefer to run short
   // slices and stop rather than continuing to the next phase of cycle
   // collection.
-  js::SliceBudget ComputeCCSliceBudget(TimeStamp aDeadline,
+  MC::SandboxHeap<js::SliceBudget> ComputeCCSliceBudget(TimeStamp aDeadline,
                                        TimeStamp aCCBeginTime,
                                        TimeStamp aPrevSliceEndTime,
                                        TimeStamp aNow,
                                        bool* aPreferShorterSlices) const;
 
-  js::SliceBudget ComputeInterSliceGCBudget(TimeStamp aDeadline,
+  MC::SandboxHeap<js::SliceBudget> ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                             TimeStamp aNow);
 
   bool ShouldForgetSkippable(uint32_t aSuspectedCCObjects) const {
@@ -453,7 +454,7 @@ class CCGCScheduler {
 
   // aStartTimeStamp : when the ForgetSkippable timer fired. This may be some
   // time ago, if an incremental GC needed to be finished.
-  js::SliceBudget ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
+  MC::SandboxHeap<js::SliceBudget> ComputeForgetSkippableBudget(TimeStamp aStartTimeStamp,
                                                TimeStamp aDeadline);
 
  private:
@@ -476,7 +477,7 @@ class CCGCScheduler {
 
   // Set when the IdleTaskRunner requests the current task be interrupted.
   // Cleared when the GC slice budget has detected the interrupt request.
-  js::SliceBudget::InterruptRequestFlag mInterruptRequested;
+  MC::SandboxHeap<js::SliceBudget::InterruptRequestFlag> mInterruptRequested;
 
   // When a shrinking GC has been requested but we back-out, if this is true
   // we run a non-shrinking GC.

@@ -423,7 +423,7 @@ bool CCGCScheduler::GCRunnerFiredDoGC(TimeStamp aDeadline,
 
   MOZ_ASSERT(mActiveIntersliceGCBudget);
   TimeStamp startTimeStamp = TimeStamp::Now();
-  js::SliceBudget budget = ComputeInterSliceGCBudget(aDeadline, startTimeStamp);
+  MC::SandboxHeap<js::SliceBudget> budget = ComputeInterSliceGCBudget(aDeadline, startTimeStamp);
   nsJSContext::RunIncrementalGCSlice(aStep.mReason, is_shrinking, budget);
 
   // If the GC doesn't have any more work to do on the foreground thread (and
@@ -621,7 +621,7 @@ void CCGCScheduler::EnsureGCRunner(TimeDuration aDelay) {
       minimumBudget, true, [this] { return mDidShutdown; },
       [this](uint32_t) {
         PROFILER_MARKER_UNTYPED("GC Interrupt", GCCC);
-        mInterruptRequested = true;
+        *mInterruptRequested.UNSAFE_unverified() = true;
       });
 }
 
@@ -723,7 +723,7 @@ void CCGCScheduler::KillAllTimersAndRunners() {
   KillGCRunner();
 }
 
-js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
+MC::SandboxHeap<js::SliceBudget> CCGCScheduler::ComputeCCSliceBudget(
     TimeStamp aDeadline, TimeStamp aCCBeginTime, TimeStamp aPrevSliceEndTime,
     TimeStamp aNow, bool* aPreferShorterSlices) const {
   *aPreferShorterSlices =
@@ -734,14 +734,14 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
 
   if (aPrevSliceEndTime.IsNull()) {
     // The first slice gets the standard slice time.
-    return js::SliceBudget(js::TimeBudget(baseBudget));
+    return MC::SandboxHeap<js::SliceBudget>(js::TimeBudget(baseBudget));
   }
 
   // Only run a limited slice if we're within the max running time.
   MOZ_ASSERT(aNow >= aCCBeginTime);
   TimeDuration runningTime = aNow - aCCBeginTime;
   if (runningTime >= kMaxICCDuration) {
-    return js::SliceBudget::unlimited();
+    return MC::SandboxHeap<js::SliceBudget>(js::SliceBudget::unlimited());
   }
 
   const TimeDuration maxSlice =
@@ -763,11 +763,11 @@ js::SliceBudget CCGCScheduler::ComputeCCSliceBudget(
   // Note: We may have already overshot the deadline, in which case
   // baseBudget will be negative and we will end up returning
   // laterSliceBudget.
-  return js::SliceBudget(js::TimeBudget(
+  return MC::SandboxHeap<js::SliceBudget>(js::TimeBudget(
       std::max({delaySliceBudget, laterSliceBudget, baseBudget})));
 }
 
-js::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
+MC::SandboxHeap<js::SliceBudget> CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
                                                          TimeStamp aNow) {
   // We use longer budgets when the CC has been locked out but the CC has
   // tried to run since that means we may have a significant amount of
@@ -790,9 +790,9 @@ js::SliceBudget CCGCScheduler::ComputeInterSliceGCBudget(TimeStamp aDeadline,
   }
 
   // If the budget is being extended, do not allow it to be interrupted.
-  auto result = js::SliceBudget(js::TimeBudget(extendedBudget), nullptr);
-  result.idle = !aDeadline.IsNull();
-  result.extended = true;
+  auto result = MC::SandboxHeap<js::SliceBudget>(js::TimeBudget(extendedBudget), nullptr);
+  result->idle() = !aDeadline.IsNull();
+  result->extended() = true;
   return result;
 }
 
@@ -1043,7 +1043,7 @@ GCRunnerStep CCGCScheduler::GetNextGCRunnerAction(TimeStamp aDeadline) const {
   return {GCRunnerAction::None, JS::GCReason::NO_REASON};
 }
 
-js::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
+MC::SandboxHeap<js::SliceBudget> CCGCScheduler::ComputeForgetSkippableBudget(
     TimeStamp aStartTimeStamp, TimeStamp aDeadline) {
   if (mForgetSkippableFrequencyStartTime.IsNull()) {
     mForgetSkippableFrequencyStartTime = aStartTimeStamp;
@@ -1070,7 +1070,7 @@ js::SliceBudget CCGCScheduler::ComputeForgetSkippableBudget(
 
   TimeDuration budgetTime =
       aDeadline ? (aDeadline - aStartTimeStamp) : kForgetSkippableSliceDuration;
-  return js::SliceBudget(budgetTime);
+  return MC::SandboxHeap<js::SliceBudget>(budgetTime);
 }
 
 }  // namespace mozilla
