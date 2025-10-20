@@ -239,7 +239,7 @@ XPCWrappedNativeScope::~XPCWrappedNativeScope() {
   // XXX might not want to do this at xpconnect shutdown time???
   mComponents = nullptr;
 
-  MOZ_RELEASE_ASSERT(!mXrayExpandos.initialized());
+  MOZ_RELEASE_ASSERT(!mXrayExpandos->initialized());
 
   mCompartment = nullptr;
 }
@@ -290,8 +290,8 @@ void XPCWrappedNativeScope::UpdateWeakPointersAfterGC(MC::Tainted<JSTracer*> trc
     // The fields below are traced only if there's a live global in the
     // compartment, see TraceXPCGlobal. The compartment has no live globals so
     // clear these pointers here.
-    if (mXrayExpandos.initialized()) {
-      mXrayExpandos.destroy();
+    if (mXrayExpandos->initialized()) {
+      mXrayExpandos->destroy();
     }
     mIDProto = nullptr;
     mIIDProto = nullptr;
@@ -355,8 +355,8 @@ void XPCWrappedNativeScope::SystemIsBeingShutDown() {
     cur->mCIDProto = nullptr;
 
     // Similarly, destroy mXrayExpandos to prevent assertion failures.
-    if (cur->mXrayExpandos.initialized()) {
-      cur->mXrayExpandos.destroy();
+    if (cur->mXrayExpandos->initialized()) {
+      cur->mXrayExpandos->destroy();
     }
 
     // Walk the protos first. Wrapper shutdown can leave dangling
@@ -379,18 +379,18 @@ void XPCWrappedNativeScope::SystemIsBeingShutDown() {
 
 JSObject* XPCWrappedNativeScope::GetExpandoChain(HandleObject target) {
   MOZ_ASSERT(ObjectScope(target) == this);
-  if (!mXrayExpandos.initialized()) {
+  if (!mXrayExpandos->initialized()) {
     return nullptr;
   }
-  return mXrayExpandos.lookup(target);
+  return mXrayExpandos->lookup(target);
 }
 
 JSObject* XPCWrappedNativeScope::DetachExpandoChain(HandleObject target) {
   MOZ_ASSERT(ObjectScope(target) == this);
-  if (!mXrayExpandos.initialized()) {
+  if (!mXrayExpandos->initialized()) {
     return nullptr;
   }
-  return mXrayExpandos.removeValue(target);
+  return mXrayExpandos->removeValue(target);
 }
 
 bool XPCWrappedNativeScope::SetExpandoChain(MCContext* cx, HandleObject target,
@@ -398,10 +398,10 @@ bool XPCWrappedNativeScope::SetExpandoChain(MCContext* cx, HandleObject target,
   MOZ_ASSERT(ObjectScope(target) == this);
   MOZ_ASSERT(js::IsObjectInContextCompartment(target, cx));
   MOZ_ASSERT_IF(chain, ObjectScope(chain) == this);
-  if (!mXrayExpandos.initialized() && !mXrayExpandos.init(MC_UNSAFE(cx))) {
+  if (!mXrayExpandos->initialized() && !mXrayExpandos->init(cx)) {
     return false;
   }
-  return mXrayExpandos.put(MC_UNSAFE(cx), target, chain);
+  return mXrayExpandos->put(cx, target, chain);
 }
 
 /***************************************************************************/

@@ -9,6 +9,7 @@
 
 #include "js/AllocPolicy.h"
 #include "monkeycage/RootingAPI.h"
+#include "monkeycage/SandboxHeap.h"
 #include "monkeycage/SourceText.h"
 #include "monkeycage/TypeDecls.h"
 #include "mozilla/Atomics.h"
@@ -342,7 +343,7 @@ class ScriptLoadRequest
   // scripts. The data is laid out according to ScriptBytecodeDataLayout
   // or, if compression is enabled, ScriptBytecodeCompressedDataLayout.
 #ifdef JS_SANDBOX
-  mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy> mScriptBytecode;
+  MC::SandboxHeap<mozilla::Vector<uint8_t, 0, js::MallocAllocPolicy>> mScriptBytecode;
 #else
   mozilla::Vector<uint8_t> mScriptBytecode;
 #endif

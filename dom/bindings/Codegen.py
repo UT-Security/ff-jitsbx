@@ -9011,7 +9011,7 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
     if type.isAny():
         assert not type.nullable()
         if isMember:
-            value = "JS::MutableHandle<JS::Value>::fromMarkedLocation(&%s)" % value
+            value = "MC::MutableHandle<JS::Value>::fromMarkedLocation(&%s)" % value
         else:
             value = "&" + value
         return CGGeneric(
@@ -9020,7 +9020,7 @@ def wrapTypeIntoCurrentCompartment(type, value, isMember=True):
 
     if type.isObject():
         if isMember:
-            value = "JS::MutableHandle<JSObject*>::fromMarkedLocation(&%s)" % value
+            value = "MC::MutableHandle<JSObject*>::fromMarkedLocation(&%s)" % value
         else:
             value = "&" + value
         return CGGeneric(

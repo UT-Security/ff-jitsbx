@@ -88,6 +88,20 @@ inline bool JS_WrapValue(MCContext* cx, JS::MutableHandleValue vp) {
   return JS_WrapValue(cx->cx_, vp);
 }
 
+inline bool JS_WrapObject(MCContext* cx, MC::MutableHandleObject objp) {
+  MC::Rooted<JSObject*> sbx_objp(cx, objp);
+  bool ret = JS_WrapObject(cx->cx_, &sbx_objp);
+  if (ret) objp.set(sbx_objp);
+  return ret;
+}
+
+inline bool JS_WrapValue(MCContext* cx, MC::MutableHandleValue vp) {
+  MC::Rooted<JS::Value> sbx_vp(cx, vp);
+  bool ret = JS_WrapValue(cx->cx_, &sbx_vp);
+  if (ret) vp.set(sbx_vp);
+  return ret;
+}
+
 inline JSObject* JS_TransplantObject(MCContext* cx, JS::HandleObject origobj,
                                      JS::HandleObject target) {
   return JS_TransplantObject(cx->cx_, origobj, target);

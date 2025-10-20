@@ -670,7 +670,7 @@ static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> tCx, JS::Handle<J
   MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
   WorkerPrivate* worker = GetWorkerPrivateFromContext(aCx);
   if (!worker) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_WASM_ERROR_CONSUMING_RESPONSE);
     return false;
   }

@@ -169,24 +169,24 @@ inline MC::Tainted<OffThreadToken*> CompileModuleToStencilOffThread(
 
 inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
     MCContext* cx, MC::Tainted<const DecodeOptions*> options,
-    const TranscodeBuffer& buffer, size_t cursor,
+    MC::Tainted<const TranscodeBuffer*> buffer, size_t cursor,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
   ret.assign_raw_pointer(DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
-                                buffer, cursor, callback.UNSAFE_get(),
+                                *buffer.INTERNAL_unverified_safe(), cursor, callback.UNSAFE_get(),
                                 callbackData));
   return ret;
 }
 
 inline MC::Tainted<OffThreadToken*> DecodeStencilOffThread(
     MCContext* cx, MC::Tainted<const DecodeOptions*> options,
-    const TranscodeRange& range,
+    MC::Tainted<const TranscodeRange*> range,
     MC::SandboxCallback<OffThreadCompileCallback> callback,
     void* callbackData) {
   MC::Tainted<OffThreadToken*> ret{nullptr};
   ret.assign_raw_pointer(DecodeStencilOffThread(cx->cx_, *options.INTERNAL_unverified_safe(),
-                                range, callback.UNSAFE_get(), callbackData));
+                                *range.INTERNAL_unverified_safe(), callback.UNSAFE_get(), callbackData));
   return ret;
 }
 

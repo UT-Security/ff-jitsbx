@@ -31,8 +31,8 @@ inline bool JS_CallFunction(MCContext* cx, JS::Handle<JSObject*> obj,
 inline bool JS_CallFunctionName(MCContext* cx, JS::Handle<JSObject*> obj,
                                 const char* name,
                                 const JS::HandleValueArray& args,
-                                MC::MutableHandle<JS::Value> rval) {
-  return JS_CallFunctionName(cx->cx_, obj, name, args, rval.MC_INTERNAL_SAFE_get());
+                                JS::MutableHandle<JS::Value> rval) {
+  return JS_CallFunctionName(cx->cx_, obj, name, args, rval);
 }
 
 namespace JS {

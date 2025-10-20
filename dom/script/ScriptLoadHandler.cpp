@@ -11,7 +11,7 @@
 #include "ScriptCompression.h"
 #include "ScriptLoader.h"
 #include "ScriptTrace.h"
-#include "js/Transcoding.h"
+#include "monkeycage/Transcoding.h"
 #include "js/loader/ScriptLoadRequest.h"
 #include "mozilla/Assertions.h"
 #include "mozilla/CheckedInt.h"
@@ -176,7 +176,7 @@ ScriptLoadHandler::OnIncrementalData(nsIIncrementalStreamLoader* aLoader,
     }
   } else {
     MOZ_ASSERT(mRequest->IsBytecode());
-    if (!mRequest->mScriptBytecode.append(aData, aDataLength)) {
+    if (!mRequest->mScriptBytecode->append(aData, aDataLength).UNSAFE_unverified()) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
 
@@ -288,13 +288,13 @@ nsresult ScriptLoadHandler::MaybeDecodeSRI(uint32_t* sriLength) {
   }
 
   // Skip until the content is large enough to be decoded.
-  if (mRequest->mScriptBytecode.length() <=
+  if (mRequest->mScriptBytecode->length().UNSAFE_unverified() <=
       mSRIDataVerifier->DataSummaryLength()) {
     return NS_OK;
   }
 
   mSRIStatus = mSRIDataVerifier->ImportDataSummary(
-      mRequest->mScriptBytecode.length(), mRequest->mScriptBytecode.begin());
+      mRequest->mScriptBytecode->length().UNSAFE_unverified(), mRequest->mScriptBytecode->begin().UNSAFE_unverified());
 
   if (NS_FAILED(mSRIStatus)) {
     // We are unable to decode the hash contained in the alternate data which
@@ -404,12 +404,12 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
       }
     } else {
       MOZ_ASSERT(mRequest->IsBytecode());
-      if (!mRequest->mScriptBytecode.append(aData, aDataLength)) {
+      if (!mRequest->mScriptBytecode->append(aData, aDataLength).UNSAFE_unverified()) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
 
       LOG(("ScriptLoadRequest (%p): Bytecode length = %u", mRequest.get(),
-           unsigned(mRequest->mScriptBytecode.length())));
+           unsigned(mRequest->mScriptBytecode->length().UNSAFE_unverified())));
 
       // If we abort while decoding the SRI, we fallback on explictly requesting
       // the source. Thus, we should not continue in
@@ -427,7 +427,7 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
       // is no SRI data verifier instance, we still want to skip the hash.
       uint32_t sriLength;
       rv = SRICheckDataVerifier::DataSummaryLength(
-          mRequest->mScriptBytecode.length(), mRequest->mScriptBytecode.begin(),
+          mRequest->mScriptBytecode->length().UNSAFE_unverified(), mRequest->mScriptBytecode->begin().UNSAFE_unverified(),
           &sriLength);
       if (NS_FAILED(rv)) {
         return channelRequest->Cancel(mScriptLoader->RestartLoad(mRequest));
@@ -442,10 +442,10 @@ ScriptLoadHandler::OnStreamComplete(nsIIncrementalStreamLoader* aLoader,
 #endif
       // mRequest has the compressed bytecode, but will be filled with the
       // uncompressed bytecode
-      compressedBytecode.swap(mRequest->mScriptBytecode);
+      compressedBytecode.swap(*mRequest->mScriptBytecode.UNSAFE_unverified());
       if (!JS::loader::ScriptBytecodeDecompress(compressedBytecode,
                                                 mRequest->mBytecodeOffset,
-                                                mRequest->mScriptBytecode)) {
+                                                *mRequest->mScriptBytecode.UNSAFE_unverified())) {
         return NS_ERROR_UNEXPECTED;
       }
     }

@@ -175,9 +175,6 @@ class MOZ_STACK_CLASS MutableHandle
  public:
   using ElementType = T;
 
-  inline MOZ_IMPLICIT MutableHandle(Rooted<T>* root);
-  inline MOZ_IMPLICIT MutableHandle(PersistentRooted<T>* root);
-
  private:
   // Disallow nullptr for overloading purposes.
   MutableHandle(decltype(nullptr)) = delete;
@@ -203,11 +200,6 @@ class MOZ_STACK_CLASS MutableHandle
   DECLARE_NONPOINTER_ACCESSOR_METHODS(*ptr);
   DECLARE_NONPOINTER_MUTABLE_ACCESSOR_METHODS(*ptr);
   
-  //INTERNAL CONVERSION OPERATIONS
-  inline JS::MutableHandle<T> MC_INTERNAL_SAFE_get() {
-    return JS::MutableHandle<T>::fromMarkedLocation(address());
-  }
-
  private:
   MutableHandle() = default;
   DELETE_ASSIGNMENT_OPS(MutableHandle, T);
@@ -737,7 +729,7 @@ class PersistentRooted : public detail::PersistentRooted<T>,
 
 namespace MC {
 
-template <typename T>
+/*template <typename T>
 inline MutableHandle<T>::MutableHandle(Rooted<T>* root) {
   static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
                 "MutableHandle must be binary compatible with T*.");
@@ -749,7 +741,8 @@ inline MutableHandle<T>::MutableHandle(PersistentRooted<T>* root) {
   static_assert(sizeof(MutableHandle<T>) == sizeof(T*),
                 "MutableHandle must be binary compatible with T*.");
   ptr = root->address();
-}
+}*/
+
 }  // namespace MC
 
 namespace JS {

@@ -198,8 +198,8 @@ nsresult ModuleLoader::CompileFetchedModule(
     auto& bytecode = aRequest->mScriptBytecode;
     auto& offset = aRequest->mBytecodeOffset;
 
-    JS::TranscodeRange range(bytecode.begin() + offset,
-                             bytecode.length() - offset);
+    JS::TranscodeRange range(bytecode->begin().UNSAFE_unverified() + offset,
+                             bytecode->length().UNSAFE_unverified() - offset);
 
     JS::TranscodeResult tr =
         JS::DecodeStencil(aCx, decodeOptions, range, getter_AddRefs(stencil));

@@ -19,13 +19,13 @@
 namespace JS {
 
 inline bool FinishIncrementalEncoding(MCContext* cx, Handle<JSScript*> script,
-                                      TranscodeBuffer& buffer) {
- return FinishIncrementalEncoding(cx->cx_, script, buffer);
+                                      MC::Tainted<TranscodeBuffer*> buffer) {
+ return FinishIncrementalEncoding(cx->cx_, script, *buffer.INTERNAL_unverified_safe());
 }
 
 inline bool FinishIncrementalEncoding(MCContext* cx, Handle<JSObject*> module,
-                                      TranscodeBuffer& buffer) {
- return FinishIncrementalEncoding(cx->cx_, module, buffer);
+                                      MC::Tainted<TranscodeBuffer*> buffer) {
+ return FinishIncrementalEncoding(cx->cx_, module, *buffer.INTERNAL_unverified_safe());
 }
 }
 

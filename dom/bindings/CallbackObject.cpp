@@ -383,7 +383,7 @@ CallbackObject::CallSetup::~CallSetup() {
     }
   }
 
-  if (*mAsyncStack) {
+  if (mAsyncStack.isSome() && *mAsyncStack) {
     mAsyncStackSetter->reset();
   }
   mAsyncStack.reset();

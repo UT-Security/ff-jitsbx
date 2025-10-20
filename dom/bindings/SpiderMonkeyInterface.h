@@ -44,7 +44,7 @@ struct SpiderMonkeyInterfaceObjectStorage {
 
   inline bool WrapIntoNewCompartment(MCContext* cx) {
     return JS_WrapObject(
-        cx, JS::MutableHandle<JSObject*>::fromMarkedLocation(&mWrappedObj));
+        cx, MC::MutableHandle<JSObject*>::fromMarkedLocation(&mWrappedObj));
   }
 
   inline JSObject* Obj() const {

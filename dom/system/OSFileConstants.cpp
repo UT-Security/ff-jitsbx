@@ -758,7 +758,7 @@ JSObject* GetOrCreateObjectProperty(MCContext* cx,
       return &val.toObject();
     }
 
-    JS_ReportErrorNumberASCII(cx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(cx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_UNEXPECTED_TYPE, aProperty,
                               "not an object");
     return nullptr;
@@ -791,7 +791,7 @@ bool SetStringProperty(MCContext* cx, JS::Handle<JSObject*> aObject,
 bool OSFileConstantsService::DefineOSFileConstants(
     MCContext* aCx, JS::Handle<JSObject*> aGlobal) {
   if (!mInitialized) {
-    JS_ReportErrorNumberASCII(aCx, js::GetErrorMessage, nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_CANT_OPEN, "OSFileConstants",
                               "initialization has failed");
     return false;
