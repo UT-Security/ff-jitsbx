@@ -512,7 +512,6 @@ class AssemblerX86Shared : public AssemblerShared {
         return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
       case Operand::MEM_REG_DISP:
         if (op.containsReg(StackPointer)) {
-          //TODO(JS_SANDBOX_HEAP): sandbox %rsp on modification.
           return op;
         }
         pauseBundleGroup();
@@ -575,17 +574,13 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void sandboxStackPointer(Register dest) {
-#ifdef JS_SANDBOX_HEAP
-    if (dest == StackPointer) {
 #ifdef JS_SANDBOX_BUNDLE
       MOZ_ASSERT(
           inBundleGroup(),
           "Expected to be in bundle when masking stack pointer modifications");
 #endif
-      pauseBundleGroup();
-#ifdef DEBUG
-#endif
-      beginBundleGroup();
+#ifdef JS_SANDBOX_HEAP
+    if (dest == StackPointer) {
       masm.andq_rr(SandboxMaskReg.encoding(), StackPointer.encoding());
       masm.orq_rr(SandboxBaseReg.encoding(), StackPointer.encoding());
     }
@@ -766,7 +761,7 @@ class AssemblerX86Shared : public AssemblerShared {
     label->patchAt()->bind(masm.size());
   }
   void cmovCCl(Condition cond, const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     switch (src.kind()) {
       case Operand::REG:
@@ -782,11 +777,13 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void cmovCCl(Condition cond, Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     X86Encoding::Condition cc = static_cast<X86Encoding::Condition>(cond);
     masm.cmovCCl_rr(cc, src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void cmovzl(const Operand& src, Register dest) {
     cmovCCl(Condition::Zero, src, dest);
@@ -796,13 +793,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void movl(Imm32 imm32, Register dest) {
     MOZ_ASSERT(hasCreator());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movl_i32r(imm32.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void movl(Register src, Register dest) {
     MOZ_ASSERT(hasCreator());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   CodeOffset movl(const Operand& src, Register dest) {
     MOZ_ASSERT(hasCreator());
@@ -826,6 +825,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(dest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -852,6 +852,9 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    if (dest.kind() ==  Operand::REG) {
+      sandboxStackPointer(Register(dest.reg()));
+    }
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -877,13 +880,18 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    if (dest.kind() == Operand::REG) {
+      sandboxStackPointer(Register(dest.reg()));
+    }
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
 
   void xchgl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.xchgl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(src);
+    sandboxStackPointer(dest);
   }
 
   void vmovapd(FloatRegister src, FloatRegister dest) {
@@ -1213,7 +1221,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.vcvtsd2ss_rr(src1.encoding(), src0.encoding(), dest.encoding());
   }
   void movzbl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movzbl_mr(src.disp(), src.base(), dest.encoding());
@@ -1225,13 +1233,15 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void movsbl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movsbl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void movsbl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movsbl_mr(src.disp(), src.base(), dest.encoding());
@@ -1243,6 +1253,7 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   CodeOffset movb(const Operand& src, Register dest) {
     AutoBundleGroupScope bundle(*this);
@@ -1259,6 +1270,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(dest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -1305,7 +1317,7 @@ class AssemblerX86Shared : public AssemblerShared {
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movzwl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.movzwl_rr(src.reg(), dest.encoding());
@@ -1322,8 +1334,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void movzwl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movzwl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   CodeOffset movw(const Operand& src, Register dest) {
     AutoBundleGroupScope bundle(*this);
@@ -1331,13 +1344,15 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_16_for_32();
     movl(src, dest);
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(dest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movw(Imm32 src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.prefix_16_for_32();
     movl(src, dest);
+    sandboxStackPointer(dest);
   }
   CodeOffset movw(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -1378,11 +1393,12 @@ class AssemblerX86Shared : public AssemblerShared {
     return CodeOffset(size() - (postOffset - preOffset));
   }
   void movswl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movswl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void movswl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.movswl_mr(src.disp(), src.base(), dest.encoding());
@@ -1394,9 +1410,10 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void leal(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::MEM_REG_DISP:
         masm.leal_mr(src.disp(), src.base(), dest.encoding());
@@ -1408,6 +1425,7 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
 
  protected:
@@ -1904,10 +1922,12 @@ class AssemblerX86Shared : public AssemblerShared {
   }
 
   void addl(Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.addl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   CodeOffset addlWithPatch(Imm32 imm, Register dest) {
+    MOZ_ASSERT(dest != StackPointer, "Unsupported instruction");
     AutoBundleInstructionScope bundle(*this);
     masm.addl_i32r(imm.value, dest.encoding());
     bundle.end();
@@ -1919,6 +1939,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.addl_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.addl_im(imm.value, op.disp(), op.base());
@@ -1939,6 +1960,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.addw_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.addw_im(imm.value, op.disp(), op.base());
@@ -1954,8 +1976,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void subl(Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.subl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void subl(Imm32 imm, const Operand& unsafeOp) {
     AutoBundleGroupScope bundle(*this);
@@ -1963,6 +1986,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.subl_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.subl_im(imm.value, op.disp(), op.base());
@@ -1980,6 +2004,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.subw_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.subw_im(imm.value, op.disp(), op.base());
@@ -1992,8 +2017,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.addl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void addl(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -2001,6 +2027,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.addl_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.addl_rm(src.encoding(), dest.disp(), dest.base());
@@ -2019,6 +2046,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.addw_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.addw_rm(src.encoding(), dest.disp(), dest.base());
@@ -2032,15 +2060,17 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void sbbl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.sbbl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void subl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.subl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void subl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.subl_rr(src.reg(), dest.encoding());
@@ -2051,6 +2081,7 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void subl(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -2058,6 +2089,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.subl_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.subl_rm(src.encoding(), dest.disp(), dest.base());
@@ -2076,6 +2108,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.subw_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.subw_rm(src.encoding(), dest.disp(), dest.base());
@@ -2089,8 +2122,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orl(Register reg, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.orl_rr(reg.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void orl(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -2098,6 +2132,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.orl_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.orl_rm(src.encoding(), dest.disp(), dest.base());
@@ -2116,6 +2151,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.orw_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.orw_rm(src.encoding(), dest.disp(), dest.base());
@@ -2129,8 +2165,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void orl(Imm32 imm, Register reg) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.orl_ir(imm.value, reg.encoding());
+    sandboxStackPointer(reg);
   }
   void orl(Imm32 imm, const Operand& unsafeOp) {
     AutoBundleGroupScope bundle(*this);
@@ -2138,6 +2175,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.orl_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.orl_im(imm.value, op.disp(), op.base());
@@ -2155,6 +2193,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.orw_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.orw_im(imm.value, op.disp(), op.base());
@@ -2167,8 +2206,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.xorl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void xorl(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -2176,6 +2216,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorl_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.xorl_rm(src.encoding(), dest.disp(), dest.base());
@@ -2194,6 +2235,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.xorw_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.xorw_rm(src.encoding(), dest.disp(), dest.base());
@@ -2207,8 +2249,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void xorl(Imm32 imm, Register reg) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.xorl_ir(imm.value, reg.encoding());
+    sandboxStackPointer(reg);
   }
   void xorl(Imm32 imm, const Operand& unsafeOp) {
     AutoBundleGroupScope bundle(*this);
@@ -2216,6 +2259,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.xorl_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.xorl_im(imm.value, op.disp(), op.base());
@@ -2233,6 +2277,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.xorw_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.xorw_im(imm.value, op.disp(), op.base());
@@ -2245,8 +2290,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.andl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void andl(Register src, const Operand& unsafeDest) {
     AutoBundleGroupScope bundle(*this);
@@ -2254,6 +2300,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.andl_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.andl_rm(src.encoding(), dest.disp(), dest.base());
@@ -2272,6 +2319,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.andw_rr(src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.andw_rm(src.encoding(), dest.disp(), dest.base());
@@ -2285,8 +2333,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void andl(Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.andl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void andl(Imm32 imm, const Operand& unsafeOp) {
     AutoBundleGroupScope bundle(*this);
@@ -2294,6 +2343,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.andl_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.andl_im(imm.value, op.disp(), op.base());
@@ -2311,6 +2361,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (op.kind()) {
       case Operand::REG:
         masm.andw_ir(imm.value, op.reg());
+        sandboxStackPointer(Register(op.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.andw_im(imm.value, op.disp(), op.base());
@@ -2323,7 +2374,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void addl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.addl_rr(src.reg(), dest.encoding());
@@ -2334,9 +2385,10 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void orl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.orl_rr(src.reg(), dest.encoding());
@@ -2347,9 +2399,10 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void xorl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.xorl_rr(src.reg(), dest.encoding());
@@ -2360,9 +2413,10 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void andl(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.andl_rr(src.reg(), dest.encoding());
@@ -2377,30 +2431,37 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void bsrl(const Register& src, const Register& dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.bsrl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void bsfl(const Register& src, const Register& dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.bsfl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void bswapl(Register reg) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.bswapl_r(reg.encoding());
+    sandboxStackPointer(reg);
   }
   void lzcntl(const Register& src, const Register& dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.lzcntl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void tzcntl(const Register& src, const Register& dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.tzcntl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void popcntl(const Register& src, const Register& dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.popcntl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void imull(Register multiplier) {
     AutoBundleInstructionScope bundle(*this);
@@ -2413,19 +2474,22 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.mull_r(multiplier.encoding());
   }
   void imull(Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.imull_ir(imm.value, dest.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void imull(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.imull_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void imull(Imm32 imm, Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.imull_ir(imm.value, src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void imull(const Operand& src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     switch (src.kind()) {
       case Operand::REG:
         masm.imull_rr(src.reg(), dest.encoding());
@@ -2436,6 +2500,7 @@ class AssemblerX86Shared : public AssemblerShared {
       default:
         MOZ_CRASH("unexpected operand kind");
     }
+    sandboxStackPointer(dest);
   }
   void negl(const Operand& unsafeSrc) {
     AutoBundleGroupScope bundle(*this);
@@ -2443,6 +2508,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (src.kind()) {
       case Operand::REG:
         masm.negl_r(src.reg());
+        sandboxStackPointer(Register(src.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.negl_m(src.disp(), src.base());
@@ -2452,8 +2518,9 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void negl(Register reg) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.negl_r(reg.encoding());
+    sandboxStackPointer(reg);
   }
   void notl(const Operand& unsafeSrc) {
     AutoBundleGroupScope bundle(*this);
@@ -2461,6 +2528,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (src.kind()) {
       case Operand::REG:
         masm.notl_r(src.reg());
+        sandboxStackPointer(Register(src.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.notl_m(src.disp(), src.base());
@@ -2470,77 +2538,94 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void notl(Register reg) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.notl_r(reg.encoding());
+    sandboxStackPointer(reg);
   }
   void shrl(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shrl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shll(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shll_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void sarl(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.sarl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shrl_cl(Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shrl_CLr(dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shll_cl(Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shll_CLr(dest.encoding());
+    sandboxStackPointer(dest);
   }
   void sarl_cl(Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.sarl_CLr(dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shrdl_cl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shrdl_CLr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shldl_cl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shldl_CLr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
 
   void sarxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.sarxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shlxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shlxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void shrxl(Register src, Register shift, Register dest) {
     MOZ_ASSERT(HasBMI2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.shrxl_rrr(src.encoding(), shift.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
 
   void roll(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.roll_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void roll_cl(Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.roll_CLr(dest.encoding());
+    sandboxStackPointer(dest);
   }
   void rolw(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.rolw_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void rorl(const Imm32 imm, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.rorl_ir(imm.value, dest.encoding());
+    sandboxStackPointer(dest);
   }
   void rorl_cl(Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.rorl_CLr(dest.encoding());
+    sandboxStackPointer(dest);
   }
 
   void incl(const Operand& unsafeOp) {
@@ -2926,6 +3011,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -2946,6 +3032,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -2966,6 +3053,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3006,6 +3094,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3025,6 +3114,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3044,6 +3134,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(src);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3065,6 +3156,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(srcdest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3076,6 +3168,7 @@ class AssemblerX86Shared : public AssemblerShared {
     masm.prefix_16_for_32();
     lock_xaddl(srcdest, mem);
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(srcdest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3096,6 +3189,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
     size_t postOffset = bundle.offset();
+    sandboxStackPointer(srcdest);
     freezeBundleGroup();
     return CodeOffset(size() - (postOffset - preOffset));
   }
@@ -3139,6 +3233,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (src.kind()) {
       case Operand::REG:
         masm.pop_r(src.reg());
+        sandboxStackPointer(Register(src.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.pop_m(src.disp(), src.base());
@@ -3149,8 +3244,9 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void pop(Register src) {
     MOZ_ASSERT(hasCreator());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.pop_r(src.encoding());
+    sandboxStackPointer(src);
   }
   void pop(const Address& src) {
 #ifdef JS_SANDBOX_HEAP
@@ -3177,8 +3273,9 @@ class AssemblerX86Shared : public AssemblerShared {
 
   // Zero-extend byte to 32-bit integer.
   void movzbl(Register src, Register dest) {
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.movzbl_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
 
   void cdq() {
@@ -3263,6 +3360,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrb_irr(lane, src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.vpextrb_irm(lane, src.encoding(), dest.disp(), dest.base());
@@ -3282,6 +3380,7 @@ class AssemblerX86Shared : public AssemblerShared {
     switch (dest.kind()) {
       case Operand::REG:
         masm.vpextrw_irr(lane, src.encoding(), dest.reg());
+        sandboxStackPointer(Register(dest.reg()));
         break;
       case Operand::MEM_REG_DISP:
         masm.vpextrw_irm(lane, src.encoding(), dest.disp(), dest.base());
@@ -3296,8 +3395,9 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vpextrd(unsigned lane, FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE41());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vpextrd_irr(lane, src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vpsrldq(Imm32 shift, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
@@ -3412,13 +3512,15 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vcvttsd2si(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vcvttsd2si_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vcvttss2si(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vcvttss2si_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vcvtsi2ss(const Operand& src1, FloatRegister src0, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
@@ -3477,18 +3579,21 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovmskpd(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vmovmskpd_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vmovmskps(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vmovmskps_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vpmovmskb(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vpmovmskb_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vptest(FloatRegister rhs, FloatRegister lhs) {
     MOZ_ASSERT(HasSSE41());
@@ -3782,8 +3887,9 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   void vmovd(FloatRegister src, Register dest) {
     MOZ_ASSERT(HasSSE2());
-    AutoBundleInstructionScope bundle(*this);
+    AutoBundleGroupScope bundle(*this);
     masm.vmovd_rr(src.encoding(), dest.encoding());
+    sandboxStackPointer(dest);
   }
   void vmovd(const Operand& src, FloatRegister dest) {
     MOZ_ASSERT(HasSSE2());
