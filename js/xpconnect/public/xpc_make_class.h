@@ -105,7 +105,7 @@ extern const js::ClassExtension* XPC_WN_JSClassExtension();
                                                  : nullptr,                   \
                                                                               \
         /* trace */                                                           \
-        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? MC::Sandbox::Address(JS_GlobalObjectTraceHook) \
+        ((_flags)&XPC_SCRIPTABLE_IS_GLOBAL_OBJECT) ? MC::Sandbox::Address(JS_GlobalObjectTraceHook).UNSAFE_unverified() \
                                                    : XPCWrappedNative_TraceCb().UNSAFE_get(),  \
   }
 

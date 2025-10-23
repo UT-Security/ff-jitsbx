@@ -42,8 +42,15 @@ DEF_TEST(SerializesEdgeNames, {
   // Should get the referent node that doesn't have any edges once.
   ExpectWriteNode(writer, referent);
 
+#ifdef JS_DEBUG
   MC::AutoCheckCannotGC noGC(cx);
   ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&node), writer,
                              /* wantNames = */ true,
                              /* zones = */ nullptr, *noGC.UNSAFE_unverified()));
+#else
+  MC::AutoCheckCannotGC noGC(MC_UNSAFE(cx));
+  ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&node), writer,
+                             /* wantNames = */ true,
+                             /* zones = */ nullptr, noGC));
+#endif
 });

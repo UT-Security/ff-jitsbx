@@ -902,7 +902,7 @@ static bool Process(AutoJSAPI& jsapi, const char* filename, bool forceTTY) {
        * of strerror function can be non-UTF-8.
        */
       static auto my_GetErrorMessageCb = MC::Sandbox::RegisterCallback(my_GetErrorMessage);
-      JS_ReportErrorNumberLatin1(jsapi.cx(), my_GetErrorMessageCb.UNSAFE_get(), nullptr,
+      JS_ReportErrorNumberLatin1(jsapi.cx(), my_GetErrorMessageCb, nullptr,
                                  JSSMSG_CANT_OPEN, filename, strerror(errno));
       gExitCode = EXITCODE_FILE_NOT_FOUND;
       return false;

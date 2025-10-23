@@ -456,7 +456,11 @@ void HeapSnapshot::TakeCensus(MCContext* cx, JS::Handle<JSObject*> options,
   {
     MC::AutoCheckCannotGC nogc;
 
+#ifdef JS_DEBUG
     JS::ubi::CensusTraversal traversal(MC_UNSAFE(cx), handler, *nogc.UNSAFE_unverified());
+#else
+    JS::ubi::CensusTraversal traversal(MC_UNSAFE(cx), handler, nogc);
+#endif
 
     if (NS_WARN_IF(!traversal.addStart(getRoot()))) {
       rv.Throw(NS_ERROR_OUT_OF_MEMORY);
@@ -520,8 +524,13 @@ already_AddRefed<DominatorTree> HeapSnapshot::ComputeDominatorTree(
     MOZ_ASSERT(ccjscx);
     auto cx = ccjscx->Context();
     MOZ_ASSERT(cx);
+#ifdef JS_DEBUG
     MC::AutoCheckCannotGC nogc(cx);
     maybeTree = JS::ubi::DominatorTree::Create(MC_UNSAFE(cx), *nogc.UNSAFE_unverified(), getRoot());
+#else
+    MC::AutoCheckCannotGC nogc(MC_UNSAFE(cx));
+    maybeTree = JS::ubi::DominatorTree::Create(MC_UNSAFE(cx), nogc, getRoot());
+#endif
   }
 
   if (NS_WARN_IF(maybeTree.isNothing())) {
@@ -577,9 +586,15 @@ void HeapSnapshot::ComputeShortestPaths(MCContext* cx, uint64_t start,
 
   Maybe<ShortestPaths> maybeShortestPaths;
   {
+#ifdef JS_DEBUG
     MC::AutoCheckCannotGC nogc(cx);
     maybeShortestPaths = ShortestPaths::Create(
         MC_UNSAFE(cx), *nogc.UNSAFE_unverified(), maxNumPaths, *startNode, std::move(targetsSet));
+#else
+    MC::AutoCheckCannotGC nogc(MC_UNSAFE(cx));
+    maybeShortestPaths = ShortestPaths::Create(
+        MC_UNSAFE(cx), nogc, maxNumPaths, *startNode, std::move(targetsSet));
+#endif
   }
 
   if (NS_WARN_IF(maybeShortestPaths.isNothing())) {

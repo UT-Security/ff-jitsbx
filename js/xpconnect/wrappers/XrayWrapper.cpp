@@ -2184,7 +2184,7 @@ bool XrayWrapper<Base, Traits>::construct(MCContext* cx, HandleObject wrapper,
 template <typename Base, typename Traits>
 bool XrayWrapper<Base, Traits>::getBuiltinClass(MCContext* cx,
                                                 JS::HandleObject wrapper,
-                                                js::ESClass* cls) const {
+                                                MC::Tainted<js::ESClass*> cls) const {
   return Traits::getBuiltinClass(cx, wrapper, *Base::getSingleton(), cls);
 }
 

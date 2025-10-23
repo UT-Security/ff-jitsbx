@@ -122,6 +122,12 @@ namespace detail_mc_tainted_callback_arg {
   {
     using type = AppPointer<void*, MC_Sbx>;
   };
+
+  template<typename MC_Sbx>
+  struct wrapper<const void*, MC_Sbx>
+  {
+    using type = AppPointer<const void*, MC_Sbx>;
+  };
 }
 
 

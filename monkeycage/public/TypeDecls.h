@@ -19,9 +19,12 @@
 
 #include "js/TypeDecls.h"
 
+#ifdef JS_SANDBOX
+
+#include "monkeycage/Tainted.h"
+
 namespace MC {
 
-#ifdef JS_SANDBOX
 template <typename T>
 class MutableHandle;
 template <typename T>
@@ -35,25 +38,6 @@ class PersistentRootedVector;
 
 template <typename T, typename AllocPolicy>
 using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
-#else
-template <typename T>
-using Rooted = JS::Rooted<T>;
-
-template <typename T>
-using MutableHandle = JS::MutableHandle<T>;
-
-template <typename T>
-using PersistentRooted = JS::PersistentRooted<T>;
-
-template <typename T>
-using RootedVector = JS::RootedVector<T>;
-
-template <typename T>
-using PersistentRootedVector = JS::PersistentRootedVector<T>;
-
-template <typename T, typename AllocPolicy>
-using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
-#endif
 
 typedef MutableHandle<JSFunction*> MutableHandleFunction;
 typedef MutableHandle<JS::PropertyKey> MutableHandleId;
@@ -88,6 +72,27 @@ typedef PersistentRooted<JS::Value> PersistentRootedValue;
 
 typedef PersistentRootedVector<JS::PropertyKey> PersistentRootedIdVector;
 typedef PersistentRootedVector<JSObject*> PersistentRootedObjectVector;
-}
+}  // namespace MC
+#else
+namespace MC {
+template <typename T>
+using Rooted = JS::Rooted<T>;
+
+template <typename T>
+using MutableHandle = JS::MutableHandle<T>;
+
+template <typename T>
+using PersistentRooted = JS::PersistentRooted<T>;
+
+template <typename T>
+using RootedVector = JS::RootedVector<T>;
+
+template <typename T>
+using PersistentRootedVector = JS::PersistentRootedVector<T>;
+
+template <typename T, typename AllocPolicy>
+using StackGCVector = JS::StackGCVector<T, AllocPolicy>;
+}  // namespace MC
+#endif
 
 #endif

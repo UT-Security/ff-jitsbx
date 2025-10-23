@@ -518,12 +518,12 @@ TEST_F(TelemetryTestFixture, TooLongKey) {
   MC::Rooted<JS::Value> scalarsSnapshot(cx.GetJSContext());
   GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot);
 
-  bool foundp = true;
+  MC::SandboxStack<bool> foundp{true};
   MC::Rooted<JSObject*> scalarObj(cx.GetJSContext(),
                                   &scalarsSnapshot.toObject());
   ASSERT_TRUE(
-      JS_HasProperty(cx.GetJSContext(), scalarObj, kScalarName, &foundp));
-  EXPECT_FALSE(foundp);
+      JS_HasProperty(cx.GetJSContext(), scalarObj, kScalarName, foundp));
+  EXPECT_FALSE(*foundp.UNSAFE_unverified());
 #endif  // #ifndef DEBUG
 }
 
@@ -552,12 +552,12 @@ TEST_F(TelemetryTestFixture, EmptyKey) {
   MC::Rooted<JS::Value> scalarsSnapshot(cx.GetJSContext());
   GetScalarsSnapshot(true, cx.GetJSContext(), &scalarsSnapshot);
 
-  bool foundp = true;
+  MC::SandboxStack<bool> foundp{true};
   MC::Rooted<JSObject*> scalarObj(cx.GetJSContext(),
                                   &scalarsSnapshot.toObject());
   ASSERT_TRUE(
-      JS_HasProperty(cx.GetJSContext(), scalarObj, kScalarName, &foundp));
-  EXPECT_FALSE(foundp);
+      JS_HasProperty(cx.GetJSContext(), scalarObj, kScalarName, foundp));
+  EXPECT_FALSE(*foundp.UNSAFE_unverified());
 #endif  // #ifndef DEBUG
 }
 

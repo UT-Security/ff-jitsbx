@@ -543,13 +543,13 @@ static const JSClass* SandboxClass() {
       nullptr,                         // addProperty
       nullptr,                         // delProperty
       nullptr,                         // enumerate
-      MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)),  // newEnumerate
-      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),         // resolve
-      MC::Sandbox::Address(JS_MayResolveStandardClass),      // mayResolve
+      MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)).UNSAFE_unverified(),  // newEnumerate
+      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)).UNSAFE_unverified(),         // resolve
+      MC::Sandbox::Address(JS_MayResolveStandardClass).UNSAFE_unverified(),      // mayResolve
       MC::Sandbox::RegisterTaintedCallback(sandbox_finalize).UNSAFE_get(),   // finalize
       nullptr,                         // call
       nullptr,                         // construct
-      MC::Sandbox::Address(JS_GlobalObjectTraceHook),        // trace
+      MC::Sandbox::Address(JS_GlobalObjectTraceHook).UNSAFE_unverified(),        // trace
   };
 
   static const js::ClassExtension ext_ = {

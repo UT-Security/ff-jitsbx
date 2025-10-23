@@ -646,7 +646,7 @@ class CGDOMJSClass(CGThing):
             classFlags += (
                 "JSCLASS_DOM_GLOBAL | JSCLASS_GLOBAL_FLAGS_WITH_SLOTS(DOM_GLOBAL_SLOTS)"
             )
-            traceHook = "MC::Sandbox::Address(JS_GlobalObjectTraceHook)"
+            traceHook = "MC::Sandbox::Address(JS_GlobalObjectTraceHook).UNSAFE_unverified()"
             reservedSlots = "JSCLASS_GLOBAL_APPLICATION_SLOTS"
         else:
             classFlags += "JSCLASS_HAS_RESERVED_SLOTS(%d)" % slotCount

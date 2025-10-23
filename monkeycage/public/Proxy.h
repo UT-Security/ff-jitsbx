@@ -22,169 +22,157 @@
 namespace mc {
 
 #define DEFINE_PROXY_HANDLER_OPS_CALLBACKS(ExternalProxyHandler)                             \
- static bool finalizeInBackgroundCb(const void* p, const JS::Value& priv) {                  \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
+ static MC::Tainted<bool> finalizeInBackgroundCb(MC::AppPointer<const void*> p, const JS::Value& priv) {  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                \
    return h->finalizeInBackground(priv);                                                     \
  }                                                                                           \
- static bool canNurseryAllocateCb(const void* p) {                                           \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
+ static MC::Tainted<bool> canNurseryAllocateCb(MC::AppPointer<const void*> p) {                                           \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
    return h->canNurseryAllocate();                                                           \
  }                                                                                           \
- static bool enterCb(const void* p, JSContext* cx, JS::HandleObject wrapper,                 \
+ static MC::Tainted<bool> enterCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject wrapper,                 \
                      JS::HandleId id, BaseProxyHandler::Action act,                          \
-                     bool mayThrow, bool* bp_) {                                             \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> bp{nullptr};                                                           \
-   bp.assign_raw_pointer(bp_);                                                               \
-   return h->enter(mcx, wrapper, id, act, mayThrow, bp);                                     \
+                     bool mayThrow, MC::Tainted<bool*> bp) {                                             \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->enter(cx, wrapper, id, act, mayThrow, bp);                                     \
  }                                                                                           \
- static bool getOwnPropertyDescriptorCb(                                                     \
-     const void* p, JSContext* cx, JS::HandleObject proxy, JS::HandleId id,                  \
+ static MC::Tainted<bool> getOwnPropertyDescriptorCb(                                                     \
+     MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy, JS::HandleId id,                  \
      JS::MutableHandle<mozilla::Maybe<JS::PropertyDescriptor>> desc) {                       \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->getOwnPropertyDescriptor(mcx, proxy, id, desc);                                 \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getOwnPropertyDescriptor(cx, proxy, id, desc);                                 \
  }                                                                                           \
- static bool definePropertyCb(const void* p, JSContext* cx,                                  \
+ static MC::Tainted<bool> definePropertyCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                  \
                               JS::HandleObject proxy, JS::HandleId id,                       \
                               JS::Handle<JS::PropertyDescriptor> desc,                       \
                               JS::ObjectOpResult& result_) {                                 \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
    MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
    result.assign_raw_pointer(&result_);                                                      \
-   return h->defineProperty(mcx, proxy, id, desc, result);                                   \
+   return h->defineProperty(cx, proxy, id, desc, result);                                   \
  }                                                                                           \
- static bool ownPropertyKeysCb(const void* p, JSContext* cx,                                 \
+ static MC::Tainted<bool> ownPropertyKeysCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                 \
                                JS::HandleObject proxy,                                       \
                                JS::MutableHandleIdVector props) {                            \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->ownPropertyKeys(mcx, proxy, props);                                             \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->ownPropertyKeys(cx, proxy, props);                                             \
  }                                                                                           \
- static bool delete_Cb(const void* p, JSContext* cx, JS::HandleObject proxy,                 \
+ static MC::Tainted<bool> delete_Cb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                 \
                        JS::HandleId id, JS::ObjectOpResult& result_) {                       \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
    MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
    result.assign_raw_pointer(&result_);                                                      \
-   return h->delete_(mcx, proxy, id, result);                                                \
+   return h->delete_(cx, proxy, id, result);                                                \
  }                                                                                           \
- static bool getPrototypeCb(const void* p, JSContext* cx,                                    \
+ static MC::Tainted<bool> getPrototypeCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                    \
                             JS::HandleObject proxy,                                          \
                             JS::MutableHandleObject protop) {                                \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->getPrototype(mcx, proxy, protop);                                               \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getPrototype(cx, proxy, protop);                                               \
  }                                                                                           \
- static bool setPrototypeCb(const void* p, JSContext* cx,                                    \
+ static MC::Tainted<bool> setPrototypeCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                    \
                             JS::HandleObject proxy, JS::HandleObject proto,                  \
                             JS::ObjectOpResult& result_) {                                   \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
    MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
    result.assign_raw_pointer(&result_);                                                      \
-   return h->setPrototype(mcx, proxy, proto, result);                                        \
+   return h->setPrototype(cx, proxy, proto, result);                                        \
  }                                                                                           \
- static bool getPrototypeIfOrdinaryCb(const void* p, JSContext* cx,                          \
-                                      JS::HandleObject proxy, bool* isOrdinary_,             \
+ static MC::Tainted<bool> getPrototypeIfOrdinaryCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                          \
+                                      JS::HandleObject proxy, MC::Tainted<bool*> isOrdinary,             \
                                       JS::MutableHandleObject protop) {                      \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> isOrdinary{nullptr};                                                   \
-   isOrdinary.assign_raw_pointer(isOrdinary_);                                               \
-   return h->getPrototypeIfOrdinary(mcx, proxy, isOrdinary, protop);                         \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getPrototypeIfOrdinary(cx, proxy, isOrdinary, protop);                         \
  }                                                                                           \
- static bool setImmutablePrototypeCb(const void* p, JSContext* cx,                           \
-                                     JS::HandleObject proxy, bool* succeeded_) {             \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> succeeded{nullptr};                                                    \
-   succeeded.assign_raw_pointer(succeeded_);                                                 \
-   return h->setImmutablePrototype(mcx, proxy, succeeded);                                   \
+ static MC::Tainted<bool> setImmutablePrototypeCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                           \
+                                     JS::HandleObject proxy, MC::Tainted<bool*> succeeded) {             \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->setImmutablePrototype(cx, proxy, succeeded);                                   \
  }                                                                                           \
- static bool preventExtensionsCb(const void* p, JSContext* cx,                               \
+ static MC::Tainted<bool> preventExtensionsCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                               \
                                  JS::HandleObject proxy,                                     \
                                  JS::ObjectOpResult& result_) {                              \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
    MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
    result.assign_raw_pointer(&result_);                                                      \
-   return h->preventExtensions(mcx, proxy, result);                                          \
+   return h->preventExtensions(cx, proxy, result);                                          \
  }                                                                                           \
- static bool isExtensibleCb(const void* p, JSContext* cx,                                    \
-                            JS::HandleObject proxy, bool* extensible_) {                     \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> extensible{nullptr};                                                   \
-   extensible.assign_raw_pointer(extensible_);                                               \
-   return h->isExtensible(mcx, proxy, extensible);                                           \
+ static MC::Tainted<bool> isExtensibleCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                    \
+                            JS::HandleObject proxy, MC::Tainted<bool*> extensible) {                     \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->isExtensible(cx, proxy, extensible);                                           \
  }                                                                                           \
- static bool hasCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
-                   JS::HandleId id, bool* bp_) {                                             \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> bp{nullptr};                                                           \
-   bp.assign_raw_pointer(bp_);                                                               \
-   return h->has(mcx, proxy, id, bp);                                                        \
+ static MC::Tainted<bool> hasCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                     \
+                   JS::HandleId id, MC::Tainted<bool*> bp) {                                             \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->has(cx, proxy, id, bp);                                                        \
  }                                                                                           \
- static bool getCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
+ static MC::Tainted<bool> getCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                     \
                    JS::HandleValue receiver, JS::HandleId id,                                \
                    JS::MutableHandleValue vp) {                                              \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->get(mcx, proxy, receiver, id, vp);                                              \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->get(cx, proxy, receiver, id, vp);                                              \
  }                                                                                           \
- static bool setCb(const void* p, JSContext* cx, JS::HandleObject proxy,                     \
+ static MC::Tainted<bool> setCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                     \
                    JS::HandleId id, JS::HandleValue v, JS::HandleValue receiver,             \
                    JS::ObjectOpResult& result_) {                                            \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
    MC::Tainted<JS::ObjectOpResult*> result{nullptr};                                         \
    result.assign_raw_pointer(&result_);                                                      \
-   return h->set(mcx, proxy, id, v, receiver, result);                                       \
+   return h->set(cx, proxy, id, v, receiver, result);                                       \
  }                                                                                           \
- static bool useProxyExpandoObjectForPrivateFieldsCb(const void* p) {                        \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
+ static MC::Tainted<bool> useProxyExpandoObjectForPrivateFieldsCb(MC::AppPointer<const void*> p) {                        \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
    return h->useProxyExpandoObjectForPrivateFields();                                        \
  }                                                                                           \
- static bool throwOnPrivateFieldCb(const void* p) {                                          \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
+ static MC::Tainted<bool> throwOnPrivateFieldCb(MC::AppPointer<const void*> p) {                                          \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
    return h->throwOnPrivateField();                                                          \
  }                                                                                           \
- static bool callCb(const void* p, JSContext* cx, JS::HandleObject proxy,                    \
+ static MC::Tainted<bool> callCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                    \
                     const JS::CallArgs& args) {                                              \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->call(mcx, proxy, args);                                                          \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->call(cx, proxy, args);                                                          \
  }                                                                                           \
- static bool constructCb(const void* p, JSContext* cx, JS::HandleObject proxy,               \
+ static MC::Tainted<bool> constructCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,               \
                          const JS::CallArgs& args) {                                         \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->construct(mcx, proxy, args);                                                    \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->construct(cx, proxy, args);                                                    \
  }                                                                                           \
- static bool enumerateCb(const void* p, JSContext* cx, JS::HandleObject proxy,               \
+ static MC::Tainted<bool> enumerateCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,               \
                          JS::MutableHandleIdVector props) {                                  \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->enumerate(mcx, proxy, props);                                                   \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->enumerate(cx, proxy, props);                                                   \
  }                                                                                           \
- static bool hasOwnCb(const void* p, JSContext* cx, JS::HandleObject proxy,                  \
-                      JS::HandleId id, bool* bp_) {                                          \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<bool*> bp{nullptr};                                                           \
-   bp.assign_raw_pointer(bp_);                                                               \
-   return h->hasOwn(mcx, proxy, id, bp);                                                     \
+ static MC::Tainted<bool> hasOwnCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                  \
+                      JS::HandleId id, MC::Tainted<bool*> bp) {                                          \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->hasOwn(cx, proxy, id, bp);                                                     \
  }                                                                                           \
- static bool getOwnEnumerablePropertyKeysCb(const void* p, JSContext* cx,                    \
+ static MC::Tainted<bool> getOwnEnumerablePropertyKeysCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                    \
                                             JS::HandleObject proxy,                          \
                                             JS::MutableHandleIdVector props) {               \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->getOwnEnumerablePropertyKeys(mcx, proxy, props);                                \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getOwnEnumerablePropertyKeys(cx, proxy, props);                                \
  }                                                                                           \
  static bool nativeCallCb(const void* p, JSContext* cx,                                      \
                           JS::IsAcceptableThis test, JS::NativeImpl impl,                    \
@@ -193,17 +181,17 @@ namespace mc {
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
    return h->nativeCall(mcx, test, impl, args);                                              \
  }                                                                                           \
- static bool getBuiltinClassCb(const void* p, JSContext* cx,                                 \
-                               JS::HandleObject proxy, js::ESClass* cls) {                   \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->getBuiltinClass(mcx, proxy, cls);                                               \
+ static MC::Tainted<bool> getBuiltinClassCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                 \
+                               JS::HandleObject proxy, MC::Tainted<js::ESClass*> cls) {                   \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getBuiltinClass(cx, proxy, cls);                                               \
  }                                                                                           \
- static bool isArrayCb(const void* p, JSContext* cx, JS::HandleObject proxy,                 \
-                       JS::IsArrayAnswer* answer) {                                          \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->isArray(mcx, proxy, answer);                                                    \
+ static MC::Tainted<bool> isArrayCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,                 \
+                       MC::Tainted<JS::IsArrayAnswer*> answer) {                                          \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->isArray(cx, proxy, answer);                                                    \
  }                                                                                           \
  static const char* classNameCb(const void* p, JSContext* cx,                                \
                                 JS::HandleObject proxy) {                                    \
@@ -223,12 +211,12 @@ namespace mc {
    MCContext* mcx = JS_SanitizeContext(cx);                                                  \
    return h->regexp_toShared(mcx, proxy);                                                    \
  }                                                                                           \
- static bool boxedValue_unboxCb(const void* p, JSContext* cx,                                \
+ static MC::Tainted<bool> boxedValue_unboxCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx,                                \
                                 JS::HandleObject proxy,                                      \
                                 JS::MutableHandleValue vp) {                                 \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   return h->boxedValue_unbox(mcx, proxy, vp);                                               \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->boxedValue_unbox(cx, proxy, vp);                                               \
  }                                                                                           \
  static void traceCb(const void* p, JSTracer* trc, JSObject* proxy) {                        \
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
@@ -250,58 +238,56 @@ namespace mc {
    auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
    return h->isConstructor(obj);                                                             \
  }                                                                                           \
- static bool getElementsCb(const void* p, JSContext* cx, JS::HandleObject proxy,             \
+ static MC::Tainted<bool> getElementsCb(MC::AppPointer<const void*> p, MC::Tainted<JSContext*> tcx, JS::HandleObject proxy,             \
                            uint32_t begin, uint32_t end,                                     \
-                           js::ElementAdder* adder_) {                                       \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
-   MCContext* mcx = JS_SanitizeContext(cx);                                                  \
-   MC::Tainted<js::ElementAdder*> adder{nullptr};                                            \
-   adder.assign_raw_pointer(adder_);                                                         \
-   return h->getElements(mcx, proxy, begin, end, adder);                                     \
+                           MC::Tainted<js::ElementAdder*> adder) {                                       \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
+   MCContext* cx = tcx.copy_and_verify_address(MC_VerifyContext);                                                  \
+   return h->getElements(cx, proxy, begin, end, adder);                                     \
  }                                                                                           \
- static bool isScriptedCb(const void* p) {                                                   \
-   auto* h = static_cast<const ExternalProxyHandler*>(p);                                    \
+ static MC::Tainted<bool> isScriptedCb(MC::AppPointer<const void*> p) {                                                   \
+   auto* h = static_cast<const ExternalProxyHandler*>(p.UNSAFE_unverified());                                    \
    return h->isScripted();                                                                   \
  }                                                                                           \
  static const js::sandbox::ProxyHandlerOps* ops() {                                          \
    static const js::sandbox::ProxyHandlerOps __ops = {                                       \
-       .finalizeInBackground = MC::Sandbox::RegisterCallback(finalizeInBackgroundCb).UNSAFE_get(),                                       \
-       .canNurseryAllocate = MC::Sandbox::RegisterCallback(canNurseryAllocateCb).UNSAFE_get(),                                           \
-       .enter = MC::Sandbox::RegisterCallback(enterCb).UNSAFE_get(),                                                                     \
-       .getOwnPropertyDescriptor = MC::Sandbox::RegisterCallback(getOwnPropertyDescriptorCb).UNSAFE_get(),                               \
-       .defineProperty = MC::Sandbox::RegisterCallback(definePropertyCb).UNSAFE_get(),                                                   \
-       .ownPropertyKeys = MC::Sandbox::RegisterCallback(ownPropertyKeysCb).UNSAFE_get(),                                                 \
-       .delete_ = MC::Sandbox::RegisterCallback(delete_Cb).UNSAFE_get(),                                                                 \
-       .getPrototype = MC::Sandbox::RegisterCallback(getPrototypeCb).UNSAFE_get(),                                                       \
-       .setPrototype = MC::Sandbox::RegisterCallback(setPrototypeCb).UNSAFE_get(),                                                       \
-       .getPrototypeIfOrdinary = MC::Sandbox::RegisterCallback(getPrototypeIfOrdinaryCb).UNSAFE_get(),                                   \
-       .setImmutablePrototype = MC::Sandbox::RegisterCallback(setImmutablePrototypeCb).UNSAFE_get(),                                     \
-       .preventExtensions = MC::Sandbox::RegisterCallback(preventExtensionsCb).UNSAFE_get(),                                             \
-       .isExtensible = MC::Sandbox::RegisterCallback(isExtensibleCb).UNSAFE_get(),                                                       \
-       .has = MC::Sandbox::RegisterCallback(hasCb).UNSAFE_get(),                                                                         \
-       .get = MC::Sandbox::RegisterCallback(getCb).UNSAFE_get(),                                                                         \
-       .set = MC::Sandbox::RegisterCallback(setCb).UNSAFE_get(),                                                                         \
-       .useProxyExpandoObjectForPrivateFields = MC::Sandbox::RegisterCallback(useProxyExpandoObjectForPrivateFieldsCb).UNSAFE_get(),     \
-       .throwOnPrivateField = MC::Sandbox::RegisterCallback(throwOnPrivateFieldCb).UNSAFE_get(),                                         \
-       .call = MC::Sandbox::RegisterCallback(callCb).UNSAFE_get(),                                                                       \
-       .construct = MC::Sandbox::RegisterCallback(constructCb).UNSAFE_get(),                                                             \
-       .enumerate = MC::Sandbox::RegisterCallback(enumerateCb).UNSAFE_get(),                                                             \
-       .hasOwn = MC::Sandbox::RegisterCallback(hasOwnCb).UNSAFE_get(),                                                                   \
-       .getOwnEnumerablePropertyKeys = MC::Sandbox::RegisterCallback(getOwnEnumerablePropertyKeysCb).UNSAFE_get(),                       \
+       .finalizeInBackground = MC::Sandbox::RegisterTaintedCallback(finalizeInBackgroundCb).UNSAFE_get(),                                       \
+       .canNurseryAllocate = MC::Sandbox::RegisterTaintedCallback(canNurseryAllocateCb).UNSAFE_get(),                                           \
+       .enter = MC::Sandbox::RegisterTaintedCallback(enterCb).UNSAFE_get(),                                                                     \
+       .getOwnPropertyDescriptor = MC::Sandbox::RegisterTaintedCallback(getOwnPropertyDescriptorCb).UNSAFE_get(),                               \
+       .defineProperty = MC::Sandbox::RegisterTaintedCallback(definePropertyCb).UNSAFE_get(),                                                   \
+       .ownPropertyKeys = MC::Sandbox::RegisterTaintedCallback(ownPropertyKeysCb).UNSAFE_get(),                                                 \
+       .delete_ = MC::Sandbox::RegisterTaintedCallback(delete_Cb).UNSAFE_get(),                                                                 \
+       .getPrototype = MC::Sandbox::RegisterTaintedCallback(getPrototypeCb).UNSAFE_get(),                                                       \
+       .setPrototype = MC::Sandbox::RegisterTaintedCallback(setPrototypeCb).UNSAFE_get(),                                                       \
+       .getPrototypeIfOrdinary = MC::Sandbox::RegisterTaintedCallback(getPrototypeIfOrdinaryCb).UNSAFE_get(),                                   \
+       .setImmutablePrototype = MC::Sandbox::RegisterTaintedCallback(setImmutablePrototypeCb).UNSAFE_get(),                                     \
+       .preventExtensions = MC::Sandbox::RegisterTaintedCallback(preventExtensionsCb).UNSAFE_get(),                                             \
+       .isExtensible = MC::Sandbox::RegisterTaintedCallback(isExtensibleCb).UNSAFE_get(),                                                       \
+       .has = MC::Sandbox::RegisterTaintedCallback(hasCb).UNSAFE_get(),                                                                         \
+       .get = MC::Sandbox::RegisterTaintedCallback(getCb).UNSAFE_get(),                                                                         \
+       .set = MC::Sandbox::RegisterTaintedCallback(setCb).UNSAFE_get(),                                                                         \
+       .useProxyExpandoObjectForPrivateFields = MC::Sandbox::RegisterTaintedCallback(useProxyExpandoObjectForPrivateFieldsCb).UNSAFE_get(),     \
+       .throwOnPrivateField = MC::Sandbox::RegisterTaintedCallback(throwOnPrivateFieldCb).UNSAFE_get(),                                         \
+       .call = MC::Sandbox::RegisterTaintedCallback(callCb).UNSAFE_get(),                                                                       \
+       .construct = MC::Sandbox::RegisterTaintedCallback(constructCb).UNSAFE_get(),                                                             \
+       .enumerate = MC::Sandbox::RegisterTaintedCallback(enumerateCb).UNSAFE_get(),                                                             \
+       .hasOwn = MC::Sandbox::RegisterTaintedCallback(hasOwnCb).UNSAFE_get(),                                                                   \
+       .getOwnEnumerablePropertyKeys = MC::Sandbox::RegisterTaintedCallback(getOwnEnumerablePropertyKeysCb).UNSAFE_get(),                       \
        .nativeCall = MC::Sandbox::RegisterCallback(nativeCallCb).UNSAFE_get(),                                                           \
-       .getBuiltinClass = MC::Sandbox::RegisterCallback(getBuiltinClassCb).UNSAFE_get(),                                                 \
-       .isArray = MC::Sandbox::RegisterCallback(isArrayCb).UNSAFE_get(),                                                                 \
+       .getBuiltinClass = MC::Sandbox::RegisterTaintedCallback(getBuiltinClassCb).UNSAFE_get(),                                                 \
+       .isArray = MC::Sandbox::RegisterTaintedCallback(isArrayCb).UNSAFE_get(),                                                                 \
        .className = MC::Sandbox::RegisterCallback(classNameCb).UNSAFE_get(),                                                             \
        .fun_toString = MC::Sandbox::RegisterCallback(fun_toStringCb).UNSAFE_get(),                                                       \
        .regexp_toShared = MC::Sandbox::RegisterCallback(regexp_toSharedCb).UNSAFE_get(),                                                 \
-       .boxedValue_unbox = MC::Sandbox::RegisterCallback(boxedValue_unboxCb).UNSAFE_get(),                                               \
+       .boxedValue_unbox = MC::Sandbox::RegisterTaintedCallback(boxedValue_unboxCb).UNSAFE_get(),                                               \
        .trace = MC::Sandbox::RegisterCallback(traceCb).UNSAFE_get(),                                                                     \
        .finalize = MC::Sandbox::RegisterCallback(finalizeCb).UNSAFE_get(),                                                               \
        .objectMoved = MC::Sandbox::RegisterCallback(objectMovedCb).UNSAFE_get(),                                                         \
        .isCallable = MC::Sandbox::RegisterCallback(isCallableCb).UNSAFE_get(),                                                           \
        .isConstructor = MC::Sandbox::RegisterCallback(isConstructorCb).UNSAFE_get(),                                                     \
-       .getElements = MC::Sandbox::RegisterCallback(getElementsCb).UNSAFE_get(),                                                         \
-       .isScripted = MC::Sandbox::RegisterCallback(isScriptedCb).UNSAFE_get(),                                                           \
+       .getElements = MC::Sandbox::RegisterTaintedCallback(getElementsCb).UNSAFE_get(),                                                         \
+       .isScripted = MC::Sandbox::RegisterTaintedCallback(isScriptedCb).UNSAFE_get(),                                                           \
    };                                                                                                                                    \
    return &__ops;                                                                                                                        \
  }
@@ -487,15 +473,15 @@ private:
   }
 
   virtual bool getBuiltinClass(MCContext* cx, JS::HandleObject proxy,
-                               js::ESClass* cls) const {
+                               MC::Tainted<js::ESClass*> cls) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::getBuiltinClass(
-        cx->cx_, proxy, cls);
+        cx->cx_, proxy, cls.INTERNAL_unverified_safe());
   }
 
   virtual bool isArray(MCContext* cx, JS::HandleObject proxy,
-                       JS::IsArrayAnswer* answer) const {
+                       MC::Tainted<JS::IsArrayAnswer*> answer) const {
     return UNSAFE_getProxyHandler()->js::BaseProxyHandler::isArray(cx->cx_, proxy,
-                                                                   answer);
+                                                                   answer.INTERNAL_unverified_safe());
   }
 
   virtual const char* className(MCContext* cx, JS::HandleObject proxy) const {

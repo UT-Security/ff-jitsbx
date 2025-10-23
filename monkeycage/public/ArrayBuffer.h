@@ -47,6 +47,7 @@ inline void GetArrayBufferLengthAndData(JSObject* obj,
                               data.INTERNAL_unverified_safe());
 }
 
+#ifdef JS_DEBUG
 inline MC::Tainted<uint8_t*> GetArrayBufferData(
     JSObject* obj, MC::Tainted<bool*> isSharedMemory,
     MC::Tainted<const AutoCheckCannotGC*> nogc) {
@@ -56,6 +57,17 @@ inline MC::Tainted<uint8_t*> GetArrayBufferData(
                          *nogc.INTERNAL_unverified_safe()));
   return ret;
 }
+#else
+inline MC::Tainted<uint8_t*> GetArrayBufferData(
+    JSObject* obj, MC::Tainted<bool*> isSharedMemory,
+    const AutoCheckCannotGC& nogc) {
+  MC::Tainted<uint8_t*> ret;
+  ret.assign_raw_pointer(
+      GetArrayBufferData(obj, isSharedMemory.INTERNAL_unverified_safe(),
+                         nogc));
+  return ret;
+}
+#endif
 
 inline bool DetachArrayBuffer(MCContext* cx, Handle<JSObject*> obj) {
   return DetachArrayBuffer(cx->cx_, obj);

@@ -73,7 +73,7 @@ class XrayTraits {
 
   static bool getBuiltinClass(MCContext* cx, JS::HandleObject wrapper,
                               const mc::Wrapper& baseInstance,
-                              js::ESClass* cls) {
+                              MC::Tainted<js::ESClass*> cls) {
     return baseInstance.getBuiltinClass(cx, wrapper, cls);
   }
 
@@ -354,7 +354,7 @@ class OpaqueXrayTraits : public XrayTraits {
 
   static bool getBuiltinClass(MCContext* cx, JS::HandleObject wrapper,
                               const mc::Wrapper& baseInstance,
-                              js::ESClass* cls) {
+                              MC::Tainted<js::ESClass*> cls) {
     *cls = js::ESClass::Other;
     return true;
   }
@@ -445,7 +445,7 @@ class XrayWrapper : public Base {
       JS::MutableHandleIdVector props) const override;
 
   virtual bool getBuiltinClass(MCContext* cx, JS::HandleObject wapper,
-                               js::ESClass* cls) const override;
+                               MC::Tainted<js::ESClass*> cls) const override;
   virtual const char* className(MCContext* cx,
                                 JS::HandleObject proxy) const override;
 
