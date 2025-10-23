@@ -59,9 +59,15 @@ DEF_TEST(DoesCrossCompartmentBoundaries, {
   // don't belong to a specific compartment.
   ExpectWriteNode(writer, nodeD);
 
+#ifdef DEBUG
   MC::AutoCheckCannotGC noGC(cx);
-
   ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&nodeA), writer,
                              /* wantNames = */ false, &targetCompartments,
                              *noGC.UNSAFE_unverified()));
+#else
+  MC::AutoCheckCannotGC noGC(MC_UNSAFE(cx));
+  ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&nodeA), writer,
+                             /* wantNames = */ false, &targetCompartments,
+                             noGC));
+#endif
 });

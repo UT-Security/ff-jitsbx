@@ -39,9 +39,13 @@ public:
     return true;
   }
 
+  //TODO(JS_SANDBOX): we shouldn't need to validate the pointer if
+  // trampolines are validated on startup.
   template<typename T_Fn>
-  static inline T_Fn Address(T_Fn external_addr) {
-    return MC_Sbx::Address(external_addr);
+  static inline MC::Tainted<T_Fn> Address(T_Fn external_addr) {
+    MC::Tainted<T_Fn> ret{nullptr};
+    ret.assign_raw_pointer(MC_Sbx::Address(external_addr));
+    return ret;
   }
 
   template<typename T_Ret, typename... T_Args>
@@ -87,16 +91,18 @@ public:
       return arg;
     } else if_constexpr_named(cond2, std::is_class_v<T_Arg>) {
       return arg;
-    } else if_constexpr_named(cond3, std::is_pointer_v<T_Arg> && std::is_void_v<std::remove_pointer_t<T_Arg>>) {
+    } else if_constexpr_named(cond3, std::is_same_v<T_Arg, void*>) {
       return AppPointer<void*, MC_Sbx>(arg);
-    } else if_constexpr_named(cond4, std::is_pointer_v<T_Arg>) {
+    } else if_constexpr_named(cond4, std::is_same_v<T_Arg, const void*>) {
+      return AppPointer<const void*, MC_Sbx>(arg);
+    } else if_constexpr_named(cond5, std::is_pointer_v<T_Arg>) {
       Tainted<T_Arg, MC_Sbx> ret(nullptr);
       ret.assign_raw_pointer(arg);
       return ret;
-    } else if_constexpr_named(cond5, std::is_lvalue_reference_v<T_Arg>) {
+    } else if_constexpr_named(cond6, std::is_lvalue_reference_v<T_Arg>) {
       return arg;
     } else {
-      constexpr auto unknownCase = !(cond1 || cond2 || cond3 || cond4 || cond5);
+      constexpr auto unknownCase = !(cond1 || cond2 || cond3 || cond4 || cond5 || cond6);
       mc_detail_static_fail_because(unknownCase, "Unknown case for callback interceptor parameter");
     }
   }

@@ -50,9 +50,15 @@ DEF_TEST(DoesntCrossCompartmentBoundaries, {
 
   // But we shouldn't ever serialize nodeC.
 
+#ifdef JS_DEBUG
   MC::AutoCheckCannotGC noGC(cx);
-
   ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&nodeA), writer,
                              /* wantNames = */ false, &targetCompartments,
                              *noGC.UNSAFE_unverified()));
+#else
+  MC::AutoCheckCannotGC noGC(MC_UNSAFE(cx));
+  ASSERT_TRUE(WriteHeapGraph(cx, JS::ubi::Node(&nodeA), writer,
+                             /* wantNames = */ false, &targetCompartments,
+                             noGC));
+#endif
 });

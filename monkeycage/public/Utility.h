@@ -22,11 +22,11 @@ extern arena_id_t GetStringBufferArena();
 
 namespace mc {
 inline void setAnnotateOOMAllocationSizeCallback(
-    MC::SandboxCallback<
+    MC::Tainted<
         js::AutoEnterOOMUnsafeRegion::AnnotateOOMAllocationSizeCallback>
         callback) {
   js::AutoEnterOOMUnsafeRegion::setAnnotateOOMAllocationSizeCallback(
-      callback.UNSAFE_get());
+      callback.INTERNAL_unverified_safe());
 }
 }  // namespace mc
 

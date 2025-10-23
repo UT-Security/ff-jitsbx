@@ -125,6 +125,7 @@ inline bool JS_StringEqualsLiteral(MCContext* cx, JSString* str,
   return JS_StringEqualsLiteral(cx->cx_, str, asciiBytes, match.INTERNAL_unverified_safe());
 }
 
+#ifdef JS_DEBUG
 inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
     MCContext* cx, MC::Tainted<const JS::AutoCheckCannotGC*> nogc,
     JSString* str, MC::Tainted<size_t*> length) {
@@ -139,6 +140,22 @@ inline const char16_t* JS_GetTwoByteStringCharsAndLength(
   return JS_GetTwoByteStringCharsAndLength(cx->cx_, *nogc.UNSAFE_unverified(), str,
                                            length.INTERNAL_unverified_safe());
 }
+#else
+inline const JS::Latin1Char* JS_GetLatin1StringCharsAndLength(
+    MCContext* cx, const JS::AutoCheckCannotGC& nogc,
+    JSString* str, MC::Tainted<size_t*> length) {
+  return JS_GetLatin1StringCharsAndLength(cx->cx_, nogc,
+                                          str,
+                                          length.INTERNAL_unverified_safe());
+}
+
+inline const char16_t* JS_GetTwoByteStringCharsAndLength(
+    MCContext* cx, const JS::AutoCheckCannotGC& nogc,
+    JSString* str, MC::Tainted<size_t*> length) {
+  return JS_GetTwoByteStringCharsAndLength(cx->cx_, nogc, str,
+                                           length.INTERNAL_unverified_safe());
+}
+#endif
 
 inline bool JS_GetStringCharAt(MCContext* cx, JSString* str, size_t index,
                                MC::Tainted<char16_t*> res) {

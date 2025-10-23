@@ -143,53 +143,52 @@ inline void JS_ReportErrorUTF8(MCContext* cx, const char (&format)[N], Args... a
      return  JS_ReportErrorUTF8(cx->cx_, format, args...);
 }
 
-//TODO: allow callback to be either a sandbox address or a sandbox callback.
 template <typename... Args>
 inline void JS_ReportErrorNumberASCII(
-    MCContext* cx, JSErrorCallback errorCallback,
+    MCContext* cx, MC::Tainted<JSErrorCallback> errorCallback,
     void* userRef, const unsigned errorNumber, Args... args) {
-  return JS_ReportErrorNumberASCII(cx->cx_, errorCallback, userRef,
+  return JS_ReportErrorNumberASCII(cx->cx_, errorCallback.INTERNAL_unverified_safe(), userRef,
                                    errorNumber, args...);
 }
 
 template <typename... Args>
 inline void JS_ReportErrorNumberLatin1(MCContext* cx,
-                                       JSErrorCallback errorCallback,
+                                       MC::Tainted<JSErrorCallback> errorCallback,
                                        void* userRef,
                                        const unsigned errorNumber,
                                        Args... args) {
-  JS_ReportErrorNumberLatin1(cx->cx_, errorCallback, userRef, errorNumber,
+  JS_ReportErrorNumberLatin1(cx->cx_, errorCallback.INTERNAL_unverified_safe(), userRef, errorNumber,
                              args...);
 }
 
 #  ifdef va_start
 inline void JS_ReportErrorNumberLatin1VA(
-    MCContext* cx, MC::SandboxCallback<JSErrorCallback> errorCallback, void* userRef,
+    MCContext* cx, MC::Tainted<JSErrorCallback> errorCallback, void* userRef,
     const unsigned errorNumber, va_list ap) {
- return JS_ReportErrorNumberLatin1VA(cx->cx_, errorCallback.UNSAFE_get(), userRef, errorNumber, ap);
+ return JS_ReportErrorNumberLatin1VA(cx->cx_, errorCallback.INTERNAL_unverified_safe(), userRef, errorNumber, ap);
 }
 #endif
 
 #ifdef va_start
 inline void JS_ReportErrorNumberUTF8VA(
-    MCContext* cx, MC::SandboxCallback<JSErrorCallback> errorCallback, void* userRef,
+    MCContext* cx, MC::Tainted<JSErrorCallback> errorCallback, void* userRef,
     const unsigned errorNumber, va_list ap) {
- return JS_ReportErrorNumberUTF8VA(cx->cx_, errorCallback.UNSAFE_get(), userRef, errorNumber, ap);
+ return JS_ReportErrorNumberUTF8VA(cx->cx_, errorCallback.INTERNAL_unverified_safe(), userRef, errorNumber, ap);
 }
 #endif
 
 inline void JS_ReportErrorNumberUTF8Array(
-    MCContext* cx, MC::SandboxCallback<JSErrorCallback> errorCallback,
+    MCContext* cx, MC::Tainted<JSErrorCallback> errorCallback,
     void* userRef, const unsigned errorNumber, const char** args) {
-  return JS_ReportErrorNumberUTF8Array(cx->cx_, errorCallback.UNSAFE_get(),
+  return JS_ReportErrorNumberUTF8Array(cx->cx_, errorCallback.INTERNAL_unverified_safe(),
                                        userRef, errorNumber, args);
 }
 
 template <typename... Args>
 inline void JS_ReportErrorNumberUC(
-    MCContext* cx, MC::SandboxCallback<JSErrorCallback> errorCallback,
+    MCContext* cx, MC::Tainted<JSErrorCallback> errorCallback,
     void* userRef, const unsigned errorNumber, Args... args) {
-  return JS_ReportErrorNumberUC(cx->cx_, errorCallback.UNSAFE_get(), userRef,
+  return JS_ReportErrorNumberUC(cx->cx_, errorCallback.INTERNAL_unverified_safe(), userRef,
                                 errorNumber, args...);
 }
 

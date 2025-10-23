@@ -63,13 +63,13 @@ static const JSClass* SimpleGlobalClass() {
       nullptr,
       nullptr,
       nullptr,
-      MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)),
-      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)),
-      MC::Sandbox::Address(JS_MayResolveStandardClass),
+      MC::Sandbox::Address(static_cast<JSNewEnumerateOp>(JS_NewEnumerateStandardClasses)).UNSAFE_unverified(),
+      MC::Sandbox::Address(static_cast<bool (*)(JSContext*, JS::HandleObject, JS::HandleId, bool*)>(JS_ResolveStandardClass)).UNSAFE_unverified(),
+      MC::Sandbox::Address(JS_MayResolveStandardClass).UNSAFE_unverified(),
       MC::Sandbox::RegisterCallback(SimpleGlobal_finalize).UNSAFE_get(),
       nullptr,
       nullptr,
-      MC::Sandbox::Address(JS_GlobalObjectTraceHook),
+      MC::Sandbox::Address(JS_GlobalObjectTraceHook).UNSAFE_unverified(),
   };
 
   static const js::ClassExtension ext_ = {MC::Sandbox::RegisterCallback(SimpleGlobal_moved).UNSAFE_get()};

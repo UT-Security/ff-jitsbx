@@ -262,7 +262,7 @@ static UniquePtr<ScopeMap> SortAndNormalizeScopes(
     }
     if (!isMap) {
       const char16_t* scope = scopePrefix.get();
-      JS_ReportErrorNumberUC(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
+      JS_ReportErrorNumberUC(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                              JSMSG_IMPORT_MAPS_SCOPE_VALUE_NOT_A_MAP, scope);
       return nullptr;
     }
@@ -334,7 +334,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     MC::Tainted<JSErrorReport*> err = JS_ErrorFromException(aCx, obj);
     if (err->exnType() == JSEXN_SYNTAXERR) {
       JS_ClearPendingException(aCx);
-      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
+      JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_PARSE_FAILED,
                                 err->message().c_str());
     }
@@ -349,7 +349,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
     return nullptr;
   }
   if (!isMap) {
-    JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
+    JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                               JSMSG_IMPORT_MAPS_NOT_A_MAP);
     return nullptr;
   }
@@ -376,7 +376,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
       return nullptr;
     }
     if (!isMap) {
-      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
+      JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_IMPORTS_NOT_A_MAP);
       return nullptr;
     }
@@ -412,7 +412,7 @@ UniquePtr<ImportMap> ImportMap::ParseString(
       return nullptr;
     }
     if (!isMap) {
-      JS_ReportErrorNumberASCII(MC_UNSAFE(aCx), MC::Sandbox::Address(js::GetErrorMessage), nullptr,
+      JS_ReportErrorNumberASCII(aCx, MC::Sandbox::Address(js::GetErrorMessage), nullptr,
                                 JSMSG_IMPORT_MAPS_SCOPES_NOT_A_MAP);
       return nullptr;
     }

@@ -7,9 +7,9 @@
 #ifndef mc_Tainted_h
 #define mc_Tainted_h
 
-#include "SandboxHelpers.h"
-#include "monkeycage/unsafe/SandboxImpl.h"
+#include "monkeycage/SandboxCallback.h"
 #include "monkeycage/SandboxHelpers.h"
+#include "monkeycage/unsafe/SandboxImpl.h"
 #include "monkeycage/SandboxTraits.h"
 
 #include <cstdint>
@@ -115,7 +115,6 @@ private:
   
   using T_ClassBase = TaintedBase<Tainted, T, MC_Sbx>;
 
-  //TODO(abhishek): not picking representation based on MC_Sbx type.
   T data;
 
   inline auto& get_raw_value_ref() noexcept { return data; }
@@ -145,12 +144,16 @@ private:
   Tainted() = default;
   Tainted(const Tainted<T, MC_Sbx>& p) = default;
 
+  Tainted(const SandboxCallback<T>& cb) {
+    data = cb.UNSAFE_get();
+  }
+  
   Tainted(const std::nullptr_t& arg) : data(arg) {
     static_assert(std::is_pointer_v<T>);
   }
 
   template <typename T_Arg,
-            MC_ENABLE_IF(is_fundamental_or_enum_v<T>&& is_fundamental_or_enum_v<
+            MC_ENABLE_IF(is_fundamental_or_enum_v<T> && is_fundamental_or_enum_v<
                          std::remove_reference_t<T_Arg>>)>
   Tainted(T_Arg&& arg) : data(std::forward<T_Arg>(arg)) {}
 
@@ -277,9 +280,6 @@ class AppPointer {
 
   template <typename T_Func>
   inline auto copy_and_verify(T_Func verifier) const {
-    static_assert(std::is_pointer_v<T>,
-                  "copy_and_verify_address must be used on pointers.");
-
     return verifier(data_);
   }
 };
