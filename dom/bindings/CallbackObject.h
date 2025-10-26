@@ -332,7 +332,7 @@ class CallbackObject : public nsISupports {
   // scripted global alive, at which point we can get rid of the duplication
   // here.
   nsCOMPtr<nsIGlobalObject> mIncumbentGlobal;
-  JS::TenuredHeap<JSObject*> mIncumbentJSGlobal;
+  MC::TenuredHeap<JSObject*> mIncumbentJSGlobal;
 
   class MOZ_STACK_CLASS CallSetup {
     /**

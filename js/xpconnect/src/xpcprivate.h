@@ -1316,7 +1316,7 @@ class XPCWrappedNativeTearOff final {
   // mNative is an nsRefPtr not an nsCOMPtr because it may not be the canonical
   // nsISupports pointer.
   RefPtr<nsISupports> mNative;
-  JS::TenuredHeap<JSObject*> mJSObject;
+  MC::TenuredHeap<JSObject*> mJSObject;
   mozilla::UniquePtr<XPCWrappedNativeTearOff> mNextTearOff;
 };
 
@@ -1544,7 +1544,7 @@ class XPCWrappedNative final : public nsIXPConnectWrappedNative {
     XPCWrappedNativeProto* mMaybeProto;
   };
   RefPtr<XPCNativeSet> mSet;
-  JS::TenuredHeap<JSObject*> mFlatJSObject;
+  MC::TenuredHeap<JSObject*> mFlatJSObject;
   nsCOMPtr<nsIXPCScriptable> mScriptable;
   XPCWrappedNativeTearOff mFirstTearOff;
 };

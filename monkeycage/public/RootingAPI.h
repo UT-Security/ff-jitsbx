@@ -169,6 +169,144 @@ inline void AssertObjectIsNotGray(const MC::Heap<JSObject*>& obj) {}
 namespace MC {
 
 template <typename T>
+class TenuredHeap : public js::HeapOperations<T, TenuredHeap<T>> {
+ public:
+  using ElementType = T;
+
+  TenuredHeap() : bits(0) {
+    static_assert(sizeof(T) == sizeof(TenuredHeap<T>),
+                  "TenuredHeap<T> must be binary compatible with T.");
+  }
+  explicit TenuredHeap(T p) : bits(0) { setPtr(p); }
+  explicit TenuredHeap(const TenuredHeap<T>& p) : bits(0) {
+    setPtr(p.getPtr());
+  }
+
+  void setPtr(T newPtr) {
+    MOZ_ASSERT((reinterpret_cast<uintptr_t>(newPtr) & flagsMask) == 0);
+    MOZ_ASSERT(js::gc::IsCellPointerValidOrNull(newPtr));
+    if (newPtr) {
+      JS::AssertGCThingMustBeTenured(newPtr);
+    }
+    bits = (bits & flagsMask) | reinterpret_cast<uintptr_t>(newPtr);
+  }
+
+  void setFlags(uintptr_t flagsToSet) {
+    MOZ_ASSERT((flagsToSet & ~flagsMask) == 0);
+    bits |= flagsToSet;
+  }
+
+  void unsetFlags(uintptr_t flagsToUnset) {
+    MOZ_ASSERT((flagsToUnset & ~flagsMask) == 0);
+    bits &= ~flagsToUnset;
+  }
+
+  bool hasFlag(uintptr_t flag) const {
+    MOZ_ASSERT((flag & ~flagsMask) == 0);
+    return (bits & flag) != 0;
+  }
+
+  T unbarrieredGetPtr() const { return reinterpret_cast<T>(bits & ~flagsMask); }
+  uintptr_t getFlags() const { return bits & flagsMask; }
+
+  void exposeToActiveJS() const {
+    mc::BarrierMethods<T>::exposeToJS(unbarrieredGetPtr());
+  }
+  T getPtr() const {
+    exposeToActiveJS();
+    return unbarrieredGetPtr();
+  }
+
+  operator T() const { return getPtr(); }
+  T operator->() const { return getPtr(); }
+
+  explicit operator bool() const {
+    return bool(mc::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
+  }
+  explicit operator bool() {
+    return bool(mc::BarrierMethods<T>::asGCThingOrNull(unbarrieredGetPtr()));
+  }
+
+  TenuredHeap<T>& operator=(T p) {
+    setPtr(p);
+    return *this;
+  }
+
+  TenuredHeap<T>& operator=(const TenuredHeap<T>& other) {
+    bits = other.bits;
+    return *this;
+  }
+
+ private:
+  enum {
+    maskBits = 3,
+    flagsMask = (1 << maskBits) - 1,
+  };
+
+  uintptr_t bits;
+};
+
+}  // namespace MC
+
+namespace mc {
+namespace gc {
+
+template <typename T, typename TraceCallbacks>
+void CallTraceCallbackOnNonHeap(T* v, const TraceCallbacks& aCallbacks,
+                                const char* aName, void* aClosure) {
+  static_assert(sizeof(T) == sizeof(MC::Heap<T>),
+                "T and Heap<T> must be compatible.");
+  MOZ_ASSERT(v);
+  mozilla::DebugOnly<js::gc::Cell*> cell = BarrierMethods<T>::asGCThingOrNull(*v);
+  MOZ_ASSERT(cell);
+  MOZ_ASSERT(!IsInsideNursery(cell));
+  MC::Heap<T>* asHeapT = reinterpret_cast<MC::Heap<T>*>(v);
+  aCallbacks.Trace(asHeapT, aName, aClosure);
+}
+
+}
+}
+
+namespace JS {
+namespace detail {
+
+template <typename T>
+struct DefineComparisonOps<MC::TenuredHeap<T>> : std::true_type {
+  static const T get(const MC::TenuredHeap<T>& v) {
+    return v.unbarrieredGetPtr();
+  }
+};
+
+}  // namespace detail
+
+static MOZ_ALWAYS_INLINE bool ObjectIsMarkedGray(
+    const MC::TenuredHeap<JSObject*>& obj) {
+  return ObjectIsMarkedGray(obj.unbarrieredGetPtr());
+}
+
+}  // namespace JS
+
+namespace MC {
+
+template <typename T>
+void swap(TenuredHeap<T>& aX, TenuredHeap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
+template <typename T>
+void swap(Heap<T>& aX, Heap<T>& aY) {
+  T tmp = aX;
+  aX = aY;
+  aY = tmp;
+}
+
+}  // namespace MC
+
+namespace MC {
+
+template <typename T>
 class MOZ_STACK_CLASS MutableHandle
     : public js::MutableHandleOperations<T, MutableHandle<T>> {
 
