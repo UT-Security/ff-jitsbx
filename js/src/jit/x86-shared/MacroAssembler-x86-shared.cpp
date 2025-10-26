@@ -1008,6 +1008,7 @@ void MacroAssembler::call(JitCode* target) {
 }
 
 CodeOffset MacroAssembler::callWithPatch() {
+#ifdef JS_SANDBOX_USE_CALL
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI
   bundle.nopToEnd(AssemblerX86Shared::CallWithPatchSize());
@@ -1017,6 +1018,21 @@ CodeOffset MacroAssembler::callWithPatch() {
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
+#endif
+#else
+  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
+  push(SandboxScratchReg);
+  AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_CFI
+  bundle.nopToEnd(AssemblerX86Shared::JmpWithPatchSize());
+#endif
+  CodeOffset ret = Assembler::jmpWithPatch();
+  bundle.freeze();
+  bundle.end();
+#ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
+#endif
+  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
 #endif
   return ret;
 }

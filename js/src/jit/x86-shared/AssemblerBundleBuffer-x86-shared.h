@@ -253,6 +253,26 @@ class AssemblerBundleBuffer {
                   m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
   }
 
+  MOZ_ALWAYS_INLINE void nopAndEndBundleGroup() {
+    MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
+    MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
+    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0,
+               "Unexpected 0 length group");
+    MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
+               "Unexpected oversized bundle");
+
+#ifdef DEBUG
+    frozen_bundle = false;
+#endif
+
+    ensureExactBundleSpace(0);
+    in_bundle = false;
+
+    mode = BundleMode::Instruction;
+    MOZ_ASSERT_IF(!oom() && bundle_length == js::sandbox::BUNDLE_SIZE,
+                  m_inner_buffer.size() % js::sandbox::BUNDLE_SIZE == 0);
+  }
+
   MOZ_ALWAYS_INLINE void pauseBundleGroup() {
     MOZ_ASSERT(in_bundle, "Unexpected bundle group pause outside bundle");
     MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");

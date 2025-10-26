@@ -76,6 +76,8 @@ class BaseAssembler : public GenericAssembler {
   inline bool inBundleGroup() { return m_formatter.inBundleGroup(); }
 
   inline void endBundleGroup() { m_formatter.endBundleGroup(); }
+  
+  inline void nopAndEndBundleGroup() { m_formatter.nopAndEndBundleGroup(); }
 
   inline size_t bundleOffset() { return m_formatter.bundleOffset(); }
 
@@ -2878,6 +2880,11 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.freezeBundleGroup();
     spew("jmp        .Lfrom%d", r.offset());
     return r;
+  }
+  
+  static size_t jmp_size() {
+    // 1 byte opcode + 4 byte offset
+    return 5;
   }
 
   void jmp_r(RegisterID dst) {
@@ -6735,6 +6742,12 @@ class BaseAssembler : public GenericAssembler {
     MOZ_ALWAYS_INLINE void endBundleGroup() {
 #ifdef JS_SANDBOX_BUNDLE
       m_buffer.endBundleGroup();
+#endif
+    }
+
+    MOZ_ALWAYS_INLINE void nopAndEndBundleGroup() {
+#ifdef JS_SANDBOX_BUNDLE
+      m_buffer.nopAndEndBundleGroup();
 #endif
     }
 

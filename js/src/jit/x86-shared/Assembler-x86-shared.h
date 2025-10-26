@@ -437,6 +437,8 @@ class AssemblerX86Shared : public AssemblerShared {
   inline bool inBundleGroup() { return masm.inBundleGroup(); }
 
   inline void endBundleGroup() { masm.endBundleGroup(); }
+  
+  inline void nopAndEndBundleGroup() { masm.nopAndEndBundleGroup(); }
 
   inline void pauseBundleGroup() { masm.pauseBundleGroup(); }
 
@@ -478,35 +480,28 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_ASSERT(!op.containsReg(SandboxScratchReg) || op.clobberScratch(),
                    "Must allow ScratchReg to be clobbered");
         pauseBundleGroup();
-#ifdef DEBUG
-        /*beginBundleInstruction();
+        beginBundleInstruction();
         masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
                      SandboxScratchReg.encoding());
+        endBundleInstruction();
+#ifdef DEBUG
+        beginBundleInstruction();
+        masm.push_r(SandboxScratchReg.encoding());
         endAndBeginBundleInstruction();
-        masm.push_r(rcx.encoding());
+        masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
         endAndBeginBundleInstruction();
-        masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
+        masm.orq_rr(SandboxBaseReg.encoding(), SandboxScratchReg.encoding());
         endAndBeginBundleInstruction();
-        masm.addq_ir(1, rcx.encoding());
-        endAndBeginBundleInstruction();
-        masm.shrq_CLr(SandboxScratchReg.encoding());
-        endAndBeginBundleInstruction();
-        masm.shlq_CLr(SandboxScratchReg.encoding());
-        endAndBeginBundleInstruction();
-        masm.cmpq_rr(SandboxScratchReg.encoding(), SandboxBaseReg.encoding());
+        masm.cmpq_rm(SandboxScratchReg.encoding(), 0, StackPointer.encoding());
         endAndBeginBundleInstruction();
         j(Condition::Equal, &sandboxed);
         endBundleInstruction();
         breakpoint();
         bind(&sandboxed);
         beginBundleInstruction();
-        masm.pop_r(rcx.encoding());
-        endBundleInstruction();*/
-#endif
-        beginBundleInstruction();
-        masm.leaq_mr(op.disp(), op.base(), op.index(), op.scale(),
-                     SandboxScratchReg.encoding());
+        masm.pop_r(SandboxScratchReg.encoding());
         endBundleInstruction();
+#endif
         beginBundleGroup();
         masm.andq_rr(SandboxMaskReg.encoding(), SandboxScratchReg.encoding());
         return Operand(SandboxBaseReg, SandboxScratchReg, TimesOne, 0, true);
@@ -514,54 +509,26 @@ class AssemblerX86Shared : public AssemblerShared {
         if (op.containsReg(StackPointer)) {
           return op;
         }
-        pauseBundleGroup();
 #ifdef DEBUG
-        /*beginBundleInstruction();
+        pauseBundleGroup();
+        beginBundleInstruction();
         masm.push_r(op.base());
         endAndBeginBundleInstruction();
-        if (op.base() == X86Encoding::rcx) {
-          masm.push_r(rbx.encoding());
-          endAndBeginBundleInstruction();
-          masm.movq_rr(rcx.encoding(), rbx.encoding());
-          endAndBeginBundleInstruction();
-          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
-          endAndBeginBundleInstruction();
-          masm.addq_ir(1, rcx.encoding());
-          endAndBeginBundleInstruction();
-          masm.shrq_CLr(rbx.encoding());
-          endAndBeginBundleInstruction();
-          masm.shlq_CLr(rbx.encoding());
-          endAndBeginBundleInstruction();
-          masm.cmpq_rr(rbx.encoding(), SandboxBaseReg.encoding());
-          endAndBeginBundleInstruction();
-        } else {
-          masm.push_r(rcx.encoding());
-          endAndBeginBundleInstruction();
-          masm.bsrq_rr(SandboxMaskReg.encoding(), rcx.encoding());
-          endAndBeginBundleInstruction();
-          masm.addq_ir(1, rcx.encoding());
-          endAndBeginBundleInstruction();
-          masm.shrq_CLr(op.base());
-          endAndBeginBundleInstruction();
-          masm.shlq_CLr(op.base());
-          endAndBeginBundleInstruction();
-          masm.cmpq_rr(op.base(), SandboxBaseReg.encoding());
-          endAndBeginBundleInstruction();
-        }
+        masm.andq_rr(SandboxMaskReg.encoding(), op.base());
+        endAndBeginBundleInstruction();
+        masm.orq_rr(SandboxBaseReg.encoding(), op.base());
+        endAndBeginBundleInstruction();
+        masm.cmpq_rm(op.base(), 0, StackPointer.encoding());
+        endAndBeginBundleInstruction();
         j(Condition::Equal, &sandboxed);
         endBundleInstruction();
         breakpoint();
         bind(&sandboxed);
         beginBundleInstruction();
-        if (op.base() == X86Encoding::rcx)
-          masm.pop_r(rbx.encoding());
-        else
-          masm.pop_r(rcx.encoding());
-        endAndBeginBundleInstruction();
         masm.pop_r(op.base());
-        endBundleInstruction();*/
-#endif
+        endBundleInstruction();
         beginBundleGroup();
+#endif
         masm.andq_rr(SandboxMaskReg.encoding(), op.base());
         masm.orq_rr(SandboxBaseReg.encoding(), op.base());
         return Operand(Register(op.base()), op.disp(), true);
@@ -1655,6 +1622,14 @@ class AssemblerX86Shared : public AssemblerShared {
   }
   static size_t CallWithPatchSize() {
     return X86Encoding::BaseAssembler::call_size();
+  }
+
+  CodeOffset jmpWithPatch() {
+    AutoBundleInstructionScope bundle(*this);
+    return CodeOffset(masm.jmp().offset());
+  }
+  static size_t JmpWithPatchSize() {
+    return X86Encoding::BaseAssembler::jmp_size();
   }
 
   void patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
