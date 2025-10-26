@@ -88,6 +88,13 @@ void TraceCallbackFunc::Trace(JS::TenuredHeap<JSObject*>* aPtr,
   }
 }
 
+void TraceCallbackFunc::Trace(MC::TenuredHeap<JSObject*>* aPtr,
+                              const char* aName, void* aClosure) const {
+  if (*aPtr) {
+    mCallback(JS::GCCellPtr(aPtr->unbarrieredGetPtr()), aName, aClosure);
+  }
+}
+
 void TraceCallbackFunc::Trace(JS::Heap<JSFunction*>* aPtr, const char* aName,
                               void* aClosure) const {
   if (*aPtr) {

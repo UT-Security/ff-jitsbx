@@ -100,7 +100,18 @@ inline void TraceEdge(MC::Tainted<JSTracer*> trc, MC::Heap<T>* thingp,
 }
 
 template <typename T>
-inline void TraceEdge(MC::Tainted<JSTracer*> trc, JS::TenuredHeap<T>* thingp,
+inline void TraceEdge(JSTracer* trc, MC::TenuredHeap<T>* thingp,
+                      const char* name) {
+  MOZ_ASSERT(thingp);
+  if (T thing = thingp->unbarrieredGetPtr()) {
+    MC::SandboxStack<T> sbx_thingp(thing);
+    TraceSecureEdge(trc, sbx_thingp.UNSAFE_unverified(), name);
+    thingp->setPtr(*sbx_thingp.UNSAFE_unverified());
+  }
+}
+
+template <typename T>
+inline void TraceEdge(MC::Tainted<JSTracer*> trc, MC::TenuredHeap<T>* thingp,
                       const char* name) {
   return TraceEdge(trc.INTERNAL_unverified_safe(), thingp, name);
 }

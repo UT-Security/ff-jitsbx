@@ -7,6 +7,7 @@
 #ifndef mc_Vector_h
 #define mc_Vector_h
 
+#include <cstring>
 #include "Tainted.h"
 #include "js/Vector.h"
 #include "monkeycage/Tainted.h"
@@ -55,7 +56,18 @@ public:
   }
 
   T* copyRawBuffer() {
-    return data.copyRawBuffer();
+    size_t aNumElems = length().UNSAFE_unverified();
+    if (aNumElems & mozilla::tl::MulOverflowMask<sizeof(T)>::value) {
+      return nullptr;
+    }
+    T* copy =  static_cast<T*>(malloc(aNumElems * sizeof(T)));
+    if (!copy) {
+      return nullptr;
+    }
+
+    memcpy(copy, begin().UNSAFE_unverified(), aNumElems * sizeof(T));
+    clearAndFree();
+    return copy;
   }
 
   size_t sizeOfIncludingThis(mozilla::MallocSizeOf aMallocSizeOf) const {

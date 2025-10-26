@@ -9,7 +9,7 @@
  */
 
 #include "nsScriptError.h"
-#include "js/Printf.h"
+#include "monkeycage/Printf.h"
 #include "MainThreadUtils.h"
 #include "mozilla/Assertions.h"
 #include "nsContentUtils.h"
@@ -326,13 +326,13 @@ static nsresult ToStringHelper(const char* aSeverity, const nsString& aMessage,
     tempSourceLine = ToNewUTF8String(StringHead(*aSourceLine, 512));
 
   if (nullptr != tempSourceName && nullptr != tempSourceLine) {
-    temp = JS_smprintf(format0, aSeverity, tempMessage, tempSourceName,
+    temp = MC_smprintf(format0, aSeverity, tempMessage, tempSourceName,
                        aLineNumber, aColumnNumber, tempSourceLine);
   } else if (!aSourceName.IsEmpty()) {
-    temp = JS_smprintf(format1, aSeverity, tempMessage, tempSourceName,
+    temp = MC_smprintf(format1, aSeverity, tempMessage, tempSourceName,
                        aLineNumber);
   } else {
-    temp = JS_smprintf(format2, aSeverity, tempMessage);
+    temp = MC_smprintf(format2, aSeverity, tempMessage);
   }
 
   if (nullptr != tempMessage) free(tempMessage);

@@ -7,7 +7,6 @@
 #ifndef mc_Sandbox_h
 #define mc_Sandbox_h
 
-#include "SandboxTraits.h"
 #include "monkeycage/SandboxCallback.h"
 #include "monkeycage/SandboxHelpers.h"
 #include "monkeycage/unsafe/SandboxImpl.h"
@@ -42,8 +41,8 @@ public:
   //TODO(JS_SANDBOX): we shouldn't need to validate the pointer if
   // trampolines are validated on startup.
   template<typename T_Fn>
-  static inline MC::Tainted<T_Fn> Address(T_Fn external_addr) {
-    MC::Tainted<T_Fn> ret{nullptr};
+  static inline Tainted<T_Fn, MC_Sbx> Address(T_Fn external_addr) {
+    Tainted<T_Fn, MC_Sbx> ret{nullptr};
     ret.assign_raw_pointer(MC_Sbx::Address(external_addr));
     return ret;
   }

@@ -1328,6 +1328,10 @@ struct JsGcTracer : public TraceCallbacks {
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
   }
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
+  }
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JS::TraceEdge(static_cast<JSTracer*>(aClosure), aPtr, aName);
@@ -1455,6 +1459,13 @@ struct CheckZoneTracer : public TraceCallbacks {
     }
   }
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override {
+    JSObject* obj = aPtr->unbarrieredGetPtr();
+    if (obj) {
+      checkZone(js::GetObjectZoneFromAnyThread(obj), aName);
+    }
+  }
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override {
     JSObject* obj = aPtr->unbarrieredGetPtr();
     if (obj) {
@@ -1631,6 +1642,11 @@ struct ClearJSHolder : public TraceCallbacks {
     *aPtr = nullptr;
   }
 
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aPtr, const char*,
+                     void*) const override {
+    *aPtr = nullptr;
+  }
+  
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char*,
                      void*) const override {
     *aPtr = nullptr;

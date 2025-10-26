@@ -2433,7 +2433,7 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 #define NS_TRACE_SEGMENTED_ARRAY(_field, _type)                       \
   {                                                                   \
     for (auto iter = tmp->_field.Iter(); !iter.Done(); iter.Next()) { \
-      js::gc::CallTraceCallbackOnNonHeap<_type, TraceCallbacks>(      \
+      mc::gc::CallTraceCallbackOnNonHeap<_type, TraceCallbacks>(      \
           &iter.Get(), aCallbacks, #_field, aClosure);                \
     }                                                                 \
   }
@@ -2565,6 +2565,11 @@ class SnowWhiteKiller : public TraceCallbacks {
   }
 
   virtual void Trace(JS::TenuredHeap<JSObject*>* aObject, const char* aName,
+                     void* aClosure) const override {
+    AppendJSObjectToPurpleBuffer(aObject->unbarrieredGetPtr());
+  }
+
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aObject, const char* aName,
                      void* aClosure) const override {
     AppendJSObjectToPurpleBuffer(aObject->unbarrieredGetPtr());
   }

@@ -61,6 +61,11 @@ struct DummyCallbacks final : public TraceCallbacks {
     static_cast<TraceCounts*>(aClosure)->mTenuredHeapObject++;
   }
 
+  void Trace(MC::TenuredHeap<JSObject*>*, const char*,
+             void* aClosure) const override {
+    static_cast<TraceCounts*>(aClosure)->mTenuredHeapObject++;
+  }
+
   void Trace(JS::Heap<JSString*>*, const char*, void* aClosure) const override {
     static_cast<TraceCounts*>(aClosure)->mString++;
   }

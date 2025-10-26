@@ -146,8 +146,8 @@ class TenuredHeap;
 namespace MC {
 template <class T>
 class Heap;
-//template <typename T>
-//class TenuredHeap;
+template <typename T>
+class TenuredHeap;
 } /* namespace MC */
 
 /*
@@ -171,6 +171,8 @@ struct TraceCallbacks {
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const = 0;
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const = 0;
@@ -211,6 +213,8 @@ struct TraceCallbackFunc : public TraceCallbacks {
   virtual void Trace(nsWrapperCache* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(JS::TenuredHeap<JSObject*>* aPtr, const char* aName,
+                     void* aClosure) const override;
+  virtual void Trace(MC::TenuredHeap<JSObject*>* aPtr, const char* aName,
                      void* aClosure) const override;
   virtual void Trace(JS::Heap<JSString*>* aPtr, const char* aName,
                      void* aClosure) const override;
