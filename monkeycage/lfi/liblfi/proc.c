@@ -38,7 +38,8 @@ procnewempty(void)
     if (!p)
         goto err;
     p->proc = proc;
-    p->tid = nexttid();
+    p->proc->pid = nexttid();
+    p->tid = p->proc->pid;
     return p;
 
 err:
@@ -225,6 +226,12 @@ procsetup(struct TuxThread* p, uint8_t* prog, size_t progsz, uint8_t* interp, si
         return false;
 
     return true;
+}
+
+struct TuxThread *
+lfi_tux_get_thread(void)
+{
+    return (struct TuxThread *) lfi_get_myctx()->ctxp;
 }
 
 int
