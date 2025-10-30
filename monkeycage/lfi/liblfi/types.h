@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-#define EXPORT __attribute__((visibility("default")))
+#define EXPORT
 
 typedef uint64_t  u64;
 typedef uint32_t  u32;
