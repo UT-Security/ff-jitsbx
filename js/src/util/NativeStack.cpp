@@ -24,7 +24,7 @@
 #    include <sys/types.h>
 #    include <unistd.h>
 #  endif
-#  if defined(XP_LINUX) && !defined(ANDROID) && defined(__GLIBC__)
+#  if defined(XP_LINUX) && !defined(ANDROID) && (defined(__GLIBC__) || defined(JS_SANDBOX_LFI))
 #    include <dlfcn.h>
 #    include <sys/syscall.h>
 #    include <sys/types.h>
