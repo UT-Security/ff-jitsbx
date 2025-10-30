@@ -57,3 +57,6 @@ OBJDIR_FILES.js.src += ["!/dist/bin/js%s" % CONFIG["BIN_SUFFIX"]]
 if CONFIG["OS_ARCH"] == "WASI":
     LDFLAGS += ["-Wl,-z,stack-size=1048576", "-Wl,--stack-first"]
     OS_LIBS += ["wasi-emulated-process-clocks", "wasi-emulated-getpid"]
+
+if CONFIG["JS_LFI_TOOLCHAIN"]:
+    LDFLAGS += ["-static-pie", "-lc++", "-lc++abi"]
