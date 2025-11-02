@@ -9,8 +9,8 @@ origin:
   description: lfi sandboxing runtime
   url: https://github.com/UT-Security/lfi/tree/monkeycage
 
-  release: e666151058ec2f285560356098c2dfcd4fffebb5 (2025-10-26T00:49:54Z).
-  revision: e666151058ec2f285560356098c2dfcd4fffebb5
+  release: 16124091d8c6fd7601fc790340190dc054bf30c6 (2025-11-02T02:30:30Z).
+  revision: 16124091d8c6fd7601fc790340190dc054bf30c6
 
   license: MIT
 
