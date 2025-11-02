@@ -66,7 +66,7 @@ class FetchUtil final {
    */
   static bool StreamResponseToJS(MCContext* aCx, JS::Handle<JSObject*> aObj,
                                  JS::MimeType aMimeType,
-                                 JS::StreamConsumer* aConsumer,
+                                 MC::Tainted<JS::StreamConsumer*> aConsumer,
                                  WorkerPrivate* aMaybeWorker);
 
   /**

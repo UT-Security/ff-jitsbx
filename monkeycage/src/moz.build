@@ -235,6 +235,7 @@ if CONFIG['JS_SANDBOX_DYLIB'] or CONFIG['JS_SANDBOX_LFI']:
 		"/js/public/sandbox/Proxy.h",
         "/js/public/sandbox/RootingAPI.h",
 		"/js/public/sandbox/SourceHook.h",
+		"/js/public/sandbox/StreamConsumer.h",
 		"/js/public/sandbox/TracingAPI.h",
 		"/js/public/sandbox/Wrapper.h",
 	]

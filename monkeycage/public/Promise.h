@@ -17,6 +17,52 @@
 #include "js/Utility.h"
 
 namespace MC {
+namespace detail {
+
+template <typename MC_Sbx>
+class Tainted<JS::Dispatchable*, MC_Sbx> {
+  private:
+    JS::Dispatchable* data;
+
+  inline JS::Dispatchable* get_raw_value() const noexcept {
+    return data;
+  }
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  Tainted() = default;
+  Tainted(const Tainted<JS::Dispatchable*, MC_Sbx>& p) = default;
+
+  Tainted(const std::nullptr_t& arg) : data(arg) {
+  }
+
+  Tainted<JS::Dispatchable*, MC_Sbx>& operator=(const std::nullptr_t& arg) { data = arg; return *this; }
+  
+  template<typename T_Rhs>
+  void assign_raw_pointer(T_Rhs val) {
+    static_assert(std::is_pointer_v<T_Rhs>, "Must be a pointer");
+    static_assert(std::is_assignable_v<JS::Dispatchable*&, T_Rhs>,
+                  "Should assign pointers of compatible types.");
+    //TODO(abhishek): check that `val` is a pointer within the sandbox.
+    data = val;
+  }
+
+  operator bool() const { return get_raw_value() != nullptr; }
+
+  void run(MCContext* cx, JS::Dispatchable::MaybeShuttingDown maybeShuttingDown) const {
+    js::sandbox::Dispatchable_run(get_raw_value(), cx->cx_, maybeShuttingDown);
+  }
+  
+};
+}
+}
+
+
+namespace MC {
 
 class JobQueue {
  public:
@@ -41,9 +87,14 @@ class JobQueue {
    public:
     js::UniquePtr<JS::sandbox::JobQueue::SavedJobQueue> inner_;
 
+    static MC::SandboxCallback<JS::sandbox::JobQueue::SavedJobQueue::DestructorOp> destructor() {
+      static auto cb = Sandbox::RegisterCallback(destructorCb);
+      return cb;
+    }
+
     SavedJobQueue()
         : inner_(js::MakeUnique<JS::sandbox::JobQueue::SavedJobQueue>(
-              Sandbox::RegisterCallback(destructorCb).UNSAFE_get(), this)) {}
+              destructor().UNSAFE_get(), this)) {}
 
     virtual ~SavedJobQueue() = default;
   };

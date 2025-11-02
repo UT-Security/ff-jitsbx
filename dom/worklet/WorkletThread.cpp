@@ -357,7 +357,7 @@ static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> aClosure,
               return;
             }
 
-            aDispatchable.UNSAFE_unverified()->run(MC_UNSAFE(wjc->Context()),
+            aDispatchable.run(wjc->Context(),
                                JS::Dispatchable::NotShuttingDown);
           }),
       NS_DISPATCH_NORMAL);

@@ -8,6 +8,12 @@
 
 using namespace JS::sandbox;
 
+JS_PUBLIC_API void js::sandbox::Dispatchable_run(
+    JS::Dispatchable* d, JSContext* cx,
+    JS::Dispatchable::MaybeShuttingDown maybeShuttingDown) {
+  d->run(cx, maybeShuttingDown);
+}
+
 JobQueue::JobQueue(const JobQueueOps* ops, void* jobQueue) : ops_(ops), jobQueue_(jobQueue) {}
 
 JobQueue::~JobQueue() {

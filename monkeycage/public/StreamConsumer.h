@@ -10,8 +10,71 @@
 
 #ifdef JS_SANDBOX
 
+#include "js/sandbox/StreamConsumer.h"
+
 #include "monkeycage/Context.h"
 #include "monkeycage/SandboxCallback.h"
+
+namespace MC {
+namespace detail {
+
+template <typename MC_Sbx>
+class Tainted<JS::StreamConsumer*, MC_Sbx> {
+  private:
+    JS::StreamConsumer* data;
+
+  inline JS::StreamConsumer* get_raw_value() const noexcept {
+    return data;
+  }
+ public:
+  inline auto& UNSAFE_unverified() const { return get_raw_value(); }
+  inline auto& INTERNAL_unverified_safe() const { return UNSAFE_unverified(); }
+
+  inline auto& UNSAFE_unverified() { return get_raw_value(); }
+  inline auto& INTERNAL_unverified_safe() { return UNSAFE_unverified(); }
+
+  Tainted() = default;
+  Tainted(const Tainted<JS::StreamConsumer*, MC_Sbx>& p) = default;
+
+  Tainted(const std::nullptr_t& arg) : data(arg) {
+  }
+  
+  template<typename T_Rhs>
+  void assign_raw_pointer(T_Rhs val) {
+    static_assert(std::is_pointer_v<T_Rhs>, "Must be a pointer");
+    static_assert(std::is_assignable_v<JS::StreamConsumer*&, T_Rhs>,
+                  "Should assign pointers of compatible types.");
+    //TODO(abhishek): check that `val` is a pointer within the sandbox.
+    data = val;
+  }
+
+  operator bool() const { return get_raw_value() != nullptr; }
+
+  bool consumeChunk(const uint8_t* begin, size_t length) {
+    return js::sandbox::StreamConsumer_consumeChunk(get_raw_value(), begin, length);
+  }
+
+  void streamEnd(JS::OptimizedEncodingListener* listener = nullptr) {
+    return js::sandbox::StreamConsumer_streamEnd(get_raw_value(), listener);
+  }
+
+  void streamError(size_t errorCode) {
+    return js::sandbox::StreamConsumer_streamError(get_raw_value(), errorCode);
+  }
+
+  void consumeOptimizedEncoding(const uint8_t* begin,
+                                        size_t length) {
+    return js::sandbox::StreamConsumer_consumeOptimizedEncoding(get_raw_value(), begin, length);
+  }
+
+  void noteResponseURLs(const char* maybeUrl,
+                                const char* maybeSourceMapUrl) {
+    return js::sandbox::StreamConsumer_noteResponseURLs(get_raw_value(), maybeUrl, maybeSourceMapUrl);
+  }
+};
+}
+}
+
 
 namespace JS {
 
