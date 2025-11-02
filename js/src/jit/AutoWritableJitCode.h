@@ -66,7 +66,12 @@ class MOZ_RAII AutoWritableJitCodeFallible {
 class MOZ_RAII AutoWritableJitCode : private AutoWritableJitCodeFallible {
  public:
   explicit AutoWritableJitCode(JitCode* code)
-      : AutoWritableJitCodeFallible(code) {}
+      : AutoWritableJitCodeFallible(code) {
+    AutoEnterOOMUnsafeRegion oomUnsafe;
+    if (!makeWritable()) {
+      oomUnsafe.crash("Failed to mmap. Likely no mappings available.");
+    }
+  }
 };
 
 }  // namespace js::jit

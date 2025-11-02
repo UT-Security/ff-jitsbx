@@ -81,7 +81,7 @@ struct Executable {
   Executable(void* allocated, ExecutablePool* pool)
       : xStart(allocated), pool(pool) {}
 
-  explicit Executable(nullptr_t) : xStart(nullptr), pool(nullptr) {}
+  explicit Executable(std::nullptr_t) : xStart(nullptr), pool(nullptr) {}
 };
 
 // These are reference-counted. A new one starts with a count of 1.
