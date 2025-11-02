@@ -850,8 +850,17 @@ class Assembler : public AssemblerX86Shared {
 
   void addq(Imm32 imm, Register dest) {
     AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_HEAP
+    if (dest == StackPointer) {
+      masm.andq_rr(SandboxMaskReg.encoding(), dest.encoding());
+      masm.leaq_mr(imm.value, dest.encoding(), SandboxBaseReg.encoding(), TimesOne,
+                   dest.encoding());
+    } else {
+      masm.addq_ir(imm.value, dest.encoding());
+    }
+#else
     masm.addq_ir(imm.value, dest.encoding());
-    sandboxStackPointer(dest);
+#endif
   }
   CodeOffset addqWithPatch(Imm32 imm, Register dest) {
     MOZ_ASSERT(dest != StackPointer, "Unsupported instruction");
@@ -865,8 +874,17 @@ class Assembler : public AssemblerX86Shared {
     const Operand dest = sandboxMemoryWrite(unsafeDest);
     switch (dest.kind()) {
       case Operand::REG:
+#ifdef JS_SANDBOX_HEAP
+        if (dest.reg() == StackPointer.encoding()) {
+          masm.andq_rr(SandboxMaskReg.encoding(), dest.reg());
+          masm.leaq_mr(imm.value, dest.reg(), SandboxBaseReg.encoding(),
+                       TimesOne, dest.reg());
+        } else {
+          masm.addq_ir(imm.value, dest.reg());
+        }
+#else
         masm.addq_ir(imm.value, dest.reg());
-        sandboxStackPointer(Register(dest.reg()));
+#endif
         break;
       case Operand::MEM_REG_DISP:
         masm.addq_im(imm.value, dest.disp(), dest.base());
@@ -930,8 +948,17 @@ class Assembler : public AssemblerX86Shared {
 
   void subq(Imm32 imm, Register dest) {
     AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_HEAP
+    if (dest == StackPointer) {
+      masm.andq_rr(SandboxMaskReg.encoding(), dest.encoding());
+      masm.leaq_mr(-imm.value, dest.encoding(), SandboxBaseReg.encoding(), TimesOne,
+                   dest.encoding());
+    } else {
+      masm.subq_ir(imm.value, dest.encoding());
+    }
+#else
     masm.subq_ir(imm.value, dest.encoding());
-    sandboxStackPointer(dest);
+#endif
   }
   void subq(Register src, Register dest) {
     AutoBundleGroupScope bundle(*this);
