@@ -85,14 +85,3 @@ index b5a51e65c7..fa1e0d7b78 100644
  
  typedef uint64_t  u64;
  typedef uint32_t  u32;
-
-diff --git a/liblfi/elfsym.c b/liblfi/elfsym.c
-index e52088cf78..d6c48ea717 100644
---- a/liblfi/elfsym.c
-+++ b/liblfi/elfsym.c
-@@ -1,5 +1,6 @@
- #include <elf.h>
- #include <stdlib.h>
-+#include <string.h>
-
- #include "pal/platform.h"
