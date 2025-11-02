@@ -308,6 +308,7 @@ if CONFIG["JS_SANDBOX"]:
         "../public/sandbox/Proxy.h",
         "../public/sandbox/RootingAPI.h",
         "../public/sandbox/SourceHook.h",
+        "../public/sandbox/StreamConsumer.h",
         "../public/sandbox/TracingAPI.h",
         "../public/sandbox/Wrapper.h",
     ]
@@ -461,6 +462,7 @@ if CONFIG["JS_SANDBOX"]:
         "sandbox/ExternalPromise.cpp",
         "sandbox/ExternalProxy.cpp",
         "sandbox/ExternalSourceHook.cpp",
+        "sandbox/ExternalStreamConsumer.cpp",
         "sandbox/ExternalStringCallbacks.cpp",
         "sandbox/ExternalWrapper.cpp",
         "sandbox/RootMarking.cpp",

@@ -11,6 +11,15 @@
 
 #ifdef JS_SANDBOX
 
+namespace js {
+namespace sandbox {
+
+JS_PUBLIC_API void Dispatchable_run(JS::Dispatchable* d, JSContext* cx,
+                                    JS::Dispatchable::MaybeShuttingDown maybeShuttingDown);
+
+}
+}  // namespace js
+
 namespace JS {
 namespace sandbox {
 

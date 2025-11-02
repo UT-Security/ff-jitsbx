@@ -589,7 +589,7 @@ void CTypesActivityCallback(MC::Tainted<JSContext*> tCx, JS::CTypesActivityType 
 // being called, DispatchToEventLoopCallback failure is expected to happen
 // during shutdown.
 class JSDispatchableRunnable final : public WorkerRunnable {
-  JS::Dispatchable* mDispatchable;
+  MC::Tainted<JS::Dispatchable*> mDispatchable;
 
   ~JSDispatchableRunnable() { MOZ_ASSERT(!mDispatchable); }
 
@@ -608,7 +608,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
 
  public:
   JSDispatchableRunnable(WorkerPrivate* aWorkerPrivate,
-                         JS::Dispatchable* aDispatchable)
+                         MC::Tainted<JS::Dispatchable*> aDispatchable)
       : WorkerRunnable(aWorkerPrivate,
                        WorkerRunnable::WorkerThreadUnchangedBusyCount),
         mDispatchable(aDispatchable) {
@@ -623,7 +623,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(MC_UNSAFE(mWorkerPrivate->GetJSContext()),
+    mDispatchable.run(mWorkerPrivate->GetJSContext(),
                        JS::Dispatchable::NotShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
@@ -640,7 +640,7 @@ class JSDispatchableRunnable final : public WorkerRunnable {
     AutoJSAPI jsapi;
     jsapi.Init();
 
-    mDispatchable->run(MC_UNSAFE(mWorkerPrivate->GetJSContext()),
+    mDispatchable.run(mWorkerPrivate->GetJSContext(),
                        JS::Dispatchable::ShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
@@ -660,7 +660,7 @@ static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> aClosure,
   // Dispatch is expected to fail during shutdown for the reasons outlined in
   // the JSDispatchableRunnable comment above.
   RefPtr<JSDispatchableRunnable> r =
-      new JSDispatchableRunnable(workerPrivate, aDispatchable.UNSAFE_unverified());
+      new JSDispatchableRunnable(workerPrivate, aDispatchable);
   return r->Dispatch();
 }
 
@@ -675,7 +675,7 @@ static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> tCx, JS::Handle<J
     return false;
   }
 
-  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer.UNSAFE_unverified(), worker);
+  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer, worker);
 }
 
 bool InitJSContextForWorker(WorkerPrivate* aWorkerPrivate,

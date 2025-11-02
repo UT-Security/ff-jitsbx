@@ -1974,7 +1974,7 @@ class JSDispatchableRunnable final : public Runnable {
   ~JSDispatchableRunnable() { MOZ_ASSERT(!mDispatchable); }
 
  public:
-  explicit JSDispatchableRunnable(JS::Dispatchable* aDispatchable)
+  explicit JSDispatchableRunnable(MC::Tainted<JS::Dispatchable*> aDispatchable)
       : mozilla::Runnable("JSDispatchableRunnable"),
         mDispatchable(aDispatchable) {
     MOZ_ASSERT(mDispatchable);
@@ -1991,14 +1991,14 @@ class JSDispatchableRunnable final : public Runnable {
         sShuttingDown ? JS::Dispatchable::ShuttingDown
                       : JS::Dispatchable::NotShuttingDown;
 
-    mDispatchable->run(MC_UNSAFE(jsapi.cx()), maybeShuttingDown);
+    mDispatchable.run(jsapi.cx(), maybeShuttingDown);
     mDispatchable = nullptr;  // mDispatchable may delete itself
 
     return NS_OK;
   }
 
  private:
-  JS::Dispatchable* mDispatchable;
+  MC::Tainted<JS::Dispatchable*> mDispatchable;
 };
 
 static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> closure,
@@ -2015,7 +2015,7 @@ static MC::Tainted<bool> DispatchToEventLoop(MC::AppPointer<void*> closure,
     return false;
   }
 
-  RefPtr<JSDispatchableRunnable> r = new JSDispatchableRunnable(aDispatchable.UNSAFE_unverified());
+  RefPtr<JSDispatchableRunnable> r = new JSDispatchableRunnable(aDispatchable);
   MOZ_ALWAYS_SUCCEEDS(mainTarget->Dispatch(r.forget(), NS_DISPATCH_NORMAL));
   return true;
 }
@@ -2024,7 +2024,7 @@ static MC::Tainted<bool> ConsumeStream(MC::Tainted<JSContext*> tCx, JS::Handle<J
                           JS::MimeType aMimeType,
                           MC::Tainted<JS::StreamConsumer*> aConsumer) {
   MCContext* aCx = tCx.copy_and_verify_address(MC_VerifyContext);
-  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer.UNSAFE_unverified(),
+  return FetchUtil::StreamResponseToJS(aCx, aObj, aMimeType, aConsumer,
                                        nullptr);
 }
 

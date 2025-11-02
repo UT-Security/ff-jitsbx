@@ -7,10 +7,16 @@
 #ifndef mc_unsafe_SandboxLFI_h
 #define mc_unsafe_SandboxLFI_h
 
+#include <atomic>
+#include <signal.h>
 #include <stdlib.h>
 #include <type_traits>
 
+#include "lfi.h"
+#include "lfi_tux.h"
 #include "monkeycage/unsafe/lib.h"
+
+#include "mozilla/Assertions.h"
 
 namespace MC {
 namespace detail {
@@ -49,9 +55,70 @@ class SandboxLFI {
     }
   }
 
+  static inline std::atomic_flag hasSIGSEGVHandler = ATOMIC_FLAG_INIT;
+  static inline struct sigaction sPrevSIGSEGVHandler;
+
+  static inline std::atomic_flag hasSIGILLHandler = ATOMIC_FLAG_INIT;
+  static inline struct sigaction sPrevSIGILLHandler;
+
+  static void OnSignal(int signum, siginfo_t* info, void* context) {
+    struct TuxThread* p = lfi_tux_get_thread();
+    if(lfi_tux_on_signal(p, signum, info, context)) {
+      return;
+    }
+
+    struct sigaction* previousSignal = nullptr;
+    switch (signum) {
+      case SIGSEGV:
+        previousSignal = &sPrevSIGSEGVHandler;
+        break;
+      case SIGILL:
+        previousSignal = &sPrevSIGILLHandler;
+        break;
+    }
+    MOZ_ASSERT(previousSignal);
+
+    if (previousSignal->sa_flags & SA_SIGINFO) {
+      previousSignal->sa_sigaction(signum, info, context);
+    } else if (previousSignal->sa_handler == SIG_DFL ||
+               previousSignal->sa_handler == SIG_IGN) {
+      sigaction(signum, previousSignal, nullptr);
+    } else {
+      previousSignal->sa_handler(signum);
+    }
+  }
+
+  static bool OnSigaction(int signum) {
+    if (signum == SIGSEGV) {
+      if(hasSIGSEGVHandler.test_and_set()) return true;
+      struct sigaction faultHandler;
+      faultHandler.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
+      faultHandler.sa_sigaction = OnSignal;
+      sigemptyset(&faultHandler.sa_mask);
+      if (sigaction(SIGSEGV, &faultHandler, &sPrevSIGSEGVHandler)) {
+        MOZ_CRASH("unable to install monkeycage sigsegv handler");
+      }
+
+      return true;
+    } else if (signum == SIGILL) {
+      if(hasSIGILLHandler.test_and_set()) return true;
+      struct sigaction wasmTrapHandler;
+      wasmTrapHandler.sa_flags = SA_SIGINFO | SA_NODEFER | SA_ONSTACK;
+      wasmTrapHandler.sa_sigaction = OnSignal;
+      sigemptyset(&wasmTrapHandler.sa_mask);
+      if (sigaction(SIGILL, &wasmTrapHandler, &sPrevSIGILLHandler)) {
+        MOZ_CRASH("unable to install monkeycage sigill handler");
+      }
+
+      return true;
+    }
+
+    return false;
+  }
+
  public:
   static bool Initialize() {
-    monkeycage_init(lfi_libcalls());
+    monkeycage_init(lfi_libcalls(), (void*)OnSigaction);
     return true;
   }
 
@@ -87,6 +154,7 @@ class SandboxLFI {
   }
 
   static size_t InvokedCallback() { return monkeycage_invoked_cb(); }
+
 };
 
 using SandboxImpl = SandboxLFI;

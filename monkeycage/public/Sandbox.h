@@ -15,6 +15,7 @@
 #include <atomic>
 #include <mutex>
 #include <shared_mutex>
+#include <signal.h>
 
 #include "mozilla/Assertions.h"
 
