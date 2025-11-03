@@ -659,8 +659,6 @@ static void GenerateBailoutThunk(MacroAssembler& masm, Label* bailoutTail) {
   // Remove both the bailout frame and the topmost Ion frame's stack.
   masm.moveToStackPtr(FramePointer);
 
-  // TODO(JS_SANDBOX_CET): how can this be compatible with CET?
-
   // Jump to shared bailout tail. The BailoutInfo pointer has to be in r9.
   masm.jmp(bailoutTail);
 }

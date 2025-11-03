@@ -1505,6 +1505,7 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unimplemented operand kind");
     }
   }
+  void incShadowStack(Register reg) { masm.incssp(reg.encoding()); }
 #endif
   void breakpoint() {
     AutoBundleInstructionScope bundle(*this);

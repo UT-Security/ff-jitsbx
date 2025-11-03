@@ -4681,6 +4681,11 @@ class BaseAssembler : public GenericAssembler {
     // spew("wrssq%s    , %s", GPReg64Name(src), ADDR_ob(offset, base));
     m_formatter.threeByteOp64(OP3_WRSS, ESCAPE_38, offset, base, src);
   }
+  void incssp(RegisterID reg) {
+    spew("incsspq      %s", GPReg64Name(reg));
+    m_formatter.legacySSEPrefix(VEX_SS);
+    m_formatter.twoByteOp64(OP2_INCSSP, reg, 5);
+  }
 #endif
 
   void int3() {

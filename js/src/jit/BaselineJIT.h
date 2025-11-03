@@ -426,6 +426,15 @@ struct alignas(uintptr_t) BaselineBailoutInfo {
   // Number of baseline frames to push on the stack.
   uint32_t numFrames = 0;
 
+#ifdef JS_SANDBOX_CET
+  // typedef struct {
+  //   void* pc;
+  //   void* next;
+  // } savedPcList;
+  // savedPcList savedPcs = {nullptr, nullptr};
+  uintptr_t* savedPcs = nullptr;
+#endif
+
   // The bailout kind.
   mozilla::Maybe<BailoutKind> bailoutKind = {};
 

@@ -130,6 +130,10 @@ class MOZ_STACK_CLASS BaselineStackBuilder {
   gc::AutoSuppressGC suppress_;
 
  public:
+#ifdef JS_SANDBOX_CET
+  JS::RootedVector<uintptr_t> pcs_to_restore;
+#endif
+
   BaselineStackBuilder(JSContext* cx, const JSJitFrameIter& frameIter,
                        SnapshotIterator& iter,
                        const ExceptionBailoutInfo* excInfo,
@@ -426,7 +430,12 @@ BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
       excInfo_(excInfo),
       icScript_(script_->jitScript()->icScript()),
       bailoutKind_(iter.bailoutKind()),
-      suppress_(cx) {
+      suppress_(cx)
+#ifdef JS_SANDBOX_CET
+      ,
+      pcs_to_restore(NULL)
+#endif
+{
   MOZ_ASSERT(bufferTotal_ >= sizeof(BaselineBailoutInfo));
   if (reason == BailoutReason::Invalidate) {
     bailoutKind_ = BailoutKind::OnStackInvalidation;
@@ -875,6 +884,10 @@ bool BaselineStackBuilder::finishOuterFrame() {
   }
 
   uint8_t* retAddr = baselineInterp.retAddrForIC(op_);
+#ifdef JS_SANDBOX_CET
+  bool success = pcs_to_restore.append(reinterpret_cast<uintptr_t>(retAddr));
+  std::printf("Retaddr: %p, success: %d\n", retAddr, success);
+#endif
   return writePtr(retAddr, "ReturnAddr");
 }
 
@@ -1168,6 +1181,10 @@ bool BaselineStackBuilder::finishLastFrame() {
     blFrame()->setInterpreterFields(script_, resumePC);
     resumeAddr = baselineInterp.interpretOpAddr().value;
   }
+#ifdef JS_SANDBOX_CET
+  bool success = pcs_to_restore.append(reinterpret_cast<uintptr_t>(resumeAddr));
+  std::printf("Finished stack rebuild: %d! pc: %p", success, resumeAddr);
+#endif
   setResumeAddr(resumeAddr);
   JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
 
@@ -1466,6 +1483,10 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   // Caller should have saved the exception while we perform the bailout.
   MOZ_ASSERT(!cx->isExceptionPending());
 
+#ifdef JS_SANDBOX_CET
+  std::printf("Bailing out! Ion->baseline\n");
+#endif
+
   // Ion bailout can fail due to overrecursion and OOM. In such cases we
   // cannot honor any further Debugger hooks on the frame, and need to
   // ensure that its Debugger.Frame entry is cleaned up.
@@ -1637,6 +1658,13 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   info = builder.takeBuffer();
   info->numFrames = builder.frameNo() + 1;
   info->bailoutKind.emplace(bailoutKind);
+#ifdef JS_SANDBOX_CET
+  int size = info->numFrames;
+  uintptr_t* saved_pcs = (uintptr_t*)malloc(sizeof(uintptr_t) * size);
+  for (int idx = 0; size >= 0; size--, idx++) {
+    saved_pcs[idx] = builder.pcs_to_restore[size];
+  }
+#endif
   *bailoutInfo = info;
   guardRemoveRematerializedFramesFromDebugger.release();
   return true;
