@@ -4758,6 +4758,15 @@ class BaseAssembler : public GenericAssembler {
       m_formatter.oneByteOp(OP_HLT);
     }
   }
+  
+  void haltingAlignOne(int alignment) {
+    spew("0x%x   # hlt", unsigned(OP_HLT));
+    spew(".balign %d, 0x%x   # hlt", alignment, unsigned(OP_HLT));
+    do {
+      AutoBundleInstructionScope bundle(*this);
+      m_formatter.oneByteOp(OP_HLT);
+    } while(!m_formatter.isAligned(alignment));
+  }
 
   void nopAlign(int alignment) {
     spew(".balign %d", alignment);

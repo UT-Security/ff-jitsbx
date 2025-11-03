@@ -362,7 +362,7 @@ class Assembler : public AssemblerX86Shared {
   static JitCode* CodeFromJump(JitCode* code, uint8_t* jump);
 
  private:
-  void addPendingJump(JmpSrc src, ImmPtr target, RelocationKind reloc);
+  void addPendingJump(JmpSrc src, ImmPtr target, RelocationKind reloc, JitCode* code = nullptr);
 
  public:
   using AssemblerX86Shared::j;
@@ -386,7 +386,9 @@ class Assembler : public AssemblerX86Shared {
 
   void assertNoGCThings() const {
 #ifdef DEBUG
-    MOZ_ASSERT(dataRelocations_.length() == 0);
+    MOZ_ASSERT(dataGCSection_.length() == 0 &&
+               dataValueSection_.length() == 0 &&
+               dataJitSection_.length() == 0);
     for (auto& j : codeJumps_) {
       MOZ_ASSERT(j.kind == RelocationKind::HARDCODED);
     }
@@ -471,10 +473,18 @@ class Assembler : public AssemblerX86Shared {
   }
   void movq(ImmGCPtr ptr, Register dest) {
     MOZ_ASSERT(dest != StackPointer, "Unsupported instruction");
-    AutoBundleInstructionScope bundle(*this);
-    masm.movq_i64r(uintptr_t(ptr.value), dest.encoding());
-    bundle.end();
-    writeDataRelocation(ptr);
+    {
+      AutoBundleInstructionScope bundle(*this);
+      masm.movq_i64r(0x0123, dest.encoding());
+      bundle.end();
+    }
+    auto offset = CodeOffset(masm.currentOffset());
+    {
+      AutoBundleInstructionScope bundle(*this);
+      masm.movq_mr(0, dest.encoding(), dest.encoding());
+      bundle.end();
+    }
+    writeDataSection(offset, ptr);
   }
   CodeOffset movq(const Operand& src, Register dest) {
     AutoBundleGroupScope bundle(*this);
@@ -1441,26 +1451,28 @@ class Assembler : public AssemblerX86Shared {
     }
   }
 
-  void jmp(ImmPtr target, RelocationKind reloc = RelocationKind::HARDCODED) {
+  void jmp(ImmPtr target, RelocationKind reloc = RelocationKind::HARDCODED,
+           JitCode* code = nullptr) {
     MOZ_ASSERT(hasCreator());
     AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.jmp();
     bundle.end();
-    addPendingJump(src, target, reloc);
+    addPendingJump(src, target, reloc, code);
   }
   void j(Condition cond, ImmPtr target,
-         RelocationKind reloc = RelocationKind::HARDCODED) {
+         RelocationKind reloc = RelocationKind::HARDCODED,
+         JitCode* code = nullptr) {
     AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.jCC(static_cast<X86Encoding::Condition>(cond));
     bundle.end();
-    addPendingJump(src, target, reloc);
+    addPendingJump(src, target, reloc, code);
   }
 
   void jmp(JitCode* target) {
-    jmp(ImmPtr(target->raw()), RelocationKind::JITCODE);
+    jmp(ImmPtr(target->raw()), RelocationKind::JITCODE, target);
   }
   void j(Condition cond, JitCode* target) {
-    j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    j(cond, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
   }
   void call(JitCode* target) {
 #if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_USE_CALL)
@@ -1469,7 +1481,7 @@ class Assembler : public AssemblerX86Shared {
     AutoBundleInstructionScope bundle(*this);
     JmpSrc src = masm.call();
     bundle.end();
-    addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
   }
   static size_t CallSize(JitCode* target) {
     return X86Encoding::BaseAssembler::call_size();
@@ -1506,7 +1518,7 @@ class Assembler : public AssemblerX86Shared {
 #endif
     JmpSrc src = enabled ? masm.call() : masm.cmp_eax();
     bundle.end();
-    addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE);
+    addPendingJump(src, ImmPtr(target->raw()), RelocationKind::JITCODE, target);
 #ifdef JS_SANDBOX_CFI
     MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif

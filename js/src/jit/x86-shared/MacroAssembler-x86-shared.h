@@ -109,7 +109,10 @@ class MacroAssemblerX86Shared : public Assembler {
   //
   // TODO: We should remove this function, but it is still needed for Wasm which
   // aggregates all in the code section.
-  size_t bytesNeeded() const { return execSize() + dataSize(); }
+  size_t bytesNeeded() const {
+    MOZ_ASSERT(AssemblerX86Shared::dataSize() == 0, "Unexpected WASM Assembler data");
+    return execSize() + dataSize();
+  }
 
   // Size of the data table, in bytes.
   size_t dataSize() const {

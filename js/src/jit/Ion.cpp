@@ -551,13 +551,6 @@ void JitZone::addSizeOfIncludingThis(mozilla::MallocSizeOf mallocSizeOf,
       optimizedStubSpace_.sizeOfExcludingThis(mallocSizeOf);
 }
 
-void JitCodeHeader::init(JitCode* jitCode) {
-  // As long as JitCode isn't moveable, we can avoid tracing this and
-  // mutating executable data.
-  MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
-  jitCode_ = jitCode;
-}
-
 template <AllowGC allowGC>
 JitCode* JitCode::New(JSContext* cx, Executable&& exec, uint32_t headerSize) {
   JitCode* codeObj = cx->newCell<JitCode, allowGC>(std::move(exec), headerSize);
@@ -580,21 +573,57 @@ template JitCode* JitCode::New<NoGC>(JSContext* cx, Executable&& exec,
                                      uint32_t headerSize);
 
 void JitCode::copyFrom(MacroAssembler& masm) {
-  // Store the JitCode pointer in the JitCodeHeader so we can recover the
-  // gcthing from relocation tables.
-  JitCodeHeader::FromExecutable(raw())->init(this);
+  // As long as JitCode isn't moveable, we can avoid tracing this and
+  // mutating executable data.
+  MOZ_ASSERT(!gc::IsMovableKind(gc::AllocKind::JITCODE));
+
+#ifdef JS_SANDBOX
+  uint8_t headerContent[JitCodeHeaderSize] = {
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
+    0x41, 0x5b,                                                  // pop %r11
+    0x41, 0xff, 0xe3,                                            // jmp *%r11
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,              // hlt pad bundle
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,
+    0xf4,
+  };
+#elif defined(JS_SANDBOX_USE_RET)
+  uint8_t headerContent[JitCodeHeaderSize] = {
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
+    0xC3,                                                        // ret
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,              // hlt pad bundle
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4,
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4
+  };
+#elif defined(JS_SANDBOX_CFI_MASKS)
+  uint8_t headerContent[JitCodeHeaderSize] = {
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, %rax
+    0x41, 0x5b,                                                  // pop %r11
+    0x4d, 0x21, 0xfb,                                            // and %r15, %r11
+    0x49, 0x83, 0xe3, 0xe0,                                      // and $0xffffffffffffffe0, %r11
+    0x4d, 0x09, 0xf3,                                            // or  %r14, %r11
+    0x41, 0xff, 0xe3,                                            // jmp *%r11
+    0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4, 0xf4                     // hlt pad bundle
+  };
+#else
+  uint8_t headerContent[JitCodeHeaderSize] = {
+    0x48, 0xB8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,  // mov <imm64>, $rax
+    0xC3,                                                        // ret
+    0xE5, 0xE5, 0xE5, 0xE5, 0xE5                                 // in (Illegal x5)
+  };
+#endif
+
+  JitCode* self = this;
+  memcpy(&headerContent[2], reinterpret_cast<uint8_t*>(&self), 8);
+  memcpy(header(), &headerContent, JitCodeHeaderSize);
 
   // Copy data and patch the code.
-  MOZ_ASSERT(executable_.desc.rwSize >= masm.jumpRelocationTableBytes() +
-                                            masm.dataRelocationTableBytes() +
-                                            masm.constantsTableBytes());
+  MOZ_ASSERT(executable_.desc.rwSize >=
+             masm.dataSectionBytes() + masm.constantsTableBytes());
 
-  jumpRelocTableBytes_ = masm.jumpRelocationTableBytes();
-  dataRelocTableBytes_ = masm.dataRelocationTableBytes();
+  dataSectionBytes_ = masm.dataSectionBytes();
   constantsTableBytes_ = masm.constantsTableBytes();
   
-  masm.copyDataRelocationTable(dataRelocTable());
-  masm.copyJumpRelocationTable(jumpRelocTable());
+  masm.copyDataSection(dataSection());
   masm.copyConstantsTable(raw(), constantsTable());
 
   // Copy the code.
@@ -602,6 +631,7 @@ void JitCode::copyFrom(MacroAssembler& masm) {
   masm.executableCopy(raw());
 
   masm.processCodeLabels(raw());
+  masm.processDataLabels(raw(), this);
 }
 
 void JitCode::traceChildren(JSTracer* trc) {
@@ -611,15 +641,8 @@ void JitCode::traceChildren(JSTracer* trc) {
     return;
   }
 
-  if (jumpRelocTableBytes_) {
-    uint8_t* start = jumpRelocTable();
-    CompactBufferReader reader(start, start + jumpRelocTableBytes_);
-    MacroAssembler::TraceJumpRelocations(trc, this, reader);
-  }
-  if (dataRelocTableBytes_) {
-    uint8_t* start = dataRelocTable();
-    CompactBufferReader reader(start, start + dataRelocTableBytes_);
-    MacroAssembler::TraceDataRelocations(trc, this, reader);
+  if (dataSectionBytes_) {
+    MacroAssembler::TraceDataSection(trc, this);
   }
 }
 

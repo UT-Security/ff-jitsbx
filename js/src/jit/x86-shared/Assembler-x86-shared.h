@@ -399,17 +399,22 @@ class AssemblerX86Shared : public AssemblerShared {
         : offset(offset), target(target), kind(kind) {}
   };
 
-  CompactBufferWriter jumpRelocations_;
-  CompactBufferWriter dataRelocations_;
+  Vector<std::pair<CodeOffset, ImmGCPtr>, 8, SystemAllocPolicy> dataGCSection_;
+  Vector<JitCode*, 8, SystemAllocPolicy> dataJitSection_;
+  Vector<std::pair<CodeOffset, Value>, 8, SystemAllocPolicy> dataValueSection_;
 
-  void writeDataRelocation(ImmGCPtr ptr) {
-    // Raw GC pointer relocations and Value relocations both end up in
-    // Assembler::TraceDataRelocations.
-    if (ptr.value) {
-      if (gc::IsInsideNursery(ptr.value)) {
-        embedsNurseryPointers_ = true;
-      }
-      dataRelocations_.writeUnsigned(masm.currentOffset());
+  void writeDataSection(CodeOffset offset, ImmGCPtr ptr) {
+    if (gc::IsInsideNursery(ptr.value)) {
+      embedsNurseryPointers_ = true;
+    }
+    if (!dataGCSection_.append(std::pair(offset, ptr))) {
+      enoughMemory_ = false;
+    }
+  }
+
+  void writeDataSection(JitCode* code) {
+    if (!dataJitSection_.append(code)) {
+      enoughMemory_ = false;
     }
   }
 
@@ -674,6 +679,7 @@ class AssemblerX86Shared : public AssemblerShared {
 
   static void TraceDataRelocations(JSTracer* trc, JitCode* code,
                                    CompactBufferReader& reader);
+  static void TraceDataSection(JSTracer* trc, JitCode* code);
 
   inline void makeBundleSpace(size_t space) {
 #ifdef JS_SANDBOX_BUNDLE
@@ -685,8 +691,7 @@ class AssemblerX86Shared : public AssemblerShared {
     // No-op on this platform
   }
   bool oom() const {
-    return AssemblerShared::oom() || masm.oom() || jumpRelocations_.oom() ||
-           dataRelocations_.oom();
+    return AssemblerShared::oom() || masm.oom();
   }
   bool reserve(size_t size) { return masm.reserve(size); }
   bool swapBuffer(wasm::Bytes& other) { return masm.swapBuffer(other); }
@@ -697,21 +702,26 @@ class AssemblerX86Shared : public AssemblerShared {
 
   void executableCopy(void* buffer);
   void processCodeLabels(uint8_t* rawCode);
+  void processDataLabels(uint8_t* rawCode, JitCode* code);
   void copyJumpRelocationTable(uint8_t* dest);
   void copyDataRelocationTable(uint8_t* dest);
+  void copyDataSection(uint8_t* dest);
 
   // Size of the instruction stream, in bytes.
   size_t size() const { return masm.size(); }
   // Size of the jump relocation table, in bytes.
-  size_t jumpRelocationTableBytes() const { return jumpRelocations_.length(); }
-  size_t dataRelocationTableBytes() const { return dataRelocations_.length(); }
+  size_t dataSectionBytes() const {
+    return dataGCSection_.length() * sizeof(void*) +
+           dataValueSection_.length() * sizeof(Value) +
+           dataJitSection_.length() * sizeof(JitCode*);
+  }
 
   // Size of executable code, in bytes.
   size_t execSize() const { return size(); }
 
   // Size of the data table, in bytes.
   size_t dataSize() const {
-    return jumpRelocationTableBytes() + dataRelocationTableBytes();
+    return dataSectionBytes();
   }
 
  public:

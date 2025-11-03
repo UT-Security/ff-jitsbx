@@ -26,17 +26,20 @@ namespace jit {
 class JitCode;
 class MacroAssembler;
 
-// Header at start of raw code buffer
-struct JitCodeHeader {
-  // Link back to corresponding gcthing
-  JitCode* jitCode_;
 
-  void init(JitCode* jitCode);
+// All JitCode allocations are prefixed by a tiny function which only goal is to
+// return the JitCode pointer for the class which is referencing the JitCode.
+// This is necessary to keep the generated code alive while there are any
+// reference live on the stack.
+using GetJitCode = JitCode* (*)();
 
-  static JitCodeHeader* FromExecutable(uint8_t* buffer) {
-    return (JitCodeHeader*)(buffer - sizeof(JitCodeHeader));
-  }
-};
+// Size of the code which is generated at the beginning of the JitCode
+// Executable pages.
+#ifdef JS_SANDBOX
+const size_t JitCodeHeaderSize = 32;
+#else
+const size_t JitCodeHeaderSize = 16;
+#endif
 
 class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   friend class gc::CellAllocator;
@@ -48,11 +51,15 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   // aligned(Executable.xStart + sizeof(JitCodeHeader))
   uint8_t* raw() const { return headerPtr(); }
 
+  // The executable is allocated and aligned, the headerSize can be larger than
+  // JitCodeHeaderSize, and the header should be at an offset from the code
+  // entry point. (see FromExecutable)
+  uint8_t* header() const { return raw() - JitCodeHeaderSize; }
+
  protected:
   Executable executable_;
   uint32_t insnSize_;    // Instruction stream size.
-  uint32_t jumpRelocTableBytes_;  // Size of the jump relocation table.
-  uint32_t dataRelocTableBytes_;  // Size of the data relocation table.
+  uint32_t dataSectionBytes_;     // Size of the data section.
   uint32_t constantsTableBytes_;   // Size of constants table.
   uint8_t headerSize_ : 6;        // Number of bytes allocated before codeStart.
   bool invalidated_ : 1;     // Whether the code object has been invalidated.
@@ -65,8 +72,7 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
       : TenuredCellWithNonGCPointer((uint8_t*)exec.xStart + headerSize),
         executable_(std::move(exec)),
         insnSize_(0),
-        jumpRelocTableBytes_(0),
-        dataRelocTableBytes_(0),
+        dataSectionBytes_(0),
         constantsTableBytes_(0),
         headerSize_(headerSize),
         invalidated_(false),
@@ -77,12 +83,11 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   uint32_t dataOffset() const {
       return 0;
   }
-  uint32_t jumpRelocTableOffset() const { return dataOffset(); }
-  uint32_t dataRelocTableOffset() const {
-    return jumpRelocTableOffset() + jumpRelocTableBytes_;
+  uint32_t dataSectionOffset() const {
+    return dataOffset();
   }
   uint32_t constantsTableOffset() const {
-    return dataRelocTableOffset() + dataRelocTableBytes_;
+    return dataSectionOffset() + dataSectionBytes_;
   }
 
   uint32_t dataSize() const {
@@ -90,14 +95,17 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
   }
 
  public:
+  size_t dataSectionEntries() const {
+    return dataSectionBytes_ / sizeof(gc::Cell*);  
+  }
+  
   uint8_t* dataRaw() const {
     if (executable_.desc.rwSize) {
       return (uint8_t*)executable_.rwStart;
     }
     return rawEnd();
   }
-  uint8_t* jumpRelocTable() const { return &dataRaw()[jumpRelocTableOffset()]; }
-  uint8_t* dataRelocTable() const { return &dataRaw()[dataRelocTableOffset()]; }
+  uint8_t* dataSection() const { return &dataRaw()[dataSectionOffset()]; }
   uint8_t* constantsTable() const { return &dataRaw()[constantsTableOffset()]; }
   uint8_t* dataRawEnd() const { return dataRaw() + dataSize(); }
 
@@ -133,9 +141,15 @@ class JitCode : public gc::TenuredCellWithNonGCPointer<uint8_t> {
 
   void copyFrom(MacroAssembler& masm);
 
-  static JitCode* FromExecutable(uint8_t* buffer) {
-    JitCode* code = JitCodeHeader::FromExecutable(buffer)->jitCode_;
-    MOZ_ASSERT(code->raw() == buffer);
+  static JitCode* FromExecutable(uint8_t* entry) {
+    // The JitCode pointer associated with this entry point is stored in the
+    // early bits of the executable code. At an offset ahead which let us encode
+    // enough instruction to encode the code pointer, and which can be returned
+    // once called.
+    uint8_t* fetchJitCode = entry - JitCodeHeaderSize;
+    GetJitCode fetch = reinterpret_cast<GetJitCode>(fetchJitCode);
+    JitCode* code = fetch();
+    MOZ_RELEASE_ASSERT(code->raw() == entry);
     return code;
   }
 

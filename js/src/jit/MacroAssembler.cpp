@@ -3381,7 +3381,9 @@ void MacroAssembler::finish() {
       size() <= MaxCodeBytesPerProcess,
       "AssemblerBuffer should ensure we don't exceed MaxCodeBytesPerProcess");
 
-  if (bytesNeeded() > MaxCodeBytesPerProcess) {
+  if (dataIsExec && bytesNeeded() > MaxCodeBytesPerProcess) {
+    setOOM();
+  } else if (!dataIsExec && (execSize() > MaxCodeBytesPerProcess || dataSize() > MaxDataBytesPerProcess)) {
     setOOM();
   }
 }

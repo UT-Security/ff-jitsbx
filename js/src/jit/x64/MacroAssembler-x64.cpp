@@ -474,18 +474,26 @@ void MacroAssemblerX64::finish(bool dataIsExec) {
 
   if (dataIsExec) {
     if (!doubles_.empty()) {
-      masm.haltingAlign(sizeof(double));
+      masm.haltingAlign(CodeAlignment);
     }
     for (const Double& d : doubles_) {
+      if (masm.size() % CodeAlignment == 0) {
+        AutoBundleGroupScope bundle(*this);
+        masm.haltingAlignOne(sizeof(double));
+      }
       bindOffsets(d.uses);
       AutoBundleInstructionScope bundle(*this);
       masm.doubleConstant(d.value);
     }
 
     if (!floats_.empty()) {
-      masm.haltingAlign(sizeof(float));
+      masm.haltingAlign(CodeAlignment);
     }
     for (const Float& f : floats_) {
+      if (masm.size() % CodeAlignment == 0) {
+        AutoBundleGroupScope bundle(*this);
+        masm.haltingAlignOne(sizeof(float));
+      }
       bindOffsets(f.uses);
       AutoBundleInstructionScope bundle(*this);
       masm.floatConstant(f.value);
@@ -493,9 +501,13 @@ void MacroAssemblerX64::finish(bool dataIsExec) {
 
     // SIMD memory values must be suitably aligned.
     if (!simds_.empty()) {
-      masm.haltingAlign(SimdMemoryAlignment);
+      masm.haltingAlign(CodeAlignment);
     }
     for (const SimdData& v : simds_) {
+      if (masm.size() % CodeAlignment == 0) {
+        AutoBundleGroupScope bundle(*this);
+        masm.haltingAlignOne(SimdMemoryAlignment);
+      }
       bindOffsets(v.uses);
       AutoBundleInstructionScope bundle(*this);
       masm.simd128Constant(v.value.bytes());
@@ -889,8 +901,23 @@ void MacroAssembler::moveValue(const ValueOperand& src,
 }
 
 void MacroAssembler::moveValue(const Value& src, const ValueOperand& dest) {
-  movWithPatch(ImmWord(src.asRawBits()), dest.valueReg());
-  writeDataRelocation(src);
+  if (!src.isGCThing()) {
+    movePtr(ImmWord(src.asRawBits()), dest.valueReg());
+    return;
+  }
+
+  {
+    AutoBundleInstructionScope bundle(*this);
+    masm.movq_i64r(0x0123, dest.valueReg().encoding());
+    bundle.end();
+  }
+  auto offset = CodeOffset(masm.currentOffset());
+  {
+    AutoBundleInstructionScope bundle(*this);
+    masm.movq_mr(0, dest.valueReg().encoding(), dest.valueReg().encoding());
+    bundle.end();
+  }
+  writeDataSection(offset, src);
 }
 
 // ===============================================================

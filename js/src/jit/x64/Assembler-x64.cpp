@@ -111,13 +111,15 @@ ABIArg ABIArgGenerator::next(MIRType type) {
 }
 
 void Assembler::addPendingJump(JmpSrc src, ImmPtr target,
-                               RelocationKind reloc) {
+                               RelocationKind reloc, JitCode* code) {
   MOZ_ASSERT(target.value != nullptr);
 
   // Emit reloc before modifying the jump table, since it computes a 0-based
   // index. This jump is not patchable at runtime.
   if (reloc == RelocationKind::JITCODE) {
-    jumpRelocations_.writeUnsigned(src.offset());
+    MOZ_ASSERT(code);
+    MOZ_ASSERT(code->raw() == target.value);
+    writeDataSection(code);
   }
 
   static_assert(MaxCodeBytesPerProcess <= uint64_t(2) * 1024 * 1024 * 1024,
@@ -236,27 +238,3 @@ class RelocationIterator {
 
   uint32_t offset() const { return offset_; }
 };
-
-JitCode* Assembler::CodeFromJump(JitCode* code, uint8_t* jump) {
-  MOZ_ASSERT(code->containsNativePC(jump),
-             "Jump instruction should be in the generated code");
-  uint8_t* target = (uint8_t*)X86Encoding::GetRel32Target(jump);
-
-  MOZ_ASSERT(!code->containsNativePC(target),
-             "Extended jump table not used for cross-JitCode jumps");
-
-  return JitCode::FromExecutable(target);
-}
-
-void Assembler::TraceJumpRelocations(JSTracer* trc, JitCode* code,
-                                     CompactBufferReader& reader) {
-  RelocationIterator iter(reader);
-  while (iter.read()) {
-    // JmpSrc's CodeOffset returned while producing code.
-    uint8_t* jump = code->raw() + iter.offset();
-    // Extract value encoded in generated code.
-    JitCode* child = CodeFromJump(code, jump);
-    TraceManuallyBarrieredEdge(trc, &child, "rel32");
-    MOZ_ASSERT(child == CodeFromJump(code, code->raw() + iter.offset()));
-  }
-}

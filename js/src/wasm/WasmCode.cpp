@@ -303,6 +303,8 @@ UniqueModuleSegment ModuleSegment::create(Tier tier, MacroAssembler& masm,
 
   masm.executableCopy(codeBytes.get());
 
+  MOZ_ASSERT(masm.dataSectionBytes() == 0, "Unexpected data section in WASM");
+
   return js::MakeUnique<ModuleSegment>(tier, std::move(codeBytes), codeLength,
                                        linkData);
 }

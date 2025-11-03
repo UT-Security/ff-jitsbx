@@ -1836,6 +1836,8 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   masm.processCodeLabels(thunks->codeBase);
   PatchDebugSymbolicAccesses(thunks->codeBase, masm);
 
+  MOZ_ASSERT(masm.dataSectionBytes() == 0, "Unexpected data section in WASM");
+
   MOZ_ASSERT(masm.callSites().empty());
   MOZ_ASSERT(masm.callSiteTargets().empty());
   MOZ_ASSERT(masm.trapSites().empty());
