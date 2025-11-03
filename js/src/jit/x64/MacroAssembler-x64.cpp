@@ -469,35 +469,37 @@ void MacroAssemblerX64::bindOffsets(
   }
 }
 
-void MacroAssemblerX64::finish() {
+void MacroAssemblerX64::finish(bool dataIsExec) {
   masm.haltingAlign(CodeAlignment);
-  
-  if (!doubles_.empty()) {
-    masm.haltingAlign(sizeof(double));
-  }
-  for (const Double& d : doubles_) {
-    bindOffsets(d.uses);
-    AutoBundleInstructionScope bundle(*this);
-    masm.doubleConstant(d.value);
-  }
 
-  if (!floats_.empty()) {
-    masm.haltingAlign(sizeof(float));
-  }
-  for (const Float& f : floats_) {
-    bindOffsets(f.uses);
-    AutoBundleInstructionScope bundle(*this);
-    masm.floatConstant(f.value);
-  }
+  if (dataIsExec) {
+    if (!doubles_.empty()) {
+      masm.haltingAlign(sizeof(double));
+    }
+    for (const Double& d : doubles_) {
+      bindOffsets(d.uses);
+      AutoBundleInstructionScope bundle(*this);
+      masm.doubleConstant(d.value);
+    }
 
-  // SIMD memory values must be suitably aligned.
-  if (!simds_.empty()) {
-    masm.haltingAlign(SimdMemoryAlignment);
-  }
-  for (const SimdData& v : simds_) {
-    bindOffsets(v.uses);
-    AutoBundleInstructionScope bundle(*this);
-    masm.simd128Constant(v.value.bytes());
+    if (!floats_.empty()) {
+      masm.haltingAlign(sizeof(float));
+    }
+    for (const Float& f : floats_) {
+      bindOffsets(f.uses);
+      AutoBundleInstructionScope bundle(*this);
+      masm.floatConstant(f.value);
+    }
+
+    // SIMD memory values must be suitably aligned.
+    if (!simds_.empty()) {
+      masm.haltingAlign(SimdMemoryAlignment);
+    }
+    for (const SimdData& v : simds_) {
+      bindOffsets(v.uses);
+      AutoBundleInstructionScope bundle(*this);
+      masm.simd128Constant(v.value.bytes());
+    }
   }
 
   MacroAssemblerX86Shared::finish();

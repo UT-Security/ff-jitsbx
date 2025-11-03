@@ -356,11 +356,20 @@ class MacroAssembler : public MacroAssemblerSpecific {
   // Labels for handling exceptions and failures.
   NonAssertingLabel failureLabel_;
 
+  // Record whether the code should be generated such that the data would be
+  // held in a separate data section instead of being part of the executable
+  // section.
+  //
+  // This field should remain unchanged over the execution and linkage of the
+  // generated code.
+  const bool useDataSection_;
+
  protected:
   // Constructor is protected. Use one of the derived classes!
   explicit MacroAssembler(TempAllocator& alloc,
                           CompileRuntime* maybeRuntime = nullptr,
-                          CompileRealm* maybeRealm = nullptr);
+                          CompileRealm* maybeRealm = nullptr,
+                          bool useDataSection = true);
 
  public:
   MoveResolver& moveResolver() {
@@ -5398,6 +5407,7 @@ class MacroAssembler : public MacroAssemblerSpecific {
 
   Label* failureLabel() { return &failureLabel_; }
 
+  bool useDataSection() const { return useDataSection_; }
   void finish();
   void link(JitCode* code);
 

@@ -1,6 +1,7 @@
 #include "gdb-tests.h"
 
 #include "jit/ExecutableAllocator.h"
+#include "js/Vector.h"
 #include "vm/JSContext.h"
 
 FRAGMENT(ExecutableAllocator, empty) {
@@ -15,11 +16,11 @@ FRAGMENT(ExecutableAllocator, empty) {
 FRAGMENT(ExecutableAllocator, onepool) {
   using namespace js::jit;
   ExecutableAllocator execAlloc;
-  Executable exec(execAlloc.alloc(cx, 16 * 1024, CodeKind::Baseline));
+  Executable exec(execAlloc.alloc(cx, ExecutableDesc{16 * 1024, 0, CodeKind::Baseline}));
 
   breakpoint();
 
-  use(exec);
+  exec.discard(nullptr);
   use(execAlloc);
 }
 
@@ -27,24 +28,28 @@ FRAGMENT(ExecutableAllocator, twopools) {
   using namespace js::jit;
   const size_t INIT_ALLOC_SIZE = 16 * 1024;
   const size_t ALLOC_SIZE = 32 * 1024;
+  const ExecutableDesc baselineAlloc{INIT_ALLOC_SIZE, 0, CodeKind::Baseline};
+  const ExecutableDesc ionAlloc{ALLOC_SIZE, 0, CodeKind::Ion};
+  
   ExecutableAllocator execAlloc;
-  size_t allocated = 0;
+  js::Vector<Executable> allocated(cx);
 
-  Executable xInit(execAlloc.alloc(cx, INIT_ALLOC_SIZE, CodeKind::Baseline));
-  Executable xAlloc(execAlloc.alloc(cx, ALLOC_SIZE, CodeKind::Ion));
-  allocated += ALLOC_SIZE;
+  Executable xInit(execAlloc.alloc(cx, baselineAlloc));
+  if (!allocated.append(std::move(xInit))) {
+    return;
+  }
 
-  while (true) {  // Keep allocating until we get a second pool.
-    if (xInit.pool != xAlloc.pool) break;
-    // This should not appear in our code base... And there is no reason to add
-    // an operator= for replacing the content only for the test case.
-    new (&xAlloc) Executable(execAlloc.alloc(cx, ALLOC_SIZE, CodeKind::Ion));
-    allocated += ALLOC_SIZE;
+  // Keep allocating until we get a second pool.
+  while (allocated[0].pool == allocated.back().pool) {
+    Executable xAlloc(execAlloc.alloc(cx, ionAlloc));
+    if (!allocated.append(std::move(xInit))) {
+      return;
+    }
   };
 
   breakpoint();
-
-  xInit.pool->release(INIT_ALLOC_SIZE, CodeKind::Baseline);
-  xInit.pool->release(allocated - ALLOC_SIZE, CodeKind::Ion);
-  xInit.pool->release(ALLOC_SIZE, CodeKind::Ion);
+  for (Executable& exec : allocated) {
+    exec.discard(nullptr);
+  }
+  allocated.clear();
 }

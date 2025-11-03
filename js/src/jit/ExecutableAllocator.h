@@ -50,25 +50,69 @@ enum class CodeKind : uint8_t { Ion, Baseline, RegExp, Other, Count };
 
 class ExecutablePool;
 class ExecutablePoolAllocator;
+class ReadWritePool;
+class ReadWritePoolAllocator;
+
+struct ExecutableDesc {
+  // Size of the executable memory area.
+  uint32_t xSize = 0;
+
+  // Size of the read-write memory area.
+  uint32_t rwSize = 0;
+
+  // Reason used to allocate this memory, stored to report to the memory
+  // reporter.
+  CodeKind kind = CodeKind::Count;
+};
 
 struct Executable {
   // Move the content out of the source, and reset all pointers from the source
   // to keep only one reference to it.
-  explicit Executable(Executable&& src)
+  Executable(Executable&& src)
       : xStart(std::exchange(src.xStart, nullptr)),
-        pool(std::exchange(src.pool, nullptr)) {};
+        rwStart(std::exchange(src.rwStart, nullptr)),
+        pool(std::exchange(src.pool, nullptr)),
+        rwPool(std::exchange(src.rwPool, nullptr)),
+        desc(src.desc) {};
+
+  ~Executable() {
+    MOZ_ASSERT(!xStart,
+               "The Executable has neither been moved nor discarded"
+               " before being destroyed.");
+  }
 
   // Memory location where the executable memory starts.
   void* xStart;
 
+  // Memory location where the read-write memory starts.
+  void* rwStart;
+
   // ExecutablePool in which the executable memory is allocated.
   ExecutablePool* pool;
 
+  // ReadWritePool in which read-write memory is allocated.
+  ReadWritePool* rwPool;
+
+  // Description of the allocation content.
+  const ExecutableDesc desc;
+
   // To check for returned values.
-  operator bool() const {
+  explicit operator bool() const {
     MOZ_ASSERT_IF(xStart, pool);
+    MOZ_ASSERT_IF(rwStart, rwPool);
     return bool(xStart);
   }
+
+#ifdef DEBUG
+  void assertInvariants();
+#else
+  inline void assertInvariants() {}
+#endif
+
+  // Discard the current memory region, it should no longer be used after this
+  // call. All fields are reset once the memory is "released". The reclaiming of
+  // the memory happen when all allocations of an ExecutablePool are "released".
+  void discard(JS::GCContext* gcx);
 
  private:
   // Only allow move operations outside of the ExecutableAllocator.
@@ -76,12 +120,38 @@ struct Executable {
   explicit Executable(const Executable&) = delete;
 
   // Only allow creation made by the ExecutableAllocator.
+  friend class ExecutablePool;
+  friend class ReadWritePool;
   friend class ExecutableAllocator;
 
-  Executable(void* allocated, ExecutablePool* pool)
-      : xStart(allocated), pool(pool) {}
+  Executable(void* xAlloc, void* rwAlloc, ExecutablePool* pool,
+             ReadWritePool* rwPool, const ExecutableDesc& desc)
+      : xStart(xAlloc),
+        rwStart(rwAlloc),
+        pool(pool),
+        rwPool(rwPool),
+        desc(desc) {}
 
-  explicit Executable(std::nullptr_t) : xStart(nullptr), pool(nullptr) {}
+  explicit Executable(std::nullptr_t)
+      : xStart(nullptr),
+        rwStart(nullptr),
+        pool(nullptr),
+        rwPool(nullptr),
+        desc() {}
+
+  // Used to merge the allocation of the executable pages with the allocation of
+  // the data pages.
+  explicit Executable(Executable&& exec, Executable&& data)
+      : xStart(std::exchange(exec.xStart, nullptr)),
+        rwStart(std::exchange(data.rwStart, nullptr)),
+        pool(std::exchange(exec.pool, nullptr)),
+        rwPool(std::exchange(data.rwPool, nullptr)),
+        desc(exec.desc) {
+    MOZ_ASSERT(exec.rwStart == nullptr);
+    MOZ_ASSERT(exec.rwPool == nullptr);
+    MOZ_ASSERT(data.xStart == nullptr);
+    MOZ_ASSERT(data.pool == nullptr);
+  };
 };
 
 // These are reference-counted. A new one starts with a count of 1.
@@ -89,6 +159,8 @@ class ExecutablePool {
   friend class ExecutablePoolAllocator;
   // Access internal to protect allocated regions.
   friend class ExecutableAllocator;
+  // Asserts that pages which are released are contained in the pool.
+  friend struct Executable;
 
  private:
   struct Allocation {
@@ -112,7 +184,7 @@ class ExecutablePool {
 
  public:
   void release(bool willDestroy = false);
-  void release(size_t n, CodeKind kind);
+  void release(const ExecutableDesc& desc);
 
   void addRef();
 
@@ -144,7 +216,7 @@ class ExecutablePool {
   ExecutablePool(const ExecutablePool&) = delete;
   void operator=(const ExecutablePool&) = delete;
 
-  void* alloc(size_t n, CodeKind kind);
+  Executable alloc(const ExecutableDesc& desc);
 
   size_t available() const;
 
@@ -153,6 +225,83 @@ class ExecutablePool {
   size_t usedCodeBytes() const {
     size_t res = 0;
     for (size_t count : m_codeBytes) {
+      res += count;
+    }
+    return res;
+  }
+};
+
+// These are reference-counted. A new one starts with a count of 1.
+class ReadWritePool {
+  friend class ExecutablePoolAllocator;
+  // Access internal to protect allocated regions.
+  friend class ExecutableAllocator;
+  // Asserts that pages which are released are contained in the pool.
+  friend struct Executable;
+
+ private:
+  struct Allocation {
+    char* pages;
+    size_t size;
+  };
+
+  ExecutablePoolAllocator* m_allocator;
+  char* m_freePtr;
+  char* m_end;
+  Allocation m_allocation;
+
+  // Reference count for automatic reclamation.
+  unsigned m_refCount : 31;
+
+  // Flag that can be used by algorithms operating on pools.
+  bool m_mark : 1;
+
+  // Number of bytes currently allocated for each CodeKind.
+  mozilla::EnumeratedArray<CodeKind, CodeKind::Count, size_t> m_dataBytes;
+
+ public:
+  void release(bool willDestroy = false);
+  void release(const ExecutableDesc& desc);
+
+  void addRef();
+
+  ReadWritePool(ExecutablePoolAllocator* allocator, Allocation a)
+      : m_allocator(allocator),
+        m_freePtr(a.pages),
+        m_end(m_freePtr + a.size),
+        m_allocation(a),
+        m_refCount(1),
+        m_mark(false) {
+    for (size_t& count : m_dataBytes) {
+      count = 0;
+    }
+  }
+
+  ~ReadWritePool();
+
+  void mark() {
+    MOZ_ASSERT(!m_mark);
+    m_mark = true;
+  }
+  void unmark() {
+    MOZ_ASSERT(m_mark);
+    m_mark = false;
+  }
+  bool isMarked() const { return m_mark; }
+
+ private:
+  ReadWritePool(const ReadWritePool&) = delete;
+  void operator=(const ReadWritePool&) = delete;
+
+  Executable alloc(const ExecutableDesc& desc);
+
+  size_t available() const;
+
+  // Returns the number of bytes that are currently in use (referenced by
+  // live JitCode objects).
+  size_t usedDataBytes() const {
+    size_t res = 0;
+    for (size_t count : m_dataBytes) {
       res += count;
     }
     return res;
@@ -178,6 +327,7 @@ class ExecutablePoolAllocator {
   void purge();
 
   void releasePoolPages(ExecutablePool* pool);
+  void releasePoolPages(ReadWritePool* pool);
 
   void addSizeOfCode(JS::CodeSizes* sizes) const;
 
@@ -185,24 +335,31 @@ class ExecutablePoolAllocator {
   friend class ExecutableAllocator;
 
   // On OOM, this will return an Allocation where pages is nullptr.
-  ExecutablePool::Allocation systemAlloc(size_t n);
-  static void systemRelease(const ExecutablePool::Allocation& alloc);
+  ExecutablePool::Allocation systemExecAlloc(size_t n);
+  static void systemExecRelease(const ExecutablePool::Allocation& alloc);
 
-  ExecutablePool* createPool(size_t n);
-  ExecutablePool* poolForSize(size_t n);
+  ReadWritePool::Allocation systemDataAlloc(size_t n);
+  static void systemDataRelease(const ReadWritePool::Allocation& alloc);
 
-  static void reprotectPool(JSRuntime* rt, ExecutablePool* pool,
-                            ProtectionSetting protection,
-                            MustFlushICache flushICache);
+  ExecutablePool* createExecPool(const ExecutableDesc& least);
+  ExecutablePool* execPoolForSize(const ExecutableDesc& lest);
+
+  ReadWritePool* createDataPool(const ExecutableDesc& least);
+  ReadWritePool* dataPoolForSize(const ExecutableDesc& lest);
 
   ExecutablePoolAllocator(const ExecutablePoolAllocator&) = delete;
   void operator=(const ExecutablePoolAllocator&) = delete;
 
   // These are strong references;  they keep pools alive.
   static const size_t maxSmallPools = 4;
+
   typedef js::Vector<ExecutablePool*, maxSmallPools, js::SystemAllocPolicy>
       SmallExecPoolVector;
-  SmallExecPoolVector m_smallPools;
+  SmallExecPoolVector smallExecPools;
+
+  typedef js::Vector<ReadWritePool*, maxSmallPools, js::SystemAllocPolicy>
+      SmallDataPoolVector;
+  SmallDataPoolVector smallDataPools;
 
   // All live pools are recorded here, just for stats purposes.  These are
   // weak references;  they don't keep pools alive.  When a pool is destroyed
@@ -210,7 +367,12 @@ class ExecutablePoolAllocator {
   typedef js::HashSet<ExecutablePool*, js::DefaultHasher<ExecutablePool*>,
                       js::SystemAllocPolicy>
       ExecPoolHashSet;
-  ExecPoolHashSet m_pools;  // All pools, just for stats purposes.
+  ExecPoolHashSet xPools;  // All pools, just for stats purposes.
+
+  typedef js::HashSet<ReadWritePool*, js::DefaultHasher<ReadWritePool*>,
+                      js::SystemAllocPolicy>
+      DataPoolHashSet;
+  DataPoolHashSet rwPools;  // All pools, just for stats purposes.
 };
 
 class ExecutableAllocator {
@@ -223,9 +385,13 @@ class ExecutableAllocator {
   // alloc() returns a pointer to some memory, and also (by reference) a
   // pointer to reference-counted pool. The caller owns a reference to the
   // pool; i.e. alloc() increments the count before returning the object.
-  Executable alloc(JSContext* cx, size_t n, CodeKind type);
+  Executable alloc(JSContext* cx, const ExecutableDesc& desc);
 
   void releasePoolPages(ExecutablePool* pool) {
+    poolAlloc.releasePoolPages(pool);
+  }
+
+  void releasePoolPages(ReadWritePool* pool) {
     poolAlloc.releasePoolPages(pool);
   }
 

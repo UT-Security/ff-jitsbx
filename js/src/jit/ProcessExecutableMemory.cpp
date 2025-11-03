@@ -326,7 +326,9 @@ static void UnregisterExecutableMemory(void* p, size_t bytes, size_t pageSize) {
 }
 #  endif
 
-static void* ReserveProcessExecutableMemory(size_t bytes) {
+static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
+  size_t bytes = xBytes + rwBytes;
+  
 #  ifdef NEED_JIT_UNWIND_HANDLING
   size_t pageSize = gc::SystemPageSize();
   // Always reserve space for the unwind information.
@@ -351,7 +353,7 @@ static void* ReserveProcessExecutableMemory(size_t bytes) {
   }
 
 #  ifdef NEED_JIT_UNWIND_HANDLING
-  if (RegisterExecutableMemory(p, bytes, pageSize)) {
+  if (RegisterExecutableMemory(p, xBytes, pageSize)) {
     sHasInstalledFunctionTable = true;
   } else {
     if (sJitExceptionHandler) {
@@ -366,20 +368,20 @@ static void* ReserveProcessExecutableMemory(size_t bytes) {
   p = (uint8_t*)p + pageSize;
   bytes -= pageSize;
 
-  RegisterJitCodeRegion((uint8_t*)p, bytes);
+  RegisterJitCodeRegion((uint8_t*)p, xBytes);
 #  endif
   return p;
 }
 
-static void DeallocateProcessExecutableMemory(void* addr, size_t bytes) {
+static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
 #  ifdef NEED_JIT_UNWIND_HANDLING
-  UnregisterJitCodeRegion((uint8_t*)addr, bytes);
+  UnregisterJitCodeRegion((uint8_t*)addr, xBytes);
 
   size_t pageSize = gc::SystemPageSize();
   addr = (uint8_t*)addr - pageSize;
 
   if (sHasInstalledFunctionTable) {
-    UnregisterExecutableMemory(addr, bytes, pageSize);
+    UnregisterExecutableMemory(addr, xBytes, pageSize);
   }
 #  endif
 
@@ -416,11 +418,11 @@ static void DecommitPages(void* addr, size_t bytes) {
 }
 #elif defined(__wasi__)
 #  if defined(JS_CODEGEN_WASM32)
-static void* ReserveProcessExecutableMemory(size_t bytes) {
-  return malloc(bytes);
+static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
+  return malloc(xBytes + rwBytes);
 }
 
-static void DeallocateProcessExecutableMemory(void* addr, size_t bytes) {
+static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
   free(addr);
 }
 
@@ -432,11 +434,11 @@ static void DeallocateProcessExecutableMemory(void* addr, size_t bytes) {
 static void DecommitPages(void* addr, size_t bytes) {}
 
 #  else
-static void* ReserveProcessExecutableMemory(size_t bytes) {
+static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
   MOZ_CRASH("NYI for WASI.");
   return nullptr;
 }
-static void DeallocateProcessExecutableMemory(void* addr, size_t bytes) {
+static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
   MOZ_CRASH("NYI for WASI.");
 }
 [[nodiscard]] static bool CommitPages(void* addr, size_t bytes,
@@ -482,21 +484,22 @@ static void* ComputeRandomAllocationAddress() {
 #  endif
 }
 
-static void* ReserveProcessExecutableMemory(size_t bytes) {
+static void* ReserveProcessJitMemory(size_t xBytes, size_t rwBytes) {
   // Note that randomAddr is just a hint: if the address is not available
   // mmap will pick a different address.
+  size_t bytes = xBytes + rwBytes;
   void* randomAddr = ComputeRandomAllocationAddress();
   void* p = MozTaggedAnonymousMmap(randomAddr, bytes, PROT_NONE,
                                    MAP_NORESERVE | MAP_PRIVATE | MAP_ANON, -1,
-                                   0, "js-executable-memory");
+                                   0, "js-jit-memory");
   if (p == MAP_FAILED) {
     return nullptr;
   }
   return p;
 }
 
-static void DeallocateProcessExecutableMemory(void* addr, size_t bytes) {
-  mozilla::DebugOnly<int> result = munmap(addr, bytes);
+static void DeallocateProcessJitMemory(void* addr, size_t xBytes, size_t rwBytes) {
+  mozilla::DebugOnly<int> result = munmap(addr, xBytes + rwBytes);
   MOZ_ASSERT(!result || errno == ENOMEM);
 }
 
@@ -603,7 +606,9 @@ class PageBitSet {
 };
 
 // Per-process executable memory allocator. It reserves a block of memory of
-// MaxCodeBytesPerProcess bytes, then allocates/deallocates pages from that.
+// MaxCodeBytesPerProcess bytes for executable section and
+// MaxDataBytesPerProcess bytes for the data section of JIT code, then
+// allocates/deallocates pages from these reserved memory regions.
 //
 // This has a number of benefits compared to raw mmap/VirtualAlloc:
 //
@@ -617,16 +622,26 @@ class PageBitSet {
 // * On Win64, we have to register the exception handler only once (at process
 //   startup). This saves some memory and avoids RtlAddFunctionTable profiler
 //   deadlocks.
-class ProcessExecutableMemory {
+class ProcessJitMemory {
   static_assert(
       (MaxCodeBytesPerProcess % ExecutableCodePageSize) == 0,
       "MaxCodeBytesPerProcess must be a multiple of ExecutableCodePageSize");
   static const size_t MaxCodePages =
       MaxCodeBytesPerProcess / ExecutableCodePageSize;
 
-  // Start of the MaxCodeBytesPerProcess memory block or nullptr if
-  // uninitialized. Note that this is NOT guaranteed to be aligned to
-  // ExecutableCodePageSize.
+  static_assert(
+      (MaxDataBytesPerProcess % ReadWriteDataPageSize) == 0,
+      "MaxDataBytesPerProcess must be a multiple of ReadWriteDataPageSize");
+
+  static const size_t MaxDataPages =
+      MaxDataBytesPerProcess / ReadWriteDataPageSize;
+
+  static const size_t MaxJitMemoryPerProcess =
+      MaxCodeBytesPerProcess + MaxDataBytesPerProcess;
+
+  // Start of the MaxCodeBytesPerProcess and MaxDataBytesPerProcess memory
+  // blocks or nullptr if uninitialized. Note that this is NOT guaranteed to be
+  // aligned to ExecutableCodePageSize.
   uint8_t* base_;
 
   // The fields below should only be accessed while we hold the lock.
@@ -634,31 +649,43 @@ class ProcessExecutableMemory {
 
   // pagesAllocated_ is an Atomic so that bytesAllocated does not have to
   // take the lock.
-  mozilla::Atomic<size_t, mozilla::ReleaseAcquire> pagesAllocated_;
+  mozilla::Atomic<size_t, mozilla::ReleaseAcquire> xPagesAllocated_;
+  mozilla::Atomic<size_t, mozilla::ReleaseAcquire> rwPagesAllocated_;
 
-  // Page where we should try to allocate next.
-  size_t cursor_;
+  // Page where we should try to allocate the next executable pages.
+  size_t xCursor_;
+  // Page where we should try to allocate the next data pages.
+  size_t rwCursor_;
 
   mozilla::Maybe<mozilla::non_crypto::XorShift128PlusRNG> rng_;
-  PageBitSet<MaxCodePages> pages_;
+
+  // Set of executable pages which are already allocated.
+  PageBitSet<MaxCodePages> xPages_;
+
+  // Set of data pages which are already allocated.
+  PageBitSet<MaxCodePages> rwPages_;
 
  public:
-  ProcessExecutableMemory()
+  ProcessJitMemory()
       : base_(nullptr),
         lock_(mutexid::ProcessExecutableRegion),
-        pagesAllocated_(0),
-        cursor_(0),
+        xPagesAllocated_(0),
+        rwPagesAllocated_(0),
+        xCursor_(0),
+        rwCursor_(0),
         rng_(),
-        pages_() {}
+        xPages_(),
+        rwPages_() {}
 
   [[nodiscard]] bool init() {
-    pages_.init();
+    xPages_.init();
+    rwPages_.init();
 
     MOZ_RELEASE_ASSERT(!initialized());
     MOZ_RELEASE_ASSERT(HasJitBackend());
     MOZ_RELEASE_ASSERT(gc::SystemPageSize() <= ExecutableCodePageSize);
 
-    void* p = ReserveProcessExecutableMemory(MaxCodeBytesPerProcess);
+    void* p = ReserveProcessJitMemory(MaxCodeBytesPerProcess, MaxDataBytesPerProcess);
     if (!p) {
       return false;
     }
@@ -676,37 +703,76 @@ class ProcessExecutableMemory {
   bool initialized() const { return base_ != nullptr; }
 
   size_t bytesAllocated() const {
-    MOZ_ASSERT(pagesAllocated_ <= MaxCodePages);
-    return pagesAllocated_ * ExecutableCodePageSize;
+    MOZ_ASSERT(xPagesAllocated_ <= MaxCodePages);
+    MOZ_ASSERT(rwPagesAllocated_ <= MaxDataPages);
+    return xPagesAllocated_ * ExecutableCodePageSize +
+           rwPagesAllocated_ * ReadWriteDataPageSize;
   }
 
   void release() {
     MOZ_ASSERT(initialized());
-    MOZ_ASSERT(pages_.empty());
-    MOZ_ASSERT(pagesAllocated_ == 0);
-    DeallocateProcessExecutableMemory(base_, MaxCodeBytesPerProcess);
+    MOZ_ASSERT(xPages_.empty());
+    MOZ_ASSERT(rwPages_.empty());
+    MOZ_ASSERT(xPagesAllocated_ == 0);
+    MOZ_ASSERT(rwPagesAllocated_ == 0);
+    DeallocateProcessJitMemory(base_, MaxCodeBytesPerProcess,
+                               MaxDataBytesPerProcess);
     base_ = nullptr;
     rng_.reset();
     MOZ_ASSERT(!initialized());
   }
 
-  void assertValidAddress(void* p, size_t bytes) const {
-    MOZ_RELEASE_ASSERT(p >= base_ &&
-                       uintptr_t(p) + bytes <=
-                           uintptr_t(base_) + MaxCodeBytesPerProcess);
+  const uint8_t* codeBase() const { return base_; }
+  const uint8_t* codeEnd() const { return codeBase() + MaxCodeBytesPerProcess; }
+  const uint8_t* dataBase() const { return codeEnd(); }
+  const uint8_t* dataEnd() const { return dataBase() + MaxDataBytesPerProcess; }
+
+  bool containsCodeAddressRange(const void* p, size_t bytes) const {
+    return p >= codeBase() && uintptr_t(p) + bytes < uintptr_t(codeEnd());
+  }
+
+  bool containsDataAddressRange(const void* p, size_t bytes) const {
+    return p >= dataBase() && uintptr_t(p) + bytes < uintptr_t(dataEnd());
+  }
+
+  void assertCodeValidAddress(void* p, size_t bytes) const {
+    MOZ_RELEASE_ASSERT(containsCodeAddressRange(p, bytes));
+  }
+
+  void assertDataValidAddress(void* p, size_t bytes) const {
+    MOZ_RELEASE_ASSERT(containsDataAddressRange(p, bytes));
+  }
+
+  void assertValidProtection(void* p, size_t bytes,
+                             ProtectionSetting protection) const {
+    if (containsCodeAddressRange(p, bytes)) {
+      MOZ_RELEASE_ASSERT(protection == ProtectionSetting::Executable ||
+                         protection == ProtectionSetting::Writable);
+      return;
+    }
+
+    MOZ_RELEASE_ASSERT(containsDataAddressRange(p, bytes));
+    MOZ_RELEASE_ASSERT(protection == ProtectionSetting::Writable);
   }
 
   bool containsAddress(const void* p) const {
-    return p >= base_ &&
-           uintptr_t(p) < uintptr_t(base_) + MaxCodeBytesPerProcess;
+    return containsCodeAddressRange(p, 0) || containsDataAddressRange(p, 0);
   }
 
-  void* allocate(size_t bytes, ProtectionSetting protection,
+  // Allocate enough pages to fit some executable bytes.
+  void* xAllocate(size_t bytes, ProtectionSetting protection,
                  MemCheckKind checkKind);
-  void deallocate(void* addr, size_t bytes, bool decommit);
+  // "Free" some executable allocations.
+  void xDeallocate(void* addr, size_t bytes, bool decommit);
+
+  // Allocate enough pages to fit some data bytes.
+  void* rwAllocate(size_t bytes, ProtectionSetting protection,
+                 MemCheckKind checkKind);
+  // "Free" some data allocations.
+  void rwDeallocate(void* addr, size_t bytes, bool decommit);
 };
 
-void* ProcessExecutableMemory::allocate(size_t bytes,
+void* ProcessJitMemory::xAllocate(size_t bytes,
                                         ProtectionSetting protection,
                                         MemCheckKind checkKind) {
   MOZ_ASSERT(initialized());
@@ -720,17 +786,17 @@ void* ProcessExecutableMemory::allocate(size_t bytes,
   void* p = nullptr;
   {
     LockGuard<Mutex> guard(lock_);
-    MOZ_ASSERT(pagesAllocated_ <= MaxCodePages);
+    MOZ_ASSERT(xPagesAllocated_ <= MaxCodePages);
 
     // Check if we have enough pages available.
-    if (pagesAllocated_ + numPages >= MaxCodePages) {
+    if (xPagesAllocated_ + numPages >= MaxCodePages) {
       return nullptr;
     }
 
     MOZ_ASSERT(bytes <= MaxCodeBytesPerProcess);
 
     // Maybe skip a page to make allocations less predictable.
-    size_t page = cursor_ + (rng_.ref().next() % 2);
+    size_t page = xCursor_ + (rng_.ref().next() % 2);
 
     for (size_t i = 0; i < MaxCodePages; i++) {
       // Make sure page + numPages - 1 is a valid index.
@@ -740,7 +806,7 @@ void* ProcessExecutableMemory::allocate(size_t bytes,
 
       bool available = true;
       for (size_t j = 0; j < numPages; j++) {
-        if (pages_.contains(page + j)) {
+        if (xPages_.contains(page + j)) {
           available = false;
           break;
         }
@@ -752,17 +818,17 @@ void* ProcessExecutableMemory::allocate(size_t bytes,
 
       // Mark the pages as unavailable.
       for (size_t j = 0; j < numPages; j++) {
-        pages_.insert(page + j);
+        xPages_.insert(page + j);
       }
 
-      pagesAllocated_ += numPages;
-      MOZ_ASSERT(pagesAllocated_ <= MaxCodePages);
+      xPagesAllocated_ += numPages;
+      MOZ_ASSERT(xPagesAllocated_ <= MaxCodePages);
 
       // If we allocated a small number of pages, move cursor_ to the
       // next page. We don't do this for larger allocations to avoid
       // skipping a large number of small holes.
       if (numPages <= 2) {
-        cursor_ = page + numPages;
+        xCursor_ = page + numPages;
       }
 
       p = base_ + page * ExecutableCodePageSize;
@@ -775,7 +841,7 @@ void* ProcessExecutableMemory::allocate(size_t bytes,
 
   // Commit the pages after releasing the lock.
   if (!CommitPages(p, bytes, protection)) {
-    deallocate(p, bytes, /* decommit = */ false);
+    xDeallocate(p, bytes, /* decommit = */ false);
     return nullptr;
   }
 
@@ -784,7 +850,7 @@ void* ProcessExecutableMemory::allocate(size_t bytes,
   return p;
 }
 
-void ProcessExecutableMemory::deallocate(void* addr, size_t bytes,
+void ProcessJitMemory::xDeallocate(void* addr, size_t bytes,
                                          bool decommit) {
   MOZ_ASSERT(initialized());
   MOZ_ASSERT(addr);
@@ -792,7 +858,7 @@ void ProcessExecutableMemory::deallocate(void* addr, size_t bytes,
   MOZ_ASSERT(bytes > 0);
   MOZ_ASSERT((bytes % ExecutableCodePageSize) == 0);
 
-  assertValidAddress(addr, bytes);
+  assertCodeValidAddress(addr, bytes);
 
   size_t firstPage =
       (static_cast<uint8_t*>(addr) - base_) / ExecutableCodePageSize;
@@ -805,53 +871,177 @@ void ProcessExecutableMemory::deallocate(void* addr, size_t bytes,
   }
 
   LockGuard<Mutex> guard(lock_);
-  MOZ_ASSERT(numPages <= pagesAllocated_);
-  pagesAllocated_ -= numPages;
+  MOZ_ASSERT(numPages <= xPagesAllocated_);
+  xPagesAllocated_ -= numPages;
 
   for (size_t i = 0; i < numPages; i++) {
-    pages_.remove(firstPage + i);
+    xPages_.remove(firstPage + i);
   }
 
   // Move the cursor back so we can reuse pages instead of fragmenting the
   // whole region.
-  if (firstPage < cursor_) {
-    cursor_ = firstPage;
+  if (firstPage < xCursor_) {
+    xCursor_ = firstPage;
   }
 }
 
-static ProcessExecutableMemory execMemory;
+void* ProcessJitMemory::rwAllocate(size_t bytes,
+                                        ProtectionSetting protection,
+                                        MemCheckKind checkKind) {
+  MOZ_ASSERT(initialized());
+  MOZ_ASSERT(HasJitBackend());
+  MOZ_ASSERT(bytes > 0);
+  MOZ_ASSERT((bytes % ReadWriteDataPageSize) == 0);
+
+  size_t numPages = bytes / ReadWriteDataPageSize;
+
+  // Take the lock and try to allocate.
+  void* p = nullptr;
+  {
+    LockGuard<Mutex> guard(lock_);
+    MOZ_ASSERT(rwPagesAllocated_ <= MaxDataPages);
+
+    // Check if we have enough pages available.
+    if (rwPagesAllocated_ + numPages >= MaxDataPages) {
+      return nullptr;
+    }
+
+    MOZ_ASSERT(bytes <= MaxDataBytesPerProcess);
+
+    // Maybe skip a page to make allocations less predictable.
+    size_t page = rwCursor_ + (rng_.ref().next() % 2);
+
+    for (size_t i = 0; i < MaxDataPages; i++) {
+      // Make sure page + numPages - 1 is a valid index.
+      if (page + numPages > MaxDataPages) {
+        page = 0;
+      }
+
+      bool available = true;
+      for (size_t j = 0; j < numPages; j++) {
+        if (rwPages_.contains(page + j)) {
+          available = false;
+          break;
+        }
+      }
+      if (!available) {
+        page++;
+        continue;
+      }
+
+      // Mark the pages as unavailable.
+      for (size_t j = 0; j < numPages; j++) {
+        rwPages_.insert(page + j);
+      }
+
+      rwPagesAllocated_ += numPages;
+      MOZ_ASSERT(rwPagesAllocated_ <= MaxDataPages);
+
+      // If we allocated a small number of pages, move cursor_ to the
+      // next page. We don't do this for larger allocations to avoid
+      // skipping a large number of small holes.
+      if (numPages <= 2) {
+        rwCursor_ = page + numPages;
+      }
+
+      p = base_ + page * ReadWriteDataPageSize + MaxCodeBytesPerProcess;
+      break;
+    }
+    if (!p) {
+      return nullptr;
+    }
+  }
+
+  // Commit the pages after releasing the lock.
+  if (!CommitPages(p, bytes, protection)) {
+    rwDeallocate(p, bytes, /* decommit = */ false);
+    return nullptr;
+  }
+
+  SetMemCheckKind(p, bytes, checkKind);
+
+  return p;
+}
+
+void ProcessJitMemory::rwDeallocate(void* addr, size_t bytes,
+                                         bool decommit) {
+  MOZ_ASSERT(initialized());
+  MOZ_ASSERT(addr);
+  MOZ_ASSERT((uintptr_t(addr) % gc::SystemPageSize()) == 0);
+  MOZ_ASSERT(bytes > 0);
+  MOZ_ASSERT((bytes % ReadWriteDataPageSize) == 0);
+
+  assertDataValidAddress(addr, bytes);
+
+  uintptr_t roOffset =
+      static_cast<uint8_t*>(addr) - base_ - MaxCodeBytesPerProcess;
+  size_t firstPage = roOffset / ReadWriteDataPageSize;
+  size_t numPages = bytes / ReadWriteDataPageSize;
+
+  // Decommit before taking the lock.
+  MOZ_MAKE_MEM_NOACCESS(addr, bytes);
+  if (decommit) {
+    DecommitPages(addr, bytes);
+  }
+
+  LockGuard<Mutex> guard(lock_);
+  MOZ_ASSERT(numPages <= rwPagesAllocated_);
+  rwPagesAllocated_ -= numPages;
+
+  for (size_t i = 0; i < numPages; i++) {
+    rwPages_.remove(firstPage + i);
+  }
+
+  // Move the cursor back so we can reuse pages instead of fragmenting the
+  // whole region.
+  if (firstPage < rwCursor_) {
+    rwCursor_ = firstPage;
+  }
+}
+
+static ProcessJitMemory jitMemory;
 
 void* js::jit::AllocateExecutableMemory(size_t bytes,
                                         ProtectionSetting protection,
                                         MemCheckKind checkKind) {
-  return execMemory.allocate(bytes, protection, checkKind);
+  return jitMemory.xAllocate(bytes, protection, checkKind);
 }
 
 void js::jit::DeallocateExecutableMemory(void* addr, size_t bytes) {
-  execMemory.deallocate(addr, bytes, /* decommit = */ true);
+  jitMemory.xDeallocate(addr, bytes, /* decommit = */ true);
 }
 
-bool js::jit::InitProcessExecutableMemory() { return execMemory.init(); }
+void* js::jit::AllocateReadWriteMemory(size_t bytes,
+                                       ProtectionSetting protection,
+                                       MemCheckKind checkKind) {
+  return jitMemory.rwAllocate(bytes, protection, checkKind);
+}
 
-void js::jit::ReleaseProcessExecutableMemory() { execMemory.release(); }
+void js::jit::DeallocateReadWriteMemory(void* addr, size_t bytes) {
+  jitMemory.rwDeallocate(addr, bytes, /* decommit = */ true);
+}
+
+bool js::jit::InitProcessJitMemory() { return jitMemory.init(); }
+
+void js::jit::ReleaseProcessJitMemory() { jitMemory.release(); }
 
 size_t js::jit::LikelyAvailableExecutableMemory() {
   // Round down available memory to the closest MB.
   return MaxCodeBytesPerProcess -
-         AlignBytes(execMemory.bytesAllocated(), 0x100000U);
+         AlignBytes(jitMemory.bytesAllocated(), 0x100000U);
 }
 
 bool js::jit::CanLikelyAllocateMoreExecutableMemory() {
   // Use a 8 MB buffer.
   static const size_t BufferSize = 8 * 1024 * 1024;
 
-  MOZ_ASSERT(execMemory.bytesAllocated() <= MaxCodeBytesPerProcess);
+  MOZ_ASSERT(jitMemory.bytesAllocated() <= MaxCodeBytesPerProcess);
 
-  return execMemory.bytesAllocated() + BufferSize <= MaxCodeBytesPerProcess;
+  return jitMemory.bytesAllocated() + BufferSize <= MaxCodeBytesPerProcess;
 }
 
 bool js::jit::AddressIsInExecutableMemory(const void* p) {
-  return execMemory.containsAddress(p);
+  return jitMemory.containsAddress(p);
 }
 
 bool js::jit::ReprotectRegion(void* start, size_t size,
@@ -881,7 +1071,7 @@ bool js::jit::ReprotectRegion(void* start, size_t size,
 
   MOZ_ASSERT((uintptr_t(pageStart) % pageSize) == 0);
 
-  execMemory.assertValidAddress(pageStart, size);
+  jitMemory.assertValidProtection(pageStart, size, protection);
 
   // On weak memory systems, make sure new code is visible on all cores before
   // addresses of the code are made public.  Now is the latest moment in time
@@ -900,21 +1090,22 @@ bool js::jit::ReprotectRegion(void* start, size_t size,
   std::atomic_thread_fence(std::memory_order_seq_cst);
 
 #  ifdef XP_WIN
-  DWORD flags = ProtectionSettingToFlags(protection);
+  volatile DWORD flags = ProtectionSettingToFlags(protection);
   // This is a essentially a VirtualProtect, but with lighter impact on
   // antivirus analysis. See bug 1823634.
   if (!VirtualAlloc(pageStart, size, MEM_COMMIT, flags)) {
     return false;
   }
 #  else
-  unsigned flags = ProtectionSettingToFlags(protection);
+  volatile unsigned flags = ProtectionSettingToFlags(protection);
   if (mprotect(pageStart, size, flags)) {
     return false;
   }
 #  endif
 #endif  // __wasi__
 
-  execMemory.assertValidAddress(pageStart, size);
+  MOZ_RELEASE_ASSERT(flags == ProtectionSettingToFlags(protection));
+  jitMemory.assertValidProtection(pageStart, size, protection);
   return true;
 }
 
@@ -925,7 +1116,7 @@ static PRUNTIME_FUNCTION RuntimeFunctionCallback(DWORD64 ControlPc,
 
   // RegisterExecutableMemory already set up the runtime function in the
   // exception-data page preceding the allocation.
-  uint8_t* p = execMemory.base();
+  uint8_t* p = jitMemory.base();
   if (!p) {
     return nullptr;
   }

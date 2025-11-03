@@ -6,6 +6,7 @@
 
 #include "jit/Linker.h"
 
+#include "mozilla/Casting.h"
 #include "jit/JitZone.h"
 #include "util/Memory.h"
 
@@ -24,16 +25,25 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
   static_assert(CodeAlignment >= ExecutableAllocatorAlignment,
                 "Unexpected alignment requirements");
 
-  // We require enough bytes for the code, header, and worst-case alignment
-  // padding.
-  size_t bytesNeeded = masm.bytesNeeded() + sizeof(JitCodeHeader) +
-                       (CodeAlignment - ExecutableAllocatorAlignment);
-  if (bytesNeeded >= MAX_BUFFER_SIZE) {
+  // Query the MacroAssembler to know if data should be allocated separately,
+  // and size the sections accordingly.
+  size_t execNeeded, dataNeeded;
+  if (masm.useDataSection()) {
+    execNeeded = masm.execSize();
+    dataNeeded = masm.dataSize();
+  } else {
+    execNeeded = masm.bytesNeeded();
+    dataNeeded = 0;
+  }
+
+  // ExecutableAllocator requires execNeeded to be aligned.
+  execNeeded += sizeof(JitCodeHeader);
+  execNeeded += (CodeAlignment - ExecutableAllocatorAlignment);
+  if (execNeeded >= MAX_BUFFER_SIZE || dataNeeded >= MAX_BUFFER_SIZE) {
     return fail(cx);
   }
 
-  // ExecutableAllocator requires bytesNeeded to be aligned.
-  bytesNeeded = AlignBytes(bytesNeeded, ExecutableAllocatorAlignment);
+  execNeeded = AlignBytes(execNeeded, ExecutableAllocatorAlignment);
 
   JitZone* jitZone = cx->zone()->getJitZone(cx);
   if (!jitZone) {
@@ -41,7 +51,9 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
     return nullptr;
   }
 
-  Executable result(jitZone->execAlloc().alloc(cx, bytesNeeded, kind));
+  using mozilla::AssertedCast;
+  ExecutableDesc desc{AssertedCast<uint32_t>(execNeeded), AssertedCast<uint32_t>(dataNeeded), kind};
+  Executable result(jitZone->execAlloc().alloc(cx, desc));
   if (!result) {
     return fail(cx);
   }
@@ -52,18 +64,20 @@ JitCode* Linker::newCode(JSContext* cx, CodeKind kind) {
 
   // Bump the code up to a nice alignment.
   codeStart = (uint8_t*)AlignBytes((uintptr_t)codeStart, CodeAlignment);
-  MOZ_ASSERT(codeStart + masm.bytesNeeded() <= execStart + bytesNeeded);
+  MOZ_ASSERT(codeStart + masm.execSize() <= execStart + execNeeded);
   uint32_t headerSize = codeStart - execStart;
   JitCode* code =
-      JitCode::New<NoGC>(cx, std::move(result), bytesNeeded, headerSize, kind);
+      JitCode::New<NoGC>(cx, std::move(result), headerSize);
   if (!code) {
     return fail(cx);
   }
   if (masm.oom()) {
+    code->finalize(nullptr);
     return fail(cx);
   }
   awjcf.emplace(code);
   if (!awjcf->makeWritable()) {
+    code->finalize(nullptr);
     return fail(cx);
   }
   code->copyFrom(masm);
