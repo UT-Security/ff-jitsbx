@@ -135,6 +135,9 @@ struct ResumeFromException {
 
   BaselineBailoutInfo* bailoutInfo;
 
+#ifdef JS_SANDBOX_CET
+  uint64_t frameDepth;
+#endif
 #if defined(JS_CODEGEN_ARM64)
   uint64_t padding_;
 #endif
@@ -158,6 +161,11 @@ struct ResumeFromException {
   static size_t offsetOfBailoutInfo() {
     return offsetof(ResumeFromException, bailoutInfo);
   }
+#ifdef JS_SANDBOX_CET
+  static size_t offsetOfFrameDepth() {
+    return offsetof(ResumeFromException, frameDepth);
+  }
+#endif
 };
 
 #if defined(JS_CODEGEN_ARM64)

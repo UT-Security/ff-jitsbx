@@ -51,7 +51,7 @@ void MacroAssemblerX64::loadConstantFloat32(float f, FloatRegister dest) {
   if (!flt) {
     return;
   }
-  
+
   AutoBundleInstructionScope bundle(*this);
   // See comment in loadConstantDouble
   JmpSrc j = masm.vmovss_ripr(dest.encoding());
@@ -556,6 +556,13 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   Label bailout;
   Label wasm;
   Label wasmCatch;
+
+#ifdef JS_SANDBOX_CET
+  load32(Address(rsp, ResumeFromException::offsetOfFrameDepth()),
+         SandboxScratchReg);
+  incShadowStack(SandboxScratchReg);
+  readShadowStack(SandboxScratchReg);
+#endif
 
   load32(Address(rsp, ResumeFromException::offsetOfKind()), rax);
   asMasm().branch32(Assembler::Equal, rax,

@@ -6,6 +6,7 @@
 
 #include "jit/MacroAssembler-inl.h"
 
+#include "jit/x64/Assembler-x64.h"
 #include "mozilla/FloatingPoint.h"
 #include "mozilla/MathAlgorithms.h"
 #include "mozilla/XorShift128PlusRNG.h"
@@ -2967,6 +2968,55 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 
     // Discard exit frame.
     addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
+
+#ifdef JS_SANDBOX_CET
+    Register numFrames = enterRegs.takeAny();
+    Register savedPcArr = enterRegs.takeAny();
+    Register pc = enterRegs.takeAny();
+
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
+    pop(numFrames);
+    // TODO(JS_SANDBOX_CET): figure out how many frames to pop
+    incShadowStack(numFrames);
+
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
+    pop(savedPcArr);
+
+    Label start, dummy;
+    bind(&start);
+    // fetch pc from array
+    loadPtr(Address(savedPcArr, 0), pc);
+    // call-jmp sequence to restore shadow stack
+    call(&dummy);
+    jmp(Operand(pc));
+    bind(&dummy);
+    // load next addr in array
+    addq(Imm32(8), savedPcArr);
+    sub32(Imm32(1), numFrames);
+    branch32(Assembler::GreaterThan, numFrames, Imm32(0), &start);
+
+    // Linked list iteration (deprecated)
+    // Register numFrames = enterRegs.takeAny();
+    // Register savedPcStruct = enterRegs.takeAny();
+    // Register pc = enterRegs.takeAny();
+    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
+    // pop(numFrames);
+    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
+    // pop(savedPcStruct);
+
+    // Label start, dummy;
+    // bind(&start);
+    // // fetch pc from linked list
+    // loadPtr(Address(savedPcStruct, 0), pc);
+    // // call-jmp sequence to restore shadow stack
+    // call(&dummy);
+    // jmp(Operand(pc));
+    // bind(&dummy);
+    // // load next addr in linked list
+    // loadPtr(Address(savedPcStruct, 8), savedPcStruct);
+    // sub32(Imm32(1), numFrames);
+    // branch32(Assembler::GreaterThan, numFrames, Imm32(0), &start);
+#endif
 
     jump(jitcodeReg);
   }

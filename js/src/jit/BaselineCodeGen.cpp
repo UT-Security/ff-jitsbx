@@ -6,6 +6,7 @@
 
 #include "jit/BaselineCodeGen.h"
 
+#include "jit/x64/Assembler-x64.h"
 #include "mozilla/Casting.h"
 
 #include "gc/GC.h"
@@ -6423,6 +6424,9 @@ bool BaselineCodeGen<Handler>::emitEpilogue() {
 
   masm.moveToStackPtr(FramePointer);
   masm.pop(FramePointer);
+#ifdef JS_SANDBOX_CET
+  masm.readShadowStack(SandboxScratchReg);
+#endif
 
   masm.ret();
   return true;

@@ -186,6 +186,7 @@ enum class ShiftID {
 enum TwoByteOpcodeID {
 #ifdef JS_SANDBOX_CET
   OP2_RDSSP = 0x1e,
+  OP2_INCSSP = 0xae,
 #endif
   OP2_UD2 = 0x0B,
   OP2_MOVSD_VsdWsd = 0x10,
