@@ -36,6 +36,7 @@
 #include "vm/Interpreter.h"
 #include "vm/JSFunction.h"
 #include "vm/Time.h"
+#include "x86-shared/Assembler-x86-shared.h"
 #ifdef MOZ_VTUNE
 #  include "vtune/VTuneWrapper.h"
 #endif
@@ -6556,14 +6557,32 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   masm.load8ZeroExtend(Address(pcReg, 0), scratch1);
 
   // Jump to table[op].
+#ifdef JS_SANDBOX
   {
+    // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
     if (!tableLabels_.append(label)) {
       return false;
     }
+    // scratch2 = &table[opcode]
+    BaseIndex jumpDest(scratch2, scratch1, TimesEight);
+    masm.computeEffectiveAddress(jumpDest, scratch2);
+    // jump table[opcode]  ; Jump to the table and follow instructions.
+    masm.branchToComputedAddress(scratch2);
+  }
+#else
+  {
+    // scratch2 = &table[0]
+    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
+    if (!tableLabels_.append(label)) {
+      return false;
+    }
+    // pointer = table[opcode]
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
+    // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
   }
+#endif
 
   // At the end of each op, emit code to bump the pc and jump to the
   // next op (this is also known as a threaded interpreter).
@@ -6598,12 +6617,28 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
     // Load the opcode, jump to table[op].
     masm.load8ZeroExtend(Address(InterpreterPCRegAtDispatch, 0), scratch1);
+#ifdef JS_SANDBOX
+    // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
     if (!tableLabels_.append(label)) {
       return false;
     }
+    // scratch2 = &table[opcode]
+    BaseIndex jumpDest(scratch2, scratch1, TimesEight);
+    masm.computeEffectiveAddress(jumpDest, scratch2);
+    // jump table[opcode]  ; Jump to the table and follow instructions.
+    masm.branchToComputedAddress(scratch2);
+#else
+    // scratch2 = &table[0]
+    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
+    if (!tableLabels_.append(label)) {
+      return false;
+    }
+    // pointer = table[opcode]
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
+    // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
+#endif
     return true;
   };
 
@@ -6665,7 +6700,34 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Emit the table.
   masm.haltingAlign(sizeof(void*));
+#ifdef JS_SANDBOX
+  // Generate a table of jump instructions.
+  masm.haltingAlign(js::jit::CodeAlignment);
+  tableOffset_ = masm.currentOffset();
 
+  for (size_t i = 0; i < JSOP_LIMIT; i++) {
+    Label& opLabel = opLabels[i];
+    MOZ_ASSERT(opLabel.bound());
+#ifdef DEBUG
+    size_t oldSize = masm.size();
+#endif
+    // 31 bits of negative RIP relative offset should be enough to address all
+    // opcodes of the interpreter.
+    {
+      AutoBundleInstructionScope bundle(masm);
+      masm.jump(&opLabel);
+    }
+    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 5);
+    {
+      AutoBundleInstructionScope bundle(masm);
+      masm.ud2();
+    }
+    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 7);
+    masm.haltingAlign(sizeof(void*));
+    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
+  }
+#else
+  // Generate a table of JIT code pointers.
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
   size_t numInstructions = JSOP_LIMIT * (sizeof(uintptr_t) / sizeof(uint32_t));
   AutoForbidPoolsAndNops afp(&masm, numInstructions);
@@ -6681,7 +6743,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     cl.target()->bind(opLabel.offset());
     masm.addCodeLabel(cl);
   }
-
+#endif
   return true;
 }
 
