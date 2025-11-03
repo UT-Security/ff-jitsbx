@@ -1021,7 +1021,7 @@ struct BaseCompiler final {
                                  bool zeroOnOverflow);
 
   // Emit a jump table to be used by tableSwitch()
-  void jumpTable(const LabelVector& labels, Label* theTable);
+  void jumpTable(LabelVector& labels, Label* theTable);
 
   // Emit a table switch, `theTable` is the jump table.
   void tableSwitch(Label* theTable, RegI32 switchValue, Label* dispatchCode);

@@ -1244,7 +1244,6 @@ void MacroAssemblerX86Shared::retn(Imm32 n) {
 
   pop(SandboxScratchReg);
   // Remove the size of the return address.
-  // TODO(JS_SANDBOX_CFI): UNSAFE direct manipulation of stack pointer.
   addq(Imm32(n.value - sizeof(void*)), StackPointer);
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI_MASKS

@@ -214,7 +214,7 @@ void BaseCompiler::checkDivideSignedOverflow(RegI64 rhs, RegI64 srcDest,
   masm.bind(&notmin);
 }
 
-void BaseCompiler::jumpTable(const LabelVector& labels, Label* theTable) {
+void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
   // Flush constant pools to ensure that the table is never interrupted by
   // constant pool entries.
   masm.flush();
@@ -223,17 +223,36 @@ void BaseCompiler::jumpTable(const LabelVector& labels, Label* theTable) {
   // Prevent nop sequences to appear in the jump table.
   AutoForbidNops afn(&masm);
 #endif
-#ifdef JS_SANDBOX_BUNDLE
-  masm.nopAlign(js::sandbox::BUNDLE_SIZE);
-#endif
+  masm.bundleAlignNop();
   masm.bind(theTable);
 
+#ifdef JS_SANDBOX
+  for (auto& label : labels) {
+    MOZ_ASSERT(label.bound());
+#ifdef DEBUG
+    size_t oldSize = masm.size();
+#endif
+    // 31 bits of negative RIP relative offset should be enough to address all
+    // opcodes of the interpreter.
+    {
+      AutoBundleInstructionScope bundle(masm);
+      masm.jump(&label);
+    }
+    {
+      AutoBundleInstructionScope bundle(masm);
+      masm.ud2();
+    }
+    masm.haltingAlign(sizeof(void*));
+    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
+  }
+#else
   for (const auto& label : labels) {
     CodeLabel cl;
     masm.writeCodePointer(&cl);
     cl.target()->bind(label.offset());
     masm.addCodeLabel(cl);
   }
+#endif
 }
 
 void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
@@ -241,6 +260,18 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.bind(dispatchCode);
 
 #if defined(JS_CODEGEN_X64) || defined(JS_CODEGEN_X86)
+#ifdef JS_SANDBOX
+  ScratchI32 scratch(*this);
+  CodeLabel tableCl;
+
+  masm.mov(&tableCl, scratch);
+
+  tableCl.target()->bind(theTable->offset());
+  masm.addCodeLabel(tableCl);
+  BaseIndex jumpDest(scratch, switchValue, ScalePointer);
+  masm.computeEffectiveAddress(jumpDest, scratch);
+  masm.branchToComputedAddress(scratch);
+#else
   ScratchI32 scratch(*this);
   CodeLabel tableCl;
 
@@ -250,6 +281,7 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
   masm.addCodeLabel(tableCl);
 
   masm.jmp(Operand(scratch, switchValue, ScalePointer));
+#endif
 #elif defined(JS_CODEGEN_ARM)
   // Flush constant pools: offset must reflect the distance from the MOV
   // to the start of the table; as the address of the MOV is given by the
