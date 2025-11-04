@@ -1799,24 +1799,17 @@ void CodeGeneratorX86Shared::visitOutOfLineTableSwitch(
 
 #ifdef JS_SANDBOX
   for (size_t i = 0; i < mir->numCases(); i++) {
+    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
     LBlock* caseblock = skipTrivialBlocks(mir->getCase(i))->lir();
     Label* caseheader = caseblock->label();
+    uint32_t caseoffset = caseheader->offset();
 
-#ifdef DEBUG
-   size_t oldSize = masm.size();
-#endif
-    // 31 bits of negative RIP relative offset should be enough to address all
-    // cases of an Ion compilation.    
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.jump(caseheader);
-    }
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.ud2();
-    }
-    masm.haltingAlign(sizeof(void*));
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
+    // The entries of the jump table need to be absolute addresses and thus
+    // must be patched after codegen is finished.
+    CodeLabel cl;
+    masm.writeCodePointer(&cl);
+    cl.target()->bind(caseoffset);
+    masm.addCodeLabel(cl);
   }
 #else
   for (size_t i = 0; i < mir->numCases(); i++) {
@@ -1858,13 +1851,11 @@ void CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch* mir,
 #ifdef JS_SANDBOX
   // Compute the position where a pointer to the right case stands.
   masm.mov(ool->jumpLabel(), base);
-  BaseIndex pointer(base, index, ScalePointer);
-
-  // Compute the address of jump entry.
-  masm.computeEffectiveAddress(pointer, base);
+  masm.leal(Operand(index, index, TimesOne), index);
+  BaseIndex pointer(base, index, ScalePointer, CodeAlignment / 4);
 
   // Jump to the right case
-  masm.branchToComputedAddress(base);
+  masm.branchToComputedAddress(pointer);
 #else
   // Compute the position where a pointer to the right case stands.
   masm.mov(ool->jumpLabel(), base);

@@ -223,29 +223,19 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
   // Prevent nop sequences to appear in the jump table.
   AutoForbidNops afn(&masm);
 #endif
-  masm.bundleAlignNop();
-  masm.bind(theTable);
 
+  masm.nopAlign(js::jit::CodeAlignment);
 #ifdef JS_SANDBOX
-  for (auto& label : labels) {
-    MOZ_ASSERT(label.bound());
-#ifdef DEBUG
-    size_t oldSize = masm.size();
-#endif
-    // 31 bits of negative RIP relative offset should be enough to address all
-    // opcodes of the interpreter.
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.jump(&label);
-    }
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.ud2();
-    }
-    masm.haltingAlign(sizeof(void*));
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
+  masm.bind(theTable);
+  for (const auto& label : labels) {
+    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
+    CodeLabel cl;
+    masm.writeCodePointer(&cl);
+    cl.target()->bind(label.offset());
+    masm.addCodeLabel(cl);
   }
 #else
+  masm.bind(theTable);
   for (const auto& label : labels) {
     CodeLabel cl;
     masm.writeCodePointer(&cl);
@@ -268,9 +258,9 @@ void BaseCompiler::tableSwitch(Label* theTable, RegI32 switchValue,
 
   tableCl.target()->bind(theTable->offset());
   masm.addCodeLabel(tableCl);
-  BaseIndex jumpDest(scratch, switchValue, ScalePointer);
-  masm.computeEffectiveAddress(jumpDest, scratch);
-  masm.branchToComputedAddress(scratch);
+
+  masm.leal(Operand(switchValue, switchValue, TimesOne), switchValue);
+  masm.jump(BaseIndex(scratch, switchValue, ScalePointer, js::jit::CodeAlignment/4, true /* clobber scratch */));
 #else
   ScratchI32 scratch(*this);
   CodeLabel tableCl;
@@ -3986,6 +3976,7 @@ bool BaseCompiler::emitBrTable() {
 
   for (uint32_t depth : depths) {
     stubs.infallibleEmplaceBack(NonAssertingLabel());
+    masm.bundleAlignNop();
     masm.bind(&stubs.back());
     shuffleStackResultsBeforeBranch(resultsBase, controlItem(depth).stackHeight,
                                     branchParams);

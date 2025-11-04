@@ -592,7 +592,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
   loadPtr(Address(rsp, ResumeFromException::offsetOfTarget()), rax);
   loadPtr(Address(rsp, ResumeFromException::offsetOfFramePointer()), rbp);
   loadPtr(Address(rsp, ResumeFromException::offsetOfStackPointer()), rsp);
-  jmp(Operand(rax));
+  jump(rax);
 
   // If we found a finally block, this must be a baseline frame. Push two
   // values expected by the finally block: the exception and BooleanValue(true).
@@ -606,7 +606,7 @@ void MacroAssemblerX64::handleFailureWithHandlerTail(Label* profilerExitTail,
 
   pushValue(exception);
   pushValue(BooleanValue(true));
-  jmp(Operand(rax));
+  jump(rax);
 
   // Return BaselineFrame->returnValue() to the caller.
   // Used in debug mode and for GeneratorReturn.

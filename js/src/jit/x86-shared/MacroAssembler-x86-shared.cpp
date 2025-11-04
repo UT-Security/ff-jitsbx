@@ -1173,6 +1173,49 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
   jmp(Operand(SandboxScratchReg));
 }
 
+void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
+#ifdef JS_SANDBOX_CFI_MASKS
+#ifdef DEBUG
+  MOZ_ASSERT(
+      !Operand(addr).containsReg(SandboxScratchReg) || Operand(addr).clobberScratch(),
+      "Jump address already uses scratch register");
+  if (!Operand(addr).clobberScratch()) {
+    Label sandboxed;
+    movq(Operand(addr), SandboxScratchReg);
+    andq(SandboxMaskReg, SandboxScratchReg);
+    andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+    orq(SandboxBaseReg, SandboxScratchReg);
+    cmpq(SandboxScratchReg, Operand(addr));
+    j(Condition::Equal, &sandboxed);
+    breakpoint();
+    bind(&sandboxed);
+  }
+#endif
+#endif
+
+#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+#ifdef DEBUG
+  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
+             "Jump address already uses scratch register");
+  Label sandboxed;
+  movq(Operand(addr), SandboxScratchReg);
+  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+  cmpq(SandboxScratchReg, Operand(addr));
+  j(Condition::Equal, &sandboxed);
+  breakpoint();
+  bind(&sandboxed);
+#endif
+#endif
+
+  movq(Operand(addr), SandboxScratchReg);
+#ifdef JS_SANDBOX_CFI_MASKS
+  AutoBundleGroupScope bundle(*this);
+  andq(SandboxMaskReg, SandboxScratchReg);
+  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
+  orq(SandboxBaseReg, SandboxScratchReg);
+#endif
+  jmp(Operand(SandboxScratchReg));
+}
 #endif
 
 // ===============================================================

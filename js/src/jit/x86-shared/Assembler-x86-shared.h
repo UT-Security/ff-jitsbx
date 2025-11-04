@@ -729,6 +729,10 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     masm.haltingAlign(alignment);
   }
+  void haltingAlignOne(int alignment) {
+    MOZ_ASSERT(hasCreator());
+    masm.haltingAlignOne(alignment);
+  }
   void nopAlign(int alignment) {
     MOZ_ASSERT(hasCreator());
     masm.nopAlign(alignment);

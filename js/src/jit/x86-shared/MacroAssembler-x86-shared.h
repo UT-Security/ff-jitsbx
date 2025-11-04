@@ -218,9 +218,11 @@ class MacroAssemblerX86Shared : public Assembler {
 #ifdef JS_SANDBOX_CFI
   void jump(Register reg);
   void jump(const Address& addr);
+  void jump(const BaseIndex& addr);
 #else
   void jump(Register reg) { jmp(Operand(reg)); }
   void jump(const Address& addr) { jmp(Operand(addr)); }
+  void jump(const BaseIndex& addr) { jmp(Operand(addr)); }
 #endif
 
   void convertInt32ToDouble(Register src, FloatRegister dest) {

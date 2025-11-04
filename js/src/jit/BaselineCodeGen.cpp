@@ -6564,11 +6564,12 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     if (!tableLabels_.append(label)) {
       return false;
     }
-    // scratch2 = &table[opcode]
-    BaseIndex jumpDest(scratch2, scratch1, TimesEight);
-    masm.computeEffectiveAddress(jumpDest, scratch2);
-    // jump table[opcode]  ; Jump to the table and follow instructions.
-    masm.branchToComputedAddress(scratch2);
+    // pointer = table[opcode]
+    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
+    BaseIndex pointer(scratch2, scratch1, ScalePointer,
+                      js::jit::CodeAlignment / 4);
+    // jump *table[opcode]  ; Read the value and jump to it.
+    masm.branchToComputedAddress(pointer);
   }
 #else
   {
@@ -6623,11 +6624,12 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     if (!tableLabels_.append(label)) {
       return false;
     }
-    // scratch2 = &table[opcode]
-    BaseIndex jumpDest(scratch2, scratch1, TimesEight);
-    masm.computeEffectiveAddress(jumpDest, scratch2);
-    // jump table[opcode]  ; Jump to the table and follow instructions.
-    masm.branchToComputedAddress(scratch2);
+    // pointer = table[opcode]
+    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
+    BaseIndex pointer(scratch2, scratch1, ScalePointer,
+                      js::jit::CodeAlignment / 4);
+    // jump *table[opcode]  ; Read the value and jump to it.
+    masm.branchToComputedAddress(pointer);
 #else
     // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
@@ -6647,6 +6649,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 #define EMIT_OP(OP, ...)                          \
   {                                               \
     AutoCreatedBy acb(masm, "op=" #OP);           \
+    masm.bundleAlignNop();                        \
     perfSpewer_.recordOffset(masm, JSOp::OP);     \
     masm.bind(&opLabels[uint8_t(JSOp::OP)]);      \
     handler.setCurrentOp(JSOp::OP);               \
@@ -6708,23 +6711,11 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   for (size_t i = 0; i < JSOP_LIMIT; i++) {
     Label& opLabel = opLabels[i];
     MOZ_ASSERT(opLabel.bound());
-#ifdef DEBUG
-    size_t oldSize = masm.size();
-#endif
-    // 31 bits of negative RIP relative offset should be enough to address all
-    // opcodes of the interpreter.
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.jump(&opLabel);
-    }
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 5);
-    {
-      AutoBundleInstructionScope bundle(masm);
-      masm.ud2();
-    }
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 7);
-    masm.haltingAlign(sizeof(void*));
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 8);
+    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
+    CodeLabel cl;
+    masm.writeCodePointer(&cl);
+    cl.target()->bind(opLabel.offset());
+    masm.addCodeLabel(cl);
   }
 #else
   // Generate a table of JIT code pointers.

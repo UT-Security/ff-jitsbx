@@ -776,11 +776,11 @@ void MacroAssembler::branchTestValue(Condition cond, const BaseIndex& lhs,
 }
 
 void MacroAssembler::branchToComputedAddress(Register address) {
-  jmp(Operand(address));
+  jump(address);
 }
 
 void MacroAssembler::branchToComputedAddress(const BaseIndex& address) {
-  jmp(Operand(address));
+  jump(address);
 }
 
 void MacroAssembler::cmpPtrMovePtr(Condition cond, Register lhs, Register rhs,
