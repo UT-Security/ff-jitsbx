@@ -2948,6 +2948,11 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     loadJSContext(scratch);
     enterFakeExitFrame(scratch, scratch, ExitFrameType::Bare);
 
+#ifdef JS_SANDBOX_CET
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
+    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
+#endif
+
     // Save needed values onto stack temporarily.
     push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, resumeAddr)));
 
@@ -2966,20 +2971,18 @@ void MacroAssembler::generateBailoutTail(Register scratch,
 
     pop(jitcodeReg);
 
-    // Discard exit frame.
-    addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
-
 #ifdef JS_SANDBOX_CET
     Register numFrames = enterRegs.takeAny();
     Register savedPcArr = enterRegs.takeAny();
     Register pc = enterRegs.takeAny();
+    Register newpc = enterRegs.takeAny();
 
-    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
+    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, numFrames)));
     pop(numFrames);
     // TODO(JS_SANDBOX_CET): figure out how many frames to pop
     incShadowStack(numFrames);
 
-    push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
+    // push(Address(bailoutInfo, offsetof(BaselineBailoutInfo, savedPcs)));
     pop(savedPcArr);
 
     Label start, dummy;
@@ -2988,7 +2991,8 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     loadPtr(Address(savedPcArr, 0), pc);
     // call-jmp sequence to restore shadow stack
     call(&dummy);
-    jmp(Operand(pc));
+    movq(pc, newpc);
+    jmp(Operand(newpc));
     bind(&dummy);
     // load next addr in array
     addq(Imm32(8), savedPcArr);
@@ -3017,6 +3021,9 @@ void MacroAssembler::generateBailoutTail(Register scratch,
     // sub32(Imm32(1), numFrames);
     // branch32(Assembler::GreaterThan, numFrames, Imm32(0), &start);
 #endif
+
+    // Discard exit frame.
+    addToStackPtr(Imm32(ExitFrameLayout::SizeWithFooter()));
 
     jump(jitcodeReg);
   }

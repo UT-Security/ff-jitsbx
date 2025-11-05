@@ -433,7 +433,7 @@ BaselineStackBuilder::BaselineStackBuilder(JSContext* cx,
       suppress_(cx)
 #ifdef JS_SANDBOX_CET
       ,
-      pcs_to_restore(NULL)
+      pcs_to_restore(cx)
 #endif
 {
   MOZ_ASSERT(bufferTotal_ >= sizeof(BaselineBailoutInfo));
@@ -1183,7 +1183,7 @@ bool BaselineStackBuilder::finishLastFrame() {
   }
 #ifdef JS_SANDBOX_CET
   bool success = pcs_to_restore.append(reinterpret_cast<uintptr_t>(resumeAddr));
-  std::printf("Finished stack rebuild: %d! pc: %p", success, resumeAddr);
+  std::printf("Finished stack rebuild: %d! pc: %p\n", success, resumeAddr);
 #endif
   setResumeAddr(resumeAddr);
   JitSpew(JitSpew_BaselineBailouts, "      Set resumeAddr=%p", resumeAddr);
@@ -1660,10 +1660,12 @@ bool jit::BailoutIonToBaseline(JSContext* cx, JitActivation* activation,
   info->bailoutKind.emplace(bailoutKind);
 #ifdef JS_SANDBOX_CET
   int size = info->numFrames;
-  uintptr_t* saved_pcs = (uintptr_t*)malloc(sizeof(uintptr_t) * size);
+  uintptr_t* saved_pcs = (uintptr_t*)malloc(sizeof(uintptr_t) * size--);
   for (int idx = 0; size >= 0; size--, idx++) {
     saved_pcs[idx] = builder.pcs_to_restore[size];
+    std::printf("Saved pc: 0x%lx\n", saved_pcs[idx]);
   }
+  info->savedPcs = saved_pcs;
 #endif
   *bailoutInfo = info;
   guardRemoveRematerializedFramesFromDebugger.release();
