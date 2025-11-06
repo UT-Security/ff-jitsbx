@@ -11,7 +11,7 @@
 
 #include "jit/JitCode.h"
 #include "jit/shared/Assembler-shared.h"
-#ifdef JS_SANDBOX_BUNDLE
+#ifdef JS_SANDBOX
 #include "sandbox/Bundle.h"
 #endif
 
@@ -277,7 +277,7 @@ static constexpr Register InterpreterPCReg = r14;
 #endif
 
 static constexpr uint32_t ABIStackAlignment = 16;
-#ifdef JS_SANDBOX_BUNDLE
+#ifdef JS_SANDBOX
 static constexpr uint32_t CodeAlignment = js::sandbox::BUNDLE_SIZE;
 #else
 static constexpr uint32_t CodeAlignment = 16;
@@ -342,7 +342,11 @@ class Assembler : public AssemblerX86Shared {
   //    e5                              hlt
   //
   static const uint32_t OffsetInJumpTableEntry = 10;
+#ifdef JS_SANDBOX_BUNDLE
+  static const uint32_t SizeOfJumpTableEntry = js::sandbox::BUNDLE_SIZE;
+#else
   static const uint32_t SizeOfJumpTableEntry = 16;
+#endif
 
   // Two kinds of jumps on x64:
   //

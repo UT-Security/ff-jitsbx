@@ -172,11 +172,16 @@ void Assembler::finish() {
     movWithPatch(ImmWord(0), ScratchReg);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 2 + 8);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == OffsetInJumpTableEntry);
+
+#ifdef JS_SANDBOX_CFI_MASKS
+    andq(SandboxMaskReg, ScratchReg);
+    andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
+    orq(SandboxBaseReg, ScratchReg);
+#endif
     jmp(Operand(ScratchReg));
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 13);
+
     masm.ud2();
-    MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == 15);
-    masm.haltingAlign(16);
+    masm.haltingAlign(SizeOfJumpTableEntry);
     MOZ_ASSERT_IF(!masm.oom(), masm.size() - oldSize == SizeOfJumpTableEntry);
   }
 
