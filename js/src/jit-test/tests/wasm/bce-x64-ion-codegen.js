@@ -1,4 +1,4 @@
-// |jit-test| --wasm-compiler=optimizing; --disable-wasm-huge-memory; --spectre-mitigations=off; skip-if: !hasDisassembler() || wasmCompileMode() != "ion" || !getBuildConfiguration().x64 || getBuildConfiguration().simulator || !getBuildConfiguration().wasm_has_heapreg || getJitCompilerOptions()["ion.check-range-analysis"]; include:codegen-x64-test.js
+// |jit-test| --wasm-compiler=optimizing; --disable-wasm-huge-memory; --spectre-mitigations=off; skip-if: !hasDisassembler() || wasmCompileMode() != "ion" || !getBuildConfiguration().x64 || getBuildConfiguration().simulator || getJitCompilerOptions()["ion.check-range-analysis"]; include:codegen-x64-test.js
 
 // Spectre mitigation is disabled above to make the generated code simpler to
 // match; ion.check-range-analysis makes a hash of the code and makes testing
@@ -38,8 +38,8 @@ for ( let memType of memTypes ) {
     'f', `
 48 3b ..                  cmp %r.., %r..
 0f 83 .. 00 00 00         jnb 0x00000000000000..
-41 8b .. ..               movl \\(%r15,%r..,1\\), %e..
-41 8b .. ..               movl \\(%r15,%r..,1\\), %eax`,
+41 8b .. ..               movl \\(%rbx,%r..,1\\), %e..
+41 8b .. ..               movl \\(%rbx,%r..,1\\), %eax`,
         {no_prefix:true});
 
     // Make sure constant indices below the heap minimum do not require a bounds
@@ -50,7 +50,7 @@ for ( let memType of memTypes ) {
    (func (export "f") (result i32)
      (i32.load (${dataType}.const 16))))`,
     'f',
-    `41 8b 47 10               movl 0x10\\(%r15\\), %eax`);
+    `41 8b 47 10               movl 0x10\\(%rbx\\), %eax`);
 
     // Ditto, even at the very limit of the known heap, extending into the guard
     // page.  This is an OOB access, of course, but it needs no explicit bounds
@@ -63,6 +63,6 @@ for ( let memType of memTypes ) {
     'f',
 `
 b8 ff ff 00 00            mov \\$0xFFFF, %eax
-41 8b 04 07               movl \\(%r15,%rax,1\\), %eax`);
+41 8b 04 07               movl \\(%rbx,%rax,1\\), %eax`);
 }
 

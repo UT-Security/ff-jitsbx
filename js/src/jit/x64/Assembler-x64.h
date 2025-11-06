@@ -102,7 +102,9 @@ struct ScratchRegisterScope : public AutoRegisterScope {
 };
 
 static constexpr Register ReturnReg = rax;
-#ifndef JS_SANDBOX
+#ifdef JS_SANDBOX
+static constexpr Register HeapReg = rbx;
+#else
 static constexpr Register HeapReg = r15;
 #endif
 
@@ -216,9 +218,15 @@ class ABIArgGenerator {
 // These registers may be volatile or nonvolatile.
 // Avoid r11, which is the MacroAssembler's ScratchReg.
 static constexpr Register ABINonArgReg0 = rax;
+#ifdef JS_SANDBOX
+static constexpr Register ABINonArgReg1 = r12;
+#else
 static constexpr Register ABINonArgReg1 = rbx;
+#endif
 static constexpr Register ABINonArgReg2 = r10;
+#ifndef JS_SANDBOX
 static constexpr Register ABINonArgReg3 = r12;
+#endif
 
 // This register may be volatile or nonvolatile. Avoid xmm15 which is the
 // ScratchDoubleReg.
@@ -252,19 +260,33 @@ static constexpr Register InstanceReg = r14;
 // Registers used for asm.js/wasm table calls. These registers must be disjoint
 // from the ABI argument registers, InstanceReg and each other.
 static constexpr Register WasmTableCallScratchReg0 = ABINonArgReg0;
+#ifdef JS_SANDBOX
+static constexpr Register WasmTableCallScratchReg1 = ScratchReg;
+static constexpr Register WasmTableCallSigReg = ABINonArgReg1;
+static constexpr Register WasmTableCallIndexReg = ABINonArgReg2;
+#else
 static constexpr Register WasmTableCallScratchReg1 = ABINonArgReg1;
 static constexpr Register WasmTableCallSigReg = ABINonArgReg2;
 static constexpr Register WasmTableCallIndexReg = ABINonArgReg3;
+#endif
 
 // Registers used for ref calls.
 static constexpr Register WasmCallRefCallScratchReg0 = ABINonArgReg0;
 static constexpr Register WasmCallRefCallScratchReg1 = ABINonArgReg1;
+#ifdef JS_SANDBOX
+static constexpr Register WasmCallRefReg = ABINonArgReg2;
+#else
 static constexpr Register WasmCallRefReg = ABINonArgReg3;
+#endif
 
 // Register used as a scratch along the return path in the fast js -> wasm stub
 // code.  This must not overlap ReturnReg, JSReturnOperand, or InstanceReg.
 // It must be a volatile register.
+#ifdef JS_SANDBOX
+static constexpr Register WasmJitEntryReturnScratch = r12;
+#else
 static constexpr Register WasmJitEntryReturnScratch = rbx;
+#endif
 
 static constexpr Register OsrFrameReg = IntArgReg3;
 

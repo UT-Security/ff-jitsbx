@@ -1073,7 +1073,7 @@ class FunctionCompiler {
   // instance.
   MWasmLoadInstance* maybeLoadMemoryBase() {
     MWasmLoadInstance* load = nullptr;
-#if defined(JS_CODEGEN_X86) || (defined(JS_SANDBOX) && !defined(WASM_HAS_HEAPREG))
+#ifdef JS_CODEGEN_X86
     AliasSet aliases = !moduleEnv_.memory->canMovingGrow()
                            ? AliasSet::None()
                            : AliasSet::Load(AliasSet::WasmHeapMeta);

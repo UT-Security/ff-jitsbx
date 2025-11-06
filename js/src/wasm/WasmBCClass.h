@@ -1137,11 +1137,6 @@ struct BaseCompiler final {
   BaseIndex prepareAtomicMemoryAccess(MemoryAccessDesc* access,
                                       AccessCheck* check, RegPtr instance,
                                       RegIndexType ptr);
-#elif defined(JS_SANDBOX) && !defined(WASM_HAS_HEAPREG)
-  template <typename RegIndexType>
-  BaseIndex prepareAtomicMemoryAccess(MemoryAccessDesc* access,
-                                      AccessCheck* check, RegPtr instance,
-                                      RegIndexType ptr);
 #else
   // Some consumers depend on the returned Address not incorporating instance,
   // as instance may be the scratch register.

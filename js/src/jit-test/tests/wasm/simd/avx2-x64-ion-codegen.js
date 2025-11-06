@@ -220,7 +220,7 @@ codegenTestX64_adhoc(`(module
 c4 .. f1 22 .. 01         vpinsrq \\$0x01, ${GPR_I64}, %xmm1, %xmm0`);
      
                              
-/*if (isAvxPresent(2)) {
+if (isAvxPresent(2)) {
      codegenTestX64_T_v128_avxhack(
           [['i32', 'i8x16.splat', `
 c5 f9 6e ..               vmovd ${GPR_I32}, %xmm0
@@ -243,7 +243,7 @@ c4 e2 79 59 c0            vpbroadcastq %xmm0, %xmm0`],
             'c4 c2 79 79 04 ..         vpbroadcastww \\(%r15,%r\\w+,1\\), %xmm0'],
            ['i32', 'v128.load32_splat',
             'c4 c2 79 18 04 ..         vbroadcastssl \\(%r15,%r\\w+,1\\), %xmm0']], {memory: 1});
-}*/
+}
 
 // Using VEX during shuffle ops
 codegenTestX64_v128xv128_v128_avxhack([

@@ -263,11 +263,7 @@ void LIRGenerator::visitWasmUnsignedToFloat32(MWasmUnsignedToFloat32* ins) {
 }
 
 void LIRGenerator::visitWasmHeapBase(MWasmHeapBase* ins) {
-#ifdef JS_SANDBOX
-  auto* lir = new (alloc()) LWasmHeapBase(useRegisterAtStart(ins->instance()));
-#else
   auto* lir = new (alloc()) LWasmHeapBase(LAllocation());
-#endif
   define(lir, ins);
 }
 
@@ -277,19 +273,6 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
   // zero-extended and can act as 64-bit.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
 
-#ifdef JS_SANDBOX
-  MDefinition* memoryBase = ins->memoryBase();
-  MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-
-  if (ins->type() != MIRType::Int64) {
-    auto* lir = new (alloc()) LWasmLoad(useRegisterOrZeroAtStart(base), useRegisterAtStart(memoryBase));
-    define(lir, ins);
-    return;
-  }
-
-  auto* lir = new (alloc()) LWasmLoadI64(useRegisterOrZeroAtStart(base), useRegisterAtStart(memoryBase));
-  defineInt64(lir, ins);
-#else
   if (ins->type() != MIRType::Int64) {
     auto* lir = new (alloc()) LWasmLoad(useRegisterOrZeroAtStart(base));
     define(lir, ins);
@@ -298,18 +281,12 @@ void LIRGenerator::visitWasmLoad(MWasmLoad* ins) {
 
   auto* lir = new (alloc()) LWasmLoadI64(useRegisterOrZeroAtStart(base));
   defineInt64(lir, ins);
-#endif
 }
 
 void LIRGenerator::visitWasmStore(MWasmStore* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-
-#ifdef JS_SANDBOX
-  MDefinition* memoryBase = ins->memoryBase();
-  MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-#endif
 
   MDefinition* value = ins->value();
   LAllocation valueAlloc;
@@ -348,14 +325,8 @@ void LIRGenerator::visitWasmStore(MWasmStore* ins) {
       MOZ_CRASH("unexpected array type");
   }
 
-#ifdef JS_SANDBOX
-  LAllocation baseAlloc = useRegisterOrZeroAtStart(base);
-  LAllocation memoryBaseAlloc = useRegisterAtStart(memoryBase);
-  auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc, memoryBaseAlloc);
-#else
   LAllocation baseAlloc = useRegisterOrZeroAtStart(base);
   auto* lir = new (alloc()) LWasmStore(baseAlloc, valueAlloc);
-#endif
   add(lir, ins);
 }
 
@@ -363,11 +334,6 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-
-#ifdef JS_SANDBOX
-  MDefinition* memoryBase = ins->memoryBase();
-  MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-#endif
 
   // The output may not be used but will be clobbered regardless, so
   // pin the output to eax.
@@ -377,13 +343,8 @@ void LIRGenerator::visitWasmCompareExchangeHeap(MWasmCompareExchangeHeap* ins) {
   const LAllocation oldval = useRegister(ins->oldValue());
   const LAllocation newval = useRegister(ins->newValue());
 
-#ifdef JS_SANDBOX
-  LWasmCompareExchangeHeap* lir =
-      new (alloc()) LWasmCompareExchangeHeap(useRegister(base), oldval, newval, useRegister(memoryBase));
-#else
   LWasmCompareExchangeHeap* lir =
       new (alloc()) LWasmCompareExchangeHeap(useRegister(base), oldval, newval);
-#endif
 
   defineFixed(lir, ins, LAllocation(AnyRegister(eax)));
 }
@@ -395,22 +356,13 @@ void LIRGenerator::visitWasmAtomicExchangeHeap(MWasmAtomicExchangeHeap* ins) {
 
   const LAllocation base = useRegister(ins->base());
   const LAllocation value = useRegister(ins->value());
-#ifdef JS_SANDBOX
-  MDefinition* memoryBase = ins->memoryBase();
-  MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-#endif
 
   // The output may not be used but will be clobbered regardless,
   // so ignore the case where we're not using the value and just
   // use the output register as a temp.
 
-#ifdef JS_SANDBOX
-  LWasmAtomicExchangeHeap* lir =
-      new (alloc()) LWasmAtomicExchangeHeap(base, value, useRegister(memoryBase));
-#else
   LWasmAtomicExchangeHeap* lir =
       new (alloc()) LWasmAtomicExchangeHeap(base, value);
-#endif
   define(lir, ins);
 }
 
@@ -418,11 +370,6 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   MDefinition* base = ins->base();
   // See comment in visitWasmLoad re the type of 'base'.
   MOZ_ASSERT(base->type() == MIRType::Int32 || base->type() == MIRType::Int64);
-
-#ifdef JS_SANDBOX
-  MDefinition* memoryBase = ins->memoryBase();
-  MOZ_ASSERT(memoryBase->type() == MIRType::Pointer);
-#endif
 
   // No support for 64-bit operations with constants at the masm level.
 
@@ -436,15 +383,8 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
   if (!ins->hasUses()) {
     LAllocation value = canTakeConstant ? useRegisterOrConstant(ins->value())
                                         : useRegister(ins->value());
-#ifdef JS_SANDBOX
-    LWasmAtomicBinopHeapForEffect* lir =
-        new (alloc()) LWasmAtomicBinopHeapForEffect(useRegister(base), value,
-                                                    LDefinition::BogusTemp(),
-                                                    useRegister(memoryBase));
-#else
     LWasmAtomicBinopHeapForEffect* lir =
         new (alloc()) LWasmAtomicBinopHeapForEffect(useRegister(base), value);
-#endif
     add(lir, ins);
     return;
   }
@@ -485,14 +425,8 @@ void LIRGenerator::visitWasmAtomicBinopHeap(MWasmAtomicBinopHeap* ins) {
     value = useRegisterAtStart(ins->value());
   }
 
-#ifdef JS_SANDBOX
-  auto* lir = new (alloc()) LWasmAtomicBinopHeap(
-      useRegister(base), value, bitOp ? temp() : LDefinition::BogusTemp(),
-      LDefinition::BogusTemp(), useRegister(memoryBase));
-#else
   auto* lir = new (alloc()) LWasmAtomicBinopHeap(
       useRegister(base), value, bitOp ? temp() : LDefinition::BogusTemp());
-#endif
 
   if (reuseInput) {
     defineReuseInput(lir, ins, LWasmAtomicBinopHeap::valueOp);
