@@ -159,7 +159,12 @@ class Registers {
 #endif
 
   static const SetType NonVolatileMask =
+#ifdef JS_SANDBOX
+      AllMask & ~VolatileMask & ~(1 << X86Encoding::rsp) &
+      ~(1 << X86Encoding::r14) & ~(1 << X86Encoding::r15);
+#else
       AllMask & ~VolatileMask & ~(1 << X86Encoding::rsp);
+#endif
 
   static const SetType AllocatableMask = AllMask & ~NonAllocatableMask;
 };

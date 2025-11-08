@@ -3225,6 +3225,7 @@ class AssemblerX86Shared : public AssemblerShared {
     MOZ_ASSERT(hasCreator());
     switch (src.kind()) {
       case Operand::REG:
+        MOZ_ASSERT(src.reg() != r15.encoding());
         masm.pop_r(src.reg());
         sandboxStackPointer(Register(src.reg()));
         break;
@@ -3236,6 +3237,7 @@ class AssemblerX86Shared : public AssemblerShared {
     }
   }
   void pop(Register src) {
+    MOZ_ASSERT(src != r15);
     MOZ_ASSERT(hasCreator());
     AutoBundleGroupScope bundle(*this);
     masm.pop_r(src.encoding());

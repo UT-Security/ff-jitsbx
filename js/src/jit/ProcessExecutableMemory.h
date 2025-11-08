@@ -21,7 +21,7 @@ static const size_t MaxCodeBytesPerProcess = 140 * 1024 * 1024;
 // asserts that is <= INT32_MAX. The INT32_MAX limit is required for making a
 // single call to RtlInstallFunctionTableCallback(). (This limit could be
 // relaxed in the future by making multiple calls.)
-static const size_t MaxCodeBytesPerProcess = 2040 * 1024 * 1024;
+static const size_t MaxCodeBytesPerProcess = 1788 * 1024 * 1024;
 #endif
 
 // When we allocate code, we also allocate a data section, which is meant to
@@ -31,7 +31,7 @@ static const size_t MaxCodeBytesPerProcess = 2040 * 1024 * 1024;
 //
 // The quantity of constants available per code pages might vary, but there is
 // roughtly a 1/10 ratio.
-static const size_t MaxDataBytesPerProcess = MaxCodeBytesPerProcess / 10;
+static const size_t MaxDataBytesPerProcess = 256 * 1024 * 1024;
 
 // Limit on the number of bytes of code memory per buffer.  This limit comes
 // about because we encode an unresolved relative unconditional branch during

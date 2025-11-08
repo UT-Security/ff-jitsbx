@@ -2671,10 +2671,18 @@ static const LiveRegisterSet RegsToPreserve(
 // It's correct to use FloatRegisters::AllMask even when SIMD is not enabled;
 // PushRegsInMask strips out the high lanes of the XMM registers in this case,
 // while the singles will be stripped as they are aliased by the larger doubles.
+#ifdef JS_SANDBOX
+static const LiveRegisterSet RegsToPreserve(
+    GeneralRegisterSet(Registers::AllMask &
+                       ~(Registers::SetType(1) << Registers::StackPointer) &
+                       ~(1 << X86Encoding::r14) & ~(1 << X86Encoding::r15)),
+    FloatRegisterSet(FloatRegisters::AllMask));
+#  else
 static const LiveRegisterSet RegsToPreserve(
     GeneralRegisterSet(Registers::AllMask &
                        ~(Registers::SetType(1) << Registers::StackPointer)),
     FloatRegisterSet(FloatRegisters::AllMask));
+#  endif
 #else
 static const LiveRegisterSet RegsToPreserve(
     GeneralRegisterSet(0), FloatRegisterSet(FloatRegisters::AllDoubleMask));

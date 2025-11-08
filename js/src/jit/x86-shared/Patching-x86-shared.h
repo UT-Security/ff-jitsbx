@@ -62,7 +62,7 @@ inline void* GetRel32Target(void* where) {
 // immediates trailing the patch field (eg CMPSS and CMPSD).  Currently the only
 // allowed values for `trailing` are 0 and 1.
 
-static_assert(MaxCodeBytesPerProcess < size_t(INT32_MAX), "Invariant");
+static_assert(MaxCodeBytesPerProcess + MaxDataBytesPerProcess < size_t(INT32_MAX), "Invariant");
 
 class JmpSrc {
  public:
