@@ -98,7 +98,7 @@ UniqueCodeBytes wasm::AllocateCodeBytes(uint32_t codeLength) {
   }
 
   // Zero the padding.
-  memset(((uint8_t*)p) + codeLength, 0, roundedCodeLength - codeLength);
+  memset(((uint8_t*)p) + codeLength, 0xcc, roundedCodeLength - codeLength);
 
   // We account for the bytes allocated in WasmModuleObject::create, where we
   // have the necessary JSContext.
@@ -558,7 +558,7 @@ bool LazyStubTier::createManyEntryStubs(const Uint32Vector& funcExportIndices,
 
   masm.executableCopy(codePtr);
   PatchDebugSymbolicAccesses(codePtr, masm);
-  memset(codePtr + masm.bytesNeeded(), 0, codeLength - masm.bytesNeeded());
+  memset(codePtr + masm.bytesNeeded(), 0xcc, codeLength - masm.bytesNeeded());
 
   for (const CodeLabel& label : masm.codeLabels()) {
     Assembler::Bind(codePtr, label);

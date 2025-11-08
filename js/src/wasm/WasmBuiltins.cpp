@@ -1830,7 +1830,7 @@ bool wasm::EnsureBuiltinThunksInitialized() {
   }
 
   masm.executableCopy(thunks->codeBase);
-  memset(thunks->codeBase + masm.bytesNeeded(), 0,
+  memset(thunks->codeBase + masm.bytesNeeded(), 0xcc,
          allocSize - masm.bytesNeeded());
 
   masm.processCodeLabels(thunks->codeBase);
