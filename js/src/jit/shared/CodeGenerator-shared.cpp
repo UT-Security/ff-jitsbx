@@ -839,6 +839,13 @@ uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
   encode(ins->snapshot());
   ensureOsiSpace();
 
+#ifdef JS_SANDBOX_CFI
+  {
+    AutoBundleGroupScope bundle(masm);
+    bundle.ensureSpace(Assembler::PatchWrite_NearCallSize());
+  }
+#endif
+
   uint32_t offset = masm.currentOffset();
   SnapshotOffset so = ins->snapshot()->snapshotOffset();
   masm.propagateOOM(osiIndices_.append(OsiIndex(offset, so)));

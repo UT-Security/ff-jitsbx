@@ -1750,6 +1750,10 @@ class LSafepoint : public TempObject {
   uint32_t osiCallPointOffset() const { return osiCallPointOffset_; }
   void setOsiCallPointOffset(uint32_t osiCallPointOffset) {
     MOZ_ASSERT(!osiCallPointOffset_);
+#ifdef JS_SANDBOX_CFI
+    MOZ_ASSERT(js::sandbox::BUNDLE_SIZE - (osiCallPointOffset % js::sandbox::BUNDLE_SIZE) >= Assembler::PatchWrite_NearCallSize(),
+               "Unaligned NearCall patch");
+#endif
     osiCallPointOffset_ = osiCallPointOffset;
   }
 

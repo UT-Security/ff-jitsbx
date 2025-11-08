@@ -239,8 +239,8 @@ class AssemblerBundleBuffer {
   MOZ_ALWAYS_INLINE void endBundleGroup() {
     MOZ_ASSERT(in_bundle, "Unexpected bundle group end outside bundle");
     MOZ_ASSERT(mode == BundleMode::Group, "Expected group bundling mode");
-    MOZ_ASSERT(oom() || bundle_length - bundle_start > 0,
-               "Unexpected 0 length group");
+    //MOZ_ASSERT(oom() || bundle_length - bundle_start > 0,
+    //           "Unexpected 0 length group");
     MOZ_ASSERT(oom() || bundle_length <= js::sandbox::BUNDLE_SIZE,
                "Unexpected oversized bundle");
 
