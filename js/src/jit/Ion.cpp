@@ -2416,7 +2416,12 @@ static void InvalidateActivation(JS::GCContext* gcx,
     CodeLocationLabel dataLabelToMunge(frame.resumePCinCurrentFrame());
     ptrdiff_t delta = ionScript->invalidateEpilogueDataOffset() -
                       (frame.resumePCinCurrentFrame() - ionCode->raw());
+#ifdef JS_SANDBOX_CFI
+    CodeLocationLabel hltStartLabel(ionCode->raw() + si->instrDisplacement());
+    Assembler::PatchWrite_HltImm32(dataLabelToMunge, hltStartLabel, Imm32(delta));
+#else
     Assembler::PatchWrite_Imm32(dataLabelToMunge, Imm32(delta));
+#endif
 
     CodeLocationLabel osiPatchPoint =
         SafepointReader::InvalidationPatchPoint(ionScript, si);

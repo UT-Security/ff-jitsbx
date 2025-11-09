@@ -615,7 +615,7 @@ void JitRuntime::generateArgumentsRectifier(MacroAssembler& masm,
   switch (kind) {
     case ArgumentsRectifierKind::Normal:
       masm.loadJitCodeRaw(rax, rax);
-      argumentsRectifierReturnOffset_ = masm.callJitNoProfiler(rax);
+      argumentsRectifierReturnOffset_ = masm.callJitNoProfiler(rax).second;
       break;
     case ArgumentsRectifierKind::TrialInlining:
       Label noBaselineScript, done;

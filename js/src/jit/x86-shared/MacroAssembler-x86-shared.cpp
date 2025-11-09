@@ -725,7 +725,7 @@ void MacroAssembler::PopStackPtr() { Pop(StackPointer); }
 // ===============================================================
 // Simple call functions.
 
-CodeOffset MacroAssembler::call(Register reg) {
+std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
 #ifdef JS_SANDBOX
 #ifdef JS_SANDBOX_CFI_MASKS
 #ifdef DEBUG
@@ -756,7 +756,13 @@ CodeOffset MacroAssembler::call(Register reg) {
   MOZ_ASSERT(reg != StackPointer, "Unexpected stack pointer indirect call");
 
 #ifdef JS_SANDBOX_USE_CALL
+  auto instrOffset = CodeOffset(currentOffset());
   AutoBundleGroupScope bundle(*this);
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_CFI_MASKS)
+  bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
+  MOZ_ASSERT(Assembler::PatchWrite_HltImm32_Size() >= AssemblerX86Shared::CallSize(reg));
+  nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::CallSize(reg));
+#endif
 #ifdef JS_SANDBOX_CFI_MASKS
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
@@ -771,11 +777,18 @@ CodeOffset MacroAssembler::call(Register reg) {
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
+  return std::pair(instrOffset, CodeOffset(currentOffset()));
 #else
   // Load and push return address.
   CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
   push(SandboxScratchReg);
+  auto instrOffset = CodeOffset(currentOffset());
   AutoBundleGroupScope bundle(*this);
+#if defined(JS_SANDBOX_CFI) && !defined(JS_SANDBOX_CFI_MASKS)
+  bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
+  MOZ_ASSERT(Assembler::PatchWrite_HltImm32_Size() >= AssemblerX86Shared::JmpSize(reg));
+  nop(Assembler::PatchWrite_HltImm32_Size() - AssemblerX86Shared::JmpSize(reg));
+#endif
 #ifdef JS_SANDBOX_CFI_MASKS
   andq(SandboxMaskReg, reg);
   andq(Imm32(sandbox::BUNDLE_MASK), reg);
@@ -786,12 +799,15 @@ CodeOffset MacroAssembler::call(Register reg) {
   bundle.nopAndEnd();
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
+  CodeOffset returnOffset = CodeOffset(currentOffset());
+  patchRetAddr(returnPatch, returnOffset);
+  return std::pair(instrOffset, returnOffset);
 #endif
 #else
+  auto instrOffset = CodeOffset(currentOffset());
   Assembler::call(reg);
+  return std::pair(instrOffset, CodeOffset(currentOffset()));
 #endif
-  return CodeOffset(currentOffset());
 }
 
 CodeOffset MacroAssembler::call(Label* label) {
@@ -902,73 +918,10 @@ void MacroAssembler::call(const Address& addr) {
 #endif
 }
 
-CodeOffset MacroAssembler::call(wasm::SymbolicAddress target) {
+std::pair<CodeOffset ,CodeOffset> MacroAssembler::call(wasm::SymbolicAddress target) {
   Register reg = eax;
   mov(target, reg);
-#ifdef JS_SANDBOX
-#ifdef JS_SANDBOX_CFI_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(SandboxMaskReg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-#ifdef JS_SANDBOX_USE_CALL
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, reg);
-  andq(Imm32(sandbox::BUNDLE_MASK), reg);
-  orq(SandboxBaseReg, reg);
-#endif
-#ifdef JS_SANDBOX_CFI
-  bundle.nopToEnd(AssemblerX86Shared::CallSize(reg));
-#endif
-  Assembler::call(reg);
-  bundle.freeze();
-  bundle.end();
-#ifdef JS_SANDBOX_CFI
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-#else
-  // Load and push return address.
-  CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
-  push(SandboxScratchReg);
-  AutoBundleGroupScope bundle(*this);
-#ifdef JS_SANDBOX_CFI_MASKS
-  andq(SandboxMaskReg, reg);
-  andq(Imm32(sandbox::BUNDLE_MASK), reg);
-  orq(SandboxBaseReg, reg);
-#endif
-  Assembler::jmp(Operand(reg));
-#ifdef JS_SANDBOX_CFI
-  bundle.nopAndEnd();
-  MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
-#endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
-#endif
-#else
-  Assembler::call(reg);
-#endif
-  return CodeOffset(currentOffset());
+  return call(reg);
 }
 
 void MacroAssembler::call(ImmWord target) {
@@ -1000,32 +953,46 @@ void MacroAssembler::call(ImmWord target) {
 #endif
 }
 
-void MacroAssembler::call(ImmPtr target) {
+std::pair<uint32_t, uint32_t> MacroAssembler::call(ImmPtr target) {
 #ifdef JS_SANDBOX
 #ifdef JS_SANDBOX_USE_CALL
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT(Assembler::CallSize(target) >= Assembler::PatchWrite_HltImm32_Size());
   bundle.nopToEnd(Assembler::CallSize(target));
 #endif
+  uint32_t instrOffset = currentOffset();
   Assembler::call(target);
   bundle.end();
 #ifdef JS_SANDBOX_CFI
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
+  uint32_t retOffset = currentOffset();
+  return std::pair(instrOffset, retOffset);
 #else
   // Load and push return address.
   CodeOffset returnPatch = moveNearAddressWithPatch(SandboxScratchReg);
   push(SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
+#ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT(Assembler::JmpSize(target) >= Assembler::PatchWrite_HltImm32_Size());
+  bundle.ensureSpace(Assembler::JmpSize(target));
+#endif
+  uint32_t instrOffset = currentOffset();
   Assembler::jmp(target);
 #ifdef JS_SANDBOX_CFI
   bundle.nopAndEnd();
   MOZ_ASSERT_IF(!oom(), size() % sandbox::BUNDLE_SIZE == 0);
 #endif
-  patchRetAddr(returnPatch, CodeOffset(currentOffset()));
+  uint32_t retOffset = currentOffset();
+  patchRetAddr(returnPatch, CodeOffset(retOffset));
+  return std::pair(instrOffset, retOffset);
 #endif
 #else
+  uint32_t instrOffset = currentOffset();
   Assembler::call(target);
+  uint32_t retOffset = currentOffset();
+  return std::pair(instrOffset, retOffset);
 #endif
 }
 
@@ -1058,13 +1025,16 @@ void MacroAssembler::call(JitCode* target) {
 #endif
 }
 
-CodeOffset MacroAssembler::callWithPatch() {
+std::pair<CodeOffset, CodeOffset> MacroAssembler::callWithPatch() {
 #ifdef JS_SANDBOX_USE_CALL
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT(Assembler::CallWithPatchSize() >=
+             Assembler::PatchWrite_HltImm32_Size());
   bundle.nopToEnd(AssemblerX86Shared::CallWithPatchSize());
 #endif
-  CodeOffset ret = Assembler::callWithPatch();
+  auto instrOffset = CodeOffset(currentOffset());
+  CodeOffset retOffset = Assembler::callWithPatch();
   bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
@@ -1075,9 +1045,12 @@ CodeOffset MacroAssembler::callWithPatch() {
   push(SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT(Assembler::JmpWithPatchSize() >=
+             Assembler::PatchWrite_HltImm32_Size());
   bundle.nopToEnd(AssemblerX86Shared::JmpWithPatchSize());
 #endif
-  CodeOffset ret = Assembler::jmpWithPatch();
+  auto instrOffset = CodeOffset(currentOffset());
+  CodeOffset retOffset = Assembler::jmpWithPatch();
   bundle.freeze();
   bundle.end();
 #ifdef JS_SANDBOX_CFI
@@ -1085,13 +1058,16 @@ CodeOffset MacroAssembler::callWithPatch() {
 #endif
   patchRetAddr(returnPatch, CodeOffset(currentOffset()));
 #endif
-  return ret;
+  return std::pair(instrOffset, retOffset);
 }
 void MacroAssembler::patchCall(uint32_t callerOffset, uint32_t calleeOffset) {
   Assembler::patchCall(callerOffset, calleeOffset);
 }
 
-void MacroAssembler::callAndPushReturnAddress(Register reg) { call(reg); }
+std::pair<uint32_t, uint32_t> MacroAssembler::callAndPushReturnAddress(Register reg) {
+  auto offsets = call(reg);
+  return std::pair(offsets.first.offset(), offsets.second.offset());
+}
 
 void MacroAssembler::callAndPushReturnAddress(Label* label) { call(label); }
 
@@ -1333,27 +1309,40 @@ void MacroAssembler::patchCallToNop(uint8_t* callsite) {
 // ===============================================================
 // Jit Frames.
 
-uint32_t MacroAssembler::pushFakeReturnAddress(Register scratch) {
+std::pair<uint32_t, uint32_t> MacroAssembler::pushFakeReturnAddress(Register scratch) {
   CodeLabel cl;
 
   mov(&cl, scratch);
-  Push(scratch);
+  uint32_t instrOffset = 0;
+  {
+    AutoBundleGroupScope bundle(*this);
+    bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
+    instrOffset = currentOffset();
+    nop(Assembler::PatchWrite_HltImm32_Size() - Assembler::PushSize(scratch));
+    Push(scratch);
+  }
   bind(&cl);
-  uint32_t retAddr = currentOffset();
+  uint32_t retOffset = currentOffset();
 
   addCodeLabel(cl);
-  return retAddr;
+  return std::pair(instrOffset, retOffset);
 }
 
 // ===============================================================
 // WebAssembly
 
-CodeOffset MacroAssembler::wasmTrapInstruction() {
+std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmTrapInstruction(bool resumable) {
+  CodeOffset instrOffset = CodeOffset(currentOffset());
 #ifdef JS_SANDBOX_CFI
   AutoBundleGroupScope bundle(*this);
+  if (resumable) {
+    bundle.ensureSpace(Assembler::PatchWrite_HltImm32_Size());
+    instrOffset = CodeOffset(currentOffset());
+  }
   bundle.nopToEnd(jit::WasmTrapInstructionLength);
 #endif
-  return ud2();
+  CodeOffset trapOffset = ud2();
+  return std::pair(instrOffset, trapOffset);
 }
 
 void MacroAssembler::wasmBoundsCheck32(Condition cond, Register index,

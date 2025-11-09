@@ -795,16 +795,16 @@ void CodeGeneratorShared::verifyCompactNativeToBytecodeMap(
 #endif  // DEBUG
 }
 
-void CodeGeneratorShared::markSafepoint(LInstruction* ins) {
-  markSafepointAt(masm.currentOffset(), ins);
-}
-
-void CodeGeneratorShared::markSafepointAt(uint32_t offset, LInstruction* ins) {
+void CodeGeneratorShared::markSafepointAt(std::pair<uint32_t, uint32_t> offsets, LInstruction* ins) {
   MOZ_ASSERT_IF(
       !safepointIndices_.empty() && !masm.oom(),
-      offset - safepointIndices_.back().displacement() >= sizeof(uint32_t));
+      offsets.second - safepointIndices_.back().displacement() >= sizeof(uint32_t));
+#ifdef JS_SANDBOX_CFI
+  MOZ_ASSERT_IF(!masm.oom(),
+                offsets.second - offsets.first >= 1 + sizeof(uint32_t));
+#endif
   masm.propagateOOM(safepointIndices_.append(
-      CodegenSafepointIndex(offset, ins->safepoint())));
+      CodegenSafepointIndex(offsets.second, offsets.first, ins->safepoint())));
 }
 
 void CodeGeneratorShared::ensureOsiSpace() {
@@ -840,13 +840,15 @@ uint32_t CodeGeneratorShared::markOsiPoint(LOsiPoint* ins) {
   ensureOsiSpace();
 
 #ifdef JS_SANDBOX_CFI
-  {
-    AutoBundleGroupScope bundle(masm);
-    bundle.ensureSpace(Assembler::PatchWrite_NearCallSize());
-  }
+  masm.makeBundleSpace(Assembler::PatchWrite_NearCallSize());
 #endif
 
   uint32_t offset = masm.currentOffset();
+#ifdef JS_SANDBOX_CFI
+  uint32_t bundle_length = offset % js::sandbox::BUNDLE_SIZE;
+  size_t bundle_space = js::sandbox::BUNDLE_SIZE - bundle_length;
+  MOZ_ASSERT_IF(!masm.oom(), bundle_space >= Assembler::PatchWrite_NearCallSize());
+#endif
   SnapshotOffset so = ins->snapshot()->snapshotOffset();
   masm.propagateOOM(osiIndices_.append(OsiIndex(offset, so)));
   lastOsiPointOffset_ = offset;

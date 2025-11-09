@@ -1511,6 +1511,11 @@ class AssemblerX86Shared : public AssemblerShared {
         MOZ_CRASH("unexpected operand kind");
     }
   }
+
+  static size_t JmpSize(Register reg) {
+    return X86Encoding::BaseAssembler::jmp_r_size(reg.encoding());
+  }
+  
   void cmpEAX(Label* label) { cmpSrc(label); }
   void bind(Label* label) {
     JmpDst dst(masm.label());
@@ -3214,6 +3219,11 @@ class AssemblerX86Shared : public AssemblerShared {
     AutoBundleInstructionScope bundle(*this);
     masm.push_r(src.encoding());
   }
+
+  static size_t PushSize(Register src) {
+    return X86Encoding::BaseAssembler::push_size(src.encoding());
+  }
+
   void push(const Address& src) {
     AutoBundleInstructionScope bundle(*this);
     masm.push_m(src.offset, src.base.encoding());
@@ -6072,6 +6082,25 @@ class AssemblerX86Shared : public AssemblerShared {
     ptrdiff_t offset = target - startLabel - PatchWrite_NearCallSize();
     MOZ_ASSERT(int32_t(offset) == offset);
     mozilla::LittleEndian::writeInt32(start + 1, offset);  // CALL <rel32>
+  }
+
+  static constexpr size_t PatchWrite_HltImm32_Size() {
+    return 5;
+  }
+
+  static void PatchWrite_HltImm32(CodeLocationLabel dataLabel,
+                                  CodeLocationLabel hltStartLabel,
+                                  Imm32 toWrite) {
+    // dataLabel is a code location which targets the end of an instruction
+    // which has a 32 bits immediate. Thus writting a value requires shifting
+    // back to the address of the 32 bits immediate within the instruction.
+    uint8_t* ptr = dataLabel.raw();
+
+    uint8_t* hlt_ptr = hltStartLabel.raw();
+    MOZ_ASSERT((uintptr_t)ptr - (uintptr_t)hlt_ptr >= 1 + sizeof(int32_t));
+    memset(hlt_ptr, 0xf4, ptr - hlt_ptr - sizeof(int32_t));
+
+    mozilla::LittleEndian::writeInt32(ptr - sizeof(int32_t), toWrite.value);
   }
 
   static void PatchWrite_Imm32(CodeLocationLabel dataLabel, Imm32 toWrite) {

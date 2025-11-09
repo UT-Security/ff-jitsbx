@@ -3394,7 +3394,7 @@ class LWasmParameterI64 : public LInstructionHelper<INT64_PIECES, 0, 0> {
 
 // This is used only with LWasmCall.
 class LWasmCallIndirectAdjunctSafepoint : public LInstructionHelper<0, 0, 0> {
-  CodeOffset offs_;
+  std::pair<CodeOffset, CodeOffset> offs_;
   uint32_t framePushedAtStackMapBase_;
 
  public:
@@ -3402,18 +3402,18 @@ class LWasmCallIndirectAdjunctSafepoint : public LInstructionHelper<0, 0, 0> {
 
   LWasmCallIndirectAdjunctSafepoint()
       : LInstructionHelper(classOpcode),
-        offs_(0),
+        offs_(std::pair(0, 0)),
         framePushedAtStackMapBase_(0) {}
 
-  CodeOffset safepointLocation() const {
-    MOZ_ASSERT(offs_.offset() != 0);
+  std::pair<CodeOffset, CodeOffset> safepointLocation() const {
+    MOZ_ASSERT(offs_.second.offset() != 0);
     return offs_;
   }
   uint32_t framePushedAtStackMapBase() const {
-    MOZ_ASSERT(offs_.offset() != 0);
+    MOZ_ASSERT(offs_.second.offset() != 0);
     return framePushedAtStackMapBase_;
   }
-  void recordSafepointInfo(CodeOffset offs, uint32_t framePushed) {
+  void recordSafepointInfo(std::pair<CodeOffset, CodeOffset> offs, uint32_t framePushed) {
     offs_ = offs;
     framePushedAtStackMapBase_ = framePushed;
   }

@@ -150,7 +150,7 @@ class alignas(8) IonScript final : public TrailingArray {
 
   // Hardcode size of incomplete types. These are verified in Ion.cpp.
   static constexpr size_t SizeOf_OsiIndex = 2 * sizeof(uint32_t);
-  static constexpr size_t SizeOf_SafepointIndex = 2 * sizeof(uint32_t);
+  static constexpr size_t SizeOf_SafepointIndex = 3 * sizeof(uint32_t);
 
  public:
   //

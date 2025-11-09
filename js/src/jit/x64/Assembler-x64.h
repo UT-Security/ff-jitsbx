@@ -1485,6 +1485,9 @@ class Assembler : public AssemblerX86Shared {
     bundle.end();
     addPendingJump(src, target, reloc, code);
   }
+  static size_t JmpSize(ImmPtr target) {
+    return X86Encoding::BaseAssembler::jmp_size();
+  }
   void j(Condition cond, ImmPtr target,
          RelocationKind reloc = RelocationKind::HARDCODED,
          JitCode* code = nullptr) {

@@ -212,8 +212,7 @@ class CodeGeneratorShared : public LElementVisitor {
 
   // Mark the safepoint on |ins| as corresponding to the current assembler
   // location. The location should be just after a call.
-  void markSafepoint(LInstruction* ins);
-  void markSafepointAt(uint32_t offset, LInstruction* ins);
+  void markSafepointAt(std::pair<uint32_t, uint32_t> offsets, LInstruction* ins);
 
   // Mark the OSI point |ins| as corresponding to the current
   // assembler location inside the |osiIndices_|. Return the assembler

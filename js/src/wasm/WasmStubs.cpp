@@ -1435,10 +1435,10 @@ static bool GenerateJitEntry(MacroAssembler& masm, size_t funcExportIndex,
   return FinishOffsets(masm, offsets);
 }
 
-void wasm::GenerateDirectCallFromJit(MacroAssembler& masm, const FuncExport& fe,
-                                     const Instance& inst,
-                                     const JitCallStackArgVector& stackArgs,
-                                     Register scratch, uint32_t* callOffset) {
+void wasm::GenerateDirectCallFromJit(
+    MacroAssembler& masm, const FuncExport& fe, const Instance& inst,
+    const JitCallStackArgVector& stackArgs, Register scratch,
+    std::pair<uint32_t, uint32_t>* callOffset) {
   MOZ_ASSERT(!IsCompilingWasm());
 
   const FuncType& funcType = inst.metadata().getFuncExportType(fe);

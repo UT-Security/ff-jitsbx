@@ -3892,7 +3892,7 @@ CodeOffset MacroAssembler::callWithABI(wasm::BytecodeOffset bytecode,
     MOZ_CRASH("instanceOffset is Nothing only for unsupported abi calls.");
   }
   CodeOffset raOffset = call(
-      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSite::Symbolic), imm);
+      wasm::CallSiteDesc(bytecode.offset(), wasm::CallSite::Symbolic), imm).second;
 
   callWithABIPost(stackAdjust, result, /* callFromWasm = */ true);
 
@@ -4541,13 +4541,15 @@ void MacroAssembler::branchIfObjectNotExtensible(Register obj, Register scratch,
                Imm32(uint32_t(ObjectFlag::NotExtensible)), label);
 }
 
-void MacroAssembler::wasmTrap(wasm::Trap trap,
-                              wasm::BytecodeOffset bytecodeOffset) {
-  uint32_t trapOffset = wasmTrapInstruction().offset();
+std::pair<uint32_t, uint32_t> MacroAssembler::wasmTrap(wasm::Trap trap,
+                              wasm::BytecodeOffset bytecodeOffset, bool resumable) {
+  std::pair<CodeOffset, CodeOffset> trapOffset = wasmTrapInstruction(resumable);
+  std::pair<uint32_t, uint32_t> unwrapped = std::pair(trapOffset.first.offset(), trapOffset.second.offset());
   MOZ_ASSERT_IF(!oom(),
-                currentOffset() - trapOffset == WasmTrapInstructionLength);
+                currentOffset() - unwrapped.second == WasmTrapInstructionLength);
 
-  append(trap, wasm::TrapSite(trapOffset, bytecodeOffset));
+  append(trap, wasm::TrapSite(unwrapped.second, bytecodeOffset));
+  return unwrapped;
 }
 
 std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
@@ -4586,7 +4588,7 @@ std::pair<CodeOffset, uint32_t> MacroAssembler::wasmReserveStackChecked(
   return std::pair<CodeOffset, uint32_t>(trapInsnOffset, amount);
 }
 
-CodeOffset MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
+std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
                                           const wasm::CalleeDesc& callee) {
   storePtr(InstanceReg,
            Address(getStackPointer(), WasmCallerInstanceOffsetBeforeCall));
@@ -4626,7 +4628,7 @@ CodeOffset MacroAssembler::wasmCallImport(const wasm::CallSiteDesc& desc,
   return call(desc, ABINonArgReg0);
 }
 
-CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
+std::pair<CodeOffset, CodeOffset> MacroAssembler::wasmCallBuiltinInstanceMethod(
     const wasm::CallSiteDesc& desc, const ABIArg& instanceArg,
     wasm::SymbolicAddress builtin, wasm::FailureMode failureMode) {
   MOZ_ASSERT(instanceArg != ABIArg());
@@ -4645,7 +4647,7 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
     MOZ_CRASH("Unknown abi passing style for pointer");
   }
 
-  CodeOffset ret = call(desc, builtin);
+  auto ret = call(desc, builtin);
 
   if (failureMode != wasm::FailureMode::Infallible) {
     Label noTrap;
@@ -4672,7 +4674,7 @@ CodeOffset MacroAssembler::wasmCallBuiltinInstanceMethod(
   return ret;
 }
 
-CodeOffset MacroAssembler::asmCallIndirect(const wasm::CallSiteDesc& desc,
+std::pair<CodeOffset, CodeOffset> MacroAssembler::asmCallIndirect(const wasm::CallSiteDesc& desc,
                                            const wasm::CalleeDesc& callee) {
   MOZ_ASSERT(callee.which() == wasm::CalleeDesc::AsmJSTable);
 
@@ -4721,8 +4723,8 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
                                       Label* boundsCheckFailedLabel,
                                       Label* nullCheckFailedLabel,
                                       mozilla::Maybe<uint32_t> tableSize,
-                                      CodeOffset* fastCallOffset,
-                                      CodeOffset* slowCallOffset) {
+                                      std::pair<CodeOffset, CodeOffset>* fastCallOffset,
+                                      std::pair<CodeOffset, CodeOffset>* slowCallOffset) {
   static_assert(sizeof(wasm::FunctionTableElem) == 2 * sizeof(void*),
                 "Exactly two pointers or index scaling won't work correctly");
   MOZ_ASSERT(callee.which() == wasm::CalleeDesc::WasmTable);
@@ -4853,10 +4855,10 @@ void MacroAssembler::wasmCallIndirect(const wasm::CallSiteDesc& desc,
   bind(&done);
 }
 
-void MacroAssembler::wasmCallRef(const wasm::CallSiteDesc& desc,
-                                 const wasm::CalleeDesc& callee,
-                                 CodeOffset* fastCallOffset,
-                                 CodeOffset* slowCallOffset) {
+void MacroAssembler::wasmCallRef(
+    const wasm::CallSiteDesc& desc, const wasm::CalleeDesc& callee,
+    std::pair<CodeOffset, CodeOffset>* fastCallOffset,
+    std::pair<CodeOffset, CodeOffset>* slowCallOffset) {
   MOZ_ASSERT(callee.which() == wasm::CalleeDesc::FuncRef);
   const Register calleeScratch = WasmCallRefCallScratchReg0;
   const Register calleeFnObj = WasmCallRefReg;

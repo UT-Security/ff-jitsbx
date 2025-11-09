@@ -351,8 +351,8 @@ void CodeGenerator::callVMInternal(VMFunctionId id, LInstruction* ins) {
   // on the return value of the C functions.  To guard the outcome of the
   // returned value, use another LIR instruction.
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(code);
-  markSafepointAt(callOffset, ins);
+  std::pair<uint32_t, uint32_t> offsets = masm.callJit(code);
+  markSafepointAt(offsets, ins);
 
 #ifdef DEBUG
   // Reset the disallowArbitraryCode flag after the call.
@@ -5459,11 +5459,11 @@ void CodeGenerator::emitCallNative(LCallIns* call, JSNative native) {
   masm.Push(argUintNReg);
 
   // Construct native exit frame.
-  uint32_t safepointOffset = masm.buildFakeExitFrame(tempReg);
+  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(tempReg);
   masm.enterFakeExitFrameForNative(argContextReg, tempReg,
                                    call->mir()->isConstructing());
 
-  markSafepointAt(safepointOffset, call);
+  markSafepointAt(safepointOffsets, call);
 
   // Construct and execute call.
   masm.setupAlignedABICall();
@@ -5637,12 +5637,12 @@ void CodeGenerator::visitCallDOMNative(LCallDOMNative* call) {
   }
 
   // Construct native exit frame.
-  uint32_t safepointOffset = masm.buildFakeExitFrame(argJSContext);
+  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(argJSContext);
   masm.loadJSContext(argJSContext);
   masm.enterFakeExitFrame(argJSContext, argJSContext,
                           ExitFrameType::IonDOMMethod);
 
-  markSafepointAt(safepointOffset, call);
+  markSafepointAt(safepointOffsets, call);
 
   // Construct and execute call.
   masm.setupAlignedABICall();
@@ -5806,8 +5806,8 @@ void CodeGenerator::visitCallGeneric(LCallGeneric* call) {
   // Finally call the function in objreg.
   masm.bind(&makeCall);
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(objreg);
-  markSafepointAt(callOffset, call);
+  std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
+  markSafepointAt(callOffsets, call);
 
   if (call->mir()->maybeCrossRealm()) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -5892,8 +5892,8 @@ void CodeGenerator::visitCallKnown(LCallKnown* call) {
 
   // Finally call the function in objreg.
   ensureOsiSpace();
-  uint32_t callOffset = masm.callJit(objreg);
-  markSafepointAt(callOffset, call);
+  std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
+  markSafepointAt(callOffsets, call);
 
   if (call->mir()->maybeCrossRealm()) {
     static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -6378,8 +6378,8 @@ void CodeGenerator::emitApplyGeneric(T* apply) {
     // Finally call the function in objreg, as assigned by one of the paths
     // above.
     ensureOsiSpace();
-    uint32_t callOffset = masm.callJit(objreg);
-    markSafepointAt(callOffset, apply);
+    std::pair<uint32_t, uint32_t> callOffsets = masm.callJit(objreg);
+    markSafepointAt(callOffsets, apply);
 
     if (apply->mir()->maybeCrossRealm()) {
       static_assert(!JSReturnOperand.aliases(ReturnReg),
@@ -8488,19 +8488,19 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
 
   const wasm::CallSiteDesc& desc = callBase->desc();
   const wasm::CalleeDesc& callee = callBase->callee();
-  CodeOffset retOffset;
-  CodeOffset secondRetOffset;
+  std::pair<CodeOffset, CodeOffset> retOffsets;
+  std::pair<CodeOffset, CodeOffset> secondRetOffsets;
   switch (callee.which()) {
     case wasm::CalleeDesc::Func:
-      retOffset = masm.call(desc, callee.funcIndex());
+      retOffsets = masm.call(desc, callee.funcIndex());
       reloadRegs = false;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::Import:
-      retOffset = masm.wasmCallImport(desc, callee);
+      retOffsets = masm.wasmCallImport(desc, callee);
       break;
     case wasm::CalleeDesc::AsmJSTable:
-      retOffset = masm.asmCallIndirect(desc, callee);
+      retOffsets = masm.asmCallIndirect(desc, callee);
       break;
     case wasm::CalleeDesc::WasmTable: {
       Label* boundsCheckFailed = nullptr;
@@ -8532,7 +8532,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       }
 #endif
       masm.wasmCallIndirect(desc, callee, boundsCheckFailed, nullCheckFailed,
-                            lir->tableSize(), &retOffset, &secondRetOffset);
+                            lir->tableSize(), &retOffsets, &secondRetOffsets);
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallIndirect.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
@@ -8541,12 +8541,12 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       break;
     }
     case wasm::CalleeDesc::Builtin:
-      retOffset = masm.call(desc, callee.builtin());
+      retOffsets = masm.call(desc, callee.builtin());
       reloadRegs = false;
       switchRealm = false;
       break;
     case wasm::CalleeDesc::BuiltinInstanceMethod:
-      retOffset = masm.wasmCallBuiltinInstanceMethod(
+      retOffsets = masm.wasmCallBuiltinInstanceMethod(
           desc, callBase->instanceArg(), callee.builtin(),
           callBase->builtinMethodFailureMode());
       switchRealm = false;
@@ -8555,14 +8555,17 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
       // Register reloading and realm switching are handled dynamically inside
       // wasmCallRef.  There are two return offsets, one for each call
       // instruction (fast path and slow path).
-      masm.wasmCallRef(desc, callee, &retOffset, &secondRetOffset);
+      masm.wasmCallRef(desc, callee, &retOffsets, &secondRetOffsets);
       reloadRegs = false;
       switchRealm = false;
       break;
   }
 
+  auto realRetOffsets =
+      std::pair(retOffsets.first.offset(), retOffsets.second.offset());
+
   // Note the assembler offset for the associated LSafePoint.
-  markSafepointAt(retOffset.offset(), lir);
+  markSafepointAt(realRetOffsets, lir);
 
   // Now that all the outbound in-memory args are on the stack, note the
   // required lower boundary point of the associated StackMap.
@@ -8574,7 +8577,7 @@ void CodeGenerator::visitWasmCall(LWasmCall* lir) {
   // Note the assembler offset and framePushed for use by the adjunct
   // LSafePoint, see visitor for LWasmCallIndirectAdjunctSafepoint below.
   if (callee.which() == wasm::CalleeDesc::WasmTable) {
-    lir->adjunctSafepoint()->recordSafepointInfo(secondRetOffset,
+    lir->adjunctSafepoint()->recordSafepointInfo(secondRetOffsets,
                                                  framePushedAtStackMapBase);
   }
 
@@ -8643,7 +8646,7 @@ void CodeGenerator::visitWasmCallLandingPrePad(LWasmCallLandingPrePad* lir) {
 
 void CodeGenerator::visitWasmCallIndirectAdjunctSafepoint(
     LWasmCallIndirectAdjunctSafepoint* lir) {
-  markSafepointAt(lir->safepointLocation().offset(), lir);
+  markSafepointAt(std::pair(lir->safepointLocation().first.offset(), lir->safepointLocation().second.offset()), lir);
   lir->safepoint()->setFramePushedAtStackMapBase(
       lir->framePushedAtStackMapBase());
 }
@@ -16178,12 +16181,12 @@ void CodeGenerator::visitGetDOMProperty(LGetDOMProperty* ins) {
     masm.switchToRealm(getterRealm, JSContextReg);
   }
 
-  uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
+  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
                           ExitFrameType::IonDOMGetter);
 
-  markSafepointAt(safepointOffset, ins);
+  markSafepointAt(safepointOffsets, ins);
 
   masm.setupAlignedABICall();
   masm.loadJSContext(JSContextReg);
@@ -16299,12 +16302,12 @@ void CodeGenerator::visitSetDOMProperty(LSetDOMProperty* ins) {
     masm.switchToRealm(setterRealm, JSContextReg);
   }
 
-  uint32_t safepointOffset = masm.buildFakeExitFrame(JSContextReg);
+  std::pair<uint32_t, uint32_t> safepointOffsets = masm.buildFakeExitFrame(JSContextReg);
   masm.loadJSContext(JSContextReg);
   masm.enterFakeExitFrame(JSContextReg, JSContextReg,
                           ExitFrameType::IonDOMSetter);
 
-  markSafepointAt(safepointOffset, ins);
+  markSafepointAt(safepointOffsets, ins);
 
   masm.setupAlignedABICall();
   masm.loadJSContext(JSContextReg);
@@ -16963,9 +16966,9 @@ void CodeGenerator::visitInterruptCheck(LInterruptCheck* lir) {
 void CodeGenerator::visitOutOfLineResumableWasmTrap(
     OutOfLineResumableWasmTrap* ool) {
   LInstruction* lir = ool->lir();
-  masm.wasmTrap(ool->trap(), ool->bytecodeOffset());
+  auto trapOffsets = masm.wasmTrap(ool->trap(), ool->bytecodeOffset(), true);
 
-  markSafepointAt(masm.currentOffset(), lir);
+  markSafepointAt(std::pair(trapOffsets.first, masm.currentOffset()), lir);
 
   // Note that masm.framePushed() doesn't include the register dump area.
   // That will be taken into account when the StackMap is created from the
@@ -18423,10 +18426,10 @@ void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
 
   Register scratch = ToRegister(lir->temp());
 
-  uint32_t callOffset;
+  std::pair<uint32_t, uint32_t> callOffsets;
   ensureOsiSpace();
   GenerateDirectCallFromJit(masm, funcExport, instObj->instance(), stackArgs,
-                            scratch, &callOffset);
+                            scratch, &callOffsets);
 
   // Add the instance object to the constant pool, so it is transferred to
   // the owning IonScript and so that it gets traced as long as the IonScript
@@ -18435,7 +18438,7 @@ void CodeGenerator::emitIonToWasmCallBase(LIonToWasmCallBase<NumDefs>* lir) {
   uint32_t unused;
   masm.propagateOOM(graph.addConstantToPool(ObjectValue(*instObj), &unused));
 
-  markSafepointAt(callOffset, lir);
+  markSafepointAt(callOffsets, lir);
 }
 
 void CodeGenerator::visitIonToWasmCall(LIonToWasmCall* lir) {

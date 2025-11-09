@@ -1591,13 +1591,13 @@ void BaseCompiler::passArg(ValType type, const Stk& arg, FunctionCall* call) {
 CodeOffset BaseCompiler::callDefinition(uint32_t funcIndex,
                                         const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Func);
-  return masm.call(desc, funcIndex);
+  return masm.call(desc, funcIndex).second;
 }
 
 CodeOffset BaseCompiler::callSymbolic(SymbolicAddress callee,
                                       const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
-  return masm.call(desc, callee);
+  return masm.call(desc, callee).second;
 }
 
 // Precondition: sync()
@@ -1645,8 +1645,11 @@ bool BaseCompiler::callIndirect(uint32_t funcTypeIndex, uint32_t tableIndex,
   }
   nullCheckFailed = nullref->entry();
 #endif
+  std::pair<CodeOffset, CodeOffset> tmpFastOffsets, tmpSlowOffsets;
   masm.wasmCallIndirect(desc, callee, oob->entry(), nullCheckFailed,
-                        mozilla::Nothing(), fastCallOffset, slowCallOffset);
+                        mozilla::Nothing(), &tmpFastOffsets, &tmpSlowOffsets);
+  *fastCallOffset = tmpFastOffsets.second;
+  *slowCallOffset = tmpSlowOffsets.second;
   return true;
 }
 
@@ -1668,7 +1671,7 @@ CodeOffset BaseCompiler::callImport(unsigned instanceDataOffset,
                                     const FunctionCall& call) {
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Import);
   CalleeDesc callee = CalleeDesc::import(instanceDataOffset);
-  return masm.wasmCallImport(desc, callee);
+  return masm.wasmCallImport(desc, callee).second;
 }
 
 CodeOffset BaseCompiler::builtinCall(SymbolicAddress builtin,
@@ -1685,7 +1688,7 @@ CodeOffset BaseCompiler::builtinInstanceMethodCall(
 #endif
   CallSiteDesc desc(bytecodeOffset(), CallSiteDesc::Symbolic);
   return masm.wasmCallBuiltinInstanceMethod(desc, instanceArg, builtin.identity,
-                                            builtin.failureMode);
+                                            builtin.failureMode).second;
 }
 
 bool BaseCompiler::pushCallResults(const FunctionCall& call, ResultType type,

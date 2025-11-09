@@ -381,6 +381,10 @@ class BaseAssembler : public GenericAssembler {
     m_formatter.oneByteOp(OP_PUSH_EAX, reg);
   }
 
+  static size_t push_size(RegisterID reg) {
+    return X86InstructionFormatter::oneByteOpSize(OP_PUSH_EAX, reg);
+  }
+
   void pop_r(RegisterID reg) {
     spew("pop        %s", GPRegName(reg));
     m_formatter.oneByteOp(OP_POP_EAX, reg);
@@ -2890,6 +2894,10 @@ class BaseAssembler : public GenericAssembler {
   void jmp_r(RegisterID dst) {
     spew("jmp        *%s", GPRegName(dst));
     m_formatter.oneByteOp(OP_GROUP5_Ev, dst, GROUP5_OP_JMPN);
+  }
+
+  static size_t jmp_r_size(RegisterID dst) {
+    return X86InstructionFormatter::oneByteOpSize(OP_GROUP5_Ev, dst, GROUP5_OP_JMPN);
   }
 
   void jmp_m(int32_t offset, RegisterID base) {
@@ -5743,6 +5751,10 @@ class BaseAssembler : public GenericAssembler {
       m_buffer.ensureSpace(MaxInstructionSize);
       emitRexIfNeeded(0, 0, reg);
       m_buffer.putByteUnchecked(opcode + (reg & 7));
+    }
+
+    static size_t oneByteOpSize(OneByteOpcodeID opcode, RegisterID reg) {
+      return emitRexIfNeededSize(0, 0, reg) + 1;
     }
 
     void oneByteOp(OneByteOpcodeID opcode, RegisterID rm, int reg) {

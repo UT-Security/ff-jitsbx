@@ -362,7 +362,7 @@ extern void GenerateDirectCallFromJit(jit::MacroAssembler& masm,
                                       const Instance& inst,
                                       const JitCallStackArgVector& stackArgs,
                                       jit::Register scratch,
-                                      uint32_t* callOffset);
+                                      std::pair<uint32_t, uint32_t>* callOffset);
 
 }  // namespace wasm
 }  // namespace js
