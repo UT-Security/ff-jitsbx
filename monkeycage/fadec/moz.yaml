@@ -1,0 +1,23 @@
+schema: 1
+
+bugzilla:
+  product: Core
+  component: "General"
+
+origin:
+  name: fadec
+  description: A fast and lightweight decoder for x86 and x86-64 and encoder for x86-64.
+  url: https://github.com/aengelke/fadec/tree/master
+
+  release: c0139efde553cabff74d161fde77280890d2679a (2025-05-04T13:13:18Z).
+  revision: c0139efde553cabff74d161fde77280890d2679a
+
+  license: MIT
+
+vendoring:
+  url: https://github.com/aengelke/fadec
+  source-hosting: github
+
+  exclude:
+    - meson.build
+    - meson_options.txt
