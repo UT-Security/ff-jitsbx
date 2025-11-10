@@ -228,7 +228,7 @@ void BaseCompiler::jumpTable(LabelVector& labels, Label* theTable) {
   masm.bind(theTable);
   for (const auto& label : labels) {
     CodeLabel cl;
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+#ifdef JS_SANDBOX_CFI_MASKS
     cl.setHltMasked(true);
 #endif
     masm.writeCodePointer(&cl);

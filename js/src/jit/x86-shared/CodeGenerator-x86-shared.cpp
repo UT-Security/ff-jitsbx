@@ -1805,7 +1805,7 @@ void CodeGeneratorX86Shared::visitOutOfLineTableSwitch(
     // The entries of the jump table need to be absolute addresses and thus
     // must be patched after codegen is finished.
     CodeLabel cl;
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+#ifdef JS_SANDBOX_CFI_MASKS
     cl.setHltMasked(true);
 #endif
     masm.writeCodePointer(&cl);

@@ -6685,7 +6685,7 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     const Label& opLabel = opLabels[i];
     MOZ_ASSERT(opLabel.bound());
     CodeLabel cl;
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+#ifdef JS_SANDBOX_CFI_MASKS
     cl.setHltMasked(true);
 #endif
     masm.writeCodePointer(&cl);
