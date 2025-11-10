@@ -8,6 +8,9 @@ from itertools import product
 import re
 import struct
 from typing import NamedTuple, FrozenSet, List, Tuple, Union, Optional, ByteString
+import subprocess
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 INSTR_FLAGS_FIELDS, INSTR_FLAGS_SIZES = zip(*[
     ("modrm_idx", 2),
@@ -658,7 +661,7 @@ def superstring(strs):
     return merged
 
 def decode_table(entries, args):
-    modes = args.modes
+    modes = [32, 64]
 
     trie = Trie(root_count=len(modes))
     for i, mode in enumerate(modes):
@@ -722,11 +725,6 @@ def decode_table(entries, args):
                         .replace("C_EX", "CBW CWDECDQE").replace("XCHG_NOP", "")
                         .lower() for m in mnems]
     mnemonics_str = superstring(mnemonics_intel)
-
-    if args.stats:
-        print(f"Decode stats: Descs -- {len(descs)} ({8*len(descs)} bytes); ",
-              f"Trie -- {2*len(table_data)} bytes, {trie.stats}; "
-              f"Mnems -- {len(mnemonics_str)} + {3*len(mnemonics_intel)} bytes")
 
     defines = ["FD_TABLE_OFFSET_%d %d\n"%k for k in zip(modes, root_offsets)]
 
@@ -1366,3 +1364,45 @@ if __name__ == "__main__":
     res_public, res_private = generators[args.mode](entries, args)
     args.out_public.write(res_public)
     args.out_private.write(res_private)
+
+def generate_decode_public(out_public, table_path):
+    generators = {
+        "decode": decode_table,
+        "encode": encode_table,
+        "encode2": encode2_table,
+    }
+
+    entries = []
+    with open(table_path) as table:
+        for line in table.read().splitlines():
+            if not line or line[0] == "#": continue
+            line, weak = (line, False) if line[0] != "*" else (line[1:], True)
+            opcode_string, desc_string = tuple(line.split(maxsplit=1))
+            opcode, desc = Opcode.parse(opcode_string), InstrDesc.parse(desc_string)
+            verifyOpcodeDesc(opcode, desc)
+            if "UNDOC" not in desc.flags:
+                entries.append((weak, opcode, desc))
+
+    res_public, res_private = generators["decode"](entries, {'modes': [32, 64]})
+    out_public.write(res_public)
+    
+def generate_decode_private(out_private, table_path):
+    generators = {
+        "decode": decode_table,
+        "encode": encode_table,
+        "encode2": encode2_table,
+    }
+
+    entries = []
+    with open(table_path) as table:
+        for line in table.read().splitlines():
+            if not line or line[0] == "#": continue
+            line, weak = (line, False) if line[0] != "*" else (line[1:], True)
+            opcode_string, desc_string = tuple(line.split(maxsplit=1))
+            opcode, desc = Opcode.parse(opcode_string), InstrDesc.parse(desc_string)
+            verifyOpcodeDesc(opcode, desc)
+            if "UNDOC" not in desc.flags:
+                entries.append((weak, opcode, desc))
+
+    res_public, res_private = generators["decode"](entries, {'modes': [32, 64]})
+    out_private.write(res_private)

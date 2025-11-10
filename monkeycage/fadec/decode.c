@@ -18,7 +18,7 @@
 
 // Defines FD_TABLE_OFFSET_32 and FD_TABLE_OFFSET_64, if available
 #define FD_DECODE_TABLE_DEFINES
-#include <fadec-decode-private.inc>
+#include "fadec-decode-private.inc"
 #undef FD_DECODE_TABLE_DEFINES
 
 enum DecodeMode {
