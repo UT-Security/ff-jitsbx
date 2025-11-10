@@ -1797,21 +1797,6 @@ void CodeGeneratorX86Shared::visitOutOfLineTableSwitch(
   masm.bind(ool->jumpLabel());
   masm.addCodeLabel(*ool->jumpLabel());
 
-#ifdef JS_SANDBOX
-  for (size_t i = 0; i < mir->numCases(); i++) {
-    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
-    LBlock* caseblock = skipTrivialBlocks(mir->getCase(i))->lir();
-    Label* caseheader = caseblock->label();
-    uint32_t caseoffset = caseheader->offset();
-
-    // The entries of the jump table need to be absolute addresses and thus
-    // must be patched after codegen is finished.
-    CodeLabel cl;
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(caseoffset);
-    masm.addCodeLabel(cl);
-  }
-#else
   for (size_t i = 0; i < mir->numCases(); i++) {
     LBlock* caseblock = skipTrivialBlocks(mir->getCase(i))->lir();
     Label* caseheader = caseblock->label();
@@ -1820,11 +1805,13 @@ void CodeGeneratorX86Shared::visitOutOfLineTableSwitch(
     // The entries of the jump table need to be absolute addresses and thus
     // must be patched after codegen is finished.
     CodeLabel cl;
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(caseoffset);
-    masm.addCodeLabel(cl);
-  }
+#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+    cl.setHltMasked(true);
 #endif
+    masm.writeCodePointer(&cl);
+    cl.target()->bind(caseoffset);
+    masm.addCodeLabel(cl);
+  }
 }
 
 void CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch* mir,
@@ -1848,22 +1835,12 @@ void CodeGeneratorX86Shared::emitTableSwitchDispatch(MTableSwitch* mir,
   OutOfLineTableSwitch* ool = new (alloc()) OutOfLineTableSwitch(mir);
   addOutOfLineCode(ool, mir);
 
-#ifdef JS_SANDBOX
-  // Compute the position where a pointer to the right case stands.
-  masm.mov(ool->jumpLabel(), base);
-  masm.leal(Operand(index, index, TimesOne), index);
-  BaseIndex pointer(base, index, ScalePointer, CodeAlignment / 4);
-
-  // Jump to the right case
-  masm.branchToComputedAddress(pointer);
-#else
   // Compute the position where a pointer to the right case stands.
   masm.mov(ool->jumpLabel(), base);
   BaseIndex pointer(base, index, ScalePointer);
 
   // Jump to the right case
   masm.branchToComputedAddress(pointer);
-#endif
 }
 
 void CodeGenerator::visitMathD(LMathD* math) {

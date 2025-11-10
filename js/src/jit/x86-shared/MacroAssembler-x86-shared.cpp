@@ -741,18 +741,6 @@ std::pair<CodeOffset, CodeOffset> MacroAssembler::call(Register reg) {
 #endif
 #endif
 
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
   MOZ_ASSERT(reg != StackPointer, "Unexpected stack pointer indirect call");
 
 #ifdef JS_SANDBOX_USE_CALL
@@ -852,20 +840,6 @@ void MacroAssembler::call(const Address& addr) {
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
   orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(addr));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Call address already uses scratch register");
-  Label sandboxed;
-  movq(Operand(addr), SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
   cmpq(SandboxScratchReg, Operand(addr));
   j(Condition::Equal, &sandboxed);
   breakpoint();
@@ -1076,18 +1050,6 @@ void MacroAssembler::callAndPushReturnAddress(Label* label) { call(label); }
 
 #ifdef JS_SANDBOX_CFI
 void MacroAssemblerX86Shared::jump(Register reg) {
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(reg, SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, reg);
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
 #ifdef JS_SANDBOX_CFI_MASKS
 #ifdef DEBUG
   Label sandboxed;
@@ -1125,20 +1087,6 @@ void MacroAssemblerX86Shared::jump(const Address& addr) {
 #endif
 #endif
 
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Jump address already uses scratch register");
-  Label sandboxed;
-  movq(Operand(addr), SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(addr));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
   movq(Operand(addr), SandboxScratchReg);
 #ifdef JS_SANDBOX_CFI_MASKS
   AutoBundleGroupScope bundle(*this);
@@ -1158,28 +1106,18 @@ void MacroAssemblerX86Shared::jump(const BaseIndex& addr) {
   if (!Operand(addr).clobberScratch()) {
     Label sandboxed;
     movq(Operand(addr), SandboxScratchReg);
+    shlq(Imm32(8), SandboxScratchReg);
+    shrq(Imm32(8), SandboxScratchReg);
+    push(SandboxScratchReg);
     andq(SandboxMaskReg, SandboxScratchReg);
     andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
     orq(SandboxBaseReg, SandboxScratchReg);
-    cmpq(SandboxScratchReg, Operand(addr));
+    cmpq(SandboxScratchReg, Operand(Address(StackPointer, 0)));
     j(Condition::Equal, &sandboxed);
     breakpoint();
     bind(&sandboxed);
+    pop(Operand(SandboxScratchReg));
   }
-#endif
-#endif
-
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  MOZ_ASSERT(!Operand(addr).containsReg(SandboxScratchReg),
-             "Jump address already uses scratch register");
-  Label sandboxed;
-  movq(Operand(addr), SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(addr));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
 #endif
 #endif
 
@@ -1212,18 +1150,6 @@ void MacroAssemblerX86Shared::ret() {
 #endif
 #endif
 
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(Operand(StackPointer, 0), SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
   pop(SandboxScratchReg);
   AutoBundleGroupScope bundle(*this);
 #ifdef JS_SANDBOX_CFI_MASKS
@@ -1242,18 +1168,6 @@ void MacroAssemblerX86Shared::retn(Imm32 n) {
   andq(SandboxMaskReg, SandboxScratchReg);
   andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
   orq(SandboxBaseReg, SandboxScratchReg);
-  cmpq(SandboxScratchReg, Operand(StackPointer, 0));
-  j(Condition::Equal, &sandboxed);
-  breakpoint();
-  bind(&sandboxed);
-#endif
-#endif
-
-#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
-#ifdef DEBUG
-  Label sandboxed;
-  movq(Operand(StackPointer, 0), SandboxScratchReg);
-  andq(Imm32(sandbox::BUNDLE_MASK), ScratchReg);
   cmpq(SandboxScratchReg, Operand(StackPointer, 0));
   j(Condition::Equal, &sandboxed);
   breakpoint();

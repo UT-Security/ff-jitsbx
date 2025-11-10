@@ -6557,21 +6557,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
   masm.load8ZeroExtend(Address(pcReg, 0), scratch1);
 
   // Jump to table[op].
-#ifdef JS_SANDBOX
-  {
-    // scratch2 = &table[0]
-    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
-    if (!tableLabels_.append(label)) {
-      return false;
-    }
-    // pointer = table[opcode]
-    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
-    BaseIndex pointer(scratch2, scratch1, ScalePointer,
-                      js::jit::CodeAlignment / 4);
-    // jump *table[opcode]  ; Read the value and jump to it.
-    masm.branchToComputedAddress(pointer);
-  }
-#else
   {
     // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
@@ -6583,7 +6568,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
   }
-#endif
 
   // At the end of each op, emit code to bump the pc and jump to the
   // next op (this is also known as a threaded interpreter).
@@ -6618,19 +6602,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
     // Load the opcode, jump to table[op].
     masm.load8ZeroExtend(Address(InterpreterPCRegAtDispatch, 0), scratch1);
-#ifdef JS_SANDBOX
-    // scratch2 = &table[0]
-    CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
-    if (!tableLabels_.append(label)) {
-      return false;
-    }
-    // pointer = table[opcode]
-    masm.leal(Operand(scratch1, scratch1, TimesOne), scratch1);
-    BaseIndex pointer(scratch2, scratch1, ScalePointer,
-                      js::jit::CodeAlignment / 4);
-    // jump *table[opcode]  ; Read the value and jump to it.
-    masm.branchToComputedAddress(pointer);
-#else
     // scratch2 = &table[0]
     CodeOffset label = masm.moveNearAddressWithPatch(scratch2);
     if (!tableLabels_.append(label)) {
@@ -6640,7 +6611,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     BaseIndex pointer(scratch2, scratch1, ScalePointer);
     // jump *table[opcode]  ; Read the value and jump to it.
     masm.branchToComputedAddress(pointer);
-#endif
     return true;
   };
 
@@ -6703,21 +6673,6 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
 
   // Emit the table.
   masm.haltingAlign(sizeof(void*));
-#ifdef JS_SANDBOX
-  // Generate a table of jump instructions.
-  masm.haltingAlign(js::jit::CodeAlignment);
-  tableOffset_ = masm.currentOffset();
-
-  for (size_t i = 0; i < JSOP_LIMIT; i++) {
-    Label& opLabel = opLabels[i];
-    MOZ_ASSERT(opLabel.bound());
-    masm.haltingAlignOne(js::jit::CodeAlignment / 4);
-    CodeLabel cl;
-    masm.writeCodePointer(&cl);
-    cl.target()->bind(opLabel.offset());
-    masm.addCodeLabel(cl);
-  }
-#else
   // Generate a table of JIT code pointers.
 #if defined(JS_CODEGEN_ARM) || defined(JS_CODEGEN_ARM64)
   size_t numInstructions = JSOP_LIMIT * (sizeof(uintptr_t) / sizeof(uint32_t));
@@ -6730,11 +6685,13 @@ bool BaselineInterpreterGenerator::emitInterpreterLoop() {
     const Label& opLabel = opLabels[i];
     MOZ_ASSERT(opLabel.bound());
     CodeLabel cl;
+#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+    cl.setHltMasked(true);
+#endif
     masm.writeCodePointer(&cl);
     cl.target()->bind(opLabel.offset());
     masm.addCodeLabel(cl);
   }
-#endif
   return true;
 }
 

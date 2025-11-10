@@ -1565,7 +1565,17 @@ class AssemblerX86Shared : public AssemblerShared {
     if (label.patchAt().bound()) {
       intptr_t offset = label.patchAt().offset();
       intptr_t target = label.target().offset();
+#ifdef JS_SANDBOX_CFI_BUNDLE_MASKS
+      if (label.hltMasked()) {
+        uint8_t* maskedTarget =
+            (uint8_t*)((intptr_t)(raw + target) | 0xf400000000000000);
+        X86Encoding::SetPointer(raw + offset, maskedTarget);
+      } else {
+        X86Encoding::SetPointer(raw + offset, raw + target);
+      }
+#else
       X86Encoding::SetPointer(raw + offset, raw + target);
+#endif
     }
   }
 
