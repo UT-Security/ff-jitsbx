@@ -21,7 +21,7 @@ EXPORTS += [
 	"include/lfi_tux.h",
 ]
 
-USE_LIBS += ["boxmap", "cwalk", "mmap"]
+USE_LIBS += ["boxmap", "cwalk", "lfiv", "mmap"]
 
 OS_LIBS += [
     "rt",
